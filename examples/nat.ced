@@ -1,0 +1,24 @@
+S = λ n . λ s . λ z . n (s n z) .
+Z = λ s . λ z . z .
+
+nat ∷ ν Nat : ★ | S ∈ Nat → Nat , Z ∈ Nat , · . 
+        ι n : Nat . ∀ P : Nat → ★ . (∀ n : Nat . P n → P (S n)) → P Z → P n ⇐ ★ = 
+  nu u , u' . 
+   [ % kinding ctor set
+     [ % S
+       ● ,
+ 
+     [ % Z
+       ● ,
+
+       ✓ ]] ,
+  
+   [ % first typing ctor set
+     ● ,
+
+   [ % second typing ctor set
+     ● ,
+
+     % kinding the body
+     ● 
+   ]]].

@@ -1,0 +1,116 @@
+cedille
+
+Start
+
+start
+
+Syntactic
+
+Cmds : start -> ows cmds ows .
+CmdsStart : cmds -> cmd .
+CmdsNext : cmds -> cmd ws cmds .
+
+Tdefine : cmd -> var ows '=' ows term ows '.'.
+Edefine : cmd -> var ows class ows '=' ows evidence ows '.'.
+
+Tp : class -> '∷' ows term ows '⇐' ows type.
+Knd : class -> '∷' ows type ows '⇐' ows kind.
+Superknd : class -> '∷' ows kind '⇐' ows '□'.
+
+App : term -> term ws term .
+Var : term -> var .
+Lterm : term -> lterm.
+Lam : lterm -> 'λ' ows var ows '.' ows term .
+Paren : lterm -> '(' ows term ows ')' . 
+
+AbsTp1 : type -> ip ows var ows ':' ows type ows '.' ows type .
+AbsTp2 : type -> al ows var ows ':' ows tk ows '.' ows type .
+TpArrow : type -> ltype ows '→' ows type.
+Ltype : type -> ltype.
+Nu : type -> 'ν' ows var ows ':' ows kind ows '|' ows theta ows '.' ows type.
+
+Empty : theta -> '·'.
+Add : theta -> term ows '∈' ows type ows ',' ows theta .
+
+U : ltype -> '𝓤'.
+Lft : ltype -> '↑' ows liftingType ows '-' .
+TpParens : ltype -> '(' ows type ows ')'.
+TpApp : ltype -> ltype ws ltype.
+TpAppt : ltype -> ltype ws lterm.
+TpVar : ltype -> var.
+
+KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
+KndArrow : kind -> kind ows '→' ows kind .
+KndTpArrow : kind -> ltype ows '→' ows kind .
+Star : kind -> '★'.
+KndParens : kind -> '(' ows kind ows ')'.
+
+LiftStar : liftingType -> '☆'.
+LiftPi : liftingType -> 'π' ows var ows ':' ows type ows '.' ows liftingType .
+LiftArrow : liftingType -> liftingType ows '→' ows liftingType.
+LiftParens : liftingType -> '(' ows liftingType ows ')'.
+
+Iota : ip -> 'ι'.
+Pi : ip -> 'Π'.
+All : al -> '∀'.
+Lambda : al -> 'λ'.
+Tkt : tk -> type .
+Tkk : tk -> kind .
+
+Check : evidence -> '✓'.
+Cast : evidence -> 'cast' ws evidence ws 'by' ws evidence.
+Step : evidence -> 'step' ws evidence ws 'to' ws term .
+Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
+Elift : evidence -> 'lift' ws var ows ':' ows var ows '.' ows evidence.
+Pair : evidence -> '[' ows evidence ows ',' ows evidence ows ']'.
+Proj : evidence -> levidence ows '.' ows index.
+Enu : evidence -> 'nu' ws var ows ',' ows var ows '.' ows evidence .
+Levidence : evidence -> levidence.
+
+One : index -> '1'.
+Two : index -> '2'.
+
+Eapp : levidence -> levidence ws levidence .
+Eparens : levidence -> '(' ows evidence ows ')'.
+Ehole : levidence -> '●'.
+Evar : levidence -> var.
+Edefvar : levidence -> evar.
+
+EclassSome : opt_eclass -> ows ':' ows evidence .
+EclassNone : opt_eclass -> .
+
+Lexical
+
+varone -> ['a' - 'z'] | ['A' - 'Z'] | quote .
+
+var -> varone+ .
+
+evar -> esym var.
+
+esym => '𝑒'.
+
+anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' .
+
+comment => '%' anychar* '\n'.
+
+aws => ('\n' | '\t' | space | comment).
+ws => aws+.
+ows => aws* .
+
+Vars
+  b w x y z zz
+
+Rules
+  App(x,App(y,z)) -> App(App(x,y),z)
+  App(Lterm(Lam(x,y)), z) -> Lterm(Lam(x,App(y,z)))
+  App(App(w, Lterm(Lam(x,y))), z) -> App(w, Lterm(Lam(x,App(y, z))))
+  LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
+  LiftArrow(LiftPi(w,x,y),z) -> LiftPi(w,x,LiftArrow(y,z))
+
+  KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
+  KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
+  KndArrow(KndPi(w,x,y),z) -> KndPi(w,x,KndArrow(y,z))
+
+  TpApp(x,TpApp(y,z)) -> TpApp(TpApp(x,y),z)
+  TpApp(x,TpAppt(y,z)) -> TpAppt(TpApp(x,y),z)
+  Eapp(x,Eapp(y,z)) -> Eapp(Eapp(x,y),z)
