@@ -11,33 +11,17 @@ open parsem.pnoderiv cedille.rrs cedille.cedille-rtn
 open import run ptr
 open noderiv {- from run.agda -}
 
-data tpstate : Set where
-  mk-tpstate : string → -- output for the user
-
-               trie term → -- untyped term definitions
-
-               trie (term × type) → -- typed term definitions
-
-               trie (type × kind) → -- kinded type definitions
-
-               trie kind → -- kind definitions
-
-               tpstate
-
-add-typed-term-def : var → term → type → tpstate → tpstate
-add-typed-term-def v trm tp (mk-tpstate o d td yd kd) = (mk-tpstate o d (trie-insert td v (trm , tp)) yd kd)
-
-add-kinded-type-def : var → type → kind → tpstate → tpstate
-add-kinded-type-def v tp knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td (trie-insert yd v (tp , knd)) kd)
-
-add-kind-def : var → kind → tpstate → tpstate
-add-kind-def v knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td yd (trie-insert kd v knd))
+open import tpstate
+open import eq 
 
 check-term : tpstate → evidence → term → type → error-t ⊤  
 check-type : tpstate → evidence → type → kind → error-t ⊤  
 check-kind : tpstate → evidence → kind → error-t ⊤  
 check-term s ev trm tp = yes-error "check-term not implemented"
-check-type s ev tp knd = yes-error "check-type not implemented"
+check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' with eq-kind k k'
+check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' | tt = ?
+check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' | ff = ?
+
 check-kind s ev knd = yes-error "check-kind not implemented"
 
 process-cmd : cmd → tpstate → error-t tpstate

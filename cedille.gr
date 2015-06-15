@@ -39,11 +39,17 @@ TpApp : ltype -> ltype ws ltype.
 TpAppt : ltype -> ltype ws lterm.
 TpVar : ltype -> var.
 
+% We have to avoid ambiguity for var → kind, where var could be a type or kind variable.
+% To do this, we have to use some layers in the grammar.  KndTpArrow(TpVar(x),y) could
+% really be supposed to be KndArrow(KndVar(x),y).  This has to be determined semantically.
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
-KndArrow : kind -> kind ows '→' ows kind .
-KndTpArrow : kind -> ltype ows '→' ows kind .
-Star : kind -> '★'.
-KndParens : kind -> '(' ows kind ows ')'.
+Lkind : kind -> lkind.
+KndArrow : lkind -> bkind ows '→' ows lkind .
+KndTpArrow : lkind -> ltype ows '→' ows lkind .
+KndVar : lkind -> var .
+Bkind : lkind -> bkind .
+Star : bkind -> '★'.
+KndParens : bkind -> '(' ows kind ows ')'.
 
 LiftStar : liftingType -> '☆'.
 LiftPi : liftingType -> 'π' ows var ows ':' ows type ows '.' ows liftingType .
@@ -107,9 +113,9 @@ Rules
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftPi(w,x,y),z) -> LiftPi(w,x,LiftArrow(y,z))
 
-  KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
-  KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
-  KndArrow(KndPi(w,x,y),z) -> KndPi(w,x,KndArrow(y,z))
+%  KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
+%  KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
+%  KndArrow(KndPi(w,x,y),z) -> KndPi(w,x,KndArrow(y,z))
 
   TpApp(x,TpApp(y,z)) -> TpApp(TpApp(x,y),z)
   TpApp(x,TpAppt(y,z)) -> TpAppt(TpApp(x,y),z)
