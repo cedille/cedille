@@ -10,12 +10,16 @@ Cmds : start -> ows cmds ows .
 CmdsStart : cmds -> cmd .
 CmdsNext : cmds -> cmd ws cmds .
 
-Tdefine : cmd -> var ows '=' ows term ows '.'.
-Edefine : cmd -> var ows class ows '=' ows evidence ows '.'.
+DefCmd : cmd -> def ows '.' .
+Echeck : cmd -> class ows 'by' ows evidence ows '.'.
+Kcheck : cmd -> kind ows '⇐' ows '□' ows 'by' ows evidence ows '.'.
 
-Tp : class -> '∷' ows term ows '⇐' ows type.
-Knd : class -> '∷' ows type ows '⇐' ows kind.
-Superknd : class -> '∷' ows kind '⇐' ows '□'.
+Tdefine : def -> var ows '=' ows term.
+Edefine : def -> var ows '∷' ows class ows '=' ows evidence.
+Kdefine : def -> kvar ows '∷' ows kind ows '⇐' ows '□' ows '=' ows evidence.
+
+Tp : class -> term ows '⇐' ows type.
+Knd : class -> type ows '⇐' ows kind.
 
 App : term -> term ws term .
 Var : term -> var .
@@ -27,10 +31,10 @@ AbsTp1 : type -> ip ows var ows ':' ows type ows '.' ows type .
 AbsTp2 : type -> al ows var ows ':' ows tk ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 Ltype : type -> ltype.
-Nu : type -> 'ν' ows var ows ':' ows kind ows '|' ows theta ows '.' ows type.
+Nu : type -> 'ν' ows var ows ':' ows kind ows '|' ows ctorset ows '.' ows type.
 
-Empty : theta -> '·'.
-Add : theta -> term ows '∈' ows type ows ',' ows theta .
+Empty : ctorset -> '·'.
+Add : ctorset -> term ows '∈' ows type ows ',' ows ctorset .
 
 U : ltype -> '𝓤'.
 Lft : ltype -> '↑' ows liftingType ows '-' .
@@ -39,17 +43,12 @@ TpApp : ltype -> ltype ws ltype.
 TpAppt : ltype -> ltype ws lterm.
 TpVar : ltype -> var.
 
-% We have to avoid ambiguity for var → kind, where var could be a type or kind variable.
-% To do this, we have to use some layers in the grammar.  KndTpArrow(TpVar(x),y) could
-% really be supposed to be KndArrow(KndVar(x),y).  This has to be determined semantically.
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
-Lkind : kind -> lkind.
-KndArrow : lkind -> bkind ows '→' ows lkind .
-KndTpArrow : lkind -> ltype ows '→' ows lkind .
-KndVar : lkind -> var .
-Bkind : lkind -> bkind .
-Star : bkind -> '★'.
-KndParens : bkind -> '(' ows kind ows ')'.
+KndArrow : kind -> kind ows '→' ows kind .
+KndTpArrow : kind -> ltype ows '→' ows kind .
+Star : kind -> '★'.
+KndParens : kind -> '(' ows kind ows ')'.
+KndVar : kind -> kvar.
 
 LiftStar : liftingType -> '☆'.
 LiftPi : liftingType -> 'π' ows var ows ':' ows type ows '.' ows liftingType .
@@ -63,7 +62,6 @@ Lambda : al -> 'λ'.
 Tkt : tk -> type .
 Tkk : tk -> kind .
 
-Check : evidence -> '✓'.
 Cast : evidence -> 'cast' ws evidence ws 'by' ws evidence.
 Step : evidence -> 'step' ws evidence ws 'to' ws term .
 Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
@@ -78,9 +76,12 @@ Two : index -> '2'.
 
 Eapp : levidence -> levidence ws levidence .
 Eparens : levidence -> '(' ows evidence ows ')'.
-Ehole : levidence -> '●'.
+Earrow : levidence -> levidence ows '⇒' ows levidence.
+EholeNamed : levidence -> '●' var.
+Ehole : levidence -> '●' .
 Evar : levidence -> var.
 Edefvar : levidence -> evar.
+Check : levidence -> '✓'.
 
 EclassSome : opt_eclass -> ows ':' ows evidence .
 EclassNone : opt_eclass -> .
@@ -89,13 +90,15 @@ Lexical
 
 varone -> ['a' - 'z'] | ['A' - 'Z'] | quote .
 
+kvar -> '𝒌' var?.
+
 var -> varone+ .
 
 evar -> esym var.
 
 esym => '𝑒'.
 
-anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' .
+anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '𝒌' | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' .
 
 comment => '%' anychar* '\n'.
 
@@ -113,10 +116,14 @@ Rules
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftPi(w,x,y),z) -> LiftPi(w,x,LiftArrow(y,z))
 
-%  KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
-%  KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
-%  KndArrow(KndPi(w,x,y),z) -> KndPi(w,x,KndArrow(y,z))
+  KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
+  KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
+  KndArrow(KndPi(w,x,y),z) -> KndPi(w,x,KndArrow(y,z))
 
   TpApp(x,TpApp(y,z)) -> TpApp(TpApp(x,y),z)
   TpApp(x,TpAppt(y,z)) -> TpAppt(TpApp(x,y),z)
   Eapp(x,Eapp(y,z)) -> Eapp(Eapp(x,y),z)
+
+  Earrow(Earrow(x,y),z) -> Earrow(x,Earrow(y,z))
+  Eapp(Earrow(x,y),z) -> Earrow(x,Eapp(y,z))
+  Eapp(x,Earrow(y,z)) -> Earrow(Eapp(x,y),z)

@@ -12,23 +12,22 @@ open import run ptr
 open noderiv {- from run.agda -}
 
 open import tpstate
-open import eq 
+open import check
 
-check-term : tpstate → evidence → term → type → error-t ⊤  
-check-type : tpstate → evidence → type → kind → error-t ⊤  
-check-kind : tpstate → evidence → kind → error-t ⊤  
-check-term s ev trm tp = yes-error "check-term not implemented"
-check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' with eq-kind k k'
-check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' | tt = ?
-check-type s (Enu u u' (Pair e (Pair e' (Pair e'' e''')))) (Nu X k Θ T) k' | ff = ?
-
-check-kind s ev knd = yes-error "check-kind not implemented"
+process-def : def → tpstate → error-t tpstate
+process-def (Tdefine v t) (mk-tpstate o d td yd kd) = no-error (mk-tpstate o (trie-insert d v t) td yd kd)
+process-def (Edefine v (Tp trm tp) e) s = 
+  check-term s empty-evctxt e trm tp ≫=err λ m → no-error (add-msg m (add-typed-term-def v trm tp s))
+process-def (Edefine v (Knd tp knd) e) s with check-type s empty-evctxt e tp knd
+process-def (Edefine v (Knd tp knd) e) s | no-error m = no-error (add-msg m (add-kinded-type-def v tp knd s))
+process-def (Edefine v (Knd tp knd) e) s | yes-error msg = yes-error ("While checking the definition of " ^ v ^ ":\n" ^ msg)
+process-def (Kdefine v knd e) s = check-kind s empty-evctxt e knd ≫=err λ m → no-error (add-msg m (add-kind-def v knd s))
 
 process-cmd : cmd → tpstate → error-t tpstate
-process-cmd (Tdefine v t) (mk-tpstate o d td yd kd) = no-error (mk-tpstate o (trie-insert d v t) td yd kd)
-process-cmd (Edefine v (Tp trm tp) e) s = check-term s e trm tp ≫=err λ _ → no-error (add-typed-term-def v trm tp s)
-process-cmd (Edefine v (Knd tp knd) e) s = check-type s e tp knd ≫=err λ _ → no-error (add-kinded-type-def v tp knd s)
-process-cmd (Edefine v (Superknd knd) e) s = check-kind s e knd ≫=err λ _ → no-error (add-kind-def v knd s)
+process-cmd (DefCmd d) s = process-def d s
+process-cmd (Echeck (Tp trm tp) e) s = check-term s empty-evctxt e trm tp ≫=err λ m → no-error (add-msg m s)
+process-cmd (Echeck (Knd tp knd) e) s = check-type s empty-evctxt e tp knd ≫=err λ m → no-error (add-msg m s)
+process-cmd (Kcheck k e) s = check-kind s empty-evctxt e k ≫=err λ m → no-error (add-msg m s)
 
 process-cmds : cmds → tpstate → error-t tpstate
 process-cmds (CmdsStart c) s = process-cmd c s
@@ -47,21 +46,20 @@ putStrRunIf : 𝔹 → Run → IO ⊤
 putStrRunIf tt r = putStr (Run-to-string r) >> putStr "\n"
 putStrRunIf ff r = return triv
 
-processArgs : (showRun : 𝔹) → (showParsed : 𝔹) → 𝕃 string → IO ⊤ 
-processArgs showRun showParsed (input-filename :: []) = (readFiniteFile input-filename) >>= processText
+processArgs : (showParsed : 𝔹) → 𝕃 string → IO ⊤ 
+processArgs showParsed (input-filename :: []) = (readFiniteFile input-filename) >>= processText
   where processText : string → IO ⊤
         processText x with runRtn (string-to-𝕃char x)
         processText x | s with s
         processText x | s | inj₁ cs = putStr "Characters left before failure : " >> putStr (𝕃char-to-string cs) >> putStr "\nCannot proceed to parsing.\n"
-        processText x | s | inj₂ r with putStrRunIf showRun r | rewriteRun r
-        processText x | s | inj₂ r | sr | r' with putStrRunIf showParsed r'
-        processText x | s | inj₂ r | sr | r' | sr' = sr >> sr' >> putStr (process r')
+        processText x | s | inj₂ r with rewriteRun r
+        processText x | s | inj₂ r | r' with putStrRunIf showParsed r'
+        processText x | s | inj₂ r | r' | sr' = sr' >> putStr (process r')
                                      
-processArgs showRun showParsed ("--showRun" :: xs) = processArgs tt showParsed xs 
-processArgs showRun showParsed ("--showParsed" :: xs) = processArgs showRun tt xs 
-processArgs showRun showParsed (x :: xs) = putStr ("Unknown option " ^ x ^ "\n")
-processArgs showRun showParsed [] = putStr "Please run with the name of a file to process.\n"
+processArgs showParsed ("--showParsed" :: xs) = processArgs tt xs 
+processArgs showParsed (x :: xs) = putStr ("Unknown option " ^ x ^ "\n")
+processArgs showParsed [] = putStr "Please run with the name of a file to process.\n"
 
 main : IO ⊤
-main = getArgs >>= processArgs ff ff
+main = getArgs >>= processArgs ff 
 

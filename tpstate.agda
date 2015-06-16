@@ -25,3 +25,12 @@ add-kinded-type-def v tp knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td (tri
 add-kind-def : var → kind → tpstate → tpstate
 add-kind-def v knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td yd (trie-insert kd v knd))
 
+add-msg : string → tpstate → tpstate
+add-msg m (mk-tpstate o d td yd kd) = mk-tpstate (o ^ m) d td yd kd
+
+-- is the given string in the domain of any of the mappings in the typestate
+in-dom-tpstate : tpstate → string → 𝔹
+in-dom-tpstate (mk-tpstate _ d td yd kd) v = trie-contains d v || trie-contains td v || trie-contains yd v || trie-contains kd v
+
+lookup-kind-var : tpstate → var → maybe kind
+lookup-kind-var (mk-tpstate _ _ _ _ kd) v = trie-lookup kd v
