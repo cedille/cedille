@@ -1,7 +1,11 @@
+-- global type state, which is updated as we process definitions
+
 module tpstate where
 
 open import lib
 open import cedille-types
+open import rename
+open import syntax-util
 
 data tpstate : Set where
   mk-tpstate : string → -- output for the user
@@ -15,6 +19,9 @@ data tpstate : Set where
                trie kind → -- kind definitions
 
                tpstate
+
+add-untyped-term-def : var → term → tpstate → tpstate
+add-untyped-term-def v trm (mk-tpstate o d td yd kd) = (mk-tpstate o (trie-insert d v trm) td yd kd)
 
 add-typed-term-def : var → term → type → tpstate → tpstate
 add-typed-term-def v trm tp (mk-tpstate o d td yd kd) = (mk-tpstate o d (trie-insert td v (trm , tp)) yd kd)
@@ -34,3 +41,99 @@ in-dom-tpstate (mk-tpstate _ d td yd kd) v = trie-contains d v || trie-contains 
 
 lookup-kind-var : tpstate → var → maybe kind
 lookup-kind-var (mk-tpstate _ _ _ _ kd) v = trie-lookup kd v
+
+lookup-type-var : tpstate → var → maybe type
+lookup-type-var (mk-tpstate _ _ _ yd _) v with trie-lookup yd v
+lookup-type-var (mk-tpstate _ _ _ yd _) v | nothing = nothing
+lookup-type-var (mk-tpstate _ _ _ yd _) v | just (tp , knd) = just tp
+
+lookup-untyped-var : tpstate → var → maybe term
+lookup-untyped-var (mk-tpstate _ d _ _ _) x = trie-lookup d x
+
+-- untyped or typed
+lookup-term-var : tpstate → var → maybe term
+lookup-term-var s x with lookup-untyped-var s x 
+lookup-term-var (mk-tpstate _ d td _ _) x | nothing with trie-lookup td x
+lookup-term-var (mk-tpstate _ d td _ _) x | nothing | nothing = nothing
+lookup-term-var (mk-tpstate _ d td _ _) x | nothing | just (trm , _) = just trm
+lookup-term-var (mk-tpstate _ d td _ _) x | just trm = just trm
+
+tpstate-fresh-var : tpstate → (var → 𝔹) → string → renamectxt → string
+tpstate-fresh-var s b v r = fresh-var v (λ x → b x || in-dom-tpstate s x) r
+
+-- return tt iff the given var is defined at any level
+is-defined : tpstate → var → 𝔹
+is-defined (mk-tpstate _ d td yd kd) x = trie-contains d x || trie-contains td x || trie-contains yd x || trie-contains kd x
+
+data evclass : Set where
+  term-type : term → type → evclass
+  type-kind : type → kind → evclass
+  ev-ctorset : ctorset → evclass
+
+-- local evidence context
+evctxt : Set
+evctxt = 𝕃 string × trie evclass
+
+empty-evctxt : evctxt
+empty-evctxt = [] , empty-trie
+
+evctxt-insert : evctxt → string → evclass → evctxt
+evctxt-insert (l , d) x c = (if trie-contains d x then l else x :: l) , trie-insert d x c
+
+evctxt-lookup : evctxt → string → maybe evclass
+evctxt-lookup (l , d) x = trie-lookup d x
+
+evctxt-insert-tk : evctxt → string → string → tk → evctxt
+evctxt-insert-tk Δ u x (Tkk k) = evctxt-insert Δ u (type-kind (TpVar x) k)
+evctxt-insert-tk Δ u x (Tkt tp) = evctxt-insert Δ u (term-type (Var x) tp)
+
+evctxt-insert-kinding : evctxt → string → type → kind → evctxt
+evctxt-insert-kinding Δ u t k = evctxt-insert Δ u (type-kind t k)
+
+evctxt-insert-typing : evctxt → string → term → type → evctxt
+evctxt-insert-typing Δ u trm tp = evctxt-insert Δ u (term-type trm tp)
+
+evctxt-insert-ctorset : evctxt → string → ctorset → evctxt
+evctxt-insert-ctorset Δ u Θ = evctxt-insert Δ u (ev-ctorset Θ)
+
+evclass-to-string : evclass → string
+evclass-to-string (term-type trm tp) = term-to-string trm ^ " : " ^ type-to-string tp
+evclass-to-string (type-kind tp knd) = type-to-string tp ^ " : " ^ kind-to-string knd
+evclass-to-string (ev-ctorset Θ) = ctorset-to-string Θ
+
+evctxt-to-string : evctxt → string
+evctxt-to-string (l , d) = h (reverse l)
+  where h : 𝕃 string → string
+        h [] = "·"
+        h (x :: l) with trie-lookup d x 
+        h (x :: l) | nothing = "internal-error"
+        h (x :: l) | just c =  x ^ " ∷ " ^ evclass-to-string c ^ " , " ^ h l
+
+{- during type checking, we need to keep track of which term and type
+   variables are bound.  Normally, this would be handled by the typing
+   context, but here our evctxt will not do that. -}
+
+bctxt : Set
+bctxt = stringset
+
+bctxt-add : bctxt → string → bctxt
+bctxt-add = stringset-insert
+
+bctxt-contains : bctxt → string → 𝔹
+bctxt-contains b x = stringset-contains b x
+
+empty-bctxt : bctxt
+empty-bctxt = empty-trie
+
+rename-pred : tpstate → bctxt → var → 𝔹
+rename-pred s b v = is-defined s v || bctxt-contains b v
+
+ctxt : Set
+ctxt = evctxt × bctxt × renamectxt
+
+empty-ctxt : ctxt
+empty-ctxt = empty-evctxt , empty-bctxt , empty-renamectxt
+
+show-evctxt-if : showCtxt → ctxt → string
+show-evctxt-if showCtxtNo _ = ""
+show-evctxt-if showCtxtYes (Δ , b , r) = evctxt-to-string Δ ^ " ⊢ "

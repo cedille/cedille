@@ -23,14 +23,14 @@ Knd : class -> type ows '⇐' ows kind.
 
 App : term -> term ws term .
 Var : term -> var .
-Lterm : term -> lterm.
+embed : term -> lterm.
 Lam : lterm -> 'λ' ows var ows '.' ows term .
-Paren : lterm -> '(' ows term ows ')' . 
+Parens : lterm -> '(' ows term ows ')' . 
 
 AbsTp1 : type -> ip ows var ows ':' ows type ows '.' ows type .
 AbsTp2 : type -> al ows var ows ':' ows tk ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
-Ltype : type -> ltype.
+embed : type -> ltype.
 Nu : type -> 'ν' ows var ows ':' ows kind ows '|' ows ctorset ows '.' ows type.
 
 Empty : ctorset -> '·'.
@@ -62,26 +62,32 @@ Lambda : al -> 'λ'.
 Tkt : tk -> type .
 Tkk : tk -> kind .
 
-Cast : evidence -> 'cast' ws evidence ws 'by' ws evidence.
-Step : evidence -> 'step' ws evidence ws 'to' ws term .
+Cast : evidence -> 'χ' ws evidence ws '-' ws evidence.
 Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
-Elift : evidence -> 'lift' ws var ows ':' ows var ows '.' ows evidence.
+Elift : evidence -> '↑' ws var ows ':' ows var ows '.' ows evidence.
 Pair : evidence -> '[' ows evidence ows ',' ows evidence ows ']'.
-Proj : evidence -> levidence ows '.' ows index.
-Enu : evidence -> 'nu' ws var ows ',' ows var ows '.' ows evidence .
-Levidence : evidence -> levidence.
+Enu : evidence -> 'ν' ws var ows ',' ows var ows '.' ows evidence .
+Ctor : evidence -> 'ζ' ws evidence ows ':' ows type .
+embed : evidence -> levidence.
+Elet : evidence -> 'δ' ws def ws '-' evidence.
 
 One : index -> '1'.
 Two : index -> '2'.
 
 Eapp : levidence -> levidence ws levidence .
+Eappt : levidence -> '{' ows levidence ws term ows '}'.
+Eappk : levidence -> '〈' ows levidence ws type ows '〉'.
+Proj : levidence -> levidence ows '.' ows index.
 Eparens : levidence -> '(' ows evidence ows ')'.
 Earrow : levidence -> levidence ows '⇒' ows levidence.
-EholeNamed : levidence -> '●' var.
-Ehole : levidence -> '●' .
+EholeNamed : levidence -> '●' showCtxt var.
+Ehole : levidence -> '●' showCtxt.
+Beta : levidence -> 'β' .
 Evar : levidence -> var.
-Edefvar : levidence -> evar.
 Check : levidence -> '✓'.
+
+showCtxtYes : showCtxt -> '!' .
+showCtxtNo : showCtxt -> .
 
 EclassSome : opt_eclass -> ows ':' ows evidence .
 EclassNone : opt_eclass -> .
@@ -94,11 +100,10 @@ kvar -> '𝒌' var?.
 
 var -> varone+ .
 
-evar -> esym var.
+%evar -> esym var | esym kvar.
+%esym => '𝑒'.
 
-esym => '𝑒'.
-
-anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '𝒌' | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' .
+anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '𝒌' | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '-' | '{' | '}' | '⇒'.
 
 comment => '%' anychar* '\n'.
 
@@ -111,8 +116,8 @@ Vars
 
 Rules
   App(x,App(y,z)) -> App(App(x,y),z)
-  App(Lterm(Lam(x,y)), z) -> Lterm(Lam(x,App(y,z)))
-  App(App(w, Lterm(Lam(x,y))), z) -> App(w, Lterm(Lam(x,App(y, z))))
+  App(Lam(x,y), z) -> Lam(x,App(y,z))
+  App(App(w, Lam(x,y)), z) -> App(w, Lam(x,App(y, z)))
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftPi(w,x,y),z) -> LiftPi(w,x,LiftArrow(y,z))
 
@@ -127,3 +132,8 @@ Rules
   Earrow(Earrow(x,y),z) -> Earrow(x,Earrow(y,z))
   Eapp(Earrow(x,y),z) -> Earrow(x,Eapp(y,z))
   Eapp(x,Earrow(y,z)) -> Earrow(Eapp(x,y),z)
+
+  Proj(Earrow(x,y),z) -> Earrow(x,Proj(y,z))
+  Proj(Eapp(x,y),z) -> Eapp(x,Proj(y,z))
+
+

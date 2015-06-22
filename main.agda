@@ -14,20 +14,11 @@ open noderiv {- from run.agda -}
 open import tpstate
 open import check
 
-process-def : def → tpstate → error-t tpstate
-process-def (Tdefine v t) (mk-tpstate o d td yd kd) = no-error (mk-tpstate o (trie-insert d v t) td yd kd)
-process-def (Edefine v (Tp trm tp) e) s = 
-  check-term s empty-evctxt e trm tp ≫=err λ m → no-error (add-msg m (add-typed-term-def v trm tp s))
-process-def (Edefine v (Knd tp knd) e) s with check-type s empty-evctxt e tp knd
-process-def (Edefine v (Knd tp knd) e) s | no-error m = no-error (add-msg m (add-kinded-type-def v tp knd s))
-process-def (Edefine v (Knd tp knd) e) s | yes-error msg = yes-error ("While checking the definition of " ^ v ^ ":\n" ^ msg)
-process-def (Kdefine v knd e) s = check-kind s empty-evctxt e knd ≫=err λ m → no-error (add-msg m (add-kind-def v knd s))
-
 process-cmd : cmd → tpstate → error-t tpstate
-process-cmd (DefCmd d) s = process-def d s
-process-cmd (Echeck (Tp trm tp) e) s = check-term s empty-evctxt e trm tp ≫=err λ m → no-error (add-msg m s)
-process-cmd (Echeck (Knd tp knd) e) s = check-type s empty-evctxt e tp knd ≫=err λ m → no-error (add-msg m s)
-process-cmd (Kcheck k e) s = check-kind s empty-evctxt e k ≫=err λ m → no-error (add-msg m s)
+process-cmd (DefCmd d) s = check-def s d
+process-cmd (Echeck (Tp trm tp) e) s = check-term s empty-ctxt e trm tp ≫=err λ m → no-error (add-msg m s)
+process-cmd (Echeck (Knd tp knd) e) s = check-type s empty-ctxt e tp knd ≫=err λ m → no-error (add-msg m s)
+process-cmd (Kcheck k e) s = check-kind s empty-ctxt e k ≫=err λ m → no-error (add-msg m s)
 
 process-cmds : cmds → tpstate → error-t tpstate
 process-cmds (CmdsStart c) s = process-cmd c s

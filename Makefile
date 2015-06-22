@@ -1,4 +1,4 @@
-main: main.agda cedille-main.agda
+main: main.agda check.agda syntax-util.agda rename.agda cedille-main.agda defeq.agda subst.agda conversion.agda
 	agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts -c main.agda 
 
 cedille-main: cedille-main.agda

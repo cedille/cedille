@@ -2,7 +2,6 @@ module rename where
 
 open import lib
 
-{- map variable names to variable names, but make sure that if we map x to y, we also map y to x -}
 renamectxt : Set
 renamectxt = trie string
 
@@ -12,17 +11,21 @@ empty-renamectxt = empty-trie
 renamectxt-contains : renamectxt → string → 𝔹
 renamectxt-contains r s = trie-contains r s
 
-renamectxt-insert : renamectxt → string → string → renamectxt
-renamectxt-insert r s x = trie-insert r s x
+renamectxt-insert : renamectxt → (s1 s2 : string) → renamectxt
+renamectxt-insert r s x with s =string x
+renamectxt-insert r s x | tt = r
+renamectxt-insert r s x | ff = trie-insert r s x
+
+renamectxt-lookup : renamectxt → string → maybe string
+renamectxt-lookup = trie-lookup 
+
+renamectxt-rep : renamectxt → string → string
+renamectxt-rep r x with renamectxt-lookup r x
+renamectxt-rep r x | nothing = x
+renamectxt-rep r x | just x' = x'
 
 eq-var : renamectxt → string → string → 𝔹
-eq-var r x y with x =string y
-eq-var r x y | tt = tt
-eq-var r x y | ff with trie-lookup r x
-eq-var r x y | ff | just x' = y =string x'
-eq-var r x y | ff | nothing with trie-lookup r y
-eq-var r x y | ff | nothing | just y' = x =string y'
-eq-var r x y | ff | nothing | nothing = ff
+eq-var r x y = renamectxt-rep r x =string renamectxt-rep r y
 
 pick-new-name : string → string
 pick-new-name x = x ^ "'"
