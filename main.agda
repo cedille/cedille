@@ -13,16 +13,35 @@ open noderiv {- from run.agda -}
 
 open import tpstate
 open import check
+open import syntax-util
 
 process-cmd : cmd → tpstate → error-t tpstate
 process-cmd (DefCmd d) s = check-def s d
-process-cmd (Echeck (Tp trm tp) e) s = check-term s empty-ctxt e trm tp ≫=err λ m → no-error (add-msg m s)
-process-cmd (Echeck (Knd tp knd) e) s = check-type s empty-ctxt e tp knd ≫=err λ m → no-error (add-msg m s)
+process-cmd (Echeck (Tp trm tp) e e') s = 
+ (check-type s empty-ctxt e' tp Star ≫check check-term s empty-ctxt e trm tp) ≫=err λ m → no-error (add-msg m s)
+process-cmd (Echeck (Knd tp knd) e e') s = 
+ (check-kind s empty-ctxt e' knd ≫check check-type s empty-ctxt e tp knd) ≫=err λ m → no-error (add-msg m s)
 process-cmd (Kcheck k e) s = check-kind s empty-ctxt e k ≫=err λ m → no-error (add-msg m s)
+process-cmd (Print x) s with lookup-var s x
+process-cmd (Print x) s | tpstate-superkinding k = no-error (add-msg (x ^ " ∷ " ^ kind-to-string k ^ " ⇐ □\n") s)
+process-cmd (Print x) s | tpstate-kinding tp k = no-error (add-msg (x ^ " ∷ " ^ type-to-string tp ^ " ⇐ " ^ kind-to-string k ^ "\n") s)
+process-cmd (Print x) s | tpstate-typing trm tp = no-error (add-msg (x ^ " ∷ " ^ term-to-string trm ^ " ⇐ " ^ type-to-string tp ^ "\n") s)
+process-cmd (Print x) s | tpstate-untyped trm = no-error (add-msg (x ^ " = " ^ term-to-string trm ^ "\n") s)
+process-cmd (Print x) s | tpstate-nothing = no-error (add-msg (x ^ " is undefined.\n") s)
+process-cmd (SynthTerm x t e) s with synth-term s empty-ctxt e t
+process-cmd (SynthTerm x t e) s | no-error (m , tp) = no-error (add-msg m (add-typed-term-def x t tp s))
+process-cmd (SynthTerm x t e) s | yes-error m = add-to-def-error x m 
+process-cmd (SynthType x t e) s with synth-type s empty-ctxt e t
+process-cmd (SynthType x t e) s | no-error (m , k) = no-error (add-msg m (add-kinded-type-def x t k s))
+process-cmd (SynthType x t e) s | yes-error m = add-to-def-error x m
+
 
 process-cmds : cmds → tpstate → error-t tpstate
 process-cmds (CmdsStart c) s = process-cmd c s
-process-cmds (CmdsNext c cs) s = process-cmd c s ≫=err process-cmds cs
+process-cmds (CmdsNext c cs) s with process-cmd c s
+process-cmds (CmdsNext c cs) s | no-error s' = process-cmds cs s'
+process-cmds (CmdsNext c cs) s | yes-error m = let m' = get-output-msg s in
+                                                 yes-error (m' ^ (newline-sep-if m' m) ^ m)
 
 process-start : start → string
 process-start (Cmds cs) with process-cmds cs (mk-tpstate "" empty-trie empty-trie empty-trie empty-trie)

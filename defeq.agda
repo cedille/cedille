@@ -74,3 +74,4 @@ eq-term-var s b r x (Parens t) | nothing = eq-term-var s b r x t
 
 -- unimplemented:
 eq-type s b r t t' = tt
+

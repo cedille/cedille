@@ -1,0 +1,78 @@
+formatti ∷ ∀ X : ★ . X → X → (X → X → X) → X ⇐ ★ =
+  ξ X : ✓ . X ⇒ X ⇒ (X ⇒ X ⇒ X) ⇒ X ⇐ ✓ . 
+
+iarg ∷ λ a . λ n . λ p . a ⇐ formatti =
+  ξ X . ξ a . β (ξ n . β (ξ p . β a)) ⇐ formatti.
+inone ∷ λ a . λ n . λ p . n ⇐ formatti = 
+  ξ X . ξ a . β (ξ n . β (ξ p . β n)) ⇐ formatti.
+iapp ∷ λ x . λ y .λ a . λ n . λ p . p (x a n p) (y a n p) ⇐ formatti → formatti → formatti = 
+  ξ x . β (ξ y . β (ξ X . ξ a . β (ξ n . β (ξ p . β (p (x 〈 X X 〉 a n p) (y 〈 X X 〉 a n p)))))) ⇐ formatti ⇒ formatti ⇒ formatti.
+
+bool ∷ ∀ X : ★ . X → X → X ⇐ ★ = ξ X : ✓ . X ⇒ X ⇒ X ⇐ ✓ .
+
+list ∷ λ A : ★ . ∀ X : ★ . (A → X → X) → X → X ⇐ ★ → ★ =
+  ξ A . ξ X : ✓ . (A ⇒ X ⇒ X) ⇒ X ⇒ X
+  ⇐ ✓ ⇒ ✓ .
+
+nil ∷ λ c . λ n . n ⇐ ∀ A : ★ . list · A =
+  ξ A . χ (ξ X . ξ c . β (ξ n . β n)) ⇐ β 
+  ⇐ ξ A : ✓ . list A . 
+cons ∷ λ a . λ l . λ c . λ n . c a l ⇐ ∀ A : ★ . A → list · A → list · A 
+  = ξ A . ξ a . β (ξ l . β (χ (ξ X . ξ c . β (ξ n. β (c a l))) ⇐ β)) ⇐ ξ A : ✓ . A ⇒ list A ⇒ list A .
+
+append ∷ λ x . λ y . x cons y ⇐ ∀ A : ★ . list · A → list · A → list · A =
+  ξ A . ξ x . β (ξ y . β ((χ x ⇒ β) 〈 (list A) (list · A) 〉 (cons 〈 A A 〉) y)) ⇐ ξ A : ✓ . list A ⇒ list A ⇒ list A .
+
+bitstr ∷ list · bool ⇐ ★ = list bool ⇐ ✓ .
+
+bsingleton ∷ λ b . cons b nil ⇐ bool → bitstr =
+  ξ b . β (cons 〈 bool bool 〉 b nil) ⇐ bool ⇒ bitstr .
+
+formati ∷ λ i : formatti . 
+          ∀ X : formatti → ★ . 
+            (bool → X inone) → 
+            (X iarg) → 
+            (∀ a : formatti . ∀ b : formatti. X a → X b → X (iapp a b)) → 
+            (∀ a : formatti . ∀ b : formatti. X a → (X inone → X b) → X (iapp a b)) → 
+            (bitstr → X inone) → X i ⇐ formatti → ★ = 
+ξ i . ξ X : formatti ⇒ ✓ . 
+    (bool ⇒ (X inone)) ⇒ 
+    (X iarg) ⇒ 
+    (ξ a : formatti . ξ b : formatti . X a ⇒ X b ⇒ X (iapp a b)) ⇒ 
+    (ξ a : formatti . ξ b : formatti . X a ⇒ (X inone ⇒ X b) ⇒ X (iapp a b)) ⇒
+    (bitstr ⇒ X inone) ⇒ X i
+⇐ formatti ⇒ ✓ .
+  
+format-th ∷ 
+  λ i : formatti . ↑ X . i : ((X → X) → (X → X) → ((X → X) → (X → X) → (X → X)) → (X → X)) 
+                     · (λ r : ★ . (bool → r))
+                     · (λ r : ★ . r)
+                     · (λ f : ★ → ★ . λ g : ★ → ★ . λ r : ★ . f · (g · r))
+      ⇐ formatti → ★ → ★ = 
+ξ i . (ξ u . i) 
+      (ξ r . (bool ⇒ r))
+      (ξ r . r)
+      (ξ f . ξ g . ξ r . f (g r))
+⇐ formatti ⇒ ✓ ⇒ ✓ .
+
+formathr ∷ λ i : formatti . ∀ A : ★ . (bitstr → A) → format-th i · A ⇐ formatti → ★ 
+  = ξ i . ξ A : ✓ . (bitstr ⇒ A) ⇒ (format-th i A) ⇐ formatti ⇒ ✓  . 
+
+formath ∷
+  λ a . a (λ b . λ f . f (bsingleton b))
+          (λ f . λ b . f (bsingleton b))
+          (λ r . λ r' . λ f . r (λ s . r' (λ s' . f (append s s'))))
+          (λ r . λ r' . λ f . r (λ s . r' (λ f . f s) f))
+          (λ s . λ f . f s)
+⇐ ∀ i : formatti . formati i → formathr i =
+ξ i . ξ a . β 
+ ((χ a ⇒ β) 〈 formathr formathr 〉
+   (ξ b . β (χ (ξ A . ξ f . β (χ (f (bsingleton b)) ⇐ (β ✓ · β ✓ ✓ ✓ ✓ · β ✓ ✓ ✓ · β ✓ ✓ · β ✓ · β))) ⇐ β))
+   (χ (ξ A . ξ f . β (χ (ξ b . β (f (bsingleton b))) ⇐ (β ✓ · β ✓ ✓ ✓ ✓ · β ✓ ✓ ✓ · β ✓ ✓ · β ✓ · β))) ⇐ β)
+   (ξ a . ξ b . ξ r . β (ξ r' . β (χ (ξ A . ξ f . β 
+      (χ ● ⇐ (β ✓ · β ✓ ✓ ✓ ✓ · β ✓ ✓ ✓ · β ✓ ✓ · β ✓ · β ✓ ✓ · β ✓ · β
+))
+) ⇐ ((✓ (β ✓) · ✓ β) · β))))
+   ●
+   (ξ s . β (χ (ξ A . ξ f . β (χ (f s) ⇐ (β ✓ · β ✓ ✓ ✓ ✓ · β ✓ ✓ ✓ · β ✓ ✓ · β ✓ · β))) ⇐ β)))
+⇐ ξ i : formatti . formati i ⇒ formathr i .

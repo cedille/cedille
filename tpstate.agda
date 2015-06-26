@@ -35,6 +35,9 @@ add-kind-def v knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td yd (trie-inser
 add-msg : string → tpstate → tpstate
 add-msg m (mk-tpstate o d td yd kd) = mk-tpstate (o ^ m) d td yd kd
 
+get-output-msg : tpstate → string
+get-output-msg (mk-tpstate o _ _ _ _) = o
+
 -- is the given string in the domain of any of the mappings in the typestate
 in-dom-tpstate : tpstate → string → 𝔹
 in-dom-tpstate (mk-tpstate _ d td yd kd) v = trie-contains d v || trie-contains td v || trie-contains yd v || trie-contains kd v
@@ -47,6 +50,11 @@ lookup-type-var (mk-tpstate _ _ _ yd _) v with trie-lookup yd v
 lookup-type-var (mk-tpstate _ _ _ yd _) v | nothing = nothing
 lookup-type-var (mk-tpstate _ _ _ yd _) v | just (tp , knd) = just tp
 
+lookup-type-var-k : tpstate → var → maybe kind
+lookup-type-var-k (mk-tpstate _ _ _ yd _) v with trie-lookup yd v
+lookup-type-var-k (mk-tpstate _ _ _ yd _) v | nothing = nothing
+lookup-type-var-k (mk-tpstate _ _ _ yd _) v | just (tp , knd) = just knd
+
 lookup-untyped-var : tpstate → var → maybe term
 lookup-untyped-var (mk-tpstate _ d _ _ _) x = trie-lookup d x
 
@@ -57,6 +65,34 @@ lookup-term-var (mk-tpstate _ d td _ _) x | nothing with trie-lookup td x
 lookup-term-var (mk-tpstate _ d td _ _) x | nothing | nothing = nothing
 lookup-term-var (mk-tpstate _ d td _ _) x | nothing | just (trm , _) = just trm
 lookup-term-var (mk-tpstate _ d td _ _) x | just trm = just trm
+
+lookup-term-var-t : tpstate → var → maybe type
+lookup-term-var-t (mk-tpstate _ _ td _ _) x with trie-lookup td x
+lookup-term-var-t (mk-tpstate _ _ td _ _) x | nothing = nothing
+lookup-term-var-t (mk-tpstate _ _ td _ _) x | just (trm , tp) = just tp
+
+data tpstate-class : Set where
+  tpstate-typing : term → type → tpstate-class
+  tpstate-kinding : type → kind → tpstate-class
+  tpstate-untyped : term → tpstate-class
+  tpstate-superkinding : kind → tpstate-class
+  tpstate-nothing : tpstate-class
+
+lookup-var : tpstate → var → tpstate-class
+lookup-var (mk-tpstate _ d td yd kd) x with trie-lookup td x
+lookup-var (mk-tpstate _ d td yd kd) x | just (trm , tp) = tpstate-typing trm tp
+lookup-var (mk-tpstate _ d td yd kd) x | nothing with trie-lookup d x
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | just trm = tpstate-untyped trm
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing with trie-lookup yd x
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | just (tp , knd) = tpstate-kinding tp knd
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | nothing with trie-lookup kd x
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | nothing | just k = tpstate-superkinding k
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | nothing | nothing = tpstate-nothing
+
+is-term-var : tpstate → var → 𝔹
+is-term-var s v with lookup-term-var s v
+is-term-var s v | nothing = ff
+is-term-var s v | just _ = tt
 
 tpstate-fresh-var : tpstate → (var → 𝔹) → string → renamectxt → string
 tpstate-fresh-var s b v r = fresh-var v (λ x → b x || in-dom-tpstate s x) r
@@ -137,3 +173,7 @@ empty-ctxt = empty-evctxt , empty-bctxt , empty-renamectxt
 show-evctxt-if : showCtxt → ctxt → string
 show-evctxt-if showCtxtNo _ = ""
 show-evctxt-if showCtxtYes (Δ , b , r) = evctxt-to-string Δ ^ " ⊢ "
+
+rename-away : tpstate → bctxt → renamectxt → var → var
+rename-away s b r x = rename-away-from x (rename-pred s b) r
+

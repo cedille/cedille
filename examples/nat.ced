@@ -1,25 +1,28 @@
 S = λ n . λ s . λ z . s (n s z) .
 Z = λ s . λ z . z .
 
-nat ∷ ν Nat : ★ | S ∈ Nat → Nat , Z ∈ Nat , · . 
+Nat ∷ ν Nat : ★ | S ∈ Nat → Nat , Z ∈ Nat , · . 
         ι x : Nat . ∀ P : Nat → ★ . (∀ n : Nat . P n → P (S n)) → P Z → P x ⇐ ★ = 
   ν u , u' . 
    [ % kinding ctor set
-     [ % S
-       u ⇒ u ,
- 
-     [ % Z
-       u ,
-
-       ✓ ]] ,
+     [ u ⇒ u , [ u , ✓ ]] ,
   
-   [ % first typing of the ctor set
+     % first typing of the ctor set
      [ ξ n . β ✓ , [ ✓ , ✓ ]] ,
 
-   [ % second typing of the ctor set
+     % second typing of the ctor set
      [ ξ n . [ u' n.1 , β (ξ P . ξ s . β (ξ z . β (s {n.1 n} (n.2 〈 P P 〉 s z))))] , 
              [ [ u' , ξ P . ξ s . β ( ξ z . β z) ] , ✓ ]] ,
 
      % kinding the body
-     ξ x : u . ξ P : u ⇒ ✓ . (ξ n : u . P n ⇒ ●) ⇒ P u' ⇒ P ●
-   ]]].
+     ξ x : u . ξ P : u ⇒ ✓ . (ξ n : u . P n ⇒ P (u' n)) ⇒ P u' ⇒ P x
+   ]
+⇐ ✓.
+
+S ∷ S = ζ Nat . 
+
+Z ∷ Z = ζ Nat .
+
+add ∷ λ n . λ m . n S m ⇐ Nat → Nat → Nat = 
+ ξ n. β (ξ m. β (((χ n ⇒ β ).2 〈 (ξ n . Nat) λ n : Nat . Nat 〉) (ξ i . χ S ⇐ β ⇒ β) m))
+ ⇐ (Nat ⇒ Nat ⇒ Nat) .
