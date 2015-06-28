@@ -19,6 +19,9 @@ renamectxt-insert r s x | ff = trie-insert r s x
 renamectxt-lookup : renamectxt → string → maybe string
 renamectxt-lookup = trie-lookup 
 
+renamectxt-remove : renamectxt → string → renamectxt
+renamectxt-remove = trie-remove
+
 renamectxt-rep : renamectxt → string → string
 renamectxt-rep r x with renamectxt-lookup r x
 renamectxt-rep r x | nothing = x

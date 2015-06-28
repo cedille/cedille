@@ -177,3 +177,5 @@ show-evctxt-if showCtxtYes (Δ , b , r) = evctxt-to-string Δ ^ " ⊢ "
 rename-away : tpstate → bctxt → renamectxt → var → var
 rename-away s b r x = rename-away-from x (rename-pred s b) r
 
+rename-away' : tpstate → (var → 𝔹) → renamectxt → var → var
+rename-away' s b r x = rename-away-from x (λ v → is-defined s v || b v) r

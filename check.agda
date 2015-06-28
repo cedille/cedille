@@ -199,11 +199,14 @@ synth-type s (Δ , b , r) (Eapp e e') (TpAppt t t') = synth-type s (Δ , b , r) 
                        ^ "1. the first part of the application: " ^ type-to-string t ^ "\n"
                        ^ "2. the synthesized kind: " ^ kind-to-string k)
 
-synth-type s (Δ , b , r) (Xi u EclassNone e) (Lft x trm ltp) =
-  let x' = rename-away s b r x in
-    check-term s (evctxt-insert-kinding Δ u (TpVar x) Star , bctxt-add b x' , renamectxt-insert r x x')
-       e trm (lift-liftingType ltp) ≫checksynth
-    no-error ("" , lift-to-kind ltp)
+synth-type s (Δ , b , r) (Elift u e e') (Lft x trm ltp) = 
+  let x' : var
+      x' = rename-away s b r x in
+  let tp : type
+      tp = lift-liftingType ltp in
+  let Γ' : ctxt
+      Γ' = (evctxt-insert-kinding Δ u (TpVar x) Star , bctxt-add b x' , renamectxt-insert r x x') in
+    (check-type s Γ' e' tp Star ≫check check-term s Γ' e trm tp) ≫checksynth no-error ("" , lift-to-kind ltp)
 
 synth-type s Γ e t = 
   yes-error ("We have no matching case for synthesizing a kind for the given type, with the given evidence.\n"
@@ -404,11 +407,6 @@ check-term s (Δ , b , r) (Xi u EclassNone e) t (AbsTp2 All x a tp) =
   let x' = rename-away-from x (λ x → rename-pred s b x || list-any (_=string_ x) fvs) r in
    check-term s (evctxt-insert-tk Δ u x' a , bctxt-add b x' , renamectxt-insert r x x') e t tp
 
-{- only untyped defined variables need to be handled here, as bound and/or typed ones will be handled in synth-term.
-   Here we are basically just unfolding untyped definitions. -}
-check-term s (Δ , b , r) e (Var x) tp with lookup-untyped-var s (renamectxt-rep r x)
-check-term s (Δ , b , r) e (Var x) tp | nothing = try-synth-term s (Δ , b , r) e (Var x) tp
-check-term s (Δ , b , r) e (Var x) tp | just trm = check-term s (Δ , b , r) e trm tp
 check-term s Γ (Cast e checkCast e') t tp with synth-conversion-type s Γ e' tp 
 check-term s Γ (Cast e checkCast e') t tp | nothing , m = 
  yes-error (m ^ (newline-sep-if m "a") ^ "We could not convert the given type with the given evidence, while checking a cast-term.\n"
@@ -417,13 +415,19 @@ check-term s Γ (Cast e checkCast e') t tp | nothing , m =
           ^ "3. " ^ synth-term-errstr t)
 check-term s Γ (Cast e checkCast e') t tp | just tp' , m = no-error m ≫check check-term s Γ e t tp'
 
+{- only untyped defined variables need to be handled here, as bound and/or typed ones will be handled in synth-term.
+   Here we are basically just unfolding untyped definitions. -}
+check-term s (Δ , b , r) e (Var x) tp with lookup-untyped-var s (renamectxt-rep r x)
+check-term s (Δ , b , r) e (Var x) tp | nothing = try-synth-term s (Δ , b , r) e (Var x) tp
+check-term s (Δ , b , r) e (Var x) tp | just trm = check-term s (Δ , b , r) e trm tp
+
 check-term s Γ (Evar u) trm tp = try-synth-term s Γ (Evar u) trm tp
 check-term s Γ e (App t1 t2) tp = try-synth-term s Γ e (App t1 t2) tp
 check-term s Γ (Ctora x) trm tp = try-synth-term s Γ (Ctora x) trm tp
 
-check-term s Γ e t (TpVar x) with lookup-type-var s x
-check-term s Γ e t (TpVar x) | just tp = check-term s Γ e t tp
-check-term s Γ e t (TpVar x) | nothing = 
+check-term s (Δ , b , r) e t (TpVar x) with lookup-type-var s (renamectxt-rep r x)
+check-term s  (Δ , b , r) e t (TpVar x) | just tp = check-term s (Δ , b , r) e t tp
+check-term s  (Δ , b , r) e t (TpVar x) | nothing = 
   yes-error ("We have no matching case for checking the given term against the given type variable, with the given evidence.\n"
             ^ "1. the term: " ^ term-to-string t ^ "\n"
             ^ "2. the type variable: " ^ x)
@@ -552,7 +556,20 @@ check-kind s Γ (EholeNamed c n) k = no-error (show-evctxt-if c Γ ^ n ^ " ∷ "
 check-kind s Γ e (KndParens k) = check-kind s Γ e k
 check-kind s Γ (Elet d e') k = check-defh s Γ d ≫=err λ s' → check-kind s' Γ e' k
 check-kind s Γ (Eparens e) k = check-kind s Γ e k 
-
+check-kind s Γ e (KndVar v) with lookup-kind-var s v
+check-kind s Γ e (KndVar v) | nothing = 
+  yes-error ("We encountered an undefined kind variable.\n1. the kind variable: " ^ v)
+check-kind s Γ e (KndVar v) | just k = check-kind s Γ e k
+check-kind s Γ (Evar u) k with lookup-kind-var s u
+check-kind s Γ (Evar u) k | nothing =
+  yes-error ("We encountered an undefined evidence variable while checking a kind.\n"
+           ^ "1. the evidence variable: " ^ u ^ "\n"
+           ^ "2. the kind: " ^ kind-to-string k)
+check-kind s (Δ , b , r) (Evar u) k | just k' = 
+  if eq-kind s (bctxt-contains b) r k k' then (no-error "")
+  else (yes-error ("The defined evidence variable does not prove the required superkinding.\n"
+                 ^ "1. the evidence variable: " ^ u ^ " ∷ " ^ kind-to-string k' ^ " ⇐ □\n"
+                 ^ "2. the kind to check: " ^ kind-to-string k))
 check-kind s (Δ , b , r) (Xi u (EclassSome e) e') (KndPi x a k) = 
   let x' = rename-away s b r x in
     check-tk s (Δ , b , r) e a ≫check check-kind s (evctxt-insert-tk Δ u x' a , bctxt-add b x' , renamectxt-insert r x x') e' k
@@ -566,13 +583,6 @@ check-kind s Γ (Earrow l l') (KndTpArrow t k') = check-type s Γ l t Star ≫ch
 check-kind s Γ e (KndTpArrow t k') = evwrong-kind e (KndTpArrow t k')
 check-kind s Γ Check Star = no-error ""
 check-kind s Γ e Star = evwrong-kind e Star
-check-kind s Γ (Evar u) (KndVar v) with u =string v 
-check-kind s Γ (Evar u) (KndVar v) | tt = no-error ""
-check-kind s Γ (Evar u) (KndVar v) | ff = 
-  yes-error ("The defined evidence symbol does not prove the required superkinding.\n"
-           ^ "1. the evidence variable: " ^ u ^ "\n"
-           ^ "2. the kind variable to check: " ^ v)
-check-kind s Γ e (KndVar v) = evwrong-kind e (KndVar v)
 
 check-tk s Γ e (Tkk k) = check-kind s Γ e k
 check-tk s Γ e (Tkt t) = check-type s Γ e t Star

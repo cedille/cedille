@@ -9,14 +9,24 @@ open import syntax-util
 open import subst
 open import tpstate
 
-do-lifth-wrap : renamectxt → bctxt → 𝕃 (var × liftingType) → var → term → 𝕃 term → liftingType → type
-do-lifth-wrap r b vls x h args ltp = 
+{- lambda-bind the variables around an application of the term to the arguments (list of terms),
+   but eta-contracting as we go where possible. -}
+eta-spine-app : bctxt → renamectxt → 𝕃 var → term → 𝕃 term → term
+eta-spine-app b r [] h [] = h
+eta-spine-app b r [] h (arg :: args) = app-spine h (arg :: args)
+eta-spine-app b r (v :: vs) h (Var v' :: args) = 
+  if eq-var r v v' then eta-spine-app b r vs h args
+  else (Lam v (App (eta-spine-app b r vs h args) (Var v')))
+eta-spine-app b r (v :: vs) h (arg :: args) = Lam v (App (eta-spine-app b r vs h args) arg)
+eta-spine-app b r (v :: vs) h [] = lambdas (v :: vs) h
+
+do-lifth-wrap : bctxt → renamectxt → 𝕃 (var × liftingType) → var → term → 𝕃 term → liftingType → type
+do-lifth-wrap b r vls x h args ltp = 
   let vls = reverse vls in 
   let vs = map fst vls in
   let tps = map snd vls in
     rename-type r (bctxt-contains b)
-     (type-app-spine (Lft x (lambdas vs (app-spine h args)) (lift-arrows tps ltp)) (map TpVar vs))
-
+     (type-app-spine (Lft x (eta-spine-app b r vs h args) (lift-arrows tps ltp)) (map TpVar vs))
 
 {-# NO_TERMINATION_CHECK #-}
 do-lifth : tpstate → bctxt → renamectxt → (trie liftingType) → (𝕃 (var × liftingType)) →  
@@ -42,10 +52,10 @@ do-lifth s b r θ vls x (App t1 t2) ltp =
 do-lifth s b r θ vls x trm ltp = TpVar "internal-error-should-not-happen"
 
 do-lifth-spine s b r θ vls x (Var y) args ltp with trie-lookup θ (renamectxt-rep r y)
-do-lifth-spine s b r θ vls x (Var y) args ltp | nothing = do-lifth-wrap r b vls x (Var y) args ltp
+do-lifth-spine s b r θ vls x (Var y) args ltp | nothing = do-lifth-wrap b r vls x (Var y) args ltp
 do-lifth-spine s b r θ vls x (Var y) args ltp | just ltp' = 
   do-lifth-spine-apply s b r θ vls x (TpVar (renamectxt-rep r y)) ltp' args
-do-lifth-spine s b r θ vls x t args ltp = do-lifth-wrap r b vls x t args ltp
+do-lifth-spine s b r θ vls x t args ltp = do-lifth-wrap b r vls x t args ltp
 
 do-lifth-spine-apply s b r θ vls x h ltp [] = h 
 do-lifth-spine-apply s b r θ vls x h (LiftArrow ltp1 ltp2) (t :: ts) = 
