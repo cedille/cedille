@@ -66,7 +66,7 @@ evidence-to-string (Ctor e x) = "unimplemented"
 evidence-to-string (Ctora x) = "unimplemented"
 evidence-to-string (Eapp e e₁) = "(" ^ evidence-to-string e ^ " " ^ evidence-to-string e₁ ^ ")"
 evidence-to-string (Eappk e t) = "〈" ^ evidence-to-string e ^ " " ^ type-to-string t ^ "〉"
-evidence-to-string (Eappt e t) = "〈" ^ evidence-to-string e ^ " " ^ term-to-string t ^ "〉"
+evidence-to-string (Eappt e t) = "{" ^ evidence-to-string e ^ " " ^ term-to-string t ^ "}"
 evidence-to-string (Earrow e e₁) = "(" ^ evidence-to-string e ^ " ⇒ " ^ evidence-to-string e₁ ^ ")"
 evidence-to-string (Ehole x) = "unimplemented"
 evidence-to-string (EholeNamed x x₁) = "unimplemented"
@@ -105,17 +105,11 @@ get-defined-symbol (Edefine x _ _ _) = x
 get-defined-symbol (Kdefine x _ _) = x
 get-defined-symbol (Tdefine x _) = x
 
-lift-liftingType : liftingType → type
-lift-liftingType (LiftVar x) = TpVar x
-lift-liftingType (LiftArrow ltp1 ltp2) = TpArrow (lift-liftingType ltp1) (lift-liftingType ltp2)
-lift-liftingType (LiftPi x tp ltp) = AbsTp1 Pi x tp (lift-liftingType ltp)
-lift-liftingType (LiftParens ltp) = lift-liftingType ltp
-
-lift-to-kind : liftingType → kind
-lift-to-kind (LiftVar x) = Star
-lift-to-kind (LiftArrow ltp1 ltp2) = KndArrow (lift-to-kind ltp1) (lift-to-kind ltp2)
-lift-to-kind (LiftPi x tp ltp) = KndPi x (Tkt tp) (lift-to-kind ltp)
-lift-to-kind (LiftParens ltp) = lift-to-kind ltp
+liftingType-to-type : liftingType → type
+liftingType-to-type (LiftVar x) = TpVar x
+liftingType-to-type (LiftArrow ltp1 ltp2) = TpArrow (liftingType-to-type ltp1) (liftingType-to-type ltp2)
+liftingType-to-type (LiftPi x tp ltp) = AbsTp1 Pi x tp (liftingType-to-type ltp)
+liftingType-to-type (LiftParens ltp) = liftingType-to-type ltp
 
 newline-sep-if : string → string → string
 newline-sep-if x x' = if (x =string "") || (x' =string "") then "" else "\n"

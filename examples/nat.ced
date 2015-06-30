@@ -26,3 +26,23 @@ Z ∷ Z = ζ Nat .
 add ∷ λ n . λ m . n S m ⇐ Nat → Nat → Nat = 
  ξ n. β (ξ m. β (χ (((χ n ⇒ β ).2 〈 (ξ n . Nat) λ n : Nat . Nat 〉) (ξ i . χ S ⇐ β ⇒ β) (χ m ⇐ β)) ⇒ β))
  ⇐ (Nat ⇒ Nat ⇒ Nat) .
+
+eq ∷ λ A : ★ . λ a : A . λ b : A . ∀ P : A → ★ . P a → P b ⇐ Π A : ★ . A → A → ★ =
+  ξ A . ξ a . ξ b . ξ P : A ⇒ ✓ . (P a ⇒ P b) ⇐ ξ A : ✓ . (A ⇒ A ⇒ ✓) .
+
+refl ∷ λ x . x ⇐ ∀ A : ★ . ∀ a : A . ((eq · A) a) a = 
+ ξ A . ξ a . χ (ξ P . ξ x . β x) ⇐ β ✓ ✓ · β ✓ · β
+⇐ ξ A : ✓ . ξ a : A . eq A a a .
+
+test ∷ λ x . x = refl 〈Nat Nat〉 { Z Z }.
+
+eqNat ∷ eq · Nat ⇐ Nat → Nat → ★ = eq Nat ⇐ Nat ⇒ Nat ⇒ ✓ .
+
+add-zero ∷ λ n . n (λ ih . λ x . ih x) (λ x . x) ⇐ Π n : Nat . ((eqNat (add n Z)) n) =
+ ξ n . β (χ ((χ n ⇒ β).2 〈 (ξ n . eqNat (add n Z) n) (λ n : Nat . ((eqNat (add n Z)) n)) 〉
+         (ξ n . ξ ih . β (χ (ξ P . ξ x . β 
+                              (χ ((χ ih ⇒ β · β ✓ ✓ · β ✓ · β) 〈 (ξ a . P (S a)) (λ a : Nat . P (S a)) 〉 
+                                 (χ (χ x ⇒ ✓ (β ✓) · ✓ β · ✓ (β ✓ ✓) · ✓ (β ✓) · ✓ β) ⇐ β · ✓ (✓ (β ✓)) · ✓ (✓ β))) ⇒ β))
+                          ⇐ β · β ✓ ✓ · β ✓ · β))
+         (χ (refl 〈Nat Nat〉 { Z Z }) ⇐ (β · (✓ (β ✓) ✓) · (✓ β ✓) · (✓ (β ✓) ✓) · (✓ β ✓))))
+         ⇒ β) ⇐ ξ n : Nat. eqNat (add n Z) n .

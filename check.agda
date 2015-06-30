@@ -5,6 +5,7 @@ open import lib
 open import cedille-types
 open import conversion
 open import defeq
+open import lift
 open import rename
 open import syntax-util
 open import subst
@@ -177,7 +178,7 @@ synth-type s (Δ , b , r) (Eapp e e') (TpApp t t') = synth-type s (Δ , b , r) e
                    ^ "1. the first part of the application: " ^ type-to-string t ^ "\n"
                    ^ "2. the synthesized kind variable: " ^ x)
         h (KndVar x) | just k' = h k'
-        h k = yes-error ("We synthesized a non-functional kind for the first part of a type-level application.\n"
+        h k = yes-error ("We synthesized a non-functional kind for the first part of a type-level application to a type.\n"
                        ^ "1. the first part of the application: " ^ type-to-string t ^ "\n"
                        ^ "2. the synthesized kind: " ^ kind-to-string k)
 
@@ -195,7 +196,7 @@ synth-type s (Δ , b , r) (Eapp e e') (TpAppt t t') = synth-type s (Δ , b , r) 
                    ^ "1. the first part of the application: " ^ type-to-string t ^ "\n"
                    ^ "2. the synthesized kind variable: " ^ x)
         h (KndVar x) | just k' = h k'
-        h k = yes-error ("We synthesized a non-functional kind for the first part of a type-level application.\n"
+        h k = yes-error ("We synthesized a non-functional kind for the first part of a type-level application to a term.\n"
                        ^ "1. the first part of the application: " ^ type-to-string t ^ "\n"
                        ^ "2. the synthesized kind: " ^ kind-to-string k)
 
@@ -203,14 +204,15 @@ synth-type s (Δ , b , r) (Elift u e e') (Lft x trm ltp) =
   let x' : var
       x' = rename-away s b r x in
   let tp : type
-      tp = lift-liftingType ltp in
+      tp = liftingType-to-type ltp in
   let Γ' : ctxt
       Γ' = (evctxt-insert-kinding Δ u (TpVar x) Star , bctxt-add b x' , renamectxt-insert r x x') in
-    (check-type s Γ' e' tp Star ≫check check-term s Γ' e trm tp) ≫checksynth no-error ("" , lift-to-kind ltp)
+    (check-type s Γ' e' tp Star ≫check check-term s Γ' e trm tp) ≫checksynth no-error ("" , lift-to-kind s b r x ltp)
 
 synth-type s Γ e t = 
   yes-error ("We have no matching case for synthesizing a kind for the given type, with the given evidence.\n"
-            ^ "1. the type " ^ type-to-string t)
+            ^ "1. the type: " ^ type-to-string t ^ "\n"
+            ^ "2. the evidence: " ^ evidence-to-string e)
 
 
 try-synth-type s (Δ , b , r) e t k = 
@@ -422,6 +424,7 @@ check-term s (Δ , b , r) e (Var x) tp | nothing = try-synth-term s (Δ , b , r)
 check-term s (Δ , b , r) e (Var x) tp | just trm = check-term s (Δ , b , r) e trm tp
 
 check-term s Γ (Evar u) trm tp = try-synth-term s Γ (Evar u) trm tp
+check-term s Γ (Eapp u u') trm tp = try-synth-term s Γ (Eapp u u') trm tp
 check-term s Γ e (App t1 t2) tp = try-synth-term s Γ e (App t1 t2) tp
 check-term s Γ (Ctora x) trm tp = try-synth-term s Γ (Ctora x) trm tp
 
@@ -435,7 +438,8 @@ check-term s  (Δ , b , r) e t (TpVar x) | nothing =
 check-term s Γ e t tp = 
   yes-error ("We do not have a matching case for checking a term with the given evidence and type.\n"
             ^ "1. the term: " ^ term-to-string t ^ "\n"
-            ^ "2. the type: " ^ type-to-string tp)
+            ^ "2. the type: " ^ type-to-string tp ^ "\n"
+            ^ "3. the evidence: " ^ evidence-to-string e)
 
 
 check-type s Γ (Eparens e) t k = check-type s Γ e t k
@@ -447,6 +451,12 @@ check-type s Γ (Eprint c e) t k =
 check-type s Γ (Ehole c) t k = no-error (show-evctxt-if c Γ ^ type-to-string t ^ " ⇐ " ^ kind-to-string k ^ "\n")
 check-type s Γ (EholeNamed c n) t k = no-error (show-evctxt-if c Γ ^ n ^ " ∷ " ^ type-to-string t ^ " ⇐ " ^ kind-to-string k ^ "\n")
 check-type s Γ (Elet d e') t k = check-defh s Γ d ≫=err λ s' → check-type s' Γ e' t k
+check-type s Γ e t (KndVar x) with lookup-kind-var s x
+check-type s Γ e t (KndVar x) | nothing = 
+  yes-error ("We encountered an undefined kind variable while checking a type.\n"
+           ^ "1. the type we are checking: " ^ type-to-string t ^ "\n"
+           ^ "2. the undefined kind variable we are checking it against: " ^ x)
+check-type s Γ e t (KndVar x) | just k = check-type s Γ e t k
 
 -- nu types
 check-type s (Δ , b , r) e (Nu X k Θ T) k' with eq-kind s (bctxt-contains b) r k k'

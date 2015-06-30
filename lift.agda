@@ -9,6 +9,18 @@ open import syntax-util
 open import subst
 open import tpstate
 
+lift-to-kind : tpstate → bctxt → renamectxt → var → liftingType → kind
+lift-to-kind s b r v (LiftArrow (LiftParens ltp1) ltp2) = lift-to-kind s b r v (LiftArrow ltp1 ltp2)
+lift-to-kind s b r v (LiftArrow (LiftVar x) ltp2) with eq-var r v x 
+lift-to-kind s b r v (LiftArrow (LiftVar x) ltp2) | tt = KndArrow Star (lift-to-kind s b r v ltp2)
+lift-to-kind s b r v (LiftArrow (LiftVar x) ltp2) | ff = KndTpArrow (TpVar x) (lift-to-kind s b r v ltp2)
+lift-to-kind s b r v (LiftArrow ltp1 ltp2) = KndArrow (lift-to-kind s b r v ltp1) (lift-to-kind s b r v ltp2)
+lift-to-kind s b r v (LiftVar x) = Star
+lift-to-kind s b r v (LiftPi x tp ltp) = 
+  let x' = rename-away s b r x in
+    KndPi x' (Tkt tp) (lift-to-kind s (bctxt-add b x') (renamectxt-insert r x x') v ltp)
+lift-to-kind s b r v (LiftParens ltp) = lift-to-kind s b r v ltp
+
 {- lambda-bind the variables around an application of the term to the arguments (list of terms),
    but eta-contracting as we go where possible. -}
 eta-spine-app : bctxt → renamectxt → 𝕃 var → term → 𝕃 term → term
@@ -40,7 +52,7 @@ do-lifth s b r θ vls x t (LiftParens ltp) = do-lifth s b r θ vls x t ltp
 do-lifth s b r θ vls x (Lam y t) (LiftArrow ltp1 ltp2) = 
   let y' : var 
       y' = rename-away s b r y in
-    AbsTp2 Lambda y' (Tkk (lift-to-kind ltp1)) 
+    AbsTp2 Lambda y' (Tkk (lift-to-kind s b r x ltp1)) 
       (do-lifth s (bctxt-add b y') (renamectxt-insert r y y') (trie-insert θ y' ltp1) ((y' , ltp1) :: vls) x t ltp2)
 do-lifth s b r θ vls x (Var y) ltp with lookup-term-var s (renamectxt-rep r y)
 do-lifth s b r θ vls x (Var y) ltp | just trm = 
