@@ -2,6 +2,7 @@ module syntax-util where
 
 open import lib
 open import cedille-types
+open import rename
 
 -- NB: \GTH is for Θ, while \Gth is for θ.  The characters are imperceptibly different at usual font size.
 
@@ -60,6 +61,8 @@ liftingType-to-string (LiftVar x) = x
 
 evidence-to-string : evidence → string
 evidence-to-string Beta = "β"
+evidence-to-string (Rbeta e t) = "(rβ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
+evidence-to-string (Eta e t) = "(η " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
 evidence-to-string (Cast e d e₁) = "(χ " ^ evidence-to-string e ^ (castDir-to-string d) ^ evidence-to-string e₁ ^ ")"
 evidence-to-string Check = "✓"
 evidence-to-string (Ctor e x) = "unimplemented"
@@ -88,17 +91,6 @@ occurs-only-polarity v p t = tt
 
 check-ctors : var → ctorset → maybe string
 check-ctors v c = nothing
-
--- the stringset tells which variables are bound, and the 𝕃 string is
--- an accumulator argument.
-free-varsh : stringset → 𝕃 string → term → 𝕃 string
-free-varsh b f (Var x) = if trie-contains b x then f else (x :: f)
-free-varsh b f (App t1 t2) = free-varsh b (free-varsh b f t1) t2
-free-varsh b f (Lam x t) = free-varsh (stringset-insert b x) f t
-free-varsh b f (Parens t) = free-varsh b f t
-
-free-vars : term → 𝕃 string
-free-vars t = free-varsh empty-stringset [] t 
 
 get-defined-symbol : def → string
 get-defined-symbol (Edefine x _ _ _) = x
@@ -140,3 +132,4 @@ lambdas (x :: xs) t = (Lam x (lambdas xs t))
 lift-arrows : 𝕃 liftingType → liftingType → liftingType
 lift-arrows [] t = t
 lift-arrows (u :: us) t = LiftArrow u (lift-arrows us t)
+

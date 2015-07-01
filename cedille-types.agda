@@ -37,6 +37,7 @@ mutual
     DefCmd : def → cmd
     Echeck : class → evidence → evidence → cmd
     Kcheck : kind → evidence → cmd
+    Normalize : term → cmd
     Print : var → cmd
     SynthTerm : var → term → evidence → cmd
     SynthType : var → type → evidence → cmd
@@ -71,9 +72,11 @@ mutual
     Enu : var → var → evidence → evidence → evidence → evidence → evidence
     Eparens : evidence → evidence
     Eprint : showCtxt → evidence → evidence
+    Eta : evidence → term → evidence
     Evar : evar → evidence
     Pair : evidence → evidence → evidence
     Proj : evidence → index → evidence
+    Rbeta : evidence → term → evidence
     Sym : evidence → evidence
     Trans : evidence → evidence → evidence
     Xi : var → opt_eclass → evidence → evidence
@@ -138,6 +141,8 @@ levidence : Set
 levidence = evidence
 lliftingType : Set
 lliftingType = liftingType
+lterm : Set
+lterm = term
 ltype : Set
 ltype = type
 
@@ -162,6 +167,7 @@ data ParseTreeT : Set where
   parsed-type : type → ParseTreeT
   parsed-levidence : evidence → ParseTreeT
   parsed-lliftingType : liftingType → ParseTreeT
+  parsed-lterm : term → ParseTreeT
   parsed-ltype : type → ParseTreeT
   parsed-evar : evar → ParseTreeT
   parsed-evar-bar-8 : evar-bar-8 → ParseTreeT
@@ -220,17 +226,18 @@ data ParseTreeT : Set where
   parsed-anychar-bar-51 : ParseTreeT
   parsed-anychar-bar-52 : ParseTreeT
   parsed-anychar-bar-53 : ParseTreeT
+  parsed-anychar-bar-54 : ParseTreeT
   parsed-anychar-range-9 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-55 : ParseTreeT
   parsed-aws-bar-56 : ParseTreeT
   parsed-aws-bar-57 : ParseTreeT
+  parsed-aws-bar-58 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-54 : ParseTreeT
+  parsed-comment-star-55 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-59 : ParseTreeT
+  parsed-ows-star-60 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-58 : ParseTreeT
+  parsed-ws-plus-59 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -278,6 +285,7 @@ mutual
   cmdToString (DefCmd x0) = "(DefCmd" ^ " " ^ (defToString x0) ^ ")"
   cmdToString (Echeck x0 x1 x2) = "(Echeck" ^ " " ^ (classToString x0) ^ " " ^ (evidenceToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
   cmdToString (Kcheck x0 x1) = "(Kcheck" ^ " " ^ (kindToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
+  cmdToString (Normalize x0) = "(Normalize" ^ " " ^ (termToString x0) ^ ")"
   cmdToString (Print x0) = "(Print" ^ " " ^ (varToString x0) ^ ")"
   cmdToString (SynthTerm x0 x1 x2) = "(SynthTerm" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
   cmdToString (SynthType x0 x1 x2) = "(SynthType" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
@@ -312,9 +320,11 @@ mutual
   evidenceToString (Enu x0 x1 x2 x3 x4 x5) = "(Enu" ^ " " ^ (varToString x0) ^ " " ^ (varToString x1) ^ " " ^ (evidenceToString x2) ^ " " ^ (evidenceToString x3) ^ " " ^ (evidenceToString x4) ^ " " ^ (evidenceToString x5) ^ ")"
   evidenceToString (Eparens x0) = "(Eparens" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Eprint x0 x1) = "(Eprint" ^ " " ^ (showCtxtToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
+  evidenceToString (Eta x0 x1) = "(Eta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
   evidenceToString (Evar x0) = "(Evar" ^ " " ^ (evarToString x0) ^ ")"
   evidenceToString (Pair x0 x1) = "(Pair" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Proj x0 x1) = "(Proj" ^ " " ^ (evidenceToString x0) ^ " " ^ (indexToString x1) ^ ")"
+  evidenceToString (Rbeta x0 x1) = "(Rbeta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
   evidenceToString (Sym x0) = "(Sym" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Trans x0 x1) = "(Trans" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Xi x0 x1 x2) = "(Xi" ^ " " ^ (varToString x0) ^ " " ^ (opt_eclassToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
@@ -395,6 +405,7 @@ ParseTreeToString (parsed-tk t) = tkToString t
 ParseTreeToString (parsed-type t) = typeToString t
 ParseTreeToString (parsed-levidence t) = evidenceToString t
 ParseTreeToString (parsed-lliftingType t) = liftingTypeToString t
+ParseTreeToString (parsed-lterm t) = termToString t
 ParseTreeToString (parsed-ltype t) = typeToString t
 ParseTreeToString (parsed-evar t) = evarToString t
 ParseTreeToString (parsed-evar-bar-8 t) = evar-bar-8ToString t
@@ -453,17 +464,18 @@ ParseTreeToString parsed-anychar-bar-50 = "[anychar-bar-50]"
 ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
 ParseTreeToString parsed-anychar-bar-52 = "[anychar-bar-52]"
 ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
+ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
 ParseTreeToString parsed-anychar-range-9 = "[anychar-range-9]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-55 = "[aws-bar-55]"
 ParseTreeToString parsed-aws-bar-56 = "[aws-bar-56]"
 ParseTreeToString parsed-aws-bar-57 = "[aws-bar-57]"
+ParseTreeToString parsed-aws-bar-58 = "[aws-bar-58]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-54 = "[comment-star-54]"
+ParseTreeToString parsed-comment-star-55 = "[comment-star-55]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-59 = "[ows-star-59]"
+ParseTreeToString parsed-ows-star-60 = "[ows-star-60]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-58 = "[ws-plus-58]"
+ParseTreeToString parsed-ws-plus-59 = "[ws-plus-59]"
 
 ------------------------------------------
 -- Reorganizing rules
@@ -473,6 +485,7 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-type : (x : type) → type
+  norm-type (TpAppt x1 (App x2 x3)) = (norm-type (TpAppt  (norm-type (TpAppt  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpAppt x2 x3)) = (norm-type (TpAppt  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpApp x2 x3)) = (norm-type (TpApp  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type x = x
@@ -483,8 +496,6 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-term : (x : term) → term
-  norm-term (App (App x1 (Lam x2 x3)) x4) = (norm-term (App  x1 (norm-term (Lam  x2 (norm-term (App  x3 x4) )) )) )
-  norm-term (App (Lam x1 x2) x3) = (norm-term (Lam  x1 (norm-term (App  x2 x3) )) )
   norm-term (App x1 (App x2 x3)) = (norm-term (App  (norm-term (App  x1 x2) ) x3) )
   norm-term x = x
 
@@ -503,6 +514,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-ltype : (x : ltype) → ltype
   norm-ltype x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-lterm : (x : lterm) → lterm
+  norm-lterm x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-lliftingType : (x : lliftingType) → lliftingType

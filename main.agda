@@ -11,9 +11,11 @@ open parsem.pnoderiv cedille.rrs cedille.cedille-rtn
 open import run ptr
 open noderiv {- from run.agda -}
 
-open import tpstate
 open import check
+open import normalize
+open import rename
 open import syntax-util
+open import tpstate
 
 process-cmd : cmd → tpstate → error-t tpstate
 process-cmd (DefCmd d) s = check-def s d
@@ -28,6 +30,8 @@ process-cmd (Print x) s | tpstate-kinding tp k = no-error (add-msg (x ^ " ∷ " 
 process-cmd (Print x) s | tpstate-typing trm tp = no-error (add-msg (x ^ " ∷ " ^ term-to-string trm ^ " ⇐ " ^ type-to-string tp ^ "\n") s)
 process-cmd (Print x) s | tpstate-untyped trm = no-error (add-msg (x ^ " = " ^ term-to-string trm ^ "\n") s)
 process-cmd (Print x) s | tpstate-nothing = no-error (add-msg (x ^ " is undefined.\n") s)
+process-cmd (Normalize t) s = 
+  no-error (add-msg (term-to-string t ^ " ⇓ " ^ (term-to-string (normalize s empty-renamectxt (in-dom-tpstate s) t)) ^ "\n") s)
 process-cmd (SynthTerm x t e) s with synth-term s empty-ctxt e t
 process-cmd (SynthTerm x t e) s | no-error (m , tp) = no-error (add-msg m (add-typed-term-def x t tp s))
 process-cmd (SynthTerm x t e) s | yes-error m = add-to-def-error x m 

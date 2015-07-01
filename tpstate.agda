@@ -55,6 +55,9 @@ lookup-type-var-k (mk-tpstate _ _ _ yd _) v with trie-lookup yd v
 lookup-type-var-k (mk-tpstate _ _ _ yd _) v | nothing = nothing
 lookup-type-var-k (mk-tpstate _ _ _ yd _) v | just (tp , knd) = just knd
 
+lookup-type-var-tk : tpstate → var → maybe (type × kind)
+lookup-type-var-tk (mk-tpstate _ _ _ yd _) v = trie-lookup yd v
+
 lookup-untyped-var : tpstate → var → maybe term
 lookup-untyped-var (mk-tpstate _ d _ _ _) x = trie-lookup d x
 
@@ -179,3 +182,57 @@ rename-away s b r x = rename-away-from x (rename-pred s b) r
 
 rename-away' : tpstate → (var → 𝔹) → renamectxt → var → var
 rename-away' s b r x = rename-away-from x (λ v → is-defined s v || b v) r
+
+
+----------------------------------------------------------------------
+-- the following are used in conversion.agda and check.agda
+----------------------------------------------------------------------
+
+{- the return type for all the check functions.  The returned string is
+   information for the user about holes. -}
+check-t : Set
+check-t = error-t string
+
+infixr 1 _≫check_ _≫synth_ _≫checksynth_ _≫synthcheck_ _≫conv_
+
+synth-t : Set → Set
+synth-t A = error-t (string × A)
+
+conv-t : Set → Set
+conv-t A = (maybe A) × string -- the string is for responses to holes or errors
+
+_≫check_ : check-t → check-t → check-t
+no-error x ≫check no-error x' = no-error (x ^ x')
+no-error x ≫check yes-error x' = yes-error (x ^ x')
+yes-error x ≫check no-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
+yes-error x ≫check yes-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
+
+_≫synth_ : {A B : Set} → synth-t A → (A → synth-t B) → synth-t B
+no-error (m , a) ≫synth f with f a 
+no-error (m , a) ≫synth f | no-error (m' , b) = no-error (m ^ m' , b)
+no-error (m , a) ≫synth f | yes-error m' = yes-error (m ^ m')
+yes-error x ≫synth f = yes-error x
+
+_≫checksynth_ : check-t → {A : Set} → synth-t A → synth-t A
+no-error x ≫checksynth no-error (x' , r) = no-error (x ^ x' , r)
+no-error x ≫checksynth yes-error x' = yes-error (x ^ x')
+yes-error x ≫checksynth no-error (x' , r) = yes-error (x ^ (newline-sep-if x x') ^ x')
+yes-error x ≫checksynth yes-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
+
+_≫synthcheck_ : {A : Set} → synth-t A → (A → check-t) → check-t
+no-error (m , a) ≫synthcheck f with f a 
+no-error (m , a) ≫synthcheck f | no-error m' = no-error (m ^ m')
+no-error (m , a) ≫synthcheck f | yes-error m' = yes-error (m ^ m')
+yes-error x ≫synthcheck f = yes-error x
+
+_≫conv_ : {A B : Set} → conv-t A → (A → conv-t B) → conv-t B
+nothing , m ≫conv f = nothing , m
+just a , m ≫conv f with f a 
+just a , m ≫conv f | r , m' = r , (m ^ (newline-sep-if m m') ^ m')
+
+_≫checkconv_ : check-t → {A : Set} → conv-t A → conv-t A
+(no-error x) ≫checkconv (r , x') = r , (x ^ (newline-sep-if x x') ^ x')
+(yes-error x) ≫checkconv (r , x') = nothing , (x ^ (newline-sep-if x x') ^ x')
+
+check-term-t : Set
+check-term-t = tpstate → ctxt → evidence → term → type → check-t

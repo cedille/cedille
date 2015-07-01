@@ -29,6 +29,7 @@ eq-kind : tpstate → (var → 𝔹) → renamectxt → kind → kind → 𝔹
 eq-type : tpstate → (var → 𝔹) → renamectxt → type → type → 𝔹 
 eq-kind-pi : tpstate → (var → 𝔹) → renamectxt → var → tk → kind → kind → 𝔹 
 eq-kind-pi1 : tpstate → (var → 𝔹) → renamectxt → var → tk → kind → kind → 𝔹 
+eq-ctorset : tpstate → (var → 𝔹) → renamectxt → ctorset → ctorset → 𝔹
 eq-term : tpstate → (var → 𝔹) → renamectxt → term → term → 𝔹
 eq-term-var : tpstate → (var → 𝔹) → renamectxt → var → term → 𝔹
 eq-type-var : tpstate → (var → 𝔹) → renamectxt → var → type → 𝔹
@@ -120,7 +121,10 @@ eq-type s b r (Lft x t T) (Lft x' t' T') =
   let r' = renamectxt-insert (renamectxt-insert r x x'') x' x'' in
     eq-term s b r t t' && eq-liftingType s b r' T T'
 eq-type s b r U U = tt 
-eq-type s b r (Nu x k Θ t) (Nu x' k' Θ' t') = tt -- nu types unimplemented
+eq-type s b r (Nu x k Θ t) (Nu x' k' Θ' t') = 
+  let x'' = rename-away' s b r x in
+  let r' = renamectxt-insert (renamectxt-insert r x x'') x' x'' in
+    eq-kind s b r k k' && eq-ctorset s b r' Θ Θ' && eq-type s b r' t t'
 eq-type s b r _ _ = ff 
 
 eq-type-arrow s b r x tp1 tp2 tp1' tp2' =
@@ -145,3 +149,8 @@ eq-liftingType s b r (LiftPi x t l) (LiftPi x' t' l') =
     eq-type s b r t t' && eq-liftingType s b r' l l'
 eq-liftingType s b r (LiftVar x) (LiftVar y) = eq-var r x y
 eq-liftingType s b r _ _ = ff
+
+eq-ctorset s b r (Add trm tp Θ) (Add trm' tp' Θ') = eq-term s b r trm trm' && eq-type s b r tp tp' && eq-ctorset s b r Θ Θ'
+eq-ctorset s b r (Add x x₁ Θ) Empty = ff
+eq-ctorset s b r Empty (Add x x₁ Θ') = ff
+eq-ctorset s b r Empty Empty = tt

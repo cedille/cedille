@@ -5,6 +5,7 @@ open import lib
 open import cedille-types
 open import conversion
 open import defeq
+open import free
 open import lift
 open import rename
 open import syntax-util
@@ -22,40 +23,6 @@ u-type s b (KndVar x) | nothing = yes-error ("No definition was found for kind v
 u-type s b (KndVar x) | just k = u-type s b k
 u-type s b Star = no-error U
 
-
-{- the return type for all the check functions.  The returned string is
-   information for the user about holes. -}
-check-t : Set
-check-t = error-t string
-
-infixr 1 _≫check_ _≫synth_ _≫checksynth_ _≫synthcheck_
-
-synth-t : Set → Set
-synth-t A = error-t (string × A)
-
-_≫check_ : check-t → check-t → check-t
-no-error x ≫check no-error x' = no-error (x ^ x')
-no-error x ≫check yes-error x' = yes-error (x ^ x')
-yes-error x ≫check no-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
-yes-error x ≫check yes-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
-
-_≫synth_ : {A B : Set} → synth-t A → (A → synth-t B) → synth-t B
-no-error (m , a) ≫synth f with f a 
-no-error (m , a) ≫synth f | no-error (m' , b) = no-error (m ^ m' , b)
-no-error (m , a) ≫synth f | yes-error m' = yes-error (m ^ m')
-yes-error x ≫synth f = yes-error x
-
-_≫checksynth_ : check-t → {A : Set} → synth-t A → synth-t A
-no-error x ≫checksynth no-error (x' , r) = no-error (x ^ x' , r)
-no-error x ≫checksynth yes-error x' = yes-error (x ^ x')
-yes-error x ≫checksynth no-error (x' , r) = yes-error (x ^ (newline-sep-if x x') ^ x')
-yes-error x ≫checksynth yes-error x' = yes-error (x ^ (newline-sep-if x x') ^ x')
-
-_≫synthcheck_ : {A : Set} → synth-t A → (A → check-t) → check-t
-no-error (m , a) ≫synthcheck f with f a 
-no-error (m , a) ≫synthcheck f | no-error m' = no-error (m ^ m')
-no-error (m , a) ≫synthcheck f | yes-error m' = yes-error (m ^ m')
-yes-error x ≫synthcheck f = yes-error x
 
 unimplemented : string → ∀{A : Set} → error-t A
 unimplemented s = yes-error (s ^ " is currently unimplemented.\n")
@@ -133,6 +100,7 @@ try-synth-type : tpstate → ctxt → evidence → type → kind → check-t
 synth-term : tpstate → ctxt → evidence → term → synth-t type
 try-synth-term : tpstate → ctxt → evidence → term → type → check-t
 
+
 synth-type s Γ (Eparens e) t = synth-type s Γ e t
 synth-type s Γ e (TpParens t) = synth-type s Γ e t
 synth-type s Γ (Eprint c e) t = 
@@ -143,12 +111,17 @@ synth-type s Γ (EholeNamed _ _) t = holewrong-type t
 synth-type s Γ (Elet d e') t = check-defh s Γ d ≫=err λ s' → synth-type s' Γ e' t
 
 synth-type s (Δ , b , r) (Evar u) t with evctxt-lookup Δ u 
-synth-type s (Δ , b , r) (Evar u) t | nothing with lookup-type-var-k s u 
+synth-type s (Δ , b , r) (Evar u) t | nothing with lookup-type-var-tk s u 
 synth-type s (Δ , b , r) (Evar u) t | nothing | nothing =
   yes-error ("An evidence variable was found to be undeclared while attempting to synthesize a kind.\n"
            ^ "1. the evidence variable: " ^ u ^ "\n"
            ^ "2. " ^ synth-type-errstr t)
-synth-type s (Δ , b , r) (Evar u) t | nothing | just k = no-error ("" , k)
+synth-type s (Δ , b , r) (Evar u) t | nothing | just (t' , k) = 
+  if eq-type s (bctxt-contains b) r t t' then (no-error ("" , k)) 
+  else (yes-error ("An evidence variable proves a kinding for a different type than the one we are trying to kind.\n"
+                 ^ "1. the evidence variable: " ^ u ^ "\n"
+                 ^ "2. the kinding it proves: " ^ type-to-string t' ^ " ∷ " ^ kind-to-string k ^ "\n"
+                 ^ "3. the type we are trying to kind: " ^ type-to-string t))
 synth-type s (Δ , b , r) (Evar u) t | just (term-type trm tp) = 
   yes-error ("An evidence variable proving a typing is being used to try to synthesize a kind.\n"
            ^ "1. the evidence variable: " ^ u ^ " ∷ " ^ term-to-string trm ^ " : " ^ type-to-string tp ^ "\n"
@@ -266,7 +239,7 @@ synth-term s (Δ , b , r) (Evar u) t | just (ev-ctorset Θ) | just tp = no-error
 synth-term s Γ (Cast e synthCast e') t =
   synth-term s Γ e t ≫synth h
   where h : type → synth-t type
-        h tp with synth-conversion-type s Γ e' tp 
+        h tp with convert-type check-term s Γ e' tp 
         h tp | just tp' , m = no-error (m , tp')
         h tp | nothing , m = yes-error m 
 
@@ -400,6 +373,15 @@ check-term s (Δ , b , r) Checkmark (Lam x t) U =
                 ^ "1. the lambda-abstraction: " ^ term-to-string (Lam x t) ^ "\n"
                 ^ "2. the current context: " ^ evctxt-to-string Δ)
 check-term s (Δ , b , r) (Eapp Beta e) (App (Lam x t) t') tp = check-term s (Δ , b , r) e (term-subst-term r (rename-pred s b) t' x t) tp
+check-term s (Δ , b , r) (Rbeta e (App (Lam x t) t')) t tp = 
+  let t'' = term-subst-term r (rename-pred s b) t' x t in
+    if eq-term s b r t t'' then
+      check-term s (Δ , b , r) e (App (Lam x t) t') tp
+    else
+      yes-error ("We are checking a term which is supposed to be the result of reducing a redex, but it is not.\n"
+               ^ "1. the term we are checking: " ^ term-to-string t ^ "\n"
+               ^ "2. the redex which is supposed to reduce to that term: " ^ term-to-string (App (Lam x t) t') ^ "\n"
+               ^ "3. the term the redex actually reduces to: " ^ term-to-string t'')
 check-term s (Δ , b , r) (Pair e1 e2) t (AbsTp1 Iota x tp1 tp2) =
   check-term s (Δ , b , r) e1 t tp1 ≫check check-term s (Δ , b , r) e2 t (term-subst-type r (rename-pred s b) t x tp2)
 check-term s Γ e t (AbsTp1 Iota x tp1 tp2) = evwrong-term t (AbsTp1 Iota x tp1 tp2)
@@ -409,7 +391,7 @@ check-term s (Δ , b , r) (Xi u EclassNone e) t (AbsTp2 All x a tp) =
   let x' = rename-away-from x (λ x → rename-pred s b x || list-any (_=string_ x) fvs) r in
    check-term s (evctxt-insert-tk Δ u x' a , bctxt-add b x' , renamectxt-insert r x x') e t tp
 
-check-term s Γ (Cast e checkCast e') t tp with synth-conversion-type s Γ e' tp 
+check-term s Γ (Cast e checkCast e') t tp with convert-type check-term s Γ e' tp 
 check-term s Γ (Cast e checkCast e') t tp | nothing , m = 
  yes-error (m ^ (newline-sep-if m "a") ^ "We could not convert the given type with the given evidence, while checking a cast-term.\n"
           ^ "1. the type: " ^ type-to-string tp ^ "\n"
@@ -423,17 +405,14 @@ check-term s (Δ , b , r) e (Var x) tp with lookup-untyped-var s (renamectxt-rep
 check-term s (Δ , b , r) e (Var x) tp | nothing = try-synth-term s (Δ , b , r) e (Var x) tp
 check-term s (Δ , b , r) e (Var x) tp | just trm = check-term s (Δ , b , r) e trm tp
 
+check-term s (Δ , b , r) e t (TpVar x) with lookup-type-var s (renamectxt-rep r x)
+check-term s  (Δ , b , r) e t (TpVar x) | just tp = check-term s (Δ , b , r) e t tp
+check-term s  (Δ , b , r) e t (TpVar x) | nothing = try-synth-term s (Δ , b , r) e t (TpVar x)
+
 check-term s Γ (Evar u) trm tp = try-synth-term s Γ (Evar u) trm tp
 check-term s Γ (Eapp u u') trm tp = try-synth-term s Γ (Eapp u u') trm tp
 check-term s Γ e (App t1 t2) tp = try-synth-term s Γ e (App t1 t2) tp
 check-term s Γ (Ctora x) trm tp = try-synth-term s Γ (Ctora x) trm tp
-
-check-term s (Δ , b , r) e t (TpVar x) with lookup-type-var s (renamectxt-rep r x)
-check-term s  (Δ , b , r) e t (TpVar x) | just tp = check-term s (Δ , b , r) e t tp
-check-term s  (Δ , b , r) e t (TpVar x) | nothing = 
-  yes-error ("We have no matching case for checking the given term against the given type variable, with the given evidence.\n"
-            ^ "1. the term: " ^ term-to-string t ^ "\n"
-            ^ "2. the type variable: " ^ x)
 
 check-term s Γ e t tp = 
   yes-error ("We do not have a matching case for checking a term with the given evidence and type.\n"
@@ -645,3 +624,4 @@ check-def : tpstate → def → error-t tpstate
 check-def s d with check-defh s (empty-evctxt , empty-bctxt , empty-renamectxt) d
 check-def s d | yes-error e = add-to-def-error (get-defined-symbol d) e 
 check-def s d | no-error x = no-error x
+
