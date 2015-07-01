@@ -33,7 +33,7 @@ type-to-string (AbsTp1 b x t1 t2) = "(" ^ (ip-to-string b) ^ " " ^ x ^ " : " ^ t
 type-to-string (AbsTp2 b x t1 t2) = "(" ^ (al-to-string b) ^ " " ^ x ^ " : " ^ tk-to-string t1 ^ " . " ^ type-to-string t2 ^ ")"
 type-to-string (Nu x k Θ t) = "(ν" ^ " " ^ x ^ " : " ^ kind-to-string k ^ " | " ^ ctorset-to-string Θ ^ " . " ^ type-to-string t ^ ")"
 type-to-string (TpArrow x t) = "(" ^ type-to-string x ^ " → " ^  type-to-string t ^ ")"
-type-to-string (Lft x t tp) = "↑ " ^ x ^ " . " ^ term-to-string t ^ " : " ^ liftingType-to-string tp 
+type-to-string (Lft t tp) = "↑ " ^ term-to-string t ^ " : " ^ liftingType-to-string tp 
 type-to-string (TpApp t t₁) = "(" ^ type-to-string t ^ " · " ^ type-to-string t₁ ^ ")"
 type-to-string (TpAppt t x) = "(" ^ type-to-string t ^ " " ^ term-to-string x ^ ")"
 type-to-string (TpParens x) = type-to-string x
@@ -55,9 +55,10 @@ ctorset-to-string (Add x x₁ θ) = term-to-string x ^ " ∈ " ^ type-to-string 
 ctorset-to-string Empty = "·"
 
 liftingType-to-string (LiftArrow t t₁) = "(" ^ liftingType-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
+liftingType-to-string (LiftTpArrow t t₁) = "(" ^ type-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
 liftingType-to-string (LiftParens t) = liftingType-to-string t
 liftingType-to-string (LiftPi x x₁ t) = "(Π " ^ x ^ " : " ^ type-to-string x₁ ^ " . " ^ liftingType-to-string t ^ ")"
-liftingType-to-string (LiftVar x) = x
+liftingType-to-string LiftStar = "☆"
 
 evidence-to-string : evidence → string
 evidence-to-string Beta = "β"
@@ -97,11 +98,12 @@ get-defined-symbol (Edefine x _ _ _) = x
 get-defined-symbol (Kdefine x _ _) = x
 get-defined-symbol (Tdefine x _) = x
 
-liftingType-to-type : liftingType → type
-liftingType-to-type (LiftVar x) = TpVar x
-liftingType-to-type (LiftArrow ltp1 ltp2) = TpArrow (liftingType-to-type ltp1) (liftingType-to-type ltp2)
-liftingType-to-type (LiftPi x tp ltp) = AbsTp1 Pi x tp (liftingType-to-type ltp)
-liftingType-to-type (LiftParens ltp) = liftingType-to-type ltp
+liftingType-to-type : var → liftingType → type
+liftingType-to-type v LiftStar = TpVar v
+liftingType-to-type v (LiftArrow ltp1 ltp2) = TpArrow (liftingType-to-type v ltp1) (liftingType-to-type v ltp2)
+liftingType-to-type v (LiftTpArrow tp ltp) = TpArrow tp (liftingType-to-type v ltp)
+liftingType-to-type v (LiftPi x tp ltp) = AbsTp1 Pi x tp (liftingType-to-type v ltp)
+liftingType-to-type v (LiftParens ltp) = liftingType-to-type v ltp
 
 newline-sep-if : string → string → string
 newline-sep-if x x' = if (x =string "") || (x' =string "") then "" else "\n"

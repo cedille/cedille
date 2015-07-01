@@ -45,10 +45,8 @@ subst-typeh r b σ (AbsTp2 o x a tp') =
   let x' = rename-away-from x b r in
     AbsTp2 o x' (subst-tkh r b σ a) (subst-typeh (renamectxt-insert r x x') b σ tp')
 
-subst-typeh r b σ (Lft x trm tp) = 
-  let x' = rename-away-from x b r in
-  let r' = renamectxt-insert r x x' in
-    Lft x' (subst-termh r b σ trm) (subst-liftingTypeh r' b σ tp)
+subst-typeh r b σ (Lft trm tp) = 
+    Lft (subst-termh r b σ trm) (subst-liftingTypeh r b σ tp)
 
 subst-typeh r b σ (Nu x k Θ tp) = 
   let x' = rename-away-from x b r in
@@ -62,12 +60,14 @@ subst-typeh r b σ (TpParens tp') = subst-typeh r b σ tp'
 subst-typeh r b (σtrm , σtp) (TpVar x) = fst (σtp r x)
 subst-typeh r b σ U = U
 
-subst-liftingTypeh r b (σtrm , σtp) (LiftVar x) = LiftVar x -- this cannot be substituted for, only renamed
+subst-liftingTypeh r b (σtrm , σtp) LiftStar = LiftStar
 subst-liftingTypeh r b σ (LiftPi x tp ltp) = 
   let x' = rename-away-from x b r in
     LiftPi x' (subst-typeh r b σ tp) (subst-liftingTypeh (renamectxt-insert r x x') b σ ltp)
 subst-liftingTypeh r b σ (LiftArrow ltp1 ltp2) = 
   LiftArrow (subst-liftingTypeh r b σ ltp1) (subst-liftingTypeh r b σ ltp2)
+subst-liftingTypeh r b σ (LiftTpArrow t l) = 
+  LiftTpArrow (subst-typeh r b σ t) (subst-liftingTypeh r b σ l)
 subst-liftingTypeh r b σ (LiftParens ltp) = subst-liftingTypeh r b σ ltp
 
 subst-tkh r b σ (Tkk k) = Tkk (subst-kindh r b σ k)

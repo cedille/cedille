@@ -54,9 +54,10 @@ Star : kind -> '★'.
 KndParens : kind -> '(' ows kind ows ')'.
 KndVar : kind -> kvar.
 
-LiftStar : liftingType -> "☆". 
+LiftStar : liftingType -> '☆'. 
 LiftPi : liftingType -> 'Π' ows var ows ':' ows type ows '.' ows liftingType .
 LiftArrow : liftingType -> liftingType ows '→' ows liftingType.
+LiftTpArrow : liftingType -> type ows '→' ows liftingType.
 LiftParens : lliftingType -> '(' ows liftingType ows ')'.
 embed : liftingType -> lliftingType.
 
@@ -72,7 +73,7 @@ synthCast : castDir -> '⇒'.
 
 Cast : evidence -> 'χ' ws evidence ows castDir ows evidence .
 Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
-Eta : evidence -> 'η' ows evidence ows term .
+Eta : evidence -> 'η' ws evidence ws term .
 Pair : evidence -> '[' ows evidence ows ',' ows evidence ows ']'.
 Enu : evidence -> 'ν' ws var ows ',' ows var ows '.' ows 
                   '[' ows evidence ows ',' ows evidence ows ',' ows evidence ows ',' ows evidence ows ']'.
@@ -80,7 +81,7 @@ Ctor : evidence -> 'ζ' ws evidence ows ':' ows type .
 Ctora : evidence -> 'ζ' ws var .
 Eprint : evidence -> '?' showCtxt ows evidence.
 Elift : evidence -> '↑' ows var ows '.' ows evidence ows ':' ows evidence .
-Rbeta : evidence -> 'rβ' ows evidence ows term.
+Rbeta : evidence -> 'rβ' ows evidence ws term.
 embed : evidence -> levidence.
 Elet : evidence -> 'δ' ws def ws '-' ws evidence.
 
@@ -132,7 +133,10 @@ Vars
 Rules
   App(x,App(y,z)) -> App(App(x,y),z)
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
+  LiftArrow(LiftTpArrow(x,y),z) -> LiftTpArrow(x,LiftArrow(y,z))
+  LiftTpArrow(TpArrow(x,y),z) -> LiftTpArrow(x,LiftTpArrow(y,z))
   LiftArrow(LiftPi(w,x,y),z) -> LiftPi(w,x,LiftArrow(y,z))
+  
 
   KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
   KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))

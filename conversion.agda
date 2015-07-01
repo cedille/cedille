@@ -59,7 +59,7 @@ convert-type ct s (Δ , b , r) Beta (TpApp (TpVar x) tp') | just tp = convert-ty
 convert-type ct s (Δ , b , r) Beta (TpAppt (TpVar x) t') with lookup-type-var s (renamectxt-rep r x)
 convert-type ct s (Δ , b , r) Beta (TpAppt (TpVar x) t') | nothing = nothing , ""
 convert-type ct s (Δ , b , r) Beta (TpAppt (TpVar x) t') | just tp = convert-type ct s (Δ , b , r) Beta (TpAppt tp t')
-convert-type ct s (Δ , b , r) Beta (Lft x t ltp) = just (do-lift s b r x t ltp) , ""
+convert-type ct s (Δ , b , r) Beta (Lft t ltp) = just (do-lift s b r t ltp) , ""
 convert-type ct s (Δ , b , r) (Eta e t) (AbsTp2 All x (Tkt tp1) tp2) =
   (ct s (Δ , b , r) e t tp1) ≫checkconv
   (if type-var-free-in-type s b r x tp2 then 

@@ -101,7 +101,8 @@ mutual
     LiftArrow : liftingType → liftingType → liftingType
     LiftParens : liftingType → liftingType
     LiftPi : var → type → liftingType → liftingType
-    LiftVar : var → liftingType
+    LiftStar : liftingType
+    LiftTpArrow : type → liftingType → liftingType
 
   data opt_eclass : Set where 
     EclassNone : opt_eclass
@@ -127,7 +128,7 @@ mutual
   data type : Set where 
     AbsTp1 : ip → var → type → type → type
     AbsTp2 : al → var → tk → type → type
-    Lft : var → term → liftingType → type
+    Lft : term → liftingType → type
     Nu : var → kind → ctorset → type → type
     TpApp : type → type → type
     TpAppt : type → term → type
@@ -349,7 +350,8 @@ mutual
   liftingTypeToString (LiftArrow x0 x1) = "(LiftArrow" ^ " " ^ (liftingTypeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
   liftingTypeToString (LiftParens x0) = "(LiftParens" ^ " " ^ (liftingTypeToString x0) ^ ")"
   liftingTypeToString (LiftPi x0 x1 x2) = "(LiftPi" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
-  liftingTypeToString (LiftVar x0) = "(LiftVar" ^ " " ^ (varToString x0) ^ ")"
+  liftingTypeToString (LiftStar) = "LiftStar" ^ ""
+  liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
   opt_eclassToString : opt_eclass → string
   opt_eclassToString (EclassNone) = "EclassNone" ^ ""
@@ -375,7 +377,7 @@ mutual
   typeToString : type → string
   typeToString (AbsTp1 x0 x1 x2 x3) = "(AbsTp1" ^ " " ^ (ipToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (typeToString x3) ^ ")"
   typeToString (AbsTp2 x0 x1 x2 x3) = "(AbsTp2" ^ " " ^ (alToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (typeToString x3) ^ ")"
-  typeToString (Lft x0 x1 x2) = "(Lft" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
+  typeToString (Lft x0 x1) = "(Lft" ^ " " ^ (termToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
   typeToString (Nu x0 x1 x2 x3) = "(Nu" ^ " " ^ (varToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (ctorsetToString x2) ^ " " ^ (typeToString x3) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
@@ -526,6 +528,8 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-liftingType : (x : liftingType) → liftingType
   norm-liftingType (LiftArrow (LiftPi x1 x2 x3) x4) = (norm-liftingType (LiftPi  x1 x2 (norm-liftingType (LiftArrow  x3 x4) )) )
+  norm-liftingType (LiftTpArrow (TpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftTpArrow  x2 x3) )) )
+  norm-liftingType (LiftArrow (LiftTpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType (LiftArrow (LiftArrow x1 x2) x3) = (norm-liftingType (LiftArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType x = x
 

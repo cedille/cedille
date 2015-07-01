@@ -12,18 +12,20 @@ open import run ptr
 open noderiv {- from run.agda -}
 
 open import check
+open import check-util
 open import normalize
 open import rename
+open import synth
 open import syntax-util
 open import tpstate
 
 process-cmd : cmd → tpstate → error-t tpstate
-process-cmd (DefCmd d) s = check-def s d
+process-cmd (DefCmd d) s = check-def synth-funcs s d
 process-cmd (Echeck (Tp trm tp) e e') s = 
- (check-type s empty-ctxt e' tp Star ≫check check-term s empty-ctxt e trm tp) ≫=err λ m → no-error (add-msg m s)
+ (check-type synth-funcs s empty-ctxt e' tp Star ≫check check-term synth-funcs s empty-ctxt e trm tp) ≫=err λ m → no-error (add-msg m s)
 process-cmd (Echeck (Knd tp knd) e e') s = 
- (check-kind s empty-ctxt e' knd ≫check check-type s empty-ctxt e tp knd) ≫=err λ m → no-error (add-msg m s)
-process-cmd (Kcheck k e) s = check-kind s empty-ctxt e k ≫=err λ m → no-error (add-msg m s)
+ (check-kind synth-funcs s empty-ctxt e' knd ≫check check-type synth-funcs s empty-ctxt e tp knd) ≫=err λ m → no-error (add-msg m s)
+process-cmd (Kcheck k e) s = check-kind synth-funcs s empty-ctxt e k ≫=err λ m → no-error (add-msg m s)
 process-cmd (Print x) s with lookup-var s x
 process-cmd (Print x) s | tpstate-superkinding k = no-error (add-msg (x ^ " ∷ " ^ kind-to-string k ^ " ⇐ □\n") s)
 process-cmd (Print x) s | tpstate-kinding tp k = no-error (add-msg (x ^ " ∷ " ^ type-to-string tp ^ " ⇐ " ^ kind-to-string k ^ "\n") s)

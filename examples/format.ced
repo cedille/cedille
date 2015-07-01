@@ -48,7 +48,7 @@ Fp ∷ λ f : ★ → ★ . λ g : ★ → ★ . λ r : ★ . f · (g · r) ⇐ 
   ξ f . ξ g . ξ r . f (g r) ⇐ δ 𝒌 ∷ ★ → ★ ⇐ □ = ✓ ⇒ ✓ - 𝒌 ⇒ 𝒌 ⇒ 𝒌.
 
 format-th ∷ 
-  λ i : formatti . ↑ X . i : ((X → X) → (X → X) → ((X → X) → (X → X) → (X → X)) → (X → X)) · Fa · Fn · Fp
+  λ i : formatti . ↑ i : ((☆ → ☆) → (☆ → ☆) → ((☆ → ☆) → (☆ → ☆) → (☆ → ☆)) → (☆ → ☆)) · Fa · Fn · Fp
       ⇐ formatti → ★ → ★ = 
 ξ i . (↑ X . (i 〈 (X ⇒ X) (X → X) 〉) : ((X ⇒ X) ⇒ (X ⇒ X) ⇒ ((X ⇒ X) ⇒ (X ⇒ X) ⇒ (X ⇒ X)) ⇒ (X ⇒ X))) Fa Fn Fp
 ⇐ formatti ⇒ ✓ ⇒ ✓ .

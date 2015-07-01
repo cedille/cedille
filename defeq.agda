@@ -116,10 +116,8 @@ eq-type s b r (AbsTp2 o x a tp) (AbsTp2 o' x' a' tp') =
   let x'' = rename-away' s b r x in
   let r' = renamectxt-insert (renamectxt-insert r x x'') x' x'' in
     eq-al o o' && eq-tk s b r a a' && eq-type s b r' tp tp'
-eq-type s b r (Lft x t T) (Lft x' t' T') = 
-  let x'' = rename-away' s b r x in
-  let r' = renamectxt-insert (renamectxt-insert r x x'') x' x'' in
-    eq-term s b r t t' && eq-liftingType s b r' T T'
+eq-type s b r (Lft t T) (Lft t' T') = 
+    eq-term s b r t t' && eq-liftingType s b r T T'
 eq-type s b r U U = tt 
 eq-type s b r (Nu x k Θ t) (Nu x' k' Θ' t') = 
   let x'' = rename-away' s b r x in
@@ -143,11 +141,13 @@ eq-liftingType s b r (LiftParens l) l' = eq-liftingType s b r l l'
 eq-liftingType s b r l (LiftParens l') = eq-liftingType s b r l l' 
 eq-liftingType s b r (LiftArrow l1 l2) (LiftArrow l1' l2') = 
   eq-liftingType s b r l1 l1' && eq-liftingType s b r l2 l2'
+eq-liftingType s b r (LiftTpArrow t l) (LiftTpArrow t' l') = 
+  eq-type s b r t t' && eq-liftingType s b r l l'
 eq-liftingType s b r (LiftPi x t l) (LiftPi x' t' l') = 
   let x'' = rename-away' s b r x in
   let r' = renamectxt-insert (renamectxt-insert r x x'') x' x'' in
     eq-type s b r t t' && eq-liftingType s b r' l l'
-eq-liftingType s b r (LiftVar x) (LiftVar y) = eq-var r x y
+eq-liftingType s b r LiftStar LiftStar = tt
 eq-liftingType s b r _ _ = ff
 
 eq-ctorset s b r (Add trm tp Θ) (Add trm' tp' Θ') = eq-term s b r trm trm' && eq-type s b r tp tp' && eq-ctorset s b r Θ Θ'
