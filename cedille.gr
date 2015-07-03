@@ -14,7 +14,7 @@ DefCmd : cmd -> def ows '.' .
 Echeck : cmd -> class ows 'by' ows evidence ows '⇐' ows evidence ows '.'.
 Kcheck : cmd -> kind ows '⇐' ows '□' ows 'by' ows evidence ows '.'.
 Print : cmd -> 'print' ws var ows '.'.
-Normalize : cmd -> 'norm' ws term ows '.'.
+Normalize : cmd -> 'normalize' ws term ows '.'.
 SynthTerm : cmd -> var ows '∷' ws term ows '=' ows evidence ows '.'.
 SynthType : cmd -> var ows '∷type' ows type ows '=' ows evidence ows '.'.
 
@@ -73,14 +73,16 @@ synthCast : castDir -> '⇒'.
 
 Cast : evidence -> 'χ' ws evidence ows castDir ows evidence .
 Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
-Eta : evidence -> 'η' ws evidence ws term .
+EtaAll : evidence -> 'η∀' ws evidence ws term .
 Pair : evidence -> '[' ows evidence ows ',' ows evidence ows ']'.
 Enu : evidence -> 'ν' ws var ows ',' ows var ows '.' ows 
                   '[' ows evidence ows ',' ows evidence ows ',' ows evidence ows ',' ows evidence ows ']'.
 Ctor : evidence -> 'ζ' ws evidence ows ':' ows type .
 Ctora : evidence -> 'ζ' ws var .
 Eprint : evidence -> '?' showCtxt ows evidence.
-Elift : evidence -> '↑' ows var ows '.' ows evidence ows ':' ows evidence .
+Elift : evidence -> '↑' ws var ows '.' ows evidence ows ':' ows evidence .
+EliftCong : evidence -> '↑c' ws evidence .
+LamCong : evidence -> 'ξ' ows '.' ows evidence .
 Rbeta : evidence -> 'rβ' ows evidence ws term.
 embed : evidence -> levidence.
 Elet : evidence -> 'δ' ws def ws '-' ws evidence.
@@ -99,6 +101,8 @@ Earrow : levidence -> levidence ows '⇒' ows levidence.
 EholeNamed : levidence -> '●' showCtxt var.
 Ehole : levidence -> '●' showCtxt.
 Beta : levidence -> 'β' .
+RbetaLift : levidence -> 'rβ↑' ws num.
+EtaLift : levidence -> 'η↑' ws num.
 Evar : levidence -> evar.
 Check : levidence -> '✓'.
 
@@ -117,9 +121,12 @@ kvar -> '𝒌' var?.
 var -> varone+ .
 
 evar -> var | kvar.
-%esym => '𝑒'.
 
-anychar => ['a' - 'z' 'A' - 'Z' ] | '\t' | space | '𝒌' | '%' | '1' | '2' | quote | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '-' | '{' | '}' | '⇒' | '?' | '~' | 'η'.
+numone -> ['0' - '9'].
+
+num -> numone+.
+
+anychar => varone | '\t' | space | '𝒌' | '%' | '1' | '2' | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | '~' | 'η' | numone.
 
 comment => '%' anychar* '\n'.
 

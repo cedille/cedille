@@ -13,3 +13,6 @@ test-subst2 = term-subst-term (renamectxt-insert empty-renamectxt "f" "f'") (_=s
 
 test-subst3 : term
 test-subst3 = term-subst-term empty-renamectxt (λ x → ff) (Var "g") "f" (Lam "f" (Var "f"))
+
+test-subst4 : term 
+test-subst4 = term-subst-term empty-renamectxt (_=string_ "z") (Var "z") "n" (Lam "z" (Var "n"))

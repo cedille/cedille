@@ -20,6 +20,9 @@ data tpstate : Set where
 
                tpstate
 
+empty-tpstate : tpstate
+empty-tpstate = mk-tpstate "" empty-trie empty-trie empty-trie empty-trie
+
 add-untyped-term-def : var → term → tpstate → tpstate
 add-untyped-term-def v trm (mk-tpstate o d td yd kd) = (mk-tpstate o (trie-insert d v trm) td yd kd)
 

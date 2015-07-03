@@ -63,11 +63,15 @@ liftingType-to-string LiftStar = "☆"
 evidence-to-string : evidence → string
 evidence-to-string Beta = "β"
 evidence-to-string (Rbeta e t) = "(rβ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
-evidence-to-string (Eta e t) = "(η " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
+evidence-to-string (RbetaLift n) = "(rβ↑ " ^ n ^ ")"
+evidence-to-string (EliftCong e) = "(↑c " ^ evidence-to-string e ^ ")"
+evidence-to-string (LamCong e) = "(ξ " ^ evidence-to-string e ^ ")"
+evidence-to-string (EtaAll e t) = "(η∀ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
+evidence-to-string (EtaLift n) = "(η↑ " ^ n ^ ")"
 evidence-to-string (Cast e d e₁) = "(χ " ^ evidence-to-string e ^ (castDir-to-string d) ^ evidence-to-string e₁ ^ ")"
 evidence-to-string Check = "✓"
-evidence-to-string (Ctor e x) = "unimplemented"
-evidence-to-string (Ctora x) = "unimplemented"
+evidence-to-string (Ctor e x) = "(ζ " ^ evidence-to-string e ^ " : " ^ type-to-string x ^ ")"
+evidence-to-string (Ctora x) = "(ζ " ^ x ^ ")"
 evidence-to-string (Eapp e e₁) = "(" ^ evidence-to-string e ^ " " ^ evidence-to-string e₁ ^ ")"
 evidence-to-string (Eappk e t) = "〈" ^ evidence-to-string e ^ " " ^ type-to-string t ^ "〉"
 evidence-to-string (Eappt e t) = "{" ^ evidence-to-string e ^ " " ^ term-to-string t ^ "}"
@@ -82,9 +86,11 @@ evidence-to-string (Eprint x e) = "unimplemented"
 evidence-to-string (Evar x) = x
 evidence-to-string (Pair e e₁) = "unimplemented"
 evidence-to-string (Proj e x) = "unimplemented"
-evidence-to-string (Sym e) = "unimplemented"
-evidence-to-string (Trans e e₁) = "unimplemented"
-evidence-to-string (Xi x x₁ e) = "unimplemented"
+evidence-to-string (Sym e) = "(~ " ^ evidence-to-string e ^ ")"
+evidence-to-string (Trans e e₁) = "(" ^ evidence-to-string e ^ " · " ^ evidence-to-string e₁ ^ ")"
+evidence-to-string (Xi x (EclassSome x₁) e) = "(ξ " ^ x ^ " : " ^ evidence-to-string x₁ ^ " . " ^ evidence-to-string e ^ ")"
+evidence-to-string (Xi x EclassNone e) = "(ξ " ^ x ^ " . " ^ evidence-to-string e ^ ")"
+
 
 -- tt means positive, ff means negative.
 occurs-only-polarity : var → 𝔹 → type → 𝔹
@@ -135,3 +141,28 @@ lift-arrows : 𝕃 liftingType → liftingType → liftingType
 lift-arrows [] t = t
 lift-arrows (u :: us) t = LiftArrow u (lift-arrows us t)
 
+-- try to remove n type arguments from the given type, returning the remaining head term and the arguments
+remove-type-args : (n : ℕ) → type → maybe (type × (𝕍 type n))
+remove-type-args n (TpParens tp) = remove-type-args n tp
+remove-type-args 0 h = just (h , [] )
+remove-type-args (suc n) (TpApp t1 t2) with remove-type-args n t1
+remove-type-args (suc n) (TpApp t1 t2) | nothing = nothing
+remove-type-args (suc n) (TpApp t1 t2) | just (h , args ) = just (h , t2 :: args )
+remove-type-args (suc n) tp = nothing 
+
+-- try to remove n lambda-bound vars from the term, returning the vars and the remaining body
+remove-lam-vars : (n : ℕ) → term → maybe ((𝕍 string n) × term)
+remove-lam-vars n (Parens t) = remove-lam-vars n t
+remove-lam-vars 0 t = just ([] , t)
+remove-lam-vars (suc n) (Lam x t) with remove-lam-vars n t
+remove-lam-vars (suc n) (Lam x t) | nothing = nothing
+remove-lam-vars (suc n) (Lam x t) | just (vs , b) = just (x :: vs , b)
+remove-lam-vars (suc n) trm = nothing
+
+remove-inputs-liftingType : (n : ℕ) → liftingType → maybe ((𝕍 liftingType n) × liftingType)
+remove-inputs-liftingType n (LiftParens l) = remove-inputs-liftingType n l
+remove-inputs-liftingType 0 l = just ([] , l)
+remove-inputs-liftingType (suc n) (LiftArrow ltp1 ltp2) with remove-inputs-liftingType n ltp2
+remove-inputs-liftingType (suc n) (LiftArrow ltp1 ltp2) | nothing = nothing
+remove-inputs-liftingType (suc n) (LiftArrow ltp1 ltp2) | just (ds , r) = just (ltp1 :: ds , r)
+remove-inputs-liftingType (suc n) ltp = nothing

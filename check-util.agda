@@ -84,6 +84,10 @@ ctorset-find-term s (Δ , b , r) t (Add trm tp Θ₁) | tt = just tp
 ctorset-find-term s (Δ , b , r) t (Add trm tp Θ₁) | ff = ctorset-find-term s (Δ , b , r) t Θ₁
 ctorset-find-term s (Δ , b , r) t Empty = nothing
 
+convert-type-rbeta-lift-err : string → type → string
+convert-type-rbeta-lift-err nstr tp = "Doing an rbeta-lift conversion, we could not remove " ^ nstr ^ " arguments from a type.\n"
+                                    ^ "1. the type we were supposed to remove those arguments from: " ^ type-to-string tp
+
 synth-type-t : Set
 synth-type-t = tpstate → ctxt → evidence → type → synth-t kind
 
@@ -98,3 +102,4 @@ try-synth-term-t = tpstate → ctxt → evidence → term → type → check-t
 
 data s-t : Set where
   mk-s : synth-type-t → try-synth-type-t → synth-term-t → try-synth-term-t → s-t
+

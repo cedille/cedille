@@ -293,7 +293,9 @@ synth-term s (Δ , b , r) (Ctora x) trm | just tp = h tp
                    ^ "1. the type proved: " ^ type-to-string t)
         
 
-synth-term s Γ e trm = yes-error "Unimplemented part of synth-term"
+synth-term s Γ e trm = yes-error ("We have no matching case for synthesizing a type for the given term from the given evidence.\n"
+                                ^ "1. the evidence: " ^ evidence-to-string e ^ "\n"
+                                ^ " 2. " ^ synth-term-errstr trm)
 
 try-synth-term s (Δ , b , r) e trm tp = 
   synth-term s (Δ , b , r) e trm ≫synthcheck λ tp' → 

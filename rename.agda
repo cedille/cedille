@@ -47,3 +47,7 @@ rename-away-from x g r =
 
 fresh-var : string → (string → 𝔹) → renamectxt → string
 fresh-var = rename-away-from
+
+renamectxt-insert* : renamectxt → {n : ℕ} → 𝕍 string n → 𝕍 string n → renamectxt
+renamectxt-insert* r [] [] = r
+renamectxt-insert* r (x :: xs) (y :: ys) = renamectxt-insert* (renamectxt-insert r x y) xs ys

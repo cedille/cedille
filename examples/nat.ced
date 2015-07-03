@@ -24,7 +24,7 @@ S ∷ S = ζ Nat .
 Z ∷ Z = ζ Nat .
 
 stNat ∷ λ n . n ⇐ Nat → ∀ X : ★. (X → X) → X → X = 
-  ξ n . β (ξ X. (χ ((χ n ⇒ β).2 〈 (ξ n . X) (λ n : Nat . X) 〉) ⇒ ((ξ n' . β ⇒ β) ⇒ β ⇒ β) · ((η Z Z) ⇒ ✓ ⇒ ✓))) 
+  ξ n . β (ξ X. (χ ((χ n ⇒ β).2 〈 (ξ n . X) (λ n : Nat . X) 〉) ⇒ ((ξ n' . β ⇒ β) ⇒ β ⇒ β) · ((η∀ Z Z) ⇒ ✓ ⇒ ✓))) 
 ⇐ Nat ⇒ (ξ X : ✓ . (X ⇒ X) ⇒ X ⇒ X) .
 
 add ∷ λ n . λ m . n S m ⇐ Nat → Nat → Nat = 
@@ -50,3 +50,5 @@ add-zero ∷ λ n . n (λ ih . λ x . ih x) (λ x . x) ⇐ Π n : Nat . (eqNat (
                           ⇐ β · β ✓ ✓ · β ✓ · β))
          (χ (refl 〈Nat Nat〉 { Z Z }) ⇐ (β · (✓ (β ✓) ✓) · (✓ β ✓) · (✓ (β ✓) ✓) · (✓ β ✓))))
          ⇒ β) ⇐ ξ n : Nat. eqNat (add n Z) n .
+
+normalize add (S (S Z)) (S Z).

@@ -10,6 +10,10 @@ evar = string
 evar-bar-8 = string
 kvar = string
 kvar-opt-6 = string
+num = string
+num-plus-10 = string
+numone = string
+numone-range-9 = string
 var = string
 var-plus-7 = string
 varone = string
@@ -69,14 +73,18 @@ mutual
     EholeNamed : showCtxt → var → evidence
     Elet : def → evidence → evidence
     Elift : var → evidence → evidence → evidence
+    EliftCong : evidence → evidence
     Enu : var → var → evidence → evidence → evidence → evidence → evidence
     Eparens : evidence → evidence
     Eprint : showCtxt → evidence → evidence
-    Eta : evidence → term → evidence
+    EtaAll : evidence → term → evidence
+    EtaLift : num → evidence
     Evar : evar → evidence
+    LamCong : evidence → evidence
     Pair : evidence → evidence → evidence
     Proj : evidence → index → evidence
     Rbeta : evidence → term → evidence
+    RbetaLift : num → evidence
     Sym : evidence → evidence
     Trans : evidence → evidence → evidence
     Xi : var → opt_eclass → evidence → evidence
@@ -174,6 +182,10 @@ data ParseTreeT : Set where
   parsed-evar-bar-8 : evar-bar-8 → ParseTreeT
   parsed-kvar : kvar → ParseTreeT
   parsed-kvar-opt-6 : kvar-opt-6 → ParseTreeT
+  parsed-num : num → ParseTreeT
+  parsed-num-plus-10 : num-plus-10 → ParseTreeT
+  parsed-numone : numone → ParseTreeT
+  parsed-numone-range-9 : numone-range-9 → ParseTreeT
   parsed-var : var → ParseTreeT
   parsed-var-plus-7 : var-plus-7 → ParseTreeT
   parsed-varone : varone → ParseTreeT
@@ -183,7 +195,6 @@ data ParseTreeT : Set where
   parsed-varone-range-1 : varone-range-1 → ParseTreeT
   parsed-varone-range-2 : varone-range-2 → ParseTreeT
   parsed-anychar : ParseTreeT
-  parsed-anychar-bar-10 : ParseTreeT
   parsed-anychar-bar-11 : ParseTreeT
   parsed-anychar-bar-12 : ParseTreeT
   parsed-anychar-bar-13 : ParseTreeT
@@ -228,7 +239,6 @@ data ParseTreeT : Set where
   parsed-anychar-bar-52 : ParseTreeT
   parsed-anychar-bar-53 : ParseTreeT
   parsed-anychar-bar-54 : ParseTreeT
-  parsed-anychar-range-9 : ParseTreeT
   parsed-aws : ParseTreeT
   parsed-aws-bar-56 : ParseTreeT
   parsed-aws-bar-57 : ParseTreeT
@@ -252,6 +262,14 @@ kvarToString : kvar → string
 kvarToString x = "(kvar " ^ x ^ ")"
 kvar-opt-6ToString : kvar-opt-6 → string
 kvar-opt-6ToString x = "(kvar-opt-6 " ^ x ^ ")"
+numToString : num → string
+numToString x = "(num " ^ x ^ ")"
+num-plus-10ToString : num-plus-10 → string
+num-plus-10ToString x = "(num-plus-10 " ^ x ^ ")"
+numoneToString : numone → string
+numoneToString x = "(numone " ^ x ^ ")"
+numone-range-9ToString : numone-range-9 → string
+numone-range-9ToString x = "(numone-range-9 " ^ x ^ ")"
 varToString : var → string
 varToString x = "(var " ^ x ^ ")"
 var-plus-7ToString : var-plus-7 → string
@@ -318,14 +336,18 @@ mutual
   evidenceToString (EholeNamed x0 x1) = "(EholeNamed" ^ " " ^ (showCtxtToString x0) ^ " " ^ (varToString x1) ^ ")"
   evidenceToString (Elet x0 x1) = "(Elet" ^ " " ^ (defToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Elift x0 x1 x2) = "(Elift" ^ " " ^ (varToString x0) ^ " " ^ (evidenceToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
+  evidenceToString (EliftCong x0) = "(EliftCong" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Enu x0 x1 x2 x3 x4 x5) = "(Enu" ^ " " ^ (varToString x0) ^ " " ^ (varToString x1) ^ " " ^ (evidenceToString x2) ^ " " ^ (evidenceToString x3) ^ " " ^ (evidenceToString x4) ^ " " ^ (evidenceToString x5) ^ ")"
   evidenceToString (Eparens x0) = "(Eparens" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Eprint x0 x1) = "(Eprint" ^ " " ^ (showCtxtToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Eta x0 x1) = "(Eta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
+  evidenceToString (EtaAll x0 x1) = "(EtaAll" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
+  evidenceToString (EtaLift x0) = "(EtaLift" ^ " " ^ (numToString x0) ^ ")"
   evidenceToString (Evar x0) = "(Evar" ^ " " ^ (evarToString x0) ^ ")"
+  evidenceToString (LamCong x0) = "(LamCong" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Pair x0 x1) = "(Pair" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Proj x0 x1) = "(Proj" ^ " " ^ (evidenceToString x0) ^ " " ^ (indexToString x1) ^ ")"
   evidenceToString (Rbeta x0 x1) = "(Rbeta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
+  evidenceToString (RbetaLift x0) = "(RbetaLift" ^ " " ^ (numToString x0) ^ ")"
   evidenceToString (Sym x0) = "(Sym" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Trans x0 x1) = "(Trans" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Xi x0 x1 x2) = "(Xi" ^ " " ^ (varToString x0) ^ " " ^ (opt_eclassToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
@@ -413,6 +435,10 @@ ParseTreeToString (parsed-evar t) = evarToString t
 ParseTreeToString (parsed-evar-bar-8 t) = evar-bar-8ToString t
 ParseTreeToString (parsed-kvar t) = kvarToString t
 ParseTreeToString (parsed-kvar-opt-6 t) = kvar-opt-6ToString t
+ParseTreeToString (parsed-num t) = numToString t
+ParseTreeToString (parsed-num-plus-10 t) = num-plus-10ToString t
+ParseTreeToString (parsed-numone t) = numoneToString t
+ParseTreeToString (parsed-numone-range-9 t) = numone-range-9ToString t
 ParseTreeToString (parsed-var t) = varToString t
 ParseTreeToString (parsed-var-plus-7 t) = var-plus-7ToString t
 ParseTreeToString (parsed-varone t) = varoneToString t
@@ -422,7 +448,6 @@ ParseTreeToString (parsed-varone-bar-5 t) = varone-bar-5ToString t
 ParseTreeToString (parsed-varone-range-1 t) = varone-range-1ToString t
 ParseTreeToString (parsed-varone-range-2 t) = varone-range-2ToString t
 ParseTreeToString parsed-anychar = "[anychar]"
-ParseTreeToString parsed-anychar-bar-10 = "[anychar-bar-10]"
 ParseTreeToString parsed-anychar-bar-11 = "[anychar-bar-11]"
 ParseTreeToString parsed-anychar-bar-12 = "[anychar-bar-12]"
 ParseTreeToString parsed-anychar-bar-13 = "[anychar-bar-13]"
@@ -467,7 +492,6 @@ ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
 ParseTreeToString parsed-anychar-bar-52 = "[anychar-bar-52]"
 ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
 ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
-ParseTreeToString parsed-anychar-range-9 = "[anychar-range-9]"
 ParseTreeToString parsed-aws = "[aws]"
 ParseTreeToString parsed-aws-bar-56 = "[aws-bar-56]"
 ParseTreeToString parsed-aws-bar-57 = "[aws-bar-57]"

@@ -154,3 +154,8 @@ eq-ctorset s b r (Add trm tp Θ) (Add trm' tp' Θ') = eq-term s b r trm trm' && 
 eq-ctorset s b r (Add x x₁ Θ) Empty = ff
 eq-ctorset s b r Empty (Add x x₁ Θ') = ff
 eq-ctorset s b r Empty Empty = tt
+
+eq-types : tpstate → (var → 𝔹) → renamectxt → {n : ℕ} → 𝕍 type n → 𝕍 type n → 𝔹 
+eq-types s b r [] [] = tt
+eq-types s b r (tp1 :: tps1) (tp2 :: tps2) = eq-type s b r tp1 tp2 && eq-types s b r tps1 tps2
+

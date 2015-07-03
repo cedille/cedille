@@ -39,23 +39,26 @@ format i = formath i (λ x → x)
 test1i : formatti
 test1i = iapp inone (iapp iarg inone)
 
-test1 : formati test1i
-test1 = (fapp (flit tt) (fapp farg (flit ff)))
+test1f : formati test1i
+test1f = (fapp (flit tt) (fapp farg (flit ff)))
 
-test1-format-t : Set
-test1-format-t = format-t test1i
-
-test1-format : format-t test1i
-test1-format = format test1
+test1 : format-t test1i
+test1 = format test1f
 
 test2i : formatti
 test2i = iapp inone (iapp (iapp iarg (iapp inone (iapp iarg inone))) (iapp inone inone))
 
-test2 : formati test2i
-test2 = (fapp (flit tt) (flet (fapp farg (fapp (flit ff) (fapp farg (fbitstr [])))) (λ i → fapp i i)))
+test2f : formati test2i
+test2f = (fapp (flit tt) (flet (fapp farg (fapp (flit ff) (fapp farg (fbitstr [])))) (λ i → fapp i i)))
 
-test2-format-t : Set
-test2-format-t = format-t test2i
+test2 : format-t test2i
+test2 = format test2f
 
-test2-format : format-t test2i
-test2-format = format test2
+test3i : formatti
+test3i = iapp (iapp iarg iarg) (iapp inone (iapp inone inone))
+
+test3f : formati test3i
+test3f = flet (fapp farg farg) (λ i → fapp i (fapp (flit tt) i))
+
+test3 : format-t test3i
+test3 = format test3f

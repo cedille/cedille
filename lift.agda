@@ -19,24 +19,15 @@ lift-to-kind s b r (LiftPi x tp ltp) =
     KndPi x' (Tkt tp) (lift-to-kind s (bctxt-add b x') (renamectxt-insert r x x') ltp)
 lift-to-kind s b r (LiftParens ltp) = lift-to-kind s b r ltp
 
-{- lambda-bind the variables around an application of the term to the arguments (list of terms),
-   but eta-contracting as we go where possible. -}
-eta-spine-app : bctxt → renamectxt → 𝕃 var → term → 𝕃 term → term
-eta-spine-app b r [] h [] = h
-eta-spine-app b r [] h (arg :: args) = app-spine h (arg :: args)
-eta-spine-app b r (v :: vs) h (Var v' :: args) = 
-  if eq-var r v v' then eta-spine-app b r vs h args
-  else (Lam v (App (eta-spine-app b r vs h args) (Var v')))
-eta-spine-app b r (v :: vs) h (arg :: args) = Lam v (App (eta-spine-app b r vs h args) arg)
-eta-spine-app b r (v :: vs) h [] = lambdas (v :: vs) h
-
 do-lifth-wrap : bctxt → renamectxt → 𝕃 (var × liftingType) → term → 𝕃 term → liftingType → type
 do-lifth-wrap b r vls h args ltp = 
   let vls = reverse vls in 
   let vs = map fst vls in
   let tps = map snd vls in
+  let trm : term
+      trm = lambdas vs (app-spine h args) in
     rename-type r (bctxt-contains b)
-     (type-app-spine (Lft (eta-spine-app b r vs h args) (lift-arrows tps ltp)) (map TpVar vs))
+     (type-app-spine (Lft trm (lift-arrows tps ltp)) (map TpVar vs))
 
 {-# NO_TERMINATION_CHECK #-}
 do-lifth : tpstate → bctxt → renamectxt → (trie liftingType) → (𝕃 (var × liftingType)) →  
@@ -74,3 +65,4 @@ do-lifth-spine-apply s b r θ vls h _ (t :: ts) = TpVar "unimplemented-do-lifth-
 
 do-lift : tpstate → bctxt → renamectxt → term → liftingType → type
 do-lift s b r trm ltp = do-lifth s b r empty-trie [] trm ltp 
+
