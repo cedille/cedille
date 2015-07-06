@@ -32,9 +32,7 @@ convert-type ct s Γ (Ehole c) tp =
 convert-type ct s Γ (EholeNamed c n) tp  = 
   just tp , show-evctxt-if c Γ ^ n ^ " ∷ " ^ type-to-string tp ^ " ≃ ?\n"
 convert-type ct s Γ Check tp = just tp , ""
-convert-type ct s Γ (Trans e e') tp = 
-  convert-type ct s Γ e tp ≫conv λ tp' → 
-  convert-type ct s Γ e' tp'
+convert-type ct s Γ (Trans e e') tp = convert-type ct s Γ e tp ≫conv λ tp' → convert-type ct s Γ e' tp'
 convert-type ct s Γ (Eapp e1 e2) (TpApp tp1 tp2)  =
   convert-type ct s Γ e1 tp1 ≫conv λ tp1' → 
   convert-type ct s Γ e2 tp2 ≫conv λ tp2' → just (TpApp tp1' tp2') , ""
@@ -168,6 +166,8 @@ convert-term ct s (Δ , b , r) (LamCong e) (Lam x trm) =
     let x' = rename-away s b r x in
     convert-term ct s (Δ , bctxt-add b x' , renamectxt-insert r x x') e trm ≫conv λ trm' → 
       just (Lam x' trm') , ""
+
+convert-term ct s Γ (Trans e e') trm = convert-term ct s Γ e trm ≫conv λ trm' → convert-term ct s Γ e' trm'
 
 convert-term ct s Γ e t2 = nothing , conv-errstr e t2
 

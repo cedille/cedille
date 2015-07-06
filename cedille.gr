@@ -83,7 +83,7 @@ Eprint : evidence -> '?' showCtxt ows evidence.
 Elift : evidence -> '↑' ws var ows '.' ows evidence ows ':' ows evidence .
 EliftCong : evidence -> '↑c' ws evidence .
 LamCong : evidence -> 'ξ' ows '.' ows evidence .
-Rbeta : evidence -> 'rβ' ows evidence ws term.
+Rbeta : evidence -> 'rβ' ws evidence ws term ows '⇒' ows evidence .
 embed : evidence -> levidence.
 Elet : evidence -> 'δ' ws def ws '-' ws evidence.
 

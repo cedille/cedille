@@ -83,7 +83,7 @@ mutual
     LamCong : evidence → evidence
     Pair : evidence → evidence → evidence
     Proj : evidence → index → evidence
-    Rbeta : evidence → term → evidence
+    Rbeta : evidence → term → evidence → evidence
     RbetaLift : num → evidence
     Sym : evidence → evidence
     Trans : evidence → evidence → evidence
@@ -346,7 +346,7 @@ mutual
   evidenceToString (LamCong x0) = "(LamCong" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Pair x0 x1) = "(Pair" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Proj x0 x1) = "(Proj" ^ " " ^ (evidenceToString x0) ^ " " ^ (indexToString x1) ^ ")"
-  evidenceToString (Rbeta x0 x1) = "(Rbeta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
+  evidenceToString (Rbeta x0 x1 x2) = "(Rbeta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
   evidenceToString (RbetaLift x0) = "(RbetaLift" ^ " " ^ (numToString x0) ^ ")"
   evidenceToString (Sym x0) = "(Sym" ^ " " ^ (evidenceToString x0) ^ ")"
   evidenceToString (Trans x0 x1) = "(Trans" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"

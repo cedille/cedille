@@ -12,11 +12,13 @@ bitstr : Set
 bitstr = 𝕃 𝔹
 
 data formati : formatti → Set where
-   flit : 𝔹 → formati inone
    farg : formati iarg
    fapp : {a b : formatti} → formati a → formati b → formati (iapp a b)
    flet : {a b : formatti} → formati a → (formati inone → formati b) → formati (iapp a b)
    fbitstr : bitstr → formati inone
+
+flit : 𝔹 → formati inone
+flit b = fbitstr [ b ]
 
 format-th : formatti → Set → Set
 format-th iarg r = 𝔹 → r
@@ -27,7 +29,6 @@ format-t : formatti → Set
 format-t i = format-th i bitstr
 
 formath : {i : formatti} → formati i → {A : Set} → (bitstr → A) → format-th i A
-formath (flit x) f = f [ x ]
 formath farg f x = f [ x ]
 formath (fapp i i') f = formath i (λ s → formath i' λ s' → f (s ++ s'))
 formath (flet i i') f = formath i (λ s → formath (i' (fbitstr s)) f)

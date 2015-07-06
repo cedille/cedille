@@ -75,6 +75,7 @@ check-term (mk-s _ _ _ try-synth-term) s (Δ , b , r) e t (TpVar x) | nothing = 
 
 check-term (mk-s _ _ _ try-synth-term) s Γ (Evar u) trm tp = try-synth-term s Γ (Evar u) trm tp
 check-term (mk-s _ _ _ try-synth-term) s Γ (Eapp u u') trm tp = try-synth-term s Γ (Eapp u u') trm tp
+check-term (mk-s _ _ _ try-synth-term) s Γ (Rbeta e e' t') trm tp = try-synth-term s Γ (Rbeta e e' t') trm tp
 check-term (mk-s _ _ _ try-synth-term) s Γ e (App t1 t2) tp = try-synth-term s Γ e (App t1 t2) tp
 check-term (mk-s _ _ _ try-synth-term) s Γ (Ctora x) trm tp = try-synth-term s Γ (Ctora x) trm tp
 

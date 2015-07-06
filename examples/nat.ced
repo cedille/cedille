@@ -28,7 +28,7 @@ stNat ∷ λ n . n ⇐ Nat → ∀ X : ★. (X → X) → X → X =
 ⇐ Nat ⇒ (ξ X : ✓ . (X ⇒ X) ⇒ X ⇒ X) .
 
 add ∷ λ n . λ m . n S m ⇐ Nat → Nat → Nat = 
- ξ n. β (ξ m. β ((rβ (stNat n) (stNat n)) 〈 Nat Nat 〉 S m))
+ ξ n. β (ξ m. β ((rβ (stNat n) (stNat n) ⇒ β) 〈 Nat Nat 〉 S m))
  ⇐ (Nat ⇒ Nat ⇒ Nat) .
 
 eq ∷ λ A : ★ . λ a : A . λ b : A . ∀ P : A → ★ . P a → P b ⇐ Π A : ★ . A → A → ★ =
@@ -52,3 +52,18 @@ add-zero ∷ λ n . n (λ ih . λ x . ih x) (λ x . x) ⇐ Π n : Nat . (eqNat (
          ⇒ β) ⇐ ξ n : Nat. eqNat (add n Z) n .
 
 normalize add (S (S Z)) (S Z).
+
+false ∷ ∀ X : ★ . X ⇐ ★ = ξ X : ✓ . X ⇐ ✓.
+
+true ∷ ∀ X : ★ . X → X ⇐ ★ = ξ X : ✓ . X ⇒ X ⇐ ✓ .
+
+triv ∷ λ x . x ⇐ true = ξ X . ξ x . β x ⇐ true.
+
+One ∷ λ s . λ z . s z ⇐ Nat = (rβ (S Z) (S Z) ⇒ β · (ξ . ξ . ✓ ((β ✓) · β))) ⇐ Nat .
+
+zero-neq-one ∷ λ x . x triv ⇐ eqNat Z One → false =
+  ξ x . β (χ ((χ x ⇒ β ✓ ✓ · β ✓ · β) 〈 (ξ x . (↑ U . (rβ (stNat x) (stNat x) ⇒ β)  〈 U U 〉 : ((U ⇒ U) ⇒ U ⇒ U)) (ξ r . false) true)
+                                  (λ x : Nat . ↑ x : ((☆ → ☆) → ☆ → ☆) · (λ r : ★ . false) · true) 〉 (χ triv ⇐ β · β ✓ ✓ · β ✓ · β))
+           ⇒ β · β ✓ ✓ · β ✓ · β · β)
+          
+ ⇐ eqNat Z One ⇒ false .

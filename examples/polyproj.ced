@@ -27,7 +27,7 @@ stNat ∷ λ n . n ⇐ Nat → ∀ X : ★. (X → X) → X → X =
 ⇐ Nat ⇒ (ξ X : ✓ . (X ⇒ X) ⇒ X ⇒ X) .
 
 polyvac-t ∷ λ n : Nat . λ A : ★ . (↑ n : ((☆ → ☆) → ☆ → ☆)) · (λ r : ★ . ∀ A : ★ . A → r) · A ⇐ Nat → ★ → ★ = 
-ξ n . ξ A . (↑ X . ((rβ (stNat n) (stNat n)) 〈 X X 〉)
+ξ n . ξ A . (↑ X . ((rβ (stNat n) (stNat n) ⇒ β) 〈 X X 〉)
             : ((X ⇒ X) ⇒ X ⇒ X)) (ξ r . ξ A : ✓ . A ⇒ r) A 
 ⇐ Nat ⇒ ✓ ⇒ ✓ .
 

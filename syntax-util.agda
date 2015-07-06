@@ -10,12 +10,22 @@ castDir-to-string : castDir → string
 castDir-to-string checkCast = "⇐"
 castDir-to-string synthCast = "⇒"
 
+showCtxt-to-string : showCtxt → string
+showCtxt-to-string showCtxtNo = ""
+showCtxt-to-string showCtxtYes = "!"
+
+ip-to-string : ip → string
+ip-to-string Iota = "ι"
+ip-to-string Pi = "Π"
+
+al-to-string : al → string
+al-to-string All = "∀"
+al-to-string Lambda = "λ"
+
 kind-to-string : kind → string
 tk-to-string : tk → string
 type-to-string : type → string
 term-to-string : term → string
-ip-to-string : ip → string
-al-to-string : al → string
 ctorset-to-string : ctorset → string
 liftingType-to-string : liftingType → string
 
@@ -40,12 +50,6 @@ type-to-string (TpParens x) = type-to-string x
 type-to-string (TpVar x) = x
 type-to-string U = "𝓤"
 
-ip-to-string Iota = "ι"
-ip-to-string Pi = "Π"
-
-al-to-string All = "∀"
-al-to-string Lambda = "λ"
-
 term-to-string (App t t₁) = "(" ^ term-to-string t ^ " " ^ term-to-string t₁ ^ ")"
 term-to-string (Var x) = x
 term-to-string (Lam x x₁) = "(λ " ^ x ^ " . " ^ term-to-string x₁ ^ ")"
@@ -62,7 +66,7 @@ liftingType-to-string LiftStar = "☆"
 
 evidence-to-string : evidence → string
 evidence-to-string Beta = "β"
-evidence-to-string (Rbeta e t) = "(rβ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
+evidence-to-string (Rbeta e t e') = "(rβ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ " ⇒ " ^ evidence-to-string e'  ^ ")"
 evidence-to-string (RbetaLift n) = "(rβ↑ " ^ n ^ ")"
 evidence-to-string (EliftCong e) = "(↑c " ^ evidence-to-string e ^ ")"
 evidence-to-string (LamCong e) = "(ξ " ^ evidence-to-string e ^ ")"
@@ -76,7 +80,7 @@ evidence-to-string (Eapp e e₁) = "(" ^ evidence-to-string e ^ " " ^ evidence-t
 evidence-to-string (Eappk e t) = "〈" ^ evidence-to-string e ^ " " ^ type-to-string t ^ "〉"
 evidence-to-string (Eappt e t) = "{" ^ evidence-to-string e ^ " " ^ term-to-string t ^ "}"
 evidence-to-string (Earrow e e₁) = "(" ^ evidence-to-string e ^ " ⇒ " ^ evidence-to-string e₁ ^ ")"
-evidence-to-string (Ehole x) = "unimplemented"
+evidence-to-string (Ehole x) = "●" ^ showCtxt-to-string x 
 evidence-to-string (EholeNamed x x₁) = "unimplemented"
 evidence-to-string (Elift x e e') = "(↑ " ^ x ^ " . " ^ evidence-to-string e ^ " : " ^ evidence-to-string e' ^ ")"
 evidence-to-string (Elet x e) = "unimplemented"

@@ -21,6 +21,8 @@ try-synth-type : try-synth-type-t
 synth-term : synth-term-t
 try-synth-term : try-synth-term-t
 
+synth-funcs : s-t
+
 synth-type s Γ (Eparens e) t = synth-type s Γ e t
 synth-type s Γ e (TpParens t) = synth-type s Γ e t
 synth-type s Γ (Eprint c e) t = 
@@ -124,6 +126,7 @@ try-synth-type s (Δ , b , r) e t k =
                 ^ "3. the kind we are checking against: " ^ kind-to-string k))
   
 synth-term s Γ (Eparens e) trm = synth-term s Γ e trm
+synth-term s Γ e (Parens trm) = synth-term s Γ e trm
 synth-term s Γ (Eprint c e) trm = 
   synth-term s Γ e trm ≫synth λ tp →
   no-error ((show-evctxt-if c Γ ^ term-to-string trm ^ " ⇒ " ^ type-to-string tp ^ "\n") , tp)
@@ -167,7 +170,7 @@ synth-term s (Δ , b , r) (Evar u) t | just (ev-ctorset Θ) | just tp = no-error
 synth-term s Γ (Cast e synthCast e') t =
   synth-term s Γ e t ≫synth h
   where h : type → synth-t type
-        h tp with convert-type (check-term (mk-s synth-type try-synth-type synth-term try-synth-term)) s Γ e' tp 
+        h tp with convert-type (check-term synth-funcs) s Γ e' tp 
         h tp | just tp' , m = no-error (m , tp')
         h tp | nothing , m = yes-error m 
 
@@ -176,7 +179,7 @@ synth-term s (Δ , b , r) (Eapp e (Eappt e' t')) t =
   where h : type → synth-t type
         h (TpParens tp) = h tp 
         h (AbsTp2 All x (Tkt tp) tp2) = 
-          check-term (mk-s synth-type try-synth-type synth-term try-synth-term) s (Δ , b , r) e' t' tp ≫checksynth 
+          check-term synth-funcs s (Δ , b , r) e' t' tp ≫checksynth 
           no-error ("" , term-subst-type r (rename-pred s b) t' x tp2) 
         h (TpVar x) with lookup-type-var s (renamectxt-rep r x )
         h (TpVar x) | nothing =
@@ -195,7 +198,7 @@ synth-term s (Δ , b , r) (Eapp e (Eappk e' tp)) t =
   where h : type → synth-t type
         h (TpParens tp) = h tp 
         h (AbsTp2 All x (Tkk k) tp2) = 
-          check-type (mk-s synth-type try-synth-type synth-term try-synth-term) s (Δ , b , r) e' tp k ≫checksynth
+          check-type synth-funcs s (Δ , b , r) e' tp k ≫checksynth
           no-error ("" , type-subst-type r (rename-pred s b) tp x tp2) 
         h (TpVar x) with lookup-type-var s (renamectxt-rep r x )
         h (TpVar x) | nothing =
@@ -215,10 +218,10 @@ synth-term s (Δ , b , r) (Eapp e e') (App t t') = synth-term s (Δ , b , r) e t
   where h : type → synth-t type
         h (TpParens tp) = h tp
         h (AbsTp1 Pi x tp1 tp2) = 
-          check-term (mk-s synth-type try-synth-type synth-term try-synth-term) s (Δ , b , r) e' t' tp1 ≫checksynth
+          check-term synth-funcs s (Δ , b , r) e' t' tp1 ≫checksynth
           no-error ("" , term-subst-type r (rename-pred s b) t' x tp2) 
         h (TpArrow tp1 tp2) = 
-          check-term (mk-s synth-type try-synth-type synth-term try-synth-term) s (Δ , b , r) e' t' tp1 ≫checksynth 
+          check-term synth-funcs s (Δ , b , r) e' t' tp1 ≫checksynth 
           no-error ("" , tp2)
         h (TpVar x) with lookup-type-var s (renamectxt-rep r x )
         h (TpVar x) | nothing =
@@ -230,27 +233,19 @@ synth-term s (Δ , b , r) (Eapp e e') (App t t') = synth-term s (Δ , b , r) e t
                        ^ "1. the first part of the application: " ^ term-to-string t ^ "\n"
                        ^ "2. the synthesized type: " ^ type-to-string tp)
 
-synth-term s (Δ , b , r) (Rbeta e t) t1 = h t
-  where h : term → synth-t type
-        h (Parens t) = h t
-        h (App (Parens t) t') = h (App t t')
-        h (App (Var x) t') with lookup-term-var s x
-        h (App (Var x) t') | just t'' = h (App t'' t')
-        h (App (Var x) t') | nothing =
-          yes-error ("In a reverse-beta proof, the term given is not a redex.\n"
-                   ^ "1. the term we are supposed to reverse-beta step to: " ^ term-to-string (App (Var x) t')  ^ "\n"
-                   ^ "2. " ^ synth-term-errstr t1)
-        h (App (Lam x ta) tb) =
-         let t'' = term-subst-term r (rename-pred s b) tb x ta in
-           if eq-term s (bctxt-contains b) r t1 t'' then
-             synth-term s (Δ , b , r) e (App (Lam x ta) tb) 
-           else
-             yes-error ("A term is supposed to be the result of reducing a redex, but it is not.\n"
-               ^ "1. " ^ synth-term-errstr t1 ^ "\n"
-               ^ "2. the redex which is supposed to reduce to that term: " ^ term-to-string (App (Lam x ta) tb) ^ "\n"
-               ^ "3. the term the redex actually reduces to: " ^ term-to-string t'')
-        h t = yes-error ("In a reverse-beta proof, the term to which we should reverse-beta step is not a redex.\n"
-                       ^ "1. the term to reverse step to: " ^ term-to-string t)
+synth-term s (Δ , b , r) (Rbeta e t' e') t with convert-term (check-term synth-funcs) s (Δ , b , r) e' t'
+synth-term s (Δ , b , r) (Rbeta e t' e') t | nothing , m = 
+  yes-error (m ^ "\nIn a reverse-beta proof, we could not convert the given term with the given evidence.\n" 
+                 ^ "1. the term: " ^ term-to-string t' ^ "\n" 
+                 ^ "2. the evidence: " ^ evidence-to-string e')
+synth-term s (Δ , b , r) (Rbeta e t' e') t | just t1 , m =
+  if eq-term s (bctxt-contains b) r t t1 then
+    synth-term (add-msg m s) (Δ , b , r) e t'
+  else
+    yes-error (m ^ "\nIn a reverse-beta proof, we were able to convert the given term, but the result is not equal to the term we are\n"
+             ^ "trying to synthesize a type for.\n"
+             ^ "1. the term we converted to: " ^ term-to-string t1 ^ "\n"
+             ^ "2. " ^ synth-term-errstr t)               
 
 synth-term s (Δ , b , r) (Proj e i) t = 
   synth-term s (Δ , b , r) e t ≫synth h i
@@ -295,7 +290,7 @@ synth-term s (Δ , b , r) (Ctora x) trm | just tp = h tp
 
 synth-term s Γ e trm = yes-error ("We have no matching case for synthesizing a type for the given term from the given evidence.\n"
                                 ^ "1. the evidence: " ^ evidence-to-string e ^ "\n"
-                                ^ " 2. " ^ synth-term-errstr trm)
+                                ^ "2. " ^ synth-term-errstr trm)
 
 try-synth-term s (Δ , b , r) e trm tp = 
   synth-term s (Δ , b , r) e trm ≫synthcheck λ tp' → 
@@ -304,5 +299,4 @@ try-synth-term s (Δ , b , r) e trm tp =
                 ^ "1. the term we are checking: " ^ term-to-string trm ^ "\n"
                 ^ "2. the type we synthesized for it: " ^ type-to-string tp' ^ "\n"
                 ^ "3. the type we are checking against: " ^ type-to-string tp)
-synth-funcs : s-t
 synth-funcs = mk-s synth-type try-synth-type synth-term try-synth-term 
