@@ -172,7 +172,7 @@ convert-term ct s Γ (Trans e e') trm = convert-term ct s Γ e trm ≫conv λ tr
 convert-term ct s Γ e t2 = nothing , conv-errstr e t2
 
 
-convert-kind ct s (Δ , b , r) e k = nothing , "Kind-level conversion is unimplemented."
+convert-kind ct s (Δ , b , r) e k = nothing , "Non-trivial kind-level conversion is not available in CDLE."
 
 convert-tk ct s Γ e (Tkt t) = (convert-type ct s Γ e t) ≫conv λ t' → just (Tkt t') , ""
 convert-tk ct s Γ e (Tkk k) = (convert-kind ct s Γ e k) ≫conv λ k' → just (Tkk k') , ""

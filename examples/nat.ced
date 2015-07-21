@@ -65,5 +65,4 @@ zero-neq-one ∷ λ x . x triv ⇐ eqNat Z One → false =
   ξ x . β (χ ((χ x ⇒ β ✓ ✓ · β ✓ · β) 〈 (ξ x . (↑ U . (rβ (stNat x) (stNat x) ⇒ β)  〈 U U 〉 : ((U ⇒ U) ⇒ U ⇒ U)) (ξ r . false) true)
                                   (λ x : Nat . ↑ x : ((☆ → ☆) → ☆ → ☆) · (λ r : ★ . false) · true) 〉 (χ triv ⇐ β · β ✓ ✓ · β ✓ · β))
            ⇒ β · β ✓ ✓ · β ✓ · β · β)
-          
  ⇐ eqNat Z One ⇒ false .
