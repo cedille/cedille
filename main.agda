@@ -13,11 +13,15 @@ open noderiv {- from run.agda -}
 
 open import check
 open import check-util
+open import defeq
 open import normalize
 open import rename
 open import synth
 open import syntax-util
 open import tpstate
+
+er : renamectxt
+er = empty-renamectxt
 
 process-cmd : cmd → tpstate → error-t tpstate
 process-cmd (DefCmd d) s = check-def synth-funcs s d
@@ -27,15 +31,22 @@ process-cmd (Echeck (Knd tp knd) e e') s =
  (check-kind synth-funcs s empty-ctxt e' knd ≫check check-type synth-funcs s empty-ctxt e tp knd) ≫=err λ m → no-error (add-msg m s)
 process-cmd (Kcheck k e) s = check-kind synth-funcs s empty-ctxt e k ≫=err λ m → no-error (add-msg m s)
 process-cmd (Print x) s with lookup-var s x
-process-cmd (Print x) s | tpstate-superkinding k = no-error (add-msg (x ^ " ∷ " ^ kind-to-string k ^ " ⇐ □\n") s)
-process-cmd (Print x) s | tpstate-kinding tp k = no-error (add-msg (x ^ " ∷ " ^ type-to-string tp ^ " ⇐ " ^ kind-to-string k ^ "\n") s)
-process-cmd (Print x) s | tpstate-typing trm tp = no-error (add-msg (x ^ " ∷ " ^ term-to-string trm ^ " ⇐ " ^ type-to-string tp ^ "\n") s)
-process-cmd (Print x) s | tpstate-untyped trm = no-error (add-msg (x ^ " = " ^ term-to-string trm ^ "\n") s)
+process-cmd (Print x) s | tpstate-superkinding k = no-error (add-msg (x ^ " ∷ " ^ kind-to-string er k ^ " ⇐ □\n") s)
+process-cmd (Print x) s | tpstate-kinding tp k = no-error (add-msg (x ^ " ∷ " ^ type-to-string er tp
+                                                                  ^ " ⇐ " ^ kind-to-string er k ^ "\n") s)
+process-cmd (Print x) s | tpstate-typing trm tp = no-error (add-msg (x ^ " ∷ " ^ term-to-string er trm
+                                                                   ^ " ⇐ " ^ type-to-string er tp ^ "\n") s)
+process-cmd (Print x) s | tpstate-untyped trm = no-error (add-msg (x ^ " = " ^ term-to-string er trm ^ "\n") s)
 process-cmd (Print x) s | tpstate-nothing = no-error (add-msg (x ^ " is undefined.\n") s)
 process-cmd (Normalize t) s = 
-  no-error (add-msg (term-to-string t ^ " ⇓ " ^ (term-to-string (normalize s empty-renamectxt empty-bctxt t)) ^ "\n") s)
+  no-error (add-msg (term-to-string er t ^ " ⇓ " ^ (term-to-string er (normalize s er empty-bctxt t)) ^ "\n") s)
 process-cmd (SynthTerm x t e) s with synth-term s empty-ctxt e t
-process-cmd (SynthTerm x t e) s | no-error (m , tp) = no-error (add-msg m (add-typed-term-def x t tp s))
+process-cmd (SynthTerm x t e) s | no-error (m , tp) with is-defined s x
+process-cmd (SynthTerm x t e) s | no-error (m , tp) | ff = no-error (add-msg m (add-typed-term-def x t tp s))
+process-cmd (SynthTerm x t e) s | no-error (m , tp) | tt with untyped-equal-def s empty-trie empty-renamectxt x t
+process-cmd (SynthTerm x t e) s | no-error (m , tp) | tt | nothing = yes-error (redefine-err x)
+process-cmd (SynthTerm x t e) s | no-error (m , tp) | tt | just t' = 
+  no-error (add-msg m (redefine-untyped-var-as-typed s x t' tp))
 process-cmd (SynthTerm x t e) s | yes-error m = add-to-def-error x m 
 process-cmd (SynthType x t e) s with synth-type s empty-ctxt e t
 process-cmd (SynthType x t e) s | no-error (m , k) = no-error (add-msg m (add-kinded-type-def x t k s))

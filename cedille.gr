@@ -46,6 +46,7 @@ TpParens : ltype -> '(' ows type ows ')'.
 TpApp : ltype -> ltype ws '·' ws ltype.
 TpAppt : ltype -> ltype ws lterm.
 TpVar : ltype -> var.
+TpEq : ltype -> term ows '≃' ows term .
 
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '→' ows kind .
@@ -99,8 +100,10 @@ Proj : levidence -> levidence ows '.' ows index.
 Eparens : levidence -> '(' ows evidence ows ')'.
 Earrow : levidence -> levidence ows '⇒' ows levidence.
 EholeNamed : levidence -> '●' showCtxt var.
+EholeSilent : levidence -> '●.'.
 Ehole : levidence -> '●' showCtxt.
 Beta : levidence -> 'β' .
+BetaAll : levidence -> 'β*' .
 RbetaLift : levidence -> 'rβ↑' ws num.
 EtaLift : levidence -> 'η↑' ws num.
 Evar : levidence -> evar.
@@ -126,7 +129,7 @@ numone -> ['0' - '9'].
 
 num -> numone+.
 
-anychar => varone | '\t' | space | '𝒌' | '%' | '1' | '2' | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | '~' | 'η' | numone.
+anychar => varone | '\t' | space | '𝒌' | '%' | '1' | '2' | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | '~' | 'η' | numone | '*'.
 
 comment => '%' anychar* '\n'.
 

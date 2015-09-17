@@ -6,6 +6,8 @@ module cedille-types where
 
 open import lib
 open import parse-tree
+
+posinfo = string
 evar = string
 evar-bar-8 = string
 kvar = string
@@ -61,6 +63,7 @@ mutual
 
   data evidence : Set where 
     Beta : evidence
+    BetaAll : evidence
     Cast : evidence → castDir → evidence → evidence
     Check : evidence
     Ctor : evidence → type → evidence
@@ -71,6 +74,7 @@ mutual
     Earrow : evidence → evidence → evidence
     Ehole : showCtxt → evidence
     EholeNamed : showCtxt → var → evidence
+    EholeSilent : evidence
     Elet : def → evidence → evidence
     Elift : var → evidence → evidence → evidence
     EliftCong : evidence → evidence
@@ -141,6 +145,7 @@ mutual
     TpApp : type → type → type
     TpAppt : type → term → type
     TpArrow : type → type → type
+    TpEq : term → term → type
     TpParens : type → type
     TpVar : var → type
     U : type
@@ -178,6 +183,7 @@ data ParseTreeT : Set where
   parsed-lliftingType : liftingType → ParseTreeT
   parsed-lterm : term → ParseTreeT
   parsed-ltype : type → ParseTreeT
+  parsed-posinfo : posinfo → ParseTreeT
   parsed-evar : evar → ParseTreeT
   parsed-evar-bar-8 : evar-bar-8 → ParseTreeT
   parsed-kvar : kvar → ParseTreeT
@@ -239,21 +245,24 @@ data ParseTreeT : Set where
   parsed-anychar-bar-52 : ParseTreeT
   parsed-anychar-bar-53 : ParseTreeT
   parsed-anychar-bar-54 : ParseTreeT
+  parsed-anychar-bar-55 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-56 : ParseTreeT
   parsed-aws-bar-57 : ParseTreeT
   parsed-aws-bar-58 : ParseTreeT
+  parsed-aws-bar-59 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-55 : ParseTreeT
+  parsed-comment-star-56 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-60 : ParseTreeT
+  parsed-ows-star-61 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-59 : ParseTreeT
+  parsed-ws-plus-60 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
 ------------------------------------------
 
+posinfoToString : posinfo → string
+posinfoToString x = "(posinfo " ^ x ^ ")"
 evarToString : evar → string
 evarToString x = "(evar " ^ x ^ ")"
 evar-bar-8ToString : evar-bar-8 → string
@@ -324,6 +333,7 @@ mutual
 
   evidenceToString : evidence → string
   evidenceToString (Beta) = "Beta" ^ ""
+  evidenceToString (BetaAll) = "BetaAll" ^ ""
   evidenceToString (Cast x0 x1 x2) = "(Cast" ^ " " ^ (evidenceToString x0) ^ " " ^ (castDirToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
   evidenceToString (Check) = "Check" ^ ""
   evidenceToString (Ctor x0 x1) = "(Ctor" ^ " " ^ (evidenceToString x0) ^ " " ^ (typeToString x1) ^ ")"
@@ -334,6 +344,7 @@ mutual
   evidenceToString (Earrow x0 x1) = "(Earrow" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Ehole x0) = "(Ehole" ^ " " ^ (showCtxtToString x0) ^ ")"
   evidenceToString (EholeNamed x0 x1) = "(EholeNamed" ^ " " ^ (showCtxtToString x0) ^ " " ^ (varToString x1) ^ ")"
+  evidenceToString (EholeSilent) = "EholeSilent" ^ ""
   evidenceToString (Elet x0 x1) = "(Elet" ^ " " ^ (defToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
   evidenceToString (Elift x0 x1 x2) = "(Elift" ^ " " ^ (varToString x0) ^ " " ^ (evidenceToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
   evidenceToString (EliftCong x0) = "(EliftCong" ^ " " ^ (evidenceToString x0) ^ ")"
@@ -404,6 +415,7 @@ mutual
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpParens x0) = "(TpParens" ^ " " ^ (typeToString x0) ^ ")"
   typeToString (TpVar x0) = "(TpVar" ^ " " ^ (varToString x0) ^ ")"
   typeToString (U) = "U" ^ ""
@@ -431,6 +443,7 @@ ParseTreeToString (parsed-levidence t) = evidenceToString t
 ParseTreeToString (parsed-lliftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-lterm t) = termToString t
 ParseTreeToString (parsed-ltype t) = typeToString t
+ParseTreeToString (parsed-posinfo t) = posinfoToString t
 ParseTreeToString (parsed-evar t) = evarToString t
 ParseTreeToString (parsed-evar-bar-8 t) = evar-bar-8ToString t
 ParseTreeToString (parsed-kvar t) = kvarToString t
@@ -492,16 +505,17 @@ ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
 ParseTreeToString parsed-anychar-bar-52 = "[anychar-bar-52]"
 ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
 ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
+ParseTreeToString parsed-anychar-bar-55 = "[anychar-bar-55]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-56 = "[aws-bar-56]"
 ParseTreeToString parsed-aws-bar-57 = "[aws-bar-57]"
 ParseTreeToString parsed-aws-bar-58 = "[aws-bar-58]"
+ParseTreeToString parsed-aws-bar-59 = "[aws-bar-59]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-55 = "[comment-star-55]"
+ParseTreeToString parsed-comment-star-56 = "[comment-star-56]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-60 = "[ows-star-60]"
+ParseTreeToString parsed-ows-star-61 = "[ows-star-61]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-59 = "[ws-plus-59]"
+ParseTreeToString parsed-ws-plus-60 = "[ws-plus-60]"
 
 ------------------------------------------
 -- Reorganizing rules
@@ -532,6 +546,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-showCtxt : (x : showCtxt) → showCtxt
   norm-showCtxt x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-posinfo : (x : posinfo) → posinfo
+  norm-posinfo x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-opt_eclass : (x : opt_eclass) → opt_eclass

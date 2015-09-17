@@ -1,21 +1,22 @@
-tpo ∷ λ X : ★ . (X → X → X) → ((X → X) → X) → X ⇐ ★ → ★ = ξ X . (X ⇒ X ⇒ X) ⇒ ((X ⇒ X) ⇒ X) ⇒ X ⇐ ✓ ⇒ ✓ .
+tpo ∷ λ X : ★ . (X → X → X) → ((X → X) → X) → X ⇐ ★ → ★ = ✓ ⇐ ✓.
 
-tp ∷ ∀ X : ★ . tpo · X ⇐ ★ = 
-  ξ X : ✓ . tpo X ⇐ ✓ .
+tp ∷ ∀ X : ★ . tpo · X ⇐ ★ = ✓ ⇐ ✓ .
 
-arrow ∷ λ x . λ y . λ a . λ l . a (x a l) (y a l) ⇐ ∀ X : ★ . tpo · X → tpo · X → tpo · X = ● ⇐ ξ X : ✓ . tpo X ⇒ tpo X ⇒ tpo X .
+arrow ∷ λ x . λ y . λ a . λ l . a (x a l) (y a l) ⇐ ∀ X : ★ . tpo · X → tpo · X → tpo · X 
+= ξ X . ξ x . β (ξ y . β (χ (ξ a . β (ξ l . β (a ((χ x ⇒ β) a l) ((χ y ⇒ β) a l)))) ⇐ β)) ⇐ ✓ .
 
-all ∷ λ f . λ a . λ l . l (λ x . f x a l) ⇐ ∀ X : ★ . (X → tpo · X) → tpo · X = ● ⇐ ξ X : ✓ . (X ⇒ tpo X) ⇒ tpo X .
+all ∷ λ f . λ a . λ l . l (λ x . f x a l) ⇐ ∀ X : ★ . (X → tpo · X) → tpo · X = 
+  ξ X . ξ f . β (χ (ξ a . β (ξ l . β (l (ξ x . β ((χ ✓ ⇒ β) a l))))) ⇐ β) ⇐ ✓ .
 
-var ∷ λ x . λ a . λ l . x ⇐ ∀ X : ★ . X → tpo · X = (ξ X . ξ x . β (χ (ξ a . β (ξ l . β x)) ⇐ β)) ⇐ ξ X : ✓ . X ⇒ tpo X.
+var ∷ λ x . λ a . λ l . x ⇐ ∀ X : ★ . X → tpo · X = (ξ X . ξ x . β (χ (ξ a . β (ξ l . β x)) ⇐ β)) ⇐ ✓ .
 
 interp ∷ λ t : tp . (↑ t : ((☆ → ☆ → ☆) → ((☆ → ☆) → ☆) → ☆)) · 
                            (λ a : ★ . λ b : ★ . a → b) ·
                            (λ a : ★ → ★ . ∀ A : ★ . a · A)
  ⇐ tp → ★ =
- ξ t . (↑ X . (χ (t 〈 X X 〉) ⇒ β) : ((X ⇒ X ⇒ X) ⇒ ((X ⇒ X) ⇒ X) ⇒ X)) 
-       (ξ a . ξ b . a ⇒ b) 
-       (ξ a . ξ A : ✓ . a A)  
+ ξ t . (↑ X . (χ (t 〈 X X 〉) ⇒ β) : ✓) 
+       ✓ 
+       ✓  
 ⇐ tp ⇒ ✓ .
 
 S = λ n . λ s . λ z . s (n s z) .
@@ -46,5 +47,5 @@ polyvac-t ∷ λ n . λ A . n (λ r . all (λ x . arrow (var x) r)) A ⇐ Nat �
  ξ n . β (ξ A . β (χ ((χ n ⇒ β).2 〈 (ξ u . tp) (λ u : Nat . tp) 〉 
                   (ξ n' . (χ (ξ r . β (ξ X . all 〈 X X 〉 (ξ x . β (arrow 〈 X X 〉 (var 〈 X X 〉 x) (r 〈 X X 〉))))) ⇐ β ⇒ β))
                   (χ A ⇐ β)) ⇒ β)) 
- ⇐ Nat ⇒ tp ⇒ tp .
+ ⇐ Nat ⇒ ✓ .
 

@@ -56,6 +56,7 @@ subst-typeh r b σ (Nu x k Θ tp) =
 subst-typeh r b σ (TpApp tp1 tp2) = TpApp (subst-typeh r b σ tp1) (subst-typeh r b σ tp2)
 subst-typeh r b σ (TpAppt tp' t) = TpAppt (subst-typeh r b σ tp') (subst-termh r b σ t)
 subst-typeh r b σ (TpArrow tp1 tp2) = TpArrow (subst-typeh r b σ tp1) (subst-typeh r b σ tp2)
+subst-typeh r b σ (TpEq t1 t2) = TpEq (subst-termh r b σ t1) (subst-termh r b σ t2)
 subst-typeh r b σ (TpParens tp') = subst-typeh r b σ tp'
 subst-typeh r b (σtrm , σtp) (TpVar x) = fst (σtp r x)
 subst-typeh r b σ U = U

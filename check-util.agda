@@ -26,48 +26,48 @@ u-type s b Star = no-error U
 unimplemented : string → ∀{A : Set} → error-t A
 unimplemented s = yes-error (s ^ " is currently unimplemented.\n")
 
-evwrong-kind : evidence → kind → check-t
-evwrong-kind e k = 
+evwrong-kind : renamectxt → evidence → kind → check-t
+evwrong-kind r e k = 
   yes-error ("The wrong form of evidence was given for checking a kind.\n" 
-              ^ "1. the evidence: " ^ evidence-to-string e ^ "\n"
-              ^ "2. the kind: " ^ kind-to-string k)
+              ^ "1. the evidence: " ^ evidence-to-string r e ^ "\n"
+              ^ "2. the kind: " ^ kind-to-string r k)
 
-evwrong-type : evidence → type → kind → check-t
-evwrong-type e t k = 
+evwrong-type : renamectxt → evidence → type → kind → check-t
+evwrong-type r e t k = 
   yes-error ("The wrong form of evidence was given for checking a kinding.\n"
-           ^ "1. the evidence: " ^ evidence-to-string e ^ "\n"
-           ^ "2. the kinding: " ^ type-to-string t ^ " : " ^ kind-to-string k)
+           ^ "1. the evidence: " ^ evidence-to-string r e ^ "\n"
+           ^ "2. the kinding: " ^ type-to-string r t ^ " : " ^ kind-to-string r k)
 
-evwrong-ctorset-k : ctorset → check-t
-evwrong-ctorset-k Θ = 
+evwrong-ctorset-k : renamectxt → ctorset → check-t
+evwrong-ctorset-k r Θ = 
   yes-error ("Encountered the wrong form of evidence for checking that the following ctor set is kindable:\n"
-           ^ ctorset-to-string Θ)
+           ^ ctorset-to-string r Θ)
 
-evwrong-ctorset : ctorset → check-t
-evwrong-ctorset Θ = 
+evwrong-ctorset : renamectxt → ctorset → check-t
+evwrong-ctorset r Θ = 
   yes-error ("Encountered the wrong form of evidence for checking the following ctor set:\n"
-           ^ ctorset-to-string Θ)
+           ^ ctorset-to-string r Θ)
 
-evwrong-term : term → type → check-t
-evwrong-term x y = 
+evwrong-term : renamectxt → term → type → check-t
+evwrong-term r x y = 
   yes-error ("Encountered the wrong form of evidence for checking the following typing:\n"
-           ^ term-to-string x ^ " : " ^ type-to-string y)
+           ^ term-to-string r x ^ " : " ^ type-to-string r y)
 
-holewrong-type : type → synth-t kind
-holewrong-type l = 
+holewrong-type : renamectxt → type → synth-t kind
+holewrong-type r l = 
   yes-error ("A hole is being used where we need to synthesize a kind for the following type:\n"
-           ^ type-to-string l)
+           ^ type-to-string r l)
 
-holewrong-term : term → synth-t type
-holewrong-term t = 
+holewrong-term : renamectxt → term → synth-t type
+holewrong-term r t = 
   yes-error ("A hole is being used where we need to synthesize a type for the following term:\n"
-           ^ term-to-string t)
+           ^ term-to-string r t)
 
-synth-type-errstr : type → string
-synth-type-errstr t = "the type whose kind we are trying to synthesize: " ^ type-to-string t
+synth-type-errstr : renamectxt → type → string
+synth-type-errstr r t = "the type whose kind we are trying to synthesize: " ^ type-to-string r t
 
-synth-term-errstr : term → string
-synth-term-errstr t = "the term whose type we are trying to synthesize: " ^ term-to-string t
+synth-term-errstr : renamectxt → term → string
+synth-term-errstr r t = "the term whose type we are trying to synthesize: " ^ term-to-string r t
 
 add-to-def-error : string → string → error-t tpstate
 add-to-def-error v m = yes-error ("While checking the definition of " ^ v ^ ":\n" ^ m)
@@ -84,9 +84,9 @@ ctorset-find-term s (Δ , b , r) t (Add trm tp Θ₁) | tt = just tp
 ctorset-find-term s (Δ , b , r) t (Add trm tp Θ₁) | ff = ctorset-find-term s (Δ , b , r) t Θ₁
 ctorset-find-term s (Δ , b , r) t Empty = nothing
 
-convert-type-rbeta-lift-err : string → type → string
-convert-type-rbeta-lift-err nstr tp = "Doing an rbeta-lift conversion, we could not remove " ^ nstr ^ " arguments from a type.\n"
-                                    ^ "1. the type we were supposed to remove those arguments from: " ^ type-to-string tp
+convert-type-rbeta-lift-err : renamectxt → string → type → string
+convert-type-rbeta-lift-err r nstr tp = "Doing an rbeta-lift conversion, we could not remove " ^ nstr ^ " arguments from a type.\n"
+                                      ^ "1. the type we were supposed to remove those arguments from: " ^ type-to-string r tp
 
 synth-type-t : Set
 synth-type-t = tpstate → ctxt → evidence → type → synth-t kind

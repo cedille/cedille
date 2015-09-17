@@ -7,8 +7,8 @@ open import rename
 -- NB: \GTH is for Θ, while \Gth is for θ.  The characters are imperceptibly different at usual font size.
 
 castDir-to-string : castDir → string
-castDir-to-string checkCast = "⇐"
-castDir-to-string synthCast = "⇒"
+castDir-to-string checkCast = " ⇐ "
+castDir-to-string synthCast = " ⇒ "
 
 showCtxt-to-string : showCtxt → string
 showCtxt-to-string showCtxtNo = ""
@@ -22,78 +22,92 @@ al-to-string : al → string
 al-to-string All = "∀"
 al-to-string Lambda = "λ"
 
-kind-to-string : kind → string
-tk-to-string : tk → string
-type-to-string : type → string
-term-to-string : term → string
-ctorset-to-string : ctorset → string
-liftingType-to-string : liftingType → string
+kind-to-string : renamectxt → kind → string
+tk-to-string : renamectxt → tk → string
+type-to-string : renamectxt → type → string
+term-to-string : renamectxt → term → string
+ctorset-to-string : renamectxt → ctorset → string
+liftingType-to-string : renamectxt → liftingType → string
 
-kind-to-string (KndArrow k k') = "(" ^ kind-to-string k ^ " → " ^ kind-to-string k' ^ ")"
-kind-to-string (KndParens k) = kind-to-string k
-kind-to-string (KndPi x u k) = "(Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-string k ^ ")"
-kind-to-string (KndTpArrow x k) = "(" ^ type-to-string x ^ " → " ^ kind-to-string k ^ ")"
-kind-to-string (KndVar x) = x
-kind-to-string Star = "★"
+kind-to-string r (KndArrow k k') = "(" ^ kind-to-string r k ^ " → " ^ kind-to-string r k' ^ ")"
+kind-to-string r (KndParens k) = kind-to-string r k
+kind-to-string r (KndPi x u k) = let r' = trie-remove r x in 
+                                   "(Π " ^ x ^ " : " ^ tk-to-string r' u ^ " . " ^ kind-to-string r' k ^ ")"
+kind-to-string r (KndTpArrow x k) = "(" ^ type-to-string r x ^ " → " ^ kind-to-string r k ^ ")"
+kind-to-string r (KndVar x) = x
+kind-to-string r Star = "★"
 
-tk-to-string (Tkk k) = kind-to-string k
-tk-to-string (Tkt t) = type-to-string t
+tk-to-string r (Tkk k) = kind-to-string r k
+tk-to-string r (Tkt t) = type-to-string r t
 
-type-to-string (AbsTp1 b x t1 t2) = "(" ^ (ip-to-string b) ^ " " ^ x ^ " : " ^ type-to-string t1 ^ " . " ^ type-to-string t2 ^ ")"
-type-to-string (AbsTp2 b x t1 t2) = "(" ^ (al-to-string b) ^ " " ^ x ^ " : " ^ tk-to-string t1 ^ " . " ^ type-to-string t2 ^ ")"
-type-to-string (Nu x k Θ t) = "(ν" ^ " " ^ x ^ " : " ^ kind-to-string k ^ " | " ^ ctorset-to-string Θ ^ " . " ^ type-to-string t ^ ")"
-type-to-string (TpArrow x t) = "(" ^ type-to-string x ^ " → " ^  type-to-string t ^ ")"
-type-to-string (Lft t tp) = "↑ " ^ term-to-string t ^ " : " ^ liftingType-to-string tp 
-type-to-string (TpApp t t₁) = "(" ^ type-to-string t ^ " · " ^ type-to-string t₁ ^ ")"
-type-to-string (TpAppt t x) = "(" ^ type-to-string t ^ " " ^ term-to-string x ^ ")"
-type-to-string (TpParens x) = type-to-string x
-type-to-string (TpVar x) = x
-type-to-string U = "𝓤"
+type-to-string r (AbsTp1 b x t1 t2) = 
+  let r' = trie-remove r x in
+    "(" ^ (ip-to-string b) ^ " " ^ x ^ " : " ^ type-to-string r t1 ^ " . " ^ type-to-string r' t2 ^ ")"
+type-to-string r (AbsTp2 b x t1 t2) = 
+  let r' = trie-remove r x in
+    "(" ^ (al-to-string b) ^ " " ^ x ^ " : " ^ tk-to-string r t1 ^ " . " ^ type-to-string r' t2 ^ ")"
+type-to-string r (Nu x k Θ t) = 
+  let r' = trie-remove r x in
+    "(ν" ^ " " ^ x ^ " : " ^ kind-to-string r k ^ " | " ^ ctorset-to-string r' Θ ^ " . " ^ type-to-string r' t ^ ")"
+type-to-string r (TpArrow x t) = "(" ^ type-to-string r x ^ " → " ^  type-to-string r t ^ ")"
+type-to-string r (Lft t tp) = "↑ " ^ term-to-string r t ^ " : " ^ liftingType-to-string r tp 
+type-to-string r (TpApp t t₁) = "(" ^ type-to-string r t ^ " · " ^ type-to-string r t₁ ^ ")"
+type-to-string r (TpAppt t x) = "(" ^ type-to-string r t ^ " " ^ term-to-string r x ^ ")"
+type-to-string r (TpParens x) = type-to-string r x
+type-to-string r (TpEq t1 t2) = "(" ^ term-to-string r t1 ^ " ≃ " ^ term-to-string r t2 ^ ")"
+type-to-string r (TpVar x) = renamectxt-rep r x
+type-to-string r U = "𝓤"
 
-term-to-string (App t t₁) = "(" ^ term-to-string t ^ " " ^ term-to-string t₁ ^ ")"
-term-to-string (Var x) = x
-term-to-string (Lam x x₁) = "(λ " ^ x ^ " . " ^ term-to-string x₁ ^ ")"
-term-to-string (Parens x) = term-to-string x
+term-to-string r (App t t₁) = "(" ^ term-to-string r t ^ " " ^ term-to-string r t₁ ^ ")"
+term-to-string r (Var x) = renamectxt-rep r x
+term-to-string r (Lam x x₁) = 
+ let r' = trie-remove r x in
+  "(λ " ^ x ^ " . " ^ term-to-string r' x₁ ^ ")"
+term-to-string r (Parens x) = term-to-string r x
 
-ctorset-to-string (Add x x₁ θ) = term-to-string x ^ " ∈ " ^ type-to-string x₁ ^ " , " ^ ctorset-to-string θ
-ctorset-to-string Empty = "·"
+ctorset-to-string r (Add x x₁ θ) = term-to-string r x ^ " ∈ " ^ type-to-string r x₁ ^ " , " ^ ctorset-to-string r θ
+ctorset-to-string r Empty = "·"
 
-liftingType-to-string (LiftArrow t t₁) = "(" ^ liftingType-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
-liftingType-to-string (LiftTpArrow t t₁) = "(" ^ type-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
-liftingType-to-string (LiftParens t) = liftingType-to-string t
-liftingType-to-string (LiftPi x x₁ t) = "(Π " ^ x ^ " : " ^ type-to-string x₁ ^ " . " ^ liftingType-to-string t ^ ")"
-liftingType-to-string LiftStar = "☆"
+liftingType-to-string r (LiftArrow t t₁) = "(" ^ liftingType-to-string r t ^ " → " ^ liftingType-to-string r t₁ ^ ")"
+liftingType-to-string r (LiftTpArrow t t₁) = "(" ^ type-to-string r t ^ " → " ^ liftingType-to-string r t₁ ^ ")"
+liftingType-to-string r (LiftParens t) = liftingType-to-string r t
+liftingType-to-string r (LiftPi x x₁ t) = 
+  let r' = trie-remove r x in
+    "(Π " ^ x ^ " : " ^ type-to-string r x₁ ^ " . " ^ liftingType-to-string r' t ^ ")"
+liftingType-to-string r LiftStar = "☆"
 
-evidence-to-string : evidence → string
-evidence-to-string Beta = "β"
-evidence-to-string (Rbeta e t e') = "(rβ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ " ⇒ " ^ evidence-to-string e'  ^ ")"
-evidence-to-string (RbetaLift n) = "(rβ↑ " ^ n ^ ")"
-evidence-to-string (EliftCong e) = "(↑c " ^ evidence-to-string e ^ ")"
-evidence-to-string (LamCong e) = "(ξ " ^ evidence-to-string e ^ ")"
-evidence-to-string (EtaAll e t) = "(η∀ " ^ evidence-to-string e ^ " " ^ term-to-string t ^ ")"
-evidence-to-string (EtaLift n) = "(η↑ " ^ n ^ ")"
-evidence-to-string (Cast e d e₁) = "(χ " ^ evidence-to-string e ^ (castDir-to-string d) ^ evidence-to-string e₁ ^ ")"
-evidence-to-string Check = "✓"
-evidence-to-string (Ctor e x) = "(ζ " ^ evidence-to-string e ^ " : " ^ type-to-string x ^ ")"
-evidence-to-string (Ctora x) = "(ζ " ^ x ^ ")"
-evidence-to-string (Eapp e e₁) = "(" ^ evidence-to-string e ^ " " ^ evidence-to-string e₁ ^ ")"
-evidence-to-string (Eappk e t) = "〈" ^ evidence-to-string e ^ " " ^ type-to-string t ^ "〉"
-evidence-to-string (Eappt e t) = "{" ^ evidence-to-string e ^ " " ^ term-to-string t ^ "}"
-evidence-to-string (Earrow e e₁) = "(" ^ evidence-to-string e ^ " ⇒ " ^ evidence-to-string e₁ ^ ")"
-evidence-to-string (Ehole x) = "●" ^ showCtxt-to-string x 
-evidence-to-string (EholeNamed x x₁) = "unimplemented"
-evidence-to-string (Elift x e e') = "(↑ " ^ x ^ " . " ^ evidence-to-string e ^ " : " ^ evidence-to-string e' ^ ")"
-evidence-to-string (Elet x e) = "unimplemented"
-evidence-to-string (Enu x x₁ e e₁ e₂ e₃) = "unimplemented"
-evidence-to-string (Eparens e) = evidence-to-string e
-evidence-to-string (Eprint x e) = "unimplemented"
-evidence-to-string (Evar x) = x
-evidence-to-string (Pair e e₁) = "unimplemented"
-evidence-to-string (Proj e x) = "unimplemented"
-evidence-to-string (Sym e) = "(~ " ^ evidence-to-string e ^ ")"
-evidence-to-string (Trans e e₁) = "(" ^ evidence-to-string e ^ " · " ^ evidence-to-string e₁ ^ ")"
-evidence-to-string (Xi x (EclassSome x₁) e) = "(ξ " ^ x ^ " : " ^ evidence-to-string x₁ ^ " . " ^ evidence-to-string e ^ ")"
-evidence-to-string (Xi x EclassNone e) = "(ξ " ^ x ^ " . " ^ evidence-to-string e ^ ")"
+evidence-to-string : renamectxt → evidence → string
+evidence-to-string r Beta = "β"
+evidence-to-string r BetaAll = "β*"
+evidence-to-string r (Rbeta e t e') = "(rβ " ^ evidence-to-string r e ^ " " ^ term-to-string r t ^ " ⇒ " ^ evidence-to-string r e'  ^ ")"
+evidence-to-string r (RbetaLift n) = "(rβ↑ " ^ n ^ ")"
+evidence-to-string r (EliftCong e) = "(↑c " ^ evidence-to-string r e ^ ")"
+evidence-to-string r (LamCong e) = "(ξ " ^ evidence-to-string r e ^ ")"
+evidence-to-string r (EtaAll e t) = "(η∀ " ^ evidence-to-string r e ^ " " ^ term-to-string r t ^ ")"
+evidence-to-string r (EtaLift n) = "(η↑ " ^ n ^ ")"
+evidence-to-string r (Cast e d e₁) = "(χ " ^ evidence-to-string r e ^ (castDir-to-string d) ^ evidence-to-string r e₁ ^ ")"
+evidence-to-string r Check = "✓"
+evidence-to-string r (Ctor e x) = "(ζ " ^ evidence-to-string r e ^ " : " ^ type-to-string r x ^ ")"
+evidence-to-string r (Ctora x) = "(ζ " ^ x ^ ")"
+evidence-to-string r (Eapp e e₁) = "(" ^ evidence-to-string r e ^ " " ^ evidence-to-string r e₁ ^ ")"
+evidence-to-string r (Eappk e t) = "〈" ^ evidence-to-string r e ^ " " ^ type-to-string r t ^ "〉"
+evidence-to-string r (Eappt e t) = "{" ^ evidence-to-string r e ^ " " ^ term-to-string r t ^ "}"
+evidence-to-string r (Earrow e e₁) = "(" ^ evidence-to-string r e ^ " ⇒ " ^ evidence-to-string r e₁ ^ ")"
+evidence-to-string r (Ehole x) = "●" ^ showCtxt-to-string x 
+evidence-to-string r EholeSilent = "●."
+evidence-to-string r (EholeNamed x x₁) = "●" ^ showCtxt-to-string x ^ x₁
+evidence-to-string r (Elift x e e') = "(↑ " ^ x ^ " . " ^ evidence-to-string r e ^ " : " ^ evidence-to-string r e' ^ ")"
+evidence-to-string r (Elet x e) = "unimplemented"
+evidence-to-string r (Enu x x₁ e e₁ e₂ e₃) = "unimplemented"
+evidence-to-string r (Eparens e) = evidence-to-string r e
+evidence-to-string r (Eprint x e) = "unimplemented"
+evidence-to-string r (Evar x) = x
+evidence-to-string r (Pair e e₁) = "unimplemented"
+evidence-to-string r (Proj e x) = "unimplemented"
+evidence-to-string r (Sym e) = "(~ " ^ evidence-to-string r e ^ ")"
+evidence-to-string r (Trans e e₁) = "(" ^ evidence-to-string r e ^ " · " ^ evidence-to-string r e₁ ^ ")"
+evidence-to-string r (Xi x (EclassSome x₁) e) = "(ξ " ^ x ^ " : " ^ evidence-to-string r x₁ ^ " . " ^ evidence-to-string r e ^ ")"
+evidence-to-string r (Xi x EclassNone e) = "(ξ " ^ x ^ " . " ^ evidence-to-string r e ^ ")"
 
 
 -- tt means positive, ff means negative.

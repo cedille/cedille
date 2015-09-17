@@ -2,10 +2,11 @@ S = λ n . λ s . λ z . s (n s z) .
 Z = λ s . λ z . z .
 
 Nat ∷ ν Nat : ★ | S ∈ Nat → Nat , Z ∈ Nat , · . 
-        ι x : Nat . ∀ P : Nat → ★ . (∀ n : Nat . P n → P (S n)) → P Z → P x ⇐ ★ = 
-  ν u , u' . 
+        ι x : Nat . ∀ P : Nat → ★ . (∀ n : Nat . P n → P (S n)) → P Z → P x 
+⇐ ★ = 
+  ν Nat , u' . 
    [ % kinding ctor set
-     [ u ⇒ u , [ u , ✓ ]] ,
+     [ Nat ⇒ Nat , [ Nat , ✓ ]] ,
   
      % first typing of the ctor set
      [ ξ n . β ✓ , [ ✓ , ✓ ]] ,
@@ -15,7 +16,7 @@ Nat ∷ ν Nat : ★ | S ∈ Nat → Nat , Z ∈ Nat , · .
              [ [ u' , ξ P . ξ s . β ( ξ z . β z) ] , ✓ ]] ,
 
      % kinding the body
-     ξ x : u . ξ P : u ⇒ ✓ . (ξ n : u . P n ⇒ P (u' n)) ⇒ P u' ⇒ P x
+     ξ x : Nat . ξ P : Nat ⇒ ✓ . (ξ n : Nat . P n ⇒ P (u' n)) ⇒ P u' ⇒ P x
    ]
 ⇐ ✓.
 
@@ -24,32 +25,32 @@ S ∷ S = ζ Nat .
 Z ∷ Z = ζ Nat .
 
 stNat ∷ λ n . n ⇐ Nat → ∀ X : ★. (X → X) → X → X = 
-  ξ n . β (ξ X. (χ ((χ n ⇒ β).2 〈 (ξ n . X) (λ n : Nat . X) 〉) ⇒ ((ξ n' . β ⇒ β) ⇒ β ⇒ β) · ((η∀ Z Z) ⇒ ✓ ⇒ ✓))) 
-⇐ Nat ⇒ (ξ X : ✓ . (X ⇒ X) ⇒ X ⇒ X) .
+  ξ n . β (ξ X. (χ ((χ n ⇒ β).2 〈 ✓ (λ n : Nat . X) 〉) ⇒ ((ξ n' . β ⇒ β) ⇒ β ⇒ β) · ((η∀ Z Z) ⇒ ✓ ⇒ ✓))) 
+⇐ Nat ⇒ ✓ .
 
 add ∷ λ n . λ m . n S m ⇐ Nat → Nat → Nat = 
  ξ n. β (ξ m. β ((rβ (stNat n) (stNat n) ⇒ β) 〈 Nat Nat 〉 S m))
- ⇐ (Nat ⇒ Nat ⇒ Nat) .
+ ⇐ ✓ .
 
 eq ∷ λ A : ★ . λ a : A . λ b : A . ∀ P : A → ★ . P a → P b ⇐ Π A : ★ . A → A → ★ =
-  ξ A . ξ a . ξ b . ξ P : A ⇒ ✓ . (P a ⇒ P b) ⇐ ξ A : ✓ . (A ⇒ A ⇒ ✓) .
+  ξ A . ξ a . ξ b . ξ P : A ⇒ ✓ . (P a ⇒ P b) ⇐ ✓ .
 
 refl ∷ λ x . x ⇐ ∀ A : ★ . ∀ a : A . ((eq · A) a) a = 
  ξ A . ξ a . χ (ξ P . ξ x . β x) ⇐ β ✓ ✓ · β ✓ · β
-⇐ ξ A : ✓ . ξ a : A . eq A a a .
+⇐ ✓ .
 
 test ∷ λ x . x = refl 〈Nat Nat〉 { Z Z }.
 
 eqNat ∷ eq · Nat ⇐ Nat → Nat → ★ = eq Nat ⇐ Nat ⇒ Nat ⇒ ✓ .
 
 add-zero ∷ λ n . n (λ ih . λ x . ih x) (λ x . x) ⇐ Π n : Nat . (eqNat (add n Z) n) =
- ξ n . β (χ ((χ n ⇒ β).2 〈 (ξ n . eqNat (add n Z) n) (λ n : Nat . (eqNat (add n Z) n)) 〉
+ ξ n . β (χ ((χ n ⇒ β).2 〈 ✓ (λ n : Nat . (eqNat (add n Z) n)) 〉
          (ξ n . ξ ih . β (χ (ξ P . ξ x . β 
-                              (χ ((χ ih ⇒ β · β ✓ ✓ · β ✓ · β) 〈 (ξ a . P (S a)) (λ a : Nat . P (S a)) 〉 
+                              (χ ((χ ih ⇒ β · β ✓ ✓ · β ✓ · β) 〈 ✓ (λ a : Nat . P (S a)) 〉 
                                  (χ (χ x ⇒ ✓ (β ✓) · ✓ β · ✓ (β ✓ ✓) · ✓ (β ✓) · ✓ β) ⇐ β · ✓ (✓ (β ✓)) · ✓ (✓ β))) ⇒ β))
                           ⇐ β · β ✓ ✓ · β ✓ · β))
          (χ (refl 〈Nat Nat〉 { Z Z }) ⇐ (β · (✓ (β ✓) ✓) · (✓ β ✓) · (✓ (β ✓) ✓) · (✓ β ✓))))
-         ⇒ β) ⇐ ξ n : Nat. eqNat (add n Z) n .
+         ⇒ β) ⇐ ✓ .
 
 normalize add (S (S Z)) (S Z).
 
@@ -62,7 +63,7 @@ triv ∷ λ x . x ⇐ true = ξ X . ξ x . β x ⇐ true.
 One ∷ λ s . λ z . s z ⇐ Nat = (rβ (S Z) (S Z) ⇒ β · (ξ . ξ . ✓ ((β ✓) · β))) ⇐ Nat .
 
 zero-neq-one ∷ λ x . x triv ⇐ eqNat Z One → false =
-  ξ x . β (χ ((χ x ⇒ β ✓ ✓ · β ✓ · β) 〈 (ξ x . (↑ U . (rβ (stNat x) (stNat x) ⇒ β)  〈 U U 〉 : ((U ⇒ U) ⇒ U ⇒ U)) (ξ r . false) true)
+  ξ x . β (χ ((χ x ⇒ β ✓ ✓ · β ✓ · β) 〈 (ξ x . (↑ U . (rβ (stNat x) (stNat x) ⇒ β)  〈 U U 〉 : ✓) ✓ ✓)
                                   (λ x : Nat . ↑ x : ((☆ → ☆) → ☆ → ☆) · (λ r : ★ . false) · true) 〉 (χ triv ⇐ β · β ✓ ✓ · β ✓ · β))
            ⇒ β · β ✓ ✓ · β ✓ · β · β)
  ⇐ eqNat Z One ⇒ false .

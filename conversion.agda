@@ -7,15 +7,16 @@ open import check-util
 open import defeq
 open import free
 open import lift
+open import normalize
 open import rename
 open import syntax-util
 open import subst
 open import tpstate
 
-conv-errstr : evidence → term → string
-conv-errstr e t = ("We have no matching case for converting the given term with the given evidence.\n"
-                      ^ "1. the term: " ^ term-to-string t ^ "\n"
-                      ^ "2. the evidence: " ^ evidence-to-string e )
+conv-errstr : renamectxt → evidence → term → string
+conv-errstr r e t = ("We have no matching case for converting the given term with the given evidence.\n"
+                      ^ "1. the term: " ^ term-to-string r t ^ "\n"
+                      ^ "2. the evidence: " ^ evidence-to-string r e )
 
 
 {-# NO_TERMINATION_CHECK #-}
@@ -27,10 +28,12 @@ convert-tk : check-term-t → tpstate → ctxt → evidence → tk → conv-t tk
 
 convert-type ct s Γ (Eparens e) tp = convert-type ct s Γ e tp 
 convert-type ct s Γ e (TpParens tp) = convert-type ct s Γ e tp 
-convert-type ct s Γ (Ehole c) tp = 
-  just tp , show-evctxt-if c Γ ^ type-to-string tp ^ " ≃ ?\n"
-convert-type ct s Γ (EholeNamed c n) tp  = 
-  just tp , show-evctxt-if c Γ ^ n ^ " ∷ " ^ type-to-string tp ^ " ≃ ?\n"
+convert-type ct s (Δ , b , r) EholeSilent tp = 
+  just tp , "●.\n"
+convert-type ct s (Δ , b , r) (Ehole c) tp = 
+  just tp , show-evctxt-if c (Δ , b , r) ^ type-to-string r tp ^ " ≃ ?\n"
+convert-type ct s (Δ , b , r) (EholeNamed c n) tp  = 
+  just tp , show-evctxt-if c (Δ , b , r) ^ n ^ " ∷ " ^ type-to-string r tp ^ " ≃ ?\n"
 convert-type ct s Γ Check tp = just tp , ""
 convert-type ct s Γ (Trans e e') tp = convert-type ct s Γ e tp ≫conv λ tp' → convert-type ct s Γ e' tp'
 convert-type ct s Γ (Eapp e1 e2) (TpApp tp1 tp2)  =
@@ -72,7 +75,7 @@ convert-type ct s (Δ , b , r) (EtaLift nstr) (Lft t ltp) | just n = hl n t []
         hl 0 t vs = ha t vs
         hl n t vs = nothing , ("Conversion using eta for lift types (η↑) could not find " ^ nstr 
                               ^ "lambda-abstractions to try to eta-contract.\n"
-                              ^ "1. the term we encountered after fewer than " ^ nstr ^ " lambda abstractions: " ^ term-to-string t)
+                              ^ "1. the term we encountered after fewer than " ^ nstr ^ " lambda abstractions: " ^ term-to-string r t)
  
         ha (Parens t) vs = ha t vs
         ha (App t1 (Parens t2)) vs = ha (App t1 t2) vs  
@@ -84,28 +87,29 @@ convert-type ct s (Δ , b , r) (EtaLift nstr) (Lft t ltp) | just n = hl n t []
         ha t [] = just (Lft t ltp) , ""
         ha t vs = nothing , ("Conversion using eta for lift types (η↑) could not find " ^ nstr ^ " nested applications to variables\n"
                            ^ "in the body of the lambda abstraction to be eta-contracted.\n"
-                           ^ "1. the term where we got stuck: " ^ term-to-string t)
+                           ^ "1. the term where we got stuck: " ^ term-to-string r t)
          
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) with string-to-ℕ nstr
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | nothing =
   nothing , "Internal error converting a string to a natural number for rbeta lift (should not happen)."
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n with remove-type-args n tp1 | remove-type-args n tp2
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n | nothing | x = 
-  nothing , (convert-type-rbeta-lift-err nstr tp1)
+  nothing , (convert-type-rbeta-lift-err r nstr tp1)
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n | just (h1 , args1) | nothing = 
-  nothing , (convert-type-rbeta-lift-err nstr tp2)
+  nothing , (convert-type-rbeta-lift-err r nstr tp2)
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n | just (Lft h1 ltp1 , args1) | just (Lft h2 ltp2 , args2) = 
   if eq-types s (bctxt-contains b) r args1 args2 then
     (h (remove-lam-vars n h1) (remove-lam-vars n h2) (remove-inputs-liftingType n ltp1))
   else
     (nothing , ("Trying to do an rbeta-lift conversion, we did not extract " ^ nstr ^ " equal arguments from both types.\n"
-             ^ "1. the first type: " ^ type-to-string tp1 ^ "\n"  
-             ^ "2. the second type: " ^ type-to-string tp2))
+             ^ "1. the first type: " ^ type-to-string r tp1 ^ "\n"  
+             ^ "2. the second type: " ^ type-to-string r tp2))
   where h : {n : ℕ} → maybe ((𝕍 string n) × term) → maybe ((𝕍 string n) × term) → maybe ((𝕍 liftingType n) × liftingType) → conv-t type
         h nothing x y = nothing , ("Trying to do an rbeta-lift conversion, we could not extract " ^ nstr
-                               ^ " lambda-abstractions beneath a lift type.\n1. the type: " ^ type-to-string (Lft h1 ltp1))
+                               ^ " lambda-abstractions beneath a lift type.\n1. the type: " ^ type-to-string r (Lft h1 ltp1))
         h (just (vs1 , b1)) nothing y = nothing , ("Trying to do an rbeta-lift conversion, we could not extract " ^ nstr
-                                              ^ " lambda-abstractions beneath a lift type.\n1. the type: " ^ type-to-string (Lft h2 ltp2))
+                                              ^ " lambda-abstractions beneath a lift type.\n1. the type: " 
+                                              ^ type-to-string r (Lft h2 ltp2))
         h (just (vs1 , b1)) (just (vs2 , b2)) (just (ins , LiftArrow _ ltpr)) = 
           just 
             (type-app-spine 
@@ -116,18 +120,18 @@ convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n | just 
         h (just (vs1 , b1)) (just (vs2 , b2)) x = 
           nothing , ("Trying to do an rbeta-lift conversion, we could not extract " ^ nstr
                    ^ " domain types from around an arrow lifting type (should not happen?).\n"
-                   ^ "1. the lifting type: " ^ liftingType-to-string ltp1)
+                   ^ "1. the lifting type: " ^ liftingType-to-string r ltp1)
 convert-type ct s (Δ , b , r) (RbetaLift nstr) (TpApp tp1 tp2) | just n | just (h1 , args1) | just (h2 , args2) = 
    nothing , ("Trying to do an rbeta-lift conversion, the remaining head of one of the types is not a lift type.\n"
-            ^ "1. the remaining head of the first type: " ^ type-to-string h1 ^ "\n"
-            ^ "2. the remaining head of the second type: " ^ type-to-string h2)
+            ^ "1. the remaining head of the first type: " ^ type-to-string r h1 ^ "\n"
+            ^ "2. the remaining head of the second type: " ^ type-to-string r h2)
 
 convert-type ct s (Δ , b , r) (EtaAll e t) (AbsTp2 All x (Tkt tp1) tp2) =
   (ct s (Δ , b , r) e t tp1) ≫checkconv
   (if type-var-free-in-type s b r x tp2 then 
    (nothing , ("Conversion has received a request to drop a vacuous type-level universal quantification over types,\n"
             ^ "but the quantified variable is used in the body.\n"
-            ^ "1. the type in question: " ^ type-to-string (AbsTp2 All x (Tkt tp1) tp2)))
+            ^ "1. the type in question: " ^ type-to-string r (AbsTp2 All x (Tkt tp1) tp2)))
   else (just tp2 , ""))
 
 convert-type ct s Γ (Earrow e1 e2) (TpArrow tp1 tp2) =
@@ -146,16 +150,17 @@ convert-type ct s (Δ , b , r) (Xi u EclassNone e2) (AbsTp2 o x a tp) =
     convert-type ct s (evctxt-insert-tk Δ u x' a , bctxt-add b x' , renamectxt-insert r x x') e2 tp ≫conv λ tp' → 
       just (AbsTp2 o x' a tp') , ""
 
-convert-type ct s Γ e tp = nothing , ("We have no matching case for converting the given type with the given evidence.\n"
-                                           ^ "1. the type: " ^ type-to-string tp ^ "\n"
-                                           ^ "2. the evidence: " ^ evidence-to-string e)
+convert-type ct s (Δ , b , r) e tp = nothing , ("We have no matching case for converting the given type with the given evidence.\n"
+                                              ^ "1. the type: " ^ type-to-string r tp ^ "\n"
+                                              ^ "2. the evidence: " ^ evidence-to-string r e)
 
 convert-term ct s Γ e (Parens t) = convert-term ct s Γ e t
 convert-term ct s Γ (Eparens e) t = convert-term ct s Γ e t
+convert-term ct s (Δ , b , r) BetaAll t = just (normalize s r b t) , ""
 convert-term ct s (Δ , b , r) Beta (App (Lam x t) t') = 
   just (term-subst-term r (rename-pred s b) t' x t) , ""
 convert-term ct s Γ Beta (App (Var x) t') with lookup-term-var s x
-convert-term ct s Γ Beta (App (Var x) t') | nothing = nothing , conv-errstr Beta (App (Var x) t') 
+convert-term ct s (Δ , b , r) Beta (App (Var x) t') | nothing = nothing , conv-errstr r Beta (App (Var x) t') 
 convert-term ct s Γ Beta (App (Var x) t') | just trm = convert-term ct s Γ Beta (App trm t')
 convert-term ct s Γ (Eapp e1 e2) (App t1 t2) = 
   convert-term ct s Γ e1 t1 ≫conv λ t1' → 
@@ -169,7 +174,7 @@ convert-term ct s (Δ , b , r) (LamCong e) (Lam x trm) =
 
 convert-term ct s Γ (Trans e e') trm = convert-term ct s Γ e trm ≫conv λ trm' → convert-term ct s Γ e' trm'
 
-convert-term ct s Γ e t2 = nothing , conv-errstr e t2
+convert-term ct s (Δ , b , r) e t2 = nothing , conv-errstr r e t2
 
 
 convert-kind ct s (Δ , b , r) e k = nothing , "Non-trivial kind-level conversion is not available in CDLE."

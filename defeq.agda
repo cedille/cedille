@@ -159,3 +159,13 @@ eq-types : tpstate → (var → 𝔹) → renamectxt → {n : ℕ} → 𝕍 type
 eq-types s b r [] [] = tt
 eq-types s b r (tp1 :: tps1) (tp2 :: tps2) = eq-type s b r tp1 tp2 && eq-types s b r tps1 tps2
 
+{- return just trm' iff the given tpstate contains an untyped definition
+   of the given var, making var equal to trm' where trm' is definitionally
+   equal to the given term. -}
+untyped-equal-def : tpstate → bctxt → renamectxt → var → term → maybe term
+untyped-equal-def s b r v t with lookup-untyped-var s v 
+untyped-equal-def s b r v t | nothing = nothing
+untyped-equal-def s b r v t | just trm' with eq-term s (bctxt-contains b) r t trm'
+untyped-equal-def s b r v t | just trm' | ff = nothing
+untyped-equal-def s b r v t | just trm' | tt = just trm'
+

@@ -26,6 +26,9 @@ empty-tpstate = mk-tpstate "" empty-trie empty-trie empty-trie empty-trie
 add-untyped-term-def : var → term → tpstate → tpstate
 add-untyped-term-def v trm (mk-tpstate o d td yd kd) = (mk-tpstate o (trie-insert d v trm) td yd kd)
 
+remove-untyped-term-def : var → tpstate → tpstate
+remove-untyped-term-def v (mk-tpstate o d td yd kd) = (mk-tpstate o (trie-remove d v) td yd kd)
+
 add-typed-term-def : var → term → type → tpstate → tpstate
 add-typed-term-def v trm tp (mk-tpstate o d td yd kd) = (mk-tpstate o d (trie-insert td v (trm , tp)) yd kd)
 
@@ -34,6 +37,9 @@ add-kinded-type-def v tp knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td (tri
 
 add-kind-def : var → kind → tpstate → tpstate
 add-kind-def v knd (mk-tpstate o d td yd kd) = (mk-tpstate o d td yd (trie-insert kd v knd))
+
+redefine-untyped-var-as-typed : tpstate → var → term → type → tpstate
+redefine-untyped-var-as-typed s v t tp = add-typed-term-def v t tp (remove-untyped-term-def v s)
 
 add-msg : string → tpstate → tpstate
 add-msg m (mk-tpstate o d td yd kd) = mk-tpstate (o ^ m) d td yd kd
@@ -85,10 +91,10 @@ data tpstate-class : Set where
   tpstate-nothing : tpstate-class
 
 lookup-var : tpstate → var → tpstate-class
-lookup-var (mk-tpstate _ d td yd kd) x with trie-lookup td x
-lookup-var (mk-tpstate _ d td yd kd) x | just (trm , tp) = tpstate-typing trm tp
-lookup-var (mk-tpstate _ d td yd kd) x | nothing with trie-lookup d x
-lookup-var (mk-tpstate _ d td yd kd) x | nothing | just trm = tpstate-untyped trm
+lookup-var (mk-tpstate _ d td yd kd) x with trie-lookup d x
+lookup-var (mk-tpstate _ d td yd kd) x | just trm = tpstate-untyped trm
+lookup-var (mk-tpstate _ d td yd kd) x | nothing with trie-lookup td x
+lookup-var (mk-tpstate _ d td yd kd) x | nothing | just (trm , tp) = tpstate-typing trm tp
 lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing with trie-lookup yd x
 lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | just (tp , knd) = tpstate-kinding tp knd
 lookup-var (mk-tpstate _ d td yd kd) x | nothing | nothing | nothing with trie-lookup kd x
@@ -138,18 +144,18 @@ evctxt-insert-typing Δ u trm tp = evctxt-insert Δ u (term-type trm tp)
 evctxt-insert-ctorset : evctxt → string → ctorset → evctxt
 evctxt-insert-ctorset Δ u Θ = evctxt-insert Δ u (ev-ctorset Θ)
 
-evclass-to-string : evclass → string
-evclass-to-string (term-type trm tp) = term-to-string trm ^ " : " ^ type-to-string tp
-evclass-to-string (type-kind tp knd) = type-to-string tp ^ " : " ^ kind-to-string knd
-evclass-to-string (ev-ctorset Θ) = ctorset-to-string Θ
+evclass-to-string : renamectxt → evclass → string
+evclass-to-string r (term-type trm tp) = term-to-string r trm ^ " : " ^ type-to-string r tp
+evclass-to-string r (type-kind tp knd) = type-to-string r tp ^ " : " ^ kind-to-string r knd
+evclass-to-string r (ev-ctorset Θ) = ctorset-to-string r Θ
 
-evctxt-to-string : evctxt → string
-evctxt-to-string (l , d) = h (reverse l)
+evctxt-to-string : renamectxt → evctxt → string
+evctxt-to-string r (l , d) = h (reverse l)
   where h : 𝕃 string → string
         h [] = "·"
         h (x :: l) with trie-lookup d x 
         h (x :: l) | nothing = "internal-error"
-        h (x :: l) | just c =  x ^ " ∷ " ^ evclass-to-string c ^ " , " ^ h l
+        h (x :: l) | just c =  x ^ " ∷ " ^ evclass-to-string r c ^ " , " ^ h l
 
 {- during type checking, we need to keep track of which term and type
    variables are bound.  Normally, this would be handled by the typing
@@ -178,7 +184,7 @@ empty-ctxt = empty-evctxt , empty-bctxt , empty-renamectxt
 
 show-evctxt-if : showCtxt → ctxt → string
 show-evctxt-if showCtxtNo _ = ""
-show-evctxt-if showCtxtYes (Δ , b , r) = evctxt-to-string Δ ^ " ⊢ "
+show-evctxt-if showCtxtYes (Δ , b , r) = evctxt-to-string r Δ ^ " ⊢ "
 
 rename-away : tpstate → bctxt → renamectxt → var → var
 rename-away s b r x = rename-away-from x (rename-pred s b) r
@@ -239,3 +245,6 @@ _≫checkconv_ : check-t → {A : Set} → conv-t A → conv-t A
 
 check-term-t : Set
 check-term-t = tpstate → ctxt → evidence → term → type → check-t
+
+ 
+
