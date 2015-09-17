@@ -1,8 +1,17 @@
 ;;; cedille-mode.el --- Major mode for Cedille
-
-;;; Commentary:
-
-;;
+;;;
+;;; Add something like the following to your .emacs file to load this
+;;; mode for .ced files:
+;;;
+;;;   (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
+;;;   (add-to-list 'auto-mode-alist '("\\.ced\\'" . cedille-mode))
+;;;
+;;; You will need to link or copy this file to a load directory for emacs.
+;;; I have this in my .emacs file to make ~/.emacs.d such a directory:
+;;;
+;;;   (add-to-list 'load-path "/home/astump/.emacs.d/")
+;;;
+;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Dependency
