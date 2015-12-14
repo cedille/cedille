@@ -37,6 +37,9 @@ formath (fbitstr s) f = f s
 format : {i : formatti} → formati i → format-t i
 format i = formath i (λ x → x) 
 
+test0 : format-t (iapp iarg inone)
+test0 = format (fapp farg (flit tt))
+
 test1i : formatti
 test1i = iapp inone (iapp iarg inone)
 
@@ -63,3 +66,5 @@ test3f = flet (fapp farg farg) (λ i → fapp i (fapp (flit tt) i))
 
 test3 : format-t test3i
 test3 = format test3f
+
+test4 = format (flet farg (λ i → fapp i (fapp (flit tt) i)))
