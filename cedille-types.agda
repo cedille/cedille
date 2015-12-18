@@ -8,106 +8,77 @@ open import lib
 open import parse-tree
 
 posinfo = string
-evar = string
-evar-bar-8 = string
-kvar = string
-kvar-opt-6 = string
-num = string
-num-plus-10 = string
-numone = string
-numone-range-9 = string
+alpha = string
+alpha-bar-3 = string
+alpha-range-1 = string
+alpha-range-2 = string
+numpunct = string
+numpunct-bar-5 = string
+numpunct-bar-6 = string
+numpunct-range-4 = string
 var = string
-var-plus-7 = string
-varone = string
-varone-bar-3 = string
-varone-bar-4 = string
-varone-bar-5 = string
-varone-range-1 = string
-varone-range-2 = string
+var-bar-7 = string
+var-star-8 = string
 
 mutual
 
-  data al : Set where 
-    All : al
-    Lambda : al
-
-  data castDir : Set where 
-    checkCast : castDir
-    synthCast : castDir
+  data binder : Set where 
+    All : binder
+    Pi : binder
+    TpLambda : binder
 
   data class : Set where 
-    Knd : type → kind → class
-    Tp : term → type → class
+    ClassTerm : term → type → class
+    ClassType : type → kind → class
 
   data cmd : Set where 
+    ClassKind : kind → cmd
     DefCmd : def → cmd
-    Echeck : class → evidence → evidence → cmd
-    Kcheck : kind → evidence → cmd
+    Echeck : class → cmd
+    Import : var → cmd
     Normalize : term → cmd
-    Print : var → cmd
-    SynthTerm : var → term → evidence → cmd
-    SynthType : var → type → evidence → cmd
+    Rec : var → decls → indices → ctordecls → type → udefs → cmd
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
     CmdsStart : cmd → cmds
 
-  data ctorset : Set where 
-    Add : term → type → ctorset → ctorset
-    Empty : ctorset
+  data ctordecl : Set where 
+    Ctordecl : var → type → ctordecl
+
+  data ctordecls : Set where 
+    Ctordeclse : ctordecls
+    Ctordeclsene : ctordeclsne → ctordecls
+
+  data ctordeclsne : Set where 
+    CtordeclseneNext : ctordecl → ctordeclsne → ctordeclsne
+    CtordeclseneStart : ctordecl → ctordeclsne
+
+  data decl : Set where 
+    Decl : var → tk → decl
+
+  data decls : Set where 
+    DeclsCons : decl → decls → decls
+    DeclsNil : decls
 
   data def : Set where 
-    Edefine : var → class → evidence → evidence → def
-    Kdefine : kvar → kind → evidence → def
-    Tdefine : var → term → def
+    Edefine : var → class → def
 
-  data evidence : Set where 
-    Beta : evidence
-    BetaAll : evidence
-    Cast : evidence → castDir → evidence → evidence
-    Check : evidence
-    Ctor : evidence → type → evidence
-    Ctora : var → evidence
-    Eapp : evidence → evidence → evidence
-    Eappk : evidence → type → evidence
-    Eappt : evidence → term → evidence
-    Earrow : evidence → evidence → evidence
-    Ehole : showCtxt → evidence
-    EholeNamed : showCtxt → var → evidence
-    EholeSilent : evidence
-    Elet : def → evidence → evidence
-    Elift : var → evidence → evidence → evidence
-    EliftCong : evidence → evidence
-    Enu : var → var → evidence → evidence → evidence → evidence → evidence
-    Eparens : evidence → evidence
-    Eprint : showCtxt → evidence → evidence
-    EtaAll : evidence → term → evidence
-    EtaLift : num → evidence
-    Evar : evar → evidence
-    LamCong : evidence → evidence
-    Pair : evidence → evidence → evidence
-    Proj : evidence → index → evidence
-    Rbeta : evidence → term → evidence → evidence
-    RbetaLift : num → evidence
-    Sym : evidence → evidence
-    Trans : evidence → evidence → evidence
-    Xi : var → opt_eclass → evidence → evidence
-
-  data index : Set where 
-    One : index
-    Two : index
-
-  data ip : Set where 
-    Iota : ip
-    Pi : ip
+  data indices : Set where 
+    Indicese : indices
+    Indicesne : decls → indices
 
   data kind : Set where 
     KndArrow : kind → kind → kind
     KndParens : kind → kind
     KndPi : var → tk → kind → kind
     KndTpArrow : type → kind → kind
-    KndVar : kvar → kind
+    KndVar : var → kind
     Star : kind
+
+  data lam : Set where 
+    ErasedLambda : lam
+    KeptLambda : lam
 
   data liftingType : Set where 
     LiftArrow : liftingType → liftingType → liftingType
@@ -116,20 +87,21 @@ mutual
     LiftStar : liftingType
     LiftTpArrow : type → liftingType → liftingType
 
-  data opt_eclass : Set where 
-    EclassNone : opt_eclass
-    EclassSome : evidence → opt_eclass
+  data maybeErased : Set where 
+    Erased : maybeErased
+    NotErased : maybeErased
 
-  data showCtxt : Set where 
-    showCtxtNo : showCtxt
-    showCtxtYes : showCtxt
+  data optClass : Set where 
+    NoClass : optClass
+    SomeClass : tk → optClass
 
   data start : Set where 
     Cmds : cmds → start
 
   data term : Set where 
-    App : term → term → term
-    Lam : var → term → term
+    App : term → maybeErased → term → term
+    Hole : term
+    Lam : lam → var → optClass → term → term
     Parens : term → term
     Var : var → term
 
@@ -138,21 +110,27 @@ mutual
     Tkt : type → tk
 
   data type : Set where 
-    AbsTp1 : ip → var → type → type → type
-    AbsTp2 : al → var → tk → type → type
+    Abs : binder → var → tk → type → type
     Lft : term → liftingType → type
-    Nu : var → kind → ctorset → type → type
     TpApp : type → type → type
     TpAppt : type → term → type
     TpArrow : type → type → type
     TpEq : term → term → type
     TpParens : type → type
     TpVar : var → type
-    U : type
+
+  data udef : Set where 
+    Udef : var → term → udef
+
+  data udefs : Set where 
+    Udefse : udefs
+    Udefsne : udefsne → udefs
+
+  data udefsne : Set where 
+    UdefsneNext : udef → udefsne → udefsne
+    UdefsneStart : udef → udefsne
 
 -- embedded types:
-levidence : Set
-levidence = evidence
 lliftingType : Set
 lliftingType = liftingType
 lterm : Set
@@ -161,46 +139,46 @@ ltype : Set
 ltype = type
 
 data ParseTreeT : Set where
-  parsed-al : al → ParseTreeT
-  parsed-castDir : castDir → ParseTreeT
+  parsed-binder : binder → ParseTreeT
   parsed-class : class → ParseTreeT
   parsed-cmd : cmd → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
-  parsed-ctorset : ctorset → ParseTreeT
+  parsed-ctordecl : ctordecl → ParseTreeT
+  parsed-ctordecls : ctordecls → ParseTreeT
+  parsed-ctordeclsne : ctordeclsne → ParseTreeT
+  parsed-decl : decl → ParseTreeT
+  parsed-decls : decls → ParseTreeT
   parsed-def : def → ParseTreeT
-  parsed-evidence : evidence → ParseTreeT
-  parsed-index : index → ParseTreeT
-  parsed-ip : ip → ParseTreeT
+  parsed-indices : indices → ParseTreeT
   parsed-kind : kind → ParseTreeT
+  parsed-lam : lam → ParseTreeT
   parsed-liftingType : liftingType → ParseTreeT
-  parsed-opt_eclass : opt_eclass → ParseTreeT
-  parsed-showCtxt : showCtxt → ParseTreeT
+  parsed-maybeErased : maybeErased → ParseTreeT
+  parsed-optClass : optClass → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
   parsed-tk : tk → ParseTreeT
   parsed-type : type → ParseTreeT
-  parsed-levidence : evidence → ParseTreeT
+  parsed-udef : udef → ParseTreeT
+  parsed-udefs : udefs → ParseTreeT
+  parsed-udefsne : udefsne → ParseTreeT
   parsed-lliftingType : liftingType → ParseTreeT
   parsed-lterm : term → ParseTreeT
   parsed-ltype : type → ParseTreeT
   parsed-posinfo : posinfo → ParseTreeT
-  parsed-evar : evar → ParseTreeT
-  parsed-evar-bar-8 : evar-bar-8 → ParseTreeT
-  parsed-kvar : kvar → ParseTreeT
-  parsed-kvar-opt-6 : kvar-opt-6 → ParseTreeT
-  parsed-num : num → ParseTreeT
-  parsed-num-plus-10 : num-plus-10 → ParseTreeT
-  parsed-numone : numone → ParseTreeT
-  parsed-numone-range-9 : numone-range-9 → ParseTreeT
+  parsed-alpha : alpha → ParseTreeT
+  parsed-alpha-bar-3 : alpha-bar-3 → ParseTreeT
+  parsed-alpha-range-1 : alpha-range-1 → ParseTreeT
+  parsed-alpha-range-2 : alpha-range-2 → ParseTreeT
+  parsed-numpunct : numpunct → ParseTreeT
+  parsed-numpunct-bar-5 : numpunct-bar-5 → ParseTreeT
+  parsed-numpunct-bar-6 : numpunct-bar-6 → ParseTreeT
+  parsed-numpunct-range-4 : numpunct-range-4 → ParseTreeT
   parsed-var : var → ParseTreeT
-  parsed-var-plus-7 : var-plus-7 → ParseTreeT
-  parsed-varone : varone → ParseTreeT
-  parsed-varone-bar-3 : varone-bar-3 → ParseTreeT
-  parsed-varone-bar-4 : varone-bar-4 → ParseTreeT
-  parsed-varone-bar-5 : varone-bar-5 → ParseTreeT
-  parsed-varone-range-1 : varone-range-1 → ParseTreeT
-  parsed-varone-range-2 : varone-range-2 → ParseTreeT
+  parsed-var-bar-7 : var-bar-7 → ParseTreeT
+  parsed-var-star-8 : var-star-8 → ParseTreeT
   parsed-anychar : ParseTreeT
+  parsed-anychar-bar-10 : ParseTreeT
   parsed-anychar-bar-11 : ParseTreeT
   parsed-anychar-bar-12 : ParseTreeT
   parsed-anychar-bar-13 : ParseTreeT
@@ -229,33 +207,17 @@ data ParseTreeT : Set where
   parsed-anychar-bar-36 : ParseTreeT
   parsed-anychar-bar-37 : ParseTreeT
   parsed-anychar-bar-38 : ParseTreeT
-  parsed-anychar-bar-39 : ParseTreeT
-  parsed-anychar-bar-40 : ParseTreeT
-  parsed-anychar-bar-41 : ParseTreeT
-  parsed-anychar-bar-42 : ParseTreeT
-  parsed-anychar-bar-43 : ParseTreeT
-  parsed-anychar-bar-44 : ParseTreeT
-  parsed-anychar-bar-45 : ParseTreeT
-  parsed-anychar-bar-46 : ParseTreeT
-  parsed-anychar-bar-47 : ParseTreeT
-  parsed-anychar-bar-48 : ParseTreeT
-  parsed-anychar-bar-49 : ParseTreeT
-  parsed-anychar-bar-50 : ParseTreeT
-  parsed-anychar-bar-51 : ParseTreeT
-  parsed-anychar-bar-52 : ParseTreeT
-  parsed-anychar-bar-53 : ParseTreeT
-  parsed-anychar-bar-54 : ParseTreeT
-  parsed-anychar-bar-55 : ParseTreeT
+  parsed-anychar-bar-9 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-57 : ParseTreeT
-  parsed-aws-bar-58 : ParseTreeT
-  parsed-aws-bar-59 : ParseTreeT
+  parsed-aws-bar-40 : ParseTreeT
+  parsed-aws-bar-41 : ParseTreeT
+  parsed-aws-bar-42 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-56 : ParseTreeT
+  parsed-comment-star-39 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-61 : ParseTreeT
+  parsed-ows-star-44 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-60 : ParseTreeT
+  parsed-ws-plus-43 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -263,121 +225,87 @@ data ParseTreeT : Set where
 
 posinfoToString : posinfo → string
 posinfoToString x = "(posinfo " ^ x ^ ")"
-evarToString : evar → string
-evarToString x = "(evar " ^ x ^ ")"
-evar-bar-8ToString : evar-bar-8 → string
-evar-bar-8ToString x = "(evar-bar-8 " ^ x ^ ")"
-kvarToString : kvar → string
-kvarToString x = "(kvar " ^ x ^ ")"
-kvar-opt-6ToString : kvar-opt-6 → string
-kvar-opt-6ToString x = "(kvar-opt-6 " ^ x ^ ")"
-numToString : num → string
-numToString x = "(num " ^ x ^ ")"
-num-plus-10ToString : num-plus-10 → string
-num-plus-10ToString x = "(num-plus-10 " ^ x ^ ")"
-numoneToString : numone → string
-numoneToString x = "(numone " ^ x ^ ")"
-numone-range-9ToString : numone-range-9 → string
-numone-range-9ToString x = "(numone-range-9 " ^ x ^ ")"
+alphaToString : alpha → string
+alphaToString x = "(alpha " ^ x ^ ")"
+alpha-bar-3ToString : alpha-bar-3 → string
+alpha-bar-3ToString x = "(alpha-bar-3 " ^ x ^ ")"
+alpha-range-1ToString : alpha-range-1 → string
+alpha-range-1ToString x = "(alpha-range-1 " ^ x ^ ")"
+alpha-range-2ToString : alpha-range-2 → string
+alpha-range-2ToString x = "(alpha-range-2 " ^ x ^ ")"
+numpunctToString : numpunct → string
+numpunctToString x = "(numpunct " ^ x ^ ")"
+numpunct-bar-5ToString : numpunct-bar-5 → string
+numpunct-bar-5ToString x = "(numpunct-bar-5 " ^ x ^ ")"
+numpunct-bar-6ToString : numpunct-bar-6 → string
+numpunct-bar-6ToString x = "(numpunct-bar-6 " ^ x ^ ")"
+numpunct-range-4ToString : numpunct-range-4 → string
+numpunct-range-4ToString x = "(numpunct-range-4 " ^ x ^ ")"
 varToString : var → string
 varToString x = "(var " ^ x ^ ")"
-var-plus-7ToString : var-plus-7 → string
-var-plus-7ToString x = "(var-plus-7 " ^ x ^ ")"
-varoneToString : varone → string
-varoneToString x = "(varone " ^ x ^ ")"
-varone-bar-3ToString : varone-bar-3 → string
-varone-bar-3ToString x = "(varone-bar-3 " ^ x ^ ")"
-varone-bar-4ToString : varone-bar-4 → string
-varone-bar-4ToString x = "(varone-bar-4 " ^ x ^ ")"
-varone-bar-5ToString : varone-bar-5 → string
-varone-bar-5ToString x = "(varone-bar-5 " ^ x ^ ")"
-varone-range-1ToString : varone-range-1 → string
-varone-range-1ToString x = "(varone-range-1 " ^ x ^ ")"
-varone-range-2ToString : varone-range-2 → string
-varone-range-2ToString x = "(varone-range-2 " ^ x ^ ")"
+var-bar-7ToString : var-bar-7 → string
+var-bar-7ToString x = "(var-bar-7 " ^ x ^ ")"
+var-star-8ToString : var-star-8 → string
+var-star-8ToString x = "(var-star-8 " ^ x ^ ")"
 
 mutual
-  alToString : al → string
-  alToString (All) = "All" ^ ""
-  alToString (Lambda) = "Lambda" ^ ""
-
-  castDirToString : castDir → string
-  castDirToString (checkCast) = "checkCast" ^ ""
-  castDirToString (synthCast) = "synthCast" ^ ""
+  binderToString : binder → string
+  binderToString (All) = "All" ^ ""
+  binderToString (Pi) = "Pi" ^ ""
+  binderToString (TpLambda) = "TpLambda" ^ ""
 
   classToString : class → string
-  classToString (Knd x0 x1) = "(Knd" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
-  classToString (Tp x0 x1) = "(Tp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  classToString (ClassTerm x0 x1) = "(ClassTerm" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  classToString (ClassType x0 x1) = "(ClassType" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
 
   cmdToString : cmd → string
+  cmdToString (ClassKind x0) = "(ClassKind" ^ " " ^ (kindToString x0) ^ ")"
   cmdToString (DefCmd x0) = "(DefCmd" ^ " " ^ (defToString x0) ^ ")"
-  cmdToString (Echeck x0 x1 x2) = "(Echeck" ^ " " ^ (classToString x0) ^ " " ^ (evidenceToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  cmdToString (Kcheck x0 x1) = "(Kcheck" ^ " " ^ (kindToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
+  cmdToString (Echeck x0) = "(Echeck" ^ " " ^ (classToString x0) ^ ")"
+  cmdToString (Import x0) = "(Import" ^ " " ^ (varToString x0) ^ ")"
   cmdToString (Normalize x0) = "(Normalize" ^ " " ^ (termToString x0) ^ ")"
-  cmdToString (Print x0) = "(Print" ^ " " ^ (varToString x0) ^ ")"
-  cmdToString (SynthTerm x0 x1 x2) = "(SynthTerm" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  cmdToString (SynthType x0 x1 x2) = "(SynthType" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
+  cmdToString (Rec x0 x1 x2 x3 x4 x5) = "(Rec" ^ " " ^ (varToString x0) ^ " " ^ (declsToString x1) ^ " " ^ (indicesToString x2) ^ " " ^ (ctordeclsToString x3) ^ " " ^ (typeToString x4) ^ " " ^ (udefsToString x5) ^ ")"
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
   cmdsToString (CmdsStart x0) = "(CmdsStart" ^ " " ^ (cmdToString x0) ^ ")"
 
-  ctorsetToString : ctorset → string
-  ctorsetToString (Add x0 x1 x2) = "(Add" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (ctorsetToString x2) ^ ")"
-  ctorsetToString (Empty) = "Empty" ^ ""
+  ctordeclToString : ctordecl → string
+  ctordeclToString (Ctordecl x0 x1) = "(Ctordecl" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ ")"
+
+  ctordeclsToString : ctordecls → string
+  ctordeclsToString (Ctordeclse) = "Ctordeclse" ^ ""
+  ctordeclsToString (Ctordeclsene x0) = "(Ctordeclsene" ^ " " ^ (ctordeclsneToString x0) ^ ")"
+
+  ctordeclsneToString : ctordeclsne → string
+  ctordeclsneToString (CtordeclseneNext x0 x1) = "(CtordeclseneNext" ^ " " ^ (ctordeclToString x0) ^ " " ^ (ctordeclsneToString x1) ^ ")"
+  ctordeclsneToString (CtordeclseneStart x0) = "(CtordeclseneStart" ^ " " ^ (ctordeclToString x0) ^ ")"
+
+  declToString : decl → string
+  declToString (Decl x0 x1) = "(Decl" ^ " " ^ (varToString x0) ^ " " ^ (tkToString x1) ^ ")"
+
+  declsToString : decls → string
+  declsToString (DeclsCons x0 x1) = "(DeclsCons" ^ " " ^ (declToString x0) ^ " " ^ (declsToString x1) ^ ")"
+  declsToString (DeclsNil) = "DeclsNil" ^ ""
 
   defToString : def → string
-  defToString (Edefine x0 x1 x2 x3) = "(Edefine" ^ " " ^ (varToString x0) ^ " " ^ (classToString x1) ^ " " ^ (evidenceToString x2) ^ " " ^ (evidenceToString x3) ^ ")"
-  defToString (Kdefine x0 x1 x2) = "(Kdefine" ^ " " ^ (kvarToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  defToString (Tdefine x0 x1) = "(Tdefine" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ ")"
+  defToString (Edefine x0 x1) = "(Edefine" ^ " " ^ (varToString x0) ^ " " ^ (classToString x1) ^ ")"
 
-  evidenceToString : evidence → string
-  evidenceToString (Beta) = "Beta" ^ ""
-  evidenceToString (BetaAll) = "BetaAll" ^ ""
-  evidenceToString (Cast x0 x1 x2) = "(Cast" ^ " " ^ (evidenceToString x0) ^ " " ^ (castDirToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  evidenceToString (Check) = "Check" ^ ""
-  evidenceToString (Ctor x0 x1) = "(Ctor" ^ " " ^ (evidenceToString x0) ^ " " ^ (typeToString x1) ^ ")"
-  evidenceToString (Ctora x0) = "(Ctora" ^ " " ^ (varToString x0) ^ ")"
-  evidenceToString (Eapp x0 x1) = "(Eapp" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Eappk x0 x1) = "(Eappk" ^ " " ^ (evidenceToString x0) ^ " " ^ (typeToString x1) ^ ")"
-  evidenceToString (Eappt x0 x1) = "(Eappt" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
-  evidenceToString (Earrow x0 x1) = "(Earrow" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Ehole x0) = "(Ehole" ^ " " ^ (showCtxtToString x0) ^ ")"
-  evidenceToString (EholeNamed x0 x1) = "(EholeNamed" ^ " " ^ (showCtxtToString x0) ^ " " ^ (varToString x1) ^ ")"
-  evidenceToString (EholeSilent) = "EholeSilent" ^ ""
-  evidenceToString (Elet x0 x1) = "(Elet" ^ " " ^ (defToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Elift x0 x1 x2) = "(Elift" ^ " " ^ (varToString x0) ^ " " ^ (evidenceToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  evidenceToString (EliftCong x0) = "(EliftCong" ^ " " ^ (evidenceToString x0) ^ ")"
-  evidenceToString (Enu x0 x1 x2 x3 x4 x5) = "(Enu" ^ " " ^ (varToString x0) ^ " " ^ (varToString x1) ^ " " ^ (evidenceToString x2) ^ " " ^ (evidenceToString x3) ^ " " ^ (evidenceToString x4) ^ " " ^ (evidenceToString x5) ^ ")"
-  evidenceToString (Eparens x0) = "(Eparens" ^ " " ^ (evidenceToString x0) ^ ")"
-  evidenceToString (Eprint x0 x1) = "(Eprint" ^ " " ^ (showCtxtToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (EtaAll x0 x1) = "(EtaAll" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ ")"
-  evidenceToString (EtaLift x0) = "(EtaLift" ^ " " ^ (numToString x0) ^ ")"
-  evidenceToString (Evar x0) = "(Evar" ^ " " ^ (evarToString x0) ^ ")"
-  evidenceToString (LamCong x0) = "(LamCong" ^ " " ^ (evidenceToString x0) ^ ")"
-  evidenceToString (Pair x0 x1) = "(Pair" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Proj x0 x1) = "(Proj" ^ " " ^ (evidenceToString x0) ^ " " ^ (indexToString x1) ^ ")"
-  evidenceToString (Rbeta x0 x1 x2) = "(Rbeta" ^ " " ^ (evidenceToString x0) ^ " " ^ (termToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-  evidenceToString (RbetaLift x0) = "(RbetaLift" ^ " " ^ (numToString x0) ^ ")"
-  evidenceToString (Sym x0) = "(Sym" ^ " " ^ (evidenceToString x0) ^ ")"
-  evidenceToString (Trans x0 x1) = "(Trans" ^ " " ^ (evidenceToString x0) ^ " " ^ (evidenceToString x1) ^ ")"
-  evidenceToString (Xi x0 x1 x2) = "(Xi" ^ " " ^ (varToString x0) ^ " " ^ (opt_eclassToString x1) ^ " " ^ (evidenceToString x2) ^ ")"
-
-  indexToString : index → string
-  indexToString (One) = "One" ^ ""
-  indexToString (Two) = "Two" ^ ""
-
-  ipToString : ip → string
-  ipToString (Iota) = "Iota" ^ ""
-  ipToString (Pi) = "Pi" ^ ""
+  indicesToString : indices → string
+  indicesToString (Indicese) = "Indicese" ^ ""
+  indicesToString (Indicesne x0) = "(Indicesne" ^ " " ^ (declsToString x0) ^ ")"
 
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndParens x0) = "(KndParens" ^ " " ^ (kindToString x0) ^ ")"
   kindToString (KndPi x0 x1 x2) = "(KndPi" ^ " " ^ (varToString x0) ^ " " ^ (tkToString x1) ^ " " ^ (kindToString x2) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
-  kindToString (KndVar x0) = "(KndVar" ^ " " ^ (kvarToString x0) ^ ")"
+  kindToString (KndVar x0) = "(KndVar" ^ " " ^ (varToString x0) ^ ")"
   kindToString (Star) = "Star" ^ ""
+
+  lamToString : lam → string
+  lamToString (ErasedLambda) = "ErasedLambda" ^ ""
+  lamToString (KeptLambda) = "KeptLambda" ^ ""
 
   liftingTypeToString : liftingType → string
   liftingTypeToString (LiftArrow x0 x1) = "(LiftArrow" ^ " " ^ (liftingTypeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
@@ -386,20 +314,21 @@ mutual
   liftingTypeToString (LiftStar) = "LiftStar" ^ ""
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
-  opt_eclassToString : opt_eclass → string
-  opt_eclassToString (EclassNone) = "EclassNone" ^ ""
-  opt_eclassToString (EclassSome x0) = "(EclassSome" ^ " " ^ (evidenceToString x0) ^ ")"
+  maybeErasedToString : maybeErased → string
+  maybeErasedToString (Erased) = "Erased" ^ ""
+  maybeErasedToString (NotErased) = "NotErased" ^ ""
 
-  showCtxtToString : showCtxt → string
-  showCtxtToString (showCtxtNo) = "showCtxtNo" ^ ""
-  showCtxtToString (showCtxtYes) = "showCtxtYes" ^ ""
+  optClassToString : optClass → string
+  optClassToString (NoClass) = "NoClass" ^ ""
+  optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
 
   startToString : start → string
   startToString (Cmds x0) = "(Cmds" ^ " " ^ (cmdsToString x0) ^ ")"
 
   termToString : term → string
-  termToString (App x0 x1) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
-  termToString (Lam x0 x1) = "(Lam" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ ")"
+  termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
+  termToString (Hole) = "Hole" ^ ""
+  termToString (Lam x0 x1 x2 x3) = "(Lam" ^ " " ^ (lamToString x0) ^ " " ^ (varToString x1) ^ " " ^ (optClassToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Parens x0) = "(Parens" ^ " " ^ (termToString x0) ^ ")"
   termToString (Var x0) = "(Var" ^ " " ^ (varToString x0) ^ ")"
 
@@ -408,59 +337,67 @@ mutual
   tkToString (Tkt x0) = "(Tkt" ^ " " ^ (typeToString x0) ^ ")"
 
   typeToString : type → string
-  typeToString (AbsTp1 x0 x1 x2 x3) = "(AbsTp1" ^ " " ^ (ipToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (typeToString x3) ^ ")"
-  typeToString (AbsTp2 x0 x1 x2 x3) = "(AbsTp2" ^ " " ^ (alToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (typeToString x3) ^ ")"
+  typeToString (Abs x0 x1 x2 x3) = "(Abs" ^ " " ^ (binderToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (typeToString x3) ^ ")"
   typeToString (Lft x0 x1) = "(Lft" ^ " " ^ (termToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
-  typeToString (Nu x0 x1 x2 x3) = "(Nu" ^ " " ^ (varToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (ctorsetToString x2) ^ " " ^ (typeToString x3) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpParens x0) = "(TpParens" ^ " " ^ (typeToString x0) ^ ")"
   typeToString (TpVar x0) = "(TpVar" ^ " " ^ (varToString x0) ^ ")"
-  typeToString (U) = "U" ^ ""
+
+  udefToString : udef → string
+  udefToString (Udef x0 x1) = "(Udef" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ ")"
+
+  udefsToString : udefs → string
+  udefsToString (Udefse) = "Udefse" ^ ""
+  udefsToString (Udefsne x0) = "(Udefsne" ^ " " ^ (udefsneToString x0) ^ ")"
+
+  udefsneToString : udefsne → string
+  udefsneToString (UdefsneNext x0 x1) = "(UdefsneNext" ^ " " ^ (udefToString x0) ^ " " ^ (udefsneToString x1) ^ ")"
+  udefsneToString (UdefsneStart x0) = "(UdefsneStart" ^ " " ^ (udefToString x0) ^ ")"
 
 ParseTreeToString : ParseTreeT → string
-ParseTreeToString (parsed-al t) = alToString t
-ParseTreeToString (parsed-castDir t) = castDirToString t
+ParseTreeToString (parsed-binder t) = binderToString t
 ParseTreeToString (parsed-class t) = classToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
-ParseTreeToString (parsed-ctorset t) = ctorsetToString t
+ParseTreeToString (parsed-ctordecl t) = ctordeclToString t
+ParseTreeToString (parsed-ctordecls t) = ctordeclsToString t
+ParseTreeToString (parsed-ctordeclsne t) = ctordeclsneToString t
+ParseTreeToString (parsed-decl t) = declToString t
+ParseTreeToString (parsed-decls t) = declsToString t
 ParseTreeToString (parsed-def t) = defToString t
-ParseTreeToString (parsed-evidence t) = evidenceToString t
-ParseTreeToString (parsed-index t) = indexToString t
-ParseTreeToString (parsed-ip t) = ipToString t
+ParseTreeToString (parsed-indices t) = indicesToString t
 ParseTreeToString (parsed-kind t) = kindToString t
+ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-liftingType t) = liftingTypeToString t
-ParseTreeToString (parsed-opt_eclass t) = opt_eclassToString t
-ParseTreeToString (parsed-showCtxt t) = showCtxtToString t
+ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
+ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
 ParseTreeToString (parsed-tk t) = tkToString t
 ParseTreeToString (parsed-type t) = typeToString t
-ParseTreeToString (parsed-levidence t) = evidenceToString t
+ParseTreeToString (parsed-udef t) = udefToString t
+ParseTreeToString (parsed-udefs t) = udefsToString t
+ParseTreeToString (parsed-udefsne t) = udefsneToString t
 ParseTreeToString (parsed-lliftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-lterm t) = termToString t
 ParseTreeToString (parsed-ltype t) = typeToString t
 ParseTreeToString (parsed-posinfo t) = posinfoToString t
-ParseTreeToString (parsed-evar t) = evarToString t
-ParseTreeToString (parsed-evar-bar-8 t) = evar-bar-8ToString t
-ParseTreeToString (parsed-kvar t) = kvarToString t
-ParseTreeToString (parsed-kvar-opt-6 t) = kvar-opt-6ToString t
-ParseTreeToString (parsed-num t) = numToString t
-ParseTreeToString (parsed-num-plus-10 t) = num-plus-10ToString t
-ParseTreeToString (parsed-numone t) = numoneToString t
-ParseTreeToString (parsed-numone-range-9 t) = numone-range-9ToString t
+ParseTreeToString (parsed-alpha t) = alphaToString t
+ParseTreeToString (parsed-alpha-bar-3 t) = alpha-bar-3ToString t
+ParseTreeToString (parsed-alpha-range-1 t) = alpha-range-1ToString t
+ParseTreeToString (parsed-alpha-range-2 t) = alpha-range-2ToString t
+ParseTreeToString (parsed-numpunct t) = numpunctToString t
+ParseTreeToString (parsed-numpunct-bar-5 t) = numpunct-bar-5ToString t
+ParseTreeToString (parsed-numpunct-bar-6 t) = numpunct-bar-6ToString t
+ParseTreeToString (parsed-numpunct-range-4 t) = numpunct-range-4ToString t
 ParseTreeToString (parsed-var t) = varToString t
-ParseTreeToString (parsed-var-plus-7 t) = var-plus-7ToString t
-ParseTreeToString (parsed-varone t) = varoneToString t
-ParseTreeToString (parsed-varone-bar-3 t) = varone-bar-3ToString t
-ParseTreeToString (parsed-varone-bar-4 t) = varone-bar-4ToString t
-ParseTreeToString (parsed-varone-bar-5 t) = varone-bar-5ToString t
-ParseTreeToString (parsed-varone-range-1 t) = varone-range-1ToString t
-ParseTreeToString (parsed-varone-range-2 t) = varone-range-2ToString t
+ParseTreeToString (parsed-var-bar-7 t) = var-bar-7ToString t
+ParseTreeToString (parsed-var-star-8 t) = var-star-8ToString t
 ParseTreeToString parsed-anychar = "[anychar]"
+ParseTreeToString parsed-anychar-bar-10 = "[anychar-bar-10]"
 ParseTreeToString parsed-anychar-bar-11 = "[anychar-bar-11]"
 ParseTreeToString parsed-anychar-bar-12 = "[anychar-bar-12]"
 ParseTreeToString parsed-anychar-bar-13 = "[anychar-bar-13]"
@@ -489,33 +426,17 @@ ParseTreeToString parsed-anychar-bar-35 = "[anychar-bar-35]"
 ParseTreeToString parsed-anychar-bar-36 = "[anychar-bar-36]"
 ParseTreeToString parsed-anychar-bar-37 = "[anychar-bar-37]"
 ParseTreeToString parsed-anychar-bar-38 = "[anychar-bar-38]"
-ParseTreeToString parsed-anychar-bar-39 = "[anychar-bar-39]"
-ParseTreeToString parsed-anychar-bar-40 = "[anychar-bar-40]"
-ParseTreeToString parsed-anychar-bar-41 = "[anychar-bar-41]"
-ParseTreeToString parsed-anychar-bar-42 = "[anychar-bar-42]"
-ParseTreeToString parsed-anychar-bar-43 = "[anychar-bar-43]"
-ParseTreeToString parsed-anychar-bar-44 = "[anychar-bar-44]"
-ParseTreeToString parsed-anychar-bar-45 = "[anychar-bar-45]"
-ParseTreeToString parsed-anychar-bar-46 = "[anychar-bar-46]"
-ParseTreeToString parsed-anychar-bar-47 = "[anychar-bar-47]"
-ParseTreeToString parsed-anychar-bar-48 = "[anychar-bar-48]"
-ParseTreeToString parsed-anychar-bar-49 = "[anychar-bar-49]"
-ParseTreeToString parsed-anychar-bar-50 = "[anychar-bar-50]"
-ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
-ParseTreeToString parsed-anychar-bar-52 = "[anychar-bar-52]"
-ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
-ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
-ParseTreeToString parsed-anychar-bar-55 = "[anychar-bar-55]"
+ParseTreeToString parsed-anychar-bar-9 = "[anychar-bar-9]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-57 = "[aws-bar-57]"
-ParseTreeToString parsed-aws-bar-58 = "[aws-bar-58]"
-ParseTreeToString parsed-aws-bar-59 = "[aws-bar-59]"
+ParseTreeToString parsed-aws-bar-40 = "[aws-bar-40]"
+ParseTreeToString parsed-aws-bar-41 = "[aws-bar-41]"
+ParseTreeToString parsed-aws-bar-42 = "[aws-bar-42]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-56 = "[comment-star-56]"
+ParseTreeToString parsed-comment-star-39 = "[comment-star-39]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-61 = "[ows-star-61]"
+ParseTreeToString parsed-ows-star-44 = "[ows-star-44]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-60 = "[ws-plus-60]"
+ParseTreeToString parsed-ws-plus-43 = "[ws-plus-43]"
 
 ------------------------------------------
 -- Reorganizing rules
@@ -524,8 +445,19 @@ ParseTreeToString parsed-ws-plus-60 = "[ws-plus-60]"
 mutual
 
   {-# NO_TERMINATION_CHECK #-}
+  norm-udefsne : (x : udefsne) → udefsne
+  norm-udefsne x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-udefs : (x : udefs) → udefs
+  norm-udefs x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-udef : (x : udef) → udef
+  norm-udef x = x
+
+  {-# NO_TERMINATION_CHECK #-}
   norm-type : (x : type) → type
-  norm-type (TpAppt x1 (App x2 x3)) = (norm-type (TpAppt  (norm-type (TpAppt  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpAppt x2 x3)) = (norm-type (TpAppt  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpApp x2 x3)) = (norm-type (TpApp  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type x = x
@@ -536,7 +468,9 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-term : (x : term) → term
-  norm-term (App x1 (App x2 x3)) = (norm-term (App  (norm-term (App  x1 x2) ) x3) )
+  norm-term (App (App x1 x2 (Lam x3 x4 x5 x6)) x7 x8) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 (norm-term (App  x6 x7 x8) )) )) )
+  norm-term (App (Lam x1 x2 x3 x4) x5 x6) = (norm-term (Lam  x1 x2 x3 (norm-term (App  x4 x5 x6) )) )
+  norm-term (App x1 x2 (App x3 x4 x5)) = (norm-term (App  (norm-term (App  x1 x2 x3) ) x4 x5) )
   norm-term x = x
 
   {-# NO_TERMINATION_CHECK #-}
@@ -544,16 +478,16 @@ mutual
   norm-start x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-showCtxt : (x : showCtxt) → showCtxt
-  norm-showCtxt x = x
-
-  {-# NO_TERMINATION_CHECK #-}
   norm-posinfo : (x : posinfo) → posinfo
   norm-posinfo x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-opt_eclass : (x : opt_eclass) → opt_eclass
-  norm-opt_eclass x = x
+  norm-optClass : (x : optClass) → optClass
+  norm-optClass x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-maybeErased : (x : maybeErased) → maybeErased
+  norm-maybeErased x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-ltype : (x : ltype) → ltype
@@ -576,8 +510,8 @@ mutual
   norm-liftingType x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-levidence : (x : levidence) → levidence
-  norm-levidence x = x
+  norm-lam : (x : lam) → lam
+  norm-lam x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-kind : (x : kind) → kind
@@ -587,40 +521,32 @@ mutual
   norm-kind x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-ip : (x : ip) → ip
-  norm-ip x = x
-
-  {-# NO_TERMINATION_CHECK #-}
-  norm-index : (x : index) → index
-  norm-index x = x
-
-  {-# NO_TERMINATION_CHECK #-}
-  norm-evidence : (x : evidence) → evidence
-  norm-evidence (Proj (Trans x1 x2) x3) = (norm-evidence (Trans  x1 (norm-evidence (Proj  x2 x3) )) )
-  norm-evidence (Proj (Sym x1) x2) = (norm-evidence (Sym  (norm-evidence (Proj  x1 x2) )) )
-  norm-evidence (Sym (Earrow x1 x2)) = (norm-evidence (Earrow  (norm-evidence (Sym  x1) ) x2) )
-  norm-evidence (Trans x1 (Earrow x2 x3)) = (norm-evidence (Earrow  (norm-evidence (Trans  x1 x2) ) x3) )
-  norm-evidence (Trans (Earrow x1 x2) x3) = (norm-evidence (Earrow  x1 (norm-evidence (Trans  x2 x3) )) )
-  norm-evidence (Eapp x1 (Trans x2 x3)) = (norm-evidence (Trans  (norm-evidence (Eapp  x1 x2) ) x3) )
-  norm-evidence (Eapp (Trans x1 x2) x3) = (norm-evidence (Trans  x1 (norm-evidence (Eapp  x2 x3) )) )
-  norm-evidence (Sym (Eapp x1 x2)) = (norm-evidence (Eapp  (norm-evidence (Sym  x1) ) x2) )
-  norm-evidence (Sym (Trans x1 x2)) = (norm-evidence (Trans  (norm-evidence (Sym  x1) ) x2) )
-  norm-evidence (Trans (Trans x1 x2) x3) = (norm-evidence (Trans  x1 (norm-evidence (Trans  x2 x3) )) )
-  norm-evidence (Proj (Eapp x1 x2) x3) = (norm-evidence (Eapp  x1 (norm-evidence (Proj  x2 x3) )) )
-  norm-evidence (Proj (Earrow x1 x2) x3) = (norm-evidence (Earrow  x1 (norm-evidence (Proj  x2 x3) )) )
-  norm-evidence (Eapp x1 (Earrow x2 x3)) = (norm-evidence (Earrow  (norm-evidence (Eapp  x1 x2) ) x3) )
-  norm-evidence (Eapp (Earrow x1 x2) x3) = (norm-evidence (Earrow  x1 (norm-evidence (Eapp  x2 x3) )) )
-  norm-evidence (Earrow (Earrow x1 x2) x3) = (norm-evidence (Earrow  x1 (norm-evidence (Earrow  x2 x3) )) )
-  norm-evidence (Eapp x1 (Eapp x2 x3)) = (norm-evidence (Eapp  (norm-evidence (Eapp  x1 x2) ) x3) )
-  norm-evidence x = x
+  norm-indices : (x : indices) → indices
+  norm-indices x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-def : (x : def) → def
   norm-def x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-ctorset : (x : ctorset) → ctorset
-  norm-ctorset x = x
+  norm-decls : (x : decls) → decls
+  norm-decls x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-decl : (x : decl) → decl
+  norm-decl x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-ctordeclsne : (x : ctordeclsne) → ctordeclsne
+  norm-ctordeclsne x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-ctordecls : (x : ctordecls) → ctordecls
+  norm-ctordecls x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-ctordecl : (x : ctordecl) → ctordecl
+  norm-ctordecl x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-cmds : (x : cmds) → cmds
@@ -635,12 +561,8 @@ mutual
   norm-class x = x
 
   {-# NO_TERMINATION_CHECK #-}
-  norm-castDir : (x : castDir) → castDir
-  norm-castDir x = x
-
-  {-# NO_TERMINATION_CHECK #-}
-  norm-al : (x : al) → al
-  norm-al x = x
+  norm-binder : (x : binder) → binder
+  norm-binder x = x
 
 isParseTree : ParseTreeT → 𝕃 char → string → Set
 isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed runs -}

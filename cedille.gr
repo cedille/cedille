@@ -11,49 +11,72 @@ CmdsStart : cmds -> cmd .
 CmdsNext : cmds -> cmd ws cmds .
 
 DefCmd : cmd -> def ows '.' .
-Echeck : cmd -> class ows 'by' ows evidence ows '⇐' ows evidence ows '.'.
-Kcheck : cmd -> kind ows '⇐' ows '□' ows 'by' ows evidence ows '.'.
-Print : cmd -> 'print' ws var ows '.'.
+Echeck : cmd -> class ows '.'.
+Rec : cmd -> 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.'.
+
+Decl : decl -> '(' ows var ows ':' ows tk ows ')' .
+
+DeclsNil : decls -> .
+DeclsCons : decls -> ows decl decls.
+
+Indicese : indices -> .
+Indicesne : indices -> ows ':' decls.
+
+Ctordeclse : ctordecls -> .
+Ctordeclsene : ctordecls -> ctordeclsne.
+CtordeclseneStart : ctordeclsne -> ows ctordecl.
+CtordeclseneNext : ctordeclsne -> ows ctordecl ows ',' ctordeclsne.
+
+Ctordecl : ctordecl -> var ows ':' ows type.
+
+Udefse : udefs -> .
+Udefsne : udefs -> udefsne.
+UdefsneNext : udefsne -> ows udef ows ',' udefsne.
+UdefsneStart : udefsne -> ows udef.
+
+Udef : udef -> var ows '=' ows term.
+
 Normalize : cmd -> 'normalize' ws term ows '.'.
-SynthTerm : cmd -> var ows '∷' ws term ows '=' ows evidence ows '.'.
-SynthType : cmd -> var ows '∷type' ows type ows '=' ows evidence ows '.'.
+Import : cmd -> 'import' ws var ows '.'.
 
-Tdefine : def -> var ows '=' ows term.
-Edefine : def -> var ows '∷' ows class ows '=' ows evidence ows '⇐' ows evidence .
-Kdefine : def -> kvar ows '∷' ows kind ows '⇐' ows '□' ows '=' ows evidence.
+Edefine : def -> var ows '=' ows class .
+ClassTerm : class -> term ows '⇐' ows type.
+ClassType : class -> type ows '⇐' ows kind.
+ClassKind : cmd -> kind ows '⇐' ows '□'.
 
-Tp : class -> term ows '⇐' ows type.
-Knd : class -> type ows '⇐' ows kind.
-
-App : lterm -> lterm ws lterm .
 Var : lterm -> var .
-Lam : term -> 'λ' ows var ows '.' ows term .
-embed : term -> lterm .
 Parens : lterm -> '(' ows term ows ')' . 
+Hole : lterm -> '●' .
+App : term -> term ws maybeErased term .
+Lam : term -> lam ows var optClass ows '.' ows term .
+embed : term -> lterm .
 
-AbsTp1 : type -> ip ows var ows ':' ows type ows '.' ows type .
-AbsTp2 : type -> al ows var ows ':' ows tk ows '.' ows type .
+NotErased : maybeErased -> .
+Erased : maybeErased -> '-' ows .
+
+NoClass : optClass -> .
+SomeClass : optClass -> ':' ows tk .
+
+ErasedLambda : lam -> 'Λ' .
+KeptLambda : lam -> 'λ' .
+
+Abs : type -> binder ows var ows ':' ows tk ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
-Nu : type -> 'ν' ows var ows ':' ows kind ows '|' ows ctorset ows '.' ows type.
 
-Empty : ctorset -> '·'.
-Add : ctorset -> term ows '∈' ows type ows ',' ows ctorset .
-
-U : ltype -> '𝓤'.
 Lft : ltype -> '↑' ows term ows ':' ows lliftingType .
 TpParens : ltype -> '(' ows type ows ')'.
 TpApp : ltype -> ltype ws '·' ws ltype.
 TpAppt : ltype -> ltype ws lterm.
 TpVar : ltype -> var.
-TpEq : ltype -> term ows '≃' ows term .
+TpEq : ltype -> lterm ows '≃' ows lterm .
 
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '→' ows kind .
 KndTpArrow : kind -> ltype ows '→' ows kind .
 Star : kind -> '★'.
 KndParens : kind -> '(' ows kind ows ')'.
-KndVar : kind -> kvar.
+KndVar : kind -> var.
 
 LiftStar : liftingType -> '☆'. 
 LiftPi : liftingType -> 'Π' ows var ows ':' ows type ows '.' ows liftingType .
@@ -62,74 +85,25 @@ LiftTpArrow : liftingType -> type ows '→' ows liftingType.
 LiftParens : lliftingType -> '(' ows liftingType ows ')'.
 embed : liftingType -> lliftingType.
 
-Iota : ip -> 'ι'.
-Pi : ip -> 'Π'.
-All : al -> '∀'.
-Lambda : al -> 'λ'.
+Pi : binder -> 'Π'.
+All : binder -> '∀'.
+TpLambda : binder -> 'λ'.
+
 Tkt : tk -> type .
 Tkk : tk -> kind .
 
-checkCast : castDir -> '⇐'.
-synthCast : castDir -> '⇒'.
-
-Cast : evidence -> 'χ' ws evidence ows castDir ows evidence .
-Xi : evidence -> 'ξ' ows var opt_eclass ows '.' ows evidence .
-EtaAll : evidence -> 'η∀' ws evidence ws term .
-Pair : evidence -> '[' ows evidence ows ',' ows evidence ows ']'.
-Enu : evidence -> 'ν' ws var ows ',' ows var ows '.' ows 
-                  '[' ows evidence ows ',' ows evidence ows ',' ows evidence ows ',' ows evidence ows ']'.
-Ctor : evidence -> 'ζ' ws evidence ows ':' ows type .
-Ctora : evidence -> 'ζ' ws var .
-Eprint : evidence -> '?' showCtxt ows evidence.
-Elift : evidence -> '↑' ws var ows '.' ows evidence ows ':' ows evidence .
-EliftCong : evidence -> '↑c' ws evidence .
-LamCong : evidence -> 'ξ' ows '.' ows evidence .
-Rbeta : evidence -> 'rβ' ws evidence ws term ows '⇒' ows evidence .
-embed : evidence -> levidence.
-Elet : evidence -> 'δ' ws def ws '-' ws evidence.
-
-One : index -> '1'.
-Two : index -> '2'.
-
-Sym : levidence -> '~' ows levidence.
-Trans : levidence -> levidence ows '·' ows levidence .
-Eapp : levidence -> levidence ws levidence .
-Eappt : levidence -> '{' ows levidence ws term ows '}'.
-Eappk : levidence -> '〈' ows levidence ws type ows '〉'.
-Proj : levidence -> levidence ows '.' ows index.
-Eparens : levidence -> '(' ows evidence ows ')'.
-Earrow : levidence -> levidence ows '⇒' ows levidence.
-EholeNamed : levidence -> '●' showCtxt var.
-EholeSilent : levidence -> '●.'.
-Ehole : levidence -> '●' showCtxt.
-Beta : levidence -> 'β' .
-BetaAll : levidence -> 'β*' .
-RbetaLift : levidence -> 'rβ↑' ws num.
-EtaLift : levidence -> 'η↑' ws num.
-Evar : levidence -> evar.
-Check : levidence -> '✓'.
-
-showCtxtYes : showCtxt -> '!' .
-showCtxtNo : showCtxt -> .
-
-EclassSome : opt_eclass -> ows ':' ows evidence .
-EclassNone : opt_eclass -> .
-
 Lexical
 
-varone -> ['a' - 'z'] | ['A' - 'Z'] | quote | '-'.
+alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 
-kvar -> '𝒌' var?.
+numpunct -> ['0' - '9'] | quote | '-'.
 
-var -> varone+ .
+var -> alpha (alpha | numpunct)* .
 
-evar -> var | kvar.
+%numone -> ['0' - '9'].
+%num -> numone+.
 
-numone -> ['0' - '9'].
-
-num -> numone+.
-
-anychar => varone | '\t' | space | '𝒌' | '%' | '1' | '2' | '∷' | '✓' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | 'ξ' | '⇐' | '∈' | 'ν' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | 'χ' | 'β' | 'δ' | 'ζ' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | '~' | 'η' | numone | '*'.
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' .
 
 comment => '%' anychar* '\n'.
 
@@ -138,10 +112,13 @@ ws => aws+.
 ows => aws* .
 
 Vars
-  b w x y z zz
+  c b w x y z zz e1 e2
 
 Rules
-  App(x,App(y,z)) -> App(App(x,y),z)
+  App(x,e1,App(y,e2,z)) -> App(App(x,e1,y),e2,z)
+  App(Lam(b,x,w,y),e1,z) -> Lam(b,x,w,App(y,e1,z))
+  App(App(w, e1,Lam(b,x,c,y)), e2, z) -> App(w, e1,Lam(b,x,c,App(y, e2, z)))
+
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftTpArrow(x,y),z) -> LiftTpArrow(x,LiftArrow(y,z))
   LiftTpArrow(TpArrow(x,y),z) -> LiftTpArrow(x,LiftTpArrow(y,z))
@@ -154,25 +131,3 @@ Rules
 
   TpApp(x,TpApp(y,z)) -> TpApp(TpApp(x,y),z)
   TpApp(x,TpAppt(y,z)) -> TpAppt(TpApp(x,y),z)
-  TpAppt(x,App(y,z)) -> TpAppt(TpAppt(x,y),z)
-  Eapp(x,Eapp(y,z)) -> Eapp(Eapp(x,y),z)
-
-  Earrow(Earrow(x,y),z) -> Earrow(x,Earrow(y,z))
-  Eapp(Earrow(x,y),z) -> Earrow(x,Eapp(y,z))
-  Eapp(x,Earrow(y,z)) -> Earrow(Eapp(x,y),z)
-
-  Proj(Earrow(x,y),z) -> Earrow(x,Proj(y,z))
-  Proj(Eapp(x,y),z) -> Eapp(x,Proj(y,z))
-
-  Trans(Trans(x,y),z) -> Trans(x,Trans(y,z))
-  Sym(Trans(x,y)) -> Trans(Sym(x),y)
-  Sym(Eapp(x,y)) -> Eapp(Sym(x),y)
-  Eapp(Trans(x,y),z) -> Trans(x,Eapp(y,z))
-  Eapp(x,Trans(y,z)) -> Trans(Eapp(x,y),z)
-
-  Trans(Earrow(x,y),z) -> Earrow(x,Trans(y,z))
-  Trans(x,Earrow(y,z)) -> Earrow(Trans(x,y),z)
-  Sym(Earrow(x,y)) -> Earrow(Sym(x),y)
-
-  Proj(Sym(x),y) -> Sym(Proj(x,y))
-  Proj(Trans(x,y),z) -> Trans(x,Proj(y,z))
