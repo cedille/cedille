@@ -1,0 +1,8 @@
+import nat .
+
+rec Nat | Z : Nat , S : Nat → Nat =
+  ∀ P : Nat → ★ .
+    (∀ n : Nat . P n → P (S n)) → P Z → P self
+  with
+    Z = λ P . λ s . λ z . z,
+    S = λ n . λ P . λ s . λ z . s -n (n -P s z) .
