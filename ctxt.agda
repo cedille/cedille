@@ -20,8 +20,8 @@ data ctxt-info : Set where
   -- for declaring a variable to have a given kind (with no definition)
   type-decl : kind → ctxt-info
 
-data ctxt-t : Set where
-  ctxt : trie ctxt-info → ctxt-t
+data ctxt : Set where
+  mk-ctxt : trie ctxt-info → ctxt
 
-new-ctxt : ctxt-t
-new-ctxt = ctxt empty-trie
+new-ctxt : ctxt
+new-ctxt = mk-ctxt empty-trie

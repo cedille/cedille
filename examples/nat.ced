@@ -1,5 +1,3 @@
-import nat .
-
 rec Nat | Z : Nat , S : Nat → Nat =
   ∀ P : Nat → ★ .
     (∀ n : Nat . P n → P (S n)) → P Z → P self

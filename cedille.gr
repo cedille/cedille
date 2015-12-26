@@ -12,9 +12,9 @@ CmdsNext : cmds -> cmd ws cmds .
 
 DefCmd : cmd -> def ows '.' .
 Echeck : cmd -> class ows '.'.
-Rec : cmd -> 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.'.
+Rec : cmd -> ! 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
 
-Decl : decl -> '(' ows var ows ':' ows tk ows ')' .
+Decl : decl -> ! '(' ows var ows ':' ows tk ows ')' !.
 
 DeclsNil : decls -> .
 DeclsCons : decls -> ows decl decls.
@@ -74,7 +74,7 @@ TpEq : ltype -> lterm ows '≃' ows lterm .
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '→' ows kind .
 KndTpArrow : kind -> ltype ows '→' ows kind .
-Star : kind -> '★'.
+Star : kind -> ! '★'.
 KndParens : kind -> '(' ows kind ows ')'.
 KndVar : kind -> var.
 

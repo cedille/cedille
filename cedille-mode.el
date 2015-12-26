@@ -33,6 +33,12 @@
 (defvar cedille-program-name "cedille"
   "Program to run for cedille mode.")
 
+(defun cedille-modify-keymap()
+  (define-key se-navi-current-keymap (kbd "f") #'se-mode-select-next)
+  (define-key se-navi-current-keymap (kbd "b") #'se-mode-select-previous))
+
+(add-hook 'se-navigation-mode-hook 'cedille-modify-keymap)
+
 (se-create-mode "Cedille" nil
   "Major mode for Cedille files."
 
@@ -40,7 +46,8 @@
   
   (se-inf-start
    (or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
-       (start-process "cedille-mode" "*cedille-mode*" cedille-program-name))))
+       (start-process "cedille-mode" "*cedille-mode*" cedille-program-name)))
+)
 
 (modify-coding-system-alist 'file "\\.ced\\'" 'utf-8)
 
@@ -48,11 +55,12 @@
 		      "Cedille input method."
 		      nil nil nil nil nil nil t) ; maximum-shortest
 
-(set-input-method "Cedille")
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\t" "★") ("\\o" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
           ("\\h" "●") ("\\c" "χ")))
+
+(set-input-method "Cedille")
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

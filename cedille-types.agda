@@ -37,7 +37,7 @@ mutual
     Echeck : class → cmd
     Import : var → cmd
     Normalize : term → cmd
-    Rec : var → decls → indices → ctordecls → type → udefs → cmd
+    Rec : posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → cmd
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
@@ -55,7 +55,7 @@ mutual
     CtordeclseneStart : ctordecl → ctordeclsne
 
   data decl : Set where 
-    Decl : var → tk → decl
+    Decl : posinfo → var → tk → posinfo → decl
 
   data decls : Set where 
     DeclsCons : decl → decls → decls
@@ -74,7 +74,7 @@ mutual
     KndPi : var → tk → kind → kind
     KndTpArrow : type → kind → kind
     KndVar : var → kind
-    Star : kind
+    Star : posinfo → kind
 
   data lam : Set where 
     ErasedLambda : lam
@@ -264,7 +264,7 @@ mutual
   cmdToString (Echeck x0) = "(Echeck" ^ " " ^ (classToString x0) ^ ")"
   cmdToString (Import x0) = "(Import" ^ " " ^ (varToString x0) ^ ")"
   cmdToString (Normalize x0) = "(Normalize" ^ " " ^ (termToString x0) ^ ")"
-  cmdToString (Rec x0 x1 x2 x3 x4 x5) = "(Rec" ^ " " ^ (varToString x0) ^ " " ^ (declsToString x1) ^ " " ^ (indicesToString x2) ^ " " ^ (ctordeclsToString x3) ^ " " ^ (typeToString x4) ^ " " ^ (udefsToString x5) ^ ")"
+  cmdToString (Rec x0 x1 x2 x3 x4 x5 x6 x7) = "(Rec" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (declsToString x2) ^ " " ^ (indicesToString x3) ^ " " ^ (ctordeclsToString x4) ^ " " ^ (typeToString x5) ^ " " ^ (udefsToString x6) ^ " " ^ (posinfoToString x7) ^ ")"
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
@@ -282,7 +282,7 @@ mutual
   ctordeclsneToString (CtordeclseneStart x0) = "(CtordeclseneStart" ^ " " ^ (ctordeclToString x0) ^ ")"
 
   declToString : decl → string
-  declToString (Decl x0 x1) = "(Decl" ^ " " ^ (varToString x0) ^ " " ^ (tkToString x1) ^ ")"
+  declToString (Decl x0 x1 x2 x3) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
 
   declsToString : decls → string
   declsToString (DeclsCons x0 x1) = "(DeclsCons" ^ " " ^ (declToString x0) ^ " " ^ (declsToString x1) ^ ")"
@@ -301,7 +301,7 @@ mutual
   kindToString (KndPi x0 x1 x2) = "(KndPi" ^ " " ^ (varToString x0) ^ " " ^ (tkToString x1) ^ " " ^ (kindToString x2) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndVar x0) = "(KndVar" ^ " " ^ (varToString x0) ^ ")"
-  kindToString (Star) = "Star" ^ ""
+  kindToString (Star x0) = "(Star" ^ " " ^ (posinfoToString x0) ^ ")"
 
   lamToString : lam → string
   lamToString (ErasedLambda) = "ErasedLambda" ^ ""

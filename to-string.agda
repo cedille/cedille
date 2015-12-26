@@ -44,7 +44,7 @@ kind-to-string (KndParens k) = kind-to-string k
 kind-to-string (KndPi x u k) = "(Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-string k ^ ")"
 kind-to-string (KndTpArrow x k) = "(" ^ type-to-string x ^ " → " ^ kind-to-string k ^ ")"
 kind-to-string (KndVar x) = x
-kind-to-string Star = "★"
+kind-to-string (Star _) = "★"
 
 optClass-to-string NoClass = ""
 optClass-to-string (SomeClass x) = " : " ^ tk-to-string x
