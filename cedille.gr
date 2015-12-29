@@ -10,8 +10,16 @@ Cmds : start -> ows cmds ows .
 CmdsStart : cmds -> cmd .
 CmdsNext : cmds -> cmd ws cmds .
 
-DefCmd : cmd -> def ows '.' .
-Echeck : cmd -> class ows '.'.
+VarEq : maybeVarEq -> var ows '=' ows.
+NoVarEq : maybeVarEq -> .
+
+KvarEq : maybeKvarEq -> kvar ows '=' ows .
+NoKvarEq : maybeKvarEq -> .
+
+TermCmd : cmd -> maybeVarEq term ows '⇐' ows type ows '.'.
+TypeCmd : cmd -> maybeVarEq type ows '⇐' ows kind ows '.'.
+KindCmd : cmd -> maybeKvarEq kind ows '⇐' ows '□' ows '.'.
+
 Rec : cmd -> ! 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
 
 Decl : decl -> ! '(' ows var ows ':' ows tk ows ')' !.
@@ -39,12 +47,7 @@ Udef : udef -> var ows '=' ows term.
 Normalize : cmd -> 'normalize' ws term ows '.'.
 Import : cmd -> 'import' ws var ows '.'.
 
-Edefine : def -> var ows '=' ows class .
-ClassTerm : class -> term ows '⇐' ows type.
-ClassType : class -> type ows '⇐' ows kind.
-ClassKind : cmd -> kind ows '⇐' ows '□'.
-
-Var : lterm -> var .
+Var : lterm -> ! var .
 Parens : lterm -> '(' ows term ows ')' . 
 Hole : lterm -> '●' .
 App : term -> term ws maybeErased term .
@@ -68,7 +71,7 @@ Lft : ltype -> '↑' ows term ows ':' ows lliftingType .
 TpParens : ltype -> '(' ows type ows ')'.
 TpApp : ltype -> ltype ws '·' ws ltype.
 TpAppt : ltype -> ltype ws lterm.
-TpVar : ltype -> var.
+TpVar : ltype -> ! var.
 TpEq : ltype -> lterm ows '≃' ows lterm .
 
 KndPi : kind -> 'Π' ows var ows ':' ows tk ows '.' ows kind .
@@ -76,7 +79,7 @@ KndArrow : kind -> kind ows '→' ows kind .
 KndTpArrow : kind -> ltype ows '→' ows kind .
 Star : kind -> ! '★'.
 KndParens : kind -> '(' ows kind ows ')'.
-KndVar : kind -> var.
+KndVar : kind -> ! kvar.
 
 LiftStar : liftingType -> '☆'. 
 LiftPi : liftingType -> 'Π' ows var ows ':' ows type ows '.' ows liftingType .
@@ -99,6 +102,8 @@ alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 numpunct -> ['0' - '9'] | quote | '-'.
 
 var -> alpha (alpha | numpunct)* .
+
+kvar -> '𝒌' (alpha | numpunct)*.
 
 %numone -> ['0' - '9'].
 %num -> numone+.

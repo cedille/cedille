@@ -7,7 +7,7 @@ rec Vector (A : ★) : (n : Nat) | Nil : Vector Z , Cons : ∀ n : Nat . A → V
     P Z Nil → 
     P n self
   with
-    Nil = λ P . λ c . λ n . n ,
-    Cons = λ n . λ a . λ v . λ P . λ c . λ n . c -n a (v -P c n).
+    Nil = Λ P . λ c . λ n . n ,
+    Cons = Λ n . λ a . λ v . Λ P . λ c . λ n . c -n a (v -P c n).
 
 
