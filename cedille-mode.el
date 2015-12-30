@@ -30,16 +30,125 @@
 (defvar cedille-version "0.1"
   "The version of the cedille mode.")
 
-(defvar cedille-program-name "cedille"
+; set in .emacs file
+(defvar cedille-program-name "cedille-executable"
   "Program to run for cedille mode.")
 
+(defun cedille-info-buffer-name() (concat "*cedille-info-" (file-name-base (buffer-name)) "*"))
+
+(defun cedille-info-buffer()
+  (let* ((n (cedille-info-buffer-name))
+         (b (get-buffer-create n)))
+    (with-current-buffer b
+       (setq buffer-read-only nil))
+    b))
+
+(defun cedille-mode-inspect ()
+  "Displays information on the currently selected node in the *cedille* buffer."
+  (interactive)
+  (let ((b (cedille-info-buffer))
+        (txt (se-mode-pretty-json (se-term-to-json (se-mode-selected)))))
+    (with-current-buffer b (erase-buffer) (insert txt) (setq buffer-read-only t))
+    (setq deactivate-mark nil)))
+
+(defun se-mode-select-first-child()
+  "Selects the first child of the smallest span around point."
+  (interactive)
+  (let* ((outer (se-find-point (point) se-mode-parse-tree))
+         (kids (se-node-children outer))
+         (term
+           (cond
+             ((null kids) outer)
+             (:else
+               (car kids)))))
+    (goto-char (se-term-start term))
+    (se-mode-expand-selected)))    
+
+(defun se-mode-select-first-child-if()
+  "Marks the first child of the smallest span around point."
+  (interactive)
+  (if se-mode-selected
+    (se-mode-shrink-selected)
+    (se-mode-select-first-child)))
+
+(defun se-mode-select-last-helper (prev)
+  (let ((next (se-mode-next)))
+    (if (null next) prev
+      (progn (se-mode-select next)
+             (se-mode-select-last-helper next)))))
+  
+(defun se-mode-select-last()
+  "Selects the last sibling of the parent of the current node."
+  (interactive)
+  (se-mode-select-last-helper (se-mode-selected)))
+
+(defun se-mode-select-first-helper (next)
+  (let ((prev (se-mode-previous)))
+    (if (null prev) next
+      (progn (se-mode-select prev)
+             (se-mode-select-first-helper prev)))))
+  
+(defun se-mode-select-first()
+  "Selects the first sibling of the parent of the current node."
+  (interactive)
+  (se-mode-select-first-helper (se-mode-selected)))
+
+(defun cedille-mode-select-next()
+  "Selects the next sibling from the currently selected one in 
+the parse tree, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-select-next)
+  (cedille-mode-inspect))
+
+(defun cedille-mode-select-previous()
+  "Selects the previous sibling from the currently selected one in 
+the parse tree, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-select-previous)
+  (cedille-mode-inspect))
+
+(defun cedille-mode-select-parent()
+  "Selects the parent of the currently selected node in 
+the parse tree, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-expand-selected)
+  (cedille-mode-inspect))
+
+(defun cedille-mode-select-first-child()
+  "Selects the first child of the lowest node in the parse tree
+containing point, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-select-first-child-if)
+  (cedille-mode-inspect))
+
+(defun cedille-mode-select-first()
+  "Selects the first sibling of the currently selected node
+in the parse tree, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-select-first)
+  (cedille-mode-inspect))
+
+(defun cedille-mode-select-last()
+  "Selects the last sibling of the currently selected node
+in the parse tree, and updates the Cedille info buffer."
+  (interactive)
+  (se-mode-select-last)
+  (cedille-mode-inspect))
+
+; se-navi-define-key maintains an association with the major mode,
+; so that different major modes using se-navi-define-key can have
+; separate keymaps.
 (defun cedille-modify-keymap()
-  (define-key se-navigation-mode-map (kbd "f") #'se-mode-select-next)
-  (define-key se-navigation-mode-map (kbd "b") #'se-mode-select-previous)
-  (define-key se-navigation-mode-map (kbd "p") #'se-mode-expand-selected)
-  (define-key se-navigation-mode-map (kbd "n") #'se-mode-shrink-selected)
-  (define-key se-navigation-mode-map (kbd "e") nil)
-  (define-key se-navigation-mode-map (kbd "s") nil)
+  (se-navi-define-key 'cedille-mode (kbd "f") #'cedille-mode-select-next)
+  (se-navi-define-key 'cedille-mode (kbd "b") #'cedille-mode-select-previous)
+  (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
+  (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
+  (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
+  (se-navi-define-key 'cedille-mode (kbd "\C-g") #'se-navigation-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
+  (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
+  (se-navi-define-key 'cedille-mode (kbd "i") nil)
+  (se-navi-define-key 'cedille-mode (kbd "s") nil)
 )
 
 (cedille-modify-keymap)

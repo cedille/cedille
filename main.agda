@@ -14,6 +14,7 @@ open noderiv {- from run.agda -}
 open import classify
 open import ctxt
 open import constants
+open import rec
 open import spans
 open import to-string
 
@@ -50,11 +51,8 @@ process-cmd dir (Import x) s | mk-toplevel-state (mk-include-state is) c ss =
     else processFile dir file s
 process-cmd dir (Normalize x) s = return s
 process-cmd dir (Rec pi name params inds ctors body us pi') (mk-toplevel-state i Γ ss) = 
-  let p = (rec-compute-kind Γ params inds ≫=span λ k → 
-          spanM-add (mk-span Rec-name pi pi' (Rec-explain name :: kind-data k :: [])) ≫span 
-          spanMr k) ss
-  in
-    return (mk-toplevel-state i (ctxt-rec-def Γ name body {- fixme by λ-binding params and inds -} (fst p)) (snd p))
+    let p = process-rec-cmd Γ pi name params inds ctors body us pi' ss in
+    return (mk-toplevel-state i (fst p) (snd p))
 
 process-cmds dir (CmdsNext c cs) s = process-cmd dir c s >>= cont
   where cont : toplevel-state → IO toplevel-state

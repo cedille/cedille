@@ -34,25 +34,5 @@ check-type Γ t k = unimplemented
 check-tk Γ (Tkk k) = check-kind Γ k
 check-tk Γ (Tkt t) = check-type Γ t (Star posinfo-gen)
 
-{- check the given declaration, and return a new context (binding the name in the declaration),
-   as well as a function that will wrap a Pi-binding for the declaration around a given kind.
-
-   The boolean tells if this is a parameter (tt) or an index (ff). -}
-rec-check-decl : 𝔹 → ctxt → decl → spanM (ctxt × (kind → kind))
-rec-check-decl is-param Γ (Decl pi x atk pi') = 
-  check-tk Γ atk ≫span 
-  spanM-add (Decl-span is-param pi x atk pi') ≫span 
-  spanMr (ctxt-tk-decl Γ x atk , KndPi x atk) 
-
-{- compute the kind for a recursive type from the parameters (decls) and the indices -}
-rec-compute-kind : ctxt → decls → indices → spanM kind
-rec-compute-kind Γ (DeclsCons d ds) is = 
-  rec-check-decl tt Γ d ≫=span λ p →  
-    rec-compute-kind (fst p) ds is ≫=span λ k → spanMr (snd p k)
-rec-compute-kind Γ DeclsNil Indicese = spanMr (Star posinfo-gen)
-rec-compute-kind Γ DeclsNil (Indicesne (DeclsCons d ds)) = 
-  rec-check-decl ff Γ d ≫=span λ p →  
-    rec-compute-kind (fst p) DeclsNil (Indicesne ds) ≫=span λ k → spanMr (snd p k)
-rec-compute-kind Γ DeclsNil (Indicesne DeclsNil) = spanMr (Star posinfo-gen)
 
 

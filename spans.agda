@@ -87,8 +87,16 @@ Rec-explain datatype-name = (explain-name , "Definition of recursive datatype " 
 Star-name : string
 Star-name = "Star"
 
-Decl-span : 𝔹 → posinfo → var → tk → posinfo → span
-Decl-span is-param pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (if is-param then "parameter" else "index"))
+data decl-class : Set where
+  param : decl-class
+  index : decl-class 
+
+decl-class-name : decl-class → string
+decl-class-name param = "parameter"
+decl-class-name index = "index"
+
+Decl-span : decl-class → posinfo → var → tk → posinfo → span
+Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
                                       pi pi' []
 
 TpVar-span : string → posinfo → 𝕃 tagged-val → span

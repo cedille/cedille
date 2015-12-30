@@ -1,3 +1,5 @@
+import nat .
+
 rec Eq (A : ★)(a : A) : (b : A) | refl : Eq a = 
   ∀ P : Π b : A . Eq b → ★ .
     P a refl → P b self with 
