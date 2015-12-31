@@ -43,15 +43,15 @@ mutual
     CmdsStart : cmd → cmds
 
   data ctordecl : Set where 
-    Ctordecl : var → type → ctordecl
+    Ctordecl : posinfo → var → type → posinfo → ctordecl
 
   data ctordecls : Set where 
     Ctordeclse : ctordecls
-    Ctordeclsene : ctordeclsne → ctordecls
+    Ctordeclsne : ctordeclsne → ctordecls
 
   data ctordeclsne : Set where 
-    CtordeclseneNext : ctordecl → ctordeclsne → ctordeclsne
-    CtordeclseneStart : ctordecl → ctordeclsne
+    CtordeclsneNext : ctordecl → ctordeclsne → ctordeclsne
+    CtordeclsneStart : ctordecl → ctordeclsne
 
   data decl : Set where 
     Decl : posinfo → var → tk → posinfo → decl
@@ -66,8 +66,8 @@ mutual
 
   data kind : Set where 
     KndArrow : kind → kind → kind
-    KndParens : kind → kind
-    KndPi : var → tk → kind → kind
+    KndParens : posinfo → kind → posinfo → kind
+    KndPi : posinfo → var → tk → kind → kind
     KndTpArrow : type → kind → kind
     KndVar : posinfo → kvar → kind
     Star : posinfo → kind
@@ -78,9 +78,9 @@ mutual
 
   data liftingType : Set where 
     LiftArrow : liftingType → liftingType → liftingType
-    LiftParens : liftingType → liftingType
-    LiftPi : var → type → liftingType → liftingType
-    LiftStar : liftingType
+    LiftParens : posinfo → liftingType → posinfo → liftingType
+    LiftPi : posinfo → var → type → liftingType → liftingType
+    LiftStar : posinfo → liftingType
     LiftTpArrow : type → liftingType → liftingType
 
   data maybeErased : Set where 
@@ -104,9 +104,10 @@ mutual
 
   data term : Set where 
     App : term → maybeErased → term → term
-    Hole : term
-    Lam : lam → var → optClass → term → term
-    Parens : term → term
+    AppTp : term → type → term
+    Hole : posinfo → term
+    Lam : posinfo → lam → var → optClass → term → term
+    Parens : posinfo → term → posinfo → term
     Var : posinfo → var → term
 
   data tk : Set where 
@@ -114,13 +115,13 @@ mutual
     Tkt : type → tk
 
   data type : Set where 
-    Abs : binder → var → tk → type → type
-    Lft : term → liftingType → type
+    Abs : posinfo → binder → var → tk → type → type
+    Lft : posinfo → term → liftingType → type
     TpApp : type → type → type
     TpAppt : type → term → type
     TpArrow : type → type → type
     TpEq : term → term → type
-    TpParens : type → type
+    TpParens : posinfo → type → posinfo → type
     TpVar : posinfo → var → type
 
   data udef : Set where 
@@ -280,15 +281,15 @@ mutual
   cmdsToString (CmdsStart x0) = "(CmdsStart" ^ " " ^ (cmdToString x0) ^ ")"
 
   ctordeclToString : ctordecl → string
-  ctordeclToString (Ctordecl x0 x1) = "(Ctordecl" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  ctordeclToString (Ctordecl x0 x1 x2 x3) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
 
   ctordeclsToString : ctordecls → string
   ctordeclsToString (Ctordeclse) = "Ctordeclse" ^ ""
-  ctordeclsToString (Ctordeclsene x0) = "(Ctordeclsene" ^ " " ^ (ctordeclsneToString x0) ^ ")"
+  ctordeclsToString (Ctordeclsne x0) = "(Ctordeclsne" ^ " " ^ (ctordeclsneToString x0) ^ ")"
 
   ctordeclsneToString : ctordeclsne → string
-  ctordeclsneToString (CtordeclseneNext x0 x1) = "(CtordeclseneNext" ^ " " ^ (ctordeclToString x0) ^ " " ^ (ctordeclsneToString x1) ^ ")"
-  ctordeclsneToString (CtordeclseneStart x0) = "(CtordeclseneStart" ^ " " ^ (ctordeclToString x0) ^ ")"
+  ctordeclsneToString (CtordeclsneNext x0 x1) = "(CtordeclsneNext" ^ " " ^ (ctordeclToString x0) ^ " " ^ (ctordeclsneToString x1) ^ ")"
+  ctordeclsneToString (CtordeclsneStart x0) = "(CtordeclsneStart" ^ " " ^ (ctordeclToString x0) ^ ")"
 
   declToString : decl → string
   declToString (Decl x0 x1 x2 x3) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
@@ -303,8 +304,8 @@ mutual
 
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
-  kindToString (KndParens x0) = "(KndParens" ^ " " ^ (kindToString x0) ^ ")"
-  kindToString (KndPi x0 x1 x2) = "(KndPi" ^ " " ^ (varToString x0) ^ " " ^ (tkToString x1) ^ " " ^ (kindToString x2) ^ ")"
+  kindToString (KndParens x0 x1 x2) = "(KndParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  kindToString (KndPi x0 x1 x2 x3) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (kindToString x3) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndVar x0 x1) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
   kindToString (Star x0) = "(Star" ^ " " ^ (posinfoToString x0) ^ ")"
@@ -315,9 +316,9 @@ mutual
 
   liftingTypeToString : liftingType → string
   liftingTypeToString (LiftArrow x0 x1) = "(LiftArrow" ^ " " ^ (liftingTypeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
-  liftingTypeToString (LiftParens x0) = "(LiftParens" ^ " " ^ (liftingTypeToString x0) ^ ")"
-  liftingTypeToString (LiftPi x0 x1 x2) = "(LiftPi" ^ " " ^ (varToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
-  liftingTypeToString (LiftStar) = "LiftStar" ^ ""
+  liftingTypeToString (LiftParens x0 x1 x2) = "(LiftParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (liftingTypeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  liftingTypeToString (LiftPi x0 x1 x2 x3) = "(LiftPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (liftingTypeToString x3) ^ ")"
+  liftingTypeToString (LiftStar x0) = "(LiftStar" ^ " " ^ (posinfoToString x0) ^ ")"
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
   maybeErasedToString : maybeErased → string
@@ -341,9 +342,10 @@ mutual
 
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
-  termToString (Hole) = "Hole" ^ ""
-  termToString (Lam x0 x1 x2 x3) = "(Lam" ^ " " ^ (lamToString x0) ^ " " ^ (varToString x1) ^ " " ^ (optClassToString x2) ^ " " ^ (termToString x3) ^ ")"
-  termToString (Parens x0) = "(Parens" ^ " " ^ (termToString x0) ^ ")"
+  termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
+  termToString (Lam x0 x1 x2 x3 x4) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (varToString x2) ^ " " ^ (optClassToString x3) ^ " " ^ (termToString x4) ^ ")"
+  termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   tkToString : tk → string
@@ -351,13 +353,13 @@ mutual
   tkToString (Tkt x0) = "(Tkt" ^ " " ^ (typeToString x0) ^ ")"
 
   typeToString : type → string
-  typeToString (Abs x0 x1 x2 x3) = "(Abs" ^ " " ^ (binderToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (typeToString x3) ^ ")"
-  typeToString (Lft x0 x1) = "(Lft" ^ " " ^ (termToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
+  typeToString (Abs x0 x1 x2 x3 x4) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (Lft x0 x1 x2) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
-  typeToString (TpParens x0) = "(TpParens" ^ " " ^ (typeToString x0) ^ ")"
+  typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   udefToString : udef → string
@@ -485,8 +487,11 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-term : (x : term) → term
-  norm-term (App (App x1 x2 (Lam x3 x4 x5 x6)) x7 x8) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 (norm-term (App  x6 x7 x8) )) )) )
-  norm-term (App (Lam x1 x2 x3 x4) x5 x6) = (norm-term (Lam  x1 x2 x3 (norm-term (App  x4 x5 x6) )) )
+  norm-term (AppTp (App x1 x2 (Lam x3 x4 x5 x6 x7)) x8) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 (norm-term (AppTp  x7 x8) )) )) )
+  norm-term (AppTp (Lam x1 x2 x3 x4 x5) x6) = (norm-term (Lam  x1 x2 x3 x4 (norm-term (AppTp  x5 x6) )) )
+  norm-term (App x1 x2 (AppTp x3 x4)) = (norm-term (AppTp  (norm-term (App  x1 x2 x3) ) x4) )
+  norm-term (App (App x1 x2 (Lam x3 x4 x5 x6 x7)) x8 x9) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 (norm-term (App  x7 x8 x9) )) )) )
+  norm-term (App (Lam x1 x2 x3 x4 x5) x6 x7) = (norm-term (Lam  x1 x2 x3 x4 (norm-term (App  x5 x6 x7) )) )
   norm-term (App x1 x2 (App x3 x4 x5)) = (norm-term (App  (norm-term (App  x1 x2 x3) ) x4 x5) )
   norm-term x = x
 
@@ -528,7 +533,7 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-liftingType : (x : liftingType) → liftingType
-  norm-liftingType (LiftArrow (LiftPi x1 x2 x3) x4) = (norm-liftingType (LiftPi  x1 x2 (norm-liftingType (LiftArrow  x3 x4) )) )
+  norm-liftingType (LiftArrow (LiftPi x1 x2 x3 x4) x5) = (norm-liftingType (LiftPi  x1 x2 x3 (norm-liftingType (LiftArrow  x4 x5) )) )
   norm-liftingType (LiftTpArrow (TpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftTpArrow  x2 x3) )) )
   norm-liftingType (LiftArrow (LiftTpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType (LiftArrow (LiftArrow x1 x2) x3) = (norm-liftingType (LiftArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
@@ -540,7 +545,7 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-kind : (x : kind) → kind
-  norm-kind (KndArrow (KndPi x1 x2 x3) x4) = (norm-kind (KndPi  x1 x2 (norm-kind (KndArrow  x3 x4) )) )
+  norm-kind (KndArrow (KndPi x1 x2 x3 x4) x5) = (norm-kind (KndPi  x1 x2 x3 (norm-kind (KndArrow  x4 x5) )) )
   norm-kind (KndArrow (KndTpArrow x1 x2) x3) = (norm-kind (KndTpArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind (KndArrow (KndArrow x1 x2) x3) = (norm-kind (KndArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind x = x

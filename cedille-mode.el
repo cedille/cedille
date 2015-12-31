@@ -34,6 +34,8 @@
 (defvar cedille-program-name "cedille-executable"
   "Program to run for cedille mode.")
 
+(defvar cedille-info-buffer-trailing-edge 1 "Number of blank lines to insert at the bottom of the info buffer.")
+
 (defun cedille-info-buffer-name() (concat "*cedille-info-" (file-name-base (buffer-name)) "*"))
 
 (defun cedille-info-buffer()
@@ -43,39 +45,48 @@
        (setq buffer-read-only nil))
     b))
 
+(defun cedille-adjust-info-window-size()
+  (let ((w (get-buffer-window (cedille-info-buffer))))
+   (when w
+     (fit-window-to-buffer w)
+     (window-resize w cedille-info-buffer-trailing-edge))))
+
 (defun cedille-mode-inspect ()
   "Displays information on the currently selected node in the *cedille* buffer."
   (interactive)
   (let ((b (cedille-info-buffer))
-        (txt (se-mode-pretty-json (se-term-to-json (se-mode-selected)))))
+        (txt (if se-mode-selected
+               (se-mode-pretty-json (se-term-to-json (se-mode-selected)))
+               "\n")))
     (with-current-buffer b (erase-buffer) (insert txt) (setq buffer-read-only t))
+    (cedille-adjust-info-window-size)
     (setq deactivate-mark nil)))
+
+(defun se-mode-goto-first-child()
+  (let* ((outer (se-find-point (point) se-mode-parse-tree))
+         (kids (se-node-children outer))
+         (term (if (null kids) outer (car kids))))
+        (goto-char (se-term-start term))))
 
 (defun se-mode-select-first-child()
   "Selects the first child of the smallest span around point."
   (interactive)
-  (let* ((outer (se-find-point (point) se-mode-parse-tree))
-         (kids (se-node-children outer))
-         (term
-           (cond
-             ((null kids) outer)
-             (:else
-               (car kids)))))
-    (goto-char (se-term-start term))
-    (se-mode-expand-selected)))    
+  (se-mode-goto-first-child)
+  (se-mode-expand-selected))
 
 (defun se-mode-select-first-child-if()
   "Marks the first child of the smallest span around point."
   (interactive)
-  (if se-mode-selected
-    (se-mode-shrink-selected)
-    (se-mode-select-first-child)))
+  (se-mode-shrink-selected)
+  ; if shrinking the selected region results in no region's being selected, it is time to find the first child
+  (unless se-mode-selected
+     (se-mode-select-first-child)))
 
 (defun se-mode-select-last-helper (prev)
   (let ((next (se-mode-next)))
     (if (null next) prev
-      (progn (se-mode-select next)
-             (se-mode-select-last-helper next)))))
+      (se-mode-select next)
+      (se-mode-select-last-helper next))))
   
 (defun se-mode-select-last()
   "Selects the last sibling of the parent of the current node."
@@ -85,8 +96,8 @@
 (defun se-mode-select-first-helper (next)
   (let ((prev (se-mode-previous)))
     (if (null prev) next
-      (progn (se-mode-select prev)
-             (se-mode-select-first-helper prev)))))
+      (se-mode-select prev)
+      (se-mode-select-first-helper prev))))
   
 (defun se-mode-select-first()
   "Selects the first sibling of the parent of the current node."
@@ -135,6 +146,13 @@ in the parse tree, and updates the Cedille info buffer."
   (se-mode-select-last)
   (cedille-mode-inspect))
 
+(defun cedille-mode-toggle-info()
+  "Shows or hides the Cedille info buffer."
+  (interactive)
+  (let* ((b (cedille-info-buffer))
+         (w (get-buffer-window b)))
+    (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))))
+
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 ; separate keymaps.
@@ -147,7 +165,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "\C-g") #'se-navigation-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") nil)
+  (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
 )
 

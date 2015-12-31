@@ -57,7 +57,10 @@ spanM A = spans → A × spans
 spanMr : ∀{A : Set} → A → spanM A
 spanMr a ss = a , ss
 
-infixr 2 _≫span_ _≫=span_ 
+spanMok : spanM ⊤
+spanMok = spanMr triv
+
+infixr 2 _≫span_ _≫=span_ _≫=spanj_
 
 _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 (m ≫=span m') c with m c
@@ -66,11 +69,14 @@ _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 _≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
 (m ≫span m') c = m' (snd (m c))
 
+_≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
+_≫=spanj_{A} m m' = m ≫=span cont
+  where cont : maybe A → spanM ⊤
+        cont nothing = spanMok
+        cont (just x) = m' x
+
 spanM-add : span → spanM ⊤
 spanM-add s ss = triv , add-span s ss
-
-spanMok : spanM ⊤
-spanMok = spanMr triv
 
 --------------------------------------------------
 -- span constants
@@ -99,8 +105,17 @@ Decl-span : decl-class → posinfo → var → tk → posinfo → span
 Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
                                       pi pi' []
 
+Ctordecl-span : posinfo → var → type → posinfo → span
+Ctordecl-span pi x t pi' = mk-span "Constructor declaration" pi pi' []
+
 TpVar-span : string → posinfo → 𝕃 tagged-val → span
-TpVar-span v pi tvs = mk-span "Type variable" pi (ℕ-to-string (string-length v + (posinfo-to-ℕ pi))) tvs
+TpVar-span v pi tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
+
+TpAppt-span : type → term → 𝕃 tagged-val → span
+TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
+
+parens-span : posinfo → posinfo → span
+parens-span pi pi' = mk-span "parentheses" pi pi' []
 
 expected-type : type → tagged-val
 expected-type tp = "expected-type" , type-to-string tp
@@ -113,6 +128,15 @@ missing-type = "type" , "[undeclared]"
 
 missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
+
+head-kind : kind → tagged-val
+head-kind k = "the kind of the head" , kind-to-string k
+
+type-app-head : type → tagged-val
+type-app-head tp = "the head" , type-to-string tp
+
+term-argument : term → tagged-val
+term-argument t = "the argument" , term-to-string t
 
 type-data : type → tagged-val
 type-data tp = "type" , type-to-string tp 
