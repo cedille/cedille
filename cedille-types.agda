@@ -46,7 +46,7 @@ mutual
     Ctordecl : posinfo → var → type → posinfo → ctordecl
 
   data ctordecls : Set where 
-    Ctordeclse : ctordecls
+    Ctordeclse : posinfo → ctordecls
     Ctordeclsne : ctordeclsne → ctordecls
 
   data ctordeclsne : Set where 
@@ -58,10 +58,10 @@ mutual
 
   data decls : Set where 
     DeclsCons : decl → decls → decls
-    DeclsNil : decls
+    DeclsNil : posinfo → decls
 
   data indices : Set where 
-    Indicese : indices
+    Indicese : posinfo → indices
     Indicesne : decls → indices
 
   data kind : Set where 
@@ -284,7 +284,7 @@ mutual
   ctordeclToString (Ctordecl x0 x1 x2 x3) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
 
   ctordeclsToString : ctordecls → string
-  ctordeclsToString (Ctordeclse) = "Ctordeclse" ^ ""
+  ctordeclsToString (Ctordeclse x0) = "(Ctordeclse" ^ " " ^ (posinfoToString x0) ^ ")"
   ctordeclsToString (Ctordeclsne x0) = "(Ctordeclsne" ^ " " ^ (ctordeclsneToString x0) ^ ")"
 
   ctordeclsneToString : ctordeclsne → string
@@ -296,10 +296,10 @@ mutual
 
   declsToString : decls → string
   declsToString (DeclsCons x0 x1) = "(DeclsCons" ^ " " ^ (declToString x0) ^ " " ^ (declsToString x1) ^ ")"
-  declsToString (DeclsNil) = "DeclsNil" ^ ""
+  declsToString (DeclsNil x0) = "(DeclsNil" ^ " " ^ (posinfoToString x0) ^ ")"
 
   indicesToString : indices → string
-  indicesToString (Indicese) = "Indicese" ^ ""
+  indicesToString (Indicese x0) = "(Indicese" ^ " " ^ (posinfoToString x0) ^ ")"
   indicesToString (Indicesne x0) = "(Indicesne" ^ " " ^ (declsToString x0) ^ ")"
 
   kindToString : kind → string

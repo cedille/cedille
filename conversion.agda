@@ -26,11 +26,11 @@ conv-kind Γ (KndArrow k k₁) (KndPi _ x (Tkk k') k'') = conv-kind Γ k k' && c
 conv-kind Γ (KndArrow k k₁) _ = ff
 conv-kind Γ (KndPi _ x (Tkk k₁) k) (KndArrow k' k'') = conv-kind Γ k₁ k' && conv-kind Γ k k''
 conv-kind Γ (KndPi _ x (Tkk k₁) k) (KndPi _ x' (Tkk k') k'') = 
-  let Γ' = ctxt-type-def Γ x (TpVar posinfo-gen x') k₁ in
+  let Γ' = ctxt-type-def x (TpVar posinfo-gen x') k₁ Γ in
     conv-kind Γ k₁ k' && conv-kind Γ' k k''
 conv-kind Γ (KndPi _ x (Tkt t) k) (KndTpArrow t' k'') = conv-type Γ t t' && conv-kind Γ k k''
 conv-kind Γ (KndPi _ x (Tkt t) k) (KndPi _ x' (Tkt t') k') = 
-  let Γ' = ctxt-term-def Γ x (Var posinfo-gen x') t in
+  let Γ' = ctxt-term-def x (Var posinfo-gen x') t Γ in
     conv-type Γ t t' && conv-kind Γ' k k'
 conv-kind Γ (KndPi _ x (Tkt t) k) _ = ff
 conv-kind Γ (KndPi _ x (Tkk k') k) _ = ff

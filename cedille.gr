@@ -24,13 +24,13 @@ Rec : cmd -> ! 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 
 
 Decl : decl -> ! '(' ows var ows ':' ows tk ows ')' !.
 
-DeclsNil : decls -> .
+DeclsNil : decls -> ! .
 DeclsCons : decls -> ows decl decls.
 
-Indicese : indices -> .
+Indicese : indices -> ! .
 Indicesne : indices -> ows ':' decls.
 
-Ctordeclse : ctordecls -> .
+Ctordeclse : ctordecls -> ! .
 Ctordeclsne : ctordecls -> ctordeclsne.
 CtordeclsneStart : ctordeclsne -> ows ctordecl.
 CtordeclsneNext : ctordeclsne -> ows ctordecl ows ',' ctordeclsne.

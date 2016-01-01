@@ -17,12 +17,19 @@ posinfo-plus pi n = ℕ-to-string (posinfo-to-ℕ pi + n)
 posinfo-plus-str : posinfo → string → posinfo
 posinfo-plus-str pi s = posinfo-plus pi (string-length s)
 
+star : kind
+star = Star posinfo-gen 
+
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
 tk-is-type (Tkk _) = ff
 
+binder-is-pi : binder → 𝔹
+binder-is-pi Pi = tt
+binder-is-pi _ = ff
+
 indices-to-decls : indices → decls
-indices-to-decls Indicese = DeclsNil
+indices-to-decls (Indicese pi) = (DeclsNil pi)
 indices-to-decls (Indicesne x) = x
 
 term-start-pos : term → posinfo
@@ -93,6 +100,27 @@ liftingType-end-pos (LiftPi x x₁ x₂ l) = liftingType-end-pos l
 liftingType-end-pos (LiftStar pi) = posinfo-plus pi 1
 liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
 
+decls-start-pos : decls → posinfo
+decls-start-pos (DeclsCons (Decl pi _ _ _) _) = pi
+decls-start-pos (DeclsNil pi) = pi
+
+decls-end-pos : decls → posinfo
+decls-end-pos (DeclsCons _ ds) = decls-end-pos ds
+decls-end-pos (DeclsNil pi) = pi
+
+ctordeclsne-end-pos : ctordeclsne → posinfo
+ctordeclsne-end-pos (CtordeclsneNext _ c) = ctordeclsne-end-pos c
+ctordeclsne-end-pos (CtordeclsneStart (Ctordecl _ _ _ pi)) = pi
+
+ctordecls-end-pos : ctordecls → posinfo
+ctordecls-end-pos (Ctordeclse pi) = pi
+ctordecls-end-pos (Ctordeclsne x) = ctordeclsne-end-pos x
+
 tk-arrow-kind : tk → kind → kind
 tk-arrow-kind (Tkk k) k' = KndArrow k k'
 tk-arrow-kind (Tkt t) k = KndTpArrow t k
+
+TpApp-tk : type → var → tk → type
+TpApp-tk tp x (Tkk _) = TpApp tp (TpVar posinfo-gen x)
+TpApp-tk tp x (Tkt _) = TpAppt tp (Var posinfo-gen x)
+
