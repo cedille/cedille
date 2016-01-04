@@ -49,3 +49,8 @@ is-free-in-liftingType ce x (LiftParens x₁ l x₂) = is-free-in-liftingType ce
 is-free-in-liftingType ce x (LiftPi _ x' t l) = is-free-in-type ce x t || (~ (x =string x') && is-free-in-liftingType ce x l)
 is-free-in-liftingType ce x (LiftStar x₁) = ff
 is-free-in-liftingType ce x (LiftTpArrow t l) = is-free-in-type ce x t || is-free-in-liftingType ce x l
+
+is-free-in : {is-term : 𝔹} → is-free-e → var → select-term-type is-term → 𝔹
+is-free-in{tt} e x t = is-free-in-term e x t 
+is-free-in{ff} e x t = is-free-in-type e x t 
+

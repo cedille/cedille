@@ -52,9 +52,9 @@ rec-check-and-add-ctors Γ Γ' (Ctordeclsne (CtordeclsneNext c cs)) =
   rec-check-and-add-ctor Γ Γ' c ≫=span λ Γ' → rec-check-and-add-ctors Γ Γ' (Ctordeclsne cs)
 rec-check-and-add-ctors Γ Γ' (Ctordeclsne (CtordeclsneStart c)) = rec-check-and-add-ctor Γ Γ' c
 
-rec-apply-params : type → decls → type
-rec-apply-params tp (DeclsNil _) = tp
-rec-apply-params tp (DeclsCons (Decl _ x atk _) ds) = rec-apply-params (TpApp-tk tp x atk) ds
+rec-apply-decls : type → decls → type
+rec-apply-decls tp (DeclsNil _) = tp
+rec-apply-decls tp (DeclsCons (Decl _ x atk _) ds) = rec-apply-decls (TpApp-tk tp x atk) ds
 
 process-rec-cmd : ctxt → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
 process-rec-cmd Γ pi name params inds ctors body us pi' = 
@@ -75,7 +75,7 @@ process-rec-cmd Γ pi name params inds ctors body us pi' =
          adding the new definitions to the context containing the params and the indices -}
       rec-check-and-add-ctors Γpt Γpi ctors ≫=span λ Γpic →
 
-      let Γpicts = ctxt-term-decl self-name (rec-apply-params (TpVar posinfo-gen name) params)
+      let Γpicts = ctxt-term-decl self-name (rec-apply-decls (TpVar posinfo-gen name) inds)
                   (ctxt-type-decl name k Γpic) in
 
       check-type Γpicts body (just star) ≫span

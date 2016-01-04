@@ -97,6 +97,14 @@ expected-type tp = "expected-type" , type-to-string tp
 expected-kind : kind → tagged-val
 expected-kind tp = "expected kind" , kind-to-string tp
 
+expected-kind-if : maybe kind → 𝕃 tagged-val → 𝕃 tagged-val
+expected-kind-if nothing tvs = tvs
+expected-kind-if (just k) tvs = expected-kind k :: tvs
+
+expected-type-if : maybe type → 𝕃 tagged-val → 𝕃 tagged-val
+expected-type-if nothing tvs = tvs
+expected-type-if (just k) tvs = expected-type k :: tvs
+
 missing-type : tagged-val
 missing-type = "type" , "[undeclared]"
 
@@ -117,6 +125,9 @@ type-data tp = "type" , type-to-string tp
 
 kind-data : kind → tagged-val
 kind-data k = "kind" , kind-to-string k
+
+super-kind-data : tagged-val
+super-kind-data = "superkind" , "□"
 
 error-data : string → tagged-val
 error-data s = "error" , s
@@ -156,8 +167,8 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
 Ctordecl-span : posinfo → var → type → posinfo → span
 Ctordecl-span pi x t pi' = mk-span "Constructor declaration" pi pi' []
 
-TpVar-span : string → posinfo → 𝕃 tagged-val → span
-TpVar-span v pi tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
+TpVar-span : posinfo → string → 𝕃 tagged-val → span
+TpVar-span pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
 
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
@@ -180,3 +191,21 @@ RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor decl
 
 TpArrow-span : type → type → 𝕃 tagged-val → span
 TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) tvs
+
+Var-span : posinfo → string → 𝕃 tagged-val → span
+Var-span pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) tvs
+
+KndVar-span : posinfo → string → span
+KndVar-span pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) [ super-kind-data ]
+
+Star-span : posinfo → span
+Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) []
+
+KndPi-span : posinfo → var → tk → kind → span
+KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) [ super-kind-data ]
+
+KndArrow-span : kind → kind → span
+KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') [ super-kind-data ]
+
+KndTpArrow-span : type → kind → span
+KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) [ super-kind-data ]

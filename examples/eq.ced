@@ -1,6 +1,6 @@
 import nat .
 
-rec Eq (A : ★)(a : A) : (b : A) | refl : Eq a = 
-  ∀ P : Π b : A . Eq b → ★ .
-    P a refl → P b self with 
+rec Eq (A : ★)(a : A) : (b : A) | refl : Eq b = 
+  λ P : Π b : A . Eq b → ★ .
+    P a refl → P a self with 
    refl = Λ P . λ x . x .

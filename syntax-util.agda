@@ -92,7 +92,7 @@ kind-end-pos (KndParens pi k pi') = pi'
 kind-end-pos (KndPi pi x x₁ k) = kind-end-pos k
 kind-end-pos (KndTpArrow x k) = kind-end-pos k
 kind-end-pos (KndVar pi x) = posinfo-plus-str pi x
-kind-end-pos (Star pi) = pi
+kind-end-pos (Star pi) = posinfo-plus pi 1
 
 liftingType-end-pos (LiftArrow l l') = liftingType-end-pos l'
 liftingType-end-pos (LiftParens pi l pi') = pi'
@@ -124,3 +124,12 @@ TpApp-tk : type → var → tk → type
 TpApp-tk tp x (Tkk _) = TpApp tp (TpVar posinfo-gen x)
 TpApp-tk tp x (Tkt _) = TpAppt tp (Var posinfo-gen x)
 
+select-term-type : 𝔹 → Set
+select-term-type tt = term
+select-term-type ff = type
+
+eq-maybeErased : maybeErased → maybeErased → 𝔹
+eq-maybeErased Erased Erased = tt
+eq-maybeErased Erased NotErased = ff
+eq-maybeErased NotErased Erased = ff
+eq-maybeErased NotErased NotErased = tt

@@ -27,7 +27,7 @@
 (require 'se-mode)
 (eval-when-compile (require 'se-macros))
 
-(defvar cedille-version "0.1"
+(defvar cedille-mode-version "1.0"
   "The version of the cedille mode.")
 
 ; set in .emacs file
@@ -62,27 +62,51 @@
     (cedille-adjust-info-window-size)
     (setq deactivate-mark nil)))
 
-(defun se-mode-goto-first-child()
-  (let* ((outer (se-find-point (point) se-mode-parse-tree))
-         (kids (se-node-children outer))
-         (term (if (null kids) outer (car kids))))
-        (goto-char (se-term-start term))))
+(defun se-mode-left-spine(node)
+  "Find the path down the left spine of the node."
+  (let ((kids (se-node-children node)))
+    (cons node
+     (when kids
+       (se-mode-left-spine (first kids))))))
 
-(defun se-mode-select-first-child()
-  "Selects the first child of the smallest span around point."
-  (interactive)
-  (se-mode-goto-first-child)
-  (se-mode-expand-selected))
+(defun se-mode-update-selected(path)
+  "Update the se-mode-selected and se-mode-not-selected variables,
+from the given path."
+  (let ((path (nreverse path)))
+    (setq se-mode-not-selected path)
+    ; the call to cdr is to drop the node "car path" from the list, since it is already included in se-mode-not-selected
+    (setq se-mode-selected (when path (cdr (se-mode-left-spine (car path)))))))
 
-(defun se-mode-select-first-child-if()
-  "Marks the first child of the smallest span around point."
+(defun se-mode-set-spans ()
+  "Used by `se-mode' methods to set `se-mode-selected' and
+`se-mode-not-selected'."
+  (unless mark-active
+    (se-mode-clear-selected))
+  (when (and (null se-mode-selected)
+	     (null se-mode-not-selected))
+    (se-mode-update-selected (se-find-point-path (point) se-mode-parse-tree))))
+
+(defun se-mode-select (term)
+  "Updates selection path and selects region."
+  (when term
+    (se-mode-update-selected (se-find-span-path term se-mode-parse-tree))
+    (se-mode-expand-selected)
+    t))
+
+(defun se-mode-shrink-selected ()
+  "Shrink the selected region.  If a smaller region was previous
+selected, select it again."
   (interactive)
-  (se-mode-shrink-selected)
-  ; if shrinking the selected region results in no region's being selected, it is time to find the first child
-  (unless se-mode-selected
-     (se-mode-select-first-child)))
+  (se-mode-set-spans)
+  (when se-mode-selected
+    (push (pop se-mode-selected) se-mode-not-selected))
+  (if se-mode-selected
+      (se-mode-mark-term (se-mode-selected))
+    (message "No child span found")))
 
 (defun se-mode-select-last-helper (prev)
+  "Helper function for selecting the last sibling span from a node 
+of the tree."
   (let ((next (se-mode-next)))
     (if (null next) prev
       (se-mode-select next)
@@ -94,15 +118,84 @@
   (se-mode-select-last-helper (se-mode-selected)))
 
 (defun se-mode-select-first-helper (next)
+  "Helper function for selecting the first sibling span from a node 
+of the tree."
   (let ((prev (se-mode-previous)))
     (if (null prev) next
       (se-mode-select prev)
       (se-mode-select-first-helper prev))))
   
+(defun se-create-parse-tree (lst)
+  "Forms a tree from a sorted list of spans.  Returns nil if data is ill
+formatted."
+  ;; `copy-list' could be used; however, it isn't expected a user will
+  ;; reuse a span list (or care if it becomes sorted).
+  (let ((len (length lst))
+	(spans (copy-list lst))
+	(parents nil))
+    (se--sorted-spans-to-tree)))
+
+
 (defun se-mode-select-first()
   "Selects the first sibling of the parent of the current node."
   (interactive)
   (se-mode-select-first-helper (se-mode-selected)))
+
+(make-variable-buffer-local
+ (defvar se-mode-spans nil
+   "The spans obtained from the backend tool for `se-mode'
+methods."))
+
+(defun se-inf-process-spans (json)
+  "Creates parse tree from spans found in JSON. Sets the variables
+`se-mode-parse-tree' and `se-mode-spans'."
+  (when (se-inf-get-spans json)
+    (setq se-mode-spans 
+          (sort (se-create-spans (se-inf-get-spans json)) 'se-term-before-p))
+    (setq se-mode-parse-tree
+	  (se-create-parse-tree se-mode-spans))))
+
+(make-variable-buffer-local
+ (defvar cedille-mode-next-errors nil
+   "Next spans with an error value."))
+
+(make-variable-buffer-local
+ (defvar cedille-mode-prev-errors nil
+   "Previously seen spans with an error value."))
+
+(defun cedille-span-has-error-data(data)
+  "Return t if the span has error data, and nil otherwise."
+  (assoc 'error data))
+
+(defun cedille-find-error-spans(spans)
+  "Sets `cedille-mode-error-spans' to hold a list
+of spans that have an error value."
+  (when spans
+    (let ((cur (car spans)))
+      (when (cedille-span-has-error-data (se-span-data cur))
+        (push cur cedille-mode-next-errors))
+      (cedille-find-error-spans (cdr spans)))))
+    
+(defun cedille-mode-set-error-spans(response)
+  "After loading spans from the backend tool, this hook will look for error
+spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
+  (setq cedille-mode-next-errors nil)
+  (setq cedille-mode-prev-errors nil)
+  (cedille-find-error-spans se-mode-spans)
+  (setq cedille-mode-next-errors (reverse cedille-mode-next-errors)) ; we are pushing the errors as we find them, so the list is reversed
+)
+
+(defun cedille-mode-select-next-error()
+  "Select the next error if any."
+  (interactive)
+  (if (null cedille-mode-next-errors)
+     (message (if cedille-mode-prev-errors "No further errors" "No errors"))
+     (let ((cur (pop cedille-mode-next-errors)))
+       (push cur cedille-mode-prev-errors)
+       (se-mode-update-selected (se-find-span-path cur se-mode-parse-tree))
+       (se-mode-mark-term cur)
+       (push (pop se-mode-not-selected) se-mode-selected)
+       (cedille-mode-inspect))))
 
 (defun cedille-mode-select-next()
   "Selects the next sibling from the currently selected one in 
@@ -129,7 +222,7 @@ the parse tree, and updates the Cedille info buffer."
   "Selects the first child of the lowest node in the parse tree
 containing point, and updates the Cedille info buffer."
   (interactive)
-  (se-mode-select-first-child-if)
+  (se-mode-shrink-selected)
   (cedille-mode-inspect))
 
 (defun cedille-mode-select-first()
@@ -166,13 +259,11 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
+  (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
 )
 
 (cedille-modify-keymap)
-
-;(add-hook 'se-navigation-mode-hook 'cedille-modify-keymap)
-;(eval-after-load 'se-navi 'cedille-modify-keymap)
 
 (se-create-mode "Cedille" nil
   "Major mode for Cedille files."
@@ -185,6 +276,8 @@ in the parse tree, and updates the Cedille info buffer."
 
   (set-input-method "Cedille")
 )
+
+(setq se-inf-response-hook (nconc se-inf-response-hook (list 'cedille-mode-set-error-spans)))
 
 (modify-coding-system-alist 'file "\\.ced\\'" 'utf-8)
 
