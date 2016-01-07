@@ -26,6 +26,7 @@ is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 
 is-free-in-type ce x (Abs _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
+is-free-in-type ce x (Iota _ x' t) = ~ (x =string x') && is-free-in-type ce x t
 is-free-in-type ce x (Lft _ t l) = is-free-in-term ce x t || is-free-in-liftingType ce x l
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'
@@ -50,7 +51,8 @@ is-free-in-liftingType ce x (LiftPi _ x' t l) = is-free-in-type ce x t || (~ (x 
 is-free-in-liftingType ce x (LiftStar x₁) = ff
 is-free-in-liftingType ce x (LiftTpArrow t l) = is-free-in-type ce x t || is-free-in-liftingType ce x l
 
-is-free-in : {is-term : 𝔹} → is-free-e → var → select-term-type is-term → 𝔹
-is-free-in{tt} e x t = is-free-in-term e x t 
-is-free-in{ff} e x t = is-free-in-type e x t 
+is-free-in : {ed : exprd} → is-free-e → var → ⟦ ed ⟧ → 𝔹
+is-free-in{TERM} e x t = is-free-in-term e x t 
+is-free-in{TYPE} e x t = is-free-in-type e x t 
+is-free-in{KIND} e x t = is-free-in-kind e x t 
 

@@ -156,7 +156,7 @@ process-rec-cmd Γ pi name params inds ctors body us pi' =
       
       -- the recursive type applied to the parameters
       let rectp = rec-apply-decls nametp params in
-      let body = forall-bind-decls params (forall-bind-decls inds (Abs posinfo-gen Iota self-name (Tkt nametp) body)) in
+      let body = forall-bind-decls params (forall-bind-decls inds (Iota posinfo-gen self-name body)) in
 
         spanM-add (Udefs-span us) ≫span
         spanM-add (Rec-span pi pi' k) ≫span 

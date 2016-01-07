@@ -45,6 +45,7 @@ term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 
 type-start-pos (Abs pi _ _ _ _) = pi
+type-start-pos (Iota pi _ _) = pi
 type-start-pos (Lft pi _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
@@ -79,6 +80,7 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 
 type-end-pos (Abs pi _ _ _ t) = type-end-pos t
+type-end-pos (Iota _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
@@ -140,9 +142,16 @@ TpApp-tk : type → var → tk → type
 TpApp-tk tp x (Tkk _) = TpApp tp (TpVar posinfo-gen x)
 TpApp-tk tp x (Tkt _) = TpAppt tp (Var posinfo-gen x)
 
-select-term-type : 𝔹 → Set
-select-term-type tt = term
-select-term-type ff = type
+-- expression descriptor
+data exprd : Set where
+  TERM : exprd
+  TYPE : exprd
+  KIND : exprd
+
+⟦_⟧ : exprd → Set
+⟦ TERM ⟧ = term
+⟦ TYPE ⟧ = type
+⟦ KIND ⟧ = kind
 
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt

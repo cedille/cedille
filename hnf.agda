@@ -8,28 +8,24 @@ open import rename
 open import subst
 open import syntax-util
 
-whnf-term : ctxt → term → term
-whnf-term Γ (Parens _ t _) = whnf-term Γ t
-whnf-term Γ t = t
-
 {-# NO_TERMINATION_CHECK #-}
-whnf-type : ctxt → type → type
-whnf-type Γ (TpParens _ t _) = whnf-type Γ t
-whnf-type Γ (TpVar _ x) with ctxt-lookup-type-var-def Γ x
-whnf-type Γ (TpVar pi x) | nothing = TpVar pi x
-whnf-type Γ (TpVar pi x) | just t = t
-whnf-type Γ (TpAppt tp t) with whnf-type Γ tp
-whnf-type Γ (TpAppt _ t) | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ t x tp)
-whnf-type Γ (TpAppt _ t) | tp = TpAppt tp t
-whnf-type Γ (TpApp tp tp') with whnf-type Γ tp
-whnf-type Γ (TpApp _ tp') | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ tp' x tp)
-whnf-type Γ (TpApp _ tp') | tp = TpApp tp tp'
--- need to cover lifting cases still
-whnf-type Γ t = t
+hnf : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+hnf{TERM} Γ (Parens _ t _) = hnf Γ t
 
-whnf-kind : ctxt → kind → kind
-whnf-kind Γ (KndParens _ k _) = whnf-kind Γ k
-whnf-kind Γ (KndVar _ x) with ctxt-lookup-kind-var-def Γ x
-whnf-kind Γ (KndVar pi x) | nothing = KndVar pi x
-whnf-kind Γ (KndVar pi x) | just k = k
-whnf-kind Γ k = k
+hnf{TYPE} Γ (TpParens _ t _) = hnf Γ t
+hnf{TYPE} Γ (TpVar _ x) with ctxt-lookup-type-var-def Γ x
+hnf{TYPE} Γ (TpVar pi x) | nothing = TpVar pi x
+hnf{TYPE} Γ (TpVar pi x) | just t = t
+hnf{TYPE} Γ (TpAppt tp t) with hnf Γ tp
+hnf{TYPE} Γ (TpAppt _ t) | Abs _ TpLambda x _ tp = hnf Γ (subst-type Γ t x tp)
+hnf{TYPE} Γ (TpAppt _ t) | tp = TpAppt tp t
+hnf{TYPE} Γ (TpApp tp tp') with hnf Γ tp
+hnf{TYPE} Γ (TpApp _ tp') | Abs _ TpLambda x _ tp = hnf Γ (subst-type Γ tp' x tp)
+hnf{TYPE} Γ (TpApp _ tp') | tp = TpApp tp tp'
+-- need to cover lifting cases still
+
+hnf{KIND} Γ (KndParens _ k _) = hnf Γ k
+hnf{KIND} Γ (KndVar _ x) with ctxt-lookup-kind-var-def Γ x
+hnf{KIND} Γ (KndVar pi x) | nothing = KndVar pi x
+hnf{KIND} Γ (KndVar pi x) | just k = k
+hnf Γ e = e

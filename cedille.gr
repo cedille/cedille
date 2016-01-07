@@ -65,6 +65,7 @@ ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
 Abs : type -> ! binder ows var ows ':' ows tk ows '.' ows type .
+Iota : type -> ! 'ι' ows var ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 
@@ -92,7 +93,6 @@ embed : liftingType -> lliftingType.
 Pi : binder -> 'Π'.
 All : binder -> '∀'.
 TpLambda : binder -> 'λ'.
-Iota : binder -> 'ι'.
 
 Tkt : tk -> type .
 Tkk : tk -> kind .

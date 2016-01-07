@@ -7,7 +7,6 @@ binder-to-string : binder → string
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
 binder-to-string TpLambda = "λ"
-binder-to-string Iota = "ι"
 
 maybeErased-to-string : maybeErased → string
 maybeErased-to-string Erased = "-"
@@ -26,6 +25,8 @@ tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 
 type-to-string (Abs _ b x t t') = "(" ^ binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-string t' ^ ")"
+type-to-string (Iota _ x t) = "(ι " ^ x ^ " . " ^ type-to-string t ^ ")"
+
 type-to-string (Lft _ x x₁) = "↑" ^ term-to-string x ^ " : " ^ liftingType-to-string x₁
 type-to-string (TpApp t t₁) = "(" ^ type-to-string t ^ " · " ^ type-to-string t₁ ^ ")"
 type-to-string (TpAppt t t') = "(" ^ type-to-string t ^ " " ^ term-to-string t' ^ ")"

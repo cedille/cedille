@@ -27,7 +27,6 @@ mutual
 
   data binder : Set where 
     All : binder
-    Iota : binder
     Pi : binder
     TpLambda : binder
 
@@ -117,6 +116,7 @@ mutual
 
   data type : Set where 
     Abs : posinfo → binder → var → tk → type → type
+    Iota : posinfo → var → type → type
     Lft : posinfo → term → liftingType → type
     TpApp : type → type → type
     TpAppt : type → term → type
@@ -266,7 +266,6 @@ var-star-8ToString x = "(var-star-8 " ^ x ^ ")"
 mutual
   binderToString : binder → string
   binderToString (All) = "All" ^ ""
-  binderToString (Iota) = "Iota" ^ ""
   binderToString (Pi) = "Pi" ^ ""
   binderToString (TpLambda) = "TpLambda" ^ ""
 
@@ -356,6 +355,7 @@ mutual
 
   typeToString : type → string
   typeToString (Abs x0 x1 x2 x3 x4) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (Iota x0 x1 x2) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (Lft x0 x1 x2) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"

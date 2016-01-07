@@ -15,9 +15,9 @@ conv-type-norm : ctxt → type → type → 𝔹
 conv-kind : ctxt → kind → kind → 𝔹
 conv-kind-norm : ctxt → kind → kind → 𝔹
 
-conv-term Γ t t' = conv-term-norm Γ (whnf-term Γ t) (whnf-term Γ t')
-conv-type Γ t t' = conv-type-norm Γ (whnf-type Γ t) (whnf-type Γ t')
-conv-kind Γ k k' = conv-kind-norm Γ (whnf-kind Γ k) (whnf-kind Γ k')
+conv-term Γ t t' = conv-term-norm Γ (hnf Γ t) (hnf Γ t')
+conv-type Γ t t' = conv-type-norm Γ (hnf Γ t) (hnf Γ t')
+conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ k) (hnf Γ k')
 
 conv-term-norm Γ (Var _ x) (Var _ x') = x =string x'
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && eq-maybeErased m m' && conv-term Γ t2 t2'

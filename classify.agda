@@ -5,6 +5,7 @@ open import lib
 open import cedille-types
 open import conversion
 open import ctxt
+open import hnf
 open import rename
 open import spans
 open import subst
@@ -66,6 +67,13 @@ check-term-app-matching-erasures Erased All = tt
 check-term-app-matching-erasures NotErased Pi = tt
 check-term-app-matching-erasures _ _ = ff
 
+{- return a type in head-normal form, where any top-level self 
+   type has been eliminated using the given subject. -}
+check-type-return : ctxt → (subject : term) → type → spanM (maybe type)
+check-type-return Γ subject tp with hnf Γ tp 
+check-type-return Γ subject _ | Iota _ x t = spanMr (just (hnf Γ (subst-type Γ subject x t)))
+check-type-return Γ subject _ | tp = spanMr (just tp)
+
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type -}
 check-term : ctxt → term → (m : maybe type) → spanM (check-ret m)
@@ -84,7 +92,7 @@ check-term Γ (Var pi x) tp | nothing =
   return-when tp tp
 check-term Γ (Var pi x) nothing | just tp = 
   spanM-add (Var-span pi x ((type-data tp) :: [])) ≫span
-  spanMr (just tp)
+  check-type-return Γ (Var pi x) tp
 check-term Γ (Var pi x) (just tp) | just tp' = 
   spanM-add (Var-span pi x 
                (type-data tp' ::
