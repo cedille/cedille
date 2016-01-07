@@ -110,11 +110,27 @@ decls-end-pos (DeclsNil pi) = pi
 
 ctordeclsne-end-pos : ctordeclsne → posinfo
 ctordeclsne-end-pos (CtordeclsneNext _ c) = ctordeclsne-end-pos c
-ctordeclsne-end-pos (CtordeclsneStart (Ctordecl _ _ _ pi)) = pi
+ctordeclsne-end-pos (CtordeclsneStart (Ctordecl _ _ tp)) = type-end-pos tp
 
 ctordecls-end-pos : ctordecls → posinfo
 ctordecls-end-pos (Ctordeclse pi) = pi
 ctordecls-end-pos (Ctordeclsne x) = ctordeclsne-end-pos x
+
+udefsne-start-pos : udefsne → posinfo
+udefsne-start-pos (UdefsneNext (Udef pi x t) us) = pi
+udefsne-start-pos (UdefsneStart (Udef pi x t)) = pi
+
+udefs-start-pos : udefs → posinfo
+udefs-start-pos (Udefse pi) = pi
+udefs-start-pos (Udefsne x) = udefsne-start-pos x
+
+udefsne-end-pos : udefsne → posinfo
+udefsne-end-pos (UdefsneNext _ us) = udefsne-end-pos us
+udefsne-end-pos (UdefsneStart (Udef pi x t)) = term-end-pos t
+
+udefs-end-pos : udefs → posinfo
+udefs-end-pos (Udefse pi) = posinfo-plus pi 1
+udefs-end-pos (Udefsne x) = udefsne-end-pos x
 
 tk-arrow-kind : tk → kind → kind
 tk-arrow-kind (Tkk k) k' = KndArrow k k'
@@ -133,3 +149,10 @@ eq-maybeErased Erased Erased = tt
 eq-maybeErased Erased NotErased = ff
 eq-maybeErased NotErased Erased = ff
 eq-maybeErased NotErased NotErased = tt
+
+forall-bind-decls : decls → type → type
+forall-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = Abs posinfo-gen All x atk (forall-bind-decls ds tp)
+forall-bind-decls (DeclsNil x) tp = tp
+
+erased-lambda-bind-params : decls → term → term
+erased-lambda-bind-params ds t = t

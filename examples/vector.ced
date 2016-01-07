@@ -3,7 +3,7 @@ import nat .
 rec Vector (A : ★) : (n : Nat) | Nil : Vector Z , Cons : ∀ n : Nat . A → Vector n → Vector (S n) =
   ∀ P : Π n : Nat . Vector n → ★ .
     (∀ n : Nat . Π a : A . ∀ v : Vector n .
-       P n v → P (S n) (Cons n a v)) → 
+       P n v → P (S n) (Cons -n a v)) → 
     P Z Nil → 
     P n self
   with

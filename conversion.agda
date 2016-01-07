@@ -5,7 +5,7 @@ open import lib
 open import cedille-types
 open import ctxt
 open import syntax-util
-open import whnf
+open import hnf
 
 {-# NO_TERMINATION_CHECK #-}
 conv-term : ctxt → term → term → 𝔹
@@ -20,13 +20,13 @@ conv-type Γ t t' = conv-type-norm Γ (whnf-type Γ t) (whnf-type Γ t')
 conv-kind Γ k k' = conv-kind-norm Γ (whnf-kind Γ k) (whnf-kind Γ k')
 
 conv-term-norm Γ (Var _ x) (Var _ x') = x =string x'
-conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && eq-maybeErased m m' && conv-term-norm Γ t2 t2'
+conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && eq-maybeErased m m' && conv-term Γ t2 t2'
 conv-term-norm Γ _ _ = ff
 
 conv-type-norm Γ (TpVar _ x) (TpVar _ x') = x =string x'
-conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type-norm Γ t2 t2'
-conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term-norm Γ t2 t2'
-conv-type-norm Γ _ _ = ff -- should not happen
+conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type Γ t2 t2'
+conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
+conv-type-norm Γ _ _ = ff 
 
 conv-kind-norm Γ (KndVar _ x) (KndVar _ x') = x =string x'
 conv-kind-norm Γ (KndArrow k k₁) (KndArrow k' k'') = conv-kind Γ k k' && conv-kind Γ k₁ k''
@@ -48,3 +48,4 @@ conv-kind-norm Γ (KndTpArrow t k) _ = ff
 conv-kind-norm Γ (Star x) (Star x') = tt
 conv-kind-norm Γ (Star x) _ = ff
 conv-kind-norm Γ _ _ = ff -- should not happen
+

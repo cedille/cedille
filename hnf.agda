@@ -1,4 +1,4 @@
-module whnf where
+module hnf where
 
 open import lib
 
@@ -9,6 +9,7 @@ open import subst
 open import syntax-util
 
 whnf-term : ctxt → term → term
+whnf-term Γ (Parens _ t _) = whnf-term Γ t
 whnf-term Γ t = t
 
 {-# NO_TERMINATION_CHECK #-}
@@ -18,10 +19,10 @@ whnf-type Γ (TpVar _ x) with ctxt-lookup-type-var-def Γ x
 whnf-type Γ (TpVar pi x) | nothing = TpVar pi x
 whnf-type Γ (TpVar pi x) | just t = t
 whnf-type Γ (TpAppt tp t) with whnf-type Γ tp
-whnf-type Γ (TpAppt _ t) | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ empty-renamectxt t x tp)
+whnf-type Γ (TpAppt _ t) | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ t x tp)
 whnf-type Γ (TpAppt _ t) | tp = TpAppt tp t
 whnf-type Γ (TpApp tp tp') with whnf-type Γ tp
-whnf-type Γ (TpApp _ tp') | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ empty-renamectxt tp' x tp)
+whnf-type Γ (TpApp _ tp') | Abs _ TpLambda x _ tp = whnf-type Γ (subst-type Γ tp' x tp)
 whnf-type Γ (TpApp _ tp') | tp = TpApp tp tp'
 -- need to cover lifting cases still
 whnf-type Γ t = t

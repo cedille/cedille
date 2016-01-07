@@ -27,6 +27,7 @@ mutual
 
   data binder : Set where 
     All : binder
+    Iota : binder
     Pi : binder
     TpLambda : binder
 
@@ -43,7 +44,7 @@ mutual
     CmdsStart : cmd → cmds
 
   data ctordecl : Set where 
-    Ctordecl : posinfo → var → type → posinfo → ctordecl
+    Ctordecl : posinfo → var → type → ctordecl
 
   data ctordecls : Set where 
     Ctordeclse : posinfo → ctordecls
@@ -125,10 +126,10 @@ mutual
     TpVar : posinfo → var → type
 
   data udef : Set where 
-    Udef : var → term → udef
+    Udef : posinfo → var → term → udef
 
   data udefs : Set where 
-    Udefse : udefs
+    Udefse : posinfo → udefs
     Udefsne : udefsne → udefs
 
   data udefsne : Set where 
@@ -265,6 +266,7 @@ var-star-8ToString x = "(var-star-8 " ^ x ^ ")"
 mutual
   binderToString : binder → string
   binderToString (All) = "All" ^ ""
+  binderToString (Iota) = "Iota" ^ ""
   binderToString (Pi) = "Pi" ^ ""
   binderToString (TpLambda) = "TpLambda" ^ ""
 
@@ -281,7 +283,7 @@ mutual
   cmdsToString (CmdsStart x0) = "(CmdsStart" ^ " " ^ (cmdToString x0) ^ ")"
 
   ctordeclToString : ctordecl → string
-  ctordeclToString (Ctordecl x0 x1 x2 x3) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
+  ctordeclToString (Ctordecl x0 x1 x2) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
 
   ctordeclsToString : ctordecls → string
   ctordeclsToString (Ctordeclse x0) = "(Ctordeclse" ^ " " ^ (posinfoToString x0) ^ ")"
@@ -363,10 +365,10 @@ mutual
   typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   udefToString : udef → string
-  udefToString (Udef x0 x1) = "(Udef" ^ " " ^ (varToString x0) ^ " " ^ (termToString x1) ^ ")"
+  udefToString (Udef x0 x1 x2) = "(Udef" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (termToString x2) ^ ")"
 
   udefsToString : udefs → string
-  udefsToString (Udefse) = "Udefse" ^ ""
+  udefsToString (Udefse x0) = "(Udefse" ^ " " ^ (posinfoToString x0) ^ ")"
   udefsToString (Udefsne x0) = "(Udefsne" ^ " " ^ (udefsneToString x0) ^ ")"
 
   udefsneToString : udefsne → string

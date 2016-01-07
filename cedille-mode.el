@@ -51,16 +51,76 @@
      (fit-window-to-buffer w)
      (window-resize w cedille-info-buffer-trailing-edge))))
 
+(defun cedille-mode-concat-sep(sep ss)
+  "Concat the strings in nonempty list ss with sep in between each one."
+  (let ((he (car ss))
+        (ta (cdr ss)))
+    (if (not ta) he
+      (concat he sep (cedille-mode-concat-sep sep ta)))))
+
+(defun cedille-mode-split-string(s)
+  "Return a pair of the prefix of the string up to the first space, 
+and the remaining suffix."
+  (let ((ss (split-string s " ")))
+    (if (< (length ss) 2) s
+      (cons (car ss) (cedille-mode-concat-sep " " (cdr ss))))))
+
+(defun cedille-mode-get-seqnum(a)
+  "Get the seqnum from a json pair. The second component
+is assumed to be a string with a sequence number (prefix up
+ to the first space in each string)."
+  (car (cedille-mode-split-string (cdr a))))
+
+(defun cedille-mode-compare-seqnums(a b)
+  "Compare two pairs by seqnum."
+  (let ((na (cedille-mode-get-seqnum a))
+        (nb (cedille-mode-get-seqnum b)))
+      (< (string-to-number na) (string-to-number nb))))
+
+(defun cedille-mode-strip-seqnum(s)
+  "Return a new string just like s except without the prefix up to the 
+first space."
+  (cdr (cedille-mode-split-string s)))
+
+(defun cedille-mode-sort-and-strip-json(json)
+  "Sort the pairs in the JSON data by the number at the 
+start of each string, and then strip out that number."
+  (when json
+    (let ((name (assoc 'name json)))
+      (setq json 
+        (loop for (key . value) in json
+          unless (or (eq key 'start) (eq key 'end) (eq key 'name))
+          collecting (cons key value)))
+      (setq json (sort json 'cedille-mode-compare-seqnums))
+      (setq json (cons name
+                   (loop for (key . value) in json
+                      collecting (cons key (cedille-mode-strip-seqnum value)))))
+      json)))
+
+
 (defun cedille-mode-inspect ()
   "Displays information on the currently selected node in the *cedille* buffer."
   (interactive)
   (let ((b (cedille-info-buffer))
         (txt (if se-mode-selected
-               (se-mode-pretty-json (se-term-to-json (se-mode-selected)))
+               (se-mode-pretty-json (cedille-mode-sort-and-strip-json (se-term-to-json (se-mode-selected))))
                "\n")))
     (with-current-buffer b (erase-buffer) (insert txt) (setq buffer-read-only t))
     (cedille-adjust-info-window-size)
     (setq deactivate-mark nil)))
+
+(defun se-mode-pretty-json (json)
+  "Prints a table in a more human readable form. Does not handle
+recursion or anything other than key-value pairs."
+  (when json
+    (let (max fstr)
+      (loop for (key . value) in json
+	    maximizing (length (format "%s" key)) into maxlen
+	    finally (setq max maxlen))
+      (setq fstr (format "%%%ds:\t%%s\n" max))
+      (loop for (key . value) in json
+	    collecting (format fstr key value) into lines
+	    finally (return (apply #'concat lines))))))
 
 (defun se-mode-left-spine(node)
   "Find the path down the left spine of the node."
@@ -246,6 +306,12 @@ in the parse tree, and updates the Cedille info buffer."
          (w (get-buffer-window b)))
     (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))))
 
+(defun cedille-mode-quit()
+  "Quit Cedille navigation mode"
+  (interactive)
+  (se-mode-clear-selected)
+  (se-navigation-mode-quit))
+
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 ; separate keymaps.
@@ -255,7 +321,9 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
-  (se-navi-define-key 'cedille-mode (kbd "\C-g") #'se-navigation-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "\C-g") #'cedille-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "\M-s") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
@@ -288,7 +356,7 @@ in the parse tree, and updates the Cedille info buffer."
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\t" "★") ("\\o" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
-          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌")))
+          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι")))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

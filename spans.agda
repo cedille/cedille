@@ -11,8 +11,14 @@ open import to-string
 tagged-val : Set
 tagged-val = string × string
 
-tagged-val-to-string : tagged-val → string
-tagged-val-to-string (tag , val) = "\"" ^ tag ^ "\":\"" ^ val ^ "\""
+-- We number these when so we can sort them back in emacs
+tagged-val-to-string : ℕ → tagged-val → string
+tagged-val-to-string n (tag , val) = "\"" ^ tag ^ "\":\"" ^ ℕ-to-string n ^ " " ^ val ^ "\""
+
+tagged-vals-to-string : ℕ → 𝕃 tagged-val → string
+tagged-vals-to-string n [] = ""
+tagged-vals-to-string n (s :: []) = tagged-val-to-string n s
+tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tagged-vals-to-string (suc n) (s' :: ss)
 
 --------------------------------------------------
 -- span datatype
@@ -22,8 +28,7 @@ data span : Set where
 
 span-to-string : span → string
 span-to-string (mk-span name start end extra) = 
-  "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" 
-        ^ string-concat-sep-map "," tagged-val-to-string extra ^ "}]"
+  "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ^ tagged-vals-to-string 0 extra ^ "}]"
 
 data spans : Set where
   regular-spans : 𝕃 span → spans
@@ -88,8 +93,8 @@ spanM-add s ss = triv , add-span s ss
 -- tagged-val constants
 --------------------------------------------------
 
-explain-name : string
-explain-name = "explanation"
+explain : string → tagged-val
+explain s = "explanation" , s
 
 expected-type : type → tagged-val
 expected-type tp = "expected-type" , type-to-string tp
@@ -114,8 +119,14 @@ missing-kind = "kind" , "[undeclared]"
 head-kind : kind → tagged-val
 head-kind k = "the kind of the head" , kind-to-string k
 
+head-type : type → tagged-val
+head-type t = "the type of the head" , type-to-string t
+
 type-app-head : type → tagged-val
 type-app-head tp = "the head" , type-to-string tp
+
+term-app-head : term → tagged-val
+term-app-head t = "the head" , term-to-string t
 
 term-argument : term → tagged-val
 term-argument t = "the argument" , term-to-string t
@@ -140,11 +151,10 @@ tk-data (Tkt t) = type-data t
 -- span-creating functions
 --------------------------------------------------
 
-Rec-name : string
-Rec-name = "Rec"
-
-Rec-explain : string → tagged-val
-Rec-explain datatype-name = (explain-name , "Definition of recursive datatype " ^ datatype-name)
+Rec-span : posinfo → posinfo → kind → span
+Rec-span pi pi' k = mk-span "Recursive datatype definition" pi pi' 
+                      (kind-data k
+                    :: [])
 
 Star-name : string
 Star-name = "Star"
@@ -164,14 +174,14 @@ Decl-span : decl-class → posinfo → var → tk → posinfo → span
 Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
                                       pi pi' []
 
-Ctordecl-span : posinfo → var → type → posinfo → span
-Ctordecl-span pi x t pi' = mk-span "Constructor declaration" pi pi' []
-
 TpVar-span : posinfo → string → 𝕃 tagged-val → span
 TpVar-span pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
 
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
+
+App-span : term → term → 𝕃 tagged-val → span
+App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') tvs
 
 TpQuant-e = 𝔹
 
@@ -209,3 +219,20 @@ KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') [
 
 KndTpArrow-span : type → kind → span
 KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) [ super-kind-data ]
+
+Udefse-span : posinfo → 𝕃 tagged-val → span
+Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive type definition" pi (posinfo-plus pi 1) tvs
+
+Ctordeclse-span : posinfo → 𝕃 tagged-val → span
+Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
+
+Udef-span : posinfo → var → term → 𝕃 tagged-val → span
+Udef-span pi x t tvs =
+  mk-span "Constructor definition" pi (term-end-pos t) (tvs ++ [ explain ("Definition of constructor " ^ x) ])
+
+Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
+Ctordecl-span pi x tp tvs =
+  mk-span "Constructor declaration" pi (type-end-pos tp) (tvs ++ [ explain ("Declaration of a type for constructor " ^ x)])
+
+Udefs-span : udefs → span
+Udefs-span us = mk-span "Constructor definitions (using lambda encodings)" (udefs-start-pos us) (udefs-end-pos us) []

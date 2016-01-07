@@ -1,4 +1,7 @@
-main:	main.agda to-string.agda cedille-types.agda constants.agda cedille-main.agda spans.agda conversion.agda syntax-util.agda
+SRC = main.agda to-string.agda cedille-types.agda constants.agda cedille-main.agda spans.agda conversion.agda syntax-util.agda hnf.agda \
+      rename.agda classify.agda subst.agda is-free.agda rec.agda
+
+main:	$(SRC)
 	agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts -c main.agda 
 
 cedille-main: cedille-main.agda

@@ -35,14 +35,14 @@ Ctordeclsne : ctordecls -> ctordeclsne.
 CtordeclsneStart : ctordeclsne -> ows ctordecl.
 CtordeclsneNext : ctordeclsne -> ows ctordecl ows ',' ctordeclsne.
 
-Ctordecl : ctordecl -> ! var ows ':' ows type !.
+Ctordecl : ctordecl -> ! var ows ':' ows type.
 
-Udefse : udefs -> .
+Udefse : udefs -> ! .
 Udefsne : udefs -> udefsne.
 UdefsneNext : udefsne -> ows udef ows ',' udefsne.
 UdefsneStart : udefsne -> ows udef.
 
-Udef : udef -> var ows '=' ows term.
+Udef : udef -> ! var ows '=' ows term.
 
 Normalize : cmd -> 'normalize' ws term ows '.'.
 Import : cmd -> 'import' ws var ows '.'.
@@ -92,6 +92,7 @@ embed : liftingType -> lliftingType.
 Pi : binder -> 'Π'.
 All : binder -> '∀'.
 TpLambda : binder -> 'λ'.
+Iota : binder -> 'ι'.
 
 Tkt : tk -> type .
 Tkk : tk -> kind .

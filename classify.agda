@@ -45,6 +45,26 @@ if-check-against-star-data desc (just k) = error-data (desc ^ " is being checked
                                         :: expected-kind k
                                         :: []
 
+check-term-app-erased-error : maybeErased → term → term → type → spanM (maybe type)
+check-term-app-erased-error m t t' head-tp =
+  spanM-add (App-span t t'
+               (error-data (msg m) 
+                 :: term-app-head t 
+                 :: head-type head-tp
+                 :: [])) ≫span
+  spanMr nothing
+  where msg : maybeErased → string
+        msg Erased = ("The type computed for the head requires" 
+                    ^ " an explicit (non-erased) argument, but the application"
+                    ^ " is marked as erased")
+        msg NotErased = ("The type computed for the head requires" 
+                    ^ " an implicit (erased) argument, but the application"
+                    ^ " is marked as not erased")
+
+check-term-app-matching-erasures : maybeErased → binder → 𝔹
+check-term-app-matching-erasures Erased All = tt
+check-term-app-matching-erasures NotErased Pi = tt
+check-term-app-matching-erasures _ _ = ff
 
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type -}
@@ -54,7 +74,7 @@ check-kind : ctxt → kind → spanM ⊤
 check-tk : ctxt → tk → spanM ⊤
 
 check-term Γ (Parens pi t pi') tp = 
-  spanM-add (parens-span pi pi') ≫span
+--  spanM-add (parens-span pi pi') ≫span
   check-term Γ t tp
 check-term Γ (Var pi x) tp with ctxt-lookup-term-var Γ x
 check-term Γ (Var pi x) tp | nothing = 
@@ -71,11 +91,51 @@ check-term Γ (Var pi x) (just tp) | just tp' =
                 (if conv-type Γ tp tp' then []
                  else (error-data "The computed type does not match the expected type." :: 
                        expected-type tp :: []))))
+check-term Γ (App t m t') tp =
+  check-term Γ t nothing ≫=spanm cont m ≫=spanr cont' tp 
+  where cont : maybeErased → type → spanM (maybe type)
+        cont m (TpParens _ t _) = cont m t
+        cont NotErased (TpArrow tp1 tp2) = 
+          check-term Γ t' (just tp1) ≫span 
+          spanMr (just tp2)
+        cont Erased (TpArrow tp1 tp2) = 
+          check-term-app-erased-error Erased t t' (TpArrow tp1 tp2)
+        cont m (Abs pi b x (Tkt tp1) tp2) = 
+          if check-term-app-matching-erasures m b then
+            (let tp' = subst-type Γ t' x tp2 in
+             check-term Γ t' (just tp1) ≫span 
+             spanMr (just tp'))
+          else
+            check-term-app-erased-error m t t' (Abs pi b x (Tkt tp1) tp2)
+        cont m tp' = spanM-add (App-span t t'
+                               (error-data ("The type computed for the head of the application does"
+                                        ^ " not allow the head to be applied to an " ^ h m ^ " argument ")
+                            :: term-app-head t
+                            :: head-type tp' 
+                            :: term-argument t'
+                            :: [])) ≫span
+                  spanMr nothing
+                  where h : maybeErased → string
+                        h Erased = "an erased term"
+                        h NotErased = "a term"
+        cont' : (outer : maybe type) → type → spanM (check-ret outer)
+        cont' nothing tp' = 
+          spanM-add (App-span t t' ((type-data tp') :: [])) ≫span
+          spanMr (just tp')
+        cont' (just tp) tp' = 
+          if conv-type Γ tp tp' then spanM-add (App-span t t' ((type-data tp') :: []))
+          else spanM-add (App-span t t' 
+                           (error-data "The type computed for a term application does not match the expected type." ::
+                            expected-type tp ::
+                            type-data tp' ::
+                            []))
+
 check-term Γ t tp = unimplemented-if tp
 
 check-type Γ tp (just (KndParens _ k _)) = check-type Γ tp (just k)
 check-type Γ (TpParens pi t pi') k = 
-  spanM-add (parens-span pi pi') ≫span check-type Γ t k
+--  spanM-add (parens-span pi pi') ≫span
+  check-type Γ t k
 check-type Γ (TpVar pi x) k with ctxt-lookup-type-var Γ x
 check-type Γ (TpVar pi x) k | nothing = 
   spanM-add (TpVar-span pi x 
@@ -128,7 +188,7 @@ check-type Γ (TpAppt tp t) k =
           spanMr (just k')
         cont (KndPi _ x (Tkk k1) k') = unimplemented-synth
         cont (KndPi _ x (Tkt tp') k') = 
-          let k'' = subst-kind Γ empty-renamectxt t x k' in
+          let k'' = subst-kind Γ t x k' in
           check-term Γ t (just tp') ≫span 
           spanMr (just k'')
         cont k' = spanM-add (TpAppt-span tp t
@@ -139,7 +199,6 @@ check-type Γ (TpAppt tp t) k =
                             :: term-argument t
                             :: [])) ≫span
                   spanMr nothing
-
         cont' : (outer : maybe kind) → kind → spanM (check-ret outer)
         cont' nothing k = 
           spanM-add (TpAppt-span tp t ((kind-data k) :: [])) ≫span

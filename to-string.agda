@@ -7,10 +7,11 @@ binder-to-string : binder → string
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
 binder-to-string TpLambda = "λ"
+binder-to-string Iota = "ι"
 
 maybeErased-to-string : maybeErased → string
-maybeErased-to-string Erased = ""
-maybeErased-to-string NotErased = "-"
+maybeErased-to-string Erased = "-"
+maybeErased-to-string NotErased = ""
 
 lam-to-string : lam → string
 lam-to-string ErasedLambda = "Λ"
@@ -33,7 +34,7 @@ type-to-string (TpEq t1 t2) = "(" ^ term-to-string t1 ^ " ≃ " ^ term-to-string
 type-to-string (TpParens _ t _) = type-to-string t
 type-to-string (TpVar _ x) = x
 
-term-to-string (App t x t') = "(" ^ term-to-string t ^ (maybeErased-to-string x) ^ term-to-string t' ^ ")"
+term-to-string (App t x t') = "(" ^ term-to-string t ^ " " ^ (maybeErased-to-string x) ^ term-to-string t' ^ ")"
 term-to-string (AppTp t tp) = "(" ^ term-to-string t ^ " · " ^ type-to-string tp ^ ")"
 term-to-string (Hole _) = "●"
 term-to-string (Lam _ l x o t) = "(" ^ lam-to-string l ^ " " ^ optClass-to-string o ^ " . " ^ term-to-string t ^ ")"
