@@ -10,15 +10,27 @@ Cmds : start -> ows cmds ows .
 CmdsStart : cmds -> cmd .
 CmdsNext : cmds -> cmd ws cmds .
 
-VarEq : maybeVarEq -> var ows '=' ows.
+VarEq : maybeVarEq -> ! var ows '=' ows.
 NoVarEq : maybeVarEq -> .
 
-KvarEq : maybeKvarEq -> kvar ows '=' ows .
+KvarEq : maybeKvarEq -> ! kvar ows '=' ows .
 NoKvarEq : maybeKvarEq -> .
 
-TermCmd : cmd -> maybeVarEq term ows '⇐' ows type ows '.'.
-TypeCmd : cmd -> maybeVarEq type ows '⇐' ows kind ows '.'.
-KindCmd : cmd -> maybeKvarEq kind ows '⇐' ows '□' ows '.'.
+Type : maybeCheckType -> ows '⇐' ows type .
+NoCheckType : maybeCheckType -> .
+
+Kind : maybeCheckKind -> ows '⇐' ows kind .
+NoCheckKind : maybeCheckKind -> .
+
+CheckSuper : maybeCheckSuper -> ows '⇐' ows '□' .
+NoCheckSuper : maybeCheckSuper -> .
+
+DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows '.' ! .
+CheckTerm : cmd -> term maybeCheckType ows '.' ! .
+DefType : cmd -> ! var maybeCheckKind ows '=' ows type ows '.' ! .
+CheckType : cmd -> type maybeCheckKind ows '.' ! .
+DefKind : cmd -> ! kvar maybeCheckSuper ows '=' ows kind ows '.' ! .
+CheckKind : cmd -> kind maybeCheckSuper ows '.' ! .
 
 Rec : cmd -> ! 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
 
@@ -51,32 +63,33 @@ Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
 App : term -> term ws maybeErased term .
-AppTp : term -> term ws '·' ws type .
-Lam : term -> ! lam ows var optClass ows '.' ows term .
+AppTp : term -> term ws '·' ws atype .
+Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 embed : term -> lterm .
 
 NotErased : maybeErased -> .
 Erased : maybeErased -> '-' ows .
 
 NoClass : optClass -> .
-SomeClass : optClass -> ':' ows tk .
+SomeClass : optClass -> ows ':' ows tk .
 
 ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
-Abs : type -> ! binder ows var ows ':' ows tk ows '.' ows type .
+Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
 Iota : type -> ! 'ι' ows var ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 
 Lft : ltype -> ! '↑' ows term ows ':' ows lliftingType .
-TpParens : ltype -> ! '(' ows type ows ')' !.
-TpApp : ltype -> ltype ws '·' ws ltype.
+TpParens : atype -> ! '(' ows type ows ')' !.
+TpApp : ltype -> ltype ws '·' ws atype.
 TpAppt : ltype -> ltype ws lterm.
-TpVar : ltype -> ! var.
-TpEq : ltype -> lterm ows '≃' ows lterm .
+TpVar : atype -> ! var.
+embed : ltype -> atype.
+TpEq : type -> lterm ows '≃' ows lterm .
 
-KndPi : kind -> ! 'Π' ows var ows ':' ows tk ows '.' ows kind .
+KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '→' ows kind .
 KndTpArrow : kind -> ltype ows '→' ows kind .
 Star : kind -> ! '★'.
@@ -119,26 +132,25 @@ ws => aws+.
 ows => aws* .
 
 Vars
-  p c b w x y z zz e1 e2
+  p p2 c b w x y z zz e1 e2
 
 Rules
   App(x,e1,App(y,e2,z)) -> App(App(x,e1,y),e2,z)
-  App(Lam(p,b,x,w,y),e1,z) -> Lam(p,b,x,w,App(y,e1,z))
-  App(App(w, e1,Lam(p,b,x,c,y)), e2, z) -> App(w, e1,Lam(p,b,x,c,App(y, e2, z)))
+  App(Lam(p,p2,b,x,w,y),e1,z) -> Lam(p,p2,b,x,w,App(y,e1,z))
+  App(App(w, e1,Lam(p,p2,b,x,c,y)), e2, z) -> App(w, e1,Lam(p,p2,b,x,c,App(y, e2, z)))
 
   App(x,e1,AppTp(y,z)) -> AppTp(App(x,e1,y),z)
-  AppTp(Lam(p,b,x,w,y),z) -> Lam(p,b,x,w,AppTp(y,z))
-  AppTp(App(w, e1,Lam(p,b,x,c,y)), z) -> App(w, e1,Lam(p,b,x,c,AppTp(y, z)))
+  AppTp(Lam(p,p2,b,x,w,y),z) -> Lam(p,p2,b,x,w,AppTp(y,z))
+  AppTp(App(w, e1,Lam(p,p2,b,x,c,y)), z) -> App(w, e1,Lam(p,p2,b,x,c,AppTp(y, z)))
 
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftTpArrow(x,y),z) -> LiftTpArrow(x,LiftArrow(y,z))
   LiftTpArrow(TpArrow(x,y),z) -> LiftTpArrow(x,LiftTpArrow(y,z))
   LiftArrow(LiftPi(p,w,x,y),z) -> LiftPi(p,w,x,LiftArrow(y,z))
-  
 
   KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))
   KndArrow(KndTpArrow(x,y),z) -> KndTpArrow(x,KndArrow(y,z))
-  KndArrow(KndPi(p,w,x,y),z) -> KndPi(p,w,x,KndArrow(y,z))
+  KndArrow(KndPi(p,p2,w,x,y),z) -> KndPi(p,p2,w,x,KndArrow(y,z))
 
   TpApp(x,TpApp(y,z)) -> TpApp(TpApp(x,y),z)
   TpApp(x,TpAppt(y,z)) -> TpAppt(TpApp(x,y),z)

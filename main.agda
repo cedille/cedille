@@ -16,6 +16,7 @@ open import ctxt
 open import constants
 open import rec
 open import spans
+open import syntax-util
 open import to-string
 
 -- keep track of our includes
@@ -41,11 +42,29 @@ process-cmds : (dir : string) → cmds → toplevel-state → IO toplevel-state
 process-start : (dir : string) → start → toplevel-state → IO toplevel-state
 processFile : (dir : string) → (file : string) → toplevel-state → IO toplevel-state
 
-process-cmd dir (TermCmd m t tp) s = return s
-process-cmd dir (TypeCmd m tp k) s = return s
-process-cmd dir (KindCmd m k) s = return s
+process-cmd dir (DefTerm pi x (Type tp) t pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  let ss' = (check-type Γ tp (just star) ≫span 
+             check-term Γ t (just tp) ≫span 
+             spanM-add (DefTerm-span pi x tt (just tp) t pi')) ss in
+    return (mk-toplevel-state (mk-include-state is) (ctxt-term-def x t tp Γ) (snd ss'))
+process-cmd dir (DefTerm pi x NoCheckType t pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  let ss' = (check-term Γ t nothing ≫=span λ mtp → spanM-add (DefTerm-span pi x ff mtp t pi') ≫span spanMr mtp) ss in
+    return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))
+  where h : maybe type → ctxt
+        h nothing = ctxt-term-udef x t Γ
+        h (just tp) = ctxt-term-def x t tp Γ
+process-cmd dir (CheckTerm t m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  return (mk-toplevel-state (mk-include-state is) Γ ss)
+process-cmd dir (DefType pi x k tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  return (mk-toplevel-state (mk-include-state is) Γ ss)
+process-cmd dir (CheckType tp m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  return (mk-toplevel-state (mk-include-state is) Γ ss)
+process-cmd dir (DefKind pi x _ k pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  return (mk-toplevel-state (mk-include-state is) Γ ss)
+process-cmd dir (CheckKind k _ pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  return (mk-toplevel-state (mk-include-state is) Γ ss)
 process-cmd dir (Import x) s with s
-process-cmd dir (Import x) s | mk-toplevel-state (mk-include-state is) c ss = 
+process-cmd dir (Import x) s | mk-toplevel-state (mk-include-state is) _ _ = 
   let file = x ^ "." ^ cedille-extension in
     if stringset-contains is (combineFileNames dir file) then return s
     else processFile dir file s
@@ -76,7 +95,7 @@ processFile dir file s | (mk-toplevel-state (mk-include-state is) Γ ss) | input
         processText x with runRtn (string-to-𝕃char x)
         processText x | inj₁ cs = 
           return (mk-toplevel-state (mk-include-state is) Γ
-                   (global-error ("Parse error in file " ^ input-filename ^ ".\n"
+                   (global-error ("Parse error in file " ^ input-filename ^ ". "
                                  ^ "Characters left before failure : " ^ (𝕃char-to-string cs)) nothing))
         processText x | inj₂ r with rewriteRun r
         processText x | inj₂ r | (ParseTree (parsed-start p) :: []) = 

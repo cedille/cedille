@@ -24,7 +24,7 @@ optClass-to-string : optClass → string
 tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 
-type-to-string (Abs _ b x t t') = "(" ^ binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-string t' ^ ")"
+type-to-string (Abs _ b _ x t t') = "(" ^ binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-string t' ^ ")"
 type-to-string (Iota _ x t) = "(ι " ^ x ^ " . " ^ type-to-string t ^ ")"
 
 type-to-string (Lft _ x x₁) = "↑" ^ term-to-string x ^ " : " ^ liftingType-to-string x₁
@@ -38,13 +38,13 @@ type-to-string (TpVar _ x) = x
 term-to-string (App t x t') = "(" ^ term-to-string t ^ " " ^ (maybeErased-to-string x) ^ term-to-string t' ^ ")"
 term-to-string (AppTp t tp) = "(" ^ term-to-string t ^ " · " ^ type-to-string tp ^ ")"
 term-to-string (Hole _) = "●"
-term-to-string (Lam _ l x o t) = "(" ^ lam-to-string l ^ " " ^ optClass-to-string o ^ " . " ^ term-to-string t ^ ")"
+term-to-string (Lam _ l _ x o t) = "(" ^ lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-string t ^ ")"
 term-to-string (Parens _ t _) = term-to-string t
 term-to-string (Var _ x) = x
 
 kind-to-string (KndArrow k k') = "(" ^ kind-to-string k ^ " → " ^ kind-to-string k' ^ ")"
 kind-to-string (KndParens _ k _) = kind-to-string k
-kind-to-string (KndPi _ x u k) = "(Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-string k ^ ")"
+kind-to-string (KndPi _ _ x u k) = "(Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-string k ^ ")"
 kind-to-string (KndTpArrow x k) = "(" ^ type-to-string x ^ " → " ^ kind-to-string k ^ ")"
 kind-to-string (KndVar _ x) = x
 kind-to-string (Star _) = "★"

@@ -30,6 +30,9 @@
 (defvar cedille-mode-version "1.0"
   "The version of the cedille mode.")
 
+(defvar cedille-mode-debug nil
+  "Show debugging spans in cedille mode.")
+
 ; set in .emacs file
 (defvar cedille-program-name "cedille-executable"
   "Program to run for cedille mode.")
@@ -88,18 +91,20 @@ start of each string, and then strip out that number."
   (when json
     (let ((name (assoc 'name json)))
       (setq json 
-        (loop for (key . value) in json
-          unless (or (eq key 'start) (eq key 'end) (eq key 'name))
-          collecting (cons key value)))
+          (loop for (key . value) in json
+            unless (or (eq key 'start) (eq key 'end) (eq key 'name))
+            collecting (cons key value)))
       (setq json (sort json 'cedille-mode-compare-seqnums))
-      (setq json (cons name
-                   (loop for (key . value) in json
-                      collecting (cons key (cedille-mode-strip-seqnum value)))))
+      (setq json (loop for (key . value) in json
+                   collecting (cons key (cedille-mode-strip-seqnum value))))
+      (setq json (cons name json))
       json)))
 
+;  (unless (and (not cedille-mode-debug) (string= (cdr name) "Debug")) ; unless not in debug mode but this is a debug span
 
 (defun cedille-mode-inspect ()
-  "Displays information on the currently selected node in the *cedille* buffer."
+  "Displays information on the currently selected node in 
+the info buffer for the file.  Return the info buffer as a convenience."
   (interactive)
   (let ((b (cedille-info-buffer))
         (txt (if se-mode-selected
@@ -107,7 +112,8 @@ start of each string, and then strip out that number."
                "\n")))
     (with-current-buffer b (erase-buffer) (insert txt) (setq buffer-read-only t))
     (cedille-adjust-info-window-size)
-    (setq deactivate-mark nil)))
+    (setq deactivate-mark nil)
+    b))
 
 (defun se-mode-pretty-json (json)
   "Prints a table in a more human readable form. Does not handle
@@ -246,7 +252,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 )
 
 (defun cedille-mode-select-next-error()
-  "Select the next error if any."
+  "Select the next error if any, and display the info buffer."
   (interactive)
   (if (null cedille-mode-next-errors)
      (message (if cedille-mode-prev-errors "No further errors" "No errors"))
@@ -255,7 +261,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
        (se-mode-update-selected (se-find-span-path cur se-mode-parse-tree))
        (se-mode-mark-term cur)
        (push (pop se-mode-not-selected) se-mode-selected)
-       (cedille-mode-inspect))))
+       (display-buffer (cedille-mode-inspect)))))
 
 (defun cedille-mode-select-next()
   "Selects the next sibling from the currently selected one in 

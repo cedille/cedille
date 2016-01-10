@@ -3,4 +3,6 @@ rec Nat | Z : Nat , S : Nat → Nat =
     (∀ n : Nat . P n → P (S n)) → P Z → P self
   with
     Z = Λ P . λ s . λ z . z,
-    S = Λ n . Λ P . λ s . λ z . s -n (n -P s z) .
+    S = λ n . Λ P . λ s . λ z . s -n (n · P s z) .
+
+plus ⇐ Nat → Nat → Nat = λ n . λ m . n · (λ n : Nat . Nat) S m .

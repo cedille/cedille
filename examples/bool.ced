@@ -1,0 +1,6 @@
+rec Bool | tt : Bool , ff : Bool =
+  ∀ P : Bool → ★ .
+    P tt → P ff → P self
+  with
+    tt = Λ P . λ a . λ b . a ,
+    ff = Λ P . λ a . λ b . b .

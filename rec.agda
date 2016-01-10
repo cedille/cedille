@@ -7,17 +7,19 @@ open import cedille-types
 open import classify
 open import constants
 open import ctxt
+open import hnf
 open import is-free
 open import spans
 open import subst
 open import syntax-util
+open import to-string
 
 decls-pi-bind-kind : decls → kind → kind
 decls-pi-bind-kind (DeclsNil _) k = k
 decls-pi-bind-kind (DeclsCons (Decl _ x atk _) ds) k = 
   let k' = decls-pi-bind-kind ds k in
     if (is-free-in-kind check-erased x k') then
-      KndPi posinfo-gen x atk k'
+      KndPi posinfo-gen x posinfo-gen atk k'
     else
       tk-arrow-kind atk k'
 
@@ -69,8 +71,8 @@ check-params-not-free (DeclsCons (Decl pi x atk pi') params) t =
 check-params-not-free (DeclsNil x) t = spanMok
 
 -- see comment for rec-add-ctor-defs below.  We will also add a span for the ctordecl and udef at this point
-rec-add-ctor-def : ctxt → string → type → decls → ctordecl → udef → spanM ctxt
-rec-add-ctor-def Γ name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
+rec-check-and-add-ctor-def : ctxt → ctxt → string → type → decls → ctordecl → udef → spanM ctxt
+rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
  spanM-add (Ctordecl-span pi x tp []) ≫span
  (if ~ (x =string x') then
    (spanM-add (Udef-span pi' x' t
@@ -80,29 +82,27 @@ rec-add-ctor-def Γ name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
     (check-params-not-free params t ≫span
      spanM-add (Udef-span pi' x t []) ≫span
 
-     {- check the definition against the given type, with the definition itself
-        substituted for the "self" variable. -}
      check-term Γ t (just tp) ≫span
 
      let tp = forall-bind-decls params (subst-type Γ rectp name tp) in
-     let t = erased-lambda-bind-params params (subst-term Γ rectp name t) in
-       spanM-add (Var-span pi' x (type-data tp :: [])) ≫span
-       spanMr (ctxt-term-def x t tp Γ)))
+     let t = erased-lambda-bind-decls params (subst-term Γ rectp name t) in
+       spanM-add (Var-span pi' x (type-data tp :: ("normal form" , term-to-string (hnf Γ ff t)) :: [])) ≫span
+       spanMr (ctxt-term-def x t tp Γ')))
 
--- see comment for rec-add-ctor-defs below
-rec-add-ctor-defs-ne : ctxt → string → type → decls → ctordeclsne → udefsne → spanM ctxt
-rec-add-ctor-defs-ne Γ name rectp params (CtordeclsneStart c) (UdefsneStart u) = 
-  rec-add-ctor-def Γ name rectp params c u
-rec-add-ctor-defs-ne Γ name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
-  rec-add-ctor-def Γ name rectp params c u ≫=span λ Γ → rec-add-ctor-defs-ne Γ name rectp params cs us
-rec-add-ctor-defs-ne Γ name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
+-- see comment for rec-check-and-add-ctor-defs below
+rec-check-and-add-ctor-defs-ne : ctxt → ctxt → string → type → decls → ctordeclsne → udefsne → spanM ctxt
+rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart c) (UdefsneStart u) = 
+  rec-check-and-add-ctor-def Γ Γ' name rectp params c u
+rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
+  rec-check-and-add-ctor-def Γ Γ' name rectp params c u ≫=span λ Γ' → rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params cs us
+rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
   spanM-add (Udef-span pi x t (error-data ("This is the last constructor definition, but it does not correspond to the"
                                         ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
-  ≫span spanMr Γ
-rec-add-ctor-defs-ne Γ name rectp params (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 
+  ≫span spanMr Γ'
+rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 
   spanM-add (Ctordecl-span pi x tp (error-data ("This is the last constructor declaration, but it does not correspond to the"
                                         ^ " last constructor definition later in the recursive datatype definiton.") :: []))
-  ≫span spanMr Γ
+  ≫span spanMr Γ'
 
 {- add the ctors with their definitions and types to the final ctxt
    (for after the Rec definition has been processed).  The types and
@@ -113,19 +113,31 @@ rec-add-ctor-defs-ne Γ name rectp params (CtordeclsneStart (Ctordecl pi x tp)) 
    will substitute this for the recursive type's name in the types of
    the ctors. We will also check the udefs against the types given in 
    ctordecls. -}
-rec-add-ctor-defs : ctxt → string → type → decls → ctordecls → udefs → spanM ctxt
-rec-add-ctor-defs Γ name rectp params (Ctordeclse _) (Udefse _) = spanMr Γ
-rec-add-ctor-defs Γ name rectp params (Ctordeclsne cs) (Udefsne us) = rec-add-ctor-defs-ne Γ name rectp params cs us
-rec-add-ctor-defs Γ name rectp params (Ctordeclsne cs) (Udefse pi) = 
+rec-check-and-add-ctor-defs : ctxt → ctxt → string → type → decls → ctordecls → udefs → spanM ctxt
+rec-check-and-add-ctor-defs Γ Γ' name rectp params (Ctordeclse _) (Udefse _) = spanMr Γ'
+rec-check-and-add-ctor-defs Γ Γ' name rectp params (Ctordeclsne cs) (Udefsne us) = 
+  rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params cs us
+rec-check-and-add-ctor-defs Γ Γ' name rectp params (Ctordeclsne cs) (Udefse pi) = 
   spanM-add (Udefse-span pi
               [ error-data ("There are no constructor definitions here," 
                          ^ " but there are constructor declarations earlier in the recursive type definition") ])
-  ≫span spanMr Γ
-rec-add-ctor-defs Γ name rectp params (Ctordeclse pi) (Udefsne _) = 
+  ≫span spanMr Γ'
+rec-check-and-add-ctor-defs Γ Γ' name rectp params (Ctordeclse pi) (Udefsne _) = 
   spanM-add (Ctordeclse-span pi
               [ error-data ("There are no constructor declarations here," 
                          ^ " but there are constructor definitions later in the recursive type definition") ])
-  ≫span spanMr Γ
+  ≫span spanMr Γ'
+
+rec-add-udef : ctxt → udef → ctxt
+rec-add-udef Γ (Udef _ x t) = ctxt-term-udef x (hnf Γ ff t) Γ
+
+rec-add-udefsne : ctxt → udefsne → ctxt
+rec-add-udefsne Γ (UdefsneStart u) = rec-add-udef Γ u
+rec-add-udefsne Γ (UdefsneNext u us) = rec-add-udefsne (rec-add-udef Γ u) us
+
+rec-add-udefs : ctxt → udefs → ctxt
+rec-add-udefs Γ (Udefse _) = Γ
+rec-add-udefs Γ (Udefsne us) = rec-add-udefsne Γ us
 
 process-rec-cmd : ctxt → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
 process-rec-cmd Γ pi name params inds ctors body us pi' = 
@@ -152,24 +164,25 @@ process-rec-cmd Γ pi name params inds ctors body us pi' =
 
       check-type Γpicts body (just star) ≫span
 
-      let k = decls-pi-bind-kind params (bind-indices star) in
+      let k1 = bind-indices star in
+      let k2 = decls-pi-bind-kind params k1 in
       
       -- the recursive type applied to the parameters
       let rectp = rec-apply-decls nametp params in
-      let body = forall-bind-decls params (forall-bind-decls inds (Iota posinfo-gen self-name body)) in
+      let body1 = tplam-bind-decls inds (Iota posinfo-gen self-name body) in
+      let body2 = tplam-bind-decls params body1 in
 
         spanM-add (Udefs-span us) ≫span
         spanM-add (Rec-span pi pi' k) ≫span 
-        rec-add-ctor-defs (ctxt-rec-def name body k Γ) name rectp params ctors us 
 
-{-  let inds = indices-to-decls inds in
-  let p = (rec-compute-kind Γ params inds ≫=span λ k → 
-          
-          spanMr k) ss
-  in
-  let k = fst p in
-  let ss' = snd p in
-  let extra = params ++decls inds in
-  let body' = decls-lambda-bind-kind extra body in
--}
+        {- first we check and add the ctors where the type and the
+           body do not bind the params.  We do this in an extended
+           ctxt defining the type to be the body with a self-type
+           abstraction and the indices bound, and with the definitions
+           for the udefs added to the ctxt.  The definitions are added
+           to a new ctxt, Γfinal.  Those definitions ctors will include
+           the params.  Finally we declare the type in Γfinal to 
+           include the params. -}
 
+        rec-check-and-add-ctor-defs (rec-add-udefs (ctxt-rec-def name body1 k1 Γ) us) Γ name rectp params ctors us ≫=span λ Γfinal → 
+          spanMr (ctxt-rec-def name body2 k2 Γfinal)

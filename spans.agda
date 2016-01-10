@@ -2,6 +2,7 @@ module spans where
 
 open import lib
 open import cedille-types 
+open import ctxt
 open import syntax-util
 open import to-string
 
@@ -89,6 +90,13 @@ _≫=spanm_{A} m m' = m ≫=span cont
 spanM-add : span → spanM ⊤
 spanM-add s ss = triv , add-span s ss
 
+debug-span : posinfo → posinfo → 𝕃 tagged-val → span
+debug-span pi pi' tvs = mk-span "Debug" pi pi' tvs
+
+spanM-debug : posinfo → posinfo → 𝕃 tagged-val → spanM ⊤
+--spanM-debug pi pi' tvs = spanM-add (debug-span pi pi' tvs)
+spanM-debug pi pi' tvs = spanMok
+
 --------------------------------------------------
 -- tagged-val constants
 --------------------------------------------------
@@ -131,6 +139,9 @@ term-app-head t = "the head" , term-to-string t
 term-argument : term → tagged-val
 term-argument t = "the argument" , term-to-string t
 
+type-argument : type → tagged-val
+type-argument t = "the argument" , type-to-string t
+
 type-data : type → tagged-val
 type-data tp = "type" , type-to-string tp 
 
@@ -146,6 +157,9 @@ error-data s = "error" , s
 tk-data : tk → tagged-val
 tk-data (Tkk k) = kind-data k
 tk-data (Tkt t) = type-data t
+
+ctxt-data : ctxt → tagged-val
+ctxt-data Γ = "current context" , ctxt-to-string Γ
 
 --------------------------------------------------
 -- span-creating functions
@@ -177,11 +191,24 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
 TpVar-span : posinfo → string → 𝕃 tagged-val → span
 TpVar-span pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
 
+Var-span : posinfo → string → 𝕃 tagged-val → span
+Var-span pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) tvs
+
+KndVar-span : posinfo → string → span
+KndVar-span pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) [ super-kind-data ]
+
+var-span : posinfo → string → tk → span
+var-span pi x (Tkk k) = TpVar-span pi x [ kind-data k ]
+var-span pi x (Tkt t) = Var-span pi x [ type-data t ]
+
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
 
 App-span : term → term → 𝕃 tagged-val → span
 App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') tvs
+
+AppTp-span : term → type → 𝕃 tagged-val → span
+AppTp-span t tp tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) tvs
 
 TpQuant-e = 𝔹
 
@@ -201,12 +228,6 @@ RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor decl
 
 TpArrow-span : type → type → 𝕃 tagged-val → span
 TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) tvs
-
-Var-span : posinfo → string → 𝕃 tagged-val → span
-Var-span pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) tvs
-
-KndVar-span : posinfo → string → span
-KndVar-span pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) [ super-kind-data ]
 
 Star-span : posinfo → span
 Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) []
@@ -236,3 +257,20 @@ Ctordecl-span pi x tp tvs =
 
 Udefs-span : udefs → span
 Udefs-span us = mk-span "Constructor definitions (using lambda encodings)" (udefs-start-pos us) (udefs-end-pos us) []
+
+Lam-span-erased : lam → string
+Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
+Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
+
+Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
+Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) tvs
+Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
+                                           (tvs ++ [ "type of bound variable" , tk-to-string atk ])
+DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → span
+DefTerm-span pi x tt _ t pi' = 
+  mk-span "Term-level definition (checking)" pi pi' []
+DefTerm-span pi x ff (just tp) t pi' = 
+  mk-span "Term-level definition (synthesizing)" pi pi' [ "synthesized type" , type-to-string tp ]
+DefTerm-span pi x ff nothing t pi' = 
+  mk-span "Term-level definition (synthesizing)" pi pi' [ "synthesized type" , "[nothing]" ]
+    

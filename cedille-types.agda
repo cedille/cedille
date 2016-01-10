@@ -31,12 +31,15 @@ mutual
     TpLambda : binder
 
   data cmd : Set where 
+    CheckKind : kind → maybeCheckSuper → posinfo → cmd
+    CheckTerm : term → maybeCheckType → posinfo → cmd
+    CheckType : type → maybeCheckKind → posinfo → cmd
+    DefKind : posinfo → kvar → maybeCheckSuper → kind → posinfo → cmd
+    DefTerm : posinfo → var → maybeCheckType → term → posinfo → cmd
+    DefType : posinfo → var → maybeCheckKind → type → posinfo → cmd
     Import : var → cmd
-    KindCmd : maybeKvarEq → kind → cmd
     Normalize : term → cmd
     Rec : posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → cmd
-    TermCmd : maybeVarEq → term → type → cmd
-    TypeCmd : maybeVarEq → type → kind → cmd
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
@@ -67,7 +70,7 @@ mutual
   data kind : Set where 
     KndArrow : kind → kind → kind
     KndParens : posinfo → kind → posinfo → kind
-    KndPi : posinfo → var → tk → kind → kind
+    KndPi : posinfo → posinfo → var → tk → kind → kind
     KndTpArrow : type → kind → kind
     KndVar : posinfo → kvar → kind
     Star : posinfo → kind
@@ -83,17 +86,29 @@ mutual
     LiftStar : posinfo → liftingType
     LiftTpArrow : type → liftingType → liftingType
 
+  data maybeCheckKind : Set where 
+    Kind : kind → maybeCheckKind
+    NoCheckKind : maybeCheckKind
+
+  data maybeCheckSuper : Set where 
+    CheckSuper : maybeCheckSuper
+    NoCheckSuper : maybeCheckSuper
+
+  data maybeCheckType : Set where 
+    NoCheckType : maybeCheckType
+    Type : type → maybeCheckType
+
   data maybeErased : Set where 
     Erased : maybeErased
     NotErased : maybeErased
 
   data maybeKvarEq : Set where 
-    KvarEq : kvar → maybeKvarEq
+    KvarEq : posinfo → kvar → maybeKvarEq
     NoKvarEq : maybeKvarEq
 
   data maybeVarEq : Set where 
     NoVarEq : maybeVarEq
-    VarEq : var → maybeVarEq
+    VarEq : posinfo → var → maybeVarEq
 
   data optClass : Set where 
     NoClass : optClass
@@ -106,7 +121,7 @@ mutual
     App : term → maybeErased → term → term
     AppTp : term → type → term
     Hole : posinfo → term
-    Lam : posinfo → lam → var → optClass → term → term
+    Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
     Var : posinfo → var → term
 
@@ -115,7 +130,7 @@ mutual
     Tkt : type → tk
 
   data type : Set where 
-    Abs : posinfo → binder → var → tk → type → type
+    Abs : posinfo → binder → posinfo → var → tk → type → type
     Iota : posinfo → var → type → type
     Lft : posinfo → term → liftingType → type
     TpApp : type → type → type
@@ -137,6 +152,8 @@ mutual
     UdefsneStart : udef → udefsne
 
 -- embedded types:
+atype : Set
+atype = type
 lliftingType : Set
 lliftingType = liftingType
 lterm : Set
@@ -157,6 +174,9 @@ data ParseTreeT : Set where
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
   parsed-liftingType : liftingType → ParseTreeT
+  parsed-maybeCheckKind : maybeCheckKind → ParseTreeT
+  parsed-maybeCheckSuper : maybeCheckSuper → ParseTreeT
+  parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
   parsed-maybeKvarEq : maybeKvarEq → ParseTreeT
   parsed-maybeVarEq : maybeVarEq → ParseTreeT
@@ -168,6 +188,7 @@ data ParseTreeT : Set where
   parsed-udef : udef → ParseTreeT
   parsed-udefs : udefs → ParseTreeT
   parsed-udefsne : udefsne → ParseTreeT
+  parsed-atype : type → ParseTreeT
   parsed-lliftingType : liftingType → ParseTreeT
   parsed-lterm : term → ParseTreeT
   parsed-ltype : type → ParseTreeT
@@ -270,12 +291,15 @@ mutual
   binderToString (TpLambda) = "TpLambda" ^ ""
 
   cmdToString : cmd → string
+  cmdToString (CheckKind x0 x1 x2) = "(CheckKind" ^ " " ^ (kindToString x0) ^ " " ^ (maybeCheckSuperToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  cmdToString (CheckTerm x0 x1 x2) = "(CheckTerm" ^ " " ^ (termToString x0) ^ " " ^ (maybeCheckTypeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  cmdToString (CheckType x0 x1 x2) = "(CheckType" ^ " " ^ (typeToString x0) ^ " " ^ (maybeCheckKindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (maybeCheckSuperToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefTerm x0 x1 x2 x3 x4) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefType x0 x1 x2 x3 x4) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckKindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (Import x0) = "(Import" ^ " " ^ (varToString x0) ^ ")"
-  cmdToString (KindCmd x0 x1) = "(KindCmd" ^ " " ^ (maybeKvarEqToString x0) ^ " " ^ (kindToString x1) ^ ")"
   cmdToString (Normalize x0) = "(Normalize" ^ " " ^ (termToString x0) ^ ")"
   cmdToString (Rec x0 x1 x2 x3 x4 x5 x6 x7) = "(Rec" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (declsToString x2) ^ " " ^ (indicesToString x3) ^ " " ^ (ctordeclsToString x4) ^ " " ^ (typeToString x5) ^ " " ^ (udefsToString x6) ^ " " ^ (posinfoToString x7) ^ ")"
-  cmdToString (TermCmd x0 x1 x2) = "(TermCmd" ^ " " ^ (maybeVarEqToString x0) ^ " " ^ (termToString x1) ^ " " ^ (typeToString x2) ^ ")"
-  cmdToString (TypeCmd x0 x1 x2) = "(TypeCmd" ^ " " ^ (maybeVarEqToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (kindToString x2) ^ ")"
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
@@ -306,7 +330,7 @@ mutual
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndParens x0 x1 x2) = "(KndParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  kindToString (KndPi x0 x1 x2 x3) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (kindToString x3) ^ ")"
+  kindToString (KndPi x0 x1 x2 x3 x4) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (kindToString x4) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndVar x0 x1) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
   kindToString (Star x0) = "(Star" ^ " " ^ (posinfoToString x0) ^ ")"
@@ -322,17 +346,29 @@ mutual
   liftingTypeToString (LiftStar x0) = "(LiftStar" ^ " " ^ (posinfoToString x0) ^ ")"
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
+  maybeCheckKindToString : maybeCheckKind → string
+  maybeCheckKindToString (Kind x0) = "(Kind" ^ " " ^ (kindToString x0) ^ ")"
+  maybeCheckKindToString (NoCheckKind) = "NoCheckKind" ^ ""
+
+  maybeCheckSuperToString : maybeCheckSuper → string
+  maybeCheckSuperToString (CheckSuper) = "CheckSuper" ^ ""
+  maybeCheckSuperToString (NoCheckSuper) = "NoCheckSuper" ^ ""
+
+  maybeCheckTypeToString : maybeCheckType → string
+  maybeCheckTypeToString (NoCheckType) = "NoCheckType" ^ ""
+  maybeCheckTypeToString (Type x0) = "(Type" ^ " " ^ (typeToString x0) ^ ")"
+
   maybeErasedToString : maybeErased → string
   maybeErasedToString (Erased) = "Erased" ^ ""
   maybeErasedToString (NotErased) = "NotErased" ^ ""
 
   maybeKvarEqToString : maybeKvarEq → string
-  maybeKvarEqToString (KvarEq x0) = "(KvarEq" ^ " " ^ (kvarToString x0) ^ ")"
+  maybeKvarEqToString (KvarEq x0 x1) = "(KvarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
   maybeKvarEqToString (NoKvarEq) = "NoKvarEq" ^ ""
 
   maybeVarEqToString : maybeVarEq → string
   maybeVarEqToString (NoVarEq) = "NoVarEq" ^ ""
-  maybeVarEqToString (VarEq x0) = "(VarEq" ^ " " ^ (varToString x0) ^ ")"
+  maybeVarEqToString (VarEq x0 x1) = "(VarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   optClassToString : optClass → string
   optClassToString (NoClass) = "NoClass" ^ ""
@@ -345,7 +381,7 @@ mutual
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
-  termToString (Lam x0 x1 x2 x3 x4) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (varToString x2) ^ " " ^ (optClassToString x3) ^ " " ^ (termToString x4) ^ ")"
+  termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
@@ -354,7 +390,7 @@ mutual
   tkToString (Tkt x0) = "(Tkt" ^ " " ^ (typeToString x0) ^ ")"
 
   typeToString : type → string
-  typeToString (Abs x0 x1 x2 x3 x4) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Iota x0 x1 x2) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (Lft x0 x1 x2) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (liftingTypeToString x2) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
@@ -388,6 +424,9 @@ ParseTreeToString (parsed-indices t) = indicesToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-liftingType t) = liftingTypeToString t
+ParseTreeToString (parsed-maybeCheckKind t) = maybeCheckKindToString t
+ParseTreeToString (parsed-maybeCheckSuper t) = maybeCheckSuperToString t
+ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
 ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
@@ -399,6 +438,7 @@ ParseTreeToString (parsed-type t) = typeToString t
 ParseTreeToString (parsed-udef t) = udefToString t
 ParseTreeToString (parsed-udefs t) = udefsToString t
 ParseTreeToString (parsed-udefsne t) = udefsneToString t
+ParseTreeToString (parsed-atype t) = typeToString t
 ParseTreeToString (parsed-lliftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-lterm t) = termToString t
 ParseTreeToString (parsed-ltype t) = typeToString t
@@ -489,11 +529,11 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-term : (x : term) → term
-  norm-term (AppTp (App x1 x2 (Lam x3 x4 x5 x6 x7)) x8) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 (norm-term (AppTp  x7 x8) )) )) )
-  norm-term (AppTp (Lam x1 x2 x3 x4 x5) x6) = (norm-term (Lam  x1 x2 x3 x4 (norm-term (AppTp  x5 x6) )) )
+  norm-term (AppTp (App x1 x2 (Lam x3 x4 x5 x6 x7 x8)) x9) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 x7 (norm-term (AppTp  x8 x9) )) )) )
+  norm-term (AppTp (Lam x1 x2 x3 x4 x5 x6) x7) = (norm-term (Lam  x1 x2 x3 x4 x5 (norm-term (AppTp  x6 x7) )) )
   norm-term (App x1 x2 (AppTp x3 x4)) = (norm-term (AppTp  (norm-term (App  x1 x2 x3) ) x4) )
-  norm-term (App (App x1 x2 (Lam x3 x4 x5 x6 x7)) x8 x9) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 (norm-term (App  x7 x8 x9) )) )) )
-  norm-term (App (Lam x1 x2 x3 x4 x5) x6 x7) = (norm-term (Lam  x1 x2 x3 x4 (norm-term (App  x5 x6 x7) )) )
+  norm-term (App (App x1 x2 (Lam x3 x4 x5 x6 x7 x8)) x9 x10) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 x7 (norm-term (App  x8 x9 x10) )) )) )
+  norm-term (App (Lam x1 x2 x3 x4 x5 x6) x7 x8) = (norm-term (Lam  x1 x2 x3 x4 x5 (norm-term (App  x6 x7 x8) )) )
   norm-term (App x1 x2 (App x3 x4 x5)) = (norm-term (App  (norm-term (App  x1 x2 x3) ) x4 x5) )
   norm-term x = x
 
@@ -522,6 +562,18 @@ mutual
   norm-maybeErased x = x
 
   {-# NO_TERMINATION_CHECK #-}
+  norm-maybeCheckType : (x : maybeCheckType) → maybeCheckType
+  norm-maybeCheckType x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-maybeCheckSuper : (x : maybeCheckSuper) → maybeCheckSuper
+  norm-maybeCheckSuper x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-maybeCheckKind : (x : maybeCheckKind) → maybeCheckKind
+  norm-maybeCheckKind x = x
+
+  {-# NO_TERMINATION_CHECK #-}
   norm-ltype : (x : ltype) → ltype
   norm-ltype x = x
 
@@ -547,7 +599,7 @@ mutual
 
   {-# NO_TERMINATION_CHECK #-}
   norm-kind : (x : kind) → kind
-  norm-kind (KndArrow (KndPi x1 x2 x3 x4) x5) = (norm-kind (KndPi  x1 x2 x3 (norm-kind (KndArrow  x4 x5) )) )
+  norm-kind (KndArrow (KndPi x1 x2 x3 x4 x5) x6) = (norm-kind (KndPi  x1 x2 x3 x4 (norm-kind (KndArrow  x5 x6) )) )
   norm-kind (KndArrow (KndTpArrow x1 x2) x3) = (norm-kind (KndTpArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind (KndArrow (KndArrow x1 x2) x3) = (norm-kind (KndArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind x = x
@@ -587,6 +639,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-binder : (x : binder) → binder
   norm-binder x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-atype : (x : atype) → atype
+  norm-atype x = x
 
 isParseTree : ParseTreeT → 𝕃 char → string → Set
 isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed runs -}
