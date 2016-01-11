@@ -46,8 +46,10 @@ term-start-pos (Hole pi) = pi
 term-start-pos (Lam pi x _ x₁ x₂ t) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
+term-start-pos (Beta pi) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
+type-start-pos (TpLambda pi _ _ _ _) = pi
 type-start-pos (Iota pi _ _) = pi
 type-start-pos (Lft pi _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
@@ -81,8 +83,10 @@ term-end-pos (Hole pi) = posinfo-plus pi 1
 term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
+term-end-pos (Beta pi) = posinfo-plus pi 1
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
+type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
 type-end-pos (Iota _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
@@ -167,7 +171,7 @@ forall-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = Abs posinfo-gen All posin
 forall-bind-decls (DeclsNil x) tp = tp
 
 tplam-bind-decls : decls → type → type
-tplam-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = Abs posinfo-gen TpLambda posinfo-gen x atk (tplam-bind-decls ds tp)
+tplam-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = TpLambda posinfo-gen posinfo-gen x (SomeClass atk) (tplam-bind-decls ds tp)
 tplam-bind-decls (DeclsNil x) tp = tp
 
 erased-lambda-bind-decls : decls → term → term
@@ -183,6 +187,24 @@ eq-lam KeptLambda KeptLambda = tt
 
 eq-binder : binder → binder → 𝔹
 eq-binder All All = tt
-eq-binder TpLambda TpLambda = tt
 eq-binder Pi Pi = tt
 eq-binder _ _ = tt
+
+------------------------------------------------------
+-- functions intended for building terms for testing
+------------------------------------------------------
+mlam : var → term → term
+mlam x t = Lam posinfo-gen KeptLambda posinfo-gen x NoClass t
+
+Mlam : var → term → term
+Mlam x t = Lam posinfo-gen ErasedLambda posinfo-gen x NoClass t
+
+mappe : term → term → term
+mappe t1 t2 = App t1 Erased t2
+
+mapp : term → term → term
+mapp t1 t2 = App t1 NotErased t2
+
+mvar : var → term
+mvar x = Var posinfo-gen x
+

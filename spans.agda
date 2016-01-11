@@ -90,6 +90,10 @@ _≫=spanm_{A} m m' = m ≫=span cont
 spanM-add : span → spanM ⊤
 spanM-add s ss = triv , add-span s ss
 
+spanM-addl : 𝕃 span → spanM ⊤
+spanM-addl [] = spanMok
+spanM-addl (s :: ss) = spanM-add s ≫span spanM-addl ss
+
 debug-span : posinfo → posinfo → 𝕃 tagged-val → span
 debug-span pi pi' tvs = mk-span "Debug" pi pi' tvs
 
@@ -219,7 +223,7 @@ TpQuant-span : TpQuant-e → posinfo → var → tk → type → 𝕃 tagged-val
 TpQuant-span is-pi pi x atk body tvs = mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
                                          pi (type-end-pos body) tvs
 
-TpLambda-span : posinfo → var → tk → type → 𝕃 tagged-val → span
+TpLambda-span : posinfo → var → optClass → type → 𝕃 tagged-val → span
 TpLambda-span pi x atk body tvs = mk-span "Type-level lambda abstraction" pi (type-end-pos body) tvs
 
 -- a span boxing up the parameters and the indices of a Rec definition
@@ -228,6 +232,9 @@ RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor decl
 
 TpArrow-span : type → type → 𝕃 tagged-val → span
 TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) tvs
+
+TpEq-span : term → term → 𝕃 tagged-val → span
+TpEq-span t1 t2 tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) tvs
 
 Star-span : posinfo → span
 Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) []
@@ -247,9 +254,10 @@ Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive 
 Ctordeclse-span : posinfo → 𝕃 tagged-val → span
 Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
-Udef-span : posinfo → var → term → 𝕃 tagged-val → span
-Udef-span pi x t tvs =
-  mk-span "Constructor definition" pi (term-end-pos t) (tvs ++ [ explain ("Definition of constructor " ^ x) ])
+Udef-span : posinfo → var → term → (normalized : 𝔹) → 𝕃 tagged-val → span
+Udef-span pi x t normalized tvs =
+  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: (if normalized then [ "normal form" , term-to-string t ] else [])) in
+    mk-span "Constructor definition" pi (term-end-pos t) tvs
 
 Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
 Ctordecl-span pi x tp tvs =
@@ -267,10 +275,29 @@ Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp
 Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
                                            (tvs ++ [ "type of bound variable" , tk-to-string atk ])
 DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → span
-DefTerm-span pi x tt _ t pi' = 
-  mk-span "Term-level definition (checking)" pi pi' []
-DefTerm-span pi x ff (just tp) t pi' = 
-  mk-span "Term-level definition (synthesizing)" pi pi' [ "synthesized type" , type-to-string tp ]
-DefTerm-span pi x ff nothing t pi' = 
-  mk-span "Term-level definition (synthesizing)" pi pi' [ "synthesized type" , "[nothing]" ]
+DefTerm-span pi x checked tp t pi' = 
+  h [ "normal form" , term-to-string t ] pi x checked tp pi'
+  where h : 𝕃 tagged-val → posinfo → var → (checked : 𝔹) → maybe type → posinfo → span
+        h tvs pi x tt _ pi' = 
+          mk-span "Term-level definition (checking)" pi pi' tvs
+        h tvs pi x ff (just tp) pi' = 
+          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , type-to-string tp) :: tvs)
+        h tvs pi x ff nothing pi' = 
+          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
     
+unimplemented-term-span : posinfo → posinfo → maybe type → span
+unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]
+unimplemented-term-span pi pi' (just tp) = mk-span "Unimplemented" pi pi' 
+                                              ( error-data "Unimplemented checking a term against a type" :: [ expected-type tp ])
+
+unimplemented-type-span : posinfo → posinfo → maybe kind → span
+unimplemented-type-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a kind for a type" ]
+unimplemented-type-span pi pi' (just k) = mk-span "Unimplemented" pi pi' 
+                                              ( error-data "Unimplemented checking a type against a kind" :: [ expected-kind k ])
+
+Beta-span : posinfo → 𝕃 tagged-val → span
+Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
+                     (explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
+
+hole-span : posinfo → maybe type → span
+hole-span pi tp = mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp [])

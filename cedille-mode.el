@@ -329,7 +329,6 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "\C-g") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "\M-s") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
@@ -362,7 +361,7 @@ in the parse tree, and updates the Cedille info buffer."
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\t" "★") ("\\o" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
-          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι")))
+          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\b" "β")))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

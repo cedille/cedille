@@ -34,6 +34,9 @@ data ctxt-info : Set where
   -- for a recursive type definition
   rec-def : type → kind → ctxt-info
 
+  -- representing a declaration of a variable with no other information about it
+  var-decl : ctxt-info
+
 data ctxt : Set where
   mk-ctxt : trie ctxt-info → ctxt
 
@@ -54,6 +57,9 @@ ctxt-term-def v t tp (mk-ctxt i) = mk-ctxt (trie-insert i v (term-def t tp))
 
 ctxt-term-udef : var → term → ctxt → ctxt
 ctxt-term-udef v t (mk-ctxt i) = mk-ctxt (trie-insert i v (term-udef t))
+
+ctxt-var-decl : var → ctxt → ctxt
+ctxt-var-decl v (mk-ctxt i) = mk-ctxt (trie-insert i v var-decl)
 
 {- add a renaming mapping the first variable to the second, unless they are equal.
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
@@ -82,6 +88,7 @@ ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map "|" helper (trie-mappi
         helper (x , kind-def k) = "type " ^ x ^ " = " ^ kind-to-string k 
         helper (x , rename-def y) = "rename " ^ x ^ " to " ^ y 
         helper (x , rec-def tp k) = "rec " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
+        helper (x , var-decl) = "expr " ^ x
 
 ----------------------------------------------------------------------
 -- lookup functions

@@ -59,6 +59,7 @@ Udef : udef -> ! var ows '=' ows term.
 Normalize : cmd -> 'normalize' ws term ows '.'.
 Import : cmd -> 'import' ws var ows '.'.
 
+Beta : lterm -> ! 'β' .
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
@@ -77,6 +78,8 @@ ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
 Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
+TpLambda : type -> ! 'λ' ows ! var optClass ows '.' ows type .
+
 Iota : type -> ! 'ι' ows var ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
@@ -87,7 +90,7 @@ TpApp : ltype -> ltype ws '·' ws atype.
 TpAppt : ltype -> ltype ws lterm.
 TpVar : atype -> ! var.
 embed : ltype -> atype.
-TpEq : type -> lterm ows '≃' ows lterm .
+TpEq : type -> term ows '≃' ows term .
 
 KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '→' ows kind .
@@ -105,7 +108,6 @@ embed : liftingType -> lliftingType.
 
 Pi : binder -> 'Π'.
 All : binder -> '∀'.
-TpLambda : binder -> 'λ'.
 
 Tkt : tk -> type .
 Tkk : tk -> kind .

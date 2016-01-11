@@ -28,7 +28,6 @@ mutual
   data binder : Set where 
     All : binder
     Pi : binder
-    TpLambda : binder
 
   data cmd : Set where 
     CheckKind : kind → maybeCheckSuper → posinfo → cmd
@@ -120,6 +119,7 @@ mutual
   data term : Set where 
     App : term → maybeErased → term → term
     AppTp : term → type → term
+    Beta : posinfo → term
     Hole : posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
@@ -137,6 +137,7 @@ mutual
     TpAppt : type → term → type
     TpArrow : type → type → type
     TpEq : term → term → type
+    TpLambda : posinfo → posinfo → var → optClass → type → type
     TpParens : posinfo → type → posinfo → type
     TpVar : posinfo → var → type
 
@@ -288,7 +289,6 @@ mutual
   binderToString : binder → string
   binderToString (All) = "All" ^ ""
   binderToString (Pi) = "Pi" ^ ""
-  binderToString (TpLambda) = "TpLambda" ^ ""
 
   cmdToString : cmd → string
   cmdToString (CheckKind x0 x1 x2) = "(CheckKind" ^ " " ^ (kindToString x0) ^ " " ^ (maybeCheckSuperToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -380,6 +380,7 @@ mutual
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  termToString (Beta x0) = "(Beta" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -397,6 +398,7 @@ mutual
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
+  typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (optClassToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 

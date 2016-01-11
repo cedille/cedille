@@ -75,18 +75,17 @@ rec-check-and-add-ctor-def : ctxt → ctxt → string → type → decls → cto
 rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
  spanM-add (Ctordecl-span pi x tp []) ≫span
  (if ~ (x =string x') then
-   (spanM-add (Udef-span pi' x' t
+   (spanM-add (Udef-span pi' x' t ff
                 (error-data ("This definition should be for constructor " ^ x 
                            ^ ", since declarations and definitions must be in the same order") :: [])) ≫span spanMr Γ)
   else
     (check-params-not-free params t ≫span
-     spanM-add (Udef-span pi' x t []) ≫span
-
      check-term Γ t (just tp) ≫span
 
      let tp = forall-bind-decls params (subst-type Γ rectp name tp) in
-     let t = erased-lambda-bind-decls params (subst-term Γ rectp name t) in
-       spanM-add (Var-span pi' x (type-data tp :: ("normal form" , term-to-string (hnf Γ ff t)) :: [])) ≫span
+     -- do not lambda-bind the params, because we are keeping just the erased definition
+     let t = hnf Γ ff (subst-term Γ rectp name t) in
+       spanM-add (Udef-span pi' x t tt []) ≫span
        spanMr (ctxt-term-def x t tp Γ')))
 
 -- see comment for rec-check-and-add-ctor-defs below
@@ -96,7 +95,7 @@ rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart c) (Ud
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
   rec-check-and-add-ctor-def Γ Γ' name rectp params c u ≫=span λ Γ' → rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params cs us
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
-  spanM-add (Udef-span pi x t (error-data ("This is the last constructor definition, but it does not correspond to the"
+  spanM-add (Udef-span pi x t ff (error-data ("This is the last constructor definition, but it does not correspond to the"
                                         ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 

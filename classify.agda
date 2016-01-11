@@ -88,6 +88,16 @@ add-tk Γ pi x atk =
         helper (Tkk k) = ctxt-type-decl x (hnf Γ tt k) Γ
         helper (Tkt t) = ctxt-term-decl x (hnf-instantiate-iota Γ (Var posinfo-gen x) t) Γ
 
+check-termi-return : ctxt → (subject : term) → type → spanM (maybe type)
+check-termi-return Γ subject tp = spanMr (just (hnf-instantiate-iota Γ subject tp))
+
+lambda-bound-var-conv-error : var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val
+lambda-bound-var-conv-error x atk atk' tvs = 
+    ( error-data "The classifier given for a λ-bound variable is not the one we expected"
+ :: ("the variable" , x)
+ :: ("its declared classifier" , tk-to-string atk')
+ :: [ "the expected classifier" , tk-to-string atk ]) ++ tvs
+
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type.  
 
@@ -107,13 +117,13 @@ check-kind : ctxt → kind → spanM ⊤
 check-tk : ctxt → tk → spanM ⊤
 
 -- call hnf-instantiate-iota on types coming in or going out of check-termi
-check-term Γ subject nothing =
-  check-termi Γ subject nothing ≫=spanm λ tp → spanMr (just (hnf-instantiate-iota Γ subject tp))
+check-term Γ subject nothing = check-termi Γ subject nothing
 check-term Γ subject (just tp) =
   let tp' = hnf-instantiate-iota Γ subject tp in
-    spanM-debug (term-start-pos subject) (term-end-pos subject)
+{-    spanM-debug (term-start-pos subject) (term-end-pos subject)
                  (("type coming in to check-term" , type-to-string tp) ::
                   ("type being forwarded along to check-termi" , type-to-string tp') :: []) ≫span
+-}
     check-termi Γ subject (just tp')
 
 check-termi Γ (Parens pi t pi') tp = check-term Γ t tp
@@ -125,14 +135,15 @@ check-termi Γ (Var pi x) tp | nothing =
   return-when tp tp
 check-termi Γ (Var pi x) nothing | just tp = 
   spanM-add (Var-span pi x ((type-data tp) :: [])) ≫span
-  spanMr (just tp)
+  check-termi-return Γ (Var pi x) tp
 check-termi Γ (Var pi x) (just tp) | just tp' = 
+  let tp'' = hnf-instantiate-iota Γ (Var pi x) tp' in
   spanM-add (Var-span pi x 
-               (type-data tp' ::
-                (if conv-type Γ tp (hnf-instantiate-iota Γ (Var pi x) tp') then []
+               (if conv-type Γ tp tp'' then [ type-data tp' ]
                  else (error-data "The computed type does not match the expected type." :: 
                        expected-type tp :: 
-                       [ ctxt-data Γ ]))))
+                       type-data tp'' :: 
+                       [ ctxt-data Γ ])))
 check-termi Γ (AppTp t tp') tp =
   check-term Γ t nothing ≫=spanm cont ≫=spanr cont' tp 
   where cont : type → spanM (maybe type)
@@ -150,7 +161,7 @@ check-termi Γ (AppTp t tp') tp =
         cont' : (outer : maybe type) → type → spanM (check-ret outer)
         cont' nothing tp'' = 
           spanM-add (AppTp-span t tp' ((type-data tp'') :: [])) ≫span
-          spanMr (just tp'')
+          check-termi-return Γ (AppTp t tp') tp''
         cont' (just tp) tp'' = 
           if conv-type Γ tp tp'' then spanM-add (AppTp-span t tp' ((type-data tp'') :: []))
           else spanM-add (AppTp-span t tp' 
@@ -161,19 +172,16 @@ check-termi Γ (AppTp t tp') tp =
   
 check-termi Γ (App t m t') tp =
   check-term Γ t nothing ≫=spanm cont m ≫=spanr cont' tp 
-  where instr : type → spanM (maybe type)
-        instr tp = spanMr (just (hnf-instantiate-iota Γ (App t m t') tp))
-
-        cont : maybeErased → type → spanM (maybe type)
+  where cont : maybeErased → type → spanM (maybe type)
         cont NotErased (TpArrow tp1 tp2) = 
           check-term Γ t' (just tp1) ≫span 
-          instr tp2
+          check-termi-return Γ (App t m t') tp2
         cont Erased (TpArrow tp1 tp2) = 
           check-term-app-erased-error Erased t t' (TpArrow tp1 tp2)
         cont m (Abs pi b pi' x (Tkt tp1) tp2) = 
           if check-term-app-matching-erasures m b then
              (check-term Γ t' (just tp1) ≫span 
-              instr (subst-type Γ t' x tp2))
+              check-termi-return Γ (App t m t') (subst-type Γ t' x tp2))
           else
             check-term-app-erased-error m t t' (Abs pi b pi' x (Tkt tp1) tp2)
         cont m tp' = spanM-add (App-span t t'
@@ -187,6 +195,7 @@ check-termi Γ (App t m t') tp =
                   where h : maybeErased → string
                         h Erased = "an erased term"
                         h NotErased = "a term"
+        -- the type should already be normalized and instantiated
         cont' : (outer : maybe type) → type → spanM (check-ret outer)
         cont' nothing tp' = 
           spanM-add (App-span t t' [ type-data tp' ]) ≫span
@@ -210,7 +219,7 @@ check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
         cont (just tp) = 
           let rettp = abs-tk l x atk tp in
           spanM-add (Lam-span pi l x (SomeClass atk) t [ type-data rettp ]) ≫span
-           spanMr (just rettp)
+          check-termi-return Γ (Lam pi l pi' x (SomeClass atk) t) rettp
 
 check-termi Γ (Lam pi l _ x NoClass t) nothing =
   spanM-add (Lam-span pi l x NoClass t [ error-data ("We are not checking this abstraction against a type, so a classifier must be"
@@ -230,10 +239,7 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
           if conv-tk Γ atk' atk then
             Lam-span pi l x oc t tvs
           else
-            Lam-span pi l x oc t (( error-data "The classifier given for a λ-bound variable is not the one we expected"
-                                :: ("the variable" , x)
-                                :: ("its declared classifier" , tk-to-string atk')
-                                :: [ "the expected classifier" , tk-to-string atk ]) ++ tvs)
+            Lam-span pi l x oc t (lambda-bound-var-conv-error x atk' atk tvs)
         check-erasures : lam → binder → 𝕃 tagged-val
         check-erasures ErasedLambda All = [ expected-type tp ]
         check-erasures KeptLambda Pi = [ expected-type tp ]
@@ -243,15 +249,23 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
         check-erasures KeptLambda All = error-data ("The expected type is a ∀-abstraction (indicating implicit input), but"
                                               ^ " the term is a λ-abstraction (explicit input).")
                                      :: [ expected-type tp ]
-        check-erasures _ TpLambda = error-data ("The expected type is a type-level λ-abstraction, which cannot classify"
-                                              ^ " a term-level λ-abstraction.")
-                                :: [ expected-type tp ]
 
 check-termi Γ (Lam pi l _ x oc t) (just tp) | nothing =
   spanM-add (Lam-span pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
                                    expected-type tp :: []))
 
-check-termi Γ t tp = unimplemented-if tp
+check-termi Γ (Beta pi) (just (TpEq t1 t2)) = 
+  if conv-term Γ t1 t2 then
+    spanM-add (Beta-span pi [ expected-type (TpEq t1 t2) ])
+  else
+    spanM-add (Beta-span pi (error-data "The two terms in the equation are not β-equal" :: [ type-data (TpEq t1 t2) ]))
+
+check-termi Γ (Beta pi) nothing = 
+  spanM-add (Beta-span pi [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
+
+check-termi Γ (Hole pi) tp = spanM-add (hole-span pi tp) ≫span return-when tp tp
+
+check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
 check-type Γ tp (just (KndParens _ k _)) = check-type Γ tp (just k)
 check-type Γ (TpParens pi t pi') k = check-type Γ t k
@@ -272,14 +286,44 @@ check-type Γ (TpVar pi x) (just k) | just k' =
                    (error-data "The computed kind does not match the expected kind." :: 
                     expected-kind k ::
                     kind-data k' :: []))
-check-type Γ (Abs pi TpLambda pi' x atk body) (just (KndArrow k1 k2)) = unimplemented-check
-check-type Γ (Abs pi TpLambda pi' x atk body) (just (KndTpArrow k1 k2)) = unimplemented-check
-check-type Γ (Abs pi TpLambda pi' x atk body) (just (KndPi _ _ x' atk' k)) = unimplemented-check
-check-type Γ (Abs pi TpLambda pi' x atk body) (just k) = 
-  spanM-add (TpLambda-span pi x atk body
+check-type Γ (TpLambda pi pi' x oc body) (just k) with to-absk k
+check-type Γ (TpLambda pi pi' x oc body) (just k) | just (mk-absk pik pik' x' atk _ k') =
+  spanM-add (this-span oc (kind-data k)) ≫span
+  add-tk Γ pi' x atk ≫=span λ Γ → 
+  let Γ = ctxt-rename x' x Γ in
+    check-type Γ body (just k')
+  where this-span : optClass → tagged-val → span
+        this-span NoClass v = TpLambda-span pi x oc body [ v ]
+        this-span (SomeClass atk') v = 
+          if conv-tk Γ atk' atk then
+            TpLambda-span pi x oc body [ v ]
+          else
+            TpLambda-span pi x oc body (lambda-bound-var-conv-error x atk' atk [ v ])
+  
+check-type Γ (TpLambda pi pi' x oc body) (just k) | nothing =
+  spanM-add (TpLambda-span pi x oc body
                (error-data "The type is being checked against a kind which is not an arrow- or Pi-kind." ::
                 expected-kind k :: []))
 
+check-type Γ (TpLambda pi pi' x (SomeClass atk) body) nothing =
+  add-tk Γ pi' x atk ≫=span λ Γ → 
+  check-type Γ body nothing ≫=span cont
+
+  where cont : maybe kind → spanM (maybe kind)
+        cont nothing = 
+          spanM-add (TpLambda-span pi x (SomeClass atk) body []) ≫span spanMr nothing
+        cont (just k) = 
+          let r = absk-tk x atk k in
+            spanM-add (TpLambda-span pi x (SomeClass atk) body [ kind-data r ]) ≫span 
+            spanMr (just r)
+
+check-type Γ (TpLambda pi pi' x NoClass body) nothing =
+  spanM-add
+    (TpLambda-span pi x NoClass body
+       [ error-data ("We are trying to synthesize a kind for a type-level λ-abstraction,"
+                  ^ " but the λ-bound variable is missing a type") ]) ≫span
+  spanMr nothing
+   
 check-type Γ (Abs pi b {- All or Pi -} pi' x atk body) k = 
   spanM-add (TpQuant-span (binder-is-pi b) pi x atk body (if-check-against-star-data "A type-level quantification" k)) ≫span
   check-tk Γ atk ≫span
@@ -304,7 +348,6 @@ check-type Γ (TpAppt tp t) k =
         cont (KndTpArrow tp' k') = 
           check-term Γ t (just tp') ≫span 
           spanMr (just k')
-        cont (KndPi _ _ x (Tkk k1) k') = unimplemented-synth
         cont (KndPi _ _ x (Tkt tp') k') = 
           check-term Γ t (just tp') ≫span 
           spanMr (just (subst-kind Γ t x k'))
@@ -327,8 +370,11 @@ check-type Γ (TpAppt tp t) k =
                             expected-kind k' ::
                             kind-data k ::
                             []))
+check-type Γ (TpEq t1 t2) k = 
+  spanM-add (TpEq-span t1 t2 (if-check-against-star-data "An equation" k)) ≫span
+  return-star-when k
   
-check-type Γ t k = unimplemented-if k
+check-type Γ t k = spanM-add (unimplemented-type-span (type-start-pos t) (type-end-pos t) k) ≫span unimplemented-if k
 
 check-kind Γ (KndParens _ k _) = check-kind Γ k
 check-kind Γ (Star pi) = spanM-add (Star-span pi)

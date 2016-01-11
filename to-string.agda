@@ -6,7 +6,6 @@ open import cedille-types
 binder-to-string : binder → string
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
-binder-to-string TpLambda = "λ"
 
 maybeErased-to-string : maybeErased → string
 maybeErased-to-string Erased = "-"
@@ -25,6 +24,8 @@ tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 
 type-to-string (Abs _ b _ x t t') = "(" ^ binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-string t' ^ ")"
+type-to-string (TpLambda _ _ x oc t) = "(λ " ^ x ^ optClass-to-string oc ^ " . " ^ type-to-string t ^ ")"
+
 type-to-string (Iota _ x t) = "(ι " ^ x ^ " . " ^ type-to-string t ^ ")"
 
 type-to-string (Lft _ x x₁) = "↑" ^ term-to-string x ^ " : " ^ liftingType-to-string x₁
@@ -41,6 +42,7 @@ term-to-string (Hole _) = "●"
 term-to-string (Lam _ l _ x o t) = "(" ^ lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-string t ^ ")"
 term-to-string (Parens _ t _) = term-to-string t
 term-to-string (Var _ x) = x
+term-to-string (Beta _) = "β"
 
 kind-to-string (KndArrow k k') = "(" ^ kind-to-string k ^ " → " ^ kind-to-string k' ^ ")"
 kind-to-string (KndParens _ k _) = kind-to-string k
