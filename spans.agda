@@ -208,6 +208,9 @@ var-span pi x (Tkt t) = Var-span pi x [ type-data t ]
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
 
+TpApp-span : type → type → 𝕃 tagged-val → span
+TpApp-span tp tp' tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') tvs
+
 App-span : term → term → 𝕃 tagged-val → span
 App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') tvs
 
@@ -285,6 +288,13 @@ DefTerm-span pi x checked tp t pi' =
         h tvs pi x ff nothing pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
     
+DefType-span : posinfo → var → (checked : 𝔹) → maybe kind → type → posinfo → span
+DefType-span pi x tt _ _ pi' = mk-span "Type-level definition (checking)" pi pi' []
+DefType-span pi x ff (just k) _ pi' =
+  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , kind-to-string k) :: [])
+DefType-span pi x ff nothing _ pi' =
+  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: [])
+
 unimplemented-term-span : posinfo → posinfo → maybe type → span
 unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]
 unimplemented-term-span pi pi' (just tp) = mk-span "Unimplemented" pi pi' 
@@ -301,3 +311,17 @@ Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1)
 
 hole-span : posinfo → maybe type → span
 hole-span pi tp = mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp [])
+
+Epsilon-span : posinfo → leftRight → term → 𝕃 tagged-val → span
+Epsilon-span pi lr t tvs = mk-span "Epsilon" pi (term-end-pos t) 
+                            (tvs ++ [ explain ("Normalize the " ^ side lr ^ "-hand side of the expected equation.") ])
+  where side : leftRight → string
+        side Left = "left"
+        side Right = "right"
+
+Rho-span : posinfo → optnum → term → term → 𝕃 tagged-val → span
+Rho-span pi n t t' tvs = mk-span "Rho" pi (term-end-pos t') 
+                          (tvs ++ [ explain ("Rewrite terms in the expected type, using an equation. " ^ h n) ])
+  where h : optnum → string
+        h (SomeNum n) = "The " ^ n ^"'th occurrence is to be rewritten."
+        h NoNum = "All occurrences are to be rewritten."

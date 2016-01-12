@@ -59,7 +59,12 @@ Udef : udef -> ! var ows '=' ows term.
 Normalize : cmd -> 'normalize' ws term ows '.'.
 Import : cmd -> 'import' ws var ows '.'.
 
+Left : leftRight -> 'l'.
+Right : leftRight -> 'r'.
+
 Beta : lterm -> ! 'β' .
+Epsilon : lterm -> ! 'ε' leftRight ws lterm .
+Rho : lterm -> ! 'ρ' optnum ows lterm ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
@@ -67,6 +72,9 @@ App : term -> term ws maybeErased term .
 AppTp : term -> term ws '·' ws atype .
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 embed : term -> lterm .
+
+SomeNum : optnum -> ows num.
+NoNum : optnum -> .
 
 NotErased : maybeErased -> .
 Erased : maybeErased -> '-' ows .
@@ -132,6 +140,8 @@ comment => '%' anychar* '\n'.
 aws => ('\n' | '\t' | space | comment).
 ws => aws+.
 ows => aws* .
+
+num -> ['1'-'9']['0'-'9']*.
 
 Vars
   p p2 c b w x y z zz e1 e2

@@ -23,11 +23,16 @@ data gratr2-nt : Set where
   _posinfo : gratr2-nt
   _ows-star-46 : gratr2-nt
   _ows : gratr2-nt
+  _optnum : gratr2-nt
   _optClass : gratr2-nt
   _numpunct-range-4 : gratr2-nt
   _numpunct-bar-6 : gratr2-nt
   _numpunct-bar-5 : gratr2-nt
   _numpunct : gratr2-nt
+  _num-star-49 : gratr2-nt
+  _num-range-48 : gratr2-nt
+  _num-range-47 : gratr2-nt
+  _num : gratr2-nt
   _maybeVarEq : gratr2-nt
   _maybeKvarEq : gratr2-nt
   _maybeErased : gratr2-nt
@@ -38,6 +43,7 @@ data gratr2-nt : Set where
   _lterm : gratr2-nt
   _lliftingType : gratr2-nt
   _liftingType : gratr2-nt
+  _leftRight : gratr2-nt
   _lam : gratr2-nt
   _kvar-star-10 : gratr2-nt
   _kvar-bar-9 : gratr2-nt
@@ -112,11 +118,16 @@ gratr2-nt-eq  _start _start = tt
 gratr2-nt-eq  _posinfo _posinfo = tt
 gratr2-nt-eq  _ows-star-46 _ows-star-46 = tt
 gratr2-nt-eq  _ows _ows = tt
+gratr2-nt-eq  _optnum _optnum = tt
 gratr2-nt-eq  _optClass _optClass = tt
 gratr2-nt-eq  _numpunct-range-4 _numpunct-range-4 = tt
 gratr2-nt-eq  _numpunct-bar-6 _numpunct-bar-6 = tt
 gratr2-nt-eq  _numpunct-bar-5 _numpunct-bar-5 = tt
 gratr2-nt-eq  _numpunct _numpunct = tt
+gratr2-nt-eq  _num-star-49 _num-star-49 = tt
+gratr2-nt-eq  _num-range-48 _num-range-48 = tt
+gratr2-nt-eq  _num-range-47 _num-range-47 = tt
+gratr2-nt-eq  _num _num = tt
 gratr2-nt-eq  _maybeVarEq _maybeVarEq = tt
 gratr2-nt-eq  _maybeKvarEq _maybeKvarEq = tt
 gratr2-nt-eq  _maybeErased _maybeErased = tt
@@ -127,6 +138,7 @@ gratr2-nt-eq  _ltype _ltype = tt
 gratr2-nt-eq  _lterm _lterm = tt
 gratr2-nt-eq  _lliftingType _lliftingType = tt
 gratr2-nt-eq  _liftingType _liftingType = tt
+gratr2-nt-eq  _leftRight _leftRight = tt
 gratr2-nt-eq  _lam _lam = tt
 gratr2-nt-eq  _kvar-star-10 _kvar-star-10 = tt
 gratr2-nt-eq  _kvar-bar-9 _kvar-bar-9 = tt
@@ -205,11 +217,16 @@ cedille-start _start = (just "Cmds" , nothing , just _start , inj₁ _ows :: inj
 cedille-start _posinfo = (just "Posinfo" , nothing , just _posinfo , []) :: []
 cedille-start _ows-star-46 = (just "P155" , nothing , just _ows-star-46 , inj₁ _aws :: inj₁ _ows-star-46 :: []) :: (just "P154" , nothing , just _ows-star-46 , []) :: []
 cedille-start _ows = (just "P156" , nothing , just _ows , inj₁ _ows-star-46 :: []) :: []
+cedille-start _optnum = (just "SomeNum" , nothing , just _optnum , inj₁ _ows :: inj₁ _num :: []) :: (just "NoNum" , nothing , just _optnum , []) :: []
 cedille-start _optClass = (just "SomeClass" , nothing , just _optClass , inj₁ _ows :: inj₂ ':' :: inj₁ _ows :: inj₁ _tk :: []) :: (just "NoClass" , nothing , just _optClass , []) :: []
 cedille-start _numpunct-range-4 = (just "P64" , nothing , just _numpunct-range-4 , inj₂ '9' :: []) :: (just "P63" , nothing , just _numpunct-range-4 , inj₂ '8' :: []) :: (just "P62" , nothing , just _numpunct-range-4 , inj₂ '7' :: []) :: (just "P61" , nothing , just _numpunct-range-4 , inj₂ '6' :: []) :: (just "P60" , nothing , just _numpunct-range-4 , inj₂ '5' :: []) :: (just "P59" , nothing , just _numpunct-range-4 , inj₂ '4' :: []) :: (just "P58" , nothing , just _numpunct-range-4 , inj₂ '3' :: []) :: (just "P57" , nothing , just _numpunct-range-4 , inj₂ '2' :: []) :: (just "P56" , nothing , just _numpunct-range-4 , inj₂ '1' :: []) :: (just "P55" , nothing , just _numpunct-range-4 , inj₂ '0' :: []) :: []
 cedille-start _numpunct-bar-6 = (just "P68" , nothing , just _numpunct-bar-6 , inj₁ _numpunct-bar-5 :: []) :: (just "P67" , nothing , just _numpunct-bar-6 , inj₁ _numpunct-range-4 :: []) :: []
 cedille-start _numpunct-bar-5 = (just "P66" , nothing , just _numpunct-bar-5 , inj₂ '-' :: []) :: (just "P65" , nothing , just _numpunct-bar-5 , inj₂ '\'' :: []) :: []
 cedille-start _numpunct = (just "P69" , nothing , just _numpunct , inj₁ _numpunct-bar-6 :: []) :: []
+cedille-start _num-star-49 = (just "P177" , nothing , just _num-star-49 , inj₁ _num-range-48 :: inj₁ _num-star-49 :: []) :: (just "P176" , nothing , just _num-star-49 , []) :: []
+cedille-start _num-range-48 = (just "P175" , nothing , just _num-range-48 , inj₂ '9' :: []) :: (just "P174" , nothing , just _num-range-48 , inj₂ '8' :: []) :: (just "P173" , nothing , just _num-range-48 , inj₂ '7' :: []) :: (just "P172" , nothing , just _num-range-48 , inj₂ '6' :: []) :: (just "P171" , nothing , just _num-range-48 , inj₂ '5' :: []) :: (just "P170" , nothing , just _num-range-48 , inj₂ '4' :: []) :: (just "P169" , nothing , just _num-range-48 , inj₂ '3' :: []) :: (just "P168" , nothing , just _num-range-48 , inj₂ '2' :: []) :: (just "P167" , nothing , just _num-range-48 , inj₂ '1' :: []) :: (just "P166" , nothing , just _num-range-48 , inj₂ '0' :: []) :: []
+cedille-start _num-range-47 = (just "P165" , nothing , just _num-range-47 , inj₂ '9' :: []) :: (just "P164" , nothing , just _num-range-47 , inj₂ '8' :: []) :: (just "P163" , nothing , just _num-range-47 , inj₂ '7' :: []) :: (just "P162" , nothing , just _num-range-47 , inj₂ '6' :: []) :: (just "P161" , nothing , just _num-range-47 , inj₂ '5' :: []) :: (just "P160" , nothing , just _num-range-47 , inj₂ '4' :: []) :: (just "P159" , nothing , just _num-range-47 , inj₂ '3' :: []) :: (just "P158" , nothing , just _num-range-47 , inj₂ '2' :: []) :: (just "P157" , nothing , just _num-range-47 , inj₂ '1' :: []) :: []
+cedille-start _num = (just "P178" , nothing , just _num , inj₁ _num-range-47 :: inj₁ _num-star-49 :: []) :: []
 cedille-start _maybeVarEq = (just "VarEq" , nothing , just _maybeVarEq , inj₁ _posinfo :: inj₁ _var :: inj₁ _ows :: inj₂ '=' :: inj₁ _ows :: []) :: (just "NoVarEq" , nothing , just _maybeVarEq , []) :: []
 cedille-start _maybeKvarEq = (just "NoKvarEq" , nothing , just _maybeKvarEq , []) :: (just "KvarEq" , nothing , just _maybeKvarEq , inj₁ _posinfo :: inj₁ _kvar :: inj₁ _ows :: inj₂ '=' :: inj₁ _ows :: []) :: []
 cedille-start _maybeErased = (just "NotErased" , nothing , just _maybeErased , []) :: (just "Erased" , nothing , just _maybeErased , inj₂ '-' :: inj₁ _ows :: []) :: []
@@ -217,9 +234,10 @@ cedille-start _maybeCheckType = (just "Type" , nothing , just _maybeCheckType , 
 cedille-start _maybeCheckSuper = (just "NoCheckSuper" , nothing , just _maybeCheckSuper , []) :: (just "CheckSuper" , nothing , just _maybeCheckSuper , inj₁ _ows :: inj₂ '⇐' :: inj₁ _ows :: inj₂ '□' :: []) :: []
 cedille-start _maybeCheckKind = (just "NoCheckKind" , nothing , just _maybeCheckKind , []) :: (just "Kind" , just "Kind_end" , just _maybeCheckKind , inj₁ _ows :: inj₂ '⇐' :: inj₁ _ows :: inj₁ _kind :: []) :: []
 cedille-start _ltype = (just "embed" , nothing , just _ltype , inj₁ _atype :: []) :: (just "Lft" , nothing , just _ltype , inj₁ _posinfo :: inj₂ '↑' :: inj₁ _ows :: inj₁ _term :: inj₁ _ows :: inj₂ ':' :: inj₁ _ows :: inj₁ _lliftingType :: []) :: []
-cedille-start _lterm = (just "Var" , nothing , just _lterm , inj₁ _posinfo :: inj₁ _var :: []) :: (just "Parens" , nothing , just _lterm , inj₁ _posinfo :: inj₂ '(' :: inj₁ _ows :: inj₁ _term :: inj₁ _ows :: inj₂ ')' :: inj₁ _posinfo :: []) :: (just "Hole" , nothing , just _lterm , inj₁ _posinfo :: inj₂ '●' :: []) :: (just "Beta" , nothing , just _lterm , inj₁ _posinfo :: inj₂ 'β' :: []) :: []
+cedille-start _lterm = (just "Var" , nothing , just _lterm , inj₁ _posinfo :: inj₁ _var :: []) :: (just "Rho" , nothing , just _lterm , inj₁ _posinfo :: inj₂ 'ρ' :: inj₁ _optnum :: inj₁ _ows :: inj₁ _lterm :: inj₁ _ows :: inj₂ '-' :: inj₁ _ows :: inj₁ _lterm :: []) :: (just "Parens" , nothing , just _lterm , inj₁ _posinfo :: inj₂ '(' :: inj₁ _ows :: inj₁ _term :: inj₁ _ows :: inj₂ ')' :: inj₁ _posinfo :: []) :: (just "Hole" , nothing , just _lterm , inj₁ _posinfo :: inj₂ '●' :: []) :: (just "Epsilon" , nothing , just _lterm , inj₁ _posinfo :: inj₂ 'ε' :: inj₁ _leftRight :: inj₁ _ws :: inj₁ _lterm :: []) :: (just "Beta" , nothing , just _lterm , inj₁ _posinfo :: inj₂ 'β' :: []) :: []
 cedille-start _lliftingType = (just "LiftParens" , nothing , just _lliftingType , inj₁ _posinfo :: inj₂ '(' :: inj₁ _ows :: inj₁ _liftingType :: inj₁ _ows :: inj₂ ')' :: inj₁ _posinfo :: []) :: []
 cedille-start _liftingType = (just "embed" , nothing , just _liftingType , inj₁ _lliftingType :: []) :: (just "LiftTpArrow" , nothing , just _liftingType , inj₁ _type :: inj₁ _ows :: inj₂ '→' :: inj₁ _ows :: inj₁ _liftingType :: []) :: (just "LiftStar" , nothing , just _liftingType , inj₁ _posinfo :: inj₂ '☆' :: []) :: (just "LiftPi" , nothing , just _liftingType , inj₁ _posinfo :: inj₂ 'Π' :: inj₁ _ows :: inj₁ _var :: inj₁ _ows :: inj₂ ':' :: inj₁ _ows :: inj₁ _type :: inj₁ _ows :: inj₂ '.' :: inj₁ _ows :: inj₁ _liftingType :: []) :: []
+cedille-start _leftRight = (just "Right" , nothing , just _leftRight , inj₂ 'r' :: []) :: (just "Left" , nothing , just _leftRight , inj₂ 'l' :: []) :: []
 cedille-start _lam = (just "KeptLambda" , nothing , just _lam , inj₂ 'λ' :: []) :: (just "ErasedLambda" , nothing , just _lam , inj₂ 'Λ' :: []) :: []
 cedille-start _kvar-star-10 = (just "P78" , nothing , just _kvar-star-10 , inj₁ _kvar-bar-9 :: inj₁ _kvar-star-10 :: []) :: (just "P77" , nothing , just _kvar-star-10 , []) :: []
 cedille-start _kvar-bar-9 = (just "P76" , nothing , just _kvar-bar-9 , inj₁ _numpunct :: []) :: (just "P75" , nothing , just _kvar-bar-9 , inj₁ _alpha :: []) :: []
@@ -319,6 +337,7 @@ len-dec-rewrite {- DeclsNil-} ((Id "DeclsNil") :: _::_(ParseTree (parsed-posinfo
 len-dec-rewrite {- DefKind-} ((Id "DefKind") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree (parsed-kvar x1)) :: (ParseTree (parsed-maybeCheckSuper x2)) :: (ParseTree parsed-ows) :: (InputChar '=') :: (ParseTree parsed-ows) :: (ParseTree (parsed-kind x3)) :: (ParseTree parsed-ows) :: (InputChar '.') :: _::_(ParseTree (parsed-posinfo x4)) rest) = just (ParseTree (parsed-cmd (norm-cmd (DefKind x0 x1 x2 x3 x4))) ::' rest , 11)
 len-dec-rewrite {- DefTerm-} ((Id "DefTerm") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree (parsed-var x1)) :: (ParseTree (parsed-maybeCheckType x2)) :: (ParseTree parsed-ows) :: (InputChar '=') :: (ParseTree parsed-ows) :: (ParseTree (parsed-term x3)) :: (ParseTree parsed-ows) :: (InputChar '.') :: _::_(ParseTree (parsed-posinfo x4)) rest) = just (ParseTree (parsed-cmd (norm-cmd (DefTerm x0 x1 x2 x3 x4))) ::' rest , 11)
 len-dec-rewrite {- DefType-} ((Id "DefType") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree (parsed-var x1)) :: (ParseTree (parsed-maybeCheckKind x2)) :: (ParseTree parsed-ows) :: (InputChar '=') :: (ParseTree parsed-ows) :: (ParseTree (parsed-type x3)) :: (ParseTree parsed-ows) :: (InputChar '.') :: _::_(ParseTree (parsed-posinfo x4)) rest) = just (ParseTree (parsed-cmd (norm-cmd (DefType x0 x1 x2 x3 x4))) ::' rest , 11)
+len-dec-rewrite {- Epsilon-} ((Id "Epsilon") :: (ParseTree (parsed-posinfo x0)) :: (InputChar 'ε') :: (ParseTree (parsed-leftRight x1)) :: (ParseTree parsed-ws) :: _::_(ParseTree (parsed-lterm x2)) rest) = just (ParseTree (parsed-lterm (norm-term (Epsilon x0 x1 x2))) ::' rest , 6)
 len-dec-rewrite {- Erased-} ((Id "Erased") :: (InputChar '-') :: _::_(ParseTree parsed-ows) rest) = just (ParseTree (parsed-maybeErased (norm-maybeErased Erased)) ::' rest , 3)
 len-dec-rewrite {- ErasedLambda-} ((Id "ErasedLambda") :: _::_(InputChar 'Λ') rest) = just (ParseTree (parsed-lam (norm-lam ErasedLambda)) ::' rest , 2)
 len-dec-rewrite {- Hole-} ((Id "Hole") :: (ParseTree (parsed-posinfo x0)) :: _::_(InputChar '●') rest) = just (ParseTree (parsed-lterm (norm-term (Hole x0))) ::' rest , 3)
@@ -335,6 +354,7 @@ len-dec-rewrite {- KndTpArrow-} ((Id "KndTpArrow") :: (ParseTree (parsed-ltype x
 len-dec-rewrite {- KndVar-} ((Id "KndVar") :: (ParseTree (parsed-posinfo x0)) :: _::_(ParseTree (parsed-kvar x1)) rest) = just (ParseTree (parsed-kind (norm-kind (KndVar x0 x1))) ::' rest , 3)
 len-dec-rewrite {- KvarEq-} ((Id "KvarEq") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree (parsed-kvar x1)) :: (ParseTree parsed-ows) :: (InputChar '=') :: _::_(ParseTree parsed-ows) rest) = just (ParseTree (parsed-maybeKvarEq (norm-maybeKvarEq (KvarEq x0 x1))) ::' rest , 6)
 len-dec-rewrite {- Lam-} ((Id "Lam") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree (parsed-lam x1)) :: (ParseTree parsed-ows) :: (ParseTree (parsed-posinfo x2)) :: (ParseTree (parsed-var x3)) :: (ParseTree (parsed-optClass x4)) :: (ParseTree parsed-ows) :: (InputChar '.') :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-term x5)) rest) = just (ParseTree (parsed-term (norm-term (Lam x0 x1 x2 x3 x4 x5))) ::' rest , 11)
+len-dec-rewrite {- Left-} ((Id "Left") :: _::_(InputChar 'l') rest) = just (ParseTree (parsed-leftRight (norm-leftRight Left)) ::' rest , 2)
 len-dec-rewrite {- Lft-} ((Id "Lft") :: (ParseTree (parsed-posinfo x0)) :: (InputChar '↑') :: (ParseTree parsed-ows) :: (ParseTree (parsed-term x1)) :: (ParseTree parsed-ows) :: (InputChar ':') :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-lliftingType x2)) rest) = just (ParseTree (parsed-ltype (norm-type (Lft x0 x1 x2))) ::' rest , 9)
 len-dec-rewrite {- LiftArrow-} ((ParseTree (parsed-liftingType x0)) :: (ParseTree parsed-ows) :: (InputChar '→') :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-liftingType x1)) rest) = just (ParseTree (parsed-liftingType (norm-liftingType (LiftArrow x0 x1))) ::' rest , 5)
 len-dec-rewrite {- LiftParens-} ((Id "LiftParens") :: (ParseTree (parsed-posinfo x0)) :: (InputChar '(') :: (ParseTree parsed-ows) :: (ParseTree (parsed-liftingType x1)) :: (ParseTree parsed-ows) :: (InputChar ')') :: _::_(ParseTree (parsed-posinfo x2)) rest) = just (ParseTree (parsed-lliftingType (norm-liftingType (LiftParens x0 x1 x2))) ::' rest , 8)
@@ -405,8 +425,29 @@ len-dec-rewrite {- P152-} ((Id "P152") :: (ParseTree parsed-aws) :: _::_(ParseTr
 len-dec-rewrite {- P153-} ((Id "P153") :: _::_(ParseTree parsed-ws-plus-45) rest) = just (ParseTree parsed-ws ::' rest , 2)
 len-dec-rewrite {- P155-} ((Id "P155") :: (ParseTree parsed-aws) :: _::_(ParseTree parsed-ows-star-46) rest) = just (ParseTree parsed-ows-star-46 ::' rest , 3)
 len-dec-rewrite {- P156-} ((Id "P156") :: _::_(ParseTree parsed-ows-star-46) rest) = just (ParseTree parsed-ows ::' rest , 2)
+len-dec-rewrite {- P157-} ((Id "P157") :: _::_(InputChar '1') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '1'))) ::' rest , 2)
+len-dec-rewrite {- P158-} ((Id "P158") :: _::_(InputChar '2') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '2'))) ::' rest , 2)
+len-dec-rewrite {- P159-} ((Id "P159") :: _::_(InputChar '3') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '3'))) ::' rest , 2)
 len-dec-rewrite {- P16-} ((Id "P16") :: _::_(InputChar 'q') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'q'))) ::' rest , 2)
+len-dec-rewrite {- P160-} ((Id "P160") :: _::_(InputChar '4') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '4'))) ::' rest , 2)
+len-dec-rewrite {- P161-} ((Id "P161") :: _::_(InputChar '5') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '5'))) ::' rest , 2)
+len-dec-rewrite {- P162-} ((Id "P162") :: _::_(InputChar '6') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '6'))) ::' rest , 2)
+len-dec-rewrite {- P163-} ((Id "P163") :: _::_(InputChar '7') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '7'))) ::' rest , 2)
+len-dec-rewrite {- P164-} ((Id "P164") :: _::_(InputChar '8') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '8'))) ::' rest , 2)
+len-dec-rewrite {- P165-} ((Id "P165") :: _::_(InputChar '9') rest) = just (ParseTree (parsed-num-range-47 (string-append 0 (char-to-string '9'))) ::' rest , 2)
+len-dec-rewrite {- P166-} ((Id "P166") :: _::_(InputChar '0') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '0'))) ::' rest , 2)
+len-dec-rewrite {- P167-} ((Id "P167") :: _::_(InputChar '1') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '1'))) ::' rest , 2)
+len-dec-rewrite {- P168-} ((Id "P168") :: _::_(InputChar '2') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '2'))) ::' rest , 2)
+len-dec-rewrite {- P169-} ((Id "P169") :: _::_(InputChar '3') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '3'))) ::' rest , 2)
 len-dec-rewrite {- P17-} ((Id "P17") :: _::_(InputChar 'r') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'r'))) ::' rest , 2)
+len-dec-rewrite {- P170-} ((Id "P170") :: _::_(InputChar '4') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '4'))) ::' rest , 2)
+len-dec-rewrite {- P171-} ((Id "P171") :: _::_(InputChar '5') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '5'))) ::' rest , 2)
+len-dec-rewrite {- P172-} ((Id "P172") :: _::_(InputChar '6') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '6'))) ::' rest , 2)
+len-dec-rewrite {- P173-} ((Id "P173") :: _::_(InputChar '7') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '7'))) ::' rest , 2)
+len-dec-rewrite {- P174-} ((Id "P174") :: _::_(InputChar '8') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '8'))) ::' rest , 2)
+len-dec-rewrite {- P175-} ((Id "P175") :: _::_(InputChar '9') rest) = just (ParseTree (parsed-num-range-48 (string-append 0 (char-to-string '9'))) ::' rest , 2)
+len-dec-rewrite {- P177-} ((Id "P177") :: (ParseTree (parsed-num-range-48 x0)) :: _::_(ParseTree (parsed-num-star-49 x1)) rest) = just (ParseTree (parsed-num-star-49 (string-append 1 x0 x1)) ::' rest , 3)
+len-dec-rewrite {- P178-} ((Id "P178") :: (ParseTree (parsed-num-range-47 x0)) :: _::_(ParseTree (parsed-num-star-49 x1)) rest) = just (ParseTree (parsed-num (string-append 1 x0 x1)) ::' rest , 3)
 len-dec-rewrite {- P18-} ((Id "P18") :: _::_(InputChar 's') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 's'))) ::' rest , 2)
 len-dec-rewrite {- P19-} ((Id "P19") :: _::_(InputChar 't') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 't'))) ::' rest , 2)
 len-dec-rewrite {- P2-} ((Id "P2") :: _::_(InputChar 'c') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'c'))) ::' rest , 2)
@@ -498,7 +539,10 @@ len-dec-rewrite {- P99-} ((Id "P99") :: _::_(ParseTree parsed-anychar-bar-19) re
 len-dec-rewrite {- Parens-} ((Id "Parens") :: (ParseTree (parsed-posinfo x0)) :: (InputChar '(') :: (ParseTree parsed-ows) :: (ParseTree (parsed-term x1)) :: (ParseTree parsed-ows) :: (InputChar ')') :: _::_(ParseTree (parsed-posinfo x2)) rest) = just (ParseTree (parsed-lterm (norm-term (Parens x0 x1 x2))) ::' rest , 8)
 len-dec-rewrite {- Pi-} ((Id "Pi") :: _::_(InputChar 'Π') rest) = just (ParseTree (parsed-binder (norm-binder Pi)) ::' rest , 2)
 len-dec-rewrite {- Rec-} ((Id "Rec") :: (ParseTree (parsed-posinfo x0)) :: (InputChar 'r') :: (InputChar 'e') :: (InputChar 'c') :: (ParseTree parsed-ws) :: (ParseTree (parsed-var x1)) :: (ParseTree (parsed-decls x2)) :: (ParseTree (parsed-indices x3)) :: (ParseTree parsed-ows) :: (InputChar '|') :: (ParseTree (parsed-ctordecls x4)) :: (ParseTree parsed-ows) :: (InputChar '=') :: (ParseTree parsed-ows) :: (ParseTree (parsed-type x5)) :: (ParseTree parsed-ws) :: (InputChar 'w') :: (InputChar 'i') :: (InputChar 't') :: (InputChar 'h') :: (ParseTree (parsed-udefs x6)) :: (ParseTree parsed-ows) :: (InputChar '.') :: _::_(ParseTree (parsed-posinfo x7)) rest) = just (ParseTree (parsed-cmd (norm-cmd (Rec x0 x1 x2 x3 x4 x5 x6 x7))) ::' rest , 25)
+len-dec-rewrite {- Rho-} ((Id "Rho") :: (ParseTree (parsed-posinfo x0)) :: (InputChar 'ρ') :: (ParseTree (parsed-optnum x1)) :: (ParseTree parsed-ows) :: (ParseTree (parsed-lterm x2)) :: (ParseTree parsed-ows) :: (InputChar '-') :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-lterm x3)) rest) = just (ParseTree (parsed-lterm (norm-term (Rho x0 x1 x2 x3))) ::' rest , 10)
+len-dec-rewrite {- Right-} ((Id "Right") :: _::_(InputChar 'r') rest) = just (ParseTree (parsed-leftRight (norm-leftRight Right)) ::' rest , 2)
 len-dec-rewrite {- SomeClass-} ((Id "SomeClass") :: (ParseTree parsed-ows) :: (InputChar ':') :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-tk x0)) rest) = just (ParseTree (parsed-optClass (norm-optClass (SomeClass x0))) ::' rest , 5)
+len-dec-rewrite {- SomeNum-} ((Id "SomeNum") :: (ParseTree parsed-ows) :: _::_(ParseTree (parsed-num x0)) rest) = just (ParseTree (parsed-optnum (norm-optnum (SomeNum x0))) ::' rest , 3)
 len-dec-rewrite {- Star-} ((Id "Star") :: (ParseTree (parsed-posinfo x0)) :: _::_(InputChar '★') rest) = just (ParseTree (parsed-kind (norm-kind (Star x0))) ::' rest , 3)
 len-dec-rewrite {- Tkk-} ((Id "Tkk") :: (ParseTree (parsed-kind x0)) :: _::_(Id "Tkk_end") rest) = just (ParseTree (parsed-tk (norm-tk (Tkk x0))) ::' rest , 3)
 len-dec-rewrite {- Tkt-} ((Id "Tkt") :: _::_(ParseTree (parsed-type x0)) rest) = just (ParseTree (parsed-tk (norm-tk (Tkt x0))) ::' rest , 2)
@@ -526,10 +570,12 @@ len-dec-rewrite {- NoCheckSuper-} (_::_(Id "NoCheckSuper") rest) = just (ParseTr
 len-dec-rewrite {- NoCheckType-} (_::_(Id "NoCheckType") rest) = just (ParseTree (parsed-maybeCheckType (norm-maybeCheckType NoCheckType)) ::' rest , 1)
 len-dec-rewrite {- NoClass-} (_::_(Id "NoClass") rest) = just (ParseTree (parsed-optClass (norm-optClass NoClass)) ::' rest , 1)
 len-dec-rewrite {- NoKvarEq-} (_::_(Id "NoKvarEq") rest) = just (ParseTree (parsed-maybeKvarEq (norm-maybeKvarEq NoKvarEq)) ::' rest , 1)
+len-dec-rewrite {- NoNum-} (_::_(Id "NoNum") rest) = just (ParseTree (parsed-optnum (norm-optnum NoNum)) ::' rest , 1)
 len-dec-rewrite {- NoVarEq-} (_::_(Id "NoVarEq") rest) = just (ParseTree (parsed-maybeVarEq (norm-maybeVarEq NoVarEq)) ::' rest , 1)
 len-dec-rewrite {- NotErased-} (_::_(Id "NotErased") rest) = just (ParseTree (parsed-maybeErased (norm-maybeErased NotErased)) ::' rest , 1)
 len-dec-rewrite {- P141-} (_::_(Id "P141") rest) = just (ParseTree parsed-comment-star-41 ::' rest , 1)
 len-dec-rewrite {- P154-} (_::_(Id "P154") rest) = just (ParseTree parsed-ows-star-46 ::' rest , 1)
+len-dec-rewrite {- P176-} (_::_(Id "P176") rest) = just (ParseTree (parsed-num-star-49 empty-string) ::' rest , 1)
 len-dec-rewrite {- P72-} (_::_(Id "P72") rest) = just (ParseTree (parsed-var-star-8 empty-string) ::' rest , 1)
 len-dec-rewrite {- P77-} (_::_(Id "P77") rest) = just (ParseTree (parsed-kvar-star-10 empty-string) ::' rest , 1)
 len-dec-rewrite {- Posinfo-} (_::_(Posinfo n) rest) = just (ParseTree (parsed-posinfo (ℕ-to-string n)) ::' rest , 1)

@@ -19,7 +19,7 @@ decls-pi-bind-kind (DeclsNil _) k = k
 decls-pi-bind-kind (DeclsCons (Decl _ x atk _) ds) k = 
   let k' = decls-pi-bind-kind ds k in
     if (is-free-in-kind check-erased x k') then
-      KndPi posinfo-gen x posinfo-gen atk k'
+      KndPi posinfo-gen posinfo-gen x atk k'
     else
       tk-arrow-kind atk k'
 

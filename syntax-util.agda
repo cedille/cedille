@@ -47,6 +47,8 @@ term-start-pos (Lam pi x _ x₁ x₂ t) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi) = pi
+term-start-pos (Epsilon pi _ _) = pi
+term-start-pos (Rho pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
@@ -84,6 +86,8 @@ term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi) = posinfo-plus pi 1
+term-end-pos (Epsilon pi _ t) = term-end-pos t
+term-end-pos (Rho pi n t t') = term-end-pos t'
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t

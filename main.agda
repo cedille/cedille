@@ -56,9 +56,20 @@ process-cmd dir (DefTerm pi x NoCheckType t pi') (mk-toplevel-state (mk-include-
   where h : maybe type → ctxt
         h nothing = ctxt-term-udef x t Γ
         h (just tp) = ctxt-term-def x t tp Γ
+process-cmd dir (DefType pi x (Kind k) tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  let ss' = (check-kind Γ k ≫span 
+             check-type Γ tp (just k) ≫span 
+               spanM-add (DefType-span pi x tt (just k) tp pi') ≫span 
+               spanMr tp) ss in
+    return (mk-toplevel-state (mk-include-state is) (ctxt-type-def x (fst ss') k Γ) (snd ss'))
+
+process-cmd dir (DefType pi x NoCheckKind tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  let ss' = (check-type Γ tp nothing ≫=span λ mk → spanM-add (DefType-span pi x ff mk tp pi') ≫span spanMr mk) ss in
+    return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))
+  where h : maybe kind → ctxt
+        h nothing = ctxt-type-udef x tp Γ
+        h (just k) = ctxt-type-def x tp k Γ
 process-cmd dir (CheckTerm t m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
-  return (mk-toplevel-state (mk-include-state is) Γ ss)
-process-cmd dir (DefType pi x k tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   return (mk-toplevel-state (mk-include-state is) Γ ss)
 process-cmd dir (CheckType tp m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
   return (mk-toplevel-state (mk-include-state is) Γ ss)

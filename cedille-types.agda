@@ -15,6 +15,10 @@ alpha-range-2 = string
 kvar = string
 kvar-bar-9 = string
 kvar-star-10 = string
+num = string
+num-range-47 = string
+num-range-48 = string
+num-star-49 = string
 numpunct = string
 numpunct-bar-5 = string
 numpunct-bar-6 = string
@@ -78,6 +82,10 @@ mutual
     ErasedLambda : lam
     KeptLambda : lam
 
+  data leftRight : Set where 
+    Left : leftRight
+    Right : leftRight
+
   data liftingType : Set where 
     LiftArrow : liftingType → liftingType → liftingType
     LiftParens : posinfo → liftingType → posinfo → liftingType
@@ -113,6 +121,10 @@ mutual
     NoClass : optClass
     SomeClass : tk → optClass
 
+  data optnum : Set where 
+    NoNum : optnum
+    SomeNum : num → optnum
+
   data start : Set where 
     Cmds : cmds → start
 
@@ -120,9 +132,11 @@ mutual
     App : term → maybeErased → term → term
     AppTp : term → type → term
     Beta : posinfo → term
+    Epsilon : posinfo → leftRight → term → term
     Hole : posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
+    Rho : posinfo → optnum → term → term → term
     Var : posinfo → var → term
 
   data tk : Set where 
@@ -174,6 +188,7 @@ data ParseTreeT : Set where
   parsed-indices : indices → ParseTreeT
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
+  parsed-leftRight : leftRight → ParseTreeT
   parsed-liftingType : liftingType → ParseTreeT
   parsed-maybeCheckKind : maybeCheckKind → ParseTreeT
   parsed-maybeCheckSuper : maybeCheckSuper → ParseTreeT
@@ -182,6 +197,7 @@ data ParseTreeT : Set where
   parsed-maybeKvarEq : maybeKvarEq → ParseTreeT
   parsed-maybeVarEq : maybeVarEq → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
+  parsed-optnum : optnum → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
   parsed-tk : tk → ParseTreeT
@@ -201,6 +217,10 @@ data ParseTreeT : Set where
   parsed-kvar : kvar → ParseTreeT
   parsed-kvar-bar-9 : kvar-bar-9 → ParseTreeT
   parsed-kvar-star-10 : kvar-star-10 → ParseTreeT
+  parsed-num : num → ParseTreeT
+  parsed-num-range-47 : num-range-47 → ParseTreeT
+  parsed-num-range-48 : num-range-48 → ParseTreeT
+  parsed-num-star-49 : num-star-49 → ParseTreeT
   parsed-numpunct : numpunct → ParseTreeT
   parsed-numpunct-bar-5 : numpunct-bar-5 → ParseTreeT
   parsed-numpunct-bar-6 : numpunct-bar-6 → ParseTreeT
@@ -270,6 +290,14 @@ kvar-bar-9ToString : kvar-bar-9 → string
 kvar-bar-9ToString x = "(kvar-bar-9 " ^ x ^ ")"
 kvar-star-10ToString : kvar-star-10 → string
 kvar-star-10ToString x = "(kvar-star-10 " ^ x ^ ")"
+numToString : num → string
+numToString x = "(num " ^ x ^ ")"
+num-range-47ToString : num-range-47 → string
+num-range-47ToString x = "(num-range-47 " ^ x ^ ")"
+num-range-48ToString : num-range-48 → string
+num-range-48ToString x = "(num-range-48 " ^ x ^ ")"
+num-star-49ToString : num-star-49 → string
+num-star-49ToString x = "(num-star-49 " ^ x ^ ")"
 numpunctToString : numpunct → string
 numpunctToString x = "(numpunct " ^ x ^ ")"
 numpunct-bar-5ToString : numpunct-bar-5 → string
@@ -339,6 +367,10 @@ mutual
   lamToString (ErasedLambda) = "ErasedLambda" ^ ""
   lamToString (KeptLambda) = "KeptLambda" ^ ""
 
+  leftRightToString : leftRight → string
+  leftRightToString (Left) = "Left" ^ ""
+  leftRightToString (Right) = "Right" ^ ""
+
   liftingTypeToString : liftingType → string
   liftingTypeToString (LiftArrow x0 x1) = "(LiftArrow" ^ " " ^ (liftingTypeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
   liftingTypeToString (LiftParens x0 x1 x2) = "(LiftParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (liftingTypeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -374,6 +406,10 @@ mutual
   optClassToString (NoClass) = "NoClass" ^ ""
   optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
 
+  optnumToString : optnum → string
+  optnumToString (NoNum) = "NoNum" ^ ""
+  optnumToString (SomeNum x0) = "(SomeNum" ^ " " ^ (numToString x0) ^ ")"
+
   startToString : start → string
   startToString (Cmds x0) = "(Cmds" ^ " " ^ (cmdsToString x0) ^ ")"
 
@@ -381,9 +417,11 @@ mutual
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
   termToString (Beta x0) = "(Beta" ^ " " ^ (posinfoToString x0) ^ ")"
+  termToString (Epsilon x0 x1 x2) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (optnumToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   tkToString : tk → string
@@ -425,6 +463,7 @@ ParseTreeToString (parsed-decls t) = declsToString t
 ParseTreeToString (parsed-indices t) = indicesToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
+ParseTreeToString (parsed-leftRight t) = leftRightToString t
 ParseTreeToString (parsed-liftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-maybeCheckKind t) = maybeCheckKindToString t
 ParseTreeToString (parsed-maybeCheckSuper t) = maybeCheckSuperToString t
@@ -433,6 +472,7 @@ ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
 ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
+ParseTreeToString (parsed-optnum t) = optnumToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
 ParseTreeToString (parsed-tk t) = tkToString t
@@ -452,6 +492,10 @@ ParseTreeToString (parsed-alpha-range-2 t) = alpha-range-2ToString t
 ParseTreeToString (parsed-kvar t) = kvarToString t
 ParseTreeToString (parsed-kvar-bar-9 t) = kvar-bar-9ToString t
 ParseTreeToString (parsed-kvar-star-10 t) = kvar-star-10ToString t
+ParseTreeToString (parsed-num t) = numToString t
+ParseTreeToString (parsed-num-range-47 t) = num-range-47ToString t
+ParseTreeToString (parsed-num-range-48 t) = num-range-48ToString t
+ParseTreeToString (parsed-num-star-49 t) = num-star-49ToString t
 ParseTreeToString (parsed-numpunct t) = numpunctToString t
 ParseTreeToString (parsed-numpunct-bar-5 t) = numpunct-bar-5ToString t
 ParseTreeToString (parsed-numpunct-bar-6 t) = numpunct-bar-6ToString t
@@ -548,6 +592,10 @@ mutual
   norm-posinfo x = x
 
   {-# NO_TERMINATION_CHECK #-}
+  norm-optnum : (x : optnum) → optnum
+  norm-optnum x = x
+
+  {-# NO_TERMINATION_CHECK #-}
   norm-optClass : (x : optClass) → optClass
   norm-optClass x = x
 
@@ -594,6 +642,10 @@ mutual
   norm-liftingType (LiftArrow (LiftTpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType (LiftArrow (LiftArrow x1 x2) x3) = (norm-liftingType (LiftArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-leftRight : (x : leftRight) → leftRight
+  norm-leftRight x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-lam : (x : lam) → lam

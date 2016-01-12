@@ -361,7 +361,7 @@ in the parse tree, and updates the Cedille info buffer."
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\t" "★") ("\\o" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
-          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\b" "β")))
+          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\b" "β") ("\\e" "ε") ("\\w" "ρ")))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

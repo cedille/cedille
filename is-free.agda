@@ -26,6 +26,8 @@ is-free-in-term ce x (Lam _ b _ x' (SomeClass atk) t) = (ce && is-free-in-tk ce 
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _) = ff
+is-free-in-term ce x (Epsilon _ lr t) = is-free-in-term ce x t
+is-free-in-term ce x (Rho _ _ t t') = is-free-in-term ce x t || is-free-in-term ce x t'
 
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' oc t) = 

@@ -10,6 +10,13 @@ open import subst
 open import syntax-util
 open import to-string
 
+{- Some notes:
+
+   -- hnf{TERM} currently implements erasure as well as normalization.
+
+   -- hnf{TYPE} does not descend into terms.
+-}
+
 {-# NO_TERMINATION_CHECK #-}
 hnf : {ed : exprd} → ctxt → (unfold-rec : 𝔹) → ⟦ ed ⟧ → ⟦ ed ⟧
 hnf{TERM} Γ u (Parens _ t _) = hnf Γ u t
@@ -33,7 +40,7 @@ hnf{TYPE} Γ tt (TpVar pi x) | nothing | just tp = tp
 hnf{TYPE} Γ u (TpVar pi x) | just tp = tp
 hnf{TYPE} Γ u (TpAppt tp t) with hnf Γ u tp
 hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp)
-hnf{TYPE} Γ u (TpAppt _ t) | tp = TpAppt tp (hnf Γ u t)
+hnf{TYPE} Γ u (TpAppt _ t) | tp = TpAppt tp t
 hnf{TYPE} Γ u (TpApp tp tp') with hnf Γ u tp
 hnf{TYPE} Γ u (TpApp _ tp') | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ tp' x tp)
 hnf{TYPE} Γ u (TpApp _ tp') | tp = TpApp tp (hnf Γ u tp')

@@ -15,6 +15,9 @@ lam-to-string : lam → string
 lam-to-string ErasedLambda = "Λ"
 lam-to-string KeptLambda = "λ"
 
+leftRight-to-string : leftRight → string
+leftRight-to-string Left = "l"
+leftRight-to-string Right = "r"
 
 type-to-string : type → string
 term-to-string : term → string
@@ -43,6 +46,11 @@ term-to-string (Lam _ l _ x o t) = "(" ^ lam-to-string l ^ " " ^ x ^ optClass-to
 term-to-string (Parens _ t _) = term-to-string t
 term-to-string (Var _ x) = x
 term-to-string (Beta _) = "β"
+term-to-string (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
+term-to-string (Rho _ n t t') = "(ρ " ^ (h n) ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
+  where h : optnum → string
+        h (SomeNum n) = n ^ " "
+        h NoNum = ""
 
 kind-to-string (KndArrow k k') = "(" ^ kind-to-string k ^ " → " ^ kind-to-string k' ^ ")"
 kind-to-string (KndParens _ k _) = kind-to-string k

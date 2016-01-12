@@ -2,6 +2,11 @@ module rename where
 
 open import lib
 
+open import cedille-types 
+open import ctxt
+open import is-free
+open import syntax-util
+
 renamectxt : Set
 renamectxt = trie string
 
@@ -47,4 +52,11 @@ rename-away-from x g r =
 
 fresh-var : string → (string → 𝔹) → renamectxt → string
 fresh-var = rename-away-from
+
+rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
+rename-var-if Γ ρ y t = 
+  if is-free-in check-erased y t then 
+    rename-away-from y (ctxt-binds-var Γ) ρ
+  else
+    y
 

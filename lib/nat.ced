@@ -13,4 +13,5 @@ two ⇐ Nat = S (S Z) .
 
 four ⇐ Nat = plus two two.
 
-plusZ ⇐ Π x : Nat . plus x Z ≃ x = λ x . x · (λ n . plus n Z ≃ n) (Λ n . λ u . ●) β .
+plusZ ⇐ Π x : Nat . plus x Z ≃ x
+  = λ x . x · (λ n . plus n Z ≃ n) (Λ n . λ u . εl (ρ u - β)) β .

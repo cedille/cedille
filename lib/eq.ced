@@ -1,5 +1,10 @@
+import bool.
+import false.
+
 rec Eq (A : ★)(a : A) : (b : A) | refl : Eq a = 
   ∀ P : Π b : A . Eq b → ★ .
     P a refl → P b self with 
    refl = Λ P . λ x . x
 .
+
+tt-not-equal-ff ⇐ Eq · Bool tt ff → False = ● .

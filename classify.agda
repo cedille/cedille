@@ -8,6 +8,7 @@ open import ctxt
 open import hnf
 open import is-free
 open import rename
+open import rewriting
 open import spans
 open import subst
 open import syntax-util
@@ -241,8 +242,8 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
           else
             Lam-span pi l x oc t (lambda-bound-var-conv-error x atk' atk tvs)
         check-erasures : lam → binder → 𝕃 tagged-val
-        check-erasures ErasedLambda All = [ expected-type tp ]
-        check-erasures KeptLambda Pi = [ expected-type tp ]
+        check-erasures ErasedLambda All = [ type-data tp ]
+        check-erasures KeptLambda Pi = [ type-data tp ]
         check-erasures ErasedLambda Pi = error-data ("The expected type is a Π-abstraction (indicating explicit input), but"
                                               ^ " the term is a Λ-abstraction (implicit input).")
                                      :: [ expected-type tp ]
@@ -256,12 +257,37 @@ check-termi Γ (Lam pi l _ x oc t) (just tp) | nothing =
 
 check-termi Γ (Beta pi) (just (TpEq t1 t2)) = 
   if conv-term Γ t1 t2 then
-    spanM-add (Beta-span pi [ expected-type (TpEq t1 t2) ])
+    spanM-add (Beta-span pi [ type-data (TpEq t1 t2) ])
   else
-    spanM-add (Beta-span pi (error-data "The two terms in the equation are not β-equal" :: [ type-data (TpEq t1 t2) ]))
+    spanM-add (Beta-span pi (error-data "The two terms in the equation are not β-equal" :: [ expected-type (TpEq t1 t2) ]))
 
 check-termi Γ (Beta pi) nothing = 
   spanM-add (Beta-span pi [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
+
+check-termi Γ (Epsilon pi lr t) (just (TpEq t1 t2)) = 
+  spanM-add (Epsilon-span pi lr t [ type-data (TpEq t1 t2) ]) ≫span
+  check-term Γ t (just (update-type lr t1 t2))
+  where update-type : leftRight → term → term → type
+        update-type Left t1 t2 = TpEq (hnf Γ ff t1) t2
+        update-type Right t1 t2 = TpEq t1 (hnf Γ ff t2) 
+
+check-termi Γ (Epsilon pi lr t) nothing = 
+  spanM-add (Epsilon-span pi lr t [ error-data "An expected type is required in order to type a use of ε." ]) ≫span spanMr nothing
+
+check-termi Γ (Rho pi n t t') (just tp) = 
+  check-term Γ t nothing ≫=span cont
+  where cont : maybe type → spanM ⊤
+        cont nothing = spanM-add (Rho-span pi n t t' [ expected-type tp ]) 
+        cont (just (TpEq t1 t2)) = 
+           check-term Γ t' (just (rewrite-type Γ empty-renamectxt t1 t2 tp)) ≫span
+           spanM-add (Rho-span pi n t t' [ type-data tp ])
+        cont (just tp') = spanM-add (Rho-span pi n t t'
+                                       (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
+                                     :: ("the synthesized type for the first subterm" , type-to-string tp')
+                                     :: [ expected-type tp ])) 
+
+check-termi Γ (Rho pi n t t') nothing = 
+  spanM-add (Rho-span pi n t t' [ error-data "An expected type is required in order to type a use of ρ." ]) ≫span spanMr nothing
 
 check-termi Γ (Hole pi) tp = spanM-add (hole-span pi tp) ≫span return-when tp tp
 
@@ -370,6 +396,36 @@ check-type Γ (TpAppt tp t) k =
                             expected-kind k' ::
                             kind-data k ::
                             []))
+
+check-type Γ (TpApp tp tp') k =
+  check-type Γ tp nothing ≫=spanm cont ≫=spanr cont' k
+  where cont : kind → spanM (maybe kind)
+        cont (KndArrow k'' k') = 
+          check-type Γ tp' (just k'') ≫span 
+          spanMr (just k')
+        cont (KndPi _ _ x (Tkk k'') k') = 
+          check-type Γ tp' (just k'') ≫span 
+          spanMr (just (subst-kind Γ tp' x k'))
+        cont k' = spanM-add (TpApp-span tp tp'
+                               (error-data ("The kind computed for the head of the type application does"
+                                        ^ " not allow the head to be applied to an argument which is a type")
+                            :: type-app-head tp
+                            :: head-kind k' 
+                            :: type-argument tp'
+                            :: [])) ≫span
+                  spanMr nothing
+        cont' : (outer : maybe kind) → kind → spanM (check-ret outer)
+        cont' nothing k = 
+          spanM-add (TpApp-span tp tp' ((kind-data k) :: [])) ≫span
+          check-type-return Γ k
+        cont' (just k') k = 
+          if conv-kind Γ k k' then spanM-add (TpApp-span tp tp' ((kind-data k') :: []))
+          else spanM-add (TpApp-span tp tp' 
+                           (error-data "The kind computed for a type application does not match the expected kind." ::
+                            expected-kind k' ::
+                            kind-data k ::
+                            []))
+
 check-type Γ (TpEq t1 t2) k = 
   spanM-add (TpEq-span t1 t2 (if-check-against-star-data "An equation" k)) ≫span
   return-star-when k
