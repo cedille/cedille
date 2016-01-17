@@ -48,12 +48,12 @@ term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi) = pi
 term-start-pos (Epsilon pi _ _) = pi
-term-start-pos (Rho pi _ _ _) = pi
+term-start-pos (Rho pi _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
 type-start-pos (Iota pi _ _) = pi
-type-start-pos (Lft pi _ _) = pi
+type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
 type-start-pos (TpArrow t t₁) = type-start-pos t
@@ -87,12 +87,12 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi) = posinfo-plus pi 1
 term-end-pos (Epsilon pi _ t) = term-end-pos t
-term-end-pos (Rho pi n t t') = term-end-pos t'
+term-end-pos (Rho pi t t') = term-end-pos t'
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
 type-end-pos (Iota _ _ tp) = type-end-pos tp
-type-end-pos (Lft pi _ t) = liftingType-end-pos t
+type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
 type-end-pos (TpArrow t t') = type-end-pos t'
@@ -158,11 +158,44 @@ data exprd : Set where
   TERM : exprd
   TYPE : exprd
   KIND : exprd
+  LIFTINGTYPE : exprd
 
 ⟦_⟧ : exprd → Set
 ⟦ TERM ⟧ = term
 ⟦ TYPE ⟧ = type
 ⟦ KIND ⟧ = kind
+⟦ LIFTINGTYPE ⟧ = liftingType
+
+exprd-name : exprd → string
+exprd-name TERM = "term"
+exprd-name TYPE = "type"
+exprd-name KIND = "kind"
+exprd-name LIFTINGTYPE = "lifting type"
+
+is-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-app{TERM} (App _ _ _) = tt
+is-app{TERM} (AppTp _ _) = tt
+is-app{TYPE} (TpApp _ _) = tt
+is-app{TYPE} (TpAppt _ _) = tt
+is-app _ = ff
+
+is-arrow : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-arrow{TYPE} (TpArrow _ _) = tt
+is-arrow{KIND} (KndTpArrow _ _) = tt
+is-arrow{KIND} (KndArrow _ _) = tt
+is-arrow{LIFTINGTYPE} (LiftArrow _ _) = tt
+is-arrow{LIFTINGTYPE} (LiftTpArrow _ _) = tt
+is-arrow _ = ff
+
+is-abs : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-abs{TERM} (Lam _ _ _ _ _ _) = tt
+is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
+is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
+is-abs{TYPE} (Iota _ _ _) = tt
+is-abs{KIND} (KndPi _ _ _ _ _) = tt
+is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
+is-abs _ = ff
+
 
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt
@@ -175,7 +208,7 @@ forall-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = Abs posinfo-gen All posin
 forall-bind-decls (DeclsNil x) tp = tp
 
 tplam-bind-decls : decls → type → type
-tplam-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = TpLambda posinfo-gen posinfo-gen x (SomeClass atk) (tplam-bind-decls ds tp)
+tplam-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = TpLambda posinfo-gen posinfo-gen x atk (tplam-bind-decls ds tp)
 tplam-bind-decls (DeclsNil x) tp = tp
 
 erased-lambda-bind-decls : decls → term → term
@@ -212,3 +245,55 @@ mapp t1 t2 = App t1 NotErased t2
 mvar : var → term
 mvar x = Var posinfo-gen x
 
+mtpvar : var → type
+mtpvar x = TpVar posinfo-gen x
+
+mall : var → tk → type → type
+mall x tk tp = Abs posinfo-gen All posinfo-gen x tk tp
+
+{- decompose a term into spine form consisting of a non-applications head and arguments.
+   The outer arguments will come earlier in the list than the inner ones.
+   As for decompose-lams, we assume the term is at least erased. -}
+decompose-apps : term → term × (𝕃 term)
+decompose-apps (App t _ t') with decompose-apps t
+decompose-apps (App t _ t') | h , args = h , (t' :: args)
+decompose-apps t = t , []
+
+decompose-tpapps : type → type × (type → type)
+decompose-tpapps (TpApp t t') with decompose-tpapps t
+decompose-tpapps (TpApp t t') | h , f = h , λ x → TpApp (f x) t'
+decompose-tpapps (TpAppt t t') with decompose-tpapps t
+decompose-tpapps (TpAppt t t') | h , f = h , λ x → TpAppt (f x) t'
+decompose-tpapps t = t , λ x → x
+
+{- lambda-abstract the input variables in reverse order around the
+   given term (so closest to the top of the list is bound deepest in
+   the resulting term). -}
+Lam* : 𝕃 var → term → term
+Lam* [] t = t
+Lam* (x :: xs) t = Lam* xs (Lam posinfo-gen KeptLambda posinfo-gen x NoClass t)
+
+TpApp* : type → 𝕃 type → type
+TpApp* t [] = t
+TpApp* t (arg :: args) = (TpApp (TpApp* t args) arg)
+
+LiftArrow* : 𝕃 liftingType → liftingType → liftingType
+LiftArrow* [] l = l
+LiftArrow* (l' :: ls) l = LiftArrow* ls (LiftArrow l' l)
+
+is-intro-form : term → 𝔹
+is-intro-form (Lam x x₁ x₂ x₃ x₄ t) = tt
+is-intro-form _ = ff
+
+erase-term : term → term
+erase-term (Parens _ t _) = erase-term t
+erase-term (App t1 Erased t2) = erase-term t1
+erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
+erase-term (AppTp t tp) = erase-term t
+erase-term (Lam _ ErasedLambda _ _ _ t) = erase-term t
+erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
+erase-term (Var pi x) = Var pi x
+erase-term (Beta pi) = Beta pi
+erase-term (Epsilon pi lr t) = erase-term t
+erase-term (Hole pi) = Hole pi
+erase-term (Rho pi t t') = erase-term t'

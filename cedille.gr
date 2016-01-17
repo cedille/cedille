@@ -6,7 +6,7 @@ start
 
 Syntactic
 
-Cmds : start -> ows cmds ows .
+File : start -> ! ows cmds ows ! .
 CmdsStart : cmds -> cmd .
 CmdsNext : cmds -> cmd ws cmds .
 
@@ -19,16 +19,18 @@ NoKvarEq : maybeKvarEq -> .
 Type : maybeCheckType -> ows '⇐' ows type .
 NoCheckType : maybeCheckType -> .
 
-Kind : maybeCheckKind -> ows '⇐' ows kind .
-NoCheckKind : maybeCheckKind -> .
+Kind : checkKind -> ows '⇐' ows kind .
 
 CheckSuper : maybeCheckSuper -> ows '⇐' ows '□' .
 NoCheckSuper : maybeCheckSuper -> .
 
-DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows '.' ! .
-CheckTerm : cmd -> term maybeCheckType ows '.' ! .
-DefType : cmd -> ! var maybeCheckKind ows '=' ows type ows '.' ! .
-CheckType : cmd -> type maybeCheckKind ows '.' ! .
+Normalize : cmdTerminator -> '!'.
+EraseOnly : cmdTerminator -> '.'.
+
+DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows cmdTerminator ! .
+CheckTerm : cmd -> term maybeCheckType ows cmdTerminator ! .
+DefType : cmd -> ! var checkKind ows '=' ows type ows cmdTerminator ! .
+CheckType : cmd -> type checkKind ows cmdTerminator ! .
 DefKind : cmd -> ! kvar maybeCheckSuper ows '=' ows kind ows '.' ! .
 CheckKind : cmd -> kind maybeCheckSuper ows '.' ! .
 
@@ -56,15 +58,14 @@ UdefsneStart : udefsne -> ows udef.
 
 Udef : udef -> ! var ows '=' ows term.
 
-Normalize : cmd -> 'normalize' ws term ows '.'.
-Import : cmd -> 'import' ws var ows '.'.
+Import : cmd -> ! 'import' ws var ows '.'! .
 
 Left : leftRight -> 'l'.
 Right : leftRight -> 'r'.
 
 Beta : lterm -> ! 'β' .
 Epsilon : lterm -> ! 'ε' leftRight ws lterm .
-Rho : lterm -> ! 'ρ' optnum ows lterm ows '-' ows lterm.
+Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
@@ -72,9 +73,6 @@ App : term -> term ws maybeErased term .
 AppTp : term -> term ws '·' ws atype .
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 embed : term -> lterm .
-
-SomeNum : optnum -> ows num.
-NoNum : optnum -> .
 
 NotErased : maybeErased -> .
 Erased : maybeErased -> '-' ows .
@@ -86,13 +84,13 @@ ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
 Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
-TpLambda : type -> ! 'λ' ows ! var optClass ows '.' ows type .
+TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
 Iota : type -> ! 'ι' ows var ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 
-Lft : ltype -> ! '↑' ows term ows ':' ows lliftingType .
+Lft : ltype -> ! '↑' ows ! var ows '.' ows term ows ':' ows lliftingType .
 TpParens : atype -> ! '(' ows type ows ')' !.
 TpApp : ltype -> ltype ws '·' ws atype.
 TpAppt : ltype -> ltype ws lterm.
@@ -133,7 +131,7 @@ kvar -> '𝒌' (alpha | numpunct)*.
 %numone -> ['0' - '9'].
 %num -> numone+.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '𝓤' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' .
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | '-' | '𝒌' | '=' .
 
 comment => '%' anychar* '\n'.
 

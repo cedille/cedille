@@ -1,1 +1,1 @@
-False = ∀ X : ★ . X .
+False ⇐ ★ = ∀ X : ★ . X !

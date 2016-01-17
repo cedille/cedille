@@ -75,7 +75,7 @@ rec-check-and-add-ctor-def : ctxt → ctxt → string → type → decls → cto
 rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
  spanM-add (Ctordecl-span pi x tp []) ≫span
  (if ~ (x =string x') then
-   (spanM-add (Udef-span pi' x' t ff
+   (spanM-add (Udef-span pi' x' (term-end-pos t) (erase-term Γ t)
                 (error-data ("This definition should be for constructor " ^ x 
                            ^ ", since declarations and definitions must be in the same order") :: [])) ≫span spanMr Γ)
   else
@@ -83,10 +83,10 @@ rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi'
      check-term Γ t (just tp) ≫span
 
      let tp = forall-bind-decls params (subst-type Γ rectp name tp) in
-     -- do not lambda-bind the params, because we are keeping just the erased definition
-     let t = hnf Γ ff (subst-term Γ rectp name t) in
-       spanM-add (Udef-span pi' x t tt []) ≫span
-       spanMr (ctxt-term-def x t tp Γ')))
+     -- do not lambda-bind the params for t, because they just get erased
+     let t' = erase-term Γ t in
+       spanM-add (Udef-span pi' x (term-end-pos t) t' [ type-data tp ]) ≫span
+       spanMr (ctxt-term-def x t' tp Γ')))
 
 -- see comment for rec-check-and-add-ctor-defs below
 rec-check-and-add-ctor-defs-ne : ctxt → ctxt → string → type → decls → ctordeclsne → udefsne → spanM ctxt
@@ -95,12 +95,13 @@ rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart c) (Ud
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
   rec-check-and-add-ctor-def Γ Γ' name rectp params c u ≫=span λ Γ' → rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params cs us
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
-  spanM-add (Udef-span pi x t ff (error-data ("This is the last constructor definition, but it does not correspond to the"
-                                        ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
+  spanM-add (Udef-span pi x (term-end-pos t) (erase-term Γ t)
+                (error-data ("This is the last constructor definition, but it does not correspond to the"
+                           ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 
   spanM-add (Ctordecl-span pi x tp (error-data ("This is the last constructor declaration, but it does not correspond to the"
-                                        ^ " last constructor definition later in the recursive datatype definiton.") :: []))
+                                             ^ " last constructor definition later in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'
 
 {- add the ctors with their definitions and types to the final ctxt
@@ -128,7 +129,7 @@ rec-check-and-add-ctor-defs Γ Γ' name rectp params (Ctordeclse pi) (Udefsne _)
   ≫span spanMr Γ'
 
 rec-add-udef : ctxt → udef → ctxt
-rec-add-udef Γ (Udef _ x t) = ctxt-term-udef x (hnf Γ ff t) Γ
+rec-add-udef Γ (Udef _ x t) = ctxt-term-udef x (hnf Γ no-unfolding t) Γ
 
 rec-add-udefsne : ctxt → udefsne → ctxt
 rec-add-udefsne Γ (UdefsneStart u) = rec-add-udef Γ u
@@ -169,10 +170,10 @@ process-rec-cmd Γ pi name params inds ctors body us pi' =
       -- the recursive type applied to the parameters
       let rectp = rec-apply-decls nametp params in
       let body1 = tplam-bind-decls inds (Iota posinfo-gen self-name body) in
-      let body2 = tplam-bind-decls params body1 in
+      let body2 = tplam-bind-decls params (tplam-bind-decls inds (Iota posinfo-gen self-name (subst-type Γ rectp name body))) in
 
         spanM-add (Udefs-span us) ≫span
-        spanM-add (Rec-span pi pi' k) ≫span 
+        spanM-add (Rec-span pi pi' k2) ≫span 
 
         {- first we check and add the ctors where the type and the
            body do not bind the params.  We do this in an extended

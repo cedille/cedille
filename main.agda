@@ -33,6 +33,10 @@ data toplevel-state : Set where
 new-toplevel-state : toplevel-state
 new-toplevel-state = mk-toplevel-state new-include-state new-ctxt empty-spans
 
+toplevel-add-span : span → toplevel-state → toplevel-state
+toplevel-add-span s (mk-toplevel-state (mk-include-state is) Γ ss) =
+  mk-toplevel-state (mk-include-state is) Γ (add-span s ss)
+
 {- these are mutually recursive due to Import commands.
    dir is the directory to search for includes (we should 
    add a more sophisticated mechanism later) -}
@@ -43,46 +47,45 @@ process-cmds : (dir : string) → cmds → toplevel-state → IO toplevel-state
 process-start : (dir : string) → start → toplevel-state → IO toplevel-state
 processFile : (dir : string) → (file : string) → toplevel-state → IO toplevel-state
 
-process-cmd dir (DefTerm pi x (Type tp) t pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+process-cmd dir (DefTerm pi x (Type tp) t n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-type Γ tp (just star) ≫span 
              check-term Γ t (just tp) ≫span 
-             let t = hnf Γ ff t in
-               spanM-add (DefTerm-span pi x tt (just tp) t pi') ≫span 
+             let t = erase-term Γ t in
+               spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-if Γ n t)) ≫span 
                spanMr t) ss in
     return (mk-toplevel-state (mk-include-state is) (ctxt-term-def x (fst ss') tp Γ) (snd ss'))
-process-cmd dir (DefTerm pi x NoCheckType t pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
-  let ss' = (check-term Γ t nothing ≫=span λ mtp → spanM-add (DefTerm-span pi x ff mtp t pi') ≫span spanMr mtp) ss in
+process-cmd dir (DefTerm pi x NoCheckType t n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  let ss' = (check-term Γ t nothing ≫=span λ mtp → 
+             let t = erase-term Γ t in
+               spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-if Γ n t)) ≫span
+               spanMr (t , mtp)) ss in
     return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))
-  where h : maybe type → ctxt
-        h nothing = ctxt-term-udef x t Γ
-        h (just tp) = ctxt-term-def x t tp Γ
-process-cmd dir (DefType pi x (Kind k) tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
+  where h : term × (maybe type) → ctxt
+        h (t , nothing) = ctxt-term-udef x t Γ
+        h (t , just tp) = ctxt-term-def x t tp Γ
+process-cmd dir (DefType pi x (Kind k) tp n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-kind Γ k ≫span 
              check-type Γ tp (just k) ≫span 
-               spanM-add (DefType-span pi x tt (just k) tp pi') ≫span 
+               spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-if Γ n tp)) ≫span 
                spanMr tp) ss in
     return (mk-toplevel-state (mk-include-state is) (ctxt-type-def x (fst ss') k Γ) (snd ss'))
-
-process-cmd dir (DefType pi x NoCheckKind tp pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
-  let ss' = (check-type Γ tp nothing ≫=span λ mk → spanM-add (DefType-span pi x ff mk tp pi') ≫span spanMr mk) ss in
-    return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))
-  where h : maybe kind → ctxt
-        h nothing = ctxt-type-udef x tp Γ
-        h (just k) = ctxt-type-def x tp k Γ
-process-cmd dir (CheckTerm t m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
+process-cmd dir (CheckTerm t m n pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
   return (mk-toplevel-state (mk-include-state is) Γ ss)
-process-cmd dir (CheckType tp m pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
+process-cmd dir (CheckType tp m n pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
   return (mk-toplevel-state (mk-include-state is) Γ ss)
 process-cmd dir (DefKind pi x _ k pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
-  return (mk-toplevel-state (mk-include-state is) Γ ss)
+  let ss' = (check-kind Γ k ≫span
+             spanM-add (DefKind-span pi x k pi') ≫span
+             spanMok) ss in
+  return (mk-toplevel-state (mk-include-state is) (ctxt-kind-def x k Γ) (snd ss'))
 process-cmd dir (CheckKind k _ pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 
   return (mk-toplevel-state (mk-include-state is) Γ ss)
-process-cmd dir (Import x) s with s
-process-cmd dir (Import x) s | mk-toplevel-state (mk-include-state is) _ _ = 
+process-cmd dir (Import pi x pi') s with toplevel-add-span (Import-span pi pi') s
+process-cmd dir (Import pi x pi') _ | s with s
+process-cmd dir (Import pi x pi') _ | s | mk-toplevel-state (mk-include-state is) _ _ = 
   let file = x ^ "." ^ cedille-extension in
     if stringset-contains is (combineFileNames dir file) then return s
     else processFile dir file s
-process-cmd dir (Normalize x) s = return s
 process-cmd dir (Rec pi name params inds ctors body us pi') (mk-toplevel-state i Γ ss) = 
     let p = process-rec-cmd Γ pi name params inds ctors body us pi' ss in
     return (mk-toplevel-state i (fst p) (snd p))
@@ -94,7 +97,8 @@ process-cmds dir (CmdsNext c cs) s = process-cmd dir c s >>= cont
           if global-error-p ss then return s else process-cmds dir cs s
 process-cmds dir (CmdsStart c) s = process-cmd dir c s
 
-process-start dir (Cmds cs) s = process-cmds dir cs s
+process-start dir (File pi cs pi') s = 
+  process-cmds dir cs s >>= λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1)) s')
 
 -- process the given input file, after adding it to the include state
 processFile dir file s with s | combineFileNames dir file

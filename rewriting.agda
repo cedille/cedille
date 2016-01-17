@@ -24,7 +24,7 @@ rewrite-termh Γ ρ t1 t2 (Lam pi KeptLambda pi' y NoClass t) =
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     Lam pi KeptLambda pi' y' NoClass (rewrite-terma Γ (renamectxt-insert ρ y y') t1 t2 t)
 rewrite-termh Γ ρ t1 t2 (Parens x t x₁) = rewrite-terma Γ ρ t1 t2 t
-rewrite-termh Γ ρ t1 t2 (Rho x x₁ t t₁) = Rho x x₁ (rewrite-terma Γ ρ t1 t2 t) (rewrite-terma Γ ρ t1 t2 t₁)
+rewrite-termh Γ ρ t1 t2 (Rho x t t₁) = Rho x (rewrite-terma Γ ρ t1 t2 t) (rewrite-terma Γ ρ t1 t2 t₁)
 rewrite-termh Γ ρ t1 t2 (Var x x₁) = Var x (renamectxt-rep ρ x₁)
 rewrite-termh Γ ρ t1 t2 x = x -- should not happen, as the term is erased
 
@@ -33,7 +33,7 @@ rewrite-terma Γ ρ t1 t2 t =
   else rewrite-termh Γ ρ t1 t2 t
 
 rewrite-term : rewrite-t term
-rewrite-term Γ ρ t1 t2 t = rewrite-terma Γ ρ t1 t2 (hnf Γ ff t)
+rewrite-term Γ ρ t1 t2 t = rewrite-terma Γ ρ t1 t2 (erase-term Γ t)
 
 rewrite-type : rewrite-t type
 rewrite-kind : rewrite-t kind
@@ -47,14 +47,16 @@ rewrite-type Γ ρ t1 t2 (Abs pi b pi' y tk tp) =
 rewrite-type Γ ρ t1 t2 (Iota pi y tp) = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     Iota pi y (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 tp)
-rewrite-type Γ ρ t1 t2 (Lft pi t l) = Lft pi (rewrite-term Γ ρ t1 t2 t) (rewrite-liftingType Γ ρ t1 t2 l)
+rewrite-type Γ ρ t1 t2 (Lft pi pi' y t l) = 
+  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
+     Lft pi pi' y' (rewrite-term Γ (renamectxt-insert ρ y y') t1 t2 t) (rewrite-liftingType Γ ρ t1 t2 l)
 rewrite-type Γ ρ t1 t2 (TpApp tp tp') = TpApp (rewrite-type Γ ρ t1 t2 tp) (rewrite-type Γ ρ t1 t2 tp')
 rewrite-type Γ ρ t1 t2 (TpAppt tp t) = TpAppt (rewrite-type Γ ρ t1 t2 tp) (rewrite-term Γ ρ t1 t2 t)
 rewrite-type Γ ρ t1 t2 (TpArrow tp tp') = TpArrow (rewrite-type Γ ρ t1 t2 tp) (rewrite-type Γ ρ t1 t2 tp')
 rewrite-type Γ ρ t1 t2 (TpEq ta tb) = TpEq (rewrite-term Γ ρ t1 t2 ta) (rewrite-term Γ ρ t1 t2 tb)
-rewrite-type Γ ρ t1 t2 (TpLambda pi pi' y oc t') = 
+rewrite-type Γ ρ t1 t2 (TpLambda pi pi' y atk t') = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    TpLambda pi pi' y (rewrite-optClass Γ ρ t1 t2 oc) (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 t')
+    TpLambda pi pi' y (rewrite-tk Γ ρ t1 t2 atk) (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 t')
 rewrite-type Γ ρ t1 t2 (TpParens x tp x₁) = rewrite-type Γ ρ t1 t2 tp
 rewrite-type Γ ρ t1 t2 (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 

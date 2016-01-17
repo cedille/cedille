@@ -3,6 +3,7 @@ module spans where
 open import lib
 open import cedille-types 
 open import ctxt
+open import hnf
 open import syntax-util
 open import to-string
 
@@ -149,6 +150,9 @@ type-argument t = "the argument" , type-to-string t
 type-data : type → tagged-val
 type-data tp = "type" , type-to-string tp 
 
+hnf-type-data : type → tagged-val
+hnf-type-data tp = "hnf of type" , type-to-string tp 
+
 kind-data : kind → tagged-val
 kind-data k = "kind" , kind-to-string k
 
@@ -226,7 +230,7 @@ TpQuant-span : TpQuant-e → posinfo → var → tk → type → 𝕃 tagged-val
 TpQuant-span is-pi pi x atk body tvs = mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
                                          pi (type-end-pos body) tvs
 
-TpLambda-span : posinfo → var → optClass → type → 𝕃 tagged-val → span
+TpLambda-span : posinfo → var → tk → type → 𝕃 tagged-val → span
 TpLambda-span pi x atk body tvs = mk-span "Type-level lambda abstraction" pi (type-end-pos body) tvs
 
 -- a span boxing up the parameters and the indices of a Rec definition
@@ -257,10 +261,10 @@ Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive 
 Ctordeclse-span : posinfo → 𝕃 tagged-val → span
 Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
-Udef-span : posinfo → var → term → (normalized : 𝔹) → 𝕃 tagged-val → span
-Udef-span pi x t normalized tvs =
-  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: (if normalized then [ "normal form" , term-to-string t ] else [])) in
-    mk-span "Constructor definition" pi (term-end-pos t) tvs
+Udef-span : posinfo → var → posinfo → term → 𝕃 tagged-val → span
+Udef-span pi x pi' t tvs =
+  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: [ "erasure" , term-to-string t ]) in
+    mk-span "Constructor definition" pi pi' tvs
 
 Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
 Ctordecl-span pi x tp tvs =
@@ -277,9 +281,9 @@ Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val →
 Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) tvs
 Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
                                            (tvs ++ [ "type of bound variable" , tk-to-string atk ])
-DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → span
-DefTerm-span pi x checked tp t pi' = 
-  h [ "normal form" , term-to-string t ] pi x checked tp pi'
+DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
+DefTerm-span pi x checked tp t pi' tvs = 
+  h (("erasure" , term-to-string t) :: tvs) pi x checked tp pi'
   where h : 𝕃 tagged-val → posinfo → var → (checked : 𝔹) → maybe type → posinfo → span
         h tvs pi x tt _ pi' = 
           mk-span "Term-level definition (checking)" pi pi' tvs
@@ -288,12 +292,18 @@ DefTerm-span pi x checked tp t pi' =
         h tvs pi x ff nothing pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
     
-DefType-span : posinfo → var → (checked : 𝔹) → maybe kind → type → posinfo → span
-DefType-span pi x tt _ _ pi' = mk-span "Type-level definition (checking)" pi pi' []
-DefType-span pi x ff (just k) _ pi' =
-  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , kind-to-string k) :: [])
-DefType-span pi x ff nothing _ pi' =
-  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: [])
+normalized-type : type → tagged-val
+normalized-type tp = "normalized type" , type-to-string tp
+
+DefType-span : posinfo → var → (checked : 𝔹) → maybe kind → type → posinfo → 𝕃 tagged-val → span
+DefType-span pi x tt _ _ pi' tvs = mk-span "Type-level definition (checking)" pi pi' tvs
+DefType-span pi x ff (just k) _ pi' tvs =
+  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , kind-to-string k) :: tvs)
+DefType-span pi x ff nothing _ pi' tvs =
+  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
+
+DefKind-span : posinfo → var → kind → posinfo → span
+DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' []
 
 unimplemented-term-span : posinfo → posinfo → maybe type → span
 unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]
@@ -319,9 +329,20 @@ Epsilon-span pi lr t tvs = mk-span "Epsilon" pi (term-end-pos t)
         side Left = "left"
         side Right = "right"
 
-Rho-span : posinfo → optnum → term → term → 𝕃 tagged-val → span
-Rho-span pi n t t' tvs = mk-span "Rho" pi (term-end-pos t') 
-                          (tvs ++ [ explain ("Rewrite terms in the expected type, using an equation. " ^ h n) ])
-  where h : optnum → string
-        h (SomeNum n) = "The " ^ n ^"'th occurrence is to be rewritten."
-        h NoNum = "All occurrences are to be rewritten."
+Rho-span : posinfo → term → term → 𝕃 tagged-val → span
+Rho-span pi t t' tvs = mk-span "Rho" pi (term-end-pos t') 
+                          (tvs ++ [ explain ("Rewrite terms in the (expected) type, using an equation. " ) ])
+
+normalized-if : {ed : exprd} → ctxt → cmdTerminator → ⟦ ed ⟧ → 𝕃 tagged-val
+normalized-if{ed} Γ Normalize e = [ "normalized " ^ (exprd-name ed) , to-string (hnf Γ unfold-all e) ]
+normalized-if Γ EraseOnly e = []
+
+Lft-span : posinfo → var → term → liftingType → 𝕃 tagged-val → span
+Lft-span pi X t l tvs = mk-span "Lift type" pi (liftingType-end-pos l) tvs
+
+File-span : posinfo → posinfo → span
+File-span pi pi' = mk-span "Cedille source file" pi pi' []
+
+Import-span : posinfo → posinfo → span
+Import-span pi pi' = mk-span "Import of another source file" pi pi' []
+

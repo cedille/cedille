@@ -2,6 +2,7 @@ module to-string where
 
 open import lib
 open import cedille-types
+open import syntax-util
 
 binder-to-string : binder → string
 binder-to-string All = "∀"
@@ -22,42 +23,56 @@ leftRight-to-string Right = "r"
 type-to-string : type → string
 term-to-string : term → string
 kind-to-string : kind → string
+type-to-stringh : {ed : exprd} → ⟦ ed ⟧ → type → string
+term-to-stringh : {ed : exprd} → ⟦ ed ⟧ → term → string
+kind-to-stringh : {ed : exprd} → ⟦ ed ⟧ → kind → string
 optClass-to-string : optClass → string
 tk-to-string : tk → string
 liftingType-to-string : liftingType → string
+liftingType-to-stringh : {ed : exprd} → ⟦ ed ⟧ → liftingType → string
 
-type-to-string (Abs _ b _ x t t') = "(" ^ binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-string t' ^ ")"
-type-to-string (TpLambda _ _ x oc t) = "(λ " ^ x ^ optClass-to-string oc ^ " . " ^ type-to-string t ^ ")"
+parens-unless : 𝔹 → string → string
+parens-unless ff s = "(" ^ s ^ ")"
+parens-unless tt s = s
 
-type-to-string (Iota _ x t) = "(ι " ^ x ^ " . " ^ type-to-string t ^ ")"
+term-to-string t = term-to-stringh star t
+type-to-string tp = type-to-stringh star tp
+kind-to-string k = kind-to-stringh star k
+liftingType-to-string l = liftingType-to-stringh star l
 
-type-to-string (Lft _ x x₁) = "↑" ^ term-to-string x ^ " : " ^ liftingType-to-string x₁
-type-to-string (TpApp t t₁) = "(" ^ type-to-string t ^ " · " ^ type-to-string t₁ ^ ")"
-type-to-string (TpAppt t t') = "(" ^ type-to-string t ^ " " ^ term-to-string t' ^ ")"
-type-to-string (TpArrow x t) = "(" ^ type-to-string x ^ " → " ^  type-to-string t ^ ")"
-type-to-string (TpEq t1 t2) = "(" ^ term-to-string t1 ^ " ≃ " ^ term-to-string t2 ^ ")"
-type-to-string (TpParens _ t _) = type-to-string t
-type-to-string (TpVar _ x) = x
+term-to-stringh p (App t x t') = 
+  parens-unless (is-app p) (term-to-stringh (App t x t') t ^ " " ^ (maybeErased-to-string x) ^ term-to-string t')
+term-to-stringh p (AppTp t tp) = parens-unless (is-app p) (term-to-stringh (AppTp t tp) t ^ " · " ^ type-to-string tp )
+term-to-stringh p (Hole _) = "●"
+term-to-stringh p (Lam pi l pi' x o t) = 
+  parens-unless (is-abs p) (lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-stringh (Lam pi l pi' x o t) t)
+term-to-stringh p (Parens _ t _) = term-to-string t
+term-to-stringh p (Var _ x) = x
+term-to-stringh p (Beta _) = "β"
+term-to-stringh p (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
+term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
 
-term-to-string (App t x t') = "(" ^ term-to-string t ^ " " ^ (maybeErased-to-string x) ^ term-to-string t' ^ ")"
-term-to-string (AppTp t tp) = "(" ^ term-to-string t ^ " · " ^ type-to-string tp ^ ")"
-term-to-string (Hole _) = "●"
-term-to-string (Lam _ l _ x o t) = "(" ^ lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-string t ^ ")"
-term-to-string (Parens _ t _) = term-to-string t
-term-to-string (Var _ x) = x
-term-to-string (Beta _) = "β"
-term-to-string (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
-term-to-string (Rho _ n t t') = "(ρ " ^ (h n) ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
-  where h : optnum → string
-        h (SomeNum n) = n ^ " "
-        h NoNum = ""
+type-to-stringh p (Abs pi b pi' x t t') = 
+  parens-unless (is-abs p) (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh (Abs pi b pi' x t t') t')
+type-to-stringh p (TpLambda pi pi' x tk t) = 
+  parens-unless (is-abs p) ("λ " ^ x ^ tk-to-string tk ^ " . " ^ type-to-stringh (TpLambda pi pi' x tk t) t )
+type-to-stringh p (Iota pi x t) = parens-unless (is-abs p) ("ι " ^ x ^ " . " ^ type-to-stringh (Iota pi x t) t )
+type-to-stringh p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string x ^ " : " ^ liftingType-to-string x₁ ^ ")"
+type-to-stringh p (TpApp t t₁) = parens-unless (is-app p) (type-to-stringh (TpApp t t₁) t ^ " · " ^ type-to-string t₁)
+type-to-stringh p (TpAppt t t') = parens-unless (is-app p) (type-to-stringh (TpAppt t t') t ^ " " ^ term-to-string t')
+type-to-stringh p (TpArrow x t) = parens-unless (is-arrow p) (type-to-string x ^ " → " ^  type-to-stringh (TpArrow x t) t)
+type-to-stringh p (TpEq t1 t2) = "(" ^ term-to-string t1 ^ " ≃ " ^ term-to-string t2 ^ ")"
+type-to-stringh p (TpParens _ t _) = type-to-string t
+type-to-stringh p (TpVar _ x) = x
 
-kind-to-string (KndArrow k k') = "(" ^ kind-to-string k ^ " → " ^ kind-to-string k' ^ ")"
-kind-to-string (KndParens _ k _) = kind-to-string k
-kind-to-string (KndPi _ _ x u k) = "(Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-string k ^ ")"
-kind-to-string (KndTpArrow x k) = "(" ^ type-to-string x ^ " → " ^ kind-to-string k ^ ")"
-kind-to-string (KndVar _ x) = x
-kind-to-string (Star _) = "★"
+kind-to-stringh p (KndArrow k k') =
+  parens-unless (is-arrow p) (kind-to-string k ^ " → " ^ kind-to-stringh (KndArrow k k') k')
+kind-to-stringh p (KndParens _ k _) = kind-to-string k
+kind-to-stringh p (KndPi pi pi' x u k) = 
+  parens-unless (is-abs p) ("Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-stringh (KndPi pi pi' x u k) k )
+kind-to-stringh p (KndTpArrow x k) = parens-unless (is-arrow p) (type-to-string x ^ " → " ^ kind-to-stringh (KndTpArrow x k) k)
+kind-to-stringh p (KndVar _ x) = x
+kind-to-stringh p (Star _) = "★"
 
 optClass-to-string NoClass = ""
 optClass-to-string (SomeClass x) = " : " ^ tk-to-string x
@@ -65,9 +80,17 @@ optClass-to-string (SomeClass x) = " : " ^ tk-to-string x
 tk-to-string (Tkk k) = kind-to-string k
 tk-to-string (Tkt t) = type-to-string t
 
-liftingType-to-string (LiftArrow t t₁) = "(" ^ liftingType-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
-liftingType-to-string (LiftTpArrow t t₁) = "(" ^ type-to-string t ^ " → " ^ liftingType-to-string t₁ ^ ")"
-liftingType-to-string (LiftParens _ t _) = liftingType-to-string t
-liftingType-to-string (LiftPi _ x x₁ t) = 
-    "(Π " ^ x ^ " : " ^ type-to-string x₁ ^ " . " ^ liftingType-to-string t ^ ")"
-liftingType-to-string (LiftStar _) = "☆"
+liftingType-to-stringh p (LiftArrow t t₁) = 
+  parens-unless (is-arrow p) (liftingType-to-string t ^ " → " ^ liftingType-to-stringh (LiftArrow t t₁) t₁ )
+liftingType-to-stringh p (LiftTpArrow t t₁) = 
+  parens-unless (is-arrow p) (type-to-string t ^ " → " ^ liftingType-to-stringh (LiftTpArrow t t₁) t₁ )
+liftingType-to-stringh p (LiftParens _ t _) = liftingType-to-string t
+liftingType-to-stringh p (LiftPi pi x x₁ t) = 
+  parens-unless (is-abs p) ("Π " ^ x ^ " : " ^ type-to-string x₁ ^ " . " ^ liftingType-to-stringh (LiftPi pi x x₁ t) t)
+liftingType-to-stringh p (LiftStar _) = "☆"
+
+to-string : {ed : exprd} → ⟦ ed ⟧ → string
+to-string{TERM} = term-to-string
+to-string{TYPE} = type-to-string
+to-string{KIND} = kind-to-string
+to-string{LIFTINGTYPE} = liftingType-to-string

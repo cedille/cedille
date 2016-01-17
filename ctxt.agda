@@ -55,6 +55,9 @@ ctxt-type-decl v k (mk-ctxt i) = mk-ctxt (trie-insert i v (type-decl k))
 ctxt-type-def : var → type → kind → ctxt → ctxt
 ctxt-type-def v t k (mk-ctxt i) = mk-ctxt (trie-insert i v (type-def t k))
 
+ctxt-kind-def : var → kind → ctxt → ctxt
+ctxt-kind-def v k (mk-ctxt i) = mk-ctxt (trie-insert i v (kind-def k))
+
 ctxt-type-udef : var → type → ctxt → ctxt
 ctxt-type-udef v t (mk-ctxt i) = mk-ctxt (trie-insert i v (type-udef t))
 
@@ -134,10 +137,10 @@ ctxt-lookup-type-var-def (mk-ctxt i) v | just (type-udef t) = just t
 ctxt-lookup-type-var-def (mk-ctxt i) v | just (rename-def t) = just (TpVar posinfo-gen t)
 ctxt-lookup-type-var-def (mk-ctxt i) v | _ = nothing
 
-ctxt-lookup-rec-def : ctxt → var → maybe type
-ctxt-lookup-rec-def (mk-ctxt i) v with trie-lookup i v
-ctxt-lookup-rec-def (mk-ctxt i) v | just (rec-def t _) = just t
-ctxt-lookup-rec-def (mk-ctxt i) v | _ = nothing
+ctxt-lookup-type-var-rec-def : ctxt → var → maybe type
+ctxt-lookup-type-var-rec-def (mk-ctxt i) v with trie-lookup i v
+ctxt-lookup-type-var-rec-def (mk-ctxt i) v | just (rec-def t _) = just t
+ctxt-lookup-type-var-rec-def (mk-ctxt i) v | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe kind
 ctxt-lookup-kind-var-def (mk-ctxt i) x with trie-lookup i x

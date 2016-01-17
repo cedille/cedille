@@ -39,21 +39,24 @@ substh-term{TERM} Γ ρ t x (Var pi y) =
 substh-term Γ ρ t x (Var pi y) = Var pi y
 substh-term Γ ρ t x (Beta pi) = Beta pi
 substh-term Γ ρ t x (Epsilon pi lr t') = Epsilon pi lr (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Rho pi n t' t'') = Rho pi n (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
+substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
 
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Abs pi b pi' y' (substh-tk Γ ρ t x atk)
      (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
-substh-type Γ ρ t x (TpLambda pi pi' y oc t') = 
+substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
-    TpLambda pi pi' y' (substh-optClass Γ ρ t x oc) 
+    TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
       (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
 substh-type Γ ρ t x (Iota pi y t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Iota pi y' 
       (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
-substh-type Γ ρ t x (Lft pi t' l) = Lft pi (substh-term Γ ρ t x t') (substh-liftingType Γ ρ t x l)
+substh-type Γ ρ t x (Lft pi pi' y t' l) = 
+  let y' = subst-rename-var-if Γ ρ x y t in
+    Lft pi pi' y' (if x =string y then t' else (substh-term Γ (renamectxt-insert ρ y y') t x t')) 
+      (substh-liftingType Γ ρ t x l)
 substh-type Γ ρ t x (TpApp tp tp₁) = TpApp (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
 substh-type Γ ρ t x (TpArrow tp tp₁) = TpArrow (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)

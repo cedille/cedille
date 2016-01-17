@@ -27,13 +27,13 @@ is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _) = ff
 is-free-in-term ce x (Epsilon _ lr t) = is-free-in-term ce x t
-is-free-in-term ce x (Rho _ _ t t') = is-free-in-term ce x t || is-free-in-term ce x t'
+is-free-in-term ce x (Rho _ t t') = is-free-in-term ce x t || is-free-in-term ce x t'
 
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
-is-free-in-type ce x (TpLambda _ _ x' oc t) = 
-  is-free-in-optClass ce x oc || (~ (x =string x') && is-free-in-type ce x t) 
+is-free-in-type ce x (TpLambda _ _ x' atk t) = 
+  is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t) 
 is-free-in-type ce x (Iota _ x' t) = ~ (x =string x') && is-free-in-type ce x t
-is-free-in-type ce x (Lft _ t l) = is-free-in-term ce x t || is-free-in-liftingType ce x l
+is-free-in-type ce x (Lft _ _ X t l) = is-free-in-liftingType ce x l || (~ x =string X && is-free-in-term ce x t)
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'
 is-free-in-type ce x (TpArrow t t') = is-free-in-type ce x t || is-free-in-type ce x t'
@@ -64,6 +64,7 @@ is-free-in : {ed : exprd} → is-free-e → var → ⟦ ed ⟧ → 𝔹
 is-free-in{TERM} e x t = is-free-in-term e x t 
 is-free-in{TYPE} e x t = is-free-in-type e x t 
 is-free-in{KIND} e x t = is-free-in-kind e x t 
+is-free-in{LIFTINGTYPE} e x t = is-free-in-liftingType e x t 
 
 abs-tk : lam → var → tk → type → type
 abs-tk l x (Tkk k) tp = Abs posinfo-gen All posinfo-gen x (Tkk k) tp
