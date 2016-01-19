@@ -1,6 +1,3 @@
-rec Eq (A : ★)(a : A) : (b : A) | refl : Eq a = 
-  ∀ P : Π b : A . Eq b → ★ .
-    P a refl → P b self with 
-   refl = Λ P . λ x . x
-.
+Eq ⇐ Π A : ★ . A → A → ★ = λ A : ★ . λ a : A . λ b : A . ∀ P : A → ★ . P a → P b .
 
+refl ⇐ ∀ A : ★ . ∀ a : A . Eq · A a a = Λ A . Λ a . Λ P . λ u . u .

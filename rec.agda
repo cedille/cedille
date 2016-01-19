@@ -6,8 +6,8 @@ open import lib
 open import cedille-types
 open import classify
 open import constants
+open import conversion
 open import ctxt
-open import hnf
 open import is-free
 open import spans
 open import subst
@@ -75,7 +75,7 @@ rec-check-and-add-ctor-def : ctxt → ctxt → string → type → decls → cto
 rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi' x' t) =
  spanM-add (Ctordecl-span pi x tp []) ≫span
  (if ~ (x =string x') then
-   (spanM-add (Udef-span pi' x' (term-end-pos t) (erase-term Γ t)
+   (spanM-add (Udef-span pi' x' (term-end-pos t) (erase-term t)
                 (error-data ("This definition should be for constructor " ^ x 
                            ^ ", since declarations and definitions must be in the same order") :: [])) ≫span spanMr Γ)
   else
@@ -84,7 +84,7 @@ rec-check-and-add-ctor-def Γ Γ' name rectp params (Ctordecl pi x tp) (Udef pi'
 
      let tp = forall-bind-decls params (subst-type Γ rectp name tp) in
      -- do not lambda-bind the params for t, because they just get erased
-     let t' = erase-term Γ t in
+     let t' = erase-term t in
        spanM-add (Udef-span pi' x (term-end-pos t) t' [ type-data tp ]) ≫span
        spanMr (ctxt-term-def x t' tp Γ')))
 
@@ -95,7 +95,7 @@ rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneStart c) (Ud
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
   rec-check-and-add-ctor-def Γ Γ' name rectp params c u ≫=span λ Γ' → rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params cs us
 rec-check-and-add-ctor-defs-ne Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
-  spanM-add (Udef-span pi x (term-end-pos t) (erase-term Γ t)
+  spanM-add (Udef-span pi x (term-end-pos t) (erase-term t)
                 (error-data ("This is the last constructor definition, but it does not correspond to the"
                            ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'

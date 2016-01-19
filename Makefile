@@ -1,4 +1,4 @@
-SRC = main.agda to-string.agda cedille-types.agda constants.agda cedille-main.agda spans.agda conversion.agda syntax-util.agda hnf.agda \
+SRC = main.agda to-string.agda cedille-types.agda constants.agda cedille-main.agda spans.agda conversion.agda syntax-util.agda \
       rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda
 
 main:	$(SRC)

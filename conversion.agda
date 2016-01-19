@@ -4,7 +4,6 @@ open import lib
 
 open import cedille-types
 open import ctxt
-open import hnf
 open import is-free
 open import lift
 open import subst
@@ -53,6 +52,7 @@ hnf-tk : ctxt → unfolding → tk → tk
 conv-tk : ctxt → tk → tk → 𝔹
 conv-liftingType : ctxt → liftingType → liftingType → 𝔹
 conv-optClass : ctxt → optClass → optClass → 𝔹
+conv-tty* : ctxt → 𝕃 tty → 𝕃 tty → 𝔹
 
 conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
 conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
@@ -89,7 +89,31 @@ hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x 
 hnf{TYPE} Γ u (TpAppt _ t) | tp = TpAppt tp (erase-term t)
 hnf{TYPE} Γ u (TpApp tp tp') with hnf Γ u tp
 hnf{TYPE} Γ u (TpApp _ tp') | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ tp' x tp)
-hnf{TYPE} Γ u (TpApp _ tp') | tp = TpApp tp (hnf Γ (unfold-dampen u) tp')
+hnf{TYPE} Γ u (TpApp _ tp') | tp with hnf Γ (unfold-dampen u) tp' 
+hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
+
+  {- given (T1 T2), with T1 and T2 types, see if we can pull a lifting operation from the heads of T1 and T2 to
+     surround the entire application.  If not, just return (T1 T2). -}
+  where try-pull-lift-types : type → type → type
+        try-pull-lift-types tp1 tp2 with decompose-tpapps tp1 | decompose-tpapps tp2
+        try-pull-lift-types tp1 tp2 | Lft _ _ X t l , args1 | Lft _ _ X' t' l' , args2 =
+          if conv-tty* Γ args1 args2 then
+            try-pull-term-in t l (length args1) [] []
+          else
+            TpApp tp1 tp2
+          where try-pull-term-in : term → liftingType → ℕ → 𝕃 var → 𝕃 liftingType → type
+                try-pull-term-in t (LiftParens _ l _) n vars ltps = try-pull-term-in t l n vars ltps 
+                try-pull-term-in t (LiftArrow _ l) 0 vars ltps = 
+                  recompose-tpapps 
+                    (Lft posinfo-gen posinfo-gen X (Lam* vars (hnf Γ no-unfolding (App t NotErased (App* t' (map mvar vars)))))
+                      (LiftArrow* ltps l) , args1)
+                try-pull-term-in (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
+                  try-pull-term-in t l2 n (x :: vars) (l1 :: ltps) 
+                try-pull-term-in t l n vars ltps = TpApp tp1 tp2
+        try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
+
+--TpVar posinfo-gen "pull-lift-types"
+
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
@@ -184,3 +208,8 @@ conv-liftingType Γ _ _ = ff
 conv-optClass Γ NoClass NoClass = tt
 conv-optClass Γ (SomeClass x) (SomeClass x') = conv-tk Γ x x'
 conv-optClass Γ _ _ = ff
+
+conv-tty* Γ [] [] = tt
+conv-tty* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-tty* Γ args args'
+conv-tty* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-tty* Γ args args'
+conv-tty* Γ _ _ = ff

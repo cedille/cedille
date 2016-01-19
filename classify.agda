@@ -5,7 +5,6 @@ open import lib
 open import cedille-types
 open import conversion
 open import ctxt
-open import hnf
 open import is-free
 open import lift
 open import rename
@@ -212,7 +211,7 @@ check-termi Γ (App t m t') tp =
           else spanM-add (App-span t t' 
                            (error-data "The type computed for a term application does not match the expected type." ::
                             expected-type tp ::
-                            type-data tp' ::
+                            type-data tp' :: ctxt-data Γ :: 
                            [ "hnf of expected type" , type-to-string (hnf Γ unfold-head tp) ]))
 check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
   check-tk Γ atk ≫span

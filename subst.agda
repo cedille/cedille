@@ -8,12 +8,6 @@ open import is-free
 open import rename
 open import syntax-util
 
-subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
-subst-rename-var-if Γ ρ x y t = 
-  if x =string y then x -- no need to rename as we will not proceed below into the body of the abstraction
-  else
-    rename-var-if Γ ρ y t
-
 substh-ret-t : Set → Set
 substh-ret-t T = {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → var → T → T
 
@@ -24,14 +18,23 @@ substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
 substh-liftingType : substh-ret-t liftingType
 
+subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
+subst-rename-var-if Γ ρ x y t = 
+  {- rename bound variable y iff it is x (var being substituted for), or if y occurs free
+     in t (the term we are substituting for x), or if it is the renamed version of any variable -}
+  if x =string y || is-free-in check-erased y t || renamectxt-in-range ρ y then 
+    rename-away-from y (λ s → ctxt-binds-var Γ s || s =string x) ρ
+  else
+    y
+
+
 substh-term Γ ρ t x (App t' m t'') = App (substh-term Γ ρ t x t') m (substh-term Γ ρ t x t'')
 substh-term Γ ρ t x (AppTp t' tp) = AppTp (substh-term Γ ρ t x t') (substh-type Γ ρ t x tp)
 substh-term Γ ρ t x (Hole x₁) = Hole x₁
 substh-term Γ ρ t x (Lam pi b pi' y oc t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     Lam pi b pi' y' (substh-optClass Γ ρ t x oc) 
-       (if x =string y then t'
-        else (substh-term Γ (renamectxt-insert ρ y y') t x t'))
+      (substh-term (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-term Γ ρ t x (Parens x₁ t' x₂) = substh-term Γ ρ t x t'
 substh-term{TERM} Γ ρ t x (Var pi y) =
  let y' = renamectxt-rep ρ y in
@@ -44,18 +47,18 @@ substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (subst
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Abs pi b pi' y' (substh-tk Γ ρ t x atk)
-     (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
+      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
-      (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
+      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Iota pi y t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Iota pi y' 
-      (if x =string y then t' else (substh-type Γ (renamectxt-insert ρ y y') t x t'))
+      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Lft pi pi' y t' l) = 
   let y' = subst-rename-var-if Γ ρ x y t in
-    Lft pi pi' y' (if x =string y then t' else (substh-term Γ (renamectxt-insert ρ y y') t x t')) 
+    Lft pi pi' y' (substh-term (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t') 
       (substh-liftingType Γ ρ t x l)
 substh-type Γ ρ t x (TpApp tp tp₁) = TpApp (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
@@ -71,7 +74,7 @@ substh-kind Γ ρ t x (KndParens x₁ k x₂) = substh-kind Γ ρ t x k
 substh-kind Γ ρ t x (KndPi pi pi' y atk k) = 
   let y' = subst-rename-var-if Γ ρ x y t in
     KndPi pi pi' y' (substh-tk Γ ρ t x atk)
-      (if x =string y then k else (substh-kind Γ (renamectxt-insert ρ y y') t x k))
+      (substh-kind (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x k)
 substh-kind Γ ρ t x (KndTpArrow t' k) = KndTpArrow (substh-type Γ ρ t x t') (substh-kind Γ ρ t x k)
 substh-kind Γ ρ t x (KndVar pi y) = KndVar pi y
 substh-kind Γ ρ t x (Star pi) = Star pi

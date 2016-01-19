@@ -14,7 +14,6 @@ open noderiv {- from run.agda -}
 open import classify
 open import ctxt
 open import constants
-open import hnf
 open import rec
 open import spans
 open import syntax-util
@@ -50,13 +49,13 @@ processFile : (dir : string) → (file : string) → toplevel-state → IO tople
 process-cmd dir (DefTerm pi x (Type tp) t n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-type Γ tp (just star) ≫span 
              check-term Γ t (just tp) ≫span 
-             let t = erase-term Γ t in
+             let t = erase-term t in
                spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-if Γ n t)) ≫span 
                spanMr t) ss in
     return (mk-toplevel-state (mk-include-state is) (ctxt-term-def x (fst ss') tp Γ) (snd ss'))
 process-cmd dir (DefTerm pi x NoCheckType t n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-term Γ t nothing ≫=span λ mtp → 
-             let t = erase-term Γ t in
+             let t = erase-term t in
                spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-if Γ n t)) ≫span
                spanMr (t , mtp)) ss in
     return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))

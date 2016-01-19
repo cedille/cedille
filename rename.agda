@@ -8,24 +8,30 @@ open import is-free
 open import syntax-util
 
 renamectxt : Set
-renamectxt = trie string
+renamectxt = stringset × trie string  {- the trie maps vars to their renamed versions, 
+                                         and the stringset stores all those renamed versions -}
 
 empty-renamectxt : renamectxt
-empty-renamectxt = empty-trie
+empty-renamectxt = empty-stringset , empty-trie
 
 renamectxt-contains : renamectxt → string → 𝔹
-renamectxt-contains r s = trie-contains r s
+renamectxt-contains (_ , r) s = trie-contains r s
 
 renamectxt-insert : renamectxt → (s1 s2 : string) → renamectxt
-renamectxt-insert r s x with s =string x
-renamectxt-insert r s x | tt = r
-renamectxt-insert r s x | ff = trie-insert r s x
+renamectxt-insert (ranr , r) s x with s =string x
+renamectxt-insert (ranr , r) s x | tt = ranr , r
+renamectxt-insert (ranr , r) s x | ff = stringset-insert ranr x , trie-insert r s x
 
 renamectxt-lookup : renamectxt → string → maybe string
-renamectxt-lookup = trie-lookup 
+renamectxt-lookup (ranr , r) s = trie-lookup r s
 
 renamectxt-remove : renamectxt → string → renamectxt
-renamectxt-remove = trie-remove
+renamectxt-remove (ranr , r) s with trie-lookup r s
+renamectxt-remove (ranr , r) s | nothing = ranr , r
+renamectxt-remove (ranr , r) s | just s' = stringset-remove ranr s' , trie-remove r s
+
+renamectxt-in-range : renamectxt → string → 𝔹
+renamectxt-in-range (ranr , r) s = stringset-contains ranr s
 
 renamectxt-rep : renamectxt → string → string
 renamectxt-rep r x with renamectxt-lookup r x
@@ -55,7 +61,7 @@ fresh-var = rename-away-from
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 
-  if is-free-in check-erased y t then 
+  if is-free-in check-erased y t || renamectxt-in-range ρ y then 
     rename-away-from y (ctxt-binds-var Γ) ρ
   else
     y

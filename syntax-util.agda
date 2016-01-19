@@ -259,12 +259,36 @@ decompose-apps (App t _ t') with decompose-apps t
 decompose-apps (App t _ t') | h , args = h , (t' :: args)
 decompose-apps t = t , []
 
-decompose-tpapps : type → type × (type → type)
+
+data tty : Set where
+  tterm : term → tty
+  ttype : type → tty
+
+decompose-tpapps : type → type × 𝕃 tty 
 decompose-tpapps (TpApp t t') with decompose-tpapps t
-decompose-tpapps (TpApp t t') | h , f = h , λ x → TpApp (f x) t'
+decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
 decompose-tpapps (TpAppt t t') with decompose-tpapps t
-decompose-tpapps (TpAppt t t') | h , f = h , λ x → TpAppt (f x) t'
-decompose-tpapps t = t , λ x → x
+decompose-tpapps (TpAppt t t') | h , args = h , (tterm t') :: args
+decompose-tpapps t = t , []
+
+recompose-tpapps : type × 𝕃 tty → type
+recompose-tpapps (h , []) = h
+recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
+recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
+
+dere-tpapps : ∀(t : type) → recompose-tpapps (decompose-tpapps t) ≡ t
+dere-tpapps (Abs x x₁ x₂ x₃ x₄ t) = refl
+dere-tpapps (Iota x x₁ t) = refl
+dere-tpapps (Lft x x₁ x₂ x₃ x₄) = refl
+dere-tpapps (TpApp t t₁) with keep (decompose-tpapps t)
+dere-tpapps (TpApp t t₁) | (h , args) , p rewrite p | sym p | dere-tpapps t = refl
+dere-tpapps (TpAppt t t₁) with keep (decompose-tpapps t)
+dere-tpapps (TpAppt t t₁) | (h , args) , p rewrite p | sym p | dere-tpapps t = refl
+dere-tpapps (TpArrow t t₁) = refl
+dere-tpapps (TpEq x x₁) = refl
+dere-tpapps (TpLambda x x₁ x₂ x₃ t) = refl
+dere-tpapps (TpParens x t x₁) = refl
+dere-tpapps (TpVar x x₁) = refl
 
 {- lambda-abstract the input variables in reverse order around the
    given term (so closest to the top of the list is bound deepest in
@@ -272,6 +296,10 @@ decompose-tpapps t = t , λ x → x
 Lam* : 𝕃 var → term → term
 Lam* [] t = t
 Lam* (x :: xs) t = Lam* xs (Lam posinfo-gen KeptLambda posinfo-gen x NoClass t)
+
+App* : term → 𝕃 term → term
+App* t [] = t
+App* t (arg :: args) = App (App* t args) NotErased arg
 
 TpApp* : type → 𝕃 type → type
 TpApp* t [] = t

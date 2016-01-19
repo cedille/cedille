@@ -34,7 +34,7 @@ while true ; do
   spanfile=${sourcefile%.ced}.cede
 
   # cedille will print out an error if there was a major problem (file not existing, parse error, etc.)
-  e=`$CEDILLE $sourcefile`
+  e=`$CEDILLE +RTS -K1000000000 -RTS $sourcefile`
 
   if [ "$e" == "" ] ; then
     # print out the span file for the benefit of the emacs mode

@@ -1,11 +1,11 @@
 rec Nat | Z : Nat , S : Nat → Nat =
   ∀ P : Nat → ★ .
-    (Π n : Nat . P n → P (S n)) → P Z → P self
+    (∀ n : Nat . P n → P (S n)) → P Z → P self
   with
     Z = Λ P . λ s . λ z . z,
-    S = λ n . Λ P . λ s . λ z . s n (n · P s z) .
+    S = λ n . Λ P . λ s . λ z . s -n (n · P s z) .
 
-plus ⇐ Nat → Nat → Nat = λ n . λ m . n · (λ n : Nat . Nat) (λ n . S) m .
+plus ⇐ Nat → Nat → Nat = λ n . λ m . n · (λ n : Nat . Nat) (Λ n . S) m .
 
 one ⇐ Nat = S Z !
 
@@ -13,11 +13,3 @@ two ⇐ Nat = S (S Z) !
 
 four ⇐ Nat = plus two two !
 
-CNat ⇐ ★ = ∀ X : ★ . (X → X) → X → X .
-
-CZ ⇐ CNat = Λ X . λ s . λ z . z . 
-
-toChurch ⇐ Nat → CNat =
-  λ n . n · (λ n : Nat . CNat) (λ n . λ c . Λ X . λ s . λ z . s (c · X s z)) Λ X . λ s . λ z .z .
-
-cfour ⇐ CNat = toChurch four !

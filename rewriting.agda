@@ -5,7 +5,6 @@ open import lib
 open import cedille-types
 open import conversion
 open import ctxt
-open import hnf
 open import is-free
 open import rename
 open import syntax-util
@@ -33,7 +32,7 @@ rewrite-terma Γ ρ t1 t2 t =
   else rewrite-termh Γ ρ t1 t2 t
 
 rewrite-term : rewrite-t term
-rewrite-term Γ ρ t1 t2 t = rewrite-terma Γ ρ t1 t2 (erase-term Γ t)
+rewrite-term Γ ρ t1 t2 t = rewrite-terma Γ ρ t1 t2 (erase-term t)
 
 rewrite-type : rewrite-t type
 rewrite-kind : rewrite-t kind

@@ -2,8 +2,8 @@ module spans where
 
 open import lib
 open import cedille-types 
+open import conversion
 open import ctxt
-open import hnf
 open import syntax-util
 open import to-string
 

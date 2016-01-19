@@ -354,6 +354,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "\M-s") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "\C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
