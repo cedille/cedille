@@ -11,5 +11,6 @@ one ⇐ Nat = S Z !
 
 two ⇐ Nat = S (S Z) !
 
-four ⇐ Nat = plus two two !
+four = plus two two !
+
 

@@ -55,7 +55,7 @@ term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-str
 type-to-stringh p (Abs pi b pi' x t t') = 
   parens-unless (is-abs p) (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh (Abs pi b pi' x t t') t')
 type-to-stringh p (TpLambda pi pi' x tk t) = 
-  parens-unless (is-abs p) ("λ " ^ x ^ tk-to-string tk ^ " . " ^ type-to-stringh (TpLambda pi pi' x tk t) t )
+  parens-unless (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string tk ^ " . " ^ type-to-stringh (TpLambda pi pi' x tk t) t )
 type-to-stringh p (Iota pi x t) = parens-unless (is-abs p) ("ι " ^ x ^ " . " ^ type-to-stringh (Iota pi x t) t )
 type-to-stringh p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string x ^ " : " ^ liftingType-to-string x₁ ^ ")"
 type-to-stringh p (TpApp t t₁) = parens-unless (is-app p) (type-to-stringh (TpApp t t₁) t ^ " · " ^ type-to-string t₁)
