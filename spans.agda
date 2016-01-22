@@ -335,6 +335,7 @@ Rho-span pi t t' tvs = mk-span "Rho" pi (term-end-pos t')
 
 normalized-if : {ed : exprd} → ctxt → cmdTerminator → ⟦ ed ⟧ → 𝕃 tagged-val
 normalized-if{ed} Γ Normalize e = [ "normalized " ^ (exprd-name ed) , to-string (hnf Γ unfold-all e) ]
+normalized-if{ed} Γ Hnf e = [ "hnf " ^ (exprd-name ed) , to-string (hnf Γ unfold-head e) ]
 normalized-if Γ EraseOnly e = []
 
 Lft-span : posinfo → var → term → liftingType → 𝕃 tagged-val → span

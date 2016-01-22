@@ -48,6 +48,7 @@ mutual
 
   data cmdTerminator : Set where 
     EraseOnly : cmdTerminator
+    Hnf : cmdTerminator
     Normalize : cmdTerminator
 
   data cmds : Set where 
@@ -336,6 +337,7 @@ mutual
 
   cmdTerminatorToString : cmdTerminator → string
   cmdTerminatorToString (EraseOnly) = "EraseOnly" ^ ""
+  cmdTerminatorToString (Hnf) = "Hnf" ^ ""
   cmdTerminatorToString (Normalize) = "Normalize" ^ ""
 
   cmdsToString : cmds → string

@@ -24,7 +24,8 @@ Kind : checkKind -> ows '⇐' ows kind .
 CheckSuper : maybeCheckSuper -> ows '⇐' ows '□' .
 NoCheckSuper : maybeCheckSuper -> .
 
-Normalize : cmdTerminator -> '!'.
+Normalize : cmdTerminator -> '!!'.
+Hnf : cmdTerminator -> '!' .
 EraseOnly : cmdTerminator -> '.'.
 
 DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows cmdTerminator ! .
