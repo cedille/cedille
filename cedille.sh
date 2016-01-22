@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CEDILLE=~/cedille/main
+CEDILLE=${CEDILLE:-~/cedille/main}
 
 cedilleTmp=~/.cedille
 
