@@ -276,6 +276,7 @@ recompose-tpapps (h , []) = h
 recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
 recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
+{-
 dere-tpapps : ∀(t : type) → recompose-tpapps (decompose-tpapps t) ≡ t
 dere-tpapps (Abs x x₁ x₂ x₃ x₄ t) = refl
 dere-tpapps (Iota x x₁ t) = refl
@@ -289,6 +290,7 @@ dere-tpapps (TpEq x x₁) = refl
 dere-tpapps (TpLambda x x₁ x₂ x₃ t) = refl
 dere-tpapps (TpParens x t x₁) = refl
 dere-tpapps (TpVar x x₁) = refl
+-}
 
 {- lambda-abstract the input variables in reverse order around the
    given term (so closest to the top of the list is bound deepest in

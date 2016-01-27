@@ -150,12 +150,12 @@ from the given path."
     (se-mode-clear-selected))
   (when (and (null se-mode-selected)
 	     (null se-mode-not-selected))
-    (se-mode-update-selected (se-find-point-path (point) se-mode-parse-tree))))
+    (se-mode-update-selected (se-find-point-path (point) (se-mode-parse-tree)))))
 
 (defun se-mode-select (term)
   "Updates selection path and selects region."
   (when term
-    (se-mode-update-selected (se-find-span-path term se-mode-parse-tree))
+    (se-mode-update-selected (se-find-span-path term (se-mode-parse-tree)))
     (se-mode-expand-selected)
     t))
 
@@ -262,7 +262,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 
 (defun cedille-mode-select-span(cur)
   "Select and the given span."
-   (se-mode-update-selected (se-find-span-path cur se-mode-parse-tree))
+   (se-mode-update-selected (se-find-span-path cur (se-mode-parse-tree)))
    (se-mode-mark-term cur)
    (push (pop se-mode-not-selected) se-mode-selected)
    (display-buffer (cedille-mode-inspect)))
