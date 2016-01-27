@@ -31,14 +31,14 @@ while true ; do
   log "Got request to parse $sourcefile"
 
   # the span file has the same name but ends in .cede
-  spanfile=${sourcefile%.ced}.cede
+  spanfile="${sourcefile%.ced}.cede"
 
   # cedille will print out an error if there was a major problem (file not existing, parse error, etc.)
   e=`$CEDILLE +RTS -K1000000000 -RTS $sourcefile`
 
   if [ "$e" == "" ] ; then
     # print out the span file for the benefit of the emacs mode
-    cat $spanfile
+    cat "$spanfile"
   else
     echo $e
   fi
