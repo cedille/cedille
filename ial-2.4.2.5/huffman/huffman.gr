@@ -1,0 +1,37 @@
+huffman
+
+Start 
+
+start
+
+Syntactic
+
+File : start -> ows cmd ows .
+
+Encode : cmd -> words .
+
+Decode : cmd -> '!' ws codes ws bvlit .
+
+CodesStart : codes -> code .
+CodesNext : codes -> code ws codes .
+Code : code -> word ws '<-' ws bvlit.
+
+WordsStart : words -> word.
+WordsNext : words -> word ws words.
+
+BvlitStart : bvlit -> digit .
+BvlitCons : bvlit -> digit bvlit .
+
+Zero : digit -> '0'.
+One : digit -> '1'.
+
+Lexical
+
+word -> character .
+word -> character word .
+
+character -> ['a' - 'z'] | ['A' - 'Z'] | '(' | ')' | ',' | '.' .
+
+aws => ('\n' | '\t' | space ).
+ws => aws+.
+ows => aws* .

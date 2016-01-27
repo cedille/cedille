@@ -1,0 +1,12 @@
+digraph h {
+node [shape = plaintext];
+n0 [label = "12"];
+n0 -> n1;
+n1 [label = "hi , 6"];
+n0 -> n2;
+n2 [label = "6"];
+n2 -> n3;
+n3 [label = "hello , 3"];
+n2 -> n4;
+n4 [label = "bye , 3"];
+}

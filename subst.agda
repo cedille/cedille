@@ -98,3 +98,10 @@ subst-type Γ t x a = substh-type Γ empty-renamectxt t x a
 subst-kind : subst-ret-t kind
 subst-kind Γ t x a = substh-kind Γ empty-renamectxt t x a
 
+rename-type : ctxt → var → var → (is-term-var : 𝔹) → type → type
+rename-type Γ x y tt tp = subst-type Γ (Var posinfo-gen y) x tp
+rename-type Γ x y ff tp = subst-type Γ (TpVar posinfo-gen y) x tp
+
+rename-kind : ctxt → var → var → (is-term-var : 𝔹) → kind → kind
+rename-kind Γ x y tt k = subst-kind Γ (Var posinfo-gen y) x k
+rename-kind Γ x y ff k = subst-kind Γ (TpVar posinfo-gen y) x k

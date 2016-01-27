@@ -24,6 +24,10 @@ tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tag
 
 --------------------------------------------------
 -- span datatype
+--
+-- individual spans with an error message should
+-- include a tagged-val with the tag "error"
+-- (see is-error-span below)
 --------------------------------------------------
 data span : Set where
   mk-span : string → posinfo → posinfo → 𝕃 tagged-val {- extra information for the span -} → span
@@ -39,6 +43,13 @@ data spans : Set where
 global-error-p : spans → 𝔹
 global-error-p (global-error _ _) = tt
 global-error-p _ = ff
+
+is-error-span : span → 𝔹
+is-error-span (mk-span _ _ _ tvs) = list-any (λ tv → (fst tv) =string "error") tvs
+
+spans-have-error : spans → 𝔹
+spans-have-error (regular-spans ss) = list-any is-error-span ss
+spans-have-error (global-error _ _) = tt
 
 empty-spans : spans
 empty-spans = regular-spans []
@@ -168,6 +179,9 @@ tk-data (Tkt t) = type-data t
 
 ctxt-data : ctxt → tagged-val
 ctxt-data Γ = "current context" , ctxt-to-string Γ
+
+local-ctxt-data : ctxt → tagged-val
+local-ctxt-data Γ = "current context" , local-ctxt-to-string Γ
 
 --------------------------------------------------
 -- span-creating functions
@@ -319,8 +333,9 @@ Beta-span : posinfo → 𝕃 tagged-val → span
 Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
                      (explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
-hole-span : posinfo → maybe type → span
-hole-span pi tp = mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp [])
+hole-span : posinfo → maybe type → 𝕃 tagged-val → span
+hole-span pi tp tvs = 
+  mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp tvs)
 
 Epsilon-span : posinfo → leftRight → term → 𝕃 tagged-val → span
 Epsilon-span pi lr t tvs = mk-span "Epsilon" pi (term-end-pos t) 
@@ -331,7 +346,7 @@ Epsilon-span pi lr t tvs = mk-span "Epsilon" pi (term-end-pos t)
 
 Rho-span : posinfo → term → term → 𝕃 tagged-val → span
 Rho-span pi t t' tvs = mk-span "Rho" pi (term-end-pos t') 
-                          (tvs ++ [ explain ("Rewrite terms in the (expected) type, using an equation. " ) ])
+                            (tvs ++ [ explain ("Rewrite terms in the (expected) type, using an equation. ") ])
 
 normalized-if : {ed : exprd} → ctxt → cmdTerminator → ⟦ ed ⟧ → 𝕃 tagged-val
 normalized-if{ed} Γ Normalize e = [ "normalized " ^ (exprd-name ed) , to-string (hnf Γ unfold-all e) ]
@@ -344,6 +359,6 @@ Lft-span pi X t l tvs = mk-span "Lift type" pi (liftingType-end-pos l) tvs
 File-span : posinfo → posinfo → span
 File-span pi pi' = mk-span "Cedille source file" pi pi' []
 
-Import-span : posinfo → posinfo → span
-Import-span pi pi' = mk-span "Import of another source file" pi pi' []
+Import-span : posinfo → posinfo → 𝕃 tagged-val → span
+Import-span pi pi' tvs = mk-span "Import of another source file" pi pi' tvs
 

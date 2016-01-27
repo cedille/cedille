@@ -1,0 +1,5 @@
+is -> 1
+to -> 1
+test -> 2
+simple -> 2
+a -> 1

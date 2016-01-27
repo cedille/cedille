@@ -70,10 +70,18 @@ ctxt-term-udef v t (mk-ctxt i) = mk-ctxt (trie-insert i v (term-udef t))
 ctxt-var-decl : var → ctxt → ctxt
 ctxt-var-decl v (mk-ctxt i) = mk-ctxt (trie-insert i v var-decl)
 
+ctxt-rename-rep : ctxt → var → var
+ctxt-rename-rep (mk-ctxt i) v with trie-lookup i v 
+ctxt-rename-rep (mk-ctxt i) v | just (rename-def v') = v'
+ctxt-rename-rep (mk-ctxt i) v | _ = v
+
+ctxt-eq-rep : ctxt → var → var → 𝔹
+ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string (ctxt-rename-rep Γ y)
+
 {- add a renaming mapping the first variable to the second, unless they are equal.
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 ctxt-rename : var → var → ctxt → ctxt
-ctxt-rename v v' (mk-ctxt i) = if v =string v' then (mk-ctxt i) else (mk-ctxt (trie-insert i v (rename-def v')))
+ctxt-rename v v' (mk-ctxt i) = if (v =string v') then (mk-ctxt i) else (mk-ctxt (trie-insert i v (rename-def v')))
 
 ctxt-tk-decl : var → tk → ctxt → ctxt
 ctxt-tk-decl x (Tkt t) Γ = ctxt-term-decl x t Γ 
@@ -99,6 +107,13 @@ ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map "|" helper (trie-mappi
         helper (x , rename-def y) = "rename " ^ x ^ " to " ^ y 
         helper (x , rec-def tp k) = "rec " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
         helper (x , var-decl) = "expr " ^ x
+
+local-ctxt-to-string : ctxt → string
+local-ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map "|" helper (trie-mappings i)) ^ "]"
+  where helper : string × ctxt-info → string
+        helper (x , term-decl tp) = "term " ^ x ^ " : " ^ type-to-string tp 
+        helper (x , type-decl k) = "type " ^ x ^ " : " ^ kind-to-string k 
+        helper _ = ""
 
 ----------------------------------------------------------------------
 -- lookup functions
@@ -127,14 +142,12 @@ ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def (mk-ctxt i) v with trie-lookup i v
 ctxt-lookup-term-var-def (mk-ctxt i) v | just (term-def t _) = just t
 ctxt-lookup-term-var-def (mk-ctxt i) v | just (term-udef t) = just t
-ctxt-lookup-term-var-def (mk-ctxt i) v | just (rename-def t) = just (Var posinfo-gen t)
 ctxt-lookup-term-var-def (mk-ctxt i) v | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def (mk-ctxt i) v with trie-lookup i v
 ctxt-lookup-type-var-def (mk-ctxt i) v | just (type-def t _) = just t
 ctxt-lookup-type-var-def (mk-ctxt i) v | just (type-udef t) = just t
-ctxt-lookup-type-var-def (mk-ctxt i) v | just (rename-def t) = just (TpVar posinfo-gen t)
 ctxt-lookup-type-var-def (mk-ctxt i) v | _ = nothing
 
 ctxt-lookup-type-var-rec-def : ctxt → var → maybe type

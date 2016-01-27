@@ -211,7 +211,7 @@ check-termi Γ (App t m t') tp =
           else spanM-add (App-span t t' 
                            (error-data "The type computed for a term application does not match the expected type." ::
                             expected-type tp ::
-                            type-data tp' :: ctxt-data Γ :: 
+                            type-data tp' :: 
                            [ "hnf of expected type" , type-to-string (hnf Γ unfold-head tp) ]))
 check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
   check-tk Γ atk ≫span
@@ -236,8 +236,7 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) with to-abs tp
 check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _ tp') =
   spanM-add (this-span oc (check-erasures l b)) ≫span
   add-tk Γ pi' x (lambda-bound-class-if oc atk) ≫=span λ Γ → 
-  let Γ = ctxt-rename x' x Γ in
-    check-term Γ t (just tp')
+    check-term Γ t (just (rename-type Γ x' x (tk-is-type atk) tp'))
 
   where this-span : optClass → 𝕃 tagged-val → span
         this-span NoClass tvs = Lam-span pi l x oc t tvs
@@ -301,15 +300,26 @@ check-termi Γ (Rho pi t t') (just tp) =
         cont (just (TpEq t1 t2)) = 
            check-term Γ t' (just (rewrite-type Γ empty-renamectxt t1 t2 tp)) ≫span
            spanM-add (Rho-span pi t t' ( ("the equation" , type-to-string (TpEq t1 t2)) :: [ type-data tp ]))
-        cont (just tp') = spanM-add (Rho-span pi t t'
+        cont (just tp') = spanM-add (Rho-span pi t t' 
                                        (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
                                      :: ("the synthesized type for the first subterm" , type-to-string tp')
                                      :: [ expected-type tp ])) 
 
 check-termi Γ (Rho pi t t') nothing = 
-  spanM-add (Rho-span pi t t' [ error-data "An expected type is required in order to type a use of ρ." ]) ≫span spanMr nothing
+  check-term Γ t nothing ≫=span λ mtp → 
+  check-term Γ t' nothing ≫=span cont mtp
+  where cont : maybe type → maybe type → spanM (maybe type)
+        cont (just (TpEq t1 t2)) (just tp) = 
+          let tp' = rewrite-type Γ empty-renamectxt t1 t2 tp in
+            spanM-add (Rho-span pi t t' [ type-data tp' ]) ≫span
+            check-termi-return Γ (Rho pi t t') tp'
+        cont (just tp') m2 = spanM-add (Rho-span pi t t' 
+                                         (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
+                                      :: ("the synthesized type for the first subterm" , type-to-string tp')
+                                      :: [])) ≫span spanMr nothing
+        cont nothing _ = spanM-add (Rho-span pi t t' []) ≫span spanMr nothing
 
-check-termi Γ (Hole pi) tp = spanM-add (hole-span pi tp) ≫span return-when tp tp
+check-termi Γ (Hole pi) tp = spanM-add (hole-span pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
 
 check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
@@ -339,7 +349,7 @@ check-typei Γ (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x'
              else
                TpLambda-span pi x atk body (lambda-bound-var-conv-error x atk' atk [ kind-data k ])) ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 
-    check-type (ctxt-rename x' x Γ) body (just k')
+    check-type Γ body (just (rename-kind Γ x' x (tk-is-type atk') k'))
           
 check-typei Γ (TpLambda pi pi' x atk body) (just k) | nothing =
   check-tk Γ atk ≫span

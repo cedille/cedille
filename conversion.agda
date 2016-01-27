@@ -12,10 +12,11 @@ open import to-string
 
 {- Some notes:
 
-   -- hnf{TERM} currently implements erasure as well as normalization.
+   -- hnf{TERM} implements erasure as well as normalization.
 
    -- hnf{TYPE} does not descend into terms.
 
+   -- definitions are assumed to be in hnf
 -}
 
 data unfolding : Set where
@@ -72,17 +73,17 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | (App t' NotErased (Var pi'' x'))
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | t' = Lam pi KeptLambda pi' x NoClass t'
 hnf{TERM} Γ (unfold b b') (Var pi x) with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold b b') (Var pi x) | nothing = Var pi x
-hnf{TERM} Γ (unfold b b') (Var pi x) | just t = hnf Γ (unfold b b') t -- definitions are not required to be stored in hnf
+hnf{TERM} Γ (unfold b b') (Var pi x) | just t = t -- definitions should be stored in hnf
 hnf{TERM} Γ no-unfolding (Var pi x) = Var pi x
 hnf{TERM} Γ u (AppTp t tp) = hnf Γ u t
 
 hnf{TYPE} Γ u (TpParens _ t _) = hnf Γ u t
 hnf{TYPE} Γ (unfold b b') (TpVar _ x) with ctxt-lookup-type-var-def Γ x
-hnf{TYPE} Γ (unfold b b') (TpVar pi x) | just tp = hnf Γ (unfold b b') tp
+hnf{TYPE} Γ (unfold b b') (TpVar pi x) | just tp = tp 
 hnf{TYPE} Γ (unfold b ff) (TpVar pi x) | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt) (TpVar pi x) | nothing with ctxt-lookup-type-var-rec-def Γ x
 hnf{TYPE} Γ (unfold b tt) (TpVar pi x) | nothing | nothing = TpVar pi x
-hnf{TYPE} Γ (unfold b tt) (TpVar pi x) | nothing | just t = t
+hnf{TYPE} Γ (unfold b tt) (TpVar pi x) | nothing | just t = t 
 hnf{TYPE} Γ no-unfolding (TpVar pi x) = TpVar pi x
 hnf{TYPE} Γ u (TpAppt tp t) with hnf Γ u tp
 hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp)
@@ -112,8 +113,6 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
                 try-pull-term-in t l n vars ltps = TpApp tp1 tp2
         try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
 
---TpVar posinfo-gen "pull-lift-types"
-
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
@@ -132,7 +131,7 @@ hnf{TYPE} Γ u (Lft pi pi' y t l) =
 hnf{KIND} Γ u (KndParens _ k _) = hnf Γ u k
 hnf{KIND} Γ (unfold b b') (KndVar _ x) with ctxt-lookup-kind-var-def Γ x
 hnf{KIND} Γ (unfold b b') (KndVar pi x) | nothing = KndVar pi x
-hnf{KIND} Γ (unfold b b') (KndVar pi x) | just k = hnf Γ (unfold b b') k
+hnf{KIND} Γ (unfold b b') (KndVar pi x) | just k = k 
 hnf{KIND} Γ no-unfolding (KndVar pi x) = KndVar pi x
 hnf{KIND} Γ u (KndPi pi pi' x atk k) =
   let atk' = atk in -- hnf-tk Γ (unfold-dampen u ) atk in
@@ -149,27 +148,27 @@ hnf-tk Γ u (Tkt tp) = Tkt (hnf Γ u tp)
 hnf-optClass Γ u NoClass = NoClass
 hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf-tk Γ u atk)
 
-conv-term-norm Γ (Var _ x) (Var _ x') = x =string x'
+conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && conv-term Γ t2 t2'
-conv-term-norm Γ (Lam _ l _ x oc t) (Lam _ l' _ x' oc' t') = conv-term (ctxt-rename x x' Γ) t t'
+conv-term-norm Γ (Lam _ l _ x oc t) (Lam _ l' _ x' oc' t') = conv-term (ctxt-rename x x' (ctxt-var-decl x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
 conv-term-norm Γ _ _ = ff
 
-conv-type-norm Γ (TpVar _ x) (TpVar _ x') = x =string x'
+conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'
 conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type Γ t2 t2'
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Abs _ b _ x atk tp) (Abs _ b' _ x' atk' tp') = 
-  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename x x' Γ) tp tp'
+  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename x x' (ctxt-var-decl x' Γ)) tp tp'
 conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Iota _ x tp) (Iota _ x' tp') = conv-type (ctxt-rename x x' Γ) tp tp'
+conv-type-norm Γ (Iota _ x tp) (Iota _ x' tp') = conv-type (ctxt-rename x x' (ctxt-var-decl x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
-conv-type-norm Γ (Lft _ _ x t l) (Lft _ _ x' t' l') = conv-liftingType Γ l l' && conv-term (ctxt-rename x x' Γ) t t'
+conv-type-norm Γ (Lft _ _ x t l) (Lft _ _ x' t' l') = conv-liftingType Γ l l' && conv-term (ctxt-rename x x' (ctxt-var-decl x' Γ)) t t'
 conv-type-norm Γ (TpLambda _ _ x atk tp) (TpLambda _ _ x' atk' tp') =
-  conv-tk Γ atk atk' && conv-type (ctxt-rename x x' Γ) tp tp'
+  conv-tk Γ atk atk' && conv-type (ctxt-rename x x' (ctxt-var-decl x' Γ)) tp tp'
 conv-type-norm Γ _ _ = ff 
 
 {- even though hnf turns Pi-kinds where the variable is not free in the body into arrow kinds,

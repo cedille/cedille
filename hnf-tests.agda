@@ -55,3 +55,4 @@ aa = rename-var-if Γ empty-renamectxt "s" (mvar "s")
 bb = show (substh-term Γ' ρ (mvar "s") "x" (mlam "s'" (mapp (mapp (mvar "f") (mvar "s'")) (mvar "s"))))
 
 cc = rename-var-if Γ' ρ "s'" (mvar "s")
+

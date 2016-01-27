@@ -94,3 +94,7 @@ to-string{TERM} = term-to-string
 to-string{TYPE} = type-to-string
 to-string{KIND} = kind-to-string
 to-string{LIFTINGTYPE} = liftingType-to-string
+
+to-string-if : {ed : exprd} → maybe (⟦ ed ⟧) → string
+to-string-if (just e) = to-string e
+to-string-if nothing = "[nothing]"

@@ -4,3 +4,8 @@ rec Bool | tt : Bool , ff : Bool =
   with
     tt = Λ P . λ a . λ b . a ,
     ff = Λ P . λ a . λ b . b .
+
+and ⇐ Bool → Bool → Bool = 
+  λ x . λ y . x · (λ b : Bool . Bool) y ff .
+
+test ⇐ Bool = and tt ff !

@@ -325,3 +325,4 @@ erase-term (Beta pi) = Beta pi
 erase-term (Epsilon pi lr t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Rho pi t t') = erase-term t'
+
