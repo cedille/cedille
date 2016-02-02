@@ -1,0 +1,27 @@
+rec List (A : ★) : | Cons : A → List → List , Nil : List =
+  ∀ P : List → ★ .
+    (Π h : A . Π t : List . P t → P (Cons h t)) → 
+    P Nil → 
+    P self
+  with
+    Cons = λ a . λ v . Λ P . λ c . λ e . c a v (v · P c e),
+    Nil = Λ P . λ c . λ n . n 
+.
+
+appendCons ⇐ ∀ A : ★ . A → List · A → List · A → List · A =
+  Λ A . λ h . λ t . λ r . Cons · A h r .
+
+append ⇐ ∀ A : ★ . List · A → List · A → List · A =
+  Λ A . λ l . λ l' .
+   l · (λ l'' : (List · A) . List · A) (appendCons · A) l' .
+
+CList ⇐ ★ → ★ = λ A : ★ . ∀ X : ★ . (A → X → X) → X → X .
+
+CCons ⇐ ∀ A : ★ . A → CList · A → CList · A = Λ A . λ h . λ t . Λ X . λ c . λ e . c h (t · X c e) .
+
+CNil ⇐ ∀ A : ★ . CList · A = Λ A . Λ X . λ c . λ e . e .
+
+toCList ⇐ ∀ A : ★. List · A → CList · A = 
+  Λ A . λ l . l · (λ l : List · A . CList · A) (λ h . λ t . λ ct . CCons · A h ct) (CNil · A) .
+
+test-toCList = Λ A : ★ . λ x : A . λ y : A . λ z : A . toCList · A (Cons · A x (Cons · A y (Cons · A z (Nil · A)))) !

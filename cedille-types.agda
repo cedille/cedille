@@ -136,6 +136,7 @@ mutual
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
     Rho : posinfo → term → term → term
+    Sigma : posinfo → term → term
     Var : posinfo → var → term
 
   data tk : Set where 
@@ -425,6 +426,7 @@ mutual
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Rho x0 x1 x2) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ ")"
+  termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   tkToString : tk → string

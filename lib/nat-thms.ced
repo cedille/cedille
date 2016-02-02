@@ -1,0 +1,15 @@
+import nat.
+
+plusZ ⇐ Π x : Nat . plus x Z ≃ x
+  = λ x . x · (λ n : Nat . plus n Z ≃ n) (Λ n . λ u . εl (ρ εl u - β)) β .
+
+plusS ⇐ Π x : Nat . Π y : Nat . plus x (S y) ≃ S (plus x y)
+  = λ x . λ y . x · (λ n : Nat . plus n (S y) ≃ S (plus n y))
+                 (Λ n . λ u . εl (ρ εl u - β)) β.
+
+plusComm ⇐ Π x : Nat . Π y : Nat . plus x y ≃ plus y x 
+  = λ x . λ y . x · (λ x : Nat . plus x y ≃ plus y x)
+                  (Λ x . λ u .
+                     (εl (ρ u - ρ (plusS y x) - β)))
+                  (εl ρ (plusZ y) - β) . 
+  

@@ -337,16 +337,26 @@ hole-span : posinfo → maybe type → 𝕃 tagged-val → span
 hole-span pi tp tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp tvs)
 
-Epsilon-span : posinfo → leftRight → term → 𝕃 tagged-val → span
-Epsilon-span pi lr t tvs = mk-span "Epsilon" pi (term-end-pos t) 
-                            (tvs ++ [ explain ("Normalize the " ^ side lr ^ "-hand side of the expected equation.") ])
+expected-to-string : 𝔹 → string
+expected-to-string expected = if expected then "expected" else "synthesized"
+
+Epsilon-span : posinfo → leftRight → term → 𝔹 → 𝕃 tagged-val → span
+Epsilon-span pi lr t expected tvs = mk-span "Epsilon" pi (term-end-pos t) 
+                            (tvs ++ [ explain ("Normalize the " ^ side lr ^ "-hand side of the " 
+                                              ^ expected-to-string expected ^ " equation.") ])
   where side : leftRight → string
         side Left = "left"
         side Right = "right"
 
-Rho-span : posinfo → term → term → 𝕃 tagged-val → span
-Rho-span pi t t' tvs = mk-span "Rho" pi (term-end-pos t') 
-                            (tvs ++ [ explain ("Rewrite terms in the (expected) type, using an equation. ") ])
+Rho-span : posinfo → term → term → 𝔹 → 𝕃 tagged-val → span
+Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
+                                  (tvs ++ [ explain ("Rewrite terms in the " 
+                                                   ^ expected-to-string expected ^ " type, using an equation. ") ])
+
+Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
+Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
+                                   (tvs ++ (explain ("Swap the sides of the equation synthesized for the body of the of this term.")
+                                           :: expected-type-if expected []))
 
 normalized-if : {ed : exprd} → ctxt → cmdTerminator → ⟦ ed ⟧ → 𝕃 tagged-val
 normalized-if{ed} Γ Normalize e = [ "normalized " ^ (exprd-name ed) , to-string (hnf Γ unfold-all e) ]

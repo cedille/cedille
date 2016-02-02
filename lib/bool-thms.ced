@@ -1,0 +1,13 @@
+import bool.
+import false.
+import true.
+
+Bool-to-type ⇐ Bool → ★ =
+  λ b : Bool . 
+   ↑ X . b · (λ b : Bool . X) : (☆ → ☆ → ☆) · True · False .
+
+Bool-to-type-cong ⇐ Π x : Bool . Π y : Bool . (x ≃ y) → Bool-to-type x → Bool-to-type y =
+  λ x . λ y . λ u . λ v . ρ ς u - v .
+
+Bool-contra ⇐ (tt ≃ ff) → False =
+  λ u . Bool-to-type-cong tt ff u triv .

@@ -66,6 +66,7 @@ Right : leftRight -> 'r'.
 
 Beta : lterm -> ! 'β' .
 Epsilon : lterm -> ! 'ε' leftRight ws lterm .
+Sigma : lterm -> ! 'ς' ws lterm.
 Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 

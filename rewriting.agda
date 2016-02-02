@@ -18,6 +18,7 @@ rewrite-termh : rewrite-t term
 rewrite-termh Γ ρ t1 t2 (App t x t') = App (rewrite-terma Γ ρ t1 t2 t) x (rewrite-terma Γ ρ t1 t2 t')
 rewrite-termh Γ ρ t1 t2 (Beta x) = Beta x
 rewrite-termh Γ ρ t1 t2 (Epsilon x x₁ t) = Epsilon x x₁ (rewrite-terma Γ ρ t1 t2 t)
+rewrite-termh Γ ρ t1 t2 (Sigma x t) = Sigma x (rewrite-terma Γ ρ t1 t2 t)
 rewrite-termh Γ ρ t1 t2 (Hole x) = Hole x
 rewrite-termh Γ ρ t1 t2 (Lam pi KeptLambda pi' y NoClass t) =
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in

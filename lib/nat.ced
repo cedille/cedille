@@ -13,6 +13,8 @@ two ⇐ Nat = S (S Z) !
 
 four = plus two two !
 
+eight = plus four four !
+
 CNat ⇐ ★ = ∀ X : ★ . (X → X) → X → X .
 
 toCNat ⇐ Nat → CNat =

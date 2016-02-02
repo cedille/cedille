@@ -50,6 +50,7 @@ term-to-stringh p (Parens _ t _) = term-to-string t
 term-to-stringh p (Var _ x) = x
 term-to-stringh p (Beta _) = "β"
 term-to-stringh p (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
+term-to-stringh p (Sigma _ t) = "(ς " ^ term-to-string t ^ ")"
 term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
 
 type-to-stringh p (Abs pi b pi' x t t') = 

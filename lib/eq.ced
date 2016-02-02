@@ -1,3 +1,0 @@
-Eq ⇐ Π A : ★ . A → A → ★ = λ A : ★ . λ a : A . λ b : A . ∀ P : A → ★ . P a → P b .
-
-refl ⇐ ∀ A : ★ . ∀ a : A . Eq · A a a = Λ A . Λ a . Λ P . λ u . u .

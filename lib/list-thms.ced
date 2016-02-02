@@ -1,0 +1,7 @@
+import list.
+
+appendAssoc ⇐ ∀ A : ★ . Π x : List · A . Π y : List · A . Π z : List · A .
+              (append (append x y) z) ≃ (append x (append y z)) =
+  Λ A . λ x . λ y . λ z .
+    x · (λ x : List · A . (append (append x y) z) ≃ (append x (append y z)))
+      (λ h . λ t . λ u . (εl (εr (ρ u - β)))) β . 

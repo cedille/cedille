@@ -1,0 +1,12 @@
+import bool.
+import list.
+
+bar = Nil · Bool !
+
+foo = Cons · Bool tt !
+
+test2 = (λ v . λ c . λ e . c a v (q v c e)) Nil !
+
+test3 = (λ c . λ e . (c (Nil c e))) !
+
+test = toCList · Bool (append · Bool (Cons · Bool tt (Nil · Bool)) (Cons · Bool ff (Cons · Bool ff (Nil · Bool))) ) !

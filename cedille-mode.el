@@ -24,6 +24,27 @@
 
 (require 'quail)
 
+(when (version< emacs-version "24.4")
+  (defun define-error (name message &optional parent)
+    "Define NAME as a new error signal.
+MESSAGE is a string that will be output to the echo area if such an error
+is signaled without being caught by a `condition-case'.
+PARENT is either a signal or a list of signals from which it inherits.
+Defaults to `error'."
+    (unless parent (setq parent 'error))
+    (let ((conditions
+           (if (consp parent)
+               (apply #'nconc
+                      (mapcar (lambda (parent)
+                                (cons parent
+                                      (or (get parent 'error-conditions)
+                                          (error "Unknown signal `%s'" parent))))
+                              parent))
+             (cons parent (get parent 'error-conditions)))))
+      (put name 'error-conditions
+           (delete-dups (copy-sequence (cons name conditions))))
+      (when message (put name 'error-message message)))))
+
 (require 'se-mode)
 (eval-when-compile (require 'se-macros))
 
@@ -389,7 +410,8 @@ in the parse tree, and updates the Cedille info buffer."
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\t" "★") ("\\o" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
-          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\b" "β") ("\\e" "ε") ("\\w" "ρ")))
+          ("\\h" "●") ("\\c" "χ") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") 
+          ("\\b" "β") ("\\e" "ε") ("\\w" "ρ") ("\\s" "ς")))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here
