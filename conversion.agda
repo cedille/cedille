@@ -148,6 +148,12 @@ hnf-tk Γ u (Tkt tp) = Tkt (hnf Γ u tp)
 hnf-optClass Γ u NoClass = NoClass
 hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf-tk Γ u atk)
 
+-- unfold across the term-type barrier
+hnf-term-type : ctxt → unfolding → type → type
+hnf-term-type Γ u (TpEq t1 t2) = TpEq (hnf Γ u t1) (hnf Γ u t2)
+hnf-term-type Γ u (TpAppt tp t) = hnf Γ u (TpAppt tp (hnf Γ u t))
+hnf-term-type Γ u tp = hnf Γ u tp
+
 conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && conv-term Γ t2 t2'

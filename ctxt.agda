@@ -94,26 +94,27 @@ ctxt-tk-def x y (Tkk k) Γ = ctxt-type-def x (TpVar posinfo-gen y) k Γ
 ctxt-rec-def : var → type → kind → ctxt → ctxt
 ctxt-rec-def v t k (mk-ctxt i) = mk-ctxt (trie-insert i v (rec-def t k))
 
+ctxt-binding-to-string : string × ctxt-info → string
+ctxt-binding-to-string (x , term-decl tp) = "term " ^ x ^ " : " ^ type-to-string tp 
+ctxt-binding-to-string (x , term-def t tp) = "term " ^ x ^ " = " ^ term-to-string t ^ " : " ^ type-to-string tp 
+ctxt-binding-to-string (x , term-udef t) = "term " ^ x ^ " = " ^ term-to-string t 
+ctxt-binding-to-string (x , type-decl k) = "type " ^ x ^ " : " ^ kind-to-string k 
+ctxt-binding-to-string (x , type-def tp k) = "type " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
+ctxt-binding-to-string (x , type-udef tp) = "type " ^ x ^ " = " ^ type-to-string tp
+ctxt-binding-to-string (x , kind-def k) = "type " ^ x ^ " = " ^ kind-to-string k 
+ctxt-binding-to-string (x , rename-def y) = "rename " ^ x ^ " to " ^ y 
+ctxt-binding-to-string (x , rec-def tp k) = "rec " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
+ctxt-binding-to-string (x , var-decl) = "expr " ^ x
+
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map "|" helper (trie-mappings i)) ^ "]"
-  where helper : string × ctxt-info → string
-        helper (x , term-decl tp) = "term " ^ x ^ " : " ^ type-to-string tp 
-        helper (x , term-def t tp) = "term " ^ x ^ " = " ^ term-to-string t ^ " : " ^ type-to-string tp 
-        helper (x , term-udef t) = "term " ^ x ^ " = " ^ term-to-string t 
-        helper (x , type-decl k) = "type " ^ x ^ " : " ^ kind-to-string k 
-        helper (x , type-def tp k) = "type " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
-        helper (x , type-udef tp) = "type " ^ x ^ " = " ^ type-to-string tp
-        helper (x , kind-def k) = "type " ^ x ^ " = " ^ kind-to-string k 
-        helper (x , rename-def y) = "rename " ^ x ^ " to " ^ y 
-        helper (x , rec-def tp k) = "rec " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
-        helper (x , var-decl) = "expr " ^ x
+ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map " | " ctxt-binding-to-string (trie-mappings i)) ^ "]"
 
 local-ctxt-to-string : ctxt → string
-local-ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map "|" helper (trie-mappings i)) ^ "]"
-  where helper : string × ctxt-info → string
-        helper (x , term-decl tp) = "term " ^ x ^ " : " ^ type-to-string tp 
-        helper (x , type-decl k) = "type " ^ x ^ " : " ^ kind-to-string k 
-        helper _ = ""
+local-ctxt-to-string (mk-ctxt i) = "[" ^ (string-concat-sep-map " | " ctxt-binding-to-string (filter helper (trie-mappings i))) ^ "]"
+  where helper : string × ctxt-info → 𝔹
+        helper (_ , term-decl _) = tt
+        helper (_ , type-decl _) = tt
+        helper _ = ff
 
 ----------------------------------------------------------------------
 -- lookup functions

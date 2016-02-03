@@ -21,3 +21,13 @@ toCNat ⇐ Nat → CNat =
   λ x . x · (λ x : Nat . CNat)
           (λ p . λ c . (Λ X . λ s . λ z . s (c · X s z)))
           (Λ X . λ s . λ z . z) .
+
+iszero ⇐ Nat → Bool = 
+  λ n . n · (λ n : Nat . Bool) (λ p . λ r . ff) tt .
+
+eqnat ⇐ Nat → Nat → Bool =
+  λ n . n · (λ n : Nat . Nat → Bool) 
+          (λ p . λ r . λ m . m · (λ m : Nat . Bool) (λ p' . λ u . r p') ff)
+          iszero .
+
+test = eqnat two two !

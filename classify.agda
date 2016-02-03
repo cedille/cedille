@@ -346,7 +346,7 @@ check-termi Γ (Rho pi t t') nothing =
                                       :: [])) ≫span spanMr nothing
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
 
-check-termi Γ (Hole pi) tp = spanM-add (hole-span pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
+check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
 
 check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 

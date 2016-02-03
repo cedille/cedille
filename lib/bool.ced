@@ -8,4 +8,7 @@ rec Bool | tt : Bool , ff : Bool =
 and ⇐ Bool → Bool → Bool = 
   λ x . λ y . x · (λ b : Bool . Bool) y ff .
 
-test ⇐ Bool = and tt ff !
+or ⇐ Bool → Bool → Bool = 
+  λ x . λ y . x · (λ b : Bool . Bool) tt y .
+
+test ⇐ Bool = or tt ff !

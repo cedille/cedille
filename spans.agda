@@ -132,7 +132,11 @@ expected-kind-if (just k) tvs = expected-kind k :: tvs
 
 expected-type-if : maybe type → 𝕃 tagged-val → 𝕃 tagged-val
 expected-type-if nothing tvs = tvs
-expected-type-if (just k) tvs = expected-type k :: tvs
+expected-type-if (just tp) tvs = expected-type tp :: tvs
+
+hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val → 𝕃 tagged-val
+hnf-expected-type-if Γ nothing tvs = tvs
+hnf-expected-type-if Γ (just tp) tvs = ("hnf of expected type" , type-to-string (hnf-term-type Γ unfold-head tp)) :: tvs
 
 missing-type : tagged-val
 missing-type = "type" , "[undeclared]"
@@ -333,9 +337,10 @@ Beta-span : posinfo → 𝕃 tagged-val → span
 Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
                      (explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
-hole-span : posinfo → maybe type → 𝕃 tagged-val → span
-hole-span pi tp tvs = 
-  mk-span "Hole" pi (posinfo-plus pi 1) (error-data "This hole remains to be filled in" :: expected-type-if tp tvs)
+hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
+hole-span Γ pi tp tvs = 
+  mk-span "Hole" pi (posinfo-plus pi 1) 
+    (error-data "This hole remains to be filled in" :: expected-type-if tp (hnf-expected-type-if Γ tp tvs))
 
 expected-to-string : 𝔹 → string
 expected-to-string expected = if expected then "expected" else "synthesized"
