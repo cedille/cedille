@@ -50,6 +50,7 @@ term-start-pos (Beta pi) = pi
 term-start-pos (Epsilon pi _ _) = pi
 term-start-pos (Rho pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
+term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
@@ -61,6 +62,7 @@ type-start-pos (TpArrow t t₁) = type-start-pos t
 type-start-pos (TpEq x x₁) = term-start-pos x
 type-start-pos (TpParens pi _ pi') = pi
 type-start-pos (TpVar pi x₁) = pi
+type-start-pos (NoSpans t _) = type-start-pos t -- we are not expecting this on input
 
 kind-start-pos (KndArrow k k₁) = kind-start-pos k
 kind-start-pos (KndParens pi k pi') = pi
@@ -79,6 +81,7 @@ term-end-pos : term → posinfo
 type-end-pos : type → posinfo
 kind-end-pos : kind → posinfo
 liftingType-end-pos : liftingType → posinfo
+lterms-end-pos : lterms → posinfo
 
 term-end-pos (App t x t') = term-end-pos t'
 term-end-pos (AppTp t tp) = type-end-pos tp
@@ -90,6 +93,7 @@ term-end-pos (Beta pi) = posinfo-plus pi 1
 term-end-pos (Epsilon pi _ t) = term-end-pos t
 term-end-pos (Rho pi t t') = term-end-pos t'
 term-end-pos (Sigma pi t) = term-end-pos t
+term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
@@ -101,6 +105,7 @@ type-end-pos (TpArrow t t') = type-end-pos t'
 type-end-pos (TpEq x x') = term-end-pos x'
 type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
+type-end-pos (NoSpans t pi) = pi
 
 kind-end-pos (KndArrow k k') = kind-end-pos k'
 kind-end-pos (KndParens pi k pi') = pi'
@@ -114,6 +119,9 @@ liftingType-end-pos (LiftParens pi l pi') = pi'
 liftingType-end-pos (LiftPi x x₁ x₂ l) = liftingType-end-pos l
 liftingType-end-pos (LiftStar pi) = posinfo-plus pi 1
 liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
+
+lterms-end-pos (LtermsNil pi) = pi
+lterms-end-pos (LtermsCons _ ls) = lterms-end-pos ls
 
 decls-start-pos : decls → posinfo
 decls-start-pos (DeclsCons (Decl pi _ _ _) _) = pi
@@ -253,6 +261,9 @@ mtpvar x = TpVar posinfo-gen x
 mall : var → tk → type → type
 mall x tk tp = Abs posinfo-gen All posinfo-gen x tk tp
 
+mtplam : var → tk → type → type
+mtplam x tk tp = TpLambda posinfo-gen posinfo-gen x tk tp
+
 {- decompose a term into spine form consisting of a non-applications head and arguments.
    The outer arguments will come earlier in the list than the inner ones.
    As for decompose-lams, we assume the term is at least erased. -}
@@ -278,7 +289,6 @@ recompose-tpapps (h , []) = h
 recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
 recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
-{-
 dere-tpapps : ∀(t : type) → recompose-tpapps (decompose-tpapps t) ≡ t
 dere-tpapps (Abs x x₁ x₂ x₃ x₄ t) = refl
 dere-tpapps (Iota x x₁ t) = refl
@@ -292,7 +302,7 @@ dere-tpapps (TpEq x x₁) = refl
 dere-tpapps (TpLambda x x₁ x₂ x₃ t) = refl
 dere-tpapps (TpParens x t x₁) = refl
 dere-tpapps (TpVar x x₁) = refl
--}
+dere-tpapps (NoSpans x _) = refl
 
 {- lambda-abstract the input variables in reverse order around the
    given term (so closest to the top of the list is bound deepest in
@@ -318,6 +328,7 @@ is-intro-form (Lam x x₁ x₂ x₃ x₄ t) = tt
 is-intro-form _ = ff
 
 erase-term : term → term
+erase-lterms : theta → lterms → 𝕃 term
 erase-term (Parens _ t _) = erase-term t
 erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
@@ -330,4 +341,16 @@ erase-term (Epsilon pi lr t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Rho pi t t') = erase-term t'
+erase-term (Theta pi u t ls) = App* (erase-term t) (erase-lterms u ls)
 
+erase-lterms Abstract (LtermsNil _) = []
+erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi ]
+erase-lterms u (LtermsCons t ls) = erase-term t :: erase-lterms u ls
+
+lterms-to-𝕃h : theta → lterms → 𝕃 term
+lterms-to-𝕃h Abstract (LtermsNil _) = []
+lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ Beta pi ]
+lterms-to-𝕃h u (LtermsCons t ls) = t :: (lterms-to-𝕃h u ls)
+
+lterms-to-𝕃 : theta → lterms → 𝕃 term
+lterms-to-𝕃 u ls = reverse (lterms-to-𝕃h u ls)

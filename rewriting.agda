@@ -17,14 +17,11 @@ rewrite-terma : rewrite-t term
 rewrite-termh : rewrite-t term
 rewrite-termh Γ ρ t1 t2 (App t x t') = App (rewrite-terma Γ ρ t1 t2 t) x (rewrite-terma Γ ρ t1 t2 t')
 rewrite-termh Γ ρ t1 t2 (Beta x) = Beta x
-rewrite-termh Γ ρ t1 t2 (Epsilon x x₁ t) = Epsilon x x₁ (rewrite-terma Γ ρ t1 t2 t)
-rewrite-termh Γ ρ t1 t2 (Sigma x t) = Sigma x (rewrite-terma Γ ρ t1 t2 t)
 rewrite-termh Γ ρ t1 t2 (Hole x) = Hole x
 rewrite-termh Γ ρ t1 t2 (Lam pi KeptLambda pi' y NoClass t) =
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     Lam pi KeptLambda pi' y' NoClass (rewrite-terma Γ (renamectxt-insert ρ y y') t1 t2 t)
 rewrite-termh Γ ρ t1 t2 (Parens x t x₁) = rewrite-terma Γ ρ t1 t2 t
-rewrite-termh Γ ρ t1 t2 (Rho x t t₁) = Rho x (rewrite-terma Γ ρ t1 t2 t) (rewrite-terma Γ ρ t1 t2 t₁)
 rewrite-termh Γ ρ t1 t2 (Var x x₁) = Var x (renamectxt-rep ρ x₁)
 rewrite-termh Γ ρ t1 t2 x = x -- should not happen, as the term is erased
 
@@ -58,6 +55,7 @@ rewrite-type Γ ρ t1 t2 (TpLambda pi pi' y atk t') =
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     TpLambda pi pi' y (rewrite-tk Γ ρ t1 t2 atk) (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 t')
 rewrite-type Γ ρ t1 t2 (TpParens x tp x₁) = rewrite-type Γ ρ t1 t2 tp
+rewrite-type Γ ρ t1 t2 (NoSpans tp _) = rewrite-type Γ ρ t1 t2 tp
 rewrite-type Γ ρ t1 t2 (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 
 rewrite-kind Γ ρ t1 t2 k = k -- unimplemented

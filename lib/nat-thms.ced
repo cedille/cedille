@@ -13,3 +13,13 @@ plusComm ⇐ Π x : Nat . Π y : Nat . plus x y ≃ plus y x
                      (εl (ρ u - ρ (plusS y x) - β)))
                   (εl ρ (plusZ y) - β) . 
   
+eqnatS ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
+  λ x . x · (λ x : Nat . eqnat x (S x) ≃ ff)
+          (λ p . λ u . ρ u - β) β .
+
+eqnatSym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
+  λ x . x · (λ x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x)
+          (λ x . λ u . λ y . 
+               y · (λ y : Nat . eqnat (S x) y ≃ eqnat y (S x))
+                 (λ y . λ v . (u y)) β)
+          (λ y . y · (λ y : Nat . eqnat Z y ≃ eqnat y Z) (λ py . λ u . β) β) .

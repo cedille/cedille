@@ -29,6 +29,10 @@ is-free-in-term ce x (Beta _) = ff
 is-free-in-term ce x (Epsilon _ lr t) = is-free-in-term ce x t
 is-free-in-term ce x (Sigma _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Rho _ t t') = is-free-in-term ce x t || is-free-in-term ce x t'
+is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
+  where is-free-in-lterms : is-free-e → var → lterms → 𝔹
+        is-free-in-lterms ce x (LtermsNil _) = ff
+        is-free-in-lterms ce x (LtermsCons t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
 
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' atk t) = 
@@ -41,6 +45,7 @@ is-free-in-type ce x (TpArrow t t') = is-free-in-type ce x t || is-free-in-type 
 is-free-in-type ce x (TpEq t t') = is-free-in-term ce x t || is-free-in-term ce x t'
 is-free-in-type ce x (TpParens x₁ t x₂) = is-free-in-type ce x t
 is-free-in-type ce x (TpVar _ x') = x =string x'
+is-free-in-type ce x (NoSpans t _) = is-free-in-type ce x t
 
 is-free-in-kind ce x (KndArrow k k') = is-free-in-kind ce x k || is-free-in-kind ce x k'
 is-free-in-kind ce x (KndParens x₁ k x₂) = is-free-in-kind ce x k

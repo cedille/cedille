@@ -76,8 +76,13 @@ hnf{TERM} Γ (unfold b b') (Var pi x) | nothing = Var pi x
 hnf{TERM} Γ (unfold b b') (Var pi x) | just t = t -- definitions should be stored in hnf
 hnf{TERM} Γ no-unfolding (Var pi x) = Var pi x
 hnf{TERM} Γ u (AppTp t tp) = hnf Γ u t
+hnf{TERM} Γ u (Sigma pi t) = hnf Γ u t
+hnf{TERM} Γ u (Epsilon pi lr t) = hnf Γ u t
+hnf{TERM} Γ u (Rho pi t t') = hnf Γ u t'
+hnf{TERM} Γ u (Theta pi u' t ls) = hnf Γ u (App* t (erase-lterms u' ls))
 
 hnf{TYPE} Γ u (TpParens _ t _) = hnf Γ u t
+hnf{TYPE} Γ u (NoSpans t _) = hnf Γ u t
 hnf{TYPE} Γ (unfold b b') (TpVar _ x) with ctxt-lookup-type-var-def Γ x
 hnf{TYPE} Γ (unfold b b') (TpVar pi x) | just tp = tp 
 hnf{TYPE} Γ (unfold b ff) (TpVar pi x) | nothing = TpVar pi x

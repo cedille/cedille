@@ -19,10 +19,16 @@ lam-to-string KeptLambda = "λ"
 leftRight-to-string : leftRight → string
 leftRight-to-string Left = "l"
 leftRight-to-string Right = "r"
+leftRight-to-string Both = ""
+
+theta-to-string : theta → string
+theta-to-string Abstract = "θ"
+theta-to-string AbstractEq = "θ+"
 
 type-to-string : type → string
 term-to-string : term → string
 kind-to-string : kind → string
+lterms-to-stringh : lterms → string
 type-to-stringh : {ed : exprd} → ⟦ ed ⟧ → type → string
 term-to-stringh : {ed : exprd} → ⟦ ed ⟧ → term → string
 kind-to-stringh : {ed : exprd} → ⟦ ed ⟧ → kind → string
@@ -51,6 +57,7 @@ term-to-stringh p (Var _ x) = x
 term-to-stringh p (Beta _) = "β"
 term-to-stringh p (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Sigma _ t) = "(ς " ^ term-to-string t ^ ")"
+term-to-stringh p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string t ^ lterms-to-stringh ts ^ ")"
 term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
 
 type-to-stringh p (Abs pi b pi' x t t') = 
@@ -65,6 +72,7 @@ type-to-stringh p (TpArrow x t) = parens-unless (is-arrow p) (type-to-string x ^
 type-to-stringh p (TpEq t1 t2) = "(" ^ term-to-string t1 ^ " ≃ " ^ term-to-string t2 ^ ")"
 type-to-stringh p (TpParens _ t _) = type-to-string t
 type-to-stringh p (TpVar _ x) = x
+type-to-stringh p (NoSpans t _) = type-to-string t
 
 kind-to-stringh p (KndArrow k k') =
   parens-unless (is-arrow p) (kind-to-string k ^ " → " ^ kind-to-stringh (KndArrow k k') k')
@@ -89,6 +97,9 @@ liftingType-to-stringh p (LiftParens _ t _) = liftingType-to-string t
 liftingType-to-stringh p (LiftPi pi x x₁ t) = 
   parens-unless (is-abs p) ("Π " ^ x ^ " : " ^ type-to-string x₁ ^ " . " ^ liftingType-to-stringh (LiftPi pi x x₁ t) t)
 liftingType-to-stringh p (LiftStar _) = "☆"
+
+lterms-to-stringh (LtermsNil _) = ""
+lterms-to-stringh (LtermsCons t ts) = " " ^ term-to-string t ^ lterms-to-stringh ts
 
 to-string : {ed : exprd} → ⟦ ed ⟧ → string
 to-string{TERM} = term-to-string

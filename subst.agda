@@ -44,6 +44,10 @@ substh-term Γ ρ t x (Beta pi) = Beta pi
 substh-term Γ ρ t x (Epsilon pi lr t') = Epsilon pi lr (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Sigma pi t') = Sigma pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
+substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
+  where substh-lterms : substh-ret-t lterms
+        substh-lterms Γ ρ t x (LtermsNil pi) = LtermsNil pi
+        substh-lterms Γ ρ t x (LtermsCons t' ls) = LtermsCons (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls)
 
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
@@ -66,6 +70,7 @@ substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh
 substh-type Γ ρ t x (TpArrow tp tp₁) = TpArrow (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpEq x₁ x₂) = TpEq (substh-term Γ ρ t x x₁) (substh-term Γ ρ t x x₂)
 substh-type Γ ρ t x (TpParens x₁ tp x₂) = substh-type Γ ρ t x tp
+substh-type Γ ρ t x (NoSpans tp _) = substh-type Γ ρ t x tp
 substh-type{TYPE} Γ ρ t x (TpVar pi y) =
  let y' = renamectxt-rep ρ y in
    if y' =string x then t else (TpVar pi y')

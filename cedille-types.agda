@@ -90,6 +90,7 @@ mutual
     KeptLambda : lam
 
   data leftRight : Set where 
+    Both : leftRight
     Left : leftRight
     Right : leftRight
 
@@ -99,6 +100,10 @@ mutual
     LiftPi : posinfo → var → type → liftingType → liftingType
     LiftStar : posinfo → liftingType
     LiftTpArrow : type → liftingType → liftingType
+
+  data lterms : Set where 
+    LtermsCons : term → lterms → lterms
+    LtermsNil : posinfo → lterms
 
   data maybeCheckSuper : Set where 
     CheckSuper : maybeCheckSuper
@@ -137,7 +142,12 @@ mutual
     Parens : posinfo → term → posinfo → term
     Rho : posinfo → term → term → term
     Sigma : posinfo → term → term
+    Theta : posinfo → theta → term → lterms → term
     Var : posinfo → var → term
+
+  data theta : Set where 
+    Abstract : theta
+    AbstractEq : theta
 
   data tk : Set where 
     Tkk : kind → tk
@@ -147,6 +157,7 @@ mutual
     Abs : posinfo → binder → posinfo → var → tk → type → type
     Iota : posinfo → var → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
+    NoSpans : type → posinfo → type
     TpApp : type → type → type
     TpAppt : type → term → type
     TpArrow : type → type → type
@@ -167,6 +178,8 @@ mutual
     UdefsneStart : udef → udefsne
 
 -- embedded types:
+aterm : Set
+aterm = term
 atype : Set
 atype = type
 lliftingType : Set
@@ -192,6 +205,7 @@ data ParseTreeT : Set where
   parsed-lam : lam → ParseTreeT
   parsed-leftRight : leftRight → ParseTreeT
   parsed-liftingType : liftingType → ParseTreeT
+  parsed-lterms : lterms → ParseTreeT
   parsed-maybeCheckSuper : maybeCheckSuper → ParseTreeT
   parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
@@ -200,11 +214,13 @@ data ParseTreeT : Set where
   parsed-optClass : optClass → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
+  parsed-theta : theta → ParseTreeT
   parsed-tk : tk → ParseTreeT
   parsed-type : type → ParseTreeT
   parsed-udef : udef → ParseTreeT
   parsed-udefs : udefs → ParseTreeT
   parsed-udefsne : udefsne → ParseTreeT
+  parsed-aterm : term → ParseTreeT
   parsed-atype : type → ParseTreeT
   parsed-lliftingType : liftingType → ParseTreeT
   parsed-lterm : term → ParseTreeT
@@ -380,6 +396,7 @@ mutual
   lamToString (KeptLambda) = "KeptLambda" ^ ""
 
   leftRightToString : leftRight → string
+  leftRightToString (Both) = "Both" ^ ""
   leftRightToString (Left) = "Left" ^ ""
   leftRightToString (Right) = "Right" ^ ""
 
@@ -389,6 +406,10 @@ mutual
   liftingTypeToString (LiftPi x0 x1 x2 x3) = "(LiftPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (liftingTypeToString x3) ^ ")"
   liftingTypeToString (LiftStar x0) = "(LiftStar" ^ " " ^ (posinfoToString x0) ^ ")"
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
+
+  ltermsToString : lterms → string
+  ltermsToString (LtermsCons x0 x1) = "(LtermsCons" ^ " " ^ (termToString x0) ^ " " ^ (ltermsToString x1) ^ ")"
+  ltermsToString (LtermsNil x0) = "(LtermsNil" ^ " " ^ (posinfoToString x0) ^ ")"
 
   maybeCheckSuperToString : maybeCheckSuper → string
   maybeCheckSuperToString (CheckSuper) = "CheckSuper" ^ ""
@@ -427,7 +448,12 @@ mutual
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Rho x0 x1 x2) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
+  termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
+
+  thetaToString : theta → string
+  thetaToString (Abstract) = "Abstract" ^ ""
+  thetaToString (AbstractEq) = "AbstractEq" ^ ""
 
   tkToString : tk → string
   tkToString (Tkk x0) = "(Tkk" ^ " " ^ (kindToString x0) ^ ")"
@@ -437,6 +463,7 @@ mutual
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Iota x0 x1 x2) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
+  typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
@@ -472,6 +499,7 @@ ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-leftRight t) = leftRightToString t
 ParseTreeToString (parsed-liftingType t) = liftingTypeToString t
+ParseTreeToString (parsed-lterms t) = ltermsToString t
 ParseTreeToString (parsed-maybeCheckSuper t) = maybeCheckSuperToString t
 ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
@@ -480,11 +508,13 @@ ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
+ParseTreeToString (parsed-theta t) = thetaToString t
 ParseTreeToString (parsed-tk t) = tkToString t
 ParseTreeToString (parsed-type t) = typeToString t
 ParseTreeToString (parsed-udef t) = udefToString t
 ParseTreeToString (parsed-udefs t) = udefsToString t
 ParseTreeToString (parsed-udefsne t) = udefsneToString t
+ParseTreeToString (parsed-aterm t) = termToString t
 ParseTreeToString (parsed-atype t) = typeToString t
 ParseTreeToString (parsed-lliftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-lterm t) = termToString t
@@ -584,6 +614,10 @@ mutual
   norm-tk x = x
 
   {-# NO_TERMINATION_CHECK #-}
+  norm-theta : (x : theta) → theta
+  norm-theta x = x
+
+  {-# NO_TERMINATION_CHECK #-}
   norm-term : (x : term) → term
   norm-term (AppTp (App x1 x2 (Lam x3 x4 x5 x6 x7 x8)) x9) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 x7 (norm-term (AppTp  x8 x9) )) )) )
   norm-term (AppTp (Lam x1 x2 x3 x4 x5 x6) x7) = (norm-term (Lam  x1 x2 x3 x4 x5 (norm-term (AppTp  x6 x7) )) )
@@ -628,6 +662,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-ltype : (x : ltype) → ltype
   norm-ltype x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-lterms : (x : lterms) → lterms
+  norm-lterms x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-lterm : (x : lterm) → lterm
@@ -707,6 +745,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-atype : (x : atype) → atype
   norm-atype x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-aterm : (x : aterm) → aterm
+  norm-aterm x = x
 
 isParseTree : ParseTreeT → 𝕃 char → string → Set
 isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed runs -}

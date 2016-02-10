@@ -63,7 +63,17 @@ Import : cmd -> ! 'import' ws var ows '.'! .
 
 Left : leftRight -> 'l'.
 Right : leftRight -> 'r'.
+Both : leftRight -> .
 
+Abstract : theta -> 'θ' .
+AbstractEq : theta -> 'θ+' .
+
+Lam : term -> ! lam ows ! var optClass ows '.' ows term .
+Theta : term -> ! theta ws lterm ows lterms.
+embed : term -> aterm .
+App : aterm -> aterm ws maybeErased aterm .
+AppTp : aterm -> aterm ws '·' ws atype .
+embed : aterm -> lterm .
 Beta : lterm -> ! 'β' .
 Epsilon : lterm -> ! 'ε' leftRight ws lterm .
 Sigma : lterm -> ! 'ς' ws lterm.
@@ -71,10 +81,9 @@ Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
-App : term -> term ws maybeErased term .
-AppTp : term -> term ws '·' ws atype .
-Lam : term -> ! lam ows ! var optClass ows '.' ows term .
-embed : term -> lterm .
+
+LtermsNil : lterms -> ! .
+LtermsCons : lterms -> ws lterm lterms.
 
 NotErased : maybeErased -> .
 Erased : maybeErased -> '-' ows .
@@ -91,6 +100,8 @@ TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 Iota : type -> ! 'ι' ows var ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
+
+NoSpans : type -> '{^' type ! '^}' . % intended for internal use only
 
 Lft : ltype -> ! '↑' ows ! var ows '.' ows term ows ':' ows lliftingType .
 TpParens : atype -> ! '(' ows type ows ')' !.

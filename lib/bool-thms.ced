@@ -13,4 +13,12 @@ Bool-contra ⇐ (tt ≃ ff) → False =
   λ u . Bool-to-type-cong tt ff u triv .
 
 andIdem ⇐ Π x : Bool . and x x ≃ x = 
-  λ x . x · (λ x : Bool . and x x ≃ x) β β .
+  λ x . θ x β β .
+
+Bool-same-branches ⇐ ∀ A : ★ . ∀ a : A . Π x : Bool . x a a ≃ a =
+  Λ A . Λ a . λ x . θ x β β .
+
+Bool-tt-tt ⇐ Π x : Bool . x tt tt ≃ tt = Bool-same-branches · Bool -tt .
+
+or-ff ⇐ Π x : Bool . (or x ff ≃ tt) → x ≃ tt =
+  λ x . θ x (λ u . u) (λ u . β) .

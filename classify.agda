@@ -76,6 +76,7 @@ check-term-app-matching-erasures _ _ = ff
 check-term-update-eq : ctxt → leftRight → term → term → type
 check-term-update-eq Γ Left t1 t2 = TpEq (hnf Γ unfold-head t1) t2
 check-term-update-eq Γ Right t1 t2 = TpEq t1 (hnf Γ unfold-head t2) 
+check-term-update-eq Γ Both t1 t2 = TpEq (hnf Γ unfold-head t1) (hnf Γ unfold-head t2) 
 
 {- if the hnf of the type is a Iota type, then instantiate it with the given term.
    We assume types do not reduce with normalization and instantiation to further iota
@@ -122,6 +123,7 @@ lambda-bound-class-if (SomeClass atk') atk = atk'
    Use add-tk above to add declarations to the ctxt, since these should be normalized
    and with self-types instantiated.
  -}
+{-# NO_TERMINATION_CHECK #-}
 check-term : ctxt → term → (m : maybe type) → spanM (check-ret m)
 check-termi : ctxt → term → (m : maybe type) → spanM (check-ret m)
 check-type : ctxt → type → (m : maybe kind) → spanM (check-ret m)
@@ -151,8 +153,8 @@ check-termi Γ (Var pi x) (just tp) | just tp' =
                (if conv-type Γ tp tp' then (expected-type tp :: [ type-data tp' ])
                  else (error-data "The computed type does not match the expected type." :: 
                        expected-type tp :: 
-                       type-data tp' :: ("nf expected" , type-to-string (hnf Γ unfold-all tp))
-                       :: ("nf computed" , type-to-string (hnf Γ unfold-all tp')) :: [])))
+                       type-data tp' :: ("hnf expected" , type-to-string (hnf-term-type Γ unfold-head tp))
+                       :: ("hnf computed" , type-to-string (hnf-term-type Γ unfold-head tp')) :: [])))
 
 check-termi Γ (AppTp t tp') tp =
   check-term Γ t nothing ≫=spanm (λ htp → cont (hnf-instantiate-iota Γ t htp)) ≫=spanr cont' tp 
@@ -216,7 +218,7 @@ check-termi Γ (App t m t') tp =
                            (error-data "The type computed for a term application does not match the expected type." ::
                             expected-type tp ::
                             type-data tp' :: 
-                           [ "hnf of expected type" , type-to-string (hnf Γ unfold-head tp) ]))
+                            hnf-expected-type-if Γ (just tp) []))
 check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
   check-tk Γ atk ≫span
   add-tk Γ pi x atk ≫=span λ Γ → 
@@ -346,11 +348,38 @@ check-termi Γ (Rho pi t t') nothing =
                                       :: [])) ≫span spanMr nothing
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
 
+check-termi Γ (Theta pi u t ls) nothing =
+  spanM-add (Theta-span pi u t ls [ error-data "Theta-terms can only be used in checking positions (and this is a synthesizing one)." ])
+  ≫span spanMr nothing
+
+check-termi Γ (Theta pi AbstractEq t ls) (just tp) =
+  -- discard spans from checking t, because we will check it again below
+  check-term Γ t nothing ≫=spand 
+    (λ htp → let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
+                 cont (mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) tp)))
+  where cont : type → spanM ⊤
+        cont motive = spanM-add (Theta-span pi AbstractEq t ls [ the-motive motive ]) ≫span 
+                      check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
+                                         (lterms-to-𝕃 AbstractEq ls)) (just tp)
+
+check-termi Γ (Theta pi Abstract (Var pi' x) ls) (just tp) =
+  -- discard spans from checking the head, because we will check it again below
+  check-term Γ (Var pi' x) nothing ≫=spand (λ htp → cont (mtplam x (Tkt htp) tp))
+  where cont : type → spanM ⊤
+        cont motive = spanM-add (Theta-span pi Abstract (Var pi' x) ls [ the-motive motive ]) ≫span 
+                      check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
+                                   (lterms-to-𝕃 Abstract ls)) (just tp)
+
+check-termi Γ (Theta pi Abstract t ls) (just tp) =
+  spanM-add (Theta-span pi Abstract t ls [ error-data "Abstracting a non-variable term is not implemented yet." ])
+  ≫span spanMr triv
+
 check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
 
 check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
 check-typei Γ (TpParens pi t pi') k = check-type Γ t k
+check-typei Γ (NoSpans t _) k ss = fst (check-type Γ t k ss) , ss
 check-typei Γ (TpVar pi x) k with ctxt-lookup-type-var Γ x
 check-typei Γ (TpVar pi x) k | nothing = 
   spanM-add (TpVar-span pi x 
