@@ -358,7 +358,7 @@ check-termi Γ (Theta pi AbstractEq t ls) (just tp) =
     (λ htp → let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
                  cont (mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) tp)))
   where cont : type → spanM ⊤
-        cont motive = spanM-add (Theta-span pi AbstractEq t ls [ the-motive motive ]) ≫span 
+        cont motive = spanM-add (Theta-span pi AbstractEq t ls (expected-type tp :: [ the-motive motive ])) ≫span 
                       check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
                                          (lterms-to-𝕃 AbstractEq ls)) (just tp)
 
@@ -366,12 +366,12 @@ check-termi Γ (Theta pi Abstract (Var pi' x) ls) (just tp) =
   -- discard spans from checking the head, because we will check it again below
   check-term Γ (Var pi' x) nothing ≫=spand (λ htp → cont (mtplam x (Tkt htp) tp))
   where cont : type → spanM ⊤
-        cont motive = spanM-add (Theta-span pi Abstract (Var pi' x) ls [ the-motive motive ]) ≫span 
+        cont motive = spanM-add (Theta-span pi Abstract (Var pi' x) ls (expected-type tp :: [ the-motive motive ])) ≫span 
                       check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
                                    (lterms-to-𝕃 Abstract ls)) (just tp)
 
 check-termi Γ (Theta pi Abstract t ls) (just tp) =
-  spanM-add (Theta-span pi Abstract t ls [ error-data "Abstracting a non-variable term is not implemented yet." ])
+  spanM-add (Theta-span pi Abstract t ls (expected-type tp :: [ error-data "Abstracting a non-variable term is not implemented yet." ]))
   ≫span spanMr triv
 
 check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp

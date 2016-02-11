@@ -4,11 +4,11 @@ plusZ ⇐ Π x : Nat . plus x Z ≃ x
   = λ x . x · (λ n : Nat . plus n Z ≃ n) (λ n . λ u . εl (ρ εl u - β)) β .
 
 plusS ⇐ Π x : Nat . Π y : Nat . plus x (S y) ≃ S (plus x y)
-  = λ x . λ y . x · (λ n : Nat . plus n (S y) ≃ S (plus n y))
+  = λ x . λ y . θ x 
                  (λ n . λ u . εl (ρ εl u - β)) β.
 
 plusComm ⇐ Π x : Nat . Π y : Nat . plus x y ≃ plus y x 
-  = λ x . λ y . x · (λ x : Nat . plus x y ≃ plus y x)
+  = λ x . λ y . θ x 
                   (λ x . λ u .
                      (εl (ρ u - ρ (plusS y x) - β)))
                   (εl ρ (plusZ y) - β) . 
@@ -21,8 +21,7 @@ eqnatS ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
           (λ p . λ u . ρ u - β) β .
 
 eqnatSym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
-  λ x . x · (λ x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x)
+  λ x . θ x 
           (λ x . λ u . λ y . 
-               y · (λ y : Nat . eqnat (S x) y ≃ eqnat y (S x))
-                 (λ y . λ v . (u y)) β)
-          (λ y . y · (λ y : Nat . eqnat Z y ≃ eqnat y Z) (λ py . λ u . β) β) .
+               θ y (λ y . λ v . (u y)) β)
+          (λ y . θ y (λ py . λ u . β) β) .
