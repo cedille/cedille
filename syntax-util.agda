@@ -315,6 +315,10 @@ App* : term → 𝕃 term → term
 App* t [] = t
 App* t (arg :: args) = App (App* t args) NotErased arg
 
+App*' : term → 𝕃 term → term
+App*' t [] = t
+App*' t (arg :: args) = App*' (App t NotErased arg) args
+
 TpApp* : type → 𝕃 type → type
 TpApp* t [] = t
 TpApp* t (arg :: args) = (TpApp (TpApp* t args) arg)
@@ -341,7 +345,7 @@ erase-term (Epsilon pi lr t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Rho pi t t') = erase-term t'
-erase-term (Theta pi u t ls) = App* (erase-term t) (erase-lterms u ls)
+erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 erase-lterms Abstract (LtermsNil _) = []
 erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi ]

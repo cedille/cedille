@@ -409,9 +409,9 @@ in the parse tree, and updates the Cedille info buffer."
 
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
-          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "⇐") ("\\u" "↑") 
+          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\<" "⇐") ("\\u" "↑") 
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") 
-          ("\\b" "β") ("\\e" "ε") ("\\rr" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\T" "θ̄")))
+          ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

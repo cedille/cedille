@@ -7,7 +7,7 @@ rec Nat | Z : Nat , S : Nat → Nat =
     Z = Λ P . λ s . λ z . z,
     S = λ n . Λ P . λ s . λ z . s n (n · P s z) .
 
-plus ⇐ Nat → Nat → Nat = λ n . λ m . n · (λ n : Nat . Nat) (λ n . S) m .
+plus ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
 
 two ⇐ Nat = S (S Z) !
 

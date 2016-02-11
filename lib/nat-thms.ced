@@ -13,6 +13,9 @@ plusComm ⇐ Π x : Nat . Π y : Nat . plus x y ≃ plus y x
                      (εl (ρ u - ρ (plusS y x) - β)))
                   (εl ρ (plusZ y) - β) . 
   
+plusAssoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . plus x (plus y z) ≃ plus (plus x y) z = 
+  λ x . λ y . λ z . θ x (λ n . λ ih . εl ρ ih - β) β .
+
 eqnatS ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
   λ x . x · (λ x : Nat . eqnat x (S x) ≃ ff)
           (λ p . λ u . ρ u - β) β .
