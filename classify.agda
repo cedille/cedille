@@ -385,21 +385,32 @@ check-termi Γ (Theta pi u t ls) nothing =
 
 check-termi Γ (Theta pi AbstractEq t ls) (just tp) =
   -- discard spans from checking t, because we will check it again below
-  check-term Γ t nothing ≫=spand 
-    (λ htp → let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
-                 cont (mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) tp)))
-  where cont : type → spanM ⊤
-        cont motive = spanM-add (Theta-span pi AbstractEq t ls (expected-type tp :: [ the-motive motive ])) ≫span 
-                      check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
-                                         (lterms-to-𝕃 AbstractEq ls)) (just tp)
+  check-term Γ t nothing ≫=spand cont
+  where cont : maybe type → spanM ⊤
+        cont nothing = check-term Γ t nothing ≫=span (λ m → 
+                          spanM-add (Theta-span pi AbstractEq t ls 
+                                      (expected-type tp :: [ motive-label , "We could not compute a motive from the given term" ])))
+        cont (just htp) = 
+           let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
+           let motive = mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) tp) in
+             spanM-add (Theta-span pi AbstractEq t ls (expected-type tp :: [ the-motive motive ])) ≫span 
+             check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
+                            (lterms-to-𝕃 AbstractEq ls))
+               (just tp)
 
 check-termi Γ (Theta pi Abstract (Var pi' x) ls) (just tp) =
   -- discard spans from checking the head, because we will check it again below
-  check-term Γ (Var pi' x) nothing ≫=spand (λ htp → cont (mtplam x (Tkt htp) tp))
-  where cont : type → spanM ⊤
-        cont motive = spanM-add (Theta-span pi Abstract (Var pi' x) ls (expected-type tp :: [ the-motive motive ])) ≫span 
-                      check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
-                                   (lterms-to-𝕃 Abstract ls)) (just tp)
+  check-term Γ (Var pi' x) nothing ≫=spand cont
+  where cont : maybe type → spanM ⊤
+        cont nothing = check-term Γ (Var pi' x) nothing ≫=span (λ m → 
+                          spanM-add (Theta-span pi Abstract (Var pi' x) ls 
+                                      (expected-type tp :: [ motive-label , "We could not compute a motive from the given term" ])))
+        cont (just htp) = 
+          let motive = mtplam x (Tkt htp) tp in
+            spanM-add (Theta-span pi Abstract (Var pi' x) ls (expected-type tp :: [ the-motive motive ])) ≫span 
+            check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
+                            (lterms-to-𝕃 Abstract ls)) 
+               (just tp)
 
 check-termi Γ (Theta pi Abstract t ls) (just tp) =
   spanM-add (Theta-span pi Abstract t ls (expected-type tp :: [ error-data "Abstracting a non-variable term is not implemented yet." ]))

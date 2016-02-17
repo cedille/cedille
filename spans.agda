@@ -94,10 +94,9 @@ _≫=spanj_{A} m m' = m ≫=span cont
         cont (just x) = m' x
 
 -- discard new spans added by the first computation
-_≫=spand_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
+_≫=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 _≫=spand_{A} m m' c with m c 
-_≫=spand_{A} m m' c | nothing , ss = triv , c
-_≫=spand_{A} m m' c | just tp , ss = m' tp c
+_≫=spand_{A} m m' c | v , ss = m' v c
 
 _≫=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
 _≫=spanm_{A} m m' = m ≫=span cont
@@ -375,8 +374,11 @@ Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t)
                                    (tvs ++ (explain ("Swap the sides of the equation synthesized for the body of the of this term.")
                                            :: expected-type-if expected []))
 
+motive-label : string
+motive-label = "the motive"
+
 the-motive : type → tagged-val
-the-motive motive = "the motive" , type-to-string motive
+the-motive motive = motive-label , type-to-string motive
 
 Theta-span : posinfo → theta → term → lterms → 𝕃 tagged-val → span
 Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-explain u)

@@ -411,7 +411,10 @@ in the parse tree, and updates the Cedille info buffer."
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "→") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "⇐") ("\\<" "⇐") ("\\u" "↑") 
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\d" "δ")
-          ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ))
+          ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ")
+
+          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ; add some more of these
+ ))
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here
