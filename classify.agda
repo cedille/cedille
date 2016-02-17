@@ -78,6 +78,19 @@ check-term-update-eq Γ Left t1 t2 = TpEq (hnf Γ unfold-head t1) t2
 check-term-update-eq Γ Right t1 t2 = TpEq t1 (hnf Γ unfold-head t2) 
 check-term-update-eq Γ Both t1 t2 = TpEq (hnf Γ unfold-head t1) (hnf Γ unfold-head t2) 
 
+-- a simple incomplete check for beta-inequivalence
+check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
+check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) = 
+  check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x2) (renamectxt-insert m x1 x2) t1 t2
+check-beta-inequivh local-left local-right m t1 t2 with decompose-apps t1 | decompose-apps t2 
+check-beta-inequivh local-left local-right m t1 t2 | Var _ x1 , args1 | Var _ x2 , args2 = 
+  (~ eq-var m x1 x2) && (stringset-contains local-left x1) && (stringset-contains local-right x2)
+check-beta-inequivh local-left local-right m t1 t2 | _ | _ = ff 
+
+-- t1 and t2 should be in normal form
+check-beta-inequiv : term → term → 𝔹
+check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renamectxt t1 t2
+
 {- if the hnf of the type is a Iota type, then instantiate it with the given term.
    We assume types do not reduce with normalization and instantiation to further iota
    types. -}
@@ -273,6 +286,24 @@ check-termi Γ (Beta pi) (just (TpEq t1 t2)) =
 
 check-termi Γ (Beta pi) nothing = 
   spanM-add (Beta-span pi [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
+
+check-termi Γ (Delta pi t) (just tp) = 
+  check-term Γ t nothing ≫=span cont ("A delta-term is being used to derive a contradiction, but its subterm "
+                                     ^ "does not prove an impossible beta-equality.")
+  where cont : string → maybe type → spanM ⊤
+        cont errmsg (just (TpEq t1 t2)) = 
+          let t1' = hnf Γ unfold-all t1 in
+          let t2' = hnf Γ unfold-all t2 in
+            if check-beta-inequiv t1' t2' then
+               spanM-add (Delta-span pi t [ type-data tp ])
+            else
+               spanM-add (Delta-span pi t (error-data errmsg
+                                       :: ("the equality proved" , type-to-string (TpEq t1 t2))
+                                       :: ("normalized version of the equality" , type-to-string (TpEq t1' t2'))
+                                       :: [ expected-type tp ]))
+        cont errmsg (just tp) = 
+          spanM-add (Delta-span pi t (error-data errmsg :: [ expected-type tp ]))
+        cont errmsg nothing = spanM-add (Delta-span pi t [ expected-type tp ])
 
 check-termi Γ (Epsilon pi lr t) (just (TpEq t1 t2)) = 
   spanM-add (Epsilon-span pi lr t tt [ type-data (TpEq t1 t2) ]) ≫span

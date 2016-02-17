@@ -75,8 +75,9 @@ App : aterm -> aterm ws maybeErased aterm .
 AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
 Beta : lterm -> ! 'β' .
-Epsilon : lterm -> ! 'ε' leftRight ws lterm .
-Sigma : lterm -> ! 'ς' ws lterm.
+Delta : lterm -> ! 'δ' ows lterm.
+Epsilon : lterm -> ! 'ε' leftRight ows lterm .
+Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 

@@ -1,0 +1,11 @@
+rec Pair (A : ★)(B : ★) | mkpair : A → B → Pair =
+  ∀ P : Pair → ★ .
+    (Π a : A . Π b : B . P (mkpair a b)) → P self
+with
+  mkpair = λ a . λ b . Λ P . λ c . c a b .
+
+fst ⇐ ∀ A : ★ . ∀ B : ★ . Pair · A · B → A =
+  Λ A . Λ B . λ p . θ p (λ x . λ y . x) . 
+
+snd ⇐ ∀ A : ★ . ∀ B : ★ . Pair · A · B → B =
+  Λ A . Λ B . λ p . θ p (λ x . λ y . y) . 

@@ -1,19 +1,19 @@
 import nat.
 
-plusZ ⇐ Π x : Nat . plus x Z ≃ x
-  = λ x . x · (λ n : Nat . plus n Z ≃ n) (λ n . λ u . εl (ρ εl u - β)) β .
+addZ ⇐ Π x : Nat . add x Z ≃ x
+  = λ x . x · (λ n : Nat . add n Z ≃ n) (λ n . λ u . εl (ρ εl u - β)) β .
 
-plusS ⇐ Π x : Nat . Π y : Nat . plus x (S y) ≃ S (plus x y)
+addS ⇐ Π x : Nat . Π y : Nat . add x (S y) ≃ S (add x y)
   = λ x . λ y . θ x 
                  (λ n . λ u . εl (ρ εl u - β)) β.
 
-plusComm ⇐ Π x : Nat . Π y : Nat . plus x y ≃ plus y x 
+addComm ⇐ Π x : Nat . Π y : Nat . add x y ≃ add y x 
   = λ x . λ y . θ x 
                   (λ x . λ u .
-                     (εl (ρ u - ρ (plusS y x) - β)))
-                  (εl ρ (plusZ y) - β) . 
+                     (εl (ρ u - ρ (addS y x) - β)))
+                  (εl ρ (addZ y) - β) . 
   
-plusAssoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . plus x (plus y z) ≃ plus (plus x y) z = 
+addAssoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x (add y z) ≃ add (add x y) z = 
   λ x . λ y . λ z . θ x (λ n . λ ih . εl ρ ih - β) β .
 
 eqnatS ⇐ Π x : Nat . eqnat x (S x) ≃ ff =

@@ -12,6 +12,10 @@ Bool-to-type-cong ⇐ Π x : Bool . Π y : Bool . (x ≃ y) → Bool-to-type x �
 Bool-contra ⇐ (tt ≃ ff) → False =
   λ u . Bool-to-type-cong tt ff u triv .
 
+% and a more direct proof:
+Bool-contra ⇐ (tt ≃ ff) → False =
+  λ u . δ u .
+
 andIdem ⇐ Π x : Bool . and x x ≃ x = 
   λ x . x · (λ x : Bool . and x x ≃ x) β β .
 

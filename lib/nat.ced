@@ -1,19 +1,13 @@
 import bool.
 
-rec Nat | Z : Nat , S : Nat → Nat =
+rec Nat | S : Nat → Nat , Z : Nat =
   ∀ P : Nat → ★ .
     (Π n : Nat . P n → P (S n)) → P Z → P self
   with
-    Z = Λ P . λ s . λ z . z,
-    S = λ n . Λ P . λ s . λ z . s n (n · P s z) .
+    S = λ n . Λ P . λ s . λ z . s n (n · P s z) ,
+    Z = Λ P . λ s . λ z . z.
 
-plus ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
-
-two ⇐ Nat = S (S Z) !
-
-four = plus two two !
-
-eight = plus four four !
+add ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
 
 CNat ⇐ ★ = ∀ X : ★ . (X → X) → X → X .
 
@@ -30,4 +24,4 @@ eqnat ⇐ Nat → Nat → Bool =
           (λ p . λ r . λ m . m · (λ m : Nat . Bool) (λ p' . λ u . r p') ff)
           iszero .
 
-test = eqnat two two !
+

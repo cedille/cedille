@@ -343,6 +343,11 @@ Beta-span : posinfo → 𝕃 tagged-val → span
 Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
                      (explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
+Delta-span : posinfo → term → 𝕃 tagged-val → span
+Delta-span pi t tvs = mk-span "Delta" pi (term-end-pos t) 
+                       (tvs ++ [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
+                                        ^ "false.")])
+
 hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
 hole-span Γ pi tp tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1) 

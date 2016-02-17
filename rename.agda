@@ -33,6 +33,9 @@ renamectxt-remove (ranr , r) s | just s' = stringset-remove ranr s' , trie-remov
 renamectxt-in-range : renamectxt → string → 𝔹
 renamectxt-in-range (ranr , r) s = stringset-contains ranr s
 
+renamectxt-in-field : renamectxt → string → 𝔹
+renamectxt-in-field m s = renamectxt-contains m s || renamectxt-in-range m s
+
 renamectxt-rep : renamectxt → string → string
 renamectxt-rep r x with renamectxt-lookup r x
 renamectxt-rep r x | nothing = x

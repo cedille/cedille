@@ -136,6 +136,7 @@ mutual
     App : term → maybeErased → term → term
     AppTp : term → type → term
     Beta : posinfo → term
+    Delta : posinfo → term → term
     Epsilon : posinfo → leftRight → term → term
     Hole : posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
@@ -442,6 +443,7 @@ mutual
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
   termToString (Beta x0) = "(Beta" ^ " " ^ (posinfoToString x0) ^ ")"
+  termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Epsilon x0 x1 x2) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"

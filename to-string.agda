@@ -55,6 +55,7 @@ term-to-stringh p (Lam pi l pi' x o t) =
 term-to-stringh p (Parens _ t _) = term-to-string t
 term-to-stringh p (Var _ x) = x
 term-to-stringh p (Beta _) = "β"
+term-to-stringh p (Delta _ t) = "(δ" ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Sigma _ t) = "(ς " ^ term-to-string t ^ ")"
 term-to-stringh p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string t ^ lterms-to-stringh ts ^ ")"
