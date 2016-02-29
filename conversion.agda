@@ -101,12 +101,12 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
   {- given (T1 T2), with T1 and T2 types, see if we can pull a lifting operation from the heads of T1 and T2 to
      surround the entire application.  If not, just return (T1 T2). -}
   where try-pull-lift-types : type → type → type
-        try-pull-lift-types tp1 tp2 with decompose-tpapps tp1 | decompose-tpapps tp2
+        try-pull-lift-types tp1 tp2 with decompose-tpapps tp1 | decompose-tpapps (hnf Γ u tp2)
         try-pull-lift-types tp1 tp2 | Lft _ _ X t l , args1 | Lft _ _ X' t' l' , args2 =
           if conv-tty* Γ args1 args2 then
             try-pull-term-in t l (length args1) [] []
           else
-            TpApp tp1 tp2
+            {-TpVar posinfo-gen "lift-types-conv-tty" -} TpApp tp1 tp2
           where try-pull-term-in : term → liftingType → ℕ → 𝕃 var → 𝕃 liftingType → type
                 try-pull-term-in t (LiftParens _ l _) n vars ltps = try-pull-term-in t l n vars ltps 
                 try-pull-term-in t (LiftArrow _ l) 0 vars ltps = 
@@ -115,8 +115,11 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
                       (LiftArrow* ltps l) , args1)
                 try-pull-term-in (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
                   try-pull-term-in t l2 n (x :: vars) (l1 :: ltps) 
-                try-pull-term-in t l n vars ltps = TpApp tp1 tp2
-        try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
+                try-pull-term-in t l n vars ltps = {-TpVar posinfo-gen "lift-types-term-no-match" -} TpApp tp1 tp2
+        try-pull-lift-types tp1 tp2 | h , a | h' , a' = TpApp tp1 tp2
+{-           TpApp (TpVar posinfo-gen "lift-types-default-match") 
+             (TpArrow (recompose-tpapps (h , a))
+                      (recompose-tpapps (h' , a'))) -}
 
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
@@ -212,7 +215,7 @@ conv-liftingType Γ l (LiftParens x l' x₁) = conv-liftingType Γ l l'
 conv-liftingType Γ (LiftArrow l l1) (LiftArrow l' l1') = conv-liftingType Γ l l' && conv-liftingType Γ l1 l1'
 conv-liftingType Γ (LiftPi x x₁ x₂ l) l' = ff -- unimplemented
 conv-liftingType Γ (LiftStar _) (LiftStar _) = tt
-conv-liftingType Γ (LiftTpArrow x l) l' = ff -- unimplemented
+conv-liftingType Γ (LiftTpArrow x l) (LiftTpArrow x' l') = conv-type Γ x x' && conv-liftingType Γ l l'
 conv-liftingType Γ _ _ = ff
 
 conv-optClass Γ NoClass NoClass = tt

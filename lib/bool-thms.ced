@@ -22,6 +22,12 @@ andIdem ⇐ Π x : Bool . and x x ≃ x =
 andIdem ⇐ Π x : Bool . and x x ≃ x = 
   λ x . θ x β β .
 
+andE1 ⇐ Π x : Bool . Π y : Bool . (and x y ≃ tt) → x ≃ tt =
+  λ x . θ x (λ y . λ u . β) (λ y . λ u . δ u) .
+
+andE2 ⇐ Π x : Bool . Π y : Bool . (and x y ≃ tt) → y ≃ tt =
+  λ x . θ x (λ y . λ u . u) (λ y . λ u . δ u) .
+
 Bool-same-branches ⇐ ∀ A : ★ . ∀ a : A . Π x : Bool . x a a ≃ a =
   Λ A . Λ a . λ x . θ x β β .
 

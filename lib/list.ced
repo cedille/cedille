@@ -13,7 +13,7 @@ appendCons ⇐ ∀ A : ★ . A → List · A → List · A → List · A =
 
 append ⇐ ∀ A : ★ . List · A → List · A → List · A =
   Λ A . λ l . λ l' .
-   l · (λ l'' : (List · A) . List · A) (appendCons · A) l' .
+   θ l (appendCons · A) l' .
 
 CList ⇐ ★ → ★ = λ A : ★ . ∀ X : ★ . (A → X → X) → X → X .
 
@@ -22,6 +22,9 @@ CCons ⇐ ∀ A : ★ . A → CList · A → CList · A = Λ A . λ h . λ t . �
 CNil ⇐ ∀ A : ★ . CList · A = Λ A . Λ X . λ c . λ e . e .
 
 toCList ⇐ ∀ A : ★. List · A → CList · A = 
-  Λ A . λ l . l · (λ l : List · A . CList · A) (λ h . λ t . λ ct . CCons · A h ct) (CNil · A) .
+  Λ A . λ l . θ l (λ h . λ t . λ ct . CCons · A h ct) (CNil · A) .
 
-test-toCList = Λ A : ★ . λ x : A . λ y : A . λ z : A . toCList · A (Cons · A x (Cons · A y (Cons · A z (Nil · A)))) !
+map ⇐ ∀ A : ★ . ∀ B : ★ . (A → B) → List · A → List · B =
+  Λ A . Λ B . λ f . λ l .
+    θ l (λ h . λ t . λ r . Cons · B (f h) r)
+      (Nil · B) .

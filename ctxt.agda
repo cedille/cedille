@@ -134,6 +134,14 @@ ctxt-lookup-term-var (mk-ctxt i) v | just (term-decl t) = just t
 ctxt-lookup-term-var (mk-ctxt i) v | just (term-def _ t) = just t
 ctxt-lookup-term-var (mk-ctxt i) v | _ = nothing
 
+ctxt-lookup-var-tk : ctxt → var → maybe tk
+ctxt-lookup-var-tk (mk-ctxt i) v with trie-lookup i v
+ctxt-lookup-var-tk (mk-ctxt i) v | just (type-decl k) = just (Tkk k)
+ctxt-lookup-var-tk (mk-ctxt i) v | just (type-def _ k) = just (Tkk k)
+ctxt-lookup-var-tk (mk-ctxt i) v | just (term-decl t) = just (Tkt t)
+ctxt-lookup-var-tk (mk-ctxt i) v | just (term-def _ t) = just (Tkt t)
+ctxt-lookup-var-tk (mk-ctxt i) v | _ = nothing
+
 ctxt-lookup-kind-var : ctxt → var → 𝔹
 ctxt-lookup-kind-var (mk-ctxt i) v with trie-lookup i v
 ctxt-lookup-kind-var (mk-ctxt i) v | just (kind-def _) = tt

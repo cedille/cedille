@@ -101,7 +101,7 @@ hnf-instantiate-iota Γ subject _ | tp = tp
 
 add-tk : ctxt → posinfo → var → tk → spanM ctxt
 add-tk Γ pi x atk =
-  spanM-add (var-span pi x atk) ≫span
+  spanM-add (var-span Γ pi x atk) ≫span
   spanMr (helper atk)
   where helper : tk → ctxt
         helper (Tkk k) = ctxt-type-decl x k Γ
@@ -159,15 +159,15 @@ check-termi Γ (Var pi x) tp | nothing =
                expected-type-if tp (missing-type :: []))) ≫span
   return-when tp tp
 check-termi Γ (Var pi x) nothing | just tp = 
-  spanM-add (Var-span pi x ((type-data tp) :: [])) ≫span
+  spanM-add (Var-span pi x ((type-data tp) :: [ hnf-type Γ tp ])) ≫span
   check-termi-return Γ (Var pi x) tp
 check-termi Γ (Var pi x) (just tp) | just tp' = 
   spanM-add (Var-span pi x 
                (if conv-type Γ tp tp' then (expected-type tp :: [ type-data tp' ])
                  else (error-data "The computed type does not match the expected type." :: 
                        expected-type tp :: 
-                       type-data tp' :: ("hnf expected" , type-to-string (hnf-term-type Γ unfold-head tp))
-                       :: ("hnf computed" , type-to-string (hnf-term-type Γ unfold-head tp')) :: [])))
+                       type-data tp' :: (hnf-expected-type Γ tp)
+                       :: (hnf-type Γ tp') :: [])))
 
 check-termi Γ (AppTp t tp') tp =
   check-term Γ t nothing ≫=spanm (λ htp → cont (hnf-instantiate-iota Γ t htp)) ≫=spanr cont' tp 
@@ -409,6 +409,23 @@ check-termi Γ (Theta pi Abstract (Var pi' x) ls) (just tp) =
           let motive = mtplam x (Tkt htp) tp in
             spanM-add (Theta-span pi Abstract (Var pi' x) ls (expected-type tp :: [ the-motive motive ])) ≫span 
             check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
+                            (lterms-to-𝕃 Abstract ls)) 
+               (just tp)
+
+check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) = cont (wrap-vars vs tp)
+  where wrap-var : var → type → maybe type
+        wrap-var v tp = ctxt-lookup-var-tk Γ v ≫=maybe (λ atk → just (mtplam v atk tp))
+        wrap-vars : vars → type → maybe type 
+        wrap-vars (VarsStart v) tp = wrap-var v tp
+        wrap-vars (VarsNext v vs) tp = wrap-vars vs tp ≫=maybe (λ tp → wrap-var v tp)
+        cont : maybe type → spanM ⊤
+        cont nothing = check-term Γ t nothing ≫=span (λ m → 
+                          spanM-add (Theta-span pi (AbstractVars vs) t ls 
+                                      (expected-type tp :: [ motive-label , "We could not compute a motive from the given term"
+                                                             ^ " because one of the abstracted vars is not in scope." ])))
+        cont (just motive) =
+            spanM-add (Theta-span pi (AbstractVars vs) t ls (expected-type tp :: [ the-motive motive ])) ≫span 
+            check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
                             (lterms-to-𝕃 Abstract ls)) 
                (just tp)
 

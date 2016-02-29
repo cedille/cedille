@@ -9,12 +9,16 @@ rec Nat | S : Nat → Nat , Z : Nat =
 
 add ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
 
+test = add (S (S Z)) (S (S Z)) !
+
 CNat ⇐ ★ = ∀ X : ★ . (X → X) → X → X .
 
 toCNat ⇐ Nat → CNat =
   λ x . x · (λ x : Nat . CNat)
           (λ p . λ c . (Λ X . λ s . λ z . s (c · X s z)))
           (Λ X . λ s . λ z . z) .
+
+test = toCNat test !
 
 iszero ⇐ Nat → Bool = 
   λ n . n · (λ n : Nat . Bool) (λ p . λ r . ff) tt .

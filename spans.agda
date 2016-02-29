@@ -128,6 +128,12 @@ explain s = "explanation" , s
 expected-type : type → tagged-val
 expected-type tp = "expected-type" , type-to-string tp
 
+hnf-type : ctxt → type → tagged-val
+hnf-type Γ tp = "hnf of type" , type-to-string (hnf-term-type Γ unfold-head tp)
+
+hnf-expected-type : ctxt → type → tagged-val
+hnf-expected-type Γ tp = "hnf of expected type" , type-to-string (hnf-term-type Γ unfold-head tp)
+
 expected-kind : kind → tagged-val
 expected-kind tp = "expected kind" , kind-to-string tp
 
@@ -141,7 +147,7 @@ expected-type-if (just tp) tvs = expected-type tp :: tvs
 
 hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val → 𝕃 tagged-val
 hnf-expected-type-if Γ nothing tvs = tvs
-hnf-expected-type-if Γ (just tp) tvs = ("hnf of expected type" , type-to-string (hnf-term-type Γ unfold-head tp)) :: tvs
+hnf-expected-type-if Γ (just tp) tvs = hnf-expected-type Γ tp :: tvs
 
 missing-type : tagged-val
 missing-type = "type" , "[undeclared]"
@@ -169,9 +175,6 @@ type-argument t = "the argument" , type-to-string t
 
 type-data : type → tagged-val
 type-data tp = "type" , type-to-string tp 
-
-hnf-type-data : type → tagged-val
-hnf-type-data tp = "hnf of type" , type-to-string tp 
 
 kind-data : kind → tagged-val
 kind-data k = "kind" , kind-to-string k
@@ -228,9 +231,9 @@ Var-span pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) tvs
 KndVar-span : posinfo → string → span
 KndVar-span pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) [ super-kind-data ]
 
-var-span : posinfo → string → tk → span
-var-span pi x (Tkk k) = TpVar-span pi x [ kind-data k ]
-var-span pi x (Tkt t) = Var-span pi x [ type-data t ]
+var-span : ctxt → posinfo → string → tk → span
+var-span Γ pi x (Tkk k) = TpVar-span pi x [ kind-data k ]
+var-span Γ pi x (Tkt t) = Var-span pi x (type-data t :: [ hnf-type Γ t ])
 
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
@@ -384,6 +387,8 @@ Theta-span : posinfo → theta → term → lterms → 𝕃 tagged-val → span
 Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
+        do-explain (AbstractVars vs) = [ explain ("Perform an elimination with the first term, after abstracting the listed variables (" 
+                                               ^ vars-to-string vs ^ ") from the expected type.") ]
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
 

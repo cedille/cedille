@@ -1,7 +1,7 @@
 import nat.
 
 addZ ⇐ Π x : Nat . add x Z ≃ x
-  = λ x . x · (λ n : Nat . add n Z ≃ n) (λ n . λ u . εl (ρ εl u - β)) β .
+  = λ x . θ x (λ n . λ u . εl (ρ εl u - β)) β .
 
 addS ⇐ Π x : Nat . Π y : Nat . add x (S y) ≃ S (add x y)
   = λ x . λ y . θ x 
@@ -17,11 +17,15 @@ addAssoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x (add y z) ≃ add (add
   λ x . λ y . λ z . θ x (λ n . λ ih . εl ρ ih - β) β .
 
 eqnatS ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
-  λ x . x · (λ x : Nat . eqnat x (S x) ≃ ff)
-          (λ p . λ u . ρ u - β) β .
+  λ x . θ x (λ p . λ u . ρ u - β) β .
 
 eqnatSym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
   λ x . θ x 
           (λ x . λ u . λ y . 
                θ y (λ y . λ v . (u y)) β)
           (λ y . θ y (λ py . λ u . β) β) .
+
+eqnatEq ⇐ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) → x ≃ y =
+  λ x . θ x (λ p . λ r . λ y . 
+              θ y (λ p' . λ r' . λ u . ρ (r p' u) - β) (λ u . δ u)) 
+            (λ y . θ y (λ p' . λ r' . λ u . δ u) (λ u . β)) .

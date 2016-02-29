@@ -21,9 +21,14 @@ leftRight-to-string Left = "l"
 leftRight-to-string Right = "r"
 leftRight-to-string Both = ""
 
+vars-to-string : vars → string
+vars-to-string (VarsStart v) = v
+vars-to-string (VarsNext v vs) = v ^ " " ^ vars-to-string vs
+
 theta-to-string : theta → string
 theta-to-string Abstract = "θ"
 theta-to-string AbstractEq = "θ+"
+theta-to-string (AbstractVars vs) = "θ<" ^ vars-to-string vs ^ ">"
 
 type-to-string : type → string
 term-to-string : term → string

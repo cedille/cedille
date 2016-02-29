@@ -122,7 +122,7 @@ liftingType-end-pos (LiftPi x x₁ x₂ l) = liftingType-end-pos l
 liftingType-end-pos (LiftStar pi) = posinfo-plus pi 1
 liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
 
-lterms-end-pos (LtermsNil pi) = pi
+lterms-end-pos (LtermsNil pi) = posinfo-plus pi 1 -- must add one for the implicit Beta that we will add at the end
 lterms-end-pos (LtermsCons _ ls) = lterms-end-pos ls
 
 decls-start-pos : decls → posinfo
@@ -284,6 +284,7 @@ decompose-tpapps (TpApp t t') with decompose-tpapps t
 decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
 decompose-tpapps (TpAppt t t') with decompose-tpapps t
 decompose-tpapps (TpAppt t t') | h , args = h , (tterm t') :: args
+decompose-tpapps (TpParens _ t _) = decompose-tpapps t
 decompose-tpapps t = t , []
 
 recompose-tpapps : type × 𝕃 tty → type
@@ -291,20 +292,9 @@ recompose-tpapps (h , []) = h
 recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
 recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
-dere-tpapps : ∀(t : type) → recompose-tpapps (decompose-tpapps t) ≡ t
-dere-tpapps (Abs x x₁ x₂ x₃ x₄ t) = refl
-dere-tpapps (Iota x x₁ t) = refl
-dere-tpapps (Lft x x₁ x₂ x₃ x₄) = refl
-dere-tpapps (TpApp t t₁) with keep (decompose-tpapps t)
-dere-tpapps (TpApp t t₁) | (h , args) , p rewrite p | sym p | dere-tpapps t = refl
-dere-tpapps (TpAppt t t₁) with keep (decompose-tpapps t)
-dere-tpapps (TpAppt t t₁) | (h , args) , p rewrite p | sym p | dere-tpapps t = refl
-dere-tpapps (TpArrow t t₁) = refl
-dere-tpapps (TpEq x x₁) = refl
-dere-tpapps (TpLambda x x₁ x₂ x₃ t) = refl
-dere-tpapps (TpParens x t x₁) = refl
-dere-tpapps (TpVar x x₁) = refl
-dere-tpapps (NoSpans x _) = refl
+vars-to-𝕃 : vars → 𝕃 var
+vars-to-𝕃 (VarsStart v) = [ v ]
+vars-to-𝕃 (VarsNext v vs) = v :: vars-to-𝕃 vs
 
 {- lambda-abstract the input variables in reverse order around the
    given term (so closest to the top of the list is bound deepest in
@@ -351,11 +341,13 @@ erase-term (Rho pi t t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 erase-lterms Abstract (LtermsNil _) = []
+erase-lterms (AbstractVars _) (LtermsNil _) = []
 erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi ]
 erase-lterms u (LtermsCons t ls) = erase-term t :: erase-lterms u ls
 
 lterms-to-𝕃h : theta → lterms → 𝕃 term
 lterms-to-𝕃h Abstract (LtermsNil _) = []
+lterms-to-𝕃h (AbstractVars _) (LtermsNil _) = []
 lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ Beta pi ]
 lterms-to-𝕃h u (LtermsCons t ls) = t :: (lterms-to-𝕃h u ls)
 

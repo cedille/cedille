@@ -67,6 +67,10 @@ Both : leftRight -> .
 
 Abstract : theta -> 'θ' .
 AbstractEq : theta -> 'θ+' .
+AbstractVars : theta -> 'θ<' ows vars ows '>' .
+
+VarsStart : vars -> var .
+VarsNext : vars -> var ws vars.
 
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
@@ -145,7 +149,7 @@ kvar -> '𝒌' (alpha | numpunct)*.
 %numone -> ['0' - '9'].
 %num -> numone+.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | '-' | '𝒌' | '=' .
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' .
 
 comment => '%' anychar* '\n'.
 
