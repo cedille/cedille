@@ -30,6 +30,10 @@ theta-to-string Abstract = "θ"
 theta-to-string AbstractEq = "θ+"
 theta-to-string (AbstractVars vs) = "θ<" ^ vars-to-string vs ^ ">"
 
+maybeMinus-to-string : maybeMinus → string
+maybeMinus-to-string EpsHnf = ""
+maybeMinus-to-string EpsHanf = "-"
+
 type-to-string : type → string
 term-to-string : term → string
 kind-to-string : kind → string
@@ -61,10 +65,11 @@ term-to-stringh p (Parens _ t _) = term-to-string t
 term-to-stringh p (Var _ x) = x
 term-to-stringh p (Beta _) = "β"
 term-to-stringh p (Delta _ t) = "(δ" ^ " " ^ term-to-string t ^ ")"
-term-to-stringh p (Epsilon _ lr t) = "(ε" ^ leftRight-to-string lr ^ " " ^ term-to-string t ^ ")"
+term-to-stringh p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Sigma _ t) = "(ς " ^ term-to-string t ^ ")"
 term-to-stringh p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string t ^ lterms-to-stringh ts ^ ")"
 term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
+term-to-stringh p (Chi _ T t') = "(χ " ^ type-to-string T ^ " - " ^ term-to-string t' ^ ")"
 
 type-to-stringh p (Abs pi b pi' x t t') = 
   parens-unless (is-abs p) (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh (Abs pi b pi' x t t') t')

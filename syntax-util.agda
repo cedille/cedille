@@ -48,8 +48,9 @@ term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi) = pi
 term-start-pos (Delta pi _) = pi
-term-start-pos (Epsilon pi _ _) = pi
+term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Rho pi _ _) = pi
+term-start-pos (Chi pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
 
@@ -92,8 +93,9 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi) = posinfo-plus pi 1
 term-end-pos (Delta pi t) = term-end-pos t
-term-end-pos (Epsilon pi _ t) = term-end-pos t
+term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Rho pi t t') = term-end-pos t'
+term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
@@ -334,10 +336,11 @@ erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (era
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi) = Beta pi
 erase-term (Delta pi t) = erase-term t
-erase-term (Epsilon pi lr t) = erase-term t
+erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Rho pi t t') = erase-term t'
+erase-term (Chi pi T t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 erase-lterms Abstract (LtermsNil _) = []

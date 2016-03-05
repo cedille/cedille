@@ -1,16 +1,16 @@
 import nat.
 
 addZ ⇐ Π x : Nat . add x Z ≃ x
-  = λ x . θ x (λ n . λ u . εl (ρ εl u - β)) β .
+  = λ x . θ x (λ n . λ u . εl- (ρ εl- u - β)) β .
 
 addS ⇐ Π x : Nat . Π y : Nat . add x (S y) ≃ S (add x y)
   = λ x . λ y . θ x 
-                 (λ n . λ u . εl (ρ εl u - β)) β.
+                 (λ n . λ u . εl- (ρ εl u - β)) β.
 
 addComm ⇐ Π x : Nat . Π y : Nat . add x y ≃ add y x 
   = λ x . λ y . θ x 
                   (λ x . λ u .
-                     (εl (ρ u - ρ (addS y x) - β)))
+                     (εl- (ρ u - ρ (addS y x) - β)))
                   (εl ρ (addZ y) - β) . 
   
 addAssoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x (add y z) ≃ add (add x y) z = 

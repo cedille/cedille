@@ -25,6 +25,7 @@ CheckSuper : maybeCheckSuper -> ows '⇐' ows '□' .
 NoCheckSuper : maybeCheckSuper -> .
 
 Hnf : cmdTerminator -> '!!'.
+Hanf : cmdTerminator -> '!!-'.
 Normalize : cmdTerminator -> '!' .
 EraseOnly : cmdTerminator -> '.'.
 
@@ -80,15 +81,19 @@ AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
 Beta : lterm -> ! 'β' .
 Delta : lterm -> ! 'δ' ows lterm.
-Epsilon : lterm -> ! 'ε' leftRight ows lterm .
+Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
+Chi : lterm -> ! 'χ' ows atype ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
 
 LtermsNil : lterms -> ! .
 LtermsCons : lterms -> ws lterm lterms.
+
+EpsHnf : maybeMinus -> .
+EpsHanf : maybeMinus -> '-'.
 
 NotErased : maybeErased -> .
 Erased : maybeErased -> '-' ows .
@@ -140,9 +145,9 @@ Lexical
 
 alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 
-numpunct -> ['0' - '9'] | quote | '-'.
+numpunct -> ['0' - '9'] | quote | '-' .
 
-var -> alpha (alpha | numpunct)* .
+var -> '_' | (alpha (alpha | numpunct)*) .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 

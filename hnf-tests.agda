@@ -51,18 +51,6 @@ bb = show (substh-term Γ' ρ (mvar "s") "x" (mlam "s'" (mapp (mapp (mvar "f") (
 
 cc = rename-var-if Γ' ρ "s'" (mvar "s")
 
-{-
-try-pull-term-in : term → term → liftingType → ℕ → 𝕃 var → 𝕃 liftingType → type
-try-pull-term-in t' t (LiftParens _ l _) n vars ltps = try-pull-term-in t' t l n vars ltps 
-try-pull-term-in t' t (LiftArrow _ l) 0 vars ltps = 
-  recompose-tpapps 
-    (Lft posinfo-gen posinfo-gen "X" (Lam* vars (hnf new-ctxt no-unfolding (App t NotErased (App* t' (map mvar vars)))))
-       (LiftArrow* ltps l) , args1)
-try-pull-term-in t' (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
-  try-pull-term-in t' t l2 n (x :: vars) (l1 :: ltps) 
-try-pull-term-in t' t l n vars ltps = {-TpVar posinfo-gen "lift-types-term-no-match" -} TpApp tp1 tp2
--}
-
 try-pull-lift-types : type → type → type
 try-pull-lift-types tp1 tp2 with decompose-tpapps tp1 | decompose-tpapps (hnf new-ctxt unfold-head tp2)
 try-pull-lift-types tp1 tp2 | Lft _ _ X t l , args1 | Lft _ _ X' t' l' , args2 =
@@ -79,14 +67,16 @@ try-pull-lift-types tp1 tp2 | Lft _ _ X t l , args1 | Lft _ _ X' t' l' , args2 =
          try-pull-term-in (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
            try-pull-term-in t l2 n (x :: vars) (l1 :: ltps) 
          try-pull-term-in t (LiftArrow l1 l2) (suc n) vars ltps =
-           let x = 
-           try-pull-term-in t l2 n (x :: vars) (l1 :: ltps) 
+           let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
+             try-pull-term-in (App t NotErased (mvar x)) l2 n (x :: vars) (l1 :: ltps) 
          try-pull-term-in t l n vars ltps = TpApp tp1 tp2
 
 try-pull-lift-types tp1 tp2 | h , a | h' , a' = TpApp tp1 tp2
 
 
-lta = (TpApp (Lft posinfo-gen posinfo-gen "X" (mvar "f") (LiftArrow (LiftStar posinfo-gen) (LiftStar posinfo-gen))) (mtpvar "doit"))
+lta = (TpApp (Lft posinfo-gen posinfo-gen "X" (mvar "f") 
+               (LiftArrow (LiftStar posinfo-gen) (LiftArrow (LiftStar posinfo-gen) (LiftStar posinfo-gen))))
+             (mtpvar "doit"))
 ltb = (TpApp (Lft posinfo-gen posinfo-gen "X" (mvar "t") (LiftStar posinfo-gen)) (mtpvar "doit"))
 
 lt = try-pull-lift-types lta ltb

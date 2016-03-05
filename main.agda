@@ -51,13 +51,13 @@ process-cmd dir (DefTerm pi x (Type tp) t n pi') (mk-toplevel-state (mk-include-
   let ss' = (check-type Γ tp (just star) ≫span 
              check-term Γ t (just tp) ≫span 
              let t = erase-term t in
-               spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-if Γ n t)) ≫span 
+               spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
                spanMr (hnf Γ unfold-head t)) ss in
     return (mk-toplevel-state (mk-include-state is) (ctxt-term-def x (fst ss') tp Γ) (snd ss'))
 process-cmd dir (DefTerm pi x NoCheckType t n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-term Γ t nothing ≫=span λ mtp → 
              let t = erase-term t in
-               spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-if Γ n t)) ≫span
+               spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-term-if Γ n t)) ≫span
                spanMr (hnf Γ unfold-head t , mtp)) ss in
     return (mk-toplevel-state (mk-include-state is) (h (fst ss')) (snd ss'))
   where h : term × (maybe type) → ctxt
@@ -66,7 +66,7 @@ process-cmd dir (DefTerm pi x NoCheckType t n pi') (mk-toplevel-state (mk-includ
 process-cmd dir (DefType pi x (Kind k) tp n pi') (mk-toplevel-state (mk-include-state is) Γ ss) = 
   let ss' = (check-kind Γ k ≫span 
              check-type Γ tp (just k) ≫span 
-               spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-if Γ n tp)) ≫span 
+               spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
                spanMr (hnf Γ unfold-head tp)) ss in
     return (mk-toplevel-state (mk-include-state is) (ctxt-type-def x (fst ss') k Γ) (snd ss'))
 process-cmd dir (CheckTerm t m n pi) (mk-toplevel-state (mk-include-state is) Γ ss) = 

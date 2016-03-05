@@ -129,10 +129,10 @@ expected-type : type → tagged-val
 expected-type tp = "expected-type" , type-to-string tp
 
 hnf-type : ctxt → type → tagged-val
-hnf-type Γ tp = "hnf of type" , type-to-string (hnf-term-type Γ unfold-head tp)
+hnf-type Γ tp = "hnf of type" , type-to-string (hnf-term-type Γ tp)
 
 hnf-expected-type : ctxt → type → tagged-val
-hnf-expected-type Γ tp = "hnf of expected type" , type-to-string (hnf-term-type Γ unfold-head tp)
+hnf-expected-type Γ tp = "hnf of expected type" , type-to-string (hnf-term-type Γ tp)
 
 expected-kind : kind → tagged-val
 expected-kind tp = "expected kind" , kind-to-string tp
@@ -358,19 +358,27 @@ hole-span Γ pi tp tvs =
 expected-to-string : 𝔹 → string
 expected-to-string expected = if expected then "expected" else "synthesized"
 
-Epsilon-span : posinfo → leftRight → term → 𝔹 → 𝕃 tagged-val → span
-Epsilon-span pi lr t expected tvs = mk-span "Epsilon" pi (term-end-pos t) 
-                            (tvs ++ [ explain ("Normalize " ^ side lr ^ " of the " 
-                                              ^ expected-to-string expected ^ " equation.") ])
+Epsilon-span : posinfo → leftRight → maybeMinus → term → 𝔹 → 𝕃 tagged-val → span
+Epsilon-span pi lr m t expected tvs = mk-span "Epsilon" pi (term-end-pos t) 
+                                         (tvs ++ [ explain ("Normalize " ^ side lr ^ " of the " 
+                                                   ^ expected-to-string expected ^ " equation, using " ^ maybeMinus-description m 
+                                                   ^ " reduction." ) ])
   where side : leftRight → string
         side Left = "the left-hand side"
         side Right = "the right-hand side"
         side Both = "both sides"
+        maybeMinus-description : maybeMinus → string
+        maybeMinus-description EpsHnf = "head"
+        maybeMinus-description EpsHanf = "head-applicative"
 
 Rho-span : posinfo → term → term → 𝔹 → 𝕃 tagged-val → span
 Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
                                   (tvs ++ [ explain ("Rewrite terms in the " 
                                                    ^ expected-to-string expected ^ " type, using an equation. ") ])
+
+Chi-span : posinfo → type → term → 𝕃 tagged-val → span
+Chi-span pi T t' tvs = mk-span "Chi" pi (term-end-pos t') 
+                         (tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , type-to-string T ]))
 
 Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
 Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
@@ -393,10 +401,16 @@ Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-exp
                                          ^ "from the expected type.") ]
 
 
-normalized-if : {ed : exprd} → ctxt → cmdTerminator → ⟦ ed ⟧ → 𝕃 tagged-val
-normalized-if{ed} Γ Normalize e = [ "normalized " ^ (exprd-name ed) , to-string (hnf Γ unfold-all e) ]
-normalized-if{ed} Γ Hnf e = [ "hnf " ^ (exprd-name ed) , to-string (hnf Γ unfold-head e) ]
-normalized-if Γ EraseOnly e = []
+normalized-term-if : ctxt → cmdTerminator → term → 𝕃 tagged-val
+normalized-term-if Γ Normalize e = [ "normalized term" , to-string (hnf Γ unfold-all e) ]
+normalized-term-if Γ Hnf e = [ "hnf term" , to-string (hnf Γ unfold-head e) ]
+normalized-term-if Γ Hanf e = [ "hnf term" , to-string (hanf Γ e) ]
+normalized-term-if Γ EraseOnly e = []
+
+normalized-type-if : ctxt → cmdTerminator → type → 𝕃 tagged-val
+normalized-type-if Γ Normalize e = [ "normalized type" , to-string (hnf Γ unfold-all e) ]
+normalized-type-if Γ EraseOnly e = []
+normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
 
 Lft-span : posinfo → var → term → liftingType → 𝕃 tagged-val → span
 Lft-span pi X t l tvs = mk-span "Lift type" pi (liftingType-end-pos l) tvs

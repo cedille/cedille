@@ -42,9 +42,10 @@ substh-term{TERM} Γ ρ t x (Var pi y) =
 substh-term Γ ρ t x (Var pi y) = Var pi (renamectxt-rep ρ y)
 substh-term Γ ρ t x (Beta pi) = Beta pi
 substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Epsilon pi lr t') = Epsilon pi lr (substh-term Γ ρ t x t')
+substh-term Γ ρ t x (Epsilon pi lr m t') = Epsilon pi lr m (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Sigma pi t') = Sigma pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
+substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-type Γ ρ t x T) (substh-term Γ ρ t x t'')
 substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
   where substh-lterms : substh-ret-t lterms
         substh-lterms Γ ρ t x (LtermsNil pi) = LtermsNil pi

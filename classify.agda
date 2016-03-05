@@ -73,10 +73,14 @@ check-term-app-matching-erasures Erased All = tt
 check-term-app-matching-erasures NotErased Pi = tt
 check-term-app-matching-erasures _ _ = ff
 
-check-term-update-eq : ctxt → leftRight → term → term → type
-check-term-update-eq Γ Left t1 t2 = TpEq (hnf Γ unfold-head t1) t2
-check-term-update-eq Γ Right t1 t2 = TpEq t1 (hnf Γ unfold-head t2) 
-check-term-update-eq Γ Both t1 t2 = TpEq (hnf Γ unfold-head t1) (hnf Γ unfold-head t2) 
+hnf-from : ctxt → maybeMinus → term → term
+hnf-from Γ EpsHnf t = hnf Γ unfold-head t
+hnf-from Γ EpsHanf t = hanf Γ t
+
+check-term-update-eq : ctxt → leftRight → maybeMinus → term → term → type
+check-term-update-eq Γ Left m t1 t2 = TpEq (hnf-from Γ m t1) t2
+check-term-update-eq Γ Right m t1 t2 = TpEq t1 (hnf-from Γ m t2) 
+check-term-update-eq Γ Both m t1 t2 = TpEq (hnf-from Γ m t1) (hnf-from Γ m t2) 
 
 -- a simple incomplete check for beta-inequivalence
 check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
@@ -102,7 +106,7 @@ hnf-instantiate-iota Γ subject _ | tp = tp
 add-tk : ctxt → posinfo → var → tk → spanM ctxt
 add-tk Γ pi x atk =
   spanM-add (var-span Γ pi x atk) ≫span
-  spanMr (helper atk)
+  spanMr (if (x =string "_") then Γ else (helper atk))
   where helper : tk → ctxt
         helper (Tkk k) = ctxt-type-decl x k Γ
         helper (Tkt t) = ctxt-term-decl x t Γ
@@ -305,29 +309,29 @@ check-termi Γ (Delta pi t) (just tp) =
           spanM-add (Delta-span pi t (error-data errmsg :: [ expected-type tp ]))
         cont errmsg nothing = spanM-add (Delta-span pi t [ expected-type tp ])
 
-check-termi Γ (Epsilon pi lr t) (just (TpEq t1 t2)) = 
-  spanM-add (Epsilon-span pi lr t tt [ type-data (TpEq t1 t2) ]) ≫span
-  check-term Γ t (just (check-term-update-eq Γ lr t1 t2))
+check-termi Γ (Epsilon pi lr m t) (just (TpEq t1 t2)) = 
+  spanM-add (Epsilon-span pi lr m t tt [ type-data (TpEq t1 t2) ]) ≫span
+  check-term Γ t (just (check-term-update-eq Γ lr m t1 t2))
 
-check-termi Γ (Epsilon pi lr t) (just tp) = 
-  spanM-add (Epsilon-span pi lr t tt (error-data ("The expected type is not an equation, when checking an ε-term.") 
-                                 :: [ expected-type tp ])) ≫span 
+check-termi Γ (Epsilon pi lr m t) (just tp) = 
+  spanM-add (Epsilon-span pi lr m t tt (error-data ("The expected type is not an equation, when checking an ε-term.") 
+                                        :: [ expected-type tp ])) ≫span 
   spanMok
-check-termi Γ (Epsilon pi lr t) nothing = 
+check-termi Γ (Epsilon pi lr m t) nothing = 
   check-term Γ t nothing ≫=span cont
   where cont : maybe type → spanM (maybe type)
         cont nothing = 
-          spanM-add (Epsilon-span pi lr t ff [ error-data ("There is no expected type, and we could not synthesize a type from the body"
-                                                      ^ " of the ε-term.") ]) ≫span
+          spanM-add (Epsilon-span pi lr m t ff [ error-data ("There is no expected type, and we could not synthesize a type from the body"
+                                                           ^ " of the ε-term.") ]) ≫span
           spanMr nothing
         cont (just (TpEq t1 t2)) = 
-          let r = check-term-update-eq Γ lr t1 t2 in
-          spanM-add (Epsilon-span pi lr t ff [ type-data r ]) ≫span
+          let r = check-term-update-eq Γ lr m t1 t2 in
+          spanM-add (Epsilon-span pi lr m t ff [ type-data r ]) ≫span
           spanMr (just r)
         cont (just tp) = 
-          spanM-add (Epsilon-span pi lr t ff ( error-data ("There is no expected type, and the type we synthesized for the body"
-                                                      ^ " of the ε-term is not an equation.")
-                                          :: ["the synthesized type" , type-to-string tp ])) ≫span
+          spanM-add (Epsilon-span pi lr m t ff ( error-data ("There is no expected type, and the type we synthesized for the body"
+                                                           ^ " of the ε-term is not an equation.")
+                                             :: ["the synthesized type" , type-to-string tp ])) ≫span
           spanMr nothing
 
 check-termi Γ (Sigma pi t) mt = 
@@ -378,6 +382,15 @@ check-termi Γ (Rho pi t t') nothing =
                                       :: ("the synthesized type for the first subterm" , type-to-string tp')
                                       :: [])) ≫span spanMr nothing
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
+
+check-termi Γ (Chi pi tp t) mtp = 
+  check-term Γ t (just tp) ≫span cont mtp
+  where cont : (m : maybe type) → spanM (check-ret m)
+        cont nothing = spanM-add (Chi-span pi tp t []) ≫span spanMr (just tp)
+        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi tp t []))
+                          else (spanM-add (Chi-span pi tp t ( error-data "The expected type does not match the asserted type."
+                                                           :: expected-type tp' :: []))) ≫span
+                          spanMok
 
 check-termi Γ (Theta pi u t ls) nothing =
   spanM-add (Theta-span pi u t ls [ error-data "Theta-terms can only be used in checking positions (and this is a synthesizing one)." ])

@@ -1,8 +1,11 @@
 ROOTS = \
   bool bool-thms \
+  eq \
   false \
   list list-thms \
+  maybe \
   nat nat-thms \
+  sigma \
   true \
   vector
 
@@ -15,4 +18,4 @@ all: $(TARGETS)
 	@cedille $< ; if ( grep error $@ > /dev/null ) ; then echo "$<: ERROR"; else echo "$<"; fi
 
 clean: 
-	@rm $(TARGETS)
+	@rm -f $(TARGETS)

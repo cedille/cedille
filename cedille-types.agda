@@ -13,18 +13,19 @@ alpha-bar-3 = string
 alpha-range-1 = string
 alpha-range-2 = string
 kvar = string
-kvar-bar-9 = string
-kvar-star-10 = string
+kvar-bar-10 = string
+kvar-star-11 = string
 num = string
-num-range-57 = string
 num-range-58 = string
-num-star-59 = string
+num-range-59 = string
+num-star-60 = string
 numpunct = string
 numpunct-bar-5 = string
 numpunct-bar-6 = string
 numpunct-range-4 = string
 var = string
 var-bar-7 = string
+var-bar-9 = string
 var-star-8 = string
 
 mutual
@@ -48,6 +49,7 @@ mutual
 
   data cmdTerminator : Set where 
     EraseOnly : cmdTerminator
+    Hanf : cmdTerminator
     Hnf : cmdTerminator
     Normalize : cmdTerminator
 
@@ -121,6 +123,10 @@ mutual
     KvarEq : posinfo → kvar → maybeKvarEq
     NoKvarEq : maybeKvarEq
 
+  data maybeMinus : Set where 
+    EpsHanf : maybeMinus
+    EpsHnf : maybeMinus
+
   data maybeVarEq : Set where 
     NoVarEq : maybeVarEq
     VarEq : posinfo → var → maybeVarEq
@@ -136,8 +142,9 @@ mutual
     App : term → maybeErased → term → term
     AppTp : term → type → term
     Beta : posinfo → term
+    Chi : posinfo → type → term → term
     Delta : posinfo → term → term
-    Epsilon : posinfo → leftRight → term → term
+    Epsilon : posinfo → leftRight → maybeMinus → term → term
     Hole : posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
@@ -216,6 +223,7 @@ data ParseTreeT : Set where
   parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
   parsed-maybeKvarEq : maybeKvarEq → ParseTreeT
+  parsed-maybeMinus : maybeMinus → ParseTreeT
   parsed-maybeVarEq : maybeVarEq → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
   parsed-start : start → ParseTreeT
@@ -238,21 +246,21 @@ data ParseTreeT : Set where
   parsed-alpha-range-1 : alpha-range-1 → ParseTreeT
   parsed-alpha-range-2 : alpha-range-2 → ParseTreeT
   parsed-kvar : kvar → ParseTreeT
-  parsed-kvar-bar-9 : kvar-bar-9 → ParseTreeT
-  parsed-kvar-star-10 : kvar-star-10 → ParseTreeT
+  parsed-kvar-bar-10 : kvar-bar-10 → ParseTreeT
+  parsed-kvar-star-11 : kvar-star-11 → ParseTreeT
   parsed-num : num → ParseTreeT
-  parsed-num-range-57 : num-range-57 → ParseTreeT
   parsed-num-range-58 : num-range-58 → ParseTreeT
-  parsed-num-star-59 : num-star-59 → ParseTreeT
+  parsed-num-range-59 : num-range-59 → ParseTreeT
+  parsed-num-star-60 : num-star-60 → ParseTreeT
   parsed-numpunct : numpunct → ParseTreeT
   parsed-numpunct-bar-5 : numpunct-bar-5 → ParseTreeT
   parsed-numpunct-bar-6 : numpunct-bar-6 → ParseTreeT
   parsed-numpunct-range-4 : numpunct-range-4 → ParseTreeT
   parsed-var : var → ParseTreeT
   parsed-var-bar-7 : var-bar-7 → ParseTreeT
+  parsed-var-bar-9 : var-bar-9 → ParseTreeT
   parsed-var-star-8 : var-star-8 → ParseTreeT
   parsed-anychar : ParseTreeT
-  parsed-anychar-bar-11 : ParseTreeT
   parsed-anychar-bar-12 : ParseTreeT
   parsed-anychar-bar-13 : ParseTreeT
   parsed-anychar-bar-14 : ParseTreeT
@@ -292,16 +300,17 @@ data ParseTreeT : Set where
   parsed-anychar-bar-48 : ParseTreeT
   parsed-anychar-bar-49 : ParseTreeT
   parsed-anychar-bar-50 : ParseTreeT
+  parsed-anychar-bar-51 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-52 : ParseTreeT
   parsed-aws-bar-53 : ParseTreeT
   parsed-aws-bar-54 : ParseTreeT
+  parsed-aws-bar-55 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-51 : ParseTreeT
+  parsed-comment-star-52 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-56 : ParseTreeT
+  parsed-ows-star-57 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-55 : ParseTreeT
+  parsed-ws-plus-56 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -319,18 +328,18 @@ alpha-range-2ToString : alpha-range-2 → string
 alpha-range-2ToString x = "(alpha-range-2 " ^ x ^ ")"
 kvarToString : kvar → string
 kvarToString x = "(kvar " ^ x ^ ")"
-kvar-bar-9ToString : kvar-bar-9 → string
-kvar-bar-9ToString x = "(kvar-bar-9 " ^ x ^ ")"
-kvar-star-10ToString : kvar-star-10 → string
-kvar-star-10ToString x = "(kvar-star-10 " ^ x ^ ")"
+kvar-bar-10ToString : kvar-bar-10 → string
+kvar-bar-10ToString x = "(kvar-bar-10 " ^ x ^ ")"
+kvar-star-11ToString : kvar-star-11 → string
+kvar-star-11ToString x = "(kvar-star-11 " ^ x ^ ")"
 numToString : num → string
 numToString x = "(num " ^ x ^ ")"
-num-range-57ToString : num-range-57 → string
-num-range-57ToString x = "(num-range-57 " ^ x ^ ")"
 num-range-58ToString : num-range-58 → string
 num-range-58ToString x = "(num-range-58 " ^ x ^ ")"
-num-star-59ToString : num-star-59 → string
-num-star-59ToString x = "(num-star-59 " ^ x ^ ")"
+num-range-59ToString : num-range-59 → string
+num-range-59ToString x = "(num-range-59 " ^ x ^ ")"
+num-star-60ToString : num-star-60 → string
+num-star-60ToString x = "(num-star-60 " ^ x ^ ")"
 numpunctToString : numpunct → string
 numpunctToString x = "(numpunct " ^ x ^ ")"
 numpunct-bar-5ToString : numpunct-bar-5 → string
@@ -343,6 +352,8 @@ varToString : var → string
 varToString x = "(var " ^ x ^ ")"
 var-bar-7ToString : var-bar-7 → string
 var-bar-7ToString x = "(var-bar-7 " ^ x ^ ")"
+var-bar-9ToString : var-bar-9 → string
+var-bar-9ToString x = "(var-bar-9 " ^ x ^ ")"
 var-star-8ToString : var-star-8 → string
 var-star-8ToString x = "(var-star-8 " ^ x ^ ")"
 
@@ -366,6 +377,7 @@ mutual
 
   cmdTerminatorToString : cmdTerminator → string
   cmdTerminatorToString (EraseOnly) = "EraseOnly" ^ ""
+  cmdTerminatorToString (Hanf) = "Hanf" ^ ""
   cmdTerminatorToString (Hnf) = "Hnf" ^ ""
   cmdTerminatorToString (Normalize) = "Normalize" ^ ""
 
@@ -439,6 +451,10 @@ mutual
   maybeKvarEqToString (KvarEq x0 x1) = "(KvarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
   maybeKvarEqToString (NoKvarEq) = "NoKvarEq" ^ ""
 
+  maybeMinusToString : maybeMinus → string
+  maybeMinusToString (EpsHanf) = "EpsHanf" ^ ""
+  maybeMinusToString (EpsHnf) = "EpsHnf" ^ ""
+
   maybeVarEqToString : maybeVarEq → string
   maybeVarEqToString (NoVarEq) = "NoVarEq" ^ ""
   maybeVarEqToString (VarEq x0 x1) = "(VarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
@@ -454,8 +470,9 @@ mutual
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
   termToString (Beta x0) = "(Beta" ^ " " ^ (posinfoToString x0) ^ ")"
+  termToString (Chi x0 x1 x2) = "(Chi" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
-  termToString (Epsilon x0 x1 x2) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (termToString x2) ^ ")"
+  termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -522,6 +539,7 @@ ParseTreeToString (parsed-maybeCheckSuper t) = maybeCheckSuperToString t
 ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
+ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
 ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-start t) = startToString t
@@ -544,21 +562,21 @@ ParseTreeToString (parsed-alpha-bar-3 t) = alpha-bar-3ToString t
 ParseTreeToString (parsed-alpha-range-1 t) = alpha-range-1ToString t
 ParseTreeToString (parsed-alpha-range-2 t) = alpha-range-2ToString t
 ParseTreeToString (parsed-kvar t) = kvarToString t
-ParseTreeToString (parsed-kvar-bar-9 t) = kvar-bar-9ToString t
-ParseTreeToString (parsed-kvar-star-10 t) = kvar-star-10ToString t
+ParseTreeToString (parsed-kvar-bar-10 t) = kvar-bar-10ToString t
+ParseTreeToString (parsed-kvar-star-11 t) = kvar-star-11ToString t
 ParseTreeToString (parsed-num t) = numToString t
-ParseTreeToString (parsed-num-range-57 t) = num-range-57ToString t
 ParseTreeToString (parsed-num-range-58 t) = num-range-58ToString t
-ParseTreeToString (parsed-num-star-59 t) = num-star-59ToString t
+ParseTreeToString (parsed-num-range-59 t) = num-range-59ToString t
+ParseTreeToString (parsed-num-star-60 t) = num-star-60ToString t
 ParseTreeToString (parsed-numpunct t) = numpunctToString t
 ParseTreeToString (parsed-numpunct-bar-5 t) = numpunct-bar-5ToString t
 ParseTreeToString (parsed-numpunct-bar-6 t) = numpunct-bar-6ToString t
 ParseTreeToString (parsed-numpunct-range-4 t) = numpunct-range-4ToString t
 ParseTreeToString (parsed-var t) = varToString t
 ParseTreeToString (parsed-var-bar-7 t) = var-bar-7ToString t
+ParseTreeToString (parsed-var-bar-9 t) = var-bar-9ToString t
 ParseTreeToString (parsed-var-star-8 t) = var-star-8ToString t
 ParseTreeToString parsed-anychar = "[anychar]"
-ParseTreeToString parsed-anychar-bar-11 = "[anychar-bar-11]"
 ParseTreeToString parsed-anychar-bar-12 = "[anychar-bar-12]"
 ParseTreeToString parsed-anychar-bar-13 = "[anychar-bar-13]"
 ParseTreeToString parsed-anychar-bar-14 = "[anychar-bar-14]"
@@ -598,16 +616,17 @@ ParseTreeToString parsed-anychar-bar-47 = "[anychar-bar-47]"
 ParseTreeToString parsed-anychar-bar-48 = "[anychar-bar-48]"
 ParseTreeToString parsed-anychar-bar-49 = "[anychar-bar-49]"
 ParseTreeToString parsed-anychar-bar-50 = "[anychar-bar-50]"
+ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-52 = "[aws-bar-52]"
 ParseTreeToString parsed-aws-bar-53 = "[aws-bar-53]"
 ParseTreeToString parsed-aws-bar-54 = "[aws-bar-54]"
+ParseTreeToString parsed-aws-bar-55 = "[aws-bar-55]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-51 = "[comment-star-51]"
+ParseTreeToString parsed-comment-star-52 = "[comment-star-52]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-56 = "[ows-star-56]"
+ParseTreeToString parsed-ows-star-57 = "[ows-star-57]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-55 = "[ws-plus-55]"
+ParseTreeToString parsed-ws-plus-56 = "[ws-plus-56]"
 
 ------------------------------------------
 -- Reorganizing rules
@@ -670,6 +689,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-maybeVarEq : (x : maybeVarEq) → maybeVarEq
   norm-maybeVarEq x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-maybeMinus : (x : maybeMinus) → maybeMinus
+  norm-maybeMinus x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-maybeKvarEq : (x : maybeKvarEq) → maybeKvarEq
