@@ -1,0 +1,3 @@
+cong ⇐ ∀ A : ★ . ∀ P : A → ★ . ∀ a : A . ∀ b : A .
+       (a ≃ b) → P a → P b =
+  Λ A . Λ P . Λ a . Λ b . λ u . λ v . ρ ς u - v .

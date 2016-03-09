@@ -1,0 +1,6 @@
+rec Sigma (A : ★)(B : A → ★) | mksigma : Π a : A . B a → Sigma =
+  ∀ P : Sigma → ★ .
+    (Π a : A . Π b : B a . P (mksigma a b)) → P self
+with
+  mksigma = λ a . λ b . Λ P . λ c . c a b .
+
