@@ -93,8 +93,8 @@ process-cmd dir (Import pi x pi') _ | s | mk-toplevel-state (mk-include-state is
             return (toplevel-add-span (Import-span pi pi' [ error-data "There is an error in the imported file" ]) s)
           else return s
        
-process-cmd dir (Rec pi name params inds ctors body us pi') (mk-toplevel-state i Γ ss) = 
-    let p = process-rec-cmd Γ pi name params inds ctors body us pi' ss in
+process-cmd dir (Rec pi pi'' name params inds ctors body us pi') (mk-toplevel-state i Γ ss) = 
+    let p = process-rec-cmd Γ pi pi'' name params inds ctors body us pi' ss in
     return (mk-toplevel-state i (fst p) (snd p))
 
 process-cmds dir (CmdsNext c cs) s = process-cmd dir c s >>= cont

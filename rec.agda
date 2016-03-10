@@ -139,8 +139,8 @@ rec-add-udefs : ctxt → udefs → ctxt
 rec-add-udefs Γ (Udefse _) = Γ
 rec-add-udefs Γ (Udefsne us) = rec-add-udefsne Γ us
 
-process-rec-cmd : ctxt → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
-process-rec-cmd Γ pi name params inds ctors body us pi' = 
+process-rec-cmd : ctxt → posinfo → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
+process-rec-cmd Γ pi pi'' name params inds ctors body us pi' = 
   let inds = indices-to-decls inds in
   rec-check-and-add-decls param Γ params ≫=span λ Γp → 
 
@@ -169,9 +169,16 @@ process-rec-cmd Γ pi name params inds ctors body us pi' =
       
       -- the recursive type applied to the parameters
       let rectp = rec-apply-decls nametp params in
-      let body1 = tplam-bind-decls inds (Iota posinfo-gen self-name body) in
-      let body2 = tplam-bind-decls params (tplam-bind-decls inds (Iota posinfo-gen self-name (subst-type Γ rectp name body))) in
+      let uses-self = is-free-in check-erased self-name body in
+      let body1 = tplam-bind-decls inds (if uses-self then (Iota posinfo-gen self-name NoClass body) else body) in
+      let body2 = let body' = subst-type Γ rectp name body in
+                   tplam-bind-decls params
+                     (tplam-bind-decls inds 
+                       (if uses-self then 
+                          (Iota posinfo-gen self-name (SomeClass (Tkt rectp)) body')
+                        else body')) in
 
+        spanM-add (rectype-name-span pi'' name body2) ≫span
         spanM-add (Udefs-span us) ≫span
         spanM-add (Rec-span pi pi' k2) ≫span 
 

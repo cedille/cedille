@@ -45,6 +45,7 @@ optClass-to-string : optClass → string
 tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 liftingType-to-stringh : {ed : exprd} → ⟦ ed ⟧ → liftingType → string
+maybeAtype-to-string : maybeAtype → string
 
 parens-unless : 𝔹 → string → string
 parens-unless ff s = "(" ^ s ^ ")"
@@ -65,17 +66,19 @@ term-to-stringh p (Parens _ t _) = term-to-string t
 term-to-stringh p (Var _ x) = x
 term-to-stringh p (Beta _) = "β"
 term-to-stringh p (Delta _ t) = "(δ" ^ " " ^ term-to-string t ^ ")"
+term-to-stringh p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string t ^ ")"
 term-to-stringh p (Sigma _ t) = "(ς " ^ term-to-string t ^ ")"
 term-to-stringh p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string t ^ lterms-to-stringh ts ^ ")"
 term-to-stringh p (Rho _ t t') = "(ρ " ^ term-to-string t ^ " - " ^ term-to-string t' ^ ")"
-term-to-stringh p (Chi _ T t') = "(χ " ^ type-to-string T ^ " - " ^ term-to-string t' ^ ")"
+term-to-stringh p (Chi _ T t') = "(χ " ^ maybeAtype-to-string T ^ " - " ^ term-to-string t' ^ ")"
 
 type-to-stringh p (Abs pi b pi' x t t') = 
   parens-unless (is-abs p) (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh (Abs pi b pi' x t t') t')
 type-to-stringh p (TpLambda pi pi' x tk t) = 
   parens-unless (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string tk ^ " . " ^ type-to-stringh (TpLambda pi pi' x tk t) t )
-type-to-stringh p (Iota pi x t) = parens-unless (is-abs p) ("ι " ^ x ^ " . " ^ type-to-stringh (Iota pi x t) t )
+type-to-stringh p (Iota pi x m t) = parens-unless (is-abs p) ("ι " ^ x ^ optClass-to-string m ^ " . " 
+                                  ^ type-to-stringh (Iota pi x m t) t)
 type-to-stringh p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string x ^ " : " ^ liftingType-to-string x₁ ^ ")"
 type-to-stringh p (TpApp t t₁) = parens-unless (is-app p) (type-to-stringh (TpApp t t₁) t ^ " · " ^ type-to-string t₁)
 type-to-stringh p (TpAppt t t') = parens-unless (is-app p) (type-to-stringh (TpAppt t t') t ^ " " ^ term-to-string t')
@@ -111,6 +114,9 @@ liftingType-to-stringh p (LiftStar _) = "☆"
 
 lterms-to-stringh (LtermsNil _) = ""
 lterms-to-stringh (LtermsCons t ts) = " " ^ term-to-string t ^ lterms-to-stringh ts
+
+maybeAtype-to-string NoAtype = ""
+maybeAtype-to-string (Atype T) = type-to-string T
 
 to-string : {ed : exprd} → ⟦ ed ⟧ → string
 to-string{TERM} = term-to-string

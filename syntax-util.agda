@@ -48,6 +48,7 @@ term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi) = pi
 term-start-pos (Delta pi _) = pi
+term-start-pos (PiInj pi _ _) = pi
 term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Rho pi _ _) = pi
 term-start-pos (Chi pi _ _) = pi
@@ -56,7 +57,7 @@ term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
-type-start-pos (Iota pi _ _) = pi
+type-start-pos (Iota pi _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
@@ -93,6 +94,7 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi) = posinfo-plus pi 1
 term-end-pos (Delta pi t) = term-end-pos t
+term-end-pos (PiInj _ _ t) = term-end-pos t
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Rho pi t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
@@ -101,7 +103,7 @@ term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
-type-end-pos (Iota _ _ tp) = type-end-pos tp
+type-end-pos (Iota _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
@@ -205,7 +207,7 @@ is-abs : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-abs{TERM} (Lam _ _ _ _ _ _) = tt
 is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
 is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
-is-abs{TYPE} (Iota _ _ _) = tt
+is-abs{TYPE} (Iota _ _ _ _) = tt
 is-abs{KIND} (KndPi _ _ _ _ _) = tt
 is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
 is-abs _ = ff
@@ -268,6 +270,14 @@ mall x tk tp = Abs posinfo-gen All posinfo-gen x tk tp
 mtplam : var → tk → type → type
 mtplam x tk tp = TpLambda posinfo-gen posinfo-gen x tk tp
 
+{- strip off lambda-abstractions from the term, return the lambda-bound vars and the innermost body.
+   The intention is to call this with at least the erasure of a term, if not the hnf -- so we do
+   not check for parens, etc. -}
+decompose-lams : term → (𝕃 var) × term
+decompose-lams (Lam _ _ _ x _ t) with decompose-lams t
+decompose-lams (Lam _ _ _ x _ t) | vs , body = (x :: vs) , body
+decompose-lams t = [] , t
+
 {- decompose a term into spine form consisting of a non-applications head and arguments.
    The outer arguments will come earlier in the list than the inner ones.
    As for decompose-lams, we assume the term is at least erased. -}
@@ -276,6 +286,10 @@ decompose-apps (App t _ t') with decompose-apps t
 decompose-apps (App t _ t') | h , args = h , (t' :: args)
 decompose-apps t = t , []
 
+decompose-var-headed : (var → 𝔹) → term → maybe (var × (𝕃 term))
+decompose-var-headed is-bound t with decompose-apps t
+decompose-var-headed is-bound t | Var _ x , args = if is-bound x then nothing else (just (x , args))
+decompose-var-headed is-bound t | _ = nothing
 
 data tty : Set where
   tterm : term → tty
@@ -336,6 +350,7 @@ erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (era
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi) = Beta pi
 erase-term (Delta pi t) = erase-term t
+erase-term (PiInj _ _ t) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
@@ -356,3 +371,8 @@ lterms-to-𝕃h u (LtermsCons t ls) = t :: (lterms-to-𝕃h u ls)
 
 lterms-to-𝕃 : theta → lterms → 𝕃 term
 lterms-to-𝕃 u ls = reverse (lterms-to-𝕃h u ls)
+
+num-to-ℕ : num → ℕ
+num-to-ℕ n with string-to-ℕ n
+num-to-ℕ _ | just n = n
+num-to-ℕ _ | _ = 0

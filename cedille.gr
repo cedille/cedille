@@ -36,7 +36,7 @@ CheckType : cmd -> type checkKind ows cmdTerminator ! .
 DefKind : cmd -> ! kvar maybeCheckSuper ows '=' ows kind ows '.' ! .
 CheckKind : cmd -> kind maybeCheckSuper ows '.' ! .
 
-Rec : cmd -> ! 'rec' ws var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
+Rec : cmd -> ! 'rec' ws ! var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
 
 Decl : decl -> ! '(' ows var ows ':' ows tk ows ')' !.
 
@@ -81,13 +81,17 @@ AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
 Beta : lterm -> ! 'β' .
 Delta : lterm -> ! 'δ' ows lterm.
+PiInj : lterm -> ! 'π' num ows lterm.
 Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
-Chi : lterm -> ! 'χ' ows atype ows '-' ows lterm.
+Chi : lterm -> ! 'χ' maybeAtype ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 
 Hole : lterm -> ! '●' .
+
+Atype : maybeAtype -> ows atype.
+NoAtype : maybeAtype -> .
 
 LtermsNil : lterms -> ! .
 LtermsCons : lterms -> ws lterm lterms.
@@ -107,7 +111,7 @@ KeptLambda : lam -> 'λ' .
 Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
 TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
-Iota : type -> ! 'ι' ows var ows '.' ows type .
+Iota : type -> ! 'ι' ows var optClass ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 
@@ -145,14 +149,14 @@ Lexical
 
 alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 
-numpunct -> ['0' - '9'] | quote | '-' .
+numone -> ['0' - '9'].
+num -> numone+.
+
+numpunct -> numone | quote | '-' .
 
 var -> '_' | (alpha (alpha | numpunct)*) .
 
 kvar -> '𝒌' (alpha | numpunct)*.
-
-%numone -> ['0' - '9'].
-%num -> numone+.
 
 anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' .
 

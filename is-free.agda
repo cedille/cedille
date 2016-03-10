@@ -16,6 +16,7 @@ is-free-in-kind : is-free-e → var → kind → 𝔹
 is-free-in-optClass : is-free-e → var → optClass → 𝔹
 is-free-in-tk : is-free-e → var → tk → 𝔹
 is-free-in-liftingType : is-free-e → var → liftingType → 𝔹
+is-free-in-maybeAtype : is-free-e → var → maybeAtype → 𝔹
 
 is-free-in-term ce x (App t Erased t') = is-free-in-term ce x t || (ce && is-free-in-term ce x t')
 is-free-in-term ce x (App t NotErased t') = is-free-in-term ce x t || is-free-in-term ce x t'
@@ -27,10 +28,11 @@ is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _) = ff
 is-free-in-term ce x (Delta _ t) = is-free-in-term ce x t
+is-free-in-term ce x (PiInj _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Epsilon _ _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Sigma _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Rho _ t t') = is-free-in-term ce x t || is-free-in-term ce x t'
-is-free-in-term ce x (Chi _ T t') = is-free-in-type ce x T || is-free-in-term ce x t'
+is-free-in-term ce x (Chi _ T t') = is-free-in-maybeAtype ce x T || is-free-in-term ce x t'
 is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
   where is-free-in-lterms : is-free-e → var → lterms → 𝔹
         is-free-in-lterms ce x (LtermsNil _) = ff
@@ -39,7 +41,7 @@ is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lte
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' atk t) = 
   is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t) 
-is-free-in-type ce x (Iota _ x' t) = ~ (x =string x') && is-free-in-type ce x t
+is-free-in-type ce x (Iota _ x' m t) = is-free-in-optClass ce x m || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (Lft _ _ X t l) = is-free-in-liftingType ce x l || (~ x =string X && is-free-in-term ce x t)
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'
@@ -67,6 +69,9 @@ is-free-in-liftingType ce x (LiftParens x₁ l x₂) = is-free-in-liftingType ce
 is-free-in-liftingType ce x (LiftPi _ x' t l) = is-free-in-type ce x t || (~ (x =string x') && is-free-in-liftingType ce x l)
 is-free-in-liftingType ce x (LiftStar x₁) = ff
 is-free-in-liftingType ce x (LiftTpArrow t l) = is-free-in-type ce x t || is-free-in-liftingType ce x l
+
+is-free-in-maybeAtype ce x NoAtype = ff
+is-free-in-maybeAtype ce x (Atype T) = is-free-in-type ce x T
 
 is-free-in : {ed : exprd} → is-free-e → var → ⟦ ed ⟧ → 𝔹
 is-free-in{TERM} e x t = is-free-in-term e x t 

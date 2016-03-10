@@ -41,9 +41,9 @@ rewrite-liftingType : rewrite-t liftingType
 rewrite-type Γ ρ t1 t2 (Abs pi b pi' y tk tp) = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     Abs pi b pi' y' (rewrite-tk Γ ρ t1 t2 tk) (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 tp)
-rewrite-type Γ ρ t1 t2 (Iota pi y tp) = 
+rewrite-type Γ ρ t1 t2 (Iota pi y m tp) = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    Iota pi y (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 tp)
+    Iota pi y (rewrite-optClass Γ ρ t1 t2 m) (rewrite-type Γ (renamectxt-insert ρ y y') t1 t2 tp)
 rewrite-type Γ ρ t1 t2 (Lft pi pi' y t l) = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
      Lft pi pi' y' (rewrite-term Γ (renamectxt-insert ρ y y') t1 t2 t) (rewrite-liftingType Γ ρ t1 t2 l)

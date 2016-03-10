@@ -125,6 +125,9 @@ spanM-debug pi pi' tvs = spanMok
 explain : string → tagged-val
 explain s = "explanation" , s
 
+reason : string → tagged-val
+reason s = "reason" , s
+
 expected-type : type → tagged-val
 expected-type tp = "expected-type" , type-to-string tp
 
@@ -281,15 +284,21 @@ KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') [
 KndTpArrow-span : type → kind → span
 KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) [ super-kind-data ]
 
+rectype-name-span : posinfo → var → type → span
+rectype-name-span pi v tp = mk-span "Recursively defined type" pi (posinfo-plus-str pi v) [ "definition" , type-to-string tp ]
+
 Udefse-span : posinfo → 𝕃 tagged-val → span
 Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
 Ctordeclse-span : posinfo → 𝕃 tagged-val → span
 Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
+erasure : term → tagged-val
+erasure t = "erasure" , term-to-string t
+
 Udef-span : posinfo → var → posinfo → term → 𝕃 tagged-val → span
 Udef-span pi x pi' t tvs =
-  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: [ "erasure" , term-to-string t ]) in
+  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: [ erasure t ]) in
     mk-span "Constructor definition" pi pi' tvs
 
 Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
@@ -309,7 +318,7 @@ Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-en
                                            (tvs ++ [ "type of bound variable" , tk-to-string atk ])
 DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span pi x checked tp t pi' tvs = 
-  h (("erasure" , term-to-string t) :: tvs) pi x checked tp pi'
+  h (erasure t :: tvs) pi x checked tp pi'
   where h : 𝕃 tagged-val → posinfo → var → (checked : 𝔹) → maybe type → posinfo → span
         h tvs pi x tt _ pi' = 
           mk-span "Term-level definition (checking)" pi pi' tvs
@@ -350,6 +359,12 @@ Delta-span pi t tvs = mk-span "Delta" pi (term-end-pos t)
                        (tvs ++ [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
                                         ^ "false.")])
 
+PiInj-span : posinfo → num → term → 𝕃 tagged-val → span
+PiInj-span pi n t tvs = mk-span "Pi proof" pi (term-end-pos t) 
+                          (tvs ++ [ explain ("A term for deducing that the argument in position " ^ n ^ " of a head-normal form on "
+                                           ^ "the lhs of the equation proved by the subterm is equal to the corresponding argument " 
+                                           ^ "of the rhs") ])
+
 hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
 hole-span Γ pi tp tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1) 
@@ -376,9 +391,11 @@ Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t')
                                   (tvs ++ [ explain ("Rewrite terms in the " 
                                                    ^ expected-to-string expected ^ " type, using an equation. ") ])
 
-Chi-span : posinfo → type → term → 𝕃 tagged-val → span
-Chi-span pi T t' tvs = mk-span "Chi" pi (term-end-pos t') 
+Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
+Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 
                          (tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , type-to-string T ]))
+Chi-span pi NoAtype t' tvs = mk-span "Chi" pi (term-end-pos t') 
+                              (tvs ++ [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] )
 
 Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
 Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
@@ -404,7 +421,7 @@ Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-exp
 normalized-term-if : ctxt → cmdTerminator → term → 𝕃 tagged-val
 normalized-term-if Γ Normalize e = [ "normalized term" , to-string (hnf Γ unfold-all e) ]
 normalized-term-if Γ Hnf e = [ "hnf term" , to-string (hnf Γ unfold-head e) ]
-normalized-term-if Γ Hanf e = [ "hnf term" , to-string (hanf Γ e) ]
+normalized-term-if Γ Hanf e = [ "hanf term" , to-string (hanf Γ e) ]
 normalized-term-if Γ EraseOnly e = []
 
 normalized-type-if : ctxt → cmdTerminator → type → 𝕃 tagged-val

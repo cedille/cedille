@@ -83,9 +83,14 @@ check-term-update-eq Γ Right m t1 t2 = TpEq t1 (hnf-from Γ m t2)
 check-term-update-eq Γ Both m t1 t2 = TpEq (hnf-from Γ m t1) (hnf-from Γ m t2) 
 
 -- a simple incomplete check for beta-inequivalence
+{-# NO_TERMINATION_CHECK #-}
 check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
 check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) = 
   check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x2) (renamectxt-insert m x1 x2) t1 t2
+check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) t2 = 
+  check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x1) m t1 (mapp t2 (mvar x1))
+check-beta-inequivh local-left local-right m t1 (Lam _ _ _ x2 _ t2) = 
+  check-beta-inequivh (stringset-insert local-left x2) (stringset-insert local-right x2) m (mapp t1 (mvar x2)) t2
 check-beta-inequivh local-left local-right m t1 t2 with decompose-apps t1 | decompose-apps t2 
 check-beta-inequivh local-left local-right m t1 t2 | Var _ x1 , args1 | Var _ x2 , args2 = 
   (~ eq-var m x1 x2) && (stringset-contains local-left x1) && (stringset-contains local-right x2)
@@ -95,13 +100,54 @@ check-beta-inequivh local-left local-right m t1 t2 | _ | _ = ff
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renamectxt t1 t2
 
+PiInj-err1 : string → ℕ → type ⊎ string
+PiInj-err1 s n =
+ inj₂ ("The lhs and rhs are headed by the same bound variable, but the " 
+       ^ s ^ " does not have an argument in position " ^ (ℕ-to-string n) ^ ".")
+PiInj-err2 : string → type ⊎ string
+PiInj-err2 s =
+  inj₂ ("The body of the " ^ s ^ " is not headed by a bound variable.")
+
+PiInj-decompose-app : ctxt → term → maybe (var × 𝕃 term)
+PiInj-decompose-app Γ t with decompose-var-headed (ctxt-binds-var Γ) t
+PiInj-decompose-app Γ t | just (x , args) = just (x , reverse args)
+PiInj-decompose-app Γ t | nothing = nothing
+
+PiInj-try-project : ctxt → ℕ → term → term → type ⊎ string
+PiInj-try-project Γ n t1 t2 with decompose-lams t1 | decompose-lams t2
+PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 with renamectxt-insert* empty-renamectxt vs1 vs2 
+PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | nothing = 
+  inj₂ ("The lhs and rhs bind different numbers of variables.")
+PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ 
+  with PiInj-decompose-app Γ body1 | PiInj-decompose-app Γ body2
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) with eq-var ρ h1 h2
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) | ff =
+  inj₂ "The lhs and rhs are headed by different bound variables."
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) | tt 
+  with nth n args1 | nth n args2 
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) | tt | nothing | _ =
+  PiInj-err1 "lhs" n
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) | tt | _ | nothing =
+  PiInj-err1 "rhs" n
+PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , _) | just (h2 , _) | tt | just a1 | just a2 =
+  let rebuild : 𝕃 var → term → term
+      -- the call to hnf with no-unfolding will have the effect of eta-contracting the new lambda abstraction
+      rebuild vs a = (hnf Γ no-unfolding (Lam* (reverse vs) a)) in
+  inj₁ (TpEq (rebuild vs1 a1) (rebuild vs2 a2))
+PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | nothing | _ = 
+  PiInj-err2 "lhs"
+PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | _ | nothing =
+  PiInj-err2 "rhs"
+
 {- if the hnf of the type is a Iota type, then instantiate it with the given term.
    We assume types do not reduce with normalization and instantiation to further iota
-   types. -}
-hnf-instantiate-iota : ctxt → term → type → type
-hnf-instantiate-iota Γ subject tp with hnf Γ unfold-head-rec-defs tp
-hnf-instantiate-iota Γ subject _ | Iota _ x t = hnf Γ unfold-head (subst-type Γ subject x t)
-hnf-instantiate-iota Γ subject _ | tp = tp
+   types.  Also, if allow-typed-iota is true, we will instantiate a iota type where the
+   iota-bound variable has a type; otherwise, we won't-}
+hnf-instantiate-iota : ctxt → term → type → (allow-typed-iota : 𝔹) → type
+hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp
+hnf-instantiate-iota Γ subject _ tt | Iota _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t)
+hnf-instantiate-iota Γ subject _ ff | Iota _ x NoClass t = hnf Γ unfold-head (subst-type Γ subject x t)
+hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk : ctxt → posinfo → var → tk → spanM ctxt
 add-tk Γ pi x atk =
@@ -150,7 +196,7 @@ check-tk : ctxt → tk → spanM ⊤
 
 check-term Γ subject nothing = check-termi Γ subject nothing
 check-term Γ subject (just tp) = 
-  check-termi Γ subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp) else tp))
+  check-termi Γ subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else tp))
 
 check-type Γ subject nothing = check-typei Γ subject nothing
 check-type Γ subject (just k) = check-typei Γ subject (just (hnf Γ unfold-head k))
@@ -174,7 +220,7 @@ check-termi Γ (Var pi x) (just tp) | just tp' =
                        :: (hnf-type Γ tp') :: [])))
 
 check-termi Γ (AppTp t tp') tp =
-  check-term Γ t nothing ≫=spanm (λ htp → cont (hnf-instantiate-iota Γ t htp)) ≫=spanr cont' tp 
+  check-term Γ t nothing ≫=spanm (λ htp → cont (hnf-instantiate-iota Γ t htp tt)) ≫=spanr cont' tp 
   where cont : type → spanM (maybe type)
         cont (Abs pi b pi' x (Tkk k) tp2) = 
            check-type Γ tp' (just k) ≫span 
@@ -200,7 +246,7 @@ check-termi Γ (AppTp t tp') tp =
                             []))
   
 check-termi Γ (App t m t') tp =
-  check-term Γ t nothing ≫=spanm (λ htp → cont m (hnf-instantiate-iota Γ t htp)) ≫=spanr cont' tp 
+  check-term Γ t nothing ≫=spanm (λ htp → cont m (hnf-instantiate-iota Γ t htp tt)) ≫=spanr cont' tp 
   where cont : maybeErased → type → spanM (maybe type)
         cont NotErased (TpArrow tp1 tp2) = 
           check-term Γ t' (just tp1) ≫span 
@@ -242,12 +288,16 @@ check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
   check-term Γ t nothing ≫=span cont
 
   where cont : maybe type → spanM (maybe type)
-        cont nothing = spanM-add (Lam-span pi l x (SomeClass atk) t
-                                    [ explain "Cannot compute a type because of errors in the body" ]) ≫span 
+        cont nothing = spanM-add (Lam-span pi l x (SomeClass atk) t []) ≫span 
                        spanMr nothing
         cont (just tp) = 
           let rettp = abs-tk l x atk tp in
-          spanM-add (Lam-span pi l x (SomeClass atk) t [ type-data rettp ]) ≫span
+          let tvs = [ type-data rettp ] in
+          spanM-add (Lam-span pi l x (SomeClass atk) t 
+                       (if (is-free-in-term skip-erased x t) then
+                           (error-data "The bound variable occurs free in the erasure of the body (not allowed)."
+                         :: erasure t :: tvs)
+                        else tvs)) ≫span
           check-termi-return Γ (Lam pi l pi' x (SomeClass atk) t) rettp
 
 check-termi Γ (Lam pi l _ x NoClass t) nothing =
@@ -269,7 +319,11 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
           else
             Lam-span pi l x oc t (lambda-bound-var-conv-error x atk atk' tvs)
         check-erasures : lam → binder → 𝕃 tagged-val
-        check-erasures ErasedLambda All = [ type-data tp ]
+        check-erasures ErasedLambda All = type-data tp 
+                                       :: (if (is-free-in-term skip-erased x t) then 
+                                            (error-data "The Λ-bound variable occurs free in the erasure of the body." 
+                                            :: [ erasure t ])
+                                           else [])
         check-erasures KeptLambda Pi = [ type-data tp ]
         check-erasures ErasedLambda Pi = error-data ("The expected type is a Π-abstraction (indicating explicit input), but"
                                               ^ " the term is a Λ-abstraction (implicit input).")
@@ -308,6 +362,29 @@ check-termi Γ (Delta pi t) (just tp) =
         cont errmsg (just tp) = 
           spanM-add (Delta-span pi t (error-data errmsg :: [ expected-type tp ]))
         cont errmsg nothing = spanM-add (Delta-span pi t [ expected-type tp ])
+
+check-termi Γ (PiInj pi n t) mtp = 
+  check-term Γ t nothing ≫=span cont mtp
+  where cont : (mtp : maybe type) → maybe type → spanM (check-ret mtp)
+        cont mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (erase-term t1) (erase-term t2)
+        cont mtp (just (TpEq t1 t2)) | inj₂ msg = 
+          spanM-add (PiInj-span pi n t ( error-data "We could not project out an equation between corresponding arguments."
+                                       :: (expected-type-if mtp [ reason msg ]))) ≫span
+          check-fail mtp
+        cont (just tp) (just (TpEq t1 t2)) | inj₁ eq = 
+          (if conv-type Γ tp eq then
+            spanM-add (PiInj-span pi n t [ type-data eq ])
+           else 
+            spanM-add (PiInj-span pi n t (type-data eq :: expected-type tp 
+                                      :: [ error-data "The expected type does not match the computed type." ])))
+          ≫span spanMok
+        cont nothing (just (TpEq t1 t2)) | inj₁ eq = 
+          spanM-add (PiInj-span pi n t [ type-data eq ]) ≫span spanMr (just eq)
+        cont mtp (just tp) =
+           spanM-add (PiInj-span pi n t (expected-type-if mtp 
+                                          [ error-data ("The subterm of a pi-proof does not prove an equation.") ] )) ≫span
+           check-fail mtp
+        cont mtp nothing = spanM-add (PiInj-span pi n t (expected-type-if mtp [])) ≫span check-fail mtp
 
 check-termi Γ (Epsilon pi lr m t) (just (TpEq t1 t2)) = 
   spanM-add (Epsilon-span pi lr m t tt [ type-data (TpEq t1 t2) ]) ≫span
@@ -383,13 +460,21 @@ check-termi Γ (Rho pi t t') nothing =
                                       :: [])) ≫span spanMr nothing
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
 
-check-termi Γ (Chi pi tp t) mtp = 
+check-termi Γ (Chi pi (Atype tp) t) mtp = 
   check-term Γ t (just tp) ≫span cont mtp
   where cont : (m : maybe type) → spanM (check-ret m)
-        cont nothing = spanM-add (Chi-span pi tp t []) ≫span spanMr (just tp)
-        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi tp t []))
-                          else (spanM-add (Chi-span pi tp t ( error-data "The expected type does not match the asserted type."
+        cont nothing = spanM-add (Chi-span pi (Atype tp) t []) ≫span spanMr (just tp)
+        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi (Atype tp) t []))
+                          else (spanM-add (Chi-span pi (Atype tp) t ( error-data "The expected type does not match the asserted type."
                                                            :: expected-type tp' :: []))) ≫span
+                          spanMok
+check-termi Γ (Chi pi NoAtype t) (just tp) = 
+  check-term Γ t nothing ≫=span cont 
+  where cont : (m : maybe type) → spanM ⊤
+        cont nothing = spanM-add (Chi-span pi NoAtype t []) ≫span spanMok
+        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi NoAtype t []))
+                          else (spanM-add (Chi-span pi NoAtype t ( error-data "The expected type does not match the synthesized type."
+                                                                :: expected-type tp :: [ type-data tp' ]))) ≫span
                           spanMok
 
 check-termi Γ (Theta pi u t ls) nothing =

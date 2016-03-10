@@ -17,6 +17,7 @@ substh-kind : substh-ret-t kind
 substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
 substh-liftingType : substh-ret-t liftingType
+substh-maybeAtype : substh-ret-t maybeAtype
 
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
 subst-rename-var-if Γ ρ x y t = 
@@ -42,10 +43,11 @@ substh-term{TERM} Γ ρ t x (Var pi y) =
 substh-term Γ ρ t x (Var pi y) = Var pi (renamectxt-rep ρ y)
 substh-term Γ ρ t x (Beta pi) = Beta pi
 substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
+substh-term Γ ρ t x (PiInj pi n t') = PiInj pi n (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Epsilon pi lr m t') = Epsilon pi lr m (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Sigma pi t') = Sigma pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
-substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-type Γ ρ t x T) (substh-term Γ ρ t x t'')
+substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-maybeAtype Γ ρ t x T) (substh-term Γ ρ t x t'')
 substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
   where substh-lterms : substh-ret-t lterms
         substh-lterms Γ ρ t x (LtermsNil pi) = LtermsNil pi
@@ -59,9 +61,9 @@ substh-type Γ ρ t x (TpLambda pi pi' y atk t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
       (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (Iota pi y t') = 
+substh-type Γ ρ t x (Iota pi y m t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
-    Iota pi y' 
+    Iota pi y' (substh-optClass Γ ρ t x m)
       (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Lft pi pi' y t' l) = 
   let y' = subst-rename-var-if Γ ρ x y t in
@@ -93,6 +95,9 @@ substh-tk Γ ρ t x (Tkt t') = Tkt (substh-type Γ ρ t x t')
 substh-optClass Γ ρ t x NoClass = NoClass
 substh-optClass Γ ρ t x (SomeClass atk) = SomeClass (substh-tk Γ ρ t x atk)
 substh-liftingType Γ ρ t x l = l -- unimplemented
+
+substh-maybeAtype Γ ρ t x NoAtype = NoAtype
+substh-maybeAtype Γ ρ t x (Atype T) = Atype (substh-type Γ ρ t x T)
 
 subst-ret-t : Set → Set
 subst-ret-t T = {ed : exprd} → ctxt → ⟦ ed ⟧ → var → T → T
