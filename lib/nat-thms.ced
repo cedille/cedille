@@ -1,4 +1,5 @@
 import nat.
+import false.
 
 addZ ⇐ Π x : Nat . add x Z ≃ x
   = λ x . θ x (λ n . λ u . εl- (ρ εl- u - β)) β .
@@ -29,3 +30,7 @@ eqnatEq ⇐ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) → x ≃ y =
   λ x . θ x (λ p . λ r . λ y . 
               θ y (λ p' . λ r' . λ u . ρ (r p' u) - β) (λ u . δ u)) 
             (λ y . θ y (λ p' . λ r' . λ u . δ u) (λ u . β)) .
+
+% S has no fixed point
+nofixS ⇐ Π x : Nat . (S x ≃ x) → False = 
+  λ x . θ x (λ n . λ ih . λ u . ih (π1 ε u)) (λ u . δ ε u) .
