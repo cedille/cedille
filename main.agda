@@ -228,7 +228,7 @@ checkFile dir file =
  compute-unchanged dir file (new-include-state empty-stringset) >>= cont1
  where cont1 : include-state → IO toplevel-state
        cont1 (mk-include-state _ unchanged) = 
---        writeFile "dbg" (string-concat-sep "\n" (stringset-strings unchanged)) >>
+        writeFile "dbg" ((string-concat-sep "\n" (stringset-strings unchanged)) ^ "\n") >>
         processFile dir file (new-toplevel-state unchanged) >>= cont
         where cont : 𝔹 × toplevel-state → IO toplevel-state
               cont (_ , s') = return s'
@@ -246,12 +246,17 @@ processArgs [] =
   where cont : string → IO ⊤
         cont input-filename with takeDirectory input-filename | takeFileName input-filename
         cont input-filename | dir | file with base-filename file
-        cont input-filename | dir | _ | base = 
-          checkFile dir base >>= finish
+        cont input-filename | dir | file | base = 
+          checkFile dir file >>= finish
           where finish : toplevel-state → IO ⊤
                 finish (mk-toplevel-state i Γ ss) = 
-                  (readFiniteFile (cede-filename dir base)) >>= λ s → putStr s >> 
-                  processArgs [] {- loop until EOF, when getLine will get an exception and cedille will be killed -}
+                   let e = cede-filename dir base in
+                      doesFileExist e >>= λ b → 
+                      if b then
+                       ((readFiniteFile e) >>= λ s → putStr s >> 
+                         processArgs [] {- loop until EOF, when getLine will get an exception and cedille will be killed -})
+                      else
+                        putStr (global-error-string ("Could not open " ^ e ^ " for reading."))
 processArgs xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                        ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
 

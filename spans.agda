@@ -54,9 +54,12 @@ spans-have-error (global-error _ _) = tt
 empty-spans : spans
 empty-spans = regular-spans []
 
+global-error-string : string → string
+global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}\n"
+
 spans-to-string : spans → string
 spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-string ss) ^ "]}\n"
-spans-to-string (global-error e o) = "{\"error\":\"" ^ e ^ helper o ^ "\"" ^ "}\n"
+spans-to-string (global-error e o) = global-error-string (e ^ helper o)
   where helper : maybe span → string
         helper (just x) = ", \"global-error\":" ^ span-to-string x
         helper nothing = ""
