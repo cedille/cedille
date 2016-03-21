@@ -139,8 +139,9 @@ rec-add-udefs : ctxt → udefs → ctxt
 rec-add-udefs Γ (Udefse _) = Γ
 rec-add-udefs Γ (Udefsne us) = rec-add-udefsne Γ us
 
-process-rec-cmd : ctxt → posinfo → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
-process-rec-cmd Γ pi pi'' name params inds ctors body us pi' = 
+process-rec-cmd : (no-need-to-check : 𝔹) → 
+                  ctxt → posinfo → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → spanM ctxt
+process-rec-cmd no-need-to-check Γ pi pi'' name params inds ctors body us pi' = 
   let inds = indices-to-decls inds in
   rec-check-and-add-decls param Γ params ≫=span λ Γp → 
 

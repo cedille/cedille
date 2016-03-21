@@ -35,6 +35,8 @@ lift-freeze X tobind l t =
 do-liftargs : type → liftingType → 𝕃 term → var → 𝕃 (var × liftingType) → type
 do-liftargs tp (LiftArrow l1 l2) (arg :: args) X tobind =
   do-liftargs (TpApp tp (lift-freeze X tobind l1 arg)) l2 args X tobind
+do-liftargs tp (LiftTpArrow l1 l2) (arg :: args) X tobind =
+  do-liftargs (TpAppt tp arg) l2 args X tobind
 do-liftargs tp (LiftParens _ l _) args X tobind = do-liftargs tp l args X tobind 
 do-liftargs tp _ _ _ _ = tp
 

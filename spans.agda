@@ -327,6 +327,17 @@ DefTerm-span pi x checked tp t pi' tvs =
         h tvs pi x ff nothing pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
     
+CheckTerm-span : (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
+CheckTerm-span checked tp t pi' tvs = 
+  h (erasure t :: tvs) checked tp (term-start-pos t) pi'
+  where h : 𝕃 tagged-val → (checked : 𝔹) → maybe type → posinfo → posinfo → span
+        h tvs tt _ pi pi' = 
+          mk-span "Checking a term" pi pi' tvs
+        h tvs ff (just tp) pi pi' = 
+          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , type-to-string tp) :: tvs)
+        h tvs ff nothing pi pi' = 
+          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
+
 normalized-type : type → tagged-val
 normalized-type tp = "normalized type" , type-to-string tp
 
