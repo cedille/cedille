@@ -60,7 +60,7 @@ ced-file-up-to-date dir file =
 {-# NO_TERMINATION_CHECK #-}
 process-cmd : (dir : string) → cmd → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
 process-cmds : (dir : string) → cmds → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
-process-start : (dir : string) → start → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
+process-start : (dir : string) → (input-filename : string) → start → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
 processFile : (dir : string) → (file : string) → toplevel-state → IO (𝔹 × toplevel-state) -- the boolean is for if there was an error
 
 process-cmd dir (DefTerm pi x (Type tp) t n pi') ff {- should check -} (mk-toplevel-state is Γ ss) = 
@@ -120,7 +120,7 @@ process-cmd dir (DefKind pi x _ k pi') tt {- skip checking -} (mk-toplevel-state
 
 process-cmd dir (CheckKind k _ pi) _ (mk-toplevel-state is Γ ss) = 
   return (mk-toplevel-state is Γ ss)
-process-cmd dir (Import pi x pi') _ s with toplevel-add-span (Import-span pi pi' []) s
+process-cmd dir (Import pi x pi') _ s with toplevel-add-span (Import-span pi x pi' []) s
 process-cmd dir (Import pi x pi') _ _ | s with s
 process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state processed unchanged) _ _ = 
   let file = add-cedille-extension x in
@@ -130,7 +130,7 @@ process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state 
   where cont : 𝔹 × toplevel-state → IO toplevel-state
         cont (b , s) =
           if b then
-            return (toplevel-add-span (Import-span pi pi' [ error-data "There is an error in the imported file" ]) s)
+            return (toplevel-add-span (Import-span pi x pi' [ error-data "There is an error in the imported file" ]) s)
           else return s
        
 process-cmd dir (Rec pi pi'' name params inds ctors body us pi') no-need-to-check (mk-toplevel-state i Γ ss) = 
@@ -144,8 +144,8 @@ process-cmds dir (CmdsNext c cs) no-need-to-check s = process-cmd dir c no-need-
           if global-error-p ss then return s else process-cmds dir cs no-need-to-check s
 process-cmds dir (CmdsStart c) no-need-to-check s = process-cmd dir c no-need-to-check s
 
-process-start dir (File pi cs pi') no-need-to-check s = 
-  process-cmds dir cs no-need-to-check s >>= λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1)) s')
+process-start dir input-filename (File pi cs pi') no-need-to-check s = 
+  process-cmds dir cs no-need-to-check s >>= λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1) input-filename) s')
 
 -- process the given input file, after adding it to the include state
 processFile dir file s with s | combineFileNames dir file
@@ -165,8 +165,8 @@ processFile dir file s | (mk-toplevel-state (mk-include-state processed unchange
         processText x | inj₂ r with rewriteRun r
         processText x | inj₂ r | (ParseTree (parsed-start p) :: []) with stringset-contains unchanged input-filename
         processText x | inj₂ r | (ParseTree (parsed-start p) :: []) | skip-checking =
-          process-start dir p skip-checking
-            (mk-toplevel-state (mk-include-state (stringset-insert processed input-filename) unchanged) Γ ss)
+          process-start dir input-filename p skip-checking
+            (mk-toplevel-state (mk-include-state (stringset-insert processed input-filename) unchanged) Γ empty-spans)
             >>= finish
           where finish : toplevel-state → IO (𝔹 × toplevel-state)
                 finish (mk-toplevel-state i Γ ss') = 
@@ -228,7 +228,7 @@ checkFile dir file =
  compute-unchanged dir file (new-include-state empty-stringset) >>= cont1
  where cont1 : include-state → IO toplevel-state
        cont1 (mk-include-state _ unchanged) = 
-        writeFile "dbg" (string-concat-sep "\n" (stringset-strings unchanged)) >>
+--        writeFile "dbg" (string-concat-sep "\n" (stringset-strings unchanged)) >>
         processFile dir file (new-toplevel-state unchanged) >>= cont
         where cont : 𝔹 × toplevel-state → IO toplevel-state
               cont (_ , s') = return s'

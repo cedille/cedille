@@ -443,9 +443,9 @@ normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ u
 Lft-span : posinfo → var → term → liftingType → 𝕃 tagged-val → span
 Lft-span pi X t l tvs = mk-span "Lift type" pi (liftingType-end-pos l) tvs
 
-File-span : posinfo → posinfo → span
-File-span pi pi' = mk-span "Cedille source file" pi pi' []
+File-span : posinfo → posinfo → string → span
+File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []
 
-Import-span : posinfo → posinfo → 𝕃 tagged-val → span
-Import-span pi pi' tvs = mk-span "Import of another source file" pi pi' tvs
+Import-span : posinfo → string → posinfo → 𝕃 tagged-val → span
+Import-span pi file pi' tvs = mk-span ("Import of source file " ^ file) pi pi' tvs
 
