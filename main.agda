@@ -43,13 +43,19 @@ cede-filename dir base = combineFileNames dir (base ^ ".cede")
 add-cedille-extension : string → string
 add-cedille-extension x = x ^ "." ^ cedille-extension 
 
+postulate 
+  test : IO 𝔹
+
+{-# COMPILED test (return True) #-}
+
 ced-file-up-to-date : (dir : string) → (file : string) → IO 𝔹
 ced-file-up-to-date dir file =
   let base = base-filename file in
   let e = cede-filename dir base in
+  let f = combineFileNames dir file in
     doesFileExist e >>= λ b → 
     if b then
-      fileIsOlder (combineFileNames dir file) e
+      fileIsOlder f e
     else
       return ff
 
@@ -215,10 +221,11 @@ compute-unchanged dir file (mk-include-state _ unchanged) | input-filename | see
           where finish : 𝔹 × include-state → IO include-state
                 finish (imports-are-unchanged , mk-include-state seen' unchanged) = 
                   ced-file-up-to-date dir file >>= λ up-to-date → 
-                  return (mk-include-state seen' 
-                            (if (imports-are-unchanged && up-to-date) 
-                             then (stringset-insert unchanged input-filename)
-                             else unchanged))
+                    let do-add = imports-are-unchanged && up-to-date in 
+                     return (mk-include-state seen' 
+                              (if do-add 
+                               then (stringset-insert unchanged input-filename)
+                               else unchanged))
            
         processText x | inj₂ r | _ = return (mk-include-state seen' unchanged)
 
@@ -228,7 +235,7 @@ checkFile dir file =
  compute-unchanged dir file (new-include-state empty-stringset) >>= cont1
  where cont1 : include-state → IO toplevel-state
        cont1 (mk-include-state _ unchanged) = 
-        writeFile "dbg" ((string-concat-sep "\n" (stringset-strings unchanged)) ^ "\n") >>
+--        writeFile "dbg" ((string-concat-sep "\n" (stringset-strings unchanged)) ^ "\n") >>
         processFile dir file (new-toplevel-state unchanged) >>= cont
         where cont : 𝔹 × toplevel-state → IO toplevel-state
               cont (_ , s') = return s'
