@@ -1,0 +1,4 @@
+-- ability to see if there is an error in a particular definition, without
+   jumping through all your errors
+
+-- improve parsing

@@ -7,3 +7,6 @@ cedille-extension = "ced"
 
 self-name : string
 self-name = "self"
+
+ignored-var : string
+ignored-var = "_"

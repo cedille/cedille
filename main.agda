@@ -76,6 +76,7 @@ process-cmd dir (DefTerm pi x (Type tp) t n pi') ff {- should check -} (mk-tople
                spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
                spanMr (hnf Γ unfold-head t)) ss in
     return (mk-toplevel-state is (ctxt-term-def x (fst ss') tp Γ) (snd ss'))
+
 process-cmd dir (DefTerm pi x (Type tp) t n pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
     return (mk-toplevel-state is (ctxt-term-def x (hnf Γ unfold-head t) tp Γ) ss)
 

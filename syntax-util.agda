@@ -31,6 +31,10 @@ binder-is-pi : binder → 𝔹
 binder-is-pi Pi = tt
 binder-is-pi _ = ff
 
+lam-is-erased : lam → 𝔹
+lam-is-erased ErasedLambda = tt
+lam-is-erased _ = ff
+
 indices-to-decls : indices → decls
 indices-to-decls (Indicese pi) = (DeclsNil pi)
 indices-to-decls (Indicesne x) = x

@@ -185,6 +185,13 @@ type-data tp = "type" , type-to-string tp
 kind-data : kind → tagged-val
 kind-data k = "kind" , kind-to-string k
 
+liftingType-data : liftingType → tagged-val
+liftingType-data l = "lifting type" , liftingType-to-string l
+
+kind-data-if : maybe kind → 𝕃 tagged-val
+kind-data-if (just k) = [ kind-data k ]
+kind-data-if nothing = []
+
 super-kind-data : tagged-val
 super-kind-data = "superkind" , "□"
 
@@ -297,7 +304,7 @@ Ctordeclse-span : posinfo → 𝕃 tagged-val → span
 Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
 erasure : term → tagged-val
-erasure t = "erasure" , term-to-string t
+erasure t = "erasure" , term-to-string (erase-term t)
 
 Udef-span : posinfo → var → posinfo → term → 𝕃 tagged-val → span
 Udef-span pi x pi' t tvs =
@@ -443,8 +450,8 @@ normalized-type-if Γ Normalize e = [ "normalized type" , to-string (hnf Γ unfo
 normalized-type-if Γ EraseOnly e = []
 normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
 
-Lft-span : posinfo → var → term → liftingType → 𝕃 tagged-val → span
-Lft-span pi X t l tvs = mk-span "Lift type" pi (liftingType-end-pos l) tvs
+Lft-span : posinfo → var → term → 𝕃 tagged-val → span
+Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) tvs
 
 File-span : posinfo → posinfo → string → span
 File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []

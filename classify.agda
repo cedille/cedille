@@ -3,6 +3,7 @@ module classify where
 open import lib
 
 open import cedille-types
+open import constants
 open import conversion
 open import ctxt
 open import is-free
@@ -152,7 +153,7 @@ hnf-instantiate-iota Γ subject _ _ | tp = tp
 add-tk : ctxt → posinfo → var → tk → spanM ctxt
 add-tk Γ pi x atk =
   spanM-add (var-span Γ pi x atk) ≫span
-  spanMr (if (x =string "_") then Γ else (helper atk))
+  spanMr (if (x =string ignored-var) then Γ else (helper atk))
   where helper : tk → ctxt
         helper (Tkk k) = ctxt-type-decl x k Γ
         helper (Tkt t) = ctxt-term-decl x t Γ
@@ -194,9 +195,12 @@ check-typei : ctxt → type → (m : maybe kind) → spanM (check-ret m)
 check-kind : ctxt → kind → spanM ⊤
 check-tk : ctxt → tk → spanM ⊤
 
-check-term Γ subject nothing = check-termi Γ subject nothing
+check-term Γ subject nothing = check-termi Γ subject nothing ≫=span cont
+  where cont : maybe type → spanM (maybe type)
+        cont (just tp) = spanMr (just (hnf Γ unfold-head tp))
+        cont nothing = spanMr nothing 
 check-term Γ subject (just tp) = 
-  check-termi Γ subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else tp))
+  check-termi Γ subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else (hnf Γ unfold-head tp)))
 
 check-type Γ subject nothing = check-typei Γ subject nothing
 check-type Γ subject (just k) = check-typei Γ subject (just (hnf Γ unfold-head k))
@@ -294,7 +298,7 @@ check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
           let rettp = abs-tk l x atk tp in
           let tvs = [ type-data rettp ] in
           spanM-add (Lam-span pi l x (SomeClass atk) t 
-                       (if (is-free-in-term skip-erased x t) then
+                       (if (lam-is-erased l) && (is-free-in-term skip-erased x t) then
                            (error-data "The bound variable occurs free in the erasure of the body (not allowed)."
                          :: erasure t :: tvs)
                         else tvs)) ≫span
@@ -341,6 +345,9 @@ check-termi Γ (Beta pi) (just (TpEq t1 t2)) =
     spanM-add (Beta-span pi [ type-data (TpEq t1 t2) ])
   else
     spanM-add (Beta-span pi (error-data "The two terms in the equation are not β-equal" :: [ expected-type (TpEq t1 t2) ]))
+
+check-termi Γ (Beta pi) (just tp) = 
+  spanM-add (Beta-span pi (error-data "The expected type is not an equation." :: [ expected-type tp ]))
 
 check-termi Γ (Beta pi) nothing = 
   spanM-add (Beta-span pi [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
@@ -461,6 +468,7 @@ check-termi Γ (Rho pi t t') nothing =
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
 
 check-termi Γ (Chi pi (Atype tp) t) mtp = 
+  check-type Γ tp (just star) ≫span
   check-term Γ t (just tp) ≫span cont mtp
   where cont : (m : maybe type) → spanM (check-ret m)
         cont nothing = spanM-add (Chi-span pi (Atype tp) t []) ≫span spanMr (just tp)
@@ -496,19 +504,23 @@ check-termi Γ (Theta pi AbstractEq t ls) (just tp) =
                             (lterms-to-𝕃 AbstractEq ls))
                (just tp)
 
-check-termi Γ (Theta pi Abstract (Var pi' x) ls) (just tp) =
+check-termi Γ (Theta pi Abstract t ls) (just tp) =
   -- discard spans from checking the head, because we will check it again below
-  check-term Γ (Var pi' x) nothing ≫=spand cont
-  where cont : maybe type → spanM ⊤
-        cont nothing = check-term Γ (Var pi' x) nothing ≫=span (λ m → 
-                          spanM-add (Theta-span pi Abstract (Var pi' x) ls 
+  check-term Γ t nothing ≫=spand cont t
+  where cont : term → maybe type → spanM ⊤
+        cont _ nothing = check-term Γ t nothing ≫=span (λ m → 
+                           spanM-add (Theta-span pi Abstract t ls 
                                       (expected-type tp :: [ motive-label , "We could not compute a motive from the given term" ])))
-        cont (just htp) = 
+        cont t (just htp) = 
+          let x = compute-var t in
           let motive = mtplam x (Tkt htp) tp in
-            spanM-add (Theta-span pi Abstract (Var pi' x) ls (expected-type tp :: [ the-motive motive ])) ≫span 
-            check-term Γ (App* (AppTp (Var pi' x) (NoSpans motive (posinfo-plus pi' (suc (string-length x)))))
+            spanM-add (Theta-span pi Abstract t ls (expected-type tp :: [ the-motive motive ])) ≫span 
+            check-term Γ (App* (AppTp t (NoSpans motive (term-end-pos t)))
                             (lterms-to-𝕃 Abstract ls)) 
                (just tp)
+          where compute-var : term → string
+                compute-var (Var pi' x) = x
+                compute-var t = ignored-var
 
 check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) = cont (wrap-vars vs tp)
   where wrap-var : var → type → maybe type
@@ -526,10 +538,6 @@ check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) = cont (wrap-vars vs 
             check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
                             (lterms-to-𝕃 Abstract ls)) 
                (just tp)
-
-check-termi Γ (Theta pi Abstract t ls) (just tp) =
-  spanM-add (Theta-span pi Abstract t ls (expected-type tp :: [ error-data "Abstracting a non-variable term is not implemented yet." ]))
-  ≫span spanMr triv
 
 check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
 
@@ -668,12 +676,12 @@ check-typei Γ (Lft pi pi' X t l) k =
   check-term Γ t (just (liftingType-to-type X l)) ≫span
   cont k (liftingType-to-kind l) 
   where cont : (outer : maybe kind) → kind → spanM (check-ret outer)
-        cont nothing k = spanM-add (Lft-span pi X t l [ kind-data k ]) ≫span spanMr (just k)
+        cont nothing k = spanM-add (Lft-span pi X t [ kind-data k ]) ≫span spanMr (just k)
         cont (just k') k = 
           if conv-kind Γ k k' then 
-             spanM-add (Lft-span pi X t l ( expected-kind k' :: [ kind-data k ])) ≫span spanMok
+             spanM-add (Lft-span pi X t ( expected-kind k' :: [ kind-data k ])) ≫span spanMok
           else
-             spanM-add (Lft-span pi X t l ( error-data "The expected kind does not match the computed kind."
+             spanM-add (Lft-span pi X t ( error-data "The expected kind does not match the computed kind."
                                          :: expected-kind k' :: [ kind-data k ]))
 check-typei Γ t k = spanM-add (unimplemented-type-span (type-start-pos t) (type-end-pos t) k) ≫span unimplemented-if k
 
