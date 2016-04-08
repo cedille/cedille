@@ -1,0 +1,101 @@
+import nat.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%					      %%%
+%%%    Ananda's Nat theorems for the paper    %%%
+%%%					      %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Add-Ident : Z is the identity for addition	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Add-Ident-LHS ⇐ Π n : Nat .
+
+  % Theorem
+
+  add Z n ≃ n =
+
+  % Proof
+
+  λ n . β .
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Add-Succ-Comm : Addition commutes with the	%
+%    successor function				%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Add-Succ-Comm-LHS ⇐ Π n : Nat . Π m : Nat .
+
+  % Theorem
+
+  add ( S n ) m ≃ S ( add n m ) =
+
+  % Proof
+
+  λ n . λ m . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Succ-Inj : The successor is injective	%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Succ-Inj ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  ( S x ≃ S y ) → x ≃ y =
+
+  % Inductive Step
+
+  λ x . λ y . λ pf . ρ ( π1 εl εr pf ) - β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Add-Inj : Add x is injective			%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Add-Inj ⇐ Π x : Nat . Π y : Nat . Π z : Nat .
+
+  % Theorem
+
+  ( add x y ≃ add x z ) → y ≃ z =
+
+  λ x . λ y . λ z . θ x
+
+  % Inductive Step
+
+  (
+    λ px . λ h . λ pf .
+    
+    ρ ( h
+        % Proves add px y equals add px z
+        ( Succ-Inj ( add px y ) ( add px z )
+	  (
+          % Proves S add px y equals S add px z
+          ρ ( Add-Succ-Comm-LHS px y )
+          - ρ ( Add-Succ-Comm-LHS px z )
+            - pf
+          )
+        )
+      )
+    - β
+  )
+
+  % Base Case
+
+  (
+    λ pf .
+    
+    ρ (
+      ρ ( Add-Ident-LHS y )
+      - ρ ( Add-Ident-LHS z )
+        - pf
+      )
+    - β
+  ).
+

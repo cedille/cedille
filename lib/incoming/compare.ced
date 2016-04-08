@@ -1,0 +1,8 @@
+rec compare-t | LT : compare-t , EQ : compare-t , GT : compare-t =
+  ∀ P : compare-t → ★ .
+    P LT → P EQ → P GT → P self
+  with
+    LT = Λ P . λ a . λ b . λ c . a ,
+    EQ = Λ P . λ a . λ b . λ c . b ,
+    GT = Λ P . λ a . λ b . λ c . c .
+
