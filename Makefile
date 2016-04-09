@@ -1,5 +1,5 @@
 SRC = main.agda to-string.agda cedille-types.agda constants.agda cedille-main.agda spans.agda conversion.agda syntax-util.agda \
-      rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda
+      rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda ctxt.agda
 
 cedille:	$(SRC) Makefile
 		agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts -c main.agda 

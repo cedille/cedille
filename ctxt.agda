@@ -70,18 +70,22 @@ ctxt-term-udef v t (mk-ctxt i) = mk-ctxt (trie-insert i v (term-udef t))
 ctxt-var-decl : var → ctxt → ctxt
 ctxt-var-decl v (mk-ctxt i) = mk-ctxt (trie-insert i v var-decl)
 
+ctxt-var-decl-if : var → ctxt → ctxt
+ctxt-var-decl-if v (mk-ctxt i) = if trie-contains i v then (mk-ctxt i) else (mk-ctxt (trie-insert i v var-decl))
+
 ctxt-rename-rep : ctxt → var → var
 ctxt-rename-rep (mk-ctxt i) v with trie-lookup i v 
 ctxt-rename-rep (mk-ctxt i) v | just (rename-def v') = v'
 ctxt-rename-rep (mk-ctxt i) v | _ = v
 
+-- we assume that only the left variable might have been renamed
 ctxt-eq-rep : ctxt → var → var → 𝔹
-ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string (ctxt-rename-rep Γ y)
+ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
 
 {- add a renaming mapping the first variable to the second, unless they are equal.
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 ctxt-rename : var → var → ctxt → ctxt
-ctxt-rename v v' (mk-ctxt i) = if (v =string v') then (mk-ctxt i) else (mk-ctxt (trie-insert i v (rename-def v')))
+ctxt-rename v v' (mk-ctxt i) = (mk-ctxt (trie-insert i v (rename-def v')))
 
 ctxt-tk-decl : var → tk → ctxt → ctxt
 ctxt-tk-decl x (Tkt t) Γ = ctxt-term-decl x t Γ 

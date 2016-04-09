@@ -94,7 +94,15 @@ substh-tk Γ ρ t x (Tkt t') = Tkt (substh-type Γ ρ t x t')
 
 substh-optClass Γ ρ t x NoClass = NoClass
 substh-optClass Γ ρ t x (SomeClass atk) = SomeClass (substh-tk Γ ρ t x atk)
-substh-liftingType Γ ρ t x l = l -- unimplemented
+substh-liftingType Γ ρ t x (LiftArrow l l₁) = LiftArrow (substh-liftingType Γ ρ t x l) (substh-liftingType Γ ρ t x l₁)
+substh-liftingType Γ ρ t x (LiftParens x₁ l x₂) = substh-liftingType Γ ρ t x l
+substh-liftingType Γ ρ t x (LiftPi pi y tp l) = 
+  let y' = subst-rename-var-if Γ ρ x y t in 
+    LiftPi pi y' (substh-type Γ ρ t x tp) 
+       (substh-liftingType (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x l)
+substh-liftingType Γ ρ t x (LiftStar pi) = LiftStar pi
+substh-liftingType Γ ρ t x (LiftTpArrow tp l) = 
+  LiftTpArrow (substh-type Γ ρ t x tp) (substh-liftingType Γ ρ t x l)
 
 substh-maybeAtype Γ ρ t x NoAtype = NoAtype
 substh-maybeAtype Γ ρ t x (Atype T) = Atype (substh-type Γ ρ t x T)
@@ -110,6 +118,9 @@ subst-type Γ t x a = substh-type Γ empty-renamectxt t x a
 
 subst-kind : subst-ret-t kind
 subst-kind Γ t x a = substh-kind Γ empty-renamectxt t x a
+
+subst-liftingType : subst-ret-t liftingType
+subst-liftingType Γ t x a = substh-liftingType Γ empty-renamectxt t x a
 
 rename-type : ctxt → var → var → (is-term-var : 𝔹) → type → type
 rename-type Γ x y tt tp = subst-type Γ (Var posinfo-gen y) x tp

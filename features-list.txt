@@ -2,3 +2,5 @@
    jumping through all your errors
 
 -- improve parsing
+
+-- create src directory and put .agda files there

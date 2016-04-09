@@ -4,7 +4,9 @@ module lift where
 
 open import lib
 open import cedille-types
+open import ctxt
 open import syntax-util
+open import subst
 
 liftingType-to-kind : liftingType → kind
 liftingType-to-kind (LiftArrow l1 l2) = KndArrow (liftingType-to-kind l1) (liftingType-to-kind l2)
@@ -32,30 +34,32 @@ lift-freeze X tobind l t =
     TpApp* (Lft posinfo-gen posinfo-gen X (Lam* xs t) (LiftArrow* (map snd tobind) l))
       (map (λ p → TpVar posinfo-gen (fst p)) tobind)
 
-do-liftargs : type → liftingType → 𝕃 term → var → 𝕃 (var × liftingType) → type
-do-liftargs tp (LiftArrow l1 l2) (arg :: args) X tobind =
-  do-liftargs (TpApp tp (lift-freeze X tobind l1 arg)) l2 args X tobind
-do-liftargs tp (LiftTpArrow l1 l2) (arg :: args) X tobind =
-  do-liftargs (TpAppt tp arg) l2 args X tobind
-do-liftargs tp (LiftParens _ l _) args X tobind = do-liftargs tp l args X tobind 
-do-liftargs tp _ _ _ _ = tp
+do-liftargs : ctxt → type → liftingType → 𝕃 term → var → 𝕃 (var × liftingType) → type
+do-liftargs Γ tp (LiftArrow l1 l2) (arg :: args) X tobind =
+  do-liftargs Γ (TpApp tp (lift-freeze X tobind l1 arg)) l2 args X tobind
+do-liftargs Γ tp (LiftTpArrow l1 l2) (arg :: args) X tobind =
+  do-liftargs Γ (TpAppt tp arg) l2 args X tobind
+do-liftargs Γ tp (LiftPi _ x _ l) (arg :: args) X tobind =
+  do-liftargs Γ (TpAppt tp arg) (subst-liftingType Γ arg x l) args X tobind
+do-liftargs Γ tp (LiftParens _ l _) args X tobind = do-liftargs Γ tp l args X tobind 
+do-liftargs Γ tp _ _ _ _ = tp
 
 -- tobind are the variables we have seen going through the lifting type (they are also mapped by the trie)
-do-lifth : trie liftingType → 𝕃 (var × liftingType) → type → var → liftingType → term → type
-do-lifth m tobind origtp X (LiftParens _ l _) t = do-lifth m tobind origtp X l t 
-do-lifth m tobind origtp X (LiftArrow l1 l2) (Lam _ _ _ x _ t) = 
-  do-lifth (trie-insert m x l1) ((x , l1) :: tobind) origtp X l2 t
-do-lifth m tobind origtp X l t with decompose-apps t
-do-lifth m tobind origtp X l t | (Var _ x) , args with trie-lookup m x
-do-lifth m tobind origtp X l t | (Var _ x) , args | nothing = origtp -- the term being lifted is not headed by one of the bound vars
-do-lifth m tobind origtp X l t | (Var _ x) , args | just l' = 
-  rebind tobind (do-liftargs (TpVar posinfo-gen x) l' (reverse args) X tobind)
+do-lifth : ctxt → trie liftingType → 𝕃 (var × liftingType) → type → var → liftingType → term → type
+do-lifth Γ m tobind origtp X (LiftParens _ l _) t = do-lifth Γ m tobind origtp X l t 
+do-lifth Γ m tobind origtp X (LiftArrow l1 l2) (Lam _ _ _ x _ t) = 
+  do-lifth Γ (trie-insert m x l1) ((x , l1) :: tobind) origtp X l2 t
+do-lifth Γ m tobind origtp X l t with decompose-apps t
+do-lifth Γ m tobind origtp X l t | (Var _ x) , args with trie-lookup m x
+do-lifth Γ m tobind origtp X l t | (Var _ x) , args | nothing = origtp -- the term being lifted is not headed by one of the bound vars
+do-lifth Γ m tobind origtp X l t | (Var _ x) , args | just l' = 
+  rebind tobind (do-liftargs Γ (TpVar posinfo-gen x) l' (reverse args) X tobind)
   where rebind : 𝕃 (var × liftingType) → type → type
         rebind ((x , l'):: xs) tp = rebind xs (TpLambda posinfo-gen posinfo-gen x (Tkk (liftingType-to-kind l')) tp)
         rebind [] tp = tp 
-do-lifth m tobind origtp X l t | _ , args = origtp
+do-lifth Γ m tobind origtp X l t | _ , args = origtp
 
 -- lift a term to a type at the given liftingType, if possible.
-do-lift : type → var → liftingType → term → type
-do-lift origtp X l t = do-lifth empty-trie [] origtp X l t
+do-lift : ctxt → type → var → liftingType → term → type
+do-lift Γ origtp X l t = do-lifth Γ empty-trie [] origtp X l t
 

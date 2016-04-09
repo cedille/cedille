@@ -132,7 +132,7 @@ Star : kind -> ! '★'.
 KndParens : kind -> ! '(' ows kind ows ')' !.
 KndVar : kind -> ! kvar.
 
-LiftStar : liftingType -> ! '☆'. 
+LiftStar : lliftingType -> ! '☆'. 
 LiftPi : liftingType -> ! 'Π' ows var ows ':' ows type ows '.' ows liftingType .
 LiftArrow : liftingType -> liftingType ows '→' ows liftingType.
 LiftTpArrow : liftingType -> type ows '→' ows liftingType.
