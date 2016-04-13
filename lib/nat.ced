@@ -8,9 +8,15 @@ rec Nat | S : Nat → Nat , Z : Nat =
     S = λ n . Λ P . λ s . λ z . s n (n · P s z) ,
     Z = Λ P . λ s . λ z . z.
 
+one ⇐ Nat = S Z !
+
 add ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
 
-test = add (S (S Z)) (S (S Z)) .
+mult ⇐ Nat → Nat → Nat = λ n . λ m . θ n ( λ pn . add m ) Z .
+
+P ⇐ Nat → Nat = λ n . θ n ( λ p . λ n . p ) n .
+
+subtract ⇐ Nat → Nat → Nat = λ n . λ m . θ m ( λ p . P ) n .
 
 CNat ⇐ ★ = ∀ X : ★ . (X → X) → X → X .
 
@@ -18,8 +24,6 @@ toCNat ⇐ Nat → CNat =
   λ x . x · (λ x : Nat . CNat)
           (λ p . λ c . (Λ X . λ s . λ z . s (c · X s z)))
           (Λ X . λ s . λ z . z) .
-
-toCNat test !
 
 iszero ⇐ Nat → Bool = 
   λ n . n · (λ n : Nat . Bool) (λ p . λ r . ff) tt .
@@ -32,6 +36,22 @@ compare ⇐ Nat → Nat → compare-t =
 eqnat ⇐ Nat → Nat → Bool =
  λ n . λ m . θ (compare n m) ff tt ff .
 
-Lt ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (compare n m ≃ LT) .
+lt ⇐ Nat → Nat → Bool =
+ λ n . λ m . θ (compare n m) tt ff ff .
 
-Lte ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (compare n (S m) ≃ LT) .
+gt ⇐ Nat → Nat → Bool =
+ λ n . λ m . θ (compare n m) ff ff tt .
+
+lte ⇐ Nat → Nat → Bool =
+ λ n . λ m . θ (compare n m) tt tt ff .
+
+gte ⇐ Nat → Nat → Bool =
+ λ n . λ m . θ (compare n m) ff tt tt .
+
+Lt ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (lt n m ≃ tt) .
+Lte ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (lte n m ≃ tt) .
+Gt ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (gt n m ≃ tt) .
+Gte ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (gte n m ≃ tt) .
+
+mod ⇐ Nat → Nat → Nat =
+    λ a . λ b . θ a ( λ p . λ x . ( gte (S x) b ) · ( λ x : Bool . Nat ) Z ( S x ) ) Z .

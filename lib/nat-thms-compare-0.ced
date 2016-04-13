@@ -1,0 +1,51 @@
+import nat.
+
+compare-eq ⇐ Π x : Nat . Π y : Nat . (compare x y ≃ EQ) → x ≃ y =
+  λ x . θ x (λ p . λ r . λ y . 
+              θ y (λ p' . λ r' . λ u . ρ (r p' u) - β) (λ u . δ u)) 
+            (λ y . θ y (λ p' . λ r' . λ u . δ u) (λ u . β)) .
+
+eqnat-eq ⇐ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) → x ≃ y = 
+  λ x . λ y . λ u . θ+ (compare x y) (λ v . δ (ρ v - εl u)) (compare-eq x y) (λ v . δ (ρ v - εl u)) .
+
+
+eqnat-S ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
+  λ x . θ x (λ p . λ u . ρ u - β) β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  eqnat-refl : Each number is equal to itself  %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eqnat-refl ⇐ Π x : Nat . eqnat x x ≃ tt =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ h
+      	      	       	     - β )
+
+  % Base Case
+
+  β .
+
+eqnat-sym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
+  λ x . θ x 
+          (λ x . λ u . λ y . 
+               θ y (λ y . λ v . (u y)) β)
+          (λ y . θ y (λ py . λ u . β) β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  eqnat-defn : Eqnat states that beta-equal    %
+%    nats are equal                             %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+eqnat-defn ⇐ Π x : Nat . Π y : Nat . ( x ≃ y ) → eqnat x y ≃ tt =
+
+  % Direct Proof
+
+  λ x . λ y . λ pf . ρ pf
+                     - ρ ( eqnat-refl y )
+		       - β .

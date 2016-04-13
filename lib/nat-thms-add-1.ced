@@ -1,0 +1,85 @@
+import nat-thms-add-0.
+import nat-thms-S-0.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  add-comm : addition is commutative           %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  add-comm ⇐ Π n : Nat . Π m : Nat .
+
+  % Theorem
+
+  add n m ≃ add m n
+
+  % Inductive Step
+
+  = λ n . λ m . θ n ( λ p . λ h . εl ρ h
+      	      	      	      	     - ρ ( add-S-comm-1 m p )
+				       - β )
+
+  % Base Case
+
+  ( εl ρ ( add-Z-1 m )
+       - β ) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  add-one : The successor                      %
+%    function is equal to Add one               %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  add-one-1 ⇐ Π n : Nat .
+
+  % Theorem
+
+  add n one ≃ S n =
+
+  % Inductive Step
+
+  λ n . θ n ( λ p . λ h . εl ρ h
+                             - ρ ( add-S-comm-1 n Z )
+			       - β )
+
+  % Base Case
+
+  β .
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Add-Inj : Add x is injective			%
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  add-inj-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat .
+
+  % Theorem
+
+  ( add x y ≃ add x z ) → y ≃ z =
+
+  λ x . λ y . λ z . θ x
+
+  % Inductive Step
+
+  ( λ px . λ h . λ pf .
+
+    h
+  % Proves add px y equals add px z
+      ( S-inj ( add px y ) ( add px z )
+        (
+        % Proves S add px y equals S add px z
+	  ρ ( add-S-comm-0 px y )
+	  - ρ ( add-S-comm-0 px z )
+            - pf
+        )
+      )
+    )
+
+  % Base Case
+
+  ( λ pf . ρ ( add-Z-0 y )
+	   - ρ ( add-Z-0 z )
+	     - pf ) .
+				    

@@ -14,7 +14,7 @@ and ⇐ Bool → Bool → Bool =
 or ⇐ Bool → Bool → Bool = 
   λ x . λ y . x · (λ b : Bool . Bool) tt y .
 
-test ⇐ Bool = or tt ff !
+not ⇐ Bool → Bool = λ x . θ x ff tt .
 
 Bool-to-type ⇐ Bool → ★ = 
   λ b : Bool . ↑ X . b · (λ b : Bool . X) : (☆ → ☆ → ☆) · True · False .
