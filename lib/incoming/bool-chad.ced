@@ -1,0 +1,82 @@
+import bool.
+
+% general boolean proofs 
+bool-self-select ⇐ Π x : Bool . x tt ff ≃ x =
+  λ x . θ x β β .
+
+bool-ff-ff ⇐ Π x : Bool . x ff ff ≃ ff =
+  λ x . θ x β β .
+
+bool-tt-tt ⇐ Π x : Bool . x tt tt ≃ tt =
+  λ x . θ x β β .
+
+
+% and proofs
+and-tt1 ⇐ Π x : Bool . and tt x ≃ x =
+  λ x . β .
+
+and-tt2 ⇐ Π x : Bool . and x tt ≃ x =
+  λ x . θ x β β .
+
+and-assoc ⇐ Π x : Bool . Π y : Bool . Π z : Bool . and ( and x y ) z ≃ and x ( and y z ) =
+  λ x . λ y . λ z . θ x β β .
+
+and-comm ⇐ Π x : Bool . Π y : Bool . and x y ≃ and y x =
+  λ x . λ y . θ x ρ (bool-self-select y) - β ρ ( bool-ff-ff y ) - β .
+
+and-distrib-or ⇐ Π x : Bool . Π y : Bool . Π z : Bool . and x ( or y z ) ≃ or ( and x y ) ( and x z ) =
+  λ x . λ y . λ z . θ x ρ ( and-tt1 z ) - β β .
+
+and-idem ⇐ Π x : Bool . and x x ≃ x =
+  λ x . θ x β β .
+
+and-contra ⇐ Π x : Bool . and x (not x) ≃ ff =
+  λ x . θ x β β .
+
+
+% or proofs 
+or-ff1 ⇐ Π x : Bool . or ff x ≃ x =
+  λ x . β .
+
+or-ff2 ⇐ Π x : Bool . or x ff ≃ x =
+  λ x . θ x β β .
+
+or-idem ⇐ Π x : Bool . or x x ≃ x =
+  λ x . θ x β β .
+
+or-assoc ⇐ Π x : Bool . Π y : Bool . Π z : Bool . or ( or x y ) z ≃ or x ( or y z ) =
+  λ x . λ y . λ z . θ x β β .
+
+or-comm ⇐ Π x : Bool . Π y : Bool . or x y ≃ or y x =
+  λ x . λ y . θ x ρ ( bool-tt-tt y ) - β ρ ( bool-self-select y ) - β .
+
+or-distrib-and ⇐ Π x : Bool . Π y : Bool . Π z : Bool . or x ( and y z ) ≃ and ( or x y ) ( or x z ) =
+  λ x . λ y . λ z . θ x β εr ρ ( or-ff1 z ) - β .
+
+
+% not proofs
+not-not ⇐ Π x : Bool . not ( not x ) ≃ x =
+  λ x . θ x β β .
+
+not-distrib-or ⇐ Π x : Bool . Π y : Bool . not (or x y) ≃ and (not x) (not y) =
+  λ x . λ y . θ x β β .
+
+not-distrib-and ⇐ Π x : Bool . Π y : Bool . not (and x y) ≃ or (not x) (not y) =
+  λ x . λ y . θ x β β .
+
+
+% if-then-else and implication proofs
+if-same ⇐ Π x : Bool . Π y : Bool . if x y y ≃ y =
+  λ x . λ y . θ y ρ (bool-tt-tt x) - β ρ (bool-ff-ff x) - β .
+
+ff-imp ⇐ Π x : Bool . impl ff x ≃ tt =
+  λ x . β .
+
+imp-ff ⇐ Π x : Bool . impl x ff ≃ not x =
+  λ x . β .
+
+tt-imp ⇐ Π x : Bool . impl tt x ≃ x =
+  λ x . β .
+
+imp-tt ⇐ Π x : Bool . impl x tt ≃ tt =
+  λ x . ρ (bool-tt-tt x ) - β .
