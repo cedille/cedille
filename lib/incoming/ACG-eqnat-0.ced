@@ -1,0 +1,41 @@
+import ACG-definitions.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Eqnat Refl : Each number is equal to itself  %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Eqnat-Refl ⇐ Π x : Nat .
+
+  % Theorem
+
+  eqnat x x ≃ tt =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ h
+      	      	       	     - β )
+
+  % Base Case
+
+  β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Eqnat Defn : Eqnat states that two nats are  %
+%    equal                                      %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Eqnat-Defn ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  ( x ≃ y ) → eqnat x y ≃ tt =
+
+  % Direct Proof
+
+  λ x . λ y . λ pf . ρ pf
+                     - ρ ( Eqnat-Refl y )
+		       - β .

@@ -1,0 +1,64 @@
+import ACG-mult-0 .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Mult-Ident : 1 is the identity for           %
+%    multiplication.                            %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+  Mult-Ident-0 ⇐ Π x : Nat .
+
+  % Theorem
+
+  mult one x ≃ x =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ● )
+
+  % Base Case
+
+  β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Ident-1 ⇐ Π x : Nat .
+
+  % Theorem
+
+  mult x one ≃ x =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ ( Mult-Succ-Comm-Add-0 px one )
+                           - ρ h
+			     - β )
+			     
+  % Base Case
+
+  β .
+  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Mult-Symm : Multiplication is symmetric      %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Symm ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult x y ≃ mult y x =
+
+  % Inductive Step
+
+  λ x . λ y . θ x ( λ px . λ h . ρ ( Mult-Succ-Comm-Add-0 px y ) - ρ h - β )
+
+  % Base Case
+
+  ρ ( Mult-Zero-0 y )
+  - β .
+  

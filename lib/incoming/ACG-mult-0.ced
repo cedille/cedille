@@ -1,0 +1,67 @@
+import ACG-definitions.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Mult-Defn : Definition of multiplication	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Defn ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult x y ≃ x ( λ px. add y ) Z =
+
+  % Direct Proof
+
+  λ x . λ y . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Mult-Zero : Multiplying by zero gives zero	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Zero-LHS ⇐ Π x : Nat .
+
+  % Theorem
+
+  mult x Z ≃ Z =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ h
+      	      	       	   - β )
+
+  % Base Case
+
+  β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Mult-Succ-Comm-Add : A successor can be	%
+%    pulled out as addition			%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Succ-Comm-Add-0 ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult ( S x ) y ≃ add y ( mult x y ) =
+
+  % Direct Proof
+
+  λ x . λ y . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Mult-Succ-Comm-Add-1 ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult x ( S y ) ≃ add x ( mult x y ) =
+
+  % Inductive Step
+
+  λ x . λ y . ● .
