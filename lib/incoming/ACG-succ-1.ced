@@ -1,0 +1,67 @@
+import ACG-add-0 .
+import ACG-eqnat-0 .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Succ-Refl-Iter : Iterating the successor on	%
+%    Z returns the iterator    	       	  	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Succ-Refl-Iter ⇐ Π x : Nat .
+
+  % Theorem
+
+  x ≃ x ( λ p . S ) Z =
+
+  % Direct Proof
+  
+  λ x . ρ ς ( Add-Defn x Z  )
+      	- ρ ( Add-Ident-1 x )
+	  - β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  Succ-Add-One : The successor function is	%
+%    equal to Add one				%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Succ-Add-One-1 ⇐ Π n : Nat .
+
+  % Theorem
+
+  add n one ≃ S n =
+
+  % Inductive Step
+
+  λ n . θ n ( λ p . λ h . εl ρ h
+      	      	      	       - ρ ( Add-Succ-Comm-1 n Z )
+			       	 - β )
+
+  % Base Case
+
+  β .
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               %
+%  Succ-Ineq : A number cannot equal its own    %
+%     successor                                 %
+%                                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Succ-Ineq-Bool ⇐ Π x : Nat .
+
+  % Theorem
+
+  eqnat ( S x ) x ≃ ff =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ h
+      	      	       	     - β )
+
+  % Base Case
+
+  β .  
