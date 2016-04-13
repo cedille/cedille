@@ -33,3 +33,5 @@ eqnat ⇐ Nat → Nat → Bool =
  λ n . λ m . θ (compare n m) ff tt ff .
 
 Lt ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (compare n m ≃ LT) .
+
+Lte ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (compare n (S m) ≃ LT) .

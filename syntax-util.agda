@@ -380,3 +380,8 @@ num-to-ℕ : num → ℕ
 num-to-ℕ n with string-to-ℕ n
 num-to-ℕ _ | just n = n
 num-to-ℕ _ | _ = 0
+
+take : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+take 0 l = []
+take (suc n) (x :: l) = x :: (take n l)
+take (suc n) [] = []

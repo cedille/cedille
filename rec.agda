@@ -80,8 +80,9 @@ ctordeclsne-to-vars (CtordeclsneStart (Ctordecl _ x _)) = [ x ]
 ctordeclsne-to-vars (CtordeclsneNext (Ctordecl _ x _) cs) = x :: (ctordeclsne-to-vars cs)
 
 -- see comment for rec-add-ctor-defs below.  We will also add a span for the ctordecl and udef at this point
-rec-check-and-add-ctor-def : (no-need-to-check : 𝔹) → ctxt → ctxt → string → type → decls → ctordeclsne → ctordecl → udef → spanM ctxt
-rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params ctors (Ctordecl pi x tp) (Udef pi' x' t) =
+rec-check-and-add-ctor-def : (no-need-to-check : 𝔹) → 
+                             ctxt → ctxt → string → type → decls → ctordeclsne → ℕ → ctordecl → udef → spanM ctxt
+rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params ctors whichdecl (Ctordecl pi x tp) (Udef pi' x' t) =
  let tp' = forall-bind-decls params (subst-type Γ rectp name tp) in
  let t' = erase-term t in -- do not lambda-bind the params for t, because they just get erased
   (if no-need-to-check then
@@ -93,8 +94,9 @@ rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params ctors (Ctor
                   (error-data ("This definition should be for constructor " ^ x 
                              ^ ", since declarations and definitions must be in the same order") :: [])))
     else
+     -- we check that the previous ctors are not free in the body of this ctordecl
      (check-not-free "parameter" (decls-to-vars params) t ≫=span λ _ → 
-      check-not-free "constructor" (ctordeclsne-to-vars ctors) t ≫=span λ b → 
+      check-not-free "constructor" (take whichdecl (ctordeclsne-to-vars ctors)) t ≫=span λ b → 
        (if b then 
         (check-term Γ t (just tp))
        else -- do not try to type check the term if a constructor is used in it, as this can lead to divergence
@@ -103,18 +105,19 @@ rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params ctors (Ctor
     spanMr (ctxt-term-def x t' tp' Γ')
 
 -- see comment for rec-check-and-add-ctor-defs below
-rec-check-and-add-ctor-defs-ne : (no-need-to-check : 𝔹) → ctxt → ctxt → string → type → decls → ctordeclsne → udefsne → spanM ctxt
-rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params (CtordeclsneStart c) (UdefsneStart u) = 
-  rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params (CtordeclsneStart c) c u
-rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneNext u us) = 
-  rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params (CtordeclsneNext c cs) c u ≫=span
-  λ Γ' → rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params cs us
-rec-check-and-add-ctor-defs-ne _ Γ Γ' name rectp params (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
+rec-check-and-add-ctor-defs-ne : (no-need-to-check : 𝔹) → 
+                                 ctxt → ctxt → string → type → decls → ℕ → ctordeclsne → udefsne → spanM ctxt
+rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params whichdecl (CtordeclsneStart c) (UdefsneStart u) = 
+  rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params (CtordeclsneStart c) whichdecl c u
+rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params whichdecl (CtordeclsneNext c cs) (UdefsneNext u us) = 
+  rec-check-and-add-ctor-def no-need-to-check Γ Γ' name rectp params (CtordeclsneNext c cs) whichdecl c u ≫=span
+  λ Γ' → rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params (suc whichdecl) cs us
+rec-check-and-add-ctor-defs-ne _ Γ Γ' name rectp params whichdecl (CtordeclsneNext c cs) (UdefsneStart (Udef pi x t)) = 
   spanM-add (Udef-span pi x (term-end-pos t) (erase-term t)
                 (error-data ("This is the last constructor definition, but it does not correspond to the"
                            ^ " last constructor declaration earlier in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'
-rec-check-and-add-ctor-defs-ne _ Γ Γ' name rectp params (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 
+rec-check-and-add-ctor-defs-ne _ Γ Γ' name rectp params whichdecl (CtordeclsneStart (Ctordecl pi x tp)) (UdefsneNext u us) = 
   spanM-add (Ctordecl-span pi x tp (error-data ("This is the last constructor declaration, but it does not correspond to the"
                                              ^ " last constructor definition later in the recursive datatype definiton.") :: []))
   ≫span spanMr Γ'
@@ -131,7 +134,7 @@ rec-check-and-add-ctor-defs-ne _ Γ Γ' name rectp params (CtordeclsneStart (Cto
 rec-check-and-add-ctor-defs : (no-need-to-check : 𝔹) → ctxt → ctxt → string → type → decls → ctordecls → udefs → spanM ctxt
 rec-check-and-add-ctor-defs _ Γ Γ' name rectp params (Ctordeclse _) (Udefse _) = spanMr Γ'
 rec-check-and-add-ctor-defs no-need-to-check Γ Γ' name rectp params (Ctordeclsne cs) (Udefsne us) = 
-  rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params cs us
+  rec-check-and-add-ctor-defs-ne no-need-to-check Γ Γ' name rectp params 0 cs us
 rec-check-and-add-ctor-defs _ Γ Γ' name rectp params (Ctordeclsne cs) (Udefse pi) = 
   spanM-add (Udefse-span pi
               [ error-data ("There are no constructor definitions here," 
