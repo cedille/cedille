@@ -208,11 +208,14 @@ compute-unchanged-imports dir (CmdsStart _) is = return (tt , is)
 
 compute-unchanged dir file (mk-include-state seen unchanged) with combineFileNames dir file 
 compute-unchanged dir file (mk-include-state seen unchanged) | input-filename with stringset-insert seen input-filename
-compute-unchanged dir file (mk-include-state _ unchanged) | input-filename | seen' = 
-  doesFileExist input-filename >>= λ b → 
-    if b then
-      readFiniteFile input-filename >>= processText
-    else return (mk-include-state seen' unchanged)
+compute-unchanged dir file (mk-include-state seen unchanged) | input-filename | seen' = 
+  if stringset-contains seen input-filename then
+     return (mk-include-state seen unchanged)
+  else
+    (doesFileExist input-filename >>= λ b → 
+      if b then
+        readFiniteFile input-filename >>= processText
+      else return (mk-include-state seen' unchanged))
   where processText : string → IO include-state
         processText x with runRtn (string-to-𝕃char x)
         processText x | inj₁ cs = return (mk-include-state seen' unchanged)

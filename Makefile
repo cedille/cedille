@@ -5,6 +5,10 @@ cedille:	$(SRC) Makefile
 		agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts -c main.agda 
 		mv main cedille
 
+cedille-prof:	$(SRC) Makefile
+		agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c main.agda 
+		mv main cedille-prof
+
 cedille-main: cedille-main.agda
 	agda -i . -i ~/gratr2/agda -i ~/ial --ghc-flag=-rtsopts -c cedille-main.agda 
 

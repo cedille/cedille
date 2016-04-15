@@ -4,3 +4,5 @@
 -- improve parsing
 
 -- create src directory and put .agda files there
+
+-- investigate slow performance with import cycles
