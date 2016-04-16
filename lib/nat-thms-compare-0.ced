@@ -49,3 +49,7 @@ eqnat-defn ⇐ Π x : Nat . Π y : Nat . ( x ≃ y ) → eqnat x y ≃ tt =
   λ x . λ y . λ pf . ρ pf
                      - ρ ( eqnat-refl y )
 		       - β .
+
+Lte-Z ⇐ Π x : Nat . Lte x Z → x ≃ Z =
+  λ x . θ x (λ n . λ r . λ u . δ u) (λ u . β) .
+  

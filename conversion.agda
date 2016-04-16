@@ -66,6 +66,7 @@ conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head
 conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
 conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k) (hnf Γ unfold-head k')
 
+hnf Γ no-unfolding e = e
 hnf{TERM} Γ u (Parens _ t _) = hnf Γ u t
 hnf{TERM} Γ u (App t1 Erased t2) = hnf Γ u t1
 hnf{TERM} Γ u (App t1 NotErased t2) with hnf Γ u t1
@@ -81,7 +82,7 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | t' = Lam pi KeptLambda pi' x NoC
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) | nothing = Var pi x
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) | just t = t -- definitions should be stored in hnf
-hnf{TERM} Γ no-unfolding (Var pi x) = Var pi x
+--hnf{TERM} Γ no-unfolding (Var pi x) = Var pi x
 hnf{TERM} Γ u (AppTp t tp) = hnf Γ u t
 hnf{TERM} Γ u (Sigma pi t) = hnf Γ u t
 hnf{TERM} Γ u (Epsilon _ _ _ t) = hnf Γ u t
@@ -99,7 +100,7 @@ hnf{TYPE} Γ (unfold b ff _) (TpVar pi x) | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing with ctxt-lookup-type-var-rec-def Γ x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing | just t = t 
-hnf{TYPE} Γ no-unfolding (TpVar pi x) = TpVar pi x
+--hnf{TYPE} Γ no-unfolding (TpVar pi x) = TpVar pi x
 hnf{TYPE} Γ u (TpAppt tp t) with hnf Γ u tp
 hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp)
 hnf{TYPE} Γ u (TpAppt _ t) | tp = TpAppt tp (erase-term t)
@@ -153,7 +154,7 @@ hnf{KIND} Γ u (KndParens _ k _) = hnf Γ u k
 hnf{KIND} Γ (unfold _ _ _) (KndVar _ x) with ctxt-lookup-kind-var-def Γ x
 hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | nothing = KndVar pi x
 hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | just k = k 
-hnf{KIND} Γ no-unfolding (KndVar pi x) = KndVar pi x
+--hnf{KIND} Γ no-unfolding (KndVar pi x) = KndVar pi x
 hnf{KIND} Γ u (KndPi pi pi' x atk k) =
   let atk' = atk in -- hnf-tk Γ (unfold-dampen u ) atk in
   let k' = k in -- hnf Γ (unfold-dampen u) k in
