@@ -394,7 +394,7 @@ in the parse tree, and updates the Cedille info buffer."
   
   (se-inf-start
    (or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
-       (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K500000000" "-RTS")))
+       (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
 
   (set-input-method "Cedille")
 )

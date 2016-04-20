@@ -22,16 +22,16 @@ open import to-string
 
 -- keep track of our includes
 data include-state : Set where
-  mk-include-state : stringset {- processed -} → stringset {- unchanged -} → include-state
+  mk-include-state : trie start → stringset {- processed -} → stringset {- unchanged -} → include-state
 
-new-include-state : stringset → include-state
-new-include-state unchanged = mk-include-state empty-stringset unchanged
+new-include-state : trie start → stringset → include-state
+new-include-state asts unchanged = mk-include-state asts empty-stringset unchanged
 
 data toplevel-state : Set where
   mk-toplevel-state : include-state → ctxt → spans → toplevel-state
 
-new-toplevel-state : stringset → toplevel-state
-new-toplevel-state unchanged = mk-toplevel-state (new-include-state unchanged) new-ctxt empty-spans
+new-toplevel-state : trie start → stringset → toplevel-state
+new-toplevel-state asts unchanged = mk-toplevel-state (new-include-state asts unchanged) new-ctxt empty-spans
 
 toplevel-add-span : span → toplevel-state → toplevel-state
 toplevel-add-span s (mk-toplevel-state is Γ ss) =
@@ -129,7 +129,7 @@ process-cmd dir (CheckKind k _ pi) _ (mk-toplevel-state is Γ ss) =
   return (mk-toplevel-state is Γ ss)
 process-cmd dir (Import pi x pi') _ s with toplevel-add-span (Import-span pi x pi' []) s
 process-cmd dir (Import pi x pi') _ _ | s with s
-process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state processed unchanged) _ _ = 
+process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state asts processed unchanged) _ _ = 
   let file = add-cedille-extension x in
     if stringset-contains processed (combineFileNames dir file) then return s
     else 
@@ -156,34 +156,25 @@ process-start dir input-filename (File pi cs pi') no-need-to-check s =
 
 -- process the given input file, after adding it to the include state
 processFile dir file s with s | combineFileNames dir file
-processFile dir file s | (mk-toplevel-state (mk-include-state processed unchanged) Γ ss) | input-filename = 
-  doesFileExist input-filename >>= λ b → 
-  if b then
-    (readFiniteFile input-filename) >>= processText
-  else
-    return (tt , mk-toplevel-state (mk-include-state processed unchanged) Γ
-                   (global-error ("Cannot open file " ^ input-filename ^ " for reading") nothing))
-  where processText : string → IO (𝔹 × toplevel-state)
-        processText x with runRtn (string-to-𝕃char x)
-        processText x | inj₁ cs = 
-          return (tt , mk-toplevel-state (mk-include-state processed unchanged) Γ
-                         (global-error ("Parse error in file " ^ input-filename ^ ". "
-                                      ^ "Characters left before failure : " ^ (𝕃char-to-string cs)) nothing))
-        processText x | inj₂ r with rewriteRun r
-        processText x | inj₂ r | (ParseTree (parsed-start p) :: []) with stringset-contains unchanged input-filename
-        processText x | inj₂ r | (ParseTree (parsed-start p) :: []) | skip-checking =
-          process-start dir input-filename p skip-checking
-            (mk-toplevel-state (mk-include-state (stringset-insert processed input-filename) unchanged) Γ empty-spans)
-            >>= finish
-          where finish : toplevel-state → IO (𝔹 × toplevel-state)
-                finish (mk-toplevel-state i Γ ss') = 
-                 let base = base-filename file in
-                   (if skip-checking then (return triv) else (writeFile (cede-filename dir base) (spans-to-string ss'))) >>
-                      -- do not return the newly added spans, unless we have a global error
-                   return (spans-have-error ss' , mk-toplevel-state i Γ (if global-error-p ss' then ss' else ss))
-
-        processText x | inj₂ r | _ = return (tt , mk-toplevel-state (mk-include-state processed unchanged) Γ
-                                                   (global-error ("Parse error in file " ^ input-filename ^ ".") nothing))
+processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
+                       | input-filename with trie-lookup asts input-filename
+processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
+                       | input-filename | nothing = 
+    return (tt , mk-toplevel-state (mk-include-state asts processed unchanged) Γ
+                   (global-error ("Internal error looking up ast for file " ^ input-filename ^ ".") nothing))
+processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
+                       | input-filename | just p with stringset-contains unchanged input-filename
+processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
+                       | input-filename | just p | skip-checking =
+   process-start dir input-filename p skip-checking
+      (mk-toplevel-state (mk-include-state asts (stringset-insert processed input-filename) unchanged) Γ empty-spans)
+   >>= finish
+   where finish : toplevel-state → IO (𝔹 × toplevel-state)
+         finish (mk-toplevel-state i Γ ss') = 
+           let base = base-filename file in
+             (if skip-checking then (return triv) else (writeFile (cede-filename dir base) (spans-to-string ss'))) >>
+                -- do not return the newly added spans, unless we have a global error
+             return (spans-have-error ss' , mk-toplevel-state i Γ (if global-error-p ss' then ss' else ss))
 
 -- compute the set of unchanged dependencies (the second stringset in the include-state)
 {-# NO_TERMINATION_CHECK #-}
@@ -194,53 +185,54 @@ compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is with add-cedille-e
 compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is | file = 
   compute-unchanged dir file is >>= λ is' → compute-unchanged-imports dir cs is' >>= finish
   where finish : (𝔹 × include-state) → IO (𝔹 × include-state)
-        finish (b , (mk-include-state seen unchanged)) = 
-          return (b && (stringset-contains unchanged (combineFileNames dir file)) , mk-include-state seen unchanged)
+        finish (b , (mk-include-state asts seen unchanged)) = 
+          return (b && (stringset-contains unchanged (combineFileNames dir file)) , mk-include-state asts seen unchanged)
 compute-unchanged-imports dir (CmdsNext _ cs) is = compute-unchanged-imports dir cs is
 compute-unchanged-imports dir (CmdsStart (Import _ x _)) is with add-cedille-extension x 
 compute-unchanged-imports dir (CmdsStart (Import _ x _)) is | file = 
   compute-unchanged dir file is >>= finish
   where finish : include-state → IO (𝔹 × include-state)
         finish is' with is' 
-        finish is' |(mk-include-state seen unchanged) = 
+        finish is' |(mk-include-state asts seen unchanged) = 
          return (stringset-contains unchanged (combineFileNames dir file) , is')
 compute-unchanged-imports dir (CmdsStart _) is = return (tt , is)
 
-compute-unchanged dir file (mk-include-state seen unchanged) with combineFileNames dir file 
-compute-unchanged dir file (mk-include-state seen unchanged) | input-filename with stringset-insert seen input-filename
-compute-unchanged dir file (mk-include-state seen unchanged) | input-filename | seen' = 
+compute-unchanged dir file (mk-include-state asts seen unchanged) with combineFileNames dir file 
+compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename with stringset-insert seen input-filename
+compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename | seen' = 
   if stringset-contains seen input-filename then
-     return (mk-include-state seen unchanged)
+     return (mk-include-state asts seen unchanged)
   else
     (doesFileExist input-filename >>= λ b → 
       if b then
         readFiniteFile input-filename >>= processText
-      else return (mk-include-state seen' unchanged))
+      else return (mk-include-state asts seen' unchanged))
   where processText : string → IO include-state
         processText x with runRtn (string-to-𝕃char x)
-        processText x | inj₁ cs = return (mk-include-state seen' unchanged)
+        processText x | inj₁ cs = return (mk-include-state asts seen' unchanged)
         processText x | inj₂ r with rewriteRun r
-        processText x | inj₂ r | ParseTree (parsed-start (File _ cs _)) :: [] = 
-          compute-unchanged-imports dir cs (mk-include-state seen' unchanged) >>= finish
+        processText x | inj₂ r | ParseTree (parsed-start s) :: [] with s 
+        processText x | inj₂ r | ParseTree (parsed-start s) :: [] | File _ cs _ = 
+          compute-unchanged-imports dir cs (mk-include-state (trie-insert asts input-filename s) seen' unchanged) >>= finish
           where finish : 𝔹 × include-state → IO include-state
-                finish (imports-are-unchanged , mk-include-state seen' unchanged) = 
+                finish (imports-are-unchanged , mk-include-state asts seen' unchanged) = 
                   ced-file-up-to-date dir file >>= λ up-to-date → 
                     let do-add = imports-are-unchanged && up-to-date in 
-                     return (mk-include-state seen' 
+                     return (mk-include-state asts seen' 
                               (if do-add 
                                then (stringset-insert unchanged input-filename)
                                else unchanged))
            
-        processText x | inj₂ r | _ = return (mk-include-state seen' unchanged)
+        processText x | inj₂ r | _ = return (mk-include-state asts seen' unchanged)
 
 -- first compute the set of dependencies which are unchanged, and then process the file
 checkFile : (dir : string) → (file : string) → IO toplevel-state
 checkFile dir file = 
- compute-unchanged dir file (new-include-state empty-stringset) >>= cont1
+ compute-unchanged dir file (new-include-state empty-trie empty-stringset) >>= cont1
  where cont1 : include-state → IO toplevel-state
-       cont1 (mk-include-state _ unchanged) = 
+       cont1 (mk-include-state asts _ unchanged) = 
 --        writeFile "dbg" ((string-concat-sep "\n" (stringset-strings unchanged)) ^ "\n") >>
-        processFile dir file (new-toplevel-state unchanged) >>= cont
+        processFile dir file (new-toplevel-state asts unchanged) >>= cont
         where cont : 𝔹 × toplevel-state → IO toplevel-state
               cont (_ , s') = return s'
 

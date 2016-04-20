@@ -6,15 +6,18 @@ Bool-to-type ⇐ Bool → ★ =
   λ b : Bool . 
    ↑ X . b · (λ b : Bool . X) : (☆ → ☆ → ☆) · True · False .
 
-Bool-to-type-cong ⇐ Π x : Bool . Π y : Bool . (x ≃ y) → Bool-to-type x → Bool-to-type y =
-  λ x . λ y . λ u . λ v . ρ ς u - v .
-
-Bool-contra ⇐ (tt ≃ ff) → False =
-  λ u . Bool-to-type-cong tt ff u triv .
-
-% and a more direct proof:
 Bool-contra ⇐ (tt ≃ ff) → False =
   λ u . δ u .
+
+Bool-same-branches ⇐ ∀ A : ★ . ∀ a : A . Π x : Bool . x a a ≃ a =
+  Λ A . Λ a . λ x . θ x β β .
+
+Bool-tt-tt ⇐ Π x : Bool . x tt tt ≃ tt = Bool-same-branches · Bool -tt .
+
+Bool-ff-ff ⇐ Π x : Bool . x ff ff ≃ ff = Bool-same-branches · Bool -ff .
+
+Bool-tt-ff ⇐ Π x : Bool . x tt ff ≃ x =
+  λ x . θ x β β .
 
 andIdem ⇐ Π x : Bool . and x x ≃ x = 
   λ x . x · (λ x : Bool . and x x ≃ x) β β .
@@ -28,10 +31,54 @@ andE1 ⇐ Π x : Bool . Π y : Bool . (and x y ≃ tt) → x ≃ tt =
 andE2 ⇐ Π x : Bool . Π y : Bool . (and x y ≃ tt) → y ≃ tt =
   λ x . θ x (λ y . λ u . u) (λ y . λ u . δ u) .
 
-Bool-same-branches ⇐ ∀ A : ★ . ∀ a : A . Π x : Bool . x a a ≃ a =
-  Λ A . Λ a . λ x . θ x β β .
+and-tt1 ⇐ Π x : Bool . and tt x ≃ x =
+  λ x . β .
 
-Bool-tt-tt ⇐ Π x : Bool . x tt tt ≃ tt = Bool-same-branches · Bool -tt .
+and-tt2 ⇐ Π x : Bool . and x tt ≃ x =
+  λ x . θ x β β .
+
+and-assoc ⇐ Π x : Bool . Π y : Bool . Π z : Bool . and ( and x y ) z ≃ and x ( and y z ) =
+  λ x . λ y . λ z . θ x β β .
+
+and-comm ⇐ Π x : Bool . Π y : Bool . and x y ≃ and y x =
+  λ x . λ y . θ x ρ (Bool-tt-ff y) - β ρ ( Bool-ff-ff y ) - β .
+
+and-distrib-or ⇐ Π x : Bool . Π y : Bool . Π z : Bool . and x ( or y z ) ≃ or ( and x y ) ( and x z ) =
+  λ x . λ y . λ z . θ x ρ ( and-tt1 z ) - β β .
+
+and-idem ⇐ Π x : Bool . and x x ≃ x =
+  λ x . θ x β β .
+
+and-contra ⇐ Π x : Bool . and x (not x) ≃ ff =
+  λ x . θ x β β .
 
 or-ff ⇐ Π x : Bool . (or x ff ≃ tt) → x ≃ tt =
   λ x . θ x (λ u . u) (λ u . u) .
+
+or-ff1 ⇐ Π x : Bool . or ff x ≃ x =
+  λ x . β .
+
+or-ff2 ⇐ Π x : Bool . or x ff ≃ x =
+  λ x . θ x β β .
+
+or-idem ⇐ Π x : Bool . or x x ≃ x =
+  λ x . θ x β β .
+
+or-assoc ⇐ Π x : Bool . Π y : Bool . Π z : Bool . or ( or x y ) z ≃ or x ( or y z ) =
+  λ x . λ y . λ z . θ x β β .
+
+or-comm ⇐ Π x : Bool . Π y : Bool . or x y ≃ or y x =
+  λ x . λ y . θ x ρ ( Bool-tt-tt y ) - β ρ ( Bool-tt-ff y ) - β .
+
+or-distrib-and ⇐ Π x : Bool . Π y : Bool . Π z : Bool . or x ( and y z ) ≃ and ( or x y ) ( or x z ) =
+  λ x . λ y . λ z . θ x β εr ρ ( or-ff1 z ) - β .
+
+% not proofs
+not-not ⇐ Π x : Bool . not ( not x ) ≃ x =
+  λ x . θ x β β .
+
+not-distrib-or ⇐ Π x : Bool . Π y : Bool . not (or x y) ≃ and (not x) (not y) =
+  λ x . λ y . θ x β β .
+
+not-distrib-and ⇐ Π x : Bool . Π y : Bool . not (and x y) ≃ or (not x) (not y) =
+  λ x . λ y . θ x β β .

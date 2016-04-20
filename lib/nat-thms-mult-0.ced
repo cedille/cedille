@@ -1,0 +1,75 @@
+import nat.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  mult-defn : Definition of multiplication	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  mult-defn ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult x y ≃ x ( λ px. add y ) Z =
+
+  % Direct Proof
+
+  λ x . λ y . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  mult-Z-0 : multiplying by zero gives zero	%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  mult-Z-0 ⇐ Π x : Nat .
+
+  % Theorem
+
+  mult x Z ≃ Z =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ h
+      	      	       	   - β )
+
+  % Base Case
+
+  β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%						%
+%  mult-S-0 : A successor can be        	%
+%    pulled out as addition			%
+%						%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  mult-S-0 ⇐ Π x : Nat . Π y : Nat .
+
+  % Theorem
+
+  mult ( S x ) y ≃ add y ( mult x y ) =
+
+  % Direct Proof
+
+  λ x . λ y . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  mult-one-1 ⇐ Π x : Nat .
+
+  % Theorem
+
+  mult x one ≃ x =
+
+  % Inductive Step
+
+  λ x . θ x ( λ px . λ h . ρ ( mult-S-0 px one )
+                           - ρ h
+			     - β )
+			     
+  % Base Case
+
+  β .
+  
+

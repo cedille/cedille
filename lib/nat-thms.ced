@@ -1,3 +1,4 @@
 import nat-thms-S.
 import nat-thms-add.
+import nat-thms-mult.
 import nat-thms-compare.
