@@ -33,6 +33,9 @@ data toplevel-state : Set where
 new-toplevel-state : trie start → stringset → toplevel-state
 new-toplevel-state asts unchanged = mk-toplevel-state (new-include-state asts unchanged) new-ctxt empty-spans
 
+new-toplevel-global-error : string → toplevel-state
+new-toplevel-global-error m = mk-toplevel-state (new-include-state empty-trie empty-stringset) new-ctxt (global-error m nothing)
+
 toplevel-add-span : span → toplevel-state → toplevel-state
 toplevel-add-span s (mk-toplevel-state is Γ ss) =
   mk-toplevel-state is Γ (add-span s ss)
@@ -178,63 +181,72 @@ processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unc
 
 -- compute the set of unchanged dependencies (the second stringset in the include-state)
 {-# NO_TERMINATION_CHECK #-}
-compute-unchanged-imports : (dir : string) → cmds → include-state → IO (𝔹 {- all imports unchanged -} × include-state)
-compute-unchanged : (dir : string) → (file : string) → include-state → IO include-state
+compute-unchanged-imports : (dir : string) → cmds → include-state → IO ((𝔹 {- all imports unchanged -} × include-state) ⊎ string)
+compute-unchanged : (dir : string) → (file : string) → include-state → IO (include-state ⊎ string)
 
 compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is with add-cedille-extension x 
 compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is | file = 
-  compute-unchanged dir file is >>= λ is' → compute-unchanged-imports dir cs is' >>= finish
-  where finish : (𝔹 × include-state) → IO (𝔹 × include-state)
-        finish (b , (mk-include-state asts seen unchanged)) = 
-          return (b && (stringset-contains unchanged (combineFileNames dir file)) , mk-include-state asts seen unchanged)
+  compute-unchanged dir file is >>= cont
+  where cont : include-state ⊎ string → IO ((𝔹 × include-state) ⊎ string)
+        cont (inj₁ is') = compute-unchanged-imports dir cs is' >>= finish
+             where finish : ((𝔹 × include-state) ⊎ string) → IO ((𝔹 × include-state) ⊎ string)
+                   finish (inj₁ (b , (mk-include-state asts seen unchanged))) = 
+                     return (inj₁ (b && (stringset-contains unchanged (combineFileNames dir file)) ,
+                                   mk-include-state asts seen unchanged))
+                   finish (inj₂ m) = return (inj₂ m)
+        cont (inj₂ m) = return (inj₂ m)
 compute-unchanged-imports dir (CmdsNext _ cs) is = compute-unchanged-imports dir cs is
 compute-unchanged-imports dir (CmdsStart (Import _ x _)) is with add-cedille-extension x 
 compute-unchanged-imports dir (CmdsStart (Import _ x _)) is | file = 
   compute-unchanged dir file is >>= finish
-  where finish : include-state → IO (𝔹 × include-state)
-        finish is' with is' 
-        finish is' |(mk-include-state asts seen unchanged) = 
-         return (stringset-contains unchanged (combineFileNames dir file) , is')
-compute-unchanged-imports dir (CmdsStart _) is = return (tt , is)
+  where finish : include-state ⊎ string → IO ((𝔹 × include-state) ⊎ string)
+        finish (inj₁ is') with is' 
+        finish (inj₁ is') | (mk-include-state asts seen unchanged) = 
+          return (inj₁ (stringset-contains unchanged (combineFileNames dir file) , is'))
+        finish (inj₂ m) = return (inj₂ m)
+compute-unchanged-imports dir (CmdsStart _) is = return (inj₁ (tt , is))
 
 compute-unchanged dir file (mk-include-state asts seen unchanged) with combineFileNames dir file 
 compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename with stringset-insert seen input-filename
 compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename | seen' = 
   if stringset-contains seen input-filename then
-     return (mk-include-state asts seen unchanged)
+     return (inj₁ (mk-include-state asts seen unchanged))
   else
     (doesFileExist input-filename >>= λ b → 
       if b then
         readFiniteFile input-filename >>= processText
-      else return (mk-include-state asts seen' unchanged))
-  where processText : string → IO include-state
+      else return (inj₂ ("Could not open the file " ^ input-filename ^ " for reading.")))
+  where processText : string → IO (include-state ⊎ string)
         processText x with runRtn (string-to-𝕃char x)
-        processText x | inj₁ cs = return (mk-include-state asts seen' unchanged)
+        processText x | inj₁ cs = return (inj₂ ("Parse error in file " ^ input-filename ^ ". "
+                                              ^ "Characters left before failure : " ^ (𝕃char-to-string cs)))
         processText x | inj₂ r with rewriteRun r
         processText x | inj₂ r | ParseTree (parsed-start s) :: [] with s 
         processText x | inj₂ r | ParseTree (parsed-start s) :: [] | File _ cs _ = 
           compute-unchanged-imports dir cs (mk-include-state (trie-insert asts input-filename s) seen' unchanged) >>= finish
-          where finish : 𝔹 × include-state → IO include-state
-                finish (imports-are-unchanged , mk-include-state asts seen' unchanged) = 
+          where finish : (𝔹 × include-state) ⊎ string → IO (include-state ⊎ string)
+                finish (inj₁ (imports-are-unchanged , mk-include-state asts seen' unchanged)) = 
                   ced-file-up-to-date dir file >>= λ up-to-date → 
                     let do-add = imports-are-unchanged && up-to-date in 
-                     return (mk-include-state asts seen' 
-                              (if do-add 
-                               then (stringset-insert unchanged input-filename)
-                               else unchanged))
-           
-        processText x | inj₂ r | _ = return (mk-include-state asts seen' unchanged)
+                     return (inj₁ (mk-include-state asts seen' 
+                                    (if do-add 
+                                     then (stringset-insert unchanged input-filename)
+                                     else unchanged)))
+                finish (inj₂ m) = return (inj₂ m) 
+
+        processText x | inj₂ r | _ = return (inj₂ ("Parse error in file " ^ input-filename ^ "."))
 
 -- first compute the set of dependencies which are unchanged, and then process the file
 checkFile : (dir : string) → (file : string) → IO toplevel-state
 checkFile dir file = 
  compute-unchanged dir file (new-include-state empty-trie empty-stringset) >>= cont1
- where cont1 : include-state → IO toplevel-state
-       cont1 (mk-include-state asts _ unchanged) = 
---        writeFile "dbg" ((string-concat-sep "\n" (stringset-strings unchanged)) ^ "\n") >>
-        processFile dir file (new-toplevel-state asts unchanged) >>= cont
-        where cont : 𝔹 × toplevel-state → IO toplevel-state
-              cont (_ , s') = return s'
+ where cont1 : include-state ⊎ string → IO toplevel-state
+       cont1 (inj₁ (mk-include-state asts _ unchanged)) = 
+         writeFile "dbg" ((trie-to-string "\n" (λ _ → "") asts) ^ "\n") >>
+         processFile dir file (new-toplevel-state asts unchanged) >>= cont
+         where cont : 𝔹 × toplevel-state → IO toplevel-state
+               cont (_ , s') = return s'
+       cont1 (inj₂ m) = return (new-toplevel-global-error m)
 
 {-# NO_TERMINATION_CHECK #-}
 processArgs : 𝕃 string → IO ⊤ 
@@ -253,13 +265,15 @@ processArgs [] =
           checkFile dir file >>= finish
           where finish : toplevel-state → IO ⊤
                 finish (mk-toplevel-state i Γ ss) = 
-                   let e = cede-filename dir base in
-                      doesFileExist e >>= λ b → 
-                      if b then
-                       ((readFiniteFile e) >>= λ s → putStr s >> 
-                         processArgs [] {- loop until EOF, when getLine will get an exception and cedille will be killed -})
-                      else
-                        putStr (global-error-string ("Could not open " ^ e ^ " for reading."))
+                   if global-error-p ss then putStr (spans-to-string ss)
+                   else
+                     let e = cede-filename dir base in
+                        doesFileExist e >>= λ b → 
+                        if b then
+                         ((readFiniteFile e) >>= λ s → putStr s >> 
+                           processArgs [] {- loop until EOF, when getLine will get an exception and cedille will be killed -})
+                        else
+                          putStr (global-error-string ("Could not open " ^ e ^ " for reading."))
 processArgs xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                        ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
 
