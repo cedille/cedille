@@ -1,4 +1,6 @@
 import nat-thms-S.
 import nat-thms-add.
-import nat-thms-mult.
 import nat-thms-compare.
+import nat-thms-max.
+import nat-thms-mult.
+import nat-thms-subtract.

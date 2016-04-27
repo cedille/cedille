@@ -55,3 +55,6 @@ Gte ⇐ Nat → Nat → ★ = λ n : Nat . λ m : Nat . (gte n m ≃ tt) .
 
 mod ⇐ Nat → Nat → Nat =
     λ a . λ b . θ a ( λ p . λ x . ( gte (S x) b ) · ( λ x : Bool . Nat ) Z ( S x ) ) Z .
+
+max ⇐ Nat → Nat → Nat = 
+  λ n . λ m . θ (gte n m) n m .

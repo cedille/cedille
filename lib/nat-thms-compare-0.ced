@@ -53,6 +53,13 @@ eqnat-defn ⇐ Π x : Nat . Π y : Nat . ( x ≃ y ) → eqnat x y ≃ tt =
 Lte-Z ⇐ Π x : Nat . Lte x Z → x ≃ Z =
   λ x . θ x (λ n . λ r . λ u . δ u) (λ u . β) .
   
+Z-Lte ⇐ Π x : Nat . Lte Z x =
+  λ x . θ x (λ n . λ _ . β) β .
+
+Gte-Z ⇐ Π x : Nat . Gte x Z =
+  λ x . θ x (λ n . λ _ . β) β .
+
 Lte-refl ⇐ Π x : Nat . Lte x x =
   λ x .
     θ x (λ p . λ r . r) β .
+

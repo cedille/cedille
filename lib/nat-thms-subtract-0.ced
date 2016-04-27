@@ -1,0 +1,3 @@
+import nat.
+
+subtract-Lte ⇐ Π i : Nat. Π n : Nat. Lte (S i) n → Lt (subtract n (S i)) n = ● .
