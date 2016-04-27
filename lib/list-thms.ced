@@ -1,11 +1,5 @@
-import list.
+import list-thms-sreverse.
+import list-thms-map.
+import list-thms-length.
+import list-thms-append.
 
-appendAssoc ⇐ ∀ A : ★ . Π x : List · A . Π y : List · A . Π z : List · A .
-              (append (append x y) z) ≃ (append x (append y z)) =
-  Λ A . λ x . λ y . λ z .
-    θ x (λ h . λ t . λ u . (εl (εr (ρ u - β)))) β . 
-
-mapAppend ⇐ ∀ A : ★ . ∀ B : ★ . ∀ f : A → B . Π l : List · A . Π l' : List · A .
-            map f (append l l') ≃ append (map f l) (map f l') =
-     Λ A . Λ B . Λ f . λ l . λ l' .
-        θ l (λ h . λ t . λ ih . εl ρ ih - β) β  .

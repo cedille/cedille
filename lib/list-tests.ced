@@ -1,0 +1,30 @@
+import list.
+
+% tests and example terms
+list1 = (Cons · Bool) tt (Nil · Bool) .
+list2 = (Cons · Bool) ff ((Cons · Bool) ff (Nil · Bool)) .
+list3 = (Cons · Bool) ff (Nil · Bool) .
+list4 = (Cons · Bool) ff ((Cons · Bool) tt ((Cons · Bool) tt (Nil · Bool))) .
+
+append-test = append · Bool list1 list2 !
+append-test1 = append · Bool list1 list3 !
+
+length-test = (length · Bool) list1 !
+length-test1 = (length · Bool) (Nil · Bool) !
+lengthFold-test = (lengthFold · Bool) list1 !
+
+reverse-test = (reverse · Bool) list4 !
+reverse-test1 = (reverse · Bool) ((reverse · Bool) list4) !
+
+is-empty-test = (is-empty · Bool) list1 !
+is-empty-test1 = (is-empty · Bool) (Nil · Bool) !
+
+head-test = head · Bool list1 β !
+
+tail-test = tail · Bool list4 !
+
+repeat-test = repeat · Bool tt (S (S Z)) !
+
+filter-test = filter · Bool (λ b . if · Bool b tt ff) list4 !
+
+readableList = (toCList · Bool) filter-test !

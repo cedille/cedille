@@ -2,7 +2,7 @@ ROOTS = \
   bool bool-thms \
   eq \
   false \
-  list list-thms \
+  list list-thms list-tests \
   maybe \
   nat nat-thms \
   sigma \
