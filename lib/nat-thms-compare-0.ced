@@ -63,3 +63,8 @@ Lte-refl ⇐ Π x : Nat . Lte x x =
   λ x .
     θ x (λ p . λ r . r) β .
 
+Lte-S-0 ⇐ Π x : Nat . Π y : Nat . Lte (S x) y → Lte x y = 
+ λ x . θ x (λ px . λ r . λ y . 
+              θ y (λ py . λ _ . λ u . r py u) (λ u . δ u))
+           (λ y . λ u . Z-Lte y).
+

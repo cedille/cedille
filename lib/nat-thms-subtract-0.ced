@@ -1,3 +1,7 @@
 import nat.
 
 subtract-Lte ⇐ Π i : Nat. Π n : Nat. Lte (S i) n → Lt (subtract n (S i)) n = ● .
+
+subtract-S-S ⇐ Π x : Nat . Π y : Nat . subtract (S x) (S y) ≃ subtract x y = ● .
+
+subtract-S-one ⇐ Π x : Nat . subtract (S x) one ≃ x = ● .
