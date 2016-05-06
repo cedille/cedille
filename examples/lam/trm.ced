@@ -1,0 +1,27 @@
+import nat.
+import nat-thms-compare.
+
+extend ⇐ ∀ trm : ★ .
+         ∀ P : trm → ★ .
+         Π var : Nat → trm .
+         Π v : (Π i : Nat . P (var i)) .
+         Π i : Nat . 
+         Π p : P (var i) .
+           (Π j : Nat . P (var j)) =  
+  Λ trm . Λ P . λ var . λ v . λ i . λ p . λ j .
+    θ+ (eqnat i j) (λ u . ρ ς (eqnat-eq i j u) - p) (λ u . v j) .
+
+rec trm : | app : trm → trm → trm ,
+            lam : Nat → trm → trm ,
+            var : Nat → trm =
+ ∀ P : trm → ★ .  
+   (Π t1 : trm . Π t2 : trm . P t1 → P t2 → P (app t1 t2)) → 
+   (Π i : Nat . Π f : trm . (P (var i) → P f) → P (lam i f)) → 
+   (Π i : Nat . P (var i)) → 
+   P self
+with 
+  app = λ t1 . λ t2 . Λ P . λ a . λ l . λ v . a t1 t2 (t1 · P a l v) (t2 · P a l v),
+  lam = λ i . λ f . Λ P . λ a . λ l . λ v . l i f (λ x . f · P a l (extend · trm · P var v i x)),
+  var = λ i . Λ P . λ a . λ l . λ v . v i 
+ .
+

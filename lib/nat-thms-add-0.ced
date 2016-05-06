@@ -1,105 +1,29 @@
 import nat.
 import false.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%						%
-%  add-defn : Addition is iterated succession	%
-%						%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-defn ⇐ Π x : Nat . Π y : Nat .
-
-  % Theorem
-
-  add x y ≃ x ( λ p . S ) y =
-
-  % Proof
-
+add-defn ⇐ Π x : Nat . Π y : Nat . add x y ≃ x ( λ p . S ) y =
   λ x . λ y . β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%						%
-%  add-Z : Z is the identity for addition	%
-%						%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-Z-0 ⇐ Π n : Nat .
-
-  % Theorem
-
-  add Z n ≃ n =
-
-  % Proof
-
+add-Z-0 ⇐ Π n : Nat . add Z n ≃ n =
   λ n . β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-Z-1 ⇐ Π n : Nat .
-
-  % Theorem
-
-  add n Z ≃ n =
-  
-  % Inductive Step
-
+add-Z-1 ⇐ Π n : Nat . add n Z ≃ n =
   λ n . θ n ( λ p . λ h . εl ρ h
       	      	      	       - β )
-
-  % Base Case
-  
   β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%						%
-%  add-S-comm : Addition commutes with the	%
-%    successor function				%
-%						%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-S-comm-0 ⇐ Π n : Nat . Π m : Nat .
-
-  % Theorem
-
-  add ( S n ) m ≃ S ( add n m ) =
-
-  % Proof
-
+add-S-comm-0 ⇐ Π n : Nat . Π m : Nat . add ( S n ) m ≃ S ( add n m ) =
   λ n . λ m . β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-S-comm-1 ⇐ Π n : Nat . Π m : Nat .
-
-  % Theorem
-
-  add n ( S m ) ≃ S ( add n m ) =
-
-  % Inductive Step
-
+add-S-comm-1 ⇐ Π n : Nat . Π m : Nat . add n ( S m ) ≃ S ( add n m ) =
   λ n . λ m . θ n ( λ p . λ h . εl ρ h
       	      	      	      	   - β )
-
-  % Base Case
-
   β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%						%
-%  add-assoc : Addition is associative		%
-%						%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-assoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat .
-
-  % Theorem
-
-  add x ( add y z ) ≃ add ( add x y ) z =
-
-  % Inductive Step
-
+add-assoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x ( add y z ) ≃ add ( add x y ) z =
   λ x . λ y . λ z . θ x ( λ p . λ h . εl ρ h - β )
-
-  % Base Case
-
   β .
+
+add-S-hop ⇐ Π a : Nat . Π b : Nat . add a (S b) ≃ add (S a) b =
+  λ a . λ b .
+   ρ (add-S-comm-1 a b) - β .

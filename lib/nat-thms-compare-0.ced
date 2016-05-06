@@ -1,4 +1,5 @@
 import nat.
+import not.
 
 compare-eq ⇐ Π x : Nat . Π y : Nat . (compare x y ≃ EQ) → x ≃ y =
   λ x . θ x (λ p . λ r . λ y . 
@@ -55,6 +56,9 @@ Lte-Z ⇐ Π x : Nat . Lte x Z → x ≃ Z =
   
 Z-Lte ⇐ Π x : Nat . Lte Z x =
   λ x . θ x (λ n . λ _ . β) β .
+
+Not-Lt-Z ⇐ Π x : Nat . Not · (Lt x Z) =
+  λ x . θ x (λ n . λ r . λ u . δ u) (λ u . δ u) .
 
 Gte-Z ⇐ Π x : Nat . Gte x Z =
   λ x . θ x (λ n . λ _ . β) β .

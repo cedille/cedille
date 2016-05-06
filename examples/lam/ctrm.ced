@@ -1,0 +1,12 @@
+import nat.
+
+ctrm ⇐ ★ = ∀ X : ★ . (X → X → X) → ((X → X) → X) → (Nat → X) → X .
+
+capp ⇐ ctrm → ctrm → ctrm = λ c1 . λ c2 . Λ X . λ a . λ l . λ v . a (c1 · X a l v) (c2 · X a l v) .
+
+cextend ⇐ ∀ X : ★ . (Nat → X) → Nat → X → (Nat → X) =
+  Λ X . λ v . λ i . λ x . λ j . θ (eqnat i j) x (v j) .
+
+clam ⇐ Nat → ctrm → ctrm = λ i . λ c . Λ X . λ a . λ l . λ v . l (λ x . c · X a l (cextend · X v i x)) .
+
+cvar ⇐ Nat → ctrm = λ i . Λ X . λ a . λ l . λ v . v i .
