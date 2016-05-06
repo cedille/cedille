@@ -1,0 +1,15 @@
+import nat.
+import trm.
+import trm-util.
+
+subst ⇐ trm → Nat → trm → trm =
+  λ t' . λ x . λ t .
+    θ t (λ t1 . λ t2 . λ r1 . λ r2 . app r1 r2)
+        (λ i . λ f . λ r . lam i (r (var i)))
+        (λ i . θ (eqnat i x) t' (var i)) .
+
+test ⇐ trm = lam Z (app (var (S Z)) (lam (S Z) (var (S Z)))) !
+
+to-ctrm test !
+
+to-ctrm (subst (lam Z (var Z)) (S Z) test) !

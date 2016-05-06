@@ -1,3 +1,4 @@
+import bool.
 import ctrm.
 import trm.
 
@@ -25,4 +26,8 @@ trm-ext ⇐
               (Λ x . N (Λ v . Λ v' . λ u . u i) -(extend · trm · P var v i x) -(extend · trm · P var v' i x) 
                        (λ i' . ε (θ+ (eqnat i i') (λ e . ρ e - β) (λ e . ρ e - (u i'))))))
         (λ i . Λ v . Λ v' . λ u . ρ (u i) - β) .
+
+is-app ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . tt) (λ _ . λ _ . λ _ . ff) (λ _ . ff) .
+is-lam ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . tt) (λ _ . ff) .
+is-var ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . ff) (λ _ . tt) .
 
