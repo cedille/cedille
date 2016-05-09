@@ -3,3 +3,5 @@ import trm.
 omega-trm ⇐ trm = lam Z (app (var Z) (var Z)) .
 id-trm ⇐ trm = lam Z (var Z) .
 Omega-trm ⇐ trm = app omega-trm omega-trm .
+
+fv-trm ⇐ trm = lam Z (app (var (S Z)) (var (S (S Z)))) .

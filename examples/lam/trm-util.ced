@@ -1,6 +1,7 @@
 import bool.
 import ctrm.
 import trm.
+import test-trms.
 
 to-ctrm ⇐ trm → ctrm = 
   λ t . θ t (λ _ . λ _ . λ c1 . λ c2 . capp c1 c2)
@@ -31,3 +32,9 @@ is-app ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . tt) (λ _ . �
 is-lam ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . tt) (λ _ . ff) .
 is-var ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . ff) (λ _ . tt) .
 
+var-bound ⇐ trm → Nat =
+  λ t . θ t (λ _ . λ _ . λ b1 . λ b2 . max b1 b2)
+            (λ _ . λ _ . λ N . N Z)
+            (λ i . S i) .
+
+toCNat (var-bound fv-trm) !
