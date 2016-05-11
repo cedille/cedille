@@ -1,28 +1,29 @@
 ;;; cedille-mode.el --- Major mode for Cedille
 ;;;
-;;; Add something like the following to your .emacs file to load this
-;;; mode for .ced files:
+;;; You need to set cedille-path to be the path to your Cedille installation.
+;;; Then add that path to your load path for emacs.
+;;; Then put (require 'cedille-mode) in your .emacs file. 
+;;; 
+;;; For example:
 ;;;
-;;;   (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
-;;;   (add-to-list 'auto-mode-alist '("\\.ced\\'" . cedille-mode))
+;;;    (setq cedille-path "/home/astump/cedille")
+;;;    (add-to-list 'load-path cedille-path)
+;;;    (require 'cedille-mode)
 ;;;
-;;; You will need to link or copy this file to a load directory for emacs.
-;;; I have this in my .emacs file to make ~/.emacs.d such a directory:
-;;;
-;;;   (add-to-list 'load-path "/home/astump/.emacs.d/")
-;;;
-;;;
-
-;;; stlc-mode.el --- Major mode for Stlc
-
-;;; Commentary:
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Dependency
-
-;;; Code:
 
 (require 'quail)
+
+(defvar cedille-program-name (concat cedille-path "/cedille"))
+(setq max-lisp-eval-depth 10000)
+(setq max-specpdl-size 10000)
+
+(autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
+(add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
+
+(let ((se-path (concat cedille-path "se-mode/")))
+  (add-to-list 'load-path se-path)
+  (add-to-list 'load-path (concat se-path "/json.el")))
+(load-library "se")
 
 (when (version< emacs-version "24.4")
   (defun define-error (name message &optional parent)
