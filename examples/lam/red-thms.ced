@@ -1,0 +1,57 @@
+import is-free.
+import red.
+import nat-thms-compare.
+import subst-thms.
+
+is-ctxt ⇐ Nat → trm → Bool = λ hole : Nat . λ C : trm . eqnat (num-free-occ hole C) one .
+Is-ctxt ⇐ Nat → trm → ★ = λ hole : Nat . λ C : trm . is-ctxt hole C ≃ tt .
+
+ctxt-red ⇐ trm → trm → ★ =
+  λ t1 : trm . λ t2 : trm .
+  ∀ P : trm → trm → ★ .
+    (Π i : Nat . Π t1 : trm . Π t2 : trm .
+     Π C : trm . Π hole : Nat. Is-ctxt hole C → 
+     P (graft (app (lam i t1) t2) hole C) (graft (subst t2 i t1) hole C)) →
+    P t1 t2 .
+
+is-ctxt-app1 ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → Is-ctxt hole t1 → Apart-from hole t2 = ● .
+is-ctxt-app2a ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → (is-ctxt hole t1 ≃ ff) → Apart-from hole t1 = ● .
+is-ctxt-app2b ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → (is-ctxt hole t1 ≃ ff) → Is-ctxt hole t2 = ● .
+is-ctxt-lam ⇐ Π hole : Nat . Π i : Nat . Π f : trm . Is-ctxt hole (lam i f) → eqnat hole i ≃ ff = ● .
+
+ctxt-red-to-red ⇐ 
+  Π t1 : trm . Π t2 : trm . ctxt-red t1 t2 → red t1 t2 = 
+  λ t1 . λ t2 . λ cr .
+    θ<t1 t2> cr 
+     (λ i-f . λ f . λ a . λ C . λ hole . 
+        θ C 
+          (λ C1 . λ C2 . λ r1 . λ r2 . λ ctxtC . 
+             θ+ (is-ctxt hole C1) 
+                (λ ctxtC1 . ρ (χ (graft (app (lam i-f f) a) hole (app C1 C2) ≃ 
+                                  app (graft (app (lam i-f f) a) hole C1) C2) - 
+                                 εl ρ (graft-apart-from (app (lam i-f f) a) hole C2
+                                      (is-ctxt-app1 hole C1 C2 ctxtC ctxtC1)) - β) -
+                            ρ (χ (graft (subst a i-f f) hole (app C1 C2) ≃ 
+                                  app (graft (subst a i-f f) hole C1) C2) - 
+                                 εl ρ (graft-apart-from (subst a i-f f) hole C2
+                                      (is-ctxt-app1 hole C1 C2 ctxtC ctxtC1)) - β) -
+                           (red-app1 (graft (app (lam i-f f) a) hole C1) (graft (subst a i-f f) hole C1) C2
+                             (r1 ctxtC1)))
+                (λ ctxtC1 . ρ (χ (graft (app (lam i-f f) a) hole (app C1 C2) ≃ 
+                                  app C1 (graft (app (lam i-f f) a) hole C2)) - 
+                                 εl ρ (graft-apart-from (app (lam i-f f) a) hole C1
+                                      (is-ctxt-app2a hole C1 C2 ctxtC ctxtC1)) - β) -
+                            ρ (χ (graft (subst a i-f f) hole (app C1 C2) ≃ 
+                                  app C1 (graft (subst a i-f f) hole C2)) - 
+                                 εl ρ (graft-apart-from (subst a i-f f) hole C1
+                                      (is-ctxt-app2a hole C1 C2 ctxtC ctxtC1)) - β) -
+                            (red-app2 C1 (graft (app (lam i-f f) a) hole C2) (graft (subst a i-f f) hole C2) 
+                              (r2 (is-ctxt-app2b hole C1 C2 ctxtC ctxtC1)))))
+          (λ i . λ C' . λ N . λ uf . ●)
+          (λ i . θ+ (eqnat i hole)
+                    (λ u . λ _ . 
+                       ρ (eqnat-eq i hole u) - 
+                       ρ (graft-var (app (lam i-f f) a) hole) -
+                       ρ (graft-var (subst a i-f f) hole) -
+                        (red-beta i-f f a))
+                    (λ u . λ ctxtC . δ (ρ u - (εl ctxtC))))).

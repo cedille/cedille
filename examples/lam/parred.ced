@@ -19,7 +19,7 @@ parred-app-t ⇐ 𝒌parred-clause =
 
 parred-beta-t ⇐ 𝒌parred-clause =
   λ P : trm → trm → ★ . λ R : trm → trm → ★ .
-    Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. Π i : Nat .
+    Π i : Nat . Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. 
       R t1 t1' → R t2 t2' → P t1 t1' → P t2 t2' → P (app (lam i t1) t2) (subst t2' i t1') .
 
 rec parred : (t1 : trm)(t2 : trm) | parred-var : Π i : Nat . parred (var i) (var i) ,
@@ -27,7 +27,7 @@ rec parred : (t1 : trm)(t2 : trm) | parred-var : Π i : Nat . parred (var i) (va
                                                  parred f f' → parred (lam i f) (lam i f') ,
                                     parred-app : Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm.
                                                  parred t1 t1' → parred t2 t2' → parred (app t1 t2) (app t1' t2') ,
-                                    parred-beta : Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. Π i : Nat .
+                                    parred-beta : Π i : Nat . Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. 
                                                   parred t1 t1' → parred t2 t2' → parred (app (lam i t1) t2) (subst t2' i t1') =
   ∀ P : trm → trm → ★ .
     parred-var-t · P · parred → 
@@ -40,5 +40,5 @@ with
   parred-lam = λ i . λ f . λ f' . λ u . Λ P . λ v . λ l . λ a . λ b . l i f f' u (u · P v l a b) ,
   parred-app = λ t1 . λ t2 . λ t1' . λ t2' . λ u1 . λ u2 . Λ P . λ v . λ l . λ a . λ b . 
                  a t1 t2 t1' t2' u1 u2 (u1 · P v l a b) (u2 · P v l a b) ,
-  parred-beta = λ t1 . λ t2 . λ t1' . λ t2' . λ i . λ u1 . λ u2 . Λ P . λ v . λ l . λ a . λ b . 
-                 b t1 t2 t1' t2' i u1 u2 (u1 · P v l a b) (u2 · P v l a b) .
+  parred-beta = λ i . λ t1 . λ t2 . λ t1' . λ t2' . λ u1 . λ u2 . Λ P . λ v . λ l . λ a . λ b . 
+                 b i t1 t2 t1' t2' u1 u2 (u1 · P v l a b) (u2 · P v l a b) .

@@ -1,0 +1,48 @@
+import is-free.
+import subst.
+
+substh-var ⇐ Π avoid-capture : Bool . 
+             Π t : trm .
+             Π x : Nat .
+               substh avoid-capture t x (var x) ≃ t =
+  λ avoid-capture . λ t . λ x .
+     εl ρ (eqnat-refl x) - β .
+
+subst-var ⇐ Π t : trm . Π x : Nat . subst t x (var x) ≃ t = substh-var tt .
+graft-var ⇐ Π t : trm . Π x : Nat . graft t x (var x) ≃ t = substh-var ff .
+
+substh-var-diff ⇐
+   Π avoid-capture : Bool . 
+   Π t : trm .
+   Π x : Nat .
+   Π y : Nat .
+     (eqnat x y ≃ ff) → 
+     substh avoid-capture t y (var x) ≃ (var x) =
+  λ avoid-capture . λ t . λ x . λ y . λ u .
+     εl ρ u - β .
+
+subst-var-diff ⇐
+   Π t : trm .
+   Π x : Nat .
+   Π y : Nat .
+     (eqnat x y ≃ ff) → 
+     subst t y (var x) ≃ (var x) = substh-var-diff tt .
+
+graft-var-diff ⇐
+   Π t : trm .
+   Π x : Nat .
+   Π y : Nat .
+     (eqnat x y ≃ ff) → 
+     graft t y (var x) ≃ (var x) = substh-var-diff ff .
+
+substh-apart-from ⇐ 
+  Π avoid-capture : Bool . Π t' : trm . Π x : Nat . Π t : trm .
+     Apart-from x t → substh avoid-capture t' x t ≃ t = ● .
+               
+subst-apart-from ⇐ 
+  Π t' : trm . Π x : Nat . Π t : trm .
+     Apart-from x t → subst t' x t ≃ t = substh-apart-from tt .
+
+graft-apart-from ⇐ 
+  Π t' : trm . Π x : Nat . Π t : trm .
+     Apart-from x t → graft t' x t ≃ t = substh-apart-from ff .

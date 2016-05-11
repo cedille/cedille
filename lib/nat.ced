@@ -25,10 +25,10 @@ toCNat ⇐ Nat → CNat =
           (λ p . λ c . (Λ X . λ s . λ z . s (c · X s z)))
           (Λ X . λ s . λ z . z) .
 
-iszero ⇐ Nat → Bool = 
+is-zero ⇐ Nat → Bool = 
   λ n . n · (λ n : Nat . Bool) (λ p . λ r . ff) tt .
 
-Iszero ⇐ Nat → ★ = λ n : Nat . iszero n ≃ tt .
+Is-zero ⇐ Nat → ★ = λ n : Nat . is-zero n ≃ tt .
 
 compare ⇐ Nat → Nat → compare-t =
   λ n . θ n 

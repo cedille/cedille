@@ -265,15 +265,15 @@ processArgs [] =
           checkFile dir file >>= finish
           where finish : toplevel-state → IO ⊤
                 finish (mk-toplevel-state i Γ ss) = 
-                   if global-error-p ss then putStr (spans-to-string ss)
+                   (if global-error-p ss then putStr (spans-to-string ss)
                    else
                      let e = cede-filename dir base in
                         doesFileExist e >>= λ b → 
                         if b then
-                         ((readFiniteFile e) >>= λ s → putStr s >> 
-                           processArgs [] {- loop until EOF, when getLine will get an exception and cedille will be killed -})
+                         ((readFiniteFile e) >>= λ s → putStr s)
                         else
-                          putStr (global-error-string ("Could not open " ^ e ^ " for reading."))
+                          putStr (global-error-string ("Could not open " ^ e ^ " for reading.")))
+                   >> processArgs [] 
 processArgs xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                        ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
 
