@@ -21,8 +21,8 @@ cedille-main: src/cedille-main.agda
 	agda $(INC) --ghc-flag=-rtsopts -c src/cedille-main.agda 
 
 # this requires gratr
-src/cedille-main.agda : src/cedille.gr ~/gratr2/src/gratr
-	gratr --continue-with-nonterminating src/cedille.gr
+src/cedille-main.agda : src/cedille.gr 
+	cd src ; gratr --continue-with-nonterminating cedille.gr
 
 clean:
 	rm -f cedille src/main $(OBJ)

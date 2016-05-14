@@ -30,18 +30,27 @@ new-include-state asts unchanged = mk-include-state asts empty-stringset unchang
 data toplevel-state : Set where
   mk-toplevel-state : include-state → ctxt → spans → toplevel-state
 
-new-toplevel-state : trie start → stringset → toplevel-state
-new-toplevel-state asts unchanged = mk-toplevel-state (new-include-state asts unchanged) new-ctxt empty-spans
+new-toplevel-state : (current-file : string) → trie start → stringset → toplevel-state
+new-toplevel-state file-name asts unchanged = mk-toplevel-state (new-include-state asts unchanged) (new-ctxt file-name) empty-spans
 
-new-toplevel-global-error : string → toplevel-state
-new-toplevel-global-error m = mk-toplevel-state (new-include-state empty-trie empty-stringset) new-ctxt (global-error m nothing)
+new-toplevel-global-error : (current-file : string) → string → toplevel-state
+new-toplevel-global-error file-name m = 
+  mk-toplevel-state (new-include-state empty-trie empty-stringset) (new-ctxt file-name) (global-error m nothing)
 
 toplevel-add-span : span → toplevel-state → toplevel-state
 toplevel-add-span s (mk-toplevel-state is Γ ss) =
   mk-toplevel-state is Γ (add-span s ss)
 
+dot-cedille-directory : string → string 
+dot-cedille-directory dir = combineFileNames dir ".cedille"
+
 cede-filename : string → string → string
-cede-filename dir base = combineFileNames dir (base ^ ".cede")
+cede-filename dir base = combineFileNames (dot-cedille-directory dir) (base ^ ".cede")
+
+write-cede-file : string → string → string → IO ⊤
+write-cede-file dir base contents = 
+  createDirectoryIfMissing ff (dot-cedille-directory dir) >>
+  writeFile (cede-filename dir base) contents   
 
 add-cedille-extension : string → string
 add-cedille-extension x = x ^ "." ^ cedille-extension 
@@ -69,7 +78,7 @@ ced-file-up-to-date dir file =
 {-# NO_TERMINATION_CHECK #-}
 process-cmd : (dir : string) → cmd → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
 process-cmds : (dir : string) → cmds → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
-process-start : (dir : string) → (input-filename : string) → start → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
+process-start : (dir : string) → start → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
 processFile : (dir : string) → (file : string) → toplevel-state → IO (𝔹 × toplevel-state) -- the boolean is for if there was an error
 
 process-cmd dir (DefTerm pi x (Type tp) t n pi') ff {- should check -} (mk-toplevel-state is Γ ss) = 
@@ -78,10 +87,10 @@ process-cmd dir (DefTerm pi x (Type tp) t n pi') ff {- should check -} (mk-tople
              let t = erase-term t in
                spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
                spanMr (hnf Γ unfold-head t)) ss in
-    return (mk-toplevel-state is (ctxt-term-def x (fst ss') tp Γ) (snd ss'))
+    return (mk-toplevel-state is (ctxt-term-def pi x (fst ss') tp Γ) (snd ss'))
 
 process-cmd dir (DefTerm pi x (Type tp) t n pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-    return (mk-toplevel-state is (ctxt-term-def x (hnf Γ unfold-head t) tp Γ) ss)
+    return (mk-toplevel-state is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ) ss)
 
 process-cmd dir (DefTerm pi x NoCheckType t n pi') _ (mk-toplevel-state is Γ ss) = 
   let ss' = (check-term Γ t nothing ≫=span λ mtp → 
@@ -90,17 +99,17 @@ process-cmd dir (DefTerm pi x NoCheckType t n pi') _ (mk-toplevel-state is Γ ss
                spanMr (hnf Γ unfold-head t , mtp)) ss in
     return (mk-toplevel-state is (h (fst ss')) (snd ss'))
   where h : term × (maybe type) → ctxt
-        h (t , nothing) = ctxt-term-udef x t Γ
-        h (t , just tp) = ctxt-term-def x t tp Γ
+        h (t , nothing) = ctxt-term-udef pi x t Γ
+        h (t , just tp) = ctxt-term-def pi x t tp Γ
 
 process-cmd dir (DefType pi x (Kind k) tp n pi') ff {- check -} (mk-toplevel-state is Γ ss) = 
   let ss' = (check-kind Γ k ≫span 
              check-type Γ tp (just k) ≫span 
                spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
                spanMr (hnf Γ unfold-head tp)) ss in
-    return (mk-toplevel-state is (ctxt-type-def x (fst ss') k Γ) (snd ss'))
+    return (mk-toplevel-state is (ctxt-type-def pi x (fst ss') k Γ) (snd ss'))
 process-cmd dir (DefType pi x (Kind k) tp n pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is (ctxt-type-def x (hnf Γ unfold-head tp) k Γ) ss)
+  return (mk-toplevel-state is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ) ss)
 
 process-cmd dir (CheckTerm t (Type tp) n pi) ff {- check -} (mk-toplevel-state is Γ ss) = 
   let ss' = (check-type Γ tp (just star) ≫span 
@@ -124,21 +133,22 @@ process-cmd dir (DefKind pi x _ k pi') ff {- check -} (mk-toplevel-state is Γ s
   let ss' = (check-kind Γ k ≫span
              spanM-add (DefKind-span pi x k pi') ≫span
              spanMok) ss in
-  return (mk-toplevel-state is (ctxt-kind-def x (hnf Γ unfold-head k) Γ) (snd ss'))
+  return (mk-toplevel-state is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) (snd ss'))
 process-cmd dir (DefKind pi x _ k pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is (ctxt-kind-def x (hnf Γ unfold-head k) Γ) ss)
+  return (mk-toplevel-state is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) ss)
 
 process-cmd dir (CheckKind k _ pi) _ (mk-toplevel-state is Γ ss) = 
   return (mk-toplevel-state is Γ ss)
 process-cmd dir (Import pi x pi') _ s with toplevel-add-span (Import-span pi x pi' []) s
 process-cmd dir (Import pi x pi') _ _ | s with s
-process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state asts processed unchanged) _ _ = 
+process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state asts processed unchanged) Γ _ = 
   let file = add-cedille-extension x in
     if stringset-contains processed (combineFileNames dir file) then return s
     else 
       (processFile dir file s >>= cont)
   where cont : 𝔹 × toplevel-state → IO toplevel-state
-        cont (b , s) =
+        cont (b , s) with s 
+        cont (b , s) | mk-toplevel-state i Γ' _ = 
           if b then
             return (toplevel-add-span (Import-span pi x pi' [ error-data "There is an error in the imported file" ]) s)
           else return s
@@ -154,8 +164,9 @@ process-cmds dir (CmdsNext c cs) no-need-to-check s = process-cmd dir c no-need-
           if global-error-p ss then return s else process-cmds dir cs no-need-to-check s
 process-cmds dir (CmdsStart c) no-need-to-check s = process-cmd dir c no-need-to-check s
 
-process-start dir input-filename (File pi cs pi') no-need-to-check s = 
-  process-cmds dir cs no-need-to-check s >>= λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1) input-filename) s')
+process-start dir (File pi cs pi') no-need-to-check (mk-toplevel-state is Γ ss) = 
+  process-cmds dir cs no-need-to-check (mk-toplevel-state is Γ ss) >>=
+    λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1) (ctxt-get-current-file Γ)) s')
 
 -- process the given input file, after adding it to the include state
 processFile dir file s with s | combineFileNames dir file
@@ -169,15 +180,20 @@ processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unc
                        | input-filename | just p with stringset-contains unchanged input-filename
 processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
                        | input-filename | just p | skip-checking =
-   process-start dir input-filename p skip-checking
-      (mk-toplevel-state (mk-include-state asts (stringset-insert processed input-filename) unchanged) Γ empty-spans)
+   let Γ' = ctxt-set-current-file Γ input-filename in 
+--    putStr ("(current file in ctxt: " ^ (ctxt-get-current-file Γ') ^ "\n") >> 
+    process-start dir p skip-checking
+      (mk-toplevel-state (mk-include-state asts (stringset-insert processed input-filename) unchanged) 
+          Γ' empty-spans)
    >>= finish
    where finish : toplevel-state → IO (𝔹 × toplevel-state)
-         finish (mk-toplevel-state i Γ ss') = 
+         finish (mk-toplevel-state i Γ' ss') = 
+          let Γ'' = ctxt-set-current-file Γ' (ctxt-get-current-file Γ) in 
+--           putStr ("current file in ctxt: " ^ (ctxt-get-current-file Γ'') ^ ")\n") >>
            let base = base-filename file in
-             (if skip-checking then (return triv) else (writeFile (cede-filename dir base) (spans-to-string ss'))) >>
+             (if skip-checking then (return triv) else (write-cede-file dir base (spans-to-string ss'))) >>
                 -- do not return the newly added spans, unless we have a global error
-             return (spans-have-error ss' , mk-toplevel-state i Γ (if global-error-p ss' then ss' else ss))
+             return (spans-have-error ss' , mk-toplevel-state i Γ'' (if global-error-p ss' then ss' else ss))
 
 -- compute the set of unchanged dependencies (the second stringset in the include-state)
 {-# NO_TERMINATION_CHECK #-}
@@ -243,10 +259,10 @@ checkFile dir file =
  where cont1 : include-state ⊎ string → IO toplevel-state
        cont1 (inj₁ (mk-include-state asts _ unchanged)) = 
          writeFile "dbg" ((trie-to-string "\n" (λ _ → "") asts) ^ "\n") >>
-         processFile dir file (new-toplevel-state asts unchanged) >>= cont
+         processFile dir file (new-toplevel-state (combineFileNames dir file) asts unchanged) >>= cont
          where cont : 𝔹 × toplevel-state → IO toplevel-state
                cont (_ , s') = return s'
-       cont1 (inj₂ m) = return (new-toplevel-global-error m)
+       cont1 (inj₂ m) = return (new-toplevel-global-error (combineFileNames dir file) m)
 
 {-# NO_TERMINATION_CHECK #-}
 processArgs : 𝕃 string → IO ⊤ 

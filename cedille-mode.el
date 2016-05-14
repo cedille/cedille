@@ -128,14 +128,19 @@ start of each string, and then strip out that number."
   "Displays information on the currently selected node in 
 the info buffer for the file.  Return the info buffer as a convenience."
   (interactive)
-  (let ((b (cedille-info-buffer))
-        (txt (if se-mode-selected
-               (se-mode-pretty-json (cedille-mode-sort-and-strip-json (se-term-to-json (se-mode-selected))))
-               "\n")))
-    (with-current-buffer b (erase-buffer) (insert txt) (setq buffer-read-only t))
-    (cedille-adjust-info-window-size)
-    (setq deactivate-mark nil)
-    b))
+  (when se-mode-selected
+    (let* ((b (cedille-info-buffer))
+           (d (cedille-mode-sort-and-strip-json (se-term-to-json (se-mode-selected))))
+           (txt (se-mode-pretty-json d)))
+      (with-current-buffer b
+         (erase-buffer)
+         (insert txt)
+         (setq buffer-read-only t)
+         (let ((l (assoc 'location d)))
+           (setq-local cedille-info-buffer-location l)))
+      (cedille-adjust-info-window-size)
+      (setq deactivate-mark nil)
+      b)))
 
 (defun se-mode-pretty-json (json)
   "Prints a table in a more human readable form. Does not handle
@@ -353,6 +358,21 @@ in the parse tree, and updates the Cedille info buffer."
   (se-mode-select-last)
   (cedille-mode-inspect))
 
+(defun cedille-mode-jump ()
+  "Jumps to a location associated with the selected node"
+  (interactive)
+  (if se-mode-selected
+     (let* ((b (cedille-info-buffer))
+            (lp (with-current-buffer b cedille-info-buffer-location)))
+        (if lp 
+            (let* ((l (cdr lp))
+                   (ls (split-string l " - "))
+                   (f (car ls))
+                   (n (string-to-number (cadr ls)))
+                   (b (find-file f)))
+              (with-current-buffer b (goto-char n)))
+            (message "No location at this node")))))     
+
 (defun cedille-mode-toggle-info()
   "Shows or hides the Cedille info buffer."
   (interactive)
@@ -381,6 +401,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
+  (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)

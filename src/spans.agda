@@ -208,6 +208,12 @@ ctxt-data Γ = "current context" , ctxt-to-string Γ
 local-ctxt-data : ctxt → tagged-val
 local-ctxt-data Γ = "current context" , local-ctxt-to-string Γ
 
+location-data : location → tagged-val
+location-data (file-name , pi) = "location" , (file-name ^ " - " ^ pi)
+
+var-location-data : ctxt → var → tagged-val
+var-location-data Γ x = location-data (ctxt-var-location Γ x)
+
 --------------------------------------------------
 -- span-creating functions
 --------------------------------------------------
@@ -235,18 +241,18 @@ Decl-span : decl-class → posinfo → var → tk → posinfo → span
 Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
                                       pi pi' []
 
-TpVar-span : posinfo → string → 𝕃 tagged-val → span
-TpVar-span pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) tvs
+TpVar-span : ctxt → posinfo → string → 𝕃 tagged-val → span
+TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: tvs)
 
-Var-span : posinfo → string → 𝕃 tagged-val → span
-Var-span pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) tvs
+Var-span : ctxt → posinfo → string → 𝕃 tagged-val → span
+Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: tvs)
 
-KndVar-span : posinfo → string → span
-KndVar-span pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) [ super-kind-data ]
+KndVar-span : ctxt → posinfo → string → span
+KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: [ super-kind-data ])
 
 var-span : ctxt → posinfo → string → tk → span
-var-span Γ pi x (Tkk k) = TpVar-span pi x [ kind-data k ]
-var-span Γ pi x (Tkt t) = Var-span pi x (type-data t :: [ hnf-type Γ t ])
+var-span Γ pi x (Tkk k) = TpVar-span Γ pi x [ kind-data k ]
+var-span Γ pi x (Tkt t) = Var-span Γ pi x (type-data t :: [ hnf-type Γ t ])
 
 TpAppt-span : type → term → 𝕃 tagged-val → span
 TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
@@ -457,5 +463,5 @@ File-span : posinfo → posinfo → string → span
 File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []
 
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → span
-Import-span pi file pi' tvs = mk-span ("Import of source file " ^ file) pi pi' tvs
+Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
 

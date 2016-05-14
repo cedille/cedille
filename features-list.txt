@@ -3,12 +3,17 @@
 
 -- improve parsing
 
--- create src directory and put .agda files there
+-- [done] create src directory and put .agda files there
 
 -- investigate slow performance with import cycles
 
--- print contexts more nicely in the emacs mode
-
--- ability to see contexts anywhere
+-- compute contexts within emacs, rather than getting them from Cedille; ability to see contexts anywhere
 
 -- be able to kill backend from within emacs
+
+-- add let expressions
+
+-- [done] store .cede files in a .cedille directory
+
+-- create a JIRA project for Cedille
+

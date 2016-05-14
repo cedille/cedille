@@ -155,8 +155,8 @@ add-tk Γ pi x atk =
   spanM-add (var-span Γ pi x atk) ≫span
   spanMr (if (x =string ignored-var) then Γ else (helper atk))
   where helper : tk → ctxt
-        helper (Tkk k) = ctxt-type-decl x k Γ
-        helper (Tkt t) = ctxt-term-decl x t Γ
+        helper (Tkk k) = ctxt-type-decl pi x k Γ
+        helper (Tkt t) = ctxt-term-decl pi x t Γ
 
 check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k))
@@ -174,6 +174,22 @@ lambda-bound-var-conv-error x atk atk' tvs =
 lambda-bound-class-if : optClass → tk → tk
 lambda-bound-class-if NoClass atk = atk
 lambda-bound-class-if (SomeClass atk') atk = atk'
+
+var-spans-term : ctxt → term → spanM ⊤
+var-spans-term Γ (App t x t') = var-spans-term Γ t ≫span var-spans-term Γ t'
+var-spans-term Γ (AppTp t x) = var-spans-term Γ t 
+var-spans-term Γ (Beta x) = spanMok
+var-spans-term Γ (Chi x x₁ t) = var-spans-term Γ t
+var-spans-term Γ (Delta x t) = var-spans-term Γ t
+var-spans-term Γ (Epsilon x x₁ x₂ t) = var-spans-term Γ t
+var-spans-term Γ (Hole x) = spanMok
+var-spans-term Γ (Lam _ _ pi' x _ t) = var-spans-term (ctxt-var-decl pi' x Γ) t
+var-spans-term Γ (Parens x t x₁) = var-spans-term Γ t
+var-spans-term Γ (PiInj x x₁ t) = var-spans-term Γ t
+var-spans-term Γ (Rho x t t') = var-spans-term Γ t ≫span var-spans-term Γ t'
+var-spans-term Γ (Sigma x t) = var-spans-term Γ t
+var-spans-term Γ (Theta x x₁ t x₂) = var-spans-term Γ t
+var-spans-term Γ (Var pi x) = spanM-add (Var-span Γ pi x [])
 
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type.  
@@ -208,15 +224,15 @@ check-type Γ subject (just k) = check-typei Γ subject (just (hnf Γ unfold-hea
 check-termi Γ (Parens pi t pi') tp = check-term Γ t tp
 check-termi Γ (Var pi x) tp with ctxt-lookup-term-var Γ x
 check-termi Γ (Var pi x) tp | nothing = 
-  spanM-add (Var-span pi x 
+  spanM-add (Var-span Γ pi x 
               (error-data "Missing a type for a term variable." :: 
                expected-type-if tp (missing-type :: []))) ≫span
   return-when tp tp
 check-termi Γ (Var pi x) nothing | just tp = 
-  spanM-add (Var-span pi x ((type-data tp) :: [ hnf-type Γ tp ])) ≫span
+  spanM-add (Var-span Γ pi x ((type-data tp) :: [ hnf-type Γ tp ])) ≫span
   check-termi-return Γ (Var pi x) tp
 check-termi Γ (Var pi x) (just tp) | just tp' = 
-  spanM-add (Var-span pi x 
+  spanM-add (Var-span Γ pi x 
                (if conv-type Γ tp tp' then (expected-type tp :: [ type-data tp' ])
                  else (error-data "The computed type does not match the expected type." :: 
                        expected-type tp :: 
@@ -288,7 +304,7 @@ check-termi Γ (App t m t') tp =
                             hnf-expected-type-if Γ (just tp) []))
 check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
   check-tk Γ atk ≫span
-  add-tk Γ pi x atk ≫=span λ Γ → 
+  add-tk Γ pi' x atk ≫=span λ Γ → 
   check-term Γ t nothing ≫=span cont
 
   where cont : maybe type → spanM (maybe type)
@@ -547,18 +563,18 @@ check-typei Γ (TpParens pi t pi') k = check-type Γ t k
 check-typei Γ (NoSpans t _) k ss = fst (check-type Γ t k ss) , ss
 check-typei Γ (TpVar pi x) k with ctxt-lookup-type-var Γ x
 check-typei Γ (TpVar pi x) k | nothing = 
-  spanM-add (TpVar-span pi x 
+  spanM-add (TpVar-span Γ pi x 
               (error-data "Missing a kind for a type variable." :: 
                expected-kind-if k (missing-kind :: []))) ≫span
   return-when k k
 check-typei Γ (TpVar pi x) nothing | (just k) = 
-  spanM-add (TpVar-span pi x ((kind-data k) :: [])) ≫span
+  spanM-add (TpVar-span Γ pi x ((kind-data k) :: [])) ≫span
   check-type-return Γ k
 check-typei Γ (TpVar pi x) (just k) | just k' = 
   if conv-kind Γ k k' 
-  then spanM-add (TpVar-span pi x 
+  then spanM-add (TpVar-span Γ pi x 
                     (expected-kind k :: [ kind-data k' ]))
-  else spanM-add (TpVar-span pi x 
+  else spanM-add (TpVar-span Γ pi x 
                    (error-data "The computed kind does not match the expected kind." :: 
                     expected-kind k ::
                     [ kind-data k' ]))
@@ -668,6 +684,8 @@ check-typei Γ (TpApp tp tp') k =
                             []))
 
 check-typei Γ (TpEq t1 t2) k = 
+  var-spans-term Γ t1 ≫span
+  var-spans-term Γ t2 ≫span
   spanM-add (TpEq-span t1 t2 (if-check-against-star-data "An equation" k)) ≫span
   return-star-when k
   
@@ -687,7 +705,7 @@ check-typei Γ t k = spanM-add (unimplemented-type-span (type-start-pos t) (type
 
 check-kind Γ (KndParens _ k _) = check-kind Γ k
 check-kind Γ (Star pi) = spanM-add (Star-span pi)
-check-kind Γ (KndVar pi x) = spanM-add (KndVar-span pi x)
+check-kind Γ (KndVar pi x) = spanM-add (KndVar-span Γ pi x)
 check-kind Γ (KndArrow k k') = 
   spanM-add (KndArrow-span k k') ≫span
   check-kind Γ k ≫span

@@ -35,7 +35,7 @@ substh-term Γ ρ t x (Hole x₁) = Hole x₁
 substh-term Γ ρ t x (Lam pi b pi' y oc t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     Lam pi b pi' y' (substh-optClass Γ ρ t x oc) 
-      (substh-term (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
+      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-term Γ ρ t x (Parens x₁ t' x₂) = substh-term Γ ρ t x t'
 substh-term{TERM} Γ ρ t x (Var pi y) =
  let y' = renamectxt-rep ρ y in
@@ -56,18 +56,18 @@ substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t')
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Abs pi b pi' y' (substh-tk Γ ρ t x atk)
-      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
+      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
-      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
+      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Iota pi y m t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Iota pi y' (substh-optClass Γ ρ t x m)
-      (substh-type (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t')
+      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Lft pi pi' y t' l) = 
   let y' = subst-rename-var-if Γ ρ x y t in
-    Lft pi pi' y' (substh-term (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x t') 
+    Lft pi pi' y' (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t') 
       (substh-liftingType Γ ρ t x l)
 substh-type Γ ρ t x (TpApp tp tp₁) = TpApp (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
@@ -84,7 +84,7 @@ substh-kind Γ ρ t x (KndParens x₁ k x₂) = substh-kind Γ ρ t x k
 substh-kind Γ ρ t x (KndPi pi pi' y atk k) = 
   let y' = subst-rename-var-if Γ ρ x y t in
     KndPi pi pi' y' (substh-tk Γ ρ t x atk)
-      (substh-kind (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x k)
+      (substh-kind (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x k)
 substh-kind Γ ρ t x (KndTpArrow t' k) = KndTpArrow (substh-type Γ ρ t x t') (substh-kind Γ ρ t x k)
 substh-kind Γ ρ t x (KndVar pi y) = KndVar pi y
 substh-kind Γ ρ t x (Star pi) = Star pi
@@ -99,7 +99,7 @@ substh-liftingType Γ ρ t x (LiftParens x₁ l x₂) = substh-liftingType Γ ρ
 substh-liftingType Γ ρ t x (LiftPi pi y tp l) = 
   let y' = subst-rename-var-if Γ ρ x y t in 
     LiftPi pi y' (substh-type Γ ρ t x tp) 
-       (substh-liftingType (ctxt-var-decl y' Γ) (renamectxt-insert ρ y y') t x l)
+       (substh-liftingType (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x l)
 substh-liftingType Γ ρ t x (LiftStar pi) = LiftStar pi
 substh-liftingType Γ ρ t x (LiftTpArrow tp l) = 
   LiftTpArrow (substh-type Γ ρ t x tp) (substh-liftingType Γ ρ t x l)

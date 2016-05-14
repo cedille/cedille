@@ -6,6 +6,9 @@ open import cedille-types
 posinfo-gen : posinfo
 posinfo-gen = "generated"
 
+first-position : posinfo
+first-position = "1"
+
 dummy-var : var
 dummy-var = "_dummy"
 

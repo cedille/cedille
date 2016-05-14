@@ -73,7 +73,7 @@ hnf{TERM} Γ u (App t1 NotErased t2) with hnf Γ u t1
 hnf{TERM} Γ u (App _ NotErased t2) | Lam _ _ _ x _ t1 = hnf Γ (unfold-dampen tt u) (subst-term Γ t2 x t1)
 hnf{TERM} Γ u (App _ NotErased t2) | t1 = App t1 NotErased (hnf Γ (unfold-dampen ff u) t2)
 hnf{TERM} Γ u (Lam _ ErasedLambda _ _ _ t) = hnf Γ u t
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) with hnf (ctxt-var-decl x Γ) u t
+hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) with hnf (ctxt-var-decl pi' x Γ) u t
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | (App t' NotErased (Var _ x')) with x =string x' && ~ (is-free-in skip-erased x t')
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | (App t' NotErased (Var _ x')) | tt = t' -- eta-contraction
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) | (App t' NotErased (Var pi'' x')) | _ = 
@@ -125,17 +125,17 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
                   recompose-tpapps 
                     (Lft posinfo-gen posinfo-gen X (Lam* vars (hnf Γ no-unfolding (App t NotErased (App* t' (map mvar vars)))))
                       (LiftArrow* ltps l) , args1)
-                try-pull-term-in Γ (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
-                  try-pull-term-in (ctxt-var-decl x Γ) t l2 n (x :: vars) (l1 :: ltps) 
+                try-pull-term-in Γ (Lam _ _ pi' x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
+                  try-pull-term-in (ctxt-var-decl pi' x Γ) t l2 n (x :: vars) (l1 :: ltps) 
                 try-pull-term-in Γ t (LiftArrow l1 l2) (suc n) vars ltps =
                   let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
-                    try-pull-term-in (ctxt-var-decl x Γ) (App t NotErased (mvar x)) l2 n (x :: vars) (l1 :: ltps) 
+                    try-pull-term-in (ctxt-var-decl posinfo-gen x Γ) (App t NotErased (mvar x)) l2 n (x :: vars) (l1 :: ltps) 
                 try-pull-term-in Γ t l n vars ltps = TpApp tp1 tp2
 
         try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
 
 
-hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl x Γ) (unfold-dampen ff u) tp)
+hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen ff u) tp)
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x (Tkk k) ff tp) = Abs pi b pi' x (Tkk k) tp
@@ -145,9 +145,9 @@ hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | nothing = tp''
 hnf{TYPE} Γ u (TpArrow tp1 tp2) = TpArrow (hnf Γ (unfold-dampen ff u) tp1) (hnf Γ (unfold-dampen ff u) tp2)
 hnf{TYPE} Γ u (TpEq t1 t2) = TpEq (erase-term t1) (erase-term t2)
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) = 
-  TpLambda pi pi' x (hnf-tk Γ (unfold-dampen ff u) atk) (hnf (ctxt-var-decl x Γ) (unfold-dampen ff u) tp)
+  TpLambda pi pi' x (hnf-tk Γ (unfold-dampen ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen ff u) tp)
 hnf{TYPE} Γ u (Lft pi pi' y t l) = 
- let t = hnf (ctxt-var-decl y Γ) u t in
+ let t = hnf (ctxt-var-decl pi' y Γ) u t in
    do-lift Γ (Lft pi pi' y t l) y l t
 
 hnf{KIND} Γ u (KndParens _ k _) = hnf Γ u k
@@ -193,7 +193,7 @@ hnf-term-type Γ tp = hnf Γ unfold-head tp
 conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && conv-term Γ t2 t2'
-conv-term-norm Γ (Lam _ l _ x oc t) (Lam _ l' _ x' oc' t') = conv-term (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) t t'
+conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
 conv-term-norm Γ (Beta _) (Beta _) = tt
@@ -202,16 +202,18 @@ conv-term-norm Γ _ _ = ff
 conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'
 conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type Γ t2 t2'
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
-conv-type-norm Γ (Abs _ b _ x atk tp) (Abs _ b' _ x' atk' tp') = 
-  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
+conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') = 
+  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Iota _ x m tp) (Iota _ x' m' tp') = conv-optClass Γ m m' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
+conv-type-norm Γ (Iota _ x m tp) (Iota _ x' m' tp') = 
+  conv-optClass Γ m m' && conv-type (ctxt-rename posinfo-gen x x' (ctxt-var-decl-if posinfo-gen x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
-conv-type-norm Γ (Lft _ _ x t l) (Lft _ _ x' t' l') = conv-liftingType Γ l l' && conv-term (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) t t'
-conv-type-norm Γ (TpLambda _ _ x atk tp) (TpLambda _ _ x' atk' tp') =
-  conv-tk Γ atk atk' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
+conv-type-norm Γ (Lft _ pi x t l) (Lft _ pi' x' t' l') =
+  conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
+conv-type-norm Γ (TpLambda _ pi x atk tp) (TpLambda _ pi' x' atk' tp') =
+  conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ _ _ = ff 
 
 {- even though hnf turns Pi-kinds where the variable is not free in the body into arrow kinds,
@@ -222,8 +224,8 @@ conv-kind-norm Γ (KndArrow k k₁) (KndArrow k' k'') = conv-kind Γ k k' && con
 conv-kind-norm Γ (KndArrow k k₁) (KndPi _ _ x (Tkk k') k'') = conv-kind Γ k k' && conv-kind Γ k₁ k''
 conv-kind-norm Γ (KndArrow k k₁) _ = ff
 conv-kind-norm Γ (KndPi _ _ x (Tkk k₁) k) (KndArrow k' k'') = conv-kind Γ k₁ k' && conv-kind Γ k k''
-conv-kind-norm Γ (KndPi _ _ x atk k) (KndPi _ _ x' atk' k'') = 
-    conv-tk Γ atk atk' && conv-kind (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) k k''
+conv-kind-norm Γ (KndPi _ pi x atk k) (KndPi _ pi' x' atk' k'') = 
+    conv-tk Γ atk atk' && conv-kind (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) k k''
 conv-kind-norm Γ (KndPi _ _ x (Tkt t) k) (KndTpArrow t' k'') = conv-type Γ t t' && conv-kind Γ k k''
 conv-kind-norm Γ (KndPi _ _ x (Tkt t) k) _ = ff
 conv-kind-norm Γ (KndPi _ _ x (Tkk k') k) _ = ff
