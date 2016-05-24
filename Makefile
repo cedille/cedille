@@ -1,8 +1,9 @@
 IAL=~/ial
 
-FILES = main.agda to-string.agda cedille.agda cedille-types.agda constants.agda cedille-main.agda \
+FILES = to-string.agda cedille.agda cedille-types.agda constants.agda cedille-main.agda \
 	spans.agda conversion.agda syntax-util.agda \
-	rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda ctxt.agda
+	rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda ctxt.agda \
+        main.agda toplevel-state.agda process-cmd.agda general-util.agda
 
 SRC = $(FILES:%=src/%)
 OBJ = $(SRC:%.agda=%.agdai)

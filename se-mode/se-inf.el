@@ -13,13 +13,18 @@ started with `start-process'."))
  (defvar se-inf-queue nil
    "Transaction queue for `se-inf-process'."))
 
-(defvar se-inf-response-hook
-  (list #'se-inf-process-spans
-	#'se-inf-process-error
-	#'se-inf-process-error-span)
+(defvar se-inf-response-hook nil
   "Functions to be evaluated after response of `se-inf-ask',
 response given as only argument.  If `se-inf-response-is-json' is
 non-nil the response is parsed as JSON first.")
+
+(add-hook 'se-inf-response-hook 'se-inf-process-spans)
+(add-hook 'se-inf-response-hook 'se-inf-process-error t)
+(add-hook 'se-inf-response-hook 'se-inf-process-error-span t)
+
+(defvar se-inf-create-spans-hook nil
+  "Hooks to run when the spans have been set, but before
+creating the parse tree from them.")
 
 (make-variable-buffer-local
  (defvar se-inf-response-finished nil
@@ -120,13 +125,14 @@ buffer's file unless FILE is non-nil."
   (cdr (assoc 'spans json)))
 
 (defun se-inf-process-spans (json)
-  "Creates parse tree from spans found in JSON. Sets the variable
-`se-mode-parse-tree'."
+  "Creates parse tree from spans found in JSON. Sets the variables
+`se-mode-parse-tree' and `se-mode-spans'."
   (when (se-inf-get-spans json)
+    (setq se-mode-spans 
+          (sort (se-create-spans (se-inf-get-spans json)) 'se-term-before-p))
+    (run-hooks 'se-inf-init-spans-hook)
     (setq se-mode-parse-tree
-	  (se-create-parse-tree
-	   (se-create-spans
-	    (se-inf-get-spans json))))))
+	  (se-create-parse-tree se-mode-spans))))
 
 (defun se-inf-get-error (json)
   "Returns possible error from default formatted JSON."

@@ -25,6 +25,11 @@ variable."))
 methods.  Should normally only be accessed from the
 `se-mode-parse-tree' function."))
 
+(make-variable-buffer-local
+ (defvar se-mode-spans nil
+   "The spans read in from the external tool, before they
+are converted into se-mode-parse-tree."))
+
 (defvar se-mode-inspect-hook nil
   "Evaluates hooks when `se-mode-inspect' is called.")
 
@@ -53,6 +58,94 @@ is currently before that character.")
 (define-error 'se-mode-nil-parse-tree
   "Parse tree not set")
 
+(defun se-mode-pretty-json (json)
+  "Prints a table in a more human readable form. Does not handle
+recursion or anything other than key-value pairs."
+  (when json
+    (let (max fstr)
+      (loop for (key . value) in json
+            unless (or (eq key 'start) (eq key 'end))
+	    maximizing (length (format "%s" key)) into maxlen
+	    finally (setq max maxlen))
+      (setq fstr (format "%%%ds:\t%%s\n" max))
+      (loop for (key . value) in json
+            unless (or (eq key 'start) (eq key 'end))
+	    collecting (format fstr key value) into lines
+	    finally (return (apply #'concat lines))))))
+
+(defun se-mode-left-spine(node)
+  "Find the path down the left spine of the node."
+  (let ((kids (se-node-children node)))
+    (cons node
+     (when kids
+       (se-mode-left-spine (first kids))))))
+
+(defun se-mode-update-selected(path)
+  "Update the se-mode-selected and se-mode-not-selected variables,
+from the given path."
+  (let ((path (nreverse path)))
+    (setq se-mode-not-selected path)
+    ; the call to cdr is to drop the node "car path" from the list, since it is already included in se-mode-not-selected
+    (setq se-mode-selected (when path (cdr (se-mode-left-spine (car path)))))))
+
+(defun se-mode-set-spans ()
+  "Used by `se-mode' methods to set `se-mode-selected' and
+`se-mode-not-selected'."
+  (unless mark-active
+    (se-mode-clear-selected))
+  (when (and (null se-mode-selected)
+	     (null se-mode-not-selected))
+    (se-mode-update-selected (se-find-point-path (point) (se-mode-parse-tree)))))
+
+(defun se-mode-select (term)
+  "Updates selection path and selects region."
+  (when term
+    (se-mode-update-selected (se-find-span-path term (se-mode-parse-tree)))
+    (se-mode-expand-selected)
+    t))
+
+(defun se-mode-shrink-selected ()
+  "Shrink the selected region.  If a smaller region was previous
+selected, select it again."
+  (interactive)
+  (se-mode-set-spans)
+  (when se-mode-selected
+    (push (pop se-mode-selected) se-mode-not-selected))
+  (if se-mode-selected
+      (se-mode-mark-term (se-mode-selected))
+    (message "No child span found")))
+
+(defun se-mode-select-last-helper (prev)
+  "Helper function for selecting the last sibling span from a node 
+of the tree."
+  (let ((next (se-mode-next)))
+    (if (null next) prev
+      (se-mode-select next)
+      (se-mode-select-last-helper next))))
+  
+(defun se-mode-select-last()
+  "Selects the last sibling of the parent of the current node."
+  (interactive)
+  (se-mode-select-last-helper (se-mode-selected)))
+
+(defun se-mode-select-first-helper (next)
+  "Helper function for selecting the first sibling span from a node 
+of the tree."
+  (let ((prev (se-mode-previous)))
+    (if (null prev) next
+      (se-mode-select prev)
+      (se-mode-select-first-helper prev))))
+  
+(defun se-mode-select-first()
+  "Selects the first sibling of the parent of the current node."
+  (interactive)
+  (se-mode-select-first-helper (se-mode-selected)))
+
+(make-variable-buffer-local
+ (defvar se-mode-spans nil
+   "The spans obtained from the backend tool for `se-mode'
+methods."))
+
 (defun se-mode-parse-tree ()
   "Returns the current parse tree if non-nil.  Otherwise, raises
 an error."
@@ -70,17 +163,6 @@ an error."
   (setq se-mode-selected nil
 	se-mode-not-selected nil
 	mark-active nil))
-
-(defun se-mode-set-spans ()
-  "Used by `se-mode' methods to set `se-mode-selected' and
-`se-mode-not-selected'."
-  (unless mark-active
-    (se-mode-clear-selected))
-  (when (and (null se-mode-selected)
-	     (null se-mode-not-selected))
-    (setq se-mode-not-selected
-	  (nreverse ;; non-destructive se methods should return new lists
-	   (se-find-point-path (point) (se-mode-parse-tree))))))
 
 (defun se-mode-mark-region (start end)
   "Sets mark and point to cover region from START to END. Will be
@@ -124,17 +206,6 @@ selected, it is expanded to its parent region."
     (push (pop se-mode-not-selected) se-mode-selected)
     (se-mode-mark-term (se-mode-selected)))))
 
-(defun se-mode-shrink-selected ()
-  "Deselect current region.  If a smaller region was previous
-selected, select it again."
-  (interactive)
-  (se-mode-set-spans)
-  (when se-mode-selected
-    (push (pop se-mode-selected) se-mode-not-selected))
-  (if se-mode-selected
-      (se-mode-mark-term (se-mode-selected))
-    (se-mode-clear-selected)))
-
 ;; This macro may be less readable than copied code, but it contains
 ;; the reused code of `se-mode-previous' and `se-mode-next'.  Perhaps
 ;; remove the macro in the future or think of a good abstraction.
@@ -156,16 +227,6 @@ selected, select it again."
   (defun se-mode-next ()
     "Return the node after the currently selected one."
     (find next)))
-
-(defun se-mode-select (term)
-  "Updates selection path and selects region."
-  (se-mode-set-spans)
-  (when term
-    (let ((path (se-find-span-path term (se-mode-parse-tree))))
-      (setq se-mode-selected nil
-	    se-mode-not-selected (reverse path)))
-    (se-mode-expand-selected)
-    t))
 
 (defun se-mode-select-previous ()
   "Selects previous node in parse tree."

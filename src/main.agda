@@ -15,281 +15,177 @@ open import classify
 open import ctxt
 open import constants
 open import conversion
+open import general-util
+open import process-cmd 
 open import rec
 open import spans
 open import syntax-util
 open import to-string
-
--- keep track of our includes
-data include-state : Set where
-  mk-include-state : trie start → stringset {- processed -} → stringset {- unchanged -} → include-state
-
-new-include-state : trie start → stringset → include-state
-new-include-state asts unchanged = mk-include-state asts empty-stringset unchanged
-
-data toplevel-state : Set where
-  mk-toplevel-state : include-state → ctxt → spans → toplevel-state
-
-new-toplevel-state : (current-file : string) → trie start → stringset → toplevel-state
-new-toplevel-state file-name asts unchanged = mk-toplevel-state (new-include-state asts unchanged) (new-ctxt file-name) empty-spans
-
-new-toplevel-global-error : (current-file : string) → string → toplevel-state
-new-toplevel-global-error file-name m = 
-  mk-toplevel-state (new-include-state empty-trie empty-stringset) (new-ctxt file-name) (global-error m nothing)
-
-toplevel-add-span : span → toplevel-state → toplevel-state
-toplevel-add-span s (mk-toplevel-state is Γ ss) =
-  mk-toplevel-state is Γ (add-span s ss)
+open import toplevel-state
 
 dot-cedille-directory : string → string 
 dot-cedille-directory dir = combineFileNames dir ".cedille"
 
-cede-filename : string → string → string
-cede-filename dir base = combineFileNames (dot-cedille-directory dir) (base ^ ".cede")
+cede-filename : (ced-path : string) → string
+cede-filename ced-path = 
+  let dir = takeDirectory ced-path in
+  let unit-name = base-filename (takeFileName ced-path) in
+    combineFileNames (dot-cedille-directory dir) (unit-name ^ ".cede")
 
-write-cede-file : string → string → string → IO ⊤
-write-cede-file dir base contents = 
-  createDirectoryIfMissing ff (dot-cedille-directory dir) >>
-  writeFile (cede-filename dir base) contents   
+-- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
+write-cede-file : (ced-path : string) → (err : 𝔹) → string → IO ⊤
+write-cede-file ced-path err contents = 
+--  putStr ("write-cede-file " ^ ced-path ^ " : " ^ contents ^ "\n") >>
+  let dir = takeDirectory ced-path in
+    createDirectoryIfMissing ff (dot-cedille-directory dir) >>
+    writeFile (cede-filename ced-path) ((if err then "e" else "") ^ contents) 
 
+-- we assume the cede file is known to exist at this point
+read-cede-file : (ced-path : string) → IO (𝔹 × string)
+read-cede-file ced-path = 
+  get-file-contents (cede-filename ced-path) >>= λ c → finish c
+  where finish : maybe string → IO (𝔹 × string)
+        finish nothing = return (tt , global-error-string ("Could not read the file " ^ cede-filename ced-path ^ "."))
+        finish (just ss) with string-to-𝕃char ss
+        finish (just ss)  | ('e' :: ss') = forceFileRead ss >> return (tt , 𝕃char-to-string ss')
+        finish (just ss) | _ = forceFileRead ss >> return (ff , ss)
+  
 add-cedille-extension : string → string
 add-cedille-extension x = x ^ "." ^ cedille-extension 
 
-postulate 
-  test : IO 𝔹
-
-{-# COMPILED test (return True) #-}
-
-ced-file-up-to-date : (dir : string) → (file : string) → IO 𝔹
-ced-file-up-to-date dir file =
-  let base = base-filename file in
-  let e = cede-filename dir base in
-  let f = combineFileNames dir file in
+cedille-get-path : (dirs : 𝕃 string) → (unit-name : string) → IO string
+cedille-get-path [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
+cedille-get-path (dir :: dirs) unit-name =
+  let e = combineFileNames dir (add-cedille-extension unit-name) in
     doesFileExist e >>= λ b → 
     if b then
-      fileIsOlder f e
+      return e
+    else
+      cedille-get-path dirs unit-name
+
+ced-file-up-to-date : (ced-path : string) → IO 𝔹
+ced-file-up-to-date ced-path =
+  let e = cede-filename ced-path in
+    doesFileExist e >>= λ b → 
+    if b then
+      fileIsOlder ced-path e
     else
       return ff
 
-{- these are mutually recursive due to Import commands.
-   dir is the directory to search for includes (we should 
-   add a more sophisticated mechanism later) -}
-
-{-# NO_TERMINATION_CHECK #-}
-process-cmd : (dir : string) → cmd → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
-process-cmds : (dir : string) → cmds → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
-process-start : (dir : string) → start → (no-need-to-check : 𝔹) → toplevel-state → IO toplevel-state
-processFile : (dir : string) → (file : string) → toplevel-state → IO (𝔹 × toplevel-state) -- the boolean is for if there was an error
-
-process-cmd dir (DefTerm pi x (Type tp) t n pi') ff {- should check -} (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-type Γ tp (just star) ≫span 
-             check-term Γ t (just tp) ≫span 
-             let t = erase-term t in
-               spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
-               spanMr (hnf Γ unfold-head t)) ss in
-    return (mk-toplevel-state is (ctxt-term-def pi x (fst ss') tp Γ) (snd ss'))
-
-process-cmd dir (DefTerm pi x (Type tp) t n pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-    return (mk-toplevel-state is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ) ss)
-
-process-cmd dir (DefTerm pi x NoCheckType t n pi') _ (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-term Γ t nothing ≫=span λ mtp → 
-             let t = erase-term t in
-               spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-term-if Γ n t)) ≫span
-               spanMr (hnf Γ unfold-head t , mtp)) ss in
-    return (mk-toplevel-state is (h (fst ss')) (snd ss'))
-  where h : term × (maybe type) → ctxt
-        h (t , nothing) = ctxt-term-udef pi x t Γ
-        h (t , just tp) = ctxt-term-def pi x t tp Γ
-
-process-cmd dir (DefType pi x (Kind k) tp n pi') ff {- check -} (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-kind Γ k ≫span 
-             check-type Γ tp (just k) ≫span 
-               spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
-               spanMr (hnf Γ unfold-head tp)) ss in
-    return (mk-toplevel-state is (ctxt-type-def pi x (fst ss') k Γ) (snd ss'))
-process-cmd dir (DefType pi x (Kind k) tp n pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ) ss)
-
-process-cmd dir (CheckTerm t (Type tp) n pi) ff {- check -} (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-type Γ tp (just star) ≫span 
-             check-term Γ t (just tp) ≫span 
-             let t = erase-term t in
-               spanM-add (CheckTerm-span tt (just tp) t pi (normalized-term-if Γ n t)) ≫span 
-               spanMok) ss in
-    return (mk-toplevel-state is Γ (snd ss'))
-process-cmd dir (CheckTerm t _ n pi) tt {- skip checking -} s = return s
-
-process-cmd dir (CheckTerm t NoCheckType n pi) ff {- check -} (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-term Γ t nothing ≫=span λ m → 
-               spanM-add (CheckTerm-span ff m t pi (normalized-term-if Γ n t)) ≫span 
-               spanMok) ss in
-    return (mk-toplevel-state is Γ (snd ss'))
-
-process-cmd dir (CheckType tp m n pi) _ (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is Γ ss)
-
-process-cmd dir (DefKind pi x _ k pi') ff {- check -} (mk-toplevel-state is Γ ss) = 
-  let ss' = (check-kind Γ k ≫span
-             spanM-add (DefKind-span pi x k pi') ≫span
-             spanMok) ss in
-  return (mk-toplevel-state is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) (snd ss'))
-process-cmd dir (DefKind pi x _ k pi') tt {- skip checking -} (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) ss)
-
-process-cmd dir (CheckKind k _ pi) _ (mk-toplevel-state is Γ ss) = 
-  return (mk-toplevel-state is Γ ss)
-process-cmd dir (Import pi x pi') _ s with toplevel-add-span (Import-span pi x pi' []) s
-process-cmd dir (Import pi x pi') _ _ | s with s
-process-cmd dir (Import pi x pi') _ _ | s | mk-toplevel-state (mk-include-state asts processed unchanged) Γ _ = 
-  let file = add-cedille-extension x in
-    if stringset-contains processed (combineFileNames dir file) then return s
-    else 
-      (processFile dir file s >>= cont)
-  where cont : 𝔹 × toplevel-state → IO toplevel-state
-        cont (b , s) with s 
-        cont (b , s) | mk-toplevel-state i Γ' _ = 
-          if b then
-            return (toplevel-add-span (Import-span pi x pi' [ error-data "There is an error in the imported file" ]) s)
-          else return s
-       
-process-cmd dir (Rec pi pi'' name params inds ctors body us pi') no-need-to-check (mk-toplevel-state i Γ ss) = 
-    let p = process-rec-cmd no-need-to-check Γ pi pi'' name params inds ctors body us pi' ss in
-    return (mk-toplevel-state i (fst p) (snd p))
-
-process-cmds dir (CmdsNext c cs) no-need-to-check s = process-cmd dir c no-need-to-check s >>= cont
-  where cont : toplevel-state → IO toplevel-state
-        cont s with s 
-        cont s | (mk-toplevel-state i c ss) = 
-          if global-error-p ss then return s else process-cmds dir cs no-need-to-check s
-process-cmds dir (CmdsStart c) no-need-to-check s = process-cmd dir c no-need-to-check s
-
-process-start dir (File pi cs pi') no-need-to-check (mk-toplevel-state is Γ ss) = 
-  process-cmds dir cs no-need-to-check (mk-toplevel-state is Γ ss) >>=
-    λ s' → return (toplevel-add-span (File-span pi (posinfo-plus pi' 1) (ctxt-get-current-file Γ)) s')
-
--- process the given input file, after adding it to the include state
-processFile dir file s with s | combineFileNames dir file
-processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
-                       | input-filename with trie-lookup asts input-filename
-processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
-                       | input-filename | nothing = 
-    return (tt , mk-toplevel-state (mk-include-state asts processed unchanged) Γ
-                   (global-error ("Internal error looking up ast for file " ^ input-filename ^ ".") nothing))
-processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
-                       | input-filename | just p with stringset-contains unchanged input-filename
-processFile dir file s | (mk-toplevel-state (mk-include-state asts processed unchanged) Γ ss) 
-                       | input-filename | just p | skip-checking =
-   let Γ' = ctxt-set-current-file Γ input-filename in 
---    putStr ("(current file in ctxt: " ^ (ctxt-get-current-file Γ') ^ "\n") >> 
-    process-start dir p skip-checking
-      (mk-toplevel-state (mk-include-state asts (stringset-insert processed input-filename) unchanged) 
-          Γ' empty-spans)
-   >>= finish
-   where finish : toplevel-state → IO (𝔹 × toplevel-state)
-         finish (mk-toplevel-state i Γ' ss') = 
-          let Γ'' = ctxt-set-current-file Γ' (ctxt-get-current-file Γ) in 
---           putStr ("current file in ctxt: " ^ (ctxt-get-current-file Γ'') ^ ")\n") >>
-           let base = base-filename file in
-             (if skip-checking then (return triv) else (write-cede-file dir base (spans-to-string ss'))) >>
-                -- do not return the newly added spans, unless we have a global error
-             return (spans-have-error ss' , mk-toplevel-state i Γ'' (if global-error-p ss' then ss' else ss))
-
--- compute the set of unchanged dependencies (the second stringset in the include-state)
-{-# NO_TERMINATION_CHECK #-}
-compute-unchanged-imports : (dir : string) → cmds → include-state → IO ((𝔹 {- all imports unchanged -} × include-state) ⊎ string)
-compute-unchanged : (dir : string) → (file : string) → include-state → IO (include-state ⊎ string)
-
-compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is with add-cedille-extension x 
-compute-unchanged-imports dir (CmdsNext (Import _ x _) cs) is | file = 
-  compute-unchanged dir file is >>= cont
-  where cont : include-state ⊎ string → IO ((𝔹 × include-state) ⊎ string)
-        cont (inj₁ is') = compute-unchanged-imports dir cs is' >>= finish
-             where finish : ((𝔹 × include-state) ⊎ string) → IO ((𝔹 × include-state) ⊎ string)
-                   finish (inj₁ (b , (mk-include-state asts seen unchanged))) = 
-                     return (inj₁ (b && (stringset-contains unchanged (combineFileNames dir file)) ,
-                                   mk-include-state asts seen unchanged))
-                   finish (inj₂ m) = return (inj₂ m)
-        cont (inj₂ m) = return (inj₂ m)
-compute-unchanged-imports dir (CmdsNext _ cs) is = compute-unchanged-imports dir cs is
-compute-unchanged-imports dir (CmdsStart (Import _ x _)) is with add-cedille-extension x 
-compute-unchanged-imports dir (CmdsStart (Import _ x _)) is | file = 
-  compute-unchanged dir file is >>= finish
-  where finish : include-state ⊎ string → IO ((𝔹 × include-state) ⊎ string)
-        finish (inj₁ is') with is' 
-        finish (inj₁ is') | (mk-include-state asts seen unchanged) = 
-          return (inj₁ (stringset-contains unchanged (combineFileNames dir file) , is'))
-        finish (inj₂ m) = return (inj₂ m)
-compute-unchanged-imports dir (CmdsStart _) is = return (inj₁ (tt , is))
-
-compute-unchanged dir file (mk-include-state asts seen unchanged) with combineFileNames dir file 
-compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename with stringset-insert seen input-filename
-compute-unchanged dir file (mk-include-state asts seen unchanged) | input-filename | seen' = 
-  if stringset-contains seen input-filename then
-     return (inj₁ (mk-include-state asts seen unchanged))
-  else
-    (doesFileExist input-filename >>= λ b → 
-      if b then
-        readFiniteFile input-filename >>= processText
-      else return (inj₂ ("Could not open the file " ^ input-filename ^ " for reading.")))
-  where processText : string → IO (include-state ⊎ string)
+{- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
+reparse : toplevel-state → (unit-name : string) → (filename : string) → IO toplevel-state
+reparse s unit-name filename = 
+--   putStr ("reparsing " ^ unit-name ^ " " ^ filename ^ "\n") >>
+   doesFileExist filename >>= λ b → 
+     (if b then
+         (readFiniteFile filename >>= (λ f → return (processText f)))
+      else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
+        return (set-include-elt s unit-name ie)
+  where processText : string → include-elt
         processText x with runRtn (string-to-𝕃char x)
-        processText x | inj₁ cs = return (inj₂ ("Parse error in file " ^ input-filename ^ ". "
-                                              ^ "Characters left before failure : " ^ (𝕃char-to-string cs)))
+        processText x | inj₁ cs =
+           error-include-elt ("Parse error in file " ^ filename ^ ". "
+                              ^ "Characters left before failure : " ^ (𝕃char-to-string cs))
         processText x | inj₂ r with rewriteRun r
-        processText x | inj₂ r | ParseTree (parsed-start s) :: [] with s 
-        processText x | inj₂ r | ParseTree (parsed-start s) :: [] | File _ cs _ = 
-          compute-unchanged-imports dir cs (mk-include-state (trie-insert asts input-filename s) seen' unchanged) >>= finish
-          where finish : (𝔹 × include-state) ⊎ string → IO (include-state ⊎ string)
-                finish (inj₁ (imports-are-unchanged , mk-include-state asts seen' unchanged)) = 
-                  ced-file-up-to-date dir file >>= λ up-to-date → 
-                    let do-add = imports-are-unchanged && up-to-date in 
-                     return (inj₁ (mk-include-state asts seen' 
-                                    (if do-add 
-                                     then (stringset-insert unchanged input-filename)
-                                     else unchanged)))
-                finish (inj₂ m) = return (inj₂ m) 
+        processText x | inj₂ r | ParseTree (parsed-start s) :: [] = 
+          new-include-elt filename s
+        processText x | inj₂ r | _ = error-include-elt ("Parse error in file " ^ filename ^ ".")
 
-        processText x | inj₂ r | _ = return (inj₂ ("Parse error in file " ^ input-filename ^ "."))
+add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
+add-spans-if-up-to-date up-to-date filename ie = 
+  if up-to-date then
+    (read-cede-file filename >>= finish)
+  else
+    return ie
+  where finish : 𝔹 × string → IO include-elt
+        finish (err , ss) = return (set-do-type-check-include-elt (set-spans-string-include-elt ie err ss) ff)
 
--- first compute the set of dependencies which are unchanged, and then process the file
-checkFile : (dir : string) → (file : string) → IO toplevel-state
-checkFile dir file = 
- compute-unchanged dir file (new-include-state empty-trie empty-stringset) >>= cont1
- where cont1 : include-state ⊎ string → IO toplevel-state
-       cont1 (inj₁ (mk-include-state asts _ unchanged)) = 
-         writeFile "dbg" ((trie-to-string "\n" (λ _ → "") asts) ^ "\n") >>
-         processFile dir file (new-toplevel-state (combineFileNames dir file) asts unchanged) >>= cont
-         where cont : 𝔹 × toplevel-state → IO toplevel-state
-               cont (_ , s') = return s'
-       cont1 (inj₂ m) = return (new-toplevel-global-error (combineFileNames dir file) m)
+{- make sure that the current ast and dependencies are stored in the
+   toplevel-state, updating the state as needed. -}
+ensure-ast-deps : toplevel-state → (unit-name : string) → (filename : string) → IO toplevel-state
+ensure-ast-deps s unit-name filename with get-include-elt-if s unit-name
+ensure-ast-deps s unit-name filename | nothing = 
+  reparse s unit-name filename >>= λ s → 
+  ced-file-up-to-date filename >>= λ up-to-date → 
+  add-spans-if-up-to-date up-to-date filename (get-include-elt s unit-name) >>= λ ie →
+  return (set-include-elt s unit-name ie)
+ensure-ast-deps s unit-name filename | just ie =
+  ced-file-up-to-date filename >>= λ up-to-date → 
+    if up-to-date then 
+      (add-spans-if-up-to-date up-to-date filename (get-include-elt s unit-name) >>= λ ie →
+       return (set-include-elt s unit-name ie))
+    else reparse s unit-name filename
+     
+{-# NO_TERMINATION_CHECK #-}
+update-astsh : stringset {- seen already -} → toplevel-state → (unit-name : string) → 
+               IO (stringset {- seen already -} × toplevel-state)
+update-astsh seen s unit-name = 
+  cedille-get-path (toplevel-state.include-path s) unit-name >>= λ input-filename → 
+--  putStr ("update-astsh [input-filename = " ^ input-filename ^ "]\n") >>
+  if stringset-contains seen input-filename then return (seen , s)
+  else (ensure-ast-deps s unit-name input-filename >>= cont (stringset-insert seen input-filename))
+  where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
+        cont seen s with get-include-elt s unit-name
+        cont seen s | ie with include-elt.deps ie 
+        cont seen s | ie | ds = 
+          proc seen s ds 
+          where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
+                proc seen s [] = 
+                  if (list-any (get-do-type-check s) ds) 
+                  then return (seen , set-include-elt s unit-name (set-do-type-check-include-elt ie tt)) 
+                  else return (seen , s)
+                proc seen s (d :: ds) = update-astsh seen s d >>= λ p → 
+                                        proc (fst p) (snd p) ds
+
+update-asts : toplevel-state → (unit-name : string) → IO toplevel-state
+update-asts s unit-name = update-astsh empty-stringset s unit-name >>= λ p → 
+  return (snd p)
+
+checkFile : toplevel-state → (unit-name : string) → (should-print-spans : 𝔹) → IO toplevel-state
+checkFile s unit-name should-print-spans = 
+--  putStr ("checkFile " ^ unit-name ^ "\n") >>
+  update-asts s unit-name >>= λ s → 
+  finish (process-unit s unit-name)
+ 
+  where reply : toplevel-state → IO ⊤
+        reply s with get-include-elt-if s unit-name
+        reply s | nothing = 
+           putStr (global-error-string 
+                     ("Internal error looking up information for unit " ^ unit-name ^ "."))
+        reply s | just ie =
+           if should-print-spans then putStr (include-elt.ss ie) 
+           else return triv
+        finish : toplevel-state → IO toplevel-state
+        finish s with s
+        finish s | mk-toplevel-state ip mod is Γ = 
+          writeo mod >>
+          reply s >>
+          return (mk-toplevel-state ip [] is Γ)
+          where writeo : 𝕃 string → IO ⊤
+                writeo [] = return triv
+                writeo (unit :: us) =
+                 let ie = get-include-elt s unit in
+--                   putStr ("writeo " ^ unit ^ " with path " ^ (include-elt.path ie) ^ ".\n") >>
+                   write-cede-file (include-elt.path ie) (include-elt.err ie) (include-elt.ss ie) >>
+                   writeo us
 
 {-# NO_TERMINATION_CHECK #-}
-processArgs : 𝕃 string → IO ⊤ 
-processArgs (input-filename :: []) = 
-  checkFile (takeDirectory input-filename) (takeFileName input-filename) >>= finish
-  where finish : toplevel-state → IO ⊤
-        finish (mk-toplevel-state i Γ ss) = 
-          if global-error-p ss then putStr (spans-to-string ss) else return triv
-processArgs [] =
-  getLine >>= cont
+readFilenamesForProcessing : toplevel-state → IO ⊤
+readFilenamesForProcessing s =
+  getLine >>= (λ input-filename → 
+     checkFile (set-include-path s [ takeDirectory input-filename ])
+       (base-filename (takeFileName input-filename)) tt {- should-print-spans -} >>= λ s → 
+     readFilenamesForProcessing s)
 
-  where cont : string → IO ⊤
-        cont input-filename with takeDirectory input-filename | takeFileName input-filename
-        cont input-filename | dir | file with base-filename file
-        cont input-filename | dir | file | base = 
-          checkFile dir file >>= finish
-          where finish : toplevel-state → IO ⊤
-                finish (mk-toplevel-state i Γ ss) = 
-                   (if global-error-p ss then putStr (spans-to-string ss)
-                   else
-                     let e = cede-filename dir base in
-                        doesFileExist e >>= λ b → 
-                        if b then
-                         ((readFiniteFile e) >>= λ s → putStr s)
-                        else
-                          putStr (global-error-string ("Could not open " ^ e ^ " for reading.")))
-                   >> processArgs [] 
+processArgs : 𝕃 string → IO ⊤ 
+processArgs (input-filename :: []) with (base-filename (takeFileName input-filename)) 
+processArgs (input-filename :: []) | unit-name = 
+  checkFile (new-toplevel-state [ takeDirectory input-filename ] ) unit-name ff {- should-print-spans -} >>= finish
+  where finish : toplevel-state → IO ⊤
+        finish s = 
+          let ie = get-include-elt s unit-name in
+          if include-elt.err ie then putStr (include-elt.ss ie) else return triv
+processArgs [] = readFilenamesForProcessing (new-toplevel-state [])
 processArgs xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                        ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
 

@@ -384,7 +384,11 @@ num-to-ℕ n with string-to-ℕ n
 num-to-ℕ _ | just n = n
 num-to-ℕ _ | _ = 0
 
-take : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
-take 0 l = []
-take (suc n) (x :: l) = x :: (take n l)
-take (suc n) [] = []
+compute-deps : start → 𝕃 string
+compute-deps (File _ cs _) = compute-deps-cmds cs
+  where singleton-if-include : cmd → 𝕃 string
+        singleton-if-include (Import _ x _) = [ x ]
+        singleton-if-include _ = []
+        compute-deps-cmds : cmds → 𝕃 string
+        compute-deps-cmds (CmdsNext c cs) = singleton-if-include c ++ compute-deps-cmds cs
+        compute-deps-cmds (CmdsStart c) = singleton-if-include c

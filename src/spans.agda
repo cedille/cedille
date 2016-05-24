@@ -40,10 +40,6 @@ data spans : Set where
   regular-spans : 𝕃 span → spans
   global-error : string {- error message -} → maybe span → spans
 
-global-error-p : spans → 𝔹
-global-error-p (global-error _ _) = tt
-global-error-p _ = ff
-
 is-error-span : span → 𝔹
 is-error-span (mk-span _ _ _ tvs) = list-any (λ tv → (fst tv) =string "error") tvs
 
@@ -67,6 +63,9 @@ spans-to-string (global-error e o) = global-error-string (e ^ helper o)
 add-span : span → spans → spans
 add-span s (regular-spans ss) = regular-spans (s :: ss)
 add-span s (global-error e e') = global-error e e'
+
+put-spans : spans → IO ⊤
+put-spans ss = putStr (spans-to-string ss)
 
 --------------------------------------------------
 -- spanM, a state monad for spans

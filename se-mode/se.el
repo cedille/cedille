@@ -15,7 +15,7 @@
 
 (defun se-create-spans (list)
   "Creates a list of spans from a list of lists.  Each sub list
-with elements corresponding to `so-new-span' arguments."
+with elements corresponding to `se-new-span' arguments."
   (cl-labels ((new-span (lst) (apply #'se-new-span lst)))
     (mapcar #'new-span list)))
 
@@ -130,13 +130,12 @@ when CHILD and PARENT have the same bounds."
        (se-term-end parent))))
 
 (defun se-create-parse-tree (lst)
-  "Forms a tree from span information.  This will change the
-state of spans to be sorted.  Returns nil if data is ill
+  "Forms a tree from a sorted list of spans.  Returns nil if data is ill
 formatted."
   ;; `copy-list' could be used; however, it isn't expected a user will
   ;; reuse a span list (or care if it becomes sorted).
   (let ((len (length lst))
-	(spans (sort lst #'se-term-before-p))
+	(spans (copy-list lst))
 	(parents nil))
     (se--sorted-spans-to-tree)))
 

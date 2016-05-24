@@ -8,7 +8,7 @@ size-lam = λ _ : Nat . λ f : trm . λ N : Nat → Nat . S (N one) .
 size-var = λ _ : Nat . one .
 
 size ⇐ trm → Nat = 
-  λ t . t · (λ _ : trm . Nat) size-app size-lam size-var.
+  λ t . θ t size-app size-lam size-var.
 
 test ⇐ trm = lam Z (var Z) !
 
@@ -21,7 +21,7 @@ depth-lam = λ _ : Nat . λ f : trm . λ N : Nat → Nat . S (N Z) .
 depth-var = λ _ : Nat . Z .
 
 depth ⇐ trm → Nat = 
-  λ t . t · (λ _ : trm . Nat) depth-app depth-lam depth-var.
+  λ t . θ t depth-app depth-lam depth-var.
 
 toCNat (depth test) !
 
@@ -31,7 +31,7 @@ depth-Lte-lem ⇐ Π x : Nat . Π y : Nat . Π x' : Nat . Π y' : Nat.
 depth-extend ⇐ Π f : trm . Π i : Nat . 
                  f depth-app depth-lam (extend var depth-var i Z) ≃ f depth-app depth-lam depth-var = 
    λ f . λ i .
-      trm-var-ext · (λ _ : trm . Nat) -depth-app -depth-lam 
+      trm-ext · (λ _ : trm . Nat) -depth-app -depth-lam 
         (Λ i . Λ f . Λ q . Λ q' . λ u . ε ρ (u -Z) - β)
         f -(extend · trm · (λ _ : trm . Nat) var depth-var i Z) -depth-var 
            (λ i' . ε (θ+ (eqnat i i') (λ v . ρ v - β) (λ v . ρ v - β))) .
@@ -39,7 +39,7 @@ depth-extend ⇐ Π f : trm . Π i : Nat .
 size-extend ⇐ Π f : trm . Π i : Nat . 
                  f size-app size-lam (extend var size-var i one) ≃ f size-app size-lam size-var = 
    λ f . λ i .
-      trm-var-ext · (λ _ : trm . Nat) -size-app -size-lam 
+      trm-ext · (λ _ : trm . Nat) -size-app -size-lam 
         (Λ i . Λ f . Λ q . Λ q' . λ u . ε ρ (u -one) - β)
         f -(extend · trm · (λ _ : trm . Nat) var size-var i one) -size-var 
            (λ i' . ε (θ+ (eqnat i i') (λ v . ρ v - β) (λ v . ρ v - β))) .

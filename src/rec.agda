@@ -8,6 +8,7 @@ open import classify
 open import constants
 open import conversion
 open import ctxt
+open import general-util
 open import is-free
 open import spans
 open import subst
