@@ -1,0 +1,30 @@
+import acg-symm-mult-and-thms.
+import nat-thms-mult.
+
+mult-S-1 ⇐ Π x : Nat . Π y : Nat . mult x ( S y ) ≃ add x ( mult x y ) =
+  λ x . λ y . θ x
+    ( λ px . λ hx .
+      ρ ( mult-S-0 px ( S y ) ) -
+      ρ hx -
+      ρ ( mult-S-0 px y ) -
+      ρ ( add-S-comm-0 y ( add px ( mult px y ) ) ) -
+      ρ ( add-S-comm-0 px ( add y ( mult px y ) ) ) -
+      ρ ( add-assoc y px ( mult px y ) ) -
+      ρ ( add-assoc px y ( mult px y ) ) -
+      ρ ( add-comm y px ) -
+      β )
+    β .
+
+mult-mult'-eq ⇐ Π x : Nat . Π y : Nat . mult x y ≃ mult' x y =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ hy .
+        ρ ( mult-S-0 px ( S py ) ) -
+	ρ ( mult-S-1 px py ) -
+	ρ ( add-S-comm-0 py ( add px ( mult px py ) ) ) -
+	ρ ( add-assoc py px ( mult px py ) ) -
+	ρ ( add-comm py px ) -
+	ρ ( hx py ) -
+	β )
+      ( ρ ( mult-Z-0 ( S px ) ) - β ) )
+    ( λ y . β ) .
