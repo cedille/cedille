@@ -1,0 +1,39 @@
+import bool-thms.
+import eq.
+import nat.
+
+rec tp | base : Nat → tp , arrow : tp → tp → tp =
+  ∀ P : tp → ★ . (Π n : Nat. P (base n)) → (Π T1 : tp . Π T2 : tp . P T1 → P T2 → P (arrow T1 T2)) → P self
+with
+  base = λ n . Λ P . λ b . λ a . b n ,
+  arrow = λ T1 . λ T2 . Λ P . λ b . λ a . a T1 T2 (T1 · P b a) (T2 · P b a) .
+
+arrow-dom ⇐ tp → tp = λ T . θ T (λ n . base n) (λ T1 . λ T2 . λ r . λ r' . T1) .
+arrow-ran ⇐ tp → tp = λ T . θ T (λ n . base n) (λ T1 . λ T2 . λ r . λ r' . T2) .
+
+arrow-inj1 ⇐ Π T1 : tp . Π T2 : tp . Π T1' : tp . Π T2' : tp .
+             (arrow T1 T2 ≃ arrow T1' T2') → T1 ≃ T1' =
+  λ T1 . λ T2 . λ T1' . λ T2' . λ u . 
+    cong · tp · (λ T : tp . (arrow-dom T ≃ T1')) -(arrow T1' T2') -(arrow T1 T2) ς u β .
+
+arrow-inj2 ⇐ Π T1 : tp . Π T2 : tp . Π T1' : tp . Π T2' : tp .
+             (arrow T1 T2 ≃ arrow T1' T2') → T2 ≃ T2' =
+  λ T1 . λ T2 . λ T1' . λ T2' . λ u . 
+    cong · tp · (λ T : tp . (arrow-ran T ≃ T2')) -(arrow T1' T2') -(arrow T1 T2) ς u β .
+
+eq-tp-base ⇐ Nat → tp → Bool = λ n . λ T2 . θ T2 (λ m . eqnat n m) (λ T2a . λ T2b . λ i1 . λ i2 . ff) .
+
+eq-tp-arrow ⇐ tp → tp → (tp → Bool) → (tp → Bool) → tp → Bool =
+ λ T1a . λ T1b . λ r1 . λ r2 . λ T2 . θ T2 (λ n . ff) (λ T2a . λ T2b . λ i1 . λ i2 . and (r1 T2a) (r2 T2b)) .
+
+eq-tp ⇐ tp → tp → Bool = 
+  λ T1 . θ T1 eq-tp-base eq-tp-arrow .
+
+eq-tp-sound ⇐ Π T : tp . Π T' : tp . (eq-tp T T' ≃ tt) → T ≃ T' = 
+  λ T . θ T (λ n . λ T'. θ T' (λ n' . λ u . ρ (eqnat-eq n n' u) - β) 
+                              (λ Ta' . λ Tb' . λ r1 . λ r2 . λ u . δ u))
+            (λ Ta . λ Tb . λ ra . λ rb . λ T' . 
+               θ T' (λ n' . λ u . δ u) 
+                    (λ Ta' . λ Tb' . λ r1 . λ r2 . λ u . 
+                       ρ (ra Ta' (andE1 (eq-tp Ta Ta') (eq-tp Tb Tb') u)) - 
+                       ρ (rb Tb' (andE2 (eq-tp Ta Ta') (eq-tp Tb Tb') u)) - β)) .

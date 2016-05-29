@@ -1,1 +1,1 @@
-lam: untyped lambda calculus
+trm: untyped lambda calculus
