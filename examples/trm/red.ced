@@ -1,0 +1,43 @@
+import trm.
+import subst.
+
+𝒌red-clause ⇐ □ = (trm → trm → ★) → (trm → trm → ★) → ★ .
+
+red-beta-t ⇐ 𝒌red-clause =
+  λ P : trm → trm → ★. λ R : trm → trm → ★.
+    Π i : Nat . Π t1 : trm . Π t2 : trm . P (app (lam i t1) t2) (subst t2 i t1) .
+
+red-lam-t ⇐ 𝒌red-clause =
+  λ P : trm → trm → ★. λ R : trm → trm → ★.
+    Π i : Nat .Π f : trm . Π f' : trm .
+    R f f' → P f f' → P (lam i f) (lam i f') .
+
+red-app1-t ⇐ 𝒌red-clause =
+  λ P : trm → trm → ★. λ R : trm → trm → ★.
+    Π t1 : trm . Π t1' : trm . Π t2 : trm .
+    R t1 t1' → P t1 t1' → P (app t1 t2) (app t1' t2) .
+
+red-app2-t ⇐ 𝒌red-clause =
+  λ P : trm → trm → ★. λ R : trm → trm → ★.
+    Π t1 : trm . Π t2 : trm . Π t2' : trm .
+    R t2 t2' → P t2 t2' → P (app t1 t2) (app t1 t2') .
+
+rec red : (t1 : trm)(t2 : trm) | red-beta : Π i : Nat . Π t1 : trm . Π t2 : trm . red (app (lam i t1) t2) (subst t2 i t1) ,
+                                 red-lam : Π i : Nat .Π f : trm . Π f' : trm .
+                                           red f f' → red (lam i f) (lam i f') ,
+                                 red-app1 : Π t1 : trm . Π t1' : trm . Π t2 : trm .
+                                            red t1 t1' → red (app t1 t2) (app t1' t2) ,
+                                 red-app2 : Π t1 : trm . Π t2 : trm . Π t2' : trm .
+                                            red t2 t2' → red (app t1 t2) (app t1 t2') =
+    ∀ P : trm → trm → ★ .
+      red-beta-t · P · red → 
+      red-lam-t · P · red → 
+      red-app1-t · P · red → 
+      red-app2-t · P · red → 
+      P t1 t2
+with
+  red-beta = λ i . λ t1 . λ t2 . Λ P . λ b . λ l . λ a1 . λ a2 . b i t1 t2 ,
+  red-lam = λ i . λ f . λ f' . λ u . Λ P . λ b . λ l . λ a1 . λ a2 . l i f f' u (u · P b l a1 a2) , 
+  red-app1 = λ t1 . λ t1' . λ t2 . λ u . Λ P . λ b . λ l . λ a1 . λ a2 . a1 t1 t1' t2 u (u · P b l a1 a2) ,
+  red-app2 = λ t1 . λ t2 . λ t2' . λ u . Λ P . λ b . λ l . λ a1 . λ a2 . a2 t1 t2 t2' u (u · P b l a1 a2) .
+

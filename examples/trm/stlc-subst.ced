@@ -1,0 +1,25 @@
+import stlc.
+import subst.
+import stlc-examples.
+
+hastp-assumed ⇐ Π x : Nat . Π xT : tp . Π t : trm . Π T : tp .
+                hastp t T → Bool =
+  λ x . λ xT . λ t . λ T . λ u .
+    u · (λ t : trm . λ T : tp . Bool)
+        (λ _ . λ _ . λ _ . λ _ . or)
+        (λ _ . λ _ . λ _ . λ _ . λ r . r ff)
+        (λ x' . λ xT' . and (eqnat x x') (eq-tp xT xT')) .
+
+hastp-assumed one (arrow (arrow (base Z) (base Z)) (base Z)) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
+
+hastp-assumed one (arrow (base Z) (base Z)) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
+
+hastp-assumed Z (base Z) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
+
+hastp-subst ⇐ Π t1 : trm . Π x : Nat . Π t2 : trm .
+              Π T1 : tp . Π T2 : tp . Π d : hastp t2 T2 .
+              (hastp-assumed x T1 t2 T2 d ≃ tt) → 
+              hastp (subst t1 x t2) T2 = 
+  λ t1 . λ x . λ t2 . λ T1 . λ T2 . λ d . 
+    θ<t2 T2> d ● ● ● .
+  
