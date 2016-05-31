@@ -547,8 +547,8 @@ check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) = cont (wrap-vars vs 
         cont : maybe type → spanM ⊤
         cont nothing = check-term Γ t nothing ≫=span (λ m → 
                           spanM-add (Theta-span pi (AbstractVars vs) t ls 
-                                      (expected-type tp :: [ motive-label , "We could not compute a motive from the given term"
-                                                             ^ " because one of the abstracted vars is not in scope." ])))
+                                      (expected-type tp :: [ error-data ("We could not compute a motive from the given term"
+                                                                       ^ " because one of the abstracted vars is not in scope.") ])))
         cont (just motive) =
             spanM-add (Theta-span pi (AbstractVars vs) t ls (expected-type tp :: [ the-motive motive ])) ≫span 
             check-term Γ (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))

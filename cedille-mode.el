@@ -14,8 +14,8 @@
 (require 'quail)
 
 (defvar cedille-program-name (concat cedille-path "/cedille"))
-(setq max-lisp-eval-depth 10000)
-(setq max-specpdl-size 10000)
+(setq max-lisp-eval-depth 30000)
+(setq max-specpdl-size 30000)
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))

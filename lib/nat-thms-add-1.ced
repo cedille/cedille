@@ -47,13 +47,7 @@ import nat-thms-S-0.
 
   β .
   
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  Add-Inj : Add x is injective			%
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-inj-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat .
+add-inj-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat .
 
   % Theorem
 

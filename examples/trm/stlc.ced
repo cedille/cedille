@@ -1,13 +1,16 @@
 import trm.
 import simple-types.
 
-hastp-extend ⇐ ∀ P : trm → tp → ★ . 
-         Π v : (Π x : Nat . Π T : tp . P (var x) T) .
+hastp-extend ⇐ 
+         ∀ hastp : trm → tp → ★ .
+         ∀ P : (Π t : trm . Π T : tp . hastp t T → ★) .
+         Π hastp-assume : Π x : Nat . Π T : tp . hastp (var x) T .
+         Π v : (Π x : Nat . Π T : tp . P (var x) T (hastp-assume x T)) .
          Π x : Nat .
          Π T : tp .
-         Π u : P (var x) T .
-         (Π y : Nat . Π T' : tp . P (var y) T') =
-  Λ P . λ v . λ x . λ T . λ u . λ y . λ T' .
+         Π u : P (var x) T (hastp-assume x T).
+         (Π y : Nat . Π T' : tp . P (var y) T' (hastp-assume y T')) =
+  Λ hastp . Λ P . λ hastp-assume . λ v . λ x . λ T . λ u . λ y . λ T' .
     θ+ (eqnat x y) (λ u1 . (θ+ (eq-tp T T') (λ u2 . ρ ς (eqnat-eq x y u1) - ρ ς (eq-tp-sound T T' u2) - u) 
                                             (λ _ . v y T'))) 
                    (λ _ . v y T') .
@@ -18,16 +21,17 @@ rec hastp : (t : trm)(T : tp) |
   hastp-lam : Π x : Nat . Π b : trm . Π Ta : tp . Π Tb : tp .
                 hastp b Tb → hastp (lam x b) (arrow Ta Tb) , 
   hastp-assume : Π x : Nat . Π T : tp . hastp (var x) T =
-  ∀ P : trm → tp → ★ .
-    (Π t1 : trm . Π t2 : trm . Π Ta : tp . Π Tb : tp .
-     P t1 (arrow Ta Tb) → P t2 Ta → P (app t1 t2) Tb ) →
-    (Π x : Nat . Π b : trm . Π Ta : tp . Π Tb : tp .
-     (P (var x) Ta → P b Tb) → P (lam x b) (arrow Ta Tb)) →
-    (Π x : Nat . Π T : tp . P (var x) T) → 
-    P t T 
+  ∀ P : (Π t : trm . Π T : tp . hastp t T → ★) .
+    (Π t1 : trm . Π t2 : trm . Π Ta : tp . Π Tb : tp . 
+     Π d1 : hastp t1 (arrow Ta Tb) . Π d2 : hastp t2 Ta .
+     P t1 (arrow Ta Tb) d1 → P t2 Ta d2 → P (app t1 t2) Tb (hastp-app t1 t2 Ta Tb d1 d2)) →
+    (Π x : Nat . Π b : trm . Π Ta : tp . Π Tb : tp . Π d : hastp b Tb .
+     (P (var x) Ta (hastp-assume x Ta) → P b Tb d) → P (lam x b) (arrow Ta Tb) (hastp-lam x b Ta Tb d)) →
+    (Π x : Nat . Π T : tp . P (var x) T (hastp-assume x T)) → 
+    P t T self
 with
-  hastp-app = λ t1 . λ t2 . λ Ta . λ Tb . λ h1 . λ h2 .
-                Λ P . λ a . λ l . λ v . a t1 t2 Ta Tb (h1 · P a l v) (h2 · P a l v) ,
-  hastp-lam = λ x . λ b . λ Ta . λ Tb . λ h .
-                Λ P . λ a . λ l . λ v . l x b Ta Tb (λ u . h · P a l (hastp-extend · P v x Ta u)) ,
+  hastp-app = λ t1 . λ t2 . λ Ta . λ Tb . λ d1 . λ d2 .
+                Λ P . λ a . λ l . λ v . a t1 t2 Ta Tb d1 d2 (d1 · P a l v) (d2 · P a l v) ,
+  hastp-lam = λ x . λ b . λ Ta . λ Tb . λ d .
+                Λ P . λ a . λ l . λ v . l x b Ta Tb d (λ u . d · P a l (hastp-extend · hastp · P hastp-assume v x Ta u)) ,
   hastp-assume = λ x . λ T . Λ P . λ a . λ l . λ v . v x T .

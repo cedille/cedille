@@ -5,9 +5,9 @@ import stlc-examples.
 hastp-assumed ⇐ Π x : Nat . Π xT : tp . Π t : trm . Π T : tp .
                 hastp t T → Bool =
   λ x . λ xT . λ t . λ T . λ u .
-    u · (λ t : trm . λ T : tp . Bool)
-        (λ _ . λ _ . λ _ . λ _ . or)
-        (λ _ . λ _ . λ _ . λ _ . λ r . r ff)
+    θ<t T u> u
+        (λ _ . λ _ . λ _ . λ _ . λ _ . λ _ . or)
+        (λ _ . λ _ . λ _ . λ _ . λ _ . λ r . r ff)
         (λ x' . λ xT' . and (eqnat x x') (eq-tp xT xT')) .
 
 hastp-assumed one (arrow (arrow (base Z) (base Z)) (base Z)) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
@@ -21,5 +21,5 @@ hastp-subst ⇐ Π t1 : trm . Π x : Nat . Π t2 : trm .
               (hastp-assumed x T1 t2 T2 d ≃ tt) → 
               hastp (subst t1 x t2) T2 = 
   λ t1 . λ x . λ t2 . λ T1 . λ T2 . λ d . 
-    θ<t2 T2> d ● ● ● .
+    θ<t2 T2 d> d (λ t2a . λ t2b . λ Ta . λ Tb . λ d1 . λ d2 . λ r1 . λ r2 . λ ha. ●) ● ● .
   
