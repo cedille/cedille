@@ -197,6 +197,9 @@ super-kind-data = "superkind" , "□"
 error-data : string → tagged-val
 error-data s = "error" , s
 
+symbol-data : string → tagged-val
+symbol-data x = "symbol" , x
+
 tk-data : tk → tagged-val
 tk-data (Tkk k) = kind-data k
 tk-data (Tkt t) = type-data t
@@ -241,13 +244,13 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
                                       pi pi' []
 
 TpVar-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: tvs)
+TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: tvs)
 
 Var-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: tvs)
+Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: tvs)
 
 KndVar-span : ctxt → posinfo → string → span
-KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: [ super-kind-data ])
+KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
 
 var-span : ctxt → posinfo → string → tk → span
 var-span Γ pi x (Tkk k) = TpVar-span Γ pi x [ kind-data k ]

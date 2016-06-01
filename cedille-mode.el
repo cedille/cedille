@@ -182,7 +182,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (or cedille-mode-next-errors cedille-mode-prev-errors cedille-mode-cur-error))
 
 (defun cedille-mode-select-span(cur)
-  "Select and the given span."
+  "Select and highlight the given span."
    (se-mode-update-selected (se-find-span-path cur (se-mode-parse-tree)))
    (se-mode-mark-term cur)
    (push (pop se-mode-not-selected) se-mode-selected)
