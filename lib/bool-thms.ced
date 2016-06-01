@@ -82,3 +82,19 @@ not-distrib-or ⇐ Π x : Bool . Π y : Bool . not (or x y) ≃ and (not x) (not
 
 not-distrib-and ⇐ Π x : Bool . Π y : Bool . not (and x y) ≃ or (not x) (not y) =
   λ x . λ y . θ x β β .
+
+% if-then-else and implication proofs
+if-same ⇐ Π x : Bool . Π y : Bool . if x y y ≃ y =
+  λ x . λ y . θ y ρ (Bool-tt-tt x) - β ρ (Bool-ff-ff x) - β .
+
+ff-imp ⇐ Π x : Bool . imp ff x ≃ tt =
+  λ x . β .
+
+imp-ff ⇐ Π x : Bool . imp x ff ≃ not x =
+  λ x . β .
+
+tt-imp ⇐ Π x : Bool . imp tt x ≃ x =
+  λ x . β .
+
+imp-tt ⇐ Π x : Bool . imp x tt ≃ tt =
+  λ x . ρ (Bool-tt-tt x ) - β .

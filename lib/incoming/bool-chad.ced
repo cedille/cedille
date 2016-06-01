@@ -1,17 +1,2 @@
 import bool.
 
-% if-then-else and implication proofs
-if-same ⇐ Π x : Bool . Π y : Bool . if x y y ≃ y =
-  λ x . λ y . θ y ρ (bool-tt-tt x) - β ρ (bool-ff-ff x) - β .
-
-ff-imp ⇐ Π x : Bool . impl ff x ≃ tt =
-  λ x . β .
-
-imp-ff ⇐ Π x : Bool . impl x ff ≃ not x =
-  λ x . β .
-
-tt-imp ⇐ Π x : Bool . impl tt x ≃ x =
-  λ x . β .
-
-imp-tt ⇐ Π x : Bool . impl x tt ≃ tt =
-  λ x . ρ (bool-tt-tt x ) - β .
