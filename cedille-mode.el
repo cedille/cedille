@@ -17,6 +17,8 @@
 (setq max-lisp-eval-depth 30000)
 (setq max-specpdl-size 30000)
 
+(defvar cedille-mode-debug nil "If non-nil then print information for developers")
+
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -126,6 +128,12 @@ start of each string, and then strip out that number."
   "Initialize spans after they are read in by se-mode."
   (setq se-mode-spans (mapcar #'cedille-mode-initialize-span se-mode-spans)))
 
+(defun cedille-mode-filter-out-special(data)
+  "Filter out special attributes from the data in a span"
+  (loop for (key . value) in data
+     unless (or (eq key 'symbol) (eq key 'location))
+     collecting (cons key value)))
+
 (defun cedille-mode-inspect ()
   "Displays information on the currently selected node in 
 the info buffer for the file.  Return the info buffer as a convenience."
@@ -133,7 +141,7 @@ the info buffer for the file.  Return the info buffer as a convenience."
   (when se-mode-selected
     (let* ((b (cedille-info-buffer))
            (d (se-term-to-json (se-mode-selected)))
-           (txt (se-mode-pretty-json d)))
+           (txt (se-mode-pretty-json (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
       (with-current-buffer b
          (erase-buffer)
          (insert txt)
