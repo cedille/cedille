@@ -6,9 +6,9 @@ hastp-assumed ⇐ Π x : Nat . Π xT : tp . Π t : trm . Π T : tp .
                 hastp t T → Bool =
   λ x . λ xT . λ t . λ T . λ u .
     θ<t T u> u
-        (λ _ . λ _ . λ _ . λ _ . λ _ . λ _ . or)
-        (λ _ . λ _ . λ _ . λ _ . λ _ . λ r . r ff)
-        (λ x' . λ xT' . and (eqnat x x') (eq-tp xT xT')) .
+        (λ _ . λ _ . λ _ . λ _ . λ _ . λ _ . and)
+        (λ _ . λ _ . λ _ . λ _ . λ _ . λ r . r tt)
+        (λ x' . λ xT' . imp (eqnat x x') (eq-tp xT xT')) .
 
 hastp-assumed one (arrow (arrow (base Z) (base Z)) (base Z)) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
 
@@ -16,10 +16,14 @@ hastp-assumed one (arrow (base Z) (base Z)) (app (var one) (lam Z (var Z))) (bas
 
 hastp-assumed Z (base Z) (app (var one) (lam Z (var Z))) (base Z) hastp-eg1 !
 
+(subst t1 x (app t2a t2b)) !!
+(app (subst t1 x t2a) (subst t1 x t2b)) !!
+
 hastp-subst ⇐ Π t1 : trm . Π x : Nat . Π t2 : trm .
               Π T1 : tp . Π T2 : tp . Π d : hastp t2 T2 .
               (hastp-assumed x T1 t2 T2 d ≃ tt) → 
               hastp (subst t1 x t2) T2 = 
   λ t1 . λ x . λ t2 . λ T1 . λ T2 . λ d . 
-    θ<t2 T2 d> d (λ t2a . λ t2b . λ Ta . λ Tb . λ d1 . λ d2 . λ r1 . λ r2 . λ ha. ●) ● ● .
+    θ<t2 T2 d> d (λ t2a . λ t2b . λ Ta . λ Tb . λ d1 . λ d2 . λ r1 . λ r2 . λ ha. 
+                    hastp-app (subst t1 x t2a) (subst t1 x t2b) Ta Tb ● ●) ● ● .
   

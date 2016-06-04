@@ -225,12 +225,36 @@ the parse tree, and updates the Cedille info buffer."
   (se-mode-select-next)
   (cedille-mode-inspect))
 
+(defun cedille-mode-select-next-alt()
+  "Selects the first span beginning after the point."
+  (interactive)
+  (se-mode-set-spans)
+  (let ((found (cl-find (point) se-mode-spans :key #'se-term-start :test #'<)))
+    (if (not found)
+        (message "No next span")
+        (progn (cedille-mode-select-span found)
+	       (cedille-mode-inspect)))))
+
 (defun cedille-mode-select-previous()
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-previous)
   (cedille-mode-inspect))
+
+(defun cedille-mode-select-previous-alt()
+  "Selects the last span ending before the point."
+  (interactive)
+  (se-mode-set-spans)
+  (let ((found (cl-find (point)
+			se-mode-spans
+			:key #'se-term-end
+			:test #'>
+			:from-end t)))
+    (if (not found)
+        (message "No previous span")
+        (progn (cedille-mode-select-span found)
+	       (cedille-mode-inspect)))))
 
 (defun cedille-mode-select-parent()
   "Selects the parent of the currently selected node in 
@@ -288,14 +312,17 @@ in the parse tree, and updates the Cedille info buffer."
   "Quit Cedille navigation mode"
   (interactive)
   (se-mode-clear-selected)
-  (se-navigation-mode-quit))
+  (se-navigation-mode-quit)
+  (setq se-mode-parse-tree nil))
 
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 ; separate keymaps.
 (defun cedille-modify-keymap()
   (se-navi-define-key 'cedille-mode (kbd "f") #'cedille-mode-select-next)
+  (se-navi-define-key 'cedille-mode (kbd "F") #'cedille-mode-select-next-alt)
   (se-navi-define-key 'cedille-mode (kbd "b") #'cedille-mode-select-previous)
+  (se-navi-define-key 'cedille-mode (kbd "B") #'cedille-mode-select-previous-alt)
   (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)

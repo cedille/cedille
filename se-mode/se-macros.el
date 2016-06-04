@@ -35,17 +35,19 @@ Example:
 	   (define-key ,(idf "%s-mode-map" prefix) (kbd "M-s") #'se-navigation-mode))
 	 (add-hook 'se-navigation-mode-hook
 		   ',(idf "%s-parse-file" prefix) nil t)
-	 (add-hook 'before-change-functions
-		   #'se-mode-push-parse-tree nil t))
+;    if uncommented this will remember the parse tree when undoing, so you won't reparse the file if you undo back to the parsed state:
+;	 (add-hook 'before-change-functions
+;		   #'se-mode-push-parse-tree nil t)
+)
        
        (defun ,(idf "%s-parse-file" prefix) ()
 	 "Only parses when navigation mode is active to prevent
 the navigation mode hook from calling `se-inf-parse-file' when
-deactivating.  Additionally, only parses when
-`se-mode-parse-tree' is nil.  Most often one should use
+deactivating. Most often one should use
 `se-inf-parse-file' instead."
-	 (when (and se-navigation-mode
-		    (null se-mode-parse-tree))
+	 (when 
+           (and se-navigation-mode
+	     (null se-mode-parse-tree))
 	   (se-inf-parse-file))))))
 
 (provide 'se-macros)

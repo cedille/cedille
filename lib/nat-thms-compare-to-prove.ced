@@ -1,0 +1,15 @@
+import nat.
+
+Lte-S-Lt ⇐ Π x : Nat . Π y : Nat . Lte (S x) y → Lt x y = ● .
+
+Lt-S-Lte ⇐ Π x : Nat . Π y : Nat . Lt x y → Lte (S x) y = ● .
+
+Lt-Lte ⇐ Π x : Nat . Π y : Nat . Lt x y → Lte x y = ● .
+
+Lt-S ⇐ Π x : Nat . Lt x (S x) = ● .
+
+Lte-S-1 ⇐ Π x : Nat . Π y : Nat . Lte x y → Lte x (S y) = ● .
+
+Lt-S-1 ⇐ Π x : Nat . Π y : Nat . Lt x y → Lt x (S y) = ● .
+
+Lt-Lte-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y → Lte y z → Lt x z = ● .
