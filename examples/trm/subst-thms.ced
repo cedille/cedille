@@ -46,3 +46,8 @@ subst-apart-from ⇐
 graft-apart-from ⇐ 
   Π t' : trm . Π x : Nat . Π t : trm .
      Apart-from x t → graft t' x t ≃ t = substh-apart-from ff .
+
+subst-app ⇐ Π t1 : trm . Π x : Nat . Π t2a : trm . Π t2b : trm .
+            subst t1 x (app t2a t2b) ≃ app (subst t1 x t2a) (subst t1 x t2b) =
+  λ t1 . λ x . λ t2a . λ t2b . β .
+    
