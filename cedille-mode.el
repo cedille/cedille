@@ -76,7 +76,8 @@ Defaults to `error'."
   (let ((w (get-buffer-window (cedille-info-buffer))))
    (when w
      (fit-window-to-buffer w)
-     (window-resize w cedille-info-buffer-trailing-edge))))
+     (unless (eq (window-resizable w cedille-info-buffer-trailing-edge) 0)
+         (window-resize w cedille-info-buffer-trailing-edge)))))
 
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
@@ -225,16 +226,6 @@ the parse tree, and updates the Cedille info buffer."
   (se-mode-select-next)
   (cedille-mode-inspect))
 
-(defun cedille-mode-select-next-alt()
-  "Selects the first span beginning after the point."
-  (interactive)
-  (se-mode-set-spans)
-  (let ((found (cl-find (point) se-mode-spans :key #'se-term-start :test #'<)))
-    (if (not found)
-        (message "No next span")
-        (progn (cedille-mode-select-span found)
-	       (cedille-mode-inspect)))))
-
 (defun cedille-mode-select-previous()
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
@@ -242,19 +233,44 @@ the parse tree, and updates the Cedille info buffer."
   (se-mode-select-previous)
   (cedille-mode-inspect))
 
-(defun cedille-mode-select-previous-alt()
-  "Selects the last span ending before the point."
+(defun cedille-mode-select-next-alt-test(x y)
+  "Compares two spans x and y, testing whether x begins after y ends."
+  (if (> (se-term-start y) (se-term-end x))
+      t
+      nil))
+
+(defun cedille-mode-select-previous-alt-test(x y)
+  (if (> (se-term-start x) (se-term-end y))
+      t
+      nil))
+
+(defun cedille-mode-select-next-alt()
+  "Selects the next sibling of the currently selected span, if one exists.
+Otherwise, selects the first span beginning after the end of the current span,
+Updates info buffer in either case"
   (interactive)
   (se-mode-set-spans)
-  (let ((found (cl-find (point)
-			se-mode-spans
-			:key #'se-term-end
-			:test #'>
-			:from-end t)))
-    (if (not found)
-        (message "No previous span")
-        (progn (cedille-mode-select-span found)
-	       (cedille-mode-inspect)))))
+  (unless (se-mode-select (se-mode-next))
+    (let ((found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test)))
+      (if (not found)
+	  (message "No next span")
+	  (progn (cedille-mode-select-span found)
+	     (cedille-mode-inspect))))))
+
+(defun cedille-mode-select-previous-alt()
+  "Selects the previous sibling of the currently selected node;
+otherwise selects first span that ends before the current span begins.
+Updates info buffer in either case."
+  (interactive)
+  (se-mode-set-spans)
+  (unless (se-mode-select (se-mode-previous))
+    (let ((found (cl-find (se-mode-selected) se-mode-spans
+			  :test #'cedille-mode-select-previous-alt-test
+			  :from-end t)))
+      (if (not found)
+	  (message "No previous span")
+	  (progn (cedille-mode-select-span found)
+	     (cedille-mode-inspect))))))
 
 (defun cedille-mode-select-parent()
   "Selects the parent of the currently selected node in 
@@ -299,7 +315,14 @@ in the parse tree, and updates the Cedille info buffer."
                    (b (find-file f)))
               (with-current-buffer b (goto-char n)))
             (message "No location at this node")))
-      (message "No node selected")))     
+    (message "No node selected"))
+  ;;; If the mark is active, we are jumping within the buffer. This prevents
+  ;;; a region from being selected.
+  (if mark-active
+      (progn
+	(exchange-point-and-mark 1)
+	(set-mark-command 1))))
+
 
 (defun cedille-mode-toggle-info()
   "Shows or hides the Cedille info buffer."
