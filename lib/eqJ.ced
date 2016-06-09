@@ -1,0 +1,7 @@
+rec eqJ(A : ★)(a : A) : (b : A) | refl : eqJ a =
+  ∀ P : Π b : A . eqJ b → ★ .
+    P a refl → P b self
+with
+ refl = Λ P . λ u . u .
+
+
