@@ -1,15 +1,15 @@
 import is-free.
 import subst.
 
-substh-var ⇐ Π avoid-capture : Bool . 
-             Π t : trm .
-             Π x : Nat .
-               substh avoid-capture t x (var x) ≃ t =
+substh-same-var ⇐ Π avoid-capture : Bool . 
+                  Π t : trm .
+                  Π x : Nat .
+                   substh avoid-capture t x (var x) ≃ t =
   λ avoid-capture . λ t . λ x .
      εl ρ (eqnat-refl x) - β .
 
-subst-var ⇐ Π t : trm . Π x : Nat . subst t x (var x) ≃ t = substh-var tt .
-graft-var ⇐ Π t : trm . Π x : Nat . graft t x (var x) ≃ t = substh-var ff .
+subst-var ⇐ Π t : trm . Π x : Nat . subst t x (var x) ≃ t = substh-same-var tt .
+graft-var ⇐ Π t : trm . Π x : Nat . graft t x (var x) ≃ t = substh-same-var ff .
 
 substh-var-diff ⇐
    Π avoid-capture : Bool . 
@@ -49,5 +49,5 @@ graft-apart-from ⇐
 
 subst-app ⇐ Π t1 : trm . Π x : Nat . Π t2a : trm . Π t2b : trm .
             subst t1 x (app t2a t2b) ≃ app (subst t1 x t2a) (subst t1 x t2b) =
-  λ t1 . λ x . λ t2a . λ t2b . β .
+  λ t1 . λ x . λ t2a . λ t2b . ε β .
     

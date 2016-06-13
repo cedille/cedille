@@ -17,9 +17,6 @@ kvar-bar-11 = string
 kvar-star-12 = string
 num = string
 num-plus-5 = string
-num-range-60 = string
-num-range-61 = string
-num-star-62 = string
 numone = string
 numone-range-4 = string
 numpunct = string
@@ -258,9 +255,6 @@ data ParseTreeT : Set where
   parsed-kvar-star-12 : kvar-star-12 → ParseTreeT
   parsed-num : num → ParseTreeT
   parsed-num-plus-5 : num-plus-5 → ParseTreeT
-  parsed-num-range-60 : num-range-60 → ParseTreeT
-  parsed-num-range-61 : num-range-61 → ParseTreeT
-  parsed-num-star-62 : num-star-62 → ParseTreeT
   parsed-numone : numone → ParseTreeT
   parsed-numone-range-4 : numone-range-4 → ParseTreeT
   parsed-numpunct : numpunct → ParseTreeT
@@ -347,12 +341,6 @@ numToString : num → string
 numToString x = "(num " ^ x ^ ")"
 num-plus-5ToString : num-plus-5 → string
 num-plus-5ToString x = "(num-plus-5 " ^ x ^ ")"
-num-range-60ToString : num-range-60 → string
-num-range-60ToString x = "(num-range-60 " ^ x ^ ")"
-num-range-61ToString : num-range-61 → string
-num-range-61ToString x = "(num-range-61 " ^ x ^ ")"
-num-star-62ToString : num-star-62 → string
-num-star-62ToString x = "(num-star-62 " ^ x ^ ")"
 numoneToString : numone → string
 numoneToString x = "(numone " ^ x ^ ")"
 numone-range-4ToString : numone-range-4 → string
@@ -587,9 +575,6 @@ ParseTreeToString (parsed-kvar-bar-11 t) = kvar-bar-11ToString t
 ParseTreeToString (parsed-kvar-star-12 t) = kvar-star-12ToString t
 ParseTreeToString (parsed-num t) = numToString t
 ParseTreeToString (parsed-num-plus-5 t) = num-plus-5ToString t
-ParseTreeToString (parsed-num-range-60 t) = num-range-60ToString t
-ParseTreeToString (parsed-num-range-61 t) = num-range-61ToString t
-ParseTreeToString (parsed-num-star-62 t) = num-star-62ToString t
 ParseTreeToString (parsed-numone t) = numoneToString t
 ParseTreeToString (parsed-numone-range-4 t) = numone-range-4ToString t
 ParseTreeToString (parsed-numpunct t) = numpunctToString t

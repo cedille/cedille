@@ -4,17 +4,17 @@ import trm.
 import trm-util.
 
 substh-app ⇐ trm → trm → trm → trm → trm = λ t1 . λ t2 . λ r1 . λ r2 . app r1 r2 .
-substh-lam ⇐ Bool → trm → trm → Nat → trm → (trm → trm) → trm = 
-  λ avoid-capture . λ t . λ t' . λ i . λ f . λ r . 
+substh-lam ⇐ Bool → trm → Nat → trm → (trm → trm) → trm = 
+  λ avoid-capture . λ t' . λ i . λ f . λ r . 
      (λ bnd : Nat .
          χ trm - (θ (and avoid-capture (lt i bnd)) (lam bnd (r (var bnd))) (lam i (r (var i)))))
-     (max (var-bound t) (var-bound t')) .
+     (max (var-bound (lam i f)) (var-bound t')) .
 substh-var ⇐ Nat → trm → Nat → trm = λ x . λ t' . λ i . θ (eqnat i x) t' (var i) .
 
 substh ⇐ Bool → trm → Nat → trm → trm =
   λ avoid-capture . λ t' . λ x . λ t .
     θ t substh-app
-        (substh-lam avoid-capture t t')
+        (substh-lam avoid-capture t')
         (substh-var x t') .
 
 subst = substh tt.

@@ -1,15 +1,24 @@
 module main where
 
 import parse
+import run
 open import lib
 open import cedille-types
-import cedille
 
+-- for parser for Cedille source files
+import cedille
 module parsem = parse cedille.gratr2-nt ptr
-open parsem
 open parsem.pnoderiv cedille.rrs cedille.cedille-rtn
-open import run ptr
-open noderiv {- from run.agda -}
+module pr = run ptr
+open pr.noderiv {- from run.agda -}
+
+-- for parser for options files
+import options
+import options-types
+module parsem2 = parse options.gratr2-nt options-types.ptr
+module options-parse = parsem2.pnoderiv options.rrs options.options-rtn
+module pr2 = run options-types.ptr
+module options-run = pr2.noderiv
 
 open import classify
 open import ctxt
@@ -22,6 +31,9 @@ open import spans
 open import syntax-util
 open import to-string
 open import toplevel-state
+
+opts : Set
+opts = options-types.opts
 
 dot-cedille-directory : string → string 
 dot-cedille-directory dir = combineFileNames dir ".cedille"
@@ -72,6 +84,16 @@ ced-file-up-to-date ced-path =
     else
       return ff
 
+paths-to-𝕃string : options-types.paths → 𝕃 string
+paths-to-𝕃string options-types.PathsNil = []
+paths-to-𝕃string (options-types.PathsCons p ps) = p :: paths-to-𝕃string ps
+
+opts-get-include-path : opts → 𝕃 string
+opts-get-include-path options-types.OptsNil = []
+opts-get-include-path (options-types.OptsCons (options-types.Lib ps) oo) = (paths-to-𝕃string ps) ++ opts-get-include-path oo
+--opts-get-include-path (options-types.OptsCons _ oo) = opts-get-include-path oo
+
+
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
 reparse : toplevel-state → (unit-name : string) → (filename : string) → IO toplevel-state
 reparse s unit-name filename = 
@@ -82,14 +104,14 @@ reparse s unit-name filename =
       else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
         return (set-include-elt s unit-name ie)
   where processText : string → include-elt
-        processText x with runRtn (string-to-𝕃char x)
-        processText x | inj₁ cs =
-           error-include-elt ("Parse error in file " ^ filename ^ ". "
-                              ^ "Characters left before failure : " ^ (𝕃char-to-string cs))
-        processText x | inj₂ r with rewriteRun r
-        processText x | inj₂ r | ParseTree (parsed-start s) :: [] = 
-          new-include-elt filename s
-        processText x | inj₂ r | _ = error-include-elt ("Parse error in file " ^ filename ^ ".")
+        processText x with string-to-𝕃char x
+        processText x | s with runRtn s
+        processText x | s | inj₁ cs =
+           error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ ".")
+        processText x | s | inj₂ r with rewriteRun r
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] = 
+          new-include-elt filename t
+        processText x | s | inj₂ r | _ = error-include-elt ("Parse error in file " ^ filename ^ ".")
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date filename ie = 
@@ -173,22 +195,46 @@ checkFile s unit-name should-print-spans =
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
   getLine >>= (λ input-filename → 
-     checkFile (set-include-path s [ takeDirectory input-filename ])
+     checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
        (base-filename (takeFileName input-filename)) tt {- should-print-spans -} >>= λ s → 
      readFilenamesForProcessing s)
 
-processArgs : 𝕃 string → IO ⊤ 
-processArgs (input-filename :: []) with (base-filename (takeFileName input-filename)) 
-processArgs (input-filename :: []) | unit-name = 
-  checkFile (new-toplevel-state [ takeDirectory input-filename ] ) unit-name ff {- should-print-spans -} >>= finish
+processArgs : opts → 𝕃 string → IO ⊤ 
+processArgs oo (input-filename :: []) with (base-filename (takeFileName input-filename)) 
+processArgs oo (input-filename :: []) | unit-name = 
+  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo)) unit-name ff {- should-print-spans -} >>= finish
   where finish : toplevel-state → IO ⊤
         finish s = 
           let ie = get-include-elt s unit-name in
           if include-elt.err ie then putStr (include-elt.ss ie) else return triv
-processArgs [] = readFilenamesForProcessing (new-toplevel-state [])
-processArgs xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
-                       ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
+processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo))
+processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
+                         ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
+
+processOptions : string → string → (string ⊎ options-types.opts)
+processOptions filename s with string-to-𝕃char s
+processOptions filename s | i with options-parse.runRtn i
+processOptions filename s | i | inj₁ cs =
+  inj₁ ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length i ∸ length cs)) ^ ".")
+processOptions filename s | i | inj₂ r with options-parse.rewriteRun r
+processOptions filename s | i | inj₂ r | options-run.ParseTree (options-types.parsed-start (options-types.File oo)) :: [] = inj₂ oo
+processOptions filename s | i | inj₂ r | _ =  inj₁ ("Parse error in file " ^ filename ^ ". ")
+
+readOptions : IO (string ⊎ options-types.opts)
+readOptions =
+  getHomeDirectory >>= λ homedir →
+    let homecedir = dot-cedille-directory homedir in
+    let optsfile = combineFileNames homecedir options-file-name in
+      createDirectoryIfMissing ff homecedir >>
+      doesFileExist optsfile >>= λ b → 
+       if b then
+         (readFiniteFile optsfile >>= λ f → return (processOptions optsfile f))
+       else
+         (return (inj₂ options-types.OptsNil))
 
 main : IO ⊤
-main = getArgs >>= processArgs 
+main = readOptions >>= next
+  where next : string ⊎ options-types.opts → IO ⊤
+        next (inj₁ s) = putStr (global-error-string s)
+        next (inj₂ oo) = getArgs >>= processArgs oo
 

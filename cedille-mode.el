@@ -13,6 +13,7 @@
 
 (require 'quail)
 
+;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
 (defvar cedille-program-name (concat cedille-path "/cedille"))
 (setq max-lisp-eval-depth 30000)
 (setq max-specpdl-size 30000)
@@ -350,8 +351,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "\M-s") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "\C-g") #'cedille-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "M-s") #'cedille-mode-quit)
+  (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
@@ -363,7 +364,7 @@ in the parse tree, and updates the Cedille info buffer."
 
 (cedille-modify-keymap)
 
-(se-create-mode "Cedille" nil
+(se-create-mode "cedille" nil
   "Major mode for Cedille files."
 
   (setq-local comment-start "%")

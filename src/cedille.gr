@@ -166,8 +166,6 @@ aws => ('\n' | '\t' | space | comment).
 ws => aws+.
 ows => aws* .
 
-num -> ['1'-'9']['0'-'9']*.
-
 Vars
   p p2 c b w x y z zz e1 e2
 

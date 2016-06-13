@@ -32,9 +32,6 @@ data gratr2-nt : Set where
   _numpunct : gratr2-nt
   _numone-range-4 : gratr2-nt
   _numone : gratr2-nt
-  _num-star-62 : gratr2-nt
-  _num-range-61 : gratr2-nt
-  _num-range-60 : gratr2-nt
   _num-plus-5 : gratr2-nt
   _num : gratr2-nt
   _maybeVarEq : gratr2-nt
@@ -147,9 +144,6 @@ gratr2-nt-eq  _numpunct-bar-6 _numpunct-bar-6 = tt
 gratr2-nt-eq  _numpunct _numpunct = tt
 gratr2-nt-eq  _numone-range-4 _numone-range-4 = tt
 gratr2-nt-eq  _numone _numone = tt
-gratr2-nt-eq  _num-star-62 _num-star-62 = tt
-gratr2-nt-eq  _num-range-61 _num-range-61 = tt
-gratr2-nt-eq  _num-range-60 _num-range-60 = tt
 gratr2-nt-eq  _num-plus-5 _num-plus-5 = tt
 gratr2-nt-eq  _num _num = tt
 gratr2-nt-eq  _maybeVarEq _maybeVarEq = tt
@@ -266,11 +260,8 @@ cedille-start _numpunct-bar-6 = (just "P70" , nothing , just _numpunct-bar-6 , i
 cedille-start _numpunct = (just "P73" , nothing , just _numpunct , inj₁ _numpunct-bar-7 :: []) :: []
 cedille-start _numone-range-4 = (just "P64" , nothing , just _numone-range-4 , inj₂ '9' :: []) :: (just "P63" , nothing , just _numone-range-4 , inj₂ '8' :: []) :: (just "P62" , nothing , just _numone-range-4 , inj₂ '7' :: []) :: (just "P61" , nothing , just _numone-range-4 , inj₂ '6' :: []) :: (just "P60" , nothing , just _numone-range-4 , inj₂ '5' :: []) :: (just "P59" , nothing , just _numone-range-4 , inj₂ '4' :: []) :: (just "P58" , nothing , just _numone-range-4 , inj₂ '3' :: []) :: (just "P57" , nothing , just _numone-range-4 , inj₂ '2' :: []) :: (just "P56" , nothing , just _numone-range-4 , inj₂ '1' :: []) :: (just "P55" , nothing , just _numone-range-4 , inj₂ '0' :: []) :: []
 cedille-start _numone = (just "P65" , nothing , just _numone , inj₁ _numone-range-4 :: []) :: []
-cedille-start _num-star-62 = (just "P205" , nothing , just _num-star-62 , inj₁ _num-range-61 :: inj₁ _num-star-62 :: []) :: (just "P204" , nothing , just _num-star-62 , []) :: []
-cedille-start _num-range-61 = (just "P203" , nothing , just _num-range-61 , inj₂ '9' :: []) :: (just "P202" , nothing , just _num-range-61 , inj₂ '8' :: []) :: (just "P201" , nothing , just _num-range-61 , inj₂ '7' :: []) :: (just "P200" , nothing , just _num-range-61 , inj₂ '6' :: []) :: (just "P199" , nothing , just _num-range-61 , inj₂ '5' :: []) :: (just "P198" , nothing , just _num-range-61 , inj₂ '4' :: []) :: (just "P197" , nothing , just _num-range-61 , inj₂ '3' :: []) :: (just "P196" , nothing , just _num-range-61 , inj₂ '2' :: []) :: (just "P195" , nothing , just _num-range-61 , inj₂ '1' :: []) :: (just "P194" , nothing , just _num-range-61 , inj₂ '0' :: []) :: []
-cedille-start _num-range-60 = (just "P193" , nothing , just _num-range-60 , inj₂ '9' :: []) :: (just "P192" , nothing , just _num-range-60 , inj₂ '8' :: []) :: (just "P191" , nothing , just _num-range-60 , inj₂ '7' :: []) :: (just "P190" , nothing , just _num-range-60 , inj₂ '6' :: []) :: (just "P189" , nothing , just _num-range-60 , inj₂ '5' :: []) :: (just "P188" , nothing , just _num-range-60 , inj₂ '4' :: []) :: (just "P187" , nothing , just _num-range-60 , inj₂ '3' :: []) :: (just "P186" , nothing , just _num-range-60 , inj₂ '2' :: []) :: (just "P185" , nothing , just _num-range-60 , inj₂ '1' :: []) :: []
 cedille-start _num-plus-5 = (just "P67" , nothing , just _num-plus-5 , inj₁ _numone :: inj₁ _num-plus-5 :: []) :: (just "P66" , nothing , just _num-plus-5 , inj₁ _numone :: []) :: []
-cedille-start _num = (just "P68" , nothing , just _num , inj₁ _num-plus-5 :: []) :: (just "P206" , nothing , just _num , inj₁ _num-range-60 :: inj₁ _num-star-62 :: []) :: []
+cedille-start _num = (just "P68" , nothing , just _num , inj₁ _num-plus-5 :: []) :: []
 cedille-start _maybeVarEq = (just "VarEq" , nothing , just _maybeVarEq , inj₁ _posinfo :: inj₁ _var :: inj₁ _ows :: inj₂ '=' :: inj₁ _ows :: []) :: (just "NoVarEq" , nothing , just _maybeVarEq , []) :: []
 cedille-start _maybeMinus = (just "EpsHnf" , nothing , just _maybeMinus , []) :: (just "EpsHanf" , nothing , just _maybeMinus , inj₂ '-' :: []) :: []
 cedille-start _maybeKvarEq = (just "NoKvarEq" , nothing , just _maybeKvarEq , []) :: (just "KvarEq" , nothing , just _maybeKvarEq , inj₁ _posinfo :: inj₁ _kvar :: inj₁ _ows :: inj₂ '=' :: inj₁ _ows :: []) :: []
@@ -529,30 +520,9 @@ len-dec-rewrite {- P180-} ((Id "P180") :: (ParseTree parsed-aws) :: _::_(ParseTr
 len-dec-rewrite {- P181-} ((Id "P181") :: _::_(ParseTree parsed-ws-plus-58) rest) = just (ParseTree parsed-ws ::' rest , 2)
 len-dec-rewrite {- P183-} ((Id "P183") :: (ParseTree parsed-aws) :: _::_(ParseTree parsed-ows-star-59) rest) = just (ParseTree parsed-ows-star-59 ::' rest , 3)
 len-dec-rewrite {- P184-} ((Id "P184") :: _::_(ParseTree parsed-ows-star-59) rest) = just (ParseTree parsed-ows ::' rest , 2)
-len-dec-rewrite {- P185-} ((Id "P185") :: _::_(InputChar '1') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '1'))) ::' rest , 2)
-len-dec-rewrite {- P186-} ((Id "P186") :: _::_(InputChar '2') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '2'))) ::' rest , 2)
-len-dec-rewrite {- P187-} ((Id "P187") :: _::_(InputChar '3') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '3'))) ::' rest , 2)
-len-dec-rewrite {- P188-} ((Id "P188") :: _::_(InputChar '4') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '4'))) ::' rest , 2)
-len-dec-rewrite {- P189-} ((Id "P189") :: _::_(InputChar '5') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '5'))) ::' rest , 2)
 len-dec-rewrite {- P19-} ((Id "P19") :: _::_(InputChar 't') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 't'))) ::' rest , 2)
-len-dec-rewrite {- P190-} ((Id "P190") :: _::_(InputChar '6') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '6'))) ::' rest , 2)
-len-dec-rewrite {- P191-} ((Id "P191") :: _::_(InputChar '7') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '7'))) ::' rest , 2)
-len-dec-rewrite {- P192-} ((Id "P192") :: _::_(InputChar '8') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '8'))) ::' rest , 2)
-len-dec-rewrite {- P193-} ((Id "P193") :: _::_(InputChar '9') rest) = just (ParseTree (parsed-num-range-60 (string-append 0 (char-to-string '9'))) ::' rest , 2)
-len-dec-rewrite {- P194-} ((Id "P194") :: _::_(InputChar '0') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '0'))) ::' rest , 2)
-len-dec-rewrite {- P195-} ((Id "P195") :: _::_(InputChar '1') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '1'))) ::' rest , 2)
-len-dec-rewrite {- P196-} ((Id "P196") :: _::_(InputChar '2') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '2'))) ::' rest , 2)
-len-dec-rewrite {- P197-} ((Id "P197") :: _::_(InputChar '3') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '3'))) ::' rest , 2)
-len-dec-rewrite {- P198-} ((Id "P198") :: _::_(InputChar '4') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '4'))) ::' rest , 2)
-len-dec-rewrite {- P199-} ((Id "P199") :: _::_(InputChar '5') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '5'))) ::' rest , 2)
 len-dec-rewrite {- P2-} ((Id "P2") :: _::_(InputChar 'c') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'c'))) ::' rest , 2)
 len-dec-rewrite {- P20-} ((Id "P20") :: _::_(InputChar 'u') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'u'))) ::' rest , 2)
-len-dec-rewrite {- P200-} ((Id "P200") :: _::_(InputChar '6') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '6'))) ::' rest , 2)
-len-dec-rewrite {- P201-} ((Id "P201") :: _::_(InputChar '7') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '7'))) ::' rest , 2)
-len-dec-rewrite {- P202-} ((Id "P202") :: _::_(InputChar '8') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '8'))) ::' rest , 2)
-len-dec-rewrite {- P203-} ((Id "P203") :: _::_(InputChar '9') rest) = just (ParseTree (parsed-num-range-61 (string-append 0 (char-to-string '9'))) ::' rest , 2)
-len-dec-rewrite {- P205-} ((Id "P205") :: (ParseTree (parsed-num-range-61 x0)) :: _::_(ParseTree (parsed-num-star-62 x1)) rest) = just (ParseTree (parsed-num-star-62 (string-append 1 x0 x1)) ::' rest , 3)
-len-dec-rewrite {- P206-} ((Id "P206") :: (ParseTree (parsed-num-range-60 x0)) :: _::_(ParseTree (parsed-num-star-62 x1)) rest) = just (ParseTree (parsed-num (string-append 1 x0 x1)) ::' rest , 3)
 len-dec-rewrite {- P21-} ((Id "P21") :: _::_(InputChar 'v') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'v'))) ::' rest , 2)
 len-dec-rewrite {- P22-} ((Id "P22") :: _::_(InputChar 'w') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'w'))) ::' rest , 2)
 len-dec-rewrite {- P23-} ((Id "P23") :: _::_(InputChar 'x') rest) = just (ParseTree (parsed-alpha-range-1 (string-append 0 (char-to-string 'x'))) ::' rest , 2)
@@ -682,7 +652,6 @@ len-dec-rewrite {- NoVarEq-} (_::_(Id "NoVarEq") rest) = just (ParseTree (parsed
 len-dec-rewrite {- NotErased-} (_::_(Id "NotErased") rest) = just (ParseTree (parsed-maybeErased (norm-maybeErased NotErased)) ::' rest , 1)
 len-dec-rewrite {- P169-} (_::_(Id "P169") rest) = just (ParseTree parsed-comment-star-54 ::' rest , 1)
 len-dec-rewrite {- P182-} (_::_(Id "P182") rest) = just (ParseTree parsed-ows-star-59 ::' rest , 1)
-len-dec-rewrite {- P204-} (_::_(Id "P204") rest) = just (ParseTree (parsed-num-star-62 empty-string) ::' rest , 1)
 len-dec-rewrite {- P76-} (_::_(Id "P76") rest) = just (ParseTree (parsed-var-star-9 empty-string) ::' rest , 1)
 len-dec-rewrite {- P83-} (_::_(Id "P83") rest) = just (ParseTree (parsed-kvar-star-12 empty-string) ::' rest , 1)
 len-dec-rewrite {- Posinfo-} (_::_(Posinfo n) rest) = just (ParseTree (parsed-posinfo (ℕ-to-string n)) ::' rest , 1)

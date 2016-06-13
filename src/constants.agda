@@ -10,3 +10,6 @@ self-name = "self"
 
 ignored-var : string
 ignored-var = "_"
+
+options-file-name : string
+options-file-name = "options"
