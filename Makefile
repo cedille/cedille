@@ -25,12 +25,12 @@ options-main: src/options-main.agda
 	agda $(INC) -c src/options-main.agda 
 
 # this requires gratr
-src/cedille-main.agda : src/cedille.gr 
-	cd src ; gratr --continue-with-nonterminating cedille.gr
+#src/cedille-main.agda : src/cedille.gr 
+#	cd src ; gratr --continue-with-nonterminating cedille.gr
 
 # this requires gratr
-src/options-main.agda : src/options.gr 
-	cd src ; gratr options.gr
+#src/options-main.agda : src/options.gr 
+#	cd src ; gratr options.gr
 
 clean:
 	rm -f cedille src/main $(OBJ)
