@@ -152,7 +152,7 @@ alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 numone -> ['0' - '9'].
 num -> numone+.
 
-numpunct -> numone | quote | '-' .
+numpunct -> numone | quote | '-' | '~' | '#' | '_'.
 
 var -> '_' | (alpha (alpha | numpunct)*) .
 
