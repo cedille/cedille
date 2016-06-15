@@ -4,7 +4,7 @@ import trm-util.
 import nat-thms-max.
 
 size-app = λ _ : trm . λ _ : trm . λ s1 : Nat . λ s2 : Nat . S (add s1 s2) .
-size-lam = λ _ : Nat . λ f : trm . λ N : Nat → Nat . S (N one) .
+size-lam = λ _ : Nat . λ _ : trm . λ N : Nat → Nat . S (N one) .
 size-var = λ _ : Nat . one .
 
 size ⇐ trm → Nat = 
