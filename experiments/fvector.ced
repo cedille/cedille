@@ -1,0 +1,14 @@
+import nat .
+
+rec Fvector (A : Nat → ★) : (n : Nat) | Fcons : ∀ n : Nat . A n → Fvector n → Fvector (S n) ,
+ Fnil : Fvector Z =
+  ∀ P : Π n : Nat . Fvector n → ★ .
+    (∀ n : Nat . Π a : A n . Π v : Fvector n . P n v → P (S n) (Fcons -n a v)) → 
+    P Z Fnil → 
+    P n self
+  with
+    Fcons = Λ n . λ a . λ v . Λ P . λ c . λ e . c -n a v (v · P c e) ,
+    Fnil = Λ P . λ c . λ n . n 
+.
+
+

@@ -1,0 +1,34 @@
+rec enum0 | =
+  ∀ P : enum0 → ★.
+    P self
+with .
+
+rotate0 ⇐ enum0 → enum0 =
+  λ e . θ e .
+
+rec enum1 | c0 : enum1 =
+  ∀ P : enum1 → ★ .
+    P c0 → P self
+with
+  c0 = Λ P . λ x . x .
+
+rotate1 ⇐ enum1 → enum1 =
+  λ e . θ e c0 .
+
+rec enum2 | c0 : enum2 , c1 : enum2 =
+  ∀ P : enum2 → ★ .
+    P c0 → P c1 → P self
+with
+  c0 = Λ P . λ x . λ y . x ,
+  c1 = Λ P . λ x . λ y . y .
+
+rotate2 ⇐ enum2 → enum2 =
+  λ e . θ e c1 c0 .
+
+enum-induct-t ⇐ Π E : ★ . Π n : Nat . (Vector · E n) → ★ =
+  λ E : ★ . λ n : Nat . λ v : Vector · E n .
+   ↑ X . v · (λ _ : Nat . λ _ : Vector · E n . X)
+           : ((∀ n : Nat . Π c : E . Π _ : Vector · E n . ☆ → ☆) →
+	      ☆ → ☆) .
+
+rotate ⇐ Π n : Nat . ∀ E : ★ . Π v : Vector · E n . (enum-induct-t · E -n v) → E → E = ● .
