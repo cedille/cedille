@@ -1,0 +1,13 @@
+∀ E : ★ . Π c0 : E . ... Π cn-1 : E . (∀ P : E → ★ . P c0 → ... → P cn-1 → Π e : E . P e) → E → E
+
+***** This one:
+∀ E : ★ . Π v : fancyvector · (λ i : Nat . E) n .
+           (∀ P : E → ★ . P c0 → ... → P cn-1 → Π e : E . P e) → E → E
+*****
+
+∀ E : ★ . Π v : fancyvector · (λ i : Nat . λ u : Lt i n . E) n .
+           (∀ P : E → ★ . fancyvector (λ i : Nat . λ u : Lt i n . P (select v i n u)) → Π e : E . P e) → E → E
+
+rotate ⇐ Π n : Nat . rotate-t n = ● .
+
+rotate (S (S Z)) enum2 (Cons c0 (Cons c1 Nil)) ind-enum2
