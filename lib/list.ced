@@ -71,3 +71,10 @@ CNil ⇐ ∀ A : ★ . CList · A = Λ A . Λ X . λ c . λ e . e .
 
 toCList ⇐ ∀ A : ★. List · A → CList · A = 
   Λ A . λ l . θ l (λ h . λ t . λ ct . CCons · A h ct) (CNil · A) .
+
+% move the head of the list to the end
+list-rotate ⇐ ∀ A : ★ . List · A → List · A =
+  Λ A . λ l .
+    θ l (λ h . λ t . λ _ .
+           append · A t (Cons · A h (Nil · A)))
+	(Nil · A).

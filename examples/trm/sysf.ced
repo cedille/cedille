@@ -29,7 +29,7 @@ test ⇐ (Nat → ★ → ★) → ★ → ★ = ↑ X . Z · (λ n : Nat . X) :
 
 interp ⇐ (Nat → ★) → tp → ★ =
    λ R : Nat → ★ . λ T : tp .
-    ↑ X . T · (λ T : tp . X) : ((tp → tp → ☆ → ☆ → ☆) → (Nat → tp → (☆ → ☆) → ☆) → (Nat → ☆) → ☆)
+    ↑ X . T · (λ _ : tp . X) : ((tp → tp → ☆ → ☆ → ☆) → (Nat → tp → (☆ → ☆) → ☆) → (Nat → ☆) → ☆)
             · (λ _ : tp . λ _ : tp . λ S1 : ★ . λ S2 : ★ . (S1 → S2))
 	    · (λ _ : Nat . λ _ : tp . λ S : ★ → ★ . ∀ X : ★ . S · X)
 	    · R .

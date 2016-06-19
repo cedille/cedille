@@ -1,45 +1,10 @@
 import ACG-mult-0 .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  mult-one : 1 is the identity for           %
-%    multiplication.                            %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+mult-S-1 ⇐ Π x : Nat . Π y : Nat .
+           mult x (S y) ≃ add x ( mult x y ) =
+  λ x . λ y . ● .
 
-
-  mult-one-0 ⇐ Π x : Nat .
-
-  % Theorem
-
-  mult one x ≃ x =
-
-  % Inductive Step
-
-  λ x . θ x ( λ px . λ h . ● )
-
-  % Base Case
-
-  β .
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  Mult-Symm : Multiplication is symmetric      %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  mult-symm ⇐ Π x : Nat . Π y : Nat .
-
-  % Theorem
-
-  mult x y ≃ mult y x =
-
-  % Inductive Step
-
-  λ x . λ y . θ x ( λ px . λ h . ρ ( mult-S-0 px y ) - ρ h - β )
-
-  % Base Case
-
-  ρ ( mult-Z-0 y )
-  - β .
-  
+mult-comm ⇐ Π x : Nat . Π y : Nat . mult x y ≃ mult y x =
+  λ x . λ y . θ x ( λ px . λ h . ρ (mult-S-0 px y) - ρ ( mult-S-1 y px ) - ρ h - β )
+    ρ ( mult-Z-0 y )
+    - β .

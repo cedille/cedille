@@ -379,7 +379,7 @@ in the parse tree, and updates the Cedille info buffer."
                    (f (car ls))
                    (n (string-to-number (cadr ls)))
                    (b (find-file f)))
-              (with-current-buffer b (goto-char n)))
+              (with-current-buffer b (goto-char n) (se-navigation-mode)))
             (message "No location at this node")))
     (message "No node selected"))
   ;;; If the mark is active, we are jumping within the buffer. This prevents

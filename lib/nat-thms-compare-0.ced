@@ -13,21 +13,9 @@ eqnat-eq ⇐ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) → x ≃ y =
 eqnat-S ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
   λ x . θ x (λ p . λ u . ρ u - β) β .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  eqnat-refl : Each number is equal to itself  %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 eqnat-refl ⇐ Π x : Nat . eqnat x x ≃ tt =
-
-  % Inductive Step
-
   λ x . θ x ( λ px . λ h . ρ h
       	      	       	     - β )
-
-  % Base Case
-
   β .
 
 eqnat-sym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
@@ -36,17 +24,7 @@ eqnat-sym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x =
                θ y (λ y . λ v . (u y)) β)
           (λ y . θ y (λ py . λ u . β) β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  eqnat-defn : Eqnat states that beta-equal    %
-%    nats are equal                             %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 eqnat-defn ⇐ Π x : Nat . Π y : Nat . ( x ≃ y ) → eqnat x y ≃ tt =
-
-  % Direct Proof
-
   λ x . λ y . λ pf . ρ pf
                      - ρ ( eqnat-refl y )
 		       - β .
@@ -72,3 +50,25 @@ Lte-S-0 ⇐ Π x : Nat . Π y : Nat . Lte (S x) y → Lte x y =
               θ y (λ py . λ _ . λ u . r py u) (λ u . δ u))
            (λ y . λ u . Z-Lte y).
 
+compare-eq-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ EQ ) → ( compare y z ≃ o ) → ( compare x z ≃ o ) =
+  λ x . λ y . λ z . λ o . λ pf-xy . λ pf-yz . ρ ( compare-eq x y pf-xy ) - ρ ( ς pf-yz ) - β .
+
+compare-trans-eq ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) → ( compare y z ≃ EQ ) → ( compare x z ≃ o ) =
+  λ x . λ y . λ z . λ o . λ pf-xy . λ pf-yz . ρ ( ς pf-xy ) - ρ ( compare-eq y z pf-yz ) - β .
+
+compare-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) → ( compare y z ≃ o ) → ( compare x z ≃ o ) =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ _ . λ z . θ z
+      	( λ pz . λ _ . λ o . λ pf-xy . λ pf-yz . ρ ( hx py pz o pf-xy pf-yz ) - β )
+	( λ o . λ _ . λ pf-yz . ρ ( ς pf-yz ) - β ) )
+      ( λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) )
+	( λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) ) ) )
+    ( λ y . θ y
+      ( λ _ . λ _ . λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ _ . ρ ( ς pf-xy ) - β )
+	( λ _ . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) ) )
+      ( λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) )
+	( λ _ . λ pf-xy . λ _ . pf-xy ) ) ) .

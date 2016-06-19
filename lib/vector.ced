@@ -1,14 +1,14 @@
 import nat .
 
-rec Vector (A : ★) : (n : Nat) | Cons : ∀ n : Nat . A → Vector n → Vector (S n) ,
- Nil : Vector Z =
+rec Vector (A : ★) : (n : Nat) | Vcons : ∀ n : Nat . A → Vector n → Vector (S n) ,
+ Vnil : Vector Z =
   ∀ P : Π n : Nat . Vector n → ★ .
-    (∀ n : Nat . Π a : A . Π v : Vector n . P n v → P (S n) (Cons -n a v)) → 
-    P Z Nil → 
+    (∀ n : Nat . Π a : A . Π v : Vector n . P n v → P (S n) (Vcons -n a v)) → 
+    P Z Vnil → 
     P n self
   with
-    Cons = Λ n . λ a . λ v . Λ P . λ c . λ e . c -n a v (v · P c e) ,
-    Nil = Λ P . λ c . λ n . n 
+    Vcons = Λ n . λ a . λ v . Λ P . λ c . λ e . c -n a v (v · P c e) ,
+    Vnil = Λ P . λ c . λ n . n 
 .
 
 

@@ -109,7 +109,6 @@ be terminated with a new line. Calls FN or
 request unless `se-inf-parse-hook' is non-nil.  Uses the current
 buffer's file unless FILE is non-nil."
   (interactive)
-  (message "se-inf-parse-file")
   (se-inf-header-timer-start)
   (run-hooks 'se-inf-parse-hook)
   (setq se-inf-response-finished nil)
