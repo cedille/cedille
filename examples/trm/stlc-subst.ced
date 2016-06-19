@@ -24,5 +24,8 @@ hastp-subst ⇐ Π t1 : trm . Π x : Nat . Π t2 : trm .
     θ<t2 T2 d> d (λ t2a . λ t2b . λ Ta . λ Tb . λ d1 . λ d2 . λ r1 . λ r2 . λ ha. 
                     hastp-app (subst t1 x t2a) (subst t1 x t2b) Ta Tb
 		      (r1 (andE1 (hastp-assumed x T1 t2a (arrow Ta Tb) d1) (hastp-assumed x T1 t2b Ta d2) ha))
-		      (r2 (andE2 (hastp-assumed x T1 t2a (arrow Ta Tb) d1) (hastp-assumed x T1 t2b Ta d2) ha))) ● ● .
+		      (r2 (andE2 (hastp-assumed x T1 t2a (arrow Ta Tb) d1) (hastp-assumed x T1 t2b Ta d2) ha))) 
+                 (λ y . λ b . λ Ta . λ Tb. λ db . λ r . λ hl .
+		    hastp-lam (substh-lam-var tt t1 y b) (subst t1 x b) Ta Tb ● )
+		 ● .
   

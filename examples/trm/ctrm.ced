@@ -10,3 +10,5 @@ cextend ⇐ ∀ X : ★ . (Nat → X) → Nat → X → (Nat → X) =
 clam ⇐ Nat → ctrm → ctrm = λ i . λ c . Λ X . λ a . λ l . λ v . l i (λ x . c · X a l (cextend · X v i x)) .
 
 cvar ⇐ Nat → ctrm = λ i . Λ X . λ a . λ l . λ v . v i .
+
+cctrm ⇐ ★ = ∀ X : ★ . (X → X → X) → (CNat → (X → X) → X) → (CNat → X) → X .

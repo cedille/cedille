@@ -1,0 +1,21 @@
+import trm.
+import subst.
+import test-trms.
+import trm-util.
+
+cd-trmh ⇐ trm → Bool → trm =
+ λ t .
+   θ t
+     (λ t1 . λ _ . λ r1 . λ r2 . λ rebind-lam . 
+        θ t1
+          (λ _ . λ _ . λ _ . λ _ . app (r1 tt) (r2 tt))
+          (λ i . λ f . λ _ . subst (r2 tt) i (r1 ff))
+          (λ _ . app (r1 tt) (r2 tt)))
+     (λ i . λ _ . λ r . λ rebind-lam . θ rebind-lam (lam i (r (λ _ . var i) tt)) (r (λ _ . var i) tt))
+     (λ i . λ _ . var i) .
+
+cd-trm ⇐ trm → trm = λ t . cd-trmh t tt .
+
+to-cctrm (cd-trm redex2) !
+
+to-cctrm (cd-trm fv-trm) !

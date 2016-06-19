@@ -8,6 +8,9 @@ to-ctrm ⇐ trm → ctrm =
             (λ i . λ _ . λ N . clam i (N (cvar i))) 
             (λ i . cvar i) .
 
+to-cctrm ⇐ trm → cctrm =
+  λ t . Λ X . λ a . λ l . λ v . (to-ctrm t) · X a (λ n . λ r . l (toCNat n) r) (λ n . v (toCNat n)) .
+
 trm-ext ⇐ 
   ∀ P : trm → ★ . 
   ∀ a : (Π t1 : trm . Π t2 : trm . P t1 → P t2 → P (app t1 t2)) . 
