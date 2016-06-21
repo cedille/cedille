@@ -16,24 +16,15 @@
 
 (defun cedille-mode-has-synthesized-type(data-list)
   "Return true/false if data portion of span has a synthesized-type portion"
-    (if data-list
-        (if (string= (prin1-to-string (car (car data-list))) "synthesized\\ type")
-            t 
-            (cedille-mode-has-synthesized-type (cdr data-list))
-        )
+    (if (assoc 'synthesized\ type data-list)
+        t
         nil
     )
 )
         
 (defun cedille-mode-get-synthesized-type(data-list)
   "Return the synthesized type from the data portion of a span as a string"
-    (if data-list
-        (if (string= (prin1-to-string (car (car data-list))) "synthesized\\ type")
-            (cdr (car data-list)) 
-            (cedille-mode-get-synthesized-type (cdr data-list))
-        )
-        nil
-    )
+    (cdr (assoc 'synthesized\ type data-list))
 )
 
 (defun cedille-mode-get-synthesized-signature-pair(span-string data-list)
@@ -44,7 +35,7 @@
 (defun cedille-mode-get-rec-signature-pair(span-string)
   "Return the pair of the rec type name and the constructors"
     (let ((signature-pair (split-string (car (split-string span-string "=")) "\|")))
-        (cons (car signature-pair) (cdr signature-pair))
+        (cons (substring (car signature-pair) 4 -2) (cdr signature-pair))
     )
 )
 
@@ -100,11 +91,19 @@
     )
 )
 
+(defun cedille-mode-summary-list-to-string-helper(str)
+  "Removes quotes and parenthesis from the lists converted to strings"
+    (replace-regexp-in-string "\(" "" (
+    replace-regexp-in-string "\)" "" (
+    replace-regexp-in-string "\"" "" str)))
+)
+
 (defun cedille-mode-summary-list-to-string(pairs)
   "Convert the list of summary pairs to a single string"
     (if pairs
-        ; need prin1-to-string function call or that argument fails some type-check during runtime
-        (concat (car (car pairs)) " : " (prin1-to-string (cdr (car pairs))) "\n"
+        ; need prin1-to-string function call or that argument fails a type-check during runtime
+        (concat (substring (car (car pairs)) 0 -1) " : " 
+                (cedille-mode-summary-list-to-string-helper(prin1-to-string (cdr (car pairs)))) "\n"
                     (cedille-mode-summary-list-to-string (cdr pairs)))
         ""
     )
