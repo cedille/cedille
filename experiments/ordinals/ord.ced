@@ -1,0 +1,46 @@
+import true.
+import false.
+import nat.
+
+rec on | oZ : on , oS : on → on , oLim : (Nat → on) → on =
+  ∀ P : on → ★ .
+    P oZ →
+    (Π n : on . P n → P (oS n)) →
+    (Π f : Nat → on . (Π n : Nat . P (f n)) → P (oLim f)) →
+    P self
+with
+  oZ = Λ P . λ z. λ s . λ l . z ,
+  oS = λ n . Λ P . λ z . λ s . λ l . s n (n · P z s l) ,
+  oLim = λ f . Λ P . λ z . λ s . λ l . l f (λ n . f n · P z s l) .
+
+add ⇐ on → on → on =
+  λ n . λ m .
+    θ m n (λ _ . λ r . oS r) (λ _ . λ r . oLim r) . 
+
+Nat-to-on ⇐ Nat → on =
+  λ n . θ n (λ _ . λ r . oS r) oZ .
+
+omega ⇐ on = oLim Nat-to-on.
+
+n1 = add (oS oZ) omega !!
+
+n2 = add omega (oS oZ) !!
+
+eq-ord ⇐ on → on → ★ =
+  λ n : on .
+  ↑ X . n · (λ _ : on . on → X) : ((on → ☆) → (on → (on → ☆) → (on → ☆)) → ((Nat → on) → (Nat → (on → ☆)) → (on → ☆)) → on → ☆)
+          · (λ m : on . (m ≃ oZ))
+	  · (λ _ : on . λ r : on → ★ . λ m : on .
+	      ↑ X . m · (λ _ : on . X) : (☆ → (on → ☆ → ☆) → ((Nat → on) → (Nat → ☆) → ☆) → ☆)
+	              · False
+		      · (λ m' : on . λ _ : ★ . r m')
+                      · (λ _ : Nat → on . λ _ : Nat → ★ . False))
+          · (λ _ : Nat → on . λ r : (Nat → (on → ★)) . λ m : on .
+	       ↑ X . m · (λ _ : on . X) : (☆ → (on → ☆ → ☆) → ((Nat → on) → (Nat → ☆) → ☆) → ☆)
+	               · False
+		       · (λ _ : on . λ _ : ★ . False)
+		       · (λ p : Nat → on . λ _ : Nat → ★ .
+		            Π n : Nat . r n (p n)))
+ .
+
+% this is not correct for different sequences with the same limit.
