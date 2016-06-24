@@ -131,16 +131,16 @@ reason : string → tagged-val
 reason s = "reason" , s
 
 expected-type : type → tagged-val
-expected-type tp = "expected-type" , type-to-string tp
+expected-type tp = "expected-type" , to-string tp
 
 hnf-type : ctxt → type → tagged-val
-hnf-type Γ tp = "hnf of type" , type-to-string (hnf-term-type Γ tp)
+hnf-type Γ tp = "hnf of type" , to-string (hnf-term-type Γ tp)
 
 hnf-expected-type : ctxt → type → tagged-val
-hnf-expected-type Γ tp = "hnf of expected type" , type-to-string (hnf-term-type Γ tp)
+hnf-expected-type Γ tp = "hnf of expected type" , to-string (hnf-term-type Γ tp)
 
 expected-kind : kind → tagged-val
-expected-kind tp = "expected kind" , kind-to-string tp
+expected-kind tp = "expected kind" , to-string tp
 
 expected-kind-if : maybe kind → 𝕃 tagged-val → 𝕃 tagged-val
 expected-kind-if nothing tvs = tvs
@@ -154,6 +154,9 @@ hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val → 𝕃 tagged-v
 hnf-expected-type-if Γ nothing tvs = tvs
 hnf-expected-type-if Γ (just tp) tvs = hnf-expected-type Γ tp :: tvs
 
+summary-data : string → string → tagged-val
+summary-data name classifier = "summary" , (name ^ " : " ^ classifier)
+
 missing-type : tagged-val
 missing-type = "type" , "[undeclared]"
 
@@ -161,28 +164,28 @@ missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
 
 head-kind : kind → tagged-val
-head-kind k = "the kind of the head" , kind-to-string k
+head-kind k = "the kind of the head" , to-string k
 
 head-type : type → tagged-val
-head-type t = "the type of the head" , type-to-string t
+head-type t = "the type of the head" , to-string t
 
 type-app-head : type → tagged-val
-type-app-head tp = "the head" , type-to-string tp
+type-app-head tp = "the head" , to-string tp
 
 term-app-head : term → tagged-val
-term-app-head t = "the head" , term-to-string t
+term-app-head t = "the head" , to-string t
 
 term-argument : term → tagged-val
-term-argument t = "the argument" , term-to-string t
+term-argument t = "the argument" , to-string t
 
 type-argument : type → tagged-val
-type-argument t = "the argument" , type-to-string t
+type-argument t = "the argument" , to-string t
 
 type-data : type → tagged-val
-type-data tp = "type" , type-to-string tp 
+type-data tp = "type" , to-string tp 
 
 kind-data : kind → tagged-val
-kind-data k = "kind" , kind-to-string k
+kind-data k = "kind" , to-string k
 
 liftingType-data : liftingType → tagged-val
 liftingType-data l = "lifting type" , liftingType-to-string l
@@ -302,8 +305,10 @@ KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') [
 KndTpArrow-span : type → kind → span
 KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) [ super-kind-data ]
 
-rectype-name-span : posinfo → var → type → span
-rectype-name-span pi v tp = mk-span "Recursively defined type" pi (posinfo-plus-str pi v) [ "definition" , type-to-string tp ]
+rectype-name-span : posinfo → var → type → kind → span
+rectype-name-span pi v tp k =
+  mk-span "Recursively defined type" pi (posinfo-plus-str pi v)
+    (summary-data v (to-string k) :: [ "definition" , to-string tp ])
 
 Udefse-span : posinfo → 𝕃 tagged-val → span
 Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive type definition" pi (posinfo-plus pi 1) tvs
@@ -312,7 +317,7 @@ Ctordeclse-span : posinfo → 𝕃 tagged-val → span
 Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
 
 erasure : term → tagged-val
-erasure t = "erasure" , term-to-string (erase-term t)
+erasure t = "erasure" , to-string (erase-term t)
 
 Udef-span : posinfo → var → posinfo → term → 𝕃 tagged-val → span
 Udef-span pi x pi' t tvs =
@@ -321,7 +326,8 @@ Udef-span pi x pi' t tvs =
 
 Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
 Ctordecl-span pi x tp tvs =
-  mk-span "Constructor declaration" pi (type-end-pos tp) (tvs ++ [ explain ("Declaration of a type for constructor " ^ x)])
+  mk-span "Constructor declaration" pi (type-end-pos tp)
+    (summary-data ("ctor " ^ x) (to-string tp) :: tvs ++ [ explain ("Declaration of a type for constructor " ^ x)])
 
 Udefs-span : udefs → span
 Udefs-span us = mk-span "Constructor definitions (using lambda encodings)" (udefs-start-pos us) (udefs-end-pos us) []
@@ -334,16 +340,20 @@ Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val →
 Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) tvs
 Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
                                            (tvs ++ [ "type of bound variable" , tk-to-string atk ])
+
 DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span pi x checked tp t pi' tvs = 
-  h (erasure t :: tvs) pi x checked tp pi'
+  h ((h-summary tp) ++ (erasure t :: tvs)) pi x checked tp pi'
   where h : 𝕃 tagged-val → posinfo → var → (checked : 𝔹) → maybe type → posinfo → span
         h tvs pi x tt _ pi' = 
           mk-span "Term-level definition (checking)" pi pi' tvs
         h tvs pi x ff (just tp) pi' = 
-          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , type-to-string tp) :: tvs)
+          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , to-string tp) :: tvs)
         h tvs pi x ff nothing pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
+        h-summary : maybe type → 𝕃 tagged-val
+        h-summary nothing = []
+        h-summary (just tp) = [ summary-data x (to-string tp) ]
     
 CheckTerm-span : (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
 CheckTerm-span checked tp t pi' tvs = 
@@ -352,22 +362,28 @@ CheckTerm-span checked tp t pi' tvs =
         h tvs tt _ pi pi' = 
           mk-span "Checking a term" pi pi' tvs
         h tvs ff (just tp) pi pi' = 
-          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , type-to-string tp) :: tvs)
+          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , to-string tp) :: tvs)
         h tvs ff nothing pi pi' = 
           mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
 
 normalized-type : type → tagged-val
-normalized-type tp = "normalized type" , type-to-string tp
+normalized-type tp = "normalized type" , to-string tp
 
 DefType-span : posinfo → var → (checked : 𝔹) → maybe kind → type → posinfo → 𝕃 tagged-val → span
-DefType-span pi x tt _ _ pi' tvs = mk-span "Type-level definition (checking)" pi pi' tvs
-DefType-span pi x ff (just k) _ pi' tvs =
-  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , kind-to-string k) :: tvs)
-DefType-span pi x ff nothing _ pi' tvs =
-  mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
+DefType-span pi x checked mk tp pi' tvs =
+  h ((h-summary mk) ++ tvs) checked mk
+  where h : 𝕃 tagged-val → 𝔹 → maybe kind → span
+        h tvs tt _ = mk-span "Type-level definition (checking)" pi pi' tvs
+        h tvs ff (just k) =
+          mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , to-string k) :: tvs)
+        h tvs ff nothing =
+          mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
+        h-summary : maybe kind → 𝕃 tagged-val
+        h-summary nothing = []
+        h-summary (just k) = [ summary-data x (to-string k) ]
 
 DefKind-span : posinfo → var → kind → posinfo → span
-DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' []
+DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' [ summary-data x "□" ]
 
 unimplemented-term-span : posinfo → posinfo → maybe type → span
 unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]
@@ -422,7 +438,7 @@ Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t')
 
 Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
 Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 
-                         (tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , type-to-string T ]))
+                         (tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , to-string T ]))
 Chi-span pi NoAtype t' tvs = mk-span "Chi" pi (term-end-pos t') 
                               (tvs ++ [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] )
 
@@ -435,7 +451,7 @@ motive-label : string
 motive-label = "the motive"
 
 the-motive : type → tagged-val
-the-motive motive = motive-label , type-to-string motive
+the-motive motive = motive-label , to-string motive
 
 Theta-span : posinfo → theta → term → lterms → 𝕃 tagged-val → span
 Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-explain u)

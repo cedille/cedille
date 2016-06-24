@@ -379,8 +379,8 @@ check-termi Γ (Delta pi t) (just tp) =
                spanM-add (Delta-span pi t [ type-data tp ])
             else
                spanM-add (Delta-span pi t (error-data errmsg
-                                       :: ("the equality proved" , type-to-string (TpEq t1 t2))
-                                       :: ("normalized version of the equality" , type-to-string (TpEq t1' t2'))
+                                       :: ("the equality proved" , to-string (TpEq t1 t2))
+                                       :: ("normalized version of the equality" , to-string (TpEq t1' t2'))
                                        :: [ expected-type tp ]))
         cont errmsg (just tp) = 
           spanM-add (Delta-span pi t (error-data errmsg :: [ expected-type tp ]))
@@ -431,7 +431,7 @@ check-termi Γ (Epsilon pi lr m t) nothing =
         cont (just tp) = 
           spanM-add (Epsilon-span pi lr m t ff ( error-data ("There is no expected type, and the type we synthesized for the body"
                                                            ^ " of the ε-term is not an equation.")
-                                             :: ["the synthesized type" , type-to-string tp ])) ≫span
+                                             :: ["the synthesized type" , to-string tp ])) ≫span
           spanMr nothing
 
 check-termi Γ (Sigma pi t) mt = 
@@ -454,7 +454,7 @@ check-termi Γ (Sigma pi t) mt =
         cont mt (just tp) = 
           spanM-add (Sigma-span pi t mt ( error-data ("The type we synthesized for the body"
                                                       ^ " of the ς-term is not an equation.")
-                                          :: ["the synthesized type" , type-to-string tp ])) ≫span
+                                          :: ["the synthesized type" , to-string tp ])) ≫span
           check-fail mt
 
 check-termi Γ (Rho pi t t') (just tp) = 
@@ -463,10 +463,10 @@ check-termi Γ (Rho pi t t') (just tp) =
         cont nothing = spanM-add (Rho-span pi t t' tt [ expected-type tp ]) 
         cont (just (TpEq t1 t2)) = 
            check-term Γ t' (just (rewrite-type Γ empty-renamectxt t1 t2 tp)) ≫span
-           spanM-add (Rho-span pi t t' tt ( ("the equation" , type-to-string (TpEq t1 t2)) :: [ type-data tp ]))
+           spanM-add (Rho-span pi t t' tt ( ("the equation" , to-string (TpEq t1 t2)) :: [ type-data tp ]))
         cont (just tp') = spanM-add (Rho-span pi t t' tt
                                        (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
-                                     :: ("the synthesized type for the first subterm" , type-to-string tp')
+                                     :: ("the synthesized type for the first subterm" , to-string tp')
                                      :: [ expected-type tp ])) 
 
 check-termi Γ (Rho pi t t') nothing = 
@@ -479,7 +479,7 @@ check-termi Γ (Rho pi t t') nothing =
             check-termi-return Γ (Rho pi t t') tp'
         cont (just tp') m2 = spanM-add (Rho-span pi t t' ff
                                          (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
-                                      :: ("the synthesized type for the first subterm" , type-to-string tp')
+                                      :: ("the synthesized type for the first subterm" , to-string tp')
                                       :: [])) ≫span spanMr nothing
         cont nothing _ = spanM-add (Rho-span pi t t' ff []) ≫span spanMr nothing
 

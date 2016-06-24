@@ -1,37 +1,14 @@
 import nat-thms-add-0.
 import nat-thms-S-0.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  add-comm : addition is commutative           %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-comm ⇐ Π n : Nat . Π m : Nat .
-
-  % Theorem
-
-  add n m ≃ add m n
-
-  % Inductive Step
-
+add-comm ⇐ Π n : Nat . Π m : Nat . add n m ≃ add m n
   = λ n . λ m . θ n ( λ p . λ h . εl ρ h
       	      	      	      	     - ρ ( add-S-comm-1 m p )
 				       - β )
-
-  % Base Case
-
   ( εl ρ ( add-Z-1 m )
        - β ) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                                               %
-%  add-one : The successor                      %
-%    function is equal to Add one               %
-%                                               %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  add-one-1 ⇐ Π n : Nat .
+add-one-1 ⇐ Π n : Nat .
 
   % Theorem
 

@@ -126,15 +126,15 @@ ctxt-rec-def p v t k (mk-ctxt cur-unit filename syms i) =
           (trie-insert i v (rec-def t k , (filename , p)))
 
 ctxt-binding-to-string : string × (ctxt-info × location) → string
-ctxt-binding-to-string (x , term-decl tp , _) = "term " ^ x ^ " : " ^ type-to-string tp 
-ctxt-binding-to-string (x , term-def t tp , _) = "term " ^ x ^ " = " ^ term-to-string t ^ " : " ^ type-to-string tp 
-ctxt-binding-to-string (x , term-udef t , _) = "term " ^ x ^ " = " ^ term-to-string t 
-ctxt-binding-to-string (x , type-decl k , _) = "type " ^ x ^ " : " ^ kind-to-string k 
-ctxt-binding-to-string (x , type-def tp k , _) = "type " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
-ctxt-binding-to-string (x , type-udef tp , _) = "type " ^ x ^ " = " ^ type-to-string tp
-ctxt-binding-to-string (x , kind-def k , _) = "type " ^ x ^ " = " ^ kind-to-string k 
+ctxt-binding-to-string (x , term-decl tp , _) = "term " ^ x ^ " : " ^ to-string tp 
+ctxt-binding-to-string (x , term-def t tp , _) = "term " ^ x ^ " = " ^ to-string t ^ " : " ^ to-string tp 
+ctxt-binding-to-string (x , term-udef t , _) = "term " ^ x ^ " = " ^ to-string t 
+ctxt-binding-to-string (x , type-decl k , _) = "type " ^ x ^ " : " ^ to-string k 
+ctxt-binding-to-string (x , type-def tp k , _) = "type " ^ x ^ " = " ^ to-string tp ^ " : " ^ to-string k 
+ctxt-binding-to-string (x , type-udef tp , _) = "type " ^ x ^ " = " ^ to-string tp
+ctxt-binding-to-string (x , kind-def k , _) = "type " ^ x ^ " = " ^ to-string k 
 ctxt-binding-to-string (x , rename-def y , _) = "rename " ^ x ^ " to " ^ y 
-ctxt-binding-to-string (x , rec-def tp k , _) = "rec " ^ x ^ " = " ^ type-to-string tp ^ " : " ^ kind-to-string k 
+ctxt-binding-to-string (x , rec-def tp k , _) = "rec " ^ x ^ " = " ^ to-string tp ^ " : " ^ to-string k 
 ctxt-binding-to-string (x , var-decl , _) = "expr " ^ x
 
 ctxt-to-string : ctxt → string
