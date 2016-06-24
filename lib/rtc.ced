@@ -1,0 +1,14 @@
+rec rtc(A : ★)(R : A → A → ★) : (a : A)(b : A)
+| rtc-step : Π a : A . Π b : A . R a b → rtc a b ,
+  rtc-trans : Π a : A . Π b : A . Π c : A . rtc a b → rtc b c → rtc a c
+=
+  ∀ P : Π a : A . Π b : A . rtc a b → ★ .
+  (Π a : A . Π b : A . Π p : R a b . P a b (rtc-step a b p)) →
+  (Π a : A . Π b : A . Π c : A . Π p1 : rtc a b . Π p2 : rtc b c .
+     P a b p1 →
+     P b c p2 →
+     P a c (rtc-trans a b c p1 p2)) →
+     P a b self
+with
+  rtc-step = λ a . λ b . λ u . Λ P . λ s . λ t . s a b u ,
+  rtc-trans = λ a . λ b . λ c . λ p1 . λ p2 . Λ P . λ s . λ t . t a b c p1 p2 (p1 · P s t) (p2 · P s t) .

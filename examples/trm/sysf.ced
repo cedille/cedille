@@ -35,3 +35,4 @@ interp ⇐ (Nat → ★) → tp → ★ =
 	    · R .
 	      
 test ⇐ ★ = interp · (λ X : Nat . Nat) (forall Z (arrow (var Z) (var Z))) !
+

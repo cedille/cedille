@@ -1,0 +1,19 @@
+import sysf.
+import red.
+import norm. 
+
+Candidat ⇐ (trm → ★) → ★ =
+  λ R : trm → ★ .
+  Π t : trm . R t → 
+    And · (Normalizing t)
+        · (Π t' : trm . red t' t → R t') .
+
+ninterp ⇐ (Nat → trm → ★) → tp → (trm → ★) =
+  λ R : Nat → trm → ★ . λ T : tp .
+    ↑ X . T · (λ _ : tp . trm → X)
+           : ((tp → tp → (trm → ☆) → (trm → ☆) → (trm → ☆)) → (Nat → tp → ((trm → ☆) → (trm → ☆)) → (trm → ☆)) → (Nat → (trm → ☆)) → (trm → ☆))
+            · (λ _ : tp . λ _ : tp . λ S1 : (trm → ★) . λ S2 : (trm → ★) . λ t : trm.
+	        And · (Normalizing t) · (Π t' : trm . S1 t' → S2 (app t t')))
+	    · (λ _ : Nat . λ _ : tp . λ S : (trm → ★) → (trm → ★) . λ t : trm .
+	        ∀ R : trm → ★ . Candidat · R → S · R t)
+	    · R .

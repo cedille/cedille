@@ -9,3 +9,5 @@ fst ⇐ ∀ A : ★ . ∀ B : ★ . Pair · A · B → A =
 
 snd ⇐ ∀ A : ★ . ∀ B : ★ . Pair · A · B → B =
   Λ A . Λ B . λ p . θ p (λ x . λ y . y) . 
+
+And ⇐ ★ → ★ → ★ = Pair.
