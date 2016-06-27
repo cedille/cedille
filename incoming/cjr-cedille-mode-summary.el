@@ -2,123 +2,140 @@
 ;;; Implement top-level definitions view
 ;;; =====================================
 ;;;
-;;;
-;;;
 ;;; cedille-mode.el changes to make
 ;;;
 ;;; Load the file (somewhere past the navigation commands):
 ;;; (load "incoming/cjr-cedille-mode-summary")
 ;;;
 ;;; Add key to activate:
-;;; (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-display-file-summary)
+;;; (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
 ;;;
 
 
-(defun cedille-mode-has-synthesized-type(data-list)
-  "Return true/false if data portion of span has a synthesized-type portion"
-    (if (assoc 'synthesized\ type data-list)
-        t
-        nil
-    )
-)
-        
-(defun cedille-mode-get-synthesized-type(data-list)
-  "Return the synthesized type from the data portion of a span as a string"
-    (cdr (assoc 'synthesized\ type data-list))
-)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;     Summary retrieval code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-synthesized-signature-pair(span-string data-list)
-  "Return the signature for a synthesized-type top-level definition"
-    (cons (car (split-string span-string "=")) (cedille-mode-get-synthesized-type data-list))
-)
-
-(defun cedille-mode-get-rec-signature-pair(span-string)
-  "Return the pair of the rec type name and the constructors"
-    (let ((signature-pair (split-string (car (split-string span-string "=")) "\|")))
-        (cons (substring (car signature-pair) 4 -2) (cdr signature-pair))
-    )
-)
-
-(defun cedille-mode-get-signature-pair(span-string)
-  "Return the pair of the definition name and type from the signature"
-    (let ((signature-pair (split-string (car (split-string span-string "=")) "\u21D0")))
-        (cons (car signature-pair) (cdr signature-pair))
-    )
-)
-
-(defun cedille-mode-get-summary-pair(span)
-  "Return the pair of name and type for a top-level definition"
-    (let* ((span-string (buffer-substring (se-span-start span) (se-span-end span)))
-         (first-string (car (split-string span-string " "))))
-            ; check what the top-level definition is
-            (cond   ((string= first-string "import") 
-                        (cons span-string ""))
-                    ((string= first-string "rec")
-                        (cedille-mode-get-rec-signature-pair span-string))
-                    (t ;default case
-                        (if (cedille-mode-has-synthesized-type (se-span-data span))
-                            ; synthesized type
-                            (cedille-mode-get-synthesized-signature-pair span-string (se-span-data span))
-                            ; non-synthesized type
-                            (cedille-mode-get-signature-pair span-string)
-                        ))
-            )
-    )
-)
-
-(defun cedille-mode-get-all-summary-pairs-helper(cur-top-level spans pair-list)
+(defun cedille-mode-get-all-summaries-helper(spans summary-list start-pos-list)
     (if spans
-        ;step
-        (if (se-term-child-p (car spans) cur-top-level)
-            ;is child or equal
-            (cedille-mode-get-all-summary-pairs-helper cur-top-level (cdr spans) pair-list)
-            ;new top-level definition
-            (cedille-mode-get-all-summary-pairs-helper (car spans) (cdr spans) 
-                        (cons (cedille-mode-get-summary-pair (car spans)) pair-list))
+        (let* ((first-span (car spans))
+                (summary (assoc 'summary (se-span-data first-span))))
+            (if summary
+                (cedille-mode-get-all-summaries-helper (cdr spans) (cons (cdr summary) summary-list) 
+                            (cons (se-span-start first-span) start-pos-list))
+                (cedille-mode-get-all-summaries-helper (cdr spans) summary-list start-pos-list)
+            )
         )
-        ;base
-        pair-list
+        (cons (reverse summary-list) (reverse start-pos-list)) ;reversed to keep in same order as file
     )
 )
 
-(defun cedille-mode-get-all-summary-pairs()
-  "Return all of the summary pairs for the current spans"
+(defun cedille-mode-get-all-summaries()
+  "Return the pair of the list of summaries for the current spans and the list of the corresponding start positions"
+    (cedille-mode-get-all-summaries-helper se-mode-spans nil nil)
+)
+
+(defun cedille-mode-summary-list-to-string-helper(summaries str)
+    (if summaries
+        (cedille-mode-summary-list-to-string-helper (cdr summaries) (concat str "\n" (car summaries)))
+        (substring str 1) ; removes initial newline -- bad solution for empty file
+    )
+)
+
+(defun cedille-mode-summary-list-to-string(summaries)
+  "Convert the list of summaries into a single string"
+    (cedille-mode-summary-list-to-string-helper summaries "")
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;     Summary View minor-mode code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun cedille-mode-get-start-position-helper(linenum start-list)
+   (if (eq linenum 1)
+        (car start-list)
+        (cedille-mode-get-start-position-helper (- linenum 1) (cdr start-list))
+   )
+)
+
+(defun cedille-mode-get-start-position()
+  "Gets the start position from the start-list using the current line number"
+    (cedille-mode-get-start-position-helper (string-to-number (car (cdr (split-string (what-line) " ")))) cedille-mode-start-list)
+)
+
+(defun cedille-mode-summary-jump()
+  "Jumps from the summary of a top-level definition to that definition"
     (interactive)
-    (let ((spans (cdr se-mode-spans))) ;step past the cedille-file span
-        (reverse (cedille-mode-get-all-summary-pairs-helper (car spans) (cdr spans) 
-                    (cons (cedille-mode-get-summary-pair (car spans)) nil))
+    (let ((start-pos (cedille-mode-get-start-position)))
+        (select-window (get-buffer-window cedille-mode-main-buffer))
+        (goto-char start-pos)
+        (se-navigation-mode)
+        ; the following prevents highlighting errors when jumping to navigation mode buffer, copied from nav-jump
+        (if mark-active                                                                 
+            (progn                                                                      
+                (exchange-point-and-mark 1)                                                   
+                (set-mark-command 1)
+            )
+        )
+        (message (concat "Jump to char:  " (number-to-string start-pos)))
+    )
+)
+
+(define-minor-mode cedille-summary-view-mode
+    "Creates summary mode, which allows jumping from a summary back to its top-level definition in the main window"
+    nil         ; init-value, whether the mode is on automatically after definition
+    " Summary"  ; indicator for mode line
+    (let ((map (make-sparse-keymap)))
+        (define-key map (kbd "j") 'cedille-mode-summary-jump)
+        map
+    )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;     Summary View display code
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun cedille-mode-get-summary-buffer-name()
+  "Generates a unique name for each file's summary"
+    (concat "cedille-summary-" (file-name-base))
+)
+
+(defun cedille-mode-get-summary-buffer()
+  "Creates/gets and returns the summary buffer"
+    (get-buffer-create (cedille-mode-get-summary-buffer-name))
+)
+
+(defun cedille-mode-get-summary-window()
+  "Creates/gets and returns the summary window"
+    (let ((summary-window (get-buffer-window (cedille-mode-get-summary-buffer))))
+        (if summary-window
+            summary-window
+            (split-window nil nil 'right)
         )
     )
 )
 
-(defun cedille-mode-summary-list-to-string-helper(str)
-  "Removes quotes and parenthesis from the lists converted to strings"
-    (replace-regexp-in-string "\(" "" (
-    replace-regexp-in-string "\)" "" (
-    replace-regexp-in-string "\"" "" str)))
-)
-
-(defun cedille-mode-summary-list-to-string(pairs)
-  "Convert the list of summary pairs to a single string"
-    (if pairs
-        ; need prin1-to-string function call or that argument fails a type-check during runtime
-        (concat (substring (car (car pairs)) 0 -1) " : " 
-                (cedille-mode-summary-list-to-string-helper(prin1-to-string (cdr (car pairs)))) "\n"
-                    (cedille-mode-summary-list-to-string (cdr pairs)))
-        ""
-    )
-)
-
-(defun cedille-mode-display-file-summary()
-  "Display a list of top level definitions (and types) in the info buffer"
+(defun cedille-mode-summary-display()
+  "Creates/destroys the summary window/buffer"
     (interactive)
-    (let ((summary-string (cedille-mode-summary-list-to-string (cedille-mode-get-all-summary-pairs))))
-        (with-current-buffer (cedille-info-buffer)
-            (erase-buffer)
-            (insert summary-string)
-            (setq buffer-read-only t)
+    (let ((summary-buffer (cedille-mode-get-summary-buffer)))
+        (if (get-buffer-window summary-buffer)
+            (delete-window (cedille-mode-get-summary-window))
+            (let* ((summary-pair (cedille-mode-get-all-summaries))
+                    (summary-string (cedille-mode-summary-list-to-string (car summary-pair)))
+                    (summary-starts (cdr summary-pair))
+                    (main-buffer (current-buffer)))
+                (set-window-buffer (cedille-mode-get-summary-window) summary-buffer)
+                (with-current-buffer summary-buffer
+                    (erase-buffer)
+                    (insert summary-string)
+                    (setq buffer-read-only t) 
+                    ; variables set for use in summary minor mode
+                    (setq cedille-mode-start-list summary-starts)
+                    (setq cedille-mode-main-buffer main-buffer)
+                    (cedille-summary-view-mode)
+                )
+            )
         )
-        (cedille-adjust-info-window-size)
     )
 )
-
