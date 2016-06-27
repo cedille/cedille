@@ -132,7 +132,9 @@
                     (setq buffer-read-only t) 
                     ; variables set for use in summary minor mode
                     (setq cedille-mode-start-list summary-starts)
+                    (make-local-variable 'cedille-mode-start-list)
                     (setq cedille-mode-main-buffer main-buffer)
+                    (make-local-variable 'cedille-mode-main-buffer)
                     (cedille-summary-view-mode)
                 )
             )
