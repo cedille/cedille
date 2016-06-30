@@ -28,6 +28,8 @@
   (add-to-list 'load-path (concat se-path "/json.el")))
 (load-library "se")
 
+(load (concat cedille-path "/cedille-mode/cedille-mode-summary.el"))
+
 (when (version< emacs-version "24.4")
   (defun define-error (name message &optional parent)
     "Define NAME as a new error signal.
@@ -427,6 +429,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
+  (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
 )
 
 (cedille-modify-keymap)

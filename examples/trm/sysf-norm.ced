@@ -8,7 +8,9 @@ Candidat ⇐ (trm → ★) → ★ =
     And · (Normalizing t)
         · (Π t' : trm . red t' t → R t') .
 
-ninterp ⇐ (Nat → trm → ★) → tp → (trm → ★) =
+𝒌trmpred ⇐ □ = trm → ★ .
+
+ninterp ⇐ (Nat → 𝒌trmpred) → tp → 𝒌trmpred =
   λ R : Nat → trm → ★ . λ T : tp .
     ↑ X . T · (λ _ : tp . trm → X)
            : ((tp → tp → (trm → ☆) → (trm → ☆) → (trm → ☆)) → (Nat → tp → ((trm → ☆) → (trm → ☆)) → (trm → ☆)) → (Nat → (trm → ☆)) → (trm → ☆))
