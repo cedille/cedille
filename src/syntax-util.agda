@@ -392,3 +392,13 @@ compute-deps (File _ cs _) = compute-deps-cmds cs
         compute-deps-cmds : cmds → 𝕃 string
         compute-deps-cmds (CmdsNext c cs) = singleton-if-include c ++ compute-deps-cmds cs
         compute-deps-cmds (CmdsStart c) = singleton-if-include c
+
+data language-level : Set where
+  ll-term : language-level
+  ll-type : language-level
+  ll-kind : language-level
+
+ll-to-string : language-level → string
+ll-to-string ll-term = "term"
+ll-to-string ll-type = "type"
+ll-to-string ll-kind = "kind"

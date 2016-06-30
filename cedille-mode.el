@@ -135,7 +135,7 @@ start of each string, and then strip out that number."
 (defun cedille-mode-filter-out-special(data)
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
-     unless (or (eq key 'symbol) (eq key 'location))
+     unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level))
      collecting (cons key value)))
 
 (defun cedille-mode-inspect ()

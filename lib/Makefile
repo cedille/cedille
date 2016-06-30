@@ -18,4 +18,4 @@ all: $(TARGETS)
 	@cedille $< ; if ( grep error $@ > /dev/null ) ; then echo "$<: ERROR"; else echo "$<"; fi
 
 clean: 
-	@rm -f .cedille/*.cede
+	rm -f .cedille/*.cede

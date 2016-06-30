@@ -219,6 +219,13 @@ location-data (file-name , pi) = "location" , (file-name ^ " - " ^ pi)
 var-location-data : ctxt → var → tagged-val
 var-location-data Γ x = location-data (ctxt-var-location Γ x)
 
+ll-data : language-level → tagged-val
+ll-data x = "language-level" , ll-to-string x
+
+ll-data-term = ll-data ll-term
+ll-data-type = ll-data ll-type
+ll-data-kind = ll-data ll-kind
+
 --------------------------------------------------
 -- span-creating functions
 --------------------------------------------------
@@ -247,29 +254,30 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
                                       pi pi' []
 
 TpVar-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: tvs)
+TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (ll-data-type :: var-location-data Γ v :: symbol-data v :: tvs)
 
 Var-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: tvs)
+Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (ll-data-term :: var-location-data Γ v :: symbol-data v :: tvs)
 
 KndVar-span : ctxt → posinfo → string → span
-KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v) (var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
+KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v)
+                       (ll-data-kind :: var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
 
 var-span : ctxt → posinfo → string → tk → span
 var-span Γ pi x (Tkk k) = TpVar-span Γ pi x [ kind-data k ]
 var-span Γ pi x (Tkt t) = Var-span Γ pi x (type-data t :: [ hnf-type Γ t ])
 
 TpAppt-span : type → term → 𝕃 tagged-val → span
-TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) tvs
+TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (ll-data-type :: tvs)
 
 TpApp-span : type → type → 𝕃 tagged-val → span
-TpApp-span tp tp' tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') tvs
+TpApp-span tp tp' tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') (ll-data-type :: tvs)
 
 App-span : term → term → 𝕃 tagged-val → span
-App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') tvs
+App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (ll-data-term :: tvs)
 
 AppTp-span : term → type → 𝕃 tagged-val → span
-AppTp-span t tp tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) tvs
+AppTp-span t tp tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (ll-data-term :: tvs)
 
 TpQuant-e = 𝔹
 
@@ -278,32 +286,32 @@ is-pi = tt
 
 TpQuant-span : TpQuant-e → posinfo → var → tk → type → 𝕃 tagged-val → span
 TpQuant-span is-pi pi x atk body tvs = mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
-                                         pi (type-end-pos body) tvs
+                                         pi (type-end-pos body) (ll-data-type :: tvs)
 
 TpLambda-span : posinfo → var → tk → type → 𝕃 tagged-val → span
-TpLambda-span pi x atk body tvs = mk-span "Type-level lambda abstraction" pi (type-end-pos body) tvs
+TpLambda-span pi x atk body tvs = mk-span "Type-level lambda abstraction" pi (type-end-pos body) (ll-data-type :: tvs)
 
 -- a span boxing up the parameters and the indices of a Rec definition
 RecPrelim-span : string → posinfo → posinfo → span
 RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor declarations for datatype " ^ name) pi pi' []
 
 TpArrow-span : type → type → 𝕃 tagged-val → span
-TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) tvs
+TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (ll-data-type :: tvs)
 
 TpEq-span : term → term → 𝕃 tagged-val → span
-TpEq-span t1 t2 tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) tvs
+TpEq-span t1 t2 tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) (ll-data-type :: tvs)
 
 Star-span : posinfo → span
-Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) []
+Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) [ ll-data-kind ]
 
 KndPi-span : posinfo → var → tk → kind → span
-KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) [ super-kind-data ]
+KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) (ll-data-kind :: [ super-kind-data ])
 
 KndArrow-span : kind → kind → span
-KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') [ super-kind-data ]
+KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') (ll-data-kind :: [ super-kind-data ])
 
 KndTpArrow-span : type → kind → span
-KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) [ super-kind-data ]
+KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) (ll-data-kind :: [ super-kind-data ])
 
 rectype-name-span : posinfo → var → type → kind → span
 rectype-name-span pi v tp k =
@@ -337,9 +345,9 @@ Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
 Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
 
 Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
-Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) tvs
+Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) (ll-data-term :: tvs)
 Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
-                                           (tvs ++ [ "type of bound variable" , tk-to-string atk ])
+                                           ((ll-data-term :: tvs) ++ [ "type of bound variable" , tk-to-string atk ])
 
 DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span pi x checked tp t pi' tvs = 
@@ -388,39 +396,44 @@ DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' [ summary-data 
 unimplemented-term-span : posinfo → posinfo → maybe type → span
 unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]
 unimplemented-term-span pi pi' (just tp) = mk-span "Unimplemented" pi pi' 
-                                              ( error-data "Unimplemented checking a term against a type" :: [ expected-type tp ])
+                                              ( error-data "Unimplemented checking a term against a type" ::
+                                                ll-data-term :: [ expected-type tp ])
 
 unimplemented-type-span : posinfo → posinfo → maybe kind → span
 unimplemented-type-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a kind for a type" ]
 unimplemented-type-span pi pi' (just k) = mk-span "Unimplemented" pi pi' 
-                                              ( error-data "Unimplemented checking a type against a kind" :: [ expected-kind k ])
+                                              ( error-data "Unimplemented checking a type against a kind" ::
+                                                ll-data-type :: [ expected-kind k ])
 
 Beta-span : posinfo → 𝕃 tagged-val → span
 Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
-                     (explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
+                     (ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
 Delta-span : posinfo → term → 𝕃 tagged-val → span
 Delta-span pi t tvs = mk-span "Delta" pi (term-end-pos t) 
-                       (tvs ++ [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
-                                        ^ "false.")])
+                       (ll-data-term :: tvs ++
+                        [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
+                                  ^ "false.")])
 
 PiInj-span : posinfo → num → term → 𝕃 tagged-val → span
 PiInj-span pi n t tvs = mk-span "Pi proof" pi (term-end-pos t) 
-                          (tvs ++ [ explain ("A term for deducing that the argument in position " ^ n ^ " of a head-normal form on "
+                          (ll-data-term :: tvs ++
+                               [ explain ("A term for deducing that the argument in position " ^ n ^ " of a head-normal form on "
                                            ^ "the lhs of the equation proved by the subterm is equal to the corresponding argument " 
                                            ^ "of the rhs") ])
 
 hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
 hole-span Γ pi tp tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1) 
-    (error-data "This hole remains to be filled in" :: expected-type-if tp (hnf-expected-type-if Γ tp tvs))
+    (ll-data-term :: error-data "This hole remains to be filled in" :: expected-type-if tp (hnf-expected-type-if Γ tp tvs))
 
 expected-to-string : 𝔹 → string
 expected-to-string expected = if expected then "expected" else "synthesized"
 
 Epsilon-span : posinfo → leftRight → maybeMinus → term → 𝔹 → 𝕃 tagged-val → span
 Epsilon-span pi lr m t expected tvs = mk-span "Epsilon" pi (term-end-pos t) 
-                                         (tvs ++ [ explain ("Normalize " ^ side lr ^ " of the " 
+                                         (ll-data-term :: tvs ++
+                                         [ explain ("Normalize " ^ side lr ^ " of the " 
                                                    ^ expected-to-string expected ^ " equation, using " ^ maybeMinus-description m 
                                                    ^ " reduction." ) ])
   where side : leftRight → string
@@ -433,19 +446,20 @@ Epsilon-span pi lr m t expected tvs = mk-span "Epsilon" pi (term-end-pos t)
 
 Rho-span : posinfo → term → term → 𝔹 → 𝕃 tagged-val → span
 Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
-                                  (tvs ++ [ explain ("Rewrite terms in the " 
-                                                   ^ expected-to-string expected ^ " type, using an equation. ") ])
+                                  (ll-data-term :: tvs ++ [ explain ("Rewrite terms in the " 
+                                                          ^ expected-to-string expected ^ " type, using an equation. ") ])
 
 Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
 Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 
-                         (tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , to-string T ]))
+                         (ll-data-term :: tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , to-string T ]))
 Chi-span pi NoAtype t' tvs = mk-span "Chi" pi (term-end-pos t') 
-                              (tvs ++ [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] )
+                              (ll-data-term :: tvs ++ [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] )
 
 Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
 Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
-                                   (tvs ++ (explain ("Swap the sides of the equation synthesized for the body of the of this term.")
-                                           :: expected-type-if expected []))
+                                   (ll-data-term :: tvs ++
+                                   (explain ("Swap the sides of the equation synthesized for the body of the of this term.")
+                                    :: expected-type-if expected []))
 
 motive-label : string
 motive-label = "the motive"
@@ -454,7 +468,7 @@ the-motive : type → tagged-val
 the-motive motive = motive-label , to-string motive
 
 Theta-span : posinfo → theta → term → lterms → 𝕃 tagged-val → span
-Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (tvs ++ do-explain u)
+Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data-term :: tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
         do-explain (AbstractVars vs) = [ explain ("Perform an elimination with the first term, after abstracting the listed variables (" 
@@ -475,7 +489,7 @@ normalized-type-if Γ EraseOnly e = []
 normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
 
 Lft-span : posinfo → var → term → 𝕃 tagged-val → span
-Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) tvs
+Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) (ll-data-type :: tvs)
 
 File-span : posinfo → posinfo → string → span
 File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []
