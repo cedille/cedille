@@ -141,3 +141,5 @@
         )
     )
 )
+
+(provide 'cedille-mode-summary)

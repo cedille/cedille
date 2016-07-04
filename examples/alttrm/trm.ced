@@ -6,7 +6,7 @@ sextend ⇐ ∀ trm : ★ .
 	 Nat → trm →
 	 (Nat → trm) =
  Λ trm . λ s . λ i . λ t . λ j .
-   θ (eqnat i j) t (s j) .
+   θ+ (eqnat i j) (λ _ . t) (λ _ . (s j)) .
      
 extend ⇐ ∀ trm : ★ .
          ∀ P : trm → ★ .
@@ -24,15 +24,15 @@ rec trm : | app : trm → trm → trm ,
             subst : (Nat → trm) → trm → trm,
             var : Nat → trm =
  ∀ P : trm → ★ .  
-   (∀ s : Nat → trm . Π t1 : trm . Π t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
-   (∀ s : Nat → trm . Π i : Nat . Π f : trm .
+   (∀ s : Nat → trm . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
+   (∀ s : Nat → trm . ∀ i : Nat . ∀ f : trm .
       (∀ t : trm . P t → P (subst (sextend · trm s i t) f)) → P (subst s (lam i f))) → 
    ∀ s : Nat → trm .
    (Π i : Nat . P (s i)) →
    P (subst s self)
 with 
-  app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v . a -s t1 t2 (t1 · P a l -s v) (t2 · P a l -s v) ,
-  lam = λ i . λ f . Λ P . λ a . λ l . Λ s . λ v . l -s i f (Λ t . λ u . f · P a l -(sextend · trm s i t) (extend · trm · P -s v i -t u)) ,
+  app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v . a -s -t1 -t2 (t1 · P a l -s v) (t2 · P a l -s v) ,
+  lam = λ i . λ f . Λ P . λ a . λ l . Λ s . λ v . l -s -i -f (Λ t . λ u . f · P a l -(sextend · trm s i t) (extend · trm · P -s v i -t u)) ,
   subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v . t · P a l -(λ i . subst s (s1 i)) (λ i . s1 i · P a l -s v) , 
   var = λ i . Λ P . λ a . λ l . Λ s . λ v . ρ (eqnat-refl i) - (v i)
  .
