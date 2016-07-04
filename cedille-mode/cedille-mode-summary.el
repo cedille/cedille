@@ -44,7 +44,7 @@
 
 (defun cedille-mode-summary-list-to-string(summaries)
   "Convert the list of summaries into a single string"
-    (cedille-mode-summary-list-to-string-helper summaries "")
+    (replace-regexp-in-string "^ctor" "    " (cedille-mode-summary-list-to-string-helper summaries ""))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -110,7 +110,7 @@
     (let ((summary-window (get-buffer-window (cedille-mode-get-summary-buffer))))
         (if summary-window
             summary-window
-            (split-window nil nil 'right)
+            (split-window)
         )
     )
 )
