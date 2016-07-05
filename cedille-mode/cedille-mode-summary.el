@@ -44,7 +44,7 @@
 
 (defun cedille-mode-summary-list-to-string(summaries)
   "Convert the list of summaries into a single string"
-    (replace-regexp-in-string "^ctor" "    " (cedille-mode-summary-list-to-string-helper summaries ""))
+    (replace-regexp-in-string "^ctor" " " (cedille-mode-summary-list-to-string-helper summaries ""))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
