@@ -331,6 +331,7 @@ check-termi Γ (Lam pi l _ x NoClass t) nothing =
 
 check-termi Γ (Lam pi l pi' x oc t) (just tp) with to-abs tp 
 check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _ tp') =
+  check-oc oc ≫span
   spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (this-span oc (check-erasures l b)) ≫span
   add-tk Γ pi' x (lambda-bound-class-if oc atk) ≫=span λ Γ → 
@@ -343,6 +344,9 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
             Lam-span pi l x oc t tvs
           else
             Lam-span pi l x oc t (lambda-bound-var-conv-error x atk atk' tvs)
+        check-oc : optClass → spanM ⊤
+        check-oc NoClass = spanMok
+        check-oc (SomeClass atk) = check-tk Γ atk
         check-erasures : lam → binder → 𝕃 tagged-val
         check-erasures ErasedLambda All = type-data tp 
                                        :: (if (is-free-in-term skip-erased x t) then 
