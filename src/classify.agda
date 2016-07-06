@@ -221,7 +221,9 @@ check-term Γ subject (just tp) =
 check-type Γ subject nothing = check-typei Γ subject nothing
 check-type Γ subject (just k) = check-typei Γ subject (just (hnf Γ unfold-head k))
 
-check-termi Γ (Parens pi t pi') tp = check-term Γ t tp
+check-termi Γ (Parens pi t pi') tp =
+  spanM-add (punctuation-span pi pi') ≫span
+  check-term Γ t tp
 check-termi Γ (Var pi x) tp with ctxt-lookup-term-var Γ x
 check-termi Γ (Var pi x) tp | nothing = 
   spanM-add (Var-span Γ pi x 
@@ -303,6 +305,7 @@ check-termi Γ (App t m t') tp =
                             type-data tp' :: 
                             hnf-expected-type-if Γ (just tp) []))
 check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   check-tk Γ atk ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 
   check-term Γ t nothing ≫=span cont
@@ -321,12 +324,14 @@ check-termi Γ (Lam pi l pi' x (SomeClass atk) t) nothing =
           check-termi-return Γ (Lam pi l pi' x (SomeClass atk) t) rettp
 
 check-termi Γ (Lam pi l _ x NoClass t) nothing =
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (Lam-span pi l x NoClass t [ error-data ("We are not checking this abstraction against a type, so a classifier must be"
                                                   ^ " given for the bound variable " ^ x) ]) ≫span
   spanMr nothing
 
 check-termi Γ (Lam pi l pi' x oc t) (just tp) with to-abs tp 
 check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _ tp') =
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (this-span oc (check-erasures l b)) ≫span
   add-tk Γ pi' x (lambda-bound-class-if oc atk) ≫=span λ Γ → 
     check-term Γ t (just (rename-type Γ x' x (tk-is-type atk) tp'))
@@ -353,6 +358,7 @@ check-termi Γ (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' at
                                      :: [ expected-type tp ]
 
 check-termi Γ (Lam pi l _ x oc t) (just tp) | nothing =
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (Lam-span pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
                                    expected-type tp :: []))
 
@@ -559,7 +565,9 @@ check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ
 
 check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
-check-typei Γ (TpParens pi t pi') k = check-type Γ t k
+check-typei Γ (TpParens pi t pi') k =
+  spanM-add (punctuation-span pi pi') ≫span
+  check-type Γ t k
 check-typei Γ (NoSpans t _) k ss = fst (check-type Γ t k ss) , ss
 check-typei Γ (TpVar pi x) k with ctxt-lookup-type-var Γ x
 check-typei Γ (TpVar pi x) k | nothing = 
@@ -581,6 +589,7 @@ check-typei Γ (TpVar pi x) (just k) | just k' =
 check-typei Γ (TpLambda pi pi' x atk' body) (just k) with to-absk k
 check-typei Γ (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' atk' _ k') =
   check-tk Γ atk ≫span
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (if conv-tk Γ atk atk' then
                TpLambda-span pi x atk body [ kind-data k ]
              else
@@ -590,11 +599,13 @@ check-typei Γ (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x'
           
 check-typei Γ (TpLambda pi pi' x atk body) (just k) | nothing =
   check-tk Γ atk ≫span
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (TpLambda-span pi x atk body
                (error-data "The type is being checked against a kind which is not an arrow- or Pi-kind." ::
                 expected-kind k :: []))
 
 check-typei Γ (TpLambda pi pi' x atk body) nothing =
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   check-tk Γ atk ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 
   check-type Γ body nothing ≫=span cont
@@ -609,6 +620,7 @@ check-typei Γ (TpLambda pi pi' x atk body) nothing =
 
 check-typei Γ (Abs pi b {- All or Pi -} pi' x atk body) k = 
   spanM-add (TpQuant-span (binder-is-pi b) pi x atk body (if-check-against-star-data "A type-level quantification" k)) ≫span
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   check-tk Γ atk ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 
   check-type Γ body (just star) ≫span
@@ -692,6 +704,7 @@ check-typei Γ (TpEq t1 t2) k =
 check-typei Γ (Lft pi pi' X t l) k = 
   add-tk Γ pi' X (Tkk star) ≫=span λ Γ →
   check-term Γ t (just (liftingType-to-type X l)) ≫span
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   cont k (liftingType-to-kind l) 
   where cont : (outer : maybe kind) → kind → spanM (check-ret outer)
         cont nothing k = spanM-add (Lft-span pi X t [ kind-data k ]) ≫span spanMr (just k)
@@ -703,7 +716,9 @@ check-typei Γ (Lft pi pi' X t l) k =
                                          :: expected-kind k' :: [ kind-data k ]))
 check-typei Γ t k = spanM-add (unimplemented-type-span (type-start-pos t) (type-end-pos t) k) ≫span unimplemented-if k
 
-check-kind Γ (KndParens _ k _) = check-kind Γ k
+check-kind Γ (KndParens pi k pi') =
+  spanM-add (punctuation-span pi pi') ≫span
+  check-kind Γ k
 check-kind Γ (Star pi) = spanM-add (Star-span pi)
 check-kind Γ (KndVar pi x) = spanM-add (KndVar-span Γ pi x)
 check-kind Γ (KndArrow k k') = 
@@ -715,6 +730,7 @@ check-kind Γ (KndTpArrow t k) =
   check-type Γ t (just star) ≫span
   check-kind Γ k
 check-kind Γ (KndPi pi pi' x atk k) = 
+  spanM-add (punctuation-span pi (posinfo-plus pi 1)) ≫span
   spanM-add (KndPi-span pi x atk k) ≫span
   check-tk Γ atk ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 

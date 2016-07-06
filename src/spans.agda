@@ -229,6 +229,9 @@ ll-data-kind = ll-data ll-kind
 binder-data : ℕ → tagged-val
 binder-data n = "binder" , ℕ-to-string n
 
+not-for-navigation : tagged-val
+not-for-navigation = "not-for-navigation" , "true"
+
 --------------------------------------------------
 -- span-creating functions
 --------------------------------------------------
@@ -503,3 +506,5 @@ File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") p
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → span
 Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
 
+punctuation-span : posinfo → posinfo → span
+punctuation-span pi pi' = mk-span "Punctuation" pi pi' [ not-for-navigation ]
