@@ -17,7 +17,7 @@ or ⇐ Bool → Bool → Bool =
 not ⇐ Bool → Bool = λ x . θ x ff tt .
 
 if ⇐ ∀ A : ★ . Bool → A → A → A =                                              
-  Λ a . λ b . λ t . λ f . b · (λ b : Bool . a) t f .                           
+  Λ A . λ b . λ t . λ f . b · (λ b : Bool . A) t f .                           
                                                                                  
 imp ⇐ Bool → Bool → Bool =                                                    
   λ x . λ y . x · (λ b : Bool . Bool) y tt . 

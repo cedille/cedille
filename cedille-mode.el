@@ -303,6 +303,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
+  (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-context)
 )
 
 (cedille-modify-keymap)

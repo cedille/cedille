@@ -1,6 +1,5 @@
 
 
-(make-variable-buffer-local
  (defvar cedille-mode-highlight-font-map-default
 
    '(
@@ -24,7 +23,7 @@
     (cedille-highlighted-face . ())
     )
    
-   "Provides default highlighting scheme"))
+   "Provides default highlighting scheme")
 
 
 
