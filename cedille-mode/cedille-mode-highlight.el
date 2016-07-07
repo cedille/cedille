@@ -2,6 +2,10 @@
 
 (eval-when-compile (require 'cl))
 
+
+
+
+
 (make-variable-buffer-local
  (defvar cedille-mode-highlight-font-map nil
    
@@ -31,6 +35,12 @@ Example: '(function-name . (\"defun\" \"defuns\"))"))
   (set-cedille-mode-highlight-font-map cedille-mode-highlight-font-map-default)
   (cedille-mode-highlight))
 
+(defun cedille-mode-highlight-language-level ()
+  (interactive)
+  "Sets the cedille-mode-highlight-font-map variable to 
+   `cedille-mode-highlight-font-map-language-level' then highlights the file"
+  (set-cedille-mode-highlight-font-map cedille-mode-highlight-font-map-language-level)
+  (cedille-mode-highlight))
 
 
 (defun cedille-mode-highlight ()
@@ -43,7 +53,8 @@ Example: '(function-name . (\"defun\" \"defuns\"))"))
       (se-mapc #'cedille-mode-highlight--term se-mode-parse-tree)
       (set-buffer-modified-p modified)
       (when navi-on
-	(se-navigation-mode 1)))))
+	(se-navigation-mode 1))
+      (font-lock-mode 1))))
 
 (defun cedille-mode-highlight--term (term)
   (let ((name (se-term-name term))
