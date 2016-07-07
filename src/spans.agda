@@ -207,12 +207,6 @@ tk-data : tk → tagged-val
 tk-data (Tkk k) = kind-data k
 tk-data (Tkt t) = type-data t
 
-ctxt-data : ctxt → tagged-val
-ctxt-data Γ = "current context" , ctxt-to-string Γ
-
-local-ctxt-data : ctxt → tagged-val
-local-ctxt-data Γ = "current context" , local-ctxt-to-string Γ
-
 location-data : location → tagged-val
 location-data (file-name , pi) = "location" , (file-name ^ " - " ^ pi)
 

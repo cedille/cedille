@@ -565,7 +565,7 @@ check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) = cont (wrap-vars vs 
                             (lterms-to-𝕃 Abstract ls)) 
                (just tp)
 
-check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp [ local-ctxt-data Γ ]) ≫span return-when tp tp
+check-termi Γ (Hole pi) tp = spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp
 
 check-termi Γ t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 

@@ -125,29 +125,6 @@ ctxt-rec-def p v t k (mk-ctxt cur-unit filename syms i) =
   mk-ctxt cur-unit filename (trie-insert-append syms cur-unit v)
           (trie-insert i v (rec-def t k , (filename , p)))
 
-ctxt-binding-to-string : string × (ctxt-info × location) → string
-ctxt-binding-to-string (x , term-decl tp , _) = "term " ^ x ^ " : " ^ to-string tp 
-ctxt-binding-to-string (x , term-def t tp , _) = "term " ^ x ^ " = " ^ to-string t ^ " : " ^ to-string tp 
-ctxt-binding-to-string (x , term-udef t , _) = "term " ^ x ^ " = " ^ to-string t 
-ctxt-binding-to-string (x , type-decl k , _) = "type " ^ x ^ " : " ^ to-string k 
-ctxt-binding-to-string (x , type-def tp k , _) = "type " ^ x ^ " = " ^ to-string tp ^ " : " ^ to-string k 
-ctxt-binding-to-string (x , type-udef tp , _) = "type " ^ x ^ " = " ^ to-string tp
-ctxt-binding-to-string (x , kind-def k , _) = "type " ^ x ^ " = " ^ to-string k 
-ctxt-binding-to-string (x , rename-def y , _) = "rename " ^ x ^ " to " ^ y 
-ctxt-binding-to-string (x , rec-def tp k , _) = "rec " ^ x ^ " = " ^ to-string tp ^ " : " ^ to-string k 
-ctxt-binding-to-string (x , var-decl , _) = "expr " ^ x
-
-ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt cur-unit filename syms i) = "[" ^ (string-concat-sep-map " | " ctxt-binding-to-string (trie-mappings i)) ^ "]"
-
-local-ctxt-to-string : ctxt → string
-local-ctxt-to-string (mk-ctxt cur-unit filename syms i) =
-  "[" ^ (string-concat-sep-map " | " ctxt-binding-to-string (filter helper (trie-mappings i))) ^ "]"
-  where helper : string × ctxt-info × location → 𝔹
-        helper (_ , term-decl _ , _) = tt
-        helper (_ , type-decl _ , _) = tt
-        helper _ = ff
-
 ----------------------------------------------------------------------
 -- lookup functions
 ----------------------------------------------------------------------
