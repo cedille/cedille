@@ -1,0 +1,16 @@
+@node First                                                                       
+@chapter First                                                                    
+@c @cindex first chapter                                                          
+@c @cindex chapter, first                                                         
+
+This is the first page after main.                                                
+
+@enumerate                                                                        
+
+@item                                                                             
+Item 1 goes here                                                                  
+@item                                                                             
+Item 2 goes here                                                                  
+
+@end enumerate                                                                    
+
