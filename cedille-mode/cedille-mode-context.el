@@ -1,4 +1,5 @@
-; Contains the functions for retrieving the context at a given point.
+; Welcome to the Cedille Mode Context tool!
+; This file contains the code that governs the feature allowing the user to retrieve the context at a given point.
 
 (defun cedille-mode-get-context(path) ; -> ( list<(string,string)>, list<(string,string) )
   "Returns a tuple consisting of:
@@ -15,7 +16,7 @@
 		   (symbol (cdr (assoc 'symbol data)))
 		   (kind (cdr (assoc 'kind data)))
 		   (type (cdr (assoc 'type data))))
-	      (if symbol ;Classify the symbol as a term or a type and add it to the appropriate list
+	      (if (and symbol (not (equal symbol "_"))) ;Classify the symbol as a term or a type and add it to the appropriate list. Ignore '_' symbols 
 		  (if type
 		      (setq terms (cons (cons symbol type) terms))
 		    (if kind
