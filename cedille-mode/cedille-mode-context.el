@@ -2,26 +2,26 @@
 
 (defun cedille-mode-get-context(path) ; -> ( list<(string,string)>, list<(string,string) )
   "Returns a tuple consisting of:
-   1. a list of symbols and their associated types
-   2. a list of symbols and their associated kinds"
+   1. a list of terms and their associated types
+   2. a list of types and their associated kinds"
   (let (terms
 	types)
-    (while path
+    (while path ;Recursively traverse the path
       (let ((binder (cdr (assoc 'binder (se-term-data (car path)))))
 	    (children (se-node-children (car path))))
 	(if (and binder children)
-	    (let* ((bound (string-to-number binder))
-		   (data (se-term-data (nth bound children)))
+	    (let* ((bound (string-to-number binder)) 
+		   (data (se-term-data (nth bound children))) ;Get data from the child node matchng the binder number
 		   (symbol (cdr (assoc 'symbol data)))
 		   (kind (cdr (assoc 'kind data)))
 		   (type (cdr (assoc 'type data))))
-	      (if symbol
+	      (if symbol ;Classify the symbol as a term or a type and add it to the appropriate list
 		  (if type
 		      (setq terms (cons (cons symbol type) terms))
 		    (if kind
 			(setq types (cons (cons symbol kind) types))))))))
       (setq path (cdr path)))
-    (cons terms types)))
+    (cons terms types))) ;Return a tuple consisting of the term-type pairs and the type-kind pairs
 
 (defun cedille-mode-format-context(path) ; -> string
   "Formats the context as text for display"
@@ -31,7 +31,7 @@
 	  (types (cdr context)))
       (if (or terms types)
 	  (progn
-	    (if terms
+	    (if terms ;Print out the terms and their types
 		(progn
 		  (setq output (concat output "==== TERMS ====\n"))
 		  (while terms
@@ -41,13 +41,15 @@
 		      (setq output (concat output symbol ":\t" value "\n"))
 		      (setq terms (cdr terms))))
 		  (setq output (concat output "\n"))))
-	    (if types (setq output (concat output  "==== TYPES ====\n")))
-	    (while types
-	      (let* ((head (car types))
-		     (symbol (car head))
-		     (value (cdr head)))
-		(setq output (concat output symbol ":\t" value "\n"))
-		(setq types (cdr types))))
+	    (if types ;Print out the types and their kinds
+		(progn
+		  (setq output (concat output  "==== TYPES ====\n"))
+		  (while types
+		    (let* ((head (car types))
+			   (symbol (car head))
+			   (value (cdr head)))
+		      (setq output (concat output symbol ":\t" value "\n"))
+		      (setq types (cdr types))))))
 	    output)
 	"Selected context is empty."))))
 
@@ -55,14 +57,11 @@
   "Shows the context for the current node. This is the function that should be called when the user presses 'c'."
   (interactive)
   (if se-mode-selected
-      (let* ((b (cedille-info-buffer))
-	     (d (se-term-to-json (se-mode-selected)))
-	     (p (se-find-point-path (point) (se-mode-parse-tree)))
-	     (second (cdr p))
-	     )
+      (let ((b (cedille-info-buffer))
+	    (p (se-find-point-path (point) (se-mode-parse-tree))))
 	(with-current-buffer b
 	  (erase-buffer)
-	  (insert (cedille-mode-format-context second)))
+	  (insert (cedille-mode-format-context p)))
 	(cedille-adjust-info-window-size)
 	(setq deactivate-mark nil))))
 
