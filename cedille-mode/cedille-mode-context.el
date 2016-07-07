@@ -4,8 +4,8 @@
   "Returns a tuple consisting of:
    1. a list of symbols and their associated types
    2. a list of symbols and their associated kinds"
-  (let (types
-	kinds)
+  (let (terms
+	types)
     (while path
       (let ((binder (cdr (assoc 'binder (se-term-data (car path)))))
 	    (children (se-node-children (car path))))
@@ -17,37 +17,37 @@
 		   (type (cdr (assoc 'type data))))
 	      (if symbol
 		  (if type
-		      (setq types (cons (cons symbol type) types))
+		      (setq terms (cons (cons symbol type) terms))
 		    (if kind
-			(setq kinds (cons (cons symbol kind) kinds))))))))
+			(setq types (cons (cons symbol kind) types))))))))
       (setq path (cdr path)))
-    (cons types kinds)))
+    (cons terms types)))
 
 (defun cedille-mode-format-context(path) ; -> string
   "Formats the context as text for display"
   (let ((output "")
 	(context (cedille-mode-get-context path)))
-    (let ((types (car context))
-	  (kinds (cdr context)))
-      (if (or types kinds)
+    (let ((terms (car context))
+	  (types (cdr context)))
+      (if (or terms types)
 	  (progn
-	    (if types
+	    (if terms
 		(progn
-		  (setq output (concat output "==== TYPES ====\n"))
-		  (while types
-		    (let* ((head (car types))
+		  (setq output (concat output "==== TERMS ====\n"))
+		  (while terms
+		    (let* ((head (car terms))
 			   (symbol (car head))
 			   (value (cdr head)))
 		      (setq output (concat output symbol ":\t" value "\n"))
-		      (setq types (cdr types))))
+		      (setq terms (cdr terms))))
 		  (setq output (concat output "\n"))))
-	    (if kinds (setq output (concat output  "==== KINDS ====\n")))
-	    (while kinds
-	      (let* ((head (car kinds))
+	    (if types (setq output (concat output  "==== TYPES ====\n")))
+	    (while types
+	      (let* ((head (car types))
 		     (symbol (car head))
 		     (value (cdr head)))
 		(setq output (concat output symbol ":\t" value "\n"))
-		(setq kinds (cdr kinds))))
+		(setq types (cdr types))))
 	    output)
 	"Selected context is empty."))))
 
