@@ -28,7 +28,7 @@ num -> numone+.
 
 numpunct -> numone | quote | '-' .
 
-anychar -> alpha | numpunct | '\t' | space | '%' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '-' | '=' | '+' | '<' | '>' | '/' .
+anychar -> alpha | numpunct | '\t' | space | '%' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '-' | '=' | '+' | '<' | '>' | '/'  | '_'.
 
 comment => '%' anychar* '\n'.
 

@@ -32,6 +32,7 @@ anychar-bar-25 = string
 anychar-bar-26 = string
 anychar-bar-27 = string
 anychar-bar-28 = string
+anychar-bar-29 = string
 anychar-bar-9 = string
 num = string
 num-plus-6 = string
@@ -91,6 +92,7 @@ data ParseTreeT : Set where
   parsed-anychar-bar-26 : anychar-bar-26 → ParseTreeT
   parsed-anychar-bar-27 : anychar-bar-27 → ParseTreeT
   parsed-anychar-bar-28 : anychar-bar-28 → ParseTreeT
+  parsed-anychar-bar-29 : anychar-bar-29 → ParseTreeT
   parsed-anychar-bar-9 : anychar-bar-9 → ParseTreeT
   parsed-num : num → ParseTreeT
   parsed-num-plus-6 : num-plus-6 → ParseTreeT
@@ -102,16 +104,16 @@ data ParseTreeT : Set where
   parsed-path : path → ParseTreeT
   parsed-path-star-1 : path-star-1 → ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-30 : ParseTreeT
   parsed-aws-bar-31 : ParseTreeT
   parsed-aws-bar-32 : ParseTreeT
+  parsed-aws-bar-33 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-29 : ParseTreeT
+  parsed-comment-star-30 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-34 : ParseTreeT
+  parsed-ows-star-35 : ParseTreeT
   parsed-squote : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-33 : ParseTreeT
+  parsed-ws-plus-34 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -167,6 +169,8 @@ anychar-bar-27ToString : anychar-bar-27 → string
 anychar-bar-27ToString x = "(anychar-bar-27 " ^ x ^ ")"
 anychar-bar-28ToString : anychar-bar-28 → string
 anychar-bar-28ToString x = "(anychar-bar-28 " ^ x ^ ")"
+anychar-bar-29ToString : anychar-bar-29 → string
+anychar-bar-29ToString x = "(anychar-bar-29 " ^ x ^ ")"
 anychar-bar-9ToString : anychar-bar-9 → string
 anychar-bar-9ToString x = "(anychar-bar-9 " ^ x ^ ")"
 numToString : num → string
@@ -233,6 +237,7 @@ ParseTreeToString (parsed-anychar-bar-25 t) = anychar-bar-25ToString t
 ParseTreeToString (parsed-anychar-bar-26 t) = anychar-bar-26ToString t
 ParseTreeToString (parsed-anychar-bar-27 t) = anychar-bar-27ToString t
 ParseTreeToString (parsed-anychar-bar-28 t) = anychar-bar-28ToString t
+ParseTreeToString (parsed-anychar-bar-29 t) = anychar-bar-29ToString t
 ParseTreeToString (parsed-anychar-bar-9 t) = anychar-bar-9ToString t
 ParseTreeToString (parsed-num t) = numToString t
 ParseTreeToString (parsed-num-plus-6 t) = num-plus-6ToString t
@@ -244,16 +249,16 @@ ParseTreeToString (parsed-numpunct-bar-8 t) = numpunct-bar-8ToString t
 ParseTreeToString (parsed-path t) = pathToString t
 ParseTreeToString (parsed-path-star-1 t) = path-star-1ToString t
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-30 = "[aws-bar-30]"
 ParseTreeToString parsed-aws-bar-31 = "[aws-bar-31]"
 ParseTreeToString parsed-aws-bar-32 = "[aws-bar-32]"
+ParseTreeToString parsed-aws-bar-33 = "[aws-bar-33]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-29 = "[comment-star-29]"
+ParseTreeToString parsed-comment-star-30 = "[comment-star-30]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-34 = "[ows-star-34]"
+ParseTreeToString parsed-ows-star-35 = "[ows-star-35]"
 ParseTreeToString parsed-squote = "[squote]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-33 = "[ws-plus-33]"
+ParseTreeToString parsed-ws-plus-34 = "[ws-plus-34]"
 
 ------------------------------------------
 -- Reorganizing rules

@@ -304,6 +304,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
   (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-context)
+  (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
 )
 
 (cedille-modify-keymap)

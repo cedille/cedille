@@ -498,7 +498,7 @@ check-termi Γ (Chi pi (Atype tp) t) mtp =
   check-term Γ t (just tp) ≫span cont mtp
   where cont : (m : maybe type) → spanM (check-ret m)
         cont nothing = spanM-add (Chi-span pi (Atype tp) t []) ≫span spanMr (just tp)
-        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi (Atype tp) t []))
+        cont (just tp') = if conv-type Γ tp tp' then (spanM-add (Chi-span pi (Atype tp) t [ expected-type tp' ]))
                           else (spanM-add (Chi-span pi (Atype tp) t ( error-data "The expected type does not match the asserted type."
                                                            :: expected-type tp' :: []))) ≫span
                           spanMok
