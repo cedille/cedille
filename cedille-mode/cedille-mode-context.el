@@ -58,12 +58,24 @@
   "Shows the context for the current node. This is the function that should be called when the user presses 'c'."
   (interactive)
   (if se-mode-selected
-      (let ((b (cedille-info-buffer))
+      (let ((b (get-buffer-create (cedille-mode-context-buffer-name)))
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
 	(with-current-buffer b
 	  (erase-buffer)
 	  (insert (cedille-mode-format-context p)))
-	(cedille-adjust-info-window-size)
 	(setq deactivate-mark nil))))
+
+(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name))))
+
+(defun cedille-mode-toggle-context-mode()
+  "Toggles context mode on/off"
+  (interactive)
+  (let ((context-buffer (get-buffer-create (cedille-mode-context-buffer-name))))
+    (if (get-buffer-window context-buffer)
+	;If there is a context mode window, erase it
+	(delete-window (get-buffer-window context-buffer))
+      ;Else create a new one
+      (cedille-mode-context)
+      (display-buffer context-buffer))))
 
 (provide 'cedille-mode-context)
