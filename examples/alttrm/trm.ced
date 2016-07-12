@@ -1,40 +1,26 @@
-import funceq.
+import finmap.
 import nat.
-import nat-thms-compare.
-
-sextend ⇐ ∀ trm : ★ .
-         (Nat → trm) →
-	 Nat → trm →
-	 (Nat → trm) =
- Λ trm . λ s . λ i . λ t . λ j .
-   θ+ (eqnat i j) (λ _ . t) (λ _ . (s j)) .
-     
-extend ⇐ ∀ trm : ★ .
-         ∀ P : trm → ★ .
-         ∀ s : Nat → trm .
-	 (Π j : Nat . P (s j)) →
-	 Π i : Nat .
-	 ∀ t : trm .
-	 Π u : P t .
-	 (Π j : Nat . P (sextend · trm s i t j)) =
- Λ trm . Λ P . Λ s . λ v . λ i . Λ t . λ U . λ j .
-   θ+ (eqnat i j) (λ u . ρ (χ (sextend s i t j ≃ t) - εl- ρ u - β) - U) (λ u . ρ (χ (sextend s i t j ≃ s j) - εl ρ u - β) - (v j)) .
 
 rec trm : | app : trm → trm → trm ,
             lam : Nat → trm → trm ,
-            subst : (Nat → trm) → trm → trm,
+            subst : (finmap · (λ _ : Nat . trm)) → trm → trm,
             var : Nat → trm =
  ∀ P : trm → ★ .  
-   (∀ s : Nat → trm . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
-   (∀ s : Nat → trm . ∀ i : Nat . ∀ f : trm .
-      (∀ t : trm . P t → P (subst (sextend · trm s i t) f)) → P (subst s (lam i f))) → 
-   ∀ s : Nat → trm .
-   funceq · Nat · (λ i : Nat . P (s i)) →
+   (∀ s : finmap · (λ _ : Nat . trm) . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
+   (∀ s : finmap · (λ _ : Nat . trm) . ∀ i : Nat . ∀ f : trm .
+      (∀ t : trm . P t → P (subst (finmapUpdate · (λ _ : Nat . trm) s i t) f)) → P (subst s (lam i f))) → 
+   ∀ s : finmap · (λ _ : Nat . trm).
+   finmap · (λ i : Nat . P (finmapLookup · (λ i : Nat . trm) s i)) →
    P (subst s self)
 with 
   app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v . a -s -t1 -t2 (t1 · P a l -s v) (t2 · P a l -s v) ,
-  lam = λ i . λ f . Λ P . λ a . λ l . Λ s . λ v . l -s -i -f (Λ t . λ u . f · P a l -(sextend · trm s i t) (extend · trm · P -s v i -t u)) ,
-  subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v . t · P a l -(λ i . subst s (s1 i)) (λ i . s1 i · P a l -s v) , 
+  lam = λ i . λ f . Λ P . λ a . λ l . Λ s . λ v .
+        l -s -i -f (Λ t . λ u . f · P a l
+                                  -(finmapUpdate · (λ _ : Nat . trm) s i t)
+                                   (finmapUpdateDep · (λ _ : Nat . trm) · (λ _ : Nat . λ t : trm . P t)
+                                     -s v i -t u)),
+  subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v . t · P a l -(finmapMap · (λ _ : Nat . trm) · (λ _ : Nat . trm)
+                                                                   (λ _ . subst s) (λ b . Λ x . subst s (b -x)) s1) (λ i . s1 i · P a l -s v) , 
   var = λ i . Λ P . λ a . λ l . Λ s . λ v . ρ (eqnat-refl i) - (v i)
  .
 

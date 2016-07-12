@@ -165,14 +165,16 @@ the info buffer for the file.  Return the info buffer as a convenience."
 the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-next)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-previous()
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-previous)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -218,14 +220,16 @@ Updates info buffer in either case."
 the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-expand-selected)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-first-child()
   "Selects the first child of the lowest node in the parse tree
 containing point, and updates the Cedille info buffer."
   (interactive)
   (se-mode-shrink-selected)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
@@ -303,8 +307,10 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
-  (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-context)
+  (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-toggle-context-mode)
   (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
+  (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
+  (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
 )
 
 (cedille-modify-keymap)
