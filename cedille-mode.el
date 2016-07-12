@@ -273,8 +273,12 @@ in the parse tree, and updates the Cedille info buffer."
   "Shows or hides the Cedille info buffer."
   (interactive)
   (let* ((b (cedille-info-buffer))
-         (w (get-buffer-window b)))
-    (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))))
+         (w (get-buffer-window b))
+	 (c (cedille-mode-context-buffer))
+	 (x (get-buffer-window c)))
+    (progn
+      (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))
+      (if x (delete-window x)))))
 
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
@@ -305,6 +309,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
+  (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-context)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
   (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-toggle-context-mode)

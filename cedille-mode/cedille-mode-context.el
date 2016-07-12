@@ -67,13 +67,20 @@
 
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name))))
 
+(defun cedille-mode-context-buffer()
+  (let* ((n (cedille-mode-context-buffer-name))
+         (b (get-buffer-create n)))
+    (with-current-buffer b
+       (setq buffer-read-only nil))
+    b))
+
 (defun cedille-mode-toggle-context-mode()
   "Toggles context mode on/off"
   (interactive)
-  (let ((context-buffer (get-buffer-create (cedille-mode-context-buffer-name))))
+  (let ((context-buffer (cedille-mode-context-buffer)))
     (if (get-buffer-window context-buffer)
-	;If there is a context mode window, erase it
-	(delete-window (get-buffer-window context-buffer))
+	;If there is a context mode window, switch back to an info-mode window
+	(display-buffer (cedille-info-buffer))
       ;Else create a new one
       (cedille-mode-context)
       (display-buffer context-buffer))))
