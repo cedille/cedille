@@ -223,6 +223,11 @@ ll-data-kind = ll-data ll-kind
 binder-data : ℕ → tagged-val
 binder-data n = "binder" , ℕ-to-string n
 
+-- this is the subterm position in the parse tree (as determined by
+-- spans) for the bound variable of a binder
+binder-data-const : tagged-val
+binder-data-const = binder-data 0
+
 not-for-navigation : tagged-val
 not-for-navigation = "not-for-navigation" , "true"
 
@@ -287,11 +292,11 @@ is-pi = tt
 TpQuant-span : TpQuant-e → posinfo → var → tk → type → 𝕃 tagged-val → span
 TpQuant-span is-pi pi x atk body tvs =
   mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
-       pi (type-end-pos body) (ll-data-type :: binder-data 1 :: tvs)
+       pi (type-end-pos body) (ll-data-type :: binder-data-const :: tvs)
 
 TpLambda-span : posinfo → var → tk → type → 𝕃 tagged-val → span
 TpLambda-span pi x atk body tvs =
-  mk-span "Type-level lambda abstraction" pi (type-end-pos body) (ll-data-type :: binder-data 1 :: tvs)
+  mk-span "Type-level lambda abstraction" pi (type-end-pos body) (ll-data-type :: binder-data-const :: tvs)
 
 -- a span boxing up the parameters and the indices of a Rec definition
 RecPrelim-span : string → posinfo → posinfo → span
@@ -307,7 +312,7 @@ Star-span : posinfo → span
 Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) [ ll-data-kind ]
 
 KndPi-span : posinfo → var → tk → kind → span
-KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) (ll-data-kind :: binder-data 1 :: [ super-kind-data ])
+KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) (ll-data-kind :: binder-data-const :: [ super-kind-data ])
 
 KndArrow-span : kind → kind → span
 KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') (ll-data-kind :: [ super-kind-data ])
@@ -347,9 +352,9 @@ Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
 Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
 
 Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
-Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) (ll-data-term :: binder-data 1 :: tvs)
+Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) (ll-data-term :: binder-data-const :: tvs)
 Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
-                                           ((ll-data-term :: binder-data 1 :: tvs)
+                                           ((ll-data-term :: binder-data-const :: tvs)
                                            ++ [ "type of bound variable" , tk-to-string atk ])
 
 DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
@@ -492,7 +497,7 @@ normalized-type-if Γ EraseOnly e = []
 normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
 
 Lft-span : posinfo → var → term → 𝕃 tagged-val → span
-Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) (ll-data-type :: binder-data 1 :: tvs)
+Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) (ll-data-type :: binder-data-const :: tvs)
 
 File-span : posinfo → posinfo → string → span
 File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []

@@ -1,28 +1,74 @@
 import finmap.
 import nat.
 
+rec substmap(trm : ★) | substmapCons : Nat → trm → substmap → substmap , substmapStart : trm → substmap =
+  ∀ P : substmap → ★.
+    (Π i : Nat. Π t : trm . Π m : substmap . P m → P (substmapCons i t m)) →
+    (Π default : trm . P (substmapStart default)) →
+    P self
+with
+  substmapCons = λ i . λ t . λ m . Λ P . λ c . λ s . c i t m (m · P c s),
+  substmapStart = λ default . Λ P . λ c . λ s . s default.
+
+substmapLookup ⇐ ∀ trm : ★ . substmap · trm → Nat → trm =
+  Λ trm . λ m . λ j .
+    θ m
+      (λ i . λ t . λ m . λ h .
+         θ+ (eqnat i j) (λ u . t) (λ u . h))
+      (λ default . default).
+
+substmapUpdate ⇐ ∀ trm : ★ . substmap · trm → Nat → trm → substmap · trm =
+  Λ trm . λ m . λ j . λ t1 .
+    θ m
+      (λ i . λ t . λ m . λ h .
+         θ+ (eqnat i j) (λ u . substmapCons · trm j t1 m) (λ u . substmapCons · trm i t h))
+      (λ default . substmapCons · trm j t1 (substmapStart · trm default)).
+
+
+substmapDefault ⇐ ∀ trm : ★ . substmap · trm → trm =
+  Λ trm . λ m . 
+    θ m
+      (λ i . λ t . λ m . λ h . h)
+      (λ default . default).
+
+rec extmap(trm : ★)(P : trm → ★) : (s : substmap · trm)
+  | extmapCons : ∀ s : substmap · trm . Π i : Nat. ∀ t : trm . P t → extmap s → extmap (substmapCons · trm i t s) ,
+    extmapStart : ∀ default : trm . P default → extmap (substmapStart · trm default)
+=
+  ∀ Q : Π s : substmap · trm . extmap s → ★.
+    (∀ s : substmap · trm . Π i : Nat . ∀ t : trm . Π u : P t . Π m : extmap s .
+        Q s m → Q (substmapCons · trm i t s) (extmapCons -s i -t u m)) →
+    (∀ default : trm . Π u : P default . Q (substmapStart · trm default) (extmapStart -default u)) →
+    Q s self
+with
+  extmapCons = Λ s . λ i . Λ t . λ u . λ m . Λ Q . λ c . λ st . c -s i -t u m (m · Q c st) ,
+  extmapStart = Λ default . λ u . Λ Q . λ c . λ st . st -default u .
+
+extmapLookup ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ s : substmap · trm .
+                 extmap · trm · P s →
+                 Π i : Nat . P (substmapLookup · trm s i) =
+       Λ trm . Λ P . Λ s . λ m . λ i .
+         θ m ● (λ u . u) 
+.
+
 rec trm : | app : trm → trm → trm ,
             lam : Nat → trm → trm ,
-            subst : (finmap · (λ _ : Nat . trm)) → trm → trm,
+            subst : substmap · trm → trm → trm,
             var : Nat → trm =
  ∀ P : trm → ★ .  
-   (∀ s : finmap · (λ _ : Nat . trm) . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
-   (∀ s : finmap · (λ _ : Nat . trm) . ∀ i : Nat . ∀ f : trm .
-      (∀ t : trm . P t → P (subst (finmapUpdate · (λ _ : Nat . trm) s i t) f)) → P (subst s (lam i f))) → 
-   ∀ s : finmap · (λ _ : Nat . trm).
-   finmap · (λ i : Nat . P (finmapLookup · (λ i : Nat . trm) s i)) →
+   (∀ s : substmap · trm . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
+   (∀ s : substmap · trm . ∀ i : Nat . ∀ f : trm .
+      (∀ t : trm . P t → P (subst (substmapUpdate · trm s i t) f)) → P (subst s (lam i f))) → 
+   ∀ s : substmap · trm.
+   extmap · trm · P s →
    P (subst s self)
 with 
   app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v . a -s -t1 -t2 (t1 · P a l -s v) (t2 · P a l -s v) ,
   lam = λ i . λ f . Λ P . λ a . λ l . Λ s . λ v .
-        l -s -i -f (Λ t . λ u . f · P a l
-                                  -(finmapUpdate · (λ _ : Nat . trm) s i t)
-                                   (finmapUpdateDep · (λ _ : Nat . trm) · (λ _ : Nat . λ t : trm . P t)
-                                     -s v i -t u)),
-  subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v . t · P a l -(finmapMap · (λ _ : Nat . trm) · (λ _ : Nat . trm)
-                                                                   (λ _ . subst s) (λ b . Λ x . subst s (b -x)) s1) (λ i . s1 i · P a l -s v) , 
-  var = λ i . Λ P . λ a . λ l . Λ s . λ v . ρ (eqnat-refl i) - (v i)
- .
+        l -s -i -f (Λ t . λ u . f · P a l -● ●),
+  subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v .
+            t · P a l -● ● , 
+  var = λ i . Λ P . λ a . λ l . Λ s . λ v . (extmapLookup · trm · P -s v i) .
 
 fv-trm ⇐ trm = lam (S Z) (app (var (S Z)) (var Z)) !
 
