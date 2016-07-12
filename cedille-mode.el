@@ -20,6 +20,7 @@
 
 (defvar cedille-mode-debug t "If non-nil then print information for developers")
 
+
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -67,6 +68,10 @@ Defaults to `error'."
 ; set in .emacs file
 (defvar cedille-program-name "cedille-executable"
   "Program to run for cedille mode.")
+
+
+(defvar cedille-mode-highlight-spans nil
+  "Spans including spans marked not-for-navigation.")
 
 (defvar cedille-info-buffer-trailing-edge 1 "Number of blank lines to insert at the bottom of the info buffer.")
 
@@ -132,9 +137,14 @@ start of each string, and then strip out that number."
     (se-new-span (se-span-name span) (se-span-start span) (se-span-end span)
       (cedille-mode-sort-and-strip-json (se-span-data span)))))
 
+
 (defun cedille-mode-initialize-spans()
   "Initialize spans after they are read in by se-mode."
-  (setq se-mode-spans (mapcar #'cedille-mode-initialize-span se-mode-spans)))
+  (setq se-mode-highlight-spans (mapcar #'cedille-mode-initialize-span se-mode-spans))
+  (setq se-mode-spans (remove-if
+		       (lambda (span) (assoc 'not-for-navigation (se-span-data span)))
+		       se-mode-highlight-spans)))
+
 
 (defun cedille-mode-filter-out-special(data)
   "Filter out special attributes from the data in a span"
