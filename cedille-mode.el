@@ -65,11 +65,6 @@ Defaults to `error'."
 (defvar cedille-mode-debug nil
   "Show debugging spans in cedille mode.")
 
-; set in .emacs file
-(defvar cedille-program-name "cedille-executable"
-  "Program to run for cedille mode.")
-
-
 (defvar cedille-mode-highlight-spans nil
   "Spans including spans marked not-for-navigation.")
 
