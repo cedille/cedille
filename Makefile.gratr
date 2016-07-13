@@ -1,0 +1,11 @@
+# this requires gratr
+
+all: src/cedille-main.agda src/options-main.agda
+
+src/cedille-main.agda : src/cedille.gr 
+	cd src ; gratr --continue-with-nonterminating cedille.gr
+
+# this requires gratr
+src/options-main.agda : src/options.gr 
+	cd src ; gratr options.gr
+
