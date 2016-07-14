@@ -5,52 +5,121 @@
 
 
 
+(defgroup cedille-highlight nil
+  "Syntax highlighting for Cedille."
+  :group 'cedille)
+
+(defcustom cedille-highlight-mode 'default
+  "Highlighting scheme used in Cedille-mode buffers."
+  :type '(choice
+	  (const :tag "Default"        default)
+	  (const :tag "Language Level" language-level)
+	  (const :tag "Implicit Hidden" implicit-hidden)
+	  )
+  :group 'cedille-highlight)
+
+
 
 (make-variable-buffer-local
- (defvar cedille-mode-highlight-font-map nil
-   
-   "Should be a mapping of faces or an abbreviated font-lock face
-as symbols.
-
-Example: 'function-name for `font-lock-function-name-face'
-
-The cdr should be a list of se-span names that should have that
-face.
-
-Example: '(function-name . (\"defun\" \"defuns\"))"))
+ (defvar cedille-mode-highlight-face-map nil
+   "Should be a mapping of qualities (strings) 
+   to a mapping of values (strings) with faces (variables)"))
 
 
 
 ;; TODO: Check that MAP is appropriate
-(defun set-cedille-mode-highlight-font-map (map)
-  "Sets the  cedille-mode-highlight-fomt-map variable to MAP."
-  (setq cedille-mode-highlight-font-map map))
+(defun set-cedille-mode-highlight-face-map (map)
+  "Sets the  cedille-mode-highlight-face-map variable to MAP."
+  (setq cedille-mode-highlight-face-map map))
 
+
+
+(defun cedille-mode-highlight-default-old ()
+  (interactive)
+  "Sets the cedille-mode-highlight-face-map variable to 
+   `cedille-mode-highlight-face-map-default' then highlights the file"
+  (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-default-old)
+  (cedille-mode-highlight-old))
+
+(defun cedille-mode-highlight-language-level-old ()
+  (interactive)
+  "Sets the cedille-mode-highlight-face-map variable to 
+   `cedille-mode-highlight-face-map-language-level' then highlights the file"
+  (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-language-level-old)
+  (cedille-mode-highlight-old))
+
+
+(defun cedille-mode-highlight-implicit-hidden-old ()
+ (interactive)
+ "Sets the face to default but with implicit terms blended into the background."
+ (set-face-attribute 'cedille-invisible-face-df nil :foreground
+		      (face-attribute 'default :background))
+ (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-implicit-hidden-old)
+ (cedille-mode-highlight-old))
 
 
 (defun cedille-mode-highlight-default ()
   (interactive)
-  "Sets the cedille-mode-highlight-font-map variable to 
-   `cedille-mode-highlight-font-map-default' then highlights the file"
-  (set-cedille-mode-highlight-font-map cedille-mode-highlight-font-map-default)
+  "Sets the cedille-mode-highlight-face-map variable to 
+   `cedille-mode-highlight-face-map-default' then highlights the file"
+  (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-default)
   (cedille-mode-highlight))
 
 (defun cedille-mode-highlight-language-level ()
   (interactive)
-  "Sets the cedille-mode-highlight-font-map variable to 
-   `cedille-mode-highlight-font-map-language-level' then highlights the file"
-  (set-cedille-mode-highlight-font-map cedille-mode-highlight-font-map-language-level)
+  "Sets the cedille-mode-highlight-face-map variable to 
+   `cedille-mode-highlight-face-map-language-level' then highlights the file"
+  (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-language-level)
   (cedille-mode-highlight))
+
 
 
 (defun cedille-mode-highlight ()
   "Highlights current buffer based on the
-`cedille-mode-highlight-font-map'.  This will deactivate `font-lock-mode'."
-  (when cedille-mode-highlight-font-map
+`ced-font-map'.  This will deactivate `font-lock-mode'."
+  (when cedille-mode-highlight-face-map
     (let ((modified (buffer-modified-p))
 	  (navi-on se-navigation-mode))
       (font-lock-mode -1)
-      (se-mapc #'cedille-mode-highlight--term se-mode-parse-tree)
+      (mapcar 'cedille-mode-highlight-span (cdr cedille-mode-highlight-spans))
+      (set-buffer-modified-p modified)
+      (when navi-on
+	(se-navigation-mode 1)))))
+
+(defun cedille-mode-highlight-span (span)
+  (let ((face (cedille-mode-highlight-get-face span cedille-mode-highlight-face-map))
+	(start (se-span-start span))
+	(end (se-span-end span)))
+    (when face
+      (put-text-property start end 'face face nil))))
+
+
+(defun cedille-mode-highlight-get-face (span map)
+  (if (equal map nil)
+      nil
+    (let* ((val (get-span-data-value span (caar map)))
+	   (face (cdr (assoc  val (cdar map)))))
+      (if face face
+	(cedille-mode-highlight-get-face span (cdr map))))))
+
+
+(defun get-span-data-value (span quality)
+  (let ((data (se-span-data span)))
+    (cond
+     ((string= quality "name") (se-span-name span))
+     ((string= quality "error") (if (cdr (assoc 'error data)) "error" nil)) 
+     (t (cdr (assoc (intern quality) data))))))
+
+
+
+(defun cedille-mode-highlight-old ()
+  "Highlights current buffer based on the
+`cedille-mode-highlight-face-map'.  This will deactivate `font-lock-mode'."
+  (when cedille-mode-highlight-face-map
+    (let ((modified (buffer-modified-p))
+	  (navi-on se-navigation-mode))
+      (font-lock-mode -1)
+      (mapcar #'cedille-mode-highlight--term (cdr cedille-mode-highlight-spans))
       (set-buffer-modified-p modified)
       (when navi-on
 	(se-navigation-mode 1))
@@ -61,30 +130,11 @@ Example: '(function-name . (\"defun\" \"defuns\"))"))
 	(start (se-term-start term))
 	(end (se-term-end term))
 	(face
-	 (loop for (face . names) in cedille-mode-highlight-font-map
+	 (loop for (face . names) in cedille-mode-highlight-face-map
 	       when (member (se-span-name term) names)
 	       do (return face))))
-    (message name)
     (when face
-      (put-text-property start end 'face (cedille-mode-highlight-to-face face) nil))))
-
-(defun cedille-mode-highlight-to-face (face)
-  "Returns font lock face symbol abbreviated by FACE if exists,
-otherwise returns FACE."
-  (let ((orig face))
-    (when (symbolp face)
-      (setq face (symbol-name face)))
-    (if (not (stringp face))
-	orig
-      (setq face (intern (concat "font-lock-" face "-face")))
-      (if (and (boundp face)
-	       (symbol-value face))
-	  face orig))))
-
-
-
-
-
+      (put-text-property start end 'face face nil))))
 
 
 (provide 'cedille-mode-highlight)

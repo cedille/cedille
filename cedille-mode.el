@@ -65,6 +65,18 @@ Defaults to `error'."
 (defvar cedille-mode-debug nil
   "Show debugging spans in cedille mode.")
 
+;;-----------------------------------------------------------------------------
+;;   Customization
+
+(defgroup cedille nil
+  "Major mode for developing Cedille programs."
+  :group 'languages)
+
+
+;; ----------------------------------------------------------------------------
+
+
+
 (defvar cedille-mode-highlight-spans nil
   "Spans including spans marked not-for-navigation.")
 
@@ -135,10 +147,10 @@ start of each string, and then strip out that number."
 
 (defun cedille-mode-initialize-spans()
   "Initialize spans after they are read in by se-mode."
-  (setq se-mode-highlight-spans (mapcar #'cedille-mode-initialize-span se-mode-spans))
+  (setq cedille-mode-highlight-spans (mapcar #'cedille-mode-initialize-span se-mode-spans))
   (setq se-mode-spans (remove-if
 		       (lambda (span) (assoc 'not-for-navigation (se-span-data span)))
-		       se-mode-highlight-spans)))
+		       cedille-mode-highlight-spans)))
 
 
 (defun cedille-mode-filter-out-special(data)
@@ -321,6 +333,9 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
+  (se-navi-define-key 'cedille-mode (kbd "M-h 1") #'cedille-mode-highlight-default-old)
+  (se-navi-define-key 'cedille-mode (kbd "M-h 2") #'cedille-mode-highlight-language-level-old)
+  (se-navi-define-key 'cedille-mode (kbd "M-h 3") #'cedille-mode-highlight-implicit-hidden-old)
 )
 
 (cedille-modify-keymap)
