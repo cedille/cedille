@@ -8,9 +8,8 @@ Candidat ⇐ (trm → ★) → ★ =
     And · (Normalizing t)
         · (Π t' : trm . red t' t → R t') .
 
-𝒌trmpred ⇐ □ = trm → ★ .
 
-ninterp ⇐ (Nat → 𝒌trmpred) → tp → 𝒌trmpred =
+ninterp ⇐ (Nat → trm → ★) → tp → (trm → ★) =
   λ R : Nat → trm → ★ . λ T : tp .
     ↑ X . T · (λ _ : tp . trm → X)
            : ((tp → tp → (trm → ☆) → (trm → ☆) → (trm → ☆)) → (Nat → tp → ((trm → ☆) → (trm → ☆)) → (trm → ☆)) → (Nat → (trm → ☆)) → (trm → ☆))
@@ -19,3 +18,50 @@ ninterp ⇐ (Nat → 𝒌trmpred) → tp → 𝒌trmpred =
 	    · (λ _ : Nat . λ _ : tp . λ S : (trm → ★) → (trm → ★) . λ t : trm .
 	        ∀ R : trm → ★ . Candidat · R → S · R t)
 	    · R .
+
+All-normalizing ⇐ trm → ★ =
+  λ t : trm . Normalizing t .
+
+all-normalizing-red-lem ⇐ Candidat · All-normalizing =
+  λ t . λ pf .
+    mkpair
+      · (Normalizing t)
+      · (Π t' : trm . ((red t' t) → (Normalizing t')))
+      pf
+      (λ t' . λ r . (norm-lem t t' pf (rtc-step · trm · red t' t r))) .
+
+my-new-lem ⇐ ∀ R : (Nat → trm → ★) . Π T : tp . Π t : trm . Π i : Nat .
+             (Π j : Nat . Candidat · (R j)) → ninterp · R (forall i T) t → ninterp · R T t = Λ R . λ T . λ t . λ i . λ cr . λ pf . ● .
+
+
+reducibility-lem ⇐ ∀ R : (Nat → trm → ★) . Π T : tp . (Π i : Nat . Candidat · (R i)) → Candidat · (ninterp · R T) =
+  Λ R . λ T . λ cr . θ T
+      	              (λ T1 . λ T2 . λ _ . λ ih2 . λ t . λ u .
+		      θ u
+		        (λ a . λ b .
+		          mkpair
+			    · (Normalizing t)
+			    · (Π t' : trm . ((red t' t) → (ninterp · R (arrow T1 T2) t')))
+			    a
+			    (λ t' . λ r .
+			      mkpair
+			       · (Normalizing t')
+			       · (Π t'' : trm . (ninterp · R T1 t'') → (ninterp · R T2 (app t' t'')))
+			       (norm-lem t t' a (rtc-step · trm · red t' t r))
+			       (λ t'' . λ pf . snd · (Normalizing (app t t''))
+			                           · (Π t' : trm . ((red t' (app t t'')) → (ninterp · R T2 t')))
+						   (ih2 (app t t'') (b t'' pf)) (app t' t'') (red-app1 t' t t'' r))
+			       )))
+		      
+		      (λ i . λ T' . λ ih . λ t . λ pf .
+		       mkpair
+                         · (Normalizing t)
+                         · (Π t' : trm . (red t' t) → (ninterp · R (forall i T') t'))
+		         (fst · (Normalizing t)
+			      · (Π t' : trm . ((red t' t) → (ninterp · R T' t')))
+			      (ih (pf · All-normalizing all-normalizing-red-lem) t ●))
+			 ● ) .
+% mkpair
+%· (Normalizing t)
+%· (Π t' : trm . (red t' t) → (ninterp · R (forall i f) t'))
+% (ih (pf · All-normalizing all-normalizing-red-lem) t (pf · (R i) (cr i))))
