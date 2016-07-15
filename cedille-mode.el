@@ -177,21 +177,30 @@ the info buffer for the file.  Return the info buffer as a convenience."
 
 
 
-(defun cedille-mode-select-next()
+(defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
-  (interactive)
-  (se-mode-select-next)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-select-next)
+	(cedille-mode-inspect)
+	(cedille-mode-context)
+	(cedille-mode-select-next (- count 1)))
+      nil))
+    
 
-(defun cedille-mode-select-previous()
+(defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
-  (interactive)
-  (se-mode-select-previous)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-select-previous)
+	(cedille-mode-inspect)
+	(cedille-mode-context)
+	(cedille-mode-select-previous (- count 1)))
+      nil))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -204,49 +213,65 @@ the parse tree, and updates the Cedille info buffer."
       t
       nil))
 
-(defun cedille-mode-select-next-alt()
+(defun cedille-mode-select-next-alt(count)
   "Selects the next sibling of the currently selected span, if one exists.
 Otherwise, selects the first span beginning after the end of the current span,
 Updates info buffer in either case"
-  (interactive)
-  (se-mode-set-spans)
-  (unless (se-mode-select (se-mode-next))
-    (let ((found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test)))
-      (if (not found)
-	  (message "No next span")
-	  (progn (cedille-mode-select-span found)
-	     (cedille-mode-inspect))))))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-set-spans)
+	(unless (se-mode-select (se-mode-next))
+	  (let ((found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test)))
+	    (if (not found)
+		(message "No next span")
+	      (progn (cedille-mode-select-span found)
+		     (cedille-mode-inspect)))))
+	(cedille-mode-select-next-alt (- count 1)))
+    nil))
 
-(defun cedille-mode-select-previous-alt()
+(defun cedille-mode-select-previous-alt(count)
   "Selects the previous sibling of the currently selected node;
 otherwise selects first span that ends before the current span begins.
 Updates info buffer in either case."
-  (interactive)
-  (se-mode-set-spans)
-  (unless (se-mode-select (se-mode-previous))
-    (let ((found (cl-find (se-mode-selected) se-mode-spans
-			  :test #'cedille-mode-select-previous-alt-test
-			  :from-end t)))
-      (if (not found)
-	  (message "No previous span")
-	  (progn (cedille-mode-select-span found)
-	     (cedille-mode-inspect))))))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-set-spans)
+	(unless (se-mode-select (se-mode-previous))
+	  (let ((found (cl-find (se-mode-selected) se-mode-spans
+				:test #'cedille-mode-select-previous-alt-test
+				:from-end t)))
+	    (if (not found)
+		(message "No previous span")
+	      (progn (cedille-mode-select-span found)
+		     (cedille-mode-inspect)))))
+	(cedille-mode-select-previous-alt (- count 1)))
+    nil))
 
-(defun cedille-mode-select-parent()
+(defun cedille-mode-select-parent(count)
   "Selects the parent of the currently selected node in 
 the parse tree, and updates the Cedille info buffer."
-  (interactive)
-  (se-mode-expand-selected)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-expand-selected)
+	(cedille-mode-inspect)
+	(cedille-mode-context)
+	(cedille-mode-select-parent (- count 1)))
+    nil))
 
-(defun cedille-mode-select-first-child()
+(defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
 containing point, and updates the Cedille info buffer."
-  (interactive)
-  (se-mode-shrink-selected)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (interactive "p")
+  (if (> count 0)
+      (progn
+	(se-mode-shrink-selected)
+	(cedille-mode-inspect)
+	(cedille-mode-context)
+	(cedille-mode-select-first-child (- count 1)))
+    nil))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
