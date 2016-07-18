@@ -60,7 +60,7 @@ UdefsneStart : udefsne -> ows udef.
 
 Udef : udef -> ! var ows '=' ows term.
 
-Import : cmd -> ! 'import' ws fpth ows '.'! .
+Import : cmd -> ! 'import' ws var ows '.'! .
 
 Left : leftRight -> 'l'.
 Right : leftRight -> 'r'.
@@ -154,8 +154,7 @@ num -> numone+.
 
 numpunct -> numone | quote | '-' | '~' | '#' | '_'.
 
-var -> '_' | (alpha (alpha | numpunct)*) .
-fpth -> '_' | (alpha (alpha | numpunct | '/')*) .
+var -> '_' | (alpha (alpha | numpunct | '/')*) .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 
