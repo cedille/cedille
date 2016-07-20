@@ -195,7 +195,7 @@ checkFile s unit-name should-print-spans =
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
   getLine >>= (λ input-filename → 
-     checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
+     checkFile (set-include-path s ({-takeDirectory input-filename ::-} toplevel-state.include-path s))
        (base-filename (takeFileName input-filename)) tt {- should-print-spans -} >>= λ s → 
      readFilenamesForProcessing s)
 
