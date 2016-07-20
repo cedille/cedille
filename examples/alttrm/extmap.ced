@@ -1,0 +1,85 @@
+import substmap.
+import nat-thms-compare.
+
+rec extmap(trm : ★)(P : trm → ★) : (s : substmap · trm)
+  | extmapCons : ∀ s : substmap · trm . Π i : Nat. ∀ t : trm . P t → extmap s → extmap (substmapCons · trm i t s) ,
+    extmapStart : ∀ default : trm . P default → extmap (substmapStart · trm default)
+=
+  ∀ Q : Π s : substmap · trm . extmap s → ★.
+    (∀ s : substmap · trm . Π i : Nat . ∀ t : trm . Π u : P t . Π m : extmap s .
+        Q s m → Q (substmapCons · trm i t s) (extmapCons -s i -t u m)) →
+    (∀ default : trm . Π u : P default . Q (substmapStart · trm default) (extmapStart -default u)) →
+    Q s self
+with
+  extmapCons = Λ s . λ i . Λ t . λ u . λ m . Λ Q . λ c . λ st . c -s i -t u m (m · Q c st) ,
+  extmapStart = Λ default . λ u . Λ Q . λ c . λ st . st -default u .
+
+extmapLookup ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ s : substmap · trm .
+                 extmap · trm · P s →
+                 Π i : Nat . P (substmapLookup · trm s i) =
+       Λ trm . Λ P . Λ s . λ m . λ j .
+         m · (λ s : substmap · trm . λ m : extmap · trm · P s . P (substmapLookup · trm s j))
+           (Λ s' . λ i . Λ t . λ u . λ m . λ ih . 
+              θ+ (eqnat i j)
+                 (λ v . ρ (χ (substmapLookup (substmapCons i t s') j ≃ t) -
+                           εl ρ v - β) - u)
+                 (λ v. ρ (χ (substmapLookup (substmapCons i t s') j ≃ substmapLookup s' j) -
+                          εl ρ v - β) - ih))
+           (Λ default. λ u . u) 
+.
+
+extmapUpdate ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ s : substmap · trm .
+               extmap · trm · P s →
+               Π i : Nat . ∀ t : trm . P t →
+               extmap · trm · P (substmapUpdate · trm s i t) =
+   Λ trm . Λ P . Λ s . λ m . λ j . Λ t . λ ut .
+     m · (λ s : substmap · trm . λ m : extmap · trm · P s . extmap · trm · P (substmapUpdate · trm s j t))
+       (Λ s . λ i . Λ t1 . λ u1 . λ m . λ r .
+          θ+ (eqnat i j) (λ u . ρ (χ (substmapUpdate (substmapCons i t1 s) j t ≃ substmapCons j t s) -
+                                     εl ρ u - β) -
+                                ρ ς (eqnat-eq i j u) - 
+                                  (extmapCons · trm · P -s i -t ut m))
+                         (λ u . ρ (χ (substmapUpdate (substmapCons i t1 s) j t ≃ substmapCons i t1 (substmapUpdate s j t)) -
+                                     εl ρ u - β) -
+                                  (extmapCons · trm · P -(substmapUpdate · trm s j t) i -t1 u1 r)))
+       (Λ default . λ v . (extmapCons · trm · P -(substmapStart · trm default) j -t ut (extmapStart · trm · P -default v)))
+.
+
+substmapToExtmap ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ f : trm → trm .
+                   (Π t : trm . P (f t)) → Π s : substmap · trm . extmap · trm · P (substmapMap · trm f s) =
+  Λ trm . Λ P . Λ f . λ uf . λ s .
+    θ s
+      (λ i . λ t . λ s . λ m . extmapCons · trm · P -(substmapMap · trm f s) i -(f t) (uf t) m)
+      (λ default . extmapStart · trm · P -(f default) (uf default)) .
+
+
+substmapComp ⇐ ∀ trm : ★ . Π s1 : substmap · trm . ∀ s : substmap · trm .
+    (λ a . λ l . λ v . substmapToExtmap (λ t' . (t' a l (substmapToExtmap (λ t' . (t' a l v)) s))) s1 ≃
+     λ a . λ l . λ v . substmapToExtmap (λ t' . (t' a l v))
+                          (substmapMap (λ t . λ a . λ l . λ v . t a l (substmapToExtmap (λ t . t a l v) s)) s1)) =
+Λ trm . λ s1 . Λ s .
+(s1 · (λ s1 : substmap · trm .
+        (λ a . λ l . λ v . substmapToExtmap (λ t' . (t' a l (substmapToExtmap (λ t' . (t' a l v)) s))) s1 ≃
+         λ a . λ l . λ v . substmapToExtmap (λ t' . (t' a l v))
+                              (substmapMap (λ t . λ a . λ l . λ v . t a l (substmapToExtmap (λ t . t a l v) s)) s1)))
+    (λ i . λ t' . λ s1 . λ ih .
+       ρ (χ ((λ a . λ l . λ v . (substmapToExtmap (λ t'' . (t'' a l (substmapToExtmap (λ t''' . (t''' a l v)) s)))
+                                   (substmapCons i t' s1)))
+           ≃ (λ a . λ l . λ v . (extmapCons i (t' a l (substmapToExtmap (λ t''' . (t''' a l v)) s))
+                                       ((λ a . λ l . λ v .
+                                          substmapToExtmap (λ t'' . (t'' a l (substmapToExtmap (λ t''' . (t''' a l v)) s))) s1)
+                                         a l v)))) -
+           β) -
+       ρ ih -
+       β)
+    (λ default . β)) .
+
+extmapSubstmapLookup ⇐ ∀ trm : ★ . Π s : substmap · trm . Π i : Nat .
+                         (λ a . λ l . λ v . extmapLookup (substmapToExtmap (λ t . t a l v) s) i ≃ substmapLookup s i) =
+  Λ trm . λ s . λ i .
+    θ s
+    (λ j . λ t . λ s . λ ih .
+      θ+ (eqnat j i)
+        (λ u . ε ρ u - β)
+        (λ u . ε ρ u - ε ρ ih - β))
+    (λ default . β) .

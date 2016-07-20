@@ -1,0 +1,38 @@
+import nat.
+
+rec substmap(trm : ★) | substmapCons : Nat → trm → substmap → substmap , substmapStart : trm → substmap =
+  ∀ P : substmap → ★.
+    (Π i : Nat. Π t : trm . Π m : substmap . P m → P (substmapCons i t m)) →
+    (Π default : trm . P (substmapStart default)) →
+    P self
+with
+  substmapCons = λ i . λ t . λ m . Λ P . λ c . λ s . c i t m (m · P c s),
+  substmapStart = λ default . Λ P . λ c . λ s . s default.
+
+substmapLookup ⇐ ∀ trm : ★ . substmap · trm → Nat → trm =
+  Λ trm . λ m . λ j .
+    θ m
+      (λ i . λ t . λ m . λ h .
+         θ+ (eqnat i j) (λ u . t) (λ u . h))
+      (λ default . default).
+
+substmapUpdate ⇐ ∀ trm : ★ . substmap · trm → Nat → trm → substmap · trm =
+  Λ trm . λ m . λ j . λ t1 .
+    θ m
+      (λ i . λ t . λ m . λ h .
+         θ+ (eqnat i j) (λ u . substmapCons · trm j t1 m) (λ u . substmapCons · trm i t h))
+      (λ default . substmapCons · trm j t1 (substmapStart · trm default)).
+
+
+substmapDefault ⇐ ∀ trm : ★ . substmap · trm → trm =
+  Λ trm . λ m . 
+    θ m
+      (λ i . λ t . λ m . λ h . h)
+      (λ default . default).
+
+substmapMap ⇐ ∀ trm : ★ . (trm → trm) → substmap · trm → substmap · trm =
+  Λ trm . λ f . λ m . 
+    θ m
+      (λ i . λ t . λ m . λ h .
+         substmapCons · trm i (f t) h)
+      (λ default . substmapStart · trm (f default)).
