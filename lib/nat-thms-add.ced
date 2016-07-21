@@ -1,5 +1,0 @@
-import nat-thms-add-0.
-import nat-thms-add-1.
-
-Lt-add-0 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Lt (add a b) c → Lt a c = ● .
-
