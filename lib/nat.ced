@@ -16,6 +16,17 @@ mult ⇐ Nat → Nat → Nat = λ n . λ m . θ n ( λ pn . add m ) Z .
 
 exp ⇐ Nat → Nat → Nat = λ x . λ y . θ y ( λ _ . λ hy . mult x hy ) ( S Z ) .
 
+fact ⇐ Nat → Nat = λ x . θ x ( λ px . λ hx . mult hx ( S px ) ) ( S Z ) .
+
+nCr ⇐ Nat → Nat → Nat =
+  λ x . θ x
+    ( λ _ . λ hx . λ y . θ y
+      ( λ py . λ _ . add ( hx py ) ( hx ( S py ) ) )
+      ( S Z ) )
+    ( λ y . θ y
+      ( λ _ . λ _ . Z )
+      ( S Z ) ) .
+
 P ⇐ Nat → Nat = λ n . θ n ( λ p . λ n . p ) n .
 
 subtract ⇐ Nat → Nat → Nat = λ n . λ m . θ m ( λ p . P ) n .
