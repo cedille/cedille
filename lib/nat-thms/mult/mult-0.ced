@@ -1,0 +1,15 @@
+import nat.
+
+mult-defn ⇐ Π x : Nat . Π y : Nat . mult x y ≃ x ( λ px. add y ) Z = λ _ . λ _ . β .
+
+mult-Z-0 ⇐ Π x : Nat . mult x Z ≃ Z =
+  λ x . θ x ( λ px . λ h . ρ h - β ) β .
+
+mult-S-0 ⇐ Π x : Nat . Π y : Nat . mult ( S x ) y ≃ add y ( mult x y ) = λ _ . λ _ . β .
+
+mult-one-1 ⇐ Π x : Nat . mult x one ≃ x =
+  λ x . θ x
+    ( λ px . λ h . ρ ( mult-S-0 px one ) - ρ h - β )
+    β .
+
+  

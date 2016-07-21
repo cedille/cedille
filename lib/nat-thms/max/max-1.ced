@@ -1,0 +1,11 @@
+import nat-thms/add/add-0.
+import nat-thms/compare/compare-0.
+
+max-Z ⇐ Π x : Nat . max x Z ≃ x =
+  λ x . εl ρ (Gte-Z x) - β .
+
+max-lte-add ⇐ Π x : Nat . Π y : Nat . Lte (max x y) (add x y) =
+  λ x . λ y . y · (λ y : Nat . Π x : Nat . Lte (max x y) (add x y))
+                (λ y . λ r . λ x . ●)
+                (λ x . ρ (max-Z x) - ρ (add-Z-1 x) - (Lte-refl x))
+                x.
