@@ -9,11 +9,6 @@ mult-Z-1 ⇐ Π x : Nat . mult x Z ≃ Z =
 
 mult-S-0 ⇐ Π x : Nat . Π y : Nat . mult ( S x ) y ≃ add y ( mult x y ) = λ _ . λ _ . β .
 
-mult-one-0 ⇐ Π x : Nat . mult ( S Z ) x ≃ x =
-  λ x . θ x
-    ( λ px . λ hx . ρ ( mult-S Z px ) - ρ ( add-Z-1 px ) - β )
-    β .
-
 mult-one-1 ⇐ Π x : Nat . mult x ( S Z ) ≃ x =
   λ x . θ x
     ( λ px . λ h . ρ ( mult-S-0 px ( S Z ) ) - ρ h - β )

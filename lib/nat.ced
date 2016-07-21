@@ -14,6 +14,8 @@ add ⇐ Nat → Nat → Nat = λ n . λ m . θ n (λ n . S) m .
 
 mult ⇐ Nat → Nat → Nat = λ n . λ m . θ n ( λ pn . add m ) Z .
 
+exp ⇐ Nat → Nat → Nat = λ x . λ y . θ y ( λ _ . λ hy . mult x hy ) ( S Z ) .
+
 P ⇐ Nat → Nat = λ n . θ n ( λ p . λ n . p ) n .
 
 subtract ⇐ Nat → Nat → Nat = λ n . λ m . θ m ( λ p . P ) n .

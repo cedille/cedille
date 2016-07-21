@@ -24,6 +24,11 @@ mult-S ⇐ Π x : Nat . Π y : Nat . mult ( S x ) ( S y ) ≃ S ( add ( add x y 
     ρ ( add-S-comm-0 ( add x y ) ( mult x y ) ) -
     β.
 
+mult-one-0 ⇐ Π x : Nat . mult ( S Z ) x ≃ x =
+  λ x . θ x
+    ( λ px . λ hx . ρ ( mult-S Z px ) - ρ ( add-Z-1 px ) - β )
+    β .
+
 mult-comm ⇐ Π x : Nat . Π y : Nat . mult x y ≃ mult y x =
   λ x . θ x
     ( λ px . λ hx . λ y . θ y
