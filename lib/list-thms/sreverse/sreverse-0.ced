@@ -1,0 +1,8 @@
+import list.
+
+sreverse-last ⇐ ∀ A : ★ . Π l : List · A . Π a : A . 
+               sreverse (append l (Cons · A a Nil · A)) ≃ Cons · A a (sreverse l) =
+  Λ A . λ l . λ a . θ l (λ h . λ t . λ ih . εl ρ ih - β) β .
+
+sreverse-involution ⇐ ∀ A : ★ . Π l : List · A . sreverse (sreverse l) ≃ l =
+  Λ A . λ l . θ l (λ h . λ t . λ ih . εl ρ (sreverse-last · A (sreverse · A t) h) - ρ ih - β) β .
