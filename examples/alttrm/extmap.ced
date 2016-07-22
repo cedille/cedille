@@ -83,3 +83,27 @@ extmapSubstmapLookup ⇐ ∀ trm : ★ . Π s : substmap · trm . Π i : Nat .
         (λ u . ε ρ u - β)
         (λ u . ε ρ u - ε ρ ih - β))
     (λ default . β) .
+
+extmapUpdateSubstmap ⇐ Π s : substmap · trm . Π i : Nat . ∀ A : ★ . ∀ f : trm → A . 
+                 extmapUpdate (substmapToExtmap f s) i (f (var i)) ≃ substmapToExtmap f (substmapUpdate s i (var i)) =
+   λ s . λ i . Λ A . Λ f . 
+     θ s
+       (λ j . λ t . λ s . λ ih .
+          θ+ (eqnat j i)
+            (λ u . ρ (χ (extmapUpdate (extmapCons j (f t) (substmapToExtmap f s)) i (f (var i))
+                       ≃ extmapCons j (f (var i)) (substmapToExtmap f s)) -
+                       ε ρ u - β) -
+                   ρ (χ (substmapToExtmap f (substmapUpdate (substmapCons j t s) i (var i))
+                       ≃ extmapCons i (f (var i)) (substmapToExtmap f s)) -
+                       ε ρ u - β) -
+                   ρ (eqnat-eq j i u) -
+                   β)
+            (λ u . ρ (χ (extmapUpdate (extmapCons j (f t) (substmapToExtmap f s)) i (f (var i))
+                       ≃ extmapCons j (f t) (extmapUpdate (substmapToExtmap f s) i (f (var i)))) -
+                       ε ρ u - β) -
+                   ρ (χ (substmapToExtmap f (substmapUpdate (substmapCons j t s) i (var i))
+                       ≃ extmapCons j (f t) (substmapToExtmap f (substmapUpdate s i (var i)))) -
+                       ε ρ u - β) -
+                   ρ ih -
+                   β))
+       (λ default . β) .
