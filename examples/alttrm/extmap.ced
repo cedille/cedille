@@ -84,9 +84,9 @@ extmapSubstmapLookup ⇐ ∀ trm : ★ . Π s : substmap · trm . Π i : Nat .
         (λ u . ε ρ u - ε ρ ih - β))
     (λ default . β) .
 
-extmapUpdateSubstmap ⇐ Π s : substmap · trm . Π i : Nat . ∀ A : ★ . ∀ f : trm → A . 
+extmapUpdateSubstmap ⇐ ∀ trm : ★ . Π s : substmap · trm . Π i : Nat . ∀ A : ★ . ∀ f : trm → A . 
                  extmapUpdate (substmapToExtmap f s) i (f (var i)) ≃ substmapToExtmap f (substmapUpdate s i (var i)) =
-   λ s . λ i . Λ A . Λ f . 
+   Λ trm . λ s . λ i . Λ A . Λ f . 
      θ s
        (λ j . λ t . λ s . λ ih .
           θ+ (eqnat j i)

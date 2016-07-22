@@ -36,8 +36,10 @@ depth-Lte-size ⇐ Π t : trm . Lte (depth t) (size t) =
 	  (Λ s . Λ i . Λ f . λ ih .
              χ (lte (f depth-app depth-lam (extmapUpdate (substmapToExtmap depth s) i Z))
                     (f size-app size-lam (extmapUpdate (substmapToExtmap size s) i one)) ≃ tt) -
-                ρ (extmapUpdateSubstmap s i · Nat -depth) -
-                ρ (extmapUpdateSubstmap s i · Nat -size) -
+                ρ (extmapUpdateSubstmap · trm s i · Nat -depth) -
+                ρ (extmapUpdateSubstmap · trm s i · Nat -size) -
                  (ih -(var i) β))
 	  -triv-subst (extmapStart · trm · (λ t : trm . (Lte (depth t) (size t))) -(var Z) β) .
 
+subst-depth-Lte ⇐ Π t : trm . Π s : substmap · trm . 
+                  Lte (depth t) (depth (subst s t)) = ● .
