@@ -1,7 +1,0 @@
-import list.
-import nat-thms-add-1.
-import list-thms-length-0.
-
-list-rotate-length ⇐ ∀ A : ★ . Π l : List · A . length l ≃ length (list-rotate l) =
-  Λ A . λ l . θ l (λ h . λ t . λ _ . εr ρ (length-append · A t (Cons · A h (Nil · A))) -
-                                        ρ (add-comm (length · A t) one) - β) β  .
