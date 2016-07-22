@@ -18,7 +18,7 @@
 (setq max-lisp-eval-depth 30000)
 (setq max-specpdl-size 30000)
 
-(defvar cedille-mode-debug t "If non-nil then print information for developers")
+(defvar cedille-mode-debug 1 "If non-nil then print information for developers")
 
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
@@ -358,9 +358,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
-  (se-navi-define-key 'cedille-mode (kbd "M-h 1") #'cedille-mode-highlight-default-old)
-  (se-navi-define-key 'cedille-mode (kbd "M-h 2") #'cedille-mode-highlight-language-level-old)
-  (se-navi-define-key 'cedille-mode (kbd "M-h 3") #'cedille-mode-highlight-implicit-hidden-old)
+  (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
 )
 
 (cedille-modify-keymap)
