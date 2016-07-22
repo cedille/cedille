@@ -176,6 +176,12 @@ TpApp-tk : type → var → tk → type
 TpApp-tk tp x (Tkk _) = TpApp tp (TpVar posinfo-gen x)
 TpApp-tk tp x (Tkt _) = TpAppt tp (Var posinfo-gen x)
 
+-- checking-sythesizing enum
+data checking-mode : Set where
+  checking : checking-mode
+  synthesizing : checking-mode
+
+
 -- expression descriptor
 data exprd : Set where
   TERM : exprd

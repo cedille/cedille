@@ -198,7 +198,7 @@ process-rec-cmd no-need-to-check Γ pi pi'' name params inds ctors body us pi' =
 
          check-type Γpicts body (just star) ≫span
 
-           spanM-add (rectype-name-span pi'' name body2 k2) ≫span
+           spanM-add (rectype-name-span pi'' name body2 k2 checking) ≫span
            spanM-add (Udefs-span us) ≫span
            spanM-add (Rec-span pi pi' k2)))
      ≫span 

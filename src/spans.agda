@@ -213,6 +213,10 @@ location-data (file-name , pi) = "location" , (file-name ^ " - " ^ pi)
 var-location-data : ctxt → var → tagged-val
 var-location-data Γ x = location-data (ctxt-var-location Γ x)
 
+checking-data : checking-mode → tagged-val
+checking-data checking = "checking-mode" , "checking"
+checking-data synthesizing = "checking-mode" , "synthesizing"
+
 ll-data : language-level → tagged-val
 ll-data x = "language-level" , ll-to-string x
 
@@ -227,6 +231,9 @@ binder-data n = "binder" , ℕ-to-string n
 -- spans) for the bound variable of a binder
 binder-data-const : tagged-val
 binder-data-const = binder-data 0
+
+punctuation-data : tagged-val
+punctuation-data = "punctuation" , "true"
 
 not-for-navigation : tagged-val
 not-for-navigation = "not-for-navigation" , "true"
@@ -258,72 +265,72 @@ Decl-span : decl-class → posinfo → var → tk → posinfo → span
 Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
                                       pi pi' []
 
-TpVar-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-TpVar-span Γ pi v tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (ll-data-type :: var-location-data Γ v :: symbol-data v :: tvs)
+TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
+TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data v :: tvs)
 
-Var-span : ctxt → posinfo → string → 𝕃 tagged-val → span
-Var-span Γ pi v tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (ll-data-term :: var-location-data Γ v :: symbol-data v :: tvs)
+Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
+Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data v :: tvs)
 
-KndVar-span : ctxt → posinfo → string → span
-KndVar-span Γ pi v = mk-span "Kind variable" pi (posinfo-plus-str pi v)
-                       (ll-data-kind :: var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
+KndVar-span : ctxt → posinfo → string → checking-mode → span
+KndVar-span Γ pi v check = mk-span "Kind variable" pi (posinfo-plus-str pi v)
+                       (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
 
-var-span : ctxt → posinfo → string → tk → span
-var-span Γ pi x (Tkk k) = TpVar-span Γ pi x [ kind-data k ]
-var-span Γ pi x (Tkt t) = Var-span Γ pi x (type-data t :: [ hnf-type Γ t ])
+var-span : ctxt → posinfo → string → checking-mode → tk → span
+var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check [ kind-data k ]
+var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (type-data t :: [ hnf-type Γ t ])
 
-TpAppt-span : type → term → 𝕃 tagged-val → span
-TpAppt-span tp t tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (ll-data-type :: tvs)
+TpAppt-span : type → term → checking-mode → 𝕃 tagged-val → span
+TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (checking-data check :: ll-data-type :: tvs)
 
-TpApp-span : type → type → 𝕃 tagged-val → span
-TpApp-span tp tp' tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') (ll-data-type :: tvs)
+TpApp-span : type → type → checking-mode → 𝕃 tagged-val → span
+TpApp-span tp tp' check tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') (checking-data check :: ll-data-type :: tvs)
 
-App-span : term → term → 𝕃 tagged-val → span
-App-span t t' tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (ll-data-term :: tvs)
+App-span : term → term → checking-mode → 𝕃 tagged-val → span
+App-span t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: tvs)
 
-AppTp-span : term → type → 𝕃 tagged-val → span
-AppTp-span t tp tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (ll-data-term :: tvs)
+AppTp-span : term → type → checking-mode → 𝕃 tagged-val → span
+AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: tvs)
 
 TpQuant-e = 𝔹
 
 is-pi : TpQuant-e
 is-pi = tt
 
-TpQuant-span : TpQuant-e → posinfo → var → tk → type → 𝕃 tagged-val → span
-TpQuant-span is-pi pi x atk body tvs =
+TpQuant-span : TpQuant-e → posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → span
+TpQuant-span is-pi pi x atk body check tvs =
   mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
-       pi (type-end-pos body) (ll-data-type :: binder-data-const :: tvs)
+       pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
-TpLambda-span : posinfo → var → tk → type → 𝕃 tagged-val → span
-TpLambda-span pi x atk body tvs =
-  mk-span "Type-level lambda abstraction" pi (type-end-pos body) (ll-data-type :: binder-data-const :: tvs)
+TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → span
+TpLambda-span pi x atk body check tvs =
+  mk-span "Type-level lambda abstraction" pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
 -- a span boxing up the parameters and the indices of a Rec definition
 RecPrelim-span : string → posinfo → posinfo → span
 RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor declarations for datatype " ^ name) pi pi' []
 
-TpArrow-span : type → type → 𝕃 tagged-val → span
-TpArrow-span t1 t2 tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (ll-data-type :: tvs)
+TpArrow-span : type → type → checking-mode → 𝕃 tagged-val → span
+TpArrow-span t1 t2 check tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (checking-data check :: ll-data-type :: tvs)
 
-TpEq-span : term → term → 𝕃 tagged-val → span
-TpEq-span t1 t2 tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) (ll-data-type :: tvs)
+TpEq-span : term → term → checking-mode → 𝕃 tagged-val → span
+TpEq-span t1 t2 check tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) (checking-data check :: ll-data-type :: tvs)
 
-Star-span : posinfo → span
-Star-span pi = mk-span Star-name pi (posinfo-plus pi 1) [ ll-data-kind ]
+Star-span : posinfo → checking-mode → span
+Star-span pi check = mk-span Star-name pi (posinfo-plus pi 1) (checking-data check :: [ ll-data-kind ])
 
-KndPi-span : posinfo → var → tk → kind → span
-KndPi-span pi x atk k = mk-span "Pi kind" pi (kind-end-pos k) (ll-data-kind :: binder-data-const :: [ super-kind-data ])
+KndPi-span : posinfo → var → tk → kind → checking-mode → span
+KndPi-span pi x atk k check = mk-span "Pi kind" pi (kind-end-pos k) (checking-data check :: ll-data-kind :: binder-data-const :: [ super-kind-data ])
 
-KndArrow-span : kind → kind → span
-KndArrow-span k k' = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') (ll-data-kind :: [ super-kind-data ])
+KndArrow-span : kind → kind → checking-mode → span
+KndArrow-span k k' check = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') (checking-data check :: ll-data-kind :: [ super-kind-data ])
 
-KndTpArrow-span : type → kind → span
-KndTpArrow-span t k = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) (ll-data-kind :: [ super-kind-data ])
+KndTpArrow-span : type → kind → checking-mode → span
+KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) (checking-data check :: ll-data-kind :: [ super-kind-data ])
 
-rectype-name-span : posinfo → var → type → kind → span
-rectype-name-span pi v tp k =
+rectype-name-span : posinfo → var → type → kind → checking-mode → span
+rectype-name-span pi v tp k check =
   mk-span "Recursively defined type" pi (posinfo-plus-str pi v)
-    (summary-data v (to-string k) :: [ "definition" , to-string tp ])
+    (checking-data check :: summary-data v (to-string k) :: [ "definition" , to-string tp ])
 
 Udefse-span : posinfo → 𝕃 tagged-val → span
 Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive type definition" pi (posinfo-plus pi 1) tvs
@@ -357,46 +364,46 @@ Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-en
                                            ((ll-data-term :: binder-data-const :: tvs)
                                            ++ [ "type of bound variable" , tk-to-string atk ])
 
-DefTerm-span : posinfo → var → (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
+DefTerm-span : posinfo → var → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span pi x checked tp t pi' tvs = 
   h ((h-summary tp) ++ (erasure t :: tvs)) pi x checked tp pi'
-  where h : 𝕃 tagged-val → posinfo → var → (checked : 𝔹) → maybe type → posinfo → span
-        h tvs pi x tt _ pi' = 
-          mk-span "Term-level definition (checking)" pi pi' tvs
-        h tvs pi x ff (just tp) pi' = 
-          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , to-string tp) :: tvs)
-        h tvs pi x ff nothing pi' = 
-          mk-span "Term-level definition (synthesizing)" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
+  where h : 𝕃 tagged-val → posinfo → var → (checked : checking-mode) → maybe type → posinfo → span
+        h tvs pi x checking _ pi' = 
+          mk-span "Term-level definition (checking)" pi pi'  tvs
+        h tvs pi x synthesizing (just tp) pi' = 
+          mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , to-string tp) :: tvs)
+        h tvs pi x synthesizing nothing pi' = 
+          mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , "[nothing]") :: tvs)
         h-summary : maybe type → 𝕃 tagged-val
-        h-summary nothing = []
-        h-summary (just tp) = [ summary-data x (to-string tp) ]
+        h-summary nothing = [(checking-data synthesizing)]
+        h-summary (just tp) = (checking-data checking :: [ summary-data x (to-string tp) ])
     
-CheckTerm-span : (checked : 𝔹) → maybe type → term → posinfo → 𝕃 tagged-val → span
+CheckTerm-span : (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 CheckTerm-span checked tp t pi' tvs = 
   h (erasure t :: tvs) checked tp (term-start-pos t) pi'
-  where h : 𝕃 tagged-val → (checked : 𝔹) → maybe type → posinfo → posinfo → span
-        h tvs tt _ pi pi' = 
-          mk-span "Checking a term" pi pi' tvs
-        h tvs ff (just tp) pi pi' = 
-          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , to-string tp) :: tvs)
-        h tvs ff nothing pi pi' = 
-          mk-span "Synthesizing a type for a term" pi pi' ( ("synthesized type" , "[nothing]") :: tvs)
+  where h : 𝕃 tagged-val → (checked : checking-mode) → maybe type → posinfo → posinfo → span
+        h tvs checking _ pi pi' = 
+          mk-span "Checking a term" pi pi' (checking-data checking :: tvs)
+        h tvs synthesizing (just tp) pi pi' = 
+          mk-span "Synthesizing a type for a term" pi pi' (checking-data synthesizing :: ("synthesized type" , to-string tp) :: tvs)
+        h tvs synthesizing nothing pi pi' = 
+          mk-span "Synthesizing a type for a term" pi pi' (checking-data synthesizing :: ("synthesized type" , "[nothing]") :: tvs)
 
 normalized-type : type → tagged-val
 normalized-type tp = "normalized type" , to-string tp
 
-DefType-span : posinfo → var → (checked : 𝔹) → maybe kind → type → posinfo → 𝕃 tagged-val → span
+DefType-span : posinfo → var → (checked : checking-mode) → maybe kind → type → posinfo → 𝕃 tagged-val → span
 DefType-span pi x checked mk tp pi' tvs =
   h ((h-summary mk) ++ tvs) checked mk
-  where h : 𝕃 tagged-val → 𝔹 → maybe kind → span
-        h tvs tt _ = mk-span "Type-level definition (checking)" pi pi' tvs
-        h tvs ff (just k) =
+  where h : 𝕃 tagged-val → checking-mode → maybe kind → span
+        h tvs checking _ = mk-span "Type-level definition (checking)" pi pi' tvs
+        h tvs synthesizing (just k) =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , to-string k) :: tvs)
-        h tvs ff nothing =
+        h tvs synthesizing nothing =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
         h-summary : maybe kind → 𝕃 tagged-val
-        h-summary nothing = []
-        h-summary (just k) = [ summary-data x (to-string k) ]
+        h-summary nothing = [(checking-data synthesizing)]
+        h-summary (just k) = (checking-data checking :: [ summary-data x (to-string k) ])
 
 DefKind-span : posinfo → var → kind → posinfo → span
 DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' [ summary-data x "□" ]
@@ -408,24 +415,24 @@ unimplemented-term-span pi pi' (just tp) = mk-span "Unimplemented" pi pi'
                                                 ll-data-term :: [ expected-type tp ])
 
 unimplemented-type-span : posinfo → posinfo → maybe kind → span
-unimplemented-type-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a kind for a type" ]
+unimplemented-type-span pi pi' nothing = mk-span "Unimplemented" pi pi' (checking-data synthesizing :: error-data "Unimplemented synthesizing a kind for a type" :: [] )
 unimplemented-type-span pi pi' (just k) = mk-span "Unimplemented" pi pi' 
                                               ( error-data "Unimplemented checking a type against a kind" ::
-                                                ll-data-type :: [ expected-kind k ])
+                                                checking-data checking :: ll-data-type :: [ expected-kind k ])
 
-Beta-span : posinfo → 𝕃 tagged-val → span
-Beta-span pi tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
-                     (ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
+Beta-span : posinfo → checking-mode → 𝕃 tagged-val → span
+Beta-span pi check  tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
+                     (checking-data check :: ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
-Delta-span : posinfo → term → 𝕃 tagged-val → span
-Delta-span pi t tvs = mk-span "Delta" pi (term-end-pos t) 
-                       (ll-data-term :: tvs ++
+Delta-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
+Delta-span pi t check tvs = mk-span "Delta" pi (term-end-pos t) 
+                       (checking-data check :: ll-data-term :: tvs ++
                         [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
                                   ^ "false.")])
 
-PiInj-span : posinfo → num → term → 𝕃 tagged-val → span
-PiInj-span pi n t tvs = mk-span "Pi proof" pi (term-end-pos t) 
-                          (ll-data-term :: tvs ++
+PiInj-span : posinfo → num → term → checking-mode → 𝕃 tagged-val → span
+PiInj-span pi n t check tvs = mk-span "Pi proof" pi (term-end-pos t) 
+                          (checking-data check :: ll-data-term :: tvs ++
                                [ explain ("A term for deducing that the argument in position " ^ n ^ " of a head-normal form on "
                                            ^ "the lhs of the equation proved by the subterm is equal to the corresponding argument " 
                                            ^ "of the rhs") ])
@@ -435,14 +442,15 @@ hole-span Γ pi tp tvs =
   mk-span "Hole" pi (posinfo-plus pi 1) 
     (ll-data-term :: error-data "This hole remains to be filled in" :: expected-type-if tp (hnf-expected-type-if Γ tp tvs))
 
-expected-to-string : 𝔹 → string
-expected-to-string expected = if expected then "expected" else "synthesized"
+expected-to-string : checking-mode → string
+expected-to-string checking = "expected"
+expected-to-string synthesizing = "synthesized"
 
-Epsilon-span : posinfo → leftRight → maybeMinus → term → 𝔹 → 𝕃 tagged-val → span
-Epsilon-span pi lr m t expected tvs = mk-span "Epsilon" pi (term-end-pos t) 
-                                         (ll-data-term :: tvs ++
+Epsilon-span : posinfo → leftRight → maybeMinus → term → checking-mode → 𝕃 tagged-val → span
+Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t) 
+                                         (checking-data check :: ll-data-term :: tvs ++
                                          [ explain ("Normalize " ^ side lr ^ " of the " 
-                                                   ^ expected-to-string expected ^ " equation, using " ^ maybeMinus-description m 
+                                                   ^ expected-to-string check ^ " equation, using " ^ maybeMinus-description m 
                                                    ^ " reduction." ) ])
   where side : leftRight → string
         side Left = "the left-hand side"
@@ -452,7 +460,7 @@ Epsilon-span pi lr m t expected tvs = mk-span "Epsilon" pi (term-end-pos t)
         maybeMinus-description EpsHnf = "head"
         maybeMinus-description EpsHanf = "head-applicative"
 
-Rho-span : posinfo → term → term → 𝔹 → 𝕃 tagged-val → span
+Rho-span : posinfo → term → term → checking-mode → 𝕃 tagged-val → span
 Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
                                   (ll-data-term :: tvs ++ [ explain ("Rewrite terms in the " 
                                                           ^ expected-to-string expected ^ " type, using an equation. ") ])
@@ -466,7 +474,7 @@ Chi-span pi NoAtype t' tvs = mk-span "Chi" pi (term-end-pos t')
 Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
 Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
                                    (ll-data-term :: tvs ++
-                                   (explain ("Swap the sides of the equation synthesized for the body of the of this term.")
+                                   (explain ("Swap the sides of the equation synthesized for the body of this term.")
                                     :: expected-type-if expected []))
 
 motive-label : string
@@ -496,8 +504,8 @@ normalized-type-if Γ Normalize e = [ "normalized type" , to-string (hnf Γ unfo
 normalized-type-if Γ EraseOnly e = []
 normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
 
-Lft-span : posinfo → var → term → 𝕃 tagged-val → span
-Lft-span pi X t tvs = mk-span "Lift type" pi (term-end-pos t) (ll-data-type :: binder-data-const :: tvs)
+Lft-span : posinfo → var → term → checking-mode → 𝕃 tagged-val → span
+Lft-span pi X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
 File-span : posinfo → posinfo → string → span
 File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' []
@@ -505,5 +513,5 @@ File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") p
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → span
 Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
 
-punctuation-span : posinfo → posinfo → span
-punctuation-span pi pi' = mk-span "Punctuation" pi pi' [ not-for-navigation ]
+punctuation-span : string → posinfo → posinfo → span
+punctuation-span name pi pi'  = mk-span name pi pi' ( punctuation-data ::  not-for-navigation :: [] )

@@ -26,7 +26,7 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x (Type tp) t n pi') tt
   check-type Γ tp (just star) ≫span 
   check-term Γ t (just tp) ≫span 
     let t = erase-term t in
-        spanM-add (DefTerm-span pi x tt (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
+        spanM-add (DefTerm-span pi x checking (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
         spanMr (mk-toplevel-state ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ))
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff {- skip checking -} = 
@@ -35,7 +35,7 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff
 process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x NoCheckType t n pi') _ = 
   check-term Γ t nothing ≫=span λ mtp → 
     let t = erase-term t in
-      spanM-add (DefTerm-span pi x ff mtp t pi' (normalized-term-if Γ n t)) ≫span
+      spanM-add (DefTerm-span pi x synthesizing mtp t pi' (normalized-term-if Γ n t)) ≫span
       spanMr (mk-toplevel-state ip mod is (h (hnf Γ unfold-head t , mtp)))
   where h : term × (maybe type) → ctxt
         h (t , nothing) = ctxt-term-udef pi x t Γ
@@ -44,7 +44,7 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x NoCheckType t n pi') 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefType pi x (Kind k) tp n pi') tt {- check -} = 
   check-kind Γ k ≫span 
   check-type Γ tp (just k) ≫span 
-     spanM-add (DefType-span pi x tt (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
+     spanM-add (DefType-span pi x checking (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
      spanMr (mk-toplevel-state ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ))
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefType pi x (Kind k) tp n pi') ff {- skip checking -} = 
@@ -54,14 +54,14 @@ process-cmd (mk-toplevel-state ip mod is Γ) (CheckTerm t (Type tp) n pi) tt {- 
   check-type Γ tp (just star) ≫span 
   check-term Γ t (just tp) ≫span 
     let t = erase-term t in
-       spanM-add (CheckTerm-span tt (just tp) t pi (normalized-term-if Γ n t)) ≫span 
+       spanM-add (CheckTerm-span checking (just tp) t pi (normalized-term-if Γ n t)) ≫span 
        spanMr (mk-toplevel-state ip mod is Γ)
 
 process-cmd s (CheckTerm t _ n pi) ff {- skip checking -} = spanMr s
 
 process-cmd (mk-toplevel-state ip mod is Γ) (CheckTerm t NoCheckType n pi) tt {- check -} = 
   check-term Γ t nothing ≫=span λ m → 
-     spanM-add (CheckTerm-span ff m t pi (normalized-term-if Γ n t)) ≫span 
+     spanM-add (CheckTerm-span synthesizing m t pi (normalized-term-if Γ n t)) ≫span 
      spanMr (mk-toplevel-state ip mod is Γ)
 
 process-cmd s (CheckType tp m n pi) _ = spanMr s -- unimplemented
