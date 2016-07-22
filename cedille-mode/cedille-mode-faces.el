@@ -1,5 +1,6 @@
 
 
+
 (defgroup cedille-highlight-faces-default nil
   "Faces used in Cedille's default highlighting mode."
   :group 'cedille-highlight)
@@ -8,14 +9,31 @@
   "Faces used in Cedille's langauge-level highlighting mode."
   :group 'cedille-highlight)
 
+(defgroup cedille-highlight-faces-checking-mode nil
+  "Faces used in Cedille's checking-mode highlighting mode."
+  :group 'cedille-highlight)
 
-(defface cedille-error-face-df
-  '((((background light))
-     (:foreground "red" :underline t :weight bold))
-    (((background dark))
-     (:foreground "red1" :underline t :weight bold)))
-  "The face used for errors."
+;; ----------------------------------------------------------
+;; default faces
+;; ----------------------------------------------------------
+
+(defface cedille-error-face-df	       
+   '((((background light))
+      (:foreground unspecified :underline t :weight bold :slant italic))
+     (((background dark))
+      (:foreground uspecified :underline t :weight bold :slant italic)))
+   "The face used for errors."
+   :group 'cedille-highlight-faces-default)
+
+
+(defface cedille-standard-face-df
+  '((t nil))
+  "The default/standard face."
   :group 'cedille-highlight-faces-default)
+
+(defface cedille-ignore-face-df
+  '((t (:foreground unspecified :background unspecified)))
+  "The face that leaves the previously-highlighted face alone.")
 
 (defface cedille-hole-face-df
   '((((background light))
@@ -58,11 +76,6 @@
   "The face used for parentheses."
   :group 'cedille-highlight-faces-default)
 
-(defface cedille-standard-face-df
-  '((t nil))
-  "The default/standard face."
-  :group 'cedille-highlight-faces-default)
-
 (defface cedille-type-face-df
   '((((background light))
      (:foreground "MediumBlue"))
@@ -79,21 +92,16 @@
   "The face used for kinds."
   :group 'cedille-highlight-faces-default)
 
-(defface cedille-error-face-ll
-  '((((background light))
-     (:foreground "red" :underline t :weight bold))
-    (((background dark))
-     (:foreground "brightred" :underline t :weight bold)))
-  "The face used for errors."
-  :group 'cedille-highlight-faces-language-level)
+(defface cedille-invisible-face-df
+  '(( t (:foreground "black")))
+  "The face set to background color to make terms disappear"
+  :group 'cedille-highlight-faces-default)
 
-(defface cedille-hole-face-ll
-  '((((background light))
-     (:foreground "black" :background "sky blue"))
-    (((background dark))
-     (:foreground "white" :background "sky blue")))
-  "The face used for holes."
-  :group 'cedille-highlight-faces-language-level)
+
+;; -----------------------------------------------------
+;; language-level faces
+;; -----------------------------------------------------
+
 
 (defface cedille-comment-face-ll
   '((((background light))
@@ -142,84 +150,28 @@
   :group 'cedille-highlight-faces-language-level)
 
 
-(defface cedille-invisible-face-df
-  '(( t (:foreground "black")))
-  "The face set to background color to make terms disappear"
-  :group 'cedille-highlight-faces-default)
+;; ------------------------------------------------------
+;; checking-mode faces
+;; ------------------------------------------------------
+
+
+(defface cedille-checking-face-cm
+  '((((background light))
+     (:foreground "medium blue"))
+    (((background dark))
+     (:foreground "sky blue")))
+  "The face used for checking mode."
+  :group 'cedille-highlight-faces-checking-mode)
 
 
 
-(defvar cedille-mode-highlight-face-map-default-old
-
-   '(
-     (cedille-standard-face-df . ("Term variable" "Lambda abstraction (term-level)"
-				  "Lambda abstraction (type-level)"
-				  "Erased lambda abstraction (term-level)"
-				  "Erased lambda abstraction (type-level)"))
-    (cedille-comment-face-df . ())
-    (cedille-keyword-face-df . ("Beta axiom" "Theta" "Rho" "Chi" "Epsilon" "Delta"
-				"Import of another source file""Constructor definition"
-				"Recursive datatype definition" "Recursively defined type"))
-    (cedille-parentheses-face-df . ("Punctuation"))
-    (cedille-type-face-df . ("Type variable" "Dependent function type"
-		     "Implicit dependent function type" "Equation" "Arrow type"))
-    (cedille-defined-face-df . ("Term-level definition (checking)"
-		      "Type-level definition (checking)"))
-    (cedille-kind-face-df . ("Star" "Pi kind" "Kind variable" "Arrow kind"))
-    (cedille-hole-face-df . ("Hole"))
-    (cedille-error-face-df . ())
-    )
-   
-   "Provides default highlighting scheme")
-
-(defvar cedille-mode-highlight-face-map-language-level-old
-
-   '(
-     (cedille-term-face-ll . ("Term variable" "Lambda abstraction (term-level)"
-			 "Lambda abstraction (type-level)"
-			 "Term-level definition (checking)"
-			 "Erased lambda abstraction (term-level)"))
-    (cedille-comment-face-ll . ())
-    (cedille-standard-face-ll . ("Beta axiom" "Theta" "Rho" "Chi" "Epsilon" "Delta"
-				"Import of another source file" "Constructor definition"
-				"Recursive datatype definition"))
-    (cedille-parentheses-face-ll . ())
-    (cedille-type-face-df . ("Type variable" "Dependent function type"
-			     "Implicit dependent function type" "Equation" "Arrow type"
-			     "Recursively defined type" "Type-level definition (checking)"
-			     "Lambda abstraction (type-level)"
-			     "Erased lambda abstraction (type-level)"))
-    (cedille-kind-face-ll . ("Star" "Pi kind" "Kind variable" "Arrow kind"))
-    (cedille-hole-face-ll . ("Hole"))
-    (cedille-error-face-ll . ())
-    )
-   
-   "Provides language-level highlighting scheme")
-
-
-(defvar cedille-mode-highlight-face-map-implicit-hidden-old
-
-   '(
-     (cedille-invisible-face-df . ("Erased lambda abstraction (term-level)"
-				   "Erased lambda abstraction (type-level)"
-				   "Implicit dependent function type"))
-     (cedille-standard-face-df . ("Term variable" "Lambda abstraction (term-level)"
-				  "Lambda abstraction (type-level)"))
-    (cedille-comment-face-df . ())
-    (cedille-keyword-face-df . ("Beta axiom" "Theta" "Rho" "Chi" "Epsilon" "Delta"
-				"Import of another source file""Constructor definition"
-				"Recursive datatype definition" "Recursively defined type"))
-    (cedille-parentheses-face-df . ())
-    (cedille-type-face-df . ("Type variable" "Dependent function type"
-			     "Equation" "Arrow type"))
-    (cedille-defined-face-df . ("Term-level definition (checking)"
-		      "Type-level definition (checking)"))
-    (cedille-kind-face-df . ("Star" "Pi kind" "Kind variable" "Arrow kind"))
-    (cedille-hole-face-df . ("Hole"))
-    (cedille-error-face-df . ())
-    )
-   
-   "Provides default highlighting scheme while making implicit arguments invisible.")
+(defface cedille-synthesizing-face-cm
+  '((((background light))
+     (:foreground "firebrick" ))
+    (((background dark))
+     (:foreground "red")))
+  "The face used for synthesizing mode."
+  :group 'cedille-highlight-faces-checking-mode)
 
 
 ;; '((quality . ((value . face)...))...)
@@ -242,8 +194,6 @@
 
 (defvar cedille-mode-highlight-face-map-default
    '(
-     ("name" . (("Hole" . cedille-hole-face-df)))
-     ("error" . (("error" . cedille-error-face-df)))
      ("name" . (("Import of another source file" . cedille-keyword-face-df)
 	       ("Constructor definition" . cedille-keyword-face-df)
 	       ("Recursive datatype definition" . cedille-keyword-face-df)
@@ -265,14 +215,71 @@
 
 
  (defvar cedille-mode-highlight-face-map-language-level
-   '(
-     ("name" . (("Hole" . cedille-hole-face-ll)))
-     ("error" . (("error" . cedille-error-face-ll)))   
+   '( 
      ("language-level" . (("type" . cedille-type-face-ll)
 			 ("kind" . cedille-kind-face-ll)
 			 ("term" . cedille-term-face-ll)))
     )
    "Provides language-level highlighting scheme")
+
+(defvar cedille-mode-highlight-face-map-checking-mode
+  '(
+    ("punctuation" . (("true" . cedille-ignore-face-df)))
+    ("checking-mode" . (("checking" . cedille-checking-face-cm)
+		       ("synthesizing" . cedille-synthesizing-face-cm)))
+    )
+  "Provides checking-mode highlighting scheme")
+
+
+
+;; -------------------------------------------------------------------
+;; Error Overlay
+;; -------------------------------------------------------------------
+
+
+(defun cedille-mode-highlight-error-overlay (spans)
+  (when (car spans)
+    (unless (string= (se-span-name (car spans)) "Hole")
+      (let ((over (make-overlay (se-span-start (car spans))
+				(se-span-end (car spans))
+				nil nil 1)))
+	(overlay-put over 'face 'cedille-error-face-df)
+	(overlay-put over 'evaporate 1)
+	(overlay-put over 'help-echo "error")))
+    (cedille-mode-highlight-error-overlay (cdr spans))))
+
+
+;; -----------------------------------------------------------------
+;; Hole Overlay
+;; -----------------------------------------------------------------
+    
+   
+(defun cedille-mode-highlight-hole-overlay (spans)
+  (when (car spans)
+    (when (string= (se-span-name (car spans)) "Hole")
+      (let ((over (make-overlay (se-span-start (car spans))
+				(se-span-end (car spans))
+				nil nil 1)))
+	(overlay-put over 'face 'cedille-hole-face-df)
+	(overlay-put over 'evaporate 1)
+	(overlay-put over 'help-echo "hole")))
+    (cedille-mode-highlight-hole-overlay (cdr spans))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
