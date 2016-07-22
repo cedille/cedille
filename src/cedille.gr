@@ -155,7 +155,7 @@ num -> numone+.
 numpunct -> numone | quote | '-' | '~' | '#' | '_'.
 
 var -> '_' | (alpha (alpha | numpunct)*) .
-fpth -> '_' | ((alpha | ('../'+)) (alpha | numpunct | '/')*) .
+fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 
