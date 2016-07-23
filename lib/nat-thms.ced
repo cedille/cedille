@@ -1,6 +1,6 @@
-import nat-thms/subtract/subtract.
-import nat-thms/mult/mult.
-import nat-thms/add/add.
-import nat-thms/max/max.
-import nat-thms/compare/compare.
-import nat-thms/S/S.
+import nat-thms/subtract.
+import nat-thms/mult.
+import nat-thms/add.
+import nat-thms/max.
+import nat-thms/compare.
+import nat-thms/S.
