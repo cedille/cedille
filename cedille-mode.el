@@ -375,6 +375,14 @@ in the parse tree, and updates the Cedille info buffer."
   (set-input-method "Cedille")
 )
 
+(define-key cedille-mode-map (kbd "M-s") #'cedille-start-navigation)
+
+(defun cedille-start-navigation()
+  "Enter Cedille navigation mode."
+  (interactive)
+  (setq se-mode-parse-tree nil)
+  (se-navigation-mode 1))     
+
 (add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
 (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
 (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
