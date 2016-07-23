@@ -195,14 +195,14 @@ checkFile s unit-name should-print-spans =
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
   getLine >>= (λ input-filename → 
-     checkFile (set-include-path s ({-takeDirectory input-filename ::-} toplevel-state.include-path s))
+     checkFile (set-include-path s (toplevel-state.include-path s))
        (base-filename (takeFileName input-filename)) tt {- should-print-spans -} >>= λ s → 
      readFilenamesForProcessing s)
 
 processArgs : opts → 𝕃 string → IO ⊤ 
 processArgs oo (input-filename :: []) with (base-filename (takeFileName input-filename)) 
 processArgs oo (input-filename :: []) | unit-name = 
-  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo)) unit-name ff {- should-print-spans -} >>= finish
+  checkFile (new-toplevel-state (opts-get-include-path oo)) unit-name ff {- should-print-spans -} >>= finish
   where finish : toplevel-state → IO ⊤
         finish s = 
           let ie = get-include-elt s unit-name in

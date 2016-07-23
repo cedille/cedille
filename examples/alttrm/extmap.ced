@@ -1,5 +1,5 @@
 import substmap.
-import nat-thms-compare.
+import nat-thms/compare/compare.
 
 rec extmap(trm : ★)(P : trm → ★) : (s : substmap · trm)
   | extmapCons : ∀ s : substmap · trm . Π i : Nat. ∀ t : trm . P t → extmap s → extmap (substmapCons · trm i t s) ,

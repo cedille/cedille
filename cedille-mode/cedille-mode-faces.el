@@ -21,7 +21,7 @@
    '((((background light))
       (:foreground unspecified :underline t :weight bold :slant italic))
      (((background dark))
-      (:foreground uspecified :underline t :weight bold :slant italic)))
+      (:foreground unspecified :underline t :weight bold :slant italic)))
    "The face used for errors."
    :group 'cedille-highlight-faces-default)
 
