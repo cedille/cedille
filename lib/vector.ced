@@ -11,4 +11,8 @@ rec Vector (A : ★) : (n : Nat) | Vcons : ∀ n : Nat . A → Vector n → Vect
     Vnil = Λ P . λ c . λ n . n 
 .
 
-
+Vmap ⇐ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . (A → B) → Vector · A n → Vector · B n =
+  Λ A . Λ B . Λ n . λ f . λ v .
+    v · (λ n : Nat . λ _ : Vector · A n . Vector · B n)
+      (Λ n . λ a . λ v . λ r . Vcons · B -n (f a) r)
+      (Vnil · B).
