@@ -1,7 +1,9 @@
 import nat .
 
-rec Vector (A : ★) : (n : Nat) | Vcons : ∀ n : Nat . A → Vector n → Vector (S n) ,
- Vnil : Vector Z =
+rec Vector (A : ★) : (n : Nat)
+| Vcons : ∀ n : Nat . A → Vector n → Vector (S n) ,
+  Vnil : Vector Z
+=
   ∀ P : Π n : Nat . Vector n → ★ .
     (∀ n : Nat . Π a : A . Π v : Vector n . P n v → P (S n) (Vcons -n a v)) → 
     P Z Vnil → 
