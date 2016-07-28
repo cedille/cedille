@@ -1,9 +1,7 @@
-@node First                                                                       
-@chapter First                                                                    
-@c @cindex first chapter                                                          
-@c @cindex chapter, first                                                         
+@node cedille-mode commands
+@chapter cedille-mode commands
 
-This is the first page after main.                                                
+Here is the page for commands
 
 @enumerate                                                                        
 

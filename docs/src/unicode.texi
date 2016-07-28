@@ -1,0 +1,4 @@
+@node Unicode shortcuts
+@chapter unicode
+
+Here is page for the unicode characters

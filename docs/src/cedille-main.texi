@@ -7,15 +7,17 @@
 @top Main
 
 This manual is for Cedille.  Lots of interesting Cedille facts can go here!
-Change here.
 @end ifnottex
 
 @menu
-* First::   Here is the first chapter.
+* cedille-mode commands::   Here is a list of cedille mode shortcuts with brief description.
+* Unicode shortcuts:: Here is the list of keyboard shortcuts for unicode symbols
 * Index::   Here is the index.
 @end menu
 
-@include first.texi
+@include commands.texi
+
+@include unicode.texi
 
 @node Index
 @unnumbered Index
