@@ -176,12 +176,6 @@ TpApp-tk : type → var → tk → type
 TpApp-tk tp x (Tkk _) = TpApp tp (TpVar posinfo-gen x)
 TpApp-tk tp x (Tkt _) = TpAppt tp (Var posinfo-gen x)
 
--- checking-sythesizing enum
-data checking-mode : Set where
-  checking : checking-mode
-  synthesizing : checking-mode
-
-
 -- expression descriptor
 data exprd : Set where
   TERM : exprd
@@ -200,6 +194,15 @@ exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
 exprd-name LIFTINGTYPE = "lifting type"
+
+-- checking-sythesizing enum
+data checking-mode : Set where
+  checking : checking-mode
+  synthesizing : checking-mode
+
+maybe-to-checking : {A : Set} → maybe A → checking-mode
+maybe-to-checking (just _) = checking
+maybe-to-checking nothing = synthesizing
 
 is-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-app{TERM} (App _ _ _) = tt

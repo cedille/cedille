@@ -1,4 +1,5 @@
 import nat .
+import nat-thms/compare.
 
 rec Vector (A : ★) : (n : Nat)
 | Vcons : ∀ n : Nat . A → Vector n → Vector (S n) ,
@@ -18,3 +19,18 @@ Vmap ⇐ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . (A → B) → Vector · A n �
     v · (λ n : Nat . λ _ : Vector · A n . Vector · B n)
       (Λ n . λ a . λ v . λ r . Vcons · B -n (f a) r)
       (Vnil · B).
+
+Lt-not-eqnat ⇐ Π x : Nat . Π y : Nat . Lt x (S y) → (eqnat x y ≃ ff) → Lt x y = ●.
+
+% return the i'th element from the end of the given vector
+Vlast ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π i : Nat . ∀ _ : Lt i n . A =
+  Λ A . λ n . λ v .
+    v · (λ n : Nat . λ v : Vector · A n . Π n' : Nat . ∀ _ : n ≃ n' . Π i : Nat . ∀ _ : Lt i n' . A)
+      (Λ n . λ h . λ _ . λ r . λ n' .
+         θ n' (λ n' . λ _ . Λ e . λ i . Λ u1 .
+                 θ+ (eqnat i n') (λ u . h) (λ u . r n' -(π1 ε e) i -(Lt-not-eqnat i n' u1 u)))
+              (Λ u . δ u))
+      (λ n' . Λ e . λ i . Λ u . δ ε ((Not-Lt-Z i (ρ e - u)) · (tt ≃ ff)))
+      n -β.
+    
+  

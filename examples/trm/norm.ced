@@ -1,6 +1,7 @@
 import pair.
 import rtc.
 import red.
+import not.
 import sigma.
 
 Normal ⇐ trm → ★ =

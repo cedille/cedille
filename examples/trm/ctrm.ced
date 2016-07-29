@@ -11,4 +11,13 @@ clam ⇐ Nat → ctrm → ctrm = λ i . λ c . Λ X . λ a . λ l . λ v . l i (
 
 cvar ⇐ Nat → ctrm = λ i . Λ X . λ a . λ l . λ v . v i .
 
+subst ⇐ (Nat → ctrm) → ctrm → ctrm =
+  λ s . λ t . Λ X . λ a . λ l . λ v . t · X a l (λ i . s i · X a l v) .
+
+test = clam Z (capp (cvar Z) (cvar (S Z))) !
+
+test2 = subst (λ x . θ (eqnat x (S Z)) (cvar Z) (cvar x)) test !
+
+test3 = subst (λ x . θ (eqnat x Z) (cvar (S Z)) (cvar x)) test !
+
 cctrm ⇐ ★ = ∀ X : ★ . (X → X → X) → (CNat → (X → X) → X) → (CNat → X) → X .

@@ -34,6 +34,7 @@ maybeMinus-to-string : maybeMinus → string
 maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
 
+-- the 𝔹 argument tells whether this is a top-level expression, or a subexpression
 type-to-string : 𝔹 → type → string
 term-to-string : 𝔹 → term → string
 kind-to-string : 𝔹 → kind → string

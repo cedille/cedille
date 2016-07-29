@@ -76,3 +76,4 @@ compare-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( co
       ( λ z . θ z
         ( λ _ . λ _ . λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) )
 	( λ _ . λ pf-xy . λ _ . pf-xy ) ) ) .
+

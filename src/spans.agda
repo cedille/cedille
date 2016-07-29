@@ -462,8 +462,9 @@ Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t)
 
 Rho-span : posinfo → term → term → checking-mode → 𝕃 tagged-val → span
 Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
-                                  (ll-data-term :: tvs ++ [ explain ("Rewrite terms in the " 
-                                                          ^ expected-to-string expected ^ " type, using an equation. ") ])
+                                  (checking-data expected :: ll-data-term :: tvs ++
+                                    [ explain ("Rewrite terms in the " 
+                                             ^ expected-to-string expected ^ " type, using an equation. ") ])
 
 Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
 Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 

@@ -105,14 +105,17 @@ PiInj-err1 : string → ℕ → type ⊎ string
 PiInj-err1 s n =
  inj₂ ("The lhs and rhs are headed by the same bound variable, but the " 
        ^ s ^ " does not have an argument in position " ^ (ℕ-to-string n) ^ ".")
-PiInj-err2 : string → type ⊎ string
-PiInj-err2 s =
-  inj₂ ("The body of the " ^ s ^ " is not headed by a bound variable.")
+PiInj-err2 : string → term → type ⊎ string
+PiInj-err2 s t =
+  inj₂ ("The body of the " ^ s ^ ", which is " ^ (term-to-string tt t) ^ ", is not headed by a bound variable.")
 
-PiInj-decompose-app : ctxt → term → maybe (var × 𝕃 term)
-PiInj-decompose-app Γ t with decompose-var-headed (ctxt-binds-var Γ) t
-PiInj-decompose-app Γ t | just (x , args) = just (x , reverse args)
-PiInj-decompose-app Γ t | nothing = nothing
+{- we will drop the list of vars (the ones bound in the head-normal form we are considering)
+   from the context, because decompose-var-headed is going to check
+   that the head is not a variable declared in the context. -}
+PiInj-decompose-app : ctxt → 𝕃 var → term → maybe (var × 𝕃 term)
+PiInj-decompose-app Γ vs t with decompose-var-headed (ctxt-binds-var (ctxt-clear-symbols Γ vs)) t
+PiInj-decompose-app Γ _ t | just (x , args) = just (x , reverse args)
+PiInj-decompose-app Γ _ t | nothing = nothing
 
 PiInj-try-project : ctxt → ℕ → term → term → type ⊎ string
 PiInj-try-project Γ n t1 t2 with decompose-lams t1 | decompose-lams t2
@@ -120,7 +123,7 @@ PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 with renamectxt-insert*
 PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | nothing = 
   inj₂ ("The lhs and rhs bind different numbers of variables.")
 PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ 
-  with PiInj-decompose-app Γ body1 | PiInj-decompose-app Γ body2
+  with PiInj-decompose-app Γ vs1 body1 | PiInj-decompose-app Γ vs2 body2
 PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) with eq-var ρ h1 h2
 PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) | just (h2 , args2) | ff =
   inj₂ "The lhs and rhs are headed by different bound variables."
@@ -136,9 +139,9 @@ PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , _) | jus
       rebuild vs a = (hnf Γ no-unfolding (Lam* (reverse vs) a)) in
   inj₁ (TpEq (rebuild vs1 a1) (rebuild vs2 a2))
 PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | nothing | _ = 
-  PiInj-err2 "lhs"
+  PiInj-err2 "lhs" body1
 PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | _ | nothing =
-  PiInj-err2 "rhs"
+  PiInj-err2 "rhs" body2
 
 {- if the hnf of the type is a Iota type, then instantiate it with the given term.
    We assume types do not reduce with normalization and instantiation to further iota
@@ -226,7 +229,7 @@ check-termi Γ (Parens pi t pi') tp =
   check-term Γ t tp
 check-termi Γ (Var pi x) tp with ctxt-lookup-term-var Γ x
 check-termi Γ (Var pi x) tp | nothing = 
-  spanM-add (Var-span Γ pi x checking
+  spanM-add (Var-span Γ pi x (maybe-to-checking tp)
               (error-data "Missing a type for a term variable." :: 
                expected-type-if tp (missing-type :: []))) ≫span
   return-when tp tp
@@ -247,7 +250,7 @@ check-termi Γ (AppTp t tp') tp =
         cont (Abs pi b pi' x (Tkk k) tp2) = 
            check-type Γ tp' (just k) ≫span 
            spanMr (just (subst-type Γ tp' x tp2))
-        cont tp'' = spanM-add (AppTp-span t tp' checking --double-check
+        cont tp'' = spanM-add (AppTp-span t tp' (maybe-to-checking tp)
                                (error-data ("The type computed for the head of the application does"
                                         ^ " not allow the head to be applied to the (type) argument ")
                             :: term-app-head t
@@ -261,7 +264,7 @@ check-termi Γ (AppTp t tp') tp =
           check-termi-return Γ (AppTp t tp') tp''
         cont' (just tp) tp'' = 
           if conv-type Γ tp tp'' then spanM-add (AppTp-span t tp' checking (expected-type tp :: [ type-data tp'' ]))
-          else spanM-add (AppTp-span t tp' checking --double-check
+          else spanM-add (AppTp-span t tp' checking 
                            (error-data "The type computed for a term application does not match the expected type." ::
                             expected-type tp ::
                             type-data tp'' ::
@@ -281,7 +284,7 @@ check-termi Γ (App t m t') tp =
               check-termi-return Γ (App t m t') (subst-type Γ t' x tp2))
           else
             check-term-app-erased-error m t t' (Abs pi b pi' x (Tkt tp1) tp2)
-        cont m tp' = spanM-add (App-span t t' checking --double-check
+        cont m tp' = spanM-add (App-span t t' (maybe-to-checking tp)
                                (error-data ("The type computed for the head of the application does"
                                         ^ " not allow the head to be applied to " ^ h m ^ " argument ")
                             :: term-app-head t
@@ -394,14 +397,15 @@ check-termi Γ (Delta pi t) (just tp) =
                                        :: [ expected-type tp ]))
         cont errmsg (just tp) = 
           spanM-add (Delta-span pi t checking (error-data errmsg :: [ expected-type tp ]))
-        cont errmsg nothing = spanM-add (Delta-span pi t synthesizing [ expected-type tp ])
+        cont errmsg nothing = spanM-add (Delta-span pi t checking [ expected-type tp ])
 
 check-termi Γ (PiInj pi n t) mtp = 
   check-term Γ t nothing ≫=span cont mtp
   where cont : (mtp : maybe type) → maybe type → spanM (check-ret mtp)
         cont mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (erase-term t1) (erase-term t2)
         cont mtp (just (TpEq t1 t2)) | inj₂ msg = 
-          spanM-add (PiInj-span pi n t checking ( error-data "We could not project out an equation between corresponding arguments."
+          spanM-add (PiInj-span pi n t (maybe-to-checking mtp)
+                          ( error-data "We could not project out an equation between corresponding arguments."
                                        :: (expected-type-if mtp [ reason msg ]))) ≫span
           check-fail mtp
         cont (just tp) (just (TpEq t1 t2)) | inj₁ eq = 
@@ -414,10 +418,10 @@ check-termi Γ (PiInj pi n t) mtp =
         cont nothing (just (TpEq t1 t2)) | inj₁ eq = 
           spanM-add (PiInj-span pi n t synthesizing [ type-data eq ]) ≫span spanMr (just eq)
         cont mtp (just tp) =
-           spanM-add (PiInj-span pi n t checking (expected-type-if mtp 
+           spanM-add (PiInj-span pi n t (maybe-to-checking mtp) (expected-type-if mtp 
                                           [ error-data ("The subterm of a pi-proof does not prove an equation.") ] )) ≫span
            check-fail mtp
-        cont mtp nothing = spanM-add (PiInj-span pi n t synthesizing (expected-type-if mtp [])) ≫span check-fail mtp
+        cont mtp nothing = spanM-add (PiInj-span pi n t (maybe-to-checking mtp) (expected-type-if mtp [])) ≫span check-fail mtp
 
 check-termi Γ (Epsilon pi lr m t) (just (TpEq t1 t2)) = 
   spanM-add (Epsilon-span pi lr m t checking [ type-data (TpEq t1 t2) ]) ≫span
@@ -623,7 +627,8 @@ check-typei Γ (TpLambda pi pi' x atk body) nothing =
             spanMr (just r)
 
 check-typei Γ (Abs pi b {- All or Pi -} pi' x atk body) k = 
-  spanM-add (TpQuant-span (binder-is-pi b) pi x atk body checking (if-check-against-star-data "A type-level quantification" k)) ≫span
+  spanM-add (TpQuant-span (binder-is-pi b) pi x atk body (maybe-to-checking k)
+               (if-check-against-star-data "A type-level quantification" k)) ≫span
   spanM-add (punctuation-span "Forall" pi (posinfo-plus pi 1)) ≫span
   check-tk Γ atk ≫span
   add-tk Γ pi' x atk ≫=span λ Γ → 
@@ -636,7 +641,7 @@ check-typei Γ (Abs pi b {- All or Pi -} pi' x atk body) k =
                           expected-kind k :: []
 
 check-typei Γ (TpArrow t1 t2) k = 
-  spanM-add (TpArrow-span t1 t2 checking (if-check-against-star-data "An arrow type" k)) ≫span
+  spanM-add (TpArrow-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An arrow type" k)) ≫span
   check-type Γ t1 (just star) ≫span
   check-type Γ t2 (just star) ≫span
     return-star-when k
@@ -650,7 +655,7 @@ check-typei Γ (TpAppt tp t) k =
         cont (KndPi _ _ x (Tkt tp') k') = 
           check-term Γ t (just tp') ≫span 
           spanMr (just (subst-kind Γ t x k'))
-        cont k' = spanM-add (TpAppt-span tp t checking
+        cont k' = spanM-add (TpAppt-span tp t (maybe-to-checking k)
                                (error-data ("The kind computed for the head of the type application does"
                                         ^ " not allow the head to be applied to an argument which is a term")
                             :: type-app-head tp
@@ -664,7 +669,7 @@ check-typei Γ (TpAppt tp t) k =
           check-type-return Γ k
         cont' (just k') k = 
           if conv-kind Γ k k' then spanM-add (TpAppt-span tp t checking (expected-kind k' :: [ kind-data k ]))
-          else spanM-add (TpAppt-span tp t checking --double-check
+          else spanM-add (TpAppt-span tp t checking 
                            (error-data "The kind computed for a type application does not match the expected kind." ::
                             expected-kind k' ::
                             kind-data k ::
@@ -679,7 +684,7 @@ check-typei Γ (TpApp tp tp') k =
         cont (KndPi _ _ x (Tkk k'') k') = 
           check-type Γ tp' (just k'') ≫span 
           spanMr (just (subst-kind Γ tp' x k'))
-        cont k' = spanM-add (TpApp-span tp tp' checking
+        cont k' = spanM-add (TpApp-span tp tp' (maybe-to-checking k)
                                (error-data ("The kind computed for the head of the type application does"
                                         ^ " not allow the head to be applied to an argument which is a type")
                             :: type-app-head tp
@@ -693,7 +698,7 @@ check-typei Γ (TpApp tp tp') k =
           check-type-return Γ k
         cont' (just k') k = 
           if conv-kind Γ k k' then spanM-add (TpApp-span tp tp' checking (expected-kind k' :: [ kind-data k' ]))
-          else spanM-add (TpApp-span tp tp' checking --double-check
+          else spanM-add (TpApp-span tp tp' checking 
                            (error-data "The kind computed for a type application does not match the expected kind." ::
                             expected-kind k' ::
                             kind-data k ::
@@ -702,7 +707,7 @@ check-typei Γ (TpApp tp tp') k =
 check-typei Γ (TpEq t1 t2) k = 
   var-spans-term Γ t1 ≫span
   var-spans-term Γ t2 ≫span
-  spanM-add (TpEq-span t1 t2 checking (if-check-against-star-data "An equation" k)) ≫span
+  spanM-add (TpEq-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An equation" k)) ≫span
   return-star-when k
   
 check-typei Γ (Lft pi pi' X t l) k = 
@@ -714,7 +719,7 @@ check-typei Γ (Lft pi pi' X t l) k =
         cont nothing k = spanM-add (Lft-span pi X t synthesizing [ kind-data k ]) ≫span spanMr (just k)
         cont (just k') k = 
           if conv-kind Γ k k' then 
-             spanM-add (Lft-span pi X t  checking ( expected-kind k' :: [ kind-data k ])) ≫span spanMok
+             spanM-add (Lft-span pi X t checking ( expected-kind k' :: [ kind-data k ])) ≫span spanMok
           else
              spanM-add (Lft-span pi X t checking ( error-data "The expected kind does not match the computed kind."
                                          :: expected-kind k' :: [ kind-data k ]))

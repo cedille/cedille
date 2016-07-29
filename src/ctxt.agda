@@ -45,7 +45,11 @@ data ctxt-info : Set where
   var-decl : ctxt-info
 
 data ctxt : Set where
-  mk-ctxt : (unit-name : string) → (filename : string) → trie (𝕃 string) → trie (ctxt-info × location) → ctxt
+  mk-ctxt : (unit-name : string) →
+            (filename : string) →
+            (syms : trie (𝕃 string)) → -- map each unit name to the symbols declared in that unit
+            (i : trie (ctxt-info × location)) → -- map symbols (from Cedille files) to their ctxt-info and location
+            ctxt
 
 new-ctxt : (unit-name : string) → (filename : string) → ctxt
 new-ctxt unit-name filename = mk-ctxt unit-name filename empty-trie empty-trie
@@ -188,6 +192,13 @@ ctxt-var-location (mk-ctxt _ _ _ i) x | nothing = "missing" , "missing"
 
 ctxt-set-current-unit : ctxt → (unit-name : string) → (filename : string) → ctxt
 ctxt-set-current-unit (mk-ctxt _ _ syms i) unit-name filename = mk-ctxt unit-name filename syms i
+
+ctxt-clear-symbol : ctxt → string → ctxt
+ctxt-clear-symbol (mk-ctxt u f syms i) x = mk-ctxt u f (trie-remove syms x) (trie-remove i x)
+
+ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
+ctxt-clear-symbols Γ [] = Γ
+ctxt-clear-symbols Γ (v :: vs) = ctxt-clear-symbols (ctxt-clear-symbol Γ v) vs
 
 ctxt-clear-symbols-of-unit : ctxt → (unit-name : string) → ctxt
 ctxt-clear-symbols-of-unit (mk-ctxt u f syms i) unit-name = mk-ctxt u f (trie-insert syms unit-name [])

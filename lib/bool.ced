@@ -1,7 +1,7 @@
 import false.
 import true.
 
-rec Bool | tt : Bool , ff : Bool =
+rec Bool | tt : Bool , ff : Bool = 
   ∀ P : Bool → ★ .
     P tt → P ff → P self
   with
