@@ -64,6 +64,8 @@
 	(with-current-buffer b
 	  (erase-buffer)
 	  (insert (cedille-mode-format-context p))
+	  (goto-char 1)
+	  (fit-window-to-buffer (get-buffer-window b))
 	  (setq buffer-read-only t)
 	  (setq deactivate-mark nil)))))
 
