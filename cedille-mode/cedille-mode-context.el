@@ -58,12 +58,14 @@
   "Shows the context for the current node. This is the function that should be called when the user presses 'c'."
   (interactive)
   (if se-mode-selected
-      (let ((b (get-buffer-create (cedille-mode-context-buffer-name)))
+      (let (;(b (get-buffer-create (cedille-mode-context-buffer-name)))
+	    (b (cedille-mode-context-buffer))
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
 	(with-current-buffer b
 	  (erase-buffer)
-	  (insert (cedille-mode-format-context p)))
-	(setq deactivate-mark nil))))
+	  (insert (cedille-mode-format-context p))
+	  (setq buffer-read-only t)
+	  (setq deactivate-mark nil)))))
 
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name))))
 
@@ -71,18 +73,28 @@
   (let* ((n (cedille-mode-context-buffer-name))
          (b (get-buffer-create n)))
     (with-current-buffer b
-       (setq buffer-read-only nil))
+      (setq buffer-read-only nil))
     b))
+
+(defun cedille-mode-get-context-window()
+  (let* ((context-buffer (cedille-mode-context-buffer))
+	 (context-window (get-buffer-window context-buffer)))
+    (if context-window
+	context-window
+      (split-window))))
 
 (defun cedille-mode-toggle-context-mode()
   "Toggles context mode on/off"
   (interactive)
-  (let ((context-buffer (cedille-mode-context-buffer)))
-    (if (get-buffer-window context-buffer)
-	;If there is a context mode window, switch back to an info-mode window
-	(display-buffer (cedille-info-buffer))
+  (let* ((first-buffer (current-buffer))
+	 (context-buffer (cedille-mode-context-buffer))
+	 (context-window (get-buffer-window context-buffer)))
+    (if context-window
+	;If there is a context mode window, delete it
+	(delete-window context-window)
       ;Else create a new one
       (cedille-mode-context)
-      (display-buffer context-buffer))))
-
+      (set-window-buffer (cedille-mode-get-context-window) context-buffer)
+      (fit-window-to-buffer (get-buffer-window context-buffer)))))
+      
 (provide 'cedille-mode-context)

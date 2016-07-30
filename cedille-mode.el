@@ -226,7 +226,8 @@ Updates info buffer in either case"
 	    (if (not found)
 		(message "No next span")
 	      (progn (cedille-mode-select-span found)
-		     (cedille-mode-inspect)))))
+		     (cedille-mode-inspect)
+		     (cedille-mode-context)))))
 	(cedille-mode-select-next-alt (- count 1)))
     nil))
 
@@ -245,7 +246,8 @@ Updates info buffer in either case."
 	    (if (not found)
 		(message "No previous span")
 	      (progn (cedille-mode-select-span found)
-		     (cedille-mode-inspect)))))
+		     (cedille-mode-inspect)
+		     (cedille-mode-context)))))
 	(cedille-mode-select-previous-alt (- count 1)))
     nil))
 
@@ -278,14 +280,16 @@ containing point, and updates the Cedille info buffer."
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-first)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-last()
   "Selects the last sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-last)
-  (cedille-mode-inspect))
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-jump ()
   "Jumps to a location associated with the selected node"
@@ -315,12 +319,9 @@ in the parse tree, and updates the Cedille info buffer."
   "Shows or hides the Cedille info buffer."
   (interactive)
   (let* ((b (cedille-info-buffer))
-         (w (get-buffer-window b))
-	 (c (cedille-mode-context-buffer))
-	 (x (get-buffer-window c)))
-    (progn
-      (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))
-      (if x (delete-window x)))))
+         (w (get-buffer-window b)))
+    (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))))
+      
 
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
