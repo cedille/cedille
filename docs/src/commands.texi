@@ -1,14 +1,62 @@
 @node cedille-mode commands
+
 @chapter cedille-mode commands
 
-Here is the page for commands
+Cedille mode supports the following commands:
 
-@enumerate                                                                        
+@chapter Navigation
+@table @command
+@item f/F
+Navigate to the next node in the parse tree
 
-@item                                                                             
-Item 1 goes here                                                                  
-@item                                                                             
-Item 2 goes here                                                                  
+@item b/B
+Navigate to the previous node in the parse tree
 
-@end enumerate                                                                    
+@item p
+Navigate to the parent of the current node in the parse tree
 
+@item n
+Navigate to the first child node of the current node in the parse tree
+
+@item a/e
+Navigate to the first/last node in the current level of the parse tree
+
+@item r/R
+Select next/previous error
+
+@item t/T
+Select first/last error in file
+
+@item j
+Jump to location associated with selected node
+
+@item g
+Clear current selection
+@end table
+
+@chapter Information
+@table @command
+@item i
+Toggle info mode (provides information about the currently selected node)
+
+@item c
+Toggle context mode (provides information about the context of the currently selected term)
+
+@item S
+Toggle summary mode (provides information about the contents of the entire file)
+
+@item h
+Open information documents describing how to use Cedille mode
+@end table
+
+@chapter Other
+@table @command
+@item C-x <int>
+Alters highlighting scheme depending on value of <int>:
+1: default highlighting
+2: language level highlighting
+3: checking mode highlighting
+
+@item q/M-s/C-g
+Quit Cedille mode
+@end table
