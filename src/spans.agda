@@ -71,23 +71,30 @@ put-spans ss = putStr (spans-to-string ss)
 -- spanM, a state monad for spans
 --------------------------------------------------
 spanM : Set → Set
-spanM A = spans → A × spans
+spanM A = ctxt → spans → A × ctxt × spans
 
 -- return for the spanM monad
 spanMr : ∀{A : Set} → A → spanM A
-spanMr a ss = a , ss
+spanMr a Γ ss = a , Γ , ss
 
 spanMok : spanM ⊤
 spanMok = spanMr triv
 
+get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
+get-ctxt m Γ ss = m Γ Γ ss
+
+set-ctxt : ctxt → spanM ⊤
+set-ctxt Γ _ ss = triv , Γ , ss
+
 infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_
 
 _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-(m ≫=span m') c with m c
-(m ≫=span m') _ | v , c = m' v c
+(m ≫=span m') ss Γ with m ss Γ
+(m ≫=span m') _ _ | v , Γ , ss = m' v Γ ss
 
 _≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
-(m ≫span m') c = m' (snd (m c))
+(m ≫span m') Γ ss with m Γ ss
+(m ≫span m') _ _ | _ , Γ , ss = m' Γ ss
 
 _≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
 _≫=spanj_{A} m m' = m ≫=span cont
@@ -95,10 +102,10 @@ _≫=spanj_{A} m m' = m ≫=span cont
         cont nothing = spanMok
         cont (just x) = m' x
 
--- discard new spans added by the first computation
+-- discard changes made by the first computation
 _≫=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-_≫=spand_{A} m m' c with m c 
-_≫=spand_{A} m m' c | v , ss = m' v c
+_≫=spand_{A} m m' Γ ss with m Γ ss 
+_≫=spand_{A} m m' Γ ss | v , _ , _ = m' v Γ ss
 
 _≫=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
 _≫=spanm_{A} m m' = m ≫=span cont
@@ -107,7 +114,7 @@ _≫=spanm_{A} m m' = m ≫=span cont
         cont (just a) = m' a
 
 spanM-add : span → spanM ⊤
-spanM-add s ss = triv , add-span s ss
+spanM-add s Γ ss = triv , Γ , add-span s ss
 
 spanM-addl : 𝕃 span → spanM ⊤
 spanM-addl [] = spanMok
@@ -216,6 +223,7 @@ var-location-data Γ x = location-data (ctxt-var-location Γ x)
 checking-data : checking-mode → tagged-val
 checking-data checking = "checking-mode" , "checking"
 checking-data synthesizing = "checking-mode" , "synthesizing"
+checking-data untyped = "checking-mode" , "untyped"
 
 ll-data : language-level → tagged-val
 ll-data x = "language-level" , ll-to-string x
@@ -370,9 +378,9 @@ DefTerm-span pi x checked tp t pi' tvs =
   where h : 𝕃 tagged-val → posinfo → var → (checked : checking-mode) → maybe type → posinfo → span
         h tvs pi x checking _ pi' = 
           mk-span "Term-level definition (checking)" pi pi'  tvs
-        h tvs pi x synthesizing (just tp) pi' = 
+        h tvs pi x _ (just tp) pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , to-string tp) :: tvs)
-        h tvs pi x synthesizing nothing pi' = 
+        h tvs pi x _ nothing pi' = 
           mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , "[nothing]") :: tvs)
         h-summary : maybe type → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
@@ -384,9 +392,9 @@ CheckTerm-span checked tp t pi' tvs =
   where h : 𝕃 tagged-val → (checked : checking-mode) → maybe type → posinfo → posinfo → span
         h tvs checking _ pi pi' = 
           mk-span "Checking a term" pi pi' (checking-data checking :: tvs)
-        h tvs synthesizing (just tp) pi pi' = 
+        h tvs _ (just tp) pi pi' = 
           mk-span "Synthesizing a type for a term" pi pi' (checking-data synthesizing :: ("synthesized type" , to-string tp) :: tvs)
-        h tvs synthesizing nothing pi pi' = 
+        h tvs _ nothing pi pi' = 
           mk-span "Synthesizing a type for a term" pi pi' (checking-data synthesizing :: ("synthesized type" , "[nothing]") :: tvs)
 
 normalized-type : type → tagged-val
@@ -397,9 +405,9 @@ DefType-span pi x checked mk tp pi' tvs =
   h ((h-summary mk) ++ tvs) checked mk
   where h : 𝕃 tagged-val → checking-mode → maybe kind → span
         h tvs checking _ = mk-span "Type-level definition (checking)" pi pi' tvs
-        h tvs synthesizing (just k) =
+        h tvs _ (just k) =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , to-string k) :: tvs)
-        h tvs synthesizing nothing =
+        h tvs _ nothing =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
         h-summary : maybe kind → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
@@ -445,6 +453,7 @@ hole-span Γ pi tp tvs =
 expected-to-string : checking-mode → string
 expected-to-string checking = "expected"
 expected-to-string synthesizing = "synthesized"
+expected-to-string untyped = "untyped"
 
 Epsilon-span : posinfo → leftRight → maybeMinus → term → checking-mode → 𝕃 tagged-val → span
 Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t) 

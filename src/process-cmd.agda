@@ -23,8 +23,10 @@ process-start : toplevel-state → (unit-name : string) → start → (need-to-c
 process-unit : toplevel-state → (unit-name : string) → toplevel-state
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x (Type tp) t n pi') tt {- check -} = 
-  check-type Γ tp (just star) ≫span 
-  check-term Γ t (just tp) ≫span 
+  set-ctxt Γ ≫span
+  check-type tp (just star) ≫span 
+  set-ctxt Γ ≫span
+  check-term t (just tp) ≫span 
     let t = erase-term t in
         spanM-add (DefTerm-span pi x checking (just tp) t pi' (normalized-term-if Γ n t)) ≫span 
         spanMr (mk-toplevel-state ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ))
@@ -33,7 +35,8 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff
     spanMr (mk-toplevel-state ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ))
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x NoCheckType t n pi') _ = 
-  check-term Γ t nothing ≫=span λ mtp → 
+  set-ctxt Γ ≫span
+  check-term t nothing ≫=span λ mtp → 
     let t = erase-term t in
       spanM-add (DefTerm-span pi x synthesizing mtp t pi' (normalized-term-if Γ n t)) ≫span
       spanMr (mk-toplevel-state ip mod is (h (hnf Γ unfold-head t , mtp)))
@@ -42,8 +45,10 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefTerm pi x NoCheckType t n pi') 
         h (t , just tp) = ctxt-term-def pi x t tp Γ
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefType pi x (Kind k) tp n pi') tt {- check -} = 
-  check-kind Γ k ≫span 
-  check-type Γ tp (just k) ≫span 
+  set-ctxt Γ ≫span
+  check-kind k ≫span 
+  set-ctxt Γ ≫span
+  check-type tp (just k) ≫span 
      spanM-add (DefType-span pi x checking (just k) tp pi' (normalized-type-if Γ n tp)) ≫span 
      spanMr (mk-toplevel-state ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ))
 
@@ -51,8 +56,10 @@ process-cmd (mk-toplevel-state ip mod is Γ) (DefType pi x (Kind k) tp n pi') ff
   spanMr (mk-toplevel-state ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ))
 
 process-cmd (mk-toplevel-state ip mod is Γ) (CheckTerm t (Type tp) n pi) tt {- check -} = 
-  check-type Γ tp (just star) ≫span 
-  check-term Γ t (just tp) ≫span 
+  set-ctxt Γ ≫span
+  check-type tp (just star) ≫span 
+  set-ctxt Γ ≫span
+  check-term t (just tp) ≫span 
     let t = erase-term t in
        spanM-add (CheckTerm-span checking (just tp) t pi (normalized-term-if Γ n t)) ≫span 
        spanMr (mk-toplevel-state ip mod is Γ)
@@ -60,14 +67,16 @@ process-cmd (mk-toplevel-state ip mod is Γ) (CheckTerm t (Type tp) n pi) tt {- 
 process-cmd s (CheckTerm t _ n pi) ff {- skip checking -} = spanMr s
 
 process-cmd (mk-toplevel-state ip mod is Γ) (CheckTerm t NoCheckType n pi) tt {- check -} = 
-  check-term Γ t nothing ≫=span λ m → 
+  set-ctxt Γ ≫span
+  check-term t nothing ≫=span λ m → 
      spanM-add (CheckTerm-span synthesizing m t pi (normalized-term-if Γ n t)) ≫span 
      spanMr (mk-toplevel-state ip mod is Γ)
 
 process-cmd s (CheckType tp m n pi) _ = spanMr s -- unimplemented
 
 process-cmd (mk-toplevel-state ip mod is Γ) (DefKind pi x _ k pi') tt {- check -} = 
-  check-kind Γ k ≫span
+  set-ctxt Γ ≫span
+  check-kind k ≫span
       spanM-add (DefKind-span pi x k pi') ≫span
       spanMr (mk-toplevel-state ip mod is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ))
 
@@ -85,8 +94,10 @@ process-cmd s (Import pi x pi') _ =
       
 
 process-cmd (mk-toplevel-state ip mod is Γ) (Rec pi pi'' name params inds ctors body us pi') need-to-check = 
-    process-rec-cmd (~ need-to-check) Γ pi pi'' name params inds ctors body us pi' ≫=span λ Γ → 
-    spanMr (mk-toplevel-state ip mod is Γ)
+    set-ctxt Γ ≫span
+    process-rec-cmd (~ need-to-check) pi pi'' name params inds ctors body us pi' ≫span
+      get-ctxt (λ Γ → 
+         spanMr (mk-toplevel-state ip mod is Γ))
 
 process-cmds s (CmdsNext c cs) need-to-check = process-cmd s c need-to-check ≫=span λ s → process-cmds s cs need-to-check
 process-cmds s (CmdsStart c) need-to-check = process-cmd s c need-to-check 
@@ -111,9 +122,9 @@ process-unit s unit-name | ie =
         proceed (mk-toplevel-state ip mod is Γ) (just x) ie' | tt | do-check | prev-path | prev-unit-name =
          let Γ = ctxt-initiate-unit Γ unit-name (include-elt.path (get-include-elt s unit-name)) in
            cont (process-start (mk-toplevel-state ip mod (trie-insert is unit-name ie') Γ)
-                   unit-name x do-check (regular-spans []))
-           where cont : toplevel-state × spans → toplevel-state × include-elt
-                 cont (mk-toplevel-state ip mod is Γ , ss) = 
+                   unit-name x do-check Γ (regular-spans []))
+           where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt
+                 cont (mk-toplevel-state ip mod is Γ , _ , ss) = 
                    let Γ = ctxt-set-current-unit Γ prev-unit-name prev-path in
                     if do-check then
                       (mk-toplevel-state ip (unit-name :: mod) is Γ , set-spans-include-elt ie' ss)

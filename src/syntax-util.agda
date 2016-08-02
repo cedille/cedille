@@ -199,6 +199,7 @@ exprd-name LIFTINGTYPE = "lifting type"
 data checking-mode : Set where
   checking : checking-mode
   synthesizing : checking-mode
+  untyped : checking-mode
 
 maybe-to-checking : {A : Set} → maybe A → checking-mode
 maybe-to-checking (just _) = checking
