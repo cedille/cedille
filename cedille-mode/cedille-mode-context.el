@@ -4,9 +4,9 @@
 
 					; GLOBAL DEFINITIONS
 
-(defvar context-ordering nil)
-(defvar context-list)
-(defvar original-context-list)
+(defvar cedille-mode-context-ordering nil)
+(defvar cedille-mode-context-list)
+(defvar cedille-mode-original-context-list)
 
 					; MINOR MODE FUNCTIONS
 
@@ -27,35 +27,35 @@
 (defun cedille-mode-context-order-fwd()
   "Sorts the context alphabetically (forward)"
   (interactive)
-  (setq context-ordering 'fwd)
+  (setq cedille-mode-context-ordering 'fwd)
   (cedille-mode-display-context))
 
 (defun cedille-mode-context-order-bkd()
   "Sorts the context alphabetically (forward)"
   (interactive)
-  (setq context-ordering 'bkd)
+  (setq cedille-mode-context-ordering 'bkd)
   (cedille-mode-display-context))
 
 (defun cedille-mode-context-order-def()
   "Restores default context ordering"
   (interactive)
-  (setq context-ordering nil)
+  (setq cedille-mode-context-ordering nil)
   (cedille-mode-display-context))
 
 (defun cedille-mode-sort-context()
-  "Sorts context according to ordering and stores in context-list"
-  (let* ((context (copy-sequence context-original-list))
-	 (terms (cond ((equal context-ordering 'fwd)
+  "Sorts context according to ordering and stores in cedille-mode-context-list"
+  (let* ((context (copy-sequence cedille-mode-original-context-list))
+	 (terms (cond ((equal cedille-mode-context-ordering 'fwd)
 		       (sort (car context) (lambda (a b) (string< (car a) (car b)))))		       
-		      ((equal context-ordering 'bkd)
+		      ((equal cedille-mode-context-ordering 'bkd)
 		       (sort (car context) (lambda (a b) (string< (car b) (car a)))))
 		      (t (car context))))
-	 (types (cond ((equal context-ordering 'fwd)
+	 (types (cond ((equal cedille-mode-context-ordering 'fwd)
 		       (sort (cdr context) (lambda (a b) (string< (car a) (car b)))))		       
-		      ((equal context-ordering 'bkd)
+		      ((equal cedille-mode-context-ordering 'bkd)
 		       (sort (cdr context) (lambda (a b) (string< (car b) (car a)))))
 		      (t (cdr context)))))
-    (setq context-list (cons terms types))))
+    (setq cedille-mode-context-list (cons terms types))))
 
 					; FUNCTIONS TO COMPUTE THE CONTEXT
 
@@ -66,7 +66,7 @@
       (let ((b (cedille-mode-context-buffer))
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
 	;;Store the unmodified context
-	(setq context-original-list (cedille-mode-get-context p)))))
+	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
 
 (defun cedille-mode-get-context(path) ; -> ( list<(string,string)>, list<(string,string) )
   "Returns a tuple consisting of:
@@ -100,7 +100,7 @@
       (setq buffer-read-only nil)
       (erase-buffer)
       (cedille-mode-sort-context)
-      (insert (cedille-mode-format-context context-list))
+      (insert (cedille-mode-format-context cedille-mode-context-list))
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
