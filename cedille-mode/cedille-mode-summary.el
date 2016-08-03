@@ -97,7 +97,7 @@
 
 (defun cedille-mode-get-summary-buffer-name()
   "Generates a unique name for each file's summary"
-    (concat "cedille-summary-" (file-name-base))
+    (concat "*cedille-summary-" (file-name-base) "*")
 )
 
 (defun cedille-mode-get-summary-buffer()

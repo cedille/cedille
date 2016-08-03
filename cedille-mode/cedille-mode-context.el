@@ -142,7 +142,7 @@
   (cedille-mode-compute-context)
   (cedille-mode-display-context))
 
-(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name))))
+(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name)) "*"))
 
 (defun cedille-mode-context-buffer()
   "Retrieves the context buffer"
