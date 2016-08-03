@@ -2,6 +2,12 @@
 ; This file contains the code that governs the feature allowing the user to retrieve the context at a given point.
 
 
+					; GLOBAL DEFINITIONS
+
+(defvar context-ordering nil)
+(defvar context-list)
+(defvar original-context-list)
+
 					; MINOR MODE FUNCTIONS
 
 (define-minor-mode cedille-context-view-mode
@@ -21,52 +27,46 @@
 (defun cedille-mode-context-order-fwd()
   "Sorts the context alphabetically (forward)"
   (interactive)
-  (with-current-buffer (cedille-mode-context-buffer)
-    (setq context-ordering 'fwd)
-    (make-local-variable 'context-ordering)
-    (let* ((context context-original-list)
-	   (terms (sort (car context) '<))
-	   (types (sort (cdr context) '<)))
-      (setq context-list (cons terms types))
-      (make-local-variable context-list))))
+  (setq context-ordering 'fwd)
+  (cedille-mode-display-context))
 
 (defun cedille-mode-context-order-bkd()
-  "Sorts the context alphabetically (backward)"
+  "Sorts the context alphabetically (forward)"
   (interactive)
-  (with-current-buffer (cedille-mode-context-buffer)
-    (setq context-ordering 'bkd)
-    (make-local-variable 'context-ordering)
-    (let* ((context context-original-list)
-	   (terms (sort (car context) '>))
-	   (types (sort (cdr context) '>)))
-      (setq context-list (cons terms types))
-      (make-local-variable 'context-list))))
+  (setq context-ordering 'bkd)
+  (cedille-mode-display-context))
 
 (defun cedille-mode-context-order-def()
   "Restores default context ordering"
   (interactive)
   (setq context-ordering nil)
-  (make-local-variable 'context-ordering)
-  (with-current-buffer (cedille-mode-context-buffer)
-    (setq context-list context-original-list)
-    (make-local-variable 'context-list)))
+  (cedille-mode-display-context))
+
+(defun cedille-mode-sort-context()
+  "Sorts context according to ordering and stores in context-list"
+  (let* ((context (copy-sequence context-original-list))
+	 (terms (cond ((equal context-ordering 'fwd)
+		       (sort (car context) (lambda (a b) (string< (car a) (car b)))))		       
+		      ((equal context-ordering 'bkd)
+		       (sort (car context) (lambda (a b) (string< (car b) (car a)))))
+		      (t (car context))))
+	 (types (cond ((equal context-ordering 'fwd)
+		       (sort (cdr context) (lambda (a b) (string< (car a) (car b)))))		       
+		      ((equal context-ordering 'bkd)
+		       (sort (cdr context) (lambda (a b) (string< (car b) (car a)))))
+		      (t (cdr context)))))
+    (setq context-list (cons terms types))))
 
 					; FUNCTIONS TO COMPUTE THE CONTEXT
 
 (defun cedille-mode-compute-context()
   "Compute the context and store it in local variables"
-  (interactive)
   (if se-mode-selected
-      ;Retrieve context from parse tree
+      ;;Retrieve context from parse tree
       (let ((b (cedille-mode-context-buffer))
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
-	;Initialize context minor mode and store context in local variables
-	(with-current-buffer b
-	  (setq context-original-list (cedille-mode-get-context p))
-	  (setq context-list context-original-list)
-	  (make-local-variable 'context-original-list)
-	  (make-local-variable 'context-list)
-	  (cedille-context-view-mode)))))
+	;;Store the unmodified context
+	(setq context-original-list (cedille-mode-get-context p)))))
 
 (defun cedille-mode-get-context(path) ; -> ( list<(string,string)>, list<(string,string) )
   "Returns a tuple consisting of:
@@ -99,6 +99,7 @@
     (with-current-buffer b
       (setq buffer-read-only nil)
       (erase-buffer)
+      (cedille-mode-sort-context)
       (insert (cedille-mode-format-context context-list))
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
@@ -137,6 +138,7 @@
 					; CONVENIENT FUNCTIONS
 
 (defun cedille-mode-context()
+  (with-current-buffer (cedille-mode-context-buffer) (cedille-context-view-mode))
   (cedille-mode-compute-context)
   (cedille-mode-display-context))
 
@@ -162,9 +164,9 @@
 	     (context-buffer (cedille-mode-context-buffer))
 	     (context-window (get-buffer-window context-buffer)))
 	(if context-window
-	    ;If there is a context mode window, delete it
+	    ;;If there is a context mode window, delete it
 	    (delete-window context-window)
-	  ;Else create a new one
+	  ;;Else create a new one
 	  (cedille-mode-context)
 	  (set-window-buffer (cedille-mode-context-window) context-buffer)
 	  (fit-window-to-buffer (get-buffer-window context-buffer))
@@ -173,11 +175,6 @@
 (defun cedille-mode-close-context-window()
   (interactive)
   (delete-window))
-;  (let* ((context-buffer (cedille-mode-context-buffer))
-;	 (context-window (get-buffer-window context-buffer)))
- ;   (if context-window
-;	;If there is a context mode window, delete it
-;	(delete-window context-window))))
 
 					; FUNCTION TO CALL WHEN HOTKEY IS PRESSED
 
@@ -189,9 +186,9 @@
 	     (context-buffer (cedille-mode-context-buffer))
 	     (context-window (get-buffer-window context-buffer)))
 	(if context-window
-	    ;If there is a context mode window, delete it
+	    ;;If there is a context mode window, delete it
 	    (delete-window context-window)
-	  ;Else create a new one
+	  ;;Else create a new one
 	  (cedille-mode-context)
 	  (set-window-buffer (cedille-mode-context-window) context-buffer)
 	  (fit-window-to-buffer (get-buffer-window context-buffer))))))
