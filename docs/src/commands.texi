@@ -7,16 +7,16 @@ Cedille mode supports the following commands:
 @chapter Navigation
 @table @command
 @item f/F
-Navigate to the next node in the parse tree
+Navigate to the next same-level node in the parse tree
 
 @item b/B
-Navigate to the previous node in the parse tree
+Navigate to the previous same-level node in the parse tree
 
 @item p
 Navigate to the parent of the current node in the parse tree
 
 @item n
-Navigate to the first child node of the current node in the parse tree
+Navigate to the previously visited child (first by default) node of the current node in the parse tree
 
 @item a/e
 Navigate to the first/last node in the current level of the parse tree
@@ -51,7 +51,7 @@ Open information documents describing how to use Cedille mode
 
 @chapter Other
 @table @command
-@item C-x <int>
+@item C-h <int>
 Alters highlighting scheme depending on value of <int>:
 1: default highlighting
 2: language level highlighting
