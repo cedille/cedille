@@ -176,31 +176,29 @@ the info buffer for the file.  Return the info buffer as a convenience."
       b)))
 
 
+(defun cedille-mode-show-extra-buffers()
+  "Show the info and context buffers."
+  (cedille-mode-inspect)
+  (cedille-mode-context))
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(se-mode-select-next)
-	(cedille-mode-inspect)
-	(cedille-mode-context)
-	(cedille-mode-select-next (- count 1)))
-      nil))
+  (when (> count 0)
+    (se-mode-select-next)
+    (cedille-mode-select-next (- count 1)))
+  (cedille-mode-show-extra-buffers))
     
 
 (defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
+  (when (> count 0)
 	(se-mode-select-previous)
-	(cedille-mode-inspect)
-	(cedille-mode-context)
 	(cedille-mode-select-previous (- count 1)))
-      nil))
+  (cedille-mode-show-extra-buffers))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -218,38 +216,33 @@ the parse tree, and updates the Cedille info buffer."
 Otherwise, selects the first span beginning after the end of the current span,
 Updates info buffer in either case"
   (interactive "p")
-  (if (> count 0)
-      (progn
+  (when (> count 0)
 	(se-mode-set-spans)
 	(unless (se-mode-select (se-mode-next))
 	  (let ((found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test)))
 	    (if (not found)
 		(message "No next span")
-	      (progn (cedille-mode-select-span found)
-		     (cedille-mode-inspect)
-		     (cedille-mode-context)))))
+	      (progn (cedille-mode-select-span found)))))
 	(cedille-mode-select-next-alt (- count 1)))
-    nil))
+  (cedille-mode-show-extra-buffers))
 
 (defun cedille-mode-select-previous-alt(count)
   "Selects the previous sibling of the currently selected node;
 otherwise selects first span that ends before the current span begins.
 Updates info buffer in either case."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(se-mode-set-spans)
-	(unless (se-mode-select (se-mode-previous))
-	  (let ((found (cl-find (se-mode-selected) se-mode-spans
-				:test #'cedille-mode-select-previous-alt-test
-				:from-end t)))
-	    (if (not found)
-		(message "No previous span")
-	      (progn (cedille-mode-select-span found)
-		     (cedille-mode-inspect)
-		     (cedille-mode-context)))))
-	(cedille-mode-select-previous-alt (- count 1)))
-    nil))
+  (when (> count 0)
+    (se-mode-set-spans)
+    (unless (se-mode-select (se-mode-previous))
+	(let ((found (cl-find (se-mode-selected) se-mode-spans
+			:test #'cedille-mode-select-previous-alt-test
+			:from-end t)))
+	(if (not found)
+	  (message "No previous span")
+	  (cedille-mode-select-span found))))
+    (cedille-mode-select-previous-alt (- count 1)))
+    (cedille-mode-show-extra-buffers)
+)
 
 (defun cedille-mode-select-parent(count)
   "Selects the parent of the currently selected node in 
@@ -258,10 +251,10 @@ the parse tree, and updates the Cedille info buffer."
   (if (> count 0)
       (progn
 	(se-mode-expand-selected)
-	(cedille-mode-inspect)
-	(cedille-mode-context)
 	(cedille-mode-select-parent (- count 1)))
-    nil))
+    nil)
+  (cedille-mode-show-extra-buffers)
+)
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
@@ -270,26 +263,24 @@ containing point, and updates the Cedille info buffer."
   (if (> count 0)
       (progn
 	(se-mode-shrink-selected)
-	(cedille-mode-inspect)
-	(cedille-mode-context)
 	(cedille-mode-select-first-child (- count 1)))
-    nil))
+    nil)
+ (cedille-mode-show-extra-buffers)
+)
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-first)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (cedille-mode-show-extra-buffers))
 
 (defun cedille-mode-select-last()
   "Selects the last sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-last)
-  (cedille-mode-inspect)
-  (cedille-mode-context))
+  (cedille-mode-show-extra-buffers))
 
 (defun cedille-mode-jump ()
   "Jumps to a location associated with the selected node"

@@ -28,9 +28,10 @@ Vlast ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π i : Nat . ∀ _ : Lt i
     v · (λ n : Nat . λ v : Vector · A n . Π n' : Nat . ∀ _ : n ≃ n' . Π i : Nat . ∀ _ : Lt i n' . A)
       (Λ n . λ h . λ _ . λ r . λ n' .
          θ n' (λ n' . λ _ . Λ e . λ i . Λ u1 .
-                 θ+ (eqnat i n') (λ u . h) (λ u . r n' -(π1 ε e) i -(Lt-not-eqnat i n' u1 u)))
+                 θ+ (eqnat i n') (λ u . h) (λ u . r n' -(π1 e) i -(Lt-not-eqnat i n' u1 u)))
               (Λ u . δ u))
       (λ n' . Λ e . λ i . Λ u . δ ε ((Not-Lt-Z i (ρ e - u)) · (tt ≃ ff)))
       n -β.
     
+
   

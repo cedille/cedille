@@ -420,7 +420,7 @@ check-termi (Delta pi t) (just tp) =
 check-termi (PiInj pi n t) mtp = 
   check-term t nothing ≫=span (λ tm → get-ctxt (λ Γ → cont Γ mtp tm))
   where cont : ctxt → (mtp : maybe type) → maybe type → spanM (check-ret mtp)
-        cont Γ mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (erase-term t1) (erase-term t2)
+        cont Γ mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (hnf Γ unfold-head t1) (hnf Γ unfold-head t2)
         cont _ mtp (just (TpEq t1 t2)) | inj₂ msg = 
           spanM-add (PiInj-span pi n t (maybe-to-checking mtp)
                           ( error-data "We could not project out an equation between corresponding arguments."
