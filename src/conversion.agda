@@ -46,6 +46,11 @@ unfold-dampen tt (unfold ff b tt) = no-unfolding
 unfold-dampen tt (unfold ff b ff) = (unfold ff b ff)
 unfold-dampen ff _ = no-unfolding
 
+unfold-dampen-rec : (after-head-beta : 𝔹) → unfolding → unfolding
+unfold-dampen-rec _ no-unfolding = no-unfolding
+unfold-dampen-rec ff (unfold b _ b') = unfold b ff b'
+unfold-dampen-rec tt (unfold b b' b'') = unfold b b' b''
+
 {-# NO_TERMINATION_CHECK #-}
 conv-term : ctxt → term → term → 𝔹
 conv-type : ctxt → type → type → 𝔹
@@ -105,8 +110,8 @@ hnf{TYPE} Γ u (TpAppt tp t) with hnf Γ u tp
 hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp)
 hnf{TYPE} Γ u (TpAppt _ t) | tp = TpAppt tp (erase-term t)
 hnf{TYPE} Γ u (TpApp tp tp') with hnf Γ u tp
-hnf{TYPE} Γ u (TpApp _ tp') | TpLambda _ _ x _ tp = hnf Γ (unfold-dampen tt u) (subst-type Γ tp' x tp)
-hnf{TYPE} Γ u (TpApp _ tp') | tp with hnf Γ (unfold-dampen ff u) tp' 
+hnf{TYPE} Γ u (TpApp _ tp') | TpLambda _ _ x _ tp = hnf Γ (unfold-dampen-rec tt u) (subst-type Γ tp' x tp)
+hnf{TYPE} Γ u (TpApp _ tp') | tp with hnf Γ (unfold-dampen-rec ff u) tp' 
 hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
 
   {- given (T1 T2), with T1 and T2 types, see if we can pull a lifting operation from the heads of T1 and T2 to
@@ -135,17 +140,17 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
         try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
 
 
-hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen ff u) tp)
+hnf{TYPE} Γ u (Abs pi b pi' x atk tp) with Abs pi b pi' x atk (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp)
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x (Tkk k) ff tp) = Abs pi b pi' x (Tkk k) tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi All pi' x (Tkt tp') ff tp) = Abs pi All pi' x (Tkt tp') tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') ff tp) = TpArrow tp' tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | nothing = tp''
-hnf{TYPE} Γ u (TpArrow tp1 tp2) = TpArrow (hnf Γ (unfold-dampen ff u) tp1) (hnf Γ (unfold-dampen ff u) tp2)
+hnf{TYPE} Γ u (TpArrow tp1 tp2) = TpArrow (hnf Γ (unfold-dampen-rec ff u) tp1) (hnf Γ (unfold-dampen-rec ff u) tp2)
 hnf{TYPE} Γ u (TpEq t1 t2) = TpEq (erase-term t1) (erase-term t2)
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) = 
-  TpLambda pi pi' x (hnf-tk Γ (unfold-dampen ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen ff u) tp)
+  TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp)
 hnf{TYPE} Γ u (Lft pi pi' y t l) = 
  let t = hnf (ctxt-var-decl pi' y Γ) u t in
    do-lift Γ (Lft pi pi' y t l) y l t
@@ -156,12 +161,10 @@ hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | nothing = KndVar pi x
 hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | just k = k 
 --hnf{KIND} Γ no-unfolding (KndVar pi x) = KndVar pi x
 hnf{KIND} Γ u (KndPi pi pi' x atk k) =
-  let atk' = atk in -- hnf-tk Γ (unfold-dampen u ) atk in
-  let k' = k in -- hnf Γ (unfold-dampen u) k in
     if is-free-in-kind check-erased x k then
-      (KndPi pi pi' x atk' k')
+      (KndPi pi pi' x atk k)
     else
-      tk-arrow-kind atk' k'
+      tk-arrow-kind atk k
 hnf Γ u x = x
 
 hnf-tk Γ u (Tkk k) = Tkk (hnf Γ u k)
