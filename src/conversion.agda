@@ -93,7 +93,7 @@ hnf{TERM} Γ u (Sigma pi t) = hnf Γ u t
 hnf{TERM} Γ u (Epsilon _ _ _ t) = hnf Γ u t
 hnf{TERM} Γ u (Delta _ t) = hnf Γ u t
 hnf{TERM} Γ u (PiInj _ _ t) = hnf Γ u t
-hnf{TERM} Γ u (Rho pi t t') = hnf Γ u t'
+hnf{TERM} Γ u (Rho pi _ t t') = hnf Γ u t'
 hnf{TERM} Γ u (Chi pi T t') = hnf Γ u t'
 hnf{TERM} Γ u (Theta pi u' t ls) = hnf Γ u (App*' t (erase-lterms u' ls))
 

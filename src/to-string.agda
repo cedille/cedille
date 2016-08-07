@@ -71,7 +71,10 @@ term-to-stringh toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string ff t
 term-to-stringh toplevel p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Sigma _ t) = "(ς " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string ff t ^ lterms-to-stringh ts ^ ")"
-term-to-stringh toplevel p (Rho _ t t') = "(ρ " ^ term-to-string ff t ^ " - " ^ term-to-string ff t' ^ ")"
+term-to-stringh toplevel p (Rho _ r t t') = "(" ^ rho-to-string r ^ term-to-string ff t ^ " - " ^ term-to-string ff t' ^ ")"
+  where rho-to-string : rho → string
+        rho-to-string RhoPlain = "ρ"
+        rho-to-string RhoPlus = "ρ+"
 term-to-stringh toplevel p (Chi _ T t') = "(χ " ^ maybeAtype-to-string T ^ " - " ^ term-to-string ff t' ^ ")"
 
 type-to-stringh toplevel p (Abs pi b pi' x t t') = 

@@ -3,12 +3,12 @@ import nat-thms/S/S-0.
 
 add-comm ⇐ Π n : Nat . Π m : Nat . add n m ≃ add m n =
   λ n . λ m . θ n
-    ( λ p . λ h . εl ρ h - ρ ( add-S-comm-1 m p ) - β )
-    ( εl ρ ( add-Z-1 m ) - β ) .
+    ( λ p . λ h . ρ+ h - ρ ( add-S-comm-1 m p ) - β )
+    ( ρ+ ( add-Z-1 m ) - β ) .
 
 add-one-1 ⇐ Π n : Nat . add n one ≃ S n =
   λ n . θ n
-    ( λ _ . λ h . εl ρ h - ρ ( add-S-comm-1 n Z ) - β )
+    ( λ _ . λ h . ρ+ h - β )
     β .
   
 add-inj-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat . ( add x y ≃ add x z ) → y ≃ z =

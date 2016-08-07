@@ -179,7 +179,8 @@ the info buffer for the file.  Return the info buffer as a convenience."
 (defun cedille-mode-show-extra-buffers()
   "Show the info and context buffers."
   (cedille-mode-inspect)
-  (cedille-mode-context))
+;  (cedille-mode-context)
+)
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 

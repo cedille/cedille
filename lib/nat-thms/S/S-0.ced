@@ -6,4 +6,4 @@ S-inj ⇐ Π x : Nat . Π y : Nat . (S x ≃ S y) → x ≃ y =
 
 % S has no fixed point
 nofixS ⇐ Π x : Nat . (S x ≃ x) → False = 
-  λ x . θ x (λ n . λ ih . λ u . ih (π1 ε u)) (λ u . δ ε u) .
+  λ x . θ x (λ n . λ ih . λ u . ih (π1 u)) (λ u . δ u) .

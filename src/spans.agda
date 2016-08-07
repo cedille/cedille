@@ -469,11 +469,14 @@ Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t)
         maybeMinus-description EpsHnf = "head"
         maybeMinus-description EpsHanf = "head-applicative"
 
-Rho-span : posinfo → term → term → checking-mode → 𝕃 tagged-val → span
-Rho-span pi t t' expected tvs = mk-span "Rho" pi (term-end-pos t') 
+Rho-span : posinfo → term → term → checking-mode → rho → ℕ → 𝕃 tagged-val → span
+Rho-span pi t t' expected r numrewrites tvs = mk-span "Rho" pi (term-end-pos t') 
                                   (checking-data expected :: ll-data-term :: tvs ++
-                                    [ explain ("Rewrite terms in the " 
-                                             ^ expected-to-string expected ^ " type, using an equation. ") ])
+                                    ((if (numrewrites =ℕ 0) then (error-data "No rewrites could be performed.")
+                                     else ("Number of rewrites", ℕ-to-string numrewrites)) ::
+                                     [ explain ("Rewrite terms in the " 
+                                             ^ expected-to-string expected ^ " type, using an equation. "
+                                             ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") ]))
 
 Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
 Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 

@@ -73,6 +73,9 @@ AbstractVars : theta -> 'θ<' ows vars ows '>' .
 VarsStart : vars -> var .
 VarsNext : vars -> var ws vars.
 
+RhoPlain : rho -> 'ρ' .
+RhoPlus : rho -> 'ρ+' .
+
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .
@@ -84,7 +87,7 @@ Delta : lterm -> ! 'δ' ows lterm.
 PiInj : lterm -> ! 'π' num ows lterm.
 Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
-Rho : lterm -> ! 'ρ' ows lterm ows '-' ows lterm.
+Rho : lterm -> ! rho ows lterm ows '-' ows lterm.
 Chi : lterm -> ! 'χ' maybeAtype ows '-' ows lterm.
 Var : lterm -> ! var .
 Parens : lterm -> ! '(' ows term ows ')' ! . 

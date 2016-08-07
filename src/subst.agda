@@ -46,7 +46,7 @@ substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (PiInj pi n t') = PiInj pi n (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Epsilon pi lr m t') = Epsilon pi lr m (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Sigma pi t') = Sigma pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Rho pi t' t'') = Rho pi (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
+substh-term Γ ρ t x (Rho pi r t' t'') = Rho pi r (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
 substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-maybeAtype Γ ρ t x T) (substh-term Γ ρ t x t'')
 substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
   where substh-lterms : substh-ret-t lterms

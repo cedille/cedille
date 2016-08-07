@@ -147,6 +147,10 @@ mutual
     NoClass : optClass
     SomeClass : tk → optClass
 
+  data rho : Set where 
+    RhoPlain : rho
+    RhoPlus : rho
+
   data start : Set where 
     File : posinfo → cmds → posinfo → start
 
@@ -161,7 +165,7 @@ mutual
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Parens : posinfo → term → posinfo → term
     PiInj : posinfo → num → term → term
-    Rho : posinfo → term → term → term
+    Rho : posinfo → rho → term → term → term
     Sigma : posinfo → term → term
     Theta : posinfo → theta → term → lterms → term
     Var : posinfo → var → term
@@ -240,6 +244,7 @@ data ParseTreeT : Set where
   parsed-maybeMinus : maybeMinus → ParseTreeT
   parsed-maybeVarEq : maybeVarEq → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
+  parsed-rho : rho → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
   parsed-theta : theta → ParseTreeT
@@ -508,6 +513,10 @@ mutual
   optClassToString (NoClass) = "NoClass" ^ ""
   optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
 
+  rhoToString : rho → string
+  rhoToString (RhoPlain) = "RhoPlain" ^ ""
+  rhoToString (RhoPlus) = "RhoPlus" ^ ""
+
   startToString : start → string
   startToString (File x0 x1 x2) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (cmdsToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
 
@@ -522,7 +531,7 @@ mutual
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (PiInj x0 x1 x2) = "(PiInj" ^ " " ^ (posinfoToString x0) ^ " " ^ (numToString x1) ^ " " ^ (termToString x2) ^ ")"
-  termToString (Rho x0 x1 x2) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ ")"
+  termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (rhoToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
@@ -589,6 +598,7 @@ ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
 ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
 ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
+ParseTreeToString (parsed-rho t) = rhoToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
 ParseTreeToString (parsed-theta t) = thetaToString t
@@ -735,6 +745,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-start : (x : start) → start
   norm-start x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-rho : (x : rho) → rho
+  norm-rho x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-posinfo : (x : posinfo) → posinfo

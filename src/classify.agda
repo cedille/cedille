@@ -9,7 +9,7 @@ open import ctxt
 open import is-free
 open import lift
 open import rename
-open import rewriting
+open import rewriting-new
 open import spans
 open import subst
 open import syntax-util
@@ -190,7 +190,7 @@ var-spans-term Γ (Hole x) = spanMok
 var-spans-term Γ (Lam _ _ pi' x _ t) = var-spans-term (ctxt-var-decl pi' x Γ) t
 var-spans-term Γ (Parens x t x₁) = var-spans-term Γ t
 var-spans-term Γ (PiInj x x₁ t) = var-spans-term Γ t
-var-spans-term Γ (Rho x t t') = var-spans-term Γ t ≫span var-spans-term Γ t'
+var-spans-term Γ (Rho _ _ t t') = var-spans-term Γ t ≫span var-spans-term Γ t'
 var-spans-term Γ (Sigma x t) = var-spans-term Γ t
 var-spans-term Γ (Theta x x₁ t x₂) = var-spans-term Γ t
 var-spans-term Γ (Var pi x) = spanM-add (Var-span Γ pi x untyped [])
@@ -492,33 +492,35 @@ check-termi (Sigma pi t) mt =
                                           :: ["the synthesized type" , to-string tp ])) ≫span
           check-fail mt
 
-check-termi (Rho pi t t') (just tp) = 
+check-termi (Rho pi r t t') (just tp) = 
   check-term t nothing ≫=span cont
   where cont : maybe type → spanM ⊤
-        cont nothing = spanM-add (Rho-span pi t t' checking [ expected-type tp ]) 
+        cont nothing = spanM-add (Rho-span pi t t' checking r 0 [ expected-type tp ]) 
         cont (just (TpEq t1 t2)) = 
-           get-ctxt (λ Γ → 
-             check-term t' (just (rewrite-type Γ empty-renamectxt t1 t2 tp)) ≫span
-             spanM-add (Rho-span pi t t' checking ( ("the equation" , to-string (TpEq t1 t2)) :: [ type-data tp ])))
-        cont (just tp') = spanM-add (Rho-span pi t t' checking
+           get-ctxt (λ Γ →
+             let s = rewrite-type Γ empty-renamectxt (is-rho-plus r) t1 t2 tp in
+             check-term t' (just (fst s)) ≫span
+             spanM-add (Rho-span pi t t' checking r (snd s) ( ("the equation" , to-string (TpEq t1 t2)) :: [ type-data tp ])))
+        cont (just tp') = spanM-add (Rho-span pi t t' checking r 0
                                        (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
                                      :: ("the synthesized type for the first subterm" , to-string tp')
                                      :: [ expected-type tp ])) 
 
-check-termi (Rho pi t t') nothing = 
+check-termi (Rho pi r t t') nothing = 
   check-term t nothing ≫=span λ mtp → 
   check-term t' nothing ≫=span cont mtp
   where cont : maybe type → maybe type → spanM (maybe type)
         cont (just (TpEq t1 t2)) (just tp) = 
           get-ctxt (λ Γ → 
-            let tp' = rewrite-type Γ empty-renamectxt t1 t2 tp in
-              spanM-add (Rho-span pi t t' synthesizing [ type-data tp' ]) ≫span
-              check-termi-return Γ (Rho pi t t') tp')
-        cont (just tp') m2 = spanM-add (Rho-span pi t t' synthesizing
+            let s = rewrite-type Γ empty-renamectxt (is-rho-plus r) t1 t2 tp in
+            let tp' = fst s in
+              spanM-add (Rho-span pi t t' synthesizing r (snd s) [ type-data tp' ]) ≫span
+              check-termi-return Γ (Rho pi r t t') tp')
+        cont (just tp') m2 = spanM-add (Rho-span pi t t' synthesizing r 0
                                          (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
                                       :: ("the synthesized type for the first subterm" , to-string tp')
                                       :: [])) ≫span spanMr nothing
-        cont nothing _ = spanM-add (Rho-span pi t t' synthesizing []) ≫span spanMr nothing
+        cont nothing _ = spanM-add (Rho-span pi t t' synthesizing r 0 []) ≫span spanMr nothing
 
 check-termi (Chi pi (Atype tp) t) mtp = 
   check-type tp (just star) ≫span

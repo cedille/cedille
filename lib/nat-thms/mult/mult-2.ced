@@ -79,7 +79,6 @@ mult-distr ⇐ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( add y z ) ≃ add
 	  ρ ς ( hx py pz ) -
 	  β )
 	( ρ ( add-Z-1 ( S py ) ) -
-	  ρ ( add-Z-1 ( mult (S px) (S py) ) ) -
 	  ρ ( mult-Z-1 ( S px ) ) -
 	  ρ ( add-Z-1 ( mult ( S px ) ( S py ) ) ) -
 	  β ) )

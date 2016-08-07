@@ -5,7 +5,7 @@ S-refl-iter ⇐ Π x : Nat . x ≃ x ( λ p . S ) Z =
 
 S-add-one-1 ⇐ Π n : Nat . add n one ≃ S n =
   λ n . θ n
-    ( λ p . λ h . εl ρ h - ρ ( add-S-comm-1 n Z ) - β )
+    ( λ p . λ h . ρ+ h - β )
     β .
 
 S-ineq-bool ⇐ Π x : Nat . eqnat ( S x ) x ≃ ff =
