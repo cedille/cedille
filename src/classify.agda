@@ -9,7 +9,7 @@ open import ctxt
 open import is-free
 open import lift
 open import rename
-open import rewriting-new
+open import rewriting
 open import spans
 open import subst
 open import syntax-util
