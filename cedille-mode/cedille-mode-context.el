@@ -138,9 +138,10 @@
 					; CONVENIENT FUNCTIONS
 
 (defun cedille-mode-context()
-  (with-current-buffer (cedille-mode-context-buffer) (cedille-context-view-mode))
+  ;(with-current-buffer (cedille-mode-context-buffer) (cedille-context-view-mode))
   (cedille-mode-compute-context)
-  (cedille-mode-display-context))
+  (cedille-mode-display-context)
+  (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name)) "*"))
 
@@ -168,8 +169,8 @@
 	    (delete-window context-window)
 	  ;;Else create a new one
 	  (cedille-mode-context)
-	  (set-window-buffer (cedille-mode-context-window) context-buffer)
-	  (fit-window-to-buffer (get-buffer-window context-buffer))
+	  ;;(set-window-buffer (cedille-mode-context-window) context-buffer)
+	  (fit-window-to-buffer (cedille-mode-get-create-window context-buffer) context-buffer)
 	  (select-window (get-buffer-window context-buffer))))))
 
 (defun cedille-mode-close-context-window()
@@ -181,16 +182,22 @@
 (defun cedille-mode-toggle-context-mode()
   "Toggles context mode on/off"
   (interactive)
-  (if se-mode-selected
-      (let* ((first-buffer (current-buffer))
-	     (context-buffer (cedille-mode-context-buffer))
-	     (context-window (get-buffer-window context-buffer)))
-	(if context-window
-	    ;;If there is a context mode window, delete it
-	    (delete-window context-window)
-	  ;;Else create a new one
+  (when se-mode-selected
+      (let ((buffer (cedille-mode-context-buffer)))
+	(when (cedille-mode-toggle-buffer-display buffer)
 	  (cedille-mode-context)
-	  (set-window-buffer (cedille-mode-context-window) context-buffer)
-	  (fit-window-to-buffer (get-buffer-window context-buffer))))))
+	  (with-current-buffer buffer (cedille-context-view-mode))))))
+	
+	
+;;      (let* ((first-buffer (current-buffer))
+;;	     (context-buffer (cedille-mode-context-buffer))
+;;	     (context-window (get-buffer-window context-buffer)))
+;;	(if context-window
+;;	    ;;If there is a context mode window, delete it
+;;	    (delete-window context-window)
+;;	  ;;Else create a new one
+;;	  (cedille-mode-context)
+;;	  ;;(set-window-buffer (cedille-mode-context-window) context-buffer)
+;;	  (fit-window-to-buffer (cedille-mode-get-create-window context-buffer) context-buffer)))))
       
 (provide 'cedille-mode-context)

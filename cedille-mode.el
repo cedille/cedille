@@ -92,12 +92,56 @@ Defaults to `error'."
     b))
 
 (defun cedille-adjust-info-window-size()
-  (let ((w (get-buffer-window (cedille-info-buffer))))
-   (when w
-     (fit-window-to-buffer w)
-     (unless (eq (window-resizable w cedille-info-buffer-trailing-edge) 0)
-         (window-resize w cedille-info-buffer-trailing-edge)))))
+  (cedille-mode-rebalance-windows))
+;;  (let ((info-window (get-buffer-window (cedille-info-buffer))))
+;;    (when info-window (fit-window-to-buffer info-window))))
 
+;;  (let ((w (get-buffer-window (cedille-info-buffer))))
+;;   (when w
+;;     (fit-window-to-buffer w)
+;;     (unless (eq (window-resizable w cedille-info-buffer-trailing-edge) 0)
+;;         (window-resize w cedille-info-buffer-trailing-edge)))))
+
+					; UTILITY FUNCTIONS FOR MANAGING WINDOWS
+
+(defun cedille-mode-get-create-window(buffer)
+  "Retrieves the window associated with the given buffer or else creates a new window and fills it with the buffer"
+  (let ((window (get-buffer-window buffer)))
+    (if window
+	window
+      (let ((window (split-window)))
+	   (set-window-buffer window buffer)
+	   window))))
+
+(defun cedille-mode-toggle-buffer-display(buffer)
+  "Toggles display of buffer on or off. Returns nil if window was deleted, or the window if it was created."
+  (let ((window (get-buffer-window buffer)))
+    (if window
+	(progn
+	  (delete-window window)
+	  (cedille-mode-rebalance-windows))
+      (let ((window (cedille-mode-get-create-window buffer)))
+	(cedille-mode-rebalance-windows)
+	window))))
+
+(defun cedille-mode-rebalance-windows()
+  "Resizes all windows"
+  (walk-windows
+     (lambda (window) (fit-window-to-buffer window))))
+;;  (let ((n (count-windows)))
+;;    (when (> n 0)
+;;      (dotimes (i n)
+;;	(fit-window-to-buffer (other-window (- (+1 i))))))))
+    
+
+					;UTILITY FUNCTIONS FOR MANAGING BUFFERS
+
+(defun cedille-mode-update-buffers()
+  "Update the info and context buffers."
+  (cedille-mode-inspect)
+  (cedille-mode-context)
+  (cedille-mode-rebalance-windows))
+  
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
   (let ((he (car ss))
@@ -176,11 +220,7 @@ the info buffer for the file.  Return the info buffer as a convenience."
       b)))
 
 
-(defun cedille-mode-show-extra-buffers()
-  "Show the info and context buffers."
-  (cedille-mode-inspect)
-;  (cedille-mode-context)
-)
+
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
@@ -189,7 +229,7 @@ the parse tree, and updates the Cedille info buffer."
   (when (> count 0)
     (se-mode-select-next)
     (cedille-mode-select-next (- count 1)))
-  (cedille-mode-show-extra-buffers))
+  (cedille-mode-update-buffers))
     
 
 (defun cedille-mode-select-previous(count)
@@ -199,7 +239,7 @@ the parse tree, and updates the Cedille info buffer."
   (when (> count 0)
 	(se-mode-select-previous)
 	(cedille-mode-select-previous (- count 1)))
-  (cedille-mode-show-extra-buffers))
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -225,7 +265,7 @@ Updates info buffer in either case"
 		(message "No next span")
 	      (progn (cedille-mode-select-span found)))))
 	(cedille-mode-select-next-alt (- count 1)))
-  (cedille-mode-show-extra-buffers))
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-previous-alt(count)
   "Selects the previous sibling of the currently selected node;
@@ -242,7 +282,7 @@ Updates info buffer in either case."
 	  (message "No previous span")
 	  (cedille-mode-select-span found))))
     (cedille-mode-select-previous-alt (- count 1)))
-    (cedille-mode-show-extra-buffers)
+    (cedille-mode-update-buffers)
 )
 
 (defun cedille-mode-select-parent(count)
@@ -254,7 +294,7 @@ the parse tree, and updates the Cedille info buffer."
 	(se-mode-expand-selected)
 	(cedille-mode-select-parent (- count 1)))
     nil)
-  (cedille-mode-show-extra-buffers)
+  (cedille-mode-update-buffers)
 )
 
 (defun cedille-mode-select-first-child(count)
@@ -266,7 +306,7 @@ containing point, and updates the Cedille info buffer."
 	(se-mode-shrink-selected)
 	(cedille-mode-select-first-child (- count 1)))
     nil)
- (cedille-mode-show-extra-buffers)
+ (cedille-mode-update-buffers)
 )
 
 (defun cedille-mode-select-first()
@@ -274,14 +314,14 @@ containing point, and updates the Cedille info buffer."
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-first)
-  (cedille-mode-show-extra-buffers))
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-last()
   "Selects the last sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-last)
-  (cedille-mode-show-extra-buffers))
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-jump ()
   "Jumps to a location associated with the selected node"
@@ -310,9 +350,16 @@ in the parse tree, and updates the Cedille info buffer."
 (defun cedille-mode-toggle-info()
   "Shows or hides the Cedille info buffer."
   (interactive)
-  (let* ((b (cedille-info-buffer))
-         (w (get-buffer-window b)))
-    (if w (delete-window w) (display-buffer b) (cedille-adjust-info-window-size))))
+  (let ((buffer (cedille-info-buffer)))
+    (cedille-mode-toggle-buffer-display buffer)))
+
+;;  (let* ((b (cedille-info-buffer))
+;;         (w (get-buffer-window b)))
+;;    (if w
+;;	(delete-window w)
+;;      ;;(display-buffer b)
+;;      (cedille-mode-get-create-window b)
+;;      (cedille-adjust-info-window-size))))
       
 
 (defun cedille-mode-quit()
