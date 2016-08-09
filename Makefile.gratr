@@ -1,11 +1,15 @@
 # this requires gratr
 
-all: src/cedille-main.agda src/options-main.agda
+GRATR=gratr
+
+all: src/cedille-main.agda src/options-main.agda src/cws-main.agda
 
 src/cedille-main.agda : src/cedille.gr 
-	cd src ; gratr --continue-with-nonterminating cedille.gr
+	cd src ; $(GRATR) --continue-with-nonterminating cedille.gr
 
-# this requires gratr
+# this requires $(GRATR)
 src/options-main.agda : src/options.gr 
-	cd src ; gratr options.gr
+	cd src ; $(GRATR) options.gr
 
+src/cws-main.agda : src/cws.gr 
+	cd src ; $(GRATR) cws.gr

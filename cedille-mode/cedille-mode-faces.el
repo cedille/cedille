@@ -203,6 +203,8 @@
 	       ("Theta" . cedille-keyword-face-df)
 	       ("Epsilon" . ced-purple-face)
 	       ("Chi" . cedille-keyword-face-df)
+	       ("Comment" . cedille-comment-face-df)
+	       ("Whitespace" . cedille-standard-face-df)
 	       ("Term-level definition (checking)" . cedille-defined-face-df)
 	       ("Type-level definition (checking)" . cedille-defined-face-df)
 	       ("Kind-level definition (checking)" . cedille-defined-face-df)))	       

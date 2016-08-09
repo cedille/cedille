@@ -528,3 +528,9 @@ Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (
 
 punctuation-span : string → posinfo → posinfo → span
 punctuation-span name pi pi'  = mk-span name pi pi' ( punctuation-data ::  not-for-navigation :: [] )
+
+whitespace-span : posinfo → posinfo → span
+whitespace-span pi pi'  = mk-span "Whitespace" pi pi' [ not-for-navigation ]
+
+comment-span : posinfo → posinfo → span
+comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]

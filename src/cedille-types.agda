@@ -331,16 +331,18 @@ data ParseTreeT : Set where
   parsed-anychar-bar-61 : ParseTreeT
   parsed-anychar-bar-62 : ParseTreeT
   parsed-anychar-bar-63 : ParseTreeT
+  parsed-anychar-bar-64 : ParseTreeT
+  parsed-anychar-bar-65 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-65 : ParseTreeT
-  parsed-aws-bar-66 : ParseTreeT
   parsed-aws-bar-67 : ParseTreeT
+  parsed-aws-bar-68 : ParseTreeT
+  parsed-aws-bar-69 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-64 : ParseTreeT
+  parsed-comment-star-66 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-69 : ParseTreeT
+  parsed-ows-star-71 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-68 : ParseTreeT
+  parsed-ws-plus-70 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -685,16 +687,18 @@ ParseTreeToString parsed-anychar-bar-60 = "[anychar-bar-60]"
 ParseTreeToString parsed-anychar-bar-61 = "[anychar-bar-61]"
 ParseTreeToString parsed-anychar-bar-62 = "[anychar-bar-62]"
 ParseTreeToString parsed-anychar-bar-63 = "[anychar-bar-63]"
+ParseTreeToString parsed-anychar-bar-64 = "[anychar-bar-64]"
+ParseTreeToString parsed-anychar-bar-65 = "[anychar-bar-65]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-65 = "[aws-bar-65]"
-ParseTreeToString parsed-aws-bar-66 = "[aws-bar-66]"
 ParseTreeToString parsed-aws-bar-67 = "[aws-bar-67]"
+ParseTreeToString parsed-aws-bar-68 = "[aws-bar-68]"
+ParseTreeToString parsed-aws-bar-69 = "[aws-bar-69]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-64 = "[comment-star-64]"
+ParseTreeToString parsed-comment-star-66 = "[comment-star-66]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-69 = "[ows-star-69]"
+ParseTreeToString parsed-ows-star-71 = "[ows-star-71]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-68 = "[ws-plus-68]"
+ParseTreeToString parsed-ws-plus-70 = "[ws-plus-70]"
 
 ------------------------------------------
 -- Reorganizing rules

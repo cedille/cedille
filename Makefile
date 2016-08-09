@@ -5,7 +5,7 @@ SRCDIR=src
 FILES = to-string.agda cedille.agda cedille-types.agda constants.agda cedille-main.agda \
 	spans.agda conversion.agda syntax-util.agda \
 	rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda ctxt.agda \
-        main.agda toplevel-state.agda process-cmd.agda general-util.agda options.agda options-types.agda options-main.agda
+        main.agda toplevel-state.agda process-cmd.agda general-util.agda options.agda options-types.agda options-main.agda cws.agda cws-types.agda cws-main.agda
 
 SRC = $(FILES:%=$(SRCDIR)//%)
 OBJ = $(SRC:%.agda=%.agdai)

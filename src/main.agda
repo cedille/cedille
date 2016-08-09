@@ -20,6 +20,14 @@ module options-parse = parsem2.pnoderiv options.rrs options.options-rtn
 module pr2 = run options-types.ptr
 module options-run = pr2.noderiv
 
+-- for parser for Cedille comments & whitespace
+import cws
+import cws-types
+module parsem3 = parse cws.gratr2-nt cws-types.ptr
+module cws-parse = parsem3.pnoderiv cws.rrs cws.cws-rtn
+module pr3 = run cws.ptr
+module cws-run = pr3.noderiv
+
 open import classify
 open import ctxt
 open import constants
@@ -117,10 +125,18 @@ reparse st filename =
         processText x | s | inj₁ cs =
            return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
         processText x | s | inj₂ r with rewriteRun r
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] = 
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] with cws-parse.runRtn s
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₁ cs =
+          return (error-include-elt ("This shouldn't happen in " ^ filename ^ " at position "
+                                    ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 with cws-parse.rewriteRun r2
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | cws-run.ParseTree (cws-types.parsed-start t2) :: [] =
           find-imported-files (toplevel-state.include-path st) (get-imports t) >>= λ deps → 
-          return (new-include-elt filename deps t)
-        processText x | s | inj₂ r | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
+          return (new-include-elt filename deps t t2)
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | _ =
+          return (error-include-elt ("Parse error in file " ^ filename ^ "."))
+        processText x | s | inj₂ r | _ =
+          return (error-include-elt ("Parse error in file " ^ filename ^ "."))
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date filename ie = 

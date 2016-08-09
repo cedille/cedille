@@ -31,11 +31,6 @@ all-normalizing-red-lem ⇐ Candidat · All-normalizing =
       pf
       (λ t' . λ r . (norm-lem t t' pf (rtc-step · trm · red t' t r))) .
 
-my-new-lem ⇐ Π R : (Nat → trm → ★) . Π T : tp . Π t : trm . Π i : Nat .
-             (Π j : Nat . Candidat · (R j)) → ninterp · R (forall i T) t → ninterp · R T t =
-	     λ R . λ T . λ t . λ i . λ cr . λ pf .
-	       (pf · (R i) (cr i) ) · Nat .
-
 
 reducibility-lem ⇐ Π T : tp . ∀ R : (Nat → trm → ★) . (Π i : Nat . Candidat · (R i)) → Candidat · (ninterp · R T) =
    λ T .  θ T
@@ -63,9 +58,12 @@ reducibility-lem ⇐ Π T : tp . ∀ R : (Nat → trm → ★) . (Π i : Nat . C
 		      (fst ·
 		        (Normalizing t) ·
 			(Π t' : trm . ((red t' t) → (ninterp · (λ x : Nat . ((↑ X . (eqnat x i · (λ _ : Bool . (trm → X))) : ((trm → ☆) → (trm → ☆) → trm → ☆)) · All-normalizing · (R x))) T' t')))
-		        (ih (Λ R . λ cr . cr i) · (λ x : Nat . ↑ X . (eqnat x i) · (λ _ : Bool . trm → X) : ((trm → ☆) → (trm → ☆) → (trm → ☆))
-			                                                         · All-normalizing · (R x)) ●
-                            t (pf · All-normalizing all-normalizing-red-lem)))
+		        (ih (Λ R . λ cr . cr i)
+			· (λ x : Nat . ↑ X . (eqnat x i) · (λ _ : Bool . trm → X) : ((trm → ☆) → (trm → ☆) → (trm → ☆))
+			                                                         · All-normalizing · (R x))
+			  (λ x . θ+ (eqnat x i) (λ u . λ t . λ pf2 . all-normalizing-red-lem t pf2) (λ u . cr i))
+                          t
+			  (pf · All-normalizing all-normalizing-red-lem)))
 			●
 		      )
 		     

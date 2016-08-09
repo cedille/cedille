@@ -14,6 +14,22 @@ open import syntax-util
 open import to-string
 open import toplevel-state
 
+import cws-types
+import cws
+
+process-cwst-etys : cws-types.entities → spanM ⊤
+process-cwst-ety : cws-types.entity → spanM ⊤
+process-cwst-etys (cws-types.Entity ety etys) = (process-cwst-ety ety) ≫span process-cwst-etys etys
+process-cwst-etys (cws-types.EndEntity ety) = process-cwst-ety ety
+process-cwst-ety cws-types.EntityNonws = spanMr triv
+process-cwst-ety (cws-types.EntityWs pi pi') = spanMr triv -- spanM-add (whitespace-span pi pi')
+process-cwst-ety (cws-types.EntityComment pi pi') = spanM-add (comment-span pi pi')
+
+process-cwst : toplevel-state → (filename : string) → spanM toplevel-state
+process-cwst s filename with include-elt.cwst (get-include-elt s filename)
+process-cwst s filename | nothing = spanMr s
+process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys ≫span spanMr s
+
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
@@ -108,6 +124,7 @@ process-cmds s (CmdsStart c) need-to-check = process-cmd s c need-to-check
 
 process-start s filename (File pi cs pi') need-to-check = 
   process-cmds s cs need-to-check ≫=span λ s → 
+  process-cwst s filename ≫=span λ s →
     spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
     spanMr s
 

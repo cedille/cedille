@@ -13,8 +13,11 @@ open import spans
 open import syntax-util
 open import to-string
 
+import cws-types
+
 record include-elt : Set where
-  field ast : maybe start 
+  field ast : maybe start
+        cwst : maybe cws-types.start
         deps : (𝕃 string) {- dependencies -}
         import-to-dep : trie string {- map import strings in the file to their full paths -}
         ss : string {- spans in string form, either from ones we compute now or read from disk -}
@@ -24,13 +27,15 @@ record include-elt : Set where
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
 
 blank-include-elt : include-elt
-blank-include-elt = record { ast = nothing ; deps = [] ; import-to-dep = empty-trie ; ss = "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
+blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ; 
+                             import-to-dep = empty-trie ; ss = "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
                              do-type-check = tt ; inv = refl }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
-new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) → include-elt
-new-include-elt filename deps x =
-  record { ast = just x ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = "" ; err = ff ;
+new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
+                  cws-types.start → include-elt
+new-include-elt filename deps x y =
+  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
            do-type-check = tt ; inv = refl }
 
