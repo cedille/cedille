@@ -394,14 +394,14 @@ num-to-ℕ n with string-to-ℕ n
 num-to-ℕ _ | just n = n
 num-to-ℕ _ | _ = 0
 
-compute-deps : start → 𝕃 string
-compute-deps (File _ cs _) = compute-deps-cmds cs
+get-imports : start → 𝕃 string
+get-imports (File _ cs _) = get-imports-cmds cs
   where singleton-if-include : cmd → 𝕃 string
         singleton-if-include (Import _ x _) = [ x ]
         singleton-if-include _ = []
-        compute-deps-cmds : cmds → 𝕃 string
-        compute-deps-cmds (CmdsNext c cs) = singleton-if-include c ++ compute-deps-cmds cs
-        compute-deps-cmds (CmdsStart c) = singleton-if-include c
+        get-imports-cmds : cmds → 𝕃 string
+        get-imports-cmds (CmdsNext c cs) = singleton-if-include c ++ get-imports-cmds cs
+        get-imports-cmds (CmdsStart c) = singleton-if-include c
 
 data language-level : Set where
   ll-term : language-level

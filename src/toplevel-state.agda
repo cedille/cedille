@@ -7,15 +7,16 @@ open import classify
 open import ctxt
 open import constants
 open import conversion
+open import general-util
 open import rec
 open import spans
 open import syntax-util
 open import to-string
 
 record include-elt : Set where
-  field path : string {- full path to the file for this named unit -}
-        ast : maybe start 
+  field ast : maybe start 
         deps : (𝕃 string) {- dependencies -}
+        import-to-dep : trie string {- map import strings in the file to their full paths -}
         ss : string {- spans in string form, either from ones we compute now or read from disk -}
         err : 𝔹 -- is ss reporting an error
         need-to-add-symbols-to-context : 𝔹 
@@ -23,14 +24,15 @@ record include-elt : Set where
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
 
 blank-include-elt : include-elt
-blank-include-elt = record { path = "" ; ast = nothing ; deps = [] ; ss = "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
+blank-include-elt = record { ast = nothing ; deps = [] ; import-to-dep = empty-trie ; ss = "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
                              do-type-check = tt ; inv = refl }
 
-{- this computes the deps from start -}
-new-include-elt : (filename : string) → start → include-elt
-new-include-elt filename x = record { path = filename ; ast = just x ; deps = compute-deps x ; ss = "" ; err = ff ;
-                                      need-to-add-symbols-to-context = tt ; 
-                                      do-type-check = tt ; inv = refl }
+-- the dependencies should pair import strings found in the file with the full paths to those imported files
+new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) → include-elt
+new-include-elt filename deps x =
+  record { ast = just x ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = "" ; err = ff ;
+           need-to-add-symbols-to-context = tt ; 
+           do-type-check = tt ; inv = refl }
 
 error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = global-error-string err ; err = tt }
@@ -66,22 +68,22 @@ set-spans-string-include-elt ie err ss = record ie { ss = ss ; err = err  }
 record toplevel-state : Set where
   constructor mk-toplevel-state
   field include-path : 𝕃 string
-        units-with-updated-spans : 𝕃 string
+        files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
 
 new-toplevel-state : (include-path : 𝕃 string) → toplevel-state
-new-toplevel-state ip = record { include-path = ip ; units-with-updated-spans = [] ; is = empty-trie ; 
-                                 Γ = new-ctxt "[nounit]" "[nofile]" }
+new-toplevel-state ip = record { include-path = ip ; files-with-updated-spans = [] ; is = empty-trie ; 
+                                 Γ = new-ctxt "[nofile]" }
 
-get-include-elt-if : toplevel-state → (unit-name : string) → maybe include-elt
-get-include-elt-if s unit-name = trie-lookup (toplevel-state.is s) unit-name
+get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
+get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
 
 -- get an include-elt assuming it will be there
-get-include-elt : toplevel-state → (unit-name : string) → include-elt
-get-include-elt s unit-name with get-include-elt-if s unit-name
-get-include-elt s unit-name | nothing = blank-include-elt {- should not happen -}
-get-include-elt s unit-name | just ie = ie
+get-include-elt : toplevel-state → (filename : string) → include-elt
+get-include-elt s filename with get-include-elt-if s filename
+get-include-elt s filename | nothing = blank-include-elt {- should not happen -}
+get-include-elt s filename | just ie = ie
 
 set-include-elt : toplevel-state → string → include-elt → toplevel-state 
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
@@ -90,7 +92,5 @@ set-include-path : toplevel-state → 𝕃 string → toplevel-state
 set-include-path s ip = record s { include-path = ip }
 
 get-do-type-check : toplevel-state → string → 𝔹
-get-do-type-check s unit-name = include-elt.do-type-check (get-include-elt s unit-name)
+get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
 
-get-path-for-unit : toplevel-state → string → string
-get-path-for-unit s unit-name = include-elt.path (get-include-elt s unit-name)

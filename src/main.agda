@@ -65,15 +65,24 @@ read-cede-file ced-path =
 add-cedille-extension : string → string
 add-cedille-extension x = x ^ "." ^ cedille-extension 
 
-cedille-get-path : (dirs : 𝕃 string) → (unit-name : string) → IO string
-cedille-get-path [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
-cedille-get-path (dir :: dirs) unit-name =
+find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO string
+find-imported-file [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
+find-imported-file (dir :: dirs) unit-name =
   let e = combineFileNames dir (add-cedille-extension unit-name) in
+    
     doesFileExist e >>= λ b → 
     if b then
       return e
     else
-      cedille-get-path dirs unit-name
+      find-imported-file dirs unit-name
+
+-- return a list of pairs (i,p) where i is the import string in the file, and p is the full path for that imported file
+find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 string) → IO (𝕃 (string × string))
+find-imported-files dirs (u :: us) =
+  find-imported-file dirs u >>= λ p →
+  find-imported-files dirs us >>= λ ps →
+    return ((u , p) :: ps)
+find-imported-files dirs [] = return []
 
 ced-file-up-to-date : (ced-path : string) → IO 𝔹
 ced-file-up-to-date ced-path =
@@ -93,25 +102,25 @@ opts-get-include-path options-types.OptsNil = []
 opts-get-include-path (options-types.OptsCons (options-types.Lib ps) oo) = (paths-to-𝕃string ps) ++ opts-get-include-path oo
 --opts-get-include-path (options-types.OptsCons _ oo) = opts-get-include-path oo
 
-
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
-reparse : toplevel-state → (unit-name : string) → (filename : string) → IO toplevel-state
-reparse s unit-name filename = 
---   putStr ("reparsing " ^ unit-name ^ " " ^ filename ^ "\n") >>
+reparse : toplevel-state →(filename : string) → IO toplevel-state
+reparse st filename = 
+--   putStr ("reparsing " ^ filename ^ "\n") >>
    doesFileExist filename >>= λ b → 
      (if b then
-         (readFiniteFile filename >>= (λ f → return (processText f)))
+         (readFiniteFile filename >>= processText)
       else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
-        return (set-include-elt s unit-name ie)
-  where processText : string → include-elt
+        return (set-include-elt st filename ie)
+  where processText : string → IO include-elt
         processText x with string-to-𝕃char x
         processText x | s with runRtn s
         processText x | s | inj₁ cs =
-           error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ ".")
+           return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
         processText x | s | inj₂ r with rewriteRun r
         processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] = 
-          new-include-elt filename t
-        processText x | s | inj₂ r | _ = error-include-elt ("Parse error in file " ^ filename ^ ".")
+          find-imported-files (toplevel-state.include-path st) (get-imports t) >>= λ deps → 
+          return (new-include-elt filename deps t)
+        processText x | s | inj₂ r | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date filename ie = 
@@ -124,56 +133,55 @@ add-spans-if-up-to-date up-to-date filename ie =
 
 {- make sure that the current ast and dependencies are stored in the
    toplevel-state, updating the state as needed. -}
-ensure-ast-deps : toplevel-state → (unit-name : string) → (filename : string) → IO toplevel-state
-ensure-ast-deps s unit-name filename with get-include-elt-if s unit-name
-ensure-ast-deps s unit-name filename | nothing = 
-  reparse s unit-name filename >>= λ s → 
+ensure-ast-deps : toplevel-state → (filename : string) → IO toplevel-state
+ensure-ast-deps s filename with get-include-elt-if s filename
+ensure-ast-deps s filename | nothing = 
+  reparse s filename >>= λ s → 
   ced-file-up-to-date filename >>= λ up-to-date → 
-  add-spans-if-up-to-date up-to-date filename (get-include-elt s unit-name) >>= λ ie →
-  return (set-include-elt s unit-name ie)
-ensure-ast-deps s unit-name filename | just ie =
+  add-spans-if-up-to-date up-to-date filename (get-include-elt s filename) >>= λ ie →
+  return (set-include-elt s filename ie)
+ensure-ast-deps s filename | just ie =
   ced-file-up-to-date filename >>= λ up-to-date → 
     if up-to-date then 
-      (add-spans-if-up-to-date up-to-date filename (get-include-elt s unit-name) >>= λ ie →
-       return (set-include-elt s unit-name ie))
-    else reparse s unit-name filename
+      (add-spans-if-up-to-date up-to-date filename (get-include-elt s filename) >>= λ ie →
+       return (set-include-elt s filename ie))
+    else reparse s filename
      
 {-# NO_TERMINATION_CHECK #-}
-update-astsh : stringset {- seen already -} → toplevel-state → (unit-name : string) → 
+update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) → 
                IO (stringset {- seen already -} × toplevel-state)
-update-astsh seen s unit-name = 
-  cedille-get-path (toplevel-state.include-path s) unit-name >>= λ input-filename → 
---  putStr ("update-astsh [input-filename = " ^ input-filename ^ "]\n") >>
-  if stringset-contains seen input-filename then return (seen , s)
-  else (ensure-ast-deps s unit-name input-filename >>= cont (stringset-insert seen input-filename))
+update-astsh seen s filename = 
+--  putStr ("update-astsh [filename = " ^ filename ^ "]\n") >>
+  if stringset-contains seen filename then return (seen , s)
+  else (ensure-ast-deps s filename >>= cont (stringset-insert seen filename))
   where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
-        cont seen s with get-include-elt s unit-name
+        cont seen s with get-include-elt s filename
         cont seen s | ie with include-elt.deps ie 
         cont seen s | ie | ds = 
           proc seen s ds 
           where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
                 proc seen s [] = 
                   if (list-any (get-do-type-check s) ds) 
-                  then return (seen , set-include-elt s unit-name (set-do-type-check-include-elt ie tt)) 
+                  then return (seen , set-include-elt s filename (set-do-type-check-include-elt ie tt)) 
                   else return (seen , s)
                 proc seen s (d :: ds) = update-astsh seen s d >>= λ p → 
                                         proc (fst p) (snd p) ds
 
-update-asts : toplevel-state → (unit-name : string) → IO toplevel-state
-update-asts s unit-name = update-astsh empty-stringset s unit-name >>= λ p → 
+update-asts : toplevel-state → (filename : string) → IO toplevel-state
+update-asts s filename = update-astsh empty-stringset s filename >>= λ p → 
   return (snd p)
 
-checkFile : toplevel-state → (unit-name : string) → (should-print-spans : 𝔹) → IO toplevel-state
-checkFile s unit-name should-print-spans = 
---  putStr ("checkFile " ^ unit-name ^ "\n") >>
-  update-asts s unit-name >>= λ s → 
-  finish (process-unit s unit-name)
+checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
+checkFile s filename should-print-spans = 
+--  putStr ("checkFile " ^ filename ^ "\n") >>
+  update-asts s filename >>= λ s → 
+  finish (process-file s filename)
  
   where reply : toplevel-state → IO ⊤
-        reply s with get-include-elt-if s unit-name
+        reply s with get-include-elt-if s filename
         reply s | nothing = 
            putStr (global-error-string 
-                     ("Internal error looking up information for unit " ^ unit-name ^ "."))
+                     ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
            if should-print-spans then putStr (include-elt.ss ie) 
            else return triv
@@ -185,27 +193,30 @@ checkFile s unit-name should-print-spans =
           return (mk-toplevel-state ip [] is Γ)
           where writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
-                writeo (unit :: us) =
-                 let ie = get-include-elt s unit in
+                writeo (f :: us) =
+                 let ie = get-include-elt s f in
 --                   putStr ("writeo " ^ unit ^ " with path " ^ (include-elt.path ie) ^ ".\n") >>
-                   write-cede-file (include-elt.path ie) (include-elt.err ie) (include-elt.ss ie) >>
+                   write-cede-file f (include-elt.err ie) (include-elt.ss ie) >>
                    writeo us
 
+-- this is the function that handles requests on standard input
 {-# NO_TERMINATION_CHECK #-}
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
-  getLine >>= (λ input-filename → 
-     checkFile (set-include-path s (toplevel-state.include-path s))
-       (base-filename (takeFileName input-filename)) tt {- should-print-spans -} >>= λ s → 
-     readFilenamesForProcessing s)
+  getLine >>= λ input-filename → 
+  canonicalizePath input-filename >>= λ input-filename → 
+     checkFile (set-include-path s (toplevel-state.include-path s)) input-filename tt {- should-print-spans -} >>= λ s → 
+     readFilenamesForProcessing s
 
 processArgs : opts → 𝕃 string → IO ⊤ 
-processArgs oo (input-filename :: []) with (base-filename (takeFileName input-filename)) 
-processArgs oo (input-filename :: []) | unit-name = 
-  checkFile (new-toplevel-state (opts-get-include-path oo)) unit-name ff {- should-print-spans -} >>= finish
-  where finish : toplevel-state → IO ⊤
-        finish s = 
-          let ie = get-include-elt s unit-name in
+
+-- this is the case for when we are called with a single command-line argument, the name of the file to process
+processArgs oo (input-filename :: []) =
+  canonicalizePath input-filename >>= λ input-filename → 
+  checkFile (new-toplevel-state (opts-get-include-path oo)) input-filename ff {- should-print-spans -} >>= finish input-filename
+  where finish : string → toplevel-state → IO ⊤
+        finish input-filename s = 
+          let ie = get-include-elt s input-filename in
           if include-elt.err ie then putStr (include-elt.ss ie) else return triv
 processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo))
 processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
