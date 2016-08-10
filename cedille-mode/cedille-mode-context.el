@@ -10,37 +10,22 @@
 
 					; MINOR MODE FUNCTIONS
 
+(defmacro make-cedille-mode-context-order(arg)
+  (` (lambda () (interactive) (setq cedille-mode-context-ordering ,arg) (cedille-mode-display-context))))
+
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
   nil         ; init-value, whether the mode is on automatically after definition
   " Context"  ; indicator for mode line
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "a") #'cedille-mode-context-order-fwd) ; a-z ordering
-    (define-key map (kbd "z") #'cedille-mode-context-order-bkd) ; z-a ordering
-    (define-key map (kbd "d") #'cedille-mode-context-order-def) ; default ordering
+    (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd))  ;;'cedille-mode-context-order-fwd) ; a-z ordering
+    (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd))  ;;'cedille-mode-context-order-bkd) ; z-a ordering
+    (define-key map (kbd "d") (make-cedille-mode-context-order nil));; 'cedille-mode-context-order-def) ; default ordering
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     map
     )
   )
-
-(defun cedille-mode-context-order-fwd()
-  "Sorts the context alphabetically (forward)"
-  (interactive)
-  (setq cedille-mode-context-ordering 'fwd)
-  (cedille-mode-display-context))
-
-(defun cedille-mode-context-order-bkd()
-  "Sorts the context alphabetically (forward)"
-  (interactive)
-  (setq cedille-mode-context-ordering 'bkd)
-  (cedille-mode-display-context))
-
-(defun cedille-mode-context-order-def()
-  "Restores default context ordering"
-  (interactive)
-  (setq cedille-mode-context-ordering nil)
-  (cedille-mode-display-context))
 
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-context-list"
