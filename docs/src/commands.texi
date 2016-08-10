@@ -59,4 +59,7 @@ Alters highlighting scheme depending on value of <int>:
 
 @item q/M-s/C-g
 Quit Cedille mode
+
+@item K
+Kill the Cedille process and restart it if it is taking an unusually long time
 @end table
