@@ -48,7 +48,9 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
    (se-mode-update-selected (se-find-span-path cur (se-mode-parse-tree)))
    (se-mode-mark-term cur)
    (push (pop se-mode-not-selected) se-mode-selected)
-   (display-buffer (cedille-mode-inspect)))
+   (cedille-mode-get-create-window (cedille-mode-inspect))
+   (cedille-mode-update-buffers))
+   ;;(display-buffer (cedille-mode-inspect)))
 
 (defun cedille-mode-select-first-error(selected-span)  
   "Selects and highlights the first error in the selected span."
