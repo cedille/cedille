@@ -11,7 +11,12 @@
 					; MINOR MODE FUNCTIONS
 
 (defmacro make-cedille-mode-context-order(arg)
-  (` (lambda () (interactive) (setq cedille-mode-context-ordering ,arg) (cedille-mode-display-context))))
+  (` (lambda ()
+       (interactive)
+       (setq cedille-mode-context-ordering ,arg)
+       (other-window 1)
+       (cedille-mode-update-buffers)
+       (other-window -1))))
 
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
@@ -26,6 +31,8 @@
     map
     )
   )
+
+(defun cedille-mode-close-context-window() (interactive) (delete-window))
 
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-context-list"
@@ -57,18 +64,17 @@
   "Returns a tuple consisting of:
    1. a list of terms and their associated types
    2. a list of types and their associated kinds"
-  (let (terms
-	types)
+  (let (terms types)
     (while path ;Recursively traverse the path
       (let ((binder (cdr (assoc 'binder (se-term-data (car path)))))
 	    (children (se-node-children (car path))))
-	(if (and binder children)
+	(when (and binder children)
 	    (let* ((bound (string-to-number binder)) 
 		   (data (se-term-data (nth bound children))) ;Get data from the child node matchng the binder number
 		   (symbol (cdr (assoc 'symbol data)))
 		   (kind (cdr (assoc 'kind data)))
 		   (type (cdr (assoc 'type data))))
-	      (if (and symbol (not (equal symbol "_"))) ;Classify the symbol as a term or a type and add it to the appropriate list. Ignore '_' symbols 
+	      (when (and symbol (not (equal symbol "_"))) ;Classify the symbol as a term or a type and add it to the appropriate list. Ignore '_' symbols 
 		  (if type
 		      (setq terms (cons (cons symbol type) terms))
 		    (if kind
@@ -81,10 +87,10 @@
 (defun cedille-mode-display-context()
   "Displays the context"
   (let ((b (cedille-mode-context-buffer)))
+    (cedille-mode-sort-context)
     (with-current-buffer b
       (setq buffer-read-only nil)
       (erase-buffer)
-      (cedille-mode-sort-context)
       (insert (cedille-mode-format-context cedille-mode-context-list))
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
@@ -109,16 +115,13 @@
 					; CONVENIENT FUNCTIONS
 
 (defun cedille-mode-context()
-  ;(with-current-buffer (cedille-mode-context-buffer) (cedille-context-view-mode))
   (cedille-mode-compute-context)
   (cedille-mode-display-context)
   (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name)) "*"))
 
-(defun cedille-mode-context-buffer()
-  "Retrieves the context buffer"
-  (get-buffer-create (cedille-mode-context-buffer-name)))
+(defun cedille-mode-context-buffer() "Retrieves the context buffer" (get-buffer-create (cedille-mode-context-buffer-name)))
 
 (defun cedille-mode-context-window()
   "Retrieves (or creates) the context window"
@@ -128,47 +131,24 @@
 	context-window
       (split-window))))
 
-(defun cedille-mode-jump-to-context-window()
-  "Toggles context mode on/off"
-  (interactive)
-  (if se-mode-selected
-      (let* ((first-buffer (current-buffer))
-	     (context-buffer (cedille-mode-context-buffer))
-	     (context-window (get-buffer-window context-buffer)))
-	(if context-window
-	    ;;If there is a context mode window, delete it
-	    (delete-window context-window)
-	  ;;Else create a new one
-	  (cedille-mode-context)
-	  ;;(set-window-buffer (cedille-mode-context-window) context-buffer)
-	  (fit-window-to-buffer (cedille-mode-get-create-window context-buffer) context-buffer)
-	  (select-window (get-buffer-window context-buffer))))))
-
-(defun cedille-mode-close-context-window()
-  (interactive)
-  (delete-window))
-
 					; FUNCTION TO CALL WHEN HOTKEY IS PRESSED
 
-(defun cedille-mode-toggle-context-mode()
+(defun cedille-mode-toggle-context-mode-with-jump()
+  "Toggles context mode on and jumps to context mode window"
+  (interactive)
+  (cedille-mode-toggle-context-mode)
+  (select-window (get-buffer-window (cedille-mode-context-buffer))))
+
+(defun cedille-mode-toggle-context-mode-without-jump()
   "Toggles context mode on/off"
   (interactive)
+  (cedille-mode-toggle-context-mode))
+
+(defun cedille-mode-toggle-context-mode()
   (when se-mode-selected
-      (let ((buffer (cedille-mode-context-buffer)))
-	(when (cedille-mode-toggle-buffer-display buffer)
-	  (cedille-mode-context)
-	  (with-current-buffer buffer (cedille-context-view-mode))))))
-	
-	
-;;      (let* ((first-buffer (current-buffer))
-;;	     (context-buffer (cedille-mode-context-buffer))
-;;	     (context-window (get-buffer-window context-buffer)))
-;;	(if context-window
-;;	    ;;If there is a context mode window, delete it
-;;	    (delete-window context-window)
-;;	  ;;Else create a new one
-;;	  (cedille-mode-context)
-;;	  ;;(set-window-buffer (cedille-mode-context-window) context-buffer)
-;;	  (fit-window-to-buffer (cedille-mode-get-create-window context-buffer) context-buffer)))))
-      
+    (let ((buffer (cedille-mode-context-buffer)))
+      (when (cedille-mode-toggle-buffer-display buffer)
+	(cedille-mode-context)
+	(with-current-buffer buffer (cedille-context-view-mode))))))
+
 (provide 'cedille-mode-context)
