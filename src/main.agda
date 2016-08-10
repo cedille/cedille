@@ -221,7 +221,8 @@ readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
   getLine >>= λ input-filename → 
   canonicalizePath input-filename >>= λ input-filename → 
-     checkFile (set-include-path s (toplevel-state.include-path s)) input-filename tt {- should-print-spans -} >>= λ s → 
+     checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
+       input-filename tt {- should-print-spans -} >>= λ s → 
      readFilenamesForProcessing s
 
 processArgs : opts → 𝕃 string → IO ⊤ 
@@ -229,7 +230,8 @@ processArgs : opts → 𝕃 string → IO ⊤
 -- this is the case for when we are called with a single command-line argument, the name of the file to process
 processArgs oo (input-filename :: []) =
   canonicalizePath input-filename >>= λ input-filename → 
-  checkFile (new-toplevel-state (opts-get-include-path oo)) input-filename ff {- should-print-spans -} >>= finish input-filename
+  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo))
+    input-filename ff {- should-print-spans -} >>= finish input-filename
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
           let ie = get-include-elt s input-filename in
