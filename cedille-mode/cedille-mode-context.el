@@ -18,9 +18,9 @@
   nil         ; init-value, whether the mode is on automatically after definition
   " Context"  ; indicator for mode line
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd))  ;;'cedille-mode-context-order-fwd) ; a-z ordering
-    (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd))  ;;'cedille-mode-context-order-bkd) ; z-a ordering
-    (define-key map (kbd "d") (make-cedille-mode-context-order nil));; 'cedille-mode-context-order-def) ; default ordering
+    (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd)) ; a-z ordering
+    (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd)) ; z-a ordering
+    (define-key map (kbd "d") (make-cedille-mode-context-order nil)) ; default ordering
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     map
@@ -93,33 +93,19 @@
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
-  (let ((output ""))
-    (let ((terms (car context))
-	  (types (cdr context)))
-      (if (or terms types)
-	  (progn
-	    (if terms ;Print out the terms and their types
-		(progn
-		  (setq output (concat output "==== TERMS ====\n"))
-		  (while terms
-		    (let* ((head (car terms))
-			   (symbol (car head))
-			   (value (cdr head)))
-		      (setq output (concat output symbol ":\t" value "\n"))
-		      (setq terms (cdr terms))))
-		  (setq output (concat output "\n"))))
-	    (if types ;Print out the types and their kinds
-		(progn
-		  (setq output (concat output  "==== TYPES ====\n"))
-		  (while types
-		    (let* ((head (car types))
-			   (symbol (car head))
-			   (value (cdr head)))
-		      (setq output (concat output symbol ":\t" value "\n"))
-		      (setq types (cdr types))))))
-	    output)
-	"Selected context is empty."))))
-	  
+  (let ((output "")
+	(format (lambda (pair) (concat (car pair) ":\t" (cdr pair))))
+	(terms (car context))
+	(types (cdr context)))
+    (if (or terms types)
+	(progn
+	  (when terms ;Print out the terms and their types
+	    (setq output (concat "==== TERMS ====\n" (mapconcat format terms "\n") (when types "\n\n"))))
+	  (when types ;Print out the types and their kinds
+	    (setq output (concat output "==== TYPES ====\n" (mapconcat format types "\n"))))
+	  output)
+      "Selected context is empty.")))
+
 					; CONVENIENT FUNCTIONS
 
 (defun cedille-mode-context()
