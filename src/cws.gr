@@ -1,0 +1,35 @@
+cws
+
+Start
+
+start
+
+Syntactic
+
+File : start -> entities .
+Entity : entities -> entity entities .
+EndEntity : entities -> entity .
+EntityWs : entity -> ! ws ! .
+EntityComment : entity -> ! comment ! .
+EntityNonws : entity -> nonws .
+
+Lexical
+
+alpha => (['a' - 'z'] | ['A' - 'Z']) .
+
+numone => ['0' - '9'].
+num => numone+.
+
+numpunct => numone | quote | '-' | '~' | '#' | '_' | '/'.
+
+otherpunct => '|' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ'.
+
+anychar => alpha | numpunct | '\t' | space | '%' | otherpunct .
+
+comment => '%' anychar* '\n'.
+aws => ('\n' | '\t' | space ).
+ws => aws+.
+
+anynonwschar => alpha | numpunct | otherpunct .
+
+nonws => anynonwschar+ .
