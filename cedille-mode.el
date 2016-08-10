@@ -369,6 +369,13 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navigation-mode-quit)
   (setq se-mode-parse-tree nil))
 
+(defun cedille-mode-restart-backend()
+  "Restart cedille process"
+  (interactive)
+  (se-inf-stop)
+  (se-inf-header-timer-stop)
+  (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
+
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 ; separate keymaps.
@@ -393,6 +400,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-toggle-context-mode-without-jump)
   (se-navi-define-key 'cedille-mode (kbd "C") #'cedille-mode-toggle-context-mode-with-jump)
+  (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
   (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
