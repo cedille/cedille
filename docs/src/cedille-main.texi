@@ -13,7 +13,7 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 * cedille-mode commands::       Here is a list of cedille mode shortcuts with brief description.
 * Unicode shortcuts::           Here is the list of keyboard shortcuts for unicode symbols
 * context mode::                A description of context mode, called by pressing c while a node is selected
-* Index::   Here is the index.
+* Index::                       Here is the index.
 @end menu
 
 @include commands.texi
@@ -22,7 +22,7 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 
 @include context-mode.texi
 
-@node Index
+@node Index,,context mode,Top
 @unnumbered Index
 
 @printindex cp

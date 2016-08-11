@@ -1,5 +1,23 @@
-@node context mode,,Unicode shortcuts,Top
+@node context mode,Index,Unicode shortcuts,Top
 
-@chapter context mode
+@chapter Context mode
 
-<Documentation on context mode will go here>
+Context mode for Cedille allows the user to see the context of the currently selected node, making it easy to find and make use of all bound symbols. To enter context mode, select a node and press @command{C} and you will open up the context mode buffer and jump to it. If you just want to open the context mode buffer (but not jump to it), press @command{c} instead.
+
+@chapter Controls
+@table @command
+@item a
+Sort all entries alphabetically from a-z 
+
+@item z
+Sort all entries alphabetically from z-a
+
+@item d
+Sort all entries according to scope (default sorting order)
+
+@item c/C
+Close the context mode window
+
+@item h
+Open information page for context mode
+@end table
