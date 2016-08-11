@@ -363,7 +363,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
-  (se-navi-define-key 'cedille-mode (kbd "h") #'cedille-mode-info-display)
+  (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)

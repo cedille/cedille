@@ -1,0 +1,5 @@
+@node context mode,,Unicode shortcuts,Top
+
+@chapter context mode
+
+<Documentation on context mode will go here>

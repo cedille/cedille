@@ -4,6 +4,7 @@
 
 					; GLOBAL DEFINITIONS
 
+(load-library "cedille-mode-info")
 (defvar cedille-mode-context-ordering nil)
 (defvar cedille-mode-context-list)
 (defvar cedille-mode-original-context-list)
@@ -28,6 +29,7 @@
     (define-key map (kbd "d") (make-cedille-mode-context-order nil)) ; default ordering
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     map
     )
   )
