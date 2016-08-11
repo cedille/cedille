@@ -80,28 +80,6 @@ Defaults to `error'."
 (defvar cedille-mode-highlight-spans nil
   "Spans including spans marked not-for-navigation.")
 
-(defvar cedille-info-buffer-trailing-edge 1 "Number of blank lines to insert at the bottom of the info buffer.")
-
-(defun cedille-info-buffer-name() (concat "*cedille-info-" (file-name-base (buffer-name)) "*"))
-
-(defun cedille-info-buffer()
-  (let* ((n (cedille-info-buffer-name))
-         (b (get-buffer-create n)))
-    (with-current-buffer b
-       (setq buffer-read-only nil))
-    b))
-
-(defun cedille-adjust-info-window-size()
-  (cedille-mode-rebalance-windows))
-;;  (let ((info-window (get-buffer-window (cedille-info-buffer))))
-;;    (when info-window (fit-window-to-buffer info-window))))
-
-;;  (let ((w (get-buffer-window (cedille-info-buffer))))
-;;   (when w
-;;     (fit-window-to-buffer w)
-;;     (unless (eq (window-resizable w cedille-info-buffer-trailing-edge) 0)
-;;         (window-resize w cedille-info-buffer-trailing-edge)))))
-
 					; UTILITY FUNCTIONS FOR MANAGING WINDOWS
 
 (defun cedille-mode-get-create-window(buffer)
@@ -141,7 +119,24 @@ Defaults to `error'."
   (cedille-mode-inspect)
   (cedille-mode-context)
   (cedille-mode-rebalance-windows))
-  
+
+					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
+
+(defmacro make-cedille-mode-buffer(buffer opt-fn minor-mode-fn jump-to-window-p)
+  "Creates a function that can be used to toggle one of the buffers. Has four arguments:\n
+1. The buffer\n
+2. An optional function (without arguments) to be run/n
+3. The minor mode associated with the buffer\n
+4. A boolean indicating whether or not the cursor should automatically jump to the window."
+  `(lambda()
+     (interactive)
+     (let* ((buffer ,buffer)
+	    (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
+       (when window                                                          ;if a window was created...
+	 (,opt-fn)                                                           ;...run the optional function...
+	 (with-current-buffer buffer (,minor-mode-fn))                       ;...enable minor mode in that window...
+	 (when ,jump-to-window-p (select-window window))))))                 ;...and optionally jump to window
+
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
   (let ((he (car ss))
@@ -202,25 +197,6 @@ start of each string, and then strip out that number."
   (loop for (key . value) in data
      unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level))
      collecting (cons key value)))
-
-(defun cedille-mode-inspect ()
-  "Displays information on the currently selected node in 
-the info buffer for the file.  Return the info buffer as a convenience."
-  (interactive)
-  (when se-mode-selected
-    (let* ((b (cedille-info-buffer))
-           (d (se-term-to-json (se-mode-selected)))
-           (txt (se-mode-pretty-json (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
-      (with-current-buffer b
-         (erase-buffer)
-         (insert txt)
-         (setq buffer-read-only t))
-      (cedille-adjust-info-window-size)
-      (setq deactivate-mark nil)
-      b)))
-
-
-
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
@@ -327,17 +303,16 @@ in the parse tree, and updates the Cedille info buffer."
   "Jumps to a location associated with the selected node"
   (interactive)
   (if se-mode-selected
-     (let* ((b (cedille-info-buffer))
-            (d (se-term-data (se-mode-selected)))
-            (lp (assoc 'location d)))
-        (if lp 
-            (let* ((l (cdr lp))
-                   (ls (split-string l " - "))
-                   (f (car ls))
-                   (n (string-to-number (cadr ls)))
-                   (b (find-file f)))
-              (with-current-buffer b (goto-char n) (se-navigation-mode)))
-            (message "No location at this node")))
+      (let* ((d (se-term-data (se-mode-selected)))
+	     (lp (assoc 'location d)))
+	 (if lp 
+	     (let* ((l (cdr lp))
+		    (ls (split-string l " - "))
+		    (f (car ls))
+		    (n (string-to-number (cadr ls)))
+		    (b (find-file f)))
+	       (with-current-buffer b (goto-char n) (se-navigation-mode)))
+	     (message "No location at this node")))
     (message "No node selected"))
   ;;; If the mark is active, we are jumping within the buffer. This prevents
   ;;; a region from being selected.
@@ -345,22 +320,6 @@ in the parse tree, and updates the Cedille info buffer."
       (progn
 	(exchange-point-and-mark 1)
 	(set-mark-command 1))))
-
-
-(defun cedille-mode-toggle-info()
-  "Shows or hides the Cedille info buffer."
-  (interactive)
-  (let ((buffer (cedille-info-buffer)))
-    (cedille-mode-toggle-buffer-display buffer)))
-
-;;  (let* ((b (cedille-info-buffer))
-;;         (w (get-buffer-window b)))
-;;    (if w
-;;	(delete-window w)
-;;      ;;(display-buffer b)
-;;      (cedille-mode-get-create-window b)
-;;      (cedille-adjust-info-window-size))))
-      
 
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
@@ -392,14 +351,15 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") #'cedille-mode-toggle-info)
+  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil))
+  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
-  (se-navi-define-key 'cedille-mode (kbd "c") #'cedille-mode-toggle-context-mode-without-jump)
-  (se-navi-define-key 'cedille-mode (kbd "C") #'cedille-mode-toggle-context-mode-with-jump)
+  (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil))
+  (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
   (se-navi-define-key 'cedille-mode (kbd "s") nil)
   (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)

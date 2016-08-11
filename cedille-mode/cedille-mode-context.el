@@ -131,24 +131,4 @@
 	context-window
       (split-window))))
 
-					; FUNCTION TO CALL WHEN HOTKEY IS PRESSED
-
-(defun cedille-mode-toggle-context-mode-with-jump()
-  "Toggles context mode on and jumps to context mode window"
-  (interactive)
-  (cedille-mode-toggle-context-mode)
-  (select-window (get-buffer-window (cedille-mode-context-buffer))))
-
-(defun cedille-mode-toggle-context-mode-without-jump()
-  "Toggles context mode on/off"
-  (interactive)
-  (cedille-mode-toggle-context-mode))
-
-(defun cedille-mode-toggle-context-mode()
-  (when se-mode-selected
-    (let ((buffer (cedille-mode-context-buffer)))
-      (when (cedille-mode-toggle-buffer-display buffer)
-	(cedille-mode-context)
-	(with-current-buffer buffer (cedille-context-view-mode))))))
-
 (provide 'cedille-mode-context)
