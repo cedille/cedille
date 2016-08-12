@@ -29,6 +29,13 @@ depth-Lte-lem ⇐ ∀ x : Nat . ∀ y : Nat . ∀ x' : Nat . ∀ y' : Nat.
 test = λ s : substmap · trm. λ i : Nat. λ f : trm . depth (subst s (lam i f)) !!
 test2 = λ s : substmap · trm. λ i : Nat. λ f : trm . depth (subst (substmapUpdate · trm s i (var i)) f) !!
 
+depth-var !!
+(substmapToExtmap (λ t' . (t' depth-app depth-lam depth-var)) triv-subst) !!
+
+λ t : trm . (depth (subst triv-subst t)) !!
+λ t : trm . (depth t) !!
+
+
 depth-Lte-size ⇐ Π t : trm . Lte (depth t) (size t) = 
   λ t . t · (λ t : trm . Lte (depth t) (size t))
           (Λ s . Λ t1 . Λ t2 . λ ih1 . λ ih2 .
@@ -36,8 +43,8 @@ depth-Lte-size ⇐ Π t : trm . Lte (depth t) (size t) =
 	  (Λ s . Λ i . Λ f . λ ih .
              χ (lte (f depth-app depth-lam (extmapUpdate (substmapToExtmap depth s) i Z))
                     (f size-app size-lam (extmapUpdate (substmapToExtmap size s) i one)) ≃ tt) -
-                ρ (extmapUpdateSubstmap · trm s i · Nat -depth) -
-                ρ (extmapUpdateSubstmap · trm s i · Nat -size) -
+                ρ (extmapUpdateSubstmap · trm -var s i · Nat -depth) -
+                ρ (extmapUpdateSubstmap · trm -var s i · Nat -size) -
                  (ih -(var i) β))
 	  -triv-subst (extmapStart · trm · (λ t : trm . (Lte (depth t) (size t))) -(var Z) β) .
 

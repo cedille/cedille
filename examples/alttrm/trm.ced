@@ -1,4 +1,4 @@
-import extmap. 
+import extmap2. 
 
 rec trm : | app : trm → trm → trm ,
             lam : Nat → trm → trm ,
