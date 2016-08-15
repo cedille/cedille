@@ -60,6 +60,19 @@ spans-to-string (global-error e o) = global-error-string (e ^ helper o)
         helper (just x) = ", \"global-error\":" ^ span-to-string x
         helper nothing = ""
 
+write-spans-handle : Handle → spans → IO ⊤
+write-spans-handle h (regular-spans ss) =
+    hPutStr h "{\"spans\":[" >>
+    helper ff ss >>
+    hPutStr h "]}\n"
+  where helper : 𝔹 → 𝕃 span → IO ⊤
+        helper _ [] = return triv
+        helper print-comma (s :: ss) =
+          hPutStr h (if print-comma then "," else "") >>
+          hPutStr h (span-to-string s) >>
+          helper tt ss
+write-spans-handle h ss = hPutStr h (spans-to-string ss)
+
 add-span : span → spans → spans
 add-span s (regular-spans ss) = regular-spans (s :: ss)
 add-span s (global-error e e') = global-error e e'

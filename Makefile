@@ -43,3 +43,13 @@ clean:
 
 lines:
 	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(ELISP)
+
+elisp-lines:
+	wc -l $(ELISP)
+
+grammar-lines:
+	wc -l $(GRAMMARS:%=$(SRCDIR)//%)
+
+agda-lines:
+	wc -l $(AGDASRC:%=$(SRCDIR)//%)
+

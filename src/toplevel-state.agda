@@ -20,7 +20,7 @@ record include-elt : Set where
         cwst : maybe cws-types.start
         deps : (𝕃 string) {- dependencies -}
         import-to-dep : trie string {- map import strings in the file to their full paths -}
-        ss : string {- spans in string form, either from ones we compute now or read from disk -}
+        ss : spans ⊎ string {- spans in string form (read from disk) -}
         err : 𝔹 -- is ss reporting an error
         need-to-add-symbols-to-context : 𝔹 
         do-type-check : 𝔹
@@ -28,19 +28,19 @@ record include-elt : Set where
 
 blank-include-elt : include-elt
 blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ; 
-                             import-to-dep = empty-trie ; ss = "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
+                             import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
                              do-type-check = tt ; inv = refl }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
 new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
                   cws-types.start → include-elt
 new-include-elt filename deps x y =
-  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = "" ; err = ff ;
+  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
            do-type-check = tt ; inv = refl }
 
 error-include-elt : string → include-elt
-error-include-elt err = record blank-include-elt { ss = global-error-string err ; err = tt }
+error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
 
 set-do-type-check-include-elt : include-elt → 𝔹 → include-elt
 set-do-type-check-include-elt ie b = 
@@ -64,11 +64,11 @@ set-need-to-add-symbols-to-context-include-elt ie b =
 
 set-spans-include-elt : include-elt → spans → include-elt
 set-spans-include-elt ie ss = 
- record ie { ss = spans-to-string ss ; 
+ record ie { ss = inj₁ ss ; 
              err = spans-have-error ss  }
 
 set-spans-string-include-elt : include-elt → (err : 𝔹) → string → include-elt
-set-spans-string-include-elt ie err ss = record ie { ss = ss ; err = err  }
+set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err  }
 
 record toplevel-state : Set where
   constructor mk-toplevel-state
@@ -98,4 +98,15 @@ set-include-path s ip = record s { include-path = ip }
 
 get-do-type-check : toplevel-state → string → 𝔹
 get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
+
+include-elt-write-spans-handle : Handle → include-elt → IO ⊤
+include-elt-write-spans-handle h ie with (include-elt.ss ie)
+include-elt-write-spans-handle h ie | inj₁ ss = write-spans-handle h ss
+include-elt-write-spans-handle h ie | inj₂ ss = hPutStr h ss
+
+include-elt-write-spans-file : string → include-elt → IO ⊤
+include-elt-write-spans-file f ie = withWritableFile f (λ h → include-elt-write-spans-handle h ie)
+
+include-elt-write-spans : include-elt → IO ⊤
+include-elt-write-spans ie = include-elt-write-spans-handle stdout ie
 

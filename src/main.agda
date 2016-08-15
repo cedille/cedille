@@ -53,12 +53,15 @@ cede-filename ced-path =
     combineFileNames (dot-cedille-directory dir) (unit-name ^ ".cede")
 
 -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
-write-cede-file : (ced-path : string) → (err : 𝔹) → string → IO ⊤
-write-cede-file ced-path err contents = 
+write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
+write-cede-file ced-path ie = 
 --  putStr ("write-cede-file " ^ ced-path ^ " : " ^ contents ^ "\n") >>
   let dir = takeDirectory ced-path in
     createDirectoryIfMissing ff (dot-cedille-directory dir) >>
-    writeFile (cede-filename ced-path) ((if err then "e" else "") ^ contents) 
+    withWritableFile (cede-filename ced-path)
+      (λ h →
+        hPutStr h (if (include-elt.err ie) then "e" else "") >>
+        include-elt-write-spans-handle h ie) 
 
 -- we assume the cede file is known to exist at this point
 read-cede-file : (ced-path : string) → IO (𝔹 × string)
@@ -199,7 +202,8 @@ checkFile s filename should-print-spans =
            putStr (global-error-string 
                      ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
-           if should-print-spans then putStr (include-elt.ss ie) 
+           if should-print-spans then
+             include-elt-write-spans ie
            else return triv
         finish : toplevel-state → IO toplevel-state
         finish s with s
@@ -211,11 +215,10 @@ checkFile s filename should-print-spans =
                 writeo [] = return triv
                 writeo (f :: us) =
                  let ie = get-include-elt s f in
---                   putStr ("writeo " ^ unit ^ " with path " ^ (include-elt.path ie) ^ ".\n") >>
-                   write-cede-file f (include-elt.err ie) (include-elt.ss ie) >>
+                   write-cede-file f ie >>
                    writeo us
 
--- this is the function that handles requests on standard input
+-- this is the function that handles requests (from the frontend) on standard input
 {-# NO_TERMINATION_CHECK #-}
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
@@ -235,7 +238,7 @@ processArgs oo (input-filename :: []) =
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
           let ie = get-include-elt s input-filename in
-          if include-elt.err ie then putStr (include-elt.ss ie) else return triv
+          if include-elt.err ie then include-elt-write-spans ie else return triv
 processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo))
 processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                          ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
