@@ -1,28 +1,36 @@
 import extmap.
 
-extmapUpdate ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ s : substmap · trm .
-               extmap · trm · P s →
+extmapUpdate ⇐ ∀ trm : ★ . ∀ P : trm → ★ . Π var : Nat → trm . ∀ s : substmap · trm .
+               extmap · trm var · P s →
                Π i : Nat . ∀ t : trm . P t →
-               extmap · trm · P (substmapUpdate · trm s i t) =
-   Λ trm . Λ P . Λ s . λ m . λ j . Λ t . λ ut .
-     m · (λ s : substmap · trm . λ m : extmap · trm · P s . extmap · trm · P (substmapUpdate · trm s j t))
+               extmap · trm var · P (substmapUpdate · trm s i t) =
+   Λ trm . Λ P . λ var . Λ s . λ m . λ j . Λ t . λ ut .
+     m · (λ s : substmap · trm . λ m : extmap · trm var · P s . extmap · trm var · P (substmapUpdate · trm s j t))
        (Λ s . λ i . Λ t1 . λ u1 . λ m . λ r .
           θ+ (eqnat i j) (λ u . ρ (χ (substmapUpdate (substmapCons i t1 s) j t ≃ substmapCons j t s) -
                                      εl ρ u - β) -
                                 ρ ς (eqnat-eq i j u) - 
-                                  (extmapCons · trm · P -s i -t ut m))
+                                  (extmapCons · trm -var · P -s i -t ut m))
                          (λ u . ρ (χ (substmapUpdate (substmapCons i t1 s) j t ≃ substmapCons i t1 (substmapUpdate s j t)) -
                                      εl ρ u - β) -
-                                  (extmapCons · trm · P -(substmapUpdate · trm s j t) i -t1 u1 r)))
-       (Λ default . λ v . (extmapCons · trm · P -(substmapStart · trm default) j -t ut (extmapStart · trm · P -default v)))
+                                  (extmapCons · trm -var · P -(substmapUpdate · trm s j t) i -t1 u1 r)))
+       (λ v . (extmapCons · trm -var · P -(substmapNil · trm) j -t ut (extmapNil · trm -var · P v)))
 .
 
-substmapToExtmap ⇐ ∀ trm : ★ . ∀ P : trm → ★ . ∀ f : trm → trm .
-                   (Π t : trm . P (f t)) → Π s : substmap · trm . extmap · trm · P (substmapMap · trm f s) =
-  Λ trm . Λ P . Λ f . λ uf . λ s .
+%substmapToExtmap-old ⇐ ∀ trm : ★ . ∀ P : trm → ★ . Π var : Nat → trm . ∀ f : trm → trm .
+%                   (Π t : trm . P (f t)) → Π s : substmap · trm . extmap · trm var · P (substmapMap · trm f s) =
+%  Λ trm . Λ P . λ var . Λ f . λ uf . λ s .
+%    θ s
+%      (λ i . λ t . λ s . λ m . extmapCons · trm -var · P -(substmapMap · trm f s) i -(f t) (uf t) m)
+%      ( extmapNil · trm -var · P ● ) .  % ( extmapNil · trm -var · P ( λ x . uf ( var x ) ) ) . % ( λ x . uf (var x) ) (uf ● )) .
+
+%I removed the trm → trm function because I did not understand its purpose. I am not sure if this is justified
+substmapToExtmap ⇐ ∀ trm : ★ . ∀ P : trm → ★ . Π var : Nat → trm .
+                   (Π t : trm . P t) → Π s : substmap · trm . extmap · trm var · P (substmapMap · trm (λ x . x) s) =
+  Λ trm . Λ P . λ var . λ uf . λ s .
     θ s
-      (λ i . λ t . λ s . λ m . extmapCons · trm · P -(substmapMap · trm f s) i -(f t) (uf t) m)
-      (λ default . extmapStart · trm · P -(f default) (uf default)) .
+      (λ i . λ t . λ s . λ m . extmapCons · trm -var · P -(substmapMap · trm (λ x . x) s) i -(t) (uf t) m)
+      ( extmapNil · trm -var · P (λ x . uf (var x) )) .  % ( extmapNil · trm -var · P ( λ x . uf ( var x ) ) ) . % ( λ x . uf (var x) ) (uf ● )) .
 
 
 substmapComp ⇐ ∀ trm : ★ . Π s1 : substmap · trm . ∀ s : substmap · trm .
