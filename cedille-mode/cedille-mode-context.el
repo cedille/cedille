@@ -6,8 +6,22 @@
 
 (load-library "cedille-mode-info")
 (defvar cedille-mode-context-ordering nil)
-(defvar cedille-mode-context-list)
+(defvar cedille-mode-context-filtering nil)
+
 (defvar cedille-mode-original-context-list)
+(defvar cedille-mode-filtered-context-list)
+(defvar cedille-mode-sorted-context-list)
+
+;;; There are three context lists:
+;;; 1. The original list (original)
+;;; 2. The list after it has been filtered
+;;; 3. The list after it has been sorted
+;;; This is also the order in which these lists are processed.
+;;; First, the original list is derived using cedille-mode-compute-context()
+;;; Second, the filtered list is derived using cedille-mode-filter-context()
+;;; Finally, the sorted list is derived using cedille-mode-sort-context()
+;;; The sorted list is the one displayed to the user.
+
 
 					; MINOR MODE FUNCTIONS
 
@@ -37,7 +51,7 @@
 (defun cedille-mode-close-context-window() (interactive) (delete-window))
 
 (defun cedille-mode-sort-context()
-  "Sorts context according to ordering and stores in cedille-mode-context-list"
+  "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-original-context-list))
 	 (terms (cond ((equal cedille-mode-context-ordering 'fwd)
 		       (sort (car context) (lambda (a b) (string< (car a) (car b)))))		       
@@ -49,7 +63,7 @@
 		      ((equal cedille-mode-context-ordering 'bkd)
 		       (sort (cdr context) (lambda (a b) (string< (car b) (car a)))))
 		      (t (cdr context)))))
-    (setq cedille-mode-context-list (cons terms types))))
+    (setq cedille-mode-sorted-context-list (cons terms types))))
 
 					; FUNCTIONS TO COMPUTE THE CONTEXT
 
@@ -86,8 +100,8 @@ which currently consists of:\n
 		 (keywords-list (list (split-string keywords-string " " t))))
 	    (when (and symbol (not (equal symbol "_")) (or type kind))
 	      (if type
-		  (setq terms (cons `(,symbol ((value . ,type) (keywords . ,keywords-list))) terms))
-		(setq types (cons `(,symbol ((value . ,kind) (keywords . ,keywords-list))) terms))))))))))
+		  (setq terms (cons (cons symbol (acons 'value type `(keywords . ,keywords-list))) terms))
+		(setq types (cons (cons symbol (acons 'value kind `(keywords . ,keywords-list))) types))))))))))
 
 					; FUNCTIONS TO DISPLAY THE CONTEXT
 
@@ -98,7 +112,7 @@ which currently consists of:\n
     (with-current-buffer b
       (setq buffer-read-only nil)
       (erase-buffer)
-      (insert (cedille-mode-format-context cedille-mode-context-list))
+      (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
@@ -107,8 +121,7 @@ which currently consists of:\n
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
   (let ((output) ;""
-	(format (lambda (pair) (concat (car pair) ":\t" (assoc 'value (cdr pair)))))
-;;	(format (lambda (pair) (concat (car pair) ":\t" (cdr pair))))
+	(format (lambda (pair) (concat (car pair) ":\t" (cdr (assoc 'value (cdr pair))))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
