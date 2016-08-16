@@ -15,7 +15,7 @@ TARGETS=$(ROOTS:=.cede)
 all: $(TARGETS)
 
 %.cede : %.ced 
-	@cedille $< ; if ( grep error $@ > /dev/null ) ; then echo "$<: ERROR"; else echo "$<"; fi
+	@../cedille $< ; if ( grep error .cedille/$@ > /dev/null ) ; then echo "$<: ERROR"; else echo "$<"; fi
 
 clean: 
 	find -name '*.cede' -exec rm {} \;

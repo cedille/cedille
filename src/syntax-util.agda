@@ -416,3 +416,32 @@ ll-to-string ll-kind = "kind"
 is-rho-plus : rho → 𝔹
 is-rho-plus RhoPlain = ff
 is-rho-plus RhoPlus = tt
+
+is-equation : type → 𝔹
+is-equation (TpParens _ t _) = is-equation t
+is-equation (TpEq _ _) = tt
+is-equation _ = ff 
+
+is-equational : type → 𝔹
+is-equational-kind : kind → 𝔹
+is-equational-tk : tk → 𝔹
+is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
+is-equational (Iota _ _ (SomeClass atk) t2) = is-equational-tk atk || is-equational t2
+is-equational (Iota _ _ _ t2) = is-equational t2
+is-equational (NoSpans t _) = is-equational t
+is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
+is-equational (TpAppt t1 _) = is-equational t1
+is-equational (TpArrow t1 t2) = is-equational t1 || is-equational t2
+is-equational (TpEq _ _) = tt
+is-equational (TpLambda _ _ _ atk t2) = is-equational-tk atk || is-equational t2
+is-equational (TpParens _ t _) = is-equational t
+is-equational (Lft _ _ _ _ _) = ff
+is-equational (TpVar _ t) = ff
+is-equational-tk (Tkt t1) = is-equational t1
+is-equational-tk (Tkk k) = is-equational-kind k
+is-equational-kind (KndArrow k1 k2) = is-equational-kind k1 || is-equational-kind k2
+is-equational-kind (KndParens _ k _) = is-equational-kind k
+is-equational-kind (KndPi _ _ _ atk k) = is-equational-tk atk || is-equational-kind k
+is-equational-kind (KndTpArrow t1 k2) = is-equational t1 || is-equational-kind k2
+is-equational-kind (KndVar _ _) = ff
+is-equational-kind (Star _) = ff

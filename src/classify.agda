@@ -239,7 +239,7 @@ check-termi (Var pi x) mtp =
                        expected-type-if mtp (missing-type :: []))) ≫span
          return-when mtp mtp
         cont nothing Γ | just tp = 
-          spanM-add (Var-span Γ pi x synthesizing ((type-data tp) :: [ hnf-type Γ tp ])) ≫span
+          spanM-add (Var-span Γ pi x synthesizing (type-data tp :: [ hnf-type Γ tp ])) ≫span
           check-termi-return Γ (Var pi x) tp
         cont (just tp) Γ | just tp' = 
           spanM-add (Var-span Γ pi x checking

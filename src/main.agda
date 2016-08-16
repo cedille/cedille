@@ -166,6 +166,9 @@ ensure-ast-deps s filename | just ie =
        return (set-include-elt s filename ie))
     else reparse s filename
      
+{- helper function for update-asts, which keeps track of the files we have seen so
+   we avoid importing the same file twice, and also avoid following cycles in the import
+   graph. -}
 {-# NO_TERMINATION_CHECK #-}
 update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) → 
                IO (stringset {- seen already -} × toplevel-state)
@@ -186,10 +189,15 @@ update-astsh seen s filename =
                 proc seen s (d :: ds) = update-astsh seen s d >>= λ p → 
                                         proc (fst p) (snd p) ds
 
+{- this function updates the ast associated with the given filename in the toplevel state.
+   So if we do not have an up-to-date .cede file (i.e., there is no such file at all,
+   or it is older than the given file), reparse the file.  We do this recursively for all
+   dependencies (i.e., imports) of the file. -}
 update-asts : toplevel-state → (filename : string) → IO toplevel-state
 update-asts s filename = update-astsh empty-stringset s filename >>= λ p → 
   return (snd p)
 
+{- this function checks the given file (if necessary), updates .cede files (again, if necessary), and replies on stdout if appropriate -}
 checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
 checkFile s filename should-print-spans = 
 --  putStr ("checkFile " ^ filename ^ "\n") >>
@@ -228,6 +236,7 @@ readFilenamesForProcessing s =
        input-filename tt {- should-print-spans -} >>= λ s → 
      readFilenamesForProcessing s
 
+-- function to process command-line arguments
 processArgs : opts → 𝕃 string → IO ⊤ 
 
 -- this is the case for when we are called with a single command-line argument, the name of the file to process
@@ -239,10 +248,15 @@ processArgs oo (input-filename :: []) =
         finish input-filename s = 
           let ie = get-include-elt s input-filename in
           if include-elt.err ie then include-elt-write-spans ie else return triv
+
+-- this is the case where we will go into a loop reading commands from stdin, from the fronted
 processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo))
+
+-- all other cases are errors
 processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                          ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
 
+-- helper function to try to parse the options file
 processOptions : string → string → (string ⊎ options-types.opts)
 processOptions filename s with string-to-𝕃char s
 processOptions filename s | i with options-parse.runRtn i
@@ -252,6 +266,7 @@ processOptions filename s | i | inj₂ r with options-parse.rewriteRun r
 processOptions filename s | i | inj₂ r | options-run.ParseTree (options-types.parsed-start (options-types.File oo)) :: [] = inj₂ oo
 processOptions filename s | i | inj₂ r | _ =  inj₁ ("Parse error in file " ^ filename ^ ". ")
 
+-- read the ~/.cedille/options file
 readOptions : IO (string ⊎ options-types.opts)
 readOptions =
   getHomeDirectory >>= λ homedir →
@@ -264,6 +279,7 @@ readOptions =
        else
          (return (inj₂ options-types.OptsNil))
 
+-- main entrypoint for the backend
 main : IO ⊤
 main = readOptions >>= next
   where next : string ⊎ options-types.opts → IO ⊤

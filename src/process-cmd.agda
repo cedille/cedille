@@ -17,6 +17,7 @@ open import toplevel-state
 import cws-types
 import cws
 
+-- generate spans from the given comments-and-whitespace syntax tree 
 process-cwst-etys : cws-types.entities → spanM ⊤
 process-cwst-ety : cws-types.entity → spanM ⊤
 process-cwst-etys (cws-types.Entity ety etys) = (process-cwst-ety ety) ≫span process-cwst-etys etys
@@ -128,6 +129,8 @@ process-start s filename (File pi cs pi') need-to-check =
     spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
     spanMr s
 
+{- process (type-check if necessary) the given file.  
+   We assume the given top-level state has a syntax tree associated with the file. -}
 process-file s filename with get-include-elt s filename
 process-file s filename | ie = 
   let p = proceed s (include-elt.ast ie) (set-need-to-add-symbols-to-context-include-elt ie ff) in

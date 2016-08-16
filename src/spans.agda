@@ -259,6 +259,19 @@ punctuation-data = "punctuation" , "true"
 not-for-navigation : tagged-val
 not-for-navigation = "not-for-navigation" , "true"
 
+keywords-data : type → tagged-val
+keywords-data t =
+  "keywords" , 
+    (if is-equation t then
+      "equation"
+    else (if is-equational t then
+      "equational"
+    else ""))
+keywords-data-kind : kind → tagged-val
+keywords-data-kind k = 
+  "keywords"  ,
+    (if is-equational-kind k then "equational" else "")
+
 --------------------------------------------------
 -- span-creating functions
 --------------------------------------------------
@@ -297,8 +310,8 @@ KndVar-span Γ pi v check = mk-span "Kind variable" pi (posinfo-plus-str pi v)
                        (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
 
 var-span : ctxt → posinfo → string → checking-mode → tk → span
-var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check [ kind-data k ]
-var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (type-data t :: [ hnf-type Γ t ])
+var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
+var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data t :: type-data t :: [ hnf-type Γ t ])
 
 TpAppt-span : type → term → checking-mode → 𝕃 tagged-val → span
 TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (checking-data check :: ll-data-type :: tvs)
@@ -324,7 +337,8 @@ TpQuant-span is-pi pi x atk body check tvs =
 
 TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → span
 TpLambda-span pi x atk body check tvs =
-  mk-span "Type-level lambda abstraction" pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
+  mk-span "Type-level lambda abstraction" pi (type-end-pos body)
+    (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
 -- a span boxing up the parameters and the indices of a Rec definition
 RecPrelim-span : string → posinfo → posinfo → span
@@ -340,7 +354,9 @@ Star-span : posinfo → checking-mode → span
 Star-span pi check = mk-span Star-name pi (posinfo-plus pi 1) (checking-data check :: [ ll-data-kind ])
 
 KndPi-span : posinfo → var → tk → kind → checking-mode → span
-KndPi-span pi x atk k check = mk-span "Pi kind" pi (kind-end-pos k) (checking-data check :: ll-data-kind :: binder-data-const :: [ super-kind-data ])
+KndPi-span pi x atk k check =
+  mk-span "Pi kind" pi (kind-end-pos k)
+    (checking-data check :: ll-data-kind :: binder-data-const :: [ super-kind-data ])
 
 KndArrow-span : kind → kind → checking-mode → span
 KndArrow-span k k' check = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos k') (checking-data check :: ll-data-kind :: [ super-kind-data ])
