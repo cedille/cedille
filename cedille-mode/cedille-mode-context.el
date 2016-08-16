@@ -62,27 +62,32 @@
 	;;Store the unmodified context
 	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
 
-(defun cedille-mode-get-context(path) ; -> ( list<(string,string)>, list<(string,string) )
-  "Returns a tuple consisting of:
-   1. a list of terms and their associated types
-   2. a list of types and their associated kinds"
+(defun cedille-mode-get-context(path) ; -> list <context>
+  "Searches the input path for binder nodes, returning a tuple consisting of:\n
+1. A list of term symbols and their types and keywords\n
+2. A list of type symbols and their kinds and keywords\n
+The output is a tuple (terms types)\n
+where each object is a tuple (symbol alist)\n
+where alist is an association list containing the info associated with symbol\n
+which currently consists of:\n
++ 'value' : the type or kind of symbol
++ 'keywords': a list of keywords associated with symbol"
   (let (terms types)
-    (while path ;Recursively traverse the path
-      (let ((binder (cdr (assoc 'binder (se-term-data (car path)))))
-	    (children (se-node-children (car path))))
+    (dolist (node path (when (or terms types) (cons terms types)))
+      (let ((binder (cdr (assoc 'binder (se-term-data node))))
+	    (children (se-node-children node)))
 	(when (and binder children)
-	    (let* ((bound (string-to-number binder)) 
-		   (data (se-term-data (nth bound children))) ;Get data from the child node matchng the binder number
-		   (symbol (cdr (assoc 'symbol data)))
-		   (kind (cdr (assoc 'kind data)))
-		   (type (cdr (assoc 'type data))))
-	      (when (and symbol (not (equal symbol "_"))) ;Classify the symbol as a term or a type and add it to the appropriate list. Ignore '_' symbols 
-		  (if type
-		      (setq terms (cons (cons symbol type) terms))
-		    (if kind
-			(setq types (cons (cons symbol kind) types))))))))
-      (setq path (cdr path)))
-    (cons terms types))) ;Return a tuple consisting of the term-type pairs and the type-kind pairs
+	  (let* ((bound (string-to-number binder)) ;included for readability
+		 (data (se-term-data (nth bound children)))
+		 (symbol (cdr (assoc 'symbol data)))
+		 (type (cdr (assoc 'type data)))
+		 (kind (cdr (assoc 'kind data)))
+		 (keywords-string (cdr (assoc 'keywords data))) ;included for readability
+		 (keywords-list (list (split-string keywords-string " " t))))
+	    (when (and symbol (not (equal symbol "_")) (or type kind))
+	      (if type
+		  (setq terms (cons `(,symbol ((value . ,type) (keywords . ,keywords-list))) terms))
+		(setq types (cons `(,symbol ((value . ,kind) (keywords . ,keywords-list))) terms))))))))))
 
 					; FUNCTIONS TO DISPLAY THE CONTEXT
 
@@ -101,8 +106,9 @@
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
-  (let ((output "")
-	(format (lambda (pair) (concat (car pair) ":\t" (cdr pair))))
+  (let ((output) ;""
+	(format (lambda (pair) (concat (car pair) ":\t" (assoc 'value (cdr pair)))))
+;;	(format (lambda (pair) (concat (car pair) ":\t" (cdr pair))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
