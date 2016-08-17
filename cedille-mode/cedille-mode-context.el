@@ -10,11 +10,13 @@
   "Context options for Cedille"
   :group 'cedille)
 
-(defcustom cedille-mode-context-ordering nil
+(defcustom cedille-mode-context-ordering 'fwd
   "Default ordering of context mode"
-  :type '(radio (const :tag "Default" nil)
-		(const :tag "A - Z" fwd)
-		(const :tag "Z - A" bkd))
+  :type '(radio (const :tag "A - Z" fwd)
+		(const :tag "Z - A" bkd)
+		(const :tag "Parse tree descending" dn)
+		(const :tag "Parse tree ascending" up))
+		
   :group 'cedille-context)
 (defvar cedille-mode-context-filtering nil)
 
@@ -59,7 +61,8 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd)) ; a-z ordering
     (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd)) ; z-a ordering
-    (define-key map (kbd "d") (make-cedille-mode-context-order nil)) ; default ordering
+    (define-key map (kbd "d") (make-cedille-mode-context-order 'dn)) ; parse tree descending ordering
+    (define-key map (kbd "u") (make-cedille-mode-context-order 'up)) ; parse tree ascending ordering
     (define-key map (kbd "e") (make-cedille-mode-context-filter 'eqnl)) ; filter 'equational'
     (define-key map (kbd "E") (make-cedille-mode-context-filter 'eqn)) ; filter 'equation'
     (define-key map (kbd "f") (make-cedille-mode-context-filter nil)) ; no filter
@@ -93,8 +96,9 @@
 	 (string-gt (lambda (a b) (funcall string-lt b a))) ; descending alphabetical order
 	 (orderp (lambda (x) (equal cedille-mode-context-ordering x))) ;checks the value of x against the context-ordering variable
 	 (sort-list (lambda (list) (cond ((funcall orderp 'fwd) (sort list string-lt)) ; sorts and returns the input list
-					 ((funcall orderp 'bkd) (sort list string-gt))					  
-					 (t list))))
+					 ((funcall orderp 'bkd) (sort list string-gt))
+					 ((funcall orderp 'dn) (reverse list))
+					 ((funcall orderp 'up) list))))
 	 (terms (funcall sort-list (car context)))
 	 (types (funcall sort-list (cdr context))))
     (setq cedille-mode-sorted-context-list (cons terms types))))
@@ -104,11 +108,12 @@
 					; FUNCTIONS TO COMPUTE THE CONTEXT
 
 (defun cedille-mode-compute-context()
-  "Compute the context and store it in local variables"
+  "Compute the context and store it in local variables in its default order.
+The context by default is ordered by parse tree position, from bottom to top."
   (if se-mode-selected
       (let ((b (cedille-mode-context-buffer)) ;Retrieve context from parse tree
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
-	(setq cedille-mode-original-context-list (cedille-mode-get-context p))))) ;Store the unmodified context
+	(setq cedille-mode-original-context-list (cedille-mode-get-context p))))) ;Store the unmodified context.
 
 (defun cedille-mode-get-context(path) ; -> list <context>
   "Searches the input path for binder nodes, returning a tuple consisting of:\n
