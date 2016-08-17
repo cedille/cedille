@@ -64,35 +64,28 @@
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
   (let* ((context (copy-sequence cedille-mode-original-context-list))
-	 (filter (lambda (lst condp) (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst))))) ; returns a list containing only entries that pass condp
+	 (filter (lambda (lst condp) (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst))))) ; returns a list of objects satisfying condp
 	 (has-keyword (lambda (entry word) (member word (cdr (assoc 'keywords (cdr entry)))))) ; tests whether a context entry has keyword associated with it
-	 (prev-terms (car context)) 
-	 (prev-types (cdr context)) 
-	 (terms (cond ((equal cedille-mode-context-filtering 'eqn)
-		       (funcall filter prev-terms (lambda (entry) (funcall has-keyword entry "equation"))))		       
-		      ((equal cedille-mode-context-filtering 'eqnl)
-		       (funcall filter prev-terms (lambda (entry) (funcall has-keyword entry "equational"))))
-		      (t prev-terms)))
-	 (types (cond ((equal cedille-mode-context-filtering 'eqn)
-		       (funcall filter prev-types (lambda (entry) (funcall has-keyword entry "equation"))))
-		      ((equal cedille-mode-context-filtering 'eqnl)
-		       (funcall filter prev-types (lambda (entry) (funcall has-keyword entry "equational"))))
-		      (t prev-types))))
+	 (filterp (lambda (x) (equal cedille-mode-context-filtering x))) ; checks the value of x against the context-filtering variable
+	 (filter-for-keyword (lambda (lst key) (funcall filter lst (lambda (entry) (funcall has-keyword entry key))))) ; compilation function
+	 (filter-list (lambda (lst) (cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation")) ;filters and returns input list
+					  ((funcall filterp 'eqnl) (funcall filter-for-keyword lst "equational"))
+					  (t lst))))
+	 (terms (funcall filter-list (car context)))
+	 (types (funcall filter-list (cdr context))))
     (setq cedille-mode-filtered-context-list (cons terms types))))
 
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-filtered-context-list))
-	 (terms (cond ((equal cedille-mode-context-ordering 'fwd)
-		       (sort (car context) (lambda (a b) (string< (car a) (car b)))))		       
-		      ((equal cedille-mode-context-ordering 'bkd)
-		       (sort (car context) (lambda (a b) (string< (car b) (car a)))))
-		      (t (car context))))
-	 (types (cond ((equal cedille-mode-context-ordering 'fwd)
-		       (sort (cdr context) (lambda (a b) (string< (car a) (car b)))))		       
-		      ((equal cedille-mode-context-ordering 'bkd)
-		       (sort (cdr context) (lambda (a b) (string< (car b) (car a)))))
-		      (t (cdr context)))))
+	 (string-lt (lambda (a b) (string< (car a) (car b)))) ; ascending alphabetical order
+	 (string-gt (lambda (a b) (funcall string-lt b a))) ; descending alphabetical order
+	 (orderp (lambda (x) (equal cedille-mode-context-ordering x))) ;checks the value of x against the context-ordering variable
+	 (sort-list (lambda (list) (cond ((funcall orderp 'fwd) (sort list string-lt)) ; sorts and returns the input list
+					 ((funcall orderp 'bkd) (sort list string-gt))					  
+					 (t list))))
+	 (terms (funcall sort-list (car context)))
+	 (types (funcall sort-list (cdr context))))
     (setq cedille-mode-sorted-context-list (cons terms types))))
 
 (defun cedille-mode-process-context() (cedille-mode-filter-context) (cedille-mode-sort-context))
