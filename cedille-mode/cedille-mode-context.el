@@ -5,7 +5,17 @@
 					; GLOBAL DEFINITIONS
 
 (load-library "cedille-mode-info")
-(defvar cedille-mode-context-ordering nil)
+
+(defgroup cedille-context nil
+  "Context options for Cedille"
+  :group 'cedille)
+
+(defcustom cedille-mode-context-ordering nil
+  "Default ordering of context mode"
+  :type '(radio (const :tag "Default" nil)
+		(const :tag "A - Z" fwd)
+		(const :tag "Z - A" bkd))
+  :group 'cedille-context)
 (defvar cedille-mode-context-filtering nil)
 
 (defvar cedille-mode-original-context-list)
@@ -21,7 +31,6 @@
 ;;; Second, the filtered list is derived using cedille-mode-filter-context()
 ;;; Finally, the sorted list is derived using cedille-mode-sort-context()
 ;;; The sorted list is the one displayed to the user.
-
 
 					; MINOR MODE FUNCTIONS
 
