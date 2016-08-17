@@ -25,6 +25,8 @@
 
 					; MINOR MODE FUNCTIONS
 
+;; Note for future refactoring: these can be combined if filters are not a toggle
+
 (defmacro make-cedille-mode-context-order(arg)
   (` (lambda ()
        (interactive)
@@ -67,8 +69,8 @@
 	 (filter (lambda (lst condp) (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst))))) ; returns a list of objects satisfying condp
 	 (has-keyword (lambda (entry word) (member word (cdr (assoc 'keywords (cdr entry)))))) ; tests whether a context entry has keyword associated with it
 	 (filterp (lambda (x) (equal cedille-mode-context-filtering x))) ; checks the value of x against the context-filtering variable
-	 (filter-for-keyword (lambda (lst key) (funcall filter lst (lambda (entry) (funcall has-keyword entry key))))) ; compilation function
-	 (filter-list (lambda (lst) (cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation")) ;filters and returns input list
+	 (filter-for-keyword (lambda (lst key) (funcall filter lst (lambda (entry) (funcall has-keyword entry key))))) ; for brevity
+	 (filter-list (lambda (lst) (cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation")) ; filters and returns input list
 					  ((funcall filterp 'eqnl) (funcall filter-for-keyword lst "equational"))
 					  (t lst))))
 	 (terms (funcall filter-list (car context)))
@@ -95,11 +97,9 @@
 (defun cedille-mode-compute-context()
   "Compute the context and store it in local variables"
   (if se-mode-selected
-      ;;Retrieve context from parse tree
-      (let ((b (cedille-mode-context-buffer))
+      (let ((b (cedille-mode-context-buffer)) ;Retrieve context from parse tree
 	    (p (se-find-point-path (point) (se-mode-parse-tree))))
-	;;Store the unmodified context
-	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
+	(setq cedille-mode-original-context-list (cedille-mode-get-context p))))) ;Store the unmodified context
 
 (defun cedille-mode-get-context(path) ; -> list <context>
   "Searches the input path for binder nodes, returning a tuple consisting of:\n
@@ -116,52 +116,38 @@ which currently consists of:\n
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (children (se-node-children node)))
 	(when (and binder children)
-	  (let* ((bound (string-to-number binder)) ;included for readability
+	  (let* ((bound (string-to-number binder)) ; for readability
 		 (data (se-term-data (nth bound children)))
 		 (symbol (cdr (assoc 'symbol data)))
 		 (type (cdr (assoc 'type data)))
 		 (kind (cdr (assoc 'kind data)))
-		 (keywords-string (cdr (assoc 'keywords data))) ;included for readability
-		 (keywords-list (split-string keywords-string " " t)))
+		 (keywords-string (cdr (assoc 'keywords data))) ; for readability
+		 (keywords-list (split-string keywords-string " " t))
+		 (set-list ; for brevity
+		  (lambda (lst value-source) ; quoted list -> list -> nil [mutates input 0]
+		    (set lst (cons (cons symbol (list (cons 'value value-source) (cons 'keywords keywords-list))) (eval lst))))))	    
 	    (when (and symbol (not (equal symbol "_")) (or type kind))
-	      (if type
-		  (setq terms
-			(cons
-			 (cons
-			  symbol
-			  (list
-			   (cons 'value type)
-			   (cons 'keywords keywords-list)))
-			 terms))
-		(setq types
-		      (cons
-		       (cons
-			symbol
-			(list
-			 (cons 'value kind)
-			 (cons 'keywords keywords-list)))
-		       types))))))))))
+	      (if type (funcall set-list 'terms type) (funcall set-list 'types kind)))))))))
 
-					; FUNCTIONS TO DISPLAY THE CONTEXT
+				   ; FUNCTIONS TO DISPLAY THE CONTEXT
 
 (defun cedille-mode-display-context()
-  "Displays the context"
-  (let ((b (cedille-mode-context-buffer)))
-    (cedille-mode-process-context)
-    (with-current-buffer b
-      (setq buffer-read-only nil)
-      (erase-buffer)
-      (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
-      (goto-char 1)
-      (fit-window-to-buffer (get-buffer-window b))
-      (setq buffer-read-only t)
-      (setq deactivate-mark nil))))
+"Displays the context"
+(let ((b (cedille-mode-context-buffer)))
+(cedille-mode-process-context)
+(with-current-buffer b
+ (setq buffer-read-only nil)
+ (erase-buffer)
+ (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
+ (goto-char 1)
+ (fit-window-to-buffer (get-buffer-window b))
+ (setq buffer-read-only t)
+ (setq deactivate-mark nil))))
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
   (let ((output) ;""
 	(format (lambda (pair) (concat (car pair) ":\t" (cdr (assoc 'value (cdr pair))))))
-;	(format (lambda (pair) (concat (car pair) ":\t" (car (cdr (assoc 'keywords (cdr pair)))))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
@@ -183,13 +169,5 @@ which currently consists of:\n
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name)) "*"))
 
 (defun cedille-mode-context-buffer() "Retrieves the context buffer" (get-buffer-create (cedille-mode-context-buffer-name)))
-
-(defun cedille-mode-context-window()
-  "Retrieves (or creates) the context window"
-  (let* ((context-buffer (cedille-mode-context-buffer))
-	 (context-window (get-buffer-window context-buffer)))
-    (if context-window
-	context-window
-      (split-window))))
 
 (provide 'cedille-mode-context)
