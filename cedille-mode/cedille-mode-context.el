@@ -33,6 +33,14 @@
        (cedille-mode-update-buffers)
        (other-window -1))))
 
+(defmacro make-cedille-mode-context-filter(arg)
+  (` (lambda ()
+       (interactive)
+       (setq cedille-mode-context-filtering ,arg)
+       (other-window 1)
+       (cedille-mode-update-buffers)
+       (other-window -1))))
+
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
   nil         ; init-value, whether the mode is on automatically after definition
@@ -41,6 +49,9 @@
     (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd)) ; a-z ordering
     (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd)) ; z-a ordering
     (define-key map (kbd "d") (make-cedille-mode-context-order nil)) ; default ordering
+    (define-key map (kbd "e") (make-cedille-mode-context-filter 'eqnl)) ; filter 'equational'
+    (define-key map (kbd "E") (make-cedille-mode-context-filter 'eqn)) ; filter 'equation'
+    (define-key map (kbd "f") (make-cedille-mode-context-filter nil)) ; no filter
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
@@ -50,9 +61,28 @@
 
 (defun cedille-mode-close-context-window() (interactive) (delete-window))
 
+(defun cedille-mode-filter-context()
+  "Filters context and stores in cedille-mode-filtered-context-list"
+  (let* ((context (copy-sequence cedille-mode-original-context-list))
+	 (filter (lambda (lst condp) (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst))))) ; returns a list containing only entries that pass condp
+	 (has-keyword (lambda (entry word) (member word (cdr (assoc 'keywords (cdr entry)))))) ; tests whether a context entry has keyword associated with it
+	 (prev-terms (car context)) 
+	 (prev-types (cdr context)) 
+	 (terms (cond ((equal cedille-mode-context-filtering 'eqn)
+		       (funcall filter prev-terms (lambda (entry) (funcall has-keyword entry "equation"))))		       
+		      ((equal cedille-mode-context-filtering 'eqnl)
+		       (funcall filter prev-terms (lambda (entry) (funcall has-keyword entry "equational"))))
+		      (t prev-terms)))
+	 (types (cond ((equal cedille-mode-context-filtering 'eqn)
+		       (funcall filter prev-types (lambda (entry) (funcall has-keyword entry "equation"))))
+		      ((equal cedille-mode-context-filtering 'eqnl)
+		       (funcall filter prev-types (lambda (entry) (funcall has-keyword entry "equational"))))
+		      (t prev-types))))
+    (setq cedille-mode-filtered-context-list (cons terms types))))
+
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
-  (let* ((context (copy-sequence cedille-mode-original-context-list))
+  (let* ((context (copy-sequence cedille-mode-filtered-context-list))
 	 (terms (cond ((equal cedille-mode-context-ordering 'fwd)
 		       (sort (car context) (lambda (a b) (string< (car a) (car b)))))		       
 		      ((equal cedille-mode-context-ordering 'bkd)
@@ -64,6 +94,8 @@
 		       (sort (cdr context) (lambda (a b) (string< (car b) (car a)))))
 		      (t (cdr context)))))
     (setq cedille-mode-sorted-context-list (cons terms types))))
+
+(defun cedille-mode-process-context() (cedille-mode-filter-context) (cedille-mode-sort-context))
 
 					; FUNCTIONS TO COMPUTE THE CONTEXT
 
@@ -97,18 +129,32 @@ which currently consists of:\n
 		 (type (cdr (assoc 'type data)))
 		 (kind (cdr (assoc 'kind data)))
 		 (keywords-string (cdr (assoc 'keywords data))) ;included for readability
-		 (keywords-list (list (split-string keywords-string " " t))))
+		 (keywords-list (split-string keywords-string " " t)))
 	    (when (and symbol (not (equal symbol "_")) (or type kind))
 	      (if type
-		  (setq terms (cons (cons symbol (acons 'value type `(keywords . ,keywords-list))) terms))
-		(setq types (cons (cons symbol (acons 'value kind `(keywords . ,keywords-list))) types))))))))))
+		  (setq terms
+			(cons
+			 (cons
+			  symbol
+			  (list
+			   (cons 'value type)
+			   (cons 'keywords keywords-list)))
+			 terms))
+		(setq types
+		      (cons
+		       (cons
+			symbol
+			(list
+			 (cons 'value kind)
+			 (cons 'keywords keywords-list)))
+		       types))))))))))
 
 					; FUNCTIONS TO DISPLAY THE CONTEXT
 
 (defun cedille-mode-display-context()
   "Displays the context"
   (let ((b (cedille-mode-context-buffer)))
-    (cedille-mode-sort-context)
+    (cedille-mode-process-context)
     (with-current-buffer b
       (setq buffer-read-only nil)
       (erase-buffer)
@@ -122,6 +168,7 @@ which currently consists of:\n
   "Formats the context as text for display"
   (let ((output) ;""
 	(format (lambda (pair) (concat (car pair) ":\t" (cdr (assoc 'value (cdr pair))))))
+;	(format (lambda (pair) (concat (car pair) ":\t" (car (cdr (assoc 'keywords (cdr pair)))))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
