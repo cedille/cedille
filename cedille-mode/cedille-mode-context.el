@@ -3,7 +3,7 @@
 
 
 					; GLOBAL DEFINITIONS
-
+(load-library "cedille-mode-customize")
 (load-library "cedille-mode-info")
 
 (defgroup cedille-context nil
@@ -69,6 +69,7 @@
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
+    (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
     map
     )
   )

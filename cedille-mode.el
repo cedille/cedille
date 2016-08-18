@@ -107,11 +107,6 @@ Defaults to `error'."
   "Resizes all windows"
   (walk-windows
      (lambda (window) (fit-window-to-buffer window))))
-;;  (let ((n (count-windows)))
-;;    (when (> n 0)
-;;      (dotimes (i n)
-;;	(fit-window-to-buffer (other-window (- (+1 i))))))))
-    
 
 					;UTILITY FUNCTIONS FOR MANAGING BUFFERS
 
@@ -444,7 +439,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd ".") #'cedille-mode-history-forward)
   (se-navi-define-key 'cedille-mode (kbd ",") #'cedille-mode-history-backward)
-    (se-navi-define-key 'cedille-mode (kbd "<") #'cedille-mode-history-beginning)
+  (se-navi-define-key 'cedille-mode (kbd "<") #'cedille-mode-history-beginning)
   (se-navi-define-key 'cedille-mode (kbd ">") #'cedille-mode-history-end)
   (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
@@ -459,6 +454,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
+  (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
 )
 
 (cedille-modify-keymap)
