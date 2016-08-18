@@ -19,6 +19,7 @@
 (setq max-specpdl-size 30000)
 
 (defvar cedille-mode-debug 1 "If non-nil then print information for developers")
+(defvar cedille-mode-browsing-history '((nil nil) (nil nil))) ;stores history while jumping between files
 
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
@@ -299,20 +300,25 @@ in the parse tree, and updates the Cedille info buffer."
   (se-mode-select-last)
   (cedille-mode-update-buffers))
 
-(defun cedille-mode-jump ()
+(defun cedille-mode-jump()
   "Jumps to a location associated with the selected node"
-  (interactive)
+  (interactive)  
   (if se-mode-selected
       (let* ((d (se-term-data (se-mode-selected)))
-	     (lp (assoc 'location d)))
+	     (lp (assoc 'location d))
+	     (this-file (buffer-file-name)))
 	 (if lp 
 	     (let* ((l (cdr lp))
 		    (ls (split-string l " - "))
 		    (f (car ls))
 		    (n (string-to-number (cadr ls)))
-		    (b (find-file f)))
+		    (b (find-file f))
+		    (timeline cedille-mode-browsing-history)
+		    (past (car cedille-mode-browsing-history))
+		    (present (cons this-file (point))))
+	       (setq cedille-mode-browsing-history (cons (cons present past) '(nil nil)))
 	       (with-current-buffer b (goto-char n) (se-navigation-mode)))
-	     (message "No location at this node")))
+	   (message "No location at this node")))
     (message "No node selected"))
   ;;; If the mark is active, we are jumping within the buffer. This prevents
   ;;; a region from being selected.
@@ -321,12 +327,94 @@ in the parse tree, and updates the Cedille info buffer."
 	(exchange-point-and-mark 1)
 	(set-mark-command 1))))
 
-(defun cedille-mode-quit()
-  "Quit Cedille navigation mode"
+(defun cedille-mode-history-beginning()
+  "Jump to start of history"
   (interactive)
-  (se-mode-clear-selected)
-  (se-navigation-mode-quit)
-  (setq se-mode-parse-tree nil))
+  (let* ((timeline cedille-mode-browsing-history)
+	 (past (car timeline))
+	 (present (cons (buffer-file-name) (point)))
+	 (future (cdr timeline))
+	 (destination (car (last past 3)))
+	 (dest-file (car destination))
+	 (dest-line (cdr destination)))
+    (if dest-file
+	(progn
+	  (setq future (append (cdr (reverse (cons present (butlast past 2)))) future))
+	  (setq past '(nil nil))
+	  (with-current-buffer (find-file dest-file)
+	    (goto-char dest-line)
+	    (se-navigation-mode))
+	  (setq cedille-mode-browsing-history (cons past future)))
+      (message "You have reached the beginning of history"))))
+
+(defun cedille-mode-history-end()
+  "Jump to end of history"
+  (interactive)
+  (let* ((timeline cedille-mode-browsing-history)
+	 (past (car timeline))
+	 (present (cons (buffer-file-name) (point)))
+	 (future (cdr timeline))
+	 (destination (car (last future 3)))
+	 (dest-file (car destination))
+	 (dest-line (cdr destination)))
+    (if dest-file
+	(progn 
+	  (setq past (append (cdr (reverse (cons present (butlast future 2)))) past))
+	  (setq future '(nil nil))
+	  (with-current-buffer (find-file dest-file)
+	    (goto-char dest-line)
+	    (se-navigation-mode))
+	  (setq cedille-mode-browsing-history (cons past future)))
+      (message "You have reached the end of history"))))
+
+(defun cedille-mode-history-forward()
+  "Advance forward in browsing history"
+  (interactive)
+  (let* ((timeline cedille-mode-browsing-history)
+	 (past (car timeline))
+	 (present (cons (buffer-file-name) (point)))
+	 (future (cdr timeline))
+	 (destination (car future))
+	 (dest-file (car destination))
+	 (dest-line (cdr destination)))
+    (if dest-file
+	(progn
+	  (setq past (cons present past))
+	  (setq future (cdr future))
+	  (with-current-buffer (find-file dest-file)
+	    (goto-char dest-line)
+	    (se-navigation-mode))
+	  (setq cedille-mode-browsing-history (cons past future)))
+      (message "You have reached the end of history"))))
+
+(defun cedille-mode-history-backward()
+  "Retreat backward in browsing history"
+  (interactive)
+  (let* ((timeline cedille-mode-browsing-history)
+	 (past (car timeline))
+	 (present (cons (buffer-file-name) (point)))
+	 (future (cdr timeline))
+	 (destination (car past))
+	 (dest-file (car destination))
+	 (dest-line (cdr destination)))
+    (if dest-file
+	(progn
+	  (setq past (cdr past))
+	  (setq future (cons present future))
+	  (with-current-buffer (find-file dest-file)
+	    (goto-char dest-line)
+	    (se-navigation-mode))
+	  (setq cedille-mode-browsing-history (cons past future)))
+      (message "You have reached the beginning of history"))))
+
+
+
+(defun cedille-mode-quit()
+"Quit Cedille navigation mode"
+(interactive)
+(se-mode-clear-selected)
+(se-navigation-mode-quit)
+(setq se-mode-parse-tree nil))
 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
@@ -354,6 +442,10 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil))
   (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
+  (se-navi-define-key 'cedille-mode (kbd ".") #'cedille-mode-history-forward)
+  (se-navi-define-key 'cedille-mode (kbd ",") #'cedille-mode-history-backward)
+    (se-navi-define-key 'cedille-mode (kbd "<") #'cedille-mode-history-beginning)
+  (se-navi-define-key 'cedille-mode (kbd ">") #'cedille-mode-history-end)
   (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
