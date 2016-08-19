@@ -38,41 +38,31 @@
 
 ;; Note for future refactoring: these can be combined if filters are not a toggle
 
-(defmacro make-cedille-mode-context-order(arg)
-  (` (lambda ()
-       (interactive)
-       (setq cedille-mode-context-ordering ,arg)
-       (other-window 1)
-       (cedille-mode-update-buffers)
-       (other-window -1))))
-
-(defmacro make-cedille-mode-context-filter(arg)
-  (` (lambda ()
-       (interactive)
-       (setq cedille-mode-context-filtering ,arg)
-       (other-window 1)
-       (cedille-mode-update-buffers)
-       (other-window -1))))
+(defmacro make-cedille-mode-set-variable(variable value)
+  `(lambda()
+     (interactive)
+     (setq ,variable ,value)
+     (other-window 1)
+     (cedille-mode-update-buffers)
+     (other-window -1)))
 
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
   nil         ; init-value, whether the mode is on automatically after definition
   " Context"  ; indicator for mode line
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "a") (make-cedille-mode-context-order 'fwd)) ; a-z ordering
-    (define-key map (kbd "z") (make-cedille-mode-context-order 'bkd)) ; z-a ordering
-    (define-key map (kbd "d") (make-cedille-mode-context-order 'dn)) ; parse tree descending ordering
-    (define-key map (kbd "u") (make-cedille-mode-context-order 'up)) ; parse tree ascending ordering
-    (define-key map (kbd "e") (make-cedille-mode-context-filter 'eqnl)) ; filter 'equational'
-    (define-key map (kbd "E") (make-cedille-mode-context-filter 'eqn)) ; filter 'equation'
-    (define-key map (kbd "f") (make-cedille-mode-context-filter nil)) ; no filter
+    (define-key map (kbd "a") (make-cedille-mode-set-variable cedille-mode-context-ordering 'fwd)) ; a-z ordering
+    (define-key map (kbd "z") (make-cedille-mode-set-variable cedille-mode-context-ordering 'bkd)) ; z-a ordering
+    (define-key map (kbd "d") (make-cedille-mode-set-variable cedille-mode-context-ordering 'dn)) ; parse tree descending
+    (define-key map (kbd "u") (make-cedille-mode-set-variable cedille-mode-context-ordering 'up)) ; parse tree ascending
+    (define-key map (kbd "e") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqnl)) ; filter 'equational'
+    (define-key map (kbd "E") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqn)) ; filter 'equation'
+    (define-key map (kbd "f") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) ; no filter
     (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
-    map
-    )
-  )
+    map))
 
 (defun cedille-mode-close-context-window() (interactive) (delete-window))
 
@@ -112,8 +102,7 @@
   "Compute the context and store it in local variables in its default order.
 The context by default is ordered by parse tree position, from bottom to top."
   (if se-mode-selected
-      (let ((b (cedille-mode-context-buffer)) ;Retrieve context from parse tree
-	    (p (se-find-point-path (point) (se-mode-parse-tree))))
+      (let ((p (se-find-point-path (point) (se-mode-parse-tree))))
 	(setq cedille-mode-original-context-list (cedille-mode-get-context p))))) ;Store the unmodified context.
 
 (defun cedille-mode-get-context(path) ; -> list <context>
