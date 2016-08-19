@@ -153,6 +153,9 @@ reason s = "reason" , s
 expected-type : type → tagged-val
 expected-type tp = "expected-type" , to-string tp
 
+missing-expected-type : tagged-val
+missing-expected-type = "expected-type" , "[missing]"
+
 hnf-type : ctxt → type → tagged-val
 hnf-type Γ tp = "hnf of type" , to-string (hnf-term-type Γ tp)
 
@@ -174,11 +177,22 @@ hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val → 𝕃 tagged-v
 hnf-expected-type-if Γ nothing tvs = tvs
 hnf-expected-type-if Γ (just tp) tvs = hnf-expected-type Γ tp :: tvs
 
-summary-data : string → string → tagged-val
-summary-data name classifier = "summary" , (name ^ " : " ^ classifier)
+type-data : type → tagged-val
+type-data tp = "type" , to-string tp 
 
 missing-type : tagged-val
 missing-type = "type" , "[undeclared]"
+
+error-data : string → tagged-val
+error-data s = "error" , s
+
+check-for-type-mismatch : ctxt → string → type → type → 𝕃 tagged-val
+check-for-type-mismatch Γ s tp tp' =
+  expected-type tp :: [ type-data tp' ] ++
+    (if conv-type Γ tp tp' then [] else [ error-data ("The expected type does not match the " ^ s ^ " type.") ])
+
+summary-data : string → string → tagged-val
+summary-data name classifier = "summary" , (name ^ " : " ^ classifier)
 
 missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
@@ -201,9 +215,6 @@ term-argument t = "the argument" , to-string t
 type-argument : type → tagged-val
 type-argument t = "the argument" , to-string t
 
-type-data : type → tagged-val
-type-data tp = "type" , to-string tp 
-
 kind-data : kind → tagged-val
 kind-data k = "kind" , to-string k
 
@@ -216,9 +227,6 @@ kind-data-if nothing = []
 
 super-kind-data : tagged-val
 super-kind-data = "superkind" , "□"
-
-error-data : string → tagged-val
-error-data s = "error" , s
 
 symbol-data : string → tagged-val
 symbol-data x = "symbol" , x
@@ -264,9 +272,11 @@ keywords-data t =
   "keywords" , 
     (if is-equation t then
       "equation"
-    else (if is-equational t then
+    else "")
+    ^ " " ^
+    (if is-equational t then
       "equational"
-    else ""))
+     else "")
 keywords-data-kind : kind → tagged-val
 keywords-data-kind k = 
   "keywords"  ,
@@ -339,6 +349,9 @@ TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagge
 TpLambda-span pi x atk body check tvs =
   mk-span "Type-level lambda abstraction" pi (type-end-pos body)
     (checking-data check :: ll-data-type :: binder-data-const :: tvs)
+
+Iota-span : posinfo → type → 𝕃 tagged-val → span
+Iota-span pi t2 tvs = mk-span "Iota-abstraction" pi (type-end-pos t2) (explain "A dependent intersection type" :: tvs)
 
 -- a span boxing up the parameters and the indices of a Rec definition
 RecPrelim-span : string → posinfo → posinfo → span
@@ -507,17 +520,18 @@ Rho-span pi t t' expected r numrewrites tvs = mk-span "Rho" pi (term-end-pos t')
                                              ^ expected-to-string expected ^ " type, using an equation. "
                                              ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") ]))
 
-Chi-span : posinfo → maybeAtype → term → 𝕃 tagged-val → span
-Chi-span pi (Atype T) t' tvs = mk-span "Chi" pi (term-end-pos t') 
-                         (ll-data-term :: tvs ++ ( explain ("Check a term against an asserted type") :: [ "the asserted type " , to-string T ]))
-Chi-span pi NoAtype t' tvs = mk-span "Chi" pi (term-end-pos t') 
-                              (ll-data-term :: tvs ++ [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] )
+Chi-span : posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → span
+Chi-span pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-term :: checking-data check :: tvs ++ helper m)
+  where helper : maybeAtype → 𝕃 tagged-val
+        helper (Atype T) =  explain ("Check a term against an asserted type") :: [ "the asserted type " , to-string T ]
+        helper NoAtype = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
 
 Sigma-span : posinfo → term → maybe type → 𝕃 tagged-val → span
-Sigma-span pi t expected tvs = mk-span "Sigma" pi (term-end-pos t) 
-                                   (ll-data-term :: tvs ++
-                                   (explain ("Swap the sides of the equation synthesized for the body of this term.")
-                                    :: expected-type-if expected []))
+Sigma-span pi t expected tvs =
+  mk-span "Sigma" pi (term-end-pos t) 
+     (ll-data-term :: checking-data (maybe-to-checking expected) :: tvs ++
+     (explain ("Swap the sides of the equation synthesized for the body of this term.")
+     :: expected-type-if expected []))
 
 motive-label : string
 motive-label = "the motive"
@@ -525,8 +539,8 @@ motive-label = "the motive"
 the-motive : type → tagged-val
 the-motive motive = motive-label , to-string motive
 
-Theta-span : posinfo → theta → term → lterms → 𝕃 tagged-val → span
-Theta-span pi u t ls tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data-term :: tvs ++ do-explain u)
+Theta-span : posinfo → theta → term → lterms → checking-mode → 𝕃 tagged-val → span
+Theta-span pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
         do-explain (AbstractVars vs) = [ explain ("Perform an elimination with the first term, after abstracting the listed variables (" 
@@ -563,3 +577,10 @@ whitespace-span pi pi'  = mk-span "Whitespace" pi pi' [ not-for-navigation ]
 
 comment-span : posinfo → posinfo → span
 comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
+
+InlineDef-span : posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
+InlineDef-span pi pi' x t pi'' check tvs =
+  mk-span "Inline definition" pi pi''
+    (checking-data check :: error-data "Reduction does not work correctly yet with these, so don't use them for now" ::
+    ll-data-term ::
+    explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") :: tvs)

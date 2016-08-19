@@ -14,6 +14,7 @@ is-free-in-term : is-free-e → var → term → 𝔹
 is-free-in-type : is-free-e → var → type → 𝔹
 is-free-in-kind : is-free-e → var → kind → 𝔹
 is-free-in-optClass : is-free-e → var → optClass → 𝔹
+is-free-in-optType : is-free-e → var → optType → 𝔹
 is-free-in-tk : is-free-e → var → tk → 𝔹
 is-free-in-liftingType : is-free-e → var → liftingType → 𝔹
 is-free-in-maybeAtype : is-free-e → var → maybeAtype → 𝔹
@@ -28,6 +29,9 @@ is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _) = ff
 is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
+is-free-in-term ce x (InlineDef _ _ x' t _) = is-free-in-term ce x t
+is-free-in-term ce x (IotaPair _ t1 t2 _) = is-free-in-term ce x t1 || is-free-in-term ce x t2
+is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
 is-free-in-term ce x (PiInj _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Epsilon _ _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Sigma _ t) = is-free-in-term ce x t
@@ -41,7 +45,7 @@ is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lte
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' atk t) = 
   is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t) 
-is-free-in-type ce x (Iota _ x' m t) = is-free-in-optClass ce x m || (~ (x =string x') && is-free-in-type ce x t)
+is-free-in-type ce x (Iota _ _ x' m t) = is-free-in-optType ce x m || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (Lft _ _ X t l) = is-free-in-liftingType ce x l || (~ x =string X && is-free-in-term ce x t)
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'
@@ -60,6 +64,9 @@ is-free-in-kind ce x (Star x₁) = ff
 
 is-free-in-optClass ce x NoClass = ff
 is-free-in-optClass ce x (SomeClass atk) = is-free-in-tk ce x atk
+
+is-free-in-optType ce x NoType = ff
+is-free-in-optType ce x (SomeType t) = is-free-in-type ce x t
 
 is-free-in-tk ce x (Tkt t) = is-free-in-type ce x t
 is-free-in-tk ce x (Tkk k) = is-free-in-kind ce x k

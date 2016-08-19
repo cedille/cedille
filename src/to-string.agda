@@ -43,6 +43,7 @@ type-to-stringh : {ed : exprd} → 𝔹 → ⟦ ed ⟧ → type → string
 term-to-stringh : {ed : exprd} → 𝔹 → ⟦ ed ⟧ → term → string
 kind-to-stringh : {ed : exprd} → 𝔹 → ⟦ ed ⟧ → kind → string
 optClass-to-string : optClass → string
+optType-to-string : optType → string
 tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 liftingType-to-stringh : {ed : exprd} → ⟦ ed ⟧ → liftingType → string
@@ -67,6 +68,9 @@ term-to-stringh toplevel p (Parens _ t _) = term-to-string toplevel t
 term-to-stringh toplevel p (Var _ x) = x
 term-to-stringh toplevel p (Beta _) = "β"
 term-to-stringh toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string ff t ^ ")"
+term-to-stringh toplevel p (InlineDef _ _ x t _) = "[ " ^ x ^ " ]"
+term-to-stringh toplevel p (IotaPair _ t1 t2 _) = "[ " ^ term-to-string tt t1 ^ " , " ^ term-to-string tt t1 ^ " ]"
+term-to-stringh toplevel p (IotaProj t n _) = term-to-string ff t ^ " . " ^ n
 term-to-stringh toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Sigma _ t) = "(ς " ^ term-to-string ff t ^ ")"
@@ -82,8 +86,8 @@ type-to-stringh toplevel p (Abs pi b pi' x t t') =
     (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh ff (Abs pi b pi' x t t') t')
 type-to-stringh toplevel p (TpLambda pi pi' x tk t) = 
   parens-unless toplevel (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string tk ^ " . " ^ type-to-stringh ff (TpLambda pi pi' x tk t) t )
-type-to-stringh toplevel p (Iota pi x m t) = parens-unless toplevel (is-abs p) ("ι " ^ x ^ optClass-to-string m ^ " . " 
-                                  ^ type-to-stringh ff (Iota pi x m t) t)
+type-to-stringh toplevel p (Iota pi pi' x m t) = parens-unless toplevel (is-abs p) ("ι " ^ x ^ optType-to-string m ^ " . " 
+                                  ^ type-to-stringh ff (Iota pi pi' x m t) t)
 type-to-stringh toplevel p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string ff x ^ " : " ^ liftingType-to-string x₁ ^ ")"
 type-to-stringh toplevel p (TpApp t t₁) = parens-unless toplevel (is-app p) (type-to-stringh ff (TpApp t t₁) t ^ " · " ^ type-to-string ff t₁)
 type-to-stringh toplevel p (TpAppt t t') = parens-unless toplevel (is-app p) (type-to-stringh ff (TpAppt t t') t ^ " " ^ term-to-string ff t')
@@ -115,6 +119,9 @@ liftingType-to-stringh p (LiftStar _) = "☆"
 
 optClass-to-string NoClass = ""
 optClass-to-string (SomeClass x) = " : " ^ tk-to-string x
+
+optType-to-string NoType = ""
+optType-to-string (SomeType x) = " : " ^ type-to-string ff x
 
 tk-to-string (Tkk k) = kind-to-string ff k
 tk-to-string (Tkt t) = type-to-string ff t

@@ -55,6 +55,9 @@ term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi) = pi
 term-start-pos (Delta pi _) = pi
+term-start-pos (InlineDef pi _ _ _ _) = pi
+term-start-pos (IotaPair pi _ _ _) = pi
+term-start-pos (IotaProj t _ _) = term-start-pos t
 term-start-pos (PiInj pi _ _) = pi
 term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Rho pi _ _ _) = pi
@@ -64,7 +67,7 @@ term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
-type-start-pos (Iota pi _ _ _) = pi
+type-start-pos (Iota pi _ _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
@@ -101,6 +104,9 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi) = posinfo-plus pi 1
 term-end-pos (Delta pi t) = term-end-pos t
+term-end-pos (InlineDef _ _ _ _ pi) = pi
+term-end-pos (IotaPair _ _ _ pi) = pi
+term-end-pos (IotaProj _ _ pi) = pi
 term-end-pos (PiInj _ _ t) = term-end-pos t
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Rho pi _ t t') = term-end-pos t'
@@ -110,7 +116,7 @@ term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
-type-end-pos (Iota _ _ _ tp) = type-end-pos tp
+type-end-pos (Iota _ _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
@@ -224,7 +230,7 @@ is-abs : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-abs{TERM} (Lam _ _ _ _ _ _) = tt
 is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
 is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
-is-abs{TYPE} (Iota _ _ _ _) = tt
+is-abs{TYPE} (Iota _ _ _ _ _) = tt
 is-abs{KIND} (KndPi _ _ _ _ _) = tt
 is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
 is-abs _ = ff
@@ -367,6 +373,9 @@ erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (era
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi) = Beta pi
 erase-term (Delta pi t) = Beta pi -- we need to erase the body t, so just use Beta as the name for any erased proof
+erase-term (InlineDef pi pi' x t pi'') = InlineDef pi pi' x (erase-term t) pi''
+erase-term (IotaPair pi t1 t2 pi') = erase-term t1
+erase-term (IotaProj t n pi) = erase-term t
 erase-term (PiInj _ _ t) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
@@ -426,8 +435,8 @@ is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (Iota _ _ (SomeClass atk) t2) = is-equational-tk atk || is-equational t2
-is-equational (Iota _ _ _ t2) = is-equational t2
+is-equational (Iota _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
+is-equational (Iota _ _ _ _ t2) = is-equational t2
 is-equational (NoSpans t _) = is-equational t
 is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
 is-equational (TpAppt t1 _) = is-equational t1

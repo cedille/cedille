@@ -20,7 +20,7 @@ data ctxt-info : Set where
   -- for defining a variable to equal a term with a given type
   term-def : term → type → ctxt-info
 
-  -- for untyped term definitions (used only when checking recursive datatype definitions)
+  -- for untyped term definitions 
   term-udef : term → ctxt-info
 
   -- for declaring a variable to have a given kind (with no definition)

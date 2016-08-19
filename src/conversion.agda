@@ -60,12 +60,16 @@ conv-term-norm : ctxt → term → term → 𝔹
 conv-type-norm : ctxt → type → type → 𝔹
 conv-kind-norm : ctxt → kind → kind → 𝔹
 
+conv-t : Set → Set
+conv-t T = ctxt → T → T → 𝔹
+
 hnf-optClass : ctxt → unfolding → optClass → optClass
 hnf-tk : ctxt → unfolding → tk → tk
-conv-tk : ctxt → tk → tk → 𝔹
-conv-liftingType : ctxt → liftingType → liftingType → 𝔹
-conv-optClass : ctxt → optClass → optClass → 𝔹
-conv-tty* : ctxt → 𝕃 tty → 𝕃 tty → 𝔹
+conv-tk : conv-t tk
+conv-liftingType : conv-t liftingType
+conv-optClass : conv-t optClass
+conv-optType : conv-t optType
+conv-tty* : conv-t (𝕃 tty)
 
 conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
 conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
@@ -92,6 +96,9 @@ hnf{TERM} Γ u (AppTp t tp) = hnf Γ u t
 hnf{TERM} Γ u (Sigma pi t) = hnf Γ u t
 hnf{TERM} Γ u (Epsilon _ _ _ t) = hnf Γ u t
 hnf{TERM} Γ u (Delta _ t) = hnf Γ u t
+hnf{TERM} Γ u (InlineDef _ _ x t _) = hnf Γ u t
+hnf{TERM} Γ u (IotaPair _ t1 t2 _) = hnf Γ u t1
+hnf{TERM} Γ u (IotaProj t _ _) = hnf Γ u t
 hnf{TERM} Γ u (PiInj _ _ t) = hnf Γ u t
 hnf{TERM} Γ u (Rho pi _ t t') = hnf Γ u t'
 hnf{TERM} Γ u (Chi pi T t') = hnf Γ u t'
@@ -210,8 +217,8 @@ conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') =
 conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Iota _ x m tp) (Iota _ x' m' tp') = 
-  conv-optClass Γ m m' && conv-type (ctxt-rename posinfo-gen x x' (ctxt-var-decl-if posinfo-gen x' Γ)) tp tp'
+conv-type-norm Γ (Iota _ _ x m tp) (Iota _ _ x' m' tp') = 
+  conv-optType Γ m m' && conv-type (ctxt-rename posinfo-gen x x' (ctxt-var-decl-if posinfo-gen x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Lft _ pi x t l) (Lft _ pi' x' t' l') =
   conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
@@ -244,19 +251,14 @@ conv-tk Γ (Tkt t) (Tkt t') = conv-type Γ t t'
 conv-tk Γ _ _ = ff
 
 conv-liftingType Γ l l' = conv-kind Γ (liftingType-to-kind l) (liftingType-to-kind l')
-{-
-conv-liftingType Γ (LiftParens x l x₁) l' = conv-liftingType Γ l l'
-conv-liftingType Γ l (LiftParens x l' x₁) = conv-liftingType Γ l l'
-conv-liftingType Γ (LiftArrow l l1) (LiftArrow l' l1') = conv-liftingType Γ l l' && conv-liftingType Γ l1 l1'
-conv-liftingType Γ (LiftPi x x₁ x₂ l) (LiftPi x ... = 
-  let Γ' = ctxt-tk-def 
-conv-liftingType Γ (LiftStar _) (LiftStar _) = tt
-conv-liftingType Γ (LiftTpArrow x l) (LiftTpArrow x' l') = conv-type Γ x x' && conv-liftingType Γ l l'
-conv-liftingType Γ _ _ = ff -}
 
 conv-optClass Γ NoClass NoClass = tt
 conv-optClass Γ (SomeClass x) (SomeClass x') = conv-tk Γ x x'
 conv-optClass Γ _ _ = ff
+
+conv-optType Γ NoType NoType = tt
+conv-optType Γ (SomeType x) (SomeType x') = conv-type Γ x x'
+conv-optType Γ _ _ = ff
 
 conv-tty* Γ [] [] = tt
 conv-tty* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-tty* Γ args args'

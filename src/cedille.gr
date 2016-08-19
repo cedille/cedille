@@ -89,9 +89,13 @@ Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! rho ows lterm ows '-' ows lterm.
 Chi : lterm -> ! 'χ' maybeAtype ows '-' ows lterm.
-Var : lterm -> ! var .
-Parens : lterm -> ! '(' ows term ows ')' ! . 
-Hole : lterm -> ! '●' .
+embed : lterm -> pterm .
+Var : pterm -> ! var .
+Parens : pterm -> ! '(' ows term ows ')' ! . 
+IotaProj : pterm -> pterm ows '.' ows num ! .
+IotaPair : pterm -> ! '[' ows term ows ',' ows term ows ']' ! .
+InlineDef : pterm -> ! '[' ows ! var ows '=' ows term ows ']' !.
+Hole : pterm -> ! '●' .
 
 Atype : maybeAtype -> ows atype.
 NoAtype : maybeAtype -> .
@@ -108,13 +112,16 @@ Erased : maybeErased -> '-' ows .
 NoClass : optClass -> .
 SomeClass : optClass -> ows ':' ows tk .
 
+NoType : optType -> .
+SomeType : optType -> ows ':' ows type .
+
 ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
 Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
 TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
-Iota : type -> ! 'ι' ows var optClass ows '.' ows type .
+Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 

@@ -170,12 +170,12 @@ process-rec-cmd no-need-to-check pi pi'' name params inds ctors body us pi' =
    let nametp = TpVar posinfo-gen name in
    let rectp = rec-apply-decls nametp params in  -- the recursive type applied to the parameters
    let uses-self = is-free-in check-erased self-name body in
-   let body1 = tplam-bind-decls inds (if uses-self then (Iota posinfo-gen self-name NoClass body) else body) in
+   let body1 = tplam-bind-decls inds (if uses-self then (Iota posinfo-gen posinfo-gen self-name NoType body) else body) in
    let body2 = let body' = subst-type Γ rectp name body in
                    tplam-bind-decls params
                    (tplam-bind-decls inds 
                      (if uses-self then 
-                        (Iota posinfo-gen self-name (SomeClass (Tkt rectp)) body')
+                        (Iota posinfo-gen posinfo-gen self-name (SomeType rectp) body')
                       else body')) in
 
     (if no-need-to-check then
