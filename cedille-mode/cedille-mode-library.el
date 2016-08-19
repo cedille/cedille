@@ -4,3 +4,4 @@
 (require 'cedille-mode-context)
 (require 'cedille-mode-info)
 (require 'cedille-mode-inspect)
+(require 'cedille-mode-navigate)
