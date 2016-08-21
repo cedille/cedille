@@ -42,9 +42,7 @@ msg: a message to display if it is not possible to move"
 	  (dest-line (cdr destination)))
      (if dest-file
 	 (progn
-	   (with-current-buffer (find-file dest-file)
-	     (goto-char dest-line)
-	     (se-navigation-mode))
+	   (with-current-buffer (find-file dest-file) (se-navigation-mode))
 	   (,update-fn past present future))
        (message ,msg))))
 	  
