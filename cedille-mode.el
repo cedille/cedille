@@ -19,7 +19,7 @@
 (setq max-specpdl-size 30000)
 
 (defvar cedille-mode-debug 1 "If non-nil then print information for developers")
-(defvar cedille-mode-browsing-history '((nil nil) (nil nil))) ;stores history while jumping between files
+(defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
@@ -328,10 +328,10 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil))
   (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
-  (se-navi-define-key 'cedille-mode (kbd ".") #'cedille-mode-history-forward)
-  (se-navi-define-key 'cedille-mode (kbd ",") #'cedille-mode-history-backward)
-  (se-navi-define-key 'cedille-mode (kbd "<") #'cedille-mode-history-beginning)
-  (se-navi-define-key 'cedille-mode (kbd ">") #'cedille-mode-history-end)
+  (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
+  (se-navi-define-key 'cedille-mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
+  (se-navi-define-key 'cedille-mode (kbd "<") (make-cedille-mode-history-navigate nil t))
+  (se-navi-define-key 'cedille-mode (kbd ">") (make-cedille-mode-history-navigate t t))
   (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)

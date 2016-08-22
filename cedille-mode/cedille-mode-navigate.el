@@ -15,8 +15,8 @@
 		    (b (find-file f))
 		    (timeline cedille-mode-browsing-history)
 		    (past (car cedille-mode-browsing-history))
-		    (present (cons this-file (point))))
-	       (setq cedille-mode-browsing-history (cons (cons present past) '(nil nil)))
+		    (present this-file))
+	       (setq cedille-mode-browsing-history (cons (cons present past) 'nil))
 	       (with-current-buffer b (goto-char n) (se-navigation-mode)))
 	   (message "No location at this node")))
     (message "No node selected"))
@@ -27,67 +27,32 @@
 	(exchange-point-and-mark 1)
 	(set-mark-command 1))))
 
-(defmacro make-cedille-mode-history-navigate(dest-fn update-fn msg)
-  "Takes as input a function to retrieve the destination file by name 
-and a function to update the timeline and a message:\n
-dest-fn: past -> future -> destination\n
-update-fn: past -> future -> nil [mutates cedille-mode-browsing-history]\n
-msg: a message to display if it is not possible to move"
-  `(let* ((timeline cedille-mode-browsing-history)
-	  (past (car timeline))
-	  (present (cons (buffer-file-name) (point)))
-	  (future (cdr timeline))
-	  (destination (,dest-fn past future))
-	  (dest-file (car destination))
-	  (dest-line (cdr destination)))
-     (if dest-file
-	 (progn
-	   (with-current-buffer (find-file dest-file) (se-navigation-mode))
-	   (,update-fn past present future))
-       (message ,msg))))
-	  
-(defun cedille-mode-history-beginning()
-  "Jump to start of history"
-  (interactive)
-  (make-cedille-mode-history-navigate
-   (lambda(past future) (car (last past 3)))
-   (lambda (past present future)
-     (setq future (append (cdr (reverse (cons present (butlast past 2)))) future))
-     (setq past '(nil nil))
-     (setq cedille-mode-browsing-history (cons past future)))
-   "You have reached the beginning of history"))
-
-(defun cedille-mode-history-end()
-  "Jump to end of history"
-  (interactive)
-  (make-cedille-mode-history-navigate
-   (lambda(past future) (car (last future 3)))
-   (lambda(past present future)
-     (setq past (append (cdr (reverse (cons present (butlast future 2)))) past))
-     (setq future '(nil nil))
-     (setq cedille-mode-browsing-history (cons past future)))
-   "You have reached the end of history"))
-
-(defun cedille-mode-history-backward()
-  "Retreat backward in browsing history"
-  (interactive)
-  (make-cedille-mode-history-navigate
-   (lambda(past future) (car past))
-   (lambda(past present future)
-     (setq past (cdr past))
-     (setq future (cons present future))
-     (setq cedille-mode-browsing-history (cons past future)))
-   "You have reached the beginning of history"))
-
-(defun cedille-mode-history-forward()
-  "Advance forward in browsing history"
-  (interactive)
-  (make-cedille-mode-history-navigate
-   (lambda(past future) (car future))
-   (lambda(past present future)
-     (setq past (cons present past))
-     (setq future (cdr future))
-     (setq cedille-mode-browsing-history (cons past future)))
-   "You have reached the end of history"))
+(defmacro make-cedille-mode-history-navigate(fwd-p jmp-p)
+  "Generates a function for navigating history. fwd-p determines whether the function
+moves forward (or backward), and jmp-p determines whether it moves by 
+jumping to the ends or moving in single steps."
+  `(lambda ()
+     (interactive)
+     (let ((destfn (lambda (past future) (if ,jmp-p (car (last future)) (car future)))) ;Retrieves the destination we are trying to reach
+	   (updatefn (lambda (past present future) ;Updates the timeline after we travel to the destination
+		       (setq past (if ,jmp-p (append (cdr (reverse (cons present future))) past) (cons present past)))
+		       (setq future (if ,jmp-p nil (cdr future)))
+		       (setq cedille-mode-browsing-history (if ,fwd-p (cons past future) (cons future past)))))
+	   (navigatefn ;Calls destfn, travels to the retrieved destination, then calls updatefn
+	    (lambda (dest-fn update-fn msg)
+	      (let* ((timeline cedille-mode-browsing-history)
+		     (past (car timeline))
+		     (present (buffer-file-name))
+		     (future (cdr timeline))
+		     (destination (funcall dest-fn past future)))
+		(if destination
+		    (progn
+		      (with-current-buffer (find-file destination) (se-navigation-mode))
+		      (funcall update-fn past present future))
+		  (message msg))))))
+       (funcall navigatefn ;Here is where we call navigatefn with inputs depending on which way we are travelling and how fast
+		(lambda (past future) (funcall destfn (if ,fwd-p past future) (if ,fwd-p future past)))
+		(lambda (past present future) (funcall updatefn (if ,fwd-p past future) present (if ,fwd-p future past)))
+		(concat "You have reached the " (if ,fwd-p "end" "beginning") " of history"))))) ;Error message
 
 (provide 'cedille-mode-navigate)
