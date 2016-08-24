@@ -281,7 +281,7 @@ readOptions =
 
 -- main entrypoint for the backend
 main : IO ⊤
-main = readOptions >>= next
+main = initializeStdoutToUTF8 >> setStdoutNewlineMode >> readOptions >>= next
   where next : string ⊎ options-types.opts → IO ⊤
         next (inj₁ s) = putStr (global-error-string s)
         next (inj₂ oo) = getArgs >>= processArgs oo
