@@ -5,6 +5,7 @@
 					; GLOBAL DEFINITIONS
 (load-library "cedille-mode-customize")
 (load-library "cedille-mode-info")
+(load-library "cedille-mode-parent")
 
 (defgroup cedille-context nil
   "Context options for Cedille"
@@ -62,6 +63,7 @@
     (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
+    (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
     map))
 
 (defun cedille-mode-close-context-window() (interactive) (delete-window))
