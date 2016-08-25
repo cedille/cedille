@@ -60,19 +60,6 @@ spans-to-string (global-error e o) = global-error-string (e ^ helper o)
         helper (just x) = ", \"global-error\":" ^ span-to-string x
         helper nothing = ""
 
-write-spans-handle : Handle → spans → IO ⊤
-write-spans-handle h (regular-spans ss) =
-    hPutStr h "{\"spans\":[" >>
-    helper ff ss >>
-    hPutStr h "]}\n"
-  where helper : 𝔹 → 𝕃 span → IO ⊤
-        helper _ [] = return triv
-        helper print-comma (s :: ss) =
-          hPutStr h (if print-comma then "," else "") >>
-          hPutStr h (span-to-string s) >>
-          helper tt ss
-write-spans-handle h ss = hPutStr h (spans-to-string ss)
-
 add-span : span → spans → spans
 add-span s (regular-spans ss) = regular-spans (s :: ss)
 add-span s (global-error e e') = global-error e e'
@@ -190,6 +177,10 @@ check-for-type-mismatch : ctxt → string → type → type → 𝕃 tagged-val
 check-for-type-mismatch Γ s tp tp' =
   expected-type tp :: [ type-data tp' ] ++
     (if conv-type Γ tp tp' then [] else [ error-data ("The expected type does not match the " ^ s ^ " type.") ])
+
+check-for-type-mismatch-if : ctxt → string → maybe type → type → 𝕃 tagged-val
+check-for-type-mismatch-if Γ s (just tp) tp' = check-for-type-mismatch Γ s tp tp'
+check-for-type-mismatch-if Γ s nothing tp' = [ type-data tp' ]
 
 summary-data : string → string → tagged-val
 summary-data name classifier = "summary" , (name ^ " : " ^ classifier)
@@ -464,6 +455,10 @@ unimplemented-term-span pi pi' (just tp) = mk-span "Unimplemented" pi pi'
                                               ( error-data "Unimplemented checking a term against a type" ::
                                                 ll-data-term :: [ expected-type tp ])
 
+unchecked-term-span : term → span
+unchecked-term-span t = mk-span "Unchecked term" (term-start-pos t) (term-end-pos t)
+                           (ll-data-term :: not-for-navigation :: [ explain "This term has not been type-checked."])
+
 unimplemented-type-span : posinfo → posinfo → maybe kind → span
 unimplemented-type-span pi pi' nothing = mk-span "Unimplemented" pi pi' (checking-data synthesizing :: error-data "Unimplemented synthesizing a kind for a type" :: [] )
 unimplemented-type-span pi pi' (just k) = mk-span "Unimplemented" pi pi' 
@@ -584,3 +579,9 @@ InlineDef-span pi pi' x t pi'' check tvs =
     (checking-data check :: error-data "Reduction does not work correctly yet with these, so don't use them for now" ::
     ll-data-term ::
     explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") :: tvs)
+
+IotaPair-span : posinfo → posinfo → 𝕃 tagged-val → span
+IotaPair-span pi pi' tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: tvs)
+
+IotaProj-span : term → posinfo → 𝕃 tagged-val → span
+IotaProj-span t pi' tvs = mk-span "Iota projection" (term-start-pos t) pi' tvs

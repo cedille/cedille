@@ -75,7 +75,7 @@ conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head
 conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-head t')
 conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k) (hnf Γ unfold-head k')
 
-hnf Γ no-unfolding e = e
+hnf{TERM} Γ no-unfolding e = erase-term e
 hnf{TERM} Γ u (Parens _ t _) = hnf Γ u t
 hnf{TERM} Γ u (App t1 Erased t2) = hnf Γ u t1
 hnf{TERM} Γ u (App t1 NotErased t2) with hnf Γ u t1
@@ -104,6 +104,7 @@ hnf{TERM} Γ u (Rho pi _ t t') = hnf Γ u t'
 hnf{TERM} Γ u (Chi pi T t') = hnf Γ u t'
 hnf{TERM} Γ u (Theta pi u' t ls) = hnf Γ u (App*' t (erase-lterms u' ls))
 
+hnf{TYPE} Γ no-unfolding e = e
 hnf{TYPE} Γ u (TpParens _ t _) = hnf Γ u t
 hnf{TYPE} Γ u (NoSpans t _) = hnf Γ u t
 hnf{TYPE} Γ (unfold b b' _) (TpVar _ x) with ctxt-lookup-type-var-def Γ x
@@ -162,6 +163,7 @@ hnf{TYPE} Γ u (Lft pi pi' y t l) =
  let t = hnf (ctxt-var-decl pi' y Γ) u t in
    do-lift Γ (Lft pi pi' y t l) y l t
 
+hnf{KIND} Γ no-unfolding e = e
 hnf{KIND} Γ u (KndParens _ k _) = hnf Γ u k
 hnf{KIND} Γ (unfold _ _ _) (KndVar _ x) with ctxt-lookup-kind-var-def Γ x
 hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | nothing = KndVar pi x

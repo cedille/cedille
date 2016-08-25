@@ -1,0 +1,36 @@
+import vector.
+import semvec.
+
+rec trm : (m : Nat)
+| app : ∀ n : Nat . trm n → trm n → trm n ,
+  lam : ∀ n : Nat . trm (S n) → trm n,
+  subst : ∀ n : Nat . ∀ m : Nat. Vector · (trm n) m → trm m → trm n,
+  var : Π i : Nat . Π n : Nat . ∀ _ : Lt i n . trm n
+=
+ ∀ P : Π n : Nat . trm n → ★ .  
+   (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m .
+      ∀ t1 : trm m . ∀ t2 : trm m . P n (subst -n -m s t1) → P n (subst -n -m s t2) → P n (subst -n -m s (app -m t1 t2))) → 
+   (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m . ∀ f : trm (S m).
+      (∀ t : trm n . P n t → P n (subst -n -(S m) (Vcons · (trm n) -m t s) f)) → P n (subst -n -m s (lam -m f))) → 
+   ∀ n : Nat .
+   ∀ s : Vector · (trm n) m.
+   semvec · trm · P n m s →
+   P n (subst -n -m s self)
+with 
+  app = Λ m . λ t1 . λ t2 . Λ P . λ a . λ l . Λ n . Λ s . λ v .
+          a -n -m -s -t1 -t2 (t1 · P a l -n -s v) (t2 · P a l -n -s v),
+  lam = Λ m . λ f . Λ P . λ a . λ l . Λ n . Λ s . λ v .
+            l -n -m -s -f (Λ t . λ ut . f · P a l -n -(Vcons · (trm n) -m t s) (semvecCons · trm · P -n -m -t ut -s v)) ,
+  subst = Λ n1 . Λ m . λ s1 . λ t . Λ P . λ a . λ l . Λ n . Λ s . λ v .
+             ρ (χ (subst s (subst s1 t) ≃
+                   λ a . λ l . λ v .
+                     t a l ((λ a . λ l . λ v . vectorToSemvec (λ t . t a l (vectorToSemvec (λ t . t a l v) s)) s1) a l v)) -
+                   β) - 
+             ρ (semvecComp · trm -m -n1 -n s1 -s) -
+             (t · P a l -n -(Vmap · (trm n1) · (trm n) -m (subst -n -n1 s) s1)
+               (vectorToSemvec · trm · P -n1 -n -m -(subst -n -n1 s) (λ t . t · P a l -n -s v) s1)),
+  var = λ i . λ m . Λ u . Λ P . λ a . λ l . Λ n . Λ s . λ v .
+            ρ (semvecLastLem · trm -n m -s) -
+              (semvecLast · trm · P -n m -s v i -u) .
+
+

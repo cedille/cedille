@@ -24,6 +24,7 @@ _≫=spanr_ : ∀{A : Set}{m : maybe A} → spanM (maybe A) → (A → spanM (ch
 _≫=spanr_{m = nothing} = _≫=spanm_
 _≫=spanr_{m = just _} = _≫=spanj_
 
+-- return the appropriate value meaning that typing failed (in either checking or synthesizing mode)
 check-fail : ∀{A : Set} → (m : maybe A) → spanM (check-ret m)
 check-fail nothing = spanMr nothing
 check-fail (just _) = spanMok
@@ -38,7 +39,7 @@ unimplemented-if : ∀{A : Set} → (m : maybe A) → spanM (check-ret m)
 unimplemented-if nothing = unimplemented-synth
 unimplemented-if (just _) = unimplemented-check
 
--- return the second maybe kind
+-- return the second maybe value, if we are in synthesizing mode
 return-when : ∀{A : Set} → (m : maybe A) → maybe A → spanM (check-ret m)
 return-when nothing u = spanMr u
 return-when (just _) u = spanMr triv
@@ -229,7 +230,7 @@ check-termi (Var pi x) mtp =
           spanM-add (Var-span Γ pi x checking (check-for-type-mismatch Γ "synthesized" tp tp'))
 
 check-termi (AppTp t tp') tp =
-  check-term t nothing ≫=spanm (λ htp → get-ctxt (λ Γ → cont (hnf-instantiate-iota Γ t htp tt))) ≫=spanr cont' tp 
+  check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
   where cont : type → spanM (maybe type)
         cont (Abs pi b pi' x (Tkk k) tp2) = 
            check-type tp' (just k) ≫span 
@@ -250,9 +251,13 @@ check-termi (AppTp t tp') tp =
         cont' (just tp) tp'' = 
           get-ctxt (λ Γ → 
             spanM-add (AppTp-span t tp' checking (check-for-type-mismatch Γ "synthesized" tp tp'')))
+        cont'' : maybe type → spanM (maybe type)
+        cont'' nothing =
+          spanM-add (AppTp-span t tp' (maybe-to-checking tp) []) ≫span spanMr nothing
+        cont'' (just htp) = get-ctxt (λ Γ → cont (hnf-instantiate-iota Γ t htp tt))
   
 check-termi (App t m t') tp =
-  check-term t nothing ≫=spanm (λ htp → get-ctxt (λ Γ → cont m (hnf-instantiate-iota Γ t htp tt))) ≫=spanr cont' tp 
+  check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
   where cont : maybeErased → type → spanM (maybe type)
         cont NotErased (TpArrow tp1 tp2) = 
           check-term t' (just tp1) ≫span 
@@ -287,6 +292,10 @@ check-termi (App t m t') tp =
           get-ctxt (λ Γ → 
             spanM-add (App-span t t' checking
                           (check-for-type-mismatch Γ "synthesized" tp tp' ++ hnf-expected-type-if Γ (just tp) [])))
+        cont'' : maybe type → spanM (maybe type)
+        cont'' nothing = spanM-add (App-span t t' (maybe-to-checking tp) []) ≫span spanMr nothing
+        cont'' (just htp) = get-ctxt (λ Γ → cont m (hnf-instantiate-iota Γ t htp tt))
+
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
@@ -560,7 +569,7 @@ check-termi (Hole pi) tp =
   get-ctxt (λ Γ → spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp)
 
 check-termi (InlineDef pi pi' x t pi'') mtp =
-  check-termi t mtp ≫=span (λ r →
+  check-term t mtp ≫=span (λ r →
     get-ctxt (λ Γ → helper Γ mtp r) ≫span
     spanMr r)
   where helper-add-span : 𝕃 tagged-val → spanM ⊤
@@ -575,13 +584,52 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
           helper-add-span [ missing-type ] ≫span
           set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t) Γ) 
 
-{-
+check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
+  check-term t1 (just tp1) ≫span
+  get-ctxt (λ Γ → 
+    check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
+    spanM-add (IotaPair-span pi pi'
+                (if conv-term Γ t1 t2 then
+                  []
+                 else [ error-data "The two components of the iota-pair are not convertible (as required)." ] )))
+
 check-termi (IotaPair pi t1 t2 pi') (just tp) =
+  spanM-add (IotaPair-span pi pi' [ error-data "The type we are checking against is not a iota-type" ])
 
 check-termi (IotaPair pi t1 t2 pi') nothing =
-  spanM-add (IotaPair-span pi t1 t2 pi' [ error-data "Iota pairs can only be used in a checking position" ] ≫span
+  spanM-add (IotaPair-span pi pi' [ error-data "Iota pairs can only be used in a checking position" ]) ≫span
   spanMr nothing
-  -}
+
+
+check-termi (IotaProj t n pi) mtp =
+  check-term t nothing ≫=span cont' mtp (num-to-ℕ n)
+  where cont : (outer : maybe type) → ℕ → (computed : type) → spanM (check-ret outer)
+        cont mtp n computed with computed
+        cont mtp 1 computed | Iota pi' pi'' x NoType t2 =
+            spanM-add (IotaProj-span t pi
+                        (error-data "The head type is a iota-type, but it has no first component." ::
+                              [ head-type computed ] )) ≫span
+            return-when mtp mtp
+        cont mtp 1 computed | Iota pi' pi'' x (SomeType t1) t2 =
+          get-ctxt (λ Γ →
+            spanM-add (IotaProj-span t pi (head-type computed ::
+                                           check-for-type-mismatch-if Γ "synthesized" mtp t1)) ≫span
+            return-when mtp (just t1))
+        cont mtp 2 computed | Iota pi' pi'' x a t2 =
+          get-ctxt (λ Γ →
+            let t2' = subst-type Γ t x t2 in
+              spanM-add (IotaProj-span t pi (head-type computed :: check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
+              return-when mtp (just t2'))
+        cont mtp n computed | Iota pi' pi'' x t1 t2 =
+          spanM-add (IotaProj-span t pi ( error-data "Iota-projections must use .1 or .2 only."
+                                      :: [ head-type computed ])) ≫span return-when mtp mtp
+        cont mtp n computed | _ =
+          spanM-add (IotaProj-span t pi ( error-data "The head type is not a iota-abstraction."
+                                        :: [ head-type computed ])) ≫span return-when mtp mtp
+        cont' : (outer : maybe type) → ℕ → (computed : maybe type) → spanM (check-ret outer)
+        cont' mtp _ nothing = spanM-add (IotaProj-span t pi []) ≫span return-when mtp mtp
+        cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp)) -- we are looking for iotas in the bodies of rec defs
+
 
 check-termi t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
@@ -673,7 +721,7 @@ check-typei (TpArrow t1 t2) k =
     return-star-when k
 
 check-typei (TpAppt tp t) k =
-  check-type tp nothing ≫=spanm cont ≫=spanr cont' k
+  check-type tp nothing ≫=span cont'' ≫=spanr cont' k
   where cont : kind → spanM (maybe kind)
         cont (KndTpArrow tp' k') = 
           check-term t (just tp') ≫span 
@@ -703,9 +751,12 @@ check-typei (TpAppt tp t) k =
                             expected-kind k' ::
                             kind-data k ::
                             [])))
+        cont'' : maybe kind → spanM (maybe kind)
+        cont'' nothing = spanM-add (TpAppt-span tp t (maybe-to-checking k) []) ≫span spanMr nothing
+        cont'' (just k) = cont k
 
 check-typei (TpApp tp tp') k =
-  check-type tp nothing ≫=spanm cont ≫=spanr cont' k
+  check-type tp nothing ≫=span cont'' ≫=spanr cont' k
   where cont : kind → spanM (maybe kind)
         cont (KndArrow k'' k') = 
           check-type tp' (just k'') ≫span 
@@ -735,6 +786,9 @@ check-typei (TpApp tp tp') k =
                             expected-kind k' ::
                             kind-data k ::
                             [])))
+        cont'' : maybe kind → spanM (maybe kind)
+        cont'' nothing = spanM-add (TpApp-span tp tp' (maybe-to-checking k) []) ≫span spanMr nothing
+        cont'' (just k) = cont k
 
 check-typei (TpEq t1 t2) k = 
   get-ctxt (λ Γ → 
@@ -743,6 +797,8 @@ check-typei (TpEq t1 t2) k =
     var-spans-term t2 ≫span
     set-ctxt Γ) ≫span 
     spanM-add (TpEq-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An equation" k)) ≫span
+    spanM-add (unchecked-term-span t1) ≫span
+    spanM-add (unchecked-term-span t2) ≫span
     return-star-when k
   where var-spans-term : term → spanM ⊤
         var-spans-term (App t x t') = var-spans-term t ≫span var-spans-term t'
@@ -762,7 +818,10 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
         var-spans-term (Sigma x t) = var-spans-term t
         var-spans-term (Theta x x₁ t x₂) = var-spans-term t
-        var-spans-term (Var pi x) = get-ctxt (λ Γ → spanM-add (Var-span Γ pi x untyped []))
+        var-spans-term (Var pi x) =
+          get-ctxt (λ Γ →
+            spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []
+                                                else [ error-data "This variable is not currently in scope." ])))
         var-spans-term (InlineDef _ pi' x t _) =
           var-spans-term t ≫span
           get-ctxt (λ Γ →

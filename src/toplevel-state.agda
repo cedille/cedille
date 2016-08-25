@@ -99,14 +99,8 @@ set-include-path s ip = record s { include-path = ip }
 get-do-type-check : toplevel-state → string → 𝔹
 get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
 
-include-elt-write-spans-handle : Handle → include-elt → IO ⊤
-include-elt-write-spans-handle h ie with (include-elt.ss ie)
-include-elt-write-spans-handle h ie | inj₁ ss = write-spans-handle h ss
-include-elt-write-spans-handle h ie | inj₂ ss = hPutStr h ss
-
-include-elt-write-spans-file : string → include-elt → IO ⊤
-include-elt-write-spans-file f ie = withWritableFile f (λ h → include-elt-write-spans-handle h ie)
-
-include-elt-write-spans : include-elt → IO ⊤
-include-elt-write-spans ie = include-elt-write-spans-handle stdout ie
+include-elt-spans-to-string : include-elt → string
+include-elt-spans-to-string ie with (include-elt.ss ie)
+include-elt-spans-to-string ie | inj₁ ss = spans-to-string ss
+include-elt-spans-to-string ie | inj₂ ss = ss
 

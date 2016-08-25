@@ -23,7 +23,7 @@ process-cwst-ety : cws-types.entity → spanM ⊤
 process-cwst-etys (cws-types.Entity ety etys) = (process-cwst-ety ety) ≫span process-cwst-etys etys
 process-cwst-etys (cws-types.EndEntity ety) = process-cwst-ety ety
 process-cwst-ety cws-types.EntityNonws = spanMr triv
-process-cwst-ety (cws-types.EntityWs pi pi') = spanM-add (whitespace-span pi pi') --spanMr triv --  -- 
+process-cwst-ety (cws-types.EntityWs pi pi') = spanMr triv -- spanM-add (whitespace-span pi pi') 
 process-cwst-ety (cws-types.EntityComment pi pi') = spanM-add (comment-span pi pi')
 
 process-cwst : toplevel-state → (filename : string) → spanM toplevel-state
