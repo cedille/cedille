@@ -81,6 +81,7 @@ Defaults to `error'."
 (defvar cedille-mode-highlight-spans nil
   "Spans including spans marked not-for-navigation.")
 
+
 					; UTILITY FUNCTIONS FOR MANAGING WINDOWS
 
 (defun cedille-mode-get-create-window(buffer)
@@ -106,6 +107,8 @@ Defaults to `error'."
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
   (walk-windows (lambda (window) (fit-window-to-buffer window))))
+
+(defun cedille-mode-close-active-window() (interactive) (delete-window))
 
 					;UTILITY FUNCTIONS FOR MANAGING BUFFERS
 
@@ -339,8 +342,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "s") nil)
-  (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
+  (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil))
+  (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)

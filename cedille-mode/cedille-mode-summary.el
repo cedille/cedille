@@ -11,6 +11,7 @@
 ;;; (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
 ;;;
 
+(load-library "cedille-mode-parent")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary retrieval code
@@ -60,60 +61,48 @@
         (if mark-active                                                                 
             (progn                                                                      
                 (exchange-point-and-mark 1)                                                   
-                (set-mark-command 1)
-            )
-        )
-        (message (concat "Jump to char:  " (number-to-string start-pos)))
-    )
-)
+                (set-mark-command 1)))
+        (message (concat "Jump to char:  " (number-to-string start-pos)))))
 
 (define-minor-mode cedille-summary-view-mode
     "Creates summary mode, which allows jumping from a summary back to its top-level definition in the main window"
     nil         ; init-value, whether the mode is on automatically after definition
     " Summary"  ; indicator for mode line
     (let ((map (make-sparse-keymap)))
-        (define-key map (kbd "j") 'cedille-mode-summary-jump)
-        map))
+      (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
+      (define-key map (kbd "j") 'cedille-mode-summary-jump)         ; jump to selected line
+      (define-key map (kbd "s") #'cedille-mode-close-active-window) ; close summary mode
+      (define-key map (kbd "S") #'cedille-mode-close-active-window) ; close summary mode
+      map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary View display code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-summary-buffer-name()
+(defun cedille-mode-summary-buffer-name()
   "Generates a unique name for each file's summary"
     (concat "*cedille-summary-" (file-name-base) "*"))
 
-(defun cedille-mode-get-summary-buffer()
+(defun cedille-mode-summary-buffer()
   "Creates/gets and returns the summary buffer"
-    (get-buffer-create (cedille-mode-get-summary-buffer-name)))
+    (get-buffer-create (cedille-mode-summary-buffer-name)))
 
-(defun cedille-mode-get-summary-window()
-  "Creates/gets and returns the summary window"
-    (let ((summary-window (get-buffer-window (cedille-mode-get-summary-buffer))))
-        (if summary-window
-            summary-window
-            (split-window))))
-
-(defun cedille-mode-summary-display()
-  "Creates/destroys the summary window/buffer"
-    (interactive)
-    (let ((summary-buffer (cedille-mode-get-summary-buffer)))
-        (if (get-buffer-window summary-buffer)
-            (delete-window (cedille-mode-get-summary-window))
-            (let* ((summary-pair (cedille-mode-get-all-summaries))
-                    (summary-string (cedille-mode-summary-list-to-string (car summary-pair)))
-                    (summary-starts (cdr summary-pair))
-                    (main-buffer (current-buffer)))
-                (set-window-buffer (cedille-mode-get-summary-window) summary-buffer)
-                (with-current-buffer summary-buffer
-                    (erase-buffer)
-                    (insert summary-string)
-                    (setq buffer-read-only t) 
-                    ; variables set for use in summary minor mode
-                    (setq cedille-mode-start-list summary-starts)
-                    (make-local-variable 'cedille-mode-start-list)
-                    (setq cedille-mode-main-buffer main-buffer)
-                    (make-local-variable 'cedille-mode-main-buffer)
-                    (cedille-summary-view-mode))))))
+(defun cedille-mode-summary()
+  (let* ((summary-buffer (cedille-mode-summary-buffer))
+	 (summary-pair (cedille-mode-get-all-summaries))
+	 (summary-string (cedille-mode-summary-list-to-string (car summary-pair)))
+	 (summary-starts (cdr summary-pair))
+	 (main-buffer (current-buffer)))
+    (with-current-buffer summary-buffer
+      (setq buffer-read-only nil) 
+      (erase-buffer)
+      (insert summary-string)
+      (setq buffer-read-only t)
+      ;; variables set for use in summary minor mode
+      (setq cedille-mode-start-list summary-starts)
+      (make-local-variable 'cedille-mode-start-list)
+      (setq cedille-mode-main-buffer main-buffer)
+      (make-local-variable 'cedille-mode-main-buffer))
+    (cedille-mode-rebalance-windows)))
 
 (provide 'cedille-mode-summary)

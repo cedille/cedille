@@ -52,6 +52,7 @@
   nil         ; init-value, whether the mode is on automatically after definition
   " Context"  ; indicator for mode line
   (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
     (define-key map (kbd "a") (make-cedille-mode-set-variable cedille-mode-context-ordering 'fwd)) ; a-z ordering
     (define-key map (kbd "z") (make-cedille-mode-set-variable cedille-mode-context-ordering 'bkd)) ; z-a ordering
     (define-key map (kbd "d") (make-cedille-mode-set-variable cedille-mode-context-ordering 'dn)) ; parse tree descending
@@ -59,14 +60,11 @@
     (define-key map (kbd "e") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqnl)) ; filter 'equational'
     (define-key map (kbd "E") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqn)) ; filter 'equation'
     (define-key map (kbd "f") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) ; no filter
-    (define-key map (kbd "C") #'cedille-mode-close-context-window) ; exit context mode
-    (define-key map (kbd "c") #'cedille-mode-close-context-window) ; exit context mode
+    (define-key map (kbd "C") #'cedille-mode-close-active-window) ; exit context mode
+    (define-key map (kbd "c") #'cedille-mode-close-active-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
-    (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
     map))
-
-(defun cedille-mode-close-context-window() (interactive) (delete-window))
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
