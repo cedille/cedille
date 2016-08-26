@@ -16,52 +16,38 @@
 ;;;     Summary retrieval code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-all-summaries-helper(spans summary-list start-pos-list)
-    (if spans
-        (let* ((first-span (car spans))
-                (summary (assoc 'summary (se-span-data first-span))))
-            (if summary
-                (cedille-mode-get-all-summaries-helper (cdr spans) (cons (cdr summary) summary-list) 
-                            (cons (se-span-start first-span) start-pos-list))
-                (cedille-mode-get-all-summaries-helper (cdr spans) summary-list start-pos-list)
-            )
-        )
-        (cons (reverse summary-list) (reverse start-pos-list)) ;reversed to keep in same order as file
-    )
-)
-
 (defun cedille-mode-get-all-summaries()
   "Return the pair of the list of summaries for the current spans and the list of the corresponding start positions"
-    (cedille-mode-get-all-summaries-helper se-mode-spans nil nil)
-)
-
-(defun cedille-mode-summary-list-to-string-helper(summaries str)
-    (if summaries
-        (cedille-mode-summary-list-to-string-helper (cdr summaries) (concat str "\n" (car summaries)))
-        (substring str 1) ; removes initial newline -- bad solution for empty file
-    )
-)
+  (let ((helper (lambda (spans summary-list start-pos-list rec-fn) ; the last argument allows for a recursive call to helper
+		 (if spans
+		     (let* ((first-span (car spans))
+			    (summary (assoc 'summary (se-span-data first-span))))
+		       (if summary
+			   (funcall rec-fn (cdr spans) (cons (cdr summary) summary-list) 
+				      (cons (se-span-start first-span) start-pos-list) rec-fn)
+			 (funcall rec-fn (cdr spans) summary-list start-pos-list rec-fn)))
+		   (cons (reverse summary-list) (reverse start-pos-list)))))) ;reversed to keep in same order as file
+    (funcall helper se-mode-spans nil nil helper)))
 
 (defun cedille-mode-summary-list-to-string(summaries)
   "Convert the list of summaries into a single string"
-    (replace-regexp-in-string "^ctor" " " (cedille-mode-summary-list-to-string-helper summaries ""))
-)
+  (let ((helper (lambda (summaries str rec-fn)
+		  (if summaries
+		      (funcall rec-fn (cdr summaries) (concat str "\n" (car summaries)) rec-fn)
+		    (substring str 1))))) ; removes initial newline -- bad solution for empty file
+    (replace-regexp-in-string "^ctor" " " (funcall helper summaries "" helper))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary View minor-mode code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-start-position-helper(linenum start-list)
-   (if (eq linenum 1)
-        (car start-list)
-        (cedille-mode-get-start-position-helper (- linenum 1) (cdr start-list))
-   )
-)
-
 (defun cedille-mode-get-start-position()
   "Gets the start position from the start-list using the current line number"
-    (cedille-mode-get-start-position-helper (string-to-number (car (cdr (split-string (what-line) " ")))) cedille-mode-start-list)
-)
+  (let ((helper (lambda (linenum start-list rec-fn) ;last argument allows recursive call to helper
+		  (if (eq linenum 1)
+		      (car start-list)
+		    (funcall rec-fn (- linenum 1) (cdr start-list) rec-fn)))))
+    (funcall helper (string-to-number (car (cdr (split-string (what-line) " ")))) cedille-mode-start-list helper)))
 
 (defun cedille-mode-summary-jump()
   "Jumps from the summary of a top-level definition to that definition"
@@ -87,9 +73,7 @@
     " Summary"  ; indicator for mode line
     (let ((map (make-sparse-keymap)))
         (define-key map (kbd "j") 'cedille-mode-summary-jump)
-        map
-    )
-)
+        map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary View display code
@@ -97,23 +81,18 @@
 
 (defun cedille-mode-get-summary-buffer-name()
   "Generates a unique name for each file's summary"
-    (concat "*cedille-summary-" (file-name-base) "*")
-)
+    (concat "*cedille-summary-" (file-name-base) "*"))
 
 (defun cedille-mode-get-summary-buffer()
   "Creates/gets and returns the summary buffer"
-    (get-buffer-create (cedille-mode-get-summary-buffer-name))
-)
+    (get-buffer-create (cedille-mode-get-summary-buffer-name)))
 
 (defun cedille-mode-get-summary-window()
   "Creates/gets and returns the summary window"
     (let ((summary-window (get-buffer-window (cedille-mode-get-summary-buffer))))
         (if summary-window
             summary-window
-            (split-window)
-        )
-    )
-)
+            (split-window))))
 
 (defun cedille-mode-summary-display()
   "Creates/destroys the summary window/buffer"
@@ -135,11 +114,6 @@
                     (make-local-variable 'cedille-mode-start-list)
                     (setq cedille-mode-main-buffer main-buffer)
                     (make-local-variable 'cedille-mode-main-buffer)
-                    (cedille-summary-view-mode)
-                )
-            )
-        )
-    )
-)
+                    (cedille-summary-view-mode))))))
 
 (provide 'cedille-mode-summary)
