@@ -105,8 +105,7 @@ Defaults to `error'."
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
-  (walk-windows
-     (lambda (window) (fit-window-to-buffer window))))
+  (walk-windows (lambda (window) (fit-window-to-buffer window))))
 
 					;UTILITY FUNCTIONS FOR MANAGING BUFFERS
 
@@ -130,7 +129,7 @@ Defaults to `error'."
 	    (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
        (when window                                                          ;if a window was created...
 	 (,opt-fn)                                                           ;...run the optional function...
-	 (with-current-buffer buffer (,minor-mode-fn))                       ;...enable minor mode in that window...
+	 (with-current-buffer buffer (,minor-mode-fn)) ;...enable minor mode in that window...
 	 (when ,jump-to-window-p (select-window window))))))                 ;...and optionally jump to window
 
 (defun cedille-mode-concat-sep(sep ss)
@@ -326,8 +325,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil))
-  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t))
+  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode nil))
+  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
   (se-navi-define-key 'cedille-mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
