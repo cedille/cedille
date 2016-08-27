@@ -465,7 +465,7 @@ check-termi (Sigma pi t) mt =
 check-termi (Rho pi r t t') (just tp) = 
   check-term t nothing ≫=span cont
   where cont : maybe type → spanM ⊤
-        cont nothing = spanM-add (Rho-span pi t t' checking r 0 [ expected-type tp ]) 
+        cont nothing = spanM-add (Rho-span pi t t' checking r 0 [ expected-type tp ]) ≫span check-term t' (just tp)
         cont (just (TpEq t1 t2)) = 
            get-ctxt (λ Γ →
              let s = rewrite-type Γ empty-renamectxt (is-rho-plus r) t1 t2 tp in

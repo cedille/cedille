@@ -30,7 +30,7 @@ with
              (t · P a l -n -(Vmap · (trm n1) · (trm n) -m (subst -n -n1 s) s1)
                (vectorToSemvec · trm · P -n1 -n -m -(subst -n -n1 s) (λ t . t · P a l -n -s v) s1)),
   var = λ i . λ m . Λ u . Λ P . λ a . λ l . Λ n . Λ s . λ v .
-            ρ (semvecLastLem · trm -n m -s) -
+             ρ (semvecLastLem · trm -n m s i u) -
               (semvecLast · trm · P -n m -s v i -u) .
 
 
