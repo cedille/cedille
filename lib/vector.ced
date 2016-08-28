@@ -20,8 +20,6 @@ Vmap ⇐ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . (A → B) → Vector · A n �
       (Λ n . λ a . λ v . λ r . Vcons · B -n (f a) r)
       (Vnil · B).
 
-Lt-not-eqnat ⇐ Π x : Nat . Π y : Nat . Lt x (S y) → (eqnat x y ≃ ff) → Lt x y = ●.
-
 % return the i'th element from the end of the given vector
 Vlast ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π i : Nat . ∀ _ : Lt i n . A =
   Λ A . λ n . λ v .
@@ -33,5 +31,6 @@ Vlast ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π i : Nat . ∀ _ : Lt i
       (λ n' . Λ e . λ i . Λ u . δ ε ((Not-Lt-Z i (ρ e - u)) · (tt ≃ ff)))
       n -β.
     
-
-  
+Vrepeat ⇐ ∀ A : ★ . Π n : Nat . A → Vector · A n =
+  Λ A . λ n . λ a .
+    θ n (λ n . λ v . Vcons · A -n a v) (Vnil · A) .

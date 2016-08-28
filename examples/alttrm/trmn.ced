@@ -33,4 +33,10 @@ with
              ρ (semvecLastLem · trm -n m s i u) -
               (semvecLast · trm · P -n m -s v i -u) .
 
+dummy-trm ⇐ Π n : Nat . trm n = λ n . lam -n (var Z (S n) -(Z-Lt n)) .
 
+% this substitution will replace each variable by itself
+triv-subst ⇐ Π m : Nat . Vector · (trm m) m =
+  λ m . m · (λ m' : Nat . Lte m' m → Vector · (trm m) m')
+          (λ m' . λ v . λ p . Vcons · (trm m) -m' (var m' m -(Lte-S-Lt m' m p)) (v (Lte-S-0 m' m p))) (λ _ . Vnil · (trm m))
+          (Lte-refl m).

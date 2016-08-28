@@ -71,3 +71,9 @@ semvecLastLem ⇐ ∀ trm : Nat → ★ . ∀ n : Nat . Π m : Nat . Π s : Vect
             (λ e1 . λ e2 . δ (ρ e1 - e2)))
       (λ _ . λ _ . λ i . λ u . δ (Not-Lt-Z i u · (tt ≃ ff)))
       m β.
+
+semvecRepeat ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat . trm n → ★ . ∀ n : Nat . Π m : Nat. ∀ t : trm n . P n t → 
+               semvec · trm · P n m (Vrepeat · (trm n) m t) =
+   Λ trm . Λ P . Λ n . λ m . Λ t . λ u .
+     θ m (λ m . λ v . semvecCons · trm · P -n -m -t u -(Vrepeat · (trm n) m t) v)
+         (semvecNil · trm · P -n).

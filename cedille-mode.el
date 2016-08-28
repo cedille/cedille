@@ -18,7 +18,6 @@
 (setq max-lisp-eval-depth 30000)
 (setq max-specpdl-size 30000)
 
-(defvar cedille-mode-debug 1 "If non-nil then print information for developers")
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
 
@@ -63,15 +62,18 @@ Defaults to `error'."
 (defvar cedille-mode-version "1.0"
   "The version of the cedille mode.")
 
-(defvar cedille-mode-debug nil
-  "Show debugging spans in cedille mode.")
-
 ;;-----------------------------------------------------------------------------
 ;;   Customization
 
 (defgroup cedille nil
   "Major mode for developing Cedille programs."
   :group 'languages)
+
+
+(defcustom cedille-mode-debug 't
+  "If non-nil then print extra attributes intended for developers, in the inspect buffer"
+  :type '(boolean)
+  :group 'cedille)
 
 
 ;; ----------------------------------------------------------------------------

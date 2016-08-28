@@ -173,6 +173,9 @@ missing-type = "type" , "[undeclared]"
 error-data : string → tagged-val
 error-data s = "error" , s
 
+warning-data : string → tagged-val
+warning-data s = "warning" , s
+
 check-for-type-mismatch : ctxt → string → type → type → 𝕃 tagged-val
 check-for-type-mismatch Γ s tp tp' =
   expected-type tp :: [ type-data tp' ] ++
@@ -576,7 +579,7 @@ comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
 InlineDef-span : posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
 InlineDef-span pi pi' x t pi'' check tvs =
   mk-span "Inline definition" pi pi''
-    (checking-data check :: error-data "Reduction does not work correctly yet with these, so don't use them for now" ::
+    (checking-data check :: warning-data "Currently the defined symbol cannot be used elsewhere (this will be changed soon)." :: 
     ll-data-term ::
     explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") :: tvs)
 

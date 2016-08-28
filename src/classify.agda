@@ -570,7 +570,7 @@ check-termi (Hole pi) tp =
 
 check-termi (InlineDef pi pi' x t pi'') mtp =
   check-term t mtp ≫=span (λ r →
-    get-ctxt (λ Γ → helper Γ mtp r) ≫span
+    get-ctxt (λ Γ → helper Γ mtp r ≫span set-ctxt Γ {- remove when we have conversion working correctly when we use the defined symbol -}) ≫span
     spanMr r)
   where helper-add-span : 𝕃 tagged-val → spanM ⊤
         helper-add-span tvs = spanM-add (InlineDef-span pi pi' x t pi'' (maybe-to-checking mtp) tvs)

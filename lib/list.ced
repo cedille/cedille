@@ -12,12 +12,9 @@ rec List (A : ★) : | Cons : A → List → List , Nil : List =
     Nil = Λ P . λ c . λ n . n 
 .
 
-appendCons ⇐ ∀ A : ★ . A → List · A → List · A → List · A =
-  Λ A . λ h . λ t . λ r . Cons · A h r .
-
 append ⇐ ∀ A : ★ . List · A → List · A → List · A =
   Λ A . λ l . λ l' .
-   θ l (appendCons · A) l' .
+   θ l [append-Cons = λ h . λ t . λ r . Cons · A h r ] l' .
 
 % operations
 lengthCons ⇐ ∀ A : ★ . A → List · A → Nat → Nat =
