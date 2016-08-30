@@ -20,7 +20,6 @@
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
-
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -33,7 +32,6 @@
   (add-to-list 'load-path cedille-mode-library-path)
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
 (load-library "cedille-mode-library")
-
 
 (when (version< emacs-version "24.4")
   (defun define-error (name message &optional parent)
@@ -122,21 +120,27 @@ Defaults to `error'."
 
 					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
 
-(defmacro make-cedille-mode-buffer(buffer opt-fn minor-mode-fn jump-to-window-p)
-  "Creates a function that can be used to toggle one of the buffers. Has four arguments:\n
+(defmacro make-cedille-mode-buffer(buffer opt-fn minor-mode-fn jump-to-window-p require-selection-p)
+  "Creates a function that can be used to toggle one of the buffers. Has five arguments:\n
 1. The buffer\n
 2. An optional function (without arguments) to be run/n
 3. The minor mode associated with the buffer\n
-4. A boolean indicating whether or not the cursor should automatically jump to the window."
+4. A boolean indicating whether or not the cursor should automatically jump to the window.\n
+5. A boolean indicating whether or not to require that a node be selected"
   `(lambda()
      (interactive)
      (let* ((buffer ,buffer)
 	    (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
        (when window                                                          ;if a window was created...
-	 (,opt-fn)                                                           ;...run the optional function...
-	 (with-current-buffer buffer (,minor-mode-fn)) ;...enable minor mode in that window...
-	 (when ,jump-to-window-p (select-window window))))))                 ;...and optionally jump to window
+	 (if (or (not ,require-selection-p) se-mode-selected)                ;if selection requirements are met..
+	     (progn
+	       (,opt-fn)                                                     ;...run the optional function...
+	       (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
+	       (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
+	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
+	   (message "Error: must select a node"))))))
 
+	   
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
   (let ((he (car ss))
@@ -330,8 +334,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode nil))
-  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode t))
+  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode nil t))
+  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
   (se-navi-define-key 'cedille-mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
@@ -341,11 +345,11 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
-  (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil))
-  (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t))
+  (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
+  (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil))
-  (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t))
+  (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
+  (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
   (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
