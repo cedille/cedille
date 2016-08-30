@@ -19,7 +19,7 @@
 		(const :tag "Parse tree ascending" up))
   :group 'cedille-context)
 
-(defcustom cedille-mode-context-display-shadowed-variables-p nil
+(defcustom cedille-mode-shadowed-context nil
   "Controls whether or not shadowed variables are displayed in context."
   :type '(radio (const :tag "Show shadowed variables" t)
 		(const :tag "Hide shadowed variables" nil))
@@ -53,6 +53,14 @@
      (cedille-mode-update-buffers)
      (other-window -1)))
 
+(defmacro make-cedille-mode-customize-set-variable(custom-variable value)
+  `(lambda()
+     (interactive)
+     (customize-set-variable ,custom-variable ,value)
+     (other-window 1)
+     (cedille-mode-update-buffers)
+     (other-window -1)))
+
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
   nil         ; init-value, whether the mode is on automatically after definition
@@ -70,7 +78,10 @@
     (define-key map (kbd "c") #'cedille-mode-close-active-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
+    (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-shadowed-context (not cedille-mode-shadowed-context)))
     map))
+
+  
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
@@ -151,12 +162,12 @@ which currently consists of:\n
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
 		    ;; we rename shadowed variables with a [+n] suffix or omit them
-		    ;;cedille-mode-context-display-shadowed-variables-p
+		    ;;cedille-mode-shadowed-context
 		    (let ((data (list ; for brevity - this is the data associated with the symbol
 				 (cons 'value value-source) ; the value displayed for the entry
 				 (cons 'keywords keywords-list) ; keywords identifying attributes of the entry
 				 (cons 'original-symbol symbol))) ; the original symbol identifying the entry
-			  (shadow-p cedille-mode-context-display-shadowed-variables-p)) ; for brevity
+			  (shadow-p cedille-mode-shadowed-context)) ; for brevity
 		      (set q-lst (cons (cons
 					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
 					data)
