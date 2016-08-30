@@ -17,8 +17,14 @@
 		(const :tag "Z - A" bkd)
 		(const :tag "Parse tree descending" dn)
 		(const :tag "Parse tree ascending" up))
-		
   :group 'cedille-context)
+
+(defcustom cedille-mode-context-display-shadowed-variables-p nil
+  "Controls whether or not shadowed variables are displayed in context."
+  :type '(radio (const :tag "Show shadowed variables" t)
+		(const :tag "Hide shadowed variables" nil))
+  :group 'cedille-context)
+
 (defvar cedille-mode-context-filtering nil)
 
 (defvar cedille-mode-original-context-list)
@@ -117,6 +123,7 @@ which currently consists of:\n
 + 'keywords': a list of keywords associated with symbol"
   (let (terms types)
     (dolist (node path (when (or terms types) (cons terms types)))
+      ;; for each node in the path, we are going to see if it binds a symbol and add it to the output list if it does
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (children (se-node-children node)))
 	(when (and binder children)
@@ -127,26 +134,50 @@ which currently consists of:\n
 		 (kind (cdr (assoc 'kind data)))
 		 (keywords-string (cdr (assoc 'keywords data))) ; for readability
 		 (keywords-list (split-string keywords-string " " t))
+		 ;; to rename the shadowed variables, we will use name-symbol and count-original-symbols
+		 (count-original-symbols
+		  ;; recursively counts how many instances of the given original symbol already occur in the list
+		  (lambda (lst original-symbol rec-call) ; list -> string -> nat
+		    (if lst
+			(let ((os (cdr (assoc 'original-symbol (cdr (car lst)))))) ;os is the symbol of the entry in the list
+			  (+ (if (equal os original-symbol) 1 0) (funcall rec-call (cdr lst) original-symbol rec-call)))
+		      0)))
+		 (name-symbol 
+		  (lambda (lst original-symbol) ; list -> string -> string
+		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
+		      (concat original-symbol "[+" (number-to-string count) "]"))))
+		 
 		 (set-list ; for brevity
-		  (lambda (lst value-source) ; quoted list -> list -> nil [mutates input 0]
-		    (set lst (cons (cons symbol (list (cons 'value value-source) (cons 'keywords keywords-list))) (eval lst))))))	    
-	    (when (and symbol (not (equal symbol "_")) (or type kind))
+		  ;; this takes the list to be modified and the type or kind containing the value data
+		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
+		    ;; we rename shadowed variables with a [+n] suffix or omit them
+		    ;;cedille-mode-context-display-shadowed-variables-p
+		    (let ((data (list ; for brevity - this is the data associated with the symbol
+				 (cons 'value value-source) ; the value displayed for the entry
+				 (cons 'keywords keywords-list) ; keywords identifying attributes of the entry
+				 (cons 'original-symbol symbol))) ; the original symbol identifying the entry
+			  (shadow-p cedille-mode-context-display-shadowed-variables-p)) ; for brevity
+		      (set q-lst (cons (cons
+					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
+					data)
+				       (if shadow-p (eval q-lst) (delq (assoc symbol (eval q-lst)) (eval q-lst)))))))))
+	    (when (and symbol (not (equal symbol "_")) (or type kind)) ;separate types and kinds
 	      (if type (funcall set-list 'terms type) (funcall set-list 'types kind)))))))))
 
-				   ; FUNCTIONS TO DISPLAY THE CONTEXT
+					; FUNCTIONS TO DISPLAY THE CONTEXT
 
 (defun cedille-mode-display-context()
-"Displays the context"
-(let ((b (cedille-mode-context-buffer)))
-(cedille-mode-process-context)
-(with-current-buffer b
- (setq buffer-read-only nil)
- (erase-buffer)
- (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
- (goto-char 1)
- (fit-window-to-buffer (get-buffer-window b))
- (setq buffer-read-only t)
- (setq deactivate-mark nil))))
+  "Displays the context"
+  (let ((b (cedille-mode-context-buffer)))
+    (cedille-mode-process-context)
+    (with-current-buffer b
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
+      (goto-char 1)
+      (fit-window-to-buffer (get-buffer-window b))
+      (setq buffer-read-only t)
+      (setq deactivate-mark nil))))
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
