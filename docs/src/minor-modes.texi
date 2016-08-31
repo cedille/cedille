@@ -1,0 +1,10 @@
+@node minor modes,Index,unicode shortcuts,Top
+
+@chapter Minor modes for cedille
+Cedille has three minor modes that provide information about the file:
+
+@menu
+* inspect mode::                Provides information about the currently selected node
+* context mode::                Displays the types and kinds of all variables in the scope of the selected node
+* summary mode::                Displays the types and kinds of every top-level entity in the file
+@end menu

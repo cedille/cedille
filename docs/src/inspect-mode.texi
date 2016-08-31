@@ -1,0 +1,28 @@
+@node inspect mode,context mode,summary mode,minor modes
+
+@chapter Inspect mode
+
+Inspect mode for Cedille provides basic information about a node. To enter inspect mode, select a node and press @command{I} and you will open up the inspect mode buffer and jump to it. If you just want to open the inspect mode buffer (but not jump to it), press @command{i} instead.
+
+Inspect mode may contain the following pieces of information:
+@itemize @bullet
+
+@item
+The sort of entity that the node represents
+
+@item
+The type or kind of the node
+
+@item
+The file location in which the entity represented by the node is defined
+
+@end itemize
+
+@chapter Controls
+
+@table @command
+
+@item i/I
+Close the inspect mode window
+
+@end table

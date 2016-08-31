@@ -1,4 +1,4 @@
-@node Unicode shortcuts,context mode,cedille-mode commands,Top
+@node unicode shortcuts,minor modes,cedille mode commands,Top
 @chapter unicode
 
 Here is page for the unicode characters

@@ -1,0 +1,5 @@
+@node summary mode,inspect mode,context mode,minor modes
+
+@chapter Summary mode
+
+This is where summary mode stuff will go.

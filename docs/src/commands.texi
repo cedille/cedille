@@ -1,4 +1,4 @@
-@node cedille-mode commands, Unicode shortcuts,, Top
+@node cedille mode commands,unicode shortcuts,,Top
 
 @chapter cedille-mode commands
 
