@@ -156,9 +156,11 @@ hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk : posinfo → var → tk → spanM ⊤
 add-tk pi x atk =
-  get-ctxt (λ Γ → 
-    spanM-add (var-span Γ pi x checking atk) ≫span  
-    (if (x =string ignored-var) then spanMok else set-ctxt (helper Γ atk)))
+  get-ctxt (λ Γ →
+    if (x =string ignored-var) then spanMok else
+       (let Γ' = helper Γ atk in
+          set-ctxt Γ' ≫span  
+          spanM-add (var-span Γ' pi x checking atk)))
   where helper : ctxt → tk → ctxt
         helper Γ (Tkk k) = ctxt-type-decl pi x k Γ
         helper Γ (Tkt t) = ctxt-term-decl pi x t Γ

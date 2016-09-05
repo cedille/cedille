@@ -51,17 +51,17 @@ unfold-dampen-rec _ no-unfolding = no-unfolding
 unfold-dampen-rec ff (unfold b _ b') = unfold b ff b'
 unfold-dampen-rec tt (unfold b b' b'') = unfold b b' b''
 
-{-# NO_TERMINATION_CHECK #-}
-conv-term : ctxt → term → term → 𝔹
-conv-type : ctxt → type → type → 𝔹
-conv-kind : ctxt → kind → kind → 𝔹
-hnf : {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → ⟦ ed ⟧
-conv-term-norm : ctxt → term → term → 𝔹
-conv-type-norm : ctxt → type → type → 𝔹
-conv-kind-norm : ctxt → kind → kind → 𝔹
-
 conv-t : Set → Set
 conv-t T = ctxt → T → T → 𝔹
+
+{-# NO_TERMINATION_CHECK #-}
+conv-term : conv-t term
+conv-type : conv-t type 
+conv-kind : conv-t kind
+hnf : {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → ⟦ ed ⟧
+conv-term-norm : conv-t term
+conv-type-norm : conv-t type
+conv-kind-norm : conv-t kind
 
 hnf-optClass : ctxt → unfolding → optClass → optClass
 hnf-tk : ctxt → unfolding → tk → tk
@@ -205,7 +205,7 @@ hnf-term-type Γ tp = hnf Γ unfold-head tp
 conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && conv-term Γ t2 t2'
-conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
+conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl pi' x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
 conv-term-norm Γ (Beta _) (Beta _) = tt
@@ -215,17 +215,17 @@ conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'
 conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type Γ t2 t2'
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') = 
-  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Iota _ _ x m tp) (Iota _ _ x' m' tp') = 
-  conv-optType Γ m m' && conv-type (ctxt-rename posinfo-gen x x' (ctxt-var-decl-if posinfo-gen x' Γ)) tp tp'
+  conv-optType Γ m m' && conv-type (ctxt-rename posinfo-gen x x' (ctxt-var-decl posinfo-gen x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Lft _ pi x t l) (Lft _ pi' x' t' l') =
-  conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
+  conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl pi' x' Γ)) t t'
 conv-type-norm Γ (TpLambda _ pi x atk tp) (TpLambda _ pi' x' atk' tp') =
-  conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+  conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl pi' x' Γ)) tp tp'
 conv-type-norm Γ _ _ = ff 
 
 {- even though hnf turns Pi-kinds where the variable is not free in the body into arrow kinds,
@@ -237,7 +237,7 @@ conv-kind-norm Γ (KndArrow k k₁) (KndPi _ _ x (Tkk k') k'') = conv-kind Γ k 
 conv-kind-norm Γ (KndArrow k k₁) _ = ff
 conv-kind-norm Γ (KndPi _ _ x (Tkk k₁) k) (KndArrow k' k'') = conv-kind Γ k₁ k' && conv-kind Γ k k''
 conv-kind-norm Γ (KndPi _ pi x atk k) (KndPi _ pi' x' atk' k'') = 
-    conv-tk Γ atk atk' && conv-kind (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) k k''
+    conv-tk Γ atk atk' && conv-kind (ctxt-rename pi x x' (ctxt-var-decl pi' x' Γ)) k k''
 conv-kind-norm Γ (KndPi _ _ x (Tkt t) k) (KndTpArrow t' k'') = conv-type Γ t t' && conv-kind Γ k k''
 conv-kind-norm Γ (KndPi _ _ x (Tkt t) k) _ = ff
 conv-kind-norm Γ (KndPi _ _ x (Tkk k') k) _ = ff
