@@ -1,5 +1,5 @@
 import nat.
-import nat-thms-compare.
+import nat-thms/compare.
 
 sextend ⇐ ∀ trm : ★ .
          (Nat → trm) →
@@ -38,7 +38,7 @@ with
           l -s -i -f (Λ t . λ u . f · P a l -(sextend · trm s i t) (extend · trm · P -s v i -t u)) ,
   subst = λ s1 . λ t . Λ P . λ a . λ l . Λ s . λ v .
             t · P a l -(λ i . subst s (s1 i)) (λ i . s1 i · P a l -s v) , 
-  var = λ i . Λ P . λ a . λ l . Λ s . λ v . ρ (eqnat-refl i) - (v i)
+  var = λ i . Λ P . λ a . λ l . Λ s . λ v . (v i)
  .
 
 fv-trm ⇐ trm = lam (S Z) (app (var (S Z)) (var Z)) !
@@ -46,4 +46,23 @@ fv-trm ⇐ trm = lam (S Z) (app (var (S Z)) (var Z)) !
 test = subst (λ i . θ i (λ p . λ _ . (var (S p))) (var (S Z))) fv-trm !
 
 triv-subst ⇐ Nat → trm = λ i . (var i) .
+
+test ⇐ (λ i . λ f' . i f' ≃ λ i' . λ f . i' f) = β.
+
+foo ⇐ ∀ P : trm → ★ . ∀ s : Nat → trm . ∀ i : Nat . ∀ f : Nat .
+      (∀ s : (Nat → trm) . ∀ i : Nat . ∀ f' : trm . ((∀ t : trm . ((P t) → (P (subst (sextend · trm s i t) f')))) → (P (subst s (lam i f'))))) →
+       (∀ s : (Nat → trm) . ∀ i' : Nat . ∀ f' : trm . ((∀ t : trm . ((P t) → (P (subst (sextend · trm s i' t) f')))) → (P (subst s (lam i' f'))))) =
+       Λ P . Λ s . Λ i . Λ f . λ u . u .
+
+test ⇐ (λ t . λ v . t ((λ a . a) v) ≃ λ t . λ v . t v) = β.
+test ⇐ ∀ t : Nat . ∀ v : Nat. (t ((λ a . a) v) ≃ t v) = Λ t . Λ v . β.
+
+test ⇐ (λ a . λ l . λ v . t a l ((λ a . a) v) ≃ λ a . λ l . λ v . t a l v) = β.
+
+triv-subst-id ⇐ ∀ t : trm . subst triv-subst t ≃ t = Λ t . χ (λ a . λ l . λ v . t a l (λ i . triv-subst i a l v) ≃ t) -
+                                                           χ (λ a . λ l . λ v . t a l (λ i . var i a l v) ≃ t) -
+                                                           χ (λ a . λ l . λ v . t a l ((λ v . λ i . v i) v) ≃ t) - 
+                                                           ρ (χ (λ v . λ i . v i ≃ λ v . v) - β) -
+                                                           χ (λ a . λ l . λ v . t a l ((λ a . a) v) ≃ t) - 
+                                                           χ (λ a . λ l . λ v . t a l v ≃ t) - ●. 
 

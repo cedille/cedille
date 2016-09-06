@@ -94,10 +94,13 @@ ctxt-var-decl p v (mk-ctxt filename syms i) = mk-ctxt filename
                                                     (trie-insert i v (var-decl , (filename , p)))
 
 ctxt-var-decl-if : posinfo → var → ctxt → ctxt
-ctxt-var-decl-if p v (mk-ctxt filename syms i) = 
-  if trie-contains i v then (mk-ctxt filename syms i) 
-  else (mk-ctxt filename (trie-insert-append syms filename v)
-            (trie-insert i v (var-decl , (filename , p))))
+ctxt-var-decl-if p v Γ with Γ
+ctxt-var-decl-if p v Γ | mk-ctxt filename syms i with trie-lookup i v
+ctxt-var-decl-if p v Γ | mk-ctxt filename syms i | just (rename-def _ , _) = Γ
+ctxt-var-decl-if p v Γ | mk-ctxt filename syms i | just (var-decl , _) = Γ
+ctxt-var-decl-if p v Γ | mk-ctxt filename syms i | _ = 
+  mk-ctxt filename (trie-insert-append syms filename v)
+     (trie-insert i v (var-decl , (filename , p)))
 
 ctxt-rename-rep : ctxt → var → var
 ctxt-rename-rep (mk-ctxt filename syms i) v with trie-lookup i v 

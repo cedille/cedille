@@ -68,7 +68,7 @@ Defaults to `error'."
   :group 'languages)
 
 
-(defcustom cedille-mode-debug 't
+(defcustom cedille-mode-debug nil
   "If non-nil then print extra attributes intended for developers, in the inspect buffer"
   :type '(boolean)
   :group 'cedille)
@@ -199,7 +199,8 @@ start of each string, and then strip out that number."
 (defun cedille-mode-filter-out-special(data)
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
-     unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode) (eq key 'summary))
+        unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
+                   (eq key 'summary) (eq key 'binder) (eq key 'keywords))
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
@@ -355,6 +356,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
+  (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
 )
 
 (cedille-modify-keymap)

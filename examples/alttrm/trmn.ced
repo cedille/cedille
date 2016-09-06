@@ -1,17 +1,44 @@
 import vector.
 import semvec.
 
+𝒌trmc-t ⇐ □ = (Nat → ★) → ★ .
+app-t ⇐ 𝒌trmc-t = λ trm : Nat → ★. ∀ n : Nat . trm n → trm n → trm n .
+lam-t ⇐ 𝒌trmc-t = λ trm : Nat → ★ . ∀ n : Nat . trm (S n) → trm n .
+subst-t ⇐ 𝒌trmc-t = λ trm : Nat → ★ . ∀ n : Nat . ∀ m : Nat. Vector · (trm n) m → trm m → trm n.
+var-t ⇐ 𝒌trmc-t = λ trm : Nat → ★ . Π i : Nat . Π n : Nat . ∀ _ : Lt i n . trm n.
+
+app-elim-t ⇐ Π trm : Nat → ★.
+             Π P : Π n : Nat . trm n → ★ .
+             Π subst : subst-t · trm .
+             Π app : app-t · trm. ★
+           = 
+             λ trm : Nat → ★.
+             λ P : Π n : Nat . trm n → ★ .
+             λ subst : subst-t · trm .
+             λ app : app-t · trm.
+               (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m .
+                ∀ t1 : trm m . ∀ t2 : trm m . P n (subst -n -m s t1) → P n (subst -n -m s t2) → P n (subst -n -m s (app -m t1 t2))) .
+
+lam-elim-t ⇐ Π trm : Nat → ★.
+             Π P : Π n : Nat . trm n → ★ .
+             Π subst : subst-t · trm .
+             Π lam : lam-t · trm . ★
+           = λ trm : Nat → ★.
+             λ P : Π n : Nat . trm n → ★ .
+             λ subst : subst-t · trm .
+             λ lam : lam-t · trm .
+              (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m . ∀ f : trm (S m).
+               (∀ t : trm n . P n t → P n (subst -n -(S m) (Vcons · (trm n) -m t s) f)) → P n (subst -n -m s (lam -m f))) .
+
 rec trm : (m : Nat)
-| app : ∀ n : Nat . trm n → trm n → trm n ,
-  lam : ∀ n : Nat . trm (S n) → trm n,
-  subst : ∀ n : Nat . ∀ m : Nat. Vector · (trm n) m → trm m → trm n,
-  var : Π i : Nat . Π n : Nat . ∀ _ : Lt i n . trm n
+| app : app-t · trm,
+  lam : lam-t · trm,
+  subst : subst-t · trm,
+  var : var-t · trm
 =
  ∀ P : Π n : Nat . trm n → ★ .  
-   (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m .
-      ∀ t1 : trm m . ∀ t2 : trm m . P n (subst -n -m s t1) → P n (subst -n -m s t2) → P n (subst -n -m s (app -m t1 t2))) → 
-   (∀ n : Nat . ∀ m : Nat . ∀ s : Vector · (trm n) m . ∀ f : trm (S m).
-      (∀ t : trm n . P n t → P n (subst -n -(S m) (Vcons · (trm n) -m t s) f)) → P n (subst -n -m s (lam -m f))) → 
+   app-elim-t · trm · P subst app → 
+   lam-elim-t · trm · P subst lam → 
    ∀ n : Nat .
    ∀ s : Vector · (trm n) m.
    semvec · trm · P n m s →
@@ -36,7 +63,6 @@ with
 dummy-trm ⇐ Π n : Nat . trm n = λ n . lam -n (var Z (S n) -(Z-Lt n)) .
 
 % this substitution will replace each variable by itself
-triv-subst ⇐ Π m : Nat . Vector · (trm m) m =
-  λ m . m · (λ m' : Nat . Lte m' m → Vector · (trm m) m')
-          (λ m' . λ v . λ p . Vcons · (trm m) -m' (var m' m -(Lte-S-Lt m' m p)) (v (Lte-S-0 m' m p))) (λ _ . Vnil · (trm m))
-          (Lte-refl m).
+triv-subst ⇐ Π n : Nat . Π m : Nat . ∀ _ : Lte m n . Vector · (trm n) m =
+  λ n . λ m . 
+    θ m (λ m . λ v . Λ p . Vcons · (trm n) -m (var m n -(Lte-S-Lt m n p)) (v -(Lte-S-0 m n p))) (Λ _ . Vnil · (trm n)).

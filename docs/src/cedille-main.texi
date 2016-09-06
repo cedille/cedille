@@ -10,10 +10,11 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 @end ifnottex
 
 @menu
-* cedille mode commands::       A list of cedille mode command shortcuts with brief description.
+* cedille mode commands::       A list of cedille mode command shortcuts with brief description
 * unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
 * minor modes::                 Cedille mode has three minor modes providing additional information
-* Index::                       Here is the index.
+* credits::                     Who has contributed to the Cedille tool
+* Index::                       Here is the index
 @end menu
 
 @include commands.texi
@@ -22,13 +23,15 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 
 @include context-mode.texi
 
+@include credits.texi
+
 @include minor-modes.texi
 
 @include inspect-mode.texi
 
 @include summary-mode.texi
 
-@node Index,,context mode,Top
+@node Index,,credits,Top
 @unnumbered Index
 
 @printindex cp

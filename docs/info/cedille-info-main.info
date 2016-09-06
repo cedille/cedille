@@ -1,0 +1,233 @@
+This is cedille-info-main.info, produced by makeinfo version 6.1 from
+cedille-main.texi.
+
+
+File: cedille-info-main.info,  Node: Top,  Next: cedille mode commands,  Up: (dir)
+
+Main
+****
+
+This manual is for Cedille.  Lots of interesting Cedille facts can go
+here!
+
+* Menu:
+
+* cedille mode commands::       A list of cedille mode command shortcuts with brief description
+* unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
+* minor modes::                 Cedille mode has three minor modes providing additional information
+* credits::                     Who has contributed to the Cedille tool
+* Index::                       Here is the index
+
+
+File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: Index,  Up: Top
+
+1 cedille-mode commands
+***********************
+
+Cedille mode supports the following commands:
+
+2 Navigation
+************
+
+'f/F'
+     Navigate to the next same-level node in the parse tree
+
+'b/B'
+     Navigate to the previous same-level node in the parse tree
+
+'p'
+     Navigate to the parent of the current node in the parse tree
+
+'n'
+     Navigate to the previously visited child (first by default) node of
+     the current node in the parse tree
+
+'a/e'
+     Navigate to the first/last node in the current level of the parse
+     tree
+
+'r/R'
+     Select next/previous error
+
+'t/T'
+     Select first/last error in file
+
+'j'
+     Jump to location associated with selected node
+
+'g'
+     Clear current selection
+
+3 Information
+*************
+
+'i'
+     Toggle info mode (provides information about the currently selected
+     node)
+
+'c'
+     Toggle context mode (provides information about the context of the
+     currently selected term)
+
+'S'
+     Toggle summary mode (provides information about the contents of the
+     entire file)
+
+'h'
+     Open information documents describing how to use Cedille mode
+
+'1'
+     Close all emacs windows except the current one; convenience
+     keystroke for emacs command delete-other-windows.
+
+4 Other
+*******
+
+'C-h <int>'
+     Alters highlighting scheme depending on value of <int>: 1: default
+     highlighting 2: language level highlighting 3: checking mode
+     highlighting
+
+'q/M-s/C-g'
+     Quit Cedille mode
+
+'K'
+     Kill the Cedille process and restart it if it is taking an
+     unusually long time
+
+
+File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Prev: cedille mode commands,  Up: Top
+
+5 unicode
+*********
+
+Here is page for the unicode characters
+
+
+File: cedille-info-main.info,  Node: context mode,  Next: summary mode,  Prev: inspect mode,  Up: minor modes
+
+6 Context mode
+**************
+
+Context mode for Cedille allows the user to see the context of the
+currently selected node, making it easy to find and make use of all
+bound symbols.  To enter context mode, select a node and press 'C' and
+you will open up the context mode buffer and jump to it.  If you just
+want to open the context mode buffer (but not jump to it), press 'c'
+instead.
+
+   Context mode has several built in features to organize data:
+
+   * Sort entries alphabetically or by binding position
+
+   * Filter entires according to common properties.  Only one filter may
+     be active at a time.
+
+   * Show or hide shadowed variables
+
+7 Controls
+**********
+
+'a/z'
+     Sort all entries alphabetically from a-z/z-a
+
+'d/u'
+     Sort all entries according to binding position in parse tree
+     (descending/ascending)
+
+'e'
+     Filter out entries that do not have an '≃' symbol
+
+'E'
+     Filter out entries that are not literal statements of β-equality
+
+'f'
+     Clear current filter so all entries are shown
+
+'s'
+     Toggle display of shadowed variables
+
+'c/C'
+     Close the context mode window
+
+'h'
+     Open information page for context mode
+
+
+File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: minor modes,  Up: Top
+
+8 Credits
+*********
+
+Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
+
+Spring 2016: Aaron Stump
+
+
+File: cedille-info-main.info,  Node: minor modes,  Next: credits,  Prev: unicode shortcuts,  Up: Top
+
+9 Minor modes for cedille
+*************************
+
+Cedille has three minor modes that provide information about the file:
+
+* Menu:
+
+* inspect mode::                Provides information about the currently selected node
+* context mode::                Displays the types and kinds of all variables in the scope of the selected node
+* summary mode::                Displays the types and kinds of every top-level entity in the file
+
+
+File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Prev: summary mode,  Up: minor modes
+
+10 Inspect mode
+***************
+
+Inspect mode for Cedille provides basic information about a node.  To
+enter inspect mode, select a node and press 'I' and you will open up the
+inspect mode buffer and jump to it.  If you just want to open the
+inspect mode buffer (but not jump to it), press 'i' instead.
+
+   Inspect mode may contain the following pieces of information:
+
+   * The sort of entity that the node represents
+
+   * The type or kind of the node
+
+   * The file location in which the entity represented by the node is
+     defined
+
+11 Controls
+***********
+
+'i/I'
+     Close the inspect mode window
+
+
+File: cedille-info-main.info,  Node: summary mode,  Next: inspect mode,  Prev: context mode,  Up: minor modes
+
+12 Summary mode
+***************
+
+This is where summary mode stuff will go.
+
+
+File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
+
+Index
+*****
+
+
+
+Tag Table:
+Node: Top90
+Node: cedille mode commands673
+Node: unicode shortcuts2331
+Node: context mode2511
+Node: credits3783
+Node: minor modes4018
+Node: inspect mode4555
+Node: summary mode5274
+Node: Index5463
+
+End Tag Table

@@ -34,3 +34,16 @@ Vlast ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π i : Nat . ∀ _ : Lt i
 Vrepeat ⇐ ∀ A : ★ . Π n : Nat . A → Vector · A n =
   Λ A . λ n . λ a .
     θ n (λ n . λ v . Vcons · A -n a v) (Vnil · A) .
+
+% return the last m elements of the input vector
+VlastTail ⇐ ∀ A : ★ . Π n : Nat . Vector · A n → Π m : Nat . ∀ _ : Lte m n . Vector · A m =
+  Λ A . λ n . λ v .
+    v · (λ n : Nat . λ v : Vector · A n . Π n' : Nat . ∀ _ : n ≃ n' . Π m : Nat. ∀ _ : Lte m n' . Vector · A m)
+      (Λ n . λ h . λ v . λ r . λ n' . 
+         θ n' (λ n' . λ _ . Λ e . λ m . Λ u1 .
+                 θ+ (eqnat m (S n'))
+                    (λ u . ρ (eqnat-eq m (S n') u) - ρ ς e - (Vcons · A -n h v))
+                    (λ u . r n' -(π1 e) m -(Lt-S-Lte m n' (Lte-not-eqnat m (S n') u1 (eqnat-not-eq m (S n') u)))))
+              (Λ u . δ u))
+      (λ n' . Λ e . λ m . Λ u . ρ (Lte-Z m (ρ e - u)) - (Vnil · A))
+      n -β.

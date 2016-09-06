@@ -1,4 +1,4 @@
-@node minor modes,Index,unicode shortcuts,Top
+@node minor modes,credits,unicode shortcuts,Top
 
 @chapter Minor modes for cedille
 Cedille has three minor modes that provide information about the file:

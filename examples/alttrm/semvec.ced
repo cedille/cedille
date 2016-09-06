@@ -77,3 +77,25 @@ semvecRepeat ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat . trm n → ★ . �
    Λ trm . Λ P . Λ n . λ m . Λ t . λ u .
      θ m (λ m . λ v . semvecCons · trm · P -n -m -t u -(Vrepeat · (trm n) m t) v)
          (semvecNil · trm · P -n).
+
+semvecZ ⇐ ∀ trm : Nat → ★.
+          ∀ P : Π n : Nat . trm n → ★.
+          ∀ n : Nat.
+          ∀ m : Nat.
+          ∀ s : Vector · (trm n) m .
+          Π v : semvec · trm · P n m s .
+            (m ≃ Z) → v ≃ semvecNil =
+ Λ trm . Λ P . Λ n . Λ m . Λ s . λ v .
+   v · (λ n : Nat . λ m : Nat . λ s : Vector · (trm n) m . λ v : semvec · trm · P n m s . (m ≃ Z) → v ≃ semvecNil)
+     (Λ _ . Λ _ . Λ _ . λ _ . Λ _ . λ _ . λ _ . λ u . δ u)
+     (Λ _ . λ _ . β) .
+
+semvecTail ⇐ ∀ trm : Nat → ★.
+             ∀ P : Π n : Nat . trm n → ★ .
+             ∀ n : Nat.
+             ∀ m : Nat.
+             ∀ s : Vector · (trm n) m .
+             Π v : semvec · trm · P n m s .
+             Π m' : Nat .
+             Lte m' m →
+             semvec · trm · P n m' (Vtail m' s) = ● .
