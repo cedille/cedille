@@ -48,6 +48,7 @@ mutual
 
   data opt : Set where 
     Lib : paths → opt
+    NoCedeFiles : opt
 
   data opts : Set where 
     OptsCons : opt → opts → opts
@@ -195,6 +196,7 @@ path-star-1ToString x = "(path-star-1 " ^ x ^ ")"
 mutual
   optToString : opt → string
   optToString (Lib x0) = "(Lib" ^ " " ^ (pathsToString x0) ^ ")"
+  optToString (NoCedeFiles) = "NoCedeFiles" ^ ""
 
   optsToString : opts → string
   optsToString (OptsCons x0 x1) = "(OptsCons" ^ " " ^ (optToString x0) ^ " " ^ (optsToString x1) ^ ")"

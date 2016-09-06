@@ -110,7 +110,14 @@ paths-to-𝕃string (options-types.PathsCons p ps) = p :: paths-to-𝕃string ps
 opts-get-include-path : opts → 𝕃 string
 opts-get-include-path options-types.OptsNil = []
 opts-get-include-path (options-types.OptsCons (options-types.Lib ps) oo) = (paths-to-𝕃string ps) ++ opts-get-include-path oo
+opts-get-include-path (options-types.OptsCons options-types.NoCedeFiles oo) = opts-get-include-path oo
 --opts-get-include-path (options-types.OptsCons _ oo) = opts-get-include-path oo
+
+{- see if "no-cede-files" is turned on in the options file -}
+opts-get-no-cede-files : opts → 𝔹
+opts-get-no-cede-files options-types.OptsNil = ff
+opts-get-no-cede-files (options-types.OptsCons options-types.NoCedeFiles oo) = tt
+opts-get-no-cede-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-cede-files oo
 
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
 reparse : toplevel-state →(filename : string) → IO toplevel-state
@@ -140,9 +147,9 @@ reparse st filename =
         processText x | s | inj₂ r | _ =
           return (error-include-elt ("Parse error in file " ^ filename ^ "."))
 
-add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
-add-spans-if-up-to-date up-to-date filename ie = 
-  if up-to-date then
+add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
+add-spans-if-up-to-date up-to-date use-cede-files filename ie = 
+  if up-to-date && use-cede-files then
     (read-cede-file filename >>= finish)
   else
     return ie
@@ -153,17 +160,19 @@ add-spans-if-up-to-date up-to-date filename ie =
    toplevel-state, updating the state as needed. -}
 ensure-ast-deps : toplevel-state → (filename : string) → IO toplevel-state
 ensure-ast-deps s filename with get-include-elt-if s filename
-ensure-ast-deps s filename | nothing = 
-  reparse s filename >>= λ s → 
-  ced-file-up-to-date filename >>= λ up-to-date → 
-  add-spans-if-up-to-date up-to-date filename (get-include-elt s filename) >>= λ ie →
-  return (set-include-elt s filename ie)
+ensure-ast-deps s filename | nothing =
+  let ucf = (toplevel-state.use-cede-files s) in
+    reparse s filename >>= λ s → 
+    ced-file-up-to-date filename >>= λ up-to-date → 
+    add-spans-if-up-to-date up-to-date ucf filename (get-include-elt s filename) >>= λ ie →
+    return (set-include-elt s filename ie)
 ensure-ast-deps s filename | just ie =
-  ced-file-up-to-date filename >>= λ up-to-date → 
-    if up-to-date then 
-      (add-spans-if-up-to-date up-to-date filename (get-include-elt s filename) >>= λ ie →
-       return (set-include-elt s filename ie))
-    else reparse s filename
+  let ucf = (toplevel-state.use-cede-files s) in
+    ced-file-up-to-date filename >>= λ up-to-date → 
+      if up-to-date then 
+        (add-spans-if-up-to-date up-to-date (toplevel-state.use-cede-files s) filename (get-include-elt s filename) >>= λ ie →
+         return (set-include-elt s filename ie))
+      else reparse s filename
      
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
@@ -214,15 +223,15 @@ checkFile s filename should-print-spans =
            else return triv
         finish : toplevel-state → IO toplevel-state
         finish s with s
-        finish s | mk-toplevel-state ip mod is Γ = 
+        finish s | mk-toplevel-state use-cede ip mod is Γ = 
           writeo mod >>
           reply s >>
-          return (mk-toplevel-state ip [] is Γ)
+          return (mk-toplevel-state use-cede ip [] is Γ)
           where writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
                  let ie = get-include-elt s f in
-                   write-cede-file f ie >>
+                   (if use-cede then (write-cede-file f ie) else (return triv)) >>
                    writeo us
 
 -- this is the function that handles requests (from the frontend) on standard input
@@ -241,7 +250,7 @@ processArgs : opts → 𝕃 string → IO ⊤
 -- this is the case for when we are called with a single command-line argument, the name of the file to process
 processArgs oo (input-filename :: []) =
   canonicalizePath input-filename >>= λ input-filename → 
-  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo))
+  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
     input-filename ff {- should-print-spans -} >>= finish input-filename
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
@@ -249,7 +258,7 @@ processArgs oo (input-filename :: []) =
           if include-elt.err ie then (putStr (include-elt-spans-to-string ie)) else return triv
 
 -- this is the case where we will go into a loop reading commands from stdin, from the fronted
-processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo))
+processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
 
 -- all other cases are errors
 processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"

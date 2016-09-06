@@ -72,14 +72,15 @@ set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err 
 
 record toplevel-state : Set where
   constructor mk-toplevel-state
-  field include-path : 𝕃 string
+  field use-cede-files : 𝔹
+        include-path : 𝕃 string
         files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
 
-new-toplevel-state : (include-path : 𝕃 string) → toplevel-state
-new-toplevel-state ip = record { include-path = ip ; files-with-updated-spans = [] ; is = empty-trie ; 
-                                 Γ = new-ctxt "[nofile]" }
+new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : 𝔹) → toplevel-state
+new-toplevel-state ip should-use-cede-files = record { use-cede-files = should-use-cede-files ; include-path = ip ; files-with-updated-spans = [] ;
+                                 is = empty-trie ; Γ = new-ctxt "[nofile]" }
 
 get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
