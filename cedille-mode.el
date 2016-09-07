@@ -78,6 +78,10 @@ Defaults to `error'."
   :type '(boolean)
   :group 'cedille)
 
+(defcustom cedille-mode-autohighlight-color "white"
+  "Determines the color of highlighting for the autohighlight matching variables feature"
+  :type '(color)
+  :group 'cedille)
 
 ;; ----------------------------------------------------------------------------
 
@@ -351,7 +355,7 @@ in the parse tree, and updates the Cedille info buffer."
 		 (end (cdr (assoc 'end data)))
 		 (overlay (make-overlay start end)))
 	    (when symbol
-	      (overlay-put overlay 'face '(:background "white"))))))))
+	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color))))))))
 					 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
