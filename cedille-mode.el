@@ -311,6 +311,41 @@ in the parse tree, and updates the Cedille info buffer."
 (se-navigation-mode-quit)
 (setq se-mode-parse-tree nil))
 
+
+
+(defun cedille-mode-highlight-occurances()
+  "Highlights all occurances of bound variable matching selected node\n
+TODO: Split this into two functions, one which gets occurances and one which highlights them"
+  (interactive)
+  (remove-overlays) ;delete all existing overlays
+  (if se-mode-selected
+      (let* ((rec-path-crawler (lambda (node rec-fn)
+				 (let ((children (se-node-children node))
+				       (output-list (list node)))
+				   (if children
+				       (dolist (child children output-list)
+					 (setq output-list (append (funcall rec-fn child rec-fn) output-list)))
+				     output-list))))
+	     (path-start-node (car (se-find-point-path (point) (se-mode-parse-tree))))
+	     (nodes-to-check (funcall rec-path-crawler path-start-node rec-path-crawler))
+	     (data-selected (se-term-to-json (se-mode-selected)))
+	     (location-selected (cdr (assoc 'location data-selected)))
+	     (symbol-selected (cdr (assoc 'symbol data-selected)))
+	     (position-data nil)) ; a list of start-end pairs
+	  (when symbol-selected
+	    (dolist (node nodes-to-check position-data)
+	      (let* ((data (se-term-to-json node))
+		     (location (cdr (assoc 'location data)))
+		     (symbol (cdr (assoc 'symbol data)))
+		     (position (cons (cdr (assoc 'start data)) (cdr (assoc 'end data)))))
+		(when (equal location location-selected) (setq position-data (cons position position-data)))))
+	    ;; highlight the occurances
+	    (dolist (instance position-data)
+	      (let* ((start (car instance))
+		    (end (cdr instance))	   
+		    (overlay (make-overlay start end)))
+	        (overlay-put overlay 'face '(:background "white"))))))))
+					 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
   (interactive)
@@ -349,6 +384,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
+  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-highlight-occurances)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
