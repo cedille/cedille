@@ -19,10 +19,9 @@
 		(const :tag "Parse tree ascending" up))
   :group 'cedille-context)
 
-(defcustom cedille-mode-shadowed-context nil
+(defcustom cedille-mode-show-shadowed-variables nil
   "Controls whether or not shadowed variables are displayed in context."
-  :type '(radio (const :tag "Show shadowed variables" t)
-		(const :tag "Hide shadowed variables" nil))
+  :type '(boolean)
   :group 'cedille-context)
 
 (defvar cedille-mode-context-filtering nil)
@@ -78,7 +77,7 @@
     (define-key map (kbd "c") #'cedille-mode-close-active-window) ; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
-    (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-shadowed-context (not cedille-mode-shadowed-context)))
+    (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-show-shadowed-variables (not cedille-mode-show-shadowed-variables)))
     map))
 
   
@@ -162,12 +161,13 @@ which currently consists of:\n
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
 		    ;; we rename shadowed variables with a [+n] suffix or omit them
-		    ;;cedille-mode-shadowed-context
+		    ;;cedille-mode-show-shadowed-variables
 		    (let ((data (list ; for brevity - this is the data associated with the symbol
 				 (cons 'value value-source) ; the value displayed for the entry
 				 (cons 'keywords keywords-list) ; keywords identifying attributes of the entry
 				 (cons 'original-symbol symbol))) ; the original symbol identifying the entry
-			  (shadow-p cedille-mode-shadowed-context)) ; for brevity
+			  (shadow-p cedille-mode-show-shadowed-variables
+				    )) ; for brevity
 		      (set q-lst (cons (cons
 					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
 					data)
