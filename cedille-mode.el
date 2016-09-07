@@ -114,8 +114,8 @@ Defaults to `error'."
 
 (defun cedille-mode-update-buffers()
   "Update the info and context buffers."
-  (cedille-mode-inspect)
-  (cedille-mode-context)
+  (cedille-mode-inspect) 
+  (cedille-mode-context) ;the string-split bug is here
   (cedille-mode-rebalance-windows))
 
 					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
@@ -328,9 +328,9 @@ in the parse tree, and updates the Cedille info buffer."
 		 (location (cdr (assoc 'location data))))
 	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
     
-(defun cedille-mode-highlight-occurances()
-  "Highlights all occurances of bound variable matching selected node\n
-TODO: Split this into two functions, one which gets occurances and one which highlights them"
+(defun cedille-mode-highlight-occurrences()
+  "Highlights all occurrences of bound variable matching selected node\n
+TODO: Split this into two functions, one which gets occurrences and one which highlights them"
   (interactive)
   (remove-overlays) ;delete all existing overlays
   (if se-mode-selected
@@ -381,7 +381,7 @@ TODO: Split this into two functions, one which gets occurances and one which hig
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "SPC") #'cedille-mode-highlight-occurances)
+  (se-navi-define-key 'cedille-mode (kbd "SPC") #'cedille-mode-highlight-occurrences)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
