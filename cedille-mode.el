@@ -311,40 +311,38 @@ in the parse tree, and updates the Cedille info buffer."
 (se-navigation-mode-quit)
 (setq se-mode-parse-tree nil))
 
-
-
+(defun cedille-mode-get-matching-variable-nodes(node)
+  "Returns list of all nodes containing variables matching the one in the input node (if any). Matching is determined by location attribute"
+  (let* ((rec-path-crawler (lambda (node rec-fn)
+			     (let ((children (se-node-children node))
+				   (output-list (list node)))
+			       (if children
+				   (dolist (child children output-list)
+				     (setq output-list (append (funcall rec-fn child rec-fn) output-list)))
+				 output-list))))
+	 (path-start-node (car (se-find-span-path node (se-mode-parse-tree))))
+	 (nodes-to-check (funcall rec-path-crawler path-start-node rec-path-crawler))
+	 (data-selected (se-term-to-json node))
+	 (location-selected (cdr (assoc 'location data-selected)))
+	 (matching-nodes nil))
+    (dolist (node nodes-to-check matching-nodes)
+	  (let* ((data (se-term-to-json node))
+		 (location (cdr (assoc 'location data))))
+	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
+    
 (defun cedille-mode-highlight-occurances()
   "Highlights all occurances of bound variable matching selected node\n
 TODO: Split this into two functions, one which gets occurances and one which highlights them"
   (interactive)
   (remove-overlays) ;delete all existing overlays
   (if se-mode-selected
-      (let* ((rec-path-crawler (lambda (node rec-fn)
-				 (let ((children (se-node-children node))
-				       (output-list (list node)))
-				   (if children
-				       (dolist (child children output-list)
-					 (setq output-list (append (funcall rec-fn child rec-fn) output-list)))
-				     output-list))))
-	     (path-start-node (car (se-find-point-path (point) (se-mode-parse-tree))))
-	     (nodes-to-check (funcall rec-path-crawler path-start-node rec-path-crawler))
-	     (data-selected (se-term-to-json (se-mode-selected)))
-	     (location-selected (cdr (assoc 'location data-selected)))
-	     (symbol-selected (cdr (assoc 'symbol data-selected)))
-	     (position-data nil)) ; a list of start-end pairs
-	  (when symbol-selected
-	    (dolist (node nodes-to-check position-data)
-	      (let* ((data (se-term-to-json node))
-		     (location (cdr (assoc 'location data)))
-		     (symbol (cdr (assoc 'symbol data)))
-		     (position (cons (cdr (assoc 'start data)) (cdr (assoc 'end data)))))
-		(when (equal location location-selected) (setq position-data (cons position position-data)))))
-	    ;; highlight the occurances
-	    (dolist (instance position-data)
-	      (let* ((start (car instance))
-		    (end (cdr instance))	   
-		    (overlay (make-overlay start end)))
-	        (overlay-put overlay 'face '(:background "white"))))))))
+      (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
+	(dolist (node matching-nodes)
+	  (let* ((data (se-term-to-json node))
+		 (start (cdr (assoc 'start data)))
+		 (end (cdr (assoc 'end data)))
+		 (overlay (make-overlay start end)))
+	    (overlay-put overlay 'face '(:background "white")))))))
 					 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
