@@ -73,6 +73,11 @@ Defaults to `error'."
   :type '(boolean)
   :group 'cedille)
 
+(defcustom cedille-mode-autohighlight-matching-variables t
+  "If non-nil then whenever a variable is highlighted, all matching variables (sensitive to scope) will be highlighted as well."
+  :type '(boolean)
+  :group 'cedille)
+
 
 ;; ----------------------------------------------------------------------------
 
@@ -210,7 +215,8 @@ the parse tree, and updates the Cedille info buffer."
   (when (> count 0)
     (se-mode-select-next)
     (cedille-mode-select-next (- count 1)))
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
@@ -219,7 +225,8 @@ the parse tree, and updates the Cedille info buffer."
   (when (> count 0)
 	(se-mode-select-previous)
 	(cedille-mode-select-previous (- count 1)))
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -275,7 +282,7 @@ the parse tree, and updates the Cedille info buffer."
 	(cedille-mode-select-parent (- count 1)))
     nil)
   (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences))
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
@@ -287,21 +294,23 @@ containing point, and updates the Cedille info buffer."
 	(cedille-mode-select-first-child (- count 1)))
     nil)
   (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences))
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-first)
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-last()
   "Selects the last sibling of the currently selected node
 in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-last)
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-quit()
 "Quit Cedille navigation mode"
@@ -331,9 +340,7 @@ in the parse tree, and updates the Cedille info buffer."
 	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
 
 (defun cedille-mode-highlight-occurrences()
-  "Highlights all occurrences of bound variable matching selected node\n
-TODO: Split this into two functions, one which gets occurrences and one which highlights them"
-  (interactive)
+  "Highlights all occurrences of bound variable matching selected node"
   (remove-overlays) ;delete all existing overlays
   (if se-mode-selected
       (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
@@ -384,7 +391,6 @@ TODO: Split this into two functions, one which gets occurrences and one which hi
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "SPC") #'cedille-mode-highlight-occurrences)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
