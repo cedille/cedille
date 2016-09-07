@@ -274,7 +274,8 @@ the parse tree, and updates the Cedille info buffer."
 	(se-mode-expand-selected)
 	(cedille-mode-select-parent (- count 1)))
     nil)
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (cedille-mode-highlight-occurrences))
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
@@ -285,7 +286,8 @@ containing point, and updates the Cedille info buffer."
 	(se-mode-shrink-selected)
 	(cedille-mode-select-first-child (- count 1)))
     nil)
-  (cedille-mode-update-buffers))
+  (cedille-mode-update-buffers)
+  (cedille-mode-highlight-occurrences))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
@@ -327,7 +329,7 @@ in the parse tree, and updates the Cedille info buffer."
 	  (let* ((data (se-term-to-json node))
 		 (location (cdr (assoc 'location data))))
 	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
-    
+
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node\n
 TODO: Split this into two functions, one which gets occurrences and one which highlights them"
@@ -337,10 +339,11 @@ TODO: Split this into two functions, one which gets occurrences and one which hi
       (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
 	(dolist (node matching-nodes)
 	  (let* ((data (se-term-to-json node))
+		 (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be highlighted
 		 (start (cdr (assoc 'start data)))
 		 (end (cdr (assoc 'end data)))
 		 (overlay (make-overlay start end)))
-	    (when (and start end)
+	    (when symbol
 	      (overlay-put overlay 'face '(:background "white"))))))))
 					 
 (defun cedille-mode-restart-backend()

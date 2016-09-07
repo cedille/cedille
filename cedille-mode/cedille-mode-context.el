@@ -144,7 +144,7 @@ which currently consists of:\n
 		 (type (cdr (assoc 'type data)))
 		 (kind (cdr (assoc 'kind data)))
 		 (keywords-string (cdr (assoc 'keywords data))) ; for readability
-		 (keywords-list (split-string keywords-string " " t))
+		 (keywords-list (when keywords-string (split-string keywords-string " " t)))
 		 ;; to rename the shadowed variables, we will use name-symbol and count-original-symbols
 		 (count-original-symbols
 		  ;; recursively counts how many instances of the given original symbol already occur in the list
