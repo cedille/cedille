@@ -211,7 +211,6 @@ the parse tree, and updates the Cedille info buffer."
     (se-mode-select-next)
     (cedille-mode-select-next (- count 1)))
   (cedille-mode-update-buffers))
-    
 
 (defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
@@ -275,8 +274,7 @@ the parse tree, and updates the Cedille info buffer."
 	(se-mode-expand-selected)
 	(cedille-mode-select-parent (- count 1)))
     nil)
-  (cedille-mode-update-buffers)
-)
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
@@ -287,8 +285,7 @@ containing point, and updates the Cedille info buffer."
 	(se-mode-shrink-selected)
 	(cedille-mode-select-first-child (- count 1)))
     nil)
- (cedille-mode-update-buffers)
-)
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
@@ -308,6 +305,7 @@ in the parse tree, and updates the Cedille info buffer."
 "Quit Cedille navigation mode"
 (interactive)
 (se-mode-clear-selected)
+(remove-overlays)
 (se-navigation-mode-quit)
 (setq se-mode-parse-tree nil))
 
@@ -342,7 +340,8 @@ TODO: Split this into two functions, one which gets occurances and one which hig
 		 (start (cdr (assoc 'start data)))
 		 (end (cdr (assoc 'end data)))
 		 (overlay (make-overlay start end)))
-	    (overlay-put overlay 'face '(:background "white")))))))
+	    (when (and start end)
+	      (overlay-put overlay 'face '(:background "white"))))))))
 					 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
@@ -382,7 +381,7 @@ TODO: Split this into two functions, one which gets occurances and one which hig
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-highlight-occurances)
+  (se-navi-define-key 'cedille-mode (kbd "SPC") #'cedille-mode-highlight-occurances)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
