@@ -343,6 +343,29 @@ in the parse tree, and updates the Cedille info buffer."
 		 (location (cdr (assoc 'location data))))
 	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
 
+(defun cedille-mode-replace-occurrences(new-label)
+  "Replaces all occurrences of bound variable matching selected node with input label"
+  (interactive "sRelabel as: ")
+  (when se-mode-selected
+    (let* ((order-p (lambda (a b)
+		      (let* ((data-a (se-term-to-json a))
+			     (data-b (se-term-to-json b))
+			     (start-a (cdr (assoc 'start data-a)))
+			     (start-b (cdr (assoc 'start data-b))))
+			(> start-a start-b))))
+	   (matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected)))
+	   (sorted-nodes (sort matching-nodes order-p))) ; order the nodes in descending order by position in file
+      (dolist (node sorted-nodes)
+	(let* ((data (se-term-to-json node))
+	       (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be checked
+	       (start (cdr (assoc 'start data)))
+	       (end (cdr (assoc 'end data))))
+	  (when symbol
+	    (save-excursion
+	      (delete-region start end)
+	      (goto-char start)
+	      (insert new-label))))))))
+
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node"
   (remove-overlays) ;delete all existing overlays
@@ -384,6 +407,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
+  (se-navi-define-key 'cedille-mode (kbd "=") #'cedille-mode-replace-occurrences)
   (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
   (se-navi-define-key 'cedille-mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
   (se-navi-define-key 'cedille-mode (kbd "<") (make-cedille-mode-history-navigate nil t))
