@@ -140,7 +140,7 @@ liftingType-end-pos (LiftStar pi) = posinfo-plus pi 1
 liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
 
 lterms-end-pos (LtermsNil pi) = posinfo-plus pi 1 -- must add one for the implicit Beta that we will add at the end
-lterms-end-pos (LtermsCons _ ls) = lterms-end-pos ls
+lterms-end-pos (LtermsCons _ _ ls) = lterms-end-pos ls
 
 decls-start-pos : decls → posinfo
 decls-start-pos (DeclsCons (Decl pi _ _ _) _) = pi
@@ -342,9 +342,9 @@ Lam* : 𝕃 var → term → term
 Lam* [] t = t
 Lam* (x :: xs) t = Lam* xs (Lam posinfo-gen KeptLambda posinfo-gen x NoClass t)
 
-App* : term → 𝕃 term → term
+App* : term → 𝕃 (maybeErased × term) → term
 App* t [] = t
-App* t (arg :: args) = App (App* t args) NotErased arg
+App* t ((m , arg) :: args) = App (App* t args) m arg
 
 App*' : term → 𝕃 term → term
 App*' t [] = t
@@ -388,15 +388,16 @@ erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 erase-lterms Abstract (LtermsNil _) = []
 erase-lterms (AbstractVars _) (LtermsNil _) = []
 erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi ]
-erase-lterms u (LtermsCons t ls) = erase-term t :: erase-lterms u ls
+erase-lterms u (LtermsCons NotErased t ls) = (erase-term t) :: erase-lterms u ls
+erase-lterms u (LtermsCons Erased t ls) = erase-lterms u ls
 
-lterms-to-𝕃h : theta → lterms → 𝕃 term
+lterms-to-𝕃h : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃h Abstract (LtermsNil _) = []
 lterms-to-𝕃h (AbstractVars _) (LtermsNil _) = []
-lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ Beta pi ]
-lterms-to-𝕃h u (LtermsCons t ls) = t :: (lterms-to-𝕃h u ls)
+lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ NotErased , Beta pi ]
+lterms-to-𝕃h u (LtermsCons m t ls) = (m , t) :: (lterms-to-𝕃h u ls)
 
-lterms-to-𝕃 : theta → lterms → 𝕃 term
+lterms-to-𝕃 : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃 u ls = reverse (lterms-to-𝕃h u ls)
 
 num-to-ℕ : num → ℕ

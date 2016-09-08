@@ -112,7 +112,7 @@ mutual
     LiftTpArrow : type → liftingType → liftingType
 
   data lterms : Set where 
-    LtermsCons : term → lterms → lterms
+    LtermsCons : maybeErased → term → lterms → lterms
     LtermsNil : posinfo → lterms
 
   data maybeAtype : Set where 
@@ -491,7 +491,7 @@ mutual
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
   ltermsToString : lterms → string
-  ltermsToString (LtermsCons x0 x1) = "(LtermsCons" ^ " " ^ (termToString x0) ^ " " ^ (ltermsToString x1) ^ ")"
+  ltermsToString (LtermsCons x0 x1 x2) = "(LtermsCons" ^ " " ^ (maybeErasedToString x0) ^ " " ^ (termToString x1) ^ " " ^ (ltermsToString x2) ^ ")"
   ltermsToString (LtermsNil x0) = "(LtermsNil" ^ " " ^ (posinfoToString x0) ^ ")"
 
   maybeAtypeToString : maybeAtype → string

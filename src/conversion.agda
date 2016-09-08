@@ -136,7 +136,8 @@ hnf{TYPE} Γ u (TpApp _ _) | tp | tp' = try-pull-lift-types tp tp'
                 try-pull-term-in Γ t (LiftParens _ l _) n vars ltps = try-pull-term-in Γ t l n vars ltps 
                 try-pull-term-in Γ t (LiftArrow _ l) 0 vars ltps = 
                   recompose-tpapps 
-                    (Lft posinfo-gen posinfo-gen X (Lam* vars (hnf Γ no-unfolding (App t NotErased (App* t' (map mvar vars)))))
+                    (Lft posinfo-gen posinfo-gen X
+                      (Lam* vars (hnf Γ no-unfolding (App t NotErased (App* t' (map (λ v → NotErased , mvar v) vars)))))
                       (LiftArrow* ltps l) , args1)
                 try-pull-term-in Γ (Lam _ _ pi' x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
                   try-pull-term-in (ctxt-var-decl pi' x Γ) t l2 n (x :: vars) (l1 :: ltps) 
@@ -209,7 +210,7 @@ conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
 conv-term-norm Γ (Beta _) (Beta _) = tt
-{- it can happen that a variable is equal to a lambda abstraction in head-normal form,
+{- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing
    the comparison.
@@ -218,8 +219,8 @@ conv-term-norm Γ (Beta _) (Beta _) = tt
 
        λ v . t ((λ a . a) v) ≃ t
  -}
-conv-term-norm Γ (Lam pi1 l pi2 x oc t) (Var pi' x') = conv-term (ctxt-rename pi2 x x Γ) t (App (Var pi' x') NotErased (Var pi2 x))
-conv-term-norm Γ (Var pi' x') (Lam pi1 l pi2 x oc t) = conv-term (ctxt-rename pi2 x x Γ) (App (Var pi' x') NotErased (Var pi2 x)) t 
+conv-term-norm Γ (Lam pi1 l pi2 x oc t) t' = conv-term (ctxt-rename pi2 x x Γ) t (App t' NotErased (Var pi2 x))
+conv-term-norm Γ t' (Lam pi1 l pi2 x oc t) = conv-term (ctxt-rename pi2 x x Γ) (App t' NotErased (Var pi2 x)) t 
 conv-term-norm Γ _ _ = ff
 
 conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'

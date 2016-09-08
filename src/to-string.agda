@@ -127,7 +127,7 @@ tk-to-string (Tkk k) = kind-to-string ff k
 tk-to-string (Tkt t) = type-to-string ff t
 
 lterms-to-stringh (LtermsNil _) = ""
-lterms-to-stringh (LtermsCons t ts) = " " ^ term-to-string ff t ^ lterms-to-stringh ts
+lterms-to-stringh (LtermsCons m t ts) = " " ^ (maybeErased-to-string m) ^ term-to-string ff t ^ lterms-to-stringh ts
 
 maybeAtype-to-string NoAtype = ""
 maybeAtype-to-string (Atype T) = type-to-string ff T

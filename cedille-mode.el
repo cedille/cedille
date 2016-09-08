@@ -78,8 +78,8 @@ Defaults to `error'."
   :type '(boolean)
   :group 'cedille)
 
-(defcustom cedille-mode-autohighlight-color "white"
-  "Determines the color of highlighting for the autohighlight matching variables feature"
+(defcustom cedille-mode-autohighlight-color "dark gray"
+  "Determines the color (background) of highlighting for the autohighlight matching variables feature"
   :type '(color)
   :group 'cedille)
 

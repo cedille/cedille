@@ -55,7 +55,7 @@ substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-maybeAtype Γ ρ t x T) (s
 substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
   where substh-lterms : substh-ret-t lterms
         substh-lterms Γ ρ t x (LtermsNil pi) = LtermsNil pi
-        substh-lterms Γ ρ t x (LtermsCons t' ls) = LtermsCons (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls)
+        substh-lterms Γ ρ t x (LtermsCons m t' ls) = LtermsCons m (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls)
 
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in

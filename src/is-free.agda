@@ -40,7 +40,8 @@ is-free-in-term ce x (Chi _ T t') = (ce && is-free-in-maybeAtype ce x T) || is-f
 is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
   where is-free-in-lterms : is-free-e → var → lterms → 𝔹
         is-free-in-lterms ce x (LtermsNil _) = ff
-        is-free-in-lterms ce x (LtermsCons t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
+        is-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && is-free-in-term ce x t) || is-free-in-lterms ce x ls
+        is-free-in-lterms ce x (LtermsCons NotErased t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls
 
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' atk t) = 

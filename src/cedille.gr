@@ -101,7 +101,7 @@ Atype : maybeAtype -> ows atype.
 NoAtype : maybeAtype -> .
 
 LtermsNil : lterms -> ! .
-LtermsCons : lterms -> ws lterm lterms.
+LtermsCons : lterms -> ws maybeErased lterm lterms.
 
 EpsHnf : maybeMinus -> .
 EpsHanf : maybeMinus -> '-'.
