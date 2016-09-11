@@ -345,7 +345,7 @@ in the parse tree, and updates the Cedille info buffer."
 
 (defun cedille-mode-replace-occurrences(new-label)
   "Replaces all occurrences of bound variable matching selected node with input label"
-  (interactive "sRelabel as: ")
+  (interactive "sRename as: ")
   (when se-mode-selected
     (let* ((order-p (lambda (a b)
 		      (let* ((data-a (se-term-to-json a))
