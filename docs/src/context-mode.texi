@@ -4,14 +4,14 @@
 
 Context mode for Cedille allows the user to see the context of the currently selected node, making it easy to find and make use of all bound symbols. To enter context mode, select a node and press @command{C} and you will open up the context mode buffer and jump to it. If you just want to open the context mode buffer (but not jump to it), press @command{c} instead.
 
-Context mode has several built in features to organize data:
+Context mode has several built-in features to organize data:
 @itemize @bullet
 
 @item
 Sort entries alphabetically or by binding position
 
 @item
-Filter entires according to common properties. Only one filter may be active at a time.
+Filter entries according to common properties. Only one filter may be active at a time.
 
 @item
 Show or hide shadowed variables
