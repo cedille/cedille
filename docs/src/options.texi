@@ -1,0 +1,20 @@
+@node options,credits,minor modes,Top
+
+@chapter cedille-mode options
+
+The options file resides in ~/.cedille/options and consists of a list of
+options, each on its own line, with a terminating period (``.''). The
+available options are:
+
+@table @option
+
+@item import-directories "/path/to/dir"
+This specifies a directory where Cedille will search for imported files.
+Any number of directories may be listed, each on its own line. They will
+be searched after the current directory, in the order they are listed.
+Currently, it is not recommended to have two files with the same name.
+
+@item no-cede-files
+This option disables the Cedille backend's use of .cede files.
+
+@end table

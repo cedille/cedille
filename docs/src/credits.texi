@@ -1,4 +1,4 @@
-@node credits,Index,minor modes,Top
+@node credits,Index,options,Top
 
 @chapter Credits
 

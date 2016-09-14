@@ -13,6 +13,7 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 * cedille mode commands::       A list of cedille mode command shortcuts with brief description
 * unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
 * minor modes::                 Cedille mode has three minor modes providing additional information
+* options::                     A description of the options file
 * credits::                     Who has contributed to the Cedille tool
 * Index::                       Here is the index
 @end menu
@@ -24,6 +25,8 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 @include context-mode.texi
 
 @include credits.texi
+
+@include options.texi
 
 @include minor-modes.texi
 
