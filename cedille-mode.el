@@ -338,10 +338,11 @@ in the parse tree, and updates the Cedille info buffer."
 	 (data-selected (se-term-to-json node))
 	 (location-selected (cdr (assoc 'location data-selected)))
 	 (matching-nodes nil))
-    (dolist (node nodes-to-check matching-nodes)
-	  (let* ((data (se-term-to-json node))
-		 (location (cdr (assoc 'location data))))
-	    (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes)))))))
+    (when (not (equal location-selected "missing - missing")) ;Don't match nodes with no location
+      (dolist (node nodes-to-check matching-nodes)
+	(let* ((data (se-term-to-json node))
+	       (location (cdr (assoc 'location data))))
+	  (when (equal location location-selected) (setq matching-nodes (cons node matching-nodes))))))))
 
 (defun cedille-mode-replace-occurrences(new-label)
   "Replaces all occurrences of bound variable matching selected node with input label"
