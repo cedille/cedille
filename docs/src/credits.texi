@@ -1,5 +1,12 @@
-@node credits,minor modes,Index,Top
+@node credits,Index,minor modes,Top
 
-@chapter cedille-mode credits
+@chapter Credits
 
-These are the credits.
+@table @abbr
+
+@item Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
+
+@item Spring 2016: Aaron Stump
+
+@end table
+

@@ -101,7 +101,91 @@ File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Pre
 5 unicode
 *********
 
-Here is page for the unicode characters
+The following shortcuts produce the Unicode characters used in Cedille
+
+'\l'
+     Produces λ (lambda)
+
+'\L'
+     Produces Λ (capital lambda)
+
+'\>'
+     Produces → (right arrow)
+
+'\r'
+     Produces → (right arrow)
+
+'\a'
+     Produces ∀ (forall)
+
+'\B'
+     Produces □ (white square)
+
+'\P'
+     Produces Π (capital pi)
+
+'\s'
+     Produces ★ (black star)
+
+'\S'
+     Produces ☆ (white star)
+
+'\.'
+     Produces · (center dot)
+
+'\f'
+     Produces ⇐ (leftwards double arrow)
+
+'\<'
+     Produces ⇐ (leftwards double arrow)
+
+'\u'
+     Produces ↑ (upwards arrow)
+
+'\p'
+     Produces π (pi)
+
+'\h'
+     Produces ● (black circle)
+
+'\k'
+     Produces 𝒌 (math bold italic small k)
+
+'\i'
+     Produces ι (iota)
+
+'\='
+     Produces ≃ (asymptotically equal to)
+
+'\d'
+     Produces δ (delta)
+
+'\b'
+     Produces β (beta)
+
+'\e'
+     Produces ε (epsilon)
+
+'\R'
+     Produces ρ (rho)
+
+'\y'
+     Produces ς (lowercase final sigma)
+
+'\t'
+     Produces θ (theta)
+
+'\x'
+     Produces χ (chi)
+
+'\rho'
+     Produces ρ (rho)
+
+'\theta'
+     Produces θ (theta)
+
+'\epsilon'
+     Produces ε (epsilon)
 
 
 File: cedille-info-main.info,  Node: context mode,  Next: summary mode,  Prev: inspect mode,  Up: minor modes
@@ -116,11 +200,11 @@ you will open up the context mode buffer and jump to it.  If you just
 want to open the context mode buffer (but not jump to it), press 'c'
 instead.
 
-   Context mode has several built in features to organize data:
+   Context mode has several built-in features to organize data:
 
    * Sort entries alphabetically or by binding position
 
-   * Filter entires according to common properties.  Only one filter may
+   * Filter entries according to common properties.  Only one filter may
      be active at a time.
 
    * Show or hide shadowed variables
@@ -223,11 +307,11 @@ Tag Table:
 Node: Top90
 Node: cedille mode commands673
 Node: unicode shortcuts2331
-Node: context mode2511
-Node: credits3783
-Node: minor modes4018
-Node: inspect mode4555
-Node: summary mode5274
-Node: Index5463
+Node: context mode3580
+Node: credits4852
+Node: minor modes5087
+Node: inspect mode5624
+Node: summary mode6343
+Node: Index6532
 
 End Tag Table
