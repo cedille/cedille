@@ -403,8 +403,8 @@ Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
 Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
 
 Lam-span : posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
-Lam-span pi l x NoClass tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) (ll-data-term :: binder-data-const :: tvs)
-Lam-span pi l x (SomeClass atk) tp tvs = mk-span (Lam-span-erased l) pi (term-end-pos tp) 
+Lam-span pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: tvs)
+Lam-span pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data-const :: tvs)
                                            ++ [ "type of bound variable" , tk-to-string atk ])
 

@@ -810,11 +810,14 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Delta x t) = var-spans-term t
         var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
         var-spans-term (Hole x) = spanMok
-        var-spans-term (Lam _ _ pi' x _ t) =
+        var-spans-term (Lam pi l pi' x _ t) =
           get-ctxt (λ Γ →
-            set-ctxt (ctxt-var-decl pi' x Γ) ≫span
-            var-spans-term t ≫span
-            set-ctxt Γ)
+            let Γ' = ctxt-var-decl pi' x Γ in
+              set-ctxt Γ' ≫span
+              spanM-add (Lam-span pi l x NoClass t []) ≫span
+              spanM-add (Var-span Γ' pi' x untyped []) ≫span
+              var-spans-term t ≫span
+              set-ctxt Γ)
         var-spans-term (Parens x t x₁) = var-spans-term t
         var-spans-term (PiInj x x₁ t) = var-spans-term t
         var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
