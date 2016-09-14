@@ -1,0 +1,5 @@
+@node credits,minor modes,Index,Top
+
+@chapter cedille-mode credits
+
+These are the credits.

@@ -1,4 +1,92 @@
 @node unicode shortcuts,minor modes,cedille mode commands,Top
 @chapter unicode
 
-Here is page for the unicode characters
+The following shortcuts produce the Unicode characters used in Cedille
+
+@table @command
+
+@item \l
+Produces λ (lambda)
+
+@item \L
+Produces Λ (capital lambda)
+
+@item \>
+Produces → (right arrow)
+
+@item \r
+Produces → (right arrow)
+
+@item \a
+Produces ∀ (forall)
+
+@item \B
+Produces □ (white square)
+
+@item \P
+Produces Π (capital pi)
+
+@item \s
+Produces ★ (black star)
+
+@item \S
+Produces ☆ (white star)
+
+@item \.
+Produces · (center dot)
+
+@item \f
+Produces ⇐ (leftwards double arrow)
+
+@item \<
+Produces ⇐ (leftwards double arrow)
+
+@item \u
+Produces ↑ (upwards arrow)
+
+@item \p
+Produces π (pi)
+
+@item \h
+Produces ● (black circle)
+
+@item \k
+Produces 𝒌 (math bold italic small k)
+
+@item \i
+Produces ι (iota)
+
+@item \=
+Produces ≃ (asymptotically equal to)
+
+@item \d
+Produces δ (delta)
+
+@item \b
+Produces β (beta)
+
+@item \e
+Produces ε (epsilon)
+
+@item \R
+Produces ρ (rho)
+
+@item \y
+Produces ς (lowercase final sigma)
+
+@item \t
+Produces θ (theta)
+
+@item \x
+Produces χ (chi)
+
+@item \rho
+Produces ρ (rho)
+
+@item \theta
+Produces θ (theta)
+
+@item \epsilon
+Produces ε (epsilon)
+
+@end table
