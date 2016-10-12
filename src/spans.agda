@@ -4,6 +4,7 @@ open import lib
 open import cedille-types 
 open import conversion
 open import ctxt
+open import is-free
 open import syntax-util
 open import to-string
 
@@ -82,6 +83,18 @@ spanMok = spanMr triv
 
 get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
 get-ctxt m Γ ss = m Γ Γ ss
+
+-- this returns the previous ctxt-info, if any, for the given variable
+spanM-push-term-decl : posinfo → var → type → spanM (maybe (ctxt-info × location))
+spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
+
+-- return previous ctxt-info, if any
+spanM-push-type-decl : posinfo → var → kind → spanM (maybe (ctxt-info × location))
+spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
+
+-- restore ctxt-info for the variable with given posinfo
+spanM-restore-info : var → maybe (ctxt-info × location) → spanM ⊤
+spanM-restore-info x m Γ ss = triv , ctxt-restore-info Γ x m , ss
 
 set-ctxt : ctxt → spanM ⊤
 set-ctxt Γ _ ss = triv , Γ , ss
@@ -576,12 +589,16 @@ whitespace-span pi pi'  = mk-span "Whitespace" pi pi' [ not-for-navigation ]
 comment-span : posinfo → posinfo → span
 comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
 
-InlineDef-span : posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
-InlineDef-span pi pi' x t pi'' check tvs =
+InlineDef-span : ctxt → posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
+InlineDef-span Γ pi pi' x t pi'' check tvs =
   mk-span "Inline definition" pi pi''
     (checking-data check :: warning-data "Currently the defined symbol cannot be used elsewhere (this will be changed soon)." :: 
     ll-data-term ::
-    explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") :: tvs)
+    explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") ::
+    (if (is-open Γ skip-erased t) then
+      [ error-data "The body of this inline definition is open (but closed terms only are allowed)."]
+     else [])
+    ++ tvs)
 
 IotaPair-span : posinfo → posinfo → 𝕃 tagged-val → span
 IotaPair-span pi pi' tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: tvs)

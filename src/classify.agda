@@ -314,12 +314,12 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
           let rettp = abs-tk l x atk tp in
           let tvs = [ type-data rettp ] in
           spanM-add (Lam-span pi l x (SomeClass atk) t 
-                       (if (lam-is-erased l) && (is-free-in-term skip-erased x t) then
+                       (if (lam-is-erased l) && (is-free-in skip-erased x t) then
                            (error-data "The bound variable occurs free in the erasure of the body (not allowed)."
                          :: erasure t :: tvs)
                         else tvs)) ≫span
-          get-ctxt (λ Γ → 
-            check-termi-return Γ (Lam pi l pi' x (SomeClass atk) t) rettp)
+          get-ctxt λ Γ → 
+            check-termi-return Γ (Lam pi l pi' x (SomeClass atk) t) rettp
 
 check-termi (Lam pi l _ x NoClass t) nothing =
             spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
@@ -332,14 +332,13 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
   check-oc oc ≫span
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   get-ctxt (λ Γ →  -- save the context
-    spanM-add (this-span Γ oc (check-erasures l b)) ≫span
+    spanM-add (this-span Γ atk oc (check-erasures l b)) ≫span
     add-tk pi' x (lambda-bound-class-if oc atk) ≫span 
-      check-term t (just (rename-type Γ x' x (tk-is-type atk) tp')) ≫span
-      set-ctxt Γ) -- restore the saved context
-
-  where this-span : ctxt → optClass → 𝕃 tagged-val → span
-        this-span _ NoClass tvs = Lam-span pi l x oc t tvs
-        this-span Γ (SomeClass atk') tvs = 
+    check-term t (just (rename-type Γ x' x (tk-is-type atk) tp')) ≫span
+    set-ctxt Γ) -- restore the saved context
+  where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
+        this-span _ _ NoClass tvs = Lam-span pi l x oc t tvs
+        this-span Γ atk (SomeClass atk') tvs = 
           if conv-tk Γ atk' atk then
             Lam-span pi l x oc t tvs
           else
@@ -349,7 +348,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
         check-oc (SomeClass atk) = check-tk atk
         check-erasures : lam → binder → 𝕃 tagged-val
         check-erasures ErasedLambda All = type-data tp 
-                                       :: (if (is-free-in-term skip-erased x t) then 
+                                       :: (if (is-free-in skip-erased x t) then 
                                             (error-data "The Λ-bound variable occurs free in the erasure of the body." 
                                             :: [ erasure t ])
                                            else [])
@@ -360,11 +359,11 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
         check-erasures KeptLambda All = error-data ("The expected type is a ∀-abstraction (indicating implicit input), but"
                                               ^ " the term is a λ-abstraction (explicit input).")
                                      :: [ expected-type tp ]
+check-termi (Lam pi l pi' x oc t) (just tp) | nothing =
+   spanM-add (punctuation-span "Lambda"  pi (posinfo-plus pi 1)) ≫span
+   spanM-add (Lam-span pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
+                   expected-type tp :: []))
 
-check-termi (Lam pi l _ x oc t) (just tp) | nothing =
-  spanM-add (punctuation-span "Lambda"  pi (posinfo-plus pi 1)) ≫span
-  spanM-add (Lam-span pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
-                                   expected-type tp :: []))
 
 check-termi (Beta pi) (just (TpEq t1 t2)) = 
   get-ctxt (λ Γ → 
@@ -574,16 +573,16 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
   check-term t mtp ≫=span (λ r →
     get-ctxt (λ Γ → helper Γ mtp r ≫span set-ctxt Γ {- remove when we have conversion working correctly when we use the defined symbol -}) ≫span
     spanMr r)
-  where helper-add-span : 𝕃 tagged-val → spanM ⊤
-        helper-add-span tvs = spanM-add (InlineDef-span pi pi' x t pi'' (maybe-to-checking mtp) tvs)
+  where helper-add-span : ctxt → 𝕃 tagged-val → spanM ⊤
+        helper-add-span Γ tvs = spanM-add (InlineDef-span Γ pi pi' x t pi'' (maybe-to-checking mtp) tvs)
         add-typed-def : ctxt → type → 𝕃 tagged-val → spanM ⊤
-        add-typed-def Γ tp tvs = helper-add-span tvs ≫span
+        add-typed-def Γ tp tvs = helper-add-span Γ tvs ≫span
                                  set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t) tp Γ)
         helper : ctxt → (mtp : maybe type) → (r : check-ret mtp) → spanM ⊤
         helper Γ (just tp) triv = add-typed-def Γ tp [ expected-type tp ]
         helper Γ nothing (just tp) = add-typed-def Γ tp [ type-data tp ]
         helper Γ nothing nothing = -- add untyped def
-          helper-add-span [ missing-type ] ≫span
+          helper-add-span Γ [ missing-type ] ≫span
           set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t) Γ) 
 
 check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
@@ -660,23 +659,22 @@ check-typei (TpVar pi x) mk =
                             expected-kind k ::
                             [ kind-data k' ]))
 
-check-typei (TpLambda pi pi' x atk' body) (just k) with to-absk k
+check-typei (TpLambda pi pi' x atk body) (just k) with to-absk k 
 check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' atk' _ k') =
-  check-tk atk ≫span
-  spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
-  get-ctxt (λ Γ → -- save ctxt
-    spanM-add (if conv-tk Γ atk atk' then
+   check-tk atk ≫span
+   spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
+   get-ctxt (λ Γ → -- save ctxt
+   spanM-add (if conv-tk Γ atk atk' then
                 TpLambda-span pi x atk body checking [ kind-data k ]
-               else
-                 TpLambda-span pi x atk body checking (lambda-bound-var-conv-error x atk' atk [ kind-data k ])) ≫span
-    add-tk pi' x atk ≫span 
-    check-type body (just (rename-kind Γ x' x (tk-is-type atk') k')) ≫span
-    set-ctxt Γ) -- restore ctxt
-          
-check-typei (TpLambda pi pi' x atk body) (just k) | nothing =
-  check-tk atk ≫span
-  spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
-  spanM-add (TpLambda-span pi x atk body checking
+              else
+                TpLambda-span pi x atk body checking (lambda-bound-var-conv-error x atk' atk [ kind-data k ])) ≫span
+   add-tk pi' x atk ≫span 
+   check-type body (just (rename-kind Γ x' x (tk-is-type atk') k')) ≫span
+   set-ctxt Γ) -- restore ctxt
+check-typei (TpLambda pi pi' x atk body) (just k) | nothing = 
+   check-tk atk ≫span
+   spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
+   spanM-add (TpLambda-span pi x atk body checking
                (error-data "The type is being checked against a kind which is not an arrow- or Pi-kind." ::
                 expected-kind k :: []))
 
@@ -694,11 +692,10 @@ check-typei (TpLambda pi pi' x atk body) nothing =
         cont nothing = 
           spanM-add (TpLambda-span pi x atk body synthesizing []) ≫span
           spanMr nothing
-        cont (just k) = 
-          let r = absk-tk x atk k in
-            spanM-add (TpLambda-span pi x atk body synthesizing [ kind-data r ]) ≫span
-            
-            spanMr (just r)
+        cont (just k) =
+            let r = absk-tk x atk k in
+              spanM-add (TpLambda-span pi x atk body synthesizing [ kind-data r ]) ≫span
+              spanMr (just r)
 
 check-typei (Abs pi b {- All or Pi -} pi' x atk body) k = 
   spanM-add (TpQuant-span (binder-is-pi b) pi x atk body (maybe-to-checking k)

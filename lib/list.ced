@@ -2,7 +2,7 @@ import bool.
 import maybe.
 import nat.
 
-rec List (A : ★) : | Cons : A → List → List , Nil : List =
+rec List (A : ★) | Cons : A → List → List , Nil : List =
   ∀ P : List → ★ .
     (Π h : A . Π t : List . P t → P (Cons h t)) → 
     P Nil → 
@@ -49,7 +49,7 @@ filter ⇐ ∀ A : ★ . (A → Bool) → List · A → List · A =
 
 map ⇐ ∀ A : ★ . ∀ B : ★ . (A → B) → List · A → List · B =
   Λ A . Λ B . λ f . λ l .
-    θ l [map-cons = λ h . λ t . λ r . Cons · B (f h) r]
+    θ l (λ h . λ t . λ r . Cons · B (f h) r)
       (Nil · B) .
 
 sreverseCons ⇐ ∀ A : ★ . A → (List · A) → (List · A) → (List · A) =

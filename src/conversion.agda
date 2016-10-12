@@ -171,7 +171,7 @@ hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | nothing = KndVar pi x
 hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) | just k = k 
 --hnf{KIND} Γ no-unfolding (KndVar pi x) = KndVar pi x
 hnf{KIND} Γ u (KndPi pi pi' x atk k) =
-    if is-free-in-kind check-erased x k then
+    if is-free-in check-erased x k then
       (KndPi pi pi' x atk k)
     else
       tk-arrow-kind atk k

@@ -19,7 +19,7 @@ decls-pi-bind-kind : decls → kind → kind
 decls-pi-bind-kind (DeclsNil _) k = k
 decls-pi-bind-kind (DeclsCons (Decl _ x atk _) ds) k = 
   let k' = decls-pi-bind-kind ds k in
-    if (is-free-in-kind check-erased x k') then
+    if (is-free-in check-erased x k') then
       KndPi posinfo-gen posinfo-gen x atk k'
     else
       tk-arrow-kind atk k'
@@ -66,7 +66,7 @@ rec-apply-decls tp (DeclsCons (Decl _ x atk _) ds) = rec-apply-decls (TpApp-tk t
 check-not-free : string → 𝕃 var → term → spanM 𝔹
 check-not-free name (x :: xs) t = 
   check-not-free name xs t ≫=span λ b → 
-    if is-free-in-term skip-erased x t then
+    if is-free-in skip-erased x t then
       spanM-add (mk-span "Freeness error" (term-start-pos t) (term-end-pos t)
                     (error-data ("A " ^ name ^ " of the datatype occurs free in the erased "
                                ^ "definition of a constructor (this is not allowed)")

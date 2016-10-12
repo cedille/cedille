@@ -53,6 +53,13 @@ data ctxt : Set where
 new-ctxt : (filename : string) → ctxt
 new-ctxt filename = mk-ctxt filename empty-trie empty-trie
 
+ctxt-get-info : var → ctxt → maybe (ctxt-info × location)
+ctxt-get-info v (mk-ctxt _ _ i) = trie-lookup i v
+
+ctxt-restore-info : ctxt → string → maybe (ctxt-info × location) → ctxt
+ctxt-restore-info (mk-ctxt f syms i) x nothing = mk-ctxt f syms (trie-remove i x)
+ctxt-restore-info (mk-ctxt f syms i) x (just n) = mk-ctxt f syms (trie-insert i x n)
+
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v t (mk-ctxt filename syms i) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
@@ -186,6 +193,17 @@ ctxt-lookup-kind-var-def (mk-ctxt _ _ i) x | _ = nothing
 
 ctxt-binds-var : ctxt → var → 𝔹
 ctxt-binds-var (mk-ctxt _ _ i) x = trie-contains i x
+
+ctxt-defines-var : ctxt → var → 𝔹
+ctxt-defines-var (mk-ctxt _ _ i) x with trie-lookup i x
+ctxt-defines-var (mk-ctxt _ _ i) x | just (term-def _ _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | just (term-udef _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | just (type-def _ _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | just (type-udef _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | just (kind-def _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | just (rec-def _ _ , _) = tt
+ctxt-defines-var (mk-ctxt _ _ i) x | _ = ff
+----------------------------------------------------------------------
 
 ctxt-var-location : ctxt → var → location
 ctxt-var-location (mk-ctxt _ _ i) x with trie-lookup i x
