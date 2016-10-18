@@ -468,7 +468,7 @@ in the parse tree, and updates the Cedille info buffer."
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\d" "δ") 
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ")
 
-          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ; add some more of these
+          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ; add some more of these
  ))
 
 (provide 'cedille-mode)
