@@ -1,7 +1,10 @@
+import list.
 import nat.
 import pair.
 import true.
 
+
+% Work with Aaron
 zip-return-t ⇐ (Nat → ★) → Nat → ★ =
   λ L : Nat → ★ . λ n : Nat.
     ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
@@ -12,3 +15,54 @@ testList ⇐ Nat → ★ =
  λ n : Nat . if-t (eqnat n Z) · Bool · (if-t (eqnat n (S Z)) · Nat · False) .
 
 test ⇐ ★ = zip-return-t · testList (S (S Z)) !
+
+
+% Implementation from Fridlender and Indrika
+zero ⇐ ∀ X : ★ . X → X =
+  Λ X . λ a . a .
+  
+succ ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . ((List · B) → C) → (List · (A → B)) → List · A → C =
+  Λ A . Λ B . Λ C . λ n . λ fs . λ as . n (zap · A · B fs as) .
+
+one-num ⇐ ∀ A : ★ . ∀ B : ★ . (List · (A → B)) → (List · A) → (List · B) =
+  Λ A . Λ B . succ · A · B · (List · B) (zero · (List · B)) .
+
+two-num ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . (List · (A → B → C)) → (List · A) → (List · B) → (List · C) =
+  Λ A . Λ B . Λ C . succ · A · (B → C) · ((List · B) → (List · C)) (one-num · B · C) .
+
+% where cn is a numeral built from the above terms
+% and n is the size of the lists to zip over
+zipWithN ⇐ ∀ A : ★ . ∀ B : ★ . ((List · A) → B) → A → Nat → B =
+  Λ A . Λ B . λ cn . λ f . λ n . cn (repeat · A f n) .
+
+
+% instances - map and zipWith
+zipWith1 = zipWithN · (Nat → Nat) · ((List · Nat) → (List · Nat)) (one-num · Nat · Nat) .
+
+zipWith2 = zipWithN · (Nat → Nat → Nat) · ((List · Nat) → (List · Nat) → (List · Nat)) (two-num · Nat · Nat · Nat) .
+
+
+testList1 = (Cons · Nat (S Z) (Cons · Nat Z (Nil · Nat))) .
+
+testList2 = (Cons · Nat (S Z) (Cons · Nat (S Z) (Nil · Nat))) .
+
+map-test = zipWith1 (λ x . add x (S Z)) (S (S Z)) testList1 !
+
+zipWith-test = zipWith2 add (S (S Z)) testList1 testList2 !
+
+
+% lifting tests
+id ⇐ ∀ A : ★ . A → A = Λ A . λ x . x .
+
+id-lift ⇐ ★ → ★ = ↑ X . id · X : (☆ → ☆) .
+
+id-lift-test ⇐ ★ = id-lift · Bool !
+
+% implementation from Weirich and Casinghino
+arrTy ⇐ (Nat → ★) → Nat → ★ =
+  λ L : Nat → ★ . λ n : Nat.
+    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
+            · (λ p : Nat . λ T : ★ . T → (L p))
+	    · Bool .
+
+arrTy-test ⇐ ★ = arrTy · testList (S (S Z)) !
