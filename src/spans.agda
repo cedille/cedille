@@ -85,15 +85,15 @@ get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
 get-ctxt m Γ ss = m Γ Γ ss
 
 -- this returns the previous ctxt-info, if any, for the given variable
-spanM-push-term-decl : posinfo → var → type → spanM (maybe (ctxt-info × location))
+spanM-push-term-decl : posinfo → var → type → spanM (maybe sym-info)
 spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
 
 -- return previous ctxt-info, if any
-spanM-push-type-decl : posinfo → var → kind → spanM (maybe (ctxt-info × location))
+spanM-push-type-decl : posinfo → var → kind → spanM (maybe sym-info)
 spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
 
 -- restore ctxt-info for the variable with given posinfo
-spanM-restore-info : var → maybe (ctxt-info × location) → spanM ⊤
+spanM-restore-info : var → maybe sym-info → spanM ⊤
 spanM-restore-info x m Γ ss = triv , ctxt-restore-info Γ x m , ss
 
 set-ctxt : ctxt → spanM ⊤

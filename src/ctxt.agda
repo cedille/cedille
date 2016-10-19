@@ -44,19 +44,22 @@ data ctxt-info : Set where
   -- representing a declaration of a variable with no other information about it
   var-decl : ctxt-info
 
+sym-info : Set
+sym-info = ctxt-info × location
+
 data ctxt : Set where
   mk-ctxt : (filename : string) →
             (syms : trie (𝕃 string)) → -- map each filename to the symbols declared in that file
-            (i : trie (ctxt-info × location)) → -- map symbols (from Cedille files) to their ctxt-info and location
+            (i : trie sym-info) → -- map symbols (from Cedille files) to their ctxt-info and location
             ctxt
 
 new-ctxt : (filename : string) → ctxt
 new-ctxt filename = mk-ctxt filename empty-trie empty-trie
 
-ctxt-get-info : var → ctxt → maybe (ctxt-info × location)
+ctxt-get-info : var → ctxt → maybe sym-info
 ctxt-get-info v (mk-ctxt _ _ i) = trie-lookup i v
 
-ctxt-restore-info : ctxt → string → maybe (ctxt-info × location) → ctxt
+ctxt-restore-info : ctxt → string → maybe sym-info → ctxt
 ctxt-restore-info (mk-ctxt f syms i) x nothing = mk-ctxt f syms (trie-remove i x)
 ctxt-restore-info (mk-ctxt f syms i) x (just n) = mk-ctxt f syms (trie-insert i x n)
 

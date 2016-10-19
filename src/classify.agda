@@ -154,16 +154,16 @@ hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subs
 hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t)
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
-add-tk : posinfo → var → tk → spanM ⊤
+add-tk : posinfo → var → tk → spanM (maybe sym-info)
 add-tk pi x atk =
-  get-ctxt (λ Γ →
-    if (x =string ignored-var) then spanMok else
-       (let Γ' = helper Γ atk in
-          set-ctxt Γ' ≫span  
-          spanM-add (var-span Γ' pi x checking atk)))
-  where helper : ctxt → tk → ctxt
-        helper Γ (Tkk k) = ctxt-type-decl pi x k Γ
-        helper Γ (Tkt t) = ctxt-term-decl pi x t Γ
+    if (x =string ignored-var) then spanMr nothing else
+       (helper atk ≫=span λ mi → 
+        (get-ctxt λ Γ → 
+          spanM-add (var-span Γ pi x checking atk)) ≫span
+        spanMr mi)
+  where helper : tk → spanM (maybe sym-info)
+        helper (Tkk k) = spanM-push-type-decl pi x k 
+        helper (Tkt t) = spanM-push-term-decl pi x t 
 
 check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k))
@@ -301,11 +301,10 @@ check-termi (App t m t') tp =
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
-  get-ctxt (λ Γ → -- save the context here
-    add-tk pi' x atk ≫span 
+    add-tk pi' x atk ≫=span λ mi → 
     check-term t nothing ≫=span (λ mtp → 
-    set-ctxt Γ ≫span -- now restore the context
-    cont mtp))
+    spanM-restore-info x mi ≫span -- now restore the context
+    cont mtp)
 
   where cont : maybe type → spanM (maybe type)
         cont nothing = spanM-add (Lam-span pi l x (SomeClass atk) t []) ≫span 
@@ -331,11 +330,11 @@ check-termi (Lam pi l pi' x oc t) (just tp) with to-abs tp
 check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _ tp') =
   check-oc oc ≫span
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
-  get-ctxt (λ Γ →  -- save the context
+  get-ctxt (λ Γ → 
     spanM-add (this-span Γ atk oc (check-erasures l b)) ≫span
-    add-tk pi' x (lambda-bound-class-if oc atk) ≫span 
+    add-tk pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
     check-term t (just (rename-type Γ x' x (tk-is-type atk) tp')) ≫span
-    set-ctxt Γ) -- restore the saved context
+    spanM-restore-info x mi) 
   where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
         this-span _ _ NoClass tvs = Lam-span pi l x oc t tvs
         this-span Γ atk (SomeClass atk') tvs = 
@@ -663,14 +662,14 @@ check-typei (TpLambda pi pi' x atk body) (just k) with to-absk k
 check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' atk' _ k') =
    check-tk atk ≫span
    spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
-   get-ctxt (λ Γ → -- save ctxt
+   get-ctxt (λ Γ → 
    spanM-add (if conv-tk Γ atk atk' then
                 TpLambda-span pi x atk body checking [ kind-data k ]
               else
                 TpLambda-span pi x atk body checking (lambda-bound-var-conv-error x atk' atk [ kind-data k ])) ≫span
-   add-tk pi' x atk ≫span 
+   add-tk pi' x atk ≫=span λ mi → 
    check-type body (just (rename-kind Γ x' x (tk-is-type atk') k')) ≫span
-   set-ctxt Γ) -- restore ctxt
+   spanM-restore-info x mi)
 check-typei (TpLambda pi pi' x atk body) (just k) | nothing = 
    check-tk atk ≫span
    spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
@@ -681,12 +680,11 @@ check-typei (TpLambda pi pi' x atk body) (just k) | nothing =
 check-typei (TpLambda pi pi' x atk body) nothing =
   spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
-  get-ctxt (λ Γ → 
-    add-tk pi' x atk ≫span 
-    check-type body nothing ≫=span
-    cont ≫=span (λ mk →
-    set-ctxt Γ ≫span
-    spanMr mk))
+  add-tk pi' x atk ≫=span λ mi → 
+  check-type body nothing ≫=span
+  cont ≫=span (λ mk →
+  spanM-restore-info x mi ≫span
+  spanMr mk)
 
   where cont : maybe kind → spanM (maybe kind)
         cont nothing = 
@@ -702,11 +700,10 @@ check-typei (Abs pi b {- All or Pi -} pi' x atk body) k =
                (if-check-against-star-data "A type-level quantification" k)) ≫span
   spanM-add (punctuation-span "Forall" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
-  get-ctxt (λ Γ → 
-    add-tk pi' x atk ≫span
-    check-type body (just star) ≫span
-    set-ctxt Γ ≫span
-    return-star-when k)
+  add-tk pi' x atk ≫=span λ mi → 
+  check-type body (just star) ≫span
+  spanM-restore-info x mi ≫span
+  return-star-when k
   where helper : maybe kind → 𝕃 tagged-val
         helper nothing = [ kind-data star ]
         helper (just (Star _)) = [ kind-data star ]
@@ -834,12 +831,11 @@ check-typei (TpEq t1 t2) k =
 
   
 check-typei (Lft pi pi' X t l) k = 
-  get-ctxt (λ Γ → 
-    add-tk pi' X (Tkk star) ≫span
-    check-term t (just (liftingType-to-type X l)) ≫span
-    spanM-add (punctuation-span "Lift" pi (posinfo-plus pi 1)) ≫span
-    set-ctxt Γ ≫span
-    cont k (liftingType-to-kind l))
+  add-tk pi' X (Tkk star) ≫=span λ mi → 
+  check-term t (just (liftingType-to-type X l)) ≫span
+  spanM-add (punctuation-span "Lift" pi (posinfo-plus pi 1)) ≫span
+  spanM-restore-info X mi ≫span
+  cont k (liftingType-to-kind l)
   where cont : (outer : maybe kind) → kind → spanM (check-ret outer)
         cont nothing k = spanM-add (Lft-span pi X t synthesizing [ kind-data k ]) ≫span spanMr (just k)
         cont (just k') k = 
@@ -852,10 +848,9 @@ check-typei (Lft pi pi' X t l) k =
 check-typei (Iota pi pi' x (SomeType t1) t2) mk =
   spanM-add (Iota-span pi t2 (if-check-against-star-data "A iota-type" mk)) ≫span
   check-typei t1 (just star) ≫span
-  get-ctxt (λ Γ → 
-    add-tk pi' x (Tkt t1) ≫span 
-    check-typei t2 (just star) ≫span
-    set-ctxt Γ) ≫span
+  add-tk pi' x (Tkt t1) ≫=span λ mi → 
+  check-typei t2 (just star) ≫span
+  spanM-restore-info x mi ≫span
   return-star-when mk
 
 check-typei (Iota pi pi' x NoType t2) mk =
@@ -880,10 +875,9 @@ check-kind (KndPi pi pi' x atk k) =
   spanM-add (punctuation-span "Pi (kind)" pi (posinfo-plus pi 1)) ≫span
   spanM-add (KndPi-span pi x atk k checking) ≫span
   check-tk atk ≫span
-  get-ctxt (λ Γ → 
-    add-tk pi' x atk ≫span 
-    check-kind k ≫span
-    set-ctxt Γ)
+  add-tk pi' x atk ≫=span λ mi → 
+  check-kind k ≫span
+  spanM-restore-info x mi
 
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
