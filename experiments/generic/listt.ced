@@ -1,0 +1,12 @@
+import bool.
+import nat.
+
+𝒌listt ⇐ □ = (★ → ★ → ★) → ★ → ★.
+
+const ⇐ ★ → 𝒌listt → 𝒌listt =
+  λ h : ★ . λ t : 𝒌listt.
+    λ c : ★ → ★ → ★ . λ n : ★ .
+      c · h · (t · c · n) .
+
+nilt ⇐ 𝒌listt = λ c : ★ → ★ → ★ . λ n : ★ . n .
+test ⇐ 𝒌listt = const · Bool · (const · Nat · nilt) !
