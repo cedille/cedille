@@ -213,7 +213,9 @@ check-term subject (just tp) =
 check-type subject nothing = check-typei subject nothing
 check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k)))
 
-check-termi t (just (Mu pi pi' x k body)) = {!!}
+check-termi t (just (Mu pi pi' x k body)) =
+  get-ctxt (λ Γ → check-term t (just (subst-type Γ (Mu pi pi' x k body) x body)))
+
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span
   check-term t tp
