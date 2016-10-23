@@ -190,6 +190,7 @@ mutual
     Abs : posinfo → binder → posinfo → var → tk → type → type
     Iota : posinfo → posinfo → var → optType → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
+    Mu : posinfo → posinfo → var → kind → type → type
     NoSpans : type → posinfo → type
     TpApp : type → type → type
     TpAppt : type → term → type
@@ -344,16 +345,17 @@ data ParseTreeT : Set where
   parsed-anychar-bar-63 : ParseTreeT
   parsed-anychar-bar-64 : ParseTreeT
   parsed-anychar-bar-65 : ParseTreeT
+  parsed-anychar-bar-66 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-67 : ParseTreeT
   parsed-aws-bar-68 : ParseTreeT
   parsed-aws-bar-69 : ParseTreeT
+  parsed-aws-bar-70 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-66 : ParseTreeT
+  parsed-comment-star-67 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-71 : ParseTreeT
+  parsed-ows-star-72 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-70 : ParseTreeT
+  parsed-ws-plus-71 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -569,6 +571,7 @@ mutual
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Iota x0 x1 x2 x3 x4) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (optTypeToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
+  typeToString (Mu x0 x1 x2 x3 x4) = "(Mu" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
@@ -709,16 +712,17 @@ ParseTreeToString parsed-anychar-bar-62 = "[anychar-bar-62]"
 ParseTreeToString parsed-anychar-bar-63 = "[anychar-bar-63]"
 ParseTreeToString parsed-anychar-bar-64 = "[anychar-bar-64]"
 ParseTreeToString parsed-anychar-bar-65 = "[anychar-bar-65]"
+ParseTreeToString parsed-anychar-bar-66 = "[anychar-bar-66]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-67 = "[aws-bar-67]"
 ParseTreeToString parsed-aws-bar-68 = "[aws-bar-68]"
 ParseTreeToString parsed-aws-bar-69 = "[aws-bar-69]"
+ParseTreeToString parsed-aws-bar-70 = "[aws-bar-70]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-66 = "[comment-star-66]"
+ParseTreeToString parsed-comment-star-67 = "[comment-star-67]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-71 = "[ows-star-71]"
+ParseTreeToString parsed-ows-star-72 = "[ows-star-72]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-70 = "[ws-plus-70]"
+ParseTreeToString parsed-ws-plus-71 = "[ws-plus-71]"
 
 ------------------------------------------
 -- Reorganizing rules

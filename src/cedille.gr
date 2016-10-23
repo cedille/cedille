@@ -77,6 +77,7 @@ RhoPlain : rho -> 'ρ' .
 RhoPlus : rho -> 'ρ+' .
 
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
+% Fold : term -> ! 'fold' ows '[' ows ! type ows ']' term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .
 App : aterm -> aterm ws maybeErased aterm .
@@ -125,6 +126,8 @@ Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
 TpArrow : type -> ltype ows '→' ows type.
 embed : type -> ltype.
 
+Mu : type -> ! 'μ' ows ! var ows ':' ows kind ows '.' ows type.
+
 NoSpans : type -> '{^' type ! '^}' . % intended for internal use only
 
 Lft : ltype -> ! '↑' ows ! var ows '.' ows term ows ':' ows lliftingType .
@@ -169,7 +172,7 @@ fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ'.
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' .
 
 comment => '%' anychar* '\n'.
 

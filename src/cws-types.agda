@@ -35,21 +35,21 @@ data ParseTreeT : Set where
   parsed-alpha-range-1 : ParseTreeT
   parsed-alpha-range-2 : ParseTreeT
   parsed-anychar : ParseTreeT
-  parsed-anychar-bar-53 : ParseTreeT
   parsed-anychar-bar-54 : ParseTreeT
   parsed-anychar-bar-55 : ParseTreeT
   parsed-anychar-bar-56 : ParseTreeT
   parsed-anychar-bar-57 : ParseTreeT
+  parsed-anychar-bar-58 : ParseTreeT
   parsed-anynonwschar : ParseTreeT
-  parsed-anynonwschar-bar-62 : ParseTreeT
   parsed-anynonwschar-bar-63 : ParseTreeT
+  parsed-anynonwschar-bar-64 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-59 : ParseTreeT
   parsed-aws-bar-60 : ParseTreeT
+  parsed-aws-bar-61 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-58 : ParseTreeT
+  parsed-comment-star-59 : ParseTreeT
   parsed-nonws : ParseTreeT
-  parsed-nonws-plus-64 : ParseTreeT
+  parsed-nonws-plus-65 : ParseTreeT
   parsed-num : ParseTreeT
   parsed-num-plus-5 : ParseTreeT
   parsed-numone : ParseTreeT
@@ -103,8 +103,9 @@ data ParseTreeT : Set where
   parsed-otherpunct-bar-50 : ParseTreeT
   parsed-otherpunct-bar-51 : ParseTreeT
   parsed-otherpunct-bar-52 : ParseTreeT
+  parsed-otherpunct-bar-53 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-61 : ParseTreeT
+  parsed-ws-plus-62 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -136,21 +137,21 @@ ParseTreeToString parsed-alpha-bar-3 = "[alpha-bar-3]"
 ParseTreeToString parsed-alpha-range-1 = "[alpha-range-1]"
 ParseTreeToString parsed-alpha-range-2 = "[alpha-range-2]"
 ParseTreeToString parsed-anychar = "[anychar]"
-ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
 ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
 ParseTreeToString parsed-anychar-bar-55 = "[anychar-bar-55]"
 ParseTreeToString parsed-anychar-bar-56 = "[anychar-bar-56]"
 ParseTreeToString parsed-anychar-bar-57 = "[anychar-bar-57]"
+ParseTreeToString parsed-anychar-bar-58 = "[anychar-bar-58]"
 ParseTreeToString parsed-anynonwschar = "[anynonwschar]"
-ParseTreeToString parsed-anynonwschar-bar-62 = "[anynonwschar-bar-62]"
 ParseTreeToString parsed-anynonwschar-bar-63 = "[anynonwschar-bar-63]"
+ParseTreeToString parsed-anynonwschar-bar-64 = "[anynonwschar-bar-64]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-59 = "[aws-bar-59]"
 ParseTreeToString parsed-aws-bar-60 = "[aws-bar-60]"
+ParseTreeToString parsed-aws-bar-61 = "[aws-bar-61]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-58 = "[comment-star-58]"
+ParseTreeToString parsed-comment-star-59 = "[comment-star-59]"
 ParseTreeToString parsed-nonws = "[nonws]"
-ParseTreeToString parsed-nonws-plus-64 = "[nonws-plus-64]"
+ParseTreeToString parsed-nonws-plus-65 = "[nonws-plus-65]"
 ParseTreeToString parsed-num = "[num]"
 ParseTreeToString parsed-num-plus-5 = "[num-plus-5]"
 ParseTreeToString parsed-numone = "[numone]"
@@ -204,8 +205,9 @@ ParseTreeToString parsed-otherpunct-bar-49 = "[otherpunct-bar-49]"
 ParseTreeToString parsed-otherpunct-bar-50 = "[otherpunct-bar-50]"
 ParseTreeToString parsed-otherpunct-bar-51 = "[otherpunct-bar-51]"
 ParseTreeToString parsed-otherpunct-bar-52 = "[otherpunct-bar-52]"
+ParseTreeToString parsed-otherpunct-bar-53 = "[otherpunct-bar-53]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-61 = "[ws-plus-61]"
+ParseTreeToString parsed-ws-plus-62 = "[ws-plus-62]"
 
 ------------------------------------------
 -- Reorganizing rules

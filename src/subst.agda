@@ -61,6 +61,10 @@ substh-type Γ ρ t x (Abs pi b pi' y atk t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     Abs pi b pi' y' (substh-tk Γ ρ t x atk)
       (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
+substh-type Γ ρ t x (Mu pi pi' y k t') =
+  let y' = subst-rename-var-if Γ ρ x y t in
+    Mu pi pi' y' (substh-kind Γ ρ t x k) 
+      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 

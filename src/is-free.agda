@@ -54,6 +54,9 @@ is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lte
 is-free-in-type ce (inj₁ x) (Abs _ _ _ x' atk t) = is-free-in-tk ce (inj₁ x) atk || (~ (x =string x') && is-free-in-type ce (inj₁ x) t)
 is-free-in-type ce (inj₂ (Γ , t)) (Abs _ _ _ x' atk t') =
   is-free-in-tk ce (inj₂ (Γ , t)) atk || is-free-in-type ce (inj₂ (Γ , stringset-insert t x')) t'
+is-free-in-type ce (inj₁ x) (Mu _ _ x' k t) = is-free-in-kind ce (inj₁ x) k || (~(x =string x') && (is-free-in-type ce (inj₁ x) t))
+is-free-in-type ce (inj₂ (Γ , t)) (Mu _ _ x' k t') =
+  is-free-in-kind ce (inj₂ (Γ , t)) k || is-free-in-type ce (inj₂ (Γ , stringset-insert t x')) t'
 is-free-in-type ce (inj₁ x) (TpLambda _ _ x' atk t) = 
   is-free-in-tk ce (inj₁ x) atk || (~ (x =string x') && is-free-in-type ce (inj₁ x) t) 
 is-free-in-type ce (inj₂ t) (TpLambda _ _ x' atk t') = 

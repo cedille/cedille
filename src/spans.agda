@@ -352,6 +352,10 @@ TpQuant-span is-pi pi x atk body check tvs =
   mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
        pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
+TpMu-span : posinfo → var → kind → type → checking-mode → 𝕃 tagged-val → span
+TpMu-span pi x knd body check tvs =
+  mk-span "Recursive type" pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
+
 TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → span
 TpLambda-span pi x atk body check tvs =
   mk-span "Type-level lambda abstraction" pi (type-end-pos body)

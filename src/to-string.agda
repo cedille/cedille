@@ -84,6 +84,8 @@ term-to-stringh toplevel p (Chi _ T t') = "(χ " ^ maybeAtype-to-string T ^ " - 
 type-to-stringh toplevel p (Abs pi b pi' x t t') = 
   parens-unless toplevel (is-abs p)
     (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string t ^ " . " ^ type-to-stringh ff (Abs pi b pi' x t t') t')
+type-to-stringh toplevel p (Mu pi pi' x k t) =
+  parens-unless toplevel (is-abs p) ("μ " ^ x ^ " : " ^ (kind-to-string ff k) ^ " . " ^ type-to-stringh ff (Mu pi pi' x k t) t)
 type-to-stringh toplevel p (TpLambda pi pi' x tk t) = 
   parens-unless toplevel (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string tk ^ " . " ^ type-to-stringh ff (TpLambda pi pi' x tk t) t )
 type-to-stringh toplevel p (Iota pi pi' x m t) = parens-unless toplevel (is-abs p) ("ι " ^ x ^ optType-to-string m ^ " . " 

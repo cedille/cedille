@@ -66,6 +66,7 @@ term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
+type-start-pos (Mu pi _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
 type-start-pos (Iota pi _ _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
@@ -115,6 +116,7 @@ term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
+type-end-pos (Mu pi _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
 type-end-pos (Iota _ _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
@@ -437,6 +439,7 @@ is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
+is-equational (Mu _ _ _ k t) = is-equational-kind k || is-equational t
 is-equational (Iota _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
 is-equational (Iota _ _ _ _ t2) = is-equational t2
 is-equational (NoSpans t _) = is-equational t

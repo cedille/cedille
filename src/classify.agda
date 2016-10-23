@@ -657,7 +657,6 @@ check-typei (TpVar pi x) mk =
                            (error-data "The computed kind does not match the expected kind." :: 
                             expected-kind k ::
                             [ kind-data k' ]))
-
 check-typei (TpLambda pi pi' x atk body) (just k) with to-absk k 
 check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' atk' _ k') =
    check-tk atk ≫span
@@ -709,6 +708,17 @@ check-typei (Abs pi b {- All or Pi -} pi' x atk body) k =
         helper (just (Star _)) = [ kind-data star ]
         helper (just k) = error-data "A type-level quantification is being checked against a kind other than ★" ::
                           expected-kind k :: []
+
+check-typei (Mu pi pi' x knd body) k =
+  spanM-add (TpMu-span pi x knd body (maybe-to-checking k)
+              [] ) ≫span
+  spanM-add (punctuation-span "Mu" pi (posinfo-plus pi 1)) ≫span
+  check-tk (Tkk knd) ≫span
+  get-ctxt (λ Γ →
+    add-tk pi' x (Tkk knd) ≫span
+    check-type body (just star) ≫span
+    set-ctxt Γ ≫span
+    return-star-when k)
 
 check-typei (TpArrow t1 t2) k = 
   spanM-add (TpArrow-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An arrow type" k)) ≫span
