@@ -213,6 +213,7 @@ check-term subject (just tp) =
 check-type subject nothing = check-typei subject nothing
 check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k)))
 
+check-termi t (just (Mu pi pi' x k body)) = {!!}
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span
   check-term t tp
@@ -714,11 +715,10 @@ check-typei (Mu pi pi' x knd body) k =
               [] ) ≫span
   spanM-add (punctuation-span "Mu" pi (posinfo-plus pi 1)) ≫span
   check-tk (Tkk knd) ≫span
-  get-ctxt (λ Γ →
-    add-tk pi' x (Tkk knd) ≫span
-    check-type body (just star) ≫span
-    set-ctxt Γ ≫span
-    return-star-when k)
+  add-tk pi' x (Tkk knd) ≫=span λ mi →
+  check-type body (just star) ≫span
+  spanM-restore-info x mi ≫span
+  return-star-when k
 
 check-typei (TpArrow t1 t2) k = 
   spanM-add (TpArrow-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An arrow type" k)) ≫span
