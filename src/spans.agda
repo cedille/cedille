@@ -495,6 +495,18 @@ Delta-span pi t check tvs = mk-span "Delta" pi (term-end-pos t)
                         [ explain ("A term for proving any formula one wishes, given a proof of a beta-equivalence which is "
                                   ^ "false.")])
 
+Fold-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
+Fold-span pi t check tvs = mk-span "Fold" pi (term-end-pos t)
+                       (checking-data check :: ll-data-term :: tvs ++
+                       [ explain ("A primitive proving that a term that inhabits the unfolding of a recursive type"
+                                  ^ "inhabits that recursive type.")])
+
+Unfold-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
+Unfold-span pi t check tvs = mk-span "Unfold" pi (term-end-pos t)
+                       (checking-data check :: ll-data-term :: tvs ++
+                       [ explain ("A primitive proving that a term that inhabits a recursive type"
+                                  ^ "inhabits the unfolding of that recursive type.")])
+
 PiInj-span : posinfo → num → term → checking-mode → 𝕃 tagged-val → span
 PiInj-span pi n t check tvs = mk-span "Pi proof" pi (term-end-pos t) 
                           (checking-data check :: ll-data-term :: tvs ++
