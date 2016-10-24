@@ -77,7 +77,8 @@ RhoPlain : rho -> 'ρ' .
 RhoPlus : rho -> 'ρ+' .
 
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
-% Fold : term -> ! 'fold' ows '[' ows ! type ows ']' term .
+Fold : term -> ! 'φ' ows '[' ows ! type ows ']' ows term .
+Unfold : term -> ! 'υ' ows '[' ows ! type ows ']' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .
 App : aterm -> aterm ws maybeErased aterm .

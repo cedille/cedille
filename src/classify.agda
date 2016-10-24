@@ -213,9 +213,6 @@ check-term subject (just tp) =
 check-type subject nothing = check-typei subject nothing
 check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k)))
 
-check-termi t (just (Mu pi pi' x k body)) =
-  get-ctxt (λ Γ → check-term t (just (subst-type Γ (Mu pi pi' x k body) x body)))
-
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span
   check-term t tp
@@ -233,6 +230,22 @@ check-termi (Var pi x) mtp =
           check-termi-return Γ (Var pi x) tp
         cont (just tp) Γ | just tp' = 
           spanM-add (Var-span Γ pi x checking (check-for-type-mismatch Γ "synthesized" tp tp'))
+
+check-termi (Fold _ _ (Mu pi pi' x k body) t) tp =
+  get-ctxt (cont tp)
+  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
+        cont nothing Γ = spanM-add (Fold-span pi t synthesizing [])  ≫span
+          check-termi-return Γ t (subst-type Γ (Mu pi pi' x k body) x body)
+        cont (just tp) Γ = spanM-add (Fold-span pi t checking []) ≫span
+          check-termi t (just (subst-type Γ (Mu pi pi' x k body) x body))
+
+check-termi (Unfold _ _ (Mu pi pi' x k body) t) tp =
+  get-ctxt (cont tp)
+  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
+        cont nothing Γ = spanM-add (Unfold-span pi t synthesizing []) ≫span
+          check-termi-return Γ t (Mu pi pi' x k body)
+        cont (just tp) Γ = spanM-add (Unfold-span pi t checking []) ≫span
+          check-termi t (just (subst-type Γ (Mu pi pi' x k body) x body))
 
 check-termi (AppTp t tp') tp =
   check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
@@ -815,6 +828,7 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Chi x x₁ t) = var-spans-term t
         var-spans-term (Delta x t) = var-spans-term t
         var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
+        var-spans-term (Fold pi pi' tp t) = var-spans-term t
         var-spans-term (Hole x) = spanMok
         var-spans-term (Lam pi l pi' x _ t) =
           get-ctxt (λ Γ →
@@ -829,6 +843,7 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
         var-spans-term (Sigma x t) = var-spans-term t
         var-spans-term (Theta x x₁ t x₂) = var-spans-term t
+        var-spans-term (Unfold pi pi' tp t) = var-spans-term t
         var-spans-term (Var pi x) =
           get-ctxt (λ Γ →
             spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []
