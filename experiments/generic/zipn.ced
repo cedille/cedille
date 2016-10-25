@@ -2,6 +2,9 @@ import list.
 import nat.
 import pair.
 import true.
+import vector.
+
+import listt.
 
 
 % Work with Aaron
@@ -35,12 +38,25 @@ two-num ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . (List · (A → B → C)) 
 zipWithN ⇐ ∀ A : ★ . ∀ B : ★ . ((List · A) → B) → A → Nat → B =
   Λ A . Λ B . λ cn . λ f . λ n . cn (repeat · A f n) .
 
+% Vector implementation
+zeroV = zero .
+
+succV ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Π n : Nat . ((Vector · B n) → C) → (Vector · (A → B) n) → Vector · A n → C =
+  Λ A . Λ B . Λ C . λ vN . λ n . λ fs . λ as . n (Vzap · A · B vN fs as) .
+
+one-numV ⇐ ∀ A : ★ . ∀ B : ★ . Π n : Nat . (Vector · (A → B) n) → (Vector · A n) → (Vector · B n) =
+  Λ A . Λ B . λ n . succV · A · B · (Vector · B n) n (zeroV · (Vector · B n)) .
+
+two-numV ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Π n : Nat . (Vector · (A → B → C) n) → (Vector · A n) → (Vector · B n) → (Vector · C n) =
+  Λ A . Λ B . Λ C . λ n . succV · A · (B → C) · ((Vector · B n) → (Vector · C n)) n (one-numV · B · C n) .
+
+zipWithNV ⇐ ∀ A : ★ . ∀ B : ★ . Π n : Nat . ((Vector · A n) → B) → A → B =
+  Λ A . Λ B . λ n . λ cn . λ f . cn (Vrepeat · A n f) .
 
 % instances - map and zipWith
 zipWith1 = zipWithN · (Nat → Nat) · ((List · Nat) → (List · Nat)) (one-num · Nat · Nat) .
 
 zipWith2 = zipWithN · (Nat → Nat → Nat) · ((List · Nat) → (List · Nat) → (List · Nat)) (two-num · Nat · Nat · Nat) .
-
 
 testList1 = (Cons · Nat (S Z) (Cons · Nat Z (Nil · Nat))) .
 
@@ -66,3 +82,8 @@ arrTy ⇐ (Nat → ★) → Nat → ★ =
 	    · Bool .
 
 arrTy-test ⇐ ★ = arrTy · testList (S (S Z)) !
+
+% attempt with lists of types
+arrTy2 ⇐ 𝒌NElistt → ★ =
+  λ L : 𝒌NElistt . L · (λ h : ★ . λ r : 𝒌NElistt . h → r) · (λ b : ★ . b) · (List · Bool) .
+
