@@ -12,7 +12,7 @@ const ⇐ ★ → 𝒌listt → 𝒌listt =
       c · h · (t · c · n) .
 
 nilt ⇐ 𝒌listt = λ c : ★ → ★ → ★ . λ n : ★ . n .
-test ⇐ 𝒌listt = const · Bool · (const · Nat · nilt) !
+test-listt ⇐ 𝒌listt = const · Bool · (const · Nat · nilt) !
 
 % list of "type-constructors"
 𝒌listt2 ⇐ □ = ((★ → ★ ) → ★ → ★ ) → ★ → ★ .
@@ -23,17 +23,4 @@ const2 ⇐ (★ → ★ ) → 𝒌listt2 → 𝒌listt2 =
       c · h · (t · c · n) .
 
 nilt2 ⇐ 𝒌listt2 = λ c : (★ → ★ ) → ★ → ★ . λ n : ★ . n .
-test2 ⇐ 𝒌listt2 = const2 · List · (const2 · (Pair · Bool) · nilt2) !
-
-% alternate version to get around base case issue
-% non-empty list
-𝒌NElistt ⇐ □ = (★ → ★ → ★ ) → (★ → ★ ) → ★ → ★ .
-
-NEconst ⇐ ★ → 𝒌NElistt → 𝒌NElistt =
-  λ h : ★ . λ t : 𝒌NElistt .
-    λ c : ★ → ★ → ★ . λ n : ★ → ★  . λ b : ★ .
-      c · h · (t · c · n · b) .
-
-NEnilt ⇐ 𝒌NElistt = λ c : ★ → ★ → ★ . λ n : ★ → ★ . λ b : ★ . n · b .
-
-test3 ⇐ 𝒌NElistt = NEconst · Bool · (NEconst · Nat · NEnilt) !
+test2-listt ⇐ 𝒌listt2 = const2 · List · (const2 · (Pair · Bool) · nilt2) !

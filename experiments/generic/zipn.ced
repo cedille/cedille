@@ -84,6 +84,7 @@ arrTy ⇐ (Nat → ★) → Nat → ★ =
 arrTy-test ⇐ ★ = arrTy · testList (S (S Z)) !
 
 % attempt with lists of types
-arrTy2 ⇐ 𝒌NElistt → ★ =
-  λ L : 𝒌NElistt . L · (λ h : ★ . λ r : 𝒌NElistt . h → r) · (λ b : ★ . b) · (List · Bool) .
+arrTy3 ⇐ 𝒌listt → ★ =
+  λ L : 𝒌listt . L · (λ h : ★ . λ r : ★ . h → r) · Bool .
 
+arrTy3-test ⇐ ★ = arrTy3 · test-listt !
