@@ -1,90 +1,26 @@
 import list.
 import nat.
-import pair.
-import true.
 import vector.
+import bool.
 
 import listt.
 
 
-% Work with Aaron
-zip-return-t ⇐ (Nat → ★) → Nat → ★ =
-  λ L : Nat → ★ . λ n : Nat.
-    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
-            · (λ p : Nat . λ T : ★ . Pair · (L p) · T)
-	    · True .
+% type computation functions
+arrTy ⇐ 𝒌listt → ★ → ★ =
+  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . h → r) · ret .
 
-testList ⇐ Nat → ★ =
- λ n : Nat . if-t (eqnat n Z) · Bool · (if-t (eqnat n (S Z)) · Nat · False) .
+arrTy-test ⇐ ★ = arrTy · test-listt · (List · Bool) !
 
-test ⇐ ★ = zip-return-t · testList (S (S Z)) !
+arrTyList ⇐ 𝒌listt → ★ → ★ =
+  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . (List · h) → r) · (List · ret) .
 
-
-% Implementation from Fridlender and Indrika
-zero ⇐ ∀ X : ★ . X → X =
-  Λ X . λ a . a .
-  
-succ ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . ((List · B) → C) → (List · (A → B)) → List · A → C =
-  Λ A . Λ B . Λ C . λ n . λ fs . λ as . n (zap · A · B fs as) .
-
-one-num ⇐ ∀ A : ★ . ∀ B : ★ . (List · (A → B)) → (List · A) → (List · B) =
-  Λ A . Λ B . succ · A · B · (List · B) (zero · (List · B)) .
-
-two-num ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . (List · (A → B → C)) → (List · A) → (List · B) → (List · C) =
-  Λ A . Λ B . Λ C . succ · A · (B → C) · ((List · B) → (List · C)) (one-num · B · C) .
-
-% where cn is a numeral built from the above terms
-% and n is the size of the lists to zip over
-zipWithN ⇐ ∀ A : ★ . ∀ B : ★ . ((List · A) → B) → A → Nat → B =
-  Λ A . Λ B . λ cn . λ f . λ n . cn (repeat · A f n) .
-
-% Vector implementation
-zeroV = zero .
-
-succV ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Π n : Nat . ((Vector · B n) → C) → (Vector · (A → B) n) → Vector · A n → C =
-  Λ A . Λ B . Λ C . λ vN . λ n . λ fs . λ as . n (Vzap · A · B vN fs as) .
-
-one-numV ⇐ ∀ A : ★ . ∀ B : ★ . Π n : Nat . (Vector · (A → B) n) → (Vector · A n) → (Vector · B n) =
-  Λ A . Λ B . λ n . succV · A · B · (Vector · B n) n (zeroV · (Vector · B n)) .
-
-two-numV ⇐ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Π n : Nat . (Vector · (A → B → C) n) → (Vector · A n) → (Vector · B n) → (Vector · C n) =
-  Λ A . Λ B . Λ C . λ n . succV · A · (B → C) · ((Vector · B n) → (Vector · C n)) n (one-numV · B · C n) .
-
-zipWithNV ⇐ ∀ A : ★ . ∀ B : ★ . Π n : Nat . ((Vector · A n) → B) → A → B =
-  Λ A . Λ B . λ n . λ cn . λ f . cn (Vrepeat · A n f) .
-
-% instances - map and zipWith
-zipWith1 = zipWithN · (Nat → Nat) · ((List · Nat) → (List · Nat)) (one-num · Nat · Nat) .
-
-zipWith2 = zipWithN · (Nat → Nat → Nat) · ((List · Nat) → (List · Nat) → (List · Nat)) (two-num · Nat · Nat · Nat) .
-
-testList1 = (Cons · Nat (S Z) (Cons · Nat Z (Nil · Nat))) .
-
-testList2 = (Cons · Nat (S Z) (Cons · Nat (S Z) (Nil · Nat))) .
-
-map-test = zipWith1 (λ x . add x (S Z)) (S (S Z)) testList1 !
-
-zipWith-test = zipWith2 add (S (S Z)) testList1 testList2 !
+arrTyList-test ⇐ ★ = arrTyList · test-listt · (List · Bool) !
 
 
-% lifting tests
-id ⇐ ∀ A : ★ . A → A = Λ A . λ x . x .
+% nmap functions
+nlist-helper ⇐ Π In : 𝒌listt . Π Ret : ★ . Nat → (List · (arrTy · In · Ret)) → (arrTyList · In · Ret) =
+  λ In . λ Ret . λ m . λ fs . ● .
 
-id-lift ⇐ ★ → ★ = ↑ X . id · X : (☆ → ☆) .
-
-id-lift-test ⇐ ★ = id-lift · Bool !
-
-% implementation from Weirich and Casinghino
-arrTy ⇐ (Nat → ★) → Nat → ★ =
-  λ L : Nat → ★ . λ n : Nat.
-    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
-            · (λ p : Nat . λ T : ★ . T → (L p))
-	    · Bool .
-
-arrTy-test ⇐ ★ = arrTy · testList (S (S Z)) !
-
-% attempt with lists of types
-arrTy3 ⇐ 𝒌listt → ★ =
-  λ L : 𝒌listt . L · (λ h : ★ . λ r : ★ . h → r) · Bool .
-
-arrTy3-test ⇐ ★ = arrTy3 · test-listt !
+nlist-map ⇐ Π In : 𝒌listt . Π Ret : ★ . Nat → (arrTy · In · Ret) → (arrTyList · In · Ret) =
+  λ In . λ Ret . λ m . λ f . nlist-helper · In · Ret m (repeat · (arrTy · In · Ret) f m) .
