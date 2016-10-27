@@ -18,9 +18,3 @@ arrTyList ⇐ 𝒌listt → ★ → ★ =
 arrTyList-test ⇐ ★ = arrTyList · test-listt · (List · Bool) !
 
 
-% nmap functions
-nlist-helper ⇐ Π In : 𝒌listt . Π Ret : ★ . Nat → (List · (arrTy · In · Ret)) → (arrTyList · In · Ret) =
-  λ In . λ Ret . λ m . λ fs . ● .
-
-nlist-map ⇐ Π In : 𝒌listt . Π Ret : ★ . Nat → (arrTy · In · Ret) → (arrTyList · In · Ret) =
-  λ In . λ Ret . λ m . λ f . nlist-helper · In · Ret m (repeat · (arrTy · In · Ret) f m) .
