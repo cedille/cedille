@@ -112,7 +112,9 @@ hnf{TYPE} Γ (unfold b b' _) (TpVar pi x) | just tp = tp
 hnf{TYPE} Γ (unfold b ff _) (TpVar pi x) | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing with ctxt-lookup-type-var-rec-def Γ x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing | nothing = TpVar pi x
-hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing | just t = t 
+hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) | nothing | just t = t
+hnf{TYPE} Γ (unfold b ff _) (Mu pi pi' x knd body) = (Mu pi pi' x knd body)
+hnf{TYPE} Γ (unfold b tt b'') (Mu pi pi' x knd body) = hnf Γ (unfold b ff b'') (subst-type Γ (Mu pi pi' x knd body) x body)
 --hnf{TYPE} Γ no-unfolding (TpVar pi x) = TpVar pi x
 hnf{TYPE} Γ u (TpAppt tp t) with hnf Γ u tp
 hnf{TYPE} Γ u (TpAppt _ t) | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp)
@@ -228,6 +230,8 @@ conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && co
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') = 
   eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+conv-type-norm Γ (Mu pi1 pi2 x k body) (Mu pi1' pi2' x' k' body') =
+  conv-tk Γ (Tkk k) (Tkk k') && conv-type (ctxt-rename pi1 x x' (ctxt-var-decl-if pi1' x' Γ)) body body'
 conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'

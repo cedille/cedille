@@ -152,6 +152,7 @@ hnf-instantiate-iota : ctxt → term → type → (allow-typed-iota : 𝔹) → 
 hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp
 hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t)
 hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t)
+hnf-instantiate-iota Γ subject _ _ | Mu pi pi' x k body = hnf Γ unfold-head-rec-defs (Mu pi pi' x k body)
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk : posinfo → var → tk → spanM (maybe sym-info)
@@ -231,21 +232,33 @@ check-termi (Var pi x) mtp =
         cont (just tp) Γ | just tp' = 
           spanM-add (Var-span Γ pi x checking (check-for-type-mismatch Γ "synthesized" tp tp'))
 
-check-termi (Fold _ _ (Mu pi pi' x k body) t) tp =
-  get-ctxt (cont tp)
-  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
-        cont nothing Γ = spanM-add (Fold-span pi t synthesizing [])  ≫span
-          check-termi-return Γ t (subst-type Γ (Mu pi pi' x k body) x body)
-        cont (just tp) Γ = spanM-add (Fold-span pi t checking []) ≫span
-          check-termi t (just (subst-type Γ (Mu pi pi' x k body) x body))
+--check-termi (Fold pi pi' tp t) mtp =
+--  get-ctxt (cont mtp)
+--  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
+--        cont nothing Γ with (hnf Γ unfold-head tp)
+--        cont nothing Γ | (Mu pi'' pi''' x k body) = spanM-add (Fold-span pi t synthesizing []) ≫span
+--          check-termi-return Γ t (subst-type Γ (Mu pi'' pi''' x k body) x body)
+--        cont nothing Γ | _ = check-termi-return Γ t tp  
+--        cont (just tp') Γ with (hnf Γ unfold-head tp)
+--        cont (just tp') Γ | (Mu pi'' pi''' x k body) =
+--          spanM-add (Fold-span pi t checking (check-for-type-mismatch Γ "synthesized" tp' (subst-type Γ (Mu pi'' pi''' x k body) x body))) ≫span
+--          check-termi t (just (subst-type Γ (Mu pi'' pi''' x k body) x body))
+--        cont (just tp') Γ | _ = spanM-add (Fold-span
+--          pi t synthesizing (error-data "Attempted fold with target type not recursive" :: []))
 
-check-termi (Unfold _ _ (Mu pi pi' x k body) t) tp =
-  get-ctxt (cont tp)
-  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
-        cont nothing Γ = spanM-add (Unfold-span pi t synthesizing []) ≫span
-          check-termi-return Γ t (Mu pi pi' x k body)
-        cont (just tp) Γ = spanM-add (Unfold-span pi t checking []) ≫span
-          check-termi t (just (subst-type Γ (Mu pi pi' x k body) x body))
+--check-termi (Unfold pi pi' tp t) mtp =
+--  get-ctxt (cont mtp)
+--  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
+--        cont nothing Γ with (hnf Γ unfold-head tp)
+--        cont nothing Γ | (Mu pi'' pi''' x k body) = spanM-add (Fold-span pi t synthesizing []) ≫span
+--          check-termi-return Γ t (subst-type Γ (Mu pi'' pi''' x k body) x body)
+--        cont nothing Γ | _ = check-termi-return Γ t tp  
+--        cont (just tp') Γ with (hnf Γ unfold-head tp)
+--        cont (just tp') Γ | (Mu pi'' pi''' x k body) =
+--          spanM-add (Unfold-span pi t checking (check-for-type-mismatch Γ "synthesized" tp tp')) ≫span
+--          check-termi t (just (Mu pi'' pi''' x k body))
+--        cont (just tp') Γ | _ = spanM-add (Fold-span
+--          pi t synthesizing (error-data "Attempted unfold with source type not recursive" :: []))
 
 check-termi (AppTp t tp') tp =
   check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
