@@ -124,7 +124,9 @@ Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
 TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
 Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
-TpArrow : type -> ltype ows '→' ows type.
+TpArrow : type -> ltype ows arrowtype ows type.
+ErasedArrow: arrowtype -> '⇁'.
+UnerasedArrow: arrowtype -> '→'.
 embed : type -> ltype.
 
 Mu : type -> ! 'μ' ows ! var ows ':' ows kind ows '.' ows type.
@@ -182,7 +184,7 @@ ws => aws+.
 ows => aws* .
 
 Vars
-  p p2 c b w x y z zz e1 e2
+  p p2 c b w x y z zz e1 e2 t
 
 Rules
   App(x,e1,App(y,e2,z)) -> App(App(x,e1,y),e2,z)
@@ -195,7 +197,7 @@ Rules
 
   LiftArrow(LiftArrow(x,y),z) -> LiftArrow(x,LiftArrow(y,z))
   LiftArrow(LiftTpArrow(x,y),z) -> LiftTpArrow(x,LiftArrow(y,z))
-  LiftTpArrow(TpArrow(x,y),z) -> LiftTpArrow(x,LiftTpArrow(y,z))
+  LiftTpArrow(TpArrow(x,t,y),z) -> LiftTpArrow(x,LiftTpArrow(y,z))
   LiftArrow(LiftPi(p,w,x,y),z) -> LiftPi(p,w,x,LiftArrow(y,z))
 
   KndArrow(KndArrow(x,y),z) -> KndArrow(x,KndArrow(y,z))

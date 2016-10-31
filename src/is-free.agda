@@ -71,7 +71,7 @@ is-free-in-type ce (inj₂ (Γ , t)) (Lft _ _ X t' l) =
   is-free-in-liftingType ce (inj₂ (Γ , t)) l || (is-free-in-term ce (inj₂ (Γ , stringset-insert t X)) t')
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'
-is-free-in-type ce x (TpArrow t t') = is-free-in-type ce x t || is-free-in-type ce x t'
+is-free-in-type ce x (TpArrow t _ t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpEq t t') = is-free-in-term ce x t || is-free-in-term ce x t'
 is-free-in-type ce x (TpParens x₁ t x₂) = is-free-in-type ce x t
 is-free-in-type ce (inj₁ x) (TpVar _ x') = x =string x'
@@ -127,7 +127,7 @@ abs-tk l x (Tkk k) tp = Abs posinfo-gen All posinfo-gen x (Tkk k) tp
 abs-tk ErasedLambda x (Tkt tp') tp = Abs posinfo-gen All posinfo-gen x (Tkt tp') tp
 abs-tk KeptLambda x (Tkt tp') tp with is-free-in check-erased x tp 
 abs-tk KeptLambda x (Tkt tp') tp | tt = Abs posinfo-gen Pi posinfo-gen x (Tkt tp') tp
-abs-tk KeptLambda x (Tkt tp') tp | ff = TpArrow tp' tp
+abs-tk KeptLambda x (Tkt tp') tp | ff = TpArrow tp' UnerasedArrow  tp
 
 absk-tk : var → tk → kind → kind
 absk-tk x atk k with is-free-in check-erased x k
@@ -140,7 +140,7 @@ data abs  : Set where
 
 to-abs : type → maybe abs
 to-abs (Abs pi b pi' x atk tp) = just (mk-abs pi b pi' x atk (is-free-in check-erased x tp) tp)
-to-abs (TpArrow tp1 tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (TpArrow tp1 _ tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
 data absk  : Set where

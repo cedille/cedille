@@ -38,6 +38,10 @@ var-star-12 = string
 
 mutual
 
+  data arrowtype : Set where 
+    ErasedArrow : arrowtype
+    UnerasedArrow : arrowtype
+
   data binder : Set where 
     All : binder
     Pi : binder
@@ -196,7 +200,7 @@ mutual
     NoSpans : type → posinfo → type
     TpApp : type → type → type
     TpAppt : type → term → type
-    TpArrow : type → type → type
+    TpArrow : type → arrowtype → type → type
     TpEq : term → term → type
     TpLambda : posinfo → posinfo → var → tk → type → type
     TpParens : posinfo → type → posinfo → type
@@ -232,6 +236,7 @@ pterm : Set
 pterm = term
 
 data ParseTreeT : Set where
+  parsed-arrowtype : arrowtype → ParseTreeT
   parsed-binder : binder → ParseTreeT
   parsed-checkKind : checkKind → ParseTreeT
   parsed-cmd : cmd → ParseTreeT
@@ -421,6 +426,10 @@ var-star-12ToString : var-star-12 → string
 var-star-12ToString x = "(var-star-12 " ^ x ^ ")"
 
 mutual
+  arrowtypeToString : arrowtype → string
+  arrowtypeToString (ErasedArrow) = "ErasedArrow" ^ ""
+  arrowtypeToString (UnerasedArrow) = "UnerasedArrow" ^ ""
+
   binderToString : binder → string
   binderToString (All) = "All" ^ ""
   binderToString (Pi) = "Pi" ^ ""
@@ -579,7 +588,7 @@ mutual
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
-  typeToString (TpArrow x0 x1) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
+  typeToString (TpArrow x0 x1 x2) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (arrowtypeToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -601,6 +610,7 @@ mutual
   varsToString (VarsStart x0) = "(VarsStart" ^ " " ^ (varToString x0) ^ ")"
 
 ParseTreeToString : ParseTreeT → string
+ParseTreeToString (parsed-arrowtype t) = arrowtypeToString t
 ParseTreeToString (parsed-binder t) = binderToString t
 ParseTreeToString (parsed-checkKind t) = checkKindToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
@@ -845,7 +855,7 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-liftingType : (x : liftingType) → liftingType
   norm-liftingType (LiftArrow (LiftPi x1 x2 x3 x4) x5) = (norm-liftingType (LiftPi  x1 x2 x3 (norm-liftingType (LiftArrow  x4 x5) )) )
-  norm-liftingType (LiftTpArrow (TpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftTpArrow  x2 x3) )) )
+  norm-liftingType (LiftTpArrow (TpArrow x1 x2 x3) x4) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftTpArrow  x3 x4) )) )
   norm-liftingType (LiftArrow (LiftTpArrow x1 x2) x3) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType (LiftArrow (LiftArrow x1 x2) x3) = (norm-liftingType (LiftArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType x = x
@@ -916,6 +926,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-aterm : (x : aterm) → aterm
   norm-aterm x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-arrowtype : (x : arrowtype) → arrowtype
+  norm-arrowtype x = x
 
 isParseTree : ParseTreeT → 𝕃 char → string → Set
 isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed runs -}

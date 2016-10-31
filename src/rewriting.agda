@@ -9,6 +9,15 @@ open import is-free
 open import rename
 open import syntax-util
 
+{- =ACG= =NOTE=
+ - RewriteA labels a group of functions designed to pair something with a 
+   natural number
+ - RewriteA-pure pairs the input with 0
+ - RewriteA-app is an infix operator which takes a rewrite function and 
+   argument, applies the function to the argument and adds their nats together
+ - Rewrite-return: when applied to some (a) and pair (rewriteA a'), will return 
+   (rewriteA a) if the pair has zero as its nat, and (rewriteA a') otherwise.
+ -}
 rewriteA : Set → Set
 rewriteA T = T × ℕ
 
@@ -97,10 +106,22 @@ rewrite-type Γ ρ u t1 t2 T | TpAppt tp t =
     ((rewriteA-pure TpAppt) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
        (rewrite-term Γ ρ u t1 t2 t))
-rewrite-type Γ ρ u t1 t2 T | TpArrow tp tp' =
+{- =ACG= =NOTE=
+ - We are attempting to rewrite TpArrow. Note:
+   rewrite-type : 
+     ctxt → renamectxt → (use-hnf : 𝔹) → term → term → Type → rewriteA Type
+ - In this case, T = TpArrow tp _ tp'
+ - rewriteA-app associates to the left, so the second rewriteA-app is higher in 
+   the parse tree than the first
+ - trouble is, we have no rule for rewriting iserased, which does not have a type
+   therefore, we will rewrite iserased using rewriteA-pure
+ - =BUG= =31= is this legal? I mean, it compiles anyway...
+ -}
+rewrite-type Γ ρ u t1 t2 T | TpArrow tp iserased tp' =
   rewrite-return T
     ((rewriteA-pure TpArrow) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
+       (rewriteA-pure iserased) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp'))
 rewrite-type Γ ρ u t1 t2 T | TpEq ta tb =
   rewrite-return T

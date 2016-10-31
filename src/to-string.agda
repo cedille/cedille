@@ -49,6 +49,9 @@ liftingType-to-string : liftingType → string
 liftingType-to-stringh : {ed : exprd} → ⟦ ed ⟧ → liftingType → string
 maybeAtype-to-string : maybeAtype → string
 
+-- If the first or second argument (toplevel, locally-not-needed) is true, don't put parens; else put parens
+-- converts terms to string equivalents by adding parens
+-- at the top level, parens are not needed
 parens-unless : 𝔹 → 𝔹 → string → string
 parens-unless toplevel locally-not-needed s =
   if toplevel || locally-not-needed then s else ("(" ^ s ^ ")")
@@ -97,8 +100,8 @@ type-to-stringh toplevel p (Iota pi pi' x m t) = parens-unless toplevel (is-abs 
 type-to-stringh toplevel p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string ff x ^ " : " ^ liftingType-to-string x₁ ^ ")"
 type-to-stringh toplevel p (TpApp t t₁) = parens-unless toplevel (is-app p) (type-to-stringh ff (TpApp t t₁) t ^ " · " ^ type-to-string ff t₁)
 type-to-stringh toplevel p (TpAppt t t') = parens-unless toplevel (is-app p) (type-to-stringh ff (TpAppt t t') t ^ " " ^ term-to-string ff t')
-type-to-stringh toplevel p (TpArrow x t) =
-  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " → " ^  type-to-stringh ff (TpArrow x t) t)
+type-to-stringh toplevel p (TpArrow x is-erased t) = {-=ACG= =TODO= Might need different printstring for erased arrow -}
+  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " → " ^  type-to-stringh ff (TpArrow x is-erased t) t)
 type-to-stringh toplevel p (TpEq t1 t2) = "(" ^ term-to-string ff t1 ^ " ≃ " ^ term-to-string ff t2 ^ ")"
 type-to-stringh toplevel p (TpParens _ t _) = type-to-string toplevel t
 type-to-stringh toplevel p (TpVar _ x) = x

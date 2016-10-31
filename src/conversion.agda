@@ -156,9 +156,9 @@ hnf{TYPE} Γ u (Abs pi b pi' x atk tp) | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi b pi' x (Tkk k) ff tp) = Abs pi b pi' x (Tkk k) tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi All pi' x (Tkt tp') ff tp) = Abs pi All pi' x (Tkt tp') tp
-hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') ff tp) = TpArrow tp' tp
+hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') ff tp) = TpArrow tp' UnerasedArrow tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) | tp'' | nothing = tp''
-hnf{TYPE} Γ u (TpArrow tp1 tp2) = TpArrow (hnf Γ (unfold-dampen-rec ff u) tp1) (hnf Γ (unfold-dampen-rec ff u) tp2)
+hnf{TYPE} Γ u (TpArrow tp1 iserased tp2) = TpArrow (hnf Γ (unfold-dampen-rec ff u) tp1) iserased (hnf Γ (unfold-dampen-rec ff u) tp2)
 hnf{TYPE} Γ u (TpEq t1 t2) = TpEq (erase-term t1) (erase-term t2)
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) = 
   TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp)
@@ -232,9 +232,10 @@ conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') =
   eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (Mu pi1 pi2 x k body) (Mu pi1' pi2' x' k' body') =
   conv-tk Γ (Tkk k) (Tkk k') && conv-type (ctxt-rename pi1 x x' (ctxt-var-decl-if pi1' x' Γ)) body body'
-conv-type-norm Γ (TpArrow tp1 tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (TpArrow tp1 tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+-- =BUG= =ACG= =31= should erased arrows be treated differently? Assuming not.
+conv-type-norm Γ (TpArrow tp1 _ tp2) (TpArrow tp1' _  tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+conv-type-norm Γ (TpArrow tp1 _ tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' _ tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Iota _ pi x m tp) (Iota _ pi' x' m' tp') = 
   conv-optType Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
