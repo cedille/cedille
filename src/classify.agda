@@ -298,7 +298,7 @@ check-termi (App t m t') tp =
         cont Erased (TpArrow tp1 ErasedArrow tp2) = 
           check-term t' (just tp1) ≫span 
           get-ctxt (λ Γ → 
-            check-termi-return Γ (App t m t') tp2) -- ==BUG= Should tp2 still be here?
+            check-termi-return Γ (App t m t') tp2) -- ==BUG= Should tp1 still be here?
         cont Erased (TpArrow tp1 UnerasedArrow  tp2) = 
           check-term-app-erased-error (maybe-to-checking tp) Erased t t' (TpArrow tp1 UnerasedArrow tp2)
         cont NotErased (TpArrow tp1 ErasedArrow tp2) = 

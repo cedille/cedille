@@ -125,7 +125,7 @@ TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
 Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
 TpArrow : type -> ltype ows arrowtype ows type.
-ErasedArrow: arrowtype -> '⇁'.
+ErasedArrow: arrowtype -> '⍆'.
 UnerasedArrow: arrowtype -> '→'.
 embed : type -> ltype.
 
@@ -175,7 +175,7 @@ fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' .
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '⍆' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' .
 
 comment => '%' anychar* '\n'.
 
