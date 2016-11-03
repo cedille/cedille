@@ -81,7 +81,7 @@ substh-type Γ ρ t x (Lft pi pi' y t' l) =
       (substh-liftingType Γ ρ t x l)
 substh-type Γ ρ t x (TpApp tp tp₁) = TpApp (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
-substh-type Γ ρ t x (TpArrow tp iserased  tp₁) = TpArrow (substh-type Γ ρ t x tp) iserased (substh-type Γ ρ t x tp₁)
+substh-type Γ ρ t x (TpArrow tp arrowtype tp₁) = TpArrow (substh-type Γ ρ t x tp) arrowtype (substh-type Γ ρ t x tp₁)
 substh-type Γ ρ t x (TpEq x₁ x₂) = TpEq (substh-term Γ ρ t x x₁) (substh-term Γ ρ t x x₂)
 substh-type Γ ρ t x (TpParens x₁ tp x₂) = substh-type Γ ρ t x tp
 substh-type Γ ρ t x (NoSpans tp _) = substh-type Γ ρ t x tp

@@ -113,15 +113,14 @@ rewrite-type Γ ρ u t1 t2 T | TpAppt tp t =
  - In this case, T = TpArrow tp _ tp'
  - rewriteA-app associates to the left, so the second rewriteA-app is higher in 
    the parse tree than the first
- - trouble is, we have no rule for rewriting iserased, which does not have a type
-   therefore, we will rewrite iserased using rewriteA-pure
- - =BUG= =31= is this legal? I mean, it compiles anyway...
+ - we have no rule for rewriting arrowtype, therefore, we will rewrite it using 
+   rewriteA-pure
  -}
-rewrite-type Γ ρ u t1 t2 T | TpArrow tp iserased tp' =
+rewrite-type Γ ρ u t1 t2 T | TpArrow tp arrowtype tp' =
   rewrite-return T
     ((rewriteA-pure TpArrow) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
-       (rewriteA-pure iserased) rewriteA-app
+       (rewriteA-pure arrowtype) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp'))
 rewrite-type Γ ρ u t1 t2 T | TpEq ta tb =
   rewrite-return T

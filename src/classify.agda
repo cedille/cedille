@@ -287,7 +287,6 @@ check-termi (AppTp t tp') tp =
           spanM-add (AppTp-span t tp' (maybe-to-checking tp) []) ≫span spanMr nothing
         cont'' (just htp) = get-ctxt (λ Γ → cont (hnf-instantiate-iota Γ t htp tt))
 -- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
--- =BUG= =ACG= =31= Do I need to hide the erased argument?
 check-termi (App t m t') tp =
   check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
   where cont : maybeErased → type → spanM (maybe type)
@@ -298,7 +297,7 @@ check-termi (App t m t') tp =
         cont Erased (TpArrow tp1 ErasedArrow tp2) = 
           check-term t' (just tp1) ≫span 
           get-ctxt (λ Γ → 
-            check-termi-return Γ (App t m t') tp2) -- ==BUG= Should tp1 still be here?
+            check-termi-return Γ (App t m t') tp2)
         cont Erased (TpArrow tp1 UnerasedArrow  tp2) = 
           check-term-app-erased-error (maybe-to-checking tp) Erased t t' (TpArrow tp1 UnerasedArrow tp2)
         cont NotErased (TpArrow tp1 ErasedArrow tp2) = 
@@ -559,7 +558,7 @@ check-termi (Theta pi AbstractEq t ls) (just tp) =
         cont (just htp) =
            get-ctxt (λ Γ → 
              let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
-             let motive = mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) UnerasedArrow tp) in -- =BUG= =ACG= =31= just going to assume this is unerased arrow
+             let motive = mtplam x (Tkt htp) (TpArrow (TpEq t (mvar x)) UnerasedArrow tp) in
                spanM-add (Theta-span pi AbstractEq t ls checking (expected-type tp :: [ the-motive motive ])) ≫span 
                check-term (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
                               (lterms-to-𝕃 AbstractEq ls))
