@@ -16,12 +16,12 @@ NoVarEq : maybeVarEq -> .
 KvarEq : maybeKvarEq -> ! kvar ows '=' ows .
 NoKvarEq : maybeKvarEq -> .
 
-Type : maybeCheckType -> ows '⇐' ows type .
+Type : maybeCheckType -> ows '◂' ows type .
 NoCheckType : maybeCheckType -> .
 
-Kind : checkKind -> ows '⇐' ows kind .
+Kind : checkKind -> ows '◂' ows kind .
 
-CheckSuper : maybeCheckSuper -> ows '⇐' ows '□' .
+CheckSuper : maybeCheckSuper -> ows '◂' ows '□' .
 NoCheckSuper : maybeCheckSuper -> .
 
 Hnf : cmdTerminator -> '!!'.
@@ -125,8 +125,8 @@ TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
 Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
 TpArrow : type -> ltype ows arrowtype ows type.
-ErasedArrow: arrowtype -> '⍆'.
-UnerasedArrow: arrowtype -> '→'.
+ErasedArrow: arrowtype -> '➾'.
+UnerasedArrow: arrowtype -> '➔'.
 embed : type -> ltype.
 
 Mu : type -> ! 'μ' ows ! var ows ':' ows kind ows '.' ows type.
@@ -142,16 +142,16 @@ embed : ltype -> atype.
 TpEq : type -> term ows '≃' ows term .
 
 KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
-KndArrow : kind -> kind ows '→' ows kind .
-KndTpArrow : kind -> ltype ows '→' ows kind .
+KndArrow : kind -> kind ows '➔' ows kind .
+KndTpArrow : kind -> ltype ows '➔' ows kind .
 Star : kind -> ! '★'.
 KndParens : kind -> ! '(' ows kind ows ')' !.
 KndVar : kind -> ! kvar.
 
 LiftStar : lliftingType -> ! '☆'. 
 LiftPi : liftingType -> ! 'Π' ows var ows ':' ows type ows '.' ows liftingType .
-LiftArrow : liftingType -> liftingType ows '→' ows liftingType.
-LiftTpArrow : liftingType -> type ows '→' ows liftingType.
+LiftArrow : liftingType -> liftingType ows '➔' ows liftingType.
+LiftTpArrow : liftingType -> type ows '➔' ows liftingType.
 LiftParens : lliftingType -> ! '(' ows liftingType ows ')' !.
 embed : liftingType -> lliftingType.
 
@@ -175,7 +175,7 @@ fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
 kvar -> '𝒌' (alpha | numpunct)*.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '→' | '⍆' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' .
+anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '➔' | '➾' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' | '◂' .
 
 comment => '%' anychar* '\n'.
 

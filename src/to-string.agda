@@ -101,9 +101,9 @@ type-to-stringh toplevel p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-st
 type-to-stringh toplevel p (TpApp t t₁) = parens-unless toplevel (is-app p) (type-to-stringh ff (TpApp t t₁) t ^ " · " ^ type-to-string ff t₁)
 type-to-stringh toplevel p (TpAppt t t') = parens-unless toplevel (is-app p) (type-to-stringh ff (TpAppt t t') t ^ " " ^ term-to-string ff t')
 type-to-stringh toplevel p (TpArrow x UnerasedArrow t) =
-  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " → " ^  type-to-stringh ff (TpArrow x UnerasedArrow t) t)
+  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " ➔ " ^  type-to-stringh ff (TpArrow x UnerasedArrow t) t)
 type-to-stringh toplevel p (TpArrow x ErasedArrow t) = 
-  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " ⍆ " ^  type-to-stringh ff (TpArrow x ErasedArrow t) t)
+  parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " ➾ " ^  type-to-stringh ff (TpArrow x ErasedArrow t) t)
 type-to-stringh toplevel p (TpEq t1 t2) = "(" ^ term-to-string ff t1 ^ " ≃ " ^ term-to-string ff t2 ^ ")"
 type-to-stringh toplevel p (TpParens _ t _) = type-to-string toplevel t
 type-to-stringh toplevel p (TpVar _ x) = x

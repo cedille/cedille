@@ -354,16 +354,17 @@ data ParseTreeT : Set where
   parsed-anychar-bar-65 : ParseTreeT
   parsed-anychar-bar-66 : ParseTreeT
   parsed-anychar-bar-67 : ParseTreeT
+  parsed-anychar-bar-68 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-69 : ParseTreeT
   parsed-aws-bar-70 : ParseTreeT
   parsed-aws-bar-71 : ParseTreeT
+  parsed-aws-bar-72 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-68 : ParseTreeT
+  parsed-comment-star-69 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-73 : ParseTreeT
+  parsed-ows-star-74 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-72 : ParseTreeT
+  parsed-ws-plus-73 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -729,16 +730,17 @@ ParseTreeToString parsed-anychar-bar-64 = "[anychar-bar-64]"
 ParseTreeToString parsed-anychar-bar-65 = "[anychar-bar-65]"
 ParseTreeToString parsed-anychar-bar-66 = "[anychar-bar-66]"
 ParseTreeToString parsed-anychar-bar-67 = "[anychar-bar-67]"
+ParseTreeToString parsed-anychar-bar-68 = "[anychar-bar-68]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-69 = "[aws-bar-69]"
 ParseTreeToString parsed-aws-bar-70 = "[aws-bar-70]"
 ParseTreeToString parsed-aws-bar-71 = "[aws-bar-71]"
+ParseTreeToString parsed-aws-bar-72 = "[aws-bar-72]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-68 = "[comment-star-68]"
+ParseTreeToString parsed-comment-star-69 = "[comment-star-69]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-73 = "[ows-star-73]"
+ParseTreeToString parsed-ows-star-74 = "[ows-star-74]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-72 = "[ws-plus-72]"
+ParseTreeToString parsed-ws-plus-73 = "[ws-plus-73]"
 
 ------------------------------------------
 -- Reorganizing rules
