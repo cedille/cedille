@@ -1,5 +1,5 @@
 % this is in its own file because parsing it in is slow with the Cedille parser
-compare-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) → ( compare y z ≃ o ) → ( compare x z ≃ o ) =
+compare-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) ➔ ( compare y z ≃ o ) ➔ ( compare x z ≃ o ) =
   λ x . θ x
     ( λ px . λ hx . λ y . θ y
       ( λ py . λ _ . λ z . θ z

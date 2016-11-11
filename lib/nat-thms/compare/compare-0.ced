@@ -1,7 +1,7 @@
 import nat.
 import not.
 
-compare-eq ⇐ Π x : Nat . Π y : Nat . (compare x y ≃ EQ) → x ≃ y =
+compare-eq ◂ Π x : Nat . Π y : Nat . (compare x y ≃ EQ) ➔ x ≃ y =
   λ x . θ x
     (λ p . λ r . λ y . θ y
       (λ p' . λ r' . λ u . ρ (r p' u) - β)
@@ -10,22 +10,22 @@ compare-eq ⇐ Π x : Nat . Π y : Nat . (compare x y ≃ EQ) → x ≃ y =
       (λ p' . λ r' . λ u . δ u)
       (λ u . β) ) .
 
-lt-compare ⇐ Π x : Nat . Π y : Nat. Lt x y → compare x y ≃ LT =
+lt-compare ◂ Π x : Nat . Π y : Nat. Lt x y ➔ compare x y ≃ LT =
   λ x . λ y . λ u . θ+ (compare x y) (λ v . v) (λ v . δ (ρ+ v - u)) (λ v . δ (ρ+ v - u)) .
 
-eqnat-eq ⇐ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) → x ≃ y = 
+eqnat-eq ◂ Π x : Nat . Π y : Nat . (eqnat x y ≃ tt) ➔ x ≃ y = 
   λ x . λ y . λ u . θ+ (compare x y)
     (λ v . δ (ρ v - εl u) )
     (compare-eq x y)
     (λ v . δ (ρ v - εl u) ) .
 
-eqnat-S ⇐ Π x : Nat . eqnat x (S x) ≃ ff =
+eqnat-S ◂ Π x : Nat . eqnat x (S x) ≃ ff =
   λ x . θ x (λ p . λ u . ρ u - β) β .
 
-eqnat-refl ⇐ Π x : Nat . eqnat x x ≃ tt =
+eqnat-refl ◂ Π x : Nat . eqnat x x ≃ tt =
   λ x . θ x ( λ px . λ h . ρ h - β ) β .
 
-eqnat-sym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
+eqnat-sym ◂ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x = 
   λ x . θ x 
     (λ x . λ u . λ y . θ y
       ( λ y . λ v . (u y) )
@@ -34,56 +34,56 @@ eqnat-sym ⇐ Π x : Nat . Π y : Nat . eqnat x y ≃ eqnat y x =
       ( λ py . λ u . β )
       β ) .
 
-eqnat-defn ⇐ Π x : Nat . Π y : Nat . ( x ≃ y ) → eqnat x y ≃ tt =
+eqnat-defn ◂ Π x : Nat . Π y : Nat . ( x ≃ y ) ➔ eqnat x y ≃ tt =
   λ x . λ y . λ pf . ρ pf - ρ ( eqnat-refl y ) - β .
 
-eqnat-not-eq ⇐ Π x : Nat . Π y : Nat. (eqnat x y ≃ ff) → Not · (x ≃ y) =
+eqnat-not-eq ◂ Π x : Nat . Π y : Nat. (eqnat x y ≃ ff) ➔ Not · (x ≃ y) =
   λ x . λ y . λ u . λ v . δ (ρ (ρ v - u) - (eqnat-refl y)).
 
-Lte-Z ⇐ Π x : Nat . Lte x Z → x ≃ Z =
+Lte-Z ◂ Π x : Nat . Lte x Z ➔ x ≃ Z =
   λ x . θ x (λ n . λ r . λ u . δ u) (λ u . β) .
   
-Z-Lte ⇐ Π x : Nat . Lte Z x =
+Z-Lte ◂ Π x : Nat . Lte Z x =
   λ x . θ x (λ n . λ _ . β) β .
 
-Z-Lt ⇐ Π x : Nat . Lt Z (S x) =
+Z-Lt ◂ Π x : Nat . Lt Z (S x) =
   λ x . β .
 
-Not-Lt-Z ⇐ Π x : Nat . Not · (Lt x Z) =
+Not-Lt-Z ◂ Π x : Nat . Not · (Lt x Z) =
   λ x . θ x (λ n . λ r . λ u . δ u) (λ u . δ u) .
 
-Gte-Z ⇐ Π x : Nat . Gte x Z =
+Gte-Z ◂ Π x : Nat . Gte x Z =
   λ x . θ x (λ n . λ _ . β) β .
 
-Lte-refl ⇐ Π x : Nat . Lte x x =
+Lte-refl ◂ Π x : Nat . Lte x x =
   λ x . θ x (λ p . λ r . r) β .
 
-Lt-S ⇐ Π x : Nat . Lt x (S x) =
+Lt-S ◂ Π x : Nat . Lt x (S x) =
   λ x . θ x (λ x . λ ih . ih) β .
 
-Lt-Lte ⇐ Π x : Nat . Π y : Nat. Lt x y → Lte x y =
+Lt-Lte ◂ Π x : Nat . Π y : Nat. Lt x y ➔ Lte x y =
   λ x . λ y . λ v . θ+ (compare x y) (λ u . ρ+ u - β) (λ u . δ (ρ+ u - v)) (λ u . δ (ρ+ u - v)) .
 
-Lte-S-Lt ⇐ Π x : Nat . Π y : Nat . Lte (S x) y → Lt x y =
+Lte-S-Lt ◂ Π x : Nat . Π y : Nat . Lte (S x) y ➔ Lt x y =
   λ x . θ x (λ px . λ r . λ y .
                θ y (λ py . λ _ . λ u . r py u) (λ u . δ u))
             (λ y . 
                θ y (λ py . λ _ . λ u . β) (λ u . δ u)).
 
-Lte-S-0 ⇐ Π x : Nat . Π y : Nat . Lte (S x) y → Lte x y = 
+Lte-S-0 ◂ Π x : Nat . Π y : Nat . Lte (S x) y ➔ Lte x y = 
  λ x . λ y . λ u . Lt-Lte x y (Lte-S-Lt x y u).
 
-compare-eq-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ EQ ) → ( compare y z ≃ o ) → ( compare x z ≃ o ) =
+compare-eq-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ EQ ) ➔ ( compare y z ≃ o ) ➔ ( compare x z ≃ o ) =
   λ x . λ y . λ z . λ o . λ pf-xy . λ pf-yz . ρ ( compare-eq x y pf-xy ) - ρ ( ς pf-yz ) - β .
 
-compare-trans-eq ⇐ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) → ( compare y z ≃ EQ ) → ( compare x z ≃ o ) =
+compare-trans-eq ◂ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) ➔ ( compare y z ≃ EQ ) ➔ ( compare x z ≃ o ) =
   λ x . λ y . λ z . λ o . λ pf-xy . λ pf-yz . ρ ( ς pf-xy ) - ρ ( compare-eq y z pf-yz ) - β .
 
-Lt-not-eqnat ⇐ Π x : Nat . Π y : Nat . Lt x (S y) → (eqnat x y ≃ ff) → Lt x y =
+Lt-not-eqnat ◂ Π x : Nat . Π y : Nat . Lt x (S y) ➔ (eqnat x y ≃ ff) ➔ Lt x y =
  λ x . θ x (λ px . λ ih . λ y . θ y (λ py . λ _ . λ u . λ v . ih py u v) (λ u . λ v . δ (Not-Lt-Z px u · (ff ≃ tt))))
            (λ y . θ y (λ py . λ _ . λ u . λ v . β) (λ u . λ v . δ v)).
 
-Lte-not-eqnat ⇐ Π x : Nat . Π y : Nat . Lte x y → Not · (x ≃ y) → Lt x y =
+Lte-not-eqnat ◂ Π x : Nat . Π y : Nat . Lte x y ➔ Not · (x ≃ y) ➔ Lt x y =
   λ x . λ y . θ+ (compare x y)
                  (λ a . λ u . λ v . ρ+ a - β)
                  (λ a . λ u . λ v . δ (v (eqnat-eq x y (ρ+ a - β)) · (ff ≃ tt)))
@@ -91,10 +91,10 @@ Lte-not-eqnat ⇐ Π x : Nat . Π y : Nat . Lte x y → Not · (x ≃ y) → Lt 
 
 import nat-thms/compare/compare-trans.
 
-Lt-trans ⇐ Π x : Nat . Π y : Nat . Π z : Nat. Lt x y → Lt y z → Lt x z =
+Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat. Lt x y ➔ Lt y z ➔ Lt x z =
   λ x . λ y . λ z . λ u . λ v . ρ+ (compare-trans x y z LT (lt-compare x y u) (lt-compare y z v)) - β.
     
-Lt-S-Lte ⇐ Π x : Nat. Π y : Nat. Lt x (S y) → Lte x y =
+Lt-S-Lte ◂ Π x : Nat. Π y : Nat. Lt x (S y) ➔ Lte x y =
   λ x . θ x (λ px . λ ih . λ y . 
                θ y (λ y . λ _ . λ u . ih y u) (λ u . δ (Not-Lt-Z px u · (ff ≃ tt))))
             (λ y . λ u . Z-Lte y) .
