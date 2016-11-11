@@ -1,4 +1,4 @@
 % nope
-True ⇐ ★ = ∀ X : ★ . X → X .
+True ◂ ★ = ∀ X : ★ . X ➔ X .
 
-triv ⇐ True = Λ X . λ x . x .
+triv ◂ True = Λ X . λ x . x .

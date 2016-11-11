@@ -1,14 +1,14 @@
 import bool.
 
 rec compare-t | LT : compare-t , EQ : compare-t , GT : compare-t =
-  ∀ P : compare-t → ★ .
-    P LT → P EQ → P GT → P self
+  ∀ P : compare-t ➔ ★ .
+    P LT ➔ P EQ ➔ P GT ➔ P self
   with
     LT = Λ P . λ a . λ b . λ c . a ,
     EQ = Λ P . λ a . λ b . λ c . b ,
     GT = Λ P . λ a . λ b . λ c . c .
 
-compare-is-lte ⇐ compare-t → Bool = 
+compare-is-lte ◂ compare-t ➔ Bool = 
   λ u . θ u tt tt ff.
 
-Compare-is-lte ⇐ compare-t → ★ = λ u : compare-t . compare-is-lte u ≃ tt .
+Compare-is-lte ◂ compare-t ➔ ★ = λ u : compare-t . compare-is-lte u ≃ tt .

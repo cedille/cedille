@@ -2,29 +2,29 @@ import false.
 import true.
 
 rec Bool | tt : Bool , ff : Bool = 
-  ∀ P : Bool → ★ .
-    P tt → P ff → P self
+  ∀ P : Bool ➔ ★ .
+    P tt ➔ P ff ➔ P self
   with
     tt = Λ P . λ a . λ b . a ,
     ff = Λ P . λ a . λ b . b .
 
-and ⇐ Bool → Bool → Bool = 
+and ◂ Bool ➔ Bool ➔ Bool = 
   λ x . λ y . θ x y ff .
 
-or ⇐ Bool → Bool → Bool = 
+or ◂ Bool ➔ Bool ➔ Bool = 
   λ x . λ y . x · (λ b : Bool . Bool) tt y .
 
-not ⇐ Bool → Bool = λ x . θ x ff tt .
+not ◂ Bool ➔ Bool = λ x . θ x ff tt .
 
-if ⇐ ∀ A : ★ . Bool → A → A → A =                                              
+if ◂ ∀ A : ★ . Bool ➔ A ➔ A ➔ A =                                              
   Λ A . λ b . λ t . λ f . b · (λ b : Bool . A) t f .                           
                                                                                  
-imp ⇐ Bool → Bool → Bool =                                                    
+imp ◂ Bool ➔ Bool ➔ Bool =                                                    
   λ x . λ y . x · (λ b : Bool . Bool) y tt . 
 
-if-t ⇐ Bool → ★ → ★ → ★ =
-  λ b : Bool . ↑ X . b · (λ b : Bool . X) : (☆ → ☆ → ☆).
+if-t ◂ Bool ➔ ★ ➔ ★ ➔ ★ =
+  λ b : Bool . ↑ X . b · (λ b : Bool . X) : (☆ ➔ ☆ ➔ ☆).
 
-Bool-to-type ⇐ Bool → ★ = 
+Bool-to-type ◂ Bool ➔ ★ = 
    λ b : Bool . if-t b · True · False .
 

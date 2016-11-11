@@ -1,11 +1,11 @@
-rec Sigma (A : ★)(B : A → ★) | mksigma : Π a : A . B a → Sigma =
-  ∀ P : Sigma → ★ .
-    (Π a : A . Π b : B a . P (mksigma a b)) → P self
+rec Sigma (A : ★)(B : A ➔ ★) | mksigma : Π a : A . B a ➔ Sigma =
+  ∀ P : Sigma ➔ ★ .
+    (Π a : A . Π b : B a . P (mksigma a b)) ➔ P self
 with
   mksigma = λ a . λ b . Λ P . λ c . c a b .
 
-fst ⇐ ∀ A : ★ . ∀ B : A → ★ . Sigma · A · B → A = Λ A . Λ B . λ p .
+fst ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Sigma · A · B ➔ A = Λ A . Λ B . λ p .
         p · (λ _ : Sigma · A · B . A) (λ a . λ b . a) .
 
-snd ⇐ ∀ A : ★ . ∀ B : A → ★ . Π p : Sigma · A · B . B (fst · A · B p) =
+snd ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Π p : Sigma · A · B . B (fst · A · B p) =
   Λ A . Λ B . λ p . p · (λ p : Sigma · A · B . B (fst · A · B p)) (λ a . λ b . b).
