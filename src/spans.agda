@@ -608,9 +608,8 @@ comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
 InlineDef-span : ctxt → posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
 InlineDef-span Γ pi pi' x t pi'' check tvs =
   mk-span "Inline definition" pi pi''
-    (checking-data check :: warning-data "Currently the defined symbol cannot be used elsewhere (this will be changed soon)." :: 
+    (checking-data check :: 
     ll-data-term ::
-    explain ("This definition of " ^ x ^ " is in scope to the end of the nearest enclosing binder.") ::
     (if (is-open Γ skip-erased t) then
       [ error-data "The body of this inline definition is open (but closed terms only are allowed)."]
      else [])

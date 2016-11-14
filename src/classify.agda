@@ -44,6 +44,7 @@ return-when : ∀{A : Set} → (m : maybe A) → maybe A → spanM (check-ret m)
 return-when nothing u = spanMr u
 return-when (just _) u = spanMr triv
 
+-- if m is not "nothing", return "just star"
 return-star-when : (m : maybe kind) → spanM (check-ret m)
 return-star-when m = return-when m (just star)
 
@@ -605,7 +606,7 @@ check-termi (Hole pi) tp =
 
 check-termi (InlineDef pi pi' x t pi'') mtp =
   check-term t mtp ≫=span (λ r →
-    get-ctxt (λ Γ → helper Γ mtp r ≫span set-ctxt Γ {- remove when we have conversion working correctly when we use the defined symbol -}) ≫span
+    get-ctxt (λ Γ → helper Γ mtp r) ≫span
     spanMr r)
   where helper-add-span : ctxt → 𝕃 tagged-val → spanM ⊤
         helper-add-span Γ tvs = spanM-add (InlineDef-span Γ pi pi' x t pi'' (maybe-to-checking mtp) tvs)

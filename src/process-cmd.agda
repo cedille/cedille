@@ -43,13 +43,13 @@ process-file : toplevel-state → (filename : string) → toplevel-state
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t n pi') tt {- check -} = 
   set-ctxt Γ ≫span
   check-type tp (just star) ≫span 
-  set-ctxt Γ ≫span
   check-term t (just tp) ≫span 
+  get-ctxt (λ Γ → 
     let t = erase-term t in
     let Γ' = (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ) in
         spanM-add (DefTerm-span pi x checking (just tp) t pi' (normalized-term-if Γ n t)) ≫span
         spanM-add (Var-span Γ' pi x checking []) ≫span
-        spanMr (mk-toplevel-state use-cede ip mod is Γ')
+        spanMr (mk-toplevel-state use-cede ip mod is Γ'))
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff {- skip checking -} = 
     spanMr (mk-toplevel-state use-cede ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t) tp Γ))
@@ -57,22 +57,23 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x NoCheckType t n pi') _ = 
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
+  get-ctxt (λ Γ → 
     let t = erase-term t in
       spanM-add (DefTerm-span pi x synthesizing mtp t pi' (normalized-term-if Γ n t)) ≫span
-      spanMr (mk-toplevel-state use-cede ip mod is (h (hnf Γ unfold-head t , mtp)))
-  where h : term × (maybe type) → ctxt
-        h (t , nothing) = ctxt-term-udef pi x t Γ
-        h (t , just tp) = ctxt-term-def pi x t tp Γ
+      spanMr (mk-toplevel-state use-cede ip mod is (h Γ (hnf Γ unfold-head t , mtp))))
+  where h : ctxt → term × (maybe type) → ctxt
+        h Γ (t , nothing) = ctxt-term-udef pi x t Γ
+        h Γ (t , just tp) = ctxt-term-def pi x t tp Γ
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp n pi') tt {- check -} =
-  let Γ' = (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ) in
     set-ctxt Γ ≫span
     check-kind k ≫span 
-    set-ctxt Γ ≫span
     check-type tp (just k) ≫span 
-    spanM-add (DefType-span pi x checking (just k) tp pi' (normalized-type-if Γ n tp)) ≫span
-    spanM-add (TpVar-span Γ' pi x checking []) ≫span
-    spanMr (mk-toplevel-state use-cede ip mod is Γ')
+    get-ctxt (λ Γ → 
+      let Γ' = (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ) in
+        spanM-add (DefType-span pi x checking (just k) tp pi' (normalized-type-if Γ n tp)) ≫span
+        spanM-add (TpVar-span Γ' pi x checking []) ≫span
+        spanMr (mk-toplevel-state use-cede ip mod is Γ'))
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp n pi') ff {- skip checking -} = 
   spanMr (mk-toplevel-state use-cede ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp) k Γ))
@@ -80,29 +81,31 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (CheckTerm t (Type tp) n pi) tt {- check -} = 
   set-ctxt Γ ≫span
   check-type tp (just star) ≫span 
-  set-ctxt Γ ≫span
   check-term t (just tp) ≫span 
+  get-ctxt (λ Γ → 
     let t = erase-term t in
        spanM-add (CheckTerm-span checking (just tp) t pi (normalized-term-if Γ n t)) ≫span 
-       spanMr (mk-toplevel-state use-cede ip mod is Γ)
+       spanMr (mk-toplevel-state use-cede ip mod is Γ))
 
 process-cmd s (CheckTerm t _ n pi) ff {- skip checking -} = spanMr s
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (CheckTerm t NoCheckType n pi) tt {- check -} = 
   set-ctxt Γ ≫span
-  check-term t nothing ≫=span λ m → 
+  check-term t nothing ≫=span λ m →
+  get-ctxt (λ Γ → 
      spanM-add (CheckTerm-span synthesizing m t pi (normalized-term-if Γ n t)) ≫span 
-     spanMr (mk-toplevel-state use-cede ip mod is Γ)
+     spanMr (mk-toplevel-state use-cede ip mod is Γ))
 
 process-cmd s (CheckType tp m n pi) _ = spanMr s -- unimplemented
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') tt {- check -} =
-  let Γ' = (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) in
-    set-ctxt Γ ≫span
-    check-kind k ≫span
-        spanM-add (DefKind-span pi x k pi') ≫span
-        spanM-add (KndVar-span Γ' pi x checking) ≫span
-        spanMr (mk-toplevel-state use-cede ip mod is Γ')
+  set-ctxt Γ ≫span
+  check-kind k ≫span
+  get-ctxt (λ Γ → 
+    let Γ' = (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ) in
+      spanM-add (DefKind-span pi x k pi') ≫span
+      spanM-add (KndVar-span Γ' pi x checking) ≫span
+      spanMr (mk-toplevel-state use-cede ip mod is Γ'))
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') ff {- skip checking -} = 
   spanMr (mk-toplevel-state use-cede ip mod is (ctxt-kind-def pi x (hnf Γ unfold-head k) Γ))
