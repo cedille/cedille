@@ -19,3 +19,4 @@ append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
    θ l [append-Cons = λ h . λ t . λ r . Cons · A h r ] l' .
 
 append-Cons .
+

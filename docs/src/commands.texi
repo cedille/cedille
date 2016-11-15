@@ -65,4 +65,8 @@ Quit Cedille mode
 
 @item K
 Kill the Cedille process and restart it if it is taking an unusually long time
+
+@item $
+Open customization window for configuring Cedille mode
+
 @end table

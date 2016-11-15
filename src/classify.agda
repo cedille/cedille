@@ -609,10 +609,14 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
     get-ctxt (λ Γ → helper Γ mtp r) ≫span
     spanMr r)
   where helper-add-span : ctxt → 𝕃 tagged-val → spanM ⊤
-        helper-add-span Γ tvs = spanM-add (InlineDef-span Γ pi pi' x t pi'' (maybe-to-checking mtp) tvs)
+        helper-add-span Γ tvs =
+          let cm = maybe-to-checking mtp in
+            spanM-add (InlineDef-span Γ pi pi' x t pi'' cm tvs) ≫span
+            spanM-add (Var-span Γ pi' x cm [])
         add-typed-def : ctxt → type → 𝕃 tagged-val → spanM ⊤
-        add-typed-def Γ tp tvs = helper-add-span Γ tvs ≫span
-                                 set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t) tp Γ)
+        add-typed-def Γ tp tvs = set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t) tp Γ) ≫span
+                                 get-ctxt (λ Γ → 
+                                   helper-add-span Γ tvs)
         helper : ctxt → (mtp : maybe type) → (r : check-ret mtp) → spanM ⊤
         helper Γ (just tp) triv = add-typed-def Γ tp [ expected-type tp ]
         helper Γ nothing (just tp) = add-typed-def Γ tp [ type-data tp ]

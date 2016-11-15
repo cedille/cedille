@@ -15,6 +15,7 @@ here!
 * cedille mode commands::       A list of cedille mode command shortcuts with brief description
 * unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
 * minor modes::                 Cedille mode has three minor modes providing additional information
+* options::                     A description of the options file
 * credits::                     Who has contributed to the Cedille tool
 * Index::                       Here is the index
 
@@ -94,6 +95,9 @@ Cedille mode supports the following commands:
 'K'
      Kill the Cedille process and restart it if it is taking an
      unusually long time
+
+'$'
+     Open customization window for configuring Cedille mode
 
 
 File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Prev: cedille mode commands,  Up: Top
@@ -238,7 +242,7 @@ instead.
      Open information page for context mode
 
 
-File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: minor modes,  Up: Top
+File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up: Top
 
 8 Credits
 *********
@@ -248,10 +252,30 @@ Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynold
 Spring 2016: Aaron Stump
 
 
-File: cedille-info-main.info,  Node: minor modes,  Next: credits,  Prev: unicode shortcuts,  Up: Top
+File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
 
-9 Minor modes for cedille
-*************************
+9 cedille-mode options
+**********************
+
+The options file resides in ~/.cedille/options and consists of a list of
+options, each on its own line, with a terminating period (".").  The
+available options are:
+
+'import-directories "/path/to/dir"'
+     This specifies a directory where Cedille will search for imported
+     files.  Any number of directories may be listed, each on its own
+     line.  They will be searched after the current directory, in the
+     order they are listed.  Currently, it is not recommended to have
+     two files with the same name.
+
+'no-cede-files'
+     This option disables the Cedille backend's use of .cede files.
+
+
+File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
+
+10 Minor modes for cedille
+**************************
 
 Cedille has three minor modes that provide information about the file:
 
@@ -264,7 +288,7 @@ Cedille has three minor modes that provide information about the file:
 
 File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Prev: summary mode,  Up: minor modes
 
-10 Inspect mode
+11 Inspect mode
 ***************
 
 Inspect mode for Cedille provides basic information about a node.  To
@@ -281,7 +305,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
    * The file location in which the entity represented by the node is
      defined
 
-11 Controls
+12 Controls
 ***********
 
 'i/I'
@@ -290,7 +314,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
 
 File: cedille-info-main.info,  Node: summary mode,  Next: inspect mode,  Prev: context mode,  Up: minor modes
 
-12 Summary mode
+13 Summary mode
 ***************
 
 This is where summary mode stuff will go.
@@ -305,13 +329,14 @@ Index
 
 Tag Table:
 Node: Top90
-Node: cedille mode commands673
-Node: unicode shortcuts2331
-Node: context mode3580
-Node: credits4852
-Node: minor modes5087
-Node: inspect mode5624
-Node: summary mode6343
-Node: Index6532
+Node: cedille mode commands739
+Node: unicode shortcuts2462
+Node: context mode3711
+Node: credits4983
+Node: options5214
+Node: minor modes5959
+Node: inspect mode6498
+Node: summary mode7217
+Node: Index7406
 
 End Tag Table
