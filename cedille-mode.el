@@ -380,7 +380,18 @@ in the parse tree, and updates the Cedille info buffer."
 		 (overlay (make-overlay start end)))
 	    (when symbol
 	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color))))))))
-					 
+
+(defun cedille-mode-interactive-highlight()
+  "Interactive command to call cedille-mode-highlight-occurences"
+  (interactive)
+  (cedille-mode-highlight-occurrences))
+
+(defun cedille-mode-interactive-unhighlight()
+  "Interactive command to remove all highlighting"
+  (interactive)
+  (remove-overlays))
+
+
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
   (interactive)
@@ -399,6 +410,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "B") #'cedille-mode-select-previous-alt)
   (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
+  (se-navi-define-key 'cedille-mode (kbd "#") #'cedille-mode-interactive-highlight)
+  (se-navi-define-key 'cedille-mode (kbd "3") #'cedille-mode-interactive-unhighlight)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "M-s") #'cedille-mode-quit)
