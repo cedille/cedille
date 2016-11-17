@@ -1,7 +1,7 @@
 import list.
 
 % theorems
-length-append ⇐  ∀ A : ★ . Π l1 : List · A . Π l2 : List · A . 
+length-append ◂  ∀ A : ★ . Π l1 : List · A . Π l2 : List · A . 
                  length (append l1 l2) ≃ add (length l1) (length l2) =
   Λ A . λ l1 . λ l2 . θ l1 (λ h . λ t . λ ih . εl ρ ih - β ) β .
 
