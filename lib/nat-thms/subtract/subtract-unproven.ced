@@ -1,11 +1,11 @@
-subtract-Lte ⇐ Π i : Nat. Π n : Nat. Lte (S i) n → Lt (subtract n (S i)) n = ● .
+subtract-Lte ◂ Π i : Nat. Π n : Nat. Lte (S i) n ➔ Lt (subtract n (S i)) n = ● .
 
-subtract-S-S ⇐ Π x : Nat . Π y : Nat . subtract (S x) (S y) ≃ subtract x y = ● .
+subtract-S-S ◂ Π x : Nat . Π y : Nat . subtract (S x) (S y) ≃ subtract x y = ● .
 
-subtract-S-one ⇐ Π x : Nat . subtract (S x) one ≃ x = ● .
+subtract-S-one ◂ Π x : Nat . subtract (S x) one ≃ x = ● .
 
-subtract-Lte-0 ⇐ Π x : Nat . Π y : Nat . Lte (subtract x y) x = ● .
+subtract-Lte-0 ◂ Π x : Nat . Π y : Nat . Lte (subtract x y) x = ● .
 
-add-subtract ⇐ Π a : Nat . Π b : Nat . Lte a b → add a (subtract b a) ≃ b = ● .
+add-subtract ◂ Π a : Nat . Π b : Nat . Lte a b ➔ add a (subtract b a) ≃ b = ● .
 
-Not-Iszero-subtract ⇐ Π a : Nat . Π b : Nat. Lt a b → Not · (Iszero (subtract b a)) = ● .
+Not-Iszero-subtract ◂ Π a : Nat . Π b : Nat. Lt a b ➔ Not · (Iszero (subtract b a)) = ● .

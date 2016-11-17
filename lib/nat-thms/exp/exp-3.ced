@@ -1,7 +1,7 @@
 import nat-thms/exp/exp-1.
 import nat-thms/mult/mult-2.
 
-exp-add-distr ⇐ Π x : Nat . Π a : Nat . Π b : Nat . exp x ( add a b ) ≃ mult ( exp x a ) ( exp x b ) =
+exp-add-distr ◂ Π x : Nat . Π a : Nat . Π b : Nat . exp x ( add a b ) ≃ mult ( exp x a ) ( exp x b ) =
   λ x . λ a . θ a
     ( λ pa . λ ha . λ b . θ b
       ( λ pb . λ _ .
@@ -17,7 +17,7 @@ exp-add-distr ⇐ Π x : Nat . Π a : Nat . Π b : Nat . exp x ( add a b ) ≃ m
       ( ρ ( add-Z-1 (S pa) ) - ρ ( mult-one-1 ( exp x (S pa) ) ) - β ) ) 
     ( λ b . ρ ( add-Z-0 b ) - ρ ( mult-one-0 ( exp x b ) ) - β ) .
 
-exp-mult-distr-0 ⇐ Π x : Nat . Π y : Nat . Π a : Nat . exp ( mult x y ) a ≃ mult ( exp x a ) ( exp y a ) =
+exp-mult-distr-0 ◂ Π x : Nat . Π y : Nat . Π a : Nat . exp ( mult x y ) a ≃ mult ( exp x a ) ( exp y a ) =
   λ x . λ y . λ a . θ a
     ( λ pa . λ ha .
       ρ ( exp-defn ( mult x y ) pa ) -
@@ -32,7 +32,7 @@ exp-mult-distr-0 ⇐ Π x : Nat . Π y : Nat . Π a : Nat . exp ( mult x y ) a �
       β )
     β .
 
-exp-mult-distr-1 ⇐ Π x : Nat . Π a : Nat . Π b : Nat . exp x ( mult a b ) ≃ exp ( exp x a ) b =
+exp-mult-distr-1 ◂ Π x : Nat . Π a : Nat . Π b : Nat . exp x ( mult a b ) ≃ exp ( exp x a ) b =
   λ x . λ a . θ a
     ( λ pa . λ ha . λ b . θ b
       ( λ pb . λ hb .

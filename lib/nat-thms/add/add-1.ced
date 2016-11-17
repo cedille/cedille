@@ -1,17 +1,17 @@
 import nat-thms/add/add-0.
 import nat-thms/S/S-0.
 
-add-comm ⇐ Π n : Nat . Π m : Nat . add n m ≃ add m n =
+add-comm ◂ Π n : Nat . Π m : Nat . add n m ≃ add m n =
   λ n . λ m . θ n
     ( λ p . λ h . ρ+ h - ρ ( add-S-comm-1 m p ) - β )
     ( ρ+ ( add-Z-1 m ) - β ) .
 
-add-one-1 ⇐ Π n : Nat . add n one ≃ S n =
+add-one-1 ◂ Π n : Nat . add n one ≃ S n =
   λ n . θ n
     ( λ _ . λ h . ρ+ h - β )
     β .
   
-add-inj-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat . ( add x y ≃ add x z ) → y ≃ z =
+add-inj-0 ◂ Π x : Nat . Π y : Nat . Π z : Nat . ( add x y ≃ add x z ) ➔ y ≃ z =
   λ x . λ y . λ z . θ x
     ( λ px . λ h . λ pf . h ( S-inj ( add px y ) ( add px z ) ( ρ ( add-S-comm-0 px y ) - ρ ( add-S-comm-0 px z ) - pf ) ) )
     ( λ pf . ρ ( add-Z-0 y ) - ρ ( add-Z-0 z ) - pf ) .

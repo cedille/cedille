@@ -1,7 +1,7 @@
 import nat-thms/mult/mult-0.
 import nat-thms/add/add-1.
 
-mult-S-1 ⇐ Π x : Nat . Π y : Nat . mult x ( S y ) ≃ add x ( mult x y ) =
+mult-S-1 ◂ Π x : Nat . Π y : Nat . mult x ( S y ) ≃ add x ( mult x y ) =
   λ x . λ y . θ x
     ( λ px . λ hx .
       ρ ( mult-S-0 px ( S y ) ) -
@@ -15,7 +15,7 @@ mult-S-1 ⇐ Π x : Nat . Π y : Nat . mult x ( S y ) ≃ add x ( mult x y ) =
       β )
     β .
 
-mult-S ⇐ Π x : Nat . Π y : Nat . mult ( S x ) ( S y ) ≃ S ( add ( add x y ) ( mult x y ) ) =
+mult-S ◂ Π x : Nat . Π y : Nat . mult ( S x ) ( S y ) ≃ S ( add ( add x y ) ( mult x y ) ) =
   λ x . λ y .
     ρ ( mult-S-1 ( S x ) y ) -
     ρ ( mult-S-0 x y ) -
@@ -24,12 +24,12 @@ mult-S ⇐ Π x : Nat . Π y : Nat . mult ( S x ) ( S y ) ≃ S ( add ( add x y 
     ρ ( add-S-comm-0 ( add x y ) ( mult x y ) ) -
     β.
 
-mult-one-0 ⇐ Π x : Nat . mult ( S Z ) x ≃ x =
+mult-one-0 ◂ Π x : Nat . mult ( S Z ) x ≃ x =
   λ x . θ x
     ( λ px . λ hx . ρ ( mult-S Z px ) - ρ ( add-Z-1 px ) - β )
     β .
 
-mult-comm ⇐ Π x : Nat . Π y : Nat .  mult x y ≃ mult y x =
+mult-comm ◂ Π x : Nat . Π y : Nat .  mult x y ≃ mult y x =
   λ x . θ x
     ( λ px . λ hx . λ y . θ y
       ( λ py . λ hy .
@@ -43,7 +43,7 @@ mult-comm ⇐ Π x : Nat . Π y : Nat .  mult x y ≃ mult y x =
       ( λ py . λ _ . ρ ( mult-Z-1 ( S py ) ) - β ) 
       β ) .
 
-mult-distr-lemma-0 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add ( add a b ) ( add c d ) ≃ add ( add a c ) ( add b d ) =
+mult-distr-lemma-0 ◂ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add ( add a b ) ( add c d ) ≃ add ( add a c ) ( add b d ) =
   λ a . λ b . λ c . λ d .
     ρ ( add-assoc ( add a b ) c d ) -
     ρ ( add-comm a b ) -
@@ -52,7 +52,7 @@ mult-distr-lemma-0 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add (
     ρ ς ( add-assoc ( add a c ) b d ) -
     β .
 
-mult-distr-lemma-1 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add ( add a ( add b c ) ) ( add a d ) ≃ add ( add ( add a b ) ( add a c ) ) d  =
+mult-distr-lemma-1 ◂ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add ( add a ( add b c ) ) ( add a d ) ≃ add ( add ( add a b ) ( add a c ) ) d  =
   λ a . λ b . λ c . λ d .
     ρ ( add-assoc ( add a ( add b c ) ) a d ) -
     ρ ( add-comm a ( add b c ) ) -
@@ -61,7 +61,7 @@ mult-distr-lemma-1 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . add (
     ρ ( mult-distr-lemma-0 a a b c ) -
     β .
 
-mult-distr ⇐ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( add y z ) ≃ add ( mult x y ) ( mult x z ) =
+mult-distr ◂ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( add y z ) ≃ add ( mult x y ) ( mult x z ) =
   λ x . θ x
     ( λ px . λ hx . λ y . θ y
       ( λ py . λ hy . λ z . θ z
@@ -87,14 +87,14 @@ mult-distr ⇐ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( add y z ) ≃ add
 	β ) )
     ( λ _ . λ _ . β ) .
 
-mult-assoc-lemma-0 ⇐ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . Π e : Nat . add ( add a b ) ( add ( add c d ) e ) ≃ add ( add a c ) ( add ( add b d ) e ) =
+mult-assoc-lemma-0 ◂ Π a : Nat . Π b : Nat . Π c : Nat . Π d : Nat . Π e : Nat . add ( add a b ) ( add ( add c d ) e ) ≃ add ( add a c ) ( add ( add b d ) e ) =
   λ a . λ b . λ c . λ d . λ e .
     ρ ( add-assoc ( add a b ) ( add c d ) e ) -
     ρ ( mult-distr-lemma-0 a b c d ) -
     ρ ς ( add-assoc ( add a c ) ( add b d ) e ) -
     β .
 
-mult-assoc-lemma-1 ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x ( add y z ) ≃ add y ( add z x ) =
+mult-assoc-lemma-1 ◂ Π x : Nat . Π y : Nat . Π z : Nat . add x ( add y z ) ≃ add y ( add z x ) =
   λ x . λ y . λ z .
     ρ ( add-comm y z ) -
     ρ ( add-assoc x z y ) -
@@ -102,7 +102,7 @@ mult-assoc-lemma-1 ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x ( add y z ) 
     ρ ( add-comm x z ) -
     β .
 
-mult-assoc ⇐ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( mult y z ) ≃ mult ( mult x y ) z =
+mult-assoc ◂ Π x : Nat . Π y : Nat . Π z : Nat . mult x ( mult y z ) ≃ mult ( mult x y ) z =
   λ x . θ x
     ( λ px . λ hx . λ y . θ y
       ( λ py . λ hy . λ z . θ z

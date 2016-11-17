@@ -1,14 +1,14 @@
 import nat-thms/add/add-0.
 
-S-refl-iter ⇐ Π x : Nat . x ≃ x ( λ p . S ) Z =
+S-refl-iter ◂ Π x : Nat . x ≃ x ( λ p . S ) Z =
   λ x . ρ ς ( add-defn x Z  ) - ρ ( add-Z-1 x ) - β .
 
-S-add-one-1 ⇐ Π n : Nat . add n one ≃ S n =
+S-add-one-1 ◂ Π n : Nat . add n one ≃ S n =
   λ n . θ n
     ( λ p . λ h . ρ+ h - β )
     β .
 
-S-ineq-bool ⇐ Π x : Nat . eqnat ( S x ) x ≃ ff =
+S-ineq-bool ◂ Π x : Nat . eqnat ( S x ) x ≃ ff =
   λ x . θ x
     ( λ px . λ h . ρ h - β )
     β .  
