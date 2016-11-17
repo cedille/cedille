@@ -4,27 +4,27 @@ import true.
 import vector.
 import pair.
 
-𝒌Tyc ⇐ □ = ★ → ★ → (★ → ★ → ★ ) → (Nat → ★ → ★ ) → ★ → ★ .
+𝒌Tyc ◂ □ = ★ ➔ ★ ➔ (★ ➔ ★ ➔ ★ ) ➔ (Nat ➔ ★ ➔ ★ ) ➔ ★ ➔ ★ .
 
-tycNat ⇐ 𝒌Tyc =
-  λ n : ★ . λ u : ★ . λ pr : ★ → ★ → ★ . λ ar : Nat → ★ → ★ . λ v : ★  . n .
+tycNat ◂ 𝒌Tyc =
+  λ n : ★ . λ u : ★ . λ pr : ★ ➔ ★ ➔ ★ . λ ar : Nat ➔ ★ ➔ ★ . λ v : ★  . n .
 
-tycUnit ⇐ 𝒌Tyc = 
-  λ n : ★ . λ u : ★ . λ pr : ★ → ★ → ★ . λ ar : Nat → ★ → ★ . λ v : ★  . u .
+tycUnit ◂ 𝒌Tyc = 
+  λ n : ★ . λ u : ★ . λ pr : ★ ➔ ★ ➔ ★ . λ ar : Nat ➔ ★ ➔ ★ . λ v : ★  . u .
 	
-tycProd ⇐ 𝒌Tyc → 𝒌Tyc → 𝒌Tyc =
+tycProd ◂ 𝒌Tyc ➔ 𝒌Tyc ➔ 𝒌Tyc =
   λ l : 𝒌Tyc . λ r : 𝒌Tyc .
-    λ n : ★ . λ u : ★ . λ pr : ★ → ★ → ★ . λ ar : Nat → ★ → ★ . λ v : ★  . pr · (l · n · u · pr · ar · v) · (r · n · u · pr · ar · v) .
+    λ n : ★ . λ u : ★ . λ pr : ★ ➔ ★ ➔ ★ . λ ar : Nat ➔ ★ ➔ ★ . λ v : ★  . pr · (l · n · u · pr · ar · v) · (r · n · u · pr · ar · v) .
 
-tycArr ⇐ Nat → 𝒌Tyc → 𝒌Tyc = 
+tycArr ◂ Nat ➔ 𝒌Tyc ➔ 𝒌Tyc = 
   λ m : Nat . λ x : 𝒌Tyc .
-    λ n : ★ . λ u : ★ . λ pr : ★ → ★ → ★ . λ ar : Nat → ★ → ★ . λ v : ★  . ar m · (x · n · u · pr · ar · v) .
+    λ n : ★ . λ u : ★ . λ pr : ★ ➔ ★ ➔ ★ . λ ar : Nat ➔ ★ ➔ ★ . λ v : ★  . ar m · (x · n · u · pr · ar · v) .
 
-tycVar ⇐ 𝒌Tyc =
-  λ n : ★ . λ u : ★ . λ pr : ★ → ★ → ★ . λ ar : Nat → ★ → ★ . λ v : ★  . v .
+tycVar ◂ 𝒌Tyc =
+  λ n : ★ . λ u : ★ . λ pr : ★ ➔ ★ ➔ ★ . λ ar : Nat ➔ ★ ➔ ★ . λ v : ★  . v .
 
 
-tyc-interp ⇐ 𝒌Tyc → (★ → ★ ) =
+tyc-interp ◂ 𝒌Tyc ➔ (★ ➔ ★ ) =
   λ tyc : 𝒌Tyc . λ a : ★ .
     tyc · Nat ·
     	  True ·
@@ -32,11 +32,11 @@ tyc-interp ⇐ 𝒌Tyc → (★ → ★ ) =
 	  (λ m : Nat . λ x : ★ . Vector · x m) ·
 	  a .
 
-tyc-interp-test ⇐ ★ = tyc-interp · tycNat · True !
+tyc-interp-test ◂ ★ = tyc-interp · tycNat · True !
 
-tyc-interp-test1 ⇐ ★ = tyc-interp · tycUnit · True !
+tyc-interp-test1 ◂ ★ = tyc-interp · tycUnit · True !
 
-tyc-interp-test2 ⇐ ★ = tyc-interp · (tycProd · tycNat · tycVar) · Bool !
+tyc-interp-test2 ◂ ★ = tyc-interp · (tycProd · tycNat · tycVar) · Bool !
 
-tyc-interp-test3 ⇐ ★ = tyc-interp · (tycArr (S Z) · tycVar) · Bool !
+tyc-interp-test3 ◂ ★ = tyc-interp · (tycArr (S Z) · tycVar) · Bool !
 

@@ -2,76 +2,76 @@ import list.
 import list-thms-rotate.
 
 rec enum0 | =
-  ∀ P : enum0 → ★.
+  ∀ P : enum0 ➔ ★.
     P self
 with .
 
-rotate0 ⇐ enum0 → enum0 =
+rotate0 ◂ enum0 ➔ enum0 =
   λ e . θ e .
 
 rec enum1 | c0 : enum1 =
-  ∀ P : enum1 → ★ .
-    P c0 → P self
+  ∀ P : enum1 ➔ ★ .
+    P c0 ➔ P self
 with
   c0 = Λ P . λ x . x .
 
-rotate1 ⇐ enum1 → enum1 =
+rotate1 ◂ enum1 ➔ enum1 =
   λ e . θ e c0 .
 
 rec enum2 | c0 : enum2 , c1 : enum2 =
-  ∀ P : enum2 → ★ .
-    P c0 → P c1 → P self
+  ∀ P : enum2 ➔ ★ .
+    P c0 ➔ P c1 ➔ P self
 with
   c0 = Λ P . λ x . λ y . x ,
   c1 = Λ P . λ x . λ y . y .
 
-rotate2 ⇐ enum2 → enum2 =
+rotate2 ◂ enum2 ➔ enum2 =
   λ e . θ e c1 c0 .
 
 rec enum3 | c0 : enum3 , c1 : enum3 , c2 : enum3 =
-  ∀ P : enum3 → ★ .
-    P c0 → P c1 → P c2 → P self
+  ∀ P : enum3 ➔ ★ .
+    P c0 ➔ P c1 ➔ P c2 ➔ P self
 with
   c0 = Λ P . λ x . λ y . λ z . x ,
   c1 = Λ P . λ x . λ y . λ z . y ,
   c2 = Λ P . λ x . λ y . λ z . z .
 
-rotate3 ⇐ enum3 → enum3 =
+rotate3 ◂ enum3 ➔ enum3 =
   λ e . θ e c1 c2 c0 .
 
 enum3-ctors = (Cons · enum3 c0 (Cons · enum3 c1 (Cons · enum3 c2 (Nil · enum3)))) .
 
 % from a list of ctors, compute the type of induction
-enum-induct-t ⇐ Π E : ★ . (E → ★) → List · E → ★ =
-  λ E : ★ . λ P : E → ★ .
+enum-induct-t ◂ Π E : ★ . (E ➔ ★) ➔ List · E ➔ ★ =
+  λ E : ★ . λ P : E ➔ ★ .
   λ ctors : List · E .
    ↑ X . ctors · (λ _ : List · E . X)
-           : ((Π c : E . Π _ : List · E . ☆ → ☆) →
-	      ☆ → ☆)
-	   · (λ c : E . λ _ : List · E . λ t : ★ . P c → t)
+           : ((Π c : E . Π _ : List · E . ☆ ➔ ☆) ➔
+	      ☆ ➔ ☆)
+	   · (λ c : E . λ _ : List · E . λ t : ★ . P c ➔ t)
 	   · (Π e : E . P e).
 
-test ⇐ ★ = ∀ P : enum3 → ★ . enum-induct-t · enum3 · P enum3-ctors !
+test ◂ ★ = ∀ P : enum3 ➔ ★ . enum-induct-t · enum3 · P enum3-ctors !
 
 % compute the type for non-dependent recursion
-enum-rec-t ⇐ ★ → Nat → ★ → ★ =
+enum-rec-t ◂ ★ ➔ Nat ➔ ★ ➔ ★ =
   λ E : ★ . λ n : Nat . λ X : ★ .
-    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
-            · (λ _ : Nat . λ r : ★ . X → r)
-	    · (E → X) .
+    ↑ X . n · (λ _ : Nat . X) : ((Nat ➔ ☆ ➔ ☆) ➔ ☆ ➔ ☆)
+            · (λ _ : Nat . λ r : ★ . X ➔ r)
+	    · (E ➔ X) .
 
 % derive non-dependent recursion from induction
-enum-rec ⇐ ∀ E : ★ . Π ctors : List · E . (∀ P : E → ★ . enum-induct-t · E · P ctors) →
+enum-rec ◂ ∀ E : ★ . Π ctors : List · E . (∀ P : E ➔ ★ . enum-induct-t · E · P ctors) ➔
              ∀ X : ★ . enum-rec-t · E (length · E ctors) · X =
   Λ E . λ ctors . λ ind . Λ X .
-    ctors · (λ ctors : List · E . enum-induct-t · E · (λ _ : E . X) ctors → enum-rec-t · E (length · E ctors) · X)
+    ctors · (λ ctors : List · E . enum-induct-t · E · (λ _ : E . X) ctors ➔ enum-rec-t · E (length · E ctors) · X)
       (λ _ . λ _ . λ h . λ i . λ x . h (i x))
       (λ x . x) (ind · (λ _ : E . X)) .
 
 % the rotate function
-rotate ⇐ ∀ E : ★ . Π ctors : List · E . (∀ P : E → ★ . enum-induct-t · E · P ctors) → E → E =
+rotate ◂ ∀ E : ★ . Π ctors : List · E . (∀ P : E ➔ ★ . enum-induct-t · E · P ctors) ➔ E ➔ E =
   Λ E . λ ctors . λ ind .
-    (list-rotate · E ctors) · (λ rotated : List · E . enum-rec-t · E (length · E rotated) · E → E → E)
+    (list-rotate · E ctors) · (λ rotated : List · E . enum-rec-t · E (length · E rotated) · E ➔ E ➔ E)
       (λ c . λ t . λ h . λ r . h (r c))
       (λ x . x)
       (ρ ς (list-rotate-length · E ctors) - (enum-rec · E ctors ind · E)) .

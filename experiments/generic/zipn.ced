@@ -7,14 +7,14 @@ import listt.
 
 
 % type computation functions
-arrTy ⇐ 𝒌listt → ★ → ★ =
-  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . h → r) · ret .
+arrTy ◂ 𝒌listt ➔ ★ ➔ ★ =
+  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . h ➔ r) · ret .
 
-arrTy-test ⇐ ★ = arrTy · test-listt · (List · Bool) !
+arrTy-test ◂ ★ = arrTy · test-listt · (List · Bool) !
 
-arrTyList ⇐ 𝒌listt → ★ → ★ =
-  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . (List · h) → r) · (List · ret) .
+arrTyList ◂ 𝒌listt ➔ ★ ➔ ★ =
+  λ L : 𝒌listt . λ ret : ★ . L · (λ h : ★ . λ r : ★ . (List · h) ➔ r) · (List · ret) .
 
-arrTyList-test ⇐ ★ = arrTyList · test-listt · (List · Bool) !
+arrTyList-test ◂ ★ = arrTyList · test-listt · (List · Bool) !
 
 

@@ -5,21 +5,21 @@ import true.
 import false.
 
 
-zip-return-t ⇐ (Nat → ★) → Nat → ★ =
-  λ L : Nat → ★ . λ n : Nat.
-    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
+zip-return-t ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
+  λ L : Nat ➔ ★ . λ n : Nat.
+    ↑ X . n · (λ _ : Nat . X) : ((Nat ➔ ☆ ➔ ☆) ➔ ☆ ➔ ☆)
             · (λ p : Nat . λ T : ★ . Pair · (L p) · T)
 	    · True .
 
-testList ⇐ Nat → ★ =
+testList ◂ Nat ➔ ★ =
  λ n : Nat . if-t (eqnat n Z) · Bool · (if-t (eqnat n (S Z)) · Nat · False) .
 
-test ⇐ ★ = zip-return-t · testList (S (S Z)) !
+test ◂ ★ = zip-return-t · testList (S (S Z)) !
 
-arrTy ⇐ (Nat → ★) → Nat → ★ =
-  λ L : Nat → ★ . λ n : Nat.
-    ↑ X . n · (λ _ : Nat . X) : ((Nat → ☆ → ☆) → ☆ → ☆)
-            · (λ p : Nat . λ T : ★ . T → (L p))
+arrTy ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
+  λ L : Nat ➔ ★ . λ n : Nat.
+    ↑ X . n · (λ _ : Nat . X) : ((Nat ➔ ☆ ➔ ☆) ➔ ☆ ➔ ☆)
+            · (λ p : Nat . λ T : ★ . T ➔ (L p))
 	    · Bool .
 
-arrTy-test ⇐ ★ = arrTy · testList (S (S Z)) !
+arrTy-test ◂ ★ = arrTy · testList (S (S Z)) !

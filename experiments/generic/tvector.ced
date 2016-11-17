@@ -2,12 +2,12 @@ import nat.
 import bool.
 
 
-𝒌Tvector ⇐ □ = (Nat → ★ → ★ → ★ ) → (Nat → ★ ) → ★ .
+𝒌Tvector ◂ □ = (Nat ➔ ★ ➔ ★ ➔ ★ ) ➔ (Nat ➔ ★ ) ➔ ★ .
 
-TvCons ⇐ Nat → ★ → 𝒌Tvector → 𝒌Tvector =
+TvCons ◂ Nat ➔ ★ ➔ 𝒌Tvector ➔ 𝒌Tvector =
   λ n : Nat . λ h : ★ . λ t : 𝒌Tvector .
-    λ c : Nat → ★ → ★ → ★ . λ e : Nat → ★ . c n · h · (t · c · e) .
+    λ c : Nat ➔ ★ ➔ ★ ➔ ★ . λ e : Nat ➔ ★ . c n · h · (t · c · e) .
 
-TvNil ⇐ Nat → 𝒌Tvector = λ n : Nat . λ c : Nat → ★ → ★ → ★ . λ e : Nat → ★ . e n .
+TvNil ◂ Nat ➔ 𝒌Tvector = λ n : Nat . λ c : Nat ➔ ★ ➔ ★ ➔ ★ . λ e : Nat ➔ ★ . e n .
 
-Tvector-test ⇐ 𝒌Tvector = TvCons (S (S Z)) · Bool · (TvCons (S Z) · Nat · (TvNil Z)) !
+Tvector-test ◂ 𝒌Tvector = TvCons (S (S Z)) · Bool · (TvCons (S Z) · Nat · (TvNil Z)) !

@@ -1,8 +1,8 @@
 import bool.
 
 % lifting tests
-id ⇐ ∀ A : ★ . A → A = Λ A . λ x . x .
+id ◂ ∀ A : ★ . A ➔ A = Λ A . λ x . x .
 
-id-lift ⇐ ★ → ★ = ↑ X . id · X : (☆ → ☆) .
+id-lift ◂ ★ ➔ ★ = ↑ X . id · X : (☆ ➔ ☆) .
 
-id-lift-test ⇐ ★ = id-lift · Bool !
+id-lift-test ◂ ★ = id-lift · Bool !
