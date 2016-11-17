@@ -3,7 +3,7 @@ import subst.
 import test-trms.
 import trm-util.
 
-cd-trmh ⇐ trm → Bool → trm =
+cd-trmh ◂ trm ➔ Bool ➔ trm =
  λ t .
    θ t
      (λ t1 . λ _ . λ r1 . λ r2 . λ rebind-lam . 
@@ -14,7 +14,7 @@ cd-trmh ⇐ trm → Bool → trm =
      (λ i . λ _ . λ r . λ rebind-lam . θ rebind-lam (lam i (r (λ _ . var i) tt)) (r (λ _ . var i) tt))
      (λ i . λ _ . var i) .
 
-cd-trm ⇐ trm → trm = λ t . cd-trmh t tt .
+cd-trm ◂ trm ➔ trm = λ t . cd-trmh t tt .
 
 to-cctrm (cd-trm redex2) !
 

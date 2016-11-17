@@ -3,18 +3,18 @@ import nat.
 import trm.
 import trm-util.
 
-substh-lam-var ⇐ Bool → trm → Nat → trm → Nat =
+substh-lam-var ◂ Bool ➔ trm ➔ Nat ➔ trm ➔ Nat =
   λ avoid-capture. λ t'. λ i. λ f. 
     (λ bnd : Nat . (and avoid-capture (lt i bnd) · (λ _ : Bool . Nat) bnd i))
     (max (var-bound (lam i f)) (var-bound t')) .
 
-substh-app ⇐ trm → trm → trm → trm → trm = λ t1 . λ t2 . λ r1 . λ r2 . app r1 r2 .
-substh-lam ⇐ Bool → trm → Nat → trm → (trm → trm) → trm = 
+substh-app ◂ trm ➔ trm ➔ trm ➔ trm ➔ trm = λ t1 . λ t2 . λ r1 . λ r2 . app r1 r2 .
+substh-lam ◂ Bool ➔ trm ➔ Nat ➔ trm ➔ (trm ➔ trm) ➔ trm = 
   λ avoid-capture . λ t' . λ i . λ f . λ r . 
      (λ i' : Nat . lam i' (r (var i'))) (substh-lam-var avoid-capture t' i f).
-substh-var ⇐ Nat → trm → Nat → trm = λ x . λ t' . λ i . θ (eqnat i x) t' (var i) .
+substh-var ◂ Nat ➔ trm ➔ Nat ➔ trm = λ x . λ t' . λ i . θ (eqnat i x) t' (var i) .
 
-substh ⇐ Bool → trm → Nat → trm → trm =
+substh ◂ Bool ➔ trm ➔ Nat ➔ trm ➔ trm =
   λ avoid-capture . λ t' . λ x . λ t .
     θ t substh-app
         (substh-lam avoid-capture t')
@@ -23,7 +23,7 @@ substh ⇐ Bool → trm → Nat → trm → trm =
 subst = substh tt.
 graft = substh ff.
 
-test ⇐ trm = lam Z (app (var (S Z)) (lam (S Z) (var (S Z)))) .
+test ◂ trm = lam Z (app (var (S Z)) (lam (S Z) (var (S Z)))) .
 
 to-ctrm test !
 

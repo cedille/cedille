@@ -1,13 +1,13 @@
 import trm.
 
-omega-trm ⇐ trm = lam Z (app (var Z) (var Z)) .
+omega-trm ◂ trm = lam Z (app (var Z) (var Z)) .
 
-id-trm ⇐ trm = lam Z (var Z) .
-id-trm1 ⇐ trm = lam (S Z) (var (S Z)) .
-Omega-trm ⇐ trm = app omega-trm omega-trm .
+id-trm ◂ trm = lam Z (var Z) .
+id-trm1 ◂ trm = lam (S Z) (var (S Z)) .
+Omega-trm ◂ trm = app omega-trm omega-trm .
 
-fv-trm ⇐ trm = lam Z (app (var (S Z)) (var (S (S Z)))) .
-fv-trm2 ⇐ trm = app (var (S Z)) (lam (S Z) (var (S Z))) .
+fv-trm ◂ trm = lam Z (app (var (S Z)) (var (S (S Z)))) .
+fv-trm2 ◂ trm = app (var (S Z)) (lam (S Z) (var (S Z))) .
 
-redex1 ⇐ trm = app id-trm id-trm1 .
-redex2 ⇐ trm = app omega-trm redex1.
+redex1 ◂ trm = app id-trm id-trm1 .
+redex2 ◂ trm = app omega-trm redex1.

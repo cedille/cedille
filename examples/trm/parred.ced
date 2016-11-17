@@ -1,39 +1,39 @@
 import trm.
 import subst.
 
-𝒌parred-clause ⇐ □ = (trm → trm → ★) → (trm → trm → ★) → ★ .
+𝒌parred-clause ◂ □ = (trm ➔ trm ➔ ★) ➔ (trm ➔ trm ➔ ★) ➔ ★ .
 
-parred-var-t ⇐ 𝒌parred-clause =
-  λ P : trm → trm → ★. λ R : trm → trm → ★.
+parred-var-t ◂ 𝒌parred-clause =
+  λ P : trm ➔ trm ➔ ★. λ R : trm ➔ trm ➔ ★.
     Π i : Nat . P (var i) (var i) .
 
-parred-lam-t ⇐ 𝒌parred-clause =
-  λ P : trm → trm → ★ . λ R : trm → trm → ★ .
+parred-lam-t ◂ 𝒌parred-clause =
+  λ P : trm ➔ trm ➔ ★ . λ R : trm ➔ trm ➔ ★ .
     Π i : Nat .Π f : trm . Π f' : trm .
-      R f f' → P f f' → P (lam i f) (lam i f') .
+      R f f' ➔ P f f' ➔ P (lam i f) (lam i f') .
 
-parred-app-t ⇐ 𝒌parred-clause =
-  λ P : trm → trm → ★ . λ R : trm → trm → ★ .
+parred-app-t ◂ 𝒌parred-clause =
+  λ P : trm ➔ trm ➔ ★ . λ R : trm ➔ trm ➔ ★ .
     Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm.
-    R t1 t1' → R t2 t2' → P t1 t1' → P t2 t2' → P (app t1 t2) (app t1' t2').
+    R t1 t1' ➔ R t2 t2' ➔ P t1 t1' ➔ P t2 t2' ➔ P (app t1 t2) (app t1' t2').
 
-parred-beta-t ⇐ 𝒌parred-clause =
-  λ P : trm → trm → ★ . λ R : trm → trm → ★ .
+parred-beta-t ◂ 𝒌parred-clause =
+  λ P : trm ➔ trm ➔ ★ . λ R : trm ➔ trm ➔ ★ .
     Π i : Nat . Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. 
-      R t1 t1' → R t2 t2' → P t1 t1' → P t2 t2' → P (app (lam i t1) t2) (subst t2' i t1') .
+      R t1 t1' ➔ R t2 t2' ➔ P t1 t1' ➔ P t2 t2' ➔ P (app (lam i t1) t2) (subst t2' i t1') .
 
 rec parred : (t1 : trm)(t2 : trm) | parred-var : Π i : Nat . parred (var i) (var i) ,
                                     parred-lam : Π i : Nat . Π f : trm . Π f' : trm .
-                                                 parred f f' → parred (lam i f) (lam i f') ,
+                                                 parred f f' ➔ parred (lam i f) (lam i f') ,
                                     parred-app : Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm.
-                                                 parred t1 t1' → parred t2 t2' → parred (app t1 t2) (app t1' t2') ,
+                                                 parred t1 t1' ➔ parred t2 t2' ➔ parred (app t1 t2) (app t1' t2') ,
                                     parred-beta : Π i : Nat . Π t1 : trm . Π t2 : trm . Π t1' : trm . Π t2' : trm. 
-                                                  parred t1 t1' → parred t2 t2' → parred (app (lam i t1) t2) (subst t2' i t1') =
-  ∀ P : trm → trm → ★ .
-    parred-var-t · P · parred → 
-    parred-lam-t · P · parred → 
-    parred-app-t · P · parred → 
-    parred-beta-t · P · parred → 
+                                                  parred t1 t1' ➔ parred t2 t2' ➔ parred (app (lam i t1) t2) (subst t2' i t1') =
+  ∀ P : trm ➔ trm ➔ ★ .
+    parred-var-t · P · parred ➔ 
+    parred-lam-t · P · parred ➔ 
+    parred-app-t · P · parred ➔ 
+    parred-beta-t · P · parred ➔ 
     P t1 t2 
 with
   parred-var = λ i . Λ P . λ v . λ l . λ a . λ b . v i ,

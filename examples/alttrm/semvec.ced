@@ -1,13 +1,13 @@
 import vector.
 import nat-thms/compare.
 
-rec semvec(trm : Nat → ★)(P : Π n : Nat . trm n → ★) : (n : Nat)(m : Nat)(s : Vector · (trm n) m)
-| semvecCons : ∀ n : Nat . ∀ m : Nat . ∀ t : trm n . P n t → ∀ s : Vector · (trm n) m . semvec n m s → semvec n (S m) (Vcons · (trm n) -m t s),
+rec semvec(trm : Nat ➔ ★)(P : Π n : Nat . trm n ➔ ★) : (n : Nat)(m : Nat)(s : Vector · (trm n) m)
+| semvecCons : ∀ n : Nat . ∀ m : Nat . ∀ t : trm n . P n t ➔ ∀ s : Vector · (trm n) m . semvec n m s ➔ semvec n (S m) (Vcons · (trm n) -m t s),
   semvecNil : ∀ n : Nat . semvec n Z (Vnil · (trm n)) =
- ∀ Q : Π n : Nat . Π m : Nat . Π s : Vector · (trm n) m . semvec n m s → ★.
+ ∀ Q : Π n : Nat . Π m : Nat . Π s : Vector · (trm n) m . semvec n m s ➔ ★.
    (∀ n : Nat . ∀ m : Nat . ∀ t : trm n . Π u : P n t. ∀ s : Vector · (trm n) m . Π v : semvec n m s .
-      Q n m s v → Q n (S m) (Vcons · (trm n) -m t s) (semvecCons -n -m -t u -s v)) →
-   (∀ n : Nat . Q n Z (Vnil · (trm n)) (semvecNil -n)) →
+      Q n m s v ➔ Q n (S m) (Vcons · (trm n) -m t s) (semvecCons -n -m -t u -s v)) ➔
+   (∀ n : Nat . Q n Z (Vnil · (trm n)) (semvecNil -n)) ➔
    Q n m s self
 with
   semvecCons = Λ n . Λ m . Λ t . λ ut . Λ s . λ v .
@@ -15,8 +15,8 @@ with
   semvecNil = Λ n . Λ Q . λ c . λ ni . ni -n 
 .
 
-vectorToSemvec ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat . trm n → ★ . ∀ n1 : Nat . ∀ n : Nat . ∀ m : Nat . ∀ f : trm n1 → trm n .
-                 (Π t : trm n1. P n (f t)) → Π s : Vector · (trm n1) m .
+vectorToSemvec ◂ ∀ trm : Nat ➔ ★ . ∀ P : Π n : Nat . trm n ➔ ★ . ∀ n1 : Nat . ∀ n : Nat . ∀ m : Nat . ∀ f : trm n1 ➔ trm n .
+                 (Π t : trm n1. P n (f t)) ➔ Π s : Vector · (trm n1) m .
                  semvec · trm · P n m (Vmap · (trm n1) · (trm n) -m f s) =
    Λ trm . Λ P . Λ n1 . Λ n . Λ m . Λ f . λ uf . λ s .
      s · (λ m : Nat . λ s : Vector · (trm n1) m . semvec · trm · P n m (Vmap · (trm n1) · (trm n) -m f s))
@@ -24,7 +24,7 @@ vectorToSemvec ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat . trm n → ★ . 
               (semvecCons · trm · P -n -m -(f t) (uf t) -(Vmap · (trm n1) · (trm n) -m f s) r))
        (semvecNil · trm · P -n). 
 
-semvecComp ⇐ ∀ trm : Nat → ★ . ∀ m : Nat . ∀ n1 : Nat . ∀ n : Nat . Π s1 : Vector · (trm n1) m . ∀ s : Vector · (trm n) n1 .
+semvecComp ◂ ∀ trm : Nat ➔ ★ . ∀ m : Nat . ∀ n1 : Nat . ∀ n : Nat . Π s1 : Vector · (trm n1) m . ∀ s : Vector · (trm n) n1 .
              (λ a . λ l . λ v . vectorToSemvec (λ t . t a l (vectorToSemvec (λ t . t a l v) s)) s1 
             ≃ λ a . λ l . λ v . vectorToSemvec (λ t . t a l v)
                                         (Vmap (λ t . λ a . λ l . λ v . t a l (vectorToSemvec (λ t . t a l v) s)) s1)) =
@@ -39,11 +39,11 @@ semvecComp ⇐ ∀ trm : Nat → ★ . ∀ m : Nat . ∀ n1 : Nat . ∀ n : Nat 
         ρ ih - β)
      β .
            
-semvecLast ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat. trm n → ★ . ∀ n : Nat . Π m : Nat . ∀ s : Vector · (trm n) m .
-             semvec · trm · P n m s → Π i : Nat . ∀ u : Lt i m . P n (Vlast · (trm n) m s i -u) =
+semvecLast ◂ ∀ trm : Nat ➔ ★ . ∀ P : Π n : Nat. trm n ➔ ★ . ∀ n : Nat . Π m : Nat . ∀ s : Vector · (trm n) m .
+             semvec · trm · P n m s ➔ Π i : Nat . ∀ u : Lt i m . P n (Vlast · (trm n) m s i -u) =
    Λ trm . Λ P . Λ n . λ m . Λ s . λ v .
       v · (λ n : Nat . λ m : Nat . λ s : Vector · (trm n) m . λ _ : semvec · trm · P n m s .
-             Π m' : Nat . (m ≃ m') → Π i : Nat . ∀ u : Lt i m . P n (Vlast · (trm n) m s i -u))
+             Π m' : Nat . (m ≃ m') ➔ Π i : Nat . ∀ u : Lt i m . P n (Vlast · (trm n) m s i -u))
         (Λ n . Λ m . Λ t . λ ut . Λ s . λ v . λ r . λ m' .
            θ m' (λ m' . λ _ . λ e . λ i . Λ u .
                   (θ+ (eqnat i m')
@@ -54,11 +54,11 @@ semvecLast ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat. trm n → ★ . ∀ n
         (Λ n . λ m' . λ e . λ i . Λ u . δ (Not-Lt-Z i u · (tt ≃ ff)))
         m β.
 
-semvecLastLem ⇐ ∀ trm : Nat → ★ . ∀ n : Nat . Π m : Nat . Π s : Vector · (trm n) m . Π i : Nat . Lt i m → 
+semvecLastLem ◂ ∀ trm : Nat ➔ ★ . ∀ n : Nat . Π m : Nat . Π s : Vector · (trm n) m . Π i : Nat . Lt i m ➔ 
                 (λ a . λ l . λ v . semvecLast m (vectorToSemvec (λ t . t a l v) s) i ≃
                  Vlast m s i) =
   Λ trm . Λ n . λ m . λ s . 
-    s · (λ m : Nat . λ s : Vector · (trm n) m . Π m' : Nat . (m ≃ m') → Π i : Nat . Lt i m →
+    s · (λ m : Nat . λ s : Vector · (trm n) m . Π m' : Nat . (m ≃ m') ➔ Π i : Nat . Lt i m ➔
              (λ a . λ l . λ v . semvecLast m (vectorToSemvec (λ t . t a l v) s) i ≃
                  Vlast m s i))
       (Λ m . λ h . λ t . λ ih . λ m' . 
@@ -72,30 +72,30 @@ semvecLastLem ⇐ ∀ trm : Nat → ★ . ∀ n : Nat . Π m : Nat . Π s : Vect
       (λ _ . λ _ . λ i . λ u . δ (Not-Lt-Z i u · (tt ≃ ff)))
       m β.
 
-semvecRepeat ⇐ ∀ trm : Nat → ★ . ∀ P : Π n : Nat . trm n → ★ . ∀ n : Nat . Π m : Nat. ∀ t : trm n . P n t → 
+semvecRepeat ◂ ∀ trm : Nat ➔ ★ . ∀ P : Π n : Nat . trm n ➔ ★ . ∀ n : Nat . Π m : Nat. ∀ t : trm n . P n t ➔ 
                semvec · trm · P n m (Vrepeat · (trm n) m t) =
    Λ trm . Λ P . Λ n . λ m . Λ t . λ u .
      θ m (λ m . λ v . semvecCons · trm · P -n -m -t u -(Vrepeat · (trm n) m t) v)
          (semvecNil · trm · P -n).
 
-semvecZ ⇐ ∀ trm : Nat → ★.
-          ∀ P : Π n : Nat . trm n → ★.
+semvecZ ◂ ∀ trm : Nat ➔ ★.
+          ∀ P : Π n : Nat . trm n ➔ ★.
           ∀ n : Nat.
           ∀ m : Nat.
           ∀ s : Vector · (trm n) m .
           Π v : semvec · trm · P n m s .
-            (m ≃ Z) → v ≃ semvecNil =
+            (m ≃ Z) ➔ v ≃ semvecNil =
  Λ trm . Λ P . Λ n . Λ m . Λ s . λ v .
-   v · (λ n : Nat . λ m : Nat . λ s : Vector · (trm n) m . λ v : semvec · trm · P n m s . (m ≃ Z) → v ≃ semvecNil)
+   v · (λ n : Nat . λ m : Nat . λ s : Vector · (trm n) m . λ v : semvec · trm · P n m s . (m ≃ Z) ➔ v ≃ semvecNil)
      (Λ _ . Λ _ . Λ _ . λ _ . Λ _ . λ _ . λ _ . λ u . δ u)
      (Λ _ . λ _ . β) .
 
-semvecTail ⇐ ∀ trm : Nat → ★.
-             ∀ P : Π n : Nat . trm n → ★ .
+semvecTail ◂ ∀ trm : Nat ➔ ★.
+             ∀ P : Π n : Nat . trm n ➔ ★ .
              ∀ n : Nat.
              ∀ m : Nat.
              ∀ s : Vector · (trm n) m .
              Π v : semvec · trm · P n m s .
              Π m' : Nat .
-             Lte m' m →
+             Lte m' m ➔
              semvec · trm · P n m' (Vtail m' s) = ● .

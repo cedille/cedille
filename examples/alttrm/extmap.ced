@@ -1,21 +1,21 @@
 import substmap.
 import nat-thms/compare.
 
-rec extmap(trm : ★)(var : Nat → trm)(P : trm → ★) : (s : substmap · trm)
-  | extmapCons : ∀ s : substmap · trm . Π i : Nat. ∀ t : trm . P t → extmap s → extmap (substmapCons · trm i t s) ,
-    extmapNil : (Π x : Nat . P (var x)) → extmap (substmapNil · trm)
+rec extmap(trm : ★)(var : Nat ➔ trm)(P : trm ➔ ★) : (s : substmap · trm)
+  | extmapCons : ∀ s : substmap · trm . Π i : Nat. ∀ t : trm . P t ➔ extmap s ➔ extmap (substmapCons · trm i t s) ,
+    extmapNil : (Π x : Nat . P (var x)) ➔ extmap (substmapNil · trm)
 =
-  ∀ Q : Π s : substmap · trm . extmap s → ★.
+  ∀ Q : Π s : substmap · trm . extmap s ➔ ★.
     (∀ s : substmap · trm . Π i : Nat . ∀ t : trm . Π u : P t . Π m : extmap s .
-        Q s m → Q (substmapCons · trm i t s) (extmapCons -s i -t u m)) →
-    (Π u : Π x : Nat . P (var x) . Q (substmapNil · trm) (extmapNil u)) →
+        Q s m ➔ Q (substmapCons · trm i t s) (extmapCons -s i -t u m)) ➔
+    (Π u : Π x : Nat . P (var x) . Q (substmapNil · trm) (extmapNil u)) ➔
     Q s self
 with
   extmapCons = Λ s . λ i . Λ t . λ u . λ m . Λ Q . λ c . λ n . c -s i -t u m (m · Q c n) ,
   extmapNil = λ u . Λ Q . λ c . λ n . n u .
 
-extmapLookup ⇐ ∀ trm : ★ . ∀ P : trm → ★ . Π var : Nat → trm . ∀ s : substmap · trm .
-                 extmap · trm var · P s →
+extmapLookup ◂ ∀ trm : ★ . ∀ P : trm ➔ ★ . Π var : Nat ➔ trm . ∀ s : substmap · trm .
+                 extmap · trm var · P s ➔
                  Π i : Nat . P (substmapLookup · trm var s i) =
        Λ trm . Λ P . λ var . Λ s . λ m . λ j .
          m · (λ s : substmap · trm . λ m : extmap · trm var · P s . P (substmapLookup · trm var s j))

@@ -1,53 +1,53 @@
 import is-free.
 import subst.
 
-substh-same-var ⇐ Π avoid-capture : Bool . 
+substh-same-var ◂ Π avoid-capture : Bool . 
                   Π t : trm .
                   Π x : Nat .
                    substh avoid-capture t x (var x) ≃ t =
   λ avoid-capture . λ t . λ x .
      εl ρ (eqnat-refl x) - β .
 
-subst-var ⇐ Π t : trm . Π x : Nat . subst t x (var x) ≃ t = substh-same-var tt .
-graft-var ⇐ Π t : trm . Π x : Nat . graft t x (var x) ≃ t = substh-same-var ff .
+subst-var ◂ Π t : trm . Π x : Nat . subst t x (var x) ≃ t = substh-same-var tt .
+graft-var ◂ Π t : trm . Π x : Nat . graft t x (var x) ≃ t = substh-same-var ff .
 
-substh-var-diff ⇐
+substh-var-diff ◂
    Π avoid-capture : Bool . 
    Π t : trm .
    Π x : Nat .
    Π y : Nat .
-     (eqnat x y ≃ ff) → 
+     (eqnat x y ≃ ff) ➔ 
      substh avoid-capture t y (var x) ≃ (var x) =
   λ avoid-capture . λ t . λ x . λ y . λ u .
      εl ρ u - β .
 
-subst-var-diff ⇐
+subst-var-diff ◂
    Π t : trm .
    Π x : Nat .
    Π y : Nat .
-     (eqnat x y ≃ ff) → 
+     (eqnat x y ≃ ff) ➔ 
      subst t y (var x) ≃ (var x) = substh-var-diff tt .
 
-graft-var-diff ⇐
+graft-var-diff ◂
    Π t : trm .
    Π x : Nat .
    Π y : Nat .
-     (eqnat x y ≃ ff) → 
+     (eqnat x y ≃ ff) ➔ 
      graft t y (var x) ≃ (var x) = substh-var-diff ff .
 
-substh-apart-from ⇐ 
+substh-apart-from ◂ 
   Π avoid-capture : Bool . Π t' : trm . Π x : Nat . Π t : trm .
-     Apart-from x t → substh avoid-capture t' x t ≃ t = ● .
+     Apart-from x t ➔ substh avoid-capture t' x t ≃ t = ● .
                
-subst-apart-from ⇐ 
+subst-apart-from ◂ 
   Π t' : trm . Π x : Nat . Π t : trm .
-     Apart-from x t → subst t' x t ≃ t = substh-apart-from tt .
+     Apart-from x t ➔ subst t' x t ≃ t = substh-apart-from tt .
 
-graft-apart-from ⇐ 
+graft-apart-from ◂ 
   Π t' : trm . Π x : Nat . Π t : trm .
-     Apart-from x t → graft t' x t ≃ t = substh-apart-from ff .
+     Apart-from x t ➔ graft t' x t ≃ t = substh-apart-from ff .
 
-subst-app ⇐ Π t1 : trm . Π x : Nat . Π t2a : trm . Π t2b : trm .
+subst-app ◂ Π t1 : trm . Π x : Nat . Π t2a : trm . Π t2b : trm .
             subst t1 x (app t2a t2b) ≃ app (subst t1 x t2a) (subst t1 x t2b) =
   λ t1 . λ x . λ t2a . λ t2b . ε β .
     

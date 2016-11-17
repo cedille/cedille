@@ -1,17 +1,17 @@
 import nat.
 import nat-thms/compare.
 
-sextend ⇐ ∀ trm : ★ .
-         (Nat → trm) →
-	 Nat → trm →
-	 (Nat → trm) =
+sextend ◂ ∀ trm : ★ .
+         (Nat ➔ trm) ➔
+	 Nat ➔ trm ➔
+	 (Nat ➔ trm) =
  Λ trm . λ s . λ i . λ t . λ j .
    θ+ (eqnat i j) (λ _ . t) (λ _ . (s j)) .
      
-extend ⇐ ∀ trm : ★ .
-         ∀ P : trm → ★ .
-         ∀ s : Nat → trm .
-	 (Π j : Nat . P (s j)) →
+extend ◂ ∀ trm : ★ .
+         ∀ P : trm ➔ ★ .
+         ∀ s : Nat ➔ trm .
+	 (Π j : Nat . P (s j)) ➔
 	 Π i : Nat .
 	 ∀ t : trm .
 	 Π u : P t .
@@ -19,17 +19,17 @@ extend ⇐ ∀ trm : ★ .
  Λ trm . Λ P . Λ s . λ v . λ i . Λ t . λ U . λ j .
    θ+ (eqnat i j) (λ u . ρ (χ (sextend s i t j ≃ t) - εl- ρ u - β) - U) (λ u . ρ (χ (sextend s i t j ≃ s j) - εl ρ u - β) - (v j)) .
 
-rec trm : | app : trm → trm → trm ,
-            lam : Nat → trm → trm ,
-            subst : (Nat → trm) → trm → trm,
-            var : Nat → trm =
- ∀ P : trm → ★ .  
-   (∀ s : Nat → trm . ∀ t1 : trm . ∀ t2 : trm .
-      P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
-   (∀ s : Nat → trm . ∀ i : Nat . ∀ f : trm .
-      (∀ t : trm . P t → P (subst (sextend · trm s i t) f)) → P (subst s (lam i f))) → 
-   ∀ s : Nat → trm .
-   (Π i : Nat . P (s i)) →
+rec trm : | app : trm ➔ trm ➔ trm ,
+            lam : Nat ➔ trm ➔ trm ,
+            subst : (Nat ➔ trm) ➔ trm ➔ trm,
+            var : Nat ➔ trm =
+ ∀ P : trm ➔ ★ .  
+   (∀ s : Nat ➔ trm . ∀ t1 : trm . ∀ t2 : trm .
+      P (subst s t1) ➔ P (subst s t2) ➔ P (subst s (app t1 t2))) ➔ 
+   (∀ s : Nat ➔ trm . ∀ i : Nat . ∀ f : trm .
+      (∀ t : trm . P t ➔ P (subst (sextend · trm s i t) f)) ➔ P (subst s (lam i f))) ➔ 
+   ∀ s : Nat ➔ trm .
+   (Π i : Nat . P (s i)) ➔
    P (subst s self)
 with 
   app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v .
@@ -41,11 +41,11 @@ with
   var = λ i . Λ P . λ a . λ l . Λ s . λ v . (v i)
  .
 
-fv-trm ⇐ trm = lam (S Z) (app (var (S Z)) (var Z)) !
+fv-trm ◂ trm = lam (S Z) (app (var (S Z)) (var Z)) !
 
 test = subst (λ i . θ i (λ p . λ _ . (var (S p))) (var (S Z))) fv-trm !
 
-triv-subst ⇐ Nat → trm = λ i . (var i) .
+triv-subst ◂ Nat ➔ trm = λ i . (var i) .
 
-triv-subst-id ⇐ ∀ t : trm . subst triv-subst t ≃ t = Λ t . β. 
+triv-subst-id ◂ ∀ t : trm . subst triv-subst t ≃ t = Λ t . β. 
 

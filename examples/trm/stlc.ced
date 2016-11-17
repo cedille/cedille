@@ -1,9 +1,9 @@
 import trm.
 import simple-types.
 
-hastp-extend ⇐ 
-         ∀ hastp : trm → tp → ★ .
-         ∀ P : (Π t : trm . Π T : tp . hastp t T → ★) .
+hastp-extend ◂ 
+         ∀ hastp : trm ➔ tp ➔ ★ .
+         ∀ P : (Π t : trm . Π T : tp . hastp t T ➔ ★) .
          Π hastp-assume : Π x : Nat . Π T : tp . hastp (var x) T .
          Π v : (Π x : Nat . Π T : tp . P (var x) T (hastp-assume x T)) .
          Π x : Nat .
@@ -17,17 +17,17 @@ hastp-extend ⇐
 
 rec hastp : (t : trm)(T : tp) | 
   hastp-app : Π t1 : trm . Π t2 : trm . Π Ta : tp . Π Tb : tp .
-                hastp t1 (arrow Ta Tb) → hastp t2 Ta → hastp (app t1 t2) Tb ,
+                hastp t1 (arrow Ta Tb) ➔ hastp t2 Ta ➔ hastp (app t1 t2) Tb ,
   hastp-lam : Π x : Nat . Π b : trm . Π Ta : tp . Π Tb : tp .
-                hastp b Tb → hastp (lam x b) (arrow Ta Tb) , 
+                hastp b Tb ➔ hastp (lam x b) (arrow Ta Tb) , 
   hastp-assume : Π x : Nat . Π T : tp . hastp (var x) T =
-  ∀ P : (Π t : trm . Π T : tp . hastp t T → ★) .
+  ∀ P : (Π t : trm . Π T : tp . hastp t T ➔ ★) .
     (Π t1 : trm . Π t2 : trm . Π Ta : tp . Π Tb : tp . 
      Π d1 : hastp t1 (arrow Ta Tb) . Π d2 : hastp t2 Ta .
-     P t1 (arrow Ta Tb) d1 → P t2 Ta d2 → P (app t1 t2) Tb (hastp-app t1 t2 Ta Tb d1 d2)) →
+     P t1 (arrow Ta Tb) d1 ➔ P t2 Ta d2 ➔ P (app t1 t2) Tb (hastp-app t1 t2 Ta Tb d1 d2)) ➔
     (Π x : Nat . Π b : trm . Π Ta : tp . Π Tb : tp . Π d : hastp b Tb .
-     (P (var x) Ta (hastp-assume x Ta) → P b Tb d) → P (lam x b) (arrow Ta Tb) (hastp-lam x b Ta Tb d)) →
-    (Π x : Nat . Π T : tp . P (var x) T (hastp-assume x T)) → 
+     (P (var x) Ta (hastp-assume x Ta) ➔ P b Tb d) ➔ P (lam x b) (arrow Ta Tb) (hastp-lam x b Ta Tb d)) ➔
+    (Π x : Nat . Π T : tp . P (var x) T (hastp-assume x T)) ➔ 
     P t T self
 with
   hastp-app = λ t1 . λ t2 . λ Ta . λ Tb . λ d1 . λ d2 .

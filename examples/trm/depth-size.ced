@@ -4,31 +4,31 @@ import trm-util.
 import nat-thms-max.
 
 size-app = λ _ : trm . λ _ : trm . λ s1 : Nat . λ s2 : Nat . S (add s1 s2) .
-size-lam = λ _ : Nat . λ _ : trm . λ N : Nat → Nat . S (N one) .
+size-lam = λ _ : Nat . λ _ : trm . λ N : Nat ➔ Nat . S (N one) .
 size-var = λ _ : Nat . one .
 
-size ⇐ trm → Nat = 
+size ◂ trm ➔ Nat = 
   λ t . θ t size-app size-lam size-var.
 
-test ⇐ trm = lam Z (var Z) !
+test ◂ trm = lam Z (var Z) !
 
-test ⇐ trm = lam Z (app (var Z) (lam (S Z) (var (S Z)))) !
+test ◂ trm = lam Z (app (var Z) (lam (S Z) (var (S Z)))) !
 
 toCNat (size test) !
 
 depth-app = λ _ : trm . λ _ : trm . λ s1 : Nat . λ s2 : Nat . S (max s1 s2) .
-depth-lam = λ _ : Nat . λ f : trm . λ N : Nat → Nat . S (N Z) .
+depth-lam = λ _ : Nat . λ f : trm . λ N : Nat ➔ Nat . S (N Z) .
 depth-var = λ _ : Nat . Z .
 
-depth ⇐ trm → Nat = 
+depth ◂ trm ➔ Nat = 
   λ t . θ t depth-app depth-lam depth-var.
 
 toCNat (depth test) !
 
-depth-Lte-lem ⇐ Π x : Nat . Π y : Nat . Π x' : Nat . Π y' : Nat.
-                Lte x x' → Lte y y' → Lte (max x y) (add x' y') = ●.
+depth-Lte-lem ◂ Π x : Nat . Π y : Nat . Π x' : Nat . Π y' : Nat.
+                Lte x x' ➔ Lte y y' ➔ Lte (max x y) (add x' y') = ●.
 
-depth-extend ⇐ Π f : trm . Π i : Nat . 
+depth-extend ◂ Π f : trm . Π i : Nat . 
                  f depth-app depth-lam (extend var depth-var i Z) ≃ f depth-app depth-lam depth-var = 
    λ f . λ i .
       trm-ext · (λ _ : trm . Nat) -depth-app -depth-lam 
@@ -36,7 +36,7 @@ depth-extend ⇐ Π f : trm . Π i : Nat .
         f -(extend · trm · (λ _ : trm . Nat) var depth-var i Z) -depth-var 
            (λ i' . ε (θ+ (eqnat i i') (λ v . ρ v - β) (λ v . ρ v - β))) .
 
-size-extend ⇐ Π f : trm . Π i : Nat . 
+size-extend ◂ Π f : trm . Π i : Nat . 
                  f size-app size-lam (extend var size-var i one) ≃ f size-app size-lam size-var = 
    λ f . λ i .
       trm-ext · (λ _ : trm . Nat) -size-app -size-lam 
@@ -44,7 +44,7 @@ size-extend ⇐ Π f : trm . Π i : Nat .
         f -(extend · trm · (λ _ : trm . Nat) var size-var i one) -size-var 
            (λ i' . ε (θ+ (eqnat i i') (λ v . ρ v - β) (λ v . ρ v - β))) .
 
-depth-Lte-size ⇐ Π t : trm . Lte (depth t) (size t) = 
+depth-Lte-size ◂ Π t : trm . Lte (depth t) (size t) = 
   λ t . θ t 
         (λ t1 . λ t2 . λ r1 . λ r2 .
           (depth-Lte-lem (depth t1) (depth t2) (size t1) (size t2) r1 r2))

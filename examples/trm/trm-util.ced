@@ -3,25 +3,25 @@ import ctrm.
 import trm.
 import test-trms.
 
-to-ctrm ⇐ trm → ctrm = 
+to-ctrm ◂ trm ➔ ctrm = 
   λ t . θ t (λ _ . λ _ . λ c1 . λ c2 . capp c1 c2)
             (λ i . λ _ . λ N . clam i (N (cvar i))) 
             (λ i . cvar i) .
 
-to-cctrm ⇐ trm → cctrm =
+to-cctrm ◂ trm ➔ cctrm =
   λ t . Λ X . λ a . λ l . λ v . (to-ctrm t) · X a (λ n . λ r . l (toCNat n) r) (λ n . v (toCNat n)) .
 
-trm-ext ⇐ 
-  ∀ P : trm → ★ . 
-  ∀ a : (Π t1 : trm . Π t2 : trm . P t1 → P t2 → P (app t1 t2)) . 
-  ∀ l : (Π i : Nat . Π f : trm . (P (var i) → P f) → P (lam i f)) .
-  (∀ i : Nat . ∀ f : trm . ∀ q : P (var i) → P f . ∀ q' : P (var i) → P f .
-     (∀ x : P (var i) . q x ≃ q' x) →
-     l i f q ≃ l i f q') → 
+trm-ext ◂ 
+  ∀ P : trm ➔ ★ . 
+  ∀ a : (Π t1 : trm . Π t2 : trm . P t1 ➔ P t2 ➔ P (app t1 t2)) . 
+  ∀ l : (Π i : Nat . Π f : trm . (P (var i) ➔ P f) ➔ P (lam i f)) .
+  (∀ i : Nat . ∀ f : trm . ∀ q : P (var i) ➔ P f . ∀ q' : P (var i) ➔ P f .
+     (∀ x : P (var i) . q x ≃ q' x) ➔
+     l i f q ≃ l i f q') ➔ 
   Π t : trm . 
   ∀ v : (Π i : Nat . P (var i)) .
   ∀ v' : (Π i : Nat . P (var i)) .
-    (Π i : Nat . v i ≃ v' i) → t a l v ≃ t a l v' =
+    (Π i : Nat . v i ≃ v' i) ➔ t a l v ≃ t a l v' =
   Λ P . Λ a . Λ l . λ ul . λ t . 
     θ t (λ t1 . λ t2 . λ r1 . λ r2 . Λ v . Λ v' . λ u . 
            ε ρ (r1 -v -v' u) - ρ (r2 -v -v' u) - β) 
@@ -31,11 +31,11 @@ trm-ext ⇐
                        (λ i' . ε (θ+ (eqnat i i') (λ e . ρ e - β) (λ e . ρ e - (u i'))))))
         (λ i . Λ v . Λ v' . λ u . ρ (u i) - β) .
 
-is-app ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . tt) (λ _ . λ _ . λ _ . ff) (λ _ . ff) .
-is-lam ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . tt) (λ _ . ff) .
-is-var ⇐ trm → Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . ff) (λ _ . tt) .
+is-app ◂ trm ➔ Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . tt) (λ _ . λ _ . λ _ . ff) (λ _ . ff) .
+is-lam ◂ trm ➔ Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . tt) (λ _ . ff) .
+is-var ◂ trm ➔ Bool = λ t . θ t (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . λ _ . ff) (λ _ . tt) .
 
-var-bound ⇐ trm → Nat =
+var-bound ◂ trm ➔ Nat =
   λ t . θ t (λ _ . λ _ . λ b1 . λ b2 . max b1 b2)
             (λ _ . λ _ . λ N . N Z)
             (λ i . S i) .

@@ -3,63 +3,63 @@ import sysf.
 import red.
 import norm. 
 
-Candidat ⇐ (trm → ★) → ★ =
-  λ R : trm → ★ .
-  Π t : trm . R t → 
+Candidat ◂ (trm ➔ ★) ➔ ★ =
+  λ R : trm ➔ ★ .
+  Π t : trm . R t ➔ 
     And · (Normalizing t)
-        · (Π t' : trm . red t' t → R t') .
+        · (Π t' : trm . red t' t ➔ R t') .
 
 
-ninterp ⇐ (Nat → trm → ★) → tp → (trm → ★) =
-  λ R : Nat → trm → ★ . λ T : tp .
-    ↑ X . T · (λ _ : tp . trm → X)
-           : ((tp → tp → (trm → ☆) → (trm → ☆) → (trm → ☆)) → (Nat → tp → ((trm → ☆) → (trm → ☆)) → (trm → ☆)) → (Nat → (trm → ☆)) → (trm → ☆))
-            · (λ _ : tp . λ _ : tp . λ S1 : (trm → ★) . λ S2 : (trm → ★) . λ t : trm.
-	        And · (Normalizing t) · (Π t' : trm . S1 t' → S2 (app t t')))
-	    · (λ _ : Nat . λ _ : tp . λ S : (trm → ★) → (trm → ★) . λ t : trm .
-	        ∀ R : trm → ★ . Candidat · R → S · R t)
+ninterp ◂ (Nat ➔ trm ➔ ★) ➔ tp ➔ (trm ➔ ★) =
+  λ R : Nat ➔ trm ➔ ★ . λ T : tp .
+    ↑ X . T · (λ _ : tp . trm ➔ X)
+           : ((tp ➔ tp ➔ (trm ➔ ☆) ➔ (trm ➔ ☆) ➔ (trm ➔ ☆)) ➔ (Nat ➔ tp ➔ ((trm ➔ ☆) ➔ (trm ➔ ☆)) ➔ (trm ➔ ☆)) ➔ (Nat ➔ (trm ➔ ☆)) ➔ (trm ➔ ☆))
+            · (λ _ : tp . λ _ : tp . λ S1 : (trm ➔ ★) . λ S2 : (trm ➔ ★) . λ t : trm.
+	        And · (Normalizing t) · (Π t' : trm . S1 t' ➔ S2 (app t t')))
+	    · (λ _ : Nat . λ _ : tp . λ S : (trm ➔ ★) ➔ (trm ➔ ★) . λ t : trm .
+	        ∀ R : trm ➔ ★ . Candidat · R ➔ S · R t)
 	    · R .
 
-All-normalizing ⇐ trm → ★ =
+All-normalizing ◂ trm ➔ ★ =
   λ t : trm . Normalizing t .
 
-all-normalizing-red-lem ⇐ Candidat · All-normalizing =
+all-normalizing-red-lem ◂ Candidat · All-normalizing =
   λ t . λ pf .
     mkpair
       · (Normalizing t)
-      · (Π t' : trm . ((red t' t) → (Normalizing t')))
+      · (Π t' : trm . ((red t' t) ➔ (Normalizing t')))
       pf
       (λ t' . λ r . (norm-lem t t' pf (rtc-step · trm · red t' t r))) .
 
 
-reducibility-lem ⇐ Π T : tp . ∀ R : (Nat → trm → ★) . (Π i : Nat . Candidat · (R i)) → Candidat · (ninterp · R T) =
+reducibility-lem ◂ Π T : tp . ∀ R : (Nat ➔ trm ➔ ★) . (Π i : Nat . Candidat · (R i)) ➔ Candidat · (ninterp · R T) =
    λ T .  θ T
       	              (λ T1 . λ T2 . λ _ . λ ih2 . Λ R . λ cr . λ t . λ u .
 		      θ u
 		        (λ a . λ b .
 		          mkpair
 			    · (Normalizing t)
-			    · (Π t' : trm . ((red t' t) → (ninterp · R (arrow T1 T2) t')))
+			    · (Π t' : trm . ((red t' t) ➔ (ninterp · R (arrow T1 T2) t')))
 			    a
 			    (λ t' . λ r .
 			      mkpair
 			       · (Normalizing t')
-			       · (Π t'' : trm . (ninterp · R T1 t'') → (ninterp · R T2 (app t' t'')))
+			       · (Π t'' : trm . (ninterp · R T1 t'') ➔ (ninterp · R T2 (app t' t'')))
 			       (norm-lem t t' a (rtc-step · trm · red t' t r))
 			       (λ t'' . λ pf . snd · (Normalizing (app t t''))
-			                           · (Π t' : trm . ((red t' (app t t'')) → (ninterp · R T2 t')))
+			                           · (Π t' : trm . ((red t' (app t t'')) ➔ (ninterp · R T2 t')))
 						   (ih2 · R cr (app t t'') (b t'' pf)) (app t' t'') (red-app1 t' t t'' r))
 			       )))
 		      
 		      (λ i . λ T' . λ ih . Λ R . λ cr . λ t . λ pf .
 		      mkpair
 		      · (Normalizing t)
-		      · (Π t' : trm . (red t' t) → (ninterp · R (forall i T') t'))
+		      · (Π t' : trm . (red t' t) ➔ (ninterp · R (forall i T') t'))
 		      (fst ·
 		        (Normalizing t) ·
-			(Π t' : trm . ((red t' t) → (ninterp · (λ x : Nat . ((↑ X . (eqnat x i · (λ _ : Bool . (trm → X))) : ((trm → ☆) → (trm → ☆) → trm → ☆)) · All-normalizing · (R x))) T' t')))
+			(Π t' : trm . ((red t' t) ➔ (ninterp · (λ x : Nat . ((↑ X . (eqnat x i · (λ _ : Bool . (trm ➔ X))) : ((trm ➔ ☆) ➔ (trm ➔ ☆) ➔ trm ➔ ☆)) · All-normalizing · (R x))) T' t')))
 		        (ih (Λ R . λ cr . cr i)
-			· (λ x : Nat . ↑ X . (eqnat x i) · (λ _ : Bool . trm → X) : ((trm → ☆) → (trm → ☆) → (trm → ☆))
+			· (λ x : Nat . ↑ X . (eqnat x i) · (λ _ : Bool . trm ➔ X) : ((trm ➔ ☆) ➔ (trm ➔ ☆) ➔ (trm ➔ ☆))
 			                                                         · All-normalizing · (R x))
 			  (λ x . θ+ (eqnat x i) (λ u . λ t . λ pf2 . all-normalizing-red-lem t pf2) (λ u . cr i))
                           t
@@ -71,8 +71,8 @@ reducibility-lem ⇐ Π T : tp . ∀ R : (Nat → trm → ★) . (Π i : Nat . C
 		      (λ i . Λ R . λ cr . cr i) .
 % mkpair
 %· (Normalizing t)
-%· (Π t' : trm . (red t' t) → (ninterp · R (forall i f) t'))
+%· (Π t' : trm . (red t' t) ➔ (ninterp · R (forall i f) t'))
 % (ih (pf · All-normalizing all-normalizing-red-lem) t (pf · i (cr i))))
 % (fst · (Normalizing t)
-%· (Π t' : trm . ((red t' t) → (ninterp · R T' t')))
+%· (Π t' : trm . ((red t' t) ➔ (ninterp · R T' t')))
 %(ih (cr i) t ))

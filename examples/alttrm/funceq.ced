@@ -1,10 +1,10 @@
-rec funceq (A : ★)(B : A → ★) | mk-funceq : (Π a : A . B a) → funceq =
-  ∀ P : funceq → ★ .
+rec funceq (A : ★)(B : A ➔ ★) | mk-funceq : (Π a : A . B a) ➔ funceq =
+  ∀ P : funceq ➔ ★ .
   Π c : Π f : Π a : A . B a . P (mk-funceq f) .
     (Π f : Π a : A . B a.
      Π f' : Π a : A . B a.
-     (Π a : A . f a ≃ f' a) →
-     c f ≃ c f') →
+     (Π a : A . f a ≃ f' a) ➔
+     c f ≃ c f') ➔
      P self
 with
   mk-funceq = λ f . Λ P . λ c . λ u . c f .

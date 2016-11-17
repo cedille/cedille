@@ -3,24 +3,24 @@ import red.
 import nat-thms-compare.
 import subst-thms.
 
-is-ctxt ⇐ Nat → trm → Bool = λ hole : Nat . λ C : trm . eqnat (num-free-occ hole C) one .
-Is-ctxt ⇐ Nat → trm → ★ = λ hole : Nat . λ C : trm . is-ctxt hole C ≃ tt .
+is-ctxt ◂ Nat ➔ trm ➔ Bool = λ hole : Nat . λ C : trm . eqnat (num-free-occ hole C) one .
+Is-ctxt ◂ Nat ➔ trm ➔ ★ = λ hole : Nat . λ C : trm . is-ctxt hole C ≃ tt .
 
-ctxt-red ⇐ trm → trm → ★ =
+ctxt-red ◂ trm ➔ trm ➔ ★ =
   λ t1 : trm . λ t2 : trm .
-  ∀ P : trm → trm → ★ .
+  ∀ P : trm ➔ trm ➔ ★ .
     (Π i : Nat . Π t1 : trm . Π t2 : trm .
-     Π C : trm . Π hole : Nat. Is-ctxt hole C → 
-     P (graft (app (lam i t1) t2) hole C) (graft (subst t2 i t1) hole C)) →
+     Π C : trm . Π hole : Nat. Is-ctxt hole C ➔ 
+     P (graft (app (lam i t1) t2) hole C) (graft (subst t2 i t1) hole C)) ➔
     P t1 t2 .
 
-is-ctxt-app1 ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → Is-ctxt hole t1 → Apart-from hole t2 = ● .
-is-ctxt-app2a ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → (is-ctxt hole t1 ≃ ff) → Apart-from hole t1 = ● .
-is-ctxt-app2b ⇐ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) → (is-ctxt hole t1 ≃ ff) → Is-ctxt hole t2 = ● .
-is-ctxt-lam ⇐ Π hole : Nat . Π i : Nat . Π f : trm . Is-ctxt hole (lam i f) → eqnat hole i ≃ ff = ● .
+is-ctxt-app1 ◂ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) ➔ Is-ctxt hole t1 ➔ Apart-from hole t2 = ● .
+is-ctxt-app2a ◂ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) ➔ (is-ctxt hole t1 ≃ ff) ➔ Apart-from hole t1 = ● .
+is-ctxt-app2b ◂ Π hole : Nat . Π t1 : trm . Π t2 : trm . Is-ctxt hole (app t1 t2) ➔ (is-ctxt hole t1 ≃ ff) ➔ Is-ctxt hole t2 = ● .
+is-ctxt-lam ◂ Π hole : Nat . Π i : Nat . Π f : trm . Is-ctxt hole (lam i f) ➔ eqnat hole i ≃ ff = ● .
 
-ctxt-red-to-red ⇐ 
-  Π t1 : trm . Π t2 : trm . ctxt-red t1 t2 → red t1 t2 = 
+ctxt-red-to-red ◂ 
+  Π t1 : trm . Π t2 : trm . ctxt-red t1 t2 ➔ red t1 t2 = 
   λ t1 . λ t2 . λ cr .
     θ<t1 t2> cr 
      (λ i-f . λ f . λ a . λ C . λ hole . 

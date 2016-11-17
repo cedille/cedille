@@ -1,15 +1,15 @@
 import extmap2. 
 
-rec trm : | app : trm → trm → trm ,
-            lam : Nat → trm → trm ,
-            subst : substmap · trm → trm → trm,
-            var : Nat → trm =
- ∀ P : trm → ★ .  
-   (∀ s : substmap · trm . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) → P (subst s t2) → P (subst s (app t1 t2))) → 
+rec trm : | app : trm ➔ trm ➔ trm ,
+            lam : Nat ➔ trm ➔ trm ,
+            subst : substmap · trm ➔ trm ➔ trm,
+            var : Nat ➔ trm =
+ ∀ P : trm ➔ ★ .  
+   (∀ s : substmap · trm . ∀ t1 : trm . ∀ t2 : trm . P (subst s t1) ➔ P (subst s t2) ➔ P (subst s (app t1 t2))) ➔ 
    (∀ s : substmap · trm . ∀ i : Nat . ∀ f : trm .
-      (∀ t : trm . P t → P (subst (substmapUpdate · trm s i t) f)) → P (subst s (lam i f))) → 
+      (∀ t : trm . P t ➔ P (subst (substmapUpdate · trm s i t) f)) ➔ P (subst s (lam i f))) ➔ 
    ∀ s : substmap · trm.
-   extmap · trm · P s →
+   extmap · trm · P s ➔
    P (subst s self)
 with 
   app = λ t1 . λ t2 . Λ P . λ a . λ l . Λ s . λ v . a -s -t1 -t2 (t1 · P a l -s v) (t2 · P a l -s v) ,
