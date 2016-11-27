@@ -153,7 +153,6 @@ hnf-instantiate-iota : ctxt → term → type → (allow-typed-iota : 𝔹) → 
 hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp
 hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t)
 hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t)
-hnf-instantiate-iota Γ subject _ _ | Mu pi pi' x k body = hnf Γ unfold-head-rec-defs (Mu pi pi' x k body)
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk : posinfo → var → tk → spanM (maybe sym-info)
@@ -179,6 +178,13 @@ lambda-bound-var-conv-error x atk atk' tvs =
  :: ("the variable" , x)
  :: ("its declared classifier" , tk-to-string atk')
  :: [ "the expected classifier" , tk-to-string atk ]) ++ tvs
+
+mu-conv-error : var → kind → kind → 𝕃 tagged-val → 𝕃 tagged-val
+mu-conv-error x knd k tvs =
+    ( error-data "The classifier given for a μ-bound variable is not the one we expected"
+ :: ("the variable" , x)
+ :: ("its declared classifier" , kind-to-string ff knd)
+ :: [ "the expected classifer" , kind-to-string ff k ]) ++ tvs
 
 lambda-bound-class-if : optClass → tk → tk
 lambda-bound-class-if NoClass atk = atk
@@ -233,34 +239,15 @@ check-termi (Var pi x) mtp =
         cont (just tp) Γ | just tp' = 
           spanM-add (Var-span Γ pi x checking (check-for-type-mismatch Γ "synthesized" tp tp'))
 
---check-termi (Fold pi pi' tp t) mtp =
---  get-ctxt (cont mtp)
---  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
---        cont nothing Γ with (hnf Γ unfold-head tp)
---        cont nothing Γ | (Mu pi'' pi''' x k body) = spanM-add (Fold-span pi t synthesizing []) ≫span
---          check-termi-return Γ t (subst-type Γ (Mu pi'' pi''' x k body) x body)
---        cont nothing Γ | _ = check-termi-return Γ t tp  
---        cont (just tp') Γ with (hnf Γ unfold-head tp)
---        cont (just tp') Γ | (Mu pi'' pi''' x k body) =
---          spanM-add (Fold-span pi t checking (check-for-type-mismatch Γ "synthesized" tp' (subst-type Γ (Mu pi'' pi''' x k body) x body))) ≫span
---          check-termi t (just (subst-type Γ (Mu pi'' pi''' x k body) x body))
---        cont (just tp') Γ | _ = spanM-add (Fold-span
---          pi t synthesizing (error-data "Attempted fold with target type not recursive" :: []))
-
---check-termi (Unfold pi pi' tp t) mtp =
---  get-ctxt (cont mtp)
---  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
---        cont nothing Γ with (hnf Γ unfold-head tp)
---        cont nothing Γ | (Mu pi'' pi''' x k body) = spanM-add (Fold-span pi t synthesizing []) ≫span
---          check-termi-return Γ t (subst-type Γ (Mu pi'' pi''' x k body) x body)
---        cont nothing Γ | _ = check-termi-return Γ t tp  
---        cont (just tp') Γ with (hnf Γ unfold-head tp)
---        cont (just tp') Γ | (Mu pi'' pi''' x k body) =
---          spanM-add (Unfold-span pi t checking (check-for-type-mismatch Γ "synthesized" tp tp')) ≫span
---          check-termi t (just (Mu pi'' pi''' x k body))
---        cont (just tp') Γ | _ = spanM-add (Fold-span
---          pi t synthesizing (error-data "Attempted unfold with source type not recursive" :: []))
-
+check-termi (Unfold pi t) mtp =
+  get-ctxt (cont mtp)
+  where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
+        cont nothing    Γ = check-term t nothing ≫=span cont'
+          where cont' : (mtp : maybe type) → spanM (maybe type)
+                cont' nothing = spanMr nothing
+                cont' (just tp') = check-termi-return Γ t tp'
+        cont (just tp') Γ = check-term t (just tp')
+        
 check-termi (AppTp t tp') tp =
   check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
   where cont : type → spanM (maybe type)
@@ -749,15 +736,28 @@ check-typei (Abs pi b {- All or Pi -} pi' x atk body) k =
         helper (just k) = error-data "A type-level quantification is being checked against a kind other than ★" ::
                           expected-kind k :: []
 
-check-typei (Mu pi pi' x knd body) k =
-  spanM-add (TpMu-span pi x knd body (maybe-to-checking k)
-              [] ) ≫span
+
+-- compare to TpLambda for checking knd against k when both exist.
+check-typei (Mu pi pi' x knd body) (just k) =
+  spanM-add (TpMu-span pi x knd body checking [] ) ≫span
   spanM-add (punctuation-span "Mu" pi (posinfo-plus pi 1)) ≫span
-  check-tk (Tkk knd) ≫span
+  check-kind knd ≫span
+  get-ctxt (λ Γ → 
+   spanM-add (if conv-kind Γ knd k then
+                TpMu-span pi x knd body checking [ kind-data k ]
+              else
+                TpMu-span pi x knd body checking (mu-conv-error x knd k [ kind-data k ])) ≫span
   add-tk pi' x (Tkk knd) ≫=span λ mi →
-  check-type body (just star) ≫span
-  spanM-restore-info x mi ≫span
-  return-star-when k
+  check-type body (just knd) ≫span
+  spanM-restore-info x mi)
+    
+check-typei (Mu pi pi' x knd body) nothing =
+  spanM-add (punctuation-span "Mu" pi (posinfo-plus pi 1)) ≫span
+  check-kind knd ≫span
+  spanM-add (TpMu-span pi x knd body checking []) ≫span
+  add-tk pi' x (Tkk knd) ≫=span λ mi →
+  check-type body (just knd) ≫span
+  spanMr (just knd)
 
 -- =BUG= =ACG= =31= Do we need different cases for erased vs unerased arrows?
 
@@ -854,7 +854,6 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Chi x x₁ t) = var-spans-term t
         var-spans-term (Delta x t) = var-spans-term t
         var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
-        var-spans-term (Fold pi pi' tp t) = var-spans-term t
         var-spans-term (Hole x) = spanMok
         var-spans-term (Lam pi l pi' x _ t) =
           get-ctxt (λ Γ →
@@ -869,7 +868,7 @@ check-typei (TpEq t1 t2) k =
         var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
         var-spans-term (Sigma x t) = var-spans-term t
         var-spans-term (Theta x x₁ t x₂) = var-spans-term t
-        var-spans-term (Unfold pi pi' tp t) = var-spans-term t
+        var-spans-term (Unfold pi t) = var-spans-term t
         var-spans-term (Var pi x) =
           get-ctxt (λ Γ →
             spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []

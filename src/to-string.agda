@@ -67,10 +67,8 @@ term-to-stringh toplevel p (AppTp t tp) = parens-unless toplevel (is-app p) (ter
 term-to-stringh toplevel p (Hole _) = "●"
 term-to-stringh toplevel p (Lam pi l pi' x o t) = 
   parens-unless toplevel (is-abs p) (lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-stringh ff (Lam pi l pi' x o t) t)
-term-to-stringh toplevel p (Fold _ _ tp t) =
-  "fold [ " ^ (type-to-string toplevel tp) ^ " ] " ^ (term-to-string toplevel t)
-term-to-stringh toplevel p (Unfold _ _ tp t) =
-  "unfold [ " ^ (type-to-string toplevel tp) ^ " ] " ^ (term-to-string toplevel t)
+term-to-stringh toplevel p (Unfold _ t) =
+  "unfold " ^ (term-to-string toplevel t)
 term-to-stringh toplevel p (Parens _ t _) = term-to-string toplevel t
 term-to-stringh toplevel p (Var _ x) = x
 term-to-stringh toplevel p (Beta _) = "β"

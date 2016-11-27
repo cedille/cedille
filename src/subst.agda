@@ -42,8 +42,7 @@ substh-term{TERM} Γ ρ t x (Var pi y) =
  let y' = renamectxt-rep ρ y in
    if y' =string x then t else (Var pi y')
 substh-term Γ ρ t x (Var pi y) = Var pi (renamectxt-rep ρ y)
-substh-term Γ ρ t x (Fold pi pi' tp t') = Fold pi pi' (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Unfold pi pi' tp t') = Unfold pi pi' (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
+substh-term Γ ρ t x (Unfold pi t') = Unfold pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Beta pi) = Beta pi
 substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (InlineDef pi pi' x' t' pi'') = InlineDef pi pi' x' (substh-term Γ ρ t x t') pi''
@@ -141,3 +140,7 @@ rename-type Γ x y ff tp = subst-type Γ (TpVar posinfo-gen y) x tp
 rename-kind : ctxt → var → var → (is-term-var : 𝔹) → kind → kind
 rename-kind Γ x y tt k = subst-kind Γ (Var posinfo-gen y) x k
 rename-kind Γ x y ff k = subst-kind Γ (TpVar posinfo-gen y) x k
+
+unfold-mu : ctxt → type → type
+unfold-mu Γ (Mu pi pi' x k body) = subst-type Γ (Mu pi pi' x k body) x body
+unfold-mu Γ tp = tp

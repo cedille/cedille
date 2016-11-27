@@ -169,7 +169,6 @@ mutual
     Chi : posinfo → maybeAtype → term → term
     Delta : posinfo → term → term
     Epsilon : posinfo → leftRight → maybeMinus → term → term
-    Fold : posinfo → posinfo → type → term → term
     Hole : posinfo → term
     InlineDef : posinfo → posinfo → var → term → posinfo → term
     IotaPair : posinfo → term → term → posinfo → term
@@ -180,7 +179,7 @@ mutual
     Rho : posinfo → rho → term → term → term
     Sigma : posinfo → term → term
     Theta : posinfo → theta → term → lterms → term
-    Unfold : posinfo → posinfo → type → term → term
+    Unfold : posinfo → term → term
     Var : posinfo → var → term
 
   data theta : Set where 
@@ -559,7 +558,6 @@ mutual
   termToString (Chi x0 x1 x2) = "(Chi" ^ " " ^ (posinfoToString x0) ^ " " ^ (maybeAtypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
-  termToString (Fold x0 x1 x2 x3) = "(Fold" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (InlineDef x0 x1 x2 x3 x4) = "(InlineDef" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaPair x0 x1 x2 x3) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
@@ -570,7 +568,7 @@ mutual
   termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (rhoToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
-  termToString (Unfold x0 x1 x2 x3) = "(Unfold" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (termToString x3) ^ ")"
+  termToString (Unfold x0 x1) = "(Unfold" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   thetaToString : theta → string

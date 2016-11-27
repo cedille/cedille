@@ -26,8 +26,7 @@ is-free-in-maybeAtype : is-free-in-t maybeAtype
 
 is-free-in-term ce x (App t Erased t') = is-free-in-term ce x t || (ce && is-free-in-term ce x t')
 is-free-in-term ce x (App t NotErased t') = is-free-in-term ce x t || is-free-in-term ce x t'
-is-free-in-term ce x (Fold pi pi' tp t) = is-free-in-term ce x t || (ce && is-free-in-type ce x tp)
-is-free-in-term ce x (Unfold pi pi' tp t) = is-free-in-term ce x t || (ce && is-free-in-type ce x tp)
+is-free-in-term ce x (Unfold pi t) = is-free-in-term ce x t
 is-free-in-term ce x (AppTp t tp) = is-free-in-term ce x t || (ce && is-free-in-type ce x tp)
 is-free-in-term ce x (Hole x₁) = ff
 is-free-in-term ce (inj₁ x) (Lam _ b _ x' oc t) =
