@@ -1,0 +1,16 @@
+rec pNat | =
+  ∀ X : ★ . (pNat ➔ X ➔ X) ➔ X ➔ X with .
+cZ ◂ pNat = Λ X . λ s . λ z . z .
+cS ◂ pNat ➔ pNat = λ n . Λ X . λ s . λ z . s n (n · X s z) .
+
+Nat ◂ ★ = ι x : pNat . ∀ Q : pNat ➔ ★ . (Π x : pNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Q x.
+
+Z ◂ Nat = [ Λ X . λ s . λ z . z , Λ X . λ s . λ z . z ] .
+S ◂ Nat ➔ Nat = λ n . [ Λ X . λ s . λ z . s n.1 (n.1 · X s z) , Λ P . λ s . λ z . s n.1 (n · P s z) ] .
+
+Ind ◂ ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Π x : Nat . Q x =
+  Λ Q . λ s . λ z . λ x .
+    x.2 · (λ x : pNat . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
+     (λ x' . λ ih . Λ X . λ c . ih · X (λ x'' . λ e . λ u . c (S x'') (ρ e - β) (s -x'' u)))
+     (Λ X . λ c . c Z β z) · (Q x) (λ x' . λ e . λ u . ρ e - u).
+      
