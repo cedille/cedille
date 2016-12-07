@@ -220,7 +220,7 @@ checkFile s filename should-print-spans =
                      ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
            if should-print-spans then
-             putStr (include-elt-spans-to-string ie)
+             putStrLn (include-elt-spans-to-string ie)
            else return triv
         finish : toplevel-state → IO toplevel-state
         finish s with s
