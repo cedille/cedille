@@ -82,6 +82,9 @@ new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : �
 new-toplevel-state ip should-use-cede-files = record { use-cede-files = should-use-cede-files ; include-path = ip ; files-with-updated-spans = [] ;
                                  is = empty-trie ; Γ = new-ctxt "[nofile]" }
 
+toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
+toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
+
 get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
 
@@ -104,4 +107,24 @@ include-elt-spans-to-string : include-elt → string
 include-elt-spans-to-string ie with (include-elt.ss ie)
 include-elt-spans-to-string ie | inj₁ ss = spans-to-string ss
 include-elt-spans-to-string ie | inj₂ ss = ss
+
+include-elt-to-string : include-elt → string
+include-elt-to-string ie =
+    " deps:  " ^ (𝕃-to-string (λ x → x) "," (include-elt.deps ie)) ^
+    -- ast
+    " import-to-dep:  " ^ (trie-to-string "," (λ x → x) (include-elt.import-to-dep ie)) ^ 
+    -- spans
+    " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
+    ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
+    ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
+    " "
+
+toplevel-state-to-string : toplevel-state → string
+toplevel-state-to-string (mk-toplevel-state use-cede-file include-path files-with-updated-spans is context) =
+    "use-cede-file:  " ^ (𝔹-to-string use-cede-file) ^
+    " include-path:  " ^ (𝕃-to-string (λ x → x) "," include-path) ^ 
+    " files-with-updated-spans:  " ^ (𝕃-to-string (λ x → x) "," files-with-updated-spans) ^ 
+    " is:  " ^ (trie-to-string "," include-elt-to-string is) ^ 
+    ", ctxt:  " ^ (ctxt-to-string context) ^ 
+    " "
 

@@ -28,6 +28,7 @@ module cws-parse = parsem3.pnoderiv cws.rrs cws.cws-rtn
 module pr3 = run cws.ptr
 module cws-run = pr3.noderiv
 
+open import cedille-find
 open import classify
 open import ctxt
 open import constants
@@ -55,7 +56,7 @@ cede-filename ced-path =
 -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
 write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
 write-cede-file ced-path ie = 
---  putStr ("write-cede-file " ^ ced-path ^ " : " ^ contents ^ "\n") >>
+--  putStrLn ("write-cede-file " ^ ced-path ^ " : " ^ contents) >>
   let dir = takeDirectory ced-path in
     createDirectoryIfMissing ff (dot-cedille-directory dir) >>
     writeFile (cede-filename ced-path) 
@@ -122,7 +123,7 @@ opts-get-no-cede-files (options-types.OptsCons (options-types.Lib _) oo) = opts-
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
 reparse : toplevel-state →(filename : string) → IO toplevel-state
 reparse st filename = 
---   putStr ("reparsing " ^ filename ^ "\n") >>
+--   putStrLn ("reparsing " ^ filename) >>
    doesFileExist filename >>= λ b → 
      (if b then
          (readFiniteFile filename >>= processText)
@@ -181,7 +182,7 @@ ensure-ast-deps s filename | just ie =
 update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) → 
                IO (stringset {- seen already -} × toplevel-state)
 update-astsh seen s filename = 
---  putStr ("update-astsh [filename = " ^ filename ^ "]\n") >>
+--  putStrLn ("update-astsh [filename = " ^ filename ^ "]") >>
   if stringset-contains seen filename then return (seen , s)
   else (ensure-ast-deps s filename >>= cont (stringset-insert seen filename))
   where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
@@ -208,14 +209,14 @@ update-asts s filename = update-astsh empty-stringset s filename >>= λ p →
 {- this function checks the given file (if necessary), updates .cede files (again, if necessary), and replies on stdout if appropriate -}
 checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
 checkFile s filename should-print-spans = 
---  putStr ("checkFile " ^ filename ^ "\n") >>
+--  putStrLn ("checkFile " ^ filename) >>
   update-asts s filename >>= λ s → 
   finish (process-file s filename)
  
   where reply : toplevel-state → IO ⊤
         reply s with get-include-elt-if s filename
         reply s | nothing = 
-           putStr (global-error-string 
+           putStrLn (global-error-string 
                      ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
            if should-print-spans then
@@ -238,11 +239,37 @@ checkFile s filename should-print-spans =
 {-# NO_TERMINATION_CHECK #-}
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
-  getLine >>= λ input-filename → 
-  canonicalizePath input-filename >>= λ input-filename → 
-     checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
-       input-filename tt {- should-print-spans -} >>= λ s → 
-     readFilenamesForProcessing s
+    getLine >>= λ input → 
+    let input-list : 𝕃 string 
+        input-list = (string-split input delimiter) 
+            in (handleCommands input-list s) >>= λ s →
+        readFilenamesForProcessing s
+        where
+            delimiter : char
+            delimiter = ':'
+            errorCommand : toplevel-state → IO toplevel-state
+            errorCommand s = putStrLn (global-error-string "Invalid command sequence.") >>= λ x → return s
+            debugCommand : toplevel-state → IO toplevel-state
+            debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
+            checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
+            checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
+                        checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
+                        input-filename tt {- should-print-spans -}
+            checkCommand _ s = errorCommand s
+            findCommand : 𝕃 string → toplevel-state → IO toplevel-state
+            findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
+            findCommand _ s = errorCommand s
+            handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
+            handleCommands (x :: []) s with x
+            ...                        | "debug" = debugCommand s
+                                         -- remove the default case once the elisp has been updated to use "check"
+            ...                        | _ = checkCommand (x :: []) s     
+            handleCommands (x :: xs) s with x
+            ...                        | "find" = findCommand xs s
+            ...                        | "check" = checkCommand xs s
+            ...                        | _ = errorCommand s
+            handleCommands [] s = errorCommand s
+
 
 -- function to process command-line arguments
 processArgs : opts → 𝕃 string → IO ⊤ 
@@ -255,24 +282,24 @@ processArgs oo (input-filename :: []) =
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
           let ie = get-include-elt s input-filename in
-          if include-elt.err ie then (putStr (include-elt-spans-to-string ie)) else return triv
+          if include-elt.err ie then (putStrLn (include-elt-spans-to-string ie)) else return triv
 
 -- this is the case where we will go into a loop reading commands from stdin, from the fronted
 processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
 
 -- all other cases are errors
-processArgs oo xs = putStr ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
-                         ^ "names of files one at a time followed by newlines (this is for the emacs mode).\n")
+processArgs oo xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
+                         ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
 
 -- helper function to try to parse the options file
 processOptions : string → string → (string ⊎ options-types.opts)
 processOptions filename s with string-to-𝕃char s
-processOptions filename s | i with options-parse.runRtn i
-processOptions filename s | i | inj₁ cs =
-  inj₁ ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length i ∸ length cs)) ^ ".")
-processOptions filename s | i | inj₂ r with options-parse.rewriteRun r
-processOptions filename s | i | inj₂ r | options-run.ParseTree (options-types.parsed-start (options-types.File oo)) :: [] = inj₂ oo
-processOptions filename s | i | inj₂ r | _ =  inj₁ ("Parse error in file " ^ filename ^ ". ")
+...                       | i with options-parse.runRtn i
+...                           | inj₁ cs =
+                                     inj₁ ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length i ∸ length cs)) ^ ".")
+...                           | inj₂ r with options-parse.rewriteRun r
+...                                    | options-run.ParseTree (options-types.parsed-start (options-types.File oo)) :: [] = inj₂ oo
+...                                    | _ =  inj₁ ("Parse error in file " ^ filename ^ ". ")
 
 -- read the ~/.cedille/options file
 readOptions : IO (string ⊎ options-types.opts)
@@ -291,6 +318,6 @@ readOptions =
 main : IO ⊤
 main = initializeStdoutToUTF8 >> setStdoutNewlineMode >> readOptions >>= next
   where next : string ⊎ options-types.opts → IO ⊤
-        next (inj₁ s) = putStr (global-error-string s)
+        next (inj₁ s) = putStrLn (global-error-string s)
         next (inj₂ oo) = getArgs >>= processArgs oo
 

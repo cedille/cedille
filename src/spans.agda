@@ -5,6 +5,7 @@ open import cedille-types
 open import conversion
 open import ctxt
 open import is-free
+open import general-util
 open import syntax-util
 open import to-string
 
@@ -52,10 +53,10 @@ empty-spans : spans
 empty-spans = regular-spans []
 
 global-error-string : string → string
-global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}\n"
+global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}"
 
 spans-to-string : spans → string
-spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-string ss) ^ "]}\n"
+spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-string ss) ^ "]}"
 spans-to-string (global-error e o) = global-error-string (e ^ helper o)
   where helper : maybe span → string
         helper (just x) = ", \"global-error\":" ^ span-to-string x
@@ -66,7 +67,7 @@ add-span s (regular-spans ss) = regular-spans (s :: ss)
 add-span s (global-error e e') = global-error e e'
 
 put-spans : spans → IO ⊤
-put-spans ss = putStr (spans-to-string ss)
+put-spans ss = putStrLn (spans-to-string ss)
 
 --------------------------------------------------
 -- spanM, a state monad for spans

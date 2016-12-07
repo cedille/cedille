@@ -32,3 +32,15 @@ trie-insert-append t s a = trie-insert t s (a :: (trie-lookup𝕃 t s))
 trie-fill : ∀{A : Set} → trie A → 𝕃 (string × A) → trie A
 trie-fill t ((s , a) :: vs) = trie-fill (trie-insert t s a) vs
 trie-fill t [] = t
+
+string-split-h : 𝕃 char → char → 𝕃 char → 𝕃 string → 𝕃 string
+string-split-h [] delim str-build out = reverse ((𝕃char-to-string (reverse str-build)) :: out)
+string-split-h (c :: cs) delim str-build out with (c =char delim)
+... | tt = string-split-h cs delim [] ((𝕃char-to-string (reverse str-build)) :: out)
+... | ff = string-split-h cs delim (c :: str-build) out
+
+string-split : string → char → 𝕃 string
+string-split str delim = string-split-h (string-to-𝕃char str) delim [] []
+
+putStrLn : string → IO ⊤
+putStrLn str = putStr (str ^ "\n")

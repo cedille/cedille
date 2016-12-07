@@ -441,6 +441,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
+  (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
+  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
 
 (cedille-modify-keymap)

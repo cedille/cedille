@@ -1,66 +1,83 @@
-;;; =====================================
-;;; Implement top-level definitions view
-;;; =====================================
-;;;
-;;; cedille-mode.el changes to make
-;;;
-;;; Load the file (somewhere past the navigation commands):
-;;; (load "incoming/cjr-cedille-mode-summary")
-;;;
-;;; Add key to activate:
-;;; (se-navi-define-key 'cedille-mode (kbd "S") #'cedille-mode-summary-display)
-;;;
-
 (load-library "cedille-mode-parent")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;     Summary retrieval code
+;;;     Summary retrieval
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-all-summaries()
-  "Return the pair of the list of summaries for the current spans and the list of the corresponding start positions"
-  (let ((helper (lambda (spans summary-list start-pos-list rec-fn) ; the last argument allows for a recursive call to helper
-		 (if spans
-		     (let* ((first-span (car spans))
-			    (summary (assoc 'summary (se-span-data first-span))))
-		       (if summary
-			   (funcall rec-fn (cdr spans) (cons (cdr summary) summary-list) 
-				      (cons (se-span-start first-span) start-pos-list) rec-fn)
-			 (funcall rec-fn (cdr spans) summary-list start-pos-list rec-fn)))
-		   (cons (reverse summary-list) (reverse start-pos-list)))))) ;reversed to keep in same order as file
-    (funcall helper se-mode-spans nil nil helper)))
+(defun cedille-mode-format-summary-text(text)
+  "Remove newlines and instances of string ctor for display purposes"
+    (replace-regexp-in-string "\n" " " 
+                    (replace-regexp-in-string "^ctor" " " text))
+)
 
-(defun cedille-mode-summary-list-to-string(summaries)
-  "Convert the list of summaries into a single string"
-  (let ((helper (lambda (summaries str rec-fn)
-		  (if summaries
-		      (funcall rec-fn (cdr summaries) (concat str "\n" (car summaries)) rec-fn)
-		    (substring str 1))))) ; removes initial newline -- bad solution for empty file
-    (replace-regexp-in-string "^ctor" " " (funcall helper summaries "" helper))))
+(defun cedille-mode-get-summary-from-span(table span)
+  "Pull the summary information from the span, and then insert it into the table"
+    (let* ((data (se-span-data span))
+            (summary (cdr (assoc 'summary data))))
+        (if summary
+            (puthash (cedille-mode-format-summary-text summary)
+                        (cons nil (se-span-start span)) ; nil signifies location within current file 
+                        table) 
+            () ; do nothing if summary does not exist
+        )
+    )
+)
+
+(defun cedille-mode-construct-summary-table()
+  "Return a hash table with summary-text as key and (filename, start pos) as value"
+  (let ((table (make-hash-table :test #'equal)))
+        (mapcar 
+            (lambda (span) 
+                (cedille-mode-get-summary-from-span table span)
+            )
+            se-mode-spans
+        )
+        table
+  )
+)
+
+(defun cedille-mode-get-hash-table-keys(table)
+  "Return a list of keys(summary texts) from the summary table"
+    (let ((keys ()))
+        (maphash 
+            (lambda(key val) (push key keys)) 
+            table
+        )
+        (nreverse keys)
+    )
+)
+
+(defun cedille-mode-keylist-to-string(keys)
+  "Return a single string for display"
+    (mapconcat 'identity keys "\n")
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary View minor-mode code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-get-start-position()
-  "Gets the start position from the start-list using the current line number"
-  (let ((helper (lambda (linenum start-list rec-fn) ;last argument allows recursive call to helper
-		  (if (eq linenum 1)
-		      (car start-list)
-		    (funcall rec-fn (- linenum 1) (cdr start-list) rec-fn)))))
-    (funcall helper (string-to-number (car (cdr (split-string (what-line) " ")))) cedille-mode-start-list helper)))
+
+(defun cedille-mode-get-start-position(table)
+  "Gets the start position of the text displayed on the current line"
+    (let* ((key (substring (thing-at-point 'line t) 0 -1)) ; -1 to remove newline
+            (location-pair (gethash key table))
+            (start-pos (cdr location-pair)))
+        start-pos
+    )
+)
+
 
 (defun cedille-mode-summary-jump()
   "Jumps from the summary of a top-level definition to that definition"
     (interactive)
-    (let ((start-pos (cedille-mode-get-start-position)))
+    (let ((start-pos (cedille-mode-get-start-position cedille-mode-summary-table)))
         (select-window (get-buffer-window cedille-mode-main-buffer))
         (goto-char start-pos)
         (se-navigation-mode)
         ; the following prevents highlighting errors when jumping to navigation mode buffer, copied from nav-jump
-        (if mark-active                                                                 
-            (progn                                                                      
-                (exchange-point-and-mark 1)                                                   
+        (if mark-active 
+            (progn  
+                (exchange-point-and-mark 1) 
                 (set-mark-command 1)))
         (message (concat "Jump to char:  " (number-to-string start-pos)))))
 
@@ -87,22 +104,29 @@
   "Creates/gets and returns the summary buffer"
     (get-buffer-create (cedille-mode-summary-buffer-name)))
 
-(defun cedille-mode-summary()
-  (let* ((summary-buffer (cedille-mode-summary-buffer))
-	 (summary-pair (cedille-mode-get-all-summaries))
-	 (summary-string (cedille-mode-summary-list-to-string (car summary-pair)))
-	 (summary-starts (cdr summary-pair))
-	 (main-buffer (current-buffer)))
+(defun cedille-mode-summary-buffer-setup(table display-string summary-buffer main-buffer)
+    "Handle the buffer initialization for summary mode startup"
     (with-current-buffer summary-buffer
-      (setq buffer-read-only nil) 
-      (erase-buffer)
-      (insert summary-string)
-      (setq buffer-read-only t)
-      ;; variables set for use in summary minor mode
-      (setq cedille-mode-start-list summary-starts)
-      (make-local-variable 'cedille-mode-start-list)
-      (setq cedille-mode-main-buffer main-buffer)
-      (make-local-variable 'cedille-mode-main-buffer))
-    (cedille-mode-rebalance-windows)))
+        (setq buffer-read-only nil)
+        (erase-buffer)
+        (insert display-string)
+        (setq buffer-read-only t)
+        (setq cedille-mode-summary-table table)
+        (make-local-variable 'cedille-mode-summary-table)
+        (setq cedille-mode-main-buffer main-buffer)
+        (make-local-variable 'cedille-mode-main-buffer)
+    )
+    (cedille-mode-rebalance-windows)
+)
+
+(defun cedille-mode-summary()
+    (let* ((summary-buffer (cedille-mode-summary-buffer))
+           (summary-table (cedille-mode-construct-summary-table))
+           (summary-string (cedille-mode-keylist-to-string 
+                           (cedille-mode-get-hash-table-keys summary-table)))
+           (main-buffer (current-buffer)))
+        (cedille-mode-summary-buffer-setup summary-table summary-string summary-buffer main-buffer)
+    )
+)
 
 (provide 'cedille-mode-summary)

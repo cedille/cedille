@@ -2,17 +2,18 @@ module process-cmd where
 
 open import lib
 
+open import cedille-find
 open import cedille-types
 open import classify
-open import ctxt
 open import constants
 open import conversion
+open import ctxt
 open import general-util
 open import rec
 open import spans
 open import syntax-util
-open import to-string
 open import toplevel-state
+open import to-string
 
 import cws-types
 import cws
@@ -129,8 +130,18 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (Rec pi pi'' name params i
       get-ctxt (λ Γ → 
          spanMr (mk-toplevel-state use-cede ip mod is Γ))
 
-process-cmds s (CmdsNext c cs) need-to-check = process-cmd s c need-to-check ≫=span λ s → process-cmds s cs need-to-check
-process-cmds s (CmdsStart c) need-to-check = process-cmd s c need-to-check 
+-- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
+process-cmds (mk-toplevel-state use-cede include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd
+                                (mk-toplevel-state use-cede include-path files is
+                                  (ctxt-set-symbol-occurrences Γ
+                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset)))
+                                c need-to-check ≫=span
+                                λ s → process-cmds s cs need-to-check
+process-cmds (mk-toplevel-state use-cede include-path files is Γ) (CmdsStart c) need-to-check = process-cmd
+                                (mk-toplevel-state use-cede include-path files is
+                                  (ctxt-set-symbol-occurrences Γ
+                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset)))
+                                    c need-to-check
 
 process-start s filename (File pi cs pi') need-to-check = 
   process-cmds s cs need-to-check ≫=span λ s → 
