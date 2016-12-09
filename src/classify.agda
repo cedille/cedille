@@ -190,6 +190,46 @@ lambda-bound-class-if : optClass → tk → tk
 lambda-bound-class-if NoClass atk = atk
 lambda-bound-class-if (SomeClass atk') atk = atk'
 
+var-spans-term : term → spanM ⊤
+var-spans-term (App t x t') = var-spans-term t ≫span var-spans-term t'
+var-spans-term (AppTp t x) = var-spans-term t 
+var-spans-term (Beta x NoTerm) = spanMok
+var-spans-term (Beta x (SomeTerm t _)) = var-spans-term t
+var-spans-term (Chi x x₁ t) = var-spans-term t
+var-spans-term (Delta x t) = var-spans-term t
+var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
+var-spans-term (Unfold pi t) = var-spans-term t
+var-spans-term (Hole x) = spanMok
+var-spans-term (Lam pi l pi' x _ t) =
+  get-ctxt (λ Γ →
+    let Γ' = ctxt-var-decl pi' x Γ in
+      set-ctxt Γ' ≫span
+      spanM-add (Lam-span pi l x NoClass t []) ≫span
+      spanM-add (Var-span Γ' pi' x untyped []) ≫span
+      var-spans-term t ≫span
+      set-ctxt Γ)
+var-spans-term (Parens x t x₁) = var-spans-term t
+var-spans-term (PiInj x x₁ t) = var-spans-term t
+var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
+var-spans-term (Sigma x t) = var-spans-term t
+var-spans-term (Theta x x₁ t x₂) = var-spans-term t
+var-spans-term (Var pi x) =
+  get-ctxt (λ Γ →
+    spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []
+                                        else [ error-data "This variable is not currently in scope." ])))
+var-spans-term (InlineDef _ pi' x t _) =
+  var-spans-term t ≫span
+  get-ctxt (λ Γ →
+    spanM-add (Var-span Γ pi' x untyped []) ≫span
+    set-ctxt (ctxt-var-decl pi' x Γ))
+var-spans-term (IotaPair _ t1 t2 _) = var-spans-term t1 ≫span var-spans-term t2
+var-spans-term (IotaProj t _ _) = var-spans-term t
+
+var-spans-optTerm : optTerm → spanM ⊤
+var-spans-optTerm NoTerm = spanMok
+var-spans-optTerm (SomeTerm t _) = var-spans-term t
+
+
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type.  
 
@@ -387,17 +427,20 @@ check-termi (Lam pi l pi' x oc t) (just tp) | nothing =
                    expected-type tp :: []))
 
 
-check-termi (Beta pi) (just (TpEq t1 t2)) = 
+check-termi (Beta pi ot) (just (TpEq t1 t2)) = 
+  var-spans-optTerm ot ≫span
   get-ctxt (λ Γ → 
     if conv-term Γ t1 t2 then
       spanM-add (Beta-span pi checking [ type-data (TpEq t1 t2) ])
     else
       spanM-add (Beta-span pi checking (error-data "The two terms in the equation are not β-equal" :: [ expected-type (TpEq t1 t2) ])))
 
-check-termi (Beta pi) (just tp) = 
+check-termi (Beta pi ot) (just tp) = 
+  var-spans-optTerm ot ≫span
   spanM-add (Beta-span pi checking (error-data "The expected type is not an equation." :: [ expected-type tp ]))
 
-check-termi (Beta pi) nothing = 
+check-termi (Beta pi ot) nothing = 
+  var-spans-optTerm ot ≫span
   spanM-add (Beta-span pi synthesizing [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
 
 check-termi (Delta pi t) (just tp) = 
@@ -615,10 +658,14 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
     check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
+    get-ctxt (λ Γ →
     spanM-add (IotaPair-span pi pi'
                 (if conv-term Γ t1 t2 then
                   []
-                 else [ error-data "The two components of the iota-pair are not convertible (as required)." ] )))
+                 else ((error-data "The two components of the iota-pair are not convertible (as required)." ) ::
+                       (err Γ "first" t1) :: (err Γ "second" t2) :: [])))))
+  where err : ctxt → string → term → tagged-val
+        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t)
 
 check-termi (IotaPair pi t1 t2 pi') (just tp) =
   spanM-add (IotaPair-span pi pi' [ error-data "The type we are checking against is not a iota-type" ])
@@ -847,40 +894,6 @@ check-typei (TpEq t1 t2) k =
     spanM-add (unchecked-term-span t1) ≫span
     spanM-add (unchecked-term-span t2) ≫span
     return-star-when k
-  where var-spans-term : term → spanM ⊤
-        var-spans-term (App t x t') = var-spans-term t ≫span var-spans-term t'
-        var-spans-term (AppTp t x) = var-spans-term t 
-        var-spans-term (Beta x) = spanMok
-        var-spans-term (Chi x x₁ t) = var-spans-term t
-        var-spans-term (Delta x t) = var-spans-term t
-        var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
-        var-spans-term (Hole x) = spanMok
-        var-spans-term (Lam pi l pi' x _ t) =
-          get-ctxt (λ Γ →
-            let Γ' = ctxt-var-decl pi' x Γ in
-              set-ctxt Γ' ≫span
-              spanM-add (Lam-span pi l x NoClass t []) ≫span
-              spanM-add (Var-span Γ' pi' x untyped []) ≫span
-              var-spans-term t ≫span
-              set-ctxt Γ)
-        var-spans-term (Parens x t x₁) = var-spans-term t
-        var-spans-term (PiInj x x₁ t) = var-spans-term t
-        var-spans-term (Rho _ _ t t') = var-spans-term t ≫span var-spans-term t'
-        var-spans-term (Sigma x t) = var-spans-term t
-        var-spans-term (Theta x x₁ t x₂) = var-spans-term t
-        var-spans-term (Unfold pi t) = var-spans-term t
-        var-spans-term (Var pi x) =
-          get-ctxt (λ Γ →
-            spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []
-                                                else [ error-data "This variable is not currently in scope." ])))
-        var-spans-term (InlineDef _ pi' x t _) =
-          var-spans-term t ≫span
-          get-ctxt (λ Γ →
-            spanM-add (Var-span Γ pi' x untyped []) ≫span
-            set-ctxt (ctxt-var-decl pi' x Γ))
-        var-spans-term (IotaPair _ t1 t2 _) = var-spans-term t1 ≫span var-spans-term t2
-        var-spans-term (IotaProj t _ _) = var-spans-term t
-
   
 check-typei (Lft pi pi' X t l) k = 
   add-tk pi' X (Tkk star) ≫=span λ mi → 

@@ -4,6 +4,6 @@ Eq ◂ Π A : ★ . A ➔ A ➔ ★ =
 refl ◂ ∀ A : ★ . ∀ a : A . Eq · A a a = 
   Λ A . Λ a . Λ P . λ u . u .
 
-cong ◂ ∀ A : ★ . ∀ P : A ➔ ★ . ∀ a : A . ∀ b : A .
-       (a ≃ b) ➔ P a ➔ P b =
-  Λ A . Λ P . Λ a . Λ b . λ u . λ v . ρ ς u - v .
+cong ◂ ∀ A : ★ . ∀ B : ★ . ∀ f : A ➔ B . ∀ a : A . ∀ b : A .
+       Eq · A a b ➔ Eq · B (f a) (f b) =
+  Λ A . Λ B . Λ f . Λ a . Λ b . λ u . Λ P . λ v . u · (λ a : A . P (f a)) v .

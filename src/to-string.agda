@@ -62,16 +62,19 @@ kind-to-string toplevel k = kind-to-stringh toplevel star k
 liftingType-to-string l = liftingType-to-stringh star l
 
 term-to-stringh toplevel  p (App t x t') = 
-  parens-unless toplevel (is-app p) (term-to-stringh ff (App t x t') t ^ " " ^ (maybeErased-to-string x) ^ term-to-string ff t')
-term-to-stringh toplevel p (AppTp t tp) = parens-unless toplevel (is-app p) (term-to-stringh ff (AppTp t tp) t ^ " · " ^ type-to-string ff tp)
+  parens-unless toplevel ((is-beta p) || (is-app p)) (term-to-stringh ff (App t x t') t ^ " " ^ (maybeErased-to-string x) ^ term-to-string ff t')
+term-to-stringh toplevel p (AppTp t tp) =
+  parens-unless toplevel ((is-beta p) || (is-app p)) (term-to-stringh ff (AppTp t tp) t ^ " · " ^ type-to-string ff tp)
 term-to-stringh toplevel p (Hole _) = "●"
 term-to-stringh toplevel p (Lam pi l pi' x o t) = 
-  parens-unless toplevel (is-abs p) (lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-stringh ff (Lam pi l pi' x o t) t)
+  parens-unless toplevel ((is-beta p) || (is-abs p))
+    (lam-to-string l ^ " " ^ x ^ optClass-to-string o ^ " . " ^ term-to-stringh ff (Lam pi l pi' x o t) t)
 term-to-stringh toplevel p (Unfold _ t) =
   "unfold " ^ (term-to-string toplevel t)
 term-to-stringh toplevel p (Parens _ t _) = term-to-string toplevel t
 term-to-stringh toplevel p (Var _ x) = x
-term-to-stringh toplevel p (Beta _) = "β"
+term-to-stringh toplevel p (Beta _ NoTerm) = "β"
+term-to-stringh toplevel p (Beta pi (SomeTerm t _)) = "β{ " ^ term-to-stringh ff (Beta pi NoTerm) t ^ " }"
 term-to-stringh toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (InlineDef _ _ x t _) = "[ " ^ x ^ " ]"
 term-to-stringh toplevel p (IotaPair _ t1 t2 _) = "[ " ^ term-to-string tt t1 ^ " , " ^ term-to-string tt t1 ^ " ]"

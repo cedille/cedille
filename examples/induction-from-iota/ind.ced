@@ -2,10 +2,12 @@ cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
 cZ ◂ cNat = Λ X . λ s . λ z . z .
 cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
 
-Nat ◂ ★ = ι x : cNat . ∀ Q : cNat ➔ ★ . (∀ x : cNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Q x.
+Inductive ◂ cNat ➔ ★ = λ x : cNat . ∀ Q : cNat ➔ ★ . (∀ x : cNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Q x.
+
+Nat ◂ ★ = ι x : cNat . Inductive x.
 
 Z ◂ Nat = [ cZ , Λ X . λ s . λ z . z ] .
-S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n · P s z) ] .
+S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
 
 Ind ◂ ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Π x : Nat . Q x =
   Λ Q . λ s . λ z . λ x .

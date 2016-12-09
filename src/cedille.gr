@@ -76,6 +76,9 @@ VarsNext : vars -> var ws vars.
 RhoPlain : rho -> 'ρ' .
 RhoPlus : rho -> 'ρ+' .
 
+NoTerm : optTerm -> .
+SomeTerm : optTerm -> ows '{' ows term ows '}' ! .
+
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
 Unfold : term -> ! 'υ' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
@@ -83,7 +86,7 @@ embed : term -> aterm .
 App : aterm -> aterm ws maybeErased aterm .
 AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
-Beta : lterm -> ! 'β' .
+Beta : lterm -> ! 'β' optTerm .
 Delta : lterm -> ! 'δ' ows lterm.
 PiInj : lterm -> ! 'π' num ows lterm.
 Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .

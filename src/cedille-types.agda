@@ -151,6 +151,10 @@ mutual
     NoClass : optClass
     SomeClass : tk → optClass
 
+  data optTerm : Set where 
+    NoTerm : optTerm
+    SomeTerm : term → posinfo → optTerm
+
   data optType : Set where 
     NoType : optType
     SomeType : type → optType
@@ -165,7 +169,7 @@ mutual
   data term : Set where 
     App : term → maybeErased → term → term
     AppTp : term → type → term
-    Beta : posinfo → term
+    Beta : posinfo → optTerm → term
     Chi : posinfo → maybeAtype → term → term
     Delta : posinfo → term → term
     Epsilon : posinfo → leftRight → maybeMinus → term → term
@@ -260,6 +264,7 @@ data ParseTreeT : Set where
   parsed-maybeMinus : maybeMinus → ParseTreeT
   parsed-maybeVarEq : maybeVarEq → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
+  parsed-optTerm : optTerm → ParseTreeT
   parsed-optType : optType → ParseTreeT
   parsed-rho : rho → ParseTreeT
   parsed-start : start → ParseTreeT
@@ -540,6 +545,10 @@ mutual
   optClassToString (NoClass) = "NoClass" ^ ""
   optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
 
+  optTermToString : optTerm → string
+  optTermToString (NoTerm) = "NoTerm" ^ ""
+  optTermToString (SomeTerm x0 x1) = "(SomeTerm" ^ " " ^ (termToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
+
   optTypeToString : optType → string
   optTypeToString (NoType) = "NoType" ^ ""
   optTypeToString (SomeType x0) = "(SomeType" ^ " " ^ (typeToString x0) ^ ")"
@@ -554,7 +563,7 @@ mutual
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
-  termToString (Beta x0) = "(Beta" ^ " " ^ (posinfoToString x0) ^ ")"
+  termToString (Beta x0 x1) = "(Beta" ^ " " ^ (posinfoToString x0) ^ " " ^ (optTermToString x1) ^ ")"
   termToString (Chi x0 x1 x2) = "(Chi" ^ " " ^ (posinfoToString x0) ^ " " ^ (maybeAtypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
@@ -635,6 +644,7 @@ ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
 ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
 ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
+ParseTreeToString (parsed-optTerm t) = optTermToString t
 ParseTreeToString (parsed-optType t) = optTypeToString t
 ParseTreeToString (parsed-rho t) = rhoToString t
 ParseTreeToString (parsed-start t) = startToString t
@@ -805,6 +815,10 @@ mutual
   {-# NO_TERMINATION_CHECK #-}
   norm-optType : (x : optType) → optType
   norm-optType x = x
+
+  {-# NO_TERMINATION_CHECK #-}
+  norm-optTerm : (x : optTerm) → optTerm
+  norm-optTerm x = x
 
   {-# NO_TERMINATION_CHECK #-}
   norm-optClass : (x : optClass) → optClass

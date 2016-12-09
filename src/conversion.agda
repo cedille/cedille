@@ -103,6 +103,7 @@ hnf{TERM} Γ u (PiInj _ _ t) = hnf Γ u t
 hnf{TERM} Γ u (Rho pi _ t t') = hnf Γ u t'
 hnf{TERM} Γ u (Chi pi T t') = hnf Γ u t'
 hnf{TERM} Γ u (Theta pi u' t ls) = hnf Γ u (App*' t (erase-lterms u' ls))
+hnf{TERM} Γ u (Beta _ (SomeTerm t _)) = hnf Γ u t
 
 hnf{TYPE} Γ no-unfolding e = e
 hnf{TYPE} Γ u (TpParens _ t _) = hnf Γ u t
@@ -211,7 +212,9 @@ conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && c
 conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
-conv-term-norm Γ (Beta _) (Beta _) = tt
+conv-term-norm Γ (Beta _ NoTerm) (Beta _ NoTerm) = tt
+conv-term-norm Γ (Beta _ (SomeTerm t _)) (Beta _ (SomeTerm t' _)) = conv-term Γ t t'
+conv-term-norm Γ (Beta _ _) (Beta _ _) = ff
 {- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing

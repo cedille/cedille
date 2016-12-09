@@ -36,7 +36,8 @@ is-free-in-term ce (inj₂ (Γ , t)) (Lam _ b _ x' oc t') =
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce (inj₁ x) (Var _ x') = x =string x'
 is-free-in-term ce (inj₂ (Γ , t)) (Var _ x') = ~ (stringset-contains t x') && ~ (ctxt-defines-var Γ x')
-is-free-in-term ce x (Beta _) = ff
+is-free-in-term ce x (Beta _ NoTerm) = ff
+is-free-in-term ce x (Beta _ (SomeTerm t _)) = is-free-in-term ce x t
 is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
 is-free-in-term ce x (InlineDef _ _ x' t _) = is-free-in-term ce x t
 is-free-in-term ce x (IotaPair _ t1 t2 _) = is-free-in-term ce x t1 || is-free-in-term ce x t2
