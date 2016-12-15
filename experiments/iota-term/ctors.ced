@@ -1,0 +1,12 @@
+import trm.
+
+lamo ◂ ∀ X : ★ . (ctrmo · X ➔ ctrmo · X) ➔ ctrmo · X =
+  Λ X . λ f . λ a . λ l . λ v . l (λ x . f (λ a . λ l . λ v . x) a l v) .
+
+appo ◂ ∀ X : ★ . ctrmo · X ➔ ctrmo · X ➔ ctrmo · X =
+  Λ X . λ t1 . λ t2 . λ a . λ l . λ v . a (t1 a l v) (t2 a l v).
+
+varo ◂ ∀ X : ★ . Nat ➔ ctrmo · X = Λ X . λ n . λ a . λ l . λ v . v n.
+
+test1 ◂ ctrm = Λ X . lamo · X (λ x . lamo · X (λ y . λ a . λ l . λ v . a (varo · X Z a l v) (x a l v))) !
+

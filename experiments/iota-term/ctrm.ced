@@ -1,0 +1,5 @@
+import nat.
+
+ctrmo ◂ ★ ➔ ★ = λ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ X.
+ctrm ◂ ★ = ∀ X : ★ . ctrmo · X.
+
