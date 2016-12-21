@@ -1,0 +1,23 @@
+import nat.
+
+ctrm ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ X.
+
+maxvar ◂ ctrm ➔ Nat = λ t . t · Nat max (λ f . f Z) (λ n . n) .
+
+test-ctrm1 ◂ ctrm = Λ X . λ a . λ l . λ v . l (λ x . l (λ y . a (v (S Z)) x)) .
+
+cvar ◂ Nat ➔ ctrm = λ n . Λ X . λ a . λ l . λ v . v n .
+
+clam-nextvar ◂ (ctrm ➔ ctrm) ➔ Nat = λ f . S (maxvar (f (cvar Z))) .
+
+update ◂ ∀ A : ★ . (Nat ➔ A) ➔ Nat ➔ A ➔ (Nat ➔ A) =
+ Λ A . λ v . λ n . λ x . (λ m . θ+ (eqnat m n) (λ u. x) (λ u . v n)) .
+
+clam-abs ◂ (ctrm ➔ ctrm) ➔ ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ (X ➔ X) =
+  λ f . Λ X . λ a . λ l . λ v . λ x . f (cvar (clam-nextvar f)) · X a l (update · X v (clam-nextvar f) x) .
+
+clam ◂ (ctrm ➔ ctrm) ➔ ctrm =
+  λ f . Λ X . λ a . λ l . λ v . l (clam-abs f · X a l v) .
+
+capp ◂ ctrm ➔ ctrm ➔ ctrm = 
+  λ t1 . λ t2 . Λ X . λ a . λ l . λ v . a (t1 · X a l v) (t2 · X a l v).

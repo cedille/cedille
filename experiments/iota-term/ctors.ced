@@ -30,7 +30,7 @@ app ◂ trm ➔ trm ➔ trm =
 clamh ◂ (trm ➔ trm) ➔ trm ➔ ctrm = λ f . λ a . (f a).1 .
 
 lam ◂ (trm ➔ trm) ➔ trm =
-  λ f . [ clam (λ t . (f t).1) ,
+  λ f . [ clam (clamh f),
           Λ A . Λ B . Λ R . Λ ap . Λ lm . Λ vr . λ pa . λ pl . λ pv . 
             pl -(λ a . clam-abs (clamh f) · (B a) (ap a) (lm a) (vr a))
               (Λ p . λ up . (f (var (clam-nextvar (clamh f)))).2 · A · B · R -ap -lm

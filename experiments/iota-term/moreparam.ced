@@ -1,0 +1,46 @@
+import true.
+import bool.
+import trm0. % also works with trm.
+
+param1-trm ◂ Π t : trm .
+             ∀ A : ★ . ∀ R : A ➔ ★ .
+             ∀ app : A ➔ A ➔ A.
+             ∀ lam : (A ➔ A) ➔ A.
+             ∀ var : Nat ➔ A.
+               (∀ a1 : A . ∀ a2 : A .
+                R a1 ➔ R a2 ➔ R (app a1 a2)) ➔
+               (∀ f : A ➔ A .
+                (∀ a : A . R a ➔ R (f a)) ➔
+                R (lam f)) ➔
+               (Π n : Nat . R (var n)) ➔
+               R (t.1 · A app lam var) =
+  λ t . Λ A . Λ R . Λ app . Λ lam . Λ var .
+    λ pa . λ pl . λ pv .
+      t.2.2 · True · (λ _ : True . A) · (λ p : True ➔ A . R (p triv))
+        -(λ _ : True . app) -(λ _ : True . lam) -(λ _ : True . var)
+        (Λ p1 . Λ p2 . λ u1 . λ u2 . (pa -(p1 triv) -(p2 triv) u1 u2))
+        (Λ f . λ u . pl -(f triv) (Λ a . λ ua . u -(λ _ . a) ua))
+        pv .
+
+param2-trm ◂ Π t : trm .
+             ∀ A : ★ . ∀ B : ★ . ∀ R : A ➔ B ➔ ★ .
+             ∀ app1 : A ➔ A ➔ A.
+             ∀ lam1 : (A ➔ A) ➔ A.
+             ∀ var1 : Nat ➔ A.
+             ∀ app2 : B ➔ B ➔ B.
+             ∀ lam2 : (B ➔ B) ➔ B.
+             ∀ var2 : Nat ➔ B.
+               (∀ a1 : A . ∀ a2 : A . ∀ b1 : B . ∀ b2 : B .
+                R a1 b1 ➔ R a2 b2 ➔ R (app1 a1 a2) (app2 b1 b2)) ➔
+               (∀ f1 : A ➔ A . ∀ f2 : B ➔ B .
+                (∀ a : A . ∀ b : B . R a b ➔ R (f1 a) (f2 b)) ➔
+                R (lam1 f1) (lam2 f2)) ➔
+               (Π n : Nat . R (var1 n) (var2 n)) ➔
+               R (t.1 · A app1 lam1 var1) (t.1 · B app2 lam2 var2) =
+ λ t . Λ A . Λ B . Λ R . Λ app1 . Λ lam1 . Λ var1 . Λ app2 . Λ lam2 . Λ var2 .
+   λ pa . λ pl . λ pv .
+     t.2.2 · Bool · (λ b : Bool . if-t b · A · B) · (λ p : Π b : Bool. if-t b · A · B . R (p tt) (p ff))
+       -(λ b : Bool . θ b app1 app2) -(λ b : Bool . θ b lam1 lam2) -(λ b : Bool . θ b var1 var2)
+         (Λ p1 . Λ p2 . λ u1 . λ u2 . pa -(p1 tt) -(p2 tt) -(p1 ff) -(p2 ff) u1 u2)
+         (Λ f . λ u . pl -(f tt) -(f ff) (Λ a . Λ b . λ u' . u -(λ x . θ x a b) u'))
+         pv .
