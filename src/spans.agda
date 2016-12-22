@@ -290,6 +290,15 @@ keywords-data-kind k =
   "keywords"  ,
     (if is-equational-kind k then "equational" else "")
 
+error-if-not-eq : type → 𝕃 tagged-val → 𝕃 tagged-val
+error-if-not-eq (TpEq t1 t2) tvs = expected-type (TpEq t1 t2) :: tvs
+error-if-not-eq tp tvs = error-data "This term is being checked against the following type, but an equality type was expected"
+                     :: expected-type tp :: tvs
+
+error-if-not-eq-maybe : maybe type → 𝕃 tagged-val → 𝕃 tagged-val
+error-if-not-eq-maybe (just tp) tvs = error-if-not-eq tp tvs
+error-if-not-eq-maybe _ tvs = tvs
+
 --------------------------------------------------
 -- span-creating functions
 --------------------------------------------------
@@ -616,8 +625,11 @@ InlineDef-span Γ pi pi' x t pi'' check tvs =
      else [])
     ++ tvs)
 
-IotaPair-span : posinfo → posinfo → 𝕃 tagged-val → span
-IotaPair-span pi pi' tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: tvs)
+IotaPair-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
+IotaPair-span pi pi' c tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: checking-data c :: tvs)
 
-IotaProj-span : term → posinfo → 𝕃 tagged-val → span
-IotaProj-span t pi' tvs = mk-span "Iota projection" (term-start-pos t) pi' tvs
+IotaProj-span : term → posinfo → checking-mode → 𝕃 tagged-val → span
+IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: tvs)
+
+Omega-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
+Omega-span pi t c tvs = mk-span "Omega term" pi (term-end-pos t) (explain "A weak form of extensionality: derive an equation between lambda-abstractions from a ∀-quantified equation." :: checking-data c :: tvs)

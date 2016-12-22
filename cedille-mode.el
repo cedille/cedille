@@ -442,7 +442,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
   (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
-  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
+;  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
 
 (cedille-modify-keymap)
@@ -479,9 +479,9 @@ in the parse tree, and updates the Cedille info buffer."
 
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "➔") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
-          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\<" "⇐") ("\\u" "↑") ("\\p" "π")
+          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "π")
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\d" "δ") ("\\-" "➾")
-          ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ")
+          ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\o" "ω")
 
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ; add some more of these
  ))

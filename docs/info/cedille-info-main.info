@@ -81,6 +81,12 @@ Cedille mode supports the following commands:
      Close all emacs windows except the current one; convenience
      keystroke for emacs command delete-other-windows.
 
+'#'
+     Highlight all instances of the selected symbol (context-sensitive)
+
+'3'
+     Remove all highlighting of symbols
+
 4 Other
 *******
 
@@ -105,82 +111,95 @@ File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Pre
 5 unicode
 *********
 
-The following shortcuts produce the Unicode characters used in Cedille
+Here is a very short survey of the Unicode symbols used in Cedille,
+together with the shortcut to type them in the emacs mode.
 
 '\l'
-     Produces λ (lambda)
+     Produces λ (lambda), for anonymous functions
 
 '\L'
-     Produces Λ (capital lambda)
+     Produces Λ (capital lambda), for anonymous functions taking in
+     compile-time arguments (erased at run-time)
 
 '\>'
-     Produces → (right arrow)
+     Produces → (right arrow), for non-dependent function types
 
 '\r'
      Produces → (right arrow)
 
 '\a'
-     Produces ∀ (forall)
+     Produces ∀ (forall), for quantification over terms which are erased
+     at run-time, and also over type-level expressions
 
 '\B'
-     Produces □ (white square)
+     Produces □ (white square), for the sole superkind of the language
 
 '\P'
-     Produces Π (capital pi)
+     Produces Π (capital pi), for dependent function types and for all
+     type-level quantification (even over types)
 
 '\s'
-     Produces ★ (black star)
+     Produces ★ (black star), the kind of types
 
 '\S'
-     Produces ☆ (white star)
+     Produces ☆ (white star), used in lifting types
 
 '\.'
-     Produces · (center dot)
+     Produces · (center dot), for applying a function (term- or
+     type-level) to a type-level argument
 
 '\f'
-     Produces ⇐ (leftwards double arrow)
-
-'\<'
-     Produces ⇐ (leftwards double arrow)
+     Produces ◂ (leftwards double arrow), for checking a term against a
+     type, or type against a kind, at the top-level
 
 '\u'
-     Produces ↑ (upwards arrow)
+     Produces ↑ (upwards arrow), for lifting
 
 '\p'
-     Produces π (pi)
+     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ xs
+     .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In other
+     words, project out corresponding arguments of a head-normal form
 
 '\h'
-     Produces ● (black circle)
+     Produces ● (black circle), a hole representing a missing subterm
 
 '\k'
-     Produces 𝒌 (math bold italic small k)
+     Produces 𝒌 (math bold italic small k), all kind-level defined
+     symbols must start with this character
 
 '\i'
-     Produces ι (iota)
+     Produces ι (iota), for dependent intersections
 
 '\='
-     Produces ≃ (asymptotically equal to)
+     Produces ≃ (asymptotically equal to), for propositional equality
 
 '\d'
-     Produces δ (delta)
+     Produces δ (delta), for proving anything one wants from an
+     obviously inconsistent equation
 
 '\b'
-     Produces β (beta)
+     Produces β (beta), for proving propositional equalities which
+     follow just by beta-eta reduction
 
 '\e'
-     Produces ε (epsilon)
+     Produces ε (epsilon), for reducing the sides of an equation
 
 '\R'
-     Produces ρ (rho)
+     Produces ρ (rho), for rewriting with an equation
 
 '\y'
-     Produces ς (lowercase final sigma)
+     Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
 
 '\t'
-     Produces θ (theta)
+     Produces θ (theta), for elimination with a motive (of McBride)
 
 '\x'
-     Produces χ (chi)
+     Produces χ (chi), for changing the form of the expected or computed
+     classifier to a definitionally equivalent one
+
+'\o'
+     Produces ω (omega), for a weak form of extensional equational
+     reasoning
 
 '\rho'
      Produces ρ (rho)
@@ -330,13 +349,13 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts2462
-Node: context mode3711
-Node: credits4983
-Node: options5214
-Node: minor modes5959
-Node: inspect mode6498
-Node: summary mode7217
-Node: Index7406
+Node: unicode shortcuts2584
+Node: context mode5293
+Node: credits6565
+Node: options6796
+Node: minor modes7541
+Node: inspect mode8080
+Node: summary mode8799
+Node: Index8988
 
 End Tag Table

@@ -76,6 +76,7 @@ term-to-stringh toplevel p (Var _ x) = x
 term-to-stringh toplevel p (Beta _ NoTerm) = "β"
 term-to-stringh toplevel p (Beta pi (SomeTerm t _)) = "β{ " ^ term-to-stringh ff (Beta pi NoTerm) t ^ " }"
 term-to-stringh toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string ff t ^ ")"
+term-to-stringh toplevel p (Omega _ t) = "(ω" ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (InlineDef _ _ x t _) = "[ " ^ x ^ " ]"
 term-to-stringh toplevel p (IotaPair _ t1 t2 _) = "[ " ^ term-to-string tt t1 ^ " , " ^ term-to-string tt t1 ^ " ]"
 term-to-stringh toplevel p (IotaProj t n _) = term-to-string ff t ^ " . " ^ n

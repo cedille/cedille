@@ -197,6 +197,7 @@ var-spans-term (Beta x NoTerm) = spanMok
 var-spans-term (Beta x (SomeTerm t _)) = var-spans-term t
 var-spans-term (Chi x x₁ t) = var-spans-term t
 var-spans-term (Delta x t) = var-spans-term t
+var-spans-term (Omega x t) = var-spans-term t
 var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
 var-spans-term (Unfold pi t) = var-spans-term t
 var-spans-term (Hole x) = spanMok
@@ -481,6 +482,25 @@ check-termi (PiInj pi n t) mtp =
            check-fail mtp
         cont _ mtp nothing = spanM-add (PiInj-span pi n t (maybe-to-checking mtp) (expected-type-if mtp [])) ≫span check-fail mtp
 
+check-termi (Omega pi t) mtp =
+  check-term t nothing ≫=span (cont mtp)
+  where cont : (mtp : maybe type) → maybe type → spanM (check-ret mtp)
+        cont mtp nothing =
+          spanM-add (Omega-span pi t (maybe-to-checking mtp) (error-if-not-eq-maybe mtp [])) ≫span
+          return-when mtp nothing
+        cont mtp (just (Abs _ All _ x _ (TpEq t1 t2))) =
+          let h : term → term
+              h t = Lam posinfo-gen KeptLambda posinfo-gen x NoClass t in
+          let tp' = TpEq (h t1) (h t2) in
+            get-ctxt (λ Γ →
+              spanM-add (Omega-span pi t (maybe-to-checking mtp) (check-for-type-mismatch-if Γ "synthesized" mtp tp')) ≫span
+              return-when mtp (just tp'))
+        cont mtp (just tp) =
+          spanM-add (Omega-span pi t (maybe-to-checking mtp)
+                      ((error-data "The type we synthesized for the body of the ω-term should be a ∀-quantified equation (but it is not).")
+                     :: expected-type-if mtp [ type-data tp ])) ≫span
+          return-when mtp (just tp)
+
 check-termi (Epsilon pi lr m t) (just (TpEq t1 t2)) = 
   spanM-add (Epsilon-span pi lr m t checking [ type-data (TpEq t1 t2) ]) ≫span
   get-ctxt (λ Γ → 
@@ -659,7 +679,7 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
   get-ctxt (λ Γ → 
     check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
     get-ctxt (λ Γ →
-    spanM-add (IotaPair-span pi pi'
+    spanM-add (IotaPair-span pi pi' checking
                 (if conv-term Γ t1 t2 then
                   []
                  else ((error-data "The two components of the iota-pair are not convertible (as required)." ) ::
@@ -668,10 +688,10 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
         err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t)
 
 check-termi (IotaPair pi t1 t2 pi') (just tp) =
-  spanM-add (IotaPair-span pi pi' [ error-data "The type we are checking against is not a iota-type" ])
+  spanM-add (IotaPair-span pi pi' checking [ error-data "The type we are checking against is not a iota-type" ])
 
 check-termi (IotaPair pi t1 t2 pi') nothing =
-  spanM-add (IotaPair-span pi pi' [ error-data "Iota pairs can only be used in a checking position" ]) ≫span
+  spanM-add (IotaPair-span pi pi' synthesizing [ error-data "Iota pairs can only be used in a checking position" ]) ≫span
   spanMr nothing
 
 
@@ -680,28 +700,29 @@ check-termi (IotaProj t n pi) mtp =
   where cont : (outer : maybe type) → ℕ → (computed : type) → spanM (check-ret outer)
         cont mtp n computed with computed
         cont mtp 1 computed | Iota pi' pi'' x NoType t2 =
-            spanM-add (IotaProj-span t pi
+            spanM-add (IotaProj-span t pi (maybe-to-checking mtp)
                         (error-data "The head type is a iota-type, but it has no first component." ::
                               [ head-type computed ] )) ≫span
             return-when mtp mtp
         cont mtp 1 computed | Iota pi' pi'' x (SomeType t1) t2 =
           get-ctxt (λ Γ →
-            spanM-add (IotaProj-span t pi (head-type computed ::
+            spanM-add (IotaProj-span t pi (maybe-to-checking mtp) (head-type computed ::
                                            check-for-type-mismatch-if Γ "synthesized" mtp t1)) ≫span
             return-when mtp (just t1))
         cont mtp 2 computed | Iota pi' pi'' x a t2 =
           get-ctxt (λ Γ →
             let t2' = subst-type Γ t x t2 in
-              spanM-add (IotaProj-span t pi (head-type computed :: check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
+              spanM-add (IotaProj-span t pi (maybe-to-checking mtp)
+                          (head-type computed :: check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
               return-when mtp (just t2'))
         cont mtp n computed | Iota pi' pi'' x t1 t2 =
-          spanM-add (IotaProj-span t pi ( error-data "Iota-projections must use .1 or .2 only."
+          spanM-add (IotaProj-span t pi (maybe-to-checking mtp) ( error-data "Iota-projections must use .1 or .2 only."
                                       :: [ head-type computed ])) ≫span return-when mtp mtp
         cont mtp n computed | _ =
-          spanM-add (IotaProj-span t pi ( error-data "The head type is not a iota-abstraction."
+          spanM-add (IotaProj-span t pi (maybe-to-checking mtp) ( error-data "The head type is not a iota-abstraction."
                                         :: [ head-type computed ])) ≫span return-when mtp mtp
         cont' : (outer : maybe type) → ℕ → (computed : maybe type) → spanM (check-ret outer)
-        cont' mtp _ nothing = spanM-add (IotaProj-span t pi []) ≫span return-when mtp mtp
+        cont' mtp _ nothing = spanM-add (IotaProj-span t pi (maybe-to-checking mtp) []) ≫span return-when mtp mtp
         cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp)) -- we are looking for iotas in the bodies of rec defs
 
 

@@ -1,12 +1,6 @@
-cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X.
-cZ ◂ cNat = Λ X . λ s . λ z . z .
-cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+import base.
 
-Parametric ◂ cNat ➔ ★ =
-  λ x : cNat . ∀ A : ★ . ∀ R : A ➔ ★ . ∀ f : A ➔ A .
-    (∀ a : A . R a ➔ R (f a)) ➔ (∀ a : A . R a ➔ R (x · A f a)).
-
-Nat ◂ ★ = ι x : cNat . ι u : (x cS cZ ≃ x) . Parametric x .
+Nat ◂ ★ = ι x : cNat . ι u : (x cS cZ ≃ x) . UnaryParam x .
 
 Z ◂ Nat = [ cZ , [ β{cZ} , Λ A . Λ R . Λ f . λ s . Λ a . λ z . z ] ] .
 S ◂ Nat ➔ Nat = λ n : Nat . [ cS n.1 , [ ρ+ n.2.1 - β{cS n.1} ,

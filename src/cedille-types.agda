@@ -178,6 +178,7 @@ mutual
     IotaPair : posinfo → term → term → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
+    Omega : posinfo → term → term
     Parens : posinfo → term → posinfo → term
     PiInj : posinfo → num → term → term
     Rho : posinfo → rho → term → term → term
@@ -572,6 +573,7 @@ mutual
   termToString (IotaPair x0 x1 x2 x3) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
+  termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (PiInj x0 x1 x2) = "(PiInj" ^ " " ^ (posinfoToString x0) ^ " " ^ (numToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (rhoToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"

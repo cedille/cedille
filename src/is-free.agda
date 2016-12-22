@@ -39,6 +39,7 @@ is-free-in-term ce (inj₂ (Γ , t)) (Var _ x') = ~ (stringset-contains t x') &&
 is-free-in-term ce x (Beta _ NoTerm) = ff
 is-free-in-term ce x (Beta _ (SomeTerm t _)) = is-free-in-term ce x t
 is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
+is-free-in-term ce x (Omega _ t) = is-free-in-term ce x t
 is-free-in-term ce x (InlineDef _ _ x' t _) = is-free-in-term ce x t
 is-free-in-term ce x (IotaPair _ t1 t2 _) = is-free-in-term ce x t1 || is-free-in-term ce x t2
 is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
@@ -140,7 +141,8 @@ data abs  : Set where
 
 to-abs : type → maybe abs
 to-abs (Abs pi b pi' x atk tp) = just (mk-abs pi b pi' x atk (is-free-in check-erased x tp) tp)
-to-abs (TpArrow tp1 _ tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (TpArrow tp1 ErasedArrow tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (TpArrow tp1 UnerasedArrow tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
 data absk  : Set where

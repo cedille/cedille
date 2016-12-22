@@ -86,6 +86,7 @@ embed : term -> aterm .
 App : aterm -> aterm ws maybeErased aterm .
 AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
+Omega : lterm -> ! 'ω' ows lterm.
 Beta : lterm -> ! 'β' optTerm .
 Delta : lterm -> ! 'δ' ows lterm.
 PiInj : lterm -> ! 'π' num ows lterm.
