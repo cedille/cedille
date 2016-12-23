@@ -17,6 +17,7 @@ param-ctrm ◂ ctrm ➔ ★ =
 trm ◂ ★ = ι x : ctrm .
           ι _ : ∀ s : Nat ➔ ctrm . x capp clam s ≃ λ a . λ l . λ v . x a l (λ n . s n a l v) .
           ι _ : ∀ A : ★ . ∀ app : A ➔ A ➔ A . ∀ lam : (A ➔ A) ➔ A . ∀ s1 : Nat ➔ A . ∀ s2 : Nat ➔ A .
+                  % should restrict n below to be <= maxvar x
                   (Π n : Nat . s1 n ≃ s2 n) ➾ x app lam s1 ≃ x app lam s2 .
           param-ctrm x.
 

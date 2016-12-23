@@ -1,5 +1,6 @@
 import ctrm0.
 import trm0.
+import nat-thms/compare.
 %import maxvar.
 
 var ◂ Nat ➔ trm =
@@ -42,16 +43,31 @@ lam ◂ (trm ➔ trm) ➔ trm =
           χ ((λ a . λ l . λ v . l (λ x . (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar (lamh f))) a l (λ n . (update s (lam1-nextvar (lamh f)) x n a l v)))) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar (lamh f))) a l (λ n . (update s (lam1-nextvar (lamh f)) x n a l v)))))) a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar (lamh f))) a l (λ n . (update s (lam1-nextvar (lamh f)) x n a l v))))) x))) ≃ (λ a . λ l . λ v . (l (λ x . (f (var (lam1-nextvar f)) a l (update (λ n . (s n a l v)) (lam1-nextvar f) x)))))) -
           χ ((λ a . λ l . λ v . l (λ x . f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))) n a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))) x))))) ≃
              (λ a . λ l . λ v . l (λ x . (f (var (lam1-nextvar f)) a l (update (λ n . (s n a l v)) (lam1-nextvar f) x))))) -
-% see note.ced
-          ●,
+          ρ (ω (Λ A : ★ . ω (Λ a : A ➔ A ➔ A . ω (Λ l : (A ➔ A) ➔ A . ω (Λ v : Nat ➔ A .
+                  χ (l (λ x . f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))) n a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))) x)))) ≃ l (λ x . (f (var (lam1-nextvar f)) a l (update (λ n . (s n a l v)) (lam1-nextvar f) x)))) -
+                  ρ (ω (Λ x : A .
+                     χ (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))) n a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))) x))) ≃ f (var (lam1-nextvar f)) a l (update (λ n . (s n a l v)) (lam1-nextvar f) x)) -
+                     ((f (var (lam1-nextvar (lamh f)))).2.2.1 · A -a -l -(λ n . (update · ctrm s (lam1-nextvar (lamh f)) (cvar (clam-nextvar (λ x . Λ A . λ a . λ l . λ v . ((f (var (lam1-nextvar (lamh f)))).1 · A a l (λ n . (update · ctrm s (lam1-nextvar (lamh f)) x n · A a l v)))))) n · A a l (update · A v (clam-nextvar (λ x . Λ A . λ a . λ l . λ v . ((f (var (lam1-nextvar (lamh f)))).1 · A a l (λ n . (update · ctrm s (lam1-nextvar (lamh f)) x n · A a l v))))) x))) -(update · A (λ n . (s n · A a l v)) (lam1-nextvar (lamh f)) x) 
+                       -(λ n . θ+ (eqnat n (lam1-nextvar (lamh f)))
+                                (λ v . ρ+ v -
+                                       ρ+ (eqnat-refl (clam-nextvar (λ x . Λ A . λ a . λ l . λ v . ((f (var (lam1-nextvar (lamh f)))).1 · A a l (λ n . (update · ctrm s (lam1-nextvar (lamh f)) x n · A a l v)))))) - β)
+                                (λ v . ρ+ v -
+                                       ε ●))))) -
+                  β))))) -
+          β{lam1 f},
           [ Λ A . Λ app . Λ lam . Λ s1 . Λ s2 . Λ u .
             χ ((lam (lam1-abs f app lam s1)) ≃ (lam (lam1-abs f app lam s2))) -
             χ ((lam (λ x . f (var (lam1-nextvar f)) app lam (update s1 (lam1-nextvar f) x))) ≃ (lam (λ x . f (var (lam1-nextvar f)) app lam (update s2 (lam1-nextvar f) x)))) -
-             ● ,
+             ρ (ω (Λ x : A . (f (var (lam1-nextvar (lamh f)))).2.2.1 · A -app -lam
+                                -(update · A s1 (lam1-nextvar (lamh f)) x) -(update · A s2 (lam1-nextvar (lamh f)) x)
+                                 -(λ n . (θ+ (eqnat n (lam1-nextvar (lamh f)))
+                                             (λ v . ρ+ v - β)
+                                             (λ v . ρ+ v - (u n)))))) -
+             β{lam1 f},
           Λ A . Λ B . Λ R . Λ ap . Λ lm . Λ vr . λ pa . λ pl . λ pv . 
             pl -(λ a . lam1-abs (lamh f) · (B a) (ap a) (lm a) (vr a))
               (Λ p . λ up . (f (var (lam1-nextvar (lamh f)))).2.2.2 · A · B · R -ap -lm
                                -(λ a . (update · (B a) (vr a) (lam1-nextvar (lamh f)) (p a))) pa pl
                                (λ n. θ+ (eqnat n (lam1-nextvar (lamh f)))
                                         (λ u . ρ+ u - up)
-                                        (λ u . ρ+ u - (pv (lam1-nextvar (lamh f))))))]]].
+                                        (λ u . ρ+ u - (pv n))))]]].
