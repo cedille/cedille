@@ -13,9 +13,13 @@ AGDASRC = to-string.agda constants.agda \
 	rename.agda classify.agda subst.agda is-free.agda rec.agda lift.agda rewriting.agda ctxt.agda \
         main.agda toplevel-state.agda process-cmd.agda general-util.agda 
 
-ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
-        cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \
-        cedille-mode/cedille-mode-info.el cedille-mode/cedille-mode-library.el cedille-mode/cedille-mode-summary.el
+CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
+                cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \
+                cedille-mode/cedille-mode-info.el cedille-mode/cedille-mode-library.el cedille-mode/cedille-mode-summary.el
+
+SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el 
+
+ELISP=$(SE_MODE) $(CEDILLE_ELISP)
 
 FILES = $(AUTOGEN) $(AGDASRC)
 
@@ -24,9 +28,16 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 INC = -i $(SRCDIR) -i gratr-agda -i $(IAL)
 
+all: cedille elisp
+
 cedille:	$(SRC) Makefile
 		agda $(INC) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
+
+elisp: $(SE_MODE:%.el=%.elc) $(ELISP:%.el=%.elc)
+
+%.elc: %.el
+	emacs --batch -L se-mode -L cedille-mode -f batch-byte-compile $<
 
 cedille-prof:	$(SRC) Makefile
 		agda $(INC) --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c $(SRCDIR)/main.agda 
@@ -38,14 +49,17 @@ cedille-main: $(SRCDIR)/cedille-main.agda
 options-main: $(SRCDIR)/options-main.agda
 	agda $(INC) -c $(SRCDIR)/options-main.agda 
 
+cws-main: $(SRCDIR)/cws-main.agda
+	agda $(INC) -c $(SRCDIR)/cws-main.agda 
+
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ)
 
 lines:
-	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(ELISP)
+	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)
 
 elisp-lines:
-	wc -l $(ELISP)
+	wc -l $(CEDILLE_ELISP)
 
 grammar-lines:
 	wc -l $(GRAMMARS:%=$(SRCDIR)//%)
