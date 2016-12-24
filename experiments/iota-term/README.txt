@@ -1,26 +1,6 @@
-Various attempt at higher-order lambda encoding of untyped lambda calculus terms,
-mostly inspired by parametricity (approach 1, the only approach that is actually
-working so far to define constructors and be able to prove some theorems, namely
-depth-size).
+Higher-order lambda encoding of untyped lambda calculus terms, based on parametricity.
 
-Approach 1:
-
--- ctrm.ced: a type (ctrm) for Church-encoded open pure lambda terms.
-
--- trm.ced: a type (trm) for intrinsically parametric open pure lambda terms.
-
--- ctors.ced: constructors for trm.  
-
-Approach 2:
-
-   Like approach 1 except try to include cut-elimination as part of the definition
-
-   trm0, ctors0
-
-Approach 3:
-
-   Intrinsically inductive (not parametric) terms
-
--- ctrm0.ced
--- ind-trm.ced
-
+-- ctrm.ced:  Church-encoded (non-dependent) untyped lambda calculus terms, and related functions
+-- trm.ced:   parametric such terms (trm1), and the ultimate type (trm), for which we can later prove induction
+-- ctors.ced: definitions of constructors for the untyped lambda calculus terms
+-- ind.ced:   derivation of induction for trm
