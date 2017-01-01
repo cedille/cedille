@@ -425,7 +425,7 @@ get-imports (File _ cs _) = get-imports-cmds cs
         singleton-if-include _ = []
         get-imports-cmds : cmds → 𝕃 string
         get-imports-cmds (CmdsNext c cs) = singleton-if-include c ++ get-imports-cmds cs
-        get-imports-cmds (CmdsStart c) = singleton-if-include c
+        get-imports-cmds CmdsStart = []
 
 data language-level : Set where
   ll-term : language-level

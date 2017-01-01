@@ -7,7 +7,7 @@ start
 Syntactic
 
 File : start -> ! ows cmds ows ! .
-CmdsStart : cmds -> cmd .
+CmdsStart : cmds -> .
 CmdsNext : cmds -> cmd ws cmds .
 
 VarEq : maybeVarEq -> ! var ows '=' ows.
@@ -177,8 +177,11 @@ var -> '_' | (alpha (alpha | numpunct)*) .
 fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
 kvar -> '𝒌' (alpha | numpunct)*.
+otherpunct => '|' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '➔' | '➾' | '↑' | '●' | '(' | ')' | ':' | '.'
+            | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<'
+            | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' | 'υ' | 'φ' | '◂' | 'ω'.
 
-anychar => alpha | numpunct | '\t' | space | '%' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '➔' | '➾' | '↑' | '●' | '(' | ')' | ':' | '.' | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<' | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' | '◂' .
+anychar => alpha | numpunct | '\t' | space | '%' | otherpunct .
 
 comment => '%' anychar* '\n'.
 

@@ -28,7 +28,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 INC = -i $(SRCDIR) -i gratr-agda -i $(IAL)
 
-all: cedille elisp
+all: cedille # elisp
 
 cedille:	$(SRC) Makefile
 		agda $(INC) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 

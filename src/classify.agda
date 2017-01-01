@@ -488,13 +488,17 @@ check-termi (Omega pi t) mtp =
         cont mtp nothing =
           spanM-add (Omega-span pi t (maybe-to-checking mtp) (error-if-not-eq-maybe mtp [])) ≫span
           return-when mtp nothing
-        cont mtp (just (Abs _ All _ x _ (TpEq t1 t2))) =
-          let h : term → term
-              h t = Lam posinfo-gen KeptLambda posinfo-gen x NoClass t in
-          let tp' = TpEq (h t1) (h t2) in
+        cont mtp (just (Abs _ All _ x atk (TpEq t1 t2))) =
+          let tp' = compute-tp t1 t2 atk in
             get-ctxt (λ Γ →
               spanM-add (Omega-span pi t (maybe-to-checking mtp) (check-for-type-mismatch-if Γ "synthesized" mtp tp')) ≫span
               return-when mtp (just tp'))
+          where compute-tp : term → term → tk → type 
+                compute-tp t1 t2 (Tkk _) = TpEq t1 t2 -- no term-level lambda to bind in this case
+                compute-tp t1 t2 (Tkt _) =
+                  let h : term → term
+                      h t = Lam posinfo-gen KeptLambda posinfo-gen x NoClass t in
+                   TpEq (h t1) (h t2)
         cont mtp (just tp) =
           spanM-add (Omega-span pi t (maybe-to-checking mtp)
                       ((error-data "The type we synthesized for the body of the ω-term should be a ∀-quantified equation (but it is not).")

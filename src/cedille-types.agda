@@ -67,7 +67,7 @@ mutual
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
-    CmdsStart : cmd → cmds
+    CmdsStart : cmds
 
   data ctordecl : Set where 
     Ctordecl : posinfo → var → type → ctordecl
@@ -312,64 +312,69 @@ data ParseTreeT : Set where
   parsed-var-bar-13 : var-bar-13 → ParseTreeT
   parsed-var-star-12 : var-star-12 → ParseTreeT
   parsed-anychar : ParseTreeT
-  parsed-anychar-bar-21 : ParseTreeT
-  parsed-anychar-bar-22 : ParseTreeT
-  parsed-anychar-bar-23 : ParseTreeT
-  parsed-anychar-bar-24 : ParseTreeT
-  parsed-anychar-bar-25 : ParseTreeT
-  parsed-anychar-bar-26 : ParseTreeT
-  parsed-anychar-bar-27 : ParseTreeT
-  parsed-anychar-bar-28 : ParseTreeT
-  parsed-anychar-bar-29 : ParseTreeT
-  parsed-anychar-bar-30 : ParseTreeT
-  parsed-anychar-bar-31 : ParseTreeT
-  parsed-anychar-bar-32 : ParseTreeT
-  parsed-anychar-bar-33 : ParseTreeT
-  parsed-anychar-bar-34 : ParseTreeT
-  parsed-anychar-bar-35 : ParseTreeT
-  parsed-anychar-bar-36 : ParseTreeT
-  parsed-anychar-bar-37 : ParseTreeT
-  parsed-anychar-bar-38 : ParseTreeT
-  parsed-anychar-bar-39 : ParseTreeT
-  parsed-anychar-bar-40 : ParseTreeT
-  parsed-anychar-bar-41 : ParseTreeT
-  parsed-anychar-bar-42 : ParseTreeT
-  parsed-anychar-bar-43 : ParseTreeT
-  parsed-anychar-bar-44 : ParseTreeT
-  parsed-anychar-bar-45 : ParseTreeT
-  parsed-anychar-bar-46 : ParseTreeT
-  parsed-anychar-bar-47 : ParseTreeT
-  parsed-anychar-bar-48 : ParseTreeT
-  parsed-anychar-bar-49 : ParseTreeT
-  parsed-anychar-bar-50 : ParseTreeT
-  parsed-anychar-bar-51 : ParseTreeT
-  parsed-anychar-bar-52 : ParseTreeT
-  parsed-anychar-bar-53 : ParseTreeT
-  parsed-anychar-bar-54 : ParseTreeT
-  parsed-anychar-bar-55 : ParseTreeT
-  parsed-anychar-bar-56 : ParseTreeT
-  parsed-anychar-bar-57 : ParseTreeT
-  parsed-anychar-bar-58 : ParseTreeT
-  parsed-anychar-bar-59 : ParseTreeT
-  parsed-anychar-bar-60 : ParseTreeT
-  parsed-anychar-bar-61 : ParseTreeT
-  parsed-anychar-bar-62 : ParseTreeT
-  parsed-anychar-bar-63 : ParseTreeT
-  parsed-anychar-bar-64 : ParseTreeT
-  parsed-anychar-bar-65 : ParseTreeT
-  parsed-anychar-bar-66 : ParseTreeT
-  parsed-anychar-bar-67 : ParseTreeT
   parsed-anychar-bar-68 : ParseTreeT
+  parsed-anychar-bar-69 : ParseTreeT
+  parsed-anychar-bar-70 : ParseTreeT
+  parsed-anychar-bar-71 : ParseTreeT
+  parsed-anychar-bar-72 : ParseTreeT
   parsed-aws : ParseTreeT
-  parsed-aws-bar-70 : ParseTreeT
-  parsed-aws-bar-71 : ParseTreeT
-  parsed-aws-bar-72 : ParseTreeT
+  parsed-aws-bar-74 : ParseTreeT
+  parsed-aws-bar-75 : ParseTreeT
+  parsed-aws-bar-76 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-69 : ParseTreeT
+  parsed-comment-star-73 : ParseTreeT
+  parsed-otherpunct : ParseTreeT
+  parsed-otherpunct-bar-21 : ParseTreeT
+  parsed-otherpunct-bar-22 : ParseTreeT
+  parsed-otherpunct-bar-23 : ParseTreeT
+  parsed-otherpunct-bar-24 : ParseTreeT
+  parsed-otherpunct-bar-25 : ParseTreeT
+  parsed-otherpunct-bar-26 : ParseTreeT
+  parsed-otherpunct-bar-27 : ParseTreeT
+  parsed-otherpunct-bar-28 : ParseTreeT
+  parsed-otherpunct-bar-29 : ParseTreeT
+  parsed-otherpunct-bar-30 : ParseTreeT
+  parsed-otherpunct-bar-31 : ParseTreeT
+  parsed-otherpunct-bar-32 : ParseTreeT
+  parsed-otherpunct-bar-33 : ParseTreeT
+  parsed-otherpunct-bar-34 : ParseTreeT
+  parsed-otherpunct-bar-35 : ParseTreeT
+  parsed-otherpunct-bar-36 : ParseTreeT
+  parsed-otherpunct-bar-37 : ParseTreeT
+  parsed-otherpunct-bar-38 : ParseTreeT
+  parsed-otherpunct-bar-39 : ParseTreeT
+  parsed-otherpunct-bar-40 : ParseTreeT
+  parsed-otherpunct-bar-41 : ParseTreeT
+  parsed-otherpunct-bar-42 : ParseTreeT
+  parsed-otherpunct-bar-43 : ParseTreeT
+  parsed-otherpunct-bar-44 : ParseTreeT
+  parsed-otherpunct-bar-45 : ParseTreeT
+  parsed-otherpunct-bar-46 : ParseTreeT
+  parsed-otherpunct-bar-47 : ParseTreeT
+  parsed-otherpunct-bar-48 : ParseTreeT
+  parsed-otherpunct-bar-49 : ParseTreeT
+  parsed-otherpunct-bar-50 : ParseTreeT
+  parsed-otherpunct-bar-51 : ParseTreeT
+  parsed-otherpunct-bar-52 : ParseTreeT
+  parsed-otherpunct-bar-53 : ParseTreeT
+  parsed-otherpunct-bar-54 : ParseTreeT
+  parsed-otherpunct-bar-55 : ParseTreeT
+  parsed-otherpunct-bar-56 : ParseTreeT
+  parsed-otherpunct-bar-57 : ParseTreeT
+  parsed-otherpunct-bar-58 : ParseTreeT
+  parsed-otherpunct-bar-59 : ParseTreeT
+  parsed-otherpunct-bar-60 : ParseTreeT
+  parsed-otherpunct-bar-61 : ParseTreeT
+  parsed-otherpunct-bar-62 : ParseTreeT
+  parsed-otherpunct-bar-63 : ParseTreeT
+  parsed-otherpunct-bar-64 : ParseTreeT
+  parsed-otherpunct-bar-65 : ParseTreeT
+  parsed-otherpunct-bar-66 : ParseTreeT
+  parsed-otherpunct-bar-67 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-74 : ParseTreeT
+  parsed-ows-star-78 : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-73 : ParseTreeT
+  parsed-ws-plus-77 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -462,7 +467,7 @@ mutual
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
-  cmdsToString (CmdsStart x0) = "(CmdsStart" ^ " " ^ (cmdToString x0) ^ ")"
+  cmdsToString (CmdsStart) = "CmdsStart" ^ ""
 
   ctordeclToString : ctordecl → string
   ctordeclToString (Ctordecl x0 x1 x2) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
@@ -693,64 +698,69 @@ ParseTreeToString (parsed-var-bar-11 t) = var-bar-11ToString t
 ParseTreeToString (parsed-var-bar-13 t) = var-bar-13ToString t
 ParseTreeToString (parsed-var-star-12 t) = var-star-12ToString t
 ParseTreeToString parsed-anychar = "[anychar]"
-ParseTreeToString parsed-anychar-bar-21 = "[anychar-bar-21]"
-ParseTreeToString parsed-anychar-bar-22 = "[anychar-bar-22]"
-ParseTreeToString parsed-anychar-bar-23 = "[anychar-bar-23]"
-ParseTreeToString parsed-anychar-bar-24 = "[anychar-bar-24]"
-ParseTreeToString parsed-anychar-bar-25 = "[anychar-bar-25]"
-ParseTreeToString parsed-anychar-bar-26 = "[anychar-bar-26]"
-ParseTreeToString parsed-anychar-bar-27 = "[anychar-bar-27]"
-ParseTreeToString parsed-anychar-bar-28 = "[anychar-bar-28]"
-ParseTreeToString parsed-anychar-bar-29 = "[anychar-bar-29]"
-ParseTreeToString parsed-anychar-bar-30 = "[anychar-bar-30]"
-ParseTreeToString parsed-anychar-bar-31 = "[anychar-bar-31]"
-ParseTreeToString parsed-anychar-bar-32 = "[anychar-bar-32]"
-ParseTreeToString parsed-anychar-bar-33 = "[anychar-bar-33]"
-ParseTreeToString parsed-anychar-bar-34 = "[anychar-bar-34]"
-ParseTreeToString parsed-anychar-bar-35 = "[anychar-bar-35]"
-ParseTreeToString parsed-anychar-bar-36 = "[anychar-bar-36]"
-ParseTreeToString parsed-anychar-bar-37 = "[anychar-bar-37]"
-ParseTreeToString parsed-anychar-bar-38 = "[anychar-bar-38]"
-ParseTreeToString parsed-anychar-bar-39 = "[anychar-bar-39]"
-ParseTreeToString parsed-anychar-bar-40 = "[anychar-bar-40]"
-ParseTreeToString parsed-anychar-bar-41 = "[anychar-bar-41]"
-ParseTreeToString parsed-anychar-bar-42 = "[anychar-bar-42]"
-ParseTreeToString parsed-anychar-bar-43 = "[anychar-bar-43]"
-ParseTreeToString parsed-anychar-bar-44 = "[anychar-bar-44]"
-ParseTreeToString parsed-anychar-bar-45 = "[anychar-bar-45]"
-ParseTreeToString parsed-anychar-bar-46 = "[anychar-bar-46]"
-ParseTreeToString parsed-anychar-bar-47 = "[anychar-bar-47]"
-ParseTreeToString parsed-anychar-bar-48 = "[anychar-bar-48]"
-ParseTreeToString parsed-anychar-bar-49 = "[anychar-bar-49]"
-ParseTreeToString parsed-anychar-bar-50 = "[anychar-bar-50]"
-ParseTreeToString parsed-anychar-bar-51 = "[anychar-bar-51]"
-ParseTreeToString parsed-anychar-bar-52 = "[anychar-bar-52]"
-ParseTreeToString parsed-anychar-bar-53 = "[anychar-bar-53]"
-ParseTreeToString parsed-anychar-bar-54 = "[anychar-bar-54]"
-ParseTreeToString parsed-anychar-bar-55 = "[anychar-bar-55]"
-ParseTreeToString parsed-anychar-bar-56 = "[anychar-bar-56]"
-ParseTreeToString parsed-anychar-bar-57 = "[anychar-bar-57]"
-ParseTreeToString parsed-anychar-bar-58 = "[anychar-bar-58]"
-ParseTreeToString parsed-anychar-bar-59 = "[anychar-bar-59]"
-ParseTreeToString parsed-anychar-bar-60 = "[anychar-bar-60]"
-ParseTreeToString parsed-anychar-bar-61 = "[anychar-bar-61]"
-ParseTreeToString parsed-anychar-bar-62 = "[anychar-bar-62]"
-ParseTreeToString parsed-anychar-bar-63 = "[anychar-bar-63]"
-ParseTreeToString parsed-anychar-bar-64 = "[anychar-bar-64]"
-ParseTreeToString parsed-anychar-bar-65 = "[anychar-bar-65]"
-ParseTreeToString parsed-anychar-bar-66 = "[anychar-bar-66]"
-ParseTreeToString parsed-anychar-bar-67 = "[anychar-bar-67]"
 ParseTreeToString parsed-anychar-bar-68 = "[anychar-bar-68]"
+ParseTreeToString parsed-anychar-bar-69 = "[anychar-bar-69]"
+ParseTreeToString parsed-anychar-bar-70 = "[anychar-bar-70]"
+ParseTreeToString parsed-anychar-bar-71 = "[anychar-bar-71]"
+ParseTreeToString parsed-anychar-bar-72 = "[anychar-bar-72]"
 ParseTreeToString parsed-aws = "[aws]"
-ParseTreeToString parsed-aws-bar-70 = "[aws-bar-70]"
-ParseTreeToString parsed-aws-bar-71 = "[aws-bar-71]"
-ParseTreeToString parsed-aws-bar-72 = "[aws-bar-72]"
+ParseTreeToString parsed-aws-bar-74 = "[aws-bar-74]"
+ParseTreeToString parsed-aws-bar-75 = "[aws-bar-75]"
+ParseTreeToString parsed-aws-bar-76 = "[aws-bar-76]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-69 = "[comment-star-69]"
+ParseTreeToString parsed-comment-star-73 = "[comment-star-73]"
+ParseTreeToString parsed-otherpunct = "[otherpunct]"
+ParseTreeToString parsed-otherpunct-bar-21 = "[otherpunct-bar-21]"
+ParseTreeToString parsed-otherpunct-bar-22 = "[otherpunct-bar-22]"
+ParseTreeToString parsed-otherpunct-bar-23 = "[otherpunct-bar-23]"
+ParseTreeToString parsed-otherpunct-bar-24 = "[otherpunct-bar-24]"
+ParseTreeToString parsed-otherpunct-bar-25 = "[otherpunct-bar-25]"
+ParseTreeToString parsed-otherpunct-bar-26 = "[otherpunct-bar-26]"
+ParseTreeToString parsed-otherpunct-bar-27 = "[otherpunct-bar-27]"
+ParseTreeToString parsed-otherpunct-bar-28 = "[otherpunct-bar-28]"
+ParseTreeToString parsed-otherpunct-bar-29 = "[otherpunct-bar-29]"
+ParseTreeToString parsed-otherpunct-bar-30 = "[otherpunct-bar-30]"
+ParseTreeToString parsed-otherpunct-bar-31 = "[otherpunct-bar-31]"
+ParseTreeToString parsed-otherpunct-bar-32 = "[otherpunct-bar-32]"
+ParseTreeToString parsed-otherpunct-bar-33 = "[otherpunct-bar-33]"
+ParseTreeToString parsed-otherpunct-bar-34 = "[otherpunct-bar-34]"
+ParseTreeToString parsed-otherpunct-bar-35 = "[otherpunct-bar-35]"
+ParseTreeToString parsed-otherpunct-bar-36 = "[otherpunct-bar-36]"
+ParseTreeToString parsed-otherpunct-bar-37 = "[otherpunct-bar-37]"
+ParseTreeToString parsed-otherpunct-bar-38 = "[otherpunct-bar-38]"
+ParseTreeToString parsed-otherpunct-bar-39 = "[otherpunct-bar-39]"
+ParseTreeToString parsed-otherpunct-bar-40 = "[otherpunct-bar-40]"
+ParseTreeToString parsed-otherpunct-bar-41 = "[otherpunct-bar-41]"
+ParseTreeToString parsed-otherpunct-bar-42 = "[otherpunct-bar-42]"
+ParseTreeToString parsed-otherpunct-bar-43 = "[otherpunct-bar-43]"
+ParseTreeToString parsed-otherpunct-bar-44 = "[otherpunct-bar-44]"
+ParseTreeToString parsed-otherpunct-bar-45 = "[otherpunct-bar-45]"
+ParseTreeToString parsed-otherpunct-bar-46 = "[otherpunct-bar-46]"
+ParseTreeToString parsed-otherpunct-bar-47 = "[otherpunct-bar-47]"
+ParseTreeToString parsed-otherpunct-bar-48 = "[otherpunct-bar-48]"
+ParseTreeToString parsed-otherpunct-bar-49 = "[otherpunct-bar-49]"
+ParseTreeToString parsed-otherpunct-bar-50 = "[otherpunct-bar-50]"
+ParseTreeToString parsed-otherpunct-bar-51 = "[otherpunct-bar-51]"
+ParseTreeToString parsed-otherpunct-bar-52 = "[otherpunct-bar-52]"
+ParseTreeToString parsed-otherpunct-bar-53 = "[otherpunct-bar-53]"
+ParseTreeToString parsed-otherpunct-bar-54 = "[otherpunct-bar-54]"
+ParseTreeToString parsed-otherpunct-bar-55 = "[otherpunct-bar-55]"
+ParseTreeToString parsed-otherpunct-bar-56 = "[otherpunct-bar-56]"
+ParseTreeToString parsed-otherpunct-bar-57 = "[otherpunct-bar-57]"
+ParseTreeToString parsed-otherpunct-bar-58 = "[otherpunct-bar-58]"
+ParseTreeToString parsed-otherpunct-bar-59 = "[otherpunct-bar-59]"
+ParseTreeToString parsed-otherpunct-bar-60 = "[otherpunct-bar-60]"
+ParseTreeToString parsed-otherpunct-bar-61 = "[otherpunct-bar-61]"
+ParseTreeToString parsed-otherpunct-bar-62 = "[otherpunct-bar-62]"
+ParseTreeToString parsed-otherpunct-bar-63 = "[otherpunct-bar-63]"
+ParseTreeToString parsed-otherpunct-bar-64 = "[otherpunct-bar-64]"
+ParseTreeToString parsed-otherpunct-bar-65 = "[otherpunct-bar-65]"
+ParseTreeToString parsed-otherpunct-bar-66 = "[otherpunct-bar-66]"
+ParseTreeToString parsed-otherpunct-bar-67 = "[otherpunct-bar-67]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-74 = "[ows-star-74]"
+ParseTreeToString parsed-ows-star-78 = "[ows-star-78]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-73 = "[ws-plus-73]"
+ParseTreeToString parsed-ws-plus-77 = "[ws-plus-77]"
 
 ------------------------------------------
 -- Reorganizing rules

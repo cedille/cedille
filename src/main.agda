@@ -178,7 +178,7 @@ ensure-ast-deps s filename | just ie =
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
    graph. -}
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) → 
                IO (stringset {- seen already -} × toplevel-state)
 update-astsh seen s filename = 
@@ -236,7 +236,7 @@ checkFile s filename should-print-spans =
                    writeo us
 
 -- this is the function that handles requests (from the frontend) on standard input
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 readFilenamesForProcessing : toplevel-state → IO ⊤
 readFilenamesForProcessing s =
     getLine >>= λ input → 

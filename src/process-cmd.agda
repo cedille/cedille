@@ -137,11 +137,7 @@ process-cmds (mk-toplevel-state use-cede include-path files is Γ) (CmdsNext c c
                                     (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset)))
                                 c need-to-check ≫=span
                                 λ s → process-cmds s cs need-to-check
-process-cmds (mk-toplevel-state use-cede include-path files is Γ) (CmdsStart c) need-to-check = process-cmd
-                                (mk-toplevel-state use-cede include-path files is
-                                  (ctxt-set-symbol-occurrences Γ
-                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset)))
-                                    c need-to-check
+process-cmds s CmdsStart need-to-check = spanMr s
 
 process-start s filename (File pi cs pi') need-to-check = 
   process-cmds s cs need-to-check ≫=span λ s → 

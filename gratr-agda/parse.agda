@@ -36,7 +36,7 @@ module pderiv (rrs : deriv.rewriteRules)(x : gratr2-rtn) where
   insert-back-id (just id) run = rulename id :: run
   insert-back-id _ run = run
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   parse : (inputchars : 𝕃 char) → (least : 𝕃 char) → (run : 𝕃 RE) → (frames : 𝕃 (gratr2-rule)) → (continuation : 𝕃 char → 𝕃 char ⊎ 𝕃 RE) → 𝕃 char ⊎ 𝕃 RE 
   parse-filter : (inputchars : 𝕃 char) → (least : 𝕃 char) → (run : 𝕃 RE) → (frames : 𝕃 gratr2-rule) → (candidateframes : 𝕃 gratr2-rule) → (continuation : 𝕃 char → 𝕃 char ⊎ 𝕃 RE) → 𝕃 char ⊎ 𝕃 RE
   
@@ -70,13 +70,13 @@ module pderiv (rrs : deriv.rewriteRules)(x : gratr2-rtn) where
 -- code to apply run-rewriting rules to a run
 ----------------------------------------------------------------------
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   rewrite-main : {lc : 𝕃 char} → ℕ → (r : Run lc) → (𝔹 × ℕ × Run lc)
   rewrite-main _ []' = (ff , 1 , []')
   rewrite-main 0 (e ::' r) = (ff , 1 , e ::' r)
   rewrite-main (suc n) (e ::' r) with rewrite-main n r 
   ... | (b , n' , r') with len-dec-rewrite (e ::' r') 
-  ... | nothing = (b , if b then suc n' else 1 , e ::' r') 
+  ... | nothing = (b , (if b then suc n' else 1) , e ::' r') 
   ... | just (r'' , k) with n' ∸ k 
   ... | 0 = rewrite-main 1 r''
   ... | n'' = rewrite-main  n'' r''
@@ -113,7 +113,7 @@ module pnoderiv (rrs : noderiv.rewriteRules)(x : gratr2-rtn) where
   insert-back-id (just id) run = rulename id :: run
   insert-back-id _ run = run
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   parse : (inputchars : 𝕃 char) → (least : 𝕃 char) → (run : 𝕃 RE) → (frames : 𝕃 (gratr2-rule)) → (continuation : 𝕃 char → 𝕃 char ⊎ 𝕃 RE) → 𝕃 char ⊎ 𝕃 RE 
   parse-filter : (inputchars : 𝕃 char) → (least : 𝕃 char) → (run : 𝕃 RE) → (framse : 𝕃 gratr2-rule) → (candidateframes : 𝕃 gratr2-rule) → (continuation : 𝕃 char → 𝕃 char ⊎ 𝕃 RE) → 𝕃 char ⊎ 𝕃 RE
   
@@ -146,13 +146,13 @@ module pnoderiv (rrs : noderiv.rewriteRules)(x : gratr2-rtn) where
 -- code to apply run-rewriting rules to a run
 ----------------------------------------------------------------------
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   rewrite-main : ℕ → Run → (𝔹 × ℕ × Run)
   rewrite-main _ [] = (ff , 1 , []')
   rewrite-main 0 (e :: r) = (ff , 1 , e ::' r)
   rewrite-main (suc n) (e :: r) with rewrite-main n r 
   ... | (b , n' , r') with len-dec-rewrite (e ::' r') 
-  ... | nothing = (b , if b then suc n' else 1 , e ::' r') 
+  ... | nothing = (b , (if b then suc n' else 1) , e ::' r') 
   ... | just (r'' , k) with n' ∸ k 
   ... | 0 = rewrite-main 1 r''
   ... | n'' = rewrite-main  n'' r''
