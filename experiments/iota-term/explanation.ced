@@ -1,0 +1,74 @@
+((λ a . λ l . λ v . (l (clam-abs f a l (λ n . (s n a l v)))))
+ ≃
+ (λ a . λ l . λ v . (l (clam-abs (λ t . (subst s (f t))) a l v))))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+(clam-abs f a l (λ n . (s n a l v)))
+≃
+λ x . f (var (clam-nextvar f)) a l (update (λ n . (s n a l v)) (clam-nextvar f) x)
+
+vs
+
+(clam-abs (λ t . (subst s (f t))) a l v)
+≃
+λ x . (subst s (f (var (clam-nextvar f)))) a l (update v (clam-nextvar (λ t . (subst s (f t)))) x)
+≃ 
+λ x . f (var (clam-nextvar f)) a l (λ n . s n a l (update v (clam-nextvar (λ t . (subst s (f t)))) x)
+
+
+χ ((λ a . λ l . λ v . l (clam-abs () ≃
+             clam (λ t . f t)) - ρ+ (f (var (clam-nextvar (clamh f)))).2.1 - ●
+
+
+
+          χ (λ a . λ l . λ v . l (clam-abs (lam1-abs f capp clam cvar) a l v) ≃ lam1 f) -
+          χ (λ a . λ l . λ v . l (λ x . (lam1-abs f capp clam cvar) (cvar (clam-nextvar (lam1-abs f capp clam cvar))) a l (update v (clam-nextvar (lam1-abs f capp clam cvar)) x)) ≃ lam1 f) -
+
+
+χ (lam1 f capp clam cvar ≃ lam1 f) -
+          χ (clam (lam1-abs f capp clam cvar) ≃ lam1 f) -
+          χ (clam (λ x . f (var (lam1-nextvar f)) capp clam (update cvar (lam1-nextvar f) x)) ≃ lam1 f) -          
+            ●
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+(λ n . (update s (lam1-nextvar f) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))) n a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))) x)))
+≃
+(update (λ n . (s n a l v)) (lam1-nextvar f) x)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Abstracting a big term:
+
+(λ n . (update s (lam1-nextvar f) (cvar Q) n a l (update v Q x)))
+≃
+(update (λ n . (s n a l v)) (lam1-nextvar f) x)
+
+
+Q is (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))
+
+Let us abbreviate with F this function (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))
+
+In the critical case, we are down to this goal:
+
+s n a l (update v Q x)
+≃
+s n a l v
+
+It suffices now to prove that Q is not free in s n, as the result
+would then follow from extensionality for var-interpretations -- once
+we restrict that so we must only show equality of var-interpretations
+on variables in the term in question.
+
+On that same basis, we may assume in this current subproof that n is
+free in f (var (lam1-nextvar f)).
+
+In this case of the subproof, we already know n is not equal to lam1-nextvar f.
+
+So if n is free in f (var (lam1-nextvar f)), then maxvar (F (cvar Z)) must be
+greater than or equal to maxvar (s n).  (This is the part that will need some
+work to show.)
+
+Then Q, which is equal to S (maxvar (F (cvar Z))), is greater than maxvar (s n).
+By some further lemma, we can show that it is then not free in s n.
+

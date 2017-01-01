@@ -4,13 +4,13 @@ ctrm ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ 
 
 maxvar ◂ ctrm ➔ Nat = λ t . t · Nat max (λ f . f Z) (λ n . n) .
 
-free-in ◂ Nat ➔ ctrm ➔ Bool = λ n . λ t . t · Bool or (λ f . f ff) (eqnat n) .
+free-in ◂ ctrm ➔ Nat ➔ Bool = λ t . λ n . t · Bool or (λ f . f ff) (eqnat n) .
 
-Free-in ◂ Nat ➔ ctrm ➔ ★ = λ n : Nat . λ t : ctrm . free-in n t ≃ tt .
+Free-in ◂ ctrm ➔ Nat ➔ ★ = λ t : ctrm . λ n : Nat . free-in t n ≃ tt .
 
 test-ctrm1 ◂ ctrm = Λ X . λ a . λ l . λ v . l (λ x . l (λ y . a (v (S Z)) x)) .
 
-free-in (S (S Z)) test-ctrm1 !
+free-in test-ctrm1 (S (S Z)) !
 
 cvar ◂ Nat ➔ ctrm = λ n . Λ X . λ a . λ l . λ v . v n .
 
@@ -27,3 +27,6 @@ clam ◂ (ctrm ➔ ctrm) ➔ ctrm =
 
 capp ◂ ctrm ➔ ctrm ➔ ctrm = 
   λ t1 . λ t2 . Λ X . λ a . λ l . λ v . a (t1 · X a l v) (t2 · X a l v).
+
+subst ◂ (Nat ➔ ctrm) ➔ ctrm ➔ ctrm = λ s . λ t . t · ctrm capp clam s .
+
