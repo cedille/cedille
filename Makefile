@@ -1,6 +1,7 @@
 IAL=~/ial
 
-AGDA=/home/astump/agda-2.5.1.2/.cabal-sandbox/bin/agda
+AGDA=agda
+#AGDA=/home/astump/agda-2.5.1.2/.cabal-sandbox/bin/agda
 
 SRCDIR=src
 
