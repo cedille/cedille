@@ -1,0 +1,27 @@
+To install Cedille version 1.0:
+
+1. check out a copy of the Iowa Agda Library (probably best to do this
+   in some other directory):
+
+   svn co https://svn.divms.uiowa.edu/repos/clc/projects/agda/ial
+
+2. create a symbolic link in the Cedille directory, pointing to the
+   IAL directory.  The link should be named "ial".
+
+3. Now you can run "make" in the Cedille directory, and this should
+   compile the cedille executable (which should appear in the Cedille
+   directory).
+
+4. Follow the directions at the top of cedille-mode.el in the Cedille
+   directory, to set up Cedille mode within emacs.  Then you can open
+   files like lib/bool.ced within emacs and hit "Meta-s" to process
+   them (if all goes well, the mode should change to "Cedille navi"
+   and you can then type "h" for help).
+
+To edit Agda source files for Cedille:
+
+-- since Agda 2.5.x now uses a library system, you need to copy the
+   libraries and defaults files to your .agda/ directory in your home
+   directory.  Edit the libraries file to give the paths to the three
+   libraries needed for Cedille (one for the IAL, one for some generic
+   code for the parser, and one for the Cedille sources proper).

@@ -268,23 +268,23 @@ ParseTreeToString parsed-ws-plus-34 = "[ws-plus-34]"
 
 mutual
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-start : (x : start) → start
   norm-start x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-posinfo : (x : posinfo) → posinfo
   norm-posinfo x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-paths : (x : paths) → paths
   norm-paths x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-opts : (x : opts) → opts
   norm-opts x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-opt : (x : opt) → opt
   norm-opt x = x
 

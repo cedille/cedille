@@ -54,7 +54,7 @@ unfold-dampen-rec tt (unfold b b' b'') = unfold b b' b''
 conv-t : Set → Set
 conv-t T = ctxt → T → T → 𝔹
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 conv-term : conv-t term
 conv-type : conv-t type 
 conv-kind : conv-t kind
@@ -190,7 +190,7 @@ hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf-tk Γ u atk)
    which avoids unfolding definitions if they would lead to a top-level
    lambda-abstraction or top-level application headed by a variable for which we
    do not have a (global) definition. -}
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 hanf : ctxt → term → term
 hanf Γ t with hnf Γ unfold-head-one t
 hanf Γ t | t' with decompose-apps t'

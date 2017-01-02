@@ -35,7 +35,7 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state

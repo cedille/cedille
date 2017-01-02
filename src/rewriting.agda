@@ -37,7 +37,7 @@ rewrite-t : Set → Set
 rewrite-t T = ctxt → renamectxt → (use-hnf : 𝔹) → term → term → T → rewriteA T
 
 -- we assume the term is erased
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 rewrite-terma : rewrite-t term
 rewrite-termh : rewrite-t term
 rewrite-termh Γ ρ u t1 t2 orig with orig
@@ -63,7 +63,7 @@ rewrite-terma Γ ρ u t1 t2 t =
 rewrite-term : rewrite-t term
 rewrite-term Γ ρ u t1 t2 t = rewrite-terma Γ ρ u t1 t2 (erase-term t)
 
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 rewrite-type : rewrite-t type
 rewrite-kind : rewrite-t kind
 rewrite-tk : rewrite-t tk

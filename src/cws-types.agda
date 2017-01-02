@@ -225,19 +225,19 @@ ParseTreeToString parsed-ws-plus-67 = "[ws-plus-67]"
 
 mutual
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-start : (x : start) → start
   norm-start x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-posinfo : (x : posinfo) → posinfo
   norm-posinfo x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-entity : (x : entity) → entity
   norm-entity x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-entities : (x : entities) → entities
   norm-entities x = x
 

@@ -86,7 +86,7 @@ check-term-update-eq Γ Right m t1 t2 = TpEq t1 (hnf-from Γ m t2)
 check-term-update-eq Γ Both m t1 t2 = TpEq (hnf-from Γ m t1) (hnf-from Γ m t2) 
 
 -- a simple incomplete check for beta-inequivalence
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
 check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) = 
   check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x2) (renamectxt-insert m x1 x2) t1 t2
@@ -243,7 +243,7 @@ var-spans-optTerm (SomeTerm t _) = var-spans-term t
    Use add-tk above to add declarations to the ctxt, since these should be normalized
    and with self-types instantiated.
  -}
-{-# NO_TERMINATION_CHECK #-}
+{-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)
 check-termi : term → (m : maybe type) → spanM (check-ret m)
 check-type : type → (m : maybe kind) → spanM (check-ret m)

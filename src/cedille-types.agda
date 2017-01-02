@@ -768,37 +768,37 @@ ParseTreeToString parsed-ws-plus-77 = "[ws-plus-77]"
 
 mutual
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-vars : (x : vars) → vars
   norm-vars x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-udefsne : (x : udefsne) → udefsne
   norm-udefsne x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-udefs : (x : udefs) → udefs
   norm-udefs x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-udef : (x : udef) → udef
   norm-udef x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-type : (x : type) → type
   norm-type (TpApp x1 (TpAppt x2 x3)) = (norm-type (TpAppt  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpApp x2 x3)) = (norm-type (TpApp  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-tk : (x : tk) → tk
   norm-tk x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-theta : (x : theta) → theta
   norm-theta x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-term : (x : term) → term
   norm-term (AppTp (App x1 x2 (Lam x3 x4 x5 x6 x7 x8)) x9) = (norm-term (App  x1 x2 (norm-term (Lam  x3 x4 x5 x6 x7 (norm-term (AppTp  x8 x9) )) )) )
   norm-term (AppTp (Lam x1 x2 x3 x4 x5 x6) x7) = (norm-term (Lam  x1 x2 x3 x4 x5 (norm-term (AppTp  x6 x7) )) )
@@ -808,79 +808,79 @@ mutual
   norm-term (App x1 x2 (App x3 x4 x5)) = (norm-term (App  (norm-term (App  x1 x2 x3) ) x4 x5) )
   norm-term x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-start : (x : start) → start
   norm-start x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-rho : (x : rho) → rho
   norm-rho x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-pterm : (x : pterm) → pterm
   norm-pterm x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-posinfo : (x : posinfo) → posinfo
   norm-posinfo x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-optType : (x : optType) → optType
   norm-optType x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-optTerm : (x : optTerm) → optTerm
   norm-optTerm x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-optClass : (x : optClass) → optClass
   norm-optClass x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeVarEq : (x : maybeVarEq) → maybeVarEq
   norm-maybeVarEq x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeMinus : (x : maybeMinus) → maybeMinus
   norm-maybeMinus x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeKvarEq : (x : maybeKvarEq) → maybeKvarEq
   norm-maybeKvarEq x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeErased : (x : maybeErased) → maybeErased
   norm-maybeErased x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeCheckType : (x : maybeCheckType) → maybeCheckType
   norm-maybeCheckType x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeCheckSuper : (x : maybeCheckSuper) → maybeCheckSuper
   norm-maybeCheckSuper x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-maybeAtype : (x : maybeAtype) → maybeAtype
   norm-maybeAtype x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-ltype : (x : ltype) → ltype
   norm-ltype x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-lterms : (x : lterms) → lterms
   norm-lterms x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-lterm : (x : lterm) → lterm
   norm-lterm x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-lliftingType : (x : lliftingType) → lliftingType
   norm-lliftingType x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-liftingType : (x : liftingType) → liftingType
   norm-liftingType (LiftArrow (LiftPi x1 x2 x3 x4) x5) = (norm-liftingType (LiftPi  x1 x2 x3 (norm-liftingType (LiftArrow  x4 x5) )) )
   norm-liftingType (LiftTpArrow (TpArrow x1 x2 x3) x4) = (norm-liftingType (LiftTpArrow  x1 (norm-liftingType (LiftTpArrow  x3 x4) )) )
@@ -888,74 +888,74 @@ mutual
   norm-liftingType (LiftArrow (LiftArrow x1 x2) x3) = (norm-liftingType (LiftArrow  x1 (norm-liftingType (LiftArrow  x2 x3) )) )
   norm-liftingType x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-leftRight : (x : leftRight) → leftRight
   norm-leftRight x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-lam : (x : lam) → lam
   norm-lam x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-kind : (x : kind) → kind
   norm-kind (KndArrow (KndPi x1 x2 x3 x4 x5) x6) = (norm-kind (KndPi  x1 x2 x3 x4 (norm-kind (KndArrow  x5 x6) )) )
   norm-kind (KndArrow (KndTpArrow x1 x2) x3) = (norm-kind (KndTpArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind (KndArrow (KndArrow x1 x2) x3) = (norm-kind (KndArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-indices : (x : indices) → indices
   norm-indices x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-decls : (x : decls) → decls
   norm-decls x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-decl : (x : decl) → decl
   norm-decl x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-ctordeclsne : (x : ctordeclsne) → ctordeclsne
   norm-ctordeclsne x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-ctordecls : (x : ctordecls) → ctordecls
   norm-ctordecls x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-ctordecl : (x : ctordecl) → ctordecl
   norm-ctordecl x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-cmds : (x : cmds) → cmds
   norm-cmds x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-cmdTerminator : (x : cmdTerminator) → cmdTerminator
   norm-cmdTerminator x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-cmd : (x : cmd) → cmd
   norm-cmd x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-checkKind : (x : checkKind) → checkKind
   norm-checkKind x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-binder : (x : binder) → binder
   norm-binder x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-atype : (x : atype) → atype
   norm-atype x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-aterm : (x : aterm) → aterm
   norm-aterm x = x
 
-  {-# NO_TERMINATION_CHECK #-}
+  {-# TERMINATING #-}
   norm-arrowtype : (x : arrowtype) → arrowtype
   norm-arrowtype x = x
 
