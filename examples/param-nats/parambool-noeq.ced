@@ -1,0 +1,36 @@
+import true.
+import eq.
+import base.
+
+Pair ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ . ∀ X : ★ . (A ➔ B ➔ X) ➔ X.
+fst ◂ ∀ A : ★ . ∀ B : ★ . Pair · A · B ➔ A = Λ A . Λ B . λ p . p · A (λ a . λ b . a).
+snd ◂ ∀ A : ★ . ∀ B : ★ . Pair · A · B ➔ B = Λ A . Λ B . λ p . p · B (λ a . λ b . b).
+
+cBool ◂ ★ = ∀ Y : ★ . Y ➔ Y ➔ Pair · True · Y.
+cTrue ◂ cBool = Λ Y . λ a . λ b . Λ X . λ c . c triv a .
+cFalse ◂ cBool = Λ Y . λ a . λ b . Λ X . λ c . c triv b .
+
+keyeq ◂ cBool ➔ ★ = λ x : cBool . Eq · cBool (snd · True · cBool (x · cBool cTrue cFalse)) x .
+
+UnaryParamBool ◂ cBool ➔ ★ =
+  λ x : cBool . ∀ A : ★ . ∀ R : A ➔ ★ . ∀ a : A . ∀ b : A .
+    R a ➔ R b ➔ Pair · (keyeq x) · (R (snd · True · A (x · A a b))) .
+
+Bool ◂ ★ = ι x : cBool . UnaryParamBool x .
+
+true ◂ Bool =
+  [ cTrue, Λ A . Λ R . Λ a . Λ b . λ pa . λ pb . Λ X . λ c . c (refl · cBool -cTrue) pa ] .
+false ◂ Bool =
+  [ cFalse, Λ A . Λ R . Λ a . Λ b . λ pa . λ pb . Λ X . λ c . c (refl · cBool -cFalse) pb ] .
+
+h ◂ (Bool ➔ ★) ➔ Bool ➔ ★ = 
+ λ Q : Bool ➔ ★ . λ x : Bool .
+   (Q (snd · True · Bool (x.1 · Bool true false))) .
+
+Ind ◂ ∀ Q : Bool ➔ ★ . Q true ➔ Q false ➔ Π x : Bool . Q x =
+  Λ Q . λ pt . λ pf . λ x .
+    fst · (keyeq x.1) · (h · Q x)
+      (x.2 · Bool · Q -true -false pt pf) · Q
+      (snd · (keyeq x.1) · (h · Q x)
+        (x.2 · Bool · Q -true -false pt pf)).
+
