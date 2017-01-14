@@ -38,7 +38,7 @@ param1-ptrm ◂ Π t : ptrm .
         (Λ f . λ u . pl -(f triv) (Λ a . λ ua . u -(λ _ . a) ua))
         pv .
 
-param2-ptrm ◂ Π t : ptrm .
+param2-t ◂ ctrm ➔ ★ = λ t : ctrm . 
              ∀ A : ★ . ∀ B : ★ . ∀ R : A ➔ B ➔ ★ .
              ∀ app1 : A ➔ A ➔ A.
              ∀ lam1 : (A ➔ A) ➔ A.
@@ -52,7 +52,10 @@ param2-ptrm ◂ Π t : ptrm .
                 (∀ a : A . ∀ b : B . R a b ➔ R (f1 a) (f2 b)) ➔
                 R (lam1 f1) (lam2 f2)) ➔
                (Π n : Nat . R (var1 n) (var2 n)) ➔
-               R (t.1 · A app1 lam1 var1) (t.1 · B app2 lam2 var2) =
+               R (t · A app1 lam1 var1) (t · B app2 lam2 var2).
+
+param2-ptrm ◂ Π t : ptrm . param2-t t.1
+ =
  λ t . Λ A . Λ B . Λ R . Λ app1 . Λ lam1 . Λ var1 . Λ app2 . Λ lam2 . Λ var2 .
    λ pa . λ pl . λ pv .
      t.2 · Bool · (λ b : Bool . if-t b · A · B) · (λ p : Π b : Bool. if-t b · A · B . R (p tt) (p ff))
@@ -80,19 +83,5 @@ ptrme ◂ ★ = ι x : ptrm .
 trm ◂ ★ = ι x : ptrme .
                 ∀ s : Nat ➔ ptrme . csubst s x ≃ λ a . λ l . λ v . x a l (λ n . s n a l v) .
 
-param2-trm ◂ Π t : trm .
-             ∀ A : ★ . ∀ B : ★ . ∀ R : A ➔ B ➔ ★ .
-             ∀ app1 : A ➔ A ➔ A.
-             ∀ lam1 : (A ➔ A) ➔ A.
-             ∀ var1 : Nat ➔ A.
-             ∀ app2 : B ➔ B ➔ B.
-             ∀ lam2 : (B ➔ B) ➔ B.
-             ∀ var2 : Nat ➔ B.
-               (∀ a1 : A . ∀ a2 : A . ∀ b1 : B . ∀ b2 : B .
-                R a1 b1 ➔ R a2 b2 ➔ R (app1 a1 a2) (app2 b1 b2)) ➔
-               (∀ f1 : A ➔ A . ∀ f2 : B ➔ B .
-                (∀ a : A . ∀ b : B . R a b ➔ R (f1 a) (f2 b)) ➔
-                R (lam1 f1) (lam2 f2)) ➔
-               (Π n : Nat . R (var1 n) (var2 n)) ➔
-               R (t.1.1.1 · A app1 lam1 var1) (t.1.1.1 · B app2 lam2 var2) =
+param2-trm ◂ Π t : trm . param2-t t.1.1.1 =
                λ t . param2-ptrm t.1.1 .
