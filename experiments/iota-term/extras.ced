@@ -8,3 +8,6 @@ Lte-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat. Lte x y ➔ Lte y z ➔ Lte 
 Lt-irrefl ◂ Π x : Nat . lt x x ≃ ff = ●.
 Lte-max-add ◂ ∀ x1 : Nat . ∀ x2 : Nat . ∀ y1 : Nat . ∀ y2 : Nat.
               Lte x1 y1 ➔ Lte x2 y2 ➔ Lte (max x1 x2) (add y1 y2) = ●.
+
+Lte-max-max ◂ ∀ x1 : Nat . ∀ x2 : Nat . ∀ y1 : Nat . ∀ y2 : Nat.
+              Lte x1 y1 ➔ Lte x2 y2 ➔ Lte (max x1 x2) (max y1 y2) = ●.

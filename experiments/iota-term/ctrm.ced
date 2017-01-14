@@ -28,5 +28,5 @@ clam ◂ (ctrm ➔ ctrm) ➔ ctrm =
 capp ◂ ctrm ➔ ctrm ➔ ctrm = 
   λ t1 . λ t2 . Λ X . λ a . λ l . λ v . a (t1 · X a l v) (t2 · X a l v).
 
-subst ◂ (Nat ➔ ctrm) ➔ ctrm ➔ ctrm = λ s . λ t . t · ctrm capp clam s .
+csubst ◂ (Nat ➔ ctrm) ➔ ctrm ➔ ctrm = λ s . λ t . t · ctrm capp clam s .
 
