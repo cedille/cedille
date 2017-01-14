@@ -1,0 +1,17 @@
+import Trm.
+
+% beta-reduction
+red ◂ trm ➔ trm ➔ ★ =
+      λ t1 : trm . λ t2 : trm . ∀ X : trm ➔ trm ➔ ★ . 
+        (∀ f : trm ➔ trm . ∀ t : trm .
+           X (app (lam f) t) (f t)) ➔
+        (∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm .
+           X t1 t1' ➔ 
+           X (app t1 t2) (app t1' t2)) ➔
+        (∀ t1 : trm . ∀ t2 : trm . ∀ t2' : trm .
+           X t2 t2' ➔ 
+           X (app t1 t2) (app t1 t2')) ➔
+        (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm.
+           (∀ t : trm . X (f t) (f' t)) ➔ X (lam f) (lam f')) ➔
+        X t1 t2 .
+           
