@@ -1,0 +1,62 @@
+import ctrm.
+import Trm.
+
+tp ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ (Nat ➔ X) ➔ X .
+
+arrow ◂ tp ➔ tp ➔ tp = λ T1 . λ T2 . Λ X . λ a . λ v . a (T1 · X a v) (T2 · X a v).
+base ◂ Nat ➔ tp = λ n . Λ X . λ a . λ v . v n .
+
+typed-trm ◂ tp ➔ ★ =
+  λ T : tp . ∀ X : tp ➔ ★ . 
+  (∀ T1 : tp . ∀ T2 : tp . X (arrow T1 T2) ➔ X T1 ➔ X T2) ➔
+  (∀ T1 : tp . ∀ T2 : tp . (X T1 ➔ X T2) ➔ X (arrow T1 T2)) ➔
+  (Nat ➔ ∀ T : tp . X T) ➔
+  X T.
+
+hastp1 ◂ trm ➔ tp ➔ ★ =
+  λ t : trm . λ T : tp . ∀ X : trm ➔ tp ➔ ★ . 
+  (∀ t : trm . ∀ t' : trm . ∀ T1 : tp . ∀ T2 : tp .
+     X t (arrow T1 T2) ➔ X t' T1 ➔ X (app t t') T2) ➔
+  (∀ f : trm ➔ trm . ∀ T1 : tp . ∀ T2 : tp .
+    (∀ t : trm . X t T1 ➔ X (f t) T2) ➔
+    X (lam f) (arrow T1 T2)) ➔
+  (Nat ➔ ∀ t : trm . ∀ T : tp . X t T) ➔
+  X t T.
+
+hastp-unary-param ◂ Π t : trm . Π T : tp . hastp1 t T ➔ ★ =
+  λ t : trm . λ T : tp . λ d : hastp1 t T . ∀ A : trm ➔ tp ➔ ★ . ∀ R : Π t : trm . Π T : tp . A t T ➔ ★ .
+    ∀ App : (∀ t : trm . ∀ t' : trm . ∀ T1 : tp . ∀ T2 : tp .
+             A t (arrow T1 T2) ➔ A t' T1 ➔ A (app t t') T2) .
+    ∀ Lam : (∀ f : trm ➔ trm . ∀ T1 : tp . ∀ T2 : tp .
+              (∀ t : trm . A t T1 ➔ A (f t) T2) ➔
+             A (lam f) (arrow T1 T2)) .
+    ∀ Var : Nat ➔ ∀ t : trm . ∀ T : tp . A t T .
+      (∀ t : trm . ∀ t' : trm . ∀ T1 : tp . ∀ T2 : tp .
+       ∀ d1 : A t (arrow T1 T2) . ∀ d2 : A t' T1 .
+       R t (arrow T1 T2) d1 ➔
+       R t' T1 d2 ➔
+       R (app t t') T2 (App -t -t' -T1 -T2 d1 d2)) ➔
+      (∀ f : trm ➔ trm . ∀ T1 : tp . ∀ T2 : tp .
+       ∀ d : ∀ t : trm . A t T1 ➔ A (f t) T2 .
+         (∀ t : trm . ∀ d1 : A t T1 . R t T1 d1 ➔ R (f t) T2 (d -t d1)) ➔
+         R (lam f) (arrow T1 T2) (Lam -f -T1 -T2 d)) ➔
+      (Π n : Nat . ∀ t : trm . ∀ T : tp . R t T (Var n -t -T)) ➔
+      R t T (d · A App Lam Var) .
+      
+hastp ◂ trm ➔ tp ➔ ★ = λ t : trm . λ T : tp . ι d : hastp1 t T . hastp-unary-param t T d .
+
+closed-hastp ◂ ∀ t : trm . ∀ T : tp . hastp t T ➔ Bool =
+  Λ t . Λ T . λ d .
+    d.1 · (λ _ : trm . λ _ : tp . Bool)
+      [closed-hastp-App = Λ _ . Λ _ . Λ _ . Λ _ . or]
+      [closed-hastp-Lam = Λ _ . Λ _ . Λ _ . λ u . u -(var Z) tt]
+      [closed-hastp-Var = λ _ . Λ _ . Λ _ . ff] .
+
+closed-hastp-no-var ◂ ∀ t : trm . ∀ T : tp . Π d : hastp t T . (closed-hastp d ≃ tt) ➔ ∀ n : Nat . (t ≃ var n) ➔ False =
+  Λ t . Λ T . λ d . 
+    d.2 · (λ _ : trm . λ _ : tp . Bool) · (λ t : trm . λ T : tp . λ closed : Bool . (closed ≃ tt) ➔ ∀ n : Nat . (t ≃ var n) ➔ False)
+      -closed-hastp-App -closed-hastp-Lam -closed-hastp-Var
+      (Λ _ . Λ _ . Λ _ . Λ _ . Λ _ . Λ _ . λ _ . λ _ . λ _ . Λ _ . λ u . δ u)
+      (Λ f . Λ _ . Λ _ . Λ _ . λ _ . λ _ . Λ n . λ u . δ u)
+      (λ n . Λ t . Λ _ . λ u . δ u) .
+

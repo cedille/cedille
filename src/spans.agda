@@ -340,6 +340,10 @@ var-span : ctxt → posinfo → string → checking-mode → tk → span
 var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
 var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data t :: type-data t :: [ hnf-type Γ t ])
 
+redefined-var-span : ctxt → posinfo → var → span
+redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
+                             (error-data "This symbol was defined already." :: var-location-data Γ x :: [])
+
 TpAppt-span : type → term → checking-mode → 𝕃 tagged-val → span
 TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (checking-data check :: ll-data-type :: tvs)
 

@@ -128,3 +128,12 @@ toplevel-state-to-string (mk-toplevel-state use-cede-file include-path files-wit
     ", ctxt:  " ^ (ctxt-to-string context) ^ 
     " "
 
+-- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
+check-redefined : posinfo → var → toplevel-state → spanM toplevel-state → spanM toplevel-state
+check-redefined pi x s c =
+  get-ctxt (λ Γ →
+    if ctxt-binds-var Γ x then
+      (spanM-add (redefined-var-span Γ pi x) ≫span spanMr s)
+    else c)
+
+
