@@ -6,10 +6,6 @@ Bool-to-type ◂ Bool ➔ ★ =
   λ b : Bool . 
    ↑ X . b · (λ b : Bool . X) : (☆ ➔ ☆ ➔ ☆) · True · False .
 
-ff !
-
-test ◂ ★ ➔ ★ ➔ ★ = ↑ X . ff · (λ b : Bool . X) : (☆ ➔ ☆ ➔ ☆) !
-
 Bool-contra ◂ (tt ≃ ff) ➔ False =
   λ u . δ u .
 

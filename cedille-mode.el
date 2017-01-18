@@ -16,7 +16,7 @@
 ;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
 (defvar cedille-program-name (concat cedille-path "/cedille"))
 (setq max-lisp-eval-depth 30000)
-(setq max-specpdl-size 30000)
+(setq max-specpdl-size 50000)
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 

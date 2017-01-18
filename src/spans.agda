@@ -591,15 +591,15 @@ Theta-span pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data
 
 
 normalized-term-if : ctxt → cmdTerminator → term → 𝕃 tagged-val
-normalized-term-if Γ Normalize e = [ "normalized term" , to-string (hnf Γ unfold-all e) ]
-normalized-term-if Γ Hnf e = [ "hnf term" , to-string (hnf Γ unfold-head e) ]
+normalized-term-if Γ Normalize e = [ "normalized term" , to-string (hnf Γ unfold-all e tt) ]
+normalized-term-if Γ Hnf e = [ "hnf term" , to-string (hnf Γ unfold-head e tt) ]
 normalized-term-if Γ Hanf e = [ "hanf term" , to-string (hanf Γ e) ]
 normalized-term-if Γ EraseOnly e = []
 
 normalized-type-if : ctxt → cmdTerminator → type → 𝕃 tagged-val
-normalized-type-if Γ Normalize e = [ "normalized type" , to-string (hnf Γ unfold-all e) ]
+normalized-type-if Γ Normalize e = [ "normalized type" , to-string (hnf Γ unfold-all e tt) ]
 normalized-type-if Γ EraseOnly e = []
-normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e) ]
+normalized-type-if Γ _ {- Hnf or Hanf -} e = [ "hnf type" , to-string (hnf Γ unfold-head e tt) ]
 
 Lft-span : posinfo → var → term → checking-mode → 𝕃 tagged-val → span
 Lft-span pi X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data-const :: tvs)

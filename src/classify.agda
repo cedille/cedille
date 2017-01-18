@@ -77,7 +77,7 @@ check-term-app-matching-erasures NotErased Pi = tt
 check-term-app-matching-erasures _ _ = ff
 
 hnf-from : ctxt → maybeMinus → term → term
-hnf-from Γ EpsHnf t = hnf Γ unfold-head t
+hnf-from Γ EpsHnf t = hnf Γ unfold-head t tt
 hnf-from Γ EpsHanf t = hanf Γ t
 
 check-term-update-eq : ctxt → leftRight → maybeMinus → term → term → type
@@ -138,7 +138,7 @@ PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , args1) |
 PiInj-try-project Γ n t1 t2 | vs1 , _ | vs2 , _ | just ρ | just (h1 , _) | just (h2 , _) | tt | just a1 | just a2 =
   let rebuild : 𝕃 var → term → term
       -- the call to hnf with no-unfolding will have the effect of eta-contracting the new lambda abstraction
-      rebuild vs a = (hnf Γ no-unfolding (Lam* (reverse vs) a)) in
+      rebuild vs a = (hnf Γ no-unfolding (Lam* (reverse vs) a) tt) in
   inj₁ (TpEq (rebuild vs1 a1) (rebuild vs2 a2))
 PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | nothing | _ = 
   PiInj-err2 "lhs" body1
@@ -150,9 +150,9 @@ PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | _ | nothing
    types.  Also, if allow-typed-iota is true, we will instantiate a iota type where the
    iota-bound variable has a type; otherwise, we won't-}
 hnf-instantiate-iota : ctxt → term → type → (allow-typed-iota : 𝔹) → type
-hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp
-hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t)
-hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t)
+hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp tt
+hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t) tt
+hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t) tt
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk : posinfo → var → tk → spanM (maybe sym-info)
@@ -167,10 +167,10 @@ add-tk pi x atk =
         helper (Tkt t) = spanM-push-term-decl pi x t 
 
 check-type-return : ctxt → kind → spanM (maybe kind)
-check-type-return Γ k = spanMr (just (hnf Γ unfold-head k))
+check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
 
 check-termi-return : ctxt → (subject : term) → type → spanM (maybe type)
-check-termi-return Γ subject tp = spanMr (just (hnf Γ unfold-head tp))
+check-termi-return Γ subject tp = spanMr (just (hnf Γ unfold-head tp tt))
 
 lambda-bound-var-conv-error : var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val
 lambda-bound-var-conv-error x atk atk' tvs = 
@@ -253,14 +253,14 @@ check-tk : tk → spanM ⊤
 
 check-term subject nothing = check-termi subject nothing ≫=span cont
   where cont : maybe type → spanM (maybe type)
-        cont (just tp) = get-ctxt (λ Γ → spanMr (just (hnf Γ unfold-head tp)))
+        cont (just tp) = get-ctxt (λ Γ → spanMr (just (hnf Γ unfold-head tp tt)))
         cont nothing = spanMr nothing 
 check-term subject (just tp) =
   get-ctxt (λ Γ → 
-    check-termi subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else (hnf Γ unfold-head tp))))
+    check-termi subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else (hnf Γ unfold-head tp tt))))
 
 check-type subject nothing = check-typei subject nothing
-check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k)))
+check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k tt)))
 
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span
@@ -306,7 +306,7 @@ check-termi (AppTp t tp') tp =
         cont' : (outer : maybe type) → type → spanM (check-ret outer)
         cont' nothing tp'' = 
           get-ctxt (λ Γ → 
-            spanM-add (AppTp-span t tp' synthesizing ((type-data (hnf Γ unfold-head tp'')) :: [])) ≫span
+            spanM-add (AppTp-span t tp' synthesizing ((type-data (hnf Γ unfold-head tp'' tt)) :: [])) ≫span
             check-termi-return Γ (AppTp t tp') tp'')
         cont' (just tp) tp'' = 
           get-ctxt (λ Γ → 
@@ -450,8 +450,8 @@ check-termi (Delta pi t) (just tp) =
   where cont : string → maybe type → spanM ⊤
         cont errmsg (just (TpEq t1 t2)) = 
           get-ctxt (λ Γ → 
-            let t1' = hnf Γ unfold-all t1 in
-            let t2' = hnf Γ unfold-all t2 in
+            let t1' = hnf Γ unfold-all t1 tt in
+            let t2' = hnf Γ unfold-all t2 tt in
               if check-beta-inequiv t1' t2' then
                  spanM-add (Delta-span pi t checking [ type-data tp ])
               else
@@ -466,7 +466,7 @@ check-termi (Delta pi t) (just tp) =
 check-termi (PiInj pi n t) mtp = 
   check-term t nothing ≫=span (λ tm → get-ctxt (λ Γ → cont Γ mtp tm))
   where cont : ctxt → (mtp : maybe type) → maybe type → spanM (check-ret mtp)
-        cont Γ mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (hnf Γ unfold-head t1) (hnf Γ unfold-head t2)
+        cont Γ mtp (just (TpEq t1 t2)) with PiInj-try-project Γ (num-to-ℕ n) (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt)
         cont _ mtp (just (TpEq t1 t2)) | inj₂ msg = 
           spanM-add (PiInj-span pi n t (maybe-to-checking mtp)
                           ( error-data "We could not project out an equation between corresponding arguments."
@@ -668,7 +668,7 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
             spanM-add (InlineDef-span Γ pi pi' x t pi'' cm tvs) ≫span
             spanM-add (Var-span Γ pi' x cm [])
         add-typed-def : ctxt → type → 𝕃 tagged-val → spanM ⊤
-        add-typed-def Γ tp tvs = set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t) tp Γ) ≫span
+        add-typed-def Γ tp tvs = set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t tt) tp Γ) ≫span
                                  get-ctxt (λ Γ → 
                                    helper-add-span Γ tvs)
         helper : ctxt → (mtp : maybe type) → (r : check-ret mtp) → spanM ⊤
@@ -676,7 +676,7 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
         helper Γ nothing (just tp) = add-typed-def Γ tp [ type-data tp ]
         helper Γ nothing nothing = -- add untyped def
           helper-add-span Γ [ missing-type ] ≫span
-          set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t) Γ) 
+          set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t tt) Γ) 
 
 check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
@@ -689,7 +689,7 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
                  else ((error-data "The two components of the iota-pair are not convertible (as required)." ) ::
                        (err Γ "first" t1) :: (err Γ "second" t2) :: [])))))
   where err : ctxt → string → term → tagged-val
-        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t)
+        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t tt)
 
 check-termi (IotaPair pi t1 t2 pi') (just tp) =
   spanM-add (IotaPair-span pi pi' checking [ error-data "The type we are checking against is not a iota-type" ])
@@ -727,7 +727,8 @@ check-termi (IotaProj t n pi) mtp =
                                         :: [ head-type computed ])) ≫span return-when mtp mtp
         cont' : (outer : maybe type) → ℕ → (computed : maybe type) → spanM (check-ret outer)
         cont' mtp _ nothing = spanM-add (IotaProj-span t pi (maybe-to-checking mtp) []) ≫span return-when mtp mtp
-        cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp)) -- we are looking for iotas in the bodies of rec defs
+        cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp tt))
+                                                     -- we are looking for iotas in the bodies of rec defs
 
 
 check-termi t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp

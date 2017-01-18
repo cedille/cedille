@@ -58,7 +58,7 @@ rewrite-termh Γ ρ u t1 t2 _ | x = x , 0
 
 rewrite-terma Γ ρ u t1 t2 t = 
   if conv-term Γ t1 t then (t2 , 1)
-  else (rewrite-return t (rewrite-termh Γ ρ u t1 t2 (if u then (hnf Γ unfold-head t) else t)))
+  else (rewrite-return t (rewrite-termh Γ ρ u t1 t2 (if u then (hnf Γ unfold-head t tt) else t)))
 
 rewrite-term : rewrite-t term
 rewrite-term Γ ρ u t1 t2 t = rewrite-terma Γ ρ u t1 t2 (erase-term t)

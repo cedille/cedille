@@ -149,7 +149,7 @@ rec-check-and-add-ctor-defs _ Γ name rectp params (Ctordeclse pi) (Udefsne _) =
                          ^ " but there are constructor definitions later in the recursive type definition") ])
 
 rec-add-udef : ctxt → udef → ctxt
-rec-add-udef Γ (Udef pi x t) = ctxt-term-udef pi x (hnf Γ no-unfolding t) Γ
+rec-add-udef Γ (Udef pi x t) = ctxt-term-udef pi x (hnf Γ no-unfolding t tt) Γ
 
 rec-add-udefsne : ctxt → udefsne → ctxt
 rec-add-udefsne Γ (UdefsneStart u) = rec-add-udef Γ u
