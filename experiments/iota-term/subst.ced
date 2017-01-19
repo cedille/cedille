@@ -1,0 +1,20 @@
+import ctors-lam.
+import inv.
+
+subst ◂ trm ➔ (Nat ➔ trm) ➔ trm = λ t . λ s . t.1.1.1 · trm app lam s . 
+
+subst-thm ◂ Π t : trm . Π s : Nat ➔ trm . subst t s ≃ λ a . λ l . λ v . t a l (λ n . s n a l v) =
+  λ t . λ s . t.2 -(λ n . (s n).1) .
+
+closed ◂ trm ➔ Bool =
+  λ t . t.1.1.1 · Bool and (λ r . r tt) (λ n . ff) .
+
+subst-closed ◂ Π t : trm . ∀ s : Nat ➔ trm . (closed t ≃ tt) ➔ subst t s ≃ t =
+  λ t . Λ s . ● . 
+
+aeq ◂ trm ➔ trm ➔ Bool = 
+  λ t . t.1.1.1 · (trm ➔ Bool)
+          (λ r1 . λ r2 . λ t' .
+            inv-trm t' · Bool
+              (Λ t1 . Λ t2 . λ u . ●) ● ●)
+          ● ● .

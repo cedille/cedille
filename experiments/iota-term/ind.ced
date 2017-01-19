@@ -10,3 +10,4 @@ ind-trm ◂ Π t : trm .
           (Π n : Nat . P (var n)) ➔
            P t =
     λ t . Λ P . λ pa . λ pl. λ pv. ρ ς (t.2 -vare) - (param1-ptrm t.1.1 · trm · P -app -lam -var pa pl pv).
+

@@ -7,5 +7,6 @@ Higher-order lambda encoding of untyped lambda calculus terms, based on parametr
 -- ctors-lam.ced: definition of the constructor lam (quite involved)
 -- ind.ced:       derivation of induction for trm
 -- Trm.ced:       import this to get the interesting definitions from this directory
+-- depth-size.ced: example with size and depth of terms
 
 Also: explanation.ced has some rough notes I took while figuring out how to type the lam constructor.
