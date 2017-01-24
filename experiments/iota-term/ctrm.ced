@@ -30,3 +30,5 @@ capp ◂ ctrm ➔ ctrm ➔ ctrm =
 
 csubst ◂ (Nat ➔ ctrm) ➔ ctrm ➔ ctrm = λ s . λ t . t · ctrm capp clam s .
 
+csubst1 ◂ ctrm ➔ Nat ➔ ctrm ➔ ctrm = λ t' . λ x . λ t . csubst (update · ctrm cvar x t') t .
+

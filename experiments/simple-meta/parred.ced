@@ -1,0 +1,4 @@
+import Trm.
+
+% parallel reduction
+parred ◂ trm ➔ trm ➔ ★ = λ t1 : trm . λ t2 : trm . fixme .

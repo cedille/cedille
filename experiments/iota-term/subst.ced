@@ -1,5 +1,7 @@
 import ctors-lam.
 import inv.
+import sftrm.
+import trms.
 
 subst ◂ trm ➔ (Nat ➔ trm) ➔ trm = λ t . λ s . t.1.1.1 · trm app lam s . 
 
@@ -12,9 +14,22 @@ closed ◂ trm ➔ Bool =
 subst-closed ◂ Π t : trm . ∀ s : Nat ➔ trm . (closed t ≃ tt) ➔ subst t s ≃ t =
   λ t . Λ s . ● . 
 
-aeq ◂ trm ➔ trm ➔ Bool = 
-  λ t . t.1.1.1 · (trm ➔ Bool)
-          (λ r1 . λ r2 . λ t' .
-            inv-trm t' · Bool
-              (Λ t1 . Λ t2 . λ u . ●) ● ●)
-          ● ● .
+aeqh ◂ sftrm ➔ sftrm ➔ Bool =
+  λ t . t · (sftrm ➔ Bool)
+          [aeqh-app = λ _ . λ _ . λ r1 . λ r2 . λ s .
+                       s · Bool (λ c1 . λ c2 . λ _ . λ _ . and (r1 (csf c1)) (r2 (csf c2)))
+                                (λ _ . λ _ . ff)
+                                (λ _ . ff)]
+          [aeqh-lam = λ f1 . λ r . λ s .
+                        s · Bool (λ _ . λ _ . λ _ . λ _ . ff)
+                                 (λ f2 . λ _ . r ([sfeqvar = λ n : Nat . λ s : sftrm .
+                                                   s · Bool (λ _ . λ _ . λ _ . λ _ . ff) (λ _ . λ _ . ff) (eqnat n)]
+                                                 (max (clam-nextvar f1) (clam-nextvar f2)))
+                                                 (csf (f2 (cvar (max (clam-nextvar f1) (clam-nextvar f2))))))
+                                 (λ _ . ff)]
+          [aeqh-var = sfeqvar] .
+
+aeq ◂ trm ➔ trm ➔ Bool = λ t1 . λ t2 . aeqh (csf t1.1.1.1) (csf t2.1.1.1).
+
+aeq test1 test1!
+

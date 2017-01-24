@@ -15,3 +15,17 @@ red ◂ trm ➔ trm ➔ ★ =
            (∀ t : trm . X (f t) (f' t)) ➔ X (lam f) (lam f')) ➔
         X t1 t2 .
            
+red-beta ◂ ∀ f : trm ➔ trm . ∀ t : trm . red (app (lam f) t) (f t) =
+ Λ f . Λ t . Λ X . λ beta . λ app1 . λ app2 . λ xi . beta -f -t .
+
+red-app1 ◂ ∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . red t1 t1' ➔ red (app t1 t2) (app t1' t2) =
+ Λ t1 . Λ t1' . Λ t2 . λ r .
+   Λ X . λ beta . λ app1 . λ app2 . λ xi . app1 -t1 -t1' -t2 (r · X beta app1 app2 xi) .
+
+red-app2 ◂ ∀ t1 : trm . ∀ t2 : trm . ∀ t2' : trm . red t2 t2' ➔ red (app t1 t2) (app t1 t2') =
+ Λ t1 . Λ t2 . Λ t2' . λ r .
+   Λ X . λ beta . λ app1 . λ app2 . λ xi . app2 -t1 -t2 -t2' (r · X beta app1 app2 xi) .
+
+red-xi ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . (∀ t : trm . red (f t) (f' t)) ➔ red (lam f) (lam f') =
+ Λ f . Λ f' . λ r .
+   Λ X . λ beta . λ app1 . λ app2 . λ xi . xi -f -f' (Λ t . r -t · X beta app1 app2 xi) .
