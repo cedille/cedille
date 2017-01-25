@@ -53,8 +53,8 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t 
         (spanM-add (Var-span Γ' pi x checking []) ≫span
          spanMr (mk-toplevel-state use-cede ip mod is Γ')))
 
-process-cmd s@(mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff {- skip checking -} = 
-    check-redefined pi x s
+process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x (Type tp) t n pi') ff {- skip checking -} = 
+    check-redefined pi x (mk-toplevel-state use-cede ip mod is Γ)
       (spanMr (mk-toplevel-state use-cede ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t tt) tp Γ)))
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefTerm pi x NoCheckType t n pi') _ = 
@@ -80,8 +80,8 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp 
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
            spanMr (mk-toplevel-state use-cede ip mod is Γ')))
 
-process-cmd s@(mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp n pi') ff {- skip checking -} = 
-  check-redefined pi x s
+process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefType pi x (Kind k) tp n pi') ff {- skip checking -} = 
+  check-redefined pi x (mk-toplevel-state use-cede ip mod is Γ)
     (spanMr (mk-toplevel-state use-cede ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp tt) k Γ)))
 
 process-cmd (mk-toplevel-state use-cede ip mod is Γ) (CheckTerm t (Type tp) n pi) tt {- check -} = 
@@ -114,8 +114,8 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') tt 
        (spanM-add (KndVar-span Γ' pi x checking) ≫span
         spanMr (mk-toplevel-state use-cede ip mod is Γ')))
 
-process-cmd s@(mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') ff {- skip checking -} = 
-  check-redefined pi x s
+process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') ff {- skip checking -} = 
+  check-redefined pi x (mk-toplevel-state use-cede ip mod is Γ)
     (spanMr (mk-toplevel-state use-cede ip mod is (ctxt-kind-def pi x (hnf Γ unfold-head k tt) Γ)))
 
 process-cmd s (CheckKind k _ pi) _ = spanMr s -- unimplemented
