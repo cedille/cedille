@@ -155,7 +155,9 @@ which currently consists of:\n
 		 (name-symbol 
 		  (lambda (lst original-symbol) ; list -> string -> string
 		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
-		      (concat original-symbol "[+" (number-to-string count) "]"))))
+		      (if (equal count 0)
+			  original-symbol
+			(concat original-symbol "[+" (number-to-string count) "]")))))
 		 
 		 (set-list ; for brevity
 		  ;; this takes the list to be modified and the type or kind containing the value data
