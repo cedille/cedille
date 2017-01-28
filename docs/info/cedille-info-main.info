@@ -81,11 +81,9 @@ Cedille mode supports the following commands:
      Close all emacs windows except the current one; convenience
      keystroke for emacs command delete-other-windows.
 
-'#'
-     Highlight all instances of the selected symbol (context-sensitive)
-
-'3'
-     Remove all highlighting of symbols
+'m'
+     Highlight/unhighlight all instances of the selected symbol
+     (context-sensitive)
 
 4 Other
 *******
@@ -128,8 +126,8 @@ together with the shortcut to type them in the emacs mode.
      Produces → (right arrow)
 
 '\a'
-     Produces ∀ (forall), for quantification over terms which are erased
-     at run-time, and also over type-level expressions
+     Produces ∀ (forall), for quantification over terms which are
+     erased at run-time, and also over type-level expressions
 
 '\B'
      Produces □ (white square), for the sole superkind of the language
@@ -139,7 +137,7 @@ together with the shortcut to type them in the emacs mode.
      type-level quantification (even over types)
 
 '\s'
-     Produces ★ (black star), the kind of types
+     Produces ★(black star), the kind of types
 
 '\S'
      Produces ☆ (white star), used in lifting types
@@ -149,16 +147,17 @@ together with the shortcut to type them in the emacs mode.
      type-level) to a type-level argument
 
 '\f'
-     Produces ◂ (leftwards double arrow), for checking a term against a
-     type, or type against a kind, at the top-level
+     Produces ◂ (leftwards double arrow), for checking a term against
+     a type, or type against a kind, at the top-level
 
 '\u'
      Produces ↑ (upwards arrow), for lifting
 
 '\p'
-     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ xs
-     .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In other
-     words, project out corresponding arguments of a head-normal form
+     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ
+     xs .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In
+     other words, project out corresponding arguments of a head-normal
+     form
 
 '\h'
      Produces ● (black circle), a hole representing a missing subterm
@@ -188,14 +187,15 @@ together with the shortcut to type them in the emacs mode.
      Produces ρ (rho), for rewriting with an equation
 
 '\y'
-     Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
+     Produces ς (lowercase final sigma), for proving t ≃ t' from t'
+     ≃ t.
 
 '\t'
      Produces θ (theta), for elimination with a motive (of McBride)
 
 '\x'
-     Produces χ (chi), for changing the form of the expected or computed
-     classifier to a definitionally equivalent one
+     Produces χ (chi), for changing the form of the expected or
+     computed classifier to a definitionally equivalent one
 
 '\w'
      Produces ω (omega), for a weak form of extensional equational
@@ -349,13 +349,13 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts2584
-Node: context mode5293
-Node: credits6565
-Node: options6796
-Node: minor modes7541
-Node: inspect mode8080
-Node: summary mode8799
-Node: Index8988
+Node: unicode shortcuts2556
+Node: context mode5274
+Node: credits6546
+Node: options6777
+Node: minor modes7522
+Node: inspect mode8061
+Node: summary mode8780
+Node: Index8969
 
 End Tag Table
