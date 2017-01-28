@@ -368,7 +368,7 @@ in the parse tree, and updates the Cedille info buffer."
 	      (insert new-label))))))))
 
 (defun cedille-mode-highlight-occurrences()
-  "Highlights all occurrences of bound variable matching selected node"
+  "Highlights all occurrences of bound variable matching selected node and returns list of nodes"
   (remove-overlays) ;delete all existing overlays
   (if se-mode-selected
       (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
@@ -379,19 +379,21 @@ in the parse tree, and updates the Cedille info buffer."
 		 (end (cdr (assoc 'end data)))
 		 (overlay (make-overlay start end)))
 	    (when symbol
-	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color))))))))
+	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
+	matching-nodes)))
+
+(defvar cedille-mode-matching-nodes nil)
 
 (defun cedille-mode-interactive-highlight()
   "Interactive command to call cedille-mode-highlight-occurences"
   (interactive)
-  (cedille-mode-highlight-occurrences))
-
-(defun cedille-mode-interactive-unhighlight()
-  "Interactive command to remove all highlighting"
-  (interactive)
-  (remove-overlays))
-
-
+  (let ((matching-nodes (cedille-mode-highlight-occurrences)))
+    (if (equal cedille-mode-matching-nodes matching-nodes)
+	(progn
+	  (remove-overlays)
+	  (setq cedille-mode-matching-nodes nil))
+      (setq cedille-mode-matching-nodes matching-nodes))))
+      
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
   (interactive)
@@ -410,8 +412,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "B") #'cedille-mode-select-previous-alt)
   (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
   (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
-  (se-navi-define-key 'cedille-mode (kbd "#") #'cedille-mode-interactive-highlight)
-  (se-navi-define-key 'cedille-mode (kbd "3") #'cedille-mode-interactive-unhighlight)
+  (se-navi-define-key 'cedille-mode (kbd "m") #'cedille-mode-interactive-highlight)
   (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "M-s") #'cedille-mode-quit)
