@@ -1,4 +1,47 @@
 import Trm.
 
 % parallel reduction
-parred ◂ trm ➔ trm ➔ ★ = λ t1 : trm . λ t2 : trm . fixme .
+parred ◂ trm ➔ trm ➔ ★ =
+         λ t1 : trm . λ t2 : trm . ∀ X : trm ➔ trm ➔ ★ .
+	   (∀ n : Nat . X (var n) (var n)) ➔
+   	   (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . ∀ t : trm . ∀ t' : trm .
+	      (∀ t : trm . X (f t) (f' t)) ➔
+	      X t t' ➔
+	      X (app (lam f) t) (f' t')) ➔
+	   (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm .
+	     (∀ t : trm . X (f t) (f' t)) ➔ X (lam f) (lam f')) ➔
+           (∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' : trm .
+	      X t1 t1' ➔
+	      X t2 t2' ➔
+	      X (app t1 t2) (app t1' t2')) ➔
+	   X t1 t2 .
+	   
+% constructors
+
+pr-refl ◂ ∀ n : Nat . parred (var n) (var n)  = Λ n . Λ X . λ refl . λ beta . λ l . λ a .
+  refl -n .
+
+pr-beta ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . ∀ t : trm . ∀ t' : trm .
+  (∀ t : trm . parred (f t) (f' t)) ➔
+  parred t t' ➔
+  parred (app (lam f) t) (f' t') = Λ f . Λ f' . Λ t . Λ t' .
+     λ p1 . λ p2 . Λ X . λ refl . λ beta . λ l . λ a .
+       beta -f -f' -t -t' (Λ t : trm . p1 -t · X refl beta l a) (p2 · X refl beta l a) .
+
+pr-lam ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm .
+  (∀ t : trm . parred (f t) (f' t)) ➔ parred (lam f) (lam f') = Λ f . Λ f' . λ pf .
+     Λ X . λ refl . λ beta . λ l . λ a . l -f -f' (Λ t . pf -t · X refl beta l a) .
+
+pr-app ◂ ∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' : trm .
+  parred t1 t1' ➔ parred t2 t2' ➔ parred (app t1 t2) (app t1' t2') =
+  Λ t1 . Λ t1' . Λ t2 . Λ t2' . λ p1 . λ p2 .
+   Λ X . λ refl . λ beta . λ l . λ a .
+     a -t1 -t1' -t2 -t2' (p1 · X refl beta l a) (p2 · X refl beta l a).
+
+% trying to prove reflexivity
+parred-refl ◂ trm ➔ ★ = λ t : trm . parred t t .
+
+pr-refl-lem1 ◂ Π t : trm . parred t t = Λ t : trm . ind-trm t · parred-refl
+  (Λ t1 . Λ t2 . λ p1 . λ p2 . pr-app -t1 -t1 -t2 -t2 p1 p2)
+  ●
+  (λ n . pr-refl -n) .
