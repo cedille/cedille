@@ -26,6 +26,8 @@ app ◂ trm ➔ trm ➔ trm =
 
 lam1-nextvar ◂ (trm ➔ ctrm) ➔ Nat = λ f . S (maxvar (f (var Z))) .
 
+lam-nextvar ◂ (trm ➔ trm) ➔ Nat = λ f . lam1-nextvar (λ t . (f t).1.1.1).
+
 lam1-abs ◂ (trm ➔ ctrm) ➔ ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ (X ➔ X) =
   λ f . Λ X . λ a . λ l . λ v . λ x . f (var (lam1-nextvar f)) · X a l (update · X v (lam1-nextvar f) x) .
 

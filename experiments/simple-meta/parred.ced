@@ -40,10 +40,10 @@ pr-app ◂ ∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' : trm .
      a -t1 -t1' -t2 -t2' (p1 · X refl beta l a) (p2 · X refl beta l a).
 
 % trying to prove reflexivity
-parred-refl ◂ trm ➔ ★ = λ t : trm . parred t t .
+parred-refl-t ◂ trm ➔ ★ = λ t : trm . parred t t .
 
-pr-refl-lem1 ◂ Π t : trm . parred t t =
-  λ t : trm . ind-trm t · parred-refl
+parred-refl ◂ Π t : trm . parred t t =
+  λ t : trm . ind-trm t · parred-refl-t
   (Λ t1 . Λ t2 . λ p1 . λ p2 . pr-app -t1 -t1 -t2 -t2 p1 p2)
   (Λ f . λ ih . pr-lam -f -f (Λ n . ih -(var n) (pr-refl -n)))
   (λ n . pr-refl -n) .

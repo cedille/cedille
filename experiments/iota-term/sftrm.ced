@@ -1,4 +1,4 @@
-import ctrm.
+import trm.
 
 sftrm ◂ ★ = ∀ X : ★ . (ctrm ➔ ctrm ➔ X ➔ X ➔ X) ➔ ((ctrm ➔ ctrm) ➔ (X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ X .
 
@@ -14,9 +14,15 @@ sfapp ◂ sftrm ➔ sftrm ➔ sftrm =
   λ s1 . λ s2 .
     Λ X . λ a . λ l . λ v . a (sfc s1) (sfc s2) (s1 · X a l v) (s2 · X a l v) .
 
+sflam-abs1 ◂ (sftrm ➔ sftrm) ➔ ctrm ➔ ctrm = λ f . λ x . csubst1 x (sfnextvar f) (sfc (f (sfvar (sfnextvar f)))) .
+sflam-abs2 ◂ (sftrm ➔ sftrm) ➔ ∀ X : ★ . (ctrm ➔ ctrm ➔ X ➔ X ➔ X) ➔ ((ctrm ➔ ctrm) ➔ (X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ X ➔ X =
+  λ f . Λ X . λ a . λ l . λ v . (λ x . f (sfvar (sfnextvar f)) · X a l (update · X v (sfnextvar f) x)).
+
 sflam ◂ (sftrm ➔ sftrm) ➔ sftrm =
-  λ f . Λ X . λ a . λ l . λ v . l (λ x . csubst1 x (sfnextvar f) (sfc (f (sfvar (sfnextvar f)))))
-                                  (λ x . f (sfvar (sfnextvar f)) · X a l (update · X v (sfnextvar f) x)).
+  λ f . Λ X . λ a . λ l . λ v . l (sflam-abs1 f) (sflam-abs2 f · X a l v) .
 
 csf ◂ ctrm ➔ sftrm = λ t . t · sftrm sfapp sflam sfvar .
+
+sftrm-renaming ◂ (Nat ➔ Nat) ➔ Nat ➔ sftrm =
+  λ f . λ n . sfvar (f n) .
 

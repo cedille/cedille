@@ -18,7 +18,6 @@ rebuilding ◂ Π n : Nat . n S Z ≃ n =
             (n.2 · Nat · A · (λ n : Nat . λ a : A . n s z ≃ a)
               -S -s (Λ a . Λ b . λ u . ρ+ u - β) -Z -z β)))) .
         
-
 Ind ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
   λ x . Λ Q . λ s . λ z . ρ ς (rebuilding x) - (x.2 · Nat · Nat · (λ x : Nat . λ y : Nat . Q x) -S -S (Λ x . Λ y . s -x) -Z -Z z) .
 
