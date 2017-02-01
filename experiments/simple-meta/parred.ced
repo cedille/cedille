@@ -47,3 +47,36 @@ pr-refl-lem1 ◂ Π t : trm . parred t t =
   (Λ t1 . Λ t2 . λ p1 . λ p2 . pr-app -t1 -t1 -t2 -t2 p1 p2)
   (Λ f . λ ih . pr-lam -f -f (Λ n . ih -(var n) (pr-refl -n)))
   (λ n . pr-refl -n) .
+
+pr-inv-p ◂ trm ➔ trm ➔ ★ =
+  λ t : trm . λ t' : trm . 
+  (∀ X : ★ .
+     (∀ n : Nat . (t ≃ var n) ➔ (t' ≃ var n) ➔ X) ➔
+     (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . ∀ a : trm . ∀ a' : trm .
+       (t ≃ app (lam f) a) ➔ (t' ≃ f' a') ➔ (∀ n : Nat . parred (f (var n)) (f' (var n))) ➔ parred a a' ➔ X) ➔
+     (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . (t ≃ lam f) ➔ (t' ≃ lam f') ➔ (∀ n : Nat . parred (f (var n)) (f' (var n))) ➔ X) ➔
+     (∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' : trm .
+       (t ≃ app t1 t2) ➔ (t' ≃ app t1' t2') ➔ parred t1 t1' ➔ parred t2 t2' ➔ X) ➔ X) .
+
+pr-inv-lem ◂  ∀ t : trm . ∀ t' : trm . pr-inv-p t t' ➔ parred t t' =
+  Λ t . Λ t' . λ r . r · (parred t t')
+    (Λ n . λ u1 . λ u2 . ρ u1 - ρ u2 - (pr-refl -n))
+    (Λ f . Λ f' . Λ a . Λ a' . λ u1 . λ u2 . λ u3 . λ u4 . ρ u1 - ρ u2 - (pr-beta -f -f' -a -a' u3 u4))
+    (Λ f . Λ f' . λ u1 . λ u2 . λ u3 . ρ u1 - ρ u2 - (pr-lam -f -f' u3))
+    (Λ t1 . Λ t1' . Λ t2 . Λ t2' . λ u1 . λ u2 . λ u3 . λ u4 . ρ u1 - ρ u2 - (pr-app -t1 -t1' -t2 -t2' u3 u4)) .
+
+pr-inv ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ pr-inv-p t t' =
+    Λ t . Λ t' . λ r .
+      r · pr-inv-p
+        (Λ n . Λ X . λ refl . λ beta . λ l . λ a . refl -n β β)
+	(Λ f . Λ f' . Λ t1 . Λ t1' . λ u1 . λ u2 . Λ X .
+	   λ refl . λ beta . λ lam . λ app .
+	     beta -f -f' -t1 -t1' β β (Λ n . pr-inv-lem -(f (var n)) -(f' (var n)) (u1 -n)) (pr-inv-lem -t1 -t1' u2))
+	(Λ f . Λ f' . λ u . Λ X .
+	   λ refl . λ beta . λ lam . λ app .
+	     lam -f -f' β β (Λ n . pr-inv-lem -(f (var n)) -(f' (var n)) (pf -n) ))
+	(Λ t1 . Λ t1' . Λ t2 . Λ t2' . λ u1 . λ u2 . Λ X .
+	   λ refl . λ beta . λ lam . λ app .
+	     app -t1 -t1' -t2 -t2' β β (pr-inv-lem -t1 -t1' u1) (pr-inv-lem -t2 -t2' u2)) .
+
+
