@@ -1,0 +1,33 @@
+import Trm.
+import ind.
+
+aeq ◂ trm ➔ trm ➔ ★ =
+  λ t : trm . λ t' : trm .
+    ∀ X : trm ➔ trm ➔ ★ .
+      (∀ t1 : trm . ∀ t2 : trm . ∀ t1' : trm . ∀ t2' : trm .
+         X t1 t1' ➔ X t2 t2' ➔ X (app t1 t2) (app t1' t2')) ➔
+      (∀ f : trm ➔ trm . ∀ f' : trm ➔ trm .
+         (Π n : Nat . X (f (var n)) (f' (var n))) ➔ X (lam f) (lam f')) ➔
+      (Π n : Nat . X (var n) (var n)) ➔
+      X t t'.
+
+aeq-app ◂ ∀ t1 : trm . ∀ t2 : trm . ∀ t1' : trm . ∀ t2' : trm .
+          aeq t1 t1' ➔ aeq t2 t2' ➔ aeq (app t1 t2) (app t1' t2') =
+ Λ t1 . Λ t2 . Λ t1' . Λ t2' .
+   λ u1 . λ u2 . Λ X . λ a . λ l . λ v . a -t1 -t2 -t1' -t2' (u1 · X a l v) (u2 · X a l v) .
+
+aeq-lam ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm .
+           (Π n : Nat . aeq (f (var n)) (f' (var n))) ➔ aeq (lam f) (lam f') =
+   Λ f . Λ f' . λ u .
+     Λ X . λ a . λ l . λ v . l -f -f' (λ n . u n · X a l v) .
+
+aeq-var ◂ Π n : Nat . aeq (var n) (var n) =
+  λ n . Λ X . λ a . λ l . λ v . v n.
+
+aeq-refl ◂ Π t : trm . aeq t t =
+  λ t : trm . 
+    θ<t> (ind-trm t)
+      (Λ t1 . Λ t2 . λ ih1 . λ ih2 .
+          aeq-app -t1 -t2 -t1 -t2 ih1 ih2) 
+      (Λ f . λ ih . aeq-lam -f -f (λ n . ih -(var n) (aeq-var n)))
+      (λ n . aeq-var n) .
