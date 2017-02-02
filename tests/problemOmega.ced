@@ -1,0 +1,14 @@
+import false.
+
+Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .
+true ◂ Bool = Λ X . λ a . λ b . a .
+false ◂ Bool = Λ X . λ a . λ b . b .
+
+
+bad ◂ λ x . true ≃ λ x . false =
+  ω (Λ x : true ≃ false .
+     χ (true ≃ false) -
+     ρ x - β).
+
+contradiction ◂ False =
+  δ bad.
