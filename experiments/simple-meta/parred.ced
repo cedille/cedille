@@ -1,5 +1,6 @@
 import Trm.
 import ind.
+import red.
 
 % parallel reduction
 parred ◂ trm ➔ trm ➔ ★ =
@@ -48,6 +49,8 @@ parred-refl ◂ Π t : trm . parred t t =
   (Λ f . λ ih . pr-lam -f -f (Λ n . ih -(var n) (pr-refl -n)))
   (λ n . pr-refl -n) .
 
+parred-refl-implicit ◂ ∀ t : trm . parred t t = ● .
+
 pr-inv-p ◂ trm ➔ trm ➔ ★ =
   λ t : trm . λ t' : trm . 
   (∀ X : ★ .
@@ -74,9 +77,21 @@ pr-inv ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ pr-inv-p t t' =
 	     beta -f -f' -t1 -t1' β β (Λ n . pr-inv-lem -(f (var n)) -(f' (var n)) (u1 -n)) (pr-inv-lem -t1 -t1' u2))
 	(Λ f . Λ f' . λ u . Λ X .
 	   λ refl . λ beta . λ lam . λ app .
-	     lam -f -f' β β (Λ n . pr-inv-lem -(f (var n)) -(f' (var n)) (pf -n) ))
+	     lam -f -f' β β (Λ n . pr-inv-lem -(f (var n)) -(f' (var n)) (u -n) ))
 	(Λ t1 . Λ t1' . Λ t2 . Λ t2' . λ u1 . λ u2 . Λ X .
 	   λ refl . λ beta . λ lam . λ app .
 	     app -t1 -t1' -t2 -t2' β β (pr-inv-lem -t1 -t1' u1) (pr-inv-lem -t2 -t2' u2)) .
+
+% only problem is parred-refl-implicit can't exist because we prove reflexivity by induction
+% on the structure of a term
+% there does not seem to be a way to do this using parred-refl's explicit product type
+
+red-parred-lem ◂ Π t : trm . Π t' : trm . red t t' ➔ parred t t' =
+  λ t . λ t' . λ pf . pf · parred 
+    (Λ f . Λ t'' . pr-beta -f -f -t'' -t'' (Λ n . parred-refl-implicit -(f (var n))) (parred-refl-implicit -t''))
+    (Λ t1 . Λ t1' . Λ t2 . λ u . pr-app -t1 -t1' -t2 -t2 u (parred-refl-implicit -t2))
+    (Λ t1 . Λ t2 . Λ t2' . λ u . pr-app -t1 -t1 -t2 -t2' (parred-refl-implicit -t1) u)
+    (Λ f . Λ f' . pr-lam -f -f') .
+
 
 
