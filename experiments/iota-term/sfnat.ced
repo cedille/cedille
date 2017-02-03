@@ -1,0 +1,5 @@
+cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X.
+cZ ◂ cNat = Λ X . λ s . λ z . z .
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+
+sfnat ◂ ★ = ∀ X : ★ . (cNat ➔ X ➔ X) ➔ X ➔ X .
