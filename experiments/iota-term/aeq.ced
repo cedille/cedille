@@ -26,7 +26,8 @@ aeq-var ◂ Π n : Nat . aeq (var n) (var n) =
 
 aeq-refl ◂ Π t : trm . aeq t t =
   λ t : trm . 
-    θ<t> (ind-trm t)
+%θ<t> (ind-trm t)
+    (ind-trm t) · (λ t : trm . aeq t t)
       (Λ t1 . Λ t2 . λ ih1 . λ ih2 .
           aeq-app -t1 -t2 -t1 -t2 ih1 ih2) 
       (Λ f . λ ih . aeq-lam -f -f (λ n . ih -(var n) (aeq-var n)))
