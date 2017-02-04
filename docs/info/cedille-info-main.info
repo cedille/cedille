@@ -59,6 +59,12 @@ Cedille mode supports the following commands:
 'g'
      Clear current selection
 
+',/.'
+     Navigate to the previous/next page in browsing history
+
+'</>'
+     Navigate to the first/last page in browsing history
+
 3 Information
 *************
 
@@ -349,13 +355,13 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts2556
-Node: context mode5274
-Node: credits6546
-Node: options6777
-Node: minor modes7522
-Node: inspect mode8061
-Node: summary mode8780
-Node: Index8969
+Node: unicode shortcuts2687
+Node: context mode5405
+Node: credits6677
+Node: options6908
+Node: minor modes7653
+Node: inspect mode8192
+Node: summary mode8911
+Node: Index9100
 
 End Tag Table

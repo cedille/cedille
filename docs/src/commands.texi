@@ -32,6 +32,12 @@ Jump to location associated with selected node
 
 @item g
 Clear current selection
+
+@item ,/.
+Navigate to the previous/next page in browsing history
+
+@item </>
+Navigate to the first/last page in browsing history
 @end table
 
 @chapter Information
