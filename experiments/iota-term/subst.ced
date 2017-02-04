@@ -21,6 +21,11 @@ is-lam ◂ trm ➔ Bool = λ t . t.1.1.1 · Bool
                               [is-lam-lam = λ _ . tt]
                               [is-lam-var = λ _ . ff] .
 
+is-app ◂ trm ➔ Bool = λ t . t.1.1.1 · Bool
+       	       	      	    [is-app-app = λ _ . λ _ . tt]
+			    [is-app-lam = λ _ . ff]
+			    [is-app-var = λ _ . ff] .
+
 is-lam-subst ◂ Π t : trm . Π s : Nat ➔ trm .
                (is-lam t ≃ tt) ➔ (is-lam (subst t s) ≃ tt) =
   λ t . λ s . λ h .
@@ -30,10 +35,22 @@ is-lam-subst ◂ Π t : trm . Π s : Nat ➔ trm .
     -is-lam-app -is-lam-lam -is-lam-var
     -is-lam-app -is-lam-lam -(λ n . (s n).1.1.1 · Bool is-lam-app is-lam-lam is-lam-var )
     (Λ _ . Λ _ . Λ _ . Λ _ . λ _ . λ _ . λ h3 . (δ h3))
-    ( Λ f1 . Λ f2 . λ h1 . λ h2 . ε β )
+    ( Λ _ . Λ _ . λ _ . λ _ . ε β )
     ( λ n . λ h1 . δ h1 )
     h ) .
 
+is-app-subst ◂ Π t : trm . Π s : Nat ➔ trm .
+	     (is-app t ≃ tt) ➔ (is-app (subst t s) ≃ tt) =
+  λ t . λ s . λ h .
+    ρ (subst-thm t s) -
+    χ ( (is-app (λ a . λ l . λ v . t a l (λ n . (s n a l v) ) ) ≃ tt ) ) -
+    ε (param2-trm t · Bool · Bool · (λ a : Bool . λ b : Bool . (a ≃ tt) ➔ b ≃ tt )
+    -is-app-app -is-app-lam -is-app-var
+    -is-app-app -is-app-lam -(λ n . (s n).1.1.1 · Bool is-app-app is-app-lam is-app-var )
+    (Λ _ . Λ _ . Λ _ . Λ _ . λ _ . λ _ . λ h3 . β)
+    ( Λ _ . Λ _ . λ _ . λ h2 . δ h2 )
+    ( λ _ . λ h1 . δ h1 )
+    h ) .
 
 subst-closed ◂ Π t : trm . ∀ s1 : Nat ➔ trm . ∀ s2 : Nat ➔ trm .
                (closed t ≃ tt) ➔
