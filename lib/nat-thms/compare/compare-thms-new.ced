@@ -40,3 +40,11 @@ Lte-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lte x y ➔ Lte y z ➔ Lte
 	  (( λ yzGT . lte-not-gt y z (ρ (compare-gt y z yzGT) - hyz) · (Lte x z))))
       ( λ xyEQ . ρ (compare-eq x y xyEQ) - hyz )
       ( λ xyGT . lte-not-gt x y (ρ (compare-gt x y xyGT) - hxy) · (Lte x z) ) .
+
+Lt-Lte-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lte y z ➔ Lt x z =
+  λ x . λ y . λ z . λ hxy . λ hyz .
+    θ+ (compare y z)
+       ( λyzLT . Lt-trans x y z hxy (compare-lt y z yzLT) )
+       ( λyzEQ . ρ (ς (compare-eq y z yzEQ)) - hxy )
+       ( λyzGT . lte-not-gt y z (ρ (hyz) - (ς (compare-gt y z yzGT))) · (Lt x z) ) .
+
