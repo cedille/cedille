@@ -1,0 +1,42 @@
+import compare-0.
+
+lte-SS ◂ Π x : Nat . Π y : Nat . lte (S x) (S y) ≃ lte x y = λ x . λ y . β .
+gt-SS ◂ Π x : Nat . Π y : Nat . gt (S x) (S y) ≃ gt x y = λ x . λ y . β .
+
+compare-lt ◂ Π x : Nat . Π y : Nat . (compare x y ≃ LT) ➔ Lt x y =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      (λ py . λ _ . λ h . (hx py h) )
+      (λ h . δ h) )
+    ( λ y . θ y
+      ( λ _ . λ _ . λ _ . β )
+      ( λ h . δ h ) ) .
+
+compare-gt ◂ Π x : Nat . Π y : Nat . (compare x y ≃ GT) ➔ Gt x y =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      (λ py . λ _ . λ h . (hx py h) )
+      (λ h . β ) )
+    ( λ y . θ y
+      ( λ py . λ hy . λ h . δ h )
+      ( λ h . δ h ) ) .
+
+lte-not-gt ◂ Π x : Nat . Π y : Nat . (lte x y ≃ gt x y) ➔ False =
+λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ hy . λ h . (hx py (ρ (lte-SS px py) - ρ (gt-SS px py) - h)) )
+      (λ h . δ h ) )
+    ( λ y . θ y
+      (λ py . λ hy . λ h . δ h )
+      ( λ h . δ h) ) .
+
+Lte-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lte x y ➔ Lte y z ➔ Lte x z =
+  λ x . λ y . λ z . λ hxy . λ hyz .
+    θ+ (compare x y)
+      ( λ xyLT .
+        θ+ (compare y z)
+	  ( λ yzLT . Lt-Lte x z (compare-lt x z (compare-trans x y z LT xyLT yzLT)) ) 
+	  ( λ yzEQ . ρ (ς (compare-eq y z yzEQ)) - hxy )
+	  (( λ yzGT . ● )))
+      ( λ xyEQ . ρ (compare-eq x y xyEQ) - hyz )
+      ( λ xyGT . ● ) .
