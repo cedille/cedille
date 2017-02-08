@@ -69,3 +69,10 @@ inv-aeq-cmplt ◂ ∀ t : trm . ∀ t' : trm . aeq t t' ➔ inv-aeq t t' = Λ t 
   (λ n . Λ X . λ a . λ l . λ v . v n β β) .
 
 
+aeq-trans ◂ ∀ t : trm . ∀ t' : trm . aeq t t' ➔ ∀ t'' : trm . aeq t' t'' ➔ aeq t t'' =
+  Λ t . Λ t' . λ ae .
+    θ<t t'> ae
+      ●
+      (Λ f . Λ f' . λ ih . Λ t'' . λ u .
+        ●)
+      ● .
