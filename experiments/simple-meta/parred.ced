@@ -1,6 +1,7 @@
 import Trm.
 import ind.
 import red.
+import rtc.
 
 % parallel reduction
 parred ◂ trm ➔ trm ➔ ★ =
@@ -86,12 +87,29 @@ pr-inv ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ pr-inv-p t t' =
 % on the structure of a term
 % there does not seem to be a way to do this using parred-refl's explicit product type
 
-red-parred-lem ◂ Π t : trm . Π t' : trm . red t t' ➔ parred t t' =
-  λ t . λ t' . λ pf . pf · parred 
+red-parred-lem ◂ ∀ t : trm . ∀ t' : trm . red t t' ➔ parred t t' =
+  Λ t . Λ t' . λ pf . pf · parred 
     (Λ f . Λ t'' . pr-beta -f -f -t'' -t'' (Λ n . parred-refl-implicit -(f (var n))) (parred-refl-implicit -t''))
     (Λ t1 . Λ t1' . Λ t2 . λ u . pr-app -t1 -t1' -t2 -t2 u (parred-refl-implicit -t2))
     (Λ t1 . Λ t2 . Λ t2' . λ u . pr-app -t1 -t1 -t2 -t2' (parred-refl-implicit -t1) u)
     (Λ f . Λ f' . pr-lam -f -f') .
 
+rtc-app-lem1 ◂ ∀ t : trm . ∀ t1 : trm . ∀ t2 : trm . rtc · trm · red t1 t2 ➔ rtc · trm · red (app t1 t) (app t2 t) =
+  Λ t . Λ t1 . Λ t2 . λ pf . pf · (λ t1 : trm . λ t2 : trm . rtc · trm · red (app t1 t) (app t2 t))
+    (Λ a . rtc-refl · trm · red -(app a t))
+    (Λ a . Λ b . Λ c . rtc-trans · trm · red -(app a t) -(app b t) -(app c t))
+    (Λ a . Λ b . λ pf . rtc-incl · trm · red -(app a t) -(app b t) (red-app1 -a -b -t pf))  .
+    
+rtc-app-lem2 ◂ ∀ t : trm . ∀ t1 : trm . ∀ t2 : trm . rtc · trm · red t1 t2 ➔ rtc · trm · red (app t t1) (app t t2) =
+  Λ t . Λ t1 . Λ t2 . λ pf . pf · (λ t1 : trm . λ t2 : trm . rtc · trm · red (app t t1) (app t t2))
+    (Λ a . rtc-refl · trm · red -(app t a))
+    (Λ a . Λ b . Λ c . rtc-trans · trm · red -(app t a) -(app t b) -(app t c))
+    (Λ a . Λ b . λ pf . rtc-incl · trm · red -(app t a) -(app t b) (red-app2 -t -a -b pf))  .
 
+parred-rtc-lem ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ rtc · trm · red t t' =
+  Λ t . Λ t' . λ pf . pf · (rtc · trm · red)
+    (Λ n . rtc-refl · trm · red -(var n) )
+    (Λ f . Λ f' . Λ t1 . Λ t2 . ●  )
+    ●
+    ● .
 
