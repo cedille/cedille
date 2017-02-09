@@ -110,7 +110,9 @@ rtc-app-parallel-lem ◂ ∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' :
 
 % see Lemma 5.2.1 in the book -- no idea what to do here.
 
-rtc-lam-lem ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . (∀ n : Nat . rtc · trm · red (f (var n)) (f' (var n))) ➔ rtc · trm · red (lam f) (lam f') = ● .
+rtc-lam-lem ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . (∀ n : Nat . rtc · trm · red (f (var n)) (f' (var n))) ➔ rtc · trm · red (lam f) (lam f') =
+  Λ f . Λ f' . λ s .
+    ● .
 
 parred-rtc-lem ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ rtc · trm · red t t' =
   Λ t . Λ t' . λ pf . pf · (rtc · trm · red)
