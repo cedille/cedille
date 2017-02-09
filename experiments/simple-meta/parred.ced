@@ -106,10 +106,16 @@ rtc-app-lem2 ◂ ∀ t : trm . ∀ t1 : trm . ∀ t2 : trm . rtc · trm · red t
     (Λ a . Λ b . Λ c . rtc-trans · trm · red -(app t a) -(app t b) -(app t c))
     (Λ a . Λ b . λ pf . rtc-incl · trm · red -(app t a) -(app t b) (red-app2 -t -a -b pf))  .
 
+rtc-app-parallel-lem ◂ ∀ t1 : trm . ∀ t1' : trm . ∀ t2 : trm . ∀ t2' : trm . rtc · trm · red t1 t1' ➔ rtc · trm · red t2 t2' ➔ rtc · trm · red (app t1 t2) (app t1' t2') = Λ t1 . Λ t1' . Λ t2 . Λ t2' . λ p1 . λ p2 . rtc-trans · trm · red -(app t1 t2) -(app t1' t2) -(app t1' t2')  (rtc-app-lem1 -t2 -t1 -t1' p1) (rtc-app-lem2 -t1' -t2 -t2' p2) .
+
+% see Lemma 5.2.1 in the book -- no idea what to do here.
+
+rtc-lam-lem ◂ ∀ f : trm ➔ trm . ∀ f' : trm ➔ trm . (∀ n : Nat . rtc · trm · red (f (var n)) (f' (var n))) ➔ rtc · trm · red (lam f) (lam f') = ● .
+
 parred-rtc-lem ◂ ∀ t : trm . ∀ t' : trm . parred t t' ➔ rtc · trm · red t t' =
   Λ t . Λ t' . λ pf . pf · (rtc · trm · red)
     (Λ n . rtc-refl · trm · red -(var n) )
-    (Λ f . Λ f' . Λ t1 . Λ t2 . ●  )
     ●
-    ● .
+    ●
+    rtc-app-parallel-lem .
 
