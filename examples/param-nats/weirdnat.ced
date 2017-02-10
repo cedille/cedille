@@ -18,28 +18,38 @@ S2 ◂ Nat2 ➔ Nat2 = λ n : Nat2 . [ cS n.1 ,
                                    (n.2 · A · B · R -f -g s -a -b z) ] .
 
 
-
-
 prereb ◂ Π n : Nat2 . ∀ X : ★ . Π s : X ➔ X . Π z : X .  (n S2 Z2) s z ≃ n s z = λ n . Λ X . λ s . λ z . (n.2 · Nat2 · X · (λ m : Nat2 . λ l : X . m s z   ≃ l )
               -S2 -s (Λ a . Λ b . λ u . ρ+ u - β) -Z2 -z β) .
 
 
 ret ◂ Nat2 ➔ Nat2 = λ n . n.1 · Nat2 S2 Z2 .
 
+ret-lemma ◂ Π i : Nat2 . (ret (ret i) ≃ ret i) = λ i . prereb i · Nat2 S2 Z2 .
+suc-ret ◂ Π x : Nat2 .  (ret (S2 x)) ≃ S2 (ret x)   = λ x . β .
+s2-cong ◂ ∀ n : Nat2 . ∀ m : Nat2 . (n ≃ m) ➔ (S2 n) ≃ (S2 m) = Λ n . Λ m . λ eq . ρ eq - β .
+
 Induction ◂ Π x : Nat2 . ∀ Q : Nat2 ➔ ★ . (∀ x : Nat2 . Q (ret x) ➔ Q (S2 (ret x))) ➔ Q Z2 ➔ Q (ret x) =
   λ x . Λ Q . λ s . λ z . 
      ρ ς (prereb x · Nat2 S2 Z2) - (x.2 · Nat2 · Nat2 · (λ n1 : Nat2 . λ n2 : Nat2 . Q (ret n1)) -S2 -S2 (Λ a . Λ b . λ q . (s -a q)) -Z2 -Z2 z).
 
 
-
-add ◂ Nat2 ➔ Nat2 ➔ Nat2 = λ n1 . λ n2 . Induction n1 · (λ _ : Nat2 . Nat2) (Λ _ . λ x . S2 x) n2 .
-
-two ◂ Nat2 = S2 (S2 Z2) .
-three ◂ Nat2 = S2 (S2 (S2 Z2)) .
-
+add ◂ Nat2 ➔ Nat2 ➔ Nat2 = λ n1 . λ n2 .  n1.1 · (Nat2) S2 n2 .
 
 
 add-zerol ◂ Π n : Nat2 . add Z2 n ≃ n = λ n . β .
-add-zeror ◂ Π n : Nat2 . add (ret n) Z2 ≃ (ret n) = λ n . Induction n · (λ _ : Nat2 . add (ret n) Z2 ≃ (ret n)) (Λ _ : Nat2 . λ i . i) (prereb n · Nat2 (λ q . ((λ x : Nat2 . (S2 x)) q)) Z2) .
+add-zeror ◂ Π n : Nat2 . add (ret n) Z2 ≃ (ret n) = λ n . (prereb n · Nat2 (λ q . ((λ x : Nat2 . (S2 x)) q)) Z2) .
+
+
+helper ◂ Π x : Nat2 . Π m : Nat2 . ((add (ret (ret x)) (S2 m)) ≃ (add (S2 (ret (ret x))) m)) ➔ ((add (ret (x)) (S2 m)) ≃ (add (S2 ((ret x))) m))
+  = λ x . λ m . λ i . ρ ς (ret-lemma x) - i .
+  
+  
+add-comml ◂ Π n : Nat2 . Π m : Nat2 . (add (ret n) (S2 (ret m)) ≃ S2 (add (ret n) (ret m))) =
+  λ n . λ m . ρ ς (ret-lemma n) -
+    (Induction n · (λ n : Nat2 . add (ret n) (S2 (ret m)) ≃ add (S2 (ret n)) (ret m)) (Λ x : Nat2 .  λ i .  ρ (suc-ret (ret x) ) -  ρ  (ret-lemma x) - ρ+ (helper x (ret m) i) - β) β)   .
+
+
+add-comm ◂ Π n : Nat2 . Π m : Nat2 . (add (ret n) (ret m) ≃  (add (ret m) (ret n))) = λ n . λ m .  Induction n · (λ n : Nat2 . (((add (n) (ret m)) ≃ (add (ret m) (n))) )  )  (Λ x' . λ eq . ρ  (add-comml m x') -  (s2-cong -(add (ret x') (ret m)) -(add (ret m) (ret x')) eq)) (ρ (prereb m · Nat2 S2 Z2) - β)  .
+
 
 
