@@ -52,6 +52,27 @@ is-app-subst ◂ Π t : trm . Π s : Nat ➔ trm .
     ( λ _ . λ h1 . δ h1 )
     h ) .
 
+
+
+subst-closed-one-omega ◂ Π t : trm . ∀ s1 : Nat ➔ trm . ∀ s2 : Nat ➔ trm .
+		      (closed t ≃ tt) ➔
+		      subst t s1 ≃ subst t s2 =
+  λ t . Λ s1 . Λ s2 . λ hc .
+    (param3-trm t · Bool · trm · trm · (λ b : Bool . λ x : trm . λ y : trm . ( b ≃ tt ) ➔ x ≃ y)
+    -closed-app -closed-lam -closed-var
+    -app -lam -s1
+    -app -lam -s2
+    (Λ a1 . Λ a2 . Λ_.Λ_.Λ_.Λ_. λ h1 . λ h2 . λ h3 .
+       ρ (h1 (andE1 a1 a2 h3) ) -
+       ρ (h2 (andE2 a1 a2 h3) ) -
+       β )
+    (Λ f1 . Λ f2 . Λ f3 . λ h1 . λ h2 .
+       ρ (χ (f2 ≃ f3) -
+       	  ε (ω ((Λ r : trm . (h1 -tt -r -r (λ_. β) h2 ))))) - %looks like we need extensionality here...
+       β )
+    (λ_. λ h . δ h )
+    hc).
+
 subst-closed ◂ Π t : trm . ∀ s1 : Nat ➔ trm . ∀ s2 : Nat ➔ trm .
                (closed t ≃ tt) ➔
                subst t s1 ≃ subst t s2 =
