@@ -139,10 +139,11 @@ which currently consists of:\n
 	(when (and binder children)
 	  (let* ((bound (string-to-number binder)) ; for readability
 		 (data (se-term-data (nth bound children)))
-		 (symbol (cdr (assoc 'symbol data)))
-		 (type (cdr (assoc 'type data)))
-		 (kind (cdr (assoc 'kind data)))
-		 (keywords-string (cdr (assoc 'keywords data))) ; for readability
+		 (get (lambda (key) (cdr (assoc key data))))
+		 (symbol (funcall get 'symbol))
+		 (type (funcall get 'type))
+		 (kind (funcall get 'kind))
+		 (keywords-string (funcall get 'keywords))
 		 (keywords-list (when keywords-string (split-string keywords-string " " t)))
 		 ;; to rename the shadowed variables, we will use name-symbol and count-original-symbols
 		 (count-original-symbols
@@ -157,8 +158,7 @@ which currently consists of:\n
 		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
 		      (if (equal count 0)
 			  original-symbol
-			(concat original-symbol "[+" (number-to-string count) "]")))))
-		 
+			(concat original-symbol "[+" (number-to-string count) "]")))))		 
 		 (set-list ; for brevity
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
@@ -168,8 +168,7 @@ which currently consists of:\n
 				 (cons 'value value-source) ; the value displayed for the entry
 				 (cons 'keywords keywords-list) ; keywords identifying attributes of the entry
 				 (cons 'original-symbol symbol))) ; the original symbol identifying the entry
-			  (shadow-p cedille-mode-show-shadowed-variables
-				    )) ; for brevity
+			  (shadow-p cedille-mode-show-shadowed-variables))
 		      (set q-lst (cons (cons
 					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
 					data)
