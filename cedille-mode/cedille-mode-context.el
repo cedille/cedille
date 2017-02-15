@@ -132,7 +132,7 @@ which currently consists of:\n
 + 'value' : the type or kind of symbol
 + 'keywords': a list of keywords associated with symbol"
   (let (terms types)
-    (dolist (node path (when (or terms types) (cons terms types)))
+    (dolist (node (butlast path) (when (or terms types) (cons terms types)))
       ;; for each node in the path, we are going to see if it binds a symbol and add it to the output list if it does
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (children (se-node-children node)))
