@@ -1,22 +1,10 @@
 import true.
 import bool.
 import nat.
+import or.
 
 
 
-%%%% parametric Or
-cOr ◂ ★ ➔ ★ ➔ ★ = λ P : ★ . λ Q : ★ . ∀ X : ★ . (P ➔ X) ➔ (Q ➔ X) ➔ X .
-cOri1 ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ cOr · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . v u.
-cOri2 ◂ ∀ P : ★ . ∀ Q : ★ . Q ➔ cOr · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . w u.
-
-UnaryParamOr ◂ Π X : ★ . Π Y : ★ . cOr · X · Y ➔ ★ = λ P : ★ . λ Q : ★ . λ o : cOr · P · Q .
-  ∀ X : ★ . ∀ R : X ➔ ★ . ∀ f : P ➔ X . ∀ g : Q ➔ X . (Π p : P . R (f p)) ➔ (Π q : Q . R (g q))
-    ➔ R (o · X f g) .
-
-Orp ◂ ★ ➔ ★ ➔ ★  = λ P : ★ . λ Q : ★ . ι x : cOr · P · Q .  UnaryParamOr · P · Q x .
-
-Orpi1 ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ Orp · P · Q = Λ P . Λ Q . λ p . [ cOri1 · P · Q p , Λ X . Λ R . Λ f . Λ g . λ i1 . λ i2 . i1 p  ].
-Orpi2 ◂ ∀ P : ★ . ∀ Q : ★ . Q ➔ Orp · P · Q = Λ P . Λ Q . λ q . [ cOri2 · P · Q q , Λ X . Λ R . Λ f . Λ g . λ i1 . λ i2 . i2 q  ] .
 
 
 
@@ -31,38 +19,48 @@ in ◂ (cOr · True · cNat2) ➔ cNat2 = λ s . Λ X . λ k . k (fmap · cNat2 
 
 comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . (X ➔ Y) ➔ (Y ➔ Z) ➔ (X ➔ Z) = Λ X . Λ Y . Λ Z . λ f . λ g . λ x . g (f x).
 
-inc ◂ ∀ X : ★ . X  ➔ cOr · True · X = Λ X . λ x . (cOri2 · True · X x) .
+
+
 
 
 ParamNatF ◂ cNat2 ➔ ★ = λ f : cNat2 .
 
- ∀ t1 : ★ . ∀ t2 : ★ . ∀ R : t1 ➔ t2 ➔ ★.
-  ∀ p : (∀ b : ★ . (True ➔ b) ➔ (t1 ➔ b) ➔ b) ➔ t1 .
-   ∀ q : (∀ b : ★ . (True ➔ b) ➔ (t2 ➔ b) ➔ b) ➔ t2 .
-    (∀ r : ∀ b : ★ . (True ➔ b) ➔ (t1 ➔ b) ➔ b .
-      ∀ s : ∀ b : ★ . (True ➔ b) ➔ (t2 ➔ b) ➔ b.
-        (∀ t3 : ★ . ∀ t4 : ★ . ∀ S : t3 ➔ t4 ➔ ★ .
-         ∀ p1 : True ➔ t3.
-          ∀ p2 : True ➔ t4.
+ ∀ X : ★ . ∀ Y : ★ . ∀ R : X ➔ Y ➔ ★.
+  ∀ p : cOr · True · X ➔ X .
+   ∀ q : cOr · True · Y ➔ Y .
+    (∀ r : cOr · True · X .
+      ∀ s : cOr · True · Y .
+        (∀ Z : ★ . ∀ W : ★ . ∀ S : Z ➔ W ➔ ★ .
+         ∀ p1 : True ➔ Z.
+          ∀ p2 : True ➔ W.
            (Π x : True. S (p1 x) (p2 x))
-            ➔ (∀ p3 : t1 ➔ t3.
-                 ∀ p4 : t2 ➔ t4.
-                  (∀ y : t1 . ∀ z : t2 . R y z ➔ S (p3 y) (p4 y))
-                  ➔ (S (r · t3 p1 p3) (s · t4 p2 p4))))
+            ➔ (∀ p3 : X ➔ Z.
+                 ∀ p4 : Y ➔ W.
+                  (∀ y : X . ∀ z : Y . R y z ➔ S (p3 y) (p4 z))
+                  ➔ (S (r · Z p1 p3) (s · W p2 p4))))
        ➔ (R (p r) (q s)))
-    ➔ (R (f · t1 p) (f · t2 q)).
-
-
+    ➔ (R (f · X p) (f · Y q)).
 
        
 Z2 ◂ cNat2 = in (cOri1 · True · cNat2 triv) .
 S2 ◂ cNat2 ➔ cNat2 = λ n . in (cOri2 · True · cNat2 n) .
 
-
 Nat2 ◂ ★ = ι x : cNat2 . ParamNatF x .
+
+
 
 Z3 ◂ Nat2 = [ Z2 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(cOri1 · True · X triv) -(cOri1 · True · Y triv) (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 . (i1 triv))  ] .
 S3 ◂ Nat2 ➔ Nat2 =  λ n . [ S2 n.1 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(cOri2 · True · X (n.1 · X p)) -(cOri2 · True · Y (n.1 · Y q))
-%% Please fill this Hole it must be just (n.1 · X p), but Cedille does not want to normalize!
-  (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 .  (i2 -● -(n.1 · Y q) (n.2 · X · Y · R -p -q r      ))) ] .
+
+  (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 .   (i2 -(n.1 · X p) -(n.1 · Y q) (n.2 · X · Y · R -p -q r)) )  ] .
+
+
+innat ◂ (cOr · True · Nat2) ➔ Nat2 = λ s . s · Nat2 (λ _ . Z3) S3  .
+
+param-reb ◂ Π n : Nat2 . n · Nat2 innat ≃ n = ● .
+
+Ind2 ◂ Π x : Nat2 . ∀ Q : Nat2 ➔ ★ . (∀ x : Nat2 . Q x ➔ Q (S3 x)) ➔ Q Z3 ➔ Q x = λ x . Λ Q . λ sc . λ z .
+   ρ ς  (param-reb x) -  (x.2 · Nat2 · Nat2 · (λ n1 : Nat2 . λ n2 : Nat2 . Q n1)
+       -innat -innat
+         (Λ r . Λ s . λ k . k · Nat2 · Nat2 · (λ n1 : Nat2 . λ n2 : Nat2 . Q n1) -(λ _ . Z3) -(λ _ . Z3) (λ x . z) -S3 -S3 (Λ y . Λ z . λ qy . sc -y qy)   ))  .
 
