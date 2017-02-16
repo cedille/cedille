@@ -1,35 +1,41 @@
 import true.
 import bool.
-import nat.
 import or.
 
+% diagrammatic composition of functions
+comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . (X ➔ Y) ➔ (Y ➔ Z) ➔ (X ➔ Z)
+   = Λ X . Λ Y . Λ Z . λ f . λ g . λ x . g (f x).
 
+% Let F X := 1 + X
 
+% F is a functor
+fmap ◂ ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (Or · True · X) ➔ (Or · True · Y) = Λ X . Λ Y .
+ λ f . λ o . o · (Or · True · Y) (λ t . Ori1 · True · Y t) (λ x . Ori2 · True · Y (f x)) .
 
+% define natural numbers as a fixpoint of F X
+cNat ◂ ★ = ∀ X : ★ . ((Or · True · X) ➔ X) ➔  X .
 
+% cFold gives a morphism to any other F-algebra 
+cFold ◂ ∀ X : ★ . ((Or · True · X) ➔ X) ➔ cNat ➔ X = Λ X . λ k . λ t . t · X k .
 
-cNat2 ◂ ★ = ∀ X : ★ . ((cOr · True · X) ➔ X) ➔  X .
+% (cNat, cIn) is an F-algebra from which there is a map (cFold X k) to every other F-algebra
+cIn ◂ (Or · True · cNat) ➔ cNat =
+   λ s . Λ X . λ k . k (fmap · cNat · X (cFold · X k) s)  .
 
-fmap ◂ ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (cOr · True · X) ➔ (cOr · True · Y) = Λ X . Λ Y .
- λ f . λ o . o · (cOr · True · Y) (λ t . cOri1 · True · Y t) (λ x . cOri2 · True · Y (f x)) .
+% TODO: define cOut, and show that (cIn, out) are isomorphism
+% TODO: fold properties
 
-foldn ◂ ∀ X : ★ . ((cOr · True · X) ➔ X) ➔ cNat2 ➔ X = Λ X . λ k . λ t . t · X k .
+% generic definition of zero and successor
+cZ ◂ cNat = cIn (Ori1 · True · cNat triv) .
+cS ◂ cNat ➔ cNat = λ n . cIn (Ori2 · True · cNat n) .
 
-in ◂ (cOr · True · cNat2) ➔ cNat2 = λ s . Λ X . λ k . k (fmap · cNat2 · X (foldn · X k) s)  .
-
-comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . (X ➔ Y) ➔ (Y ➔ Z) ➔ (X ➔ Z) = Λ X . Λ Y . Λ Z . λ f . λ g . λ x . g (f x).
-
-
-
-
-
-ParamNatF ◂ cNat2 ➔ ★ = λ f : cNat2 .
-
+% statement of Reynold's parametricity for cNat
+ParamNatF ◂ cNat ➔ ★ = λ f : cNat .
  ∀ X : ★ . ∀ Y : ★ . ∀ R : X ➔ Y ➔ ★.
-  ∀ p : cOr · True · X ➔ X .
-   ∀ q : cOr · True · Y ➔ Y .
-    (∀ r : cOr · True · X .
-      ∀ s : cOr · True · Y .
+  ∀ p : Or · True · X ➔ X .
+   ∀ q : Or · True · Y ➔ Y .
+    (∀ r : Or · True · X .
+      ∀ s : Or · True · Y .
         (∀ Z : ★ . ∀ W : ★ . ∀ S : Z ➔ W ➔ ★ .
          ∀ p1 : True ➔ Z.
           ∀ p2 : True ➔ W.
@@ -42,25 +48,28 @@ ParamNatF ◂ cNat2 ➔ ★ = λ f : cNat2 .
     ➔ (R (f · X p) (f · Y q)).
 
        
-Z2 ◂ cNat2 = in (cOri1 · True · cNat2 triv) .
-S2 ◂ cNat2 ➔ cNat2 = λ n . in (cOri2 · True · cNat2 n) .
+% Natural numbers with induction
+Nat ◂ ★ = ι x : cNat . ParamNatF x .
 
-Nat2 ◂ ★ = ι x : cNat2 . ParamNatF x .
+% updating the constructors
+Z ◂ Nat = [ cZ , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(Ori1 · True · X triv) -(Ori1 · True · Y triv)
+           (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 . (i1 triv))  ] .
+	   
+S ◂ Nat ➔ Nat =  λ n . [ cS n.1 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r .
+   r -(Ori2 · True · X (n.1 · X p)) -(Ori2 · True · Y (n.1 · Y q))
+  (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 .
+        (i2 -(n.1 · X p) -(n.1 · Y q) (n.2 · X · Y · R -p -q r)) )  ] .
 
 
+in ◂ (Or · True · Nat) ➔ Nat = λ s . s · Nat (λ _ . Z) S  .
+% define out and show isomorphism
 
-Z3 ◂ Nat2 = [ Z2 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(cOri1 · True · X triv) -(cOri1 · True · Y triv) (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 . (i1 triv))  ] .
-S3 ◂ Nat2 ➔ Nat2 =  λ n . [ S2 n.1 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(cOri2 · True · X (n.1 · X p)) -(cOri2 · True · Y (n.1 · Y q))
+% this requires extensionality
+param-reb ◂ Π n : Nat . n · Nat in ≃ n = ● .
 
-  (Λ t3 . Λ t4 . Λ S . Λ p1 . Λ p2 . λ i1 . Λ p3 . Λ p4 . λ i2 .   (i2 -(n.1 · X p) -(n.1 · Y q) (n.2 · X · Y · R -p -q r)) )  ] .
-
-
-innat ◂ (cOr · True · Nat2) ➔ Nat2 = λ s . s · Nat2 (λ _ . Z3) S3  .
-
-param-reb ◂ Π n : Nat2 . n · Nat2 innat ≃ n = ● .
-
-Ind2 ◂ Π x : Nat2 . ∀ Q : Nat2 ➔ ★ . (∀ x : Nat2 . Q x ➔ Q (S3 x)) ➔ Q Z3 ➔ Q x = λ x . Λ Q . λ sc . λ z .
-   ρ ς  (param-reb x) -  (x.2 · Nat2 · Nat2 · (λ n1 : Nat2 . λ n2 : Nat2 . Q n1)
-       -innat -innat
-         (Λ r . Λ s . λ k . k · Nat2 · Nat2 · (λ n1 : Nat2 . λ n2 : Nat2 . Q n1) -(λ _ . Z3) -(λ _ . Z3) (λ x . z) -S3 -S3 (Λ y . Λ z . λ qy . sc -y qy)   ))  .
+NatInduction ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x = λ x . Λ Q . λ sc . λ z .
+   ρ ς  (param-reb x) -  (x.2 · Nat · Nat · (λ n1 : Nat . λ n2 : Nat . Q n1)
+       -in -in
+         (Λ r . Λ s . λ k . k · Nat · Nat · (λ n1 : Nat . λ n2 : Nat . Q n1) -(λ _ . Z) -(λ _ . Z) (λ x . z) -S -S
+	     (Λ y . Λ z . λ qy . sc -y qy)))  .
 
