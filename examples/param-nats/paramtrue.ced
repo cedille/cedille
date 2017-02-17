@@ -1,0 +1,15 @@
+
+cTrue ◂ ★ = ∀ X : ★ . X ➔ X .
+cTriv ◂ cTrue = Λ X . λ x . x .
+
+TrueParam ◂ cTrue ➔ ★ = λ ct : cTrue . ∀ X : ★ . ∀ R : X ➔ ★ . ∀ x : X . R (cTriv · X x)  ➔  R (ct · X x) . 
+
+True ◂ ★ = ι x : cTrue . ι e : x cTriv ≃ x .  TrueParam x .
+
+triv ◂ True = [ cTriv , [ β{cTriv} , Λ X . Λ R . Λ x . λ r . r  ] ] .
+  
+TrueInduction ◂ Π t : True . ∀ P : True ➔ ★ . P triv ➔ P t = λ t . Λ P . λ pt .  ρ ς t.2.1 - (t.2.2 · True · P  -triv pt) .
+
+unique-inh' ◂ Π x : True . x ≃ triv = λ x . θ<x> (TrueInduction x) β .
+
+unique-inh ◂ Π x : True . Π y : True . x ≃ y = λ x . λ y .  ρ (unique-inh' x) - (ρ (unique-inh' y) - β)  .  
