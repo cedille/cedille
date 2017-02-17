@@ -1,0 +1,31 @@
+
+import bool.
+import mybase.
+
+cOr ◂ ★ ➔ ★ ➔ ★ = λ P : ★ . λ Q : ★ . ∀ X : ★ . (P ➔ X) ➔ (Q ➔ X) ➔ X .
+cOri1 ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ cOr · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . v u.
+cOri2 ◂ ∀ P : ★ . ∀ Q : ★ . Q ➔ cOr · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . w u.
+
+OrParam ◂ Π X : ★ . Π Y : ★ . cOr · X · Y ➔ ★ = λ P : ★ . λ Q : ★ . λ o : cOr · P · Q .
+  ∀ X : ★ . ∀ R : X ➔ ★ . ∀ f : P ➔ X . ∀ g : Q ➔ X . (Π p : P . R (f p)) ➔ (Π q : Q . R (g q))
+    ➔ R (o · X f g) .
+
+Or ◂ ★ ➔ ★ ➔ ★  = λ P : ★ . λ Q : ★ . ι x : cOr · P · Q . ι e : x cOri1 cOri2 ≃ x .  OrParam · P · Q x .
+
+% how is this sound?!
+Ori1 ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ Or · P · Q = Λ P . Λ Q . λ p . [ cOri1 · P · Q p , [ β{cOri1 · P · Q p} , Λ X . Λ R . Λ f . Λ g . λ i1 . λ i2 . i1 p  ] ] .
+Ori2 ◂ ∀ P : ★ . ∀ Q : ★ . Q ➔ Or · P · Q = Λ P . Λ Q . λ q . [ cOri2 · P · Q q , [ β{cOri2 · P · Q q} , Λ X . Λ R . Λ f . Λ g . λ i1 . λ i2 . i2 q  ] ].
+
+OrInduct ◂ ∀ X : ★ . ∀ Y : ★ . Π o : Or · X · Y . ∀ P : Or · X · Y ➔ ★ . (∀ x : X . P (Ori1 · X · Y x)) ➔ (∀ y : Y . P (Ori2 · X · Y y)) ➔ P o =
+  Λ X . Λ Y . λ o . Λ P . λ c1 . λ c2 . ρ ς o.2.1 - (o.2.2 · (Or · X · Y) · P -(Ori1 · X · Y) -(Ori2 · X · Y) (λ p . c1 -p)  (λ q . c2 -q)) .
+
+% Or is a functor
+fmap ◂ ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (Or · True · X) ➔ (Or · True · Y) = Λ X . Λ Y .
+ λ f . λ o . o.1 · (Or · True · Y) (Ori1 · True · Y) (λ x . Ori2 · True · Y (f x)) .
+
+
+fmap-id-reb ◂ ∀ X : ★ . Π o : Or · True · X . fmap · X id o ≃ o Ori1 Ori2 = Λ X . λ o .  β .
+fmap-id ◂ ∀ X : ★ . Π o : Or · True · X . fmap · X id o ≃ o  = Λ X . λ o . o.2.1 .
+
+fmap-comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . ∀ f : X ➔ Y . ∀ g : Y ➔ Z . Π o : Or · True · X . (comp (fmap f) (fmap g)) o  ≃ (fmap (comp f g)) o
+  = Λ X . Λ Y . Λ Z . Λ f . Λ g. λ o .  OrInduct · True · X o · (λ o' : Or · True · X . (comp (fmap f) (fmap g)) o'  ≃ (fmap (comp f g)) o') (Λ t . β) (Λ t . β)  .

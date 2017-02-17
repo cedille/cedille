@@ -1,16 +1,8 @@
 import true.
 import bool.
-import or.
+import mybase.
+import paramor.
 
-% diagrammatic composition of functions
-comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . (X ➔ Y) ➔ (Y ➔ Z) ➔ (X ➔ Z)
-   = Λ X . Λ Y . Λ Z . λ f . λ g . λ x . g (f x).
-
-% Let F X := 1 + X
-
-% F is a functor
-fmap ◂ ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (Or · True · X) ➔ (Or · True · Y) = Λ X . Λ Y .
- λ f . λ o . o · (Or · True · Y) (λ t . Ori1 · True · Y t) (λ x . Ori2 · True · Y (f x)) .
 
 % define natural numbers as a fixpoint of F X
 cNat ◂ ★ = ∀ X : ★ . ((Or · True · X) ➔ X) ➔  X .
@@ -18,11 +10,29 @@ cNat ◂ ★ = ∀ X : ★ . ((Or · True · X) ➔ X) ➔  X .
 % cFold gives a morphism to any other F-algebra 
 cFold ◂ ∀ X : ★ . ((Or · True · X) ➔ X) ➔ cNat ➔ X = Λ X . λ k . λ t . t · X k .
 
-% (cNat, cIn) is an F-algebra from which there is a map (cFold X k) to every other F-algebra
 cIn ◂ (Or · True · cNat) ➔ cNat =
    λ s . Λ X . λ k . k (fmap · cNat · X (cFold · X k) s)  .
 
-% TODO: define cOut, and show that (cIn, out) are isomorphism
+
+% Proof that (cNat, cIn) is an (weakly initial) F-algebra from which
+% there is a map (cFold X k) to every other F-algebra
+lem2 ◂ ∀ X : ★ . ∀ k : ((Or · True · X) ➔ X) .
+    comp cIn (cFold · X k) ≃ comp (fmap · cNat · X (cFold · X k)) k
+ = Λ X . Λ k . β .
+
+
+cOut ◂ cNat ➔ Or · True · cNat = cFold · (Or · True · cNat) (fmap · (Or · True · cNat) · cNat cIn) .
+% cOut0' ◂ cNat ➔ Or · True · cNat = λ n . n · (Or · True · cNat) () .
+
+% show that (cIn, cOut) are isomorphism
+%cOut-cIn ◂ Π n : cNat . (comp · (Or · True · cNat) · cNat cOut cIn) n ≃ n = λ n . β .
+
+cIn-cOut-com ◂
+  (comp  cIn cOut) ≃ comp (fmap cOut) (fmap cIn)
+   = lem2 · (Or · True · cNat) -(fmap · (Or · True · cNat) · cNat cIn) .
+
+
+
 % TODO: fold properties
 
 % generic definition of zero and successor
@@ -43,13 +53,15 @@ ParamNatF ◂ cNat ➔ ★ = λ f : cNat .
             ➔ (∀ p3 : X ➔ Z.
                  ∀ p4 : Y ➔ W.
                   (∀ y : X . ∀ z : Y . R y z ➔ S (p3 y) (p4 z))
-                  ➔ (S (r · Z p1 p3) (s · W p2 p4))))
+                  ➔ (S (r.1 · Z p1 p3) (s.1 · W p2 p4))))
        ➔ (R (p r) (q s)))
     ➔ (R (f · X p) (f · Y q)).
 
        
 % Natural numbers with induction
 Nat ◂ ★ = ι x : cNat . ParamNatF x .
+
+fold ◂ ∀ X : ★ . ((Or · True · X) ➔ X) ➔ Nat ➔ X = Λ X . λ k . λ t . t.1 · X k .
 
 % updating the constructors
 Z ◂ Nat = [ cZ , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r . r -(Ori1 · True · X triv) -(Ori1 · True · Y triv)
@@ -61,10 +73,12 @@ S ◂ Nat ➔ Nat =  λ n . [ cS n.1 , Λ X  .  Λ Y . Λ R . Λ p . Λ q . λ r
         (i2 -(n.1 · X p) -(n.1 · Y q) (n.2 · X · Y · R -p -q r)) )  ] .
 
 
-in ◂ (Or · True · Nat) ➔ Nat = λ s . s · Nat (λ _ . Z) S  .
+% fold · (Or · True · Nat) (fmap · (Or · True · Nat) · Nat in) .
+
 % define out and show isomorphism
 
-% this requires extensionality
+in  ◂ (Or · True · Nat) ➔ Nat =   λ s . s.1 · Nat (λ _ . Z) S . % definition using fold and fmap is complicated due to iota!
+
 param-reb ◂ Π n : Nat . n · Nat in ≃ n = ● .
 
 NatInduction ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x = λ x . Λ Q . λ sc . λ z .
