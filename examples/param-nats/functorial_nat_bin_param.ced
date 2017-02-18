@@ -20,16 +20,6 @@ lem2 ◂ ∀ X : ★ . ∀ k : ((Or · True · X) ➔ X) .
  = Λ X . Λ k . β .
 
 
-cOut ◂ cNat ➔ Or · True · cNat = cFold · (Or · True · cNat) (fmap · (Or · True · cNat) · cNat cIn) .
-% cOut0' ◂ cNat ➔ Or · True · cNat = λ n . n · (Or · True · cNat) () .
-
-% show that (cIn, cOut) are isomorphism
-%cOut-cIn ◂ Π n : cNat . (comp · (Or · True · cNat) · cNat cOut cIn) n ≃ n = λ n . β .
-
-cIn-cOut-com ◂
-  (comp cIn cOut) ≃ comp (fmap cOut) (fmap cIn)
-   = lem2 · (Or · True · cNat) -(fmap · (Or · True · cNat) · cNat cIn) .
-
 
 
 % TODO: fold properties
@@ -100,7 +90,21 @@ out-in ◂ Π n : Nat . (in (out n)) ≃ n = λ n .  θ<n> (NatInduction n) (Λ 
 % in-out' ◂ Π y : Nat . (in (Ori2 y)) ≃ S y = λ o . β .
 in-out'' ◂ Π y : Nat . (out (S y)) ≃ (Ori2 y) = λ n .  θ<n> (NatInduction n) (Λ x . λ e . ρ (Out-In'' (S x)) - ρ e - β) β .
 in-out''' ◂ Π y : True . (in (Ori1 y)) ≃ Z = λ o . β .
+in-out-S ◂ Π n : Nat . (in (Ori2 n)) ≃ (S n) = λ o . β .
 in-out'''' ◂ (out Z) ≃ (Ori1 triv) = β   .
 
-in-out ◂ Π o : Or · True · Nat . (out (in o)) ≃  o = λ n .  θ<n> (OrInduction · True · Nat n) (Λ x . ρ (in-out''' x) - (ρ (in-out'''') - (ρ (unique-inh' x) - β )))
+in-out ◂ Π o : Or · True · Nat . (out (in o)) ≃ o = λ n .  θ<n> (OrInduction · True · Nat n) (Λ x . ρ (in-out''' x) - (ρ (in-out'''') - (ρ (unique-inh' x) - β )))
   (Λ y .  ρ (in-out'' y) - β ) .
+
+
+
+NatF-Morphism ◂ Π X : ★ . (Nat ➔ X) ➔ (Or · True · X ➔ X) ➔ ★ =  λ X : ★ . λ h : Nat ➔ X . λ k : Or · True · X ➔ X .
+   ∀ o : Or · True · Nat . h (in o) ≃ k (fmap h o).
+
+eq1 ◂ ∀ X : ★ . ∀ h : Nat ➔ X . ∀ k : Or · True · X ➔ X . NatF-Morphism · X h k ➔  ∀ n : Nat .  h (S n) ≃ k (Ori2 (h n)) =
+  Λ X . Λ h . Λ k . λ nf . Λ n . nf -(Ori2 · True · Nat n) .
+eq2 ◂ ∀ X : ★ . ∀ h : Nat ➔ X . ∀ k : Or · True · X ➔ X . NatF-Morphism · X h k ➔  h Z ≃ k (Ori1 triv) =
+  Λ X . Λ h . Λ k . λ nf .  nf -(Ori1 · True · Nat triv) .  
+
+initiality ◂ ∀ X : ★ . ∀ h : Nat ➔ X . ∀ k : Or · True · X ➔ X . NatF-Morphism · X h k ➔  Π n : Nat . (h n) ≃ (fold k n) =
+  Λ X . Λ h . Λ k . λ nf . λ n . θ<n> (NatInduction n) (Λ x' . λ e . (ρ (eq1 · X -h -k nf -x') - (ρ e - β) )) (eq2 · X -h -k nf) .
