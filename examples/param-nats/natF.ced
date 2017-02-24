@@ -1,0 +1,53 @@
+import paramF.
+import sum.
+import unit.
+import false.
+
+natF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · X .
+
+natFF ◂ Functor · natF =
+  Λ X . Λ Y . λ f . λ u . θ u (λ _ . in1 · Unit · Y mkunit) (λ n . in2 · Unit · Y (f n)) .
+ 
+natFFF ◂ (Π X : ★ . (X ➔ ★) ➔ (natF · X ➔ ★)) =
+  λ X : ★ . λ P : X ➔ ★ . λ u : natF · X .
+    ↑ Z . u · (λ _ : Sum · Unit · X . Z) : ((Unit ➔ ☆) ➔ (X ➔ ☆) ➔ ☆)
+            · (λ u : Unit . (Sum · Unit · False))
+            · (λ x : X . Sum · False · (P x)) .
+
+natFFD ◂ FunctorD · natF · natFFF =
+  Λ X . Λ Y . λ f . λ u .
+    θ u (λ _ . in1 · Unit · False mkunit) (λ x : X . in2 · False · (Y x) (f x)).
+
+H-natF ◂ HomD · natF natFF · natFFF =
+  Λ X' . Λ X . Λ Y . Λ f . λ x .
+    θ x (λ _ . λ u . u) (λ _ . λ u . u) .
+
+FF-eq-FFD-natF ◂ FF-eq-FFD-t · natF natFF · natFFF natFFD = Λ f . β.
+
+idH-natF ◂ idH-t · natF natFF · natFFF H-natF =
+  Λ X . λ x . Λ a . θ x (λ a . β) (λ b . β) .
+
+cNat ◂ ★ = C · natF .
+
+Nat ◂ ★ = D · natF natFF · natFFF .
+
+Hom1-natF ◂ Hom1F-t · natF natFF =
+  Λ X . Λ f . Λ g . λ x .
+    θ x (λ a . β) (λ b . β) .
+
+Hom2-natF ◂ Hom2F-t · natF natFF =
+  Λ X . Λ Y . Λ f . λ x . λ u . 
+    θ x (λ a . ρ+ (Unit-eta a) - β) (λ b . ε ρ (u b) - β) .
+
+in-Nat ◂ natF · Nat ➔ Nat = in · natF natFF · natFFF -Hom1-natF -Hom2-natF -natFFD -FF-eq-FFD-natF -H-natF -idH-natF .
+
+zero ◂ Nat = in-Nat (in1 · Unit · Nat mkunit) !
+suc ◂ Nat ➔ Nat = λ x . in-Nat (in2 · Unit · Nat x) !
+
+ind-Nat ◂ ∀ P : Nat ➔ ★ .
+          (∀ x : Nat . P x ➔ P (suc x)) ➔
+          P zero ➔
+          Π x : Nat . P x =
+  Λ P . λ s . λ z .
+    ind · natF natFF · natFFF -Hom1-natF -Hom2-natF -natFFD -FF-eq-FFD-natF -H-natF -idH-natF 
+      · P (Λ x . λ u . ●) .

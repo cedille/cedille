@@ -1,0 +1,122 @@
+import and.
+import false.
+import or.
+import true.
+import sigma.
+
+Functor ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★ . ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (F · X ➔ F · Y) .
+
+FunctorD ◂ Π F : ★ ➔ ★. (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) ➔ ★ =
+  λ F : ★ ➔ ★ . λ FFF : (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) . ∀ X : ★ . ∀ Y : X ➔ ★ . (Π x : X . Y x) ➔ (Π x : F · X . FFF · X · Y x) .
+
+HomD ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . Π FFF : (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) . ★ =
+  λ F : ★ ➔ ★ . λ FF : Functor · F . λ FFF : (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) . 
+    ∀ X' : ★ . ∀ X : ★ . ∀ Y : X ➔ ★ . ∀ f : X' ➔ X . Π x : F · X' .
+    FFF · X' · (λ x' : X' . Y (f x')) x ➔
+    FFF · X · Y (FF · X' · X f x) .
+       
+C ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ X : ★ . (F · X ➔ X) ➔ X .
+
+foldC ◂ ∀ F : ★ ➔ ★ . ∀ X : ★ . (F · X ➔ X) ➔ C · F ➔ X =
+  Λ F . Λ X . λ k . λ t . t · X k .
+
+inC ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ F · (C · F) ➔ C · F =
+  Λ F . λ FF . λ u . Λ X . λ k . k (FF · (C · F) · X (foldC · F · X k) u).
+
+outC ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ C · F ➔ F · (C · F) =
+  Λ F . λ FF . foldC · F · (F · (C · F)) (FF · (F · (C · F)) · (C · F) (inC · F FF)).
+
+inC' ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ F · (C · F) ➔ C · F =
+  Λ F . λ FF . λ u . Λ X . λ k . k (FF · (C · F) · X (foldC · F · X k) (FF · (C · F) · (C · F) (λ x . x) u)).
+
+param ◂ Π F : ★ ➔ ★ . Π FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . C · F ➔ ★ =
+  λ F : ★ ➔ ★ . λ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . λ x : C · F .
+  ∀ X : ★ . ∀ P : X ➔ ★ . ∀ k : F · X ➔ X .
+   (∀ x : F · X . FFF · X · P x ➔ P (k x)) ➔ P (x · X k).
+
+D ◂ Π F : ★ ➔ ★ . Functor · F ➔ (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) ➔ ★ =
+  λ F : ★ ➔ ★ . λ FF : Functor · F . λ FFF : (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) . 
+  ι x : C · F . ι _ : (x (inC' FF) ≃ x) . param · F · FFF x .  
+
+D-to-C ◂ ∀ F : ★ ➔ ★ . ∀ FF : Functor · F . ∀ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . D · F FF · FFF ➔ C · F =
+  Λ F . Λ FF . Λ FFF . λ x . x.1 .
+
+foldP ◂ ∀ F : ★ ➔ ★ . ∀ FF : Functor · F . ∀ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) .
+        ∀ X : ★ . ∀ P : X ➔ ★ . ∀ k : F · X ➔ X .
+        (∀ x : F · X . FFF · X · P x ➔ P (k x)) ➔
+         Π t : D · F FF · FFF .
+         P (t.1 · X k)
+=
+  Λ F . Λ FF . Λ FFF . Λ X . Λ P . Λ k . λ pk . λ t . t.2.2 · X · P -k pk .
+
+Top ◂ ★ = λ x . x ≃ λ x . x .
+
+foldC-inC' ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . 
+          ∀ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) .
+          Π x : D · F FF · FFF .
+            foldC (inC' FF) x ≃ x =
+    Λ F . λ FF . Λ FFF . λ x . ε x.2.1 . 
+
+Hom1F-t ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ f : Top . ∀ g : Top . Π x : F · X . FF f (FF g x) ≃ FF (λ x . f (g x)) x.
+
+Hom2F-t ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ Y : ★ . ∀ f : X ➔ Y . Π x : F · X . (Π z : X . f z ≃ z) ➔ FF f x ≃ x .
+
+idH-t ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . Π FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . HomD · F FF · FFF ➔ ★ =
+  λ F : ★ ➔ ★ . λ FF : Functor · F . λ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . λ H : HomD · F FF · FFF .
+    ∀ X : ★ . Π x : F · X . ∀ a : Top . H x a ≃ a .
+
+FF-eq-FFD-t ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . Π FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . Π FFD : FunctorD · F · FFF . ★ = 
+   λ F : ★ ➔ ★ . λ FF : Functor · F . λ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . λ FFD : FunctorD · F · FFF .
+     ∀ f : Top . FF f ≃ FFD f .
+
+in ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) .
+     Hom1F-t · F FF ➾ 
+     Hom2F-t · F FF ➾ 
+     ∀ FFD : FunctorD · F · FFF . 
+     FF-eq-FFD-t · F FF · FFF FFD ➾
+     ∀ H : HomD · F FF · FFF .
+     idH-t · F FF · FFF H ➾
+     F · (D · F FF · FFF) ➔
+     D · F FF · FFF
+=
+  Λ F . λ FF . Λ FFF . Λ Hom1F . Λ Hom2F . Λ FFD . Λ FF-eq-FFD . Λ H . Λ idH . λ x .
+    [ inC · F FF (FF · (D · F FF · FFF) · (C · F) (D-to-C · F -FF · FFF) x) ,
+      [ ε ρ+ (Hom1F · (D · F FF · FFF) -β{foldC (inC' FF)} -β{D-to-C} x) -
+          ρ (Hom1F · (D · F FF · FFF) -β{λ x . x} -β{foldC (inC' FF)} x) -
+          ρ (Hom2F · (D · F FF · FFF) · (C · F) -(λ x' . (foldC · F · (C · F) (inC' · F FF) x'.1)) x
+                 (foldC-inC' · F FF · FFF)) -
+          ρ (Hom2F · (D · F FF · FFF) · (C · F) -(D-to-C · F -FF · FFF) x (λ u . β)) -
+          β{inC' FF x} ,
+        Λ X . Λ P . Λ k . λ pk . pk -(FF · (C · F) · X (foldC · F · X k) (FF · (D · F FF · FFF) · (C · F) (D-to-C · F -FF · FFF) x))
+        ρ (Hom1F · (D · F FF · FFF) -β{foldC k} -β{D-to-C} x) -
+          (H · (D · F FF · FFF) · X · P -(λ x : D · F FF · FFF . foldC · F · X k x.1) x
+            (FFD · (D · F FF · FFF) · (λ t : D · F FF · FFF. P (t.1 · X k)) (foldP · F -FF · FFF · X · P -k pk) x)) 
+          {ω (Λ k : Top .
+               χ (k (FF (foldC k) (FF D-to-C x)) ≃ k (H x (FFD (foldP k) x))) -
+               ρ (Hom1F · (D · F FF · FFF) -β{foldC k} -β{D-to-C} x) -
+               ρ+ (FF-eq-FFD -β{foldC k}) -
+               ρ (idH · (D · F FF · FFF) x -β{FFD (foldP k) x}) -
+               β)}
+                 ]]!
+
+ind ◂ 
+  ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ FFF : Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) . 
+  ∀ Hom1F : Hom1F-t · F FF.
+  ∀ Hom2F : Hom2F-t · F FF.
+  ∀ FFD : FunctorD · F · FFF .
+  ∀ FF-eq-FFD : FF-eq-FFD-t · F FF · FFF FFD .
+  ∀ H : HomD · F FF · FFF .
+  ∀ idH : idH-t · F FF · FFF H .
+
+  ∀ P : D · F FF · FFF ➔ ★ . 
+   (∀ x : F · (D · F FF · FFF) . FFF · (D · F FF · FFF) · P x ➔ P (in · F FF · FFF -Hom1F -Hom2F -FFD -FF-eq-FFD -H -idH x)) ➔
+   Π x : D · F FF · FFF .
+   P x =
+Λ F . λ FF . Λ FFF . Λ Hom1F . Λ Hom2F . Λ FFD . Λ FF-eq-FFD . Λ H . Λ idH . Λ P . λ pk . λ x .
+   ρ ς x.2.1 -
+     (x.2.2 · (D · F FF · FFF) · P -(in · F FF · FFF -Hom1F -Hom2F -FFD -FF-eq-FFD -H -idH) pk).
