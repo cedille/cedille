@@ -143,6 +143,7 @@ TpAppt : ltype -> ltype ws lterm.
 TpVar : atype -> ! var.
 embed : ltype -> atype.
 TpEq : type -> term ows '≃' ows term .
+TpHole: atype -> ! '●' .
 
 KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '➔' ows kind .

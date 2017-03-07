@@ -117,3 +117,5 @@ find-symbols-type (TpEq t1 t2) defn filename symb-map shadow = find-symbols-term
 find-symbols-type (TpLambda _ _ var tk T) defn filename symb-map shadow = find-symbols-tk tk defn filename (find-symbols-type T defn filename symb-map (stringset-insert shadow var)) shadow
 find-symbols-type (TpParens _ T _) defn filename symb-map shadow = find-symbols-type T defn filename symb-map shadow
 find-symbols-type (TpVar pos-info var) defn filename symb-map shadow = trie-append-or-create symb-map shadow var defn pos-info filename
+find-symbols-type (TpHole pos-info) defn filename symb-map shadow = trie-append-or-create symb-map shadow "hole" defn pos-info filename
+--ACG: Not sure this works

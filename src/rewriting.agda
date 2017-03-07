@@ -136,6 +136,7 @@ rewrite-type Γ ρ u t1 t2 T | TpLambda pi pi' y atk t' =
 rewrite-type Γ ρ u t1 t2 _ | TpParens x tp x₁ = rewrite-type Γ ρ u t1 t2 tp
 rewrite-type Γ ρ u t1 t2 _ | NoSpans tp _ = rewrite-type Γ ρ u t1 t2 tp
 rewrite-type Γ ρ u t1 t2 _ | TpVar pi x = TpVar pi (renamectxt-rep ρ x) , 0
+rewrite-type Γ ρ u t1 t2 _ | TpHole pi = TpHole pi , 0 --ACG
 
 rewrite-kind Γ ρ u t1 t2 k = k , 0 -- unimplemented
 

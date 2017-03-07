@@ -733,6 +733,12 @@ check-termi (IotaProj t n pi) mtp =
 
 check-termi t tp = spanM-add (unimplemented-term-span (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp
 
+--ACG WIP
+--check-typei (TpHole pi) k = spanM-add
+check-typei (TpHole pi) k = 
+  get-ctxt (λ Γ → spanM-add (tp-hole-span Γ pi k []) ≫span return-when k k)
+
+
 check-typei (TpParens pi t pi') k =
   spanM-add (punctuation-span "Parens (type)" pi pi') ≫span
   check-type t k
@@ -831,8 +837,6 @@ check-typei (Mu pi pi' x knd body) nothing =
   add-tk pi' x (Tkk knd) ≫=span λ mi →
   check-type body (just knd) ≫span
   spanMr (just knd)
-
--- =BUG= =ACG= =31= Do we need different cases for erased vs unerased arrows?
 
 check-typei (TpArrow t1 _ t2) k = 
   spanM-add (TpArrow-span t1 t2 (maybe-to-checking k) (if-check-against-star-data "An arrow type" k)) ≫span

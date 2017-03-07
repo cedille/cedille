@@ -90,6 +90,7 @@ substh-type{TYPE} Γ ρ t x (TpVar pi y) =
  let y' = renamectxt-rep ρ y in
    if y' =string x then t else (TpVar pi y')
 substh-type Γ ρ t x (TpVar pi y) = TpVar pi (renamectxt-rep ρ y)
+substh-type Γ ρ t x (TpHole pi) = TpHole pi --ACG
 substh-kind Γ ρ t x (KndArrow k k₁) = KndArrow (substh-kind Γ ρ t x k) (substh-kind Γ ρ t x k₁)
 substh-kind Γ ρ t x (KndParens x₁ k x₂) = substh-kind Γ ρ t x k
 substh-kind Γ ρ t x (KndPi pi pi' y atk k) = 

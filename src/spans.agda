@@ -530,8 +530,14 @@ PiInj-span pi n t check tvs = mk-span "Pi proof" pi (term-end-pos t)
 
 hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
 hole-span Γ pi tp tvs = 
-  mk-span "Hole" pi (posinfo-plus pi 1) 
+  mk-span "Hole" pi (posinfo-plus pi 1)
     (ll-data-term :: error-data "This hole remains to be filled in" :: expected-type-if tp (hnf-expected-type-if Γ tp tvs))
+
+tp-hole-span : ctxt → posinfo → maybe kind → 𝕃 tagged-val → span
+tp-hole-span Γ pi k tvs =
+  mk-span "Hole" pi (posinfo-plus pi 1) 
+    (ll-data-term :: error-data "This hole remains to be filled in" :: expected-kind-if k (expected-kind-if k tvs))
+
 
 expected-to-string : checking-mode → string
 expected-to-string checking = "expected"

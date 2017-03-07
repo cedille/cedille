@@ -109,6 +109,7 @@ type-to-stringh toplevel p (TpArrow x ErasedArrow t) =
 type-to-stringh toplevel p (TpEq t1 t2) = "(" ^ term-to-string ff t1 ^ " ≃ " ^ term-to-string ff t2 ^ ")"
 type-to-stringh toplevel p (TpParens _ t _) = type-to-string toplevel t
 type-to-stringh toplevel p (TpVar _ x) = x
+type-to-stringh toplevel p (TpHole _) = "●" --ACG
 type-to-stringh toplevel p (NoSpans t _) = type-to-string ff t
 
 kind-to-stringh toplevel p (KndArrow k k') =

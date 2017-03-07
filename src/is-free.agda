@@ -79,6 +79,10 @@ is-free-in-type ce (inj₁ x) (TpVar _ x') = x =string x'
 is-free-in-type ce (inj₂ (Γ , t)) (TpVar _ x') = ~ (stringset-contains t x')
 is-free-in-type ce x (NoSpans t _) = is-free-in-type ce x t
 
+--ACG
+is-free-in-type ce (inj₁ x) (TpHole _) = ff
+is-free-in-type ce (inj₂ (Γ , t)) (TpHole _) = ff
+
 is-free-in-kind ce x (KndArrow k k') = is-free-in-kind ce x k || is-free-in-kind ce x k'
 is-free-in-kind ce x (KndParens x₁ k x₂) = is-free-in-kind ce x k
 is-free-in-kind ce (inj₁ x) (KndPi _ _ x' atk k) = is-free-in-tk ce (inj₁ x) atk || (~ (x =string x') && is-free-in-kind ce (inj₁ x) k)

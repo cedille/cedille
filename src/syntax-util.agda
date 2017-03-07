@@ -79,6 +79,7 @@ type-start-pos (TpEq x x₁) = term-start-pos x
 type-start-pos (TpParens pi _ pi') = pi
 type-start-pos (TpVar pi x₁) = pi
 type-start-pos (NoSpans t _) = type-start-pos t -- we are not expecting this on input
+type-start-pos (TpHole pi) = pi --ACG
 
 kind-start-pos (KndArrow k k₁) = kind-start-pos k
 kind-start-pos (KndParens pi k pi') = pi
@@ -131,6 +132,7 @@ type-end-pos (TpArrow t _ t') = type-end-pos t'
 type-end-pos (TpEq x x') = term-end-pos x'
 type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
+type-end-pos (TpHole pi) = pi --ACG
 type-end-pos (NoSpans t pi) = pi
 
 kind-end-pos (KndArrow k k') = kind-end-pos k'
@@ -462,6 +464,7 @@ is-equational (TpLambda _ _ _ atk t2) = is-equational-tk atk || is-equational t2
 is-equational (TpParens _ t _) = is-equational t
 is-equational (Lft _ _ _ _ _) = ff
 is-equational (TpVar _ t) = ff
+is-equational (TpHole _) = ff --ACG
 is-equational-tk (Tkt t1) = is-equational t1
 is-equational-tk (Tkk k) = is-equational-kind k
 is-equational-kind (KndArrow k1 k2) = is-equational-kind k1 || is-equational-kind k2

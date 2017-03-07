@@ -206,6 +206,7 @@ mutual
     TpAppt : type → term → type
     TpArrow : type → arrowtype → type → type
     TpEq : term → term → type
+    TpHole : posinfo → type
     TpLambda : posinfo → posinfo → var → tk → type → type
     TpParens : posinfo → type → posinfo → type
     TpVar : posinfo → var → type
@@ -606,6 +607,7 @@ mutual
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1 x2) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (arrowtypeToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
+  typeToString (TpHole x0) = "(TpHole" ^ " " ^ (posinfoToString x0) ^ ")"
   typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
