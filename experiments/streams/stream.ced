@@ -1,0 +1,58 @@
+False ◂ ★ = ∀ X : ★ . X .
+
+cStream ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . (∀ Y : ★ . Y ➔ (Y ➔ A) ➔ (Y ➔ Y) ➔ X) ➔ X .
+
+chead ◂ ∀ A : ★ . cStream · A ➔ A = Λ A . λ s . s · A (Λ Y . λ u . λ h . λ t . h u) .
+
+ctail ◂ ∀ A : ★ . cStream · A ➔ cStream · A = Λ A . λ s . s · (cStream · A) (Λ Y . λ u . λ h . λ t . Λ X . λ c . c · Y (t u) h t) .
+
+cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X.
+cZ ◂ cNat = Λ X . λ s . λ z . z .
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+
+nats-from ◂ cNat ➔ cStream · cNat = λ n . Λ X . λ c . c · cNat n (λ x . x) cS .
+
+chead · cNat (ctail · cNat (ctail · cNat (nats-from cZ))) !
+
+% not being used
+param ◂ Π A : ★ . cStream · A ➔ ★ =
+  λ A : ★ . λ x : cStream · A .
+    ∀ X : ★ . ∀ P : X ➔ ★ .
+      ∀ c : ∀ Y : ★ . Y ➔ (Y ➔ A) ➔ (Y ➔ Y) ➔ X .
+      (∀ Y : ★ . ∀ Q : Y ➔ ★ .
+       ∀ u : Y . Q u ➔
+       Π h : Y ➔ A .
+       ∀ t : Y ➔ Y .
+       (∀ a : Y . Q a ➔ Q (t a)) ➔
+       P (c · Y u h t)) ➔
+       P (x · X c) .
+
+% also not being used
+rebuild ◂ ∀ A : ★ . ∀ Y : ★ . Y ➔ (Y ➔ A) ➔ (Y ➔ Y) ➔ cStream · A =
+  Λ A . Λ Y . λ u . λ h . λ t . Λ X . λ c . c · Y u h t .
+
+Stream ◂ ★ ➔ ★ = λ A : ★ . ι x : cStream · A . param · A x .
+
+head ◂ ∀ A : ★ . Stream · A ➔ A =
+  Λ A . λ s . chead · A s.1.
+
+tail ◂ ∀ A : ★ . Stream · A ➔ Stream · A =
+  Λ A . λ s . [ ctail · A s.1 ,
+                s.2 · (cStream · A) · (param · A) -(Λ Y . λ u . λ h . λ t . Λ X . λ c . c · Y (t u) h t)
+                  (Λ Y . Λ Q . Λ u . λ qu . λ h . Λ t . λ qt . Λ X . Λ P . Λ c . λ qc . qc · Y · Q -(t u) (qt -u qu) h -t qt ) ].
+
+all ◂ Π X : ★ . (X ➔ ★) ➔ cStream · X ➔ ★ =
+  λ X : ★ . λ P : X ➔ ★ . λ s : cStream · X .
+    ∀ Q : cStream · X ➔ ★ .
+    (∀ s : cStream · X . ∀ Y : cStream · X ➔ ★ .
+      Y s ➔
+      (∀ s : cStream · X . Y s ➔ P (chead · X s)) ➔
+      (∀ s : cStream · X . Y s ➔ Y (ctail · X s)) ➔ Q s) ➔
+    Q s.
+    
+nonzero-nats-from ◂ Π n : cNat . all · cNat · (λ x : cNat . (x ≃ cZ) ➔ False) (nats-from (cS n)) =
+  λ n . Λ Q . λ c . c -(nats-from (cS n)) · (λ s : cStream · cNat . ∀ X : ★ . (Π n : cNat . (s ≃ nats-from (cS n)) ➔ X) ➔ X)
+    (Λ X . λ c . c n β)
+    (Λ s . λ u . λ v .
+      u · False (λ n . λ w . δ χ (cS n ≃ cZ) - ρ (χ (cS n ≃ chead s) - ρ w - β) - v))
+    (Λ s . λ u . Λ X . λ c . u · X (λ n . λ v . c (cS n) (ρ v - β))) .
