@@ -1,7 +1,6 @@
 ; Welcome to the Cedille Mode Context tool!
 ; This file contains the code that governs the feature allowing the user to retrieve the context at a given point.
 
-
 					; GLOBAL DEFINITIONS
 (load-library "cedille-mode-customize")
 (load-library "cedille-mode-info")
@@ -60,23 +59,24 @@
      (cedille-mode-update-buffers)
      (other-window -1)))
 
+
 (define-minor-mode cedille-context-view-mode
   "Creates context mode, which displays the context of the selected node"
   nil         ; init-value, whether the mode is on automatically after definition
   " Context"  ; indicator for mode line
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
-    (define-key map (kbd "a") (make-cedille-mode-set-variable cedille-mode-context-ordering 'fwd)) ; a-z ordering
-    (define-key map (kbd "z") (make-cedille-mode-set-variable cedille-mode-context-ordering 'bkd)) ; z-a ordering
-    (define-key map (kbd "d") (make-cedille-mode-set-variable cedille-mode-context-ordering 'dn)) ; parse tree descending
-    (define-key map (kbd "u") (make-cedille-mode-set-variable cedille-mode-context-ordering 'up)) ; parse tree ascending
-    (define-key map (kbd "e") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqnl)) ; filter 'equational'
-    (define-key map (kbd "E") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqn)) ; filter 'equation'
-    (define-key map (kbd "f") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) ; no filter
-    (define-key map (kbd "C") #'cedille-mode-close-active-window) ; exit context mode
-    (define-key map (kbd "c") #'cedille-mode-close-active-window) ; exit context mode
-    (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) ;help page
-    (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) ;customization page
+    (define-key map (kbd "a") (make-cedille-mode-set-variable cedille-mode-context-ordering 'fwd)) 	; a-z ordering
+    (define-key map (kbd "z") (make-cedille-mode-set-variable cedille-mode-context-ordering 'bkd)) 	; z-a ordering
+    (define-key map (kbd "d") (make-cedille-mode-set-variable cedille-mode-context-ordering 'dn)) 	; parse tree descending
+    (define-key map (kbd "u") (make-cedille-mode-set-variable cedille-mode-context-ordering 'up)) 	; parse tree ascending
+    (define-key map (kbd "e") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqnl)) 	; filter 'equational'
+    (define-key map (kbd "E") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqn)) 	; filter 'equation'
+    (define-key map (kbd "f") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) 	; no filter
+    (define-key map (kbd "C") #'cedille-mode-close-active-window) 					; exit context mode
+    (define-key map (kbd "c") #'cedille-mode-close-active-window) 					; exit context mode
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) 			; help page
+    (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) 				; customization page
     (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-show-shadowed-variables (not cedille-mode-show-shadowed-variables)))
     map))
 
@@ -85,31 +85,50 @@
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
   (let* ((context (copy-sequence cedille-mode-original-context-list))
-	 (filter (lambda (lst condp) (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst))))) ; returns a list of objects satisfying condp
-	 (has-keyword (lambda (entry word) (member word (cdr (assoc 'keywords (cdr entry)))))) ; tests whether a context entry has keyword associated with it
-	 (filterp (lambda (x) (equal cedille-mode-context-filtering x))) ; checks the value of x against the context-filtering variable
-	 (filter-for-keyword (lambda (lst key) (funcall filter lst (lambda (entry) (funcall has-keyword entry key))))) ; for brevity
-	 (filter-list (lambda (lst) (cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation")) ; filters and returns input list
-					  ((funcall filterp 'eqnl) (funcall filter-for-keyword lst "equational"))
-					  (t lst))))
-	 (terms (funcall filter-list (car context)))
-	 (types (funcall filter-list (cdr context))))
+	 ;; returns a list of objects satisfying condp
+	 (filter (lambda (lst condp)
+		   (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst)))))
+	 ;; tests whether a context entry *entry* has keyword *word* associated with it
+	 (has-keyword (lambda (entry word)
+			(member word (cdr (assoc 'keywords (cdr entry)))))) 
+	 ;; predicate which checks the value of *x* against the value of *cedille-mode-context-filtering*
+	 (filterp (lambda (x)
+		    (equal cedille-mode-context-filtering x)))
+	 ;; given a list and a key, filters out only terms that have that keyword
+	 (filter-for-keyword (lambda (lst key)
+			       (funcall filter lst (lambda (entry)
+						     (funcall has-keyword entry key)))))
+	 ;; filters and returns the input list depending on value of filterp
+	 (filter-list (lambda (lst)
+			(cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation"))
+			      ((funcall filterp 'eqnl)(funcall filter-for-keyword lst "equational"))
+			      (t lst))))
+	 (terms (funcall filter-list (car context)))  ; filter terms
+	 (types (funcall filter-list (cdr context)))) ; filter types
+    ;; set the filtered context list
     (setq cedille-mode-filtered-context-list (cons terms types))))
 
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-filtered-context-list))
-	 (string-lt (lambda (a b) (string< (car a) (car b)))) ; ascending alphabetical order
-	 (string-gt (lambda (a b) (funcall string-lt b a))) ; descending alphabetical order
-	 (orderp (lambda (x) (equal cedille-mode-context-ordering x))) ;checks the value of x against the context-ordering variable
-	 (sort-list (lambda (list) (cond ((funcall orderp 'fwd) (sort list string-lt)) ; sorts and returns the input list
+	 ;; binary predicate for ascending alphabetical order
+	 (string-lt (lambda (a b) (string< (car a) (car b))))
+	 ;; binary predicate for descending alphabetical order
+	 (string-gt (lambda (a b) (funcall string-lt b a)))
+	 ;; predicate checking whether x is equal to context-mode-context-ordering
+	 (orderp (lambda (x) (equal cedille-mode-context-ordering x)))
+	 ;; sorts the list according to the order specified by context-mode-context-ordering.
+	 ;; note that context lists have order 'up when they are first constructed.
+	 (sort-list (lambda (list) (cond ((funcall orderp 'fwd) (sort list string-lt))
 					 ((funcall orderp 'bkd) (sort list string-gt))
 					 ((funcall orderp 'dn) (reverse list))
 					 ((funcall orderp 'up) list))))
-	 (terms (funcall sort-list (car context)))
-	 (types (funcall sort-list (cdr context))))
+	 (terms (funcall sort-list (car context)))  ; sort terms
+	 (types (funcall sort-list (cdr context)))) ; sort types
+    ;; set the sorted context list
     (setq cedille-mode-sorted-context-list (cons terms types))))
 
+;; filters the context list, then sorts it
 (defun cedille-mode-process-context() (cedille-mode-filter-context) (cedille-mode-sort-context))
 
 					; FUNCTIONS TO COMPUTE THE CONTEXT
@@ -118,8 +137,10 @@
   "Compute the context and store it in local variables in its default order.
 The context by default is ordered by parse tree position, from bottom to top."
   (if se-mode-selected
+      ;; find the path to the selected point
       (let ((p (se-find-point-path (point) (se-mode-parse-tree))))
-	(setq cedille-mode-original-context-list (cedille-mode-get-context p))))) ;Store the unmodified context.
+	;; set the unmodified context list
+	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
 
 (defun cedille-mode-get-context(path) ; -> list <context>
   "Searches the input path for binder nodes, returning a tuple consisting of:\n
@@ -132,48 +153,50 @@ which currently consists of:\n
 + 'value' : the type or kind of symbol
 + 'keywords': a list of keywords associated with symbol"
   (let (terms types)
-    (dolist (node (butlast path) (when (or terms types) (cons terms types)))
-      ;; for each node in the path, we are going to see if it binds a symbol and add it to the output list if it does
+    
+    (dolist (node (butlast path) (when (or terms types) (cons terms types)))  
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (children (se-node-children node)))
+	;; for each node in the path, only try to add it to the context if it binds something
 	(when (and binder children)
-	  (let* ((bound (string-to-number binder)) ; for readability
+	  (let* ((bound (string-to-number binder))
 		 (data (se-term-data (nth bound children)))
-		 (get (lambda (key) (cdr (assoc key data))))
+		 (get (lambda (key) (cdr (assoc key data)))) ; returns data associated with key
 		 (symbol (funcall get 'symbol))
 		 (type (funcall get 'type))
 		 (kind (funcall get 'kind))
 		 (keywords-string (funcall get 'keywords))
 		 (keywords-list (when keywords-string (split-string keywords-string " " t)))
-		 ;; to rename the shadowed variables, we will use name-symbol and count-original-symbols
+		 ;; counts the instances of a given symbol in the context
 		 (count-original-symbols
 		  ;; recursively counts how many instances of the given original symbol already occur in the list
 		  (lambda (lst original-symbol rec-call) ; list -> string -> nat
 		    (if lst
-			(let ((os (cdr (assoc 'original-symbol (cdr (car lst)))))) ;os is the symbol of the entry in the list
+			;; os is the symbol of the entry in the list
+			(let ((os (cdr (assoc 'original-symbol (cdr (car lst)))))) 
 			  (+ (if (equal os original-symbol) 1 0) (funcall rec-call (cdr lst) original-symbol rec-call)))
 		      0)))
+		 ;; renames shadowed symbols to indicate how many symbols they are shadowing
 		 (name-symbol 
 		  (lambda (lst original-symbol) ; list -> string -> string
 		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
 		      (if (equal count 0)
 			  original-symbol
 			(concat original-symbol "[+" (number-to-string count) "]")))))		 
-		 (set-list ; for brevity
+		 (set-list
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
-		    ;; we rename shadowed variables with a [+n] suffix or omit them
-		    ;;cedille-mode-show-shadowed-variables
-		    (let ((data (list ; for brevity - this is the data associated with the symbol
-				 (cons 'value value-source) ; the value displayed for the entry
-				 (cons 'keywords keywords-list) ; keywords identifying attributes of the entry
-				 (cons 'original-symbol symbol))) ; the original symbol identifying the entry
+		    ;; we rename shadowed variables with a [+n] suffix or omit them		    
+		    (let ((data (list
+				 (cons 'value value-source) 		; the value displayed for the entry
+				 (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
+				 (cons 'original-symbol symbol))) 	; the original symbol identifying the entry
 			  (shadow-p cedille-mode-show-shadowed-variables))
 		      (set q-lst (cons (cons
 					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
 					data)
 				       (if shadow-p (eval q-lst) (delq (assoc symbol (eval q-lst)) (eval q-lst)))))))))
-	    (when (and symbol (not (equal symbol "_")) (or type kind)) ;separate types and kinds
+	    (when (and symbol (not (equal symbol "_")) (or type kind)) 	; separate types and kinds
 	      (if type (funcall set-list 'terms type) (funcall set-list 'types kind)))))))))
 
 					; FUNCTIONS TO DISPLAY THE CONTEXT
@@ -193,15 +216,16 @@ which currently consists of:\n
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
-  (let ((output) ;""
+  (let ((output) ; defaults to empty string
+	;; formats input pair as "<symbol>:	<value>" 
 	(format (lambda (pair) (concat (car pair) ":\t" (cdr (assoc 'value (cdr pair))))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
 	(progn
-	  (when terms ;Print out the terms and their types
+	  (when terms ; Print out the terms and their types
 	    (setq output (concat "==== TERMS ====\n" (mapconcat format terms "\n") (when types "\n\n"))))
-	  (when types ;Print out the types and their kinds
+	  (when types ; Print out the types and their kinds
 	    (setq output (concat output "==== TYPES ====\n" (mapconcat format types "\n"))))
 	  output)
       "Selected context is empty.")))
