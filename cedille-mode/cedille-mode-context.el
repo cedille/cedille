@@ -39,10 +39,13 @@
 ;;; Finally, the sorted list is derived using cedille-mode-sort-context()
 ;;; The sorted list is the one displayed to the user.
 
+(defvar cedille-mode-hidden-context-tuples nil
+  "Defines a list of tuples corresponding to types/kinds to hide in the context window")
+
+
 					; MINOR MODE FUNCTIONS
 
 ;; Note for future refactoring: these can be combined if filters are not a toggle
-
 (defmacro make-cedille-mode-set-variable(variable value)
   `(lambda()
      (interactive)
@@ -76,11 +79,23 @@
     (define-key map (kbd "C") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) 			; help page
+    (define-key map (kbd "w") #'cedille-mode-toggle-hide-tuple-in-context)				; hide type or kind 
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) 				; customization page
     (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-show-shadowed-variables (not cedille-mode-show-shadowed-variables)))
     map))
 
-  
+(defun cedille-mode-toggle-hide-tuple-in-context()
+  "Hides the type or kind associated with the currently selected line"
+  (interactive)
+  (let* ((line (line-number-at-pos))
+	 (context cedille-mode-sorted-context-list)
+	 (tuple (cedille-mode-get-tuple-from-position context line))
+	 (hidden-list-q 'cedille-mode-hidden-context-tuples))
+    (when tuple
+      (if (member tuple cedille-mode-hidden-context-tuples)
+	  (set hidden-list-q (remove (eval hidden-list-q) tuple))
+	(set hidden-list-q (cons tuple (eval hidden-list-q))))
+      (cedille-mode-display-context))))
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
@@ -218,7 +233,11 @@ which currently consists of:\n
   "Formats the context as text for display"
   (let ((output) ; defaults to empty string
 	;; formats input pair as "<symbol>:	<value>" 
-	(format (lambda (pair) (concat (car pair) ":\t" (cdr (assoc 'value (cdr pair))))))
+	(format (lambda (pair) (concat (car pair)
+				       ":\t"
+				       ;; only displays value if it has not been hidden
+				       (unless (member pair cedille-mode-hidden-context-tuples) 
+					 (cdr (assoc 'value (cdr pair)))))))
 	(terms (car context))
 	(types (cdr context)))
     (if (or terms types)
@@ -226,11 +245,27 @@ which currently consists of:\n
 	  (when terms ; Print out the terms and their types
 	    (setq output (concat "==== TERMS ====\n" (mapconcat format terms "\n") (when types "\n\n"))))
 	  (when types ; Print out the types and their kinds
+	    ;; Note that the separation between terms and types is currently
+	    ;; hardcoded into cedille-mode-get-tuple-from-position.
+	    ;; If you change it, you will need to change that function
+	    ;; as well.
 	    (setq output (concat output "==== TYPES ====\n" (mapconcat format types "\n"))))
 	  output)
       "Selected context is empty.")))
 
 					; CONVENIENT FUNCTIONS
+
+(defun cedille-mode-get-tuple-from-position(context line)
+  "Returns the tuple of the context corresponding with given line"
+  (let* ((terms (car context))
+	 (types (cdr context))
+	 ;; Note that the 2 is hardcoded from cedille-mode-format-context.
+	 ;; If that changes, you will need to change this value as well.
+	 (tuple-index (- (if (<= (- line 1) (length terms)) line (- line 2)) 2))
+	 (tuples (append terms types)))
+    (if (>= tuple-index 0)
+	(nth tuple-index tuples)
+      nil)))
 
 (defun cedille-mode-context()
   (cedille-mode-compute-context)
