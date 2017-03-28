@@ -93,9 +93,13 @@
 	 (hidden-list-q 'cedille-mode-hidden-context-tuples))
     (when tuple
       (if (member tuple cedille-mode-hidden-context-tuples)
-	  (set hidden-list-q (remove (eval hidden-list-q) tuple))
+	  (set hidden-list-q (delete tuple (eval hidden-list-q)))
 	(set hidden-list-q (cons tuple (eval hidden-list-q))))
-      (cedille-mode-display-context))))
+      ;; refresh context buffer
+      (other-window 1)
+      (cedille-mode-update-buffers)
+      (other-window -1)
+      (goto-line line))))
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
@@ -259,12 +263,21 @@ which currently consists of:\n
   "Returns the tuple of the context corresponding with given line"
   (let* ((terms (car context))
 	 (types (cdr context))
+	 (terms-start (if terms 2 0))
+	 (terms-end (if terms (+ 1 (length terms)) 0))
+	 (types-start (if terms (+ terms-end 3) 2))
+	 (types-end (+ types-start (length types) -1))
+	 (interval (lambda (x left right) (and (>= x left) (<= x right))))
 	 ;; Note that the 2 is hardcoded from cedille-mode-format-context.
 	 ;; If that changes, you will need to change this value as well.
-	 (tuple-index (- (if (<= (- line 1) (length terms)) line (- line 2)) 2))
+	 (tuple-index
+	  (if (funcall interval line terms-start terms-end) (- line 2)
+	    (if (funcall interval line types-start types-end) (- line 4)
+	      -1)))
 	 (tuples (append terms types)))
     (if (>= tuple-index 0)
 	(nth tuple-index tuples)
+      ;; if cursor is not on a line with a type/kind, don't do anything
       nil)))
 
 (defun cedille-mode-context()
