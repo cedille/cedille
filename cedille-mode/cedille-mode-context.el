@@ -25,9 +25,9 @@
 
 (defvar cedille-mode-context-filtering nil)
 
-(defvar cedille-mode-original-context-list)
-(defvar cedille-mode-filtered-context-list)
-(defvar cedille-mode-sorted-context-list)
+(defvar cedille-mode-original-context-list nil)
+(defvar cedille-mode-filtered-context-list nil)
+(defvar cedille-mode-sorted-context-list nil)
 
 ;;; There are three context lists:
 ;;; 1. The original list (original)
