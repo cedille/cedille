@@ -38,6 +38,9 @@ Clear current filter so all entries are shown
 @item s
 Toggle display of shadowed variables
 
+@item w
+Hide or unhide type or kind of line currently under cursor
+
 @item c/C
 Close the context mode window
 

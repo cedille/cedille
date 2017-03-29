@@ -92,6 +92,7 @@
 	 (tuple (cedille-mode-get-tuple-from-position context line))
 	 (hidden-list-q 'cedille-mode-hidden-context-tuples))
     (when tuple
+      ;; delete selected tuple from list if present or add if not present
       (if (member tuple cedille-mode-hidden-context-tuples)
 	  (set hidden-list-q (delete tuple (eval hidden-list-q)))
 	(set hidden-list-q (cons tuple (eval hidden-list-q))))
@@ -99,7 +100,7 @@
       (other-window 1)
       (cedille-mode-update-buffers)
       (other-window -1)
-      (goto-line line))))
+      (forward-line (- line 1)))))
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
@@ -263,14 +264,16 @@ which currently consists of:\n
   "Returns the tuple of the context corresponding with given line"
   (let* ((terms (car context))
 	 (types (cdr context))
+	 ;; The start and end positions of term/type are hardcoded from
+	 ;;   cedille-mode-format-context
+	 ;; If that changes, you will need to change these values as well.
 	 (terms-start (if terms 2 0))
 	 (terms-end (if terms (+ 1 (length terms)) 0))
 	 (types-start (if terms (+ terms-end 3) 2))
 	 (types-end (+ types-start (length types) -1))
 	 (interval (lambda (x left right) (and (>= x left) (<= x right))))
-	 ;; Note that the 2 is hardcoded from cedille-mode-format-context.
-	 ;; If that changes, you will need to change this value as well.
 	 (tuple-index
+	  ;; map the actual line number to the appropriate list index
 	  (if (funcall interval line terms-start terms-end) (- line 2)
 	    (if (funcall interval line types-start types-end) (- line 4)
 	      -1)))

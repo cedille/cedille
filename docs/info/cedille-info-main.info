@@ -260,6 +260,9 @@ instead.
 's'
      Toggle display of shadowed variables
 
+'w'
+     Hide or unhide type or kind of line currently under cursor
+
 'c/C'
      Close the context mode window
 
@@ -357,11 +360,11 @@ Node: Top90
 Node: cedille mode commands739
 Node: unicode shortcuts2687
 Node: context mode5405
-Node: credits6677
-Node: options6908
-Node: minor modes7653
-Node: inspect mode8192
-Node: summary mode8911
-Node: Index9100
+Node: credits6746
+Node: options6977
+Node: minor modes7722
+Node: inspect mode8261
+Node: summary mode8980
+Node: Index9169
 
 End Tag Table
