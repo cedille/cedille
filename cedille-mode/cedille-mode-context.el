@@ -131,6 +131,10 @@
 (defun cedille-mode-sort-context()
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-filtered-context-list))
+	 ;; unary predicate for membership in the hidden type/kind list
+	 (is-hidden (lambda (pair) (member pair cedille-mode-hidden-context-tuples))) 
+	 ;; binary predicate for separating hidden types/kinds
+	 (whiteout (lambda (a b) (and (not (funcall is-hidden a)) (funcall is-hidden b))))
 	 ;; binary predicate for ascending alphabetical order
 	 (string-lt (lambda (a b) (string< (car a) (car b))))
 	 ;; binary predicate for descending alphabetical order
@@ -143,8 +147,8 @@
 					 ((funcall orderp 'bkd) (sort list string-gt))
 					 ((funcall orderp 'dn) (reverse list))
 					 ((funcall orderp 'up) list))))
-	 (terms (funcall sort-list (car context)))  ; sort terms
-	 (types (funcall sort-list (cdr context)))) ; sort types
+	 (terms (sort (funcall sort-list (car context)) whiteout))  ; sort terms
+	 (types (sort (funcall sort-list (cdr context)) whiteout))) ; sort types
     ;; set the sorted context list
     (setq cedille-mode-sorted-context-list (cons terms types))))
 
