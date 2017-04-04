@@ -79,7 +79,8 @@
     (define-key map (kbd "C") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) 			; help page
-    (define-key map (kbd "w") #'cedille-mode-toggle-hide-tuple-in-context)				; hide type or kind 
+    (define-key map (kbd "w") #'cedille-mode-toggle-hide-tuple-in-context)				; hide type or kind
+    (define-key map (kbd "W") #'cedille-mode-toggle-show-tuples-in-context)				; show all hidden types/kinds
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) 				; customization page
     (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-show-shadowed-variables (not cedille-mode-show-shadowed-variables)))
     map))
@@ -101,6 +102,17 @@
       (cedille-mode-update-buffers)
       (other-window -1)
       (forward-line (- line 1)))))
+
+(defun cedille-mode-toggle-show-tuples-in-context()
+  "Show all types and kinds"
+  (interactive)
+  (setq cedille-mode-hidden-context-tuples nil)
+  ;; refresh context buffer
+  (let ((line (line-number-at-pos)))
+    (other-window 1)
+    (cedille-mode-update-buffers)
+    (other-window -1)
+    (forward-line (- line 1))))
 
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
