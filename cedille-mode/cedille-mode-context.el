@@ -132,9 +132,9 @@
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-filtered-context-list))
 	 ;; unary predicate for membership in the hidden type/kind list
-	 (is-hidden (lambda (pair) (member pair cedille-mode-hidden-context-tuples))) 
+	 (hidden-p (lambda (pair) (member pair cedille-mode-hidden-context-tuples))) 
 	 ;; binary predicate for separating hidden types/kinds
-	 (whiteout (lambda (a b) (and (not (funcall is-hidden a)) (funcall is-hidden b))))
+	 (whiteout (lambda (a b) (and (not (funcall hidden-p a)) (funcall hidden-p b))))
 	 ;; binary predicate for ascending alphabetical order
 	 (string-lt (lambda (a b) (string< (car a) (car b))))
 	 ;; binary predicate for descending alphabetical order
@@ -143,12 +143,16 @@
 	 (orderp (lambda (x) (equal cedille-mode-context-ordering x)))
 	 ;; sorts the list according to the order specified by context-mode-context-ordering.
 	 ;; note that context lists have order 'up when they are first constructed.
-	 (sort-list (lambda (list) (cond ((funcall orderp 'fwd) (sort list string-lt))
-					 ((funcall orderp 'bkd) (sort list string-gt))
-					 ((funcall orderp 'dn) (reverse list))
-					 ((funcall orderp 'up) list))))
-	 (terms (sort (funcall sort-list (car context)) whiteout))  ; sort terms
-	 (types (sort (funcall sort-list (cdr context)) whiteout))) ; sort types
+	 (sort-list (lambda (list) (sort
+				    ;; inner sorting according to specified order
+				    (cond ((funcall orderp 'fwd) (sort list string-lt))
+					  ((funcall orderp 'bkd) (sort list string-gt))
+					  ((funcall orderp 'dn) (reverse list))
+					  ((funcall orderp 'up) list))
+				    ;; outer sorting sifting hidden types/kinds to bottom
+				    whiteout)))
+	 (terms (funcall sort-list (car context)))  ; sort terms
+	 (types (funcall sort-list (cdr context)))) ; sort types
     ;; set the sorted context list
     (setq cedille-mode-sorted-context-list (cons terms types))))
 
