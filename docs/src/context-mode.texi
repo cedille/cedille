@@ -41,6 +41,9 @@ Toggle display of shadowed variables
 @item w
 Hide or unhide type or kind of line currently under cursor
 
+@item W
+Unhide all types and kinds hidden with 'w'
+
 @item c/C
 Close the context mode window
 

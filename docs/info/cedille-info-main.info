@@ -263,6 +263,9 @@ instead.
 'w'
      Hide or unhide type or kind of line currently under cursor
 
+'W'
+     Unhide all types and kinds hidden with 'w'
+
 'c/C'
      Close the context mode window
 
@@ -360,11 +363,11 @@ Node: Top90
 Node: cedille mode commands739
 Node: unicode shortcuts2687
 Node: context mode5405
-Node: credits6746
-Node: options6977
-Node: minor modes7722
-Node: inspect mode8261
-Node: summary mode8980
-Node: Index9169
+Node: credits6799
+Node: options7030
+Node: minor modes7775
+Node: inspect mode8314
+Node: summary mode9033
+Node: Index9222
 
 End Tag Table
