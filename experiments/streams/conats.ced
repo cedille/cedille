@@ -1,0 +1,18 @@
+import or.
+import true.
+
+conat ◂ ★ = ∀ X : ★ . (∀ Y : ★ . (Y ➔ Or · True · Y) ➔ Y ➔ X) ➔ X .
+
+omega ◂ conat = Λ X . λ c. c · True (λ s . Ori2 · True · True triv) triv .
+
+zero ◂ conat = Λ X . λ c . c · True (λ _ . Ori1 · True · True triv) triv .
+
+suc ◂ conat ➔ conat = 
+  λ n . n · conat ● . 
+
+pred ◂ conat ➔ conat =
+  λ n . n · conat (Λ Y . λ o . λ s . o s · conat (λ _ . zero) (λ s' . Λ X . λ c . c · Y o s') ).
+
+pred-zero ◂ pred zero ≃ zero = β.
+
+pred-omega ◂ pred omega ≃ omega = β.

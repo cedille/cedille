@@ -457,6 +457,10 @@ in the parse tree, and updates the Cedille info buffer."
    (or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
        (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
 
+  (add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
+  (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
+  (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
+
   (set-input-method "Cedille")
 )
 
@@ -468,10 +472,6 @@ in the parse tree, and updates the Cedille info buffer."
   (setq se-mode-parse-tree nil)
   (se-navigation-mode 1))     
 
-(add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
-(add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
-(add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
-
 (modify-coding-system-alist 'file "\\.ced\\'" 'utf-8)
 
 (quail-define-package "Cedille" "UTF-8" "δ" t ; guidance
@@ -481,7 +481,7 @@ in the parse tree, and updates the Cedille info buffer."
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "➔") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
           ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "π")
-          ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\d" "δ") ("\\-" "➾")
+          ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\==" "≅") ("\\d" "δ") ("\\-" "➾")
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")
 
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ; add some more of these

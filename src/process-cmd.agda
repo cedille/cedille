@@ -2,14 +2,13 @@ module process-cmd where
 
 open import lib
 
-open import cedille-find
+--open import cedille-find
 open import cedille-types
 open import classify
 open import constants
 open import conversion
 open import ctxt
 open import general-util
-open import rec
 open import spans
 open import syntax-util
 open import toplevel-state
@@ -104,21 +103,31 @@ process-cmd (mk-toplevel-state use-cede ip mod is Γ) (CheckTerm t NoCheckType n
 
 process-cmd s (CheckType tp m n pi) _ = spanMr s -- unimplemented
 
-process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') tt {- check -} =
+process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
+  check-and-add-params pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
-    let Γ' = (ctxt-kind-def pi x (hnf Γ unfold-head k tt) Γ) in
+    let Γ' = (ctxt-kind-def pi x ps (hnf Γ unfold-head k tt) Γ) in
       spanM-add (DefKind-span pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state use-cede ip mod is Γ)
-       (spanM-add (KndVar-span Γ' pi x checking) ≫span
-        spanMr (mk-toplevel-state use-cede ip mod is Γ')))
+       (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
+        spanMr (mk-toplevel-state use-cede ip mod is (ctxt-restore-info* Γ' ms))))
 
-process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x _ k pi') ff {- skip checking -} = 
+  where check-and-add-params : posinfo → params → spanM (𝕃 (string × maybe sym-info))
+        check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
+          check-tk atk ≫span
+          spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
+                                                      properly for computing the context in the frontend -}) ≫span
+          add-tk pi1' x atk ≫=span λ mi → 
+          check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+        check-and-add-params _ ParamsNil = spanMr []
+
+process-cmd (mk-toplevel-state use-cede ip mod is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   check-redefined pi x (mk-toplevel-state use-cede ip mod is Γ)
-    (spanMr (mk-toplevel-state use-cede ip mod is (ctxt-kind-def pi x (hnf Γ unfold-head k tt) Γ)))
+    (spanMr (mk-toplevel-state use-cede ip mod is (ctxt-kind-def pi x ps (hnf Γ unfold-head k tt) Γ)))
 
-process-cmd s (CheckKind k _ pi) _ = spanMr s -- unimplemented
+process-cmd s (CheckKind k pi) _ = spanMr s -- unimplemented
 
 process-cmd s (Import pi x pi') _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
@@ -131,17 +140,11 @@ process-cmd s (Import pi x pi') _ =
     spanMr s
       
 
-process-cmd (mk-toplevel-state use-cede ip mod is Γ) (Rec pi pi'' name params inds ctors body us pi') need-to-check = 
-    set-ctxt Γ ≫span
-    process-rec-cmd (~ need-to-check) pi pi'' name params inds ctors body us pi' ≫span
-      get-ctxt (λ Γ → 
-         spanMr (mk-toplevel-state use-cede ip mod is Γ))
-
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds (mk-toplevel-state use-cede include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd
                                 (mk-toplevel-state use-cede include-path files is
-                                  (ctxt-set-symbol-occurrences Γ
-                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset)))
+                                  {-(ctxt-set-symbol-occurrences Γ
+                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset))-} Γ)
                                 c need-to-check ≫=span
                                 λ s → process-cmds s cs need-to-check
 process-cmds s CmdsStart need-to-check = spanMr s

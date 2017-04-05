@@ -1,0 +1,15 @@
+import trm.
+import ctors.
+
+subst ◂ (Nat ➔ trm) ➔ trm ➔ trm =
+  λ s . λ t .
+    [ Λ X . λ a . λ l . λ v . t.1 · X a l (λ n . (s n).1 · X a l v) ,
+      Λ A . Λ B . Λ R . Λ q . Λ l . Λ v .
+        λ pa . λ pl . λ pv . t.2 · A · B · R -q -l -(λ a . λ n . (s n).1 · (B a) (q a) (l a) (v a)) pa pl
+                                   (λ n . (s n).2 · A · B · R -q -l -v pa pl pv) ].
+
+subst-app ◂ Π s : Nat ➔ trm . Π t1 : trm . Π t2 : trm . subst s (app t1 t2) ≃ app (subst s t1) (subst s t2) =
+  λ s . λ t1 . λ t2 . β .
+
+subst-lam ◂ Π s : Nat ➔ trm . Π f : trm ➔ trm . subst s (lam f) ≃ lam (λ x . subst s (f x)) =
+  λ s . λ f . ε ●.

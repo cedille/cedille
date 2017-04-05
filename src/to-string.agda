@@ -44,10 +44,12 @@ term-to-stringh : {ed : exprd} → 𝔹 → ⟦ ed ⟧ → term → string
 kind-to-stringh : {ed : exprd} → 𝔹 → ⟦ ed ⟧ → kind → string
 optClass-to-string : optClass → string
 optType-to-string : optType → string
+optTerm-to-string : optTerm → string
 tk-to-string : tk → string
 liftingType-to-string : liftingType → string
 liftingType-to-stringh : {ed : exprd} → ⟦ ed ⟧ → liftingType → string
 maybeAtype-to-string : maybeAtype → string
+args-to-string : args → string
 
 -- If the first or second argument (toplevel, locally-not-needed) is true, don't put parens; else put parens
 -- converts terms to string equivalents by adding parens
@@ -73,12 +75,11 @@ term-to-stringh toplevel p (Unfold _ t) =
   "unfold " ^ (term-to-string toplevel t)
 term-to-stringh toplevel p (Parens _ t _) = term-to-string toplevel t
 term-to-stringh toplevel p (Var _ x) = x
-term-to-stringh toplevel p (Beta _ NoTerm) = "β"
-term-to-stringh toplevel p (Beta pi (SomeTerm t _)) = "β{ " ^ term-to-stringh ff (Beta pi NoTerm) t ^ " }"
+term-to-stringh toplevel p (Beta _ ot) = "β" ^ optTerm-to-string ot
 term-to-stringh toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Omega _ t) = "(ω" ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (InlineDef _ _ x t _) = "[ " ^ x ^ " ]"
-term-to-stringh toplevel p (IotaPair _ t1 t2 _) = "[ " ^ term-to-string tt t1 ^ " , " ^ term-to-string tt t1 ^ " ]"
+term-to-stringh toplevel p (IotaPair _ t1 t2 ot _) = "[ " ^ term-to-string tt t1 ^ " , " ^ term-to-string tt t1 ^ " ]"
 term-to-stringh toplevel p (IotaProj t n _) = term-to-string ff t ^ " . " ^ n
 term-to-stringh toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string ff t ^ ")"
 term-to-stringh toplevel p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string ff t ^ ")"
@@ -119,8 +120,12 @@ kind-to-stringh toplevel p (KndPi pi pi' x u k) =
   parens-unless toplevel (is-abs p) ("Π " ^ x ^ " : " ^ tk-to-string u ^ " . " ^ kind-to-stringh ff (KndPi pi pi' x u k) k )
 kind-to-stringh toplevel p (KndTpArrow x k) =
   parens-unless toplevel (is-arrow p) (type-to-string ff x ^ " → " ^ kind-to-stringh ff (KndTpArrow x k) k)
-kind-to-stringh toplevel p (KndVar _ x) = x
+kind-to-stringh toplevel p (KndVar _ x ys) = x ^ args-to-string ys
 kind-to-stringh toplevel p (Star _) = "★"
+
+args-to-string (ArgsCons (TermArg t) ys) = " " ^ term-to-string ff t ^ args-to-string ys
+args-to-string (ArgsCons (TypeArg t) ys) = " · " ^ type-to-string ff t ^ args-to-string ys
+args-to-string (ArgsNil _) = ""
 
 liftingType-to-stringh p (LiftArrow t t₁) = 
   parens-unless ff (is-arrow p) (liftingType-to-string t ^ " → " ^ liftingType-to-stringh (LiftArrow t t₁) t₁ )
@@ -137,6 +142,9 @@ optClass-to-string (SomeClass x) = " : " ^ tk-to-string x
 optType-to-string NoType = ""
 optType-to-string (SomeType x) = " : " ^ type-to-string ff x
 
+optTerm-to-string NoTerm = ""
+optTerm-to-string (SomeTerm x _) = " { " ^ term-to-string ff x ^ " }"
+ 
 tk-to-string (Tkk k) = kind-to-string ff k
 tk-to-string (Tkt t) = type-to-string ff t
 

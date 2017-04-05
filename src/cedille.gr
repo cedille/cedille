@@ -21,44 +21,22 @@ NoCheckType : maybeCheckType -> .
 
 Kind : checkKind -> ows '◂' ows kind .
 
-CheckSuper : maybeCheckSuper -> ows '◂' ows '□' .
-NoCheckSuper : maybeCheckSuper -> .
-
 Hnf : cmdTerminator -> '!!'.
 Hanf : cmdTerminator -> '!!-'.
 Normalize : cmdTerminator -> '!' .
 EraseOnly : cmdTerminator -> '.'.
 
+ParamsCons : params -> ows decl params.
+ParamsNil : params -> .
+
 DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows cmdTerminator ! .
 CheckTerm : cmd -> term maybeCheckType ows cmdTerminator ! .
 DefType : cmd -> ! var checkKind ows '=' ows type ows cmdTerminator ! .
 CheckType : cmd -> type checkKind ows cmdTerminator ! .
-DefKind : cmd -> ! kvar maybeCheckSuper ows '=' ows kind ows '.' ! .
-CheckKind : cmd -> kind maybeCheckSuper ows '.' ! .
+DefKind : cmd -> ! kvar params ows '=' ows kind ows '.' ! .
+CheckKind : cmd -> kind ows '.' ! .
 
-Rec : cmd -> ! 'rec' ws ! var decls indices ows '|' ctordecls ows '=' ows type ws 'with' udefs ows '.' ! .
-
-Decl : decl -> ! '(' ows var ows ':' ows tk ows ')' !.
-
-DeclsNil : decls -> ! .
-DeclsCons : decls -> ows decl decls.
-
-Indicese : indices -> ! .
-Indicesne : indices -> ows ':' decls.
-
-Ctordeclse : ctordecls -> ! .
-Ctordeclsne : ctordecls -> ctordeclsne.
-CtordeclsneStart : ctordeclsne -> ows ctordecl.
-CtordeclsneNext : ctordeclsne -> ows ctordecl ows ',' ctordeclsne.
-
-Ctordecl : ctordecl -> ! var ows ':' ows type.
-
-Udefse : udefs -> ! .
-Udefsne : udefs -> udefsne.
-UdefsneNext : udefsne -> ows udef ows ',' udefsne.
-UdefsneStart : udefsne -> ows udef.
-
-Udef : udef -> ! var ows '=' ows term.
+Decl : decl -> ! '(' ows ! var ows ':' ows tk ows ')' !.
 
 Import : cmd -> ! 'import' ws fpth ows '.'! .
 
@@ -98,7 +76,7 @@ embed : lterm -> pterm .
 Var : pterm -> ! var .
 Parens : pterm -> ! '(' ows term ows ')' ! . 
 IotaProj : pterm -> pterm ows '.' ows num ! .
-IotaPair : pterm -> ! '[' ows term ows ',' ows term ows ']' ! .
+IotaPair : pterm -> ! '[' ows term ows ',' ows term optTerm ows ']' ! .
 InlineDef : pterm -> ! '[' ows ! var ows '=' ows term ows ']' !.
 Hole : pterm -> ! '●' .
 
@@ -145,12 +123,17 @@ embed : ltype -> atype.
 TpEq : type -> term ows '≃' ows term .
 TpHole: atype -> ! '●' .
 
+TermArg : arg -> ws lterm .
+TypeArg : arg -> ows '·' ws atype.
+ArgsCons : args -> arg args.
+ArgsNil : args -> ! .
+
 KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '➔' ows kind .
 KndTpArrow : kind -> ltype ows '➔' ows kind .
 Star : kind -> ! '★'.
 KndParens : kind -> ! '(' ows kind ows ')' !.
-KndVar : kind -> ! kvar.
+KndVar : kind -> ! kvar args.
 
 LiftStar : lliftingType -> ! '☆'. 
 LiftPi : liftingType -> ! 'Π' ows var ows ':' ows type ows '.' ows liftingType .

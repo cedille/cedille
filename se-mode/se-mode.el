@@ -141,11 +141,6 @@ of the tree."
   (interactive)
   (se-mode-select-first-helper (se-mode-selected)))
 
-(make-variable-buffer-local
- (defvar se-mode-spans nil
-   "The spans obtained from the backend tool for `se-mode'
-methods."))
-
 (defun se-mode-parse-tree ()
   "Returns the current parse tree if non-nil.  Otherwise, raises
 an error."

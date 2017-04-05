@@ -132,8 +132,8 @@ together with the shortcut to type them in the emacs mode.
      Produces → (right arrow)
 
 '\a'
-     Produces ∀ (forall), for quantification over terms which are
-     erased at run-time, and also over type-level expressions
+     Produces ∀ (forall), for quantification over terms which are erased
+     at run-time, and also over type-level expressions
 
 '\B'
      Produces □ (white square), for the sole superkind of the language
@@ -143,7 +143,7 @@ together with the shortcut to type them in the emacs mode.
      type-level quantification (even over types)
 
 '\s'
-     Produces ★(black star), the kind of types
+     Produces ★ (black star), the kind of types
 
 '\S'
      Produces ☆ (white star), used in lifting types
@@ -153,17 +153,16 @@ together with the shortcut to type them in the emacs mode.
      type-level) to a type-level argument
 
 '\f'
-     Produces ◂ (leftwards double arrow), for checking a term against
-     a type, or type against a kind, at the top-level
+     Produces ◂ (leftwards double arrow), for checking a term against a
+     type, or type against a kind, at the top-level
 
 '\u'
      Produces ↑ (upwards arrow), for lifting
 
 '\p'
-     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ
-     xs .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In
-     other words, project out corresponding arguments of a head-normal
-     form
+     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ xs
+     .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In other
+     words, project out corresponding arguments of a head-normal form
 
 '\h'
      Produces ● (black circle), a hole representing a missing subterm
@@ -193,15 +192,14 @@ together with the shortcut to type them in the emacs mode.
      Produces ρ (rho), for rewriting with an equation
 
 '\y'
-     Produces ς (lowercase final sigma), for proving t ≃ t' from t'
-     ≃ t.
+     Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
 
 '\t'
      Produces θ (theta), for elimination with a motive (of McBride)
 
 '\x'
-     Produces χ (chi), for changing the form of the expected or
-     computed classifier to a definitionally equivalent one
+     Produces χ (chi), for changing the form of the expected or computed
+     classifier to a definitionally equivalent one
 
 '\w'
      Produces ω (omega), for a weak form of extensional equational
@@ -281,6 +279,8 @@ File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up:
 Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
 
 Spring 2016: Aaron Stump
+
+2015: Carl A. Olson created se-mode
 
 
 File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
@@ -362,12 +362,12 @@ Tag Table:
 Node: Top90
 Node: cedille mode commands739
 Node: unicode shortcuts2687
-Node: context mode5405
-Node: credits6799
-Node: options7030
-Node: minor modes7775
-Node: inspect mode8314
-Node: summary mode9033
-Node: Index9222
+Node: context mode5396
+Node: credits6790
+Node: options7058
+Node: minor modes7803
+Node: inspect mode8342
+Node: summary mode9061
+Node: Index9250
 
 End Tag Table

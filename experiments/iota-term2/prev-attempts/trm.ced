@@ -1,0 +1,18 @@
+import ctrm.
+
+param-ctrm ◂ ctrm ➔ ★ = 
+  λ x : ctrm . ∀ A : ★ . ∀ B : A ➔ ★ . ∀ R : (Π a : A . B a) ➔ ★ .
+    ∀ app : Π a : A . B a ➔ B a ➔ B a .
+    ∀ lam : Π a : A . (B a ➔ B a) ➔ B a.
+    ∀ var : Π a : A . Nat ➔ B a .
+      (∀ p1 : (Π a : A . B a) .
+       ∀ p2 : (Π a : A . B a) . 
+       R p1 ➔ R p2 ➔ R (λ a . app a (p1 a) (p2 a))) ➔
+      (∀ f : Π a : A . B a ➔ B a .
+       (∀ p : (Π a : A . B a) . R p ➔ R (λ a . f a (p a))) ➔ 
+       R (λ a . lam a (f a))) ➔
+      (Π n : Nat . R (λ a . var a n)) ➔
+      R (λ a . x · (B a) (app a) (lam a) (var a)) .
+
+trm ◂ ★ = ι x : ctrm . param-ctrm x.
+

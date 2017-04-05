@@ -89,13 +89,27 @@ get-ctxt m Γ ss = m Γ Γ ss
 spanM-push-term-decl : posinfo → var → type → spanM (maybe sym-info)
 spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
 
+spanM-push-term-def : posinfo → var → term → type → spanM (maybe sym-info)
+spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi x t T Γ , ss
+
 -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → var → kind → spanM (maybe sym-info)
 spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
 
+spanM-push-type-def : posinfo → var → type → kind → spanM (maybe sym-info)
+spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi x t T Γ , ss
+
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → maybe sym-info → spanM ⊤
 spanM-restore-info x m Γ ss = triv , ctxt-restore-info Γ x m , ss
+
+_≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
+(m ≫span m') Γ ss with m Γ ss
+(m ≫span m') _ _ | _ , Γ , ss = m' Γ ss
+
+spanM-restore-info* : 𝕃 (string × maybe sym-info) → spanM ⊤
+spanM-restore-info* [] = spanMok
+spanM-restore-info* ((x , m) :: s) = spanM-restore-info x m ≫span spanM-restore-info* s
 
 set-ctxt : ctxt → spanM ⊤
 set-ctxt Γ _ ss = triv , Γ , ss
@@ -105,10 +119,6 @@ infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_
 _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 (m ≫=span m') ss Γ with m ss Γ
 (m ≫=span m') _ _ | v , Γ , ss = m' v Γ ss
-
-_≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
-(m ≫span m') Γ ss with m Γ ss
-(m ≫span m') _ _ | _ , Γ , ss = m' Γ ss
 
 _≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
 _≫=spanj_{A} m m' = m ≫=span cont
@@ -223,6 +233,10 @@ term-argument t = "the argument" , to-string t
 type-argument : type → tagged-val
 type-argument t = "the argument" , to-string t
 
+arg-argument : arg → tagged-val
+arg-argument (TermArg x) = term-argument x
+arg-argument (TypeArg x) = type-argument x
+
 kind-data : kind → tagged-val
 kind-data k = "kind" , to-string k
 
@@ -324,7 +338,7 @@ decl-class-name index = "index"
 
 Decl-span : decl-class → posinfo → var → tk → posinfo → span
 Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type ") ^ (decl-class-name dc))
-                                      pi pi' []
+                                      pi pi' [ binder-data-const ]
 
 TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
 TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data v :: tvs)
@@ -332,9 +346,10 @@ TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
 Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data v :: tvs)
 
-KndVar-span : ctxt → posinfo → string → checking-mode → span
-KndVar-span Γ pi v check = mk-span "Kind variable" pi (posinfo-plus-str pi v)
-                       (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: [ super-kind-data ])
+KndVar-span : ctxt → posinfo → string → args → checking-mode → 𝕃 tagged-val → span
+KndVar-span Γ pi v ys check tvs =
+  mk-span "Kind variable" pi (args-end-pos ys)
+    (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: super-kind-data :: tvs)
 
 var-span : ctxt → posinfo → string → checking-mode → tk → span
 var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
@@ -386,7 +401,8 @@ TpArrow-span : type → type → checking-mode → 𝕃 tagged-val → span
 TpArrow-span t1 t2 check tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (checking-data check :: ll-data-type :: tvs)
 
 TpEq-span : term → term → checking-mode → 𝕃 tagged-val → span
-TpEq-span t1 t2 check tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2) (checking-data check :: ll-data-type :: tvs)
+TpEq-span t1 t2 check tvs = mk-span "Equation" (term-start-pos t1) (term-end-pos t2)
+                             (explain "Equation between terms" :: checking-data check :: ll-data-type :: tvs)
 
 Star-span : posinfo → checking-mode → span
 Star-span pi check = mk-span Star-name pi (posinfo-plus pi 1) (checking-data check :: [ ll-data-kind ])
@@ -402,32 +418,8 @@ KndArrow-span k k' check = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos
 KndTpArrow-span : type → kind → checking-mode → span
 KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) (checking-data check :: ll-data-kind :: [ super-kind-data ])
 
-rectype-name-span : posinfo → var → type → kind → checking-mode → span
-rectype-name-span pi v tp k check =
-  mk-span "Recursively defined type" pi (posinfo-plus-str pi v)
-    (checking-data check :: summary-data v (to-string k) :: [ "definition" , to-string tp ])
-
-Udefse-span : posinfo → 𝕃 tagged-val → span
-Udefse-span pi tvs = mk-span "Empty constructor definitions part of a recursive type definition" pi (posinfo-plus pi 1) tvs
-
-Ctordeclse-span : posinfo → 𝕃 tagged-val → span
-Ctordeclse-span pi tvs = mk-span "Empty constructor declarations part of a recursive type definition" pi (posinfo-plus pi 1) tvs
-
 erasure : term → tagged-val
 erasure t = "erasure" , to-string (erase-term t)
-
-Udef-span : posinfo → var → posinfo → term → 𝕃 tagged-val → span
-Udef-span pi x pi' t tvs =
-  let tvs = tvs ++ ( explain ("Definition of constructor " ^ x) :: [ erasure t ]) in
-    mk-span "Constructor definition" pi pi' tvs
-
-Ctordecl-span : posinfo → var → type → 𝕃 tagged-val → span
-Ctordecl-span pi x tp tvs =
-  mk-span "Constructor declaration" pi (type-end-pos tp)
-    (summary-data ("ctor " ^ x) (to-string tp) :: tvs ++ [ explain ("Declaration of a type for constructor " ^ x)])
-
-Udefs-span : udefs → span
-Udefs-span us = mk-span "Constructor definitions (using lambda encodings)" (udefs-start-pos us) (udefs-end-pos us) []
 
 Lam-span-erased : lam → string
 Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
@@ -481,7 +473,7 @@ DefType-span pi x checked mk tp pi' tvs =
         h-summary (just k) = (checking-data checking :: [ summary-data x (to-string k) ])
 
 DefKind-span : posinfo → var → kind → posinfo → span
-DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' [ summary-data x "□" ]
+DefKind-span pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data k :: [ summary-data x "□" ])
 
 unimplemented-term-span : posinfo → posinfo → maybe type → span
 unimplemented-term-span pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]

@@ -9,19 +9,23 @@ pos ◂ ★ = List · Bool .
 subterm-th ◂ Nat ➔ ★ =
   λ n : Nat .
     ↑ X . n · (λ _ : Nat . X) : ((Nat ➔ ☆ ➔ ☆) ➔ ☆ ➔ ☆)
-           · (λ _ : Nat . λ R : ★ . sftrm ➔ R) · sftrm .
+           · (λ _ : Nat . λ R : ★ . sftrm ➔ R) · (Maybe · sftrm) .
 
 testt ◂ ★ = subterm-th (S (S (S (S Z)))) !
 
 subterm-t ◂ ★ = Sigma · Nat · subterm-th.
 
-subterm ◂ sftrm ➔ (pos ➔ Maybe · subterm-t) =
+subterm-var ◂ sftrm ➔ pos ➔ subterm-t =
+  λ t . λ p . θ p (λ _ . λ _ . λ _ . mksigma · Nat · subterm-th Z (nothing · sftrm))
+                  (mksigma · Nat · subterm-th Z (just · sftrm t)) .
+
+subterm ◂ sftrm ➔ (pos ➔ subterm-t) =
   λ t . 
-    t · (pos ➔ Maybe · subterm-t)
+    t · (pos ➔ subterm-t)
     (λ t1 . λ t2 . λ r1 . λ r2 . λ p .
        θ p
          (λ b . λ tp . λ _ . θ b (r1 tp) (r2 tp))
-         (just · subterm-t (mksigma · Nat · subterm-th Z (sfapp (csf t1) (csf t2)))))
-    (λ f . λ r . ●)
+         (mksigma · Nat · subterm-th Z (just · sftrm (sfapp (csf t1) (csf t2)))))
+    (λ f . λ r . r ●)
     ●
 .  

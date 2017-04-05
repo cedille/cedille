@@ -191,10 +191,10 @@ lambda-bound-class-if NoClass atk = atk
 lambda-bound-class-if (SomeClass atk') atk = atk'
 
 var-spans-term : term → spanM ⊤
+var-spans-optTerm : optTerm → spanM ⊤
 var-spans-term (App t x t') = var-spans-term t ≫span var-spans-term t'
 var-spans-term (AppTp t x) = var-spans-term t 
-var-spans-term (Beta x NoTerm) = spanMok
-var-spans-term (Beta x (SomeTerm t _)) = var-spans-term t
+var-spans-term (Beta x ot) = var-spans-optTerm ot 
 var-spans-term (Chi x x₁ t) = var-spans-term t
 var-spans-term (Delta x t) = var-spans-term t
 var-spans-term (Omega x t) = var-spans-term t
@@ -223,10 +223,9 @@ var-spans-term (InlineDef _ pi' x t _) =
   get-ctxt (λ Γ →
     spanM-add (Var-span Γ pi' x untyped []) ≫span
     set-ctxt (ctxt-var-decl pi' x Γ))
-var-spans-term (IotaPair _ t1 t2 _) = var-spans-term t1 ≫span var-spans-term t2
+var-spans-term (IotaPair _ t1 t2 ot _) = var-spans-term t1 ≫span var-spans-term t2 ≫span var-spans-optTerm ot
 var-spans-term (IotaProj t _ _) = var-spans-term t
 
-var-spans-optTerm : optTerm → spanM ⊤
 var-spans-optTerm NoTerm = spanMok
 var-spans-optTerm (SomeTerm t _) = var-spans-term t
 
@@ -678,23 +677,30 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
           helper-add-span Γ [ missing-type ] ≫span
           set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t tt) Γ) 
 
-check-termi (IotaPair pi t1 t2 pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
+check-termi (IotaPair pi t1 t2 ot pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
     check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
-    get-ctxt (λ Γ →
-    spanM-add (IotaPair-span pi pi' checking
+    add-spans-if ot t1 t2 ≫span
+    get-ctxt (λ Γ → 
+    spanM-add (IotaPair-span pi pi' checking (check-conv-if Γ ot t1 t2))))
+  where err : ctxt → string → term → tagged-val
+        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t tt)
+        add-spans-if : optTerm → term → term → spanM ⊤
+        add-spans-if NoTerm _ _ = spanMok
+        add-spans-if (SomeTerm t _) t1 t2 = check-termi t (just (TpEq (erase-term t1) (erase-term t2)))
+        check-conv-if : ctxt → optTerm → term → term → 𝕃 tagged-val
+        check-conv-if Γ NoTerm t1 t2 =
                 (if conv-term Γ t1 t2 then
                   []
                  else ((error-data "The two components of the iota-pair are not convertible (as required)." ) ::
-                       (err Γ "first" t1) :: (err Γ "second" t2) :: [])))))
-  where err : ctxt → string → term → tagged-val
-        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t tt)
+                       (err Γ "first" t1) :: (err Γ "second" t2) :: []))
+        check-conv-if Γ (SomeTerm _ _) _ _ = []
 
-check-termi (IotaPair pi t1 t2 pi') (just tp) =
+check-termi (IotaPair pi t1 t2 _ pi') (just tp) =
   spanM-add (IotaPair-span pi pi' checking [ error-data "The type we are checking against is not a iota-type" ])
 
-check-termi (IotaPair pi t1 t2 pi') nothing =
+check-termi (IotaPair pi t1 t2 _ pi') nothing =
   spanM-add (IotaPair-span pi pi' synthesizing [ error-data "Iota pairs can only be used in a checking position" ]) ≫span
   spanMr nothing
 
@@ -924,7 +930,7 @@ check-typei (TpEq t1 t2) k =
     spanM-add (unchecked-term-span t1) ≫span
     spanM-add (unchecked-term-span t2) ≫span
     return-star-when k
-  
+
 check-typei (Lft pi pi' X t l) k = 
   add-tk pi' X (Tkk star) ≫=span λ mi → 
   check-term t (just (liftingType-to-type X l)) ≫span
@@ -957,7 +963,50 @@ check-kind (KndParens pi k pi') =
   spanM-add (punctuation-span "Parens (kind)" pi pi') ≫span
   check-kind k
 check-kind (Star pi) = spanM-add (Star-span pi checking)
-check-kind (KndVar pi x) = get-ctxt (λ Γ → spanM-add (KndVar-span Γ pi x checking))
+check-kind (KndVar pi x ys) =
+  get-ctxt (λ Γ → helper (ctxt-lookup-kind-var-def Γ x) ys)
+  where helper : maybe (params × kind) → args → spanM ⊤
+        helper (just (ps , k)) ys =
+          check-args-against-params ps ys ≫=span λ m →
+          spanM-restore-info* m
+          where check-args-against-params : params → args → spanM (𝕃 (string × maybe sym-info))
+                check-args-against-params (ParamsCons (Decl _ pi x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
+                  check-type T (just k) ≫span
+                  spanM-push-type-def pi x T k ≫=span λ m → 
+                  check-args-against-params ps ys ≫=span λ ms →
+                  spanMr ((x , m) :: ms)
+                check-args-against-params (ParamsCons (Decl _ pi x (Tkt T) _) ps) (ArgsCons (TermArg t) ys) =
+                  check-term t (just T) ≫span
+                  spanM-push-term-def pi x t T ≫=span λ m → 
+                  check-args-against-params ps ys ≫=span λ ms →
+                  spanMr ((x , m) :: ms)
+                check-args-against-params (ParamsCons (Decl _ x₁ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg x₅) ys₂) =
+                  get-ctxt (λ Γ → 
+                  spanM-add (KndVar-span Γ pi x ys checking
+                               ( error-data ("A term argument was supplied for type parameter " ^ x ^ " of the defined kind.") ::
+                                 [ term-argument x₅ ]))) ≫span
+                  spanMr []
+                check-args-against-params (ParamsCons (Decl _ x₁ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
+                  get-ctxt (λ Γ → 
+                  spanM-add (KndVar-span Γ pi x ys checking
+                               ( error-data ("A type argument was supplied for type parameter " ^ x ^ " of the defined kind.") ::
+                                 [ type-argument x₅ ]))) ≫span
+                  spanMr []
+                check-args-against-params (ParamsCons (Decl _ _ x _ _) ps₁) (ArgsNil _) =
+                  get-ctxt (λ Γ → 
+                  spanM-add (KndVar-span Γ pi x ys checking
+                               [ error-data ("Missing an argument for parameter " ^ x ^ " of the defined kind.") ])) ≫span
+                  spanMr []             
+                check-args-against-params ParamsNil (ArgsCons x₁ ys₂) = 
+                  get-ctxt (λ Γ → 
+                  spanM-add (KndVar-span Γ pi x ys checking
+                               (error-data "An extra argument was given to the defined kind" ::
+                                [ arg-argument x₁ ]))) ≫span
+                  spanMr []                                             
+                check-args-against-params ParamsNil (ArgsNil x₁) =
+                                  get-ctxt (λ Γ → spanM-add (KndVar-span Γ pi x ys checking [])) ≫span spanMr []
+        helper nothing _ = get-ctxt (λ Γ → spanM-add (KndVar-span Γ pi x ys checking [ error-data "Undefined kind variable." ]))
+    
 check-kind (KndArrow k k') = 
   spanM-add (KndArrow-span k k' checking) ≫span
   check-kind k ≫span

@@ -8,5 +8,7 @@
 
 @item Spring 2016: Aaron Stump
 
+@item 2015: Carl A. Olson created se-mode
+
 @end table
 

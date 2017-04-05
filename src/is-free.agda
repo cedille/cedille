@@ -19,10 +19,12 @@ is-free-in-term : is-free-in-t term
 is-free-in-type : is-free-in-t type
 is-free-in-kind : is-free-in-t kind
 is-free-in-optClass : is-free-in-t optClass
-is-free-in-optType : is-free-in-t optType 
+is-free-in-optType : is-free-in-t optType
+is-free-in-optTerm : is-free-in-t optTerm
 is-free-in-tk : is-free-in-t tk 
 is-free-in-liftingType : is-free-in-t liftingType
 is-free-in-maybeAtype : is-free-in-t maybeAtype
+is-free-in-args : is-free-in-t args
 
 is-free-in-term ce x (App t Erased t') = is-free-in-term ce x t || (ce && is-free-in-term ce x t')
 is-free-in-term ce x (App t NotErased t') = is-free-in-term ce x t || is-free-in-term ce x t'
@@ -35,13 +37,12 @@ is-free-in-term ce (inj₂ (Γ , t)) (Lam _ b _ x' oc t') =
   (ce && is-free-in-optClass ce (inj₂ (Γ , t)) oc) || is-free-in-term ce (inj₂ (Γ , stringset-insert t x')) t'
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce (inj₁ x) (Var _ x') = x =string x'
-is-free-in-term ce (inj₂ (Γ , t)) (Var _ x') = ~ (stringset-contains t x') && ~ (ctxt-defines-var Γ x')
-is-free-in-term ce x (Beta _ NoTerm) = ff
-is-free-in-term ce x (Beta _ (SomeTerm t _)) = is-free-in-term ce x t
+is-free-in-term ce (inj₂ (Γ , t)) (Var _ x') = ~ (stringset-contains t x') && ~ (ctxt-declares-term-var Γ x')
+is-free-in-term ce x (Beta _ ot) = is-free-in-optTerm ce x ot
 is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
 is-free-in-term ce x (Omega _ t) = is-free-in-term ce x t
 is-free-in-term ce x (InlineDef _ _ x' t _) = is-free-in-term ce x t
-is-free-in-term ce x (IotaPair _ t1 t2 _) = is-free-in-term ce x t1 || is-free-in-term ce x t2
+is-free-in-term ce x (IotaPair _ t1 t2 ot _) = is-free-in-term ce x t1 || (ce && is-free-in-term ce x t2) || (ce && is-free-in-optTerm ce x ot)
 is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
 is-free-in-term ce x (PiInj _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Epsilon _ _ _ t) = is-free-in-term ce x t
@@ -76,7 +77,7 @@ is-free-in-type ce x (TpArrow t _ t') = is-free-in-type ce x t || is-free-in-typ
 is-free-in-type ce x (TpEq t t') = is-free-in-term ce x t || is-free-in-term ce x t'
 is-free-in-type ce x (TpParens x₁ t x₂) = is-free-in-type ce x t
 is-free-in-type ce (inj₁ x) (TpVar _ x') = x =string x'
-is-free-in-type ce (inj₂ (Γ , t)) (TpVar _ x') = ~ (stringset-contains t x')
+is-free-in-type ce (inj₂ (Γ , t)) (TpVar _ x') = ~ (stringset-contains t x') && ~ (ctxt-declares-type-var Γ x')
 is-free-in-type ce x (NoSpans t _) = is-free-in-type ce x t
 
 --ACG
@@ -89,15 +90,22 @@ is-free-in-kind ce (inj₁ x) (KndPi _ _ x' atk k) = is-free-in-tk ce (inj₁ x)
 is-free-in-kind ce (inj₂ (Γ , t)) (KndPi _ _ x' atk k) =
   is-free-in-tk ce (inj₂ (Γ , t)) atk || (is-free-in-kind ce (inj₂ (Γ , stringset-insert t x')) k)
 is-free-in-kind ce x (KndTpArrow t k) = is-free-in-type ce x t || is-free-in-kind ce x k
-is-free-in-kind ce (inj₁ x) (KndVar _ x') = x =string x'
-is-free-in-kind ce (inj₂ (Γ , t)) (KndVar _ x') = ~ (stringset-contains t x')
+is-free-in-kind ce (inj₁ x) (KndVar _ x' ys) = x =string x' || is-free-in-args ce (inj₁ x) ys
+is-free-in-kind ce (inj₂ (Γ , t)) (KndVar _ x' ys) = is-free-in-args ce (inj₂ (Γ , t)) ys
 is-free-in-kind ce x (Star x₁) = ff
+
+is-free-in-args ce x (ArgsCons (TermArg y) ys) = is-free-in-term ce x y || is-free-in-args ce x ys
+is-free-in-args ce x (ArgsCons (TypeArg y) ys) = is-free-in-type ce x y || is-free-in-args ce x ys
+is-free-in-args ce x (ArgsNil x₁) = ff
 
 is-free-in-optClass ce x NoClass = ff
 is-free-in-optClass ce x (SomeClass atk) = is-free-in-tk ce x atk
 
 is-free-in-optType ce x NoType = ff
 is-free-in-optType ce x (SomeType t) = is-free-in-type ce x t
+
+is-free-in-optTerm ce x NoTerm = ff
+is-free-in-optTerm ce x (SomeTerm t _) = is-free-in-term ce x t
 
 is-free-in-tk ce x (Tkt t) = is-free-in-type ce x t
 is-free-in-tk ce x (Tkk k) = is-free-in-kind ce x k

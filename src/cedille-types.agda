@@ -38,6 +38,14 @@ var-star-12 = string
 
 mutual
 
+  data arg : Set where 
+    TermArg : term → arg
+    TypeArg : type → arg
+
+  data args : Set where 
+    ArgsCons : arg → args → args
+    ArgsNil : posinfo → args
+
   data arrowtype : Set where 
     ErasedArrow : arrowtype
     UnerasedArrow : arrowtype
@@ -50,14 +58,13 @@ mutual
     Kind : kind → checkKind
 
   data cmd : Set where 
-    CheckKind : kind → maybeCheckSuper → posinfo → cmd
+    CheckKind : kind → posinfo → cmd
     CheckTerm : term → maybeCheckType → cmdTerminator → posinfo → cmd
     CheckType : type → checkKind → cmdTerminator → posinfo → cmd
-    DefKind : posinfo → kvar → maybeCheckSuper → kind → posinfo → cmd
+    DefKind : posinfo → kvar → params → kind → posinfo → cmd
     DefTerm : posinfo → var → maybeCheckType → term → cmdTerminator → posinfo → cmd
     DefType : posinfo → var → checkKind → type → cmdTerminator → posinfo → cmd
     Import : posinfo → fpth → posinfo → cmd
-    Rec : posinfo → posinfo → var → decls → indices → ctordecls → type → udefs → posinfo → cmd
 
   data cmdTerminator : Set where 
     EraseOnly : cmdTerminator
@@ -69,34 +76,15 @@ mutual
     CmdsNext : cmd → cmds → cmds
     CmdsStart : cmds
 
-  data ctordecl : Set where 
-    Ctordecl : posinfo → var → type → ctordecl
-
-  data ctordecls : Set where 
-    Ctordeclse : posinfo → ctordecls
-    Ctordeclsne : ctordeclsne → ctordecls
-
-  data ctordeclsne : Set where 
-    CtordeclsneNext : ctordecl → ctordeclsne → ctordeclsne
-    CtordeclsneStart : ctordecl → ctordeclsne
-
   data decl : Set where 
-    Decl : posinfo → var → tk → posinfo → decl
-
-  data decls : Set where 
-    DeclsCons : decl → decls → decls
-    DeclsNil : posinfo → decls
-
-  data indices : Set where 
-    Indicese : posinfo → indices
-    Indicesne : decls → indices
+    Decl : posinfo → posinfo → var → tk → posinfo → decl
 
   data kind : Set where 
     KndArrow : kind → kind → kind
     KndParens : posinfo → kind → posinfo → kind
     KndPi : posinfo → posinfo → var → tk → kind → kind
     KndTpArrow : type → kind → kind
-    KndVar : posinfo → kvar → kind
+    KndVar : posinfo → kvar → args → kind
     Star : posinfo → kind
 
   data lam : Set where 
@@ -122,10 +110,6 @@ mutual
   data maybeAtype : Set where 
     Atype : type → maybeAtype
     NoAtype : maybeAtype
-
-  data maybeCheckSuper : Set where 
-    CheckSuper : maybeCheckSuper
-    NoCheckSuper : maybeCheckSuper
 
   data maybeCheckType : Set where 
     NoCheckType : maybeCheckType
@@ -159,6 +143,10 @@ mutual
     NoType : optType
     SomeType : type → optType
 
+  data params : Set where 
+    ParamsCons : decl → params → params
+    ParamsNil : params
+
   data rho : Set where 
     RhoPlain : rho
     RhoPlus : rho
@@ -175,7 +163,7 @@ mutual
     Epsilon : posinfo → leftRight → maybeMinus → term → term
     Hole : posinfo → term
     InlineDef : posinfo → posinfo → var → term → posinfo → term
-    IotaPair : posinfo → term → term → posinfo → term
+    IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
     Omega : posinfo → term → term
@@ -211,17 +199,6 @@ mutual
     TpParens : posinfo → type → posinfo → type
     TpVar : posinfo → var → type
 
-  data udef : Set where 
-    Udef : posinfo → var → term → udef
-
-  data udefs : Set where 
-    Udefse : posinfo → udefs
-    Udefsne : udefsne → udefs
-
-  data udefsne : Set where 
-    UdefsneNext : udef → udefsne → udefsne
-    UdefsneStart : udef → udefsne
-
   data vars : Set where 
     VarsNext : var → vars → vars
     VarsStart : var → vars
@@ -241,25 +218,21 @@ pterm : Set
 pterm = term
 
 data ParseTreeT : Set where
+  parsed-arg : arg → ParseTreeT
+  parsed-args : args → ParseTreeT
   parsed-arrowtype : arrowtype → ParseTreeT
   parsed-binder : binder → ParseTreeT
   parsed-checkKind : checkKind → ParseTreeT
   parsed-cmd : cmd → ParseTreeT
   parsed-cmdTerminator : cmdTerminator → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
-  parsed-ctordecl : ctordecl → ParseTreeT
-  parsed-ctordecls : ctordecls → ParseTreeT
-  parsed-ctordeclsne : ctordeclsne → ParseTreeT
   parsed-decl : decl → ParseTreeT
-  parsed-decls : decls → ParseTreeT
-  parsed-indices : indices → ParseTreeT
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
   parsed-leftRight : leftRight → ParseTreeT
   parsed-liftingType : liftingType → ParseTreeT
   parsed-lterms : lterms → ParseTreeT
   parsed-maybeAtype : maybeAtype → ParseTreeT
-  parsed-maybeCheckSuper : maybeCheckSuper → ParseTreeT
   parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
   parsed-maybeKvarEq : maybeKvarEq → ParseTreeT
@@ -268,15 +241,13 @@ data ParseTreeT : Set where
   parsed-optClass : optClass → ParseTreeT
   parsed-optTerm : optTerm → ParseTreeT
   parsed-optType : optType → ParseTreeT
+  parsed-params : params → ParseTreeT
   parsed-rho : rho → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
   parsed-theta : theta → ParseTreeT
   parsed-tk : tk → ParseTreeT
   parsed-type : type → ParseTreeT
-  parsed-udef : udef → ParseTreeT
-  parsed-udefs : udefs → ParseTreeT
-  parsed-udefsne : udefsne → ParseTreeT
   parsed-vars : vars → ParseTreeT
   parsed-aterm : term → ParseTreeT
   parsed-atype : type → ParseTreeT
@@ -439,6 +410,14 @@ var-star-12ToString : var-star-12 → string
 var-star-12ToString x = "(var-star-12 " ^ x ^ ")"
 
 mutual
+  argToString : arg → string
+  argToString (TermArg x0) = "(TermArg" ^ " " ^ (termToString x0) ^ ")"
+  argToString (TypeArg x0) = "(TypeArg" ^ " " ^ (typeToString x0) ^ ")"
+
+  argsToString : args → string
+  argsToString (ArgsCons x0 x1) = "(ArgsCons" ^ " " ^ (argToString x0) ^ " " ^ (argsToString x1) ^ ")"
+  argsToString (ArgsNil x0) = "(ArgsNil" ^ " " ^ (posinfoToString x0) ^ ")"
+
   arrowtypeToString : arrowtype → string
   arrowtypeToString (ErasedArrow) = "ErasedArrow" ^ ""
   arrowtypeToString (UnerasedArrow) = "UnerasedArrow" ^ ""
@@ -451,14 +430,13 @@ mutual
   checkKindToString (Kind x0) = "(Kind" ^ " " ^ (kindToString x0) ^ ")"
 
   cmdToString : cmd → string
-  cmdToString (CheckKind x0 x1 x2) = "(CheckKind" ^ " " ^ (kindToString x0) ^ " " ^ (maybeCheckSuperToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  cmdToString (CheckKind x0 x1) = "(CheckKind" ^ " " ^ (kindToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   cmdToString (CheckTerm x0 x1 x2 x3) = "(CheckTerm" ^ " " ^ (termToString x0) ^ " " ^ (maybeCheckTypeToString x1) ^ " " ^ (cmdTerminatorToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
   cmdToString (CheckType x0 x1 x2 x3) = "(CheckType" ^ " " ^ (typeToString x0) ^ " " ^ (checkKindToString x1) ^ " " ^ (cmdTerminatorToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
-  cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (maybeCheckSuperToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (paramsToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (DefTerm x0 x1 x2 x3 x4 x5) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (cmdTerminatorToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
   cmdToString (DefType x0 x1 x2 x3 x4 x5) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (checkKindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (cmdTerminatorToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
   cmdToString (Import x0 x1 x2) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  cmdToString (Rec x0 x1 x2 x3 x4 x5 x6 x7 x8) = "(Rec" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (declsToString x3) ^ " " ^ (indicesToString x4) ^ " " ^ (ctordeclsToString x5) ^ " " ^ (typeToString x6) ^ " " ^ (udefsToString x7) ^ " " ^ (posinfoToString x8) ^ ")"
 
   cmdTerminatorToString : cmdTerminator → string
   cmdTerminatorToString (EraseOnly) = "EraseOnly" ^ ""
@@ -470,34 +448,15 @@ mutual
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
   cmdsToString (CmdsStart) = "CmdsStart" ^ ""
 
-  ctordeclToString : ctordecl → string
-  ctordeclToString (Ctordecl x0 x1 x2) = "(Ctordecl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ ")"
-
-  ctordeclsToString : ctordecls → string
-  ctordeclsToString (Ctordeclse x0) = "(Ctordeclse" ^ " " ^ (posinfoToString x0) ^ ")"
-  ctordeclsToString (Ctordeclsne x0) = "(Ctordeclsne" ^ " " ^ (ctordeclsneToString x0) ^ ")"
-
-  ctordeclsneToString : ctordeclsne → string
-  ctordeclsneToString (CtordeclsneNext x0 x1) = "(CtordeclsneNext" ^ " " ^ (ctordeclToString x0) ^ " " ^ (ctordeclsneToString x1) ^ ")"
-  ctordeclsneToString (CtordeclsneStart x0) = "(CtordeclsneStart" ^ " " ^ (ctordeclToString x0) ^ ")"
-
   declToString : decl → string
-  declToString (Decl x0 x1 x2 x3) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (tkToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
-
-  declsToString : decls → string
-  declsToString (DeclsCons x0 x1) = "(DeclsCons" ^ " " ^ (declToString x0) ^ " " ^ (declsToString x1) ^ ")"
-  declsToString (DeclsNil x0) = "(DeclsNil" ^ " " ^ (posinfoToString x0) ^ ")"
-
-  indicesToString : indices → string
-  indicesToString (Indicese x0) = "(Indicese" ^ " " ^ (posinfoToString x0) ^ ")"
-  indicesToString (Indicesne x0) = "(Indicesne" ^ " " ^ (declsToString x0) ^ ")"
+  declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
 
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndParens x0 x1 x2) = "(KndParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   kindToString (KndPi x0 x1 x2 x3 x4) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (kindToString x4) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
-  kindToString (KndVar x0 x1) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
+  kindToString (KndVar x0 x1 x2) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (argsToString x2) ^ ")"
   kindToString (Star x0) = "(Star" ^ " " ^ (posinfoToString x0) ^ ")"
 
   lamToString : lam → string
@@ -523,10 +482,6 @@ mutual
   maybeAtypeToString : maybeAtype → string
   maybeAtypeToString (Atype x0) = "(Atype" ^ " " ^ (typeToString x0) ^ ")"
   maybeAtypeToString (NoAtype) = "NoAtype" ^ ""
-
-  maybeCheckSuperToString : maybeCheckSuper → string
-  maybeCheckSuperToString (CheckSuper) = "CheckSuper" ^ ""
-  maybeCheckSuperToString (NoCheckSuper) = "NoCheckSuper" ^ ""
 
   maybeCheckTypeToString : maybeCheckType → string
   maybeCheckTypeToString (NoCheckType) = "NoCheckType" ^ ""
@@ -560,6 +515,10 @@ mutual
   optTypeToString (NoType) = "NoType" ^ ""
   optTypeToString (SomeType x0) = "(SomeType" ^ " " ^ (typeToString x0) ^ ")"
 
+  paramsToString : params → string
+  paramsToString (ParamsCons x0 x1) = "(ParamsCons" ^ " " ^ (declToString x0) ^ " " ^ (paramsToString x1) ^ ")"
+  paramsToString (ParamsNil) = "ParamsNil" ^ ""
+
   rhoToString : rho → string
   rhoToString (RhoPlain) = "RhoPlain" ^ ""
   rhoToString (RhoPlus) = "RhoPlus" ^ ""
@@ -576,7 +535,7 @@ mutual
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (InlineDef x0 x1 x2 x3 x4) = "(InlineDef" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  termToString (IotaPair x0 x1 x2 x3) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
+  termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
@@ -612,41 +571,26 @@ mutual
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
-  udefToString : udef → string
-  udefToString (Udef x0 x1 x2) = "(Udef" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (termToString x2) ^ ")"
-
-  udefsToString : udefs → string
-  udefsToString (Udefse x0) = "(Udefse" ^ " " ^ (posinfoToString x0) ^ ")"
-  udefsToString (Udefsne x0) = "(Udefsne" ^ " " ^ (udefsneToString x0) ^ ")"
-
-  udefsneToString : udefsne → string
-  udefsneToString (UdefsneNext x0 x1) = "(UdefsneNext" ^ " " ^ (udefToString x0) ^ " " ^ (udefsneToString x1) ^ ")"
-  udefsneToString (UdefsneStart x0) = "(UdefsneStart" ^ " " ^ (udefToString x0) ^ ")"
-
   varsToString : vars → string
   varsToString (VarsNext x0 x1) = "(VarsNext" ^ " " ^ (varToString x0) ^ " " ^ (varsToString x1) ^ ")"
   varsToString (VarsStart x0) = "(VarsStart" ^ " " ^ (varToString x0) ^ ")"
 
 ParseTreeToString : ParseTreeT → string
+ParseTreeToString (parsed-arg t) = argToString t
+ParseTreeToString (parsed-args t) = argsToString t
 ParseTreeToString (parsed-arrowtype t) = arrowtypeToString t
 ParseTreeToString (parsed-binder t) = binderToString t
 ParseTreeToString (parsed-checkKind t) = checkKindToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmdTerminator t) = cmdTerminatorToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
-ParseTreeToString (parsed-ctordecl t) = ctordeclToString t
-ParseTreeToString (parsed-ctordecls t) = ctordeclsToString t
-ParseTreeToString (parsed-ctordeclsne t) = ctordeclsneToString t
 ParseTreeToString (parsed-decl t) = declToString t
-ParseTreeToString (parsed-decls t) = declsToString t
-ParseTreeToString (parsed-indices t) = indicesToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-leftRight t) = leftRightToString t
 ParseTreeToString (parsed-liftingType t) = liftingTypeToString t
 ParseTreeToString (parsed-lterms t) = ltermsToString t
 ParseTreeToString (parsed-maybeAtype t) = maybeAtypeToString t
-ParseTreeToString (parsed-maybeCheckSuper t) = maybeCheckSuperToString t
 ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
@@ -655,15 +599,13 @@ ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-optTerm t) = optTermToString t
 ParseTreeToString (parsed-optType t) = optTypeToString t
+ParseTreeToString (parsed-params t) = paramsToString t
 ParseTreeToString (parsed-rho t) = rhoToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
 ParseTreeToString (parsed-theta t) = thetaToString t
 ParseTreeToString (parsed-tk t) = tkToString t
 ParseTreeToString (parsed-type t) = typeToString t
-ParseTreeToString (parsed-udef t) = udefToString t
-ParseTreeToString (parsed-udefs t) = udefsToString t
-ParseTreeToString (parsed-udefsne t) = udefsneToString t
 ParseTreeToString (parsed-vars t) = varsToString t
 ParseTreeToString (parsed-aterm t) = termToString t
 ParseTreeToString (parsed-atype t) = typeToString t
@@ -775,18 +717,6 @@ mutual
   norm-vars x = x
 
   {-# TERMINATING #-}
-  norm-udefsne : (x : udefsne) → udefsne
-  norm-udefsne x = x
-
-  {-# TERMINATING #-}
-  norm-udefs : (x : udefs) → udefs
-  norm-udefs x = x
-
-  {-# TERMINATING #-}
-  norm-udef : (x : udef) → udef
-  norm-udef x = x
-
-  {-# TERMINATING #-}
   norm-type : (x : type) → type
   norm-type (TpApp x1 (TpAppt x2 x3)) = (norm-type (TpAppt  (norm-type (TpApp  x1 x2) ) x3) )
   norm-type (TpApp x1 (TpApp x2 x3)) = (norm-type (TpApp  (norm-type (TpApp  x1 x2) ) x3) )
@@ -827,6 +757,10 @@ mutual
   norm-posinfo x = x
 
   {-# TERMINATING #-}
+  norm-params : (x : params) → params
+  norm-params x = x
+
+  {-# TERMINATING #-}
   norm-optType : (x : optType) → optType
   norm-optType x = x
 
@@ -857,10 +791,6 @@ mutual
   {-# TERMINATING #-}
   norm-maybeCheckType : (x : maybeCheckType) → maybeCheckType
   norm-maybeCheckType x = x
-
-  {-# TERMINATING #-}
-  norm-maybeCheckSuper : (x : maybeCheckSuper) → maybeCheckSuper
-  norm-maybeCheckSuper x = x
 
   {-# TERMINATING #-}
   norm-maybeAtype : (x : maybeAtype) → maybeAtype
@@ -906,28 +836,8 @@ mutual
   norm-kind x = x
 
   {-# TERMINATING #-}
-  norm-indices : (x : indices) → indices
-  norm-indices x = x
-
-  {-# TERMINATING #-}
-  norm-decls : (x : decls) → decls
-  norm-decls x = x
-
-  {-# TERMINATING #-}
   norm-decl : (x : decl) → decl
   norm-decl x = x
-
-  {-# TERMINATING #-}
-  norm-ctordeclsne : (x : ctordeclsne) → ctordeclsne
-  norm-ctordeclsne x = x
-
-  {-# TERMINATING #-}
-  norm-ctordecls : (x : ctordecls) → ctordecls
-  norm-ctordecls x = x
-
-  {-# TERMINATING #-}
-  norm-ctordecl : (x : ctordecl) → ctordecl
-  norm-ctordecl x = x
 
   {-# TERMINATING #-}
   norm-cmds : (x : cmds) → cmds
@@ -960,6 +870,14 @@ mutual
   {-# TERMINATING #-}
   norm-arrowtype : (x : arrowtype) → arrowtype
   norm-arrowtype x = x
+
+  {-# TERMINATING #-}
+  norm-args : (x : args) → args
+  norm-args x = x
+
+  {-# TERMINATING #-}
+  norm-arg : (x : arg) → arg
+  norm-arg x = x
 
 isParseTree : ParseTreeT → 𝕃 char → string → Set
 isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed runs -}

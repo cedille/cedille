@@ -1,0 +1,5 @@
+import trm.
+
+maxvar ◂ ctrm ➔ Nat = λ t . t · Nat max (λ f . f Z) (λ n . n) .
+
+maxvar test-ctrm1 !

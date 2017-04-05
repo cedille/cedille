@@ -17,8 +17,10 @@ substh-kind : substh-ret-t kind
 substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
 substh-optType : substh-ret-t optType
+substh-optTerm : substh-ret-t optTerm
 substh-liftingType : substh-ret-t liftingType
 substh-maybeAtype : substh-ret-t maybeAtype
+substh-args : substh-ret-t args
 
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
 subst-rename-var-if Γ ρ x y t = 
@@ -43,12 +45,11 @@ substh-term{TERM} Γ ρ t x (Var pi y) =
    if y' =string x then t else (Var pi y')
 substh-term Γ ρ t x (Var pi y) = Var pi (renamectxt-rep ρ y)
 substh-term Γ ρ t x (Unfold pi t') = Unfold pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Beta pi NoTerm) = Beta pi NoTerm
-substh-term Γ ρ t x (Beta pi (SomeTerm t' pi')) = Beta pi (SomeTerm (substh-term Γ ρ t x t') pi')
+substh-term Γ ρ t x (Beta pi ot) = Beta pi (substh-optTerm Γ ρ t x ot)
 substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Omega pi t') = Omega pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (InlineDef pi pi' x' t' pi'') = InlineDef pi pi' x' (substh-term Γ ρ t x t') pi''
-substh-term Γ ρ t x (IotaPair pi t1 t2 pi') = IotaPair pi (substh-term Γ ρ t x t1) (substh-term Γ ρ t x t2) pi'
+substh-term Γ ρ t x (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ t x t1) (substh-term Γ ρ t x t2) (substh-optTerm Γ ρ t x ot) pi'
 substh-term Γ ρ t x (IotaProj t' n pi) = IotaProj (substh-term Γ ρ t x t') n pi
 substh-term Γ ρ t x (PiInj pi n t') = PiInj pi n (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Epsilon pi lr m t') = Epsilon pi lr m (substh-term Γ ρ t x t')
@@ -98,8 +99,12 @@ substh-kind Γ ρ t x (KndPi pi pi' y atk k) =
     KndPi pi pi' y' (substh-tk Γ ρ t x atk)
       (substh-kind (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x k)
 substh-kind Γ ρ t x (KndTpArrow t' k) = KndTpArrow (substh-type Γ ρ t x t') (substh-kind Γ ρ t x k)
-substh-kind Γ ρ t x (KndVar pi y) = KndVar pi y
+substh-kind Γ ρ t x (KndVar pi y ys) = KndVar pi y (substh-args Γ ρ t x ys)
 substh-kind Γ ρ t x (Star pi) = Star pi
+
+substh-args Γ ρ t x (ArgsCons (TermArg x₁) ys) = ArgsCons (TermArg (substh-term Γ ρ t x x₁)) (substh-args Γ ρ t x ys)
+substh-args Γ ρ t x (ArgsCons (TypeArg x₁) ys) = ArgsCons (TypeArg (substh-type Γ ρ t x x₁)) (substh-args Γ ρ t x ys)
+substh-args Γ ρ t x (ArgsNil x₁) = ArgsNil x₁
 
 substh-tk Γ ρ t x (Tkk k) = Tkk (substh-kind Γ ρ t x k)
 substh-tk Γ ρ t x (Tkt t') = Tkt (substh-type Γ ρ t x t')
@@ -120,6 +125,9 @@ substh-liftingType Γ ρ t x (LiftTpArrow tp l) =
 
 substh-maybeAtype Γ ρ t x NoAtype = NoAtype
 substh-maybeAtype Γ ρ t x (Atype T) = Atype (substh-type Γ ρ t x T)
+
+substh-optTerm Γ ρ t x NoTerm = NoTerm
+substh-optTerm Γ ρ t x (SomeTerm t' pi') = (SomeTerm (substh-term Γ ρ t x t') pi')
 
 subst-ret-t : Set → Set
 subst-ret-t T = {ed : exprd} → ctxt → ⟦ ed ⟧ → var → T → T

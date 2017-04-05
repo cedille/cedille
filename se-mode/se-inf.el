@@ -10,25 +10,27 @@
 started with `start-process'."))
 
 (make-variable-buffer-local
+  (defvar se-inf-json nil "The direct result of reading the JSON from the backend (for debugging)."))
+
+(make-variable-buffer-local
  (defvar se-inf-queue nil
    "Transaction queue for `se-inf-process'."))
 
-(defvar se-inf-response-hook nil
+; might need to UNDO:
+(make-variable-buffer-local
+ (defvar se-inf-response-hook nil
   "Functions to be evaluated after response of `se-inf-ask',
 response given as only argument.  If `se-inf-response-is-json' is
-non-nil the response is parsed as JSON first.")
+non-nil the response is parsed as JSON first."))
 
-(add-hook 'se-inf-response-hook 'se-inf-process-spans)
-(add-hook 'se-inf-response-hook 'se-inf-process-error t)
-(add-hook 'se-inf-response-hook 'se-inf-process-error-span t)
-
-(defvar se-inf-create-spans-hook nil
-  "Hooks to run when the spans have been set, but before
-creating the parse tree from them.")
+(make-variable-buffer-local
+ (defvar se-inf-init-spans-hook nil
+   "Hooks to run when the spans have been set, but before
+creating the parse tree from them."))
 
 (make-variable-buffer-local
  (defvar se-inf-response-finished nil
-   "Set to true after a response has been recieved and
+   "Set to true after a response has been received and
 `se-inf-response-hook' is executed."))
 
 (defvar se-inf-parse-hook (list #'se-inf-save-if-modified #'se-inf-remove-overlays)
@@ -97,6 +99,7 @@ be terminated with a new line. Calls FN or
 	    (if se-inf-response-is-json
                 (let* ((json-array-type 'list)
 		       (json (json-read-from-string response)))
+                  (setq se-inf-json json)
 		  (run-hook-with-args 'se-inf-response-hook json))
 	      (run-hook-with-args 'se-inf-response-hook response))
 	  (se-inf-header-timer-stop)
@@ -128,11 +131,12 @@ buffer's file unless FILE is non-nil."
   "Creates parse tree from spans found in JSON. Sets the variables
 `se-mode-parse-tree' and `se-mode-spans'."
   (when (se-inf-get-spans json)
-    (setq se-mode-spans 
+    (setq se-mode-spans
           (sort (se-create-spans (se-inf-get-spans json)) 'se-term-before-p))
     (run-hooks 'se-inf-init-spans-hook)
     (setq se-mode-parse-tree
-	  (se-create-parse-tree se-mode-spans))))
+	  (se-create-parse-tree se-mode-spans)))
+)
 
 (defun se-inf-get-error (json)
   "Returns possible error from default formatted JSON."

@@ -38,10 +38,6 @@ lam-is-erased : lam → 𝔹
 lam-is-erased ErasedLambda = tt
 lam-is-erased _ = ff
 
-indices-to-decls : indices → decls
-indices-to-decls (Indicese pi) = (DeclsNil pi)
-indices-to-decls (Indicesne x) = x
-
 term-start-pos : term → posinfo
 type-start-pos : type → posinfo
 kind-start-pos : kind → posinfo
@@ -58,7 +54,7 @@ term-start-pos (Beta pi _) = pi
 term-start-pos (Delta pi _) = pi
 term-start-pos (Omega pi _) = pi
 term-start-pos (InlineDef pi _ _ _ _) = pi
-term-start-pos (IotaPair pi _ _ _) = pi
+term-start-pos (IotaPair pi _ _ _ _) = pi
 term-start-pos (IotaProj t _ _) = term-start-pos t
 term-start-pos (PiInj pi _ _) = pi
 term-start-pos (Epsilon pi _ _ _) = pi
@@ -85,7 +81,7 @@ kind-start-pos (KndArrow k k₁) = kind-start-pos k
 kind-start-pos (KndParens pi k pi') = pi
 kind-start-pos (KndPi pi _ x x₁ k) = pi
 kind-start-pos (KndTpArrow x k) = type-start-pos x
-kind-start-pos (KndVar pi x₁) = pi
+kind-start-pos (KndVar pi x₁ _) = pi
 kind-start-pos (Star pi) = pi
 
 liftingType-start-pos (LiftArrow l l') = liftingType-start-pos l
@@ -99,6 +95,7 @@ type-end-pos : type → posinfo
 kind-end-pos : kind → posinfo
 liftingType-end-pos : liftingType → posinfo
 lterms-end-pos : lterms → posinfo
+args-end-pos : args → posinfo
 
 term-end-pos (App t x t') = term-end-pos t'
 term-end-pos (AppTp t tp) = type-end-pos tp
@@ -112,7 +109,7 @@ term-end-pos (Beta pi (SomeTerm t pi')) = pi'
 term-end-pos (Omega pi t) = term-end-pos t
 term-end-pos (Delta pi t) = term-end-pos t
 term-end-pos (InlineDef _ _ _ _ pi) = pi
-term-end-pos (IotaPair _ _ _ pi) = pi
+term-end-pos (IotaPair _ _ _ _ pi) = pi
 term-end-pos (IotaProj _ _ pi) = pi
 term-end-pos (PiInj _ _ t) = term-end-pos t
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
@@ -139,8 +136,11 @@ kind-end-pos (KndArrow k k') = kind-end-pos k'
 kind-end-pos (KndParens pi k pi') = pi'
 kind-end-pos (KndPi pi _ x x₁ k) = kind-end-pos k
 kind-end-pos (KndTpArrow x k) = kind-end-pos k
-kind-end-pos (KndVar pi x) = posinfo-plus-str pi x
+kind-end-pos (KndVar pi x ys) = args-end-pos ys
 kind-end-pos (Star pi) = posinfo-plus pi 1
+
+args-end-pos (ArgsCons x ys) = args-end-pos ys
+args-end-pos (ArgsNil pi) = pi
 
 liftingType-end-pos (LiftArrow l l') = liftingType-end-pos l'
 liftingType-end-pos (LiftParens pi l pi') = pi'
@@ -150,38 +150,6 @@ liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
 
 lterms-end-pos (LtermsNil pi) = posinfo-plus pi 1 -- must add one for the implicit Beta that we will add at the end
 lterms-end-pos (LtermsCons _ _ ls) = lterms-end-pos ls
-
-decls-start-pos : decls → posinfo
-decls-start-pos (DeclsCons (Decl pi _ _ _) _) = pi
-decls-start-pos (DeclsNil pi) = pi
-
-decls-end-pos : decls → posinfo
-decls-end-pos (DeclsCons _ ds) = decls-end-pos ds
-decls-end-pos (DeclsNil pi) = pi
-
-ctordeclsne-end-pos : ctordeclsne → posinfo
-ctordeclsne-end-pos (CtordeclsneNext _ c) = ctordeclsne-end-pos c
-ctordeclsne-end-pos (CtordeclsneStart (Ctordecl _ _ tp)) = type-end-pos tp
-
-ctordecls-end-pos : ctordecls → posinfo
-ctordecls-end-pos (Ctordeclse pi) = pi
-ctordecls-end-pos (Ctordeclsne x) = ctordeclsne-end-pos x
-
-udefsne-start-pos : udefsne → posinfo
-udefsne-start-pos (UdefsneNext (Udef pi x t) us) = pi
-udefsne-start-pos (UdefsneStart (Udef pi x t)) = pi
-
-udefs-start-pos : udefs → posinfo
-udefs-start-pos (Udefse pi) = pi
-udefs-start-pos (Udefsne x) = udefsne-start-pos x
-
-udefsne-end-pos : udefsne → posinfo
-udefsne-end-pos (UdefsneNext _ us) = udefsne-end-pos us
-udefsne-end-pos (UdefsneStart (Udef pi x t)) = term-end-pos t
-
-udefs-end-pos : udefs → posinfo
-udefs-end-pos (Udefse pi) = posinfo-plus pi 1
-udefs-end-pos (Udefsne x) = udefsne-end-pos x
 
 tk-arrow-kind : tk → kind → kind
 tk-arrow-kind (Tkk k) k' = KndArrow k k'
@@ -253,19 +221,6 @@ eq-maybeErased Erased Erased = tt
 eq-maybeErased Erased NotErased = ff
 eq-maybeErased NotErased Erased = ff
 eq-maybeErased NotErased NotErased = tt
-
-forall-bind-decls : decls → type → type
-forall-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = Abs posinfo-gen All posinfo-gen x atk (forall-bind-decls ds tp)
-forall-bind-decls (DeclsNil x) tp = tp
-
-tplam-bind-decls : decls → type → type
-tplam-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = TpLambda posinfo-gen posinfo-gen x atk (tplam-bind-decls ds tp)
-tplam-bind-decls (DeclsNil x) tp = tp
-
-erased-lambda-bind-decls : decls → term → term
-erased-lambda-bind-decls (DeclsCons (Decl _ x atk _) ds) tp = 
-  Lam posinfo-gen ErasedLambda posinfo-gen x (SomeClass atk) (erased-lambda-bind-decls ds tp)
-erased-lambda-bind-decls (DeclsNil x) tp = tp
 
 eq-lam : lam → lam → 𝔹
 eq-lam ErasedLambda ErasedLambda = tt
@@ -372,7 +327,7 @@ LiftArrow* (l' :: ls) l = LiftArrow* ls (LiftArrow l' l)
 
 is-intro-form : term → 𝔹
 is-intro-form (Lam _ _ _ _ _ _) = tt
-is-intro-form (IotaPair _ _ _ _) = tt
+is-intro-form (IotaPair _ _ _ _ _) = tt
 is-intro-form _ = ff
 
 erase-term : term → term
@@ -390,7 +345,7 @@ erase-term (Beta pi (SomeTerm t _)) = erase-term t
 erase-term (Delta pi t) = Beta pi NoTerm -- we need to erase the body t, so just use Beta as the name for any erased proof
 erase-term (Omega pi t) = erase-term t
 erase-term (InlineDef pi pi' x t pi'') = InlineDef pi pi' x (erase-term t) pi''
-erase-term (IotaPair pi t1 t2 pi') = erase-term t1
+erase-term (IotaPair pi t1 t2 ot pi') = erase-term t1
 erase-term (IotaProj t n pi) = erase-term t
 erase-term (PiInj _ _ t) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
@@ -471,5 +426,5 @@ is-equational-kind (KndArrow k1 k2) = is-equational-kind k1 || is-equational-kin
 is-equational-kind (KndParens _ k _) = is-equational-kind k
 is-equational-kind (KndPi _ _ _ atk k) = is-equational-tk atk || is-equational-kind k
 is-equational-kind (KndTpArrow t1 k2) = is-equational t1 || is-equational-kind k2
-is-equational-kind (KndVar _ _) = ff
+is-equational-kind (KndVar _ _ _) = ff
 is-equational-kind (Star _) = ff

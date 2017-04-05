@@ -8,7 +8,6 @@ open import ctxt
 open import constants
 open import conversion
 open import general-util
-open import rec
 open import spans
 open import syntax-util
 open import to-string

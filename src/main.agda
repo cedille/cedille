@@ -28,14 +28,13 @@ module cws-parse = parsem3.pnoderiv cws.rrs cws.cws-rtn
 module pr3 = run cws.ptr
 module cws-run = pr3.noderiv
 
-open import cedille-find
+--open import cedille-find
 open import classify
 open import ctxt
 open import constants
 open import conversion
 open import general-util
 open import process-cmd 
-open import rec
 open import spans
 open import syntax-util
 open import to-string
@@ -256,16 +255,16 @@ readFilenamesForProcessing s =
                         checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
                         input-filename tt {- should-print-spans -}
             checkCommand _ s = errorCommand s
-            findCommand : 𝕃 string → toplevel-state → IO toplevel-state
+  {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
-            findCommand _ s = errorCommand s
+            findCommand _ s = errorCommand s -}
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
             handleCommands (x :: []) s with x
             ...                        | "debug" = debugCommand s
                                          -- remove the default case once the elisp has been updated to use "check"
             ...                        | _ = checkCommand (x :: []) s     
             handleCommands (x :: xs) s with x
-            ...                        | "find" = findCommand xs s
+--            ...                        | "find" = findCommand xs s
             ...                        | "check" = checkCommand xs s
             ...                        | _ = errorCommand s
             handleCommands [] s = errorCommand s

@@ -97,7 +97,7 @@ hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Delta _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (InlineDef _ _ x t _) hd = hnf Γ u t hd
-hnf{TERM} Γ u (IotaPair _ t1 t2 _) hd = hnf Γ u t1 hd
+hnf{TERM} Γ u (IotaPair _ t1 t2 _ _) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (PiInj _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Rho pi _ t t') hd = hnf Γ u t' hd
@@ -171,7 +171,14 @@ hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
 hnf{KIND} Γ u (KndParens _ k _) hd = hnf Γ u k hd
-hnf{KIND} Γ (unfold _ _ _) (KndVar pi x) _ = KndVar pi x
+hnf{KIND} Γ (unfold _ _ _) (KndVar pi x ys) _ with ctxt-lookup-kind-var-def Γ x 
+... | nothing = KndVar pi x ys
+... | just (ps , k) = do-subst ys ps k
+  where do-subst : args → params → kind → kind
+        do-subst (ArgsCons (TermArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+        do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+        do-subst _ _ k = k -- should not happen 
+
 hnf{KIND} Γ u (KndPi pi pi' x atk k) hd =
     if is-free-in check-erased x k then
       (KndPi pi pi' x atk k)
@@ -251,7 +258,6 @@ conv-type-norm Γ _ _ = ff
 {- even though hnf turns Pi-kinds where the variable is not free in the body into arrow kinds,
    we still need to check off-cases, because normalizing the body of a kind could cause the
    bound variable to be erased (hence allowing it to match an arrow kind). -}
-conv-kind-norm Γ (KndVar _ x) (KndVar _ x') = x =string x'
 conv-kind-norm Γ (KndArrow k k₁) (KndArrow k' k'') = conv-kind Γ k k' && conv-kind Γ k₁ k''
 conv-kind-norm Γ (KndArrow k k₁) (KndPi _ _ x (Tkk k') k'') = conv-kind Γ k k' && conv-kind Γ k₁ k''
 conv-kind-norm Γ (KndArrow k k₁) _ = ff

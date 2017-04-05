@@ -1,0 +1,12 @@
+𝒌F = ★ ➔ ★ .
+
+Functor ◂ 𝒌F ➔ ★ =
+  λ F : 𝒌F . ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (F · X ➔ F · Y) .
+
+True ◂ ★ = ∀ X : ★ . X ➔ X .
+
+𝒌FFF(F : 𝒌F) = Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★) .
+
+FunctorD ◂ Π F : 𝒌F. 𝒌FFF · F ➔ ★ =
+  λ F : ★ ➔ ★ . λ FFF : (Π X : ★ . (X ➔ ★) ➔ (F · X ➔ ★)) . ∀ X : ★ . ∀ Y : X ➔ ★ . (Π x : X . Y x) ➔ (Π x : F · X . FFF · X · Y x) .
+

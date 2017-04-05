@@ -33,7 +33,7 @@ data ctxt-info : Set where
   type-udef : type → ctxt-info
 
   -- for defining a variable to equal a kind
-  kind-def : kind → ctxt-info
+  kind-def : params → kind → ctxt-info
 
   -- to rename a variable at any level to another
   rename-def : var → ctxt-info
@@ -64,6 +64,10 @@ ctxt-restore-info : ctxt → string → maybe sym-info → ctxt
 ctxt-restore-info (mk-ctxt f syms i symb-occs) x nothing = mk-ctxt f syms (trie-remove i x) symb-occs
 ctxt-restore-info (mk-ctxt f syms i symb-occs) x (just n) = mk-ctxt f syms (trie-insert i x n) symb-occs
 
+ctxt-restore-info* : ctxt → 𝕃 (string × maybe sym-info) → ctxt
+ctxt-restore-info* Γ [] = Γ
+ctxt-restore-info* Γ ((x , m) :: ms) = ctxt-restore-info* (ctxt-restore-info Γ x m) ms
+
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
@@ -82,10 +86,10 @@ ctxt-type-def p v t k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename
                                                     (trie-insert i v (type-def t k , (filename , p)))
                                                     symb-occs
 
-ctxt-kind-def : posinfo → var → kind → ctxt → ctxt
-ctxt-kind-def p v k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
+ctxt-kind-def p v ps k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (kind-def k , (filename , p)))
+                                                    (trie-insert i v (kind-def ps k , (filename , p)))
                                                     symb-occs
 
 ctxt-type-udef : posinfo → var → type → ctxt → ctxt
@@ -181,7 +185,7 @@ ctxt-lookup-var-tk (mk-ctxt _ _ i _) v with trie-lookup i v
 
 ctxt-lookup-kind-var : ctxt → var → 𝔹
 ctxt-lookup-kind-var (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                      | just (kind-def _ , _) = tt
+...                                      | just (kind-def _ _ , _) = tt
 ...                                      | _ = ff
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
@@ -201,9 +205,9 @@ ctxt-lookup-type-var-rec-def (mk-ctxt _ _ i _) v with trie-lookup i v
 ...                                              | just (rec-def t _ , _) = just t
 ...                                              | _ = nothing
 
-ctxt-lookup-kind-var-def : ctxt → var → maybe kind
+ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                          | just (kind-def k , _) = just k
+...                                          | just (kind-def ps k , _) = just (ps , k)
 ...                                          | _ = nothing
 
 ctxt-binds-var : ctxt → var → 𝔹
@@ -215,10 +219,19 @@ ctxt-defines-var (mk-ctxt _ _ i _) x with trie-lookup i x
 ...                                  | just (term-udef _ , _) = tt
 ...                                  | just (type-def _ _ , _) = tt
 ...                                  | just (type-udef _ , _) = tt
-...                                  | just (kind-def _ , _) = tt
+...                                  | just (kind-def _ _ , _) = tt
 ...                                  | just (rec-def _ _ , _) = tt
 ...                                  | _ = ff
 
+ctxt-declares-term-var : ctxt → var → 𝔹
+ctxt-declares-term-var (mk-ctxt _ _ i _) x with trie-lookup i x
+...                                  | just (term-decl _ , _) = tt
+...                                  | _ = ff
+
+ctxt-declares-type-var : ctxt → var → 𝔹
+ctxt-declares-type-var (mk-ctxt _ _ i _) x with trie-lookup i x
+...                                  | just (type-decl _ , _) = tt
+...                                  | _ = ff
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
 ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs) symbol with trie-lookup symb-occs symbol

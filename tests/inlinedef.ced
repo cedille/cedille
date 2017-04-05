@@ -20,3 +20,5 @@ append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
 
 append-Cons .
 
+reject ◂ Nat ➔ List · Nat ➔ List · Nat =
+  λ n . λ m . θ m [not-closed = λ x . λ _ . λ r . Cons · Nat (add n x) r] (Nil · Nat) .

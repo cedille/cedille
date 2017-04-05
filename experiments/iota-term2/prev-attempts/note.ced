@@ -1,0 +1,14 @@
+Need to show:
+
+(λ n . (update s (lam1-nextvar f) (cvar (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v)))))) n a l (update v (clam-nextvar (λ x . λ a . λ l . λ v . (f (var (lam1-nextvar f)) a l (λ n . (update s (lam1-nextvar f) x n a l v))))) x)))
+≃
+(update (λ n . (s n a l v)) (lam1-nextvar f) x)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Abstracting a big term:
+
+(λ n . (update s (lam1-nextvar f) (cvar Q) n a l (update v Q x)))
+≃
+(update (λ n . (s n a l v)) (lam1-nextvar f) x)
+
+Can we include extensionality in the last argument as part of the definition of trm?

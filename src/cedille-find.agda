@@ -46,6 +46,7 @@ find-symbols-lterms : find-symbols-t lterms
 find-symbols-maybeCheckType : find-symbols-t maybeCheckType
 find-symbols-optType : find-symbols-t optType
 find-symbols-term : find-symbols-t term
+find-symbols-optTerm : find-symbols-t optTerm
 find-symbols-tk : find-symbols-t tk
 find-symbols-type : find-symbols-t type
 
@@ -82,6 +83,9 @@ find-symbols-maybeCheckType _ _ _ symb-map _ = symb-map
 find-symbols-optType (SomeType T) defn filename symb-map shadow = find-symbols-type T defn filename symb-map shadow
 find-symbols-optType _ _ _ symb-map _ = symb-map
 
+find-symbols-optTerm (SomeTerm t _) defn filename symb-map shadow = find-symbols-term t defn filename symb-map shadow
+find-symbols-optTerm _ _ _ symb-map _ = symb-map
+
 find-symbols-term (App t1 _ t2) defn filename symb-map shadow = find-symbols-term t1 defn filename (find-symbols-term t2 defn filename symb-map shadow) shadow
 find-symbols-term (AppTp t T) defn filename symb-map shadow = find-symbols-term t defn filename (find-symbols-type T defn filename symb-map shadow) shadow
 find-symbols-term (Chi _ _ t) defn filename symb-map shadow = find-symbols-term t defn filename symb-map shadow
@@ -90,7 +94,7 @@ find-symbols-term (Epsilon _ _ _ t) defn filename symb-map shadow = find-symbols
 --find-symbols-term (Fold _ _ T t) defn filename symb-map shadow = find-symbols-type T defn filename (find-symbols-term t defn filename symb-map shadow) shadow
 -- treated as a new top global def
 find-symbols-term (InlineDef _ _ var t _) defn filename symb-map shadow = find-symbols-term t var filename symb-map shadow
-find-symbols-term (IotaPair _ t1 t2 _) defn filename symb-map shadow = find-symbols-term t1 defn filename (find-symbols-term t2 defn filename symb-map shadow) shadow
+find-symbols-term (IotaPair _ t1 t2 ot _) defn filename symb-map shadow = find-symbols-term t1 defn filename (find-symbols-term t2 defn filename (find-symbols-optTerm ot defn filename symb-map shadow) shadow) shadow
 find-symbols-term (IotaProj t _ _) defn filename symb-map shadow = find-symbols-term t defn filename symb-map shadow
 find-symbols-term (Lam _ _ _ var _ t) defn filename symb-map shadow = find-symbols-term t defn filename symb-map (stringset-insert shadow var)
 find-symbols-term (Parens _ t _) defn filename symb-map shadow = find-symbols-term t defn filename symb-map shadow

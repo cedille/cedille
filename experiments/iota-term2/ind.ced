@@ -1,0 +1,13 @@
+import ctors-lam.
+
+ind-trm ◂ Π t : trm .
+          ∀ P : trm ➔ ★ .
+          (∀ t1 : trm . ∀ t2 : trm .
+            P t1 ➔ P t2 ➔ P (app t1 t2)) ➔
+          (∀ f : trm ➔ trm .
+            (∀ t : trm . P t ➔ P (f t)) ➔
+             P (lam f)) ➔
+          (Π n : Nat . P (var n)) ➔
+           P t =
+    λ t . Λ P . λ pa . λ pl. λ pv. ρ ς (t.2 -vare) - (param1-ptrm t.1.1 · trm · P -app -lam -var pa pl pv).
+

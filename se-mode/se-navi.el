@@ -49,6 +49,11 @@ to the buffer.")
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push (cons 'se-navigation-mode se-navi-current-keymap)
 	  minor-mode-overriding-map-alist)
+
+    (add-hook 'se-inf-response-hook 'se-inf-process-spans)
+    (add-hook 'se-inf-response-hook 'se-inf-process-error t)
+    (add-hook 'se-inf-response-hook 'se-inf-process-error-span t)
+
     ;; quit on change
     (when se-navi-quit-on-change
       (add-hook 'before-change-functions #'se-navigation-mode-quit nil t)))

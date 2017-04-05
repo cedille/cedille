@@ -1,0 +1,40 @@
+import trm.
+import maxvar.
+
+cvar ◂ Nat ➔ ctrm = λ n . Λ X . λ a . λ l . λ v . v n .
+
+var ◂ Nat ➔ trm =
+  λ n . [ cvar n ,
+          Λ A . Λ B . Λ R . Λ app. Λ lam . Λ var . λ pa . λ pl . λ pv .
+            pv n ] .
+
+clam-nextvar ◂ (trm ➔ ctrm) ➔ Nat = λ f . S (maxvar (f (var Z))) .
+
+clam-abs ◂ (trm ➔ ctrm) ➔ ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ (X ➔ X) =
+  λ f . Λ X . λ a . λ l . λ v . λ x . f (var (clam-nextvar f)) · X a l (λ n . θ+ (eqnat n (clam-nextvar f)) (λ u. x) (λ u . v n)) .
+
+clam ◂ (trm ➔ ctrm) ➔ ctrm =
+  λ f . Λ X . λ a . λ l . λ v . l (clam-abs f · X a l v) .
+
+capp ◂ ctrm ➔ ctrm ➔ ctrm = 
+  λ t1 . λ t2 . Λ X . λ a . λ l . λ v . a (t1 · X a l v) (t2 · X a l v).
+
+test1 ◂ ctrm = clam (λ x . clam (λ y . x.1)) !
+
+app ◂ trm ➔ trm ➔ trm =
+  λ t1 . λ t2 . [ capp t1.1 t2.1 ,
+                  Λ A . Λ B . Λ R . Λ app . Λ lam . Λ var . λ pa . λ pl . λ pv .
+                    pa -(λ a . t1.1 · (B a) (app a) (lam a) (var a)) -(λ a . t2.1 · (B a) (app a) (lam a) (var a))
+                        (t1.2 · A · B · R -app -lam -var pa pl pv) (t2.2 · A · B · R -app -lam -var pa pl pv) ] .
+
+clamh ◂ (trm ➔ trm) ➔ trm ➔ ctrm = λ f . λ a . (f a).1 .
+
+lam ◂ (trm ➔ trm) ➔ trm =
+  λ f . [ clam (clamh f),
+          Λ A . Λ B . Λ R . Λ ap . Λ lm . Λ vr . λ pa . λ pl . λ pv . 
+            pl -(λ a . clam-abs (clamh f) · (B a) (ap a) (lm a) (vr a))
+              (Λ p . λ up . (f (var (clam-nextvar (clamh f)))).2 · A · B · R -ap -lm
+                               -(λ a . λ n . θ+ (eqnat n (clam-nextvar (clamh f))) (λ u . p a) (λ u . vr a n)) pa pl
+                               (λ n. θ+ (eqnat n (clam-nextvar (clamh f)))
+                                        (λ u . ρ+ u - up)
+                                        (λ u . ρ+ u - (pv n))))].
