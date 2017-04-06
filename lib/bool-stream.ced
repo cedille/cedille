@@ -1,0 +1,29 @@
+import bool.
+import pair.
+import false.
+
+BoolStream ◂ ★ = ∀ X : ★ . ((∀ Y : ★ . Pair · (Y ➔ Pair · Bool · Y) · Y ➔ X)) ➔ X .
+head ◂ BoolStream ➔ Bool = λ b . b · Bool (Λ Y . λ p .  fst · Bool · Y ((fst · (Y ➔ (Pair · Bool · Y)) · Y p) (snd · (Y ➔ (Pair · Bool · Y)) · Y p) )) .
+tail ◂ BoolStream ➔ BoolStream = λ b . b · BoolStream  (Λ Y . λ p . Λ X . λ f . f · Y (mkpair ·  (Y ➔ Pair · Bool · Y)      · Y (fst · (Y ➔ (Pair · Bool · Y)) · Y p) (snd · Bool · Y ((fst · (Y ➔ (Pair · Bool · Y)) · Y p) (snd · (Y ➔ (Pair · Bool · Y)) · Y p) )))) .
+
+
+% two differently defined streams of booleans are provably not equal!
+true-str1 ◂ BoolStream = Λ X . λ f . f · Bool (mkpair ·  (Bool ➔ Pair · Bool · Bool) · Bool (λ b . mkpair · Bool · Bool tt tt) tt) .
+true-str2 ◂ BoolStream = Λ X . λ f . f · Bool (mkpair ·  (Bool ➔ Pair · Bool · Bool) · Bool (λ b . mkpair · Bool · Bool tt ff) ff) .
+
+proj-state ◂ (true-str1 ≃ true-str2) ➔ (true-str1 (λ x . x)) (λ x . λ y . y) ≃ (true-str2 (λ x . x)) (λ x . λ y . y) = λ e1 . ρ e1 - β .
+
+bisim-but-not-eq ◂ (true-str1 ≃ true-str2) ➔ False = λ q . δ (proj-state q) .
+
+
+
+
+% instead of suc
+cons ◂ Bool ➔ BoolStream ➔ BoolStream = λ bb . λ b . Λ X . λ f . f · (Pair · Bool · BoolStream) (mkpair ·  ((Pair · Bool · BoolStream) ➔ Pair · Bool · (Pair · Bool · BoolStream))      · (Pair · Bool · BoolStream) (λ b' . mkpair · Bool · (Pair · Bool · BoolStream) (fst · Bool · BoolStream b') (mkpair · Bool · BoolStream (head (snd · Bool · BoolStream b'))  (tail (snd · Bool · BoolStream b')))) (mkpair · Bool · BoolStream bb b))  .
+
+ex1i  ◂ Bool = head (cons ff true-str1) !
+ex2i  ◂ Bool = head (tail (cons ff true-str1)) !
+ex3i  ◂ Bool = head (tail (tail (cons ff true-str1))) !
+
+% the resulting streams are not equal, but only bisimilar
+tail-cons ◂ (true-str1 ≃ tail (cons true-str1)) = β .
