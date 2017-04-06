@@ -1,0 +1,10 @@
+import list.
+
+append-assoc ◂ ∀ A : ★ . Π x : List · A . Π y : List · A . Π z : List · A .
+               (append (append x y) z) ≃ (append x (append y z)) =
+  Λ A . λ x . λ y . λ z .
+    θ x (λ h . λ t . λ u . (εl (εr (ρ u - β)))) β . 
+
+append-empty ◂ ∀ A : ★ . Π l : List · A . append l (Nil · A) ≃ l =
+  Λ A . λ l . θ l (λ h . λ t . λ ih . εl ρ ih - β ) β . 
+

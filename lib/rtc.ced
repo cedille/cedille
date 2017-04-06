@@ -1,0 +1,25 @@
+rtc ◂ Π A : ★ . (A ➔ A ➔ ★) ➔ (A ➔ A ➔ ★) =
+  λ A : ★ . λ R : A ➔ A ➔ ★ .
+    λ a1 : A . λ a2 : A .
+      ∀ X : A ➔ A ➔ ★ .
+        (∀ a : A . X a a) ➔
+        (∀ a : A . ∀ b : A . ∀ c : A .
+           X a b ➔ X b c ➔ X a c) ➔
+        (∀ a : A . ∀ b : A . R a b ➔ X a b) ➔
+        X a1 a2 .
+
+rtc-refl ◂ ∀ A : ★ . ∀ R : A ➔ A ➔ ★ .
+           ∀ a : A . rtc · A · R a a =
+ Λ A . Λ R . Λ a .
+   Λ X . λ r . λ t . λ i .
+     r -a .
+
+rtc-trans ◂ ∀ A : ★ . ∀ R : A ➔ A ➔ ★ .
+            ∀ a : A . ∀ b : A . ∀ c : A . rtc · A · R a b ➔ rtc · A · R b c ➔ rtc · A · R a c =
+            Λ A . Λ R . Λ a . Λ b . Λ c . λ p1 . λ p2 .
+	      Λ X . λ r . λ t . λ i . t -a -b -c (p1 · X r t i) (p2 · X r t i) .
+
+rtc-incl ◂ ∀ A : ★ . ∀ R : A ➔ A ➔ ★ .
+           ∀ a : A . ∀ b : A . R a b ➔ rtc · A · R a b =
+	   Λ A . Λ R . Λ a . Λ b . λ p .
+	     Λ X . λ r . λ t . λ i . i -a -b p .

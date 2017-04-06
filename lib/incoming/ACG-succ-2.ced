@@ -1,0 +1,15 @@
+import ACG-succ-1.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  Succ-Ineq-False ⇐ Π x : Nat .
+
+  % Theorem
+
+  ( S x ≃ x ) → False =
+
+  % Direct Proof
+
+  λ x . λ pf . δ ( ρ ( Succ-Ineq-Bool x )
+                     - ( Eqnat-Defn ( S x ) x pf ) ) .
+		     

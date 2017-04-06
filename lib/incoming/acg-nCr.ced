@@ -1,0 +1,13 @@
+import nat.
+
+nCr ⇐ Nat → Nat → Nat =
+  λ x . θ x
+    ( λ _ . λ hx . λ y . θ y
+      ( λ py . λ _ . add ( hx py ) ( hx y ) )
+      ( S Z ) )
+    ( λ y . θ y
+      ( λ _ . λ _ . Z )
+      ( S Z ) ) .
+
+% Confirming that nCr 3 2 is 3
+test-nCr = eqnat ( nCr ( S ( S ( S Z ) ) ) ( S ( S Z ) ) ) ( S ( S ( S Z ) ) ) !

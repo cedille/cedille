@@ -1,0 +1,9 @@
+import nat.
+import false.
+
+S-inj ◂ Π x : Nat . Π y : Nat . (S x ≃ S y) ➔ x ≃ y =
+  λ x . λ y . λ h . π1 (ε h) .
+
+% S has no fixed point
+nofixS ◂ Π x : Nat . (S x ≃ x) ➔ False = 
+  λ x . θ x (λ n . λ ih . λ u . ih (π1 u)) (λ u . δ u) .

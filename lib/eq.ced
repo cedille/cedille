@@ -1,0 +1,9 @@
+Eq ◂ Π A : ★ . A ➔ A ➔ ★ = 
+  λ A : ★ . λ a : A . λ b : A . ∀ P : A ➔ ★ . P a ➔ P b .
+
+refl ◂ ∀ A : ★ . ∀ a : A . Eq · A a a = 
+  Λ A . Λ a . Λ P . λ u . u .
+
+cong ◂ ∀ A : ★ . ∀ B : ★ . ∀ f : A ➔ B . ∀ a : A . ∀ b : A .
+       Eq · A a b ➔ Eq · B (f a) (f b) =
+  Λ A . Λ B . Λ f . Λ a . Λ b . λ u . Λ P . λ v . u · (λ a : A . P (f a)) v .

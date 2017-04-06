@@ -1,0 +1,17 @@
+import acg-symm-mult-and-thms.
+
+fact ⇐ Nat → Nat =
+  λ x . θ x
+    ( λ px . λ hx . mult hx ( S px ) )
+    ( S Z ) .
+
+% Verifying that fac 3 is 6
+test-fact = eqnat ( fact ( S ( S ( S Z ) ) ) ) ( S ( S ( S ( S ( S ( S Z ) ) ) ) ) ) !
+
+exp ⇐ Nat → Nat → Nat =
+  λ x . λ y . θ y
+    ( λ _ . λ hy . mult' x hy )
+    ( S Z ) .
+
+% Verifying that 3 squared is 9
+test-exp = eqnat ( exp ( S ( S ( S Z ) ) ) ( S ( S Z ) ) ) ( S ( S ( S ( S ( S ( S ( S ( S ( S Z ) ) ) ) ) ) ) ) ) !

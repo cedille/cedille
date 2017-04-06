@@ -1,0 +1,60 @@
+import nat-thms-add.
+
+mult' ⇐ Nat → Nat → Nat =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ hy . S ( add ( add px py ) ( hx py ) ) )
+      Z )
+    ( λ y . Z ) .
+
+test = eqnat ( mult ( S ( S Z ) ) ( S ( S ( Z ) ) ) ) ( mult' ( S ( S Z ) ) ( S ( S ( Z ) ) ) )! 
+
+mult'-comm ⇐ Π x : Nat . Π y : Nat . mult' x y ≃ mult' y x =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ hy . ε ρ ( hx py ) - ρ ( add-comm px py ) - β )
+      β )
+    ( λ y . θ y
+      ( λ _ . λ _ . β ) 
+      β ) .
+
+mult'-Z-0 ⇐ Π x : Nat . mult' Z x ≃ Z =
+  λ x . β .
+
+mult'-Z-1 ⇐ Π x : Nat . mult' x Z ≃ Z =
+  λ x . ρ ( mult'-comm x Z ) - ρ ( mult'-Z-0 x ) - β .
+
+mult'-one-0 ⇐ Π x : Nat . mult' ( S Z ) x ≃ x =
+  λ x . θ x
+    ( λ px . λ hx . εl ρ ( mult'-Z-0 px ) - ρ ( add-Z-1 px ) - β )
+    β .
+
+mult'-one-1 ⇐ Π x : Nat . mult' x ( S Z ) ≃ x =
+  λ x . ρ ( mult'-comm x ( S Z ) ) - ρ ( mult'-one-0 x ) - β .
+
+mult'-S-0-lemma-0 ⇐ Π x : Nat . Π y : Nat . Π z : Nat . add x ( add y z ) ≃ add y ( add x z ) =
+  λ x . λ y . λ z . ρ ( add-comm y z ) - ρ ( add-assoc x z y ) - ρ ( add-comm ( add x z ) y ) - β .
+
+mult'-S-0 ⇐ Π x : Nat . Π y : Nat . mult' ( S x ) y ≃ add y ( mult' x y ) =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ hy .
+        ε
+	ρ ( hx py ) -
+	ρ ( add-S-comm-0 px py ) -
+	ρ ( add-S-comm-0 ( add px py ) ( add py ( mult' px py ) ) ) -
+	ρ ( add-S-comm-0 py ( S ( add ( add px py ) ( mult' px py ) ) ) ) -
+	ρ ( add-S-comm-1 py ( add ( add px py ) ( mult' px py ) ) ) -
+	ρ ( mult'-S-0-lemma-0 py ( add px py ) ( mult' px py ) ) -
+	β )
+      β )
+    ( λ y . θ y
+      ( λ _ . λ _ . β )
+      β ) .
+
+mult'-S-1 ⇐ Π x : Nat . Π y : Nat . mult' x ( S y ) ≃ add x ( mult' x y ) =
+  λ x . λ y .
+    ρ ( mult'-comm x ( S y ) ) -
+    ρ ( mult'-comm x y ) -
+    ρ ( mult'-S-0 y x ) -
+    β .

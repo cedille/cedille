@@ -1,0 +1,12 @@
+rec eqJ(A : ★)(a : A) : (b : A) | refl : eqJ a =
+  ∀ P : Π b : A . eqJ b ➔ ★ .
+    P a refl ➔ P b self
+with
+ refl = Λ P . λ u . u .
+
+rec eqJ'(A : ★) : (a : A)(b : A) | refl : Π a : A . eqJ' a a =
+  ∀ P : Π a : A . Π b : A . eqJ' a b ➔ ★ .
+    P a a (refl a) ➔ P a b self
+with
+ refl = λ a . Λ P . λ u . u .
+

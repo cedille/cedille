@@ -1,0 +1,27 @@
+import nat.
+
+sumZ ⇐ ( Nat → Nat ) → Nat → Nat =
+  λ f . λ n . θ n
+    ( λ pn . λ hn . add ( f ( S pn ) ) hn )
+    ( f Z ) .
+
+sumZ-defn ⇐ Π f : Nat → Nat . Π n : Nat . sumZ f ( S n ) ≃ add ( f ( S n ) ) ( sumZ f n ) =
+  λ f . λ n . θ n ( λ pn . λ hn . β ) β .
+
+%check to see if the sum of f(n) = n from 0 to 3 is in fact 6
+testsumZ = eqnat ( sumZ ( λ x . x ) ( S ( S ( S Z ) ) )  ) ( S ( S ( S ( S ( S ( S Z ) ) ) ) ) ) !
+
+import nat-thms-add.
+
+sumZ-only-Z-lemma-0 ⇐ Π x : Nat . is-zero ( S x ) ≃ ff = λ x . ε β .
+
+sumZ-only-Z ⇐ Π f : Nat → Nat . Π n : Nat . ( Π k : Nat . ( is-zero k ≃ ff ) → ( f k ≃ Z ) ) → ( sumZ f n ≃ f Z ) =
+  λ f . λ n . θ n
+    ( λ pn . λ hn . λ pf .
+      ρ ( pf ( S pn ) ( sumZ-only-Z-lemma-0 pn ) ) -
+      ρ ( sumZ-defn f pn ) -
+      ρ ( pf ( S pn ) ( sumZ-only-Z-lemma-0 pn ) ) -
+      ρ ( add-Z-0 ( sumZ f pn ) ) -
+      ρ ( hn pf ) -
+      β )
+    ( λ pf . β ) .

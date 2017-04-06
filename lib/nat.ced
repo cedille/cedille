@@ -1,0 +1,77 @@
+import bool.
+import compare.
+
+rec Nat | S : Nat ➔ Nat , Z : Nat =
+  ∀ P : Nat ➔ ★ .
+    (Π n : Nat . P n ➔ P (S n)) ➔ P Z ➔ P self
+  with
+    S = λ n . Λ P . λ s . λ z . s n (n · P s z) ,
+    Z = Λ P . λ s . λ z . z.
+
+one ◂ Nat = S Z !
+
+add ◂ Nat ➔ Nat ➔ Nat = λ n . λ m . θ n (λ n . S) m .
+
+mult ◂ Nat ➔ Nat ➔ Nat = λ n . λ m . θ n ( λ pn . add m ) Z .
+
+exp ◂ Nat ➔ Nat ➔ Nat = λ x . λ y . θ y ( λ _ . λ hy . mult x hy ) ( S Z ) .
+
+fact ◂ Nat ➔ Nat = λ x . θ x ( λ px . λ hx . mult hx ( S px ) ) ( S Z ) .
+
+nCr ◂ Nat ➔ Nat ➔ Nat =
+  λ x . θ x
+    ( λ _ . λ hx . λ y . θ y
+      ( λ py . λ _ . add ( hx py ) ( hx ( S py ) ) )
+      ( S Z ) )
+    ( λ y . θ y
+      ( λ _ . λ _ . Z )
+      ( S Z ) ) .
+
+
+
+P ◂ Nat ➔ Nat = λ n . θ n ( λ p . λ n . p ) n .
+
+subtract ◂ Nat ➔ Nat ➔ Nat = λ n . λ m . θ m ( λ p . P ) n .
+
+CNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
+
+toCNat ◂ Nat ➔ CNat =
+  λ x . x · (λ x : Nat . CNat)
+          (λ p . λ c . (Λ X . λ s . λ z . s (c · X s z)))
+          (Λ X . λ s . λ z . z) .
+
+is-zero ◂ Nat ➔ Bool = 
+  λ n . n · (λ n : Nat . Bool) (λ p . λ r . ff) tt .
+
+Is-zero ◂ Nat ➔ ★ = λ n : Nat . is-zero n ≃ tt .
+
+compare ◂ Nat ➔ Nat ➔ compare-t =
+  λ n . θ n 
+          (λ p . λ r . λ m . θ m (λ p' . λ u . r p') GT)
+          (λ m . θ m (λ _ . λ _ . LT) EQ) .
+
+eqnat ◂ Nat ➔ Nat ➔ Bool =
+ λ n . λ m . θ (compare n m) ff tt ff .
+
+lt ◂ Nat ➔ Nat ➔ Bool =
+ λ n . λ m . θ (compare n m) tt ff ff .
+
+gt ◂ Nat ➔ Nat ➔ Bool =
+ λ n . λ m . θ (compare n m) ff ff tt .
+
+lte ◂ Nat ➔ Nat ➔ Bool =
+ λ n . λ m . θ (compare n m) tt tt ff .
+
+gte ◂ Nat ➔ Nat ➔ Bool =
+ λ n . λ m . θ (compare n m) ff tt tt .
+
+Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . (lt n m ≃ tt) .
+Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . (lte n m ≃ tt) .
+Gt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . (gt n m ≃ tt) .
+Gte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . (gte n m ≃ tt) .
+
+mod ◂ Nat ➔ Nat ➔ Nat =
+    λ a . λ b . θ a ( λ p . λ x . ( gte (S x) b ) · ( λ x : Bool . Nat ) Z ( S x ) ) Z .
+
+max ◂ Nat ➔ Nat ➔ Nat = 
+  λ n . λ m . θ (gte n m) n m .

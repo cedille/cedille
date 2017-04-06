@@ -1,0 +1,77 @@
+import bool.
+import maybe.
+import nat.
+
+rec List (A : ★) | Cons : A ➔ List ➔ List , Nil : List =
+  ∀ P : List ➔ ★ .
+    (Π h : A . Π t : List . P t ➔ P (Cons h t)) ➔ 
+    P Nil ➔ 
+    P self
+  with
+    Cons = λ a . λ v . Λ P . λ c . λ e . c a v (v · P c e),
+    Nil = Λ P . λ c . λ n . n 
+.
+
+append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
+  Λ A . λ l . λ l' .
+   θ l [append-Cons = λ h . λ t . λ r . Cons · A h r ] l' .
+
+% operations
+lengthCons ◂ ∀ A : ★ . A ➔ List · A ➔ Nat ➔ Nat =
+  Λ A . λ h . λ t . λ r . S r .
+
+length ◂ ∀ A : ★ . List · A ➔ Nat =
+  Λ A . λ l . l · (λ l' : (List · A) . Nat) (lengthCons · A) Z .
+
+foldr ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ (List · A) ➔ B ➔ B) ➔ B ➔ List · A ➔ B =
+  Λ A . Λ B . λ f . λ b . λ l . θ l f b .
+
+is-empty ◂ ∀ A : ★ . List · A ➔ Bool =
+  Λ A . λ l . θ l (λ h . λ t . λ r . ff) tt .
+
+head ◂ ∀ A : ★ . Π l : (List · A) . (is-empty l ≃ ff) ➔ A =
+  Λ A . λ l . θ l (λ h . λ t . λ r . λ p . h ) (λ p . δ p) .
+
+head1 ◂ ∀ A : ★ . List · A ➔ Maybe · A =
+  Λ A . λ l . θ l (λ h . λ t . λ r . just · A h) (nothing · A) .
+
+tail ◂ ∀ A : ★ . List · A ➔ List · A =
+  Λ A . λ l . θ l (λ h . λ t . λ r . t) (Nil · A) .
+
+singleton ◂ ∀ A : ★ . A ➔ List · A =
+  Λ A . λ a . (Cons · A) a (Nil · A) .
+
+repeat ◂ ∀ A : ★ . A ➔ Nat ➔ List · A =
+  Λ A . λ a . λ n . θ n (λ n . (Cons · A) a) (Nil · A) .
+
+filter ◂ ∀ A : ★ . (A ➔ Bool) ➔ List · A ➔ List · A =
+  Λ A . λ f . λ l . θ l (λ h . λ t . λ r . (if · (List · A)) (f h) (Cons · A h r) r) (Nil · A) .
+
+map ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ B) ➔ List · A ➔ List · B =
+  Λ A . Λ B . λ f . λ l .
+    θ l (λ h . λ t . λ r . Cons · B (f h) r)
+      (Nil · B) .
+
+sreverseCons ◂ ∀ A : ★ . A ➔ (List · A) ➔ (List · A) ➔ (List · A) =
+  Λ A . λ h . λ t . λ r . (append · A) r (singleton · A h) .
+
+% slow reverse
+sreverse ◂ ∀ A : ★ . (List · A) ➔ (List · A) =
+  Λ A . (foldr · A · (List · A)) (sreverseCons · A) (Nil · A) .
+
+
+CList ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . (A ➔ X ➔ X) ➔ X ➔ X .
+
+CCons ◂ ∀ A : ★ . A ➔ CList · A ➔ CList · A = Λ A . λ h . λ t . Λ X . λ c . λ e . c h (t · X c e) .
+
+CNil ◂ ∀ A : ★ . CList · A = Λ A . Λ X . λ c . λ e . e .
+
+toCList ◂ ∀ A : ★. List · A ➔ CList · A = 
+  Λ A . λ l . θ l (λ h . λ t . λ ct . CCons · A h ct) (CNil · A) .
+
+% move the head of the list to the end
+list-rotate ◂ ∀ A : ★ . List · A ➔ List · A =
+  Λ A . λ l .
+    θ l (λ h . λ t . λ _ .
+           append · A t (Cons · A h (Nil · A)))
+	(Nil · A).

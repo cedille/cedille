@@ -1,0 +1,10 @@
+import ACG-mult-0 .
+
+mult-S-1 ⇐ Π x : Nat . Π y : Nat .
+           mult x (S y) ≃ add x ( mult x y ) =
+  λ x . λ y . ● .
+
+mult-comm ⇐ Π x : Nat . Π y : Nat . mult x y ≃ mult y x =
+  λ x . λ y . θ x ( λ px . λ h . ρ (mult-S-0 px y) - ρ ( mult-S-1 y px ) - ρ h - β )
+    ρ ( mult-Z-0 y )
+    - β .

@@ -1,0 +1,18 @@
+% this is in its own file because parsing it in is slow with the Cedille parser
+compare-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Π o : compare-t . ( compare x y ≃ o ) ➔ ( compare y z ≃ o ) ➔ ( compare x z ≃ o ) =
+  λ x . θ x
+    ( λ px . λ hx . λ y . θ y
+      ( λ py . λ _ . λ z . θ z
+      	( λ pz . λ _ . λ o . λ pf-xy . λ pf-yz . ρ ( hx py pz o pf-xy pf-yz ) - β )
+	( λ o . λ _ . λ pf-yz . ρ ( ς pf-yz ) - β ) )
+      ( λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) )
+	( λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) ) ) )
+    ( λ y . θ y
+      ( λ _ . λ _ . λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ _ . ρ ( ς pf-xy ) - β )
+	( λ _ . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) ) )
+      ( λ z . θ z
+        ( λ _ . λ _ . λ o . λ pf-xy . λ pf-yz . δ ( ρ ( ς pf-xy ) - pf-yz ) )
+	( λ _ . λ pf-xy . λ _ . pf-xy ) ) ) .
+
