@@ -256,10 +256,14 @@ which currently consists of:\n
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
-  (let ((output) ; defaults to empty string
-	;; formats input pair as "<symbol>:	<value>" 
+;  (message context)
+  (let* ((output) ; defaults to empty string
+	;; formats input pair as "<symbol>:	<value>"
+	(has-keyword (lambda (entry word)
+			(member word (cdr (assoc 'keywords (cdr entry))))))
 	(format (lambda (pair) (concat (car pair)
-				       ":\t"
+					; ":\t"
+				       (if (funcall has-keyword pair "noterased") ":\t" ":-\t")
 				       ;; only displays value if it has not been hidden
 				       (unless (member pair cedille-mode-hidden-context-tuples) 
 					 (cdr (assoc 'value (cdr pair)))))))
