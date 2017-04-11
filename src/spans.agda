@@ -289,6 +289,10 @@ punctuation-data = "punctuation" , "true"
 not-for-navigation : tagged-val
 not-for-navigation = "not-for-navigation" , "true"
 
+is-erased : type → 𝔹
+is-erased (TpVar _ _ ) = tt
+is-erased _ = ff
+
 keywords-data : type → tagged-val
 keywords-data t =
   "keywords" , 
@@ -299,10 +303,17 @@ keywords-data t =
     (if is-equational t then
       "equational"
      else "")
+    ^ " noterased"
+
+
+
+
 keywords-data-kind : kind → tagged-val
 keywords-data-kind k = 
   "keywords"  ,
-    (if is-equational-kind k then "equational" else "")
+    (if is-equational-kind k then "equational" else "") ^ " noterased"
+
+
 
 error-if-not-eq : type → 𝕃 tagged-val → 𝕃 tagged-val
 error-if-not-eq (TpEq t1 t2) tvs = expected-type (TpEq t1 t2) :: tvs
@@ -354,6 +365,27 @@ KndVar-span Γ pi v ys check tvs =
 var-span : ctxt → posinfo → string → checking-mode → tk → span
 var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
 var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data t :: type-data t :: [ hnf-type Γ t ])
+
+var-span' : ctxt → posinfo → string → checking-mode → tk → span
+var-span' Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind' k :: [ kind-data k ])
+  where    
+   keywords-data-kind' : kind → tagged-val
+   keywords-data-kind' k = 
+     "keywords"  ,
+       (if is-equational-kind k then "equational" else "")  ^ " erased"
+var-span' Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data' t :: type-data t :: [ hnf-type Γ t ])
+  where
+    keywords-data' : type → tagged-val
+    keywords-data' t =
+      "keywords" , 
+        (if is-equation t then
+          "equation"
+        else "")
+        ^ " " ^
+        (if is-equational t then
+          "equational"
+         else "")
+        ^ " erased"
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
