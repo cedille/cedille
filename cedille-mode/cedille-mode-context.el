@@ -207,35 +207,22 @@ which currently consists of:\n
 		 (kind (funcall get 'kind))
 		 (keywords-string (funcall get 'keywords))
 		 (keywords-list (when keywords-string (split-string keywords-string " " t)))
-		 ;; counts the instances of a given symbol in the context
-		 (count-original-symbols
-		  ;; recursively counts how many instances of the given original symbol already occur in the list
-		  (lambda (lst original-symbol rec-call) ; list -> string -> nat
+		 (count-shadowed ; counts number of variables shadowed by this one
+		  (lambda (lst symbol rec-call) ; string -> nat
 		    (if lst
-			;; os is the symbol of the entry in the list
-			(let ((os (cdr (assoc 'original-symbol (cdr (car lst)))))) 
-			  (+ (if (equal os original-symbol) 1 0) (funcall rec-call (cdr lst) original-symbol rec-call)))
+			(let ((this-sym (car (car lst))))
+			  (+ (if (equal this-sym symbol) 1 0) (funcall rec-call (cdr lst) symbol rec-call)))
 		      0)))
-		 ;; renames shadowed symbols to indicate how many symbols they are shadowing
-		 (name-symbol 
-		  (lambda (lst original-symbol) ; list -> string -> string
-		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
-		      (if (equal count 0)
-			  original-symbol
-			(concat original-symbol "[+" (number-to-string count) "]")))))		 
 		 (set-list
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
 		    ;; we rename shadowed variables with a [+n] suffix or omit them		    
-		    (let ((data (list
-				 (cons 'value value-source) 		; the value displayed for the entry
-				 (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
-				 (cons 'original-symbol symbol))) 	; the original symbol identifying the entry
-			  (shadow-p cedille-mode-show-shadowed-variables))
-		      (set q-lst (cons (cons
-					(if shadow-p (funcall name-symbol (eval q-lst) symbol) symbol)
-					data)
-				       (if shadow-p (eval q-lst) (delq (assoc symbol (eval q-lst)) (eval q-lst)))))))))
+		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) 		; number of symbols shadowed by this one
+			   (data (list 
+				  (cons 'value value-source) 		; the value displayed for the entry
+				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
+				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
+		      (set q-lst (cons (cons symbol data) (eval q-lst)))))))
 	    (when (and symbol (not (equal symbol "_")) (or type kind)) 	; separate types and kinds
 	      (if type (funcall set-list 'terms type) (funcall set-list 'types kind)))))))))
 
@@ -254,21 +241,53 @@ which currently consists of:\n
       (setq buffer-read-only t)
       (setq deactivate-mark nil))))
 
+		 ;; renames shadowed symbols to indicate how many symbols they are shadowing
+;		 (name-symbol 
+;		  (lambda (lst original-symbol) ; list -> string -> string
+;		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
+;		      (if (equal count 0)
+;;			  original-symbol
+;			(concat original-symbol "[+" (number-to-string count) "]")))))		 
+
+
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
 ;  (message context)
   (let* ((output) ; defaults to empty string
-	;; formats input pair as "<symbol>:	<value>"
-	(has-keyword (lambda (entry word)
+	 (shadow-p cedille-mode-show-shadowed-variables)
+	 ;; formats input pair as "<symbol>:	<value>" ==ACG==
+	 (has-keyword (lambda (entry word)
 			(member word (cdr (assoc 'keywords (cdr entry))))))
-	(format (lambda (pair) (concat (car pair)
-					; ":\t"
-				       (if (funcall has-keyword pair "noterased") ":\t" ":-\t")
-				       ;; only displays value if it has not been hidden
-				       (unless (member pair cedille-mode-hidden-context-tuples) 
-					 (cdr (assoc 'value (cdr pair)))))))
-	(terms (car context))
-	(types (cdr context)))
+	 ;; filter out shadowed symbols
+	 (shadow-filter (lambda (lst)
+			  (let (shadowed-lst)
+			    (dolist (pair (reverse lst) shadowed-lst)
+			      (let* ((symbol (car pair))
+				     (matches (lambda (thispair) (equal (car thispair) symbol))))
+				(setq shadowed-lst (cons pair (remove-if matches shadowed-lst))))))))
+	 ;; format symbol-value pairs for display
+	 (format (lambda (pair)
+		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)
+			  (symbol (car pair))
+			  (data (cdr pair))
+			  (shadows (cdr (assoc 'shadows data)))
+			  ;; when displaying shadowed variables, add [+x] annotation 
+			  (fsymbol (if (and shadow-p (> shadows 0))
+				       (concat symbol "[+" (number-to-string shadows) "]")
+				     symbol))
+			  ;; hide types and kinds in whiteout list
+			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data)))))
+		     (concat fsymbol
+			     ;; ":\t"
+			     (if (funcall has-keyword pair "noterased") ":\t" ":-\t")
+			     ;; only displays value if it has not been hidden
+			     fdata))))
+	 (terms (if shadow-p
+		    (car context)
+		  (funcall shadow-filter (car context))))
+	 (types (if shadow-p
+		    (cdr context)
+		  (funcall shadow-filter (cdr context)))))
     (if (or terms types)
 	(progn
 	  (when terms ; Print out the terms and their types
