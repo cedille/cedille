@@ -42,6 +42,16 @@
 (defvar cedille-mode-hidden-context-tuples nil
   "Defines a list of tuples corresponding to types/kinds to hide in the context window")
 
+					; HELPER FUNCTIONS
+;; Miscellaneous functions that are used repeatedly
+
+(defun cedille-mode-helpers-filter(lst condp)
+  "Returns the subset of lst whose members satisfy condp"
+  (delete nil (mapcar (lambda (x) (and (funcall condp x) x) (copy-sequence lst)))))
+
+(defun cedille-mode-helpers-has-keyword(entry word)
+  "Tests whether context entry has word as a keyword"
+  (member word (cdr (assoc 'keywords (cdr entry)))))
 
 					; MINOR MODE FUNCTIONS
 
@@ -117,19 +127,13 @@
 (defun cedille-mode-filter-context()
   "Filters context and stores in cedille-mode-filtered-context-list"
   (let* ((context (copy-sequence cedille-mode-original-context-list))
-	 ;; returns a list of objects satisfying condp
-	 (filter (lambda (lst condp)
-		   (delete nil (mapcar (lambda (x) (and (funcall condp x) x)) (copy-sequence lst)))))
-	 ;; tests whether a context entry *entry* has keyword *word* associated with it
-	 (has-keyword (lambda (entry word)
-			(member word (cdr (assoc 'keywords (cdr entry)))))) 
 	 ;; predicate which checks the value of *x* against the value of *cedille-mode-context-filtering*
 	 (filterp (lambda (x)
 		    (equal cedille-mode-context-filtering x)))
 	 ;; given a list and a key, filters out only terms that have that keyword
 	 (filter-for-keyword (lambda (lst key)
-			       (funcall filter lst (lambda (entry)
-						     (funcall has-keyword entry key)))))
+			       (cedille-mode-helpers-filter lst (lambda (entry)
+						     (cedille-mode-helpers-has-keyword entry key)))))
 	 ;; filters and returns the input list depending on value of filterp
 	 (filter-list (lambda (lst)
 			(cond ((funcall filterp 'eqn) (funcall filter-for-keyword lst  "equation"))
@@ -256,9 +260,7 @@ which currently consists of:\n
   (let* ((output) ; defaults to empty string
 	 (shadow-p cedille-mode-show-shadowed-variables)
 	 ;; formats input pair as "<symbol>:	<value>" ==ACG==
-	 (has-keyword (lambda (entry word)
-			(member word (cdr (assoc 'keywords (cdr entry))))))
-	 ;; filter out shadowed symbols
+	 ;; filter out shadowed symbols (do not use filter helper for this)
 	 (shadow-filter (lambda (lst)
 			  (let (shadowed-lst)
 			    (dolist (pair (reverse lst) shadowed-lst)
@@ -279,7 +281,7 @@ which currently consists of:\n
 			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data)))))
 		     (concat fsymbol
 			     ;; ":\t"
-			     (if (funcall has-keyword pair "noterased") ":\t" ":-\t")
+			     (if (cedille-mode-helpers-has-keyword pair "noterased") ":\t" ":-\t")
 			     ;; only displays value if it has not been hidden
 			     fdata))))
 	 (terms (if shadow-p
