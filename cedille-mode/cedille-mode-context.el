@@ -279,9 +279,9 @@ which currently consists of:\n
 				     symbol))
 			  ;; hide types and kinds in whiteout list
 			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data)))))
-		     (concat fsymbol
-			     ;; ":\t"
-			     (if (cedille-mode-helpers-has-keyword pair "noterased") ":\t" ":-\t")
+		     (concat (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") fsymbol)
+			     ":\t"
+			     ;;(if (cedille-mode-helpers-has-keyword pair "noterased") ":\t" ":-\t")
 			     ;; only displays value if it has not been hidden
 			     fdata))))
 	 (terms (if shadow-p

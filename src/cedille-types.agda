@@ -7,6 +7,7 @@ module cedille-types where
 open import lib
 open import parse-tree
 
+erased? = bool
 posinfo = string
 alpha = string
 alpha-bar-3 = string

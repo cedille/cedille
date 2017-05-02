@@ -293,8 +293,8 @@ is-erased : type → 𝔹
 is-erased (TpVar _ _ ) = tt
 is-erased _ = ff
 
-keywords-data : type → tagged-val
-keywords-data t =
+keywords-data : erased? → type → tagged-val
+keywords-data e t =
   "keywords" , 
     (if is-equation t then
       "equation"
@@ -303,7 +303,7 @@ keywords-data t =
     (if is-equational t then
       "equational"
      else "")
-    ^ " noterased"
+    ^ (if e then " erased" else " noterased")
 
 
 
@@ -362,30 +362,11 @@ KndVar-span Γ pi v ys check tvs =
   mk-span "Kind variable" pi (args-end-pos ys)
     (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: super-kind-data :: tvs)
 
-var-span : ctxt → posinfo → string → checking-mode → tk → span
-var-span Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
-var-span Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data t :: type-data t :: [ hnf-type Γ t ])
+var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → span
+var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data k ])
+var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data e t :: type-data t :: [ hnf-type Γ t ])
 
-var-span' : ctxt → posinfo → string → checking-mode → tk → span
-var-span' Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind' k :: [ kind-data k ])
-  where    
-   keywords-data-kind' : kind → tagged-val
-   keywords-data-kind' k = 
-     "keywords"  ,
-       (if is-equational-kind k then "equational" else "")  ^ " erased"
-var-span' Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data' t :: type-data t :: [ hnf-type Γ t ])
-  where
-    keywords-data' : type → tagged-val
-    keywords-data' t =
-      "keywords" , 
-        (if is-equation t then
-          "equation"
-        else "")
-        ^ " " ^
-        (if is-equational t then
-          "equational"
-         else "")
-        ^ " erased"
+
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)

@@ -155,30 +155,19 @@ hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subs
 hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t) tt
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
-add-tk : posinfo → var → tk → spanM (maybe sym-info)
-add-tk pi x atk =
-    if (x =string ignored-var) then spanMr nothing else
+add-tk' : erased? → posinfo → var → tk → spanM (maybe sym-info)
+add-tk' e pi x atk = if (x =string ignored-var) then spanMr nothing else
        (helper atk ≫=span λ mi → 
         (get-ctxt λ Γ → 
-          spanM-add (var-span Γ pi x checking atk)) ≫span
+          spanM-add (var-span e Γ pi x checking atk)) ≫span
         spanMr mi)
   where helper : tk → spanM (maybe sym-info)
         helper (Tkk k) = spanM-push-type-decl pi x k 
         helper (Tkt t) = spanM-push-term-decl pi x t 
 
-add-tk' : posinfo → var → tk → spanM (maybe sym-info)
-add-tk' pi x atk =
-    if (x =string ignored-var) then spanMr nothing else
-       (helper atk ≫=span λ mi → 
-        (get-ctxt λ Γ → 
-          spanM-add (var-span' Γ pi x checking atk)) ≫span
-        spanMr mi)
-  where helper : tk → spanM (maybe sym-info)
-        helper (Tkk k) = spanM-push-type-decl pi x k 
-        helper (Tkt t) = spanM-push-term-decl pi x t
-
-
-
+add-tk : posinfo → var → tk → spanM (maybe sym-info)
+add-tk = add-tk' ff
+    
 check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
 
@@ -408,13 +397,10 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   get-ctxt (λ Γ → 
     spanM-add (this-span Γ atk oc (check-erasures l b)) ≫span
-    (if iserased l then (add-tk' pi' x (lambda-bound-class-if oc atk)) else (add-tk pi' x (lambda-bound-class-if oc atk))) ≫=span λ mi → 
+    (add-tk' (lam-is-erased l) pi' x (lambda-bound-class-if oc atk)) ≫=span λ mi → 
     check-term t (just (rename-type Γ x' x (tk-is-type atk) tp')) ≫span
     spanM-restore-info x mi) 
-  where iserased : lam → 𝔹
-        iserased ErasedLambda = tt
-        iserased _ = ff
-        this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
+  where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
         this-span _ _ NoClass tvs = Lam-span pi l x oc t tvs
         this-span Γ atk (SomeClass atk') tvs = 
           if conv-tk Γ atk' atk then

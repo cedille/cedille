@@ -1,2 +1,3 @@
 name: cedille
 include: .
+depend: ial gratr-agda
