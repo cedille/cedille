@@ -453,9 +453,9 @@ in the parse tree, and updates the Cedille info buffer."
 
   (setq-local comment-start "%")
   
-  (se-inf-start
-   (or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
-       (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
+  (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
+  ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
+    ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
 
   (add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
