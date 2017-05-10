@@ -66,7 +66,7 @@ term-start-pos (Theta pi _ _ _) = pi
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (Mu pi _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
-type-start-pos (Iota pi _ _ _ _) = pi
+type-start-pos (IotaEx pi _ _ _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
@@ -121,7 +121,7 @@ term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (Mu pi _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
-type-end-pos (Iota _ _ _ _ tp) = type-end-pos tp
+type-end-pos (IotaEx _ _ _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
@@ -207,7 +207,7 @@ is-abs : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-abs{TERM} (Lam _ _ _ _ _ _) = tt
 is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
 is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
-is-abs{TYPE} (Iota _ _ _ _ _) = tt
+is-abs{TYPE} (IotaEx _ _ _ _ _ _) = tt
 is-abs{KIND} (KndPi _ _ _ _ _) = tt
 is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
 is-abs _ = ff
@@ -408,8 +408,8 @@ is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
 is-equational (Mu _ _ _ k t) = is-equational-kind k || is-equational t
-is-equational (Iota _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
-is-equational (Iota _ _ _ _ t2) = is-equational t2
+is-equational (IotaEx _ _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
+is-equational (IotaEx _ _ _ _ _ t2) = is-equational t2
 is-equational (NoSpans t _) = is-equational t
 is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
 is-equational (TpAppt t1 _) = is-equational t1
@@ -428,3 +428,9 @@ is-equational-kind (KndPi _ _ _ atk k) = is-equational-tk atk || is-equational-k
 is-equational-kind (KndTpArrow t1 k2) = is-equational t1 || is-equational-kind k2
 is-equational-kind (KndVar _ _ _) = ff
 is-equational-kind (Star _) = ff
+
+ie-eq : ie → ie → 𝔹
+ie-eq Exists Exists = tt
+ie-eq Exists Iota = ff
+ie-eq Iota Exists = ff
+ie-eq Iota Iota = tt

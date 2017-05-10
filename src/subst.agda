@@ -73,9 +73,9 @@ substh-type Γ ρ t x (TpLambda pi pi' y atk t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
       (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (Iota pi pi' y m t') = 
+substh-type Γ ρ t x (IotaEx pi ie pi' y m t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
-    Iota pi pi' y' (substh-optType Γ ρ t x m)
+    IotaEx pi ie pi' y' (substh-optType Γ ρ t x m)
       (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (Lft pi pi' y t' l) = 
   let y' = subst-rename-var-if Γ ρ x y t in

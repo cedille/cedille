@@ -293,6 +293,9 @@ is-erased : type → 𝔹
 is-erased (TpVar _ _ ) = tt
 is-erased _ = ff
 
+erased? : Set
+erased? = 𝔹
+
 keywords-data : erased? → type → tagged-val
 keywords-data e t =
   "keywords" , 

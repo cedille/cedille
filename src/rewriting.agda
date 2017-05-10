@@ -84,10 +84,10 @@ rewrite-type Γ ρ u t1 t2 T | Mu pi pi' y k tp =
       ((rewriteA-pure (Mu pi pi' y')) rewriteA-app
         (rewrite-kind Γ ρ u t1 t2 k) rewriteA-app
         (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
-rewrite-type Γ ρ u t1 t2 T | Iota pi pi' y m tp = 
+rewrite-type Γ ρ u t1 t2 T | IotaEx pi ie pi' y m tp = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     rewrite-return T
-      ((rewriteA-pure (Iota pi pi' y)) rewriteA-app
+      ((rewriteA-pure (IotaEx pi ie pi' y)) rewriteA-app
          (rewrite-optType Γ ρ u t1 t2 m) rewriteA-app
          (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
 rewrite-type Γ ρ u t1 t2 T | Lft pi pi' y t l = 

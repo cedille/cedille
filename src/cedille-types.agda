@@ -7,7 +7,6 @@ module cedille-types where
 open import lib
 open import parse-tree
 
-erased? = bool
 posinfo = string
 alpha = string
 alpha-bar-3 = string
@@ -79,6 +78,10 @@ mutual
 
   data decl : Set where 
     Decl : posinfo → posinfo → var → tk → posinfo → decl
+
+  data ie : Set where 
+    Exists : ie
+    Iota : ie
 
   data kind : Set where 
     KndArrow : kind → kind → kind
@@ -187,7 +190,7 @@ mutual
 
   data type : Set where 
     Abs : posinfo → binder → posinfo → var → tk → type → type
-    Iota : posinfo → posinfo → var → optType → type → type
+    IotaEx : posinfo → ie → posinfo → var → optType → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
     Mu : posinfo → posinfo → var → kind → type → type
     NoSpans : type → posinfo → type
@@ -228,6 +231,7 @@ data ParseTreeT : Set where
   parsed-cmdTerminator : cmdTerminator → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
   parsed-decl : decl → ParseTreeT
+  parsed-ie : ie → ParseTreeT
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
   parsed-leftRight : leftRight → ParseTreeT
@@ -452,6 +456,10 @@ mutual
   declToString : decl → string
   declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
 
+  ieToString : ie → string
+  ieToString (Exists) = "Exists" ^ ""
+  ieToString (Iota) = "Iota" ^ ""
+
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndParens x0 x1 x2) = "(KndParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -559,7 +567,7 @@ mutual
 
   typeToString : type → string
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
-  typeToString (Iota x0 x1 x2 x3 x4) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (optTypeToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (IotaEx x0 x1 x2 x3 x4 x5) = "(IotaEx" ^ " " ^ (posinfoToString x0) ^ " " ^ (ieToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optTypeToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
   typeToString (Mu x0 x1 x2 x3 x4) = "(Mu" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
@@ -586,6 +594,7 @@ ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmdTerminator t) = cmdTerminatorToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
+ParseTreeToString (parsed-ie t) = ieToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-leftRight t) = leftRightToString t
@@ -835,6 +844,10 @@ mutual
   norm-kind (KndArrow (KndTpArrow x1 x2) x3) = (norm-kind (KndTpArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind (KndArrow (KndArrow x1 x2) x3) = (norm-kind (KndArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind x = x
+
+  {-# TERMINATING #-}
+  norm-ie : (x : ie) → ie
+  norm-ie x = x
 
   {-# TERMINATING #-}
   norm-decl : (x : decl) → decl

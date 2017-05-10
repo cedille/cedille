@@ -246,8 +246,8 @@ conv-type-norm Γ (Mu pi1 pi2 x k body) (Mu pi1' pi2' x' k' body') =
 conv-type-norm Γ (TpArrow tp1 _ tp2) (TpArrow tp1' _  tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 _ tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' _ tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Iota _ pi x m tp) (Iota _ pi' x' m' tp') = 
-  conv-optType Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+conv-type-norm Γ (IotaEx _ ie1 pi x m tp) (IotaEx _ ie2 pi' x' m' tp') = 
+  ie-eq ie1 ie2 && conv-optType Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Lft _ pi x t l) (Lft _ pi' x' t' l') =
   conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'

@@ -104,7 +104,10 @@ KeptLambda : lam -> 'λ' .
 Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
 TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
 
-Iota : type -> ! 'ι' ows ! var optType ows '.' ows type .
+Iota : ie -> 'ι' .
+Exists : ie -> '∃'.
+
+IotaEx : type -> ! ie ows ! var optType ows '.' ows type .
 TpArrow : type -> ltype ows arrowtype ows type.
 ErasedArrow: arrowtype -> '➾'.
 UnerasedArrow: arrowtype -> '➔'.

@@ -65,8 +65,8 @@ is-free-in-type ce (inj₁ x) (TpLambda _ _ x' atk t) =
   is-free-in-tk ce (inj₁ x) atk || (~ (x =string x') && is-free-in-type ce (inj₁ x) t) 
 is-free-in-type ce (inj₂ t) (TpLambda _ _ x' atk t') = 
   is-free-in-tk ce (inj₂ t) atk || (is-free-in-type ce (inj₂ t) t') 
-is-free-in-type ce (inj₁ x) (Iota _ _ x' m t) = is-free-in-optType ce (inj₁ x) m || (~ (x =string x') && is-free-in-type ce (inj₁ x) t)
-is-free-in-type ce (inj₂ (Γ , t)) (Iota _ _ x' m t') =
+is-free-in-type ce (inj₁ x) (IotaEx _ _ _ x' m t) = is-free-in-optType ce (inj₁ x) m || (~ (x =string x') && is-free-in-type ce (inj₁ x) t)
+is-free-in-type ce (inj₂ (Γ , t)) (IotaEx _ _ _ x' m t') =
   is-free-in-optType ce (inj₂ (Γ , t)) m || (is-free-in-type ce (inj₂ (Γ , stringset-insert t x')) t')
 is-free-in-type ce (inj₁ x) (Lft _ _ X t l) = is-free-in-liftingType ce (inj₁ x) l || (~ x =string X && is-free-in-term ce (inj₁ x) t)
 is-free-in-type ce (inj₂ (Γ , t)) (Lft _ _ X t' l) =

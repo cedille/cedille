@@ -151,8 +151,8 @@ PiInj-try-project Γ n t1 t2 | vs1 , body1 | vs2 , body2 | just ρ | _ | nothing
    iota-bound variable has a type; otherwise, we won't-}
 hnf-instantiate-iota : ctxt → term → type → (allow-typed-iota : 𝔹) → type
 hnf-instantiate-iota Γ subject tp allow with hnf Γ unfold-head-rec-defs tp tt
-hnf-instantiate-iota Γ subject _ tt | Iota _ _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t) tt
-hnf-instantiate-iota Γ subject _ ff | Iota _ _ x NoType t = hnf Γ unfold-head (subst-type Γ subject x t) tt
+hnf-instantiate-iota Γ subject _ tt | IotaEx _ Iota _ x _ t = hnf Γ unfold-head (subst-type Γ subject x t) tt
+hnf-instantiate-iota Γ subject _ ff | IotaEx _ Iota _ x Noype t = hnf Γ unfold-head (subst-type Γ subject x t) tt
 hnf-instantiate-iota Γ subject _ _ | tp = tp
 
 add-tk' : erased? → posinfo → var → tk → spanM (maybe sym-info)
@@ -679,7 +679,7 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
           helper-add-span Γ [ missing-type ] ≫span
           set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t tt) Γ) 
 
-check-termi (IotaPair pi t1 t2 ot pi') (just (Iota _ _ x (SomeType tp1) tp2)) =
+check-termi (IotaPair pi t1 t2 ot pi') (just (IotaEx _ Iota _ x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
     check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
@@ -711,23 +711,23 @@ check-termi (IotaProj t n pi) mtp =
   check-term t nothing ≫=span cont' mtp (num-to-ℕ n)
   where cont : (outer : maybe type) → ℕ → (computed : type) → spanM (check-ret outer)
         cont mtp n computed with computed
-        cont mtp 1 computed | Iota pi' pi'' x NoType t2 =
+        cont mtp 1 computed | IotaEx pi' Iota pi'' x NoType t2 =
             spanM-add (IotaProj-span t pi (maybe-to-checking mtp)
                         (error-data "The head type is a iota-type, but it has no first component." ::
                               [ head-type computed ] )) ≫span
             return-when mtp mtp
-        cont mtp 1 computed | Iota pi' pi'' x (SomeType t1) t2 =
+        cont mtp 1 computed | IotaEx pi' Iota pi'' x (SomeType t1) t2 =
           get-ctxt (λ Γ →
             spanM-add (IotaProj-span t pi (maybe-to-checking mtp) (head-type computed ::
                                            check-for-type-mismatch-if Γ "synthesized" mtp t1)) ≫span
             return-when mtp (just t1))
-        cont mtp 2 computed | Iota pi' pi'' x a t2 =
+        cont mtp 2 computed | IotaEx pi' Iota pi'' x a t2 =
           get-ctxt (λ Γ →
             let t2' = subst-type Γ t x t2 in
               spanM-add (IotaProj-span t pi (maybe-to-checking mtp)
                           (head-type computed :: check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
               return-when mtp (just t2'))
-        cont mtp n computed | Iota pi' pi'' x t1 t2 =
+        cont mtp n computed | IotaEx pi' Iota pi'' x t1 t2 =
           spanM-add (IotaProj-span t pi (maybe-to-checking mtp) ( error-data "Iota-projections must use .1 or .2 only."
                                       :: [ head-type computed ])) ≫span return-when mtp mtp
         cont mtp n computed | _ =
@@ -948,7 +948,7 @@ check-typei (Lft pi pi' X t l) k =
             else
               spanM-add (Lft-span pi X t checking ( error-data "The expected kind does not match the computed kind."
                                                  :: expected-kind k' :: [ kind-data k ])))
-check-typei (Iota pi pi' x (SomeType t1) t2) mk =
+check-typei (IotaEx pi ie pi' x (SomeType t1) t2) mk =
   spanM-add (Iota-span pi t2 (if-check-against-star-data "A iota-type" mk)) ≫span
   check-typei t1 (just star) ≫span
   add-tk pi' x (Tkt t1) ≫=span λ mi → 
@@ -956,7 +956,7 @@ check-typei (Iota pi pi' x (SomeType t1) t2) mk =
   spanM-restore-info x mi ≫span
   return-star-when mk
 
-check-typei (Iota pi pi' x NoType t2) mk =
+check-typei (IotaEx pi ie pi' x NoType t2) mk =
   spanM-add (Iota-span pi t2 (error-data "Iota-abstractions in source text require a type for the bound variable."
                           :: (if-check-against-star-data "A iota-type" mk))) ≫span
   return-star-when mk
