@@ -1,1 +1,0 @@
-Lt-add-0 ◂ Π a : Nat . Π b : Nat . Π c : Nat . Lt (add a b) c ➔ Lt a c = ● .
