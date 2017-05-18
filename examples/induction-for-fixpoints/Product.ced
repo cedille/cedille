@@ -1,0 +1,22 @@
+
+
+cProd ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ . ∀ X : ★ . (A ➔ B ➔ X) ➔ X .
+cpair ◂ ∀ A : ★ . ∀ B : ★ . A ➔ B ➔ cProd · A · B = Λ A . Λ B . λ a . λ b . Λ X . λ ca . ca a b.
+
+param-Prod ◂ Π A : ★ . Π B : ★ . cProd · A · B ➔ ★ =
+  λ A : ★ . λ B : ★ . λ x : cProd · A · B .
+    ∀ X : ★ . ∀ P : X ➔ ★ . ∀ pr : A ➔ B ➔ X . 
+      (Π a : A . Π b : B . P (pr a b)) ➔ P (x · X pr).
+
+Prod ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ . ι x : cProd · A · B . ι _ : x cpair ≃ x . param-Prod · A · B x .
+
+pair ◂ ∀ A : ★ . ∀ B : ★ . A ➔ B ➔ Prod · A · B =
+  Λ A . Λ B . λ a . λ b . [ cpair · A · B a b , [β{cpair a b} , Λ X . Λ P . Λ pr . λ p . p a b ]].
+
+ind-Prod ◂ ∀ A : ★ . ∀ B : ★ . Π x : Prod · A · B .
+          ∀ P : Prod · A · B ➔ ★ .
+          (Π a : A . Π b : B . P (pair · A · B a b)) ➔ 
+          P x =
+  Λ A . Λ B . λ x . Λ P . λ p .
+    ρ ς x.2.1 - (x.2.2 · (Prod · A · B) · P -(pair · A · B) p) .
+

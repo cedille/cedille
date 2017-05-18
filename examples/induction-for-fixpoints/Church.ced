@@ -1,0 +1,13 @@
+
+
+C ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ X : ★ . (F · X ➔ X) ➔ X .
+
+
+cfold ◂ ∀ F : ★ ➔ ★ . ∀ X : ★ . (F · X ➔ X) ➔ C · F ➔ X =
+  Λ F . Λ X . λ k . λ t . t · X k .
+
+cin ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ F · (C · F) ➔ C · F =
+  Λ F . λ FF . λ u . Λ X . λ k . k (FF · (C · F) · X (cfold · F · X k) u).
+
+cout ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ C · F ➔ F · (C · F) =
+  Λ F . λ FF . cfold · F · (F · (C · F)) (FF · (F · (C · F)) · (C · F) (cin · F FF)).

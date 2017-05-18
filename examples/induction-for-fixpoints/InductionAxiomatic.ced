@@ -1,0 +1,175 @@
+import Functor.
+import Top.
+import PredicateLifting.
+import Church.
+
+% simply typed inductive hypothesis (IHSimpleToIH)
+𝒌SigmaFamily = Π X : ★ . (X ➔ ★) ➔ ★ .
+
+% represents the type for inductive hypothesis IH
+𝒌IHType(F : ★ ➔ ★) =
+  Π X : ★ . Π P : (X ➔ ★) . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf .
+  F · X ➔ ★ .
+
+% 
+IHTypeElem ◂ Π F : ★ ➔ ★ . Π IHType : 𝒌IHType · F . ★ = λ F : ★ ➔ ★ . λ IHType : 𝒌IHType · F .
+   ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf .
+   ∀ x : F · X . IHType · X · P pf pp x ➔ F · X  .
+
+
+IHTypeElemProp ◂ Π F : ★ ➔ ★ . Π IHType : 𝒌IHType · F . IHTypeElem · F · IHType ➔ ★ =
+  λ F : ★ ➔ ★ . λ IHType : 𝒌IHType · F . λ ihElem : IHTypeElem · F · IHType .
+  ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf . ∀ x : F · X .
+    ∀ q : IHType · X · P pf pp x . ihElem pf pp q ≃ x .
+
+
+FtoSigFam ◂ Π F : ★ ➔ ★ . Π F' : 𝒌SigmaFamily . ★ = λ F : ★ ➔ ★ . λ F' : 𝒌SigmaFamily .
+   ∀ X : ★ . ∀ P : X ➔ ★ .  (Π x : X . P x)
+             ➔  F · X  ➔ F' · X · P .
+
+
+SigFamToF ◂ Π F : ★ ➔ ★ . Π F' : 𝒌SigmaFamily . ★ =  λ F : ★ ➔ ★ . λ F' : 𝒌SigmaFamily .
+   ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf . 
+             F' · X · P ➔ F · X .
+
+
+FtoSigFamProp ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . Π F' : 𝒌SigmaFamily . Π FFD : FtoSigFam · F · F' . ★ = 
+   λ F : ★ ➔ ★ . λ FF : Functor · F . λ F' : 𝒌SigmaFamily . λ FFD : FtoSigFam · F · F' .
+     ∀ f : Top . FF f ≃ FFD f .
+
+
+SigFamToIH ◂ Π F : ★ ➔ ★ . Π F' : 𝒌SigmaFamily . Π fmap-pid : FtoSigFam · F · F' . Π FF : Functor · F . Π IHType : 𝒌IHType · F . ★ =
+  λ F : ★ ➔ ★ . λ F' : 𝒌SigmaFamily . λ fmap-pid : FtoSigFam · F · F' .
+  λ FF : Functor · F . λ IHType : 𝒌IHType · F . 
+    ∀ X' : ★ . ∀ X : ★ .
+    ∀ Y : X ➔ ★. ∀ pf :  PredEnrFun · X · Y . ∀ pp : PredEnrProp · X · Y pf .
+    ∀ f : X' ➔ X .
+    ∀ p : Π x' : X' . Y (f x') .
+    ∀ x : F · X' .
+    Π lx : F' · X' · (λ x' : X' . Y (f x')) .
+    (lx ≃ fmap-pid (λ x' . p x') x) ➔ 
+    IHType · X · Y pf pp (FF · X' · X f x) .
+
+
+
+SigFamToIHProp ◂ Π F : ★ ➔ ★ . Π F' : 𝒌SigmaFamily . Π FFD : FtoSigFam · F · F' .
+  Π FF : Functor · F . Π IHType : 𝒌IHType · F . SigFamToIH · F · F' FFD FF · IHType ➔ ★ =
+  λ F : ★ ➔ ★ . λ F' : 𝒌SigmaFamily .
+  λ FFD : FtoSigFam · F · F' .
+  λ FF : Functor · F . λ IHType : 𝒌IHType · F . λ H : SigFamToIH · F · F' FFD FF · IHType .
+  ∀ X : ★ . ∀ Y : X ➔ ★ . Π x : F' · X · Y .
+      H x β ≃ x .
+
+
+Parametricity ◂ Π F : ★ ➔ ★ . Π IHType : 𝒌IHType · F . C · F ➔ ★ =
+  λ F : ★ ➔ ★ . λ IHType : Π X : ★ . Π P : (X ➔ ★) . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf .
+   (F · X ➔ ★) .
+  λ x : C · F .
+  ∀ X : ★ . ∀ P : X ➔ ★ . ∀ pf :  PredEnrFun · X · P . ∀ pp : PredEnrProp · X · P pf . ∀ k : F · X ➔ X .
+   (∀ x : F · X . IHType · X · P pf pp x ➔ P (k x)) ➔ P (x · X k).
+
+
+
+D ◂ Π F : ★ ➔ ★ . Functor · F ➔ 𝒌IHType · F ➔ ★ =
+  λ F : ★ ➔ ★ . λ FF : Functor · F . λ IHType : 𝒌IHType · F . 
+  ι x : C · F . ι _ : x (cin FF) ≃ x . Parametricity · F · IHType x .  
+
+
+D-to-C ◂ ∀ F : ★ ➔ ★ . ∀ FF : Functor · F . ∀ IHType : 𝒌IHType · F . D · F FF · IHType ➔ C · F =
+  Λ F . Λ FF . Λ IHType . λ x . x.1 .
+  
+
+dfold ◂ ∀ F : ★ ➔ ★ . ∀ FF : Functor · F . ∀ IHType : 𝒌IHType · F .
+        ∀ X : ★ . ∀ P : X ➔ ★ .  ∀ pf :  PredEnrFun · X · P . ∀ pp : PredEnrProp · X · P pf .
+	∀ k : F · X ➔ X .
+        (∀ x : F · X . IHType · X · P pf pp x ➔ P (k x)) ➔
+         Π t : D · F FF · IHType .
+         P (t.1 · X k) =
+  Λ F . Λ FF . Λ IHType . Λ X . Λ P . Λ pf . Λ pp . Λ k . λ pk . λ t . t.2.2 · X · P -pf -pp -k pk .
+
+
+dtci ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ IHType : 𝒌IHType · F .       FunctorLaw2 · F FF ➾ 
+     FunctorLaw1 · F FF ➾ Π x : F · (D · F FF · IHType) . x ≃ FF D-to-C x
+ = Λ F . λ FF . Λ IHType . Λ h1 . Λ h2 . λ x . ε ρ (h2 · (D · F FF · IHType) · (C · F) -(D-to-C · F -FF · IHType) x (λ u . β)) - β    .
+
+
+in ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ IHType : 𝒌IHType · F .
+     ∀ F' : 𝒌SigmaFamily . 
+     FunctorLaw2 · F FF ➾ 
+     FunctorLaw1 · F FF ➾
+     ∀ FFD : FtoSigFam · F · F' .
+     FtoSigFamProp · F FF · F' FFD ➾
+     ∀ H : SigFamToIH · F · F' FFD FF · IHType .
+     SigFamToIHProp · F · F' FFD  FF · IHType H ➾
+     F · (D · F FF · IHType) ➔
+     D · F FF · IHType =   Λ F . λ fmp . Λ IHType . Λ F' .  Λ h1 . Λ h2 . Λ FFD . Λ FF-eq-FFD . Λ H . Λ idH . λ x .  
+ 
+  [ (χ (ι _ : Top . C · F) -
+          [ β{cin fmp x} , cin · F fmp (fmp · (D · F fmp · IHType) · (C · F) (D-to-C · F -fmp · IHType) x)
+            { ρ (h2 · (D · F fmp · IHType) · (C · F) -(D-to-C · F -fmp · IHType) x (λ _ . β)) - β}]).2 ,
+
+      [ ε (ρ ((h2 · (D · F fmp · IHType) ·  (C · F)    -(λ x' . cfold · F · (C · F )  (cin · F fmp) x'.1)  x
+               (λ z . z.2.1))) - β{cin fmp x} ) ,
+
+            Λ X . Λ P . Λ pf . Λ pp  .  Λ k . λ pk . ρ (dtci · F fmp · IHType -h1 -h2 x) -
+
+                 (pk -(fmp · (C · F) · X (cfold · F · X k) (fmp · (D · F fmp · IHType) · (C · F) (D-to-C · F -fmp · IHType) x) )
+
+                        ((χ (ι _ : Top . IHType · X · P pf pp (fmp · (C · F) · X (cfold · F · X  k) (fmp · (D · F fmp · IHType) · (C · F) (D-to-C · F -fmp · IHType) x) ) )  -
+
+                                [ β{fmp  ((cfold  pk)) x} ,  ρ ς (dtci · F fmp · IHType -h1 -h2 x) - (H · (D · F fmp · IHType) · X · P -pf -pp -(λ z . z.1 · X k)
+				  -(dfold · F -fmp · IHType · X · P -pf -pp -k pk)     
+				  -x
+				  (FFD · (D · F fmp · IHType) · (λ z : D · F fmp · IHType . P (z.1 · X k)) (dfold · F -fmp · IHType · X · P -pf -pp -k pk)       x)  
+				  β  )
+                             { ρ (idH · (D · F fmp · IHType) · (λ z : D · F fmp · IHType . P (z.1 · X k)) (FFD · (D · F fmp · IHType) ·
+			       (λ z : D · F fmp · IHType . P (z.1 · X k)) (dfold · F -fmp · IHType · X · P -pf -pp -k pk) x) ) - ρ (FF-eq-FFD  -β{((cfold pk))}  ) - β     }]).2))]] .
+
+
+inductionAxiomatic' ◂ 
+  ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ IHType : 𝒌IHType · F .
+  ∀ F' : 𝒌SigmaFamily . 
+  ∀ Hom1F : FunctorLaw2 · F FF.
+  ∀ Hom2F : FunctorLaw1 · F FF.
+  ∀ FFD : FtoSigFam · F · F' .
+  ∀ FF-eq-FFD : FtoSigFamProp · F FF · F' FFD .
+  ∀ H : SigFamToIH · F · F' FFD FF · IHType .
+  ∀ idH : SigFamToIHProp · F · F' FFD FF · IHType H .
+
+  ∀ P : D · F FF · IHType ➔ ★ .
+  ∀ pf :  PredEnrFun · (D · F FF · IHType) · P . ∀ pp : PredEnrProp · (D · F FF · IHType) · P pf .
+   (∀ x : F · (D · F FF · IHType) . IHType · (D · F FF · IHType) · P pf pp x ➔ P (in · F FF · IHType · F'  -Hom1F -Hom2F -FFD -FF-eq-FFD -H -idH x)) ➔
+   Π x : D · F FF · IHType .
+   P x
+   = Λ F . λ FF . Λ IHType . Λ F' . Λ h1 . Λ h2 . Λ FFD . Λ FF-eq-FFD . Λ H . Λ idH . Λ P . Λ pf . Λ pp . λ pk . λ x . ρ ς x.2.1 -
+     (x.2.2 · (D · F FF · IHType) · P -pf -pp -(in · F FF · IHType · F'  -h1 -h2 -FFD -FF-eq-FFD -H -idH) pk) .
+
+
+inductionAxiomatic ◂ 
+  ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ IHType : 𝒌IHType · F .
+  ∀ F' : 𝒌SigmaFamily . 
+  ∀ Hom1F : FunctorLaw2 · F FF.
+  ∀ Hom2F : FunctorLaw1 · F FF.
+  ∀ FFD : FtoSigFam · F · F' .
+  ∀ FF-eq-FFD : FtoSigFamProp · F FF · F' FFD .
+  ∀ H : SigFamToIH · F · F' FFD FF · IHType .
+  ∀ idH : SigFamToIHProp · F · F' FFD FF · IHType H .
+
+  Π fff-ext : IHTypeElem · F · IHType .
+  ∀ fff-ext-prf : IHTypeElemProp · F · IHType fff-ext .
+
+  ∀ P : D · F FF · IHType ➔ ★ .
+  (∀ x : F · (D · F FF · IHType) . IHType · (D · F FF · IHType) ·
+   (Enr · (D · F FF · IHType) · P) (EnrElem · (D · F FF · IHType) · P) (EnrEq · (D · F FF · IHType) · P) x
+     ➔ P (in · F FF · IHType · F'  -Hom1F -Hom2F -FFD -FF-eq-FFD -H -idH x)) ➔
+  Π x : D · F FF · IHType .
+  P x = Λ F . λ FF . Λ IHType . Λ F' . Λ h1 . Λ h2 . Λ FFD . Λ FF-eq-FFD . Λ H . Λ idH . λ fff-ext . Λ fff-ext-prf . Λ P . λ pk . λ x .
+
+   EnrPred  · (D · F FF · IHType) · P -x
+     (inductionAxiomatic'  · F FF · IHType · F' -h1 -h2 -FFD -FF-eq-FFD -H -idH · (Enr · (D · F FF · IHType) · P) -(EnrElem · (D · F FF · IHType) · P) -(EnrEq · (D · F FF · IHType) · P)
+     
+      (Λ x . λ ih .
+       ρ ς(fff-ext-prf · (D · F FF · IHType) · (Enr · (D · F FF · IHType) · P) (EnrElem · (D · F FF · IHType) · P) (EnrEq · (D · F FF · IHType) · P) -x -ih ) -  (EnrIn · (D · F FF · IHType) · P (in · F FF · IHType · F' -h1 -h2 -FFD -FF-eq-FFD -H -idH (fff-ext · (D · F FF · IHType) · (Enr · (D · F FF · IHType) · P) (EnrElem · (D · F FF · IHType) · P) (EnrEq · (D · F FF · IHType) · P) -x ih  ))
+        (ρ  (fff-ext-prf · (D · F FF · IHType) · (Enr · (D · F FF · IHType) · P) (EnrElem · (D · F FF · IHType) · P) (EnrEq · (D · F FF · IHType) · P) -x -ih ) - (pk -x ih) )
+	 ))
+      x) .

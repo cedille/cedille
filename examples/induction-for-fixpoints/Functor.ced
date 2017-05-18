@@ -1,0 +1,18 @@
+import Top.
+
+Functor ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★ . ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (F · X ➔ F · Y) .
+
+FunctorLaw1 ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ Y : ★ . ∀ f : X ➔ Y . Π x : F · X . (Π z : X . f z ≃ z) ➔ FF f x ≃ x .
+     
+FunctorLaw2 ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . ∀ f : Y ➔ Z . ∀ g : X ➔ Y . Π x : F · X . FF f (FF g x) ≃ FF (λ x . f (g x)) x.
+
+FunExtEq ◂ ★ ➔ Top ➔ Top ➔ ★ =  λ X : ★ . λ f : Top . λ f' : Top . Π x : X . f x ≃ f' x .
+
+FmapEq ◂ Π F : ★ ➔ ★ . Π fmap : Functor · F . ★ =
+  λ F : ★ ➔ ★  . λ fmap  : Functor · F . ∀ X : ★ .  ∀ f : Top . ∀ f' : Top .
+     FunExtEq · X  f f' ➔ Π x : F · X . fmap f x ≃ fmap f' x.
