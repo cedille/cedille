@@ -29,6 +29,14 @@ non-nil the response is parsed as JSON first."))
 creating the parse tree from them."))
 
 (make-variable-buffer-local
+ (defvar se-inf-get-message-from-filename (lambda (x) x)
+   "A function to call to compute the message to send to the backend 
+a buffer is supposed to be parsed.  The function will be given the
+name of the file to parse, and should return the message that ought
+to be sent to the backend to request parsing of that file."))
+
+
+(make-variable-buffer-local
  (defvar se-inf-response-finished nil
    "Set to true after a response has been received and
 `se-inf-response-hook' is executed."))
@@ -108,14 +116,13 @@ be terminated with a new line. Calls FN or
      (message "%s" (error-message-string err)))))
 
 (defun se-inf-parse-file (&rest file)
-  "Sends parse request to current process.  Sends the default
-request unless `se-inf-parse-hook' is non-nil.  Uses the current
+  "Sends parse request to current process.  Uses the current
 buffer's file unless FILE is non-nil."
   (interactive)
   (se-inf-header-timer-start)
   (run-hooks 'se-inf-parse-hook)
   (setq se-inf-response-finished nil)
-  (se-inf-ask (or file (buffer-file-name))))
+  (se-inf-ask (funcall se-inf-get-message-from-filename (or file (buffer-file-name)))))
 
 (defun se-inf-save-if-modified ()
   "Save the buffer only if it is modified."

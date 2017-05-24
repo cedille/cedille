@@ -236,16 +236,16 @@ checkFile s filename should-print-spans =
 
 -- this is the function that handles requests (from the frontend) on standard input
 {-# TERMINATING #-}
-readFilenamesForProcessing : toplevel-state → IO ⊤
-readFilenamesForProcessing s =
+readCommandsFromFrontend : toplevel-state → IO ⊤
+readCommandsFromFrontend s =
     getLine >>= λ input → 
     let input-list : 𝕃 string 
         input-list = (string-split input delimiter) 
             in (handleCommands input-list s) >>= λ s →
-        readFilenamesForProcessing s
+        readCommandsFromFrontend s
         where
             delimiter : char
-            delimiter = ':'
+            delimiter = '§'
             errorCommand : toplevel-state → IO toplevel-state
             errorCommand s = putStrLn (global-error-string "Invalid command sequence.") >>= λ x → return s
             debugCommand : toplevel-state → IO toplevel-state
@@ -259,15 +259,10 @@ readFilenamesForProcessing s =
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
             findCommand _ s = errorCommand s -}
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
-            handleCommands (x :: []) s with x
-            ...                        | "debug" = debugCommand s
-                                         -- remove the default case once the elisp has been updated to use "check"
-            ...                        | _ = checkCommand (x :: []) s     
-            handleCommands (x :: xs) s with x
---            ...                        | "find" = findCommand xs s
-            ...                        | "check" = checkCommand xs s
-            ...                        | _ = errorCommand s
-            handleCommands [] s = errorCommand s
+            handleCommands ("debug" :: []) s = debugCommand s
+--            handleCommands ("find" :: xs) s = findCommand xs s
+            handleCommands ("check" :: xs) s = checkCommand xs s
+            handleCommands _ s = errorCommand s
 
 
 -- function to process command-line arguments
@@ -284,7 +279,7 @@ processArgs oo (input-filename :: []) =
           if include-elt.err ie then (putStrLn (include-elt-spans-to-string ie)) else return triv
 
 -- this is the case where we will go into a loop reading commands from stdin, from the fronted
-processArgs oo [] = readFilenamesForProcessing (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
+processArgs oo [] = readCommandsFromFrontend (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
 
 -- all other cases are errors
 processArgs oo xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"

@@ -448,6 +448,10 @@ in the parse tree, and updates the Cedille info buffer."
 
 (cedille-modify-keymap)
 
+(defun cedille-mode-get-message-from-filename(filename)
+  "Get the message to send to the backend, from the name of the file to parse."
+  (concat "check§" filename))
+
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
 
@@ -460,6 +464,8 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
+
+  (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename) 
 
   (set-input-method "Cedille")
 )

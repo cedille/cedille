@@ -1,2 +1,3 @@
 name: gratr-agda
+depend: ial
 include: .
