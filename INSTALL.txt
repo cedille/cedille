@@ -20,8 +20,12 @@ To install Cedille version 1.0:
 
 To edit Agda source files for Cedille:
 
--- since Agda 2.5.x now uses a library system, you need to copy the
-   libraries and defaults files to your .agda/ directory in your home
-   directory.  Edit the libraries file to give the paths to the three
-   libraries needed for Cedille (one for the IAL, one for some generic
-   code for the parser, and one for the Cedille sources proper).
+-- since Agda 2.5.x now uses a library system, you need to tell Agda
+   about the three libraries used for Cedille (these are for the Cedille
+   sources, the IAL, and some stuff for the parser).  If you run make
+   (or directly ./create-libraries.sh) it will create the libraries
+   file with the full paths to these libraries.  Then you can add an
+   Agda2 program argument (via customize-group then "agda2" in emacs)
+   to reference the libraries file with
+   --library-file=<path-to-your-generate-libraries-file>.
+

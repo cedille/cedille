@@ -33,7 +33,10 @@ LIB = --library-file=libraries --library=ial --library=gratr-agda --library=cedi
 
 all: cedille # elisp
 
-cedille:	$(SRC) Makefile
+libraries: 
+	./create-libraries.sh
+
+cedille:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 
