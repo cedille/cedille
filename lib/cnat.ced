@@ -4,4 +4,11 @@ Z ◂ cNat = Λ X . λ f . λ a . a .
 
 S ◂ cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) .
 
-S (S Z) .
+add ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . m · cNat S n .
+
+mult ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . m · cNat (add n) Z .
+
+exp ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . n · cNat (mult m) (S Z) .
+
+
+
