@@ -102,7 +102,7 @@ type-to-stringh toplevel p (Mu pi pi' x k t) =
   parens-unless toplevel (is-abs p) ("μ " ^ x ^ " : " ^ (kind-to-string ff k) ^ " . " ^ type-to-stringh ff (Mu pi pi' x k t) t)
 type-to-stringh toplevel p (TpLambda pi pi' x tk t) = 
   parens-unless toplevel (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string tk ^ " . " ^ type-to-stringh ff (TpLambda pi pi' x tk t) t )
-type-to-stringh toplevel p (IotaEx pi ie pi' x m t) = parens-unless toplevel (is-abs p) (ie-to-string ie ^ x ^ optType-to-string m ^ " . " 
+type-to-stringh toplevel p (IotaEx pi ie pi' x m t) = parens-unless toplevel (is-abs p) (ie-to-string ie ^ " " ^ x ^ optType-to-string m ^ " . " 
                                   ^ type-to-stringh ff (IotaEx pi ie pi' x m t) t)
 type-to-stringh toplevel p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string ff x ^ " : " ^ liftingType-to-string x₁ ^ ")"
 type-to-stringh toplevel p (TpApp t t₁) = parens-unless toplevel (is-app p) (type-to-stringh ff (TpApp t t₁) t ^ " · " ^ type-to-string ff t₁)

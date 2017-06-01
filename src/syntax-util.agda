@@ -327,7 +327,7 @@ LiftArrow* (l' :: ls) l = LiftArrow* ls (LiftArrow l' l)
 
 is-intro-form : term → 𝔹
 is-intro-form (Lam _ _ _ _ _ _) = tt
-is-intro-form (IotaPair _ _ _ _ _) = tt
+--is-intro-form (IotaPair _ _ _ _ _) = tt
 is-intro-form _ = ff
 
 erase-term : term → term

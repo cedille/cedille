@@ -679,13 +679,13 @@ check-termi (InlineDef pi pi' x t pi'') mtp =
           helper-add-span Γ [ missing-type ] ≫span
           set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t tt) Γ) 
 
-check-termi (IotaPair pi t1 t2 ot pi') (just (IotaEx _ Iota _ x (SomeType tp1) tp2)) =
+check-termi (IotaPair pi t1 t2 ot pi') (just (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
     check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
     add-spans-if ot t1 t2 ≫span
     get-ctxt (λ Γ → 
-    spanM-add (IotaPair-span pi pi' checking (check-conv-if Γ ot t1 t2))))
+    spanM-add (IotaPair-span pi pi' checking (expected-type (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2) :: (check-conv-if Γ ot t1 t2)))))
   where err : ctxt → string → term → tagged-val
         err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string tt (hnf Γ unfold-head t tt)
         add-spans-if : optTerm → term → term → spanM ⊤
@@ -700,7 +700,7 @@ check-termi (IotaPair pi t1 t2 ot pi') (just (IotaEx _ Iota _ x (SomeType tp1) t
         check-conv-if Γ (SomeTerm _ _) _ _ = []
 
 check-termi (IotaPair pi t1 t2 _ pi') (just tp) =
-  spanM-add (IotaPair-span pi pi' checking [ error-data "The type we are checking against is not a iota-type" ])
+  spanM-add (IotaPair-span pi pi' checking (expected-type tp :: [ error-data "The type we are checking against is not a iota-type" ]))
 
 check-termi (IotaPair pi t1 t2 _ pi') nothing =
   spanM-add (IotaPair-span pi pi' synthesizing [ error-data "Iota pairs can only be used in a checking position" ]) ≫span
