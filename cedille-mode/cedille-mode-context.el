@@ -23,6 +23,16 @@
   :type '(boolean)
   :group 'cedille-context)
 
+(defcustom cedille-mode-context-unshadowed-color "white"
+  "The color for unshadowed variables in context mode"
+  :type '(color)
+  :group 'cedille-context)
+
+(defcustom cedille-mode-context-shadowed-color "yellow"
+  "The color for shadowed variables in context mode"
+  :type '(color)
+  :group 'cedille-context)
+
 (defvar cedille-mode-context-filtering nil)
 
 (defvar cedille-mode-original-context-list nil)
@@ -196,9 +206,37 @@ where alist is an association list containing the info associated with symbol\n
 which currently consists of:\n
 + 'value' : the type or kind of symbol
 + 'keywords': a list of keywords associated with symbol"
-  (let (terms types)
-    
-    (dolist (node (butlast path) (when (or terms types) (cons terms types)))  
+  (let* (terms
+	 types
+	 ;; adds to each instance (assoc list) in list a predicate indicating if that instance is shadowed
+	 ;; this must be done after constructing the initial list so that all instances are considered
+	 (add-shadowed (lambda (list)
+			 (when list
+			   (let*
+			       ;; utility function for maximum of list
+			       ((maximum (lambda (list) (seq-reduce (lambda (acc n) (max acc n)) list 0)))  
+				;; compute the maximum number of terms shadowed by this symbol
+				(max-shadows (lambda (symbol)
+					       (funcall
+						maximum
+						(mapcar (lambda (alist)
+							  (if
+							      (string= (car alist) symbol)
+							      (cdr (assoc 'shadows alist))
+							    0))
+							list))))
+				;; adds predicate indicating whether instance is shadowed
+				(add-is-unshadowed-p (lambda (alist)
+						     (let* ((symbol (car alist))
+							    (max-shad (funcall max-shadows symbol))
+							    (shadows (cdr (assoc 'shadows alist)))
+							    ;; only a symbol which is unshadowed can have maximum shadows
+							    (is-unshadowed-p (= max-shad shadows)))
+						       ;; return the modified instance
+						       (append alist (list (list 'is-unshadowed-p is-unshadowed-p)))))))
+			     ;; repeat for each instance in the list
+			     (mapcar add-is-unshadowed-p list))))))
+    (dolist (node (butlast path) (when (or terms types) (cons (funcall add-shadowed terms) (funcall add-shadowed types))))  
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (children (se-node-children node)))
 	;; for each node in the path, only try to add it to the context if it binds something
@@ -221,14 +259,17 @@ which currently consists of:\n
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
 		    ;; we rename shadowed variables with a [+n] suffix or omit them		    
-		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) 		; number of symbols shadowed by this one
+		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) ; number of symbols shadowed by this one
 			   (data (list 
 				  (cons 'value value-source) 		; the value displayed for the entry
 				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
+		      
 		      (set q-lst (cons (cons symbol data) (eval q-lst)))))))
 	    (when (and symbol (not (equal symbol "_")) (or type kind)) 	; separate types and kinds
-	      (if type (funcall set-list 'terms type) (funcall set-list 'types kind)))))))))
+	      (if type
+		  (funcall set-list 'terms type)
+		(funcall set-list 'types kind)))))))))
 
 					; FUNCTIONS TO DISPLAY THE CONTEXT
 
@@ -239,24 +280,31 @@ which currently consists of:\n
     (with-current-buffer b
       (setq buffer-read-only nil)
       (erase-buffer)
-      (insert (cedille-mode-format-context cedille-mode-sorted-context-list))
+      (let* ((linedata (cedille-mode-format-context cedille-mode-sorted-context-list))
+	     (termdata (car linedata))
+	     (typedata (cadr linedata))
+	     (println (lambda (line)
+			(when line
+			  (let* ((color (cadr (assoc 'color line)))
+				 (text (cadr (assoc 'text line))))
+			    (insert (propertize (concat text "\n") 'face `(:foreground ,color))))))))
+	;; print the lines in the context buffer
+	(when termdata
+	  (insert "==== TERMS ====\n")
+	  (mapc println termdata)
+	  (when typedata (insert "\n")))
+	(when typedata
+	  (insert "==== TYPES ====\n")
+	  (mapc println typedata)))
+
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
       (setq deactivate-mark nil))))
 
-		 ;; renames shadowed symbols to indicate how many symbols they are shadowing
-;		 (name-symbol 
-;		  (lambda (lst original-symbol) ; list -> string -> string
-;		    (let ((count (funcall count-original-symbols lst original-symbol count-original-symbols)))
-;		      (if (equal count 0)
-;;			  original-symbol
-;			(concat original-symbol "[+" (number-to-string count) "]")))))		 
-
 
 (defun cedille-mode-format-context(context) ; -> string
   "Formats the context as text for display"
-;  (message context)
   (let* ((output) ; defaults to empty string
 	 (shadow-p cedille-mode-show-shadowed-variables)
 	 ;; formats input pair as "<symbol>:	<value>" ==ACG==
@@ -272,36 +320,33 @@ which currently consists of:\n
 		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)
 			  (symbol (car pair))
 			  (data (cdr pair))
-			  (shadows (cdr (assoc 'shadows data)))
-			  ;; when displaying shadowed variables, add [+x] annotation 
-			  (fsymbol (if (and shadow-p (> shadows 0))
-				       (concat symbol "[+" (number-to-string shadows) "]")
-				     symbol))
+			  (is-unshadowed-p (cadr (assoc 'is-unshadowed-p data)))
+			  
+			  ;; add dash for erased symbols
+			  (fsymbol (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") symbol))
 			  ;; hide types and kinds in whiteout list
-			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data)))))
-		     (concat (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") fsymbol)
-			     ":\t"
-			     ;;(if (cedille-mode-helpers-has-keyword pair "noterased") ":\t" ":-\t")
-			     ;; only displays value if it has not been hidden
-			     fdata))))
-	 (terms (if shadow-p
-		    (car context)
-		  (funcall shadow-filter (car context))))
-	 (types (if shadow-p
-		    (cdr context)
-		  (funcall shadow-filter (cdr context)))))
-    (if (or terms types)
-	(progn
-	  (when terms ; Print out the terms and their types
-	    (setq output (concat "==== TERMS ====\n" (mapconcat format terms "\n") (when types "\n\n"))))
-	  (when types ; Print out the types and their kinds
-	    ;; Note that the separation between terms and types is currently
-	    ;; hardcoded into cedille-mode-get-tuple-from-position.
-	    ;; If you change it, you will need to change that function
-	    ;; as well.
-	    (setq output (concat output "==== TYPES ====\n" (mapconcat format types "\n"))))
-	  output)
-      "Selected context is empty.")))
+			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data))))
+			  (text (concat fsymbol ":\t" fdata))
+			  (unshadow-c cedille-mode-context-unshadowed-color)
+			  (shadow-c cedille-mode-context-shadowed-color)
+			  (color (if is-unshadowed-p unshadow-c shadow-c)))
+		     ;; output is an association list detailing the formatting for the given line
+		     (list
+		      (list 'color color)
+		      (list 'text text)))))
+	 ;; utility function to apply the shadow filter if applicable
+	 (apply-shadow-filter-optionally (lambda (list)
+				(if shadow-p
+				    list
+				  (funcall shadow-filter list))))
+	 
+	 (terms (funcall apply-shadow-filter-optionally (car context)))
+	 (types (funcall apply-shadow-filter-optionally (cdr context))))
+    ;; return a pair where first element is list of formatted terms and second is list of formatted types
+  (list
+   (mapcar format terms)
+   (mapcar format types))))
+    
 
 					; CONVENIENT FUNCTIONS
 
