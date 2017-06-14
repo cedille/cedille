@@ -434,6 +434,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
+  (se-navi-define-key 'cedille-mode (kbd "N") #'cedille-mode-normalize)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))

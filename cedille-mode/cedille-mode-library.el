@@ -6,3 +6,4 @@
 (require 'cedille-mode-inspect)
 (require 'cedille-mode-navigate)
 (require 'cedille-mode-find)
+(require 'cedille-mode-normalize)

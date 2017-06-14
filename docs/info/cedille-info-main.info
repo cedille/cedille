@@ -91,6 +91,10 @@ Cedille mode supports the following commands:
      Highlight/unhighlight all instances of the selected symbol
      (context-sensitive)
 
+'N'
+     Normalize selected span.  If no span is selected, this will prompt
+     an expression to normalize.
+
 4 Other
 *******
 
@@ -342,6 +346,9 @@ inspect mode buffer (but not jump to it), press 'i' instead.
 'i/I'
      Close the inspect mode window
 
+'N'
+     Normalize node
+
 
 File: cedille-info-main.info,  Node: summary mode,  Next: inspect mode,  Prev: context mode,  Up: minor modes
 
@@ -361,13 +368,13 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts2687
-Node: context mode5396
-Node: credits6790
-Node: options7058
-Node: minor modes7803
-Node: inspect mode8342
-Node: summary mode9061
-Node: Index9250
+Node: unicode shortcuts2797
+Node: context mode5506
+Node: credits6900
+Node: options7168
+Node: minor modes7913
+Node: inspect mode8452
+Node: summary mode9196
+Node: Index9385
 
 End Tag Table

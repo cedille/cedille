@@ -60,6 +60,9 @@ Close all emacs windows except the current one; convenience keystroke for emacs 
 @item m
 Highlight/unhighlight all instances of the selected symbol (context-sensitive)
 
+@item N
+Normalize selected span. If no span is selected, this will prompt an expression to normalize.
+
 @end table
 @chapter Other
 @table @command

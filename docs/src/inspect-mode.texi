@@ -25,4 +25,7 @@ The file location in which the entity represented by the node is defined
 @item i/I
 Close the inspect mode window
 
+@item N
+Normalize node
+
 @end table

@@ -9,6 +9,7 @@ open import cedille-types
 import cedille
 module parsem = parse cedille.gratr2-nt ptr
 open parsem.pnoderiv cedille.rrs cedille.cedille-rtn
+
 module pr = run ptr
 open pr.noderiv {- from run.agda -}
 
@@ -39,6 +40,7 @@ open import spans
 open import syntax-util
 open import to-string
 open import toplevel-state
+open import normalize-nt-cmd
 
 opts : Set
 opts = options-types.opts
@@ -234,6 +236,7 @@ checkFile s filename should-print-spans =
                    (if use-cede then (write-cede-file f ie) else (return triv)) >>
                    writeo us
 
+
 -- this is the function that handles requests (from the frontend) on standard input
 {-# TERMINATING #-}
 readCommandsFromFrontend : toplevel-state → IO ⊤
@@ -250,6 +253,15 @@ readCommandsFromFrontend s =
             errorCommand s = putStrLn (global-error-string "Invalid command sequence.") >>= λ x → return s
             debugCommand : toplevel-state → IO toplevel-state
             debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
+            normalizeCommand :  𝕃 string → toplevel-state → IO toplevel-state
+            normalizeCommand ss ts = putStrLn (escape-string (normalize-cmd ss ts)) >>= λ x → return ts
+
+            {-
+            -- normalizeCommand _ s = putStrLn (escape-string (ctxt-to-string (get-ctxt-from-toplevel-state s))) >>= λ x → return s
+            normalizeCommand ("term" :: term2norm :: start-pos :: []) s = putStrLn (normalize-span (get-ctxt-from-toplevel-state s) cedille.gratr2-nt._term term2norm start-pos) >>= λ x → return s
+            normalizeCommand ("type" :: type2norm :: start-pos :: []) s = putStrLn (normalize-span (get-ctxt-from-toplevel-state s) cedille.gratr2-nt._type type2norm start-pos) >>= λ x → return s
+            normalizeCommand _ s = putStrLn(global-error-string "src/main.agda.readCommandsFromFrontend.normalizeCommand: wrong arguments") >>= λ x → return s
+            -}
             checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
             checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
                         checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
@@ -260,6 +272,7 @@ readCommandsFromFrontend s =
             findCommand _ s = errorCommand s -}
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
             handleCommands ("debug" :: []) s = debugCommand s
+            handleCommands ("normalize" :: xs) s = normalizeCommand xs s
 --            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ("check" :: xs) s = checkCommand xs s
             handleCommands _ s = errorCommand s
