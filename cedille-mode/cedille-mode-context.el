@@ -196,6 +196,14 @@ The context by default is ordered by parse tree position, from bottom to top."
 	;; set the unmodified context list
 	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
 
+(defun my-seq-reduce(f list base-value)
+  "Alternative to seq-reduce for versions of emacs lower than 25"
+  (if list
+      (let ((head (pop list)))
+	(my-seq-reduce f list (funcall f base-value head)))
+      base-value
+    ))
+
 (defun cedille-mode-get-context(path) ; -> list <context>
   "Searches the input path for binder nodes, returning a tuple consisting of:\n
 1. A list of term symbols and their types and keywords\n
@@ -214,7 +222,7 @@ which currently consists of:\n
 			 (when list
 			   (let*
 			       ;; utility function for maximum of list
-			       ((maximum (lambda (list) (seq-reduce (lambda (acc n) (max acc n)) list 0)))  
+			       ((maximum (lambda (list) (my-seq-reduce (lambda (acc n) (max acc n)) list 0)))  
 				;; compute the maximum number of terms shadowed by this symbol
 				(max-shadows (lambda (symbol)
 					       (funcall
