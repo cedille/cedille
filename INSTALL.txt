@@ -29,3 +29,7 @@ To edit Agda source files for Cedille:
    to reference the libraries file with
    --library-file=<path-to-your-generate-libraries-file>.
 
+-- warning: you should compile Cedille to an executable using "make",
+   rather than from within Agda in emacs.  Or else please look at 
+   cedille/Makefile for extra arguments you have to give to agda
+   when compiling Cedille.

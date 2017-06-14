@@ -1,14 +1,7 @@
 cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
 
-Z ◂ cNat = Λ X . λ f . λ a . a .
+cZ ◂ cNat = Λ X . λ f . λ a . a .
 
-S ◂ cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) .
-
-add ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . m · cNat S n .
-
-mult ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . m · cNat (add n) Z .
-
-exp ◂ cNat ➔ cNat ➔ cNat = λ m . λ n . n · cNat (mult m) (S Z) .
-
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) .
 
 

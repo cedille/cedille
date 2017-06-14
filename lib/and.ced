@@ -1,0 +1,3 @@
+And ◂ ★ ➔ ★ ➔ ★ = λ P : ★ . λ Q : ★ . ∀ X : ★ . (P ➔ Q ➔ X) ➔ X .
+Andi ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ Q ➔ And · P · Q = Λ P . Λ Q . λ u . λ v . Λ X . λ c . c u v.
+
