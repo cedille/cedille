@@ -23,11 +23,6 @@
   :type '(boolean)
   :group 'cedille-context)
 
-(defcustom cedille-mode-context-unshadowed-color "white"
-  "The color for unshadowed variables in context mode"
-  :type '(color)
-  :group 'cedille-context)
-
 (defcustom cedille-mode-context-shadowed-color "yellow"
   "The color for shadowed variables in context mode"
   :type '(color)
@@ -328,16 +323,15 @@ which currently consists of:\n
 		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)
 			  (symbol (car pair))
 			  (data (cdr pair))
-			  (is-unshadowed-p (cadr (assoc 'is-unshadowed-p data)))
+			  (is-shadowed-p (not (cadr (assoc 'is-unshadowed-p data))))
 			  
 			  ;; add dash for erased symbols
 			  (fsymbol (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") symbol))
 			  ;; hide types and kinds in whiteout list
 			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data))))
 			  (text (concat fsymbol ":\t" fdata))
-			  (unshadow-c cedille-mode-context-unshadowed-color)
 			  (shadow-c cedille-mode-context-shadowed-color)
-			  (color (if is-unshadowed-p unshadow-c shadow-c)))
+			  (color (when is-shadowed-p shadow-c)))
 		     ;; output is an association list detailing the formatting for the given line
 		     (list
 		      (list 'color color)
