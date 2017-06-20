@@ -1,0 +1,33 @@
+ctrma ◂ ★ ➔ ★ = λ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ X.
+
+UnaryParam ◂ Π A : ★ . (A ➔ ★) ➔ ctrma · A ➔ ★ =
+  λ A : ★ . λ R : A ➔ ★ .
+  λ t : ctrma · A .
+    ∀ app1 : A ➔ A ➔ A .
+    ∀ lam1 : (A ➔ A) ➔ A .
+      (∀ a1 : A . ∀ a2 : A . R a1 ➔ R a2 ➔ R (app1 a1 a2)) ➔
+      (∀ f : A ➔ A . (∀ x : A . R x ➔ R (f x)) ➔ R (lam1 f)) ➔
+      R (t app1 lam1) .
+
+trma ◂ Π A : ★ . (A ➔ ★) ➔ ★ = λ A : ★ . λ R : A ➔ ★ . ι x : ctrma · A . UnaryParam · A · R x .
+
+appa ◂ ∀ A : ★ . ∀ R : A ➔ ★ . trma · A · R ➔ trma · A · R ➔ trma · A · R =
+  Λ A . Λ R . λ t1 . λ t2 .
+    [ λ a . λ l . a (t1.1 a l) (t2.1 a l) ,
+      Λ app1 . Λ lam1 . λ a . λ l . 
+        a -(t1.1 app1 lam1) -(t2.1 app1 lam1) (t1.2 -app1 -lam1 a l) (t2.2 -app1 -lam1 a l) ]. 
+
+lama ◂ ∀ A : ★ . ∀ R : A ➔ ★ .
+      (ι f : ctrma · A ➔ ctrma · A . ∀ x : ctrma · A . UnaryParam · A · R x ➔ UnaryParam · A · R (f x)) ➔
+      trma · A · R =
+  Λ A . Λ R . λ f .
+    [ λ a . λ l . l (λ x . f.1 (λ a . λ l . x) a l) ,
+      Λ app1 . Λ lam1 . λ a . λ l . l -(λ x . f.1 (λ a . λ l . x) app1 lam1)
+                                       (Λ x . λ u . f.2 -(λ _ . λ _ . x) (Λ app1. Λ lam1 . λ a . λ l . u) -app1 -lam1 a l) ].
+
+trm ◂ ★ = ∀ A : ★ . ∀ R : A ➔ ★ . trma · A · R .
+
+app ◂ trm ➔ trm ➔ trm =
+  λ t1 . λ t2 .
+    Λ A . Λ R . appa · A · R (t1 · A · R) (t2 · A · R) .
+
