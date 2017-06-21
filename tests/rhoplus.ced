@@ -1,0 +1,9 @@
+test ◂ ∀ A : ★ . ∀ f : A ➔ A . ∀ g : A ➔ A . ∀ a : A .
+         (g a ≃ a) ➔  
+         (λ x . f (g x)) a ≃ f a
+ = Λ A . Λ f . Λ g . Λ a . λ u . ρ+ u - β.
+       
+test2 ◂ ∀ A : ★ . ∀ f : A ➔ A . ∀ g : A ➔ A . ∀ a : A .
+         (g a ≃ a) ➔  
+         (λ x . f a) (g a) ≃ f a
+ = Λ A . Λ f . Λ g . Λ a . λ u . ρ u - β. %ρ+ would fail here, as the matching g a would get erased
