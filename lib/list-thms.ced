@@ -1,0 +1,8 @@
+import list.
+
+length-append ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A .
+                length (append l1 l2) ≃ add (length l1) (length l2) =
+  Λ A . λ l1 . Λ l2 .
+    θ<l1> (ListInd · A l1)
+      (λ h . Λ t . λ ih . ε ρ ih - β)
+      β.

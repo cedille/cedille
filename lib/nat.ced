@@ -7,7 +7,7 @@ Nat ◂ ★ = ι x : cNat . cNatInductive x.
 Z ◂ Nat = [ cZ , Λ X . λ s . λ z . z ] .
 S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
 
-NatRec ◂ Nat ➔ ∀ X : ★ . (X ➔ X) ➔ X ➔ X = λ n . n.1 .
+NatRec ◂ Nat ➔ cNat = λ n . n.1 .
 
 NatInd ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
   λ x . Λ Q . λ s . λ z . 
