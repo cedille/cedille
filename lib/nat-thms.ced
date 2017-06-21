@@ -1,18 +1,24 @@
 import nat.
 
-addZ0 ◂ Π n : Nat . add Z n ≃ n =
- λ n . β . 
-
 NatRebuild ◂ Π n : Nat. n S Z ≃ n =
-  λ n . NatInd n · (λ n : Nat . n S Z ≃ n) (Λ n . λ ih . ρ+ ih - β) β .
+  λ n . NatInd n · (λ n : Nat . n S Z ≃ n) (Λ _ . λ ih . ρ+ ih - β) β .
 
-addZ ◂ Π n : Nat . add n Z ≃ n =
- λ n . (NatRebuild n).
 
-addS0 ◂ Π n : Nat . Π m : Nat . add (S n) m ≃ S (add n m) = ●.
+addId0 ◂ Π n : Nat . add Z n ≃ n =
+ λ _ . β . 
 
-addS ◂ Π n : Nat . Π m : Nat . add n (S m) ≃ S (add n m) = ● .
+addId ◂ Π n : Nat . add n Z ≃ n =
+  λ n . (NatRebuild n).
 
-addAssoc ◂ Π n : Nat . Π m : Nat . Π o : Nat . add (add n m) o ≃ add n (add m o) = ●.
+addS0 ◂ Π n : Nat . Π m : Nat . add (S n) m ≃ S (add n m) =
+  λ n . λ m . β .
 
-addComm ◂ Π n : Nat . Π m : Nat . add n m ≃ add m n = ● .
+addS ◂ Π n : Nat . Π m : Nat . add n (S m) ≃ S (add n m) =
+  λ n . λ m . NatInd n · (λ n : Nat . add n (S m) ≃ S (add n m)) (Λ x . λ ih . ρ+ ih - β) β .
+
+addAssoc ◂ Π n : Nat . Π m : Nat . Π o : Nat . add (add n m) o ≃ add n (add m o) =
+  λ n . λ m . λ o . θ<n> (NatInd n) (Λ x . λ h . εl ρ h - β ) β .
+
+addComm ◂ Π n : Nat . Π m : Nat . add n m ≃ add m n =
+  λ n . λ m . θ<n> (NatInd n) (Λ x . λ ih . ρ (addS m x) - ρ ς ih - β) ς (addId m) .
+

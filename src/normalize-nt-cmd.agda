@@ -79,7 +79,8 @@ is-nyd (ci , (fp , pi)) fn pos = path-eq && ((posinfo-to-ℕ pi) > pos)
   where
     starts-with : 𝕃 char → 𝕃 char → 𝔹
     starts-with (h :: t) (h' :: t') = if h =char h' then starts-with t t' else ff
-    starts-with ('/' :: _) [] = tt
+    -- starts-with ('/' :: _) [] = tt
+    starts-with [] [] = tt
     starts-with _ _ = ff
     path-eq = starts-with (reverse (string-to-𝕃char fp)) (reverse (string-to-𝕃char fn))
 
@@ -91,7 +92,8 @@ to-nyd : trie sym-info → (filename : string) → (pos : ℕ) → 𝕃 (sym-inf
 to-nyd tr fn pos = to-nyd-h tr fn pos [] []
 
 nyd-var : string → string -- Not Yet Declared
-nyd-var v = "NYD-" ^ v
+nyd-var v = v  -- "NYD-" ^ v
+-- Maybe eventually do something to indicate a variable has not yet been declared?
 
 ctxt-nyd : ctxt → sym-info × string → ctxt
 ctxt-nyd Γ (((term-decl typ)     , (fp , pi)) , v) = ctxt-term-udef pi v (Var pi (nyd-var v)) Γ
@@ -116,8 +118,8 @@ normalize-Run-or-error : ctxt → 𝕃 char ⊎ Run → string
 normalize-Run-or-error _ (inj₁ chars) = 𝕃char-to-string chars
 normalize-Run-or-error Γ (inj₂ run) = normalize-tree Γ (rewriteRun run)
 
-normalize-span : ctxt → gratr2-nt → string → ℕ → string
-normalize-span Γ nt text pos = (normalize-Run-or-error Γ (parse-specific-nt nt pos (string-to-𝕃char text)))
+normalize-span : ctxt → gratr2-nt → string → ℕ → ℕ → string
+normalize-span Γ nt text sp ep = (normalize-Run-or-error Γ (parse-specific-nt nt sp (string-to-𝕃char text))) ^ "§" ^ (ℕ-to-string sp) ^ "§" ^ (ℕ-to-string ep)
 
 normalize-prompt : ctxt → string → string
 normalize-prompt _ text with parse-specific-nt gratr2-nt._term 0 (string-to-𝕃char text)
@@ -131,14 +133,16 @@ get-si : ctxt → trie sym-info
 get-si (mk-ctxt _ _ si _) = si
 
 normalize-cmd-h : 𝕃 string → toplevel-state → gratr2-nt → string
-normalize-cmd-h (str :: pos :: filename :: local-ctxt) (mk-toplevel-state _ _ _ _ Γ) nt =
-  (normalize-span c' nt str sp)
+normalize-cmd-h (str :: start-pos :: end-pos :: filename :: local-ctxt) (mk-toplevel-state _ _ _ _ Γ) nt =
+  (normalize-span c' nt str sp ep)
   where
-    sp = posinfo-to-ℕ pos
+    sp = posinfo-to-ℕ start-pos
+    ep = posinfo-to-ℕ end-pos
     lss = to-nyd (get-si Γ) filename sp
     c = ctxt-nyd-all Γ lss
     c' = merge-strings-ctxt local-ctxt c
-normalize-cmd-h _ _ _ = "Error!"
+normalize-cmd-h _ _ _ = "Error! (normalize-nt-cmd.agda/normalize-cmd-h)"
+
 normalize-cmd : 𝕃 string → toplevel-state → string
 normalize-cmd(text :: []) (mk-toplevel-state _ _ _ _ Γ) = (normalize-prompt Γ text)
 normalize-cmd ("term" :: rest) ts = normalize-cmd-h rest ts gratr2-nt._term
