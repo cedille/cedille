@@ -58,19 +58,10 @@ mutual
     Kind : kind → checkKind
 
   data cmd : Set where 
-    CheckKind : kind → posinfo → cmd
-    CheckTerm : term → maybeCheckType → cmdTerminator → posinfo → cmd
-    CheckType : type → checkKind → cmdTerminator → posinfo → cmd
     DefKind : posinfo → kvar → params → kind → posinfo → cmd
-    DefTerm : posinfo → var → maybeCheckType → term → cmdTerminator → posinfo → cmd
-    DefType : posinfo → var → checkKind → type → cmdTerminator → posinfo → cmd
+    DefTerm : posinfo → var → maybeCheckType → term → posinfo → cmd
+    DefType : posinfo → var → checkKind → type → posinfo → cmd
     Import : posinfo → fpth → posinfo → cmd
-
-  data cmdTerminator : Set where 
-    EraseOnly : cmdTerminator
-    Hanf : cmdTerminator
-    Hnf : cmdTerminator
-    Normalize : cmdTerminator
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
@@ -228,7 +219,6 @@ data ParseTreeT : Set where
   parsed-binder : binder → ParseTreeT
   parsed-checkKind : checkKind → ParseTreeT
   parsed-cmd : cmd → ParseTreeT
-  parsed-cmdTerminator : cmdTerminator → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
   parsed-decl : decl → ParseTreeT
   parsed-ie : ie → ParseTreeT
@@ -435,19 +425,10 @@ mutual
   checkKindToString (Kind x0) = "(Kind" ^ " " ^ (kindToString x0) ^ ")"
 
   cmdToString : cmd → string
-  cmdToString (CheckKind x0 x1) = "(CheckKind" ^ " " ^ (kindToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
-  cmdToString (CheckTerm x0 x1 x2 x3) = "(CheckTerm" ^ " " ^ (termToString x0) ^ " " ^ (maybeCheckTypeToString x1) ^ " " ^ (cmdTerminatorToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
-  cmdToString (CheckType x0 x1 x2 x3) = "(CheckType" ^ " " ^ (typeToString x0) ^ " " ^ (checkKindToString x1) ^ " " ^ (cmdTerminatorToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
   cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (paramsToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  cmdToString (DefTerm x0 x1 x2 x3 x4 x5) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (cmdTerminatorToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
-  cmdToString (DefType x0 x1 x2 x3 x4 x5) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (checkKindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (cmdTerminatorToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
+  cmdToString (DefTerm x0 x1 x2 x3 x4) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefType x0 x1 x2 x3 x4) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (checkKindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (Import x0 x1 x2) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-
-  cmdTerminatorToString : cmdTerminator → string
-  cmdTerminatorToString (EraseOnly) = "EraseOnly" ^ ""
-  cmdTerminatorToString (Hanf) = "Hanf" ^ ""
-  cmdTerminatorToString (Hnf) = "Hnf" ^ ""
-  cmdTerminatorToString (Normalize) = "Normalize" ^ ""
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
@@ -591,7 +572,6 @@ ParseTreeToString (parsed-arrowtype t) = arrowtypeToString t
 ParseTreeToString (parsed-binder t) = binderToString t
 ParseTreeToString (parsed-checkKind t) = checkKindToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
-ParseTreeToString (parsed-cmdTerminator t) = cmdTerminatorToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
 ParseTreeToString (parsed-ie t) = ieToString t
@@ -856,10 +836,6 @@ mutual
   {-# TERMINATING #-}
   norm-cmds : (x : cmds) → cmds
   norm-cmds x = x
-
-  {-# TERMINATING #-}
-  norm-cmdTerminator : (x : cmdTerminator) → cmdTerminator
-  norm-cmdTerminator x = x
 
   {-# TERMINATING #-}
   norm-cmd : (x : cmd) → cmd

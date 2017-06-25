@@ -21,20 +21,12 @@ NoCheckType : maybeCheckType -> .
 
 Kind : checkKind -> ows '◂' ows kind .
 
-Hnf : cmdTerminator -> '!!'.
-Hanf : cmdTerminator -> '!!-'.
-Normalize : cmdTerminator -> '!' .
-EraseOnly : cmdTerminator -> '.'.
-
 ParamsCons : params -> ows decl params.
 ParamsNil : params -> .
 
-DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows cmdTerminator ! .
-CheckTerm : cmd -> term maybeCheckType ows cmdTerminator ! .
-DefType : cmd -> ! var checkKind ows '=' ows type ows cmdTerminator ! .
-CheckType : cmd -> type checkKind ows cmdTerminator ! .
+DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows '.' ! .
+DefType : cmd -> ! var checkKind ows '=' ows type ows '.' ! .
 DefKind : cmd -> ! kvar params ows '=' ows kind ows '.' ! .
-CheckKind : cmd -> kind ows '.' ! .
 
 Decl : decl -> ! '(' ows ! var ows ':' ows tk ows ')' !.
 
