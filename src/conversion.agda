@@ -91,7 +91,8 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var pi'' x
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | t' = Lam pi KeptLambda pi' x NoClass t'
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd | nothing = Var pi x
-hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd | just t = t -- definitions should be stored in hnf
+hnf{TERM} Γ (unfold ff _ _ ) (Var pi x) hd | just t = t -- definitions should be stored in hnf
+hnf{TERM} Γ (unfold tt b b' ) (Var pi x) hd | just t = hnf Γ (unfold tt b b') t hd -- this might not be fully normalized, only head-normalized
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd

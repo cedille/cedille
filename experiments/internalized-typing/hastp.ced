@@ -1,0 +1,16 @@
+Top ◂ ★ = λ x . x ≃ λ x . x .
+
+exists ◂ Π A : ★ . (A ➔ ★) ➔ ★ = λ A : ★ . λ B : A ➔ ★ . ∀ C : ★ . (∀ a : A . B a ➔ C) ➔ C .
+
+hastp ◂ Top ➔ ★ ➔ ★ = λ t : Top. λ T : ★ . exists · T · (λ x : T . (t ≃ x)) .
+
+lem ◂ ∀ f : Top . ∀ a : Top . ∀ A : ★ . ∀ B : ★ .
+      hastp f · (A ➔ B) ➔
+      hastp a · A ➔
+      hastp β{f a} · B =
+      Λ f . Λ a . Λ A . Λ B . λ u . λ v . 
+        u · (hastp β{f a} · B)
+          (Λ f' . λ e1 .
+          v · (hastp β{f a} · B)
+            (Λ a' . λ e2 .
+              Λ C . λ c . c -(f' a') ρ e1 - ρ e2 - β)) .
