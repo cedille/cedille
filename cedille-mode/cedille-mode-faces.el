@@ -25,6 +25,14 @@
    "The face used for errors."
    :group 'cedille-highlight-faces-default)
 
+(defface ced-purple-face
+  '((((background light))
+     (:foreground "purple"))
+    (((background dark))
+     (:foreground "purple")))
+    "The face used for Epsilon spans"
+    :group 'cedille-highlight-faces-default)
+
 
 (defface cedille-standard-face-df
   '((t nil))

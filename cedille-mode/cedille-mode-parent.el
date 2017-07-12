@@ -21,4 +21,12 @@
     (define-key map (kbd "=") #'cedille-mode-unlock-current-window-size)    ; unlock size of window then resizes it
     map))
 
+(defun rev-h (list reversed)
+  "Helper for `rev'"
+  (if (endp list) reversed (rev-h (rest list) (list* (first list) reversed))))
+
+(defun rev (list)
+  "Reverses a list"
+  (rev-h list '()))
+
 (provide 'cedille-mode-parent)

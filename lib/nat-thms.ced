@@ -17,8 +17,32 @@ addS ◂ Π n : Nat . Π m : Nat . add n (S m) ≃ S (add n m) =
   λ n . λ m . NatInd n · (λ n : Nat . add n (S m) ≃ S (add n m)) (Λ x . λ ih . ρ+ ih - β) β .
 
 addAssoc ◂ Π n : Nat . Π m : Nat . Π o : Nat . add (add n m) o ≃ add n (add m o) =
-  λ n . λ m . λ o . θ<n> (NatInd n) (Λ x . λ h . εl ρ h - β ) β .
+  λ n . λ m . λ o . θ<n> (NatInd n) (Λ x . λ ih . εl ρ ih - β ) β .
 
 addComm ◂ Π n : Nat . Π m : Nat . add n m ≃ add m n =
   λ n . λ m . θ<n> (NatInd n) (Λ x . λ ih . ρ (addS m x) - ρ ς ih - β) ς (addId m) .
 
+multZ0 ◂ Π n : Nat . mult Z n ≃ Z =
+  λ n . β .
+
+multZ ◂ Π n : Nat . mult n Z ≃ Z =
+  %λ n . NatInd n · (λ n : Nat . mult n Z ≃ Z) (Λ x . λ ih . ρ ih - β) β .
+  λ n . θ<n> (NatInd n) (Λ x . λ ih . ρ ih - β) β .
+  % ↑ Both these work ↑
+
+multId0 ◂ Π n : Nat . mult (S Z) n ≃ n =
+  λ n . (NatRebuild n) .
+
+multId ◂ Π n : Nat . mult n (S Z) ≃ n =
+  λ n . NatInd n · (λ n : Nat . mult n (S Z) ≃ n) (Λ x . λ ih . ρ+ ih - β) β .
+
+%multS0 ◂ Π n : Nat . Π m : Nat . mult (S n) m ≃ add m (mult m n) =
+%  λ n . λ m . NatInd m ·  .
+
+multAssoc ◂ Π n : Nat . Π m : Nat . Π o : Nat . mult (mult n m) o ≃ mult n (mult m o) =
+  λ n . λ m . λ o . NatInd m · (λ m : Nat . mult (mult n m) o ≃ mult n (mult m o)) (Λ x . λ ih . ●) (ρ (multZ n) - ρ (multZ0 n) - β) .
+    %θ<m> (NatInd n) (Λ x . λ ih . ●) β .
+    %NatInd n · (λ n : Nat . mult (mult n m) o ≃ mult n (mult m o)) (Λ x . λ ih . ρ ih - β) β .
+
+multComm ◂ Π n : Nat . Π m : Nat . mult n m ≃ mult m n =
+  λ n . λ m . θ<n> (NatInd n) (Λ x . λ ih. ●) (ρ (multZ0 m) - (ς (multZ m))) .

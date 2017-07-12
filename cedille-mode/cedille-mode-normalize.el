@@ -5,81 +5,56 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;;;;;;;       Variables and Helpers       ;;;;;;;;
-
-(defvar cedille-mode-normalize-headers
-  (vector " Normalizing |" " Normalizing /" " Normalizing -" " Normalizing \\")
-  "A loop of strings to show while normalizing is happening in the background.  Supposed to be similar to an hourglass.")
-
-(make-variable-buffer-local
- (defvar cedille-mode-normalize-header-index 0
-   "Current index of the header loop."))
-
-(defvar cedille-mode-normalize-header-line-format
-  '(:eval (aref cedille-mode-normalize-headers (mod cedille-mode-normalize-header-index 4)))
-  "Format to set `header-line-format' to during background normalizing.")
-
-(make-variable-buffer-local
- (defvar cedille-mode-normalize-header-timer nil
-   "Stores active timer during background parsing."))
-
-(defvar cedille-mode-normalize-header-timer-interval 0.25
-  "Time in seconds between updating the header mode line.")
-
 (defvar sep "§")
-(defvar sep2 "⦀") ; Needed some character that will probably never get used to seperate context definition elements
-
-
-(defun rev-h(list reversed)
-  "rev helper"
-  (if (endp list) reversed (rev-h (rest list) (list* (first list) reversed))))
-
-(defun rev(list)
-  "Reverses a list"
-  (rev-h list '()))
-
-
-
+(defvar sep2 "⦀")
 
 
 (defun cedille-mode-normalize()
-  "Does something"
+  "Normalizes either the currently selected span or a prompted expression"
   (interactive)
   (if se-mode-selected
-    (let ((lang-level (cdr (assoc 'language-level (se-term-data (se-mode-selected))))))
-      (if (and lang-level (or (string= lang-level "term") (string= lang-level "type")))
-	  (progn
-	    (cedille-mode-normalize-header-timer-start)
-	    (se-inf-ask (normalize-request-text lang-level) 'cedille-mode-normalize-receive-response))
-	(message "Selected span must be a term or a type")))
-    (call-interactively 'cedille-mode-normalize-prompt)))
+      (cedille-mode-normalize-span (se-mode-selected))
+      (cedille-mode-normalize-prompt nil)))
 
+(defun cedille-mode-normalize-full()
+  "Normalizes either the currently selected span or a prompted expression completely"
+  (interactive)
+  (if se-mode-selected
+      (cedille-mode-normalize-span (se-mode-selected) t)
+      (cedille-mode-normalize-prompt t)))
 
+(defun cedille-mode-normalize-span(span &optional full)
+  "Normalizes span"
+  (setq lang-level (cdr (assoc 'language-level (se-term-data span))))
+  (setq fn (if full 'cedille-mode-normalize-receive-full-response 'cedille-mode-normalize-receive-response))
+  (if (and lang-level (or (string= lang-level "term") (string= lang-level "type")))
+      ;'cedille-mode-normalize-receive-response
+      (se-inf-interactive 'cedille-mode-normalize-request-text span fn nil (list lang-level full) "Normalizing")
+      (message "Selected span must be a term or a type")))
 
 
 
 ;;;;;;;;       Span Code       ;;;;;;;;
 
 
-(defun normalize-request-text(lang-level)
+(defun cedille-mode-normalize-request-text(span rest)
   "Gets the text to send to the backend as a request to normalize a span"
-  (setq sp (se-term-start (se-mode-selected)))
-  (setq ep (se-term-end (se-mode-selected)))
+  (setq lang-level (car rest))
+  (setq full (nth 1 rest))
   (concat "normalize"
 	  sep lang-level
-	  sep (buffer-substring-no-properties sp ep)
-	  sep (format "%s" sp)
-	  sep (format "%s" ep)
 	  sep (file-truename (buffer-file-name))
-	  sep (cedille-mode-local-context-param)))
+	  sep (if full "tt" "ff")
+	  (cedille-mode-normalize-local-context-param span)))
 
-(defun cedille-mode-local-context-param()
+(defun cedille-mode-normalize-local-context-param(span)
   "Formats the local context into a string suitable to be sent to the backend"
-  (let ((original-context cedille-mode-original-context-list) (out ""))
+  (let ((original-context (cedille-mode-span-context span))
+	(out ""))
     (when original-context
       (let* ((ctxt (copy-tree original-context))
-	     (terms (cedille-mode-shadow-filter (car ctxt)))
-	     (types (cedille-mode-shadow-filter (cdr ctxt))))
+	     (terms (cedille-mode-normalize-shadow-filter (car ctxt)))
+	     (types (cedille-mode-normalize-shadow-filter (cdr ctxt))))
         (while terms
           (setq item (pop terms))
           (setq out (concat out sep "term" sep2 (car item) sep2 (cdr (assoc 'value item)))))
@@ -88,90 +63,35 @@
 	  (setq out (concat out sep "type" sep2 (car item) sep2 (cdr (assoc 'value item)))))))
     out))
 
-(defun cedille-mode-shadow-filter(lst)
+(defun cedille-mode-normalize-shadow-filter(lst)
   (let (shadowed-lst)
     (dolist (pair (reverse lst) shadowed-lst)
       (let* ((symbol (car pair)) (matches (lambda (thispair) (equal (car thispair) symbol))))
 	(setq shadowed-lst (cons pair (remove-if matches shadowed-lst)))))
     shadowed-lst))
 
-(defun cedille-mode-selected-as-string()
-  "Gets the entire selected node as a string"
-  (buffer-substring-no-properties
-   (se-term-start (se-mode-selected))
-   (se-term-end (se-mode-selected))))
+(defun cedille-mode-normalize-receive-full-response (span response)
+  ""
+  (cedille-mode-normalize-erase-receive-response 'normalized span response))
 
-(defun cedille-mode-normalize-receive-response(buffer text)
+(defun cedille-mode-normalize-receive-response (span response)
   "Receives the normalize text response from the backend. Handler for when the user requested a span to be normalized."
-  (setq text (replace-regexp-in-string "\n\\'" "" text))
-  (setq split (split-string text sep))
-  (setq text (nth 0 split))
-  (setq start (string-to-number (nth 1 split)))
-  (setq end (string-to-number (nth 2 split)))
-  (with-current-buffer buffer
-    (cedille-mode-normalize-header-timer-stop)
-    (let* ((sel (span-from start end se-mode-parse-tree))
-	   (name (se-term-name sel))
-	   (data (se-term-data sel))
-	   (revd (rev data)))
-      (add-to-list 'revd (cons 'normalized text))
-      (setq data (rev revd))
-      (setq new (se-new-span name start end data))
-      (cedille-mode-normalize-replace-in-tree-parent new sel (se-mode-parse-tree)))
-    (open-inspect-buffer-if-closed)
-    (cedille-mode-rebalance-windows)
-    (pin-data-to-region start end 'norm (cons start end))
-    (message (format "pinned: %s" (get-all-pinned 'norm)))
-    )
-  (message "done receiving response"))
+  (cedille-mode-normalize-erase-receive-response 'head-normalized span response))
+  ;(se-inf-add-to-span span response 'normalized)
+  ;(cedille-mode-normalize-inspect span)
+  ;(cedille-mode-rebalance-windows))
 
-(defun open-inspect-buffer-if-closed()
+(defun cedille-mode-normalize-erase-receive-response (symbol span response)
+  "Receives the text response from the backend and adds (symbol . response) to span."
+  (se-inf-add-to-span span response symbol)
+  (cedille-mode-normalize-inspect span)
+  (cedille-mode-rebalance-windows))
+
+(defun cedille-mode-normalize-inspect (span)
   "Updates the inspect buffer and opens it if it is closed"
-  (display-buffer (cedille-mode-inspect-buffer))
-  (cedille-mode-inspect))
-
-(defun span-from(start end tree)
-  "Finds a span that ranges from start to end in tree"
-  (typecase tree
-    (se-node
-     (setq parent (se-node-parent tree))
-     (if (and (eq start (se-span-start parent)) (eq end (se-span-end parent)))
-	 parent
-         (se-map-1 (se-curry #'span-from start end) (se-node-children tree))))
-    (sequence
-     (se-map-1 (se-curry #'span-from start end) tree))))
-
-(defun cedille-mode-normalize-replace-in-tree-parent(new old tree)
-  "Finds old in tree and sets it parent to new"
-  (typecase tree
-    (se-node
-     (if (equal old (se-node-parent tree))
-	   (setf (se-node-parent tree) new)
-           (se-map-1 (se-curry #'cedille-mode-normalize-replace-in-tree-parent new old) (se-node-children tree))))
-    (sequence
-     (se-map-1 (se-curry #'cedille-mode-normalize-replace-in-tree-parent new old) tree))))
-
-(defun cedille-mode-normalize-header-timer-start ()
-  "Starts timer to increment `cedille-mode-normalize-header-index' and update header mode line during background normalizing. Used to simulate an hourglass feature."
-  (when cedille-mode-normalize-header-timer
-    (cancel-timer cedille-mode-normalize-header-timer))
-  (setq header-line-format cedille-mode-normalize-header-line-format)
-  (lexical-let ((buffer (buffer-name)))
-    (setq cedille-mode-normalize-header-timer
-	  (run-with-timer 0 cedille-mode-normalize-header-timer-interval
-			  (lambda ()
-			    (with-current-buffer buffer
-			      (incf cedille-mode-normalize-header-index)
-			      (force-mode-line-update)))))))
-
-(defun cedille-mode-normalize-header-timer-stop ()
-  "Stops the header timer in `cedille-mode-normalize-header-timer'. See `cedille-mode-normalize-header-timer-start' for more information."
-  (when cedille-mode-normalize-header-timer
-    (cancel-timer cedille-mode-normalize-header-timer))
-  (setq header-line-format nil)
-  (force-mode-line-update))
-
-
+  (cedille-mode-inspect)
+  (when (eq span (se-mode-ensure-span (se-mode-selected)))
+    (display-buffer (cedille-mode-inspect-buffer))))
 
 
 
@@ -181,7 +101,6 @@
 
 (defun cedille-mode-display-normalize-text(buffer text)
   "Displays text in given buffer"
-  ;(interactive)
   (with-current-buffer (cedille-mode-normalize-buffer)
     (setq buffer-read-only nil)
     (setq buffer-text (buffer-string))
@@ -190,56 +109,83 @@
 	(insert text)
       (insert text "\n\n" buffer-text))
     (setq buffer-read-only t)
-    (display-buffer (cedille-mode-normalize-buffer-name)))
-  (rebalance-normalize-window (get-buffer-window (cedille-mode-normalize-buffer)) text))
+    (display-buffer (cedille-mode-normalize-buffer-name))
+    (cedille-mode-normalize-rebalance-window (get-buffer-window) text)))
 
-(defun cedille-mode-normalize-buffer-name() "*cedille-normalize*")
+(defun cedille-mode-normalize-buffer-name()
+  "*cedille-normalize-erase*")
 
 (defun cedille-mode-normalize-buffer()
   "Creates or gets the normalize buffer"
   (get-buffer-create (cedille-mode-normalize-buffer-name)))
 
-(defun rebalance-normalize-window(win text)
+(defun cedille-mode-normalize-rebalance-window(win text)
   "Rebalances the normalize window size"
   (with-selected-window win
     (setq width (window-body-width))
     (setq height (window-body-height))
-    (setq lines (num-lines width text))
+    (setq len (length text))
+    (setq newlines (count-lines 1 len))
+    (setq lines (+ newlines (/ (- len newlines) width)))
     (setq delta (- lines height))
     (enlarge-window delta)))
 
-(defun num-lines(w text)
-  "Returns the number of lines it will take to insert text into a buffer with width number of characters horizontally"
-  (num-lines-h w text 1 0))
-
-(defun num-lines-h(w text lines chars)
-  "Helper for `num-lines'"
-  (if (string= text "") lines (num-lines-h-h w text lines chars)))
-
-(defun num-lines-h-h(w text lines chars)
-  "Helper for `num-lines-h'"
-  (setq head (substring text 0 1))
-  (setq tail (substring text 1 nil))
-  (if (string= head "\n")
-    (num-lines-h w tail (+ 1 lines) 0)
-    (if (eq chars w)
-      (num-lines-h w tail (+ 1 lines) 1)
-      (num-lines-h w tail lines (+ 1 chars)))))
-
-(defun cedille-mode-normalize-prompt(text)
+(defun cedille-mode-normalize-prompt (full)
   "Prompts the user to input an expression to normalize"
-  (interactive "MNormalize: ")
-  (cedille-mode-normalize-header-timer-start)
-  (se-inf-ask (concat "normalize" sep text) 'cedille-mode-normalize-receive-response-prompt))
+  (setq input (call-interactively (if full 'cedille-mode-normalize-full-open-prompt 'cedille-mode-normalize-open-prompt)))
+  (se-inf-generate-headers "Normalizing")
+  (se-inf-header-timer-start)
+  (se-inf-ask (concat "normalizePrompt" sep input sep (if full "tt" "ff")) 'cedille-mode-normalize-receive-response-prompt))
 
 (defun cedille-mode-normalize-receive-response-prompt(buffer text)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
-  (setq text (replace-regexp-in-string "\n\\'" "" text)) ; Remove newline from end
-  (setq text (replace-regexp-in-string "\\\\n" "\n" text)) ; Undo effects of escape-string from backend
-  (setq text (replace-regexp-in-string "\\\\\"" "\"" text)) ; ^^^
-  (with-current-buffer buffer (cedille-mode-normalize-header-timer-stop))
-  (cedille-mode-display-normalize-text (cedille-mode-normalize-buffer) text))
+  (with-current-buffer buffer (se-inf-header-timer-stop))
+  (cedille-mode-display-normalize-text (cedille-mode-normalize-buffer) (se-inf-undo-escape-string text)))
+
+(defun cedille-mode-normalize-open-prompt (text)
+  (interactive "MHead-normalize: ")
+  text)
+
+(defun cedille-mode-normalize-full-open-prompt (text)
+  (interactive "MNormalize: ")
+  text)
 
 
+;;; Erasure ;;;
+
+(defun cedille-mode-erase ()
+  "Erases either the currently selected span or a prompted expression"
+  (interactive)
+  (if se-mode-selected
+      (cedille-mode-erase-span (se-mode-selected))
+      (call-interactively 'cedille-mode-erase-prompt)))
+
+(defun cedille-mode-erase-prompt (input)
+  (interactive "MErase: ")
+  (se-inf-generate-headers "Erasing")
+  (se-inf-header-timer-start)
+  (se-inf-ask (concat "erasePrompt" sep input) 'cedille-mode-normalize-receive-response-prompt))
+
+(defun cedille-mode-erase-span (span)
+  "Erases span"
+  (setq lang-level (cdr (assoc 'language-level (se-term-data span))))
+  (if (and lang-level (string= lang-level "term"))
+      (se-inf-interactive 'cedille-mode-erase-request-text span 'cedille-mode-erase-receive-response nil (list lang-level) "Erasing")
+      (message "Selected span must be a term")))
+
+(defun cedille-mode-erase-request-text(span rest)
+  "Gets the text to send to the backend as a request to normalize a span"
+  (setq lang-level (car rest))
+  (concat "erase"
+	  sep lang-level
+	  sep (file-truename (buffer-file-name))
+	  (cedille-mode-normalize-local-context-param span)))
+
+(defun cedille-mode-erase-receive-response (span response)
+  "Receives the erasure text response from the backend. Handler for when the user requested a span to be erased."
+  (cedille-mode-normalize-erase-receive-response 'erased span response))
+  ;(se-inf-add-to-span span response 'erased)
+  ;(cedille-mode-normalize-inspect span)
+  ;(cedille-mode-rebalance-windows))
 
 (provide 'cedille-mode-normalize)

@@ -191,13 +191,17 @@ The context by default is ordered by parse tree position, from bottom to top."
 	;; set the unmodified context list
 	(setq cedille-mode-original-context-list (cedille-mode-get-context p)))))
 
+(defun cedille-mode-span-context (span)
+  "Gets the local context for span"
+  (setq p (se-find-point-path (se-span-start span) (se-mode-parse-tree)))
+  (cedille-mode-get-context p))
+
 (defun my-seq-reduce(f list base-value)
   "Alternative to seq-reduce for versions of emacs lower than 25"
   (if list
       (let ((head (pop list)))
 	(my-seq-reduce f list (funcall f base-value head)))
-      base-value
-    ))
+      base-value))
 
 (defun cedille-mode-get-context(path) ; -> list <context>
   "Searches the input path for binder nodes, returning a tuple consisting of:\n

@@ -2,6 +2,7 @@
 (require 'se)
 (require 'se-navi)
 (require 'se-inf)
+(require 'se-pin)
 
 (eval-when-compile (require 'cl))
 
@@ -73,6 +74,32 @@ recursion or anything other than key-value pairs."
 	    collecting (format fstr key value) into lines
 	    finally (return (apply #'concat lines))))))
 
+(defun se-mode-pretty-json-interactive (json)
+  "Like `se-mode-pretty-json', but expands and italicizes interactive properties"
+  (setq ints (assoc 'se-interactive json))
+  (setq c (copy-tree (cdr ints)))
+  (setq sorted-ints (sort c (lambda (a b) (string< (car a) (car b)))))
+  (setq json (rev (se-mode-interactive-add-to-json (rev json) sorted-ints)))
+  (se-mode-pretty-json (remove ints json)))
+
+(defun se-mode-interactive-add-to-json (json ints)
+  "Adds interactive properties, ints, to json. The property names are italicized."
+  (if (null ints)
+      json
+      (setq h (car ints))
+      (setq k (format "%s" (car h)))
+      (setq v (format "%s" (cdr h)))
+      (put-text-property 0 (length k) 'face 'italic k)
+      (setq h `(,k . ,v))
+      (se-mode-interactive-add-to-json (cons h json) (cdr ints))))
+
+(defun se-mode-ensure-span (span-or-node)
+  "Ensures that span-or-node is a span. If it is a node, then its parent is returned. If it is a span, it is returned. If it is neither, nil is returned."
+  (typecase span-or-node
+    (se-node (se-node-parent span-or-node))
+    (se-span span-or-node)
+    (t nil)))
+
 (defun se-mode-left-spine(node)
   "Find the path down the left spine of the node."
   (let ((kids (se-node-children node)))
@@ -113,7 +140,9 @@ selected, select it again."
     (push (pop se-mode-selected) se-mode-not-selected))
   (if se-mode-selected
       (se-mode-mark-term (se-mode-selected))
-    (message "No child span found")))
+    (progn
+      (se-mode-expand-selected)
+      (message "No child span found"))))
 
 (defun se-mode-select-last-helper (prev)
   "Helper function for selecting the last sibling span from a node 

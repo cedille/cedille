@@ -91,11 +91,27 @@ Cedille mode supports the following commands:
      Highlight/unhighlight all instances of the selected symbol
      (context-sensitive)
 
-'N'
-     Normalize selected span.  If no span is selected, this will prompt
-     an expression to normalize.
+4 Interactive
+*************
 
-4 Other
+These commands will be re-called each time you enter into Cedille mode
+if their associated spans weren't altered too greatly.
+
+'N'
+     Show head-normalization of selected span.  If no span is selected,
+     this will prompt an expression to head-normalize.
+
+'C-N'
+     Like N, but shows complete normalization
+
+'E'
+     Show erasure of selected span.  If no span is selected, this will
+     prompt an expression to erase.
+
+'C-i'
+     Remove all pinned interactive calls
+
+5 Other
 *******
 
 'C-h <int>'
@@ -116,7 +132,7 @@ Cedille mode supports the following commands:
 
 File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Prev: cedille mode commands,  Up: Top
 
-5 unicode
+6 unicode
 *********
 
 Here is a very short survey of the Unicode symbols used in Cedille,
@@ -221,7 +237,7 @@ together with the shortcut to type them in the emacs mode.
 
 File: cedille-info-main.info,  Node: context mode,  Next: summary mode,  Prev: inspect mode,  Up: minor modes
 
-6 Context mode
+7 Context mode
 **************
 
 Context mode for Cedille allows the user to see the context of the
@@ -240,7 +256,7 @@ instead.
 
    * Show or hide shadowed variables
 
-7 Controls
+8 Controls
 **********
 
 'a/z'
@@ -277,7 +293,7 @@ instead.
 
 File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up: Top
 
-8 Credits
+9 Credits
 *********
 
 Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
@@ -289,8 +305,8 @@ Spring 2016: Aaron Stump
 
 File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
 
-9 cedille-mode options
-**********************
+10 cedille-mode options
+***********************
 
 The options file resides in ~/.cedille/options and consists of a list of
 options, each on its own line, with a terminating period (".").  The
@@ -309,7 +325,7 @@ available options are:
 
 File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
-10 Minor modes for cedille
+11 Minor modes for cedille
 **************************
 
 Cedille has three minor modes that provide information about the file:
@@ -323,7 +339,7 @@ Cedille has three minor modes that provide information about the file:
 
 File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Prev: summary mode,  Up: minor modes
 
-11 Inspect mode
+12 Inspect mode
 ***************
 
 Inspect mode for Cedille provides basic information about a node.  To
@@ -340,19 +356,16 @@ inspect mode buffer (but not jump to it), press 'i' instead.
    * The file location in which the entity represented by the node is
      defined
 
-12 Controls
+13 Controls
 ***********
 
 'i/I'
      Close the inspect mode window
 
-'N'
-     Normalize node
-
 
 File: cedille-info-main.info,  Node: summary mode,  Next: inspect mode,  Prev: context mode,  Up: minor modes
 
-13 Summary mode
+14 Summary mode
 ***************
 
 This is where summary mode stuff will go.
@@ -368,13 +381,13 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts2797
-Node: context mode5506
-Node: credits6900
-Node: options7168
-Node: minor modes7913
-Node: inspect mode8452
-Node: summary mode9196
-Node: Index9385
+Node: unicode shortcuts3188
+Node: context mode5897
+Node: credits7291
+Node: options7559
+Node: minor modes8306
+Node: inspect mode8845
+Node: summary mode9564
+Node: Index9753
 
 End Tag Table

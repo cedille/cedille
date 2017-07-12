@@ -59,11 +59,25 @@ Close all emacs windows except the current one; convenience keystroke for emacs 
 
 @item m
 Highlight/unhighlight all instances of the selected symbol (context-sensitive)
-
-@item N
-Normalize selected span. If no span is selected, this will prompt an expression to normalize.
-
 @end table
+
+@chapter Interactive
+These commands will be re-called each time you enter into Cedille mode if their associated spans weren't altered too greatly.
+
+@table @command
+@item N
+Show head-normalization of selected span. If no span is selected, this will prompt an expression to head-normalize.
+
+@item C-N
+Like N, but shows complete normalization
+
+@item E
+Show erasure of selected span. If no span is selected, this will prompt an expression to erase.
+
+@item C-i
+Remove all pinned interactive calls
+@end table
+
 @chapter Other
 @table @command
 @item C-h <int>

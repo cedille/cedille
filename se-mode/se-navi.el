@@ -41,6 +41,7 @@ to the buffer.")
 	    (define-key map (kbd "n") #'se-mode-select-next)
 	    (define-key map (kbd "h") #'se-navi-help)
 	    (define-key map (kbd "w") #'copy-region-as-kill)
+	    (define-key map (kbd "C-i") #'se-inf-clear-interactive)
 	    (define-key map (kbd "<tab>") #'back-to-indentation)
 	    map)
   (when se-navigation-mode ;; activation
@@ -53,12 +54,14 @@ to the buffer.")
     (add-hook 'se-inf-response-hook 'se-inf-process-spans)
     (add-hook 'se-inf-response-hook 'se-inf-process-error t)
     (add-hook 'se-inf-response-hook 'se-inf-process-error-span t)
+    (add-hook 'deactivate-mark-hook 'se-navi-mark-deactivated-hook)
 
     ;; quit on change
     (when se-navi-quit-on-change
       (add-hook 'before-change-functions #'se-navigation-mode-quit nil t)))
   (unless se-navigation-mode ;; deactivation
     (kill-local-variable 'minor-mode-overriding-map-alist)
+    (remove-hook 'deactivate-mark-hook 'se-navi-mark-deactivated-hook)
     (remove-hook 'before-change-functions #'se-navigation-mode-quit t)))
 
 (defun se-navigation-mode-quit (&rest args)
@@ -120,5 +123,9 @@ MODE.  Navigation mode keymaps will vary from usage of
 
 (if (fboundp #'advice-add)
     (advice-add 'documentation :around #'se-navi-documentation-advice))
+
+(defun se-navi-mark-deactivated-hook ()
+  "Sets `se-mode-selected' to nil so that the appearance matches reality"
+  (setq se-mode-selected nil))
 
 (provide 'se-navi)

@@ -28,17 +28,15 @@
 (defun cedille-mode-inspect ()
   "Displays information on the currently selected node in 
 the info buffer for the file.  Return the info buffer as a convenience."
-  ;(interactive)
   (when se-mode-selected
     (let* ((buffer (cedille-mode-inspect-buffer))
            (d (se-term-to-json (se-mode-selected)))
-           (txt (se-mode-pretty-json (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
+           (txt (se-mode-pretty-json-interactive (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
       (with-current-buffer buffer
 	(erase-buffer)
 	(insert txt)
 	(goto-char 1)
 	(setq buffer-read-only t))
-      ;; (message d)
       (cedille-mode-rebalance-windows)
       (setq deactivate-mark nil)
       buffer)))
