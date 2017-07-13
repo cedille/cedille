@@ -1,0 +1,23 @@
+Top ◂ ★ = λ x . x ≃ λ x . x .
+
+ctrm ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ X.
+
+app ◂ ctrm ➔ ctrm ➔ ctrm = λ f . λ x . Λ X . λ a . λ l . a (f · X a l) (x · X a l) .
+
+interp-ctrm ◂ ctrm ➔ Top = λ t . t · Top (λ t1 . λ t2 . β{t1 t2}) (λ f . β {λ x . f x}) .
+
+exists ◂ Π A : ★ . (A ➔ ★) ➔ ★ = λ A : ★ . λ B : A ➔ ★ . ∀ C : ★ . (∀ a : A . B a ➔ C) ➔ C .
+
+hastp ◂ ctrm ➔ ★ ➔ ★ = λ c : ctrm . λ T : ★ . exists · T · (λ x : T . (interp-ctrm c ≃ x)) .
+
+lem ◂ ∀ f : ctrm . ∀ x : ctrm . ∀ A : ★ . ∀ B : ★ .
+      hastp f · (A ➔ B) ➔
+      hastp x · A ➔
+      hastp (app f x) · B =
+ Λ f . Λ x . Λ A . Λ B . λ u . λ v . 
+    u · (hastp (app f x) · B)
+      (Λ f' . λ e1 .
+         v · (hastp (app f x) · B)
+           (Λ a' . λ e2 .
+            Λ C . λ c . c -(f' a') ρ+ e1 - ρ+ e2 - β)) .
+
