@@ -1,0 +1,46 @@
+
+import ../Product.
+import ../Sigma.
+import ../Functor.
+import ../Sum.
+import ../Unit.
+
+import Helper.
+import MendlerFixpoint.
+
+%%% Base functor for natural numbers
+NatF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · X .
+
+zF ◂ ∀ X : ★ . Unit ➔ NatF · X = in1 · Unit !
+sF ◂ ∀ X : ★ . X ➔ NatF · X = in2 · Unit !
+
+NatFF ◂ Functor · NatF =
+  Λ X . Λ Y . λ f . λ u . u.1 · (NatF · Y) (zF · Y) (λ x . sF · Y (f x)) .
+
+Flaw1 ◂ FunctorLaw1 · NatF NatFF =
+  Λ X . Λ Y . Λ f . λ u . Λ p .
+    θ<u> (ind-Sum · Unit · X u) (λ a . β) (λ b . ρ+ (p b) - β) .
+
+mNat ◂ ★ = FixM · NatF .
+
+mZero ◂ mNat = inM · NatF (zF · mNat unit) .
+mSuc ◂ mNat ➔ mNat = λ n . inM · NatF (sF · mNat n) .
+
+%%% instance of MendlerFixpoint
+NatM ◂ ★ = DepFixM · NatF NatFF .
+
+inNat ◂  NatF · NatM ➔ NatM = inDepFixM · NatF NatFF Flaw1 .
+
+zero ◂ NatM = inNat (in1 · Unit · NatM unit) .
+suc ◂ NatM ➔ NatM = λ n . inNat (in2 · Unit · NatM n) .
+
+NatInd ◂ Π x : NatM . ∀ Q : NatM ➔ ★ . (∀ x : NatM . Q x ➔ Q (suc x)) ➔ Q zero ➔ Q x =
+  λ x .  Λ Q . λ s . λ z . InductionDepFixM · NatF NatFF Flaw1 x · Q
+    (Λ R . Λ cast . Λ castId . λ ih . λ nf .
+        ρ (Flaw1 · R · NatM -cast nf -castId) -
+
+       (θ<nf> (ind-Sum · Unit · R nf)
+            (λ u . ρ (eta-Unit u) - z) % zero case
+            (λ b . ρ ς (castId -b) - (s -(cast b) (ih b)))) % suc case
+
+   ) .

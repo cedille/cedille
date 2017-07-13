@@ -1,0 +1,65 @@
+
+import InductionInstance.
+import ../Unit.
+import ../Sum.
+import ../Functor.
+
+
+NatF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · X .
+
+zF ◂ ∀ X : ★ . Unit ➔ NatF · X = in1 · Unit !
+sF ◂ ∀ X : ★ . X ➔ NatF · X = in2 · Unit !
+
+NatFF ◂ Functor · NatF =
+  Λ X . Λ Y . λ f . λ u . u.1 · (NatF · Y) (zF · Y) (λ x . sF · Y (f x)) .
+
+Nat-Hom1F ◂ FunctorLaw2 · NatF NatFF =
+  Λ X . Λ Y . Λ Z . Λ f . Λ g . λ u .
+    θ<u> (ind-Sum · Unit · X u) (λ a . β) (λ b . β)  .
+
+Nat-Hom2F ◂ FunctorLaw1 · NatF NatFF =
+  Λ X . Λ Y . Λ f . λ u . Λ p .
+    θ<u> (ind-Sum · Unit · X u) (λ a . β) (λ b . ρ+ (p b) - β) .
+
+NatF-eq ◂ FmapEq · NatF NatFF =
+  Λ X . Λ f . Λ f' . λ eq . λ x . θ<x> (ind-Sum · Unit · X x) (λ a . β) (λ b . ε ρ (eq b) - β).
+
+cNat ◂ ★ = C · (IF · NatF) .
+Nat ◂ ★ = D · (IF · NatF) (IFF · NatF NatFF) · (IIHType · (IF · NatF) (IFF · NatF NatFF) · (IF' · NatF)  (ifmap-pid-back · NatF NatFF)) .
+
+Nat-in ◂ NatF · Nat ➔ Nat =
+  infg · (IF · NatF) · NatF (Λ X . ext-if · NatF NatFF · X) (IFF · NatF NatFF) · (IIHType · (IF · NatF) (IFF · NatF NatFF) · (IF' · NatF)  (ifmap-pid-back · NatF NatFF))
+    · (IF' · NatF) -(IHom1F · NatF NatFF NatF-eq Nat-Hom1F) -(IHom2F · NatF NatFF Nat-Hom2F)
+      -(ifmap-pid · NatF NatFF) -(iFtoSigFamProp · NatF NatFF)  -(myhomd · NatF NatFF -NatF-eq -Nat-Hom1F -Nat-Hom2F)
+      -(iSigFamToIHProp · NatF NatFF -NatF-eq -Nat-Hom1F -Nat-Hom2F) .
+
+
+Z ◂ Nat = Nat-in (zF · Nat unit).
+S ◂ Nat ➔ Nat = λ n . Nat-in (sF · Nat n).
+
+natfold ◂ ∀ X : ★ . (NatF · X ➔ X) ➔ cNat ➔ X = cfoldfg · (IF · NatF) · NatF  (Λ X . NatFF · (SigmaEr · X · (Id · X)) · X (sigmaext · X) )  .
+
+oureq ◂   FunctorEq2 · NatF · (IF · NatF) (ext-if · NatF NatFF) (if-ext · NatF NatFF)  = ● .
+
+Nat-ind ◂ Π x : Nat . ∀ P : Nat ➔ ★ . P Z ➔ (Π x : Nat . P x ➔ P (S x)) ➔ P x =
+ λ x . Λ P . λ pz . λ ps . IindIso · NatF NatFF oureq  -NatF-eq -Nat-Hom1F -Nat-Hom2F · P
+
+   (Λ x' . λ q . ρ q.2 - ρ ς (oureq · Nat -(ifmap-pid-back · NatF NatFF · Nat · (Enr · Nat · P) (EnrElem · Nat · P)  (EnrEq · Nat · P)  q.1))
+   
+      - (ind-Sum · Unit  · (SigmaEr · Nat · (Enr · Nat · P))
+             q.1  ·
+	         (λ n : (Sum · Unit · (SigmaEr · Nat · (Enr · Nat · P)))  . P (Nat-in (if-ext · NatF NatFF · Nat (ifmap-pid-back · NatF NatFF · Nat · (Enr · Nat · P)
+		 (EnrElem · Nat · P) 
+		 (EnrEq · Nat · P)  n)))   )
+		 (λ u . ρ (eta-Unit u) - pz)	 
+		 (λ b . ps (es · Nat · (Enr · Nat · P) (EnrElem · Nat · P) (EnrEq · Nat · P) b)
+		 (EnrPred · Nat · P -(es · Nat · (Enr · Nat · P) (EnrElem · Nat · P) (EnrEq · Nat · P) b) (sp · Nat · (Enr · Nat · P) (EnrElem · Nat · P) (EnrEq · Nat · P) b))          ))
+
+     )   
+   x .
+
+add ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . natfold · Nat (λ nf . nf.1 · Nat (λ _ . m) S) n.1 .
+
+add-prop0 ◂ ∀ n : Nat . add Z (S n) ≃ S (add Z n) = Λ n . ρ (Nat-ind n · (λ n' : Nat . add Z (S n') ≃ S (add Z n')) β  (λ x' . λ p1 . ρ p1 - β) ) - β    .
+add-prop1 ◂ Π n : Nat . add Z n ≃ n = λ n . Nat-ind n · (λ n' : Nat . add Z n' ≃ n') β (λ x' . λ p1 . ρ (add-prop0 -x') - ρ p1 - β)   .
+add-prop2 ◂ Π n : Nat . add n Z ≃ n = λ n . β  .

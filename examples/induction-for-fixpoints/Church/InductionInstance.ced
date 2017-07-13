@@ -1,0 +1,191 @@
+import InductionAxiomatic.
+import SigmaImplicit.
+import Id.
+import PredicateLifting.
+import FixpointUpToIso.
+
+IF ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★ . λ X : ★ . F · (SigmaEr · X · (Id · X)) .
+
+IFF ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ Functor · (IF · F) = Λ F . λ fmap . Λ X . Λ Y . λ f . λ fx . fmap · (SigmaEr · X · (Id · X)) · (SigmaEr · Y · (Id · Y))
+	 (λ sx . sx.1 · (SigmaEr · Y · (Id · Y)) (Λ a . λ a' . mksigmaer · Y · (Id · Y) -(f a) [ f a'.1 , ρ a'.2 - β{f a'.1}  ] )  ) fx .
+
+
+IF-FunctorF1 ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ FunctorFun1 · F · (IF · F) = Λ F . λ FF . Λ X . toid · X · F FF .
+
+IF' ◂ (★ ➔ ★) ➔ 𝒌SigmaFamily   = λ F : ★ ➔ ★ . λ X : ★  . λ P : X ➔ ★ . F · (SigmaEr · X · P)    .
+
+
+ifmap-pid ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ FtoSigFam · (IF · F) · (IF' · F) =  Λ F . λ fmap . Λ X . Λ P . λ f . λ fx . fmap · (SigmaEr · X · (Id · X)) · (SigmaEr · X · P)
+	  (λ sx . sx.1 · (SigmaEr · X · P) (Λ a . λ a' . mksigmaer · X · P -a (ρ ς a'.2 - (f a'.1) ) )  )
+	  fx  .
+
+sigma-back ◂ ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf . SigmaEr · X · P ➔ (SigmaEr · X · (Id · X)) = Λ X . Λ P . λ pf . λ pp .
+   λ sx . sx.1 · (SigmaEr · X · (Id · X)) (Λ a . λ pa . mksigmaer · X · (Id · X) -a [ pf -a pa , ρ (pp -a pa) - β{pf pa}  ]  )  .
+
+es ◂ ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf . SigmaEr · X · P ➔ X = Λ X . Λ P . λ pf . λ pp .
+   λ sx . sx.1 · X (Λ a . λ pa . pf -a pa)  .
+
+sp ◂ ∀ X : ★ . ∀ P : X ➔ ★ . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf . Π s : SigmaEr · X · P . P (es · X · P pf pp s)  = Λ X . Λ P . λ pf . λ pp .
+   λ sx . ind-sigmaer · X · P sx · (λ sx' : SigmaEr · X · P . P (es · X · P pf pp sx')) (Λ a . λ b .  ρ  (pp -a b) - b  )  .
+
+zzthm2 ◂ ∀ X : ★ . ∀ P : X ➔ ★ . ∀ pf : Top . ∀ pp : Top . ∀ py : Top .
+  Π sx : SigmaEr · X · P .
+
+   (sx (λ a' . (mksigmaer (py a'))) (λ pa . (mksigmaer (pf pa)))) ≃ (λ c . (c (es pf pp ((λ sx . (sx (λ a' . (mksigmaer (py a'))))) sx))))
+
+  = Λ X . Λ P . Λ pf . Λ pp . Λ py . λ sx .
+
+     ind-sigmaer · X · P sx  · (λ sx' : SigmaEr · X · P .
+         (sx' (λ a' . (mksigmaer (py a'))) (λ pa . (mksigmaer (pf pa)))) ≃ (λ c . (c (es pf pp ((λ sx . (sx (λ a' . (mksigmaer (py a'))))) sx'))))
+
+	   ) (Λ a . λ b . ε β)     .
+
+
+
+
+ifmap-pid-back ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ SigFamToF · (IF · F) · (IF' · F) = Λ X . λ fmap . Λ X . Λ P . λ pf . λ pp . λ fx .
+
+    fmap · (SigmaEr · X · P) · (SigmaEr · X · (Id · X))
+                         (λ sxp . toid' · X (es · X · P pf pp sxp))
+
+		fx . 
+
+
+IIHType ◂ Π F : (★ ➔ ★) . Functor · F ➔  Π F' : 𝒌SigmaFamily . SigFamToF · F · F' ➔ Π X : ★ .
+  Π P : (X ➔ ★) . Π pf :  PredEnrFun · X · P . Π pp : PredEnrProp · X · P pf .
+  (F · X ➔ ★) =
+    λ F : ★ ➔ ★ . λ fmap : Functor · F . λ F' : 𝒌SigmaFamily .
+    λ fmap-pid-back : SigFamToF · F · F' . λ X : ★ . λ P : X ➔ ★ . λ pf : PredEnrFun · X · P . λ pp : PredEnrProp · X · P pf .  λ d : F · X .
+    ι x : F' · X · P . d ≃ fmap-pid-back pf pp x .
+
+
+
+IIHTypeElem ◂ ∀ F : (★ ➔ ★) . Π FF : Functor · F  .
+  IHTypeElem · (IF · F)  · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))  =
+
+  Λ F . λ FF . Λ X . Λ P . λ pf . λ pp . Λ x . λ if . ifmap-pid-back · F FF · X · P pf pp if.1 . 
+
+IIHTypeElemProp ◂ ∀ F : (★ ➔ ★) . Π FF : Functor · F  .
+  IHTypeElemProp · (IF · F)  · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) (IIHTypeElem · F FF)
+  =  Λ F . λ FF . Λ X . Λ P . λ pf . λ pp . Λ x . Λ if . ρ if.2 - β .
+
+  
+ISigFamToIH ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ = λ F : ★ ➔ ★ . λ FF : Functor · F . SigFamToIH · (IF · F) · (IF' · F)  (ifmap-pid · F FF) (IFF · F FF) ·
+    (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   )      .
+
+
+iFtoSigFamProp ◂ Π F : ★ ➔ ★ . Π FF : Functor · F .  FtoSigFamProp · (IF · F) (IFF · F FF) · (IF' · F) (ifmap-pid · F FF) =
+ λ F . λ FF . Λ f . ε β  .
+
+
+
+myhomd' ◂ ∀ F : ★ ➔ ★ . Π fmap : Functor · F . FunctorLaw2 · F fmap ➾ 
+     FunctorLaw1 · F fmap ➾ ∀ X : ★ . ∀ P : X ➔ ★ . Π lx : F · (SigmaEr · X · P) .
+   fmap (λ sx . (sx (λ px . (mksigmaer px)))) lx ≃ lx = Λ F . λ fmap . Λ h1 . Λ h2 . Λ X . Λ P . λ lx . ρ (h2 · (SigmaEr · X · P) · (SigmaEr · X · P) -(λ sx . (sx.1 · (SigmaEr · X · P) (Λ a . λ px . (mksigmaer · X · P -a px)))) lx -(λ z . ε z.2.1)) - β     .
+
+myhomd'' ◂ ∀ pf : Top . ∀ f : Top . ∀ py : Top . (λ x' . ((λ sx . (sx (λ pa . (mksigmaer (pf pa))))) ((λ sx . (sx (λ a' . (mksigmaer (py (f a')))))) x'))) ≃
+  (λ x' . ((((x' (λ a' . (mksigmaer (py (f a'))))) (λ pa . (mksigmaer (pf pa)))))))
+   = Λ pf . Λ f . Λ py . β .
+
+
+
+myhomd ◂ ∀ F : ★ ➔ ★ .
+         Π FF : Functor · F .
+	 FmapEq · F FF ➾
+	 FunctorLaw2 · F FF ➾ 
+         FunctorLaw1 · F FF ➾
+	 ISigFamToIH · F FF   = Λ F . λ fmap . Λ feq . Λ h1 . Λ h2 . Λ X' . Λ X . Λ Y . Λ pf . Λ pp . Λ f . Λ py .  Λ x . λ lx . λ eq . 
+        [ fmap · (SigmaEr · X' · (λ x' : X' . Y (f x'))) · (SigmaEr · X · Y)
+	   (λ sx . sx.1 · (SigmaEr · X · Y) (Λ x . λ px . mksigmaer · X · Y -(f x) px)  ) lx
+      , ρ (myhomd'  · F fmap -h1 -h2 ·  X' · (λ x' : X' . Y (f x')) lx  )   - ρ eq -
+         ρ (h1 · (SigmaEr · X' · (Id · X')) · (SigmaEr · X · Y) · (SigmaEr · X · (Id · X))
+	 
+        -((λ sxp . toid' · X (es · X · Y pf pp sxp))) 
+
+	
+        -(λ sx . sx.1 · (SigmaEr · X · Y) (Λ a . λ a' . mksigmaer · X · Y -(f a'.1) (py (a'.1))  )  ) 
+         x) -
+	   ρ (feq · (SigmaEr · X' · (Id · X'))
+
+           -β{(λ sx . sx.1 · (SigmaEr · X · (Id · X)) (Λ a . λ a' . mksigmaer · X · (Id · X) -(f a) [ f a'.1 , ρ a'.2 - β{f a'.1}  ] )  )}
+
+	   
+	   -β{(λ x' . ((λ sx . (sx (λ pa . (mksigmaer (pf pa))))) ((λ sx . (sx (λ a' . (mksigmaer (py a'))))) x')))} 
+	   (λ x' . ε (ρ  ((sigmaer-comp · X' · (Id · X') x' -β{(λ z . (py (z)) )} -β{pf}  )) - ε (sigmaer-ext · X' · (Id · X') x' β{(λ a' . (mksigmaer (f a')))} β{(λ a' . (mksigmaer (pf ((λ z . (py (z))) a'))))} (Λ z . λ y . ε (ρ (pp -(f y.1) (py (y.1))) - β   )  )  )  )     )
+	   x )  - ρ (feq · (SigmaEr · X' · (Id · X')) -β{(λ x' . ((λ sx . (sx (λ pa . (mksigmaer (pf pa))))) ((λ sx . (sx (λ a' . (mksigmaer (py a'))))) x')))} -β{(λ x' . ((λ sxp . (toid' (es pf pp sxp))) ((λ sx . (sx (λ a' . (mksigmaer (py a'))))) x')))} (λ x'' .  ε  ρ (zzthm2 · X' · (Id · X') -β{pf} -β{pp} -β{py} x'' ) - β)  x ) - β{fmap (λ sx . (sx (λ px . (mksigmaer px)))) lx} ] .
+
+
+
+
+iSigFamToIHProp ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . 
+	 ∀ eq : FmapEq · F FF .
+	 ∀ h1 : FunctorLaw2 · F FF .
+         ∀ h2 : FunctorLaw1 · F FF .
+  SigFamToIHProp · (IF · F) · (IF' · F)  (ifmap-pid · F FF) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   )  (myhomd · F FF -eq -h1 -h2)
+    =  λ F . λ FF . Λ eq . Λ h1 . Λ h2 . Λ X . Λ Y . λ x . (myhomd'  · F FF -h1 -h2 ·  X · Y x) .
+
+if-ext ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ X : ★ . (IF · F · X) ➔ F · X = Λ F . λ FF . Λ X . λ if . FF · (SigmaEr · X · (Id · X)) · X (sigmaext · X) if   .
+ext-if ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . ∀ X : ★ . F · X ➔ (IF · F · X) = Λ F . λ FF . Λ X . λ if . FF · X · (SigmaEr · X · (Id · X)) (toid' · X) if   .
+
+
+
+IHom1F ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . FmapEq · F FF ➔  FunctorLaw2 · F FF ➔ FunctorLaw2 · (IF · F) (IFF · F FF) = Λ F . λ FF  . λ feq . λ hom1 .
+  Λ X . Λ Y . Λ Z . Λ f . Λ g . λ x . ε ρ (hom1 · (SigmaEr · X · (Id · X))  · (SigmaEr · Y · (Id · Y))  · (SigmaEr · Z · (Id · Z)) -(λ sx . sx.1 · (SigmaEr · Z · (Id · Z)) (Λ a . λ a' . mksigmaer · Z · (Id · Z) -(f a) [ f a'.1 , ρ a'.2 - β{f a'.1}  ] )  ) -(λ sx . sx.1 · (SigmaEr · Y · (Id · Y)) (Λ a . λ a' . mksigmaer · Y · (Id · Y) -(g a) [ g a'.1 , ρ a'.2 - β{g a'.1}  ] )  )   x) - (feq · (SigmaEr · X · (Id · X)) -β{(λ x' . ((λ sx . (sx (λ a' . (mksigmaer (f a'))))) ((λ sx . (sx (λ a' . (mksigmaer (g a'))))) x')))} -β{(λ sx . (sx (λ a' . (mksigmaer ((λ x' . (f (g x'))) a')))))}  (λ z . ε ((sigmaer-comp · X · (Id · X) z -β{g} -β{f}))      ) x    )       .
+
+IHom2F ◂ ∀ F : ★ ➔ ★ . Π FF : Functor · F . FunctorLaw1 · F FF ➔ FunctorLaw1 · (IF · F) (IFF · F FF) =
+ Λ F . λ FF . λ hom2 . Λ X . Λ Y . Λ f . λ x . Λ prf . hom2 · (SigmaEr · X · (Id · X)) · (SigmaEr · Y · (Id · Y)) -(λ sx . sx.1 · (SigmaEr · Y · (Id · Y)) (Λ a . λ ida . mksigmaer · Y · (Id · Y) -(f ida.1) [ f ida.1 , β{f ida} ]   ) ) x -(λ z . ind-sigmaer · X · (Id · X) z · (λ z' : SigmaEr · X · (Id · X) . ((z' (λ ida . (mksigmaer (f ida)))) ≃ z') ) (Λ a . λ b . ε ρ (prf b.1) - β ))  .
+
+Iind ◂ 
+  ∀ F : ★ ➔ ★ .
+  Π FF : Functor · F .
+  ∀ eq : FmapEq · F FF .
+  ∀ Hom1F : FunctorLaw2 · F FF.
+  ∀ Hom2F : FunctorLaw1 · F FF.
+ 
+  ∀ P : D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) ➔ ★ .  
+
+
+
+  (∀ x : (IF · F) · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) .
+  
+    (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)))
+                                   · (Enr · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P)
+				   (EnrElem · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P) 
+				   (EnrEq · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P)  x
+       ➔ P (in · (IF · F)  (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   ) · (IF' · F) -(IHom1F · F FF eq Hom1F) -(IHom2F · F FF Hom2F) -(ifmap-pid · F FF)
+         -(iFtoSigFamProp · F FF) -(myhomd · F FF -eq -Hom1F -Hom2F) -(iSigFamToIHProp · F FF -eq -Hom1F -Hom2F) x    ) ) ➔ 
+  
+   Π x : D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) .
+   P x =
+     Λ F . λ FF . Λ eq . Λ Hom1F . Λ Hom2F . Λ P . λ pk . λ x . inductionAxiomatic · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   ) · (IF' · F) -(IHom1F · F FF eq Hom1F) -(IHom2F · F FF Hom2F) -(ifmap-pid · F FF) -(iFtoSigFamProp · F FF) -(myhomd · F FF -eq -Hom1F -Hom2F) -(iSigFamToIHProp · F FF -eq -Hom1F -Hom2F)
+       (IIHTypeElem · F FF)
+       -(IIHTypeElemProp · F FF)  · P pk x   .
+
+
+
+IindIso ◂ 
+  ∀ F : ★ ➔ ★ .
+  Π FF : Functor · F .
+  FunctorEq2 · F · (IF · F) (ext-if · F FF) (if-ext · F FF) ➔
+  ∀ eq : FmapEq · F FF .
+  ∀ Hom1F : FunctorLaw2 · F FF.
+  ∀ Hom2F : FunctorLaw1 · F FF.
+ 
+  ∀ P : D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) ➔ ★ .  
+
+
+
+  (∀ x : F · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) .
+  
+    (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)))
+                                   · (Enr · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P)
+				   (EnrElem · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P) 
+				   (EnrEq · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF))) · P)  (ext-if · F FF · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F) (ifmap-pid-back · F FF))) x)
+       ➔ P (in · (IF · F)  (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   ) · (IF' · F) -(IHom1F · F FF eq Hom1F) -(IHom2F · F FF Hom2F) -(ifmap-pid · F FF)
+         -(iFtoSigFamProp · F FF) -(myhomd · F FF -eq -Hom1F -Hom2F) -(iSigFamToIHProp · F FF -eq -Hom1F -Hom2F) (ext-if · F FF · (D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F) (ifmap-pid-back · F FF))) x)   ) ) ➔ 
+  
+   Π x : D · (IF · F) (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)) .
+   P x =      Λ F . λ FF . λ feq1 . Λ eq . Λ Hom1F . Λ Hom2F . Λ P . λ pk . λ x . inductionAxiomaticIso · (IF · F) · F (ext-if · F FF) (if-ext · F FF) feq1 (IFF · F FF) · (IIHType · (IF · F) (IFF · F FF) · (IF' · F)  (ifmap-pid-back · F FF)   ) · (IF' · F) -(IHom1F · F FF eq Hom1F) -(IHom2F · F FF Hom2F) -(ifmap-pid · F FF) -(iFtoSigFamProp · F FF) -(myhomd · F FF -eq -Hom1F -Hom2F) -(iSigFamToIHProp · F FF -eq -Hom1F -Hom2F)
+       (IIHTypeElem · F FF)
+       -(IIHTypeElemProp · F FF)  · P pk x   .
+
