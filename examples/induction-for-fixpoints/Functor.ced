@@ -1,11 +1,27 @@
-import Top.
+
+
+%  importing Top does not work if Functor is imported from other directory
+%%%%% Top %%%%%
+Top ◂ ★ = λ x . x ≃ λ x . x .
+
+top ◂ Top = β{λ x . x} .
+%%%%% Top %%%%%
 
 Functor ◂ (★ ➔ ★) ➔ ★ =
   λ F : ★ ➔ ★ . ∀ X : ★ . ∀ Y : ★ . (X ➔ Y) ➔ (F · X ➔ F · Y) .
 
 FunctorLaw1 ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
    λ F : ★ ➔ ★ . λ FF : Functor · F .
-     ∀ X : ★ . ∀ Y : ★ . ∀ f : X ➔ Y . Π x : F · X . (Π z : X . f z ≃ z) ➔ FF f x ≃ x .
+     ∀ X : ★ . ∀ Y : ★ . ∀ f : X ➔ Y . Π x : F · X . ∀ _ : (Π z : X . f z ≃ z) . FF f x ≃ x .
+
+
+FunctorLaw1'' ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ Y : ★ . ∀ f : X ➔ Y . Π x : F · X . ∀ _ : (Π z : Top . f z ≃ z) . FF f x ≃ x .
+     
+FunctorLaw1' ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
+   λ F : ★ ➔ ★ . λ FF : Functor · F .
+     ∀ X : ★ . ∀ Y : ★ . Π x : F · X .  FF (λ x . x) x ≃ x .
      
 FunctorLaw2 ◂ Π F : ★ ➔ ★ . Π FF : Functor · F . ★ =
    λ F : ★ ➔ ★ . λ FF : Functor · F .
