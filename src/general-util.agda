@@ -44,3 +44,12 @@ string-split str delim = string-split-h (string-to-𝕃char str) delim [] []
 
 putStrLn : string → IO ⊤
 putStrLn str = putStr (str ^ "\n")
+
+undo-escape-string-h : 𝕃 char → 𝕃 char → 𝕃 char
+undo-escape-string-h ('\\' :: 'n' :: rest) so-far = undo-escape-string-h rest ('\n' :: so-far)
+undo-escape-string-h ('\\' :: '\"' :: rest) so-far = undo-escape-string-h rest ('\"' :: so-far)
+undo-escape-string-h (c :: rest) so-far = undo-escape-string-h rest (c :: so-far)
+undo-escape-string-h [] so-far = reverse so-far
+
+undo-escape-string : string → string
+undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])

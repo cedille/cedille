@@ -294,7 +294,9 @@ which currently consists of:\n
 			(when line
 			  (let* ((color (cadr (assoc 'color line)))
 				 (text (cadr (assoc 'text line))))
-			    (insert (propertize (concat text "\n") 'face `(:foreground ,color))))))))
+			    (if color
+				(insert (propertize (concat text "\n") 'face `(:foreground ,color)))
+			        (insert (concat text "\n"))))))))
 	;; print the lines in the context buffer
 	(when termdata
 	  (insert "==== TERMS ====\n")

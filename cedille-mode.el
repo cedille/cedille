@@ -317,12 +317,12 @@ in the parse tree, and updates the Cedille info buffer."
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-quit()
-"Quit Cedille navigation mode"
-(interactive)
-(se-mode-clear-selected)
-(remove-overlays)
-(se-navigation-mode-quit)
-(setq se-mode-parse-tree nil))
+  "Quit Cedille navigation mode"
+  (interactive)
+  (se-mode-clear-selected)
+  (remove-overlays)
+  (se-navigation-mode-quit)
+  (setq se-mode-parse-tree nil))
 
 (defun cedille-mode-get-matching-variable-nodes(node)
   "Returns list of all nodes containing variables matching the one in the input node (if any). Matching is determined by location attribute"
@@ -437,7 +437,6 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "N") #'cedille-mode-normalize)
   (se-navi-define-key 'cedille-mode (kbd "C-N") #'cedille-mode-normalize-full)
   (se-navi-define-key 'cedille-mode (kbd "E") #'cedille-mode-erase)
-  ;(se-navi-define-key 'cedille-mode (kbd "C-E") #'cedille-mode-erase-full) ; Is this needed?
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
@@ -480,7 +479,7 @@ in the parse tree, and updates the Cedille info buffer."
   "Enter Cedille navigation mode."
   (interactive)
   (setq se-mode-parse-tree nil)
-  (se-navigation-mode 1))     
+  (se-navigation-mode 1))
 
 (modify-coding-system-alist 'file "\\.ced\\'" 'utf-8)
 

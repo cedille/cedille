@@ -141,15 +141,24 @@ normalize-Run-or-error Γ input (inj₂ run) full = normalize-tree Γ input (rew
 normalize-span : ctxt → gratr2-nt → string → ℕ → 𝔹 → string × 𝔹 
 normalize-span Γ nt text sp full = normalize-Run-or-error Γ text (parse-specific-nt nt sp (string-to-𝕃char text)) full
 
-normalize-cmd-h : (start-pos : ℕ) → ctxt → gratr2-nt → (span-str : string) → (filename : string) → (full : string) → (local-ctxt : 𝕃 string) → string × 𝔹
-normalize-cmd-h start-pos Γ nt str filename full local-ctxt = normalize-span (get-local-ctxt start-pos filename local-ctxt Γ) nt str start-pos (string-to-𝔹 full)
+get-nt : string → maybe gratr2-nt
+get-nt "term" = just gratr2-nt._term
+get-nt "type" = just gratr2-nt._type
+get-nt _ = nothing
 
-normalize-cmd : (start-pos : ℕ) → (span-str : string) → ctxt → 𝕃 string → string × 𝔹
-normalize-cmd start-pos span-str Γ ("term" :: filename :: full :: local-ctxt) =
+{-normalize-cmd-h : (start-pos : ℕ) → ctxt → gratr2-nt → (span-str : string) → (filename : string) → (full : string) → (local-ctxt : 𝕃 string) → string × 𝔹
+normalize-cmd-h start-pos Γ nt str filename full local-ctxt = normalize-span (get-local-ctxt start-pos filename local-ctxt Γ) nt str start-pos (string-to-𝔹 full)-}
+
+normalize-cmd : (start-pos : ℕ) → (span-str : string) → ctxt → (lang-level : string) → (filename : string) → (full : 𝔹) → (local-ctxt : 𝕃 string) → string × 𝔹
+normalize-cmd _ _ _ ll _ _ _ with get-nt ll
+normalize-cmd _ ss _ _ _ _ _ | nothing = ss , ff
+normalize-cmd sp ss Γ _ fn full lc | (just nt) = normalize-span (get-local-ctxt sp fn lc Γ) nt ss sp full
+
+{-normalize-cmd start-pos span-str Γ "term" filename full local-ctxt =
   normalize-cmd-h start-pos Γ gratr2-nt._term span-str filename full local-ctxt
-normalize-cmd start-pos span-str Γ ("type"  :: filename :: full :: local-ctxt) =
+normalize-cmd start-pos span-str Γ "type" filename full local-ctxt =
   normalize-cmd-h start-pos Γ gratr2-nt._type span-str filename full local-ctxt
-normalize-cmd _ span-str _ _ = span-str , ff
+normalize-cmd _ span-str _ _ = span-str , ff-}
 
 choose-run : (term-run : 𝕃 char ⊎ Run) → (type-run : 𝕃 char ⊎ Run) → maybe Run
 choose-run (inj₂ run) _ = just run
@@ -185,13 +194,17 @@ erase-run input (inj₂ run) Γ = erase-tree Γ input (rewriteRun run)
 erase-span : ctxt → string → ℕ → string × 𝔹
 erase-span Γ str start-pos = erase-run str (parse-specific-nt gratr2-nt._term start-pos (string-to-𝕃char str)) Γ
 
+-- erase-cmd : (start-pos : ℕ) → (span-str : string) → ctxt → string × 𝔹
+-- erase-cmd sp ss Γ = erase-span
+
+{-
 erase-cmd-h : (start-pos : ℕ) → ctxt → (span-str : string) → (filename : string) → (local-ctxt : 𝕃 string) → string × 𝔹
 erase-cmd-h start-pos Γ str filename local-ctxt = erase-span (get-local-ctxt start-pos filename local-ctxt Γ) str start-pos
 
 erase-cmd : (start-pos : ℕ) → (span-str : string) → ctxt → 𝕃 string → string × 𝔹
 erase-cmd start-pos span-str Γ (filename :: local-ctxt) =
   erase-cmd-h start-pos Γ span-str filename local-ctxt
-erase-cmd _ span-str _ _ = span-str , ff
+erase-cmd _ span-str _ _ = span-str , ff-}
 
 erase-inj-run : 𝕃 char ⊎ Run → (input : string) → ctxt → string × 𝔹
 erase-inj-run (inj₂ run) input Γ = erase-tree Γ input (rewriteRun run)
@@ -211,30 +224,31 @@ erase-prompt input Γ =
 
 interactive-return : string × 𝔹 → toplevel-state → IO toplevel-state
 interactive-return (str , tt) ts = putStrLn (escape-string str) >>= λ _ → return ts
-interactive-return (str , ff) ts = putStrLn (global-error-string ("Error parsing \"" ^ str ^ "\"")) >>= λ _ → return ts
+interactive-return (str , ff) ts = putStrLn (global-error-string ("Error parsing \"" ^ (escape-string str) ^ "\"")) >>= λ _ → return ts
 
-remove-ws : 𝕃 char → 𝕃 char
-remove-ws (' ' :: lc) = lc 
-remove-ws lc = lc
+add-ws : 𝕃 char → 𝕃 char
+add-ws (' ' :: lc) = ' ' :: lc
+add-ws lc = ' ' :: lc
 
 -- Makes the string more aesthetically pleasing by removing newlines,
--- replacing tabs with spaces, and removing unnecessary double whitespaces
+-- replacing tabs with spaces, and removing unnecessary double whitespaces.
+-- Also, interactive parsing fails if there are newlines anywhere or periods at the end.
 pretty-string-h : 𝕃 char → 𝕃 char → 𝕃 char
-pretty-string-h ('\n' :: rest) so-far = pretty-string-h rest (' ' :: remove-ws so-far)
-pretty-string-h (' ' :: rest) so-far = pretty-string-h rest (' ' :: remove-ws so-far)
-pretty-string-h ('\t' :: rest) so-far = pretty-string-h rest (' ' :: remove-ws so-far)
+pretty-string-h ('\n' :: rest) so-far = pretty-string-h rest (add-ws so-far)
+pretty-string-h (' ' :: rest) so-far = pretty-string-h rest (add-ws so-far)
+pretty-string-h ('\t' :: rest) so-far = pretty-string-h rest (add-ws so-far)
 pretty-string-h (c :: rest) so-far = pretty-string-h rest (c :: so-far)
 pretty-string-h [] so-far = reverse (remove-proceeding-ws-period so-far)
   where
     remove-proceeding-ws-period : 𝕃 char → 𝕃 char
-    remove-proceeding-ws-period (' ' :: rest) = rest
-    remove-proceeding-ws-period ('.' :: rest) = rest
+    remove-proceeding-ws-period (' ' :: rest) = remove-proceeding-ws-period rest
+    remove-proceeding-ws-period ('.' :: rest) = remove-proceeding-ws-period rest
     remove-proceeding-ws-period rest = rest
 
 pretty-string : string → string
 pretty-string str = 𝕃char-to-string (pretty-string-h (string-to-𝕃char str) [])
 
-handle-span-cmd : (cmd-name : string) → (start-pos : ℕ) → (end-pos : ℕ) → (span-str : string) → ctxt → (rest : 𝕃 string) → string × 𝔹
+{-handle-span-cmd : (cmd-name : string) → (start-pos : ℕ) → (end-pos : ℕ) → (span-str : string) → ctxt → (rest : 𝕃 string) → string × 𝔹
 handle-span-cmd "normalize" sp ep span-str Γ rest = normalize-cmd sp span-str Γ rest
 handle-span-cmd "erase" sp ep span-str Γ rest = erase-cmd sp span-str Γ rest
 handle-span-cmd unknown-cmd _ _ _ _ _ = "Unknown command \"" ^ unknown-cmd ^ "\"" , ff
@@ -254,4 +268,29 @@ interactive-prompt-cmd "normalize" input (full :: []) ts =
 interactive-prompt-cmd "erase" input [] ts =
   interactive-return (erase-prompt (pretty-string input) (ts-to-ctxt ts)) ts
 interactive-prompt-cmd cmd-name _ rest ts =
-  putStrLn ("Unknown cmd \"" ^ cmd-name ^ "\" with arguments \"(" ^ (𝕃-to-string (λ x → x) ", " rest) ^ ")\"") >>= λ x → return ts
+  putStrLn ("Unknown cmd \"" ^ cmd-name ^ "\" with arguments \"(" ^ (𝕃-to-string (λ x → x) ", " rest) ^ ")\"") >>= λ x → return ts-}
+
+interactive-normalize-span : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-normalize-span (start-str :: span-str :: lang-level :: filename :: full-str :: local-ctxt) ts =
+  interactive-return (normalize-cmd (posinfo-to-ℕ start-str) (pretty-string span-str) (ts-to-ctxt ts) lang-level filename (string-to-𝔹 full-str) local-ctxt) ts
+interactive-normalize-span _ ts =
+  putStrLn (global-error-string "Wrong number of arguments given to interactive-normalize-span") >>= λ _ → return ts
+
+interactive-erase-span : 𝕃 string → toplevel-state →  IO toplevel-state
+interactive-erase-span (start-str :: span-str :: filename :: local-ctxt) ts =
+  interactive-return (erase-span (get-local-ctxt sp filename local-ctxt (ts-to-ctxt ts)) (pretty-string span-str) sp) ts
+  where sp = (posinfo-to-ℕ start-str)
+interactive-erase-span _ ts =
+  putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-span") >>= λ _ → return ts
+
+interactive-normalize-prompt : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-normalize-prompt (span-str :: full-str :: rest) ts =
+  interactive-return (normalize-prompt (pretty-string span-str) (ts-to-ctxt ts) (string-to-𝔹 full-str)) ts
+interactive-normalize-prompt _ ts =
+  putStrLn (global-error-string "Wrong number of arguments given to interactive-normalize-prompt") >>= λ _ → return ts
+
+interactive-erase-prompt : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-erase-prompt (span-str :: []) ts =
+  interactive-return (erase-prompt (pretty-string span-str) (ts-to-ctxt ts)) ts
+interactive-erase-prompt _ ts =
+  putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-prompt") >>= λ _ → return ts

@@ -1,7 +1,5 @@
-
 (require 'tq)
 (require 'json)
-;(require 'se-pin) ; Is this import necessary?
 
 (eval-when-compile (require 'cl))
 
@@ -53,12 +51,6 @@ to be sent to the backend to request parsing of that file."))
   "Functions to be evaluated before parse request.")
 
 (make-variable-buffer-local
- (defvar se-inf-interactive-calls-current nil))
-
-(make-variable-buffer-local
- (defvar se-inf-interactive-calls-total nil))
-
-(make-variable-buffer-local
  (defvar se-inf-response-is-json t
    "Non-nil if `se-inf-process' should return JSON.  See
 `se-inf-response-hook'."))
@@ -69,15 +61,11 @@ to be sent to the backend to request parsing of that file."))
 background. Supposed to be similar to an hourglass.")
 
 (make-variable-buffer-local
- (defvar se-inf-interactive-headers nil))
-   ;(vector " Error |" " Error /" " Error -" " Error \\")
-   ;"A loop of strings to show while interactive calls are being re-processed in the background. Supposed to be similar to an hourglass."))
+ (defvar se-inf-header-queue nil
+   "The queue of header strings to show for consecutive interactive calls"))
 
 (make-variable-buffer-local
  (defvar se-inf-headers se-inf-parsing-headers))
-;  (vector " Parsing |" " Parsing /" " Parsing -" " Parsing \\")
-;  "A loop of strings to show while parsing is happening in the
-;background. Supposed to be similar to an hourglass.")
 
 (make-variable-buffer-local
  (defvar se-inf-header-index 0
@@ -95,18 +83,23 @@ parsing.")
 (defvar se-inf-header-timer-interval 0.25
   "Time in seconds between updating the header mode line.")
 
-(defun se-inf-generate-headers (str)
-  "Sets `se-inf-headers' to be a generated vector based on str"
-  (setq str (concat " " str))
-  (setq se-inf-headers (vector (concat str " |") (concat str " /") (concat str " -") (concat str " \\"))))
+(defun se-inf-set-header-format ()
+  (setq se-inf-header-line-format '(:eval (aref se-inf-headers (mod se-inf-header-index 4)))))
 
-(defun se-inf-update-interactive-headers ()
-  "Sets `se-inf-interactive-headers' to reflect current progress"
-  (setq header-is-interactive nil)
-  (when (eq se-inf-headers se-inf-interactive-headers) (setq header-is-interactive t))
-  (setq str (format " Restoring interactive calls (%s/%s) " se-inf-interactive-calls-current se-inf-interactive-calls-total))
-  (setq se-inf-interactive-headers (vector (concat str "|") (concat str "/") (concat str "-") (concat str "\\")))
-  (when header-is-interactive (setq se-inf-headers se-inf-interactive-headers)))
+(defun se-inf-queue-header (str)
+  "Adds str to  `se-inf-header-queue'"
+  (setq str (concat " " str))
+  (setq se-inf-header-queue (append se-inf-header-queue (list (vector (concat str " |") (concat str " /") (concat str " -") (concat str " \\")))))
+  (unless header-line-format (se-inf-next-header)))
+
+(defun se-inf-next-header ()
+  "If `header-line-format' is nil, then sets it to be the first element from `se-inf-header-queue', which gets popped"
+  (setq popped (pop se-inf-header-queue))
+  (if (null popped)
+      (se-inf-finish-response)
+      (setq se-inf-headers popped)
+      (se-inf-set-header-format)
+      (se-inf-header-timer-start)))
 
 (defun se-inf-start (proc &optional no-auto-kill)
   "Initialize necessary variables to use se-inf functions.
@@ -128,46 +121,70 @@ still being active upon exiting emacs."
   "Should be called at the end of an `se-mode' session.  This
 will kill the process, should be skipped if process is shared."
   (tq-close se-inf-queue)
-  (kill-buffer (tq-buffer se-inf-queue)))
+  (kill-buffer (tq-buffer se-inf-queue))
+  (when (car se-inf-queue)
+    (setq se-inf-header-queue nil)
+    (setq se-inf-headers se-inf-parsing-headers)
+    (setq header-line-format nil)
+    (setq current (nth 1 (cdr (car (car se-inf-queue)))))
+    (setq symbol (nth 0 current))
+    (setq span (nth 1 current))
+    (setq pins (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive))
+    (setq pins (se-inf-filter-pins-symbol symbol pins '()))
+    (se-unpin-list pins)))
 
-(defun se-inf-interactive (question-fn span fn batch-fn question-args &optional header-str)
-  "Sends an interactive call to the backend. Upon receiving a response, fn will be called with span and the response. If symbol or span are nil, the interactive call will not be pinned to the text. If batch-fn is not nil, it will be called when during batch processing; if it is nil, fn will be used. question-fn should take a span and a list argument (question-args)"
-  (setq span (se-mode-ensure-span span))
-  (setq question (funcall question-fn span question-args))
-  (setq s (se-span-start span))
-  (setq e (se-span-end span))
-  (setq q (format "interactive§%s§%s§%s§%s" s e (buffer-substring-no-properties s e) question))
-  (setq q (concat (se-inf-escape-string q) "\n"))
-  (when header-str
-    (se-inf-generate-headers header-str)
-    (se-inf-header-timer-start))
-  (tq-enqueue se-inf-queue q "\n" (list fn (buffer-name) span question-fn batch-fn question-args) #'se-inf-interactive-response))
+(defun se-inf-filter-pins-symbol (symbol pins so-far)
+  "Filters out pins without symbol"
+  (if (null pins)
+      so-far
+      (setq h (car pins))
+      (setq symbol2 (car (se-pin-item-data h)))
+      (when (equal symbol symbol2) (setq so-far (cons h so-far)))
+      (se-inf-filter-pins-symbol symbol (cdr pins) so-far)))
+
+
+
+(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span batch-fn header q-arg symbol response-split-fn add-to-span pin)
+  ""
+  (when span (setq span (se-first-span span)))
+  (setq q (concat (se-inf-escape-string (if (stringp q-str-or-fn) q-str-or-fn (funcall q-str-or-fn span q-arg))) "\n"))
+  (setq closure (list symbol span q-str-or-fn q-arg response-fn batch-fn response-split-fn add-to-span pin (buffer-name)))
+  (when header (se-inf-queue-header header))
+  (tq-enqueue se-inf-queue q "\n" closure #'se-inf-interactive-response))
 
 (defun se-inf-interactive-response (closure response)
   "Receives a response from an `se-inf-interactive' call"
-  (setq response (se-inf-undo-escape-string response))
-  (setq buffer (nth 1 closure))
-  (with-current-buffer buffer
-    (when se-inf-interactive-restored (se-inf-header-timer-stop))
-    (let ((fn (nth 0 closure))
-	  (span (nth 2 closure))
-	  (question-fn (nth 3 closure))
-	  (batch-fn (nth 4 closure))
-	  (question-args (nth 5 closure)))
-      (if batch-fn
-	  (setq pin-data (list batch-fn question-fn question-args))
-	  (setq pin-data (list fn question-fn question-args)))
+  (let* ((response (se-inf-undo-escape-string response))
+	 (symbol (nth 0 closure))
+	 (span (nth 1 closure))
+	 (q-str-or-fn (nth 2 closure))
+	 (q-arg (nth 3 closure))
+	 (response-fn (nth 4 closure))
+	 (batch-fn (nth 5 closure))
+	 (response-split-fn (nth 6 closure))
+	 (add-to-span (nth 7 closure))
+	 (pin (nth 8 closure))
+	 (buffer (nth 9 closure))
+	 (r-pair (if response-split-fn (response-split-fn response) (cons response "")))
+	 (r-text (car r-pair))
+	 (r-extra (cdr r-pair)))
+    (with-current-buffer buffer
+      (se-inf-next-header)
       (when span
-	(setq start (se-span-start span))
-	(setq end (se-span-end span))
-	(se-inf-remove-dup-pin (se-pins-at start end 'se-interactive) pin-data)
-	(se-pin-data (se-span-start span) (se-span-end span) 'se-interactive pin-data))
-      (funcall fn span response))
-    (unless se-inf-interactive-restored
-      (se-inf-inc-current))))
+	(when pin
+	  (setq pin-data (list symbol (or batch-fn response-fn) q-str-or-fn q-arg add-to-span response-split-fn))
+	  (setq start (se-span-start span))
+	  (setq end (se-span-end span))
+	  (se-inf-remove-dup-pin (se-pins-at start end 'se-interactive) pin-data)
+	  (se-pin-data (se-span-start span) (se-span-end span) 'se-interactive pin-data))
+	(when (and symbol add-to-span)
+	  (se-inf-add-to-span span r-text symbol)))
+      (funcall response-fn span r-text r-extra)
+      (unless se-inf-interactive-restored
+	(se-inf-inc-current)))))
 
 (defun se-inf-add-to-span (span text symbol)
-  "Adds text to span in form of list: (symbol . text)"
+  "Adds text to list of span's interactive properties in form of list/pair: (symbol . text)"
   (setq data (se-span-data span))
   (setq int (cdr (assoc 'se-interactive data)))
   (setq int (se-inf-add-to-span-h int nil text symbol))
@@ -177,7 +194,7 @@ will kill the process, should be skipped if process is shared."
 (defun se-inf-add-to-span-h (data result text symbol)
   "Adds item to data, removing all other occurences of symbol"
   (if (null data)
-      (rev (cons `(,symbol . ,text) result))
+      (reverse (cons (cons symbol text) result))
       (setq h (car data))
       (unless (equal (car h) symbol)
 	(setq result (cons h result)))
@@ -191,17 +208,7 @@ will kill the process, should be skipped if process is shared."
         (se-unpin h) ; No need to go further
         (se-inf-remove-dup-pin (cdr pins) data))))
 
-(defun se-inf-inc-current ()
-   "Increments `se-inf-interactive-calls-current'"
-  (unless se-inf-interactive-calls-current
-    (setq se-inf-interactive-calls-current 0))
-  (incf se-inf-interactive-calls-current)
-  ;(message "%s/%s" se-inf-interactive-calls-current se-inf-interactive-calls-total)
-  (if (equal se-inf-interactive-calls-current se-inf-interactive-calls-total)
-      (se-inf-finish-response)
-      (se-inf-update-interactive-headers)))
-
-(defun se-inf-run-pins(pins)
+(defun se-inf-run-pins(pins queued total)
   "Recursively iterates through pins and calls each function with its args (span and question)"
   (when pins
     (let* ((h (car pins))
@@ -209,32 +216,30 @@ will kill the process, should be skipped if process is shared."
 	   (start (se-pin-item-start h))
 	   (end (se-pin-item-end h))
 	   (span (se-span-from start end))
-	   (fn (nth 0 data))
-	   (question-fn (nth 1 data))
-	   (question-args (nth 2 data)))
+	   (symbol (nth 0 data))
+	   (response-fn (nth 1 data))
+	   (q-str-or-fn (nth 2 data))
+	   (q-arg (nth 3 data))
+	   (add-to-span (nth 4 data))
+	   (response-split-fn (nth 5 data)))
       (if span
-	  (se-inf-interactive question-fn span fn nil question-args)
+	  (se-inf-interactive q-str-or-fn response-fn :span span :q-arg q-arg :symbol symbol :response-split-fn response-split-fn :add-to-span add-to-span :header (format "Restoring interactive calls (%s/%s)" queued total))
 	  (se-unpin h)
 	  (se-inf-inc-current))
-      (se-inf-run-pins (cdr pins)))))
+      (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
 (defun se-inf-restore-interactive ()
   "Restores interactive calls"
   (setq pins (se-get-pins 'se-interactive))
-  (setq se-inf-interactive-calls-current 0)
-  (setq se-inf-interactive-calls-total (length pins))
-  (se-inf-update-interactive-headers)
   (if pins
-      (se-inf-run-pins pins)
+      (se-inf-run-pins pins 0 (length pins))
       (se-inf-finish-response)))
 
 (defun se-inf-finish-response ()
   "Stops the header timer, sets `se-inf-response-finished' to t, resets the header, etc..."
   (se-inf-header-timer-stop)
   (setq se-inf-headers se-inf-parsing-headers)
-  (setq se-inf-interactive-restored t)
-  (setq se-inf-interactive-calls-current nil)
-  (setq se-inf-interactive-calls-total nil))
+  (setq se-inf-interactive-restored t))
 
 (defun se-inf-clear-interactive ()
   "Clears all interactive pins. Called by typing C-i."
@@ -262,7 +267,8 @@ be terminated with a new line. Calls FN or
                   (setq se-inf-json json)
 		  (run-hook-with-args 'se-inf-response-hook json))
 	      (run-hook-with-args 'se-inf-response-hook response))
-	  (setq se-inf-headers se-inf-interactive-headers)
+	  (setq header-line-format nil)
+	  (se-inf-header-timer-stop)
 	  (se-inf-restore-interactive)
 	  (setq se-inf-response-finished t)))
     (error

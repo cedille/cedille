@@ -236,14 +236,7 @@ checkFile s filename should-print-spans =
                    (if use-cede then (write-cede-file f ie) else (return triv)) >>
                    writeo us
 
-undo-escape-string-h : 𝕃 char → 𝕃 char → 𝕃 char
-undo-escape-string-h ('\\' :: 'n' :: rest) so-far = undo-escape-string-h rest ('\n' :: so-far)
-undo-escape-string-h ('\\' :: '\"' :: rest) so-far = undo-escape-string-h rest ('\"' :: so-far)
-undo-escape-string-h (c :: rest) so-far = undo-escape-string-h rest (c :: so-far)
-undo-escape-string-h [] so-far = reverse so-far
 
-undo-escape-string : string → string
-undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])
 
 -- this is the function that handles requests (from the frontend) on standard input
 {-# TERMINATING #-}
@@ -257,8 +250,8 @@ readCommandsFromFrontend s =
         where
             delimiter : char
             delimiter = '§'
-            errorCommand : toplevel-state → IO toplevel-state
-            errorCommand s = putStrLn (global-error-string "Invalid command sequence.") >>= λ x → return s
+            errorCommand : 𝕃 string → toplevel-state → IO toplevel-state
+            errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\".") >>= λ x → return s
             debugCommand : toplevel-state → IO toplevel-state
             debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
 
@@ -266,19 +259,23 @@ readCommandsFromFrontend s =
             checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
                         checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
                         input-filename tt {- should-print-spans -}
-            checkCommand _ s = errorCommand s
+            checkCommand ls s = errorCommand ls s
   {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
             findCommand _ s = errorCommand s -}
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
             handleCommands ("debug" :: []) s = debugCommand s
-            handleCommands ("normalizePrompt" :: x :: xs) s = interactive-prompt-cmd "normalize" x xs s
-            handleCommands ("erasePrompt" :: x :: xs) s = interactive-prompt-cmd "erase" x xs s
-            handleCommands ("interactive" :: start :: end :: span-str :: cmd-name :: xs) s =
-              interactive-span-cmd cmd-name start end span-str xs s
+            -- handleCommands ("normalizePrompt" :: x :: xs) s = interactive-prompt-cmd "normalize" x xs s
+            -- handleCommands ("erasePrompt" :: x :: xs) s = interactive-prompt-cmd "erase" x xs s
+            handleCommands ("normalize" :: rest) s = interactive-normalize-span rest s
+            handleCommands ("erase" :: rest) s = interactive-erase-span rest s
+            handleCommands ("normalizePrompt" :: rest) s = interactive-normalize-prompt rest s
+            handleCommands ("erasePrompt" :: rest) s = interactive-erase-prompt rest s
+            -- handleCommands ("interactive" :: start :: end :: span-str :: cmd-name :: xs) s =
+            --  interactive-span-cmd cmd-name start end span-str xs s
 --            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ("check" :: xs) s = checkCommand xs s
-            handleCommands _ s = errorCommand s
+            handleCommands ls s = errorCommand ls s
 
 
 -- function to process command-line arguments

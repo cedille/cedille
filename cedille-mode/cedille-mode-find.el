@@ -4,7 +4,7 @@
 ;;;     Debug info display
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-display-debug-text(buffer text)
+(defun cedille-mode-display-debug-text(nilvar1 text nilvar2);buffer text)
   "Displays text in given buffer"
     (with-current-buffer (cedille-mode-debug-buffer)
         (setq buffer-read-only nil)
@@ -28,7 +28,8 @@
   "Requests debug info from the cedille process and displays it in a new buffer"
     (interactive)
     (let ((debug-buffer (cedille-mode-debug-buffer)))
-        (se-inf-ask "debug\n" 'cedille-mode-display-debug-text) 
+        (se-inf-interactive "debug" 'cedille-mode-display-debug-text)
+        ;(se-inf-ask "debug" 'cedille-mode-display-debug-text) 
     )
 )
 
@@ -98,15 +99,18 @@
 )
 
 (defun cedille-mode-find-test()
-  (se-inf-ask "find:tt\n" 'cedille-mode-find-process-response)
+  (se-inf-interactive "find§tt" 'cedille-mode-find-process-response)
+  ;(se-inf-ask "find:tt\n" 'cedille-mode-find-process-response)
 )
 
 (defun cedille-mode-find(start end)
   "Send the current symbol to the backend to get its occurrences"
     (interactive "r")
-    (se-inf-ask (concat "find:" (buffer-substring-no-properties start end) "\n") 
-                'cedille-mode-find-process-response
-    )
+    (se-inf-interactive (concat "find§" (buffer-substring-no-properties start end))
+			'cedille-mode-find-process-response)
+    ;(se-inf-ask (concat "find:" (buffer-substring-no-properties start end) "\n") 
+    ;            'cedille-mode-find-process-response
+    ;)
 )
 
 (provide 'cedille-mode-find)

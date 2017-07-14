@@ -27,11 +27,10 @@
   "Normalizes span"
   (setq lang-level (cdr (assoc 'language-level (se-term-data span))))
   (setq fn (if full 'cedille-mode-normalize-receive-full-response 'cedille-mode-normalize-receive-response))
+  (setq symbol (if full 'normalized 'head-normalized))
   (if (and lang-level (or (string= lang-level "term") (string= lang-level "type")))
-      ;'cedille-mode-normalize-receive-response
-      (se-inf-interactive 'cedille-mode-normalize-request-text span fn nil (list lang-level full) "Normalizing")
+      (se-inf-interactive 'cedille-mode-normalize-request-text fn :span span :q-arg (list lang-level full) :symbol symbol :add-to-span t :pin t :header "Normalizing")
       (message "Selected span must be a term or a type")))
-
 
 
 ;;;;;;;;       Span Code       ;;;;;;;;
@@ -41,7 +40,11 @@
   "Gets the text to send to the backend as a request to normalize a span"
   (setq lang-level (car rest))
   (setq full (nth 1 rest))
+  (setq s (se-span-start span))
+  (setq e (se-span-end span))
   (concat "normalize"
+	  sep (format "%s" s)
+	  sep (buffer-substring-no-properties s e)
 	  sep lang-level
 	  sep (file-truename (buffer-file-name))
 	  sep (if full "tt" "ff")
@@ -70,27 +73,23 @@
 	(setq shadowed-lst (cons pair (remove-if matches shadowed-lst)))))
     shadowed-lst))
 
-(defun cedille-mode-normalize-receive-full-response (span response)
+(defun cedille-mode-normalize-receive-full-response (span response nilvar)
   ""
   (cedille-mode-normalize-erase-receive-response 'normalized span response))
 
-(defun cedille-mode-normalize-receive-response (span response)
+(defun cedille-mode-normalize-receive-response (span response nilvar)
   "Receives the normalize text response from the backend. Handler for when the user requested a span to be normalized."
   (cedille-mode-normalize-erase-receive-response 'head-normalized span response))
-  ;(se-inf-add-to-span span response 'normalized)
-  ;(cedille-mode-normalize-inspect span)
-  ;(cedille-mode-rebalance-windows))
 
 (defun cedille-mode-normalize-erase-receive-response (symbol span response)
   "Receives the text response from the backend and adds (symbol . response) to span."
-  (se-inf-add-to-span span response symbol)
   (cedille-mode-normalize-inspect span)
   (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-normalize-inspect (span)
   "Updates the inspect buffer and opens it if it is closed"
   (cedille-mode-inspect)
-  (when (eq span (se-mode-ensure-span (se-mode-selected)))
+  (when (eq span (se-first-span (se-mode-selected)))
     (display-buffer (cedille-mode-inspect-buffer))))
 
 
@@ -133,13 +132,10 @@
 (defun cedille-mode-normalize-prompt (full)
   "Prompts the user to input an expression to normalize"
   (setq input (call-interactively (if full 'cedille-mode-normalize-full-open-prompt 'cedille-mode-normalize-open-prompt)))
-  (se-inf-generate-headers "Normalizing")
-  (se-inf-header-timer-start)
-  (se-inf-ask (concat "normalizePrompt" sep input sep (if full "tt" "ff")) 'cedille-mode-normalize-receive-response-prompt))
+  (se-inf-interactive (concat "normalizePrompt" sep input sep (if full "tt" "ff")) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
 
-(defun cedille-mode-normalize-receive-response-prompt(buffer text)
+(defun cedille-mode-normalize-receive-response-prompt(nilvar1 text &optional nilvar2)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
-  (with-current-buffer buffer (se-inf-header-timer-stop))
   (cedille-mode-display-normalize-text (cedille-mode-normalize-buffer) (se-inf-undo-escape-string text)))
 
 (defun cedille-mode-normalize-open-prompt (text)
@@ -162,30 +158,27 @@
 
 (defun cedille-mode-erase-prompt (input)
   (interactive "MErase: ")
-  (se-inf-generate-headers "Erasing")
-  (se-inf-header-timer-start)
-  (se-inf-ask (concat "erasePrompt" sep input) 'cedille-mode-normalize-receive-response-prompt))
+  (se-inf-interactive (concat "erasePrompt" sep input) 'cedille-mode-normalize-receive-response-prompt :header "Erasing"))
 
 (defun cedille-mode-erase-span (span)
   "Erases span"
   (setq lang-level (cdr (assoc 'language-level (se-term-data span))))
   (if (and lang-level (string= lang-level "term"))
-      (se-inf-interactive 'cedille-mode-erase-request-text span 'cedille-mode-erase-receive-response nil (list lang-level) "Erasing")
+      (se-inf-interactive 'cedille-mode-erase-request-text 'cedille-mode-erase-receive-response :span span :symbol 'erased :add-to-span t :pin t :header "Erasing")
       (message "Selected span must be a term")))
 
-(defun cedille-mode-erase-request-text(span rest)
+(defun cedille-mode-erase-request-text(span nilvar)
   "Gets the text to send to the backend as a request to normalize a span"
-  (setq lang-level (car rest))
+  (setq s (se-span-start span))
+  (setq e (se-span-end span))
   (concat "erase"
-	  sep lang-level
+	  sep (format "%s" s)
+	  sep (buffer-substring-no-properties s e)
 	  sep (file-truename (buffer-file-name))
 	  (cedille-mode-normalize-local-context-param span)))
 
-(defun cedille-mode-erase-receive-response (span response)
+(defun cedille-mode-erase-receive-response (span response nilvar)
   "Receives the erasure text response from the backend. Handler for when the user requested a span to be erased."
   (cedille-mode-normalize-erase-receive-response 'erased span response))
-  ;(se-inf-add-to-span span response 'erased)
-  ;(cedille-mode-normalize-inspect span)
-  ;(cedille-mode-rebalance-windows))
 
 (provide 'cedille-mode-normalize)

@@ -249,4 +249,24 @@ preserves order."
      (dolist (node term)
        (se-mapc function node)))))
 
+(defun se-span-from(start end)
+  "Finds a span that ranges from start to end in tree"
+  (setq node (se-node-from start end))
+  (when node (se-node-parent node)))
+
+(defun se-node-from(start end)
+  "Finds a node that ranges from start to end in tree"
+  (se-node-from-h start end (se-mode-parse-tree)))
+
+(defun se-node-from-h(start end tree)
+  "Helper for `se-node-from'"
+  (typecase tree
+    (se-node
+     (setq parent (se-node-parent tree))
+     (if (and (eq start (se-span-start parent)) (eq end (se-span-end parent)))
+	 tree
+         (se-map-1 (se-curry #'se-node-from-h start end) (se-node-children tree))))
+    (sequence
+     (se-map-1 (se-curry #'se-node-from-h start end) tree))))
+
 (provide 'se)
