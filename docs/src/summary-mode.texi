@@ -1,5 +1,5 @@
-@node summary mode,inspect mode,context mode,minor modes
+@node summary mode,scratch mode,context mode,minor modes
 
 @chapter Summary mode
 
-This is where summary mode stuff will go.
+Displays a summary of every global definition in the file.

@@ -419,8 +419,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode nil t))
-  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-inspect-view-mode t t))
+  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil t)) ;cedille-inspect-view-mode
+  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t t)) ;cedille-inspect-view-mode
   (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
   (se-navi-define-key 'cedille-mode (kbd "=") #'cedille-mode-replace-occurrences)
   (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
@@ -446,6 +446,9 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
   (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
+  (se-navi-define-key 'cedille-mode (kbd "M-i") #'cedille-mode-inspect-clear)
+  (se-navi-define-key 'cedille-mode (kbd "M-I") #'cedille-mode-inspect-clear-all)
+  (se-navi-define-key 'cedille-mode (kbd "x") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil)) ;cedille-scratch-mode
 ;  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
 

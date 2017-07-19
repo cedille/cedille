@@ -8,3 +8,6 @@ length-append ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A .
       β .
 
 
+assoc-append ◂ ∀ A : ★ . Π l1 : List · A . Π l2 : List · A . Π l3 : List · A . append (append l1 l2) l3 ≃ append l1 (append l2 l3) =
+  Λ A . λ l1 . λ l2 . λ l3 . θ<l1> (ListInd · A l1) (λ h . Λ t . λ ih . ε ρ ih - β) β .
+

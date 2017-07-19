@@ -88,9 +88,9 @@
 
 (defun cedille-mode-normalize-inspect (span)
   "Updates the inspect buffer and opens it if it is closed"
-  (cedille-mode-inspect)
   (when (eq span (se-first-span (se-mode-selected)))
-    (display-buffer (cedille-mode-inspect-buffer))))
+    (display-buffer (cedille-mode-inspect-buffer)))
+  (cedille-mode-inspect))
 
 
 
@@ -98,36 +98,36 @@
 ;;;;;;;;       Prompt Code       ;;;;;;;;
 
 
-(defun cedille-mode-display-normalize-text(buffer text)
-  "Displays text in given buffer"
-  (with-current-buffer (cedille-mode-normalize-buffer)
-    (setq buffer-read-only nil)
-    (setq buffer-text (buffer-string))
-    (erase-buffer)
-    (if (string= buffer-text "")
-	(insert text)
-      (insert text "\n\n" buffer-text))
-    (setq buffer-read-only t)
-    (display-buffer (cedille-mode-normalize-buffer-name))
-    (cedille-mode-normalize-rebalance-window (get-buffer-window) text)))
+;(defun cedille-mode-display-normalize-text(buffer text)
+;  "Displays text in given buffer"
+;  (with-current-buffer (cedille-mode-normalize-buffer)
+;    (setq buffer-read-only nil)
+;    (setq buffer-text (buffer-string))
+;    (erase-buffer)
+;    (if (string= buffer-text "")
+;	(insert text)
+;      (insert text "\n\n" buffer-text))
+;    (setq buffer-read-only t)
+;    (display-buffer (cedille-mode-normalize-buffer-name))
+;    (cedille-mode-normalize-rebalance-window (get-buffer-window) text)))
 
-(defun cedille-mode-normalize-buffer-name()
-  "*cedille-normalize-erase*")
+;(defun cedille-mode-normalize-buffer-name()
+;  "*cedille-normalize-erase*")
 
-(defun cedille-mode-normalize-buffer()
-  "Creates or gets the normalize buffer"
-  (get-buffer-create (cedille-mode-normalize-buffer-name)))
+;(defun cedille-mode-normalize-buffer()
+;  "Creates or gets the normalize buffer"
+;  (get-buffer-create (cedille-mode-normalize-buffer-name)))
 
-(defun cedille-mode-normalize-rebalance-window(win text)
-  "Rebalances the normalize window size"
-  (with-selected-window win
-    (setq width (window-body-width))
-    (setq height (window-body-height))
-    (setq len (length text))
-    (setq newlines (count-lines 1 len))
-    (setq lines (+ newlines (/ (- len newlines) width)))
-    (setq delta (- lines height))
-    (enlarge-window delta)))
+;(defun cedille-mode-normalize-rebalance-window(win text)
+;  "Rebalances the normalize window size"
+;  (with-selected-window win
+;    (setq width (window-body-width))
+;    (setq height (window-body-height))
+;    (setq len (length text))
+;    (setq newlines (count-lines 1 len))
+;    (setq lines (+ newlines (/ (- len newlines) width)))
+;    (setq delta (- lines height))
+;    (enlarge-window delta)))
 
 (defun cedille-mode-normalize-prompt (full)
   "Prompts the user to input an expression to normalize"
@@ -136,7 +136,8 @@
 
 (defun cedille-mode-normalize-receive-response-prompt(nilvar1 text &optional nilvar2)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
-  (cedille-mode-display-normalize-text (cedille-mode-normalize-buffer) (se-inf-undo-escape-string text)))
+  (cedille-mode-scratch-display-text (se-inf-undo-escape-string text)))
+  ;(cedille-mode-display-normalize-text (cedille-mode-normalize-buffer) (se-inf-undo-escape-string text)))
 
 (defun cedille-mode-normalize-open-prompt (text)
   (interactive "MHead-normalize: ")

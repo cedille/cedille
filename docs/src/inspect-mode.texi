@@ -1,4 +1,4 @@
-@node inspect mode,context mode,summary mode,minor modes
+@node inspect mode,context mode,,minor modes
 
 @chapter Inspect mode
 

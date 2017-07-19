@@ -80,6 +80,9 @@ Cedille mode supports the following commands:
      Toggle summary mode (provides information about the contents of the
      entire file)
 
+'x'
+     Toggle scratch mode
+
 'h'
      Open information documents describing how to use Cedille mode
 
@@ -335,9 +338,13 @@ Cedille has three minor modes that provide information about the file:
 * inspect mode::                Provides information about the currently selected node
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
+* scratch mode::                Buffer that helps keep track of information
+
+   In all these modes, M-c will copy the contents of the current buffer
+to the scratch buffer.
 
 
-File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Prev: summary mode,  Up: minor modes
+File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Up: minor modes
 
 12 Inspect mode
 ***************
@@ -363,12 +370,37 @@ inspect mode buffer (but not jump to it), press 'i' instead.
      Close the inspect mode window
 
 
-File: cedille-info-main.info,  Node: summary mode,  Next: inspect mode,  Prev: context mode,  Up: minor modes
+File: cedille-info-main.info,  Node: summary mode,  Next: scratch mode,  Prev: context mode,  Up: minor modes
 
 14 Summary mode
 ***************
 
-This is where summary mode stuff will go.
+Displays a summary of every global definition in the file.
+
+
+File: cedille-info-main.info,  Node: scratch mode,  Prev: summary mode,  Up: minor modes
+
+15 Scratch mode
+***************
+
+Scratch mode enables you to keep track of information in a dedicated
+buffer.
+
+'M-<return>'
+     Prints a separating line of dashes at the start of the scratch
+     buffer
+
+'M-d'
+     Delete the contents of the scratch buffer
+
+'M-+'
+     Increase the size of the scratch buffer by one line
+
+'M--'
+     Decrease the size of the scratch buffer by one line
+
+'M-='
+     Reset the size of the scratch buffer to fit the latest entry
 
 
 File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
@@ -381,13 +413,14 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts3188
-Node: context mode5897
-Node: credits7291
-Node: options7559
-Node: minor modes8306
-Node: inspect mode8845
-Node: summary mode9564
-Node: Index9753
+Node: unicode shortcuts3218
+Node: context mode5927
+Node: credits7321
+Node: options7589
+Node: minor modes8336
+Node: inspect mode9047
+Node: summary mode9745
+Node: scratch mode9951
+Node: Index10503
 
 End Tag Table

@@ -7,4 +7,7 @@ Cedille has three minor modes that provide information about the file:
 * inspect mode::                Provides information about the currently selected node
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
+* scratch mode::                Buffer that helps keep track of information
 @end menu
+
+In all these modes, M-c will copy the contents of the current buffer to the scratch buffer.

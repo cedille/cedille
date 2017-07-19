@@ -41,7 +41,8 @@ to the buffer.")
 	    (define-key map (kbd "n") #'se-mode-select-next)
 	    (define-key map (kbd "h") #'se-navi-help)
 	    (define-key map (kbd "w") #'copy-region-as-kill)
-	    (define-key map (kbd "C-i") #'se-inf-clear-interactive)
+	    (define-key map (kbd "M-i") #'se-inf-clear-interactive)
+	    (define-key map (kbd "M-I") #'se-inf-clear-interactive-all)
 	    (define-key map (kbd "<tab>") #'back-to-indentation)
 	    map)
   (when se-navigation-mode ;; activation
@@ -127,5 +128,6 @@ MODE.  Navigation mode keymaps will vary from usage of
 (defun se-navi-mark-deactivated-hook ()
   "Sets `se-mode-selected' to nil so that the appearance matches reality"
   (setq se-mode-selected nil))
+;)
 
 (provide 'se-navi)

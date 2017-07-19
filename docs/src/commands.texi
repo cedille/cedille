@@ -51,6 +51,9 @@ Toggle context mode (provides information about the context of the currently sel
 @item S
 Toggle summary mode (provides information about the contents of the entire file)
 
+@item x
+Toggle scratch mode
+
 @item h
 Open information documents describing how to use Cedille mode
 

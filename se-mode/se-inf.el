@@ -142,10 +142,18 @@ will kill the process, should be skipped if process is shared."
       (when (equal symbol symbol2) (setq so-far (cons h so-far)))
       (se-inf-filter-pins-symbol symbol (cdr pins) so-far)))
 
-
-
 (cl-defun se-inf-interactive (q-str-or-fn response-fn &key span batch-fn header q-arg symbol response-split-fn add-to-span pin)
-  ""
+  "Sends an interactive request to the backend.
+Q-STR-OR-FN should be either a string or a function that takes SPAN and Q-ARG as arguments and returns a string. It determines what string will be sent to the backend.
+RESPONSE-FN should be a function that takes three arguments: SPAN, response, and extra data. Unless RESPONSE-SPLIT-FN is specified, extra data will be nil.
+SPAN should be a span.
+BATCH-FN should be like RESPONSE-FN. If specified, it will be called during batch processing instead of RESPONSE-FN (that is, if PIN is non-nil).
+HEADER should be a string to show as a header until the response is received.
+Q-ARG can be anything. It will be passed as an argument to a function Q-STR-OR-FN.
+SYMBOL should be given only if ADD-TO-SPAN is as well. It determines what the key to the pair added to SPAN will be.
+RESPONSE-SPLIT-FN, if specified, should be a function with a single argument: the backend's response. It should return a dotted pair. The first element will be passed as response to RESPONSE-FN/BATCH-FN; the second as extra data.
+ADD-TO-SPAN should be non-nil if you want (symbol . response) to be added to the 'se-interactive value of span.
+PIN should be non-nil if you want this to be called again during batch processing."
   (when span (setq span (se-first-span span)))
   (setq q (concat (se-inf-escape-string (if (stringp q-str-or-fn) q-str-or-fn (funcall q-str-or-fn span q-arg))) "\n"))
   (setq closure (list symbol span q-str-or-fn q-arg response-fn batch-fn response-split-fn add-to-span pin (buffer-name)))
@@ -179,9 +187,9 @@ will kill the process, should be skipped if process is shared."
 	  (se-pin-data (se-span-start span) (se-span-end span) 'se-interactive pin-data))
 	(when (and symbol add-to-span)
 	  (se-inf-add-to-span span r-text symbol)))
-      (funcall response-fn span r-text r-extra)
-      (unless se-inf-interactive-restored
-	(se-inf-inc-current)))))
+      (funcall response-fn span r-text r-extra))))
+      ;(unless se-inf-interactive-restored
+;	(se-inf-inc-current)))))
 
 (defun se-inf-add-to-span (span text symbol)
   "Adds text to list of span's interactive properties in form of list/pair: (symbol . text)"
@@ -224,8 +232,8 @@ will kill the process, should be skipped if process is shared."
 	   (response-split-fn (nth 5 data)))
       (if span
 	  (se-inf-interactive q-str-or-fn response-fn :span span :q-arg q-arg :symbol symbol :response-split-fn response-split-fn :add-to-span add-to-span :header (format "Restoring interactive calls (%s/%s)" queued total))
-	  (se-unpin h)
-	  (se-inf-inc-current))
+	  (se-unpin h))
+	  ;(se-inf-inc-current))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
 (defun se-inf-restore-interactive ()
@@ -241,10 +249,28 @@ will kill the process, should be skipped if process is shared."
   (setq se-inf-headers se-inf-parsing-headers)
   (setq se-inf-interactive-restored t))
 
-(defun se-inf-clear-interactive ()
-  "Clears all interactive pins. Called by typing C-i."
-  (interactive)
-  (se-pin-clear-all 'se-interactive))
+;(defun se-inf-clear-interactive-all ()
+;  "Clears all interactive pins. Called by typing C-I."
+;  (interactive)
+;  (se-pin-clear-all 'se-interactive)
+;  (se-mapc 'se-inf-clear-span-interactive (se-mode-parse-tree)))
+
+(defun se-inf-clear-span-interactive (span)
+  "Clears the interactive properties from span"
+  (assq-delete-all 'se-interactive (se-span-data span)))
+
+;(defun se-inf-clear-interactive ()
+;  "Clears all interactive pins associated with the current span. Called by typing C-i."
+;  (interactive)
+;  (when se-mode-selected
+;    (setq span (se-first-span (se-mode-selected)))
+;    (setq s (se-span-start span))
+;    (setq e (se-span-end span))
+;    (se-unpin-list (se-pins-at s e 'se-interactive))
+;    (se-inf-clear-span-interactive span)))
+;    ;(when se-mode-selected
+;    ;  (message "se-mode-selected2 t")
+;    ;  (se-mode-select se-mode-selected))))
 
 (defun se-inf-ask (question &optional fn)
   "Send a message to the current `se-inf-process'.  Question will
