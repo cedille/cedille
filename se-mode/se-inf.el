@@ -4,10 +4,6 @@
 (eval-when-compile (require 'cl))
 
 (make-variable-buffer-local
- (defvar se-inf-process-every-other nil
-   "A simple way to avoid batch processing twice until the source of the bug is found"))
-
-(make-variable-buffer-local
  (defvar se-inf-process nil
    "Holds process for current buffer in se-mode.  Processes are
 started with `start-process'."))
@@ -47,8 +43,13 @@ to be sent to the backend to request parsing of that file."))
 (make-variable-buffer-local
  (defvar se-inf-interactive-restored nil))
 
-(defvar se-inf-parse-hook (list #'se-inf-save-if-modified #'se-inf-remove-overlays)
+;se-inf-save-if-modified
+(defvar se-inf-parse-hook (list #'save-buffer #'se-inf-remove-overlays)
   "Functions to be evaluated before parse request.")
+
+(make-variable-buffer-local
+ (defvar se-inf-interactive-response-hook nil
+   "Functions to be evaluated after an interactive response has finished"))
 
 (make-variable-buffer-local
  (defvar se-inf-response-is-json t
@@ -142,71 +143,68 @@ will kill the process, should be skipped if process is shared."
       (when (equal symbol symbol2) (setq so-far (cons h so-far)))
       (se-inf-filter-pins-symbol symbol (cdr pins) so-far)))
 
-(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span batch-fn header q-arg symbol response-split-fn add-to-span pin)
+(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span batch-fn header extra restore)
   "Sends an interactive request to the backend.
-Q-STR-OR-FN should be either a string or a function that takes SPAN and Q-ARG as arguments and returns a string. It determines what string will be sent to the backend.
-RESPONSE-FN should be a function that takes three arguments: SPAN, response, and extra data. Unless RESPONSE-SPLIT-FN is specified, extra data will be nil.
-SPAN should be a span.
-BATCH-FN should be like RESPONSE-FN. If specified, it will be called during batch processing instead of RESPONSE-FN (that is, if PIN is non-nil).
-HEADER should be a string to show as a header until the response is received.
-Q-ARG can be anything. It will be passed as an argument to a function Q-STR-OR-FN.
-SYMBOL should be given only if ADD-TO-SPAN is as well. It determines what the key to the pair added to SPAN will be.
-RESPONSE-SPLIT-FN, if specified, should be a function with a single argument: the backend's response. It should return a dotted pair. The first element will be passed as response to RESPONSE-FN/BATCH-FN; the second as extra data.
-ADD-TO-SPAN should be non-nil if you want (symbol . response) to be added to the 'se-interactive value of span.
-PIN should be non-nil if you want this to be called again during batch processing."
-  (when span (setq span (se-first-span span)))
-  (setq q (concat (se-inf-escape-string (if (stringp q-str-or-fn) q-str-or-fn (funcall q-str-or-fn span q-arg))) "\n"))
-  (setq closure (list symbol span q-str-or-fn q-arg response-fn batch-fn response-split-fn add-to-span pin (buffer-name)))
+Keywords supported: span, batch-fn, header, extra, and restore.
+Q-STR-OR-FN should be either a string or a function that takes 0-2 arguments: SPAN, if non-nil, and EXTRA, if non-nil.
+RESPONSE-FN should be a function that takes 1-3 arguments: the backend's response, SPAN, if non-nil, and EXTRA, if non-nil. If SPAN is non-nil and you want something to add to it, then return a dotted pair list (symbol . some-str).
+SPAN should be a span. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
+BATCH-FN, is non-nil, will be used instead of RESPONSE-FN during batch restoration.
+HEADER should be a string that will be displayed in the header line.
+EXTRA can be anything. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
+RESTORE should be t if you want this call re-done during batch processing."
+  (setq span (se-get-span span))
+  (setq q-str
+	(cond
+	 ((stringp q-str-or-fn) q-str-or-fn)
+	 ((and span extra) (funcall q-str-or-fn span extra))
+	 (span (funcall q-str-or-fn span))
+	 (extra (funcall q-str-or-fn extra))
+	 (t (funcall q-str-or-fn))))
+  (setq q (concat (se-inf-escape-string q-str) "\n"))
+  (setq closure (list q-str-or-fn response-fn batch-fn span extra restore (buffer-name)))
   (when header (se-inf-queue-header header))
   (tq-enqueue se-inf-queue q "\n" closure #'se-inf-interactive-response))
 
 (defun se-inf-interactive-response (closure response)
   "Receives a response from an `se-inf-interactive' call"
   (let* ((response (se-inf-undo-escape-string response))
-	 (symbol (nth 0 closure))
-	 (span (nth 1 closure))
-	 (q-str-or-fn (nth 2 closure))
-	 (q-arg (nth 3 closure))
-	 (response-fn (nth 4 closure))
-	 (batch-fn (nth 5 closure))
-	 (response-split-fn (nth 6 closure))
-	 (add-to-span (nth 7 closure))
-	 (pin (nth 8 closure))
-	 (buffer (nth 9 closure))
-	 (r-pair (if response-split-fn (response-split-fn response) (cons response "")))
-	 (r-text (car r-pair))
-	 (r-extra (cdr r-pair)))
+	 (q-str-or-fn (nth 0 closure))
+	 (response-fn (nth 1 closure))
+	 (batch-fn (nth 2 closure))
+	 (span (nth 3 closure))
+	 (extra (nth 4 closure))
+	 (restore (nth 5 closure))
+	 (buffer (nth 6 closure)))
     (with-current-buffer buffer
+      (setq pair
+	    (cond
+	     ((null response-fn) nil) ; Make sure response-fn is non-nil
+	     ((and span extra) (funcall response-fn response span extra))
+	     (span (funcall response-fn response span))
+	     (extra (funcall response-fn response extra))
+	     (t (funcall response-fn response))))
       (se-inf-next-header)
-      (when span
-	(when pin
-	  (setq pin-data (list symbol (or batch-fn response-fn) q-str-or-fn q-arg add-to-span response-split-fn))
-	  (setq start (se-span-start span))
-	  (setq end (se-span-end span))
-	  (se-inf-remove-dup-pin (se-pins-at start end 'se-interactive) pin-data)
-	  (se-pin-data (se-span-start span) (se-span-end span) 'se-interactive pin-data))
-	(when (and symbol add-to-span)
-	  (se-inf-add-to-span span r-text symbol)))
-      (funcall response-fn span r-text r-extra))))
-      ;(unless se-inf-interactive-restored
-;	(se-inf-inc-current)))))
+      (when (and span pair) (se-inf-add-to-span span pair))
+      (when restore
+	(setq restore-data (list q-str-or-fn (or batch-fn response-fn) extra))
+	(if span
+	    (setq s (se-span-start span)
+		  e (se-span-end span))
+	    (setq s 1
+		  e 1))
+	(se-inf-remove-dup-pin (se-pins-at s e 'se-interactive) restore-data)
+	(se-pin-data s e 'se-interactive restore-data))
+      (run-hooks 'se-inf-interactive-response-hook))))
 
-(defun se-inf-add-to-span (span text symbol)
-  "Adds text to list of span's interactive properties in form of list/pair: (symbol . text)"
+(defun se-inf-add-to-span (span pair)
+  "Adds pair to list of span's interactive properties"
   (setq data (se-span-data span))
   (setq int (cdr (assoc 'se-interactive data)))
-  (setq int (se-inf-add-to-span-h int nil text symbol))
-  (setq new (se-inf-add-to-span-h data nil int 'se-interactive))
-  (setf (se-span-data span) new))
-
-(defun se-inf-add-to-span-h (data result text symbol)
-  "Adds item to data, removing all other occurences of symbol"
-  (if (null data)
-      (reverse (cons (cons symbol text) result))
-      (setq h (car data))
-      (unless (equal (car h) symbol)
-	(setq result (cons h result)))
-      (se-inf-add-to-span-h (cdr data) result text symbol)))
+  (setq int (assq-delete-all (car pair) int))
+  (setq int (append int (list pair)))
+  (setq data (assq-delete-all 'se-interactive data))
+  (setf (se-span-data span) (append data (list (cons 'se-interactive int)))))
 
 (defun se-inf-remove-dup-pin (pins data)
   "Removes duplicate 'se-interactive pin so that repeated calls to the same span won't be needlessly done again during re-processing"
@@ -224,16 +222,13 @@ PIN should be non-nil if you want this to be called again during batch processin
 	   (start (se-pin-item-start h))
 	   (end (se-pin-item-end h))
 	   (span (se-span-from start end))
-	   (symbol (nth 0 data))
+	   (q-str-or-fn (nth 0 data))
 	   (response-fn (nth 1 data))
-	   (q-str-or-fn (nth 2 data))
-	   (q-arg (nth 3 data))
-	   (add-to-span (nth 4 data))
-	   (response-split-fn (nth 5 data)))
+	   (extra (nth 2 data)))
       (if span
-	  (se-inf-interactive q-str-or-fn response-fn :span span :q-arg q-arg :symbol symbol :response-split-fn response-split-fn :add-to-span add-to-span :header (format "Restoring interactive calls (%s/%s)" queued total))
+	  (se-inf-interactive q-str-or-fn response-fn :span span :extra extra
+			      :header (format "Restoring interactive calls (%s/%s)" queued total))
 	  (se-unpin h))
-	  ;(se-inf-inc-current))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
 (defun se-inf-restore-interactive ()
@@ -249,43 +244,15 @@ PIN should be non-nil if you want this to be called again during batch processin
   (setq se-inf-headers se-inf-parsing-headers)
   (setq se-inf-interactive-restored t))
 
-;(defun se-inf-clear-interactive-all ()
-;  "Clears all interactive pins. Called by typing C-I."
-;  (interactive)
-;  (se-pin-clear-all 'se-interactive)
-;  (se-mapc 'se-inf-clear-span-interactive (se-mode-parse-tree)))
-
 (defun se-inf-clear-span-interactive (span)
   "Clears the interactive properties from span"
   (assq-delete-all 'se-interactive (se-span-data span)))
 
-;(defun se-inf-clear-interactive ()
-;  "Clears all interactive pins associated with the current span. Called by typing C-i."
-;  (interactive)
-;  (when se-mode-selected
-;    (setq span (se-first-span (se-mode-selected)))
-;    (setq s (se-span-start span))
-;    (setq e (se-span-end span))
-;    (se-unpin-list (se-pins-at s e 'se-interactive))
-;    (se-inf-clear-span-interactive span)))
-;    ;(when se-mode-selected
-;    ;  (message "se-mode-selected2 t")
-;    ;  (se-mode-select se-mode-selected))))
-
-(defun se-inf-ask (question &optional fn)
-  "Send a message to the current `se-inf-process'.  Question will
-be terminated with a new line. Calls FN or
-`se-inf-process-response' when a one line response is returned."
-  (setq question (se-inf-escape-string question))
-  ;(unless (string-suffix-p "\n" question)
-  (setq question (concat question "\n"))
-  (tq-enqueue se-inf-queue question "\n" (buffer-name) (or fn #'se-inf-process-response)))
-
-(defun se-inf-process-response (closure response)
+(defun se-inf-process-response (response buffer)
   "Called to evaluate `se-inf-response-hook' upon response from
 `se-inf-process'."
   (condition-case err
-      (with-current-buffer closure
+      (with-current-buffer buffer
 	(unwind-protect
 	    (if se-inf-response-is-json
                 (let* ((json-array-type 'list)
@@ -293,8 +260,6 @@ be terminated with a new line. Calls FN or
                   (setq se-inf-json json)
 		  (run-hook-with-args 'se-inf-response-hook json))
 	      (run-hook-with-args 'se-inf-response-hook response))
-	  (setq header-line-format nil)
-	  (se-inf-header-timer-stop)
 	  (se-inf-restore-interactive)
 	  (setq se-inf-response-finished t)))
     (error
@@ -304,19 +269,11 @@ be terminated with a new line. Calls FN or
   "Sends parse request to current process.  Uses the current
 buffer's file unless FILE is non-nil."
   (interactive)
-  (setq se-inf-process-every-other (not se-inf-process-every-other))
-  (when se-inf-process-every-other
-    (se-inf-header-timer-start)
     (run-hooks 'se-inf-parse-hook)
     (setq se-inf-response-finished nil)
     (setq se-inf-interactive-restored nil)
-    (se-inf-ask (funcall se-inf-get-message-from-filename (or file (buffer-file-name))))))
-
-(defun se-inf-save-if-modified ()
-  "Save the buffer only if it is modified."
-  (interactive)
-  (when (buffer-modified-p)
-    (save-buffer)))
+    (setq ms (funcall se-inf-get-message-from-filename (or file (buffer-file-name))))
+    (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing"))
 
 (defun se-inf-get-spans (json)
   "Returns spans from default formatted JSON."

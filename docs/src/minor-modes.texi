@@ -10,4 +10,18 @@ Cedille has three minor modes that provide information about the file:
 * scratch mode::                Buffer that helps keep track of information
 @end menu
 
-In all these modes, M-c will copy the contents of the current buffer to the scratch buffer.
+@chapter Common commands
+@table @command
+@item M-c
+Copy the contents of the current buffer to the scratch buffer
+
+@item +
+Increase the size of the buffer by one line
+
+@item -
+Decrease the size of the buffer by one line
+
+@item =
+Reset the buffer's size
+
+@end table

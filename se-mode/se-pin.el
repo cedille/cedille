@@ -41,9 +41,10 @@
 (defun se-pins-at (start end &optional symbol)
   "Gets the pins from start to end. If symbol is not nil, only pins with symbol are returned."
   (setq end (- end 1))
-  (setq starts (car (se-pin-get-starts-ends start symbol)))
-  (setq ends (cdr (se-pin-get-starts-ends end symbol)))
-  (cdr (se-pin-get-pairs starts ends)))
+  (when (and (>= start end 1) (>= end 1))
+    (setq starts (car (se-pin-get-starts-ends start symbol)))
+    (setq ends (cdr (se-pin-get-starts-ends end symbol)))
+    (cdr (se-pin-get-pairs starts ends))))
 
 (defun se-unpin (object &optional start end id)
   "Removes a pin. Object should either be a pin or a symbol (in which case start and end are required, but not id unless you want to only clear that specific id)."

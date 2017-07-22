@@ -64,15 +64,16 @@
 (defun cedille-mode-highlight ()
   "Highlights current buffer based on the
 `ced-font-map'.  This will deactivate `font-lock-mode'."
-   (when cedille-mode-highlight-face-map
-    (let ((modified (buffer-modified-p))
-	  (navi-on se-navigation-mode))
+  (with-silent-modifications
+    (when cedille-mode-highlight-face-map
+    ;(let ((modified (buffer-modified-p)))
+	  ;(navi-on se-navigation-mode))
       (font-lock-mode -1)
       (mapcar 'cedille-mode-highlight-span (cdr cedille-mode-highlight-spans))
-      (cedille-mode-update-overlays)
-      (set-buffer-modified-p modified)
-      (when navi-on
-	(se-navigation-mode 1)))))
+      (cedille-mode-update-overlays))))
+     ; (set-buffer-modified-p modified)
+      ;(when navi-on
+	;(se-navigation-mode 1))))))
 
 (defun cedille-mode-update-overlays ()
   "Updates error and hole overlays."

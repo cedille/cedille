@@ -65,20 +65,23 @@ Highlight/unhighlight all instances of the selected symbol (context-sensitive)
 @end table
 
 @chapter Interactive
-These commands will be re-called each time you enter into Cedille mode if their associated spans weren't altered too greatly.
+If associated with a span (and the beginning and end characters of the span were not deleted), each of these commands will be re-called each time you enter into Cedille mode. They all begin with the 'C-i' prefix.
 
 @table @command
-@item N
-Show head-normalization of selected span. If no span is selected, this will prompt an expression to head-normalize.
+@item C-i n
+Show normalization of selected span. If no span is selected, this will prompt an expression to normalize.
 
-@item C-N
-Like N, but shows complete normalization
+@item C-i h
+Like 'C-i n', but shows head-normalization
 
-@item E
+@item C-i e
 Show erasure of selected span. If no span is selected, this will prompt an expression to erase.
 
-@item C-i
-Remove all pinned interactive calls
+@item C-i (r/d)
+Remove all interactive attributes associated with the selected span
+
+@item C-i (R/D)
+Remove all interactive attributes
 @end table
 
 @chapter Other

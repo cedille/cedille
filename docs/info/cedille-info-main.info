@@ -97,22 +97,26 @@ Cedille mode supports the following commands:
 4 Interactive
 *************
 
-These commands will be re-called each time you enter into Cedille mode
-if their associated spans weren't altered too greatly.
+If associated with a span (and the beginning and end characters of the
+span were not deleted), each of these commands will be re-called each
+time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
 
-'N'
-     Show head-normalization of selected span.  If no span is selected,
-     this will prompt an expression to head-normalize.
+'C-i n'
+     Show normalization of selected span.  If no span is selected, this
+     will prompt an expression to normalize.
 
-'C-N'
-     Like N, but shows complete normalization
+'C-i h'
+     Like 'C-i n', but shows head-normalization
 
-'E'
+'C-i e'
      Show erasure of selected span.  If no span is selected, this will
      prompt an expression to erase.
 
-'C-i'
-     Remove all pinned interactive calls
+'C-i (r/d)'
+     Remove all interactive attributes associated with the selected span
+
+'C-i (R/D)'
+     Remove all interactive attributes
 
 5 Other
 *******
@@ -340,13 +344,25 @@ Cedille has three minor modes that provide information about the file:
 * summary mode::                Displays the types and kinds of every top-level entity in the file
 * scratch mode::                Buffer that helps keep track of information
 
-   In all these modes, M-c will copy the contents of the current buffer
-to the scratch buffer.
+12 Common commands
+******************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
 
 
 File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Up: minor modes
 
-12 Inspect mode
+13 Inspect mode
 ***************
 
 Inspect mode for Cedille provides basic information about a node.  To
@@ -363,7 +379,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
    * The file location in which the entity represented by the node is
      defined
 
-13 Controls
+14 Controls
 ***********
 
 'i/I'
@@ -372,7 +388,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
 
 File: cedille-info-main.info,  Node: summary mode,  Next: scratch mode,  Prev: context mode,  Up: minor modes
 
-14 Summary mode
+15 Summary mode
 ***************
 
 Displays a summary of every global definition in the file.
@@ -380,27 +396,17 @@ Displays a summary of every global definition in the file.
 
 File: cedille-info-main.info,  Node: scratch mode,  Prev: summary mode,  Up: minor modes
 
-15 Scratch mode
+16 Scratch mode
 ***************
 
 Scratch mode enables you to keep track of information in a dedicated
 buffer.
 
-'M-<return>'
-     Prints a separating line of dashes at the start of the scratch
-     buffer
-
-'M-d'
+'d'
      Delete the contents of the scratch buffer
 
-'M-+'
-     Increase the size of the scratch buffer by one line
-
-'M--'
-     Decrease the size of the scratch buffer by one line
-
-'M-='
-     Reset the size of the scratch buffer to fit the latest entry
+'x/X'
+     Close the scratch mode window
 
 
 File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
@@ -413,14 +419,14 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts3218
-Node: context mode5927
-Node: credits7321
-Node: options7589
-Node: minor modes8336
-Node: inspect mode9047
-Node: summary mode9745
-Node: scratch mode9951
-Node: Index10503
+Node: unicode shortcuts3398
+Node: context mode6107
+Node: credits7501
+Node: options7769
+Node: minor modes8516
+Node: inspect mode9386
+Node: summary mode10084
+Node: scratch mode10290
+Node: Index10587
 
 End Tag Table

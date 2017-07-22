@@ -19,7 +19,7 @@
     (define-key map (kbd "+") (make-cedille-mode-resize-current-window 1))  ; increase and lock size of window
     (define-key map (kbd "-") (make-cedille-mode-resize-current-window -1)) ; decrease and lock size of window
     (define-key map (kbd "=") #'cedille-mode-unlock-current-window-size)    ; unlock size of window then resizes it
-    (define-key map (kbd "M-c") #'cedille-mode-scratch-copy)
+    (define-key map (kbd "M-c") #'cedille-mode-scratch-copy-buffer)
     map))
 
 (provide 'cedille-mode-parent)

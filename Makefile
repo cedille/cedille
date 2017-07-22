@@ -18,9 +18,9 @@ AGDASRC = to-string.agda constants.agda \
 
 CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
                 cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \
-                cedille-mode/cedille-mode-info.el cedille-mode/cedille-mode-library.el cedille-mode/cedille-mode-summary.el cedille-mode/cedille-mode-normalize.el
+                cedille-mode/cedille-mode-info.el cedille-mode/cedille-mode-library.el cedille-mode/cedille-mode-summary.el cedille-mode/cedille-mode-normalize.el cedille-mode/cedille-mode-scratch.el
 
-SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el 
+SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el se-mode/se-pin.el
 
 ELISP=$(SE_MODE) $(CEDILLE_ELISP)
 

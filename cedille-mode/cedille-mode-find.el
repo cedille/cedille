@@ -4,7 +4,7 @@
 ;;;     Debug info display
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-display-debug-text(nilvar1 text nilvar2);buffer text)
+(defun cedille-mode-display-debug-text(text);buffer text)
   "Displays text in given buffer"
     (with-current-buffer (cedille-mode-debug-buffer)
         (setq buffer-read-only nil)
@@ -91,7 +91,7 @@
     )
 )
 
-(defun cedille-mode-find-process-response(buffer text)
+(defun cedille-mode-find-process-response(text);buffer text)
   "Receives response from cedille process, converts it from text, and passes the data to be processed"
     (let ((json (json-read-from-string text)))
         (cedille-mode-find-process-data json)

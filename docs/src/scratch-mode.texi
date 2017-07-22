@@ -4,19 +4,10 @@
 Scratch mode enables you to keep track of information in a dedicated buffer.
 
 @table @command
-@item M-<return>
-Prints a separating line of dashes at the start of the scratch buffer
-
-@item M-d
+@item d
 Delete the contents of the scratch buffer
 
-@item M-+
-Increase the size of the scratch buffer by one line
-
-@item M--
-Decrease the size of the scratch buffer by one line
-
-@item M-=
-Reset the size of the scratch buffer to fit the latest entry
+@item x/X
+Close the scratch mode window
 
 @end table

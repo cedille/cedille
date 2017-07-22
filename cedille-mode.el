@@ -26,12 +26,14 @@
 (let ((se-path (concat cedille-path "/se-mode")))
   (add-to-list 'load-path se-path)
   (add-to-list 'load-path (concat se-path "/json.el")))
-(load-library "se")
+;(load-library "se")
+(require 'se)
 
 (let ((cedille-mode-library-path (concat cedille-path "/cedille-mode")))
   (add-to-list 'load-path cedille-mode-library-path)
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
-(load-library "cedille-mode-library")
+;(load-library "cedille-mode-library")
+(require 'cedille-mode-library)
 
 (when (version< emacs-version "24.4")
   (defun define-error (name message &optional parent)
@@ -81,6 +83,11 @@ Defaults to `error'."
 (defcustom cedille-mode-autohighlight-color "dark gray"
   "Determines the color (background) of highlighting for the autohighlight matching variables feature"
   :type '(color)
+  :group 'cedille)
+
+(defcustom cedille-mode-wrap-navigation nil
+  "Wrap navigation"
+  :type '(boolean)
   :group 'cedille)
 
 ;; ----------------------------------------------------------------------------
@@ -148,7 +155,6 @@ Defaults to `error'."
 	       (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
 	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
 	   (message "Error: must select a node"))))))
-
 	   
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
@@ -217,7 +223,7 @@ start of each string, and then strip out that number."
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
   (when (> count 0)
-    (se-mode-select-next)
+    (se-mode-select-next cedille-mode-wrap-navigation)
     (cedille-mode-select-next (- count 1)))
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
@@ -227,64 +233,64 @@ the parse tree, and updates the Cedille info buffer."
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
   (when (> count 0)
-	(se-mode-select-previous)
-	(cedille-mode-select-previous (- count 1)))
+    (se-mode-select-previous cedille-mode-wrap-navigation)
+    (cedille-mode-select-previous (- count 1)))
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
-  (if (> (se-term-start y) (se-term-end x))
-      t
-      nil))
+  (> (se-term-start y) (se-term-end x)))
 
 (defun cedille-mode-select-previous-alt-test(x y)
-  (if (> (se-term-start x) (se-term-end y))
-      t
-      nil))
+  (> (se-term-start x) (se-term-end y)))
 
-(defun cedille-mode-select-next-alt(count)
+(defun cedille-mode-select-next-alt (count)
   "Selects the next sibling of the currently selected span, if one exists.
 Otherwise, selects the first span beginning after the end of the current span,
 Updates info buffer in either case"
   (interactive "p")
-  (when (> count 0)
-	(se-mode-set-spans)
-	(unless (se-mode-select (se-mode-next))
-	  (let ((found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test)))
-	    (if (not found)
-		(message "No next span")
-	      (progn (cedille-mode-select-span found)))))
-	(cedille-mode-select-next-alt (- count 1)))
+  (when (and (> count 0) se-mode-selected)
+    (se-mode-set-spans)
+    (unless (se-mode-select (se-mode-next))
+      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test))
+      (if found
+	  (cedille-mode-select-span found)
+	(if cedille-mode-wrap-navigation
+	    (let ((inhibit-message t))
+	      (se-mode-select (se-mode-left-spine (car (se-mode-parse-tree))))
+	      (cedille-mode-select-first-child 1))
+	  (message "No next span"))))
+    (cedille-mode-select-next-alt (- count 1)))
   (cedille-mode-update-buffers))
 
-(defun cedille-mode-select-previous-alt(count)
+(defun cedille-mode-select-previous-alt (count)
   "Selects the previous sibling of the currently selected node;
 otherwise selects first span that ends before the current span begins.
 Updates info buffer in either case."
   (interactive "p")
-  (when (> count 0)
+  (when (and (> count 0) se-mode-selected)
     (se-mode-set-spans)
+    (setq continue t)
     (unless (se-mode-select (se-mode-previous))
-	(let ((found (cl-find (se-mode-selected) se-mode-spans
-			:test #'cedille-mode-select-previous-alt-test
-			:from-end t)))
-	(if (not found)
-	  (message "No previous span")
-	  (cedille-mode-select-span found))))
+      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-previous-alt-test :from-end t))
+      (if found
+	  (cedille-mode-select-span found)
+	(if cedille-mode-wrap-navigation
+	    (let ((inhibit-message t))
+	      (se-mode-select (se-last-span (se-mode-parse-tree)))
+	      (cedille-mode-select-first-child 1))
+	  (message "No previous span"))))
     (cedille-mode-select-previous-alt (- count 1)))
-    (cedille-mode-update-buffers)
-)
+  (cedille-mode-update-buffers))
 
 (defun cedille-mode-select-parent(count)
   "Selects the parent of the currently selected node in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(se-mode-expand-selected)
-	(cedille-mode-select-parent (- count 1)))
-    nil)
+  (when (> count 0)
+    (se-mode-expand-selected)
+    (cedille-mode-select-parent (- count 1)))
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
@@ -292,11 +298,9 @@ the parse tree, and updates the Cedille info buffer."
   "Selects the first child of the lowest node in the parse tree
 containing point, and updates the Cedille info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(se-mode-shrink-selected)
-	(cedille-mode-select-first-child (- count 1)))
-    nil)
+  (when (> count 0)
+    (se-mode-shrink-selected)
+    (cedille-mode-select-first-child (- count 1)))
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
@@ -434,9 +438,6 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
   (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
   (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "N") #'cedille-mode-normalize)
-  (se-navi-define-key 'cedille-mode (kbd "C-N") #'cedille-mode-normalize-full)
-  (se-navi-define-key 'cedille-mode (kbd "E") #'cedille-mode-erase)
   (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
@@ -446,9 +447,17 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
   (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
-  (se-navi-define-key 'cedille-mode (kbd "M-i") #'cedille-mode-inspect-clear)
-  (se-navi-define-key 'cedille-mode (kbd "M-I") #'cedille-mode-inspect-clear-all)
-  (se-navi-define-key 'cedille-mode (kbd "x") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil)) ;cedille-scratch-mode
+  (se-navi-define-key 'cedille-mode (kbd "x") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil))
+  (se-navi-define-key 'cedille-mode (kbd "X") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda t nil))
+  (se-navi-define-key 'cedille-mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
+  ; Interactive commands
+  (se-navi-define-key 'cedille-mode (kbd "C-i h") #'cedille-mode-normalize)
+  (se-navi-define-key 'cedille-mode (kbd "C-i n") #'cedille-mode-normalize-full)
+  (se-navi-define-key 'cedille-mode (kbd "C-i e") #'cedille-mode-erase)
+  (se-navi-define-key 'cedille-mode (kbd "C-i d") #'cedille-mode-inspect-clear)
+  (se-navi-define-key 'cedille-mode (kbd "C-i r") #'cedille-mode-inspect-clear)
+  (se-navi-define-key 'cedille-mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
+  (se-navi-define-key 'cedille-mode (kbd "C-i R") #'cedille-mode-inspect-clear-all)
 ;  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
 
@@ -471,7 +480,7 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
 
-  (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename) 
+  (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
 
   (set-input-method "Cedille")
 )
@@ -502,4 +511,3 @@ in the parse tree, and updates the Cedille info buffer."
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here
-

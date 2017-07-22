@@ -14,11 +14,6 @@
  (defvar cedille-mode-prev-errors nil
    "Previously seen spans with an error value."))
 
-(defcustom cedille-mode-wrap-errors nil
-  "Wrap around errors"
-  :type '(boolean)
-  :group 'cedille)
-
 (defun cedille-span-has-error-data(data)
   "Return t if the span has error data, and nil otherwise."
   (assoc 'error data))
@@ -86,7 +81,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 	(if (null cedille-mode-next-errors)
 	    (if (and (not (se-mode-selected)) cedille-mode-cur-error)
 		(cedille-mode-select-span cedille-mode-cur-error)
-	        (if cedille-mode-wrap-errors
+	        (if cedille-mode-wrap-navigation
 		    (cedille-mode-select-first-error-in-file)
 		    (message "No further errors")))
 	  (cedille-mode-select-error (car cedille-mode-next-errors)))
@@ -101,7 +96,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 	(if (null cedille-mode-prev-errors)
 	    (if (and (not (se-mode-selected)) cedille-mode-cur-error)
 		(cedille-mode-select-span cedille-mode-cur-error)
-	        (if cedille-mode-wrap-errors
+	        (if cedille-mode-wrap-navigation
 		    (cedille-mode-select-last-error-in-file)
 		    (message "No previous errors")))
 	  (cedille-mode-select-error (car cedille-mode-prev-errors)))

@@ -8,3 +8,5 @@
 (require 'cedille-mode-find)
 (require 'cedille-mode-normalize)
 (require 'cedille-mode-scratch)
+
+(provide 'cedille-mode-library)

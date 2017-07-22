@@ -1,5 +1,6 @@
 ;;; Contains the jump function and history navigation functions
 
+
 (defun cedille-mode-jump()
   "Jumps to a location associated with the selected node"
   (interactive)  

@@ -245,17 +245,21 @@ selected, it is expanded to its parent region."
     "Return the node after the currently selected one."
     (find next)))
 
-(defun se-mode-select-previous ()
+(defun se-mode-select-previous (&optional wrap)
   "Selects previous node in parse tree."
   (interactive)
   (unless (se-mode-select (se-mode-previous))
-    (message "Selected term has no previous.")))
+    (if wrap
+	(se-mode-select-last)
+      (message "Selected term has no previous."))))
 
-(defun se-mode-select-next ()
+(defun se-mode-select-next (&optional wrap)
   "Selects next node is parse tree."
   (interactive)
   (unless (se-mode-select (se-mode-next))
-    (message "Selected term has no next.")))
+    (if wrap
+	(se-mode-select-first)
+      (message "Selected term has no next."))))
 
 (defun se-mode-select-name (name)
   "Selects the first span named NAME.  Starts at current node

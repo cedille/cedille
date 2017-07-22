@@ -258,6 +258,14 @@ preserves order."
   "Finds a node that ranges from start to end in tree"
   (se-node-from-h start end (se-mode-parse-tree)))
 
+(defun se-get-span (term)
+  "Returns a span based on term"
+  (when term
+    (typecase term
+      (se-span term)
+      (se-node (se-get-span (se-node-parent term)))
+      (sequence (se-first-span term)))))
+
 (defun se-node-from-h(start end tree)
   "Helper for `se-node-from'"
   (typecase tree
