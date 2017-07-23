@@ -1,0 +1,176 @@
+
+import ../Functor.
+import ../Sigma.
+import ../Product.
+
+import MendlerFixpoint.
+import MendlerInduction.
+
+
+% universality
+UniversalProperty ◂ Π G : (★ ➔ ★) . Π fmap : Functor · G .
+    FunctorLaw1 · G fmap ➔
+    (DepFixM · G fmap) ➔ ★ =
+    λ G : ★ ➔ ★ .
+    λ fmap : Functor · G .
+    λ flaw1 : FunctorLaw1 · G fmap .
+    λ fix : (DepFixM · G fmap) .
+    Π A : ★ .
+    Π h : (DepFixM · G fmap) ➔ A.
+    Π f : AlgebraM · G · A .
+    WFAlgM · G fmap · A f ➔ 
+     (Π e : G · (DepFixM · G fmap) . h (inDepFixM · G fmap flaw1 e) ≃  f · (DepFixM · G fmap) h e)
+          ➔ h fix ≃ foldM · G · A f fix .
+
+
+uni ◂ ∀ G : ★ ➔ ★ .
+      Π fmap : Functor · G .
+      Π flaw1 : FunctorLaw1 · G fmap .
+      Π flaw2 : FunctorLaw2 · G fmap .
+      Π fmapEq : FmapEq · G fmap .
+      
+      Π fix : DepFixM · G fmap . UniversalProperty · G fmap flaw1 fix
+  =
+    Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ fix . θ<fix> (InductionDepFixM · G fmap flaw1 fix)
+       (Λ R . Λ cast . Λ castEq . λ q . λ gr . λ A . λ h . λ f . λ wf . λ z .
+          ε ρ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap)  -(λ x . x) (fmap · R · (DepFixM · G fmap) cast gr) -(λ z . β))  -
+	      ρ (z (fmap · R · (DepFixM · G fmap) cast gr)) -
+	       ρ (wf · (DepFixM · G fmap) -h -(fmap · R · (DepFixM · G fmap) cast gr))  -
+	        ρ (wf · (DepFixM · G fmap) -(foldMDep · G fmap · A f) -(fmap · R · (DepFixM · G fmap) cast gr))  -
+		 ρ (flaw2 · R · (DepFixM · G fmap) · A -h -cast gr ) -
+    		  ρ (flaw2 · R · (DepFixM · G fmap) · A -(foldMDep · G fmap · A f) -cast gr ) -
+		   ρ (fmapEq · R -β{(λ x' . (h (cast x')))}  -β{(λ x' . (foldMDep fmap f (cast x')))}
+		           (λ r . q r · A h f wf z)
+			      gr) - β) .
+
+
+
+% reflection
+idAlgM ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G . FunctorLaw1 · G fmap ➔ AlgebraM · G · (DepFixM · G fmap)
+  = Λ G . λ fmap . λ flaw1 . Λ R . λ ra . λ fr .  inDepFixM · G fmap flaw1  (fmap · R · (DepFixM · G fmap)  ra fr)  .
+
+
+idAlgMWF ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π flaw1 : FunctorLaw1 · G fmap . WFAlgM · G fmap · (DepFixM · G fmap) (idAlgM · G fmap flaw1)
+  = Λ G . λ fmap . λ flaw1 . Λ R . Λ cast . Λ fr . ε (ρ  (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap)  -(λ x . x) (fmap · R · (DepFixM · G fmap) cast fr) -(λ z . β))
+     - ρ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap)  -(λ x . x) (fmap · R · (DepFixM · G fmap) cast fr) -(λ z . β)) - β)     .
+
+reflection ◂ ∀ G : ★ ➔ ★ .
+             Π fmap : Functor · G .
+             Π flaw1 : FunctorLaw1 · G fmap .
+             Π flaw2 : FunctorLaw2 · G fmap .
+             Π fmapEq : FmapEq · G fmap .
+	     
+             Π fix : DepFixM · G fmap .
+	     foldM (idAlgM · G fmap flaw1) fix ≃ fix =
+ Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ fix . ρ ς
+    ((uni · G fmap flaw1 flaw2 fmapEq fix) ·
+       (DepFixM · G fmap)
+       (λ x . x)
+       (idAlgM · G fmap flaw1)
+       (idAlgMWF · G fmap flaw1)
+       (λ e . ε (ρ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) e -(λ z . β)) -
+                   ρ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) e -(λ z . β)) - β))) -
+		    β .
+
+
+% cancellation
+cancellation  ◂ ∀ G : ★ ➔ ★ . 
+                Π fmap : Functor · G . 
+                Π flaw1 : FunctorLaw1 · G fmap .
+
+                Π gfix : G · (DepFixM · G fmap) .
+               ∀ A : ★ . 
+	        Π alg : AlgebraM · G · A .
+                WFAlgM · G fmap · A alg ➔
+	        foldM alg (inDepFixM fmap flaw1 gfix) ≃ 
+                       alg (λ x . x) (fmap (foldM alg) gfix) = 
+  Λ G . λ fmap . λ flaw1 . λ gfix . Λ A . λ alg . λ wfalg . 
+   ρ+ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) gfix -(λ z . β)) - 
+        (wfalg · (DepFixM · G fmap) -(foldMDep  · G  fmap · A alg) -gfix) .
+
+
+% fusion
+fusion ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G .
+             Π flaw1 : FunctorLaw1 · G fmap .
+	     Π flaw2 : FunctorLaw2 · G fmap .
+             Π fmapEq : FmapEq · G fmap .
+	     
+             Π fix : (DepFixM · G fmap) .
+	     ∀ C : ★ . ∀ D : ★ . 
+             Π f : C ➔ D . 
+	     Π alg1 : AlgebraM · G · C .
+             WFAlgM · G fmap · C alg1 ➔ 
+	     Π alg2 : AlgebraM · G · D .
+             WFAlgM · G fmap · D alg2 ➔ 
+             (Π gc : G · C .  f (alg1 (λ x . x) gc) ≃ alg2 (λ x . x) (fmap f gc)) ➔ 
+             f (foldM alg1 fix) ≃ foldM alg2 fix = 
+  Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ fix . θ<fix> (InductionDepFixM · G fmap flaw1 fix)
+   (Λ R . Λ cast . Λ castEq . λ q . λ gr . Λ C . Λ D . λ f . λ alg1 . λ wf1 . λ alg2 . λ wf2 . λ ih .
+         ρ+ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) (fmap · R · (DepFixM · G fmap) cast gr) -(λ z . β)) -
+	   ρ (wf1 · (DepFixM · G fmap) -(foldMDep  · G  fmap · C alg1) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
+	     ρ (wf2 · (DepFixM · G fmap) -(foldMDep  · G  fmap · D alg2) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
+	      ρ (flaw2 · R · (DepFixM · G fmap) · D -(foldMDep · G fmap · D alg2) -cast gr ) -
+	        ρ (flaw2 · R · (DepFixM · G fmap) · C -(foldMDep · G fmap · C alg1) -cast gr ) -
+		 ρ ((fmapEq · R -β{(λ x' . (foldMDep fmap alg2 (cast x')))}  -β{(λ x' . (f (foldM alg1 (cast x'))))}
+		           (λ r . ρ (q r · C · D f alg1 wf1 alg2 wf2 ih) - β) 
+			      gr)) -
+	           ρ ς (flaw2 · R · C · D -f -(λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr ) -
+		       ρ (ih (fmap  · R · C (λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr) ) - β)  .
+
+
+
+% in o out = id
+inout ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G .
+         Π flaw1 : FunctorLaw1 · G fmap .
+         Π flaw2 : FunctorLaw2 · G fmap .
+         Π fmapEq : FmapEq · G fmap .
+
+         Π fix : (DepFixM · G fmap) .
+	 inDepFixM · G fmap flaw1 (outDepFixM · G fmap flaw1 fix) ≃ fix =
+
+ Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ fix .
+   ρ (fusion · G fmap flaw1 flaw2 fmapEq fix · (G · (DepFixM · G fmap)) · (DepFixM · G fmap) (inDepFixM · G fmap flaw1)
+        (outAlgM · G fmap flaw1) (outAlgMWF · G fmap flaw1 flaw2) 
+        (idAlgM · G fmap flaw1)  (idAlgMWF · G fmap flaw1) 
+        (λ gc . ε ρ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) (fmap · (G · (DepFixM · G fmap)) · (DepFixM · G fmap) (inDepFixM · G fmap flaw1) gc) -(λ z . β)) -
+	   ρ (flaw2 · (G · (DepFixM · G fmap)) · ((DepFixM · G fmap)) · (DepFixM · G fmap) -(λ e . e )  -(inDepFixM · G fmap flaw1) gc) - β)) -
+     (reflection · G fmap flaw1 flaw2 fmapEq fix)  .
+
+
+% out o in = id
+outin ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G .
+         Π flaw1 : FunctorLaw1 · G fmap .
+         Π flaw2 : FunctorLaw2 · G fmap .
+         Π fmapEq : FmapEq · G fmap .
+
+         Π gfix : G · (DepFixM · G fmap) .
+	 outDepFixM · G fmap flaw1 (inDepFixM · G fmap flaw1 gfix) ≃ gfix =
+ Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ gfix .
+    ρ (cancellation · G fmap flaw1 gfix · (G · (DepFixM · G fmap)) (outAlgM · G fmap flaw1) (outAlgMWF · G fmap flaw1 flaw2) ) -
+      ρ (flaw2 · ((DepFixM · G fmap)) · (G · (DepFixM · G fmap)) · (DepFixM · G fmap) -(inDepFixM · G fmap flaw1) -(outDepFixM · G fmap flaw1) gfix) -
+       ρ (fmapEq · ((DepFixM · G fmap))  -β{(λ x' . (inDepFixM fmap flaw1 (outDepFixM fmap flaw1 x')))} -β{λ x' . x'}  (λ x . inout · G fmap flaw1 flaw2 fmapEq x) gfix ) -
+          ρ (flaw1 · ((DepFixM · G fmap)) · ((DepFixM · G fmap)) -(λ x . x) gfix -(λ z . β)  ) -
+	   β .
+    
+
+% The usual proofs of properties of Mendler fixpoints do not work due
+% to the lack of principal of functional extensionality.  In the
+% setting of Cedille it is inconsistent to assume functional
+% extensionality: not only you loose constructivity, but also become
+% incosistent (due to untyped equality).  Instead we formally
+% internalize the Mendler's trick for F-malgebras by deifining the
+% "Well-formed Mendler's algebra" This together with extensionality of
+% fmap allows us to prove the "standard" package of structural
+% properties. Note, that those proofs are done after we derived the
+% induction and indeed some of the properties make use of it
+% (induction principle).
+
+% definition of WF algebra (internalization of Mendler's trick)
+% extensionality for fmap
+% -------------
+% universality
+% reflection
+% fusion
+% cancellation
+% in o out = id
+% out o in = id

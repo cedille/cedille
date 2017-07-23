@@ -7,6 +7,7 @@ import ../Unit.
 
 import Helper.
 import MendlerFixpoint.
+import MendlerInduction.
 
 %%% Base functor for natural numbers
 NatF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · X .
@@ -34,6 +35,7 @@ inNat ◂  NatF · NatM ➔ NatM = inDepFixM · NatF NatFF Flaw1 .
 zero ◂ NatM = inNat (in1 · Unit · NatM unit) .
 suc ◂ NatM ➔ NatM = λ n . inNat (in2 · Unit · NatM n) .
 
+
 NatInd ◂ Π x : NatM . ∀ Q : NatM ➔ ★ . (∀ x : NatM . Q x ➔ Q (suc x)) ➔ Q zero ➔ Q x =
   λ x .  Λ Q . λ s . λ z . InductionDepFixM · NatF NatFF Flaw1 x · Q
     (Λ R . Λ cast . Λ castId . λ ih . λ nf .
@@ -44,3 +46,18 @@ NatInd ◂ Π x : NatM . ∀ Q : NatM ➔ ★ . (∀ x : NatM . Q x ➔ Q (suc x
             (λ b . ρ ς (castId -b) - (s -(cast b) (ih b)))) % suc case
 
    ) .
+
+
+
+add ◂ NatM ➔ NatM ➔ NatM =
+  λ n . λ m .
+     foldM · NatF · NatM
+         (Λ R . λ cast . λ nf . θ<nf> (ind-Sum · Unit · R nf) (λ _ . m) (λ r . suc (cast r)))
+	 n.1 .
+
+% no induction
+add-zero-lft ◂ ∀ n : NatM . add zero n ≃ n = Λ n . β .
+
+% proof by induction
+add-zero-rgt ◂ Π n : NatM . add n zero ≃ n = λ n .
+   θ<n> (NatInd n) (Λ x . λ ih . ρ+ ih - β)  β .
