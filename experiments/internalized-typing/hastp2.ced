@@ -2,6 +2,8 @@ Top ◂ ★ = λ x . x ≃ λ x . x .
 
 ctrm ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ X.
 
+test ◂ ctrm = Λ X . λ a . λ l . l (λ u . a u u) .
+
 app ◂ ctrm ➔ ctrm ➔ ctrm = λ f . λ x . Λ X . λ a . λ l . a (f · X a l) (x · X a l) .
 
 interp-ctrm ◂ ctrm ➔ Top = λ t . t · Top (λ t1 . λ t2 . β{t1 t2}) (λ f . β {λ x . f x}) .

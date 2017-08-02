@@ -129,7 +129,7 @@ type-end-pos (TpArrow t _ t') = type-end-pos t'
 type-end-pos (TpEq x x') = term-end-pos x'
 type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
-type-end-pos (TpHole pi) = pi --ACG
+type-end-pos (TpHole pi) = posinfo-plus pi 1
 type-end-pos (NoSpans t pi) = pi
 
 kind-end-pos (KndArrow k k') = kind-end-pos k'

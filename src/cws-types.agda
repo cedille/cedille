@@ -12,7 +12,7 @@ posinfo = string
 mutual
 
   data entities : Set where 
-    EndEntity : entity → entities
+    EndEntity : entities
     Entity : entity → entities → entities
 
   data entity : Set where 
@@ -121,7 +121,7 @@ posinfoToString x = "(posinfo " ^ x ^ ")"
 
 mutual
   entitiesToString : entities → string
-  entitiesToString (EndEntity x0) = "(EndEntity" ^ " " ^ (entityToString x0) ^ ")"
+  entitiesToString (EndEntity) = "EndEntity" ^ ""
   entitiesToString (Entity x0 x1) = "(Entity" ^ " " ^ (entityToString x0) ^ " " ^ (entitiesToString x1) ^ ")"
 
   entityToString : entity → string

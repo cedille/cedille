@@ -8,7 +8,7 @@ Syntactic
 
 File : start -> entities .
 Entity : entities -> entity entities .
-EndEntity : entities -> entity .
+EndEntity : entities -> .
 EntityWs : entity -> ! ws ! .
 EntityComment : entity -> ! comment ! .
 EntityNonws : entity -> nonws .

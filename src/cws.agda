@@ -254,7 +254,7 @@ cws-start _num = (just "P68" , nothing , just _num , inj₁ _num-plus-5 :: []) :
 cws-start _nonws-plus-70 = (just "P205" , nothing , just _nonws-plus-70 , inj₁ _anynonwschar :: inj₁ _nonws-plus-70 :: []) :: (just "P204" , nothing , just _nonws-plus-70 , inj₁ _anynonwschar :: []) :: []
 cws-start _nonws = (just "P206" , nothing , just _nonws , inj₁ _nonws-plus-70 :: []) :: []
 cws-start _entity = (just "EntityWs" , nothing , just _entity , inj₁ _posinfo :: inj₁ _ws :: inj₁ _posinfo :: []) :: (just "EntityNonws" , nothing , just _entity , inj₁ _nonws :: []) :: (just "EntityComment" , nothing , just _entity , inj₁ _posinfo :: inj₁ _comment :: inj₁ _posinfo :: []) :: []
-cws-start _entities = (just "Entity" , nothing , just _entities , inj₁ _entity :: inj₁ _entities :: []) :: (just "EndEntity" , nothing , just _entities , inj₁ _entity :: []) :: []
+cws-start _entities = (just "Entity" , nothing , just _entities , inj₁ _entity :: inj₁ _entities :: []) :: (just "EndEntity" , nothing , just _entities , []) :: []
 cws-start _comment-star-64 = (just "P189" , nothing , just _comment-star-64 , inj₁ _anychar :: inj₁ _comment-star-64 :: []) :: (just "P188" , nothing , just _comment-star-64 , []) :: []
 cws-start _comment = (just "P190" , nothing , just _comment , inj₂ '%' :: inj₁ _comment-star-64 :: inj₂ '\n' :: []) :: []
 cws-start _aws-bar-66 = (just "P194" , nothing , just _aws-bar-66 , inj₁ _aws-bar-65 :: []) :: (just "P193" , nothing , just _aws-bar-66 , inj₂ '\n' :: []) :: []
@@ -289,7 +289,6 @@ open noderiv
 ------------------------------------------
 
 len-dec-rewrite : Run → maybe (Run × ℕ)
-len-dec-rewrite {- EndEntity-} ((Id "EndEntity") :: _::_(ParseTree (parsed-entity x0)) rest) = just (ParseTree (parsed-entities (norm-entities (EndEntity x0))) ::' rest , 2)
 len-dec-rewrite {- Entity-} ((Id "Entity") :: (ParseTree (parsed-entity x0)) :: _::_(ParseTree (parsed-entities x1)) rest) = just (ParseTree (parsed-entities (norm-entities (Entity x0 x1))) ::' rest , 3)
 len-dec-rewrite {- EntityComment-} ((Id "EntityComment") :: (ParseTree (parsed-posinfo x0)) :: (ParseTree parsed-comment) :: _::_(ParseTree (parsed-posinfo x1)) rest) = just (ParseTree (parsed-entity (norm-entity (EntityComment x0 x1))) ::' rest , 4)
 len-dec-rewrite {- EntityNonws-} ((Id "EntityNonws") :: _::_(ParseTree parsed-nonws) rest) = just (ParseTree (parsed-entity (norm-entity EntityNonws)) ::' rest , 2)
@@ -501,6 +500,7 @@ len-dec-rewrite {- P96-} ((Id "P96") :: _::_(InputChar '≃') rest) = just (Pars
 len-dec-rewrite {- P97-} ((Id "P97") :: _::_(ParseTree parsed-otherpunct-bar-18) rest) = just (ParseTree parsed-otherpunct-bar-19 ::' rest , 2)
 len-dec-rewrite {- P98-} ((Id "P98") :: _::_(InputChar '>') rest) = just (ParseTree parsed-otherpunct-bar-20 ::' rest , 2)
 len-dec-rewrite {- P99-} ((Id "P99") :: _::_(ParseTree parsed-otherpunct-bar-19) rest) = just (ParseTree parsed-otherpunct-bar-20 ::' rest , 2)
+len-dec-rewrite {- EndEntity-} (_::_(Id "EndEntity") rest) = just (ParseTree (parsed-entities (norm-entities EndEntity)) ::' rest , 1)
 len-dec-rewrite {- P188-} (_::_(Id "P188") rest) = just (ParseTree parsed-comment-star-64 ::' rest , 1)
 len-dec-rewrite {- Posinfo-} (_::_(Posinfo n) rest) = just (ParseTree (parsed-posinfo (ℕ-to-string n)) ::' rest , 1)
 len-dec-rewrite x = nothing

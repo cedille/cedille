@@ -1,24 +1,4 @@
 import nat.
 
-test = add [tmp = add one one] tmp .
+test = add [tmp = add (S Z) (S Z)] tmp .
 
-tmp.
-
-rec List (A : ★) | Cons : A ➔ List ➔ List , Nil : List =
-  ∀ P : List ➔ ★ .
-    (Π h : A . Π t : List . P t ➔ P (Cons h t)) ➔ 
-    P Nil ➔ 
-    P self
-  with
-    Cons = λ a . λ v . Λ P . λ c . λ e . c a v (v · P c e),
-    Nil = Λ P . λ c . λ n . n 
-.
-
-append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
-  Λ A . λ l . λ l' .
-   θ l [append-Cons = λ h . λ t . λ r . Cons · A h r ] l' .
-
-append-Cons .
-
-reject ◂ Nat ➔ List · Nat ➔ List · Nat =
-  λ n . λ m . θ m [not-closed = λ x . λ _ . λ r . Cons · Nat (add n x) r] (Nil · Nat) .
