@@ -30,7 +30,7 @@
 	      (name (nth 2 split))
 	      (attrs (nth 3 split)))
 	  (se-pin-data 0 (length value) (make-symbol name) attrs value)
-	  (concat value (cedille-mode-markup-propertize (substring text ep))))))))
+	  (cedille-mode-markup-propertize (concat value (substring text ep))))))))
 
 (defun cedille-mode-markup-split (text)
   (when (string= "<" (substring text 0 1))

@@ -313,8 +313,6 @@ which currently consists of:\n
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
       (setq deactivate-mark nil))))
-      ;(message "updating context buffer jumps...")
-      ;(cedille-buffer-update-jumps))))
 
 
 (defun cedille-mode-format-context(context) ; -> string
