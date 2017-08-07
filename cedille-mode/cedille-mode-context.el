@@ -90,7 +90,7 @@
     (define-key map (kbd "u") (make-cedille-mode-set-variable cedille-mode-context-ordering 'up)) 	; parse tree ascending
     (define-key map (kbd "e") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqnl)) 	; filter 'equational'
     (define-key map (kbd "E") (make-cedille-mode-set-variable cedille-mode-context-filtering 'eqn)) 	; filter 'equation'
-    (define-key map (kbd "f") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) 	; no filter
+    (define-key map (kbd "r") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) 	; no filter
     (define-key map (kbd "C") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) 			; help page
@@ -256,6 +256,7 @@ which currently consists of:\n
 		 (kind (funcall get 'kind))
 		 (keywords-string (funcall get 'keywords))
 		 (keywords-list (when keywords-string (split-string keywords-string " " t)))
+		 (location (funcall get 'location))
 		 (count-shadowed ; counts number of variables shadowed by this one
 		  (lambda (lst symbol rec-call) ; string -> nat
 		    (if lst
@@ -270,6 +271,7 @@ which currently consists of:\n
 			   (data (list 
 				  (cons 'value value-source) 		; the value displayed for the entry
 				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
+				  (cons 'location location)             ; the location of the definition; used in other files, but not this one (added by Colin McDonald for normalization/erasure tool)
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
 		      
 		      (set q-lst (cons (cons symbol data) (eval q-lst)))))))
@@ -294,6 +296,7 @@ which currently consists of:\n
 			(when line
 			  (let* ((color (cadr (assoc 'color line)))
 				 (text (cadr (assoc 'text line))))
+				 ;(text (cedille-mode-markup-propertize-text (cadr (assoc 'text line)))))
 			    (if color
 				(insert (propertize (concat text "\n") 'face `(:foreground ,color)))
 			        (insert (concat text "\n"))))))))
@@ -310,6 +313,8 @@ which currently consists of:\n
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
       (setq deactivate-mark nil))))
+      ;(message "updating context buffer jumps...")
+      ;(cedille-buffer-update-jumps))))
 
 
 (defun cedille-mode-format-context(context) ; -> string

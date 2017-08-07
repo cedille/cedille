@@ -64,16 +64,11 @@
 (defun cedille-mode-highlight ()
   "Highlights current buffer based on the
 `ced-font-map'.  This will deactivate `font-lock-mode'."
-  (with-silent-modifications
+  (with-silent-modifications ; If you apply a text property, it exits se-navigation-mode (and, consequently, cedille navi mode). Using `with-silent-modifications', you can make changes to the buffer without alerting it of the changes.
     (when cedille-mode-highlight-face-map
-    ;(let ((modified (buffer-modified-p)))
-	  ;(navi-on se-navigation-mode))
       (font-lock-mode -1)
       (mapcar 'cedille-mode-highlight-span (cdr cedille-mode-highlight-spans))
       (cedille-mode-update-overlays))))
-     ; (set-buffer-modified-p modified)
-      ;(when navi-on
-	;(se-navigation-mode 1))))))
 
 (defun cedille-mode-update-overlays ()
   "Updates error and hole overlays."

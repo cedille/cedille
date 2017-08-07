@@ -122,7 +122,7 @@ opts-get-no-cede-files (options-types.OptsCons options-types.NoCedeFiles oo) = t
 opts-get-no-cede-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-cede-files oo
 
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
-reparse : toplevel-state →(filename : string) → IO toplevel-state
+reparse : toplevel-state → (filename : string) → IO toplevel-state
 reparse st filename = 
 --   putStrLn ("reparsing " ^ filename) >>
    doesFileExist filename >>= λ b → 

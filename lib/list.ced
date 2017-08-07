@@ -33,3 +33,9 @@ length ◂ ∀ A : ★ . List · A ➔ Nat =
  Λ A . λ l .
    ListRec · A l · Nat
      (λ _ . S) Z .
+
+map ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ B) ➔ List · A ➔ List · B =
+  Λ A . Λ B . λ f . λ l . ListRec · A l · (List · B) (λ a . λ bl . Cons · B (f a) bl) (Nil · B) .
+
+foldr ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ B ➔ B) ➔ B ➔ List · A ➔ B =
+  Λ A . Λ B . λ f . λ i . λ l . ListRec · A l · B f i .

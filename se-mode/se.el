@@ -1,7 +1,6 @@
 
 (require 'se-helpers)
 
-(eval-when-compile (require 'cl))
 
 (defstruct
     (se-span
@@ -161,6 +160,18 @@ formatted."
 	   tree)))
     (sequence
      (se-map-1 (se-curry #'se-find-point point) tree))))
+
+(defun se-find-range-path (start end tree)
+  "Finds a series of nodes in TREE containing START and END.  Returns a
+list containing nodes with the former elements as parents of the
+latter."
+  (typecase tree
+    (se-node
+     (let ((span (se-node-parent tree)))
+       (when (and (se-point-in-term-p start span) (se-point-in-term-p end span))
+	 (cons tree (se-find-range-path start end (se-node-children tree))))))
+    (sequence
+     (se-map-1 (se-curry #'se-find-range-path start end) tree))))
 
 (defun se-find-point-path (point tree)
   "Finds a series of nodes in TREE containing POINT.  Returns a

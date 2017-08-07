@@ -27,7 +27,7 @@ of spans that have an error value."
 	(push cur cedille-mode-error-spans))
       (cedille-find-error-spans (cdr spans)))))
     
-(defun cedille-mode-set-error-spans(response)
+(defun cedille-mode-set-error-spans();response)
   "After loading spans from the backend tool, this hook will look for error
 spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (setq cedille-mode-next-errors nil)
@@ -36,8 +36,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (setq cedille-mode-error-spans nil)
   (cedille-find-error-spans se-mode-spans)
   (setq cedille-mode-error-spans (reverse cedille-mode-error-spans)) ; we are pushing the errors as we find them, so the list is reversed
-  (setq cedille-mode-next-errors cedille-mode-error-spans)
-)
+  (setq cedille-mode-next-errors cedille-mode-error-spans))
 
 (defun cedille-mode-any-errors()
   "Return t iff there are any errors."
@@ -76,32 +75,28 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 (defun cedille-mode-next-error(count)
   "Select the next error from 'cedille-mode-next-errors', if any, and display the info buffer"
   (interactive "p")
-  (if (> count 0)
-      (progn 
-	(if (null cedille-mode-next-errors)
-	    (if (and (not (se-mode-selected)) cedille-mode-cur-error)
-		(cedille-mode-select-span cedille-mode-cur-error)
-	        (if cedille-mode-wrap-navigation
-		    (cedille-mode-select-first-error-in-file)
-		    (message "No further errors")))
-	  (cedille-mode-select-error (car cedille-mode-next-errors)))
-	(cedille-mode-next-error (- count 1)))
-    nil))
+  (when (> count 0)
+    (if (null cedille-mode-next-errors)
+	(if (and (not (se-mode-selected)) cedille-mode-cur-error)
+	    (cedille-mode-select-span cedille-mode-cur-error)
+	  (if cedille-mode-wrap-navigation
+	      (cedille-mode-select-first-error-in-file)
+	    (message "No further errors")))
+      (cedille-mode-select-error (car cedille-mode-next-errors)))
+    (cedille-mode-next-error (- count 1))))
 
 (defun cedille-mode-previous-error(count)
   "Select the previous error from 'cedille-mode-prev-erros', if any, and display the info buffer"
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(if (null cedille-mode-prev-errors)
-	    (if (and (not (se-mode-selected)) cedille-mode-cur-error)
-		(cedille-mode-select-span cedille-mode-cur-error)
-	        (if cedille-mode-wrap-navigation
-		    (cedille-mode-select-last-error-in-file)
-		    (message "No previous errors")))
-	  (cedille-mode-select-error (car cedille-mode-prev-errors)))
-	(cedille-mode-previous-error (- count 1)))
-    nil))
+  (when (> count 0)
+    (if (null cedille-mode-prev-errors)
+	(if (and (not (se-mode-selected)) cedille-mode-cur-error)
+	    (cedille-mode-select-span cedille-mode-cur-error)
+	  (if cedille-mode-wrap-navigation
+	      (cedille-mode-select-last-error-in-file)
+	    (message "No previous errors")))
+      (cedille-mode-select-error (car cedille-mode-prev-errors)))
+    (cedille-mode-previous-error (- count 1))))
 
 
 (defun cedille-mode-select-first-error-in-file()
@@ -119,42 +114,38 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 (defun cedille-mode-select-next-error(count)
   "Select the next error according to specifications, and display the info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(let ((selected-span (if (se-mode-selected) (se-first-span (se-mode-selected)) nil)))
-	  (cond
-	   ; if there are no errors, say so
-	   ((null cedille-mode-error-spans) (message "No errors."))
-	   ; if nothing is selected, go to the next error
-	   ((null selected-span) (cedille-mode-next-error 1))
-           ; if the selected thing is the current error, go to the next error
-	   ((equal selected-span cedille-mode-cur-error) (cedille-mode-next-error 1))
-	   ; if the selected thing is another error, make it the current error
-	   ((member selected-span cedille-mode-error-spans) (cedille-mode-select-error selected-span))
-	   ; otherwise select the first error in the selected span 
-	   (t (cedille-mode-select-first-error selected-span))))
-	(cedille-mode-select-next-error (- count 1)))
-    nil))
+  (when (> count 0)
+    (let ((selected-span nil));(if (se-mode-selected) (se-first-span (se-mode-selected)) nil)))
+      (cond
+        ; if there are no errors, say so
+       ((null cedille-mode-error-spans) (message "No errors."))
+        ; if nothing is selected, go to the next error
+       ((null selected-span) (cedille-mode-next-error 1))
+	; if the selected thing is the current error, go to the next error
+       ((equal selected-span cedille-mode-cur-error) (cedille-mode-next-error 1))
+        ; if the selected thing is another error, make it the current error
+       ((member selected-span cedille-mode-error-spans) (cedille-mode-select-error selected-span))
+        ; otherwise select the first error in the selected span 
+       (t (cedille-mode-select-first-error selected-span))))
+	(cedille-mode-select-next-error (- count 1))))
 
 (defun cedille-mode-select-previous-error(count)
   "Select the previous error according to specifications, and display the info buffer."
   (interactive "p")
-  (if (> count 0)
-      (progn
-	(let ((selected-span (if (se-mode-selected) (se-first-span (se-mode-selected)) nil)))
-	  (cond
-           ; if there are no errors, say so
-	   ((null cedille-mode-error-spans) (message "No errors."))
-           ; if nothing is selected, go to the previous error
-	   ((null selected-span) (cedille-mode-previous-error 1))
-           ; if the selected thing is the current error, go to previous error
-	   ((equal selected-span cedille-mode-cur-error) (cedille-mode-previous-error 1))
-           ; if the selected thing is another error, make it the current error
-	   ((member selected-span cedille-mode-error-spans) (cedille-mode-select-error selected-span))
-           ; otherwise select the last error in the selected span
-	   (t (cedille-mode-select-last-error selected-span))))
-	(cedille-mode-select-previous-error (- count 1)))
-    nil))
+  (when (> count 0)
+    (let ((selected-span nil));(if (se-mode-selected) (se-first-span (se-mode-selected)) nil)))
+      (cond
+        ; if there are no errors, say so
+       ((null cedille-mode-error-spans) (message "No errors."))
+        ; if nothing is selected, go to the previous error
+       ((null selected-span) (cedille-mode-previous-error 1))
+        ; if the selected thing is the current error, go to previous error
+       ((equal selected-span cedille-mode-cur-error) (cedille-mode-previous-error 1))
+        ; if the selected thing is another error, make it the current error
+       ((member selected-span cedille-mode-error-spans) (cedille-mode-select-error selected-span))
+        ; otherwise select the last error in the selected span
+       (t (cedille-mode-select-last-error selected-span))))
+    (cedille-mode-select-previous-error (- count 1))))
 
 
 (provide 'cedille-mode-errors)

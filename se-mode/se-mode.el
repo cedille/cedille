@@ -1,7 +1,7 @@
 
 (require 'se)
-(require 'se-navi)
 (require 'se-inf)
+(require 'se-navi)
 (require 'se-pin)
 
 (eval-when-compile (require 'cl))
@@ -111,11 +111,16 @@ from the given path."
 (defun se-mode-set-spans ()
   "Used by `se-mode' methods to set `se-mode-selected' and
 `se-mode-not-selected'."
-  (unless mark-active
+  (setq p1 (point)) ; Point
+  (setq p2 nil) ; Mark
+  (if mark-active
+      (setq p2 (mark))
     (se-mode-clear-selected))
   (when (and (null se-mode-selected)
 	     (null se-mode-not-selected))
-    (se-mode-update-selected (se-find-point-path (point) (se-mode-parse-tree)))))
+    (se-mode-update-selected (if p2
+				 (se-find-range-path p1 p2 (se-mode-parse-tree))
+			       (se-find-point-path p1 (se-mode-parse-tree))))))
 
 (defun se-mode-select (term)
   "Updates selection path and selects region."

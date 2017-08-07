@@ -14,6 +14,7 @@
     (define-key map (kbd "=") #'cedille-mode-scratch-equal) ; Override cedille-mode-parent "=" keybinding
     (define-key map (kbd "x") #'cedille-mode-close-active-window)
     (define-key map (kbd "X") #'cedille-mode-close-active-window)
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "scratch mode"))
     map))
 
 
@@ -21,8 +22,8 @@
   (interactive)
   (goto-char 1)
   (with-selected-window (get-buffer-window)
-    (setq window-size-fixed nil)
-    (setq delta (- cedille-mode-scratch-lines (window-height)))
+    (setq window-size-fixed nil
+	  delta (- cedille-mode-scratch-lines (window-height)))
     (enlarge-window delta)))
 
 (defun cedille-mode-scratch-repeat (str times &optional acc)
@@ -35,24 +36,25 @@
 (defun cedille-mode-scratch-display-text (text)
   "Displays text in given buffer."
   (with-current-buffer (cedille-mode-scratch-buffer)
-    (setq window-size-fixed nil)
-    (setq buffer-read-only nil)
-    (setq buffer-text (buffer-string))
+    (setq window-size-fixed nil
+	  buffer-read-only nil
+	  buffer-text (buffer-string))
     (erase-buffer)
+    (setq text (cedille-mode-markup-propertize text))
     (insert text)
     (display-buffer (cedille-mode-scratch-buffer-name))
     (with-selected-window (get-buffer-window)
       (setq window-size-fixed nil)
       (fit-window-to-buffer)
-      (setq cedille-mode-scratch-lines (window-height))
-      (setq width (window-body-width)))
+      (setq cedille-mode-scratch-lines (window-height)
+	    width (window-body-width)))
     (erase-buffer)
     (if (string= buffer-text "")
 	(insert text)
         (insert (concat text "\n" (cedille-mode-scratch-repeat "-" width) "\n" buffer-text)))
     (goto-char 1)
-    (setq buffer-read-only t)
-    (setq window-size-fixed t)))
+    (setq buffer-read-only t
+	  window-size-fixed t)))
 
 (defun cedille-mode-scratch-copy-span ()
   "Copies the selected span to the scratch buffer"
@@ -68,18 +70,20 @@
 (defun cedille-mode-scratch-copy-buffer ()
   "Copies the contents of a buffer into the scratch buffer"
   (interactive)
-  (setq text (buffer-string))
-  (when (string-suffix-p "\n" text) (setq text (substring text 0 (- (length text) 1))))
+  (setq text (buffer-string)
+	len (length text))
+  (when (string-suffix-p "\n" text)
+    (setq text (substring text 0 (- len 1)))
+    (decf len))
   (cedille-mode-close-active-window)
   (cedille-mode-scratch-display-text text))
 
 (defun cedille-mode-scratch-erase-all ()
   "Erases all text in the scratch buffer. The reason I use this instead of simply erase-buffer is so that the user isn't prompted whether or not they really want to use the disabled command erase-buffer."
   (interactive)
-  (with-current-buffer (cedille-mode-scratch-buffer)
-    (setq buffer-read-only nil)
-    (erase-buffer)
-    (setq buffer-read-only t)))
+  (setq buffer-read-only nil)
+  (erase-buffer)
+  (setq buffer-read-only t))
 
 (defun cedille-mode-scratch-buffer-name ()
   "*cedille-scratch*")

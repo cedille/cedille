@@ -1,11 +1,11 @@
 import nat.
 
 NatRebuild ◂ Π n : Nat. n S Z ≃ n =
-  λ n . NatInd n · (λ n : Nat . n S Z ≃ n) (Λ _ . λ ih . ρ+ ih - β) β .
+  λ n . NatInd n · (λ n : Nat . n S Z ≃ n) (Λ X . λ ih . ρ+ ih - β) β .
 
 
 addId0 ◂ Π n : Nat . add Z n ≃ n =
- λ _ . β . 
+ λ n . β . 
 
 addId ◂ Π n : Nat . add n Z ≃ n =
   λ n . (NatRebuild n).

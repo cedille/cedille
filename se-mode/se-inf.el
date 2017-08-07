@@ -9,7 +9,7 @@
 started with `start-process'."))
 
 (make-variable-buffer-local
-  (defvar se-inf-json nil "The direct result of reading the JSON from the backend (for debugging)."))
+  (defvar se-inf-json nil "The direct rest of reading the JSON from the backend (for debugging)."))
 
 (make-variable-buffer-local
  (defvar se-inf-queue nil
@@ -17,7 +17,7 @@ started with `start-process'."))
 
 ; might need to UNDO:
 (make-variable-buffer-local
- (defvar se-inf-response-hook nil
+ (defvar se-inf-respose-hook nil
   "Functions to be evaluated after response of `se-inf-ask',
 response given as only argument.  If `se-inf-response-is-json' is
 non-nil the response is parsed as JSON first."))
@@ -109,8 +109,7 @@ Should be called at the start of an `se-mode'.
 
 When NO-AUTO-KILL is nil the user will not be queried about PROC
 still being active upon exiting emacs."
-  (with-silent-modifications
-    (se-inf-put-remove-interactive-property 1 (+ 1 (buffer-size))))
+  (se-inf-put-remove-interactive-property 1 (+ 1 (buffer-size)))
   (unless (process-get proc 'se-inf-queue)
     (process-put proc 'se-inf-queue (tq-create proc))
     (process-put proc 'se-inf-auto-kill (not no-auto-kill)))
@@ -129,7 +128,7 @@ will kill the process, should be skipped if process is shared."
     (setq header-line-format nil)
     (setq current (nth 1 (cdr (car (car se-inf-queue)))))
     (setq symbol (nth 0 current))
-    (setq span (nth 1 current))
+    (setq span (nth 3 current))
     (setq pins (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive))
     (setq pins (se-inf-filter-pins-symbol symbol pins '()))
     (se-unpin-list pins)))
@@ -177,14 +176,14 @@ RESTORE should be t if you want this call re-done during batch processing."
 	 (restore (nth 5 closure))
 	 (buffer (nth 6 closure)))
     (with-current-buffer buffer
+      (se-inf-next-header)
       (setq pair
 	    (cond
-	     ((null response-fn) nil) ; Make sure response-fn is non-nil
+	     ((null response-fn) nil)
 	     ((and span extra) (funcall response-fn response span extra))
 	     (span (funcall response-fn response span))
 	     (extra (funcall response-fn response extra))
 	     (t (funcall response-fn response))))
-      (se-inf-next-header)
       (when (and span pair) (se-inf-add-to-span span pair))
       (when restore
 	(setq restore-data (list q-str-or-fn (or batch-fn response-fn) extra))
@@ -227,7 +226,7 @@ RESTORE should be t if you want this call re-done during batch processing."
 	   (extra (nth 2 data)))
       (if span
 	  (se-inf-interactive q-str-or-fn response-fn :span span :extra extra
-			      :header (format "Restoring interactive calls (%s/%s)" queued total))
+			      :header (format "Recomputing interactive calls (%s/%s)" queued total))
 	  (se-unpin h))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
@@ -269,11 +268,15 @@ RESTORE should be t if you want this call re-done during batch processing."
   "Sends parse request to current process.  Uses the current
 buffer's file unless FILE is non-nil."
   (interactive)
+  ;(if (equal 0 (buffer-size))
+  ;    (progn
+;	(message "Empty file")
+;	(se-navigation-mode -1))
     (run-hooks 'se-inf-parse-hook)
     (setq se-inf-response-finished nil)
     (setq se-inf-interactive-restored nil)
     (setq ms (funcall se-inf-get-message-from-filename (or file (buffer-file-name))))
-    (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing"))
+    (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing"));)
 
 (defun se-inf-get-spans (json)
   "Returns spans from default formatted JSON."
@@ -325,17 +328,19 @@ buffer's file unless FILE is non-nil."
 
 (defun se-inf-remove-overlays (&rest args)
   "Removes all overlays from the current buffer."
-  (remove-overlays (point-min) (point-max)))
+  (with-silent-modifications
+    (remove-overlays (point-min) (point-max))))
 
 (defun se-inf-error-overlay (span)
   "Creates an overlay over SPAN to indicate an error."
-  (let ((overlay (make-overlay (se-term-start span)
-			       (se-term-end span))))
-    (overlay-put overlay 'info (se-span-data (se-first-span span)))
-    (overlay-put overlay 'face "error")
-    (overlay-put overlay 'modification-hooks
-		 (list (lambda (overlay &rest args)
-			 (overlay-put overlay 'face nil))))))
+  (with-silent-modifications
+    (let ((overlay (make-overlay (se-term-start span)
+				 (se-term-end span))))
+      (overlay-put overlay 'info (se-span-data (se-first-span span)))
+      (overlay-put overlay 'face "error")
+      (overlay-put overlay 'modification-hooks
+		   (list (lambda (overlay &rest args)
+			   (overlay-put overlay 'face nil)))))))
 
 (defun se-inf-kill-emacs-advice (orig &optional arg)
   "Don't query about killing processes if they have
@@ -370,12 +375,12 @@ the response is processed or on user inturruption."
   ; This clears all former 'insert-in-front-hooks properties,
   ; but this will have no consequence since the text is inserted
   ; and this property shouldn't matter on fresh text
-  (put-text-property start end 'insert-in-front-hooks (list #'se-inf-remove-interactive-props)))
+  (with-silent-modifications
+    (put-text-property start end 'insert-in-front-hooks (list #'se-inf-remove-interactive-props))))
 
 (defun se-inf-remove-interactive-props (start end)
   "Removes se-interactive properties from inserted text if it was pasted"
-  (put-text-property start end 'se-pin nil)
-  (se-inf-put-remove-interactive-property start end))
+  (with-silent-modifications (put-text-property start end 'se-pin nil)))
 
 (defun se-inf-escape-string (text)
   "Replaces all \\n and \\\" characters with \\\\n and \\\\\""

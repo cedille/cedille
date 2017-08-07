@@ -127,6 +127,6 @@ MODE.  Navigation mode keymaps will vary from usage of
 
 (defun se-navi-mark-deactivated-hook ()
   "Sets `se-mode-selected' to nil so that the appearance matches reality"
-  (setq se-mode-selected nil))
+  (se-mode-clear-selected))
 
 (provide 'se-navi)

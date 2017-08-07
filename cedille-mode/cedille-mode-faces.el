@@ -276,21 +276,4 @@
     (cedille-mode-highlight-hole-overlay (cdr spans))))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (provide 'cedille-mode-faces)

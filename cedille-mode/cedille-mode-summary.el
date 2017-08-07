@@ -1,4 +1,5 @@
 (load-library "cedille-mode-parent")
+(require 'cedille-mode-info)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary retrieval
@@ -15,7 +16,7 @@
     (let* ((data (se-span-data span))
             (summary (cdr (assoc 'summary data))))
         (if summary
-            (puthash (cedille-mode-format-summary-text summary)
+            (puthash (cedille-mode-format-summary-text summary);(cedille-mode-markup-propertize-text summary))
                         (cons nil (se-span-start span)) ; nil signifies location within current file 
                         table) 
             () ; do nothing if summary does not exist
@@ -87,9 +88,10 @@
     " Summary"  ; indicator for mode line
     (let ((map (make-sparse-keymap)))
       (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
-      (define-key map (kbd "j") 'cedille-mode-summary-jump)         ; jump to selected line
+      (define-key map (kbd "m") 'cedille-mode-summary-jump)         ; jump to selected line
       (define-key map (kbd "s") #'cedille-mode-close-active-window) ; close summary mode
       (define-key map (kbd "S") #'cedille-mode-close-active-window) ; close summary mode
+      (define-key map (kbd "h") (make-cedille-mode-info-display-page "summary mode"))
       map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -110,11 +112,14 @@
         (setq buffer-read-only nil)
         (erase-buffer)
         (insert display-string)
+	;(cedille-buffer-display-text display-string)
         (setq buffer-read-only t)
         (setq cedille-mode-summary-table table)
         (make-local-variable 'cedille-mode-summary-table)
         (setq cedille-mode-main-buffer main-buffer)
         (make-local-variable 'cedille-mode-main-buffer)
+	(message "updating summary buffer jumps...")
+	;(cedille-buffer-update-jumps)
     )
     (cedille-mode-rebalance-windows)
 )

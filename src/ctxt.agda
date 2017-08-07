@@ -4,7 +4,6 @@ open import lib
 open import cedille-types
 open import general-util
 open import syntax-util
-open import to-string
 
 location : Set
 location = string × posinfo -- file path and starting position in the file 

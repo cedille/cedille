@@ -472,12 +472,18 @@ in the parse tree, and updates the Cedille info buffer."
 
   (setq-local comment-start "%")
   
+  ;(when (equal 0 (buffer-size))
+   ; (insert "\n")
+    ;(set-buffer-modified-p nil)
+    ;(goto-char 0))
+  ; If the file has no characters, the below line causes an error. That is why the above line exists.
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
-
-  (add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
+  ;(add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
+  (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
+  (add-hook 'se-inf-init-spans-hook 'cedille-mode-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
@@ -506,7 +512,7 @@ in the parse tree, and updates the Cedille info buffer."
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")
           ("\\E" "∃")
 
-          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ; add some more of these
+          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ("\\\\" "\\"); add some more of these
  ))
 
 (provide 'cedille-mode)
