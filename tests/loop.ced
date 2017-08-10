@@ -1,0 +1,19 @@
+
+Cast ◂ Π A : ★ . Π B : ★ . ★ =
+  λ A : ★ . λ B : ★ .
+  Π a : A . ι b : B . b ≃ a .
+
+cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =
+  Λ A . Λ B . Λ c . λ a .
+  (χ (ι _ : A . B) - [ a , (c a).1 { ρ (c a).2 - β } ]).2 .
+
+self ◂ ∀ X : ★ . Cast · X · (X ➔ X) ➾ X ➔ X
+  = Λ X . Λ c . λ x . (cast · X · (X ➔ X) -c x) x .
+
+omega ◂ ∀ X : ★ . Cast · X · (X ➔ X) ➾ Cast · (X ➔ X) · X ➾ X
+  = Λ X . Λ c1 . Λ c2 . (self · X -c1) (cast · (X ➔ X) · X -c2 (self · X -c1)) .
+
+loop ◂ ∀ X : ★ . ∀ c1 : Cast · X · (X ➔ X) . ∀ c2 : Cast · (X ➔ X) · X .
+  ∀ x : X . x ≃ omega · X -c1 -c2
+  = Λ X . Λ c1 . Λ c2 . λ x . β .
+
