@@ -13,7 +13,7 @@ SNatFmap ◂ RecFunctor · SNatF = Λ A . Λ B . λ c .
 
 SNat ◂ ★ = Rec · SNatF .
 
-Szero ◂ SNat = recFold · SNatF -SNatFmap (SNatFzero · (Rec · SNatF) unit) .
-Ssuc ◂ SNat ➔ SNat = λ n . recFold · SNatF -SNatFmap (SNatFsuc · (Rec · SNatF) n) .
+Szero ◂ SNat = (recFold · SNatF -SNatFmap).1 (SNatFzero · (Rec · SNatF) unit) .
+Ssuc ◂ SNat ➔ SNat = λ n . (recFold · SNatF -SNatFmap).1 (SNatFsuc · (Rec · SNatF) n) .
 
 test ◂ SNat = Ssuc (Ssuc Szero).

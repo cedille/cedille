@@ -24,11 +24,11 @@ recIn ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) ·
           -(fmap · (Rec · F) · X (recCast · F · X -c)) x),
       λ a . β{a} ].
 
-recOut ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Rec · F ➔ F · (Rec · F) =
-  Λ F . Λ fmap . λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)).
+recOut ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) =
+  Λ F . Λ fmap . [λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)) , λ x . β{x} ].
 
-recFold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ (F · (Rec · F)) ➔ (Rec · F) = Λ F . Λ fmap . (recIn · F -fmap).1.
-recUnfold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ (Rec · F) ➔ (F · (Rec · F)) = recOut .
+recFold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) = recIn .
+recUnfold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) = recOut .
 
 recIso1 ◂ ∀ a : Top . recFold (recUnfold a) ≃ a = Λ a . β.
 recIso2 ◂ ∀ a : Top . recUnfold (recFold a) ≃ a = Λ a . β.
