@@ -42,9 +42,15 @@ open import to-string
 open import toplevel-state
 open import interactive-cmds
 
+open import rkt
+import normalize-nt-cmd
+
 opts : Set
 opts = options-types.opts
 
+{-------------------------------------------------------------------------------
+  .cede support
+-------------------------------------------------------------------------------}
 dot-cedille-directory : string → string 
 dot-cedille-directory dir = combineFileNames dir ".cedille"
 
@@ -75,7 +81,7 @@ read-cede-file ced-path =
         finish (just ss) | _ = forceFileRead ss >> return (ff , ss)
   
 add-cedille-extension : string → string
-add-cedille-extension x = x ^ "." ^ cedille-extension 
+add-cedille-extension x = x ^ "." ^ cedille-extension
 
 find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO string
 find-imported-file [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
@@ -113,13 +119,23 @@ opts-get-include-path : opts → 𝕃 string
 opts-get-include-path options-types.OptsNil = []
 opts-get-include-path (options-types.OptsCons (options-types.Lib ps) oo) = (paths-to-𝕃string ps) ++ opts-get-include-path oo
 opts-get-include-path (options-types.OptsCons options-types.NoCedeFiles oo) = opts-get-include-path oo
+opts-get-include-path (options-types.OptsCons options-types.NoRktFiles oo) = opts-get-include-path oo
 --opts-get-include-path (options-types.OptsCons _ oo) = opts-get-include-path oo
 
 {- see if "no-cede-files" is turned on in the options file -}
 opts-get-no-cede-files : opts → 𝔹
 opts-get-no-cede-files options-types.OptsNil = ff
 opts-get-no-cede-files (options-types.OptsCons options-types.NoCedeFiles oo) = tt
+opts-get-no-cede-files (options-types.OptsCons options-types.NoRktFiles oo) = opts-get-no-cede-files oo
 opts-get-no-cede-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-cede-files oo
+
+{- see if "no-rkt-files" is turned on in the options file -}
+opts-get-no-rkt-files : opts → 𝔹
+opts-get-no-rkt-files options-types.OptsNil = ff
+opts-get-no-rkt-files (options-types.OptsCons options-types.NoCedeFiles oo) = opts-get-no-rkt-files oo
+opts-get-no-rkt-files (options-types.OptsCons options-types.NoRktFiles oo) = tt
+opts-get-no-rkt-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-rkt-files oo
+
 
 {- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
 reparse : toplevel-state → (filename : string) → IO toplevel-state
@@ -133,21 +149,17 @@ reparse st filename =
   where processText : string → IO include-elt
         processText x with string-to-𝕃char x
         processText x | s with runRtn s
-        processText x | s | inj₁ cs =
-           return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
+        processText x | s | inj₁ cs = return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
         processText x | s | inj₂ r with rewriteRun r
         processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] with cws-parse.runRtn s
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₁ cs =
-          return (error-include-elt ("This shouldn't happen in " ^ filename ^ " at position "
-                                    ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₁ cs = return (error-include-elt ("This shouldn't happen in " ^ filename ^ " at position "
+                                                                                  ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
         processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 with cws-parse.rewriteRun r2
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | cws-run.ParseTree (cws-types.parsed-start t2) :: [] =
-          find-imported-files (toplevel-state.include-path st) (get-imports t) >>= λ deps → 
-          return (new-include-elt filename deps t t2)
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | _ =
-          return (error-include-elt ("Parse error in file " ^ filename ^ "."))
-        processText x | s | inj₂ r | _ =
-          return (error-include-elt ("Parse error in file " ^ filename ^ "."))
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | cws-run.ParseTree (cws-types.parsed-start t2) :: [] = find-imported-files (toplevel-state.include-path st)
+                                                                                                                                        (get-imports t) >>= λ deps → return
+                                                                                                                                        (new-include-elt filename deps t t2)
+        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
+        processText x | s | inj₂ r | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date use-cede-files filename ie = 
@@ -207,7 +219,7 @@ update-asts : toplevel-state → (filename : string) → IO toplevel-state
 update-asts s filename = update-astsh empty-stringset s filename >>= λ p → 
   return (snd p)
 
-{- this function checks the given file (if necessary), updates .cede files (again, if necessary), and replies on stdout if appropriate -}
+{- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
 checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
 checkFile s filename should-print-spans = 
 --  putStrLn ("checkFile " ^ filename) >>
@@ -216,24 +228,24 @@ checkFile s filename should-print-spans =
  
   where reply : toplevel-state → IO ⊤
         reply s with get-include-elt-if s filename
-        reply s | nothing = 
-           putStrLn (global-error-string 
-                     ("Internal error looking up information for file " ^ filename ^ "."))
+        reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
            if should-print-spans then
              putStrLn (include-elt-spans-to-string ie)
            else return triv
         finish : toplevel-state → IO toplevel-state
         finish s with s
-        finish s | mk-toplevel-state use-cede ip mod is Γ = 
+        finish s | mk-toplevel-state use-cede make-rkt ip mod is Γ = 
           writeo mod >>
           reply s >>
-          return (mk-toplevel-state use-cede ip [] is Γ)
+          return (mk-toplevel-state use-cede make-rkt ip [] is Γ)
           where writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
                  let ie = get-include-elt s f in
                    (if use-cede then (write-cede-file f ie) else (return triv)) >>
+                   -- (putStrLn (ctxt-to-string (get-ctxt-from-toplevel-state s))) >> -- for debugging purposes only
+                   (if make-rkt then (write-rkt-file f (normalize-nt-cmd.get-ctxt-from-toplevel-state s)) else (return triv)) >>
                    writeo us
 
 
@@ -284,7 +296,7 @@ processArgs : opts → 𝕃 string → IO ⊤
 -- this is the case for when we are called with a single command-line argument, the name of the file to process
 processArgs oo (input-filename :: []) =
   canonicalizePath input-filename >>= λ input-filename → 
-  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
+  checkFile (new-toplevel-state (takeDirectory input-filename :: opts-get-include-path oo) (~ (opts-get-no-cede-files oo)) (~ (opts-get-no-rkt-files oo)) )
     input-filename ff {- should-print-spans -} >>= finish input-filename
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
@@ -292,7 +304,7 @@ processArgs oo (input-filename :: []) =
           if include-elt.err ie then (putStrLn (include-elt-spans-to-string ie)) else return triv
 
 -- this is the case where we will go into a loop reading commands from stdin, from the fronted
-processArgs oo [] = readCommandsFromFrontend (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)))
+processArgs oo [] = readCommandsFromFrontend (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)) (~ (opts-get-no-rkt-files oo)))
 
 -- all other cases are errors
 processArgs oo xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"

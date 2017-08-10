@@ -24,7 +24,7 @@ open noderiv {- from run.agda -}
 {- Getters/Converters -}
 
 ts-to-ctxt : toplevel-state → ctxt
-ts-to-ctxt (mk-toplevel-state _ _ _ _ Γ) = Γ
+ts-to-ctxt (mk-toplevel-state _ _ _ _ _ Γ) = Γ
 
 string-to-𝔹 : string → 𝔹
 string-to-𝔹 "tt" = tt

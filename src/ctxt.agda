@@ -46,6 +46,29 @@ data ctxt-info : Set where
 sym-info : Set
 sym-info = ctxt-info × location
 
+
+is-term-level : ctxt-info → 𝔹
+is-term-level (term-decl _) = tt
+is-term-level (term-def _ _) = tt
+is-term-level (term-udef _) = tt
+is-term-level _ = ff
+
+ctxt-info-to-string : ctxt-info → string
+ctxt-info-to-string (term-decl type) = "(term-decl)"
+ctxt-info-to-string (term-def term type) = "(term-def)"
+ctxt-info-to-string (term-udef term) = "(term-udef)"
+ctxt-info-to-string (type-decl type) = "(type-decl)"
+ctxt-info-to-string (type-def type kind) = "(type-def)"
+ctxt-info-to-string (type-udef type) = "(type-udef)"
+ctxt-info-to-string (kind-def params kind) = "(kind-def)"
+ctxt-info-to-string (rename-def var) = "(rename-def)"
+ctxt-info-to-string (rec-def type kind) = "(rec-def)"
+ctxt-info-to-string (var-decl) = "(var-decl)" 
+
+sym-info-to-string : sym-info → string
+sym-info-to-string (ctxt-info , {-location-}string , posinfo) = ctxt-info-to-string ctxt-info ^ " " ^ string ^ " " ^ posinfo
+    
+
 data ctxt : Set where
   mk-ctxt : (filename : string) →
             (syms : trie (𝕃 string)) →             -- map each filename to the symbols declared in that file
@@ -276,7 +299,8 @@ ctxt-set-symbol-occurrences (mk-ctxt filename syms i symb-occs) new-symb-occs = 
 
 ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt filename syms i symb-occs) =
-    "filename:  " ^ filename ^ 
-    ", syms:  " ^ (trie-to-string "," (𝕃-to-string (λ x → x) ",") syms) ^ 
-    -- i : trie (ctxt-info x location)  ", i:  " ^ (trie-to-string "," (conversion function) i)
-    ", symbol-occurrences:  " ^ (trie-to-string ":" (𝕃-to-string (λ { (x , y , z) → "(" ^ x ^ "," ^ y ^ "," ^ z ^ ")" }) ",") symb-occs)
+    "filename: " ^ filename ^ -- filename
+    ",\nsyms: " ^ (trie-to-string "," (𝕃-to-string (λ x → x) ",") syms) ^ -- map each filename to the symbols declared in that file
+    -- the function that converts i to string still needs implemented
+    "i:\n" ^ (trie-to-string "," sym-info-to-string i) ^ -- map symbols (from Cedille files) to their ctxt-info and location
+    "symbol-occurrences: " ^ (trie-to-string ":" (𝕃-to-string (λ { (x , y , z) → "(" ^ x ^ "," ^ y ^ "," ^ z ^ ")" }) ",") symb-occs) -- map symbols to a list of definitions they occur in (and relevant file info)

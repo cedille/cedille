@@ -12,6 +12,7 @@ OptsCons : opts -> ows opt opts .
 
 Lib : opt -> 'import-directories' paths ows '.'.
 NoCedeFiles : opt -> 'no-cede-files' ows '.'.
+NoRktFiles : opt -> 'no-rkt-files' ows '.'.
 
 PathsNil : paths -> .
 PathsCons : paths -> ws path paths .

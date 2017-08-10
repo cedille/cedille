@@ -72,17 +72,18 @@ set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err 
 record toplevel-state : Set where
   constructor mk-toplevel-state
   field use-cede-files : 𝔹
+        make-rkt-files : 𝔹
         include-path : 𝕃 string
         files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
 
-new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : 𝔹) → toplevel-state
-new-toplevel-state ip should-use-cede-files = record { use-cede-files = should-use-cede-files ; include-path = ip ; files-with-updated-spans = [] ;
-                                 is = empty-trie ; Γ = new-ctxt "[nofile]" }
-
+new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : 𝔹) → (should-make-rkt-files : 𝔹)  → toplevel-state
+new-toplevel-state ip should-use-cede-files should-make-rkt-files = record { use-cede-files = should-use-cede-files ; make-rkt-files = should-make-rkt-files ; include-path = ip ;
+                                                                             files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" }
+                                                                             
 toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
-toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
+toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
 
 get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
@@ -92,6 +93,7 @@ get-include-elt : toplevel-state → (filename : string) → include-elt
 get-include-elt s filename with get-include-elt-if s filename
 get-include-elt s filename | nothing = blank-include-elt {- should not happen -}
 get-include-elt s filename | just ie = ie
+
 
 set-include-elt : toplevel-state → string → include-elt → toplevel-state 
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
@@ -119,8 +121,9 @@ include-elt-to-string ie =
     " "
 
 toplevel-state-to-string : toplevel-state → string
-toplevel-state-to-string (mk-toplevel-state use-cede-file include-path files-with-updated-spans is context) =
+toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files-with-updated-spans is context) =
     "use-cede-file:  " ^ (𝔹-to-string use-cede-file) ^
+    "make-rkt-file:  " ^ (𝔹-to-string make-rkt-file) ^
     " include-path:  " ^ (𝕃-to-string (λ x → x) "," include-path) ^ 
     " files-with-updated-spans:  " ^ (𝕃-to-string (λ x → x) "," files-with-updated-spans) ^ 
     " is:  " ^ (trie-to-string "," include-elt-to-string is) ^ 
