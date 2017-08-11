@@ -14,13 +14,13 @@ cast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast · A · B ➾ Π a : A . B a =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-castV2L ◂ ∀ A : ★ . ∀ n : Nat . Cast · (Vec · A n) · (λ xs : Vec · A n . List · A)
+castV2L ◂ ∀ A : ★ . ∀ n : Nat . Cast · (Vec · A n) · (λ xs : Vec · A n . ι ys : List · A . n ≃ length ys)
   = Λ A . elimVec · A ·
-  (λ n : Nat . λ xs : Vec · A n . ι ys : List · A . ys ≃ xs)
-  [ nilL · A , β{nilL · A} ]
+  (λ n : Nat . λ xs : Vec · A n . ι ys : (ι ys : List · A . n ≃ length ys) . ys ≃ xs)
+  [ [ nilL · A , β{nilL · A} ] , β{[ nilL · A , β{nilL · A} ]} ]
   (Λ n . Λ xs . λ x . λ ih .
-    [ consL · A x ih.1 ,
-      ρ ih.2 - β{consL · A x ih.1} ]) .
+    [ [ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]
+    , ρ ih.2 - β{[ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]} ] ).
 
 castL2V ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (length · A xs))
   = Λ A . elimList · A ·
@@ -32,10 +32,10 @@ castL2V ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
+v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ι ys : List · A . n ≃ length ys
   = Λ A . Λ n . cast
   · (Vec · A n)
-  · (λ xs : Vec · A n . List · A)
+  · (λ xs : Vec · A n . ι ys : List · A . n ≃ length ys)
   -(castV2L · A -n) .
 
 l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
