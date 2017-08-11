@@ -1,0 +1,54 @@
+import Nat.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+List' ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . X ➔ (A ➔ X ➔ X) ➔ X.
+
+nilL' ◂ ∀ A : ★ . List' · A =
+  Λ A . Λ X . λ cN . λ cC . cN .
+
+consL' ◂ ∀ A : ★ . A ➔ List' · A ➔ List' · A =
+  Λ A . λ x . λ xs . Λ X . λ cN . λ cC . cC x (xs · X cN cC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ListParam ◂ Π A : ★ . List' · A ➔ ★ =
+  λ A : ★ . λ xs' : List' · A .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ cN : X . ∀ cC : A ➔ X ➔ X .
+  P cN ➔
+  (∀ xs : X . Π x : A . P xs ➔ P (cC x xs)) ➔
+  P (xs' · X cN cC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+List ◂ ★ ➔ ★ = λ A : ★ .
+  ι xs' : List' · A . ι _ : (xs' nilL' consL' ≃ xs') . ListParam · A xs' .
+
+nilL ◂ ∀ A : ★ . List · A = Λ A .
+  [ nilL' · A ,
+  [ β{nilL' · A} ,
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+  pN ] ] .
+
+consL ◂ ∀ A : ★ . A ➔ List · A ➔ List · A = Λ A . λ x . λ xs .
+  [ consL' · A x xs.1 , [ ρ+ xs.2.1 - β{consL' · A x xs.1} ,
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+  pC -(xs.1 · X cN cC) x (xs.2.2 · X · P -cN -cC pN pC) ] ] .
+
+elimList ◂ ∀ A : ★ . ∀ P : List · A ➔ ★ .
+  P (nilL · A) ➔
+  (∀ xs : List · A . Π x : A . P xs ➔ P (consL · A x xs)) ➔
+  Π xs : List · A . P xs
+  = Λ A . Λ P . λ pN . λ pC . λ xs .
+  ρ ς xs.2.1 -
+  (xs.2.2 · (List · A) · P -(nilL · A) -(consL · A) pN pC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+length ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . elimList · A · (λ xs : List · A . Nat)
+  zero
+  (Λ xs . λ x . suc) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

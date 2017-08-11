@@ -1,0 +1,44 @@
+import Nat.
+import List.
+import Vec.
+import Casts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendV ◂ ∀ A : ★ .
+  ∀ n : Nat . Vec · A n ➔
+  ∀ m : Nat . Vec · A m ➔
+  Vec · A (add n m)
+  = Λ A . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n .
+    ∀ m : Nat . Vec · A m ➔ Vec · A (add n m))
+  (Λ m . λ ys . ys)
+  (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . consV · A -(add n m) x (ih -m ys)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendNilV ◂ ∀ A : ★ .
+  ∀ n : Nat . Π xs : Vec · A n . appendV xs nilV ≃ xs
+  = Λ A . elimVec · A
+  · (λ n : Nat . λ xs : Vec · A n . appendV xs nilV ≃ xs)
+  β
+  (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
+  = Λ A . λ xs . λ ys . v2l · A
+  -(add (length · A xs) (length · A ys))
+  (appendV · A
+    -(length · A xs)
+    (l2v · A xs)
+    -(length · A ys)
+    (l2v · A ys)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendNilL ◂ ∀ A : ★ . Π xs : List · A . appendL xs nilL ≃ xs
+  = Λ A . λ xs .
+  appendNilV · A -(length · A xs) (l2v · A xs) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
