@@ -48,7 +48,6 @@ substh-term Γ ρ t x (Unfold pi t') = Unfold pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Beta pi ot) = Beta pi (substh-optTerm Γ ρ t x ot)
 substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
 substh-term Γ ρ t x (Omega pi t') = Omega pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (InlineDef pi pi' x' t' pi'') = InlineDef pi pi' x' (substh-term Γ ρ t x t') pi''
 substh-term Γ ρ t x (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ t x t1) (substh-term Γ ρ t x t2) (substh-optTerm Γ ρ t x ot) pi'
 substh-term Γ ρ t x (IotaProj t' n pi) = IotaProj (substh-term Γ ρ t x t') n pi
 substh-term Γ ρ t x (PiInj pi n t') = PiInj pi n (substh-term Γ ρ t x t')

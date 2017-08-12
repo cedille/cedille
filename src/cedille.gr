@@ -10,22 +10,14 @@ File : start -> ! ows cmds ows ! .
 CmdsStart : cmds -> .
 CmdsNext : cmds -> cmd ws cmds .
 
-VarEq : maybeVarEq -> ! var ows '=' ows.
-NoVarEq : maybeVarEq -> .
-
-KvarEq : maybeKvarEq -> ! kvar ows '=' ows .
-NoKvarEq : maybeKvarEq -> .
-
 Type : maybeCheckType -> ows '◂' ows type .
 NoCheckType : maybeCheckType -> .
-
-Kind : checkKind -> ows '◂' ows kind .
 
 ParamsCons : params -> ows decl params.
 ParamsNil : params -> .
 
 DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows '.' ! .
-DefType : cmd -> ! var checkKind ows '=' ows type ows '.' ! .
+DefType : cmd -> ! var ows '◂' ows kind ows '=' ows type ows '.' ! .
 DefKind : cmd -> ! kvar params ows '=' ows kind ows '.' ! .
 
 Decl : decl -> ! '(' ows ! var ows ':' ows tk ows ')' !.
@@ -69,7 +61,6 @@ Var : pterm -> ! var .
 Parens : pterm -> ! '(' ows term ows ')' ! . 
 IotaProj : pterm -> pterm ows '.' ows num ! .
 IotaPair : pterm -> ! '[' ows term ows ',' ows term optTerm ows ']' ! .
-InlineDef : pterm -> ! '[' ows ! var ows '=' ows term ows ']' !.
 Hole : pterm -> ! '●' .
 
 Atype : maybeAtype -> ows atype.

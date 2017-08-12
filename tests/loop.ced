@@ -15,5 +15,6 @@ omega ◂ ∀ X : ★ . Cast · X · (X ➔ X) ➾ Cast · (X ➔ X) · X ➾ X
 
 loop ◂ ∀ X : ★ . ∀ c1 : Cast · X · (X ➔ X) . ∀ c2 : Cast · (X ➔ X) · X .
   ∀ x : X . x ≃ omega · X -c1 -c2
-  = Λ X . Λ c1 . Λ c2 . Λ x . β .
+  = ● .
 
+% will loop with this term instead of the above hole: Λ X . Λ c1 . Λ c2 . Λ x . β .

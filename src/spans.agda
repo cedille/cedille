@@ -653,16 +653,6 @@ whitespace-span pi pi'  = mk-span "Whitespace" pi pi' [ not-for-navigation ]
 comment-span : posinfo → posinfo → span
 comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
 
-InlineDef-span : ctxt → posinfo → posinfo → var → term → posinfo → checking-mode → 𝕃 tagged-val → span
-InlineDef-span Γ pi pi' x t pi'' check tvs =
-  mk-span "Inline definition" pi pi''
-    (checking-data check :: 
-    ll-data-term ::
-    (if (is-open Γ skip-erased t) then
-      [ error-data "The body of this inline definition is open (but closed terms only are allowed)."]
-     else [])
-    ++ tvs)
-
 IotaPair-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
 IotaPair-span pi pi' c tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: checking-data c :: tvs)
 

@@ -68,7 +68,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x NoC
         h Γ (t , nothing) = ctxt-term-udef pi x t Γ
         h Γ (t , just tp) = ctxt-term-def pi x t tp Γ
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x (Kind k) tp pi') tt {- check -} =
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x k tp pi') tt {- check -} =
     set-ctxt Γ ≫span
     check-kind Γ k ≫span 
     check-type Γ tp (just k) ≫span 
@@ -79,7 +79,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x (Ki
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
            spanMr (mk-toplevel-state use-cede make-rkt ip mod is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x (Kind k) tp pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x k tp pi') ff {- skip checking -} = 
   check-redefined pi x (mk-toplevel-state use-cede make-rkt ip mod is Γ)
     (spanMr (mk-toplevel-state use-cede make-rkt ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp tt) k Γ)))
 

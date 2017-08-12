@@ -54,13 +54,10 @@ mutual
     All : binder
     Pi : binder
 
-  data checkKind : Set where 
-    Kind : kind → checkKind
-
   data cmd : Set where 
     DefKind : posinfo → kvar → params → kind → posinfo → cmd
     DefTerm : posinfo → var → maybeCheckType → term → posinfo → cmd
-    DefType : posinfo → var → checkKind → type → posinfo → cmd
+    DefType : posinfo → var → kind → type → posinfo → cmd
     Import : posinfo → fpth → posinfo → cmd
 
   data cmds : Set where 
@@ -114,17 +111,9 @@ mutual
     Erased : maybeErased
     NotErased : maybeErased
 
-  data maybeKvarEq : Set where 
-    KvarEq : posinfo → kvar → maybeKvarEq
-    NoKvarEq : maybeKvarEq
-
   data maybeMinus : Set where 
     EpsHanf : maybeMinus
     EpsHnf : maybeMinus
-
-  data maybeVarEq : Set where 
-    NoVarEq : maybeVarEq
-    VarEq : posinfo → var → maybeVarEq
 
   data optClass : Set where 
     NoClass : optClass
@@ -157,7 +146,6 @@ mutual
     Delta : posinfo → term → term
     Epsilon : posinfo → leftRight → maybeMinus → term → term
     Hole : posinfo → term
-    InlineDef : posinfo → posinfo → var → term → posinfo → term
     IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
@@ -217,7 +205,6 @@ data ParseTreeT : Set where
   parsed-args : args → ParseTreeT
   parsed-arrowtype : arrowtype → ParseTreeT
   parsed-binder : binder → ParseTreeT
-  parsed-checkKind : checkKind → ParseTreeT
   parsed-cmd : cmd → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
   parsed-decl : decl → ParseTreeT
@@ -230,9 +217,7 @@ data ParseTreeT : Set where
   parsed-maybeAtype : maybeAtype → ParseTreeT
   parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
-  parsed-maybeKvarEq : maybeKvarEq → ParseTreeT
   parsed-maybeMinus : maybeMinus → ParseTreeT
-  parsed-maybeVarEq : maybeVarEq → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
   parsed-optTerm : optTerm → ParseTreeT
   parsed-optType : optType → ParseTreeT
@@ -421,13 +406,10 @@ mutual
   binderToString (All) = "All" ^ ""
   binderToString (Pi) = "Pi" ^ ""
 
-  checkKindToString : checkKind → string
-  checkKindToString (Kind x0) = "(Kind" ^ " " ^ (kindToString x0) ^ ")"
-
   cmdToString : cmd → string
   cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (paramsToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (DefTerm x0 x1 x2 x3 x4) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  cmdToString (DefType x0 x1 x2 x3 x4) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (checkKindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefType x0 x1 x2 x3 x4) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (kindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (Import x0 x1 x2) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
 
   cmdsToString : cmds → string
@@ -481,17 +463,9 @@ mutual
   maybeErasedToString (Erased) = "Erased" ^ ""
   maybeErasedToString (NotErased) = "NotErased" ^ ""
 
-  maybeKvarEqToString : maybeKvarEq → string
-  maybeKvarEqToString (KvarEq x0 x1) = "(KvarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ ")"
-  maybeKvarEqToString (NoKvarEq) = "NoKvarEq" ^ ""
-
   maybeMinusToString : maybeMinus → string
   maybeMinusToString (EpsHanf) = "EpsHanf" ^ ""
   maybeMinusToString (EpsHnf) = "EpsHnf" ^ ""
-
-  maybeVarEqToString : maybeVarEq → string
-  maybeVarEqToString (NoVarEq) = "NoVarEq" ^ ""
-  maybeVarEqToString (VarEq x0 x1) = "(VarEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
 
   optClassToString : optClass → string
   optClassToString (NoClass) = "NoClass" ^ ""
@@ -524,7 +498,6 @@ mutual
   termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
-  termToString (InlineDef x0 x1 x2 x3 x4) = "(InlineDef" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
@@ -570,7 +543,6 @@ ParseTreeToString (parsed-arg t) = argToString t
 ParseTreeToString (parsed-args t) = argsToString t
 ParseTreeToString (parsed-arrowtype t) = arrowtypeToString t
 ParseTreeToString (parsed-binder t) = binderToString t
-ParseTreeToString (parsed-checkKind t) = checkKindToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
@@ -583,9 +555,7 @@ ParseTreeToString (parsed-lterms t) = ltermsToString t
 ParseTreeToString (parsed-maybeAtype t) = maybeAtypeToString t
 ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
-ParseTreeToString (parsed-maybeKvarEq t) = maybeKvarEqToString t
 ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
-ParseTreeToString (parsed-maybeVarEq t) = maybeVarEqToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-optTerm t) = optTermToString t
 ParseTreeToString (parsed-optType t) = optTypeToString t
@@ -763,16 +733,8 @@ mutual
   norm-optClass x = x
 
   {-# TERMINATING #-}
-  norm-maybeVarEq : (x : maybeVarEq) → maybeVarEq
-  norm-maybeVarEq x = x
-
-  {-# TERMINATING #-}
   norm-maybeMinus : (x : maybeMinus) → maybeMinus
   norm-maybeMinus x = x
-
-  {-# TERMINATING #-}
-  norm-maybeKvarEq : (x : maybeKvarEq) → maybeKvarEq
-  norm-maybeKvarEq x = x
 
   {-# TERMINATING #-}
   norm-maybeErased : (x : maybeErased) → maybeErased
@@ -840,10 +802,6 @@ mutual
   {-# TERMINATING #-}
   norm-cmd : (x : cmd) → cmd
   norm-cmd x = x
-
-  {-# TERMINATING #-}
-  norm-checkKind : (x : checkKind) → checkKind
-  norm-checkKind x = x
 
   {-# TERMINATING #-}
   norm-binder : (x : binder) → binder

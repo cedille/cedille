@@ -108,7 +108,6 @@ term-to-stringh Γ toplevel p (Var pi x) = get-pos x Γ
 term-to-stringh Γ toplevel p (Beta _ ot) = "β" ^ optTerm-to-string Γ ot
 term-to-stringh Γ toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Omega _ t) = "(ω" ^ " " ^ term-to-string Γ ff t ^ ")"
-term-to-stringh Γ toplevel p (InlineDef _ _ x t _) = "[ " ^ x ^ " ]"
 term-to-stringh Γ toplevel p (IotaPair _ t1 t2 ot _) = "[ " ^ term-to-string Γ tt t1 ^ " , " ^ term-to-string Γ tt t1 ^ " ]"
 term-to-stringh Γ toplevel p (IotaProj t n _) = term-to-string Γ ff t ^ " . " ^ n
 term-to-stringh Γ toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string Γ ff t ^ ")"

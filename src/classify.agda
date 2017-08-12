@@ -220,11 +220,6 @@ var-spans-term (Var pi x) =
   get-ctxt (λ Γ →
     spanM-add (Var-span Γ pi x untyped (if ctxt-binds-var Γ x then []
                                         else [ error-data "This variable is not currently in scope." ])))
-var-spans-term (InlineDef _ pi' x t _) =
-  var-spans-term t ≫span
-  get-ctxt (λ Γ →
-    spanM-add (Var-span Γ pi' x untyped []) ≫span
-    set-ctxt (ctxt-var-decl pi' x Γ))
 var-spans-term (IotaPair _ t1 t2 ot _) = var-spans-term t1 ≫span var-spans-term t2 ≫span var-spans-optTerm ot
 var-spans-term (IotaProj t _ _) = var-spans-term t
 
@@ -698,26 +693,6 @@ check-termi Γ (Theta pi (AbstractVars vs) t ls) (just tp) =
 
 check-termi _ (Hole pi) tp =
   get-ctxt (λ Γ → spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp)
-
-check-termi Γ (InlineDef pi pi' x t pi'') mtp =
-  check-term Γ t mtp ≫=span (λ r →
-    get-ctxt (λ Γ → helper Γ mtp r) ≫span
-    spanMr r)
-  where helper-add-span : ctxt → 𝕃 tagged-val → spanM ⊤
-        helper-add-span Γ tvs =
-          let cm = maybe-to-checking mtp in
-            spanM-add (InlineDef-span Γ pi pi' x t pi'' cm tvs) ≫span
-            spanM-add (Var-span Γ pi' x cm [])
-        add-typed-def : ctxt → type → 𝕃 tagged-val → spanM ⊤
-        add-typed-def Γ tp tvs = set-ctxt (ctxt-term-def pi' x (hnf Γ unfold-head t tt) tp Γ) ≫span
-                                 get-ctxt (λ Γ → 
-                                   helper-add-span Γ tvs)
-        helper : ctxt → (mtp : maybe type) → (r : check-ret mtp) → spanM ⊤
-        helper Γ (just tp) triv = add-typed-def Γ tp [ expected-type Γ tp ]
-        helper Γ nothing (just tp) = add-typed-def Γ tp [ type-data Γ tp ]
-        helper Γ nothing nothing = -- add untyped def
-          helper-add-span Γ [ missing-type ] ≫span
-          set-ctxt (ctxt-term-udef pi' x (hnf Γ unfold-head t tt) Γ) 
 
 check-termi Γ (IotaPair pi t1 t2 ot pi') (just (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2)) =
   check-term Γ t1 (just tp1) ≫span

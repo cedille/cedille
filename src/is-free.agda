@@ -41,7 +41,6 @@ is-free-in-term ce (inj₂ (Γ , t)) (Var _ x') = ~ (stringset-contains t x') &&
 is-free-in-term ce x (Beta _ ot) = is-free-in-optTerm ce x ot
 is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
 is-free-in-term ce x (Omega _ t) = is-free-in-term ce x t
-is-free-in-term ce x (InlineDef _ _ x' t _) = is-free-in-term ce x t
 is-free-in-term ce x (IotaPair _ t1 t2 ot _) = is-free-in-term ce x t1 || (ce && is-free-in-term ce x t2) || (ce && is-free-in-optTerm ce x ot)
 is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
 is-free-in-term ce x (PiInj _ _ t) = is-free-in-term ce x t

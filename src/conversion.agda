@@ -97,7 +97,6 @@ hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Delta _ t) hd = hnf Γ u t hd
-hnf{TERM} Γ u (InlineDef _ _ x t _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (IotaPair _ t1 t2 _ _) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (PiInj _ _ t) hd = hnf Γ u t hd
