@@ -1,6 +1,6 @@
 
 
-import MendlerFixpoint.
+import Fixpoint.
 
 InductionDepFixM' ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 : FunctorLaw1 · G fmap .
     Π e : DepFixM · G fmap . ∀ Q : (DepFixM · G fmap) ➔ ★ . 

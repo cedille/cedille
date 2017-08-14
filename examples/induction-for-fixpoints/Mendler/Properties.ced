@@ -1,10 +1,10 @@
 
-import ../Functor.
-import ../Sigma.
-import ../Product.
+import Functor.
+import Sigma.
+import Product.
 
-import MendlerFixpoint.
-import MendlerInduction.
+import Fixpoint.
+import Induction.
 
 
 % universality
@@ -107,15 +107,15 @@ fusion ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G .
   Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ fix . θ<fix> (InductionDepFixM · G fmap flaw1 fix)
    (Λ R . Λ cast . Λ castEq . λ q . λ gr . Λ C . Λ D . λ f . λ alg1 . λ wf1 . λ alg2 . λ wf2 . λ ih .
          ρ+ (flaw1 · (DepFixM · G fmap) · (DepFixM · G fmap) -(λ x . x) (fmap · R · (DepFixM · G fmap) cast gr) -(λ z . β)) -
-	   ρ (wf1 · (DepFixM · G fmap) -(foldMDep  · G  fmap · C alg1) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
-	     ρ (wf2 · (DepFixM · G fmap) -(foldMDep  · G  fmap · D alg2) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
-	      ρ (flaw2 · R · (DepFixM · G fmap) · D -(foldMDep · G fmap · D alg2) -cast gr ) -
-	        ρ (flaw2 · R · (DepFixM · G fmap) · C -(foldMDep · G fmap · C alg1) -cast gr ) -
-		 ρ ((fmapEq · R -β{(λ x' . (foldMDep fmap alg2 (cast x')))}  -β{(λ x' . (f (foldM alg1 (cast x'))))}
-		           (λ r . ρ (q r · C · D f alg1 wf1 alg2 wf2 ih) - β) 
-			      gr)) -
-	           ρ ς (flaw2 · R · C · D -f -(λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr ) -
-		       ρ (ih (fmap  · R · C (λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr) ) - β)  .
+	  ρ (wf1 · (DepFixM · G fmap) -(foldMDep  · G  fmap · C alg1) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
+	   ρ (wf2 · (DepFixM · G fmap) -(foldMDep  · G  fmap · D alg2) -(fmap · R · (DepFixM · G fmap) cast gr) ) -
+	    ρ (flaw2 · R · (DepFixM · G fmap) · D -(foldMDep · G fmap · D alg2) -cast gr ) -
+	     ρ (flaw2 · R · (DepFixM · G fmap) · C -(foldMDep · G fmap · C alg1) -cast gr ) -
+	      ρ ((fmapEq · R -β{(λ x' . (foldMDep fmap alg2 (cast x')))}  -β{(λ x' . (f (foldM alg1 (cast x'))))}
+                         (λ r . ρ (q r · C · D f alg1 wf1 alg2 wf2 ih) - β) 
+                                  gr)) -
+	       ρ ς (flaw2 · R · C · D -f -(λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr ) -
+	        ρ (ih (fmap  · R · C (λ x' . (foldMDep · G fmap · C alg1 (cast x'))) gr) ) - β)  .
 
 
 
@@ -146,10 +146,10 @@ outin ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G .
          Π gfix : G · (DepFixM · G fmap) .
 	 outDepFixM · G fmap flaw1 (inDepFixM · G fmap flaw1 gfix) ≃ gfix =
  Λ G . λ fmap . λ flaw1 . λ flaw2 . λ fmapEq . λ gfix .
-    ρ (cancellation · G fmap flaw1 gfix · (G · (DepFixM · G fmap)) (outAlgM · G fmap flaw1) (outAlgMWF · G fmap flaw1 flaw2) ) -
+    ρ (cancellation · G fmap flaw1 gfix · (G · (DepFixM · G fmap)) (outAlgM · G fmap flaw1) (outAlgMWF · G fmap flaw1 flaw2)) -
       ρ (flaw2 · ((DepFixM · G fmap)) · (G · (DepFixM · G fmap)) · (DepFixM · G fmap) -(inDepFixM · G fmap flaw1) -(outDepFixM · G fmap flaw1) gfix) -
-       ρ (fmapEq · ((DepFixM · G fmap))  -β{(λ x' . (inDepFixM fmap flaw1 (outDepFixM fmap flaw1 x')))} -β{λ x' . x'}  (λ x . inout · G fmap flaw1 flaw2 fmapEq x) gfix ) -
-          ρ (flaw1 · ((DepFixM · G fmap)) · ((DepFixM · G fmap)) -(λ x . x) gfix -(λ z . β)  ) -
+       ρ (fmapEq · ((DepFixM · G fmap))  -β{(λ x' . (inDepFixM fmap flaw1 (outDepFixM fmap flaw1 x')))} -β{λ x' . x'} (λ x . inout · G fmap flaw1 flaw2 fmapEq x) gfix) -
+         ρ (flaw1 · ((DepFixM · G fmap)) · ((DepFixM · G fmap)) -(λ x . x) gfix -(λ z . β)  ) -
 	   β .
     
 

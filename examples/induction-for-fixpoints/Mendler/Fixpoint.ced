@@ -1,7 +1,7 @@
 
-import ../Functor.
-import ../Sigma.
-import ../Product.
+import Functor.
+import Sigma.
+import Product.
 
 import Church.
 import Helper.
@@ -19,7 +19,7 @@ WFAlgM ◂ Π F : ★ ➔ ★ . Functor · F ➔ Π A : ★ . AlgebraM · F · A
 FixM ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ A : ★ . (∀ R : ★ . (R ➔ A) ➔ F · R ➔ A) ➔ A .
 
 
-% FixM M is (weakly) initial
+% FixM is (weakly) initial
 foldM ◂ ∀ F : ★ ➔ ★ . ∀ A : ★ . AlgebraM · F · A ➔ FixM · F ➔ A
   = Λ F . Λ A . λ alg . λ fix . fix · A alg .
 
@@ -64,7 +64,8 @@ inDepFixM ◂ ∀ G : (★ ➔ ★) . Π fmap : Functor · G . FunctorLaw1 · G 
 
 
 outAlgM ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G . FunctorLaw1 · G fmap ➔ AlgebraM · G · (G · (DepFixM · G fmap))
-  = Λ G . λ fmap . λ flaw1 . (Λ R . λ ih . λ fr . fmap · R · (DepFixM · G fmap) (λ r . inDepFixM · G fmap flaw1 (ih r))  fr) .
+  = Λ G . λ fmap . λ flaw1 . (Λ R . λ ih . λ fr . fmap · R · (DepFixM · G fmap)
+     (λ r . inDepFixM · G fmap flaw1 (ih r))  fr) .
 
 
 outAlgMWF ◂ ∀ G : ★ ➔ ★ .
