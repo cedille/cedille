@@ -1,4 +1,4 @@
-(require 'cedille-mode-faces)
+;(require 'cedille-mode-faces)
 
 (eval-when-compile (require 'cl))
 

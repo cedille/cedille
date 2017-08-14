@@ -51,3 +51,5 @@ Close the context mode window
 Open information page for context mode
 
 @end table
+
+@include minor-mode-commands.texi

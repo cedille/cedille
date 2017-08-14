@@ -27,7 +27,7 @@ of spans that have an error value."
 	(push cur cedille-mode-error-spans))
       (cedille-find-error-spans (cdr spans)))))
     
-(defun cedille-mode-set-error-spans();response)
+(defun cedille-mode-set-error-spans()
   "After loading spans from the backend tool, this hook will look for error
 spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (setq cedille-mode-next-errors nil)

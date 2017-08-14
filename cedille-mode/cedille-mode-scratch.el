@@ -21,7 +21,7 @@
 (defun cedille-mode-scratch-equal ()
   (interactive)
   (goto-char 1)
-  (with-selected-window (get-buffer-window)
+  (with-selected-window (cedille-mode-get-create-window (cedille-mode-scratch-buffer-name))
     (setq window-size-fixed nil
 	  delta (- cedille-mode-scratch-lines (window-height)))
     (enlarge-window delta)))
@@ -90,11 +90,25 @@
 
 (defun cedille-mode-scratch-buffer ()
   "Creates or gets the scratch buffer"
-  (setq buffer (get-buffer-create (cedille-mode-scratch-buffer-name)))
-  (with-current-buffer buffer
-    ;(set-input-method "Cedille") ; Uncomment this if you change the buffer to be no longer read-only
-    (cedille-scratch-mode)
-    (setq buffer-read-only t))
-  buffer)
+  (let ((buffer (get-buffer-create (cedille-mode-scratch-buffer-name))))
+    (with-current-buffer buffer
+      (set-input-method "Cedille")
+      (cedille-scratch-mode)
+      (setq buffer-read-only t)
+      (cedille-mode-scratch-equal))
+    buffer))
+
+(defun cedille-mode-scratch-toggle (&optional jump-to-window-p)
+  (interactive)
+  (let* ((buffer (get-buffer-create (cedille-mode-scratch-buffer-name)))
+	 (window (get-buffer-window buffer)))
+    (if window
+	(progn
+	  (delete-window window)
+	  (cedille-mode-rebalance-windows)
+	  nil)
+      (let ((window (cedille-mode-get-create-window buffer)))
+	(when jump-to-window-p (select-window window)))
+      (cedille-mode-scratch-buffer))))
 
 (provide 'cedille-mode-scratch)

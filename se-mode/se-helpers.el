@@ -2,7 +2,7 @@
 (eval-when-compile (require 'cl))
 
 (defmacro se-curry (fn &rest args)
-  "Returns curried function.  FN should be a function symbol."
+  "Returns curried function. FN should be a function symbol or a lambda. Doesn't work with local variables."
   `(lambda (&rest more-args)
      (apply ,fn ,@args more-args)))
 

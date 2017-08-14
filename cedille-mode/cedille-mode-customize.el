@@ -7,3 +7,4 @@ reasonable size"
      (interactive)
      (customize-group-other-window ,group)))
 
+(provide 'cedille-mode-customize)

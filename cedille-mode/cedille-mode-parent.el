@@ -10,6 +10,14 @@
      (window-resize nil ,amount)
      (with-current-buffer (current-buffer) (setq window-size-fixed t))))
 
+(defmacro cedille-mode-parent-region-cmd (region-cmd)
+  "Ensures that there is a region before interactively calling REGION-CMD"
+  `(lambda ()
+     (interactive)
+     (unless (mark)
+       (push-mark ,1 ,t))
+     (call-interactively ,region-cmd)))
+
 (defun cedille-mode-unlock-current-window-size()
   "Allows selected window to be resized, then restores it to the minimal size"
   (interactive)
@@ -22,13 +30,12 @@
     (define-key map (kbd "-") (make-cedille-mode-resize-current-window -1)) ; decrease and lock size of window
     (define-key map (kbd "=") #'cedille-mode-unlock-current-window-size)    ; unlock size of window then resizes it
     (define-key map (kbd "M-c") #'cedille-mode-scratch-copy-buffer)
-    (define-key map (kbd "f") #'cedille-mode-parent-forward)
-    (define-key map (kbd "b") #'cedille-mode-parent-backward)
-    (define-key map (kbd "a") #'cedille-mode-parent-first)
-    (define-key map (kbd "l") #'cedille-mode-parent-last)
-    (define-key map (kbd "j") #'cedille-mode-parent-jump)
+    (define-key map (kbd "f") (cedille-mode-parent-region-cmd #'cedille-mode-parent-forward))
+    (define-key map (kbd "b") (cedille-mode-parent-region-cmd #'cedille-mode-parent-backward))
+    (define-key map (kbd "a") (cedille-mode-parent-region-cmd #'cedille-mode-parent-first))
+    (define-key map (kbd "e") (cedille-mode-parent-region-cmd #'cedille-mode-parent-last))
+    (define-key map (kbd "j") (cedille-mode-parent-region-cmd #'cedille-mode-parent-jump))
     map))
-
 
 (defun cedille-mode-parent-select-pin (pin)
   "Selects PIN"
@@ -101,18 +108,35 @@
     (when (and mark-active pin)
       (setq data (se-pin-item-data (car pin))
 	    filename (cdr (assoc "filename" data))
-	    pos (string-to-number (cdr (assoc "pos"  data)))
-	    continue (lambda ()
-		       (setq past (car cedille-mode-browsing-history)
-			     present (buffer-file-name))
-		       (with-current-buffer (find-file filename)
-			 (setq cedille-mode-browsing-history (cons (cons present past) nil))
-			 (goto-char pos)
-			 (se-navigation-mode))
-		       (cedille-mode-rebalance-windows)))
-      (condition-case err
-	  (while (null (buffer-file-name)) (delete-window))
-	(error err))
-      (funcall continue))))
+	    pos (string-to-number (cdr (assoc "pos"  data))))
+      (select-window (cedille-mode-parent-main-window))
+      (setq past (car cedille-mode-browsing-history)
+	    present (buffer-file-name))
+      (with-current-buffer (find-file filename)
+	(setq cedille-mode-browsing-history (cons (cons present past) nil))
+	(cedille-mode-parent-jump-to-pos pos)
+	(se-navigation-mode))
+      (cedille-mode-rebalance-windows))))
+
+(defun cedille-mode-parent-jump-to-pos (pos)
+  "Jumps in the current file to pos"
+  (goto-char pos)
+  (when mark-active (deactivate-mark)))
+
+(defun cedille-mode-parent-main-buffer ()
+  "Returns the last selected buffer with a file associated with it"
+  (window-buffer (cedille-mode-parent-main-window)))
+
+(defun cedille-mode-parent-main-window ()
+  "Returns the last selected window with a file associated with it"
+  (cedille-mode-parent-main-window-h (get-buffer-window) (length (window-list)) 0))
+
+(defun cedille-mode-parent-main-window-h (window max n)
+  "Helper for `cedille-mode-parent-window-buffer'"
+  (if (>= max n)
+    (if (buffer-file-name (window-buffer window))
+	window
+      (cedille-mode-parent-main-window-h (previous-window window) max (+ 1 n)))
+    (cedille-mode-get-create-window)))
 
 (provide 'cedille-mode-parent)

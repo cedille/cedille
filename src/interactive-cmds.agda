@@ -219,6 +219,9 @@ interactive-erase-span (start-str :: span-str :: filename :: local-ctxt) ts =
 interactive-erase-span _ ts =
   putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-span") >>= λ _ → return ts
 
+interactive-beta-reduce-span : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-beta-reduce-span _ ts = interactive-return ("TO DO: implement beta reduction on spans" , ff) ts
+
 interactive-normalize-prompt : 𝕃 string → toplevel-state → IO toplevel-state
 interactive-normalize-prompt (span-str :: full-str :: rest) ts =
   interactive-return (normalize-prompt (pretty-string span-str) (ts-to-ctxt ts) (string-to-𝔹 full-str)) ts
@@ -230,3 +233,9 @@ interactive-erase-prompt (span-str :: []) ts =
   interactive-return (erase-prompt (pretty-string span-str) (ts-to-ctxt ts)) ts
 interactive-erase-prompt _ ts =
   putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-prompt") >>= λ _ → return ts
+
+interactive-beta-reduce-prompt : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-beta-reduce-prompt (str :: []) ts =
+  interactive-return ("TO DO: implement beta reduction prompt" , ff) ts
+interactive-beta-reduce-prompt _ ts =
+  putStrLn (global-error-string "Wrong number of arguments given to interactive-beta-reduce-prompt") >>= λ _ → return ts

@@ -26,13 +26,11 @@
 (let ((se-path (concat cedille-path "/se-mode")))
   (add-to-list 'load-path se-path)
   (add-to-list 'load-path (concat se-path "/json.el")))
-;(load-library "se")
 (require 'se)
 
 (let ((cedille-mode-library-path (concat cedille-path "/cedille-mode")))
   (add-to-list 'load-path cedille-mode-library-path)
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
-;(load-library "cedille-mode-library")
 (require 'cedille-mode-library)
 
 (when (version< emacs-version "24.4")
@@ -57,6 +55,7 @@ Defaults to `error'."
       (when message (put name 'error-message message)))))
 
 (require 'se-mode)
+(require 'se-markup)
 (eval-when-compile (require 'se-macros))
 
 (defvar cedille-mode-version "1.0"
@@ -100,14 +99,13 @@ Defaults to `error'."
 
 					; UTILITY FUNCTIONS FOR MANAGING WINDOWS
 
-(defun cedille-mode-get-create-window(buffer)
+(defun cedille-mode-get-create-window(&optional buffer)
   "Retrieves the window associated with the given buffer or else creates a new window and fills it with the buffer"
   (let ((window (get-buffer-window buffer)))
-    (if window
-	window
-      (let ((window (split-window)))
-	   (set-window-buffer window buffer)
-	   window))))
+    (unless window
+      (setq window (split-window))
+      (set-window-buffer window (or buffer (buffer-name))))
+    window))
 
 (defun cedille-mode-toggle-buffer-display(buffer)
   "Toggles display of buffer on or off. Returns nil if window was deleted, or the window if it was created."
@@ -447,13 +445,14 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
   (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
-  (se-navi-define-key 'cedille-mode (kbd "x") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil))
-  (se-navi-define-key 'cedille-mode (kbd "X") (make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda t nil))
+  (se-navi-define-key 'cedille-mode (kbd "x") #'cedille-mode-scratch-toggle) ;(make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil))
+  (se-navi-define-key 'cedille-mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t))) ;(make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda t nil))
   (se-navi-define-key 'cedille-mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
   ; Interactive commands
-  (se-navi-define-key 'cedille-mode (kbd "C-i h") #'cedille-mode-normalize)
-  (se-navi-define-key 'cedille-mode (kbd "C-i n") #'cedille-mode-normalize-full)
+  (se-navi-define-key 'cedille-mode (kbd "C-i h") #'cedille-mode-head-normalize)
+  (se-navi-define-key 'cedille-mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key 'cedille-mode (kbd "C-i e") #'cedille-mode-erase)
+  (se-navi-define-key 'cedille-mode (kbd "C-i b") #'cedille-mode-beta-reduce)
   (se-navi-define-key 'cedille-mode (kbd "C-i d") #'cedille-mode-inspect-clear)
   (se-navi-define-key 'cedille-mode (kbd "C-i r") #'cedille-mode-inspect-clear)
   (se-navi-define-key 'cedille-mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
@@ -471,19 +470,13 @@ in the parse tree, and updates the Cedille info buffer."
   "Major mode for Cedille files."
 
   (setq-local comment-start "%")
-  
-  ;(when (equal 0 (buffer-size))
-   ; (insert "\n")
-    ;(set-buffer-modified-p nil)
-    ;(goto-char 0))
-  ; If the file has no characters, the below line causes an error. That is why the above line exists.
+
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
-  ;(add-hook 'se-inf-response-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
-  (add-hook 'se-inf-init-spans-hook 'cedille-mode-markup-propertize-spans t)
+  (add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)

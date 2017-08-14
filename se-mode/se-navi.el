@@ -41,8 +41,8 @@ to the buffer.")
 	    (define-key map (kbd "n") #'se-mode-select-next)
 	    (define-key map (kbd "h") #'se-navi-help)
 	    (define-key map (kbd "w") #'copy-region-as-kill)
-	    (define-key map (kbd "M-i") #'se-inf-clear-interactive)
-	    (define-key map (kbd "M-I") #'se-inf-clear-interactive-all)
+	    ;(define-key map (kbd "M-i") #'se-inf-clear-interactive)
+	    ;(define-key map (kbd "M-I") #'se-inf-clear-interactive-all)
 	    (define-key map (kbd "<tab>") #'back-to-indentation)
 	    map)
   (when se-navigation-mode ;; activation
@@ -52,9 +52,9 @@ to the buffer.")
     (push (cons 'se-navigation-mode se-navi-current-keymap)
 	  minor-mode-overriding-map-alist)
 
-    (add-hook 'se-inf-response-hook 'se-inf-process-spans)
-    (add-hook 'se-inf-response-hook 'se-inf-process-error t)
-    (add-hook 'se-inf-response-hook 'se-inf-process-error-span t)
+    (add-hook 'se-inf-post-parse-hook 'se-inf-process-spans)
+    (add-hook 'se-inf-post-parse-hook 'se-inf-process-error t)
+    (add-hook 'se-inf-post-parse-hook 'se-inf-process-error-span t)
     (add-hook 'deactivate-mark-hook 'se-navi-mark-deactivated-hook)
 
     ;; quit on change

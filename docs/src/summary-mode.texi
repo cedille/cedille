@@ -3,3 +3,5 @@
 @chapter Summary mode
 
 Displays a summary of every global definition in the file.
+
+@include minor-mode-commands.texi

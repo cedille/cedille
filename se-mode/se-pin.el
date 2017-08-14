@@ -43,12 +43,9 @@
 
 (defun se-get-pins (symbol &optional object start end)
   "Gets all pins with symbol in OBJECT (can be a string or a buffer) from START to END (if nil, START defaults to the start of OBJECT, and END to the end of OBJECT)"
-  (with-current-buffer (if (bufferp object) object (buffer-name))
-    (let* ((bp (se-pin-bufferp object))
-	   (n (if bp 1 0))
-	   (start (or start n)))
-	   ;(end (or end (+ n (if bp (buffer-size object) (length object))))))
-      (reverse (se-get-pins-h symbol start end '() (car (se-pin-get-starts-ends start symbol object)) object)))))
+  (with-current-buffer (if (and object (bufferp object)) object (buffer-name))
+      (let ((start (or start (if (se-pin-bufferp object) 1 0))))
+	(reverse (se-get-pins-h-h symbol start end '() '() object)))))
 
 (defun se-pins-at (start end &optional symbol object)
   "Gets the pins exactly from start to end. If SYMBOL is not nil, only pins with SYMBOL are returned. OBJECT can be a string or a buffer (or nil, defaulting to the current buffer)."
@@ -57,7 +54,7 @@
     (when (and (<= start end) (>= start n) (>= end n))
       (setq starts (car (se-pin-get-starts-ends start symbol object)))
       (setq ends (cdr (se-pin-get-starts-ends end symbol object)))
-      (cdr (se-pin-get-pairs starts ends)))))
+      (cdr (se-pin-get-pairs starts ends object)))))
 
 (defun se-unpin (object &optional start end id string-or-buffer)
   "Removes a pin. OBJECT should either be a pin or a symbol (in which case start and end are required, but not ID unless you want to only clear that specific id). STRING-OR-BUFFER should, as the name implies, be nil (defaulting to the current buffer), a string, or a buffer ;)."
@@ -120,6 +117,7 @@
 (defun se-pin-remove-props (unused &optional object)
   "Removes all unused start and end pins"
   (when unused
+    (message "se-pin-remove-props: %s" unused)
     (let* ((h (car unused))
 	   (prop (car h))
 	   (pos (nth 1 h))
@@ -131,23 +129,26 @@
 
 (defun se-get-pins-h (symbol pos end pins starts object)
   "Helper for `se-get-pins'"
-  (setq next-change (next-single-property-change pos 'se-pin object end))
-  (if (or (not next-change) (equal next-change end))
+  (se-get-pins-h-h symbol (next-single-property-change pos 'se-pin object end) end pins starts object))
+
+(defun se-get-pins-h-h (symbol pos end pins starts object)
+  "Helper for `se-get-pins-h'"
+  (if (or (not pos) (equal pos end))
       (progn (se-pin-remove-props starts object) pins)
-    (when (get-text-property next-change 'se-pin object)
-      (setq starts-ends (se-pin-get-starts-ends next-change symbol object)
+    (when (get-text-property pos 'se-pin object)
+      (setq starts-ends (se-pin-get-starts-ends pos symbol object)
 	    starts (append starts (car starts-ends))
 	    ends (cdr starts-ends)
-	    pin-pairs (se-pin-get-pairs starts ends)
+	    pin-pairs (se-pin-get-pairs starts ends object)
 	    starts (car pin-pairs)
 	    pins (append (cdr pin-pairs) pins)))
-    (se-get-pins-h symbol next-change end pins starts object)))
+    (se-get-pins-h symbol pos end pins starts object)))
 
-(defun se-pin-get-pairs (starts ends)
+(defun se-pin-get-pairs (starts ends object)
   "Pairs start and end pins"
-  (se-pin-get-pairs-h starts ends '()))
+  (se-pin-get-pairs-h starts ends '() object))
 
-(defun se-pin-get-pairs-h (starts ends pairs)
+(defun se-pin-get-pairs-h (starts ends pairs object)
   "Helper for `se-pin-get-pairs'"
   (if (not (and starts ends))
       (cons starts pairs)
@@ -157,7 +158,7 @@
 	  (se-pin-remove-props (list h))
 	(setq pairs (cons (car pair) pairs)
 	      starts (cdr pair)))
-      (se-pin-get-pairs-h starts (cdr ends) pairs)))
+      (se-pin-get-pairs-h starts (cdr ends) pairs object)))
 
 (defun se-pin-get-pair (starts end)
   "Finds a pair for end in starts"

@@ -4,10 +4,6 @@
 
 ;;TODO - make sure upon opening inspect mode that it goes to position 1
 
-;(require 'se-mode)
-
-(load-library "cedille-mode-parent")
-
 (define-minor-mode cedille-inspect-view-mode
   "Creates inspect mode, which displays information about the current node"
   nil         ; init-value, whether the mode is on automatically after definition
@@ -45,22 +41,28 @@ the info buffer for the file.  Return the info buffer as a convenience."
 
 (defun cedille-mode-inspect-clear-all ()
   (interactive)
-  (let ((pins (se-get-pins 'se-interactive)))
+  (let* ((pins (se-get-pins 'se-interactive))
+	 (len (length pins)))
     (se-pin-clear-all 'se-interactive)
     (se-mapc 'se-inf-clear-span-interactive (se-mode-parse-tree))
     (cedille-mode-inspect)
-    (message "Cleared %s interactive calls" (length pins))))
+    (message "Cleared %s interactive call%s" len (cedille-mode-inspect-plural len))))
 
 (defun cedille-mode-inspect-clear ()
   (interactive)
   (when se-mode-selected
-    (setq span (se-first-span (se-mode-selected)))
-    (setq s (se-span-start span))
-    (setq e (se-span-end span))
-    (setq pins (se-pins-at s e 'se-interactive))
-    (se-unpin-list pins)
-    (se-inf-clear-span-interactive span)
-    (message "Cleared %s interactive calls from node" (length pins)))
-  (cedille-mode-inspect))
+    (let* ((span (se-first-span (se-mode-selected)))
+	   (s (se-span-start span))
+	   (e (se-span-end span))
+	   (pins (se-pins-at s e 'se-interactive))
+	   (len (length pins)))
+      (se-unpin-list pins)
+      (se-inf-clear-span-interactive span)
+      (message "Cleared %s interactive call%s from node" len (cedille-mode-inspect-plural len)))
+    (cedille-mode-inspect)))
+
+(defun cedille-mode-inspect-plural (num)
+  "Returns 's' if num != 1, else ''"
+  (if (equal 1 num) "" "s"))
 
 (provide 'cedille-mode-inspect)

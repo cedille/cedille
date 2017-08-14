@@ -26,3 +26,5 @@ The file location in which the entity represented by the node is defined
 Close the inspect mode window
 
 @end table
+
+@include minor-mode-commands.texi

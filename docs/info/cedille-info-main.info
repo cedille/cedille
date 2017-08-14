@@ -112,10 +112,10 @@ time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
      Show erasure of selected span.  If no span is selected, this will
      prompt an expression to erase.
 
-'C-i (r/d)'
+'C-i r'
      Remove all interactive attributes associated with the selected span
 
-'C-i (R/D)'
+'C-i R'
      Remove all interactive attributes
 
 5 Other
@@ -297,11 +297,41 @@ instead.
 'h'
      Open information page for context mode
 
+9 Common commands
+*****************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
+
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
+
 
 File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up: Top
 
-9 Credits
-*********
+10 Credits
+**********
 
 Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
 
@@ -312,7 +342,7 @@ Spring 2016: Aaron Stump
 
 File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
 
-10 cedille-mode options
+11 cedille-mode options
 ***********************
 
 The options file resides in ~/.cedille/options and consists of a list of
@@ -332,7 +362,7 @@ available options are:
 
 File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
-11 Minor modes for cedille
+12 Minor modes for cedille
 **************************
 
 Cedille has three minor modes that provide information about the file:
@@ -344,7 +374,7 @@ Cedille has three minor modes that provide information about the file:
 * summary mode::                Displays the types and kinds of every top-level entity in the file
 * scratch mode::                Buffer that helps keep track of information
 
-12 Common commands
+13 Common commands
 ******************
 
 'M-c'
@@ -359,10 +389,25 @@ Cedille has three minor modes that provide information about the file:
 '='
      Reset the buffer's size
 
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
+
 
 File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Up: minor modes
 
-13 Inspect mode
+14 Inspect mode
 ***************
 
 Inspect mode for Cedille provides basic information about a node.  To
@@ -379,24 +424,84 @@ inspect mode buffer (but not jump to it), press 'i' instead.
    * The file location in which the entity represented by the node is
      defined
 
-14 Controls
+15 Controls
 ***********
 
 'i/I'
      Close the inspect mode window
 
+16 Common commands
+******************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
+
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
+
 
 File: cedille-info-main.info,  Node: summary mode,  Next: scratch mode,  Prev: context mode,  Up: minor modes
 
-15 Summary mode
+17 Summary mode
 ***************
 
 Displays a summary of every global definition in the file.
 
+18 Common commands
+******************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
+
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
+
 
 File: cedille-info-main.info,  Node: scratch mode,  Prev: summary mode,  Up: minor modes
 
-16 Scratch mode
+19 Scratch mode
 ***************
 
 Scratch mode enables you to keep track of information in a dedicated
@@ -407,6 +512,36 @@ buffer.
 
 'x/X'
      Close the scratch mode window
+
+20 Common commands
+******************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
+
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
 
 
 File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
@@ -419,14 +554,14 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts3398
-Node: context mode6107
-Node: credits7501
-Node: options7769
-Node: minor modes8516
-Node: inspect mode9386
-Node: summary mode10084
-Node: scratch mode10290
-Node: Index10587
+Node: unicode shortcuts3390
+Node: context mode6099
+Node: credits8046
+Node: options8316
+Node: minor modes9063
+Node: inspect mode10233
+Node: summary mode11486
+Node: scratch mode12247
+Node: Index13099
 
 End Tag Table

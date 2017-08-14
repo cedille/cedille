@@ -247,8 +247,8 @@ check-for-type-mismatch-if : ctxt → string → maybe type → type → 𝕃 ta
 check-for-type-mismatch-if Γ s (just tp) tp' = check-for-type-mismatch Γ s tp tp'
 check-for-type-mismatch-if Γ s nothing tp' = [ type-data Γ tp' ]
 
-summary-data : string → string → tagged-val
-summary-data name classifier = "summary" , (name ^ " : " ^ classifier)
+summary-data : string → (filename : string) → (pos : posinfo) → string → tagged-val
+summary-data name fn pi classifier = "summary" , ((markup "location" ("filename" :: "pos" :: []) (fn :: pi :: []) name) ^ " : " ^ classifier)
 
 missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
@@ -491,7 +491,7 @@ DefTerm-span Γ pi x checked tp t pi' tvs =
           mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , "[nothing]") :: tvs)
         h-summary : maybe type → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
-        h-summary (just tp) = (checking-data checking :: [ summary-data x (to-string Γ tp) ])
+        h-summary (just tp) = (checking-data checking :: [ summary-data x (ctxt-get-current-filename Γ) pi (to-string Γ tp) ])
     
 CheckTerm-span : ctxt → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 CheckTerm-span Γ checked tp t pi' tvs = 
@@ -518,10 +518,10 @@ DefType-span Γ pi x checked mk tp pi' tvs =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , "[nothing]") :: tvs)
         h-summary : maybe kind → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
-        h-summary (just k) = (checking-data checking :: [ summary-data x (to-string Γ k) ])
+        h-summary (just k) = (checking-data checking :: [ summary-data x (ctxt-get-current-filename Γ) pi (to-string Γ k) ])
 
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
-DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x "□" ])
+DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x (ctxt-get-current-filename Γ) pi "□" ])
 
 unimplemented-term-span : ctxt → posinfo → posinfo → maybe type → span
 unimplemented-term-span _ pi pi' nothing = mk-span "Unimplemented" pi pi' [ error-data "Unimplemented synthesizing a type for a term" ]

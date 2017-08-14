@@ -2,9 +2,6 @@
 ; This file contains the code that governs the feature allowing the user to retrieve the context at a given point.
 
 					; GLOBAL DEFINITIONS
-(load-library "cedille-mode-customize")
-(load-library "cedille-mode-info")
-(load-library "cedille-mode-parent")
 
 (defgroup cedille-context nil
   "Context options for Cedille"
@@ -296,7 +293,6 @@ which currently consists of:\n
 			(when line
 			  (let* ((color (cadr (assoc 'color line)))
 				 (text (cadr (assoc 'text line))))
-				 ;(text (cedille-mode-markup-propertize-text (cadr (assoc 'text line)))))
 			    (if color
 				(insert (propertize (concat text "\n") 'face `(:foreground ,color)))
 			        (insert (concat text "\n"))))))))

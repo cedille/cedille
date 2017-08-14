@@ -90,7 +90,7 @@ recursion or anything other than key-value pairs."
       (setq k (format "%s" (car h)))
       (setq v (format "%s" (cdr h)))
       (put-text-property 0 (length k) 'face 'italic k)
-      (setq h `(,k . ,v))
+      (setq h (cons k v))
       (se-mode-interactive-add-to-json (cons h json) (cdr ints))))
 
 (defun se-mode-left-spine(node)

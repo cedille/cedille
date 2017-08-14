@@ -77,10 +77,10 @@ Like 'C-i n', but shows head-normalization
 @item C-i e
 Show erasure of selected span. If no span is selected, this will prompt an expression to erase.
 
-@item C-i (r/d)
+@item C-i r
 Remove all interactive attributes associated with the selected span
 
-@item C-i (R/D)
+@item C-i R
 Remove all interactive attributes
 @end table
 
