@@ -26,6 +26,22 @@ appendNilV ◂ ∀ A : ★ .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+appendAssocV ◂ ∀ A : ★ .
+  ∀ n : Nat . Π xs : Vec · A n .
+  ∀ m : Nat . Π ys : Vec · A m .
+  ∀ o : Nat . Π zs : Vec · A o .
+  appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)
+  = Λ A . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n .
+    ∀ m : Nat . Π ys : Vec · A m .
+    ∀ o : Nat . Π zs : Vec · A o .
+    appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
+  (Λ m . λ ys . Λ o . λ zs . β)
+  (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . Λ o . λ zs .
+    ρ+ (ih -m ys -o zs) - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
   = Λ A . λ xs . λ ys . (v2l · A
   -(add (length · A xs) (length · A ys))
@@ -40,5 +56,18 @@ appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
 appendNilL ◂ ∀ A : ★ . Π xs : List · A . appendL xs nilL ≃ xs
   = Λ A . λ xs .
   appendNilV · A -(length · A xs) (l2v · A xs) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendAssocL ◂ ∀ A : ★ .
+  Π xs : List · A .
+  Π ys : List · A .
+  Π zs : List · A .
+  appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)
+  = Λ A . λ xs . λ ys . λ zs .
+  appendAssocV · A
+    -(length · A xs) (l2v · A xs)
+    -(length · A ys) (l2v · A ys)
+    -(length · A zs) (l2v · A zs) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

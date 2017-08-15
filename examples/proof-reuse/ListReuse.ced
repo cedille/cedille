@@ -22,6 +22,22 @@ appendNilL ◂ ∀ A : ★ .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+appendAssocL ◂ ∀ A : ★ .
+  Π xs : List · A .
+  Π ys : List · A .
+  Π zs : List · A .
+  appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)
+  = Λ A . elimList · A ·
+  (λ xs : List · A .
+    Π ys : List · A .
+    Π zs : List · A .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  (λ ys . λ zs . β)
+  (Λ xs . λ x . λ ih . λ ys . λ zs .
+    ρ+ (ih ys zs) - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 appendLength ◂ ∀ A : ★ .
   Π xs : List · A .
   Π ys : List · A .
@@ -51,6 +67,19 @@ appendNilV ◂ ∀ A : ★ .
   ∀ n : Nat . Π xs : Vec · A n . appendV xs nilV ≃ xs
   = Λ A . Λ n . λ xs .
   (appendNilL · A (v2l · A -n xs).1) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendAssocV ◂ ∀ A : ★ .
+  ∀ n : Nat . Π xs : Vec · A n .
+  ∀ m : Nat . Π ys : Vec · A m .
+  ∀ o : Nat . Π zs : Vec · A o .
+  appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)
+  = Λ A . Λ n . λ xs . Λ m . λ ys . Λ o . λ zs .
+  appendAssocL · A
+    (v2l · A -n xs).1
+    (v2l · A -m ys).1
+    (v2l · A -o zs).1 .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
