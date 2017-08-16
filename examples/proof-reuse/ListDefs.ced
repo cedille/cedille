@@ -1,0 +1,91 @@
+import Nat.
+import List.
+import Vec.
+import Casts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
+  = Λ A . elimList · A ·
+  (λ xs : List · A . List · A ➔ List · A)
+  (λ ys . ys)
+  (Λ xs . λ x . λ ih . λ ys . consL · A x (ih ys)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendNilL ◂ ∀ A : ★ .
+  Π xs : List · A . appendL xs nilL ≃ xs
+  = Λ A . elimList · A
+  · (λ xs : List · A . appendL xs nilL ≃ xs)
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendAssocL ◂ ∀ A : ★ .
+  Π xs : List · A .
+  Π ys : List · A .
+  Π zs : List · A .
+  appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)
+  = Λ A . elimList · A ·
+  (λ xs : List · A .
+    Π ys : List · A .
+    Π zs : List · A .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  (λ ys . λ zs . β)
+  (Λ xs . λ x . λ ih . λ ys . λ zs .
+    ρ+ (ih ys zs) - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+lengthDistAppendL ◂ ∀ A : ★ .
+  Π xs : List · A .
+  Π ys : List · A .
+  add (length xs) (length ys) ≃ length (appendL xs ys)
+  = Λ A . elimList · A ·
+  (λ xs : List · A . Π ys : List · A .
+    add (length xs) (length ys) ≃ length (appendL xs ys))
+  (λ ys . β)
+  (Λ xs . λ x . λ ih . λ ys . ρ+ (ih ys) - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+concatL ◂ ∀ A : ★ . List · (List · A) ➔ List · A
+  = Λ A . elimList · (List · A) ·
+  (λ xss : List · (List · A) . List · A)
+  (nilL · A)
+  (Λ xss . λ xs . λ ih . appendL · A xs ih) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+lengthDistConcatL ◂ ∀ A : ★ . ∀ n : Nat .
+  Π xss : List · (VecL · A n) .
+  mult (length xss) n ≃ length (concatL xss)
+  = Λ A . Λ n . elimList · (VecL · A n) ·
+  (λ xss : List · (VecL · A n) . mult (length xss) n ≃ length (concatL xss))
+  β
+  (Λ xss . λ xs . λ ih .
+    ρ+ ih -
+    ρ xs.2 -
+    ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A
+      (cmapL · (VecL · A n) · (List · A)
+        -(interCast · (List · A) · (λ xs : List · A . n ≃ length xs))
+        xss))) -
+    β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+concatDistAppendL ◂ ∀ A : ★ .
+  Π xss : List · (List · A) .
+  Π yss : List · (List · A) .
+  appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss)
+  = Λ A . elimList · (List · A) ·
+  (λ xss : List · (List · A) . Π yss : List · (List · A) .
+    appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss))
+  (λ yss . β)
+  (Λ xss . λ xs . λ ih . λ yss .
+    ρ+ ς (ih yss) -
+    ρ (appendAssocL · A xs (concatL · A xss) (concatL · A yss)) -
+    β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -14,12 +14,20 @@ cast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast · A · B ➾ Π a : A . B a =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Cast' ◂ ★ ➔ ★ ➔ ★
+  = λ A : ★ . λ B : ★ . Cast · A · (λ a : A . B) .
+
+cast' ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ A ➔ B
+  = Λ A . Λ B . cast · A · (λ a : A . B) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 VecL ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
   ι xs : List · A . n ≃ length xs .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-castV2L ◂ ∀ A : ★ . ∀ n : Nat . Cast · (Vec · A n) · (λ xs : Vec · A n . VecL · A n)
+v2lCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (VecL · A n)
   = Λ A . elimVec · A ·
   (λ n : Nat . λ xs : Vec · A n . ι ys : (VecL · A n) . ys ≃ xs)
   [ [ nilL · A , β{nilL · A} ] , β{[ nilL · A , β{nilL · A} ]} ]
@@ -27,7 +35,7 @@ castV2L ◂ ∀ A : ★ . ∀ n : Nat . Cast · (Vec · A n) · (λ xs : Vec · 
     [ [ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]
     , ρ ih.2 - β{[ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]} ] ).
 
-castL2V ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (length · A xs))
+l2vCast ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (length · A xs))
   = Λ A . elimList · A ·
   (λ xs : List · A . ι ys : Vec · A (length · A xs) . ys ≃ xs)
   [ nilV · A , β{nilV · A} ]
@@ -38,15 +46,36 @@ castL2V ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ VecL · A n
-  = Λ A . Λ n . cast
+  = Λ A . Λ n . cast'
   · (Vec · A n)
-  · (λ xs : Vec · A n . VecL · A n)
-  -(castV2L · A -n) .
+  · (VecL · A n)
+  -(v2lCast · A -n) .
 
 l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
   = Λ A . cast
   · (List · A)
   · (λ xs : List · A . Vec · A (length · A xs))
-  -(castL2V · A) .
+  -(l2vCast · A) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+cmapCastL ◂ ∀ A : ★ . ∀ B : ★ .
+  Cast' · A · B ➾ Cast' · (List · A) · (List · B)
+  = Λ A . Λ B . Λ c . elimList · A ·
+  (λ xs : List · A . ι ys : List · B . ys ≃ xs)
+  [ nilL · B , β{nilL · B} ]
+  (Λ xs . λ x . λ ih .
+    [ consL · B (cast' · A · B -c x) ih.1 ,
+      ρ ih.2 - β{consL · B (cast' · A · B -c x) ih.1} ]) .
+
+cmapL ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ List · A ➔ List · B
+  = Λ A . Λ B . Λ c .
+    cast' · (List · A) · (List · B)
+      -(cmapCastL · A · B -c) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+interCast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast' · (ι a : A . B a) · A
+  = Λ A . Λ B . λ a . [ a.1 , β{a.1} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
