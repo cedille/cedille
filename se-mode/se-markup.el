@@ -10,8 +10,8 @@
 	low (- (nth 1 end) (nth 1 start))
 	micro (- (nth 2 end) (nth 2 start))
 	pico (- (nth 3 end) (nth 3 start))
-	time (time-to-seconds (list high low micro pico)))
-  (message "time to propertize: %s" time))
+	time (time-to-seconds (list high low micro pico))))
+  ;(message "time to propertize: %s" time))
 
 
 (defun se-markup-propertize-span (span)

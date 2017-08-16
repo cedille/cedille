@@ -13,6 +13,7 @@ cws-types.agda          syntax trees, generated from cws.gr
 cws-main.agda           a test tool which can parse Cedille files, generated from cws.gr
 general-util.agda       things I want to add to the IAL but have been holding off on for versioning reasons
 hnf-tests.agda          tests (probably currently broken) for hnf
+interactive-cmds.agda   interactive command handlers (ineractively normalizing, erasing, and beta-reducing)
 is-free.agda            checking if a variable is free in an expression
 lift.agda               code related to lifting
 lift-tests.agda         test code for lifting

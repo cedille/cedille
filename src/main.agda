@@ -43,7 +43,7 @@ open import toplevel-state
 open import interactive-cmds
 
 open import rkt
-import normalize-nt-cmd
+-- import normalize-nt-cmd
 
 opts : Set
 opts = options-types.opts
@@ -239,14 +239,17 @@ checkFile s filename should-print-spans =
           writeo mod >>
           reply s >>
           return (mk-toplevel-state use-cede make-rkt ip [] is Γ)
-          where writeo : 𝕃 string → IO ⊤
-                writeo [] = return triv
-                writeo (f :: us) =
-                 let ie = get-include-elt s f in
-                   (if use-cede then (write-cede-file f ie) else (return triv)) >>
+            where
+              get-ctxt-from-toplevel-state : toplevel-state → ctxt
+              get-ctxt-from-toplevel-state (mk-toplevel-state _ _ _ _ _ Γ) = Γ
+              writeo : 𝕃 string → IO ⊤
+              writeo [] = return triv
+              writeo (f :: us) =
+                let ie = get-include-elt s f in
+                  (if use-cede then (write-cede-file f ie) else (return triv)) >>
                    -- (putStrLn (ctxt-to-string (get-ctxt-from-toplevel-state s))) >> -- for debugging purposes only
-                   (if make-rkt then (write-rkt-file f (normalize-nt-cmd.get-ctxt-from-toplevel-state s)) else (return triv)) >>
-                   writeo us
+                  (if make-rkt then (write-rkt-file f (get-ctxt-from-toplevel-state s)) else (return triv)) >>
+                  writeo us
 
 
 
@@ -283,8 +286,7 @@ readCommandsFromFrontend s =
             handleCommands ("erase" :: rest) s = interactive-erase-span rest s
             handleCommands ("normalizePrompt" :: rest) s = interactive-normalize-prompt rest s
             handleCommands ("erasePrompt" :: rest) s = interactive-erase-prompt rest s
-            -- handleCommands ("interactive" :: start :: end :: span-str :: cmd-name :: xs) s =
-            --  interactive-span-cmd cmd-name start end span-str xs s
+            handleCommands ("brExplore" :: rest) s = interactive-br rest s
 --            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ("check" :: xs) s = checkCommand xs s
             handleCommands ls s = errorCommand ls s
