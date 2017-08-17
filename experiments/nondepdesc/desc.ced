@@ -1,0 +1,37 @@
+import or.
+import and.
+import true.
+import nat.
+
+Desc ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) % sum
+                   ➔ (X ➔ X ➔ X) % product
+                   ➔ X % unit
+                   ➔ X % type parameter                   
+                   ➔ X % functor variable
+                   ➔ X .
+
+descSum ◂ Desc ➔ Desc ➔ Desc = λ d . λ d' . Λ X . λ s . λ p . λ u . λ a . λ v . s (d · X s p u a v) (d' · X s p u a v).
+descProd ◂ Desc ➔ Desc ➔ Desc = λ d . λ d' . Λ X . λ s . λ p . λ u . λ a . λ v . p (d · X s p u a v) (d' · X s p u a v).
+descUnit ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . u.
+descParam ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . a.
+descVar ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . v.
+
+
+interp ◂ Desc ➔ ★ ➔ ★ ➔ ★ =
+  λ d : Desc . λ A : ★ . λ X : ★ . (↑ Z . d · Z : ((☆ ➔ ☆ ➔ ☆) ➔ (☆ ➔ ☆ ➔ ☆) ➔ ☆ ➔ ☆ ➔ ☆ ➔ ☆))
+                                 · Or
+                                 · And
+                                 · True
+                                 · A
+                                 · X .
+
+ListFD ◂ Desc = descSum descUnit (descProd descParam descVar).
+ListF ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ X : ★ . interp ListFD · A · X .
+List ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . (ListF · A · X ➔ X) ➔ X .
+nil ◂ ∀ A : ★ . List · A = Λ A . Λ X . λ f . f (Ori1 · True · (And · A · X) triv) .
+cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A = Λ A . λ h . λ t . Λ X . λ f . f (Ori2 · True · (And · A · X) (Andi · A · X h (t · X f))) .
+append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
+  Λ A . λ l . λ l' . l · (List · A) (λ u . u · (List · A) (λ _ . l') (λ p . p · (List · A) (λ h . λ t . cons · A h t))).
+testList1 ◂ List · Nat = cons · Nat (S Z) (cons · Nat Z (nil · Nat)) .
+testList2 ◂ List · Nat = cons · Nat (S (S Z)) (nil · Nat) .
+appended ◂ List · Nat = append · Nat testList1 testList2.
