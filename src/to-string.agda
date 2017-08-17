@@ -73,6 +73,7 @@ term-to-stringh : {ed : exprd} → ctxt → 𝔹 → ⟦ ed ⟧ → term → str
 kind-to-stringh : {ed : exprd} → ctxt → 𝔹 → ⟦ ed ⟧ → kind → string
 optClass-to-string : ctxt → optClass → string
 optType-to-string : ctxt → optType → string
+maybeCheckType-to-string : ctxt → maybeCheckType → string
 optTerm-to-string : ctxt → optTerm → string
 tk-to-string : ctxt → tk → string
 liftingType-to-string : ctxt → liftingType → string
@@ -100,6 +101,14 @@ term-to-stringh Γ toplevel p (Hole _) = "●"
 term-to-stringh Γ toplevel p (Lam pi l pi' x o t) = 
   parens-unless toplevel ((is-beta p) || (is-abs p))
     (lam-to-string l ^ " " ^ x ^ optClass-to-string Γ o ^ " . " ^ term-to-stringh Γ ff (Lam pi l pi' x o t) t)
+term-to-stringh Γ toplevel p (Let pi pi' (DefTerm pi'' x m t) t') = 
+  let parent = Let pi pi' (DefTerm pi'' x m t) t' in
+  parens-unless toplevel ((is-beta p) || (is-abs p))
+    ("let " ^ x ^ maybeCheckType-to-string Γ m ^ " = " ^ term-to-stringh Γ ff parent t ^ " in " ^ term-to-stringh Γ ff parent t')
+term-to-stringh Γ toplevel p (Let pi pi' (DefType pi'' x k t) t') = 
+  let parent = Let pi pi' (DefType pi'' x k t) t' in
+  parens-unless toplevel ((is-beta p) || (is-abs p))
+    ("let " ^ x ^ " ◂ " ^ kind-to-string Γ toplevel k ^ " = " ^ type-to-stringh Γ ff parent t ^ " in " ^ term-to-stringh Γ ff parent t')
 term-to-stringh Γ toplevel p (Unfold _ t) =
   "unfold " ^ (term-to-string Γ toplevel t)
 term-to-stringh Γ toplevel p (Parens _ t _) = term-to-string Γ toplevel t
@@ -123,8 +132,6 @@ term-to-stringh Γ toplevel p (Chi _ T t') = "(χ " ^ maybeAtype-to-string Γ T 
 type-to-stringh Γ toplevel p (Abs pi b pi' x t t') = 
   parens-unless toplevel (is-abs p)
     (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string Γ t ^ " . " ^ type-to-stringh Γ ff (Abs pi b pi' x t t') t')
-type-to-stringh Γ toplevel p (Mu pi pi' x k t) =
-  parens-unless toplevel (is-abs p) ("μ " ^ x ^ " : " ^ (kind-to-string Γ ff k) ^ " . " ^ type-to-stringh Γ ff (Mu pi pi' x k t) t)
 type-to-stringh Γ toplevel p (TpLambda pi pi' x tk t) = 
   parens-unless toplevel (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string Γ tk ^ " . " ^ type-to-stringh Γ ff (TpLambda pi pi' x tk t) t )
 type-to-stringh Γ toplevel p (IotaEx pi ie pi' x m t) = parens-unless toplevel (is-abs p) (ie-to-string ie ^ " " ^ x ^ optType-to-string Γ m ^ " . " 
@@ -171,6 +178,9 @@ optClass-to-string Γ (SomeClass x) = " : " ^ tk-to-string Γ x
 
 optType-to-string _ NoType = ""
 optType-to-string Γ (SomeType x) = " : " ^ type-to-string Γ ff x
+
+maybeCheckType-to-string _ NoCheckType = ""
+maybeCheckType-to-string Γ (Type x) = " ◂ " ^ type-to-string Γ ff x
 
 optTerm-to-string _ NoTerm = ""
 optTerm-to-string Γ (SomeTerm x _) = " { " ^ term-to-string Γ ff x ^ " }"

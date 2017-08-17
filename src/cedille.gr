@@ -16,8 +16,10 @@ NoCheckType : maybeCheckType -> .
 ParamsCons : params -> ows decl params.
 ParamsNil : params -> .
 
-DefTerm : cmd -> ! var maybeCheckType ows '=' ows term ows '.' ! .
-DefType : cmd -> ! var ows '◂' ows kind ows '=' ows type ows '.' ! .
+DefTerm : defTermOrType -> ! var maybeCheckType ows '=' ows term .
+DefType : defTermOrType -> ! var ows '◂' ows kind ows '=' ows type.
+
+DefTermOrType : cmd -> defTermOrType ows '.' ! .
 DefKind : cmd -> ! kvar params ows '=' ows kind ows '.' ! .
 
 Decl : decl -> ! '(' ows ! var ows ':' ows tk ows ')' !.
@@ -42,6 +44,7 @@ NoTerm : optTerm -> .
 SomeTerm : optTerm -> ows '{' ows term ows '}' ! .
 
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
+Let : term -> ! 'let' ws ! defTermOrType ws 'in' ws term .
 Unfold : term -> ! 'υ' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .
@@ -95,8 +98,6 @@ TpArrow : type -> ltype ows arrowtype ows type.
 ErasedArrow: arrowtype -> '➾'.
 UnerasedArrow: arrowtype -> '➔'.
 embed : type -> ltype.
-
-Mu : type -> ! 'μ' ows ! var ows ':' ows kind ows '.' ows type.
 
 NoSpans : type -> '{^' type ! '^}' . % intended for internal use only
 

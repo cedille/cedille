@@ -47,6 +47,7 @@ term-start-pos (App t x t₁) = term-start-pos t
 term-start-pos (AppTp t tp) = term-start-pos t
 term-start-pos (Hole pi) = pi
 term-start-pos (Lam pi x _ x₁ x₂ t) = pi
+term-start-pos (Let pi _ _ _) = pi
 term-start-pos (Unfold pi _) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
@@ -63,7 +64,6 @@ term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
-type-start-pos (Mu pi _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
 type-start-pos (IotaEx pi _ _ _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
@@ -100,6 +100,7 @@ term-end-pos (App t x t') = term-end-pos t'
 term-end-pos (AppTp t tp) = type-end-pos tp
 term-end-pos (Hole pi) = posinfo-plus pi 1
 term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
+term-end-pos (Let _ _ _ t) = term-end-pos t
 term-end-pos (Unfold _ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
@@ -117,7 +118,6 @@ term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
-type-end-pos (Mu pi _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
 type-end-pos (IotaEx _ _ _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
@@ -202,6 +202,7 @@ is-arrow{LIFTINGTYPE} (LiftTpArrow _ _) = tt
 is-arrow _ = ff
 
 is-abs : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-abs{TERM} (Let _ _ _ _) = tt
 is-abs{TERM} (Lam _ _ _ _ _ _) = tt
 is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
 is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
@@ -335,6 +336,8 @@ erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
 erase-term (AppTp t tp) = erase-term t
 erase-term (Lam _ ErasedLambda _ _ _ t) = erase-term t
+erase-term (Let pi pi' (DefTerm pi'' x _ t) t') = Let pi pi' (DefTerm pi'' x NoCheckType (erase-term t)) (erase-term t')
+erase-term (Let _ _ (DefType _ _ _ _) t) = erase-term t
 erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
 erase-term (Unfold _ t) = erase-term t
 erase-term (Var pi x) = Var pi x
@@ -404,7 +407,6 @@ is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (Mu _ _ _ k t) = is-equational-kind k || is-equational t
 is-equational (IotaEx _ _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
 is-equational (IotaEx _ _ _ _ _ t2) = is-equational t2
 is-equational (NoSpans t _) = is-equational t

@@ -56,8 +56,7 @@ mutual
 
   data cmd : Set where 
     DefKind : posinfo → kvar → params → kind → posinfo → cmd
-    DefTerm : posinfo → var → maybeCheckType → term → posinfo → cmd
-    DefType : posinfo → var → kind → type → posinfo → cmd
+    DefTermOrType : defTermOrType → posinfo → cmd
     Import : posinfo → fpth → posinfo → cmd
 
   data cmds : Set where 
@@ -66,6 +65,10 @@ mutual
 
   data decl : Set where 
     Decl : posinfo → posinfo → var → tk → posinfo → decl
+
+  data defTermOrType : Set where 
+    DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
+    DefType : posinfo → var → kind → type → defTermOrType
 
   data ie : Set where 
     Exists : ie
@@ -149,6 +152,7 @@ mutual
     IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
+    Let : posinfo → posinfo → defTermOrType → term → term
     Omega : posinfo → term → term
     Parens : posinfo → term → posinfo → term
     PiInj : posinfo → num → term → term
@@ -171,7 +175,6 @@ mutual
     Abs : posinfo → binder → posinfo → var → tk → type → type
     IotaEx : posinfo → ie → posinfo → var → optType → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
-    Mu : posinfo → posinfo → var → kind → type → type
     NoSpans : type → posinfo → type
     TpApp : type → type → type
     TpAppt : type → term → type
@@ -208,6 +211,7 @@ data ParseTreeT : Set where
   parsed-cmd : cmd → ParseTreeT
   parsed-cmds : cmds → ParseTreeT
   parsed-decl : decl → ParseTreeT
+  parsed-defTermOrType : defTermOrType → ParseTreeT
   parsed-ie : ie → ParseTreeT
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
@@ -408,8 +412,7 @@ mutual
 
   cmdToString : cmd → string
   cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (paramsToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  cmdToString (DefTerm x0 x1 x2 x3 x4) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  cmdToString (DefType x0 x1 x2 x3 x4) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (kindToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  cmdToString (DefTermOrType x0 x1) = "(DefTermOrType" ^ " " ^ (defTermOrTypeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   cmdToString (Import x0 x1 x2) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
 
   cmdsToString : cmds → string
@@ -418,6 +421,10 @@ mutual
 
   declToString : decl → string
   declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+
+  defTermOrTypeToString : defTermOrType → string
+  defTermOrTypeToString (DefTerm x0 x1 x2 x3) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ ")"
+  defTermOrTypeToString (DefType x0 x1 x2 x3) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (kindToString x2) ^ " " ^ (typeToString x3) ^ ")"
 
   ieToString : ie → string
   ieToString (Exists) = "Exists" ^ ""
@@ -501,6 +508,7 @@ mutual
   termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
+  termToString (Let x0 x1 x2 x3) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (defTermOrTypeToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (PiInj x0 x1 x2) = "(PiInj" ^ " " ^ (posinfoToString x0) ^ " " ^ (numToString x1) ^ " " ^ (termToString x2) ^ ")"
@@ -523,7 +531,6 @@ mutual
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (IotaEx x0 x1 x2 x3 x4 x5) = "(IotaEx" ^ " " ^ (posinfoToString x0) ^ " " ^ (ieToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optTypeToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
-  typeToString (Mu x0 x1 x2 x3 x4) = "(Mu" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
@@ -546,6 +553,7 @@ ParseTreeToString (parsed-binder t) = binderToString t
 ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
+ParseTreeToString (parsed-defTermOrType t) = defTermOrTypeToString t
 ParseTreeToString (parsed-ie t) = ieToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
@@ -790,6 +798,10 @@ mutual
   {-# TERMINATING #-}
   norm-ie : (x : ie) → ie
   norm-ie x = x
+
+  {-# TERMINATING #-}
+  norm-defTermOrType : (x : defTermOrType) → defTermOrType
+  norm-defTermOrType x = x
 
   {-# TERMINATING #-}
   norm-decl : (x : decl) → decl

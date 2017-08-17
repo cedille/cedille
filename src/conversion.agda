@@ -89,6 +89,8 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var _ x'))
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var pi'' x')) | _ = 
   Lam pi KeptLambda pi' x NoClass (App t' NotErased (Var pi'' x'))
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | t' = Lam pi KeptLambda pi' x NoClass t'
+hnf{TERM} Γ u (Let _ _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t') hd 
+hnf{TERM} Γ u (Let _ _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd | nothing = Var pi x
 hnf{TERM} Γ (unfold ff _ _ ) (Var pi x) hd | just t = t -- definitions should be stored in hnf
@@ -116,8 +118,6 @@ hnf{TYPE} Γ (unfold b ff _) (TpVar pi x) tt | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing with ctxt-lookup-type-var-rec-def Γ x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing | nothing = TpVar pi x
 hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing | just t = t
-hnf{TYPE} Γ (unfold b ff _) (Mu pi pi' x knd body) _ = (Mu pi pi' x knd body)
-hnf{TYPE} Γ (unfold b tt b'') (Mu pi pi' x knd body) hd = hnf Γ (unfold b ff b'') (subst-type Γ (Mu pi pi' x knd body) x body) hd
 hnf{TYPE} Γ u (TpAppt tp t) hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpAppt _ t) hd  | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp) hd
 hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-term t)
@@ -241,8 +241,6 @@ conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && co
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') = 
   eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
-conv-type-norm Γ (Mu pi1 pi2 x k body) (Mu pi1' pi2' x' k' body') =
-  conv-tk Γ (Tkk k) (Tkk k') && conv-type (ctxt-rename pi1 x x' (ctxt-var-decl-if pi1' x' Γ)) body body'
 conv-type-norm Γ (TpArrow tp1 _ tp2) (TpArrow tp1' _  tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 _ tp2) (Abs _ Pi _ _ (Tkt tp1') tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ Pi _ _ (Tkt tp1) tp2) (TpArrow tp1' _ tp2') = conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'

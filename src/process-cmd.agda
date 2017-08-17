@@ -40,10 +40,10 @@ process-cmds : process-t cmds
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
 process-file : toplevel-state → (filename : string) → toplevel-state
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x (Type tp) t pi') tt {- check -} = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
-  check-type Γ tp (just star) ≫span 
-  check-term Γ t (just tp) ≫span 
+  check-type tp (just star) ≫span 
+  check-term t (just tp) ≫span 
   get-ctxt (λ Γ → 
     let t = erase-term t in
     let Γ' = (ctxt-term-def pi x (hnf Γ unfold-head t tt) tp Γ) in
@@ -52,13 +52,13 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x (Ty
         (spanM-add (Var-span Γ' pi x checking []) ≫span
          spanMr (mk-toplevel-state use-cede make-rkt ip mod is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x (Type tp) t pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} = 
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip mod is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip mod is (ctxt-term-def pi x (hnf Γ unfold-head t tt) tp Γ)))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x NoCheckType t pi') _ = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
   set-ctxt Γ ≫span
-  check-term Γ t nothing ≫=span λ mtp → 
+  check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
     let t = erase-term t in
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
@@ -68,10 +68,10 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTerm pi x NoC
         h Γ (t , nothing) = ctxt-term-udef pi x t Γ
         h Γ (t , just tp) = ctxt-term-def pi x t tp Γ
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x k tp pi') tt {- check -} =
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTermOrType (DefType pi x k tp) pi') tt {- check -} =
     set-ctxt Γ ≫span
-    check-kind Γ k ≫span 
-    check-type Γ tp (just k) ≫span 
+    check-kind k ≫span 
+    check-type tp (just k) ≫span 
     get-ctxt (λ Γ → 
       let Γ' = (ctxt-type-def pi x (hnf Γ unfold-head tp tt) k Γ) in
         spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
@@ -79,14 +79,14 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x k t
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
            spanMr (mk-toplevel-state use-cede make-rkt ip mod is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefType pi x k tp pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
   check-redefined pi x (mk-toplevel-state use-cede make-rkt ip mod is Γ)
     (spanMr (mk-toplevel-state use-cede make-rkt ip mod is (ctxt-type-def pi x (hnf Γ unfold-head tp tt) k Γ)))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
   check-and-add-params pi' ps ≫=span λ ms → 
-  check-kind Γ k ≫span
+  check-kind k ≫span
   get-ctxt (λ Γ → 
     let Γ' = (ctxt-kind-def pi x ps (hnf Γ unfold-head k tt) Γ) in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
@@ -96,7 +96,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip mod is Γ) (DefKind pi x ps 
 
   where check-and-add-params : posinfo → params → spanM (𝕃 (string × maybe sym-info))
         check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
-          check-tk Γ atk ≫span
+          check-tk atk ≫span
           spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                                       properly for computing the context in the frontend -}) ≫span
           add-tk pi1' x atk ≫=span λ mi → 

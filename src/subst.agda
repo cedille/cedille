@@ -20,6 +20,7 @@ substh-optType : substh-ret-t optType
 substh-optTerm : substh-ret-t optTerm
 substh-liftingType : substh-ret-t liftingType
 substh-maybeAtype : substh-ret-t maybeAtype
+substh-maybeCheckType : substh-ret-t maybeCheckType
 substh-args : substh-ret-t args
 
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
@@ -39,6 +40,14 @@ substh-term Γ ρ t x (Lam pi b pi' y oc t') =
   let y' = subst-rename-var-if Γ ρ x y t in
     Lam pi b pi' y' (substh-optClass Γ ρ t x oc) 
       (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
+substh-term Γ ρ t x (Let pi pi' (DefTerm pi'' y m t') t'') =
+  let y' = subst-rename-var-if Γ ρ x y t in
+     (Let pi pi' (DefTerm pi'' y' (substh-maybeCheckType Γ ρ t x m) (substh-term Γ ρ t x t'))
+      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t''))
+substh-term Γ ρ t x (Let pi pi' (DefType pi'' y k t') t'') =
+  let y' = subst-rename-var-if Γ ρ x y t in
+     (Let pi pi' (DefType pi'' y' (substh-kind Γ ρ t x k) (substh-type Γ ρ t x t'))
+      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t''))
 substh-term Γ ρ t x (Parens x₁ t' x₂) = substh-term Γ ρ t x t'
 substh-term{TERM} Γ ρ t x (Var pi y) =
  let y' = renamectxt-rep ρ y in
@@ -63,10 +72,6 @@ substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t')
 substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
     Abs pi b pi' y' (substh-tk Γ ρ t x atk)
-      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (Mu pi pi' y k t') =
-  let y' = subst-rename-var-if Γ ρ x y t in
-    Mu pi pi' y' (substh-kind Γ ρ t x k) 
       (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
 substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
   let y' = subst-rename-var-if Γ ρ x y t in
@@ -125,6 +130,9 @@ substh-liftingType Γ ρ t x (LiftTpArrow tp l) =
 substh-maybeAtype Γ ρ t x NoAtype = NoAtype
 substh-maybeAtype Γ ρ t x (Atype T) = Atype (substh-type Γ ρ t x T)
 
+substh-maybeCheckType Γ ρ t x NoCheckType = NoCheckType
+substh-maybeCheckType Γ ρ t x (Type T) = Type (substh-type Γ ρ t x T)
+
 substh-optTerm Γ ρ t x NoTerm = NoTerm
 substh-optTerm Γ ρ t x (SomeTerm t' pi') = (SomeTerm (substh-term Γ ρ t x t') pi')
 
@@ -150,7 +158,3 @@ rename-type Γ x y ff tp = subst-type Γ (TpVar posinfo-gen y) x tp
 rename-kind : ctxt → var → var → (is-term-var : 𝔹) → kind → kind
 rename-kind Γ x y tt k = subst-kind Γ (Var posinfo-gen y) x k
 rename-kind Γ x y ff k = subst-kind Γ (TpVar posinfo-gen y) x k
-
-unfold-mu : ctxt → type → type
-unfold-mu Γ (Mu pi pi' x k body) = subst-type Γ (Mu pi pi' x k body) x body
-unfold-mu Γ tp = tp

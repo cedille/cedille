@@ -36,7 +36,8 @@ rewrite-return _ r = r
 rewrite-t : Set → Set
 rewrite-t T = ctxt → renamectxt → (use-hnf : 𝔹) → term → term → T → rewriteA T
 
--- we assume the term is erased
+{- we assume the term has already been put in hnf (erased would be ok except that we are retaining let-terms when we erase,
+   but we are removing them when calling hnf). -}
 {-# TERMINATING #-}
 rewrite-terma : rewrite-t term
 rewrite-termh : rewrite-t term
@@ -77,12 +78,6 @@ rewrite-type Γ ρ u t1 t2 T | Abs pi b pi' y tk tp =
     rewrite-return T
       ((rewriteA-pure (Abs pi b pi' y')) rewriteA-app
         (rewrite-tk Γ ρ u t1 t2 tk) rewriteA-app
-        (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
-rewrite-type Γ ρ u t1 t2 T | Mu pi pi' y k tp = 
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    rewrite-return T
-      ((rewriteA-pure (Mu pi pi' y')) rewriteA-app
-        (rewrite-kind Γ ρ u t1 t2 k) rewriteA-app
         (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
 rewrite-type Γ ρ u t1 t2 T | IotaEx pi ie pi' y m tp = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
