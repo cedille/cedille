@@ -6,10 +6,11 @@ open import cedille-types
 open import ctxt
 open import is-free
 open import rename
+open import general-util
 open import syntax-util
 
 substh-ret-t : Set → Set
-substh-ret-t T = {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → var → T → T
+substh-ret-t T = {ed : exprd} → ctxt → renamectxt → trie ⟦ ed ⟧ → T → T
 
 substh-term : substh-ret-t term
 substh-type : substh-ret-t type
@@ -23,133 +24,133 @@ substh-maybeAtype : substh-ret-t maybeAtype
 substh-maybeCheckType : substh-ret-t maybeCheckType
 substh-args : substh-ret-t args
 
-subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → var → ⟦ ed ⟧ → var
-subst-rename-var-if Γ ρ x y t = 
-  {- rename bound variable y iff it is x (var being substituted for), or if y occurs free
-     in t (the term we are substituting for x), or if it is the renamed version of any variable -}
-  if x =string y || is-free-in check-erased y t || renamectxt-in-range ρ y then 
-    rename-away-from y (λ s → ctxt-binds-var Γ s || s =string x) ρ
+subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → trie ⟦ ed ⟧ → var
+subst-rename-var-if Γ ρ x σ =
+  {- rename bound variable x iff it is one of the vars being substituted for, 
+     or if x occurs free in one of the terms we are substituting for vars, 
+     or if it is the renamed version of any variable -}
+  if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x then 
+    rename-away-from x (λ s → ctxt-binds-var Γ s || trie-contains σ s) ρ
   else
-    y
+    x
 
-
-substh-term Γ ρ t x (App t' m t'') = App (substh-term Γ ρ t x t') m (substh-term Γ ρ t x t'')
-substh-term Γ ρ t x (AppTp t' tp) = AppTp (substh-term Γ ρ t x t') (substh-type Γ ρ t x tp)
-substh-term Γ ρ t x (Hole x₁) = Hole x₁
-substh-term Γ ρ t x (Lam pi b pi' y oc t') =
-  let y' = subst-rename-var-if Γ ρ x y t in
-    Lam pi b pi' y' (substh-optClass Γ ρ t x oc) 
-      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-term Γ ρ t x (Let pi pi' (DefTerm pi'' y m t') t'') =
-  let y' = subst-rename-var-if Γ ρ x y t in
-     (Let pi pi' (DefTerm pi'' y' (substh-maybeCheckType Γ ρ t x m) (substh-term Γ ρ t x t'))
-      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t''))
-substh-term Γ ρ t x (Let pi pi' (DefType pi'' y k t') t'') =
-  let y' = subst-rename-var-if Γ ρ x y t in
-     (Let pi pi' (DefType pi'' y' (substh-kind Γ ρ t x k) (substh-type Γ ρ t x t'))
-      (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t''))
-substh-term Γ ρ t x (Parens x₁ t' x₂) = substh-term Γ ρ t x t'
-substh-term{TERM} Γ ρ t x (Var pi y) =
- let y' = renamectxt-rep ρ y in
-   if y' =string x then t else (Var pi y')
-substh-term Γ ρ t x (Var pi y) = Var pi (renamectxt-rep ρ y)
-substh-term Γ ρ t x (Unfold pi t') = Unfold pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Beta pi ot) = Beta pi (substh-optTerm Γ ρ t x ot)
-substh-term Γ ρ t x (Delta pi t') = Delta pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Omega pi t') = Omega pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ t x t1) (substh-term Γ ρ t x t2) (substh-optTerm Γ ρ t x ot) pi'
-substh-term Γ ρ t x (IotaProj t' n pi) = IotaProj (substh-term Γ ρ t x t') n pi
-substh-term Γ ρ t x (PiInj pi n t') = PiInj pi n (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Epsilon pi lr m t') = Epsilon pi lr m (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Sigma pi t') = Sigma pi (substh-term Γ ρ t x t')
-substh-term Γ ρ t x (Rho pi r t' t'') = Rho pi r (substh-term Γ ρ t x t') (substh-term Γ ρ t x t'')
-substh-term Γ ρ t x (Chi pi T t'') = Chi pi (substh-maybeAtype Γ ρ t x T) (substh-term Γ ρ t x t'')
-substh-term Γ ρ t x (Theta pi u t' ls) = Theta pi u (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls) 
+substh-term Γ ρ σ (App t m t') = App (substh-term Γ ρ σ t) m (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (AppTp t tp) = AppTp (substh-term Γ ρ σ t) (substh-type Γ ρ σ tp)
+substh-term Γ ρ σ (Hole x₁) = Hole x₁
+substh-term Γ ρ σ (Lam pi b pi' x oc t) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    Lam pi b pi' x' (substh-optClass Γ ρ σ oc) 
+      (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
+substh-term Γ ρ σ (Let pi pi' (DefTerm pi'' x m t) t') =
+  let x' = subst-rename-var-if Γ ρ x σ in
+     (Let pi pi' (DefTerm pi'' x' (substh-maybeCheckType Γ ρ σ m) (substh-term Γ ρ σ t))
+      (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
+substh-term Γ ρ σ (Let pi pi' (DefType pi'' x k t) t') =
+  let x' = subst-rename-var-if Γ ρ x σ in
+     (Let pi pi' (DefType pi'' x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
+      (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
+substh-term Γ ρ σ (Parens x₁ t x₂) = substh-term Γ ρ σ t
+substh-term{TERM} Γ ρ σ (Var pi x) =
+ let x' = renamectxt-rep ρ x in
+   trie-lookup-else (Var pi x') σ x'
+substh-term Γ ρ σ (Var pi x) = Var pi (renamectxt-rep ρ x)
+substh-term Γ ρ σ (Unfold pi t) = Unfold pi (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Beta pi ot) = Beta pi (substh-optTerm Γ ρ σ ot)
+substh-term Γ ρ σ (Delta pi t) = Delta pi (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Omega pi t) = Omega pi (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) (substh-optTerm Γ ρ σ ot) pi'
+substh-term Γ ρ σ (IotaProj t n pi) = IotaProj (substh-term Γ ρ σ t) n pi
+substh-term Γ ρ σ (PiInj pi n t) = PiInj pi n (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Rho pi r t t') = Rho pi r (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls) 
   where substh-lterms : substh-ret-t lterms
-        substh-lterms Γ ρ t x (LtermsNil pi) = LtermsNil pi
-        substh-lterms Γ ρ t x (LtermsCons m t' ls) = LtermsCons m (substh-term Γ ρ t x t') (substh-lterms Γ ρ t x ls)
+        substh-lterms Γ ρ σ (LtermsNil pi) = LtermsNil pi
+        substh-lterms Γ ρ σ (LtermsCons m t ls) = LtermsCons m (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
 
-substh-type Γ ρ t x (Abs pi b pi' y atk t') = 
-  let y' = subst-rename-var-if Γ ρ x y t in
-    Abs pi b pi' y' (substh-tk Γ ρ t x atk)
-      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (TpLambda pi pi' y atk t') = 
-  let y' = subst-rename-var-if Γ ρ x y t in
-    TpLambda pi pi' y' (substh-tk Γ ρ t x atk) 
-      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (IotaEx pi ie pi' y m t') = 
-  let y' = subst-rename-var-if Γ ρ x y t in
-    IotaEx pi ie pi' y' (substh-optType Γ ρ t x m)
-      (substh-type (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t')
-substh-type Γ ρ t x (Lft pi pi' y t' l) = 
-  let y' = subst-rename-var-if Γ ρ x y t in
-    Lft pi pi' y' (substh-term (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x t') 
-      (substh-liftingType Γ ρ t x l)
-substh-type Γ ρ t x (TpApp tp tp₁) = TpApp (substh-type Γ ρ t x tp) (substh-type Γ ρ t x tp₁)
-substh-type Γ ρ t x (TpAppt tp t') = TpAppt (substh-type Γ ρ t x tp) (substh-term Γ ρ t x t')
-substh-type Γ ρ t x (TpArrow tp arrowtype tp₁) = TpArrow (substh-type Γ ρ t x tp) arrowtype (substh-type Γ ρ t x tp₁)
-substh-type Γ ρ t x (TpEq x₁ x₂) = TpEq (substh-term Γ ρ t x x₁) (substh-term Γ ρ t x x₂)
-substh-type Γ ρ t x (TpParens x₁ tp x₂) = substh-type Γ ρ t x tp
-substh-type Γ ρ t x (NoSpans tp _) = substh-type Γ ρ t x tp
-substh-type{TYPE} Γ ρ t x (TpVar pi y) =
- let y' = renamectxt-rep ρ y in
-   if y' =string x then t else (TpVar pi y')
-substh-type Γ ρ t x (TpVar pi y) = TpVar pi (renamectxt-rep ρ y)
-substh-type Γ ρ t x (TpHole pi) = TpHole pi --ACG
-substh-kind Γ ρ t x (KndArrow k k₁) = KndArrow (substh-kind Γ ρ t x k) (substh-kind Γ ρ t x k₁)
-substh-kind Γ ρ t x (KndParens x₁ k x₂) = substh-kind Γ ρ t x k
-substh-kind Γ ρ t x (KndPi pi pi' y atk k) = 
-  let y' = subst-rename-var-if Γ ρ x y t in
-    KndPi pi pi' y' (substh-tk Γ ρ t x atk)
-      (substh-kind (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x k)
-substh-kind Γ ρ t x (KndTpArrow t' k) = KndTpArrow (substh-type Γ ρ t x t') (substh-kind Γ ρ t x k)
-substh-kind Γ ρ t x (KndVar pi y ys) = KndVar pi y (substh-args Γ ρ t x ys)
-substh-kind Γ ρ t x (Star pi) = Star pi
+substh-type Γ ρ σ (Abs pi b pi' x atk t) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    Abs pi b pi' x' (substh-tk Γ ρ σ atk)
+      (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
+substh-type Γ ρ σ (TpLambda pi pi' x atk t) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    TpLambda pi pi' x' (substh-tk Γ ρ σ atk) 
+      (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
+substh-type Γ ρ σ (IotaEx pi ie pi' x m t) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    IotaEx pi ie pi' x' (substh-optType Γ ρ σ m)
+      (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
+substh-type Γ ρ σ (Lft pi pi' x t l) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    Lft pi pi' x' (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t) 
+      (substh-liftingType Γ ρ σ l)
+substh-type Γ ρ σ (TpApp tp tp₁) = TpApp (substh-type Γ ρ σ tp) (substh-type Γ ρ σ tp₁)
+substh-type Γ ρ σ (TpAppt tp t) = TpAppt (substh-type Γ ρ σ tp) (substh-term Γ ρ σ t)
+substh-type Γ ρ σ (TpArrow tp arrowtype tp₁) = TpArrow (substh-type Γ ρ σ tp) arrowtype (substh-type Γ ρ σ tp₁)
+substh-type Γ ρ σ (TpEq x₁ x₂) = TpEq (substh-term Γ ρ σ x₁) (substh-term Γ ρ σ x₂)
+substh-type Γ ρ σ (TpParens x₁ tp x₂) = substh-type Γ ρ σ tp
+substh-type Γ ρ σ (NoSpans tp _) = substh-type Γ ρ σ tp
+substh-type{TYPE} Γ ρ σ (TpVar pi x) =
+ let x' = renamectxt-rep ρ x in
+   trie-lookup-else (TpVar pi x') σ x'
+substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
+substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
+substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
+substh-kind Γ ρ σ (KndParens x₁ k x₂) = substh-kind Γ ρ σ k
+substh-kind Γ ρ σ (KndPi pi pi' x atk k) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    KndPi pi pi' x' (substh-tk Γ ρ σ atk)
+      (substh-kind (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ k)
+substh-kind Γ ρ σ (KndTpArrow t k) = KndTpArrow (substh-type Γ ρ σ t) (substh-kind Γ ρ σ k)
+substh-kind Γ ρ σ (KndVar pi x xs) = KndVar pi x (substh-args Γ ρ σ xs)
+substh-kind Γ ρ σ (Star pi) = Star pi
 
-substh-args Γ ρ t x (ArgsCons (TermArg x₁) ys) = ArgsCons (TermArg (substh-term Γ ρ t x x₁)) (substh-args Γ ρ t x ys)
-substh-args Γ ρ t x (ArgsCons (TypeArg x₁) ys) = ArgsCons (TypeArg (substh-type Γ ρ t x x₁)) (substh-args Γ ρ t x ys)
-substh-args Γ ρ t x (ArgsNil x₁) = ArgsNil x₁
+substh-args Γ ρ σ (ArgsCons (TermArg x₁) xs) = ArgsCons (TermArg (substh-term Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
+substh-args Γ ρ σ (ArgsCons (TypeArg x₁) xs) = ArgsCons (TypeArg (substh-type Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
+substh-args Γ ρ σ (ArgsNil x₁) = ArgsNil x₁
 
-substh-tk Γ ρ t x (Tkk k) = Tkk (substh-kind Γ ρ t x k)
-substh-tk Γ ρ t x (Tkt t') = Tkt (substh-type Γ ρ t x t')
+substh-tk Γ ρ σ (Tkk k) = Tkk (substh-kind Γ ρ σ k)
+substh-tk Γ ρ σ (Tkt t) = Tkt (substh-type Γ ρ σ t)
 
-substh-optClass Γ ρ t x NoClass = NoClass
-substh-optClass Γ ρ t x (SomeClass atk) = SomeClass (substh-tk Γ ρ t x atk)
-substh-optType Γ ρ t x NoType = NoType
-substh-optType Γ ρ t x (SomeType t1) = SomeType (substh-type Γ ρ t x t1)
-substh-liftingType Γ ρ t x (LiftArrow l l₁) = LiftArrow (substh-liftingType Γ ρ t x l) (substh-liftingType Γ ρ t x l₁)
-substh-liftingType Γ ρ t x (LiftParens x₁ l x₂) = substh-liftingType Γ ρ t x l
-substh-liftingType Γ ρ t x (LiftPi pi y tp l) = 
-  let y' = subst-rename-var-if Γ ρ x y t in 
-    LiftPi pi y' (substh-type Γ ρ t x tp) 
-       (substh-liftingType (ctxt-var-decl posinfo-gen y' Γ) (renamectxt-insert ρ y y') t x l)
-substh-liftingType Γ ρ t x (LiftStar pi) = LiftStar pi
-substh-liftingType Γ ρ t x (LiftTpArrow tp l) = 
-  LiftTpArrow (substh-type Γ ρ t x tp) (substh-liftingType Γ ρ t x l)
+substh-optClass Γ ρ σ NoClass = NoClass
+substh-optClass Γ ρ σ (SomeClass atk) = SomeClass (substh-tk Γ ρ σ atk)
+substh-optType Γ ρ σ NoType = NoType
+substh-optType Γ ρ σ (SomeType t1) = SomeType (substh-type Γ ρ σ t1)
+substh-liftingType Γ ρ σ (LiftArrow l l₁) = LiftArrow (substh-liftingType Γ ρ σ l) (substh-liftingType Γ ρ σ l₁)
+substh-liftingType Γ ρ σ (LiftParens x₁ l x₂) = substh-liftingType Γ ρ σ l
+substh-liftingType Γ ρ σ (LiftPi pi x tp l) =
+  let x' = subst-rename-var-if Γ ρ x σ in 
+    LiftPi pi x' (substh-type Γ ρ σ tp) 
+       (substh-liftingType (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ l)
+substh-liftingType Γ ρ σ (LiftStar pi) = LiftStar pi
+substh-liftingType Γ ρ σ (LiftTpArrow tp l) = 
+  LiftTpArrow (substh-type Γ ρ σ tp) (substh-liftingType Γ ρ σ l)
 
-substh-maybeAtype Γ ρ t x NoAtype = NoAtype
-substh-maybeAtype Γ ρ t x (Atype T) = Atype (substh-type Γ ρ t x T)
+substh-maybeAtype Γ ρ σ NoAtype = NoAtype
+substh-maybeAtype Γ ρ σ (Atype T) = Atype (substh-type Γ ρ σ T)
 
-substh-maybeCheckType Γ ρ t x NoCheckType = NoCheckType
-substh-maybeCheckType Γ ρ t x (Type T) = Type (substh-type Γ ρ t x T)
+substh-maybeCheckType Γ ρ σ NoCheckType = NoCheckType
+substh-maybeCheckType Γ ρ σ (Type T) = Type (substh-type Γ ρ σ T)
 
-substh-optTerm Γ ρ t x NoTerm = NoTerm
-substh-optTerm Γ ρ t x (SomeTerm t' pi') = (SomeTerm (substh-term Γ ρ t x t') pi')
+substh-optTerm Γ ρ σ NoTerm = NoTerm
+substh-optTerm Γ ρ σ (SomeTerm t pi') = (SomeTerm (substh-term Γ ρ σ t) pi')
 
 subst-ret-t : Set → Set
 subst-ret-t T = {ed : exprd} → ctxt → ⟦ ed ⟧ → var → T → T
 
 subst-term : subst-ret-t term
-subst-term Γ t x a = substh-term Γ empty-renamectxt t x a
+subst-term Γ t x a = substh-term Γ empty-renamectxt (trie-single x t) a
 
 subst-type : subst-ret-t type
-subst-type Γ t x a = substh-type Γ empty-renamectxt t x a
+subst-type Γ t x a = substh-type Γ empty-renamectxt (trie-single x t) a
 
 subst-kind : subst-ret-t kind
-subst-kind Γ t x a = substh-kind Γ empty-renamectxt t x a
+subst-kind Γ t x a = substh-kind Γ empty-renamectxt (trie-single x t) a
 
 subst-liftingType : subst-ret-t liftingType
-subst-liftingType Γ t x a = substh-liftingType Γ empty-renamectxt t x a
+subst-liftingType Γ t x a = substh-liftingType Γ empty-renamectxt (trie-single x t) a
 
 rename-type : ctxt → var → var → (is-term-var : 𝔹) → type → type
 rename-type Γ x y tt tp = subst-type Γ (Var posinfo-gen y) x tp
@@ -158,3 +159,4 @@ rename-type Γ x y ff tp = subst-type Γ (TpVar posinfo-gen y) x tp
 rename-kind : ctxt → var → var → (is-term-var : 𝔹) → kind → kind
 rename-kind Γ x y tt k = subst-kind Γ (Var posinfo-gen y) x k
 rename-kind Γ x y ff k = subst-kind Γ (TpVar posinfo-gen y) x k
+
