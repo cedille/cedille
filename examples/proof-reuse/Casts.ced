@@ -27,7 +27,7 @@ VecL ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-v2lCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (VecL · A n)
+v2uCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (VecL · A n)
   = Λ A . elimVec · A ·
   (λ n : Nat . λ xs : Vec · A n . ι ys : (VecL · A n) . ys ≃ xs)
   [ [ nilL · A , β{nilL · A} ] , β{[ nilL · A , β{nilL · A} ]} ]
@@ -45,11 +45,14 @@ l2vCast ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ VecL · A n
+v2u ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ VecL · A n
   = Λ A . Λ n . cast'
   · (Vec · A n)
   · (VecL · A n)
-  -(v2lCast · A -n) .
+  -(v2uCast · A -n) .
+
+v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
+  = Λ A . Λ n . λ xs . (v2u · A -n xs).1 .
 
 l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
   = Λ A . cast
@@ -77,5 +80,18 @@ cmapL ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ List · A ➔ List · 
 
 interCast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast' · (ι a : A . B a) · A
   = Λ A . Λ B . λ a . [ a.1 , β{a.1} ] .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+vs2usL ◂ ∀ A : ★ . ∀ n : Nat .
+  List · (Vec · A n) ➔ List · (VecL · A n)
+  = Λ A . Λ n . cmapL · (Vec · A n) · (VecL · A n)
+    -(v2uCast · A -n) .
+
+vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
+  List · (Vec · A n) ➔ List · (List · A)
+  = Λ A . Λ n . λ xs . cmapL · (VecL · A n) · (List · A)
+    -(interCast · (List · A) · (λ xs : List · A . n ≃ length xs))
+    (vs2usL · A -n xs) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

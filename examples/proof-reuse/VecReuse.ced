@@ -7,13 +7,13 @@ import VecDefs.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
-  = Λ A . λ xs . λ ys . (v2l · A
+  = Λ A . λ xs . λ ys . v2l · A
   -(add (length · A xs) (length · A ys))
   (appendV · A
     -(length · A xs)
     (l2v · A xs)
     -(length · A ys)
-    (l2v · A ys))).1 .
+    (l2v · A ys)) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
