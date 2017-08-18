@@ -1,7 +1,26 @@
 import Nat.
-import List.
 import Vec.
 import Casts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mapV ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔
+  ∀ n : Nat . Vec · A n ➔ Vec · B n
+  = Λ A . Λ B . λ f . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n . Vec · B n)
+  (nilV · B)
+  (Λ n . Λ xs . λ x . λ ih . consV · B -n (f x) ih) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mapCompV ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
+  Π f : A ➔ B . Π g : B ➔ C .
+  ∀ n : Nat . Π xs : Vec · A n .
+  mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs)
+  = Λ A . Λ B . Λ C . λ f . λ g . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n . mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs))
+  β
+  (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

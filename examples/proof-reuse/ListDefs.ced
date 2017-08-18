@@ -1,7 +1,35 @@
 import Nat.
 import List.
-import Vec.
 import Casts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mapL ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔  List · A ➔ List · B
+  = Λ A . Λ B . λ f . elimList · A ·
+  (λ xs : List · A . List · B)
+  (nilL · B)
+  (Λ xs . λ x . λ ih . consL · B (f x) ih) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mapCompL ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
+  Π f : A ➔ B . Π g : B ➔ C .
+  Π xs : List · A .
+  mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs)
+  = Λ A . Λ B . Λ C . λ f . λ g . elimList · A ·
+  (λ xs : List · A . mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs))
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mapPresLengthL ◂ ∀ A : ★ . ∀ B : ★ .
+  Π f : A ➔ B . Π xs : List · A .
+  length xs ≃ length (mapL f xs)
+  = Λ A . Λ B . λ f . elimList · A ·
+  (λ xs : List · A . length xs ≃ length (mapL f xs))
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
