@@ -41,13 +41,13 @@ substh-term Γ ρ σ (Lam pi b pi' x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     Lam pi b pi' x' (substh-optClass Γ ρ σ oc) 
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
-substh-term Γ ρ σ (Let pi pi' (DefTerm pi'' x m t) t') =
+substh-term Γ ρ σ (Let pi (DefTerm pi'' x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-     (Let pi pi' (DefTerm pi'' x' (substh-maybeCheckType Γ ρ σ m) (substh-term Γ ρ σ t))
+     (Let pi (DefTerm pi'' x' (substh-maybeCheckType Γ ρ σ m) (substh-term Γ ρ σ t))
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
-substh-term Γ ρ σ (Let pi pi' (DefType pi'' x k t) t') =
+substh-term Γ ρ σ (Let pi (DefType pi'' x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-     (Let pi pi' (DefType pi'' x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
+     (Let pi (DefType pi'' x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
 substh-term Γ ρ σ (Parens x₁ t x₂) = substh-term Γ ρ σ t
 substh-term{TERM} Γ ρ σ (Var pi x) =

@@ -247,7 +247,6 @@ checkFile s filename should-print-spans =
               writeo (f :: us) =
                 let ie = get-include-elt s f in
                   (if use-cede then (write-cede-file f ie) else (return triv)) >>
-                   -- (putStrLn (ctxt-to-string (get-ctxt-from-toplevel-state s))) >> -- for debugging purposes only
                   (if make-rkt then (write-rkt-file f (get-ctxt-from-toplevel-state s)) else (return triv)) >>
                   writeo us
 

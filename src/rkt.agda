@@ -36,4 +36,4 @@ write-rkt-file : (ced-path : string) → ctxt  → IO ⊤
 write-rkt-file ced-path ctxt = 
   let dir = takeDirectory ced-path in
     createDirectoryIfMissing ff (dot-racket-directory dir) >>
-    writeFile (rkt-filename ced-path) (rkt-erase ctxt ced-path) -- (ctxt-to-string ctxt) -- TODO fill with erased ced file content
+    writeFile (rkt-filename ced-path) (rkt-erase ctxt ced-path) 

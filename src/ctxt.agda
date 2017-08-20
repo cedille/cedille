@@ -11,34 +11,37 @@ location = string × posinfo -- file path and starting position in the file
 {- we will generally keep classifiers of variables in hnf in the ctxt, although
    we will not necessarily unfold recursive type definitions. -}
 
+defScope : Set
+defScope = 𝔹
+
+localScope : defScope
+localScope = tt
+
+globalScope : defScope
+globalScope = ff
+
 data ctxt-info : Set where
 
   -- for declaring a variable to have a given type (with no definition)
   term-decl : type → ctxt-info
 
   -- for defining a variable to equal a term with a given type
-  term-def : term → type → ctxt-info
+  term-def : defScope → term → type → ctxt-info
 
   -- for untyped term definitions 
-  term-udef : term → ctxt-info
+  term-udef : defScope → term → ctxt-info
 
   -- for declaring a variable to have a given kind (with no definition)
   type-decl : kind → ctxt-info
 
   -- for defining a variable to equal a type with a given kind
-  type-def : type → kind → ctxt-info
-
-  -- for defining a variable to equal a type, without a kind
-  type-udef : type → ctxt-info
+  type-def : defScope → type → kind → ctxt-info
 
   -- for defining a variable to equal a kind
   kind-def : params → kind → ctxt-info
 
   -- to rename a variable at any level to another
   rename-def : var → ctxt-info
-
-  -- for a recursive type definition
-  rec-def : type → kind → ctxt-info
 
   -- representing a declaration of a variable with no other information about it
   var-decl : ctxt-info
@@ -49,25 +52,9 @@ sym-info = ctxt-info × location
 
 is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
-is-term-level (term-def _ _) = tt
-is-term-level (term-udef _) = tt
+is-term-level (term-def _ _ _) = tt
+is-term-level (term-udef _ _) = tt
 is-term-level _ = ff
-
-ctxt-info-to-string : ctxt-info → string
-ctxt-info-to-string (term-decl type) = "(term-decl)"
-ctxt-info-to-string (term-def term type) = "(term-def)"
-ctxt-info-to-string (term-udef term) = "(term-udef)"
-ctxt-info-to-string (type-decl type) = "(type-decl)"
-ctxt-info-to-string (type-def type kind) = "(type-def)"
-ctxt-info-to-string (type-udef type) = "(type-udef)"
-ctxt-info-to-string (kind-def params kind) = "(kind-def)"
-ctxt-info-to-string (rename-def var) = "(rename-def)"
-ctxt-info-to-string (rec-def type kind) = "(rec-def)"
-ctxt-info-to-string (var-decl) = "(var-decl)" 
-
-sym-info-to-string : sym-info → string
-sym-info-to-string (ctxt-info , {-location-}string , posinfo) = ctxt-info-to-string ctxt-info ^ " " ^ string ^ " " ^ posinfo
-    
 
 data ctxt : Set where
   mk-ctxt : (filename : string) →
@@ -102,10 +89,10 @@ ctxt-type-decl p v k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename
                                                     (trie-insert i v (type-decl k , (filename , p)))
                                                     symb-occs
 
-ctxt-type-def : posinfo → var → type → kind → ctxt → ctxt
-ctxt-type-def p v t k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
+ctxt-type-def p s v t k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (type-def t k , (filename , p)))
+                                                    (trie-insert i v (type-def s t k , (filename , p)))
                                                     symb-occs
 
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
@@ -114,22 +101,16 @@ ctxt-kind-def p v ps k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename
                                                     (trie-insert i v (kind-def ps k , (filename , p)))
                                                     symb-occs
 
-ctxt-type-udef : posinfo → var → type → ctxt → ctxt
-ctxt-type-udef p v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
+ctxt-term-def p s v t tp (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (type-udef t , (filename , p)))
+                                                    (trie-insert i v (term-def s t tp , (filename , p)))
                                                     symb-occs
 
-ctxt-term-def : posinfo → var → term → type → ctxt → ctxt
-ctxt-term-def p v t tp (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
+ctxt-term-udef p s v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (term-def t tp , (filename , p)))
-                                                    symb-occs
-
-ctxt-term-udef : posinfo → var → term → ctxt → ctxt
-ctxt-term-udef p v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
-                                                    (trie-insert-append syms filename v)
-                                                    (trie-insert i v (term-udef t , (filename , p)))
+                                                    (trie-insert i v (term-udef s t , (filename , p)))
                                                     symb-occs
 
 ctxt-var-decl : posinfo → var → ctxt → ctxt
@@ -169,16 +150,6 @@ ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
 ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
 ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ 
 
-ctxt-tk-def : posinfo → var → var → tk → ctxt → ctxt
-ctxt-tk-def p x y (Tkt t) Γ = ctxt-term-def p x (Var posinfo-gen y) t Γ 
-ctxt-tk-def p x y (Tkk k) Γ = ctxt-type-def p x (TpVar posinfo-gen y) k Γ 
-
-ctxt-rec-def : posinfo → var → type → kind → ctxt → ctxt
-ctxt-rec-def p v t k (mk-ctxt filename syms i symb-occs) = 
-  mk-ctxt filename (trie-insert-append syms filename v)
-          (trie-insert i v (rec-def t k , (filename , p)))
-          symb-occs
-
 ----------------------------------------------------------------------
 -- lookup functions
 ----------------------------------------------------------------------
@@ -187,22 +158,21 @@ ctxt-rec-def p v t k (mk-ctxt filename syms i symb-occs) =
 ctxt-lookup-type-var : ctxt → var → maybe kind
 ctxt-lookup-type-var (mk-ctxt _ _ i _) v with trie-lookup i v
 ...                                      | just (type-decl k , _) = just k
-...                                      | just (type-def _ k , _) = just k
-...                                      | just (rec-def _ k , _) = just k
+...                                      | just (type-def _ _ k , _) = just k
 ...                                      | _ = nothing
 
 ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var (mk-ctxt _ _ i _) v with trie-lookup i v
 ...                                      | just (term-decl t , _) = just t
-...                                      | just (term-def _ t , _) = just t
+...                                      | just (term-def _ _ t , _) = just t
 ...                                      | _ = nothing
 
 ctxt-lookup-var-tk : ctxt → var → maybe tk
 ctxt-lookup-var-tk (mk-ctxt _ _ i _) v with trie-lookup i v
 ...                                     | just (type-decl k , _) = just (Tkk k)
-...                                     | just (type-def _ k , _) = just (Tkk k)
+...                                     | just (type-def _ _ k , _) = just (Tkk k)
 ...                                     | just (term-decl t , _) = just (Tkt t)
-...                                     | just (term-def _ t , _) = just (Tkt t)
+...                                     | just (term-def _ _ t , _) = just (Tkt t)
 ...                                     | _ = nothing
 
 ctxt-lookup-kind-var : ctxt → var → 𝔹
@@ -212,20 +182,14 @@ ctxt-lookup-kind-var (mk-ctxt _ _ i _) v with trie-lookup i v
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                           | just (term-def t _ , _) = just t
-...                                           | just (term-udef t , _) = just t
+...                                           | just (term-def _ t _ , _) = just t
+...                                           | just (term-udef _ t , _) = just t
 ...                                           | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                          | just (type-def t _ , _) = just t
-...                                          | just (type-udef t , _) = just t
+...                                          | just (type-def _ t _ , _) = just t
 ...                                          | _ = nothing
-
-ctxt-lookup-type-var-rec-def : ctxt → var → maybe type
-ctxt-lookup-type-var-rec-def (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                              | just (rec-def t _ , _) = just t
-...                                              | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def (mk-ctxt _ _ i _) x with trie-lookup i x
@@ -237,12 +201,10 @@ ctxt-binds-var (mk-ctxt _ _ i _) x = trie-contains i x
 
 ctxt-defines-var : ctxt → var → 𝔹
 ctxt-defines-var (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                  | just (term-def _ _ , _) = tt
-...                                  | just (term-udef _ , _) = tt
-...                                  | just (type-def _ _ , _) = tt
-...                                  | just (type-udef _ , _) = tt
+...                                  | just (term-def _ _ _ , _) = tt
+...                                  | just (term-udef _ _ , _) = tt
+...                                  | just (type-def _ _ _ , _) = tt
 ...                                  | just (kind-def _ _ , _) = tt
-...                                  | just (rec-def _ _ , _) = tt
 ...                                  | _ = ff
 
 ctxt-declares-term-var : ctxt → var → 𝔹
@@ -297,10 +259,3 @@ ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs
 ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
 ctxt-set-symbol-occurrences (mk-ctxt filename syms i symb-occs) new-symb-occs = mk-ctxt filename syms i new-symb-occs
 
-ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt filename syms i symb-occs) =
-    "filename: " ^ filename ^ -- filename
-    ",\nsyms: " ^ (trie-to-string "," (𝕃-to-string (λ x → x) ",") syms) ^ -- map each filename to the symbols declared in that file
-    -- the function that converts i to string still needs implemented
-    "i:\n" ^ (trie-to-string "," sym-info-to-string i) ^ -- map symbols (from Cedille files) to their ctxt-info and location
-    "symbol-occurrences: " ^ (trie-to-string ":" (𝕃-to-string (λ { (x , y , z) → "(" ^ x ^ "," ^ y ^ "," ^ z ^ ")" }) ",") symb-occs) -- map symbols to a list of definitions they occur in (and relevant file info)

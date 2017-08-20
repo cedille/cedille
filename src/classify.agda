@@ -204,13 +204,27 @@ var-spans-term (Omega x t) = var-spans-term t
 var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
 var-spans-term (Unfold pi t) = var-spans-term t
 var-spans-term (Hole x) = spanMok
-var-spans-term (Let pi pi' (DefTerm pi'' x m t) t') = spanMok -- fixme
-var-spans-term (Let pi pi' (DefType pi'' x k t) t') = spanMok
+var-spans-term (Let pi (DefTerm pi' x m t) t') =
+  get-ctxt (λ Γ →
+    let Γ' = ctxt-var-decl pi' x Γ in
+      set-ctxt Γ' ≫span
+      spanM-add (Let-span Γ checking pi (DefTerm pi' x m t) t' []) ≫span
+      spanM-add (Var-span Γ' pi' x untyped []) ≫span
+      var-spans-term t ≫span
+      var-spans-term t' ≫span      
+      set-ctxt Γ)
+var-spans-term (Let pi (DefType pi' x k t) t') = 
+  get-ctxt (λ Γ →
+    let Γ' = ctxt-var-decl pi' x Γ in
+      set-ctxt Γ' ≫span
+      spanM-add (Var-span Γ' pi' x untyped []) ≫span
+      var-spans-term t' ≫span      
+      set-ctxt Γ)
 var-spans-term (Lam pi l pi' x _ t) =
   get-ctxt (λ Γ →
     let Γ' = ctxt-var-decl pi' x Γ in
       set-ctxt Γ' ≫span
-      spanM-add (Lam-span Γ pi l x NoClass t []) ≫span
+      spanM-add (Lam-span Γ checking pi l x NoClass t []) ≫span
       spanM-add (Var-span Γ' pi' x untyped []) ≫span
       var-spans-term t ≫span
       set-ctxt Γ)
@@ -366,6 +380,36 @@ check-termi (App t m t') tp =
         cont'' nothing = spanM-add (App-span t t' (maybe-to-checking tp) []) ≫span spanMr nothing
         cont'' (just htp) = get-ctxt (λ Γ → cont m (hnf-instantiate-iota Γ t htp tt))
 
+check-termi (Let pi d t) mtp =
+  spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
+  add-def d ≫=span finish
+  where finish : (var × maybe sym-info) → spanM (check-ret mtp)
+        finish (x , m) = 
+         get-ctxt (λ Γ → 
+         spanM-add (Let-span Γ (maybe-to-checking mtp) pi d t []) ≫span
+         check-term t mtp ≫=span λ r →
+         spanM-restore-info x m ≫span
+         spanMr r)
+
+        add-def : defTermOrType → spanM (var × maybe sym-info)
+        add-def (DefTerm pi₁ x NoCheckType t') =
+           check-term t' nothing ≫=span cont
+          where cont : maybe type → spanM (var × maybe sym-info)
+                cont (just T) = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
+                                               spanM-push-term-def pi₁ x t' T ≫=span λ m → spanMr (x , m) 
+                cont nothing = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing []) ≫span
+                                              spanM-push-term-udef pi₁ x t' ≫=span λ m → spanMr (x , m) 
+        add-def (DefTerm pi₁ x (Type T) t') =
+          check-type T (just star) ≫span
+          check-term t' (just T) ≫span 
+          spanM-push-term-def pi₁ x t' T ≫=span λ m →
+          get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x checking [ type-data Γ T ]) ≫span
+          spanMr (x , m) 
+        add-def (DefType pi x k T) =
+          check-type T (just k) ≫span
+          get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k ]) ≫span
+          spanM-push-type-def pi x T k ≫=span λ m → spanMr (x , m) 
+
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
@@ -377,13 +421,13 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   where cont : maybe type → spanM (maybe type)
         cont nothing =
           get-ctxt (λ Γ → 
-           spanM-add (Lam-span Γ pi l x (SomeClass atk) t []) ≫span 
+           spanM-add (Lam-span Γ synthesizing pi l x (SomeClass atk) t []) ≫span 
                        spanMr nothing)
         cont (just tp) =
           get-ctxt (λ Γ → 
            let rettp = abs-tk l x atk tp in
            let tvs = [ type-data Γ rettp ] in
-           spanM-add (Lam-span Γ pi l x (SomeClass atk) t 
+           spanM-add (Lam-span Γ synthesizing pi l x (SomeClass atk) t 
                        (if (lam-is-erased l) && (is-free-in skip-erased x t) then
                            (error-data "The bound variable occurs free in the erasure of the body (not allowed)."
                          :: erasure Γ t :: tvs)
@@ -393,7 +437,7 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
 check-termi (Lam pi l _ x NoClass t) nothing =
   get-ctxt (λ Γ → 
     spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
-    spanM-add (Lam-span Γ pi l x NoClass t
+    spanM-add (Lam-span Γ synthesizing pi l x NoClass t
                 [ error-data ("We are not checking this abstraction against a type, so a classifier must be"
                             ^ " given for the bound variable " ^ x) ]) ≫span
     spanMr nothing)
@@ -408,12 +452,12 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
     check-term t (just (rename-type Γ x' x (tk-is-type atk) tp')) ≫span
     spanM-restore-info x mi) 
   where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
-        this-span Γ _ NoClass tvs = Lam-span Γ pi l x oc t tvs
+        this-span Γ _ NoClass tvs = Lam-span Γ checking pi l x oc t tvs
         this-span Γ atk (SomeClass atk') tvs = 
           if conv-tk Γ atk' atk then
-            Lam-span Γ pi l x oc t tvs
+            Lam-span Γ checking pi l x oc t tvs
           else
-            Lam-span Γ pi l x oc t (lambda-bound-var-conv-error Γ x atk atk' tvs)
+            Lam-span Γ checking pi l x oc t (lambda-bound-var-conv-error Γ x atk atk' tvs)
         check-oc : optClass → spanM ⊤
         check-oc NoClass = spanMok
         check-oc (SomeClass atk) = check-tk atk
@@ -433,7 +477,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
 check-termi (Lam pi l pi' x oc t) (just tp) | nothing =
    get-ctxt (λ Γ →
     spanM-add (punctuation-span "Lambda"  pi (posinfo-plus pi 1)) ≫span
-    spanM-add (Lam-span Γ pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
+    spanM-add (Lam-span Γ checking pi l x oc t (error-data "The expected type is not of the form that can classify a λ-abstraction" ::
                    expected-type Γ tp :: [])))
 
 

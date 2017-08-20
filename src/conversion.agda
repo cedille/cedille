@@ -89,8 +89,8 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var _ x'))
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var pi'' x')) | _ = 
   Lam pi KeptLambda pi' x NoClass (App t' NotErased (Var pi'' x'))
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | t' = Lam pi KeptLambda pi' x NoClass t'
-hnf{TERM} Γ u (Let _ _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t') hd 
-hnf{TERM} Γ u (Let _ _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
+hnf{TERM} Γ u (Let _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t') hd 
+hnf{TERM} Γ u (Let _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd | nothing = Var pi x
 hnf{TERM} Γ (unfold ff _ _ ) (Var pi x) hd | just t = t -- definitions should be stored in hnf
@@ -115,9 +115,7 @@ hnf{TYPE} Γ (unfold b b' _) (TpVar pi x) ff  = TpVar pi x
 hnf{TYPE} Γ (unfold b b' _) (TpVar _ x) tt with ctxt-lookup-type-var-def Γ x
 hnf{TYPE} Γ (unfold b b' _) (TpVar pi x) tt | just tp = tp
 hnf{TYPE} Γ (unfold b ff _) (TpVar pi x) tt | nothing = TpVar pi x
-hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing with ctxt-lookup-type-var-rec-def Γ x
-hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing | nothing = TpVar pi x
-hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing | just t = t
+hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing = TpVar pi x
 hnf{TYPE} Γ u (TpAppt tp t) hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpAppt _ t) hd  | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp) hd
 hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-term t)

@@ -44,7 +44,7 @@ NoTerm : optTerm -> .
 SomeTerm : optTerm -> ows '{' ows term ows '}' ! .
 
 Lam : term -> ! lam ows ! var optClass ows '.' ows term .
-Let : term -> ! 'let' ws ! defTermOrType ws 'in' ws term .
+Let : term -> ! 'let' ws defTermOrType ws 'in' ws term .
 Unfold : term -> ! 'υ' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .

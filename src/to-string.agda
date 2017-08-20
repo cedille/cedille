@@ -101,12 +101,12 @@ term-to-stringh Γ toplevel p (Hole _) = "●"
 term-to-stringh Γ toplevel p (Lam pi l pi' x o t) = 
   parens-unless toplevel ((is-beta p) || (is-abs p))
     (lam-to-string l ^ " " ^ x ^ optClass-to-string Γ o ^ " . " ^ term-to-stringh Γ ff (Lam pi l pi' x o t) t)
-term-to-stringh Γ toplevel p (Let pi pi' (DefTerm pi'' x m t) t') = 
-  let parent = Let pi pi' (DefTerm pi'' x m t) t' in
+term-to-stringh Γ toplevel p (Let pi (DefTerm pi'' x m t) t') = 
+  let parent = Let pi (DefTerm pi'' x m t) t' in
   parens-unless toplevel ((is-beta p) || (is-abs p))
     ("let " ^ x ^ maybeCheckType-to-string Γ m ^ " = " ^ term-to-stringh Γ ff parent t ^ " in " ^ term-to-stringh Γ ff parent t')
-term-to-stringh Γ toplevel p (Let pi pi' (DefType pi'' x k t) t') = 
-  let parent = Let pi pi' (DefType pi'' x k t) t' in
+term-to-stringh Γ toplevel p (Let pi (DefType pi'' x k t) t') = 
+  let parent = Let pi (DefType pi'' x k t) t' in
   parens-unless toplevel ((is-beta p) || (is-abs p))
     ("let " ^ x ^ " ◂ " ^ kind-to-string Γ toplevel k ^ " = " ^ type-to-stringh Γ ff parent t ^ " in " ^ term-to-stringh Γ ff parent t')
 term-to-stringh Γ toplevel p (Unfold _ t) =

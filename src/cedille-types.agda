@@ -152,7 +152,7 @@ mutual
     IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → var → optClass → term → term
-    Let : posinfo → posinfo → defTermOrType → term → term
+    Let : posinfo → defTermOrType → term → term
     Omega : posinfo → term → term
     Parens : posinfo → term → posinfo → term
     PiInj : posinfo → num → term → term
@@ -508,7 +508,7 @@ mutual
   termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
-  termToString (Let x0 x1 x2 x3) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (defTermOrTypeToString x2) ^ " " ^ (termToString x3) ^ ")"
+  termToString (Let x0 x1 x2) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (defTermOrTypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (PiInj x0 x1 x2) = "(PiInj" ^ " " ^ (posinfoToString x0) ^ " " ^ (numToString x1) ^ " " ^ (termToString x2) ^ ")"

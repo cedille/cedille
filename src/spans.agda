@@ -90,14 +90,17 @@ spanM-push-term-decl : posinfo → var → type → spanM (maybe sym-info)
 spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
 
 spanM-push-term-def : posinfo → var → term → type → spanM (maybe sym-info)
-spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi x t T Γ , ss
+spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi localScope x t T Γ , ss
+
+spanM-push-term-udef : posinfo → var → term → spanM (maybe sym-info)
+spanM-push-term-udef pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-udef pi localScope x t Γ , ss
 
 -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → var → kind → spanM (maybe sym-info)
 spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
 
 spanM-push-type-def : posinfo → var → type → kind → spanM (maybe sym-info)
-spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi x t T Γ , ss
+spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi localScope x t T Γ , ss
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → maybe sym-info → spanM ⊤
@@ -429,10 +432,6 @@ TpQuant-span is-pi pi x atk body check tvs =
   mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
        pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
-TpMu-span : posinfo → var → kind → type → checking-mode → 𝕃 tagged-val → span
-TpMu-span pi x knd body check tvs =
-  mk-span "Recursive type" pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
-
 TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → span
 TpLambda-span pi x atk body check tvs =
   mk-span "Type-level lambda abstraction" pi (type-end-pos body)
@@ -440,10 +439,6 @@ TpLambda-span pi x atk body check tvs =
 
 Iota-span : posinfo → type → 𝕃 tagged-val → span
 Iota-span pi t2 tvs = mk-span "Iota-abstraction" pi (type-end-pos t2) (explain "A dependent intersection type" :: tvs)
-
--- a span boxing up the parameters and the indices of a Rec definition
-RecPrelim-span : string → posinfo → posinfo → span
-RecPrelim-span name pi pi' = mk-span ("Parameters, indices, and constructor declarations for datatype " ^ name) pi pi' []
 
 TpArrow-span : type → type → checking-mode → 𝕃 tagged-val → span
 TpArrow-span t1 t2 check tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (checking-data check :: ll-data-type :: tvs)
@@ -473,10 +468,10 @@ Lam-span-erased : lam → string
 Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
 Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
 
-Lam-span : ctxt → posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
-Lam-span _ pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: tvs)
-Lam-span Γ pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
-                                           ((ll-data-term :: binder-data-const :: tvs)
+Lam-span : ctxt → checking-mode → posinfo → lam → var → optClass → term → 𝕃 tagged-val → span
+Lam-span _ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs)
+Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
+                                           ((ll-data-term :: binder-data-const :: checking-data c :: tvs)
                                            ++ [ "type of bound variable" , tk-to-string Γ atk ])
 
 DefTerm-span : ctxt → posinfo → var → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
@@ -654,10 +649,14 @@ comment-span : posinfo → posinfo → span
 comment-span pi pi'  = mk-span "Comment" pi pi' [ not-for-navigation ]
 
 IotaPair-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
-IotaPair-span pi pi' c tvs = mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: checking-data c :: tvs)
+IotaPair-span pi pi' c tvs =
+  mk-span "Iota pair" pi pi' (explain "Inhabit a iota-type (dependent intersection type)." :: checking-data c :: ll-data-term :: tvs)
 
 IotaProj-span : term → posinfo → checking-mode → 𝕃 tagged-val → span
-IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: tvs)
+IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: ll-data-term :: tvs)
 
 Omega-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
-Omega-span pi t c tvs = mk-span "Omega term" pi (term-end-pos t) (explain "A weak form of extensionality: derive an equation between lambda-abstractions from a ∀-quantified equation." :: checking-data c :: tvs)
+Omega-span pi t c tvs = mk-span "Omega term" pi (term-end-pos t) (explain "A weak form of extensionality: derive an equation between lambda-abstractions from a ∀-quantified equation." :: ll-data-term :: checking-data c :: tvs)
+
+Let-span : ctxt → checking-mode → posinfo → defTermOrType → term → 𝕃 tagged-val → span
+Let-span Γ c pi d t' tvs = mk-span "Let-term" pi (term-end-pos t') (binder-data-const :: ll-data-term :: checking-data c :: tvs)

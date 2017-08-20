@@ -32,9 +32,9 @@ is-free-in-term ce x (AppTp t tp) = is-free-in-term ce x t || (ce && is-free-in-
 is-free-in-term ce x (Hole x₁) = ff
 is-free-in-term ce x (Lam _ b _ x' oc t) =
   (ce && is-free-in-optClass ce x oc) || (~ (x =string x') && is-free-in-term ce x t)
-is-free-in-term ce x (Let _ _ (DefTerm _ x' m t) t') =
+is-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
   (ce && is-free-in-maybeCheckType ce x m) || (is-free-in-term ce x t) || (~ (x =string x') && is-free-in-term ce x t')
-is-free-in-term ce x (Let _ _ (DefType _ x' k t) t') =
+is-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   (ce && (is-free-in-kind ce x k || is-free-in-type ce x t)) || (~ (x =string x') && is-free-in-term ce x t')
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'

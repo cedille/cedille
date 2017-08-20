@@ -127,7 +127,6 @@ toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-
     " include-path:  " ^ (𝕃-to-string (λ x → x) "," include-path) ^ 
     " files-with-updated-spans:  " ^ (𝕃-to-string (λ x → x) "," files-with-updated-spans) ^ 
     " is:  " ^ (trie-to-string "," include-elt-to-string is) ^ 
-    ", ctxt:  " ^ (ctxt-to-string context) ^ 
     " "
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
