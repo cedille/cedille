@@ -33,7 +33,12 @@ us2lsL ◂ ∀ A : ★ . ∀ n : Nat .
 
 vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (List · A)
-  = Λ A . Λ n . λ xs . us2lsL · A -n (vs2usL · A -n xs) .
+  = Λ A . Λ n . λ xss . us2lsL · A -n (vs2usL · A -n xss) .
+
+v22l ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
+  Vec · (Vec · A n1) n2 ➔ List · (List · A)
+  = Λ A . Λ n1 . Λ n2 . λ xss .
+  vs2lsL · A -n1 (v2l · (Vec · A n1) -n2 xss) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -45,5 +50,10 @@ vss2lssL ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
       -(cmapCastL · (Vec · A n1) · (List · A)
         -(v2lCast · A -n1))
       -(v2lCast · (Vec · A n1) -n2)) .
+
+v222l ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat . ∀ n3 : Nat .
+  Vec · (Vec · (Vec · A n1) n2) n3 ➔ List · (List · (List · A))
+  = Λ A . Λ n1 . Λ n2 . Λ n3 . λ xsss .
+  vss2lssL · A -n1 -n2 (v2l · (Vec · (Vec · A n1) n2) -n3 xsss) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

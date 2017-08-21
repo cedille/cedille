@@ -63,8 +63,7 @@ concatV ◂ ∀ A : ★ . ∀ m : Nat . ∀ n : Nat .
   ρ (v2u · (Vec · A m) -n xss).2 -
   ρ (lengthDistConcatL · A -m
       (vs2usL · A -m  (v2l · (Vec · A m) -n xss))) -
-  (l2v · A (concatL · A
-    (vs2lsL · A -m (v2l · (Vec · A m) -n xss)))) .
+  (l2v · A (concatL · A (v22l · A -m -n xss))) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -74,8 +73,8 @@ concatDistAppendV ◂ ∀ A : ★ .
   appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss)
   = Λ A . Λ n1 . Λ n2 . λ xss . Λ m1 . Λ m2 . λ yss .
   concatDistAppendL · A
-    (vs2lsL · A -n1 (v2l · (Vec · A n1) -n2 xss))
-    (vs2lsL · A -m1 (v2l · (Vec · A m1) -m2 yss)) .
+    (v22l · A -n1 -n2 xss)
+    (v22l · A -m1 -m2 yss) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -84,7 +83,7 @@ concatCompV ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat . ∀ n3 : Nat .
   concatV (mapV concatV xsss) ≃ concatV (concatV xsss)
   = Λ A . Λ n1 . Λ n2 . Λ n3 . λ xsss .
   concatCompL · A
-    (vss2lssL · A -n1 -n2 (v2l · (Vec · (Vec · A n1) n2) -n3 xsss)) .
+    (v222l · A -n1 -n2 -n3 xsss) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
