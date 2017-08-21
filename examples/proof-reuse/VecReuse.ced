@@ -1,7 +1,7 @@
 import Nat.
 import List.
 import Vec.
-import Casts.
+import Cast.
 import VecDefs.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

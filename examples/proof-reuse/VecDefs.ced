@@ -1,6 +1,6 @@
 import Nat.
 import Vec.
-import Casts.
+import Cast.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

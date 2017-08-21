@@ -1,5 +1,6 @@
 import Nat.
 import List.
+import Cast.
 import Casts.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,10 +96,7 @@ lengthDistConcatL ◂ ∀ A : ★ . ∀ n : Nat .
   (Λ xss . λ xs . λ ih .
     ρ+ ih -
     ρ xs.2 -
-    ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A
-      (cmapL · (VecL · A n) · (List · A)
-        -(interCast · (List · A) · (λ xs : List · A . n ≃ length xs))
-        xss))) -
+    ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A (us2lsL · A -n xss))) -
     β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -114,6 +112,20 @@ concatDistAppendL ◂ ∀ A : ★ .
   (Λ xss . λ xs . λ ih . λ yss .
     ρ+ ς (ih yss) -
     ρ (appendAssocL · A xs (concatL · A xss) (concatL · A yss)) -
+    β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+concatCompL ◂ ∀ A : ★ .
+  Π xsss : List · (List · (List · A)) .
+  concatL (mapL concatL xsss) ≃ concatL (concatL xsss)
+  = Λ A . elimList · (List · (List · A))
+  · (λ xsss : List · (List · (List · A)) .
+    concatL (mapL concatL xsss) ≃ concatL (concatL xsss))
+  β
+  (Λ xsss . λ xss . λ ih .
+    ρ+ ih -
+    ρ+ (concatDistAppendL · A xss (concatL · (List · A) xsss)) -
     β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
