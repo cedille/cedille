@@ -1,9 +1,24 @@
 import Nat.
 import List.
+import VecL.
 import Vec.
 import Cast.
 import Casts.
 import ListDefs.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+elimVec' ◂ ∀ A : ★ . ∀ P : Π n : Nat . Vec · A n ➔ ★ .
+  P zero (nilV · A) ➔
+  (∀ n : Nat . ∀ xs : Vec · A n . Π x : A . P n xs ➔ P (suc n) (consV · A -n x xs)) ➔
+  ∀ n : Nat . Π xs : Vec · A n . P n xs
+  = Λ A . Λ P . λ pN . λ pC . Λ n . λ xs .
+  ρ (v2u · A -n xs).2 -
+  (elimList · A
+    · (λ ys : List · A . P (length · A ys) (l2v · A ys))
+    pN
+    (Λ ys . pC -(length · A ys) -(l2v · A ys))
+    (v2l · A -n xs)) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

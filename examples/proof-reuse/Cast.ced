@@ -1,5 +1,6 @@
 import Nat.
 import List.
+import VecL.
 import Vec.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,18 +31,21 @@ compCast ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-VecL ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
-  ι xs : List · A . n ≃ length xs .
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 v2uCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (VecL · A n)
   = Λ A . elimVec · A ·
   (λ n : Nat . λ xs : Vec · A n . ι ys : (VecL · A n) . ys ≃ xs)
-  [ [ nilL · A , β{nilL · A} ] , β{[ nilL · A , β{nilL · A} ]} ]
+  [ nilU · A , β{nilU · A} ]
   (Λ n . Λ xs . λ x . λ ih .
-    [ [ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]
-    , ρ ih.2 - β{[ consL · A x ih.1.1 , (ρ ih.1.2 - β{consL · A x ih.1.1}) ]} ] ).
+    [ consU · A -n x ih.1
+    , ρ ih.2 - β{consU · A -n x ih.1} ] ).
+
+l2uCast ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . VecL · A (length · A xs))
+  = Λ A . elimList · A ·
+  (λ xs : List · A . ι ys : VecL · A (length · A xs) . ys ≃ xs)
+  [ nilU · A , β{nilU · A} ]
+  (Λ xs . λ x . λ ih .
+    [ consU · A -(length · A xs) x ih.1 ,
+      ρ ih.2 - β{consU · A -(length · A xs) x ih.1} ]) .
 
 l2vCast ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (length · A xs))
   = Λ A . elimList · A ·
@@ -56,9 +60,12 @@ l2vCast ◂ ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (
 interCast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast' · (ι a : A . B a) · A
   = Λ A . Λ B . λ a . [ a.1 , β{a.1} ] .
 
+u2lCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (VecL · A n) · (List · A)
+  = Λ A . Λ n . interCast · (List · A) · (λ xs : List · A . n ≃ length xs) .
+
 v2lCast ◂ ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (List · A)
   = Λ A . Λ n . compCast · (Vec · A n) · (VecL · A n) · (List · A)
-  -(interCast · (List · A) · (λ xs : List · A . n ≃ length xs))
+  -(u2lCast · A -n)
   -(v2uCast · A -n) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,6 +84,12 @@ l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
   · (List · A)
   · (λ xs : List · A . Vec · A (length · A xs))
   -(l2vCast · A) .
+
+l2u ◂ ∀ A : ★ . Π xs : List · A . VecL · A (length · A xs)
+  = Λ A . cast
+  · (List · A)
+  · (λ xs : List · A . VecL · A (length · A xs))
+  -(l2uCast · A) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
