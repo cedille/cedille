@@ -1,0 +1,6 @@
+import ../../util/RecType.
+
+PNatF ◂ ★ ➔ ★ = λ PNat : ★ . ∀ X : ★ . X ➔ (PNat ➔ X ➔ X) ➔ X .
+
+PNatFmap ◂ RecFunctor · PNatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (c.1 a) ) , λ a . (ρ+ (c.2 a) - β) ].
+PNat ◂ ★ = Rec · PNatF .
