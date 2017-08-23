@@ -20,25 +20,28 @@ localScope = tt
 globalScope : defScope
 globalScope = ff
 
+defParams : Set
+defParams = maybe params
+
 data ctxt-info : Set where
 
   -- for declaring a variable to have a given type (with no definition)
   term-decl : type → ctxt-info
 
   -- for defining a variable to equal a term with a given type
-  term-def : defScope → term → type → ctxt-info
+  term-def : defParams → term → type → ctxt-info
 
   -- for untyped term definitions 
-  term-udef : defScope → term → ctxt-info
+  term-udef : defParams → term → ctxt-info
 
   -- for declaring a variable to have a given kind (with no definition)
   type-decl : kind → ctxt-info
 
   -- for defining a variable to equal a type with a given kind
-  type-def : defScope → type → kind → ctxt-info
+  type-def : defParams → type → kind → ctxt-info
 
   -- for defining a variable to equal a kind
-  kind-def : params → kind → ctxt-info
+  kind-def : params → params → kind → ctxt-info
 
   -- to rename a variable at any level to another
   rename-def : var → ctxt-info
@@ -49,6 +52,9 @@ data ctxt-info : Set where
 sym-info : Set
 sym-info = ctxt-info × location
 
+-- module filename, parameters, and qualifying substitution
+mod-info : Set
+mod-info = string × params × qualif
 
 is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
@@ -57,14 +63,14 @@ is-term-level (term-udef _ _) = tt
 is-term-level _ = ff
 
 data ctxt : Set where
-  mk-ctxt : (filename : string) →
+  mk-ctxt : (mod : mod-info) →                     -- current module
             (syms : trie (𝕃 string)) →             -- map each filename to the symbols declared in that file
             (i : trie sym-info) →                  -- map symbols (from Cedille files) to their ctxt-info and location
             (sym-occurrences : trie (𝕃 (var × posinfo × string))) →  -- map symbols to a list of definitions they occur in (and relevant file info)
             ctxt
 
 new-ctxt : (filename : string) → ctxt
-new-ctxt filename = mk-ctxt filename empty-trie empty-trie empty-trie
+new-ctxt filename = mk-ctxt (filename , ParamsNil , empty-trie) empty-trie empty-trie empty-trie
 
 ctxt-get-info : var → ctxt → maybe sym-info
 ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
@@ -78,59 +84,64 @@ ctxt-restore-info* Γ [] = Γ
 ctxt-restore-info* Γ ((x , m) :: ms) = ctxt-restore-info* (ctxt-restore-info Γ x m) ms
 
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl p v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-term-decl p v t (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , q)
                                                     (trie-insert-append syms filename v)
                                                     (trie-insert i v (term-decl t , (filename , p)))
                                                     symb-occs
 
 ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl p v k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-type-decl p v k (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , q)
                                                     (trie-insert-append syms filename v)
                                                     (trie-insert i v (type-decl k , (filename , p)))
                                                     symb-occs
 
+def-params : defScope → params → defParams
+def-params tt ps = nothing
+def-params ff ps = just ps
+
+-- TODO roll "hnf Γ unfold-head t tt" into ctxt-*-def, after qualification
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
-ctxt-type-def p s v t k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-type-def p s v t k (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , qualif-insert-params q v ps)
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (type-def s t k , (filename , p)))
+                                                    (trie-insert i v (type-def (def-params s ps) (qualif-type q t) (qualif-kind q k) , (filename , p)))
                                                     symb-occs
 
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
-ctxt-kind-def p v ps k (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-kind-def p v ps2 k (mk-ctxt (filename , ps1 , q) syms i symb-occs) = mk-ctxt (filename , ps1 , qualif-insert-params q v ps1)
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (kind-def ps k , (filename , p)))
+                                                    (trie-insert i v (kind-def ps1 ps2 k , (filename , p)))
                                                     symb-occs
 
 ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
-ctxt-term-def p s v t tp (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-term-def p s v t tp (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , qualif-insert-params q v ps)
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (term-def s t tp , (filename , p)))
+                                                    (trie-insert i v (term-def (def-params s ps) (qualif-term q t) (qualif-type q tp) , (filename , p)))
                                                     symb-occs
 
 ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
-ctxt-term-udef p s v t (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-term-udef p s v t (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , qualif-insert-params q v ps)
                                                     (trie-insert-append syms filename v)
-                                                    (trie-insert i v (term-udef s t , (filename , p)))
+                                                    (trie-insert i v (term-udef (def-params s ps) (qualif-term q t) , (filename , p)))
                                                     symb-occs
 
 ctxt-var-decl : posinfo → var → ctxt → ctxt
-ctxt-var-decl p v (mk-ctxt filename syms i symb-occs) = mk-ctxt filename 
+ctxt-var-decl p v (mk-ctxt (filename , ps , q) syms i symb-occs) = mk-ctxt (filename , ps , q)
                                                     (trie-insert-append syms filename v)
                                                     (trie-insert i v (var-decl , (filename , p)))
                                                     symb-occs
 
+-- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : posinfo → var → ctxt → ctxt
 ctxt-var-decl-if p v Γ with Γ
-...                    | mk-ctxt filename syms i symb-occs with trie-lookup i v
-...                                                     | just (rename-def _ , _) = Γ
-...                                                     | just (var-decl , _) = Γ
-...                                                     | _ = 
-  mk-ctxt filename (trie-insert-append syms filename v)
-     (trie-insert i v (var-decl , (filename , p)))
-     symb-occs
+... | mk-ctxt (filename , ps , q) syms i symb-occs with trie-lookup i v
+... | just (rename-def _ , _) = Γ
+... | just (var-decl , _) = Γ
+... | _ = mk-ctxt (filename , ps , q) (trie-insert-append syms filename v)
+  (trie-insert i v (var-decl , (filename , p)))
+  symb-occs
 
 ctxt-rename-rep : ctxt → var → var
-ctxt-rename-rep (mk-ctxt filename syms i _) v with trie-lookup i v 
+ctxt-rename-rep (mk-ctxt m syms i _) v with trie-lookup i v 
 ...                                           | just (rename-def v' , _) = v'
 ...                                           | _ = v
 
@@ -141,8 +152,8 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
 {- add a renaming mapping the first variable to the second, unless they are equal.
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 ctxt-rename : posinfo → var → var → ctxt → ctxt
-ctxt-rename p v v' (mk-ctxt filename syms i symb-occs) = 
-  (mk-ctxt filename (trie-insert-append syms filename v)
+ctxt-rename p v v' (mk-ctxt (filename , ps , q) syms i symb-occs) = 
+  (mk-ctxt (filename , ps , q) (trie-insert-append syms filename v)
       (trie-insert i v (rename-def v' , (filename , p)))
       symb-occs)
 
@@ -177,7 +188,7 @@ ctxt-lookup-var-tk (mk-ctxt _ _ i _) v with trie-lookup i v
 
 ctxt-lookup-kind-var : ctxt → var → 𝔹
 ctxt-lookup-kind-var (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                      | just (kind-def _ _ , _) = tt
+...                                      | just (kind-def _ _ _ , _) = tt
 ...                                      | _ = ff
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
@@ -193,7 +204,7 @@ ctxt-lookup-type-var-def (mk-ctxt _ _ i _) v with trie-lookup i v
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                          | just (kind-def ps k , _) = just (ps , k)
+...                                          | just (kind-def _ ps k , _) = just (ps , k)
 ...                                          | _ = nothing
 
 ctxt-binds-var : ctxt → var → 𝔹
@@ -204,7 +215,7 @@ ctxt-defines-var (mk-ctxt _ _ i _) x with trie-lookup i x
 ...                                  | just (term-def _ _ _ , _) = tt
 ...                                  | just (term-udef _ _ , _) = tt
 ...                                  | just (type-def _ _ _ , _) = tt
-...                                  | just (kind-def _ _ , _) = tt
+...                                  | just (kind-def _ _ _ , _) = tt
 ...                                  | _ = ff
 
 ctxt-declares-term-var : ctxt → var → 𝔹
@@ -229,8 +240,9 @@ ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ...                                   | just (_ , l) = l
 ...                                   | nothing = "missing" , "missing"
 
-ctxt-set-current-file : ctxt → (filename : string) → ctxt
-ctxt-set-current-file (mk-ctxt _ syms i symb-occs) filename = mk-ctxt filename syms i symb-occs
+
+ctxt-set-current-file : ctxt → string → ctxt
+ctxt-set-current-file (mk-ctxt _ syms i symb-occs) filename = mk-ctxt (filename , ParamsNil , empty-trie) syms i symb-occs
 
 ctxt-clear-symbol : ctxt → string → ctxt
 ctxt-clear-symbol (mk-ctxt f syms i symb-occs) x = mk-ctxt f (trie-remove syms x) (trie-remove i x) symb-occs
@@ -251,7 +263,7 @@ ctxt-initiate-file : ctxt → (filename : string) → ctxt
 ctxt-initiate-file Γ filename = ctxt-set-current-file (ctxt-clear-symbols-of-file Γ filename) filename
 
 ctxt-get-current-filename : ctxt → string
-ctxt-get-current-filename (mk-ctxt filename _ _ _) = filename
+ctxt-get-current-filename (mk-ctxt (filename , _) _ _ _) = filename
 
 ctxt-get-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string))
 ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs

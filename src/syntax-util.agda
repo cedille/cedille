@@ -12,6 +12,9 @@ first-position = "1"
 dummy-var : var
 dummy-var = "_dummy"
 
+qualif : Set
+qualif = trie (var × args)
+
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi
 posinfo-to-ℕ pi | just n = n
@@ -24,7 +27,24 @@ posinfo-plus-str : posinfo → string → posinfo
 posinfo-plus-str pi s = posinfo-plus pi (string-length s)
 
 star : kind
-star = Star posinfo-gen 
+star = Star posinfo-gen
+
+qualif-term : qualif → term → term
+qualif-term σ t = t
+
+qualif-type : qualif → type → type
+qualif-type σ t = t
+
+qualif-kind : qualif → kind → kind
+qualif-kind σ k = k
+
+params-to-args : params → args
+params-to-args ParamsNil = ArgsNil posinfo-gen
+params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p v)) (params-to-args ps)
+params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
+
+qualif-insert-params : qualif → var → params → qualif
+qualif-insert-params σ v ps = trie-insert σ v (v , params-to-args ps)
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
