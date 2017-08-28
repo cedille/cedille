@@ -31,6 +31,13 @@ mapV ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+mapIdV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
+  mapV (λ x . x) xs ≃ xs
+  = Λ A . Λ n . λ xs .
+  mapIdL · A (v2l · A -n xs) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 mapCompV ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Π f : A ➔ B . Π g : B ➔ C .
   ∀ n : Nat . Π xs : Vec · A n .
@@ -79,6 +86,13 @@ concatV ◂ ∀ A : ★ . ∀ m : Nat . ∀ n : Nat .
   ρ (lengthDistConcatL · A -m
       (vs2usL · A -m  (v2l · (Vec · A m) -n xss))) -
   (l2v · A (concatL · A (v22l · A -m -n xss))) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+concatIdV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
+  concatV (mapV injV xs) ≃ xs
+  = Λ A . Λ n . λ xs .
+  concatIdL · A (v2l · A -n xs) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

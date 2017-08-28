@@ -14,6 +14,15 @@ mapL ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔  List · A ➔ List · B
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+mapIdL ◂ ∀ A : ★ . Π xs : List · A .
+  mapL (λ x . x) xs ≃ xs
+  = Λ A . elimList · A ·
+  (λ xs : List · A . mapL (λ x . x) xs ≃ xs)
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 mapCompL ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Π f : A ➔ B . Π g : B ➔ C .
   Π xs : List · A .
@@ -85,6 +94,15 @@ concatL ◂ ∀ A : ★ . List · (List · A) ➔ List · A
   (λ xss : List · (List · A) . List · A)
   (nilL · A)
   (Λ xss . λ xs . λ ih . appendL · A xs ih) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+concatIdL ◂ ∀ A : ★ . Π xs : List · A .
+  concatL (mapL injL xs) ≃ xs
+  = Λ A . elimList · A ·
+  (λ xs : List · A . concatL (mapL injL xs) ≃ xs)
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
