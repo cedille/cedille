@@ -3,17 +3,23 @@ import and.
 import true.
 import nat.
 
-Desc ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) % sum
-                   ➔ (X ➔ X ➔ X) % product
-                   ➔ X % unit
-                   ➔ X % type parameter                   
-                   ➔ X % functor variable
-                   ➔ X .
+Fin ◂ Nat ➔ ★ = ● .
+
+Desc ◂ Nat ➔ ★ = λ n : Nat .
+                 ∀ X : (Nat ➔ ★) . (∀ n : Nat . X n ➔ X n ➔ X n) % sum
+                         ➔ (∀ n : Nat . X n ➔ X n ➔ X n) % product
+                         ➔ X % unit
+                         ➔ X % type parameter 
+                         ➔ X % functor variable
+                         ➔ X .
 
 descSum ◂ Desc ➔ Desc ➔ Desc = λ d . λ d' . Λ X . λ s . λ p . λ u . λ a . λ v . s (d · X s p u a v) (d' · X s p u a v).
 descProd ◂ Desc ➔ Desc ➔ Desc = λ d . λ d' . Λ X . λ s . λ p . λ u . λ a . λ v . p (d · X s p u a v) (d' · X s p u a v).
+
 descUnit ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . u.
+
 descParam ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . a.
+
 descVar ◂ Desc = Λ X . λ s . λ p . λ u . λ a . λ v . v.
 
 
