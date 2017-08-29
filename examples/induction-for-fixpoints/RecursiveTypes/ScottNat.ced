@@ -8,12 +8,12 @@ SNatFzero ◂ ∀ SNat : ★ . Unit ➔ SNatF · SNat = Λ SNat . λ u . in1 · 
 SNatFsuc  ◂ ∀ SNat : ★ . SNat ➔ SNatF · SNat = Λ SNat . λ p . in2 · Unit · SNat p .
 
 SNatFmap ◂ RecFunctor · SNatF = Λ A . Λ B . λ c .
-  [ λ x . x.1 · (SNatF · B) (SNatFzero · B) (λ a . SNatFsuc · B (c.1 a)) ,
-    λ a . θ<a> (ind-Sum · Unit · A a) (λ a . β{SNatFzero a}) (λ a . ρ+ (c.2 a) - β{SNatFsuc (c a)}) ].
+  [ λ x . x.1 · (SNatF · B) (SNatFzero · B) (λ a . SNatFsuc · B (cast · A · B -c a)) ,
+    λ a . θ<a> (ind-Sum · Unit · A a) (λ a . β{SNatFzero a}) (λ a . β{SNatFsuc a}) ].
 
 SNat ◂ ★ = Rec · SNatF .
 
-Szero ◂ SNat = (recFold · SNatF -SNatFmap).1 (SNatFzero · (Rec · SNatF) unit) .
-Ssuc ◂ SNat ➔ SNat = λ n . (recFold · SNatF -SNatFmap).1 (SNatFsuc · (Rec · SNatF) n) .
+Szero ◂ SNat = cast · (SNatF · SNat) · SNat -(recFold · SNatF -SNatFmap) (SNatFzero · (Rec · SNatF) unit) .
+Ssuc ◂ SNat ➔ SNat = λ n . cast · (SNatF · SNat) · SNat -(recFold · SNatF -SNatFmap) (SNatFsuc · (Rec · SNatF) n) .
 
 test ◂ SNat = Ssuc (Ssuc Szero).
