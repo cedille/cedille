@@ -1,0 +1,14 @@
+
+
+
+
+𝒌IFKind(I : ★) = (I ➔ ★) ➔ (I ➔ ★).
+
+IFunctor ◂ Π I : ★ . 𝒌IFKind · I ➔ ★ =
+  λ I : ★ . λ iF : 𝒌IFKind · I . ∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . Π i : I . (Π i : I . X i  ➔ Y i) ➔ (iF · X i ➔ iF · Y i) .
+
+
+IFunctorLaw1 ◂ Π I : ★ . Π F : 𝒌IFKind · I . Π FF : IFunctor · I · F . ★ =
+   λ I : ★ . λ F : 𝒌IFKind · I . λ FF : IFunctor · I · F .
+     ∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . ∀ f : (Π i : I . X i ➔ Y i) . Π i : I . Π x : F · X i . ∀ _ : (Π i : I . Π z : X i . f i z ≃ z) .
+       FF i f x ≃ x .
