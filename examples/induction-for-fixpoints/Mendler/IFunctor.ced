@@ -1,0 +1,9 @@
+
+IFunctor ◂ Π I : ★ . ((I ➔ ★) ➔ I ➔ ★) ➔ ★ =
+  λ I : ★ . λ F : (I ➔ ★) ➔ I ➔ ★ . ∀ X : (I ➔ ★) . ∀ Y : (I ➔ ★) . Π i : I . (X i ➔ Y i) ➔ (F · X i ➔ F · Y i) .
+
+IFunctorLaw1 ◂ Π I : ★ . Π F : (I ➔ ★) ➔ I ➔ ★ . Π FF : IFunctor · I · F . ★ =
+  λ I : ★ . λ F : (I ➔ ★) ➔ I ➔ ★ . λ FF : IFunctor · I · F .
+    ∀ X : (I ➔ ★) . ∀ Y : (I ➔ ★) . Π i : I . ∀ f : X i ➔ Y i . Π x : F · X i .
+      ∀ _ : (Π z : X i . f z ≃ z) . FF i f x ≃ x .
+
