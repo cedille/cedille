@@ -3,9 +3,10 @@
 % example of mutual datatypes, GADTs, nested types + maybe some handy infrastructure for them?
 % tiny example of metatheories a la carte?
 
-%indexed functor kind
+% indexed functor kind
 
 import IFunctor.
+
 iMalgebra ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ (I ➔ ★) ➔ ★ =
   λ I : ★ .
   λ F : ((I ➔ ★) ➔ (I ➔ ★)) .
@@ -13,7 +14,7 @@ iMalgebra ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ (I ➔ ★) ➔ ★
   ∀ R : I ➔ ★ .
   (Π i : I . R i ➔ A i) ➔
   Π i : I .
-  F · R i ➔ A i   .
+  F · R i ➔ A i .
 
 iFix ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ I ➔ ★ =
   λ I : ★ .
@@ -28,9 +29,12 @@ inIM ◂ ∀ I : ★ . ∀ F : ((I ➔ ★) ➔ (I ➔ ★)) . Π i : I . F · (
   Λ I . Λ F . λ i . λ ffix .
     Λ A . λ malg . malg · (iFix · I · F) (imfold · I · F · A malg) i ffix    .
 
+outIM ◂ ∀ I : ★ . ∀ F : ((I ➔ ★) ➔ (I ➔ ★)) . Π i : I . IFunctor · I · F ➔ iFix · I · F i ➔ F · (iFix · I · F) i =
+  Λ I . Λ F . λ i . λ ifmap . λ fix . imfold · I · F · (F · (iFix · I · F))
+    (Λ R . λ ih . λ i . λ fr . ifmap · R · (iFix · I · F) i (λ r . inIM · I · F i (ih i r)) fr) i fix .
 
 % inductivity predicate     
-isInductiveFixM ◂ Π I : ★ . Π G : ((I ➔ ★) ➔ (I ➔ ★)) . IFunctor · I · G ➔ Π i : I . (iFix · I · G i) ➔ ★ 
+isInductiveIFixM ◂ Π I : ★ . Π G : ((I ➔ ★) ➔ (I ➔ ★)) . IFunctor · I · G ➔ Π i : I . (iFix · I · G i) ➔ ★ 
    = λ I : ★ .
      λ G : ((I ➔ ★) ➔ (I ➔ ★)).
      λ ifmap : IFunctor · I · G.
@@ -45,7 +49,7 @@ isInductiveFixM ◂ Π I : ★ . Π G : ((I ➔ ★) ➔ (I ➔ ★)) . IFunctor
      
 DepFixM ◂ Π I : ★ . Π G : ((I ➔ ★) ➔ (I ➔ ★)) . IFunctor · I · G ➔ I ➔ ★
   = λ I : ★ . λ G : ((I ➔ ★) ➔ (I ➔ ★)) . λ ifmap : IFunctor · I · G . λ i : I .
-    ι x : iFix · I · G i . isInductiveFixM · I · G ifmap i x.
+    ι x : iFix · I · G i . isInductiveIFixM · I · G ifmap i x.
 
 
 inDepFixM ◂ ∀ I : ★ . ∀ G : ((I ➔ ★) ➔ (I ➔ ★)) . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
@@ -56,6 +60,19 @@ inDepFixM ◂ ∀ I : ★ . ∀ G : ((I ➔ ★) ➔ (I ➔ ★)) . Π ifmap : I
      (Λ Q . λ q . q · (DepFixM · I · G ifmap) -(λ i . λ d . d.1) -(λ i . λ r . β) (λ i . λ r . r.2 · Q q) i gd ) 
      {  ε (ρ  (iflaw1 · (DepFixM · I · G ifmap) · (iFix · I · G) i -(λ d . d.1) gd -(λ i .  β)) - β) }
      ] .
+
+outIAlgM ◂ ∀ I : ★ . ∀ G : ((I ➔ ★) ➔ (I ➔ ★)) . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
+     iMalgebra · I · G · (G · (DepFixM · I · G ifmap)) =
+  Λ I . Λ G . λ ifmap . Λ iflaw1 . Λ R . λ ih . λ i . λ fr .
+    ifmap · R · (DepFixM · I · G ifmap) i (λ r . inDepFixM · I · G ifmap -iflaw1 i (ih i r)) fr .
+     
+outDepFixM ◂ ∀ I : ★ . ∀ G : ((I ➔ ★) ➔ (I ➔ ★)) . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
+          Π i : I . DepFixM · I · G ifmap i ➔ G · (DepFixM · I · G ifmap) i 
+  = Λ I . Λ G . λ ifmap . Λ iflaw1 . λ i . λ ei .
+      imfold · I · G · (G · (DepFixM · I · G ifmap))
+        (outIAlgM · I · G ifmap -iflaw1)
+	i
+	ei.1.
 
 % define simple outIm and dependent version of it outDepFixM
 % try to phrase induction principle based on the predicate isInductiveIFixM
