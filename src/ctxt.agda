@@ -165,84 +165,87 @@ ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ
 -- lookup functions
 ----------------------------------------------------------------------
 
--- look for a kind for the given var, which is assumed to be a type
+-- look for a defined kind for the given var, which is assumed to be a type,
+-- then instantiate its parameters
+env-lookup-type-var : ctxt → var → args → maybe kind
+env-lookup-type-var (mk-ctxt _ _ i _) v as with trie-lookup i v
+... | just (type-def (just ps) _ k , _) = just (inst-kind ps as k)
+... | _ = nothing
+
+-- look for a declared kind for the given var, which is assumed to be a type,
+-- otherwise look for a qualified defined kind
 ctxt-lookup-type-var : ctxt → var → maybe kind
-ctxt-lookup-type-var (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                      | just (type-decl k , _) = just k
-...                                      | just (type-def _ _ k , _) = just k
-...                                      | _ = nothing
+ctxt-lookup-type-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
+... | just (type-decl k , _) = just (qualif-kind q k)
+... | _ with trie-lookup q v
+... | just (v' , as) = env-lookup-type-var Γ v' as
+... | _ = nothing
+
+env-lookup-term-var : ctxt → var → args → maybe type
+env-lookup-term-var (mk-ctxt _ _ i _) v as with trie-lookup i v
+... | just (term-def (just ps) _ t , _) = just (inst-type ps as t)
+... | _ = nothing
 
 ctxt-lookup-term-var : ctxt → var → maybe type
-ctxt-lookup-term-var (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                      | just (term-decl t , _) = just t
-...                                      | just (term-def _ _ t , _) = just t
-...                                      | _ = nothing
+ctxt-lookup-term-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
+... | just (term-decl t , _) = just (qualif-type q t)
+... | _ with trie-lookup q v
+... | just (v' , as) = env-lookup-term-var Γ v' as
+... | _ = nothing
 
-ctxt-lookup-var-tk : ctxt → var → maybe tk
-ctxt-lookup-var-tk (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                     | just (type-decl k , _) = just (Tkk k)
-...                                     | just (type-def _ _ k , _) = just (Tkk k)
-...                                     | just (term-decl t , _) = just (Tkt t)
-...                                     | just (term-def _ _ t , _) = just (Tkt t)
-...                                     | _ = nothing
+env-lookup-tk-var : ctxt → var → args → maybe tk
+env-lookup-tk-var (mk-ctxt _ _ i _) v as with trie-lookup i v
+... | just (type-def (just ps) _ k , _) = just (Tkk (inst-kind ps as k))
+... | just (term-def (just ps) _ t , _) = just (Tkt (inst-type ps as t))
+... | _ = nothing
 
-ctxt-lookup-kind-var : ctxt → var → 𝔹
-ctxt-lookup-kind-var (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                      | just (kind-def _ _ _ , _) = tt
-...                                      | _ = ff
+ctxt-lookup-tk-var : ctxt → var → maybe tk
+ctxt-lookup-tk-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
+... | just (type-decl k , _) = just (Tkk (qualif-kind q k))
+... | just (term-decl t , _) = just (Tkt (qualif-type q t))
+... | _ with trie-lookup q v
+... | just (v' , as) = env-lookup-tk-var Γ v' as
+... | _ = nothing
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                           | just (term-def _ t _ , _) = just t
-...                                           | just (term-udef _ t , _) = just t
-...                                           | _ = nothing
+... | just (term-def nothing t _ , _) = just t
+... | just (term-udef nothing t , _) = just t
+... | just (term-def (just ps) t _ , _) = just (abs-expand-term ps t)
+... | just (term-udef (just ps) t , _) = just (abs-expand-term ps t)
+... | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def (mk-ctxt _ _ i _) v with trie-lookup i v
-...                                          | just (type-def _ t _ , _) = just t
-...                                          | _ = nothing
+... | just (type-def nothing t _ , _) = just t
+... | just (type-def (just ps) t _ , _) = just (abs-expand-type ps t)
+... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                          | just (kind-def _ ps k , _) = just (ps , k)
-...                                          | _ = nothing
+... | just (kind-def _ ps k , _) = just (ps , k)
+... | _ = nothing
 
 ctxt-binds-var : ctxt → var → 𝔹
-ctxt-binds-var (mk-ctxt _ _ i _) x = trie-contains i x
-
-ctxt-defines-var : ctxt → var → 𝔹
-ctxt-defines-var (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                  | just (term-def _ _ _ , _) = tt
-...                                  | just (term-udef _ _ , _) = tt
-...                                  | just (type-def _ _ _ , _) = tt
-...                                  | just (kind-def _ _ _ , _) = tt
-...                                  | _ = ff
-
-ctxt-declares-term-var : ctxt → var → 𝔹
-ctxt-declares-term-var (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                  | just (term-decl _ , _) = tt
-...                                  | _ = ff
-
-ctxt-declares-type-var : ctxt → var → 𝔹
-ctxt-declares-type-var (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                  | just (type-decl _ , _) = tt
-...                                  | _ = ff
+ctxt-binds-var (mk-ctxt (_ , _ , q) _ i _) x = trie-contains q x || trie-contains i x
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
 ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs) symbol with trie-lookup symb-occs symbol
-...                                                   | just l = l
-...                                                   | nothing = []
+... | just l = l
+... | nothing = []
 
 ----------------------------------------------------------------------
 
 ctxt-var-location : ctxt → var → location
 ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
-...                                   | just (_ , l) = l
-...                                   | nothing = "missing" , "missing"
-
+... | just (_ , l) = l
+... | nothing = "missing" , "missing"
 
 ctxt-set-current-file : ctxt → string → ctxt
 ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn = mk-ctxt (fn , ParamsNil , empty-trie) syms i symb-occs
+
+ctxt-set-current-mod : ctxt → mod-info → ctxt
+ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
 ctxt-clear-symbol : ctxt → string → ctxt
 ctxt-clear-symbol (mk-ctxt f syms i symb-occs) x = mk-ctxt f (trie-remove syms x) (trie-remove i x) symb-occs
@@ -264,6 +267,9 @@ ctxt-initiate-file Γ fn = ctxt-set-current-file (ctxt-clear-symbols-of-file Γ 
 
 ctxt-get-current-filename : ctxt → string
 ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _) = fn
+
+ctxt-get-current-mod : ctxt → mod-info
+ctxt-get-current-mod (mk-ctxt m _ _ _) = m
 
 ctxt-get-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string))
 ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs

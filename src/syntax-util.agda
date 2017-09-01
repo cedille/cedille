@@ -29,6 +29,22 @@ posinfo-plus-str pi s = posinfo-plus pi (string-length s)
 star : kind
 star = Star posinfo-gen
 
+abs-expand-term : params → term → term
+abs-expand-term (ParamsCons (Decl _ _ x tk _) ps) t =
+  Lam posinfo-gen KeptLambda posinfo-gen x (SomeClass tk) (abs-expand-term ps t)
+abs-expand-term ParamsNil t = t
+
+abs-expand-type : params → type → type
+abs-expand-type (ParamsCons (Decl _ _ x tk _) ps) t =
+  TpLambda posinfo-gen posinfo-gen x tk (abs-expand-type ps t)
+abs-expand-type ParamsNil t = t
+
+inst-kind : params → args → kind → kind
+inst-kind ps as k = k
+
+inst-type : params → args → type → type
+inst-type ps as t = t
+
 qualif-term : qualif → term → term
 qualif-term σ t = t
 
@@ -43,8 +59,14 @@ params-to-args ParamsNil = ArgsNil posinfo-gen
 params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p v)) (params-to-args ps)
 params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
+-- TODO file-qualify once environment defs are also file-qualified
 qualif-insert-params : qualif → var → var → params → qualif
-qualif-insert-params σ fn v ps = trie-insert σ v (fn ^ v , params-to-args ps)
+qualif-insert-params σ fn v ps = trie-insert σ v (v , params-to-args ps)
+
+-- TODO qualify codomain of import
+qualif-insert-import : qualif → 𝕃 string → args → qualif
+qualif-insert-import σ [] as = σ
+qualif-insert-import σ (v :: vs) as = qualif-insert-import (trie-insert σ v (v , as)) vs as
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt

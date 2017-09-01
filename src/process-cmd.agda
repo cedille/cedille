@@ -111,7 +111,7 @@ process-cmd s (Import pi x pi') _ =
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = process-file s imported-file in
+  let s = scope-imports (process-file s imported-file) imported-file in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
@@ -145,18 +145,17 @@ process-file s filename | ie =
         proceed s nothing ie' = s , ie' {- should not happen -}
         proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
         proceed s (just x) ie' | ff = s , ie'
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt with include-elt.do-type-check ie 
-                                                                     | ctxt-get-current-filename Γ 
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-filename =
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
+          with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename in
            cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
                    filename x do-check Γ (regular-spans []))
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt
                  cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , _ , ss) = 
-                   let Γ = ctxt-set-current-file Γ prev-filename in
+                   let Γ = ctxt-set-current-mod Γ prev-mod in
                     if do-check then
                       (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss)
                     else
                       (mk-toplevel-state use-cede make-rkt ip fns is Γ , ie')
-
 

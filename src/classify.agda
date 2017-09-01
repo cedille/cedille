@@ -710,7 +710,7 @@ check-termi (Theta pi Abstract t ls) (just tp) =
 check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
   get-ctxt (λ Γ → cont (wrap-vars Γ vs tp))
   where wrap-var : ctxt → var → type → maybe type
-        wrap-var Γ v tp = ctxt-lookup-var-tk Γ v ≫=maybe (λ atk → just (mtplam v atk tp))
+        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe (λ atk → just (mtplam v atk tp))
         wrap-vars : ctxt →  vars → type → maybe type 
         wrap-vars Γ (VarsStart v) tp = wrap-var Γ v tp
         wrap-vars Γ (VarsNext v vs) tp = wrap-vars Γ vs tp ≫=maybe (λ tp → wrap-var Γ v tp)
