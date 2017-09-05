@@ -3,7 +3,7 @@ import and.
 import true.
 import nat.
 
-Fin ◂ Nat ➔ ★ = λ x : Nat . Nat .
+Fin ◂ Nat ➔ ★ = λ x : Nat . Nat . % Tony and Larry need to fill in correct definition
 
 Desc ◂ Nat ➔ ★ = λ n : Nat .
                  ∀ X : ★ .
