@@ -177,6 +177,7 @@ env-lookup-type-var (mk-ctxt _ _ i _) v as with trie-lookup i v
 ctxt-lookup-type-var : ctxt → var → maybe kind
 ctxt-lookup-type-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
 ... | just (type-decl k , _) = just (qualif-kind q k)
+... | just (type-def nothing _ k , _) = just (qualif-kind q k)
 ... | _ with trie-lookup q v
 ... | just (v' , as) = env-lookup-type-var Γ v' as
 ... | _ = nothing
@@ -189,6 +190,7 @@ env-lookup-term-var (mk-ctxt _ _ i _) v as with trie-lookup i v
 ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
 ... | just (term-decl t , _) = just (qualif-type q t)
+... | just (term-def nothing _ t , _) = just (qualif-type q t)
 ... | _ with trie-lookup q v
 ... | just (v' , as) = env-lookup-term-var Γ v' as
 ... | _ = nothing
@@ -202,7 +204,9 @@ env-lookup-tk-var (mk-ctxt _ _ i _) v as with trie-lookup i v
 ctxt-lookup-tk-var : ctxt → var → maybe tk
 ctxt-lookup-tk-var Γ@(mk-ctxt (_ , _ , q) _ i _) v with trie-lookup i v
 ... | just (type-decl k , _) = just (Tkk (qualif-kind q k))
+... | just (type-def nothing _ k , _) = just (Tkk (qualif-kind q k))
 ... | just (term-decl t , _) = just (Tkt (qualif-type q t))
+... | just (term-def nothing _ t , _) = just (Tkt (qualif-type q t))
 ... | _ with trie-lookup q v
 ... | just (v' , as) = env-lookup-tk-var Γ v' as
 ... | _ = nothing
