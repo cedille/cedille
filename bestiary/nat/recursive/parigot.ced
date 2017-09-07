@@ -2,5 +2,16 @@ import ../../util/RecType.
 
 PNatF ◂ ★ ➔ ★ = λ PNat : ★ . ∀ X : ★ . X ➔ (PNat ➔ X ➔ X) ➔ X .
 
-PNatFmap ◂ RecFunctor · PNatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (c.1 a) ) , λ a . (ρ+ (c.2 a) - β) ].
+PNatFzero ◂ ∀ PNat : ★ . PNatF · PNat =  Λ PNat . Λ X . λ z . λ s . z .
+
+PNatFmap ◂ RecFunctor · PNatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (cast · A · B -c a) ) ,
+                                λ a . β{a} ].
+
 PNat ◂ ★ = Rec · PNatF .
+
+PNatPreSuc ◂ PNat ➔ PNatF · PNat = λ p . Λ X . λ z . λ s . s p ( (cast · PNat · (PNatF · PNat) -(recOut · PNatF -PNatFmap) p) · X z s) .
+
+PZero ◂ PNat =  cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) (PNatFzero · (Rec · PNatF)).
+PSuc ◂ PNat ➔ PNat = λ p . cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) (PNatPreSuc p) .
+
+test ◂ PNat = PSuc (PSuc PZero) .
