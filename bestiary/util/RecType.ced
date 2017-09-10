@@ -1,4 +1,4 @@
-import ../../util/Top.
+import Top.
 
 IsIdentity ◂ Top ➔ ★ ➔ ★ = λ f : Top . λ A : ★ . Π a : A . f a ≃ a .
 

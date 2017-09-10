@@ -9,9 +9,10 @@ PNatFmap ◂ RecFunctor · PNatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . �
 
 PNat ◂ ★ = Rec · PNatF .
 
-PNatPreSuc ◂ PNat ➔ PNatF · PNat = λ p . Λ X . λ z . λ s . s p ( (cast · PNat · (PNatF · PNat) -(recOut · PNatF -PNatFmap) p) · X z s) .
+PNatPreSuc ◂ PNat ➔ PNatF · PNat =
+  λ p . Λ X . λ z . λ s . s p ( (cast · PNat · (PNatF · PNat) -(recOut · PNatF -PNatFmap) p) · X z s) .
 
 PZero ◂ PNat =  cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) (PNatFzero · (Rec · PNatF)).
 PSuc ◂ PNat ➔ PNat = λ p . cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) (PNatPreSuc p) .
 
-test ◂ PNat = PSuc (PSuc PZero) .
+test ◂ PNat = PSuc PZero .

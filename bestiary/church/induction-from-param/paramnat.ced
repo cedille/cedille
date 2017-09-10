@@ -1,0 +1,15 @@
+import base.
+
+Nat ◂ ★ = ι x : cNat . ι u : (x cS cZ ≃ x) . UnaryParam x .
+
+Z ◂ Nat = [ cZ , [ β{cZ} , Λ A . Λ R . Λ f . λ s . Λ a . λ z . z ] ] .
+S ◂ Nat ➔ Nat = 
+  λ n : Nat . [ cS n.1 , [ ρ+ n.2.1 - β{cS n.1} ,
+                Λ A . Λ R . Λ f. λ s . Λ a . λ z .
+                  s -(n.1 · A f a) (n.2.2 · A · R -f s -a z) ]] .
+
+Ind ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
+  λ x . Λ Q . λ s . λ z . 
+    ρ ς x.2.1 - (x.2.2 · Nat · Q -S s -Z z) .
+
+
