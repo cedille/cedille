@@ -1,0 +1,3 @@
+id = Λ X : ★ . λ x . x .
+
+test ◂ (id id ≃ id) = β{id} .
