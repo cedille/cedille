@@ -1,0 +1,18 @@
+cList ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . X ➔ (A ➔ X ➔ X) ➔ X .
+cNil ◂ ∀ A : ★ . cList · A = Λ A . Λ X . λ n . λ c . n .
+cCons ◂ ∀ A : ★ . A ➔ cList · A ➔ cList · A = Λ A : ★ . λ hd . λ tl . Λ X . λ n . λ c . c hd (tl · X n c).
+
+Inductive ◂ Π A : ★ . cList · A ➔ ★ = λ A : ★ . λ lst : cList · A . ∀ Q : cList · A ➔ ★ . Q (cNil · A) ➔ (∀ x : cList · A . Π hd : A . Q x ➔ Q (cCons · A hd x)) ➔ Q lst.
+
+List ◂ ★ ➔ ★ = λ A : ★ . ι x : cList · A . Inductive · A x.
+
+Nil ◂ ∀ A : ★ . List · A = Λ A : ★ . [ cNil · A , Λ Q . λ n . λ c . n ] .
+Cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A = Λ A . λ a . λ tl . [ cCons · A a tl.1 , Λ Q . λ n . λ c . c -(tl.1) a (tl.2 · Q n c) ] .
+
+Ind ◂ Π A : ★ . ∀ Q : List · A ➔ ★ . (∀ x : List · A . Π hd : A . Q x ➔ Q (Cons · A hd x)) ➔ Q (Nil · A) ➔ Π x : List · A . Q x =
+  λ A : ★ . Λ Q . λ c . λ n . λ x .
+    x.2 · (λ u : cList · A . ∀ X : ★ . (Π u' : List · A . (u ≃ u') ➔ Q u' ➔ X) ➔ X)
+     (Λ X : ★ . λ u' . u' (Nil · A) β n )
+     (Λ x' . λ hd . λ ih . Λ X . λ c' . ih · X (λ u' . λ e . λ qu . c' (Cons · A hd u') (ρ e - β) (c -u' hd qu)))
+       · (Q x) (λ x' . λ e . λ u . ρ e - u).
+      
