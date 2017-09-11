@@ -16,3 +16,25 @@ PZero ◂ PNat =  cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) 
 PSuc ◂ PNat ➔ PNat = λ p . cast · (PNatF · PNat) · PNat -(recFold · PNatF -PNatFmap) (PNatPreSuc p) .
 
 test ◂ PNat = PSuc PZero .
+
+Ind ◂ PNat ➔ ★ = λ n : PNat . ∀ Q : PNat ➔ ★ . Q (PZero) ➔ (Π m : PNat . Q m ➔ Q (PSuc m)) ➔ Q n .
+
+Nat ◂ ★ = ι x : PNat . Ind x .
+
+Z ◂ Nat = [ PZero, Λ Q . λ z . λ s . z ] .
+S ◂ Nat ➔ Nat = λ n . [ PSuc n.1, Λ Q . λ z . λ s . s n.1 (n.2  · Q z s) ] .
+
+One ◂ Nat = S Z .
+
+PNatOut ◂ PNat ➔ (PNatF · PNat) = cast · PNat · (PNatF · PNat) -(recOut · PNatF -PNatFmap) .
+
+add ◂ Nat ➔ Nat ➔ Nat =
+  λ n . λ m . PNatOut n.1 · Nat m (λ P : PNat . S) .
+
+add-test ◂ (add Z (S Z) ≃ (S Z)) = β.
+
+add0 ◂ Π m : Nat . add Z m ≃ m = λ m . β .
+
+add0-1 ◂ Π m : Nat . add m Z ≃ m = λ m .
+  θ m β (λ _ . λ h . εl ρ h - β) .
+
