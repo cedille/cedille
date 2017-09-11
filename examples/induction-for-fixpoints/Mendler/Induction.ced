@@ -1,6 +1,10 @@
 
 
 import Fixpoint.
+import Functor. 
+import Sigma.
+import Product.
+import Helper.
 
 InductionDepFixM' ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 : FunctorLaw1 · G fmap .
     Π e : DepFixM · G fmap . ∀ Q : (DepFixM · G fmap) ➔ ★ . 
@@ -10,41 +14,54 @@ InductionDepFixM' ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 :
      ➔ Sigma · (DepFixM · G fmap) · (λ x' : (DepFixM · G fmap) . Product · (e ≃ x') · (Q x'))
      = Λ G . λ fmap . λ Flaw1 . % parameters should go into the module
        λ e . Λ Q . λ q .        % actual arguments
-       θ<e> e.2                 % eliminate with the motive
-          (Λ R . Λ cast . Λ castId . λ ih . λ gr .
+       e.2 · (λ z : FixM · G . Sigma · (DepFixM · G fmap) · (λ x' : (DepFixM · G fmap) . Product · (z ≃ x') · (Q x'))) 
+
+     (Λ R . Λ cast . Λ castId . λ ih . λ gr .
+        let zz = (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x'))
+                 (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) in 
+
             mkdsigma · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . Product · ((inM (fmap cast gr))  ≃ x') · (Q x'))
 	    
 	       (inDepFixM · G fmap Flaw1 (fmap · R · (DepFixM · G fmap)
-	         (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x'))
-		     (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih))
-		         gr))
+                 
+                 zz
+
+           gr))
 	       (pair · ((inM (fmap cast gr)) ≃ (inDepFixM fmap Flaw1 (fmap (trans2 (trans ih)) gr)))
 	             · (Q ((inDepFixM · G fmap Flaw1 (fmap · R · (DepFixM · G fmap)
-		                                       (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
-		                                         (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih))
+
+                                       (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
+                                       (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih))
 		                                       gr))))
 		     ( ρ (Flaw1 · R · (DepFixM · G fmap)
+
 		                -(trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
-		                                         (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) 
+                                 (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) 
+
 		                gr -(λ r . ρ ς (thm · R · (DepFixM · G fmap) · (FixM · G) cast (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih) 
 				       r   ) - (castId -r) ) )
 		     
 		                 - (ε ( ρ (Flaw1 · R · R -(λ x . x) gr -(λ _ . β)  ) - ρ (Flaw1 · R · (FixM · G) -cast gr -castId  ) - β)))
 				
 		    (q · R -(trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
-		                                         (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih))
+                            (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih))
+
 		           -(Λ r . ρ ς (thm · R · (DepFixM · G fmap) · (FixM · G) cast (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih) 
 				       r   ) - (castId -r) ) 
-			   (λ r . (ih r).1 · (Q ((trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
-		                                         (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) r) )
-							   (λ a . λ pr . pr.1 · (Q ((trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x'))
-		                                         (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) r) )
+			   (λ r . (ih r).1 · (Q (
+                          (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) 
+		          (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) r))
+
+							   (λ a . λ pr . pr.1 · (Q (
+                          (trans2 · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x'))
+		          (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih)) r))
+
 							   (λ eq . λ qa . (ρ ς (thm · R · (DepFixM · G fmap) · (FixM · G) cast (trans · R · (DepFixM · G fmap) · (λ x' : DepFixM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : DepFixM · G fmap . Q x') ih) 
 				       r   ) - ρ eq - qa ) )  )       )
 			   gr)
 
                     )
-          ).
+          )  .
 
 
 InductionDepFixM ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 : FunctorLaw1 · G fmap .

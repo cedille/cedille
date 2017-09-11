@@ -3,7 +3,7 @@ import Functor.
 import Sigma.
 import Product.
 
-import Church.
+
 import Helper.
 
 % Mendler-style algebra
@@ -15,17 +15,31 @@ WFAlgM ◂ Π F : ★ ➔ ★ . Functor · F ➔ Π A : ★ . AlgebraM · F · A
    ∀ R : ★ . ∀ cast : R ➔  A . ∀ fr : F · R . alg cast fr ≃  alg (λ x . x) (fmap cast fr) .
 
 
+% Mendler-style algebra homomorphisms
+HomM ◂ Π F : ★ ➔ ★ . Functor · F ➔ Π C : ★ . Π D : ★ . (C ➔ D) ➔ AlgebraM · F · C ➔ AlgebraM · F · D  ➔ ★ 
+ =  λ F : ★ ➔ ★ . λ fmap : Functor · F . λ C : ★  . λ D : ★ . λ h : C ➔ D .
+  λ alg1 : AlgebraM · F · C . λ alg2 :  AlgebraM · F · D  . ∀ A : ★ . Π f : A ➔ C .  (λ fr . alg2 · D (λ x . h (f x)) fr) ≃ (λ fr . h (alg1 · A f fr)) .
+
 % Fixpoint of F-malgebra
 FixM ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ A : ★ . (∀ R : ★ . (R ➔ A) ➔ F · R ➔ A) ➔ A .
 
 
-% FixM is (weakly) initial
+% FixM is (weakly) initial(λ x . x)
 foldM ◂ ∀ F : ★ ➔ ★ . ∀ A : ★ . AlgebraM · F · A ➔ FixM · F ➔ A
   = Λ F . Λ A . λ alg . λ fix . fix · A alg .
 
 
+
 inM ◂ ∀ F : ★ ➔ ★ . F · (FixM · F) ➔ FixM · F
    = Λ F .  λ fexp . Λ A . λ alg . alg · (FixM · F) (foldM · F · A alg) fexp.
+
+
+InitM ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ AlgebraM · F · (FixM · F)
+  = Λ F . λ fmap . Λ R . λ f . λ fr .
+    inM · F (fmap · R · (FixM · F) f fr) .
+
+InitialAlgebra ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ AlgebraM · F · (FixM · F) = Λ F . λ fmap . Λ R . λ rf . λ fr . inM · F (fmap · R · (FixM · F) rf fr) .
+
 
 
 outM ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ FixM · F ➔ F · (FixM · F)
@@ -36,11 +50,11 @@ outM ◂ ∀ F : ★ ➔ ★ . Functor · F ➔ FixM · F ➔ F · (FixM · F)
 
 
 % inductivity predicate     
-isInductiveFixM ◂ Π G : (★ ➔ ★) . Functor · G ➔ FixM · G ➔ ★
-   = λ G : ★ ➔ ★ . λ fmap : Functor · G . λ x : FixM · G . ∀ Q : (FixM · G) ➔ ★ .
-        (∀ R : ★ . ∀ cast : R ➔ (FixM · G) . (∀ r : R . cast r ≃ r) ➾
+isInductiveFixM ◂ Π F : ★ ➔ ★ . Functor · F ➔ FixM · F ➔ ★
+   = λ F : ★ ➔ ★ . λ fmap : Functor · F . λ x : FixM · F . ∀ Q : FixM · F ➔ ★ .
+        (∀ R : ★ . ∀ cast : R ➔ FixM · F . (∀ r : R . cast r ≃ r) ➾
            (Π r : R . Q (cast r)) ➔
-           (Π gr : G · R .  Q (inM · G (fmap · R · (FixM · G) cast gr)))) ➔ Q x  .
+           (Π gr : F · R .  Q (inM · F (fmap · R · (FixM · F) cast gr)))) ➔ Q x  .
 
 
 
