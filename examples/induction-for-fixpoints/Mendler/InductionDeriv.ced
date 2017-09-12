@@ -1,0 +1,50 @@
+
+
+
+import Fixpoint.
+import Functor. 
+import Sigma.
+import Product.
+import Helper.
+import Top.
+
+
+thm1 ◂ ∀ fmap : Top . ∀ flaw1 : Top . ∀ gr : Top . inDepFixM fmap flaw1 gr ≃ inM gr = Λ f . Λ fl . Λ gr . ε ●   .
+
+rew ◂ ∀ x : Top . ∀ y : Top . ∀ z : Top . (x ≃ y) ➔ (y ≃ z) ➔ (x ≃ z) = ● .
+
+
+W ◂ Π G : ★ ➔ ★ . Π fmap : Functor · G . ((DepFixM · G fmap) ➔ ★) ➔ FixM · G ➔ ★ = ● .
+
+W-thm1 ◂ ∀ G : ★ ➔ ★ . Π fmap : Functor · G . ∀ P : (DepFixM · G fmap) ➔ ★ . 
+          Π e : DepFixM · G fmap . (W · G fmap · P) e.1 ➔ P e = ● .
+
+
+
+InductionDepFixM ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 : FunctorLaw1 · G fmap .
+    Π e : DepFixM · G fmap . 
+    ∀ Y : DepFixM · G fmap ➔ ★ . 
+
+    ∀ Q : FixM · G ➔ ★ . 
+    
+    Π Qprop1 : ∀ e : FixM · G . Q e ➔ DepFixM · G fmap .
+    Π Qprop2 : ∀ e : FixM · G . ∀ qe : Q e . ((Qprop1 -e qe) ≃ e) .
+    Π Qprop3 : ∀ e : DepFixM · G fmap . Q e.1 ➔ Y e.
+    Π Qprop4 : ∀ e : DepFixM · G fmap . Y e ➔ Q e.1.
+
+   (∀ R : ★ . ∀ cast : R ➔ (DepFixM · G fmap) . (∀ r : R . (cast r) ≃ r) ➾
+    (Π r : R . Y (cast r)) ➔
+    (Π gr : G · R .  Y (inDepFixM · G fmap Flaw1 (fmap · R · (DepFixM · G fmap) cast gr ) )))
+     ➔ Y e = Λ G . λ fmap . λ Flaw1 . λ e . Λ Y . Λ Q . λ qp1 . λ qp2 . λ qp3 . λ qp4 . λ q . 
+       qp3 -e
+          (e.2 · Q (Λ R . Λ cst . Λ ce . λ ih . λ gr . 
+            ρ ς (thm1 -β{fmap} -β{Flaw1} -β{fmap cst gr}) -
+             ρ (Flaw1 · R · (FixM · G) -cst gr -ce) -
+              ρ ς (Flaw1 · R · (DepFixM · G fmap) -(λ r . qp1 -(cst r) (ih r) ) gr 
+                    -(λ z . (rew -β{qp1 (ih z)} -β{cst z} -β{z} (qp2 -(cst z) -(ih z)) (ce -z)))) -
+               (qp4 -(inDepFixM · G fmap Flaw1 (fmap · R · (DepFixM · G fmap) (λ r . (qp1 -(cst r) (ih r))) gr))  
+                     (q · R -(λ r . qp1 -(cst r) (ih r))  
+                            -(Λ z . (rew -β{qp1 (ih z)} -β{cst z} -β{z} (qp2 -(cst z) -(ih z)) (ce -z)))  
+                             (λ r .  ((qp3 -(qp1 -(cst r) (ih r)) 
+                                           (ρ (qp2 -(cst r) -(ih r)) - (ih r))))   )   gr)))).
+
