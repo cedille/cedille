@@ -1,0 +1,48 @@
+import ../../../util/RecType.
+
+NatF ◂ ★ ➔ ★ = λ Nat' : ★ . ∀ X : ★ . X ➔ (Nat' ➔ X ➔ X) ➔ X .
+
+NatFzero ◂ ∀ Nat' : ★ . NatF · Nat' =  Λ Nat' . Λ X . λ z . λ s . z .
+
+NatFmap ◂ RecFunctor · NatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (cast · A · B -c a) ) ,
+                                λ a . β{a} ].
+
+Nat' ◂ ★ = Rec · NatF .
+
+NatPreSuc ◂ Nat' ➔ NatF · Nat' =
+  λ p . Λ X . λ z . λ s . s p ( (cast · Nat' · (NatF · Nat') -(recOut · NatF -NatFmap) p) · X z s) .
+
+Z' ◂ Nat' =  cast · (NatF · Nat') · Nat' -(recFold · NatF -NatFmap) (NatFzero · (Rec · NatF)).
+S' ◂ Nat' ➔ Nat' = λ p . cast · (NatF · Nat') · Nat' -(recFold · NatF -NatFmap) (NatPreSuc p) .
+
+test ◂ Nat' = S' Z' .
+
+Ind' ◂ Nat' ➔ ★ = λ n : Nat' . ∀ Q : Nat' ➔ ★ . Q Z' ➔ (Π m : Nat' . Q m ➔ Q (S' m)) ➔ Q n .
+
+Nat ◂ ★ = ι x : Nat' . Ind' x .
+
+Z ◂ Nat = [ Z', Λ Q . λ z . λ s . z ] .
+S ◂ Nat ➔ Nat = λ n . [ S' n.1, Λ Q . λ z . λ s . s n.1 (n.2  · Q z s) ] .
+
+Ind ◂ ∀ Q : Nat ➔ ★ . Q Z ➔ (Π m : Nat . Q m ➔ Q (S m)) ➔ Π n : Nat . Q n =
+  Λ Q . λ z . λ s . λ n .
+    n.2 · (λ x : Nat' . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
+      (Λ X . λ c . c Z β z)
+      (λ n' . λ ih . Λ X . λ c . ih · X (λ n'' . λ e . λ u . c (S n'') (ρ e - β) (s n'' u)))
+      · (Q n) (λ x'. λ e . λ u . ρ e - u).
+
+One ◂ Nat = S Z .
+
+Nat'Out ◂ Nat' ➔ (NatF · Nat') = cast · Nat' · (NatF · Nat') -(recOut · NatF -NatFmap) .
+
+add ◂ Nat ➔ Nat ➔ Nat =
+  λ n . λ m . Nat'Out n.1 · Nat m (λ P : Nat' . S) .
+
+add-test ◂ (add Z (S Z) ≃ (S Z)) = β.
+
+add0 ◂ Π m : Nat . add Z m ≃ m = λ m . β .
+
+add0-1 ◂ Π m : Nat . add m Z ≃ m =
+  λ m . θ m β (λ _ . λ h . εl ρ h - β) .
+
+

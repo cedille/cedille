@@ -3,9 +3,10 @@ import ../nat/parigot.
 
 PListF ◂ ★ ➔ (★ ➔ ★) = λ A : ★ . λ PListA : ★ . ∀ X : ★ . X ➔ (A ➔ PListA ➔ X ➔ X) ➔ X .
 
-PListFmap ◂ Π A : ★ . RecFunctor · (PListF · A) = λ A : ★ . Λ X . Λ Y . λ c .
-  [ λ x . Λ Z . λ nil . λ cons .
-      x · Z nil (λ a . λ x . λ z . cons a (cast · X · Y -c x) z)  ,
+PListFmap ◂ Π A : ★ . RecFunctor · (PListF · A) =
+  λ A : ★ . Λ X . Λ Y . λ c .
+    [ λ x . Λ Z . λ nil . λ cons .
+        x · Z nil (λ a . λ x . λ z . cons a (cast · X · Y -c x) z)  ,
       λ a . β{a} ] .
 
 PListFNil ◂ ∀ A : ★ . ∀ PListFA : ★ . PListF · A · PListFA = Λ A : ★ . Λ PListFA . Λ X . λ n . λ c . n .
@@ -14,12 +15,15 @@ PList ◂ ★ ➔ ★ = λ A : ★ . Rec · (PListF · A) .
 
 PListPreCons ◂ ∀ A : ★ . A ➔ PList · A ➔ PListF · A · (PList · A) = Λ A : ★ .
   λ hd . λ tl . Λ X . λ n . λ c . c hd
-     tl ((cast · (PList · A) · (PListF · A · (PList · A)) -(recOut · (PListF · A) -(PListFmap · A)) tl) · X n c) .
+     tl ((cast · (PList · A) · (PListF · A · (PList · A))
+        -(recOut · (PListF · A) -(PListFmap · A)) tl) · X n c) .
 
-PNil ◂ ∀ A : ★ . PList · A = Λ A . (cast · (PListF · A · (PList · A)) · (PList · A) -(recFold · (PListF · A) -(PListFmap · A)) (PListFNil · A · (PList · A))).
+PNil ◂ ∀ A : ★ . PList · A =
+  Λ A . (cast · (PListF · A · (PList · A)) · (PList · A)
+         -(recFold · (PListF · A) -(PListFmap · A)) (PListFNil · A · (PList · A))).
 
-PCons ◂ ∀ A : ★ . A ➔ (PList · A) ➔ (PList · A) = Λ A . λ hd . λ tl .
-  (cast · (PListF · A · (PList · A)) · (PList · A) -(recFold · (PListF · A) -(PListFmap · A)) (PListPreCons · A hd tl)).
+PCons ◂ ∀ A : ★ . A ➔ PList · A ➔ (PList · A) = Λ A . λ hd . λ tl .
+  cast · (PListF · A · (PList · A)) · (PList · A) -(recFold · (PListF · A) -(PListFmap · A)) (PListPreCons · A hd tl)).
 
 ListInd ◂ Π A : ★ . PList · A ➔ ★ =
   λ A : ★ . λ lst : PList · A . ∀ Q : PList · A ➔ ★ . (Q (PNil · A)) ➔ (∀ xs : PList · A . Π a : A . PList · A ➔ (Q xs) ➔ Q (PCons · A a xs)) ➔ Q lst  .
