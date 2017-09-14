@@ -1,0 +1,27 @@
+import Fixpoint.
+import Functor. 
+import Sigma.
+import Product.
+import Helper.
+import Top.
+
+
+thm1 ◂ ∀ fmap : Top . ∀ flaw1 : Top . ∀ gr : Top . inFixIndM fmap flaw1 gr ≃ inM gr = Λ f . Λ fl . Λ gr . ● .
+
+
+
+Bug ◂  ∀ G : ★ ➔ ★ . Π fmap : Functor · G . Π Flaw1 : FunctorLaw1 · G fmap .
+    Π e : FixIndM · G fmap . 
+
+    ∀ Q : FixM · G ➔ ★ . 
+    Π Qprop1 : ∀ e : FixM · G . Q e ➔ FixIndM · G fmap .
+    Π Qprop2 : ∀ e : FixM · G . Π qe : Q e . ((Qprop1 qe) ≃ e) .
+
+   (∀ R : ★ . ∀ mycast : R ➔ (FixIndM · G fmap) . (∀ r : R . (mycast r) ≃ r) ➾
+    (Π r : R . Q (mycast r).1) ➔
+    (Π gr : G · R .  Q (inFixIndM · G fmap Flaw1 (fmap · R · (FixIndM · G fmap) mycast gr ) ).1))
+     ➔ Q e.1
+     = Λ G . λ fmap . λ Flaw1 . 
+       λ e . Λ Q . λ qp1 . λ qp2 . λ q .  e.2 · Q (Λ R . Λ mycast . Λ ce . λ ih . λ gr . 
+             (ρ (thm1 -β{fmap} -β{Flaw1} -β{fmap mycast gr}  ) - 
+               q) · R -●  -● ih gr)     .
