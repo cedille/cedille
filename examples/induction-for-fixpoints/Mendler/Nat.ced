@@ -25,7 +25,6 @@ inNat ◂  NatF · NatM ➔ NatM = inDepFixM · NatF NatFF Flaw1 .
 zero ◂ NatM = inNat (in1 · Unit · NatM unit) .
 suc ◂ NatM ➔ NatM = λ n . inNat (in2 · Unit · NatM n) .
 
-
 NatInd ◂ Π x : NatM . ∀ Q : NatM ➔ ★ . (∀ x : NatM . Q x ➔ Q (suc x)) ➔ Q zero ➔ Q x =
   λ x .  Λ Q . λ s . λ z . InductionDepFixM · NatF NatFF Flaw1 x · Q
     (Λ R . Λ cast . Λ castId . λ ih . λ nf .
@@ -34,9 +33,7 @@ NatInd ◂ Π x : NatM . ∀ Q : NatM ➔ ★ . (∀ x : NatM . Q x ➔ Q (suc x
        (θ<nf> (ind-Sum · Unit · R nf)
             (λ u . ρ (eta-Unit u) - z) % zero case
             (λ b . ρ ς (castId -b) - (s -(cast b) (ih b)))) % suc case
-
    ) .
-
 
 % function definition
 add ◂ NatM ➔ NatM ➔ NatM =
@@ -49,5 +46,5 @@ add ◂ NatM ➔ NatM ➔ NatM =
 add-zero-lft ◂ ∀ n : NatM . add zero n ≃ n = Λ n . β .
 
 % proof by induction
-add-zero-rgt ◂ Π n : NatM . add n zero ≃ n = λ n .
-   θ<n> (NatInd n) (Λ x . λ ih . ρ+ ih - β)  β .
+add-zero-rgt ◂ Π n : NatM . add n zero ≃ n 
+ = λ n . θ<n> (NatInd n) (Λ x . λ ih . ρ+ ih - β) β .

@@ -1,10 +1,11 @@
 
 import Bool.
 
-val ◂ Bool = true .
-thm ◂ val ≃ true = β .
+val ◂ Bool = true.
+thm ◂ val ≃ true = β.
 
 orwell' ◂ ∀ Q : Bool ➔ ★. Π val : Bool.
- Q true ➔ Q val = Λ Q. ρ thm - (λ val.  λ q. q).
+ Q true ➔ Q val = Λ Q. ρ thm - (λ val. λ q. q).
 
-orwell ◂ true ≃ false = orwell' · (λ t : Bool. true ≃ t) false β .
+orwell ◂ true ≃ false 
+ = orwell' · (λ t : Bool. true ≃ t) false β .

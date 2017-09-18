@@ -1,3 +1,4 @@
 import-directories "/home/astump/cedille/lib" "/home/aneto/Desktop/ui/cedille-datatypes/impredicative-encodings/induction-for-fixpoints" "/home/aneto/Desktop/ui/cedille-datatypes/impredicative-encodings/induction-for-fixpoints/Mendler".
+no-cede-files.
 
 

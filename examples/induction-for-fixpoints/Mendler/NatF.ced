@@ -8,8 +8,11 @@ import Unit.
 %%% Base functor for natural numbers
 NatF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · X .
 
-zF ◂ ∀ X : ★ . Unit ➔ NatF · X = in1 · Unit !
-sF ◂ ∀ X : ★ . X ➔ NatF · X = in2 · Unit !
+
+zF ◂ ∀ X : ★ . Unit ➔ NatF · X = in1 · Unit .
+sF ◂ ∀ X : ★ . X ➔ NatF · X = in2 · Unit .
+
+
 
 NatFF ◂ Functor · NatF =
   Λ X . Λ Y . λ f . λ u . u.1 · (NatF · Y) (zF · Y) (λ x . sF · Y (f x)) .

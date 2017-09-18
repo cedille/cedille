@@ -28,8 +28,7 @@ InductionFixIndM' ◂  ∀ F : ★ ➔ ★ . Π fmap : Fmap · F . Π Flaw1 : Fu
 	       (pair · ((inM  fmap cast gr) ≃ (inFixIndM fmap Flaw1 (fmap (trans2 (trans ih)) gr)))
 	             · (Q ((inFixIndM · G fmap Flaw1 (fmap · R · (FixIndM · G fmap)
 
-                                       (trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) 
-                                       (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih))
+                                       zz
 		                                       gr))))
 		     ( ρ (Flaw1 · R · (FixIndM · G fmap)
 
