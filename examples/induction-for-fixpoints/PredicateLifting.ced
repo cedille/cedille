@@ -1,0 +1,24 @@
+
+import Sigma.
+
+PredEnrFun ◂ Π X : ★ . Π P : X ➔ ★ . ★ =
+   λ X : ★ . λ P : X ➔ ★ .  ∀ x : X . P x ➔ X .
+
+
+PredEnrProp ◂ Π X : ★ . Π P : X ➔ ★ . Π f : PredEnrFun · X · P .  ★ =
+   λ X : ★ . λ P : X ➔ ★ .  λ f : PredEnrFun · X · P .  ∀ x : X . Π p : P x . f -x p ≃ x .
+
+% enriched predicate
+Enr ◂ Π X : ★ . Π P : X ➔ ★ . X ➔ ★ = λ X : ★ . λ P : X ➔ ★ . λ x : X . Sigma · X · (λ x' : X . ι _ : P x' . x ≃ x') .
+
+EnrPred ◂ ∀ X : ★ . ∀ P : X ➔ ★ . ∀ x : X .  Enr · X · P x ➔ P x  = Λ X . Λ P . Λ x . λ lpx . lpx.1 · (P x) (λ a . λ z . ρ (z.2) - z.1) .
+
+EnrElem ◂ ∀ X : ★ . ∀ P : X ➔ ★ . ∀ x : X .  Enr · X · P x ➔ X = Λ X . Λ P . Λ x . λ lpx . lpx.1 · X (λ a . λ _ . a) .
+
+EnrIn ◂ ∀ X : ★ . ∀ P : X ➔ ★ . Π x : X . P x ➔ Enr · X · P x = Λ X . Λ P . λ x . λ px . mkdsigma · X · (λ x' : X . ι _ : P x' . x ≃ x') x [ px , β{px}  ].
+
+EnrEq ◂ ∀ X : ★ . ∀ P : X ➔ ★ . ∀ x : X .  ∀ lpx : Enr · X · P x . EnrElem lpx ≃ x
+   = Λ X . Λ P . Λ x . Λ lpx . ρ ς lpx.2.1 -  ρ (lpx.2.2 · (Enr · X · P x) · (λ x' : Enr · X · P x . EnrElem x' ≃ x )
+     -(mkdsigma · X · (λ x' : X . ι _ : P x' . x ≃ x')) (λ a . λ b . ε ρ ς b.2  - β)) - β .
+
+
