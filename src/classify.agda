@@ -393,11 +393,11 @@ check-termi (Let pi d t) mtp =
 
         add-def : defTermOrType → spanM (var × maybe sym-info)
         add-def (DefTerm pi₁ x NoCheckType t') =
-           check-term t' nothing ≫=span cont
-          where cont : maybe type → spanM (var × maybe sym-info)
-                cont (just T) = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
+           check-term t' nothing ≫=span λ m → get-ctxt λ Γ → cont (hnf Γ unfold-head t' tt) m
+          where cont : term → maybe type → spanM (var × maybe sym-info)
+                cont t' (just T) = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
                                                spanM-push-term-def pi₁ x t' T ≫=span λ m → spanMr (x , m) 
-                cont nothing = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing []) ≫span
+                cont t' nothing = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing []) ≫span
                                               spanM-push-term-udef pi₁ x t' ≫=span λ m → spanMr (x , m) 
         add-def (DefTerm pi₁ x (Type T) t') =
           check-type T (just star) ≫span
