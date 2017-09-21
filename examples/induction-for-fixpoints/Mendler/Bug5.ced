@@ -1,12 +1,7 @@
 
 
-import Fixpoint.
-import Functor. 
-import Sigma.
-import Product.
-import Helper.
-import Unit.
-
+Unit ◂ ★ = ∀ X : ★ . X ➔ X.
+unit ◂ Unit = Λ X . λ x . x.
 
 bug ◂ ∀ P : Unit ➔ ★ . 
       (Π u : Unit. P u) ➔ 
