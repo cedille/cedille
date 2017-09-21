@@ -85,13 +85,13 @@ ctxt-restore-info* Γ ((x , m) :: ms) = ctxt-restore-info* (ctxt-restore-info Γ
 
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v t (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , q)
-                                                    (trie-insert-append syms fn v)
+                                                    syms
                                                     (trie-insert i v (term-decl t , (fn , p)))
                                                     symb-occs
 
 ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
 ctxt-type-decl p v k (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , q)
-                                                    (trie-insert-append syms fn v)
+                                                    syms
                                                     (trie-insert i v (type-decl k , (fn , p)))
                                                     symb-occs
 
@@ -102,7 +102,7 @@ def-params ff ps = just ps
 -- TODO roll "hnf Γ unfold-head t tt" into ctxt-*-def, after qualification
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
 ctxt-type-def p s v t k (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , qualif-insert-params q fn v ps)
-                                                    (trie-insert-append syms fn v)
+                                                    (if (s iff localScope) then syms else trie-insert-append syms fn v)
                                                     (trie-insert i v (type-def (def-params s ps) (qualif-type q t) (qualif-kind q k) , (fn , p)))
                                                     symb-occs
 
@@ -114,19 +114,19 @@ ctxt-kind-def p v ps2 k (mk-ctxt (fn , ps1 , q) syms i symb-occs) = mk-ctxt (fn 
 
 ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
 ctxt-term-def p s v t tp (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , qualif-insert-params q fn v ps)
-                                                    (trie-insert-append syms fn v)
+                                                    (if (s iff localScope) then syms else trie-insert-append syms fn v)
                                                     (trie-insert i v (term-def (def-params s ps) (qualif-term q t) (qualif-type q tp) , (fn , p)))
                                                     symb-occs
 
 ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
 ctxt-term-udef p s v t (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , qualif-insert-params q fn v ps)
-                                                    (trie-insert-append syms fn v)
+                                                    (if (s iff localScope) then syms else trie-insert-append syms fn v)
                                                     (trie-insert i v (term-udef (def-params s ps) (qualif-term q t) , (fn , p)))
                                                     symb-occs
 
 ctxt-var-decl : posinfo → var → ctxt → ctxt
 ctxt-var-decl p v (mk-ctxt (fn , ps , q) syms i symb-occs) = mk-ctxt (fn , ps , q)
-                                                    (trie-insert-append syms fn v)
+                                                    syms
                                                     (trie-insert i v (var-decl , (fn , p)))
                                                     symb-occs
 
@@ -136,7 +136,7 @@ ctxt-var-decl-if p v Γ with Γ
 ... | mk-ctxt (fn , ps , q) syms i symb-occs with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
-... | _ = mk-ctxt (fn , ps , q) (trie-insert-append syms fn v)
+... | _ = mk-ctxt (fn , ps , q) syms
   (trie-insert i v (var-decl , (fn , p)))
   symb-occs
 
@@ -153,7 +153,7 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 ctxt-rename : posinfo → var → var → ctxt → ctxt
 ctxt-rename p v v' (mk-ctxt (fn , ps , q) syms i symb-occs) = 
-  (mk-ctxt (fn , ps , q) (trie-insert-append syms fn v)
+  (mk-ctxt (fn , ps , q) syms
       (trie-insert i v (rename-def v' , (fn , p)))
       symb-occs)
 
