@@ -1,0 +1,60 @@
+import Nat.
+import List.
+import Vec.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+v2l' ◂ ∀ A : ★ . ∀ n : Nat . Vec' · A n ➔ List' · A
+  = Λ A . Λ n . λ xs .
+  Λ X . λ cN . λ cC .
+  xs · (λ _ : Nat . X) cN (Λ _ . cC) .
+
+v2lId' ◂ ∀ A : ★ . ∀ n : Nat . ∀ xs : Vec' · A n .
+  v2l' · A -n xs ≃ xs
+  = Λ A . Λ n . Λ xs . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
+  = Λ A . Λ n . λ xs .
+  [ v2l' · A -n xs.1 ,
+  [ xs.2.1
+  , Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+    xs.2.2 · (λ _ : Nat . X) · (λ _ : Nat . P) -cN -(Λ _ . cC)
+      pN (Λ _ . pC)
+  ] ] .
+
+v2lId ◂ ∀ A : ★ . ∀ n : Nat . ∀ xs : Vec · A n .
+  v2l · A -n xs ≃ xs
+  = Λ A . Λ n . Λ xs . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+imapL' ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List' · A ➔ List' · B
+  = Λ A . Λ B . λ f . λ xs .
+  Λ X . λ cN . λ cC . xs · X cN (λ x . cC (f x)) .
+
+imapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . (f ≃ λ x . x) ➾ List · A ➔ List · B
+  = Λ A . Λ B . λ f . Λ q . λ xs .
+  [ imapL' · A · B f xs.1 ,
+  [ ρ q - (ρ xs.2.1 - β{imapL' · A · B f xs.1})
+  , Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+    xs.2.2 · X · P -cN -(λ x . cC (f x)) pN (Λ xs' . λ x . pC -xs' (f x))
+  ] ] .
+
+imapIdL ◂ ∀ A : ★ . ∀ B : ★ . ∀ xs : List · A .
+  imapL · A · B (λ x . x) -β xs ≃ xs
+  = Λ A . Λ B . Λ xs . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
+  List · (Vec · A n) ➔ List · (List · A)
+  = Λ A . Λ n . imapL · (Vec · A n) · (List · A) (v2l · A -n) -β .
+
+vs2lsIdL ◂ ∀ A : ★ . ∀ n : Nat .
+  ∀ xss : List · (Vec · A n) .
+  vs2lsL · A -n xss ≃ xss
+  = Λ A . Λ n . Λ xss . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
