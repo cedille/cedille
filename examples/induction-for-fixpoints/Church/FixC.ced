@@ -1,0 +1,20 @@
+
+import Functor.
+import Unary.
+
+
+
+AlgC ◂ (★ ➔ ★) ➔ ★ ➔ ★ = 
+ λ F : ★ ➔ ★. λ X : ★. F · (Unary · X) ➔ X.
+
+FixC ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. 
+  ∀ X : ★. AlgC · F · X ➔ X.
+
+foldC ◂ ∀ F : ★ ➔ ★. ∀ X : ★. AlgC · F · X 
+  ➔ FixC · F ➔ X = Λ F. Λ X. λ alg. λ fix. fix · X alg.
+
+
+inC ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ AlgC · F · (FixC · F) 
+ = Λ F. λ fmap. λ fix. Λ X. λ alg.
+    alg (ufmap · F fmap · (FixC · F) · X (foldC · F · X alg) fix).
+
