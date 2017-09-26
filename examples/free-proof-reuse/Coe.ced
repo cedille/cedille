@@ -23,9 +23,32 @@ v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
   , v2lP · A -n -xs.1.1 xs.1.2 ]
   xs.2 .
 
-v2lId ◂ ∀ A : ★ . ∀ n : Nat .
-  v2l · A -n ≃ λ x . x
-  = Λ A . Λ n . β .
+v2lId ◂ v2l ≃ λ x . x = β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+l2vC ◂ ∀ A : ★ . Π xs : List · A . VecC · A (length · A xs)
+  = Λ A . λ xs . Λ X .
+  λ cN . λ cC . elimList · A ·
+  (λ xs' : List · A . X (length · A xs'))
+  cN
+  (Λ xs' . cC -(length · A xs'))
+  xs .
+
+l2vP ◂ ∀ A : ★ . Π xs : List · A . VecP · A (length · A xs) (l2vC · A xs)
+  = Λ A . λ xs .
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC . elimList · A ·
+  (λ xs' : List · A . P (length · A xs') (l2vC · A xs' · X cN cC))
+  pN
+  (Λ xs' . pC -(length · A xs') -(l2vC · A xs' · X cN cC))
+  xs .
+
+l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
+  = Λ A . λ xs . mkVec · A -(length · A xs)
+  [ l2vC · A xs , l2vP · A xs ]
+  xs.2 .
+
+l2vId ◂ l2v ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -43,24 +66,20 @@ imapPL ◂ ∀ A : ★ . ∀ B : ★ .
     -cN -(λ x . cC (f x))
     pN (Λ xsC . λ x . pC -xsC (f x)) .
 
-imapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . (f ≃ λ x . x) ➔ List · A ➔ List · B
-  = Λ A . Λ B . λ f . λ q . λ xs . mkList · B
+imapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . (f ≃ λ x . x) ➾ List · A ➔ List · B
+  = Λ A . Λ B . λ f . Λ q . λ xs . mkList · B
   [ imapCL · A · B f xs.1.1
   , imapPL · A · B f q -xs.1.1 xs.1.2 ]
-  ρ q - (ρ xs.2 - β) .
+  ρ q - xs.2 .
 
-imapIdL ◂ ∀ A : ★ .
-  imapL · A · A (λ x . x) β ≃ λ x . x
-  = Λ A . β .
+imapIdL ◂ imapL (λ x . x) ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (List · A)
-  = Λ A . Λ n . imapL · (Vec · A n) · (List · A) (v2l · A -n) β .
+  = Λ A . Λ n . imapL · (Vec · A n) · (List · A) (v2l · A -n) -β .
 
-vs2lsIdL ◂ ∀ A : ★ . ∀ n : Nat .
-  vs2lsL · A -n ≃ λ x . x
-  = Λ A . Λ n . β .
+vs2lsIdL ◂ vs2lsL ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
