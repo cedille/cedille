@@ -1,0 +1,65 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+NatC ◂ ★ = ∀ X : ★ . X ➔ (X ➔ X) ➔ X.
+
+zeroC ◂ NatC = Λ X . λ cZ . λ cS . cZ .
+
+sucC ◂ NatC ➔ NatC = λ n . Λ X . λ cZ . λ cS . cS (n · X cZ cS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+NatP ◂ NatC ➔ ★ = λ nC : NatC .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ cZ : X . ∀ cS : X ➔ X .
+  P cZ ➔
+  (∀ n : X . P n ➔ P (cS n)) ➔
+  P (nC · X cZ cS) .
+
+zeroP ◂ NatP zeroC =
+  Λ X . Λ P . Λ cZ . Λ cS . λ pZ . λ pS .
+  pZ .
+
+sucP ◂ ∀ nC : NatC . NatP nC ➔ NatP (sucC nC) =
+  Λ nC .  λ nP .
+  Λ X . Λ P . Λ cZ . Λ cS . λ pZ . λ pS .
+  pS -(nC · X cZ cS) (nP · X · P -cZ -cS pZ pS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Nat ◂ ★ = ι n : (ι nC : NatC . NatP nC) . n zeroC sucC ≃ n .
+
+mkNat ◂ Π n : (ι nC : NatC . NatP nC) . (n zeroC sucC ≃ n) ➔ Nat =
+  λ n . λ q . [ n , ρ q - β{n} ] .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+zero ◂ Nat = mkNat [ zeroC , zeroP ] β .
+
+suc ◂ Nat ➔ Nat = λ n .
+  mkNat [sucC n.1.1 , sucP -n.1.1 n.1.2] (ρ+ n.2 - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+elimNat ◂ ∀ P : Nat ➔ ★ .
+  P zero ➔
+  (∀ n : Nat . P n ➔ P (suc n)) ➔
+  Π n : Nat . P n
+  = Λ P . λ pZ . λ pS . λ n .
+  ρ ς n.2 -
+  (n.1.2 · Nat · P -zero -suc pZ pS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+add ◂ Nat ➔ Nat ➔ Nat = elimNat
+  · (λ n : Nat . Nat ➔ Nat)
+  (λ m . m)
+  (Λ n . λ ih . λ m . suc (ih m)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+mult ◂ Nat ➔ Nat ➔ Nat = elimNat
+  · (λ n : Nat . Nat ➔ Nat)
+  (λ m . zero)
+  (Λ n . λ ih . λ m . add m (ih m)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,0 +1,78 @@
+import Nat.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ListC ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . X ➔ (A ➔ X ➔ X) ➔ X.
+
+nilCL ◂ ∀ A : ★ . ListC · A =
+  Λ A . Λ X . λ cN . λ cC . cN .
+
+consCL ◂ ∀ A : ★ . A ➔ ListC · A ➔ ListC · A =
+  Λ A . λ x . λ xs . Λ X . λ cN . λ cC . cC x (xs · X cN cC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ListP ◂ Π A : ★ . ListC · A ➔ ★ =
+  λ A : ★ . λ xsC : ListC · A .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ cN : X . ∀ cC : A ➔ X ➔ X .
+  P cN ➔
+  (∀ xs : X . Π x : A . P xs ➔ P (cC x xs)) ➔
+  P (xsC · X cN cC) .
+
+nilPL ◂ ∀ A : ★ . ListP · A (nilCL · A) = Λ A .
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+  pN  .
+
+consPL ◂ ∀ A : ★ . ∀ xsC : ListC · A .
+  Π x : A . ListP · A xsC ➔ ListP · A (consCL · A x xsC) =
+  Λ A . Λ xsC . λ x . λ xsP .
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
+  pC -(xsC · X cN cC) x (xsP · X · P -cN -cC pN pC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+List ◂ ★ ➔ ★ = λ A : ★ .
+  ι xs : (ι xsC : ListC · A . ListP · A xsC) .
+  xs nilCL consCL ≃ xs .
+
+mkList ◂ ∀ A : ★ .
+  Π xs : (ι xsC : ListC · A . ListP · A xsC) .
+  (xs nilCL consCL ≃ xs) ➔ List · A =
+  Λ A . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+nilL ◂ ∀ A : ★ . List · A = Λ A .
+  mkList · A [ nilCL · A , nilPL · A ] β .
+
+consL ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
+  Λ A . λ x . λ xs . mkList · A
+  [ consCL · A x xs.1.1
+  , consPL · A -xs.1.1 x xs.1.2 ]
+  (ρ+ xs.2 - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+elimList ◂ ∀ A : ★ . ∀ P : List · A ➔ ★ .
+  P (nilL · A) ➔
+  (∀ xs : List · A . Π x : A . P xs ➔ P (consL · A x xs)) ➔
+  Π xs : List · A . P xs
+  = Λ A . Λ P . λ pN . λ pC . λ xs .
+  ρ ς xs.2 -
+  (xs.1.2 · (List · A) · P -(nilL · A) -(consL · A) pN pC) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+injL ◂ ∀ A : ★ . A ➔ List · A
+  = Λ A . λ x . consL · A x (nilL · A) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+length ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . elimList · A · (λ xs : List · A . Nat)
+  zero
+  (Λ xs . λ x . suc) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
