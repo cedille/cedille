@@ -1,0 +1,43 @@
+import Nat.
+import Vec.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendV ◂ ∀ A : ★ .
+  ∀ n : Nat . Vec · A n ➔
+  ∀ m : Nat . Vec · A m ➔
+  Vec · A (add n m)
+  = Λ A . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n .
+    ∀ m : Nat . Vec · A m ➔ Vec · A (add n m))
+  (Λ m . λ ys . ys)
+  (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . consV · A -(add n m) x (ih -m ys)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendNilV ◂ ∀ A : ★ .
+  ∀ n : Nat . Π xs : Vec · A n . appendV xs nilV ≃ xs
+  = Λ A . elimVec · A
+  · (λ n : Nat . λ xs : Vec · A n . appendV xs nilV ≃ xs)
+  β
+  (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendAssocV ◂ ∀ A : ★ .
+  ∀ n : Nat . Π xs : Vec · A n .
+  ∀ m : Nat . Π ys : Vec · A m .
+  ∀ o : Nat . Π zs : Vec · A o .
+  appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)
+  = Λ A . elimVec · A ·
+  (λ n : Nat . λ xs : Vec · A n .
+    ∀ m : Nat . Π ys : Vec · A m .
+    ∀ o : Nat . Π zs : Vec · A o .
+    appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
+  (Λ m . λ ys . Λ o . λ zs . β)
+  (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . Λ o . λ zs .
+    ρ+ (ih -m ys -o zs) - β) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
