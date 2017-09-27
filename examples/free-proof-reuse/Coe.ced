@@ -4,23 +4,23 @@ import Vec.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-v2lC ◂ ∀ A : ★ . ∀ n : Nat . VecC · A n ➔ ListC · A
-  = Λ A . Λ n . λ xsC .
+v2lC ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ListC · A
+  = Λ A . Λ n . λ xs .
   Λ X . λ cN . λ cC .
-  xsC · (λ _ : Nat . X) cN (Λ _ . cC) .
+  xs.1.1 · (λ _ : Nat . X) cN (Λ _ . cC) .
 
-v2lP ◂ ∀ A : ★ . ∀ n : Nat . ∀ xsC : VecC · A n .
-  VecP · A n xsC ➔ ListP · A (v2lC · A -n xsC)
-  = Λ A . Λ n . Λ _ . λ xsP .
+v2lP ◂ ∀ A : ★ . ∀ n : Nat .
+  Π xs : Vec · A n . ListP · A (v2lC · A -n xs)
+  = Λ A . Λ n . λ xs .
   Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
-  xsP · (λ _ : Nat . X) · (λ _ : Nat . P)
+  xs.1.2 · (λ _ : Nat . X) · (λ _ : Nat . P)
     -cN -(Λ _ . cC)
     pN (Λ _ . pC) .
 
 v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
   = Λ A . Λ n . λ xs . mkList · A
-  [ v2lC · A -n xs.1.1
-  , v2lP · A -n -xs.1.1 xs.1.2 ]
+  [ v2lC · A -n xs
+  , v2lP · A -n xs ]
   xs.2 .
 
 v2lId ◂ v2l ≃ λ x . x = β .
@@ -28,8 +28,8 @@ v2lId ◂ v2l ≃ λ x . x = β .
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 l2vC ◂ ∀ A : ★ . Π xs : List · A . VecC · A (length · A xs)
-  = Λ A . λ xs . Λ X .
-  λ cN . λ cC . elimList · A ·
+  = Λ A . λ xs .
+  Λ X . λ cN . λ cC . elimList · A ·
   (λ xs' : List · A . X (length · A xs'))
   cN
   (Λ xs' . cC -(length · A xs'))
@@ -52,24 +52,24 @@ l2vId ◂ l2v ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-imapCL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . ListC · A ➔ ListC · B
-  = Λ A . Λ B . λ f . λ xsC .
-  Λ X . λ cN . λ cC . xsC · X cN (λ x . cC (f x)) .
+imapCL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List · A ➔ ListC · B
+  = Λ A . Λ B . λ f . λ xs .
+  Λ X . λ cN . λ cC . xs.1.1 · X cN (λ x . cC (f x)) .
 
 imapPL ◂ ∀ A : ★ . ∀ B : ★ .
   Π f : A ➔ B . (f ≃ λ x . x) ➔
-  ∀ xsC : ListC · A .
-  ListP · A xsC ➔ ListP · B (imapCL · A · B f xsC)
-  = Λ A . Λ B . λ f . λ q . Λ _ . λ xsP .
+  Π xs : List · A .
+  ListP · B (imapCL · A · B f xs)
+  = Λ A . Λ B . λ f . λ q . λ xs .
   Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
-  xsP · X · P
+  xs.1.2 · X · P
     -cN -(λ x . cC (f x))
     pN (Λ xsC . λ x . pC -xsC (f x)) .
 
 imapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . (f ≃ λ x . x) ➾ List · A ➔ List · B
   = Λ A . Λ B . λ f . Λ q . λ xs . mkList · B
-  [ imapCL · A · B f xs.1.1
-  , imapPL · A · B f q -xs.1.1 xs.1.2 ]
+  [ imapCL · A · B f xs
+  , imapPL · A · B f q xs ]
   ρ q - xs.2 .
 
 imapIdL ◂ imapL (λ x . x) ≃ λ x . x = β .
