@@ -195,7 +195,7 @@ lambda-bound-class-if (SomeClass atk') atk = atk'
 
 var-spans-term : term → spanM ⊤
 var-spans-optTerm : optTerm → spanM ⊤
-var-spans-term (App t x t') = var-spans-term t ≫span var-spans-term t'
+var-spans-term (App t x t') = spanM-add (App-span t t' checking []) ≫span var-spans-term t ≫span var-spans-term t'
 var-spans-term (AppTp t x) = var-spans-term t 
 var-spans-term (Beta x ot) = var-spans-optTerm ot 
 var-spans-term (Chi x x₁ t) = var-spans-term t

@@ -9,7 +9,7 @@ bug ◂ ∀ P : Unit ➔ ★ .
       P q =  Λ P . λ f . λ q .      
     let unit' ◂ Unit = q in  
     let unit'' ◂ Unit = unit' in 
-    let prf ◂ P unit'' = f unit'' in prf .
+     (f unit'').
 
 
 nobug ◂ ∀ P : Unit ➔ ★ . 

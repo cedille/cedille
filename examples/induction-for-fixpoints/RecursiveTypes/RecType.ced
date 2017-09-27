@@ -2,7 +2,7 @@ import ../Top.
 
 IsIdentity ◂ Top ➔ ★ ➔ ★ = λ f : Top . λ A : ★ . Π a : A . f a ≃ a .
 
-Cast ◂ Π A : ★ . Π B : ★ . ★ = λ A : ★ . λ B : ★ .
+Cast ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
        ι cast : A ➔ B . IsIdentity β{cast} · A .
 
 cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =

@@ -90,17 +90,17 @@ spanM-push-term-decl : posinfo → var → type → spanM (maybe sym-info)
 spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
 
 spanM-push-term-def : posinfo → var → term → type → spanM (maybe sym-info)
-spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi localScope x t T Γ , ss
+spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
 
 spanM-push-term-udef : posinfo → var → term → spanM (maybe sym-info)
-spanM-push-term-udef pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-udef pi localScope x t Γ , ss
+spanM-push-term-udef pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-udef pi localScope x (hnf Γ unfold-head t tt) Γ , ss
 
 -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → var → kind → spanM (maybe sym-info)
 spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
 
 spanM-push-type-def : posinfo → var → type → kind → spanM (maybe sym-info)
-spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi localScope x t T Γ , ss
+spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi localScope x t (hnf Γ unfold-head T tt) Γ , ss
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → maybe sym-info → spanM ⊤
