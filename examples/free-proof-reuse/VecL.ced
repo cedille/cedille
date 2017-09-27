@@ -1,0 +1,21 @@
+import Nat.
+import List.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+VecL ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
+  ι xs : List · A . n ≃ length xs .
+
+nilU ◂ ∀ A : ★ . VecL · A zero = Λ A .
+  [ nilL · A , β{nilL · A} ] .
+
+consU ◂ ∀ A : ★ . ∀ n : Nat. A ➔ VecL · A n ➔ VecL · A (suc n) =
+  Λ A . Λ n . λ x . λ xs .
+  [ consL · A x xs.1
+  , ρ xs.2 - β{consL · A x xs.1} ] .
+
+mkVecL ◂ ∀ A : ★ . ∀ n : Nat . Π xs : List · A .
+  (length xs ≃ n) ➔ VecL · A n =
+  Λ A . Λ n . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
