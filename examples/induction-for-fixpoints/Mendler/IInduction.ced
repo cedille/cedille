@@ -6,6 +6,24 @@ import Sigma.
 import Product.
 import Helper.
 
+trans2trans ◂ Π I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G .
+              Π Flaw1 : IFunctorLaw1 · I · G ifmap .
+	      Π i : I .
+	      ∀ Q : (IFixIndM · I · G ifmap i) ➔ ★ .
+	      ∀ R : I ➔ ★ .
+	      Π cast : Π i' : I . (R i') ➔ (IFixM · I · G i') .
+	      Π castId : Π i' : I . Π r : (R i') . ((cast i' r) ≃ r) .
+	      Π ih : Π i' : I . Π r : (R i') . (Sigma · (IFixIndM · I · G ifmap i) · (λ x' : (IFixIndM · I · G ifmap i) . (Product · ((cast i' r) ≃ x') · (Q x')))) .
+	      Π r : R i .
+	      trans2 (trans (ih i)) r ≃ (cast i r) =
+	      λ I . Λ G . λ ifmap . λ flaw1 . λ i .
+	      Λ Q . Λ R . λ cast . λ castId . λ ih . λ r . 
+	       ς (thm · (R i) · (IFixIndM · I · G ifmap i) · (IFixM · I · G i) (cast i)
+			                      (trans · (R i)
+					        · (IFixIndM · I · G ifmap i)
+						· (λ x' : IFixIndM · I · G ifmap i . λ r : R i . ((cast i r) ≃ x'))
+						· (λ x' : IFixIndM · I · G ifmap i . Q x') (ih i)) r).
+
 InductionFixIndM' ◂ Π I : ★ . ∀ G : 𝒌IFKind · I .  Π ifmap : IFunctor · I · G .
     Π Flaw1 : IFunctorLaw1 · I · G ifmap .
     Π i : I .
@@ -23,8 +41,22 @@ InductionFixIndM' ◂ Π I : ★ . ∀ G : 𝒌IFKind · I .  Π ifmap : IFuncto
 		   (pair ·
 		     ((inIM i (ifmap i cast gr)) ≃ (inIFixIndM ifmap i (ifmap i zz gr))) ·
 		     (Q (inIFixIndM · I · G ifmap -flaw1 i (ifmap · R · (IFixIndM · I · G ifmap) i zz gr)))
-		     ●
-		     ●)).
+		     (ρ (flaw1 · R · (IFixIndM · I · G ifmap) -zz i gr
+		           -(λ i . λ r . ρ (trans2trans · I · G ifmap flaw1 i · Q · R cast castId ih r) - (castId i r)))
+			- (ε ( ρ (flaw1 · R · R -(λ i . λ x . x) i gr -(λ _ . λ _ . β)  ) - ρ (flaw1 · R · (IFixM · I · G) -cast i gr -castId  ) - β)))
+		     (q
+		       · R
+		       -zz
+		       -(λ r . ρ (trans2trans · I · G ifmap flaw1 i · Q · R cast castId ih r) - (castId i r))
+		       (λ r .
+		         (ih i r).1 · (Q (zz i r))
+			 
+			 (λ a . λ pr .
+			   pr.1 · (Q (zz i r))
+			   (λ eq . λ qa . (ρ (trans2trans · I · G ifmap flaw1 i · Q · R cast castId ih r) - ρ eq - qa ))
+			   ))
+		       gr
+		       ))).
      
 InductionFixIndM ◂ Π I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G. 
   Π Flaw1 : IFunctorLaw1 · I · G ifmap.

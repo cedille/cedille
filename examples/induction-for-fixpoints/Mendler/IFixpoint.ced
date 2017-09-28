@@ -91,9 +91,9 @@ PAlgIFixIndM ◂ Π I : ★ . Π G : 𝒌IFKind · I .
    λ Flaw1 : IFunctorLaw1 · I · G ifmap.
    λ i : I .
    λ Q : IFixIndM · I · G ifmap i ➔ ★. 
-   ∀ R : I ➔ ★ . ∀ cast : ∀ i : I . R i ➔ IFixIndM · I · G ifmap i. 
-   ∀ _ : ∀ r : R i . cast r ≃ r.
-   (Π r : R i . Q (cast -i r)) ➔
+   ∀ R : I ➔ ★ . ∀ cast : Π i : I . R i ➔ IFixIndM · I · G ifmap i. 
+   ∀ _ : Π r : R i . cast i r ≃ r.
+   (Π r : R i . Q (cast i r)) ➔
    Π v : G · R i .  
      Q (inIFixIndM · I · G ifmap -Flaw1 i
         (ifmap · R · (IFixIndM · I · G ifmap) i cast v)).
