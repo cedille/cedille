@@ -1,0 +1,68 @@
+import Nat.
+import List.
+import Vec.
+import VecDefs.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
+  = Λ A . elimVec · A · (λ n : Nat . λ xs : Vec · A n . List · A)
+  (nilL · A)
+  (Λ n . Λ xs . λ x . λ ih . consL · A x ih)
+  .
+
+l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
+  = Λ A . elimList · A · (λ xs : List · A . Vec · A (length · A xs))
+  (nilV · A)
+  (Λ xs . λ x . λ ih . consV · A -(length · A xs) x ih)
+  .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
+  = Λ A . λ xs . λ ys . v2l · A
+  -(add (length · A xs) (length · A ys))
+  (appendV · A
+    -(length · A xs)
+    (l2v · A xs)
+    -(length · A ys)
+    (l2v · A ys)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendNilL1 ◂ ∀ A : ★ . Π xs : List · A . appendL xs nilL ≃ xs
+  = Λ A . elimList · A · (λ xs : List · A . appendL xs nilL ≃ xs)
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β)
+  .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+v2lExtId ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n . v2l xs ≃ xs
+  = Λ A . elimVec · A · (λ n : Nat . λ xs : Vec · A n . v2l xs ≃ xs)
+  β
+  (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β)
+  .
+
+l2vExtId ◂ ∀ A : ★ . Π xs : List · A . l2v xs ≃ xs
+  = Λ A . elimList · A · (λ xs : List · A . l2v xs ≃ xs)
+  β
+  (Λ xs . λ x . λ ih . ρ+ ih - β)
+  .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Goal: v2l (appendV (l2v xs) (l2v nilL)) ≃ xs
+% Goal: v2l (appendV (l2v xs) nilV) ≃ xs
+% IH: appendV (l2v xs) nilV ≃ (l2v xs)
+% Goal: v2l (l2v xs) ≃ xs
+% Lem: v2l (l2v xs) ≃ l2v xs
+% Goal: l2v xs ≃ xs
+appendNilL2 ◂ ∀ A : ★ . Π xs : List · A . appendL xs nilL ≃ xs
+  = Λ A . λ xs .
+  ρ+ (appendNilV · A -(length · A xs) (l2v · A xs)) -
+  ρ+ (v2lExtId · A -(length · A xs) (l2v · A xs)) -  
+  (l2vExtId · A xs)
+  .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
