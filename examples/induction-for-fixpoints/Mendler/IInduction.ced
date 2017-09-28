@@ -1,0 +1,36 @@
+
+import IFunctor.
+import IFixpoint.
+import Functor. 
+import Sigma.
+import Product.
+import Helper.
+
+InductionFixIndM' ◂ Π I : ★ . ∀ G : 𝒌IFKind · I .  Π ifmap : IFunctor · I · G .
+    Π Flaw1 : IFunctorLaw1 · I · G ifmap .
+    Π i : I .
+    Π e : IFixIndM · I · G ifmap i . ∀ Q : (IFixIndM · I · G ifmap i) ➔ ★ . 
+     PAlgIFixIndM · I · G ifmap Flaw1 i · Q 
+     ➔ Sigma · (IFixIndM · I · G ifmap i) · (λ x' : (IFixIndM · I · G ifmap i) . Product · (e ≃ x') · (Q x'))
+     = λ I . Λ G . λ ifmap . λ flaw1 . % module params
+       λ i . λ e . Λ Q . λ q .
+         e.2 · (λ z : IFixM · I · G i . Sigma · (IFixIndM · I · G ifmap i) · (λ x' : (IFixIndM · I · G ifmap i) . Product · (z ≃ x') · (Q x')))
+	 (Λ R . Λ cast . Λ castId . λ ih . λ i . λ gr .
+	   let zz ◂ Π i : I . R i ➔ (IFixIndM · I · G ifmap i) = (λ i . (trans2 · (R i) · (IFixIndM · I · G ifmap i) · (λ x' : IFixIndM · I · G ifmap i. λ r : R i . ((cast i r) ≃ x')))
+                 (trans · (R i) · (IFixIndM · I · G ifmap i) · (λ x' : IFixIndM · I · G ifmap i. λ r : R i . ((cast i r) ≃ x')) · (λ x' : IFixIndM · I · G ifmap i. Q x') (ih i))) in
+		 mkdsigma · (IFixIndM · I · G ifmap i) · (λ x' : IFixIndM · I · G ifmap i . Product · ((inIM i (ifmap i cast gr)  ≃ x')) · (Q x'))
+		   (inIFixIndM · I · G ifmap -flaw1 i (ifmap · R · (IFixIndM · I · G ifmap) i zz gr))
+		   (pair ·
+		     ((inIM i (ifmap i cast gr)) ≃ (inIFixIndM ifmap i (ifmap i zz gr))) ·
+		     (Q (inIFixIndM · I · G ifmap -flaw1 i (ifmap · R · (IFixIndM · I · G ifmap) i zz gr)))
+		     ●
+		     ●)).
+     
+InductionFixIndM ◂ Π I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G. 
+  Π Flaw1 : IFunctorLaw1 · I · G ifmap.
+  Π i : I .
+  Π e : IFixIndM · I · G ifmap i. 
+  ∀ Q : IFixIndM · I · G ifmap i ➔ ★. 
+  PAlgIFixIndM · I · G ifmap Flaw1 i · Q
+  ➔ Q e = λ I . Λ G . λ ifmap . λ Flaw1. λ i . λ e. Λ Q : IFixIndM · I · G ifmap i ➔ ★ . λ q. 
+          (InductionFixIndM' · I · G ifmap Flaw1 i e · Q q).1 · (Q e) (λ a. λ pr. pr.1 · (Q e) (λ eq. λ qa. ρ eq - qa)).

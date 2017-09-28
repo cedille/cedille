@@ -7,7 +7,7 @@
 
 import IFunctor.
 
-iMalgebra ◂ Π I : ★ . (𝒌IFKind · I) ➔ (I ➔ ★) ➔ ★ =
+IAlgebraM ◂ Π I : ★ . (𝒌IFKind · I) ➔ (I ➔ ★) ➔ ★ =
   λ I : ★ .
   λ F : 𝒌IFKind · I .
   λ A : I ➔ ★ .
@@ -16,63 +16,87 @@ iMalgebra ◂ Π I : ★ . (𝒌IFKind · I) ➔ (I ➔ ★) ➔ ★ =
   Π i : I .
   F · R i ➔ A i .
 
-iFix ◂ Π I : ★ . 𝒌IFKind · I ➔ I ➔ ★ =
+IFixM ◂ Π I : ★ . 𝒌IFKind · I ➔ I ➔ ★ =
   λ I : ★ .
   λ F : 𝒌IFKind · I .
   λ i : I .
-  ∀ A : (I ➔ ★) . iMalgebra · I · F · A ➔ A i .
+  ∀ A : (I ➔ ★) . IAlgebraM · I · F · A ➔ A i .
 
-imfold ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . ∀ A : I ➔ ★ . iMalgebra · I · F · A ➔ Π i : I . iFix · I · F i ➔ A i
+HomM ◂ Π I : ★ . Π F : 𝒌IFKind · I . IFunctor · I · F ➔ Π C : I ➔ ★ . Π D : I ➔ ★. (Π i : I . C i ➔ D i) ➔ IAlgebraM · I · F · C ➔ IAlgebraM · I · F · D  ➔ ★ 
+ =  λ I : ★ . λ F : 𝒌IFKind · I . λ fmap : IFunctor · I · F. λ C : I ➔ ★. λ D : I ➔ ★. λ h : (Π i : I . C i ➔ D i) .
+  λ alg1 : IAlgebraM · I · F · C. λ alg2 :  IAlgebraM · I · F · D. ∀ i : I . ∀ A : ★. Π f : A ➔ C i . (λ fr. alg2 · D (λ x. h (f x)) fr) ≃ (λ fr. h (alg1 · A f fr)).
+
+ifoldM ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . ∀ A : I ➔ ★ . IAlgebraM · I · F · A ➔ Π i : I . IFixM · I · F i ➔ A i
   = Λ I . Λ F . Λ A . λ alg . λ i . λ fix . fix · A alg . 
 
-inIM ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . Π i : I . F · (iFix · I · F) i ➔ iFix · I · F i =
+inIM ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . Π i : I . F · (IFixM · I · F) i ➔ IFixM · I · F i =
   Λ I . Λ F . λ i . λ ffix .
-    Λ A . λ malg . malg · (iFix · I · F) (imfold · I · F · A malg) i ffix    .
+    Λ A . λ malg . malg · (IFixM · I · F) (ifoldM · I · F · A malg) i ffix    .
 
-outIM ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . Π i : I . IFunctor · I · F ➔ iFix · I · F i ➔ F · (iFix · I · F) i =
-  Λ I . Λ F . λ i . λ ifmap . λ fix . imfold · I · F · (F · (iFix · I · F))
-    (Λ R . λ ih . λ i . λ fr . ifmap · R · (iFix · I · F) i (λ i . λ r .inIM · I · F i (ih i r)) fr) i fix .
+outIM ◂ ∀ I : ★ . ∀ F : 𝒌IFKind · I . IFunctor · I · F ➔ Π i : I . IFixM · I · F i ➔ F · (IFixM · I · F) i =
+  Λ I . Λ F . λ ifmap . λ i . λ fix . ifoldM · I · F · (F · (IFixM · I · F))
+    (Λ R . λ ih . λ i . λ fr . ifmap · R · (IFixM · I · F) i (λ i . λ r .inIM · I · F i (ih i r)) fr) i fix .
+
+PAlgIFixM ◂ Π I : ★ . Π G : 𝒌IFKind · I . IFunctor · I · G ➔ Π i : I . (IFixM · I · G i ➔ ★) ➔ ★ = 
+ λ I : ★ . λ G : 𝒌IFKind · I . λ ifmap : IFunctor · I · G. λ i : I . λ Q : IFixM · I · G i ➔ ★. 
+      (∀ R : I ➔ ★ . ∀ cast : Π i : I . R i ➔ (IFixM · I · G i) . (Π i : I . Π r : R i . cast i r ≃ r) ➾
+           (Π i : I . Π r : R i . Q (cast i r)) ➔
+           (Π i : I . Π gr : G · R i .  Q (inIM · I · G i (ifmap · R · (IFixM · I · G) i (λ i . (cast i)) gr)))) . 
 
 % inductivity predicate     
-isInductiveIFixM ◂ Π I : ★ . Π G : 𝒌IFKind · I . IFunctor · I · G ➔ Π i : I . (iFix · I · G i) ➔ ★ 
+isIndIFixM ◂ Π I : ★ . Π G : 𝒌IFKind · I . IFunctor · I · G ➔ Π i : I . (IFixM · I · G i) ➔ ★ 
    = λ I : ★ .
      λ G : 𝒌IFKind · I.
      λ ifmap : IFunctor · I · G.
      λ i : I.
-     λ ifix : iFix · I · G i.
-     ∀ Q : iFix · I · G i ➔ ★  .
-     (∀ R : I ➔ ★ . ∀ cast : Π i : I . R i ➔ (iFix · I · G i) . (Π i : I . Π r : R i . cast i r ≃ r) ➾
-           (Π i : I . Π r : R i . Q (cast i r)) ➔
-           (Π i : I . Π gr : G · R i .  Q (inIM · I · G i (ifmap · R · (iFix · I · G) i (λ i . (cast i)) gr)))) ➔ 
-	   
+     λ ifix : IFixM · I · G i.
+     ∀ Q : IFixM · I · G i ➔ ★ .
+     PAlgIFixM · I · G ifmap i · Q ➔
      Q ifix .
-     
-DepFixM ◂ Π I : ★ . Π G : 𝒌IFKind · I . IFunctor · I · G ➔ I ➔ ★
+
+
+IFixIndM ◂ Π I : ★ . Π G : 𝒌IFKind · I . IFunctor · I · G ➔ I ➔ ★
   = λ I : ★ . λ G : 𝒌IFKind · I . λ ifmap : IFunctor · I · G . λ i : I .
-    ι x : iFix · I · G i . isInductiveIFixM · I · G ifmap i x.
+    ι x : IFixM · I · G i . isIndIFixM · I · G ifmap i x.
 
 
-inDepFixM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
-            Π i : I . G · (DepFixM · I · G ifmap) i ➔ DepFixM · I · G ifmap i
+inIFixIndM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
+            Π i : I . G · (IFixIndM · I · G ifmap) i ➔ IFixIndM · I · G ifmap i
   = Λ I . Λ G . λ ifmap . Λ iflaw1 . λ i . λ gd .
-     [ inIM · I · G i (ifmap · (DepFixM · I · G ifmap) · (iFix · I · G) i (λ i . λ z . z.1) gd)  
+     [ inIM · I · G i (ifmap · (IFixIndM · I · G ifmap) · (IFixM · I · G) i (λ i . λ z . z.1) gd)  
      ,
-     (Λ Q . λ q . q · (DepFixM · I · G ifmap) -(λ i . λ d . d.1) -(λ i . λ r . β) (λ i . λ r . r.2 · Q q) i gd ) 
-     {  ε (ρ  (iflaw1 · (DepFixM · I · G ifmap) · (iFix · I · G) -(λ i . λ d . d.1) i gd -(λ i . λ z . β)) - β) }
+     (Λ Q . λ q . q · (IFixIndM · I · G ifmap) -(λ i . λ d . d.1) -(λ i . λ r . β) (λ i . λ r . r.2 · Q q) i gd ) 
+     {  ε (ρ  (iflaw1 · (IFixIndM · I · G ifmap) · (IFixM · I · G) -(λ i . λ d . d.1) i gd -(λ i . λ z . β)) - β) }
      ] .
 
 outIAlgM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
-     iMalgebra · I · G · (G · (DepFixM · I · G ifmap)) =
+     IAlgebraM · I · G · (G · (IFixIndM · I · G ifmap)) =
   Λ I . Λ G . λ ifmap . Λ iflaw1 . Λ R . λ ih . λ i . λ fr .
-    ifmap · R · (DepFixM · I · G ifmap) i (λ i . λ r . inDepFixM · I · G ifmap -iflaw1 i (ih i r)) fr .
+    ifmap · R · (IFixIndM · I · G ifmap) i (λ i . λ r . inIFixIndM · I · G ifmap -iflaw1 i (ih i r)) fr .
      
-outDepFixM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
-          Π i : I . DepFixM · I · G ifmap i ➔ G · (DepFixM · I · G ifmap) i 
+outIFixIndM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I · G . ∀ IFLaw1 : IFunctorLaw1 · I · G ifmap .
+          Π i : I . IFixIndM · I · G ifmap i ➔ G · (IFixIndM · I · G ifmap) i 
   = Λ I . Λ G . λ ifmap . Λ iflaw1 . λ i . λ ei .
-      imfold · I · G · (G · (DepFixM · I · G ifmap))
+      ifoldM · I · G · (G · (IFixIndM · I · G ifmap))
         (outIAlgM · I · G ifmap -iflaw1)
 	i
 	ei.1.
+
+PAlgIFixIndM ◂ Π I : ★ . Π G : 𝒌IFKind · I . 
+ Π ifmap : IFunctor · I · G .
+ IFunctorLaw1 · I · G ifmap ➔
+ Π i : I .
+ (IFixIndM · I · G ifmap i ➔ ★) ➔ ★ 
+ = λ I : ★ . λ G : 𝒌IFKind · I . λ ifmap : IFunctor · I · G. 
+   λ Flaw1 : IFunctorLaw1 · I · G ifmap.
+   λ i : I .
+   λ Q : IFixIndM · I · G ifmap i ➔ ★. 
+   ∀ R : I ➔ ★ . ∀ cast : ∀ i : I . R i ➔ IFixIndM · I · G ifmap i. 
+   ∀ _ : ∀ r : R i . cast r ≃ r.
+   (Π r : R i . Q (cast -i r)) ➔
+   Π v : G · R i .  
+     Q (inIFixIndM · I · G ifmap -Flaw1 i
+        (ifmap · R · (IFixIndM · I · G ifmap) i cast v)).
 
 % define simple outIm and dependent version of it outDepFixM
 % try to phrase induction principle based on the predicate isInductiveIFixM
