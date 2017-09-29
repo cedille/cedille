@@ -85,18 +85,37 @@ outIFixIndM ◂ ∀ I : ★ . ∀ G : 𝒌IFKind · I . Π ifmap : IFunctor · I
 PAlgIFixIndM ◂ Π I : ★ . Π G : 𝒌IFKind · I . 
  Π ifmap : IFunctor · I · G .
  IFunctorLaw1 · I · G ifmap ➔
- Π i : I .
+ Π i : I . 
  (IFixIndM · I · G ifmap i ➔ ★) ➔ ★ 
  = λ I : ★ . λ G : 𝒌IFKind · I . λ ifmap : IFunctor · I · G. 
    λ Flaw1 : IFunctorLaw1 · I · G ifmap.
    λ i : I .
    λ Q : IFixIndM · I · G ifmap i ➔ ★. 
    ∀ R : I ➔ ★ . ∀ cast : Π i : I . R i ➔ IFixIndM · I · G ifmap i. 
-   ∀ _ : Π r : R i . cast i r ≃ r.
+   ∀ _ : Π i : I. Π r : R i . cast i r ≃ r.
    (Π r : R i . Q (cast i r)) ➔
+   Π i : I .
    Π v : G · R i .  
      Q (inIFixIndM · I · G ifmap -Flaw1 i
         (ifmap · R · (IFixIndM · I · G ifmap) i cast v)).
+
+PAlgIFixIndM' ◂ Π I : ★ . Π G : 𝒌IFKind · I . 
+ Π ifmap : IFunctor · I · G .
+ IFunctorLaw1 · I · G ifmap ➔
+ (Π i : I . IFixIndM · I · G ifmap i ➔ ★) ➔ ★ 
+ = λ I : ★ . λ G : 𝒌IFKind · I . λ ifmap : IFunctor · I · G. 
+   λ Flaw1 : IFunctorLaw1 · I · G ifmap.
+   λ Q : (Π i : I . IFixIndM · I · G ifmap i ➔ ★) . 
+   ∀ R : I ➔ ★ . 
+   ∀ cast : (Π i : I . R i ➔ IFixIndM · I · G ifmap i) . 
+   ∀ _ : (Π i : I . Π r : R i . cast i r ≃ r) . 
+   (Π i : I . Π r : R i . Q i (cast i r)) ➔
+   Π i : I .
+   Π v : G · R i .  
+     Q i (inIFixIndM · I · G ifmap -Flaw1 i
+        (ifmap · R · (IFixIndM · I · G ifmap) i cast v)).
+
+
 
 % define simple outIm and dependent version of it outDepFixM
 % try to phrase induction principle based on the predicate isInductiveIFixM
