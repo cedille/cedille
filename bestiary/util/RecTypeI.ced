@@ -1,0 +1,30 @@
+import Top.
+
+𝒌 = Nat' ➔ ★ .
+ICast ◂ Π I : ★ . (I ➔ ★) ➔ (I ➔ ★) ➔ ★ = λ I : ★ . λ A : (I ➔ ★) . λ B : (I ➔ ★) .
+       ι cast : ∀ i : I . A i ➔ B i . cast ≃ λ x . x.
+
+Icast ◂ Π I : ★ . ∀ A : (I ➔ ★) . ∀ B : (I ➔ ★) . ICast · I · A · B ➾ ∀ i : I . A i ➔ B i =
+  λ I : ★ . Λ A . Λ B . Λ c . Λ i . λ a . (χ (ι _ : A i . B i) - [ a , c.1 -i a { ρ c.2 - β } ]).2 .
+
+IRecFunctor ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ ★ =
+  λ I : ★ . λ F : (I ➔ ★) ➔ (I ➔ ★) . ∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . ICast · I · X · Y ➔ ICast · I · (F · X) · (F · Y) .
+
+IRec ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ I ➔ ★ = λ I : ★ . λ F : (I ➔ ★) ➔ (I ➔ ★) . λ i : I . ∀ X : I ➔ ★ . ICast · I · (F · X) · X ➾ X i. 
+
+IrecCast ◂ Π I : ★ . ∀ F : (I ➔ ★) ➔ (I ➔ ★) . ∀ X : I ➔ ★ . ICast · I · (F · X) · X ➾ ICast · I · (IRec · I · F) · X =
+  λ I : ★ . Λ F . Λ X . Λ c . [ Λ A . λ d . d · X -c , β{λ a . a} ].
+
+IrecIn ◂ Π I : ★ . ∀ F : (I ➔ ★) ➔ (I ➔ ★) . IRecFunctor · I · F ➾ ICast · I · (F · (IRec · I · F)) · (IRec · I · F) =
+  λ I . Λ F . Λ ifmap . 
+    [ Λ i . λ x . Λ X . Λ c .
+      Icast · I · (F · X) · X -c -i
+        (Icast · I · (F · (IRec · I · F)) · (F · X)
+          -(ifmap · (IRec · I · F) · X (IrecCast · I · F · X -c)) -i x),
+      β{λ x. λ a . a} ].
+
+NatrecOut ◂ ∀ F : 𝒌 ➔ 𝒌 . NatRecFunctor · F ➾ NatCast · (NatRec · F) · (F · (NatRec · F)) =
+  Λ F . Λ fmap . [Λ n . λ x . x · (F · (NatRec · F)) -(fmap · (F · (NatRec · F)) · (NatRec · F) (NatrecIn · F -fmap)) , β{λ x . x} ].
+
+NatrecFold ◂ ∀ F : 𝒌 ➔ 𝒌 . NatRecFunctor · F ➾ NatCast · (F · (NatRec · F)) · (NatRec · F) = NatrecIn .
+NatrecUnfold ◂ ∀ F : 𝒌 ➔ 𝒌 . NatRecFunctor · F ➾ NatCast · (NatRec · F) · (F · (NatRec · F)) = NatrecOut .
