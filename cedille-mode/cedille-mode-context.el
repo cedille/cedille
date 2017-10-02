@@ -2,7 +2,6 @@
 ; This file contains the code that governs the feature allowing the user to retrieve the context at a given point.
 
 					; GLOBAL DEFINITIONS
-
 (defgroup cedille-context nil
   "Context options for Cedille"
   :group 'cedille)
@@ -30,6 +29,9 @@
 (defvar cedille-mode-original-context-list nil)
 (defvar cedille-mode-filtered-context-list nil)
 (defvar cedille-mode-sorted-context-list nil)
+
+(defvar cedille-mode-global-context nil
+  "The global context surrounding the current file/buffer (used by the beta-reduction buffer")
 
 ;;; There are three context lists:
 ;;; 1. The original list (original)
@@ -210,8 +212,8 @@ where alist is an association list containing the info associated with symbol\n
 which currently consists of:\n
 + 'value' : the type or kind of symbol
 + 'keywords': a list of keywords associated with symbol"
-  (let* (terms
-	 types
+  (let* ((terms (car cedille-mode-global-context)) ; Used to be: terms
+	 (types (cdr cedille-mode-global-context)) ; Used to be: types
 	 ;; adds to each instance (assoc list) in list a predicate indicating if that instance is shadowed
 	 ;; this must be done after constructing the initial list so that all instances are considered
 	 (add-shadowed (lambda (list)
@@ -383,9 +385,10 @@ which currently consists of:\n
 (defun cedille-mode-context()
   (cedille-mode-compute-context)
   (cedille-mode-display-context)
+  ;(cedille-mode-rebalance-buffer-window (cedille-mode-context-buffer-name)))
   (cedille-mode-rebalance-windows))
 
-(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base (buffer-name)) "*"))
+(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (se-inf-filename-base) "*"));(file-name-base (buffer-name)) "*"))
 
 (defun cedille-mode-context-buffer() "Retrieves the context buffer" (get-buffer-create (cedille-mode-context-buffer-name)))
 

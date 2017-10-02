@@ -30,17 +30,18 @@ module pr3 = run cws.ptr
 module cws-run = pr3.noderiv
 
 --open import cedille-find
-open import classify
+--open import classify
 open import ctxt
 open import constants
-open import conversion
+--open import conversion
 open import general-util
 open import process-cmd 
 open import spans
 open import syntax-util
 open import to-string
 open import toplevel-state
-open import interactive-cmds
+import interactive-cmds
+open import untyped-spans
 
 open import rkt
 -- import normalize-nt-cmd
@@ -224,7 +225,7 @@ checkFile : toplevel-state → (filename : string) → (should-print-spans : �
 checkFile s filename should-print-spans = 
 --  putStrLn ("checkFile " ^ filename) >>
   update-asts s filename >>= λ s → 
-  finish (process-file s filename)
+  finish (process-file s filename) -- ignore-errors s filename)
  
   where reply : toplevel-state → IO ⊤
         reply s with get-include-elt-if s filename
@@ -240,16 +241,19 @@ checkFile s filename should-print-spans =
           reply s >>
           return (mk-toplevel-state use-cede make-rkt ip [] is Γ)
             where
-              get-ctxt-from-toplevel-state : toplevel-state → ctxt
-              get-ctxt-from-toplevel-state (mk-toplevel-state _ _ _ _ _ Γ) = Γ
+              -- get-ctxt-from-toplevel-state : toplevel-state → ctxt
+              -- get-ctxt-from-toplevel-state (mk-toplevel-state _ _ _ _ _ Γ) = Γ
               writeo : 𝕃 string → IO ⊤
               writeo [] = return triv
               writeo (f :: us) =
                 let ie = get-include-elt s f in
                   (if use-cede then (write-cede-file f ie) else (return triv)) >>
-                  (if make-rkt then (write-rkt-file f (get-ctxt-from-toplevel-state s)) else (return triv)) >>
+                  (if make-rkt then (write-rkt-file f (toplevel-state.Γ s)) else (return triv)) >>
                   writeo us
 
+
+-- ctxt-to-string : ctxt → string
+-- ctxt-to-string (mk-ctxt (mod , prms , qual) syms i sym-occs) = "Mod name: " ^ mod ^ ", syms: {" ^ (trie-to-string ", " (λ x → 𝕃-to-string (λ x → x) " " x) syms) ^ "}"
 
 
 -- this is the function that handles requests (from the frontend) on standard input
@@ -267,6 +271,7 @@ readCommandsFromFrontend s =
             errorCommand : 𝕃 string → toplevel-state → IO toplevel-state
             errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\".") >>= λ x → return s
             debugCommand : toplevel-state → IO toplevel-state
+           --  debugCommand (mk-toplevel-state a b c d e Γ) = putStrLn (escape-string (ctxt-to-string Γ)) >>= λ _ → return (mk-toplevel-state a b c d e Γ)
             debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
 
             checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
@@ -279,15 +284,14 @@ readCommandsFromFrontend s =
             findCommand _ s = errorCommand s -}
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
             handleCommands ("debug" :: []) s = debugCommand s
-            -- handleCommands ("normalizePrompt" :: x :: xs) s = interactive-prompt-cmd "normalize" x xs s
-            -- handleCommands ("erasePrompt" :: x :: xs) s = interactive-prompt-cmd "erase" x xs s
-            handleCommands ("normalize" :: rest) s = interactive-normalize-span rest s
-            handleCommands ("erase" :: rest) s = interactive-erase-span rest s
-            handleCommands ("normalizePrompt" :: rest) s = interactive-normalize-prompt rest s
-            handleCommands ("erasePrompt" :: rest) s = interactive-erase-prompt rest s
-            handleCommands ("brExplore" :: rest) s = interactive-br rest s
+            handleCommands ("normalize" :: rest) s = interactive-cmds.interactive-normalize-span rest s
+            handleCommands ("erase" :: rest) s = interactive-cmds.interactive-erase-span rest s
+            handleCommands ("normalizePrompt" :: rest) s = interactive-cmds.interactive-normalize-prompt rest s
+            handleCommands ("erasePrompt" :: rest) s = interactive-cmds.interactive-erase-prompt rest s
+            handleCommands ("brParse" :: rest) s = interactive-cmds.interactive-br-parse rest s
 --            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ("check" :: xs) s = checkCommand xs s
+            -- handleCommands ("BRcheck" :: xs) s = interactive-cmds.interactive-br-spans xs s
             handleCommands ls s = errorCommand ls s
 
 
@@ -334,10 +338,21 @@ readOptions =
        else
          (return (inj₂ options-types.OptsNil))
 
+postulate
+  initializeStdinToUTF8 : IO ⊤
+  setStdinNewlineMode : IO ⊤
+{-# COMPILED initializeStdinToUTF8  System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
+{-# COMPILED setStdinNewlineMode System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
+
+
 -- main entrypoint for the backend
 main : IO ⊤
-main = initializeStdoutToUTF8 >> setStdoutNewlineMode >> readOptions >>= next
+main = initializeStdoutToUTF8 >>
+       initializeStdinToUTF8 >>
+       setStdoutNewlineMode >>
+       setStdinNewlineMode >>
+       readOptions >>=
+       next
   where next : string ⊎ options-types.opts → IO ⊤
         next (inj₁ s) = putStrLn (global-error-string s)
         next (inj₂ oo) = getArgs >>= processArgs oo
-

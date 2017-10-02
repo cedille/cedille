@@ -1,5 +1,6 @@
-;;;;;;;;        Scratch buffer code        ;;;;;;;;
+;;;;;;;        Scratch buffer code        ;;;;;;;;
 
+(require 'se-inf)
 
 (make-variable-buffer-local
  (defvar cedille-mode-scratch-lines 0
@@ -40,7 +41,7 @@
 	  buffer-read-only nil
 	  buffer-text (buffer-string))
     (erase-buffer)
-    (setq text (cedille-mode-markup-propertize text))
+    (setq text (se-markup-propertize text))
     (insert text)
     (display-buffer (cedille-mode-scratch-buffer-name))
     (with-selected-window (get-buffer-window)
@@ -53,8 +54,7 @@
 	(insert text)
         (insert (concat text "\n" (cedille-mode-scratch-repeat "-" width) "\n" buffer-text)))
     (goto-char 1)
-    (setq buffer-read-only t
-	  window-size-fixed t)))
+    (setq buffer-read-only t)))
 
 (defun cedille-mode-scratch-copy-span ()
   "Copies the selected span to the scratch buffer"

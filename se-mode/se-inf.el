@@ -15,6 +15,10 @@ started with `start-process'."))
  (defvar se-inf-queue nil
    "Transaction queue for `se-inf-process'."))
 
+(make-variable-buffer-local
+ (defvar se-inf-modify-response nil
+   "If non-nil, should be a function that takes a response from the back end as an argument and returns a modified response."))
+
 ; might need to UNDO:
 (make-variable-buffer-local
  (defvar se-inf-respose-hook nil
@@ -35,19 +39,29 @@ name of the file to parse, and should return the message that ought
 to be sent to the backend to request parsing of that file."))
 
 (make-variable-buffer-local
+ (defvar se-inf-filename #'buffer-file-name
+   "The function to call when you want to get the filename of the current buffer"))
+
+(make-variable-buffer-local
+ (defvar se-inf-filename-base #'file-name-base
+   "The function to call when you want to get the filename base of the current buffer"))
+
+(make-variable-buffer-local
  (defvar se-inf-response-finished nil
-   "Set to true after a response has been received and
+   "Set to true after a processing/parsing response has been received and
 `se-inf-post-parse-hook' is executed."))
 
 (make-variable-buffer-local
  (defvar se-inf-interactive-running nil
    "Non-nil when an interactive call is running"))
 
-(defvar se-inf-pre-parse-hook (list #'save-buffer #'se-inf-remove-overlays)
-  "Functions to be evaluated before parse request.")
+(make-variable-buffer-local
+ (defvar se-inf-pre-parse-hook (list #'save-buffer #'se-inf-remove-overlays)
+   "Functions to be evaluated before parse request."))
 
-(defvar se-inf-post-parse-hook nil
-  "Functions to be evaluated after parse request.")
+(make-variable-buffer-local
+ (defvar se-inf-post-parse-hook nil
+   "Functions to be evaluated after parse request."))
 
 (make-variable-buffer-local
  (defvar se-inf-interactive-response-hook nil
@@ -110,13 +124,13 @@ will kill the process, should be skipped if process is shared."
 	   (pins (se-pins-at (se-span start span) (se-span-end span) 'se-interactive)))
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 
-(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span batch-fn header extra restore delay)
+(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span header extra restore delay is-restore); batch-fn)
   "Sends an interactive request to the backend.
 Keywords supported: span, batch-fn, header, extra, and restore.
 Q-STR-OR-FN should be either a string or a function that takes 0-2 arguments: SPAN, if non-nil, and EXTRA, if non-nil.
-RESPONSE-FN should be a function that takes 1-3 arguments: the backend's response, SPAN, if non-nil, and EXTRA, if non-nil. If SPAN is non-nil and you want something to add to it, then return a dotted pair list (symbol . some-str).
+RESPONSE-FN should be nil or a function that takes 2-4 arguments: the backend's response, SPAN, if non-nil, a boolean for if this is the original call (not a restoring one), and EXTRA, if non-nil. If SPAN is non-nil and you want something added to it, then return a dotted pair list (symbol . some-str).
 SPAN should be a span. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
-BATCH-FN, is non-nil, will be used instead of RESPONSE-FN during batch restoration.
+You probably should not use IS-RESTORE.
 HEADER should be a string that will be displayed in the header line.
 EXTRA can be anything. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
 RESTORE should be t if you want this call re-done during batch processing.
@@ -130,32 +144,33 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 		 (extra (funcall q-str-or-fn extra))
 		 (t (funcall q-str-or-fn))))
 	 (q (concat (se-inf-escape-string q-str) "\n"))
-	 (closure (list q-str-or-fn response-fn batch-fn span extra restore (buffer-name))))
+	 (closure (list q-str-or-fn response-fn (not is-restore) span extra restore (buffer-name))))
     (setq se-inf-interactive-running t)
     (se-inf-queue-header header)
     (tq-enqueue se-inf-queue q "\n" closure #'se-inf-interactive-response delay)))
 
 (defun se-inf-interactive-response (closure response)
   "Receives a response from an `se-inf-interactive' call"
-  (let* ((response (se-inf-undo-escape-string response))
-	 (q-str-or-fn (nth 0 closure))
-	 (response-fn (nth 1 closure))
-	 (batch-fn (nth 2 closure))
-	 (span (nth 3 closure))
-	 (extra (nth 4 closure))
-	 (restore (nth 5 closure))
-	 (buffer (nth 6 closure)))
+  (let ((q-str-or-fn (nth 0 closure))
+	(response-fn (nth 1 closure))
+	(oc (nth 2 closure)) ; Original Call
+	(span (nth 3 closure))
+	(extra (nth 4 closure))
+	(restore (nth 5 closure))
+	(buffer (nth 6 closure)))
     (with-current-buffer buffer
       (se-inf-next-header)
-      (let ((pair (cond
-		   ((null response-fn) nil)
-		   ((and span extra) (funcall response-fn response span extra))
-		   (span (funcall response-fn response span))
-		   (extra (funcall response-fn response extra))
-		   (t (funcall response-fn response)))))
+      (let* ((mod-fn (or se-inf-modify-response (lambda (response) response)))
+	     (response (funcall mod-fn (se-inf-undo-escape-string response)))
+	     (pair (cond
+		    ((null response-fn) nil)
+		    ((and span extra) (funcall response-fn response span oc extra))
+		    (span (funcall response-fn response span oc))
+		    (extra (funcall response-fn response oc extra))
+		    (t (funcall response-fn response oc)))))
 	(when (and span pair) (se-inf-add-to-span span pair)))
       (when restore
-	(let ((restore-data (list q-str-or-fn (or batch-fn response-fn) extra))
+	(let ((restore-data (list q-str-or-fn response-fn extra))
 	      (s (if span (se-span-start span) 1))
 	      (e (if span (se-span-end span) 1)))
 	  (se-inf-remove-dup-pin (se-pins-at s e 'se-interactive) restore-data)
@@ -192,7 +207,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	   (extra (nth 2 data))
 	   (header (format "Recomputing interactive calls (%s/%s)" queued total)))
       (if span
-	  (se-inf-interactive q-str-or-fn response-fn :span span :extra extra :header header :delay t)
+	  (se-inf-interactive q-str-or-fn response-fn :span span :extra extra :header header :delay t :is-restore t)
 	(se-unpin h))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
@@ -211,7 +226,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
   "Clears the interactive properties from span"
   (assq-delete-all 'se-interactive (se-span-data span)))
 
-(defun se-inf-process-response (response buffer)
+(defun se-inf-process-response (response oc buffer)
   "Called to evaluate `se-inf-post-parse-hook' upon response from
 `se-inf-process'."
   (condition-case err
@@ -228,14 +243,26 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
     (error
      (message "%s" (error-message-string err)))))
 
-(defun se-inf-parse-file (&rest file)
+(defun se-inf-parse-file (&optional file)
   "Sends parse request to current process.  Uses the current
 buffer's file unless FILE is non-nil."
   (interactive)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (let ((ms (funcall se-inf-get-message-from-filename (or file (buffer-file-name)))))
+  (let ((ms (se-inf-get-message-from-filename (or file (se-inf-filename)))))
     (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing")))
+
+(defun se-inf-filename ()
+  "Gets the filename of the current buffer (see `se-inf-filename')"
+  (funcall se-inf-filename))
+
+(defun se-inf-filename-base ()
+  "Gets the filename base of the current buffer (see `se-inf-filename-base')"
+  (funcall se-inf-filename-base (se-inf-filename)))
+
+(defun se-inf-get-message-from-filename (filename)
+  "Calls the function variable `se-inf-get-message-from-filename'"
+  (funcall se-inf-get-message-from-filename filename))
 
 (defun se-inf-get-spans (json)
   "Returns spans from default formatted JSON."
@@ -258,7 +285,7 @@ buffer's file unless FILE is non-nil."
 (defun se-inf-process-error (json)
   "Displays error message found in JSON."
   (let ((msg (se-inf-get-error json)))
-    (when msg (message "Error: %s" msg))))
+    (when msg (message "Error: %s" msg) t)))
 
 (defun se-inf-get-error-span (json)
   "Returns possible error spans from default formatted JSON."

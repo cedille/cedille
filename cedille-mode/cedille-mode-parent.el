@@ -6,9 +6,9 @@
   "Creates a function that resizes the window associated with buffer by amount and then locks the size of the window"
   `(lambda()
      (interactive)
-     (with-current-buffer (current-buffer) (setq window-size-fixed nil))
-     (window-resize nil ,amount)
-     (with-current-buffer (current-buffer) (setq window-size-fixed t))))
+     (with-current-buffer (current-buffer)
+       ;(cedille-mode-unfix-all-window-sizes)
+       (window-resize nil ,amount))))
 
 (defmacro cedille-mode-parent-region-cmd (region-cmd)
   "Ensures that there is a region before interactively calling REGION-CMD"
@@ -21,8 +21,10 @@
 (defun cedille-mode-unlock-current-window-size()
   "Allows selected window to be resized, then restores it to the minimal size"
   (interactive)
-  (with-current-buffer (current-buffer) (setq window-size-fixed nil))
-  (fit-window-to-buffer))
+  (with-current-buffer (current-buffer)
+    ;(cedille-mode-unfix-all-window-sizes)
+    (fit-window-to-buffer)))
+    ;(cedille-mode-fix-all-window-sizes)))
 
 (defvar cedille-mode-minor-mode-parent-keymap
   (let ((map (make-sparse-keymap)))

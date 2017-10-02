@@ -151,12 +151,12 @@ type-to-stringh Γ toplevel p (TpHole _) = "●" --ACG
 type-to-stringh Γ toplevel p (NoSpans t _) = type-to-string Γ ff t
 
 kind-to-stringh Γ toplevel p (KndArrow k k') =
-  parens-unless toplevel (is-arrow p) (kind-to-string Γ ff k ^ " → " ^ kind-to-stringh Γ ff (KndArrow k k') k')
+  parens-unless toplevel (is-arrow p) (kind-to-string Γ ff k ^ " ➔ " ^ kind-to-stringh Γ ff (KndArrow k k') k')
 kind-to-stringh Γ toplevel p (KndParens _ k _) = kind-to-string Γ toplevel k
 kind-to-stringh Γ toplevel p (KndPi pi pi' x u k) = 
   parens-unless toplevel (is-abs p) ("Π " ^ x ^ " : " ^ tk-to-string Γ u ^ " . " ^ kind-to-stringh Γ ff (KndPi pi pi' x u k) k )
 kind-to-stringh Γ toplevel p (KndTpArrow x k) =
-  parens-unless toplevel (is-arrow p) (type-to-string Γ ff x ^ " → " ^ kind-to-stringh Γ ff (KndTpArrow x k) k)
+  parens-unless toplevel (is-arrow p) (type-to-string Γ ff x ^ " ➔ " ^ kind-to-stringh Γ ff (KndTpArrow x k) k)
 kind-to-stringh Γ toplevel p (KndVar _ x ys) = x ^ args-to-string Γ ys
 kind-to-stringh Γ toplevel p (Star _) = "★"
 
@@ -165,9 +165,9 @@ args-to-string Γ (ArgsCons (TypeArg t) ys) = " · " ^ type-to-string Γ ff t ^ 
 args-to-string _ (ArgsNil _) = ""
 
 liftingType-to-stringh Γ p (LiftArrow t t₁) = 
-  parens-unless ff (is-arrow p) (liftingType-to-string Γ t ^ " → " ^ liftingType-to-stringh Γ (LiftArrow t t₁) t₁ )
+  parens-unless ff (is-arrow p) (liftingType-to-string Γ t ^ " ➔ " ^ liftingType-to-stringh Γ (LiftArrow t t₁) t₁ )
 liftingType-to-stringh Γ p (LiftTpArrow t t₁) = 
-  parens-unless ff (is-arrow p) (type-to-string Γ ff t ^ " → " ^ liftingType-to-stringh Γ (LiftTpArrow t t₁) t₁ )
+  parens-unless ff (is-arrow p) (type-to-string Γ ff t ^ " ➔ " ^ liftingType-to-stringh Γ (LiftTpArrow t t₁) t₁ )
 liftingType-to-stringh Γ p (LiftParens _ t _) = liftingType-to-string Γ t
 liftingType-to-stringh Γ p (LiftPi pi x x₁ t) = 
   parens-unless ff (is-abs p) ("Π " ^ x ^ " : " ^ type-to-string Γ ff x₁ ^ " . " ^ liftingType-to-stringh Γ (LiftPi pi x x₁ t) t)

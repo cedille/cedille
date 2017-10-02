@@ -11,6 +11,6 @@
 (require 'cedille-mode-summary)
 (require 'cedille-mode-context)
 (require 'cedille-mode-normalize)
-(require 'cedille-mode-beta-reduce)
+;(require 'cedille-mode-beta-reduce)
 
 (provide 'cedille-mode-library)

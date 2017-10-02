@@ -15,7 +15,7 @@
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "inspect mode"))
     map))
 
-(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (file-name-base (buffer-name)) "*"))
+(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (se-inf-filename-base) "*"));(file-name-base (buffer-name)) "*"))
 
 (defun cedille-mode-inspect-buffer ()
   (get-buffer-create (cedille-mode-inspect-buffer-name)))
@@ -29,12 +29,14 @@ the info buffer for the file.  Return the info buffer as a convenience."
            (d (se-term-to-json span))
            (txt (se-mode-pretty-json-interactive (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
       (with-current-buffer buffer
-	(setq buffer-read-only nil)
+	(setq buffer-read-only nil
+	      window-size-fixed nil)
 	(cedille-inspect-view-mode)
 	(erase-buffer)
 	(insert txt)
 	(setq buffer-read-only t)
 	(goto-char 1))
+	;(cedille-mode-rebalance-buffer-window))
       (cedille-mode-rebalance-windows)
       (setq deactivate-mark nil)
       buffer)))

@@ -123,7 +123,7 @@ include-elt-to-string ie =
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files-with-updated-spans is context) =
     "use-cede-file:  " ^ (𝔹-to-string use-cede-file) ^
-    "make-rkt-file:  " ^ (𝔹-to-string make-rkt-file) ^
+    " make-rkt-file:  " ^ (𝔹-to-string make-rkt-file) ^
     " include-path:  " ^ (𝕃-to-string (λ x → x) "," include-path) ^ 
     " files-with-updated-spans:  " ^ (𝕃-to-string (λ x → x) "," files-with-updated-spans) ^ 
     " is:  " ^ (trie-to-string "," include-elt-to-string is) ^ 

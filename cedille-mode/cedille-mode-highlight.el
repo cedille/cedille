@@ -18,6 +18,10 @@
   :group 'cedille-highlight)
 
 
+(make-variable-buffer-local
+ (defvar cedille-mode-highlight-spans nil
+   "A list of spans to highlight"))
+
 
 (make-variable-buffer-local
  (defvar cedille-mode-highlight-face-map nil
@@ -38,23 +42,23 @@
 
 
 (defun cedille-mode-highlight-default ()
-  (interactive)
   "Sets the cedille-mode-highlight-face-map variable to 
    `cedille-mode-highlight-face-map-default' then highlights the file"
+  (interactive)
   (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-default)
   (cedille-mode-highlight))
 
 (defun cedille-mode-highlight-language-level ()
-  (interactive)
   "Sets the cedille-mode-highlight-face-map variable to 
    `cedille-mode-highlight-face-map-language-level' then highlights the file"
+  (interactive)
   (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-language-level)
   (cedille-mode-highlight))
 
 (defun cedille-mode-highlight-checking-mode ()
-  (interactive)
   "Sets the cedille-mode-highlight-face-map variable to
    `cedille-mode-highlight-face-map-checking-mode' then highlights the file"
+  (interactive)
   (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-checking-mode)
   (cedille-mode-highlight))
 
@@ -72,12 +76,12 @@
 
 (defun cedille-mode-update-overlays ()
   "Updates error and hole overlays."
-  (remove-overlays (point-min) (point-max) 'help-echo "error")
-  (remove-overlays (point-min) (point-max) 'help-echo "hole")
-  (overlay-recenter (point-max))
-  (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
-  (cedille-mode-highlight-hole-overlay cedille-mode-error-spans))
-  
+  (with-silent-modifications
+    (remove-overlays (point-min) (point-max) 'help-echo "error")
+    (remove-overlays (point-min) (point-max) 'help-echo "hole")
+    (overlay-recenter (point-max))
+    (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
+    (cedille-mode-highlight-hole-overlay cedille-mode-error-spans)))
 
 
 (defun cedille-mode-highlight-span (span)
@@ -85,7 +89,8 @@
 	(start (se-span-start span))
 	(end (se-span-end span)))
     (when face
-	(put-text-property start end 'face face nil))))
+      (with-silent-modifications
+	(put-text-property start end 'face face nil)))))
 
 (defun cedille-mode-highlight-get-face (span map)
   (if (equal map nil)

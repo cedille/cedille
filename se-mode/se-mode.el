@@ -111,16 +111,17 @@ from the given path."
 (defun se-mode-set-spans ()
   "Used by `se-mode' methods to set `se-mode-selected' and
 `se-mode-not-selected'."
-  (setq p1 (point)) ; Point
-  (setq p2 nil) ; Mark
-  (if mark-active
-      (setq p2 (mark))
-    (se-mode-clear-selected))
-  (when (and (null se-mode-selected)
-	     (null se-mode-not-selected))
-    (se-mode-update-selected (if p2
-				 (se-find-range-path p1 p2 (se-mode-parse-tree))
-			       (se-find-point-path p1 (se-mode-parse-tree))))))
+  (let ((p1 (point))
+	(p2 (if mark-active (mark) (se-mode-clear-selected))))
+    (when (and (null se-mode-selected)
+	       (null se-mode-not-selected))
+      (se-mode-update-selected
+       (let* ((s (se-term-start (se-mode-parse-tree)))
+	      (e (se-term-end (se-mode-parse-tree)))
+	      (p1 (se-ensure-in-range p1 s e)))
+	 (if p2
+	     (se-find-range-path p1 (se-ensure-in-range p2 s e) (se-mode-parse-tree))
+	   (se-find-point-path p1 (se-mode-parse-tree))))))))
 
 (defun se-mode-select (term)
   "Updates selection path and selects region."

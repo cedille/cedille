@@ -12,6 +12,10 @@
    (>= x a)
    (<= x b)))
 
+(defun se-ensure-in-range (pos min max)
+  "Ensures that MIN <= POS <= MAX. If POS < MIN, returns MIN. If POS > MAX, returns MAX. Otherwise returns POS."
+  (min max (max min pos)))
+
 (defun se-map-1 (fn list)
   "Maps elements of LIST onto FN, return first non-nil
 transformed element."

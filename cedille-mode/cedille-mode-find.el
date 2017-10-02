@@ -2,7 +2,7 @@
 ;;;     Debug info display
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-display-debug-text(text);buffer text)
+(defun cedille-mode-display-debug-text(text &optional oc);buffer text)
   "Displays text in given buffer"
     (with-current-buffer (cedille-mode-debug-buffer)
         (setq buffer-read-only nil)

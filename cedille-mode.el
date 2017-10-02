@@ -103,24 +103,37 @@ Defaults to `error'."
   "Retrieves the window associated with the given buffer or else creates a new window and fills it with the buffer"
   (let ((window (get-buffer-window buffer)))
     (unless window
-      (setq window (split-window))
+      (let ((sw (selected-window)))
+	(setq window (split-window (selected-window))))
       (set-window-buffer window (or buffer (buffer-name))))
     window))
 
 (defun cedille-mode-toggle-buffer-display(buffer)
   "Toggles display of buffer on or off. Returns nil if window was deleted, or the window if it was created."
   (let ((window (get-buffer-window buffer)))
-    (if window
-	(progn
-	  (delete-window window)
-	  (cedille-mode-rebalance-windows))
-      (let ((window (cedille-mode-get-create-window buffer)))
-	(cedille-mode-rebalance-windows)
-	window))))
+    (if (null window)
+	(let ((window (cedille-mode-get-create-window buffer)))
+	  (setq window-size-fixed nil)
+	  (cedille-mode-rebalance-windows)
+	  window)
+      (delete-window window)
+      (cedille-mode-rebalance-windows))))
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
   (walk-windows (lambda (window) (fit-window-to-buffer window))))
+
+;(defun cedille-mode-rebalance-buffer-window (&optional buffer)
+;  "Resizes BUFFER's window"
+;  (let ((buffer (or buffer (current-buffer)))
+;	(window (get-buffer-window buffer)))
+;    (when (window-live-p window)
+;      (with-selected-window window
+;	(fit-window-to-buffer)))))
+
+(defun cedille-mode-split-window ()
+  (interactive)
+  (split-window))
 
 (defun cedille-mode-close-active-window() (interactive) (delete-window))
 
@@ -131,6 +144,23 @@ Defaults to `error'."
   (cedille-mode-inspect) 
   (cedille-mode-context) ;the string-split bug is here
   (cedille-mode-rebalance-windows))
+
+(defun cedille-mode-clear-buffers()
+  "Clears the contents of and closes the buffers for the current file"
+  (cedille-mode-clear-buffer (cedille-mode-inspect-buffer-name))
+  (cedille-mode-clear-buffer (cedille-mode-context-buffer-name))
+  (cedille-mode-clear-buffer (cedille-mode-summary-buffer-name)))
+
+(defun cedille-mode-clear-buffer(buffer)
+  "Clears the contents of and closes BUFFER"
+  (when (get-buffer buffer)
+    (select-window (get-buffer-window))
+    (with-current-buffer buffer
+      (let ((window (get-buffer-window buffer)))
+	(let ((buffer-read-only nil))
+	  (erase-buffer))
+	(when window
+	  (delete-window (get-buffer-window buffer)))))))
 
 					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
 
@@ -318,6 +348,13 @@ in the parse tree, and updates the Cedille info buffer."
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
+(defun cedille-mode-strip-ws (response)
+  "Removes the proceeding whitespaces in RESPONSE"
+  (if (or (equal 0 (length response))
+	  (not (string= " " (substring response 0 1))))
+      response
+    (cedille-mode-strip-ws (substring response 1))))
+
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
   (interactive)
@@ -407,60 +444,67 @@ in the parse tree, and updates the Cedille info buffer."
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 ; separate keymaps.
-(defun cedille-modify-keymap()
-  (se-navi-define-key 'cedille-mode (kbd "f") #'cedille-mode-select-next)
-  (se-navi-define-key 'cedille-mode (kbd "F") #'cedille-mode-select-next-alt)
-  (se-navi-define-key 'cedille-mode (kbd "b") #'cedille-mode-select-previous)
-  (se-navi-define-key 'cedille-mode (kbd "B") #'cedille-mode-select-previous-alt)
-  (se-navi-define-key 'cedille-mode (kbd "p") #'cedille-mode-select-parent)
-  (se-navi-define-key 'cedille-mode (kbd "n") #'cedille-mode-select-first-child)
-  (se-navi-define-key 'cedille-mode (kbd "m") #'cedille-mode-interactive-highlight)
-  (se-navi-define-key 'cedille-mode (kbd "g") #'se-mode-clear-selected)
-  (se-navi-define-key 'cedille-mode (kbd "q") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "M-s") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "C-g") #'cedille-mode-quit)
-  (se-navi-define-key 'cedille-mode (kbd "e") #'cedille-mode-select-last)
-  (se-navi-define-key 'cedille-mode (kbd "a") #'cedille-mode-select-first)
-  (se-navi-define-key 'cedille-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda nil t)) ;cedille-inspect-view-mode
-  (se-navi-define-key 'cedille-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda lambda t t)) ;cedille-inspect-view-mode
-  (se-navi-define-key 'cedille-mode (kbd "j") #'cedille-mode-jump)
-  (se-navi-define-key 'cedille-mode (kbd "=") #'cedille-mode-replace-occurrences)
-  (se-navi-define-key 'cedille-mode (kbd ".") (make-cedille-mode-history-navigate t nil))
-  (se-navi-define-key 'cedille-mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
-  (se-navi-define-key 'cedille-mode (kbd "<") (make-cedille-mode-history-navigate nil t))
-  (se-navi-define-key 'cedille-mode (kbd ">") (make-cedille-mode-history-navigate t t))
-  (se-navi-define-key 'cedille-mode (kbd "r") #'cedille-mode-select-next-error)
-  (se-navi-define-key 'cedille-mode (kbd "R") #'cedille-mode-select-previous-error)
-  (se-navi-define-key 'cedille-mode (kbd "t") #'cedille-mode-select-first-error-in-file)
-  (se-navi-define-key 'cedille-mode (kbd "T") #'cedille-mode-select-last-error-in-file)
-  (se-navi-define-key 'cedille-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
-  (se-navi-define-key 'cedille-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
-  (se-navi-define-key 'cedille-mode (kbd "K") #'cedille-mode-restart-backend)
-  (se-navi-define-key 'cedille-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
-  (se-navi-define-key 'cedille-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
-  (se-navi-define-key 'cedille-mode (kbd "h") (make-cedille-mode-info-display-page nil))
-  (se-navi-define-key 'cedille-mode (kbd "C-h 1") #'cedille-mode-highlight-default)
-  (se-navi-define-key 'cedille-mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
-  (se-navi-define-key 'cedille-mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
-  (se-navi-define-key 'cedille-mode (kbd "$") (make-cedille-mode-customize "cedille"))
-  (se-navi-define-key 'cedille-mode (kbd "1") #'delete-other-windows)
-  (se-navi-define-key 'cedille-mode (kbd "?") #'cedille-mode-backend-debug)
-  (se-navi-define-key 'cedille-mode (kbd "x") #'cedille-mode-scratch-toggle) ;(make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda nil nil))
-  (se-navi-define-key 'cedille-mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t))) ;(make-cedille-mode-buffer (cedille-mode-scratch-buffer) lambda lambda t nil))
-  (se-navi-define-key 'cedille-mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
+(defun cedille-modify-keymap(mode)
+  (se-navi-define-key mode (kbd "f") #'cedille-mode-select-next)
+  (se-navi-define-key mode (kbd "F") #'cedille-mode-select-next-alt)
+  (se-navi-define-key mode (kbd "b") #'cedille-mode-select-previous)
+  (se-navi-define-key mode (kbd "B") #'cedille-mode-select-previous-alt)
+  (se-navi-define-key mode (kbd "p") #'cedille-mode-select-parent)
+  (se-navi-define-key mode (kbd "n") #'cedille-mode-select-first-child)
+  (se-navi-define-key mode (kbd "m") #'cedille-mode-interactive-highlight)
+  (se-navi-define-key mode (kbd "g") #'se-mode-clear-selected)
+  (se-navi-define-key mode (kbd "q") #'cedille-mode-quit)
+  (se-navi-define-key mode (kbd "M-s") #'cedille-mode-quit)
+  (se-navi-define-key mode (kbd "C-g") #'cedille-mode-quit)
+  (se-navi-define-key mode (kbd "e") #'cedille-mode-select-last)
+  (se-navi-define-key mode (kbd "a") #'cedille-mode-select-first)
+  (se-navi-define-key mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
+  (se-navi-define-key mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect t t))
+  (se-navi-define-key mode (kbd "j") #'cedille-mode-jump)
+  (se-navi-define-key mode (kbd "=") #'cedille-mode-replace-occurrences)
+  (se-navi-define-key mode (kbd ".") (make-cedille-mode-history-navigate t nil))
+  (se-navi-define-key mode (kbd ",") (make-cedille-mode-history-navigate nil nil))
+  (se-navi-define-key mode (kbd "<") (make-cedille-mode-history-navigate nil t))
+  (se-navi-define-key mode (kbd ">") (make-cedille-mode-history-navigate t t))
+  (se-navi-define-key mode (kbd "r") #'cedille-mode-select-next-error)
+  (se-navi-define-key mode (kbd "R") #'cedille-mode-select-previous-error)
+  (se-navi-define-key mode (kbd "t") #'cedille-mode-select-first-error-in-file)
+  (se-navi-define-key mode (kbd "T") #'cedille-mode-select-last-error-in-file)
+  (se-navi-define-key mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
+  (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
+  (se-navi-define-key mode (kbd "K") #'cedille-mode-restart-backend)
+  (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
+  (se-navi-define-key mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+  (se-navi-define-key mode (kbd "h") (make-cedille-mode-info-display-page nil))
+  (se-navi-define-key mode (kbd "C-h 1") #'cedille-mode-highlight-default)
+  (se-navi-define-key mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
+  (se-navi-define-key mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
+  (se-navi-define-key mode (kbd "$") (make-cedille-mode-customize "cedille"))
+  (se-navi-define-key mode (kbd "1") #'delete-other-windows)
+  (se-navi-define-key mode (kbd "?") #'cedille-mode-backend-debug)
+  (se-navi-define-key mode (kbd "x") #'cedille-mode-scratch-toggle)
+  (se-navi-define-key mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))
+  (se-navi-define-key mode (kbd "y") #'cedille-mode-br-toggle)
+  (se-navi-define-key mode (kbd "Y") (lambda () (interactive) (cedille-mode-br-toggle t)))
+  (se-navi-define-key mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
+  (se-navi-define-key mode (kbd "+") (make-cedille-mode-resize-current-window 1))
+  (se-navi-define-key mode (kbd "-") (make-cedille-mode-resize-current-window -1))
+  (se-navi-define-key mode (kbd "=") #'cedille-mode-unlock-current-window-size)
+  (se-navi-define-key mode (kbd "C-x 2") #'cedille-mode-split-window)
   ; Interactive commands
-  (se-navi-define-key 'cedille-mode (kbd "C-i h") #'cedille-mode-head-normalize)
-  (se-navi-define-key 'cedille-mode (kbd "C-i n") #'cedille-mode-normalize)
-  (se-navi-define-key 'cedille-mode (kbd "C-i e") #'cedille-mode-erase)
-  (se-navi-define-key 'cedille-mode (kbd "C-i b") #'cedille-mode-br-start)
-  (se-navi-define-key 'cedille-mode (kbd "C-i d") #'cedille-mode-inspect-clear)
-  (se-navi-define-key 'cedille-mode (kbd "C-i r") #'cedille-mode-inspect-clear)
-  (se-navi-define-key 'cedille-mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
-  (se-navi-define-key 'cedille-mode (kbd "C-i R") #'cedille-mode-inspect-clear-all)
+  (se-navi-define-key mode (kbd "C-i h") (lambda () (interactive) (cedille-mode-normalize t)))
+  (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
+  (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
+  (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br-start)
+  (se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
+  (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)
+  (se-navi-define-key mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
+  (se-navi-define-key mode (kbd "C-i R") #'cedille-mode-inspect-clear-all)
 ;  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
+(require 'cedille-mode-beta-reduce)
 
-(cedille-modify-keymap)
+(cedille-modify-keymap 'cedille-mode)
 
 (defun cedille-mode-get-message-from-filename(filename)
   "Get the message to send to the backend, from the name of the file to parse."
@@ -478,8 +522,10 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
   (add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
+  (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
+  (setq se-inf-modify-response #'cedille-mode-strip-ws)
 
   (set-input-method "Cedille")
 )

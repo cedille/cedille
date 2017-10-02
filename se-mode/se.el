@@ -95,7 +95,8 @@ method will create a list of spans from TERM."
 (defun se-point-in-term-p (point term)
   "Checks if POINT is contained within the spans of TERM.
 Intervals are treated as [start, end)."
-  (se-between point (se-term-start term) (1- (se-term-end term))))
+  (se-between point (se-term-start term) (se-term-end term)))
+  ;(se-term-end term) used to be (1- (se-term-end term))))
 
 (defun se-term-equal-p (term1 term2)
   "Compares the start and end points of TERM1 and TERM2.  This
@@ -177,6 +178,7 @@ latter."
   "Finds a series of nodes in TREE containing POINT.  Returns a
 list containing nodes with the former elements as parents of the
 latter."
+  ;(message "se-find-point-path %s %s" point tree)
   (typecase tree
     (se-node
      (when (se-point-in-term-p point (se-node-parent tree))
@@ -262,8 +264,8 @@ preserves order."
 
 (defun se-span-from(start end)
   "Finds a span that ranges from start to end in tree"
-  (setq node (se-node-from start end))
-  (when node (se-node-parent node)))
+  (let ((node (se-node-from start end)))
+    (when node (se-node-parent node))))
 
 (defun se-node-from(start end)
   "Finds a node that ranges from start to end in tree"
@@ -281,11 +283,22 @@ preserves order."
   "Helper for `se-node-from'"
   (typecase tree
     (se-node
-     (setq parent (se-node-parent tree))
-     (if (and (eq start (se-span-start parent)) (eq end (se-span-end parent)))
-	 tree
-         (se-map-1 (se-curry #'se-node-from-h start end) (se-node-children tree))))
+     (let ((parent (se-node-parent tree)))
+       (if (and (eq start (se-span-start parent)) (eq end (se-span-end parent)))
+	   tree
+         (se-map-1 (se-curry #'se-node-from-h start end) (se-node-children tree)))))
     (sequence
      (se-map-1 (se-curry #'se-node-from-h start end) tree))))
+
+(defun se-copy-term(term)
+  "Creates a deep copy of TERM"
+  (typecase term
+    (se-span
+     (se-new-span (copy-sequence (se-span-name term)) (se-copy-term (se-span-start term)) (se-copy-term (se-span-end term)) (se-copy-term (se-span-data term))))
+    (se-node
+     (se-new-node (se-copy-term (se-node-parent term)) (se-copy-term (se-node-children term))))
+    (string (copy-sequence term))
+    (cons (cons (se-copy-term (car term)) (se-copy-term (cdr term))))
+    (t (copy-tree term))))
 
 (provide 'se)
