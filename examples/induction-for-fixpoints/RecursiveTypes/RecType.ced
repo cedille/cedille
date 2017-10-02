@@ -1,12 +1,10 @@
 import ../Top.
 
-IsIdentity ◂ Top ➔ ★ ➔ ★ = λ f : Top . λ A : ★ . Π a : A . f a ≃ a .
-
 Cast ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
-       ι cast : A ➔ B . IsIdentity β{cast} · A .
+       ι cast : A ➔ B . cast ≃ λ x . x.
 
 cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =
-  Λ A . Λ B . Λ c . λ a . (χ (ι _ : A . B) - [ a , c.1 a { ρ (c.2 a) - β } ]).2 .
+  Λ A . Λ B . Λ c . λ a . (χ (ι _ : A . B) - [ a , c.1 a { ρ c.2 - β } ]).2 .
 
 RecFunctor ◂ (★ ➔ ★) ➔ ★ =
   λ F : ★ ➔ ★ . ∀ X : ★ . ∀ Y : ★ . Cast · X · Y ➔ Cast · (F · X) · (F · Y) .
@@ -14,7 +12,7 @@ RecFunctor ◂ (★ ➔ ★) ➔ ★ =
 Rec ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ X : ★ . Cast · (F · X) · X ➾ X . 
 
 recCast ◂ ∀ F : ★ ➔ ★ . ∀ X : ★ . Cast · (F · X) · X ➾ Cast · (Rec · F) · X =
-  Λ F . Λ X . Λ c . [ λ d . d · X -c , λ a . β{a} ].
+  Λ F . Λ X . Λ c . [ λ d . d · X -c , β{λ a . a} ].
 
 recIn ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) =
   Λ F . Λ fmap . 
@@ -22,10 +20,10 @@ recIn ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) ·
       cast · (F · X) · X -c
         (cast · (F · (Rec · F)) · (F · X)
           -(fmap · (Rec · F) · X (recCast · F · X -c)) x),
-      λ a . β{a} ].
+      β{λ a . a} ].
 
 recOut ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) =
-  Λ F . Λ fmap . [λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)) , λ x . β{x} ].
+  Λ F . Λ fmap . [λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)) , β{λ x . x} ].
 
 recFold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) = recIn .
 recUnfold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) = recOut .
