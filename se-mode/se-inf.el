@@ -21,7 +21,7 @@ started with `start-process'."))
 
 ; might need to UNDO:
 (make-variable-buffer-local
- (defvar se-inf-respose-hook nil
+ (defvar se-inf-response-hook nil
   "Functions to be evaluated after response of `se-inf-ask',
 response given as only argument.  If `se-inf-response-is-json' is
 non-nil the response is parsed as JSON first."))

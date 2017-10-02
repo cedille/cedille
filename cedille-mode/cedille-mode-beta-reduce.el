@@ -34,6 +34,8 @@
  (defvar cedille-mode-br-temp-str nil
    "A temporary variable to hold the buffer's string (after normalization) until it is sucessfully parsed. Gets discarded upon failure."))
 
+(make-variable-buffer-local
+ (defvar cedille-mode-br-length nil))
 
 
 ;;;;;;;; Mode code ;;;;;;;;
@@ -98,7 +100,8 @@
   (let ((original-filename (buffer-file-name))
 	(buffer (cedille-mode-br-buffer))
 	(context (cedille-mode-get-context se-mode-not-selected))
-	(highlight-spans cedille-mode-highlight-spans))
+	(highlight-spans cedille-mode-highlight-spans)
+	(len (buffer-size)))
 	;(process se-inf-process))
 	;(whole-str (buffer-string)))
     (with-current-buffer buffer
@@ -112,8 +115,10 @@
 	    cedille-mode-br-filename original-filename
 	    cedille-mode-br-temp-str str
 	    cedille-mode-br-in-buffer t
+	    cedille-mode-br-length len
 	    se-inf-filename #'cedille-mode-br-get-filename
 	    se-inf-filename-base #'cedille-mode-br-get-filename-base
+	    se-inf-modify-response #'cedille-mode-strip-ws
 	    buffer-read-only nil
 	    window-size-fixed nil)
       (se-inf-interactive (cedille-mode-get-message-from-filename cedille-mode-br-filename) nil :header "Parsing")
@@ -265,7 +270,7 @@
   (with-current-buffer (cdr extra)
     (let ((ex (list (cdr (assoc 'language-level (se-term-data span))) (car extra)))
 	  (ap (not (cedille-mode-br-has-parens span))))
-    (cedille-mode-normalize-request-text span ex ap 0))))
+    (cedille-mode-normalize-request-text span ex ap cedille-mode-br-length))))
 
 (defun cedille-mode-br-clear-jumps ()
   "Clears all jumps"

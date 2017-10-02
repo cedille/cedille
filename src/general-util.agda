@@ -82,7 +82,7 @@ get-n-ws : ℕ → string
 get-n-ws n = 𝕃char-to-string (get-n-ws-h n [])
 
 add-unicode-ws : string → string
-add-unicode-ws s = (get-n-ws (get-ws-to-add s)) ^ s -- ^ " "
+add-unicode-ws s = (get-n-ws (get-ws-to-add s)) ^ s ^ " "
 
 putStrLn : string → IO ⊤
 putStrLn str = putStr (add-unicode-ws (str ^ "\n"))
