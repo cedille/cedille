@@ -35,25 +35,38 @@ consPV ◂ ∀ A : ★ . ∀ n : Nat . ∀ xsC : VecC · A n .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Vec ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
-  ι xs : (ι xsC : VecC · A n . VecP · A n xsC) .
-  xs nilCV consCV ≃ xs .
+VecR ◂ Π A : ★ . Π n : Nat . VecC · A n ➔ ★ =
+  λ A : ★ . λ n : Nat . λ xsC : VecC · A n .
+  xsC · (VecC · A) nilCV consCV ≃ xsC .
 
-mkVec ◂ ∀ A : ★ . ∀ n : Nat .
-  Π xs : (ι xsC : VecC · A n . VecP · A n xsC) .
-  (xs nilCV consCV ≃ xs) ➔ Vec · A n =
-  Λ A . Λ n . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+nilRV ◂ ∀ A : ★ . VecR · A zero (nilCV · A) =
+  Λ A . β .
+
+consRV ◂ ∀ A : ★ . ∀ n : Nat .
+  ∀ x : A . ∀ xsC : VecC · A n .
+  ∀ q : VecR · A n xsC .
+  VecR · A (suc n) (consCV · A -n x xsC)
+  = Λ A . Λ n . Λ x . Λ xsC . Λ q .
+  ρ+ q - β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Vec ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
+  ι xs : (ι xsC : VecC · A n . VecP · A n xsC) . VecR · A n xs.1 .
+
+mkVec ◂ ∀ A : ★ . ∀ n : Nat .
+  Π xs : (ι xsC : VecC · A n . VecP · A n xsC) .
+  VecR · A n xs.1 ➔ Vec · A n =
+  Λ A . Λ n . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+
 nilV ◂ ∀ A : ★ . Vec · A zero = Λ A .
-  mkVec · A -zero [ nilCV · A , nilPV · A ] β .
+  mkVec · A -zero [ nilCV · A , nilPV · A ] (nilRV · A) .
 
 consV ◂ ∀ A : ★ . ∀ n : Nat. A ➔ Vec · A n ➔ Vec · A (suc n) =
   Λ A . Λ n . λ x . λ xs . mkVec · A -(suc n)
   [ consCV · A -n x xs.1.1
   , consPV · A -n -xs.1.1 x xs.1.2 ]
-  (ρ+ xs.2 - β) .
+  (consRV · A -n -x -xs.1.1 -xs.2) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

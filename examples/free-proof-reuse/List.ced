@@ -32,9 +32,24 @@ consPL ◂ ∀ A : ★ . ∀ xsC : ListC · A .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+ListR ◂ Π A : ★ . ListC · A ➔ ★ =
+  λ A : ★ . λ xsC : ListC · A .
+  xsC · (ListC · A) nilCL consCL ≃ xsC .
+
+nilRL ◂ ∀ A : ★ . ListR · A (nilCL · A) =
+  Λ A . β .
+
+consRL ◂ ∀ A : ★ .
+  ∀ x : A . ∀ xsC : ListC · A .
+  ∀ q : ListR · A xsC .
+  ListR · A (consCL · A x xsC)
+  = Λ A . Λ x . Λ xsC . Λ q .
+  ρ+ q - β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 List ◂ ★ ➔ ★ = λ A : ★ .
-  ι xs : (ι xsC : ListC · A . ListP · A xsC) .
-  xs nilCL consCL ≃ xs .
+  ι xs : (ι xsC : ListC · A . ListP · A xsC) . ListR · A xs.1 .
 
 mkList ◂ ∀ A : ★ .
   Π xs : (ι xsC : ListC · A . ListP · A xsC) .

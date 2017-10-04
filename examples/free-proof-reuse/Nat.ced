@@ -26,9 +26,22 @@ sucP ◂ ∀ nC : NatC . NatP nC ➔ NatP (sucC nC) =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Nat ◂ ★ = ι n : (ι nC : NatC . NatP nC) . n zeroC sucC ≃ n .
+NatR ◂ NatC ➔ ★ = λ nC : NatC .
+  nC · NatC zeroC sucC ≃ nC .
 
-mkNat ◂ Π n : (ι nC : NatC . NatP nC) . (n zeroC sucC ≃ n) ➔ Nat =
+zeroR ◂ NatR zeroC = β .
+
+sucR ◂ ∀ nC : NatC .
+  ∀ q : NatR nC .
+  NatR (sucC nC)
+  = Λ nC . Λ q .
+  ρ+ q - β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Nat ◂ ★ = ι n : (ι nC : NatC . NatP nC) . NatR n.1 .
+
+mkNat ◂ Π n : (ι nC : NatC . NatP nC) . NatR n.1 ➔ Nat =
   λ n . λ q . [ n , ρ q - β{n} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
