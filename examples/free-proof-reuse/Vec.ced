@@ -25,7 +25,7 @@ VecP ◂ Π A : ★ . Π n : Nat . VecC · A n ➔ ★ =
 
 nilPV ◂ ∀ A : ★ . VecP · A zero (nilCV · A) = Λ A .
   Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
-  pN  .
+  pN .
 
 consPV ◂ ∀ A : ★ . ∀ n : Nat . ∀ xsC : VecC · A n .
   Π x : A . VecP · A n xsC ➔ VecP · A (suc n) (consCV · A -n x xsC) =

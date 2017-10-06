@@ -22,7 +22,7 @@ ListP ◂ Π A : ★ . ListC · A ➔ ★ =
 
 nilPL ◂ ∀ A : ★ . ListP · A (nilCL · A) = Λ A .
   Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
-  pN  .
+  pN .
 
 consPL ◂ ∀ A : ★ . ∀ xsC : ListC · A .
   Π x : A . ListP · A xsC ➔ ListP · A (consCL · A x xsC) =
@@ -53,7 +53,7 @@ List ◂ ★ ➔ ★ = λ A : ★ .
 
 mkList ◂ ∀ A : ★ .
   Π xs : (ι xsC : ListC · A . ListP · A xsC) .
-  (xs nilCL consCL ≃ xs) ➔ List · A =
+  ListR · A xs.1 ➔ List · A =
   Λ A . λ xs . λ q . [ xs , ρ q - β{xs} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
