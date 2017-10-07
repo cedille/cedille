@@ -2,9 +2,6 @@ Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .
 tt ◂ Bool = Λ X . λ cT . λ cF . cT .
 ff ◂ Bool = Λ X . λ cT . λ cF . cF .
 
-Id ◂ ★ = ∀ X : ★ . X ➔ X .
-id ◂ Id = Λ X . λ x . x .
-
 If ◂ ★ ➔ ★ ➔ Bool ➔ ★ =  λ A : ★ . λ B : ★ . λ b : Bool .
   ↑ X . b · X : (☆ ➔ ☆ ➔ ☆) · A · B .
 
