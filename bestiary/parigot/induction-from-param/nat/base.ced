@@ -1,10 +1,9 @@
 
 import ../../../util/RecType.
+import Top.
 
 % Try to write some RecType machinery for NatParamF to enable this development
 % to go through. Just an indexed functor Cast and RecType equivalent?
-
-
 
 NatF ◂ ★ ➔ ★ = λ Nat' : ★ . ∀ X : ★ . X ➔ (Nat' ➔ X ➔ X) ➔ X .
 
@@ -17,10 +16,10 @@ Nat' ◂ ★ = Rec · NatF .
 
 Nat'Out ◂ Nat' ➔ (NatF · Nat') = cast · Nat' · (NatF · Nat') -(recOut · NatF -NatFmap) .
 
-NatParamF ◂ (Nat' ➔ ★) ➔ (Nat' ➔ ★) = λ R' : Nat' ➔ ★ . λ x : Nat' . ∀ A : ★ . ∀ R : A ➔ ★ . ∀ a : A .
+𝒌 = Nat' ➔ ★ .
+NatParamF ◂ 𝒌 ➔ 𝒌 = λ R' : 𝒌 . λ x : Nat' . ∀ A : ★ . ∀ R : A ➔ ★ . ∀ a : A .
   R a ➔ ∀ f : Nat' ➔ A ➔ A . (∀ n : Nat' . ∀ a : A . (R' n) ➔ (R a) ➔ R (f n a)) ➔ R (Nat'Out x · A a f) .
 
-𝒌 = Nat' ➔ ★ .
 NatCast ◂ 𝒌 ➔ 𝒌 ➔ ★ = λ A : 𝒌 . λ B : 𝒌 .
        ι cast : ∀ n : Nat' . A n ➔ B n . cast ≃ λ x . x.
 
@@ -54,6 +53,16 @@ NatrecIso2 ◂ ∀ a : Top . NatrecUnfold (NatrecFold a) ≃ a = Λ a . β.
 
 NatParam ◂ Nat' ➔ ★ = NatRec · NatParamF.
 
+ParamFmap ◂ NatRecFunctor · NatParamF =
+  Λ X : 𝒌 . Λ Y : 𝒌 . λ c . [
+  (Λ n . λ p .
+    Λ A . Λ R .
+      Λ a . λ ra .
+        Λ f . λ s .
+          p · A · R -a ra -f
+	    (Λ n' . Λ a' . λ xn' . λ ra' . s -n' -a' (natcast · X · Y -c -n' xn') ra')),
+	 β{λ p . p} ].
+
 NatPreSuc ◂ Nat' ➔ NatF · Nat' =
   λ p . Λ X . λ z . λ s . s p ( (cast · Nat' · (NatF · Nat') -(recOut · NatF -NatFmap) p) · X z s) .
 
@@ -65,10 +74,23 @@ Nat ◂ ★ = ι x : Nat' . ι u : (x Z' (λ p . λ r . S' p)) ≃ x . NatParam 
 % what is the "rebuilding equation" for Parigot nats?
 % presumably it looks like (n (λ p . λ r . p) Z' = n)
 
-Z ◂ Nat = [ Z' , [β{Z'} , ● ]]  .
-S ◂ Nat ➔ Nat = 
-  λ n : Nat . [ S' n.1 , [εl (εr β{S' n.1}), Λ A . Λ R . Λ f . λ s . Λ a . λ z . s -(Nat'Out n.1 · A f a) n.1 (n.2.2 · A · R -f s -a z) ]] .
+NatrecParamFFold ◂ ∀ n : Nat' . (NatParamF · (NatRec · NatParamF) n) ➔ (NatRec · NatParamF n)
+  = natcast · (NatParamF · (NatRec · NatParamF)) · (NatRec · NatParamF) -(NatrecFold · NatParamF -ParamFmap) .
 
-Ind ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (Π x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
-  λ x . Λ Q . λ s . λ z . 
-    ρ ς x.2.1 - (x.2.2 · Nat · Q -(λ p : Nat' . λ r . S r) (λ a . λ n . λ qa . s a qa) -Z z) .
+NatrecParamFUnfold ◂ ∀ n : Nat' . (NatRec · NatParamF n) ➔ (NatParamF · (NatRec · NatParamF) n)
+  = natcast · (NatRec · NatParamF) · (NatParamF · (NatRec · NatParamF)) -(NatrecUnfold · NatParamF -ParamFmap) .
+
+Z ◂ Nat = [ Z' , [β{Z'} , NatrecParamFFold -Z' (Λ A . Λ R . Λ a . λ ra . Λ f . λ s . ra) ]]  .
+S ◂ Nat ➔ Nat = 
+  λ n : Nat . [ S' n.1 , [εl (εr β{S' n.1}), NatrecParamFFold -(S' n.1)
+    (Λ A . Λ R . Λ a . λ ra . Λ f . λ s . s -n.1 -(Nat'Out n.1 · A a f) n.2.2 (NatrecParamFUnfold -n.1 n.2.2 · A · R -a ra -f s)) ]] .
+
+Ind ◂ ∀ Q : Nat ➔ ★ . (Π x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Π x : Nat . Q x =
+   Λ Q . λ s . λ z . λ x .
+    ρ ς x.2.1 - (NatrecParamFUnfold -n.1 n.2.2 · Nat' · (λ x : Nat' . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
+                 -Z'
+		   (Λ X . λ s . s Z β z)
+		   -(λ p . λ r . S' p)
+		   (Λ n' . Λ a' . λ ih . λ p . Λ X . λ s . p · X (λ x' . λ e . λ u . s (S a') (εl (εr (ρ e - (ρ x'.2.1 - β))))))
+		   · (Q x)
+		   ).
