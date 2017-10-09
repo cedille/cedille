@@ -1,0 +1,40 @@
+import Helper.
+import Product.
+import Sigma.
+import Sum.
+import Unit.
+import Functor.
+import Fixpoint.
+
+import IFunctor.
+import IFixpoint.
+import IInduction.
+import Nat.
+
+VecF ◂ ★ ➔ (NatM ➔ ★) ➔ (NatM ➔ ★) =
+  λ A : ★ . λ Vec : NatM ➔ ★ . λ n : NatM .
+  Sum · (n ≃ zero) · (Sigma · NatM · (λ p : NatM . Product · (n ≃ suc p) · (Product · A · (Vec p)))) .
+
+mVec ◂ ★ ➔ NatM ➔ ★ = λ A : ★ . IFixM · NatM · (VecF · A).
+
+mNil ◂ ∀ A : ★ .  mVec · A zero = Λ A . inIM · NatM · (VecF · A) zero (in1 · (zero ≃ zero) ·
+         (Sigma · NatM · (λ p : NatM . Product · (zero ≃ suc p) · (Product · A · (mVec · A p)))) β) .
+
+mCons ◂ ∀ A : ★ . Π n : NatM . A ➔ (mVec · A n) ➔ (mVec · A (suc n)) =
+         Λ A . λ n . λ a . λ vs . inIM · NatM · (VecF · A) (suc n)
+	 (in2 · ((suc n) ≃ zero)
+	     · (Sigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (mVec · A p))))
+	     (mkdsigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (mVec · A p))) n
+	       (pair · (suc n ≃ suc n) · (Product · A · (mVec · A n))
+	         β
+		 (pair · A · (mVec · A n) a vs)))
+	      ).
+
+VecFF ◂ ∀ A : ★ . IFunctor · NatM · (VecF · A) = Λ A .
+  Λ X . Λ Y . λ i . λ c . λ v .
+    θ<i> (NatInd i)
+         (Λ x . λ ih .
+	   ●
+	   (in1 · (zero ≃ zero) · (Sigma · NatM · (λ p : NatM . (Product · (zero ≃ (suc p)) · (Product · A · (Y p))))) β) .
+
+VecM ◂ NatM ➔ ★ = IFixIndM · NatM · VecF ● .
