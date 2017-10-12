@@ -6,31 +6,16 @@ import Coes.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-mapL ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔  List · A ➔ List · B
-  = Λ A . Λ B . λ f . elimList · A ·
-  (λ xs : List · A . List · B)
-  (nilL · B)
-  (Λ xs . λ x . λ ih . consL · B (f x) ih) .
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-mapIdL ◂ ∀ A : ★ . Π xs : List · A .
-  mapL (λ x . x) xs ≃ xs
-  = Λ A . elimList · A ·
-  (λ xs : List · A . mapL (λ x . x) xs ≃ xs)
-  β
-  (Λ xs . λ x . λ ih . ρ+ ih - β) .
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 mapCompL ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Π f : A ➔ B . Π g : B ➔ C .
-  Π xs : List · A .
-  mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs)
+  Π ys : List · A .
+  mapL (λ y . g (f y)) ys ≃ mapL g (mapL f ys)
   = Λ A . Λ B . Λ C . λ f . λ g . elimList · A ·
-  (λ xs : List · A . mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs))
-  β
-  (Λ xs . λ x . λ ih . ρ+ ih - β) .
+  (λ ys : List · A . mapL (λ y . g (f y)) ys ≃ mapL g (mapL f ys))
+  β (Λ ys . λ x . λ ih .
+    χ ((consL (g (f x)) (mapL (λ y . g (f y)) ys))
+      ≃ (consL (g (f x)) (mapL g (mapL f ys))))
+    - (ρ ih - β) ) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

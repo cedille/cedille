@@ -15,7 +15,7 @@ consU ◂ ∀ A : ★ . ∀ n : Nat. A ➔ VecL · A n ➔ VecL · A (suc n) =
   , ρ xs.2 - β{consL · A x xs.1} ] .
 
 mkVecL ◂ ∀ A : ★ . ∀ n : Nat . Π xs : List · A .
-  (length xs ≃ n) ➔ VecL · A n =
-  Λ A . Λ n . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+  (length xs ≃ n) ➾ VecL · A n =
+  Λ A . Λ n . λ xs . Λ q . [ xs , ρ q - β{xs} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

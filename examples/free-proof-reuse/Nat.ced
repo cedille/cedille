@@ -41,15 +41,15 @@ sucR ◂ ∀ nC : NatC .
 
 Nat ◂ ★ = ι n : (ι nC : NatC . NatP nC) . NatR n.1 .
 
-mkNat ◂ Π n : (ι nC : NatC . NatP nC) . NatR n.1 ➔ Nat =
-  λ n . λ q . [ n , ρ q - β{n} ] .
+mkNat ◂ Π n : (ι nC : NatC . NatP nC) . NatR n.1 ➾ Nat =
+  λ n . Λ q . [ n , ρ q - β{n} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-zero ◂ Nat = mkNat [ zeroC , zeroP ] β .
+zero ◂ Nat = mkNat [ zeroC , zeroP ] -β .
 
 suc ◂ Nat ➔ Nat = λ n .
-  mkNat [sucC n.1.1 , sucP -n.1.1 n.1.2] (ρ+ n.2 - β) .
+  mkNat [sucC n.1.1 , sucP -n.1.1 n.1.2] -(ρ+ n.2 - β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -60,6 +60,23 @@ elimNat ◂ ∀ P : Nat ➔ ★ .
   = Λ P . λ pZ . λ pS . λ n .
   ρ ς n.2 -
   (n.1.2 · Nat · P -zero -suc pZ pS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+zeroComp ◂
+  ∀ P : Nat ➔ ★ .
+  Π pZ : P zero .
+  Π pS : ∀ n : Nat . P n ➔ P (suc n) .
+  (elimNat · P pZ pS zero) ≃ pZ
+  = Λ P . λ pZ . λ pS . β .
+
+sucComp ◂
+  ∀ P : Nat ➔ ★ .
+  Π pZ : P zero .
+  Π pS : ∀ n : Nat . P n ➔ P (suc n) .
+  Π n : Nat .
+ (elimNat · P pZ pS (suc n)) ≃ (pS -n (elimNat · P pZ pS n))
+  = Λ P . λ pZ . λ pS . λ n . β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -53,19 +53,19 @@ List ◂ ★ ➔ ★ = λ A : ★ .
 
 mkList ◂ ∀ A : ★ .
   Π xs : (ι xsC : ListC · A . ListP · A xsC) .
-  ListR · A xs.1 ➔ List · A =
-  Λ A . λ xs . λ q . [ xs , ρ q - β{xs} ] .
+  ListR · A xs.1 ➾ List · A =
+  Λ A . λ xs . Λ q . [ xs , ρ q - β{xs} ] .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 nilL ◂ ∀ A : ★ . List · A = Λ A .
-  mkList · A [ nilCL · A , nilPL · A ] β .
+  mkList · A [ nilCL · A , nilPL · A ] -(nilRL · A) .
 
 consL ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
   Λ A . λ x . λ xs . mkList · A
   [ consCL · A x xs.1.1
   , consPL · A -xs.1.1 x xs.1.2 ]
-  (ρ+ xs.2 - β) .
+  -(consRL · A -x -xs.1.1 -xs.2) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

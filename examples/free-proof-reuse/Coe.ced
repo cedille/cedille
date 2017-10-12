@@ -18,11 +18,15 @@ v2lP ◂ ∀ A : ★ . ∀ n : Nat .
     -cN -(Λ _ . cC)
     pN (Λ _ . pC) .
 
+v2lR ◂ ∀ A : ★ . ∀ n : Nat .
+  Π xs : Vec · A n . ListR · A (v2lC · A -n xs)
+  = Λ A . Λ n . λ xs . xs.2 .
+
 v2l ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ List · A
   = Λ A . Λ n . λ xs . mkList · A
   [ v2lC · A -n xs
   , v2lP · A -n xs ]
-  xs.2 .
+  -(v2lR · A -n xs) .
 v2lId ◂ v2l ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,10 +47,13 @@ l2vP ◂ ∀ A : ★ . Π xs : List · A . VecP · A (length · A xs) (l2vC · A
   (Λ xs' . pC -(length · A xs') -(l2vC · A xs' · X cN cC))
   xs .
 
+l2vR ◂ ∀ A : ★ . Π xs : List · A . VecR · A (length · A xs) (l2vC · A xs)
+  = Λ A . λ xs . xs.2 .
+
 l2v ◂ ∀ A : ★ . Π xs : List · A . Vec · A (length · A xs)
   = Λ A . λ xs . mkVec · A -(length · A xs)
   [ l2vC · A xs , l2vP · A xs ]
-  xs.2 .
+  -(l2vR · A xs) .
 l2vId ◂ l2v ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,7 +72,7 @@ lengthPresV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
 v2u ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n . VecL · A n
   = Λ A . Λ n . λ xs . mkVecL · A -n
   (v2l · A -n xs)
-  (lengthPresV · A -n xs) .
+  -(lengthPresV · A -n xs) .
 v2uId ◂ v2u ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +80,7 @@ v2uId ◂ v2u ≃ λ x . x = β .
 l2u ◂ ∀ A : ★ . Π xs : List · A . VecL · A (length · A xs)
   = Λ A . λ xs . mkVecL · A -(length · A xs)
   xs
-  β .
+  -β .
 l2uId ◂ l2u ≃ λ x . x = β .
 
 u2l ◂ ∀ A : ★ . ∀ n : Nat . VecL · A n ➔ List · A

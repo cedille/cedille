@@ -28,6 +28,6 @@ omega ◂ ∀ X : ★ . Clash ➾ X
   = Λ X . Λ q . (self · X -q) (cast · (X ➔ X) · X -q (self · X -q)) .
 
 loop ◂ ∀ X : ★ . ∀ q : Clash .
-  ∀ x : X . x ≃ omega · X -q
+  ∀ x : X . Eq · X x ≃ omega · X -q
   = Λ X . Λ q . Λ x . β .
 

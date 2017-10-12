@@ -6,50 +6,50 @@ import Coe.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-imapCL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List · A ➔ ListC · B
+mapCL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List · A ➔ ListC · B
   = Λ A . Λ B . λ f . λ xs .
   Λ X . λ cN . λ cC . xs.1.1 · X cN (λ x . cC (f x)) .
 
-imapPL ◂ ∀ A : ★ . ∀ B : ★ .
+mapPL ◂ ∀ A : ★ . ∀ B : ★ .
   Π f : A ➔ B .
   Π xs : List · A .
-  ListP · B (imapCL · A · B f xs)
+  ListP · B (mapCL · A · B f xs)
   = Λ A . Λ B . λ f . λ xs .
   Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC .
   xs.1.2 · X · P
     -cN -(λ x . cC (f x))
     pN (Λ xsC . λ x . pC -xsC (f x)) .
 
-imapRL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . Π xs : List · A .
-  ListR · B (imapCL · A · B f xs)
+mapRL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . Π xs : List · A .
+  ListR · B (mapCL · A · B f xs)
   = Λ A . Λ B . λ f . elimList · A ·
-  (λ xs : List · A . ListR · B (imapCL · A · B f xs))
+  (λ xs : List · A . ListR · B (mapCL · A · B f xs))
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) . 
 
-imapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List · A ➔ List · B
+mapL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . List · A ➔ List · B
   = Λ A . Λ B . λ f . λ xs . mkList · B
-  [ imapCL · A · B f xs
-  , imapPL · A · B f xs ]
-  (imapRL · A · B f xs) .
-imapIdL ◂ imapL (λ x . x) ≃ λ x . x = β .
+  [ mapCL · A · B f xs
+  , mapPL · A · B f xs ]
+  -(mapRL · A · B f xs) .
+mapIdL ◂ mapL (λ x . x) ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (List · A)
-  = Λ A . Λ n . imapL · (Vec · A n) · (List · A) (v2l · A -n) .
+  = Λ A . Λ n . mapL · (Vec · A n) · (List · A) (v2l · A -n) .
 vs2lsIdL ◂ vs2lsL ≃ λ x . x = β .
 
 us2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (VecL · A n) ➔ List · (List · A)
-  = Λ A . Λ n . imapL · (VecL · A n) · (List · A)
+  = Λ A . Λ n . mapL · (VecL · A n) · (List · A)
     (u2l · A -n) .
 us2lsIdL ◂ us2lsL ≃ λ x . x = β .
 
 vs2usL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (VecL · A n)
-  = Λ A . Λ n . imapL · (Vec · A n) · (VecL · A n)
+  = Λ A . Λ n . mapL · (Vec · A n) · (VecL · A n)
     (v2u · A -n) .
 vs2usIdL ◂ vs2usL ≃ λ x . x = β .
 
@@ -64,7 +64,7 @@ v22lId ◂ v22l ≃ λ x . x = β .
 vss2lssL ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
   List · (Vec · (Vec · A n1) n2) ➔ List · (List · (List · A))
   = Λ A . Λ n1 . Λ n2 .
-  imapL · (Vec · (Vec · A n1) n2) · (List · (List · A))
+  mapL · (Vec · (Vec · A n1) n2) · (List · (List · A))
     (v22l · A -n1 -n2) .
 vss2lssIdL ◂ vss2lssL ≃ λ x . x = β .
 
