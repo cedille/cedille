@@ -1,0 +1,9 @@
+Cast ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
+       ι cast : A ➔ B . cast ≃ λ x . x.
+
+changeType ◂ ∀ A : ★ . ∀ B : ★ . Π a : A . ∀ b : B . (a ≃ b) ➾ B =
+  Λ A . Λ B . λ a . Λ b . Λ e . (χ (ι x : A . B) - [a,b{e}]).2 .
+
+cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =
+  Λ A . Λ B . Λ c . λ a . changeType · A · B a -(c.1 a) -(ρ c.2 - β).
+

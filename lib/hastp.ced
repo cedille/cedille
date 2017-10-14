@@ -1,0 +1,10 @@
+import top. 
+import sigma.
+
+hastp ◂ Top ➔ ★ ➔ ★ = λ t : Top. λ A : ★ . Sigma · A · (λ x : A . (t ≃ x)) .
+
+convtp ◂ Π t : Top . ∀ A : ★ . hastp t · A ➾ A =
+  λ t . Λ A . Λ u .
+    (χ (ι _ : Top . A) -
+    [ t , u.1 · A (λ a . λ e . a)
+      { θ<u> (ind-sigma · A · (λ x : A . (t ≃ x)) u) (λ a . λ b . b)  } ]).2 .
