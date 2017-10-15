@@ -1,0 +1,29 @@
+import nat.
+import bool.
+import recType.
+import cast.
+
+tpF ◂ ★ ➔ ★ = λ tp : ★ . ∀ X : ★ . (Nat ➔ X) ➔ (tp ➔ X ➔ tp ➔ X ➔ X) ➔ X .
+
+tpFmap ◂ RecFunctor · tpF =
+  Λ X . Λ Y . λ c . [ λ t . Λ Z . λ b . λ a . t · Z b (λ x1 . λ z1 . λ x2 . λ z2 . a (cast · X · Y -c x1) z1 (cast · X · Y -c x2) z2) ,
+                      β{λ x . x}]. 
+
+tp ◂ ★ = Rec · tpF .
+
+tpFold ◂ tpF · tp ➔ tp = λ x . cast · (tpF · tp) · tp -(recFold · tpF -tpFmap) x .
+
+tpUnfold ◂ tp ➔ tpF · tp = λ x . cast · tp · (tpF · tp) -(recUnfold · tpF -tpFmap) x .
+
+base ◂ Nat ➔ tp = λ n . tpFold (Λ X . λ b . λ a . b n) .
+
+arrow ◂ tp ➔ tp ➔ tp = λ t1 . λ t2 . tpFold (Λ X . λ b . λ a . a t1 (tpUnfold t1 · X b a) t2 (tpUnfold t2 · X b a)) .
+
+interpTp ◂ (Nat ➔ ★) ➔ tp ➔ ★ =
+  λ B : Nat ➔ ★ . λ T : tp .
+    ↑ X . tpUnfold T · X : ((Nat ➔ ☆) ➔ (tp ➔ ☆ ➔ tp ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : tp . λ S1 : ★ . λ _ : tp . λ S2 : ★ . S1 ➔ S2) .
+
+eqtp ◂ tp ➔ tp ➔ Bool =
+  λ T1 . tpUnfold T1 · (tp ➔ Bool) (λ n . λ T2 . tpUnfold T2 · Bool (λ m . eqnat n m) (λ _ . λ _ . λ _ . λ _ . ff) .
+
+eqtpEq ◂ Π T1 : tp . Π T2 : tp . (eqtp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .
