@@ -5,34 +5,46 @@ import top.
 zeroU ◂ Top = β{λ a . λ f . a}.
 sucU ◂ Top = β{λ p . λ n . λ a . λ f . f p (n a f)} .
 
-NatF ◂ ★ ➔ ★ = λ NatC : ★ .
-               ι x : ∀ X : ★ . Π z : X . (ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X) ➔ X .
-               x zeroU sucU ≃ x .
+NatF ◂ ★ ➔ ★ =
+  λ NatC : ★ .
+    ι x : ∀ X : ★ .
+      Π z : X .
+      (ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X) ➔
+      X .
+    x zeroU sucU ≃ x .
 
 NatFmap ◂ RecFunctor · NatF =
-  Λ X . Λ Y . λ c . [ λ n . [ Λ Z . λ z . λ s . n.1 · Z z (λ p . λ x . Λ e . s (cast · X · Y -c p) x -e),
-                              ρ+ n.2 - β{n} ] ,
-                      β{λ x . x}]. 
+  Λ X . Λ Y . λ c .
+    [ λ n . [ Λ Z . λ z . λ s .
+                n.1 · Z z (λ p . λ x . Λ e . s (cast · X · Y -c p) x -e),
+                ρ+ n.2 - β{n} ] ,
+              β{λ x . x}]. 
  
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 NatC ◂ ★ = Rec · NatF . 
 
-NatFold ◂ NatF · NatC ➔ NatC = λ x . cast · (NatF · NatC) · NatC -(recFold · NatF -NatFmap) x .
+NatFold ◂ NatF · NatC ➔ NatC =
+  λ x . cast · (NatF · NatC) · NatC -(recFold · NatF -NatFmap) x .
 
-NatUnfold ◂ NatC ➔ NatF · NatC = λ x . cast · NatC · (NatF · NatC) -(recUnfold · NatF -NatFmap) x .
+NatUnfold ◂ NatC ➔ NatF · NatC =
+  λ x . cast · NatC · (NatF · NatC) -(recUnfold · NatF -NatFmap) x .
 
 zeroC ◂ NatC = NatFold [Λ X . λ a . λ f . a , β{zeroU}].
 
 sucC ◂ Π p : NatC . Π n : NatC . (p ≃ n) ➾ NatC =
-  λ p . λ n . Λ e . NatFold [Λ X . λ a . λ f . f p ((NatUnfold n).1 · X a f) -(ρ e - β) , ρ+ (NatUnfold n).2 - β{sucU p n}].
+  λ p . λ n . Λ e .
+    NatFold [Λ X . λ a . λ f .
+               f p ((NatUnfold n).1 · X a f) -(ρ e - β) ,
+             ρ+ (NatUnfold n).2 - β{sucU p n}].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 NatP ◂ NatC ➔ ★ =
   λ n : NatC . ∀ X : ★ . ∀ P : X ➔ ★ .
     ∀ z : X . P z ➔
-    ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X . (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s n x -e)) ➔
+    ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X .
+      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s n x -e)) ➔
     P ((NatUnfold n).1 · X z s).
 
 zeroP ◂ NatP zeroC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
@@ -71,4 +83,6 @@ elimNat ◂
   P n
 =
   λ n . Λ P . λ pz . λ ps .
-    elimNati n · P pz (λ p . Λ n . Λ e . λ pn . ρ ς e - (ps (changeType · NatC · Nat p -n -e) (ρ e - pn))) .
+    elimNati n · P pz
+      (λ p . Λ n . Λ e . λ pn .
+        ρ ς e - (ps (changeType · NatC · Nat p -n -e) (ρ e - pn))) .
