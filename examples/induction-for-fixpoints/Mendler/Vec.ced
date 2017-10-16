@@ -48,24 +48,41 @@ VecFF ◂ ∀ A : ★ . IFunctor · NatM · (VecF · A) = Λ A .
 	          ((proj2 · NatM · (λ p : NatM . Product · (i ≃ (suc p)) · (Product · A · (X p))) pr))))))
              )))) .
 
+% I need to show that if we have f: Π i : NatM .  X i ➔ Y i, an i : NatM, a u
+
+lemma0 ◂ ∀ A : ★ . ∀ B : ★ . Π pr : Product · A · B . pair (fst pr) (snd pr) ≃ pr =
+           Λ A . Λ B . λ pr . ind-Product · A · B pr · (λ x : Product · A · B . pair (fst x) (snd x) ≃ x)
+	                      (λ a . λ b . β).
+
+lemma1 ◂ ∀ A : ★ . ∀ i : NatM . ∀ X : NatM ➔ ★ . Π s : (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p)))) .
+         (mkdsigma (proj1 s) (pair (fst (proj2 s)) (pair (fst (snd (proj2 s))) (snd (snd (proj2 s)))))) ≃ s =
+	 Λ A : ★ . Λ i : NatM . Λ X : NatM ➔ ★ . λ s .
+	   ind-sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) s
+	   · (λ s : Sigma · NatM · (λ p : NatM . (Product · (i ≃ (suc p)) · (Product · A · (X p)))) .
+	       (mkdsigma (proj1 s) (pair (fst (proj2 s)) (pair (fst (snd (proj2 s))) (snd (snd (proj2 s)))))) ≃ s)
+	       (λ a . λ b . εl (εr (ρ (proj1inv · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) a b)
+	                              -
+				      (ρ (proj2inv · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) a b) -
+				        (ρ (lemma0 · A · (X a) (snd · (i ≃ suc a) · (Product · A · (X a)) b)) -
+					  (ρ (lemma0 · (i ≃ suc a) · (Product · A · (X a)) b) - β)))))).
+
 VecFlaw1 ◂ ∀ A : ★ . IFunctorLaw1 · NatM · (VecF · A) (VecFF · A) =
   Λ A . Λ X . Λ Y . Λ f . λ i . λ u . Λ e . θ<u> (ind-Sum · (i ≃ zero)
       · (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p)))) u)
       (λ a . β)
-      (λ b . ind-sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b
-             · (λ s : Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) . VecFF i f (in2 s) ≃ (in2 s))
-	      (λ a . λ b' . ρ+ (e a (snd · A · (X a) (snd · (i ≃ suc a) · (Product · A · (X a)) b'))) - (εl β))).
+      (λ b . εl (εr (ρ (e (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b)
+                           (snd · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b)) (snd · (i ≃ (suc (proj1 b))) · (Product · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b))) (proj2 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b )))) -
+			   (ρ (lemma1 · A -i · X b) - β)))) .   
      
-      
 	
 VecM ◂ ★ ➔ NatM ➔ ★ = λ A : ★ . IFixIndM · NatM · (VecF · A) (VecFF · A) .
 
 
-Nil ◂ ∀ A : ★ .  VecM · A zero = Λ A . inIFixIndM · NatM · (VecF · A) (VecFF · A) -● zero (in1 · (zero ≃ zero) ·
+Nil ◂ ∀ A : ★ .  VecM · A zero = Λ A . inIFixIndM · NatM · (VecF · A) (VecFF · A) -(VecFlaw1 · A) zero (in1 · (zero ≃ zero) ·
          (Sigma · NatM · (λ p : NatM . Product · (zero ≃ suc p) · (Product · A · (VecM · A p)))) β) .
 
 Cons ◂ ∀ A : ★ . Π n : NatM . A ➔ (VecM · A n) ➔ (VecM · A (suc n)) =
-         Λ A . λ n . λ a . λ vs . inIFixIndM · NatM · (VecF · A) (VecFF · A) -● (suc n)
+         Λ A . λ n . λ a . λ vs . inIFixIndM · NatM · (VecF · A) (VecFF · A) -(VecFlaw1 · A) (suc n)
 	 (in2 · ((suc n) ≃ zero)
 	      · (Sigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (VecM · A p))))
 	     (mkdsigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (VecM · A p))) n
