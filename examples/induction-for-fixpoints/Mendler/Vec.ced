@@ -13,28 +13,70 @@ import Nat.
 
 VecF ◂ ★ ➔ (NatM ➔ ★) ➔ (NatM ➔ ★) =
   λ A : ★ . λ Vec : NatM ➔ ★ . λ n : NatM .
-  Sum · (n ≃ zero) · (Sigma · NatM · (λ p : NatM . Product · (n ≃ suc p) · (Product · A · (Vec p)))) .
+  Sum · (n ≃ zero)
+      · (Sigma · NatM · (λ p : NatM . Product · (n ≃ suc p) · (Product · A · (Vec p)))) .
 
-mVec ◂ ★ ➔ NatM ➔ ★ = λ A : ★ . IFixM · NatM · (VecF · A).
-
-mNil ◂ ∀ A : ★ .  mVec · A zero = Λ A . inIM · NatM · (VecF · A) zero (in1 · (zero ≃ zero) ·
-         (Sigma · NatM · (λ p : NatM . Product · (zero ≃ suc p) · (Product · A · (mVec · A p)))) β) .
-
-mCons ◂ ∀ A : ★ . Π n : NatM . A ➔ (mVec · A n) ➔ (mVec · A (suc n)) =
-         Λ A . λ n . λ a . λ vs . inIM · NatM · (VecF · A) (suc n)
-	 (in2 · ((suc n) ≃ zero)
-	     · (Sigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (mVec · A p))))
-	     (mkdsigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (mVec · A p))) n
-	       (pair · (suc n ≃ suc n) · (Product · A · (mVec · A n))
-	         β
-		 (pair · A · (mVec · A n) a vs)))
-	      ).
+% "let" isn't working here. yikes
 
 VecFF ◂ ∀ A : ★ . IFunctor · NatM · (VecF · A) = Λ A .
   Λ X . Λ Y . λ i . λ c . λ v .
-    θ<i> (NatInd i)
-         (Λ x . λ ih .
-	   ●
-	   (in1 · (zero ≃ zero) · (Sigma · NatM · (λ p : NatM . (Product · (zero ≃ (suc p)) · (Product · A · (Y p))))) β) .
+   
+    v.1 · (VecF · A · Y i)
+       (λ e . in1 · (i ≃ zero) · (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (Y p)))) e)
+       (λ pr .
+          let pred = (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr) in
+       in2 · (i ≃ zero) · (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (Y p))))
+         (mkdsigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (Y p)))
+	   (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)
+          (pair · (i ≃ suc (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)) · (Product · A · (Y (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)))
+	    (fst ·
+	      (i ≃ suc (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)) ·
+	      (Product · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)))
+	        (proj2 · NatM · (λ p : NatM . Product · (i ≃ (suc p)) · (Product · A · (X p))) pr))
+            (pair · A · (Y (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr))
+	      (fst · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr))
+	        ((snd ·
+	          (i ≃ suc (proj1 pr)) ·
+	          (Product · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)))
+	          (proj2 · NatM · (λ p : NatM . Product · (i ≃ (suc p)) · (Product · A · (X p))) pr))))
+	      (c (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)
+%(proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)
+	        (snd · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr))
+	        ((snd ·
+	          (i ≃ suc (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)) ·
+	          (Product · A · (X (proj1 · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) pr)))
+	          ((proj2 · NatM · (λ p : NatM . Product · (i ≃ (suc p)) · (Product · A · (X p))) pr))))))
+             )))) .
 
-VecM ◂ NatM ➔ ★ = IFixIndM · NatM · VecF ● .
+VecFlaw1 ◂ ∀ A : ★ . IFunctorLaw1 · NatM · (VecF · A) (VecFF · A) =
+  Λ A . Λ X . Λ Y . Λ f . λ i . λ u . Λ e . θ<u> (ind-Sum · (i ≃ zero)
+      · (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p)))) u)
+      (λ a . β)
+      (λ b . ind-sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) b
+             · (λ s : Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (X p))) . VecFF i f (in2 s) ≃ (in2 s))
+	      (λ a . λ b' . ρ+ (e a (snd · A · (X a) (snd · (i ≃ suc a) · (Product · A · (X a)) b'))) - (εl β))).
+     
+      
+	
+VecM ◂ ★ ➔ NatM ➔ ★ = λ A : ★ . IFixIndM · NatM · (VecF · A) (VecFF · A) .
+
+
+Nil ◂ ∀ A : ★ .  VecM · A zero = Λ A . inIFixIndM · NatM · (VecF · A) (VecFF · A) -● zero (in1 · (zero ≃ zero) ·
+         (Sigma · NatM · (λ p : NatM . Product · (zero ≃ suc p) · (Product · A · (VecM · A p)))) β) .
+
+Cons ◂ ∀ A : ★ . Π n : NatM . A ➔ (VecM · A n) ➔ (VecM · A (suc n)) =
+         Λ A . λ n . λ a . λ vs . inIFixIndM · NatM · (VecF · A) (VecFF · A) -● (suc n)
+	 (in2 · ((suc n) ≃ zero)
+	      · (Sigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (VecM · A p))))
+	     (mkdsigma · NatM · (λ p : NatM . Product · ((suc n) ≃ (suc p)) · (Product · A · (VecM · A p))) n
+	       (pair · (suc n ≃ suc n) · (Product · A · (VecM · A n))
+	         β
+		 (pair · A · (VecM · A n) a vs)))
+	      ).
+
+
+% derive this your InductionFixIndM
+%flatInductionVecM ◂
+%  Q Nil
+%  Q (Q vs -> Q (cons v vs))
+%  Π vs. Q vs
