@@ -318,6 +318,10 @@ binder-data n = "binder" , ℕ-to-string n
 binder-data-const : tagged-val
 binder-data-const = binder-data 0
 
+bound-data : defTermOrType → ctxt → tagged-val
+bound-data (DefTerm pi v mtp t) Γ = "bound-value" , to-string Γ t
+bound-data (DefType pi v k tp) Γ = "bound-value" , to-string Γ tp
+
 punctuation-data : tagged-val
 punctuation-data = "punctuation" , "true"
 
@@ -659,4 +663,4 @@ Omega-span : posinfo → term → checking-mode → 𝕃 tagged-val → span
 Omega-span pi t c tvs = mk-span "Omega term" pi (term-end-pos t) (explain "A weak form of extensionality: derive an equation between lambda-abstractions from a ∀-quantified equation." :: ll-data-term :: checking-data c :: tvs)
 
 Let-span : ctxt → checking-mode → posinfo → defTermOrType → term → 𝕃 tagged-val → span
-Let-span Γ c pi d t' tvs = mk-span "Let-term" pi (term-end-pos t') (binder-data-const :: ll-data-term :: checking-data c :: tvs)
+Let-span Γ c pi d t' tvs = mk-span "Let-term" pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)

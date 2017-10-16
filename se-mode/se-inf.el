@@ -56,7 +56,7 @@ to be sent to the backend to request parsing of that file."))
    "Non-nil when an interactive call is running"))
 
 (make-variable-buffer-local
- (defvar se-inf-pre-parse-hook (list #'save-buffer #'se-inf-remove-overlays)
+ (defvar se-inf-pre-parse-hook (list #'se-inf-save #'se-inf-remove-overlays)
    "Functions to be evaluated before parse request."))
 
 (make-variable-buffer-local
@@ -251,6 +251,13 @@ buffer's file unless FILE is non-nil."
   (setq se-inf-response-finished nil)
   (let ((ms (se-inf-get-message-from-filename (or file (se-inf-filename)))))
     (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing")))
+
+(defun se-inf-save ()
+  "Saves the current buffer"
+  (interactive)
+  (when (buffer-file-name)
+    (with-silent-modifications
+      (save-buffer))))
 
 (defun se-inf-filename ()
   "Gets the filename of the current buffer (see `se-inf-filename')"

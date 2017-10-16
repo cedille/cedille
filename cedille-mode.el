@@ -106,6 +106,7 @@ Defaults to `error'."
       (let ((sw (selected-window)))
 	(setq window (split-window (selected-window))))
       (set-window-buffer window (or buffer (buffer-name))))
+    ;(minimize-window window)
     window))
 
 (defun cedille-mode-toggle-buffer-display(buffer)
@@ -121,15 +122,55 @@ Defaults to `error'."
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
-  (walk-windows (lambda (window) (fit-window-to-buffer window))))
+  ;(walk-windows (lambda (window) (fit-window-to-buffer window))))
+  (let* ((w (cedille-mode-file-windows))
+	 (fw (car w))
+	 (nfw (cdr w)))
+    (unless (equal 1 (+ (length fw) (length nfw)))
+      (if (equal 1 (length fw))
+	  (walk-windows (lambda (window) (fit-window-to-buffer window)))
+	(while (not (null nfw))
+	  (fit-window-to-buffer (pop nfw)))
+	(when fw
+	  (cedille-mode-set-windows-height fw (cedille-mode-mean-window-size fw)))))))
 
-;(defun cedille-mode-rebalance-buffer-window (&optional buffer)
-;  "Resizes BUFFER's window"
-;  (let ((buffer (or buffer (current-buffer)))
-;	(window (get-buffer-window buffer)))
-;    (when (window-live-p window)
-;      (with-selected-window window
-;	(fit-window-to-buffer)))))
+;  (let (bw)
+;    (walk-windows (lambda (window)
+;		    (unless (eq window (frame-root-window))
+;		      (if (buffer-file-name (window-buffer window))
+;			  (push window bw)
+;			(fit-window-to-buffer window)))))
+;    (if bw
+;	(cedille-mode-set-windows-height bw (cedille-mode-mean-window-size bw))
+;      (with-selected-window (frame-root-window)
+;	(with-current-buffer (window-buffer)
+;	  (fit-window-to-buffer))))))
+
+(defun cedille-mode-file-windows ()
+  "Returns (cons FILE-WINDOWS NOT-FILE-WINDOWS)"
+  (let (fw nfw)
+    (walk-windows (lambda (window)
+		    (if (buffer-file-name (window-buffer window))
+			(push window fw)
+		      (push window nfw))))
+    (cons fw nfw)))
+
+(defun cedille-mode-mean-window-size (windows)
+  "Calculates the mean size of WINDOWS"
+  (round (/ (cedille-mode-mean-window-size-h windows 0) (float (length windows)))))
+
+(defun cedille-mode-mean-window-size-h (windows size)
+  "Helper for `cedille-mode-mean-window-size'"
+  (if (null windows) size
+    (cedille-mode-mean-window-size-h (cdr windows) (+ size (window-body-size (car windows))))))
+
+(defun cedille-mode-set-windows-height (windows height)
+  "Sets each window in WINDOWS to be HEIGHT lines high"
+  (when windows
+    (let* ((window (car windows))
+	   (height (max height (window-min-size window))))
+      (window-resize window (- height (window-body-size window))))
+    (cedille-mode-set-windows-height (cdr windows) height)))
 
 (defun cedille-mode-split-window ()
   (interactive)
@@ -243,7 +284,7 @@ start of each string, and then strip out that number."
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
-                   (eq key 'summary) (eq key 'binder) (eq key 'keywords) (eq key 'erasure))
+                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'erasure))
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)

@@ -80,7 +80,7 @@
     (erase-buffer)
     (insert display-string)
     (setq buffer-read-only t))
-  ;(cedille-mode-rebalance-buffer-window (cedille-mode-summary-buffer-name)))
+    ;(fit-window-to-buffer))
   (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-summary ()

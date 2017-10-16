@@ -30,8 +30,9 @@
 (defvar cedille-mode-filtered-context-list nil)
 (defvar cedille-mode-sorted-context-list nil)
 
-(defvar cedille-mode-global-context nil
-  "The global context surrounding the current file/buffer (used by the beta-reduction buffer")
+(make-variable-buffer-local
+ (defvar cedille-mode-global-context nil
+   "The global context surrounding the current file/buffer (used by the beta-reduction buffer)"))
 
 ;;; There are three context lists:
 ;;; 1. The original list (original)
@@ -244,6 +245,7 @@ which currently consists of:\n
 			     (mapcar add-is-unshadowed-p list))))))
     (dolist (node (butlast path) (when (or terms types) (cons (funcall add-shadowed terms) (funcall add-shadowed types))))  
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
+	    (bound-value (cdr (assoc 'bound-value (se-term-data node))))
 	    (children (se-node-children node)))
 	;; for each node in the path, only try to add it to the context if it binds something
 	(when (and binder children)
@@ -269,6 +271,7 @@ which currently consists of:\n
 		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) ; number of symbols shadowed by this one
 			   (data (list 
 				  (cons 'value value-source) 		; the value displayed for the entry
+				  (cons 'bound-value bound-value) ; the bound value of the variable (only used in let expressions)
 				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
 				  (cons 'location location)             ; the location of the definition; used in other files, but not this one (added by Colin McDonald for normalization/erasure tool)
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
@@ -385,7 +388,6 @@ which currently consists of:\n
 (defun cedille-mode-context()
   (cedille-mode-compute-context)
   (cedille-mode-display-context)
-  ;(cedille-mode-rebalance-buffer-window (cedille-mode-context-buffer-name)))
   (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (se-inf-filename-base) "*"));(file-name-base (buffer-name)) "*"))

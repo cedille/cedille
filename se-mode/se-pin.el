@@ -52,9 +52,9 @@
   (let ((n (if (se-pin-bufferp object) 1 0))
 	(end (- end 1)))
     (when (and (<= start end) (>= start n) (>= end n))
-      (setq starts (car (se-pin-get-starts-ends start symbol object)))
-      (setq ends (cdr (se-pin-get-starts-ends end symbol object)))
-      (cdr (se-pin-get-pairs starts ends object)))))
+      (setq starts (car (se-pin-get-starts-ends start symbol object))
+	    ends (cdr (se-pin-get-starts-ends end symbol object)))
+      (cdr (se-pin-get-pairs starts ends object t)))))
 
 (defun se-unpin (object &optional start end id string-or-buffer)
   "Removes a pin. OBJECT should either be a pin or a symbol (in which case start and end are required, but not ID unless you want to only clear that specific id). STRING-OR-BUFFER should, as the name implies, be nil (defaulting to the current buffer), a string, or a buffer ;)."
@@ -117,7 +117,6 @@
 (defun se-pin-remove-props (unused &optional object)
   "Removes all unused start and end pins"
   (when unused
-    (message "se-pin-remove-props: %s" unused)
     (let* ((h (car unused))
 	   (prop (car h))
 	   (pos (nth 1 h))
@@ -125,7 +124,8 @@
 	   (id (se-pin-prop-id prop))
 	   (new-props (se-pins-without-symbol symbol pos id object)))
       (with-silent-modifications
-	(put-text-property pos (+ 1 pos) 'se-pin new-props object)))))
+	(put-text-property pos (+ 1 pos) 'se-pin new-props object))
+      (se-pin-remove-props (cdr unused) object))))
 
 (defun se-get-pins-h (symbol pos end pins starts object)
   "Helper for `se-get-pins'"
@@ -144,21 +144,21 @@
 	    pins (append (cdr pin-pairs) pins)))
     (se-get-pins-h symbol pos end pins starts object)))
 
-(defun se-pin-get-pairs (starts ends object)
+(defun se-pin-get-pairs (starts ends object &optional no-remove)
   "Pairs start and end pins"
-  (se-pin-get-pairs-h starts ends '() object))
+  (se-pin-get-pairs-h starts ends '() object no-remove))
 
-(defun se-pin-get-pairs-h (starts ends pairs object)
+(defun se-pin-get-pairs-h (starts ends pairs object no-remove)
   "Helper for `se-pin-get-pairs'"
   (if (not (and starts ends))
       (cons starts pairs)
       (setq h (car ends)
 	    pair (se-pin-get-pair starts h))
       (if (null (car pair))
-	  (se-pin-remove-props (list h))
+	  (unless no-remove (se-pin-remove-props (list h)))
 	(setq pairs (cons (car pair) pairs)
 	      starts (cdr pair)))
-      (se-pin-get-pairs-h starts (cdr ends) pairs object)))
+      (se-pin-get-pairs-h starts (cdr ends) pairs object no-remove)))
 
 (defun se-pin-get-pair (starts end)
   "Finds a pair for end in starts"

@@ -72,6 +72,7 @@
 	    sep (se-inf-filename)
 	    sep (if head "tt" "ff")
 	    sep (if add-parens "tt" "ff")
+	    sep (if add-to-pos "tt" "ff")
 	    (cedille-mode-normalize-local-context-param span))))
 
 (defun cedille-mode-erase-request-text(span)
@@ -104,12 +105,16 @@
 	 (out ""))
     (while terms
       (let* ((item (pop terms))
-	     (loc (funcall split item)))
-	(setq out (concat out sep "term" sep (car item) sep (se-markup-propertize (cdr (assoc 'value item))) sep (car loc) sep (cdr loc)))))
+	     (loc (funcall split item))
+	     (value (se-markup-propertize (cdr (assoc 'value item))))
+	     (bv (se-markup-propertize (or (cdr (assoc 'bound-value item)) ""))))
+	(setq out (concat out sep "term" sep (car item) sep bv sep value sep (car loc) sep (cdr loc)))))
     (while types
       (let* ((item (pop types))
-	     (loc (funcall split item)))
-	(setq out (concat out sep "type" sep (car item) sep (se-markup-propertize (cdr (assoc 'value item))) sep (car loc) sep (cdr loc)))))
+	     (loc (funcall split item))
+	     (value (se-markup-propertize (cdr (assoc 'value item))))
+	     (bv (se-markup-propertize (or (cdr (assoc 'bound-value item)) ""))))
+	(setq out (concat out sep "type" sep (car item) sep bv sep value sep (car loc) sep (cdr loc)))))
     out))
 
 (defun cedille-mode-normalize-shadow-filter(lst)

@@ -395,20 +395,37 @@ check-termi (Let pi d t) mtp =
         add-def (DefTerm pi₁ x NoCheckType t') =
            check-term t' nothing ≫=span λ m → get-ctxt λ Γ → cont (hnf Γ unfold-head t' tt) m
           where cont : term → maybe type → spanM (var × maybe sym-info)
-                cont t' (just T) = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
+                {- Begin code to fix let definition variable highlighting (part 1/2) -}
+                cont t' (just T) = spanM-push-term-def pi₁ x t' T ≫=span λ m →
+                                     get-ctxt λ Γ → 
+                                       spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
+                                     spanMr (x , m)
+                cont t' nothing = spanM-push-term-udef pi₁ x t' ≫=span λ m →
+                                    get-ctxt λ Γ →
+                                      spanM-add (Var-span Γ pi₁ x synthesizing []) ≫span
+                                    spanMr (x , m)
+                {- End code -}
+                {- Used to be: -}
+                {-cont t' (just T) = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing [ type-data Γ T ]) ≫span
                                                spanM-push-term-def pi₁ x t' T ≫=span λ m → spanMr (x , m) 
                 cont t' nothing = get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x synthesizing []) ≫span
-                                              spanM-push-term-udef pi₁ x t' ≫=span λ m → spanMr (x , m) 
+                                              spanM-push-term-udef pi₁ x t' ≫=span λ m → spanMr (x , m)-}
         add-def (DefTerm pi₁ x (Type T) t') =
           check-type T (just star) ≫span
           check-term t' (just T) ≫span 
           spanM-push-term-def pi₁ x t' T ≫=span λ m →
           get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x checking [ type-data Γ T ]) ≫span
-          spanMr (x , m) 
+          spanMr (x , m)
         add-def (DefType pi x k T) =
           check-type T (just k) ≫span
+          {- Begin code to fix let definition variable highlighting (part 2/2) -}
+          spanM-push-type-def pi x T k ≫=span λ m →
           get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k ]) ≫span
-          spanM-push-type-def pi x T k ≫=span λ m → spanMr (x , m) 
+          spanMr (x , m)
+          {- End code -}
+          {- Used to be: -}
+          {-get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k ]) ≫span
+          spanM-push-type-def pi x T k ≫=span λ m → spanMr (x , m)-}
 
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span

@@ -7,7 +7,6 @@
   `(lambda()
      (interactive)
      (with-current-buffer (current-buffer)
-       ;(cedille-mode-unfix-all-window-sizes)
        (window-resize nil ,amount))))
 
 (defmacro cedille-mode-parent-region-cmd (region-cmd)
@@ -21,10 +20,9 @@
 (defun cedille-mode-unlock-current-window-size()
   "Allows selected window to be resized, then restores it to the minimal size"
   (interactive)
-  (with-current-buffer (current-buffer)
-    ;(cedille-mode-unfix-all-window-sizes)
-    (fit-window-to-buffer)))
-    ;(cedille-mode-fix-all-window-sizes)))
+  (cedille-mode-rebalance-windows))
+  ;(with-current-buffer (current-buffer)
+  ;  (fit-window-to-buffer)))
 
 (defvar cedille-mode-minor-mode-parent-keymap
   (let ((map (make-sparse-keymap)))

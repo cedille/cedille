@@ -8,6 +8,7 @@ module untyped-spans where
 open import cedille-types
 open import spans
 open import syntax-util
+open import to-string
 
 
 sloc = "location"
@@ -21,21 +22,90 @@ scmd = "cmd"
 
 {- Helper functions -}
 
-get-loc-h : var → ctxt → 𝕃 tagged-val
+get-loc-h : var → ctxt → tagged-val
 
-get-loc : var → spanM (𝕃 tagged-val)
-get-loc v = get-ctxt (λ Γ →
-  spanMr (get-loc-h v Γ))
+get-loc : var → spanM tagged-val
+get-loc v = get-ctxt (λ Γ → spanMr (get-loc-h v Γ))
 
 get-loc-h v Γ with ctxt-get-info v Γ
-get-loc-h v Γ | just (_ , (fp , pos)) = (sloc , fp ^ " - " ^ pos) :: []
-get-loc-h v Γ | nothing = []
+get-loc-h v Γ | just (_ , (fp , pos)) = (sloc , fp ^ " - " ^ pos)
+get-loc-h v Γ | nothing = (sloc , "missing - missing")
 
 defTermOrType-start-pos : defTermOrType → posinfo
 defTermOrType-start-pos (DefTerm pi _ _ _) = pi
 defTermOrType-start-pos (DefType pi _ _ _) = pi
 
-{- TODO: Add "binder" to binding terms/types/kinds -}
+ll-term-tv : tagged-val
+ll-term-tv = sll , sterm
+
+type-tv : tagged-val
+type-tv = stype , "[erased]"
+
+symbol-tv : string → tagged-val
+symbol-tv s = "symbol" , s
+
+
+erased-spans : term → spanM ⊤
+error-spans : string → spanM ⊤
+error-spans s = λ Γ → λ ss → triv , Γ , (global-error s nothing)
+
+inc-pi : posinfo → posinfo
+inc-pi pi = posinfo-plus pi 1
+
+put-span : posinfo → posinfo → 𝕃 tagged-val → spanM ⊤
+put-span pi pi' tv = spanM-add (mk-span "" (inc-pi pi) (inc-pi pi') (ll-term-tv :: tv))
+
+pi-plus-span : posinfo → string → 𝕃 tagged-val → spanM ⊤
+pi-plus-span pi s tv = put-span pi (posinfo-plus-str pi s) tv
+
+inc-span : posinfo → 𝕃 tagged-val → spanM ⊤
+inc-span pi = put-span pi (inc-pi pi)
+
+optTerm-span : optTerm → spanM ⊤
+optTerm-span NoTerm = spanMok
+optTerm-span (SomeTerm t pi) = erased-spans t
+
+erased-var-span : posinfo → var → spanM ⊤
+erased-var-span pi v = get-loc v ≫=span λ loc →
+  pi-plus-span pi v (type-tv :: symbol-tv v :: loc :: [])
+
+defTermOrType-span : defTermOrType → spanM ⊤
+defTermOrType-span (DefTerm pi x m t) = erased-var-span pi x ≫span erased-spans t
+defTermOrType-span (DefType pi x k tp) = error-spans "Type is defined!"
+
+get-defTermOrType-pi-v : defTermOrType → (posinfo × var)
+get-defTermOrType-pi-v (DefTerm pi x _ _) = pi , x
+get-defTermOrType-pi-v _ = "" , ""
+
+
+{-# TERMINATING #-}
+erased-spans (App t me t') = put-span (term-start-pos t) (term-end-pos t') [] ≫span
+  erased-spans t ≫span erased-spans t'
+erased-spans (Beta pi ot) = optTerm-span ot
+erased-spans (Hole pi) = inc-span pi []
+erased-spans (Lam pi l pi' v oc t) =
+  put-span pi (term-end-pos t) (binder-data-const :: []) ≫span
+  get-ctxt (λ Γ →
+    let Γ' = ctxt-var-decl pi' v Γ in
+      set-ctxt Γ' ≫span
+      erased-var-span pi' v ≫span
+      erased-spans t ≫span
+      set-ctxt Γ)
+erased-spans (Let pi dtt t) =
+  get-ctxt (λ Γ →
+    put-span pi (term-end-pos t) (binder-data-const :: bound-data dtt Γ :: []) ≫span
+    let pi-v = get-defTermOrType-pi-v dtt in
+      let Γ' = ctxt-var-decl (fst pi-v) (snd pi-v) Γ in
+        set-ctxt Γ' ≫span
+        defTermOrType-span dtt ≫span
+        erased-spans t ≫span
+        set-ctxt Γ)
+erased-spans (Parens _ t _) = erased-spans t
+erased-spans (Var pi v) = erased-var-span pi v
+erased-spans t = error-spans ("Unknown term: " ^ (ParseTreeToString (parsed-term t))
+  ^ ", " ^ (to-string (new-ctxt "") t) ^ " (untyped-spans.agda)")
+
+{-
 
 untyped-term : term → spanM ⊤
 untyped-type : type → spanM ⊤
@@ -159,3 +229,4 @@ untyped-cmd (DefKind pi kv pms k pi') = pi-plus-span pi kv skind ≫span put-spa
 {- TODO: Implement params spans ↑↑↑ -}
 untyped-cmd (DefTermOrType dtt pi) = defTermOrType-span dtt ≫span put-span (defTermOrType-start-pos dtt) pi scmd
 untyped-cmd (Import pi fp pi') = put-span pi pi' scmd
+-}

@@ -36,7 +36,6 @@ the info buffer for the file.  Return the info buffer as a convenience."
 	(insert txt)
 	(setq buffer-read-only t)
 	(goto-char 1))
-	;(cedille-mode-rebalance-buffer-window))
       (cedille-mode-rebalance-windows)
       (setq deactivate-mark nil)
       buffer)))
