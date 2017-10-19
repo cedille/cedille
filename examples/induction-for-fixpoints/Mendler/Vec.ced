@@ -78,7 +78,7 @@ VecFlaw1 ◂ ∀ A : ★ . IFunctorLaw1 · NatM · (VecF · A) (VecFF · A) =
 VecM ◂ ★ ➔ NatM ➔ ★ = λ A : ★ . IFixIndM · NatM · (VecF · A) (VecFF · A) .
 
 
-Nil ◂ ∀ A : ★ .  VecM · A zero = Λ A . inIFixIndM · NatM · (VecF · A) (VecFF · A) -(VecFlaw1 · A) zero (in1 · (zero ≃ zero) ·
+Nil ◂ ∀ A : ★ . Unit ➔ VecM · A zero = Λ A . λ u . inIFixIndM · NatM · (VecF · A) (VecFF · A) -(VecFlaw1 · A) zero (in1 · (zero ≃ zero) ·
          (Sigma · NatM · (λ p : NatM . Product · (zero ≃ suc p) · (Product · A · (VecM · A p)))) β) .
 
 Cons ◂ ∀ A : ★ . Π n : NatM . A ➔ (VecM · A n) ➔ (VecM · A (suc n)) =
@@ -92,8 +92,22 @@ Cons ◂ ∀ A : ★ . Π n : NatM . A ➔ (VecM · A n) ➔ (VecM · A (suc n))
 	      ).
 
 
-% derive this your InductionFixIndM
+% derive this your InductionFixIndMg
 %flatInductionVecM ◂
 %  Q Nil
 %  Q (Q vs -> Q (cons v vs))
 %  Π vs. Q vs
+
+
+VecInd ◂ ∀ A : ★ . ∀ Q : (Π n : NatM . VecM · A n ➔ ★) .
+         Q zero (Nil · A unit) ➔
+	 (Π m : NatM . ∀ vs : VecM · A m . ∀ a : A . Q m vs ➔ Q (suc m) (Cons · A m a vs)) ➔
+	 Π n : NatM . Π vs : VecM · A n . Q n vs =
+	 Λ A . Λ Q . λ n . λ c .
+	   InductionFixIndM · NatM · (VecF · A) (VecFF · A) (VecFlaw1 · A) · Q
+	     (Λ R . Λ cast . Λ castId . λ ih . λ i . λ vf .
+	      θ<vf> (ind-Sum · (i ≃ zero) · (Sigma · NatM · (λ p : NatM . (Product · (i ≃ (suc p)) · (Product · A · (R p))))) vf)
+	      (λ u . ρ (VecFlaw1 · A · R · (VecM · A) -cast i (in1 · (i ≃ zero) · (Sigma · NatM · (λ p : NatM . Product · (i ≃ suc p) · (Product · A · (R p)))) u) -castId) -
+	             (ρ u - n))
+	      (λ b . ●) .
+	  
