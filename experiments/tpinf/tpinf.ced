@@ -10,4 +10,5 @@ tpinf ◂ ∀ B : Nat ➔ ★ .
         Π t : trm . Π T : tp .
           hastp (interp t.1) · (interpTp · B T) =
    Λ B . λ compileFail . λ t . 
-     t.2 · Top · (λ x : Top . Π T : tp . hastp x · (interpTp · B T)) -(λ f . β{f}) (Λ f . λ r . ●).
+     t.2 · Top · (λ x : Top . Π T : tp . hastp x · (interpTp · B T)) -(λ f . β{f})
+        (Λ f . λ r . λ T . ●).

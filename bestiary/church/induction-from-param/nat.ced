@@ -1,4 +1,10 @@
-import base.
+cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X.
+cZ ◂ cNat = Λ X . λ s . λ z . z .
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+
+UnaryParam ◂ cNat ➔ ★ =
+  λ x : cNat . ∀ A : ★ . ∀ R : A ➔ ★ . ∀ f : A ➔ A .
+    (∀ a : A . R a ➔ R (f a)) ➔ (∀ a : A . R a ➔ R (x · A f a)).
 
 Nat ◂ ★ = ι x : cNat . ι u : (x cS cZ ≃ x) . UnaryParam x .
 

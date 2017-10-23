@@ -502,18 +502,20 @@ check-termi (Beta pi ot) (just (TpEq t1 t2)) =
   var-spans-optTerm ot ≫span
   get-ctxt (λ Γ → 
     if conv-term Γ t1 t2 then
-      spanM-add (Beta-span pi checking [ type-data Γ (TpEq t1 t2) ])
+      spanM-add (Beta-span pi (optTerm-end-pos pi ot)
+                   checking [ type-data Γ (TpEq t1 t2) ])
     else
-      spanM-add (Beta-span pi checking (error-data "The two terms in the equation are not β-equal" :: [ expected-type Γ (TpEq t1 t2) ])))
+      spanM-add (Beta-span pi (optTerm-end-pos pi ot)
+                  checking (error-data "The two terms in the equation are not β-equal" :: [ expected-type Γ (TpEq t1 t2) ])))
 
 check-termi (Beta pi ot) (just tp) = 
   get-ctxt (λ Γ → 
    var-spans-optTerm ot ≫span
-   spanM-add (Beta-span pi checking (error-data "The expected type is not an equation." :: [ expected-type Γ tp ])))
+   spanM-add (Beta-span pi (optTerm-end-pos pi ot) checking (error-data "The expected type is not an equation." :: [ expected-type Γ tp ])))
 
 check-termi (Beta pi ot) nothing = 
   var-spans-optTerm ot ≫span
-  spanM-add (Beta-span pi synthesizing [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
+  spanM-add (Beta-span pi (optTerm-end-pos pi ot) synthesizing [ error-data "An expected type is required in order to type a use of β." ]) ≫span spanMr nothing
 
 check-termi (Delta pi t) (just tp) = 
   check-term t nothing ≫=span cont ("A delta-term is being used to derive a contradiction, but its subterm "

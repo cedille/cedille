@@ -1,5 +1,9 @@
 To install Cedille version 1.0:
 
+0. install Agda version 2.5.x, which is needed to compile Cedille.
+   Please note that Cedille currently does not work on Windows, only
+   Linux and Mac (though Windows support should be available soon).
+
 1. check out a copy of the Iowa Agda Library (probably best to do this
    in some other directory):
 

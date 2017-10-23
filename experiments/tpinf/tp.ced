@@ -2,28 +2,80 @@ import nat.
 import bool.
 import recType.
 import cast.
+import top.
 
-tpF ◂ ★ ➔ ★ = λ tp : ★ . ∀ X : ★ . (Nat ➔ X) ➔ (tp ➔ X ➔ tp ➔ X ➔ X) ➔ X .
+baseU ◂ Top = β{λ a . λ f . a}.
+arrowU ◂ Top = β{λ p1 . λ n1 . λ p2 . λ n2 . λ a . λ f . f p1 (n1 a f) p2 (n2 a f)} .
 
-tpFmap ◂ RecFunctor · tpF =
-  Λ X . Λ Y . λ c . [ λ t . Λ Z . λ b . λ a . t · Z b (λ x1 . λ z1 . λ x2 . λ z2 . a (cast · X · Y -c x1) z1 (cast · X · Y -c x2) z2) ,
-                      β{λ x . x}]. 
+TpF ◂ ★ ➔ ★ =
+  λ TpC : ★ .
+    ι x : ∀ X : ★ .
+      Π z : X .
+      (ι s : Top . Π p1 : TpC . Π x1 : X . (p1 z s ≃ x1) ➾ Π p2 : TpC . Π x2 : X . (p2 z s ≃ x2) ➾ X) ➔
+      X .
+    x baseU arrowU ≃ x .
 
-tp ◂ ★ = Rec · tpF .
+TpFmap ◂ RecFunctor · TpF =
+  Λ X . Λ Y . λ c .
+    [ λ n . [ Λ Z . λ z . λ s .
+                n.1 · Z z (λ p1 . λ x1 . Λ e1 . λ p2 . λ x2 . Λ e2 .
+                            s (cast · X · Y -c p1) x1 -e1 (cast · X · Y -c p2) x2 -e2),
+                ρ+ n.2 - β{n} ] ,
+              β{λ x . x}]. 
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
-tpFold ◂ tpF · tp ➔ tp = λ x . cast · (tpF · tp) · tp -(recFold · tpF -tpFmap) x .
+TpC ◂ ★ = Rec · TpF . 
 
-tpUnfold ◂ tp ➔ tpF · tp = λ x . cast · tp · (tpF · tp) -(recUnfold · tpF -tpFmap) x .
+TpFold ◂ TpF · TpC ➔ TpC =
+  λ x . cast · (TpF · TpC) · TpC -(recFold · TpF -TpFmap) x .
 
-base ◂ Nat ➔ tp = λ n . tpFold (Λ X . λ b . λ a . b n) .
+TpUnfold ◂ TpC ➔ TpF · TpC =
+  λ x . cast · TpC · (TpF · TpC) -(recUnfold · TpF -TpFmap) x .
 
-arrow ◂ tp ➔ tp ➔ tp = λ t1 . λ t2 . tpFold (Λ X . λ b . λ a . a t1 (tpUnfold t1 · X b a) t2 (tpUnfold t2 · X b a)) .
+baseC ◂ TpC = TpFold [Λ X . λ a . λ f . a , β{baseU}].
 
-interpTp ◂ (Nat ➔ ★) ➔ tp ➔ ★ =
-  λ B : Nat ➔ ★ . λ T : tp .
-    ↑ X . tpUnfold T · X : ((Nat ➔ ☆) ➔ (tp ➔ ☆ ➔ tp ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : tp . λ S1 : ★ . λ _ : tp . λ S2 : ★ . S1 ➔ S2) .
+arrowC ◂ Π p1 : TpC . Π n1 : TpC . (p1 ≃ n1) ➾ Π p2 : TpC . Π n2 : TpC . (p2 ≃ n2) ➾ TpC =
+  λ p1 . λ n1 . Λ e1 . λ p2 . λ n2 . Λ e2 .
+    TpFold [Λ X . λ a . λ f .
+               f p1 ((TpUnfold n1).1 · X a f) -(ρ e1 - β)
+                 p2 ((TpUnfold n2).1 · X a f) -(ρ e2 - β) ,
+             ρ+ (TpUnfold n1).2 - ρ+ (TpUnfold n2).2 - β{arrowU p1 n1 p2 n2}].
 
-eqtp ◂ tp ➔ tp ➔ Bool =
-  λ T1 . tpUnfold T1 · (tp ➔ Bool) (λ n . λ T2 . tpUnfold T2 · Bool (λ m . eqnat n m) (λ _ . λ _ . λ _ . λ _ . ff) .
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
-eqtpEq ◂ Π T1 : tp . Π T2 : tp . (eqtp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .
+TpP ◂ TpC ➔ ★ =
+  λ n : TpC . ∀ X : ★ . ∀ P : X ➔ ★ .
+    ∀ z : X . P z ➔
+    ∀ s : ι s : Top . Π p : TpC . Π x : X . (p z s ≃ x) ➾ Π p : TpC . Π x : X . (p z s ≃ x) ➾ X .
+      (Π n1 : TpC. ∀ x1 : X . ∀ e1 : n1 z s ≃ x1 . P x1 ➔
+       Π n2 : TpC. ∀ x2 : X . ∀ e2 : n2 z s ≃ x2 . P x2 ➔ 
+        P (s n1 x1 -e1 n2 x2 -e2)) ➔
+    P ((TpUnfold n).1 · X z s).
+
+baseP ◂ TpP baseC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
+
+arrowP ◂ Π n : TpC . ∀ x : TpC . ∀ e : n ≃ x . TpP x ➔
+         Π n2 : TpC . ∀ x2 : TpC . ∀ e2 : n2 ≃ x2 . TpP x2 ➔ 
+           TpP (arrowC n x -e n2 x2 -e2) =
+  λ n . Λ x . Λ e . λ px . λ n2 . Λ x2 . Λ e2 . λ px2 .
+  Λ X . Λ P . Λ z . λ pz . Λ s . λ ps .
+    ps n -((TpUnfold x).1 · X z s) -(ρ e - β) (px · X · P -z pz -s ps)
+       n2 -((TpUnfold x2).1 · X z s) -(ρ e2 - β) (px2 · X · P -z pz -s ps).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Tp ◂ ★ = ι x : TpC . TpP x.
+
+base ◂ Tp = [ baseC , baseP].
+arrowi ◂ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Tp =
+  λ p . λ n . Λ e . λ p2 . λ n2 . Λ e2 . [ arrowC p n.1 -e p2 n2.1 -e2 , arrowP p -n.1 -e n.2 -n2.1 -e n2.2 ].
+
+interpTp ◂ (Tp ➔ ★) ➔ Tp ➔ ★ =
+  λ B : Tp ➔ ★ . λ T : Tp .
+    ↑ X . TpUnfold T · X : ((Tp ➔ ☆) ➔ (Tp ➔ ☆ ➔ Tp ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : Tp . λ S1 : ★ . λ _ : Tp . λ S2 : ★ . S1 ➔ S2) .
+
+
+eqtp ◂ Tp ➔ Tp ➔ Bool = ●.
+
+eqtpEq ◂ Π T1 : Tp . Π T2 : Tp . (eqtp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .

@@ -2,34 +2,33 @@ import Top.
 
 𝒌 = ★ ➔ ★ .
 
-Cast ◂ 𝒌 ➔ 𝒌 ➔ ★ = λ A : 𝒌 . λ B : 𝒌 .
+Cast2 ◂ 𝒌 ➔ 𝒌 ➔ ★ = λ A : 𝒌 . λ B : 𝒌 .
        ι cast : ∀ X : ★ . A · X ➔ B · X . cast ≃ λ x . x.
 
-cast ◂ ∀ A : 𝒌 . ∀ B : 𝒌 . Cast · A · B ➾ ∀ X : ★ . A · X ➔ B · X =
+cast2 ◂ ∀ A : 𝒌 . ∀ B : 𝒌 . Cast2 · A · B ➾ ∀ X : ★ . A · X ➔ B · X =
   Λ A . Λ B . Λ c . Λ X . λ a . (χ (ι _ : A · X . B · X) - [ a , c.1 · X a { ρ c.2 - β } ]).2 .
 
-RecFunctor ◂ (𝒌 ➔ 𝒌) ➔ ★ =
-  λ F : 𝒌 ➔ 𝒌 . ∀ X : 𝒌 . ∀ Y : 𝒌 . Cast · X · Y ➔ Cast · (F · X) · (F · Y) .
+RecFunctor2 ◂ (𝒌 ➔ 𝒌) ➔ ★ =
+  λ F : 𝒌 ➔ 𝒌 . ∀ X : 𝒌 . ∀ Y : 𝒌 . Cast2 · X · Y ➔ Cast2 · (F · X) · (F · Y) .
 
-Rec ◂ (𝒌 ➔ 𝒌) ➔ 𝒌 = λ F : 𝒌 ➔ 𝒌 . λ A : ★ . ∀ X : 𝒌 . Cast · (F · X) · X ➾ X · A. 
+Rec2 ◂ (𝒌 ➔ 𝒌) ➔ 𝒌 = λ F : 𝒌 ➔ 𝒌 . λ A : ★ . ∀ X : 𝒌 . Cast2 · (F · X) · X ➾ X · A. 
 
-recCast ◂ ∀ F : 𝒌 ➔ 𝒌 . ∀ X : 𝒌 . Cast · (F · X) · X ➾ Cast · (Rec · F) · X =
+recCast2 ◂ ∀ F : 𝒌 ➔ 𝒌 . ∀ X : 𝒌 . Cast2 · (F · X) · X ➾ Cast2 · (Rec2 · F) · X =
   Λ F . Λ X . Λ c . [ Λ A . λ d . d · X -c , β{λ a . a} ].
 
-recIn ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) =
+recIn2 ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor2 · F ➾ Cast2 · (F · (Rec2 · F)) · (Rec2 · F) =
   Λ F . Λ fmap . 
     [ Λ A . λ x . Λ X . Λ c .
-      cast · (F · X) · X -c · A
-        (cast · (F · (Rec · F)) · (F · X)
-          -(fmap · (Rec · F) · X (recCast · F · X -c)) · A x),
+      cast2 · (F · X) · X -c · A
+        (cast2 · (F · (Rec2 · F)) · (F · X)
+          -(fmap · (Rec2 · F) · X (recCast2 · F · X -c)) · A x),
       β{λ a . a} ].
 
-recOut ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) =
-  Λ F . Λ fmap . [Λ A . λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)) , β{λ x . x} ].
+recOut2 ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor2 · F ➾ Cast2 · (Rec2 · F) · (F · (Rec2 · F)) =
+  Λ F . Λ fmap .
+    [Λ A . λ x . x · (F · (Rec2 · F)) -(fmap · (F · (Rec2 · F)) · (Rec2 · F) (recIn2 · F -fmap)) , β{λ x . x} ].
 
-recFold ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) = recIn .
-recUnfold ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) = recOut .
+recFold2 ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor2 · F ➾ Cast2 · (F · (Rec2 · F)) · (Rec2 · F) = recIn2 .
+recUnfold2 ◂ ∀ F : 𝒌 ➔ 𝒌 . RecFunctor2 · F ➾ Cast2 · (Rec2 · F) · (F · (Rec2 · F)) = recOut2 .
 
-recIso1 ◂ ∀ a : Top . recFold (recUnfold a) ≃ a = Λ a . β.
-recIso2 ◂ ∀ a : Top . recUnfold (recFold a) ≃ a = Λ a . β.
 

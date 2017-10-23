@@ -538,8 +538,8 @@ unimplemented-type-span Γ pi pi' (just k) = mk-span "Unimplemented" pi pi'
                                               ( error-data "Unimplemented checking a type against a kind" ::
                                                 checking-data checking :: ll-data-type :: [ expected-kind Γ k ])
 
-Beta-span : posinfo → checking-mode → 𝕃 tagged-val → span
-Beta-span pi check  tvs = mk-span "Beta axiom" pi (posinfo-plus pi 1) 
+Beta-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
+Beta-span pi pi' check tvs = mk-span "Beta axiom" pi pi'
                      (checking-data check :: ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
 Delta-span : posinfo → term → checking-mode → 𝕃 tagged-val → span

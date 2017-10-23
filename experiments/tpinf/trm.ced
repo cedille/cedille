@@ -8,6 +8,11 @@ example ◂ trmC = Λ X . λ l . l (λ x . l (λ y . x)) .
 
 interpExample ◂ Top = interp example .
 
-trmP ◂ trmC ➔ ★ = λ t : trmC . ∀ X : ★ . ∀ P : X ➔ ★ . ∀ l : (X ➔ X) ➔ X . (∀ f : X ➔ X . (∀ x : X . P x ➔ P (f x)) ➔ P (l f)) ➔ P (t · X l) .
+trmP ◂ trmC ➔ ★ =
+  λ t : trmC .
+   ∀ X : ★ . ∀ P : X ➔ ★ .
+   ∀ l : (X ➔ X) ➔ X .
+     (∀ f : X ➔ X . (∀ x : X . P x ➔ P (f x)) ➔ P (l f)) ➔
+     P (t · X l) .
 
 trm ◂ ★ = ι x : trmC . trmP x .

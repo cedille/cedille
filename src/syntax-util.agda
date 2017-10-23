@@ -191,6 +191,16 @@ liftingType-end-pos (LiftTpArrow x l) = liftingType-end-pos l
 lterms-end-pos (LtermsNil pi) = posinfo-plus pi 1 -- must add one for the implicit Beta that we will add at the end
 lterms-end-pos (LtermsCons _ _ ls) = lterms-end-pos ls
 
+{- return the end position of the given term if it is there, otherwise
+   the given posinfo -}
+optTerm-end-pos : posinfo → optTerm → posinfo
+optTerm-end-pos pi NoTerm = pi
+optTerm-end-pos pi (SomeTerm x x₁) = x₁
+
+optTerm-end-pos-beta : posinfo → optTerm → posinfo
+optTerm-end-pos-beta pi NoTerm = posinfo-plus pi 1
+optTerm-end-pos-beta pi (SomeTerm x p) = p
+
 tk-arrow-kind : tk → kind → kind
 tk-arrow-kind (Tkk k) k' = KndArrow k k'
 tk-arrow-kind (Tkt t) k = KndTpArrow t k
