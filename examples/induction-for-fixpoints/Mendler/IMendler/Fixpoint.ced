@@ -1,0 +1,127 @@
+
+import Functor.
+import Sigma.
+import Product.
+
+
+import Helper.
+
+% Mendler-style algebra
+AlgebraM ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★. λ A : ★. ∀ R : ★. (R ➔ A) ➔ F · R ➔ A.
+
+
+WFAlgM ◂ Π F : ★ ➔ ★. Fmap · F ➔ Π A : ★. AlgebraM · F · A ➔ ★ =
+   λ F : ★ ➔ ★. λ fmap : Fmap · F. λ A : ★. λ alg : AlgebraM · F · A.
+   ∀ R : ★. ∀ cast : R ➔  A. ∀ fr : F · R. alg cast fr ≃  alg (λ x. x) (fmap cast fr).
+
+
+% Mendler-style algebra homomorphisms
+HomM ◂ Π F : ★ ➔ ★. Fmap · F ➔ Π C : ★. Π D : ★. (C ➔ D) ➔ AlgebraM · F · C ➔ AlgebraM · F · D  ➔ ★ 
+ =  λ F : ★ ➔ ★. λ fmap : Fmap · F. λ C : ★. λ D : ★. λ h : C ➔ D.
+  λ alg1 : AlgebraM · F · C. λ alg2 :  AlgebraM · F · D. ∀ A : ★. Π f : A ➔ C.  (λ fr. alg2 · D (λ x. h (f x)) fr) ≃ (λ fr. h (alg1 · A f fr)).
+
+% Fixpoint of F-malgebra
+FixM ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. ∀ A : ★. (∀ R : ★. (R ➔ A) ➔ F · R ➔ A) ➔ A.
+
+
+% FixM is (weakly) initial(λ x. x)
+foldM ◂ ∀ F : ★ ➔ ★. ∀ A : ★. AlgebraM · F · A ➔ FixM · F ➔ A
+  = Λ F. Λ A. λ alg. λ fix. fix · A alg.
+
+
+inM ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ AlgebraM · F · (FixM · F)
+   = Λ F. λ fmap. Λ R. λ c. λ v. Λ A. λ alg. alg · (FixM · F) (foldM · F · A alg) 
+      (fmap · R · (FixM · F) c v).
+
+inM' ◂ ∀ F : ★ ➔ ★. F · (FixM · F) ➔ FixM · F
+   = Λ F.  λ fexp. Λ A. λ alg. alg · (FixM · F) (foldM · F · A alg) fexp.
+
+
+
+outM ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ FixM · F ➔ F · (FixM · F)
+ = Λ F. λ fmap. λ fix. foldM · F · (F · (FixM · F))
+   (Λ R. λ ih. λ fr. fmap · R · (FixM · F) (λ r. inM' · F (ih r))  fr)
+   fix.
+
+
+PAlgFixM ◂ Π F : ★ ➔ ★.  Fmap · F ➔ (FixM · F ➔ ★) ➔ ★ = 
+ λ F : ★ ➔ ★. λ fmap : Fmap · F. λ Q : FixM · F ➔ ★. 
+ ∀ R : ★. ∀ cast : R ➔ FixM · F. 
+ ∀ _ : ∀ r : R. cast r ≃ r.
+ (Π r : R. Q (cast r)) ➔
+ (Π gr : F · R.  Q (inM · F fmap · R cast gr)).
+
+% inductivity predicate     
+isIndFixM ◂ Π F : ★ ➔ ★. Fmap · F ➔ FixM · F ➔ ★
+  = λ F : ★ ➔ ★. λ fmap : Fmap · F. λ x : FixM · F. ∀ Q : FixM · F ➔ ★.
+     PAlgFixM · F fmap · Q ➔ Q x.
+
+
+
+FixIndM ◂ Π G : (★ ➔ ★). Fmap · G ➔ ★
+  = λ G : ★ ➔ ★. λ fmap : Fmap · G.
+    ι x : FixM · G. isIndFixM · G fmap x.
+    
+
+foldMDep ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. ∀ A : ★. AlgebraM · F · A ➔ FixIndM · F fmap ➔ A
+  = Λ F. λ fmap. Λ A. λ alg. λ fix. foldM · F · A  alg fix.1.
+
+
+tm1 ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  
+ F · (FixIndM · F fmap) ➔ FixM · F = Λ F. λ fmap. λ v. 
+ inM' · F (fmap · (FixIndM · F fmap) · (FixM · F) (λ x. x.1) v).
+
+tm2 ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  
+  Π v : F · (FixIndM · F fmap).
+  isIndFixM · F fmap (tm1 · F fmap v) = Λ F. λ fmap. λ v. 
+  (Λ Q. λ q. q · (FixIndM · F fmap) 
+   -(λ z. z.1) 
+   -(Λ r. β) 
+    (λ r. r.2 · Q q) v).
+
+inFixIndM ◂ ∀ F : (★ ➔ ★). Π fmap : Fmap · F. 
+ FLaw1 · F fmap ➔ F · (FixIndM · F fmap) ➔ FixIndM · F fmap
+  = Λ F. λ fmap. λ Flaw1. λ v.
+    [ tm1 · F fmap v
+    , tm2 · F fmap v 
+    {  ρ+ (Flaw1 · (FixIndM · F fmap) · (FixM · F) 
+           -(λ x . x.1) 
+           v
+           -(λ _ . β)) - β }
+    ].
+
+
+PAlgFixIndM ◂ Π F : ★ ➔ ★. 
+ Π fmap : Fmap · F . FLaw1 · F fmap
+ ➔ (FixIndM · F fmap ➔ ★) ➔ ★ 
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F. 
+   λ Flaw1 : FLaw1 · F fmap. 
+   λ Q : FixIndM · F fmap ➔ ★. 
+   ∀ R : ★. ∀ cast : R ➔ FixIndM · F fmap. 
+   ∀ _ : ∀ r : R. cast r ≃ r.
+   (Π r : R. Q (cast r)) ➔
+   Π v : F · R.  
+     Q (inFixIndM · F fmap Flaw1 
+          (fmap · R · (FixIndM · F fmap) cast v)).
+
+
+outAlgM ◂ ∀ G : ★ ➔ ★. Π fmap : Fmap · G. FunctorLaw1 · G fmap ➔ AlgebraM · G · (G · (FixIndM · G fmap))
+  = Λ G. λ fmap. λ flaw1. (Λ R. λ ih. λ fr. fmap · R · (FixIndM · G fmap)
+     (λ r. inFixIndM · G fmap flaw1 (ih r))  fr).
+
+
+outAlgMWF ◂ ∀ G : ★ ➔ ★.
+             Π fmap : Fmap · G.
+	     Π flaw1 : FunctorLaw1 · G fmap.
+	     Π flaw2 : FunctorLaw2 · G fmap.
+	     WFAlgM · G fmap · (G · (FixIndM · G fmap)) (outAlgM · G fmap flaw1) = Λ G. λ fmap. λ flaw1. λ flaw2. Λ R. Λ cast. Λ fr.
+    ρ (flaw2 · R · (G · (FixIndM · G fmap)) · (FixIndM · G fmap) -(λ r. (inFixIndM · G fmap flaw1 r)) -cast fr) - β.
+
+
+outFixIndM ◂ ∀ G : (★ ➔ ★). Π fmap : Fmap · G. FunctorLaw1 · G fmap
+             ➔ FixIndM · G fmap ➔ G · (FixIndM · G fmap)
+  = Λ G. λ fmap. λ flaw1. λ ei.
+     foldM · G · (G · (FixIndM · G fmap))
+      (outAlgM · G fmap flaw1)
+      ei.1.
+     

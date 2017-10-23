@@ -1,0 +1,73 @@
+
+
+import Fixpoint.
+import Functor. 
+import Sigma.
+import Product.
+import Helper.
+
+InductionFixIndM' ◂  ∀ F : ★ ➔ ★ . Π fmap : Fmap · F . Π Flaw1 : FunctorLaw1 · F fmap .
+    Π e : FixIndM · F fmap . ∀ Q : (FixIndM · F fmap) ➔ ★ . 
+     PAlgFixIndM · F fmap Flaw1 · Q 
+     ➔ Sigma · (FixIndM · F fmap) · (λ x' : (FixIndM · F fmap) . Product · (e ≃ x') · (Q x'))
+     = Λ G . λ fmap . λ Flaw1 . % parameters should go into the module
+       λ e . Λ Q . λ q .        % actual arguments
+       e.2 · (λ z : FixM · G . Sigma · (FixIndM · G fmap) · (λ x' : (FixIndM · G fmap) . Product · (z ≃ x') · (Q x'))) 
+
+     (Λ R . Λ cast . Λ castId . λ ih . λ gr .
+        let zz ◂ R ➔ (FixIndM · G fmap) = (trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x'))
+                 (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih)) in 
+
+            mkdsigma · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . Product · ((inM fmap cast gr)  ≃ x') · (Q x'))
+	    
+	       (inFixIndM · G fmap Flaw1 (fmap · R · (FixIndM · G fmap)
+                 
+                 zz
+
+           gr))
+	       (pair · ((inM  fmap cast gr) ≃ (inFixIndM fmap Flaw1 (fmap (trans2 (trans ih)) gr)))
+	             · (Q ((inFixIndM · G fmap Flaw1 (fmap · R · (FixIndM · G fmap)
+
+                                       (trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) 
+                                       (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih))
+		                                       gr))))
+		     ( ρ (Flaw1 · R · (FixIndM · G fmap)
+
+		                -(trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) 
+                                 (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih)) 
+
+		                gr -(λ r . ρ ς (thm · R · (FixIndM · G fmap) · (FixM · G) cast (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih) 
+				       r   ) - (castId -r) ) )
+		     
+		                 - (ε ( ρ (Flaw1 · R · R -(λ x . x) gr -(λ _ . β)  ) - ρ (Flaw1 · R · (FixM · G) -cast gr -castId  ) - β)))
+				
+		    (q · R -(trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) 
+                            (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih))
+
+		           -(Λ r . ρ ς (thm · R · (FixIndM · G fmap) · (FixM · G) cast (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih) 
+				       r   ) - (castId -r) ) 
+			   (λ r . (ih r).1 · (Q (
+
+                          (trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) 
+		          (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih)) r))
+
+							   (λ a . λ pr . pr.1 · (Q (
+                          (trans2 · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x'))
+		          (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih)) r))
+
+							   (λ eq . λ qa . (ρ ς (thm · R · (FixIndM · G fmap) · (FixM · G) cast (trans · R · (FixIndM · G fmap) · (λ x' : FixIndM · G fmap . λ r : R . ((cast r) ≃ x')) · (λ x' : FixIndM · G fmap . Q x') ih) 
+				       r   ) - ρ eq - qa ) )  )       )
+			   gr)
+
+                    )
+          )  .
+
+
+InductionFixIndM ◂  ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+  Π Flaw1 : FunctorLaw1 · F fmap.
+  Π e : FixIndM · F fmap. 
+  ∀ Q : FixIndM · F fmap ➔ ★. 
+  PAlgFixIndM · F fmap Flaw1 · Q
+  ➔ Q e = Λ F. λ fmap. λ Flaw1. λ e. Λ Q. λ q. 
+          (InductionFixIndM' · F fmap Flaw1 e · Q q).1 · (Q e) (λ a. λ pr. pr.1 · (Q e) (λ eq. λ qa. ρ eq - qa)).
+
