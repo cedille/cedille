@@ -1,10 +1,16 @@
 import top. 
 import sigma.
 
-hastp ◂ Top ➔ ★ ➔ ★ = λ t : Top. λ A : ★ . Sigma · A · (λ x : A . (t ≃ x)) .
+hastp ◂ Top ➔ ★ ➔ ★ = λ t : Top. λ A : ★ . ι x : A . (t ≃ x) .
 
 convtp ◂ Π t : Top . ∀ A : ★ . hastp t · A ➾ A =
   λ t . Λ A . Λ u .
-    (χ (ι _ : Top . A) -
-    [ t , u.1 · A (λ a . λ e . a)
-      { θ<u> (ind-sigma · A · (λ x : A . (t ≃ x)) u) (λ a . λ b . b)  } ]).2 .
+    (χ (ι _ : Top . A) - [t , u.1 {u.2}]).2 .
+
+trivHastp ◂ ∀ A : ★ . Π a : A . hastp β{a} · A = Λ A . λ a . [ a , β{a} ].
+
+hastpArrow ◂
+  ∀ A : ★ . ∀ B : ★ . Π f : Top .
+    (∀ x : Top . hastp x · A ➔ hastp β{f x} · B) ➾ hastp f · (A ➔ B)
+= Λ A . Λ B . λ f. Λ p .
+    [ λ a . convtp β{f a} · B -(p -β{a} (trivHastp · A a)) , β{f} ].
