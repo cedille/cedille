@@ -22,21 +22,63 @@ open import to-string
 open import toplevel-state
 open import untyped-spans
 
-{- Getters/Converters -}
-
-string-to-𝔹 : string → 𝔹
-string-to-𝔹 "tt" = tt
-string-to-𝔹 _ = ff
-
 {- General -}
-
--- sep : string
-sep = "§"
 
 parse-specific-nt : gratr2-nt → ℕ → (lc : 𝕃 char) → 𝕃 char ⊎ Run
 parse-specific-nt nt starting-char-position lc with parse-filter lc lc [] [] (cedille-start nt) inj₁
 ...| inj₁ left = inj₁ left
 ...| inj₂ run = inj₂ (re-to-run starting-char-position (reverse run))
+
+parse-try-nts : 𝕃 char → 𝕃 gratr2-nt → maybe Run
+parse-try-nts _ [] = nothing
+parse-try-nts lc (h :: t) with parse-specific-nt h 0 lc
+parse-try-nts lc (h :: t) | inj₁ _ = parse-try-nts lc t
+parse-try-nts lc (h :: t) | inj₂ run = just (rewriteRun run)
+
+try-nts : 𝕃 gratr2-nt
+try-nts = (gratr2-nt._term :: gratr2-nt._type :: gratr2-nt._kind :: [])
+
+parse-ll-run : ctxt → Run → Run
+parse-ll-run Γ (ParseTree (parsed-term (Var pi v)) :: []) with ctxt-lookup-term-var-def Γ v | ctxt-lookup-type-var-def Γ v
+parse-ll-run Γ (ParseTree (parsed-term (Var pi v)) :: []) | nothing | just tp = ParseTree (parsed-type (TpVar pi v)) :: []
+parse-ll-run Γ run @ (ParseTree (parsed-term (Var pi v)) :: []) | _ | _ = run
+parse-ll-run Γ run = run
+
+add-ws : 𝕃 char → 𝕃 char
+add-ws (' ' :: lc) = ' ' :: lc
+add-ws lc = ' ' :: lc
+
+-- Makes the string more aesthetically pleasing by removing newlines,
+-- replacing tabs with spaces, and removing unnecessary double whitespaces.
+-- Also, interactive parsing fails if there are newlines anywhere or periods at the end.
+pretty-string-h : 𝔹 → 𝕃 char → 𝕃 char → 𝕃 char
+pretty-string-h p ('\n' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
+pretty-string-h p (' ' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
+pretty-string-h p ('\t' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
+pretty-string-h p (c :: rest) so-far = pretty-string-h p rest (c :: so-far)
+pretty-string-h p [] so-far = reverse (remove-proceeding-ws-period so-far p)
+  where
+    remove-proceeding-ws-period : 𝕃 char → 𝔹 → 𝕃 char
+    remove-proceeding-ws-period (' ' :: rest) p = remove-proceeding-ws-period rest p
+    remove-proceeding-ws-period ('.' :: rest) tt = remove-proceeding-ws-period rest p
+    remove-proceeding-ws-period rest _ = rest
+
+pretty-string : string → (remove-period : 𝔹) → string
+pretty-string str p = 𝕃char-to-string (pretty-string-h p (string-to-𝕃char str) [])
+
+parse-error-message : (failed-to-parse : string) → (as-a : string) → string × 𝔹
+parse-error-message failed-to-parse as-a = "Failed to parse \"" ^ failed-to-parse ^ "\" as a " ^ as-a , ff
+
+string-to-𝔹 : string → maybe 𝔹
+string-to-𝔹 "tt" = just tt
+string-to-𝔹 "ff" = just ff
+string-to-𝔹 _ = nothing
+
+nt-to-string : gratr2-nt → string
+nt-to-string gratr2-nt._term = "term"
+nt-to-string gratr2-nt._type = "type"
+nt-to-string gratr2-nt._kind = "kind"
+nt-to-string _ = "[error: invalid nonterminal (src/interactive-cmds.agda/nt-to-string)]"
 
 
 {- Context code -}
@@ -44,29 +86,41 @@ parse-specific-nt nt starting-char-position lc with parse-filter lc lc [] [] (ce
 local-ctxt-item : Set
 local-ctxt-item = string × string × string × string × string × string -- language-level , name , value , type , filename , position
 
-get-term-from-run : Run → (do-erase : 𝔹) → term
-get-term-from-run ((ParseTree (parsed-term t)) :: []) de = if de then erase-term t else t
-get-term-from-run _ _ = Var "" "error-at-get-term-from-run"
-get-type-from-run : Run → type
-get-type-from-run ((ParseTree (parsed-type t)) :: []) = t
-get-type-from-run _ = TpVar "" "error-at-get-type-from-run"
-get-kind-from-run : Run → kind
-get-kind-from-run ((ParseTree (parsed-kind k)) :: []) = k
-get-kind-from-run _ = KndVar "" "error-at-get-kind-from-run" (ArgsNil "")
+get-term-from-run : Run → maybe cedille-types.term
+get-type-from-run : Run → maybe cedille-types.type
+get-kind-from-run : Run → maybe cedille-types.kind
+get-term-from-run ((ParseTree (parsed-term t)) :: []) = just t
+get-term-from-run _ = nothing
+get-type-from-run ((ParseTree (parsed-type tp)) :: []) = just tp
+get-type-from-run _ = nothing
+get-kind-from-run ((ParseTree (parsed-kind k)) :: []) = just k
+get-kind-from-run _ = nothing
 
-return-tree : gratr2-nt → (maybe Run) → Run → var → string → string → (do-erase : 𝔹) → ctxt → ctxt
-return-tree gratr2-nt._term (just val-run) tp-run v fn pos de Γ = ctxt-term-def pos localScope v (get-term-from-run val-run de) (get-type-from-run tp-run) (ctxt-set-current-file Γ fn)
-return-tree gratr2-nt._type (just val-run) tp-run v fn pos de Γ = ctxt-type-def pos localScope v (get-type-from-run val-run) (get-kind-from-run tp-run) (ctxt-set-current-file Γ fn)
-return-tree gratr2-nt._term nothing tp-run v fn pos de Γ = ctxt-term-decl pos v (get-type-from-run tp-run) (ctxt-set-current-file Γ fn)
-return-tree gratr2-nt._type nothing tp-run v fn pos de Γ = ctxt-type-decl pos v (get-kind-from-run tp-run) (ctxt-set-current-file Γ fn)
-return-tree _ _ _ _ _ _ _ Γ = Γ
+ctxt-def-tree : ctxt → gratr2-nt → (maybe Run) → Run → var → string → string → (do-erase : 𝔹) → ctxt
+ctxt-def-tree Γ gratr2-nt._term (just val-run) tp-run v fn pos de with get-term-from-run val-run | get-type-from-run tp-run
+ctxt-def-tree Γ gratr2-nt._term (just _) _ v fn pos de | just t | just tp = ctxt-term-def pos localScope v (if de then (erase-term t) else t) tp Γ
+ctxt-def-tree Γ gratr2-nt._term (just val-run) _ _ _ _ _ | _ | _ = Γ
+ctxt-def-tree Γ gratr2-nt._type (just val-run) tp-run _ _ _ _ with get-type-from-run val-run | get-kind-from-run tp-run
+ctxt-def-tree Γ gratr2-nt._type (just val-run) tp-run v fn pos _ | just tp | just k = ctxt-type-def pos localScope v tp k Γ
+ctxt-def-tree Γ gratr2-nt._type (just val-run) _ _ _ _ _ | _ | _ = Γ
+ctxt-def-tree Γ gratr2-nt._term nothing tp-run v fn pos _ with get-type-from-run tp-run
+ctxt-def-tree Γ gratr2-nt._term nothing _ v fn pos de | just tp = ctxt-term-decl pos v tp Γ
+ctxt-def-tree Γ gratr2-nt._term nothing _ _ _ _ _ | nothing = Γ
+ctxt-def-tree Γ gratr2-nt._type nothing tp-run v fn pos _ with get-kind-from-run tp-run
+ctxt-def-tree Γ gratr2-nt._type nothing _ v fn pos _ | just k = ctxt-type-decl pos v k Γ
+ctxt-def-tree Γ gratr2-nt._type nothing _ _ _ _ _ | nothing = Γ
+ctxt-def-tree Γ _ _ _ _ _ _ _ = Γ
 
-return-run : gratr2-nt → 𝕃 char ⊎ Run → 𝕃 char ⊎ Run → var → string → string → (do-erase : 𝔹) → ctxt → ctxt
-return-run nt (inj₂ val-run) (inj₂ tp-run) v fn pos de Γ =
-  (λ original-file → ctxt-set-current-file (return-tree nt (just (rewriteRun val-run)) (rewriteRun tp-run) v fn pos de Γ) original-file) (ctxt-get-current-filename Γ)
-return-run nt (inj₁ _) (inj₂ tp-run) v fn pos de Γ =
-  (λ original-file → ctxt-set-current-file (return-tree nt nothing (rewriteRun tp-run) v fn pos de Γ) original-file) (ctxt-get-current-filename Γ)
-return-run _ _ _ _ _ _ _ Γ = Γ
+ctxt-def-run : gratr2-nt → 𝕃 char ⊎ Run → 𝕃 char ⊎ Run → var → string → string → (do-erase : 𝔹) → ctxt → ctxt
+ctxt-def-run nt (inj₂ val-run) (inj₂ tp-run) v fn pos de Γ =
+  (λ original-file →
+    ctxt-set-current-file (ctxt-def-tree (ctxt-set-current-file Γ fn) nt (just (rewriteRun val-run)) (rewriteRun tp-run) v fn pos de) original-file)
+  (ctxt-get-current-filename Γ)
+ctxt-def-run nt (inj₁ _) (inj₂ tp-run) v fn pos de Γ =
+  (λ original-file →
+    ctxt-set-current-file (ctxt-def-tree (ctxt-set-current-file Γ fn) nt nothing (rewriteRun tp-run) v fn pos de) original-file)
+  (ctxt-get-current-filename Γ)
+ctxt-def-run _ _ _ _ _ _ _ Γ = Γ
 
 merge-lci-ctxt-h-h : gratr2-nt → string → 𝕃 char ⊎ Run
 merge-lci-ctxt-h-h nt "" = inj₁ []
@@ -74,8 +128,7 @@ merge-lci-ctxt-h-h nt s = parse-specific-nt nt 0 (string-to-𝕃char s)
 
 merge-lci-ctxt-h : gratr2-nt → gratr2-nt → (name : string) → (value : string) → (t-k : string) → string → string → (do-erase : 𝔹) → ctxt → ctxt
 merge-lci-ctxt-h val-nt tp-nt name val t-k fn pos de Γ with parse-specific-nt val-nt 0 (string-to-𝕃char val) | parse-specific-nt tp-nt 0 (string-to-𝕃char t-k)
-merge-lci-ctxt-h nt _ name _ _ fn pos de Γ | val-run | tp-run = return-run nt val-run tp-run name fn pos de Γ
--- return-run nt (parse-specific-nt nt 0 (string-to-𝕃char t-k)) name fn pos Γ
+merge-lci-ctxt-h nt _ name _ _ fn pos de Γ | val-run | tp-run = ctxt-def-run nt val-run tp-run name fn pos de Γ
 
 merge-lci-ctxt : local-ctxt-item → (do-erase : 𝔹) → ctxt → ctxt
 merge-lci-ctxt ("term" , name , value , tp , filename , pos) de Γ = merge-lci-ctxt-h gratr2-nt._term gratr2-nt._type name value tp filename pos de Γ
@@ -105,8 +158,8 @@ ctxt-at pos filename Γ = ctxt-nyd-all (ctxt-set-current-file Γ filename) (to-n
     get-si : ctxt → trie sym-info
     get-si (mk-ctxt _ _ si _) = si
 
-get-local-ctxt : (pos : ℕ) → (filename : string) → (local-ctxt : 𝕃 string) → ctxt → (do-erase : 𝔹) → ctxt
-get-local-ctxt pos filename local-ctxt Γ de = merge-lcis-ctxt (strings-to-lcis local-ctxt) de (ctxt-at pos filename Γ)
+get-local-ctxt : ctxt → (pos : ℕ) → (filename : string) → (local-ctxt : 𝕃 string) → (do-erase : 𝔹) → ctxt
+get-local-ctxt Γ pos filename local-ctxt de = merge-lcis-ctxt (strings-to-lcis local-ctxt) de (ctxt-at pos filename Γ)
   where
     strings-to-lcis-h : 𝕃 string → 𝕃 local-ctxt-item → 𝕃 local-ctxt-item
     strings-to-lcis-h (ll :: name :: val :: tp :: filename :: pos :: t) items =
@@ -121,8 +174,6 @@ get-local-ctxt pos filename local-ctxt Γ de = merge-lcis-ctxt (strings-to-lcis 
 
 
 {- Normalize code -}
--- {ed : exprd} → 
--- add-parentheses : ctxt → ⟦ ed ⟧ → 𝔹 → string
 add-parentheses : {ed : exprd} → ctxt → 𝔹 → ⟦ ed ⟧ → string
 add-parentheses{TERM} Γ ap = term-to-string Γ (~ ap)
 add-parentheses{TYPE} Γ ap = type-to-string Γ (~ ap)
@@ -132,183 +183,131 @@ add-parentheses{LIFTINGTYPE} Γ ap = liftingType-to-string Γ
 normalize-tree : ctxt → (input : string) → Run → 𝔹 → 𝔹 → string × 𝔹
 normalize-tree Γ input (ParseTree (parsed-term t) :: []) head ap = (add-parentheses Γ ap (hnf Γ (unfold (~ head) ff ff) t tt)) , tt
 normalize-tree Γ input (ParseTree (parsed-type t) :: []) head ap = (add-parentheses Γ ap (hnf Γ (unfold (~ head) ff ff) t tt)) , tt
-normalize-tree _ input  _ _ _ = input , ff
+normalize-tree _ input _ _ _ = "\"" ^ input ^ "\" was not parsed as a term or a type"  , ff
 
-normalize-Run-or-error : ctxt → (input : string) → 𝕃 char ⊎ Run → (head : 𝔹) → (add-parens : 𝔹) → string × 𝔹
-normalize-Run-or-error _ input (inj₁ chars) head _ = input , ff
-normalize-Run-or-error Γ input (inj₂ run) head ap = normalize-tree Γ input (rewriteRun run) head ap
+normalize-span : ctxt → (input : string) → gratr2-nt → (start-pos : ℕ) → (head : 𝔹) → (add-parens : 𝔹) → string × 𝔹 
+normalize-span _ input nt sp head ap with parse-specific-nt nt sp (string-to-𝕃char input)
+normalize-span Γ input _ sp head ap | inj₂ run = normalize-tree Γ input (rewriteRun run) head ap
+normalize-span _ input nt _ _ _ | inj₁ _ = parse-error-message input (nt-to-string nt)
 
-normalize-span : ctxt → gratr2-nt → string → (pos : ℕ) → (head : 𝔹) → (add-parens : 𝔹) → string × 𝔹 
-normalize-span Γ nt text sp head ap = normalize-Run-or-error Γ text (parse-specific-nt nt sp (string-to-𝕃char text)) head ap
-
-normalize-cmd : (start-pos : ℕ) → (span-str : string) → ctxt → (lang-level : string) → (filename : string) → (head : 𝔹) → (add-parens : 𝔹) → (do-erase : 𝔹) → (local-ctxt : 𝕃 string) → string × 𝔹
-normalize-cmd _ _ _ ll _ _ _ _ _ with get-nt ll
+normalize-cmd : ctxt → (span : string) → (lang-level : string) → (start-pos : string) → (filename : string) →
+  (head : string) → (add-parens : string) → (do-erase : string) → 𝕃 string → string × 𝔹
+normalize-cmd _ _ ll sp fn head ap de _ with get-nt ll | string-to-ℕ sp | string-to-𝔹 head | string-to-𝔹 ap | string-to-𝔹 de
   where
     get-nt : string → maybe gratr2-nt
     get-nt "term" = just gratr2-nt._term
     get-nt "type" = just gratr2-nt._type
     get-nt _ = nothing
-normalize-cmd _ ss _ _ _ _ _ _ _ | nothing = ss , ff
-normalize-cmd sp ss Γ _ fn head ap de lc | (just nt) = normalize-span (get-local-ctxt sp fn lc Γ de) nt ss sp head ap
+normalize-cmd Γ span _ _ fn _ _ _ local-ctxt | just ll | just sp | just head | just ap | just de =
+  normalize-span (get-local-ctxt Γ sp fn local-ctxt de) (pretty-string span tt) ll sp head ap
+normalize-cmd _ _ ll _ _ _ _ _ _ | nothing | _ | _ | _ | _ = parse-error-message ll "language-level"
+normalize-cmd _ _ _ sp _ _ _ _ _ | _ | nothing | _ | _ | _ = parse-error-message sp "nat"
+normalize-cmd _ _ _ _ _ hd _ _ _ | _ | _ | nothing | _ | _ = parse-error-message hd "boolean"
+normalize-cmd _ _ _ _ _ _ ap _ _ | _ | _ | _ | nothing | _ = parse-error-message ap "boolean"
+normalize-cmd _ _ _ _ _ _ _ de _ | _ | _ | _ | _ | nothing = parse-error-message de "boolean"
 
-normalize-just-run : maybe Run → ctxt → (input : string) → (head : 𝔹) → (add-parens : 𝔹) → string × 𝔹
-normalize-just-run (just run) Γ input head ap = normalize-tree Γ input (rewriteRun run) head ap
-normalize-just-run nothing _ input _ _ = input , ff
+normalize-prompt : ctxt → (input : string) → (head : 𝔹) → string × 𝔹
+normalize-prompt Γ input head with parse-try-nts (string-to-𝕃char input) (gratr2-nt._term :: gratr2-nt._type :: [])
+normalize-prompt Γ input head | just run with normalize-tree Γ input (parse-ll-run Γ (rewriteRun run)) head ff
+normalize-prompt Γ input head | just run | s , tt = "Expression: " ^ input ^ (if head then "\nHead-normalized: " else "\nNormalized: ") ^ s , tt
+normalize-prompt Γ input _ | just run | error = error
+normalize-prompt _ input _ | nothing = parse-error-message input "term or a type"
 
-normalize-prompt : (input : string) → ctxt → (head : 𝔹) → string × 𝔹
-normalize-prompt input _ _ with string-to-𝕃char input
-normalize-prompt input _ _ | chars with parse-specific-nt gratr2-nt._term 0 chars
-normalize-prompt input _ _ | chars | _ with parse-specific-nt gratr2-nt._type 0 chars
-normalize-prompt _ _ _ | _ | term-run | type-run with choose-run term-run type-run
-  where
-    choose-run : (term-run : 𝕃 char ⊎ Run) → (type-run : 𝕃 char ⊎ Run) → maybe Run
-    choose-run (inj₂ run) _ = just run
-    choose-run _ (inj₂ run) = just run
-    choose-run _ _ = nothing
-normalize-prompt input Γ head | _ | _ | _ | just-run with normalize-just-run just-run Γ input head ff
-normalize-prompt input _ head | _ | _ | _ | _ | (str , tt) = ("Expression: " ^ input ^ norm-str ^ str) , tt
-  where norm-str = if head then "\nHead-normalized: " else "\nNormalized: "
-normalize-prompt _ _ _ | _ | _ | _ | _ | error = error
-
+normalize-prompt-cmd : ctxt → (input : string) → (filename : string) → (head : string) → string × 𝔹
+normalize-prompt-cmd Γ input fn head with string-to-𝔹 head
+normalize-prompt-cmd Γ input fn _ | just head = normalize-prompt (ctxt-set-current-file Γ fn) (pretty-string input tt) head
+normalize-prompt-cmd _ _ _ head | nothing = parse-error-message head "boolean"
 
 
 {- Erasure code -}
 
 erase-tree : ctxt → (input : string) → Run → string × 𝔹
-erase-tree Γ input (ParseTree (parsed-term t) :: []) = (to-string Γ (erase-term t)) , tt
-erase-tree _ input _ = input , ff
+erase-tree Γ input (ParseTree (parsed-term t) :: []) = to-string Γ (erase-term t) , tt
+erase-tree _ input _ = parse-error-message input "term"
 
-erase-run : (input : string) → 𝕃 char ⊎ Run → ctxt → string × 𝔹
-erase-run input (inj₁ _) Γ = input , ff
-erase-run input (inj₂ run) Γ = erase-tree Γ input (rewriteRun run)
+erase-span : ctxt → (input : string) → (start-pos : ℕ) → string × 𝔹
+erase-span _ input sp with parse-specific-nt gratr2-nt._term sp (string-to-𝕃char input)
+erase-span Γ input sp | inj₂ run = erase-tree Γ input (rewriteRun run)
+erase-span _ input _ | inj₁ _ = parse-error-message input "term"
 
-erase-span : ctxt → string → ℕ → string × 𝔹
-erase-span Γ str start-pos = erase-run str (parse-specific-nt gratr2-nt._term start-pos (string-to-𝕃char str)) Γ
+erase-cmd : ctxt → (input : string) → (start-pos : string) → (filename : string) → (local-ctxt : 𝕃 string) → string × 𝔹
+erase-cmd Γ _ sp _ _ with string-to-ℕ sp
+erase-cmd Γ input _ fn lc | just sp = erase-span (get-local-ctxt Γ sp fn lc ff) (pretty-string input tt) sp
+erase-cmd _ _ sp _ _ | nothing = parse-error-message sp "nat"
 
-erase-inj-run : 𝕃 char ⊎ Run → (input : string) → ctxt → string × 𝔹
-erase-inj-run (inj₂ run) input Γ = erase-tree Γ input (rewriteRun run)
-erase-inj-run _ input _ = input , ff
+erase-prompt-h : ctxt → (input : string) → 𝕃 char ⊎ Run → string × 𝔹
+erase-prompt-h Γ input (inj₂ run) with erase-tree Γ input (parse-ll-run Γ (rewriteRun run))
+erase-prompt-h _ input (inj₂ _) | s , tt = "Expression: " ^ input ^ "\nErased: " ^ s , tt
+erase-prompt-h _ input (inj₂ _) | error = error
+erase-prompt-h _ input (inj₁ _) = parse-error-message input "term"
 
-erase-prompt-h : (input : string) → ctxt → 𝕃 char ⊎ Run → string × 𝔹
-erase-prompt-h input Γ run with erase-inj-run run input Γ
-erase-prompt-h input _ _ | (str , tt) = ("Expression: " ^ input ^ "\nErased: " ^ str) , tt
-erase-prompt-h _ _ _ | error = error
-
-erase-prompt : (input : string) → ctxt → string × 𝔹
-erase-prompt input Γ =
-  erase-prompt-h input Γ (parse-specific-nt gratr2-nt._term 0 (string-to-𝕃char input))
+erase-prompt : ctxt → (input : string) → (filename : string) → string × 𝔹
+erase-prompt Γ input fn with pretty-string-h tt (string-to-𝕃char input) []
+erase-prompt Γ _ fn | lc = erase-prompt-h (ctxt-set-current-file Γ fn) (𝕃char-to-string lc) (parse-specific-nt gratr2-nt._term 0 lc)
 
 
 {- Beta reduction code -}
 
-br-parse-try : 𝕃 char → 𝕃 gratr2-nt → maybe Run
-br-parse-try _ [] = nothing
-br-parse-try lc (h :: t) with parse-specific-nt h 0 lc
-br-parse-try lc (h :: t) | inj₁ _ = br-parse-try lc t
-br-parse-try lc (h :: t) | inj₂ run = just (rewriteRun run)
+br-spans : spanM ⊤ → string × 𝔹
+br-spans sM with snd (snd (sM (new-ctxt "") (regular-spans [])))
+br-spans _ | global-error error ms = error , ff
+br-spans _ | ss = spans-to-string ss , tt
 
-try-nts : 𝕃 gratr2-nt
-try-nts = (gratr2-nt._term :: gratr2-nt._type :: gratr2-nt._kind :: gratr2-nt._cmd :: [])
+br-parse : (input : string) → ctxt → string × 𝔹
+br-parse input _ with parse-try-nts (string-to-𝕃char input) try-nts
+br-parse _ Γ | just run with parse-ll-run Γ run
+br-parse _ Γ | just _ | ParseTree (parsed-term t) :: [] = br-spans (set-ctxt Γ ≫span erased-spans t)
+br-parse input Γ | just _ | _ = parse-error-message input "term"
+br-parse input Γ | _ = parse-error-message input "term"
 
-br-put-spans : spanM ⊤ → IO ⊤
-br-put-spans sM = putStrLn (spans-to-string (snd (snd (sM (new-ctxt "") (regular-spans [])))))
-
-br-parse : 𝕃 char → ctxt → IO ⊤
-br-parse lc _ with br-parse-try lc try-nts
-br-parse lc Γ | just (ParseTree (parsed-term t) :: []) = br-put-spans
-  (set-ctxt Γ ≫span erased-spans t)
-br-parse lc Γ | _ = putStrLn (global-error-string "Error parsing \"" ^ (𝕃char-to-string lc) ^ "\"")
-
-{-
-br-parse : 𝕃 char → ctxt → IO ⊤
-br-parse lc _ with br-parse-try lc try-nts
-br-parse lc Γ | just (ParseTree (parsed-term t) :: []) = br-put-spans
-  (set-ctxt Γ ≫span untyped-term t)
-br-parse lc Γ | just (ParseTree (parsed-type tp) :: []) = br-put-spans
-  (set-ctxt Γ ≫span untyped-type tp)
-br-parse lc Γ | just (ParseTree (parsed-kind k) :: []) = br-put-spans
-  (set-ctxt Γ ≫span untyped-kind k)
-br-parse lc Γ | just (ParseTree (parsed-cmd c) :: []) = br-put-spans
-  (set-ctxt Γ ≫span untyped-cmd c)
-br-parse lc _ | just (ParseTree pt :: []) = putStrLn (global-error-string "Strange ParseTree item in br-parse")
-br-parse lc _ | nothing = putStrLn (global-error-string ("Error parsing \"" ^ (𝕃char-to-string lc) ^ "\""))
-br-parse lc _ | _ = putStrLn (global-error-string "This shouldn't happen in br-parse")
--}
+br-cmd : ctxt → (input : string) → (filename : string) → string × 𝔹
+br-cmd Γ input fn = br-parse (pretty-string input tt) (ctxt-set-current-file Γ fn)
 
 {- Conversion -}
 
-conv-runs : ctxt → Run → Run → string × 𝔹
-conv-runs Γ (ParseTree (parsed-term t₁) :: []) (ParseTree (parsed-term t₂) :: []) = (𝔹-to-string (conv-term Γ t₁ t₂)) , tt
-conv-runs _ (ParseTree (parsed-term t₁) :: []) r₂ = Run-to-string r₂ , ff
-conv-runs _ r₁ (ParseTree (parsed-term t₂) :: []) = Run-to-string r₁ , ff
-conv-runs _ r₁ r₂ = (Run-to-string r₁) ^ "\" and \"" ^ (Run-to-string r₂) , ff
+conv-result : string → string → 𝔹 → string
+conv-result s₁ s₂ b =
+  "Convertible: " ^ (if b then "true" else "false") ^ "\n" ^
+  "Expression 1: " ^ s₁ ^ "\n" ^
+  "Expression 2: " ^ s₂ ^ "\n"
 
-conv : ctxt → string → string → string × 𝔹
-conv _ s₁ s₂ with parse-specific-nt gratr2-nt._term 0 (string-to-𝕃char s₁) | parse-specific-nt gratr2-nt._term 0 (string-to-𝕃char s₂)
-conv _ s₁ s₂ | (inj₁ lc) | _ = s₁ , ff
-conv _ s₁ s₂ | (inj₂ run₁) | (inj₁ lc) = s₂ , ff
-conv Γ s₁ s₂ | (inj₂ run₁) | (inj₂ run₂) = conv-runs Γ (rewriteRun run₁) (rewriteRun run₂)
+conv-runs : ctxt → string → string → Run → Run → string × 𝔹
+conv-runs Γ s₁ s₂ (ParseTree (parsed-term t₁) :: []) (ParseTree (parsed-term t₂) :: []) =
+  conv-result s₁ s₂ (conv-term Γ t₁ t₂) , tt
+conv-runs Γ s₁ s₂ (ParseTree (parsed-type tp₁) :: []) (ParseTree (parsed-type tp₂) :: []) =
+  conv-result s₁ s₂ (conv-type Γ tp₁ tp₂) , tt
+conv-runs Γ s₁ s₂ (ParseTree (parsed-kind k₁) :: []) (ParseTree (parsed-kind k₂) :: []) =
+  conv-result s₁ s₂ (conv-kind Γ k₁ k₂) , tt
+conv-runs _ s₁ s₂ r₁ r₂ =
+  "Inputs were successfully parsed with the same language level, " ^
+  "but now it appears that they don't have the same language level?" , ff
 
+conv-parse-try : 𝕃 char → 𝕃 char → 𝕃 gratr2-nt → maybe (Run × Run)
+conv-parse-try s₁ s₂ (h :: t) with parse-specific-nt h 0 s₁ | parse-specific-nt h 0 s₂
+conv-parse-try _ _ (h :: t) | (inj₂ r₁) | (inj₂ r₂) = just (rewriteRun r₁ , rewriteRun r₂)
+conv-parse-try s₁ s₂ (h :: t) | _ | _ = conv-parse-try s₁ s₂ t
+conv-parse-try _ _ [] = nothing
 
+conv-cmd : ctxt → (input₁ : string) → (input₂ : string) → string × 𝔹
+conv-cmd _ s₁ s₂ with conv-parse-try (pretty-string-h tt (string-to-𝕃char s₁) []) (pretty-string-h tt (string-to-𝕃char s₂) []) try-nts
+conv-cmd Γ s₁ s₂ | just (r₁ , r₂) = conv-runs Γ s₁ s₂ r₁ r₂
+conv-cmd Γ s₁ s₂ | nothing = "Inputs have different language-levels" , ff
 
 {- Commands -}
 
-interactive-return : string × 𝔹 → toplevel-state → IO toplevel-state
-interactive-return (str , tt) ts = putStrLn (escape-string str) >> return ts
-interactive-return (str , ff) ts = putStrLn (global-error-string ("Error parsing \"" ^ (escape-string str) ^ "\"")) >> return ts
+interactive-return : string × 𝔹 → IO ⊤
+interactive-return (str , tt) = putStrLn (escape-string str)
+interactive-return (str , ff) = putStrLn ("§" ^ (escape-string str))
 
-add-ws : 𝕃 char → 𝕃 char
-add-ws (' ' :: lc) = ' ' :: lc
-add-ws lc = ' ' :: lc
+interactive-cmd : 𝕃 string → ctxt → IO ⊤
+interactive-cmd-h : ctxt → 𝕃 string → string × 𝔹
+interactive-cmd ls Γ = interactive-return (interactive-cmd-h Γ ls)
 
--- Makes the string more aesthetically pleasing by removing newlines,
--- replacing tabs with spaces, and removing unnecessary double whitespaces.
--- Also, interactive parsing fails if there are newlines anywhere or periods at the end.
-pretty-string-h : 𝔹 → 𝕃 char → 𝕃 char → 𝕃 char
-pretty-string-h p ('\n' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
-pretty-string-h p (' ' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
-pretty-string-h p ('\t' :: rest) so-far = pretty-string-h p rest (add-ws so-far)
-pretty-string-h p (c :: rest) so-far = pretty-string-h p rest (c :: so-far)
-pretty-string-h p [] so-far = reverse (remove-proceeding-ws-period so-far p)
-  where
-    remove-proceeding-ws-period : 𝕃 char → 𝔹 → 𝕃 char
-    remove-proceeding-ws-period (' ' :: rest) p = remove-proceeding-ws-period rest p
-    remove-proceeding-ws-period ('.' :: rest) tt = remove-proceeding-ws-period rest p
-    remove-proceeding-ws-period rest _ = rest
-
-pretty-string : string → (remove-period : 𝔹) → string
-pretty-string str p = 𝕃char-to-string (pretty-string-h p (string-to-𝕃char str) [])
-
-interactive-normalize-span : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-normalize-span (start-str :: span-str :: lang-level :: filename :: head-str :: add-parens :: do-erase :: local-ctxt) ts =
-  interactive-return (normalize-cmd (posinfo-to-ℕ start-str) (pretty-string span-str tt) (toplevel-state.Γ ts) lang-level filename (string-to-𝔹 head-str) (string-to-𝔹 add-parens) (string-to-𝔹 do-erase) local-ctxt) ts
-interactive-normalize-span _ ts =
-  putStrLn (global-error-string "Wrong number of arguments given to interactive-normalize-span") >> return ts
-
-interactive-erase-span : 𝕃 string → toplevel-state →  IO toplevel-state
-interactive-erase-span (start-str :: span-str :: filename :: local-ctxt) ts =
-  interactive-return (erase-span (get-local-ctxt sp filename local-ctxt (toplevel-state.Γ ts) tt) (pretty-string span-str tt) sp) ts
-  where sp = (posinfo-to-ℕ start-str)
-interactive-erase-span _ ts =
-  putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-span") >> return ts
-
-interactive-normalize-prompt : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-normalize-prompt (span-str :: head-str :: filename :: local-ctxt) ts =
-  interactive-return (normalize-prompt (pretty-string span-str tt) (get-local-ctxt 0 filename local-ctxt (toplevel-state.Γ ts) ff) (string-to-𝔹 head-str)) ts
-interactive-normalize-prompt _ ts =
-  putStrLn (global-error-string "Wrong number of arguments given to interactive-normalize-prompt") >> return ts
-
-interactive-erase-prompt : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-erase-prompt (span-str :: filename :: local-ctxt) ts =
-  interactive-return (erase-prompt (pretty-string span-str tt) (get-local-ctxt 0 filename local-ctxt (toplevel-state.Γ ts) tt)) ts
-interactive-erase-prompt _ ts =
-  putStrLn (global-error-string "Wrong number of arguments given to interactive-erase-prompt") >> return ts
-
-interactive-br-parse : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-br-parse (fn :: str :: []) ts = br-parse (string-to-𝕃char (pretty-string str ff)) (ctxt-set-current-file (toplevel-state.Γ ts) fn) >> return ts
--- interactive-br-parse (str :: []) ts = putStrLn (br-parse str) >>= λ _ → return ts
-interactive-br-parse _ ts = putStrLn (global-error-string "Wrong number of argument given to interactive-br-parse") >> return ts
-
-interactive-conv : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-conv (t₁ :: t₂ :: []) ts = interactive-return (conv (toplevel-state.Γ ts) t₁ t₂) ts
-interactive-conv _ ts = putStrLn (global-error-string "Wrong number of arguments given to interactive-conv") >> return ts
+interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: fn :: head :: add-parens :: do-erase :: lc) =
+  normalize-cmd Γ input ll sp fn head add-parens do-erase lc
+interactive-cmd-h Γ ("erase" :: input :: sp :: fn :: lc) = erase-cmd Γ input sp fn lc
+interactive-cmd-h Γ ("normalizePrompt" :: input :: fn :: head :: []) = normalize-prompt-cmd Γ input fn head
+interactive-cmd-h Γ ("erasePrompt" :: input :: fn :: []) = erase-prompt Γ input fn
+interactive-cmd-h Γ ("br" :: input :: fn :: []) = br-cmd Γ input fn
+interactive-cmd-h Γ ("conv" :: s₁ :: s₂ :: []) = conv-cmd Γ s₁ s₂
+interactive-cmd-h Γ cs = "Invalid interactive command sequence " ^ (𝕃-to-string (λ s → s) ", " cs) , ff

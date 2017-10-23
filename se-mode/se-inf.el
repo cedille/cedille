@@ -16,8 +16,8 @@ started with `start-process'."))
    "Transaction queue for `se-inf-process'."))
 
 (make-variable-buffer-local
- (defvar se-inf-modify-response nil
-   "If non-nil, should be a function that takes a response from the back end as an argument and returns a modified response."))
+ (defvar se-inf-modify-response (lambda (response) response)
+   "A function that takes a response from the back end as an argument and returns a modified response."))
 
 ; might need to UNDO:
 (make-variable-buffer-local
@@ -121,7 +121,7 @@ will kill the process, should be skipped if process is shared."
     (let* ((current (nth 1 (cdr (car (car se-inf-queue)))))
 	   (symbol (nth 0 current))
 	   (span (nth 3 current))
-	   (pins (se-pins-at (se-span start span) (se-span-end span) 'se-interactive)))
+	   (pins (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive)))
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 
 (cl-defun se-inf-interactive (q-str-or-fn response-fn &key span header extra restore delay is-restore); batch-fn)
@@ -160,8 +160,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	(buffer (nth 6 closure)))
     (with-current-buffer buffer
       (se-inf-next-header)
-      (let* ((mod-fn (or se-inf-modify-response (lambda (response) response)))
-	     (response (funcall mod-fn (se-inf-undo-escape-string response)))
+      (let* ((response (funcall se-inf-modify-response (se-inf-undo-escape-string response)))
 	     (pair (cond
 		    ((null response-fn) nil)
 		    ((and span extra) (funcall response-fn response span oc extra))
@@ -255,9 +254,10 @@ buffer's file unless FILE is non-nil."
 (defun se-inf-save ()
   "Saves the current buffer"
   (interactive)
-  (when (buffer-file-name)
-    (with-silent-modifications
-      (save-buffer))))
+  (if (buffer-file-name)
+      (with-silent-modifications
+	(save-buffer))
+    (message "Couldn't save buffer %s because it has no file associated with it")))
 
 (defun se-inf-filename ()
   "Gets the filename of the current buffer (see `se-inf-filename')"

@@ -1,12 +1,9 @@
-;(load-library "cedille-mode-parent")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;          Normalize Code          ;;;
+;;;         Interactive Code         ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (defvar sep "§")
-
 
 ;;;;;;;;        Commands        ;;;;;;;;
 
@@ -15,21 +12,45 @@
   (interactive)
   (if se-mode-selected
       (cedille-mode-normalize-span (se-mode-selected) head)
-      (cedille-mode-normalize-prompt head)))
+    (cedille-mode-normalize-prompt head)))
 
 (defun cedille-mode-erase ()
   "Erases either the currently selected span or a prompted expression"
   (interactive)
   (if se-mode-selected
       (cedille-mode-erase-span (se-mode-selected))
-      (call-interactively 'cedille-mode-erase-prompt)))
+    (call-interactively
+     (lambda (input)
+       (interactive "MErase: ")
+       (se-inf-interactive (concat "interactive" sep "erasePrompt" sep input sep (se-inf-filename)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing")))))
+
+(defun cedille-mode-conv ()
+  "Checks if two expressions can be converted"
+  (interactive)
+  ; Span logic?
+  (cedille-mode-conv-prompt))
+
+
+(defun cedille-mode-conv-prompt ()
+  "Prompts for the first expression in conversion checking"
+  (let ((prompt-fn1 (lambda (input) (interactive "MExpression 1: ") input))
+	(prompt-fn2 (lambda (input) (interactive "MExpression 2: ") input)))
+    (cedille-mode-conv-exprs (call-interactively prompt-fn1) (call-interactively prompt-fn2))))
+
+(defun cedille-mode-conv-exprs (s1 s2)
+  "Sends the conversion request to the backend"
+  (se-inf-interactive (concat "interactive" sep "conv" sep s1 sep s2) 'cedille-mode-conv-response :header "Converting"))
+
+(defun cedille-mode-conv-response (response oc)
+  "Receives the conversion response from the backend"
+  (cedille-mode-scratch-display-text (se-markup-propertize response)))
 
 
 ;;;;;;;;        Span Code        ;;;;;;;;
 
 (defun cedille-mode-normalize-span(span head)
   "Normalizes (or head-normalizes if HEAD is t) SPAN"
-  (let ((lang-level (cdr (assoc 'language-level (se-term-data span))))
+  (let ((lang-level (cedille-mode-normalize-get-ll span))
 	(header (concat (if head "Head-n" "N") "ormalizing")))
     (if (and lang-level (or (string= lang-level "term") (string= lang-level "type")))
 	(se-inf-interactive
@@ -37,13 +58,13 @@
 	 'cedille-mode-normalize-erase-receive-response
 	 :span span
 	 :header header
-	 :extra (list lang-level head)
+	 :extra (cons head nil) ; To make sure that extra is non-nil
 	 :restore t)
       (message "Node must be a term or a type"))))
 
 (defun cedille-mode-erase-span (span)
   "Erases span"
-  (let ((lang-level (cdr (assoc 'language-level (se-term-data span)))))
+  (let ((lang-level (cedille-mode-normalize-get-ll span)))
     (if (and lang-level (string= lang-level "term"))
 	(se-inf-interactive
 	 'cedille-mode-erase-request-text
@@ -53,48 +74,53 @@
 	 :restore t)
       (message "Node must be a term"))))
 
+(defun cedille-mode-normalize-get-error (response)
+  "If RESPONSE is an error, then this messages it and returns t. Otherwise returns nil."
+  (when (string= sep (substring response 0 1))
+    (message (substring response 1))
+    t))
+
 (defun cedille-mode-normalize-erase-receive-response (response span oc &optional extra)
   "Receives the text response from the backend and adds (symbol . response) to span."
-  (when oc
-    (add-hook 'se-inf-interactive-response-hook #'cedille-mode-normalize-inspect))
-  (cons (if extra (if (nth 1 extra) 'head-normalized 'normalized) 'erased) (se-markup-propertize response)))
+  (let ((response (se-markup-propertize response)))
+    (unless (cedille-mode-normalize-get-error response)
+      (when oc
+	(add-hook 'se-inf-interactive-response-hook #'cedille-mode-normalize-inspect))
+      (cons (if extra (if (car extra) 'head-normalized 'normalized) 'erased) response))))
 
 (defun cedille-mode-normalize-request-text(span extra &optional add-parens add-to-pos) ; add-to-pos is for beta-reduction
   "Gets the text to send to the backend as a request to normalize a span"
-  (let* ((lang-level (car extra))
-	 (head (nth 1 extra))
+  (let* ((head (car extra))
 	 (s (se-span-start span))
 	 (e (se-span-end span)))
-    (concat "normalize"
+    (concat "interactive"
+	    sep "normalize"
+	    sep (buffer-substring s e)
+	    sep (cedille-mode-normalize-get-ll span)
 	    sep (number-to-string (+ s (or add-to-pos 0)))
-	    sep (buffer-substring-no-properties s e)
-	    sep lang-level
 	    sep (se-inf-filename)
 	    sep (if head "tt" "ff")
 	    sep (if add-parens "tt" "ff")
-	    sep (if add-to-pos "tt" "ff")
+	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
 	    (cedille-mode-normalize-local-context-param span))))
 
 (defun cedille-mode-erase-request-text(span)
   "Gets the text to send to the backend as a request to normalize a span"
   (let ((s (se-span-start span))
 	(e (se-span-end span)))
-    (concat "erase"
-	    sep (number-to-string s)
-	    sep (buffer-substring-no-properties s e)
-	    sep (se-inf-filename)
-	    (cedille-mode-normalize-local-context-param span))))
+    (cedille-mode-erase-request-text-h (buffer-substring s e) s (se-inf-filename) (cedille-mode-normalize-local-context-param span))))
+
+(defun cedille-mode-erase-request-text-h (str pos filename lc-str)
+  (concat "interactive"
+	  sep "erase"
+	  sep str
+	  sep (number-to-string pos)
+	  sep filename
+	  lc-str))
 
 (defun cedille-mode-normalize-local-context-param(span)
   "Formats the local context into a string suitable to be sent to the backend"
-  (let ((original-context (cedille-mode-span-context span))
-	(split (lambda (item)
-		 (let ((loc (cdr (assoc 'location item)))
-		       (del " - "))
-		   (when loc
-		     (let ((dash (string-match del loc)))
-		       (when dash
-			 (cons (substring loc 0 dash) (substring loc (+ dash (length del)))))))))))
+  (let ((original-context (cedille-mode-span-context span)))
     (when original-context
       (cedille-mode-normalize-local-context-to-string (copy-tree original-context)))))
 
@@ -102,7 +128,14 @@
   "Converts CTXT into a string suitable to be sent to the backend"
   (let* ((terms (cedille-mode-normalize-shadow-filter (car ctxt)))
 	 (types (cedille-mode-normalize-shadow-filter (cdr ctxt)))
-	 (out ""))
+	 (out "")
+	 (split (lambda (item)
+		  (let ((loc (cdr (assoc 'location item)))
+			(del " - "))
+		    (when loc
+		      (let ((dash (string-match del loc)))
+			(when dash
+			  (cons (substring loc 0 dash) (substring loc (+ dash (length del)))))))))))
     (while terms
       (let* ((item (pop terms))
 	     (loc (funcall split item))
@@ -123,6 +156,10 @@
       (let* ((symbol (car pair)) (matches (lambda (thispair) (equal (car thispair) symbol))))
 	(setq shadowed-lst (cons pair (remove-if matches shadowed-lst)))))
     shadowed-lst))
+
+(defun cedille-mode-normalize-get-ll (term)
+  "Returns the language level of TERM"
+  (cdr (assoc 'language-level (se-term-data term))))
 
 (defun cedille-mode-normalize-inspect ()
   "Updates the inspect buffer and opens it if it is closed"
@@ -150,14 +187,12 @@
 
 (defun cedille-mode-normalize-send-prompt (input head-str)
   "Sends the prompted normalize request to the backend"
-  (se-inf-interactive (concat "normalizePrompt" sep input sep head-str sep (se-inf-filename) (cedille-mode-normalize-local-context-to-string cedille-mode-global-context)) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
+  (se-inf-interactive (concat "interactive" sep "normalizePrompt" sep input sep (se-inf-filename) sep head-str) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
 
 (defun cedille-mode-normalize-receive-response-prompt(response oc)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
-  (cedille-mode-scratch-display-text (se-markup-propertize response)))
-
-(defun cedille-mode-erase-prompt (input)
-  (interactive "MErase: ")
-  (se-inf-interactive (concat "erasePrompt" sep input sep (se-inf-filename) (cedille-mode-normalize-local-context-to-string cedille-mode-global-context)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing"))
+  (let ((response (se-markup-propertize response)))
+    (unless (cedille-mode-normalize-get-error response)
+      (cedille-mode-scratch-display-text response))))
 
 (provide 'cedille-mode-normalize)

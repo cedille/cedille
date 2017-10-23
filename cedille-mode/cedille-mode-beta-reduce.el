@@ -53,10 +53,12 @@
     (se-navi-define-key 'cedille-br-mode (kbd "q") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
-    (se-navi-define-key 'cedille-br-mode (kbd "y") #'cedille-mode-close-active-window)
-    (se-navi-define-key 'cedille-br-mode (kbd "Y") #'cedille-mode-close-active-window)
+    ;(se-navi-define-key 'cedille-br-mode (kbd "y") #'cedille-mode-close-active-window)
+    ;(se-navi-define-key 'cedille-br-mode (kbd "Y") #'cedille-mode-close-active-window)
     (se-navi-define-key 'cedille-br-mode (kbd "i") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "I") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "c") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "C") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "r") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "R") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "t") #'se-navi-nothing)
@@ -141,8 +143,11 @@
 
 (defun cedille-mode-br-erase (s)
   "Erases the text before parsing"
-  (se-inf-interactive (concat "erase" "§" (number-to-string cedille-mode-br-length) "§" s "§" cedille-mode-br-filename "§")
-		      'cedille-mode-br-erase-response :extra (current-buffer) :header "Erasing"))
+  (se-inf-interactive
+   (cedille-mode-erase-request-text-h s cedille-mode-br-length cedille-mode-br-filename (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
+   'cedille-mode-br-erase-response
+   :extra (current-buffer)
+   :header "Erasing"))
 
 (defun cedille-mode-br-erase-response (response oc buffer)
   "Receives the erased response from the backend"
@@ -178,7 +183,7 @@
   (interactive)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (se-inf-interactive (concat "brParse" "§" cedille-mode-br-filename "§" cedille-mode-br-temp-str) #'se-inf-process-response :span (se-mode-selected) :header "Parsing" :extra (current-buffer) :delay t))
+  (se-inf-interactive (concat "interactive" "§" "br" "§" cedille-mode-br-temp-str "§" cedille-mode-br-filename) #'se-inf-process-response :span (se-mode-selected) :header "Parsing" :extra (current-buffer) :delay t))
 
 (defun cedille-mode-br-buffer-name ()
   (concat "*cedille-beta-reduce*"))
@@ -193,22 +198,6 @@
 (defun cedille-mode-br-is-error (str)
   "Returns t if STR is an error JSON"
   (and (<= 10 (length response)) (string= "{\"error\":\"" (substring str 0 10))))
-
-(defun cedille-mode-br-toggle (&optional jump-to-window-p)
-  (interactive)
-  (let* ((name (cedille-mode-br-buffer-name))
-	 (buffer (get-buffer name))
-	 (wndw t))
-    (if (null buffer)
-	(setq buffer (call-interactively #'cedille-mode-br-start))
-      (setq wndw (cedille-mode-toggle-buffer-display buffer)))
-    (when (and wndw jump-to-window-p)
-      (select-window (get-buffer-window buffer))
-      (goto-char 1)
-      (deactivate-mark))
-    (enlarge-window 0)
-    (cedille-mode-rebalance-windows)
-    buffer))
 
 ;;;;;;;; Starting code ;;;;;;;;
 (defun cedille-mode-br-start ()

@@ -122,7 +122,10 @@ Defaults to `error'."
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
-  ;(walk-windows (lambda (window) (fit-window-to-buffer window))))
+  (walk-windows (lambda (window) (fit-window-to-buffer window))))
+
+(defun cedille-mode-rebalance-windows2()
+  "Resizes all windows"
   (let* ((w (cedille-mode-file-windows))
 	 (fw (car w))
 	 (nfw (cdr w)))
@@ -133,18 +136,6 @@ Defaults to `error'."
 	  (fit-window-to-buffer (pop nfw)))
 	(when fw
 	  (cedille-mode-set-windows-height fw (cedille-mode-mean-window-size fw)))))))
-
-;  (let (bw)
-;    (walk-windows (lambda (window)
-;		    (unless (eq window (frame-root-window))
-;		      (if (buffer-file-name (window-buffer window))
-;			  (push window bw)
-;			(fit-window-to-buffer window)))))
-;    (if bw
-;	(cedille-mode-set-windows-height bw (cedille-mode-mean-window-size bw))
-;      (with-selected-window (frame-root-window)
-;	(with-current-buffer (window-buffer)
-;	  (fit-window-to-buffer))))))
 
 (defun cedille-mode-file-windows ()
   "Returns (cons FILE-WINDOWS NOT-FILE-WINDOWS)"
@@ -389,6 +380,13 @@ in the parse tree, and updates the Cedille info buffer."
   (cedille-mode-update-buffers)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
+(defun cedille-mode-modify-response (response)
+  (let ((response (cedille-mode-strip-ws response)))
+    (if (not (string= "§" (substring response 0 1)))
+	response
+      (message (substring response 1))
+      nil)))
+
 (defun cedille-mode-strip-ws (response)
   "Removes the proceeding whitespaces in RESPONSE"
   (if (or (equal 0 (length response))
@@ -525,8 +523,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key mode (kbd "?") #'cedille-mode-backend-debug)
   (se-navi-define-key mode (kbd "x") #'cedille-mode-scratch-toggle)
   (se-navi-define-key mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))
-  (se-navi-define-key mode (kbd "y") #'cedille-mode-br-toggle)
-  (se-navi-define-key mode (kbd "Y") (lambda () (interactive) (cedille-mode-br-toggle t)))
+  ;(se-navi-define-key mode (kbd "y") #'cedille-mode-br-toggle)
+  ;(se-navi-define-key mode (kbd "Y") (lambda () (interactive) (cedille-mode-br-toggle t)))
   (se-navi-define-key mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
   (se-navi-define-key mode (kbd "+") (make-cedille-mode-resize-current-window 1))
   (se-navi-define-key mode (kbd "-") (make-cedille-mode-resize-current-window -1))
@@ -537,9 +535,10 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
   (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br-start)
-  (se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
+  (se-navi-define-key mode (kbd "C-i =") #'cedille-mode-conv)
+  ;(se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
   (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)
-  (se-navi-define-key mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
+  ;(se-navi-define-key mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
   (se-navi-define-key mode (kbd "C-i R") #'cedille-mode-inspect-clear-all)
 ;  (se-navi-define-key 'cedille-mode (kbd "@") #'cedille-mode-find)
 )
@@ -566,7 +565,7 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-  (setq se-inf-modify-response #'cedille-mode-strip-ws)
+  (setq se-inf-modify-response #'cedille-mode-modify-response)
 
   (set-input-method "Cedille")
 )

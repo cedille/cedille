@@ -268,10 +268,11 @@ readCommandsFromFrontend s =
         where
             delimiter : char
             delimiter = '§'
+            
             errorCommand : 𝕃 string → toplevel-state → IO toplevel-state
             errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\".") >>= λ x → return s
+            
             debugCommand : toplevel-state → IO toplevel-state
-           --  debugCommand (mk-toplevel-state a b c d e Γ) = putStrLn (escape-string (ctxt-to-string Γ)) >>= λ _ → return (mk-toplevel-state a b c d e Γ)
             debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
 
             checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
@@ -279,19 +280,19 @@ readCommandsFromFrontend s =
                         checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
                         input-filename tt {- should-print-spans -}
             checkCommand ls s = errorCommand ls s
+            
+            interactiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
+            interactiveCommand xs s = interactive-cmds.interactive-cmd xs (toplevel-state.Γ s) >> return s
+            
   {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
             findCommand _ s = errorCommand s -}
+            
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
-            handleCommands ("debug" :: []) s = debugCommand s
-            handleCommands ("normalize" :: rest) s = interactive-cmds.interactive-normalize-span rest s
-            handleCommands ("erase" :: rest) s = interactive-cmds.interactive-erase-span rest s
-            handleCommands ("normalizePrompt" :: rest) s = interactive-cmds.interactive-normalize-prompt rest s
-            handleCommands ("erasePrompt" :: rest) s = interactive-cmds.interactive-erase-prompt rest s
-            handleCommands ("brParse" :: rest) s = interactive-cmds.interactive-br-parse rest s
---            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ("check" :: xs) s = checkCommand xs s
-            -- handleCommands ("BRcheck" :: xs) s = interactive-cmds.interactive-br-spans xs s
+            handleCommands ("debug" :: []) s = debugCommand s
+            handleCommands ("interactive" :: xs) s = interactiveCommand xs s
+--            handleCommands ("find" :: xs) s = findCommand xs s
             handleCommands ls s = errorCommand ls s
 
 
