@@ -65,7 +65,7 @@ appendAssocL ◂ ∀ A : ★ .
 lengthDistAppendL ◂ ∀ A : ★ .
   Π xs : List · A .
   Π ys : List · A .
-  add (length xs) (length ys) ≃ length (appendL xs ys)
+  add (length · A  xs) (length · A ys) ≃ length (appendL · A xs ys)
   = Λ A . elimList · A ·
   (λ xs : List · A . Π ys : List · A .
     add (length xs) (length ys) ≃ length (appendL xs ys))
@@ -93,14 +93,14 @@ concatIdL ◂ ∀ A : ★ . Π xs : List · A .
 
 lengthDistConcatL ◂ ∀ A : ★ . ∀ n : Nat .
   Π xss : List · (VecL · A n) .
-  mult (length xss) n ≃ length (concatL xss)
+  mult (length · (VecL · A n) xss) n ≃ length (concatL · A (u2l-l2l · A -n xss))
   = Λ A . Λ n . elimList · (VecL · A n) ·
   (λ xss : List · (VecL · A n) . mult (length xss) n ≃ length (concatL xss))
   β
   (Λ xss . λ xs . λ ih .
     ρ+ ih -
     ρ xs.2 -
-    ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A (us2lsL · A -n xss))) -
+    ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A (u2l-l2l · A -n xss))) -
     β) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -5,6 +5,10 @@ import VecL.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+v2lC' ◂ ∀ A : ★ . ∀ n : Nat . VecC · A n ➔ ListC · A
+  = Λ A . Λ n . λ xs .
+  xs · (λ _ : Nat . ListC · A) (nilCL · A) (Λ _ . consCL · A) .
+
 v2lC ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ListC · A
   = Λ A . Λ n . λ xs .
   Λ X . λ cN . λ cC .
@@ -33,19 +37,17 @@ v2lId ◂ v2l ≃ λ x . x = β .
 
 l2vC ◂ ∀ A : ★ . Π xs : List · A . VecC · A (length · A xs)
   = Λ A . λ xs .
-  Λ X . λ cN . λ cC . elimList · A ·
+  Λ X . λ cN . λ cC . elimList' · A xs ·
   (λ xs' : List · A . X (length · A xs'))
   cN
-  (Λ xs' . cC -(length · A xs'))
-  xs .
+  (Λ xs' . cC -(length · A xs')) .
 
 l2vP ◂ ∀ A : ★ . Π xs : List · A . VecP · A (length · A xs) (l2vC · A xs)
   = Λ A . λ xs .
-  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC . elimList · A ·
+  Λ X . Λ P . Λ cN . Λ cC . λ pN . λ pC . elimList' · A xs ·
   (λ xs' : List · A . P (length · A xs') (l2vC · A xs' · X cN cC))
   pN
-  (Λ xs' . pC -(length · A xs') -(l2vC · A xs' · X cN cC))
-  xs .
+  (Λ xs' . pC -(length · A xs') -(l2vC · A xs' · X cN cC)) .
 
 l2vR ◂ ∀ A : ★ . Π xs : List · A . VecR · A (length · A xs) (l2vC · A xs)
   = Λ A . λ xs . xs.2 .
@@ -58,21 +60,17 @@ l2vId ◂ l2v ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-lengthV ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ Nat
-  = Λ A . Λ n . λ xs .
-  length · A (v2l · A -n xs) .
-
-lengthPresV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
-  lengthV xs ≃ n
+lengthPres ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
+  n ≃ length · A (v2l · A -n xs)
   = Λ A . elimVec · A ·
-  (λ n : Nat . λ xs : Vec · A n . lengthV xs ≃ n)
+  (λ n : Nat . λ xs : Vec · A n . n ≃ length · A (v2l · A -n xs))
   β
-  (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
+  (Λ n . Λ xs . λ x . λ ih . ρ ih - β) .
 
-v2u ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n . VecL · A n
+v2u ◂ ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ VecL · A n
   = Λ A . Λ n . λ xs . mkVecL · A -n
   (v2l · A -n xs)
-  -(lengthPresV · A -n xs) .
+  -(ς (lengthPres · A -n xs)) .
 v2uId ◂ v2u ≃ λ x . x = β .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

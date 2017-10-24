@@ -22,7 +22,7 @@ mapPL ◂ ∀ A : ★ . ∀ B : ★ .
 
 mapRL ◂ ∀ A : ★ . ∀ B : ★ .  Π f : A ➔ B . Π xs : List · A .
   ListR · B (mapCL · A · B f xs)
-  = Λ A . Λ B . λ f . elimList · A ·
+  = Λ A . Λ B . λ f . λ xs . elimList' · A xs ·
   (λ xs : List · A . ListR · B (mapCL · A · B f xs))
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) . 
@@ -56,8 +56,26 @@ vs2usIdL ◂ vs2usL ≃ λ x . x = β .
 v22l ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
   Vec · (Vec · A n1) n2 ➔ List · (List · A)
   = Λ A . Λ n1 . Λ n2 . λ xss .
-  vs2lsL · A -n1 (v2l · (Vec · A n1) -n2 xss) .
+  mapL · (Vec · A n1) · (List · A) (v2l · A -n1)
+    (v2l · (Vec · A n1) -n2 xss) .
 v22lId ◂ v22l ≃ λ x . x = β .
+
+v2l-v2l ◂ ∀ A : ★ . ∀ n : Nat . ∀ m : Nat .
+  Vec · (Vec · A n) m ➔ List · (List · A)
+  = Λ A . Λ n . Λ m . λ xss .
+  mapL · (Vec · A n) · (List · A) (v2l · A -n)
+    (v2l · (Vec · A n) -m xss) .
+
+v2u-v2l ◂ ∀ A : ★ . ∀ n : Nat . ∀ m : Nat .
+  Vec · (Vec · A n) m ➔ List · (VecL · A n)
+  = Λ A . Λ n . Λ m . λ xss .
+  (mapL · (Vec · A n) · (VecL · A n) (v2u · A -n)
+    (v2l · (Vec · A n) -m xss)) .
+
+u2l-l2l ◂ ∀ A : ★ . ∀ n : Nat .
+  List · (VecL · A n) ➔ List · (List · A)
+  = Λ A . Λ n . λ xss .
+  mapL · (VecL · A n) · (List · A) (u2l · A -n) xss .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

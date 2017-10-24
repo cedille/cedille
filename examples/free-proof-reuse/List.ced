@@ -69,13 +69,23 @@ consL ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+elimList' ◂ ∀ A : ★ . Π xs : List · A . 
+  ∀ P : List · A ➔ ★ .
+  P (nilL · A) ➔
+  (∀ xs : List · A . Π x : A . P xs ➔ P (consL · A x xs)) ➔
+  P xs
+  = Λ A . λ xs . Λ P .
+  ρ ς xs.2 -
+  (xs.1.2 · (List · A) · P -(nilL · A) -(consL · A)) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 elimList ◂ ∀ A : ★ . ∀ P : List · A ➔ ★ .
   P (nilL · A) ➔
   (∀ xs : List · A . Π x : A . P xs ➔ P (consL · A x xs)) ➔
   Π xs : List · A . P xs
   = Λ A . Λ P . λ pN . λ pC . λ xs .
-  ρ ς xs.2 -
-  (xs.1.2 · (List · A) · P -(nilL · A) -(consL · A) pN pC) .
+  elimList' · A xs · P pN pC .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

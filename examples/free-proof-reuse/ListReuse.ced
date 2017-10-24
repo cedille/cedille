@@ -31,11 +31,24 @@ appendV ◂ ∀ A : ★ .
   ∀ m : Nat . Vec · A m ➔
   Vec · A (add n m)
   = Λ A . Λ n . λ xs . Λ m . λ ys .
-  ρ (v2u · A -n xs).2 -
-  ρ (v2u · A -m ys).2 -
+  ρ (lengthPres · A -n xs) -
+  ρ (lengthPres · A -m ys) -
   ρ (lengthDistAppendL · A (v2l · A -n xs) (v2l · A -m ys)) -
   (l2v · A
     (appendL · A (v2l · A -n xs) (v2l · A -m ys))) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+appendV2 ◂ ∀ A : ★ .
+  ∀ n : Nat . Vec · A n ➔
+  ∀ m : Nat . Vec · A m ➔
+  Vec · A (add n m)
+  = Λ A . Λ n . λ xs . Λ m . λ ys .
+  ρ (v2u · A -n xs).2 -
+  ρ (v2u · A -m ys).2 -
+  ρ (lengthDistAppendL · A (v2u · A -n xs).1 (v2u · A -m ys).1) -
+  (l2v · A
+    (appendL · A (v2u · A -n xs).1 (v2u · A -m ys).1)) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -58,13 +71,12 @@ appendAssocV ◂ ∀ A : ★ .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-concatV ◂ ∀ A : ★ . ∀ m : Nat . ∀ n : Nat .
-  Vec · (Vec · A m) n ➔ Vec · A (mult n m)
-  = Λ A . Λ m . Λ n . λ xss .
-  ρ (v2u · (Vec · A m) -n xss).2 -
-  ρ (lengthDistConcatL · A -m
-      (vs2usL · A -m  (v2l · (Vec · A m) -n xss))) -
-  (l2v · A (concatL · A (v22l · A -m -n xss))) .
+concatV ◂ ∀ A : ★ . ∀ n : Nat . ∀ m : Nat .
+  Vec · (Vec · A n) m ➔ Vec · A (mult m n)
+  = Λ A . Λ n . Λ m . λ xss .
+  ρ (v2u · (Vec · A n) -m xss).2 -
+  ρ (lengthDistConcatL · A -n (v2u-v2l · A -n -m xss)) -
+  (l2v · A (concatL · A (v2l-v2l · A -n -m xss))) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -76,13 +88,13 @@ concatIdV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 concatDistAppendV ◂ ∀ A : ★ .
-  ∀ n1 : Nat . ∀ n2 : Nat . Π xss : Vec · (Vec · A n1) n2 .
-  ∀ m1 : Nat . ∀ m2 : Nat . Π yss : Vec · (Vec · A m1) m2 .
+  ∀ n1 : Nat . ∀ m1 : Nat . Π xss : Vec · (Vec · A n1) m1 .
+  ∀ n2 : Nat . ∀ m2 : Nat . Π yss : Vec · (Vec · A n2) m2 .
   appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss)
-  = Λ A . Λ n1 . Λ n2 . λ xss . Λ m1 . Λ m2 . λ yss .
+  = Λ A . Λ n1 . Λ m1 . λ xss . Λ n2 . Λ m2 . λ yss .
   concatDistAppendL · A
-    (v22l · A -n1 -n2 xss)
-    (v22l · A -m1 -m2 yss) .
+    (v2l-v2l · A -n1 -m1 xss)
+    (v2l-v2l · A -n2 -m2 yss) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
