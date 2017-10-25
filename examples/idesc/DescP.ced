@@ -1,0 +1,49 @@
+import Pair.
+import DescC.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DescP ◂ Π I : ★ . Π U : ★ . Π El : U ➔ ★ . DescC · I · U · El ➔ ★
+  = λ I : ★ . λ U : ★ . λ El : U ➔ ★ . λ DC : DescC · I · U · El .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ cE : I ➔ X .
+  ∀ cR : I ➔ X ➔ X .
+  ∀ cA : Π A : U . (El A ➔ X) ➔ X .
+  Π pE : Π i : I . P (cE i) .
+  Π pR : ∀ D : X . Π i : I . P D ➔ P (cR i D) .
+  Π pA : Π A : U . ∀ D : El A ➔ X . (Π a : El A . P (D a)) ➔ P (cA A D) .
+  P (DC · X cE cR cA) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+EndP ◂ ∀ I : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
+  Π i : I . DescP · I · U · El (EndC · I · U · El i)
+  = Λ I . Λ U . Λ El . λ i .
+  Λ X . Λ P . Λ cE . Λ cR . Λ cA . λ pE . λ pR . λ pA .
+  pE i .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+RecP ◂ ∀ I : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
+  ∀ DC : DescC · I · U · El .
+  Π i : I .
+  Π DP : DescP · I · U · El DC .
+  DescP · I · U · El (RecC · I · U · El i DC)
+  = Λ I . Λ U . Λ El . Λ DC . λ i . λ DP .
+  Λ X . Λ P . Λ cE . Λ cR . Λ cA . λ pE . λ pR . λ pA .
+  pR -(DC · X cE cR cA) i (DP · X · P -cE -cR -cA pE pR pA) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ArgP ◂ ∀ I : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
+  Π A : U .
+  ∀ DC : El A ➔ DescC · I · U · El .
+  Π DP : Π a : El A . DescP · I · U · El (DC a) .
+  DescP · I · U · El (ArgC · I · U · El A DC)
+  = Λ I . Λ U . Λ El . λ A . Λ DC . λ DP .
+  Λ X . Λ P . Λ cE . Λ cR . Λ cA . λ pE . λ pR . λ pA .
+  pA A -(λ a . (DC a) · X cE cR cA)
+    (λ a . (DP a) · X · P -cE -cR -cA pE pR pA) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
