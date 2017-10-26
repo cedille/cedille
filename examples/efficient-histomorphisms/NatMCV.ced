@@ -1,0 +1,115 @@
+import NatF.
+import Cowedge.
+import Product.
+import Unit.
+import Top.
+import InductionWithCast.
+import Sum.
+import Sigma.
+import Cast.
+import NatF.
+import List.
+
+
+NatCMF ◂ ★ ➔ ★ = λ X : ★ . Product · (X ➔ (NatF · X)) · (NatF · X).
+
+NatCM ◂ ★ = DepFixM · (CowInd · NatCMF) (fmapCow · NatCMF)  .
+
+
+
+NatRec ◂ Π x : NatCM . ∀ Q : ★ . (NatCM ➔ Q ➔ Q) ➔ Q ➔ Q = λ x .  Λ Q . λ s . λ z . θ<x> (InductionDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF) x)
+    (Λ R . Λ cast . λ ih . λ nf .
+        
+
+       (θ<nf> (CowInduction · NatCMF · R nf)
+            (Λ Z . λ ar .  λ gr . θ<gr> (ind-Product · (Z ➔ NatF · Z) · (NatF · Z) gr) (λ f . λ b . θ<b> (ind-Sum · Unit · Z b)
+	      (λ a . z)
+	      (λ zz . s (((myCast · R · NatCM -cast) ((myCast · Z · R -ar) zz))) (ih ((myCast · Z · R -ar) zz)) ))))
+   ).
+
+
+inFun ◂ NatCM ➔ NatF · NatCM = λ x . θ<x> (InductionDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF) x)
+    (Λ R . Λ cast . λ ih . λ nf .
+        
+
+       (θ<nf> (CowInduction · NatCMF · R nf)
+            (Λ Z . λ ar .  λ gr . θ<gr> (ind-Product · (Z ➔ NatF · Z) · (NatF · Z) gr) (λ f. λ b. NatFF · Z · NatCM (λ z. myCast · R · NatCM -cast (myCast · Z · R -ar z)) b)))).
+
+
+zeroC' ◂  NatCM =  inDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF)  (intrCowInd · NatCMF · NatCM · NatCM [ λ x . x , λ x . β{x} ] (pair · (NatCM ➔ (NatF · NatCM)) · (NatF · NatCM) inFun ((in1 · Unit · NatCM unit)))  ) .
+
+succC' ◂ NatCM ➔  NatCM = λ n . inDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF)  (intrCowInd · NatCMF · NatCM · NatCM [ λ x . x , λ x . β{x} ] (pair · (NatCM ➔ (NatF · NatCM)) · (NatF · NatCM) inFun ( (in2 · Unit · NatCM n)))) .
+
+
+predFun ◂ NatCM ➔ NatCM = λ x. 
+  (inFun x).1 · NatCM (λ _. zeroC') (λ n. n). 
+
+predFunLemma ◂ Π n : NatCM. predFun (succC' n) ≃ n = λ n. β.
+
+outNatCow ◂ NatCM ➔ CowInd · NatCMF · NatCM = outDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF).
+outNatFun   ◂ NatCM ➔ Top = λ n. θ (CowInduction · NatCMF · NatCM (outNatCow n)) 
+  (Λ R. λ c. λ ncmfr.  ncmfr.1 · Top (λ f. λ _. β{f})).
+
+collect' ◂ NatCM ➔ List · Top = λ n. NatRec n · (List · Top) (λ m. λ l. Cons · Top β{outNatFun m} l) (Nil · Top).
+repeatf' ◂ NatCM ➔ List · Top = λ n. NatRec n · (List · Top) (λ _. λ l. Cons · Top β{inFun} l) (Nil · Top).
+
+collect ◂ NatCM ➔ List · Top = λ n. Cons · Top β{outNatFun n} (collect' n).
+repeatf ◂ NatCM ➔ List · Top = λ n. Cons · Top β{inFun} (repeatf' n).
+
+collectlem ◂ ∀ n : Top. collect (succC' n) ≃ (Cons inFun (collect n)) = Λ n. ε β.
+
+NatCMR ◂ ★ = ι x : NatCM. (collect x ≃ repeatf x).
+
+zeroC ◂  NatCMR = [ zeroC' , β{zeroC'} ].
+succC ◂  NatCMR ➔ NatCMR = λ n. [ succC' n.1 , ρ (collectlem -β{n.1}) - ρ n.2 - β{succC' n.1} ].
+
+
+add ◂ NatCMR ➔ NatCMR ➔ NatCMR = λ n. λ m.  NatRec n.1 · NatCMR (λ _. λ p. succC p) m .
+fib ◂ NatCMR ➔ NatCMR = λ n. n.1.1 · NatCMR (Λ R. λ rec . λ e. e.1 · NatCMR (Λ R' . λ c'. λ nc. nc.1 · NatCMR (λ ot. λ nr. nr.1 · NatCMR (λ _.  zeroC) (λ r'. add (rec (c' r')) ((ot r').1 · NatCMR (λ u . succC zeroC) (λ r' . (rec (c' r')))))))).
+
+
+
+
+hhh ◂ ∀ p : Top. ∀ q : Top. ∀ f : Top. (p ≃ q) ➔ f p ≃ f q = Λ p . Λ q. Λ f. λ e. ρ e - β.
+zzui1 ◂ ∀ f1 : Top. ∀ f2 : Top. ∀ l1 : Top. ∀ l2 : Top. (Cons f1 l1 ≃ Cons f2 l2) ➔ (f1 ≃ f2) = Λ f1. Λ f2. Λ l1. Λ l2. λ p. hhh -β{Cons f1 l1} -β{Cons f2 l2} -β{λ z. z (λ x. λ _. x) f1} p .
+
+zzui2 ◂ ∀ f1 : Top. ∀ f2 : Top. ∀ l1 : Top. ∀ l2 : Top. (Cons f1 l1 ≃ Cons f2 l2) ➔ (l1 ≃ l2) = ● .
+
+
+NatInd'' ◂ Π x : NatCM . ∀ Q : NatCM ➔ ★ . (Π x : NatCM . Q x ➔ Q (succC'  x)) ➔ (Q (zeroC')) ➔  (collect x ≃ repeatf x) ➔ Q x = 
+ λ x .  Λ Q . λ s . λ z . θ<x> (InductionDepFixM · (CowInd · NatCMF) (fmapCow · NatCMF) (Cow-FunLaw1 · NatCMF) x)
+    (Λ R . Λ cast . λ ih . λ nf .
+        ρ (Cow-FunLaw1 · NatCMF · R · NatCM -cast nf) -
+
+       (θ<nf> (CowInduction · NatCMF · R nf)
+            (Λ Z . λ ar .  λ gr . θ<gr> (ind-Product · (Z ➔ NatF · Z) · (NatF · Z) gr) (λ f . λ b . θ<b> (ind-Sum · Unit · Z b)
+                
+	      (λ a . λ pr .  ρ (zzui1 -β{f} -β{inFun} -β{Nil} -β{Nil} pr) - ρ (eta-Unit a) - z)
+              (λ zz . λ pr . ρ (zzui1 -β{f} -β{inFun} -β{collect zz} -β{repeatf zz} pr) - (s (myCast · R · NatCM -cast (myCast · Z · R -ar zz)) (ih (myCast · Z · R -ar zz) 
+    (zzui2 -β{f} -β{inFun} -β{collect zz} -β{repeatf zz} pr))))
+	       )))).
+
+
+NatInd' ◂ Π x : NatCMR. ∀ Q : NatCMR ➔ ★ . (Π x : NatCMR . Q x ➔ Q (succC  x)) ➔ Q (zeroC) ➔ 
+   Sigma · NatCMR · (λ z : NatCMR. Product · (z ≃ x) · (Q z)) =
+  λ x .  Λ Q . λ s . λ z .  θ<x> (NatInd'' x.1)
+  (λ w. λ qx. θ<qx> (ind-sigma · NatCMR · (λ z : NatCMR . (Product · (z ≃ w) · (Q z)))  qx) 
+   (λ a. λ pr. θ<pr> (ind-Product · (a ≃ w) · (Q a) pr) 
+  (λ pr2. λ qa.  (mkdsigma · NatCMR · (λ z : NatCMR . (Product · (z ≃ (succC' w)) · (Q z)))   (succC a)  (pair · ((succC a) ≃ (succC' w)) · (Q (succC a))  (ρ pr2 - β) (s a qa) )  )   )))
+  (mkdsigma · NatCMR · (λ z : NatCMR . (Product · (z ≃ zeroC') · (Q z)))   zeroC (pair · (zeroC ≃ zeroC') · (Q zeroC) β z)) 
+  x.2 .
+
+
+NatInd ◂ Π x : NatCMR. ∀ Q : NatCMR ➔ ★ . (Π x : NatCMR . Q x ➔ Q (succC x)) ➔ Q zeroC ➔ Q x 
+ = λ x. Λ Q. λ s. λ z. 
+ (NatInd' x · Q s z).1 · (Q x) (λ x' . λ e . e.1  · (Q x) (λ u. λ q. ρ ς u - q)).
+
+
+
+   
+fiblemma ◂ Π n : NatCMR. fib (succC (succC n)) ≃ add (fib (succC n)) (fib n) = λ n. β.
+
+
+
+
+
