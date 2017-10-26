@@ -1,0 +1,80 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+UnionC ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
+  ∀ X : ★ . (A ➔ X) ➔ (B ➔ X) ➔ X.
+
+inj1C ◂ ∀ A : ★ . ∀ B : ★ . A ➔ UnionC · A · B =
+  Λ A . Λ B . λ a . Λ X . λ c1 . λ c2 . c1 a .
+
+inj2C ◂ ∀ A : ★ . ∀ B : ★ . B ➔ UnionC · A · B =
+  Λ A . Λ B . λ b . Λ X . λ c1 . λ c2 . c2 b .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+UnionP ◂ Π A : ★ . Π B : ★ . UnionC · A · B ➔ ★ =
+  λ A : ★ . λ B : ★ . λ uC : UnionC · A · B .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ c1 : A ➔ X . ∀ c2 : B ➔ X .
+  Π p1 : Π a : A . P (c1 a) .
+  Π p2 : Π b : B . P (c2 b) .
+  P (uC · X c1 c2) .
+
+inj1P ◂ ∀ A : ★ . ∀ B : ★ .
+  Π a : A . UnionP · A · B (inj1C · A · B a) =
+  Λ A . Λ B . λ a . Λ X . Λ P . Λ c1 . Λ c2 . λ p1 . λ p2 .
+  p1 a .
+
+inj2P ◂ ∀ A : ★ . ∀ B : ★ .
+  Π b : B . UnionP · A · B (inj2C · A · B b) =
+  Λ A . Λ B . λ b . Λ X . Λ P . Λ c1 . Λ c2 . λ p1 . λ p2 .
+  p2 b .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+UnionR ◂ Π A : ★ . Π B : ★ . UnionC · A · B ➔ ★
+  = λ A : ★ . λ B : ★ . λ uC : UnionC · A · B .
+  uC inj1C inj2C ≃ uC .
+
+inj1R ◂ ∀ A : ★ . ∀ B : ★ .
+  ∀ a : A . UnionR · A · B (inj1C · A · B a)
+  = Λ A . Λ B . Λ a . β .
+
+inj2R ◂ ∀ A : ★ . ∀ B : ★ .
+  ∀ b : B . UnionR · A · B (inj2C · A · B b)
+  = Λ A . Λ B . Λ b . β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Union ◂ Π A : ★ . ★ ➔ ★ = λ A : ★ . λ B : ★ .
+  ι u : (ι uC : UnionC · A · B . UnionP · A · B uC) . UnionR · A · B u.1 .
+
+mkUnion ◂ ∀ A : ★ . ∀ B : ★ .
+  Π u : (ι uC : UnionC · A · B . UnionP · A · B uC) .
+  UnionR · A · B u.1 ➾ Union · A · B =
+  Λ A . Λ B . λ u . Λ q . [ u , ρ q - β{u} ] .
+
+inj1 ◂ ∀ A : ★ . ∀ B : ★ .
+  Π a : A . Union · A · B
+  = Λ A . Λ B . λ a . mkUnion · A · B
+  [inj1C · A · B a , inj1P · A · B a]
+  -(inj1R · A · B -a) .
+
+inj2 ◂ ∀ A : ★ . ∀ B : ★ .
+  Π b : B . Union · A · B
+  = Λ A . Λ B . λ b . mkUnion · A · B
+  [inj2C · A · B b , inj2P · A · B b]
+  -(inj2R · A · B -b) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+elimUnion ◂ ∀ A : ★ . ∀ B : ★ .
+  ∀ P : Union · A · B ➔ ★ .
+  Π p1 : Π a : A . P (inj1 · A · B a) .
+  Π p2 : Π b : B . P (inj2 · A · B b) .
+  Π u : Union · A · B . P u
+  = Λ A . Λ B . Λ P . λ p1 . λ p2 . λ u .
+  ρ ς u.2 -
+  (u.1.2 · (Union · A · B) · P -(inj1 · A · B) -(inj2 · A · B) p1 p2) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

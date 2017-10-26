@@ -1,0 +1,147 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DescC ◂ ★ ➔ ★ =
+  λ U : ★ . ∀ X : ★ .
+  Π cI : X .
+  Π cK : U ➔ X .
+  Π cP : X ➔ X ➔ X .
+  Π cS : X ➔ X ➔ X .
+  X .
+
+IdC ◂ ∀ U : ★ . DescC · U
+  = Λ U . Λ X . λ cI . λ cK . λ cP . λ cS .
+  cI .
+
+ConstC ◂ ∀ U : ★ . U ➔ DescC · U
+  = Λ U . λ A . Λ X . λ cI . λ cK . λ cP . λ cS .
+  cK A .
+
+ProdC ◂ ∀ U : ★ . DescC · U ➔ DescC · U ➔ DescC · U
+  = Λ U . λ D . λ E . Λ X . λ cI . λ cK . λ cP . λ cS .
+  cP (D · X cI cK cP cS) (E · X cI cK cP cS) .
+
+SumC ◂ ∀ U : ★ . DescC · U ➔ DescC · U ➔ DescC · U
+  = Λ U . λ D . λ E . Λ X . λ cI . λ cK . λ cP . λ cS .
+  cS (D · X cI cK cP cS) (E · X cI cK cP cS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DescP ◂ Π U : ★ . DescC · U ➔ ★
+  = λ U : ★ . λ DC : DescC · U .
+  ∀ X : ★ . ∀ P : X ➔ ★ .
+  ∀ cI : X .
+  ∀ cK : U ➔ X .
+  ∀ cP : X ➔ X ➔ X .
+  ∀ cS : X ➔ X ➔ X .
+  Π pI : P cI .
+  Π pK : Π A : U . P (cK A) .
+  Π pP : ∀ D : X . ∀ E : X . P D ➔ P E ➔ P (cP D E) .
+  Π pS : ∀ D : X . ∀ E : X . P D ➔ P E ➔ P (cS D E) .
+  P (DC · X cI cK cP cS) .
+
+IdP ◂ ∀ U : ★ . DescP · U (IdC · U)
+  = Λ U . Λ X . Λ P .
+  Λ cI . Λ cK . Λ cP . Λ cS . λ pI . λ pK . λ pP . λ pS .
+  pI .
+
+ConstP ◂ ∀ U : ★ . Π A : U . DescP · U (ConstC · U A)
+  = Λ U . λ A . Λ X . Λ P .
+  Λ cI . Λ cK . Λ cP . Λ cS . λ pI . λ pK . λ pP . λ pS .
+  pK A .
+
+ProdP ◂ ∀ U : ★ . ∀ DC : DescC · U . ∀ EC : DescC · U .
+  Π DP : DescP · U DC . Π EP : DescP · U EC .
+  DescP · U (ProdC · U DC EC)
+  = Λ U . Λ DC . Λ EC . λ DP . λ EP . Λ X . Λ P .
+  Λ cI . Λ cK . Λ cP . Λ cS . λ pI . λ pK . λ pP . λ pS .
+  pP -(DC · X cI cK cP cS) -(EC · X cI cK cP cS)
+  (DP · X · P -cI -cK -cP -cS pI pK pP pS)
+  (EP · X · P -cI -cK -cP -cS pI pK pP pS) .
+
+SumP ◂ ∀ U : ★ . ∀ DC : DescC · U . ∀ EC : DescC · U .
+  Π DP : DescP · U DC . Π EP : DescP · U EC .
+  DescP · U (SumC · U DC EC)
+  = Λ U . Λ DC . Λ EC . λ DP . λ EP . Λ X . Λ P .
+  Λ cI . Λ cK . Λ cP . Λ cS . λ pI . λ pK . λ pP . λ pS .
+  pS -(DC · X cI cK cP cS) -(EC · X cI cK cP cS)
+  (DP · X · P -cI -cK -cP -cS pI pK pP pS)
+  (EP · X · P -cI -cK -cP -cS pI pK pP pS) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DescR ◂ Π U : ★ . DescC · U ➔ ★
+  = λ U : ★ . λ DC : DescC · U .
+  DC IdC ConstC ProdC SumP ≃ DC .
+
+IdR ◂ ∀ U : ★ . DescR · U (IdC · U)
+  = Λ U . β .
+
+ConstR ◂ ∀ U : ★ . ∀ A : U . DescR · U (ConstC · U A)
+  = Λ U . Λ A . β .
+
+ProdR ◂ ∀ U : ★ . ∀ DC : DescC · U . ∀ EC : DescC · U .
+  ∀ DR : DescR · U DC . ∀ ER : DescR · U EC .
+  DescR · U (ProdC · U DC EC)
+  = Λ U . Λ DC . Λ EC . Λ DR . Λ ER .
+  ρ+ DR - ρ+ ER - β .
+
+SumR ◂ ∀ U : ★ . ∀ DC : DescC · U . ∀ EC : DescC · U .
+  ∀ DR : DescR · U DC . ∀ ER : DescR · U EC .
+  DescR · U (SumC · U DC EC)
+  = Λ U . Λ DC . Λ EC . Λ DR . Λ ER .
+  ρ+ DR - ρ+ ER - β .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Desc ◂ ★ ➔ ★ = λ U : ★ .
+  ι D : (ι DC : DescC · U . DescP · U DC) . DescR · U D.1 .
+
+mkDesc ◂ ∀ U : ★ .
+  Π D : (ι DC : DescC · U . DescP · U DC) .
+  DescR · U D.1 ➾ Desc · U =
+  Λ U . λ D . Λ q . [ D , ρ q - β{D} ] .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Id ◂ ∀ U : ★ . Desc · U = Λ U .
+  mkDesc · U [ IdC · U , IdP · U ] -(IdR · U) .
+
+Const ◂ ∀ U : ★ . U ➔ Desc · U = Λ U . λ A . 
+  mkDesc · U [ ConstC · U A , ConstP · U A ] -(ConstR · U -A) .
+
+Prod ◂ ∀ U : ★ . Desc · U ➔ Desc · U ➔ Desc · U
+  = Λ U . λ D . λ E . mkDesc · U
+  [ ProdC · U D.1.1 E.1.1
+  , ProdP · U -D.1.1 -E.1.1 D.1.2 E.1.2 ]
+  -(ProdR · U -D.1.1 -E.1.1 -D.2 -E.2) .
+
+Sum ◂ ∀ U : ★ . Desc · U ➔ Desc · U ➔ Desc · U
+  = Λ U . λ D . λ E . mkDesc · U
+  [ SumC · U D.1.1 E.1.1
+  , SumP · U -D.1.1 -E.1.1 D.1.2 E.1.2 ]
+  -(SumR · U -D.1.1 -E.1.1 -D.2 -E.2) .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+elimDesc ◂ ∀ U : ★ . ∀ P : Desc · U ➔ ★ .
+  Π pI : P (Id · U) .
+  Π pK : Π A : U . P (Const · U A) .
+  Π pP : ∀ D : Desc · U . ∀ E : Desc · U . P D ➔ P E ➔ P (Prod · U D E) .
+  Π pS : ∀ D : Desc · U . ∀ E : Desc · U . P D ➔ P E ➔ P (Sum · U D E) .
+  Π D : Desc · U . P D
+  = Λ U . Λ P . λ pI . λ pK . λ pP . λ pS . λ D .
+  ρ ς D.2 - (D.1.2 · (Desc · U) · P
+  -(Id · U) -(Const · U) -(Prod · U) -(Sum · U)
+  pI pK pP pS) .
+
+elimDesc' ◂ ∀ U : ★ . ∀ P : Desc · U ➔ ★ .
+  Π D : Desc · U . 
+  Π pI : P (Id · U) .
+  Π pK : Π A : U . P (Const · U A) .
+  Π pP : ∀ D : Desc · U . ∀ E : Desc · U . P D ➔ P E ➔ P (Prod · U D E) .
+  Π pS : ∀ D : Desc · U . ∀ E : Desc · U . P D ➔ P E ➔ P (Sum · U D E) .
+  P D
+  = Λ U . Λ P . λ D . λ pI . λ pK . λ pP . λ pS .
+  elimDesc · U · P pI pK pP pS D .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
