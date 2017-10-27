@@ -33,6 +33,8 @@ TpFold ◂ TpF · TpC ➔ TpC =
 TpUnfold ◂ TpC ➔ TpF · TpC =
   λ x . cast · TpC · (TpF · TpC) -(recUnfold · TpF -TpFmap) x .
 
+TpUnfoldSimple ◂ TpC ➔ ∀ X : ★ . Π z : X . (Π p1 : TpC . Π x1 : X . Π p2 : TpC . Π x2 : X . X) ➔ X = ● . 
+
 baseC ◂ TpC = TpFold [Λ X . λ a . λ f . a , β{baseU}].
 
 arrowC ◂ Π p1 : TpC . Π n1 : TpC . (p1 ≃ n1) ➾ Π p2 : TpC . Π n2 : TpC . (p2 ≃ n2) ➾ TpC =
@@ -69,13 +71,13 @@ Tp ◂ ★ = ι x : TpC . TpP x.
 
 base ◂ Tp = [ baseC , baseP].
 arrowi ◂ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Tp =
-  λ p . λ n . Λ e . λ p2 . λ n2 . Λ e2 . [ arrowC p n.1 -e p2 n2.1 -e2 , arrowP p -n.1 -e n.2 -n2.1 -e n2.2 ].
+  λ p . λ n . Λ e . λ p2 . λ n2 . Λ e2 . [ arrowC p n.1 -e p2 n2.1 -e2 , arrowP p -n.1 -e n.2 p2 -n2.1 -e2 n2.2 ].
 
-interpTp ◂ (Tp ➔ ★) ➔ Tp ➔ ★ =
-  λ B : Tp ➔ ★ . λ T : Tp .
-    ↑ X . TpUnfold T · X : ((Tp ➔ ☆) ➔ (Tp ➔ ☆ ➔ Tp ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : Tp . λ S1 : ★ . λ _ : Tp . λ S2 : ★ . S1 ➔ S2) .
+interpTp ◂ ★ ➔ Tp ➔ ★ =
+  λ B : ★ . λ T : Tp .
+    ↑ X . (TpUnfoldSimple T.1) · X : (☆ ➔ (TpC ➔ ☆ ➔ TpC ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : TpC . λ S1 : ★ . λ _ : TpC . λ S2 : ★ . S1 ➔ S2) .
 
 
-eqtp ◂ Tp ➔ Tp ➔ Bool = ●.
+eqtp ◂ Tp ➔ Tp ➔ Bool =  ●.
 
 eqtpEq ◂ Π T1 : Tp . Π T2 : Tp . (eqtp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .

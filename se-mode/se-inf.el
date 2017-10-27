@@ -255,8 +255,7 @@ buffer's file unless FILE is non-nil."
   "Saves the current buffer"
   (interactive)
   (if (buffer-file-name)
-      (with-silent-modifications
-	(save-buffer))
+	(save-buffer)
     (message "Couldn't save buffer %s because it has no file associated with it")))
 
 (defun se-inf-filename ()
