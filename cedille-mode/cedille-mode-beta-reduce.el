@@ -53,8 +53,6 @@
     (se-navi-define-key 'cedille-br-mode (kbd "q") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
-    ;(se-navi-define-key 'cedille-br-mode (kbd "y") #'cedille-mode-close-active-window)
-    ;(se-navi-define-key 'cedille-br-mode (kbd "Y") #'cedille-mode-close-active-window)
     (se-navi-define-key 'cedille-br-mode (kbd "i") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "I") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "c") #'se-navi-nothing)
@@ -69,21 +67,11 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i b") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i n") #'cedille-mode-br-normalize)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i h") (lambda () (interactive) (cedille-mode-br-normalize t)))
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i =") #'cedille-mode-br-conv)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i ,") #'cedille-mode-br-undo)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i .") #'cedille-mode-br-redo)
-    (se-navi-define-key 'cedille-br-mode (kbd "P") #'cedille-mode-br-print-span)
     (se-navi-get-keymap 'cedille-br-mode)))
 ;(se-navi-define-key 'cedille-br-mode (kbd "") #'cedille-mode-br-) ; Template
-
-(defun cedille-mode-br-print-span ()
-  (interactive)
-  (message "%s" (se-mode-selected)))
-
-(defun cedille-mode-br-get-filename ()
-  cedille-mode-br-filename)
-
-(defun cedille-mode-br-get-filename-base (&optional filename)
-  (file-name-base cedille-mode-br-filename))
 
 (define-minor-mode cedille-br-mode
   "Minor mode for the beta-reduction buffer"
@@ -91,20 +79,21 @@
   (when cedille-br-mode
     (set-input-method "Cedille")
     (setq-local comment-start "%")
-    (setq-local se-inf-get-message-from-filename 'cedille-mode-br-get-message-from-filename)
+    (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
+    (setq-local se-inf-modify-response 'cedille-mode-modify-response)
     (setq se-navi-current-keymap (se-navi-get-keymap 'cedille-br-mode))
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push (cons 'se-navigation-mode se-navi-current-keymap)
 	  minor-mode-overriding-map-alist)
     (add-hook    'se-inf-init-spans-hook  #'cedille-mode-initialize-spans  t   t)
     (add-hook    'se-inf-init-spans-hook  #'se-markup-propertize-spans     t   t)
-    (add-hook    'se-inf-pre-parse-hook   #'cedille-mode-clear-buffers     nil t)
+    (remove-hook    'se-inf-pre-parse-hook   #'cedille-mode-clear-buffers      t)
     (add-hook    'se-inf-pre-parse-hook   #'se-mode-clear-selected         t   t)
     (add-hook    'se-inf-post-parse-hook  #'cedille-mode-br-post-parse     t   t)
-    (remove-hook 'se-inf-pre-parse-hook   #'save-buffer                        t)
+    (remove-hook 'se-inf-pre-parse-hook   #'se-inf-save                        t)
     (remove-hook 'before-change-functions #'se-navigation-mode-quit            t))
   (unless cedille-br-mode
-    (message "quitting cedille-br-mode")))
+    (message "Quitting cedille-br-mode!")))
 
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
@@ -123,14 +112,12 @@
       (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
       (setq se-mode-not-selected se-mode-parse-tree
 	    se-inf-response-finished t
+	    cedille-mode-do-update-buffers nil
 	    cedille-mode-br-filename original-filename
 	    cedille-mode-br-temp-str str
 	    cedille-mode-br-in-buffer t
 	    cedille-mode-br-length len
 	    cedille-mode-global-context context
-	    se-inf-filename #'cedille-mode-br-get-filename
-	    se-inf-filename-base #'cedille-mode-br-get-filename-base
-	    se-inf-modify-response #'cedille-mode-strip-ws
 	    buffer-read-only nil
 	    window-size-fixed nil)
       (se-inf-interactive (cedille-mode-get-message-from-filename cedille-mode-br-filename) nil :header "Parsing")
@@ -183,7 +170,7 @@
   (interactive)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (se-inf-interactive (concat "interactive" "§" "br" "§" cedille-mode-br-temp-str "§" cedille-mode-br-filename) #'se-inf-process-response :span (se-mode-selected) :header "Parsing" :extra (current-buffer) :delay t))
+  (se-inf-interactive (concat "interactive" "§" "br" "§" cedille-mode-br-temp-str "§" cedille-mode-br-filename) 'se-inf-process-response :header "Parsing" :extra (current-buffer) :delay t))
 
 (defun cedille-mode-br-buffer-name ()
   (concat "*cedille-beta-reduce*"))
@@ -240,25 +227,41 @@
     (if (null span)
 	(message "Error: must select a node")
       (let ((ll (cdr (assoc 'language-level (se-span-data span)))))
-	(if (not (and ll (or (string= ll "term") (string= ll "type"))))
-	    (message "Node must be a term or a type")
+	(if (not (and ll (string= ll "term")))
+	    (message "Node must be a term")
 	  (push (cedille-mode-br-current-frame) cedille-mode-br-undo-stack)
 	  (setq cedille-mode-br-redo-stack nil)
 	  (se-inf-interactive 'cedille-mode-br-request-text 'cedille-mode-br-normalize-receive-response :span span :header (if head "Head-normalizing" "Normalizing") :extra (cons head (current-buffer))))))))
 
+(defun cedille-mode-br-conv ()
+  "Replaces the selected span with the prompted expression if they are convertible"
+  (interactive)
+  (let ((span (se-get-span (se-mode-selected))))
+    (if (null span)
+	(message ("Error: must select a node"))
+      (let* ((ask-fn (lambda (input)
+		       (interactive "MConvert to: ")
+		       input))
+	     (input (call-interactively ask-fn))
+	     (q (concat "interactive§conv§" (buffer-substring (se-span-start span) (se-span-end span)) "§" input "§" (number-to-string cedille-mode-br-length) "§" cedille-mode-br-filename "§" (cedille-mode-normalize-local-context-param span))))
+	(push (cedille-mode-br-current-frame) cedille-mode-br-undo-stack)
+	(setq cedille-mode-br-redo-stack nil)
+	(se-inf-interactive q 'cedille-mode-br-normalize-receive-response :span span :header "Converting" :extra (current-buffer))))))
+
 (defun cedille-mode-br-normalize-receive-response (response span oc extra)
   "Receives the normalized response from the backend"
   (with-current-buffer (cdr extra)
-    (let* ((head (car extra))
-	   (response (se-markup-propertize response))
-	   (start (se-term-start span))
-	   (end (se-term-end span))
-	   (before (buffer-substring-no-properties 1 start))
-	   (after (buffer-substring-no-properties end (1+ (buffer-size))))
+    (let ((response (se-markup-propertize response)))
+      (unless (cedille-mode-normalize-get-error response)
+	(let* ((head (car extra))
+	       (start (se-term-start span))
+	       (end (se-term-end span))
+	       (before (buffer-substring 1 start))
+	       (after (buffer-substring end (1+ (buffer-size))))
 	   (str (concat before response after)))
-      (setq cedille-mode-br-temp-str str)
-      (cedille-mode-br-set-range start response)
-      (cedille-mode-br-parse))))
+	  (setq cedille-mode-br-temp-str str)
+	  (cedille-mode-br-set-range start response)
+	  (cedille-mode-br-parse))))))
 
 (defun cedille-mode-br-set-range (start response)
   "Sets `cedille-mode-br-span-range'"
@@ -303,9 +306,6 @@
       (cedille-mode-highlight)
       (goto-char 1)
       (deactivate-mark))))
-
-(defun cedille-mode-br-get-message-from-filename (filename)
-  (concat "BRcheck" "§" filename))
 
 (defun cedille-mode-br-request-text (span extra)
   "Gets the text to send to the backend as a request to beta-reduce a node"

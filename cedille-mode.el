@@ -20,6 +20,10 @@
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
+(make-variable-buffer-local
+ (defvar cedille-mode-do-update-buffers t
+   "A boolean for whether `cedille-mode-update-buffers' should get called"))
+
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -173,9 +177,10 @@ Defaults to `error'."
 
 (defun cedille-mode-update-buffers()
   "Update the info and context buffers."
-  (cedille-mode-inspect) 
-  (cedille-mode-context) ;the string-split bug is here
-  (cedille-mode-rebalance-windows))
+  (when cedille-mode-do-update-buffers
+    (cedille-mode-inspect) 
+    (cedille-mode-context) ;the string-split bug is here
+    (cedille-mode-rebalance-windows)))
 
 (defun cedille-mode-clear-buffers()
   "Clears the contents of and closes the buffers for the current file"
@@ -565,7 +570,7 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-  (setq se-inf-modify-response #'cedille-mode-modify-response)
+  (setq-local se-inf-modify-response 'cedille-mode-modify-response)
 
   (set-input-method "Cedille")
 )

@@ -15,7 +15,7 @@
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "inspect mode"))
     map))
 
-(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (se-inf-filename-base) "*"));(file-name-base (buffer-name)) "*"))
+(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (file-name-base) "*"))
 
 (defun cedille-mode-inspect-buffer ()
   (get-buffer-create (cedille-mode-inspect-buffer-name)))

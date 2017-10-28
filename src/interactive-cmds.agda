@@ -265,6 +265,29 @@ br-cmd Γ input fn = br-parse (pretty-string input tt) (ctxt-set-current-file Γ
 
 {- Conversion -}
 
+conv-runs : ctxt → (span-run : Run) → (input-run : Run) → 𝔹
+conv-runs Γ (ParseTree (parsed-term t₁) :: []) (ParseTree (parsed-term t₂) :: []) = conv-term Γ t₁ t₂
+conv-runs Γ (ParseTree (parsed-type tp₁) :: []) (ParseTree (parsed-type tp₂) :: []) = conv-type Γ tp₁ tp₂
+conv-runs Γ (ParseTree (parsed-kind k₁) :: []) (ParseTree (parsed-kind k₂) :: []) = conv-kind Γ k₁ k₂
+conv-runs _ _ _ = ff
+
+conv-parse-try : 𝕃 char → 𝕃 char → 𝕃 gratr2-nt → maybe (Run × Run)
+conv-parse-try s₁ s₂ (h :: t) with parse-specific-nt h 0 s₁ | parse-specific-nt h 0 s₂
+conv-parse-try _ _ (h :: t) | (inj₂ r₁) | (inj₂ r₂) = just (rewriteRun r₁ , rewriteRun r₂)
+conv-parse-try s₁ s₂ (h :: t) | _ | _ = conv-parse-try s₁ s₂ t
+conv-parse-try _ _ [] = nothing
+
+get-conv : ctxt → (span-str : string) → (input-str : string) → string
+get-conv Γ ss is with conv-parse-try (pretty-string-h tt (string-to-𝕃char ss) []) (pretty-string-h tt (string-to-𝕃char is) []) try-nts
+get-conv Γ ss is | just (sr , ir) = if conv-runs Γ sr ir then is else ss
+get-conv Γ ss _ | nothing = ss
+
+conv-cmd : ctxt → (span-str : string) → (input-str : string) → (start-pos : string) → (filename : string) → (local-ctxt : 𝕃 string) → string × 𝔹
+conv-cmd _ _ _ sp _ _ with string-to-ℕ sp
+conv-cmd Γ ss is _ fn lc | just sp = get-conv (get-local-ctxt Γ sp fn lc tt) ss is , tt
+conv-cmd _ ss _ _ _ _ | nothing = ss , tt
+
+{-
 conv-result : string → string → 𝔹 → string
 conv-result s₁ s₂ b =
   "Convertible: " ^ (if b then "true" else "false") ^ "\n" ^
@@ -292,6 +315,7 @@ conv-cmd : ctxt → (input₁ : string) → (input₂ : string) → string × �
 conv-cmd _ s₁ s₂ with conv-parse-try (pretty-string-h tt (string-to-𝕃char s₁) []) (pretty-string-h tt (string-to-𝕃char s₂) []) try-nts
 conv-cmd Γ s₁ s₂ | just (r₁ , r₂) = conv-runs Γ s₁ s₂ r₁ r₂
 conv-cmd Γ s₁ s₂ | nothing = "Inputs have different language-levels" , ff
+-}
 
 {- Commands -}
 
@@ -309,5 +333,5 @@ interactive-cmd-h Γ ("erase" :: input :: sp :: fn :: lc) = erase-cmd Γ input s
 interactive-cmd-h Γ ("normalizePrompt" :: input :: fn :: head :: []) = normalize-prompt-cmd Γ input fn head
 interactive-cmd-h Γ ("erasePrompt" :: input :: fn :: []) = erase-prompt Γ input fn
 interactive-cmd-h Γ ("br" :: input :: fn :: []) = br-cmd Γ input fn
-interactive-cmd-h Γ ("conv" :: s₁ :: s₂ :: []) = conv-cmd Γ s₁ s₂
+interactive-cmd-h Γ ("conv" :: ss :: is :: sp :: fn :: lc) = conv-cmd Γ ss is sp fn lc
 interactive-cmd-h Γ cs = "Invalid interactive command sequence " ^ (𝕃-to-string (λ s → s) ", " cs) , ff

@@ -15,7 +15,7 @@
 
 
 (defun se-markup-propertize-span (span)
-  "Converts marked up text into pinned properties"
+  "Converts marked up text in SPAN's data into pinned properties"
   (setq fn (lambda (item)
 	     (cond
 	      ((and (sequencep item) (cdr item) (stringp (cdr item)))
@@ -26,7 +26,7 @@
   (setf (se-span-data span) (mapcar fn (se-span-data span))))
 
 (defun se-markup-propertize (text)
-  "Searches TEXT for markup stuff and turns it into pinned properties"
+  "Searches TEXT for markup and turns it into pinned properties"
   (if (string= "" text)
       text
     (let ((split (se-markup-split text)))

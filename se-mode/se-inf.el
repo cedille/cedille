@@ -39,14 +39,6 @@ name of the file to parse, and should return the message that ought
 to be sent to the backend to request parsing of that file."))
 
 (make-variable-buffer-local
- (defvar se-inf-filename #'buffer-file-name
-   "The function to call when you want to get the filename of the current buffer"))
-
-(make-variable-buffer-local
- (defvar se-inf-filename-base #'file-name-base
-   "The function to call when you want to get the filename base of the current buffer"))
-
-(make-variable-buffer-local
  (defvar se-inf-response-finished nil
    "Set to true after a processing/parsing response has been received and
 `se-inf-post-parse-hook' is executed."))
@@ -240,7 +232,8 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	  (se-inf-restore-interactive)
 	  (setq se-inf-response-finished t)))
     (error
-     (message "%s" (error-message-string err)))))
+     (message "%s" (error-message-string err))))
+  nil)
 
 (defun se-inf-parse-file (&optional file)
   "Sends parse request to current process.  Uses the current
@@ -248,23 +241,28 @@ buffer's file unless FILE is non-nil."
   (interactive)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (let ((ms (se-inf-get-message-from-filename (or file (se-inf-filename)))))
+  (let ((ms (se-inf-get-message-from-filename (or file (buffer-file-name)))))
     (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing")))
+
+(defun se-inf-add-final-newline ()
+  "Silently adds a newline to the end of the buffer, if necessary"
+  (let ((size (buffer-size))
+	(pos (point))
+	(mark-pos (mark))
+	(mark-act mark-active))
+    (when (not (string= "\n" (buffer-substring size (1+ size))))
+      (with-silent-modifications
+	(goto-char (point-max))
+	(insert "\n")
+	(goto-char pos)
+	(push-mark mark-pos t mark-act)
+	(setq mark-active mark-act)))))
 
 (defun se-inf-save ()
   "Saves the current buffer"
   (interactive)
-  (if (buffer-file-name)
-	(save-buffer)
-    (message "Couldn't save buffer %s because it has no file associated with it")))
-
-(defun se-inf-filename ()
-  "Gets the filename of the current buffer (see `se-inf-filename')"
-  (funcall se-inf-filename))
-
-(defun se-inf-filename-base ()
-  "Gets the filename base of the current buffer (see `se-inf-filename-base')"
-  (funcall se-inf-filename-base (se-inf-filename)))
+  (se-inf-add-final-newline)
+  (save-buffer))
 
 (defun se-inf-get-message-from-filename (filename)
   "Calls the function variable `se-inf-get-message-from-filename'"

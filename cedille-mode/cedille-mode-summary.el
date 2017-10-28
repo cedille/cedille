@@ -67,7 +67,7 @@
 
 (defun cedille-mode-summary-buffer-name ()
   "Generates a unique name for each file's summary"
-  (concat "*cedille-summary-" (se-inf-filename-base) "*"))
+  (concat "*cedille-summary-" (file-name-base) "*"))
 
 (defun cedille-mode-summary-buffer ()
   "Creates/gets and returns the summary buffer"

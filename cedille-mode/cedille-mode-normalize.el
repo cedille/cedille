@@ -22,28 +22,28 @@
     (call-interactively
      (lambda (input)
        (interactive "MErase: ")
-       (se-inf-interactive (concat "interactive" sep "erasePrompt" sep input sep (se-inf-filename)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing")))))
+       (se-inf-interactive (concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing")))))
 
-(defun cedille-mode-conv ()
-  "Checks if two expressions can be converted"
-  (interactive)
-  ; Span logic?
-  (cedille-mode-conv-prompt))
+;(defun cedille-mode-conv ()
+;  "Checks if two expressions can be converted"
+;  (interactive)
+;  ; Span logic?
+;  (cedille-mode-conv-prompt))
 
 
-(defun cedille-mode-conv-prompt ()
-  "Prompts for the first expression in conversion checking"
-  (let ((prompt-fn1 (lambda (input) (interactive "MExpression 1: ") input))
-	(prompt-fn2 (lambda (input) (interactive "MExpression 2: ") input)))
-    (cedille-mode-conv-exprs (call-interactively prompt-fn1) (call-interactively prompt-fn2))))
+;(defun cedille-mode-conv-prompt ()
+;  "Prompts for the first expression in conversion checking"
+;  (let ((prompt-fn1 (lambda (input) (interactive "MExpression 1: ") input))
+;	(prompt-fn2 (lambda (input) (interactive "MExpression 2: ") input)))
+;    (cedille-mode-conv-exprs (call-interactively prompt-fn1) (call-interactively prompt-fn2))))
 
-(defun cedille-mode-conv-exprs (s1 s2)
-  "Sends the conversion request to the backend"
-  (se-inf-interactive (concat "interactive" sep "conv" sep s1 sep s2) 'cedille-mode-conv-response :header "Converting"))
+;(defun cedille-mode-conv-exprs (s1 s2)
+;  "Sends the conversion request to the backend"
+;  (se-inf-interactive (concat "interactive" sep "conv" sep s1 sep s2) 'cedille-mode-conv-response :header "Converting"))
 
-(defun cedille-mode-conv-response (response oc)
-  "Receives the conversion response from the backend"
-  (cedille-mode-scratch-display-text (se-markup-propertize response)))
+;(defun cedille-mode-conv-response (response oc)
+;  "Receives the conversion response from the backend"
+;  (cedille-mode-scratch-display-text (se-markup-propertize response)))
 
 
 ;;;;;;;;        Span Code        ;;;;;;;;
@@ -98,7 +98,7 @@
 	    sep (buffer-substring s e)
 	    sep (cedille-mode-normalize-get-ll span)
 	    sep (number-to-string (+ s (or add-to-pos 0)))
-	    sep (se-inf-filename)
+	    sep (buffer-file-name)
 	    sep (if head "tt" "ff")
 	    sep (if add-parens "tt" "ff")
 	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
@@ -108,7 +108,7 @@
   "Gets the text to send to the backend as a request to normalize a span"
   (let ((s (se-span-start span))
 	(e (se-span-end span)))
-    (cedille-mode-erase-request-text-h (buffer-substring s e) s (se-inf-filename) (cedille-mode-normalize-local-context-param span))))
+    (cedille-mode-erase-request-text-h (buffer-substring s e) s (buffer-file-name) (cedille-mode-normalize-local-context-param span))))
 
 (defun cedille-mode-erase-request-text-h (str pos filename lc-str)
   (concat "interactive"
@@ -187,7 +187,7 @@
 
 (defun cedille-mode-normalize-send-prompt (input head-str)
   "Sends the prompted normalize request to the backend"
-  (se-inf-interactive (concat "interactive" sep "normalizePrompt" sep input sep (se-inf-filename) sep head-str) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
+  (se-inf-interactive (concat "interactive" sep "normalizePrompt" sep input sep (buffer-file-name) sep head-str) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
 
 (defun cedille-mode-normalize-receive-response-prompt(response oc)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."

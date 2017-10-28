@@ -390,7 +390,7 @@ which currently consists of:\n
   (cedille-mode-display-context)
   (cedille-mode-rebalance-windows))
 
-(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (se-inf-filename-base) "*"));(file-name-base (buffer-name)) "*"))
+(defun cedille-mode-context-buffer-name() (concat "*cedille-context-" (file-name-base) "*"))
 
 (defun cedille-mode-context-buffer() "Retrieves the context buffer" (get-buffer-create (cedille-mode-context-buffer-name)))
 
