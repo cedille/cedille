@@ -1,0 +1,18 @@
+import top.
+
+tt ◂ Top = β{λ x . λ y . x} .
+ff ◂ Top = β{λ x . λ y . y} .
+id ◂ Top = β{λ x . x} .
+% not composed with not
+nn ◂ Top = β{λ x . x ff tt ff tt} .
+
+g1 ◂ Top = β{λ a . λ b . λ c . λ d . d} .
+g2 ◂ Top = β{λ a . λ b . tt} .
+d ◂ Top = β{λ x . λ y . x} .
+
+p1 ◂ nn g1 g2 d ff ff ≃ tt = β .
+
+p2 ◂ id g1 g2 d ff ff ≃ ff = β . 
+
+thm ◂ (id ≃ nn) ➔ tt ≃ ff =
+  λ u . χ (nn g1 g2 d ff ff ≃ id g1 g2 d ff ff) - ρ ς u - β .

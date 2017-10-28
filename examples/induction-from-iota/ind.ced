@@ -11,7 +11,7 @@ S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z)
 
 Ind ◂ ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Π x : Nat . Q x =
   Λ Q . λ s . λ z . λ x .
-    x.2 · (λ x : cNat . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
-     (Λ x' . λ ih . Λ X . λ c . ih · X (λ x'' . λ e . λ u . c (S x'') (ρ e - β) (s -x'' u)))
-     (Λ X . λ c . c Z β z) · (Q x) (λ x' . λ e . λ u . ρ e - u).
+    x.2 · (λ x : cNat . ∀ X : ★ . (∀ x' : Nat . (x ≃ x') ➾ Q x' ➔ X) ➔ X)
+     (Λ x' . λ ih . Λ X . λ c . ih · X (Λ x'' . Λ e . λ u . c -(S x'') -(ρ e - β) (s -x'' u)))
+     (Λ X . λ c . c -Z -β z) · (Q x) (Λ x' . Λ e . λ u . ρ e - u).
       
