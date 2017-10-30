@@ -13,20 +13,20 @@
 		    (ls (split-string l " - "))
 		    (f (car ls))
 		    (n (string-to-number (cadr ls)))
-		    (b (find-file f))
+		    (missing (string= "missing" f))
+		    (b (if missing (current-buffer) (find-file f)))
 		    (timeline cedille-mode-browsing-history)
 		    (past (car cedille-mode-browsing-history))
 		    (present this-file))
-	       (setq cedille-mode-browsing-history (cons (cons present past) 'nil))
-	       (with-current-buffer b (goto-char n) (se-navigation-mode)))
+	       (setq cedille-mode-browsing-history (cons (cons present past) nil))
+	       (with-current-buffer b (goto-char n) (unless missing (se-navigation-mode))))
 	   (message "No location at this node")))
     (message "No node selected"))
   ;;; If the mark is active, we are jumping within the buffer. This prevents
   ;;; a region from being selected.
-  (if mark-active
-      (progn
-	(exchange-point-and-mark 1)
-	(set-mark-command 1))))
+  (when mark-active
+    (exchange-point-and-mark 1)
+    (set-mark-command 1)))
 
 (defmacro make-cedille-mode-history-navigate(fwd-p jmp-p)
   "Generates a function for navigating history. fwd-p determines whether the function

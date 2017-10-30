@@ -68,19 +68,19 @@ Cedille mode supports the following commands:
 3 Information
 *************
 
-'i'
+'i/I'
      Toggle info mode (provides information about the currently selected
      node)
 
-'c'
+'c/C'
      Toggle context mode (provides information about the context of the
      currently selected term)
 
-'S'
+'s/S'
      Toggle summary mode (provides information about the contents of the
      entire file)
 
-'x'
+'x/X'
      Toggle scratch mode
 
 'h'
@@ -120,6 +120,9 @@ time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
 
 5 Other
 *******
+
+'M-x'
+     Copy the selected span to the scratch buffer
 
 'C-h <int>'
      Alters highlighting scheme depending on value of <int>: 1: default
@@ -359,6 +362,10 @@ available options are:
 'no-cede-files'
      This option disables the Cedille backend's use of .cede files.
 
+'no-rkt-files'
+     This option disables the Cedille backend's generation of .rkt
+     files.
+
 
 File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
@@ -372,6 +379,7 @@ Cedille has three minor modes that provide information about the file:
 * inspect mode::                Provides information about the currently selected node
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
+* beta-reduce mode::            Beta-reduction explorer
 * scratch mode::                Buffer that helps keep track of information
 
 13 Common commands
@@ -461,7 +469,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: summary mode,  Next: scratch mode,  Prev: context mode,  Up: minor modes
+File: cedille-info-main.info,  Node: summary mode,  Next: beta-reduce mode,  Prev: context mode,  Up: minor modes
 
 17 Summary mode
 ***************
@@ -499,9 +507,43 @@ Displays a summary of every global definition in the file.
      Jumps to the definition of the selected variable
 
 
+File: cedille-info-main.info,  Node: beta-reduce mode,  Next: scratch mode,  Prev: summary mode,  Up: minor modes
+
+19 Beta-reduce mode
+*******************
+
+Beta-reduce mode is a "Beta-reduction explorer".  There are two ways to
+enter beta-reduce mode:
+  1. C-i b Enter beta-reduce mode with a prompted expression.  If a span
+     is selected, use its local context and the global context;
+     otherwise, use only the global context.
+
+  2. C-i B Enter beta-reduce mode with the selected span, using its
+     local context and the global context.
+
+20 Controls
+***********
+
+'C-i n'
+     Replace the selected span with its normalization
+
+'C-i h'
+     Replace the selected span with its head-normalization
+
+'C-i ='
+     Replace the selected span with a prompted expression, if
+     convertible
+
+'C-i ,'
+     Undo
+
+'C-i .'
+     Redo
+
+
 File: cedille-info-main.info,  Node: scratch mode,  Prev: summary mode,  Up: minor modes
 
-19 Scratch mode
+21 Scratch mode
 ***************
 
 Scratch mode enables you to keep track of information in a dedicated
@@ -513,7 +555,7 @@ buffer.
 'x/X'
      Close the scratch mode window
 
-20 Common commands
+22 Common commands
 ******************
 
 'M-c'
@@ -554,14 +596,15 @@ Index
 Tag Table:
 Node: Top90
 Node: cedille mode commands739
-Node: unicode shortcuts3390
-Node: context mode6099
-Node: credits8046
-Node: options8316
-Node: minor modes9063
-Node: inspect mode10233
-Node: summary mode11486
-Node: scratch mode12247
-Node: Index13099
+Node: unicode shortcuts3455
+Node: context mode6164
+Node: credits8111
+Node: options8381
+Node: minor modes9223
+Node: inspect mode10449
+Node: summary mode11702
+Node: beta-reduce mode12467
+Node: scratch mode13298
+Node: Index14150
 
 End Tag Table

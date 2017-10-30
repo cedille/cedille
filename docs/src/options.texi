@@ -17,4 +17,7 @@ Currently, it is not recommended to have two files with the same name.
 @item no-cede-files
 This option disables the Cedille backend's use of .cede files.
 
+@item no-rkt-files
+This option disables the Cedille backend's generation of .rkt files.
+
 @end table

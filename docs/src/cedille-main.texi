@@ -34,6 +34,8 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 
 @include summary-mode.texi
 
+@include beta-reduce-mode.texi
+
 @include scratch-mode.texi
 
 @node Index,,credits,Top

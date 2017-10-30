@@ -540,6 +540,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
   (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br-start)
+  (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-start-cap)
   (se-navi-define-key mode (kbd "C-i =") #'cedille-mode-conv)
   ;(se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
   (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)

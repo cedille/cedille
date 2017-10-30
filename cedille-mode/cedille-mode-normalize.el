@@ -24,28 +24,6 @@
        (interactive "MErase: ")
        (se-inf-interactive (concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing")))))
 
-;(defun cedille-mode-conv ()
-;  "Checks if two expressions can be converted"
-;  (interactive)
-;  ; Span logic?
-;  (cedille-mode-conv-prompt))
-
-
-;(defun cedille-mode-conv-prompt ()
-;  "Prompts for the first expression in conversion checking"
-;  (let ((prompt-fn1 (lambda (input) (interactive "MExpression 1: ") input))
-;	(prompt-fn2 (lambda (input) (interactive "MExpression 2: ") input)))
-;    (cedille-mode-conv-exprs (call-interactively prompt-fn1) (call-interactively prompt-fn2))))
-
-;(defun cedille-mode-conv-exprs (s1 s2)
-;  "Sends the conversion request to the backend"
-;  (se-inf-interactive (concat "interactive" sep "conv" sep s1 sep s2) 'cedille-mode-conv-response :header "Converting"))
-
-;(defun cedille-mode-conv-response (response oc)
-;  "Receives the conversion response from the backend"
-;  (cedille-mode-scratch-display-text (se-markup-propertize response)))
-
-
 ;;;;;;;;        Span Code        ;;;;;;;;
 
 (defun cedille-mode-normalize-span(span head)
@@ -88,7 +66,7 @@
 	(add-hook 'se-inf-interactive-response-hook #'cedille-mode-normalize-inspect))
       (cons (if extra (if (car extra) 'head-normalized 'normalized) 'erased) response))))
 
-(defun cedille-mode-normalize-request-text(span extra &optional add-parens add-to-pos) ; add-to-pos is for beta-reduction
+(defun cedille-mode-normalize-request-text(span extra &optional add-to-pos) ; add-to-pos is for beta-reduction
   "Gets the text to send to the backend as a request to normalize a span"
   (let* ((head (car extra))
 	 (s (se-span-start span))
@@ -100,7 +78,7 @@
 	    sep (number-to-string (+ s (or add-to-pos 0)))
 	    sep (buffer-file-name)
 	    sep (if head "tt" "ff")
-	    sep (if add-parens "tt" "ff")
+	    ;sep (if add-parens "tt" "ff")
 	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
 	    (cedille-mode-normalize-local-context-param span))))
 
@@ -194,5 +172,11 @@
   (let ((response (se-markup-propertize response)))
     (unless (cedille-mode-normalize-get-error response)
       (cedille-mode-scratch-display-text response))))
+
+;;;;;;;;        Helpers        ;;;;;;;;
+
+(defun cedille-mode-str-is-var (str)
+  "Returns t if STR is a variable"
+  (not (string-match " " str)))
 
 (provide 'cedille-mode-normalize)

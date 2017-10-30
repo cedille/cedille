@@ -116,17 +116,20 @@ will kill the process, should be skipped if process is shared."
 	   (pins (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive)))
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 
-(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span header extra restore delay is-restore); batch-fn)
+(cl-defun se-inf-interactive (q-str-or-fn response-fn &key span header extra restore delay)
   "Sends an interactive request to the backend.
 Keywords supported: span, batch-fn, header, extra, and restore.
 Q-STR-OR-FN should be either a string or a function that takes 0-2 arguments: SPAN, if non-nil, and EXTRA, if non-nil.
 RESPONSE-FN should be nil or a function that takes 2-4 arguments: the backend's response, SPAN, if non-nil, a boolean for if this is the original call (not a restoring one), and EXTRA, if non-nil. If SPAN is non-nil and you want something added to it, then return a dotted pair list (symbol . some-str).
 SPAN should be a span. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
-You probably should not use IS-RESTORE.
 HEADER should be a string that will be displayed in the header line.
 EXTRA can be anything. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
 RESTORE should be t if you want this call re-done during batch processing.
 DELAY should be non-nil if you want this to wait until the previous interactive call is finished to run."
+  (se-inf-interactive-h q-str-or-fn response-fn span header extra restore delay nil))
+
+(defun se-inf-interactive-h (q-str-or-fn response-fn span header extra restore delay is-restore)
+  "Helper for `se-inf-interactive'"
   (let* ((span (se-get-span span))
 	 (header (or header ""))
 	 (q-str (cond
@@ -198,7 +201,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	   (extra (nth 2 data))
 	   (header (format "Recomputing interactive calls (%s/%s)" queued total)))
       (if span
-	  (se-inf-interactive q-str-or-fn response-fn :span span :extra extra :header header :delay t :is-restore t)
+	  (se-inf-interactive-h q-str-or-fn response-fn span header extra nil t t)
 	(se-unpin h))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 

@@ -42,16 +42,16 @@ Navigate to the first/last page in browsing history
 
 @chapter Information
 @table @command
-@item i
+@item i/I
 Toggle info mode (provides information about the currently selected node)
 
-@item c
+@item c/C
 Toggle context mode (provides information about the context of the currently selected term)
 
-@item S
+@item s/S
 Toggle summary mode (provides information about the contents of the entire file)
 
-@item x
+@item x/X
 Toggle scratch mode
 
 @item h
@@ -86,6 +86,9 @@ Remove all interactive attributes
 
 @chapter Other
 @table @command
+@item M-x
+Copy the selected span to the scratch buffer
+
 @item C-h <int>
 Alters highlighting scheme depending on value of <int>:
 1: default highlighting

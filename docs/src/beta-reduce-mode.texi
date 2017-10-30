@@ -1,0 +1,32 @@
+@node beta-reduce mode,scratch mode,summary mode,minor modes
+
+@chapter Beta-reduce mode
+
+Beta-reduce mode is a "Beta-reduction explorer". There are two ways to enter beta-reduce mode:
+@enumerate
+@item C-i b
+Enter beta-reduce mode with a prompted expression. If a span is selected, use its local context and the global context; otherwise, use only the global context.
+
+@item C-i B
+Enter beta-reduce mode with the selected span, using its local context and the global context.
+@end enumerate
+
+@chapter Controls
+@table @command
+
+@item C-i n
+Replace the selected span with its normalization
+
+@item C-i h
+Replace the selected span with its head-normalization
+
+@item C-i =
+Replace the selected span with a prompted expression, if convertible
+
+@item C-i ,
+Undo
+
+@item C-i .
+Redo
+
+@end table

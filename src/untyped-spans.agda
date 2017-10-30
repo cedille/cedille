@@ -86,7 +86,7 @@ erased-spans (Hole pi) = inc-span pi []
 erased-spans (Lam pi l pi' v oc t) =
   put-span pi (term-end-pos t) (binder-data-const :: []) ≫span
   get-ctxt (λ Γ →
-    let Γ' = ctxt-var-decl pi' v Γ in
+    let Γ' = ctxt-var-decl (inc-pi pi') v Γ in
       set-ctxt Γ' ≫span
       erased-var-span pi' v ≫span
       erased-spans t ≫span
@@ -95,7 +95,7 @@ erased-spans (Let pi dtt t) =
   get-ctxt (λ Γ →
     put-span pi (term-end-pos t) (binder-data-const :: bound-data dtt Γ :: []) ≫span
     let pi-v = get-defTermOrType-pi-v dtt in
-      let Γ' = ctxt-var-decl (fst pi-v) (snd pi-v) Γ in
+      let Γ' = ctxt-var-decl (inc-pi (fst pi-v)) (snd pi-v) Γ in
         set-ctxt Γ' ≫span
         defTermOrType-span dtt ≫span
         erased-spans t ≫span

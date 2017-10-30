@@ -1,4 +1,4 @@
-@node summary mode,scratch mode,context mode,minor modes
+@node summary mode,beta-reduce mode,context mode,minor modes
 
 @chapter Summary mode
 
