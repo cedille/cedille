@@ -12,4 +12,4 @@ Nat ◂ ★ = ι n : cNat . ι _ : n cZ cS ≃ n . NatP n .
 
 Z ◂ Nat = [ cZ , [ β{cZ} , Λ X . Λ R . Λ z . λ pz . Λ s . λ ps . pz ]].
 S ◂ ∀ A : ★ . (A ➔ Nat) ➔ A ➔ Nat =
-  Λ A . λ e . λ p . [ cS · A (λ a . (e a).1) p , [ ● , Λ X . Λ R . Λ z . λ pz . Λ s . λ ps . ● ]].
+  Λ A . λ e . λ p . [ cS · A (λ a . (e a).1) p , [ ε ● , Λ X . Λ R . Λ z . λ pz . Λ s . λ ps . ● ]].

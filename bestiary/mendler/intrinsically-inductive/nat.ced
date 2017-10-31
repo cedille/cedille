@@ -1,0 +1,10 @@
+import ../cnat.
+
+NatP ◂ cNat ➔ ★ =
+  λ n : cNat .
+    ∀ R : cNat ➔ ★ .
+    R cZ ➔
+    (∀ A : ★ . ∀ a : A . ∀ c : A ➔ cNat . R (c a) ➔ R (cS · A c a)) ➔
+    R n.
+
+Nat ◂ ★ = ι n : cNat . NatP n .
