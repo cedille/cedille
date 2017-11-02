@@ -1,0 +1,57 @@
+import Top.
+import Bool.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Proj1' ◂ ★ ➔ Bool ➔ ★ = λ A : ★ . λ b : Bool .
+ (↑ X . b.1.1 · X : (☆ ➔ ☆ ➔ ☆))
+ · A
+ · Top .
+
+Proj1 ◂ ★ ➔ ★ = λ A : ★ . Π b : Bool . Proj1' · A b .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Proj2' ◂ Π A : ★ . Π B : A ➔ ★ . Proj1 · A ➔ Bool ➔ ★ =
+ λ A : ★ . λ B : A ➔ ★ . λ f : Proj1 · A . λ b : Bool .
+ (↑ X . b.1.1 · X : (☆ ➔ ☆ ➔ ☆))
+ · (Proj1' · A true)
+ · (B (f true)) .
+
+Proj2 ◂ Π A : ★ . Π B : A ➔ ★ . Proj1 · A ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ . λ f : Proj1 · A .
+  Π b : Bool . Proj2' · A · B f b .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Sigma ◂ Π A : ★ . Π B : A ➔ ★ . ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+  ι f : Proj1 · A . Proj2 · A · B f .
+
+proj1 ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Sigma · A · B ➔ A =
+  Λ A . Λ B . λ p . p.1 true .
+
+proj2 ◂ ∀ A : ★ . ∀ B : A ➔ ★ .
+  Π p : Sigma · A · B . B (proj1 · A · B p) =
+  Λ A . Λ B . λ p . p.2 false .
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+pair1 ◂ ∀ A : ★ . ∀ B : A ➔ ★ .
+  Π x : A . B x ➔ Proj1 · A
+  = Λ A . Λ B . λ x . λ y . elimBool
+  · (λ b : Bool . Proj1' · A b)
+  x β{y} .
+
+pair2 ◂ ∀ A : ★ . ∀ B : A ➔ ★ .
+  Π x : A . Π y : B x . Proj2 · A · B (pair1 · A · B x y)
+  = Λ A . Λ B . λ x . λ y . elimBool
+  · (λ b : Bool . Proj2' · A · B (pair1 · A · B x y) b)
+  x y .
+
+pair ◂ ∀ A : ★ . ∀ B : A ➔ ★ .
+  Π x : A . Π y : B x . Sigma · A · B
+  = Λ A . Λ B . λ x . λ y .
+  [ pair1 · A · B x y , pair2 · A · B x y ].
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
