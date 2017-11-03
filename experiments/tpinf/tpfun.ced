@@ -1,0 +1,15 @@
+import bool.
+import tp.
+
+interpTp ◂ ★ ➔ Tp ➔ ★ =
+  λ B : ★ . λ T : Tp .
+    ↑ X . (TpUnfoldSimple T.1) · X : (☆ ➔ (TpC ➔ ☆ ➔ TpC ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : TpC . λ S1 : ★ . λ _ : TpC . λ S2 : ★ . S1 ➔ S2) .
+
+
+eqTp ◂ Tp ➔ Tp ➔ Bool =
+  λ t1 . 
+    elimTp t1 · (λ _ : Tp . Tp ➔ Bool) (λ t2 . elimTp t2 · (λ _ : Tp . Bool) tt (λ _ . λ _ . λ _ . λ _ . ff))
+      (λ _ . λ _ . λ r1 . λ r2 . λ t2 .
+        elimTp t2 · (λ _ : Tp . Bool) ff (λ t2a . λ t2b . λ _ . λ _ . and (r1 t2a) (r2 t2b))) .
+
+eqTpEq ◂ Π T1 : Tp . Π T2 : Tp . (eqTp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .
