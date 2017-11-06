@@ -1,5 +1,3 @@
-import cbool.
-
 cNat ◂ ★ = ∀ X : ★ . X ➔ (X ➔ X) ➔ X .
 cZ ◂ cNat = Λ X . λ z . λ s . z .
 cS ◂ cNat ➔ cNat = λ n . Λ X . λ z . λ s . s (n · X z s) .
@@ -9,10 +7,3 @@ pred ◂ cNat ➔ cNat =
 
 test1 ◂ cNat = pred (cS (cS cZ)) .
 
-eqnat ◂ cNat ➔ cNat ➔ cBool =
-  λ n .
-    n · (cNat ➔ cBool)
-      (λ m . m · cBool tt (λ _ . ff))
-      (λ f . λ m . m · cBool ff (λ _ . f (pred m))) .
-    
-test ◂ cBool = eqnat (cS cZ) (cS cZ) .
