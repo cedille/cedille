@@ -25,7 +25,7 @@ trie-lookupd t s d | nothing = d
 trie-lookupd t s d | just x = x
 
 trie-lookup-else : ∀{A : Set} → A → trie A → string → A
-trie-lookup-else x t s = trie-lookupd t s x
+trie-lookup-else d t s = trie-lookupd t s d
 
 trie-single : ∀{A : Set} → string → A → trie A
 trie-single s x = trie-insert empty-trie s x

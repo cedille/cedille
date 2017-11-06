@@ -141,6 +141,6 @@ scope-imports : toplevel-state → string → toplevel-state
 scope-imports s import-fn with toplevel-state.Γ s
 ... | mk-ctxt (fn , ps , q) syms i symb-occs with trie-lookup syms import-fn
 ... | nothing = s
-... | just vs = let q' = qualif-insert-import q vs (ArgsNil posinfo-gen) in
+... | just vs = let q' = qualif-insert-import q import-fn vs (ArgsNil posinfo-gen) in
   record s { Γ = mk-ctxt (fn , ps , q') syms i symb-occs }
 

@@ -179,6 +179,8 @@ add-parentheses{TERM} Γ ap = term-to-string Γ (~ ap)
 add-parentheses{TYPE} Γ ap = type-to-string Γ (~ ap)
 add-parentheses{KIND} Γ ap = kind-to-string Γ (~ ap)
 add-parentheses{LIFTINGTYPE} Γ ap = liftingType-to-string Γ
+add-parentheses{ARG} Γ ap = arg-to-string Γ
+add-parentheses{QUALIF} Γ ap = qualif-to-string Γ
 
 normalize-tree : ctxt → (input : string) → Run → 𝔹 → string × 𝔹
 normalize-tree Γ input (ParseTree (parsed-term t) :: []) head = (to-string Γ (hnf Γ (unfold (~ head) ff ff) t tt)) , tt

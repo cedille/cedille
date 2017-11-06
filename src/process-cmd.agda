@@ -42,28 +42,33 @@ process-file : toplevel-state → (filename : string) → toplevel-state
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
-  check-type tp (just star) ≫span 
-  check-term t (just tp) ≫span 
+  check-type tp (just star) ≫span
+  let tp' = qualif-type Γ tp in
+  check-term t (just tp') ≫span 
   get-ctxt (λ Γ → 
     let t = erase-term t in
-    let Γ' = (ctxt-term-def pi globalScope x (hnf Γ unfold-head t tt) tp Γ) in
+    let t' = hnf-qualif-term Γ t in
+    let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
       spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanM-add (Var-span Γ' pi x checking []) ≫span
          spanMr (mk-toplevel-state use-cede make-rkt ip fns is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
+  let tp' = qualif-type Γ tp in
+  let t' = hnf-qualif-term Γ t in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x (hnf Γ unfold-head t tt) tp Γ)))
+      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x t' tp' Γ)))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
     let t = erase-term t in
+    let t' = hnf-qualif-term Γ t in
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (hnf Γ unfold-head t tt , mtp)))))
+        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))
   where h : ctxt → term × (maybe type) → ctxt
         h Γ (t , nothing) = ctxt-term-udef pi globalScope x t Γ
         h Γ (t , just tp) = ctxt-term-def pi globalScope x t tp Γ
@@ -71,24 +76,30 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') tt {- check -} =
     set-ctxt Γ ≫span
     check-kind k ≫span 
-    check-type tp (just k) ≫span 
+    let k' = qualif-kind Γ k in
+    check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
-      let Γ' = (ctxt-type-def pi globalScope x (hnf Γ unfold-head tp tt) k Γ) in
+      let tp' = hnf-qualif-type Γ tp in
+      let Γ' = ctxt-type-def pi globalScope x tp' k' Γ in
         spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
            spanMr (mk-toplevel-state use-cede make-rkt ip fns is Γ')))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
-  check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-    (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x (hnf Γ unfold-head tp tt) k Γ)))
+  let k' = qualif-kind Γ k in
+  let tp' = hnf-qualif-type Γ tp in
+    check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
+      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x tp' k' Γ)))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
   check-and-add-params pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
-    let Γ' = (ctxt-kind-def pi x ps (hnf Γ unfold-head k tt) Γ) in
+    let k' = hnf-qualif-kind Γ k in
+    -- TODO maybe need to qualif params ps
+    let Γ' = ctxt-kind-def pi x ps k' Γ in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
@@ -104,8 +115,9 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
         check-and-add-params _ ParamsNil = spanMr []
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
-  check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-    (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps (hnf Γ unfold-head k tt) Γ)))
+  let k' = hnf-qualif-kind Γ k in
+    check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
+      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
 
 process-cmd s (Import pi x pi') _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in

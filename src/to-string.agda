@@ -5,7 +5,6 @@ open import cedille-types
 open import syntax-util
 open import ctxt
 
-
 markup-h : (tags : 𝕃 string) → (vals : 𝕃 string) → string → string
 markup-h (th :: t) (vh :: vt) s = markup-h t vt (s ^ (" " ^ th ^ "='" ^ vh ^ "'"))
 -- Had to use "t" to refer to the tag tail since "tt" is the name for the Boolean true
@@ -22,10 +21,10 @@ markup : (attr : string) → (tags : 𝕃 string) → (vals : 𝕃 string) → s
 markup a ts vs s = "<" ^ a ^ (markup-h ts vs "") ^ ">" ^ s ^ "</" ^ a ^ ">"
 
 get-pos : var → ctxt → string
-get-pos v Γ with ctxt-var-location Γ v
-get-pos v _ | ("missing" , "missing") = v
-get-pos v _ | ("[nofile]" , _) = v
-get-pos v _ | (filename , pi) = markup "location" ("filename" :: "pos" :: []) (filename :: pi :: []) v
+get-pos v Γ with unfile v | ctxt-var-location Γ v
+get-pos _ _ | v | ("missing" , "missing") = v
+get-pos _ _ | v | ("[nofile]" , _) = v
+get-pos _ _ | v | (filename , pi) = markup "location" ("filename" :: "pos" :: []) (filename :: pi :: []) v
 -- "<location filename=\"" ^ filename ^  ^ "\">" ^ v ^ "</location>"
 -- "§" ^ v ^ "§" ^ filename ^ "§" ^ pi ^ "§"
 
@@ -47,8 +46,8 @@ leftRight-to-string Right = "r"
 leftRight-to-string Both = ""
 
 vars-to-string : vars → string
-vars-to-string (VarsStart v) = v
-vars-to-string (VarsNext v vs) = v ^ " " ^ vars-to-string vs
+vars-to-string (VarsStart v) = unfile v
+vars-to-string (VarsNext v vs) = unfile v ^ " " ^ vars-to-string vs
 
 theta-to-string : theta → string
 theta-to-string Abstract = "θ"
@@ -78,7 +77,9 @@ optTerm-to-string : ctxt → optTerm → string
 tk-to-string : ctxt → tk → string
 liftingType-to-string : ctxt → liftingType → string
 liftingType-to-stringh : {ed : exprd} → ctxt → ⟦ ed ⟧ → liftingType → string
+qualif-to-string : ctxt → qualif-info → string
 maybeAtype-to-string : ctxt → maybeAtype → string
+arg-to-string : ctxt → arg → string
 args-to-string : ctxt → args → string
 
 -- If the first or second argument (toplevel, locally-not-needed) is true, don't put parens; else put parens
@@ -92,6 +93,7 @@ term-to-string Γ toplevel t = term-to-stringh Γ toplevel star t
 type-to-string Γ toplevel tp = type-to-stringh Γ toplevel star tp
 kind-to-string Γ toplevel k = kind-to-stringh Γ toplevel star k
 liftingType-to-string Γ l = liftingType-to-stringh Γ star l
+qualif-to-string Γ (x , as) = x ^ args-to-string Γ as
 
 term-to-stringh Γ toplevel p (App t x t') = 
   parens-unless toplevel ((is-beta p) || (is-app p)) (term-to-stringh Γ ff (App t x t') t ^ " " ^ (maybeErased-to-string x) ^ term-to-string Γ ff t')
@@ -160,8 +162,9 @@ kind-to-stringh Γ toplevel p (KndTpArrow x k) =
 kind-to-stringh Γ toplevel p (KndVar _ x ys) = x ^ args-to-string Γ ys
 kind-to-stringh Γ toplevel p (Star _) = "★"
 
-args-to-string Γ (ArgsCons (TermArg t) ys) = " " ^ term-to-string Γ ff t ^ args-to-string Γ ys
-args-to-string Γ (ArgsCons (TypeArg t) ys) = " · " ^ type-to-string Γ ff t ^ args-to-string Γ ys
+arg-to-string Γ (TermArg t) = term-to-string Γ ff t
+arg-to-string Γ (TypeArg t) = type-to-string Γ ff t
+args-to-string Γ (ArgsCons y ys) = " " ^ arg-to-string Γ y ^ args-to-string Γ ys
 args-to-string _ (ArgsNil _) = ""
 
 liftingType-to-stringh Γ p (LiftArrow t t₁) = 
@@ -194,12 +197,13 @@ lterms-to-stringh Γ (LtermsCons m t ts) = " " ^ (maybeErased-to-string m) ^ ter
 maybeAtype-to-string _ NoAtype = ""
 maybeAtype-to-string Γ (Atype T) = type-to-string Γ ff T
 
-
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → string
 to-string{TERM} Γ = term-to-string Γ tt
 to-string{TYPE} Γ = type-to-string Γ tt
 to-string{KIND} Γ = kind-to-string Γ tt
 to-string{LIFTINGTYPE} = liftingType-to-string
+to-string{ARG} = arg-to-string
+to-string{QUALIF} = qualif-to-string
 
 to-string-if : ctxt → {ed : exprd} → maybe (⟦ ed ⟧) → string
 to-string-if mΓ (just e) = to-string mΓ e

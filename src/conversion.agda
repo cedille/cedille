@@ -185,6 +185,8 @@ hnf{KIND} Γ u (KndPi pi pi' x atk k) hd =
 hnf{KIND} Γ u x hd = x
 
 hnf{LIFTINGTYPE} Γ u x hd = x
+hnf{QUALIF} Γ u x hd = x
+hnf{ARG} Γ u x hd = x
 
 hnf-tk Γ u (Tkk k) = Tkk (hnf Γ u k tt)
 hnf-tk Γ u (Tkt tp) = Tkt (hnf Γ u tp ff)
@@ -289,3 +291,11 @@ conv-tty* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-t
 conv-tty* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-tty* Γ args args'
 conv-tty* Γ _ _ = ff
 
+hnf-qualif-term : ctxt → term → term
+hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt
+
+hnf-qualif-type : ctxt → type → type
+hnf-qualif-type Γ t = hnf Γ unfold-head (qualif-type Γ t) tt
+
+hnf-qualif-kind : ctxt → kind → kind
+hnf-qualif-kind Γ t = hnf Γ unfold-head (qualif-kind Γ t) tt

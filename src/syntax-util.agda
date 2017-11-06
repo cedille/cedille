@@ -12,8 +12,11 @@ first-position = "1"
 dummy-var : var
 dummy-var = "_dummy"
 
+qualif-info : Set
+qualif-info = var × args
+
 qualif : Set
-qualif = trie (var × args)
+qualif = trie qualif-info
 
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi
@@ -39,34 +42,69 @@ abs-expand-type (ParamsCons (Decl _ _ x tk _) ps) t =
   TpLambda posinfo-gen posinfo-gen x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
-inst-kind : params → args → kind → kind
-inst-kind ps as k = k
+-- qualify variable by module name
+_#_ : string → string → string
+fn # v = fn ^ "." ^  v
 
-inst-type : params → args → type → type
-inst-type ps as t = t
+mk-inst : params → args → trie arg
+mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) =
+  trie-insert (mk-inst ps as) x a
+mk-inst _ _ = empty-trie
 
-qualif-term : qualif → term → term
-qualif-term σ t = t
+apps-term : term → args → term
+apps-term f (ArgsNil _) = f
+apps-term f (ArgsCons (TermArg t) as) = apps-term (App f NotErased t) as
+apps-term f (ArgsCons (TypeArg t) as) = apps-term (AppTp f t) as
 
-qualif-type : qualif → type → type
-qualif-type σ t = t
+apps-type : type → args → type
+apps-type f (ArgsNil _) = f
+apps-type f (ArgsCons (TermArg t) as) = apps-type (TpAppt f t) as
+apps-type f (ArgsCons (TypeArg t) as) = apps-type (TpApp f t) as
 
-qualif-kind : qualif → kind → kind
-qualif-kind σ k = k
+append-params : params → params → params
+append-params (ParamsCons p ps) qs = ParamsCons p (append-params ps qs)
+append-params ParamsNil qs = qs
+
+append-args : args → args → args
+append-args (ArgsCons p ps) qs = ArgsCons p (append-args ps qs)
+append-args (ArgsNil _) qs = qs
+
+qualif-lookup-term : posinfo → qualif → string → term
+qualif-lookup-term pi σ x with trie-lookup σ x
+... | just (x' , as) = apps-term (Var pi x') as
+... | _ = Var pi x
+
+qualif-lookup-type : posinfo → qualif → string → type
+qualif-lookup-type pi σ x with trie-lookup σ x
+... | just (x' , as) = apps-type (TpVar pi x') as
+... | _ = TpVar pi x
+
+qualif-lookup-kind : posinfo → args → qualif → string → kind
+qualif-lookup-kind pi xs σ x with trie-lookup σ x
+... | just (x' , as) = KndVar pi x' (append-args as xs)
+... | _ = KndVar pi x xs
+
+inst-lookup-term : posinfo → trie arg → string → term
+inst-lookup-term pi σ x with trie-lookup σ x
+... | just (TermArg t) = t
+... | _ = Var pi x
+
+inst-lookup-type : posinfo → trie arg → string → type
+inst-lookup-type pi σ x with trie-lookup σ x
+... | just (TypeArg t) = t
+... | _ = TpVar pi x
 
 params-to-args : params → args
 params-to-args ParamsNil = ArgsNil posinfo-gen
 params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p v)) (params-to-args ps)
 params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
--- TODO file-qualify once environment defs are also file-qualified
 qualif-insert-params : qualif → var → var → params → qualif
-qualif-insert-params σ fn v ps = trie-insert σ v (v , params-to-args ps)
+qualif-insert-params σ fn v ps = trie-insert σ v (fn # v , params-to-args ps)
 
--- TODO qualify codomain of import
-qualif-insert-import : qualif → 𝕃 string → args → qualif
-qualif-insert-import σ [] as = σ
-qualif-insert-import σ (v :: vs) as = qualif-insert-import (trie-insert σ v (v , as)) vs as
+qualif-insert-import : qualif → var → 𝕃 string → args → qualif
+qualif-insert-import σ fn [] as = σ
+qualif-insert-import σ fn (v :: vs) as = qualif-insert-import (trie-insert σ v (fn # v , as)) fn vs as
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
@@ -215,18 +253,24 @@ data exprd : Set where
   TYPE : exprd
   KIND : exprd
   LIFTINGTYPE : exprd
+  ARG : exprd
+  QUALIF : exprd
 
 ⟦_⟧ : exprd → Set
 ⟦ TERM ⟧ = term
 ⟦ TYPE ⟧ = type
 ⟦ KIND ⟧ = kind
 ⟦ LIFTINGTYPE ⟧ = liftingType
+⟦ ARG ⟧ = arg
+⟦ QUALIF ⟧ = qualif-info
 
 exprd-name : exprd → string
 exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
 exprd-name LIFTINGTYPE = "lifting type"
+exprd-name ARG = "argument"
+exprd-name QUALIF = "qualification"
 
 -- checking-sythesizing enum
 data checking-mode : Set where
@@ -495,3 +539,12 @@ ie-eq Exists Exists = tt
 ie-eq Exists Iota = ff
 ie-eq Iota Exists = ff
 ie-eq Iota Iota = tt
+
+unfile : string → string
+unfile s = 𝕃char-to-string (reverse (f [] (string-to-𝕃char s)))
+  where
+  f : 𝕃 char → 𝕃 char → 𝕃 char
+  f ret [] = ret
+  f ret ('.' :: 'c' :: 'e' :: 'd' :: xs) = f ret xs
+  f ret ('/' :: xs) = f [] xs
+  f ret (x :: xs) = f (x :: ret) xs

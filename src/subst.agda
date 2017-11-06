@@ -3,7 +3,7 @@ module subst where
 open import lib
 
 open import cedille-types
-open import ctxt
+open import ctxt-types
 open import is-free
 open import rename
 open import general-util
@@ -53,6 +53,12 @@ substh-term Γ ρ σ (Parens x₁ t x₂) = substh-term Γ ρ σ t
 substh-term{TERM} Γ ρ σ (Var pi x) =
  let x' = renamectxt-rep ρ x in
    trie-lookup-else (Var pi x') σ x'
+substh-term{ARG} Γ ρ σ (Var pi x) =
+ let x' = renamectxt-rep ρ x in
+   inst-lookup-term pi σ x'
+substh-term{QUALIF} Γ ρ σ (Var pi x) =
+ let x' = renamectxt-rep ρ x in
+   qualif-lookup-term pi σ x'
 substh-term Γ ρ σ (Var pi x) = Var pi (renamectxt-rep ρ x)
 substh-term Γ ρ σ (Unfold pi t) = Unfold pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Beta pi ot) = Beta pi (substh-optTerm Γ ρ σ ot)
@@ -95,6 +101,12 @@ substh-type Γ ρ σ (NoSpans tp _) = substh-type Γ ρ σ tp
 substh-type{TYPE} Γ ρ σ (TpVar pi x) =
  let x' = renamectxt-rep ρ x in
    trie-lookup-else (TpVar pi x') σ x'
+substh-type{ARG} Γ ρ σ (TpVar pi x) =
+ let x' = renamectxt-rep ρ x in
+   inst-lookup-type pi σ x'
+substh-type{QUALIF} Γ ρ σ (TpVar pi x) =
+ let x' = renamectxt-rep ρ x in
+   qualif-lookup-type pi σ x'
 substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
 substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
@@ -104,6 +116,8 @@ substh-kind Γ ρ σ (KndPi pi pi' x atk k) =
     KndPi pi pi' x' (substh-tk Γ ρ σ atk)
       (substh-kind (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ k)
 substh-kind Γ ρ σ (KndTpArrow t k) = KndTpArrow (substh-type Γ ρ σ t) (substh-kind Γ ρ σ k)
+substh-kind{QUALIF} Γ ρ σ (KndVar pi x xs) =
+   qualif-lookup-kind pi (substh-args Γ ρ σ xs) σ x
 substh-kind Γ ρ σ (KndVar pi x xs) = KndVar pi x (substh-args Γ ρ σ xs)
 substh-kind Γ ρ σ (Star pi) = Star pi
 
@@ -160,3 +174,14 @@ rename-kind : ctxt → var → var → (is-term-var : 𝔹) → kind → kind
 rename-kind Γ x y tt k = subst-kind Γ (Var posinfo-gen y) x k
 rename-kind Γ x y ff k = subst-kind Γ (TpVar posinfo-gen y) x k
 
+substs-ret-t : Set → Set
+substs-ret-t T = {ed : exprd} → ctxt → trie ⟦ ed ⟧ → T → T
+
+substs-term : substs-ret-t term
+substs-term Γ = substh-term Γ empty-renamectxt
+
+substs-type : substs-ret-t type
+substs-type Γ = substh-type Γ empty-renamectxt
+
+substs-kind : substs-ret-t kind
+substs-kind Γ = substh-kind Γ empty-renamectxt

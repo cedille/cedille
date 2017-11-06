@@ -3,7 +3,7 @@ module is-free where
 open import lib
 
 open import cedille-types
-open import ctxt
+open import ctxt-types
 open import syntax-util
 
 is-free-e = 𝔹
@@ -105,10 +105,13 @@ is-free-in-maybeAtype ce x NoAtype = ff
 is-free-in-maybeAtype ce x (Atype T) = is-free-in-type ce x T
 
 is-free-in : {ed : exprd} → is-free-e → var → ⟦ ed ⟧ → 𝔹
-is-free-in{TERM} e x t = is-free-in-term e x t 
+is-free-in{TERM} e x t = is-free-in-term e x t
+is-free-in{ARG} e x (TermArg t) = is-free-in-term e x t
 is-free-in{TYPE} e x t = is-free-in-type e x t 
+is-free-in{ARG} e x (TypeArg t) = is-free-in-type e x t
 is-free-in{KIND} e x t = is-free-in-kind e x t 
 is-free-in{LIFTINGTYPE} e x t = is-free-in-liftingType e x t 
+is-free-in{QUALIF} e x (x' , as) = x =string x' || is-free-in-args e x as
 
 abs-tk : lam → var → tk → type → type
 abs-tk l x (Tkk k) tp = Abs posinfo-gen All posinfo-gen x (Tkk k) tp

@@ -269,8 +269,8 @@ check-term subject nothing = check-termi subject nothing ≫=span cont
         cont (just tp) = get-ctxt (λ Γ → spanMr (just (hnf Γ unfold-head tp tt)))
         cont nothing = spanMr nothing 
 check-term subject (just tp) =
-  get-ctxt (λ Γ → 
-    check-termi subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ subject tp ff) else (hnf Γ unfold-head tp tt))))
+  get-ctxt (λ Γ →
+    check-termi subject (just (if is-intro-form subject then (hnf-instantiate-iota Γ (qualif-term Γ subject) tp ff) else (hnf Γ unfold-head tp tt))))
 
 check-type subject nothing = check-typei subject nothing
 check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k tt)))
@@ -307,7 +307,7 @@ check-termi (AppTp t tp') tp =
   where cont : type → spanM (maybe type)
         cont (Abs pi b pi' x (Tkk k) tp2) = 
            check-type tp' (just k) ≫span 
-           get-ctxt (λ Γ → spanMr (just (subst-type Γ tp' x tp2)))
+           get-ctxt (λ Γ → spanMr (just (subst-type Γ (qualif-type Γ tp') x tp2)))
         cont tp'' =
           get-ctxt (λ Γ → 
             spanM-add (AppTp-span t tp' (maybe-to-checking tp)
@@ -329,7 +329,7 @@ check-termi (AppTp t tp') tp =
         cont'' : maybe type → spanM (maybe type)
         cont'' nothing =
           spanM-add (AppTp-span t tp' (maybe-to-checking tp) []) ≫span spanMr nothing
-        cont'' (just htp) = get-ctxt (λ Γ → cont (hnf-instantiate-iota Γ t htp tt))
+        cont'' (just htp) = get-ctxt (λ Γ → cont (hnf-instantiate-iota Γ (qualif-term Γ t) htp tt))
 -- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
 check-termi (App t m t') tp =
   check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
@@ -350,7 +350,7 @@ check-termi (App t m t') tp =
           if check-term-app-matching-erasures m b then
              (check-term t' (just tp1) ≫span 
               get-ctxt (λ Γ → 
-                check-termi-return Γ (App t m t') (subst-type Γ t' x tp2)))
+                check-termi-return Γ (App t m t') (subst-type Γ (qualif-term Γ t') x tp2)))
           else
             check-term-app-erased-error (maybe-to-checking tp) m t t' (Abs pi b pi' x (Tkt tp1) tp2)
         cont m tp' =
@@ -378,7 +378,7 @@ check-termi (App t m t') tp =
                           (check-for-type-mismatch Γ "synthesized" tp tp' ++ hnf-expected-type-if Γ (just tp) [])))
         cont'' : maybe type → spanM (maybe type)
         cont'' nothing = spanM-add (App-span t t' (maybe-to-checking tp) []) ≫span spanMr nothing
-        cont'' (just htp) = get-ctxt (λ Γ → cont m (hnf-instantiate-iota Γ t htp tt))
+        cont'' (just htp) = get-ctxt (λ Γ → cont m (hnf-instantiate-iota Γ (qualif-term Γ t) htp tt))
 
 check-termi (Let pi d t) mtp =
   spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
@@ -471,7 +471,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
   where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span
         this-span Γ _ NoClass tvs = Lam-span Γ checking pi l x oc t tvs
         this-span Γ atk (SomeClass atk') tvs = 
-          if conv-tk Γ atk' atk then
+          if conv-tk Γ (qualif-tk Γ atk') atk then
             Lam-span Γ checking pi l x oc t tvs
           else
             Lam-span Γ checking pi l x oc t (lambda-bound-var-conv-error Γ x atk atk' tvs)
@@ -669,12 +669,13 @@ check-termi (Rho pi r t t') nothing =
 
 check-termi (Chi pi (Atype tp) t) mtp = 
   check-type tp (just star) ≫span
-  check-term t (just tp) ≫span cont mtp
+  get-ctxt λ Γ →
+  check-term t (just (qualif-type Γ tp)) ≫span cont mtp
   where cont : (m : maybe type) → spanM (check-ret m)
         cont nothing = get-ctxt (λ Γ → spanM-add (Chi-span Γ pi (Atype tp) t synthesizing []) ≫span spanMr (just tp))
         cont (just tp') =
           get-ctxt (λ Γ → 
-           spanM-add (Chi-span Γ pi (Atype tp) t checking (check-for-type-mismatch Γ "asserted" tp' tp)))
+           spanM-add (Chi-span Γ pi (Atype tp) t checking (check-for-type-mismatch Γ "asserted" tp' (qualif-type Γ tp))))
 check-termi (Chi pi NoAtype t) (just tp) = 
   check-term t nothing ≫=span cont 
   where cont : (m : maybe type) → spanM ⊤
@@ -752,10 +753,13 @@ check-termi (Hole pi) tp =
 check-termi (IotaPair pi t1 t2 ot pi') (just (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
-    check-term t2 (just (subst-type Γ t1 x tp2)) ≫span
-    add-spans-if ot t1 t2 ≫span
+    let t1' = qualif-term Γ t1 in
+    let t2' = qualif-term Γ t2 in
+    check-term t2 (just (subst-type Γ t1' x tp2)) ≫span
+    add-spans-if ot t1' t2' ≫span
+    -- TODO why another get-ctxt here?
     get-ctxt (λ Γ → 
-    spanM-add (IotaPair-span pi pi' checking (expected-type Γ (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2) :: (check-conv-if Γ ot t1 t2)))))
+    spanM-add (IotaPair-span pi pi' checking (expected-type Γ (IotaEx pi1 Iota pi2 x (SomeType tp1) tp2) :: (check-conv-if Γ ot t1' t2')))))
   where err : ctxt → string → term → tagged-val
         err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string Γ tt (hnf Γ unfold-head t tt)
         add-spans-if : optTerm → term → term → spanM ⊤
@@ -795,7 +799,7 @@ check-termi (IotaProj t n pi) mtp =
             return-when mtp (just t1))
         cont mtp 2 computed | IotaEx pi' Iota pi'' x a t2 =
           get-ctxt (λ Γ →
-            let t2' = subst-type Γ t x t2 in
+            let t2' = subst-type Γ (qualif-term Γ t) x t2 in
               spanM-add (IotaProj-span t pi (maybe-to-checking mtp)
                           (head-type Γ computed :: check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
               return-when mtp (just t2'))
@@ -850,7 +854,7 @@ check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' at
    check-tk atk ≫span
    spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
    get-ctxt (λ Γ → 
-   spanM-add (if conv-tk Γ atk atk' then
+   spanM-add (if conv-tk Γ (qualif-tk Γ atk) atk' then
                 TpLambda-span pi x atk body checking [ kind-data Γ k ]
               else
                 TpLambda-span pi x atk body checking (lambda-bound-var-conv-error Γ x atk' atk [ kind-data Γ k ])) ≫span
@@ -911,7 +915,7 @@ check-typei (TpAppt tp t) k =
         cont (KndPi _ _ x (Tkt tp') k') = 
           check-term t (just tp') ≫span 
           get-ctxt (λ Γ → 
-            spanMr (just (subst-kind Γ t x k')))
+            spanMr (just (subst-kind Γ (qualif-term Γ t) x k')))
         cont k' = get-ctxt (λ Γ → 
                    spanM-add (TpAppt-span tp t (maybe-to-checking k)
                                (error-data ("The kind computed for the head of the type application does"
@@ -947,7 +951,7 @@ check-typei (TpApp tp tp') k =
         cont (KndPi _ _ x (Tkk k'') k') = 
           check-type tp' (just k'') ≫span 
           get-ctxt (λ Γ → 
-            spanMr (just (subst-kind Γ tp' x k')))
+            spanMr (just (subst-kind Γ (qualif-type Γ tp') x k')))
         cont k' = get-ctxt (λ Γ → 
                   spanM-add (TpApp-span tp tp' (maybe-to-checking k)
                                (error-data ("The kind computed for the head of the type application does"
@@ -1021,7 +1025,7 @@ check-kind (KndParens pi k pi') =
   check-kind k
 check-kind (Star pi) = spanM-add (Star-span pi checking)
 check-kind (KndVar pi x ys) =
-  get-ctxt (λ Γ → helper (ctxt-lookup-kind-var-def Γ x) ys)
+  get-ctxt (λ Γ → helper (ctxt-lookup-kind-var-qdef Γ x) ys)
   where helper : maybe (params × kind) → args → spanM ⊤
         helper (just (ps , k)) ys =
           check-args-against-params ps ys ≫=span λ m →

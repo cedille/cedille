@@ -3,7 +3,7 @@ module rename where
 open import lib
 
 open import cedille-types 
-open import ctxt
+open import ctxt-types
 open import is-free
 open import syntax-util
 
