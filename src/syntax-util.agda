@@ -282,7 +282,17 @@ eq-lam KeptLambda KeptLambda = tt
 eq-binder : binder → binder → 𝔹
 eq-binder All All = tt
 eq-binder Pi Pi = tt
-eq-binder _ _ = tt
+eq-binder _ _ = ff
+
+eq-arrowtype : arrowtype → arrowtype → 𝔹
+eq-arrowtype ErasedArrow ErasedArrow = tt
+eq-arrowtype UnerasedArrow UnerasedArrow = tt
+eq-arrowtype _ _ = ff
+
+arrowtype-matches-binder : arrowtype → binder → 𝔹
+arrowtype-matches-binder ErasedArrow All = tt
+arrowtype-matches-binder UnerasedArrow Pi = tt
+arrowtype-matches-binder _ _ = ff
 
 ------------------------------------------------------
 -- functions intended for building terms for testing
