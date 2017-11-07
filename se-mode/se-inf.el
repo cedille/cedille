@@ -253,7 +253,7 @@ buffer's file unless FILE is non-nil."
 	(pos (point))
 	(mark-pos (mark))
 	(mark-act mark-active))
-    (when (not (string= "\n" (buffer-substring size (1+ size))))
+    (when (or (equal 0 size) (not (string= "\n" (buffer-substring size (1+ size)))))
       (with-silent-modifications
 	(goto-char (point-max))
 	(insert "\n")

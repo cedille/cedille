@@ -435,8 +435,15 @@ is-intro-form (Lam _ _ _ _ _ _) = tt
 --is-intro-form (IotaPair _ _ _ _ _) = tt
 is-intro-form _ = ff
 
+erase : { ed : exprd } → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-term : term → term
+erase-type : type → type
+erase-kind : kind → kind
 erase-lterms : theta → lterms → 𝕃 term
+erase-tk : tk → tk
+erase-optType : optType → optType
+erase-liftingType : liftingType → liftingType
+
 erase-term (Parens _ t _) = erase-term t
 erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
@@ -460,6 +467,45 @@ erase-term (Hole pi) = Hole pi
 erase-term (Rho pi _ t t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
+
+-- Only erases TERMS in types, leaving the structure of types the same
+erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
+erase-type (IotaEx pi i pi' v otp tp) = IotaEx pi i pi' v (erase-optType otp) (erase-type tp)
+erase-type (Lft pi pi' v t lt) = Lft pi pi' v (erase-term t) (erase-liftingType lt)
+erase-type (NoSpans tp pi) = NoSpans (erase-type tp) pi
+erase-type (TpApp tp tp') = TpApp (erase-type tp) (erase-type tp')
+erase-type (TpAppt tp t) = TpAppt (erase-type tp) (erase-term t)
+erase-type (TpArrow tp at tp') = TpArrow (erase-type tp) at (erase-type tp')
+erase-type (TpEq t t') = TpEq (erase-term t) (erase-term t')
+erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-type tp)
+erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
+erase-type tp = tp
+
+-- Only erases TERMS in types in kinds, leaving the structure of kinds and types in those kinds the same
+erase-kind (KndArrow k k') = KndArrow (erase-kind k) (erase-kind k')
+erase-kind (KndParens pi k pi') = KndParens pi (erase-kind k) pi'
+erase-kind (KndPi pi pi' v t-k k) = KndPi pi pi' v (erase-tk t-k) (erase-kind k)
+erase-kind (KndTpArrow tp k) = KndTpArrow (erase-type tp) (erase-kind k)
+erase-kind k = k
+
+erase{TERM} t = erase-term t
+erase{TYPE} tp = erase-type tp
+erase{KIND} k = erase-kind k
+erase{LIFTINGTYPE} lt = erase-liftingType lt
+erase{ARG} a = a
+erase{QUALIF} q = q
+
+erase-tk (Tkt tp) = Tkt (erase-type tp)
+erase-tk (Tkk k) = Tkk (erase-kind k)
+
+erase-optType (SomeType tp) = SomeType (erase-type tp)
+erase-optType NoType = NoType
+
+erase-liftingType (LiftArrow lt lt') = LiftArrow (erase-liftingType lt) (erase-liftingType lt')
+erase-liftingType (LiftParens pi lt pi') = LiftParens pi (erase-liftingType lt) pi'
+erase-liftingType (LiftPi pi v tp lt) = LiftPi pi v (erase-type tp) (erase-liftingType lt)
+erase-liftingType (LiftTpArrow tp lt) = LiftTpArrow (erase-type tp) (erase-liftingType lt)
+erase-liftingType lt = lt
 
 erase-lterms Abstract (LtermsNil _) = []
 erase-lterms (AbstractVars _) (LtermsNil _) = []

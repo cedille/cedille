@@ -41,10 +41,8 @@ open import syntax-util
 open import to-string
 open import toplevel-state
 import interactive-cmds
-open import untyped-spans
 
 open import rkt
--- import normalize-nt-cmd
 
 opts : Set
 opts = options-types.opts

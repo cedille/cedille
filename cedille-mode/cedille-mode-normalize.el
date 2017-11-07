@@ -22,7 +22,11 @@
     (call-interactively
      (lambda (input)
        (interactive "MErase: ")
-       (se-inf-interactive (concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name)) 'cedille-mode-normalize-receive-response-prompt :header "Erasing")))))
+       (se-inf-interactive
+	(concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name))
+	'cedille-mode-normalize-erase-receive-response-prompt
+	:extra (concat "Expression: " input "\nErased: ")
+	:header "Erasing")))))
 
 ;;;;;;;;        Span Code        ;;;;;;;;
 
@@ -30,7 +34,9 @@
   "Normalizes (or head-normalizes if HEAD is t) SPAN"
   (let ((lang-level (cedille-mode-normalize-get-ll span))
 	(header (concat (if head "Head-n" "N") "ormalizing")))
-    (if (and lang-level (or (string= lang-level "term") (string= lang-level "type")))
+    (if (and lang-level (or (string= lang-level "term")
+			    (string= lang-level "type")
+			    (string= lang-level "kind")))
 	(se-inf-interactive
 	 'cedille-mode-normalize-request-text
 	 'cedille-mode-normalize-erase-receive-response
@@ -38,7 +44,7 @@
 	 :header header
 	 :extra (cons head nil) ; To make sure that extra is non-nil
 	 :restore t)
-      (message "Node must be a term or a type"))))
+      (message "Node must be a term, type, or kind"))))
 
 (defun cedille-mode-erase-span (span)
   "Erases span"
@@ -78,7 +84,6 @@
 	    sep (number-to-string (+ s (or add-to-pos 0)))
 	    sep (buffer-file-name)
 	    sep (if head "tt" "ff")
-	    ;sep (if add-parens "tt" "ff")
 	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
 	    (cedille-mode-normalize-local-context-param span))))
 
@@ -86,12 +91,13 @@
   "Gets the text to send to the backend as a request to normalize a span"
   (let ((s (se-span-start span))
 	(e (se-span-end span)))
-    (cedille-mode-erase-request-text-h (buffer-substring s e) s (buffer-file-name) (cedille-mode-normalize-local-context-param span))))
+    (cedille-mode-erase-request-text-h (buffer-substring s e) (cedille-mode-normalize-get-ll span) s (buffer-file-name) (cedille-mode-normalize-local-context-param span))))
 
-(defun cedille-mode-erase-request-text-h (str pos filename lc-str)
+(defun cedille-mode-erase-request-text-h (str ll pos filename lc-str)
   (concat "interactive"
 	  sep "erase"
 	  sep str
+	  sep ll
 	  sep (number-to-string pos)
 	  sep filename
 	  lc-str))
@@ -157,21 +163,25 @@
   "Prompts the user to input an expression to normalize/head-normalize"
   (let ((head-t (lambda (input)
 		  (interactive "MHead-normalize: ")
-		  (cedille-mode-normalize-send-prompt input "tt")))
+		  (cedille-mode-normalize-send-prompt input t)))
 	(head-nil (lambda (input)
 		    (interactive "MNormalize: ")
-		    (cedille-mode-normalize-send-prompt input "ff"))))
+		    (cedille-mode-normalize-send-prompt input nil))))
   (call-interactively (if head head-t head-nil))))
 
-(defun cedille-mode-normalize-send-prompt (input head-str)
+(defun cedille-mode-normalize-send-prompt (input head)
   "Sends the prompted normalize request to the backend"
-  (se-inf-interactive (concat "interactive" sep "normalizePrompt" sep input sep (buffer-file-name) sep head-str) 'cedille-mode-normalize-receive-response-prompt :header "Normalizing"))
+  (se-inf-interactive
+   (concat "interactive" sep "normalizePrompt" sep input sep (buffer-file-name) sep (if head "tt" "ff"))
+   'cedille-mode-normalize-erase-receive-response-prompt
+   :extra (concat "Expression: " input "\n" (if head "Head-n" "N") "ormalized: ")
+   :header "Normalizing"))
 
-(defun cedille-mode-normalize-receive-response-prompt(response oc)
+(defun cedille-mode-normalize-erase-receive-response-prompt(response oc extra)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
   (let ((response (se-markup-propertize response)))
     (unless (cedille-mode-normalize-get-error response)
-      (cedille-mode-scratch-display-text response))))
+      (cedille-mode-scratch-display-text (concat extra response)))))
 
 ;;;;;;;;        Helpers        ;;;;;;;;
 
