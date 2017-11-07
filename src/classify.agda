@@ -412,12 +412,15 @@ check-termi (Let pi d t) mtp =
                                               spanM-push-term-udef pi₁ x t' ≫=span λ m → spanMr (x , m)-}
         add-def (DefTerm pi₁ x (Type T) t') =
           check-type T (just star) ≫span
-          check-term t' (just T) ≫span 
+          get-ctxt λ Γ →
+          check-term t' (just (qualif-type Γ T)) ≫span 
           spanM-push-term-def pi₁ x t' T ≫=span λ m →
           get-ctxt λ Γ → spanM-add (Var-span Γ pi₁ x checking [ type-data Γ T ]) ≫span
           spanMr (x , m)
         add-def (DefType pi x k T) =
-          check-type T (just k) ≫span
+          check-kind k ≫span
+          get-ctxt λ Γ →
+          check-type T (just (qualif-kind Γ k)) ≫span
           {- Begin code to fix let definition variable highlighting (part 2/2) -}
           spanM-push-type-def pi x T k ≫=span λ m →
           get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k ]) ≫span
