@@ -1,0 +1,86 @@
+import cast.
+import recType.
+import top.
+
+nilU ◂ Top = β{λ a . λ f . a}.
+consU ◂ Top = β{λ hd . λ tl . λ n . λ c . c hd tl (tl n c)} .
+
+ListF ◂ ★ ➔ ★ ➔ ★ =
+  λ A : ★ .
+  λ ListC : ★ .
+    ι x : ∀ X : ★ .
+      Π nil : X .
+      (ι cons : Top . Π a : A . Π p : ListC . Π x : X . (p nil cons ≃ x) ➾ X) ➔
+      X .
+    x nilU consU ≃ x .
+
+ListFmap ◂ ∀ A : ★ . RecFunctor · (ListF · A) =
+  Λ A : ★ . Λ X . Λ Y . λ c .
+    [ λ n . [ Λ Z . λ nil . λ cons .
+                n.1 · Z nil (λ a . λ p . λ x . Λ e . cons a (cast · X · Y -c p) x -e),
+                ρ+ n.2 - β{n} ] ,
+              β{λ x . x}]. 
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ListC ◂ ★ ➔ ★ = λ A : ★ . Rec · (ListF · A) . 
+
+ListFold ◂ ∀ A : ★ . (ListF · A) · (ListC · A) ➔ (ListC · A) =
+  Λ A : ★ . λ x . cast · (ListF · A · (ListC · A)) · (ListC · A) -(recFold · (ListF · A) -(ListFmap · A)) x .
+
+ListUnfold ◂ ∀ A : ★ . (ListC · A) ➔ ListF · A · (ListC · A) =
+  Λ A : ★ . λ x . cast · (ListC · A) · (ListF · A  · (ListC · A)) -(recUnfold · (ListF · A) -(ListFmap · A)) x .
+
+nilC ◂ ∀ A : ★ . ListC · A = Λ A : ★ . ListFold · A [Λ X . λ a . λ f . a , β{nilU}].
+
+consC ◂ ∀ A : ★ . Π a : A . Π tl : ListC · A . Π n : ListC · A . (tl ≃ n) ➾ ListC · A =
+  Λ A : ★ . λ a . λ tl . λ n . Λ e .
+    ListFold · A ● .
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+NatP ◂ NatC ➔ ★ =
+  λ n : NatC . ∀ X : ★ . ∀ P : X ➔ ★ .
+    ∀ z : X . P z ➔
+    ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X .
+      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s n x -e)) ➔
+    P ((NatUnfold n).1 · X z s).
+
+zeroP ◂ NatP zeroC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
+
+sucP ◂ Π n : NatC . ∀ x : NatC . ∀ e : n ≃ x . NatP x ➔ NatP (sucC n x -e) =
+  λ n . Λ x . Λ e . λ px .
+  Λ X . Λ P . Λ z . λ pz . Λ s . λ ps .
+    ps n -((NatUnfold x).1 · X z s) -(ρ e - β) (px · X · P -z pz -s ps).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Nat ◂ ★ = ι x : NatC . NatP x.
+
+zero ◂ Nat = [ zeroC , zeroP].
+suci ◂ Π p : NatC . Π n : Nat . (p ≃ n) ➾ Nat =
+  λ p . λ n . Λ e . [ sucC p n.1 -e , sucP p -n.1 -e n.2 ].
+
+elimNati ◂
+  Π n : Nat . 
+  ∀ P : Nat ➔ ★ .
+  P zero ➔
+  (Π p : NatC . ∀ n : Nat . ∀ e : p ≃ n . P n ➔ P (suci p n -e)) ➔
+  P n
+=
+  λ n . Λ P . λ pZ . λ pS . 
+   ρ ς (NatUnfold n.1).2 - (n.2 · Nat · P -zero pZ -[β{sucC},(λ p . λ n . Λ e . suci p n -(ρ ς (NatUnfold p).2 - e))]
+     (λ n . Λ x . Λ e . λ px . pS n -x -(ρ ς (NatUnfold n).2 - e) px)) .
+
+suc ◂ Nat ➔ Nat = λ n . suci n.1 n -β .
+
+elimNat ◂
+  Π n : Nat . 
+  ∀ P : Nat ➔ ★ .
+  P zero ➔
+  (Π p : Nat . P p ➔ P (suc p)) ➔
+  P n
+=
+  λ n . Λ P . λ pz . λ ps .
+    elimNati n · P pz
+      (λ p . Λ n . Λ e . λ pn .
+        ρ ς e - (ps (changeType · NatC · Nat p -n -e) (ρ e - pn))) .
