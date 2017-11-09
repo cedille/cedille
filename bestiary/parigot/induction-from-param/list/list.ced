@@ -3,7 +3,7 @@ import recType.
 import top.
 
 nilU ◂ Top = β{λ a . λ f . a}.
-consU ◂ Top = β{λ hd . λ tl . λ n . λ c . c hd tl (tl n c)} .
+consU ◂ Top = β{λ hd . λ tl . λ tl' . λ n . λ c . c hd tl (tl' n c)} .
 
 ListF ◂ ★ ➔ ★ ➔ ★ =
   λ A : ★ .
@@ -35,30 +35,32 @@ nilC ◂ ∀ A : ★ . ListC · A = Λ A : ★ . ListFold · A [Λ X . λ a . λ
 
 consC ◂ ∀ A : ★ . Π a : A . Π tl : ListC · A . Π n : ListC · A . (tl ≃ n) ➾ ListC · A =
   Λ A : ★ . λ a . λ tl . λ n . Λ e .
-    ListFold · A ● .
+    ListFold · A [ Λ X . λ nil . λ cons . cons a tl ((ListUnfold · A n).1 · X nil cons) -(ρ e - β) , ρ+ (ListUnfold · A n).2 - β{consU a tl n} ] .
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-NatP ◂ NatC ➔ ★ =
-  λ n : NatC . ∀ X : ★ . ∀ P : X ➔ ★ .
-    ∀ z : X . P z ➔
-    ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X .
-      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s n x -e)) ➔
-    P ((NatUnfold n).1 · X z s).
+ListP ◂ Π A : ★ . ListC · A ➔ ★ =
+  λ A : ★ .
+  λ lst : ListC · A . ∀ X : ★ . ∀ P : X ➔ ★ .
+    ∀ nil : X . P nil ➔
+    ∀ cons : ι cons' : Top . Π a : A . Π lst' : ListC · A . Π x : X . (lst' nil cons' ≃ x) ➾ X .
+      (Π a : A . Π lst : ListC · A. ∀ x : X . ∀ e : lst nil cons ≃ x . P x ➔ P (cons a lst x -e)) ➔
+    P ((ListUnfold · A lst).1 · X nil cons).
 
-zeroP ◂ NatP zeroC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
+nilP ◂ ∀ A : ★ .  ListP · A (nilC · A) = Λ A . Λ X . Λ P . Λ n . λ pn . Λ c . λ pc . pn .
 
-sucP ◂ Π n : NatC . ∀ x : NatC . ∀ e : n ≃ x . NatP x ➔ NatP (sucC n x -e) =
-  λ n . Λ x . Λ e . λ px .
-  Λ X . Λ P . Λ z . λ pz . Λ s . λ ps .
-    ps n -((NatUnfold x).1 · X z s) -(ρ e - β) (px · X · P -z pz -s ps).
+consP ◂ Π A : ★ . Π a : A . Π n : ListC · A . ∀ x : ListC · A . ∀ e : n ≃ x . (ListP · A x) ➔ (ListP · A (consC · A a n x -e))
+  = λ A : ★ . λ a . λ n . Λ x . Λ e .
+  λ px . Λ X . Λ P . Λ nil . λ pnil . Λ cons . λ pcons .
+  pcons a n -((ListUnfold · A x).1 · X nil cons) -(ρ e - β) (px · X · P -nil pnil -cons pcons).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-Nat ◂ ★ = ι x : NatC . NatP x.
+List ◂ ★ ➔ ★ = λ A : ★ . ι x : ListC · A . ListP · A x.
 
-zero ◂ Nat = [ zeroC , zeroP].
-suci ◂ Π p : NatC . Π n : Nat . (p ≃ n) ➾ Nat =
-  λ p . λ n . Λ e . [ sucC p n.1 -e , sucP p -n.1 -e n.2 ].
+nil ◂ ∀ A : ★ . List · A = Λ A : ★ . [ nilC · A , nilP · A ].
+
+consi ◂ ∀ A : ★ . Π a : A . Π p : List · A . Π n : List · A . (p ≃ n) ➾ List · A =
+  Λ A : ★ . λ a . λ p . λ n . Λ e . [ consC · A a p n.1 -e , consP · A a p -n.1 -e n.2 ].
 
 elimNati ◂
   Π n : Nat . 
