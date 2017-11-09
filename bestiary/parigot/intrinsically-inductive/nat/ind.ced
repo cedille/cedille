@@ -2,6 +2,8 @@ import ../../../util/RecType.
 
 NatF ◂ ★ ➔ ★ = λ Nat' : ★ . ∀ X : ★ . X ➔ (Nat' ➔ X ➔ X) ➔ X .
 
+
+
 NatFzero ◂ ∀ Nat' : ★ . NatF · Nat' =  Λ Nat' . Λ X . λ z . λ s . z .
 
 NatFmap ◂ RecFunctor · NatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (cast · A · B -c a) ) ,
@@ -35,14 +37,12 @@ One ◂ Nat = S Z .
 
 Nat'Out ◂ Nat' ➔ (NatF · Nat') = cast · Nat' · (NatF · Nat') -(recOut · NatF -NatFmap) .
 
-add ◂ Nat ➔ Nat ➔ Nat =
-  λ n . λ m . Nat'Out n.1 · Nat m (λ P : Nat' . S) .
+ 
+pred ◂ Nat ➔ Nat = 
+   Ind · (λ _ : Nat. Nat) Z (λ p. λ n. p) .
 
-add-test ◂ (add Z (S Z) ≃ (S Z)) = β.
+% Denis: does not follow by beta :(
+predlemma ◂ Π n : Nat . pred (S n) ≃ n = λ n. ε ●  .
 
-add0 ◂ Π m : Nat . add Z m ≃ m = λ m . β .
-
-add0-1 ◂ Π m : Nat . add m Z ≃ m =
-  λ m . θ m β (λ _ . λ h . εl ρ h - β) .
-
+% Denis: redeining Ind so that it is identity might fix the problem
 
