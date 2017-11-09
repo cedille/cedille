@@ -508,7 +508,7 @@ check-termi (Beta pi ot) (just (TpEq t1 t2)) =
       spanM-add (Beta-span pi (optTerm-end-pos pi ot)
                    checking [ type-data Γ (TpEq t1 t2) ])
     else
-      spanM-add (Beta-span pi (optTerm-end-pos pi ot)
+      spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot)
                   checking (error-data "The two terms in the equation are not β-equal" :: [ expected-type Γ (TpEq t1 t2) ])))
 
 check-termi (Beta pi ot) (just tp) = 
