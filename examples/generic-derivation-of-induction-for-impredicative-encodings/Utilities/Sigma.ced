@@ -1,0 +1,36 @@
+
+cSigma ◂ Π A : ★. (A ➔ ★) ➔ ★
+ = λ A : ★. λ B : A ➔ ★.
+ ∀ X : ★. (Π a : A. B a ➔ X) ➔ X.
+
+mkcsigma ◂ ∀ X : ★. ∀ Y : X ➔ ★. 
+ Π x : X. Y x ➔ cSigma · X · Y
+ = Λ X. Λ Y. λ x. λ y. Λ Z. λ c. c x y.
+
+param-Sigma ◂ Π A : ★. Π P : A ➔ ★. cSigma · A · P ➔ ★
+ = λ A : ★. λ P : A ➔ ★. λ x : cSigma · A · P.
+  ∀ X : ★. ∀ Q : X ➔ ★. ∀ pr : Π a : A. P a ➔ X. 
+  (Π a : A. Π b : P a. Q (pr a b)) ➔ Q (x · X pr).
+
+Sigma ◂ Π A : ★. (A ➔ ★) ➔ ★
+ = λ A : ★. λ PA : A ➔ ★. 
+ ι d : cSigma · A · PA.
+   ι _ : d mkcsigma ≃ d. param-Sigma · A · PA d.
+
+mkdsigma ◂ ∀ X : ★. ∀ Y : X ➔ ★. Π x : X. Y x ➔ Sigma · X · Y
+ = Λ X. Λ Y. λ x. λ y. 
+ [ mkcsigma · X · Y x y 
+ , [ β{mkcsigma x y}  , Λ X'. Λ Q. Λ pr. λ e. e x y  ] ].
+
+ind-sigma ◂ ∀ A : ★. ∀ B : A ➔ ★. Π x : Sigma · A · B.
+ ∀ P : Sigma · A · B ➔ ★. 
+ (Π a : A. Π b : B a. P (mkdsigma · A · B a b)) ➔ P x
+ = Λ A. Λ B. λ x. Λ P. λ p. 
+ ρ ς x.2.1 - (x.2.2 · (Sigma · A · B) · P -(mkdsigma · A · B) p).
+
+proj1 ◂ ∀ A : ★. ∀ B : A ➔ ★. Sigma · A · B  ➔  A 
+ = Λ A. Λ B. λ s. s.1 · A (λ a. λ _. a).
+
+proj2 ◂ ∀ A : ★. ∀ B : A ➔ ★. 
+ Π s : Sigma · A · B.  B (proj1 · A · B s) 
+ = Λ A. Λ B. λ s. θ<s> (ind-sigma · A · B s) (λ a. λ b. b).

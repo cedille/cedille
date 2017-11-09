@@ -1,0 +1,77 @@
+import Functor.
+import Unary.
+
+import FixM.
+import FixIndM.
+import PropertiesM.
+
+import FixIndC.
+import FixC.
+
+import ConvM.
+import ConvC.
+
+
+% defining the composition of conversions
+% Mendler (FixIndM) -> Church (FixIndC) -> Mendler (FixIndM)
+men2men ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π flaw2 : Flaw2 · F fmap. 
+ Π flaw1 : Flaw1 · F fmap. 
+ FixIndM · F fmap ➔ FixIndM · F fmap 
+ = Λ F. λ fmap. λ flaw2. λ flaw1. λ fix.  
+ ch2men · F fmap flaw1 (men2ch · F fmap flaw2 flaw1 fix).
+
+
+% proof that men2men is an Mendler F-algebra homomorphism from FixIndM
+% to FixIndM.
+men2menlem ◂  ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  
+ Π flaw2 : Flaw2 · F fmap. 
+ Π flaw1 : Flaw1 · F fmap.
+ Π e : F · (FixIndM · F fmap). 
+ (men2men fmap flaw2 flaw1 (inFixIndM fmap flaw1 (λ x. x) e)) ≃ 
+  (inFixIndM fmap flaw1 (men2men fmap flaw2 flaw1) e) 
+ = Λ F. λ fmap. λ flaw2.  λ flaw1. λ e. 
+ let el = (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) in
+ (ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} e -(λ z. β)) - 
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) -(λ z. β)) - % broken let: replace with "el"
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) -(λ z. β)) - % broken let: replace with "el"
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} e -(λ z. β)) - 
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} e -(λ z. β)) - 
+  ρ+ (flaw2 · (FixIndM · F fmap) -β{unary} 
+       -β{(foldM (λ f. λ fr'. (inFixIndC fmap flaw2 flaw2 (fmap f fr'))))} e) -
+  ρ+ (flaw2 · (FixIndM · F fmap) -β{(λ ux. (unary ((λ x. x) (uproj ux))))} 
+       -β{(λ z. (unary (foldM (λ f. λ fr'. 
+           (inFixIndC fmap flaw2 flaw2 (fmap f fr'))) z)))} e) -
+  ρ+ (flaw2 · (FixIndM · F fmap) 
+       -β{(λ ux. (unary (foldC' (λ fun. 
+           (inFixIndM' fmap flaw2 (fmap uproj fun))) (uproj ux))))} 
+       -β{(λ z. ((λ ux. (unary ((λ x. x) (uproj ux)))) 
+           ((λ z. (unary (foldM (λ f. λ fr'. 
+            (inFixIndC fmap flaw2 flaw2 (fmap f fr'))) z))) z)))} e) -
+  ρ+ (flaw2 · (FixIndM · F fmap) -β{uproj} 
+      -β{(λ z. ((λ ux. (unary (foldC' (λ fun. 
+          (inFixIndM' fmap flaw2 (fmap uproj fun))) (uproj ux)))) 
+          ((λ z. ((λ ux. (unary ((λ x. x) (uproj ux)))) 
+          ((λ z. (unary (foldM (λ f. λ fr'. 
+          (inFixIndC fmap flaw2 flaw2 (fmap f fr'))) z))) z))) z)))} e) -
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) -(λ z. β)) - % broken let: replace with "el"
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) -(λ z. β)) - % broken let: replace with "el"
+  ρ+ (flaw1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (men2men · F fmap flaw2 flaw1) e) -(λ z. β)) - % broken let: replace with "el"
+  β).
+
+
+% First part of the proof that Mendler (FixIndM) is isomorphic to
+% Church (FixIndC).  Namely, that conversion Mendler -> Church ->
+% Mendler is identity.
+isoM ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π flaw2 : Flaw2 · F fmap. 
+ Π flaw1 : Flaw1 · F fmap. 
+ Π fmapEq : Feq · F fmap.
+ Π fix : (FixIndM · F fmap). 
+ (men2men fmap flaw2 flaw1 fix) ≃ fix 
+ = Λ F. λ fmap. λ law2. λ law1. λ eq. λ fix. 
+ ρ (universalM · F fmap law1 law2 eq fix · (FixIndM · F fmap) 
+    (men2men · F fmap law2 law1) 
+    (inFixIndM · F fmap law1) (inNatural · F fmap law1) 
+    (men2menlem · F fmap law2 law1)) - 
+ (reflectionM · F fmap law1 law2 eq fix).

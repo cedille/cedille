@@ -1,0 +1,18 @@
+import Sigma.
+import SigmaImplicit.
+import Product.
+import Unary.
+import Top.
+
+
+WithWitness ◂ Π X : ★. Π Y : ★.  
+ (X ➔ ★) ➔ (X ➔ Y) ➔ Y ➔ ★ 
+ = λ X : ★. λ Y : ★. λ Q : X ➔ ★. 
+   λ cast : X ➔ Y. λ y : Y.
+   Sigma · X · (λ x : X. Product · (y ≃ cast x) · (Q x)).
+
+
+
+
+
+

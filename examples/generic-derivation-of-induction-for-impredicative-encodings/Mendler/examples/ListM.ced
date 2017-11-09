@@ -1,0 +1,47 @@
+import Product.
+import Sum.
+import Unit.
+
+import FixIndM.
+import InductionM.
+
+import ListF.
+
+% ListM datatype as a Mendler-style fixed point of signature functor ListF
+ListM ◂ ★ ➔ ★ = λ A : ★. FixIndM · (ListF · A) (ListFmap · A).
+
+
+% generically derived induction principle for ListM 
+inductionListGen ◂ ∀ A : ★. ∀ Q : ListM · A ➔ ★. 
+ PrfAlgM · (ListF · A) (ListFmap · A) · (ListM · A) · Q 
+  (inFixIndM · (ListF · A)  (ListFmap · A) (ListFlaw1 · A)) ➔
+ Π e : ListM · A. Q e = Λ A. 
+ inductionM · (ListF · A) (ListFmap · A) (ListFlaw1 · A) (ListFeq · A).
+
+
+% ListM constructors
+nil ◂ ∀ A : ★. ListM · A 
+ = Λ A. inFixIndM' · (ListF · A) (ListFmap · A) (ListFlaw1 · A) 
+              (in1 · Unit · (Product · A · (ListM · A)) unit).
+
+
+cons ◂ ∀ A : ★. A ➔ ListM · A ➔ ListM · A 
+ = Λ A. λ x. λ xs. 
+ inFixIndM' · (ListF · A) (ListFmap · A) (ListFlaw1 · A)  
+              (in2 · Unit · (Product · A · (ListM · A)) 
+                     (pair · A · (ListM · A) x xs)).
+   
+
+% "flat" version of induction principle stated in terms of defined
+% constructors
+inductionListM ◂ ∀ A : ★. ∀ Q : ListM · A ➔ ★.
+ Q (nil · A) ➔
+ (Π x : A. Π xs : ListM · A. Q xs ➔ Q (cons · A x xs)) ➔ 
+ Π xs : ListM · A. Q xs 
+ = Λ A. Λ Q. λ qnil. λ qcons.
+ (inductionListGen · A · Q (Λ R. λ cast. Λ eq. λ ih. λ fr.
+ θ<fr> (ind-Sum · Unit · (Product · A · R) fr) 
+       (λ unit'. ρ (eta-Unit unit') - qnil) 
+       (λ z. (qcons (pproj1 · A · R z) (cast (pproj2 · A · R z)) 
+               (ih (pproj2 · A · R z)))))).
+

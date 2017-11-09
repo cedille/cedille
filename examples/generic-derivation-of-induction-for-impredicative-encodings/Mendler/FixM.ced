@@ -1,0 +1,43 @@
+import Functor.
+
+
+% Mendler-style algebra
+AlgM ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★. λ A : ★. 
+ ∀ R : ★. (R ➔ A) ➔ F · R ➔ A.
+
+
+% naturality for algebras
+Natural ◂ Π F : ★ ➔ ★. Fmap · F ➔ Π A : ★. AlgM · F · A ➔ ★ 
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F. λ A : ★. λ alg : AlgM · F · A.
+ ∀ R : ★. ∀ cast : R ➔  A. ∀ fr : F · R. 
+ alg cast fr ≃ alg (λ x. x) (fmap cast fr).
+
+
+% Mendler-style fixed point
+FixM ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. 
+ ∀ A : ★. (∀ R : ★. (R ➔ A) ➔ F · R ➔ A) ➔ A.
+
+
+% Weak initiality of FixM
+foldM ◂ ∀ F : ★ ➔ ★. ∀ A : ★. AlgM · F · A ➔ FixM · F ➔ A
+ = Λ F. Λ A. λ alg. λ fix. fix · A alg.
+
+
+inM ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ AlgM · F · (FixM · F)
+ = Λ F. λ fmap. Λ R. λ c. λ v. Λ A. λ alg.
+ alg · (FixM · F) (foldM · F · A alg) (fmap · R · (FixM · F) c v).
+
+
+% does not require fmap!
+inM' ◂ ∀ F : ★ ➔ ★. F · (FixM · F) ➔ FixM · F
+ = Λ F.  λ fexp. Λ A. λ alg. 
+ alg · (FixM · F) (foldM · F · A alg) fexp.
+
+
+% inverse of inM
+outM ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ FixM · F ➔ F · (FixM · F)
+ = Λ F. λ fmap. λ fix. foldM · F · (F · (FixM · F))
+ (Λ R. λ ih. λ fr. fmap · R · (FixM · F) (λ r. inM' · F (ih r))  fr)
+ fix.
+
+

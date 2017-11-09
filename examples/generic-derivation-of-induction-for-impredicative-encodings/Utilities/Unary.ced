@@ -1,0 +1,49 @@
+import Functor.
+
+cUnary ◂ ★ ➔ ★ 
+ = λ A : ★. ∀ X : ★. (A ➔ X) ➔ X.
+
+cunary ◂ ∀ A : ★.  A ➔  cUnary · A  
+ = Λ A. λ a.  Λ X. λ ca. ca a.
+
+param-Unary ◂ Π A : ★. cUnary · A ➔ ★
+ = λ A : ★.  λ x : cUnary · A.
+ ∀ X : ★. ∀ P : X ➔ ★. ∀ pr : A ➔ X. 
+ (Π a : A.  P (pr a)) ➔ P (x · X pr).
+
+Unary ◂ ★ ➔ ★ 
+ = λ A : ★. 
+ ι x : cUnary · A. 
+   ι _ : x cunary ≃ x. param-Unary · A x.
+
+unary ◂ ∀ A : ★. A ➔ Unary · A
+ = Λ A. λ a. 
+ [ cunary · A a
+ , [β{cunary a}  , Λ X. Λ P. Λ pr. λ p. p a  ]].
+
+ind-Unary ◂ ∀ A : ★.  Π x : Unary · A.
+ ∀ P : Unary · A ➔ ★.
+ (Π a : A. P (unary · A a)) ➔ 
+ P x
+ = Λ A. λ x. Λ P. λ p.
+ ρ ς x.2.1 - (x.2.2 · (Unary · A) · P -(unary · A) p).
+
+uproj ◂ ∀ A : ★. Unary · A  ➔  A 
+ = Λ A. λ s. s.1 · A (λ a. a).
+
+umap ◂ ∀ A : ★. ∀ B : ★. (A ➔ B) ➔ (Unary · A) ➔ (Unary · B)
+ = Λ A. Λ B. λ f. λ ua. unary · B (f (uproj · A ua)).
+
+UnF ◂ (★ ➔ ★) ➔ ★ ➔ ★ 
+ = λ F : ★ ➔ ★. λ X : ★. F · (Unary · X).
+
+ufmap ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ Fmap · (UnF · F)
+ = Λ F. λ fmap. Λ X. Λ Y. λ f.  λ fx.  
+ fmap · (Unary · X) · (Unary · Y) 
+  (λ ux. unary · Y (f (uproj · X ux))) fx.
+
+qqq' ◂ ∀ X : ★. ∀ F : ★ ➔ ★. Π fmap : Functor · F. Flaw1 · F fmap ➔ 
+ Π v : F · (Unary · X). (ufmap · F fmap (λ x. x) v) ≃ v 
+ = Λ X. Λ F. λ fmap. λ law1.   λ v.  ε ρ (law1 · (Unary · X)  
+ -β{(λ ux. (unary ((λ x. x) (uproj ux))))} v 
+ -(λ z. θ<z> (ind-Unary · X z) (λ a. β) )) - β.

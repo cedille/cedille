@@ -1,0 +1,43 @@
+import Functor.
+import Unary.
+
+
+% Standard definition of Church-style algebra
+AlgC ◂ (★ ➔ ★) ➔ ★ ➔ ★ = 
+ λ F : ★ ➔ ★. λ X : ★. F · X ➔ X.
+
+
+% Church-style algebra adjusted for the alignment with proof algebra
+AlgC' ◂ (★ ➔ ★) ➔ ★ ➔ ★ = 
+ λ F : ★ ➔ ★. λ X : ★. F · (Unary · X) ➔ X.
+
+
+% least fixed point of F
+FixC ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. 
+  ∀ X : ★. AlgC' · F · X ➔ X.
+
+
+% weak initiality of FixC
+foldC' ◂ ∀ F : ★ ➔ ★. ∀ X : ★. AlgC' · F · X 
+ ➔ FixC · F ➔ X 
+ = Λ F. Λ X. λ alg. λ fix. fix · X alg.
+
+
+inC' ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ AlgC' · F · (FixC · F) 
+ = Λ F. λ fmap. λ fix. Λ X. λ alg.
+    alg (ufmap · F fmap · (FixC · F) · X (foldC' · F · X alg) fix).
+
+
+% foldC' is a homomorphism
+HomC ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  ∀ X' : ★. 
+ Π f' : AlgC' · F · X'. Π v : F · (Unary · (FixC · F)). 
+ f' (ufmap fmap (foldC' f') v) ≃ foldC' f' (inC' fmap v)
+ = Λ F. λ fmap. Λ X. λ f'. λ v. β.
+
+
+% homomorphism for standard Church-style algebras AlgC
+foldC ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ ∀ X : ★. AlgC · F · X 
+ ➔ FixC · F ➔ X 
+ = Λ F. λ fmap. Λ X. λ alg. λ fix. 
+ fix · X (λ z. alg (fmap · (Unary · X) · X (uproj · X) z)).
+

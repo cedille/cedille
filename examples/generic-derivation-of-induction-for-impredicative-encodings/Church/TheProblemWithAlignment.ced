@@ -1,0 +1,67 @@
+import Functor.
+import Product.
+import Sigma.
+import Top.
+
+
+% This module illustrates the problem of allignment with the standard
+% definitions of Church-style F-algebra and proof-algebra.
+
+
+AlgC ◂ (★ ➔ ★) ➔ ★ ➔ ★ = 
+ λ F : ★ ➔ ★. λ X : ★. F · X ➔ X.
+
+
+FixC ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. 
+  ∀ X : ★. AlgC · F · X ➔ X.
+
+
+foldC ◂ ∀ F : ★ ➔ ★. ∀ X : ★. AlgC · F · X 
+  ➔ FixC · F ➔ X = Λ F. Λ X. λ alg. λ fix. fix · X alg.
+
+inC ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ AlgC · F · (FixC · F) 
+ = Λ F. λ fmap. λ fix. Λ X. λ alg.
+    alg (fmap · (FixC · F) · X (foldC · F · X alg) fix).
+
+
+
+PrfAlgC ◂ Π F : ★ ➔ ★.  Fmap · F ➔ Π X : ★. 
+ (X ➔ ★) ➔ AlgC · F · X ➔ ★
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F. λ X : ★. 
+  λ Q : X ➔ ★. λ alg : AlgC · F · X. 
+  Π gr : F · (Sigma · X · Q).  
+    Q (alg (fmap · (Sigma · X · Q) · X (proj1 · X · Q) gr)).
+
+
+IsIndFixC ◂ Π F : ★ ➔ ★. Functor · F ➔ FixC · F ➔ ★ 
+  = λ F : ★ ➔ ★. λ fmap : Functor · F. λ e : FixC · F. 
+    ∀ Q : (FixC · F) ➔ ★. 
+     PrfAlgC · F fmap · (FixC · F) · Q (inC · F fmap) ➔ Q e.
+
+
+FixIndC ◂ Π F : ★ ➔ ★. Functor · F ➔ ★ 
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F. 
+ ι x : FixC · F. IsIndFixC · F fmap x.  
+
+
+% erasure of tc1 is
+% λ v. λ alg. (alg (fmap (λ x. (x alg)) (fmap (λ x. x) v)))
+tc1 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. F · (FixIndC · F fmap) ➔ FixC · F
+ = Λ F. λ fmap. λ v. inC · F fmap 
+ (fmap · (FixIndC · F fmap) · (FixC · F) (λ x. x.1) v).  
+
+% erasure of tc2 is
+% λ v. λ alg. (alg (fmap (λ x. λ c. (c x (x alg))) v))
+tc2 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Flaw2 · F fmap ➔ Flaw1 · F fmap ➔ 
+ Π v : F · (FixIndC · F fmap). IsIndFixC · F fmap   (tc1 · F fmap v) 
+ = Λ F. λ fmap. λ law2. λ law1. λ v. Λ Q. λ prfalg. 
+ ρ+ ς (law2 · (FixIndC · F fmap) -β{proj1} -β{(λ x. (mkdsigma x (x prfalg)))} v) -
+ (prfalg (fmap · (FixIndC · F fmap) · (Sigma · (FixC · F) · Q) 
+   (λ x. (mkdsigma · (FixC · F) · Q x.1 (x.2 · Q prfalg) )) v)).
+
+
+% Therefore the element (tm1 v) : FixC and the proof of its
+% inductivity (tm2 v) are not equal (modulo erasure).  This shows that
+% the function inFixIndC ◂ AlgC FixIndC cannot be implemented as an
+% intersection [ tm1 v , tm2 v ].

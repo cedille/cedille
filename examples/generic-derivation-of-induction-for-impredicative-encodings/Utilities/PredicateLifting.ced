@@ -1,0 +1,63 @@
+import Product.
+import Sigma.
+import SigmaImplicit.
+import Functor.
+import Unary.
+import WithWitness.
+
+WWId ◂ Π X : ★. (X ➔ ★) ➔ X ➔ ★
+ = λ X : ★. λ Q : X ➔ ★. WithWitness · X · X · Q (λ x. x).
+
+wsPrj1 ◂ ∀ X : ★. ∀ Y : X ➔ ★. SigmaEr · X · (WWId · X · Y) ➔ X 
+ = Λ X. Λ Y. λ s. s.1 · X (Λ a. λ p. p.1 · X (λ a'. λ _. a')).
+
+wsPrj1' ◂ ∀ X : ★. ∀ Y : X ➔ ★. ∀ x : X. (WWId · X · Y) x ➔ X 
+ = Λ X. Λ Y. Λ x. λ p. p.1 · X (λ a'. λ _. a').
+
+wsPrj1'lem ◂ ∀ X : ★. ∀ Y : X ➔ ★. ∀ x : X. 
+ Π v : (WWId · X · Y) x. wsPrj1' v ≃ x 
+ = Λ X. Λ Y. Λ x. λ b. θ<b> 
+ (ind-sigma · X · (λ y : X. Product · (x ≃ y) · (Y y)) b) 
+  (λ p1. λ p2.  θ<p2> 
+   (ind-Product · (x ≃ p1) · (Y p1) p2) (λ a'. λ b'. ρ a' - β)).
+
+zzzz''' ◂ ∀ X : ★. ∀ Y : X ➔ ★. ∀ x : X. 
+ Π v : (WWId · X · Y) x. wsPrj1 (mksigmaer v) ≃ x 
+ = Λ X. Λ Q. Λ a. λ s. θ<s> 
+ (ind-sigma · X · (λ x : X. Product · (a ≃ x) · (Q x)) s) 
+   (λ a. λ b. ε β).  
+
+wsMap ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ ∀ X : ★. ∀ Q : X ➔ ★.  
+ F · (SigmaEr · X · (WWId · X · Q)) ➔ F · (Unary · X) 
+ = Λ F. λ fmap. Λ X. Λ Q. λ gr. 
+ (fmap · (SigmaEr · X · (WWId · X · Q)) · (Unary · X) 
+  (λ x. unary · X (wsPrj1 · X · Q x)) gr).
+
+wsPrj2 ◂ ∀ X : ★. ∀ Y : X ➔ ★. 
+ Π s : SigmaEr · X · (WWId · X · Y). Y (wsPrj1 · X · Y s) 
+ = Λ X. Λ Y. λ s. θ<s> (ind-sigmaer · X · (WWId · X · Y) s) 
+ (Λ a. λ b. θ<b> (ind-sigma · X · (λ x : X. Product · (a ≃ x) · (Y x)) b) 
+  (λ a'. λ b'. θ<b'> (ind-Product · (a ≃ a') · (Y a') b') 
+   (λ a''. λ b''.  b''))).
+
+zz ◂ ∀ X : ★. ∀ P : X ➔ ★. 
+ Π e : X. P e ➔ (WWId · X · P) e 
+ = Λ X. Λ P. λ e. λ pe. 
+ mkdsigma · X · (λ x : X. Product · (e ≃ x) · (P x)) 
+  e (pair · (e ≃ e) · (P e) β pe).
+
+zzob ◂ ∀ X : ★. ∀ P : X ➔ ★. Π e : X. (WWId · X · P) e ➔ P e 
+ = Λ X. Λ P. λ e. λ s.  
+ θ<s> (ind-sigma · X · (λ x : X. Product · (e ≃ x) · (P x)) s) 
+ (λ a. λ b'. θ<b'> (ind-Product · (e ≃ a) · (P a) b') (λ eq. λ pa. ρ eq - pa)).
+
+zzob' ◂ ∀ X : ★. ∀ P : X ➔ ★. ∀ e : X. (WWId · X · P) e ➔ P e 
+ = Λ X. Λ P. Λ e. λ s.  
+ θ<s> (ind-sigma · X · (λ x : X. Product · (e ≃ x) · (P x)) s) 
+  (λ a. λ b'. θ<b'> (ind-Product · (e ≃ a) · (P a) b') 
+   (λ eq. λ pa. ρ eq - pa)).
+
+ws2s ◂ ∀ X : ★. ∀ Y : X ➔ ★. 
+ SigmaEr · X · (WWId · X · Y) ➔ Sigma · X · Y 
+ = Λ X. Λ Y. λ s. 
+ mkdsigma · X · Y (wsPrj1 · X · Y s) (wsPrj2 · X · Y s).

@@ -1,0 +1,10 @@
+import-directories 
+ "PATH/Mendler"
+ "PATH/Mendler/examples"  
+ "PATH/Church"
+ "PATH/Church/examples"
+ "PATH/Utilities".
+
+no-rkt-files.
+no-cede-files.
+

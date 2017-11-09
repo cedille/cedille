@@ -1,0 +1,125 @@
+import Functor.
+import Sigma.
+import Product.
+
+import FixM.
+
+
+% "Strong" proof algebra with explicit "cast" function (does not align
+% with AlgM).
+PrfAlgM ◂ Π F : ★ ➔ ★.  Fmap · F 
+  ➔ Π X : ★. (X ➔ ★) 
+  ➔ AlgM · F · X ➔ ★ = 
+ λ F : ★ ➔ ★. λ fmap : Fmap · F. λ X : ★. 
+ λ Q : X ➔ ★. λ alg : AlgM · F · X. 
+ ∀ R : ★. Π c : R ➔ X. 
+ ∀ _ : ∀ r : R. c r ≃ r.
+ (Π r : R. Q (c r)) ➔
+ Π gr : F · R.  Q (alg · R c gr).
+
+
+% "Weak" proof algebra with impicit "cast"
+PrfAlgM' ◂ Π F : ★ ➔ ★.  Fmap · F 
+  ➔ Π X : ★. (X ➔ ★) 
+  ➔ AlgM · F · X ➔ ★ = 
+ λ F : ★ ➔ ★. λ fmap : Fmap · F. λ X : ★. 
+ λ Q : X ➔ ★. λ alg : AlgM · F · X. 
+ ∀ R : ★. ∀ cast : R ➔ X. 
+ ∀ _ : ∀ r : R. cast r ≃ r.
+ (Π r : R. Q (cast r)) ➔
+ Π gr : F · R.  Q (alg · R cast gr).
+
+
+% inductivity predicate in terms of weak proof algebra
+IsIndFixM ◂ Π F : ★ ➔ ★. Fmap · F ➔ FixM · F ➔ ★
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F. λ x : FixM · F. ∀ Q : FixM · F ➔ ★.
+ PrfAlgM' · F fmap · (FixM · F) · Q (inM · F fmap) ➔ Q x.
+
+
+% FixIndM is a inductive subset of FixM defined as an intersection type
+% One can think of FixIndM as {x : FixM | IsIndFixM x}
+FixIndM ◂ Π F : (★ ➔ ★). Fmap · F ➔ ★
+ = λ F : ★ ➔ ★. λ fmap : Fmap · F.
+ ι x : FixM · F. IsIndFixM · F fmap x.
+
+    
+% since fix.1 : FixM for every fix : FixIndM then
+% we can reuse foldM 
+foldIndM ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. ∀ A : ★. AlgM · F · A ➔ 
+ FixIndM · F fmap ➔ A
+ = Λ F. λ fmap. Λ A. λ alg. λ fix. foldM · F · A  alg fix.1.
+
+
+% first component of intersection in the definition of inFixIndM
+tm1 ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  
+ F · (FixIndM · F fmap) ➔ FixM · F 
+ = Λ F. λ fmap. λ v. inM · F fmap · (FixM · F) (λ x. x) 
+ (fmap · (FixIndM · F fmap) · (FixM · F) (λ x. x.1) v).
+
+
+% second component of intersection in the definition of inFixIndM
+tm2 ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F.  
+ Π v : F · (FixIndM · F fmap).
+ IsIndFixM · F fmap (tm1 · F fmap v) = Λ F. λ fmap. λ v. 
+ (Λ Q. λ q. q · (FixIndM · F fmap) 
+  -(λ z. z.1) 
+  -(Λ r. β) 
+   (λ r. r.2 · Q q) (fmap · (FixIndM · F fmap) · (FixIndM · F fmap) (λ x. x) v)).
+
+
+% Initial Mendler-style F-algebra.
+inFixIndM ◂ ∀ F : (★ ➔ ★). Π fmap : Fmap · F. Flaw1 · F fmap ➔ 
+ AlgM · F · (FixIndM · F fmap)
+ = Λ F. λ fmap. λ flaw1. Λ R. λ f. λ fr. 
+ [ tm1 · F fmap (fmap · R · (FixIndM · F fmap) f fr) 
+ , tm2 · F fmap (fmap · R · (FixIndM · F fmap) f fr)  
+ { ε ρ+ (flaw1 · (FixIndM · F fmap) 
+         -β{λ x. x}
+          (fmap · R · (FixIndM · F fmap) f  fr)
+         -(λ _. β)) - ρ (flaw1 · (FixIndM · F fmap) 
+         -β{(λ x. x)}
+          (fmap · R · (FixIndM · F fmap) f  fr)
+         -(λ _. β)) - β } ].
+
+
+% proof that inFixIndM satisfies naturality condition
+inNatural ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π flaw1 : Flaw1 · F fmap. 
+ Natural · F fmap · (FixIndM · F fmap) (inFixIndM · F fmap flaw1)
+ = Λ F. λ fmap. λ flaw1. Λ R. Λ cast. Λ fr. 
+ ε (ρ (flaw1 · (FixIndM · F fmap)   -β{(λ x. x)} (fmap · R · (FixIndM · F fmap) cast fr) -(λ z. β)) - 
+    ρ (flaw1  · (FixIndM · F fmap)  -β{(λ x. x)} (fmap · R · (FixIndM · F fmap) cast fr) -(λ z. β)) - 
+    ρ (flaw1  · (FixIndM · F fmap)  -β{(λ x. x)} (fmap · R · (FixIndM · F fmap) cast fr) -(λ z. β)) - 
+   β).
+
+
+% Mendler-style F-algebra to conventional F-algebra.  The purpose of
+% inFixIndM' is to construct elements of FixIndM from F FixIndM:
+inFixIndM' ◂ ∀ F : (★ ➔ ★). Π fmap : Fmap · F. Flaw1 · F fmap ➔ 
+ F · (FixIndM · F fmap) ➔ FixIndM · F fmap
+ = Λ F. λ fmap. λ Flaw1. λ v. inFixIndM · F fmap Flaw1 · (FixIndM · F fmap) (λ x. x) v.
+
+
+% F-algebra underlying the inverse of inFixIndM'
+outAlgM ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. Flaw1 · F fmap ➔ AlgM · F · (F · (FixIndM · F fmap))
+  = Λ F. λ fmap. λ flaw1. (Λ R. λ ih. λ fr. fmap · R · (FixIndM · F fmap)
+     (λ r. inFixIndM' · F fmap flaw1 (ih r)) fr).
+
+
+% outAlgM satisfies naturality
+outNatural ◂ ∀ F : ★ ➔ ★.
+ Π fmap : Fmap · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Natural · F fmap · (F · (FixIndM · F fmap)) (outAlgM · F fmap flaw1) 
+ = Λ F. λ fmap. λ flaw1. λ flaw2. Λ R. Λ cast. Λ fr. 
+ ρ (flaw2 · R  -β{(λ r. (inFixIndM' · F fmap flaw1 r))} -β{cast} fr) - 
+ β.
+
+
+% inverse of inFixIndM'
+outFixIndM ◂ ∀ F : (★ ➔ ★). Π fmap : Fmap · F. Flaw1 · F fmap ➔ 
+ FixIndM · F fmap ➔ F · (FixIndM · F fmap)
+ = Λ F. λ fmap. λ flaw1.
+ foldIndM · F fmap · (F · (FixIndM · F fmap)) (outAlgM · F fmap flaw1).
+     

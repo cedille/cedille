@@ -1,0 +1,33 @@
+
+cProduct ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. ∀ X : ★. (A ➔ B ➔ X) ➔ X.
+
+cpair ◂ ∀ A : ★. ∀ B : ★. A ➔ B ➔ cProduct · A · B 
+ = Λ A. Λ B. λ a. λ b. Λ X. λ ca. ca a b.
+
+param-Product ◂ Π A : ★. Π B : ★. cProduct · A · B ➔ ★
+ = λ A : ★. λ B : ★. λ x : cProduct · A · B.
+ ∀ X : ★. ∀ P : X ➔ ★. ∀ pr : A ➔ B ➔ X. 
+  (Π a : A. Π b : B. P (pr a b)) ➔ P (x · X pr).
+
+Product ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. 
+ ι x : cProduct · A · B. 
+  ι _ : x cpair ≃ x. param-Product · A · B x.
+
+pair ◂ ∀ A : ★. ∀ B : ★. A ➔ B ➔ Product · A · B
+ = Λ A. Λ B. λ a. λ b. 
+ [ cpair · A · B a b
+ , [β{cpair a b} , Λ X. Λ P. Λ pr. λ p. p a b ]].
+
+ind-Product ◂ ∀ A : ★. ∀ B : ★. Π x : Product · A · B.
+ ∀ P : Product · A · B ➔ ★.
+ (Π a : A. Π b : B. P (pair · A · B a b)) ➔ P x 
+ = Λ A. Λ B. λ x. Λ P. λ p.
+ ρ ς x.2.1 - (x.2.2 · (Product · A · B) · P -(pair · A · B) p).
+
+pproj1 ◂ ∀ A : ★. ∀ B : ★. Product · A · B ➔ A 
+ = Λ A. Λ B. λ s. s.1 · A (λ a. λ _. a).
+
+pproj2 ◂ ∀ A : ★. ∀ B : ★. Product · A · B  ➔ B 
+ = Λ A. Λ B. λ s. s.1 · B (λ _. λ b. b).

@@ -1,0 +1,40 @@
+
+cSum ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. 
+ ∀ X : ★. (A ➔ X) ➔ (B ➔ X) ➔ X.
+
+cin1 ◂ ∀ A : ★. ∀ B : ★. A ➔ cSum · A · B 
+ = Λ A. Λ B. λ a. Λ X. λ ca. λ cb. ca a.
+
+cin2 ◂ ∀ A : ★. ∀ B : ★. B ➔ cSum · A · B 
+ = Λ A. Λ B. λ b. Λ X. λ ca. λ cb. cb b.
+
+param-Sum ◂ Π A : ★. Π B : ★. cSum · A · B ➔ ★
+ = λ A : ★. λ B : ★. λ x : cSum · A · B.
+ ∀ X : ★. ∀ P : X ➔ ★. ∀ ca : A ➔ X. ∀ cb : B ➔ X.
+  (Π a : A. P (ca a)) ➔ (Π b : B. P (cb b)) ➔ P (x · X ca cb).
+
+Sum ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. 
+ ι x : cSum · A · B. ι _ : x cin1 cin2 ≃ x. param-Sum · A · B x.
+
+in1 ◂ ∀ A : ★. ∀ B : ★. A ➔ Sum · A · B 
+ = Λ A. Λ B. λ a. 
+ [ cin1 · A · B a 
+ , [β{cin1 a} , Λ X. Λ P. Λ ca. Λ cb. λ pa. λ pb. pa a ]].
+
+in2 ◂ ∀ A : ★. ∀ B : ★. B ➔ Sum · A · B 
+ = Λ A. Λ B. λ b. 
+ [ cin2 · A · B b 
+ , [β{cin2 b} , Λ X. Λ P. Λ ca. Λ cb. λ pa. λ pb. pb b ]].
+
+ind-Sum ◂ ∀ A : ★. ∀ B : ★. Π x : Sum · A · B.
+ ∀ P : Sum · A · B ➔ ★.
+ (Π a : A. P (in1 · A · B a)) ➔ (Π b : B. P (in2 · A · B b)) ➔
+ P x
+ = Λ A. Λ B. λ x. Λ P. λ pa. λ pb.
+ ρ ς x.2.1 - 
+  (x.2.2 · (Sum · A · B) · P -(in1 · A · B) -(in2 · A · B) pa pb).
+
+case ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. Sum · A · B ➔ (A ➔ C) ➔ (B ➔ C) ➔ C
+ = Λ A. Λ B. Λ C. λ s. λ f. λ g. s.1 · C  f g.

@@ -1,0 +1,176 @@
+import Sigma.
+import SigmaImplicit.
+import Product.
+import Functor.
+import Unary.
+import PredicateLifting.
+
+import FixC.
+import FixIndC. 
+import WithFixIndC.
+
+
+
+
+% conversion of proof algebra PrfAlgC' FixIndC · Q inFixIndC
+% to PrfAlgC' FixC Y inC' by exploiting the logical equivalence
+% of Q and Y
+
+thm1 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π law2 : Flaw2 · F fmap.
+ Π law1 : Flaw1 · F fmap. 
+ Π v : F · (Unary · (FixC · F)). (inC' fmap v ≃ inFixIndC' fmap law1 law2 v) 
+  =  Λ F. λ fmap. λ law2. λ law1. λ v. ρ+ (qqq' · (FixC · F) · F  fmap law1 v) - β.
+
+func11 ◂∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π law2 : Flaw2 · F fmap.
+ Π law1 : Flaw1 · F fmap.
+ Π eq : Feq · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★.
+ ∀ Y : FixC · F ➔ ★.
+ Π Yprop1 : ∀ e : FixIndC · F fmap. Y e.1 ➔ Q e.
+ Π Yprop2 : Π e : FixIndC · F fmap. Q e ➔ Y e.1.
+ Π Yprop3 : ∀ e : FixC · F. Y e ➔ FixIndC · F fmap.
+ Π Yprop4 : ∀ e : FixC · F. ∀ p : Y e. Yprop3 p ≃ e. 
+  (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)) ➔ 
+    (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)) 
+ = Λ F. λ fmap. λ law2. λ law1. λ eq. Λ Q. Λ Y. λ yp1. λ yp2. λ yp3. λ yp4. λ s. mksigmaer · (FixIndC · F fmap)  · (WWId · (FixIndC · F fmap) · Q) 
+          -(yp3 -(wsPrj1 · (FixC · F) · Y s) (wsPrj2 · (FixC · F) · Y s)) 
+           (zz · (FixIndC · F fmap) · Q 
+            (yp3 -(wsPrj1 · (FixC · F) · Y s) (wsPrj2 · (FixC · F) · Y s)) 
+            (yp1 -(yp3 -(wsPrj1 · (FixC · F) · Y s) (wsPrj2 · (FixC · F) · Y s)) 
+             (ρ (yp4 -(wsPrj1 · (FixC · F) · Y s) -(wsPrj2 · (FixC · F) · Y s)) - 
+              (wsPrj2 · (FixC · F) · Y s)))).
+
+
+
+thm22 ◂  ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π law2 : Flaw2 · F fmap.
+ Π law1 : Flaw1 · F fmap. 
+ Π eq : Feq · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★.
+ ∀ Y : FixC · F ➔ ★.
+ Π Yprop1 : ∀ e : FixIndC · F fmap. Y e.1 ➔ Q e.
+ Π Yprop2 : Π e : FixIndC · F fmap. Q e ➔ Y e.1.
+ Π Yprop3 : ∀ e : FixC · F. Y e ➔ FixIndC · F fmap.
+ Π Yprop4 : ∀ e : FixC · F. ∀ p : Y e. Yprop3 p ≃ e.
+ Π gr : F · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)).
+ wsMap fmap gr ≃ wsMap fmap (fmap (func11 · F fmap law2 law1 eq · Q · Y Yprop1 Yprop2 Yprop3 Yprop4)  gr)
+   = Λ F. λ fmap. λ law2. λ law1. λ eq. Λ Q. Λ Y. λ yp1. λ yp2. λ yp3. λ yp4. λ gr. 
+   ρ (law2 · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y))  
+       -β{(λ x. unary · (FixIndC · F fmap) (wsPrj1 · (FixIndC · F fmap) · Q x))}
+        -β{(func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4)} gr) - 
+       (eq · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y))
+        -β{(λ x. (unary (wsPrj1 x)))} 
+        -β{(λ x'. ((λ x''. (unary (wsPrj1 x''))) ((func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4) x')))} 
+        (λ oh. θ<oh> (ind-sigmaer · (FixC · F) · (WWId · (FixC · F) · Y) oh) 
+         (Λ a. λ b. θ<b> (ind-sigma · (FixC · F) · (λ x : (FixC · F). Product · (a ≃ x) · (Y x)) b) 
+         (λ a'. λ b'. θ<b'> (ind-Product · (a ≃ a') · (Y a') b') 
+          (λ a''. λ b''. ρ+  (yp4 -a' -b'') - β)))) gr).
+
+
+convIHC ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π Flaw2 : Flaw2 · F fmap.
+ Π Flaw1 : Flaw1 · F fmap.
+ Π eq : Feq · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★.
+ ∀ Y : FixC · F ➔ ★.
+ Π Yprop1 : ∀ e : FixIndC · F fmap. Y e.1 ➔ Q e.
+ Π Yprop2 : Π e : FixIndC · F fmap. Q e ➔ Y e.1.
+ Π Yprop3 : ∀ e : FixC · F. Y e ➔ FixIndC · F fmap.
+ Π Yprop4 : ∀ e : FixC · F. ∀ p : Y e. Yprop3 p ≃ e.
+ PrfAlgC' · F fmap · (FixIndC · F fmap) · Q (inFixIndC' · F fmap Flaw2 Flaw1) ➔
+ PrfAlgC' · F fmap · (FixC · F) · Y (inC' · F fmap)
+ = Λ F. λ fmap. λ law2. λ law1. λ eq. Λ Q. Λ Y. λ yp1. λ yp2. λ yp3. λ yp4. λ alg. λ gr. 
+
+
+ ρ+ (thm1 · F fmap law2 law1 (wsMap · F fmap · (FixC · F) · Y gr)) - ρ (thm22 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4 gr) - 
+ (zz · (FixC · F) · Y (inFixIndC' · F fmap law2 law1 (wsMap · F fmap · (FixIndC · F fmap) · Q 
+   (fmap · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)) · 
+    (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q))
+    (func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4) gr))).1 (yp2 (inFixIndC' · F fmap law2 law1 (wsMap · F fmap · (FixIndC · F fmap) · Q 
+   (fmap · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)) · 
+    (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q))
+    (func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4) gr))) (zzob · (FixIndC · F fmap) · Q (inFixIndC' · F fmap law2 law1 (wsMap · F fmap · (FixIndC · F fmap) · Q 
+   (fmap · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)) · 
+    (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q))
+    (func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4) gr))) 
+  (alg (fmap · (SigmaEr · (FixC · F) · (WWId · (FixC · F) · Y)) · 
+   (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)) 
+    (func11 · F fmap law2 law1 eq · Q · Y yp1 yp2 yp3 yp4) gr))))) .
+
+
+% Predicate Q on FixIndC is  converted to the predicate on FixC (WithFixIndC · F fmap · Q). 
+% Since (WithFixIndC · F fmap · Q) satisfies the properties required by above convIHC then
+% the induction rule is derived by using inductivity:
+inductionC' ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π Flaw1 : Flaw1 · F fmap.
+ Π Flaw2 : Flaw2 · F fmap.
+ Π eq : Feq · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★. 
+ PrfAlgC' · F fmap · (FixIndC · F fmap) · Q (inFixIndC' · F fmap Flaw2 Flaw1) ➔
+ Π e : FixIndC · F fmap.  (WWId · (FixIndC · F fmap) · Q) e
+ = Λ F. λ fmap. λ Flaw1.  λ Flaw2. λ eq. Λ Q. λ q. λ e. 
+ zz · (FixIndC · F fmap) · Q  e ((WithFixIndCProp1 · F fmap · Q) -e
+  (zzob · (FixC · F) · (WithFixIndC · F fmap · Q) e.1 
+   (e.2 · (WithFixIndC · F fmap · Q) 
+    (convIHC · F fmap Flaw2 Flaw1 eq · Q · (WithFixIndC · F fmap · Q) 
+     (WithFixIndCProp1 · F fmap · Q)
+     (WithFixIndCProp2 · F fmap · Q) 
+     (WithFixIndCProp3 · F fmap · Q) 
+     (WithFixIndCProp4 · F fmap · Q) q)))).
+
+
+
+% Equality needed for conversion from PrfAlgC' to original PrfAlgC
+convC ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+  Π law1 : Flaw1 · F fmap.
+  Π law2 : Flaw2 · F fmap.
+  Π eq : Feq · F fmap.
+  ∀ Q : FixIndC · F fmap ➔ ★. 
+  Π gr : F · (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)).
+  (inFixIndC' fmap law2 law1 (wsMap fmap gr)) ≃ inFixIndC fmap law2 law1 (fmap proj1 (fmap ws2s gr))
+ = Λ F. λ fmap. λ law1. λ law2. λ eq. Λ Q. λ gr. 
+  ρ (law2 · (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q))  
+     -β{proj1 · (FixIndC · F fmap) · Q} 
+     -β{ws2s · (FixIndC · F fmap) · Q} gr) - 
+  ρ+ (law2 · (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)) 
+      -β{unary} 
+      -β{(λ x'. (proj1 (ws2s x')))} gr ) - β.
+
+
+% Since Unary X is isomorphic to X, the predicate WWId Q is
+% logically equivalent to Q, and SigmaEr X (WWId Q) is isomorphic to
+% Sigma X Q then we can convert prove PrfAlgC' to PrfAlgC and get the
+% induction principle in terms of original (tidier) definition of
+% proof algebra PrfAlgC
+inductionC ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π Flaw1 : Flaw1 · F fmap.
+ Π Flaw2 : Flaw2 · F fmap.
+ Π eq : Feq · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★. 
+ PrfAlgC · F fmap · (FixIndC · F fmap) · Q (inFixIndC · F fmap Flaw2 Flaw1) ➔
+ Π e : FixIndC · F fmap.  Q e
+ = Λ F. λ fmap. λ law1. λ law2. λ eq. Λ Q. λ pr. λ e.
+  zzob · (FixIndC · F fmap) · Q e 
+   (inductionC' · F fmap law1 law2 eq · Q 
+    (λ gr. ρ (convC · F fmap law1 law2 eq · Q gr) - 
+    (zz · (FixIndC · F fmap) · Q 
+      (inFixIndC · F fmap law2 law1 (fmap · (Sigma · (FixIndC · F fmap) · Q) · 
+       (FixIndC · F fmap) (proj1 · (FixIndC · F fmap) · Q)  
+       (fmap · (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)) · 
+        (Sigma · (FixIndC · F fmap) · Q) (ws2s · (FixIndC · F fmap) · Q) gr)))
+      (pr (fmap · (SigmaEr · (FixIndC · F fmap) · (WWId · (FixIndC · F fmap) · Q)) · 
+           (Sigma · (FixIndC · F fmap) · Q) (ws2s · (FixIndC · F fmap) · Q) gr)))) e).
+
+
+% The induction rule adjusted for "elimination with the motive"
+inductionThetaC ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π Flaw1 : Flaw1 · F fmap.
+ Π Flaw2 : Flaw2 · F fmap.
+ Π eq : Feq · F fmap.
+ Π e : FixIndC · F fmap.
+ ∀ Q : FixIndC · F fmap ➔ ★. 
+ PrfAlgC · F fmap · (FixIndC · F fmap) · Q (inFixIndC · F fmap Flaw2 Flaw1) ➔
+ Q e = Λ F. λ fmap. λ law1. λ law2. λ eq. λ e. Λ Q. λ q. 
+ inductionC · F fmap law1 law2 eq · Q q e.

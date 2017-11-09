@@ -1,0 +1,20 @@
+import Top.
+import Sigma.
+import Functor.
+
+rew ◂ ∀ x : Top. ∀ y : Top. ∀ z : Top. (x ≃ y) ➔ (y ≃ z) ➔ (x ≃ z)
+ = Λ x. Λ y. Λ z. λ p1. λ p2. ρ p1 - p2.
+
+mapdep ◂ ∀ F : ★ ➔ ★. Fmap · F ➔ 
+ ∀ X : ★. ∀ Y : X ➔ ★. Π f : Π x : X. Y x. 
+ F · X ➔ F · (Sigma · X · Y) = Λ F. λ fmap. Λ X. Λ Y. λ f.
+ λ fx. fmap · X ·  (Sigma · X · Y) (λ x. mkdsigma · X · Y x (f x)) fx.
+
+mapdeplem ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π law2 : Flaw2 · F fmap.
+ Π law1 : Flaw1 · F fmap.
+ ∀ X : ★. ∀ Y : X ➔ ★. Π f : Π x : X. Y x. 
+ Π fx : F · X. fmap proj1 (mapdep fmap f fx) ≃ fx
+ = Λ F. λ fmap. λ law2. λ law1. Λ X. Λ Y. λ f. λ fx. 
+   ρ (law2 · X -β{proj1} -β{(λ x. mkdsigma · X · Y x (f x))} fx) - 
+   ρ (law1 · X -β{λ x. x} fx -(λ z. β)) - β.

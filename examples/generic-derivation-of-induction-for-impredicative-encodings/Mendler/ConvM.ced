@@ -1,0 +1,66 @@
+import Functor.
+import Sigma.
+
+import FixM.
+import FixIndM.
+import FixC.
+import FixIndC.
+import InductionM.
+import Utils.
+
+
+% AlgM to AlgC
+ma2ca ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. ∀ X : ★.
+AlgM · F · X ➔ AlgC · F · X 
+= Λ F. λ fmap. Λ X. λ alg. alg · X (λ x. x).
+
+
+% FixIndM to FixIndC
+men2ch ◂ ∀ F : ★ ➔ ★ . Π fmap : Fmap · F. 
+Π flaw2 : Flaw2 · F fmap. Π flaw1 : Flaw1 · F fmap.
+(FixIndM · F fmap) ➔ (FixIndC · F fmap) 
+= Λ F. λ fmap. λ flaw2. λ flaw1. λ fix.
+foldM · F · (FixIndC · F fmap)
+(Λ R. λ f. λ fr. inFixIndC · F fmap flaw2 flaw1 
+(fmap · R ·  (FixIndC · F fmap) f fr))
+fix.1.
+
+
+
+% PrfAlgC to PrfAlgM
+chp2menp ◂ ∀ F : ★ ➔ ★ . Π fmap : Fmap · F. 
+ Π flaw2 : Flaw2 · F fmap. 
+ Π flaw1 : Flaw1 · F fmap. Π eq : Feq · F fmap.
+ ∀ Q : (FixIndM · F fmap) ➔ ★.
+ PrfAlgC · F fmap · (FixIndM · F fmap) · Q (inFixIndM' · F fmap flaw1) ➔ 
+ PrfAlgM · F fmap · (FixIndM · F fmap) · Q (inFixIndM · F fmap flaw1)
+ = Λ F. λ fmap. λ law2. λ law1. λ eq. Λ Q. λ pm. 
+   (Λ R. λ cast. Λ ce. λ ih. λ gr. 
+    let zzz ◂ fmap · (Sigma · (FixIndM · F fmap) · Q) · (FixIndM · F fmap)
+                  (proj1 · (FixIndM · F fmap) · Q) (fmap · (Sigma · R · 
+                   (λ r : R. Q (cast r))) · (Sigma · (FixIndM · F fmap) · Q) 
+            (λ s. mkdsigma · (FixIndM · F fmap) · Q (cast (proj1 · R · (λ r : R. Q (cast r)) s)) 
+               ((proj2 · R · (λ r : R. Q (cast r)) s)))  
+                 (mapdep · F fmap · R · (λ r : R. Q (cast r)) ih gr)) ≃ gr
+       = (ρ+ (law2 · (Sigma · R · (λ r : R. Q (cast r))) -β{proj1} 
+            -β{(λ s. mkdsigma · (FixIndM · F fmap) · Q (cast (proj1 · R · (λ r : R. Q (cast r)) s)) 
+               ((proj2 · R · (λ r : R. Q (cast r)) s))   )} (mapdep · F fmap · R · (λ r : R. Q (cast r)) ih gr)) - 
+            ρ ς (eq · (Sigma · R · (λ r : R. Q (cast r))) -β{proj1} 
+           -β{(λ x' . (proj1 ((λ s . (mkdsigma (cast (proj1 s)) (proj2 s))) x')))} 
+            (λ x . θ<x> (ind-sigma · R · (λ r : R . (Q (cast r))) x) 
+  (λ a . λ b . ρ (ce -a) - β)) (mapdep · F fmap · R · (λ r : R. Q (cast r)) ih gr)) -               
+     ρ (mapdeplem · F fmap law2 law1 · R · (λ r : R. Q (cast r))  ih gr) - β) in
+   ρ+ (law1 · R -β{cast} gr -(λz. ce -z)) -
+   ρ ς zzz - 
+   ρ+ ς  (law1 · (FixIndM · F fmap) -β{λ x. x} (fmap · (Sigma · (FixIndM · F fmap) · Q) · 
+            (FixIndM · F fmap) (proj1 · (FixIndM · F fmap) · Q) 
+         (fmap · (Sigma · R · (λ r : R. Q (cast r))) · (Sigma · (FixIndM · F fmap) · Q) 
+            (λ s. mkdsigma · (FixIndM · F fmap) · Q (cast (proj1 · R · (λ r : R. Q (cast r)) s)) 
+               ((proj2 · R · (λ r : R. Q (cast r)) s))) 
+                 (mapdep · F fmap · R · (λ r : R. Q (cast r)) ih gr))) -(λz. β)) - 
+   (pm (fmap · (Sigma · R · (λ r : R. Q (cast r))) · (Sigma · (FixIndM · F fmap) · Q) 
+            (λ s. mkdsigma · (FixIndM · F fmap) · Q (cast (proj1 · R · (λ r : R. Q (cast r)) s)) 
+               ((proj2 · R · (λ r : R. Q (cast r)) s)))
+                  (mapdep · F fmap · R · (λ r : R. Q (cast r)) ih gr)))).
+
+

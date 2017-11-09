@@ -1,0 +1,24 @@
+import Top.
+
+Functor ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★. ∀ X : ★. ∀ Y : ★. (X ➔ Y) ➔ (F · X ➔ F · Y).
+
+Fmap ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★. ∀ X : ★. ∀ Y : ★. (X ➔ Y) ➔ (F · X ➔ F · Y).
+
+Flaw1 ◂ Π F : ★ ➔ ★. Functor · F ➔ ★
+ = λ F : ★ ➔ ★. λ fmap : Functor · F.
+ ∀ X : ★. ∀ f : Top. Π x : F · X. 
+ ∀ _ : (Π z : X. f z ≃ z). fmap f x ≃ x.
+
+Flaw2 ◂ Π F : ★ ➔ ★. Functor · F ➔ ★
+ = λ F : ★ ➔ ★. λ fmap : Functor · F.
+ ∀ X : ★.  ∀ f : Top. ∀ g : Top. Π x : F · X. 
+ fmap f (fmap g x) ≃ fmap (λ x. f (g x)) x.
+
+FunExtEq ◂ ★ ➔ Top ➔ Top ➔ ★ 
+ = λ X : ★. λ f : Top. λ f' : Top. Π x : X. f x ≃ f' x.
+
+Feq ◂ Π F : ★ ➔ ★. Functor · F ➔ ★
+ = λ F : ★ ➔ ★ . λ fmap  : Functor · F. ∀ X : ★. ∀ f : Top. ∀ f' : Top.
+ FunExtEq · X  f f' ➔ Π x : F · X. fmap f x ≃ fmap f' x.

@@ -1,0 +1,59 @@
+import Sigma.
+import SigmaImplicit.
+import Product.
+import Unary.
+import Top.
+import Functor.
+
+import FixC.
+import FixIndC. 
+import PredicateLifting.
+import WithWitness.
+
+
+% conversion of predicate on FixIndC to logically
+% equivalent predicate on FixC
+WithFixIndC ◂ Π F : ★ ➔ ★. Π fmap : Functor · F.  
+ (FixIndC · F fmap ➔ ★) 
+ ➔ FixC · F ➔ ★ 
+ = λ F : ★ ➔ ★. λ fmap : Functor · F. 
+ λ Q : FixIndC · F fmap ➔ ★. λ e : FixC · F.
+ WithWitness · (FixIndC · F fmap) · (FixC · F) · Q (λ x. x.1) e.
+
+
+WithFixIndCProp1 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.  ∀ Q : FixIndC · F fmap ➔ ★.
+ ∀ e : FixIndC · F fmap. (WithFixIndC · F fmap · Q e.1) ➔ Q e 
+ = Λ F. λ fmap. Λ Q. Λ e. λ pr. 
+ ρ (pproj1 · (e ≃ (proj1 · (FixIndC · F fmap) · 
+   (λ x' : (FixIndC · F fmap). Product · (e ≃ x'.1) · (Q x')) pr)) · 
+   (Q (proj1 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) 
+   (proj2 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) -   
+   (pproj2 · (e ≃ (proj1 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) · 
+   (Q (proj1 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) 
+   (proj2 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)).
+
+
+WithFixIndCProp2 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.  
+ ∀ Q : FixIndC · F fmap ➔ ★.
+ Π e : FixIndC · F fmap. Q e ➔ (WithFixIndC · F fmap · Q e.1) 
+ = Λ F. λ fmap. Λ Q. λ e. λ pr. mkdsigma · (FixIndC · F fmap) · 
+ (λ x' : (FixIndC · F fmap). 
+ Product · (e ≃ x') · (Q x')) e (pair · (e ≃ e) · (Q e) β pr).
+
+
+WithFixIndCProp3 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.  
+ ∀ Q : FixIndC · F fmap ➔ ★.
+ ∀ e : FixC · F. WithFixIndC · F fmap · Q e ➔ (FixIndC · F fmap) 
+ = Λ F. λ fmap. Λ Q. Λ e. λ pr. proj1 · (FixIndC · F fmap) · 
+ (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr. 
+
+
+WithFixIndCProp4 ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.  
+ ∀ Q : FixIndC · F fmap ➔ ★. ∀ e : FixC · F. ∀ p : WithFixIndC · F fmap · Q e. 
+ WithFixIndCProp3 · F fmap · Q p ≃ e = Λ F. λ fmap. Λ Q. Λ e. Λ pr. 
+ ρ (pproj1 · (e ≃ (proj1 · (FixIndC · F fmap) ·  
+  (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) · 
+    (Q (proj1 · (FixIndC · F fmap) · (λ x' : (FixIndC · F fmap). 
+      Product · (e ≃ x') · (Q x')) pr)) (proj2 · (FixIndC · F fmap) · 
+  (λ x' : (FixIndC · F fmap). Product · (e ≃ x') · (Q x')) pr)) - β.
+

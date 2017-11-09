@@ -1,0 +1,21 @@
+import Functor.
+
+import FixM.
+import FixIndM.
+import FixC.
+import FixIndC.
+
+
+% AlgC to AlgM
+ca2ma ◂ ∀ F : ★ ➔ ★. Π fmap : Fmap · F. ∀ X : ★.
+ AlgC · F · X ➔ AlgM · F · X 
+ = Λ F. λ fmap. Λ X. λ alg. Λ R . λ f. λ fr. 
+ alg (fmap · R · X f fr).
+
+
+% FixIndC to FixIndM
+ch2men ◂ ∀ F : ★ ➔ ★ . Π fmap : Fmap · F. Π flaw1 : Flaw1 · F fmap.
+ (FixIndC · F fmap) ➔ (FixIndM · F fmap) 
+ = Λ F. λ fmap. λ flaw1.
+ foldIndC · F fmap · (FixIndM · F fmap) (inFixIndM' · F fmap flaw1).
+

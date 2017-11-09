@@ -1,0 +1,95 @@
+% -- Mendler
+
+% Standard definitions of Mendler-style F-algebra, fixed point of a
+% functor, fold function, and weakly initial Mendler F-algebra
+
+import FixM.
+
+
+% Defining the datatype FixIndM as a subset of FixM carved out by
+% inductivity predicate "IsIndFixM". The subset is defined as a
+% dependent intersection type of FixIndM and IsIndFixM
+
+import FixIndM.
+
+
+% Derivation of induction principle for Mendler-style fixed point
+% FixIndM. Notice that for Mendler-style induction rule it is enough
+% if F satisfies only the first functor law!
+
+import InductionM.
+
+
+% Proof of universal property of foldIndM by induction on FixIndM.
+% Cancellation, reflection, and fusion are consequences of
+% universality. "FixIndM F" is a least fixed point of F (Lambek's
+% lemma) as a consequence of canc., refl., and fusion.
+
+import PropertiesM.
+
+
+% First part of the proof of isomorphism of Mendler and Church-style
+% encodings. Namely, that conversion Mendler -> Church -> Mendler is
+% identity.
+
+import IsoM.
+
+
+% Definition of polymorphic lists as a least fixed point of a functor
+% ListF.  lists. Implementation of standard constructors (nil,
+% cons). Derivation of "flat" induction rule stated in terms list
+% constructors.
+
+import ListM.
+
+
+
+% -- Church
+
+% Standard Church-style F-algebra, variation of F-algebra adjusted for
+% the alignment with proof algebra, fixed point (FixC), fold, weakly
+% initial Church F-algebra. The file "TheProblemWithAlignment.ced"
+% illustrates the problem of alignment for standard definitions.
+
+import FixC.
+
+
+% The datatype FixIndC is defined as a subset of FixC carved out by
+% inductivity predicate. The subset is defined as a dependent
+% intersection type. To make this possible the F-algebra and proof
+% algebra were adjusted. Namely, the representation of inductive
+% hypothesis in proof algebras was tuned to align with the results of
+% recursive calls in F-algebras.
+
+import FixIndC.
+
+
+% Derivation of induction principle for a Church-style fixed point
+% FixIndC. Notice that the derivation requires both functor laws (in
+% contrast to Mendler-style induction which asks only for identiy
+% law).
+
+import InductionC.
+
+
+% Proof of universality of foldIndC by induction on FixIndM.
+% Cancellation, reflection, and fusion as a consequence of
+% universality which in turn implies that FixIndC is a least fixed
+% point of a functor (Lambek's lemma).
+
+import PropertiesC.
+
+
+% Second part of the proof of isomorphism of Mendler-style and
+% Church-style encodings. Namely, that conversion Church -> Mendler
+% -> Church is identity.
+
+import IsoC.
+
+
+% Natural numbers defined as a Church-style least fixed point
+% (FixIndC). Implementation of standard constructors (zero,
+% suc). Derivation of "flat" version of induction rule which is stated
+% in terms these constructors.
+
+import NatC.

@@ -1,0 +1,41 @@
+import Functor. 
+import Sigma.
+import Product.
+import Top.
+
+import FixM.
+import FixIndM.
+import PredicateLifting.
+
+
+% "strong" proof algebras PrfAlgM for predicate (WWId X Q) are
+% logically equivalent to "weak" proof algebras PrfAlgM'
+str2alg' ◂ ∀ X : ★.  ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π Flaw1 : Flaw1 · F fmap.
+ Π fmapEq : Feq · F fmap.
+ Π alg : AlgM · F · X.
+ Natural · F fmap · X alg ➔ 
+ ∀ Q : X ➔ ★. 
+ PrfAlgM · F fmap · X · (WWId · X · Q) alg ➔ 
+ PrfAlgM' · F fmap · X · (WWId · X · Q) alg
+ = Λ X. Λ F. λ fmap. λ flaw1. λ fmapEq. λ alg. λ wf. 
+ Λ Q. λ spa. Λ R. Λ c. Λ eq. λ ih. λ gr.
+ (ρ (wf · R -c -gr) -  
+  ρ (fmapEq · R -β{c} -β{λ r. wsPrj1' · X · Q -(c r) (ih r)} 
+      (λ x. ρ (wsPrj1'lem · X · Q -(c x) (ih x)) - β) gr) - 
+  ρ ς (wf · R -(λ r. wsPrj1' · X · Q -(c r) (ih r)) -gr) -  
+   (spa · R (λ r. wsPrj1' · X · Q -(c r) (ih r)) 
+  -(Λ r. ρ (wsPrj1'lem · X · Q -(c r) (ih r)) - 
+  ρ (eq -r) - β) (λ r. ρ (wsPrj1'lem · X · Q -(c r) (ih r)) - (ih r)) gr)).
+
+
+str2str ◂ ∀ X : ★.  ∀ F : ★ ➔ ★. Π fmap : Fmap · F. 
+ Π Flaw1 : Flaw1 · F fmap.
+ Π alg : AlgM · F · X.
+ Natural · F fmap · X alg ➔ 
+ ∀ Q : X ➔ ★. 
+ PrfAlgM · F fmap · X · Q alg ➔
+ PrfAlgM · F fmap · X · (WWId · X · Q) alg 
+ = Λ X. Λ F. λ fmap. λ law1. λ alg. λ wf. Λ Q. λ str. 
+ (Λ R. λ c. Λ e. λ ih. λ gr. zz · X · Q (alg · R c gr) 
+  (str · R c -e (λ r. zzob · X · Q (c r) (ih r)) gr)).

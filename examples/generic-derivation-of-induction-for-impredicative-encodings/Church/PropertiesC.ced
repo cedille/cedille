@@ -1,0 +1,211 @@
+import Functor.
+import Sigma.
+import Product.
+import Unary.
+import Top.
+
+import FixIndC.
+import FixC.
+import InductionC.
+
+
+% universal property of foldIndC
+UniversalPropertyC ◂ Π F : (★ ➔ ★). Π fmap : Functor · F.
+ Flaw2 · F fmap ➔ Flaw1 · F fmap ➔
+ (FixIndC · F fmap) ➔ ★ 
+ = λ F : ★ ➔ ★. λ fmap : Functor · F. 
+ λ flaw2 : Flaw2 · F fmap. λ flaw1 : Flaw1 · F fmap.
+ λ fix : (FixIndC · F fmap).
+ Π A : ★. Π h : (FixIndC · F fmap) ➔ A.
+ Π f : AlgC · F · A.
+ (Π e : F · (FixIndC · F fmap). h (inFixIndC · F fmap flaw2 flaw1 e) ≃  f (fmap h e)) ➔ 
+ h fix ≃ foldIndC · F fmap · A f fix.
+
+
+% proof that foldIndC is universal
+universalC ◂ ∀ F : ★ ➔ ★.
+ Π fmap : Functor · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π fmapEq : Feq · F fmap.      
+ Π fix : FixIndC · F fmap. 
+ UniversalPropertyC · F fmap flaw2 flaw1 fix
+ = Λ F. λ fmap. λ flaw1. λ flaw2. λ fmapEq. λ fix.  
+   θ<fix> (inductionThetaC · F fmap flaw1 flaw2 fmapEq fix) 
+   (λ gr. λ A. λ h. λ f. λ pr. 
+   ρ  (pr (fmap · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+      Π A : ★. Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A).  
+        ((Π e : (F · (FixIndC · F fmap)). ((h (inFixIndC fmap flaw2 flaw1 e)) ≃  
+          (f ((fmap h e))) )) ➔ ((h fix) ≃ (foldIndC fmap f fix))))) · (FixIndC · F fmap)   
+        (proj1 · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+      Π h : ((FixIndC · F fmap) ➔ A). 
+       Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+      ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f ((fmap h e))) )) ➔ 
+      ((h fix) ≃ (foldIndC fmap f fix))))   ) gr )) - 
+  ρ+ (qqq' · (FixIndC · F fmap)  · F fmap flaw1 (fmap · (FixIndC · F fmap) · 
+      (Unary · (FixIndC · F fmap)) (unary · (FixIndC · F fmap)) 
+      (fmap · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+       Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)).
+       ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f ((fmap h e))))) ➔ ((h fix) ≃ (foldIndC fmap f fix))))) · 
+       (FixIndC · F fmap)   (proj1 · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+        Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+        ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f ((fmap h e))))) ➔ ((h fix) ≃ (foldIndC fmap f fix))))) gr))) -
+  ρ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+     Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+     ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ 
+      ((h fix) ≃ (foldIndC fmap f fix))))) -β{unary} -β{proj1} gr)  -
+  ρ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+     Π A : ★. Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). 
+     ((Π e : (F · (FixIndC · F fmap)). ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ 
+     ((h fix) ≃ (foldIndC fmap f fix))))) -β{h} -β{proj1} gr)   -  
+  ρ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+      Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+      ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ ((h fix) ≃ (foldIndC fmap f fix))))) 
+      -β{(λ ux. (unary (foldIndC fmap f (uproj ux))))} -β{(λ z. (unary (proj1 z)))} gr)   -
+  ρ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+       Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+       ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ ((h fix) ≃ (foldIndC fmap f fix))))) 
+       -β{uproj} -β{(λ x'. ((λ ux. (unary (foldIndC fmap f (uproj ux)))) ((λ z. (unary (proj1 z))) x')))} gr) -
+  ρ (fmapEq · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+     Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+     ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ ((h fix) ≃ (foldIndC fmap f fix)))))  
+  -β{(λ x'. (h (proj1 x')))}
+  -β{(λ x'. (uproj ((λ x''. ((λ ux. (unary (foldIndC fmap f (uproj ux)))) ((λ z. (unary (proj1 z))) x''))) x')))}  
+          (λ x. (θ<x> (ind-sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). Π A : ★. 
+    Π h : ((FixIndC · F fmap) ➔ A). Π f : (AlgC · F · A). ((Π e : (F · (FixIndC · F fmap)). 
+      ((h (inFixIndC fmap flaw2 flaw1 e)) ≃ (f (fmap h e)))) ➔ 
+      ((h fix) ≃ (foldIndC fmap f fix)))) x) (λ a. λ b. ρ+ ς (b · A h f pr) - β))) 
+     gr) - β).
+
+
+% The reflection (rebuilding) property states that folding the value
+% with its constructors does not change it:
+reflectionC ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π fmapEq : Feq · F fmap.
+ Π fix : FixIndC · F fmap.
+ foldIndC fmap (inFixIndC · F fmap flaw2 flaw1) fix ≃ fix 
+ = Λ F. λ fmap. λ flaw1. λ flaw2. λ fmapEq. λ fix. 
+ ρ ς (universalC · F fmap flaw1 flaw2 fmapEq fix · (FixIndC · F fmap) (λ x. x) 
+  (inFixIndC · F fmap flaw2 flaw1) 
+  (λ e. ρ (flaw1 · (FixIndC · F fmap) -β{λ x. x} e -(λ z. β)) - β)) - 
+ β.
+
+
+% The cancellation property can be viewed as the reduction rule where
+% the fold is applied to a data constructor. The reduction recursively
+% replaces the constructors of FixIndC with given F-algebra.
+cancellationC  ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F. 
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π gfix : F · (FixIndC · F fmap).
+ ∀ A : ★. 
+ Π alg : AlgC · F · A.
+ foldIndC fmap alg (inFixIndC fmap flaw2 flaw1 gfix) ≃ 
+        alg (fmap (foldIndC fmap alg) gfix) 
+ = Λ F. λ fmap. λ flaw1. λ flaw2. λ gfix. Λ A. λ alg. 
+ ρ+ (flaw2 · (FixIndC · F fmap) -β{λ x. unary (uproj x)} -β{unary} gfix) -
+ ρ+ (flaw2 · (FixIndC · F fmap) 
+  -β{(λ ux. (unary (foldC' (λ z. (alg (fmap uproj z))) (uproj ux))))} 
+  -β{(λ x'. ((λ x''. (unary (uproj x''))) (unary x')))} gfix) -
+ ρ+ (flaw2 · (FixIndC · F fmap) -β{uproj} 
+  -β{(λ x'. ((λ ux. (unary (foldC' (λ z. (alg (fmap uproj z))) (uproj ux)))) 
+      ((λ x''. ((λ x'''. (unary (uproj x'''))) (unary x''))) x')))} gfix) -
+ β.
+
+
+% The fusion law describes the composition of fold with another
+% function. It gives conditions under which the intermediate values
+% produced by folding can be eliminated.
+fusionC ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π fmapEq : Feq · F fmap.
+ Π fix : (FixIndC · F fmap).
+ ∀ C : ★. ∀ D : ★. 
+ Π f : C ➔ D. 
+ Π alg1 : AlgC · F · C.
+ Π alg2 : AlgC · F · D.
+ (Π gc : F · C.  f (alg1 gc) ≃ alg2 (fmap f gc)) ➔ 
+ f (foldIndC fmap alg1 fix) ≃ foldIndC fmap alg2 fix
+ = Λ F. λ fmap. λ flaw1. λ flaw2. λ fmapEq. λ fix. Λ C. Λ D. λ f. λ alg1. λ alg2. λ ih.  
+ θ<fix> (inductionThetaC · F fmap flaw1 flaw2 fmapEq fix)   
+   (λ gr.     
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) 
+          -β{unary} -β{proj1} gr) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) -
+          β{(λ ux. (unary ((λ x. x) (uproj ux))))} -β{(λ x'. (unary (proj1 x')))} gr) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) 
+          -β{(λ ux. (unary (foldC' (λ z. (alg2 (fmap uproj z))) (uproj ux))))} 
+          -β{(λ x'. ((λ ux. (unary ((λ x''. x'') (uproj ux)))) ((λ x''. 
+              (unary (proj1 x''))) x')))} gr) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) 
+        -β{(λ ux. (unary (foldC' (λ z. (alg1 (fmap uproj z))) (uproj ux))))} 
+        -β{(λ x'. ((λ ux. (unary ((λ x''. x'') (uproj ux)))) 
+            ((λ x''. (unary (proj1 x''))) x')))} gr) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+           ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) -β{uproj} 
+           -β{(λ x'. ((λ ux. (unary (foldC' (λ z. (alg1 (fmap uproj z))) (uproj ux)))) 
+                  ((λ x''. ((λ ux. (unary ((λ x'''. x''') (uproj ux)))) 
+                   ((λ x'''. (unary (proj1 x'''))) x''))) x')))} gr) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) -β{uproj} 
+           -β{(λ x'. ((λ ux. (unary (foldC' (λ z. (alg2 (fmap uproj z))) (uproj ux)))) 
+            ((λ x''. ((λ ux. (unary ((λ x'''. x''') (uproj ux)))) ((λ x'''. 
+             (unary (proj1 x'''))) x''))) x')))} gr) -
+     ρ+  (ih  (fmap · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+           ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) · C 
+              (λ z.  (foldIndC · F fmap · C alg1) (proj1 · (FixIndC · F fmap) · 
+                (λ fix : (FixIndC · F fmap). 
+             ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix))) z)) gr)) -
+     ρ+ (flaw2 · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+          ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) -β{f} 
+          -β{(λ z. (foldIndC fmap alg1 (proj1 z)))} gr) -
+     ρ ς  ((fmapEq · (Sigma · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+         ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix)))) 
+         -β{(λ x'. (f ((λ z. (foldIndC fmap alg1 (proj1 z))) x')))}  
+         -β{(λ x'. (uproj ((λ x''. ((λ ux. (unary (foldC' (λ z. (alg2 (fmap uproj z))) 
+          (uproj ux)))) ((λ x'''. ((λ ux. (unary ((λ x''''. x'''') (uproj ux)))) 
+           ((λ x''''. (unary (proj1 x''''))) x'''))) x''))) x')))}
+           (λ r.  ρ+ (proj2 · (FixIndC · F fmap) · (λ fix : (FixIndC · F fmap). 
+           ((f (foldIndC fmap alg1 fix)) ≃ (foldIndC fmap alg2 fix))) r) - β) gr)) - 
+      β).
+
+
+% First part of Lambek's lemma: in o out = id
+inoutC ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π fmapEq : Feq · F fmap.
+ Π fix : (FixIndC · F fmap).
+ inFixIndC fmap flaw2 flaw1 (outFixIndC fmap flaw2 flaw1 fix) ≃ fix 
+ = Λ F. λ fmap. λ law1. λ law2. λ eq. λ fix.
+ ρ (fusionC · F fmap law1 law2 eq fix · (F · (FixIndC · F fmap)) · 
+     (FixIndC · F fmap) (inFixIndC · F fmap law2 law1)
+     (outAlgC · F fmap law2 law1)  
+     (inFixIndC · F fmap law2 law1)   
+     (λ gc. β)) -
+ (reflectionC · F fmap law1 law2 eq fix).
+
+
+% Second part of Lambek's lemma: in o out = id
+outinC ◂ ∀ F : ★ ➔ ★. Π fmap : Functor · F.
+ Π flaw1 : Flaw1 · F fmap.
+ Π flaw2 : Flaw2 · F fmap.
+ Π fmapEq : Feq · F fmap.
+ Π fix : (F · (FixIndC · F fmap)).
+ outFixIndC · F fmap flaw2 flaw1 (inFixIndC · F fmap flaw2 flaw1 fix) ≃ fix 
+ = Λ F. λ fmap. λ law1. λ law2. λ eq. λ gfix.
+ ρ (cancellationC · F fmap law1 law2 gfix · (F · (FixIndC · F fmap)) (outAlgC · F fmap law2 law1)) - 
+ ρ (law2 · (FixIndC · F fmap)  -β{(inFixIndC · F fmap law2 law1)} 
+     -β{(outFixIndC · F fmap law2 law1)} gfix) - 
+ ρ (eq · (FixIndC · F fmap)  
+     -β{(λ x'. (inFixIndC fmap law2 law1 (outFixIndC fmap law2 law1 x')))} 
+     -β{λ x'. x'} (λ x. inoutC · F fmap law1 law2 eq x) gfix) -  
+ ρ (law1 · (FixIndC · F fmap)  -β{(λ x. x)} gfix -(λ z. β)) - 
+ β.

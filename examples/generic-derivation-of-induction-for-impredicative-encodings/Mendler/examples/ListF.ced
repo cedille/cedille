@@ -1,0 +1,26 @@
+import Product.
+import Sum.
+import Unit.
+import Functor.
+
+
+% signature functor for polymorphic lists + laws
+ListF ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ X : ★. Sum · Unit · (Product · A · X).
+
+ListFmap ◂ ∀ A : ★. ∀ X : ★. ∀ Y : ★. (X ➔ Y) ➔ ListF · A · X ➔ ListF · A · Y 
+ = Λ A. Λ X. Λ Y. λ f. λ lf. case · Unit · (Product · A · X) · (ListF · A · Y) lf 
+     (in1 · Unit · (Product · A · Y)) 
+   (λ pr. in2 · Unit · (Product · A · Y) (pair · A · Y (pproj1 · A · X pr) (f (pproj2 · A · X pr)))).
+
+ListFlaw1 ◂ ∀ A : ★. Flaw1 · (ListF · A) (ListFmap · A) 
+ = Λ A. Λ X. Λ f. λ u. Λ p.
+ θ<u> (ind-Sum · Unit · (Product · A · X) u) (λ a. β) 
+  (λ z. θ<z> (ind-Product · A · X z) (λ a. λ b. ρ+ (p b) - β)).
+
+ListFlaw2 ◂ ∀ A : ★. Flaw2 · (ListF · A) (ListFmap · A) 
+ = Λ A. Λ X. Λ f. Λ g. λ u. 
+ θ<u> (ind-Sum · Unit · (Product · A · X) u) (λ a. β) (λ b. β).
+
+ListFeq ◂ ∀ A : ★. Feq · (ListF · A) (ListFmap · A)
+ = Λ A. Λ X. Λ f. Λ g. λ eq. λ x. 
+ θ<x> (ind-Sum · Unit · (Product · A · X) x) (λ a. β) (λ b. ρ+ (eq (pproj2 · A · X b)) - β).
