@@ -2,10 +2,10 @@ import ../cnat.
 
 NatP ◂ cNat ➔ ★ =
   λ n : cNat .
-    ∀ R : cNat ➔ ★ .
-    R cZ ➔
-    (∀ A : ★ . ∀ a : A . ∀ c : A ➔ cNat . R (c a) ➔ R (cS · A c a)) ➔
-    R n.
+    ∀ X : cNat ➔ ★ .
+    X cZ ➔
+    (∀ A : ★ . ∀ R : A ➔ ★ . ∀ f : A ➔ cNat . (∀ a : A . R a ➔ X (f a)) ➔ ∀ a : A . R a ➔ X (cS · A f a)) ➔
+    X n.
 
 Nat ◂ ★ = ι n : cNat . NatP n .
 
@@ -13,4 +13,4 @@ Z ◂ Nat = [ cZ, Λ R . λ z . λ s . z ] .
 
 S ◂ ∀ A : ★ . (A ➔ Nat) ➔ A ➔ Nat =
   Λ A : ★ . λ e . λ d . [ cS · A (λ a . (e a).1) d,
-                          Λ R . λ z . λ s . s · A -d -(λ a . (e a).1) (((λ a : A. e a) d).2 · R z s) ] .
+                          Λ X . λ z . λ s . s · A ● ] .
