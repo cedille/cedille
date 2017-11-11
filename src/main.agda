@@ -232,15 +232,13 @@ checkFile s filename should-print-spans =
            if should-print-spans then
              putStrLn (include-elt-spans-to-string ie)
            else return triv
-        finish : toplevel-state → IO toplevel-state
-        finish s with s
-        finish s | mk-toplevel-state use-cede make-rkt ip mod is Γ = 
+        finish : toplevel-state × mod-info → IO toplevel-state
+        finish (s , m) with s
+        finish (s , m) | mk-toplevel-state use-cede make-rkt ip mod is Γ = 
           writeo mod >>
           reply s >>
-          return (mk-toplevel-state use-cede make-rkt ip [] is Γ)
+          return (mk-toplevel-state use-cede make-rkt ip [] is (ctxt-set-current-mod Γ m))
             where
-              -- get-ctxt-from-toplevel-state : toplevel-state → ctxt
-              -- get-ctxt-from-toplevel-state (mk-toplevel-state _ _ _ _ _ Γ) = Γ
               writeo : 𝕃 string → IO ⊤
               writeo [] = return triv
               writeo (f :: us) =

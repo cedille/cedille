@@ -525,6 +525,7 @@ in the parse tree, and updates the Cedille info buffer."
   (se-navi-define-key mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
   (se-navi-define-key mode (kbd "$") (make-cedille-mode-customize "cedille"))
   (se-navi-define-key mode (kbd "1") #'delete-other-windows)
+  (se-navi-define-key mode (kbd "P") (lambda () (interactive) (message "se-mode-selected: %s" (se-mode-selected))))
   (se-navi-define-key mode (kbd "?") #'cedille-mode-backend-debug)
   (se-navi-define-key mode (kbd "x") #'cedille-mode-scratch-toggle)
   (se-navi-define-key mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))

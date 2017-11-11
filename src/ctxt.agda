@@ -221,7 +221,7 @@ ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
 -- TODO I think this should trie-remove the List occurrence of the filename lookup of syms
 ctxt-clear-symbol : ctxt → string → ctxt
-ctxt-clear-symbol (mk-ctxt f syms i symb-occs) x = mk-ctxt f (trie-remove syms x) (trie-remove i x) symb-occs
+ctxt-clear-symbol (mk-ctxt (fn , pms , q) syms i symb-occs) x = mk-ctxt (fn , pms , (trie-remove q x)) (trie-remove syms x) (trie-remove i x) symb-occs
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ

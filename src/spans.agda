@@ -161,8 +161,23 @@ spanM-debug pi pi' tvs = spanMok
 location-data : location → tagged-val
 location-data (file-name , pi) = "location" , (file-name ^ " - " ^ pi)
 
-var-location-data : ctxt → var → tagged-val
-var-location-data Γ x = location-data (ctxt-var-location Γ x)
+{-# TERMINATING #-}
+var-location-data : ctxt → var → maybe language-level → tagged-val
+var-location-data Γ x (just ll-term) with ctxt-var-location Γ x | qualif-term Γ (Var posinfo-gen x)
+...| ("missing" , "missing") | (Var pi x') = location-data (ctxt-var-location Γ x')
+...| loc | _ = location-data loc
+var-location-data Γ x (just ll-type) with ctxt-var-location Γ x | qualif-type Γ (TpVar posinfo-gen x)
+...| ("missing" , "missing") | (TpVar pi x') = location-data (ctxt-var-location Γ x')
+...| loc | _ = location-data loc
+var-location-data Γ x (just ll-kind) with ctxt-var-location Γ x | qualif-kind Γ (KndVar posinfo-gen x (ArgsNil posinfo-gen))
+...| ("missing" , "missing") | (KndVar pi x' as) = location-data (ctxt-var-location Γ x')
+...| loc | _ = location-data loc
+var-location-data Γ x nothing with ctxt-lookup-term-var Γ x | ctxt-lookup-type-var Γ x | ctxt-lookup-kind-var-def Γ x
+...| just _ | _ | _ = var-location-data Γ x (just ll-term)
+...| _ | just _ | _ = var-location-data Γ x (just ll-type)
+...| _ | _ | just _ = var-location-data Γ x (just ll-kind)
+...| _ | _ | _ = location-data ("missing" , "missing")
+-- var-location-data Γ x ll = location-data (ctxt-var-location Γ x)
 
 explain : string → tagged-val
 explain s = "explanation" , s
@@ -394,15 +409,15 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
                                       pi pi' [ binder-data-const ]
 
 TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
-TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data v :: tvs)
+TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-type :: var-location-data Γ v (just ll-type) :: symbol-data v :: tvs)
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
-Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data v :: tvs)
+Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-term :: var-location-data Γ v (just ll-term) :: symbol-data v :: tvs)
 
 KndVar-span : ctxt → posinfo → string → args → checking-mode → 𝕃 tagged-val → span
 KndVar-span Γ pi v ys check tvs =
   mk-span "Kind variable" pi (args-end-pos ys)
-    (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data v :: super-kind-data :: tvs)
+    (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data v :: super-kind-data :: tvs)
 
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data Γ k ])
@@ -412,7 +427,7 @@ var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data e t :: 
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
-                             (error-data "This symbol was defined already." :: var-location-data Γ x :: [])
+                             (error-data "This symbol was defined already." :: var-location-data Γ x nothing :: [])
 
 TpAppt-span : type → term → checking-mode → 𝕃 tagged-val → span
 TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (checking-data check :: ll-data-type :: tvs)

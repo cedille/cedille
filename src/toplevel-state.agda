@@ -120,14 +120,56 @@ include-elt-to-string ie =
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
     " "
 
+eΓ : ctxt
+eΓ = new-ctxt ""
+
+params-to-string : params → string
+params-to-string ParamsNil = ""
+params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ (tk-to-string eΓ t-k) ^ "}" ^ ", " ^ (params-to-string pms)
+
+defParams-to-string : defParams → string
+defParams-to-string (just pms) = params-to-string pms
+defParams-to-string nothing = ""
+
+syms-to-string : trie (𝕃 string) → string
+syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s) ", " l) ^ "}")
+
+ctxt-info-to-string : ctxt-info → string
+ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ (type-to-string eΓ tt tp) ^ "}"
+ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (term-to-string eΓ tt t) ^ ", type: " ^ (type-to-string eΓ tt tp) ^ "}"
+ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (term-to-string eΓ tt t) ^ "}"
+ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ (kind-to-string eΓ tt k) ^ "}"
+ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ (type-to-string eΓ tt tp) ^ ", kind: " ^ (kind-to-string eΓ tt k) ^ "}"
+ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ (kind-to-string eΓ tt k) ^ "}"
+ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
+ctxt-info-to-string (var-decl) = "var-decl"
+
+sym-info-to-string : sym-info → string
+sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
+
+sym-infos-to-string : trie sym-info → string
+sym-infos-to-string = trie-to-string ", " sym-info-to-string
+
+occ-to-string : var × posinfo × string → string
+occ-to-string (v , pi , s) = "var: " ^ v ^ ", posinfo: " ^ pi ^ ", string: " ^ s
+
+sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
+sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
+
+mod-info-to-string : mod-info → string
+mod-info-to-string (fn , pms , q) = "filename: " ^ fn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " (qualif-to-string (new-ctxt "")) q) ^ "}"
+
+ctxt-to-string : ctxt → string
+ctxt-to-string (mk-ctxt mi ss is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files-with-updated-spans is context) =
-    "use-cede-file:  " ^ (𝔹-to-string use-cede-file) ^
-    " make-rkt-file:  " ^ (𝔹-to-string make-rkt-file) ^
-    " include-path:  " ^ (𝕃-to-string (λ x → x) "," include-path) ^ 
-    " files-with-updated-spans:  " ^ (𝕃-to-string (λ x → x) "," files-with-updated-spans) ^ 
-    " is:  " ^ (trie-to-string "," include-elt-to-string is) ^ 
-    " "
+    "use-cede-file: " ^ (𝔹-to-string use-cede-file) ^
+    "\nmake-rkt-file: " ^ (𝔹-to-string make-rkt-file) ^
+    "\ninclude-path: {\n\r" ^ (𝕃-to-string (λ x → x) "\n\r" include-path) ^ 
+    "\n}\nfiles-with-updated-spans: {\n\r" ^ (𝕃-to-string (λ x → x) "\n\r" files-with-updated-spans) ^ 
+    "\n}\nis: {" ^ (trie-to-string "\n\r" include-elt-to-string is) ^ 
+    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
 check-redefined : posinfo → var → toplevel-state → spanM toplevel-state → spanM toplevel-state

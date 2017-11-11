@@ -25,8 +25,6 @@ get-pos v Γ with unfile v | ctxt-var-location Γ v
 get-pos _ _ | v | ("missing" , "missing") = v
 get-pos _ _ | v | ("[nofile]" , _) = v
 get-pos _ _ | v | (filename , pi) = markup "location" ("filename" :: "pos" :: []) (filename :: pi :: []) v
--- "<location filename=\"" ^ filename ^  ^ "\">" ^ v ^ "</location>"
--- "§" ^ v ^ "§" ^ filename ^ "§" ^ pi ^ "§"
 
 binder-to-string : binder → string
 binder-to-string All = "∀"

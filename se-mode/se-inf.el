@@ -113,7 +113,7 @@ will kill the process, should be skipped if process is shared."
     (let* ((current (nth 1 (cdr (car (car se-inf-queue)))))
 	   (symbol (nth 0 current))
 	   (span (nth 3 current))
-	   (pins (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive)))
+	   (pins (when span (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive))))
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 
 (cl-defun se-inf-interactive (q-str-or-fn response-fn &key span header extra restore delay)
@@ -156,6 +156,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
     (with-current-buffer buffer
       (se-inf-next-header)
       (let* ((response (funcall se-inf-modify-response (se-inf-undo-escape-string response)))
+	     ;(mv (message "\n\n\nresponse: %s" response))
 	     (pair (cond
 		    ((null response-fn) nil)
 		    ((and span extra) (funcall response-fn response span oc extra))

@@ -38,7 +38,7 @@ process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel
 process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
-process-file : toplevel-state → (filename : string) → toplevel-state
+process-file : toplevel-state → (filename : string) → toplevel-state × mod-info
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
@@ -123,7 +123,7 @@ process-cmd s (Import pi x pi') _ =
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = scope-imports (process-file s imported-file) imported-file in
+  let s = scope-imports (fst (process-file s imported-file)) imported-file in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
@@ -150,24 +150,24 @@ process-start s filename (File pi cs pi') need-to-check =
 process-file s filename with get-include-elt s filename
 process-file s filename | ie = 
   let p = proceed s (include-elt.ast ie) (set-need-to-add-symbols-to-context-include-elt ie ff) in
-    set-include-elt (fst p) filename (snd p)
+    set-include-elt (fst p) filename (fst (snd p)) , snd (snd p)
         {- update the include-elt and the toplevel state (but we will push the updated include-elt into the toplevel state
            just above, after proceed finishes. -}
-  where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt 
-        proceed s nothing ie' = s , ie' {- should not happen -}
+  where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt × mod-info
+        proceed s nothing ie' = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
         proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
-        proceed s (just x) ie' | ff = s , ie'
+        proceed s (just x) ie' | ff = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
         proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
           with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
         proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename in
            cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
                    filename x do-check Γ (regular-spans []))
-           where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt
-                 cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , _ , ss) = 
+           where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
+                 cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
                    let Γ = ctxt-set-current-mod Γ prev-mod in
                     if do-check then
-                      (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss)
+                      (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss , ret-mod)
                     else
-                      (mk-toplevel-state use-cede make-rkt ip fns is Γ , ie')
+                      (mk-toplevel-state use-cede make-rkt ip fns is Γ , ie' , ret-mod)
 
