@@ -2,8 +2,21 @@ cNat ◂ ★ = ∀ X : ★ . X ➔ (X ➔ X) ➔ X .
 cZ ◂ cNat = Λ X . λ z . λ s . z .
 cS ◂ cNat ➔ cNat = λ n . Λ X . λ z . λ s . s (n · X z s) .
 
-pred ◂ cNat ➔ cNat =
+pred' ◂ cNat ➔ cNat =
   λ n . Λ X . λ z . λ s . n · ((X ➔ X) ➔ X) (λ u . z) (λ g . λ h . h (g s)) (λ u . u) .
 
-test1 ◂ cNat = pred (cS (cS cZ)) .
+test1 ◂ cNat = pred' (cS (cS cZ)) .
 
+natpair ◂ ★ = ∀ Y : ★ . (cNat ➔ cNat ➔ Y) ➔ Y .
+
+fst ◂ natpair ➔ cNat = λ p . p · cNat (λ a . λ b . a) .
+snd ◂ natpair ➔ cNat = λ p . p · cNat (λ a . λ b . b) .
+
+mkpair ◂ cNat ➔ cNat ➔ natpair = λ a . λ b . Λ Y . λ c . c a b .
+
+predh ◂ cNat ➔ natpair =
+  λ n . n · natpair (mkpair cZ cZ) (λ p . mkpair (snd p) (cS (snd p))) .
+
+pred ◂ cNat ➔ cNat = λ n . fst (predh n).
+
+test2 ◂ cNat = pred (cS (cS cZ)) .
