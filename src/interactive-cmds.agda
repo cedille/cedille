@@ -42,22 +42,22 @@ try-nts = (gratr2-nt._term :: gratr2-nt._type :: gratr2-nt._kind :: [])
 var-is-type : ctxt → var → 𝔹
 var-is-type Γ v with ctxt-lookup-term-var Γ v | ctxt-lookup-term-var-def Γ v |
                      ctxt-lookup-type-var Γ v | ctxt-lookup-type-var-def Γ v 
-var-is-type Γ v | t-decl | t-def | tp-decl | tp-def =
-  (isJust tp-decl || isJust tp-def) && ~ (isJust t-decl || isJust t-def)
+var-is-type Γ v | t-decl | t-def | T-decl | T-def =
+  (isJust T-decl || isJust T-def) && ~ (isJust t-decl || isJust t-def)
 
 ll-disambiguate : ctxt → term → maybe cedille-types.type
 ll-disambiguate Γ (Var pi v) with var-is-type Γ v
 ll-disambiguate Γ (Var pi v) | tt = just (TpVar pi v)
 ll-disambiguate Γ (Var pi v) | ff = nothing
-ll-disambiguate Γ (AppTp t tp) with ll-disambiguate Γ t
-ll-disambiguate Γ (AppTp t tp) | just tp' = just (TpApp tp' tp)
-ll-disambiguate Γ (AppTp t tp) | nothing = nothing
+ll-disambiguate Γ (AppTp t T) with ll-disambiguate Γ t
+ll-disambiguate Γ (AppTp t T) | just T' = just (TpApp T' T)
+ll-disambiguate Γ (AppTp t T) | nothing = nothing
 ll-disambiguate Γ _ = nothing
 
 ll-disambiguate-run : ctxt → Run → Run
 ll-disambiguate-run Γ (ParseTree (parsed-term t) :: []) with ll-disambiguate Γ t
-ll-disambiguate-run _ (ParseTree (parsed-term t) :: []) | just tp =
-  ParseTree (parsed-type tp) :: []
+ll-disambiguate-run _ (ParseTree (parsed-term t) :: []) | just T =
+  ParseTree (parsed-type T) :: []
 ll-disambiguate-run _ r @ (ParseTree (parsed-term _) :: []) | nothing = r
 ll-disambiguate-run _ r = r
 
@@ -83,8 +83,8 @@ string-replace : string → (regexp : string) → (replace-with : string) → st
 string-replace s "" r = s
 string-replace s x r = 𝕃char-to-string (string-replace-h (string-to-𝕃char s) (string-to-𝕃char x) (reverse (string-to-𝕃char r)) []) -- Reverse?
 
-unqualif : (str : string) → (filename : string) → string
-unqualif s fn = string-replace s (">" ^ (unfile fn) ^ ".") ">"
+-- unqualif : (str : string) → (filename : string) → string
+-- unqualif s fn = string-replace s ((unfile fn) ^ ".") ""
 
 add-ws : 𝕃 char → 𝕃 char
 add-ws (' ' :: lc) = ' ' :: lc
@@ -139,8 +139,8 @@ strings-to-lcis : 𝕃 string → 𝕃 local-ctxt-item
 strings-to-lcis ss = strings-to-lcis-h ss []
   where
     strings-to-lcis-h : 𝕃 string → 𝕃 local-ctxt-item → 𝕃 local-ctxt-item
-    strings-to-lcis-h (ll :: name :: val :: tp :: filename :: pos :: t) items =
-      strings-to-lcis-h t ((ll , name , val , tp , filename , pos) :: items)
+    strings-to-lcis-h (ll :: name :: val :: T :: filename :: pos :: t) items =
+      strings-to-lcis-h t ((ll , name , val , T , filename , pos) :: items)
     strings-to-lcis-h _ items = items
 
 get-term-from-run : Run → maybe cedille-types.term
@@ -148,26 +148,26 @@ get-type-from-run : Run → maybe cedille-types.type
 get-kind-from-run : Run → maybe cedille-types.kind
 get-term-from-run ((ParseTree (parsed-term t)) :: []) = just t
 get-term-from-run _ = nothing
-get-type-from-run ((ParseTree (parsed-type tp)) :: []) = just tp
+get-type-from-run ((ParseTree (parsed-type T)) :: []) = just T
 get-type-from-run _ = nothing
 get-kind-from-run ((ParseTree (parsed-kind k)) :: []) = just k
 get-kind-from-run _ = nothing
 
 ctxt-def-tree : ctxt → gratr2-nt → (maybe Run) → Run → var → string → posinfo → (do-erase : 𝔹) → ctxt
-ctxt-def-tree Γ gratr2-nt._term (just val-run) tp-run v fn pos de with
-  get-term-from-run val-run | get-type-from-run tp-run
-ctxt-def-tree Γ gratr2-nt._term (just _) _ v fn pos de | just t | just tp =
-  ctxt-term-def pos globalScope v (if de then (erase-term t) else t) tp (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
+ctxt-def-tree Γ gratr2-nt._term (just val-run) T-run v fn pos de with
+  get-term-from-run val-run | get-type-from-run T-run
+ctxt-def-tree Γ gratr2-nt._term (just _) _ v fn pos de | just t | just T =
+  ctxt-term-def pos globalScope v (if de then (erase-term t) else t) T (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ctxt-def-tree Γ gratr2-nt._term (just val-run) _ _ _ _ _ | _ | _ = Γ
-ctxt-def-tree Γ gratr2-nt._type (just val-run) tp-run _ _ _ _ with
-  get-type-from-run val-run | get-kind-from-run tp-run
-ctxt-def-tree Γ gratr2-nt._type (just val-run) tp-run v fn pos de | just tp | just k =
-  ctxt-type-def pos globalScope v (if de then (erase-type tp) else tp) k (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
+ctxt-def-tree Γ gratr2-nt._type (just val-run) T-run _ _ _ _ with
+  get-type-from-run val-run | get-kind-from-run T-run
+ctxt-def-tree Γ gratr2-nt._type (just val-run) T-run v fn pos de | just T | just k =
+  ctxt-type-def pos globalScope v (if de then (erase-type T) else T) k (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ctxt-def-tree Γ gratr2-nt._type (just val-run) _ _ _ _ _ | _ | _ = Γ
-ctxt-def-tree Γ gratr2-nt._term nothing tp-run v fn pos _ with get-type-from-run tp-run
-ctxt-def-tree Γ gratr2-nt._term nothing _ v fn pos de | just tp = ctxt-term-decl pos v tp (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
+ctxt-def-tree Γ gratr2-nt._term nothing T-run v fn pos _ with get-type-from-run T-run
+ctxt-def-tree Γ gratr2-nt._term nothing _ v fn pos de | just T = ctxt-term-decl pos v T (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ctxt-def-tree Γ gratr2-nt._term nothing _ _ _ _ _ | nothing = Γ
-ctxt-def-tree Γ gratr2-nt._type nothing tp-run v fn pos _ with get-kind-from-run tp-run
+ctxt-def-tree Γ gratr2-nt._type nothing T-run v fn pos _ with get-kind-from-run T-run
 ctxt-def-tree Γ gratr2-nt._type nothing _ v fn pos _ | just k = ctxt-type-decl pos v k (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ctxt-def-tree Γ gratr2-nt._type nothing _ _ _ _ _ | nothing = Γ
 ctxt-def-tree Γ _ _ _ _ _ _ _ = Γ
@@ -177,13 +177,13 @@ ctxt-set-cur-file (mk-ctxt (_ , ps , q) ss is os) fn = mk-ctxt (fn , ps , q) ss 
 
 ctxt-def-run : gratr2-nt → 𝕃 char ⊎ Run → 𝕃 char ⊎ Run → var →
                string → posinfo → (do-erase : 𝔹) → ctxt → ctxt
-ctxt-def-run nt (inj₂ val-run) (inj₂ tp-run) v fn pos de Γ =
+ctxt-def-run nt (inj₂ val-run) (inj₂ T-run) v fn pos de Γ =
   ctxt-set-cur-file
-    (ctxt-def-tree (ctxt-set-cur-file Γ fn) nt (just val-run) tp-run v fn pos de)
+    (ctxt-def-tree (ctxt-set-cur-file Γ fn) nt (just val-run) T-run v fn pos de)
     (ctxt-get-current-filename Γ)
-ctxt-def-run nt (inj₁ _) (inj₂ tp-run) v fn pos de Γ =
+ctxt-def-run nt (inj₁ _) (inj₂ T-run) v fn pos de Γ =
   ctxt-set-cur-file
-    (ctxt-def-tree (ctxt-set-cur-file Γ fn) nt nothing tp-run v fn pos de)
+    (ctxt-def-tree (ctxt-set-cur-file Γ fn) nt nothing T-run v fn pos de)
     (ctxt-get-current-filename Γ)
 ctxt-def-run _ _ _ _ _ _ _ Γ = Γ
 
@@ -193,17 +193,17 @@ merge-lci-ctxt-h-h nt s = parse-specific-nt nt 0 (string-to-𝕃char s)
 
 merge-lci-ctxt-h : gratr2-nt → gratr2-nt → (name : string) → (value : string) →
                    (t-k : string) → string → string → (do-erase : 𝔹) → ctxt → ctxt
-merge-lci-ctxt-h val-nt tp-nt name val t-k fn pos de Γ with
+merge-lci-ctxt-h val-nt T-nt name val t-k fn pos de Γ with
   parse-specific-nt val-nt 0 (string-to-𝕃char val) |
-  parse-specific-nt tp-nt 0 (string-to-𝕃char t-k)
-merge-lci-ctxt-h nt _ name _ _ fn pos de Γ | val-run | tp-run =
-  ctxt-def-run nt val-run tp-run name fn pos de Γ
+  parse-specific-nt T-nt 0 (string-to-𝕃char t-k)
+merge-lci-ctxt-h nt _ name _ _ fn pos de Γ | val-run | T-run =
+  ctxt-def-run nt val-run T-run name fn pos de Γ
 
 merge-lci-ctxt : local-ctxt-item → (do-erase : 𝔹) → ctxt → ctxt
-merge-lci-ctxt ("term" , name , value , tp , filename , pos) de Γ =
-  merge-lci-ctxt-h gratr2-nt._term gratr2-nt._type name value tp filename pos de Γ
-merge-lci-ctxt ("type" , name , value , tp , filename , pos) de Γ =
-  merge-lci-ctxt-h gratr2-nt._type gratr2-nt._kind name value tp filename pos de Γ
+merge-lci-ctxt ("term" , name , value , T , filename , pos) de Γ =
+  merge-lci-ctxt-h gratr2-nt._term gratr2-nt._type name value T filename pos de Γ
+merge-lci-ctxt ("type" , name , value , T , filename , pos) de Γ =
+  merge-lci-ctxt-h gratr2-nt._type gratr2-nt._kind name value T filename pos de Γ
 merge-lci-ctxt _ _ Γ = Γ
 
 merge-lcis-ctxt : 𝕃 local-ctxt-item → (do-erase : 𝔹) → ctxt → ctxt
@@ -236,21 +236,58 @@ get-local-ctxt : ctxt → (pos : ℕ) → (filename : string) →
 get-local-ctxt Γ pos filename local-ctxt de =
   merge-lcis-ctxt (strings-to-lcis local-ctxt) de (ctxt-at pos filename Γ)
 
+{- Unqualification -}
+{-
+unqualify-var : var → var
+unqualify-var v = 𝕃char-to-string (f (string-to-𝕃char v) [])
+  where
+    f : 𝕃 char → 𝕃 char → 𝕃 char
+    f [] = reverse
+    f ('.' :: t) _ = f t []
+    f (h :: t) acc = f t (h :: acc)
+
+unqualify-qi : qualif-info → qualif-info
+unqualify-qi (v , as) = unqualify-var v , as -- TODO: Do I need to "unqualify" `as`?
+
+unqualify-qualif : qualif → qualif
+unqualify-qualif = trie-map unqualify-qi
+
+unqualify-h : ctxt → ctxt
+unqualify-h (mk-ctxt (fn , pms , q) ss is os) = mk-ctxt (fn , pms , unqualify-qualif q) ss is os
+
+unqualify-ms : ctxt → 𝕃 (string × qualif-info) → ctxt
+unqualify-ms Γ [] = Γ
+unqualify-ms Γ ((v , (v' , _)) :: t) = unqualify-ms (ctxt-rename posinfo-gen v' v Γ) t -- TODO: Replace posinfo-gen with something
+
+unqualify : ctxt → ctxt
+unqualify Γ @ (mk-ctxt (fn , pms , q) ss is os) = unqualify-h (unqualify-ms Γ (trie-mappings q))
+-}
 
 {- Normalization -}
 
 normalize-tree : ctxt → (input : string) → Run → 𝔹 → string × 𝔹
+-- normalize-tree Γ _ _ _ = ctxt-to-string Γ , ff
+{-
 normalize-tree Γ input (ParseTree (parsed-term t) :: []) head =
-  (unqualif (to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-term Γ t) tt))) (ctxt-get-current-filename Γ)) , tt
-normalize-tree Γ input (ParseTree (parsed-type tp) :: []) head =
-  (unqualif (to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-type Γ tp) tt))) (ctxt-get-current-filename Γ)) , tt
+  (to-string Γ (hnf Γ (unfold (~ head) ff ff) t tt)) , tt
+normalize-tree Γ input (ParseTree (parsed-type T) :: []) head =
+  (to-string Γ (hnf Γ (unfold (~ head) ff ff) T tt)) , tt
 normalize-tree Γ input (ParseTree (parsed-kind k) :: []) head =
-  (unqualif (to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-kind Γ k) tt))) (ctxt-get-current-filename Γ)) , tt
+  (to-string Γ (hnf Γ (unfold (~ head) ff ff) k tt)) , tt
+-}
+
+normalize-tree Γ input (ParseTree (parsed-term t) :: []) head =
+  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-term Γ t) tt)) , tt
+normalize-tree Γ input (ParseTree (parsed-type T) :: []) head =
+  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-type Γ T) tt)) , tt
+normalize-tree Γ input (ParseTree (parsed-kind k) :: []) head =
+  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-kind Γ k) tt)) , tt
+
 normalize-tree _ input _ _ = "\"" ^ input ^ "\" was not parsed as a term, type, or kind"  , ff
 
 normalize-span : ctxt → (input : string) → gratr2-nt → (start-pos : ℕ) → (head : 𝔹) → string × 𝔹 
 normalize-span _ input nt sp head with parse-specific-nt nt sp (string-to-𝕃char input)
-normalize-span Γ input _ sp head | inj₂ run = normalize-tree Γ input run head
+normalize-span Γ input _ sp head | inj₂ run = normalize-tree Γ input run head -- TODO: Unqualify Γ
 normalize-span _ input nt _ _ | inj₁ _ = parse-error-message input (nt-to-string nt)
 
 normalize-cmd : ctxt → (span : string) → string → (start-pos : string) → (filename : string) →
@@ -282,9 +319,9 @@ normalize-prompt-cmd _ _ _ head | nothing = parse-error-message head "boolean"
 {- Erasure -}
 
 erase-tree : ctxt → (input : string) → Run → string × 𝔹
-erase-tree Γ input (ParseTree (parsed-term t) :: []) = unqualif (to-string Γ (qualify Γ (erase-term (qualif-term Γ t)))) (ctxt-get-current-filename Γ) , tt
-erase-tree Γ input (ParseTree (parsed-type tp) :: []) = unqualif (to-string Γ (qualify Γ (erase-type (qualif-type Γ tp)))) (ctxt-get-current-filename Γ) , tt
-erase-tree Γ input (ParseTree (parsed-kind k) :: []) = unqualif (to-string Γ (qualify Γ (erase-kind (qualif-kind Γ k)))) (ctxt-get-current-filename Γ) , tt
+erase-tree Γ input (ParseTree (parsed-term t) :: []) = to-string Γ (qualify Γ (erase-term (qualif-term Γ t))) , tt
+erase-tree Γ input (ParseTree (parsed-type T) :: []) = to-string Γ (qualify Γ (erase-type (qualif-type Γ T))), tt
+erase-tree Γ input (ParseTree (parsed-kind k) :: []) = to-string Γ (qualify Γ (erase-kind (qualif-kind Γ k))) , tt
 erase-tree _ input _ = parse-error-message input "term, type, or kind"
 
 erase-span : ctxt → (input : string) → gratr2-nt → (start-pos : ℕ) → string × 𝔹
@@ -324,8 +361,8 @@ br-parse input _ with parse-try-nts (string-to-𝕃char input) try-nts
 br-parse _ Γ | just run with ll-disambiguate-run Γ run
 br-parse _ Γ | just _ | ParseTree (parsed-term t) :: [] =
   br-spans (set-ctxt Γ ≫span erased-term-spans t)
-br-parse _ Γ | just _ | ParseTree (parsed-type tp) :: [] =
-  br-spans (set-ctxt Γ ≫span erased-type-spans tp)
+br-parse _ Γ | just _ | ParseTree (parsed-type T) :: [] =
+  br-spans (set-ctxt Γ ≫span erased-type-spans T)
 br-parse _ Γ | just _ | ParseTree (parsed-kind k) :: [] =
   br-spans (set-ctxt Γ ≫span erased-kind-spans k)
 br-parse input Γ | just _ | _ = parse-error-message input "term, type, or kind"
@@ -341,8 +378,8 @@ br-cmd Γ input fn lc = br-parse (pretty-string input) (ctxt-set-cur-file
 conv-runs : ctxt → (span-run : Run) → (input-run : Run) → 𝔹
 conv-runs Γ (ParseTree (parsed-term t₁) :: []) (ParseTree (parsed-term t₂) :: []) =
   conv-term Γ (qualif-term Γ t₁) (qualif-term Γ t₂)
-conv-runs Γ (ParseTree (parsed-type tp₁) :: []) (ParseTree (parsed-type tp₂) :: []) =
-  conv-type Γ (qualif-type Γ tp₁) (qualif-type Γ tp₂)
+conv-runs Γ (ParseTree (parsed-type T₁) :: []) (ParseTree (parsed-type T₂) :: []) =
+  conv-type Γ (qualif-type Γ T₁) (qualif-type Γ T₂)
 conv-runs Γ (ParseTree (parsed-kind k₁) :: []) (ParseTree (parsed-kind k₂) :: []) =
   conv-kind Γ (qualif-kind Γ k₁) (qualif-kind Γ k₂)
 conv-runs _ _ _ = ff

@@ -585,12 +585,3 @@ ie-eq Exists Exists = tt
 ie-eq Exists Iota = ff
 ie-eq Iota Exists = ff
 ie-eq Iota Iota = tt
-
-unfile : string → string
-unfile s = 𝕃char-to-string (reverse (f [] (string-to-𝕃char s)))
-  where
-  f : 𝕃 char → 𝕃 char → 𝕃 char
-  f ret [] = ret
-  f ret ('.' :: 'c' :: 'e' :: 'd' :: xs) = f ret xs
-  f ret ('/' :: xs) = f [] xs
-  f ret (x :: xs) = f (x :: ret) xs

@@ -250,3 +250,21 @@ ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs
 ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
 ctxt-set-symbol-occurrences (mk-ctxt fn syms i symb-occs) new-symb-occs = mk-ctxt fn syms i new-symb-occs
 
+unfile : ctxt → var → string
+unfile (mk-ctxt (_ , _ , q) _ _ _ ) v = h v p
+  where
+  f : 𝕃 char → 𝕃 char → 𝔹 → 𝕃 char
+  f ret [] _ = ret
+  f ret ('.' :: 'c' :: 'e' :: 'd' :: '.' :: xs) p = f (if p then [] else ('.' :: ret)) xs p
+  f ret ('/' :: xs) = f [] xs
+  f ret (x :: xs) = f (x :: ret) xs
+
+  h : var → 𝔹 → string
+  h v p = 𝕃char-to-string (reverse (f [] (string-to-𝕃char v) p))
+
+  v' = h v tt
+
+  p : 𝔹
+  p with trie-lookup q v'
+  p | just (v'' , ci) = v'' =string v
+  p | nothing = ff

@@ -1,6 +1,0 @@
-
-Type ◂ ★ = ∀ X : ★ . X ➔ X .
-
-let-bug ◂ Type = let Type ◂ ★ = Type in Λ X . λ a . a .
-
-fn ◂ Type = Λ X . λ a . a .

@@ -266,7 +266,7 @@ check-for-type-mismatch-if Γ s (just tp) tp' = check-for-type-mismatch Γ s tp 
 check-for-type-mismatch-if Γ s nothing tp' = [ type-data Γ tp' ]
 
 summary-data : string → (filename : string) → (pos : posinfo) → string → tagged-val
-summary-data name fn pi classifier = "summary" , ((markup "location" ("filename" :: "pos" :: []) (fn :: pi :: []) name) ^ " : " ^ classifier)
+summary-data name fn pi classifier = "summary" , ((markup "location" (("filename" , fn) :: ("pos" , pi) :: []) name) ^ " : " ^ classifier)
 
 missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
@@ -645,7 +645,7 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-d
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
         do-explain (AbstractVars vs) = [ explain ("Perform an elimination with the first term, after abstracting the listed variables (" 
-                                               ^ vars-to-string vs ^ ") from the expected type.") ]
+                                               ^ vars-to-string Γ vs ^ ") from the expected type.") ]
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
 

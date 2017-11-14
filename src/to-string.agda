@@ -5,26 +5,20 @@ open import cedille-types
 open import syntax-util
 open import ctxt
 
-markup-h : (tags : 𝕃 string) → (vals : 𝕃 string) → string → string
-markup-h (th :: t) (vh :: vt) s = markup-h t vt (s ^ (" " ^ th ^ "='" ^ vh ^ "'"))
--- Had to use "t" to refer to the tag tail since "tt" is the name for the Boolean true
-markup-h [] [] s = s
-markup-h _ _ _ = "" -- tags is not the same length as vals
+markup : (attr : string) → 𝕃 (string × string) → string → string
+markup a ts s = "<" ^ a ^ (markup-h ts "") ^ ">" ^ s ^ "</" ^ a ^ ">"
+  where
+    markup-h : 𝕃 (string × string) → string → string
+    markup-h ((th , vh) :: t) s = markup-h t (s ^ (" " ^ th ^ "='" ^ vh ^ "'"))
+    markup-h [] s = s
 
-{-
-For example:
-markup "location" ("filename" :: "pos" :: []) ("/home/someonesname/cedille/lib/somefile" :: "123" :: []) "foo"
-Returns (as a string):
-<location filename='/home/someonesname/cedille/lib/somefile' pos='123'>foo</location>
--}
-markup : (attr : string) → (tags : 𝕃 string) → (vals : 𝕃 string) → string → string
-markup a ts vs s = "<" ^ a ^ (markup-h ts vs "") ^ ">" ^ s ^ "</" ^ a ^ ">"
+markup-unless-missing : var → location → string
+markup-unless-missing v ("missing" , "missing") = v
+markup-unless-missing v ("[nofile]" , _) = v
+markup-unless-missing v (fn , pi) = markup "location" (("filename" , fn) :: ("pos" , pi) :: []) v
 
-get-pos : var → ctxt → string
-get-pos v Γ with unfile v | ctxt-var-location Γ v
-get-pos _ _ | v | ("missing" , "missing") = v
-get-pos _ _ | v | ("[nofile]" , _) = v
-get-pos _ _ | v | (filename , pi) = markup "location" ("filename" :: "pos" :: []) (filename :: pi :: []) v
+var-to-string : ctxt → var → string
+var-to-string Γ v = markup-unless-missing (unfile Γ v) (ctxt-var-location Γ v)
 
 binder-to-string : binder → string
 binder-to-string All = "∀"
@@ -43,14 +37,14 @@ leftRight-to-string Left = "l"
 leftRight-to-string Right = "r"
 leftRight-to-string Both = ""
 
-vars-to-string : vars → string
-vars-to-string (VarsStart v) = unfile v
-vars-to-string (VarsNext v vs) = unfile v ^ " " ^ vars-to-string vs
+vars-to-string : ctxt → vars → string
+vars-to-string Γ (VarsStart v) = unfile Γ v
+vars-to-string Γ (VarsNext v vs) = unfile Γ v ^ " " ^ vars-to-string Γ vs
 
-theta-to-string : theta → string
-theta-to-string Abstract = "θ"
-theta-to-string AbstractEq = "θ+"
-theta-to-string (AbstractVars vs) = "θ<" ^ vars-to-string vs ^ ">"
+theta-to-string : ctxt → theta → string
+theta-to-string _ Abstract = "θ"
+theta-to-string _ AbstractEq = "θ+"
+theta-to-string Γ (AbstractVars vs) = "θ<" ^ vars-to-string Γ vs ^ ">"
 
 ie-to-string : ie → string
 ie-to-string Iota = "ι"
@@ -113,7 +107,7 @@ term-to-stringh Γ toplevel p (Unfold _ t) =
   "unfold " ^ (term-to-string Γ toplevel t)
 term-to-stringh Γ toplevel p (Parens _ t _) = term-to-string Γ toplevel t
 -- Here
-term-to-stringh Γ toplevel p (Var pi x) = get-pos x Γ
+term-to-stringh Γ toplevel p (Var pi x) = var-to-string Γ x
 term-to-stringh Γ toplevel p (Beta _ ot) = "β" ^ optTerm-to-string Γ ot
 term-to-stringh Γ toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Omega _ t) = "(ω" ^ " " ^ term-to-string Γ ff t ^ ")"
@@ -122,7 +116,7 @@ term-to-stringh Γ toplevel p (IotaProj t n _) = term-to-string Γ ff t ^ " . " 
 term-to-stringh Γ toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Sigma _ t) = "(ς " ^ term-to-string Γ ff t ^ ")"
-term-to-stringh Γ toplevel p (Theta _ u t ts) = "(" ^ theta-to-string u ^ " " ^ term-to-string Γ ff t ^ lterms-to-stringh Γ ts ^ ")"
+term-to-stringh Γ toplevel p (Theta _ u t ts) = "(" ^ theta-to-string Γ u ^ " " ^ term-to-string Γ ff t ^ lterms-to-stringh Γ ts ^ ")"
 term-to-stringh Γ toplevel p (Rho _ r t t') = "(" ^ rho-to-string r ^ term-to-string Γ ff t ^ " - " ^ term-to-string Γ ff t' ^ ")"
   where rho-to-string : rho → string
         rho-to-string RhoPlain = "ρ"
@@ -146,7 +140,7 @@ type-to-stringh Γ toplevel p (TpArrow x ErasedArrow t) =
 type-to-stringh Γ toplevel p (TpEq t1 t2) = "(" ^ term-to-string Γ ff t1 ^ " ≃ " ^ term-to-string Γ ff t2 ^ ")"
 type-to-stringh Γ toplevel p (TpParens _ t _) = type-to-string Γ toplevel t
 -- Here
-type-to-stringh Γ toplevel p (TpVar pi x) = get-pos x Γ
+type-to-stringh Γ toplevel p (TpVar pi x) = var-to-string Γ x
 type-to-stringh Γ toplevel p (TpHole _) = "●" --ACG
 type-to-stringh Γ toplevel p (NoSpans t _) = type-to-string Γ ff t
 
