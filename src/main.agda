@@ -278,7 +278,7 @@ readCommandsFromFrontend s =
             checkCommand ls s = errorCommand ls s
             
             interactiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
-            interactiveCommand xs s = interactive-cmds.interactive-cmd xs (toplevel-state.Γ s) >> return s
+            interactiveCommand xs s = interactive-cmds.interactive-cmd xs s
             
   {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s

@@ -120,6 +120,7 @@
 	    buffer-read-only nil
 	    window-size-fixed nil)
       (se-inf-interactive (cedille-mode-get-message-from-filename cedille-mode-br-filename) nil :header "Parsing")
+      (se-inf-interactive "interactive§initBR" nil :delay t :header "Parsing")
       (cedille-mode-br-erase str)
       (display-buffer buffer)
       (setq buffer-read-only t)
@@ -134,7 +135,8 @@
    ;(cedille-mode-erase-request-text-h s cedille-mode-br-length cedille-mode-br-filename (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    'cedille-mode-br-erase-response
    :extra (current-buffer)
-   :header "Erasing"))
+   :header "Erasing"
+   :delay t))
 
 (defun cedille-mode-br-erase-response (response oc buffer)
   "Receives the erased response from the backend"
