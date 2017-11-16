@@ -1,4 +1,6 @@
 import ../cnat.
+import top.
+import is.
 
 NatP ◂ cNat ➔ ★ =
   λ n : cNat .
@@ -13,4 +15,24 @@ Z ◂ Nat = [ cZ, Λ R . λ z . λ s . z ] .
 
 S ◂ ∀ A : ★ . (A ➔ Nat) ➔ A ➔ Nat =
   Λ A : ★ . λ e . λ d . [ cS · A (λ a . (e a).1) d,
-                          Λ X . λ z . λ s . s · A ● ] .
+                          Λ X . λ z . λ s . s · A · (is · A) -(λ a . (e a).1) (Λ a . λ ia . ρ ia.2 - (e ia.1).2 · X z s) -d [ d , β{d}] ] .
+
+toNat ◂ cNat ➔ Nat = λ n . n · Nat Z S . 
+
+reflectionExt ◂ Π n : Nat . ∀ X : ★ . ∀ z : X . ∀ s : ∀ A : ★ . (A ➔ X) ➔ A ➔ X .
+  (∀ A : ★ . ∀ f : A ➔ X . ∀ g : A ➔ X . (∀ a : A . f a ≃ g a) ➔ ∀ a : A . s f a ≃ s g a) ➔
+  toNat n z s ≃ n z s =
+  λ n . Λ X . Λ z . Λ s . λ E . n.2 · (λ n : cNat . toNat n z s ≃ n z s) β
+    (Λ A . Λ R . Λ f . λ u . Λ a . λ v . E · A -(λ a . f a · cNat cZ cS · X z s) -(λ a . f a · X z s) (Λ a . u -a v) -a) .
+
+IndExt ◂ Π x : Nat . ∀ Q : Nat ➔ ★ .
+      (Π n : Nat . Π m : Nat . 
+        (∀ X : ★ . ∀ z : X . ∀ s : ∀ A : ★ . (A ➔ X) ➔ A ➔ X .
+         (∀ A : ★ . ∀ f : A ➔ X . ∀ g : A ➔ X . (∀ a : A . f a ≃ g a) ➔ ∀ a : A . s f a ≃ s g a) ➔
+         n z s ≃ m z s) ➔ Q n ➔ Q m ) ➔ 
+      Q Z ➔
+      (∀ A : ★ . ∀ R : A ➔ ★ . ∀ f : A ➔ Nat . (∀ a : A . R a ➔ Q (f a)) ➔ ∀ a : A . R a ➔ Q (S · A f a)) ➔ Q x =
+  λ x . Λ Q . λ E . λ z . λ s . 
+    E (toNat x.1) x (reflectionExt x)
+      (x.2 · (λ x : cNat . Q (toNat x))
+        z (Λ A . Λ R . Λ f . λ ih . Λ a . λ ra . s · A · R -(λ a . f a · Nat Z S) ih -a ra)) .
