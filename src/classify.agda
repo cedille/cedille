@@ -505,7 +505,7 @@ check-termi (Beta pi ot) (just (TpEq t1 t2)) =
   var-spans-optTerm ot ≫span
   get-ctxt (λ Γ → 
     if conv-term Γ t1 t2 then
-      spanM-add (Beta-span pi (optTerm-end-pos pi ot)
+      spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot)
                    checking [ type-data Γ (TpEq t1 t2) ])
     else
       spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot)
@@ -514,7 +514,7 @@ check-termi (Beta pi ot) (just (TpEq t1 t2)) =
 check-termi (Beta pi ot) (just tp) = 
   get-ctxt (λ Γ → 
    var-spans-optTerm ot ≫span
-   spanM-add (Beta-span pi (optTerm-end-pos pi ot) checking (error-data "The expected type is not an equation." :: [ expected-type Γ tp ])))
+   spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot) checking (error-data "The expected type is not an equation." :: [ expected-type Γ tp ])))
 
 check-termi (Beta pi ot) nothing = 
   var-spans-optTerm ot ≫span

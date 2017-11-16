@@ -341,7 +341,7 @@ conv-cmd Γ ll ss is sp fn lc with string-to-ℕ sp | string-to-nt ll
 ...| _ | nothing = parse-error-message ll "language-level"
 
 {- BR Initialization -}
-
+{-
 unqualif-var : var → var
 unqualif-term : term → term
 unqualif-kind : kind → kind
@@ -441,10 +441,10 @@ unqualif-maybeAtype (Atype T) = Atype (unqualif-type T)
 unqualif-maybeAtype NoAtype = NoAtype
 
 unqualif-maybeCheckType (Type T) = Type (unqualif-type T)
-unqualif-maybeCheckType NoCheckType = NoCheckType
+unqualif-maybeCheckType NoCheckType = NoCheckType-}
 
 {-----------------------------------------------------------}
-
+{-
 unqualif-defParams (just pms) = just (unqualif-params pms)
 unqualif-defParams nothing = nothing
 
@@ -473,7 +473,7 @@ unqualif-is is = unqualif-is-h (trie-mappings is) empty-trie
 -- Erase everything and unqualify all variables
 init-br : ctxt → ctxt
 init-br (mk-ctxt (fn , pms , q) ss is os) = mk-ctxt (fn , pms , empty-trie) ss (unqualif-is is) os
-
+-}
 
 {- Commands -}
 
@@ -483,8 +483,8 @@ interactive-return (str , ff) = putStrLn ("§" ^ (escape-string str))
 
 interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
 interactive-cmd-h : ctxt → 𝕃 string → string × 𝔹
-interactive-cmd ("initBR" :: []) (mk-toplevel-state f1 f2 f3 f4 f5 Γ) = putStrLn "initBR" >>
-  return (mk-toplevel-state f1 f2 f3 f4 f5 (init-br Γ))
+-- interactive-cmd ("initBR" :: []) (mk-toplevel-state f1 f2 f3 f4 f5 Γ) = putStrLn "initBR" >>
+--  return (mk-toplevel-state f1 f2 f3 f4 f5 (init-br Γ))
 interactive-cmd ls ts = interactive-return (interactive-cmd-h (toplevel-state.Γ ts) ls) >>
   return ts
 
