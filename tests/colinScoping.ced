@@ -1,0 +1,38 @@
+% Yes, this is a lazy (in the non-programming sense of the word) to get tail
+cList ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . (A ➔ X ➔ X) ➔ (A ➔ X ➔ X) ➔ X ➔ X .
+
+cNil ◂ ∀ A : ★ . cList · A = Λ A . Λ X . λ c . λ c' . λ n . n .
+
+cCons ◂ ∀ A : ★ . A ➔ cList · A ➔ cList · A =
+  Λ A . λ h . λ t . Λ X . λ c . λ c' . λ n . c h (t · X c' c' n) .
+
+cListParametric ◂ Π A : ★ . cList · A ➔ ★ =
+  λ A : ★ . λ l : cList · A . ∀ X : ★ . ∀ Q : X ➔ ★ .
+    ∀ cons : A ➔ X ➔ X . ∀ cons' : A ➔ X ➔ X . ∀ nil : X .
+     (Π h : A . ∀ t : X . Q t ➔ Q (cons h t)) ➔
+       (Π h : A . ∀ t : X . Q t ➔ Q (cons' h t)) ➔ Q nil ➔ Q (l · X cons cons' nil) .
+
+List ◂ ★ ➔ ★ = λ A : ★ . ι x : cList · A .
+  ι _ : x cCons cCons cNil ≃ x . cListParametric · A x .
+
+Nil ◂ ∀ A : ★ . List · A = Λ A . [ cNil · A ,
+  [ β{cNil} , Λ Q . Λ Q . Λ cons . Λ cons' . Λ nil . λ c . λ c' . λ n . n ] ].
+
+Cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
+  Λ A . λ h . λ t .
+    [ cCons · A h t.1 ,
+    [ ε ρ t.2.1 - β{cCons h t} ,
+      Λ X . Λ Q . Λ cons . Λ cons' . Λ nil . λ c . λ c' . λ n .
+        c h -(t.1 · X cons' cons' nil) (t.2.2 · X · Q -cons' -cons' -nil c' c' n) ] ].
+
+% It appears that this is being used below even when there is a Λ P.
+% If you comment this out, the code below will work.
+P ◂ ∀ A : ★ . List · A = Λ A . Nil · A .
+
+ListInd ◂ ∀ A : ★ . Π l : List · A .
+          ∀ P : List · A ➔ ★ .
+          (Π h : A . ∀ t : List · A . P t ➔ P (Cons · A h t)) ➔
+          P (Nil · A) ➔
+          P l = Λ A . λ l . Λ P . λ c . λ n .
+            % It looks like Λ P isn't shadowing the global P...
+	    ρ ς l.2.1 - (l.2.2 · (List · A) · P -(Cons · A) -(Cons · A) -(Nil · A) c c n) .
