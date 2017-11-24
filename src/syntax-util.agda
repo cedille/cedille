@@ -12,6 +12,9 @@ first-position = "1"
 dummy-var : var
 dummy-var = "_dummy"
 
+id-term : term
+id-term = Lam posinfo-gen KeptLambda posinfo-gen "x" NoClass (Var posinfo-gen "x")
+
 qualif-info : Set
 qualif-info = var × args
 
@@ -454,7 +457,7 @@ erase-term (Let _ (DefType _ _ _ _) t) = erase-term t
 erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
 erase-term (Unfold _ t) = erase-term t
 erase-term (Var pi x) = Var pi x
-erase-term (Beta pi NoTerm) = Beta pi NoTerm
+erase-term (Beta pi NoTerm) = id-term
 erase-term (Beta pi (SomeTerm t _)) = erase-term t
 erase-term (Delta pi t) = Beta pi NoTerm -- we need to erase the body t, so just use Beta as the name for any erased proof
 erase-term (Omega pi t) = erase-term t

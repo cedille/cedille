@@ -3,9 +3,4 @@ cZ ◂ cNat = Λ X . λ z . λ s . z .
 cS ◂ ∀ A : ★ . (A ➔ cNat) ➔ A ➔ cNat =
   Λ A . λ e . λ d . Λ X . λ z . λ s . s · A (λ a . e a · X z s) d .
 
-rebuild ◂ cNat ➔ cNat = λ n . n · cNat cZ cS .
-
-test1 ◂ cNat = cS · cNat (λ p . p) cZ.
-test2 ◂ cNat = rebuild test1.
-test3 ◂ cNat = rebuild test2.
 

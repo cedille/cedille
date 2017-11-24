@@ -26,8 +26,8 @@ Nat ◂ ★ = ι x : Nat' . Ind' x .
 Z ◂ Nat = [ Z', Λ Q . λ z . λ s . z ] .
 S ◂ Nat ➔ Nat = λ n . [ S' n.1, Λ Q . λ z . λ s . s n.1 (n.2  · Q z s) ] .
 
-Ind ◂ ∀ Q : Nat ➔ ★ . Q Z ➔ (Π m : Nat . Q m ➔ Q (S m)) ➔ Π n : Nat . Q n =
-  Λ Q . λ z . λ s . λ n .
+Ind ◂ Π n : Nat . ∀ Q : Nat ➔ ★ . Q Z ➔ (Π m : Nat . Q m ➔ Q (S m)) ➔ Q n =
+  λ n . Λ Q . λ z . λ s . 
     n.2 · (λ x : Nat' . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
       (Λ X . λ c . c Z β z)
       (λ n' . λ ih . Λ X . λ c . ih · X (λ n'' . λ e . λ u . c (S n'') (ρ e - β) (s n'' u)))
@@ -39,7 +39,7 @@ Nat'Out ◂ Nat' ➔ (NatF · Nat') = cast · Nat' · (NatF · Nat') -(recOut ·
 
  
 pred ◂ Nat ➔ Nat = 
-   Ind · (λ _ : Nat. Nat) Z (λ p. λ n. p) .
+   λ n . Ind n · (λ _ : Nat. Nat) Z (λ p. λ n. p) .
 
 % Denis: does not follow by beta :(
 predlemma ◂ Π n : Nat . pred (S n) ≃ n = λ n. ε ●  .

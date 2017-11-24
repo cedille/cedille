@@ -2,13 +2,14 @@ import false.
 import trm.
 import hastp.
 import tp.
+import tpfun.
 import top.
 import nat.
 
-tpinf ◂ ∀ B : Nat ➔ ★ .
+tpinf ◂ ∀ B : ★ .
         Π compileFail : False .
-        Π t : trm . Π T : tp .
+        Π t : trm . Π T : Tp .
           hastp (interp t.1) · (interpTp · B T) =
    Λ B . λ compileFail . λ t . 
-     t.2 · Top · (λ x : Top . Π T : tp . hastp x · (interpTp · B T)) -(λ f . β{f})
+     t.2 · Top · (λ x : Top . Π T : Tp . hastp x · (interpTp · B T)) -(λ f . β{f})
         (Λ f . λ r . λ T . ●).

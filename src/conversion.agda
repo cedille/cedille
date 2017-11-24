@@ -106,6 +106,7 @@ hnf{TERM} Γ u (Rho pi _ t t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (App*' t (erase-lterms u' ls)) hd
 hnf{TERM} Γ u (Beta _ (SomeTerm t _)) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Beta _ NoTerm) hd = id-term
 hnf{TERM} Γ u x hd = x
 
 hnf{TYPE} Γ no-unfolding e _ = e
