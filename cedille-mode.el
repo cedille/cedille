@@ -405,7 +405,8 @@ in the parse tree, and updates the Cedille info buffer."
   (se-mode-clear-selected)
   (remove-overlays)
   (se-navigation-mode-quit)
-  (setq se-mode-parse-tree nil))
+  (setq se-mode-parse-tree nil
+	cedille-mode-error-spans nil))
 
 (defun cedille-mode-get-matching-variable-nodes(node)
   "Returns list of all nodes containing variables matching the one in the input node (if any). Matching is determined by location attribute"
@@ -453,6 +454,7 @@ in the parse tree, and updates the Cedille info buffer."
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node and returns list of nodes"
   (remove-overlays) ;delete all existing overlays
+  (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
   (if se-mode-selected
       (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
 	(dolist (node matching-nodes)
@@ -570,6 +572,7 @@ in the parse tree, and updates the Cedille info buffer."
   (add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
+  (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-modify-response 'cedille-mode-modify-response)

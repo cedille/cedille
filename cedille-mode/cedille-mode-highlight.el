@@ -80,8 +80,8 @@
     (remove-overlays (point-min) (point-max) 'help-echo "error")
     (remove-overlays (point-min) (point-max) 'help-echo "hole")
     (overlay-recenter (point-max))
-    (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
-    (cedille-mode-highlight-hole-overlay cedille-mode-error-spans)))
+    (cedille-mode-highlight-error-overlay cedille-mode-error-spans)))
+    ;(cedille-mode-highlight-hole-overlay cedille-mode-error-spans)))
 
 
 (defun cedille-mode-highlight-span (span)

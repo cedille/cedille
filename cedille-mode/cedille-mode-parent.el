@@ -108,7 +108,7 @@
     (when (and mark-active pin)
       (setq data (se-pin-item-data (car pin))
 	    filename (cdr (assoc "filename" data))
-	    pos (string-to-number (cdr (assoc "pos"  data))))
+	    pos (string-to-number (cdr (assoc "pos" data))))
       (select-window (cedille-mode-parent-main-window))
       (setq past (car cedille-mode-browsing-history)
 	    present (buffer-file-name))

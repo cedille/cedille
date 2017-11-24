@@ -271,9 +271,9 @@ which currently consists of:\n
 		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) ; number of symbols shadowed by this one
 			   (data (list 
 				  (cons 'value value-source) 		; the value displayed for the entry
-				  (cons 'bound-value bound-value) ; the bound value of the variable (only used in let expressions)
+				  (cons 'bound-value bound-value)       ; the bound value of the variable (only used in let expressions)
 				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
-				  (cons 'location location)             ; the location of the definition; used in other files, but not this one (added by Colin McDonald for normalization/erasure tool)
+				  (cons 'location location)             ; the location of the definition; used in other files, but not this one
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
 		      
 		      (set q-lst (cons (cons symbol data) (eval q-lst)))))))
@@ -328,6 +328,9 @@ which currently consists of:\n
 			      (let* ((symbol (car pair))
 				     (matches (lambda (thispair) (equal (car thispair) symbol))))
 				(setq shadowed-lst (cons pair (remove-if matches shadowed-lst))))))))
+	 (loc-prop (lambda (sym loc)
+		     (let ((split (split-string loc " - ")))
+		       (se-pin-data 1 (length sym) 'location (list (cons "filename" (car split)) (cons "pos" (cadr split))) sym))))
 	 ;; format symbol-value pairs for display
 	 (format (lambda (pair)
 		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)
@@ -339,7 +342,8 @@ which currently consists of:\n
 			  (fsymbol (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") symbol))
 			  ;; hide types and kinds in whiteout list
 			  (fdata (unless (member pair hidden-lst) (cdr (assoc 'value data))))
-			  (text (concat fsymbol ":\t" fdata))
+			  (floc (cdr (assoc 'location data)))
+			  (text (concat (funcall loc-prop fsymbol floc) ":\t" fdata))
 			  (shadow-c cedille-mode-context-shadowed-color)
 			  (color (when is-shadowed-p shadow-c)))
 		     ;; output is an association list detailing the formatting for the given line

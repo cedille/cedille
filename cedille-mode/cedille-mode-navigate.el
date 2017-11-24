@@ -1,6 +1,5 @@
 ;;; Contains the jump function and history navigation functions
 
-
 (defun cedille-mode-jump()
   "Jumps to a location associated with the selected node"
   (interactive)  
@@ -14,19 +13,25 @@
 		    (f (car ls))
 		    (n (string-to-number (cadr ls)))
 		    (missing (string= "missing" f))
-		    (b (if missing (current-buffer) (find-file f)))
+		    (not-exists (not (file-exists-p f)))
+		    (b (if (or missing not-exists) (current-buffer) (find-file f)))
 		    (timeline cedille-mode-browsing-history)
 		    (past (car cedille-mode-browsing-history))
 		    (present this-file))
-	       (setq cedille-mode-browsing-history (cons (cons present past) nil))
-	       (with-current-buffer b (goto-char n) (unless missing (se-navigation-mode))))
+	       (if not-exists
+		   (message "No location at this node")
+		 (with-current-buffer b
+		   (goto-char n)
+		   (unless missing
+		     (setq cedille-mode-browsing-history (cons (cons present past) nil))
+		     (se-navigation-mode)))
+		 ;;; If the mark is active, we are jumping within the buffer. This prevents
+                 ;;; a region from being selected.
+		 (when mark-active
+		   (exchange-point-and-mark 1)
+		   (set-mark-command 1))))
 	   (message "No location at this node")))
-    (message "No node selected"))
-  ;;; If the mark is active, we are jumping within the buffer. This prevents
-  ;;; a region from being selected.
-  (when mark-active
-    (exchange-point-and-mark 1)
-    (set-mark-command 1)))
+    (message "No node selected")))
 
 (defmacro make-cedille-mode-history-navigate(fwd-p jmp-p)
   "Generates a function for navigating history. fwd-p determines whether the function

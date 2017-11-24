@@ -247,10 +247,8 @@ checkFile s filename should-print-spans =
                   (if make-rkt then (write-rkt-file f (toplevel-state.Γ s)) else (return triv)) >>
                   writeo us
 
-
--- ctxt-to-string : ctxt → string
--- ctxt-to-string (mk-ctxt (mod , prms , qual) syms i sym-occs) = "Mod name: " ^ mod ^ ", syms: {" ^ (trie-to-string ", " (λ x → 𝕃-to-string (λ x → x) " " x) syms) ^ "}"
-
+remove-dup-include-paths : 𝕃 string → 𝕃 string
+remove-dup-include-paths l = stringset-strings (stringset-insert* empty-stringset l)
 
 -- this is the function that handles requests (from the frontend) on standard input
 {-# TERMINATING #-}
@@ -273,7 +271,7 @@ readCommandsFromFrontend s =
 
             checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
             checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
-                        checkFile (set-include-path s (takeDirectory input-filename :: toplevel-state.include-path s))
+                        checkFile (set-include-path s (remove-dup-include-paths (takeDirectory input-filename :: toplevel-state.include-path s)))
                         input-filename tt {- should-print-spans -}
             checkCommand ls s = errorCommand ls s
             

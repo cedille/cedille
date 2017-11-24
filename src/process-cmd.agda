@@ -137,7 +137,7 @@ process-cmds (mk-toplevel-state use-cede make-rkt include-path files is Γ) (Cmd
                                     (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset))-} Γ)
                                 c need-to-check ≫=span
                                 λ s → process-cmds s cs need-to-check
-process-cmds s CmdsStart need-to-check = spanMr s
+process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
 
 process-start s filename (File pi cs pi') need-to-check = 
   process-cmds s cs need-to-check ≫=span λ s → 
