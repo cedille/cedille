@@ -103,11 +103,11 @@ params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p
 params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
 qualif-insert-params : qualif → var → var → params → qualif
-qualif-insert-params σ fn v ps = trie-insert σ v (fn # v , params-to-args ps)
+qualif-insert-params σ mn v ps = trie-insert σ v (mn # v , params-to-args ps)
 
 qualif-insert-import : qualif → var → 𝕃 string → args → qualif
-qualif-insert-import σ fn [] as = σ
-qualif-insert-import σ fn (v :: vs) as = qualif-insert-import (trie-insert σ v (fn # v , as)) fn vs as
+qualif-insert-import σ mn [] as = σ
+qualif-insert-import σ mn (v :: vs) as = qualif-insert-import (trie-insert σ v (mn # v , as)) mn vs as
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
@@ -530,10 +530,20 @@ num-to-ℕ n with string-to-ℕ n
 num-to-ℕ _ | just n = n
 num-to-ℕ _ | _ = 0
 
+imps-to-cmds : imports → cmds
+imps-to-cmds ImportsStart = CmdsStart
+imps-to-cmds (ImportsNext i is) = CmdsNext (ImportCmd i) (imps-to-cmds is)
+
+-- TODO handle qualif & module args
 get-imports : start → 𝕃 string
-get-imports (File _ cs _) = get-imports-cmds cs
-  where singleton-if-include : cmd → 𝕃 string
-        singleton-if-include (Import _ x _) = [ x ]
+get-imports (File _ is mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
+  where import-to-include : imprt → string
+        import-to-include (Import _ x oa _ _) = x
+        imports-to-include : imports → 𝕃 string
+        imports-to-include ImportsStart = []
+        imports-to-include (ImportsNext x is) = import-to-include x :: imports-to-include is
+        singleton-if-include : cmd → 𝕃 string
+        singleton-if-include (ImportCmd imp) = [ import-to-include imp ]
         singleton-if-include _ = []
         get-imports-cmds : cmds → 𝕃 string
         get-imports-cmds (CmdsNext c cs) = singleton-if-include c ++ get-imports-cmds cs
@@ -588,3 +598,5 @@ ie-eq Exists Exists = tt
 ie-eq Exists Iota = ff
 ie-eq Iota Exists = ff
 ie-eq Iota Iota = tt
+
+

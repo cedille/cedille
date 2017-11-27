@@ -39,11 +39,17 @@ trie-cal-any f ((c , t) :: cs) = trie-any f t || trie-cal-any f cs
 trie-lookup𝕃 : ∀ {A : Set} → trie (𝕃 A) → string → 𝕃 A
 trie-lookup𝕃 t s = trie-lookupd t s []
 
+trie-lookup𝕃2 : ∀ {A : Set} → trie (string × 𝕃 A) → string → string × 𝕃 A
+trie-lookup𝕃2 t s = trie-lookupd t s ("[nomod]" , [])
+
 trie-lookup-string : trie string → string → string
 trie-lookup-string t s = trie-lookupd t s "[not-found]"
 
 trie-insert-append : ∀ {A : Set} → trie (𝕃 A) → string → A → trie (𝕃 A)
 trie-insert-append t s a = trie-insert t s (a :: (trie-lookup𝕃 t s))
+
+trie-insert-append2 : ∀ {A : Set} → trie (string × 𝕃 A) → string → string → A → trie (string × 𝕃 A)
+trie-insert-append2 t s mn a = trie-insert t s (mn , (a :: snd (trie-lookup𝕃2 t s)))
 
 trie-fill : ∀{A : Set} → trie A → 𝕃 (string × A) → trie A
 trie-fill t ((s , a) :: vs) = trie-fill (trie-insert t s a) vs

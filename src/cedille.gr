@@ -6,9 +6,20 @@ start
 
 Syntactic
 
-File : start -> ! ows cmds ows ! .
+File : start -> ! ows imports 'module' ws qvar ows params ows '.' ows cmds ows ! .
+
+Import : imprt -> ! 'import' ws fpth optAs args ows '.' ! .
+
+NoOptAs : optAs -> .
+SomeOptAs : optAs -> ows 'as' ws var .
+
+ImportsStart : imports -> .
+ImportsNext : imports -> imprt ows imports .
+
 CmdsStart : cmds -> .
 CmdsNext : cmds -> cmd ws cmds .
+
+ImportCmd : cmd -> imprt .
 
 Type : maybeCheckType -> ows '◂' ows type .
 NoCheckType : maybeCheckType -> .
@@ -22,9 +33,7 @@ DefType : defTermOrType -> ! var ows '◂' ows kind ows '=' ows type.
 DefTermOrType : cmd -> defTermOrType ows '.' ! .
 DefKind : cmd -> ! kvar params ows '=' ows kind ows '.' ! .
 
-Decl : decl -> ! '(' ows ! var ows ':' ows tk ows ')' !.
-
-Import : cmd -> ! 'import' ws fpth ows '.'! .
+Decl : decl -> ! '(' ows ! bvar ows ':' ows tk ows ')' !.
 
 Left : leftRight -> 'l'.
 Right : leftRight -> 'r'.
@@ -43,7 +52,7 @@ RhoPlus : rho -> 'ρ+' .
 NoTerm : optTerm -> .
 SomeTerm : optTerm -> ows '{' ows term ows '}' ! .
 
-Lam : term -> ! lam ows ! var optClass ows '.' ows term .
+Lam : term -> ! lam ows ! bvar optClass ows '.' ows term .
 Let : term -> ! 'let' ws defTermOrType ws 'in' ws term .
 Unfold : term -> ! 'υ' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
@@ -60,7 +69,7 @@ Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! rho ows lterm ows '-' ows lterm.
 Chi : lterm -> ! 'χ' maybeAtype ows '-' ows lterm.
 embed : lterm -> pterm .
-Var : pterm -> ! var .
+Var : pterm -> ! qvar .
 Parens : pterm -> ! '(' ows term ows ')' ! . 
 IotaProj : pterm -> pterm ows '.' ows num ! .
 IotaPair : pterm -> ! '[' ows term ows ',' ows term optTerm ows ']' ! .
@@ -87,13 +96,13 @@ SomeType : optType -> ows ':' ows type .
 ErasedLambda : lam -> 'Λ' .
 KeptLambda : lam -> 'λ' .
 
-Abs : type -> ! binder ows ! var ows ':' ows tk ows '.' ows type .
-TpLambda : type -> ! 'λ' ows ! var ows ':' ows tk ows '.' ows type .
+Abs : type -> ! binder ows ! bvar ows ':' ows tk ows '.' ows type .
+TpLambda : type -> ! 'λ' ows ! bvar ows ':' ows tk ows '.' ows type .
 
 Iota : ie -> 'ι' .
 Exists : ie -> '∃'.
 
-IotaEx : type -> ! ie ows ! var optType ows '.' ows type .
+IotaEx : type -> ! ie ows ! bvar optType ows '.' ows type .
 TpArrow : type -> ltype ows arrowtype ows type.
 ErasedArrow: arrowtype -> '➾'.
 UnerasedArrow: arrowtype -> '➔'.
@@ -105,7 +114,7 @@ Lft : ltype -> ! '↑' ows ! var ows '.' ows term ows ':' ows lliftingType .
 TpParens : atype -> ! '(' ows type ows ')' !.
 TpApp : ltype -> ltype ws '·' ws atype.
 TpAppt : ltype -> ltype ws lterm.
-TpVar : atype -> ! var.
+TpVar : atype -> ! qvar.
 embed : ltype -> atype.
 TpEq : type -> term ows '≃' ows term .
 TpHole: atype -> ! '●' .
@@ -115,15 +124,15 @@ TypeArg : arg -> ows '·' ws atype.
 ArgsCons : args -> arg args.
 ArgsNil : args -> ! .
 
-KndPi : kind -> ! 'Π' ows ! var ows ':' ows tk ows '.' ows kind .
+KndPi : kind -> ! 'Π' ows ! bvar ows ':' ows tk ows '.' ows kind .
 KndArrow : kind -> kind ows '➔' ows kind .
 KndTpArrow : kind -> ltype ows '➔' ows kind .
 Star : kind -> ! '★'.
 KndParens : kind -> ! '(' ows kind ows ')' !.
-KndVar : kind -> ! kvar args.
+KndVar : kind -> ! qkvar args.
 
 LiftStar : lliftingType -> ! '☆'. 
-LiftPi : liftingType -> ! 'Π' ows var ows ':' ows type ows '.' ows liftingType .
+LiftPi : liftingType -> ! 'Π' ows bvar ows ':' ows type ows '.' ows liftingType .
 LiftArrow : liftingType -> liftingType ows '➔' ows liftingType.
 LiftTpArrow : liftingType -> type ows '➔' ows liftingType.
 LiftParens : lliftingType -> ! '(' ows liftingType ows ')' !.
@@ -144,10 +153,19 @@ num -> numone+.
 
 numpunct -> numone | quote | '-' | '~' | '#' | '_'.
 
-var -> '_' | (alpha (alpha | numpunct)*) .
+qvar -> var .
+qvar -> var '.' qvar .
+
+var -> (alpha (alpha | numpunct)*).
+bvar -> '_' | var .
+
 fpth -> (alpha | ('../'+)) (alpha | numpunct | '/')* .
 
+qkvar -> kvar .
+qkvar -> var '.' qkvar .
+
 kvar -> '𝒌' (alpha | numpunct)*.
+
 otherpunct => '|' | '□' | 'Π' | 'ι' | 'λ' | '∀' | 'π' | '★' | '☆' | '·' | '⇐' | '➔' | '➾' | '↑' | '●' | '(' | ')' | ':' | '.'
             | '[' | ']' | ',' | '!' | '{' | '}' | '⇒' | '?' | 'Λ' | 'ρ' | 'ε' | 'β' | '-' | '𝒌' | '=' | 'ς' | 'θ' | '+' | '<'
             | '>' | '≃' | '\"' | 'δ' | 'χ' | 'μ' | 'υ' | 'φ' | '◂' | 'ω'.

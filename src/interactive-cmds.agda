@@ -289,7 +289,7 @@ erase-prompt Γ input fn with pretty-string-h (string-to-𝕃char input) []
 {- Beta reduction -}
 
 br-spans : spanM ⊤ → string × 𝔹
-br-spans sM with snd (snd (sM (new-ctxt "") (regular-spans [])))
+br-spans sM with snd (snd (sM (new-ctxt "" "") (regular-spans [])))
 ...| global-error error ms = error , ff
 ...| ss = spans-to-string ss , tt
 

@@ -77,7 +77,7 @@ rkt-erase (mk-ctxt _ syms i sym-occurences) ced-path
           (reverse (drop-nothing
           (map (λ name → maybe-map (λ sinfo → name , sinfo)
                (trie-lookup i name))
-          (trie-lookup𝕃 syms ced-path)))))
+          (snd (trie-lookup𝕃2 syms ced-path))))))
 
 -- Erases the ced file at the given ced-path,
 -- producing a .rkt file in a .racket subdirectory

@@ -387,7 +387,7 @@ error-if-not-eq-maybe _ _ tvs = tvs
 
 Rec-span : posinfo → posinfo → kind → span
 Rec-span pi pi' k = mk-span "Recursive datatype definition" pi pi' 
-                      (kind-data (new-ctxt "") k
+                      (kind-data (new-ctxt "" "") k
                     :: [])
 
 Star-name : string

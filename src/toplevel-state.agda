@@ -80,7 +80,7 @@ record toplevel-state : Set where
 
 new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : 𝔹) → (should-make-rkt-files : 𝔹)  → toplevel-state
 new-toplevel-state ip should-use-cede-files should-make-rkt-files = record { use-cede-files = should-use-cede-files ; make-rkt-files = should-make-rkt-files ; include-path = ip ;
-                                                                             files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" }
+                                                                             files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
                                                                              
 toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
 toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
@@ -121,7 +121,7 @@ include-elt-to-string ie =
     " "
 
 eΓ : ctxt
-eΓ = new-ctxt ""
+eΓ = new-ctxt "" ""
 
 params-to-string : params → string
 params-to-string ParamsNil = ""
@@ -131,8 +131,9 @@ defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string pms
 defParams-to-string nothing = ""
 
-syms-to-string : trie (𝕃 string) → string
-syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s) ", " l) ^ "}")
+-- TODO also print modname?
+syms-to-string : trie (string × 𝕃 string) → string
+syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s) ", " (snd l)) ^ "}")
 
 ctxt-info-to-string : ctxt-info → string
 ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ (type-to-string eΓ tt tp) ^ "}"
@@ -157,7 +158,7 @@ sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
 sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
 
 mod-info-to-string : mod-info → string
-mod-info-to-string (fn , pms , q) = "filename: " ^ fn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " (qualif-to-string (new-ctxt "")) q) ^ "}"
+mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " (qualif-to-string (new-ctxt "" "")) q) ^ "}"
 
 ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt mi ss is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
@@ -181,8 +182,8 @@ check-redefined pi x s c =
 
 scope-imports : toplevel-state → string → toplevel-state
 scope-imports s import-fn with toplevel-state.Γ s
-... | mk-ctxt (fn , ps , q) syms i symb-occs with trie-lookup syms import-fn
+... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup syms import-fn
 ... | nothing = s
-... | just vs = let q' = qualif-insert-import q import-fn vs (ArgsNil posinfo-gen) in
-  record s { Γ = mk-ctxt (fn , ps , q') syms i symb-occs }
+... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn vs (ArgsNil posinfo-gen) in
+  record s { Γ = mk-ctxt (fn , mn , ps , q') syms i symb-occs }
 

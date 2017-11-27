@@ -12,6 +12,8 @@ alpha = string
 alpha-bar-3 = string
 alpha-range-1 = string
 alpha-range-2 = string
+bvar = string
+bvar-bar-13 = string
 fpth = string
 fpth-bar-15 = string
 fpth-bar-16 = string
@@ -31,9 +33,10 @@ numpunct-bar-6 = string
 numpunct-bar-7 = string
 numpunct-bar-8 = string
 numpunct-bar-9 = string
+qkvar = string
+qvar = string
 var = string
 var-bar-11 = string
-var-bar-13 = string
 var-star-12 = string
 
 mutual
@@ -57,14 +60,14 @@ mutual
   data cmd : Set where 
     DefKind : posinfo → kvar → params → kind → posinfo → cmd
     DefTermOrType : defTermOrType → posinfo → cmd
-    Import : posinfo → fpth → posinfo → cmd
+    ImportCmd : imprt → cmd
 
   data cmds : Set where 
     CmdsNext : cmd → cmds → cmds
     CmdsStart : cmds
 
   data decl : Set where 
-    Decl : posinfo → posinfo → var → tk → posinfo → decl
+    Decl : posinfo → posinfo → bvar → tk → posinfo → decl
 
   data defTermOrType : Set where 
     DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
@@ -74,12 +77,19 @@ mutual
     Exists : ie
     Iota : ie
 
+  data imports : Set where 
+    ImportsNext : imprt → imports → imports
+    ImportsStart : imports
+
+  data imprt : Set where 
+    Import : posinfo → fpth → optAs → args → posinfo → imprt
+
   data kind : Set where 
     KndArrow : kind → kind → kind
     KndParens : posinfo → kind → posinfo → kind
-    KndPi : posinfo → posinfo → var → tk → kind → kind
+    KndPi : posinfo → posinfo → bvar → tk → kind → kind
     KndTpArrow : type → kind → kind
-    KndVar : posinfo → kvar → args → kind
+    KndVar : posinfo → qkvar → args → kind
     Star : posinfo → kind
 
   data lam : Set where 
@@ -94,7 +104,7 @@ mutual
   data liftingType : Set where 
     LiftArrow : liftingType → liftingType → liftingType
     LiftParens : posinfo → liftingType → posinfo → liftingType
-    LiftPi : posinfo → var → type → liftingType → liftingType
+    LiftPi : posinfo → bvar → type → liftingType → liftingType
     LiftStar : posinfo → liftingType
     LiftTpArrow : type → liftingType → liftingType
 
@@ -118,6 +128,10 @@ mutual
     EpsHanf : maybeMinus
     EpsHnf : maybeMinus
 
+  data optAs : Set where 
+    NoOptAs : optAs
+    SomeOptAs : var → optAs
+
   data optClass : Set where 
     NoClass : optClass
     SomeClass : tk → optClass
@@ -139,7 +153,7 @@ mutual
     RhoPlus : rho
 
   data start : Set where 
-    File : posinfo → cmds → posinfo → start
+    File : posinfo → imports → qvar → params → cmds → posinfo → start
 
   data term : Set where 
     App : term → maybeErased → term → term
@@ -151,7 +165,7 @@ mutual
     Hole : posinfo → term
     IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
-    Lam : posinfo → lam → posinfo → var → optClass → term → term
+    Lam : posinfo → lam → posinfo → bvar → optClass → term → term
     Let : posinfo → defTermOrType → term → term
     Omega : posinfo → term → term
     Parens : posinfo → term → posinfo → term
@@ -160,7 +174,7 @@ mutual
     Sigma : posinfo → term → term
     Theta : posinfo → theta → term → lterms → term
     Unfold : posinfo → term → term
-    Var : posinfo → var → term
+    Var : posinfo → qvar → term
 
   data theta : Set where 
     Abstract : theta
@@ -172,8 +186,8 @@ mutual
     Tkt : type → tk
 
   data type : Set where 
-    Abs : posinfo → binder → posinfo → var → tk → type → type
-    IotaEx : posinfo → ie → posinfo → var → optType → type → type
+    Abs : posinfo → binder → posinfo → bvar → tk → type → type
+    IotaEx : posinfo → ie → posinfo → bvar → optType → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
     NoSpans : type → posinfo → type
     TpApp : type → type → type
@@ -181,9 +195,9 @@ mutual
     TpArrow : type → arrowtype → type → type
     TpEq : term → term → type
     TpHole : posinfo → type
-    TpLambda : posinfo → posinfo → var → tk → type → type
+    TpLambda : posinfo → posinfo → bvar → tk → type → type
     TpParens : posinfo → type → posinfo → type
-    TpVar : posinfo → var → type
+    TpVar : posinfo → qvar → type
 
   data vars : Set where 
     VarsNext : var → vars → vars
@@ -213,6 +227,8 @@ data ParseTreeT : Set where
   parsed-decl : decl → ParseTreeT
   parsed-defTermOrType : defTermOrType → ParseTreeT
   parsed-ie : ie → ParseTreeT
+  parsed-imports : imports → ParseTreeT
+  parsed-imprt : imprt → ParseTreeT
   parsed-kind : kind → ParseTreeT
   parsed-lam : lam → ParseTreeT
   parsed-leftRight : leftRight → ParseTreeT
@@ -222,6 +238,7 @@ data ParseTreeT : Set where
   parsed-maybeCheckType : maybeCheckType → ParseTreeT
   parsed-maybeErased : maybeErased → ParseTreeT
   parsed-maybeMinus : maybeMinus → ParseTreeT
+  parsed-optAs : optAs → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
   parsed-optTerm : optTerm → ParseTreeT
   parsed-optType : optType → ParseTreeT
@@ -244,6 +261,8 @@ data ParseTreeT : Set where
   parsed-alpha-bar-3 : alpha-bar-3 → ParseTreeT
   parsed-alpha-range-1 : alpha-range-1 → ParseTreeT
   parsed-alpha-range-2 : alpha-range-2 → ParseTreeT
+  parsed-bvar : bvar → ParseTreeT
+  parsed-bvar-bar-13 : bvar-bar-13 → ParseTreeT
   parsed-fpth : fpth → ParseTreeT
   parsed-fpth-bar-15 : fpth-bar-15 → ParseTreeT
   parsed-fpth-bar-16 : fpth-bar-16 → ParseTreeT
@@ -263,9 +282,10 @@ data ParseTreeT : Set where
   parsed-numpunct-bar-7 : numpunct-bar-7 → ParseTreeT
   parsed-numpunct-bar-8 : numpunct-bar-8 → ParseTreeT
   parsed-numpunct-bar-9 : numpunct-bar-9 → ParseTreeT
+  parsed-qkvar : qkvar → ParseTreeT
+  parsed-qvar : qvar → ParseTreeT
   parsed-var : var → ParseTreeT
   parsed-var-bar-11 : var-bar-11 → ParseTreeT
-  parsed-var-bar-13 : var-bar-13 → ParseTreeT
   parsed-var-star-12 : var-star-12 → ParseTreeT
   parsed-anychar : ParseTreeT
   parsed-anychar-bar-68 : ParseTreeT
@@ -346,6 +366,10 @@ alpha-range-1ToString : alpha-range-1 → string
 alpha-range-1ToString x = "(alpha-range-1 " ^ x ^ ")"
 alpha-range-2ToString : alpha-range-2 → string
 alpha-range-2ToString x = "(alpha-range-2 " ^ x ^ ")"
+bvarToString : bvar → string
+bvarToString x = "(bvar " ^ x ^ ")"
+bvar-bar-13ToString : bvar-bar-13 → string
+bvar-bar-13ToString x = "(bvar-bar-13 " ^ x ^ ")"
 fpthToString : fpth → string
 fpthToString x = "(fpth " ^ x ^ ")"
 fpth-bar-15ToString : fpth-bar-15 → string
@@ -384,12 +408,14 @@ numpunct-bar-8ToString : numpunct-bar-8 → string
 numpunct-bar-8ToString x = "(numpunct-bar-8 " ^ x ^ ")"
 numpunct-bar-9ToString : numpunct-bar-9 → string
 numpunct-bar-9ToString x = "(numpunct-bar-9 " ^ x ^ ")"
+qkvarToString : qkvar → string
+qkvarToString x = "(qkvar " ^ x ^ ")"
+qvarToString : qvar → string
+qvarToString x = "(qvar " ^ x ^ ")"
 varToString : var → string
 varToString x = "(var " ^ x ^ ")"
 var-bar-11ToString : var-bar-11 → string
 var-bar-11ToString x = "(var-bar-11 " ^ x ^ ")"
-var-bar-13ToString : var-bar-13 → string
-var-bar-13ToString x = "(var-bar-13 " ^ x ^ ")"
 var-star-12ToString : var-star-12 → string
 var-star-12ToString x = "(var-star-12 " ^ x ^ ")"
 
@@ -413,14 +439,14 @@ mutual
   cmdToString : cmd → string
   cmdToString (DefKind x0 x1 x2 x3 x4) = "(DefKind" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (paramsToString x2) ^ " " ^ (kindToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   cmdToString (DefTermOrType x0 x1) = "(DefTermOrType" ^ " " ^ (defTermOrTypeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
-  cmdToString (Import x0 x1 x2) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  cmdToString (ImportCmd x0) = "(ImportCmd" ^ " " ^ (imprtToString x0) ^ ")"
 
   cmdsToString : cmds → string
   cmdsToString (CmdsNext x0 x1) = "(CmdsNext" ^ " " ^ (cmdToString x0) ^ " " ^ (cmdsToString x1) ^ ")"
   cmdsToString (CmdsStart) = "CmdsStart" ^ ""
 
   declToString : decl → string
-  declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
 
   defTermOrTypeToString : defTermOrType → string
   defTermOrTypeToString (DefTerm x0 x1 x2 x3) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ ")"
@@ -430,12 +456,19 @@ mutual
   ieToString (Exists) = "Exists" ^ ""
   ieToString (Iota) = "Iota" ^ ""
 
+  importsToString : imports → string
+  importsToString (ImportsNext x0 x1) = "(ImportsNext" ^ " " ^ (imprtToString x0) ^ " " ^ (importsToString x1) ^ ")"
+  importsToString (ImportsStart) = "ImportsStart" ^ ""
+
+  imprtToString : imprt → string
+  imprtToString (Import x0 x1 x2 x3 x4) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (optAsToString x2) ^ " " ^ (argsToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
   kindToString (KndParens x0 x1 x2) = "(KndParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (kindToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  kindToString (KndPi x0 x1 x2 x3 x4) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (kindToString x4) ^ ")"
+  kindToString (KndPi x0 x1 x2 x3 x4) = "(KndPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (kindToString x4) ^ ")"
   kindToString (KndTpArrow x0 x1) = "(KndTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (kindToString x1) ^ ")"
-  kindToString (KndVar x0 x1 x2) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (kvarToString x1) ^ " " ^ (argsToString x2) ^ ")"
+  kindToString (KndVar x0 x1 x2) = "(KndVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (qkvarToString x1) ^ " " ^ (argsToString x2) ^ ")"
   kindToString (Star x0) = "(Star" ^ " " ^ (posinfoToString x0) ^ ")"
 
   lamToString : lam → string
@@ -450,7 +483,7 @@ mutual
   liftingTypeToString : liftingType → string
   liftingTypeToString (LiftArrow x0 x1) = "(LiftArrow" ^ " " ^ (liftingTypeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
   liftingTypeToString (LiftParens x0 x1 x2) = "(LiftParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (liftingTypeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  liftingTypeToString (LiftPi x0 x1 x2 x3) = "(LiftPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (liftingTypeToString x3) ^ ")"
+  liftingTypeToString (LiftPi x0 x1 x2 x3) = "(LiftPi" ^ " " ^ (posinfoToString x0) ^ " " ^ (bvarToString x1) ^ " " ^ (typeToString x2) ^ " " ^ (liftingTypeToString x3) ^ ")"
   liftingTypeToString (LiftStar x0) = "(LiftStar" ^ " " ^ (posinfoToString x0) ^ ")"
   liftingTypeToString (LiftTpArrow x0 x1) = "(LiftTpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (liftingTypeToString x1) ^ ")"
 
@@ -474,6 +507,10 @@ mutual
   maybeMinusToString (EpsHanf) = "EpsHanf" ^ ""
   maybeMinusToString (EpsHnf) = "EpsHnf" ^ ""
 
+  optAsToString : optAs → string
+  optAsToString (NoOptAs) = "NoOptAs" ^ ""
+  optAsToString (SomeOptAs x0) = "(SomeOptAs" ^ " " ^ (varToString x0) ^ ")"
+
   optClassToString : optClass → string
   optClassToString (NoClass) = "NoClass" ^ ""
   optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
@@ -495,7 +532,7 @@ mutual
   rhoToString (RhoPlus) = "RhoPlus" ^ ""
 
   startToString : start → string
-  startToString (File x0 x1 x2) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (cmdsToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
+  startToString (File x0 x1 x2 x3 x4 x5) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (importsToString x1) ^ " " ^ (qvarToString x2) ^ " " ^ (paramsToString x3) ^ " " ^ (cmdsToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
 
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
@@ -507,7 +544,7 @@ mutual
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
+  termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Let x0 x1 x2) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (defTermOrTypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -516,7 +553,7 @@ mutual
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
   termToString (Unfold x0 x1) = "(Unfold" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
-  termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
+  termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (qvarToString x1) ^ ")"
 
   thetaToString : theta → string
   thetaToString (Abstract) = "Abstract" ^ ""
@@ -528,8 +565,8 @@ mutual
   tkToString (Tkt x0) = "(Tkt" ^ " " ^ (typeToString x0) ^ ")"
 
   typeToString : type → string
-  typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
-  typeToString (IotaEx x0 x1 x2 x3 x4 x5) = "(IotaEx" ^ " " ^ (posinfoToString x0) ^ " " ^ (ieToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (varToString x3) ^ " " ^ (optTypeToString x4) ^ " " ^ (typeToString x5) ^ ")"
+  typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
+  typeToString (IotaEx x0 x1 x2 x3 x4 x5) = "(IotaEx" ^ " " ^ (posinfoToString x0) ^ " " ^ (ieToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (optTypeToString x4) ^ " " ^ (typeToString x5) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
@@ -537,9 +574,9 @@ mutual
   typeToString (TpArrow x0 x1 x2) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (arrowtypeToString x1) ^ " " ^ (typeToString x2) ^ ")"
   typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpHole x0) = "(TpHole" ^ " " ^ (posinfoToString x0) ^ ")"
-  typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ ")"
+  typeToString (TpVar x0 x1) = "(TpVar" ^ " " ^ (posinfoToString x0) ^ " " ^ (qvarToString x1) ^ ")"
 
   varsToString : vars → string
   varsToString (VarsNext x0 x1) = "(VarsNext" ^ " " ^ (varToString x0) ^ " " ^ (varsToString x1) ^ ")"
@@ -555,6 +592,8 @@ ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
 ParseTreeToString (parsed-defTermOrType t) = defTermOrTypeToString t
 ParseTreeToString (parsed-ie t) = ieToString t
+ParseTreeToString (parsed-imports t) = importsToString t
+ParseTreeToString (parsed-imprt t) = imprtToString t
 ParseTreeToString (parsed-kind t) = kindToString t
 ParseTreeToString (parsed-lam t) = lamToString t
 ParseTreeToString (parsed-leftRight t) = leftRightToString t
@@ -564,6 +603,7 @@ ParseTreeToString (parsed-maybeAtype t) = maybeAtypeToString t
 ParseTreeToString (parsed-maybeCheckType t) = maybeCheckTypeToString t
 ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
+ParseTreeToString (parsed-optAs t) = optAsToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-optTerm t) = optTermToString t
 ParseTreeToString (parsed-optType t) = optTypeToString t
@@ -586,6 +626,8 @@ ParseTreeToString (parsed-alpha t) = alphaToString t
 ParseTreeToString (parsed-alpha-bar-3 t) = alpha-bar-3ToString t
 ParseTreeToString (parsed-alpha-range-1 t) = alpha-range-1ToString t
 ParseTreeToString (parsed-alpha-range-2 t) = alpha-range-2ToString t
+ParseTreeToString (parsed-bvar t) = bvarToString t
+ParseTreeToString (parsed-bvar-bar-13 t) = bvar-bar-13ToString t
 ParseTreeToString (parsed-fpth t) = fpthToString t
 ParseTreeToString (parsed-fpth-bar-15 t) = fpth-bar-15ToString t
 ParseTreeToString (parsed-fpth-bar-16 t) = fpth-bar-16ToString t
@@ -605,9 +647,10 @@ ParseTreeToString (parsed-numpunct-bar-6 t) = numpunct-bar-6ToString t
 ParseTreeToString (parsed-numpunct-bar-7 t) = numpunct-bar-7ToString t
 ParseTreeToString (parsed-numpunct-bar-8 t) = numpunct-bar-8ToString t
 ParseTreeToString (parsed-numpunct-bar-9 t) = numpunct-bar-9ToString t
+ParseTreeToString (parsed-qkvar t) = qkvarToString t
+ParseTreeToString (parsed-qvar t) = qvarToString t
 ParseTreeToString (parsed-var t) = varToString t
 ParseTreeToString (parsed-var-bar-11 t) = var-bar-11ToString t
-ParseTreeToString (parsed-var-bar-13 t) = var-bar-13ToString t
 ParseTreeToString (parsed-var-star-12 t) = var-star-12ToString t
 ParseTreeToString parsed-anychar = "[anychar]"
 ParseTreeToString parsed-anychar-bar-68 = "[anychar-bar-68]"
@@ -741,6 +784,10 @@ mutual
   norm-optClass x = x
 
   {-# TERMINATING #-}
+  norm-optAs : (x : optAs) → optAs
+  norm-optAs x = x
+
+  {-# TERMINATING #-}
   norm-maybeMinus : (x : maybeMinus) → maybeMinus
   norm-maybeMinus x = x
 
@@ -794,6 +841,14 @@ mutual
   norm-kind (KndArrow (KndTpArrow x1 x2) x3) = (norm-kind (KndTpArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind (KndArrow (KndArrow x1 x2) x3) = (norm-kind (KndArrow  x1 (norm-kind (KndArrow  x2 x3) )) )
   norm-kind x = x
+
+  {-# TERMINATING #-}
+  norm-imprt : (x : imprt) → imprt
+  norm-imprt x = x
+
+  {-# TERMINATING #-}
+  norm-imports : (x : imports) → imports
+  norm-imports x = x
 
   {-# TERMINATING #-}
   norm-ie : (x : ie) → ie

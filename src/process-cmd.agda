@@ -119,7 +119,8 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
 
-process-cmd s (Import pi x pi') _ = 
+-- TODO handle qualif & module args
+process-cmd s (ImportCmd (Import pi x _ _ pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
@@ -139,7 +140,9 @@ process-cmds (mk-toplevel-state use-cede make-rkt include-path files is Γ) (Cmd
                                 λ s → process-cmds s cs need-to-check
 process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
 
-process-start s filename (File pi cs pi') need-to-check = 
+-- TODO handle qualif & module args
+process-start s filename (File pi is mn _ cs pi') need-to-check =
+  process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s → 
   process-cmds s cs need-to-check ≫=span λ s → 
   process-cwst s filename ≫=span λ s →
     spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
@@ -160,7 +163,7 @@ process-file s filename | ie =
         proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
           with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
         proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
-         let Γ = ctxt-initiate-file Γ filename in
+         let Γ = ctxt-initiate-file Γ filename (start-modname x) in
            cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
                    filename x do-check Γ (regular-spans []))
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
