@@ -1,3 +1,4 @@
+module ProofReuse.VecDefs.
 import Nat.
 import Vec.
 import Cast.

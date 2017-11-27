@@ -1,3 +1,4 @@
+module ProofReuse.Subtyping.
 % Internalize the subtyping judgment from
 % Section 3.2 of Miquel's
 % "The Implicit Calculus of Constructions"

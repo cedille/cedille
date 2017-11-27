@@ -1,3 +1,4 @@
+module FreeProofReuse.Coes.
 import Nat.
 import List.
 import Vec.

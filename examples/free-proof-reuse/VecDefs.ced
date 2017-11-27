@@ -1,3 +1,4 @@
+module FreeProofReuse.VecDefs.
 import Nat.
 import Vec.
 

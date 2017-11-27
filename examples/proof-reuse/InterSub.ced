@@ -1,3 +1,4 @@
+module ProofReuse.InterSub.
 % Derive problematic distributivity rule
 % from Section 2.2 of
 % "Intersection Types and Computational Effects"

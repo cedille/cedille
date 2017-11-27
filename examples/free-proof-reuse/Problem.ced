@@ -1,3 +1,4 @@
+module FreeProofReuse.Problem.
 import Nat.
 import List.
 import Vec.
