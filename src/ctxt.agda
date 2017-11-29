@@ -73,8 +73,9 @@ ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
 ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q mn v ps)
   (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
-  (trie-insert i (mn # v) (type-def (def-params s ps) t k , (fn , p)))
+  (trie-insert i v' (type-def (def-params s ps) t k , (fn , p)))
   symb-occs
+  where v' = if s iff localScope then v else mn # v
 
 ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
 ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt

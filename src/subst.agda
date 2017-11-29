@@ -104,9 +104,11 @@ substh-type{TYPE} Γ ρ σ (TpVar pi x) =
 substh-type{ARG} Γ ρ σ (TpVar pi x) =
  let x' = renamectxt-rep ρ x in
    inst-lookup-type pi σ x'
-substh-type{QUALIF} Γ ρ σ (TpVar pi x) =
+substh-type{QUALIF} (mk-ctxt _ _ i _) ρ σ (TpVar pi x) =
  let x' = renamectxt-rep ρ x in
-   qualif-lookup-type pi σ x'
+   if trie-contains i x'
+    then (TpVar pi x')
+    else qualif-lookup-type pi σ x'
 substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
 substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
