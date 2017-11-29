@@ -119,12 +119,12 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
 
--- TODO handle qualif & module args
-process-cmd s (ImportCmd (Import pi x _ _ pi')) _ = 
+-- TODO handle module args
+process-cmd s (ImportCmd (Import pi x oa _ pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = scope-imports (fst (process-file s imported-file)) imported-file in
+  let s = scope-imports (fst (process-file s imported-file)) imported-file oa in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span

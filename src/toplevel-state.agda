@@ -180,10 +180,10 @@ check-redefined pi x s c =
       (spanM-add (redefined-var-span Γ pi x) ≫span spanMr s)
     else c)
 
-scope-imports : toplevel-state → string → toplevel-state
-scope-imports s import-fn with toplevel-state.Γ s
+scope-imports : toplevel-state → string → optAs → toplevel-state
+scope-imports s import-fn oa with toplevel-state.Γ s
 ... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup syms import-fn
 ... | nothing = s
-... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn vs (ArgsNil posinfo-gen) in
+... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn oa vs (ArgsNil posinfo-gen) in
   record s { Γ = mk-ctxt (fn , mn , ps , q') syms i symb-occs }
 

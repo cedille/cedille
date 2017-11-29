@@ -105,9 +105,13 @@ params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar
 qualif-insert-params : qualif → var → var → params → qualif
 qualif-insert-params σ mn v ps = trie-insert σ v (mn # v , params-to-args ps)
 
-qualif-insert-import : qualif → var → 𝕃 string → args → qualif
-qualif-insert-import σ mn [] as = σ
-qualif-insert-import σ mn (v :: vs) as = qualif-insert-import (trie-insert σ v (mn # v , as)) mn vs as
+qualif-insert-import : qualif → var → optAs → 𝕃 string → args → qualif
+qualif-insert-import σ mn oa [] as = σ
+qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert σ (import-as v oa) (mn # v , as)) mn oa vs as
+  where
+  import-as : var → optAs → var
+  import-as v NoOptAs = v
+  import-as v (SomeOptAs pfx) = pfx # v
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
