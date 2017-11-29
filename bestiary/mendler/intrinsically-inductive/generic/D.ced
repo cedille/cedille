@@ -1,0 +1,77 @@
+import cast.
+import recType.
+import is.
+import top.
+import true.
+
+import C.
+
+PrfAlg ◂ Π F : ★ ➔ ★ . RecFunctor · F ➔ Π D : ★ . Π P : C · F ➔ ★ . ★ =
+  λ F : ★ ➔ ★ . λ fm : RecFunctor · F . λ D : ★ . λ P : C · F ➔ ★ . 
+    ι alg : Top .
+    ∀ R : ★ . 
+    Π pred : is · (R ➔ F · R) outU .
+    ∀ reveal : Cast · R · (C · F) .
+    ∀ p' : F · (C · F) .
+      is · (Π r : R . P (cast · R · (C · F) -reveal r)) (foldU β{alg}) ➔
+      Π p : is · (ι _ : F · R . F · D) β{p'}.
+      P (in' · F -fm p') .
+
+
+Inductive ◂ Π F : ★ ➔ ★ . RecFunctor · F ➔ ★ ➔ C · F ➔ ★ =
+  λ F : ★ ➔ ★ . λ fm : RecFunctor · F . λ D : ★ . λ d : C · F .
+    ∀ P : C · F ➔ ★ .
+      PrfAlg · F fm · D · P ➔
+      P d .
+
+
+DF ◂ Π F : ★ ➔ ★ . RecFunctor · F ➔ ★ ➔ ★ =
+  λ F : ★ ➔ ★ . λ fm : RecFunctor · F . 
+  λ D : ★ . ι x : C · F . Inductive · F fm · D x .
+
+D ◂ Π F : ★ ➔ ★ . RecFunctor · F ➔ ★ = 
+  λ F : ★ ➔ ★ . λ fm : RecFunctor · F . Rec · (DF · F fm).
+
+DFunctor ◂ ∀ F : ★ ➔ ★ . Π fm : RecFunctor · F . RecFunctor · (DF · F fm) =
+  Λ F . λ fm . Λ X . Λ Y . λ c .
+    [ λ x .
+       [ x.1 , Λ P . λ p .
+               x.2 · P 
+                 (Λ R . λ pred . Λ reveal . Λ p' . λ eval . λ q .
+                   p · R pred -reveal -p' eval [ [ q.1.1 , cast · (F · X) · (F · Y) -(fm · X · Y c) q.1.2] , q.2])] , β] .
+
+dFold ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . DF · F fm · (D · F fm) ➔ D · F fm =
+  Λ F . Λ fm .
+    cast · (DF · F fm · (D · F fm)) · (D · F fm) -(recFold · (DF · F fm) -(DFunctor · F fm)) . 
+
+dUnfold ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . D · F fm ➔ DF · F fm · (D · F fm) =
+  Λ F . Λ fm .
+    cast · (D · F fm) · (DF · F fm · (D · F fm)) -(recUnfold · (DF · F fm) -(DFunctor · F fm)) . 
+
+out ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . D · F fm ➔ F · (D · F fm) =
+  Λ F . Λ fm . λ x .
+    (dUnfold · F -fm x).2 · (λ _ : (C · F) . (F · (D · F fm)))
+      (Λ R . λ pred . Λ eval' . Λ p' . λ eval . λ d . d.1.2) .
+
+confirmOut ◂ outU ≃ out = β{out}.
+
+fold ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F.
+       ∀ P : (C · F) ➔ ★ .
+         PrfAlg · F fm · (D · F fm) · P ➔
+         Π x : D · F fm .
+         P (dUnfold · F -fm x).1 = 
+      Λ F . Λ fm . Λ P . λ palg . λ x . (dUnfold · F -fm x).2 · P palg.
+
+in ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F. F · (D · F fm) ➔ D · F fm =
+  Λ F . Λ fm . λ d .
+    dFold · F -fm [ in' · F -fm
+                     (cast · (F · (D · F fm)) · (F · (C · F))
+                        -(fm · (D · F fm) · (C · F) [λ x . (dUnfold · F -fm x).1 , β]) d) ,
+                    Λ P . λ palg . palg · (D · F fm) [ out · F -fm , confirmOut] -[λ x . (dUnfold · F -fm x).1 , β]
+                                    -(cast · (F · (D · F fm)) · (F · (C · F))
+                                       -(fm · (D · F fm) · (C · F) [λ x . (dUnfold · F -fm x).1 , β]) d)
+                                       [ λ r . (dUnfold · F -fm r).2 · P palg , β{foldU palg}] [[d,d],β{d}]].
+
+confirmIn ◂ inU ≃ in = β{in}.
+
+lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . out (in x) ≃ x = Λ F . Λ fm . λ x . β .
