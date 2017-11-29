@@ -18,7 +18,7 @@ markup-unless-missing v ("[nofile]" , _) = v
 markup-unless-missing v (fn , pi) = markup "location" (("filename" , fn) :: ("pos" , pi) :: []) v
 
 var-to-string : ctxt → var → string
-var-to-string Γ v = markup-unless-missing (unfile Γ v) (ctxt-var-location Γ v)
+var-to-string Γ v = markup-unless-missing (unqual Γ v) (ctxt-var-location Γ v)
 
 binder-to-string : binder → string
 binder-to-string All = "∀"
@@ -38,8 +38,8 @@ leftRight-to-string Right = "r"
 leftRight-to-string Both = ""
 
 vars-to-string : ctxt → vars → string
-vars-to-string Γ (VarsStart v) = unfile Γ v
-vars-to-string Γ (VarsNext v vs) = unfile Γ v ^ " " ^ vars-to-string Γ vs
+vars-to-string Γ (VarsStart v) = unqual Γ v
+vars-to-string Γ (VarsNext v vs) = unqual Γ v ^ " " ^ vars-to-string Γ vs
 
 theta-to-string : ctxt → theta → string
 theta-to-string _ Abstract = "θ"

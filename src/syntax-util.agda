@@ -599,4 +599,47 @@ ie-eq Exists Iota = ff
 ie-eq Iota Exists = ff
 ie-eq Iota Iota = tt
 
+split-var-h : 𝕃 char → 𝕃 char × 𝕃 char
+split-var-h [] = [] , []
+split-var-h ('.' :: xs) = [] , xs
+split-var-h (x :: xs) with split-var-h xs
+... | xs' , ys = (x :: xs') , ys
+
+split-var : var → var × var
+split-var v with split-var-h (reverse (string-to-𝕃char v))
+... | xs , ys = 𝕃char-to-string (reverse ys) , 𝕃char-to-string (reverse xs)
+
+var-prefix : var → maybe var
+var-prefix v with split-var v
+... | "" , _ = nothing
+... | _ , sfx = just sfx
+
+-- unique qualif domain prefixes
+qual-pfxs : qualif → 𝕃 var
+qual-pfxs q = uniq (prefixes (trie-strings q))
+  where
+  uniq : 𝕃 var → 𝕃 var
+  uniq vs = stringset-strings (stringset-insert* empty-stringset vs)
+  prefixes : 𝕃 var → 𝕃 var
+  prefixes [] = []
+  prefixes (v :: vs) with split-var v
+  ... | "" , sfx = vs
+  ... | pfx , sfx = pfx :: prefixes vs
+
+unqual-prefix : qualif → 𝕃 var → var → var → var
+unqual-prefix q [] sfx v = v
+unqual-prefix q (pfx :: pfxs) sfx v
+  with trie-lookup q (pfx # sfx)
+... | just (v' , _) = if v =string v' then pfx # sfx else v
+... | nothing = v
+
+unqual-bare : qualif → var → var → var
+unqual-bare q sfx v with trie-lookup q sfx
+... | just (v' , _) = if v =string v' then sfx else v
+... | nothing = v
+
+unqual-all : qualif → var → string
+unqual-all q v with var-prefix v
+... | nothing = v
+... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 

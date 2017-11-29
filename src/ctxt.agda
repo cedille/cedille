@@ -253,12 +253,6 @@ ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs
 ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
 ctxt-set-symbol-occurrences (mk-ctxt fn syms i symb-occs) new-symb-occs = mk-ctxt fn syms i new-symb-occs
 
-unfile-h : 𝔹 → var → string
-unfile-h p v = v
+unqual : ctxt → var → string
+unqual (mk-ctxt (_ , _ , _ , q) _ _ _ ) v = unqual-all q v
 
--- TODO unqual when possible
-unfile : ctxt → var → string
-unfile (mk-ctxt (_ , _ , q) _ _ _ ) v = v
-
-unfile2 : var → var
-unfile2 v = v
