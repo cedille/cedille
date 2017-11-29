@@ -1,3 +1,4 @@
+module Tests.Iota.
 rec pNat | =
   ∀ X : ★ . (pNat ➔ X ➔ X) ➔ X ➔ X
   with .

@@ -1,1 +1,2 @@
+module Tests.Params.
 rec D(A : ★)(B : ★)(C : ★)(D : ★) : | = ∀ X : ★ . X with .

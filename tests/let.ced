@@ -1,3 +1,4 @@
+module Tests.Let.
 Triv ◂ ★ = ∀ X : ★ . X ➔ X .
 
 triv ◂ Triv = Λ X . λ x . x .

@@ -1,3 +1,4 @@
+module Tests.ColinScoping.
 % Yes, this is a lazy (in the non-programming sense of the word) to get tail
 cList ◂ ★ = ∀ X : ★ . X ➔ X .
 

@@ -1,3 +1,4 @@
+module Tests.ParamKind.
 𝒌F = ★ ➔ ★ .
 
 Functor ◂ 𝒌F ➔ ★ =

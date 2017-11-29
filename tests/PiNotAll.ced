@@ -1,3 +1,4 @@
+module Tests.PiNotAll.
 Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .
 Is ◂ Bool ➔ ★ = λ b : Bool . ∀ X : Bool ➔ ★ . X b ➔ X b .
 

@@ -1,3 +1,4 @@
+module Tests.Eq.
 import bool.
 import false.
 import true.

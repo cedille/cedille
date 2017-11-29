@@ -1,3 +1,4 @@
+module Tests.Loop.
 
 Cast ◂ Π A : ★ . Π B : ★ . ★ =
   λ A : ★ . λ B : ★ .

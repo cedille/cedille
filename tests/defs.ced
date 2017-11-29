@@ -1,3 +1,4 @@
+module Tests.Defs.
 𝒌 = ★ .
 True ◂ 𝒌 = ∀ X : ★ . X ➔ X .
 true ◂ True = Λ X . λ x . x . 

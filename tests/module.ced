@@ -1,3 +1,4 @@
+module Tests.Module.
 import A .
 import B x (bar y) .
 module(a : A)(b : B) .

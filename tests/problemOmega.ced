@@ -1,3 +1,4 @@
+module Tests.ProblemOmega.
 import false.
 
 Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .

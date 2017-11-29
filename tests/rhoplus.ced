@@ -1,3 +1,4 @@
+module Tests.Rhoplus.
 test ◂ ∀ A : ★ . ∀ f : A ➔ A . ∀ g : A ➔ A . ∀ a : A .
          (g a ≃ a) ➔  
          (λ x . f (g x)) a ≃ f a

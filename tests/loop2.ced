@@ -1,3 +1,4 @@
+module Tests.Loop2.
 Eq ◂ Π A : ★ . A ➔ Π B : ★ . B ➔ ★
   = λ A : ★ . λ a : A . λ B : ★ . λ b : B .
   a ≃ b .
