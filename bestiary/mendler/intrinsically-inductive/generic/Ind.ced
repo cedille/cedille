@@ -28,4 +28,8 @@ Ind ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π d : D · F fm . Indu
 
 lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . out (in x) ≃ x = Λ F . Λ fm . λ x . β .
 
-lambek2 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : F · (D · F fm) . out (in x) ≃ x = ● . 
+lambek2 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : (D · F fm) . in (out x) ≃ x =
+  Λ F . Λ fm . λ x .
+    θ<x> (Ind · F -fm x)
+      [β{λ _ . λ _ . λ _ . λ x .x} , Λ R . λ pred . Λ reveal . Λ revealh . Λ p' . λ ih . λ p . β] .
+
