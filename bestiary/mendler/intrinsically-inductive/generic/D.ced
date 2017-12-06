@@ -73,8 +73,6 @@ in ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F. F · (D · F fm) ➔ D ·
                                        -(fm · (D · F fm) · (C · F) [λ x . (dUnfold · F -fm x).1 , β]) d)
                                        [ λ r . (dUnfold · F -fm r).2 · P palg , β{foldU palg}] [[d,d],β{d}]].
 
-confirmIn ◂ inU ≃ in = β{in}.
-
 inAlg ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F. Alg · F · (C · F) · (D · F fm) =
   Λ F . Λ fm . 
     [ β{λ pred . λ eval . λ p . (in p)} ,
@@ -83,6 +81,4 @@ inAlg ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F. Alg · F · (C · F) �
                      -(fm · R · (D · F fm)
                          (caste · R · (D · F fm) eval.1
                           -(λ r . ρ eval.2 - ρ (rUnfold · F -fm (cast · R · (C · F) -reveal r)).2 - β))) p.1) ] .
-
-confirmInAlg ◂ inAlg ≃ inAlgU = β{inAlg}.
 

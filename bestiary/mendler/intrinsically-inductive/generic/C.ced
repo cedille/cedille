@@ -61,8 +61,3 @@ inAlg' ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Alg · F · (C · F) · (C 
   Λ F . Λ fm .
    [ β{λ pred . λ eval . λ d . in' d} ,
      Λ R . Λ reveal . λ pred . λ eval . λ d . in' · F -fm d.2].
-
-
-confirmIn' ◂ inU ≃ in' = β{in'}.
-
-lambek1' ◂ ∀ F : ★ ➔ ★ . Π x : C · F . out' (in' x) ≃ x = Λ F . λ x . β.

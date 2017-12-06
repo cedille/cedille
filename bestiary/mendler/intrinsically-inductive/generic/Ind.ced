@@ -8,8 +8,7 @@ import C.
 import D.
 
 reflection ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . x inAlg' ≃ x =
-  Λ F . Λ fm . λ x . (dUnfold · F -fm x).2 · (λ x : C · F . x inAlg' ≃ x)
-                        [ β{λ _ . λ _ . λ _ . λ x . x} , Λ R . λ pred. Λ reveal . Λ revealh . Λ p' . λ ih . λ d . β ] .
+  Λ F . Λ fm . λ x . (rUnfold · F -fm (dUnfold · F -fm x).1).2.
 
 toD ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . (C · F) ➔ (D · F fm) =
   Λ F . Λ fm . λ x . (rUnfold · F -fm x).1 · (D · F fm) (inAlg · F -fm) .
