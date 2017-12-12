@@ -1,3 +1,5 @@
+module C .
+
 import cast.
 import recType.
 import is.
@@ -52,7 +54,7 @@ confirmFold' ◂ Π alg : Top. fold' alg ≃ foldU alg = λ alg . β{fold' alg}.
 in' ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ F · (C · F) ➔ C · F =
   Λ F . Λ fm . λ d .
     rFold · F -fm
-      [Λ X . λ alg . alg · (C · F) -[ λ x . x , β] [out' · F -fm , confirmOut']
+      [Λ X . λ alg . alg.2 · (C · F) -[ λ x . x , β] [out' · F -fm , confirmOut']
                        [fold' · F -fm · X alg , confirmFold' β{alg} ]
                        [d,d],
        β{λ alg . (alg out' (fold' alg) d)}].

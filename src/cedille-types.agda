@@ -73,10 +73,6 @@ mutual
     DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
     DefType : posinfo → var → kind → type → defTermOrType
 
-  data ie : Set where 
-    Exists : ie
-    Iota : ie
-
   data imports : Set where 
     ImportsNext : imprt → imports → imports
     ImportsStart : imports
@@ -160,20 +156,16 @@ mutual
     AppTp : term → type → term
     Beta : posinfo → optTerm → term
     Chi : posinfo → maybeAtype → term → term
-    Delta : posinfo → term → term
     Epsilon : posinfo → leftRight → maybeMinus → term → term
     Hole : posinfo → term
     IotaPair : posinfo → term → term → optTerm → posinfo → term
     IotaProj : term → num → posinfo → term
     Lam : posinfo → lam → posinfo → bvar → optClass → term → term
     Let : posinfo → defTermOrType → term → term
-    Omega : posinfo → term → term
     Parens : posinfo → term → posinfo → term
-    PiInj : posinfo → num → term → term
     Rho : posinfo → rho → term → term → term
     Sigma : posinfo → term → term
     Theta : posinfo → theta → term → lterms → term
-    Unfold : posinfo → term → term
     Var : posinfo → qvar → term
 
   data theta : Set where 
@@ -187,7 +179,7 @@ mutual
 
   data type : Set where 
     Abs : posinfo → binder → posinfo → bvar → tk → type → type
-    IotaEx : posinfo → ie → posinfo → bvar → optType → type → type
+    Iota : posinfo → posinfo → bvar → optType → type → type
     Lft : posinfo → posinfo → var → term → liftingType → type
     NoSpans : type → posinfo → type
     TpApp : type → type → type
@@ -226,7 +218,6 @@ data ParseTreeT : Set where
   parsed-cmds : cmds → ParseTreeT
   parsed-decl : decl → ParseTreeT
   parsed-defTermOrType : defTermOrType → ParseTreeT
-  parsed-ie : ie → ParseTreeT
   parsed-imports : imports → ParseTreeT
   parsed-imprt : imprt → ParseTreeT
   parsed-kind : kind → ParseTreeT
@@ -452,10 +443,6 @@ mutual
   defTermOrTypeToString (DefTerm x0 x1 x2 x3) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ ")"
   defTermOrTypeToString (DefType x0 x1 x2 x3) = "(DefType" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (kindToString x2) ^ " " ^ (typeToString x3) ^ ")"
 
-  ieToString : ie → string
-  ieToString (Exists) = "Exists" ^ ""
-  ieToString (Iota) = "Iota" ^ ""
-
   importsToString : imports → string
   importsToString (ImportsNext x0 x1) = "(ImportsNext" ^ " " ^ (imprtToString x0) ^ " " ^ (importsToString x1) ^ ")"
   importsToString (ImportsStart) = "ImportsStart" ^ ""
@@ -539,20 +526,16 @@ mutual
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
   termToString (Beta x0 x1) = "(Beta" ^ " " ^ (posinfoToString x0) ^ " " ^ (optTermToString x1) ^ ")"
   termToString (Chi x0 x1 x2) = "(Chi" ^ " " ^ (posinfoToString x0) ^ " " ^ (maybeAtypeToString x1) ^ " " ^ (termToString x2) ^ ")"
-  termToString (Delta x0 x1) = "(Delta" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
   termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optTermToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Let x0 x1 x2) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (defTermOrTypeToString x1) ^ " " ^ (termToString x2) ^ ")"
-  termToString (Omega x0 x1) = "(Omega" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
-  termToString (PiInj x0 x1 x2) = "(PiInj" ^ " " ^ (posinfoToString x0) ^ " " ^ (numToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (rhoToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
-  termToString (Unfold x0 x1) = "(Unfold" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (qvarToString x1) ^ ")"
 
   thetaToString : theta → string
@@ -566,7 +549,7 @@ mutual
 
   typeToString : type → string
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
-  typeToString (IotaEx x0 x1 x2 x3 x4 x5) = "(IotaEx" ^ " " ^ (posinfoToString x0) ^ " " ^ (ieToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (optTypeToString x4) ^ " " ^ (typeToString x5) ^ ")"
+  typeToString (Iota x0 x1 x2 x3 x4) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (optTypeToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
@@ -591,7 +574,6 @@ ParseTreeToString (parsed-cmd t) = cmdToString t
 ParseTreeToString (parsed-cmds t) = cmdsToString t
 ParseTreeToString (parsed-decl t) = declToString t
 ParseTreeToString (parsed-defTermOrType t) = defTermOrTypeToString t
-ParseTreeToString (parsed-ie t) = ieToString t
 ParseTreeToString (parsed-imports t) = importsToString t
 ParseTreeToString (parsed-imprt t) = imprtToString t
 ParseTreeToString (parsed-kind t) = kindToString t
@@ -849,10 +831,6 @@ mutual
   {-# TERMINATING #-}
   norm-imports : (x : imports) → imports
   norm-imports x = x
-
-  {-# TERMINATING #-}
-  norm-ie : (x : ie) → ie
-  norm-ie x = x
 
   {-# TERMINATING #-}
   norm-defTermOrType : (x : defTermOrType) → defTermOrType

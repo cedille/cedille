@@ -27,7 +27,6 @@ is-free-in-args : is-free-in-t args
 
 is-free-in-term ce x (App t Erased t') = is-free-in-term ce x t || (ce && is-free-in-term ce x t')
 is-free-in-term ce x (App t NotErased t') = is-free-in-term ce x t || is-free-in-term ce x t'
-is-free-in-term ce x (Unfold pi t) = is-free-in-term ce x t
 is-free-in-term ce x (AppTp t tp) = is-free-in-term ce x t || (ce && is-free-in-type ce x tp)
 is-free-in-term ce x (Hole x₁) = ff
 is-free-in-term ce x (Lam _ b _ x' oc t) =
@@ -39,11 +38,8 @@ is-free-in-term ce x (Let _ (DefType _ x' k t) t') =
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _ ot) = is-free-in-optTerm ce x ot
-is-free-in-term ce x (Delta _ t) = ce && is-free-in-term ce x t
-is-free-in-term ce x (Omega _ t) = is-free-in-term ce x t
 is-free-in-term ce x (IotaPair _ t1 t2 ot _) = is-free-in-term ce x t1 || (ce && is-free-in-term ce x t2) || (ce && is-free-in-optTerm ce x ot)
 is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
-is-free-in-term ce x (PiInj _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Epsilon _ _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Sigma _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Rho _ _ t t') = (ce && is-free-in-term ce x t) || is-free-in-term ce x t'
@@ -57,7 +53,7 @@ is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lte
 is-free-in-type ce x (Abs _ _ _ x' atk t) = is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (TpLambda _ _ x' atk t) = 
   is-free-in-tk ce x atk || (~ (x =string x') && is-free-in-type ce x t) 
-is-free-in-type ce x (IotaEx _ _ _ x' m t) = is-free-in-optType ce x m || (~ (x =string x') && is-free-in-type ce x t)
+is-free-in-type ce x (Iota _ _ x' m t) = is-free-in-optType ce x m || (~ (x =string x') && is-free-in-type ce x t)
 is-free-in-type ce x (Lft _ _ X t l) = is-free-in-liftingType ce x l || (~ x =string X && is-free-in-term ce x t)
 is-free-in-type ce x (TpApp t t') = is-free-in-type ce x t || is-free-in-type ce x t'
 is-free-in-type ce x (TpAppt t t') = is-free-in-type ce x t || is-free-in-term ce x t'

@@ -46,10 +46,6 @@ theta-to-string _ Abstract = "θ"
 theta-to-string _ AbstractEq = "θ+"
 theta-to-string Γ (AbstractVars vs) = "θ<" ^ vars-to-string Γ vs ^ ">"
 
-ie-to-string : ie → string
-ie-to-string Iota = "ι"
-ie-to-string Exists = "∃"
-
 maybeMinus-to-string : maybeMinus → string
 maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
@@ -103,17 +99,12 @@ term-to-stringh Γ toplevel p (Let pi (DefType pi'' x k t) t') =
   let parent = Let pi (DefType pi'' x k t) t' in
   parens-unless toplevel ((is-beta p) || (is-abs p))
     ("let " ^ x ^ " ◂ " ^ kind-to-string Γ toplevel k ^ " = " ^ type-to-stringh Γ ff parent t ^ " in " ^ term-to-stringh Γ ff parent t')
-term-to-stringh Γ toplevel p (Unfold _ t) =
-  "unfold " ^ (term-to-string Γ toplevel t)
 term-to-stringh Γ toplevel p (Parens _ t _) = term-to-string Γ toplevel t
 -- Here
 term-to-stringh Γ toplevel p (Var pi x) = var-to-string Γ x
 term-to-stringh Γ toplevel p (Beta _ ot) = "β" ^ optTerm-to-string Γ ot
-term-to-stringh Γ toplevel p (Delta _ t) = "(δ" ^ " " ^ term-to-string Γ ff t ^ ")"
-term-to-stringh Γ toplevel p (Omega _ t) = "(ω" ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (IotaPair _ t1 t2 ot _) = "[ " ^ term-to-string Γ tt t1 ^ " , " ^ term-to-string Γ tt t1 ^ " ]"
 term-to-stringh Γ toplevel p (IotaProj t n _) = term-to-string Γ ff t ^ " . " ^ n
-term-to-stringh Γ toplevel p (PiInj _ n t) = "(π" ^ n ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Epsilon _ lr m t) = "(ε" ^ leftRight-to-string lr ^ maybeMinus-to-string m ^ " " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Sigma _ t) = "(ς " ^ term-to-string Γ ff t ^ ")"
 term-to-stringh Γ toplevel p (Theta _ u t ts) = "(" ^ theta-to-string Γ u ^ " " ^ term-to-string Γ ff t ^ lterms-to-stringh Γ ts ^ ")"
@@ -128,8 +119,8 @@ type-to-stringh Γ toplevel p (Abs pi b pi' x t t') =
     (binder-to-string b ^ " " ^ x ^ " : " ^ tk-to-string Γ t ^ " . " ^ type-to-stringh Γ ff (Abs pi b pi' x t t') t')
 type-to-stringh Γ toplevel p (TpLambda pi pi' x tk t) = 
   parens-unless toplevel (is-abs p) ("λ " ^ x ^ " : " ^ tk-to-string Γ tk ^ " . " ^ type-to-stringh Γ ff (TpLambda pi pi' x tk t) t )
-type-to-stringh Γ toplevel p (IotaEx pi ie pi' x m t) = parens-unless toplevel (is-abs p) (ie-to-string ie ^ " " ^ x ^ optType-to-string Γ m ^ " . " 
-                                  ^ type-to-stringh Γ ff (IotaEx pi ie pi' x m t) t)
+type-to-stringh Γ toplevel p (Iota pi pi' x m t) = parens-unless toplevel (is-abs p) ("ι " ^ x ^ optType-to-string Γ m ^ " . " 
+                                  ^ type-to-stringh Γ ff (Iota pi pi' x m t) t)
 type-to-stringh Γ toplevel p (Lft _ _ X x x₁) = "(↑ " ^ X ^ " . " ^ term-to-string Γ ff x ^ " : " ^ liftingType-to-string Γ x₁ ^ ")"
 type-to-stringh Γ toplevel p (TpApp t t₁) = parens-unless toplevel (is-app p) (type-to-stringh Γ ff (TpApp t t₁) t ^ " · " ^ type-to-string Γ ff t₁)
 type-to-stringh Γ toplevel p (TpAppt t t') = parens-unless toplevel (is-app p) (type-to-stringh Γ ff (TpAppt t t') t ^ " " ^ term-to-string Γ ff t')

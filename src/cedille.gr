@@ -54,16 +54,12 @@ SomeTerm : optTerm -> ows '{' ows term ows '}' ! .
 
 Lam : term -> ! lam ows ! bvar optClass ows '.' ows term .
 Let : term -> ! 'let' ws defTermOrType ws 'in' ws term .
-Unfold : term -> ! 'υ' ows term .
 Theta : term -> ! theta ws lterm ows lterms.
 embed : term -> aterm .
 App : aterm -> aterm ws maybeErased aterm .
 AppTp : aterm -> aterm ws '·' ws atype .
 embed : aterm -> lterm .
-Omega : lterm -> ! 'ω' ows lterm.
 Beta : lterm -> ! 'β' optTerm .
-Delta : lterm -> ! 'δ' ows lterm.
-PiInj : lterm -> ! 'π' num ows lterm.
 Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! rho ows lterm ows '-' ows lterm.
@@ -99,10 +95,7 @@ KeptLambda : lam -> 'λ' .
 Abs : type -> ! binder ows ! bvar ows ':' ows tk ows '.' ows type .
 TpLambda : type -> ! 'λ' ows ! bvar ows ':' ows tk ows '.' ows type .
 
-Iota : ie -> 'ι' .
-Exists : ie -> '∃'.
-
-IotaEx : type -> ! ie ows ! bvar optType ows '.' ows type .
+Iota : type -> ! 'ι' ows ! bvar optType ows '.' ows type .
 TpArrow : type -> ltype ows arrowtype ows type.
 ErasedArrow: arrowtype -> '➾'.
 UnerasedArrow: arrowtype -> '➔'.

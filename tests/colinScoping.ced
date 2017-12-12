@@ -15,6 +15,7 @@ Nil ◂ List = [ cNil , [ β{cNil} , Λ Q . Λ Q .Λ nil . λ n . n ] ].
 
 % It appears that this is being used below even when there is a Λ P.
 % If you comment this out, the code below will work.
+
 P ◂ List = Nil .
 
 ListInd ◂ Π l : List .

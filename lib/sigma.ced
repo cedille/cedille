@@ -1,3 +1,4 @@
+module Sigma .
 
 cSigma ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
   λ A : ★ . λ B : A ➔ ★ .

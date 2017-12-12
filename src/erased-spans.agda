@@ -124,7 +124,7 @@ erased-type-spans (Abs pi b pi' v t-k tp) =
       erased-var-span pi' v ll-type ≫span
       erased-type-spans tp ≫span
       set-ctxt Γ)
-erased-type-spans (IotaEx pi i pi' v ot tp) =
+erased-type-spans (Iota pi pi' v ot tp) =
   put-span pi (type-end-pos tp) ll-type [] ≫span
   erased-var-span pi' v ll-type ≫span
   optType-span ot ≫span

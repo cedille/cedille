@@ -135,15 +135,11 @@ term-start-pos (AppTp t tp) = term-start-pos t
 term-start-pos (Hole pi) = pi
 term-start-pos (Lam pi x _ x₁ x₂ t) = pi
 term-start-pos (Let pi _ _) = pi
-term-start-pos (Unfold pi _) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi _) = pi
-term-start-pos (Delta pi _) = pi
-term-start-pos (Omega pi _) = pi
 term-start-pos (IotaPair pi _ _ _ _) = pi
 term-start-pos (IotaProj t _ _) = term-start-pos t
-term-start-pos (PiInj pi _ _) = pi
 term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Rho pi _ _ _) = pi
 term-start-pos (Chi pi _ _) = pi
@@ -152,7 +148,7 @@ term-start-pos (Theta pi _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
-type-start-pos (IotaEx pi _ _ _ _ _) = pi
+type-start-pos (Iota pi _ _ _ _) = pi
 type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
@@ -188,16 +184,12 @@ term-end-pos (AppTp t tp) = type-end-pos tp
 term-end-pos (Hole pi) = posinfo-plus pi 1
 term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
 term-end-pos (Let _ _ t) = term-end-pos t
-term-end-pos (Unfold _ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi NoTerm) = posinfo-plus pi 1
 term-end-pos (Beta pi (SomeTerm t pi')) = pi'
-term-end-pos (Omega pi t) = term-end-pos t
-term-end-pos (Delta pi t) = term-end-pos t
 term-end-pos (IotaPair _ _ _ _ pi) = pi
 term-end-pos (IotaProj _ _ pi) = pi
-term-end-pos (PiInj _ _ t) = term-end-pos t
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Rho pi _ t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
@@ -206,7 +198,7 @@ term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
-type-end-pos (IotaEx _ _ _ _ _ tp) = type-end-pos tp
+type-end-pos (Iota _ _ _ _ tp) = type-end-pos tp
 type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
@@ -309,7 +301,7 @@ is-abs{TERM} (Let _ _ _) = tt
 is-abs{TERM} (Lam _ _ _ _ _ _) = tt
 is-abs{TYPE} (Abs _ _ _ _ _ _) = tt
 is-abs{TYPE} (TpLambda _ _ _ _ _) = tt
-is-abs{TYPE} (IotaEx _ _ _ _ _ _) = tt
+is-abs{TYPE} (Iota _ _ _ _ _) = tt
 is-abs{KIND} (KndPi _ _ _ _ _) = tt
 is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
 is-abs _ = ff
@@ -459,15 +451,11 @@ erase-term (Lam _ ErasedLambda _ _ _ t) = erase-term t
 erase-term (Let pi (DefTerm pi'' x _ t) t') = Let pi (DefTerm pi'' x NoCheckType (erase-term t)) (erase-term t')
 erase-term (Let _ (DefType _ _ _ _) t) = erase-term t
 erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
-erase-term (Unfold _ t) = erase-term t
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi NoTerm) = id-term
 erase-term (Beta pi (SomeTerm t _)) = erase-term t
-erase-term (Delta pi t) = Beta pi NoTerm -- we need to erase the body t, so just use Beta as the name for any erased proof
-erase-term (Omega pi t) = erase-term t
 erase-term (IotaPair pi t1 t2 ot pi') = erase-term t1
 erase-term (IotaProj t n pi) = erase-term t
-erase-term (PiInj _ _ t) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
@@ -477,7 +465,7 @@ erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 -- Only erases TERMS in types, leaving the structure of types the same
 erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
-erase-type (IotaEx pi i pi' v otp tp) = IotaEx pi i pi' v (erase-optType otp) (erase-type tp)
+erase-type (Iota pi pi' v otp tp) = Iota pi pi' v (erase-optType otp) (erase-type tp)
 erase-type (Lft pi pi' v t lt) = Lft pi pi' v (erase-term t) (erase-liftingType lt)
 erase-type (NoSpans tp pi) = NoSpans (erase-type tp) pi
 erase-type (TpApp tp tp') = TpApp (erase-type tp) (erase-type tp')
@@ -576,8 +564,8 @@ is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (IotaEx _ _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
-is-equational (IotaEx _ _ _ _ _ t2) = is-equational t2
+is-equational (Iota _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
+is-equational (Iota _ _ _ _ t2) = is-equational t2
 is-equational (NoSpans t _) = is-equational t
 is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
 is-equational (TpAppt t1 _) = is-equational t1
@@ -596,12 +584,6 @@ is-equational-kind (KndPi _ _ _ atk k) = is-equational-tk atk || is-equational-k
 is-equational-kind (KndTpArrow t1 k2) = is-equational t1 || is-equational-kind k2
 is-equational-kind (KndVar _ _ _) = ff
 is-equational-kind (Star _) = ff
-
-ie-eq : ie → ie → 𝔹
-ie-eq Exists Exists = tt
-ie-eq Exists Iota = ff
-ie-eq Iota Exists = ff
-ie-eq Iota Iota = tt
 
 split-var-h : 𝕃 char → 𝕃 char × 𝕃 char
 split-var-h [] = [] , []
@@ -646,4 +628,5 @@ unqual-all : qualif → var → string
 unqual-all q v with var-prefix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
+
 

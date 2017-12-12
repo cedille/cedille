@@ -1,3 +1,5 @@
+module Ind .
+
 import cast.
 import recType.
 import is.
@@ -21,7 +23,7 @@ Ind ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π d : D · F fm . Indu
             [ β{p} , Λ R . λ pred . Λ reveal . Λ revealh . Λ pd' . λ eval . λ pd .
                        ρ ς pd.2 -
                        ρ (reflection · F -fm (in · F -fm pd.1.2)) -
-                       (p · R pred -revealh -revealh -pd.1.2
+                       (p.2 · R pred -revealh -revealh -pd.1.2
                          [λ r . ρ ς (reflection · F -fm (cast · R · (D · F fm) -revealh r)) - (eval.1 r) , eval.2]
                        [pd.1,β{pd}]) ]) .
 

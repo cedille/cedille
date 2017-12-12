@@ -98,10 +98,8 @@ hnf{TERM} Γ (unfold tt b b' ) (Var pi x) hd | just t = hnf Γ (unfold tt b b') 
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
-hnf{TERM} Γ u (Delta _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (IotaPair _ t1 t2 _ _) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
-hnf{TERM} Γ u (PiInj _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Rho pi _ t t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (App*' t (erase-lterms u' ls)) hd
@@ -245,8 +243,8 @@ conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') =
 conv-type-norm Γ (TpArrow tp1 a1 tp2) (TpArrow tp1' a2  tp2') = eq-arrowtype a1 a2 && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (TpArrow tp1 a tp2) (Abs _ b _ _ (Tkt tp1') tp2') = arrowtype-matches-binder a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Abs _ b _ _ (Tkt tp1) tp2) (TpArrow tp1' a tp2') = arrowtype-matches-binder a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (IotaEx _ ie1 pi x m tp) (IotaEx _ ie2 pi' x' m' tp') = 
-  ie-eq ie1 ie2 && conv-optType Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+conv-type-norm Γ (Iota _ pi x m tp) (Iota _ pi' x' m' tp') = 
+  conv-optType Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t1 t2) (TpEq t1' t2') = conv-term Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Lft _ pi x t l) (Lft _ pi' x' t' l') =
   conv-liftingType Γ l l' && conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'

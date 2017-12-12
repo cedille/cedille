@@ -1,3 +1,5 @@
+module Cast .
+
 Cast ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
        ι cast : A ➔ B . cast ≃ λ x . x.
 

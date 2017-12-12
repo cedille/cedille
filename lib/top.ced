@@ -1,3 +1,5 @@
+module Top.
+
 Top ◂ ★ = λ x . x ≃ λ x . x .
 
 triv ◂ Top = β{λ x . x x} .

@@ -1,3 +1,5 @@
+module Nat-thms.
+
 import nat.
 
 NatRebuild ◂ Π n : Nat. n S Z ≃ n =

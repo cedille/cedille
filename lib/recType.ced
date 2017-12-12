@@ -1,3 +1,5 @@
+module RecType.
+
 import top.
 import cast.
 

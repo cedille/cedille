@@ -1,3 +1,5 @@
+module Nat .
+
 import cnat.
 
 cNatInductive ◂ cNat ➔ ★ = λ x : cNat . ∀ Q : cNat ➔ ★ . (∀ x : cNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Q x.

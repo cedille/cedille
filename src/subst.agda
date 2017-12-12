@@ -60,13 +60,9 @@ substh-term{QUALIF} Γ ρ σ (Var pi x) =
  let x' = renamectxt-rep ρ x in
    qualif-lookup-term pi σ x'
 substh-term Γ ρ σ (Var pi x) = Var pi (renamectxt-rep ρ x)
-substh-term Γ ρ σ (Unfold pi t) = Unfold pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Beta pi ot) = Beta pi (substh-optTerm Γ ρ σ ot)
-substh-term Γ ρ σ (Delta pi t) = Delta pi (substh-term Γ ρ σ t)
-substh-term Γ ρ σ (Omega pi t) = Omega pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) (substh-optTerm Γ ρ σ ot) pi'
 substh-term Γ ρ σ (IotaProj t n pi) = IotaProj (substh-term Γ ρ σ t) n pi
-substh-term Γ ρ σ (PiInj pi n t) = PiInj pi n (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Rho pi r t t') = Rho pi r (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
@@ -84,9 +80,9 @@ substh-type Γ ρ σ (TpLambda pi pi' x atk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     TpLambda pi pi' x' (substh-tk Γ ρ σ atk) 
       (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
-substh-type Γ ρ σ (IotaEx pi ie pi' x m t) =
+substh-type Γ ρ σ (Iota pi pi' x m t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    IotaEx pi ie pi' x' (substh-optType Γ ρ σ m)
+    Iota pi pi' x' (substh-optType Γ ρ σ m)
       (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (Lft pi pi' x t l) =
   let x' = subst-rename-var-if Γ ρ x σ in
