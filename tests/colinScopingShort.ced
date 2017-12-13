@@ -1,0 +1,3 @@
+module scoping-problem .
+
+example ◂ ∀ A : ★ . ∀ B : ★ . A ➔ B = Λ A . Λ A . λ a . a .
