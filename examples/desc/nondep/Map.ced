@@ -4,48 +4,193 @@ import Desc.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Eq ◂ Π A : ★ . A ➔ A ➔ ★ =
-  λ A : ★ . λ a1 : A . λ a2 : A .
-  a1 ≃ a2 .
+Eq
+  ◂ Π A : ★ .     
+    ( A ➔ A ➔ ★ ) 
+  = λ A : ★ .     
+    λ a1 : A .
+    λ a2 : A .
+    a1 ≃ a2 .
 
 id ◂ ∀ X : ★ . X ➔ X = Λ X . λ x . x .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Map ◂ Π U : ★ . (U ➔ ★) ➔ Desc · U ➔ ★ ➔ ★
-  = λ U : ★ . λ El : U ➔ ★ . λ D : Desc · U . λ X : ★ .
-  (↑ X' . D.1.1 · X' :
-    (☆ ➔ (U ➔ ☆) ➔ (☆ ➔ ☆ ➔ ☆) ➔ (☆ ➔ ☆ ➔ ☆) ➔ ☆))
-  · X
-  · (λ A : U . El A)
-  · (λ D' : ★ . λ E' : ★ . Pair · D' · E')
-  · (λ D' : ★ . λ E' : ★ . Union · D' · E') .
+Map
+  ◂ Π U : ★ .
+    (  (U ➔ ★)
+     ➔ Desc · U
+     ➔ ★
+     ➔ ★)
+  = λ U : ★ .
+    λ El : U ➔ ★ .
+    λ D : Desc · U .
+    λ X : ★ .
+      (↑ X' . D.1.1 · X' :
+        (  ☆
+         ➔ (U ➔ ☆)
+         ➔ (☆ ➔ ☆ ➔ ☆)
+         ➔ (☆ ➔ ☆ ➔ ☆)
+         ➔ ☆))
+      · X
+      · (λ A : U . El A)
+      · (λ D' : ★ . λ E' : ★ . Pair · D' · E')
+      · (λ D' : ★ . λ E' : ★ . Union · D' · E') .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-map ◂ ∀ X : ★ . ∀ Y : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
-  Π D : Desc · U . Π f : X ➔ Y .
-  Map · U · El D · X ➔ Map · U · El D · Y
-  = ● .
+map
+  ◂ ∀ X : ★ .
+    ∀ Y : ★ .
+    ∀ U : ★ .
+    ∀ El : U ➔ ★ .
+    Π D : Desc · U . 
+     (Π f : X ➔ Y .    
+        Map · U · El D · X
+      ➔ Map · U · El D · Y)
+  = Λ X . Λ Y . Λ U . Λ El .
+      elimDesc · U
+        · (λ D : Desc · U .
+             Π f : X ➔ Y .    
+                 Map · U · El D · X
+               ➔ Map · U · El D · Y)
+        (λ f . λ dx . f dx)
+        (λ A . λ f . λ dx . dx)
+        (Λ D . Λ E . λ pd . λ pe .
+           λ f .
+             (elimPair
+               · (Map · U · El D · X)
+               · (Map · U · El E · X)
+               · (λ _ : (Pair · (Map · U · El D · X) · (Map · U · El E · X)) .
+                    Map · U · El (Prod · U D E) · Y)
+               (λ a . λ b .
+                  pair
+                    · (Map · U · El D · Y)
+                    · (Map · U · El E · Y)
+                    (pd f a)
+                    (pe f b))))
+        (Λ D . Λ E . λ pd . λ pe .
+           λ f .
+             (elimUnion
+               · (Map · U · El D · X)
+               · (Map · U · El E · X)
+               · (λ _ : (Union · (Map · U · El D · X) · (Map · U · El E · X)) .
+                    Map · U · El (Sum · U D E) · Y)
+               (λ a .
+                  inj1
+                    · (Map · U · El D · Y)
+                    · (Map · U · El E · Y)
+                    (pd f a))
+               (λ b .
+                  inj2
+                    · (Map · U · El D · Y)
+                    · (Map · U · El E · Y)
+                    (pe f b)))) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ident ◂ ∀ X : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
-  Π D : Desc · U .
-  Π xs : Map · U · El D · X .
-  Eq · (Map · U · El D · X)
-    (map · X · X · U · El D (id · X) xs)
-    (id · (Map · U · El D · X) xs)
-  = ● .
+cong2
+ ◂ ∀ A : ★ .
+   ∀ B : ★ .
+   ∀ C : ★ . 
+   ∀ f : A ➔ B ➔ C . 
+   ∀ x : A .
+   ∀ y : A .
+   ∀ u : B .
+   ∀ v : B .
+   (x ≃ y) ➔ (u ≃ v) ➔ (f x u ≃ f y v)
+ = Λ A . Λ B . Λ C .
+   Λ f . 
+   Λ x . Λ y . Λ u . Λ v .
+   λ q_xy . λ q_uv .
+     ρ q_xy - ρ q_uv - β .
+
+ident
+ ◂ ∀ X : ★ . 
+   ∀ U : ★ . 
+   ∀ El : U ➔ ★ .
+   Π D : Desc · U .
+    (Π xs : Map · U · El D · X .
+     Eq · (Map · U · El D · X)
+      (map · X · X · U · El D (id · X) xs)
+      (id · (Map · U · El D · X) xs))
+ = Λ X . Λ U . Λ El .
+     elimDesc · U
+       · (λ D : Desc · U .
+            Π xs : Map · U · El D · X .
+             Eq · (Map · U · El D · X)
+              (map · X · X · U · El D (id · X) xs)
+              (id · (Map · U · El D · X) xs))
+        (λ xs . β)
+        (λ A . λ xs . β)
+        (Λ D . Λ E . λ pd . λ pe . 
+          (elimPair
+            · (Map · U · El D · X)
+            · (Map · U · El E · X)
+            · (λ xs : (Pair · (Map · U · El D · X) · (Map · U · El E · X)) .
+                Eq · (Map · U · El (Prod · U D E) · X)
+                 (map · X · X · U · El (Prod · U D E) (id · X) xs)
+                 (id · (Map · U · El (Prod · U D E) · X) xs))
+            (λ a . λ b . ρ+ (pd a) -
+                         ρ+ (pe b) - β)))
+        (Λ D . Λ E . λ pd . λ pe . 
+           elimUnion
+             · (Map · U · El D · X)
+             · (Map · U · El E · X)
+             · (λ xs : (Union · (Map · U · El D · X) · (Map · U · El E · X)) .
+                 Eq · (Map · U · El (Sum · U D E) · X)
+                   (map · X · X · U · El (Sum · U D E) (id · X) xs)
+                   (id · (Map · U · El (Sum · U D E) · X) xs))
+             (λ a . ρ+ (pd a) - β)
+             (λ b . ρ+ (pe b) - β)) .
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . ∀ U : ★ . ∀ El : U ➔ ★ .
-  Π D : Desc · U . Π f : X ➔ Y . Π g : Y ➔ Z .
-  Π xs : Map · U · El D · X .
-  Eq · (Map · U · El D · Z)
-    (map · X · Z · U · El D (λ x . g (f x)) xs)
-    (map · Y · Z · U · El D g (map · X · Y · U · El D f xs))
-  = ● .
+comp 
+ ◂ ∀ X : ★ .
+   ∀ Y : ★ .
+   ∀ Z : ★ .
+   ∀ U : ★ .
+   ∀ El : U ➔ ★ .
+   Π D : Desc · U .
+    ( Π f : X ➔ Y .
+      Π g : Y ➔ Z .
+      Π xs : Map · U · El D · X .
+      Eq · (Map · U · El D · Z)
+       (map · X · Z · U · El D (λ x . g (f x)) xs)
+       (map · Y · Z · U · El D g (map · X · Y · U · El D f xs)))
+  = Λ X . Λ Y . Λ Z . Λ U . Λ El .
+    elimDesc · U
+      · (λ D : Desc · U .
+           Π f : X ➔ Y .
+           Π g : Y ➔ Z .
+           Π xs : Map · U · El D · X .
+           Eq · (Map · U · El D · Z)
+             (map · X · Z · U · El D (λ x . g (f x)) xs)
+             (map · Y · Z · U · El D g (map · X · Y · U · El D f xs)))
+      (λ f . λ g . λ xs . β)
+      (λ A . λ f . λ g . λ xs . β)
+      (Λ D . Λ E . λ pd . λ pe . λ f . λ g . 
+         elimPair
+           · (Map · U · El D · X)
+           · (Map · U · El E · X)
+           · (λ xs : (Pair · (Map · U · El D · X) · (Map · U · El E · X)) .
+                Eq · (Map · U · El (Prod · U D E) · Z)
+                  (map · X · Z · U · El (Prod · U D E) (λ x . g (f x)) xs)
+                  (map · Y · Z · U · El (Prod · U D E) g (map · X · Y · U · El (Prod · U D E) f xs)))
+           (λ a . λ b . ρ+ (pd f g a) -
+                        ρ+ (pe f g b) - β))
+      (Λ D . Λ E . λ pd . λ pe . λ f . λ g .
+         elimUnion
+           · (Map · U · El D · X)
+           · (Map · U · El E · X)
+           · (λ xs : (Union · (Map · U · El D · X) · (Map · U · El E · X)) .
+                Eq · (Map · U · El (Sum · U D E) · Z)
+                  (map · X · Z · U · El (Sum · U D E) (λ x . g (f x)) xs)
+                  (map · Y · Z · U · El (Sum · U D E) g (map · X · Y · U · El (Sum · U D E) f xs)))
+           (λ a . ρ+ (pd f g a) - β)
+           (λ b . ρ+ (pe f g b) - β)) .
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
