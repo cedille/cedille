@@ -244,7 +244,7 @@ checkFile s filename should-print-spans =
               writeo (f :: us) =
                 let ie = get-include-elt s f in
                   (if use-cede then (write-cede-file f ie) else (return triv)) >>
-                  (if make-rkt then (write-rkt-file f (toplevel-state.Γ s)) else (return triv)) >>
+                  (if make-rkt then (write-rkt-file f (toplevel-state.Γ s) ie) else (return triv)) >>
                   writeo us
 
 remove-dup-include-paths : 𝕃 string → 𝕃 string

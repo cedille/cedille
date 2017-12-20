@@ -1,5 +1,6 @@
 module rkt where
 
+open import toplevel-state
 open import string
 open import char
 open import io
@@ -16,34 +17,35 @@ open import cedille-types
 open import syntax-util
 
 private
-  rkt-dbg-flag = tt
+  rkt-dbg-flag = ff
 
   rkt-dbg : string → string → string
   rkt-dbg msg out = (if rkt-dbg-flag then ("; " ^ msg ^ "\n") else "") ^ out
 
-dot-racket-directory : string → string 
 -- constructs the name of a .racket directory for the given original directory
-dot-racket-directory dir = combineFileNames dir ".racket"
+rkt-dirname : string → string 
+rkt-dirname dir = combineFileNames dir ".racket"
 
-rkt-filename : (ced-path : string) → string
 -- constructs the fully-qualified name of a .rkt file for a .ced file at the given ced-path
+rkt-filename : (ced-path : string) → string
 rkt-filename ced-path = 
   let dir = takeDirectory ced-path in
   let unit-name = base-filename (takeFileName ced-path) in
-    combineFileNames (dot-racket-directory dir) (unit-name ^ ".rkt")
+    combineFileNames (rkt-dirname dir) (unit-name ^ ".rkt")
 
--- Racket does not allow "'" as part of a legal identifier.
--- Swamp this out for "."
+-- sanitize a Cedille identifier for Racket
+-- Racket does not allow "'" as part of a legal identifier,
+-- so swamp this out for "."
 rkt-iden : var → var
 rkt-iden = 𝕃char-to-string
            ∘ ((map λ c → if c =char '\'' then '.' else c)
            ∘ string-to-𝕃char)
 
--- convert an erased Cedille term to string representation of a Racket term
+-- Racket string from erase Cedile term
 rkt-from-term : term → string
 rkt-from-term (Lam _ KeptLam _ v _ tm)
   = "(lambda (" ^ rkt-iden v ^ ")" ^ (rkt-from-term tm) ^ ")"
--- untested
+-- TODO untested
 rkt-from-term (Let _ (DefTerm _ v _ tm-def) tm-body)
   = "(let ([" ^ rkt-iden v ^ " " ^ rkt-from-term tm-def ^"]) "
           ^ rkt-from-term tm-body ^ ")\n"
@@ -58,9 +60,15 @@ rkt-from-term (Beta _ NoTerm)
 rkt-from-term _
   = rkt-dbg "unsupported/unknown term" ""
 
-rkt-define : string → term → string
-rkt-define name tm = "(define " ^ name ^ (rkt-from-term tm) ^ ")"
+-- Racket define form from var, term
+rkt-define : var → term → string
+rkt-define v tm = "(define " ^ (rkt-iden v) ^ (rkt-from-term tm) ^ ")"
 
+-- Racket require form from file
+rkt-require-file : string → string
+rkt-require-file fp = "(require (file \"" ^ fp ^ "\"))"
+
+-- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → string
 rkt-from-sym-info n (term-def (just (ParamsCons (Decl _ _ v _ _) _)) tm ty , _)
   -- TODO not tested
@@ -86,12 +94,12 @@ rkt-from-sym-info n (rename-def v , _)
 rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             ""
 
--- Erases the ced file at the given ced-path,
--- producing a .rkt file in a .racket subdirectory
-write-rkt-file : (ced-path : string) → ctxt  → IO ⊤
-write-rkt-file ced-path (mk-ctxt _ syms i sym-occurences) = 
+-- write a Racket file to .racket subdirectory from Cedille file path,
+-- context, and include-elt
+write-rkt-file : (ced-path : string) → ctxt → include-elt → IO ⊤
+write-rkt-file ced-path (mk-ctxt _ syms i sym-occurences) ie =
   let dir = takeDirectory ced-path
-  in createDirectoryIfMissing tt (dot-racket-directory dir) >>
+  in createDirectoryIfMissing tt (rkt-dirname dir) >>
      writeFile (rkt-filename ced-path)
                (rkt-header ^ rkt-body)
 
@@ -102,8 +110,13 @@ write-rkt-file ced-path (mk-ctxt _ syms i sym-occurences) =
   qual-name : string → string
   qual-name name = cdle-mod ^ "." ^ name
 
+  -- lang pragma, imports, and provides
   rkt-header rkt-body : string
   rkt-header = "#lang racket\n\n"
+               ^ (string-concat-sep "\n"
+                   (map (rkt-require-file ∘ rkt-filename)
+                   (include-elt.deps ie))) ^ "\n"
+               ^ "(provide (all-defined-out))\n\n"
 
   -- in reverse order: lookup symbol defs from file,
   -- pair name with info, and convert to racket
