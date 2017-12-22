@@ -20,10 +20,10 @@ Ind ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π d : D · F fm . Indu
         Λ P . λ p .
           ρ ς (reflection · F -fm d) -
            ((dUnfold · F -fm d).2 · (λ x : C · F . P (toD · F -fm x))
-            [ β{p} , Λ R . Λ reveal . Λ revealh . Λ pd' . λ eval . λ pd .
+            [ β{p} , Λ R . λ pred . Λ reveal . Λ revealh . Λ pd' . λ eval . λ pd .
                        ρ ς pd.2 -
                        ρ (reflection · F -fm (in · F -fm pd.1.2)) -
-                       (p.2 · R -revealh -revealh -pd.1.2
+                       (p.2 · R pred -revealh -revealh -pd.1.2
                          [λ r . ρ ς (reflection · F -fm (cast · R · (D · F fm) -revealh r)) - (eval.1 r) , eval.2]
                        [pd.1,β{pd}]) ]) .
 
@@ -32,5 +32,5 @@ lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . 
 lambek2 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : (D · F fm) . in (out x) ≃ x =
   Λ F . Λ fm . λ x .
     θ<x> (Ind · F -fm x)
-      [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . Λ revealh . Λ p' . λ ih . λ p . β] .
+      [β{λ _ . λ _ . λ _ . λ x .x} , Λ R . λ pred . Λ reveal . Λ revealh . Λ p' . λ ih . λ p . β] .
 
