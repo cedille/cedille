@@ -103,7 +103,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   "Select the next error from 'cedille-mode-next-errors', if any, and display the info buffer"
   (interactive "p")
   (if (<= count 0)
-      (cedille-mode-highlight-occurrences)
+      (cedille-mode-highlight-occurrences-if)
     (if (se-mode-selected)
 	(progn
 	  (setq cedille-mode-cur-error (cedille-mode-get-next-error (se-mode-selected) nil cedille-mode-error-spans))
@@ -127,7 +127,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   "Select the previous error from 'cedille-mode-prev-erros', if any, and display the info buffer"
   (interactive "p")
   (if (<= count 0)
-      (cedille-mode-highlight-occurrences)
+      (cedille-mode-highlight-occurrences-if)
     (if (se-mode-selected)
 	(progn
 	  (setq cedille-mode-cur-error (cedille-mode-get-prev-error (se-mode-selected) nil cedille-mode-error-spans))

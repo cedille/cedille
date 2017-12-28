@@ -291,7 +291,7 @@ the parse tree, and updates the Cedille info buffer."
     (se-mode-select-next cedille-mode-wrap-navigation)
     (cedille-mode-select-next (- count 1)))
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
@@ -301,7 +301,7 @@ the parse tree, and updates the Cedille info buffer."
     (se-mode-select-previous cedille-mode-wrap-navigation)
     (cedille-mode-select-previous (- count 1)))
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -357,7 +357,7 @@ the parse tree, and updates the Cedille info buffer."
     (se-mode-expand-selected)
     (cedille-mode-select-parent (- count 1)))
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
@@ -367,7 +367,7 @@ containing point, and updates the Cedille info buffer."
     (se-mode-shrink-selected)
     (cedille-mode-select-first-child (- count 1)))
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node
@@ -375,7 +375,7 @@ in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-first)
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-select-last()
   "Selects the last sibling of the currently selected node
@@ -383,7 +383,7 @@ in the parse tree, and updates the Cedille info buffer."
   (interactive)
   (se-mode-select-last)
   (cedille-mode-update-buffers)
-  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
+  (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-modify-response (response)
   (let ((response (cedille-mode-strip-ws response)))
@@ -466,6 +466,11 @@ in the parse tree, and updates the Cedille info buffer."
 	    (when symbol
 	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
 	matching-nodes)))
+
+(defun cedille-mode-highlight-occurrences-if()
+  "If the option is set to highlight matching variable 
+occurrences, then do so."
+  (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defvar cedille-mode-matching-nodes nil)
 
