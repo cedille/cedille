@@ -9,7 +9,7 @@ import true.
 import C.
 import D.
 
-reflection ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . x inAlg' ≃ x =
+reflection ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . x inAlg ≃ x =
   Λ F . Λ fm . λ x . (rUnfold · F -fm (dUnfold · F -fm x).1).2.
 
 toD ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . (C · F) ➔ (D · F fm) =
