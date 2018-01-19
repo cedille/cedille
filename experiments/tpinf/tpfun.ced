@@ -1,9 +1,11 @@
+module TpFun.
+
 import bool.
 import tp.
 
 interpTp ◂ ★ ➔ Tp ➔ ★ =
   λ B : ★ . λ T : Tp .
-    ↑ X . (TpUnfoldSimple T.1) · X : (☆ ➔ (TpC ➔ ☆ ➔ TpC ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ _ : TpC . λ S1 : ★ . λ _ : TpC . λ S2 : ★ . S1 ➔ S2) .
+    ↑ X . (TpUnfoldIter T.1) · X : (☆ ➔ (☆ ➔ ☆ ➔ ☆) ➔ ☆) · B · (λ S1 : ★ . λ S2 : ★ . S1 ➔ S2) .
 
 
 eqTp ◂ Tp ➔ Tp ➔ Bool =
@@ -12,4 +14,12 @@ eqTp ◂ Tp ➔ Tp ➔ Bool =
       (λ _ . λ _ . λ r1 . λ r2 . λ t2 .
         elimTp t2 · (λ _ : Tp . Bool) ff (λ t2a . λ t2b . λ _ . λ _ . and (r1 t2a) (r2 t2b))) .
 
-eqTpEq ◂ Π T1 : Tp . Π T2 : Tp . (eqTp T1 T2 ≃ tt) ➔ T1 ≃ T2 = ● .
+eqTpEq ◂ Π T1 : Tp . Π T2 : Tp . (eqTp T1 T2 ≃ tt) ➔ T1 ≃ T2 =
+  λ T1 . (elimTp T1) · (λ T1 : Tp . Π T2 : Tp . (eqTp T1 T2 ≃ tt) ➔ T1 ≃ T2)
+            (λ T2 . elimTp T2 · (λ T2 : Tp . (eqTp base T2 ≃ tt) ➔ base ≃ T2) (λ _ . β)
+                      (λ T2a . λ T2b . λ _ . λ _ . λ u . BoolContra (ς u) · (base ≃ arrow T2a T2b) ))
+            (λ T1a . λ T1b . λ ih1 . λ ih2 . λ T2 .
+              elimTp T2 · (λ T2 : Tp . (eqTp (arrow T1a T1b) T2) ➔ (arrow T1a T1b) ≃ T2)
+                ●
+                ●)
+.

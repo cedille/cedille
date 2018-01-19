@@ -1,3 +1,5 @@
+module TpMod.
+
 import recType.
 import cast.
 import top.
@@ -16,8 +18,8 @@ TpF ◂ ★ ➔ ★ =
 TpFmap ◂ RecFunctor · TpF =
   Λ X . Λ Y . λ c .
     [ λ n . [ Λ Z . λ z . λ s .
-                n.1 · Z z (λ p1 . λ x1 . Λ e1 . λ p2 . λ x2 . Λ e2 .
-                            s (cast · X · Y -c p1) x1 -e1 (cast · X · Y -c p2) x2 -e2),
+                n.1 · Z z [ s.1 , λ p1 . λ x1 . Λ e1 . λ p2 . λ x2 . Λ e2 .
+                            s.2 (cast · X · Y -c p1) x1 -e1 (cast · X · Y -c p2) x2 -e2],
                 ρ+ n.2 - β{n} ] ,
               β{λ x . x}]. 
  
@@ -32,14 +34,17 @@ TpUnfold ◂ TpC ➔ TpF · TpC =
   λ x . cast · TpC · (TpF · TpC) -(recUnfold · TpF -TpFmap) x .
 
 TpUnfoldSimple ◂ TpC ➔ ∀ X : ★ . Π z : X . (Π p1 : TpC . Π x1 : X . Π p2 : TpC . Π x2 : X . X) ➔ X =
-  λ t . Λ X . λ z . λ s . (TpUnfold t).1 · X z (λ p1 . λ x1 . Λ e1 . λ p2 . λ x2 . Λ e2 . s p1 x1 p2 x2) . 
+  λ t . Λ X . λ z . λ s . (TpUnfold t).1 · X z [ β{s} , λ p1 . λ x1 . Λ e1 . λ p2 . λ x2 . Λ e2 . s p1 x1 p2 x2] . 
+
+TpUnfoldIter ◂ TpC ➔ ∀ X : ★ . Π z : X . (Π x1 : X . Π x2 : X . X) ➔ X =
+  λ t . Λ X . λ z . λ s . (TpUnfoldSimple t) · X z (λ _ . λ x1 . λ _ . λ x2 . s x1 x2) . 
 
 baseC ◂ TpC = TpFold [Λ X . λ a . λ f . a , β{baseU}].
 
 arrowC ◂ Π p1 : TpC . Π n1 : TpC . (p1 ≃ n1) ➾ Π p2 : TpC . Π n2 : TpC . (p2 ≃ n2) ➾ TpC =
   λ p1 . λ n1 . Λ e1 . λ p2 . λ n2 . Λ e2 .
     TpFold [Λ X . λ a . λ f .
-               f p1 ((TpUnfold n1).1 · X a f) -(ρ e1 - β)
+               f.2 p1 ((TpUnfold n1).1 · X a f) -(ρ e1 - β)
                  p2 ((TpUnfold n2).1 · X a f) -(ρ e2 - β) ,
              ρ+ (TpUnfold n1).2 - ρ+ (TpUnfold n2).2 - β{arrowU p1 n1 p2 n2}].
 
@@ -51,7 +56,7 @@ TpP ◂ TpC ➔ ★ =
     ∀ s : ι s : Top . Π p : TpC . Π x : X . (p z s ≃ x) ➾ Π p : TpC . Π x : X . (p z s ≃ x) ➾ X .
       (Π n1 : TpC. ∀ x1 : X . ∀ e1 : n1 z s ≃ x1 . P x1 ➔
        Π n2 : TpC. ∀ x2 : X . ∀ e2 : n2 z s ≃ x2 . P x2 ➔ 
-        P (s n1 x1 -e1 n2 x2 -e2)) ➔
+        P (s.2 n1 x1 -e1 n2 x2 -e2)) ➔
     P ((TpUnfold n).1 · X z s).
 
 baseP ◂ TpP baseC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .

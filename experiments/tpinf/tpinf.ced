@@ -1,9 +1,12 @@
+module TpInf.
+
 import false.
 import trm.
-import hastp.
+import hastp2.
 import tp.
 import tpfun.
 import top.
+import bool.
 import nat.
 
 tpinf ◂ ∀ B : ★ .
@@ -12,4 +15,14 @@ tpinf ◂ ∀ B : ★ .
           hastp (interp t.1) · (interpTp · B T) =
    Λ B . λ compileFail . λ t . 
      t.2 · Top · (λ x : Top . Π T : Tp . hastp x · (interpTp · B T)) -(λ f . β{f})
-        (Λ f . λ r . λ T . ●).
+        (Λ f . λ r . λ T .
+          elimTp T · (λ T : Tp . hastp β{f} · (interpTp · B T))
+            (compileFail · (hastp β{f} · (interpTp · B base)))
+            (λ T1 . λ T2 . λ _ . λ _ .
+               hastpArrow · (interpTp · B T1) · (interpTp · B T2)
+                 -β{f}
+                 (Λ x . λ ix .
+                     r -x (λ T . BoolInd (eqTp T1 T) · (λ b : Bool . (eqTp T1 T ≃ b) ➔ hastp β{x} · (interpTp · B T))
+                                   (λ u .
+                                      ρ ς (eqTpEq T1 T u) - ix)
+                                   (λ u . compileFail · (hastp x · (interpTp · B T))) β) T2))).

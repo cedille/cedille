@@ -1,3 +1,5 @@
+module Trm.
+
 import top.
 
 trmC ◂ ★ = ∀ X : ★ . ((X ➔ X) ➔ X) ➔ X .
