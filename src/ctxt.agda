@@ -37,7 +37,7 @@ def-params : defScope → params → defParams
 def-params tt ps = nothing
 def-params ff ps = just ps
 
--- TODO add renamectxt to avoid capture bugs
+-- TODO add renamectxt to avoid capture bugs?
 inst-type : ctxt → params → args → type → type
 inst-type Γ ps as = substs-type Γ (mk-inst ps as)
 
@@ -61,7 +61,6 @@ qualif-tk : ctxt → tk → tk
 qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
 qualif-tk Γ (Tkk k) = Tkk (qualif-kind Γ k)
 
--- TODO roll "hnf Γ unfold-head t tt" into ctxt-*-def, after qualification
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
 ctxt-kind-def p v ps2 k (mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q mn v ps1)

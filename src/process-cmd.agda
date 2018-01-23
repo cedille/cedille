@@ -34,9 +34,19 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
+check-and-add-params : posinfo → params → spanM (𝕃 (string × maybe sym-info))
+check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
+  check-tk atk ≫span
+  spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
+                                              properly for computing the context in the frontend -}) ≫span
+  add-tk pi1' x atk ≫=span λ mi → 
+  check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+check-and-add-params _ ParamsNil = spanMr []
+
 {-# TERMINATING #-}
 process-cmd : process-t cmd
 process-cmds : process-t cmds
+process-params : process-t (posinfo × params)
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
 process-file : toplevel-state → (filename : string) → toplevel-state × mod-info
 
@@ -105,26 +115,17 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
         spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
 
-  where check-and-add-params : posinfo → params → spanM (𝕃 (string × maybe sym-info))
-        check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
-          check-tk atk ≫span
-          spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
-                                                      properly for computing the context in the frontend -}) ≫span
-          add-tk pi1' x atk ≫=span λ mi → 
-          check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-        check-and-add-params _ ParamsNil = spanMr []
-
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   let k' = hnf-qualif-kind Γ k in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
 
--- TODO handle module args
-process-cmd s (ImportCmd (Import pi x oa _ pi')) _ = 
+-- TODO check import args against module param types
+process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = scope-imports (fst (process-file s imported-file)) imported-file oa in
+  let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
@@ -140,9 +141,16 @@ process-cmds (mk-toplevel-state use-cede make-rkt include-path files is Γ) (Cmd
                                 λ s → process-cmds s cs need-to-check
 process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
 
--- TODO handle qualif & module args
-process-start s filename (File pi is mn _ cs pi') need-to-check =
-  process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s → 
+-- TODO ignore checking but still qualify if need-to-check false?
+process-params s (pi , ps) need-to-check =
+  set-ctxt (toplevel-state.Γ s) ≫span
+  check-and-add-params pi ps ≫=span λ _ →
+  get-ctxt λ Γ → 
+  spanMr (record s {Γ = Γ})
+
+process-start s filename (File pi is mn ps cs pi') need-to-check =
+  process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s →
+  process-params s (pi , ps) need-to-check ≫=span λ s →
   process-cmds s cs need-to-check ≫=span λ s → 
   process-cwst s filename ≫=span λ s →
     spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
