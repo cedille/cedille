@@ -15,8 +15,8 @@
 
 ;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
 (defvar cedille-program-name (concat cedille-path "/cedille"))
-(setq max-lisp-eval-depth 30000)
-(setq max-specpdl-size 50000)
+(setq max-lisp-eval-depth 30000
+      max-specpdl-size 50000)
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
@@ -60,10 +60,13 @@ Defaults to `error'."
 
 (require 'se-mode)
 (require 'se-markup)
+(require 'se-thread)
 (eval-when-compile (require 'se-macros))
 
 (defvar cedille-mode-version "1.0"
   "The version of the cedille mode.")
+
+(setq se-inf-parsing-header "Checking")
 
 ;;-----------------------------------------------------------------------------
 ;;   Customization
@@ -481,6 +484,7 @@ occurrences, then do so."
     (if (equal cedille-mode-matching-nodes matching-nodes)
 	(progn
 	  (remove-overlays)
+          (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
 	  (setq cedille-mode-matching-nodes nil))
       (setq cedille-mode-matching-nodes matching-nodes))))
       
@@ -604,9 +608,10 @@ occurrences, then do so."
           ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "π")
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\==" "≅") ("\\d" "δ") ("\\-" "➾")
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")
-          ("\\E" "∃")
+          ("\\E" "∃") ("\\F" "φ")
+          ("\\\\" "\\")
 
-          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ("\\\\" "\\"); add some more of these
+          ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\mu" "μ") ("\\phi" "φ"); add some more of these
  ))
 
 (provide 'cedille-mode)

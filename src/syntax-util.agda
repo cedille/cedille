@@ -49,6 +49,9 @@ abs-expand-type ParamsNil t = t
 _#_ : string → string → string
 fn # v = fn ^ "." ^  v
 
+_%_ : posinfo → var → string
+pi % v = pi ^ "@" ^ v
+
 mk-inst : params → args → trie arg
 mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) =
   trie-insert (mk-inst ps as) x a
@@ -103,7 +106,7 @@ params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p
 params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
 qualif-insert-params : qualif → var → var → params → qualif
-qualif-insert-params σ mn v ps = trie-insert σ v (mn # v , params-to-args ps)
+qualif-insert-params σ qv v ps = trie-insert σ v (qv , params-to-args ps)
 
 qualif-insert-import : qualif → var → optAs → 𝕃 string → args → qualif
 qualif-insert-import σ mn oa [] as = σ
@@ -138,9 +141,10 @@ term-start-pos (Let pi _ _) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi _) = pi
-term-start-pos (IotaPair pi _ _ _ _) = pi
+term-start-pos (IotaPair pi _ _ _) = pi
 term-start-pos (IotaProj t _ _) = term-start-pos t
 term-start-pos (Epsilon pi _ _ _) = pi
+term-start-pos (Phi pi _ _ _ _) = pi
 term-start-pos (Rho pi _ _ _) = pi
 term-start-pos (Chi pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
@@ -188,9 +192,10 @@ term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi NoTerm) = posinfo-plus pi 1
 term-end-pos (Beta pi (SomeTerm t pi')) = pi'
-term-end-pos (IotaPair _ _ _ _ pi) = pi
+term-end-pos (IotaPair _ _ _ pi) = pi
 term-end-pos (IotaProj _ _ pi) = pi
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
+term-end-pos (Phi _ _ _ _ pi) = pi
 term-end-pos (Rho pi _ t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Sigma pi t) = term-end-pos t
@@ -305,6 +310,14 @@ is-abs{TYPE} (Iota _ _ _ _ _) = tt
 is-abs{KIND} (KndPi _ _ _ _ _) = tt
 is-abs{LIFTINGTYPE} (LiftPi _ _ _ _) = tt
 is-abs _ = ff
+
+is-eq-op : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-eq-op{TERM} (Sigma _ _) = tt
+is-eq-op{TERM} (Epsilon _ _ _ _) = tt
+is-eq-op{TERM} (Rho _ _ _ _) = tt
+is-eq-op{TERM} (Chi _ _ _) = tt
+is-eq-op{TERM} (Phi _ _ _ _ _) = tt
+is-eq-op _ = ff
 
 is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-beta{TERM} (Beta _ _) = tt
@@ -454,11 +467,12 @@ erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (era
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi NoTerm) = id-term
 erase-term (Beta pi (SomeTerm t _)) = erase-term t
-erase-term (IotaPair pi t1 t2 ot pi') = erase-term t1
+erase-term (IotaPair pi t1 t2 pi') = erase-term t1
 erase-term (IotaProj t n pi) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
+erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
 erase-term (Rho pi _ t t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
@@ -474,14 +488,16 @@ erase-type (TpArrow tp at tp') = TpArrow (erase-type tp) at (erase-type tp')
 erase-type (TpEq t t') = TpEq (erase-term t) (erase-term t')
 erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-type tp)
 erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
-erase-type tp = tp
+erase-type (TpHole pi) = TpHole pi
+erase-type (TpVar pi x) = TpVar pi x
 
 -- Only erases TERMS in types in kinds, leaving the structure of kinds and types in those kinds the same
 erase-kind (KndArrow k k') = KndArrow (erase-kind k) (erase-kind k')
 erase-kind (KndParens pi k pi') = KndParens pi (erase-kind k) pi'
 erase-kind (KndPi pi pi' v t-k k) = KndPi pi pi' v (erase-tk t-k) (erase-kind k)
 erase-kind (KndTpArrow tp k) = KndTpArrow (erase-type tp) (erase-kind k)
-erase-kind k = k
+erase-kind (KndVar pi x ps) = KndVar pi x ps
+erase-kind (Star pi) = Star pi
 
 erase{TERM} t = erase-term t
 erase{TYPE} tp = erase-type tp
@@ -623,6 +639,13 @@ unqual-bare : qualif → var → var → var
 unqual-bare q sfx v with trie-lookup q sfx
 ... | just (v' , _) = if v =string v' then sfx else v
 ... | nothing = v
+
+unqual-local : var → var
+unqual-local v = f (string-to-𝕃char v) [] where
+  f : 𝕃 char → 𝕃 char → string
+  f [] acc = 𝕃char-to-string (reverse acc)
+  f ('@' :: t) acc = f t []
+  f (h :: t) acc = f t (h :: acc)
 
 unqual-all : qualif → var → string
 unqual-all q v with var-prefix v

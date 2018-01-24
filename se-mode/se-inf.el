@@ -3,6 +3,8 @@
 
 (eval-when-compile (require 'cl))
 
+(defvar se-inf-parsing-header nil "If non-nil, displays header during parsing")
+
 (make-variable-buffer-local
  (defvar se-inf-process nil
    "Holds process for current buffer in se-mode.  Processes are
@@ -246,7 +248,7 @@ buffer's file unless FILE is non-nil."
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
   (let ((ms (se-inf-get-message-from-filename (or file (buffer-file-name)))))
-    (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header "Parsing")))
+    (se-inf-interactive ms #'se-inf-process-response :extra (buffer-name) :header se-inf-parsing-header)))
 
 (defun se-inf-add-final-newline ()
   "Silently adds a newline to the end of the buffer, if necessary"

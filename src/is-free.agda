@@ -38,10 +38,11 @@ is-free-in-term ce x (Let _ (DefType _ x' k t) t') =
 is-free-in-term ce x (Parens x₁ t x₂) = is-free-in-term ce x t
 is-free-in-term ce x (Var _ x') = x =string x'
 is-free-in-term ce x (Beta _ ot) = is-free-in-optTerm ce x ot
-is-free-in-term ce x (IotaPair _ t1 t2 ot _) = is-free-in-term ce x t1 || (ce && is-free-in-term ce x t2) || (ce && is-free-in-optTerm ce x ot)
+is-free-in-term ce x (IotaPair _ t1 t2 _) = is-free-in-term ce x t1 || (ce && is-free-in-term ce x t2)
 is-free-in-term ce x (IotaProj t n _) = is-free-in-term ce x t
 is-free-in-term ce x (Epsilon _ _ _ t) = is-free-in-term ce x t
 is-free-in-term ce x (Sigma _ t) = is-free-in-term ce x t
+is-free-in-term ce x (Phi _ t t₁ t₂ _) = (ce && is-free-in-term ce x t) || (ce && is-free-in-term ce x t₁) || is-free-in-term ce x t₂
 is-free-in-term ce x (Rho _ _ t t') = (ce && is-free-in-term ce x t) || is-free-in-term ce x t'
 is-free-in-term ce x (Chi _ T t') = (ce && is-free-in-maybeAtype ce x T) || is-free-in-term ce x t'
 is-free-in-term ce x (Theta _ _ t ls) = is-free-in-term ce x t || is-free-in-lterms ce x ls

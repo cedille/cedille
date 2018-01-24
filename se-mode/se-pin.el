@@ -52,9 +52,9 @@
   (let ((n (if (se-pin-bufferp object) 1 0))
 	(end (- end 1)))
     (when (and (<= start end) (>= start n) (>= end n))
-      (setq starts (car (se-pin-get-starts-ends start symbol object))
-	    ends (cdr (se-pin-get-starts-ends end symbol object)))
-      (cdr (se-pin-get-pairs starts ends object t)))))
+      (let ((starts (car (se-pin-get-starts-ends start symbol object)))
+	    (ends (cdr (se-pin-get-starts-ends end symbol object))))
+        (cdr (se-pin-get-pairs starts ends object t))))))
 
 (defun se-unpin (object &optional start end id string-or-buffer)
   "Removes a pin. OBJECT should either be a pin or a symbol (in which case start and end are required, but not ID unless you want to only clear that specific id). STRING-OR-BUFFER should, as the name implies, be nil (defaulting to the current buffer), a string, or a buffer ;)."
@@ -63,9 +63,9 @@
       (se-pin-item
        (se-unpin (se-pin-item-symbol object) (se-pin-item-start object) (se-pin-item-end object) (se-pin-item-id object) string-or-buffer))
       (t
-       (setq end (- end 1))
-       (put-text-property start (+ 1 start) 'se-pin (se-pins-without-symbol object start id string-or-buffer) string-or-buffer)
-       (put-text-property end (+ 1 end) 'se-pin (se-pins-without-symbol object end id string-or-buffer) string-or-buffer)))))
+       (let ((end (- end 1)))
+         (put-text-property start (+ 1 start) 'se-pin (se-pins-without-symbol object start id string-or-buffer) string-or-buffer)
+         (put-text-property end (+ 1 end) 'se-pin (se-pins-without-symbol object end id string-or-buffer) string-or-buffer))))))
 
 (defun se-unpin-list (pins &optional object)
   "Unpins all in PINS. OBJECT should be a string or a buffer (or nil, which defaults to the current buffer)"
@@ -109,10 +109,11 @@
   "Helper for `se-pins-without-symbol'"
   (if (null pin-list)
       new-list
-    (setq h (car pin-list))
-    (unless (and (string= symbol (se-pin-prop-symbol h)) (or (not id) (equal id (se-pin-prop-id h))))
-      (setq new-list (cons h new-list)))
-    (se-pins-without-symbol-h symbol id pos (cdr pin-list) new-list object)))
+    (let ((h (car pin-list))
+          (new-list new-list))
+      (unless (and (string= symbol (se-pin-prop-symbol h)) (or (not id) (equal id (se-pin-prop-id h))))
+        (setq new-list (cons h new-list)))
+      (se-pins-without-symbol-h symbol id pos (cdr pin-list) new-list object))))
 
 (defun se-pin-remove-props (unused &optional object)
   "Removes all unused start and end pins"
@@ -135,14 +136,15 @@
   "Helper for `se-get-pins-h'"
   (if (or (not pos) (equal pos end))
       (progn (se-pin-remove-props starts object) pins)
-    (when (get-text-property pos 'se-pin object)
-      (setq starts-ends (se-pin-get-starts-ends pos symbol object)
-	    starts (append starts (car starts-ends))
-	    ends (cdr starts-ends)
-	    pin-pairs (se-pin-get-pairs starts ends object)
-	    starts (car pin-pairs)
-	    pins (append (cdr pin-pairs) pins)))
-    (se-get-pins-h symbol pos end pins starts object)))
+    (if (get-text-property pos 'se-pin object)
+        (let* ((starts-ends (se-pin-get-starts-ends pos symbol object))
+               (starts (append starts (car starts-ends)))
+               (ends (cdr starts-ends))
+               (pin-pairs (se-pin-get-pairs starts ends object))
+               (starts (car pin-pairs))
+               (pins (append (cdr pin-pairs) pins)))
+          (se-get-pins-h symbol pos end pins starts object))
+      (se-get-pins-h symbol pos end pins starts object))))
 
 (defun se-pin-get-pairs (starts ends object &optional no-remove)
   "Pairs start and end pins"
@@ -152,13 +154,13 @@
   "Helper for `se-pin-get-pairs'"
   (if (not (and starts ends))
       (cons starts pairs)
-      (setq h (car ends)
-	    pair (se-pin-get-pair starts h))
-      (if (null (car pair))
-	  (unless no-remove (se-pin-remove-props (list h)))
-	(setq pairs (cons (car pair) pairs)
-	      starts (cdr pair)))
-      (se-pin-get-pairs-h starts (cdr ends) pairs object no-remove)))
+      (let* ((h (car ends))
+             (pair (se-pin-get-pair starts h)))
+        (if (null (car pair))
+            (unless no-remove (se-pin-remove-props (list h)))
+          (setq pairs (cons (car pair) pairs)
+                starts (cdr pair)))
+        (se-pin-get-pairs-h starts (cdr ends) pairs object no-remove))))
 
 (defun se-pin-get-pair (starts end)
   "Finds a pair for end in starts"
@@ -168,10 +170,10 @@
   "Helper for `get-pin-pair'"
   (if (null starts)
       (cons nil not-pairs)
-    (setq h (car starts))
-    (if (equal (se-pin-prop-id (car end)) (se-pin-prop-id (car h)))
-	(cons (new-pin-item (nth 1 h) (+ 1 (nth 1 end)) (se-pin-prop-symbol (car h)) (se-pin-prop-id (car h)) (se-pin-prop-data (car h))) (append not-pairs (cdr starts)))
-      (se-pin-get-pair-h (cdr starts) end (cons h not-pairs)))))
+    (let ((h (car starts)))
+      (if (equal (se-pin-prop-id (car end)) (se-pin-prop-id (car h)))
+          (cons (new-pin-item (nth 1 h) (+ 1 (nth 1 end)) (se-pin-prop-symbol (car h)) (se-pin-prop-id (car h)) (se-pin-prop-data (car h))) (append not-pairs (cdr starts)))
+        (se-pin-get-pair-h (cdr starts) end (cons h not-pairs))))))
 
 (defun se-pin-get-starts-ends (pos &optional symbol object)
   "Gets the start and end pins with symbol"
@@ -181,12 +183,14 @@
   "Helper for `get-starts-ends'"
   (if (not pins)
       (cons starts ends)
-    (setq h (car pins))
-    (when (or (null symbol) (string= symbol (se-pin-prop-symbol h)))
-      (setq h-pos (list h pos))
-      (if (se-pin-prop-start h)
-	  (setq starts (cons h-pos starts))
-	(setq ends (cons h-pos ends))))
-    (se-pin-get-starts-ends-h symbol (cdr pins) pos starts ends)))
+    (let ((h (car pins))
+          (starts starts)
+          (ends ends))
+      (when (or (null symbol) (string= symbol (se-pin-prop-symbol h)))
+        (let ((h-pos (list h pos)))
+          (if (se-pin-prop-start h)
+              (setq starts (cons h-pos starts))
+            (setq ends (cons h-pos ends)))))
+      (se-pin-get-starts-ends-h symbol (cdr pins) pos starts ends))))
 
 (provide 'se-pin)

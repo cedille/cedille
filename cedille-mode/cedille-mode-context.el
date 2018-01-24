@@ -308,8 +308,9 @@ which currently consists of:\n
 	  (when typedata (insert "\n")))
 	(when typedata
 	  (insert "==== TYPES ====\n")
-	  (mapc println typedata)))
-
+	  (mapc println typedata))
+        (insert "\n"))
+      (cedille-mode-highlight-shadowed)
       (goto-char 1)
       (fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
@@ -330,7 +331,7 @@ which currently consists of:\n
 				(setq shadowed-lst (cons pair (remove-if matches shadowed-lst))))))))
 	 (loc-prop (lambda (sym loc)
 		     (let ((split (split-string loc " - ")))
-		       (se-pin-data 1 (length sym) 'location (list (cons "filename" (car split)) (cons "pos" (cadr split))) sym))))
+		       (se-pin-data 1 (length sym) 'loc (list (cons "fn" (car split)) (cons "pos" (cadr split))) sym))))
 	 ;; format symbol-value pairs for display
 	 (format (lambda (pair)
 		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)

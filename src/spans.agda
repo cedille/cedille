@@ -8,6 +8,7 @@ open import is-free
 open import general-util
 open import syntax-util
 open import to-string
+open import subst
 
 --------------------------------------------------
 -- tagged values, which go in spans
@@ -85,34 +86,37 @@ spanMok = spanMr triv
 get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
 get-ctxt m Γ ss = m Γ Γ ss
 
+restore-def : Set
+restore-def = maybe qualif-info × maybe sym-info
+
 -- this returns the previous ctxt-info, if any, for the given variable
-spanM-push-term-decl : posinfo → var → type → spanM (maybe sym-info)
-spanM-push-term-decl pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-decl pi x t Γ , ss
+spanM-push-term-decl : posinfo → var → type → spanM restore-def
+spanM-push-term-decl pi x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi x t Γ , ss
 
-spanM-push-term-def : posinfo → var → term → type → spanM (maybe sym-info)
-spanM-push-term-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-term-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
+spanM-push-term-def : posinfo → var → term → type → spanM restore-def
+spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
 
-spanM-push-term-udef : posinfo → var → term → spanM (maybe sym-info)
-spanM-push-term-udef pi x t Γ ss = ctxt-get-info x Γ , ctxt-term-udef pi localScope x (hnf Γ unfold-head t tt) Γ , ss
-
--- return previous ctxt-info, if any
-spanM-push-type-decl : posinfo → var → kind → spanM (maybe sym-info)
-spanM-push-type-decl pi x k Γ ss = ctxt-get-info x Γ , ctxt-type-decl pi x k Γ , ss
-
-spanM-push-type-def : posinfo → var → type → kind → spanM (maybe sym-info)
-spanM-push-type-def pi x t T Γ ss = ctxt-get-info x Γ , ctxt-type-def pi localScope x t (hnf Γ unfold-head T tt) Γ , ss
+spanM-push-term-udef : posinfo → var → term → spanM restore-def
+spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss
+ 
+ -- return previous ctxt-info, if any
+spanM-push-type-decl : posinfo → var → kind → spanM restore-def
+spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi x k Γ , ss
+ 
+spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
+spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
 
 -- restore ctxt-info for the variable with given posinfo
-spanM-restore-info : var → maybe sym-info → spanM ⊤
-spanM-restore-info x m Γ ss = triv , ctxt-restore-info Γ x m , ss
+spanM-restore-info : var → restore-def → spanM ⊤
+spanM-restore-info v rd Γ ss = triv , ctxt-restore-info Γ v (fst rd) (snd rd) , ss
 
 _≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
 (m ≫span m') Γ ss with m Γ ss
 (m ≫span m') _ _ | _ , Γ , ss = m' Γ ss
 
-spanM-restore-info* : 𝕃 (string × maybe sym-info) → spanM ⊤
+spanM-restore-info* : 𝕃 (var × restore-def) → spanM ⊤
 spanM-restore-info* [] = spanMok
-spanM-restore-info* ((x , m) :: s) = spanM-restore-info x m ≫span spanM-restore-info* s
+spanM-restore-info* ((v , qi , m) :: s) = spanM-restore-info v (qi , m) ≫span spanM-restore-info* s
 
 set-ctxt : ctxt → spanM ⊤
 set-ctxt Γ _ ss = triv , Γ , ss
@@ -212,38 +216,6 @@ hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val → 𝕃 tagged-v
 hnf-expected-type-if Γ nothing tvs = tvs
 hnf-expected-type-if Γ (just tp) tvs = hnf-expected-type Γ tp :: tvs
 
-{-
-get-pi : type → string
-get-pi (Abs pi _ pi' _ _ _) = pi ^ ", " ^ pi'
-get-pi (IotaEx pi _ pi' _ _ _) = pi ^ ", " ^ pi'
-get-pi (Lft pi pi' _ _ _) = pi ^ ", " ^ pi'
-get-pi (Mu pi pi' _ _ _) = pi ^ ", " ^ pi'
-get-pi (NoSpans _ pi) = pi
-get-pi (TpApp _ _) = ""
-get-pi (TpAppt _ _) = ""
-get-pi (TpArrow _ _ _) = ""
-get-pi (TpEq _ _) = ""
-get-pi (TpHole pi) = pi
-get-pi (TpLambda pi pi' _ _ _) = pi ^ ", " ^ pi'
-get-pi (TpParens pi _ pi') = pi ^ ", " ^ pi'
-get-pi (TpVar pi _) = pi
--}
-{-
-Abs : posinfo → binder → posinfo → var → tk → type → type
-IotaEx : posinfo → ie → posinfo → var → optType → type → type
-Lft : posinfo → posinfo → var → term → liftingType → type
-Mu : posinfo → posinfo → var → kind → type → type
-NoSpans : type → posinfo → type
-TpApp : type → type → type
-TpAppt : type → term → type
-TpArrow : type → arrowtype → type → type
-TpEq : term → term → type
-TpHole : posinfo → type
-TpLambda : posinfo → posinfo → var → tk → type → type
-TpParens : posinfo → type → posinfo → type
-TpVar : posinfo → var → type
--}
-
 type-data : ctxt → type → tagged-val
 type-data Γ tp = "type" , to-string Γ tp -- ^ "|" ^ get-pi tp
 
@@ -257,16 +229,16 @@ warning-data : string → tagged-val
 warning-data s = "warning" , s
 
 check-for-type-mismatch : ctxt → string → type → type → 𝕃 tagged-val
-check-for-type-mismatch Γ s tp tp' =
-  expected-type Γ tp :: [ type-data Γ tp' ] ++
-    (if conv-type Γ tp tp' then [] else [ error-data ("The expected type does not match the " ^ s ^ " type.") ])
+check-for-type-mismatch Γ s tp tp' = let tp'' = hnf Γ unfold-head tp' tt in
+  expected-type Γ tp :: [ type-data Γ tp'' ] ++
+    (if conv-type Γ tp tp'' then [] else [ error-data ("The expected type does not match the " ^ s ^ " type.") ])
 
 check-for-type-mismatch-if : ctxt → string → maybe type → type → 𝕃 tagged-val
 check-for-type-mismatch-if Γ s (just tp) tp' = check-for-type-mismatch Γ s tp tp'
 check-for-type-mismatch-if Γ s nothing tp' = [ type-data Γ tp' ]
 
 summary-data : string → (filename : string) → (pos : posinfo) → string → tagged-val
-summary-data name fn pi classifier = "summary" , ((markup "location" (("filename" , fn) :: ("pos" , pi) :: []) name) ^ " : " ^ classifier)
+summary-data name fn pi classifier = "summary" , ((markup "loc" (("fn" , fn) :: ("pos" , pi) :: []) name) ^ " : " ^ classifier)
 
 missing-kind : tagged-val
 missing-kind = "kind" , "[undeclared]"
@@ -409,15 +381,15 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
                                       pi pi' [ binder-data-const ]
 
 TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
-TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-type :: var-location-data Γ v (just ll-type) :: symbol-data v :: tvs)
+TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-type :: var-location-data Γ v (just ll-type) :: symbol-data (unqual-local v) :: tvs)
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → span
-Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi v) (checking-data check :: ll-data-term :: var-location-data Γ v (just ll-term) :: symbol-data v :: tvs)
+Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v (just ll-term) :: symbol-data (unqual-local v) :: tvs)
 
 KndVar-span : ctxt → posinfo → string → args → checking-mode → 𝕃 tagged-val → span
 KndVar-span Γ pi v ys check tvs =
   mk-span "Kind variable" pi (args-end-pos ys)
-    (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data v :: super-kind-data :: tvs)
+    (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data (unqual-local v) :: super-kind-data :: tvs)
 
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data Γ k ])
@@ -590,7 +562,7 @@ hole-span Γ pi tp tvs =
 tp-hole-span : ctxt → posinfo → maybe kind → 𝕃 tagged-val → span
 tp-hole-span Γ pi k tvs =
   mk-span "Hole" pi (posinfo-plus pi 1) 
-    (ll-data-term :: error-data "This hole remains to be filled in" :: expected-kind-if Γ k (expected-kind-if Γ k tvs))
+    (ll-data-term :: error-data "This hole remains to be filled in" :: expected-kind-if Γ k tvs)
 
 
 expected-to-string : checking-mode → string
@@ -620,6 +592,9 @@ Rho-span pi t t' expected r numrewrites tvs = mk-span "Rho" pi (term-end-pos t')
                                      [ explain ("Rewrite terms in the " 
                                              ^ expected-to-string expected ^ " type, using an equation. "
                                              ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") ]))
+
+Phi-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
+Phi-span pi pi' expected tvs = mk-span "Phi" pi pi' (checking-data expected :: tvs)
 
 Chi-span : ctxt → posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → span
 Chi-span Γ pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-term :: checking-data check :: tvs ++ helper m)

@@ -2,7 +2,7 @@
 
 
 (defun se-markup-propertize-spans ()
-  "Searches the parse tree for marked up text and converts it into pinned properties"
+  "Searches the parse tree for marked up text and converts it into pinned properties."
 ;  (setq start (current-time))
   (mapcar #'se-markup-propertize-span se-mode-spans))
 ;  (setq end (current-time))
@@ -33,11 +33,11 @@
       (if (null split)
 	  (concat (substring text 0 1) (se-markup-propertize (substring text 1)))
 	(let ((ep (nth 0 split))
-	      (value (nth 1 split))
+	      (value (se-markup-propertize (nth 1 split)))
 	      (name (nth 2 split))
 	      (attrs (nth 3 split)))
 	  (se-pin-data 0 (length value) (make-symbol name) attrs value)
-	  (se-markup-propertize (concat value (substring text ep))))))))
+	  (concat value (se-markup-propertize (substring text ep))))))))
 
 (defun se-markup-split (text)
   (when (string= "<" (substring text 0 1))
@@ -66,12 +66,12 @@
 	(se-markup-split-h (substring text 1) attrs (concat prev h))))))
 
 (defun se-markup-remove-quotes (text)
-  "Removes single quotes at the beginning and end of text"
+  "Removes curly single quotes at the beginning and end of text"
   (unless (string= "" text)
-    (when (string= "'" (substring text 0 1))
+    (when (string= "‘" (substring text 0 1))
       (setq text (substring text 1)))
     (let ((len (length text)))
-      (when (string= "'" (substring text (- len 1) len))
+      (when (string= "’" (substring text (- len 1) len))
 	(setq text (substring text 0 (- len 1))))))
   text)
 

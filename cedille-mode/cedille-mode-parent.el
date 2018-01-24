@@ -49,8 +49,8 @@
   "Moves to the next jumpable text in the buffer"
   (interactive "r")
   (if (not mark-active)
-      (cedille-mode-parent-forward-alt (point) (se-get-pins 'location))
-    (let ((next (car (se-get-pins 'location nil end))))
+      (cedille-mode-parent-forward-alt (point) (se-get-pins 'loc))
+    (let ((next (car (se-get-pins 'loc nil end))))
       (if next
 	  (cedille-mode-parent-select-pin next)
 	(if cedille-mode-wrap-navigation
@@ -61,8 +61,8 @@
   "Moves to the previous jumpable text in the buffer"
   (interactive "r")
   (if (not mark-active)
-      (cedille-mode-parent-backward-alt (point) (se-get-pins 'location))
-    (let ((prev (car (last (se-get-pins 'location nil nil start)))))
+      (cedille-mode-parent-backward-alt (point) (se-get-pins 'loc))
+    (let ((prev (car (last (se-get-pins 'loc nil nil start)))))
       (if prev
 	  (cedille-mode-parent-select-pin prev)
 	(if cedille-mode-wrap-navigation
@@ -72,14 +72,14 @@
 (defun cedille-mode-parent-first ()
   "Moves to the first jumpable text in the buffer"
   (interactive)
-  (let ((pins (se-get-pins 'location)))
+  (let ((pins (se-get-pins 'loc)))
     (when pins
       (cedille-mode-parent-select-pin (car pins)))))
 
 (defun cedille-mode-parent-last ()
   "Moves to the last jumpable text in the buffer"
   (interactive)
-  (let ((pins (se-get-pins 'location)))
+  (let ((pins (se-get-pins 'loc)))
     (when pins
       (cedille-mode-parent-select-pin (car (last pins))))))
 
@@ -104,10 +104,10 @@
 (defun cedille-mode-parent-jump (start end)
   "If jumpable text is selected, jump to its definition"
   (interactive "r")
-  (let ((pin (se-pins-at start end 'location)))
+  (let ((pin (se-pins-at start end 'loc)))
     (when (and mark-active pin)
       (setq data (se-pin-item-data (car pin))
-	    filename (cdr (assoc "filename" data))
+	    filename (cdr (assoc "fn" data))
 	    pos (string-to-number (cdr (assoc "pos" data))))
       (select-window (cedille-mode-parent-main-window))
       (setq past (car cedille-mode-browsing-history)

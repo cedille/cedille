@@ -120,7 +120,7 @@
 	    buffer-read-only nil
 	    window-size-fixed nil)
       (se-inf-interactive (cedille-mode-get-message-from-filename cedille-mode-br-filename) nil :header "Parsing")
-      (se-inf-interactive "interactive§initBR" nil :delay t :header "Parsing")
+      ;(se-inf-interactive "interactive§initBR" nil :delay t :header "Parsing")
       (cedille-mode-br-erase str)
       (display-buffer buffer)
       (setq buffer-read-only t)

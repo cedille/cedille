@@ -108,5 +108,16 @@
      ;; ((string= quality "error") (if (cdr (assoc 'error data)) "error" nil)) 
      (t (cdr (assoc (intern quality) data))))))
 
+(defun cedille-mode-highlight-shadowed ()
+  "Searches for 'shadowed'-attribute markup in STR and highlights them"
+  (let* ((fn (lambda (pins)
+               (when pins
+                 (let* ((h (car pins))
+                        (s (se-pin-item-start h))
+                        (e (se-pin-item-end h)))
+                   (put-text-property s e 'face `(:foreground ,cedille-mode-context-shadowed-color))
+                 (funcall fn (cdr pins)))))))
+    (funcall fn (se-get-pins 'shadowed))))
+
 
 (provide 'cedille-mode-highlight)

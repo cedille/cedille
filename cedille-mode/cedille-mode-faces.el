@@ -208,6 +208,7 @@
 	       ("Recursively defined type" . cedille-keyword-face-df)
 	       ("Beta axiom" . cedille-keyword-face-df)
 	       ("Rho" . cedille-keyword-face-df)
+               ("Phi" . cedille-keyword-face-df)
 	       ("Theta" . cedille-keyword-face-df)
 	       ("Epsilon" . ced-purple-face)
 	       ("Chi" . cedille-keyword-face-df)

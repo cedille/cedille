@@ -63,12 +63,13 @@ Beta : lterm -> ! 'β' optTerm .
 Epsilon : lterm -> ! 'ε' leftRight maybeMinus ows lterm .
 Sigma : lterm -> ! 'ς' ows lterm.
 Rho : lterm -> ! rho ows lterm ows '-' ows lterm.
+Phi : lterm -> ! 'φ' ows lterm ows '-' ows lterm ows '{' ows term ows '}' ! .
 Chi : lterm -> ! 'χ' maybeAtype ows '-' ows lterm.
 embed : lterm -> pterm .
 Var : pterm -> ! qvar .
 Parens : pterm -> ! '(' ows term ows ')' ! . 
 IotaProj : pterm -> pterm ows '.' ows num ! .
-IotaPair : pterm -> ! '[' ows term ows ',' ows term optTerm ows ']' ! .
+IotaPair : pterm -> ! '[' ows term ows ',' ows term ows ']' ! .
 Hole : pterm -> ! '●' .
 
 Atype : maybeAtype -> ows atype.

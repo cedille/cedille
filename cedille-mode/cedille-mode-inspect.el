@@ -34,6 +34,7 @@ the info buffer for the file.  Return the info buffer as a convenience."
 	(cedille-inspect-view-mode)
 	(erase-buffer)
 	(insert txt)
+        (cedille-mode-highlight-shadowed)
 	(setq buffer-read-only t)
 	(goto-char 1))
       (cedille-mode-rebalance-windows)

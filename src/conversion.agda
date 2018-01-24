@@ -71,9 +71,9 @@ conv-optClass : conv-t optClass
 conv-optType : conv-t optType
 conv-tty* : conv-t (𝕃 tty)
 
-conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
-conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
-conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k tt) (hnf Γ unfold-head k' tt)
+conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head (qualif-term Γ t) tt) (hnf Γ unfold-head (qualif-term Γ t') tt)
+conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head (qualif-type Γ t) tt) (hnf Γ unfold-head (qualif-type Γ t') tt)
+conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head (qualif-kind Γ k) tt) (hnf Γ unfold-head (qualif-kind Γ k') tt)
 
 -- is-head is only used in hnf{TYPE}
 hnf{TERM} Γ no-unfolding e hd = erase-term e
@@ -98,8 +98,9 @@ hnf{TERM} Γ (unfold tt b b' ) (Var pi x) hd | just t = hnf Γ (unfold tt b b') 
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
-hnf{TERM} Γ u (IotaPair _ t1 t2 _ _) hd = hnf Γ u t1 hd
+hnf{TERM} Γ u (IotaPair _ t1 t2 _) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Phi _ eq t₁ t₂ _) hd = hnf Γ u t₂ hd
 hnf{TERM} Γ u (Rho pi _ t t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (App*' t (erase-lterms u' ls)) hd

@@ -57,7 +57,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   check-term t (just tp') ≫span 
   get-ctxt (λ Γ → 
     let t = erase-term t in
-    let t' = hnf-qualif-term Γ t in
+    let t' = hnf Γ unfold-head t tt in
     let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
       spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
@@ -66,7 +66,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
-  let t' = hnf-qualif-term Γ t in
+  let t' = hnf Γ unfold-head t tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x t' tp' Γ)))
 
@@ -75,7 +75,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
     let t = erase-term t in
-    let t' = hnf-qualif-term Γ t in
+    let t' = hnf Γ unfold-head t tt in
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))
@@ -89,7 +89,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
     let k' = qualif-kind Γ k in
     check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
-      let tp' = hnf-qualif-type Γ tp in
+      let tp' = hnf Γ unfold-head tp tt in
       let Γ' = ctxt-type-def pi globalScope x tp' k' Γ in
         spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
@@ -98,7 +98,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
   let k' = qualif-kind Γ k in
-  let tp' = hnf-qualif-type Γ tp in
+  let tp' = hnf Γ unfold-head tp tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x tp' k' Γ)))
 
@@ -107,16 +107,24 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
   check-and-add-params pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
-    let k' = hnf-qualif-kind Γ k in
+    let k' = hnf Γ unfold-head k tt in
     -- TODO maybe need to qualif params ps
     let Γ' = ctxt-kind-def pi x ps k' Γ in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
         spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
+  where check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
+        check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
+          check-tk atk ≫span
+          spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
+                                                      properly for computing the context in the frontend -}) ≫span
+          add-tk pi1' x atk ≫=span λ mi → 
+          check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+        check-and-add-params _ ParamsNil = spanMr []
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
-  let k' = hnf-qualif-kind Γ k in
+  let k' = hnf Γ unfold-head k tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
 

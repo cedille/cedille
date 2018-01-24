@@ -61,13 +61,14 @@ substh-term{QUALIF} Γ ρ σ (Var pi x) =
    qualif-lookup-term pi σ x'
 substh-term Γ ρ σ (Var pi x) = Var pi (renamectxt-rep ρ x)
 substh-term Γ ρ σ (Beta pi ot) = Beta pi (substh-optTerm Γ ρ σ ot)
-substh-term Γ ρ σ (IotaPair pi t1 t2 ot pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) (substh-optTerm Γ ρ σ ot) pi'
+substh-term Γ ρ σ (IotaPair pi t1 t2 pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) pi'
 substh-term Γ ρ σ (IotaProj t n pi) = IotaProj (substh-term Γ ρ σ t) n pi
 substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Phi pi t t₁ t₂ pi') = Phi pi (substh-term Γ ρ σ t) (substh-term Γ ρ σ t₁) (substh-term Γ ρ σ t₂) pi
 substh-term Γ ρ σ (Rho pi r t t') = Rho pi r (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
-substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls) 
+substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
   where substh-lterms : substh-ret-t lterms
         substh-lterms Γ ρ σ (LtermsNil pi) = LtermsNil pi
         substh-lterms Γ ρ σ (LtermsCons m t ls) = LtermsCons m (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
@@ -100,11 +101,9 @@ substh-type{TYPE} Γ ρ σ (TpVar pi x) =
 substh-type{ARG} Γ ρ σ (TpVar pi x) =
  let x' = renamectxt-rep ρ x in
    inst-lookup-type pi σ x'
-substh-type{QUALIF} (mk-ctxt _ _ i _) ρ σ (TpVar pi x) =
+substh-type{QUALIF} Γ ρ σ (TpVar pi x) =
  let x' = renamectxt-rep ρ x in
-   if trie-contains i x'
-    then (TpVar pi x')
-    else qualif-lookup-type pi σ x'
+   qualif-lookup-type pi σ x'
 substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
 substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
@@ -183,3 +182,6 @@ substs-type Γ = substh-type Γ empty-renamectxt
 
 substs-kind : substs-ret-t kind
 substs-kind Γ = substh-kind Γ empty-renamectxt
+
+substs-liftingType : substs-ret-t liftingType
+substs-liftingType Γ = substh-liftingType Γ empty-renamectxt
