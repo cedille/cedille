@@ -1,0 +1,6 @@
+module kappaDequal .
+
+𝒌 = ★.
+
+test ◂ ∀ X : 𝒌 . X ➔ X = Λ X . λ x .
+          x .  % if you look at the context at this point, you will see a qualified 𝒌 
