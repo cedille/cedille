@@ -34,7 +34,7 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
-check-and-add-params : posinfo → params → spanM (𝕃 (string × maybe sym-info))
+check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
 check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
@@ -114,14 +114,6 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
         spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
-  where check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
-        check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
-          check-tk atk ≫span
-          spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
-                                                      properly for computing the context in the frontend -}) ≫span
-          add-tk pi1' x atk ≫=span λ mi → 
-          check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-        check-and-add-params _ ParamsNil = spanMr []
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   let k' = hnf Γ unfold-head k tt in
