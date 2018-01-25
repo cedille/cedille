@@ -1,0 +1,30 @@
+import Cast.
+module ReuseCombs.Examples
+  (Nat : ★) (List : ★ ➔ ★) (Vec : ★ ➔ Nat ➔ ★)
+  (len : ∀ A : ★ . List · A ➔ Nat)
+  (plus : Nat ➔ Nat ➔ Nat)
+  (v2l : ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (List · A))
+  (l2v : ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (len · A xs)))
+  .
+
+appendV2appendL ◂ Cast'
+  · (∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  · (∀ A : ★ . List · A ➔ List · A ➔ List · A)
+  = copyType
+  · (λ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  · (λ A : ★ . List · A ➔ List · A ➔ List · A)
+  -(Λ A . allArr2Arr
+  · Nat · (Vec · A) · (λ n : Nat . ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  · (List · A) · (List · A ➔ List · A)
+  -(len · A)
+  -(l2v · A)
+  -(λ n . allArr2Arr
+  · Nat · (Vec · A) · (λ m : Nat . Vec · A (plus n m))
+  · (List · A) · (List · A)
+  -(len · A)
+  -(l2v · A)
+  -(λ m . v2l · A -(plus n m)
+  ))) .
+
+
+

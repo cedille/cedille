@@ -1,0 +1,43 @@
+module ReuseCombs.Cast.
+
+Cast ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+  Π a : A . ι b : B a . b ≃ a .
+
+cast ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Cast · A · B ➾ Π a : A . B a =
+  Λ A . Λ B . Λ c . λ a .
+  (χ (ι a : A . B a) - [ a , (c a).1 { ρ (c a).2 - β } ]).2 .
+
+Cast' ◂ ★ ➔ ★ ➔ ★ =
+  λ A : ★ . λ B : ★ .
+  Cast · A · (λ _ : A . B) .
+
+cast' ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ A ➔ B =
+  Λ A . Λ B . Λ c . λ a .
+  cast · A · (λ _ : A . B) -c a .
+
+copyAll ◂ ∀ A : ★ . ∀ B1 : A ➔ ★ . ∀ B2 : A ➔ ★ .
+  (Π a : A . Cast' · (B1 a) · (B2 a)) ➾
+  Cast' · (∀ a : A . B1 a) · (∀ a : A . B2 a)
+  = Λ A . Λ B1 . Λ B2 . Λ c . λ f .
+  [ (Λ a . cast' · (B1 a) · (B2 a) -(c a) (f -a))
+  , β{f} ] .
+
+copyType ◂ ∀ B1 : ★ ➔ ★ . ∀ B2 : ★ ➔ ★ .
+   (∀ A : ★ . Cast' · (B1 · A) · (B2 · A)) ➾
+  Cast' · (∀ A : ★ . B1 · A) · (∀ A : ★ . B2 · A)
+  = Λ B1 . Λ B2 . Λ c . λ f .
+  [ (Λ A . cast' · (B1 · A) · (B2 · A) -(c · A) (f · A))
+  , β{f} ] .
+
+allArr2Arr ◂ ∀ A1 : ★ . ∀ B1 : A1 ➔ ★ . ∀ C1 : A1 ➔ ★ . ∀ A2 : ★ . ∀ B2 : ★ .
+  ∀ c1 : A2 ➔ A1 .
+  (Cast · A2 · (λ a : A2 . B1 (c1 a))) ➾
+  (Π a : A1 . Cast' · (C1 a) · B2) ➾
+  Cast' · (∀ a : A1 . B1 a ➔ C1 a) · (A2 ➔ B2)
+  = Λ A1 . Λ B1 . Λ C1 . Λ A2 . Λ B2 . Λ c1 . Λ c2 . Λ c3 . λ f .
+  [ (λ a2 .
+    cast' · (C1 (c1 a2)) · B2
+      -(c3 (c1 a2))
+      (f -(c1 a2) (cast · A2 · (λ a : A2 . B1 (c1 a)) -c2 a2)))
+  , β{f} ] . 
