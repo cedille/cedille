@@ -60,7 +60,7 @@ Defaults to `error'."
 
 (require 'se-mode)
 (require 'se-markup)
-(require 'se-thread)
+;(require 'se-thread)
 (eval-when-compile (require 'se-macros))
 
 (defvar cedille-mode-version "1.0"
