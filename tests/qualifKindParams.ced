@@ -1,0 +1,7 @@
+module QualifKindParams.
+
+Nat ◂ ★ = ∀ X : ★ . X ➔ (X ➔ X) ➔ X .
+
+𝒌(Trm : Nat ➔ ★) = ★.
+
+test ◂ Π Trm : Nat ➔ ★ . 𝒌 · Trm ➔ ★ = ● .
