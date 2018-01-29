@@ -1,0 +1,11 @@
+module Valuation.
+
+import nat.
+import natExtras.
+
+Valuation' ◂ Nat ➔ (Nat ➔ ★) ➔ ★ = λ n : Nat . λ X : Nat ➔ ★ . Π m : Nat . Lt m n ➔ X m.
+
+updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . Valuation' n · X ➔ X n ➔ Valuation' (S n) · X =
+  λ n . Λ X . λ val . λ per . λ m . λ u . (Lt-S m n u).1 · (X m) (λ u . val m u) (λ e . ρ e - per) .
+
+restrictValuation' ◂ ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lt n m ➔ Valuation' m · X ➔ Valuation' n · X = ●.

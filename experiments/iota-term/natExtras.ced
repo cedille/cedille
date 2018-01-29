@@ -1,0 +1,17 @@
+module NatExtras.
+
+import nat.
+import sum.
+import false.
+
+Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat .
+  ∀ X : Nat ➔ Nat ➔ ★ .
+    (∀ n : Nat . X Z (S n)) ➔
+    (∀ n : Nat . ∀ m : Nat . X n m ➔ X (S n) (S m)) ➔
+    X n m .
+
+Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · (n ≃ m) .
+
+lte-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lte x y ➔ Lte y z ➔ Lte x z = ● .
+
+Lt-S ◂ Π x : Nat . Π y : Nat . Lt x (S y) ➔ Lte x y = ● .

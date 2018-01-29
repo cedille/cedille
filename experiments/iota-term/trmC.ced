@@ -1,0 +1,85 @@
+module TrmC.
+
+import product.
+import sum.
+import nat.
+import cast.
+import recType.
+import RecTypeI.
+import valuation.
+import natExtras.
+
+TrmAppF ◂ ★ ➔ ★ = λ R1 : ★ . Product · R1 · R1 .
+TrmIF ◂ ★ ➔ ★ ➔ ★ =
+  λ R1 : ★ . λ R2 : ★ . Sum · (TrmAppF · R1) · R2 .
+
+TrmAlg ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) ➔ ★ =
+  λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ . ∀ n : Nat . ∀ R1 : ★ . ∀ R2 : ★ . 
+    Cast · R1 · (Trm' n) ➾ 
+    Cast · R2 · (Trm' (S n)) ➾ 
+    Π e1 : R1 ➔ X n.
+    Π e2 : X n ➔ R2 ➔ X (S n).
+    TrmIF · R1 · R2 ➔ 
+    X n.
+
+Persistent ◂ (Nat ➔ ★) ➔ ★ = λ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lt n m ➔ X n ➔ X m.
+
+TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
+  λ Trm' : Nat ➔ ★ . λ n : Nat . ∀ X : Nat ➔ ★ . Persistent · X ➔ Valuation' n · X ➔ TrmAlg · Trm' · X ➔ X n .
+
+Trm' ◂ Nat ➔ ★ = Reci · Nat · TrmF' .
+
+TrmFFun ◂ RecFunctori · Nat · TrmF' =
+  Λ X . Λ Y . λ c .
+    [ Λ n . λ u . Λ Z . λ perZ . λ val . λ alg .
+      u · Z perZ val
+        (Λ n . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
+            alg -n · R1 · R2 -[λ r . casti · Nat · X · Y -c -n (cast · R1 · (X n) -c1 r), β]
+                             -[λ r . casti · Nat · X · Y -c -(S n) (cast · R2 · (X (S n)) -c2 r) , β]
+                              e1 e2 d) , β] .
+
+TrmIFFun ◂ ∀ R1 : ★ . ∀ R2 : ★ . ∀ R1' : ★ . ∀ R2' : ★ . Cast · R1 · R1' ➔ Cast · R2 · R2' ➔ Cast · (TrmIF · R1 · R2) · (TrmIF · R1' · R2') =
+  Λ R1 . Λ R2 . Λ R1' . Λ R2' . λ c1 . λ c2 .
+    caste · (TrmIF · R1 · R2) · (TrmIF · R1' · R2')
+      (λ d . d.1 · (TrmIF · R1' · R2')
+              (λ p . p.1 · (TrmIF · R1' · R2')
+                      (λ a . λ b . in1 · (TrmAppF · R1') · R2'
+                                    (pair · R1' · R1' (cast · R1 · R1' -c1 a) (cast · R1 · R1' -c1 b))))
+              (λ e . in2 · (TrmAppF · R1') · R2' (cast · R2 · R2' -c2 e)))
+      -(λ d .
+          θ<d> (ind-Sum · (TrmAppF · R1) · R2 d)
+            (λ a . θ<a> (ind-Product · R1 · R1 a) (λ e . λ f . β))
+            (λ a . β))            
+.
+    
+TrmFold' ◂ ∀ n : Nat . TrmF' · Trm' n ➔ Trm' n =
+  casti · Nat · (TrmF' · Trm') · Trm' -(recFoldi · Nat · TrmF' -TrmFFun) . 
+
+TrmUnfold' ◂ ∀ n : Nat . Trm' n ➔ TrmF' · Trm' n = 
+  casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun) . 
+
+fold' ◂ ∀ X : Nat ➔ ★ . Persistent · X ➔ TrmAlg · Trm' · X ➔ ∀ n : Nat . Valuation' n · X ➔ Trm' n ➔ X n =
+  Λ X . λ perX . λ alg . Λ n . λ val . λ t . TrmUnfold' -n t · X perX val alg .
+
+in' ◂ Π n : Nat . TrmIF · (Trm' n) · (Trm' (S n)) ➔ Trm' n =
+  λ n . λ d .
+    TrmFold' -n
+      (Λ X . λ perX . λ val . λ alg .
+         alg -n · (Trm' n) · (Trm' (S n))
+             -[ λ x . x , β] -[λ x . x , β]
+             (fold' · X perX alg -n val)
+             (λ x . fold' · X perX alg -(S n) (updateValuation' n · X val x))
+             d).
+
+embedTrm' ◂ Persistent · Trm' =
+  λ n . λ m . λ p . λ t .
+    TrmFold' -m
+      (Λ X . λ perX . λ val . λ alg . perX n m p (TrmUnfold' -n t · X perX (restrictValuation' · X n m p val) alg)) .
+
+var' ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Trm' m =
+  λ n . λ m . λ p .
+     TrmFold' -m
+        (Λ X . λ perX . λ val . λ alg . perX n m p (val n p)).
+
+exampleTrm' ◂ Trm' Z = in' Z (in2 · (TrmAppF · (Trm' Z)) · (Trm' (S Z))
+                                (var' Z (S Z) (Λ X . λ b . λ s . b -Z))) .
