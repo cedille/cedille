@@ -2,11 +2,6 @@ module general-util where
 
 open import lib
 
-take : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
-take 0 l = []
-take (suc n) (x :: l) = x :: (take n l)
-take (suc n) [] = []
-
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
   doesFileExist e >>= λ b → 
@@ -101,3 +96,43 @@ undo-escape-string-h [] so-far = reverse so-far
 
 undo-escape-string : string → string
 undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])
+
+-- functions.agda
+curry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+        → (A × B → C) → A → B → C
+curry f a b = f (a , b)
+
+uncurry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+          → (f : A → B → C) → (p : A × B) → C
+uncurry f (a , b) = f a b
+
+infix 0 case_return_of_ case_of_
+
+case_return_of_ :
+  ∀ {ℓ₁ ℓ₂} {A : Set ℓ₁}
+  (x : A) (B : A → Set ℓ₂) → ((x : A) → B x) → B x
+case x return B of f = f x
+
+case_of_ : ∀ {a b} {A : Set a} {B : Set b} → A → (A → B) → B
+case x of f = case_return_of_ x _ f
+
+flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
+       → (A → B → C) → (B → A → C)
+flip f = λ b a → f a b
+
+-- list.agda
+
+take : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+take 0 l = []
+take (suc n) (x :: l) = x :: (take n l)
+take (suc n) [] = []
+
+zip-with : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+           → (A → B → C) → 𝕃 A → 𝕃 B → 𝕃 C
+zip-with f xs ys = map (uncurry f) (zip xs ys)
+
+-- error.agda
+err-guard : 𝔹 → string → error-t ⊤
+err-guard tt msg = yes-error msg
+err-guard ff _   = no-error triv
+

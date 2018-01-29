@@ -121,7 +121,7 @@ spanM-restore-info* ((v , qi , m) :: s) = spanM-restore-info v (qi , m) ≫span 
 set-ctxt : ctxt → spanM ⊤
 set-ctxt Γ _ ss = triv , Γ , ss
 
-infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_
+infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_
 
 _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 (m ≫=span m') ss Γ with m ss Γ
@@ -143,6 +143,19 @@ _≫=spanm_{A} m m' = m ≫=span cont
   where cont : maybe A → spanM (maybe A)
         cont nothing = spanMr nothing
         cont (just a) = m' a
+
+_≫=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
+_≫=spanm'_{A}{B} m m' = m ≫=span cont
+  where cont : maybe A → spanM (maybe B)
+        cont nothing = spanMr nothing
+        cont (just a) = m' a
+
+_on-fail_≫=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM (maybe B)
+                            → (A → spanM (maybe B)) → spanM (maybe B)
+_on-fail_≫=spanm'_ {A}{B} m fail f = m ≫=span cont
+  where cont : maybe A → spanM (maybe B)
+        cont nothing  = fail
+        cont (just x) = f x
 
 spanM-add : span → spanM ⊤
 spanM-add s Γ ss = triv , Γ , add-span s ss

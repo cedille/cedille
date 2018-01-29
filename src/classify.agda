@@ -1,6 +1,7 @@
 module classify where
 
 open import lib
+open import general-util
 
 open import cedille-types
 open import constants
@@ -14,6 +15,7 @@ open import spans
 open import subst
 open import syntax-util
 open import to-string
+open import type-inf
 
 check-ret : ∀{A : Set} → maybe A → Set
 check-ret{A} nothing = maybe A
@@ -55,7 +57,7 @@ if-check-against-star-data Γ desc (just k) = error-data (desc ^ " is being chec
                                         :: expected-kind Γ k
                                         :: []
 
-check-term-app-erased-error : checking-mode → maybeErased → term → term → type → spanM (maybe type)
+check-term-app-erased-error : ∀ {A} checking-mode → maybeErased → term → term → type → spanM (maybe A)
 check-term-app-erased-error c m t t' head-tp =
   get-ctxt λ Γ → 
     spanM-add (App-span t t' c
@@ -123,6 +125,8 @@ check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
 check-termi-return : ctxt → (subject : term) → type → spanM (maybe type)
 check-termi-return Γ subject tp = spanMr (just (hnf Γ unfold-head tp tt))
 
+check-term-app-return : ctxt → (subject : term)
+                        → solve-vars → type → spanM (maybe (solve-vars × type))
 
 lambda-bound-var-conv-error : ctxt → var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val
 lambda-bound-var-conv-error Γ x atk atk' tvs = 
@@ -205,6 +209,7 @@ var-spans-optTerm (SomeTerm t _) = var-spans-term t
 {-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)
 check-termi : term → (m : maybe type) → spanM (check-ret m)
+check-term-app : term → (m : maybe type) → spanM (maybe (solve-vars × type))
 check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
@@ -239,83 +244,19 @@ check-termi (Var pi x) mtp =
         cont (just tp) Γ | just tp' = 
           spanM-add (Var-span Γ pi x checking (check-for-type-mismatch Γ "synthesized" tp tp'))
 
-check-termi (AppTp t tp') tp =
-  check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
-  where cont : type → spanM (maybe type)
-        cont (Abs pi b pi' x (Tkk k) tp2) = 
-           check-type tp' (just k) ≫span 
-           get-ctxt (λ Γ → spanMr (just (subst-type Γ (qualif-type Γ tp') x tp2)))
-        cont tp'' =
-          get-ctxt (λ Γ → 
-            spanM-add (AppTp-span t tp' (maybe-to-checking tp)
-                               (error-data ("The type computed for the head of the application does"
-                                        ^ " not allow the head to be applied to the (type) argument ")
-                            :: term-app-head Γ t
-                            :: head-type Γ tp'' 
-                            :: type-argument Γ tp'
-                            :: [])) ≫span
-                  spanMr nothing)
-        cont' : (outer : maybe type) → type → spanM (check-ret outer)
-        cont' nothing tp'' = 
-          get-ctxt (λ Γ → 
-            spanM-add (AppTp-span t tp' synthesizing ((type-data Γ (hnf Γ unfold-head tp'' tt)) :: [])) ≫span
-            check-termi-return Γ (AppTp t tp') tp'')
-        cont' (just tp) tp'' = 
-          get-ctxt (λ Γ → 
-            spanM-add (AppTp-span t tp' checking (check-for-type-mismatch Γ "synthesized" tp tp'')))
-        cont'' : maybe type → spanM (maybe type)
-        cont'' nothing =
-          spanM-add (AppTp-span t tp' (maybe-to-checking tp) []) ≫span spanMr nothing
-        cont'' (just htp) = get-ctxt (λ Γ → cont (hnf Γ unfold-head-rec-defs htp tt))
+check-termi t'@(AppTp t tp') tp =
+  check-term-app t' tp
+  ≫=span λ
+    { nothing → check-fail tp
+    -- TODO ensure solve-vars is solved!
+    ; (just (Xs , tp')) → return-when tp (just tp')}
+
 -- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
-check-termi (App t m t') tp =
-  check-term t nothing ≫=span cont'' ≫=spanr cont' tp 
-  where cont : maybeErased → type → spanM (maybe type)
-        cont NotErased (TpArrow tp1 UnerasedArrow tp2) = 
-          check-term t' (just tp1) ≫span 
-          get-ctxt (λ Γ → 
-            check-termi-return Γ (App t m t') tp2)
-        cont Erased (TpArrow tp1 ErasedArrow tp2) = 
-          check-term t' (just tp1) ≫span 
-          get-ctxt (λ Γ → 
-            check-termi-return Γ (App t m t') tp2)
-        cont Erased (TpArrow tp1 UnerasedArrow  tp2) = 
-          check-term-app-erased-error (maybe-to-checking tp) Erased t t' (TpArrow tp1 UnerasedArrow tp2)
-        cont NotErased (TpArrow tp1 ErasedArrow tp2) = 
-          check-term-app-erased-error (maybe-to-checking tp) NotErased t t' (TpArrow tp1 ErasedArrow tp2)
-        cont m (Abs pi b pi' x (Tkt tp1) tp2) = 
-          if check-term-app-matching-erasures m b then
-             (check-term t' (just tp1) ≫span 
-              get-ctxt (λ Γ → 
-                check-termi-return Γ (App t m t') (subst-type Γ (qualif-term Γ t') x tp2)))
-          else
-            check-term-app-erased-error (maybe-to-checking tp) m t t' (Abs pi b pi' x (Tkt tp1) tp2)
-        cont m tp' =
-         get-ctxt (λ Γ → 
-           spanM-add (App-span t t' (maybe-to-checking tp)
-                               (error-data ("The type computed for the head of the application does"
-                                        ^ " not allow the head to be applied to " ^ h m ^ " argument ")
-                            :: term-app-head Γ t
-                            :: head-type Γ tp' 
-                            :: term-argument Γ t'
-                            :: [])) ≫span
-                  spanMr nothing)
-                  where h : maybeErased → string
-                        h Erased = "an erased term"
-                        h NotErased = "a term"
-        -- the type should already be normalized and instantiated
-        cont' : (outer : maybe type) → type → spanM (check-ret outer)
-        cont' nothing tp' = 
-          get-ctxt (λ Γ → 
-           spanM-add (App-span t t' synthesizing [ type-data Γ tp' ]) ≫span 
-           spanMr (just tp')) -- already normalizedby cont
-        cont' (just tp) tp' = 
-          get-ctxt (λ Γ → 
-            spanM-add (App-span t t' checking
-                          (check-for-type-mismatch Γ "synthesized" tp tp' ++ hnf-expected-type-if Γ (just tp) [])))
-        cont'' : maybe type → spanM (maybe type)
-        cont'' nothing = spanM-add (App-span t t' (maybe-to-checking tp) []) ≫span spanMr nothing
-        cont'' (just htp) = get-ctxt (λ Γ → cont m (hnf Γ unfold-head-rec-defs htp tt))
+check-termi t''@(App t m t') tp
+  = check-term-app t'' tp
+    ≫=span λ
+      { nothing → check-fail tp
+      ; (just (Xs , tp')) → return-when tp (just tp')}
 
 check-termi (Let pi d t) mtp =
   spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
@@ -699,8 +640,127 @@ check-termi (IotaProj t n pi) mtp =
         cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp tt))
                                                      -- we are looking for iotas in the bodies of rec defs
 
-
 check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)
+
+-- check-term-app
+-----------------
+
+check-term-app-return Γ subject Xs tp
+  = spanMr (just (Xs , hnf Γ unfold-head tp tt))
+
+check-term-app-error-inapp : ctxt → (t t' : term) → type
+                             → checking-mode → maybeErased → spanM ⊤
+check-term-app-error-inapp Γ t t' htp m e
+  = spanM-add
+      (App-span t t' m
+        ((error-data
+          ("The type computed for the head of the application does"
+          ^ " not allow the head to be applied to " ^ h e ^ " argument ")
+        :: term-app-head Γ t :: head-type Γ htp  :: term-argument Γ t' :: [])))
+  where h : maybeErased → string
+        h Erased = "an erased term"
+        h NotErased = "a term"
+
+-- TODO
+-- - renaming solve-vars
+check-term-app t''@(App t m t') mtp
+  -- check head
+  = check-term-app t nothing
+      on-fail (spanM-add (App-span t t' check-mode [])
+              ≫span spanMr nothing)
+    ≫=spanm' λ { (Xs , htp) → get-ctxt
+      -- head normalize
+      λ Γ → spanMr (hnf Γ unfold-head-rec-defs htp tt)
+    ≫=span  λ htp → check-app-agree m htp Xs
+    ≫=spanr λ {ret@(Xs , tp') →
+      -- synthesizing or checking?
+      case mtp of λ
+        { nothing → get-ctxt
+          λ Γ → spanM-add (App-span t t' synthesizing [ type-data Γ tp' ])
+          ≫span spanMr (just ret)
+        ; (just tp) → get-ctxt
+          λ Γ → spanM-add (App-span t t' checking
+                  (check-for-type-mismatch Γ "synthesized" tp tp'
+                    ++ hnf-expected-type-if Γ (just tp) []))
+          ≫span spanMr (just ret)}}}
+  where
+  -- TODO include solve-vars in errors
+  check-mode = maybe-to-checking mtp
+
+  check-app-agree : maybeErased → type → solve-vars
+                    → spanM (maybe (solve-vars × type))
+  check-app-agree NotErased (TpArrow tp₁ UnerasedArrow tp₂) Xs
+    = check-term t' (just tp₁)
+      ≫span get-ctxt
+        λ Γ → check-term-app-return Γ t'' Xs tp₂
+  check-app-agree Erased (TpArrow tp₁ ErasedArrow tp₂) Xs
+    = check-term t' (just tp₁)
+      ≫span get-ctxt
+        λ Γ → check-term-app-return Γ t'' Xs tp₂
+  check-app-agree Erased tp@(TpArrow tp₁ UnerasedArrow tp₂) Xs
+    = check-term-app-erased-error check-mode Erased t t' tp
+  check-app-agree NotErased tp@(TpArrow tp₁ ErasedArrow tp₂) Xs
+    = check-term-app-erased-error check-mode NotErased t t' tp
+  check-app-agree m tp@(Abs pi b pi' x (Tkt tp₁) tp₂) Xs
+    = if (check-term-app-matching-erasures m b)
+      then
+          (check-term t' (just tp₁)
+        ≫span get-ctxt
+          λ Γ → check-term-app-return
+                  Γ t'' Xs
+                  (subst-type Γ (qualif-term Γ t') x tp₂))
+      else
+        check-term-app-erased-error check-mode m t t' tp
+  check-app-agree m htp Xs
+    = get-ctxt
+        λ Γ → check-term-app-error-inapp Γ t t' htp check-mode m
+      ≫span spanMr nothing
+
+check-term-app (AppTp t tp) mtp
+  -- check head
+  = check-term-app t nothing
+      on-fail spanM-add ((AppTp-span t tp (maybe-to-checking mtp) []))
+              ≫span spanMr nothing
+    ≫=spanm' λ {(Xs , htp) → get-ctxt
+      -- normalize the head, and rebind name
+      λ Γ → spanMr (hnf Γ unfold-head-rec-defs htp tt)
+      -- make sure htp can be applied to tp
+    ≫=span λ htp → check-app-agree Xs htp tp
+      on-fail (check-term-app-to-tp-error htp)
+      -- emit span
+    ≫=spanm' λ {ret@(Xs , tp-ret) → get-ctxt
+      λ Γ → case mtp of λ
+        { nothing → spanM-add
+            (AppTp-span t tp synthesizing
+                        (type-data Γ (hnf Γ unfold-head tp-ret tt) :: [] ))
+          ≫span spanMr (just ret)
+        ; (just tp-chk) → spanM-add
+            (AppTp-span t tp checking
+                        (check-for-type-mismatch Γ "synthesized" tp-chk tp-ret))
+          ≫span spanMr (just ret)}}}
+      -- re-package
+    where
+    check-app-agree : solve-vars → (tp-head tp-arg : type)
+                      → spanM (maybe (solve-vars × type))
+    check-app-agree Xs (Abs pi b pi' x (Tkk k) htp) tp-arg
+      = check-type tp-arg (just k)
+        ≫span get-ctxt -- TODO update Xs
+          λ Γ → spanMr (just (Xs , subst-type Γ (qualif-type Γ tp-arg) x htp))
+    check-app-agree Xs tp-head tp-arg
+      = spanMr nothing
+
+    check-term-app-to-tp-error : type → spanM _
+    check-term-app-to-tp-error htp = get-ctxt
+      λ Γ → spanM-add ((AppTp-span t tp synthesizing
+              (error-data ("The type computed for the head of the application does"
+                           ^ " not allow the head to be applied to the (type) argument ")
+              :: term-app-head Γ t :: head-type Γ htp :: type-argument Γ tp :: [])))
+      ≫span spanMr nothing
+
+check-term-app t m
+  = check-term t nothing  -- synthesize type for head
+    ≫=spanm' λ htp → let Xs = fst (collect-solve-vars htp) in
+    spanMr (just (Xs , htp))
 
 --ACG WIP
 --check-typei (TpHole pi) k = spanM-add
