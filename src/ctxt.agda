@@ -7,8 +7,17 @@ open import subst
 open import general-util
 open import syntax-util
 
+new-sym-info-trie : trie sym-info
+new-sym-info-trie = trie-insert empty-trie compileFail-qual ((term-decl compileFailType) , "missing" , "missing")
+
+new-qualif : qualif
+new-qualif = trie-insert empty-trie compileFail (compileFail-qual , ArgsNil "")
+
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , empty-trie) empty-trie empty-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) empty-trie new-sym-info-trie empty-trie
+
+empty-ctxt : ctxt
+empty-ctxt = new-ctxt "" ""
 
 ctxt-get-info : var → ctxt → maybe sym-info
 ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
@@ -159,11 +168,10 @@ env-lookup-type-var Γ@(mk-ctxt _ _ i _) v as with trie-lookup i v
 -}
 
 ctxt-safe-qualif : ctxt → var → maybe (args × sym-info)
-ctxt-safe-qualif (mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup i v
-... | just si = just (ArgsNil posinfo-gen , si)
-... | nothing with trie-lookup q v
-... | just (v' , as) = trie-lookup i v' ≫=maybe (λ si → just (as , si))
-... | nothing = nothing
+ctxt-safe-qualif Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
+  let fail = trie-lookup i v ≫=maybe λ si → just (ArgsNil posinfo-gen , si) in
+  maybe-else fail (λ vas → trie-lookup i (fst vas) ≫=maybe
+    λ si → just (snd vas , si)) (trie-lookup q v)
 
 -- look for a declared kind for the given var, which is assumed to be a type,
 -- otherwise look for a qualified defined kind
@@ -267,7 +275,7 @@ ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ... | nothing = "missing" , "missing"
 
 ctxt-set-current-file : ctxt → string → string → ctxt
-ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , empty-trie) syms i symb-occs
+ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs
 
 ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs

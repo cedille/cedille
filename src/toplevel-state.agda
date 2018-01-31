@@ -125,7 +125,7 @@ eΓ = new-ctxt "" ""
 
 params-to-string : params → string
 params-to-string ParamsNil = ""
-params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ (tk-to-string eΓ t-k) ^ "}" ^ ", " ^ (params-to-string pms)
+params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string pms)
 
 defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string pms
@@ -136,12 +136,12 @@ syms-to-string : trie (string × 𝕃 string) → string
 syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s) ", " (snd l)) ^ "}")
 
 ctxt-info-to-string : ctxt-info → string
-ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ (type-to-string eΓ tt tp) ^ "}"
-ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (term-to-string eΓ tt t) ^ ", type: " ^ (type-to-string eΓ tt tp) ^ "}"
-ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (term-to-string eΓ tt t) ^ "}"
-ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ (kind-to-string eΓ tt k) ^ "}"
-ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ (type-to-string eΓ tt tp) ^ ", kind: " ^ (kind-to-string eΓ tt k) ^ "}"
-ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ (kind-to-string eΓ tt k) ^ "}"
+ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (to-string empty-ctxt t) ^ ", type: " ^ (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ (to-string empty-ctxt t) ^ "}"
+ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ (to-string empty-ctxt tp) ^ ", kind: " ^ (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 
@@ -157,8 +157,11 @@ occ-to-string (v , pi , s) = "var: " ^ v ^ ", posinfo: " ^ pi ^ ", string: " ^ s
 sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
 sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
 
+qualif-to-string : qualif-info → string
+qualif-to-string (x , as) = x ^ fst (args-to-string as {TERM} "" 0 [] (new-ctxt "" "") nothing neither)
+
 mod-info-to-string : mod-info → string
-mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " (qualif-to-string (new-ctxt "" "")) q) ^ "}"
+mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt mi ss is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"

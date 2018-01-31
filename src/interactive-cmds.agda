@@ -65,12 +65,6 @@ ll-disambiguate-run _ r = r
 𝕃char-starts-with [] (h :: t) = ff
 𝕃char-starts-with _ _ = tt
 
-qualify : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-qualify{TERM} = qualif-term
-qualify{TYPE} = qualif-type
-qualify{KIND} = qualif-kind
-qualify _ t = t
-
 add-ws : 𝕃 char → 𝕃 char
 add-ws (' ' :: lc) = ' ' :: lc
 add-ws lc = ' ' :: lc
@@ -218,11 +212,11 @@ get-local-ctxt Γ pos filename local-ctxt de =
 
 normalize-tree : ctxt → (input : string) → Run → 𝔹 → string × 𝔹
 normalize-tree Γ input (ParseTree (parsed-term t) :: []) head =
-  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-term Γ t) tt)) , tt
+  to-string Γ (hnf Γ (unfold (~ head) ff ff) (qualif-term Γ t) tt) , tt
 normalize-tree Γ input (ParseTree (parsed-type T) :: []) head =
-  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-type Γ T) tt)) , tt
+  to-string Γ (hnf Γ (unfold (~ head) ff ff) (qualif-type Γ T) tt) , tt
 normalize-tree Γ input (ParseTree (parsed-kind k) :: []) head =
-  to-string Γ (qualify Γ (hnf Γ (unfold (~ head) ff ff) (qualif-kind Γ k) tt)) , tt
+  to-string Γ (hnf Γ (unfold (~ head) ff ff) (qualif-kind Γ k) tt) , tt
 normalize-tree _ input _ _ = "\"" ^ input ^ "\" was not parsed as a term, type, or kind"  , ff
 
 normalize-span : ctxt → (input : string) → gratr2-nt → (start-pos : ℕ) → (head : 𝔹) → string × 𝔹 
@@ -258,9 +252,9 @@ normalize-prompt-cmd Γ input fn head with string-to-𝔹 head
 {- Erasure -}
 
 erase-tree : ctxt → (input : string) → Run → string × 𝔹
-erase-tree Γ input (ParseTree (parsed-term t) :: []) = to-string Γ (qualify Γ (erase-term (qualif-term Γ t))) , tt
-erase-tree Γ input (ParseTree (parsed-type T) :: []) = to-string Γ (qualify Γ (erase-type (qualif-type Γ T))), tt
-erase-tree Γ input (ParseTree (parsed-kind k) :: []) = to-string Γ (qualify Γ (erase-kind (qualif-kind Γ k))) , tt
+erase-tree Γ input (ParseTree (parsed-term t) :: []) = to-string Γ (erase-term (qualif-term Γ t)) , tt
+erase-tree Γ input (ParseTree (parsed-type T) :: []) = to-string Γ (erase-type (qualif-type Γ T)), tt
+erase-tree Γ input (ParseTree (parsed-kind k) :: []) = to-string Γ (erase-kind (qualif-kind Γ k)) , tt
 erase-tree _ input _ = parse-error-message input "term, type, or kind"
 
 erase-span : ctxt → (input : string) → gratr2-nt → (start-pos : ℕ) → string × 𝔹
@@ -289,7 +283,7 @@ erase-prompt Γ input fn with pretty-string-h (string-to-𝕃char input) []
 {- Beta reduction -}
 
 br-spans : spanM ⊤ → string × 𝔹
-br-spans sM with snd (snd (sM (new-ctxt "" "") (regular-spans [])))
+br-spans sM with snd (snd (sM empty-ctxt (regular-spans [])))
 ...| global-error error ms = error , ff
 ...| ss = spans-to-string ss , tt
 
@@ -348,8 +342,6 @@ interactive-return (str , ff) = putStrLn ("§" ^ (escape-string str))
 
 interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
 interactive-cmd-h : ctxt → 𝕃 string → string × 𝔹
--- interactive-cmd ("initBR" :: []) (mk-toplevel-state f1 f2 f3 f4 f5 Γ) = putStrLn "initBR" >>
---  return (mk-toplevel-state f1 f2 f3 f4 f5 (init-br Γ))
 interactive-cmd ls ts = interactive-return (interactive-cmd-h (toplevel-state.Γ ts) ls) >>
   return ts
 

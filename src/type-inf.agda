@@ -45,16 +45,25 @@ fkind-to-kind (FStar pi) = Star pi
 solve-vars = trie (kind × list type)
 
 -- string and span helpers
+{-
 solve-vars-to-string : ctxt → solve-vars → string
 solve-vars-to-string Γ sv
   = string-concat-sep ","
       ((flip map) (trie-mappings sv)
         λ { (x , k , sols)
-            → x ^ " : " ^ to-string Γ k})
+            → x ^ " : " ^ to-string k})
+-}
+solve-var-to-string : string × kind × 𝕃 type → strM
+solve-var-to-string (x , k , sols) = strVar x ≫str strAdd " : " ≫str to-stringh k
+
+solve-vars-to-string : 𝕃 (string × kind × 𝕃 type) → strM
+solve-vars-to-string [] = strEmpty
+solve-vars-to-string (v :: []) = solve-var-to-string v
+solve-vars-to-string (v :: vs) = solve-var-to-string v ≫str strAdd ", " ≫str solve-vars-to-string vs
 
 -- TODO move to spans.agda
 solve-var-set-data : ctxt → solve-vars → tagged-val
-solve-var-set-data Γ xs = "solve vars" , solve-vars-to-string Γ xs
+solve-var-set-data Γ xs = strRunTag "solve vars" Γ (solve-vars-to-string (trie-mappings xs))
 
 -- collecting, merging, matching
 

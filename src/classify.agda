@@ -131,16 +131,9 @@ check-term-app-return : ctxt → (subject : term)
 lambda-bound-var-conv-error : ctxt → var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val
 lambda-bound-var-conv-error Γ x atk atk' tvs = 
     ( error-data "The classifier given for a λ-bound variable is not the one we expected"
- :: ("the variable" , x)
- :: ("its declared classifier" , tk-to-string Γ atk')
- :: [ "the expected classifier" , tk-to-string Γ atk ]) ++ tvs
-
-mu-conv-error : ctxt → var → kind → kind → 𝕃 tagged-val → 𝕃 tagged-val
-mu-conv-error Γ x knd k tvs =
-    ( error-data "The classifier given for a μ-bound variable is not the one we expected"
- :: ("the variable" , x)
- :: ("its declared classifier" , kind-to-string Γ ff knd)
- :: [ "the expected classifer" , kind-to-string Γ ff k ]) ++ tvs
+ :: ("the variable" , x , [])
+ :: (to-string-tag-tk "its declared classifier" Γ atk')
+ :: [ to-string-tag-tk "the expected classifier" Γ atk ]) ++ tvs
 
 lambda-bound-class-if : optClass → tk → tk
 lambda-bound-class-if NoClass atk = atk
@@ -236,7 +229,7 @@ check-termi (Var pi x) mtp =
         cont mtp Γ | nothing = 
          spanM-add (Var-span Γ pi x (maybe-to-checking mtp)
                       (error-data "Missing a type for a term variable." :: 
-                       expected-type-if Γ mtp (missing-type :: []))) ≫span
+                       expected-type-if Γ mtp ++ (missing-type :: []))) ≫span
          return-when mtp mtp
         cont nothing Γ | just tp = 
           spanM-add (Var-span Γ pi x synthesizing (type-data Γ tp :: [ hnf-type Γ tp ])) ≫span
@@ -412,7 +405,7 @@ check-termi (Epsilon pi lr m t) nothing =
           get-ctxt (λ Γ → 
           spanM-add (Epsilon-span pi lr m t synthesizing ( error-data ("There is no expected type, and the type we synthesized for the body"
                                                            ^ " of the ε-term is not an equation.")
-                                             :: ["the synthesized type" , to-string Γ tp ])) ≫span
+                                             :: [ to-string-tag "the synthesized type" Γ tp ])) ≫span
           spanMr nothing)
 
 check-termi (Sigma pi t) mt = 
@@ -435,7 +428,7 @@ check-termi (Sigma pi t) mt =
           get-ctxt (λ Γ → 
           spanM-add (Sigma-span Γ pi t mt ( error-data ("The type we synthesized for the body"
                                                       ^ " of the ς-term is not an equation.")
-                                          :: ["the synthesized type" , to-string Γ tp ])) ≫span
+                                          :: [ to-string-tag "the synthesized type" Γ tp ])) ≫span
           check-fail mt)
 
 check-termi (Phi pi t₁≃t₂ t₁ t₂ pi') (just tp) =
@@ -465,11 +458,11 @@ check-termi (Rho pi r t t') (just tp) =
              let s = rewrite-type Γ empty-renamectxt (is-rho-plus r) t1 t2 tp in
              check-term t' (just (fst s)) ≫span
              get-ctxt (λ Γ →
-             spanM-add (Rho-span pi t t' checking r (snd s) ( ("the equation" , to-string Γ (TpEq t1 t2)) :: [ type-data Γ tp ]))))
+             spanM-add (Rho-span pi t t' checking r (snd s) ( (to-string-tag "the equation" Γ (TpEq t1 t2)) :: [ type-data Γ tp ]))))
         cont (just tp') =
           get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking r 0
                                        (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
-                                     :: ("the synthesized type for the first subterm" , to-string Γ tp')
+                                     :: (to-string-tag "the synthesized type for the first subterm" Γ tp')
                                      :: [ expected-type Γ tp ])))
 
 check-termi (Rho pi r t t') nothing = 
@@ -485,7 +478,7 @@ check-termi (Rho pi r t t') nothing =
         cont (just tp') m2 =
            get-ctxt (λ Γ → spanM-add (Rho-span pi t t' synthesizing r 0
                                          (error-data "We could not synthesize an equation from the first subterm in a ρ-term."
-                                      :: ("the synthesized type for the first subterm" , to-string Γ tp')
+                                      :: (to-string-tag "the synthesized type for the first subterm" Γ tp')
                                       :: [])) ≫span spanMr nothing)
         cont nothing _ = spanM-add (Rho-span pi t t' synthesizing r 0 []) ≫span spanMr nothing
 
@@ -519,7 +512,7 @@ check-termi (Theta pi AbstractEq t ls) (just tp) =
         cont nothing = check-term t nothing ≫=span (λ m → 
                        get-ctxt (λ Γ →
                           spanM-add (Theta-span Γ pi AbstractEq t ls checking
-                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" ]))))
+                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" , [] ]))))
         cont (just htp) =
            get-ctxt (λ Γ → 
              let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
@@ -536,7 +529,7 @@ check-termi (Theta pi Abstract t ls) (just tp) =
         cont _ nothing = check-term t nothing ≫=span (λ m → 
                          get-ctxt (λ Γ →
                            spanM-add (Theta-span Γ pi Abstract t ls checking
-                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" ]))))
+                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" , [] ]))))
         cont t (just htp) = 
           let x = compute-var t in
           let motive = mtplam x (Tkt htp) tp in
@@ -589,7 +582,7 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota pi1 pi2 x (SomeType tp1) tp2)) =
     get-ctxt (λ Γ → 
     spanM-add (IotaPair-span pi pi' checking (expected-type Γ (Iota pi1 pi2 x (SomeType tp1) tp2) :: (check-conv Γ t1' t2')))))
   where err : ctxt → string → term → tagged-val
-        err Γ which t = ("Hnf of the " ^ which ^ " component: ") , term-to-string Γ tt (hnf Γ unfold-head t tt)
+        err Γ which t = to-string-tag ("Hnf of the " ^ which ^ " component: ") Γ (hnf Γ unfold-head t tt)
         check-conv : ctxt → term → term → 𝕃 tagged-val
         check-conv Γ t1 t2 =
                 (if conv-term Γ t1 t2 then
@@ -681,7 +674,7 @@ check-term-app t''@(App t m t') mtp
         ; (just tp) → get-ctxt
           λ Γ → spanM-add (App-span t t' checking
                   (check-for-type-mismatch Γ "synthesized" tp tp'
-                    ++ hnf-expected-type-if Γ (just tp) []))
+                    ++ hnf-expected-type-if Γ (just tp)))
           ≫span spanMr (just ret)}}}
   where
   -- TODO include solve-vars in errors
@@ -779,7 +772,7 @@ check-typei (TpVar pi x) mk =
         cont mk Γ | nothing = 
           spanM-add (TpVar-span Γ pi x (maybe-to-checking mk)
                        (error-data "Missing a kind for a type variable." :: 
-                        expected-kind-if Γ mk (missing-kind :: []))) ≫span
+                        expected-kind-if Γ mk ++ (missing-kind :: []))) ≫span
           return-when mk mk
         cont nothing Γ | (just k) = 
           spanM-add (TpVar-span Γ pi x synthesizing ((kind-data Γ k) :: [])) ≫span

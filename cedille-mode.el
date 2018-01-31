@@ -246,8 +246,8 @@ is assumed to be a string with a sequence number (prefix up
 
 (defun cedille-mode-compare-seqnums(a b)
   "Compare two pairs by seqnum."
-  (let ((na (cedille-mode-get-seqnum a))
-        (nb (cedille-mode-get-seqnum b)))
+  (let ((na (cadr a))
+        (nb (cadr b)))
       (< (string-to-number na) (string-to-number nb))))
 
 (defun cedille-mode-strip-seqnum(s)
@@ -260,8 +260,8 @@ first space."
 start of each string, and then strip out that number."
   (when json
       (setq json (sort json 'cedille-mode-compare-seqnums))
-      (setq json (loop for (key . value) in json
-                   collecting (cons key (cedille-mode-strip-seqnum value))))
+      (setq json (loop for kv in json
+                   collecting (cedille-mode-apply-tag kv)))
       json))
 
 (defun cedille-mode-initialize-span(span)
@@ -390,10 +390,8 @@ in the parse tree, and updates the Cedille info buffer."
 
 (defun cedille-mode-modify-response (response)
   (let ((response (cedille-mode-strip-ws response)))
-    (if (not (string= "§" (substring response 0 1)))
-	response
-      (message (substring response 1))
-      nil)))
+    (when (not (string= "§" (substring response 0 1)))
+	response)))
 
 (defun cedille-mode-strip-ws (response)
   "Removes the proceeding whitespaces in RESPONSE"
@@ -487,6 +485,25 @@ occurrences, then do so."
           (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
 	  (setq cedille-mode-matching-nodes nil))
       (setq cedille-mode-matching-nodes matching-nodes))))
+
+(defun cedille-mode-apply-tags (str tags)
+  "Helper for `cedille-mode-apply-tag'"
+  (if (null tags)
+      str
+    (let* ((tag (car tags))
+           (tail (cdr tags))
+           (start (string-to-number (cdr (assoc 'start (cdr tag)))))
+           (end (string-to-number (cdr (assoc 'end (cdr tag)))))
+           (data (cdr tag))
+           (symbol (car tag)))
+      (cedille-mode-apply-tags (se-pin-data start end symbol data str) tail))))
+
+(defun cedille-mode-apply-tag (tag)
+  "Applies the tags in TAG to its value"
+  (let ((key (car tag))
+        (value (caddr tag))
+        (tags (cadddr tag)))
+    (cons key (cedille-mode-apply-tags value tags))))
       
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
@@ -578,7 +595,7 @@ occurrences, then do so."
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
-  (add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
+  ;(add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)

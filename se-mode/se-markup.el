@@ -1,17 +1,19 @@
 ;;;;; Markup code ;;;;;
 
+(defun se-print-time (start &optional msg)
+  (let* ((end (current-time))
+         (high (- (nth 0 end) (nth 0 start)))
+         (low (- (nth 1 end) (nth 1 start)))
+         (micro (- (nth 2 end) (nth 2 start)))
+         (pico (- (nth 3 end) (nth 3 start)))
+	(time (time-to-seconds (list high low micro pico))))
+    (message (or msg "time: %s") time)))
 
 (defun se-markup-propertize-spans ()
   "Searches the parse tree for marked up text and converts it into pinned properties."
-;  (setq start (current-time))
+  ;(setq start (current-time))
   (mapcar #'se-markup-propertize-span se-mode-spans))
-;  (setq end (current-time))
-;  (setq high (- (nth 0 end) (nth 0 start))
-;	low (- (nth 1 end) (nth 1 start))
-;	micro (- (nth 2 end) (nth 2 start))
-;	pico (- (nth 3 end) (nth 3 start))
-;	time (time-to-seconds (list high low micro pico))))
-  ;(message "time to propertize: %s" time))
+  ;(se-print-time start "markup time: %s"))
 
 
 (defun se-markup-propertize-span (span)

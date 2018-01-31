@@ -21,6 +21,34 @@ qualif-info = var × args
 qualif : Set
 qualif = trie qualif-info
 
+tag : Set
+tag = string × string
+
+tagged-val : Set
+tagged-val = string × string × 𝕃 tag
+
+tags-to-string : 𝕃 tag → string
+tags-to-string [] = ""
+tags-to-string ((t , v) :: []) = "\"" ^ t ^ "\":" ^ v ^ ""
+tags-to-string ((t , v) :: ts) = "\"" ^ t ^ "\":" ^ v ^ "," ^ tags-to-string ts
+
+-- We number these when so we can sort them back in emacs
+tagged-val-to-string : ℕ → tagged-val → string
+tagged-val-to-string n (t , v , []) = "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ^ v ^ "\"]"
+tagged-val-to-string n (t , v , tags) = "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ^ v ^ "\",{" ^ tags-to-string tags ^ "}]"
+
+tagged-vals-to-string : ℕ → 𝕃 tagged-val → string
+tagged-vals-to-string n [] = ""
+tagged-vals-to-string n (s :: []) = tagged-val-to-string n s
+tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tagged-vals-to-string (suc n) (s' :: ss)
+
+make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
+make-tag name vs start end = name , "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ^ vs-to-string vs ^ "}"
+  where
+    vs-to-string : 𝕃 tag → string
+    vs-to-string [] = ""
+    vs-to-string ((t , v) :: ts) = ",\"" ^ t ^ "\":\"" ^ v ^ "\"" ^ vs-to-string ts
+
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi
 posinfo-to-ℕ pi | just n = n
@@ -51,6 +79,13 @@ fn # v = fn ^ "." ^  v
 
 _%_ : posinfo → var → string
 pi % v = pi ^ "@" ^ v
+
+compileFail : var
+compileFail = "compileFail"
+compileFail-qual = "" % compileFail
+
+compileFailType : type
+compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
 mk-inst : params → args → trie arg
 mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) =
@@ -322,6 +357,10 @@ is-eq-op _ = ff
 is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-beta{TERM} (Beta _ _) = tt
 is-beta _ = ff
+
+is-eq : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-eq{TYPE} (TpEq _ _) = tt
+is-eq _ = ff
 
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt

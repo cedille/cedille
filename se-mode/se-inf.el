@@ -158,7 +158,6 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
     (with-current-buffer buffer
       (se-inf-next-header)
       (let* ((response (funcall se-inf-modify-response (se-inf-undo-escape-string response)))
-	     ;(mv (message "\n\n\nresponse: %s" response))
 	     (pair (cond
 		    ((null response-fn) nil)
 		    ((and span extra) (funcall response-fn response span oc extra))

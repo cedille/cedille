@@ -56,10 +56,10 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   let tp' = qualif-type Γ tp in
   check-term t (just tp') ≫span 
   get-ctxt (λ Γ → 
-    let t = erase-term t in
-    let t' = hnf Γ unfold-head t tt in
-    let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
-      spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
+    let t' = erase-term t in
+    let t'' = hnf Γ unfold-head t' tt in
+    let Γ' = ctxt-term-def pi globalScope x t'' tp' Γ in
+      spanM-add (DefTerm-span Γ pi x checking (just tp) t' pi' (compileFail-in Γ t t' t'')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanM-add (Var-span Γ' pi x checking []) ≫span
          spanMr (mk-toplevel-state use-cede make-rkt ip fns is Γ')))
@@ -74,11 +74,11 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
-    let t = erase-term t in
-    let t' = hnf Γ unfold-head t tt in
-      spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
+    let t' = erase-term t in
+    let t'' = hnf Γ unfold-head t' tt in
+      spanM-add (DefTerm-span Γ pi x synthesizing mtp t' pi' (compileFail-in Γ t t' t'')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))
+        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t'' , mtp)))))
   where h : ctxt → term × (maybe type) → ctxt
         h Γ (t , nothing) = ctxt-term-udef pi globalScope x t Γ
         h Γ (t , just tp) = ctxt-term-def pi globalScope x t tp Γ
