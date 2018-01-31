@@ -5,7 +5,12 @@ module ReuseCombs.Examples
   (plus : Nat ➔ Nat ➔ Nat)
   (v2l : ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (List · A))
   (l2v : ∀ A : ★ . Cast · (List · A) · (λ xs : List · A . Vec · A (len · A xs)))
+  (v2u : ∀ A : ★ . ∀ n : Nat . Cast' · (Vec · A n) · (ι xs : List · A . n ≃ len xs))
+  (u2v : ∀ A : ★ . ∀ n : Nat . Cast' · (ι xs : List · A . n ≃ len xs) · (Vec · A n))
   .
+
+VecL ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
+  ι xs : List · A . n ≃ len xs .
 
 appendV2appendL ◂ Cast'
   · (∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
@@ -16,8 +21,7 @@ appendV2appendL ◂ Cast'
   -(Λ A . allArr2Arr
   · Nat · (Vec · A) · (λ n : Nat . ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
   · (List · A) · (List · A ➔ List · A)
-  -(len · A)
-  -(l2v · A)
+  -(len · A) -(l2v · A)
   -(λ n . allArr2Arr
   · Nat · (Vec · A) · (λ m : Nat . Vec · A (plus n m))
   · (List · A) · (List · A)
@@ -60,8 +64,7 @@ assocV2assocL ◂
     Π ys : List · A .
     Π zs : List · A .
     appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
-  -(len · A)
-  -(l2v · A)
+  -(len · A) -(l2v · A)
   -(λ xs . allPi2Pi
   · Nat · (Vec · A) · (λ m : Nat . λ ys : Vec · A m .
     ∀ o : Nat . Π zs : Vec · A o .
@@ -69,15 +72,30 @@ assocV2assocL ◂
   · (List · A) · (λ ys : List · A .
     Π zs : List · A .
     appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
-  -(len · A)
-  -(l2v · A)
+  -(len · A) -(l2v · A)
   -(λ ys . allPi2Pi
   · Nat · (Vec · A) · (λ o : Nat . λ zs : Vec · A o .
     appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
   · (List · A) · (λ zs : List · A .
     appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
-  -(len · A)
-  -(l2v · A)
+  -(len · A) -(l2v · A)
   -(λ zs . id
   · (appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
   )))) .
+
+appendL2appendV ◂ Cast'
+  · (∀ A : ★ . Π xs : List · A . Π ys : List · A . VecL · A (plus (len · A xs) (len · A ys)))
+  · (∀ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  = copyType
+  · (λ A : ★ . Π xs : List · A . Π ys : List · A . VecL · A (plus (len · A xs) (len · A ys)))
+  · (λ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  -(Λ A . pi2allArr
+  · (List · A) · (λ xs : List · A . Π ys : List · A . VecL · A (plus (len · A xs) (len · A ys)))
+  · Nat · (Vec · A) · (λ n : Nat . ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
+  -(len · A) -(λ n . v2u · A -n)
+  -(λ xs . pi2allArr
+  · (List · A) · (λ ys : List · A . VecL · A (plus (len · A xs) (len · A ys)))
+  · Nat · (Vec · A) · (λ m : Nat . Vec · A (plus (len · A xs) m))
+  -(len · A) -(λ m . v2u · A -m)
+  -(λ ys . u2v · A -(plus (len · A xs) (len · A ys))
+  ))) .
