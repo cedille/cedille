@@ -1,5 +1,6 @@
 {-# OPTIONS --type-in-type #-}
 open import Cast
+open ι
 module Examples
   (Nat : ⋆)
   (List : ⋆ → ⋆)
@@ -54,3 +55,23 @@ appendL2appendV =
   pi2allArr v2u λ ys →
   u2v
 
+assocL2assocV :
+  {appendL : {A : ⋆} (xs ys : List A) → VecL A (plus (len xs) (len ys))}
+  → let appendV = cast' appendL2appendV appendL in
+  Cast'
+   ({A : ⋆}
+    (xs : List A)
+    (ys : List A)
+    (zs : List A)
+    → appendL (π₁ (appendL xs ys)) zs ≅ appendL xs (π₁ (appendL ys zs)))
+   ({A : ⋆}
+    {n : Nat} (xs : Vec A n)
+    {m : Nat} (ys : Vec A m)
+    {o : Nat} (zs : Vec A o)
+    → appendV (appendV xs ys) zs ≅ appendV xs (appendV ys zs))
+assocL2assocV =
+  copyType λ A →
+  pi2allPi l2v v2u λ xs →
+  pi2allPi l2v v2u λ ys →
+  pi2allPi l2v v2u λ zs →
+  trust -- would be id if agda had untyped equality & casts

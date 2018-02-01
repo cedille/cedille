@@ -99,3 +99,55 @@ appendL2appendV ◂ Cast'
   -(len · A) -(λ m . v2u · A -m)
   -(λ ys . u2v · A -(plus (len · A xs) (len · A ys))
   ))) .
+
+assocL2assocV ◂
+  ∀ appendL : ∀ A : ★ . Π xs : List · A . Π ys : List · A . VecL · A (plus (len · A xs) (len · A ys)) .
+  Cast'
+  · (∀ A : ★ .
+     Π xs : List · A .
+     Π ys : List · A .
+     Π zs : List · A .
+     appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  · (∀ A : ★ .
+     ∀ n : Nat . Π xs : Vec · A n .
+     ∀ m : Nat . Π ys : Vec · A m .
+     ∀ o : Nat . Π zs : Vec · A o .
+     appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  = Λ appendL . copyType
+  · (λ A : ★ .
+     Π xs : List · A .
+     Π ys : List · A .
+     Π zs : List · A .
+     appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  · (λ A : ★ .
+     ∀ n : Nat . Π xs : Vec · A n .
+     ∀ m : Nat . Π ys : Vec · A m .
+     ∀ o : Nat . Π zs : Vec · A o .
+     appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  -(Λ A . pi2allPi
+  · (List · A) · (λ xs : List · A .
+    Π ys : List · A .
+    Π zs : List · A .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  · Nat · (Vec · A) · (λ n : Nat . λ xs : Vec · A n .
+    ∀ m : Nat . Π ys : Vec · A m .
+    ∀ o : Nat . Π zs : Vec · A o .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  -(len · A) -(l2v · A) -(λ n . v2u · A -n)
+  -(λ xs . pi2allPi
+  · (List · A) · (λ ys : List · A .
+    Π zs : List · A .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  · Nat · (Vec · A) · (λ m : Nat . λ ys : Vec · A m .
+    ∀ o : Nat . Π zs : Vec · A o .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  -(len · A) -(l2v · A) -(λ m . v2u · A -m)
+  -(λ ys . pi2allPi
+  · (List · A) · (λ zs : List · A .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  · Nat · (Vec · A) · (λ o : Nat . λ zs : Vec · A o .
+    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  -(len · A) -(l2v · A) -(λ o . v2u · A -o)
+  -(λ zs . id
+  · (appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+  )))) .

@@ -2,9 +2,14 @@
 module Cast where
 
 ⋆ = Set
+
+record  ι (A : ⋆) (B : A → ⋆) : ⋆ where
+  field
+    π₁ : A
+    π₂ : B π₁
+
 postulate
   _≅_ : {A B : ⋆} → A → B → ⋆
-  ι : (A : ⋆) (B : A → ⋆) → ⋆
   Cast : (A : ⋆) → (A → ⋆) → ⋆
   cast : {A : ⋆} {B : A → ⋆} → Cast A B → (a : A) → B a
   trust : {A : ⋆} → A
@@ -39,5 +44,12 @@ postulate
     (c2 : {a2 : A2} → Cast' (B2 a2) (ι A1 λ a1 → a2 ≅ c1 a1))
     (c3 : (a1 : A1) → Cast' (B1 a1) (C2 (c1 a1)))
     → Cast' ((a1 : A1) → B1 a1) ({a2 : A2} → B2 a2 → C2 a2)
+
+  pi2allPi : {A1 : ⋆} {B1 : A1 → ⋆} {A2 : ⋆} {B2 : A2 → ⋆} {C2 : (a2 : A2) → B2 a2 → ⋆}
+    {c1 : A1 → A2}
+    (c2 : Cast A1 (λ a1 → B2 (c1 a1)))
+    (c3 : {a2 : A2} → Cast' (B2 a2) (ι A1 λ a1 → a2 ≅ c1 a1))
+    (c4 : (a1 : A1) → Cast' (B1 a1) (C2 (c1 a1) (cast c2 a1)))
+    → Cast' ((a1 : A1) → B1 a1) ({a2 : A2} (b2 : B2 a2) → C2 a2 b2)
 
 
