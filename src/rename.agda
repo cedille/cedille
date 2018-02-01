@@ -50,7 +50,7 @@ pick-new-name x = x ^ "'"
 {- rename-away-from x g r rename the variable x to be some new name (related to x)
    which does not satisfy the given predicate on names (assuming this is possible),
    and is not in the domain of the renamectxt . -}
-{-# TERMINATING #-}
+{-# NON_TERMINATING #-}
 rename-away-from : string → (string → 𝔹) → renamectxt → string
 rename-away-from x g r =
   if (g x) then
