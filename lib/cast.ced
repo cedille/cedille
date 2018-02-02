@@ -3,14 +3,15 @@ module Cast .
 Cast ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ .
        ι cast : A ➔ B . cast ≃ λ x . x.
 
-changeType ◂ ∀ A : ★ . ∀ B : ★ . Π a : A . ∀ b : B . (a ≃ b) ➾ B =
-  Λ A . Λ B . λ a . Λ b . Λ e . (χ (ι x : A . B) - [a,b{e}]).2 .
+changeType ◂ ∀ A : ★ . ∀ B : ★ . Π a : A . ∀ b : B . (a ≃ b) ➾ B
+	   = Λ A . Λ B . λ a . Λ b . Λ e .
+	       φ (ς e) - b {a} .
 
 cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =
   Λ A . Λ B . Λ c . λ a . changeType · A · B a -(c.1 a) -(ρ c.2 - β).
 
-caste ◂ ∀ A : ★ . ∀ B : ★ . Π f : A ➔ B . (Π a : A . f a ≃ a) ➾ Cast · A · B =
-  Λ A . Λ B . λ f . Λ e . [ λ x . (χ (ι x : A . B) - [x , f x {ς (e x)}]).2 , β] .
+caste ◂ ∀ A : ★ . ∀ B : ★ . Π f : A ➔ B . (Π a : A . f a ≃ a) ➾ Cast · A · B
+      = Λ A . Λ B . λ f . Λ e . [ λ x . φ (e x) - (f x) {x}, β ] .
 
 castCompose ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Cast · A · B ➔ Cast · B · C ➔ Cast · A · C =
   Λ A . Λ B . Λ C . λ c1 . λ c2 . [ λ a . cast · B · C -c2 (cast · A · B -c1 a) , β] .
