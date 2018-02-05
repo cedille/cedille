@@ -1,0 +1,19 @@
+module trmFuns .
+
+import trmC.
+import product.
+import sum.
+import nat.
+
+sizeTrm ◂ ∀ n : Nat . Trm' n ➔ Nat =
+  Λ n . λ t .
+    TrmUnfold' -n t · (λ _ : Nat . Nat)
+      (λ n . λ m . λ p . λ x . x)
+      (λ _ . λ _ . (S Z))
+      (Λ n . Λ R1 . Λ R2 . Λ _ . Λ _ .
+       λ eval1 . λ eval2 . λ d .
+       d.1 · Nat (λ a . a.1 · Nat
+                         (λ fun . λ arg . S (add (eval1 fun) (eval1 arg))))
+                 (λ a . S (eval2 (S Z) a))) .
+
+sizeExampleTrm' ◂ Nat = sizeTrm -Z exampleTrm'. 

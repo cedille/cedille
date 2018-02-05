@@ -29,7 +29,7 @@ TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
 
 Trm' ◂ Nat ➔ ★ = Reci · Nat · TrmF' .
 
-TrmFFun ◂ RecFunctori · Nat · TrmF' =
+TrmFFun' ◂ RecFunctori · Nat · TrmF' =
   Λ X . Λ Y . λ c .
     [ Λ n . λ u . Λ Z . λ perZ . λ val . λ alg .
       u · Z perZ val
@@ -53,10 +53,10 @@ TrmIFFun ◂ ∀ R1 : ★ . ∀ R2 : ★ . ∀ R1' : ★ . ∀ R2' : ★ . Cast 
 .
     
 TrmFold' ◂ ∀ n : Nat . TrmF' · Trm' n ➔ Trm' n =
-  casti · Nat · (TrmF' · Trm') · Trm' -(recFoldi · Nat · TrmF' -TrmFFun) . 
+  casti · Nat · (TrmF' · Trm') · Trm' -(recFoldi · Nat · TrmF' -TrmFFun') . 
 
 TrmUnfold' ◂ ∀ n : Nat . Trm' n ➔ TrmF' · Trm' n = 
-  casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun) . 
+  casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun') . 
 
 fold' ◂ ∀ X : Nat ➔ ★ . Persistent · X ➔ TrmAlg · Trm' · X ➔ ∀ n : Nat . Valuation' n · X ➔ Trm' n ➔ X n =
   Λ X . λ perX . λ alg . Λ n . λ val . λ t . TrmUnfold' -n t · X perX val alg .

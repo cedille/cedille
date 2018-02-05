@@ -9,3 +9,7 @@ updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . Valuation' n · X ➔ X 
   λ n . Λ X . λ val . λ per . λ m . λ u . (Lt-S m n u).1 · (X m) (λ u . val m u) (λ e . ρ e - per) .
 
 restrictValuation' ◂ ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lt n m ➔ Valuation' m · X ➔ Valuation' n · X = ●.
+
+Valuation ◂ Nat ➔ Π Trm : Nat ➔ ★ . (Π n : Nat . Trm n ➔ ★) ➔ ★ =
+  λ n : Nat . λ Trm : Nat ➔ ★ . λ P : Π n : Nat . Trm n ➔ ★ .
+    Π m : Nat . Lt m n ➔ ∀ t : Trm m . P m t .
