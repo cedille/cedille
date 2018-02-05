@@ -23,11 +23,19 @@ cast' = cast
 postulate
   id : {A : ⋆} → Cast' A A
 
+  copyPi : {A : ⋆} {B1 B2 : A → ⋆}
+    → ((a : A) → Cast' (B1 a) (B2 a))
+    → Cast' ((a : A) → B1 a) ((a : A) → B2 a)
+
+  copyArr : {A B1 B2 : ⋆}
+    → (A → Cast' B1 B2)
+    → Cast' (A → B1) (A → B2)
+
   copyType : {B1 B2 : ⋆ → ⋆}
     → ((A : ⋆) → Cast' (B1 A) (B2 A))
     → Cast' ({A : ⋆} → B1 A) ({A : ⋆} → B2 A)
 
-  allArr2Arr : {A1 : ⋆} {B1 C1 : A1 → ⋆} {A2 B2 : ⋆}
+  allArr2arr : {A1 : ⋆} {B1 C1 : A1 → ⋆} {A2 B2 : ⋆}
     {c1 : A2 → A1}
     (c2 : Cast A2 (λ a1 → B1 (c1 a1)))
     (c3 : (a1 : A1) → Cast' (C1 a1) B2)

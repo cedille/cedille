@@ -21,8 +21,8 @@ appendV2appendL : Cast'
   ({A : ⋆} → List A → List A → List A)
 appendV2appendL =
   copyType λ A →
-  allArr2Arr l2v λ n →
-  allArr2Arr l2v λ m →
+  allArr2arr l2v λ n →
+  allArr2arr l2v λ m →
   v2l
 
 assocV2assocL :
@@ -75,3 +75,13 @@ assocL2assocV =
   pi2allPi l2v v2u λ ys →
   pi2allPi l2v v2u λ zs →
   trust -- would be id if agda had untyped equality & casts
+
+mapL2mapV : Cast'
+  ({A B : ⋆} (f : A → B) (xs : List A) → VecL B (len xs))
+  ({A B : ⋆} (f : A → B) {n : Nat} (xs : Vec A n) → Vec B n)
+mapL2mapV =
+  copyType λ A →
+  copyType λ B →
+  copyArr λ f →
+  pi2allArr v2u λ xs →
+  u2v

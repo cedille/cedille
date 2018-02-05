@@ -19,6 +19,19 @@ cast' ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ A ➔ B =
 id ◂ ∀ A : ★ . Cast' · A · A
   = Λ A . λ a . [ a , β{a} ] .
 
+copyPi ◂ ∀ A : ★ . ∀ B1 : A ➔ ★ . ∀ B2 : A ➔ ★ .
+  (Π a : A . Cast' · (B1 a) · (B2 a)) ➾
+  Cast' · (Π a : A . B1 a) · (Π a : A . B2 a)
+  = Λ A . Λ B1 . Λ B2 . Λ c . λ f .
+  [ (λ a . cast' · (B1 a) · (B2 a) -(c a) (f a))
+  , β{f} ] .
+
+copyArr ◂ ∀ A : ★ . ∀ B1 : ★ . ∀ B2 : ★ .
+  (A ➔ Cast' · B1 · B2) ➾
+  Cast' · (A ➔ B1) · (A ➔ B2)
+  = Λ A . Λ B1 . Λ B2 .
+  copyPi · A · (λ a : A . B1) · (λ a : A . B2) .
+
 copyAll ◂ ∀ A : ★ . ∀ B1 : A ➔ ★ . ∀ B2 : A ➔ ★ .
   (Π a : A . Cast' · (B1 a) · (B2 a)) ➾
   Cast' · (∀ a : A . B1 a) · (∀ a : A . B2 a)
@@ -33,7 +46,8 @@ copyType ◂ ∀ B1 : ★ ➔ ★ . ∀ B2 : ★ ➔ ★ .
   [ (Λ A . cast' · (B1 · A) · (B2 · A) -(c · A) (f · A))
   , β{f} ] .
 
-allArr2Arr ◂ ∀ A1 : ★ . ∀ B1 : A1 ➔ ★ . ∀ C1 : A1 ➔ ★ . ∀ A2 : ★ . ∀ B2 : ★ .
+
+allArr2arr ◂ ∀ A1 : ★ . ∀ B1 : A1 ➔ ★ . ∀ C1 : A1 ➔ ★ . ∀ A2 : ★ . ∀ B2 : ★ .
   ∀ c1 : A2 ➔ A1 .
   (Cast · A2 · (λ a : A2 . B1 (c1 a))) ➾
   (Π a : A1 . Cast' · (C1 a) · B2) ➾

@@ -18,11 +18,11 @@ appendV2appendL ◂ Cast'
   = copyType
   · (λ A : ★ . ∀ n : Nat . Vec · A n ➔ ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
   · (λ A : ★ . List · A ➔ List · A ➔ List · A)
-  -(Λ A . allArr2Arr
+  -(Λ A . allArr2arr
   · Nat · (Vec · A) · (λ n : Nat . ∀ m : Nat . Vec · A m ➔ Vec · A (plus n m))
   · (List · A) · (List · A ➔ List · A)
   -(len · A) -(l2v · A)
-  -(λ n . allArr2Arr
+  -(λ n . allArr2arr
   · Nat · (Vec · A) · (λ m : Nat . Vec · A (plus n m))
   · (List · A) · (List · A)
   -(len · A)
@@ -151,3 +151,23 @@ assocL2assocV ◂
   -(λ zs . id
   · (appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
   )))) .
+
+mapL2mapV ◂ Cast'
+  · (∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔ Π xs : List · A . VecL · B (len · A xs))
+  · (∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔ ∀ n : Nat . Vec · A n ➔ Vec · B n)
+  = copyType
+  · (λ A : ★ . ∀ B : ★ .  (A ➔ B) ➔ Π xs : List · A . VecL · B (len · A xs))
+  · (λ A : ★ . ∀ B : ★ .  (A ➔ B) ➔ ∀ n : Nat . Vec · A n ➔ Vec · B n)
+  -(Λ A . copyType
+  · (λ B : ★ . (A ➔ B) ➔ Π xs : List · A . VecL · B (len · A xs))
+  · (λ B : ★ . (A ➔ B) ➔ ∀ n : Nat . Vec · A n ➔ Vec · B n)
+  -(Λ B . copyArr · (A ➔ B)
+  · (Π xs : List · A . VecL · B (len · A xs))
+  · (∀ n : Nat . Vec · A n ➔ Vec · B n)
+  -(λ f . pi2allArr
+  · (List · A) · (λ xs : List · A . VecL · B (len · A xs))
+  · Nat · (Vec · A) · (λ n : Nat . Vec · B n)
+  -(len · A) -(λ n . v2u · A -n)
+  -(λ xs . u2v · B -(len · A xs)
+  )))) .
+
