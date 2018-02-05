@@ -23,4 +23,3 @@ mult ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec m · Nat (add n) Z .
 
 exp ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec n · Nat (mult m) (S Z) .
 
-
