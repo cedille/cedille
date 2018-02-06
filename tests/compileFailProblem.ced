@@ -1,0 +1,8 @@
+module compileFailProblem.
+
+Top ◂ ★ = λ x. x ≃ λ x. x.
+tt ◂ Top = β{λ a. λ b. a}.
+ff ◂ Top = β{λ a. λ b. b}.
+
+test' ◂ (tt ≃ ff) ➔ (tt ≃ ff) = λ e. ρ e - β.
+test ◂ tt ≃ ff = test' (compileFail · (tt ≃ ff)).
