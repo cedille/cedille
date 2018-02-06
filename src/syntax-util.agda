@@ -358,10 +358,6 @@ is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-beta{TERM} (Beta _ _) = tt
 is-beta _ = ff
 
-is-eq : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-eq{TYPE} (TpEq _ _) = tt
-is-eq _ = ff
-
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt
 eq-maybeErased Erased NotErased = ff
@@ -610,9 +606,9 @@ is-rho-plus : rho → 𝔹
 is-rho-plus RhoPlain = ff
 is-rho-plus RhoPlus = tt
 
-is-equation : type → 𝔹
-is-equation (TpParens _ t _) = is-equation t
-is-equation (TpEq _ _) = tt
+is-equation : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-equation{TYPE} (TpParens _ t _) = is-equation t
+is-equation{TYPE} (TpEq _ _) = tt
 is-equation _ = ff 
 
 is-equational : type → 𝔹
