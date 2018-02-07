@@ -197,7 +197,7 @@ kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-s
 kind-to-stringh (KndParens pi k pi') = to-string-ed k
 kind-to-stringh (KndPi pi pi' x Tk k) = strAdd ("Π " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh k)
 kind-to-stringh (KndTpArrow T k) = to-stringl T ≫str strAdd " ➔ " ≫str to-stringr k
-kind-to-stringh (KndVar pi x as) = strVar x
+kind-to-stringh (KndVar pi x as) = strVar x ≫str args-to-string as
 kind-to-stringh (Star pi) = strAdd "★"
 
 liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔ " ≫str to-stringr lT'
@@ -219,7 +219,7 @@ maybeCheckType-to-string (Type T) = strAdd " ◂ " ≫str to-stringh T
 lterms-to-string (LtermsCons m t ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string (LtermsNil _) = strEmpty
 arg-to-string (TermArg t) = to-stringh t
-arg-to-string (TypeArg T) = to-stringh T
+arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
 args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-to-string ts
 args-to-string (ArgsNil _) = strEmpty
 binder-to-string All = "∀"

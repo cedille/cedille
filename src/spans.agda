@@ -475,7 +475,7 @@ compileFail-in Γ o e n with is-free-in-term check-erased compileFail
 ...| is-free with is-free o
 ...| ff = []
 ...| tt with is-free n | is-free e
-...| tt | _ = error-data "compileFail occurs in the hnf of the term" :: [ to-string-tag "hnf of the term" Γ n ]
+...| tt | _ = error-data "compileFail occurs in the normalized term" :: [ to-string-tag "normalized term" Γ n ]
 ...| ff | ff = error-data "compileFail occurs in an erased position" :: [ to-string-tag "the term" Γ o ]
 ...| ff | tt = []
 

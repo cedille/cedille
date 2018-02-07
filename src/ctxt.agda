@@ -89,13 +89,21 @@ ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   (trie-insert i (p % v) (type-decl (qualif-kind Γ k) , (fn , p)))
   symb-occs
 
+ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
+ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
+ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ 
+
 -- TODO roll "hnf Γ unfold-head t tt" into ctxt-*-def, after qualification
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
 ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
   (trie-insert-append2 syms fn mn v)
-  (trie-insert i (mn # v) (kind-def ps1 ps2 (qualif-kind Γ k) , (fn , p)))
-  symb-occs
+  (trie-insert i (mn # v) (kind-def ps1 (h Γ ps2) (qualif-kind Γ k) , (fn , p)))
+  symb-occs where
+    h : ctxt → params → params
+    h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' x t-k pi'') ps) =
+      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' x t-k Γ) ps)
+    h _ ps = ps
 
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
 ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
@@ -148,11 +156,6 @@ ctxt-rename p v v' (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
       (trie-insert i v (rename-def v' , (fn , p)))
       symb-occs)
-
-
-ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
-ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
-ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ 
 
 ----------------------------------------------------------------------
 -- lookup functions
