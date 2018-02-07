@@ -6,7 +6,7 @@ hastp ◂ Top ➔ ★ ➔ ★ = λ t : Top. λ A : ★ . ι x : A . (t ≃ x) .
 
 convtp ◂ Π t : Top . ∀ A : ★ . hastp t · A ➾ A =
   λ t . Λ A . Λ u .
-    (χ (ι _ : Top . A) - [t , u.1 {u.2}]).2 .
+   φ (ς u.2) - u.1 {t} .
 
 trivHastp ◂ ∀ A : ★ . Π a : A . hastp β{a} · A = Λ A . λ a . [ a , β{a} ].
 
