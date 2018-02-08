@@ -1,6 +1,9 @@
 module Nat-thms.
 
+import cnat.
 import nat.
+import false.
+import true.
 
 NatRebuild ◂ Π n : Nat. n S Z ≃ n =
   λ n . NatInd n · (λ n : Nat . n S Z ≃ n) (Λ X . λ ih . ρ+ ih - β) β .
@@ -38,23 +41,14 @@ multId0 ◂ Π n : Nat . mult (S Z) n ≃ n =
 multId ◂ Π n : Nat . mult n (S Z) ≃ n =
   λ n . NatInd n · (λ n : Nat . mult n (S Z) ≃ n) (Λ x . λ ih . ρ+ ih - β) β .
 
-multS0 ◂ Π n : Nat . Π m : Nat . mult (S n) m ≃ add m (mult n m) =
-  λ n . λ m . θ<m> (NatInd m) (Λ x . λ ih . ●) (ρ (multZ (S n)) - ρ ς (multZ0 n) - β) .
-%(ρ (multId0 m) - (ρ (ς (multZ m)) - (ς (addId m)) )) .
+rebuild ◂ cNat ➔ cNat =
+  λ n . Λ X . λ s . λ z . n · ((X ➔ X) ➔ X) (λ g . λ h . h (g s)) (λ u . z) s.
 
-multS ◂ Π n : Nat . Π m : Nat . mult n (S m) ≃ add n (mult n m) =
-  λ n . λ m . θ<m> (NatInd m) (Λ x . λ ih . ●) (ρ (multId n) - ρ (multZ n) - ρ (addId n) - β) .
+predsuch ◂ Π n : Nat . λ s . λ z . rebuild n s z ≃ n =
+  λ n . θ<n> (NatInd n) (Λ x . λ ih . χ ((λ s . λ z . s ((λ s . λ z . rebuild x s z) s z)) ≃ (cS x)) - ρ ih - β) β .
 
-multDist0 ◂ Π n : Nat . Π m : Nat . Π o : Nat . mult (add n m) o ≃ add (mult n o) (mult m o) =
-  λ n . λ m . λ o . θ<n> (NatInd n) (Λ x . λ ih . ●) β .
+predsuc ◂ Π n : Nat . pred (cS n) ≃ n = predsuch .
 
-multDist ◂ Π n : Nat . Π m : Nat . Π o : Nat . mult n (add m o) ≃ add (mult m n) (mult o n) =
-  λ n . λ m . λ o . ● .
-
-multAssoc ◂ Π n : Nat . Π m : Nat . Π o : Nat . mult (mult n m) o ≃ mult n (mult m o) =
-  λ n . λ m . λ o . NatInd m · (λ m : Nat . mult (mult n m) o ≃ mult n (mult m o)) (Λ x . λ ih . ●) (ρ (multZ n) - ρ (multZ0 n) - β) .
-    %θ<m> (NatInd n) (Λ x . λ ih . ●) β .
-    %NatInd n · (λ n : Nat . mult (mult n m) o ≃ mult n (mult m o)) (Λ x . λ ih . ρ ih - β) β .
-
-multComm ◂ Π n : Nat . Π m : Nat . mult n m ≃ mult m n =
-  λ n . λ m . θ<m> (NatInd m) (Λ x . λ ih. ●) (ρ (multZ n) - (ς (multZ0 n))) .
+ZS-False ◂ ∀ n : Nat . (Z ≃ S n) ➔ False =
+  Λ n . λ e .
+    χ (↑ X . Z.1 · X : ((☆ ➔ ☆) ➔ ☆ ➔ ☆) · (λ _ : ★ . True) · False) - ρ e - triv .
