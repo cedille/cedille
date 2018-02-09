@@ -224,7 +224,7 @@ check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf
 
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span
-  check-term t tp
+  check-termi t tp
 check-termi (Var pi x) mtp =
   get-ctxt (cont mtp)
   where cont : (mtp : maybe type) → ctxt → spanM (check-ret mtp)
@@ -488,7 +488,7 @@ check-termi (Rho pi r t t') nothing =
 check-termi (Chi pi (Atype tp) t) mtp = 
   check-type tp (just star) ≫span
   get-ctxt λ Γ →
-  check-term t (just (qualif-type Γ tp)) ≫span cont mtp
+  check-termi t (just (qualif-type Γ tp)) ≫span cont mtp
   where cont : (m : maybe type) → spanM (check-ret m)
         cont nothing = get-ctxt (λ Γ → spanM-add (Chi-span Γ pi (Atype tp) t synthesizing []) ≫span spanMr (just tp))
         cont (just tp') =
