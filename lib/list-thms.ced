@@ -1,6 +1,7 @@
 module List-thms.
 
 import list.
+import nat.
 
 length-append ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A .
                 length (append l1 l2) ≃ add (length l1) (length l2) =
