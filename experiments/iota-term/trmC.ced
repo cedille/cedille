@@ -82,4 +82,4 @@ var' ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Trm' m =
         (Λ X . λ perX . λ val . λ alg . perX n m p (val n p)).
 
 exampleTrm' ◂ Trm' Z = in' Z (in2 · (TrmAppF · (Trm' Z)) · (Trm' (S Z))
-                                (var' Z (S Z) (Λ X . λ b . λ s . b -Z))) .
+                                (var' Z (S Z) ●)) .
