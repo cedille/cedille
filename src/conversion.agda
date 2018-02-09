@@ -71,6 +71,7 @@ conv-optClass : conv-t optClass
 conv-optType : conv-t optType
 conv-tty* : conv-t (𝕃 tty)
 
+-- TODO conversion should not be requalifying!!!
 conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head (qualif-term Γ t) tt) (hnf Γ unfold-head (qualif-term Γ t') tt)
 conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head (qualif-type Γ t) tt) (hnf Γ unfold-head (qualif-type Γ t') tt)
 conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head (qualif-kind Γ k) tt) (hnf Γ unfold-head (qualif-kind Γ k') tt)

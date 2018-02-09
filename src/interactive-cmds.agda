@@ -141,11 +141,12 @@ ctxt-def-tree Γ gratr2-nt._type (just val-run) T-run v fn pos de with
   get-type-from-run val-run | get-kind-from-run T-run
 ...| just T | just k = ctxt-type-def pos globalScope v (if de then (erase-type T) else T) k (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ...| _ | _ = Γ
+-- TODO need to consider globalScope if this can be a module parameter
 ctxt-def-tree Γ gratr2-nt._term nothing T-run v fn pos de with get-type-from-run T-run
-...| just T = ctxt-term-decl pos v T (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
+...| just T = ctxt-term-decl pos localScope v T (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ...| nothing = Γ
 ctxt-def-tree Γ gratr2-nt._type nothing T-run v fn pos de with get-kind-from-run T-run
-...| just k = ctxt-type-decl pos v (if de then (erase-kind k) else k) (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
+...| just k = ctxt-type-decl pos localScope v (if de then (erase-kind k) else k) (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v))
 ...| nothing = Γ
 ctxt-def-tree Γ _ _ _ _ _ _ _ = Γ
 

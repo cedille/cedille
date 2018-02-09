@@ -13,6 +13,9 @@ new-sym-info-trie = trie-insert empty-trie compileFail-qual ((term-decl compileF
 new-qualif : qualif
 new-qualif = trie-insert empty-trie compileFail (compileFail-qual , ArgsNil "")
 
+qualif-nonempty : qualif → 𝔹
+qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
+
 new-ctxt : (filename modname : string) → ctxt
 new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) empty-trie new-sym-info-trie empty-trie
 
@@ -75,25 +78,42 @@ qualif-tk : ctxt → tk → tk
 qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
 qualif-tk Γ (Tkk k) = Tkk (qualif-kind Γ k)
 
-ctxt-term-decl : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q (p % v) v ps))
+qualif-params : ctxt → params → params
+qualif-params Γ (ParamsCons (Decl pi1 pi1' x atk pi2) ps) =
+  ParamsCons p' (qualif-params Γ ps)
+  where p' = Decl pi1 pi1' (ctxt-get-current-modname Γ # x) (qualif-tk Γ atk) pi2
+qualif-params Γ ParamsNil = ParamsNil
+
+qualif-args : ctxt → args → args
+qualif-args Γ (ArgsCons (TermArg t) as) = ArgsCons (TermArg (qualif-term Γ t)) (qualif-args Γ as)
+qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp)) (qualif-args Γ as)
+qualif-args Γ as@(ArgsNil _) = as
+
+ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
+ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
-  (trie-insert i (p % v) ((term-decl (qualif-type Γ t)) , (fn , p)))
+  (trie-insert i v' ((term-decl (qualif-type Γ t)) , (fn , p)))
   symb-occs
+  where v' = if s iff localScope then p % v else mn # v
 
-ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q (p % v) v ps))
+ctxt-type-decl : posinfo → defScope → var → kind → ctxt → ctxt
+ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
-  (trie-insert i (p % v) (type-decl (qualif-kind Γ k) , (fn , p)))
+  (trie-insert i v' (type-decl (qualif-kind Γ k) , (fn , p)))
   symb-occs
+  where v' = if s iff localScope then p % v else mn # v
 
-ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
-ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
-ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ 
+ctxt-tk-decl : posinfo → defScope → var → tk → ctxt → ctxt
+ctxt-tk-decl p s x (Tkt t) Γ = ctxt-term-decl p s x t Γ 
+ctxt-tk-decl p s x (Tkk k) Γ = ctxt-type-decl p s x k Γ
 
--- TODO roll "hnf Γ unfold-head t tt" into ctxt-*-def, after qualification
+ctxt-params-def : params → ctxt → ctxt
+ctxt-params-def ps Γ@(mk-ctxt (fn , mn , _ , q) syms i symb-occs) =
+  mk-ctxt (fn , mn , ps' , q) syms i symb-occs
+  where ps' = qualif-params Γ ps
+
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
 ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
@@ -102,7 +122,7 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-c
   symb-occs where
     h : ctxt → params → params
     h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' x t-k pi'') ps) =
-      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' x t-k Γ) ps)
+      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' globalScope x t-k Γ) ps)
     h _ ps = ps
 
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
@@ -306,18 +326,9 @@ ctxt-clear-symbols-of-file (mk-ctxt f syms i symb-occs) fn =
 ctxt-initiate-file : ctxt → (filename modname : string) → ctxt
 ctxt-initiate-file Γ fn mn = ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn
 
-ctxt-get-current-filename : ctxt → string
-ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _) = fn
-
-ctxt-get-current-mod : ctxt → mod-info
-ctxt-get-current-mod (mk-ctxt m _ _ _) = m
-
-ctxt-get-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string))
-ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs
-
-ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
-ctxt-set-symbol-occurrences (mk-ctxt fn syms i symb-occs) new-symb-occs = mk-ctxt fn syms i new-symb-occs
-
 unqual : ctxt → var → string
-unqual (mk-ctxt (_ , _ , _ , q) _ _ _ ) v = unqual-all q v
+unqual (mk-ctxt (_ , _ , _ , q) _ _ _ ) v =
+  if qualif-nonempty q
+  then unqual-local (unqual-all q v)
+  else v
 

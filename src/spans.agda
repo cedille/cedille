@@ -76,8 +76,11 @@ restore-def : Set
 restore-def = maybe qualif-info × maybe sym-info
 
 -- this returns the previous ctxt-info, if any, for the given variable
-spanM-push-term-decl : posinfo → var → type → spanM restore-def
-spanM-push-term-decl pi x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi x t Γ , ss
+spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
+spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss
+
+spanM-set-params : params → spanM ⊤
+spanM-set-params ps Γ ss = triv , (ctxt-params-def ps Γ) , ss
 
 spanM-push-term-def : posinfo → var → term → type → spanM restore-def
 spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
@@ -86,8 +89,8 @@ spanM-push-term-udef : posinfo → var → term → spanM restore-def
 spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss
  
  -- return previous ctxt-info, if any
-spanM-push-type-decl : posinfo → var → kind → spanM restore-def
-spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi x k Γ , ss
+spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
+spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss
  
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
 spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope x (hnf Γ unfold-head t tt) T Γ , ss
@@ -324,7 +327,6 @@ is-erased : type → 𝔹
 is-erased (TpVar _ _ ) = tt
 is-erased _ = ff
 
-erased? : Set
 erased? = 𝔹
 
 keywords-data : erased? → type → tagged-val

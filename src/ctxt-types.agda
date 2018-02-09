@@ -84,3 +84,19 @@ qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _) v with trie-lookup q v
 
 start-modname : start → string
 start-modname (File _ _ mn _ _ _) = mn
+
+ctxt-get-current-filename : ctxt → string
+ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _) = fn
+
+ctxt-get-current-mod : ctxt → mod-info
+ctxt-get-current-mod (mk-ctxt m _ _ _) = m
+
+ctxt-get-current-modname : ctxt → string
+ctxt-get-current-modname (mk-ctxt (_ , mn , _ , _) _ _ _) = mn
+
+ctxt-get-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string))
+ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs
+
+ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
+ctxt-set-symbol-occurrences (mk-ctxt fn syms i symb-occs) new-symb-occs = mk-ctxt fn syms i new-symb-occs
+

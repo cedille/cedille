@@ -35,11 +35,11 @@ process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
 check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
-check-and-add-params pi' (ParamsCons (Decl pi1 pi1' x atk pi2) ps') =
+check-and-add-params pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
-  add-tk pi1' x atk ≫=span λ mi → 
+  add-mod-tk pi1' x atk ≫=span λ mi →
   check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 check-and-add-params _ ParamsNil = spanMr []
 
@@ -125,7 +125,7 @@ process-cmd s (ImportCmd (Import pi x oa as pi')) _ =
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
+  let s = scope-imports (fst (process-file s imported-file)) imported-file oa (qualif-args (toplevel-state.Γ s) as) in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
@@ -145,6 +145,7 @@ process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span 
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
   check-and-add-params pi ps ≫=span λ _ →
+  spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = Γ})
 

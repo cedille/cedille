@@ -64,8 +64,10 @@ star : kind
 star = Star posinfo-gen
 
 abs-expand-term : params → term → term
-abs-expand-term (ParamsCons (Decl _ _ x tk _) ps) t =
-  Lam posinfo-gen KeptLambda posinfo-gen x (SomeClass tk) (abs-expand-term ps t)
+abs-expand-term (ParamsCons (Decl _ _ x tk@(Tkt _) _) ps) t =
+  Lam posinfo-gen KeptLambda posinfo-gen x NoClass (abs-expand-term ps t)
+abs-expand-term (ParamsCons (Decl _ _ x tk@(Tkk _) _) ps) t =
+  abs-expand-term ps t
 abs-expand-term ParamsNil t = t
 
 abs-expand-type : params → type → type

@@ -49,9 +49,9 @@ copyType ◂ ∀ B1 : ★ ➔ ★ . ∀ B2 : ★ ➔ ★ .
 
 allArr2arr ◂ ∀ A1 : ★ . ∀ B1 : A1 ➔ ★ . ∀ C1 : A1 ➔ ★ . ∀ A2 : ★ . ∀ B2 : ★ .
   ∀ c1 : A2 ➔ A1 .
-  (Cast · A2 · (λ a : A2 . B1 (c1 a))) ➾
-  (Π a : A1 . Cast' · (C1 a) · B2) ➾
-  Cast' · (∀ a : A1 . B1 a ➔ C1 a) · (A2 ➔ B2)
+  (Cast · A2 · (λ a2 : A2 . B1 (c1 a2))) ➾
+  (Π a1 : A1 . Cast' · (C1 a1) · B2) ➾
+  Cast' · (∀ a1 : A1 . B1 a1 ➔ C1 a1) · (A2 ➔ B2)
   = Λ A1 . Λ B1 . Λ C1 . Λ A2 . Λ B2 . Λ c1 . Λ c2 . Λ c3 . λ f .
   [ (λ a2 . cast'
     · (C1 (c1 a2)) · B2

@@ -106,18 +106,21 @@ check-beta-inequivh local-left local-right m t1 t2 | _ | _ = ff
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renamectxt t1 t2
 
-add-tk' : erased? → posinfo → var → tk → spanM restore-def
-add-tk' e pi x atk = if (x =string ignored-var) then spanMr (nothing , nothing) else
+add-tk' : erased? → defScope → posinfo → var → tk → spanM restore-def
+add-tk' e s pi x atk = if (x =string ignored-var) then spanMr (nothing , nothing) else
        (helper atk ≫=span λ mi → 
         (get-ctxt λ Γ → 
           spanM-add (var-span e Γ pi x checking atk)) ≫span
         spanMr mi)
   where helper : tk → spanM restore-def
-        helper (Tkk k) = spanM-push-type-decl pi x k 
-        helper (Tkt t) = spanM-push-term-decl pi x t 
+        helper (Tkk k) = spanM-push-type-decl pi s x k 
+        helper (Tkt t) = spanM-push-term-decl pi s x t
+
+add-mod-tk : posinfo → var → tk → spanM restore-def
+add-mod-tk = add-tk' ff globalScope
 
 add-tk : posinfo → var → tk → spanM restore-def
-add-tk = add-tk' ff
+add-tk = add-tk' ff localScope
     
 check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
@@ -327,7 +330,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   get-ctxt (λ Γ → 
     spanM-add (this-span Γ atk oc (check-erasures Γ l b)) ≫span
-    (add-tk' (lam-is-erased l) pi' x (lambda-bound-class-if oc atk)) ≫=span λ mi → 
+    (add-tk' (lam-is-erased l) localScope pi' x (lambda-bound-class-if oc atk)) ≫=span λ mi → 
     get-ctxt (λ Γ' → check-term t (just (rename-type Γ x' (qualif-var Γ' x) (tk-is-type atk) tp'))) ≫span
     spanM-restore-info x mi) 
   where this-span : ctxt → tk → optClass → 𝕃 tagged-val → span

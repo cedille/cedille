@@ -106,7 +106,7 @@ var-shadowed-tag Γ v uqv start end = if (qualif-var Γ v) =string (qualif-var �
 
 strVar : var → strM
 strVar v s n ts Γ pe lr =
-  let uqv = unqual-local (unqual Γ v) in
+  let uqv = unqual Γ v in
   let n' = n + (string-length uqv) in
   s ^ uqv , n' , var-loc-tag Γ v n n' ++ var-shadowed-tag Γ v uqv n n' ++ ts
 
