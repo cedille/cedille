@@ -1,13 +1,13 @@
-import ../../../util/RecType.
+module Nat .
+
+import cast.
+import recType.
 
 NatF ◂ ★ ➔ ★ = λ Nat' : ★ . ∀ X : ★ . X ➔ (Nat' ➔ X ➔ X) ➔ X .
 
-
-
 NatFzero ◂ ∀ Nat' : ★ . NatF · Nat' =  Λ Nat' . Λ X . λ z . λ s . z .
 
-NatFmap ◂ RecFunctor · NatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (cast · A · B -c a) ) ,
-                                λ a . β{a} ].
+NatFmap ◂ RecFunctor · NatF = Λ A . Λ B . λ c . [ λ x . Λ X . λ z . λ s . x · X z (λ a . s (cast · A · B -c a) ) , β ].
 
 Nat' ◂ ★ = Rec · NatF .
 

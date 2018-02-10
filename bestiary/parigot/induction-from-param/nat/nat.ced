@@ -1,3 +1,5 @@
+module Nat.
+
 import cast.
 import recType.
 import top.
@@ -16,7 +18,7 @@ NatF ◂ ★ ➔ ★ =
 NatFmap ◂ RecFunctor · NatF =
   Λ X . Λ Y . λ c .
     [ λ n . [ Λ Z . λ z . λ s .
-                n.1 · Z z (λ p . λ x . Λ e . s (cast · X · Y -c p) x -e),
+                n.1 · Z z [ β{s} , λ p . λ x . Λ e . s.2 (cast · X · Y -c p) x -e],
                 ρ+ n.2 - β{n} ] ,
               β{λ x . x}]. 
  
@@ -35,7 +37,7 @@ zeroC ◂ NatC = NatFold [Λ X . λ a . λ f . a , β{zeroU}].
 sucC ◂ Π p : NatC . Π n : NatC . (p ≃ n) ➾ NatC =
   λ p . λ n . Λ e .
     NatFold [Λ X . λ a . λ f .
-               f p ((NatUnfold n).1 · X a f) -(ρ e - β) ,
+               f.2 p ((NatUnfold n).1 · X a f) -(ρ e - β) ,
              ρ+ (NatUnfold n).2 - β{sucU p n}].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -44,7 +46,7 @@ NatP ◂ NatC ➔ ★ =
   λ n : NatC . ∀ X : ★ . ∀ P : X ➔ ★ .
     ∀ z : X . P z ➔
     ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X .
-      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s n x -e)) ➔
+      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s.2 n x -e)) ➔
     P ((NatUnfold n).1 · X z s).
 
 zeroP ◂ NatP zeroC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .

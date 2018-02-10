@@ -69,7 +69,7 @@ inAlg ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F. Alg · F · (C · F) �
       Λ R . Λ reveal . λ eval . λ p .
         in · F -fm (cast · (F · R) · (F · (D · F fm))
                      -(fm · R · (D · F fm)
-                         (caste · R · (D · F fm) eval.1
+                         (caste · R · (D · F fm) -eval.1
                           -(λ r . ρ eval.2 - ρ (rUnfold · F -fm (cast · R · (C · F) -reveal r)).2 - β))) p) ] .
 
 Freveal ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . ∀ R : ★ . Cast · R · (D · F fm) ➾ (F · R) ➔ (F · (D · F fm)) =

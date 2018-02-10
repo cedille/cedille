@@ -1,29 +1,110 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% intrinsically parametric Parigot nats
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 module Nat .
 
-import cnat.
+import top.
+import cast.
+import recType.
 
-cNatInductive ◂ cNat ➔ ★ = λ x : cNat . ∀ Q : cNat ➔ ★ . (∀ x : cNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Q x.
+Zu ◂ Top = β{λ a . λ f . a}.
+Su ◂ Top = β{λ p . λ n . λ a . λ f . f p (n a f)} .
 
-Nat ◂ ★ = ι x : cNat . cNatInductive x.
+NatF ◂ ★ ➔ ★ =
+  λ NatC : ★ .
+    ι x : ∀ X : ★ .
+      Π z : X .
+      (ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X) ➔
+      X .
+    x Zu Su ≃ x .
 
-Z ◂ Nat = [ cZ , Λ X . λ s . λ z . z ] .
-S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
+NatFmap ◂ RecFunctor · NatF =
+  Λ X . Λ Y . λ c .
+    [ λ n . [ Λ Z . λ z . λ s .
+                n.1 · Z z [ β{s} , λ p . λ x . Λ e . s.2 (cast · X · Y -c p) x -e],
+                ρ+ n.2 - β{n} ] ,
+              β{λ x . x}]. 
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
-NatRec ◂ Nat ➔ cNat = λ n . n.1 .
+NatC ◂ ★ = Rec · NatF . 
 
-NatInd ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
-  λ x . Λ Q . λ s . λ z . 
-    x.2 · (λ x : cNat . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
-     (Λ x' . λ ih . Λ X . λ c . ih · X (λ x'' . λ e . λ u . c (S x'') (ρ e - β) (s -x'' u)))
-     (Λ X . λ c . c Z β z) · (Q x) (λ x' . λ e . λ u . ρ e - u).
+NatFold ◂ NatF · NatC ➔ NatC =
+  λ x . cast · (NatF · NatC) · NatC -(recFold · NatF -NatFmap) x .
 
-add ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec m · Nat S n .
+NatUnfold ◂ NatC ➔ NatF · NatC =
+  λ x . cast · NatC · (NatF · NatC) -(recUnfold · NatF -NatFmap) x .
 
-mult ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec m · Nat (add n) Z .
+Zc ◂ NatC = NatFold [Λ X . λ a . λ f . a , β{Zu}].
 
-exp ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec n · Nat (mult m) (S Z) .
+Sc ◂ Π p : NatC . Π n : NatC . (p ≃ n) ➾ NatC =
+  λ p . λ n . Λ e .
+    NatFold [Λ X . λ a . λ f .
+               f.2 p ((NatUnfold n).1 · X a f) -(ρ e - β) ,
+             ρ+ (NatUnfold n).2 - β{Su p n}].
 
-pred ◂ cNat ➔ cNat =
-  λ n . Λ X . λ s . λ z . n · ((X ➔ X) ➔ X) (λ g . λ h . h (g s)) (λ u . z) (λ u . u) .
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
+NatP ◂ NatC ➔ ★ =
+  λ n : NatC . ∀ X : ★ . ∀ P : X ➔ ★ .
+    ∀ z : X . P z ➔
+    ∀ s : ι s : Top . Π p : NatC . Π x : X . (p z s ≃ x) ➾ X .
+      (Π n : NatC. ∀ x : X . ∀ e : n z s ≃ x . P x ➔ P (s.2 n x -e)) ➔
+    P ((NatUnfold n).1 · X z s).
 
+ZP ◂ NatP Zc = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
+
+SP ◂ Π n : NatC . ∀ x : NatC . ∀ e : n ≃ x . NatP x ➔ NatP (Sc n x -e) =
+  λ n . Λ x . Λ e . λ px .
+  Λ X . Λ P . Λ z . λ pz . Λ s . λ ps .
+    ps n -((NatUnfold x).1 · X z s) -(ρ e - β) (px · X · P -z pz -s ps).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Nat ◂ ★ = ι x : NatC . NatP x.
+
+Z ◂ Nat = [ Zc , ZP].
+Si ◂ Π p : NatC . Π n : Nat . (p ≃ n) ➾ Nat =
+  λ p . λ n . Λ e . [ Sc p n.1 -e , SP p -n.1 -e n.2 ].
+
+NatIndh ◂
+  Π n : Nat . 
+  ∀ P : Nat ➔ ★ .
+  P Z ➔
+  (Π p : NatC . ∀ n : Nat . ∀ e : p ≃ n . P n ➔ P (Si p n -e)) ➔
+  P n
+=
+  λ n . Λ P . λ pZ . λ pS . 
+   ρ ς (NatUnfold n.1).2 - (n.2 · Nat · P -Z pZ -[β{Sc},(λ p . λ n . Λ e . Si p n -(ρ ς (NatUnfold p).2 - e))]
+     (λ n . Λ x . Λ e . λ px . pS n -x -(ρ ς (NatUnfold n).2 - e) px)) .
+
+S ◂ Nat ➔ Nat = λ n . Si n.1 n -β .
+
+NatInd ◂
+  Π n : Nat . 
+  ∀ P : Nat ➔ ★ .
+  P Z ➔
+  (Π p : Nat . P p ➔ P (S p)) ➔
+  P n
+=
+  λ n . Λ P . λ pz . λ ps .
+    NatIndh n · P pz
+      (λ p . Λ n . Λ e . λ pn .
+        ρ ς e - (ps (changeType · NatC · Nat p -n -e) (ρ e - pn))) .
+
+NatRec ◂ Nat ➔ ∀ X : ★ . X ➔ (Nat ➔ X ➔ X) ➔ X =
+  λ n . Λ X . λ z . λ s .
+    NatInd n · (λ _ : Nat . X) z s .
+
+add ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec m · Nat n (λ _ . S) .
+
+mult ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec m · Nat Z (λ _ . add n).
+
+exp ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec n · Nat (S Z) (λ _ . mult m)  .
+
+pred ◂ Nat ➔ Nat =
+  λ n . NatRec n · Nat Z (λ p . λ _ . p).
+
+predS ◂ Π n : Nat . pred (S n) ≃ n =
+  λ n . ε β .

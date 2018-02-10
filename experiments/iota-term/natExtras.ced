@@ -1,21 +1,69 @@
 module NatExtras.
 
-import bool.
 import nat.
 import nat-thms.
 import sum.
 import false.
 import sum.
 import product.
+import sigma.
 
-lt ◂ Nat ➔ Nat ➔ Bool = λ n : Nat . λ m : Nat .
-  ● .
+Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat .
+  ∀ X : Nat ➔ Nat ➔ ★ .
+    (Π n : Nat . X Z (S n)) ➔
+    (Π n : Nat . Π m : Nat . X n m ➔ X (S n) (S m)) ➔
+    X n m .
 
-Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . (lt n m ≃ tt) .
+LtBasep ◂ Nat ➔ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ m : Nat . λ m' : Nat . ι _ : (n ≃ Z) . (m ≃ S m').
+LtBase ◂ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ m : Nat .
+    Sigma · Nat · (LtBasep n m) .
+
+LtStepp2 ◂ Nat ➔ Nat ➔ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ m : Nat . λ n' : Nat .
+   λ m' : Nat . 
+      ι _ : (n ≃ S n') . ι _ : (m ≃ S m') . Lt n' m' .
+LtStepp ◂ Nat ➔ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ m : Nat .
+    λ n' : Nat . Sigma · Nat · (LtStepp2 n m n').
+
+LtStep ◂ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ m : Nat .
+    Sigma · Nat · (LtStepp n m) .
+
+Lt-in ◂ ∀ n : Nat . ∀ m : Nat . Sum · (LtBase n m) · (LtStep n m) ➔ Lt n m =
+  Λ n . Λ m . λ d .
+    d.1 · (Lt n m)
+      (λ a . a.1 · (Lt n m) (λ m' . λ p . Λ X . λ b . λ s . ρ p.1 - ρ p.2 - (b m')))
+      (λ a . a.1 · (Lt n m) (λ n' . λ p .
+                               p.1 · (Lt n m) (λ m' . λ p . Λ X . λ b . λ s .
+                                                 ρ p.1 - ρ p.2.1 - (s n' m' (p.2.2 · X b s))))) .
+
+Lt-out ◂ ∀ n : Nat . ∀ m : Nat . Lt n m ➔ Sum · (LtBase n m) · (LtStep n m) =
+  Λ n . Λ m . λ d . 
+    d · (λ n : Nat . λ m : Nat . Sum · (LtBase n m) · (LtStep n m))
+      (λ m' . in1 · (LtBase Z (S m')) · (LtStep Z (S m'))
+                (mksigma · Nat · (LtBasep Z (S m')) m' [ β , β ] ))
+      (λ n' . λ m' . λ ih . in2 · (LtBase (S n') (S m')) · (LtStep (S n') (S m'))
+                              (mksigma · Nat · (LtStepp (S n') (S m'))
+                                n'
+                                (mksigma · Nat · (LtStepp2 (S n') (S m') n')
+                                   m' [ β{Lt-in ih} , [ β{Lt-in ih} , Lt-in -n' -m' ih]]))) .
+
 Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · (n ≃ m) .
 
 Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
   ● .
 
-Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
-  ●.
+Lt-S ◂ ∀ n : Nat . ∀ m : Nat . Lt n (S m) ➔ Lte n m =
+  Λ n . Λ m . λ d .
+    (Lt-out -n -(S m) d).1 · (Lte n m)
+      (λ a . a.1 · (Lte n m) (λ m' . λ p . χ (Lte (pred (S n)) (pred (S m))) -
+                                           ρ p.2 -
+                                           ρ p.1 -
+                                           (θ<m'> (NatInd m') (in2 · (Lt Z Z) · (Z ≃ Z) β)
+                                                              (λ m'' . λ _ . in1 · (Lt Z (S m'')) · (Z ≃ S m'')
+                                                                               (Λ X . λ b . λ s .
+                                                                                  b m'')))))
+      (λ a . ●).
