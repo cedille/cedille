@@ -56,8 +56,8 @@ Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · (n �
 Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
   ● .
 
-Lt-S ◂ ∀ n : Nat . ∀ m : Nat . Lt n (S m) ➔ Lte n m =
-  Λ n . Λ m . λ d .
+Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
+  λ n . λ m . λ d .
     (Lt-out -n -(S m) d).1 · (Lte n m)
       (λ a . a.1 · (Lte n m) (λ m' . λ p . χ (Lte (pred (S n)) (pred (S m))) -
                                            ρ p.2 -
