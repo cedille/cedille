@@ -1,0 +1,6 @@
+
+module SubstComp.
+
+subst ◂ ∀ X : ★. ∀ Y : ★. ∀ x : X. Π y : Y. (x ≃ y) ➾ X 
+ = Λ X. Λ Y. Λ x. λ y. Λ eq. (φ eq - x {y}) .
+

@@ -1,0 +1,52 @@
+module Everything.
+
+% -- Implicitly Indexed Mendler-style induction
+
+
+% Definition of schemes with indexed identity mappings
+import IIdMapping. 
+
+
+% non-inductive Mendler-style least fixed points for uncrestricted
+% indexed schemes
+import IFixM.
+
+
+% definition of implicitly indexed Mendler-style inductive datatypes
+% and their constructors
+import IFixIndM.
+
+
+% proof of induction
+import IInductionM.
+
+
+% -- [main contribution] Generic datatype reuse combinators
+
+
+% Generic cast from richer indexed datatype (e.g. vectors) to less
+% indexed datatypes (e.g. lists) and vice versa. The premises
+% (conditions on schemes F and G) of combinators below could be taken
+% as guiding principles for designing datatypes, which will allow
+% datatype reuse.
+
+import ReuseForgetful.
+import ReuseEnriching.
+
+
+% -- Examples
+
+
+% ListF and its identity mapping for List datatype. Definition of List in
+% terms of ListF
+import ListF.
+import List.
+
+
+% VecF and its identity mapping for Vec datatype. Vec datatype in
+% terms of VecF
+import VecF.
+import Vec.
+
+% instantiation of generic cast combinators for casts between List and Vec
+import ListVecReuse.

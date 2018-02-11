@@ -1,0 +1,33 @@
+module ReuseForgetful.
+
+import Cast.
+import Id.
+import IIdMapping.
+import IFixIndM.
+import IInductionM.
+
+
+Conv ◂ Π I : ★. Π J : ★. (I ➔ J) ➔ (J ➔ ★) ➔ (I ➔ ★)
+ = λ I : ★. λ J : ★. λ f : I ➔ J. λ jX : J ➔ ★. λ i : I . jX (f i).
+
+
+iF2iG ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
+        ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
+        Π f : I ➔ J.
+       (∀ X : I ➔ ★.  ∀ Y : J ➔ ★. (∀ i : I . Cast · (X i) · (Y (f i))) ➔ ∀ i : I. Cast · (F · X i) · (G · Y (f i) )) 
+ ➾ ∀ i : I. Cast · (IFixIndM · I · F fimap i) · (IFixIndM · J · G gimap (f i)) =
+  Λ I. Λ F. Λ fimap. 
+  Λ J. Λ G. Λ gimap. 
+  λ f. Λ ifg. Λ i. λ v. 
+  induction · I · F -fimap · (λ ii : I. λ y : IFixIndM · I · F fimap ii. ι x : IFixIndM · J · G gimap (f ii). x ≃ y)
+  (Λ R. Λ c. λ ih. Λ i. λ gr. 
+     [ iinFixIndM · J · G -gimap -(f i) 
+         (elimCast · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i) · (G · (IFixIndM · J · G gimap) (f i)) 
+           -(ifg · (λ i : I. IFixIndM · J · G gimap (f i)) · (IFixIndM · J · G gimap) 
+               (Λ i. λ a. [ a , β{a} ] ) -i)  
+           (elimId · (F · R i) · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i ) 
+           -(fimap · R · (Conv · I · J f · (IFixIndM · J · G gimap)) -(Λ i. c2i · (R i) · (Conv · I · J f · (IFixIndM · J · G gimap) i) -(ih -i)) -i) gr))
+     , β{iinFixIndM gr} ]) -i v.
+
+
+

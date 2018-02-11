@@ -1,0 +1,29 @@
+module IFixM.
+
+import IIdMapping.
+
+
+IAlgM ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ (I ➔ ★) ➔ ★ =
+  λ I : ★ .
+  λ F : ((I ➔ ★) ➔ (I ➔ ★)).
+  λ A : I ➔ ★ .
+  ∀ R : I ➔ ★ .
+  (∀ i : I . R i ➔ A i) ➔
+  ∀ i : I .
+  F · R i ➔ A i .
+
+
+IFixM ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ I ➔ ★ =
+  λ I : ★ .
+  λ F : ((I ➔ ★) ➔ (I ➔ ★)).
+  λ i : I .
+  ∀ A : (I ➔ ★) . IAlgM · I · F · A ➔ A i .
+
+
+ifoldM ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ A : I ➔ ★. IAlgM · I · F · A ➔ ∀ i : I. IFixM · I · F i ➔ A i
+ = Λ I. Λ F. Λ A. λ alg. Λ i. λ fix. fix · A alg.
+
+
+iinFixM ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ i : I. F · (IFixM · I · F) i ➔ IFixM · I · F i
+ = Λ I. Λ F. Λ i.  λ fexp. Λ A. λ alg. alg · (IFixM · I · F) (ifoldM · I · F · A alg) -i fexp.
+

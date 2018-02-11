@@ -1,0 +1,55 @@
+module IFixIndM.
+
+import SubstComp.
+import Id.
+import IIdMapping.
+import IFixM.
+import Empty.
+
+
+IPrfAlgM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapping · I · F. Π X : I ➔ ★. (Π i : I. X i ➔ ★) ➔
+   (∀ i : I. F · X i ➔ X i) ➔ ★ = 
+  λ I : ★. 
+  λ F : ((I ➔ ★) ➔ (I ➔ ★)).
+  λ imap : IIdMapping · I · F.
+  λ X : I ➔ ★.
+  λ Q : (Π i : I. X i ➔ ★).
+  λ alg : (∀ i : I. F · X i ➔ X i). 
+ ∀ R : I ➔ ★. ∀ c : (∀ i : I. Id · (R i) · (X i)). 
+ (∀ i : I. Π r : R i. Q i (elimId · (R i) · (X i) -(c -i) r)) ➔
+ ∀ i : I. Π gr : F · R i.  Q i (alg -i (elimId · (F · R i) · (F · X i) -(imap · R · X  -c -i) gr) ). 
+
+
+IsIndFixM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapping · I · F. Π i : I. IFixM · I · F i ➔ ★
+ = λ I : ★. λ F : ((I ➔ ★) ➔ (I ➔ ★)). λ imap : IIdMapping · I · F. λ i : I. λ v : IFixM · I · F i. 
+  ∀ Q : Π i : I. IFixM · I · F i ➔ ★. IPrfAlgM · I · F imap · (IFixM · I · F) · Q (iinFixM · I · F) ➔ Q i v.
+
+
+IFixIndM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapping · I · F. I ➔ ★
+ = λ I : ★. λ F : ((I ➔ ★) ➔ (I ➔ ★)). λ imap : IIdMapping · I · F. λ i : I.
+ ι x : IFixM · I · F i. IsIndFixM · I · F imap i x.
+
+
+tc1 ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F. 
+ ∀ i : I. F · (IFixIndM · I · F imap) i  ➔ IFixM · I · F i
+ = Λ I. Λ F. Λ imap. Λ i. λ v. iinFixM · I · F 
+  -i (elimId · (F · (IFixIndM · I · F imap) i) · (F · (IFixM · I · F) i) 
+   -(imap · (IFixIndM · I · F imap) · (IFixM · I · F) 
+   -(Λ i. intrId · (IFixIndM · I · F imap i) · (IFixM · I · F i) (λ x. x.1) (λ _. β)) -i)  v)  .
+
+
+tc2 ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F. 
+ ∀ i : I. Π v : F · (IFixIndM · I · F imap) i.  IsIndFixM · I · F imap i (tc1 · I · F -imap -i v) = 
+  Λ I. Λ F. Λ imap. Λ i. λ v. 
+ (Λ Q. λ q. 
+  (q · (IFixIndM · I · F imap) 
+  -(Λ i. intrId · (IFixIndM · I · F imap i) · (IFixM · I · F i)  (λ x. x.1) (λ z. β)) 
+   (Λ i. λ r. r.2 · Q q) -i v)).
+
+
+
+
+iinFixIndM ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F. ∀ i : I.
+ F · (IFixIndM · I · F imap) i ➔ IFixIndM · I · F imap i =
+ Λ I. Λ F. Λ imap. Λ i. λ v. 
+ [ tc1 · I · F -imap -i v, tc2 · I · F -imap -i v ].

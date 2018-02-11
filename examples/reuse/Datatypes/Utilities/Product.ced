@@ -1,0 +1,18 @@
+module Product.
+
+import Sigma.
+
+% product is defined as a sigma type where the type of the second
+% projection does not depend on the type of the first one.
+Product ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★. Sigma · A · (λ _ : A. B).
+
+pairProd ◂ ∀ A : ★. ∀ B : ★. A ➔ B ➔ Product · A · B =
+  Λ A. Λ B. λ a. λ b. pair · A · (λ _ : A. B) a b.
+
+indProd ◂ ∀ A : ★. ∀ B : ★. Π x : Product · A · B.
+          ∀ P : Product · A · B ➔ ★.
+          (Π a : A. Π b : B. P (pairProd · A · B a b)) ➔ 
+          P x = Λ A. Λ B. indSigma · A · (λ _ : A. B).
+
+projProd1 ◂ ∀ A : ★. ∀ B : ★. Product · A · B  ➔  A = Λ A. Λ B. proj1 · A · (λ _ : A. B).
+projProd2 ◂ ∀ A : ★. ∀ B : ★. Product · A · B  ➔  B = Λ A. Λ B. proj2 · A · (λ _ : A. B).
