@@ -12,11 +12,15 @@ To install Cedille version 1.0:
 2. create a symbolic link in the Cedille directory, pointing to the
    IAL directory.  The link should be named "ial".
 
-3. Now you can run "make" in the Cedille directory, and this should
+3. You also may need to do
+
+   cabal install unicode-show
+
+4. Now you can run "make" in the Cedille directory, and this should
    compile the cedille executable (which should appear in the Cedille
    directory).
 
-4. Follow the directions at the top of cedille-mode.el in the Cedille
+5. Follow the directions at the top of cedille-mode.el in the Cedille
    directory, to set up Cedille mode within emacs.  Then you can open
    files like lib/bool.ced within emacs and hit "Meta-s" to process
    them (if all goes well, the mode should change to "Cedille navi"
