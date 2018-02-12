@@ -1,4 +1,4 @@
-module main2 where
+module main-old where
 
 import parse
 import run
@@ -160,34 +160,6 @@ reparse st filename =
         processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
         processText x | s | inj₂ r | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
 
-
-{-# IMPORT CedilleParser #-}
-
-data Either (A : Set)(B : Set) : Set where
-  Left : A → Either A B
-  Right : B → Either A B
-{-# COMPILED_DATA Either Either Left Right #-}
-
-postulate
-  parseStart  : string → Either string start
-
-{-# COMPILED parseStart CedilleParser.parseTxt #-}
-
-{- new parser test integration -}
-reparse-new : toplevel-state → (filename : string) → IO toplevel-state
-reparse-new st filename = 
-   doesFileExist filename >>= λ b → 
-     (if b then
-         (readFiniteFile filename >>= processText)
-      else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
-        return (set-include-elt st filename ie)
-  where processText : string → IO include-elt
-        processText x with parseStart x
-        processText x | Left cs = return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ cs ^ "."))
-        processText x | Right t  with cws-types.scanComments x 
-        processText x | Right t | t2 = find-imported-files (toplevel-state.include-path st)
-                                                           (get-imports t) >>= λ deps → return (new-include-elt filename deps t t2)
-
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date use-cede-files filename ie = 
   if up-to-date && use-cede-files then
@@ -203,7 +175,7 @@ ensure-ast-deps : toplevel-state → (filename : string) → IO toplevel-state
 ensure-ast-deps s filename with get-include-elt-if s filename
 ensure-ast-deps s filename | nothing =
   let ucf = (toplevel-state.use-cede-files s) in
-    reparse-new s filename >>= λ s → 
+    reparse s filename >>= λ s → 
     ced-file-up-to-date filename >>= λ up-to-date → 
     add-spans-if-up-to-date up-to-date ucf filename (get-include-elt s filename) >>= λ ie →
     return (set-include-elt s filename ie)
@@ -213,7 +185,7 @@ ensure-ast-deps s filename | just ie =
       if up-to-date then 
         (add-spans-if-up-to-date up-to-date (toplevel-state.use-cede-files s) filename (get-include-elt s filename) >>= λ ie →
          return (set-include-elt s filename ie))
-      else reparse-new s filename
+      else reparse s filename
      
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
