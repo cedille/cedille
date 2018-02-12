@@ -8,7 +8,7 @@ import IFixIndM.
 import IInductionM.
 
 
-iG2iF' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
+ienrich' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
         ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
          Π alg : (∀ R : J ➔ ★. (∀ j : J. R j ➔ I) ➔ ∀ j : J. G · R j ➔ I).
        (∀ X : I ➔ ★.  
@@ -41,7 +41,7 @@ iG2iF' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapp
   , β{iinFixIndM gr} ] ] , β{iinFixIndM gr} ])  -j v  .
 
 
-iG2iF ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
+ienrich ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
         ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
          Π alg : IAlgM · J · G · (λ _ : J. I). % instead of asking FixIndM G -> I we ask its factor
        (∀ X : I ➔ ★. ∀ Y : J ➔ ★. 
@@ -52,4 +52,4 @@ iG2iF ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMappi
            (λ v : (IFixIndM · J · G gimap j). IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1)) = Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
   λ alg. Λ ifg. Λ j. λ v. [  (elimCast · (IFixIndM · J · G gimap j) · (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). gx ≃ fx)
-  -(iG2iF' · I · F -fimap · J · G -gimap alg -ifg -j) v).2.1 , β{v} ] .
+  -(ienrich' · I · F -fimap · J · G -gimap alg -ifg -j) v).2.1 , β{v} ] .
