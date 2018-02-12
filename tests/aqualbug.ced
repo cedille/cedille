@@ -1,0 +1,8 @@
+module RecTypeI.
+
+import top.
+
+𝒌(I : ★) = I ➔ ★ .
+
+Casti ◂ Π I : ★ . 𝒌 · I ➔ 𝒌 · I ➔ ★ = λ I : ★ .  λ A : 𝒌 · I . λ B : 𝒌 · I .
+       ι casti : ∀ i : I . A i ➔ B i . {casti ≃ λ x . x}.
