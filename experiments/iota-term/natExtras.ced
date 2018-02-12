@@ -14,8 +14,14 @@ Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat .
     (Π n : Nat . Π m : Nat . X n m ➔ X (S n) (S m)) ➔
     X n m .
 
+LtZ ◂ Π n : Nat . Lt Z (S n)
+    = λ n . Λ X . λ lt-Z . λ lt-S . lt-Z n .
+    
+LtS ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt (S n) (S m)
+    = λ n . λ m . λ lt-nm . Λ X . λ lt-Z . λ lt-S . lt-S n m (lt-nm · X lt-Z lt-S) .
+
 LtBasep ◂ Nat ➔ Nat ➔ Nat ➔ ★ =
-  λ n : Nat . λ m : Nat . λ m' : Nat . ι _ : (n ≃ Z) . (m ≃ S m').
+  λ n : Nat . λ m : Nat . λ m' : Nat . ι _ : {n ≃ Z} . {m ≃ S m'}.
 LtBase ◂ Nat ➔ Nat ➔ ★ =
   λ n : Nat . λ m : Nat .
     Sigma · Nat · (LtBasep n m) .
@@ -23,7 +29,7 @@ LtBase ◂ Nat ➔ Nat ➔ ★ =
 LtStepp2 ◂ Nat ➔ Nat ➔ Nat ➔ Nat ➔ ★ =
   λ n : Nat . λ m : Nat . λ n' : Nat .
    λ m' : Nat . 
-      ι _ : (n ≃ S n') . ι _ : (m ≃ S m') . Lt n' m' .
+      ι _ : {n ≃ S n'} . ι _ : {m ≃ S m'} . Lt n' m' .
 LtStepp ◂ Nat ➔ Nat ➔ Nat ➔ ★ =
   λ n : Nat . λ m : Nat .
     λ n' : Nat . Sigma · Nat · (LtStepp2 n m n').
@@ -51,7 +57,7 @@ Lt-out ◂ ∀ n : Nat . ∀ m : Nat . Lt n m ➔ Sum · (LtBase n m) · (LtStep
                                 (mksigma · Nat · (LtStepp2 (S n') (S m') n')
                                    m' [ β{Lt-in ih} , [ β{Lt-in ih} , Lt-in -n' -m' ih]]))) .
 
-Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · (n ≃ m) .
+Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · {n ≃ m} .
 
 Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
   ● .
@@ -62,8 +68,12 @@ Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
       (λ a . a.1 · (Lte n m) (λ m' . λ p . χ (Lte (pred (S n)) (pred (S m))) -
                                            ρ p.2 -
                                            ρ p.1 -
-                                           (θ<m'> (NatInd m') (in2 · (Lt Z Z) · (Z ≃ Z) β)
-                                                              (λ m'' . λ _ . in1 · (Lt Z (S m'')) · (Z ≃ S m'')
+                                           (θ<m'> (NatInd m') (in2 · (Lt Z Z) · {Z ≃ Z} β)
+                                                              (λ m'' . λ _ . in1 · (Lt Z (S m'')) · {Z ≃ S m''}
                                                                                (Λ X . λ b . λ s .
                                                                                   b m'')))))
-      (λ a . ●).
+      (λ a . in1 · (Lt n m) · {n ≃ m}
+      	 (ind-sigma · Nat · (LtStepp n (S m)) a · (λ s : Sigma · Nat · (LtStepp n (S m)) . Lt n m)
+	   (λ n' . λ b . ind-sigma · Nat · (LtStepp2 n (S m) n') b · (λ s : Sigma · Nat · (LtStepp2 n (S m) n') . Lt n m)
+	      (λ m' . λ c . ρ c.1 -(ρ c.2.1 -●))))).
+

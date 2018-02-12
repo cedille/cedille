@@ -1,0 +1,30 @@
+module RecType.
+
+import top.
+import cast.
+
+RecFunctor ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★ . ∀ X : ★ . ∀ Y : ★ . Cast · X · Y ➔ Cast · (F · X) · (F · Y) .
+
+Rec ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . ∀ X : ★ . Cast · (F · X) · X ➾ X . 
+
+recCast ◂ ∀ F : ★ ➔ ★ . ∀ X : ★ . Cast · (F · X) · X ➾ Cast · (Rec · F) · X =
+  Λ F . Λ X . Λ c . [ λ d . d · X -c , β{λ a . a} ].
+
+recIn ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) =
+  Λ F . Λ fmap . 
+    [ λ x . Λ X . Λ c .
+      cast · (F · X) · X -c
+        (cast · (F · (Rec · F)) · (F · X)
+          -(fmap · (Rec · F) · X (recCast · F · X -c)) x),
+      β{λ a . a} ].
+
+recOut ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) =
+  Λ F . Λ fmap . [λ x . x · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)) , β{λ x . x} ].
+
+recFold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) = recIn .
+recUnfold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) = recOut .
+
+recIso1 ◂ ∀ a : Top . {recFold (recUnfold a) ≃ a} = Λ a . β.
+recIso2 ◂ ∀ a : Top . {recUnfold (recFold a) ≃ a} = Λ a . β.
+

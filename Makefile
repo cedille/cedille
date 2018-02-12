@@ -37,7 +37,22 @@ all: cedille # elisp
 libraries: 
 	./create-libraries.sh
 
-cedille:	$(SRC) Makefile libraries
+parser: ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs
+
+./src/CedilleParser.hs: parser/src/CedilleParser.y ./src/CedilleLexer.hs
+	cd parser; make cedille-parser
+
+./src/CedilleLexer.hs: parser/src/CedilleLexer.x
+	cd parser; make cedille-lexer
+
+./src/CedilleCommentsLexer.hs: parser/src/CedilleCommentsLexer.x
+	cd parser; make cedille-comments-lexer
+
+cedille:	$(SRC) Makefile libraries parser
+		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main2.agda 
+		mv $(SRCDIR)/main2 cedille
+
+cedille-old:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 
@@ -60,7 +75,7 @@ cws-main: $(SRCDIR)/cws-main.agda
 	$(AGDA) $(LIB) -c $(SRCDIR)/cws-main.agda 
 
 clean:
-	rm -f cedille $(SRCDIR)/main $(OBJ)
+	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
 
 lines:
 	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)

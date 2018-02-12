@@ -39,162 +39,256 @@ var = string
 var-bar-11 = string
 var-star-12 = string
 
-mutual
+{-# IMPORT CedilleTypes #-}
 
-  data arg : Set where 
-    TermArg : term → arg
-    TypeArg : type → arg
+data arg : Set
+{-# COMPILED_DECLARE_DATA arg CedilleTypes.Arg #-}
+data args : Set
+{-# COMPILED_DECLARE_DATA args CedilleTypes.Args #-}
+data arrowtype : Set
+{-# COMPILED_DECLARE_DATA arrowtype CedilleTypes.ArrowType #-}
+data binder : Set
+{-# COMPILED_DECLARE_DATA binder CedilleTypes.Binder #-}
+data cmd : Set
+{-# COMPILED_DECLARE_DATA cmd CedilleTypes.Cmd #-}
+data cmds : Set
+{-# COMPILED_DECLARE_DATA cmds CedilleTypes.Cmds #-}
+data decl : Set
+{-# COMPILED_DECLARE_DATA decl CedilleTypes.Decl #-}
+data defTermOrType : Set
+{-# COMPILED_DECLARE_DATA defTermOrType CedilleTypes.DefTermOrType #-}
+data imports : Set
+{-# COMPILED_DECLARE_DATA imports CedilleTypes.Imports #-}
+data imprt : Set
+{-# COMPILED_DECLARE_DATA imprt CedilleTypes.Imprt #-}
+data kind : Set
+{-# COMPILED_DECLARE_DATA kind CedilleTypes.Kind #-}
+data lam : Set
+{-# COMPILED_DECLARE_DATA lam CedilleTypes.Lam #-}
+data leftRight : Set
+{-# COMPILED_DECLARE_DATA leftRight CedilleTypes.LeftRight #-}
+data liftingType : Set
+{-# COMPILED_DECLARE_DATA liftingType CedilleTypes.LiftingType #-}
+data lterms : Set
+{-# COMPILED_DECLARE_DATA lterms CedilleTypes.Lterms #-}
+data maybeAtype : Set
+{-# COMPILED_DECLARE_DATA maybeAtype CedilleTypes.MaybeAtype #-}
+data maybeCheckType : Set
+{-# COMPILED_DECLARE_DATA maybeCheckType CedilleTypes.MaybeCheckType #-}
+data maybeErased : Set
+{-# COMPILED_DECLARE_DATA maybeErased CedilleTypes.MaybeErased #-}
+data maybeMinus : Set
+{-# COMPILED_DECLARE_DATA maybeMinus CedilleTypes.MaybeMinus #-}
+data optAs : Set
+{-# COMPILED_DECLARE_DATA optAs CedilleTypes.OptAs #-}
+data optClass : Set
+{-# COMPILED_DECLARE_DATA optClass CedilleTypes.OptClass #-}
+data optTerm : Set
+{-# COMPILED_DECLARE_DATA optTerm CedilleTypes.OptTerm #-}
+data optType : Set
+{-# COMPILED_DECLARE_DATA optType CedilleTypes.OptType #-}
+data params : Set
+{-# COMPILED_DECLARE_DATA params CedilleTypes.Params #-}
+data rho : Set
+{-# COMPILED_DECLARE_DATA rho CedilleTypes.Rho #-}
+data start : Set
+{-# COMPILED_DECLARE_DATA start CedilleTypes.Start #-}
+data term : Set
+{-# COMPILED_DECLARE_DATA term CedilleTypes.Term  #-}
+data theta : Set
+{-# COMPILED_DECLARE_DATA theta CedilleTypes.Theta  #-}
+data tk : Set
+{-# COMPILED_DECLARE_DATA tk CedilleTypes.Tk  #-}
+data type : Set
+{-# COMPILED_DECLARE_DATA type CedilleTypes.Type  #-}
+data vars : Set
+{-# COMPILED_DECLARE_DATA vars CedilleTypes.Vars  #-}
 
-  data args : Set where 
-    ArgsCons : arg → args → args
-    ArgsNil : posinfo → args
+data arg where 
+  TermArg : term → arg
+  TypeArg : type → arg
+{-# COMPILED_DATA arg CedilleTypes.Arg CedilleTypes.TermArg CedilleTypes.TypeArg #-}
 
-  data arrowtype : Set where 
-    ErasedArrow : arrowtype
-    UnerasedArrow : arrowtype
+data args where 
+  ArgsCons : arg → args → args
+  ArgsNil : posinfo → args
+{-# COMPILED_DATA args CedilleTypes.Args CedilleTypes.ArgsCons CedilleTypes.ArgsNil #-}
 
-  data binder : Set where 
-    All : binder
-    Pi : binder
+data arrowtype where 
+  ErasedArrow : arrowtype
+  UnerasedArrow : arrowtype
+{-# COMPILED_DATA arrowtype CedilleTypes.ArrowType CedilleTypes.ErasedArrow CedilleTypes.UnerasedArrow #-}
 
-  data cmd : Set where 
-    DefKind : posinfo → kvar → params → kind → posinfo → cmd
-    DefTermOrType : defTermOrType → posinfo → cmd
-    ImportCmd : imprt → cmd
+data binder where 
+  All : binder
+  Pi : binder
+{-# COMPILED_DATA binder CedilleTypes.Binder CedilleTypes.All CedilleTypes.Pi #-}
 
-  data cmds : Set where 
-    CmdsNext : cmd → cmds → cmds
-    CmdsStart : cmds
+data cmd where 
+  DefKind : posinfo → kvar → params → kind → posinfo → cmd
+  DefTermOrType : defTermOrType → posinfo → cmd
+  ImportCmd : imprt → cmd
+{-# COMPILED_DATA cmd CedilleTypes.Cmd CedilleTypes.DefKind CedilleTypes.DefTermOrType CedilleTypes.ImportCmd #-}
 
-  data decl : Set where 
-    Decl : posinfo → posinfo → bvar → tk → posinfo → decl
+data cmds where 
+  CmdsNext : cmd → cmds → cmds
+  CmdsStart : cmds
+{-# COMPILED_DATA cmds CedilleTypes.Cmds CedilleTypes.CmdsNext CedilleTypes.CmdsStart #-}
 
-  data defTermOrType : Set where 
-    DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
-    DefType : posinfo → var → kind → type → defTermOrType
+data decl where 
+  Decl : posinfo → posinfo → bvar → tk → posinfo → decl
+{-# COMPILED_DATA decl CedilleTypes.Decl CedilleTypes.Decl #-}
 
-  data imports : Set where 
-    ImportsNext : imprt → imports → imports
-    ImportsStart : imports
+data defTermOrType where 
+  DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
+  DefType : posinfo → var → kind → type → defTermOrType
+{-# COMPILED_DATA defTermOrType CedilleTypes.DefTermOrType CedilleTypes.DefTerm CedilleTypes.DefType #-}
 
-  data imprt : Set where 
-    Import : posinfo → fpth → optAs → args → posinfo → imprt
+data imports where 
+  ImportsNext : imprt → imports → imports
+  ImportsStart : imports
+{-# COMPILED_DATA imports CedilleTypes.Imports CedilleTypes.ImportsNext CedilleTypes.ImportsStart #-}
 
-  data kind : Set where 
-    KndArrow : kind → kind → kind
-    KndParens : posinfo → kind → posinfo → kind
-    KndPi : posinfo → posinfo → bvar → tk → kind → kind
-    KndTpArrow : type → kind → kind
-    KndVar : posinfo → qkvar → args → kind
-    Star : posinfo → kind
+data imprt where 
+  Import : posinfo → fpth → optAs → args → posinfo → imprt
+{-# COMPILED_DATA imprt CedilleTypes.Imprt CedilleTypes.Import #-}
 
-  data lam : Set where 
-    ErasedLambda : lam
-    KeptLambda : lam
+data kind where 
+  KndArrow : kind → kind → kind
+  KndParens : posinfo → kind → posinfo → kind
+  KndPi : posinfo → posinfo → bvar → tk → kind → kind
+  KndTpArrow : type → kind → kind
+  KndVar : posinfo → qkvar → args → kind
+  Star : posinfo → kind
+{-# COMPILED_DATA kind CedilleTypes.Kind CedilleTypes.KndArrow CedilleTypes.KndParens CedilleTypes.KndPi CedilleTypes.KndTpArrow CedilleTypes.KndVar CedilleTypes.Star #-}  
 
-  data leftRight : Set where 
-    Both : leftRight
-    Left : leftRight
-    Right : leftRight
+data lam where 
+  ErasedLambda : lam
+  KeptLambda : lam
+{-# COMPILED_DATA lam CedilleTypes.Lam CedilleTypes.ErasedLambda CedilleTypes.KeptLambda #-}
 
-  data liftingType : Set where 
-    LiftArrow : liftingType → liftingType → liftingType
-    LiftParens : posinfo → liftingType → posinfo → liftingType
-    LiftPi : posinfo → bvar → type → liftingType → liftingType
-    LiftStar : posinfo → liftingType
-    LiftTpArrow : type → liftingType → liftingType
+data leftRight where 
+  Both : leftRight
+  Left : leftRight
+  Right : leftRight
+{-# COMPILED_DATA leftRight CedilleTypes.LeftRight CedilleTypes.Both CedilleTypes.Left CedilleTypes.Right #-}
 
-  data lterms : Set where 
-    LtermsCons : maybeErased → term → lterms → lterms
-    LtermsNil : posinfo → lterms
+data liftingType where 
+  LiftArrow : liftingType → liftingType → liftingType
+  LiftParens : posinfo → liftingType → posinfo → liftingType
+  LiftPi : posinfo → bvar → type → liftingType → liftingType
+  LiftStar : posinfo → liftingType
+  LiftTpArrow : type → liftingType → liftingType
+{-# COMPILED_DATA liftingType CedilleTypes.LiftingType CedilleTypes.LiftArrow CedilleTypes.LiftParens CedilleTypes.LiftPi CedilleTypes.LiftStar CedilleTypes.LiftTpArrow #-}
 
-  data maybeAtype : Set where 
-    Atype : type → maybeAtype
-    NoAtype : maybeAtype
+data lterms where 
+  LtermsCons : maybeErased → term → lterms → lterms
+  LtermsNil : posinfo → lterms
+{-# COMPILED_DATA lterms CedilleTypes.Lterms CedilleTypes.LtermsCons CedilleTypes.LtermsNil #-}
 
-  data maybeCheckType : Set where 
-    NoCheckType : maybeCheckType
-    Type : type → maybeCheckType
+data maybeAtype where 
+  Atype : type → maybeAtype
+  NoAtype : maybeAtype
+{-# COMPILED_DATA maybeAtype CedilleTypes.MaybeAtype CedilleTypes.Atype CedilleTypes.NoAtype #-}  
 
-  data maybeErased : Set where 
-    Erased : maybeErased
-    NotErased : maybeErased
+data maybeCheckType where 
+  NoCheckType : maybeCheckType
+  Type : type → maybeCheckType
+{-# COMPILED_DATA maybeCheckType CedilleTypes.MaybeCheckType CedilleTypes.NoCheckType CedilleTypes.Type #-}
 
-  data maybeMinus : Set where 
-    EpsHanf : maybeMinus
-    EpsHnf : maybeMinus
+data maybeErased where 
+  Erased : maybeErased
+  NotErased : maybeErased
+{-# COMPILED_DATA maybeErased CedilleTypes.MaybeErased CedilleTypes.Erased CedilleTypes.NotErased #-}
 
-  data optAs : Set where 
-    NoOptAs : optAs
-    SomeOptAs : var → optAs
+data maybeMinus where 
+  EpsHanf : maybeMinus
+  EpsHnf : maybeMinus
+{-# COMPILED_DATA maybeMinus CedilleTypes.MaybeMinus CedilleTypes.EpsHanf CedilleTypes.EpsHnf #-}
 
-  data optClass : Set where 
-    NoClass : optClass
-    SomeClass : tk → optClass
+data optAs where 
+  NoOptAs : optAs
+  SomeOptAs : var → optAs
+{-# COMPILED_DATA optAs CedilleTypes.OptAs CedilleTypes.NoOptAs CedilleTypes.SomeOptAs #-}
 
-  data optTerm : Set where 
-    NoTerm : optTerm
-    SomeTerm : term → posinfo → optTerm
+data optClass where 
+  NoClass : optClass
+  SomeClass : tk → optClass
+{-# COMPILED_DATA optClass CedilleTypes.OptClass CedilleTypes.NoClass CedilleTypes.SomeClass #-}
 
-  data optType : Set where 
-    NoType : optType
-    SomeType : type → optType
+data optTerm where 
+  NoTerm : optTerm
+  SomeTerm : term → posinfo → optTerm
+{-# COMPILED_DATA optTerm CedilleTypes.OptTerm CedilleTypes.NoTerm CedilleTypes.SomeTerm #-}  
 
-  data params : Set where 
-    ParamsCons : decl → params → params
-    ParamsNil : params
+data optType where 
+  NoType : optType
+  SomeType : type → optType
+{-# COMPILED_DATA optType CedilleTypes.OptType CedilleTypes.NoType CedilleTypes.SomeType #-}    
 
-  data rho : Set where 
-    RhoPlain : rho
-    RhoPlus : rho
+data params where 
+  ParamsCons : decl → params → params
+  ParamsNil : params
+{-# COMPILED_DATA params CedilleTypes.Params CedilleTypes.ParamsCons CedilleTypes.ParamsNil #-}      
 
-  data start : Set where 
-    File : posinfo → imports → qvar → params → cmds → posinfo → start
+data rho where 
+  RhoPlain : rho
+  RhoPlus : rho
+{-# COMPILED_DATA rho CedilleTypes.Rho CedilleTypes.RhoPlain CedilleTypes.RhoPlus #-}
 
-  data term : Set where 
-    App : term → maybeErased → term → term
-    AppTp : term → type → term
-    Beta : posinfo → optTerm → term
-    Chi : posinfo → maybeAtype → term → term
-    Epsilon : posinfo → leftRight → maybeMinus → term → term
-    Hole : posinfo → term
-    IotaPair : posinfo → term → term → posinfo → term
-    IotaProj : term → num → posinfo → term
-    Lam : posinfo → lam → posinfo → bvar → optClass → term → term
-    Let : posinfo → defTermOrType → term → term
-    Parens : posinfo → term → posinfo → term
-    Phi : posinfo → term → term → term → posinfo → term
-    Rho : posinfo → rho → term → term → term
-    Sigma : posinfo → term → term
-    Theta : posinfo → theta → term → lterms → term
-    Var : posinfo → qvar → term
+data start where 
+  File : posinfo → imports → qvar → params → cmds → posinfo → start
+{-# COMPILED_DATA start CedilleTypes.Start CedilleTypes.File #-}  
 
-  data theta : Set where 
-    Abstract : theta
-    AbstractEq : theta
-    AbstractVars : vars → theta
+data term where 
+  App : term → maybeErased → term → term
+  AppTp : term → type → term
+  Beta : posinfo → optTerm → term
+  Chi : posinfo → maybeAtype → term → term
+  Epsilon : posinfo → leftRight → maybeMinus → term → term
+  Hole : posinfo → term
+  IotaPair : posinfo → term → term → posinfo → term
+  IotaProj : term → num → posinfo → term
+  Lam : posinfo → lam → posinfo → bvar → optClass → term → term
+  Let : posinfo → defTermOrType → term → term
+  Parens : posinfo → term → posinfo → term
+  Phi : posinfo → term → term → term → posinfo → term  
+  Rho : posinfo → rho → term → term → term
+  Sigma : posinfo → term → term
+  Theta : posinfo → theta → term → lterms → term
+  Var : posinfo → qvar → term
+{-# COMPILED_DATA term CedilleTypes.Term CedilleTypes.App CedilleTypes.AppTp CedilleTypes.Beta CedilleTypes.Chi CedilleTypes.Epsilon CedilleTypes.Hole CedilleTypes.IotaPair CedilleTypes.IotaProj CedilleTypes.Lam CedilleTypes.Let CedilleTypes.Parens CedilleTypes.Phi CedilleTypes.Rho CedilleTypes.Sigma CedilleTypes.Theta CedilleTypes.Var #-}    
 
-  data tk : Set where 
-    Tkk : kind → tk
-    Tkt : type → tk
+data theta where 
+  Abstract : theta
+  AbstractEq : theta
+  AbstractVars : vars → theta
+{-# COMPILED_DATA theta CedilleTypes.Theta CedilleTypes.Abstract CedilleTypes.AbstractEq CedilleTypes.AbstractVars #-}      
 
-  data type : Set where 
-    Abs : posinfo → binder → posinfo → bvar → tk → type → type
-    Iota : posinfo → posinfo → bvar → optType → type → type
-    Lft : posinfo → posinfo → var → term → liftingType → type
-    NoSpans : type → posinfo → type
-    TpApp : type → type → type
-    TpAppt : type → term → type
-    TpArrow : type → arrowtype → type → type
-    TpEq : term → term → type
-    TpHole : posinfo → type
-    TpLambda : posinfo → posinfo → bvar → tk → type → type
-    TpParens : posinfo → type → posinfo → type
-    TpVar : posinfo → qvar → type
+data tk where 
+  Tkk : kind → tk
+  Tkt : type → tk
+{-# COMPILED_DATA tk CedilleTypes.Tk CedilleTypes.Tkk CedilleTypes.Tkt #-}        
 
-  data vars : Set where 
-    VarsNext : var → vars → vars
-    VarsStart : var → vars
+data type where 
+  Abs : posinfo → binder → posinfo → bvar → tk → type → type
+  Iota : posinfo → posinfo → bvar → optType → type → type
+  Lft : posinfo → posinfo → var → term → liftingType → type
+  NoSpans : type → posinfo → type
+  TpApp : type → type → type
+  TpAppt : type → term → type
+  TpArrow : type → arrowtype → type → type
+  TpEq : term → term → type
+  TpHole : posinfo → type
+  TpLambda : posinfo → posinfo → bvar → tk → type → type
+  TpParens : posinfo → type → posinfo → type
+  TpVar : posinfo → qvar → type
+{-# COMPILED_DATA type CedilleTypes.Type CedilleTypes.Abs CedilleTypes.Iota CedilleTypes.Lft CedilleTypes.NoSpans CedilleTypes.TpApp CedilleTypes.TpAppt CedilleTypes.TpArrow CedilleTypes.TpEq CedilleTypes.TpHole CedilleTypes.TpLambda CedilleTypes.TpParens CedilleTypes.TpVar #-}
+
+data vars where 
+  VarsNext : var → vars → vars
+  VarsStart : var → vars
+{-# COMPILED_DATA vars CedilleTypes.Vars CedilleTypes.VarsNext CedilleTypes.VarsStart #-}
 
 -- embedded types:
 aterm : Set

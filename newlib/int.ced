@@ -1,0 +1,187 @@
+module int2.
+import cast.
+import recType.
+import top.
+
+
+{- Begin to pass to new parser -}
+IntF ◂ ★ ➔ ★ = λ I : ★. ∀ X : ★.
+  X ➔
+  (I ➔ X ➔ X) ➔
+  (I ➔ X ➔ X) ➔
+  X.
+
+Int' ◂ ★ = Rec · IntF.
+
+IntFmap ◂ RecFunctor · IntF = Λ I. Λ J. λ c.
+  [λ i. Λ X. λ z. λ s. λ p. i · X z
+    (λ i. s (cast · I · J -c i)) (λ i. p (cast · I · J -c i)), β].
+
+IntFold   ◂ IntF · Int' ➔ Int' = cast · (IntF · Int') · Int' -(recFold   · IntF -IntFmap).
+IntUnfold ◂ Int' ➔ IntF · Int' = cast · Int' · (IntF · Int') -(recUnfold · IntF -IntFmap).
+
+abs ◂ Int' ➔ Int' = λ i. IntFold (Λ X. λ z. λ s. λ p. IntUnfold i · X z s s).
+sba ◂ Int' ➔ Int' = λ i. IntFold (Λ X. λ z. λ s. λ p. IntUnfold i · X z p p).
+
+Pos' ◂ ★ = ι i : Int'. {i ≃ abs i}.
+Neg' ◂ ★ = ι i : Int'. {i ≃ sba i}.
+
+Z' ◂ Int' = IntFold (Λ X. λ z. λ s. λ p. z).
+ZS' ◂ Pos' = [Z', β{Z'}].
+ZP' ◂ Neg' = [Z', β{Z'}].
+SZ' ◂ Pos' = [IntFold (Λ X. λ z. λ s. λ p. s Z' z), β{λ z. λ s. λ p. s Z' z}].
+PZ' ◂ Neg' = [IntFold (Λ X. λ z. λ s. λ p. p Z' z), β{λ z. λ s. λ p. p Z' z}].
+SS' ◂ Int' ➔ Int' = λ i. IntFold (Λ X. λ z. λ s. λ p. s i (IntUnfold i · X z s p)).
+PP' ◂ Int' ➔ Int' = λ i. IntFold (Λ X. λ z. λ s. λ p. p i (IntUnfold i · X z s p)).
+S' ◂ Int' ➔ Int' = λ i. IntUnfold i · Int' SZ'.1 (λ i. SS') (λ i. λ x. i).
+P' ◂ Int' ➔ Int' = λ i. IntUnfold i · Int' PZ'.1 (λ i. λ x. i) (λ i. PP').
+
+IntI ◂ Int' ➔ ★ = λ i : Int'. ∀ Q : Int' ➔ ★.
+  (Q Z') ➔
+  (Π i : Pos'. Q i.1 ➔ Q (SS' i.1)) ➔
+  (Π i : Neg'. Q i.1 ➔ Q (PP' i.1)) ➔
+  Q i.
+
+Int ◂ ★ = ι i : Int'. ι _ : {i Z' (λ i. SS') (λ i. PP') ≃ i} . IntI i.
+Pos ◂ ★ = ι i : Int. {i ≃ abs i}.
+Neg ◂ ★ = ι i : Int. {i ≃ sba i}.
+
+Z ◂ Int = [Z', [β{Z'}, Λ Q. λ z. λ s. λ p. z]].
+ZS ◂ Pos = [Z, β{Z}].
+ZP ◂ Neg = [Z, β{Z}].
+SZ ◂ Pos = [[SZ'.1, [β{SZ'}, Λ Q. λ z. λ s. λ p. s [Z', β{Z'}] z]], β{SZ'}].
+PZ ◂ Neg = [[PZ'.1, [β{PZ'}, Λ Q. λ z. λ s. λ p. p [Z', β{Z'}] z]], β{PZ'}].
+SS ◂ Pos ➔ Pos = λ i.
+  [[SS' i.1.1,
+   [ρ+ i.1.2.1 - β{SS' i},
+    Λ Q. λ z. λ s. λ p. s [i.1.1, i.2] (i.1.2.2 · Q z s p)]],
+   ρ i.2 - β{SS' i}].
+PP ◂ Neg ➔ Neg = λ i.
+  [[PP' i.1.1,
+   [ρ+ i.1.2.1 - β{PP' i},
+    Λ Q. λ z. λ s. λ p. p [i.1.1, i.2] (i.1.2.2 · Q z s p)]],
+   ρ i.2 - β{PP' i}].
+
+abs' ◂ Int' ➔ Int' = λ i. IntUnfold i · Int' Z' (λ i. SS') (λ i. SS').
+sba' ◂ Int' ➔ Int' = λ i. IntUnfold i · Int' Z' (λ i. PP') (λ i. PP').
+
+PreIntInd ◂ Π i : Int. ∀ Q : Int ➔ ★.
+    Q Z ➔
+    (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔
+    (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔ Q i =
+  λ i. Λ Q. λ z. λ s. λ p. i.2.2 ·
+      (λ x : Int'. (∀ x' : Int. {x' ≃ x} ➾ Q x' ➔ Q i) ➔ Q i)
+    (λ c. c -Z -β z)
+    (λ i. λ ih. λ c. ih (Λ i'. Λ e. λ u.
+      c -(SS [i', φ ς e - (ρ e - i.2) {i'}]).1 -(ρ e - β)
+        (ρ e - (s [(φ e - i' {i}), i.2] (ρ ς e - u)))))
+    (λ i. λ ih. λ c. ih (Λ i'. Λ e. λ u.
+      c -(PP [i', φ ς e - (ρ e - i.2) {i'}]).1 -(ρ e - β)
+        (ρ e - (p [(φ e - i' {i}), i.2] (ρ ς e - u)))))
+    (Λ x. Λ e. λ u. ρ ς e - u).
+
+ss-p-thm ◂ Π i : Int. {abs (PP' i) ≃ abs (SS' i)} = λ i. β.
+
+PreIntIndS ◂ Π i : Pos. ∀ Q : Int ➔ ★.
+  Q Z ➔
+  (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔
+  Q i.1 =
+  λ i. Λ Q. λ z. λ s. [ q = PreIntInd (φ i.2 - i.1 {abs i}) · Q z s (compileFail · (Π i : Neg. Q i.1 ➔ Q (PP i).1)) ]- ρ i.2 - q.
+
+PreIntIndP ◂ Π i : Neg. ∀ Q : Int ➔ ★.
+  Q Z ➔
+  (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔
+  Q i.1 =
+  λ i. Λ Q. λ z. λ p. [ q = PreIntInd (φ i.2 - i.1 {sba i}) · Q z (compileFail · (Π i : Pos. Q i.1 ➔ Q (SS i).1)) p ]- ρ i.2 - q.
+
+s-ss-thm ◂ Π i : Pos. {S' i ≃ SS' i} = λ i.
+  θ<i> (PreIntIndS i) β (λ i. λ ih. ρ+ ih - β).
+p-pp-thm ◂ Π i : Neg. {P' i ≃ PP' i} = λ i.
+  θ<i> (PreIntIndP i) β (λ i. λ ih. ρ+ ih - β).
+
+s-z-s-p-thm ◂ Π i : Int. {S' i Z' (λ i. SS') (λ i. PP') ≃ S' i} =
+  λ i. θ<i> (PreIntInd i) β
+    (λ i. λ x. ρ (s-ss-thm (SS i)) - (SS (SS i)).1.2.1)
+    (λ i. λ x. ρ i.1.2.1 - β).
+p-z-s-p-thm ◂ Π i : Int. {P' i Z' (λ i. SS') (λ i. PP') ≃ P' i} =
+  λ i. θ<i> (PreIntInd i) β
+    (λ i. λ x. ρ i.1.2.1 - β)
+    (λ i. λ x. ρ (p-pp-thm (PP i)) - (PP (PP i)).1.2.1).
+
+PS ◂ Pos ➔ Int = λ i.
+   [ ps = PreIntIndS i · (λ i' : Int. ι i : Int. {i ≃ P' i'}) 
+     [PZ.1, β{PZ}] (λ i. λ x. [i.1, β{i}]) ]-
+   φ ps.2 - ps.1 {P' i}.
+
+S ◂ Int ➔ Int = λ i.
+  [ s = PreIntInd i · (λ i' : Int. ι i : Int. {i ≃ S' i'}) 
+    [SZ.1, β{SZ}] (λ i. λ x. [(SS [x.1, ρ x.2 - ρ (s-ss-thm i) - ρ ς (SS i).2 - β{x}]).1, ρ x.2 - ρ (s-ss-thm (SS i)) - β{SS x}]) (λ i. λ x. [i.1, β{i}]) ]-
+  φ s.2 - s.1 {S' i}.
+
+P ◂ Int ➔ Int = λ i.
+  [ p = PreIntInd i · (λ i' : Int. ι i : Int. {i ≃ P' i'})
+    [PZ.1, β{PZ}] (λ i. λ x. [i.1, β{i}]) (λ i. λ x. [(PP [x.1, ρ x.2 - ρ (p-pp-thm i) - ρ ς (PP i).2 - β{x}]).1, ρ x.2 - ρ (p-pp-thm (PP i)) - β{PP x}]) ]-
+  φ p.2 - p.1 {P' i}.
+
+SP ◂ Neg ➔ Int = λ i.
+  [ ps = PreIntIndP i · (λ i' : Int. ι i : Int. {i ≃ S' i'})
+    [SZ.1, β{SZ}] (λ i. λ x. [i.1, β{i}]) ]-
+  φ ps.2 - ps.1 {S' i}.
+
+IntInd' ◂ Π i : Int. ∀ Q : Int ➔ ★.
+    Q Z ➔
+    (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔
+    (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔ Q i =
+  λ i. Λ Q. λ z. λ s. λ p. i.2.2 · (λ i' : Int'. ∀ i : Int. {i ≃ i'} ➾ Q i)
+    (Λ i. Λ e. ρ e - z)
+    (λ i'. λ x. Λ i. Λ e.
+       [ i'' ◂ Pos = [φ e - i {SS' i'}, ρ i'.2 - β{SS' i'}] ]-
+       [ e' ◂ {PS i ≃ i'} = ρ e - β ]-
+       ρ e - (s [φ (ρ ς e - e') - (PS i'') {i'}, ρ i'.2 - β{i'}]
+         (ρ ς e' - (x -(PS (φ (ρ e - β) - i'' {i})) -e'))))
+    (λ i'. λ x. Λ i. Λ e.
+       [ i'' ◂ Neg = [φ e - i {PP' i'}, ρ i'.2 - β{PP' i'}] ]-
+       [ e' ◂ {SP i ≃ i'} = ρ e - β ]-
+       ρ e - (p [φ (ρ ς e - e') - (SP i'') {i'}, ρ i'.2 - β{i'}]
+         (ρ ς e' - (x -(SP (φ (ρ e - β) - i'' {i})) -e'))))
+  -i -β.
+
+IntInd ◂ Π i : Int. ∀ Q : Int ➔ ★.
+    Q Z ➔
+    (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔
+    (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔ Q i =
+  λ i. φ β - (IntInd' i) {i}.
+
+IntInt ◂ Int ➔ ∀ X : ★. X ➔ (Pos ➔ X ➔ X) ➔ (Neg ➔ X ➔ X) ➔ X =
+  λ i. Λ X. IntInd i · (λ i : Int. X).
+
+IntIndS' ◂ Π i : Pos. ∀ Q : Int ➔ ★.
+  Q Z ➔ (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔ Top ➔ Q i.1 =
+  λ i. Λ Q. λ z. λ s. λ p. ρ i.2 - (IntInd (φ i.2 - i.1 {abs i}) · Q
+    z s (λ i. λ x. compileFail · (Q (PP i).1))).
+
+IntIndP' ◂ Π i : Neg. ∀ Q : Int ➔ ★.
+  Q Z ➔ Top ➔ (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔ Q i.1 =
+  λ i. Λ Q. λ z. λ s. λ p. ρ i.2 - (IntInd (φ i.2 - i.1 {sba i}) · Q
+    z (λ i. λ x. compileFail · (Q (SS i).1)) p).
+
+IntIndS ◂ Π i : Pos. ∀ Q : Int ➔ ★.
+  Q Z ➔ (Π i : Pos. Q i.1 ➔ Q (SS i).1) ➔ Top ➔ Q i.1 =
+  λ i. φ ς i.2 - (IntIndS' i) {i}.
+
+IntIndP ◂ Π i : Neg. ∀ Q : Int ➔ ★.
+  Q Z ➔ Top ➔ (Π i : Neg. Q i.1 ➔ Q (PP i).1) ➔ Q i.1 =
+  λ i. φ ς i.2 - (IntIndP' i) {i}.
+
+s-pp-thm' ◂ {λ i. S (PP i) ≃ λ i. i} = β.
+p-ss-thm' ◂ {λ i. P (SS i) ≃ λ i. i} = β.
+s-pp-thm ◂ Π i : Int. {S (PP i) ≃ i} = λ i. β.
+p-ss-thm ◂ Π i : Int. {P (SS i) ≃ i} = λ i. β.
+
+sp-thm ◂ Π i : Int. {S (P i) ≃ i} = λ i. θ<i> (IntInd i) β
+  (λ i. λ ih. s-ss-thm i)
+  (λ i. λ ih. p-pp-thm i).
+ps-thm ◂ Π i : Int. {P (S i) ≃ i} = λ i. θ<i> (IntInd i) β
+  (λ i. λ ih. s-ss-thm i)
+  (λ i. λ ih. p-pp-thm i).
+

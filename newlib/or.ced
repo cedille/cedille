@@ -1,0 +1,5 @@
+module Or .
+
+Or ◂ ★ ➔ ★ ➔ ★ = λ P : ★ . λ Q : ★ . ∀ X : ★ . (P ➔ X) ➔ (Q ➔ X) ➔ X .
+Ori1 ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ Or · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . v u.
+Ori2 ◂ ∀ P : ★ . ∀ Q : ★ . Q ➔ Or · P · Q = Λ P . Λ Q . λ u . Λ X . λ v . λ w . w u.

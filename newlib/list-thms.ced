@@ -1,0 +1,23 @@
+module List-thms.
+
+import list.
+import nat.
+
+length-append ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A .
+                {length (append l1 l2) ≃ add (length l1) (length l2)} =
+  Λ A . λ l1 . Λ l2 .
+    θ<l1> (ListInd · A l1)
+      (λ h . Λ t . λ ih . ε ρ ih - β)
+      β .
+
+assoc-append ◂ ∀ A : ★ . Π l1 : List · A . Π l2 : List · A . Π l3 : List · A .
+               { append (append l1 l2) l3 ≃ append l1 (append l2 l3) } =
+  Λ A . λ l1 . λ l2 . λ l3 . θ<l1> (ListInd · A l1) (λ h . Λ t . λ ih . ε ρ ih - β) β .
+
+map-append ◂ ∀ A : ★ . ∀ B : ★ . Π l1 : List · A . Π l2 : List · A . Π f : A ➔ B .
+             { append (map f l1) (map f l2) ≃ map f (append l1 l2) } =
+  Λ A . Λ B . λ l1 . λ l2 . λ f . θ<l1> (ListInd · A l1) (λ h . Λ t . λ ih . ε ρ ih - β) β .
+
+foldr-append ◂ ∀ A : ★ . ∀ B : ★ . Π l1 : List · A . Π l2 : List · A . Π f : A ➔ B . Π i : B .
+              { foldr f (foldr f i l2) l1 ≃ foldr f i (append l1 l2) } =
+  Λ A . Λ B . λ l1 . λ l2 . λ f . λ i . θ<l1> (ListInd · A l1) (λ h . Λ t . λ ih . ε ρ ih - β) β .

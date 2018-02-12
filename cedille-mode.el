@@ -588,7 +588,7 @@ occurrences, then do so."
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
 
-  (setq-local comment-start "%")
+  (setq-local comment-start "--")
 
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process

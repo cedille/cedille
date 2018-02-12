@@ -1,0 +1,10 @@
+module Cnat. 
+
+cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
+
+cZ ◂ cNat = Λ X . λ f . λ a . a .
+
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) .
+
+
+

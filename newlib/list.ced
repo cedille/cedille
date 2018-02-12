@@ -1,0 +1,43 @@
+module List .
+
+import clist.
+import nat.
+
+cListParametric ◂ Π A : ★ . cList · A ➔ ★ =
+  λ A : ★ . λ l : cList · A . ∀ X : ★ . ∀ Q : X ➔ ★ . ∀ cons : A ➔ X ➔ X . ∀ nil : X .
+     (Π h : A . ∀ t : X . Q t ➔ Q (cons h t)) ➔ Q nil ➔ Q (l · X cons nil) .
+
+List ◂ ★ ➔ ★ = λ A : ★ . ι x : cList · A . ι _ : { x cCons cNil ≃ x } . cListParametric · A x .
+
+Nil ◂ ∀ A : ★ . List · A = Λ A . [ cNil · A , [ β{cNil} , Λ Q . Λ Q . Λ cons . Λ nil . λ c . λ n . n ] ].
+
+Cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
+  Λ A . λ h . λ t .
+    [ cCons · A h t.1 ,
+    [ ε ρ t.2.1 - β{cCons h t} ,
+      Λ X . Λ Q . Λ cons . Λ nil . λ c . λ n . c h -(t.1 · X cons nil) (t.2.2 · X · Q -cons -nil c n) ] ].
+
+ListRec ◂ ∀ A : ★ . List · A ➔ cList · A = Λ A . λ l . l.1 .
+
+ListInd ◂ ∀ A : ★ . Π l : List · A .
+          ∀ P : List · A ➔ ★ .
+          (Π h : A . ∀ t : List · A . P t ➔ P (Cons · A h t)) ➔
+          P (Nil · A) ➔
+          P l = Λ A . λ l . Λ P . λ c . λ n . ρ ς l.2.1 - (l.2.2 · (List · A) · P -(Cons · A) -(Nil · A) c n) .
+
+append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
+  Λ A . λ l1 . λ l2 .
+    ListRec · A l1 · (List · A)
+      (Cons · A)
+      l2 .
+
+length ◂ ∀ A : ★ . List · A ➔ Nat =
+ Λ A . λ l .
+   ListRec · A l · Nat
+     (λ _ . S) Z .
+
+map ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ B) ➔ List · A ➔ List · B =
+  Λ A . Λ B . λ f . λ l . ListRec · A l · (List · B) (λ a . λ bl . Cons · B (f a) bl) (Nil · B) .
+
+foldr ◂ ∀ A : ★ . ∀ B : ★ . (A ➔ B ➔ B) ➔ B ➔ List · A ➔ B =
+  Λ A . Λ B . λ f . λ i . λ l . ListRec · A l · B f i .

@@ -1,0 +1,7 @@
+module Clist .
+
+cList ◂ ★ ➔ ★ = λ A : ★ . ∀ X : ★ . (A ➔ X ➔ X) ➔ X ➔ X .
+
+cNil ◂ ∀ A : ★ . cList · A = Λ A . Λ X . λ c . λ n . n .
+
+cCons ◂ ∀ A : ★ . A ➔ cList · A ➔ cList · A = Λ A . λ h . λ t . Λ X . λ c . λ n . c h (t · X c n) .

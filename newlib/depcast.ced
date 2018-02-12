@@ -1,0 +1,28 @@
+module DepCast.
+
+CastI ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+  ι f : Π a : A . B a . {f ≃ λ x . x} .
+
+castI ◂ ∀ A : ★ . ∀ B : A ➔ ★ . CastI · A · B ➾ Π a : A . B a =
+  Λ A . Λ B . Λ c . λ a .
+  (φ c.2 - c.1 {λ x . x}) a .
+
+CastE ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+  Π a : A . ι b : B a . {b ≃ a} .
+
+castE ◂ ∀ A : ★ . ∀ B : A ➔ ★ . CastE · A · B ➾ Π a : A . B a =
+  Λ A . Λ B . Λ c . λ a .
+  φ (c a).2 - (c a).1 {a} .
+
+i2e ◂ ∀ A : ★ . ∀ B : A ➔ ★ . CastI · A · B ➾ CastE · A · B =
+  Λ A . Λ B . Λ c . λ a .
+  [ castI · A · B -c a
+  , β{a} ] .
+
+e2i ◂ ∀ A : ★ . ∀ B : A ➔ ★ . CastE · A · B ➾ CastI · A · B =
+  Λ A . Λ B . Λ c .
+  [ (λ a . castE · A · B -c a)
+  , β{λ x . x} ] .
+
