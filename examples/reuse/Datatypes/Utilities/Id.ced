@@ -5,34 +5,34 @@ import Sigma.
 import SubstComp.
 
 
-% identity
+-- identity
 id ◂ ∀ X : ★. X ➔ X = Λ X. λ x. x.
 
-% set of all functions from A to B which erase to term λ x. x
+-- set of all functions from A to B which erase to term λ x. x
 Id ◂ Π A : ★. Π B : ★. ★ = λ A : ★. λ B : ★. 
- Sigma · (A ➔ B) · (λ f : A ➔ B. f ≃ id).
+ Sigma · (A ➔ B) · (λ f : A ➔ B. { f ≃ id }).
 
 
-% Introduction: any function f : X ➔ Y, which extensionally is
-% identity could be turned into Id X Y
-intrId ◂ ∀ X : ★. ∀ Y : ★. Π f : X ➔ Y. (Π z : X. (f z ≃ z)) ➔ Id · X · Y 
- = Λ X. Λ Y. λ if. λ p. pair · (X ➔ Y) · (λ f : X ➔ Y. f ≃ id) 
+-- Introduction: any function f : X ➔ Y, which extensionally is
+-- identity could be turned into Id X Y
+intrId ◂ ∀ X : ★. ∀ Y : ★. Π f : X ➔ Y. (Π z : X. { f z ≃ z }) ➔ Id · X · Y 
+ = Λ X. Λ Y. λ if. λ p. pair · (X ➔ Y) · (λ f : X ➔ Y. {f ≃ id}) 
    (λ fx. subst · Y · X -(if fx) fx -(p fx)) β.
 
 
-% Elimination: if c : Id A B and x : A then elimId -c x has type B and
-% is equal to x
+-- Elimination: if c : Id A B and x : A then elimId -c x has type B and
+-- is equal to x
 elimId ◂ ∀ A : ★ . ∀ B : ★ . Id · A · B ➾ A ➔ B = Λ A. Λ B. Λ c. λ a.
-  subst · B · A -(proj1 · (A ➔ B) · (λ c : A ➔ B. c ≃ id) c a) 
+  subst · B · A -(proj1 · (A ➔ B) · (λ c : A ➔ B. {c ≃ id}) c a) 
                 a 
-                -(ρ (proj2 · (A ➔ B) · (λ c : A ➔ B. c ≃ id) c) - β).
+                -(ρ (proj2 · (A ➔ B) · (λ c : A ➔ B. {c ≃ id}) c) - β).
 
 
-% simplest identity function
+-- simplest identity function
 idf ◂ ∀ A : ★. Id · A · A = Λ A. intrId · A · A (λ x. x) (λ _. β).
 
 
-% composition of identities is identity
+-- composition of identities is identity
 composeId ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★. Id · A · B ➾ Id · B · C ➾ Id · A · C
  = Λ A. Λ B. Λ C. Λ c1. Λ c2. 
  intrId · A · C (λ a. elimId · B · C -c2 (elimId · A · B -c1 a)) (λ _. β).

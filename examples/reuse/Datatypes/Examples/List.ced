@@ -9,12 +9,12 @@ import IFixIndM.
 import ListF.
 
 
-% polymorphic lists defined as least fixed point of functor ListF with
-% identity mapping lfimap
+-- polymorphic lists defined as least fixed point of functor ListF with
+-- identity mapping lfimap
 List ◂ ★ ➔ ★ = λ A : ★. IFixIndM · Unit · (ListF · A) (lfimap · A) unit.
 
 
-% length algebra and function in terms of it
+-- length algebra and function in terms of it
 lenAlgM ◂ ∀ A : ★. IAlgM  · Unit · (ListF · A) · (λ _ : Unit. Nat) 
  = Λ A. Λ R. λ rec. Λ _. λ lf. lf.1 · Nat Z (λ a. λ r. S (rec -unit r)).
 
@@ -23,8 +23,8 @@ length ◂ ∀ A : ★. List · A ➔ Nat
  = Λ A. λ l. ifoldM · Unit · (ListF · A) · (λ _ : Unit. Nat) (lenAlgM · A) -unit l.1.
 
 
-rebList ◂ ∀ A : ★. ∀ X : Unit ➔ ★. Π z : ListF · A · X unit. ListFInd z in2lf in1lf ≃ z 
+rebList ◂ ∀ A : ★. ∀ X : Unit ➔ ★. Π z : ListF · A · X unit. {ListFInd z in2lf in1lf ≃ z}
  = Λ A. Λ X. λ z. θ<z> (ListFInd · A · X z) (λ a. λ x. β) β.
 
 
-% Do we need a "flat" induction for List?
+-- Do we need a "flat" induction for List?

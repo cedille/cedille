@@ -2,8 +2,8 @@ module Product.
 
 import Sigma.
 
-% product is defined as a sigma type where the type of the second
-% projection does not depend on the type of the first one.
+-- product is defined as a sigma type where the type of the second
+-- projection does not depend on the type of the first one.
 Product ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★. Sigma · A · (λ _ : A. B).
 
 pairProd ◂ ∀ A : ★. ∀ B : ★. A ➔ B ➔ Product · A · B =

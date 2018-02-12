@@ -19,7 +19,7 @@ iforget ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMap
   Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
   λ f. Λ ifg. Λ i. λ v. 
-  induction · I · F -fimap · (λ ii : I. λ y : IFixIndM · I · F fimap ii. ι x : IFixIndM · J · G gimap (f ii). x ≃ y)
+  induction · I · F -fimap · (λ ii : I. λ y : IFixIndM · I · F fimap ii. ι x : IFixIndM · J · G gimap (f ii). {x ≃ y})
   (Λ R. Λ c. λ ih. Λ i. λ gr. 
      [ iinFixIndM · J · G -gimap -(f i) 
          (elimCast · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i) · (G · (IFixIndM · J · G gimap) (f i)) 
@@ -34,8 +34,8 @@ ikeep ◂ ∀ I : ★. ∀ X : I ➔ ★. ∀ J : ★. ∀ Y : J ➔ ★.
  Π f : I ➔ J. 
  ∀ c : ∀ i : I. Cast · (X i) · (Y (f i)).
  Π g : ∀ j : J. Y j ➔ I.
- Π gprop : ∀ i : I. Π v : X i. g v ≃ i.
- ∀ i : I. Cast · (X i) · (ι y : Y (f i). g y ≃ i) = Λ I. Λ X. Λ J. Λ Y.
+ Π gprop : ∀ i : I. Π v : X i. {g v ≃ i}.
+ ∀ i : I. Cast · (X i) · (ι y : Y (f i). {g y ≃ i}) = Λ I. Λ X. Λ J. Λ Y.
  λ f. Λ c. λ g. λ gp. Λ i. λ v.  [ [ elimCast · (X i) · (Y (f i)) -(c -i) v,
                                      ρ (gp -i v) - β{v} ], β{v} ] .
       

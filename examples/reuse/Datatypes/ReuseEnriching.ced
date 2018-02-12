@@ -16,34 +16,34 @@ ienrich' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMa
         Π f : ∀ j : J. Y j ➔ I. 
         (∀ j : J. CastDep · (Y j) · (λ y : Y j. X (f -j y)) ) ➔ ∀ j : J. CastDep · (G · Y j) · (λ gy : G · Y j. F · X (alg · Y f -j gy) ) )
     ➾ ∀ j : J. Cast · (IFixIndM · J · G gimap j) · 
-    (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). gx ≃ fx)  =  
+    (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). {gx ≃ fx})  =  
  Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
   λ alg. Λ ifg. Λ j. λ v. 
   induction · J · G -gimap · (λ j : J. λ y : IFixIndM · J · G gimap j.  ι x : (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap 
-((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). (gx ≃ fx)) . (x ≃ y))
+((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). {gx ≃ fx}) . {x ≃ y})
   (Λ R. Λ c. λ ih. Λ j. λ gr. 
      [ [ (iinFixIndM · J · G -gimap -j ((elimId · (G · R j) · (G · (IFixIndM · J · G gimap) j) -(gimap · R · (IFixIndM · J · G gimap) -c -j) gr)))  , 
-         [  iinFixIndM · I · F -fimap -((ifoldM · J · G · (λ j : J. I) alg) -j (iinFixIndM · J · G -gimap -j ((elimId · (G · R j) · (G · (IFixIndM · J · G gimap) j) -(gimap · R · (IFixIndM · J · G gimap) -c -j) gr))).1)  (elimCastDep · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) j) 
-                      · (λ grr : (G ·  (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) j).
+         [  iinFixIndM · I · F -fimap -((ifoldM · J · G · (λ j : J. I) alg) -j (iinFixIndM · J · G -gimap -j ((elimId · (G · R j) · (G · (IFixIndM · J · G gimap) j) -(gimap · R · (IFixIndM · J · G gimap) -c -j) gr))).1)  (elimCastDep · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) j) 
+                      · (λ grr : (G ·  (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) j).
                               F · (IFixIndM ·  I · F fimap) ((ifoldM · J · G · (λ j : J. I) alg) -j 
                                         (iinFixIndM · J · G -gimap -j  
-                                               (elimId · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) j) · (G · (IFixIndM · J · G gimap) j) -(gimap · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) · (IFixIndM · J · G gimap) 
-                                       -(Λ j2. intrId · (ι gx : (IFixIndM · J · G gimap j2) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -j2 gx.1)) . (gx ≃ fx))
+                                               (elimId · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) j) · (G · (IFixIndM · J · G gimap) j) -(gimap · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) · (IFixIndM · J · G gimap) 
+                                       -(Λ j2. intrId · (ι gx : (IFixIndM · J · G gimap j2) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -j2 gx.1)) . {gx ≃ fx})
                                                       · (IFixIndM · J · G gimap j2) (λ v. v.1) (λ _. β)) -j) grr)).1 )) 
                                    -(λ aa. ifg · (IFixIndM · I · F fimap)   
-                                              · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) 
+                                              · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) 
                                                (Λ j3. λ v3. (ifoldM · J · G · (λ j' : J . I) alg -j3 v3.1.1))  (Λ j. λ gx. [ gx.2.1 , β{gx} ] ) -j aa  )
-      (elimId · (G · R j) · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) j) 
-          -(gimap · R · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . (gx ≃ fx)) 
-      -(Λ j4. c2i · (R j4) · ((ι gx : (IFixIndM · J · G gimap j4) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -j4 gx.1)) . (gx ≃ fx))) -(ih -j4))
+      (elimId · (G · R j) · (G · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) j) 
+          -(gimap · R · (λ i : J. ι gx : (IFixIndM · J · G gimap i) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -i gx.1)) . {gx ≃ fx}) 
+      -(Λ j4. c2i · (R j4) · ((ι gx : (IFixIndM · J · G gimap j4) . ι fx : (IFixIndM · I · F fimap (ifoldM · J · G · (λ j' : J . I) alg -j4 gx.1)) . {gx ≃ fx})) -(ih -j4))
       -j) gr))  
   , β{iinFixIndM gr} ] ] , β{iinFixIndM gr} ])  -j v  .
 
 
 ienrich ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
         ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
-         Π alg : IAlgM · J · G · (λ _ : J. I). % instead of asking FixIndM G -> I we ask its factor
+         Π alg : IAlgM · J · G · (λ _ : J. I). 
        (∀ X : I ➔ ★. ∀ Y : J ➔ ★. 
         Π f : ∀ j : J. Y j ➔ I. 
         (∀ j : J. CastDep · (Y j) · (λ y : Y j. X (f -j y))) ➔ 
@@ -51,5 +51,5 @@ ienrich ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMap
     ➾ ∀ j : J. CastDep · (IFixIndM · J · G gimap j) · 
            (λ v : (IFixIndM · J · G gimap j). IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1)) = Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
-  λ alg. Λ ifg. Λ j. λ v. [  (elimCast · (IFixIndM · J · G gimap j) · (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). gx ≃ fx)
+  λ alg. Λ ifg. Λ j. λ v. [  (elimCast · (IFixIndM · J · G gimap j) · (ι gx : IFixIndM · J · G gimap j. ι fx : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1). {gx ≃ fx})
   -(ienrich' · I · F -fimap · J · G -gimap alg -ifg -j) v).2.1 , β{v} ] .

@@ -1,7 +1,7 @@
 module Top.
 
-% technical utility
-Top ◂ ★ = (λ x. x) ≃ (λ x. x).
+-- technical utility
+Top ◂ ★ = {(λ x. x) ≃ (λ x. x)}.
 
 top ◂ Top = β{λ x. x}.
 

@@ -19,7 +19,7 @@ suc  ◂ Nat ➔ Nat = S.
 
 NatInd ◂ Π x : Nat . ∀ Q : Nat ➔ ★ . (∀ x : Nat . Q x ➔ Q (S x)) ➔ Q Z ➔ Q x =
   λ x . Λ Q . λ s . λ z . 
-    x.2 · (λ x : cNat . ∀ X : ★ . (Π x' : Nat . (x ≃ x') ➔ Q x' ➔ X) ➔ X)
+    x.2 · (λ x : cNat . ∀ X : ★ . (Π x' : Nat . {x ≃ x'} ➔ Q x' ➔ X) ➔ X)
      (Λ x' . λ ih . Λ X . λ c . ih · X (λ x'' . λ e . λ u . c (S x'') (ρ e - β) (s -x'' u)))
      (Λ X . λ c . c Z β z) · (Q x) (λ x' . λ e . λ u . ρ e - u).
 

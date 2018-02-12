@@ -10,9 +10,6 @@ import VecF.
 Vec ◂ ★ ➔ Nat ➔ ★ = λ A : ★. λ n : Nat. IFixIndM · Nat · (VecF · A) (vfimap · A) n.
 
 
-rebVec ◂ ∀ A : ★. ∀ X : Nat ➔ ★. ∀ n : Nat. Π z : VecF · A · X n. (z in1vf in2vf ≃ z) 
+rebVec ◂ ∀ A : ★. ∀ X : Nat ➔ ★. ∀ n : Nat. Π z : VecF · A · X n. {z in1vf in2vf ≃ z}
  = Λ A. Λ X. Λ n. λ z. (VecFInd · A · X -n z) 
- · (λ q : Nat. λ z : VecF · A · X q. z in1vf in2vf ≃ z) (Λ n'. λ a. λ x. β) β.
-
-
-% Do we need a "flat" induction for Vec?
+ · (λ q : Nat. λ z : VecF · A · X q. {z in1vf in2vf ≃ z}) (Λ n'. λ a. λ x. β) β.
