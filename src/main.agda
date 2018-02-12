@@ -1,19 +1,12 @@
 module main where
 
-import parse
-import run
 open import lib
+-- for parser for Cedille 
 open import cedille-types
 
--- for parser for Cedille source files
-import cedille
-module parsem = parse cedille.gratr2-nt ptr
-open parsem.pnoderiv cedille.rrs cedille.cedille-rtn
-
-module pr = run ptr
-open pr.noderiv {- from run.agda -}
-
 -- for parser for options files
+import parse
+import run
 import options
 import options-types
 module parsem2 = parse options.gratr2-nt options-types.ptr
@@ -22,12 +15,7 @@ module pr2 = run options-types.ptr
 module options-run = pr2.noderiv
 
 -- for parser for Cedille comments & whitespace
-import cws
 import cws-types
-module parsem3 = parse cws.gratr2-nt cws-types.ptr
-module cws-parse = parsem3.pnoderiv cws.rrs cws.cws-rtn
-module pr3 = run cws.ptr
-module cws-run = pr3.noderiv
 
 --open import cedille-find
 --open import classify
@@ -135,30 +123,32 @@ opts-get-no-rkt-files (options-types.OptsCons options-types.NoCedeFiles oo) = op
 opts-get-no-rkt-files (options-types.OptsCons options-types.NoRktFiles oo) = tt
 opts-get-no-rkt-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-rkt-files oo
 
+{-# IMPORT CedilleParser #-}
 
-{- reparse the given file, and update its include-elt in the toplevel-state appropriately -}
+data Either (A : Set)(B : Set) : Set where
+  Left : A → Either A B
+  Right : B → Either A B
+{-# COMPILED_DATA Either Either Left Right #-}
+
+postulate
+  parseStart  : string → Either string start
+
+{-# COMPILED parseStart CedilleParser.parseTxt #-}
+
+{- new parser test integration -}
 reparse : toplevel-state → (filename : string) → IO toplevel-state
 reparse st filename = 
---   putStrLn ("reparsing " ^ filename) >>
    doesFileExist filename >>= λ b → 
      (if b then
          (readFiniteFile filename >>= processText)
       else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
         return (set-include-elt st filename ie)
   where processText : string → IO include-elt
-        processText x with string-to-𝕃char x
-        processText x | s with runRtn s
-        processText x | s | inj₁ cs = return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
-        processText x | s | inj₂ r with rewriteRun r
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] with cws-parse.runRtn s
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₁ cs = return (error-include-elt ("This shouldn't happen in " ^ filename ^ " at position "
-                                                                                  ^ (ℕ-to-string (length s ∸ length cs)) ^ "."))
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 with cws-parse.rewriteRun r2
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | cws-run.ParseTree (cws-types.parsed-start t2) :: [] = find-imported-files (toplevel-state.include-path st)
-                                                                                                                                        (get-imports t) >>= λ deps → return
-                                                                                                                                        (new-include-elt filename deps t t2)
-        processText x | s | inj₂ r | ParseTree (parsed-start t) :: [] | inj₂ r2 | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
-        processText x | s | inj₂ r | _ = return (error-include-elt ("Parse error in file " ^ filename ^ "."))
+        processText x with parseStart x
+        processText x | Left cs = return (error-include-elt ("Parse error in file " ^ filename ^ " at position " ^ cs ^ "."))
+        processText x | Right t  with cws-types.scanComments x 
+        processText x | Right t | t2 = find-imported-files (toplevel-state.include-path st)
+                                                           (get-imports t) >>= λ deps → return (new-include-elt filename deps t t2)
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date use-cede-files filename ie = 

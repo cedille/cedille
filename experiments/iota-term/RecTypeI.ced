@@ -5,13 +5,13 @@ import top.
 𝒌(I : ★) = I ➔ ★ .
 
 Casti ◂ Π I : ★ . 𝒌 · I ➔ 𝒌 · I ➔ ★ = λ I : ★ .  λ A : 𝒌 · I . λ B : 𝒌 · I .
-       ι casti : ∀ i : I . A i ➔ B i . casti ≃ λ x . x.
+       ι casti : ∀ i : I . A i ➔ B i . {casti ≃ λ x . x}.
 
 casti ◂ ∀ I : ★ . ∀ A : 𝒌 · I . ∀ B : 𝒌 · I . Casti · I · A · B ➾ ∀ i : I . A i ➔ B i = 
-  Λ I . Λ A . Λ B . Λ c . Λ i . λ a . (χ (ι _ : A i . B i) - [ a , c.1 -i a { ρ c.2 - β } ]).2 .
+  Λ I . Λ A . Λ B . Λ c . Λ i . λ a . ● . --(χ (ι _ : A i . B i) - [ a , c.1 -i a { ρ c.2 - β } ]).2 .
 
-castei ◂ ∀ I : ★ . ∀ A : 𝒌 · I . ∀ B : 𝒌 · I . Π f : ∀ i : I . A i ➔ B i . (∀ i : I . Π a : A i . f a ≃ a) ➾ Casti · I · A · B =
-  Λ I . Λ A . Λ B . λ f . Λ e . [ Λ i . λ a . (χ (ι x : A i . B i) - [a , f -i a {ς (e -i a)}]).2 , β] .
+castei ◂ ∀ I : ★ . ∀ A : 𝒌 · I . ∀ B : 𝒌 · I . Π f : ∀ i : I . A i ➔ B i . (∀ i : I . Π a : A i . {f a ≃ a}) ➾ Casti · I · A · B =
+  Λ I . Λ A . Λ B . λ f . Λ e . ● . -- [ Λ i . λ a . (χ (ι x : A i . B i) - [a , f -i a {ς (e -i a)}]).2 , β] .
 
 castComposei ◂ ∀ I : ★ . ∀ A : 𝒌 · I . ∀ B : 𝒌 · I . ∀ C : 𝒌 · I . Casti · I · A · B ➔ Casti · I · B · C ➔ Casti · I · A · C =
   Λ I . Λ A . Λ B . Λ C . λ c1 . λ ci . [ Λ i . λ a . casti · I · B · C -ci -i (casti · I · A · B -c1 -i a) , β] .

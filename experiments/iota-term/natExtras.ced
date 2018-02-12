@@ -72,8 +72,9 @@ Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
                                                               (λ m'' . λ _ . in1 · (Lt Z (S m'')) · {Z ≃ S m''}
                                                                                (Λ X . λ b . λ s .
                                                                                   b m'')))))
-      (λ a . in1 · (Lt n m) · {n ≃ m}
-      	 (ind-sigma · Nat · (LtStepp n (S m)) a · (λ s : Sigma · Nat · (LtStepp n (S m)) . Lt n m)
-	   (λ n' . λ b . ind-sigma · Nat · (LtStepp2 n (S m) n') b · (λ s : Sigma · Nat · (LtStepp2 n (S m) n') . Lt n m)
-	      (λ m' . λ c . ρ c.1 -(ρ c.2.1 -●))))).
+      (λ a . ● ).
 
+-- in1 · (Lt n m) · {n ≃ m}
+--       	 (ind-sigma · Nat · (LtStepp n (S m)) a · (λ s : Sigma · Nat · (LtStepp n (S m)) . Lt n m)
+-- 	   (λ n' . λ b . ind-sigma · Nat · (LtStepp2 n (S m) n') b · (λ s : Sigma · Nat · (LtStepp2 n (S m) n') . Lt n m)
+-- 	      (λ m' . λ c . ρ c.1 -(ρ c.2.1 -(LtS n' m' c.2.2)))))

@@ -49,12 +49,12 @@ parser: ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.
 	cd parser; make cedille-comments-lexer
 
 cedille:	$(SRC) Makefile libraries parser
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main2.agda 
-		mv $(SRCDIR)/main2 cedille
-
-cedille-old:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
+
+cedille-old:	$(SRC) Makefile libraries
+		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda 
+		mv $(SRCDIR)/main-old cedille
 
 elisp: $(SE_MODE:%.el=%.elc) $(ELISP:%.el=%.elc)
 
