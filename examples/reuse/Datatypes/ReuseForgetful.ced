@@ -1,43 +1,31 @@
 module ReuseForgetful.
 
-import Cast.
 import Id.
 import IIdMapping.
 import IFixIndM.
 import IInductionM.
-
+import Sigma.
 
 Conv ◂ Π I : ★. Π J : ★. (I ➔ J) ➔ (J ➔ ★) ➔ (I ➔ ★)
  = λ I : ★. λ J : ★. λ f : I ➔ J. λ jX : J ➔ ★. λ i : I . jX (f i).
 
 
 iforget ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
-        ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
+          ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
         Π f : I ➔ J.
-       (∀ X : I ➔ ★.  ∀ Y : J ➔ ★. (∀ i : I . Cast · (X i) · (Y (f i))) ➔ ∀ i : I. Cast · (F · X i) · (G · Y (f i) )) 
- ➾ ∀ i : I. Cast · (IFixIndM · I · F fimap i) · (IFixIndM · J · G gimap (f i)) =
+       (∀ X : I ➔ ★.  ∀ Y : J ➔ ★. (∀ i : I . IdExt · (X i) · (Y (f i))) ➔ ∀ i : I. IdExt · (F · X i) · (G · Y (f i) )) 
+ ➾ ∀ i : I. IdExt · (IFixIndM · I · F fimap i) · (IFixIndM · J · G gimap (f i)) =
   Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
-  λ f. Λ ifg. Λ i. λ v. 
-  induction · I · F -fimap · (λ ii : I. λ y : IFixIndM · I · F fimap ii. ι x : IFixIndM · J · G gimap (f ii). {x ≃ y})
+  λ f. Λ ifg. Λ i. λ v.  induction · I · F -fimap ·  
+  (λ ii : I. λ y : IFixIndM · I · F fimap ii. Sigma · (IFixIndM · J · G gimap (f ii)) · (λ x : (IFixIndM · J · G gimap (f ii)).  {x ≃ y}))
   (Λ R. Λ c. λ ih. Λ i. λ gr. 
-     [ iinFixIndM · J · G -gimap -(f i) 
-         (elimCast · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i) · (G · (IFixIndM · J · G gimap) (f i)) 
+        pair · (IFixIndM · J · G gimap (f i)) · (λ x : IFixIndM · J · G gimap (f i) . ({x ≃ iinFixIndM gr})) 
+     (iinFixIndM · J · G -gimap -(f i) 
+         (elimIdExt · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i) · (G · (IFixIndM · J · G gimap) (f i)) 
            -(ifg · (λ i : I. IFixIndM · J · G gimap (f i)) · (IFixIndM · J · G gimap) 
-               (Λ i. λ a. [ a , β{a} ] ) -i)  
-           (elimId · (F · R i) · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i ) 
-           -(fimap · R · (Conv · I · J f · (IFixIndM · J · G gimap)) -(Λ i. c2i · (R i) · (Conv · I · J f · (IFixIndM · J · G gimap) i) -(ih -i)) -i) gr))
-     , β{iinFixIndM gr} ]) -i v.
+               (Λ i : I. trivIdExt · (IFixIndM · J · G gimap (f i))) -i)  
+           (elimIdExt · (F · R i) · (F · (Conv · I · J f · (IFixIndM · J · G gimap)) i ) 
+           -(fimap · R · (Conv · I · J f · (IFixIndM · J · G gimap)) -ih -i) gr))) 
+     β) -i v.
 
-
-ikeep ◂ ∀ I : ★. ∀ X : I ➔ ★. ∀ J : ★. ∀ Y : J ➔ ★.
- Π f : I ➔ J. 
- ∀ c : ∀ i : I. Cast · (X i) · (Y (f i)).
- Π g : ∀ j : J. Y j ➔ I.
- Π gprop : ∀ i : I. Π v : X i. {g v ≃ i}.
- ∀ i : I. Cast · (X i) · (ι y : Y (f i). {g y ≃ i}) = Λ I. Λ X. Λ J. Λ Y.
- λ f. Λ c. λ g. λ gp. Λ i. λ v.  [ [ elimCast · (X i) · (Y (f i)) -(c -i) v,
-                                     ρ (gp -i v) - β{v} ], β{v} ] .
-      
-
-      

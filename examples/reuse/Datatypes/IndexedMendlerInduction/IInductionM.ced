@@ -20,26 +20,26 @@ convIH ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMap
  IPrfAlgM · I · F imap · (IFixM · I · F) · Y (iinFixM · I · F) =  Λ I. Λ F. Λ imap. Λ Q. Λ Y. λ qp3. λ qp4. λ qp1. λ qp2. λ q. 
   Λ R. Λ cst.  λ ih. Λ i. λ gr. (qp4 -i 
    (iinFixIndM · I · F -imap -i
-   (elimId · (F · R i)  · (F · (IFixIndM · I · F imap) i) -(imap · (R) · (IFixIndM · I · F imap ) 
-   -(Λ i.  intrId · (R i) · (IFixIndM · I · F imap i) 
-   (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
-   -(ρ (rew -β{qp1 -i (ih r)} -β{r} -β{r} (qp2 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β) )
+   (elimIdExt · (F · R i)  · (F · (IFixIndM · I · F imap) i) -(imap · (R) · (IFixIndM · I · F imap ) 
+   -(Λ i.  intrIdExt · (R i) · (IFixIndM · I · F imap i) 
+   (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
+   -(ρ (rewTyped · (IFixIndM · I · F imap i) · (R i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) -r -r (qp2 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β))
      (λ _. β) 
  ) -i )  gr)) 
  (q · R
-   -(Λ i.  intrId · (R i) · (IFixIndM · I · F imap i) 
-   (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
-   -(ρ (rew -β{qp1 -i (ih r)} -β{r} -β{r} (qp2 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β) )
+   -(Λ i.  intrIdExt · (R i) · (IFixIndM · I · F imap i) 
+   (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
+   -(ρ (rewTyped · (IFixIndM · I · F imap i) · (R i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) -r -r (qp2 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β))
      (λ _. β))
-  (Λ i. λ r.  qp3 -i -((elimId · (R i) · (IFixIndM · I · F imap i) -(intrId · (R i) · (IFixIndM · I · F imap i) (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
-   -(ρ (rew -β{qp1 -i (ih r)} -β{r} -β{r} (qp2 -i -(elimId · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β) )  
+  (Λ i. λ r.  qp3 -i -((elimIdExt · (R i) · (IFixIndM · I · F imap i) -(intrIdExt · (R i) · (IFixIndM · I · F imap i) (λ r. subst · (IFixIndM · I · F imap i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) r 
+   -(ρ (rewTyped · (IFixIndM · I · F imap i) · (R i) · (R i) -(qp1 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i)  r) (ih -i r)) -r -r (qp2 -i -(elimIdExt · (R i) · (IFixM · I · F i) -(cst -i) r) -(ih -i r)) β) - β))  
     (λ _. β))) r) (ih -i r))
  -i  gr)).
 
 
 induction ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F.
  ∀ Q : Π i : I. IFixIndM · I · F imap i ➔ ★.
- IPrfAlgM · I · F imap · (IFixIndM · I · F imap) · Q (iinFixIndM · I · F -imap) ➔ 
+ IPrfAlgM · I · F imap · (IFixIndM · I · F imap) · Q (iinFixIndM · I · F -imap) ➔
  ∀ i : I. Π e : IFixIndM · I · F imap i. Q i e
  = Λ I. Λ F. Λ imap. Λ Q. λ q. Λ i. λ e. 
  (LiftProp1 · I · F -imap · Q) -i -e
@@ -49,13 +49,3 @@ induction ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IId
     (LiftProp2 · I · F -imap · Q) 
     (LiftProp3 · I · F -imap · Q) 
     (LiftProp4 · I · F -imap · Q) q)).
-
-
-
-
-
-
-
-
-
-

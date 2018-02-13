@@ -1,4 +1,3 @@
-
 module SubstComp.
 
 subst ◂ ∀ X : ★. ∀ Y : ★. ∀ x : X. Π y : Y. { x ≃ y } ➾ X 

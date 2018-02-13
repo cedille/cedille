@@ -1,7 +1,5 @@
 module Utils.
 
-import Top.
-
 -- technical utility
-rew ◂ ∀ x : Top. ∀ y : Top. ∀ z : Top. {x ≃ y} ➔ {y ≃ z} ➔ {x ≃ z}
- = Λ x. Λ y. Λ z. λ p1. λ p2. ρ p1 - p2.
+rewTyped ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. ∀ x : A. ∀ y : B. ∀ z : C. {x ≃ y} ➔ {y ≃ z} ➔ {x ≃ z}
+ = Λ A. Λ B. Λ C. Λ x. Λ y. Λ z. λ p1. λ p2. ρ p1 - p2.

@@ -15,9 +15,9 @@ IPrfAlgM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapp
   λ X : I ➔ ★.
   λ Q : (Π i : I. X i ➔ ★).
   λ alg : (∀ i : I. F · X i ➔ X i). 
- ∀ R : I ➔ ★. ∀ c : (∀ i : I. Id · (R i) · (X i)). 
- (∀ i : I. Π r : R i. Q i (elimId · (R i) · (X i) -(c -i) r)) ➔
- ∀ i : I. Π gr : F · R i.  Q i (alg -i (elimId · (F · R i) · (F · X i) -(imap · R · X  -c -i) gr) ). 
+ ∀ R : I ➔ ★. ∀ c : (∀ i : I. IdExt · (R i) · (X i)). 
+ (∀ i : I. Π r : R i. Q i (elimIdExt · (R i) · (X i) -(c -i) r)) ➔
+ ∀ i : I. Π gr : F · R i.  Q i (alg -i (elimIdExt · (F · R i) · (F · X i) -(imap · R · X  -c -i) gr) ). 
 
 
 IsIndFixM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapping · I · F. Π i : I. IFixM · I · F i ➔ ★
@@ -33,9 +33,9 @@ IFixIndM ◂ Π I : ★. Π F : ((I ➔ ★) ➔ (I ➔ ★)). Π imap : IIdMapp
 tc1 ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F. 
  ∀ i : I. F · (IFixIndM · I · F imap) i  ➔ IFixM · I · F i
  = Λ I. Λ F. Λ imap. Λ i. λ v. iinFixM · I · F 
-  -i (elimId · (F · (IFixIndM · I · F imap) i) · (F · (IFixM · I · F) i) 
+  -i (elimIdExt · (F · (IFixIndM · I · F imap) i) · (F · (IFixM · I · F) i) 
    -(imap · (IFixIndM · I · F imap) · (IFixM · I · F) 
-   -(Λ i. intrId · (IFixIndM · I · F imap i) · (IFixM · I · F i) (λ x. x.1) (λ _. β)) -i)  v)  .
+   -(Λ i. intrIdExt · (IFixIndM · I · F imap i) · (IFixM · I · F i) (λ x. x.1) (λ _. β)) -i)  v)  .
 
 
 tc2 ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMapping · I · F. 
@@ -43,7 +43,7 @@ tc2 ◂ ∀ I : ★. ∀ F : ((I ➔ ★) ➔ (I ➔ ★)). ∀ imap : IIdMappin
   Λ I. Λ F. Λ imap. Λ i. λ v. 
  (Λ Q. λ q. 
   (q · (IFixIndM · I · F imap) 
-  -(Λ i. intrId · (IFixIndM · I · F imap i) · (IFixM · I · F i)  (λ x. x.1) (λ z. β)) 
+  -(Λ i. intrIdExt · (IFixIndM · I · F imap i) · (IFixM · I · F i)  (λ x. x.1) (λ z. β)) 
    (Λ i. λ r. r.2 · Q q) -i v)).
 
 

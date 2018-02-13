@@ -3,33 +3,41 @@ module Everything.
 -- Implicitly Indexed Mendler-style induction
 
 
--- Definition of schemes with indexed identity mappings
+{- Definition of schemes with indexed identity mappings -}
 import IIdMapping. 
 
-
-{- non-inductive Mendler-style least fixed points for uncrestricted
-   indexed schemes -}
-import IFixM.
-
-
--- definition of implicitly indexed Mendler-style inductive datatypes
--- and their constructors
+{- Implicitly indexed Mendler-style inductive datatypes their constructors 
+   and induction principle -}
 import IFixIndM.
-
-
--- proof of induction
 import IInductionM.
 
 
--- [main contribution] Generic datatype reuse combinators
+--  Generic datatype reuse combinators [main contribution]
 
 
 {- Generic cast from richer indexed datatype (e.g. vectors) to less
    indexed datatypes (e.g. lists) and vice versa. The premises
-   (conditions on schemes F and G) of combinators below could be taken
+   (conditions on schemes F and G) of reuse combinators could be taken
    as guiding principles for designing datatypes, which will allow
-   datatype reuse. -}
+   datatype reuse.
 
+   The liminations of "reuse" technique:
+
+   1. The functors NatF0 and NatF1 are isomorphic and both give rise
+      to natural numbers.  However, there is no "cast" between NatF0
+      and NatF1 which hinders the reuse technique also for their least
+      fixed points.
+
+      NatF0 X = 1 + X
+      NatF1 X = (1 x 1) + X
+
+  2. Same issue happens with large elimination: 
+
+     VecF0 A X zero = Unit
+     VecF0 A X (suc n) = A × VecF0 A X n
+
+     VecF1 A X n = (n ≃ zero) + (Σ m : Nat. (n ≃ suc m) × A × X m)
+-}
 import ReuseForgetful.
 import ReuseEnriching.
 
@@ -37,16 +45,13 @@ import ReuseEnriching.
 -- Examples
 
 
-{- ListF and its identity mapping for List datatype. Definition of List in
-   terms of ListF -}
+{- List datatype as a least fixed point of ListF identity mapping -}
 import ListF.
 import List.
 
-
-{- VecF and its identity mapping for Vec datatype. Vec datatype in
-   terms of VecF -}
+{- Vec datatype as a least fixed point of VecF identity mapping -}
 import VecF.
 import Vec.
 
--- instantiation of generic cast combinators for casts between List and Vec
+{- using generic reuse combinators for casts between List and Vec -}
 import ListVecReuse.

@@ -1,38 +1,27 @@
-
 module Id.
 
 import Sigma.
 import SubstComp.
 
 
--- identity
-id ◂ ∀ X : ★. X ➔ X = Λ X. λ x. x.
+-- dependent extensional identity
+IdExtDep ◂ Π A : ★. Π B : A ➔ ★. ★ = λ A : ★. λ B : A ➔ ★. 
+ Π a : A. Sigma · (B a) · (λ b : B a. { b ≃ a }).
 
--- set of all functions from A to B which erase to term λ x. x
-Id ◂ Π A : ★. Π B : ★. ★ = λ A : ★. λ B : ★. 
- Sigma · (A ➔ B) · (λ f : A ➔ B. { f ≃ id }).
+elimIdExtDep ◂ ∀ A : ★ . ∀ B : A ➔ ★ . IdExtDep · A · B ➾ Π a : A . B a =
+  Λ A . Λ B . Λ c . λ a . subst · (B a) · A -(proj1 · (B a) · (λ b : (B a). {b ≃ a}) (c a)) a -(proj2 · (B a) · (λ b : (B a). {b ≃ a}) (c a)) .
 
-
--- Introduction: any function f : X ➔ Y, which extensionally is
--- identity could be turned into Id X Y
-intrId ◂ ∀ X : ★. ∀ Y : ★. Π f : X ➔ Y. (Π z : X. { f z ≃ z }) ➔ Id · X · Y 
- = Λ X. Λ Y. λ if. λ p. pair · (X ➔ Y) · (λ f : X ➔ Y. {f ≃ id}) 
-   (λ fx. subst · Y · X -(if fx) fx -(p fx)) β.
+intrIdExtDep ◂ ∀ X : ★. ∀ Y : X ➔ ★. Π f : (Π x : X. Y x). (Π z : X. {f z ≃ z}) ➔ IdExtDep · X · Y 
+ = Λ X. Λ Y. λ if. λ p. λ a. pair · (Y a) · (λ y : (Y a). {y ≃ a}) (if a) (p a).
 
 
--- Elimination: if c : Id A B and x : A then elimId -c x has type B and
--- is equal to x
-elimId ◂ ∀ A : ★ . ∀ B : ★ . Id · A · B ➾ A ➔ B = Λ A. Λ B. Λ c. λ a.
-  subst · B · A -(proj1 · (A ➔ B) · (λ c : A ➔ B. {c ≃ id}) c a) 
-                a 
-                -(ρ (proj2 · (A ➔ B) · (λ c : A ➔ B. {c ≃ id}) c) - β).
+-- non-dependent extensional identity
+IdExt ◂ Π A : ★. Π B : ★. ★ = λ A : ★. λ B : ★. IdExtDep · A · (λ _ : A. B).
 
+elimIdExt ◂ ∀ A : ★ . ∀ B : ★ . IdExt · A · B ➾ Π a : A . B =
+  Λ A . Λ B . Λ c . λ a . subst · B · A -(proj1 · B · (λ b : B. {b ≃ a}) (c a)) a -(proj2 · B · (λ b : B. {b ≃ a}) (c a)) .
 
--- simplest identity function
-idf ◂ ∀ A : ★. Id · A · A = Λ A. intrId · A · A (λ x. x) (λ _. β).
+intrIdExt ◂ ∀ X : ★. ∀ Y : ★. Π f : X ➔ Y. (Π z : X. {f z ≃ z}) ➔ IdExt · X · Y 
+ = Λ X. Λ Y. λ if. λ p. λ a. pair · Y · (λ y : Y. {y ≃ a}) (if a) (p a).
 
-
--- composition of identities is identity
-composeId ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★. Id · A · B ➾ Id · B · C ➾ Id · A · C
- = Λ A. Λ B. Λ C. Λ c1. Λ c2. 
- intrId · A · C (λ a. elimId · B · C -c2 (elimId · A · B -c1 a)) (λ _. β).
+trivIdExt ◂ ∀ A : ★. IdExt · A · A = Λ A. λ a. pair · A · (λ a1 : A. {a1 ≃ a}) a β.

@@ -1,6 +1,7 @@
 module VecF.
 
 import Nat.
+import Sigma.
 import IIdMapping.
 import Id.
 import IFixIndM.
@@ -26,7 +27,7 @@ VecFInd ◂ ∀ A : ★. ∀ X : Nat ➔ ★. ∀ n : Nat. Π lf : VecF · A · 
   (Λ Y. λ q. q (in1vf · A · X) β i1)  (Λ m. λ a. λ x. Λ Y. λ q. q (in2vf · A · X -m a x) β (i2 -m a x)) · (Q n lf) (λ x' . λ e . λ u . ρ e - u).
 
 
-vfimap ◂ ∀ A : ★. IIdMapping · Nat · (VecF · A) = Λ A. Λ X. Λ Y. Λ c. Λ i. intrId · (VecF · A · X i)  · (VecF · A · Y i)
-   (λ lf. lf.1 · (VecF · A · Y i) (Λ pr. ρ pr - (in1vf · A · Y))  (Λ m. Λ p. λ a. λ xm. ρ p - (in2vf · A · Y -m a (elimId · (X m) · (Y m) -(c -m) xm)) ) ) 
+vfimap ◂ ∀ A : ★. IIdMapping · Nat · (VecF · A) = Λ A. Λ X. Λ Y. Λ c. Λ i. intrIdExt · (VecF · A · X i)  · (VecF · A · Y i)
+   (λ lf. lf.1 · (VecF · A · Y i) (Λ pr. ρ pr - (in1vf · A · Y))  (Λ m. Λ p. λ a. λ xm. ρ p - (in2vf · A · Y -m a (elimIdExt · (X m) · (Y m) -(c -m) xm)) ) ) 
     (λ z. (VecFInd · A · X -i z) · (λ q : Nat. λ z : VecF · A · X q. {z in1vf in2vf ≃ z})
                   (Λ n'. λ a. λ x. β) β).

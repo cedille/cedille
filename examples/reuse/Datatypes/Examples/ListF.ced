@@ -1,5 +1,6 @@
 module ListF.
 
+import Sigma.
 import Unit.
 import IIdMapping.
 import Id.
@@ -29,7 +30,7 @@ ListFInd ◂ ∀ A : ★. ∀ X : Unit ➔ ★. Π lf : ListF · A · X unit . �
 
 -- identity mapping for ListF
 lfimap ◂ ∀ A : ★. IIdMapping · Unit · (ListF · A) 
- = Λ A. Λ X. Λ Y. Λ c. Λ i. intrId · (ListF · A · X i) · (ListF · A · Y i)
+ = Λ A. Λ X. Λ Y. Λ c. Λ i. intrIdExt · (ListF · A · X i) · (ListF · A · Y i)
  (λ lf. lf.1 · (ListF · A · Y i) (in1lf · A · Y) 
-   (λ a. λ x. in2lf · A · Y a (elimId · (X unit) · (Y unit) -(c -unit) x))) 
+   (λ a. λ x. in2lf · A · Y a (elimIdExt · (X unit) · (Y unit) -(c -unit)  x))) 
  (λ z. θ<z> (ListFInd · A · X z) (λ a. λ x. β) β).

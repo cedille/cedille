@@ -1,10 +1,9 @@
 module ListVecReuse.
 
-
+import Sigma.
 import Unit.
 import Nat.
 import Id.
-import Cast.
 import IIdMapping.
 import IFixIndM.
 import ReuseForgetful.
@@ -17,29 +16,29 @@ import Vec.
 
 -- cast from signature of vectors (VecF) to signature of lists (ListF)
 vf2lf ◂ ∀ A : ★. ∀ X : Nat ➔ ★. ∀ Y : Unit ➔ ★. 
- (∀ n : Nat. Cast · (X n) · (Y unit)) ➾
- ∀ n : Nat. Cast · (VecF · A · X n) · (ListF · A · Y unit) 
- = Λ A. Λ X. Λ Y. Λ c. Λ n. λ v. [ v.1 · (ListF · A · Y unit) 
- (Λ p. in1lf · A · Y) (Λ m. Λ p. λ a. λ x. in2lf · A · Y a (elimCast · (X m) · (Y unit) -(c -m) x)) , 
- ρ (rebVec · A · X -n v) - β{v in1vf in2vf} ]  .
+ (∀ n : Nat. IdExt · (X n) · (Y unit)) ➾
+ ∀ n : Nat. IdExt · (VecF · A · X n) · (ListF · A · Y unit) 
+ = Λ A. Λ X. Λ Y. Λ c. Λ n. λ v. pair · (ListF · A · Y unit) · (λ b : ListF · A · Y unit . {b ≃ v}) (v.1 · (ListF · A · Y unit) 
+ (Λ p. in1lf · A · Y) (Λ m. Λ p. λ a. λ x. in2lf · A · Y a (elimIdExt · (X m) · (Y unit) -(c -m) x))) (rebVec · A · X -n v).
 
 
 -- "forgetful" cast from vectors to lists in terms of generic
 -- combinator iF2iG
-v2l ◂ ∀ A : ★. ∀ n : Nat. Cast · (Vec · A n) · (List · A) = Λ A. Λ n. iforget · Nat · (VecF · A) -(vfimap · A)
+v2l ◂ ∀ A : ★. ∀ n : Nat. IdExt · (Vec · A n) · (List · A) = Λ A. Λ n. iforget · Nat · (VecF · A) -(vfimap · A)
  · Unit · (ListF · A) -(lfimap · A) (λ _. unit) -(Λ X. Λ Y. λ c. Λ i. vf2lf · A · X · Y -c -i) -n.
 
 
 -- cast from signature of lists (ListF) to signature of vectors (VecF)
 lf2vf ◂ ∀ A : ★. ∀ X : Nat ➔ ★. ∀ Y : Unit ➔ ★. 
  Π f : ∀ i : Unit. Y i ➔ Nat. 
- (CastDep · (Y unit) · (λ y : Y unit. X (f -unit y))) ➔ 
-   CastDep · (ListF · A · Y unit) · (λ gy : ListF · A · Y unit. VecF · A · X (lenAlgM · A · Y f -unit gy))
- = Λ A. Λ X. Λ Y. λ f.  λ c. λ l. [ ListFInd · A · Y l ·  (λ l : (ListF · A · Y unit). VecF · A · X (lenAlgM · A · Y f -unit l)) 
-  (λ a. λ y. in2vf · A · X -(f -unit y) a (elimCastDep · (Y unit) · (λ y : Y unit. X (f -unit y)) -c y))  (in1vf · A · X)  ,  
-   ρ (rebList · A · Y l) - β{ListFInd l in2lf in1lf} ].
+ (IdExtDep · (Y unit) · (λ y : Y unit. X (f -unit y))) ➔ 
+   IdExtDep · (ListF · A · Y unit) · (λ gy : ListF · A · Y unit. VecF · A · X (lenAlgM · A · Y f -unit gy))
+ = Λ A. Λ X. Λ Y. λ f.  λ c. λ l. pair · (VecF · A · X (lenAlgM · A · Y f -unit l)) · (λ b : VecF · A · X (lenAlgM · A · Y f -unit l) . {b ≃ l}) 
+  (ListFInd · A · Y l ·  (λ l : (ListF · A · Y unit). VecF · A · X (lenAlgM · A · Y f -unit l)) 
+  (λ a. λ y. in2vf · A · X -(f -unit y) a (elimIdExtDep · (Y unit) · (λ y : Y unit. X (f -unit y)) -c y)) (in1vf · A · X))  
+  (rebList · A · Y l).
  
 
 -- "enriching" cast from list to vector in terms of generic combinator iG2iF
-l2v ◂ ∀ A : ★. CastDep · (List · A) · (λ l : List · A. Vec · A (length · A l)) = Λ A. ienrich · Nat · (VecF · A) -(vfimap · A)
+l2v ◂ ∀ A : ★. IdExtDep · (List · A) · (λ l : List · A. Vec · A (length · A l)) = Λ A. ienrich · Nat · (VecF · A) -(vfimap · A)
  · Unit · (ListF · A) -(lfimap · A) (lenAlgM · A)  -(Λ X. Λ Y. λ f. λ a. Λ j. lf2vf · A · X · Y f (a -unit)) -unit.
