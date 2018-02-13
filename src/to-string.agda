@@ -35,7 +35,7 @@ no-parens{TERM} (Hole pi) p lr = tt
 no-parens{TERM} (IotaPair pi t t' pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-untyped p lr || is-abs p
-no-parens{TERM} (Let pi dtT t) p lr = is-untyped p lr || is-abs p
+no-parens{TERM} (Let pi dtT t) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = is-eq-op p
 no-parens{TERM} (Rho pi r eq t) p lr = is-eq-op p
@@ -49,7 +49,7 @@ no-parens{TYPE} (NoSpans T pi) p lr = tt
 no-parens{TYPE} (TpApp T T') p lr = is-abs p || is-arrow p || is-app p && ~ is-right lr
 no-parens{TYPE} (TpAppt T t) p lr = is-abs p || is-arrow p || is-app p && ~ is-right lr
 no-parens{TYPE} (TpArrow T a T') p lr = (is-abs p || is-arrow p) && ~ is-left lr
-no-parens{TYPE} (TpEq t t') p lr = ff
+no-parens{TYPE} (TpEq t t') p lr = tt
 no-parens{TYPE} (TpHole pi) p lr = tt
 no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = is-abs p
 no-parens{TYPE} (TpParens pi T pi') p lr = tt
@@ -171,8 +171,8 @@ term-to-stringh (IotaPair pi t t' pi') = strAdd "[ " ≫str to-stringh t ≫str 
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Let pi dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd ("let " ^ x ^ " ◂ ") ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " in " ≫str strΓ x pi' (to-stringh t)
-...| DefType pi' x k t' = strAdd ("let " ^ x ^ " ◂ ") ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " in " ≫str strΓ x pi' (to-stringh t)
+...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
+...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-string-ed t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringh eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringh t' ≫str strAdd "}"
 term-to-stringh (Rho pi r eq t) = strAdd (rho-to-string r) ≫str to-stringh eq ≫str strAdd " - " ≫str to-stringh t
@@ -187,7 +187,7 @@ type-to-stringh (NoSpans T pi) = to-string-ed T
 type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
 type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
-type-to-stringh (TpEq t t') = to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t'
+type-to-stringh (TpEq t t') = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strAdd "●"
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
 type-to-stringh (TpParens pi T pi') = to-string-ed T
