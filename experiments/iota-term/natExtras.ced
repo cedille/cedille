@@ -62,7 +62,8 @@ lt-S ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Sigma · Nat · (λ p : Nat . {S p
        	 (λ m . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)
 	 (λ n . λ m . λ _ . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)) lt-nm . 
 
-eq-S ◂ Π n : Nat . Π m : Nat . {S n ≃ S m} ➔ {n ≃ m} = ● .
+eq-S ◂ Π n : Nat . Π m : Nat . {S n ≃ S m} ➔ {n ≃ m} =
+  λ n . λ m . λ eq-n-m . χ ({pred (S n) ≃ m}) - ρ eq-n-m - β .
 
 lt-SS ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
   λ n . λ m . λ Lt-Sn-Sm . ind-Sum · (LtBase (S n) (S m)) · (LtStep (S n) (S m)) (Lt-out -(S n) -(S m) Lt-Sn-Sm) ·
@@ -92,9 +93,7 @@ Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z
 
 Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
    λ n . θ<n> (NatInd n)
-     (λ m . (θ<m> (NatInd m)
-      	   (λ _ . in2 · (Lt Z Z) · {Z ≃ Z} β)
-      	   (λ m . λ ih . λ _ . in1 · (Lt Z (S m)) · {Z ≃ S m} (LtZ m))))
+     (λ m . λ _ . LteZ m)
      (λ n . λ ih . λ m . λ lt-Sn-Sm .
      	[ lt-n-m = lt-SS n m lt-Sn-Sm ] -
 	  ind-sigma · Nat · (λ m' : Nat . {S m' ≃ m}) (lt-S n m lt-n-m) · (λ _ : Sigma · Nat · (λ m' : Nat . {S m' ≃ m}) . Lte (S n) m)
