@@ -3,7 +3,6 @@
 module CedilleLexer where
 
 import Control.Monad
-import Text.Show.Unicode
 import Data.Text(Text,pack)
 
 }
@@ -141,13 +140,13 @@ data TokenClass =
      deriving Eq
 
 instance Show TokenClass where
-  show (TVar   s)    = "TVar "   ++ ushow s
-  show (TQvar  s)    = "TQvar "  ++ ushow s
-  show (TFpth  s)    = "TFpth "  ++ ushow s
-  show (TKvar  s)    = "TKvar "  ++ ushow s
-  show (TQKvar s)    = "TQKvar " ++ ushow s
-  show (TSym   s)    = "TSym "   ++ ushow s
-  show (TProj  s)    = "TProj "  ++ ushow s
+  show (TVar   s)    = "TVar "   ++ show s
+  show (TQvar  s)    = "TQvar "  ++ show s
+  show (TFpth  s)    = "TFpth "  ++ show s
+  show (TKvar  s)    = "TKvar "  ++ show s
+  show (TQKvar s)    = "TQKvar " ++ show s
+  show (TSym   s)    = "TSym "   ++ show s
+  show (TProj  s)    = "TProj "  ++ show s
   show (TPiLift)     = "TPiLift"
   show (TArrowLift)  = "TArrowLift"    
   show (TEps)        = "TEps"

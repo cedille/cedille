@@ -12,10 +12,6 @@ To install Cedille version 1.0:
 2. create a symbolic link in the Cedille directory, pointing to the
    IAL directory.  The link should be named "ial".
 
-3. You also may need to do
-
-   cabal install unicode-show
-
 4. Now you can run "make" in the Cedille directory, and this should
    compile the cedille executable (which should appear in the Cedille
    directory).
