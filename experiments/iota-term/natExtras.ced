@@ -57,24 +57,45 @@ Lt-out ◂ ∀ n : Nat . ∀ m : Nat . Lt n m ➔ Sum · (LtBase n m) · (LtStep
                                 (mksigma · Nat · (LtStepp2 (S n') (S m') n')
                                    m' [ β{Lt-in ih} , [ β{Lt-in ih} , Lt-in -n' -m' ih]]))) .
 
+lt-S ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Sigma · Nat · (λ p : Nat . {S p ≃ m}) =
+  λ n . λ m . λ lt-nm . (lt-nm · (λ n : Nat . λ m : Nat . Lt n m ➔ Sigma · Nat · (λ p : Nat . {S p ≃ m}))
+       	 (λ m . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)
+	 (λ n . λ m . λ _ . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)) lt-nm . 
+
+eq-S ◂ Π n : Nat . Π m : Nat . {S n ≃ S m} ➔ {n ≃ m} = ● .
+
+lt-SS ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
+  λ n . λ m . λ Lt-Sn-Sm . ind-Sum · (LtBase (S n) (S m)) · (LtStep (S n) (S m)) (Lt-out -(S n) -(S m) Lt-Sn-Sm) ·
+     	(λ s : Sum · (LtBase (S n) (S m)) · (LtStep (S n) (S m)) . Lt n m)
+	(λ ltB-Sn-Sm . ZS-False -n (θ<ltB-Sn-Sm> (ind-sigma · Nat · (LtBasep (S n) (S m)) ltB-Sn-Sm) (λ _ . λ ltBp-Sn-Sm . ς ltBp-Sn-Sm.1)) · (Lt n m))
+	(λ ltS-Sn-Sm . θ<ltS-Sn-Sm> (ind-sigma · Nat · (LtStepp (S n) (S m)) ltS-Sn-Sm)
+	   (λ n' . λ ltSp-Sn-Sm . θ<ltSp-Sn-Sm> (ind-sigma · Nat · (LtStepp2 (S n) (S m) n') ltSp-Sn-Sm) (λ m' . λ ltSpp-Sn-Sm . ρ (eq-S n n' ltSpp-Sn-Sm.1) -ρ (eq-S m m' ltSpp-Sn-Sm.2.1) - ltSpp-Sn-Sm.2.2 ))).
+
 Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · {n ≃ m} .
 
+LteZ ◂ Π n : Nat . Lte Z n = λ n . θ<n> (NatInd n) (in2 · (Lt Z Z) · {Z ≃ Z} β) (λ n . λ _ . in1 · (Lt Z (S n)) · {Z ≃ S n} (LtZ n)) .
+
+LteS ◂ Π n : Nat . Π m : Nat . Lte n m ➔ Lte (S n) (S m)
+    = λ n . λ m . λ lte-nm . θ<lte-nm> (ind-Sum · (Lt n m) · {n ≃ m} lte-nm)
+      (λ lt-n-m . in1 · (Lt (S n) (S m)) · {S n ≃ S m} (LtS n m lt-n-m))
+      (λ eq-n-m . in2 · (Lt (S n) (S m)) · {S n ≃ S m} (ρ eq-n-m - β)) .
+
 Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
-  ● .
+  λ x . λ y . λ z . λ lt-xy . λ lt-yz . 
+      lt-xy · (λ x : Nat . λ y : Nat . Π z : Nat . Lt y z ➔ Lt x z)
+      	      (λ y . λ z . λ lt-yz . ind-sigma · Nat · (λ p : Nat . {S p ≃ z}) (lt-S (S y) z lt-yz) ·
+	      	 (λ s : Sigma · Nat · (λ p : Nat . {S p ≃ z}) . Lt Z z) (λ p . λ eq-Sp-z . ρ ς eq-Sp-z - (LtZ p)))
+	      (λ x . λ y . λ ih . λ z . λ lt-Sy-z .
+	      	 ind-sigma · Nat · (λ z' : Nat . {S z' ≃ z}) (lt-S (S y) z lt-Sy-z) · (λ _ : Sigma · Nat · (λ z' : Nat . {S z' ≃ z}) . Lt (S x) z)
+	           (λ z' . λ eq-Sz'-z . ρ ς eq-Sz'-z - (LtS x z' (ih z' (lt-SS y z' (ρ eq-Sz'-z - lt-Sy-z))))))
+	      z lt-yz .
 
 Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
-  λ n . λ m . λ d .
-    (Lt-out -n -(S m) d).1 · (Lte n m)
-      (λ a . a.1 · (Lte n m) (λ m' . λ p . χ (Lte (pred (S n)) (pred (S m))) -
-                                           ρ p.2 -
-                                           ρ p.1 -
-                                           (θ<m'> (NatInd m') (in2 · (Lt Z Z) · {Z ≃ Z} β)
-                                                              (λ m'' . λ _ . in1 · (Lt Z (S m'')) · {Z ≃ S m''}
-                                                                               (Λ X . λ b . λ s .
-                                                                                  b m'')))))
-      (λ a . ● ).
-
--- in1 · (Lt n m) · {n ≃ m}
---       	 (ind-sigma · Nat · (LtStepp n (S m)) a · (λ s : Sigma · Nat · (LtStepp n (S m)) . Lt n m)
--- 	   (λ n' . λ b . ind-sigma · Nat · (LtStepp2 n (S m) n') b · (λ s : Sigma · Nat · (LtStepp2 n (S m) n') . Lt n m)
--- 	      (λ m' . λ c . ρ c.1 -(ρ c.2.1 -(LtS n' m' c.2.2)))))
+   λ n . θ<n> (NatInd n)
+     (λ m . (θ<m> (NatInd m)
+      	   (λ _ . in2 · (Lt Z Z) · {Z ≃ Z} β)
+      	   (λ m . λ ih . λ _ . in1 · (Lt Z (S m)) · {Z ≃ S m} (LtZ m))))
+     (λ n . λ ih . λ m . λ lt-Sn-Sm .
+     	[ lt-n-m = lt-SS n m lt-Sn-Sm ] -
+	  ind-sigma · Nat · (λ m' : Nat . {S m' ≃ m}) (lt-S n m lt-n-m) · (λ _ : Sigma · Nat · (λ m' : Nat . {S m' ≃ m}) . Lte (S n) m)
+	    (λ m' . λ eq-Sm'-m . ρ ς eq-Sm'-m - (LteS n m' (ih m' (ρ eq-Sm'-m -lt-n-m))))) .
