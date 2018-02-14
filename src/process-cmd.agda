@@ -34,14 +34,14 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
-check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
-check-and-add-params pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
+check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
+check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
-  add-mod-tk pi1' x atk ≫=span λ mi →
-  check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-check-and-add-params _ ParamsNil = spanMr []
+  add-tk' ff scope pi1' x atk ≫=span λ mi →
+  check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+check-and-add-params _ _ ParamsNil = spanMr []
 
 {-# TERMINATING #-}
 process-cmd : process-t cmd
@@ -104,7 +104,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
-  check-and-add-params pi' ps ≫=span λ ms → 
+  check-and-add-params localScope pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
     let k' = hnf Γ unfold-head k tt in
@@ -144,7 +144,7 @@ process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span 
 -- TODO ignore checking but still qualify if need-to-check false?
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
-  check-and-add-params pi ps ≫=span λ _ →
+  check-and-add-params globalScope pi ps ≫=span λ _ →
   spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = Γ})
