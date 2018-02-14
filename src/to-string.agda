@@ -83,7 +83,7 @@ strM-n f s n = f n s n
 strM-p : ({ed : exprd} → maybe ⟦ ed ⟧ → strM) → strM
 strM-p f s n ts Γ pe = f pe s n ts Γ pe
 
-infixl 4 _≫str_
+infixr 4 _≫str_
 
 _≫str_ : strM → strM → strM
 (m ≫str m') s n ts Γ pe lr with m s n ts Γ pe lr
