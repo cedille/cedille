@@ -8,7 +8,9 @@ module Examples
   (plus : Nat → Nat → Nat)
   (Vec : ⋆ → Nat → ⋆)
   (v2l : {A : ⋆} {n : Nat} → Cast' (Vec A n) (List A))
+  (v2l-pres : {A : ⋆} {n : Nat} (xs : Vec A n) → n ≅ len (cast' v2l xs))
   (l2v : {A : ⋆} → Cast (List A) (λ xs → Vec A (len xs)))
+  (l2vC : {A : ⋆} {n : Nat} → Cast (List A) (λ xs → (len xs ≅ n) → Vec A n))
   (v2u : {A : ⋆} {n : Nat} → Cast' (Vec A n) (ι (List A) λ xs → n ≅ len xs))
   (u2v : {A : ⋆} {n : Nat} → Cast' (ι (List A) λ xs → n ≅ len xs) (Vec A n))
   where
@@ -54,6 +56,16 @@ appendL2appendV =
   pi2allArr v2u λ xs →
   pi2allArr v2u λ ys →
   u2v
+
+appendL2appendVC : Cast
+  ({A : ⋆} → List A → List A → List A)
+  (λ f → ({A : ⋆} (xs ys : List A) → len (f xs ys) ≅ plus (len xs) (len ys)) →
+  {A : ⋆} {n : Nat} → Vec A n → {m : Nat} → Vec A m → Vec A (plus n m))
+appendL2appendVC =
+  copyTypeC λ A →
+  arr2allArrC v2l v2l-pres λ xs →
+  arr2allArrC v2l v2l-pres λ ys →
+  l2vC
 
 assocL2assocV :
   {appendL : {A : ⋆} (xs ys : List A) → VecL A (plus (len xs) (len ys))}

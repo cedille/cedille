@@ -35,6 +35,10 @@ postulate
     → ((A : ⋆) → Cast' (B1 A) (B2 A))
     → Cast' ({A : ⋆} → B1 A) ({A : ⋆} → B2 A)
 
+  copyTypeC : {B1 B2 : ⋆ → ⋆} {C1 : (A : ⋆) → B1 A → ⋆}
+    → ((A : ⋆) → Cast (B1 A) (λ b1 → C1 A b1 → B2 A))
+    → Cast ({A : ⋆} → B1 A) (λ f → ({A : ⋆} → C1 A f) → {A : ⋆} → B2 A)
+
   allArr2arr : {A1 : ⋆} {B1 C1 : A1 → ⋆} {A2 B2 : ⋆}
     {c1 : A2 → A1}
     (c2 : Cast A2 (λ a1 → B1 (c1 a1)))
@@ -52,6 +56,14 @@ postulate
     (c2 : {a2 : A2} → Cast' (B2 a2) (ι A1 λ a1 → a2 ≅ c1 a1))
     (c3 : (a1 : A1) → Cast' (B1 a1) (C2 (c1 a1)))
     → Cast' ((a1 : A1) → B1 a1) ({a2 : A2} → B2 a2 → C2 a2)
+
+  arr2allArrC : {A1 B1 : ⋆} {C1 : A1 → B1 → ⋆}
+    {A2 : ⋆} {B2 : A2 → ⋆} {C2 : A2 → ⋆}
+    {c1 : A1 → A2}
+    (c2 : {a2 : A2} → Cast' (B2 a2) A1)
+    (c3 : {a2 : A2} (b2 : B2 a2) → a2 ≅ c1 (cast' c2 b2))
+    (c4 : (a1 : A1) → Cast B1 (λ b1 → (C1 a1 b1) → C2 (c1 a1)))
+    → Cast (A1 → B1) (λ f → ((a1 : A1) → C1 a1 (f a1)) → {a2 : A2} → B2 a2 → C2 a2)
 
   pi2allPi : {A1 : ⋆} {B1 : A1 → ⋆} {A2 : ⋆} {B2 : A2 → ⋆} {C2 : (a2 : A2) → B2 a2 → ⋆}
     {c1 : A1 → A2}
