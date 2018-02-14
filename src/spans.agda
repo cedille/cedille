@@ -472,7 +472,7 @@ Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (ter
                                            ((ll-data-term :: binder-data-const :: checking-data c :: tvs)
                                            ++ [ to-string-tag-tk "type of bound variable" Γ atk ])
 
-{-
+
 compileFail-in : ctxt → (original erased normalized : term) → 𝕃 tagged-val
 compileFail-in Γ o e n with is-free-in-term check-erased compileFail
 ...| is-free with is-free o
@@ -481,7 +481,7 @@ compileFail-in Γ o e n with is-free-in-term check-erased compileFail
 ...| tt | _ = error-data "compileFail occurs in the normalized term" :: [ to-string-tag "normalized term" Γ n ]
 ...| ff | ff = error-data "compileFail occurs in an erased position" :: [ to-string-tag "the term" Γ o ]
 ...| ff | tt = []
--}
+
 
 DefTerm-span : ctxt → posinfo → var → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span Γ pi x checked tp t pi' tvs = 

@@ -7,17 +7,17 @@ open import subst
 open import general-util
 open import syntax-util
 
-{-new-sym-info-trie : trie sym-info
+new-sym-info-trie : trie sym-info
 new-sym-info-trie = trie-insert empty-trie compileFail-qual ((term-decl compileFailType) , "missing" , "missing")
 
 new-qualif : qualif
 new-qualif = trie-insert empty-trie compileFail (compileFail-qual , ArgsNil "")
--}
+
 qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , empty-trie) empty-trie empty-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) empty-trie new-sym-info-trie empty-trie
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -298,7 +298,7 @@ ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ... | nothing = "missing" , "missing"
 
 ctxt-set-current-file : ctxt → string → string → ctxt
-ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , empty-trie) syms i symb-occs
+ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs
 
 ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
