@@ -139,10 +139,10 @@ _≫=spanm'_{A}{B} m m' = m ≫=span cont
         cont nothing = spanMr nothing
         cont (just a) = m' a
 
-_on-fail_≫=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM (maybe B)
-                            → (A → spanM (maybe B)) → spanM (maybe B)
+_on-fail_≫=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM B
+                            → (A → spanM B) → spanM B
 _on-fail_≫=spanm'_ {A}{B} m fail f = m ≫=span cont
-  where cont : maybe A → spanM (maybe B)
+  where cont : maybe A → spanM B
         cont nothing  = fail
         cont (just x) = f x
 
@@ -256,6 +256,9 @@ head-kind = to-string-tag "the kind of the head"
 
 head-type : ctxt → type → tagged-val
 head-type = to-string-tag "the type of the head"
+
+arg-type : ctxt → type → tagged-val
+arg-type = to-string-tag "the type of the arg"
 
 type-app-head : ctxt → type → tagged-val
 type-app-head = to-string-tag "the head"
