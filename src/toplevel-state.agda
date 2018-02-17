@@ -41,8 +41,8 @@ new-include-elt filename deps x y =
 error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
 
-error-span-include-elt : string → posinfo → include-elt
-error-span-include-elt err pos = record blank-include-elt { ss = inj₁ (add-span (span.mk-span err pos (posinfo-plus pos 1) [ error-data "" ] ) empty-spans ) ; err = tt }
+error-span-include-elt : string → string → posinfo → include-elt
+error-span-include-elt err errSpan pos = record blank-include-elt { ss = inj₁ (add-span (span.mk-span err pos (posinfo-plus pos 1) [ error-data errSpan ] ) empty-spans ) ; err = tt }
 
 set-do-type-check-include-elt : include-elt → 𝔹 → include-elt
 set-do-type-check-include-elt ie b = 

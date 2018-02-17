@@ -134,8 +134,8 @@ reparse st filename =
         return (set-include-elt st filename ie)
   where processText : string → IO include-elt
         processText x with parseStart x
-        processText x | Left (Left cs)  = return (error-span-include-elt ("Lexer error in file " ^ filename ^ ".") cs)
-        processText x | Left (Right cs) = return (error-span-include-elt ("Parser error in file " ^ filename ^ ".") cs)        
+        processText x | Left (Left cs)  = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Lexical error." cs)
+        processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)        
         processText x | Right t  with cws-types.scanComments x 
         processText x | Right t | t2 = find-imported-files (toplevel-state.include-path st)
                                                            (get-imports t) >>= λ deps → return (new-include-elt filename deps t t2)
