@@ -10,7 +10,7 @@ data Either (A : Set)(B : Set) : Set where
 {-# COMPILED_DATA Either Either Left Right #-}
 
 postulate
-  parseStart  : string → Either string start
+  parseStart  : string → Either (Either string string) start
   parseTerm : string → Either string term
   parseType : string → Either string type
   parseKind : string → Either string kind

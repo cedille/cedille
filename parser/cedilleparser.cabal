@@ -13,6 +13,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
+                     , ../src/
   exposed-modules:     CedilleLexer
                      , CedilleParser
                      , CedilleTypes

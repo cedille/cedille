@@ -6,10 +6,7 @@ import CedilleTypes
 import CedilleLexer hiding (main)
 
 import Data.Text(Text,pack,unpack,append,breakOnEnd)
-
 import Control.Monad
-import System.Environment
---import System.Directory
 
 }
 
@@ -282,88 +279,45 @@ posInfo :: PosInfo
 posInfo = pack "0"
   
 lexer :: (Token -> Alex a) -> Alex a
-lexer f = alexMonadScan >>= f  
+lexer f = alexMonadScanErrOffset >>= f  
   
 parseError :: Token -> Alex a
-parseError (Token (AlexPn p _ _) t) = alexError $ show (p + 1)
+parseError (Token (AlexPn p _ _) t) = alexError $ "P" ++ show (p + 1)
 
-parse :: String -> Either String Start
-parse s = runAlex s $ cedilleParser 
-
-parseTxt :: Text -> Either Text Start
+parseTxt :: Text -> Either (Either Text Text) Start
 parseTxt s = case runAlex (unpack s) $ cedilleParser of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Left  s' -> case head s' of {
+                                     'L' -> Prelude.Left (Prelude.Left  (pack (tail s')));
+                                     'P' -> Prelude.Left (Prelude.Right (pack (tail s')))
+                                   }
                Prelude.Right r  -> Prelude.Right r
 
+parse :: Alex a -> Text -> Either Text a
+parse p s = case runAlex (unpack s) $ p of
+	 Prelude.Left  s2 -> Prelude.Left (pack (tail s2)) -- tail removes "L" (lexer error) and "P" (parser error) prefixes
+         Prelude.Right r  -> Prelude.Right r
+		 
 parseTerm :: Text -> Either Text Term
-parseTerm s = case runAlex (unpack s) $ term of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
-               Prelude.Right r  -> Prelude.Right r
+parseTerm  = parse term
 
 parseType :: Text -> Either Text Type
-parseType s = case runAlex (unpack s) $ types of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
-               Prelude.Right r  -> Prelude.Right r
+parseType = parse types
 
 parseLiftingType :: Text -> Either Text LiftingType
-parseLiftingType s = case runAlex (unpack s) $ liftingtype of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
-               Prelude.Right r  -> Prelude.Right r
+parseLiftingType = parse liftingtype
 
 parseKind :: Text -> Either Text Kind
-parseKind s = case runAlex (unpack s) $ kind of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
-               Prelude.Right r  -> Prelude.Right r
+parseKind = parse kind
 
 parseDefTermOrType :: Text -> Either Text DefTermOrType
-parseDefTermOrType s = case runAlex (unpack s) $ deftermtype of
-               Prelude.Left  s2 -> Prelude.Left (pack s2)
-               Prelude.Right r  -> Prelude.Right r
-
-parseTxt2 :: Text -> Text
-parseTxt2 s = case runAlex (unpack s) $ cedilleParser of
-               Prelude.Left  s2 -> pack s2
-               Prelude.Right r  -> pack $ show r
-
-showStart :: Start -> Text
-showStart s = pack (show s)
-
-eqStart :: Start -> Start -> Bool
-eqStart = (==)
+parseDefTermOrType = parse deftermtype
 
 -- main :: IO ()
 -- main = do  
---   s <- getContents
---   case parse s of
---     Prelude.Left  errMsg -> putStrLn $ "Error:"             ++ errMsg
---     Prelude.Right res    -> putStrLn $ "Parser successful, AST:" ++ show res
-
-main :: IO ()
-main = do  
-  [ file ] <- getArgs
-  cnt      <- readFile file
-  case parse cnt of
-    Prelude.Left  errMsg -> writeFile (file ++ "-result") errMsg
-    Prelude.Right res    -> writeFile (file ++ "-result") (show res)
-
--- processDirectory :: Text -> Text -> (Text -> Text) -> IO ()
--- processDirectory inputDir outputDir transformation = 
---   let outD = unpack outputDir  in
---   let inD  = unpack inputDir   in do
---     files    <- listDirectory inD  >>= filterM (doesFileExist . (++) inD)
---     results  <- mapM (liftM (unpack . transformation . pack) . readFile . (++) inD ) files
---     mapM_ (uncurry writeFile) (zip (map ((++) outD) files) results)
-
--- main :: IO ()
--- main = processDirectory (pack "test/tests/") (pack "results/result_") parseTxt2
-
-processFile :: Text -> (Text -> Text) -> Text -> IO ()
-processFile outputDir transformation filePath =
-  let outD  = unpack outputDir  in
-  let fileP = unpack filePath   in
-  let fileN = unpack $ snd $ breakOnEnd (pack "/") filePath in do
-    result <- readFile fileP
-    writeFile (outD ++ fileN) (unpack $ transformation $ pack result)
-
+--   [ file ] <- getArgs
+--   cnt      <- readFile file
+--   case parse cnt of
+--     Prelude.Left  errMsg -> writeFile (file ++ "-result") errMsg
+--     Prelude.Right res    -> writeFile (file ++ "-result") (show res)
 
 }

@@ -37,8 +37,6 @@ all: cedille # elisp
 libraries: 
 	./create-libraries.sh
 
-parser: ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs
-
 ./src/CedilleParser.hs: parser/src/CedilleParser.y ./src/CedilleLexer.hs
 	cd parser; make cedille-parser
 
@@ -48,7 +46,7 @@ parser: ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.
 ./src/CedilleCommentsLexer.hs: parser/src/CedilleCommentsLexer.x
 	cd parser; make cedille-comments-lexer
 
-cedille:	$(SRC) Makefile libraries parser
+cedille:	$(SRC) Makefile libraries ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 

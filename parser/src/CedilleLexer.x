@@ -179,20 +179,33 @@ isEOF :: Token -> Bool
 isEOF (Token _ TEOF) = True
 isEOF _              = False
 
-scanner :: String -> Either String [Token]
-scanner str = 
-  let loop = do
-        tok <- alexMonadScan
-        if isEOF tok
-          then return []
-          else do toks <- loop; return (tok:toks)
-  in runAlex str loop
+alexMonadScanErrOffset = do
+  inp <- alexGetInput
+  sc <- alexGetStartCode
+  case alexScan inp sc of
+    AlexEOF -> alexEOF
+    AlexError ((AlexPn off _ _),_,_,_) -> alexError $ "L" ++ show (off + 1)
+    AlexSkip  inp' len -> do
+        alexSetInput inp'
+        alexMonadScan
+    AlexToken inp' len action -> do
+        alexSetInput inp'
+        action (ignorePendingBytes inp) len
 
-main :: IO ()
-main = do
-  s <- getContents
-  case (scanner s) of
-    Left msg -> putStrLn msg
-    Right tokns -> mapM_ (putStrLn . show) tokns
+-- scanner :: String -> Either String [Token]
+-- scanner str = 
+--   let loop = do
+--         tok <- alexMonadScan
+--         if isEOF tok
+--           then return []
+--           else do toks <- loop; return (tok:toks)
+--   in runAlex str loop
+
+-- main :: IO ()
+-- main = do
+--   s <- getContents
+--   case (scanner s) of
+--     Left msg -> putStrLn msg
+--     Right tokns -> mapM_ (putStrLn . show) tokns
 
 }
