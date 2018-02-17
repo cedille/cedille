@@ -163,6 +163,6 @@ putStreeng (s₁ ⊹⊹ s₂) = putStreeng s₁ >> putStreeng s₂
 putStreeng [[ s ]] = putStr s
 
 putStreengLn : streeng → IO ⊤
-putStreengLn s = putStreeng s >> add-windows-ws-full >> putStr "\n"
+putStreengLn s = putStreeng s >> putStr "\n" >> add-windows-ws-full
 
 

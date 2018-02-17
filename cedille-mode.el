@@ -389,16 +389,7 @@ in the parse tree, and updates the Cedille info buffer."
   (cedille-mode-highlight-occurrences-if))
 
 (defun cedille-mode-modify-response (response)
-  (let ((response (cedille-mode-strip-ws response)))
-    (when (not (string= "§" (substring response 0 1)))
-	response)))
-
-(defun cedille-mode-strip-ws (response)
-  "Removes the proceeding whitespaces in RESPONSE"
-  (if (or (equal 0 (length response))
-	  (not (string= " " (substring response 0 1))))
-      response
-    (cedille-mode-strip-ws (substring response 1))))
+  (replace-regexp-in-string "^ +"  "" response))
 
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
