@@ -286,10 +286,12 @@ which currently consists of:\n
 
 (defun cedille-mode-display-context()
   "Displays the context"
-  (let ((b (cedille-mode-context-buffer)))
+  (let ((parent cedille-mode-parent-buffer)
+        (b (cedille-mode-context-buffer)))
     (cedille-mode-process-context)
     (with-current-buffer b
-      (setq buffer-read-only nil)
+      (setq buffer-read-only nil
+            cedille-mode-parent-buffer parent)
       (erase-buffer)
       (let* ((linedata (cedille-mode-format-context cedille-mode-sorted-context-list))
 	     (termdata (car linedata))

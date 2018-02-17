@@ -7,6 +7,11 @@
 
 ;;;;;;;;        Commands        ;;;;;;;;
 
+(defun cedille-mode-to-string (input)
+  "Sends an interactive request to the backend to parse INPUT and return the parsed expression as a string"
+  (interactive "MExpression: ")
+  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
+
 (defun cedille-mode-normalize(&optional head)
   "Normalizes either the currently selected span or a prompted expression completely"
   (interactive)
@@ -22,11 +27,8 @@
     (call-interactively
      (lambda (input)
        (interactive "MErase: ")
-       (se-inf-interactive
-	(concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name))
-	'cedille-mode-normalize-erase-receive-response-prompt
-	:extra (concat "Expression: " input "\nErased: ")
-	:header "Erasing")))))
+       (cedille-mode-erase-send-prompt input)))))
+  
 
 ;;;;;;;;        Span Code        ;;;;;;;;
 
@@ -39,7 +41,7 @@
 			    (string= lang-level "kind")))
 	(se-inf-interactive
 	 'cedille-mode-normalize-request-text
-	 'cedille-mode-normalize-erase-receive-response
+	 (cedille-mode-response-macro #'cedille-mode-normalize-erase-receive-response)
 	 :span span
 	 :header header
 	 :extra (cons head nil) ; To make sure that extra is non-nil
@@ -52,7 +54,7 @@
     (if (and lang-level (string= lang-level "term"))
 	(se-inf-interactive
 	 'cedille-mode-erase-request-text
-	 'cedille-mode-normalize-erase-receive-response
+	 (cedille-mode-response-macro #'cedille-mode-normalize-erase-receive-response)
 	 :span span
 	 :header "Erasing"
 	 :restore t)
@@ -173,11 +175,18 @@
   "Sends the prompted normalize request to the backend"
   (se-inf-interactive
    (concat "interactive" sep "normalizePrompt" sep input sep (buffer-file-name) sep (if head "tt" "ff"))
-   'cedille-mode-normalize-erase-receive-response-prompt
+   (cedille-mode-response-macro #'cedille-mode-normalize-erase-receive-response-prompt)
    :extra (concat "Expression: " input "\n" (if head "Head-n" "N") "ormalized: ")
    :header "Normalizing"))
 
-(defun cedille-mode-normalize-erase-receive-response-prompt(response oc extra)
+(defun cedille-mode-erase-send-prompt (input)
+  (se-inf-interactive
+   (concat "interactive" sep "erasePrompt" sep input sep (buffer-file-name))
+   (cedille-mode-response-macro #'cedille-mode-normalize-erase-receive-response-prompt)
+   :extra (concat "Expression: " input "\nErased: ")
+   :header "Erasing"))
+
+(defun cedille-mode-normalize-erase-receive-response-prompt(response oc extra s)
   "Receives the normalize text response (or error text) from the backend. Handler for when the user typed an expression into the prompt."
   (let ((response (se-markup-propertize response)))
     (unless (cedille-mode-normalize-get-error response)
@@ -188,5 +197,20 @@
 (defun cedille-mode-str-is-var (str)
   "Returns t if STR is a variable"
   (not (string-match " " str)))
+
+
+(defun cedille-mode-response (fn response span oc extra)
+  "Wrapper function that turns RESPONSE into a json, propertizes it, and passes it to FN along with OC and EXTRA"
+  (let* ((json-array-type 'list)
+         (json (json-read-from-string response))
+         (ls (cdr (assoc 'value json)))
+         (val (cadr ls))
+         (ts (caddr ls))
+         (str (cedille-mode-apply-tags val ts)))
+    (funcall fn str span oc extra)))
+
+(defmacro cedille-mode-response-macro (fn)
+  `(lambda (response &optional span oc extra)
+     (cedille-mode-response ,fn response span oc extra)))
 
 (provide 'cedille-mode-normalize)

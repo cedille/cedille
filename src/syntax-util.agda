@@ -2,6 +2,7 @@ module syntax-util where
 
 open import lib
 open import cedille-types
+open import general-util
 
 posinfo-gen : posinfo
 posinfo-gen = "generated"
@@ -22,11 +23,11 @@ qualif : Set
 qualif = trie qualif-info
 
 tag : Set
-tag = string × string
+tag = string × streeng
 
 tagged-val : Set
-tagged-val = string × string × 𝕃 tag
-
+tagged-val = string × streeng × 𝕃 tag
+{-
 tags-to-string : 𝕃 tag → string
 tags-to-string [] = ""
 tags-to-string ((t , v) :: []) = "\"" ^ t ^ "\":" ^ v ^ ""
@@ -41,13 +42,30 @@ tagged-vals-to-string : ℕ → 𝕃 tagged-val → string
 tagged-vals-to-string n [] = ""
 tagged-vals-to-string n (s :: []) = tagged-val-to-string n s
 tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tagged-vals-to-string (suc n) (s' :: ss)
+-}
+
+tags-to-streeng : 𝕃 tag → streeng
+tags-to-streeng [] = [[]]
+tags-to-streeng ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
+tags-to-streeng ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-streeng ts
+
+-- We number these when so we can sort them back in emacs
+tagged-val-to-streeng : ℕ → tagged-val → streeng
+tagged-val-to-streeng n (t , v , []) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
+tagged-val-to-streeng n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-streeng tags ⊹⊹ [[ "}]" ]]
+
+tagged-vals-to-streeng : ℕ → 𝕃 tagged-val → streeng
+tagged-vals-to-streeng n [] = [[]]
+tagged-vals-to-streeng n (s :: []) = tagged-val-to-streeng n s
+tagged-vals-to-streeng n (s :: (s' :: ss)) = tagged-val-to-streeng n s ⊹⊹ [[ "," ]] ⊹⊹ tagged-vals-to-streeng (suc n) (s' :: ss)
+
 
 make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
-make-tag name vs start end = name , "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ^ vs-to-string vs ^ "}"
+make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ]] ⊹⊹ vs-to-streeng vs ⊹⊹ [[ "}" ]]
   where
-    vs-to-string : 𝕃 tag → string
-    vs-to-string [] = ""
-    vs-to-string ((t , v) :: ts) = ",\"" ^ t ^ "\":\"" ^ v ^ "\"" ^ vs-to-string ts
+    vs-to-streeng : 𝕃 tag → streeng
+    vs-to-streeng [] = [[]]
+    vs-to-streeng ((t , v) :: ts) = [[ ",\"" ^ t ^ "\":\"" ]] ⊹⊹ v ⊹⊹ [[ "\"" ]] ⊹⊹ vs-to-streeng ts
 
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi

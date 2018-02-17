@@ -500,10 +500,12 @@ occurrences, then do so."
 
 (defun cedille-mode-apply-tag (tag)
   "Applies the tags in TAG to its value"
-  (let ((key (car tag))
+  (let* ((len (length (format "%s" tag)))
+        (key (car tag))
         (value (caddr tag))
-        (tags (cadddr tag)))
-    (cons key (cedille-mode-apply-tags value tags))))
+        (tags (cadddr tag))
+        (ret (cons key (cedille-mode-apply-tags value tags))))
+    ret))
       
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
@@ -571,6 +573,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br-start)
   (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-start-cap)
   (se-navi-define-key mode (kbd "C-i =") #'cedille-mode-conv)
+  (se-navi-define-key mode (kbd "C-i s") #'cedille-mode-to-string)
   ;(se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
   (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)
   ;(se-navi-define-key mode (kbd "C-i D") #'cedille-mode-inspect-clear-all)
@@ -611,7 +614,8 @@ occurrences, then do so."
 (defun cedille-start-navigation()
   "Enter Cedille navigation mode."
   (interactive)
-  (setq se-mode-parse-tree nil)
+  (setq se-mode-parse-tree nil
+        cedille-mode-parent-buffer (current-buffer))
   (se-navigation-mode 1))
 
 (modify-coding-system-alist 'file "\\.ced\\'" 'utf-8)

@@ -9,6 +9,7 @@ open import cedille-types
 open import spans
 open import syntax-util
 open import to-string
+open import general-util
 
 
 {- Helper functions -}
@@ -19,15 +20,15 @@ get-loc : var → spanM tagged-val
 get-loc v = get-ctxt (λ Γ → spanMr (get-loc-h v Γ))
 
 get-loc-h v Γ with ctxt-get-info v Γ
-get-loc-h v Γ | just (_ , (fp , pos)) = ("location" , fp ^ " - " ^ pos , [])
-get-loc-h v Γ | nothing = ("location" , "missing - missing" , [])
+get-loc-h v Γ | just (_ , (fp , pos)) = ("location" , [[ fp ]] ⊹⊹ [[ " - " ]] ⊹⊹ [[ pos ]] , [])
+get-loc-h v Γ | nothing = ("location" , [[ "missing - missing" ]] , [])
 
 defTermOrType-start-pos : defTermOrType → posinfo
 defTermOrType-start-pos (DefTerm pi _ _ _) = pi
 defTermOrType-start-pos (DefType pi _ _ _) = pi
 
 symbol-tv : string → tagged-val
-symbol-tv s = "symbol" , s , []
+symbol-tv s = "symbol" , [[ s ]] , []
 
 {- Span functions -}
 erased-term-spans : term → spanM ⊤
@@ -65,9 +66,9 @@ optType-span NoType = spanMok
 optType-span (SomeType tp) = erased-type-spans tp
 
 ll-type-data : language-level → tagged-val
-ll-type-data ll-term = "type" , "br-auto-generated-type" , []
-ll-type-data ll-type = "kind" , "br-auto-generated-kind" , []
-ll-type-data ll-kind = "superkind" , "br-auto-generated-superkind" , []
+ll-type-data ll-term = "type" , [[ "br-auto-generated-type" ]] , []
+ll-type-data ll-type = "kind" , [[ "br-auto-generated-kind" ]] , []
+ll-type-data ll-kind = "superkind" , [[ "br-auto-generated-superkind" ]] , []
 
 erased-var-span : posinfo → var → language-level → spanM ⊤
 erased-var-span _ "_" _ = spanMok
@@ -113,7 +114,7 @@ erased-term-spans (Let pi dtt t) =
 erased-term-spans (Parens pi t pi') = erased-term-spans t
 erased-term-spans (Var pi v) = erased-var-span pi v ll-term
 erased-term-spans t = error-spans ("Unknown term: " ^ (ParseTreeToString (parsed-term t))
-  ^ ", " ^ (to-string (new-ctxt "" "") t) ^ " (erased-spans.agda)")
+  ^ ", " ^ streeng-to-string (to-string (new-ctxt "" "") t) ^ " (erased-spans.agda)")
 
 erased-type-spans (Abs pi b pi' v t-k tp) =
   put-span pi (type-end-pos tp) ll-type [] ≫span

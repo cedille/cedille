@@ -75,13 +75,15 @@
 
 (defun cedille-mode-summary-buffer-setup (display-string)
   "Handle the buffer initialization for summary mode startup"
-  (with-current-buffer (cedille-mode-summary-buffer)
-    (setq buffer-read-only nil)
-    (erase-buffer)
-    (insert display-string)
-    (setq buffer-read-only t))
+  (let ((parent cedille-mode-parent-buffer))
+    (with-current-buffer (cedille-mode-summary-buffer)
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert display-string)
+      (setq buffer-read-only t
+            cedille-mode-parent-buffer parent))
     ;(fit-window-to-buffer))
-  (cedille-mode-rebalance-windows))
+    (cedille-mode-rebalance-windows)))
 
 (defun cedille-mode-summary ()
   (let* ((summary-table (cedille-mode-construct-summary-table))

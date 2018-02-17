@@ -144,10 +144,12 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	 (closure (list q-str-or-fn response-fn (not is-restore) span extra restore (buffer-name))))
     (setq se-inf-interactive-running t)
     (se-inf-queue-header header)
-    (tq-enqueue se-inf-queue q "\n" closure #'se-inf-interactive-response delay)))
+    (tq-enqueue se-inf-queue q "\n" closure #'se-inf-interactive-response delay))
+  (setq se-inf-int-time (current-time)))
 
 (defun se-inf-interactive-response (closure response)
   "Receives a response from an `se-inf-interactive' call"
+  ;(se-print-time se-inf-int-time)
   (let ((q-str-or-fn (nth 0 closure))
 	(response-fn (nth 1 closure))
 	(oc (nth 2 closure)) ; Original Call

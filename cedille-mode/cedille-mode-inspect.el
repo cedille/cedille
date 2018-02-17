@@ -24,13 +24,15 @@
   "Displays information on the currently selected node in 
 the info buffer for the file.  Return the info buffer as a convenience."
   (when se-mode-selected
-    (let* ((span (se-mode-selected))
+    (let* ((parent cedille-mode-parent-buffer)
+           (span (se-mode-selected))
 	   (buffer (cedille-mode-inspect-buffer))
            (d (se-term-to-json span))
            (txt (se-mode-pretty-json-interactive (if cedille-mode-debug d (cedille-mode-filter-out-special d)))))
       (with-current-buffer buffer
 	(setq buffer-read-only nil
-	      window-size-fixed nil)
+	      window-size-fixed nil
+              cedille-mode-parent-buffer parent)
 	(cedille-inspect-view-mode)
 	(erase-buffer)
 	(insert txt)

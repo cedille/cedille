@@ -2,6 +2,9 @@
 
 (require 'cl)
 
+(make-variable-buffer-local
+ (defvar cedille-mode-parent-buffer nil))
+
 (defmacro make-cedille-mode-resize-current-window (amount)
   "Creates a function that resizes the window associated with buffer by amount and then locks the size of the window"
   `(lambda()
@@ -24,6 +27,19 @@
   ;(with-current-buffer (current-buffer)
   ;  (fit-window-to-buffer)))
 
+(defmacro cedille-mode-parent-interactive (code)
+  "Normalizes the selected region"
+  `(lambda ()
+     (interactive)
+     (if (region-active-p)
+         (let ((str (buffer-substring (region-beginning) (region-end))))
+           (with-current-buffer cedille-mode-parent-buffer
+             (case ,code
+               (1 (cedille-mode-normalize-send-prompt str t))
+               (2 (cedille-mode-normalize-send-prompt str nil))
+               (3 (cedille-mode-erase-send-prompt str)))))
+       (message "No region selected"))))
+
 (defvar cedille-mode-minor-mode-parent-keymap
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "+") (make-cedille-mode-resize-current-window 1))  ; increase and lock size of window
@@ -35,8 +51,11 @@
     (define-key map (kbd "a") (cedille-mode-parent-region-cmd #'cedille-mode-parent-first))
     (define-key map (kbd "e") (cedille-mode-parent-region-cmd #'cedille-mode-parent-last))
     (define-key map (kbd "j") (cedille-mode-parent-region-cmd #'cedille-mode-parent-jump))
+    (define-key map (kbd "C-i n") (cedille-mode-parent-interactive 1))
+    (define-key map (kbd "C-i h") (cedille-mode-parent-interactive 2))
+    (define-key map (kbd "C-i e") (cedille-mode-parent-interactive 3))
     map))
-
+  
 (defun cedille-mode-parent-select-pin (pin)
   "Selects PIN"
   (let ((s (se-pin-item-start pin))

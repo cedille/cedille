@@ -16,6 +16,7 @@ import System.Environment
 %name      cedilleParser Start
 %name      types         Type
 %name      term          Term
+%name      kind          Kind
 %name      maybetype     MaybeCheckType
 %name      deftermtype   DefTermOrType
 %name      cmd           Cmd
@@ -291,6 +292,31 @@ parse s = runAlex s $ cedilleParser
 
 parseTxt :: Text -> Either Text Start
 parseTxt s = case runAlex (unpack s) $ cedilleParser of
+               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Right r  -> Prelude.Right r
+
+parseTerm :: Text -> Either Text Term
+parseTerm s = case runAlex (unpack s) $ term of
+               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Right r  -> Prelude.Right r
+
+parseType :: Text -> Either Text Type
+parseType s = case runAlex (unpack s) $ types of
+               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Right r  -> Prelude.Right r
+
+parseLiftingType :: Text -> Either Text LiftingType
+parseLiftingType s = case runAlex (unpack s) $ liftingtype of
+               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Right r  -> Prelude.Right r
+
+parseKind :: Text -> Either Text Kind
+parseKind s = case runAlex (unpack s) $ kind of
+               Prelude.Left  s2 -> Prelude.Left (pack s2)
+               Prelude.Right r  -> Prelude.Right r
+
+parseDefTermOrType :: Text -> Either Text DefTermOrType
+parseDefTermOrType s = case runAlex (unpack s) $ deftermtype of
                Prelude.Left  s2 -> Prelude.Left (pack s2)
                Prelude.Right r  -> Prelude.Right r
 

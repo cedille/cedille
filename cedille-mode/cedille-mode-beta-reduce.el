@@ -100,7 +100,8 @@
 
 (defun cedille-mode-br-init-buffer (str &optional context)
   "Initializes the beta-reduction buffer"
-  (let ((original-filename (buffer-file-name))
+  (let ((parent cedille-mode-parent-buffer)
+        (original-filename (buffer-file-name))
 	(buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
 	(highlight-spans cedille-mode-highlight-spans)
 	(len (buffer-size)))
@@ -109,7 +110,8 @@
       (se-navigation-mode)
       (cedille-br-mode)
       (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
-      (setq se-mode-not-selected se-mode-parse-tree
+      (setq cedille-mode-parent-buffer parent
+            se-mode-not-selected se-mode-parse-tree
 	    se-inf-response-finished t
 	    cedille-mode-do-update-buffers nil
 	    cedille-mode-br-filename original-filename
@@ -120,7 +122,6 @@
 	    buffer-read-only nil
 	    window-size-fixed nil)
       (se-inf-interactive (cedille-mode-get-message-from-filename cedille-mode-br-filename) nil :header "Parsing")
-      ;(se-inf-interactive "interactive§initBR" nil :delay t :header "Parsing")
       (cedille-mode-br-erase str)
       (display-buffer buffer)
       (setq buffer-read-only t)
@@ -133,7 +134,7 @@
   (se-inf-interactive
    (concat "interactive§erasePrompt§" s "§" cedille-mode-br-filename)
    ;(cedille-mode-erase-request-text-h s cedille-mode-br-length cedille-mode-br-filename (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
-   'cedille-mode-br-erase-response
+   (cedille-mode-response-macro #'cedille-mode-br-erase-response)
    :extra (current-buffer)
    :header "Erasing"
    :delay t))
@@ -183,7 +184,7 @@
 	   "§" cedille-mode-br-temp-str
 	   "§" cedille-mode-br-filename
 	   "§" (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
-   'cedille-mode-br-process-response
+   (cedille-mode-response-macro #'cedille-mode-br-process-response)
    :header "Parsing"
    :extra (current-buffer)
    :delay t))
@@ -256,7 +257,7 @@
 	  (setq cedille-mode-br-redo-stack nil)
 	  (se-inf-interactive
 	   (cedille-mode-normalize-request-text span extra cedille-mode-br-length)
-	   'cedille-mode-br-receive-response
+	   (cedille-mode-response-macro #'cedille-mode-br-receive-response)
 	   :span span
 	   :header header
 	   :extra extra))))))
@@ -287,7 +288,7 @@
 	  (setq cedille-mode-br-redo-stack nil)
 	  (se-inf-interactive
 	   q
-	   'cedille-mode-br-receive-response
+	   (cedille-mode-response-macro #'cedille-mode-br-receive-response)
 	   :span span
 	   :header "Converting"
 	   :extra extra))))))
@@ -295,7 +296,7 @@
 (defun cedille-mode-br-receive-response (response span oc extra)
   "Receives the normalized response from the backend"
   (with-current-buffer (cdr extra)
-    (let ((response (se-markup-propertize response)))
+    ;(let ((response (se-markup-propertize response)))
       (unless (cedille-mode-normalize-get-error response)
 	(let* ((start (se-term-start span))
 	       (end (se-term-end span))
@@ -314,7 +315,7 @@
 	       (str (concat before response after)))
 	  (setq cedille-mode-br-temp-str str
 		cedille-mode-br-span-range range)
-	  (cedille-mode-br-parse))))))
+	  (cedille-mode-br-parse)))))
 
 (defun cedille-mode-br-post-parse (&optional json)
   "Called after the file was parsed, error or no."

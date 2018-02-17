@@ -23,7 +23,8 @@ open import ctxt
 open import constants
 --open import conversion
 open import general-util
-open import process-cmd 
+open import process-cmd
+open import parser
 open import spans
 open import syntax-util
 open import to-string
@@ -55,7 +56,7 @@ write-cede-file ced-path ie =
     createDirectoryIfMissing ff (dot-cedille-directory dir) >>
     writeFile (cede-filename ced-path) 
       ((if (include-elt.err ie) then "e" else "") ^ 
-        (include-elt-spans-to-string ie))
+        streeng-to-string (include-elt-spans-to-streeng ie))
 
 -- we assume the cede file is known to exist at this point
 read-cede-file : (ced-path : string) → IO (𝔹 × string)
@@ -122,18 +123,6 @@ opts-get-no-rkt-files options-types.OptsNil = ff
 opts-get-no-rkt-files (options-types.OptsCons options-types.NoCedeFiles oo) = opts-get-no-rkt-files oo
 opts-get-no-rkt-files (options-types.OptsCons options-types.NoRktFiles oo) = tt
 opts-get-no-rkt-files (options-types.OptsCons (options-types.Lib _) oo) = opts-get-no-rkt-files oo
-
-{-# IMPORT CedilleParser #-}
-
-data Either (A : Set)(B : Set) : Set where
-  Left : A → Either A B
-  Right : B → Either A B
-{-# COMPILED_DATA Either Either Left Right #-}
-
-postulate
-  parseStart  : string → Either string start
-
-{-# COMPILED parseStart CedilleParser.parseTxt #-}
 
 {- new parser test integration -}
 reparse : toplevel-state → (filename : string) → IO toplevel-state
@@ -220,7 +209,7 @@ checkFile s filename should-print-spans =
         reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
            if should-print-spans then
-             putStrLn (include-elt-spans-to-string ie)
+             putStreengLn (include-elt-spans-to-streeng ie)
            else return triv
         finish : toplevel-state × mod-info → IO toplevel-state
         finish (s , m) with s
@@ -265,19 +254,16 @@ readCommandsFromFrontend s =
                         input-filename tt {- should-print-spans -}
             checkCommand ls s = errorCommand ls s
             
-            interactiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
-            interactiveCommand xs s = interactive-cmds.interactive-cmd xs s
-            
   {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
             findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
             findCommand _ s = errorCommand s -}
-            
+
             handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
-            handleCommands ("check" :: xs) s = checkCommand xs s
-            handleCommands ("debug" :: []) s = debugCommand s
-            handleCommands ("interactive" :: xs) s = interactiveCommand xs s
+            handleCommands ("check" :: xs) = checkCommand xs
+            handleCommands ("debug" :: []) = debugCommand
+            handleCommands ("interactive" :: xs) = interactive-cmds.interactive-cmd xs
 --            handleCommands ("find" :: xs) s = findCommand xs s
-            handleCommands ls s = errorCommand ls s
+            handleCommands = errorCommand
 
 
 -- function to process command-line arguments
@@ -291,7 +277,7 @@ processArgs oo (input-filename :: []) =
   where finish : string → toplevel-state → IO ⊤
         finish input-filename s = 
           let ie = get-include-elt s input-filename in
-          if include-elt.err ie then (putStrLn (include-elt-spans-to-string ie)) else return triv
+          if include-elt.err ie then (putStreengLn (include-elt-spans-to-streeng ie)) else return triv
 
 -- this is the case where we will go into a loop reading commands from stdin, from the fronted
 processArgs oo [] = readCommandsFromFrontend (new-toplevel-state (opts-get-include-path oo) (~ (opts-get-no-cede-files oo)) (~ (opts-get-no-rkt-files oo)))

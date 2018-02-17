@@ -119,7 +119,7 @@ check-termi-return Γ subject tp = spanMr (just (hnf Γ unfold-head tp tt))
 lambda-bound-var-conv-error : ctxt → var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val
 lambda-bound-var-conv-error Γ x atk atk' tvs = 
     ( error-data "The classifier given for a λ-bound variable is not the one we expected"
- :: ("the variable" , x , [])
+ :: ("the variable" , [[ x ]] , [])
  :: (to-string-tag-tk "its declared classifier" Γ atk')
  :: [ to-string-tag-tk "the expected classifier" Γ atk ]) ++ tvs
 
@@ -505,7 +505,7 @@ check-termi (Theta pi AbstractEq t ls) (just tp) =
         cont nothing = check-term t nothing ≫=span (λ m → 
                        get-ctxt (λ Γ →
                           spanM-add (Theta-span Γ pi AbstractEq t ls checking
-                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" , [] ]))))
+                                      (expected-type Γ tp :: [ motive-label , [[ "We could not compute a motive from the given term" ]] , [] ]))))
         cont (just htp) =
            get-ctxt (λ Γ → 
              let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
@@ -522,7 +522,7 @@ check-termi (Theta pi Abstract t ls) (just tp) =
         cont _ nothing = check-term t nothing ≫=span (λ m → 
                          get-ctxt (λ Γ →
                            spanM-add (Theta-span Γ pi Abstract t ls checking
-                                      (expected-type Γ tp :: [ motive-label , "We could not compute a motive from the given term" , [] ]))))
+                                      (expected-type Γ tp :: [ motive-label , [[ "We could not compute a motive from the given term" ]] , [] ]))))
         cont t (just htp) = 
           let x = compute-var t in
           let motive = mtplam x (Tkt htp) tp in

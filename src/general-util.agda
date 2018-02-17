@@ -1,6 +1,7 @@
 module general-util where
 
 open import lib
+open import functions
 
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
@@ -82,11 +83,14 @@ get-n-ws-h (suc n) lc = get-n-ws-h n (' ' :: lc)
 get-n-ws : ℕ → string
 get-n-ws n = 𝕃char-to-string (get-n-ws-h n [])
 
-add-unicode-ws : string → string
-add-unicode-ws s = (get-n-ws (get-ws-to-add s)) ^ s ^ " "
+add-windows-ws : string → string
+add-windows-ws s = (get-n-ws (get-ws-to-add s)) ^ s ^ " "
+
+add-windows-ws-full : IO ⊤
+add-windows-ws-full = putStr (get-n-ws chunk-size)
 
 putStrLn : string → IO ⊤
-putStrLn str = putStr (add-unicode-ws (str ^ "\n"))
+putStrLn str = putStr (add-windows-ws (str ^ "\n"))
 
 undo-escape-string-h : 𝕃 char → 𝕃 char → 𝕃 char
 undo-escape-string-h ('\\' :: 'n' :: rest) so-far = undo-escape-string-h rest ('\n' :: so-far)
@@ -135,4 +139,30 @@ zip-with f xs ys = map (uncurry f) (zip xs ys)
 err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
+
+-- string binary tree, for more efficient I/O printing than concatenation
+data streeng : Set where
+  _⊹⊹_ : streeng → streeng → streeng
+  [[_]] : string → streeng
+
+infixl 9 _⊹⊹_
+infix 9 [[_]]
+
+[[]] : streeng
+[[]] = [[ "" ]]
+
+streeng-to-string : streeng → string
+streeng-to-string = flip h "" where
+  h : streeng → string → string
+  h (s₁ ⊹⊹ s₂) = h s₁ ∘ h s₂
+  h [[ s ]] acc = s ^ acc
+
+putStreeng : streeng → IO ⊤
+-- putStreeng = putStr ∘ streeng-to-string
+putStreeng (s₁ ⊹⊹ s₂) = putStreeng s₁ >> putStreeng s₂
+putStreeng [[ s ]] = putStr s
+
+putStreengLn : streeng → IO ⊤
+putStreengLn s = putStreeng s >> add-windows-ws-full >> putStr "\n"
+
 

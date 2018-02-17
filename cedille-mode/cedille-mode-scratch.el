@@ -90,11 +90,13 @@
 
 (defun cedille-mode-scratch-buffer ()
   "Creates or gets the scratch buffer"
-  (let ((buffer (get-buffer-create (cedille-mode-scratch-buffer-name))))
+  (let ((parent cedille-mode-parent-buffer)
+        (buffer (get-buffer-create (cedille-mode-scratch-buffer-name))))
     (with-current-buffer buffer
       (set-input-method "Cedille")
       (cedille-scratch-mode)
-      (setq buffer-read-only t)
+      (setq buffer-read-only t
+            cedille-mode-parent-buffer parent)
       (cedille-mode-scratch-equal))
     buffer))
 
