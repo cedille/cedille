@@ -122,7 +122,7 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-c
   symb-occs where
     h : ctxt → params → params
     h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' x t-k pi'') ps) =
-      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' globalScope x t-k Γ) ps)
+      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' localScope x t-k Γ) ps)
     h _ ps = ps
 
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
