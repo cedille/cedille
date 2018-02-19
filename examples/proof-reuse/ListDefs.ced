@@ -5,7 +5,7 @@ import VecL.
 import Cast.
 import Casts.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapL ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔  List · A ➔ List · B
   = Λ A . Λ B . λ f . elimList · A ·
@@ -13,37 +13,37 @@ mapL ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔  List · A ➔ List · B
   (nilL · B)
   (Λ xs . λ x . λ ih . consL · B (f x) ih) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapIdL ◂ ∀ A : ★ . Π xs : List · A .
-  mapL (λ x . x) xs ≃ xs
+  {mapL (λ x . x) xs ≃ xs}
   = Λ A . elimList · A ·
-  (λ xs : List · A . mapL (λ x . x) xs ≃ xs)
+  (λ xs : List · A . {mapL (λ x . x) xs ≃ xs})
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapCompL ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Π f : A ➔ B . Π g : B ➔ C .
   Π xs : List · A .
-  mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs)
+  {mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs)}
   = Λ A . Λ B . Λ C . λ f . λ g . elimList · A ·
-  (λ xs : List · A . mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs))
+  (λ xs : List · A . {mapL (λ x . g (f x)) xs ≃ mapL g (mapL f xs)})
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapPresLengthL ◂ ∀ A : ★ . ∀ B : ★ .
   Π f : A ➔ B . Π xs : List · A .
-  length xs ≃ length (mapL f xs)
+  {length xs ≃ length (mapL f xs)}
   = Λ A . Λ B . λ f . elimList · A ·
-  (λ xs : List · A . length xs ≃ length (mapL f xs))
+  (λ xs : List · A . {length xs ≃ length (mapL f xs)})
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
   = Λ A . elimList · A ·
@@ -51,44 +51,44 @@ appendL ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A
   (λ ys . ys)
   (Λ xs . λ x . λ ih . λ ys . consL · A x (ih ys)) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendNilL ◂ ∀ A : ★ .
-  Π xs : List · A . appendL xs nilL ≃ xs
+  Π xs : List · A . {appendL xs nilL ≃ xs}
   = Λ A . elimList · A
-  · (λ xs : List · A . appendL xs nilL ≃ xs)
+  · (λ xs : List · A . {appendL xs nilL ≃ xs})
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendAssocL ◂ ∀ A : ★ .
   Π xs : List · A .
   Π ys : List · A .
   Π zs : List · A .
-  appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)
+  {appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)}
   = Λ A . elimList · A ·
   (λ xs : List · A .
     Π ys : List · A .
     Π zs : List · A .
-    appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs))
+    {appendL (appendL xs ys) zs ≃ appendL xs (appendL ys zs)})
   (λ ys . λ zs . β)
   (Λ xs . λ x . λ ih . λ ys . λ zs .
     ρ+ (ih ys zs) - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 lengthDistAppendL ◂ ∀ A : ★ .
   Π xs : List · A .
   Π ys : List · A .
-  add (length xs) (length ys) ≃ length (appendL xs ys)
+  {add (length xs) (length ys) ≃ length (appendL xs ys)}
   = Λ A . elimList · A ·
   (λ xs : List · A . Π ys : List · A .
-    add (length xs) (length ys) ≃ length (appendL xs ys))
+    {add (length xs) (length ys) ≃ length (appendL xs ys)})
   (λ ys . β)
   (Λ xs . λ x . λ ih . λ ys . ρ+ (ih ys) - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatL ◂ ∀ A : ★ . List · (List · A) ➔ List · A
   = Λ A . elimList · (List · A) ·
@@ -96,22 +96,22 @@ concatL ◂ ∀ A : ★ . List · (List · A) ➔ List · A
   (nilL · A)
   (Λ xss . λ xs . λ ih . appendL · A xs ih) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatIdL ◂ ∀ A : ★ . Π xs : List · A .
-  concatL (mapL injL xs) ≃ xs
+  {concatL (mapL injL xs) ≃ xs}
   = Λ A . elimList · A ·
-  (λ xs : List · A . concatL (mapL injL xs) ≃ xs)
+  (λ xs : List · A . {concatL (mapL injL xs) ≃ xs})
   β
   (Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 lengthDistConcatL ◂ ∀ A : ★ . ∀ n : Nat .
   Π xss : List · (VecL · A n) .
-  mult (length xss) n ≃ length (concatL xss)
+  {mult (length xss) n ≃ length (concatL xss)}
   = Λ A . Λ n . elimList · (VecL · A n) ·
-  (λ xss : List · (VecL · A n) . mult (length xss) n ≃ length (concatL xss))
+  (λ xss : List · (VecL · A n) . {mult (length xss) n ≃ length (concatL xss)})
   β
   (Λ xss . λ xs . λ ih .
     ρ+ ih -
@@ -119,33 +119,33 @@ lengthDistConcatL ◂ ∀ A : ★ . ∀ n : Nat .
     ρ+ ς (lengthDistAppendL · A xs.1 (concatL · A (us2lsL · A -n xss))) -
     β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatDistAppendL ◂ ∀ A : ★ .
   Π xss : List · (List · A) .
   Π yss : List · (List · A) .
-  appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss)
+  {appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss)}
   = Λ A . elimList · (List · A) ·
   (λ xss : List · (List · A) . Π yss : List · (List · A) .
-    appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss))
+    {appendL (concatL xss) (concatL yss) ≃ concatL (appendL xss yss)})
   (λ yss . β)
   (Λ xss . λ xs . λ ih . λ yss .
     ρ+ ς (ih yss) -
     ρ (appendAssocL · A xs (concatL · A xss) (concatL · A yss)) -
     β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatCompL ◂ ∀ A : ★ .
   Π xsss : List · (List · (List · A)) .
-  concatL (mapL concatL xsss) ≃ concatL (concatL xsss)
+  {concatL (mapL concatL xsss) ≃ concatL (concatL xsss)}
   = Λ A . elimList · (List · (List · A))
   · (λ xsss : List · (List · (List · A)) .
-    concatL (mapL concatL xsss) ≃ concatL (concatL xsss))
+    {concatL (mapL concatL xsss) ≃ concatL (concatL xsss)})
   β
   (Λ xsss . λ xss . λ ih .
     ρ+ ih -
     ρ+ (concatDistAppendL · A xss (concatL · (List · A) xsss)) -
     β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------

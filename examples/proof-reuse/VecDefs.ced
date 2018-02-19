@@ -3,7 +3,7 @@ import Nat.
 import Vec.
 import Cast.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapV ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔
   ∀ n : Nat . Vec · A n ➔ Vec · B n
@@ -12,27 +12,27 @@ mapV ◂ ∀ A : ★ . ∀ B : ★ .  (A ➔ B) ➔
   (nilV · B)
   (Λ n . Λ xs . λ x . λ ih . consV · B -n (f x) ih) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapIdV ◂ ∀ A : ★ . ∀ n : Nat . Π xs : Vec · A n .
-  mapV (λ x . x) xs ≃ xs
+  {mapV (λ x . x) xs ≃ xs}
   = Λ A . elimVec · A ·
-  (λ n : Nat . λ xs : Vec · A n . mapV (λ x . x) xs ≃ xs)
+  (λ n : Nat . λ xs : Vec · A n . {mapV (λ x . x) xs ≃ xs})
   β
   (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 mapCompV ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Π f : A ➔ B . Π g : B ➔ C .
   ∀ n : Nat . Π xs : Vec · A n .
-  mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs)
+  {mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs)}
   = Λ A . Λ B . Λ C . λ f . λ g . elimVec · A ·
-  (λ n : Nat . λ xs : Vec · A n . mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs))
+  (λ n : Nat . λ xs : Vec · A n . {mapV (λ x . g (f x)) xs ≃ mapV g (mapV f xs)})
   β
   (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendV ◂ ∀ A : ★ .
   ∀ n : Nat . Vec · A n ➔
@@ -44,32 +44,32 @@ appendV ◂ ∀ A : ★ .
   (Λ m . λ ys . ys)
   (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . consV · A -(add n m) x (ih -m ys)) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendNilV ◂ ∀ A : ★ .
-  ∀ n : Nat . Π xs : Vec · A n . appendV xs nilV ≃ xs
+  ∀ n : Nat . Π xs : Vec · A n . {appendV xs nilV ≃ xs}
   = Λ A . elimVec · A
-  · (λ n : Nat . λ xs : Vec · A n . appendV xs nilV ≃ xs)
+  · (λ n : Nat . λ xs : Vec · A n . {appendV xs nilV ≃ xs})
   β
   (Λ n . Λ xs . λ x . λ ih . ρ+ ih - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 appendAssocV ◂ ∀ A : ★ .
   ∀ n : Nat . Π xs : Vec · A n .
   ∀ m : Nat . Π ys : Vec · A m .
   ∀ o : Nat . Π zs : Vec · A o .
-  appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)
+  {appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)}
   = Λ A . elimVec · A ·
   (λ n : Nat . λ xs : Vec · A n .
     ∀ m : Nat . Π ys : Vec · A m .
     ∀ o : Nat . Π zs : Vec · A o .
-    appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs))
+    {appendV (appendV xs ys) zs ≃ appendV xs (appendV ys zs)})
   (Λ m . λ ys . Λ o . λ zs . β)
   (Λ n . Λ xs . λ x . λ ih . Λ m . λ ys . Λ o . λ zs .
     ρ+ (ih -m ys -o zs) - β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatV ◂ ∀ A : ★ . ∀ m : Nat . ∀ n : Nat .
   Vec · (Vec · A m) n ➔ Vec · A (mult n m)
@@ -78,16 +78,16 @@ concatV ◂ ∀ A : ★ . ∀ m : Nat . ∀ n : Nat .
   (nilV · A)
   (Λ n . Λ xss . λ xs . λ ih . appendV · A -m xs -(mult n m) ih) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 concatDistAppendV ◂ ∀ A : ★ .
   ∀ n1 : Nat . ∀ n2 : Nat . Π xss : Vec · (Vec · A n1) n2 .
   ∀ m1 : Nat . ∀ m2 : Nat . Π yss : Vec · (Vec · A m1) m2 .
-  appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss)
+  {appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss)}
   = Λ A . Λ n1 . elimVec · (Vec · A n1) ·
   (λ n2 : Nat . λ xss : Vec · (Vec · A n1) n2 .
     ∀ m1 : Nat . ∀ m2 : Nat . Π yss : Vec · (Vec · A m1) m2 .
-    appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss))
+    {appendV (concatV xss) (concatV yss) ≃ concatV (appendV xss yss)})
   (Λ m1 . Λ m2 . λ yss . β)
   (Λ n2 . Λ xss . λ xs . λ ih . Λ m1 . Λ m2 . λ yss .
     ρ+ ς (ih -m1 -m2 yss) -
@@ -97,5 +97,5 @@ concatDistAppendV ◂ ∀ A : ★ .
       -(mult m2 m1) (concatV · A -m1 -m2 yss)) -
     β) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 

@@ -5,7 +5,7 @@ import VecL.
 import Vec.
 import Cast.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 elimVecL ◂ ∀ A : ★ . ∀ P : Π n : Nat . VecL · A n ➔ ★ .
   P zero (nilU · A) ➔
@@ -19,12 +19,12 @@ elimVecL ◂ ∀ A : ★ . ∀ P : Π n : Nat . VecL · A n ➔ ★ .
     (Λ ys . pC -(length · A ys) -(l2u · A ys))
     xs.1) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 cmapCastL ◂ ∀ A : ★ . ∀ B : ★ .
   Cast' · A · B ➾ Cast' · (List · A) · (List · B)
   = Λ A . Λ B . Λ c . elimList · A ·
-  (λ xs : List · A . ι ys : List · B . ys ≃ xs)
+  (λ xs : List · A . ι ys : List · B . {ys ≃ xs})
   [ nilL · B , β{nilL · B} ]
   (Λ xs . λ x . λ ih .
     [ consL · B (cast' · A · B -c x) ih.1 ,
@@ -35,7 +35,7 @@ cmapL ◂ ∀ A : ★ . ∀ B : ★ . Cast' · A · B ➾ List · A ➔ List · 
     cast' · (List · A) · (List · B)
       -(cmapCastL · A · B -c) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 vs2usL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (VecL · A n)
@@ -45,7 +45,7 @@ vs2usL ◂ ∀ A : ★ . ∀ n : Nat .
 us2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (VecL · A n) ➔ List · (List · A)
   = Λ A . Λ n . cmapL · (VecL · A n) · (List · A)
-    -(interCast · (List · A) · (λ xs : List · A . n ≃ length xs)) .
+    -(interCast · (List · A) · (λ xs : List · A . {n ≃ length xs})) .
 
 vs2lsL ◂ ∀ A : ★ . ∀ n : Nat .
   List · (Vec · A n) ➔ List · (List · A)
@@ -56,7 +56,7 @@ v22l ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
   = Λ A . Λ n1 . Λ n2 . λ xss .
   vs2lsL · A -n1 (v2l · (Vec · A n1) -n2 xss) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------
 
 vss2lssL ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat .
   List · (Vec · (Vec · A n1) n2) ➔ List · (List · (List · A))
@@ -72,4 +72,4 @@ v222l ◂ ∀ A : ★ . ∀ n1 : Nat . ∀ n2 : Nat . ∀ n3 : Nat .
   = Λ A . Λ n1 . Λ n2 . Λ n3 . λ xsss .
   vss2lssL · A -n1 -n2 (v2l · (Vec · (Vec · A n1) n2) -n3 xsss) .
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----------------------------------------------------------------------

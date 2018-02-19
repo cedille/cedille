@@ -1,36 +1,36 @@
 module ProofReuse.Subtyping.
-% Internalize the subtyping judgment from
-% Section 3.2 of Miquel's
-% "The Implicit Calculus of Constructions"
-% by deriving it as a type named Cast,
-% allowing type checking in the presence
-% of subtyping to be algorithmic.
-% Furthermore, all admissible rules in
-% Section 3.2 are now derivable.
+-- Internalize the subtyping judgment from
+-- Section 3.2 of Miquel's
+-- "The Implicit Calculus of Constructions"
+-- by deriving it as a type named Cast,
+-- allowing type checking in the presence
+-- of subtyping to be algorithmic.
+-- Furthermore, all admissible rules in
+-- Section 3.2 are now derivable.
 
 
-% Subtyping Judgment Internalized as a Type
+-- Subtyping Judgment Internalized as a Type
 Cast ◂ ★ ➔ ★ ➔ ★ =
   λ A : ★ . λ B : ★ .
-  Π a : A . ι b : B . b ≃ a .
+  Π a : A . ι b : B . {b ≃ a} .
 
-% Sub (Lemma 3)
+-- Sub (Lemma 3)
 cast ◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B =
   Λ A . Λ B . Λ c . λ a .
-  (χ (ι a : A . B) - [ a , (c a).1 { ρ (c a).2 - β } ]).2 .
+  φ (c a).2 - (c a).1 {a} .
 
-% Refl (Lemma 3)
+-- Refl (Lemma 3)
 idCast ◂ ∀ A : ★ . Cast · A · A
   = Λ A . λ a . [ a , β{a} ] .
 
-% Trans (Lemma 3)
+-- Trans (Lemma 3)
 compCast ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ .
   Cast · B · C ➾ Cast · A · B ➾ Cast · A · C
   = Λ A . Λ B . Λ C . Λ c2 . Λ c1 . λ a .
   [ cast · B · C -c2 (cast · A · B -c1 a)
   , β{cast · B · C -c2 (cast · A · B -c1 a)} ] .
 
-% SubExpProd (Lemma 4)
+-- SubExpProd (Lemma 4)
 piCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ ★ .
   ∀ c : Cast · A2 · A1 .
   (Π a : A2 . Cast · (B1 (cast · A2 · A1 -c a)) · (B2 a)) ➾
@@ -39,7 +39,7 @@ piCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ �
   [ (λ a . cast · (B1 (cast · A2 · A1 -c1 a)) · (B2 a) -(c2 a) (f (cast · A2 · A1 -c1 a)))
   , β{λ a . cast · (B1 (cast · A2 · A1 -c1 a)) · (B2 a) -(c2 a) (f (cast · A2 · A1 -c1 a))} ] .
 
-% SubImpProd (Lemma 4)
+-- SubImpProd (Lemma 4)
 allCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ ★ .
   ∀ c : Cast · A2 · A1 .
   (Π a : A2 . Cast · (B1 (cast · A2 · A1 -c a)) · (B2 a)) ➾
@@ -48,28 +48,28 @@ allCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ 
   [ (Λ a . cast · (B1 (cast · A2 · A1 -c1 a)) · (B2 a) -(c2 a) (f -(cast · A2 · A1 -c1 a)))
   , β{Λ a . cast · (B1 (cast · A2 · A1 -c1 a)) · (B2 a) -(c2 a) (f -(cast · A2 · A1 -c1 a))} ] .
 
-% SwapImpImp1 (Lemma 5)
+-- SwapImpImp1 (Lemma 5)
 swapAllCast1 ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B : A1 ➔ A2 ➔ ★ .
   Cast · (∀ a1 : A1 . ∀ a2 : A2 . B a1 a2) · (∀ a2 : A2 . ∀ a1 : A1 . B a1 a2)
   = Λ A1 . Λ A2 . Λ B . λ f .
   [ (Λ a2 . Λ a1 . f -a1 -a2)
   , β{Λ a2 . Λ a1 . f -a1 -a2} ] .
 
-% SwapImpImp2 (Lemma 5)
+-- SwapImpImp2 (Lemma 5)
 swapAllCast2 ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B : A1 ➔ A2 ➔ ★ .
   Cast · (∀ a2 : A2 . ∀ a1 : A1 . B a1 a2) · (∀ a1 : A1 . ∀ a2 : A2 . B a1 a2)
   = Λ A1 . Λ A2 . Λ B . λ f .
   [ (Λ a1 . Λ a2 . f -a2 -a1)
   , β{Λ a1 . Λ a2 . f -a2 -a1} ] .
 
-% SwapPiImp (Lemma 5)
+-- SwapPiImp (Lemma 5)
 swapPiAllCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B : A1 ➔ A2 ➔ ★ .
   Cast · (Π a2 : A2 . ∀ a1 : A1 . B a1 a2) · (∀ a1 : A1 . Π a2 : A2 . B a1 a2)
   = Λ A1 . Λ A2 . Λ B . λ f .
   [ (Λ a1 . λ a2 . f a2 -a1)
   , β{Λ a1 . λ a2 . f a2 -a1} ] .
 
-% SwapImpPi (Lemma 5)
+-- SwapImpPi (Lemma 5)
 swapAllPiCast ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B : A1 ➔ A2 ➔ ★ .
   Cast · (∀ a1 : A1 . Π a2 : A2 . B a1 a2) · (Π a2 : A2 . ∀ a1 : A1 . B a1 a2)
   = Λ A1 . Λ A2 . Λ B . λ f .
