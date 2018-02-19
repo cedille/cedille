@@ -55,11 +55,12 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   check-type tp (just star) ≫span
   let tp' = qualif-type Γ tp in
   check-term t (just tp') ≫span 
-  get-ctxt (λ Γ → 
+  get-ctxt (λ Γ →
     let t' = erase-term t in
     let t'' = hnf Γ unfold-head t' tt in
     let t''' = hnf Γ unfold-all t' tt in
-    let Γ' = ctxt-term-def pi globalScope x t'' tp' Γ in
+    let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
+      -- TODO what is compileFail doing with this? do not hnf before qualif
       spanM-add (DefTerm-span Γ pi x checking (just tp) t' pi' (compileFail-in Γ t t' t''')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanM-add (Var-span Γ' pi x checking []) ≫span
@@ -67,9 +68,8 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
-  let t' = hnf Γ unfold-head t tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x t' tp' Γ)))
+      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x t tp' Γ)))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
   set-ctxt Γ ≫span
@@ -78,9 +78,10 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
     let t' = erase-term t in
     let t'' = hnf Γ unfold-head t' tt in
     let t''' = hnf Γ unfold-all t' tt in
+      -- TODO what is compileFail doing with this? do not hnf before qualif
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t' pi' (compileFail-in Γ t t' t''')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t'' , mtp)))))
+        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))
   where h : ctxt → term × (maybe type) → ctxt
         h Γ (t , nothing) = ctxt-term-udef pi globalScope x t Γ
         h Γ (t , just tp) = ctxt-term-def pi globalScope x t tp Γ
@@ -91,8 +92,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
     let k' = qualif-kind Γ k in
     check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
-      let tp' = hnf Γ unfold-head tp tt in
-      let Γ' = ctxt-type-def pi globalScope x tp' k' Γ in
+      let Γ' = ctxt-type-def pi globalScope x tp k' Γ in
         spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
@@ -100,18 +100,15 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
   let k' = qualif-kind Γ k in
-  let tp' = hnf Γ unfold-head tp tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x tp' k' Γ)))
+      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x tp k' Γ)))
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
   check-and-add-params localScope pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
-    let k' = hnf Γ unfold-head k tt in
-    -- TODO maybe need to qualif params ps
-    let Γ' = ctxt-kind-def pi x ps k' Γ in
+    let Γ' = ctxt-kind-def pi x ps k Γ in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span

@@ -9,6 +9,7 @@ open import lift
 open import rename
 open import subst
 open import syntax-util
+open import general-util
 open import to-string
 
 {- Some notes:
@@ -300,3 +301,52 @@ hnf-qualif-type Γ t = hnf Γ unfold-head (qualif-type Γ t) tt
 
 hnf-qualif-kind : ctxt → kind → kind
 hnf-qualif-kind Γ t = hnf Γ unfold-head (qualif-kind Γ t) tt
+
+ctxt-params-def : params → ctxt → ctxt
+ctxt-params-def ps Γ@(mk-ctxt (fn , mn , _ , q) syms i symb-occs) =
+  mk-ctxt (fn , mn , ps' , q) syms i symb-occs
+  where ps' = qualif-params Γ ps
+
+ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
+ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-ctxt
+  (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
+  (trie-insert-append2 syms fn mn v)
+  (trie-insert i (mn # v) (kind-def ps1 (h Γ ps2) k' , (fn , p)))
+  symb-occs where
+    k' = hnf Γ unfold-head (qualif-kind Γ k) tt
+    h : ctxt → params → params
+    h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' x t-k pi'') ps) =
+      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' localScope x t-k Γ) ps)
+    h _ ps = ps
+
+-- assumption: classifier (i.e. kind) already qualified
+ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
+ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+  (fn , mn , ps , qualif-insert-params q v' v ps)
+  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  (trie-insert i v' (type-def (def-params s ps) t' k , (fn , p)))
+  symb-occs
+  where
+  t' = hnf Γ unfold-head (qualif-type Γ t) tt
+  v' = if s iff localScope then p % v else mn # v
+
+-- assumption: classifier (i.e. type) already qualified
+ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
+ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+  (fn , mn , ps , qualif-insert-params q v' v ps)
+  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  (trie-insert i v' (term-def (def-params s ps) t' tp , (fn , p)))
+  symb-occs
+  where
+  t' = hnf Γ unfold-head (qualif-term Γ t) tt
+  v' = if s iff localScope then p % v else mn # v
+
+ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
+ctxt-term-udef p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+  (fn , mn , ps , qualif-insert-params q v' v ps)
+  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  (trie-insert i v' (term-udef (def-params s ps) t' , (fn , p)))
+  symb-occs
+  where
+  t' = hnf Γ unfold-head (qualif-term Γ t) tt
+  v' = if s iff localScope then p % v else mn # v
