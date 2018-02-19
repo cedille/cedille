@@ -486,7 +486,7 @@ Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (ter
 
 
 compileFail-in : ctxt → (original erased normalized : term) → 𝕃 tagged-val
-compileFail-in Γ o e n with is-free-in-term check-erased compileFail
+compileFail-in Γ o e n with is-free-in check-erased compileFail
 ...| is-free with is-free o
 ...| ff = []
 ...| tt with is-free n | is-free e

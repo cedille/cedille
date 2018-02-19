@@ -166,3 +166,5 @@ putStreengLn : streeng → IO ⊤
 putStreengLn s = putStreeng s >> putStr "\n" >> add-windows-ws-full
 
 
+stringset-singleton : string → stringset
+stringset-singleton x = stringset-insert empty-stringset x
