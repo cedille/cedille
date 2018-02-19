@@ -644,8 +644,8 @@ check-term-app-error-inapp Γ t t' htp Xs m e
         ((error-data
           ("The type computed for the head of the application does"
           ^ " not allow the head to be applied to " ^ h e ^ " argument ")
-        :: term-app-head Γ t :: head-type Γ htp  :: term-argument Γ t'
-        :: solve-vars-data Γ Xs)))
+        :: term-app-head Γ t :: head-type Γ (solve-vars-subst-type Γ Xs htp)
+        :: [ term-argument Γ t' ])))
   where h : maybeErased → string
         h Erased = "an erased term"
         h NotErased = "a term"
@@ -653,11 +653,11 @@ check-term-app-error-inapp Γ t t' htp Xs m e
 check-term-app-error-erased : ∀ {A} checking-mode → maybeErased
                               → (t t' : term) → type → solve-vars → spanM (maybe A)
 check-term-app-error-erased c m t t' htp Xs
-  =   get-ctxt λ Γ →
-    spanM-add (App-span t t' c
-      (error-data (msg m) :: term-app-head Γ t :: head-type Γ htp
-      :: solve-vars-data Γ Xs))
-  ≫span spanMr nothing
+  =   get-ctxt λ Γ → spanM-add
+        (App-span t t' c
+          (error-data (msg m) :: term-app-head Γ t
+          :: [ head-type Γ (solve-vars-subst-type Γ Xs htp )]))
+    ≫span spanMr nothing
   where msg : maybeErased → string
         msg Erased = ("The type computed for the head requires"
                     ^ " an explicit (non-erased) argument, but the application"
@@ -714,7 +714,7 @@ check-term-app (AppTp t tp) mtp
     ≫=spanm' λ {(Xs , htp) → get-ctxt λ Γ →
       -- check agreement (trying the unsolved head type first)
       check-term-app-agree (hnf Γ unfold-head-rec-defs htp tt) tp Xs
-        on-fail (check-term-app-to-tp-error htp)
+        on-fail (check-term-app-to-tp-error Γ Xs htp)
     ≫=spanm' λ {ret@(Xs , tp') → get-ctxt λ Γ →
       spanM-add (AppTp-span t tp check-mode
         (solve-vars-check-type-mismatch-if mtp Γ "synthesized" Xs
@@ -739,12 +739,14 @@ check-term-app (AppTp t tp) mtp
               in spanMr (just (solve-vars-add Xs X , htp″))
 
     -- TODO bring into check-term-app-error-inapp
-    check-term-app-to-tp-error : type → spanM _
-    check-term-app-to-tp-error htp = get-ctxt
+    check-term-app-to-tp-error : ctxt → solve-vars → type → spanM _
+    check-term-app-to-tp-error Γ Xs htp = get-ctxt
       λ Γ → spanM-add ((AppTp-span t tp synthesizing
               (error-data ("The type computed for the head of the application does"
                            ^ " not allow the head to be applied to the (type) argument ")
-              :: term-app-head Γ t :: head-type Γ htp :: type-argument Γ tp :: [])))
+              :: term-app-head Γ t
+              :: head-type Γ (solve-vars-subst-type Γ Xs htp)
+              :: type-argument Γ tp :: [])))
       ≫span spanMr nothing
 
 check-term-app t m

@@ -108,21 +108,20 @@ solve-vars-data Γ Xs
 solve-vars-check-type-mismatch : ctxt → string → type → solve-vars → type
                                  → 𝕃 tagged-val
 solve-vars-check-type-mismatch Γ s tp Xs tp'
-  = let tp'' = solve-vars-subst-type Γ Xs tp'
-    in  (expected-type Γ tp :: [ type-data Γ tp' ])
-        ++ solve-vars-data Γ Xs
-        ++ (if conv-type Γ tp tp''
-           then []
-           else [ error-data
-                  ("The expected type does not match the "
-                  ^ s ^ "type.") ])
+  = (expected-type Γ tp :: [ type-data Γ tp'' ])
+    ++ (if conv-type Γ tp tp''
+        then []
+        else [ error-data
+               ("The expected type does not match the "
+               ^ s ^ "type.") ])
+    where tp'' = solve-vars-subst-type Γ Xs tp'
 
 solve-vars-check-type-mismatch-if : maybe type → ctxt → string → solve-vars
                                     → type → 𝕃 tagged-val
 solve-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
   = solve-vars-check-type-mismatch Γ s tp Xs tp'
 solve-vars-check-type-mismatch-if nothing Γ s Xs tp'
-  = type-data Γ tp' :: solve-vars-data Γ Xs
+  = [ type-data Γ (solve-vars-subst-type Γ Xs tp') ]
 ----------------------------------------
 ----------------------------------------
 
