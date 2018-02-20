@@ -143,62 +143,34 @@ ctxt-rename p v v' (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
 
 -- look for a defined kind for the given var, which is assumed to be a type,
 -- then instantiate its parameters
-{-
-env-lookup-type-var : ctxt → var → args → maybe kind
-env-lookup-type-var Γ@(mk-ctxt _ _ i _) v as with trie-lookup i v
-... | just (type-def (just ps) _ k , _) = just (inst-kind Γ ps as k)
-... | _ = nothing
--}
+qual-lookup : ctxt → var → maybe (args × sym-info)
+qual-lookup Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
+  trie-lookup q v ≫=maybe λ qv →
+  trie-lookup i (fst qv) ≫=maybe λ si →
+  just (snd qv , si)
 
-ctxt-safe-qualif : ctxt → var → maybe (args × sym-info)
-ctxt-safe-qualif Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
-  let fail = trie-lookup i v ≫=maybe λ si → just (ArgsNil posinfo-gen , si) in
-  maybe-else fail (λ vas → trie-lookup i (fst vas) ≫=maybe
-    λ si → just (snd vas , si)) (trie-lookup q v)
+env-lookup : ctxt → var → maybe sym-info
+env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _) v =
+  trie-lookup i v
 
 -- look for a declared kind for the given var, which is assumed to be a type,
 -- otherwise look for a qualified defined kind
 ctxt-lookup-type-var : ctxt → var → maybe kind
-ctxt-lookup-type-var Γ v with ctxt-safe-qualif Γ v
+ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just k
 ... | just (as , type-def (just ps) T k , _) = just (inst-kind Γ ps as k)
 ... | just (as , type-def nothing T k , _) = just k
 ... | _ = nothing
-{-
-... | just (type-def nothing _ k , _) = just (qualif-kind Γ k)
-... | _ with trie-lookup q v
-... | just (v' , as) = env-lookup-type-var Γ v' as
-... | _ = nothing
--}
-{-
-env-lookup-term-var : ctxt → var → args → maybe type
-env-lookup-term-var Γ@(mk-ctxt _ _ i _) v as with trie-lookup i v
-... | just (term-def (just ps) _ t , _) = just (inst-type Γ ps as t)
-... | _ = nothing
--}
+
 ctxt-lookup-term-var : ctxt → var → maybe type
-ctxt-lookup-term-var Γ v with ctxt-safe-qualif Γ v
+ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
 ... | just (as , term-def (just ps) t T , _) = just (inst-type Γ ps as T)
 ... | just (as , term-def nothing t T , _) = just T
 ... | _ = nothing
-{-
-ctxt-lookup-term-var Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup i (qualif-or Γ v)
-... | just (term-decl t , _) = just (qualif-type Γ t)
-... | just (term-def nothing _ t , _) = just (qualif-type Γ t)
-... | _ with trie-lookup q v
-... | just (v' , as) = env-lookup-term-var Γ v' as
-... | _ = nothing
--}
-{-
-env-lookup-tk-var : ctxt → var → args → maybe tk
-env-lookup-tk-var Γ@(mk-ctxt _ _ i _) v as with trie-lookup i v
-... | just (type-def (just ps) _ k , _) = just (Tkk (inst-kind Γ ps as k))
-... | just (term-def (just ps) _ t , _) = just (Tkt (inst-type Γ ps as t))
-... | _ = nothing
--}
+
 ctxt-lookup-tk-var : ctxt → var → maybe tk
-ctxt-lookup-tk-var Γ v with ctxt-safe-qualif Γ v
+ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just (Tkt T)
 ... | just (as , type-decl k , _) = just (Tkk k)
 ... | just (as , term-def (just ps) t T , _) = just (Tkt (inst-type Γ ps as T))
@@ -206,18 +178,9 @@ ctxt-lookup-tk-var Γ v with ctxt-safe-qualif Γ v
 ... | just (as , term-def nothing t T , _) = just (Tkt T)
 ... | just (as , type-def nothing T k , _) = just (Tkk k)
 ... | _ = nothing
-{-
-ctxt-lookup-tk-var Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup i (qualif-or Γ v)
-... | just (type-decl k , _) = just (Tkk (qualif-kind Γ k))
-... | just (type-def nothing _ k , _) = just (Tkk (qualif-kind Γ k))
-... | just (term-decl t , _) = just (Tkt (qualif-type Γ t))
-... | just (term-def nothing _ t , _) = just (Tkt (qualif-type Γ t))
-... | _ with trie-lookup q v
-... | just (v' , as) = env-lookup-tk-var Γ v' as
-... | _ = nothing
--}
+
 env-lookup-kind-var-qdef : ctxt → var → args → maybe (params × kind)
-env-lookup-kind-var-qdef Γ@(mk-ctxt _ _ i _) v as with trie-lookup i v
+env-lookup-kind-var-qdef Γ v as with env-lookup Γ v
 ... | just (kind-def ps1 ps2 k , _) = just (inst-params Γ ps1 as ps2 , inst-kind Γ ps1 as k)
 ... | _ = nothing
 
@@ -227,21 +190,21 @@ ctxt-lookup-kind-var-qdef Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup 
 ... | _ = nothing
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
-ctxt-lookup-term-var-def Γ v with ctxt-safe-qualif Γ v
-... | just (as , term-def nothing t _ , _) = just t
-... | just (as , term-udef nothing t , _) = just t
-... | just (as , term-def (just ps) t _ , _) = just (abs-expand-term ps t)
-... | just (as , term-udef (just ps) t , _) = just (abs-expand-term ps t)
+ctxt-lookup-term-var-def Γ v with env-lookup Γ v
+... | just (term-def nothing t _ , _) = just t
+... | just (term-udef nothing t , _) = just t
+... | just (term-def (just ps) t _ , _) = just (abs-expand-term ps t)
+... | just (term-udef (just ps) t , _) = just (abs-expand-term ps t)
 ... | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
-ctxt-lookup-type-var-def Γ v with ctxt-safe-qualif Γ v
-... | just (as , type-def nothing T _ , _) = just T
-... | just (as , type-def (just ps) T _ , _) = just (abs-expand-type ps T)
+ctxt-lookup-type-var-def Γ v with env-lookup Γ v
+... | just (type-def nothing T _ , _) = just T
+... | just (type-def (just ps) T _ , _) = just (abs-expand-type ps T)
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
-ctxt-lookup-kind-var-def (mk-ctxt _ _ i _) x with trie-lookup i x
+ctxt-lookup-kind-var-def Γ x with env-lookup Γ x
 ... | just (kind-def ps1 ps2 k , _) = just (append-params ps1 ps2 , k)
 ... | _ = nothing
 
