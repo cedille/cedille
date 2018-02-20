@@ -11,8 +11,8 @@ are-free-e = 𝔹
 check-erased = tt
 skip-erased = ff
 
-are-free-in-t : Set → Set
-are-free-in-t T = are-free-e → stringset → T → 𝔹
+are-free-in-t : Set → Set₁
+are-free-in-t T = ∀{A} → are-free-e → trie A → T → 𝔹
 
 are-free-in-term : are-free-in-t term
 are-free-in-type : are-free-in-t type
@@ -31,13 +31,13 @@ are-free-in-term ce x (App t NotErased t') = are-free-in-term ce x t || are-free
 are-free-in-term ce x (AppTp t tp) = are-free-in-term ce x t || (ce && are-free-in-type ce x tp)
 are-free-in-term ce x (Hole x₁) = ff
 are-free-in-term ce x (Lam _ b _ x' oc t) =
-  (ce && are-free-in-optClass ce x oc) || (~ (stringset-contains x x') && are-free-in-term ce x t)
+  (ce && are-free-in-optClass ce x oc) || (~ (trie-contains x x') && are-free-in-term ce x t)
 are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
-  (ce && are-free-in-maybeCheckType ce x m) || (are-free-in-term ce x t) || (~ (stringset-contains x x') && are-free-in-term ce x t')
+  (ce && are-free-in-maybeCheckType ce x m) || (are-free-in-term ce x t) || (~ (trie-contains x x') && are-free-in-term ce x t')
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
-  (ce && (are-free-in-kind ce x k || are-free-in-type ce x t)) || (~ (stringset-contains x x') && are-free-in-term ce x t')
+  (ce && (are-free-in-kind ce x k || are-free-in-type ce x t)) || (~ (trie-contains x x') && are-free-in-term ce x t')
 are-free-in-term ce x (Parens x₁ t x₂) = are-free-in-term ce x t
-are-free-in-term ce x (Var _ x') = stringset-contains x x'
+are-free-in-term ce x (Var _ x') = trie-contains x x'
 are-free-in-term ce x (Beta _ ot) = are-free-in-optTerm ce x ot
 are-free-in-term ce x (IotaPair _ t1 t2 _) = are-free-in-term ce x t1 || (ce && are-free-in-term ce x t2)
 are-free-in-term ce x (IotaProj t n _) = are-free-in-term ce x t
@@ -47,30 +47,30 @@ are-free-in-term ce x (Phi _ t t₁ t₂ _) = (ce && are-free-in-term ce x t) ||
 are-free-in-term ce x (Rho _ _ t t') = (ce && are-free-in-term ce x t) || are-free-in-term ce x t'
 are-free-in-term ce x (Chi _ T t') = (ce && are-free-in-maybeAtype ce x T) || are-free-in-term ce x t'
 are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
-  where are-free-in-lterms : are-free-e → stringset → lterms → 𝔹
+  where are-free-in-lterms : ∀{A} → are-free-e → trie A → lterms → 𝔹
         are-free-in-lterms ce x (LtermsNil _) = ff
         are-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && are-free-in-term ce x t) || are-free-in-lterms ce x ls
         are-free-in-lterms ce x (LtermsCons NotErased t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
 
-are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || (~ (stringset-contains x x') && are-free-in-type ce x t)
+are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-type ce x t)
 are-free-in-type ce x (TpLambda _ _ x' atk t) = 
-  are-free-in-tk ce x atk || (~ (stringset-contains x x') && are-free-in-type ce x t) 
-are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-optType ce x m || (~ (stringset-contains x x') && are-free-in-type ce x t)
-are-free-in-type ce x (Lft _ _ X t l) = are-free-in-liftingType ce x l || (~ (stringset-contains x X) && are-free-in-term ce x t)
+  are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-type ce x t) 
+are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-optType ce x m || (~ (trie-contains x x') && are-free-in-type ce x t)
+are-free-in-type ce x (Lft _ _ X t l) = are-free-in-liftingType ce x l || (~ (trie-contains x X) && are-free-in-term ce x t)
 are-free-in-type ce x (TpApp t t') = are-free-in-type ce x t || are-free-in-type ce x t'
 are-free-in-type ce x (TpAppt t t') = are-free-in-type ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpArrow t _ t') = are-free-in-type ce x t || are-free-in-type ce x t'
 are-free-in-type ce x (TpEq t t') = are-free-in-term ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpParens x₁ t x₂) = are-free-in-type ce x t
-are-free-in-type ce x (TpVar _ x') = stringset-contains x x'
+are-free-in-type ce x (TpVar _ x') = trie-contains x x'
 are-free-in-type ce x (NoSpans t _) = are-free-in-type ce x t
 are-free-in-type ce x (TpHole _) = ff
 
 are-free-in-kind ce x (KndArrow k k') = are-free-in-kind ce x k || are-free-in-kind ce x k'
 are-free-in-kind ce x (KndParens x₁ k x₂) = are-free-in-kind ce x k
-are-free-in-kind ce x (KndPi _ _ x' atk k) = are-free-in-tk ce x atk || (~ (stringset-contains x x') && are-free-in-kind ce x k)
+are-free-in-kind ce x (KndPi _ _ x' atk k) = are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-kind ce x k)
 are-free-in-kind ce x (KndTpArrow t k) = are-free-in-type ce x t || are-free-in-kind ce x k
-are-free-in-kind ce x (KndVar _ x' ys) = stringset-contains x x' || are-free-in-args ce x ys
+are-free-in-kind ce x (KndVar _ x' ys) = trie-contains x x' || are-free-in-args ce x ys
 are-free-in-kind ce x (Star x₁) = ff
 
 are-free-in-args ce x (ArgsCons (TermArg y) ys) = are-free-in-term ce x y || are-free-in-args ce x ys
@@ -95,7 +95,7 @@ are-free-in-tk ce x (Tkk k) = are-free-in-kind ce x k
 are-free-in-liftingType ce x (LiftArrow l l') = are-free-in-liftingType ce x l || are-free-in-liftingType ce x l'
 are-free-in-liftingType ce x (LiftParens x₁ l x₂) = are-free-in-liftingType ce x l
 are-free-in-liftingType ce x (LiftPi _ x' t l) =
-  are-free-in-type ce x t || (~ (stringset-contains x x') && are-free-in-liftingType ce x l)
+  are-free-in-type ce x t || (~ (trie-contains x x') && are-free-in-liftingType ce x l)
 are-free-in-liftingType ce x (LiftStar x₁) = ff
 are-free-in-liftingType ce x (LiftTpArrow t l) = are-free-in-type ce x t || are-free-in-liftingType ce x l
 
@@ -109,7 +109,7 @@ are-free-in{TYPE} e x t = are-free-in-type e x t
 are-free-in{ARG} e x (TypeArg t) = are-free-in-type e x t
 are-free-in{KIND} e x t = are-free-in-kind e x t 
 are-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e x t 
-are-free-in{QUALIF} e x (x' , as) = stringset-contains x x' || are-free-in-args e x as
+are-free-in{QUALIF} e x (x' , as) = trie-contains x x' || are-free-in-args e x as
 
 is-free-in : {ed : exprd} → are-free-e → var → ⟦ ed ⟧ → 𝔹
 is-free-in{TERM} e x t = are-free-in-term e (stringset-singleton x) t
