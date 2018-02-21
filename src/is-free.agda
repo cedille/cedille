@@ -31,11 +31,14 @@ are-free-in-term ce x (App t NotErased t') = are-free-in-term ce x t || are-free
 are-free-in-term ce x (AppTp t tp) = are-free-in-term ce x t || (ce && are-free-in-type ce x tp)
 are-free-in-term ce x (Hole x₁) = ff
 are-free-in-term ce x (Lam _ b _ x' oc t) =
-  (ce && are-free-in-optClass ce x oc) || (~ (trie-contains x x') && are-free-in-term ce x t)
+  (ce && are-free-in-optClass ce x oc)
+  || are-free-in-term ce (trie-remove x x') t
 are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
-  (ce && are-free-in-maybeCheckType ce x m) || (are-free-in-term ce x t) || (~ (trie-contains x x') && are-free-in-term ce x t')
+  (ce && are-free-in-maybeCheckType ce x m) || (are-free-in-term ce x t)
+  || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
-  (ce && (are-free-in-kind ce x k || are-free-in-type ce x t)) || (~ (trie-contains x x') && are-free-in-term ce x t')
+  (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
+  || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Parens x₁ t x₂) = are-free-in-term ce x t
 are-free-in-term ce x (Var _ x') = trie-contains x x'
 are-free-in-term ce x (Beta _ ot) = are-free-in-optTerm ce x ot
@@ -52,11 +55,10 @@ are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-
         are-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && are-free-in-term ce x t) || are-free-in-lterms ce x ls
         are-free-in-lterms ce x (LtermsCons NotErased t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
 
-are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-type ce x t)
-are-free-in-type ce x (TpLambda _ _ x' atk t) = 
-  are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-type ce x t) 
-are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-optType ce x m || (~ (trie-contains x x') && are-free-in-type ce x t)
-are-free-in-type ce x (Lft _ _ X t l) = are-free-in-liftingType ce x l || (~ (trie-contains x X) && are-free-in-term ce x t)
+are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
+are-free-in-type ce x (TpLambda _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
+are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-optType ce x m || are-free-in-type ce (trie-remove x x') t
+are-free-in-type ce x (Lft _ _ X t l) = are-free-in-liftingType ce x l || are-free-in-term ce (trie-remove x X) t
 are-free-in-type ce x (TpApp t t') = are-free-in-type ce x t || are-free-in-type ce x t'
 are-free-in-type ce x (TpAppt t t') = are-free-in-type ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpArrow t _ t') = are-free-in-type ce x t || are-free-in-type ce x t'
@@ -68,7 +70,7 @@ are-free-in-type ce x (TpHole _) = ff
 
 are-free-in-kind ce x (KndArrow k k') = are-free-in-kind ce x k || are-free-in-kind ce x k'
 are-free-in-kind ce x (KndParens x₁ k x₂) = are-free-in-kind ce x k
-are-free-in-kind ce x (KndPi _ _ x' atk k) = are-free-in-tk ce x atk || (~ (trie-contains x x') && are-free-in-kind ce x k)
+are-free-in-kind ce x (KndPi _ _ x' atk k) = are-free-in-tk ce x atk || are-free-in-kind ce (trie-remove x x') k
 are-free-in-kind ce x (KndTpArrow t k) = are-free-in-type ce x t || are-free-in-kind ce x k
 are-free-in-kind ce x (KndVar _ x' ys) = trie-contains x x' || are-free-in-args ce x ys
 are-free-in-kind ce x (Star x₁) = ff
@@ -95,7 +97,7 @@ are-free-in-tk ce x (Tkk k) = are-free-in-kind ce x k
 are-free-in-liftingType ce x (LiftArrow l l') = are-free-in-liftingType ce x l || are-free-in-liftingType ce x l'
 are-free-in-liftingType ce x (LiftParens x₁ l x₂) = are-free-in-liftingType ce x l
 are-free-in-liftingType ce x (LiftPi _ x' t l) =
-  are-free-in-type ce x t || (~ (trie-contains x x') && are-free-in-liftingType ce x l)
+  are-free-in-type ce x t || are-free-in-liftingType ce (trie-remove x x') l
 are-free-in-liftingType ce x (LiftStar x₁) = ff
 are-free-in-liftingType ce x (LiftTpArrow t l) = are-free-in-type ce x t || are-free-in-liftingType ce x l
 
