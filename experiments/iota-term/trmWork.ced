@@ -1,0 +1,23 @@
+module Trm.
+
+import product.
+import sum.
+import nat.
+import cast.
+import RecTypeI.
+import valuation.
+import natExtras.
+import trmC.
+import trm.
+
+in ◂ Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n =
+  λ n . λ d . TrmFold -n [in' n (cast · (TrmIF · (Trm n) · (Trm (S n))) · (TrmIF · (Trm' n) · (Trm' (S n)))
+                                   -(TrmIFFun · (Trm n) · (Trm (S n)) · (Trm' n) · (Trm' (S n))
+                                      [ λ x . (TrmUnfold -n x).1 , β] [ λ x . (TrmUnfold -(S n) x).1 , β])
+                                   d) ,
+                          Λ P . λ val . λ alg . alg.2 n -β{val} · (Trm n) · (Trm (S n))
+                                                  -(castId · (Trm n)) -(castId · (Trm (S n)))
+                                                  -[λ a . (TrmUnfold -n a).1,β] -[λ a . (TrmUnfold -(S n) a).1,β]
+                                                  [foldTrm · P alg -n val,β{foldTrm alg val}]
+                                                  [λ x . foldTrm · P alg -(S n) (updateValuation n · Trm' -var' · P val x) , β{foldU2 n alg val}]
+                                                  d] .

@@ -1,0 +1,65 @@
+module church .
+
+import nat.
+import natExtras.
+
+Trm' ◂ Nat ➔ ★ =
+  λ n : Nat .
+  ∀ X : Nat ➔ ★ .
+    (Π m : Nat . Lt m n ➔ X (S m)) ➔
+    (Π m : Nat . X m ➔ X m ➔ X m) ➔
+    (Π m : Nat . (X (S m) ➔ X (S m)) ➔ X m) ➔
+    X n .
+
+var' ◂ Π n : Nat . Trm' (S n) =
+  λ n . Λ X . λ v . λ a . λ l . v n (lt-nSn n) .
+
+app' ◂ Π n : Nat . Trm' n ➔ Trm' n ➔ Trm' n =
+  λ n . λ t1 . λ t2 .
+    Λ X . λ v . λ a . λ l . a n (t1 · X v a l) (t2 · X v a l).
+
+updateValuation ◂ Π n : Nat . ∀ X : Nat ➔ ★ . (Π m : Nat . Lt m n ➔ X (S m)) ➔
+                  X (S n) ➔ 
+                  Π m : Nat . Lt m (S n) ➔ X (S m) =
+   λ n . Λ X . λ v . λ u . λ m . λ p .
+     (Lt-S m n p).1 · (X (S m)) (λ c . v m c) (λ c . ρ c - u).
+
+lam' ◂ Π n : Nat . (Trm' (S n) ➔ Trm' (S n)) ➔ Trm' n =
+  λ n . λ b .
+    Λ X . λ v . λ a . λ l .
+      l n (λ u . b (var' n) · X
+                   (updateValuation n · X v u)
+                   a l).
+
+InductiveTrm ◂ Π n : Nat . Trm' n ➔ ★ =
+  λ n : Nat . λ t : Trm' n .
+    ∀ Q : Π n : Nat . Trm' n ➔ ★ .
+    (Π m : Nat . Π p : Lt m n . Q (S m) (var' m)) ➔
+    (Π m : Nat . ∀ t1 : Trm' m . ∀ t2 : Trm' m.
+       Q m t1 ➔ Q m t2 ➔ Q m (app' m t1 t2)) ➔
+    (Π m : Nat . ∀ f : Trm' (S m) ➔ Trm' (S m) .
+       (Q (S m) (var' m) ➔ Q (S m) (f (var' m))) ➔
+       Q m (lam' m f)) ➔
+    Q n t .
+
+Trm ◂ Nat ➔ ★ = λ n : Nat . ι x : Trm' n . InductiveTrm n x .
+
+var ◂ Π n : Nat . Trm (S n) =
+  λ n . [ var' n ,
+          Λ Q . λ v . λ a . λ l . v n (lt-nSn n) ] .
+
+app ◂ Π n : Nat . Trm n ➔ Trm n ➔ Trm n =
+  λ n . λ t1 . λ t2 .
+    [ app' n t1.1 t2.1,
+      Λ Q . λ v . λ a . λ l . a n -t1.1 -t2.1 (t1.2 · Q v a l) (t2.2 · Q v a l)].
+
+lam ◂ Π n : Nat . (Trm (S n) ➔ Trm (S n)) ➔ Trm n =
+  λ n . λ b .
+    [ Λ X . λ v . λ a . λ l .
+        l n (λ u . (b (var n)).1 · X (updateValuation n · X v u) a l),
+      Λ Q . λ v . λ a . λ l .
+        l n -(λ u . (b u).1) (λ q . ●) ] .
+
+toTrm ◂ Π n : Nat . Π t : Trm' n . Trm n =
+  λ n . λ t .
+    t · Trm ● ● ●.

@@ -3,14 +3,27 @@ module Valuation.
 import nat.
 import natExtras.
 
-Valuation' ◂ Nat ➔ (Nat ➔ ★) ➔ ★ = λ n : Nat . λ X : Nat ➔ ★ . Π m : Nat . Lt m n ➔ X m.
+Valuation' ◂ Nat ➔ (Nat ➔ ★) ➔ ★ = λ n : Nat . λ X : Nat ➔ ★ . Π m : Nat . Lt m n ➔ X (S m).
 
-updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . Valuation' n · X ➔ X n ➔ Valuation' (S n) · X =
-  λ n . Λ X . λ val . λ per . λ m . λ u . (Lt-S m n u).1 · (X m) (λ u . val m u) (λ e . ρ e - per) .
+updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . Valuation' n · X ➔ X (S n) ➔ Valuation' (S n) · X =
+  λ n . Λ X . λ val . λ xn . λ m . λ u . 
+    (Lt-S m n u).1 · (X (S m)) (λ u . val m u) (λ e . ρ e - xn).
 
-restrictValuation' ◂ ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lt n m ➔ Valuation' m · X ➔ Valuation' n · X =
-  Λ X . λ n . λ m . λ p . λ val . λ m' . λ p' . val m' (Lt-trans m' n m p' p).
+restrictValuation' ◂
+  ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lte n m ➔ Valuation' m · X ➔ Valuation' n · X =
+  Λ X . λ n . λ m . λ p . λ val . λ m' . λ p' .
+    p.1 · (X (S m')) (λ p'' . val m' (Lt-trans m' n m p' p'')) (λ e . val m' (ρ ς e - p')) .
 
-Valuation ◂ Nat ➔ Π Trm : Nat ➔ ★ . (Π n : Nat . Trm n ➔ ★) ➔ ★ =
-  λ n : Nat . λ Trm : Nat ➔ ★ . λ P : Π n : Nat . Trm n ➔ ★ .
-    Π m : Nat . Lt m n ➔ ∀ t : Trm m . P m t .
+varTp ◂ (Nat ➔ ★) ➔ ★ = λ Trm : Nat ➔ ★ . Π n : Nat . Trm (S n) .
+
+Valuation ◂ Π n : Nat . Π Trm : Nat ➔ ★ .  varTp · Trm ➔ (Π n : Nat . Trm n ➔ ★) ➔ ★ =
+  λ n : Nat . λ Trm : Nat ➔ ★ . λ var : varTp · Trm . λ P : Π n : Nat . Trm n ➔ ★ .
+    Π m : Nat . Π p : Lt m n . P (S m) (var m) .
+
+updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
+                  ∀ P : Π n : Nat . Trm n ➔ ★.
+                  Valuation n · Trm var · P ➔ 
+                  P (S n) (var n) ➔
+                  Valuation (S n) · Trm var · P =
+  λ n . Λ Trm . Λ var . Λ P . λ val . λ xn . λ m . λ u .
+    (Lt-S m n u).1 · (P (S m) (var m)) (λ u . val m u) (λ e . ρ e - xn) .

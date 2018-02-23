@@ -98,3 +98,8 @@ Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
      	[ lt-n-m = lt-SS n m lt-Sn-Sm ] -
 	  ind-sigma · Nat · (λ m' : Nat . {S m' ≃ m}) (lt-S n m lt-n-m) · (λ _ : Sigma · Nat · (λ m' : Nat . {S m' ≃ m}) . Lte (S n) m)
 	    (λ m' . λ eq-Sm'-m . ρ ς eq-Sm'-m - (LteS n m' (ih m' (ρ eq-Sm'-m -lt-n-m))))) .
+
+lt-nSn ◂ Π n : Nat . Lt n (S n) =
+  λ n . θ<n> (NatInd n) (LtZ Z) (λ p . λ ih . LtS p (S p) ih).
+
+add-mono ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt (add x z) (add y z) = ● .
