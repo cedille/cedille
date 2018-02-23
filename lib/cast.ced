@@ -15,3 +15,5 @@ caste ◂ ∀ A : ★ . ∀ B : ★ . Π f : A ➔ B . (Π a : A . {f a ≃ a}) 
 
 castCompose ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Cast · A · B ➔ Cast · B · C ➔ Cast · A · C =
   Λ A . Λ B . Λ C . λ c1 . λ c2 . [ λ a . cast · B · C -c2 (cast · A · B -c1 a) , β] .
+
+castId ◂ ∀ A : ★ . Cast · A · A = Λ A . [ λ a . a , β].

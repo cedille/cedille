@@ -1,0 +1,5 @@
+module is.
+
+import top.
+
+is ◂ ★ ➔ Top ➔ ★ = λ X : ★ . λ u : Top . ι x : X . { u ≃ x } .
