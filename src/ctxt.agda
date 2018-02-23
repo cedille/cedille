@@ -17,7 +17,7 @@ qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) empty-trie new-sym-info-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie) new-sym-info-trie empty-trie
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -228,16 +228,16 @@ ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
 -- TODO I think this should trie-remove the List occurrence of the filename lookup of syms
 ctxt-clear-symbol : ctxt → string → ctxt
-ctxt-clear-symbol (mk-ctxt (fn , mn , pms , q) syms i symb-occs) x =
-  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-remove syms x) (trie-remove i x) symb-occs
+ctxt-clear-symbol (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
+  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-remove syms x , mn-fn) (trie-remove i x) symb-occs
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ
 ctxt-clear-symbols Γ (v :: vs) = ctxt-clear-symbols (ctxt-clear-symbol Γ v) vs
 
 ctxt-clear-symbols-of-file : ctxt → (filename : string) → ctxt
-ctxt-clear-symbols-of-file (mk-ctxt f syms i symb-occs) fn =
-  mk-ctxt f (trie-insert syms fn (fst p , []))
+ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn)  i symb-occs) fn =
+  mk-ctxt f (trie-insert syms fn (fst p , []) , trie-insert mn-fn (fst p) fn)
     (hremove i (fst p) (snd p))
     symb-occs
   where

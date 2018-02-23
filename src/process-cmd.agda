@@ -166,19 +166,16 @@ process-file s filename | ie =
            just above, after proceed finishes. -}
   where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt × mod-info
         proceed s nothing ie' = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
-        proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
-        proceed s (just x) ie' | ff = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
-          with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
+        proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -} | include-elt.do-type-check ie
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | tt
+          with ctxt-get-current-mod Γ 
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | tt | prev-mod =
          let Γ = ctxt-initiate-file Γ filename (start-modname x) in
            cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
-                   filename x do-check Γ (regular-spans []))
+                   filename x tt Γ (regular-spans []))
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
                  cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
                    let Γ = ctxt-set-current-mod Γ prev-mod in
-                    if do-check then
-                      (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss , ret-mod)
-                    else
-                      (mk-toplevel-state use-cede make-rkt ip fns is Γ , ie' , ret-mod)
+                    (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss , ret-mod)
+        proceed s (just x) ie' | _ | _ = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
 

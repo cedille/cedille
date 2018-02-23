@@ -27,9 +27,17 @@ is-untyped{TYPE} (TpEq _ _) _ = tt
 is-untyped _ _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
+no-parens {_} {TERM} _ (IotaPair pi t t' pi') lr = tt
+no-parens {_} {TERM} _ (Parens pi t pi') lr = tt
+no-parens {_} {TYPE} _ (TpParens pi T pi') lr = tt
+no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
+no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
+no-parens {_} {TYPE} _ (TpEq t t') lr = tt
+no-parens {_} {TERM} _ (Beta pi ot) lr = tt
+no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
 no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (AppTp t T) p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
-no-parens{TERM} (Beta pi oT) p lr = tt
+no-parens{TERM} (Beta pi ot) p lr = tt
 no-parens{TERM} (Chi pi mT t) p lr = is-eq-op p
 no-parens{TERM} (Epsilon pi lr' m t) p lr = is-eq-op p
 no-parens{TERM} (Hole pi) p lr = tt
@@ -175,7 +183,7 @@ term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = strAdd "(" ≫str to-string-ed t ≫str strAdd ")"
-term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringh eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringh t' ≫str strAdd "}"
+term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringh eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringr t' ≫str strAdd "}"
 term-to-stringh (Rho pi r eq t) = strAdd (rho-to-string r) ≫str to-stringh eq ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
@@ -201,11 +209,11 @@ kind-to-stringh (KndTpArrow T k) = to-stringl T ≫str strAdd " ➔ " ≫str to-
 kind-to-stringh (KndVar pi x as) = strVar x ≫str args-to-string as
 kind-to-stringh (Star pi) = strAdd "★"
 
-liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔ " ≫str to-stringr lT'
+liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔↑ " ≫str to-stringr lT'
 liftingType-to-stringh (LiftParens pi lT pi') = strAdd "(" ≫str to-string-ed lT ≫str strAdd ")"
-liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π " ^ x ^ " : ") ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi (to-stringh lT)
+liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π↑ " ^ x ^ " : ") ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi (to-stringh lT)
 liftingType-to-stringh (LiftStar pi) = strAdd "☆"
-liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔ " ≫str to-stringr lT
+liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
 
 optTerm-to-string NoTerm = strEmpty
 optTerm-to-string (SomeTerm t _) = strAdd " { " ≫str to-stringh t ≫str strAdd " }"

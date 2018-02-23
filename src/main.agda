@@ -36,11 +36,36 @@ open import rkt
 opts : Set
 opts = options-types.opts
 
+dot-cedille-directory : string → string 
+dot-cedille-directory dir = combineFileNames dir ".cedille"
+
+-- Master switch for logging
+logging-enabled : 𝔹
+logging-enabled = ff
+
+logFilepath : IO string
+logFilepath = getHomeDirectory >>= λ home → return (combineFileNames (dot-cedille-directory home) "log")
+
+logH : streeng → IO ⊤
+logH s = logFilepath >>= λ fn → withFile fn AppendMode (h s) where
+  h : streeng → Handle → IO ⊤
+  h (s₁ ⊹⊹ s₂) hdl = h s₁ hdl >> h s₂ hdl
+  h [[ s ]] hdl = hPutStr hdl s
+
+logMsg : (message : string) → IO ⊤
+logMsg msg = if logging-enabled then (getCurrentTime >>= λ time → logH ([[ "(" ^ utcToString time ^ ") " ]] ⊹⊹ [[ msg ]] ⊹⊹ [[ "\n" ]])) else return triv
+
+logStreeng : streeng → IO ⊤
+logStreeng s = if logging-enabled then
+  (getCurrentTime >>= λ time →
+  logFilepath >>= λ fn → withFile fn AppendMode (λ hdl → hPutStr hdl ("(" ^ utcToString time ^ ") ") >> h s hdl)) else return triv where
+  h : streeng → Handle → IO ⊤
+  h (s₁ ⊹⊹ s₂) hdl = h s₁ hdl >> h s₂ hdl
+  h [[ s ]] hdl = hPutStr hdl s
+
 {-------------------------------------------------------------------------------
   .cede support
 -------------------------------------------------------------------------------}
-dot-cedille-directory : string → string 
-dot-cedille-directory dir = combineFileNames dir ".cedille"
 
 cede-filename : (ced-path : string) → string
 cede-filename ced-path = 
@@ -48,20 +73,22 @@ cede-filename ced-path =
   let unit-name = base-filename (takeFileName ced-path) in
     combineFileNames (dot-cedille-directory dir) (unit-name ^ ".cede")
 
+
 -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
 write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
 write-cede-file ced-path ie = 
---  putStrLn ("write-cede-file " ^ ced-path ^ " : " ^ contents) >>
   let dir = takeDirectory ced-path in
     createDirectoryIfMissing ff (dot-cedille-directory dir) >>
-    writeFile (cede-filename ced-path) 
-      ((if (include-elt.err ie) then "e" else "") ^ 
-        streeng-to-string (include-elt-spans-to-streeng ie))
+   logMsg ("Started writing .cede file " ^ (cede-filename ced-path)) >>
+   writeStreengToFile (cede-filename ced-path) ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-streeng ie) >>
+   logMsg ("Finished writing .cede file " ^ (cede-filename ced-path))
 
 -- we assume the cede file is known to exist at this point
 read-cede-file : (ced-path : string) → IO (𝔹 × string)
-read-cede-file ced-path = 
-  get-file-contents (cede-filename ced-path) >>= λ c → finish c
+read-cede-file ced-path =
+  logMsg ("Started reading .cede file " ^ ced-path) >>
+  get-file-contents (cede-filename ced-path) >>= λ c → finish c >>≠
+  logMsg ("Finished reading .cede file " ^ ced-path)
   where finish : maybe string → IO (𝔹 × string)
         finish nothing = return (tt , global-error-string ("Could not read the file " ^ cede-filename ced-path ^ "."))
         finish (just ss) with string-to-𝕃char ss
@@ -75,7 +102,6 @@ find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO string
 find-imported-file [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
 find-imported-file (dir :: dirs) unit-name =
   let e = combineFileNames dir (add-cedille-extension unit-name) in
-    
     doesFileExist e >>= λ b → 
     if b then
       return e
@@ -90,8 +116,14 @@ find-imported-files dirs (u :: us) =
     return ((u , p) :: ps)
 find-imported-files dirs [] = return []
 
-ced-file-up-to-date : (ced-path : string) → IO 𝔹
-ced-file-up-to-date ced-path =
+ced-file-up-to-date : (ced-path : string) → maybe UTC → IO 𝔹
+ced-file-up-to-date _ nothing = return ff
+ced-file-up-to-date ced-path (just time) =
+  getModificationTime ced-path >>= λ time' →
+  return (time utc-after time')
+
+cede-file-up-to-date : (ced-path : string) → IO 𝔹
+cede-file-up-to-date ced-path =
   let e = cede-filename ced-path in
     doesFileExist e >>= λ b → 
     if b then
@@ -129,7 +161,7 @@ reparse : toplevel-state → (filename : string) → IO toplevel-state
 reparse st filename = 
    doesFileExist filename >>= λ b → 
      (if b then
-         (readFiniteFile filename >>= processText)
+         (readFiniteFile filename >>= λ s → getCurrentTime >>= λ time → processText s >>= λ ie → return (set-last-check-time-include-elt ie time))
       else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
         return (set-include-elt st filename ie)
   where processText : string → IO include-elt
@@ -138,34 +170,43 @@ reparse st filename =
         processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)        
         processText x | Right t  with cws-types.scanComments x 
         processText x | Right t | t2 = find-imported-files (toplevel-state.include-path st)
-                                                           (get-imports t) >>= λ deps → return (new-include-elt filename deps t t2)
+                                                           (get-imports t) >>= λ deps →
+                                       return (new-include-elt filename deps t t2 nothing)
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
-add-spans-if-up-to-date up-to-date use-cede-files filename ie = 
-  if up-to-date && use-cede-files then
-    (read-cede-file filename >>= finish)
-  else
-    return ie
+add-spans-if-up-to-date up-to-date use-cede-files filename ie =
+  let was-checked = file-was-checked (include-elt.ss ie) in
+  (if up-to-date && use-cede-files && ~ was-checked then
+      read-cede-file filename >>= finish
+    else
+      return ie) >>= λ ie' → return (set-cede-file-up-to-date-include-elt ie' up-to-date)
   where finish : 𝔹 × string → IO include-elt
-        finish (err , ss) = return (set-do-type-check-include-elt (set-spans-string-include-elt ie err ss) ff)
+        finish (err , ss) = return (set-spans-string-include-elt ie err ss)
+        file-was-checked : spans ⊎ string → 𝔹
+        file-was-checked (inj₂ "") = ff
+        file-was-checked _ = tt
+
+cede-rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
+cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
+    check-cede : toplevel-state → IO toplevel-state
+    check-cede s =
+      cede-file-up-to-date filename >>= λ up-to-date →
+      return (maybe-else s
+        (λ ie → set-include-elt s filename (set-cede-file-up-to-date-include-elt ie up-to-date)) (get-include-elt-if s filename))
+    check-rkt : toplevel-state → IO toplevel-state
+    check-rkt s = return s -- TODO: Check if .rkt file is up to date for filename
 
 {- make sure that the current ast and dependencies are stored in the
    toplevel-state, updating the state as needed. -}
 ensure-ast-deps : toplevel-state → (filename : string) → IO toplevel-state
 ensure-ast-deps s filename with get-include-elt-if s filename
-ensure-ast-deps s filename | nothing =
-  let ucf = (toplevel-state.use-cede-files s) in
-    reparse s filename >>= λ s → 
-    ced-file-up-to-date filename >>= λ up-to-date → 
-    add-spans-if-up-to-date up-to-date ucf filename (get-include-elt s filename) >>= λ ie →
-    return (set-include-elt s filename ie)
+ensure-ast-deps s filename | nothing = reparse s filename
 ensure-ast-deps s filename | just ie =
-  let ucf = (toplevel-state.use-cede-files s) in
-    ced-file-up-to-date filename >>= λ up-to-date → 
-      if up-to-date then 
-        (add-spans-if-up-to-date up-to-date (toplevel-state.use-cede-files s) filename (get-include-elt s filename) >>= λ ie →
-         return (set-include-elt s filename ie))
-      else reparse s filename
+    ced-file-up-to-date filename (include-elt.last-check-time ie) >>= λ up-to-date → 
+      if up-to-date then
+          return s
+        else
+          reparse s filename
      
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
@@ -174,12 +215,11 @@ ensure-ast-deps s filename | just ie =
 update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) → 
                IO (stringset {- seen already -} × toplevel-state)
 update-astsh seen s filename = 
---  putStrLn ("update-astsh [filename = " ^ filename ^ "]") >>
   if stringset-contains seen filename then return (seen , s)
-  else (ensure-ast-deps s filename >>= cont (stringset-insert seen filename))
+  else (ensure-ast-deps s filename >>= cede-rkt-up-to-date filename >>= cont (stringset-insert seen filename))
   where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
         cont seen s with get-include-elt s filename
-        cont seen s | ie with include-elt.deps ie 
+        cont seen s | ie with include-elt.deps ie
         cont seen s | ie | ds = 
           proc seen s ds 
           where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
@@ -198,14 +238,20 @@ update-asts : toplevel-state → (filename : string) → IO toplevel-state
 update-asts s filename = update-astsh empty-stringset s filename >>= λ p → 
   return (snd p)
 
+log-files-to-check : toplevel-state → IO ⊤
+log-files-to-check s = logStreeng ([[ "\n" ]] ⊹⊹ (h (trie-mappings (toplevel-state.is s)))) where
+  h : 𝕃 (string × include-elt) → streeng
+  h [] = [[]]
+  h ((fn , ie) :: t) = [[ "file: " ]] ⊹⊹ [[ fn ]] ⊹⊹ [[ "\nadd-symbols: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.need-to-add-symbols-to-context ie) ]] ⊹⊹ [[ "\ndo-type-check: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.do-type-check ie) ]] ⊹⊹ [[ "\n\n" ]] ⊹⊹ h t
+
 {- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
 checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
 checkFile s filename should-print-spans = 
---  putStrLn ("checkFile " ^ filename) >>
-  update-asts s filename >>= λ s → 
+  update-asts s filename >>= λ s →
+  log-files-to-check s >>
   finish (process-file s filename) -- ignore-errors s filename)
- 
-  where reply : toplevel-state → IO ⊤
+  where
+        reply : toplevel-state → IO ⊤
         reply s with get-include-elt-if s filename
         reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
         reply s | just ie =
@@ -214,17 +260,20 @@ checkFile s filename should-print-spans =
            else return triv
         finish : toplevel-state × mod-info → IO toplevel-state
         finish (s , m) with s
-        finish (s , m) | mk-toplevel-state use-cede make-rkt ip mod is Γ = 
-          writeo mod >>
+        finish (s , m) | mk-toplevel-state use-cede make-rkt ip mod is Γ =
+          logMsg ("Started reply for file " ^ filename) >> -- Lazy, so checking has not been calculated yet?
           reply s >>
+          logMsg ("Finished reply for file " ^ filename) >>
+          logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
+          writeo mod >>
           return (mk-toplevel-state use-cede make-rkt ip [] is (ctxt-set-current-mod Γ m))
             where
               writeo : 𝕃 string → IO ⊤
               writeo [] = return triv
               writeo (f :: us) =
                 let ie = get-include-elt s f in
-                  (if use-cede then (write-cede-file f ie) else (return triv)) >>
-                  (if make-rkt then (write-rkt-file f (toplevel-state.Γ s) ie) else (return triv)) >>
+                  (if use-cede && ~ include-elt.cede-up-to-date ie then (write-cede-file f ie) else (return triv)) >>
+                  (if make-rkt && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie) else (return triv)) >>
                   writeo us
 
 remove-dup-include-paths : 𝕃 string → 𝕃 string
@@ -234,7 +283,8 @@ remove-dup-include-paths l = stringset-strings (stringset-insert* empty-stringse
 {-# TERMINATING #-}
 readCommandsFromFrontend : toplevel-state → IO ⊤
 readCommandsFromFrontend s =
-    getLine >>= λ input → 
+    getLine >>= λ input →
+    logMsg ("Frontend input: " ^ input) >>
     let input-list : 𝕃 string 
         input-list = (string-split (undo-escape-string input) delimiter) 
             in (handleCommands input-list s) >>= λ s →
@@ -323,6 +373,8 @@ main = initializeStdoutToUTF8 >>
        initializeStdinToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
+       logFilepath >>= -- ↓
+       clearFile >> -- Clears the log file
        readOptions >>=
        next
   where next : string ⊎ options-types.opts → IO ⊤

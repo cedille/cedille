@@ -24,19 +24,22 @@ record include-elt : Set where
         need-to-add-symbols-to-context : 𝔹 
         do-type-check : 𝔹
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
+        last-check-time : maybe UTC
+        cede-up-to-date : 𝔹
+        rkt-up-to-date : 𝔹
 
 blank-include-elt : include-elt
 blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ; 
                              import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
-                             do-type-check = tt ; inv = refl }
+                             do-type-check = tt ; inv = refl ; last-check-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff}
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
 new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
-                  cws-types.start → include-elt
-new-include-elt filename deps x y =
+                  cws-types.start → maybe UTC → include-elt
+new-include-elt filename deps x y time =
   record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
-           do-type-check = tt ; inv = refl }
+           do-type-check = tt ; inv = refl ; last-check-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
 error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
@@ -68,6 +71,15 @@ set-spans-include-elt : include-elt → spans → include-elt
 set-spans-include-elt ie ss = 
  record ie { ss = inj₁ ss ; 
              err = spans-have-error ss  }
+
+set-last-check-time-include-elt : include-elt → UTC → include-elt
+set-last-check-time-include-elt ie time =
+  record ie { last-check-time = just time }
+
+set-cede-file-up-to-date-include-elt : include-elt → 𝔹 → include-elt
+set-cede-file-up-to-date-include-elt ie up-to-date = record ie { cede-up-to-date = up-to-date }
+set-rkt-file-up-to-date-include-elt : include-elt → 𝔹 → include-elt
+set-rkt-file-up-to-date-include-elt ie up-to-date = record ie { rkt-up-to-date = up-to-date }
 
 set-spans-string-include-elt : include-elt → (err : 𝔹) → string → include-elt
 set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err  }
@@ -121,7 +133,7 @@ include-elt-to-string ie =
     " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
     ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
-    " "
+    ", last-check-time: " ^ (maybe-else "" utcToString (include-elt.last-check-time ie))
 
 eΓ : ctxt
 eΓ = new-ctxt "" ""
@@ -167,15 +179,14 @@ mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi ss is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
-toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files-with-updated-spans is context) =
+toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files is context) =
     "use-cede-file: " ^ (𝔹-to-string use-cede-file) ^
     "\nmake-rkt-file: " ^ (𝔹-to-string make-rkt-file) ^
-    "\ninclude-path: {\n\r" ^ (𝕃-to-string (λ x → x) "\n\r" include-path) ^ 
-    "\n}\nfiles-with-updated-spans: {\n\r" ^ (𝕃-to-string (λ x → x) "\n\r" files-with-updated-spans) ^ 
-    "\n}\nis: {" ^ (trie-to-string "\n\r" include-elt-to-string is) ^ 
+    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" include-path) ^ 
+    "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
     "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
@@ -188,8 +199,8 @@ check-redefined pi x s c =
 
 scope-imports : toplevel-state → string → optAs → args → toplevel-state
 scope-imports s import-fn oa as with toplevel-state.Γ s
-... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup syms import-fn
+... | mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs with trie-lookup syms import-fn
 ... | nothing = s
 ... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn oa vs as in
-  record s { Γ = mk-ctxt (fn , mn , ps , q') syms i symb-occs }
+  record s { Γ = mk-ctxt (fn , mn , ps , q') (syms , mn-fn) i symb-occs }
 

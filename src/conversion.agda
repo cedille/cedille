@@ -308,9 +308,9 @@ ctxt-params-def ps Γ@(mk-ctxt (fn , mn , _ , q) syms i symb-occs) =
   where ps' = qualif-params Γ ps
 
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
-ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-ctxt
+ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
-  (trie-insert-append2 syms fn mn v)
+  (trie-insert-append2 syms fn mn v , mn-fn)
   (trie-insert i (mn # v) (kind-def ps1 (h Γ ps2) k' , (fn , p)))
   symb-occs where
     k' = hnf Γ unfold-head (qualif-kind Γ k) tt
@@ -321,9 +321,9 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) syms i symb-occs) = mk-c
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
-ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v ps)
-  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (type-def (def-params s ps) t' k , (fn , p)))
   symb-occs
   where
@@ -332,9 +332,9 @@ ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ct
 
 -- assumption: classifier (i.e. type) already qualified
 ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
-ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v ps)
-  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (term-def (def-params s ps) t' tp , (fn , p)))
   symb-occs
   where
@@ -342,9 +342,9 @@ ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-c
   v' = if s iff localScope then p % v else mn # v
 
 ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
-ctxt-term-udef p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) = mk-ctxt
+ctxt-term-udef p s v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v ps)
-  (if (s iff localScope) then syms else trie-insert-append2 syms fn mn v)
+  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (term-udef (def-params s ps) t' , (fn , p)))
   symb-occs
   where

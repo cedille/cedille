@@ -140,6 +140,57 @@ err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
 
+-- Some file writing functions
+data IOMode : Set where
+  ReadMode : IOMode
+  WriteMode : IOMode
+  AppendMode : IOMode
+  ReadWriteMode : IOMode
+
+postulate
+  Handle : Set
+  -- IOMode : Set
+  openFile : string → IOMode -> IO Handle
+  closeFile : Handle -> IO ⊤
+  hPutStr : Handle → string → IO ⊤
+
+{-# COMPILED_TYPE Handle System.IO.Handle #-}
+{-# COMPILED_DATA IOMode System.IO.IOMode System.IO.ReadMode System.IO.WriteMode System.IO.AppendMode System.IO.ReadWriteMode #-}
+{-# COMPILED openFile (\fp -> (\mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh)) #-}
+{-# COMPILED closeFile System.IO.hClose #-}
+{-# COMPILED hPutStr (\ hdl -> (\ s -> Data.Text.IO.hPutStr hdl s)) #-}
+
+clearFile : string → IO ⊤
+clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl
+
+infixl 1 _>>≠_
+
+_>>≠_  : ∀{A B : Set} → IO A → IO B → IO A
+(io₁ >>≠ io₂) = io₁ >>= λ result → io₂ >> return result
+
+withFile : {A : Set} → string → IOMode → (Handle → IO A) → IO A
+withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >>≠ closeFile hdl
+
+-- Coordinated Universal Time
+infix 15 _utc-after_ _utc-before_
+
+postulate
+  UTC : Set
+  getCurrentTime : IO UTC
+  _utc-after_ : UTC → UTC → 𝔹
+  _utc-before_ : UTC → UTC → 𝔹
+  utcToString : UTC → string
+  getModificationTime : string → IO UTC
+
+{-# IMPORT Data.Time.Clock #-}
+{-# IMPORT Data.Time.Calendar #-}
+{-# COMPILED_TYPE UTC Data.Time.Clock.UTCTime #-}
+{-# COMPILED getCurrentTime Data.Time.Clock.getCurrentTime #-}
+{-# COMPILED _utc-after_ (>) #-}
+{-# COMPILED _utc-before_ (<) #-}
+{-# COMPILED utcToString (\ t -> case t of Data.Time.Clock.UTCTime day time -> Data.Text.pack ((Data.Time.Calendar.showGregorian day) ++ ", " ++ (show time))) #-}
+{-# COMPILED getModificationTime (\ s -> System.Directory.getModificationTime (Data.Text.unpack s)) #-}
+
 -- string binary tree, for more efficient I/O printing than concatenation
 data streeng : Set where
   _⊹⊹_ : streeng → streeng → streeng
@@ -159,12 +210,23 @@ streeng-to-string = flip h "" where
 
 putStreeng : streeng → IO ⊤
 -- putStreeng = putStr ∘ streeng-to-string
-putStreeng (s₁ ⊹⊹ s₂) = putStreeng s₁ >> putStreeng s₂
-putStreeng [[ s ]] = putStr s
+putStreeng s = h s (return triv) where
+  h : streeng → IO ⊤ → IO ⊤
+  h (s₁ ⊹⊹ s₂) io = h s₁ (h s₂ io)
+  h [[ s ]] io = putStr s >> io
 
 putStreengLn : streeng → IO ⊤
 putStreengLn s = putStreeng s >> putStr "\n" >> add-windows-ws-full
 
+hPutStreeng : Handle → streeng → IO ⊤
+hPutStreeng outh s = h s (return triv) outh where
+  h : streeng → IO ⊤ → Handle → IO ⊤
+  h (s₁ ⊹⊹ s₂) io outh = h s₁ (h s₂ io outh) outh
+  h [[ s ]] io outh = hPutStr outh s >> io
+
+writeStreengToFile : (filepath : string) → streeng → IO ⊤
+writeStreengToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPutStreeng hdl s >> closeFile hdl
 
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
+

@@ -97,7 +97,7 @@ rkt-from-sym-info n (var-decl , _)
 -- write a Racket file to .racket subdirectory from Cedille file path,
 -- context, and include-elt
 write-rkt-file : (ced-path : string) → ctxt → include-elt → IO ⊤
-write-rkt-file ced-path (mk-ctxt _ syms i sym-occurences) ie =
+write-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences) ie =
   let dir = takeDirectory ced-path
   in createDirectoryIfMissing tt (rkt-dirname dir) >>
      writeFile (rkt-filename ced-path)
