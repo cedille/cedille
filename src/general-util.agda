@@ -60,38 +60,6 @@ string-split-h (c :: cs) delim str-build out with (c =char delim)
 string-split : string → char → 𝕃 string
 string-split str delim = string-split-h (string-to-𝕃char str) delim [] []
 
-{-
-This is needed for Windows. Depending on your operating system, this
-may need to be either 2047 or 8191 (they are so close, however, that
-this will only cause a problem if a string is ouput with between 8188 and 8191 characters.
-On Windows, the output string is sent in "chunks" of 2047 characters.
-However, "chunks" don't appear to get sent unless they have at least
-2047 characters. This causes the n last characters in each output string
-to get cut off, where n = (length string) % 2047.
-To read more: https://support.microsoft.com/en-us/help/830473/command-prompt-cmd--exe-command-line-string-limitation
--}
-chunk-size = 2047
-
-get-ws-to-add : string → ℕ
-get-ws-to-add s with string-length s
-...| l = chunk-size ∸ (snd (l ÷ chunk-size))
-
-get-n-ws-h : ℕ → 𝕃 char → 𝕃 char
-get-n-ws-h 0 lc = lc
-get-n-ws-h (suc n) lc = get-n-ws-h n (' ' :: lc)
-
-get-n-ws : ℕ → string
-get-n-ws n = 𝕃char-to-string (get-n-ws-h n [])
-
-add-windows-ws : string → string
-add-windows-ws s = (get-n-ws (get-ws-to-add s)) ^ s ^ " "
-
-add-windows-ws-full : IO ⊤
-add-windows-ws-full = putStr (get-n-ws chunk-size)
-
-putStrLn : string → IO ⊤
-putStrLn str = putStr (add-windows-ws (str ^ "\n"))
-
 undo-escape-string-h : 𝕃 char → 𝕃 char → 𝕃 char
 undo-escape-string-h ('\\' :: 'n' :: rest) so-far = undo-escape-string-h rest ('\n' :: so-far)
 undo-escape-string-h ('\\' :: '\"' :: rest) so-far = undo-escape-string-h rest ('\"' :: so-far)
@@ -153,15 +121,22 @@ postulate
   openFile : string → IOMode -> IO Handle
   closeFile : Handle -> IO ⊤
   hPutStr : Handle → string → IO ⊤
+  hFlush : Handle → IO ⊤
+  stdout : Handle
 
 {-# COMPILED_TYPE Handle System.IO.Handle #-}
 {-# COMPILED_DATA IOMode System.IO.IOMode System.IO.ReadMode System.IO.WriteMode System.IO.AppendMode System.IO.ReadWriteMode #-}
+{-# COMPILED hFlush System.IO.hFlush #-}
+{-# COMPILED stdout System.IO.stdout #-}
 {-# COMPILED openFile (\fp -> (\mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh)) #-}
 {-# COMPILED closeFile System.IO.hClose #-}
 {-# COMPILED hPutStr (\ hdl -> (\ s -> Data.Text.IO.hPutStr hdl s)) #-}
 
 clearFile : string → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl
+
+flush : IO ⊤
+flush = hFlush stdout
 
 infixl 1 _>>≠_
 
@@ -208,6 +183,9 @@ streeng-to-string = flip h "" where
   h (s₁ ⊹⊹ s₂) = h s₁ ∘ h s₂
   h [[ s ]] acc = s ^ acc
 
+putStrLn : string → IO ⊤
+putStrLn str = putStr str >> putStr "\n" >> flush
+
 putStreeng : streeng → IO ⊤
 -- putStreeng = putStr ∘ streeng-to-string
 putStreeng s = h s (return triv) where
@@ -216,7 +194,7 @@ putStreeng s = h s (return triv) where
   h [[ s ]] io = putStr s >> io
 
 putStreengLn : streeng → IO ⊤
-putStreengLn s = putStreeng s >> putStr "\n" >> add-windows-ws-full
+putStreengLn s = putStreeng s >> putStr "\n" >> flush
 
 hPutStreeng : Handle → streeng → IO ⊤
 hPutStreeng outh s = h s (return triv) outh where

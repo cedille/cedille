@@ -41,7 +41,7 @@ dot-cedille-directory dir = combineFileNames dir ".cedille"
 
 -- Master switch for logging
 logging-enabled : 𝔹
-logging-enabled = ff
+logging-enabled = tt
 
 logFilepath : IO string
 logFilepath = getHomeDirectory >>= λ home → return (combineFileNames (dot-cedille-directory home) "log")
@@ -122,6 +122,15 @@ ced-file-up-to-date ced-path (just time) =
   getModificationTime ced-path >>= λ time' →
   return (time utc-after time')
 
+{-need-to-reparse : (filename : string) → toplevel-state → IO 𝔹
+need-to-reparse filename s = maybe-else
+  (return ff)
+  (λ ie → maybe-else
+    (return ff)
+    (λ lpt → getModificationTime filename >>= λ mt → return (mt utc-before lpt))
+    (include-elt.last-parse-time ie))
+  (get-include-elt-if s filename)-}
+
 cede-file-up-to-date : (ced-path : string) → IO 𝔹
 cede-file-up-to-date ced-path =
   let e = cede-filename ced-path in
@@ -161,7 +170,7 @@ reparse : toplevel-state → (filename : string) → IO toplevel-state
 reparse st filename = 
    doesFileExist filename >>= λ b → 
      (if b then
-         (readFiniteFile filename >>= λ s → getCurrentTime >>= λ time → processText s >>= λ ie → return (set-last-check-time-include-elt ie time))
+         (readFiniteFile filename >>= λ s → getCurrentTime >>= λ time → processText s >>= λ ie → return (set-last-parse-time-include-elt ie time))
       else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading."))) >>= λ ie →
         return (set-include-elt st filename ie)
   where processText : string → IO include-elt
@@ -175,16 +184,12 @@ reparse st filename =
 
 add-spans-if-up-to-date : (up-to-date : 𝔹) → (use-cede-files : 𝔹) → (filename : string) → include-elt → IO include-elt
 add-spans-if-up-to-date up-to-date use-cede-files filename ie =
-  let was-checked = file-was-checked (include-elt.ss ie) in
-  (if up-to-date && use-cede-files && ~ was-checked then
+  (if up-to-date && use-cede-files then
       read-cede-file filename >>= finish
     else
       return ie) >>= λ ie' → return (set-cede-file-up-to-date-include-elt ie' up-to-date)
   where finish : 𝔹 × string → IO include-elt
         finish (err , ss) = return (set-spans-string-include-elt ie err ss)
-        file-was-checked : spans ⊎ string → 𝔹
-        file-was-checked (inj₂ "") = ff
-        file-was-checked _ = tt
 
 cede-rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
 cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
@@ -196,17 +201,28 @@ cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
     check-rkt : toplevel-state → IO toplevel-state
     check-rkt s = return s -- TODO: Check if .rkt file is up to date for filename
 
+ensure-ast-depsh : (filename : string) → toplevel-state → IO toplevel-state
+ensure-ast-depsh filename s =
+  cede-file-up-to-date filename >>= λ cede-up-to-date →
+  reparse s filename >>= λ s →
+  add-spans-if-up-to-date cede-up-to-date (toplevel-state.use-cede-files s) filename
+    (set-do-type-check-include-elt
+      (set-need-to-add-symbols-to-context-include-elt
+        (get-include-elt s filename) tt)
+      (~ cede-up-to-date)) >>= λ ie →
+  return (set-include-elt s filename ie)
+
 {- make sure that the current ast and dependencies are stored in the
    toplevel-state, updating the state as needed. -}
-ensure-ast-deps : toplevel-state → (filename : string) → IO toplevel-state
-ensure-ast-deps s filename with get-include-elt-if s filename
-ensure-ast-deps s filename | nothing = reparse s filename
-ensure-ast-deps s filename | just ie =
-    ced-file-up-to-date filename (include-elt.last-check-time ie) >>= λ up-to-date → 
+ensure-ast-deps : (filename : string) → toplevel-state → IO toplevel-state
+ensure-ast-deps filename s with get-include-elt-if s filename
+ensure-ast-deps filename s | nothing = ensure-ast-depsh filename s
+ensure-ast-deps filename s | just ie =
+    ced-file-up-to-date filename (include-elt.last-parse-time ie) >>= λ up-to-date → 
       if up-to-date then
           return s
         else
-          reparse s filename
+          ensure-ast-depsh filename s
      
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
@@ -216,7 +232,7 @@ update-astsh : stringset {- seen already -} → toplevel-state → (filename : s
                IO (stringset {- seen already -} × toplevel-state)
 update-astsh seen s filename = 
   if stringset-contains seen filename then return (seen , s)
-  else (ensure-ast-deps s filename >>= cede-rkt-up-to-date filename >>= cont (stringset-insert seen filename))
+  else (ensure-ast-deps filename s >>= cede-rkt-up-to-date filename >>= cont (stringset-insert seen filename))
   where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
         cont seen s with get-include-elt s filename
         cont seen s | ie with include-elt.deps ie

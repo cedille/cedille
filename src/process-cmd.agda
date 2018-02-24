@@ -166,16 +166,18 @@ process-file s filename | ie =
            just above, after proceed finishes. -}
   where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt × mod-info
         proceed s nothing ie' = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
-        proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -} | include-elt.do-type-check ie
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | tt
-          with ctxt-get-current-mod Γ 
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | tt | prev-mod =
+        proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
+          with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
+        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename (start-modname x) in
            cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
-                   filename x tt Γ (regular-spans []))
+                   filename x do-check Γ (regular-spans []))
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
                  cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
                    let Γ = ctxt-set-current-mod Γ prev-mod in
-                    (mk-toplevel-state use-cede make-rkt ip (filename :: fns) is Γ , set-spans-include-elt ie' ss , ret-mod)
-        proceed s (just x) ie' | _ | _ = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
+                   (mk-toplevel-state use-cede make-rkt ip (if do-check then (filename :: fns) else fns) is Γ ,
+                     (if do-check then set-spans-include-elt ie' ss else ie') ,
+                     ret-mod)
+        proceed s (just x) ie' | _ = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
 
