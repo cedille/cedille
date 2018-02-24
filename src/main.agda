@@ -41,7 +41,7 @@ dot-cedille-directory dir = combineFileNames dir ".cedille"
 
 -- Master switch for logging
 logging-enabled : 𝔹
-logging-enabled = tt
+logging-enabled = ff
 
 logFilepath : IO string
 logFilepath = getHomeDirectory >>= λ home → return (combineFileNames (dot-cedille-directory home) "log")
