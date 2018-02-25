@@ -114,10 +114,19 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
         spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
 
+
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
+  set-ctxt Γ ≫span
+  check-and-add-params localScope pi' ps ≫=span λ ms → 
+  get-ctxt (λ Γ → 
+    let Γ' = ctxt-kind-def pi x ps k Γ in
+      check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
+        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
+{-
   let k' = hnf Γ unfold-head k tt in
     check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
       (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
+-}
 
 -- TODO check import args against module param types
 process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
