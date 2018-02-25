@@ -43,8 +43,18 @@ dot-cedille-directory dir = combineFileNames dir ".cedille"
 logging-enabled : 𝔹
 logging-enabled = ff
 
+-- Clear log file upon process initialization
+clear-log-on-init : 𝔹
+clear-log-on-init = tt
+
 logFilepath : IO string
 logFilepath = getHomeDirectory >>= λ home → return (combineFileNames (dot-cedille-directory home) "log")
+
+maybeClearLogFile : IO ⊤
+maybeClearLogFile = if clear-log-on-init then
+    logFilepath >>= clearFile
+  else
+    return triv
 
 logH : streeng → IO ⊤
 logH s = logFilepath >>= λ fn → withFile fn AppendMode (h s) where
@@ -116,20 +126,10 @@ find-imported-files dirs (u :: us) =
     return ((u , p) :: ps)
 find-imported-files dirs [] = return []
 
-ced-file-up-to-date : (ced-path : string) → maybe UTC → IO 𝔹
-ced-file-up-to-date _ nothing = return ff
-ced-file-up-to-date ced-path (just time) =
+file-not-modified-since : (ced-path : string) → UTC → IO 𝔹
+file-not-modified-since ced-path time =
   getModificationTime ced-path >>= λ time' →
   return (time utc-after time')
-
-{-need-to-reparse : (filename : string) → toplevel-state → IO 𝔹
-need-to-reparse filename s = maybe-else
-  (return ff)
-  (λ ie → maybe-else
-    (return ff)
-    (λ lpt → getModificationTime filename >>= λ mt → return (mt utc-before lpt))
-    (include-elt.last-parse-time ie))
-  (get-include-elt-if s filename)-}
 
 cede-file-up-to-date : (ced-path : string) → IO 𝔹
 cede-file-up-to-date ced-path =
@@ -201,9 +201,10 @@ cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
     check-rkt : toplevel-state → IO toplevel-state
     check-rkt s = return s -- TODO: Check if .rkt file is up to date for filename
 
-ensure-ast-depsh : (filename : string) → toplevel-state → IO toplevel-state
-ensure-ast-depsh filename s =
-  cede-file-up-to-date filename >>= λ cede-up-to-date →
+ensure-ast-depsh : (filename : string) → maybe UTC → toplevel-state → IO toplevel-state
+ensure-ast-depsh filename lpt s =
+  cede-file-up-to-date filename >>=
+  cede-not-mod-since lpt >>= λ cede-up-to-date →
   reparse s filename >>= λ s →
   add-spans-if-up-to-date cede-up-to-date (toplevel-state.use-cede-files s) filename
     (set-do-type-check-include-elt
@@ -211,18 +212,27 @@ ensure-ast-depsh filename s =
         (get-include-elt s filename) tt)
       (~ cede-up-to-date)) >>= λ ie →
   return (set-include-elt s filename ie)
+  where
+    cede-not-mod-since : maybe UTC → 𝔹 → IO 𝔹
+    cede-not-mod-since nothing cede = return cede
+    cede-not-mod-since (just utc) b =
+      file-not-modified-since (cede-filename filename) utc >>= λ b' →
+      return (b && b')
 
 {- make sure that the current ast and dependencies are stored in the
    toplevel-state, updating the state as needed. -}
 ensure-ast-deps : (filename : string) → toplevel-state → IO toplevel-state
 ensure-ast-deps filename s with get-include-elt-if s filename
-ensure-ast-deps filename s | nothing = ensure-ast-depsh filename s
+ensure-ast-deps filename s | nothing = ensure-ast-depsh filename nothing s
 ensure-ast-deps filename s | just ie =
-    ced-file-up-to-date filename (include-elt.last-parse-time ie) >>= λ up-to-date → 
-      if up-to-date then
-          return s
-        else
-          ensure-ast-depsh filename s
+    maybe-else
+      (return ff)
+      (file-not-modified-since filename)
+      (include-elt.last-parse-time ie) >>= λ ced-up-to-date →
+    if ced-up-to-date then
+        return s
+      else
+        ensure-ast-depsh filename (include-elt.last-parse-time ie) s
      
 {- helper function for update-asts, which keeps track of the files we have seen so
    we avoid importing the same file twice, and also avoid following cycles in the import
@@ -389,8 +399,8 @@ main = initializeStdoutToUTF8 >>
        initializeStdinToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
-       logFilepath >>= -- ↓
-       clearFile >> -- Clears the log file
+       maybeClearLogFile >>
+       logMsg "Cedille process started" >>
        readOptions >>=
        next
   where next : string ⊎ options-types.opts → IO ⊤
