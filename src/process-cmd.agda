@@ -43,6 +43,12 @@ check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
   check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 check-and-add-params _ _ ParamsNil = spanMr []
 
+dont-check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
+dont-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
+  add-tk' ff scope pi1' x atk ≫=span λ mi →
+  dont-check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+dont-check-and-add-params _ _ ParamsNil = spanMr []
+
 {-# TERMINATING #-}
 process-cmd : process-t cmd
 process-cmds : process-t cmds
@@ -117,16 +123,11 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps 
 
 process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   set-ctxt Γ ≫span
-  check-and-add-params localScope pi' ps ≫=span λ ms → 
+  dont-check-and-add-params localScope pi' ps ≫=span λ ms → 
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
-{-
-  let k' = hnf Γ unfold-head k tt in
-    check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-kind-def pi x ps k' Γ)))
--}
 
 -- TODO check import args against module param types
 process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
