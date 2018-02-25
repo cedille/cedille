@@ -269,6 +269,9 @@ head-type = to-string-tag "the type of the head"
 arg-type : ctxt → type → tagged-val
 arg-type = to-string-tag "the type of the arg"
 
+arg-exp-type : ctxt → type → tagged-val
+arg-exp-type = to-string-tag "expected arg type"
+
 type-app-head : ctxt → type → tagged-val
 type-app-head = to-string-tag "the head"
 
