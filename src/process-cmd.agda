@@ -63,10 +63,8 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   check-term t (just tp') ≫span 
   get-ctxt (λ Γ →
     let t' = erase-term t in
-    let t'' = hnf Γ unfold-head t' tt in
-    let t''' = hnf Γ unfold-all t' tt in
+    let t''' = hnf Γ unfold-all (qualif-term Γ t') tt in
     let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
-      -- TODO what is compileFail doing with this? do not hnf before qualif
       spanM-add (DefTerm-span Γ pi x checking (just tp) t' pi' (compileFail-in Γ t t' t''')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanM-add (Var-span Γ' pi x checking []) ≫span
@@ -82,9 +80,7 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
   check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
     let t' = erase-term t in
-    let t'' = hnf Γ unfold-head t' tt in
-    let t''' = hnf Γ unfold-all t' tt in
-      -- TODO what is compileFail doing with this? do not hnf before qualif
+    let t''' = hnf Γ unfold-all (qualif-term Γ t') tt in
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t' pi' (compileFail-in Γ t t' t''')) ≫span
       check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
         (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))

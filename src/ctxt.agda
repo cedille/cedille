@@ -115,7 +115,7 @@ ctxt-var-decl-if p v Γ with Γ
 ... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
-... | _ = mk-ctxt (fn , mn , ps , q) syms
+... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil p))) syms
   (trie-insert i v (var-decl , (fn , p)))
   symb-occs
 

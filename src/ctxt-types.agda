@@ -75,7 +75,7 @@ ctxt-binds-var (mk-ctxt (_ , _ , _ , q) _ i _) x = trie-contains q x || trie-con
 
 ctxt-var-decl : posinfo → var → ctxt → ctxt
 ctxt-var-decl p v (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
-  mk-ctxt (fn , mn , ps , (trie-insert q v (p % v , ArgsNil p))) syms (trie-insert i v (var-decl , (fn , p))) symb-occs
+  mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil p))) syms (trie-insert i v (var-decl , (fn , p))) symb-occs
 
 qualif-var : ctxt → var → var
 qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _) v with trie-lookup q v

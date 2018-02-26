@@ -98,14 +98,14 @@ _≫str_ : strM → strM → strM
 (m ≫str m') s n ts Γ pe lr with m s n ts Γ pe lr
 (m ≫str m') s n ts Γ pe lr | s' , n' , ts' = m' s' n' ts' Γ pe lr
 
-strΓ : var → posinfo → strM → strM
-strΓ v pi m s n ts Γ pe = m s n ts (ctxt-var-decl pi v Γ) pe
+strΓ : var → strM → strM
+strΓ v m s n ts Γ pe = m s n ts (ctxt-var-decl posinfo-gen v Γ) pe
 
 strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
 
 var-loc-tag : ctxt → qvar → ℕ → ℕ → 𝕃 tag
-var-loc-tag Γ v start end with ctxt-var-location Γ (qualif-var Γ v)
+var-loc-tag Γ v start end with ctxt-var-location Γ v
 ...| "missing" , "missing" = []
 ...| fn , pos = [ make-tag "loc" (("fn" , [[ fn ]]) :: [ "pos" , [[ pos ]] ]) start end ]
 
@@ -178,10 +178,10 @@ term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-st
 term-to-stringh (Hole pi) = strAdd "●"
 term-to-stringh (IotaPair pi t t' pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
-term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringh t)
+term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x (to-stringh t)
 term-to-stringh (Let pi dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
-...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
+...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x (to-stringh t)
+...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x (to-stringh t)
 term-to-stringh (Parens pi t pi') = strAdd "(" ≫str to-string-ed t ≫str strAdd ")"
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringh eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringr t' ≫str strAdd "}"
 term-to-stringh (Rho pi r eq t) = strAdd (rho-to-string r) ≫str to-stringh eq ≫str strAdd " - " ≫str to-stringh t
@@ -189,29 +189,29 @@ term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
 
-type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
+type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x (to-stringh T)
 type-to-stringh (Iota pi pi' x oT T) = strAdd ("ι " ^ x) ≫str optType-to-string oT ≫str strAdd " . " ≫str to-stringh T
-type-to-stringh (Lft pi pi' x t lT) = strAdd ("↑ " ^ x ^ " . ") ≫str strΓ x pi' (to-stringh t ≫str strAdd " : " ≫str to-stringh lT)
+type-to-stringh (Lft pi pi' x t lT) = strAdd ("↑ " ^ x ^ " . ") ≫str strΓ x (to-stringh t ≫str strAdd " : " ≫str to-stringh lT)
 type-to-stringh (NoSpans T pi) = to-string-ed T
 type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
 type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
 type-to-stringh (TpEq t t') = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strAdd "●"
-type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
+type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x (to-stringh T)
 type-to-stringh (TpParens pi T pi') = strAdd "(" ≫str to-string-ed T ≫str strAdd ")"
 type-to-stringh (TpVar pi x) = strVar x
 
 kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-stringr k'
 kind-to-stringh (KndParens pi k pi') = strAdd "(" ≫str to-string-ed k ≫str strAdd ")"
-kind-to-stringh (KndPi pi pi' x Tk k) = strAdd ("Π " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh k)
+kind-to-stringh (KndPi pi pi' x Tk k) = strAdd ("Π " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x (to-stringh k)
 kind-to-stringh (KndTpArrow T k) = to-stringl T ≫str strAdd " ➔ " ≫str to-stringr k
 kind-to-stringh (KndVar pi x as) = strVar x ≫str args-to-string as
 kind-to-stringh (Star pi) = strAdd "★"
 
 liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔↑ " ≫str to-stringr lT'
 liftingType-to-stringh (LiftParens pi lT pi') = strAdd "(" ≫str to-string-ed lT ≫str strAdd ")"
-liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π↑ " ^ x ^ " : ") ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi (to-stringh lT)
+liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π↑ " ^ x ^ " : ") ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x (to-stringh lT)
 liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
 
