@@ -1,0 +1,14 @@
+module Tests.shadowBug .
+
+import nat .
+
+-- Somehow, the last `S' in the type signature
+-- of the lambda below is considered distinct from the local
+-- binding that introduces it.
+shadow-bug
+  ◂ Nat
+  = (Λ S : ★ . λ f : (Nat ➔ S ➔ S) . λ n : S . n) · Nat add Z .
+--  ^-------------------------------------------^ <- Bug
+--             ^--------------------------------^ <- OK
+
+
