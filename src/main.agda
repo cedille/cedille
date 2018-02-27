@@ -126,10 +126,14 @@ find-imported-files dirs (u :: us) =
     return ((u , p) :: ps)
 find-imported-files dirs [] = return []
 
-file-not-modified-since : (ced-path : string) → UTC → IO 𝔹
-file-not-modified-since ced-path time =
-  getModificationTime ced-path >>= λ time' →
-  return (time utc-after time')
+file-not-modified-since : string → UTC → IO 𝔹
+file-not-modified-since fn time =
+  doesFileExist fn >>= λ b →
+  if b then
+      (getModificationTime fn >>= λ time' →
+      return (time utc-after time'))
+    else
+      return tt
 
 cede-file-up-to-date : (ced-path : string) → IO 𝔹
 cede-file-up-to-date ced-path =
@@ -194,17 +198,24 @@ add-spans-if-up-to-date up-to-date use-cede-files filename ie =
 cede-rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
 cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
     check-cede : toplevel-state → IO toplevel-state
-    check-cede s =
+    check-cede s with toplevel-state.use-cede-files s
+    check-cede s | ff = return s
+    check-cede s | tt =
       cede-file-up-to-date filename >>= λ up-to-date →
       return (maybe-else s
         (λ ie → set-include-elt s filename (set-cede-file-up-to-date-include-elt ie up-to-date)) (get-include-elt-if s filename))
     check-rkt : toplevel-state → IO toplevel-state
-    check-rkt s = return s -- TODO: Check if .rkt file is up to date for filename
+    check-rkt s with toplevel-state.make-rkt-files s
+    check-rkt s | ff = return s
+    check-rkt s | tt = return s -- TODO: Check if .rkt file is up to date for filename
 
 ensure-ast-depsh : (filename : string) → maybe UTC → toplevel-state → IO toplevel-state
 ensure-ast-depsh filename lpt s =
-  cede-file-up-to-date filename >>=
-  cede-not-mod-since lpt >>= λ cede-up-to-date →
+  if toplevel-state.use-cede-files s then
+    (cede-file-up-to-date filename >>=
+      cede-not-mod-since lpt)
+    else
+      return ff >>= λ cede-up-to-date →
   reparse s filename >>= λ s →
   add-spans-if-up-to-date cede-up-to-date (toplevel-state.use-cede-files s) filename
     (set-do-type-check-include-elt
