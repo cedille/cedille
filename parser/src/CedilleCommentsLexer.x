@@ -2,8 +2,6 @@
 
 module CedilleCommentsLexer where
 
-
-import Text.Show.Unicode
 import Data.Text(Text,pack,unpack)
 
 }
