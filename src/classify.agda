@@ -579,14 +579,17 @@ check-termi (IotaPair pi t1 t2 pi') (just (Iota pi1 pi2 x (SomeType tp1) tp2)) =
     -- TODO why another get-ctxt here?
     get-ctxt (λ Γ → 
     spanM-add (IotaPair-span pi pi' checking (expected-type Γ (Iota pi1 pi2 x (SomeType tp1) tp2) :: (check-conv Γ t1' t2')))))
-  where err : ctxt → string → term → tagged-val
-        err Γ which t = to-string-tag ("Hnf of the " ^ which ^ " component: ") Γ (hnf Γ unfold-head t tt)
+  where ntag : ctxt → string → string → term → unfolding → tagged-val
+        ntag Γ nkind which t u = to-string-tag (nkind ^ " of the " ^ which ^ " component: ") Γ (hnf Γ u t tt)
+        err : ctxt → string → term → 𝕃 tagged-val
+        err Γ which t =
+          ntag Γ "Hnf" which t unfold-head :: [] -- [ ntag Γ "Nf" which t unfold-all ]
         check-conv : ctxt → term → term → 𝕃 tagged-val
         check-conv Γ t1 t2 =
                 (if conv-term Γ t1 t2 then
                   []
                  else ((error-data "The two components of the iota-pair are not convertible (as required)." ) ::
-                       (err Γ "first" t1) :: (err Γ "second" t2) :: []))
+                       (err Γ "first" t1) ++ (err Γ "second" t2)))
 
 check-termi (IotaPair pi t1 t2 pi') (just tp) =
   get-ctxt (λ Γ →
