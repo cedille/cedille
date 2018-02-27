@@ -163,7 +163,7 @@ postulate
 {-# COMPILED getCurrentTime Data.Time.Clock.getCurrentTime #-}
 {-# COMPILED _utc-after_ (>) #-}
 {-# COMPILED _utc-before_ (<) #-}
-{-# COMPILED utcToString (\ t -> case t of Data.Time.Clock.UTCTime day time -> Data.Text.pack ((Data.Time.Calendar.showGregorian day) ++ ", " ++ (show time))) #-}
+{-# COMPILED utcToString (\ t -> Data.Text.pack (show t)) #-}
 {-# COMPILED getModificationTime (\ s -> System.Directory.getModificationTime (Data.Text.unpack s)) #-}
 
 -- string binary tree, for more efficient I/O printing than concatenation
