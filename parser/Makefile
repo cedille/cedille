@@ -36,8 +36,8 @@ ast:    lexer
 parser-debug : lexer
 	cd src;	happy -i -d -a CedilleParser.y
 
-parser-executable: ./src/CedilleParser.y lexer 
-	cd src;	happy CedilleParser.y; ghc --make CedilleParser.hs -main-is CedilleParser; mv CedilleParser ..
+parser-executable: ./src/CedilleParser.y lexer
+	cp ../src/CedilleTypes.hs src/;	cd src;	happy CedilleParser.y; ghc --make CedilleParser.hs -main-is CedilleParser; mv CedilleParser ..; rm CedilleTypes.hs
 
 lexer:  ./src/CedilleLexer.x
 	cd src; alex CedilleLexer.x 

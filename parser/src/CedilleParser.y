@@ -5,8 +5,9 @@ module CedilleParser where
 import CedilleTypes
 import CedilleLexer hiding (main)
 
-import Data.Text(Text,pack,unpack,append,breakOnEnd)
+import Data.Text(Text,pack,unpack)
 import Control.Monad
+import System.Environment
 
 }
 
@@ -288,7 +289,8 @@ parseTxt :: Text -> Either (Either Text Text) Start
 parseTxt s = case runAlex (unpack s) $ cedilleParser of
                Prelude.Left  s' -> case head s' of {
                                      'L' -> Prelude.Left (Prelude.Left  (pack (tail s')));
-                                     'P' -> Prelude.Left (Prelude.Right (pack (tail s')))
+                                     'P' -> Prelude.Left (Prelude.Right (pack (tail s')));
+                                     _   -> Prelude.Left (Prelude.Right (pack "0")) -- This should never happen
                                    }
                Prelude.Right r  -> Prelude.Right r
 
@@ -312,12 +314,13 @@ parseKind = parse kind
 parseDefTermOrType :: Text -> Either Text DefTermOrType
 parseDefTermOrType = parse deftermtype
 
--- main :: IO ()
--- main = do  
---   [ file ] <- getArgs
---   cnt      <- readFile file
---   case parse cnt of
---     Prelude.Left  errMsg -> writeFile (file ++ "-result") errMsg
---     Prelude.Right res    -> writeFile (file ++ "-result") (show res)
+main :: IO ()
+main = do  
+  [ file ] <- getArgs
+  cnt      <- readFile file
+  case parseTxt (pack cnt) of 
+    Prelude.Left  (Prelude.Left  errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
+    Prelude.Left  (Prelude.Right errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
+    Prelude.Right res                    -> writeFile (file ++ "-result") (show res)    
 
 }

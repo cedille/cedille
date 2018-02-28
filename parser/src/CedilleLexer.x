@@ -26,7 +26,7 @@ token :-
       <0> @proj                                 { mkTokenProj  TProj      }
       <0> $symbols                              { mkToken      TSym       }
       <0> Π↑                                    { mkTokenEmpty TPiLift    }
-      <0> ➔↑                                   { mkTokenEmpty TArrowLift }      
+      <0> ➔↑                                    { mkTokenEmpty TArrowLift }      
       <0> ε                                     { mkTokenEmpty TEps       }
       <0> ε\-                                   { mkTokenEmpty TEpsM      }
       <0> εl                                    { mkTokenEmpty TEpsL      }
@@ -43,18 +43,18 @@ token :-
       <0> module                                { mkTokenEmpty TModule    }
       <0> import                                { mkTokenEmpty TImport    }
       <0> as                                    { mkTokenEmpty TAs        }
-      <0> $white+				;
+      <0> $white+				{ skip'                   }
       <0> @kvar                                 { mkToken TKvar           }
       <0> @qkvar        			{ mkToken TQKvar          }      
       <0> @var                                  { mkToken TVar            }
       <0> @qvar					{ mkToken TQvar           }
       <0> @fpth				        { mkToken TFpth           }
-      <0> \-\- 					{ begin comment           }
-      <0> \{\- 					{ begin commentMultiLines }      
-      <comment> . 				;
-      <comment> \n				{ begin 0                 }
-      <commentMultiLines> \-\}			{ begin 0                 }
-      <commentMultiLines> . | \n		;      
+      <0> \-\- 					{ begin' comment          }
+      <0> \{\- 					{ begin' commentMultiLines}
+      <comment> . 				{ skip'                   }
+      <comment> \n				{ begin' 0                }
+      <commentMultiLines> \-\}			{ begin' 0                }
+      <commentMultiLines> . | \n		{ skip'                   }      
 
 {
 
@@ -179,9 +179,15 @@ isEOF :: Token -> Bool
 isEOF (Token _ TEOF) = True
 isEOF _              = False
 
+skip' _input _len = alexMonadScanErrOffset
+
+-- ignore this token, but set the start code to a new value
+-- begin :: Int -> AlexAction result
+begin' code _input _len = do alexSetStartCode code; alexMonadScanErrOffset
+
 alexMonadScanErrOffset = do
   inp <- alexGetInput
-  sc <- alexGetStartCode
+  sc  <- alexGetStartCode
   case alexScan inp sc of
     AlexEOF -> alexEOF
     AlexError ((AlexPn off _ _),_,_,_) -> alexError $ "L" ++ show (off + 1)
