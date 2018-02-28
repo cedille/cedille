@@ -11,4 +11,10 @@ shadow-bug
 --  ^-------------------------------------------^ <- Bug
 --             ^--------------------------------^ <- OK
 
-
+-- (Colin) with the patch I sent you, this fails to check,
+-- whereas the checks OK.
+shadow-bug-2
+ ◂ (∀ A : ★ . A) ➔ Nat
+ = λ b . b · (∀ A : ★ . A ➔ A) Z .
+--       ^-------------------^
+-- Bug here - type "A"
