@@ -1,0 +1,32 @@
+module stigma.
+
+Stigma' ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★. ∀ X : ★. (∀ a : A. B a ➔ X) ➔ X.
+
+mkStigma' ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ a : A. B a ➔ Stigma' · A · B =
+  Λ A. Λ B. Λ a. λ b. Λ X. λ f. f -a b.
+
+StigmaInd' ◂ Π A : ★. Π B : A ➔ ★. Stigma' · A · B ➔ ★ =
+  λ A : ★. λ B : A ➔ ★. λ x : Stigma' · A · B.
+    ∀ X : ★. ∀ Q : X ➔ ★. ∀ p : ∀ a : A. Π b : B a. X. 
+      (∀ a : A. Π b : B a. Q (p -a b)) ➔ Q (x · X p).
+
+Stigma ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★.
+  ι s : Stigma' · A · B.
+  ι _ : {s mkStigma' ≃ s}.
+    StigmaInd' · A · B s.
+
+mkStigma ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ a : A. B a ➔ Stigma · A · B = Λ A. Λ B. Λ a. λ b.
+  [mkStigma' · A · B -a b,
+  [β{λ f . f b},
+    Λ X. Λ Q. Λ p. λ f. f -a b]].
+
+StigmaInd ◂ ∀ A : ★. ∀ B : A ➔ ★. Π x : Stigma · A · B. ∀ P : Stigma · A · B ➔ ★.
+           (∀ a : A. Π b : B a. P (mkStigma · A · B -a b)) ➔ P x =
+  Λ A. Λ B. λ x. Λ P. λ p.
+    ρ ς x.2.1 - (x.2.2 · (Stigma · A · B) · P -(mkStigma · A · B) p).
+
+proj1 ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ C : ★. Stigma · A · B ➔ (A ➾ C) ➔ C =
+  Λ A. Λ B. Λ C. λ s. λ f. s.1 · C (Λ a. λ b. f -a).
+
+                                                      {- a escaping its scope -}
+proj2 = Λ A : ★. Λ B : A ➔ ★. λ s : Stigma · A · B. s.1 (Λ a : A. λ b : B a. b).
