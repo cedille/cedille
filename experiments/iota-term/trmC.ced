@@ -8,6 +8,7 @@ import recType.
 import RecTypeI.
 import valuation.
 import natExtras.
+import wSigma2.
 import is.
 import top.
 
@@ -15,36 +16,40 @@ foldU1 ◂ Top ➔ Top ➔ Top = λ alg . λ val . β{λ d . d val alg} .
 foldU2 ◂ Nat ➔ Top ➔ Top ➔ Top = λ n : Nat . λ alg . λ val . β{λ x . λ d . d (updateValuation' n val x) alg} .
 inU ◂ Nat ➔ Top = λ n . β{λ d . λ val . λ alg . alg n (foldU1 alg val) (foldU2 n alg val) d}.
 inAlgU ◂ Nat ➔ Top = λ n . β{ λ _ . λ _ . λ d . inU n d}.
-varU ◂ Nat ➔ Top = λ n . β{λ val. λ alg . val n (lt-nSn n) }.
-varValuationU ◂ Nat ➔ Top = λ n . β{λ m . λ _ . varU m}.
+varU ◂ Nat ➔ Top = λ n . β{λ val. λ alg . val n (lt-nSn n) (λ a . a)}.
+--varValuationU ◂ Nat ➔ Top = λ n . β{λ m . λ _ . varU m}.
 
 TrmAppF ◂ ★ ➔ ★ = λ R1 : ★ . Product · R1 · R1 .
 TrmIF ◂ ★ ➔ ★ ➔ ★ =
   λ R1 : ★ . λ R2 : ★ . Sum · (TrmAppF · R1) · R2 .
 
-TrmAlg ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) ➔ ★ =
-  λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ .
+TrmAlg ◂ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
+  λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ . 
   ι alg : Top .
-    Π n : Nat . ∀ val : Top . ∀ R1 : ★ . ∀ R2 : ★ . 
+    Π n : Nat .
+    ∀ val : Top.
+    ∀ R1 : ★ . ∀ R2 : ★ . 
     Cast · R1 · (Trm' n) ➾ 
     Cast · R2 · (Trm' (S n)) ➾ 
     Π e1 : is · (R1 ➔ X n) (foldU1 alg val).
-    Π e2 : is · (X (S n) ➔ R2 ➔ X (S n)) (foldU2 n alg val).
+    Π e2 : is · (Π v : X (S n) . I n v ➾ R2 ➔ X (S n)) (foldU2 n alg val).
     TrmIF · R1 · R2 ➔ 
     X n.
 
 TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
-  λ Trm' : Nat ➔ ★ . λ n : Nat .
-    ι x : ∀ X : Nat ➔ ★ . Valuation' n · X ➔ TrmAlg · Trm' · X ➔ X n .
-    { x (varValuationU n) inAlgU ≃ x } .
+  λ Trm' : Nat ➔ ★ . λ n : Nat . 
+    ι x : ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ . Valuation' n · X · I ➔ 
+          TrmAlg · Trm' · X · I ➔ X n .
+    ∀ f : Top . (Π m : Nat . Π p : Lt m n . { f m p (λ a . a) ≃ varU m }) ➾ 
+    { x f inAlgU ≃ x } .
 
 Trm' ◂ Nat ➔ ★ = Reci · Nat · TrmF' .
 
 TrmFFun' ◂ RecFunctori · Nat · TrmF' =
   Λ X . Λ Y . λ c .
     [ Λ n . λ u .
-      [ Λ Z . λ val . λ alg .
-          u.1 · Z val
+      [ Λ Z . Λ I . λ val . λ alg .
+          u.1 · Z val 
           [ β{alg} ,
             λ n . Λ val . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
              alg.2 n -val · R1 · R2 -[λ r . casti · Nat · X · Y -c -n (cast · R1 · (X n) -c1 r), β]
@@ -73,26 +78,38 @@ TrmFold' ◂ ∀ n : Nat . TrmF' · Trm' n ➔ Trm' n =
 TrmUnfold' ◂ ∀ n : Nat . Trm' n ➔ TrmF' · Trm' n = 
   casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun') . 
 
-fold' ◂ ∀ X : Nat ➔ ★ . TrmAlg · Trm' · X ➔ ∀ n : Nat . Valuation' n · X ➔ Trm' n ➔ X n =
-  Λ X . λ alg . Λ n . λ val . λ t . (TrmUnfold' -n t).1 · X val alg .
+fold' ◂ ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
+        TrmAlg · Trm' · X · I ➔ ∀ n : Nat . Valuation' n · X · I  ➔ Trm' n ➔ X n =
+  Λ X . Λ I . λ alg . Λ n . λ val . λ t . (TrmUnfold' -n t).1 · X val alg .
 
 in' ◂ Π n : Nat . TrmIF · (Trm' n) · (Trm' (S n)) ➔ Trm' n =
   λ n . λ d .
     TrmFold' -n
-      [Λ X . λ val . λ alg .
+      [Λ X . Λ I . λ val . λ alg .
          alg.2 n -β{val} · (Trm' n) · (Trm' (S n))
              -[ λ x . x , β] -[λ x . x , β]
-             [fold' · X alg -n val , β{fold' alg val}]
-             [λ x . fold' · X alg -(S n) (updateValuation' n · X val x) , β{foldU2 n alg val}]
+             [fold' · X alg -n val , β{foldU1 alg val}]
+             [λ x . Λ ix . fold' · X alg -(S n) (updateValuation' n val x -ix), β{foldU2 n alg val}]
              d,
-        β{λ val . λ alg . alg n (fold' alg val) (λ x . fold' alg (updateValuation' n val x)) d}].
+        Λ f . Λ uf . β{λ val . λ alg . alg n (fold' alg val) (λ x . fold' alg (updateValuation' n val x)) d}].
+
+appe' ◂ Π n : Nat . Trm' n ➔ Trm' n ➔ Trm' n
+    = λ n . λ t1 . λ t2 .
+        in' n (in1 · (TrmAppF · (Trm' n)) · (Trm' (S n))
+                  (pair · (Trm' n) · (Trm' n) t1 t2)) .
+
+abs' ◂ Π n : Nat . Trm' (S n) ➔ Trm' n
+     = λ n . λ t .
+        in' n (in2 · (TrmAppF · (Trm' n)) · (Trm' (S n)) t) .
+
+{-
 
 inAlg' ◂ TrmAlg · Trm' · Trm' =
   [ β{λ n . λ e1 . λ e2 . λ d . in' n (cast d)} ,
     λ n . Λ val . Λ R1 . Λ R2 . Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
     in' n (cast · (TrmIF · R1 · R2) · (TrmIF · (Trm' n) · (Trm' (S n)))
             -(TrmIFFun · R1 · R2 · (Trm' n) · (Trm' (S n)) reveal1 reveal2) d)] .
-
+-}
 
 {-
 embedTrm' ◂ Π n : Nat . Π m : Nat . Trm' n ➔ Trm' (add n m) =
@@ -113,7 +130,7 @@ embedTrm' ◂ Π n : Nat . Π m : Nat . Trm' n ➔ Trm' (add n m) =
 var' ◂ Π n : Nat . Trm' (S n) =
   λ n . 
      TrmFold' -(S n)
-        [Λ X . λ val . λ alg . val n (lt-nSn n), β{varU n}].
+        [Λ X . Λ I . λ val . λ alg . (val n (lt-nSn n)).1 · (X (S n)) (λ a . Λ _ . a), Λ f . Λ uf . ρ+ (uf n (lt-nSn n)) - ε β{varU n}].
 
 {-
 embedTrm' ◂ Π n : Nat . Trm' n ➔ Π m : Nat . Lt n m ➔ Trm' m =
@@ -124,8 +141,9 @@ embedTrm' ◂ Π n : Nat . Trm' n ➔ Π m : Nat . Lt n m ➔ Trm' m =
           ● .
 -}
 
-varValuation ◂ Π n : Nat . Valuation' n · Trm' =
- λ n . λ m . λ _ . var' m .
+varValuationInv ◂ Π n : Nat . Trm' (S n) ➔ ★ = λ n : Nat. λ t : Trm' (S n) . { t ≃ varU n } .
+varValuation ◂ Π n : Nat . Valuation' n · Trm' · varValuationInv =
+ λ n . λ m . λ _ . mkWSigma2 · (Trm' (S m)) · (varValuationInv m) (var' m) -β .
 
 exampleTrm' ◂ Trm' Z = in' Z (in2 · (TrmAppF · (Trm' Z)) · (Trm' (S Z))
                                 (var' Z)) .

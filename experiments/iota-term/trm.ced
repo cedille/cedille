@@ -18,16 +18,20 @@ TrmPrfAlg ◂ Π Trm : Nat ➔ ★ .
             Π in : inTp · Trm' .
             Π var : varTp · Trm'.
             Π P : Π x : Nat . Trm' x ➔ ★ .
+            Π I : Π m : Nat . P (S m) (var m) ➔ ★ .
             ★ =
-  λ Trm : Nat ➔ ★ . λ Trm' : Nat ➔ ★ . λ in : inTp · Trm' . λ var : varTp · Trm' . λ P : (Π x : Nat . Trm' x ➔ ★) . 
+  λ Trm : Nat ➔ ★ . λ Trm' : Nat ➔ ★ . λ in : inTp · Trm' . λ var : varTp · Trm' . λ P : (Π x : Nat . Trm' x ➔ ★) .
+  λ I : Π m : Nat . P (S m) (var m) ➔ ★ .
     ι alg : Top .
-    Π n : Nat . ∀ val : Top . ∀ R1 : ★ . ∀ R2 : ★ . 
+    Π n : Nat .
+    ∀ val : Top .
+    ∀ R1 : ★ . ∀ R2 : ★ . 
     ∀ Reveal1 : Cast · R1 · (Trm n) .
     ∀ Reveal2 : Cast · R2 · (Trm (S n)) .
     ∀ reveal1 : Cast · R1 · (Trm' n) .
     ∀ reveal2 : Cast · R2 · (Trm' (S n)) .
     Π e1 : is · (Π r : R1 . P n (cast · R1 · (Trm' n) -reveal1 r)) (foldU1 alg val).
-    Π e2 : is · (P (S n) (var n) ➔ Π r : R2 . P (S n) (cast · R2 · (Trm' (S n)) -reveal2 r)) (foldU2 n alg val) .
+    Π e2 : is · (Π p : P (S n) (var n) . I n p ➾ Π r : R2 . P (S n) (cast · R2 · (Trm' (S n)) -reveal2 r)) (foldU2 n alg val) .
     Π d : TrmIF · R1 · R2 .
     P n (in n (cast · (TrmIF · R1 · R2) · (TrmIF · (Trm' n) · (Trm' (S n)))
                   -(TrmIFFun · R1 · R2 · (Trm' n) · (Trm' (S n)) reveal1 reveal2) d)).
@@ -40,8 +44,9 @@ InductiveTrm ◂ Π Trm : Nat ➔ ★ .
   λ Trm : Nat ➔ ★ . λ Trm' : Nat ➔ ★ . λ in : inTp · Trm' . λ var : varTp · Trm' .
   λ n : Nat . λ t : Trm' n .
     ∀ P : Π x : Nat . Trm' x ➔ ★.
-    Π val : Valuation n · Trm' var · P .
-    TrmPrfAlg · Trm · Trm' in var · P ➔
+    ∀ I : Π m : Nat . P (S m) (var m) ➔ ★ .
+    Π val : Valuation n · Trm' var · P · I .
+    TrmPrfAlg · Trm · Trm' in var · P · I ➔
     P n t.
     
 TrmF ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
@@ -53,12 +58,12 @@ TrmFFun ◂ RecFunctori · Nat · TrmF =
   Λ X . Λ Y . λ c .
     [ Λ i . λ d .
       [ d.1 ,
-        Λ P . λ val . λ alg .
+        Λ P . Λ I . λ val . λ alg .
           d.2 · P val
             [β{alg},
              λ n . Λ val . Λ R1 . Λ R2 . Λ Reveal1 . Λ Reveal2 .
              Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
-               alg.2 n -β{val} · R1 · R2
+               alg.2 n -val · R1 · R2
                  -[λ x . c.1 -n (Reveal1.1 x),ρ c.2 - ρ Reveal1.2 - β{λ x . c (Reveal1 x)}]
                  -[λ x . c.1 -(S n) (Reveal2.1 x),ρ c.2 - ρ Reveal2.2 - β{λ x . c (Reveal2 x)}]
                  -reveal1 -reveal2 e1 e2 d] ] ,  β].
@@ -70,11 +75,24 @@ TrmUnfold ◂ ∀ n : Nat . Trm n ➔ TrmF · Trm n =
   casti · Nat · Trm · (TrmF · Trm) -(recUnfoldi · Nat · TrmF -TrmFFun) .
 
 foldTrm ◂ ∀ P : Π x : Nat . Trm' x ➔ ★ .
-          TrmPrfAlg · Trm · Trm' in' var' · P ➔
+          ∀ I : Π m : Nat . P (S m) (var' m) ➔ ★ .
+          TrmPrfAlg · Trm · Trm' in' var' · P · I ➔
           ∀ n : Nat .
-          Valuation n · Trm' var' · P ➔
+          Valuation n · Trm' var' · P · I ➔
           Π d : Trm n .
           P n (TrmUnfold -n d).1 =
-   Λ P . λ alg . Λ n . λ val . λ d .
-     (TrmUnfold -n d).2 · P val alg.
+   Λ P . Λ I . λ alg . Λ n . λ val . λ d .
+     (TrmUnfold -n d).2 · P · I val alg.
 
+in ◂ Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n =
+  λ n . λ d . TrmFold -n [in' n (cast · (TrmIF · (Trm n) · (Trm (S n))) · (TrmIF · (Trm' n) · (Trm' (S n)))
+                                   -(TrmIFFun · (Trm n) · (Trm (S n)) · (Trm' n) · (Trm' (S n))
+                                      [ λ x . (TrmUnfold -n x).1 , β] [ λ x . (TrmUnfold -(S n) x).1 , β])
+                                   d) ,
+                          Λ P . Λ I . λ val . λ alg . alg.2 n -β{val} · (Trm n) · (Trm (S n))
+                                                  -(castId · (Trm n)) -(castId · (Trm (S n)))
+                                                  -[λ a . (TrmUnfold -n a).1,β] -[λ a . (TrmUnfold -(S n) a).1,β]
+                                                  [foldTrm · P alg -n val,β{foldTrm alg val}]
+                                                  [λ x . Λ ix . foldTrm · P alg -(S n) (updateValuation n · Trm' -var' · P val x -ix) ,
+                                                   β{foldU2 n alg val}]
+                                                  d] .

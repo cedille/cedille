@@ -102,4 +102,9 @@ Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
 lt-nSn ◂ Π n : Nat . Lt n (S n) =
   λ n . θ<n> (NatInd n) (LtZ Z) (λ p . λ ih . LtS p (S p) ih).
 
-add-mono ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt (add x z) (add y z) = ● .
+LtS' ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m)
+      = λ n . λ m . λ l . Lt-trans n (S n) (S m) (lt-nSn n) (LtS n m l) .
+
+{- add-mono ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt (add x z) (add y z) =
+  λ x . λ y . λ z . λ p . ●. -}
+    
