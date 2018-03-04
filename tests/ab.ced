@@ -1,0 +1,14 @@
+module ab.
+
+cProduct ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. ∀ X : ★. (A ➔ B ➔ X) ➔ X.
+
+F ◂ ★ ➔ ★ ➔ ★ = λ X : ★ . λ Y : ★ . cProduct · X · Y .
+
+True ◂ ★ = ∀ X : ★ . X ➔ X .
+
+triv ◂ True = Λ X . λ x . x .
+
+foo ◂ ★ = F · True · True .
+
+test ◂ foo = Λ X . λ c . c triv triv .

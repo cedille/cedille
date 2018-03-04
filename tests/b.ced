@@ -1,0 +1,8 @@
+module b.
+
+cProduct ◂ ★ ➔ ★ ➔ ★ 
+ = λ A : ★. λ B : ★. ∀ X : ★. (A ➔ B ➔ X) ➔ X.
+
+import a · (λ X : ★ . λ Y : ★ . cProduct · X · Y) .
+
+test ◂ foo = Λ X . λ c . c triv triv .
