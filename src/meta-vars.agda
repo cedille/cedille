@@ -261,10 +261,17 @@ private
     e-liftingType-ineq Γ l₁ l₂
       = streeng-to-string $' to-string Γ l₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ l₂
 
+    e-meta-scope : ctxt → (x : var) → type → string
+    e-meta-scope Γ x tp = streeng-to-string $'
+      [[ "Cannot match " ^ x ^ " with " ]] ⊹⊹ to-string Γ tp
+      ⊹⊹ [[ ", because some local vars would escape their scope." ]] 
+
     e-catchall : ctxt → (tp₁ tp₂ : type) → string
     e-catchall Γ tp₁ tp₂ = e-type-ineq Γ tp₁ tp₂ ^ " (catchall case)"
 
   open meta-vars-match-errors
+
+local-vars = stringset
 
 meta-vars-solve : ctxt → meta-vars → var → type → error-t meta-vars
 meta-vars-solve Γ Xs x tp
@@ -280,98 +287,100 @@ meta-vars-solve Γ Xs x tp
 ... | just (a , k , tp' :: x₁ :: tps)
   = yes-error "TODO multi-solution, change to maybe"
 
-meta-vars-match : ctxt → meta-vars → (tpₓ tp : type) → error-t meta-vars
-meta-vars-match-tk : ctxt → meta-vars → (tkₓ tk : tk) → error-t meta-vars
-meta-vars-match-optType : ctxt → meta-vars → (mₓ m : optType) → error-t meta-vars
+meta-vars-match : ctxt → meta-vars → local-vars → (tpₓ tp : type) → error-t meta-vars
+meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → error-t meta-vars
+meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
 
 -- meta-vars-match
-meta-vars-match Γ Xs tpₓ@(TpVar pi x) tp
+meta-vars-match Γ Xs Ls tpₓ@(TpVar pi x) tp
   -- check if x is a meta-var
   = if ~ trie-contains Xs x
     -- if not, then just make sure tp is the same var
     then   err-guard (~ conv-type Γ tpₓ tp) (e-type-ineq Γ tpₓ tp)
          ≫err no-error Xs
+    else if are-free-in-type check-erased Ls tp
+    then yes-error (e-meta-scope Γ x tp)
     else meta-vars-solve Γ Xs x tp
 
-meta-vars-match Γ Xs (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
-  =   meta-vars-match Γ Xs tpₓ₁ tp₁
-    ≫=err λ Xs' → meta-vars-match Γ Xs' tpₓ₂ tp₂
+meta-vars-match Γ Xs Ls (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
+  =   meta-vars-match Γ Xs Ls tpₓ₁ tp₁
+    ≫=err λ Xs' → meta-vars-match Γ Xs' Ls tpₓ₂ tp₂
     ≫=err λ Xs″ → no-error Xs″
 
-meta-vars-match Γ Xs (TpAppt tpₓ tmₓ) (TpAppt tp tm)
-  =   meta-vars-match Γ Xs tpₓ tp
+meta-vars-match Γ Xs Ls (TpAppt tpₓ tmₓ) (TpAppt tp tm)
+  =   meta-vars-match Γ Xs Ls tpₓ tp
     ≫=err λ Xs' →
       err-guard (~ conv-term Γ tmₓ tm)
                 (e-term-ineq Γ tmₓ tm)
     ≫err no-error Xs'
 
-meta-vars-match Γ Xs tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
+meta-vars-match Γ Xs Ls tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
   =   err-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
-    ≫err meta-vars-match-tk Γ Xs tkₓ tk
+    ≫err meta-vars-match-tk Γ Xs Ls tkₓ tk
     ≫=err λ Xs' →
       meta-vars-match
         (ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ))
-        Xs' tpₓ tp
+        Xs' (stringset-insert Ls x) tpₓ tp
 
-meta-vars-match Γ Xs tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err-guard (~ eq-arrowtype atₓ at)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
 
-meta-vars-match Γ Xs tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
+meta-vars-match Γ Xs Ls tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
   =   err-guard (~ arrowtype-matches-binder atₓ b)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
 
-meta-vars-match Γ Xs tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err-guard (~ arrowtype-matches-binder at bₓ)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
 
-meta-vars-match Γ Xs (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
-  =   meta-vars-match-optType Γ Xs mₓ m
+meta-vars-match Γ Xs Ls (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
+  =   meta-vars-match-optType Γ Xs Ls mₓ m
     ≫=err λ Xs →
       meta-vars-match (ctxt-rename pi xₓ x (ctxt-var-decl-if pi x Γ))
-        Xs tpₓ tp
+        Xs (stringset-insert Ls x) tpₓ tp
 
-meta-vars-match Γ Xs (TpEq t₁ₓ t₂ₓ) (TpEq t₁ t₂)
+meta-vars-match Γ Xs Ls (TpEq t₁ₓ t₂ₓ) (TpEq t₁ t₂)
   =   err-guard (~ conv-term Γ t₁ₓ t₁) (e-term-ineq Γ t₁ₓ t₁)
     ≫err err-guard (~ conv-term Γ t₂ₓ t₂) (e-term-ineq Γ t₂ₓ t₂)
     ≫err no-error Xs
 
-meta-vars-match Γ Xs (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
+meta-vars-match Γ Xs Ls (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
   =   err-guard (~ conv-liftingType Γ lₓ l) (e-liftingType-ineq Γ lₓ l)
     ≫err err-guard
       (~ conv-term (ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)) tₓ t)
       (e-term-ineq Γ tₓ t)
     ≫err no-error Xs
 
-meta-vars-match Γ Xs (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
-  =   meta-vars-match-tk Γ Xs atkₓ atk
-    ≫=err λ Xs → meta-vars-match Γ Xs tpₓ tp
+meta-vars-match Γ Xs Ls (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
+  =   meta-vars-match-tk Γ Xs Ls atkₓ atk
+    ≫=err λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) tpₓ tp
 
-meta-vars-match Γ Xs tpₓ tp
+meta-vars-match Γ Xs Ls tpₓ tp
   = yes-error (e-catchall Γ tpₓ tp)
 
 -- meta-vars-match-tk
-meta-vars-match-tk Γ Xs (Tkk kₓ) (Tkk k)
+meta-vars-match-tk Γ Xs Ls (Tkk kₓ) (Tkk k)
   =   err-guard (~ conv-kind Γ kₓ k)
                 (e-kind-ineq Γ kₓ k)
     ≫err no-error Xs
-meta-vars-match-tk Γ Xs (Tkt tpₓ) (Tkt tp)
-  = meta-vars-match Γ Xs tpₓ tp
-meta-vars-match-tk Γ Xs tkₓ tk
+meta-vars-match-tk Γ Xs Ls (Tkt tpₓ) (Tkt tp)
+  = meta-vars-match Γ Xs Ls tpₓ tp
+meta-vars-match-tk Γ Xs Ls tkₓ tk
   = yes-error (e-tk-ineq Γ tkₓ tk)
 
 -- meta-vars-match-optType
-meta-vars-match-optType Γ Xs NoType NoType
+meta-vars-match-optType Γ Xs Ls NoType NoType
   = no-error Xs
-meta-vars-match-optType Γ Xs (SomeType tpₓ) (SomeType tp)
-  = meta-vars-match Γ Xs tpₓ tp
-meta-vars-match-optType Γ Xs NoType (SomeType x)
-  = yes-error $' e-optType-ineq Γ x ff
-meta-vars-match-optType Γ Xs (SomeType x) NoType
-  = yes-error $' e-optType-ineq Γ x tt
+meta-vars-match-optType Γ Xs Ls (SomeType tpₓ) (SomeType tp)
+  = meta-vars-match Γ Xs Ls tpₓ tp
+meta-vars-match-optType Γ Xs Ls NoType (SomeType tp)
+  = yes-error $' e-optType-ineq Γ tp ff
+meta-vars-match-optType Γ Xs Ls (SomeType tpₓ) NoType
+  = yes-error $' e-optType-ineq Γ tpₓ tt

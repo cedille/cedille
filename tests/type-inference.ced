@@ -8,6 +8,7 @@ import depcast .
 import list .
 import clist .
 import product .
+import sigma .
 
 -- (Y) for definitions expected to type check with no errors,
 -- (N) for definitions expected to fail to synthesize all type args
@@ -110,6 +111,10 @@ test-bot2 ◂ (∀ A : ★ . A) ➔ cNat
 
 -- Bugs
 ----------------------------------------------------------------------
+
+-- All fixed! Thanks Colin!
+-- (B) This should be a type error, a "escapes" its scope
+proj2' = Λ A : ★. Λ B : A ➔ ★. λ s : Sigma · A · B. s.1 (Λ a : A. λ b : B a. b).
 
 -- (B)
 -- Strange shadowing bug

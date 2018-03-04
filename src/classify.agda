@@ -714,7 +714,7 @@ check-term-app t''@(App t m t') mtp
                on-fail   spanM-add (App-span t t' check-mode
                            ([ head-type Γ (meta-vars-subst-type Γ Xs tp)]))
                       ≫span spanMr nothing
-               ≫=spanm' λ tpₐ' → case meta-vars-match Γ Xs tpₐ tpₐ' of λ where
+               ≫=spanm' λ tpₐ' → case meta-vars-match Γ Xs empty-trie tpₐ tpₐ' of λ where
                  (yes-error msg) →
                    check-term-app-error-unmatchable Γ t t' tpₐ tpₐ' Xs check-mode msg
                  (no-error   Xs) →
