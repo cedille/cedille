@@ -20,26 +20,26 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
     λ n . Λ val . Λ R1 . Λ R2 . Λ reveal1 . Λ reveal2 .
       λ e1 . λ e2 . λ d .
         in n 
-         (cast {- · (TrmIF · R1 · R2) · (TrmIF · (Trm n) · (Trm (S n))) -}
-            -(TrmIFFun {- · R1 · R2 · (Trm n) · (Trm (S n)) -}
-               (caste {- · R1 · (Trm n) -} e1.1
+         (cast 
+            -(TrmIFFun
+               (caste e1.1
                  -(λ a .
                      ρ ς e1.2 -
-                     ε ρ ((TrmUnfold' -n (cast {- · R1 · (Trm' n)-} -reveal1 a)).2 -β{val}
+                     ε ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
                             -(λ m : Nat . λ p : Lt m n.
                                  wSigma2Induction (val m p)
                                    · (λ q : wSigma2 · (Trm (S m)) · (varValuationInv m) .
                                        { q (λ a . a) ≃ varU m })
                                    (λ v . Λ e . ρ e - β))) -
                        β))
-               (caste {- · R2 · (Trm (S n)) -} (e2.1 (var n) -β) 
+               (caste (e2.1 (var n) -β) 
                  -(λ a . ρ ς e2.2 -
-                         ε ρ ((TrmUnfold' -(S n) (cast {- · R2 · (Trm' (S n)) -} -reveal2 a)).2 -β{updateValuation' n val (var n)}
+                         ε ρ ((TrmUnfold' -(S n) (cast -reveal2 a)).2 -β{updateValuation' n val (var n)}
                                -(λ m . λ p .
-                                   InductionLt m (S n) p
-                                       · (λ m : Nat . λ n' : Nat . λ p : Lt m n'. ∀ n : Nat . {n' ≃ S n} ➔
+                                   ind-Sum (Lt-S m n p)
+                                       · (λ q : Lte m n. {Lt-S m n p ≃ q} ➔ 
                                             { updateValuation' n val (var n) m p (λ a . a) ≃ varU m})
-                                       (λ n' . Λ n'' . λ e . ε β) ● -n β)) -
+                                       (λ a . ●) (λ a . ●) β)) -
                            β)))
              d)].
                

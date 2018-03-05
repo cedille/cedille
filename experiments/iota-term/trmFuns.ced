@@ -1,19 +1,28 @@
 module trmFuns .
 
 import trmC.
+import trmD.
 import product.
 import sum.
 import nat.
+import true.
+import wSigma2.
 
-sizeTrm ◂ ∀ n : Nat . Trm' n ➔ Nat =
-  Λ n . λ t .
-    TrmUnfold' -n t · (λ _ : Nat . Nat)
-      (λ n . λ m . λ p . λ x . x)
-      (λ _ . λ _ . (S Z))
-      (Λ n . Λ R1 . Λ R2 . Λ _ . Λ _ .
+sizeTrm ◂ Π n : Nat . Trm n ➔ Nat =
+  λ n . λ t .
+    TrmRec n t · (λ _ : Nat . Nat)
+      · (λ n : Nat . λ _ : Nat . True)
+      (λ _ . λ _ . mkWSigma2 · Nat · (λ _ : Nat . True)
+                     (S Z) -triv)
+      [β{λ n' . λ eval1 . λ eval2 . λ d . d (λ a . a (λ fun . λ arg . S (add (eval1 fun) (eval1 arg)))) (λ a . S (eval2 (S Z) a))},
+      λ n . Λ val . Λ R1 . Λ R2 . Λ _ . Λ _ .
        λ eval1 . λ eval2 . λ d .
-       d.1 · Nat (λ a . a.1 · Nat
-                         (λ fun . λ arg . S (add (eval1 fun) (eval1 arg))))
-                 (λ a . S (eval2 (S Z) a))) .
+       d.1 · Nat
+         (λ a . a.1 · Nat
+           (λ fun . λ arg . S (add (eval1.1 fun) (eval1.1 arg))))
+         (λ a . S (eval2.1 (S Z) -triv a))] .
 
-sizeExampleTrm' ◂ Nat = sizeTrm -Z exampleTrm'. 
+exampleTrm ◂ Trm Z = in Z (in2 · (TrmAppF · (Trm Z)) · (Trm (S Z))
+                            (var Z)) .
+
+sizeExampleTrm ◂ Nat = sizeTrm Z exampleTrm. 

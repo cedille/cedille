@@ -36,10 +36,16 @@ TrmAlg ◂ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) �
     TrmIF · R1 · R2 ➔ 
     X n.
 
+TrmFC' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
+  λ Trm' : Nat ➔ ★ . λ n : Nat . 
+    ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
+      Valuation' n · X · I ➔ 
+      TrmAlg · Trm' · X · I ➔
+      X n .
+
 TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
   λ Trm' : Nat ➔ ★ . λ n : Nat . 
-    ι x : ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ . Valuation' n · X · I ➔ 
-          TrmAlg · Trm' · X · I ➔ X n .
+    ι x : TrmFC' · Trm' n.
     ∀ f : Top . (Π m : Nat . Π p : Lt m n . { f m p (λ a . a) ≃ varU m }) ➾ 
     { x f inAlgU ≃ x } .
 
