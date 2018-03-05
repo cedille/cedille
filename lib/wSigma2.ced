@@ -1,0 +1,42 @@
+module WeakSigma2.
+
+wSigma2' ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+    ∀ X : ★ . (Π a : A . B a ➾ X) ➔ X .
+
+mkWSigma2' ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Π a : A . B a ➾ wSigma2' · A · B =
+  Λ A . Λ B . λ a . Λ b . Λ X . λ c . c a -b . 
+
+wSigma2Ind ◂ Π A : ★ . Π B : A ➔ ★ . wSigma2' · A · B ➔ ★ =
+ λ A : ★ . λ B : A ➔ ★ . λ s : wSigma2' · A · B .
+   ∀ P : wSigma2' · A · B ➔ ★ .
+   (Π a : A . ∀ b : B a . P (mkWSigma2' · A · B a -b)) ➔
+   P s .
+
+wSigma2 ◂ Π A : ★ . (A ➔ ★) ➔ ★ =
+  λ A : ★ . λ B : A ➔ ★ .
+  ι x : wSigma2' · A · B .
+  wSigma2Ind · A · B x .
+
+mkWSigma2 ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Π a : A . B a ➾ wSigma2 · A · B =
+  Λ A . Λ B . λ a . Λ b .
+    [ mkWSigma2' · A · B a -b ,
+      Λ P . λ c . c a -b ] .
+
+wSigma2Reflection ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Π x : wSigma2 · A · B . {x mkWSigma2' ≃ x} = 
+  Λ A . Λ B . λ x .
+    x.2 · (λ x : wSigma2' · A · B . {x mkWSigma2' ≃ x})
+      (λ a . Λ b . β) . 
+
+toWSigma2 ◂ ∀ A : ★ . ∀ B : A ➔ ★ . wSigma2' · A · B ➔ wSigma2 · A · B =
+  Λ A . Λ B . λ x . x · (wSigma2 · A · B) (mkWSigma2 · A · B) .
+
+wSigma2Induction ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Π s : wSigma2 · A · B .
+   ∀ P : wSigma2 · A · B ➔ ★ .
+   (Π a : A . ∀ b : B a . P (mkWSigma2 · A · B a -b)) ➔
+   P s =
+   Λ A . Λ B . λ s . Λ P . λ c . 
+     ρ ς (wSigma2Reflection · A · B s) -
+       (s.2 · (λ s : wSigma2' · A · B . P (toWSigma2 · A · B s))
+         (λ a . Λ b . c a -b)) . 
+
