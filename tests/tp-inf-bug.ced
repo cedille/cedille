@@ -30,3 +30,14 @@ proj1 ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ C : ★. Stigma · A · B ➔ (A �
 
                                                       {- a escaping its scope -}
 proj2 = Λ A : ★. Λ B : A ➔ ★. λ s : Stigma · A · B. s.1 (Λ a : A. λ b : B a. b).
+
+-- Similar bug, but for Π
+
+StigmaPi
+  ◂ Π A : ★. (A ➔ ★) ➔ ★
+  = λ A : ★. λ B : A ➔ ★. ∀ X : ★. (Π a : A. B a ➔ X) ➔ X.
+
+proj2pi = Λ A : ★. Λ B : A ➔ ★. λ s : StigmaPi · A · B.
+	    s (λ a : A. λ b : B a. b).
+--            ^---------------------^
+-- Synth type for lambda converts Π to ➔

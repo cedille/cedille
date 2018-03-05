@@ -12,7 +12,7 @@ import sigma .
 
 -- (Y) for definitions expected to type check with no errors,
 -- (N) for definitions expected to fail to synthesize all type args
--- (B) for a type inference bug
+-- (B) for a bug
 
 -- (Y) infer A : ★
 test1 ◂ ∀ A : ★ . A ➔ A
@@ -112,20 +112,29 @@ test-bot2 ◂ (∀ A : ★ . A) ➔ cNat
 -- Bugs
 ----------------------------------------------------------------------
 
--- All fixed! Thanks Colin!
 -- (B) This should be a type error, a "escapes" its scope
-proj2' = Λ A : ★. Λ B : A ➔ ★. λ s : Sigma · A · B. s.1 (Λ a : A. λ b : B a. b).
+proj2' = Λ A : ★. Λ B : A ➔ ★. λ s : Sigma · A · B.
+       	 s.1 (λ a : A. λ b : B a. b).
+--           ^---------------------^
+--           Synthesized type for this is wrong
+--           The ∀ version had the right behavior though
 
--- (B)
+-- (B) [FIXED]
+-- The original version of the error
+Stigma' ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★. ∀ X : ★. (∀ a : A. B a ➔ X) ➔ X.
+{- a escaping its scope -}
+proj2'' = Λ A : ★. Λ B : A ➔ ★. λ s : Stigma' · A · B. s (Λ a : A. λ b : B a. b).
+
+
+-- (B) [FIXED]
 -- Strange shadowing bug
 test-hnf-bug ◂ Nat
 	     = cFoldr (Λ X : ★ . λ f : (Nat ➔ X ➔ X) . λ n : X . n) Z add .
 
--- (B) Not unfolding definitions
+-- (B) [FIXED] Not unfolding definitions
 -- This also occurs when I try to omit explicit type
 -- arguments to appendV2appendL in examples/reuse/combs/Examples.ced
 -- (in the outermost copyType)
-
 test-unfold-rhs
   ◂ ∀ A : ★ . A ➔ A
   = Λ A . cast -(χ (Cast · A · A) - (castId · A)) .
