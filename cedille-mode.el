@@ -388,8 +388,8 @@ in the parse tree, and updates the Cedille info buffer."
   (cedille-mode-update-buffers)
   (cedille-mode-highlight-occurrences-if))
 
-(defun cedille-mode-modify-response (response)
-  (replace-regexp-in-string "^ +"  "" response))
+;(defun cedille-mode-modify-response (response)
+;  (replace-regexp-in-string "^ +"  "" response))
 
 (defun cedille-mode-quit()
   "Quit Cedille navigation mode"
@@ -595,7 +595,7 @@ occurrences, then do so."
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-  (setq-local se-inf-modify-response 'cedille-mode-modify-response)
+  ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
 
   (set-input-method "Cedille")
 )

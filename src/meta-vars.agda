@@ -1,4 +1,6 @@
-module meta-vars where
+import cedille-options
+
+module meta-vars (options : cedille-options.options) where
 
 open import lib
 open import functions
@@ -9,10 +11,10 @@ open import conversion
 open import ctxt
 open import is-free
 open import rename
-open import spans
+open import spans options
 open import subst
 open import syntax-util
-open import to-string
+open import to-string options
 
 -- TODO propose adding these to the standard lib
 module helpers where

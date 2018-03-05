@@ -10,9 +10,11 @@ File : start -> opts ows .
 OptsNil : opts -> .
 OptsCons : opts -> ows opt opts .
 
-Lib : opt -> 'import-directories' paths ows '.'.
-NoCedeFiles : opt -> 'no-cede-files' ows '.'.
-NoRktFiles : opt -> 'no-rkt-files' ows '.'.
+Lib : opt -> 'import-directories' ows '=' ows paths ows '.'.
+UseCedeFiles : opt -> 'use-cede-files' ows '=' ows str-bool ows '.' ows.
+MakeRktFiles : opt -> 'make-rkt-files' ows '=' ows str-bool ows '.' ows.
+GenerateLogs : opt -> 'generate-logs' ows '=' ows str-bool ows '.' ows.
+ShowQualifiedVars : opt -> 'show-qualified-vars' ows '=' ows str-bool ows '.' ows.
 
 PathsNil : paths -> .
 PathsCons : paths -> ws path paths .
@@ -22,6 +24,7 @@ Lexical
 
 squote => '\"' .
 path -> squote anychar* squote.
+str-bool -> 'true' | 'false' .
 
 alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 

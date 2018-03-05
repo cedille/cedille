@@ -1,6 +1,8 @@
-module rkt where
+import cedille-options
 
-open import toplevel-state
+module rkt (options : cedille-options.options) where
+
+open import toplevel-state options
 open import string
 open import char
 open import io

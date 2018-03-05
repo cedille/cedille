@@ -13,3 +13,6 @@ ignored-var = "_"
 
 options-file-name : string
 options-file-name = "options"
+
+global-error-string : string → string
+global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}"

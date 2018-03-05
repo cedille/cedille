@@ -122,18 +122,18 @@ is-free-in{KIND} e x t = are-free-in-kind e (stringset-singleton x) t
 is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x) t 
 is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset-singleton x) as
 
-abs-tk : lam → var → tk → type → type
-abs-tk l x (Tkk k) tp = Abs posinfo-gen All posinfo-gen x (Tkk k) tp
-abs-tk ErasedLambda x (Tkt tp') tp = Abs posinfo-gen All posinfo-gen x (Tkt tp') tp
-abs-tk KeptLambda x (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
-abs-tk KeptLambda x (Tkt tp') tp | tt = Abs posinfo-gen Pi posinfo-gen x (Tkt tp') tp
-abs-tk KeptLambda x (Tkt tp') tp | ff = TpArrow tp' UnerasedArrow  tp
+abs-tk : lam → var → posinfo → tk → type → type
+abs-tk l x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp
+abs-tk ErasedLambda x pi (Tkt tp') tp = Abs posinfo-gen All pi x (Tkt tp') tp
+abs-tk KeptLambda x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton (pi % x)) tp 
+abs-tk KeptLambda x pi (Tkt tp') tp | tt = Abs posinfo-gen Pi pi x (Tkt tp') tp
+abs-tk KeptLambda x pi (Tkt tp') tp | ff = TpArrow tp' UnerasedArrow  tp
 
-absk-tk : var → tk → kind → kind
-absk-tk x atk k with are-free-in check-erased (stringset-singleton x) k
-absk-tk x atk k | tt = KndPi posinfo-gen posinfo-gen x atk k
-absk-tk x (Tkt tp) k | ff = KndTpArrow tp k
-absk-tk x (Tkk k') k | ff = KndArrow k' k
+absk-tk : var → posinfo → tk → kind → kind
+absk-tk x pi atk k with are-free-in check-erased (stringset-singleton (pi % x)) k
+absk-tk x pi atk k | tt = KndPi posinfo-gen pi x atk k
+absk-tk x pi (Tkt tp) k | ff = KndTpArrow tp k
+absk-tk x pi (Tkk k') k | ff = KndArrow k' k
 
 data abs  : Set where
   mk-abs : posinfo → binder → posinfo → var → tk → (var-free-in-body : 𝔹) → type → abs 

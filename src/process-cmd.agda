@@ -1,17 +1,19 @@
-module process-cmd where
+import cedille-options
+
+module process-cmd (options : cedille-options.options) where
 
 open import lib
 
 --open import cedille-find
 open import cedille-types
-open import classify
+open import classify options
 open import constants
 open import conversion
 open import ctxt
 open import general-util
-open import spans
+open import spans options
 open import syntax-util
-open import toplevel-state
+open import toplevel-state options
 -- open import to-string
 
 import cws-types
@@ -56,39 +58,36 @@ process-params : process-t (posinfo × params)
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
 process-file : toplevel-state → (filename : string) → toplevel-state × mod-info
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
   check-type tp (just star) ≫span
   let tp' = qualif-type Γ tp in
   check-term t (just tp') ≫span 
   get-ctxt (λ Γ →
-    let t' = erase-term t in
-    let t''' = hnf Γ unfold-all (qualif-term Γ t') tt in
-    let Γ' = ctxt-term-def pi globalScope x t' tp' Γ in
-      spanM-add (DefTerm-span Γ pi x checking (just tp) t' pi' (compileFail-in Γ t t' t''')) ≫span
-      check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanM-add (Var-span Γ' pi x checking []) ≫span
-         spanMr (mk-toplevel-state use-cede make-rkt ip fns is Γ')))
+    let Γ' = ctxt-term-def pi globalScope x t tp' Γ in
+      spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
+      check-redefined pi x (mk-toplevel-state ip fns is Γ)
+        (spanM-add (Var-span Γ' pi x checking (compileFail-in Γ t)) ≫span
+         spanMr (mk-toplevel-state ip fns is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
-    check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-term-def pi globalScope x t tp' Γ)))
+    check-redefined pi x (mk-toplevel-state ip fns is Γ)
+      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope x t tp' Γ)))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
   get-ctxt (λ Γ → 
-    let t' = erase-term t in
-    let t''' = hnf Γ unfold-all (qualif-term Γ t') tt in
-      spanM-add (DefTerm-span Γ pi x synthesizing mtp t' pi' (compileFail-in Γ t t' t''')) ≫span
-      check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (h Γ (t' , mtp)))))
-  where h : ctxt → term × (maybe type) → ctxt
-        h Γ (t , nothing) = ctxt-term-udef pi globalScope x t Γ
-        h Γ (t , just tp) = ctxt-term-def pi globalScope x t tp Γ
+      let Γ' = maybe-else
+                 (ctxt-term-udef pi globalScope x t Γ)
+                 (λ tp → ctxt-term-def pi globalScope x t tp Γ) mtp in
+      spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
+      check-redefined pi x (mk-toplevel-state ip fns is Γ)
+        (spanM-add (Var-span Γ' pi x synthesizing (compileFail-in Γ t)) ≫span
+         spanMr (mk-toplevel-state ip fns is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') tt {- check -} =
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') tt {- check -} =
     set-ctxt Γ ≫span
     check-kind k ≫span 
     let k' = qualif-kind Γ k in
@@ -96,50 +95,50 @@ process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (D
     get-ctxt (λ Γ → 
       let Γ' = ctxt-type-def pi globalScope x tp k' Γ in
         spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
-        check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
+        check-redefined pi x (mk-toplevel-state ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking []) ≫span
-           spanMr (mk-toplevel-state use-cede make-rkt ip fns is Γ')))
+           spanMr (mk-toplevel-state ip fns is Γ')))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') ff {- skip checking -} = 
   let k' = qualif-kind Γ k in
-    check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-      (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-type-def pi globalScope x tp k' Γ)))
+    check-redefined pi x (mk-toplevel-state ip fns is Γ)
+      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope x tp k' Γ)))
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
+process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
   check-and-add-params localScope pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
-      check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
+      check-redefined pi x (mk-toplevel-state ip fns is Γ)
        (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking []) ≫span
-        spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
+        spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
 
 
-process-cmd (mk-toplevel-state use-cede make-rkt ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   set-ctxt Γ ≫span
   dont-check-and-add-params localScope pi' ps ≫=span λ ms → 
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
-      check-redefined pi x (mk-toplevel-state use-cede make-rkt ip fns is Γ)
-        (spanMr (mk-toplevel-state use-cede make-rkt ip fns is (ctxt-restore-info* Γ' ms))))
+      check-redefined pi x (mk-toplevel-state ip fns is Γ)
+        (spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
 
 -- TODO check import args against module param types
 process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
   let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let s = scope-imports (fst (process-file s imported-file)) imported-file oa (qualif-args (toplevel-state.Γ s) as) in
+  let as = qualif-args (toplevel-state.Γ s) as in
+  let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
   let ie = get-include-elt s imported-file in
     spanM-add (Import-span pi imported-file pi' 
                 (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
     spanMr s
-      
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
-process-cmds (mk-toplevel-state use-cede make-rkt include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd
-                                (mk-toplevel-state use-cede make-rkt include-path files is
+process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd
+                                (mk-toplevel-state include-path files is
                                   {-(ctxt-set-symbol-occurrences Γ
                                     (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset))-} Γ)
                                 c need-to-check ≫=span
@@ -150,7 +149,7 @@ process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span 
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
   check-and-add-params globalScope pi ps ≫=span λ _ →
-  -- spanM-set-params ps ≫span
+  spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = Γ})
 
@@ -173,16 +172,16 @@ process-file s filename | ie =
   where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt × mod-info
         proceed s nothing ie' = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
         proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt
+        proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt
           with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
-        proceed (mk-toplevel-state use-cede make-rkt ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
+        proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename (start-modname x) in
-           cont (process-start (mk-toplevel-state use-cede make-rkt ip fns (trie-insert is filename ie') Γ)
+           cont (process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
                    filename x do-check Γ (regular-spans []))
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
-                 cont (mk-toplevel-state use-cede make-rkt ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
+                 cont (mk-toplevel-state ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
                    let Γ = ctxt-set-current-mod Γ prev-mod in
-                   (mk-toplevel-state use-cede make-rkt ip (if do-check then (filename :: fns) else fns) is Γ ,
+                   (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is Γ ,
                      (if do-check then set-spans-include-elt ie' ss else ie') ,
                      ret-mod)
         proceed s (just x) ie' | _ = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))

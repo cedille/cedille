@@ -1,14 +1,16 @@
 {- Module that generates semi-blank spans for the beta-reduction buffer -}
 
+import cedille-options
+
+module erased-spans (options : cedille-options.options) where
+
+
 open import lib
 open import ctxt
-
-module erased-spans where
-
 open import cedille-types
-open import spans
+open import spans options
 open import syntax-util
-open import to-string
+open import to-string options
 open import general-util
 
 
@@ -41,7 +43,7 @@ inc-pi : posinfo → posinfo
 inc-pi pi = posinfo-plus pi 1
 
 put-span : posinfo → posinfo → language-level → 𝕃 tagged-val → spanM ⊤
-put-span pi pi' ll tv = spanM-add (mk-span "" (inc-pi pi) (inc-pi pi') (ll-data ll :: tv))
+put-span pi pi' ll tv = spanM-add (mk-span "" pi pi' (ll-data ll :: tv))
 
 pi-plus-span : posinfo → string → language-level → 𝕃 tagged-val → spanM ⊤
 pi-plus-span pi s = put-span pi (posinfo-plus-str pi s)
@@ -114,7 +116,7 @@ erased-term-spans (Let pi dtt t) =
 erased-term-spans (Parens pi t pi') = erased-term-spans t
 erased-term-spans (Var pi v) = erased-var-span pi v ll-term
 erased-term-spans t = error-spans ("Unknown term: " ^ (ParseTreeToString (parsed-term t))
-  ^ ", " ^ streeng-to-string (to-string (new-ctxt "" "") t) ^ " (erased-spans.agda)")
+  ^ ", " ^ streeng-to-string (to-string empty-ctxt t) ^ " (erased-spans.agda)")
 
 erased-type-spans (Abs pi b pi' v t-k tp) =
   put-span pi (type-end-pos tp) ll-type [] ≫span

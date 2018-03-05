@@ -15,13 +15,13 @@ AGDASRC = to-string.agda constants.agda \
 	spans.agda conversion.agda syntax-util.agda ctxt-types.agda \
 	rename.agda classify.agda subst.agda is-free.agda lift.agda rewriting.agda ctxt.agda \
         main.agda toplevel-state.agda process-cmd.agda general-util.agda interactive-cmds.agda erased-spans.agda \
-	rkt.agda meta-vars.agda
+	rkt.agda meta-vars.agda cedille-options.agda
 
 CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
                 cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \
                 cedille-mode/cedille-mode-info.el cedille-mode/cedille-mode-library.el cedille-mode/cedille-mode-summary.el cedille-mode/cedille-mode-normalize.el cedille-mode/cedille-mode-scratch.el cedille-mode/cedille-mode-beta-reduce.el
 
-SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el se-mode/se-pin.el
+SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el se-mode/se-pin.el se-mode/se-markup.el
 
 ELISP=$(SE_MODE) $(CEDILLE_ELISP)
 

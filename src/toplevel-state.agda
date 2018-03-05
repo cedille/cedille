@@ -1,16 +1,18 @@
-module toplevel-state where
+import cedille-options
+
+module toplevel-state (options : cedille-options.options) where
 
 open import lib
 
 open import cedille-types
-open import classify
+open import classify options
 open import ctxt
 open import constants
 open import conversion
 open import general-util
-open import spans
+open import spans options
 open import syntax-util
-open import to-string
+open import to-string options
 
 import cws-types
 
@@ -86,19 +88,17 @@ set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err 
 
 record toplevel-state : Set where
   constructor mk-toplevel-state
-  field use-cede-files : 𝔹
-        make-rkt-files : 𝔹
-        include-path : 𝕃 string
+  field include-path : stringset
         files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
 
-new-toplevel-state : (include-path : 𝕃 string) → (should-use-cede-files : 𝔹) → (should-make-rkt-files : 𝔹)  → toplevel-state
-new-toplevel-state ip should-use-cede-files should-make-rkt-files = record { use-cede-files = should-use-cede-files ; make-rkt-files = should-make-rkt-files ; include-path = ip ;
+new-toplevel-state : (include-path : stringset) → toplevel-state
+new-toplevel-state ip = record { include-path = ip ;
                                                                              files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
                                                                              
 toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
-toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
+toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
 
 get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
@@ -113,7 +113,7 @@ get-include-elt s filename | just ie = ie
 set-include-elt : toplevel-state → string → include-elt → toplevel-state 
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
 
-set-include-path : toplevel-state → 𝕃 string → toplevel-state 
+set-include-path : toplevel-state → stringset → toplevel-state 
 set-include-path s ip = record s { include-path = ip }
 
 get-do-type-check : toplevel-state → string → 𝔹
@@ -134,9 +134,6 @@ include-elt-to-string ie =
     ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
     ", last-parse-time: " ^ (maybe-else "" utcToString (include-elt.last-parse-time ie))
-
-eΓ : ctxt
-eΓ = new-ctxt "" ""
 
 params-to-string : params → string
 params-to-string ParamsNil = ""
@@ -182,10 +179,8 @@ ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
-toplevel-state-to-string (mk-toplevel-state use-cede-file make-rkt-file include-path files is context) =
-    "use-cede-file: " ^ (𝔹-to-string use-cede-file) ^
-    "\nmake-rkt-file: " ^ (𝔹-to-string make-rkt-file) ^
-    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" include-path) ^ 
+toplevel-state-to-string (mk-toplevel-state include-path files is context) =
+    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (stringset-strings include-path)) ^ 
     "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
     "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
 

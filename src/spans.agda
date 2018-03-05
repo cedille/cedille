@@ -1,13 +1,15 @@
-module spans where
+import cedille-options
+module spans (options : cedille-options.options) where
 
 open import lib
-open import cedille-types 
+open import cedille-types
+open import constants 
 open import conversion
 open import ctxt
 open import is-free
 open import general-util
 open import syntax-util
-open import to-string
+open import to-string options
 open import subst
 
 
@@ -38,9 +40,6 @@ spans-have-error (global-error _ _) = tt
 
 empty-spans : spans
 empty-spans = regular-spans []
-
-global-error-string : string → string
-global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}"
 
 {-
 spans-to-string : spans → string
@@ -488,13 +487,14 @@ Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (ter
                                            ++ [ to-string-tag-tk "type of bound variable" Γ atk ])
 
 
-compileFail-in : ctxt → (original erased normalized : term) → 𝕃 tagged-val
-compileFail-in Γ o e n with is-free-in check-erased compileFail
-...| is-free with is-free o
+compileFail-in : ctxt → term → 𝕃 tagged-val
+compileFail-in Γ t with is-free-in check-erased compileFail-qual | qualif-term Γ t
+...| is-free | tₒ with erase-term tₒ | hnf Γ unfold-all tₒ ff
+...| tₑ | tₙ with is-free tₒ
 ...| ff = []
-...| tt with is-free n | is-free e
-...| tt | _ = error-data "compileFail occurs in the normalized term" :: [ to-string-tag "normalized term" Γ n ]
-...| ff | ff = error-data "compileFail occurs in an erased position" :: [ to-string-tag "the term" Γ o ]
+...| tt with is-free tₙ | is-free tₑ
+...| tt | _ = error-data "compileFail occurs in the normalized term" :: [ to-string-tag "normalized term" Γ tₙ ]
+...| ff | ff = error-data "compileFail occurs in an erased position" :: [ to-string-tag "the term" Γ tₒ ]
 ...| ff | tt = []
 
 

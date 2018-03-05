@@ -81,18 +81,6 @@ posinfo-plus-str pi s = posinfo-plus pi (string-length s)
 star : kind
 star = Star posinfo-gen
 
-abs-expand-term : params → term → term
-abs-expand-term (ParamsCons (Decl _ _ x tk@(Tkt _) _) ps) t =
-  Lam posinfo-gen KeptLambda posinfo-gen x NoClass (abs-expand-term ps t)
-abs-expand-term (ParamsCons (Decl _ _ x tk@(Tkk _) _) ps) t =
-  abs-expand-term ps t
-abs-expand-term ParamsNil t = t
-
-abs-expand-type : params → type → type
-abs-expand-type (ParamsCons (Decl _ _ x tk _) ps) t =
-  TpLambda posinfo-gen posinfo-gen x tk (abs-expand-type ps t)
-abs-expand-type ParamsNil t = t
-
 -- qualify variable by module name
 _#_ : string → string → string
 fn # v = fn ^ "." ^  v
@@ -107,10 +95,10 @@ compileFail-qual = "" % compileFail
 compileFailType : type
 compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
-mk-inst : params → args → trie arg
-mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) =
-  trie-insert (mk-inst ps as) x a
-mk-inst _ _ = empty-trie
+mk-inst : params → args → trie arg × params
+mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) with mk-inst ps as
+...| σ , ps' = trie-insert σ x a , ps'
+mk-inst ps as = empty-trie , ps
 
 apps-term : term → args → term
 apps-term f (ArgsNil _) = f
@@ -707,4 +695,24 @@ unqual-all q v with var-prefix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
+lam-expand-term : params → term → term
+lam-expand-term (ParamsCons (Decl pi pi' x tk@(Tkt _) _) ps) t =
+  Lam posinfo-gen KeptLambda pi' x NoClass (lam-expand-term ps t)
+lam-expand-term (ParamsCons (Decl pi pi' x tk@(Tkk _) _) ps) t =
+  lam-expand-term ps t
+lam-expand-term ParamsNil t = t
 
+lam-expand-type : params → type → type
+lam-expand-type (ParamsCons (Decl pi pi' x tk _) ps) t =
+  TpLambda posinfo-gen pi' x tk (lam-expand-type ps t)
+lam-expand-type ParamsNil t = t
+
+abs-expand-type : params → type → type
+abs-expand-type (ParamsCons (Decl pi pi' x tk _) ps) t =
+  Abs posinfo-gen Pi pi' x tk (abs-expand-type ps t)
+abs-expand-type ParamsNil t = t
+
+abs-expand-kind : params → kind → kind
+abs-expand-kind (ParamsCons (Decl pi pi' x tk _) ps) k =
+  KndPi posinfo-gen pi' x tk (abs-expand-kind ps k)
+abs-expand-kind ParamsNil k = k

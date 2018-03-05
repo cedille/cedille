@@ -80,13 +80,14 @@
     (set-input-method "Cedille")
     (setq-local comment-start "%")
     (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-    (setq-local se-inf-modify-response 'cedille-mode-modify-response)
+    ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
     (setq se-navi-current-keymap (se-navi-get-keymap 'cedille-br-mode))
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push (cons 'se-navigation-mode se-navi-current-keymap)
 	  minor-mode-overriding-map-alist)
     (add-hook    'se-inf-init-spans-hook  #'cedille-mode-initialize-spans  t   t)
-    (add-hook    'se-inf-init-spans-hook  #'se-markup-propertize-spans     t   t)
+    ;(add-hook    'se-inf-init-spans-hook 'cedille-mode-highlight-default   t   t)
+    ;(add-hook    'se-inf-init-spans-hook  #'se-markup-propertize-spans     t   t)
     (remove-hook    'se-inf-pre-parse-hook   #'cedille-mode-clear-buffers      t)
     (add-hook    'se-inf-pre-parse-hook   #'se-mode-clear-selected         t   t)
     (add-hook    'se-inf-post-parse-hook  #'cedille-mode-br-post-parse     t   t)
@@ -139,22 +140,17 @@
    :header "Erasing"
    :delay t))
 
-(defun cedille-mode-br-erase-response (response oc buffer)
+(defun cedille-mode-br-erase-response (response oc buffer span)
   "Receives the erased response from the backend"
   (with-current-buffer buffer
-    (let ((buffer-read-only nil)
-	  (response (se-markup-propertize response)))
-      (if (cedille-mode-br-is-error response)
-	  (progn
-	    (with-selected-window (get-buffer-window) (cedille-mode-close-active-window))
-	    (message "Parse error"))
-	(setq cedille-mode-br-temp-str response)
-	(erase-buffer)
-	(insert response)
-	(select-window (get-buffer-window))
-	(goto-char 1)
-	(deactivate-mark)
-	(cedille-mode-br-parse)))))
+    (let ((buffer-read-only nil))
+      (setq cedille-mode-br-temp-str response)
+      (erase-buffer)
+      (insert response)
+      (select-window (get-buffer-window))
+      (goto-char 1)
+      (deactivate-mark)
+      (cedille-mode-br-parse))))
 
 (defun cedille-mode-br-undo ()
   "Undoes the previous buffer change"
@@ -184,7 +180,8 @@
 	   "§" cedille-mode-br-temp-str
 	   "§" cedille-mode-br-filename
 	   "§" (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
-   (cedille-mode-response-macro #'cedille-mode-br-process-response)
+   #'cedille-mode-br-process-response
+   ;(cedille-mode-response-macro #'cedille-mode-br-process-response)
    :header "Parsing"
    :extra (current-buffer)
    :delay t))
@@ -329,8 +326,7 @@
       (insert cedille-mode-br-temp-str)
       (goto-char 1)
       (deactivate-mark)
-      (fit-window-to-buffer)
-      (cedille-mode-highlight))
+      (fit-window-to-buffer))
     (when cedille-mode-br-span-range
       (goto-char (car cedille-mode-br-span-range))
       (push-mark (cdr cedille-mode-br-span-range) t t)

@@ -204,10 +204,13 @@
   (let* ((json-array-type 'list)
          (json (json-read-from-string response))
          (ls (cdr (assoc 'value json)))
+         (err (cdr (assoc 'error json)))
          (val (cadr ls))
          (ts (caddr ls))
          (str (cedille-mode-apply-tags val ts)))
-    (funcall fn str span oc extra)))
+    (if err
+        (message err)
+      (funcall fn str span oc extra))))
 
 (defmacro cedille-mode-response-macro (fn)
   `(lambda (response &optional span oc extra)

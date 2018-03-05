@@ -53,10 +53,14 @@ def-params ff ps = just ps
 
 -- TODO add renamectxt to avoid capture bugs?
 inst-type : ctxt → params → args → type → type
-inst-type Γ ps as = substs-type Γ (mk-inst ps as)
+inst-type Γ ps as T with mk-inst ps as
+...| σ , ps' = abs-expand-type ps' (substs-type Γ σ T)
+-- inst-type Γ ps as = substs-type Γ (mk-inst ps as)
 
 inst-kind : ctxt → params → args → kind → kind
-inst-kind Γ ps as = substs-kind Γ (mk-inst ps as)
+inst-kind Γ ps as k with mk-inst ps as
+...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
+-- inst-kind Γ ps as = substs-kind Γ (mk-inst ps as)
 
 -- TODO substs-params
 inst-params : ctxt → params → args → params → params
@@ -193,14 +197,14 @@ ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
 ... | just (term-def nothing t _ , _) = just t
 ... | just (term-udef nothing t , _) = just t
-... | just (term-def (just ps) t _ , _) = just (abs-expand-term ps t)
-... | just (term-udef (just ps) t , _) = just (abs-expand-term ps t)
+... | just (term-def (just ps) t _ , _) = just (lam-expand-term ps t)
+... | just (term-udef (just ps) t , _) = just (lam-expand-term ps t)
 ... | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def Γ v with env-lookup Γ v
 ... | just (type-def nothing T _ , _) = just T
-... | just (type-def (just ps) T _ , _) = just (abs-expand-type ps T)
+... | just (type-def (just ps) T _ , _) = just (lam-expand-type ps T)
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)

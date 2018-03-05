@@ -1,18 +1,18 @@
-module interactive-cmds where
+import cedille-options
 
-import parse
-import run
+module interactive-cmds (options : cedille-options.options) where
+
 open import lib
 open import functions
 open import cedille-types
 open import conversion
 open import ctxt
 open import general-util
-open import spans
+open import spans options
 open import syntax-util
-open import to-string
-open import toplevel-state
-open import erased-spans
+open import to-string options
+open import toplevel-state options
+open import erased-spans options
 open import parser
 
 {- General -}
@@ -229,11 +229,11 @@ erase-prompt Γ str = parse-try Γ str ≫=maybe expr-to-tv Γ (erase ∘ qualif
 br-cmd : ctxt → (str fn : string) → 𝕃 string → IO ⊤
 br-cmd Γ str fn ls =
   let Γ' = get-local-ctxt Γ 0 "missing" ls ff in
-  putStreengLn (
-  maybe-else (spans-to-streeng (global-error "Parse error" nothing)) spans-to-streeng (
-  parse-try Γ' str ≫=maybe λ ex →
-  h ex ≫=maybe λ m →
-  just (snd (snd (m Γ' (regular-spans [])))))) where
+  putStreengLn
+  (maybe-else (spans-to-streeng (global-error "Parse error" nothing)) spans-to-streeng
+  (parse-try Γ' str ≫=maybe λ ex →
+   h ex ≫=maybe λ m →
+   just (snd (snd (m Γ' (regular-spans [])))))) where
   h : expr → maybe (spanM ⊤)
   h (,_ {parseAsTerm} t) = just (erased-term-spans t)
   h (,_ {parseAsType} T) = just (erased-type-spans T)
