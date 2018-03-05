@@ -1,9 +1,132 @@
-module Nat-thms.
-
+module nat2-thms.
 import nat.
-import false.
+import top.
 import true.
+import false.
 
-ZS-False ◂ ∀ n : Nat . {Z ≃ S n} ➔ False =
-  Λ n . λ e .
-    χ (↑ X . NatRec Z · X : (☆ ➔↑ (Nat ➔↑ ☆ ➔↑ ☆) ➔↑ ☆) · False · (λ _ : Nat . λ _ : ★ . True)) - ρ e - triv .
+SZ = S Z.
+P = pred.
+add2 ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n m (λ n. S).
+mlt2 ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n Z (λ n. add2 m).
+sub ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n m (λ n. P).
+
+ZS-False ◂ ∀ n : Nat. {Z ≃ S n} ➾ False =
+  Λ n . Λ e .
+    χ (↑ X . NatInd Z · (λ n : Nat. X) : (☆ ➔↑ (Nat ➔↑ ☆ ➔↑ ☆) ➔↑ ☆) · False · (λ _ : Nat . λ _ : ★ . Top)) - ρ e - β .
+
+ps-comm ◂ Π n : Nat. {P (S (S n)) ≃ S (P (S n))} = λ n. β.
+ps-impl ◂ Π n : Nat. Π m : Nat. {S m ≃ n} ➾ {m ≃ P n} = λ n. λ m. Λ e. ρ ς e - β.
+
+addId1 ◂ Π n : Nat. {add2 Z n ≃ n} =
+ λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β). 
+
+addId2 ◂ Π n : Nat. {add2 n Z ≃ n} =
+  λ n. β.
+
+addS1 ◂ Π m : Nat. Π n : Nat. {add2 (S m) n ≃ S (add2 m n)} =
+  λ m. λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+addS2 ◂ Π m : Nat. Π n : Nat. {add2 m (S n) ≃ S (add2 m n)} =
+  λ m. λ n. β.
+
+addAssoc ◂ Π m : Nat. Π n : Nat. Π o : Nat. {add2 (add2 m n) o ≃ add2 m (add2 n o)} =
+  λ m. λ n. λ o. θ<o> (NatInd o) β (λ o. λ ih. ρ+ ih - β).
+
+addComm ◂ Π m : Nat. Π n : Nat. {add2 m n ≃ add2 n m} =
+  λ m. λ n. θ<m> (NatInd m) (addId1 n)
+    (λ m. λ ih. ρ (addS1 m n) - ρ ih - β).
+
+subId ◂ Π n : Nat. {sub n Z ≃ n} =
+  λ n. β.
+
+subZ ◂ Π n : Nat. {sub Z n ≃ Z} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+subS ◂ Π m : Nat. Π n : Nat. {sub m (S n) ≃ P (sub m n)} =
+  λ m. λ n. β.
+
+subSS ◂ Π m : Nat. Π n : Nat. {sub (S m) (S n) ≃ sub m n} =
+  λ m. λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+subN ◂ Π n : Nat. {sub n n ≃ Z} =
+  λ n. θ<n> (NatInd n) β (λ m. λ ih. ρ (subSS m m) - ih).
+
+subP ◂ Π m : Nat. Π n : Nat. {sub (P m) n ≃ P (sub m n)} =
+  λ m. λ n. θ<m> (NatInd m) (ρ (subZ n) - β)
+    (λ m. λ ih. ρ ς (subS (S m) n) - ρ (subSS m n) - β).
+
+addInv ◂ Π m : Nat. Π n : Nat. {sub (add2 m n) n ≃ m} =
+  λ m. λ n. θ<n> (NatInd n)
+    (ρ (addId2 m) - β)
+    (λ n. λ ih.
+      ρ (addS2 m n) -
+      ρ (subSS (add2 m n) n) -
+      ρ ih - β).
+
+mltZ1 ◂ Π n : Nat. {mlt2 Z n ≃ Z} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+mltZ2 ◂ Π n : Nat. {mlt2 n Z ≃ Z} =
+  λ n. β.
+
+mltId1 ◂ Π n : Nat. {mlt2 SZ n ≃ n} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih.
+    ρ+ (addS1 Z (mlt2 SZ n)) -
+    ρ (addId1 (mlt2 SZ n)) -
+    ρ ih - β).
+
+mltId2 ◂ Π n : Nat. {mlt2 n SZ ≃ n} =
+  λ n. β. --θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+mltS2 ◂ Π m : Nat. Π n : Nat. {mlt2 m (S n) ≃ add2 m (mlt2 m n)} =
+  λ m. λ n. β.
+
+mltS1 ◂ Π m : Nat. Π n : Nat. {mlt2 (S m) n ≃ add2 n (mlt2 m n)} =
+  λ m. λ n. θ<n> (NatInd n)
+    (ρ+ (addId1 Z) - β)
+    (λ n. λ ih.
+      χ {add2 (S m) (mlt2 (S m) n) ≃ add2 (S n) (add2 m (mlt2 m n))} -
+      ρ ih -
+      ρ (addS1 m (add2 n (mlt2 m n))) -
+      ρ (addS1 n (add2 m (mlt2 m n))) -
+      ρ ς (addAssoc m n (mlt2 m n)) -
+      ρ ς (addAssoc n m (mlt2 m n)) -
+      ρ (addComm m n) - β).
+
+mltDist ◂ Π m : Nat. Π n : Nat. Π o : Nat. {mlt2 m (add2 n o) ≃ add2 (mlt2 m n) (mlt2 m o)} =
+  λ m. λ n. λ o. θ<n> (NatInd n)
+    (ρ (addId1 o) -
+     ρ (mltZ2 m) -
+     ρ (addId1 (mlt2 m o)) - β)
+    (λ n. λ ih.
+      ρ (addS1 n o) -
+      ρ (mltS2 m (add2 n o)) -
+      ρ ih -
+      ρ (mltS2 m n) -
+      ρ (addAssoc m (mlt2 m n) (mlt2 m o)) - β).
+
+mltComm ◂ Π m : Nat. Π n : Nat. {mlt2 m n ≃ mlt2 n m} =
+  λ m. λ n. θ<n> (NatInd n) (ρ (mltZ2 m) - (ς (mltZ1 m)))
+    (λ n. λ ih. ρ (mltS1 n m) - ρ (mltS2 m n) - ρ ih - β).
+
+mltAssoc ◂ Π m : Nat. Π n : Nat. Π o : Nat. {mlt2 (mlt2 m n) o ≃ mlt2 m (mlt2 n o)} =
+  λ m. λ n. λ o. θ<m> (NatInd m)
+    (ρ (mltZ1 n) - ρ (mltZ1 (mlt2 n o)) - ρ (mltZ1 o) - β)
+    (λ m. λ ih.
+      ρ (mltS1 m n) -
+      ρ (mltComm (add2 n (mlt2 m n)) o) -
+      ρ (mltDist o n (mlt2 m n)) -
+      ρ (mltS1 m (mlt2 n o)) -
+      ρ (mltComm o (mlt2 m n)) -
+      ρ ih -
+      ρ (mltComm n o) - β).
+
+mltSSZ ◂ Π n : Nat. {add2 n n ≃ mlt2 n (S SZ)} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih.
+    ρ (addS1 n (S n)) - ρ (addS2 n n) - ρ ih - β).
+
+expSZ ◂ Π n : Nat. {exp SZ n ≃ SZ} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
+
+expId ◂ Π n : Nat. {exp n SZ ≃ n} =
+  λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).

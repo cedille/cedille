@@ -73,17 +73,19 @@ module main-with-options (options : cedille-options.options) where
   write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
   write-cede-file ced-path ie = 
     let dir = takeDirectory ced-path in
+    let cede = cede-filename ced-path in
       createDirectoryIfMissing ff (dot-cedille-directory dir) >>
-     logMsg ("Started writing .cede file " ^ (cede-filename ced-path)) >>
-     writeStreengToFile (cede-filename ced-path) ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-streeng ie) >>
-     logMsg ("Finished writing .cede file " ^ (cede-filename ced-path))
+     logMsg ("Started writing .cede file " ^ cede) >>
+     writeStreengToFile cede ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-streeng ie) >>
+     logMsg ("Finished writing .cede file " ^ cede)
 
   -- we assume the cede file is known to exist at this point
   read-cede-file : (ced-path : string) → IO (𝔹 × string)
   read-cede-file ced-path =
-    logMsg ("Started reading .cede file " ^ ced-path) >>
-    get-file-contents (cede-filename ced-path) >>= λ c → finish c >>≠
-    logMsg ("Finished reading .cede file " ^ ced-path)
+    let cede = cede-filename ced-path in
+    logMsg ("Started reading .cede file " ^ cede) >>
+    get-file-contents cede >>= λ c → finish c >>≠
+    logMsg ("Finished reading .cede file " ^ cede)
     where finish : maybe string → IO (𝔹 × string)
           finish nothing = return (tt , global-error-string ("Could not read the file " ^ cede-filename ced-path ^ "."))
           finish (just ss) with string-to-𝕃char ss
@@ -123,8 +125,9 @@ module main-with-options (options : cedille-options.options) where
   cede-file-up-to-date : (ced-path : string) → IO 𝔹
   cede-file-up-to-date ced-path =
     let e = cede-filename ced-path in
-      doesFileExist e >>= λ b → 
-      if b then
+      doesFileExist ced-path >>= λ b₁ →
+      doesFileExist e >>= λ b₂ → 
+      if b₁ && b₂ then
         fileIsOlder ced-path e
       else
         return ff
@@ -207,8 +210,14 @@ module main-with-options (options : cedille-options.options) where
 
   file-deps-not-changed : (filename : string) → (deps : 𝕃 string) → IO 𝔹
   file-deps-not-changed fn [] = return tt
-  file-deps-not-changed fn (d :: ds) = fileIsOlder d fn >>= λ b →
-    if b then file-deps-not-changed fn ds else return ff
+  file-deps-not-changed fn (d :: ds) =
+    doesFileExist d >>= λ e →
+    if e then
+        (fileIsOlder d fn >>= λ b →
+        if b then
+            file-deps-not-changed fn ds
+          else return ff)
+      else return ff
 
   {- helper function for update-asts, which keeps track of the files we have seen so
      we avoid importing the same file twice, and also avoid following cycles in the import

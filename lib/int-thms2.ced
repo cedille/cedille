@@ -1,0 +1,153 @@
+module int-thms2.
+import int.
+import int-ops.
+import int-thms.
+
+mlt-z2 ◂ Π i : Int. {mlt i Z ≃ Z} = λ i. β.
+mlt-z1 ◂ Π i : Int. {mlt Z i ≃ Z} = λ i. θ<i> (IntInd i) β
+  (λ i. λ ih. ρ+ ih - β) (λ i. λ ih. ρ+ ih - β).
+mlt-id2 ◂ Π i : Int. {mlt i SZ ≃ i} = λ i. ρ+ (add-id1 i) - β.
+mlt-id1 ◂ Π i : Int. {mlt SZ i ≃ i} = λ i. θ<i> (IntInd i) β
+  (λ i. λ ih. ρ+ ih - ρ (s-ss-thm i) - β)
+  (λ i. λ ih. ρ+ ih - ρ (p-pp-thm i) - β).
+mlt-neg-id2 ◂ Π i : Int. {mlt i PZ ≃ neg i} = λ i. β.
+mlt-neg-id1 ◂ Π i : Int. {mlt PZ i ≃ neg i} = λ i. β.
+mlt-s-p-2 ◂ Π i : Int. Π j : Int.
+    ι _ : {mlt i (S j) ≃ add (mlt i j) i}. {mlt i (P j) ≃ sub (mlt i j) i} =
+  λ i. λ j. θ<j> (IntInd j) [β, β]
+    (λ j. λ ih.
+      [ρ+ ih.1 - β,
+
+       ρ ς (s-ss-thm j) -
+       ρ+ ih.1 -
+       ρ (s-ss-thm j) -
+       ρ (add-sub-id (mlt i j.1) i) - β])
+    (λ j. λ ih.
+      [ρ ς (p-pp-thm j) -
+       ρ ih.2 -
+       ρ (p-pp-thm j) -
+       ρ (add-comm (sub (mlt i j.1) i) i) -
+       ρ (add-sub-assoc i (mlt i j.1) i) -
+       ρ (add-comm i (mlt i j.1)) -
+       ρ (add-sub-id (mlt i j.1) i) - β,
+
+       ρ+ ih.2 - β]).
+
+mlt-s2 ◂ Π i : Int. Π j : Int. {mlt i (S j) ≃ add (mlt i j) i} =
+  λ i. λ j. (mlt-s-p-2 i j).1.
+
+mlt-p2 ◂ Π i : Int. Π j : Int. {mlt i (P j) ≃ sub (mlt i j) i} =
+  λ i. λ j. (mlt-s-p-2 i j).2.
+
+mlt-s1 ◂ Π i : Int. Π j : Int. {mlt (S i) j ≃ add (mlt i j) j} = λ i. λ j.
+  θ<j> (IntInd3 j) β
+    (λ j. λ ih.
+      ρ (mlt-s2 (S i) j) -
+      ρ (mlt-s2 i j) -
+      ρ ih -
+      ρ (add-s2 (add (mlt i j) j) i) -
+      ρ (add-s2 (add (mlt i j) i) j) -
+      ρ ς (add-assoc (mlt i j) j i) -
+      ρ ς (add-assoc (mlt i j) i j) -
+      ρ (add-comm j i) - β)
+    (λ j. λ ih.
+      ρ (mlt-p2 (S i) j) -
+      ρ (mlt-p2 i j) -
+      ρ ih -
+      ρ (sub-s2 (add (mlt i j) j) i) -
+      ρ (add-p2 (sub (mlt i j) i) j) -
+      ρ (add-comm (sub (mlt i j) i) j) -
+      ρ (add-sub-assoc j (mlt i j) i) -
+      ρ (add-comm (mlt i j) j) - β).
+
+mlt-p1 ◂ Π i : Int. Π j : Int. {mlt (P i) j ≃ sub (mlt i j) j} = λ i. λ j.
+  θ<j> (IntInd3 j) β
+    (λ j. λ ih.
+      ρ (mlt-s2 (P i) j) -
+      ρ (mlt-s2 i j) -
+      ρ ih -
+      ρ (add-p2 (sub (mlt i j) j) i) -
+      ρ (sub-s2 (add (mlt i j) i) j) -
+      ρ (add-comm (sub (mlt i j) j) i) -
+      ρ (add-sub-assoc i (mlt i j) j) -
+      ρ (add-comm (mlt i j) i) - β)
+    (λ j. λ ih.
+      ρ (mlt-p2 (P i) j) -
+      ρ (mlt-p2 i j) -
+      ρ ih -
+      ρ (sub-p2 (sub (mlt i j) j) i) -
+      ρ (sub-p2 (sub (mlt i j) i) j) -
+      ρ (sub-comm (sub (mlt i j) j) i) -
+      ρ (sub-assoc i (mlt i j) j) -
+      ρ (neg-dist-add (sub i (mlt i j)) j) -
+      ρ (sub-comm i (mlt i j)) -
+      ρ (neg-neg (sub (mlt i j) i)) -
+      ρ (sub-add-neg (sub (mlt i j) i) j) - β).
+
+mlt-comm ◂ Π i : Int. Π j : Int. {mlt i j ≃ mlt j i} =
+  λ i. λ j. θ<j> (IntInd j) (ς (mlt-z1 i))
+    (λ j. λ ih. ρ+ ih - ρ ς (mlt-s1 j.1 i) - ρ (s-ss-thm j) - β)
+    (λ j. λ ih. ρ+ ih - ρ ς (mlt-p1 j.1 i) - ρ (p-pp-thm j) - β).
+
+mlt-dist-add ◂ Π i : Int. Π j : Int. Π k : Int. {mlt (add i j) k ≃ add (mlt i k) (mlt j k)} =
+  λ i. λ j. λ k. θ<k> (IntInd3 k) β
+    (λ k. λ ih.
+      ρ (mlt-s2 (add i j) k) -
+      ρ (mlt-s2 i k) -
+      ρ (mlt-s2 j k) -
+      ρ ih -
+      ρ (add-assoc (add (mlt i k) i) (mlt j k) j) -
+      ρ (add-assoc (add (mlt i k) (mlt j k)) i j) -
+      ρ (add-assoc2 (mlt i k) (mlt j k) i) - β)
+    (λ k. λ ih.
+      ρ (mlt-p2 (add i j) k) -
+      ρ (mlt-p2 i k) -
+      ρ (mlt-p2 j k) -
+      ρ ih -
+      ρ (sub-add-neg (add (mlt i k) (mlt j k)) (add i j)) -
+      ρ (sub-add-neg (mlt i k) i) -
+      ρ (sub-add-neg (mlt j k) j) -
+      ρ (neg-dist-add i j) -
+      ρ (add-assoc (add (mlt i k) (neg i)) (mlt j k) (neg j)) -
+      ρ (add-assoc (add (mlt i k) (mlt j k)) (neg i) (neg j)) -
+      ρ (add-assoc2 (mlt i k) (mlt j k) (neg i)) - β).
+
+neg-dist-mlt2 ◂ Π i : Int. Π j : Int. {neg (mlt i j) ≃ mlt i (neg j)} =
+  λ i. λ j. θ<i> (IntInd3 i)
+    (ρ (mlt-z1 j) - ρ (mlt-z1 (neg j)) - β)
+    (λ i. λ ih.
+      ρ (mlt-s1 i j) -
+      ρ (mlt-s1 i (neg j)) -
+      ρ (neg-dist-add (mlt i j) j) -
+      ρ ih - β)
+    (λ i. λ ih.
+      ρ (mlt-p1 i j) -
+      ρ (mlt-p1 i (neg j)) -
+      ρ (sub-add-neg (mlt i j) j) -
+      ρ (neg-dist-add (mlt i j) (neg j)) -
+      ρ ih -
+      ρ (sub-add-neg (mlt i (neg j)) (neg j)) - β).
+
+neg-dist-mlt1 ◂ Π i : Int. Π j : Int. {neg (mlt i j) ≃ mlt (neg i) j} =
+  λ i. λ j.
+    ρ (mlt-comm i j) -
+    ρ (mlt-comm (neg i) j) -
+    (neg-dist-mlt2 j i).
+
+mlt-assoc ◂ Π i : Int. Π j : Int. Π k : Int. {mlt i (mlt j k) ≃ mlt (mlt i j) k} =
+  λ i. λ j. λ k. θ<i> (IntInd3 i)
+    (ρ (mlt-z1 j) - ρ (mlt-z1 k) - ρ (mlt-z1 (mlt j k)) - β)
+    (λ i. λ ih.
+      ρ (mlt-s1 i (mlt j k)) -
+      ρ (mlt-s1 i j) -
+      ρ ih -
+      ρ (mlt-dist-add (mlt i j) j k) - β)
+    (λ i. λ ih.
+      ρ (mlt-p1 i (mlt j k)) -
+      ρ (mlt-p1 i j) -
+      ρ ih -
+      ρ (sub-add-neg (mlt (mlt i j) k) (mlt j k)) -
+      ρ (sub-add-neg (mlt i j) j) -
+      ρ (neg-dist-mlt1 j k) -
+      ρ (mlt-dist-add (mlt i j) (neg j) k) - β).
+
