@@ -39,7 +39,7 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                                    ind-Sum (Lt-S m n p)
                                        · (λ q : Lte m n. {Lt-S m n p ≃ q} ➔ 
                                             { updateValuation' n val (var n) m p (λ a . a) ≃ varU m})
-                                       (λ a . ●) (λ a . ●) β)) -
+                                       (λ a . λ e . ρ+ e - ●) (λ a . λ e . ρ+ e - ρ a - β) β)) -
                            β)))
              d)].
                
