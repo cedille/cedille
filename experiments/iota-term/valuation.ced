@@ -13,6 +13,15 @@ updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (
   λ n . Λ X . Λ I . λ val . λ xn . Λ ixn . λ m . λ u . 
     (Lt-S m n u).1 · (wSigma2 · (X (S m)) · (I m)) (λ u . val m u) (λ e . ρ e - (mkWSigma2 xn -ixn)).
 
+valuationInv' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
+                  Π val : Valuation' n · X · I . Π m : Nat . Π p : Lt m n . ∀ P : ★ .
+                  (I m ((val m p).1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P =
+   λ n . Λ X . Λ I . λ val . λ m . λ p . 
+     wSigma2Induction (val m p) · (λ u : wSigma2 · (X (S m)) · (I m). ∀ P : ★ .
+                  (I m (u.1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P )
+       (λ a . Λ p . Λ P . λ c . c -p) .
+       
+
 {-
 restrictValuation' ◂
   ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lte n m ➔ Valuation' m · X ➔ Valuation' n · X =

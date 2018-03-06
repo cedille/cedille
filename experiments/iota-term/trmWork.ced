@@ -12,8 +12,8 @@ import trmD.
 import wSigma2.
 
 varValuationInv ◂ Π n : Nat . Trm (S n) ➔ ★ = λ n : Nat. λ t : Trm (S n) . { t ≃ varU n } .
-{- varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
- λ n . λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β . -}
+varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
+ λ n . λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β . 
 
 inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
   [ β{λ n . λ _ . λ _ . λ d . in n d} ,
@@ -39,7 +39,13 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                                    ind-Sum (Lt-S m n p)
                                        · (λ q : Lte m n. {Lt-S m n p ≃ q} ➔ 
                                             { updateValuation' n val (var n) m p (λ a . a) ≃ varU m})
-                                       (λ a . λ e . ρ+ e - ●) (λ a . λ e . ρ+ e - ρ a - β) β)) -
+                                       (λ a . λ e .
+                                          ρ+ e -
+                                          ρ (valuationInv' n · Trm · varValuationInv val m a
+                                               · { in1 a (λ u' . val m u') (λ e . mkWSigma2 (var n)) (λ a' . a') ≃ varU m }
+                                               (Λ u . ρ+ u - β))
+                                             - β)
+                                       (λ a . λ e . ρ+ e - ρ a - β) β)) -
                            β)))
              d)].
                
