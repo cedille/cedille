@@ -10,42 +10,5 @@ import natExtras.
 import trmC.
 import trmD.
 import wSigma2.
+import trmReflection.
 
-varValuationInv ◂ Π n : Nat . Trm (S n) ➔ ★ = λ n : Nat. λ t : Trm (S n) . { t ≃ varU n } .
-varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
- λ n . λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β . 
-
-inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
-  [ β{λ n . λ _ . λ _ . λ d . in n d} ,
-    λ n . Λ val . Λ R1 . Λ R2 . Λ reveal1 . Λ reveal2 .
-      λ e1 . λ e2 . λ d .
-        in n 
-         (cast 
-            -(TrmIFFun
-               (caste e1.1
-                 -(λ a .
-                     ρ ς e1.2 -
-                     ε ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
-                            -(λ m : Nat . λ p : Lt m n.
-                                 wSigma2Induction (val m p)
-                                   · (λ q : wSigma2 · (Trm (S m)) · (varValuationInv m) .
-                                       { q (λ a . a) ≃ varU m })
-                                   (λ v . Λ e . ρ e - β))) -
-                       β))
-               (caste (e2.1 (var n) -β) 
-                 -(λ a . ρ ς e2.2 -
-                         ε ρ ((TrmUnfold' -(S n) (cast -reveal2 a)).2 -β{updateValuation' n val (var n)}
-                               -(λ m . λ p .
-                                   ind-Sum (Lt-S m n p)
-                                       · (λ q : Lte m n. {Lt-S m n p ≃ q} ➔ 
-                                            { updateValuation' n val (var n) m p (λ a . a) ≃ varU m})
-                                       (λ a . λ e .
-                                          ρ+ e -
-                                          ρ (valuationInv' n · Trm · varValuationInv val m a
-                                               · { in1 a (λ u' . val m u') (λ e . mkWSigma2 (var n)) (λ a' . a') ≃ varU m }
-                                               (Λ u . ρ+ u - β))
-                                             - β)
-                                       (λ a . λ e . ρ+ e - ρ a - β) β)) -
-                           β)))
-             d)].
-               
