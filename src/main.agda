@@ -341,10 +341,10 @@ module main-with-options (options : cedille-options.options) where
     checkFile (new-toplevel-state (stringset-insert (cedille-options.options.include-path options) (takeDirectory input-filename)))
       input-filename ff {- should-print-spans -} >>= finish input-filename
     where finish : string → toplevel-state → IO ⊤
-          finish input-filename s = 
-            let ie = get-include-elt s input-filename in
+          finish input-filename s = return triv
+{-            let ie = get-include-elt s input-filename in
             if include-elt.err ie then (putStreengLn (include-elt-spans-to-streeng ie)) else return triv
-
+-}
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))
 

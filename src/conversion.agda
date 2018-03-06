@@ -58,6 +58,8 @@ conv-t T = ctxt → T → T → 𝔹
 {-# TERMINATING #-}
 conv-term : conv-t term
 conv-type : conv-t type 
+conv-term' : conv-t term
+conv-type' : conv-t type 
 conv-kind : conv-t kind
 hnf : {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → (is-head : 𝔹) → ⟦ ed ⟧ 
 conv-term-norm : conv-t term
@@ -72,9 +74,19 @@ conv-optClass : conv-t optClass
 conv-optType : conv-t optType
 conv-tty* : conv-t (𝕃 tty)
 
-conv-term Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
-conv-type Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
+conv-term Γ t@(Var pi x) t'@(Var pi' x') =
+  if ctxt-eq-rep Γ x x' then tt else
+  conv-term' Γ t t'
+conv-term Γ t t' = conv-term' Γ t t'
+conv-type Γ t@(TpVar pi x) t'@(TpVar pi' x') =
+  if ctxt-eq-rep Γ x x' then tt else
+  conv-type' Γ t t'
+conv-type Γ t t' = conv-type' Γ t t'
+
 conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k tt) (hnf Γ unfold-head k' tt)
+
+conv-term' Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
+conv-type' Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
 
 -- is-head is only used in hnf{TYPE}
 hnf{TERM} Γ no-unfolding e hd = erase-term e
