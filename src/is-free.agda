@@ -125,7 +125,7 @@ is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset
 abs-tk : lam → var → posinfo → tk → type → type
 abs-tk l x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp
 abs-tk ErasedLambda x pi (Tkt tp') tp = Abs posinfo-gen All pi x (Tkt tp') tp
-abs-tk KeptLambda x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton (pi % x)) tp 
+abs-tk KeptLambda x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
 abs-tk KeptLambda x pi (Tkt tp') tp | tt = Abs posinfo-gen Pi pi x (Tkt tp') tp
 abs-tk KeptLambda x pi (Tkt tp') tp | ff = TpArrow tp' UnerasedArrow  tp
 
