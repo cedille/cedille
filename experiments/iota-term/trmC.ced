@@ -111,12 +111,8 @@ abs' ◂ Π n : Nat . Trm' (S n) ➔ Trm' n
 var' ◂ Π n : Nat . Trm' (S n) =
   λ n . 
      TrmFold' -(S n)
-        [Λ X . Λ I . λ val . λ alg . (val n (lt-nSn n)).1 · (X (S n)) (λ a . Λ _ . a), Λ f . Λ uf . ρ+ (uf n (lt-nSn n)) - ε β{varU n}].
+        [Λ X . Λ I . λ val . λ alg . (lookupValuation' (S n) val n (lt-nSn n)).1 · (X (S n)) (λ a . Λ _ . a), Λ f . Λ uf . ρ+ (uf n (lt-nSn n)) - ε β{varU n}].
 
-
-varValuationInv' ◂ Π n : Nat . Trm' (S n) ➔ ★ = λ n : Nat. λ t : Trm' (S n) . { t ≃ varU n } .
-varValuation' ◂ Π n : Nat . Valuation' n · Trm' · varValuationInv' =
- λ n . λ m . λ _ . mkWSigma2 · (Trm' (S m)) · (varValuationInv' m) (var' m) -β .
 
 exampleTrm' ◂ Trm' Z = in' Z (in2 · (TrmAppF · (Trm' Z)) · (Trm' (S Z))
                                 (var' Z)) .

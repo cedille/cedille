@@ -13,7 +13,8 @@ import wSigma2.
 
 varValuationInv ◂ Π n : Nat . Trm (S n) ➔ ★ = λ n : Nat. λ t : Trm (S n) . { t ≃ varU n } .
 varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
- λ n . λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β . 
+ λ n . valuationFromFun' n · Trm · varValuationInv
+         (λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β) . 
 
 inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
   [ β{λ n . λ _ . λ _ . λ d . in n d} ,
@@ -27,7 +28,7 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                      ρ ς e1.2 -
                      ε ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
                             -(λ m : Nat . λ p : Lt m n.
-                                 wSigma2Induction (val m p)
+                                 wSigma2Induction (lookupValuation' n val m p)
                                    · (λ q : wSigma2 · (Trm (S m)) · (varValuationInv m) .
                                        { q (λ a . a) ≃ varU m })
                                    (λ v . Λ e . ρ e - β))) -
@@ -42,7 +43,7 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                                        (λ a . λ e .
                                           ρ+ e -
                                           ρ (valuationInv' n · Trm · varValuationInv val m a
-                                               · { in1 a (λ u' . val m u') (λ e . mkWSigma2 (var n)) (λ a' . a') ≃ varU m }
+                                               · { in1 a (λ u' . lookupValuation' n val m u') (λ e . mkWSigma2 (var n)) (λ a' . a') ≃ varU m }
                                                (Λ u . ρ+ u - β))
                                              - β)
                                        (λ a . λ e . ρ+ e - ρ a - β) β)) -

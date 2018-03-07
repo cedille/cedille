@@ -109,8 +109,10 @@ out-t ◂ Nat ➔ ★ = λ n : Nat . Sum · (out-t1 n) · (out-t2 n).
 out ◂ Π n : Nat . Trm n ➔ out-t n =
   λ n . λ t .
     (TrmUnfold -n t).2 · (λ n : Nat . λ _ : Trm' n . out-t n) · (λ n : Nat . λ _ : out-t (S n) . True)
-      (λ m . λ p . mkWSigma2 · (out-t (S m)) · (λ _ : out-t (S m) . True)
-                     (in1 · (out-t1 (S m)) · (out-t2 (S m)) (mksigma · Nat · (λ k : Nat . Lt k (S m)) m (lt-nSn m))) -triv)
+      (valuationFromFun n · Trm' -var' · (λ n : Nat . λ _ : Trm' n . out-t n)
+         · (λ n : Nat . λ _ : out-t (S n) . True)
+        (λ m . λ p . mkWSigma2 · (out-t (S m)) · (λ _ : out-t (S m) . True)
+                     (in1 · (out-t1 (S m)) · (out-t2 (S m)) (mksigma · Nat · (λ k : Nat . Lt k (S m)) m (lt-nSn m))) -triv))
       [ β{λ n' . λ e1 . λ e2 . λ d . in2 d} ,
         λ n . Λ val . Λ R1 . Λ R2 . Λ Reveal1 . Λ Reveal2 . Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
           in2 · (out-t1 n) · (out-t2 n)
@@ -120,7 +122,7 @@ var ◂ Π n : Nat . Trm (S n) =
   λ n . 
      TrmFold -(S n)
         [var' n ,
-         Λ P . Λ I . λ val . λ alg . (val n (lt-nSn n)).1 · (P (S n) (var' n)) (λ a . Λ _ . a)].
+         Λ P . Λ I . λ val . λ alg . (lookupValuation (S n) · Trm' -var' val n (lt-nSn n)).1 · (P (S n) (var' n)) (λ a . Λ _ . a)].
 
 embed-var ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Trm' m =
   λ n . λ m' . λ pm' . (lt-S n m' pm').1 · (Trm' m') (λ pm' . λ em' . ρ ς em' - (var' pm')) .
@@ -129,10 +131,12 @@ embedTrm' ◂ Π n : Nat . Trm' n ➔ Π m : Nat . Lt n m ➔ Trm' m =
   λ n . λ t .
     (TrmUnfold' -n t).1 · (λ m : Nat . Π m : Nat . Lt n m ➔ Trm' m)
       · (λ n' : Nat . λ _ : Π m : Nat . Lt n m ➔ Trm' m . True)
-      (λ m . λ p .
-        mkWSigma2 · (Π m' : Nat . Lt n m' ➔ Trm' m')
+      (valuationFromFun' n · (λ m : Nat . Π m : Nat . Lt n m ➔ Trm' m)
+        · (λ n' : Nat . λ _ : Π m : Nat . Lt n m ➔ Trm' m . True)
+        (λ m . λ p .
+          mkWSigma2 · (Π m' : Nat . Lt n m' ➔ Trm' m')
                   · (λ _ : Π m' : Nat . Lt n m' ➔ Trm' m' . True)
-             (embed-var n) -triv)
+             (embed-var n) -triv))
       [ β{λ n' . λ e1 . λ e2 . λ d . λ m' . λ pm' . d (λ a . a (λ x . λ y . appe' m' (e1 x m' pm') (e1 y m' pm'))) (λ a . abs' m' (e2 (embed-var n) a (S m') (LtS2 n m' pm')))} ,
         λ n' . Λ val . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
           λ m' . λ pm' .

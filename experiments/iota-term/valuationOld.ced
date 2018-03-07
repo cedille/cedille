@@ -3,11 +3,10 @@ module Valuation.
 import nat.
 import natExtras.
 import wSigma2.
-import posvector.
 
 Valuation' ◂ Π n : Nat . Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
   λ n : Nat . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ .
-    PosVector · (λ m : Nat . wSigma2 · (X (S m)) · (I m)) n.
+    Π m : Nat . Lt m n ➔ wSigma2 · (X (S m)) · (I m).
 
 lookupValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                    Valuation' n · X · I ➔
@@ -32,7 +31,7 @@ valuationInv' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n
 
 valuationFromFun' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                     (Π m : Nat . Lt m n ➔ wSigma2 · (X (S m)) · (I m)) ➔
-                    Valuation' n · X · I = ● .
+                    Valuation' n · X · I = λ n . Λ X . Λ I . λ f . f .
 
 {-
 restrictValuation' ◂
@@ -46,7 +45,7 @@ varTp ◂ (Nat ➔ ★) ➔ ★ = λ Trm : Nat ➔ ★ . Π n : Nat . Trm (S n) 
 Valuation ◂ Π n : Nat . Π Trm : Nat ➔ ★ . Π var : varTp · Trm . Π P : Π n : Nat . Trm n ➔ ★. Π I : Π m : Nat . P (S m) (var m) ➔ ★ . ★ =
   λ n : Nat . λ Trm : Nat ➔ ★ . λ var : varTp · Trm . λ P : Π n : Nat . Trm n ➔ ★ .
   λ I : Π n : Nat . P (S n) (var n) ➔ ★ .
-    PosVector · (λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n .
+    Π m : Nat . Π p : Lt m n . wSigma2 · (P (S m) (var m)) · (I m) .
 
 valuationFromFun ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
                   ∀ P : Π n : Nat . Trm n ➔ ★.
@@ -54,7 +53,8 @@ valuationFromFun ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm
                   (Π m : Nat .
                    Lt m n ➔
                    wSigma2 · (P (S m) (var m)) · (I m)) ➔
-                  Valuation n · Trm var · P · I = ● .
+                  Valuation n · Trm var · P · I =
+   λ n . Λ Trm . Λ var . Λ P . Λ I . λ f . f .
 
 lookupValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
                   ∀ P : Π n : Nat . Trm n ➔ ★.
@@ -74,4 +74,3 @@ updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm 
                   Valuation (S n) · Trm var · P · I =
   λ n . Λ Trm . Λ var . Λ P . Λ I . λ val . λ xn . Λ ixn . λ m . λ u .
     (Lt-S m n u).1 · (wSigma2 · (P (S m) (var m)) · (I m)) (λ u . val m u) (λ e . ρ e - (mkWSigma2 xn -ixn)) .
-
