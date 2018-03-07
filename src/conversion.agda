@@ -56,13 +56,24 @@ conv-t : Set → Set
 conv-t T = ctxt → T → T → 𝔹
 
 {-# TERMINATING #-}
-conv-term : conv-t term
+
+-- main entry points
+conv-term : conv-t term -- does not assume erased
 conv-type : conv-t type 
-conv-term' : conv-t term
-conv-type' : conv-t type 
 conv-kind : conv-t kind
+
+-- assume terms are erased
+conv-terme : conv-t term 
+conv-argse : conv-t (𝕃 term) 
+
+-- call hnf, then the conv-X-norm functions
+conv-term' : conv-t term 
+conv-type' : conv-t type 
+
 hnf : {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → (is-head : 𝔹) → ⟦ ed ⟧ 
-conv-term-norm : conv-t term
+
+-- assume head normalized inputs
+conv-term-norm : conv-t term 
 conv-type-norm : conv-t type
 conv-kind-norm : conv-t kind
 
@@ -74,14 +85,23 @@ conv-optClass : conv-t optClass
 conv-optType : conv-t optType
 conv-tty* : conv-t (𝕃 tty)
 
-conv-term Γ t@(Var pi x) t'@(Var pi' x') =
-  if ctxt-eq-rep Γ x x' then tt else
+conv-term Γ t t' = conv-terme Γ (erase-term t) (erase-term t')
+
+conv-terme Γ t t' with decompose-apps t | decompose-apps t'
+conv-terme Γ t t' | Var pi x , args | Var pi' x' , args' = 
+  if ctxt-eq-rep Γ x x' && conv-argse Γ args args' then tt else
   conv-term' Γ t t'
-conv-term Γ t t' = conv-term' Γ t t'
-conv-type Γ t@(TpVar pi x) t'@(TpVar pi' x') =
-  if ctxt-eq-rep Γ x x' then tt else
+conv-terme Γ t t' | _ | _ = conv-term' Γ t t'
+
+conv-argse Γ [] [] = tt
+conv-argse Γ (a :: args) (a' :: args') = conv-terme Γ a a' && conv-argse Γ args args'
+conv-argse Γ _ _ = ff
+
+conv-type Γ t t' with decompose-tpapps t | decompose-tpapps t'
+conv-type Γ t t' | TpVar pi x , args | TpVar pi' x' , args' = 
+  if ctxt-eq-rep Γ x x' && conv-tty* Γ args args' then tt else
   conv-type' Γ t t'
-conv-type Γ t t' = conv-type' Γ t t'
+conv-type Γ t t' | _ | _ = conv-type' Γ t t'
 
 conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k tt) (hnf Γ unfold-head k' tt)
 
