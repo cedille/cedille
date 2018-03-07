@@ -51,6 +51,25 @@ trie-fill : ∀{A : Set} → trie A → 𝕃 (string × A) → trie A
 trie-fill t ((s , a) :: vs) = trie-fill (trie-insert t s a) vs
 trie-fill t [] = t
 
+trie-empty? : ∀ {A} → trie A → 𝔹
+trie-empty? t = ~ trie-nonempty t
+
+trie-filter : ∀ {A} → (A → 𝔹) → trie A → trie A
+cal-filter  : ∀ {A} → (A → 𝔹) → cal (trie A) → cal (trie A)
+
+trie-filter f (Node odata ts'@(c :: ts))
+  = Node odata (cal-filter f ts')
+trie-filter f t@(Node (just x) [])
+  = if f x then t else empty-trie
+trie-filter f (Node nothing [])
+  = empty-trie
+
+cal-filter f [] = []
+cal-filter f ((a , t) :: c)
+  with trie-filter f t | cal-filter f c
+... | t' | c'
+  = if trie-empty? t then c' else (a , t') :: c'
+
 string-split-h : 𝕃 char → char → 𝕃 char → 𝕃 string → 𝕃 string
 string-split-h [] delim str-build out = reverse ((𝕃char-to-string (reverse str-build)) :: out)
 string-split-h (c :: cs) delim str-build out with (c =char delim)
