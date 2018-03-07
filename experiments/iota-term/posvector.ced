@@ -1,0 +1,22 @@
+module PosVector.
+
+import nat.
+import natExtras.
+
+PosVector ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
+  λ T : Nat ➔ ★ . λ n : Nat . 
+  ∀ X : Nat ➔ ★ .
+  X Z ➔
+  (∀ m : Nat . T m ➔ X m ➔ X (S m)) ➔
+  X n.
+
+PVNil ◂ ∀ T : Nat ➔ ★ . PosVector · T Z =
+  Λ T . Λ X . λ nil . λ cons . nil .
+
+PVCons ◂ ∀ T : Nat ➔ ★ . ∀ n : Nat . T n ➔ PosVector · T n ➔ PosVector · T (S n) =
+  Λ T . Λ n . λ h . λ t . Λ X . λ nil . λ cons .
+    cons -n h (t · X nil cons) .
+
+PVfromFun ◂ ∀ T : Nat ➔ ★ . ∀ n : Nat .
+            (Π m : Nat . Lt m n ➔ T m) ➔
+            PosVector · T n = ● .
