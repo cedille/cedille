@@ -1,4 +1,4 @@
-module Trm.
+module TrmInduction.
 
 import product.
 import sum.
@@ -26,3 +26,4 @@ TrmInd ◂ Π n : Nat . Π t : Trm n .
               [λ r . ρ ς (trmReflection n (cast -Reveal1 r)) - (e1.1 r), e1.2]
               [λ p . Λ ip . λ r . ρ ς (trmReflection (S n) (cast -Reveal2 r)) - (e2.1 p -ip r) , e2.2]
               d]) . 
+

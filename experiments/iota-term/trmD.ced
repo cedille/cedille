@@ -12,6 +12,7 @@ import is.
 import top.
 import true.
 import wSigma2.
+import sigma.
 
 inTp ◂ (Nat ➔ ★) ➔ ★ = λ Trm : Nat ➔ ★ . Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n.
 
@@ -102,6 +103,19 @@ in ◂ Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n =
                                                    β{foldU2 n alg val}]
                                                   d] .
 
+out-t1 ◂ Nat ➔ ★ = λ n : Nat . Sigma · Nat · (λ m : Nat . Lt m n).
+out-t2 ◂ Nat ➔ ★ = λ n : Nat . TrmIF · (Trm n) · (Trm (S n)) .
+out-t ◂ Nat ➔ ★ = λ n : Nat . Sum · (out-t1 n) · (out-t2 n).
+out ◂ Π n : Nat . Trm n ➔ out-t n =
+  λ n . λ t .
+    (TrmUnfold -n t).2 · (λ n : Nat . λ _ : Trm' n . out-t n) · (λ n : Nat . λ _ : out-t (S n) . True)
+      (λ m . λ p . mkWSigma2 · (out-t (S m)) · (λ _ : out-t (S m) . True)
+                     (in1 · (out-t1 (S m)) · (out-t2 (S m)) (mksigma · Nat · (λ k : Nat . Lt k (S m)) m (lt-nSn m))) -triv)
+      [ β{λ n' . λ e1 . λ e2 . λ d . in2 d} ,
+        λ n . Λ val . Λ R1 . Λ R2 . Λ Reveal1 . Λ Reveal2 . Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
+          in2 · (out-t1 n) · (out-t2 n)
+            (cast -(TrmIFFun Reveal1 Reveal2) d) ].
+
 var ◂ Π n : Nat . Trm (S n) =
   λ n . 
      TrmFold -(S n)
@@ -125,3 +139,4 @@ embedTrm' ◂ Π n : Nat . Trm' n ➔ Π m : Nat . Lt n m ➔ Trm' m =
             d.1 · (Trm' m')
               (λ a . a.1 · (Trm' m') (λ x . λ y . appe' m' (e1.1 x m' pm') (e1.1 y m' pm')))
               (λ a . abs' m' (e2.1 (embed-var n) -triv a (S m') (LtS2 n m' pm')))] .
+
