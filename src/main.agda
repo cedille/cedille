@@ -145,7 +145,7 @@ module main-with-options (options : cedille-options.options) where
           processText x | Left (Left cs)  = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Lexical error." cs)
           processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)        
           processText x | Right t  with cws-types.scanComments x 
-          processText x | Right t | t2 = find-imported-files (trie-strings (toplevel-state.include-path st))
+          processText x | Right t | t2 = find-imported-files (takeDirectory filename :: trie-strings (toplevel-state.include-path st))
                                                              (get-imports t) >>= λ deps →
                                          return (new-include-elt filename deps t t2 nothing)
 
