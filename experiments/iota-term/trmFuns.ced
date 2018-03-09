@@ -64,10 +64,8 @@ depthSizeThm◂Π n:Nat .Π t:Trm n .Lte (depthTrm n t) (sizeTrm n t)
     ·(λ n:Nat .λ t:Trm n .Lte (depthTrm n t) (sizeTrm n t))
     ·(λ n:Nat .λ p:Lte (depthTrm (S n) (var n)) (sizeTrm (S n) (var n)) .True)
     (valuationFromFun n·Trm -var
-     		      (λ n:Nat .wSigma2·(Lte (depthTrm (S n) (var n)) (sizeTrm (S n) (var n)))·(λ p : Lte (depthTrm (S n) (var n)) (sizeTrm (S n) (var n)) . True))
-      -(λ _:Nat .●)
-      ·●
-      ·●
+      ·(λ n:Nat .λ t:Trm n .Lte (depthTrm n t) (sizeTrm n t))
+      ·(λ n:Nat .λ p:Lte (depthTrm (S n) (var n)) (sizeTrm (S n) (var n)) .True)
       (λ m .λ p .mkWSigma2·(Lte (depthTrm (S m) (var m)) (sizeTrm (S m) (var m)))
                         ·(λ p : Lte (depthTrm (S m) (var m)) (sizeTrm (S m) (var m)) . True)
 			(depthSizeThm-var m)
