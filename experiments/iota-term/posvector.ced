@@ -27,6 +27,8 @@ PVfromFun ◂ ∀ T:Nat➔★.Π n:Nat .
     (λ m .λ p .λ l .[l'=Lt-Lte m n l]- PVCons·T m (f m l') (p (Lte-Lt m n l'))))
     (Lten n) .
 
+
+
 FunfromPV ◂ ∀ T:Nat➔★.Π n:Nat .
             PosVector·T n ➔
 	    Π m:Nat .
@@ -37,3 +39,35 @@ FunfromPV ◂ ∀ T:Nat➔★.Π n:Nat .
        (λ l .(lt-Z m l)·(T m))
        (λ p .λ tp .λ ih .λ l .ind-Sum·(Lt m p)·{m≃p} (Lt-S m p l) ·(λ s:Sum·(Lt m p)·{m≃p} . T m) (λ l . ih l) (λ e .ρ e -tp)))
        l.
+
+{-Tests-}
+Nat'◂Nat➔★=λ _:Nat .Nat.
+
+testa◂Nat=S Z.
+testc◂Nat=Z.
+testb◂Nat=S (S Z).
+
+{-    PVfromFun
+-}
+
+example0◂PosVector·Nat' (S (S (S Z)))=PVfromFun·Nat' (S (S (S Z))) (λ _ .λ _ .testa).
+
+lookup-example0-head◂{FunfromPV·Nat' (S (S (S Z))) example0 (S (S Z)) (lt-nSn (S (S Z)))≃testa}=β.
+lookup-example0-mid◂{FunfromPV·Nat'  (S (S (S Z))) example0 (S Z) (lt-nSSn (S Z))≃testa}=β.
+lookup-example0-last◂{FunfromPV·Nat' (S (S (S Z))) example0 Z (lt-nSSSn Z)≃testa}=β.
+
+{-    FunfromPV
+      [ testa , testb,  testc ]
+          T2     , T1    , T0
+-}
+
+
+example1◂PosVector·Nat' (S (S (S Z)))=
+  PVCons·Nat' (S (S Z)) testa
+   (PVCons·Nat' (S Z)   testb
+     (PVCons·Nat' Z     testc
+       (PVNil·Nat'))).
+
+lookup-example1-head◂{FunfromPV·Nat' (S (S (S Z))) example1 (S (S Z)) (lt-nSn (S (S Z)))≃testa}=β.
+lookup-example1-mid◂{FunfromPV·Nat' (S (S (S Z)))  example1 (S Z) (lt-nSSn (S Z))≃testb}=β.
+lookup-example1-last◂{FunfromPV·Nat' (S (S (S Z))) example1 Z (lt-nSSSn Z)≃testc}=β.

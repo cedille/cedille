@@ -151,6 +151,10 @@ Lt-S ◂ Π n : Nat . Π m : Nat . Lt n (S m) ➔ Lte n m =
 lt-nSn ◂ Π n : Nat . Lt n (S n) =
   λ n . θ<n> (NatInd n) (LtZ Z) (λ p . λ ih . LtS p (S p) ih).
 
+lt-nSSn ◂ Π n : Nat . Lt n (S (S n))      = λ n . Lt-trans n (S n)     (S (S n))     (lt-nSn n)  (lt-nSn (S n)) .
+
+lt-nSSSn ◂ Π n : Nat . Lt n (S (S (S n))) = λ n . Lt-trans n (S (S n)) (S (S (S n))) (lt-nSSn n) (lt-nSn (S (S n))) .
+
 LtS2 ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m)
       = λ n . λ m . λ l . Lt-trans n (S n) (S m) (lt-nSn n) (LtS n m l) .
 
