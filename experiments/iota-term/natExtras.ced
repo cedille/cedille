@@ -75,6 +75,7 @@ LtStep ◂ Nat ➔ Nat ➔ ★ =
   λ n : Nat . λ m : Nat .
     Sigma · Nat · (LtStepp n m) .
 
+LtSn ◂ Π n : Nat . Lt n (S n) = λ n . θ<n> (NatInd n) (LtZ Z) (λ n . λ ih . LtS n (S n) ih) .
 
 Lt-in ◂ ∀ n : Nat . ∀ m : Nat . Sum · (LtBase n m) · (LtStep n m) ➔ Lt n m =
   Λ n . Λ m . λ d .
@@ -100,11 +101,11 @@ lt-S ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Sigma · Nat · (λ p : Nat . {S p
        	 (λ m . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)
 	 (λ n . λ m . λ _ . λ _ . mksigma · Nat · (λ p : Nat . {S p ≃ S m}) m β)) lt-nm . 
 
-
+lt-Z ◂ Π n:Nat .Lt n Z➔False=
+  λ n. λ l. ind-sigma·Nat·(λ p : Nat . {S p ≃ Z}) (lt-S n Z l) ·(λ s:Sigma·Nat·(λ p : Nat . {S p ≃ Z}) . False) (λ m . λ e .ZS-False -m -ς e). 
 
 eq-S ◂ Π n : Nat . Π m : Nat . {S n ≃ S m} ➔ {n ≃ m} =
   λ n . λ m . λ eq-n-m . χ ({pred (S n) ≃ m}) - ρ eq-n-m - β .
-
 
 lt-SS ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
   λ n . λ m . λ Lt-Sn-Sm . ind-Sum · (LtBase (S n) (S m)) · (LtStep (S n) (S m)) (Lt-out -(S n) -(S m) Lt-Sn-Sm) ·
@@ -112,6 +113,7 @@ lt-SS ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
 	(λ ltB-Sn-Sm . ZS-False -n -(θ<ltB-Sn-Sm> (ind-sigma · Nat · (LtBasep (S n) (S m)) ltB-Sn-Sm) (λ _ . λ ltBp-Sn-Sm . ς ltBp-Sn-Sm.1)) · (Lt n m))
 	(λ ltS-Sn-Sm . θ<ltS-Sn-Sm> (ind-sigma · Nat · (LtStepp (S n) (S m)) ltS-Sn-Sm)
 	   (λ n' . λ ltSp-Sn-Sm . θ<ltSp-Sn-Sm> (ind-sigma · Nat · (LtStepp2 (S n) (S m) n') ltSp-Sn-Sm) (λ m' . λ ltSpp-Sn-Sm . ρ (eq-S n n' ltSpp-Sn-Sm.1) -ρ (eq-S m m' ltSpp-Sn-Sm.2.1) - ltSpp-Sn-Sm.2.2 ))).
+
 
 
 Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · {n ≃ m} .
@@ -122,6 +124,11 @@ LteS ◂ Π n : Nat . Π m : Nat . Lte n m ➔ Lte (S n) (S m)
     = λ n . λ m . λ lte-nm . θ<lte-nm> (ind-Sum · (Lt n m) · {n ≃ m} lte-nm)
       (λ lt-n-m . in1 · (Lt (S n) (S m)) · {S n ≃ S m} (LtS n m lt-n-m))
       (λ eq-n-m . in2 · (Lt (S n) (S m)) · {S n ≃ S m} (ρ eq-n-m - β)) .
+
+Lten ◂ Π n : Nat . Lte n n 
+     = λ n . in2 · (Lt n n) · {n ≃ n} β .
+
+Lte-Lt ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lte n m = λ n .λ m .λ l .in1·(Lt n m)·{n≃m} l.
 
 Lt-trans ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
   λ x . λ y . λ z . λ lt-xy . λ lt-yz . 
@@ -147,7 +154,11 @@ lt-nSn ◂ Π n : Nat . Lt n (S n) =
 LtS2 ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m)
       = λ n . λ m . λ l . Lt-trans n (S n) (S m) (lt-nSn n) (LtS n m l) .
 
-
+Lt-Lte ◂ Π n : Nat . Π m : Nat . Lte (S n) m ➔ Lt n m
+ =λ n .λ m .λ l .l.1·(Lt n m)
+    (λ l . ind-sigma·Nat·(λ p:Nat .{S p ≃ m}) (lt-S (S n) m l)·(λ s:Sigma·Nat·(λ p:Nat .{S p ≃ m}) .Lt n m)
+       (λ a .λ b .ρ ς b -(LtS2 n a (lt-SS n a (ρ b -l)))))
+    (λ e .ρ ς e -(LtSn n)).
 
 {- add-mono ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt (add x z) (add y z) =
   λ x . λ y . λ z . λ p . ●. -}

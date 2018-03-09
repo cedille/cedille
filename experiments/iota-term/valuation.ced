@@ -14,25 +14,25 @@ lookupValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (
                    Π m : Nat .
                    Lt m n ➔
                    wSigma2 · (X (S m)) · (I m) =
-    λ n . Λ X . Λ I . λ val . val .
+    λ n . Λ X . Λ I . λ val . FunfromPV·(λ m:Nat .wSigma2 · (X (S m)) · (I m)) n val .
 
 updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                    Valuation' n · X · I ➔ Π x : X (S n) . I n x ➾ Valuation' (S n) · X · I =
-  λ n . Λ X . Λ I . λ val . λ xn . Λ ixn . λ m . λ u . 
-    (Lt-S m n u).1 · (wSigma2 · (X (S m)) · (I m)) (λ u . val m u) (λ e . ρ e - (mkWSigma2 xn -ixn)).
+  λ n . Λ X . Λ I . λ val . λ xn . Λ ixn . PVCons·(λ m : Nat . wSigma2 · (X (S m)) · (I m)) n (mkWSigma2 xn -ixn) val.
 
 valuationInv' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                   Π val : Valuation' n · X · I . Π m : Nat . Π p : Lt m n . ∀ P : ★ .
-                  (I m ((val m p).1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P =
+                  (I m ((lookupValuation' n val m p).1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P =
    λ n . Λ X . Λ I . λ val . λ m . λ p . 
-     wSigma2Induction (val m p) · (λ u : wSigma2 · (X (S m)) · (I m). ∀ P : ★ .
+     wSigma2Induction (lookupValuation' n val m p) · (λ u : wSigma2 · (X (S m)) · (I m). ∀ P : ★ .
                   (I m (u.1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P )
        (λ a . Λ p . Λ P . λ c . c -p) .
        
 
 valuationFromFun' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                     (Π m : Nat . Lt m n ➔ wSigma2 · (X (S m)) · (I m)) ➔
-                    Valuation' n · X · I = ● .
+                    Valuation' n · X · I =
+  λ n .Λ X .Λ I .λ f . PVfromFun ·(λ m : Nat . wSigma2 · (X (S m)) · (I m)) n f.		    
 
 {-
 restrictValuation' ◂
@@ -54,7 +54,8 @@ valuationFromFun ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm
                   (Π m : Nat .
                    Lt m n ➔
                    wSigma2 · (P (S m) (var m)) · (I m)) ➔
-                  Valuation n · Trm var · P · I = ● .
+                  Valuation n · Trm var · P · I =
+  λ n . Λ Trm . Λ var . Λ P . Λ I . λ f . PVfromFun ·(λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n f.
 
 lookupValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
                   ∀ P : Π n : Nat . Trm n ➔ ★.
@@ -63,7 +64,7 @@ lookupValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm 
                   Π m : Nat .
                   Lt m n ➔
                   wSigma2 · (P (S m) (var m)) · (I m) =
-    λ n . Λ Trm . Λ var. Λ P . Λ I . λ val . val .
+    λ n . Λ Trm . Λ var. Λ P . Λ I . λ val . FunfromPV·(λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n val.
 
 updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
                   ∀ P : Π n : Nat . Trm n ➔ ★.
@@ -72,6 +73,6 @@ updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm 
                   Π p : P (S n) (var n) .
                   I n p ➾ 
                   Valuation (S n) · Trm var · P · I =
-  λ n . Λ Trm . Λ var . Λ P . Λ I . λ val . λ xn . Λ ixn . λ m . λ u .
-    (Lt-S m n u).1 · (wSigma2 · (P (S m) (var m)) · (I m)) (λ u . val m u) (λ e . ρ e - (mkWSigma2 xn -ixn)) .
+  λ n . Λ Trm . Λ var . Λ P . Λ I . λ val . λ xn . Λ ixn . PVCons·(λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n (mkWSigma2 xn -ixn) val.
+
 
