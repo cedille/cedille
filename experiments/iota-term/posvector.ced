@@ -3,7 +3,6 @@ module PosVector.
 import nat.
 import natExtras.
 import product.
-import less.
 import sum.
 
 PosVector ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
