@@ -23,10 +23,10 @@ qualif : Set
 qualif = trie qualif-info
 
 tag : Set
-tag = string × streeng
+tag = string × rope
 
 tagged-val : Set
-tagged-val = string × streeng × 𝕃 tag
+tagged-val = string × rope × 𝕃 tag
 {-
 tags-to-string : 𝕃 tag → string
 tags-to-string [] = ""
@@ -44,28 +44,28 @@ tagged-vals-to-string n (s :: []) = tagged-val-to-string n s
 tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tagged-vals-to-string (suc n) (s' :: ss)
 -}
 
-tags-to-streeng : 𝕃 tag → streeng
-tags-to-streeng [] = [[]]
-tags-to-streeng ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
-tags-to-streeng ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-streeng ts
+tags-to-rope : 𝕃 tag → rope
+tags-to-rope [] = [[]]
+tags-to-rope ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
+tags-to-rope ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-rope ts
 
 -- We number these when so we can sort them back in emacs
-tagged-val-to-streeng : ℕ → tagged-val → streeng
-tagged-val-to-streeng n (t , v , []) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
-tagged-val-to-streeng n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-streeng tags ⊹⊹ [[ "}]" ]]
+tagged-val-to-rope : ℕ → tagged-val → rope
+tagged-val-to-rope n (t , v , []) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
+tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
 
-tagged-vals-to-streeng : ℕ → 𝕃 tagged-val → streeng
-tagged-vals-to-streeng n [] = [[]]
-tagged-vals-to-streeng n (s :: []) = tagged-val-to-streeng n s
-tagged-vals-to-streeng n (s :: (s' :: ss)) = tagged-val-to-streeng n s ⊹⊹ [[ "," ]] ⊹⊹ tagged-vals-to-streeng (suc n) (s' :: ss)
+tagged-vals-to-rope : ℕ → 𝕃 tagged-val → rope
+tagged-vals-to-rope n [] = [[]]
+tagged-vals-to-rope n (s :: []) = tagged-val-to-rope n s
+tagged-vals-to-rope n (s :: (s' :: ss)) = tagged-val-to-rope n s ⊹⊹ [[ "," ]] ⊹⊹ tagged-vals-to-rope (suc n) (s' :: ss)
 
 
 make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
-make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ]] ⊹⊹ vs-to-streeng vs ⊹⊹ [[ "}" ]]
+make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ]] ⊹⊹ vs-to-rope vs ⊹⊹ [[ "}" ]]
   where
-    vs-to-streeng : 𝕃 tag → streeng
-    vs-to-streeng [] = [[]]
-    vs-to-streeng ((t , v) :: ts) = [[ ",\"" ^ t ^ "\":\"" ]] ⊹⊹ v ⊹⊹ [[ "\"" ]] ⊹⊹ vs-to-streeng ts
+    vs-to-rope : 𝕃 tag → rope
+    vs-to-rope [] = [[]]
+    vs-to-rope ((t , v) :: ts) = [[ ",\"" ^ t ^ "\":\"" ]] ⊹⊹ v ⊹⊹ [[ "\"" ]] ⊹⊹ vs-to-rope ts
 
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi

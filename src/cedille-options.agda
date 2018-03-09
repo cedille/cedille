@@ -21,8 +21,8 @@ str-bool-to-𝔹 : string → 𝔹
 str-bool-to-𝔹 "true" = tt
 str-bool-to-𝔹 _ = ff
 
-options-to-streeng : options → streeng
-options-to-streeng ops =
+options-to-rope : options → rope
+options-to-rope ops =
   [[ "import-directories = " ]] ⊹⊹ [[ 𝕃-to-string (λ fp → "\"" ^ fp ^ "\"") " "
      (stringset-strings (options.include-path ops)) ]] ⊹⊹ end ⊹⊹
   [[ "use-cede-files = " ]] ⊹⊹ [[ 𝔹-s options.use-cede-files ]] ⊹⊹ end ⊹⊹

@@ -579,6 +579,10 @@ occurrences, then do so."
   "Get the message to send to the backend, from the name of the file to parse."
   (concat "check§" filename))
 
+(defun cedille-mode-progress-fn (response oc buffer)
+  "The function called when a progress update is received from the backend"
+  (se-inf-queue-header response))
+
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
 
@@ -595,6 +599,7 @@ occurrences, then do so."
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
+  (setq-local se-inf-progress-fn'cedille-mode-progress-fn)
   ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
 
   (set-input-method "Cedille")

@@ -229,8 +229,8 @@ erase-prompt Γ str = parse-try Γ str ≫=maybe expr-to-tv Γ (erase ∘ qualif
 br-cmd : ctxt → (str fn : string) → 𝕃 string → IO ⊤
 br-cmd Γ str fn ls =
   let Γ' = get-local-ctxt Γ 0 "missing" ls ff in
-  putStreengLn
-  (maybe-else (spans-to-streeng (global-error "Parse error" nothing)) spans-to-streeng
+  putRopeLn
+  (maybe-else (spans-to-rope (global-error "Parse error" nothing)) spans-to-rope
   (parse-try Γ' str ≫=maybe λ ex →
    h ex ≫=maybe λ m →
    just (snd (snd (m Γ' (regular-spans [])))))) where
@@ -335,9 +335,9 @@ to-string-cmd Γ s = maybe-map h (parse-try Γ s) where
 
 {- Commands -}
 
-mtv-to-streeng : maybe tagged-val → streeng
-mtv-to-streeng nothing = [[ "{\"error\":\"Error\"}" ]]
-mtv-to-streeng (just (_ , v , ts)) = [[ "{" ]] ⊹⊹ tagged-val-to-streeng 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
+mtv-to-rope : maybe tagged-val → rope
+mtv-to-rope nothing = [[ "{\"error\":\"Error\"}" ]]
+mtv-to-rope (just (_ , v , ts)) = [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
 
 interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
 interactive-cmd-h : ctxt → 𝕃 string → maybe tagged-val
@@ -345,7 +345,7 @@ interactive-cmd ("br" :: input :: fn :: lc) ts =
   br-cmd (toplevel-state.Γ ts) input fn lc >>
   return ts
 interactive-cmd ls ts =
-  putStreengLn (mtv-to-streeng (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
+  putRopeLn (mtv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
   return ts
 
 interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: fn :: head :: do-erase :: lc) =

@@ -225,33 +225,33 @@ private
 
     e-type-ineq : ctxt → (tp₁ tp₂ : type) → string
     e-type-ineq Γ tp₁ tp₂
-      = streeng-to-string $'
+      = rope-to-string $'
           to-string Γ tp₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tp₂
           ⊹⊹ [[ ", in their definition" ]]
 
     e-term-ineq : ctxt → (tm₁ tm₂ : term) → string
-    e-term-ineq Γ tm₁ tm₂ = streeng-to-string $' to-string Γ tm₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tm₂
+    e-term-ineq Γ tm₁ tm₂ = rope-to-string $' to-string Γ tm₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tm₂
 
     e-kind-ineq : ctxt → (k₁ k₂ : kind) → string
-    e-kind-ineq Γ k₁ k₂ = streeng-to-string $' to-string Γ k₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ k₂
+    e-kind-ineq Γ k₁ k₂ = rope-to-string $' to-string Γ k₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ k₂
 
     e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → string
-    e-tk-ineq Γ tk₁ tk₂ = streeng-to-string $' tk-to-string Γ tk₁ ⊹⊹ [[ " != " ]] ⊹⊹ tk-to-string Γ tk₂
+    e-tk-ineq Γ tk₁ tk₂ = rope-to-string $' tk-to-string Γ tk₁ ⊹⊹ [[ " != " ]] ⊹⊹ tk-to-string Γ tk₂
 
     -- TODO
     e-solution-ineq : ctxt → (tp₁ tp₂ : type) → var → string
     e-solution-ineq Γ tp₁ tp₂ X
-      = streeng-to-string $'
+      = rope-to-string $'
           to-string Γ tp₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tp₂
           ⊹⊹ [[ ", but " ^ X ^ " solved to both" ]]
 
     e-optType-ineq : ctxt → type → 𝔹 → string
-    e-optType-ineq Γ tp tt = streeng-to-string $' (to-string Γ tp) ⊹⊹ [[ " != NoType" ]]
-    e-optType-ineq Γ tp ff = streeng-to-string $' [[ "NoType != " ]] ⊹⊹ to-string Γ tp
+    e-optType-ineq Γ tp tt = rope-to-string $' (to-string Γ tp) ⊹⊹ [[ " != NoType" ]]
+    e-optType-ineq Γ tp ff = rope-to-string $' [[ "NoType != " ]] ⊹⊹ to-string Γ tp
 
     e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → string
     e-arrowtype-ineq Γ tp₁ tp₂
-      = streeng-to-string $'
+      = rope-to-string $'
           to-string Γ tp₁ ⊹⊹ [[ " != " ]]
           ⊹⊹ to-string Γ tp₂
           ⊹⊹ [[ ", in their outermost arrow" ]]
@@ -261,10 +261,10 @@ private
 
     e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → string
     e-liftingType-ineq Γ l₁ l₂
-      = streeng-to-string $' to-string Γ l₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ l₂
+      = rope-to-string $' to-string Γ l₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ l₂
 
     e-meta-scope : ctxt → (x : var) → type → string
-    e-meta-scope Γ x tp = streeng-to-string $'
+    e-meta-scope Γ x tp = rope-to-string $'
       [[ "Cannot match " ^ x ^ " with " ]] ⊹⊹ to-string Γ tp
       ⊹⊹ [[ ", because some local vars would escape their scope." ]] 
 

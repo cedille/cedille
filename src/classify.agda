@@ -83,6 +83,7 @@ check-term-update-eq Γ Right m t1 t2 = TpEq t1 (hnf-from Γ m t2)
 check-term-update-eq Γ Both m t1 t2 = TpEq (hnf-from Γ m t1) (hnf-from Γ m t2) 
 
 -- a simple incomplete check for beta-inequivalence
+{-
 {-# TERMINATING #-}
 check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
 check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) = 
@@ -99,6 +100,7 @@ check-beta-inequivh local-left local-right m t1 t2 | _ | _ = ff
 -- t1 and t2 should be in normal form
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renamectxt t1 t2
+-}
 
 add-tk' : erased? → defScope → posinfo → var → tk → spanM restore-def
 add-tk' e s pi x atk = if (x =string ignored-var) then spanMr (nothing , nothing) else
@@ -192,6 +194,15 @@ var-spans-optTerm (SomeTerm t _) = var-spans-term t
 
    Use add-tk above to add declarations to the ctxt, since these should be normalized
    and with self-types instantiated.
+   
+   The term/type/kind being checked is never qualified, but the type/kind it is being
+   checked against should always be qualified. So if a term/type is ever being checked
+   against something that was in a term/type the user wrote (phi, for example, needs to
+   check its first term against an equation between its second and third terms), the type/
+   kind being checked against should be qualified first. Additionally, when returning
+   a synthesized type, lambdas should substitute the position-qualified variable for the
+   original variable in the returned type, so that if the bound variable ever gets
+   substituted by some other code it will work correctly.
  -}
 {-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)

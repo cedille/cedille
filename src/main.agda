@@ -46,17 +46,23 @@ module main-with-options (options : cedille-options.options) where
     else
       return triv
 
-  logStreeng : streeng → IO ⊤
-  logStreeng s = if cedille-options.options.generate-logs options then
+  logRope : rope → IO ⊤
+  logRope s = if cedille-options.options.generate-logs options then
         (getCurrentTime >>= λ time →
         logFilepath >>= λ fn →
         withFile fn AppendMode (λ hdl →
-          hPutStreeng hdl ([[ "([" ^ utcToString time ^ "] " ]] ⊹⊹ s ⊹⊹ [[ ")\n" ]])))
+          hPutRope hdl ([[ "([" ^ utcToString time ^ "] " ]] ⊹⊹ s ⊹⊹ [[ ")\n" ]])))
       else
         return triv
 
   logMsg : (message : string) → IO ⊤
-  logMsg msg = logStreeng [[ msg ]]
+  logMsg msg = logRope [[ msg ]]
+
+  sendProgressUpdate : string → IO ⊤
+  sendProgressUpdate msg = putStrLn ("progress: " ^ msg)
+
+  fileBaseName : string → string
+  fileBaseName fn = base-filename (takeFileName fn)
 
   {-------------------------------------------------------------------------------
     .cede support
@@ -65,8 +71,7 @@ module main-with-options (options : cedille-options.options) where
   cede-filename : (ced-path : string) → string
   cede-filename ced-path = 
     let dir = takeDirectory ced-path in
-    let unit-name = base-filename (takeFileName ced-path) in
-      combineFileNames (dot-cedille-directory dir) (unit-name ^ ".cede")
+      combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ ".cede")
 
 
   -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
@@ -76,7 +81,7 @@ module main-with-options (options : cedille-options.options) where
     let cede = cede-filename ced-path in
       createDirectoryIfMissing ff (dot-cedille-directory dir) >>
      logMsg ("Started writing .cede file " ^ cede) >>
-     writeStreengToFile cede ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-streeng ie) >>
+     writeRopeToFile cede ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
      logMsg ("Finished writing .cede file " ^ cede)
 
   -- we assume the cede file is known to exist at this point
@@ -208,11 +213,17 @@ module main-with-options (options : cedille-options.options) where
         else
           ensure-ast-depsh filename (include-elt.last-parse-time ie) s
 
+  file-exists-or : (filename1 : string) → (filename2 : string) → IO string
+  file-exists-or fn1 fn2 =
+    doesFileExist fn1 >>= λ e → return (if e then fn1 else fn2)
+
   file-deps-not-changed : (filename : string) → (deps : 𝕃 string) → IO 𝔹
   file-deps-not-changed fn [] = return tt
   file-deps-not-changed fn (d :: ds) =
-    doesFileExist d >>= λ e →
-    if e then
+    logMsg ("file-deps-not-changed filename: " ^ fn ^ ", d: " ^ d) >>
+    doesFileExist d >>= λ e₁ →
+    doesFileExist fn >>= λ e₂ →
+    if e₁ && e₂ then
         (fileIsOlder d fn >>= λ b →
         if b then
             file-deps-not-changed fn ds
@@ -236,7 +247,7 @@ module main-with-options (options : cedille-options.options) where
             where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
                   proc seen s [] =
                     if cedille-options.options.use-cede-files options then
-                        file-deps-not-changed filename ds
+                        file-deps-not-changed (cede-filename filename) ds
                       else
                         return tt >>= λ fdnc →
                     if (~ fdnc || list-any (get-do-type-check s) ds) 
@@ -254,8 +265,8 @@ module main-with-options (options : cedille-options.options) where
     return (snd p)
 
   log-files-to-check : toplevel-state → IO ⊤
-  log-files-to-check s = logStreeng ([[ "\n" ]] ⊹⊹ (h (trie-mappings (toplevel-state.is s)))) where
-    h : 𝕃 (string × include-elt) → streeng
+  log-files-to-check s = logRope ([[ "\n" ]] ⊹⊹ (h (trie-mappings (toplevel-state.is s)))) where
+    h : 𝕃 (string × include-elt) → rope
     h [] = [[]]
     h ((fn , ie) :: t) = [[ "file: " ]] ⊹⊹ [[ fn ]] ⊹⊹ [[ "\nadd-symbols: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.need-to-add-symbols-to-context ie) ]] ⊹⊹ [[ "\ndo-type-check: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.do-type-check ie) ]] ⊹⊹ [[ "\n\n" ]] ⊹⊹ h t
 
@@ -264,6 +275,8 @@ module main-with-options (options : cedille-options.options) where
   checkFile s filename should-print-spans = 
     update-asts s filename >>= λ s →
     log-files-to-check s >>
+    -- let msg = if include-elt.do-type-check (get-include-elt s filename) then "Checking " else "Skipping " in
+    -- sendProgressUpdate (msg ^ filename) >>
     finish (process-file s filename) -- ignore-errors s filename)
     where
           reply : toplevel-state → IO ⊤
@@ -271,7 +284,7 @@ module main-with-options (options : cedille-options.options) where
           reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
           reply s | just ie =
              if should-print-spans then
-               putStreengLn (include-elt-spans-to-streeng ie)
+               putRopeLn (include-elt-spans-to-rope ie)
              else return triv
           finish : toplevel-state × mod-info → IO toplevel-state
           finish (s , m) with s
@@ -343,7 +356,7 @@ module main-with-options (options : cedille-options.options) where
     where finish : string → toplevel-state → IO ⊤
           finish input-filename s = return triv
 {-            let ie = get-include-elt s input-filename in
-            if include-elt.err ie then (putStreengLn (include-elt-spans-to-streeng ie)) else return triv
+            if include-elt.err ie then (putRopeLn (include-elt-spans-to-rope ie)) else return triv
 -}
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))
@@ -361,7 +374,7 @@ module main-with-options (options : cedille-options.options) where
 
 createOptionsFile : (options-filepath : string) → IO ⊤
 createOptionsFile ops-fp = withFile ops-fp WriteMode (λ hdl →
-  hPutStreeng hdl (cedille-options.options-to-streeng cedille-options.default-options))
+  hPutRope hdl (cedille-options.options-to-rope cedille-options.default-options))
 
 
 opts-to-options : options.opts → cedille-options.options

@@ -23,9 +23,9 @@ open import subst
 data span : Set where
   mk-span : string → posinfo → posinfo → 𝕃 tagged-val {- extra information for the span -} → span
 
-span-to-streeng : span → streeng
-span-to-streeng (mk-span name start end extra) = 
-  [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-streeng 0 extra ⊹⊹ [[ "}]" ]]
+span-to-rope : span → rope
+span-to-rope (mk-span name start end extra) = 
+  [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 extra ⊹⊹ [[ "}]" ]]
 
 data spans : Set where
   regular-spans : 𝕃 span → spans
@@ -43,22 +43,22 @@ empty-spans = regular-spans []
 
 {-
 spans-to-string : spans → string
-spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-streeng ss) ^ "]}"
+spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-rope ss) ^ "]}"
 spans-to-string (global-error e o) = global-error-string (e ^ helper o)
   where helper : maybe span → string
-        helper (just x) = ", \"global-error\":" ^ span-to-streeng x
+        helper (just x) = ", \"global-error\":" ^ span-to-rope x
         helper nothing = ""
 -}
 
-𝕃span-to-streeng : 𝕃 span → streeng
-𝕃span-to-streeng (s :: []) = span-to-streeng s
-𝕃span-to-streeng (s :: ss) = span-to-streeng s ⊹⊹ [[ "," ]] ⊹⊹ 𝕃span-to-streeng ss
-𝕃span-to-streeng [] = [[]]
+𝕃span-to-rope : 𝕃 span → rope
+𝕃span-to-rope (s :: []) = span-to-rope s
+𝕃span-to-rope (s :: ss) = span-to-rope s ⊹⊹ [[ "," ]] ⊹⊹ 𝕃span-to-rope ss
+𝕃span-to-rope [] = [[]]
 
-spans-to-streeng : spans → streeng
-spans-to-streeng (regular-spans ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-streeng ss ⊹⊹ [[ "]}" ]] where
-spans-to-streeng (global-error e s) =
-  [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-streeng s) s
+spans-to-rope : spans → rope
+spans-to-rope (regular-spans ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-rope ss ⊹⊹ [[ "]}" ]] where
+spans-to-rope (global-error e s) =
+  [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 add-span : span → spans → spans
 add-span s (regular-spans ss) = regular-spans (s :: ss)

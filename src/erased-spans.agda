@@ -116,7 +116,7 @@ erased-term-spans (Let pi dtt t) =
 erased-term-spans (Parens pi t pi') = erased-term-spans t
 erased-term-spans (Var pi v) = erased-var-span pi v ll-term
 erased-term-spans t = error-spans ("Unknown term: " ^ (ParseTreeToString (parsed-term t))
-  ^ ", " ^ streeng-to-string (to-string empty-ctxt t) ^ " (erased-spans.agda)")
+  ^ ", " ^ rope-to-string (to-string empty-ctxt t) ^ " (erased-spans.agda)")
 
 erased-type-spans (Abs pi b pi' v t-k tp) =
   put-span pi (type-end-pos tp) ll-type [] ≫span

@@ -186,43 +186,43 @@ postulate
 {-# COMPILED getModificationTime (\ s -> System.Directory.getModificationTime (Data.Text.unpack s)) #-}
 
 -- string binary tree, for more efficient I/O printing than concatenation
-data streeng : Set where
-  _⊹⊹_ : streeng → streeng → streeng
-  [[_]] : string → streeng
+data rope : Set where
+  _⊹⊹_ : rope → rope → rope
+  [[_]] : string → rope
 
 infixl 9 _⊹⊹_
 infix 9 [[_]]
 
-[[]] : streeng
+[[]] : rope
 [[]] = [[ "" ]]
 
-streeng-to-string : streeng → string
-streeng-to-string = flip h "" where
-  h : streeng → string → string
+rope-to-string : rope → string
+rope-to-string = flip h "" where
+  h : rope → string → string
   h (s₁ ⊹⊹ s₂) = h s₁ ∘ h s₂
   h [[ s ]] acc = s ^ acc
 
 putStrLn : string → IO ⊤
 putStrLn str = putStr str >> putStr "\n" >> flush
 
-putStreeng : streeng → IO ⊤
--- putStreeng = putStr ∘ streeng-to-string
-putStreeng s = h s (return triv) where
-  h : streeng → IO ⊤ → IO ⊤
+putRope : rope → IO ⊤
+-- putRope = putStr ∘ rope-to-string
+putRope s = h s (return triv) where
+  h : rope → IO ⊤ → IO ⊤
   h (s₁ ⊹⊹ s₂) io = h s₁ (h s₂ io)
   h [[ s ]] io = putStr s >> io
 
-putStreengLn : streeng → IO ⊤
-putStreengLn s = putStreeng s >> putStr "\n" >> flush
+putRopeLn : rope → IO ⊤
+putRopeLn s = putRope s >> putStr "\n" >> flush
 
-hPutStreeng : Handle → streeng → IO ⊤
-hPutStreeng outh s = h s (return triv) outh where
-  h : streeng → IO ⊤ → Handle → IO ⊤
+hPutRope : Handle → rope → IO ⊤
+hPutRope outh s = h s (return triv) outh where
+  h : rope → IO ⊤ → Handle → IO ⊤
   h (s₁ ⊹⊹ s₂) io outh = h s₁ (h s₂ io outh) outh
   h [[ s ]] io outh = hPutStr outh s >> io
 
-writeStreengToFile : (filepath : string) → streeng → IO ⊤
-writeStreengToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPutStreeng hdl s >> closeFile hdl
+writeRopeToFile : (filepath : string) → rope → IO ⊤
+writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPutRope hdl s >> closeFile hdl
 
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x

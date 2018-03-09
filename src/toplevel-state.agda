@@ -119,10 +119,10 @@ set-include-path s ip = record s { include-path = ip }
 get-do-type-check : toplevel-state → string → 𝔹
 get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
 
-include-elt-spans-to-streeng : include-elt → streeng
-include-elt-spans-to-streeng ie with (include-elt.ss ie)
-include-elt-spans-to-streeng ie | inj₁ ss = spans-to-streeng ss
-include-elt-spans-to-streeng ie | inj₂ ss = [[ ss ]]
+include-elt-spans-to-rope : include-elt → rope
+include-elt-spans-to-rope ie with (include-elt.ss ie)
+include-elt-spans-to-rope ie | inj₁ ss = spans-to-rope ss
+include-elt-spans-to-rope ie | inj₂ ss = [[ ss ]]
 
 include-elt-to-string : include-elt → string
 include-elt-to-string ie =
@@ -137,7 +137,7 @@ include-elt-to-string ie =
 
 params-to-string : params → string
 params-to-string ParamsNil = ""
-params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ streeng-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string pms)
+params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string pms)
 
 defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string pms
@@ -148,12 +148,12 @@ syms-to-string : trie (string × 𝕃 string) → string
 syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s) ", " (snd l)) ^ "}")
 
 ctxt-info-to-string : ctxt-info → string
-ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ streeng-to-string (to-string empty-ctxt tp) ^ "}"
-ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ streeng-to-string (to-string empty-ctxt t) ^ ", type: " ^ streeng-to-string (to-string empty-ctxt tp) ^ "}"
-ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ streeng-to-string (to-string empty-ctxt t) ^ "}"
-ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ streeng-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ streeng-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ streeng-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ streeng-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ rope-to-string (to-string empty-ctxt t) ^ ", type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
+ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ rope-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 
@@ -170,7 +170,7 @@ sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
 sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
 
 qualif-to-string : qualif-info → string
-qualif-to-string (x , as) = x ^ streeng-to-string (fst (args-to-string as {TERM} [[]] 0 [] (new-ctxt "" "") nothing neither))
+qualif-to-string (x , as) = x ^ rope-to-string (fst (args-to-string as {TERM} [[]] 0 [] (new-ctxt "" "") nothing neither))
 
 mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"

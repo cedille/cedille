@@ -82,8 +82,8 @@ no-parens{ARG} _ _ _ = tt
 
 -------------------------------
 strM : Set
-strM = {ed : exprd} → streeng → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side →
-  streeng × ℕ × 𝕃 tag
+strM = {ed : exprd} → rope → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side →
+  rope × ℕ × 𝕃 tag
 
 to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
 
@@ -197,7 +197,7 @@ term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh
 term-to-stringh (Var pi x) = strVar x
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
-type-to-stringh (Iota pi pi' x oT T) = strAdd ("ι " ^ x) ≫str optType-to-string oT ≫str strAdd " . " ≫str to-stringh T
+type-to-stringh (Iota pi pi' x oT T) = strAdd ("ι " ^ x) ≫str optType-to-string oT ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
 type-to-stringh (Lft pi pi' x t lT) = strAdd ("↑ " ^ x ^ " . ") ≫str strΓ x pi' (to-stringh t ≫str strAdd " : " ≫str to-stringh lT)
 type-to-stringh (NoSpans T pi) = to-string-ed T
 type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
@@ -259,7 +259,7 @@ maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
 
 
-strRun : ctxt → strM → streeng
+strRun : ctxt → strM → rope
 strRun Γ m = fst (m {TERM} [[]] 0 [] Γ nothing neither)
 
 strRunTag : (name : string) → ctxt → strM → tagged-val
@@ -269,9 +269,9 @@ strRunTag name Γ m with m {TERM} [[]] 0 [] Γ nothing neither
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
 to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither t)
 
-to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → streeng
+to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh' neither t)
 
-tk-to-string : ctxt → tk → streeng
+tk-to-string : ctxt → tk → rope
 tk-to-string Γ (Tkt T) = to-string Γ T
 tk-to-string Γ (Tkk k) = to-string Γ k
