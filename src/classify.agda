@@ -743,7 +743,11 @@ check-term-app t''@(App t m t') mtp
                      spanM-add (App-span t t' check-mode
                        (arg-exp-type Γ tpₐ
                        :: arg-type Γ tpₐ'
-                       :: ((meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs (cod t')))))
+                       :: (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs (cod t'))
+                       ++ (let Xs-solved = trie-filter (λ {(x , _) →
+                                 are-free-in-type check-erased
+                                   (trie-single x triv) tpₐ}) Xs
+                           in meta-vars-data Γ Xs-solved)))
                    ≫span check-term-app-return Γ t'' Xs (cod t')
         (Xs , not-arrow-or-abs tp) →
             check-term-app-error-inapp Γ t t' tp Xs check-mode m
