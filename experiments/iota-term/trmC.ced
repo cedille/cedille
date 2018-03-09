@@ -16,7 +16,7 @@ foldU1 ◂ Top ➔ Top ➔ Top = λ alg . λ val . β{λ d . d val alg} .
 foldU2 ◂ Nat ➔ Top ➔ Top ➔ Top = λ n : Nat . λ alg . λ val . β{λ x . λ d . d (updateValuation' n val x) alg} .
 inU ◂ Nat ➔ Top = λ n . β{λ d . λ val . λ alg . alg n (foldU1 alg val) (foldU2 n alg val) d}.
 inAlgU ◂ Nat ➔ Top = λ n . β{ λ _ . λ _ . λ d . inU n d}.
-varU ◂ Nat ➔ Top = λ n . β{λ val. λ alg . val n (lt-nSn n) (λ a . a)}.
+varU ◂ Nat ➔ Top = λ n . β{λ val . λ alg . lookupValuation' (S n) val n (lt-nSn n) (λ a . a)}.
 --varValuationU ◂ Nat ➔ Top = λ n . β{λ m . λ _ . varU m}.
 
 TrmAppF ◂ ★ ➔ ★ = λ R1 : ★ . Product · R1 · R1 .
@@ -46,7 +46,8 @@ TrmFC' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
 TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
   λ Trm' : Nat ➔ ★ . λ n : Nat . 
     ι x : TrmFC' · Trm' n.
-    ∀ f : Top . (Π m : Nat . Π p : Lt m n . { f m p (λ a . a) ≃ varU m }) ➾ 
+    ∀ f : Top . (Π m : Nat . Π p : Lt m n .
+                  { lookupValuation' n f m p (λ a . a) ≃ varU m }) ➾ 
     { x f inAlgU ≃ x } .
 
 Trm' ◂ Nat ➔ ★ = Reci · Nat · TrmF' .
@@ -111,7 +112,9 @@ abs' ◂ Π n : Nat . Trm' (S n) ➔ Trm' n
 var' ◂ Π n : Nat . Trm' (S n) =
   λ n . 
      TrmFold' -(S n)
-        [Λ X . Λ I . λ val . λ alg . (lookupValuation' (S n) val n (lt-nSn n)).1 · (X (S n)) (λ a . Λ _ . a), Λ f . Λ uf . ρ+ (uf n (lt-nSn n)) - ε β{varU n}].
+        [Λ X . Λ I . λ val . λ alg .
+          (lookupValuation' (S n) val n (lt-nSn n)).1 · (X (S n)) (λ a . Λ _ . a),
+         Λ f . Λ uf . ρ+ (uf n (lt-nSn n)) - ε β{varU n}].
 
 
 exampleTrm' ◂ Trm' Z = in' Z (in2 · (TrmAppF · (Trm' Z)) · (Trm' (S Z))

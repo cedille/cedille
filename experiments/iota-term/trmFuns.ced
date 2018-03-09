@@ -81,6 +81,9 @@ depthSizeThm◂Π n:Nat .Π t:Trm n .Lte (depthTrm n t) (sizeTrm n t)
                      (e1.1 fun) (e1.1 arg)))
        (λ a . [d ◂ { (depthTrm n (in n (cast (in2 a)))) ≃ (S (depthTrm (S n) (cast a))) } =
                        ε β] -
+              [d' ◂ { updateValuation' n (valuationFromFun n (λ _ . λ _ . mkWSigma2 (S Z)))
+                        (S Z) ≃
+                      valuationFromFun (S n) (λ _ . λ _ . mkWSigma2 (S Z))} = β ] - 
               LteS (depthTrm (S n) (cast -C2 a)) (sizeTrm (S n) (cast -C2 a))
                 (e2.1 (depthSizeThm-var n) -triv a))].
 
