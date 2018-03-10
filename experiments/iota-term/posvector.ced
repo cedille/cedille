@@ -19,6 +19,10 @@ PVCons ◂ ∀ T : Nat ➔ ★ . Π n : Nat . T n ➔ PosVector · T n ➔ PosVe
   Λ T . λ n . λ h . λ t . Λ X . λ nil . λ cons .
     cons n h (t · X nil cons).
 
+constPV◂∀ C:★.Π n:Nat .C➔PosVector·(λ _:Nat .C) n=Λ C .λ n .λ c .NatInd n·(λ n:Nat .PosVector·(λ _:Nat .C) n)
+	  (PVNil·(λ _:Nat .C))
+	  (λ n .λ v .PVCons·(λ _:Nat .C) n c v).
+
 PVfromFun ◂ ∀ T:Nat➔★.Π n:Nat .
             (Π m:Nat .Lt m n➔T m) ➔
             PosVector·T n =
@@ -26,8 +30,6 @@ PVfromFun ◂ ∀ T:Nat➔★.Π n:Nat .
     (λ _ .PVNil·T)
     (λ m .λ p .λ l .[l'=Lt-Lte m n l]- PVCons·T m (f m l') (p (Lte-Lt m n l'))))
     (Lten n) .
-
-
 
 FunfromPV ◂ ∀ T:Nat➔★.Π n:Nat .
             PosVector·T n ➔
