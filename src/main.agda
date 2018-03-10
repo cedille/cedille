@@ -59,7 +59,7 @@ module main-with-options (options : cedille-options.options) where
   logMsg msg = logRope [[ msg ]]
 
   sendProgressUpdate : string → IO ⊤
-  sendProgressUpdate msg = putStrLn ("progress: " ^ msg)
+  sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n" -- putStrLn ("progress: " ^ msg)
 
   fileBaseName : string → string
   fileBaseName fn = base-filename (takeFileName fn)
@@ -72,7 +72,6 @@ module main-with-options (options : cedille-options.options) where
   cede-filename ced-path = 
     let dir = takeDirectory ced-path in
       combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ ".cede")
-
 
   -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
   write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
@@ -106,7 +105,7 @@ module main-with-options (options : cedille-options.options) where
     let e = combineFileNames dir (add-cedille-extension unit-name) in
       doesFileExist e >>= λ b → 
       if b then
-        return e
+        canonicalizePath e >>= return
       else
         find-imported-file dirs unit-name
 
@@ -154,81 +153,69 @@ module main-with-options (options : cedille-options.options) where
                                                              (get-imports t) >>= λ deps →
                                          return (new-include-elt filename deps t t2 nothing)
 
-  add-spans-if-up-to-date : (up-to-date : 𝔹) → (filename : string) → include-elt → IO include-elt
-  add-spans-if-up-to-date up-to-date filename ie =
-    (if up-to-date && cedille-options.options.use-cede-files options then
-        read-cede-file filename >>= finish
-      else
-        return ie) >>= λ ie' → return (set-cede-file-up-to-date-include-elt ie' up-to-date)
-    where finish : 𝔹 × string → IO include-elt
-          finish (err , ss) = return (set-spans-string-include-elt ie err ss)
-
-  cede-rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
-  cede-rkt-up-to-date filename s = check-cede s >>= check-rkt where
-      check-cede : toplevel-state → IO toplevel-state
-      check-cede s with cedille-options.options.use-cede-files options
-      check-cede s | ff = return s
-      check-cede s | tt =
-        cede-file-up-to-date filename >>= λ up-to-date →
-        return (maybe-else s
-          (λ ie → set-include-elt s filename (set-cede-file-up-to-date-include-elt ie up-to-date)) (get-include-elt-if s filename))
-      check-rkt : toplevel-state → IO toplevel-state
-      check-rkt s with cedille-options.options.make-rkt-files options
-      check-rkt s | ff = return s
-      check-rkt s | tt = return s -- TODO: Check if .rkt file is up to date for filename
-
-  ensure-ast-depsh : (filename : string) → maybe UTC → toplevel-state → IO toplevel-state
-  ensure-ast-depsh filename lpt s =
-    if cedille-options.options.use-cede-files options then
-      (cede-file-up-to-date filename >>=
-        cede-not-mod-since lpt)
-      else
-        return ff >>= λ cede-up-to-date →
+  reparse-file : string → toplevel-state → IO toplevel-state
+  reparse-file filename s =
     reparse s filename >>= λ s →
-    add-spans-if-up-to-date cede-up-to-date filename
-      (set-do-type-check-include-elt
-        (set-need-to-add-symbols-to-context-include-elt
-          (get-include-elt s filename) tt)
-        (~ cede-up-to-date)) >>= λ ie →
-    return (set-include-elt s filename ie)
-    where
-      cede-not-mod-since : maybe UTC → 𝔹 → IO 𝔹
-      cede-not-mod-since nothing cede = return cede
-      cede-not-mod-since (just utc) b =
-        file-not-modified-since (cede-filename filename) utc >>= λ b' →
-        return (b && b')
+    return (set-include-elt s filename
+            (set-cede-file-up-to-date-include-elt
+             (set-do-type-check-include-elt
+              (get-include-elt s filename) tt) ff))
 
-  {- make sure that the current ast and dependencies are stored in the
-     toplevel-state, updating the state as needed. -}
-  ensure-ast-deps : (filename : string) → toplevel-state → IO toplevel-state
-  ensure-ast-deps filename s with get-include-elt-if s filename
-  ensure-ast-deps filename s | nothing = ensure-ast-depsh filename nothing s
-  ensure-ast-deps filename s | just ie =
-      maybe-else
-        (return ff)
-        (file-not-modified-since filename)
-        (include-elt.last-parse-time ie) >>= λ ced-up-to-date →
-      if ced-up-to-date then
-          return s
-        else
-          ensure-ast-depsh filename (include-elt.last-parse-time ie) s
+  rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
+  rkt-up-to-date filename s with cedille-options.options.make-rkt-files options
+  ...| ff = return s
+  ...| tt = 
+    let rkt = rkt-filename filename in
+    let ret = λ b → return (set-include-elt s filename (set-rkt-file-up-to-date-include-elt (get-include-elt s filename) b)) in
+    doesFileExist rkt >>= λ where
+      ff → ret ff
+      tt → fileIsOlder filename rkt >>= ret
 
-  file-exists-or : (filename1 : string) → (filename2 : string) → IO string
-  file-exists-or fn1 fn2 =
-    doesFileExist fn1 >>= λ e → return (if e then fn1 else fn2)
+  ie-up-to-date : string → include-elt → IO 𝔹
+  ie-up-to-date filename ie =
+    getModificationTime filename >>= λ mt →
+    return (maybe-else ff (λ lpt → lpt utc-after mt) (include-elt.last-parse-time ie))    
 
-  file-deps-not-changed : (filename : string) → (deps : 𝕃 string) → IO 𝔹
-  file-deps-not-changed fn [] = return tt
-  file-deps-not-changed fn (d :: ds) =
-    logMsg ("file-deps-not-changed filename: " ^ fn ^ ", d: " ^ d) >>
-    doesFileExist d >>= λ e₁ →
-    doesFileExist fn >>= λ e₂ →
-    if e₁ && e₂ then
-        (fileIsOlder d fn >>= λ b →
-        if b then
-            file-deps-not-changed fn ds
-          else return ff)
-      else return ff
+  ensure-ast-depsh : string → toplevel-state → IO toplevel-state
+  ensure-ast-depsh filename s with get-include-elt-if s filename
+  ...| just ie = ie-up-to-date filename ie >>= λ where
+    ff → reparse-file filename s
+    tt → return s
+  ...| nothing = case cedille-options.options.use-cede-files options of λ where
+    ff → reparse-file filename s
+    tt →
+      let cede = cede-filename filename in
+      doesFileExist cede >>= λ where
+        ff → reparse-file filename s
+        tt → fileIsOlder filename cede >>= λ where
+          ff → reparse-file filename s
+          tt → reparse s filename >>= λ s →
+               read-cede-file filename >>= λ where
+                 (err , ss) → return
+                   (set-include-elt s filename
+                   (set-do-type-check-include-elt
+                   (set-need-to-add-symbols-to-context-include-elt
+                   (set-spans-string-include-elt
+                   (get-include-elt s filename) err ss) tt) ff))
+
+  import-changed : toplevel-state → (filename : string) → (import-file : string) → IO 𝔹
+  import-changed s filename import-file =
+    let dtc = include-elt.do-type-check (get-include-elt s import-file) in
+    let cede = cede-filename filename in
+    let cede' = cede-filename import-file in
+    case cedille-options.options.use-cede-files options of λ where
+      ff → return dtc
+      tt → doesFileExist cede >>= λ where
+        ff → return ff
+        tt → doesFileExist cede' >>= λ where
+          ff → return ff
+          tt → fileIsOlder cede cede' >>= λ fio → return (dtc || fio)
+   
+  any-imports-changed : toplevel-state → (filename : string) → (imports : 𝕃 string) → IO 𝔹
+  any-imports-changed s filename [] = return ff
+  any-imports-changed s filename (h :: t) = import-changed s filename h >>= λ where
+    tt → return tt
+    ff → any-imports-changed s filename t
 
   {- helper function for update-asts, which keeps track of the files we have seen so
      we avoid importing the same file twice, and also avoid following cycles in the import
@@ -238,21 +225,16 @@ module main-with-options (options : cedille-options.options) where
                  IO (stringset {- seen already -} × toplevel-state)
   update-astsh seen s filename = 
     if stringset-contains seen filename then return (seen , s)
-    else (ensure-ast-deps filename s >>= cede-rkt-up-to-date filename >>= cont (stringset-insert seen filename))
+    else (ensure-ast-depsh filename s >>= rkt-up-to-date filename >>= cont (stringset-insert seen filename))
     where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
           cont seen s with get-include-elt s filename
           cont seen s | ie with include-elt.deps ie
           cont seen s | ie | ds = 
             proc seen s ds 
             where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
-                  proc seen s [] =
-                    if cedille-options.options.use-cede-files options then
-                        file-deps-not-changed (cede-filename filename) ds
-                      else
-                        return tt >>= λ fdnc →
-                    if (~ fdnc || list-any (get-do-type-check s) ds) 
-                    then return (seen , set-include-elt s filename (set-do-type-check-include-elt ie tt)) 
-                    else return (seen , s)
+                  proc seen s [] = any-imports-changed s filename ds >>= λ changed →
+                    let dtc = include-elt.do-type-check ie || changed in
+                    return (seen , set-include-elt s filename (set-do-type-check-include-elt ie dtc))
                   proc seen s (d :: ds) = update-astsh seen s d >>= λ p → 
                                           proc (fst p) (snd p) ds
 
@@ -293,19 +275,16 @@ module main-with-options (options : cedille-options.options) where
             reply s >>
             logMsg ("Finished reply for file " ^ filename) >>
             logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
-            writeo mod >>
+            writeo mod >> -- Should process-file now always add files to the list of modified ones because now the cede-/rkt-up-to-date fields take care of whether to rewrite them?
             return (mk-toplevel-state ip [] is (ctxt-set-current-mod Γ m))
               where
                 writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
+                  writeo us >>
                   let ie = get-include-elt s f in
-                    (if cedille-options.options.use-cede-files options && ~ include-elt.cede-up-to-date ie then (write-cede-file f ie) else (return triv)) >>
-                    (if cedille-options.options.make-rkt-files options && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie) else (return triv)) >>
-                    writeo us
-
-  -- remove-dup-include-paths : 𝕃 string → 𝕃 string
-  -- remove-dup-include-paths l = stringset-strings (stringset-insert* empty-stringset l)
+                    (if cedille-options.options.use-cede-files options && ~ include-elt.cede-up-to-date ie then (write-cede-file f ie) else return triv) >>
+                    (if cedille-options.options.make-rkt-files options && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie) else return triv)
 
   -- this is the function that handles requests (from the frontend) on standard input
   {-# TERMINATING #-}

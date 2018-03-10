@@ -181,7 +181,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
           (let ((pr (funcall pair response-fn response)))
             (when (and span pr) (se-inf-add-to-span span pr)))
           (when restore
-            (let ((restore-data (list q-str-or-fn response-fn extra))
+            (let ((restore-data (list q-str-or-fn response-fn progress-fn extra))
                   (s (if span (se-span-start span) 1))
                   (e (if span (se-span-end span) 1)))
               (se-inf-remove-dup-pin (se-pins-at s e 'se-interactive) restore-data)
@@ -215,10 +215,11 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 	   (span (se-span-from start end))
 	   (q-str-or-fn (nth 0 data))
 	   (response-fn (nth 1 data))
-	   (extra (nth 2 data))
+           (progress-fn (nth 2 data))
+	   (extra (nth 3 data))
 	   (header (format "Recomputing interactive calls (%s/%s)" queued total)))
       (if span
-	  (se-inf-interactive-h q-str-or-fn response-fn span header extra nil t t)
+	  (se-inf-interactive-h q-str-or-fn response-fn progress-fn span header extra nil t t)
 	(se-unpin h))
       (se-inf-run-pins (cdr pins) (+ 1 queued) total))))
 
