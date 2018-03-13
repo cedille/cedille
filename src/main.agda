@@ -99,42 +99,21 @@ module main-with-options (options : cedille-options.options) where
   add-cedille-extension : string → string
   add-cedille-extension x = x ^ "." ^ cedille-extension
 
-  find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO string
-  find-imported-file [] unit-name = return (add-cedille-extension unit-name) -- assume the current directory if the unit is not found 
+  find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe string)
+  find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
-    let e = combineFileNames dir (add-cedille-extension unit-name) in
-      doesFileExist e >>= λ b → 
-      if b then
-        canonicalizePath e >>= return
-      else
-        find-imported-file dirs unit-name
+      let e = combineFileNames dir (add-cedille-extension unit-name) in
+      doesFileExist e >>= λ where
+        ff → find-imported-file dirs unit-name
+        tt → canonicalizePath e >>= λ e → return (just e)
 
   -- return a list of pairs (i,p) where i is the import string in the file, and p is the full path for that imported file
   find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 string) → IO (𝕃 (string × string))
   find-imported-files dirs (u :: us) =
-    find-imported-file dirs u >>= λ p →
-    find-imported-files dirs us >>= λ ps →
-      return ((u , p) :: ps)
+    find-imported-file dirs u >>= λ where
+      nothing → find-imported-files dirs us
+      (just p) → find-imported-files dirs us >>= λ ps → return ((u , p) :: ps)
   find-imported-files dirs [] = return []
-
-  file-not-modified-since : string → UTC → IO 𝔹
-  file-not-modified-since fn time =
-    doesFileExist fn >>= λ b →
-    if b then
-        (getModificationTime fn >>= λ time' →
-        return (time utc-after time'))
-      else
-        return tt
-
-  cede-file-up-to-date : (ced-path : string) → IO 𝔹
-  cede-file-up-to-date ced-path =
-    let e = cede-filename ced-path in
-      doesFileExist ced-path >>= λ b₁ →
-      doesFileExist e >>= λ b₂ → 
-      if b₁ && b₂ then
-        fileIsOlder ced-path e
-      else
-        return ff
 
   {- new parser test integration -}
   reparse : toplevel-state → (filename : string) → IO toplevel-state
@@ -176,28 +155,6 @@ module main-with-options (options : cedille-options.options) where
     getModificationTime filename >>= λ mt →
     return (maybe-else ff (λ lpt → lpt utc-after mt) (include-elt.last-parse-time ie))    
 
-  ensure-ast-depsh : string → toplevel-state → IO toplevel-state
-  ensure-ast-depsh filename s with get-include-elt-if s filename
-  ...| just ie = ie-up-to-date filename ie >>= λ where
-    ff → reparse-file filename s
-    tt → return s
-  ...| nothing = case cedille-options.options.use-cede-files options of λ where
-    ff → reparse-file filename s
-    tt →
-      let cede = cede-filename filename in
-      doesFileExist cede >>= λ where
-        ff → reparse-file filename s
-        tt → fileIsOlder filename cede >>= λ where
-          ff → reparse-file filename s
-          tt → reparse s filename >>= λ s →
-               read-cede-file filename >>= λ where
-                 (err , ss) → return
-                   (set-include-elt s filename
-                   (set-do-type-check-include-elt
-                   (set-need-to-add-symbols-to-context-include-elt
-                   (set-spans-string-include-elt
-                   (get-include-elt s filename) err ss) tt) ff))
-
   import-changed : toplevel-state → (filename : string) → (import-file : string) → IO 𝔹
   import-changed s filename import-file =
     let dtc = include-elt.do-type-check (get-include-elt s import-file) in
@@ -216,6 +173,28 @@ module main-with-options (options : cedille-options.options) where
   any-imports-changed s filename (h :: t) = import-changed s filename h >>= λ where
     tt → return tt
     ff → any-imports-changed s filename t
+
+  ensure-ast-depsh : string → toplevel-state → IO toplevel-state
+  ensure-ast-depsh filename s with get-include-elt-if s filename
+  ...| just ie = ie-up-to-date filename ie >>= λ where
+    ff → reparse-file filename s
+    tt → return s
+  ...| nothing = case cedille-options.options.use-cede-files options of λ where
+    ff → reparse-file filename s
+    tt →
+      let cede = cede-filename filename in
+      doesFileExist cede >>= λ where
+        ff → reparse-file filename s
+        tt → fileIsOlder filename cede >>= λ where
+           ff → reparse-file filename s
+           tt → reparse s filename >>= λ s →
+                read-cede-file filename >>= λ where
+                  (err , ss) → return
+                    (set-include-elt s filename
+                    (set-do-type-check-include-elt
+                    (set-need-to-add-symbols-to-context-include-elt
+                    (set-spans-string-include-elt
+                    (get-include-elt s filename) err ss) tt) ff))
 
   {- helper function for update-asts, which keeps track of the files we have seen so
      we avoid importing the same file twice, and also avoid following cycles in the import
@@ -413,5 +392,6 @@ main = initializeStdoutToUTF8 >>
        initializeStdinToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
+       setToLineBuffering >>
        readOptions >>=
        main-with-options.main'

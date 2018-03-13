@@ -310,11 +310,10 @@ which currently consists of:\n
 	  (when typedata (insert "\n")))
 	(when typedata
 	  (insert "==== TYPES ====\n")
-	  (mapc println typedata))
-        (insert "\n"))
+	  (mapc println typedata)))
       (cedille-mode-highlight-shadowed)
       (goto-char 1)
-      (fit-window-to-buffer (get-buffer-window b))
+      ;(fit-window-to-buffer (get-buffer-window b))
       (setq buffer-read-only t)
       (setq deactivate-mark nil))))
 

@@ -7,10 +7,10 @@
 
 ;;;;;;;;        Commands        ;;;;;;;;
 
-(defun cedille-mode-to-string (input)
-  "Sends an interactive request to the backend to parse INPUT and return the parsed expression as a string"
-  (interactive "MExpression: ")
-  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
+;(defun cedille-mode-to-string (input)
+;  "Sends an interactive request to the backend to parse INPUT and return the parsed expression as a string"
+;  (interactive "MExpression: ")
+;  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
 
 (defun cedille-mode-normalize(&optional head)
   "Normalizes either the currently selected span or a prompted expression completely"
@@ -18,6 +18,10 @@
   (if se-mode-selected
       (cedille-mode-normalize-span (se-mode-selected) head)
     (cedille-mode-normalize-prompt head)))
+
+(defun cedille-mode-head-normalize
+  (interactive)
+  (cedille-mode-normalize t))
 
 (defun cedille-mode-erase ()
   "Erases either the currently selected span or a prompted expression"

@@ -128,13 +128,17 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip 
 process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
-  let imported-file = trie-lookup-string (include-elt.import-to-dep ie) x in
-  let as = qualif-args (toplevel-state.Γ s) as in
-  let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
-  let ie = get-include-elt s imported-file in
-    spanM-add (Import-span pi imported-file pi' 
-                (if (include-elt.err ie) then [ error-data "There is an error in the imported file" ] else [])) ≫span
-    spanMr s
+  case trie-lookup (include-elt.import-to-dep ie) x of λ where
+    nothing → spanM-add (Import-span pi "missing" pi' [ error-data "File not found" ])
+      ≫span spanMr (set-include-elt s cur-file (record ie {err = tt}))
+    (just imported-file) →
+      let as = qualif-args (toplevel-state.Γ s) as in
+      let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
+      let ie = get-include-elt s imported-file in
+        spanM-add (Import-span pi imported-file pi' 
+          (if (include-elt.err ie)
+              then [ error-data "There is an error in the imported file" ]
+              else [])) ≫span spanMr s
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd

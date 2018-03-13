@@ -201,7 +201,7 @@
   (and (<= 10 (length response)) (string= "{\"error\":\"" (substring str 0 10))))
 
 ;;;;;;;; Starting code ;;;;;;;;
-(defun cedille-mode-br-start ()
+(defun cedille-mode-br ()
   "Opens the beta-reduction buffer with the selected node"
   (interactive)
   (let ((cedille-mode-br-original-filename (buffer-file-name))
@@ -211,7 +211,7 @@
       (cedille-mode-br-start-prompt)))
   nil)
 
-(defun cedille-mode-br-start-cap ()
+(defun cedille-mode-br-node ()
   "Opens the beta-reduction buffer with the selected node"
   (interactive)
   (let ((cedille-mode-br-original-filename (buffer-file-name))

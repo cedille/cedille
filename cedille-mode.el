@@ -112,8 +112,8 @@ Defaults to `error'."
     (unless window
       (let ((sw (selected-window)))
 	(setq window (split-window (selected-window))))
-      (set-window-buffer window (or buffer (buffer-name))))
-    ;(minimize-window window)
+      (set-window-buffer window (or buffer (buffer-name)))
+      (cedille-mode-rebalance-windows))
     window))
 
 (defun cedille-mode-toggle-buffer-display(buffer)
@@ -129,20 +129,33 @@ Defaults to `error'."
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
-  (walk-windows (lambda (window) (fit-window-to-buffer window))))
-
-(defun cedille-mode-rebalance-windows2()
-  "Resizes all windows"
-  (let* ((w (cedille-mode-file-windows))
-	 (fw (car w))
-	 (nfw (cdr w)))
-    (unless (equal 1 (+ (length fw) (length nfw)))
-      (if (equal 1 (length fw))
-	  (walk-windows (lambda (window) (fit-window-to-buffer window)))
-	(while (not (null nfw))
-	  (fit-window-to-buffer (pop nfw)))
-	(when fw
-	  (cedille-mode-set-windows-height fw (cedille-mode-mean-window-size fw)))))))
+  ;(walk-windows (lambda (window) (fit-window-to-buffer window))))
+  (let* ((fws-nfws (cedille-mode-file-windows))
+         (pred (lambda (w1 w2) (< (cadr (window-edges w1)) (cadr (window-edges w2)))))
+         (fws (sort (car fws-nfws) pred))
+         (nfws (sort (cdr fws-nfws) pred)))
+    (loop for w in nfws do
+          (with-selected-window w
+            (with-current-buffer (window-buffer)
+              (let ((window-size-fixed nil))
+                (fit-window-to-buffer w))
+              (setq window-size-fixed t))))
+    (let ((scratch-buffer (get-buffer (cedille-mode-scratch-buffer-name))))
+      (when (and scratch-buffer (get-buffer-window scratch-buffer))
+        (with-current-buffer (cedille-mode-scratch-buffer-name)
+          (cedille-mode-scratch-equal)
+          (setq window-size-fixed t))))
+    (let ((mean (cedille-mode-mean-window-size fws)))
+      (loop for w in fws do
+            (with-selected-window w
+              (with-current-buffer (window-buffer)
+                (let ((window-size-fixed nil)
+                      (mean2 (max mean (window-min-size))))
+                  (fit-window-to-buffer w mean2 mean2))))))
+    (loop for w in nfws do
+          (with-selected-window w
+            (with-current-buffer (window-buffer)
+              (setq window-size-fixed nil))))))
 
 (defun cedille-mode-file-windows ()
   "Returns (cons FILE-WINDOWS NOT-FILE-WINDOWS)"
@@ -160,7 +173,7 @@ Defaults to `error'."
 (defun cedille-mode-mean-window-size-h (windows size)
   "Helper for `cedille-mode-mean-window-size'"
   (if (null windows) size
-    (cedille-mode-mean-window-size-h (cdr windows) (+ size (window-body-size (car windows))))))
+    (cedille-mode-mean-window-size-h (cdr windows) (+ size (window-body-height (car windows))))))
 
 (defun cedille-mode-set-windows-height (windows height)
   "Sets each window in WINDOWS to be HEIGHT lines high"
@@ -561,8 +574,8 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-i h") (lambda () (interactive) (cedille-mode-normalize t)))
   (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
-  (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br-start)
-  (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-start-cap)
+  (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br)
+  (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-node)
   (se-navi-define-key mode (kbd "C-i =") #'cedille-mode-conv)
   (se-navi-define-key mode (kbd "C-i s") #'cedille-mode-to-string)
   ;(se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)

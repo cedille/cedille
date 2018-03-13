@@ -140,11 +140,13 @@ postulate
   openFile : string → IOMode -> IO Handle
   closeFile : Handle -> IO ⊤
   hPutStr : Handle → string → IO ⊤
+  hSetToLineBuffering : Handle → IO ⊤
   hFlush : Handle → IO ⊤
   stdout : Handle
 
 {-# COMPILED_TYPE Handle System.IO.Handle #-}
 {-# COMPILED_DATA IOMode System.IO.IOMode System.IO.ReadMode System.IO.WriteMode System.IO.AppendMode System.IO.ReadWriteMode #-}
+{-# COMPILED hSetToLineBuffering (\hdl -> System.IO.hSetBuffering hdl System.IO.LineBuffering) #-}
 {-# COMPILED hFlush System.IO.hFlush #-}
 {-# COMPILED stdout System.IO.stdout #-}
 {-# COMPILED openFile (\fp -> (\mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh)) #-}
@@ -156,6 +158,9 @@ clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile 
 
 flush : IO ⊤
 flush = hFlush stdout
+
+setToLineBuffering : IO ⊤
+setToLineBuffering = hSetToLineBuffering stdout
 
 infixl 1 _>>≠_
 
@@ -203,7 +208,7 @@ rope-to-string = flip h "" where
   h [[ s ]] acc = s ^ acc
 
 putStrLn : string → IO ⊤
-putStrLn str = putStr str >> putStr "\n" >> flush
+putStrLn str = putStr str >> putStr "\n" -- >> flush
 
 putRope : rope → IO ⊤
 -- putRope = putStr ∘ rope-to-string
@@ -213,7 +218,7 @@ putRope s = h s (return triv) where
   h [[ s ]] io = putStr s >> io
 
 putRopeLn : rope → IO ⊤
-putRopeLn s = putRope s >> putStr "\n" >> flush
+putRopeLn s = putRope s >> putStr "\n" -- >> flush
 
 hPutRope : Handle → rope → IO ⊤
 hPutRope outh s = h s (return triv) outh where
