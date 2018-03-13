@@ -1,0 +1,10 @@
+module UnitLift.
+
+import Unit.
+import IIdMapping.
+import Sigma.
+import Id.
+
+UnitF ◂ (★ ➔ ★) ➔ (Unit ➔ ★) ➔ (Unit ➔ ★) = λ F : ★ ➔ ★. λ X : Unit ➔ ★. λ u : Unit. F · (X unit).
+
+ufimap ◂ Π F : ★ ➔ ★. IdMapping · F ➔ IIdMapping · Unit · (UnitF · F) = λ F. λ im. Λ X. Λ Y. Λ p. Λ i. λ a. im · (X unit) · (Y unit) -(λ a. p -unit a ) a.

@@ -3,6 +3,10 @@ module IIdMapping.
 import Id.
 
 
+IdMapping ◂  (★ ➔ ★) ➔ ★ =
+ λ F : ★ ➔ ★ . ∀ X :  ★ . ∀ Y : ★ . (IdExt · X · Y) ➾ IdExt · (F · X) · (F · Y).
+
+
 IIdMapping ◂ Π I : ★ . ((I ➔ ★) ➔ (I ➔ ★)) ➔ ★ =
   λ I : ★ . λ iF : (I ➔ ★) ➔ (I ➔ ★) . ∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . (∀ i : I . IdExt · (X i) · (Y i)) ➾ ∀ i : I . IdExt · (iF · X i) · (iF · Y i) .
 
