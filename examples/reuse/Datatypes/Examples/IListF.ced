@@ -1,0 +1,36 @@
+module ListF.
+
+import Sigma.
+import Unit.
+import IIdMapping.
+import Id.
+
+cListF ◂ ★ ➔ (Unit ➔ ★) ➔ (Unit ➔ ★) = λ A : ★. λ X : Unit ➔ ★. λ u : Unit. ∀ C : ★. C ➔ (A ➔ X u ➔ C) ➔ C.
+cin1lf ◂ ∀ A : ★. ∀ X : Unit ➔ ★. cListF · A · X unit = Λ A. Λ X. Λ C. λ c. λ f. c.
+cin2lf ◂ ∀ A : ★. ∀ X : Unit ➔ ★. A ➔ X unit ➔ cListF · A · X unit = Λ A. Λ X. λ a. λ x. Λ C. λ c. λ f. f a x  .
+
+
+cListFInd ◂ Π A : ★. Π X : Unit ➔ ★. cListF · A · X unit ➔ ★ 
+ = λ A : ★. λ X : Unit ➔ ★. λ lf : cListF · A · X unit . ∀ Q : cListF · A · X unit ➔ ★. 
+ Q (cin1lf · A · X) ➔ (Π a : A . Π x : X unit. Q (cin2lf · A · X a x)) ➔ Q lf.
+
+
+-- "inductive" ListF with its dependent elimination
+ListF ◂ ★ ➔ (Unit ➔ ★) ➔ (Unit ➔ ★) = λ A : ★. λ X : Unit ➔ ★. λ u : Unit. ι x : cListF · A · X unit. cListFInd · A · X x.
+in1lf ◂ ∀ A : ★. ∀ X : Unit ➔ ★. ListF · A · X unit = Λ A. Λ X. [ Λ C. λ c. λ f. c , Λ A. λ c1. λ c2. c1 ] .
+in2lf ◂ ∀ A : ★. ∀ X : Unit ➔ ★. A ➔ X unit ➔ ListF · A · X unit = Λ A. Λ X. λ a. λ x. [ Λ C. λ c. λ f. f a x , Λ C. λ c. λ f. f a x ] .
+
+
+ListFInd ◂ ∀ A : ★. ∀ X : Unit ➔ ★. Π lf : ListF · A · X unit . ∀ Q : ListF · A · X unit ➔ ★. 
+ (Π a : A . Π x : X unit. Q (in2lf · A · X a x)) ➔ Q (in1lf · A · X) ➔ Q lf = Λ A. Λ X. λ lf. Λ Q. λ i2. λ i1.   
+ lf.2 · (λ x : cListF · A · X unit. ∀ Y : ★ . (Π x' : ListF · A · X unit . {x ≃ x'} ➔ Q x' ➔ Y ) ➔ Y) 
+ (Λ Y. λ q. q (in1lf · A · X) β i1) (λ a. λ x. Λ Y. λ q. q (in2lf · A · X a x) β (i2 a x) ) · (Q lf) 
+ (λ x' . λ e . λ u . ρ e - u).
+
+
+-- identity mapping for ListF
+lfimap ◂ ∀ A : ★. IIdMapping · Unit · (ListF · A) 
+ = Λ A. Λ X. Λ Y. Λ c. Λ i. intrIdExt · (ListF · A · X i) · (ListF · A · Y i)
+ (λ lf. lf.1 · (ListF · A · Y i) (in1lf · A · Y) 
+   (λ a. λ x. in2lf · A · Y a (elimIdExt · (X unit) · (Y unit) -(c -unit)  x))) 
+ (λ z. θ<z> (ListFInd · A · X z) (λ a. λ x. β) β).

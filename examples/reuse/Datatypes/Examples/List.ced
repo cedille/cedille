@@ -1,30 +1,28 @@
 module List.
 
-import Unit.
-import Nat.
 import Id.
 import IIdMapping.
-import IFixM.
-import IFixIndM.
+import FixIndM.
 import ListF.
-
+import Nat.
+import IFixM.
+import Unit.
 
 -- polymorphic lists defined as least fixed point of functor ListF with
 -- identity mapping lfimap
-List ◂ ★ ➔ ★ = λ A : ★. IFixIndM · Unit · (ListF · A) (lfimap · A) unit.
+List ◂ ★ ➔ ★ = λ A : ★. FixIndM · (ListF · A) (lfimap · A).
 
 
 -- length algebra and function in terms of it
-lenAlgM ◂ ∀ A : ★. IAlgM  · Unit · (ListF · A) · (λ _ : Unit. Nat) 
- = Λ A. Λ R. λ rec. Λ _. λ lf. lf.1 · Nat Z (λ a. λ r. S (rec -unit r)).
+lenAlgM ◂ ∀ A : ★. AlgM · (ListF · A) · Nat 
+ = Λ A. Λ R. λ rec. λ lf. lf.1 · Nat Z (λ a. λ r. S (rec r)).
 
 
 length ◂ ∀ A : ★. List · A ➔ Nat 
- = Λ A. λ l. ifoldM · Unit · (ListF · A) · (λ _ : Unit. Nat) (lenAlgM · A) -unit l.1.
+ = Λ A. λ l. foldM · (ListF · A) -(lfimap · A) · Nat (lenAlgM · A) l.
 
 
-rebList ◂ ∀ A : ★. ∀ X : Unit ➔ ★. Π z : ListF · A · X unit. {ListFInd z in2lf in1lf ≃ z}
+rebList ◂ ∀ A : ★. ∀ X : ★. Π z : ListF · A · X. {ListFInd z in2lf in1lf ≃ z}
  = Λ A. Λ X. λ z. θ<z> (ListFInd · A · X z) (λ a. λ x. β) β.
 
 
--- Do we need a "flat" induction for List?

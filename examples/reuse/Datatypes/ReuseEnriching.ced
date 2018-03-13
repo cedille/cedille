@@ -4,8 +4,10 @@ import Id.
 import IIdMapping.
 import IFixM.
 import IFixIndM.
+import FixIndM.
 import IInductionM.
-
+import UnitLift.
+import Unit.
 
 ienrich' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
         ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
@@ -44,19 +46,36 @@ ienrich' ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMa
       -j) gr)) ] β) -j v.
 
 
+
 ienrich ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
           ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
-         Π alg : IAlgM · J · G · (λ _ : J. I). 
+         Π alg : IAlgM · J · G · (λ _ : J. I ). 
        (∀ X : I ➔ ★. ∀ Y : J ➔ ★. 
         Π f : ∀ j : J. Y j ➔ I. 
         (∀ j : J. IdExtDep · (Y j) · (λ y : Y j. X (f -j y))) ➔ 
         ∀ j : J. IdExtDep · (G · Y j) · (λ gy : G · Y j. F · X (alg · Y f -j gy)))
     ➾ ∀ j : J. IdExtDep · (IFixIndM · J · G gimap j) · 
-           (λ v : (IFixIndM · J · G gimap j). IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1)) = Λ I. Λ F. Λ fimap. 
+           (λ v : IFixIndM · J · G gimap j. IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1)) = Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
   λ alg. Λ ifg. Λ j. λ v.  pair · (IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1)) 
     · (λ x : IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j v.1). {x ≃ v.1})
-
- 
   (elimIdExt · (IFixIndM · J · G gimap j) · (ι gx : IFixIndM · J · G gimap j. IFixIndM · I · F fimap ((ifoldM · J · G · (λ j : J. I) alg) -j gx.1))
   -(ienrich' · I · F -fimap · J · G -gimap alg -ifg -j) v).2 β.
+
+
+
+
+
+enrich ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
+         ∀ G : ★ ➔ ★. ∀ gimap : IdMapping · G.
+         Π alg : AlgM · G · I. 
+       (∀ X : I ➔ ★. ∀ Y : ★. 
+        Π f : Y ➔ I. 
+        (IdExtDep · Y · (λ y : Y. X (f y))) ➔ 
+          IdExtDep · (G · Y) · (λ gy : G · Y. F · X (alg · Y f gy)))
+    ➾   IdExtDep · (FixIndM · G gimap) · 
+           (λ v : FixIndM · G gimap. IFixIndM · I · F fimap ((foldM · G -gimap alg) v)) = Λ I. Λ F. Λ fimap. 
+  Λ G. Λ gimap. λ alg. Λ ifg. λ v. ienrich · I · F -fimap · Unit · (UnitF · G) -(ufimap · G gimap) (convAlg · G -gimap · I alg)   
+  -(Λ X. Λ Y. λ f. λ g. Λ j. λ a. pair · (F · X (convAlg · G -gimap · I alg · Y f -unit a)) · (λ b : F · X (convAlg · G -gimap · I alg · Y f -unit a) . { b ≃ a }) 
+   (elimIdExtDep · (G · (Y unit)) · (λ a : (G · (Y unit)). F · X (alg · (Y unit) (f -unit)  a)) -(ifg · X · (Y unit) (f -unit) (g -unit)) a) β) -unit v. 
+ 

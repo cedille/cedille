@@ -3,8 +3,11 @@ module ReuseForgetful.
 import Id.
 import IIdMapping.
 import IFixIndM.
+import FixIndM.
 import IInductionM.
 import Sigma.
+import UnitLift.
+import Unit.
 
 Conv ◂ Π I : ★. Π J : ★. (I ➔ J) ➔ (J ➔ ★) ➔ (I ➔ ★)
  = λ I : ★. λ J : ★. λ f : I ➔ J. λ jX : J ➔ ★. λ i : I . jX (f i).
@@ -13,7 +16,7 @@ Conv ◂ Π I : ★. Π J : ★. (I ➔ J) ➔ (J ➔ ★) ➔ (I ➔ ★)
 iforget ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
           ∀ J : ★. ∀ G : (J ➔ ★) ➔ (J ➔ ★). ∀ gimap : IIdMapping · J · G.
         Π f : I ➔ J.
-       (∀ X : I ➔ ★.  ∀ Y : J ➔ ★. (∀ i : I . IdExt · (X i) · (Y (f i))) ➔ ∀ i : I. IdExt · (F · X i) · (G · Y (f i) )) 
+       (∀ X : I ➔ ★.  ∀ Y : J ➔ ★. (∀ i : I . IdExt · (X i) · (Y (f i))) ➔ ∀ i : I. IdExt · (F · X i) · (G · Y (f i))) 
  ➾ ∀ i : I. IdExt · (IFixIndM · I · F fimap i) · (IFixIndM · J · G gimap (f i)) =
   Λ I. Λ F. Λ fimap. 
   Λ J. Λ G. Λ gimap. 
@@ -29,3 +32,13 @@ iforget ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMap
            -(fimap · R · (Conv · I · J f · (IFixIndM · J · G gimap)) -ih -i) gr))) 
      β) -i v.
 
+
+
+forget ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ (I ➔ ★). ∀ fimap : IIdMapping · I · F.
+            ∀ G : ★ ➔ ★. ∀ gimap : IdMapping · G.
+       (∀ X : I ➔ ★.  ∀ Y : ★. (∀ i : I . IdExt · (X i) · Y) ➔ ∀ i : I. IdExt · (F · X i) · (G · Y)) 
+ ➾ ∀ i : I. IdExt · (IFixIndM · I · F fimap i) · (FixIndM · G gimap) = Λ I. Λ F. Λ fimap. 
+   Λ G. Λ gimap. 
+  Λ ifg. Λ i. λ v. iforget · I · F -fimap · Unit · (UnitF · G) -(ufimap · G gimap) (λ _. unit) 
+  -(Λ X. Λ Y. λ f. Λ i. λ a. pair · (UnitF · G · Y unit ) · (λ b : UnitF · G · Y unit . { b ≃ a }) 
+   (elimIdExt · (F · X i) · (G · (Y unit) ) -(ifg · X · (Y unit) f -i) a) β) -i v.

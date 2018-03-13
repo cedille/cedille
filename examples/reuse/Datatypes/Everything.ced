@@ -1,12 +1,12 @@
 module Everything.
 
--- Implicitly Indexed Mendler-style induction
+-- Implicitly indexed Mendler-style induction
 
 
 {- Definition of schemes with indexed identity mappings -}
 import IIdMapping. 
 
-{- Implicitly indexed Mendler-style inductive datatypes their constructors 
+{- Implicitly indexed Mendler-style inductive datatypes, their constructor,
    and induction principle -}
 import IFixIndM.
 import IInductionM.
@@ -31,12 +31,12 @@ import IInductionM.
       NatF0 X = 1 + X
       NatF1 X = (1 x 1) + X
 
-  2. Same issue happens with large elimination: 
+   2. Same issue happens with large elimination: 
 
-     VecF0 A X zero = Unit
-     VecF0 A X (suc n) = A × VecF0 A X n
+      VecF0 A X zero    = Unit
+      VecF0 A X (suc n) = A × VecF0 A X n
 
-     VecF1 A X n = (n ≃ zero) + (Σ m : Nat. (n ≃ suc m) × A × X m)
+      VecF1 A X n = {n ≃ zero} + Σ m : Nat. {n ≃ suc m} × A × X m
 -}
 import ReuseForgetful.
 import ReuseEnriching.
