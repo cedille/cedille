@@ -150,3 +150,17 @@ test-mv-check ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A
 -- Uncomment explicit type to see issue.
 -- B2 is being infered as a solution, even though it is type-
 -- incorrect to provide explicitly
+
+-- Future Considerations
+----------------------------------------------------------------------
+
+-- A fundamental issue with greedy and subsumptive inference
+test-greedy
+  ◂ (∀ A : ★ . A ➔ A ➔ Nat) ➔ ((Nat ➔ Nat) ➔ Nat) ➔ ((∀ B : ★ . B ➔ B) ➔ Nat) ➔ Nat
+  = λ f . λ x . λ y . f x y .
+
+-- Not only does the most general type (∀ A : ★ . A ➔ A) ➔ Nat have to be infered,
+-- but a coercion has to be findable for x to give it that type
+test-greedy-ok
+  ◂ (∀ A : ★ . A ➔ A ➔ Nat) ➔ ((Nat ➔ Nat) ➔ Nat) ➔ ((∀ B : ★ . B ➔ B) ➔ Nat) ➔ Nat
+  = λ f . λ x . λ y . f · ((∀ A : ★ . A ➔ A) ➔ Nat) (λ f . x (f · Nat)) y .
