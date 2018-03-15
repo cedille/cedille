@@ -155,6 +155,9 @@ lt-nSSn ◂ Π n : Nat . Lt n (S (S n))      = λ n . Lt-trans n (S n)     (S (S
 
 lt-nSSSn ◂ Π n : Nat . Lt n (S (S (S n))) = λ n . Lt-trans n (S (S n)) (S (S (S n))) (lt-nSSn n) (lt-nSn (S (S n))) .
 
+lte-nSn ◂ Π n : Nat . Lte n (S n) =
+  λ n .in1·(Lt n (S n))·{n ≃ S n} (lt-nSn n).
+
 LtS2 ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m)
       = λ n . λ m . λ l . Lt-trans n (S n) (S m) (lt-nSn n) (LtS n m l) .
 
@@ -163,6 +166,9 @@ Lt-Lte ◂ Π n : Nat . Π m : Nat . Lte (S n) m ➔ Lt n m
     (λ l . ind-sigma·Nat·(λ p:Nat .{S p ≃ m}) (lt-S (S n) m l)·(λ s:Sigma·Nat·(λ p:Nat .{S p ≃ m}) .Lt n m)
        (λ a .λ b .ρ ς b -(LtS2 n a (lt-SS n a (ρ b -l)))))
     (λ e .ρ ς e -(LtSn n)).
+
+lte-S◂Π n:Nat .Π m:Nat .Lte (S n) m➔Sigma·Nat·(λ p:Nat .{S p ≃ m})=
+  λ n .λ m .λ l .lt-S n m (Lt-Lte n m l).
 
 {- add-mono ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt (add x z) (add y z) =
   λ x . λ y . λ z . λ p . ●. -}

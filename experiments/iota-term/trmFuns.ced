@@ -17,8 +17,8 @@ sizeTrm ◂ Π n : Nat . Trm n ➔ Nat =
   λ n . λ t .
     TrmRec n t · (λ _ : Nat . Nat)
       · (λ n : Nat . λ _ : Nat . True)
---    (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Nat)·(λ n:Nat .λ _:Nat . True) (λ _ . λ _ . mkWSigma2 · Nat · (λ _ : Nat . True) (S Z) -triv))
-      (constPV·(wSigma2·Nat·(λ _:Nat .True)) n (mkWSigma2·Nat·(λ _:Nat .True) (S Z) -triv))
+      (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Nat)·(λ n:Nat .λ _:Nat . True) (λ _ . Λ _ . mkWSigma2 · Nat · (λ _ : Nat . True) (S Z) -triv))
+--    (constPV·(wSigma2·Nat·(λ _:Nat .True)) n (mkWSigma2·Nat·(λ _:Nat .True) (S Z) -triv))
       [β{λ n' . λ eval1 . λ eval2 . λ d . d (λ a . a (λ fun . λ arg . S (add (eval1 fun) (eval1 arg)))) (λ a . S (eval2 (S Z) a))},
       λ n . Λ val . Λ R1 . Λ R2 . Λ _ . Λ _ .
        λ eval1 . λ eval2 . λ d .
@@ -29,8 +29,7 @@ sizeTrm ◂ Π n : Nat . Trm n ➔ Nat =
 
 max◂Nat➔Nat➔Nat=
   λ m . 
-    NatRec m (λ n : Nat . n) (λ pm . λ ih . λ n . S (NatRec n pm (λ pn . λ _ . ih pn)))
-  .
+    NatRec m (λ n : Nat . n) (λ pm . λ ih . λ n . S (NatRec n pm (λ pn . λ _ . ih pn))).
 
 test = max (S Z) (S (S (S Z))).
 
@@ -42,8 +41,8 @@ depthTrm ◂ Π n : Nat . Trm n ➔ Nat =
   λ n . λ t .
     TrmRec n t · (λ _ : Nat . Nat)
       ·(λ n:Nat .λ _:Nat .True)
-      (constPV·(wSigma2·Nat·(λ _:Nat .True)) n (mkWSigma2·Nat·(λ _:Nat .True) (S Z) -triv))      
---      (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Nat)·(λ n:Nat .λ _:Nat . True) (λ _ . λ _ . mkWSigma2 · Nat · (λ _ : Nat . True) (S Z) -triv))
+--      (constPV·(wSigma2·Nat·(λ _:Nat .True)) n (mkWSigma2·Nat·(λ _:Nat .True) (S Z) -triv))      
+      (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Nat)·(λ n:Nat .λ _:Nat . True) (λ _ . Λ _ . mkWSigma2 · Nat · (λ _ : Nat . True) (S Z) -triv))
       [β{λ n' . λ eval1 . λ eval2 . λ d . d (λ a . a (λ fun . λ arg . S (max (eval1 fun) (eval1 arg)))) (λ a . S (eval2 (S Z) a))},
       λ n . Λ val . Λ R1 . Λ R2 . Λ _ . Λ _ .
        λ eval1 . λ eval2 . λ d .
@@ -69,7 +68,7 @@ depthSizeThm◂Π n:Nat .Π t:Trm n .Lte (depthTrm n t) (sizeTrm n t)
     (valuationFromFun n·Trm -var
       ·(λ n:Nat .λ t:Trm n .Lte (depthTrm n t) (sizeTrm n t))
       ·(λ n:Nat .λ p:Lte (depthTrm (S n) (var n)) (sizeTrm (S n) (var n)) .True)
-      (λ m .λ p .mkWSigma2·(Lte (depthTrm (S m) (var m)) (sizeTrm (S m) (var m)))
+      (λ m .Λ p .mkWSigma2·(Lte (depthTrm (S m) (var m)) (sizeTrm (S m) (var m)))
                         ·(λ p : Lte (depthTrm (S m) (var m)) (sizeTrm (S m) (var m)) . True)
 			(depthSizeThm-var m)
 			-triv))
@@ -84,15 +83,6 @@ depthSizeThm◂Π n:Nat .Π t:Trm n .Lte (depthTrm n t) (sizeTrm n t)
                      (e1.1 fun) (e1.1 arg)))
        (λ a . LteS (depthTrm (S n) (cast -C2 a)) (sizeTrm (S n) (cast -C2 a))
                 (e2.1 (depthSizeThm-var n) -triv a))].
-
-{- Constructors -}
-app ◂ Π n : Nat . Trm n ➔ Trm n ➔ Trm n
-    = λ n .λ t1 .λ t2 . in n (in1 · (TrmAppF · (Trm n)) · (Trm (S n))
-                  (pair · (Trm n) · (Trm n) t1 t2)).
-
-abs ◂ Π n : Nat . Trm (S n) ➔ Trm n
-     = λ n . λ t .
-        in n (in2 · (TrmAppF · (Trm n)) · (Trm (S n)) t) .
 
 {- Substitution -}
 subst ◂ Π n : Nat 

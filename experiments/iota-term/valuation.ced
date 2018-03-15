@@ -30,7 +30,7 @@ valuationInv' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n
        
 
 valuationFromFun' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                    (Π m : Nat . Lt m n ➔ wSigma2 · (X (S m)) · (I m)) ➔
+                    (Π m : Nat .Lt m n➾wSigma2·(X (S m))·(I m)) ➔
                     Valuation' n · X · I =
   λ n .Λ X .Λ I .λ f . PVfromFun ·(λ m : Nat . wSigma2 · (X (S m)) · (I m)) n f.		    
 
@@ -52,7 +52,7 @@ valuationFromFun ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm
                   ∀ P : Π n : Nat . Trm n ➔ ★.
                   ∀ I : Π n : Nat . P (S n) (var n) ➔ ★.                  
                   (Π m : Nat .
-                   Lt m n ➔
+                   Lt m n➾
                    wSigma2 · (P (S m) (var m)) · (I m)) ➔
                   Valuation n · Trm var · P · I =
   λ n . Λ Trm . Λ var . Λ P . Λ I . λ f . PVfromFun ·(λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n f.

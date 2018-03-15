@@ -15,7 +15,7 @@ varValuationInv ◂ Π n : Nat . Trm (S n) ➔ ★ = λ n : Nat. λ t : Trm (S n
 
 varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
  λ n . valuationFromFun' n · Trm · varValuationInv
-         (λ m . λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β) . 
+         (λ m . Λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β) . 
 
 inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
   [ β{λ n . λ _ . λ _ . λ d . in n d} ,
