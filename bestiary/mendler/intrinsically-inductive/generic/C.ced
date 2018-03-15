@@ -17,7 +17,9 @@ Alg ◂ (★ ➔ ★) ➔ ★ ➔ ★ ➔ ★ =
       F · R ➔
       X. 
 
-rF ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★ . λ C : ★ . ι x : ∀ X : ★ . Alg · F · C · X ➔ X . x inAlgU ≃ x .
+rF' ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★ . λ C : ★ . ∀ X : ★ . Alg · F · C · X ➔ X .
+
+rF ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ F : ★ ➔ ★ . λ C : ★ . ι x : rF' · F · C . { x inAlgU ≃ x } .
 
 C ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★ . Rec · (rF · F).
 
@@ -41,7 +43,7 @@ rUnfold ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ C · F ➔ rF · F · (C �
 fold' ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ ∀ X : ★ . Alg · F · (C · F) · X ➔ C · F ➔ X =
   Λ F . Λ fm . Λ X . λ alg . λ d . (rUnfold · F -fm d).1 · X alg .
 
-confirmFold' ◂ Π alg : Top. fold' alg ≃ foldU alg = λ alg . β{fold' alg}.
+confirmFold' ◂ Π alg : Top. { fold' alg ≃ foldU alg} = λ alg . β{fold' alg}.
 
 in' ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ F · (C · F) ➔ C · F =
   Λ F . Λ fm . λ d .

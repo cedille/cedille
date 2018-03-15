@@ -9,7 +9,7 @@ import true.
 import C.
 import D.
 
-reflection ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . x inAlg ≃ x =
+reflection ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . { x inAlg ≃ x } =
   Λ F . Λ fm . λ x . (rUnfold · F -fm (dUnfold · F -fm x).1).2.
 
 toD ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . (C · F) ➔ (D · F fm) =
@@ -26,9 +26,9 @@ Ind ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π d : D · F fm . Indu
                          [λ r . ρ ς (reflection · F -fm (cast · R · (D · F fm) -revealh r)) - (eval.1 r) , eval.2]
                        pd) ]) .
 
-lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . out (in x) ≃ x = Λ F . Λ fm . λ x . β .
+lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : D · F fm . { out (in x) ≃ x} = Λ F . Λ fm . λ x . β .
 
-lambek2 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : (D · F fm) . in (out x) ≃ x =
+lambek2 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : (D · F fm) . { in (out x) ≃ x } =
   Λ F . Λ fm . λ x .
     θ<x> (Ind · F -fm x)
       [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . Λ revealh . λ ih . λ p . β] .
