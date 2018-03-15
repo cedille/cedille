@@ -1,0 +1,11 @@
+module nonnorm.
+
+import nat.
+import nat-thms.
+import false.
+import true.
+
+-- typing this term diverges as Cedille tries to normalize it
+nonnorm ◂ { Z ≃ S Z } ➾ False =
+  Λ e . φ (ZS-False -Z -e · { triv ≃ λ x . x x }) -(triv · True triv) { (λ x . x x) (λ x . x x)} .
+    

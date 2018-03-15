@@ -1,0 +1,19 @@
+module unit.
+
+cUnit ◂ ★ = ∀ X : ★. X ➔ X.
+
+cunit ◂ cUnit = Λ X. λ x. x.
+
+param-Unit ◂ cUnit ➔ ★
+ = λ x : cUnit. ∀ X : ★. 
+ ∀ P : X ➔ ★. ∀ cu : X. P cu ➔ P (x · X cu).
+
+Unit ◂ ★ = ι x : cUnit. ι _ : {x cunit ≃ x}. param-Unit x.
+
+unit ◂ Unit = [ cunit , [β{cunit} , Λ X. Λ P. Λ cu. λ u. u ]].
+
+ind-Unit ◂ Π x : Unit. ∀ P : Unit ➔ ★. P unit ➔ P x =
+  λ x. Λ P. λ u. ρ ς x.2.1 - (x.2.2 · Unit · P -unit u).
+
+eta-Unit ◂ Π x : Unit. {x ≃ unit}
+ = λ x. ind-Unit x · (λ x : Unit. {x ≃ unit}) β.
