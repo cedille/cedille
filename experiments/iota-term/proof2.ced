@@ -1,4 +1,5 @@
-module proof.
+{- Second version using valuation invariant to imposses the free variable hypothesis -}
+module proof2.
 
 import cast.
 import isfree.
@@ -16,20 +17,20 @@ import product.
 import posvector.
 
 {- Substitution -}
-subst ◂ Π n : Nat 
-      . Trm n
-      ➔ Valuation n · Trm var · (λ n : Nat . λ t : Trm n . Trm n)
-      		    · (λ n' : Nat . λ _ : Trm (S n') . True)
-      ➔ Trm n
-      = λ n . λ t .λ v .TrmRec n t·Trm·(λ n':Nat .λ _ : Trm (S n') .True) v
-      	[β{λ n . λ eval1 . λ eval2 . λ d .
-          d   (λ a . a (λ a1 . λ a2 . app n (eval1 a1) (eval1 a2)))
-	      (λ a . abs n (eval2 (var n) a))},
-	λ n . Λ val . Λ R1 . Λ R2 . Λ _ . Λ _ .
-        λ eval1 . λ eval2 . λ d .
-          d.1 · (Trm n)
-	      (λ a . a.1 · (Trm n) (λ a1 . λ a2 . app n (eval1.1 a1) (eval1.1 a2)))
-	      (λ a . abs n (eval2.1 (var n) -triv a))].
+subst ◂ Π n : Nat . 
+        Trm n ➔
+        Valuation n · Trm var · (λ n : Nat . λ _ : Trm n . Trm n)
+      		    · (λ n : Nat . λ _ : Trm (S n) . True) ➔
+        Trm n
+  = λ n . λ t .λ v .TrmRec n t·Trm·(λ n':Nat .λ _ : Trm (S n') .True) v
+      [β{λ n .λ eval1 .λ eval2 .λ d .
+        d  (λ a . a (λ a1 . λ a2 . app n (eval1 a1) (eval1 a2)))
+           (λ a . abs n (eval2 (var n) a))},
+      λ n . Λ val . Λ _ . Λ _ . Λ _ . Λ _ . λ eval1 . λ eval2 . λ d .
+        d.1 · (Trm n)
+           (λ a . a.1 · (Trm n) (λ a1 . λ a2 . app n  (eval1.1 a1)
+                                                      (eval1.1 a2)))
+           (λ a . abs n (eval2.1 (var n) -triv a))].
 
 eq-lt◂Π n:Nat .Π m:Nat. Lt n m➔{nat-eq m n≃ff}=●.  
 

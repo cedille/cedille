@@ -87,7 +87,7 @@ depthSizeThm◂Π n:Nat .Π t:Trm n .Lte (depthTrm n t) (sizeTrm n t)
 {- Substitution -}
 subst ◂ Π n : Nat 
       . Trm n
-      ➔ Valuation n · Trm var · (λ n : Nat . λ t : Trm n . Trm n)
+      ➔ Valuation n · Trm var · (λ n : Nat . λ _ : Trm n . Trm n)
       		    · (λ n' : Nat . λ _ : Trm (S n') . True)
       ➔ Trm n
       = λ n . λ t .λ v .TrmRec n t·Trm·(λ n':Nat .λ _ : Trm (S n') .True) v

@@ -38,21 +38,20 @@ nat-eq◂Π n:Nat .Π m:Nat .Bool=●.
 --     ]) m l.
 
 isFree◂Π n:Nat .Π m:Nat .
-       Lt m n ➾
        Trm n ➔
        Bool =
-  λ n .λ m .Λ l .λ t .(TrmRec n t·(λ n:Nat .Π m:Nat .Lt m n➾Bool)·(λ n:Nat .λ _:(Π m:Nat .Lt m (S n)➾Bool) .True)
-    (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Π m:Nat .Lt m n➾Bool)·(λ n:Nat .λ _:(Π m:Nat .Lt m (S n)➾Bool) .True)
-      (λ n .Λ l .mkWSigma2·(Π m:Nat .Lt m (S n)➾Bool)·(λ _:(Π m:Nat .Lt m (S n)➾Bool) .True) (λ _ .Λ _ .nat-eq n m)  -triv))
-    [
-      β{λ n' . λ eval1 . λ eval2 . λ d . λ m' . d (λ a . a (λ a1 . λ a2 . or (eval1 a1 m') (eval1 a2 m'))) (λ a . eval2 (λ _ . ff) a m')},
-      λ n .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .
-        λ eval1 .λ eval2 .λ d . λ m' .Λ l.
-        d.1·Bool
-          (λ a .a.1·Bool
-            (λ a1 .λ a2 .or (eval1.1 a1 m' -l) (eval1.1 a2 m' -l)))
-          (λ a .eval2.1 (λ _ .Λ _.ff) -triv a m' -(LtS2 m' n l))
-    ]) m -l.
+  λ n .λ m . λ t .(TrmRec n t·(λ n:Nat .Π m:Nat .Bool)·(λ n:Nat .λ _:(Π m:Nat .Bool) .True)
+   (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Π m:Nat .Bool)·(λ n:Nat .λ _:(Π m:Nat .Bool) .True)
+     (λ n .Λ l .mkWSigma2·(Π m:Nat .Bool)·(λ _:(Π m:Nat .Bool) .True) (λ _ .nat-eq n m)  -triv))
+   [β{λ n' . λ eval1 . λ eval2 . λ d . λ m' .
+     d  (λ a . a (λ a1 . λ a2 . or (eval1 a1 m') (eval1 a2 m')))
+        (λ a . eval2 (λ _ . ff) a m')},
+   λ n .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .λ eval1 .λ eval2 .λ d . λ m' .
+     d.1·Bool
+        (λ a .a.1·Bool
+        (λ a1 .λ a2 .or (eval1.1 a1 m') (eval1.1 a2 m')))
+          (λ a .eval2.1 (λ _ .ff) -triv a m')])
+  m.
 
 
 {- Alternative using valuation invariant -}
