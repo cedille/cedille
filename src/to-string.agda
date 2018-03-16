@@ -110,21 +110,29 @@ strΓ v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
 strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
 
-var-loc-tag : ctxt → qvar → ℕ → ℕ → 𝕃 tag
-var-loc-tag Γ v start end with ctxt-var-location Γ (qualif-var Γ v)
-...| "missing" , "missing" = []
-...| fn , pos = [ make-tag "loc" (("fn" , [[ fn ]]) :: [ "pos" , [[ pos ]] ]) start end ]
+ctxt-global-var-location : ctxt → var → location
+ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
+...| just (term-def _ _ _ , loc) = loc
+...| just (term-udef _ _ , loc) = loc
+...| just (type-def _ _ _ , loc) = loc
+...| just (kind-def _ _ _ , loc) = loc
+...| _ = "missing" , "missing"
 
-var-shadowed-tag : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
-var-shadowed-tag Γ v uqv start end = if (qualif-var Γ v) =string (qualif-var Γ uqv)
-  then [] else [ make-tag "shadowed" [] start end ]
+var-loc-tag : ctxt → location → ℕ → ℕ → 𝕃 tag
+var-loc-tag Γ ("missing" , "missing") start end = []
+var-loc-tag Γ (fn , pos) start end = [ make-tag "loc" (("fn" , [[ fn ]]) :: [ "pos" , [[ pos ]] ]) start end ]
+
+var-tags : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
+var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
+...| tt = var-loc-tag Γ (ctxt-global-var-location Γ qv) s e
+...| ff = make-tag "shadowed" [] s e :: var-loc-tag Γ (ctxt-var-location Γ qv) s e
 
 strVar : var → strM
 strVar v s n ts Γ pe lr =
   let uqv = unqual-local (unqual-all (ctxt-get-qualif Γ) v) in
   let uqv' = if cedille-options.options.show-qualified-vars options then v else uqv in
   let n' = n + (string-length uqv') in
-  s ⊹⊹ [[ uqv' ]] , n' , var-loc-tag Γ v n n' ++ var-shadowed-tag Γ v uqv n n' ++ ts
+  s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
 
 strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
