@@ -20,7 +20,7 @@ ListFunctor ◂ ∀ A : ★ . RecFunctor · (ListF · A) =
       -(λ a . θ<a> (ind-Sum a) (λ x . ρ (eta-Unit x) - β)
                 (λ p . θ<p> (ind-Product p) (λ a . λ b . β))) .
 
-List ◂ ★ ➔ ★ = λ A : ★ . D · (ListF · A) (ListFunctor · A) .
+List ◂ ★ ➔ ★ = λ A : ★ . C · (ListF · A) .
 
 nil ◂ ∀ A : ★ . List · A =
   Λ A . in · (ListF · A) -(ListFunctor · A) (in1 · Unit · (Product · A · (List · A)) unit) .
@@ -28,12 +28,9 @@ nil ◂ ∀ A : ★ . List · A =
 cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
   Λ A . λ h . λ t . in · (ListF · A) -(ListFunctor · A) (in2 · Unit · (Product · A · (List · A)) (pair h t)) .
 
-listRec ◂ ∀ A : ★ . List · A ➔ rF' · (ListF · A) · (C · (ListF · A)) =
-  Λ A . dRec · (ListF · A) -(ListFunctor · A) .
-
 append ◂ ∀ A : ★ . List · A ➔ List · A ➔ List · A =
   Λ A . λ l1 . λ l2 .
-    listRec · A l1 · (List · A)
+    cRec · (ListF · A) -(ListFunctor · A) l1 · (List · A)
       [ β{λ e . λ d . d (λ u . l2) (λ p . p (λ h . λ t . cons h (e t)))} ,
         Λ R . Λ c . λ e . λ d .
           d.1 · (List · A)
@@ -45,7 +42,7 @@ appendAssoc ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A . ∀ l3 : 
   Λ A . λ l1 . Λ l2 . Λ l3 .
     θ<l1> (Ind · (ListF · A) -(ListFunctor · A) l1)
       [ β{λ ih . λ d . ind-Sum d (λ u . λ x . x) (λ p . ind-Product p (λ h . λ t . λ x . x))} ,
-        Λ R . Λ _ . Λ _ . λ ih . λ d .
+        Λ R . Λ _ . λ ih . λ d .
           θ<d> (ind-Sum d) (λ u . β) (λ p . θ<p> (ind-Product p)
                  (λ h . λ t . ρ+ (ih.1 t) - β)) ].
       
