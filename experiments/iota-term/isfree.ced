@@ -11,8 +11,24 @@ import natExtras.
 import posvector.
 import wSigma2.
 
-nat-eq◂Π n:Nat .Π m:Nat .Bool=●.
+nat-eq◂Π n:Nat .Π m:Nat .Bool
+  =λ n. NatRec n·(Nat ➔ Bool)
+     (λ m. NatRec m·Bool tt (λ _. λ _ .ff))
+     (λ n .λ p .λ m .NatRec m·Bool ff (λ m' .λ _ .p m')).
 
+{- tests -}
+-- test1◂{nat-eq Z Z≃tt}=β.
+-- test2◂{nat-eq Z (S Z)≃ff}=β.
+-- test3◂{nat-eq (S Z) (S Z)≃tt}=β.
+
+lem-nat-eq◂Π n:Nat .Π m:Nat .{nat-eq n m≃tt}➔{n≃m}=
+ λ n .NatInd n·(λ n:Nat .Π m:Nat .{nat-eq n m≃tt}➔{n≃m})
+   (λ m .NatInd m·(λ m:Nat .{nat-eq Z m≃tt}➔{Z≃m}) (λ _.β)
+     (λ m' .λ ih .λ eSm' .BoolContra (ς eSm')·{Z≃S m'}))
+   (λ n .λ ih . λ m .NatInd m·(λ m:Nat .{nat-eq (S n) m≃tt}➔{S n≃m})
+     (λ eSnZ .BoolContra (ς eSnZ)·{S n≃Z})
+     (λ m .λ _ .λ e .ρ (ih m e) -β)).
+ 
 {- isFree function
 
    Note: this is a case in which the valuation of free variables differs from the valuation of bound ones in the abstraction case recursion. 
@@ -42,16 +58,36 @@ isFree◂Π n:Nat .Π m:Nat .
        Bool =
   λ n .λ m . λ t .(TrmRec n t·(λ n:Nat .Π m:Nat .Bool)·(λ n:Nat .λ _:(Π m:Nat .Bool) .True)
    (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Π m:Nat .Bool)·(λ n:Nat .λ _:(Π m:Nat .Bool) .True)
-     (λ n .Λ l .mkWSigma2·(Π m:Nat .Bool)·(λ _:(Π m:Nat .Bool) .True) (λ _ .nat-eq n m)  -triv))
+     (λ n .Λ l .mkWSigma2·(Π m:Nat .Bool)·(λ _:(Π m:Nat .Bool) .True) (λ m .nat-eq n m)  -triv))
    [β{λ n' . λ eval1 . λ eval2 . λ d . λ m' .
      d  (λ a . a (λ a1 . λ a2 . or (eval1 a1 m') (eval1 a2 m')))
         (λ a . eval2 (λ _ . ff) a m')},
-   λ n .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .λ eval1 .λ eval2 .λ d . λ m' .
+   λ n .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .λ eval1 .λ eval2 .λ d . λ m .
      d.1·Bool
         (λ a .a.1·Bool
-        (λ a1 .λ a2 .or (eval1.1 a1 m') (eval1.1 a2 m')))
-          (λ a .eval2.1 (λ _ .ff) -triv a m')])
+        (λ a1 .λ a2 .or (eval1.1 a1 m) (eval1.1 a2 m)))
+          (λ a .eval2.1 (λ _ .ff) -triv a m)])
   m.
+
+isFree2◂Π n:Nat .Π m:Nat .
+       Trm n ➔
+       Bool =
+  λ n .λ m .λ t .(TrmRec n t·(λ n:Nat .Bool)·(λ n:Nat .λ _:Bool .True)
+   -- (posPV·(λ _:Nat. wSigma2·Bool·(λ _:Bool .True))
+   --    (λ n .mkWSigma2·Bool·(λ _:Bool .True) (nat-eq n m) -triv)
+   --    n)
+   (valuationFromFun n·Trm -var·(λ n:Nat .λ _:Trm n .Bool)·(λ n:Nat .λ _:Bool .True)
+     (λ n .Λ _ .mkWSigma2·Bool·(λ _:Bool .True) (nat-eq n m)  -triv))
+   [β{λ n . λ eval1 . λ eval2 . λ d . 
+     d  (λ a . a (λ a1 . λ a2 . or (eval1 a1) (eval1 a2)))
+        (λ a . eval2 ff a)},
+   λ _ .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .λ eval1 .λ eval2 .λ d . 
+     d.1·Bool
+        (λ a .a.1·Bool
+        (λ a1 .λ a2 .or (eval1.1 a1) (eval1.1 a2)))
+          (λ a .eval2.1 ff -triv a)])
+  .
+
 
 
 {- Alternative using valuation invariant -}

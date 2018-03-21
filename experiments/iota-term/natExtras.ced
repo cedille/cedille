@@ -114,7 +114,8 @@ lt-SS ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
 	(λ ltS-Sn-Sm . θ<ltS-Sn-Sm> (ind-sigma · Nat · (LtStepp (S n) (S m)) ltS-Sn-Sm)
 	   (λ n' . λ ltSp-Sn-Sm . θ<ltSp-Sn-Sm> (ind-sigma · Nat · (LtStepp2 (S n) (S m) n') ltSp-Sn-Sm) (λ m' . λ ltSpp-Sn-Sm . ρ (eq-S n n' ltSpp-Sn-Sm.1) -ρ (eq-S m m' ltSpp-Sn-Sm.2.1) - ltSpp-Sn-Sm.2.2 ))).
 
-
+lt-eq ◂ Π n:Nat .Lt n n➔False=
+  λ n. θ<n> (NatInd n) (lt-Z Z) (λ n .λ ih .λ l .ih (lt-SS n n l)).
 
 Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · {n ≃ m} .
 

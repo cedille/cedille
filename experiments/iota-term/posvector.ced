@@ -4,6 +4,8 @@ import nat.
 import natExtras.
 import product.
 import sum.
+import sigma.
+import top.
 
 PosVector ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
   λ T : Nat ➔ ★ . λ n : Nat . 
@@ -19,11 +21,13 @@ PVCons ◂ ∀ T : Nat ➔ ★ . Π n : Nat . T n ➔ PosVector · T n ➔ PosVe
   Λ T . λ n . λ h . λ t . Λ X . λ nil . λ cons .
     cons n h (t · X nil cons).
 
-posPV◂∀ C:Nat➔★.Π f:(Π n:Nat .C n).Π n:Nat .PosVector·(λ n:Nat .C n) n=Λ C .λ f .λ n .NatInd n·(λ n:Nat .PosVector·(λ n :Nat .C n) n)
-	  (PVNil·(λ n:Nat .C n))
-	  (λ n .λ v .PVCons·(λ n:Nat .C n) n (f n) v).
+posPV◂∀ C:Nat➔★.Π f:(Π n:Nat .C n).Π n:Nat .PosVector·(λ n:Nat .C n) n=
+  Λ C .λ f .λ n .NatInd n·(λ n:Nat .PosVector·(λ n :Nat .C n) n)
+    (PVNil·(λ n:Nat .C n))
+    (λ n .λ v .PVCons·(λ n:Nat .C n) n (f n) v).
 
-constPV◂∀ C:★.Π n:Nat .C➔PosVector·(λ _:Nat .C) n=Λ C .λ n .λ c .posPV·(λ _:Nat .C) (λ _ .c) n.
+constPV◂∀ C:★.Π n:Nat .C➔PosVector·(λ _:Nat .C) n=
+  Λ C .λ n .λ c .posPV·(λ _:Nat .C) (λ _ .c) n.
 
 PVfromFun ◂ ∀ T:Nat➔★.Π n:Nat .
             (Π m:Nat .Lt m n➾T m) ➔
@@ -41,8 +45,36 @@ FunfromPV ◂ ∀ T:Nat➔★.Π n:Nat .
   Λ T .λ n .λ v .λ m .λ l .
     (v·(λ n:Nat .Lt m n➔T m)
        (λ l .(lt-Z m l)·(T m))
-       (λ p .λ tp .λ ih .λ l .ind-Sum·(Lt m p)·{m≃p} (Lt-S m p l) ·(λ s:Sum·(Lt m p)·{m≃p} .T m) (λ l .ih l) (λ e .ρ e -tp)))
+       (λ p .λ tp .λ ih .λ l .ind-Sum·(Lt m p)·{m≃p} (Lt-S m p l)·(λ s:Sum·(Lt m p)·{m≃p} .T m) (λ l .ih l) (λ e .ρ e -tp)))
        l.
+
+{- Next is a simpler way to the following, that it is not working -}
+-- lem-LtSn◂Π n:Nat .{Lt-S n n (lt-nSn n)≃in2 β}=
+--  λ n:Nat . ind-Sum·(Lt n n)·{n≃n} (Lt-S n n (lt-nSn n))
+--    ·(λ s:Sum·(Lt n n)·{n≃n} .{Lt-S n n (lt-nSn n)≃s}➔{Lt-S n n (lt-nSn n)≃in2 β})
+--    (λ l .λ e .(lt-eq n l)·{Lt-S n n (lt-nSn n)≃in2 β})
+--    (λ b .λ e .ρ e -β)
+--    β.
+
+-- lem-FunfromPV◂∀ T:Nat➔★.Π n:Nat .
+--             Π f:(Π m:Nat .Lt m (S n)➾T m).
+--             {FunfromPV·T (S n) (PVfromFun·T (S n) f) n (lt-nSn n)≃f n}=
+--  Λ T .λ n .λ f .ρ+ (lem-LtSn n) -β.
+
+lem-LtSn◂Π n:Nat .Sigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t})=
+ λ n:Nat . ind-Sum·(Lt n n)·{n≃n} (Lt-S n n (lt-nSn n))
+   ·(λ s:Sum·(Lt n n)·{n≃n} .{Lt-S n n (lt-nSn n)≃s}➔Sigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t}))
+   (λ l .λ e .(lt-eq n l)·(Sigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t})))
+   (λ b .λ e .mksigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t}) b (ρ e -β))
+   β.
+
+lem-FunfromPV◂∀ T:Nat➔★.Π n:Nat .
+            Π f:(Π m:Nat .Lt m (S n)➾T m).
+            {FunfromPV·T (S n) (PVfromFun·T (S n) f) n (lt-nSn n)≃f n}=
+ Λ T .λ n .λ f .ind-sigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t})
+   (lem-LtSn n)
+   ·(λ s:Sigma·{n≃n}·(λ t:{n≃n} .{Lt-S n n (lt-nSn n)≃in2 t}) .{FunfromPV·T (S n) (PVfromFun·T (S n) f) n (lt-nSn n)≃f n})
+   (λ _ .λ e .ρ+ e -β).
 
 {-Tests-}
 Nat'◂Nat➔★=λ _:Nat .Nat.

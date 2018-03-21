@@ -75,4 +75,14 @@ updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm 
                   Valuation (S n) · Trm var · P · I =
   λ n . Λ Trm . Λ var . Λ P . Λ I . λ val . λ xn . Λ ixn . PVCons·(λ m : Nat . wSigma2 · (P (S m) (var m)) · (I m)) n (mkWSigma2 xn -ixn) val.
 
+lemma-val◂  Π n:Nat .
+        ∀ X:★. ∀ Y:X➔★.
+	∀ Trm:Nat ➔ ★ .
+        ∀ var : varTp·Trm .
+	Π f:(Π m:Nat .Lt m (S n)➾wSigma2·X·Y) .
+        {  lookupValuation' (S n)·(λ _:Nat .X)·(λ _:Nat .λ x:X. Y x)  
+             (valuationFromFun (S n) ·Trm -var·(λ n:Nat .λ _:Trm n .X)	·(λ n:Nat .λ x:X. Y x) f)
+             n (lt-nSn n) ≃
+	   f n } =
+  λ n .Λ X. Λ Y. Λ Trm .Λ _ .λ f .ρ (lem-FunfromPV·(λ _:Nat .wSigma2·X·Y) n f) -β.
 
