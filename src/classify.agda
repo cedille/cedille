@@ -212,6 +212,7 @@ check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
 check-tk : tk → spanM ⊤
+check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
 
 check-term subject nothing = check-termi subject nothing ≫=span cont
   where cont : maybe type → spanM (maybe type)
@@ -704,6 +705,12 @@ check-term-app-error-erased c m t t' htp Xs
                     ^ " an implicit (erased) argument, but the application"
                     ^ " is marked as not erased")
 
+check-term-app-meta-var-app-span : (Xs Xs-solved : meta-vars) (Γ : ctxt) (res-tp : type) (chk-tp : maybe type) → maybe error-span → 𝕃 tagged-val
+check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp (just (msg , s))
+  = error-data msg :: (meta-vars-data Γ Xs-solved ++ get-tagged-vals s)
+check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp nothing
+  = meta-vars-check-type-mismatch-if chk-tp Γ "synthesized" Xs res-tp ++ meta-vars-data Γ Xs-solved
+
 -- main definition
 check-term-app t''@(App t m t') mtp
   -- check head
@@ -740,14 +747,14 @@ check-term-app t''@(App t m t') mtp
                  (yes-error msg) →
                    check-term-app-error-unmatchable Γ t t' tpₐ tpₐ' Xs check-mode msg
                  (no-error   Xs) →
-                     spanM-add (App-span t t' check-mode
-                       (arg-exp-type Γ tpₐ
-                       :: arg-type Γ tpₐ'
-                       :: (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs (cod t'))
-                       ++ (let Xs-solved = trie-filter (λ {(x , _) →
-                                 are-free-in-type check-erased
-                                   (trie-single x triv) tpₐ}) Xs
-                           in meta-vars-data Γ Xs-solved)))
+                     check-meta-vars Xs
+                   ≫=span λ me → spanM-add
+                     (App-span t t' check-mode
+                       (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ'
+                         :: (let Xs-solved = trie-filter (λ {(x , _) →
+                                   are-free-in-type check-erased
+                                     (trie-single x triv) tpₐ}) Xs
+                             in check-term-app-meta-var-app-span Xs Xs-solved Γ (cod t') mtp me)))
                    ≫span check-term-app-return Γ t'' Xs (cod t')
         (Xs , not-arrow-or-abs tp) →
             check-term-app-error-inapp Γ t t' tp Xs check-mode m
@@ -1073,4 +1080,41 @@ check-kind (KndPi pi pi' x atk k) =
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
 
+check-meta-vars Xs
+  = (with-qualified-qualif $'
+        -- clear current error
+        get-error λ es → set-error nothing
+      ≫span sequence-spanM
+        -- for each meta-var, if it has a solution, kind-check it
+        -- (we should only be checking new solutions to avoid duplicate work)
+        (for trie-mappings Xs yield λ where
+          (_ , meta-var-tp x k nothing) → spanMok
+          (_ , meta-var-tp x k (just tp))
+            → check-type tp (just k)
+          (_ , X) → spanMok)
+        -- restore previous error
+      ≫=span λ _ → get-error λ es' → set-error es
+      ≫span spanMr es')
+    -- discard generated spans
+    ≫=spand λ es → spanMr (maybe-map retag es)
+  where
+  open helpers
 
+  -- replace qualif info with one where the keys are the fully qualified variable names
+  qualified-qualif : qualif → qualif
+  qualified-qualif q = for trie-mappings q accum empty-trie do λ where
+    (_ , qi@(v , as)) q → trie-insert q v qi
+
+  -- helper to restore qualif state
+  with-qualified-qualif : ∀ {A} → spanM A → spanM A
+  with-qualified-qualif sm
+    =   get-ctxt λ Γ →
+      with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
+        sm
+
+  retag : error-span → error-span
+  retag (msg , mk-span dsc pi pi' tvs)
+    = let tvs' = for tvs yield λ where
+                   (t , v) → "meta-var " ^ t , v
+      in msg , (mk-span dsc pi pi' tvs')
+    where open helpers
