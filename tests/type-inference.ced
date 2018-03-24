@@ -139,7 +139,7 @@ test-unfold-rhs
   ◂ ∀ A : ★ . A ➔ A
   = Λ A . cast -(χ (Cast · A · A) - (castId · A)) .
 
--- (B) Meta-variable solutions aren't kind-checked, leading to bogus inferences
+-- (B) [FIXED] Meta-variable solutions aren't kind-checked, leading to bogus inferences
 test-mv-check ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ ★ .
 	        ∀ C1 : (A1 ➔ ★) ➔ ★ . C1 · B1
 		➔ (∀ B2 : A2 ➔ ★ . ∀ C2 : (A2 ➔ ★) ➔ ★ . C2 · B2 ➔ C2 · B2)
