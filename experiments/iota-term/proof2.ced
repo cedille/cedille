@@ -3,6 +3,7 @@ module proof2.
 
 import cast.
 import isfree.
+import trmC.
 import trmD.
 import trmInduction.
 import valuation.

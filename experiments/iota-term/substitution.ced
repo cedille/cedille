@@ -1,5 +1,6 @@
 module substitution.
 
+import trmC.
 import trmD.
 import nat.
 import valuation.

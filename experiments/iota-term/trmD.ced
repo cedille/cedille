@@ -62,7 +62,7 @@ TrmFFun ◂ RecFunctori · Nat · TrmF =
     [ Λ i . λ d .
       [ d.1 ,
         Λ P . Λ I . λ val . λ alg .
-          d.2 · P val
+          d.2 · P · I val
             [β{alg},
              λ n . Λ val . Λ R1 . Λ R2 . Λ Reveal1 . Λ Reveal2 .
              Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
@@ -98,8 +98,8 @@ in ◂ Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n =
                           Λ P . Λ I . λ val . λ alg . alg.2 n -β{val} · (Trm n) · (Trm (S n))
                                                   -(castId · (Trm n)) -(castId · (Trm (S n)))
                                                   -[λ a . (TrmUnfold -n a).1,β] -[λ a . (TrmUnfold -(S n) a).1,β]
-                                                  [foldTrm · P alg -n val,β{foldTrm alg val}]
-                                                  [λ x . Λ ix . foldTrm · P alg -(S n) (updateValuation n · Trm' -var' · P val x -ix) ,
+                                                  [foldTrm · P · I alg -n val,β{foldTrm alg val}]
+                                                  [λ x . Λ ix . foldTrm · P · I alg -(S n) (updateValuation n · Trm' -var' · P · I val x -ix) ,
                                                    β{foldU2 n alg val}]
                                                   d] .
 
@@ -122,7 +122,7 @@ var ◂ Π n : Nat . Trm (S n) =
   λ n . 
      TrmFold -(S n)
         [var' n ,
-         Λ P . Λ I . λ val . λ alg . (lookupValuation (S n) · Trm' -var' val n (lt-nSn n)).1 · (P (S n) (var' n)) (λ a . Λ _ . a)].
+         Λ P . Λ I . λ val . λ alg . (lookupValuation (S n) · Trm' -var' · P · I val n (lt-nSn n)).1 · (P (S n) (var' n)) (λ a . Λ _ . a)].
 
 app ◂ Π n : Nat . Trm n ➔ Trm n ➔ Trm n
     = λ n .λ t1 .λ t2 . in n (in1 · (TrmAppF · (Trm n)) · (Trm (S n))

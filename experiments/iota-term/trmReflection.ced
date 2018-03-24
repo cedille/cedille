@@ -29,7 +29,7 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                      ρ ς e1.2 -
                      ε ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
                             -(λ m : Nat . λ p : Lt m n.
-                                 wSigma2Induction (lookupValuation' n val m p)
+                                 wSigma2Induction · (Trm (S m)) · (varValuationInv m) (lookupValuation' n · Trm · varValuationInv val m p)
                                    · (λ q : wSigma2 · (Trm (S m)) · (varValuationInv m) .
                                        { q (λ a . a) ≃ varU m })
                                    (λ v . Λ e . ρ e - β))) -
