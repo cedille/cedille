@@ -233,7 +233,7 @@ br-cmd Γ str fn ls =
   (maybe-else (spans-to-rope (global-error "Parse error" nothing)) spans-to-rope
   (parse-try Γ' str ≫=maybe λ ex →
    h ex ≫=maybe λ m →
-   just (snd (snd (m Γ' (regular-spans [])))))) where
+   just (snd (snd (m Γ' empty-spans))))) where
   h : expr → maybe (spanM ⊤)
   h (,_ {parseAsTerm} t) = just (erased-term-spans t)
   h (,_ {parseAsType} T) = just (erased-type-spans T)

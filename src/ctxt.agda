@@ -28,6 +28,10 @@ ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
 ctxt-get-qualif : ctxt → qualif
 ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
 
+ctxt-set-qualif : ctxt → qualif → ctxt
+ctxt-set-qualif (mk-ctxt (f , m , p , q') syms i sym-occurrences) q
+  = mk-ctxt (f , m , p , q) syms i sym-occurrences
+
 ctxt-get-qi : ctxt → var → maybe qualif-info
 ctxt-get-qi (mk-ctxt (_ , _ , _ , q) _ _ _) = trie-lookup q
 

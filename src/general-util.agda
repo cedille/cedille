@@ -118,9 +118,20 @@ take 0 l = []
 take (suc n) (x :: l) = x :: (take n l)
 take (suc n) [] = []
 
+drop : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+drop zero xs = xs
+drop (suc _) [] = []
+drop (suc n) (x :: xs) = drop n xs
+
 zip-with : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
            → (A → B → C) → 𝕃 A → 𝕃 B → 𝕃 C
 zip-with f xs ys = map (uncurry f) (zip xs ys)
+
+for_yield_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → (A → B) → 𝕃 B
+for xs yield f = map f xs
+
+for_accum_do_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
+for xs accum n do f = foldr f n xs
 
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤

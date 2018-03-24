@@ -2,6 +2,8 @@ import cedille-options
 module spans (options : cedille-options.options) where
 
 open import lib
+open import functions
+
 open import cedille-types
 open import constants 
 open import conversion
@@ -27,19 +29,37 @@ span-to-rope : span → rope
 span-to-rope (mk-span name start end extra) = 
   [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 extra ⊹⊹ [[ "}]" ]]
 
+-- Alias
+error-span = string × span
+
 data spans : Set where
-  regular-spans : 𝕃 span → spans
+  regular-spans : maybe error-span → 𝕃 span → spans
   global-error : string {- error message -} → maybe span → spans
 
+is-error-tagged-val : tagged-val → 𝔹
+is-error-tagged-val = λ tv → (fst tv) =string "error"
+
 is-error-span : span → 𝔹
-is-error-span (mk-span _ _ _ tvs) = list-any (λ tv → (fst tv) =string "error") tvs
+is-error-span (mk-span _ _ _ tvs) = list-any is-error-tagged-val tvs
+
+get-span-error : span → maybe string
+get-span-error (mk-span _ _ _ tvs)
+  = foldr (λ {tv@(t , d , _) e → if (is-error-tagged-val tv) then just (rope-to-string d) else e})
+      nothing tvs
+
+get-tagged-vals : span → 𝕃 tagged-val
+get-tagged-vals (mk-span _ _ _ tvs) = tvs
 
 spans-have-error : spans → 𝔹
-spans-have-error (regular-spans ss) = list-any is-error-span ss
+spans-have-error (regular-spans es ss) = isJust es
 spans-have-error (global-error _ _) = tt
 
+mk-error-span : string → span → error-span
+mk-error-span msg s@(mk-span dsc pi pi' tv)
+  = msg , mk-span dsc pi pi' (filter (~_ ∘ is-error-tagged-val) tv)
+
 empty-spans : spans
-empty-spans = regular-spans []
+empty-spans = regular-spans nothing []
 
 {-
 spans-to-string : spans → string
@@ -56,12 +76,13 @@ spans-to-string (global-error e o) = global-error-string (e ^ helper o)
 𝕃span-to-rope [] = [[]]
 
 spans-to-rope : spans → rope
-spans-to-rope (regular-spans ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-rope ss ⊹⊹ [[ "]}" ]] where
+spans-to-rope (regular-spans _ ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-rope ss ⊹⊹ [[ "]}" ]] where
 spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 add-span : span → spans → spans
-add-span s (regular-spans ss) = regular-spans (s :: ss)
+add-span s@(mk-span dsc pi pi' tv) (regular-spans es ss) = regular-spans es' (s :: ss)
+  where es' = maybe-else es (λ msg → just (mk-error-span msg s)) (get-span-error s) 
 add-span s (global-error e e') = global-error e e'
 
 --------------------------------------------------
@@ -79,6 +100,18 @@ spanMok = spanMr triv
 
 get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
 get-ctxt m Γ ss = m Γ Γ ss
+
+set-ctxt : ctxt → spanM ⊤
+set-ctxt Γ _ ss = triv , Γ , ss
+
+get-error : ∀ {A : Set} → (maybe error-span → spanM A) → spanM A
+get-error m Γ ss@(global-error _ _) = m nothing Γ ss
+get-error m Γ ss@(regular-spans nothing _) = m nothing Γ ss
+get-error m Γ ss@(regular-spans (just es) _) = m (just es) Γ ss
+
+set-error : maybe (error-span) → spanM ⊤
+set-error es Γ ss@(global-error _ _) = triv , Γ , ss
+set-error es Γ (regular-spans _ ss) = triv , Γ , regular-spans es ss
 
 restore-def : Set
 restore-def = maybe qualif-info × maybe sym-info
@@ -115,9 +148,6 @@ spanM-restore-info* : 𝕃 (var × restore-def) → spanM ⊤
 spanM-restore-info* [] = spanMok
 spanM-restore-info* ((v , qi , m) :: s) = spanM-restore-info v (qi , m) ≫span spanM-restore-info* s
 
-set-ctxt : ctxt → spanM ⊤
-set-ctxt Γ _ ss = triv , Γ , ss
-
 infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_
 
 _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
@@ -153,6 +183,21 @@ _on-fail_≫=spanm'_ {A}{B} m fail f = m ≫=span cont
   where cont : maybe A → spanM B
         cont nothing  = fail
         cont (just x) = f x
+
+with-ctxt : ∀ {A} → ctxt → spanM A → spanM A
+with-ctxt Γ sm
+  =   get-ctxt λ Γ' → set-ctxt Γ
+    ≫span  sm
+    ≫=span λ a → set-ctxt Γ'
+    ≫span  spanMr a
+
+sequence-spanM : ∀ {A} → 𝕃 (spanM A) → spanM (𝕃 A)
+sequence-spanM [] = spanMr []
+sequence-spanM (sp :: sps)
+  =   sp
+    ≫=span λ x → sequence-spanM sps
+    ≫=span λ xs → spanMr (x :: xs)
+
 
 spanM-add : span → spanM ⊤
 spanM-add s Γ ss = triv , Γ , add-span s ss

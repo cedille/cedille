@@ -181,7 +181,7 @@ process-file s filename | ie =
         proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename (start-modname x) in
            cont (process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
-                   filename x do-check Γ (regular-spans []))
+                   filename x do-check Γ empty-spans)
            where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
                  cont (mk-toplevel-state ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
                    let Γ = ctxt-set-current-mod Γ prev-mod in
