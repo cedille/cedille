@@ -780,7 +780,7 @@ check-term-app (AppTp t tp) mtp
               -- TODO avoid double substitution
               check-type tp (just (meta-vars-subst-kind Γ Xs k))
             ≫span get-ctxt λ Γ →
-              let X    = meta-vars-fresh Xs x k [ qualif-type Γ tp ]
+              let X    = meta-vars-fresh-tp Xs x k (just (qualif-type Γ tp))
                   htp″ = subst-type Γ (TpVar pi' (meta-var-name X)) x htp'
                   Xs'  = meta-vars-add Xs X
               in spanMr (just (meta-vars-add Xs X , htp″))
