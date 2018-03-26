@@ -11,11 +11,12 @@ open import general-util
 
 drop-mod-args : ctxt → spineApp → spineApp
 drop-mod-args Γ ((pi , v) , as) = (pi , v) , if (v =string qv)
-  then as else reverse (nthTail n (reverse as))
+  then as else maybe-else as
+  (λ n → reverse (nthTail n (reverse as))) mn
   where
   q = ctxt-get-qualif Γ
   qv = unqual-all (ctxt-get-qualif Γ) v
-  n = ctxt-current-params-length Γ
+  mn = ctxt-qualif-args-length Γ qv
 
 data expr-side : Set where
   left : expr-side

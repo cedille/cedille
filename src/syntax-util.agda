@@ -717,9 +717,9 @@ abs-expand-kind (ParamsCons (Decl pi pi' x tk _) ps) k =
   KndPi posinfo-gen pi' x tk (abs-expand-kind ps k)
 abs-expand-kind ParamsNil k = k
 
-params-length : params → ℕ
-params-length (ParamsCons p ps) = suc (params-length ps)
-params-length ParamsNil = 0
+args-length : args → ℕ
+args-length (ArgsCons p ps) = suc (args-length ps)
+args-length (ArgsNil pi) = 0
 
 spine : Set
 spine = 𝕃(maybeErased × arg)

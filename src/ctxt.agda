@@ -25,15 +25,20 @@ empty-ctxt = new-ctxt "" ""
 ctxt-get-info : var → ctxt → maybe sym-info
 ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
 
-ctxt-get-qualif : ctxt → qualif
-ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
-
 ctxt-set-qualif : ctxt → qualif → ctxt
 ctxt-set-qualif (mk-ctxt (f , m , p , q') syms i sym-occurrences) q
   = mk-ctxt (f , m , p , q) syms i sym-occurrences
 
+ctxt-get-qualif : ctxt → qualif
+ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
+
 ctxt-get-qi : ctxt → var → maybe qualif-info
-ctxt-get-qi (mk-ctxt (_ , _ , _ , q) _ _ _) = trie-lookup q
+ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
+
+ctxt-qualif-args-length : ctxt → var → maybe ℕ
+ctxt-qualif-args-length Γ v =
+  ctxt-get-qi Γ v ≫=maybe λ qv →
+  just (args-length (snd qv))
 
 qi-var-if : maybe qualif-info → var → var
 qi-var-if (just (v , _)) _ = v
