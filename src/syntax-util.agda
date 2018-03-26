@@ -716,3 +716,39 @@ abs-expand-kind : params → kind → kind
 abs-expand-kind (ParamsCons (Decl pi pi' x tk _) ps) k =
   KndPi posinfo-gen pi' x tk (abs-expand-kind ps k)
 abs-expand-kind ParamsNil k = k
+
+params-length : params → ℕ
+params-length (ParamsCons p ps) = suc (params-length ps)
+params-length ParamsNil = 0
+
+spine : Set
+spine = 𝕃(maybeErased × arg)
+
+spineApp : Set
+spineApp = (posinfo × qvar) × spine
+
+term-to-spapp : term → maybe spineApp
+term-to-spapp (App t me t') = term-to-spapp t ≫=maybe
+  (λ { (v , as) → just (v , (me , TermArg t') :: as) })
+term-to-spapp (AppTp t T) = term-to-spapp t ≫=maybe
+  (λ { (v , as) → just (v , (NotErased , TypeArg T) :: as) })
+term-to-spapp (Var pi v) = just ((pi , v) , [])
+term-to-spapp _ = nothing
+
+type-to-spapp : type → maybe spineApp
+type-to-spapp (TpApp T T') = type-to-spapp T ≫=maybe
+  (λ { (v , as) → just (v , (NotErased , TypeArg T') :: as) })
+type-to-spapp (TpAppt T t) = type-to-spapp T ≫=maybe
+  (λ { (v , as) → just (v , (NotErased , TermArg t) :: as) })
+type-to-spapp (TpVar pi v) = just ((pi , v) , [])
+type-to-spapp _ = nothing
+
+spapp-term : spineApp → term
+spapp-term ((pi , v) , []) = Var pi v
+spapp-term (v , (me , TermArg t) :: as) = App (spapp-term (v , as)) me t
+spapp-term (v , (me , TypeArg T) :: as) = AppTp (spapp-term (v , as)) T
+
+spapp-type : spineApp → type
+spapp-type ((pi , v) , []) = TpVar pi v
+spapp-type (v , (me , TermArg t) :: as) = TpAppt (spapp-type (v , as)) t
+spapp-type (v , (me , TypeArg T) :: as) = TpApp (spapp-type (v , as)) T

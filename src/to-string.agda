@@ -9,6 +9,13 @@ open import ctxt
 open import rename
 open import general-util
 
+drop-mod-args : ctxt → spineApp → spineApp
+drop-mod-args Γ ((pi , v) , as) = (pi , v) , if (v =string qv)
+  then as else reverse (nthTail n (reverse as))
+  where
+  q = ctxt-get-qualif Γ
+  qv = unqual-all (ctxt-get-qualif Γ) v
+  n = ctxt-current-params-length Γ
 
 data expr-side : Set where
   left : expr-side
@@ -138,6 +145,9 @@ strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
 
 {-# TERMINATING #-}
+spine-term-to-stringh : term → strM
+spine-type-to-stringh : type → strM
+
 term-to-stringh : term → strM
 type-to-stringh : type → strM
 kind-to-stringh : kind → strM
@@ -163,8 +173,8 @@ arrowtype-to-string : arrowtype → string
 maybeMinus-to-string : maybeMinus → string
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
-to-string-ed{TERM} = term-to-stringh
-to-string-ed{TYPE} = type-to-stringh
+to-string-ed{TERM} = spine-term-to-stringh
+to-string-ed{TYPE} = spine-type-to-stringh
 to-string-ed{KIND} = kind-to-stringh
 to-string-ed{LIFTINGTYPE} = liftingType-to-stringh
 to-string-ed{ARG} = arg-to-string
@@ -184,6 +194,18 @@ to-stringh = to-stringh' neither
 
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
+
+spine-term-to-stringh t s n ts Γ pe lr = term-to-stringh t' s n ts Γ pe lr
+  where
+  t' = if cedille-options.options.show-qualified-vars options
+    then t
+    else maybe-else t (spapp-term ∘ drop-mod-args Γ) (term-to-spapp t)
+
+spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
+  where
+  T' = if cedille-options.options.show-qualified-vars options
+    then T
+    else maybe-else T (spapp-type ∘ drop-mod-args Γ) (type-to-spapp T)
 
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T

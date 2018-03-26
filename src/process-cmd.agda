@@ -153,7 +153,7 @@ process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span 
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
   check-and-add-params globalScope pi ps ≫=span λ _ →
-  -- spanM-set-params ps ≫span
+  spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = Γ})
 

@@ -85,6 +85,9 @@ qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _) v with trie-lookup q v
 start-modname : start → string
 start-modname (File _ _ mn _ _ _) = mn
 
+ctxt-current-params-length : ctxt → ℕ
+ctxt-current-params-length (mk-ctxt (_ , _ , ps , _) _ _ _) = params-length ps
+
 ctxt-get-current-filename : ctxt → string
 ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _) = fn
 
