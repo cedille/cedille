@@ -1,7 +1,7 @@
 module general-util where
 
 open import lib
-open import functions
+open import functions public
 
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
