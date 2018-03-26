@@ -66,7 +66,7 @@ Defaults to `error'."
 (defvar cedille-mode-version "1.0"
   "The version of the cedille mode.")
 
-(setq se-inf-parsing-header "Checking")
+(setq se-inf-parsing-header "Parsing")
 
 ;;-----------------------------------------------------------------------------
 ;;   Customization
@@ -129,7 +129,6 @@ Defaults to `error'."
 
 (defun cedille-mode-rebalance-windows()
   "Resizes all windows"
-  ;(walk-windows (lambda (window) (fit-window-to-buffer window))))
   (let* ((fws-nfws (cedille-mode-file-windows))
          (pred (lambda (w1 w2) (< (cadr (window-edges w1)) (cadr (window-edges w2)))))
          (fws (sort (car fws-nfws) pred))
@@ -140,22 +139,20 @@ Defaults to `error'."
               (let ((window-size-fixed nil))
                 (fit-window-to-buffer w))
               (setq window-size-fixed t))))
-    (let ((scratch-buffer (get-buffer (cedille-mode-scratch-buffer-name))))
-      (when (and scratch-buffer (get-buffer-window scratch-buffer))
-        (with-current-buffer (cedille-mode-scratch-buffer-name)
-          (cedille-mode-scratch-equal)
-          (setq window-size-fixed t))))
     (let ((mean (cedille-mode-mean-window-size fws)))
       (loop for w in fws do
             (with-selected-window w
               (with-current-buffer (window-buffer)
-                (let ((window-size-fixed nil)
-                      (mean2 (max mean (window-min-size))))
+                (let* ((window-size-fixed nil)
+                       (mean2 (max mean (window-min-size))))
                   (fit-window-to-buffer w mean2 mean2))))))
     (loop for w in nfws do
           (with-selected-window w
             (with-current-buffer (window-buffer)
               (setq window-size-fixed nil))))))
+
+(defun cedille-mode-rebalance-windows-old()
+  (walk-windows #'fit-window-to-buffer))
 
 (defun cedille-mode-file-windows ()
   "Returns (cons FILE-WINDOWS NOT-FILE-WINDOWS)"
@@ -173,7 +170,7 @@ Defaults to `error'."
 (defun cedille-mode-mean-window-size-h (windows size)
   "Helper for `cedille-mode-mean-window-size'"
   (if (null windows) size
-    (cedille-mode-mean-window-size-h (cdr windows) (+ size (window-body-height (car windows))))))
+    (cedille-mode-mean-window-size-h (cdr windows) (+ size (window-height (car windows))))))
 
 (defun cedille-mode-set-windows-height (windows height)
   "Sets each window in WINDOWS to be HEIGHT lines high"
@@ -576,6 +573,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
   (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br)
   (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-node)
+  (se-navi-define-key mode (kbd "C-i t") #'cedille-mode-br-type)
   (se-navi-define-key mode (kbd "C-i =") #'cedille-mode-conv)
   (se-navi-define-key mode (kbd "C-i s") #'cedille-mode-to-string)
   ;(se-navi-define-key mode (kbd "C-i d") #'cedille-mode-inspect-clear)
@@ -592,9 +590,11 @@ occurrences, then do so."
   "Get the message to send to the backend, from the name of the file to parse."
   (concat "check§" filename))
 
-(defun cedille-mode-progress-fn (response oc buffer)
+(defun cedille-mode-progress-fn (response &optional oc buffer span)
   "The function called when a progress update is received from the backend"
-  (se-inf-queue-header response))
+  (se-inf-queue-header response)
+  (se-inf-next-header)
+  "progress stub")
 
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
@@ -612,7 +612,8 @@ occurrences, then do so."
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-  (setq-local se-inf-progress-fn'cedille-mode-progress-fn)
+  (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
+  (setq-local se-inf-progress-prefix "progress: ")
   ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
 
   (set-input-method "Cedille")

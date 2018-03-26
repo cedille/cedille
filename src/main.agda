@@ -29,10 +29,10 @@ module main-with-options (options : cedille-options.options) where
   open import ctxt
   open import process-cmd options
   open import parser
-  open import spans options
+  open import spans options {IO}
   open import syntax-util
   open import to-string options
-  open import toplevel-state options
+  open import toplevel-state options {IO}
   import interactive-cmds
   open import rkt options
 
@@ -57,9 +57,6 @@ module main-with-options (options : cedille-options.options) where
 
   logMsg : (message : string) → IO ⊤
   logMsg msg = logRope [[ msg ]]
-
-  sendProgressUpdate : string → IO ⊤
-  sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n" -- putStrLn ("progress: " ^ msg)
 
   fileBaseName : string → string
   fileBaseName fn = base-filename (takeFileName fn)
@@ -99,6 +96,27 @@ module main-with-options (options : cedille-options.options) where
   add-cedille-extension : string → string
   add-cedille-extension x = x ^ "." ^ cedille-extension
 
+  {-
+  replace-dots : string → string
+  replace-dots s = 𝕃char-to-string (h (string-to-𝕃char s)) where
+    slash : string
+    slash = combineFileNames "" ""
+    slashc : 𝕃 char → 𝕃 char
+    slashc cs = string-to-𝕃char slash ++ cs
+    is-slash : char → 𝔹
+    is-slash c = char-to-string c =string slash
+
+    h : 𝕃 char → 𝕃 char
+    h ('.' :: '.' :: c :: cs) = if is-slash c
+      then '.' :: '.' :: c :: h cs
+      else slashc (h cs)
+    h ('.' :: c :: cs) = if is-slash c
+      then '.' :: c :: h cs
+      else slashc (h cs)
+    h (c :: cs) = c :: h cs
+    h [] = []
+  -}
+
   find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe string)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
@@ -110,7 +128,7 @@ module main-with-options (options : cedille-options.options) where
   -- return a list of pairs (i,p) where i is the import string in the file, and p is the full path for that imported file
   find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 string) → IO (𝕃 (string × string))
   find-imported-files dirs (u :: us) =
-    find-imported-file dirs u >>= λ where
+    find-imported-file dirs ({-replace-dots-} u) >>= λ where
       nothing → find-imported-files dirs us
       (just p) → find-imported-files dirs us >>= λ ps → return ((u , p) :: ps)
   find-imported-files dirs [] = return []
@@ -236,9 +254,7 @@ module main-with-options (options : cedille-options.options) where
   checkFile s filename should-print-spans = 
     update-asts s filename >>= λ s →
     log-files-to-check s >>
-    -- let msg = if include-elt.do-type-check (get-include-elt s filename) then "Checking " else "Skipping " in
-    -- sendProgressUpdate (msg ^ filename) >>
-    finish (process-file s filename) -- ignore-errors s filename)
+    process-file s filename >>= finish
     where
           reply : toplevel-state → IO ⊤
           reply s with get-include-elt-if s filename
@@ -280,7 +296,7 @@ module main-with-options (options : cedille-options.options) where
               delimiter = '§'
 
               errorCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\".") >>= λ x → return s
+              errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".") >>= λ x → return s
 
               debugCommand : toplevel-state → IO toplevel-state
               debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
@@ -296,6 +312,7 @@ module main-with-options (options : cedille-options.options) where
               findCommand _ s = errorCommand s -}
 
               handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
+              handleCommands ("progress stub" :: xs) = return
               handleCommands ("check" :: xs) = checkCommand xs
               handleCommands ("debug" :: []) = debugCommand
               handleCommands ("interactive" :: xs) = interactive-cmds.interactive-cmd options xs

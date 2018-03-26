@@ -3,21 +3,27 @@ import cedille-options
 module process-cmd (options : cedille-options.options) where
 
 open import lib
+open import general-util
 
 --open import cedille-find
 open import cedille-types
-open import classify options
+open import classify options {IO}
 open import constants
 open import conversion
 open import ctxt
-open import general-util
-open import spans options
+open import spans options {IO}
 open import syntax-util
-open import toplevel-state options
+open import toplevel-state options {IO}
 -- open import to-string
 
 import cws-types
 import cws
+
+sendProgressUpdate : string → IO ⊤
+sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
+
+sendProgressUpdateFile : (filename : string) → (do-check : 𝔹) → IO ⊤
+sendProgressUpdateFile filename do-check = sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
 
 -- generate spans from the given comments-and-whitespace syntax tree 
 process-cwst-etys : cws-types.entities → spanM ⊤
@@ -56,7 +62,7 @@ process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-params : process-t (posinfo × params)
 process-start : toplevel-state → (filename : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
-process-file : toplevel-state → (filename : string) → toplevel-state × mod-info
+process-file : toplevel-state → (filename : string) → IO (toplevel-state × mod-info)
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
@@ -133,20 +139,19 @@ process-cmd s (ImportCmd (Import pi x oa as pi')) _ =
       ≫span spanMr (set-include-elt s cur-file (record ie {err = tt}))
     (just imported-file) →
       let as = qualif-args (toplevel-state.Γ s) as in
-      let s = scope-imports (fst (process-file s imported-file)) imported-file oa as in
-      let ie = get-include-elt s imported-file in
-        spanM-add (Import-span pi imported-file pi' 
-          (if (include-elt.err ie)
-              then [ error-data "There is an error in the imported file" ]
-              else [])) ≫span spanMr s
+      λ Γ ss → process-file s imported-file >>= λ where
+        (s , mod) →
+          (let s = scope-imports s imported-file oa as in
+           let ie = get-include-elt s imported-file in
+             spanM-add (Import-span pi imported-file pi' 
+               (if (include-elt.err ie)
+                   then [ error-data "There is an error in the imported file" ]
+                   else [])) ≫span spanMr s) Γ ss
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
-process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check = process-cmd
-                                (mk-toplevel-state include-path files is
-                                  {-(ctxt-set-symbol-occurrences Γ
-                                    (find-symbols-cmd c (ctxt-get-current-filename Γ) (ctxt-get-symbol-occurrences Γ) empty-stringset))-} Γ)
-                                c need-to-check ≫=span
-                                λ s → process-cmds s cs need-to-check
+process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check =
+  process-cmd (mk-toplevel-state include-path files is Γ) c need-to-check ≫=span λ s →
+  process-cmds s cs need-to-check
 process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
 
 -- TODO ignore checking but still qualify if need-to-check false?
@@ -158,35 +163,36 @@ process-params s (pi , ps) need-to-check =
   spanMr (record s {Γ = Γ})
 
 process-start s filename (File pi is mn ps cs pi') need-to-check =
-  process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s →
-  process-params s (pi , ps) need-to-check ≫=span λ s →
-  process-cmds s cs need-to-check ≫=span λ s → 
-  process-cwst s filename ≫=span λ s →
-    spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
-    spanMr s
+  λ Γ ss → sendProgressUpdateFile filename need-to-check >>
+  (process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s →
+   process-params s (pi , ps) need-to-check ≫=span λ s →
+   process-cmds s cs need-to-check ≫=span λ s → 
+   process-cwst s filename ≫=span λ s →
+     spanM-add (File-span pi (posinfo-plus pi' 1) filename) ≫span 
+     spanMr s) Γ ss
 
 {- process (type-check if necessary) the given file.  
    We assume the given top-level state has a syntax tree associated with the file. -}
 process-file s filename with get-include-elt s filename
-process-file s filename | ie = 
-  let p = proceed s (include-elt.ast ie) (set-need-to-add-symbols-to-context-include-elt ie ff) in
-    set-include-elt (fst p) filename (fst (snd p)) , snd (snd p)
+process-file s filename | ie =
+  proceed s (include-elt.ast ie) (set-need-to-add-symbols-to-context-include-elt ie ff) >>= λ where
+    (s , ie , mod) → return (set-include-elt s filename ie , mod)
         {- update the include-elt and the toplevel state (but we will push the updated include-elt into the toplevel state
            just above, after proceed finishes. -}
-  where proceed : toplevel-state → maybe start → include-elt → toplevel-state × include-elt × mod-info
-        proceed s nothing ie' = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
+  where proceed : toplevel-state → maybe start → include-elt → IO (toplevel-state × include-elt × mod-info)
+        proceed s nothing ie' = return (s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))) {- should not happen -}
         proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
         proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt
           with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
         proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
          let Γ = ctxt-initiate-file Γ filename (start-modname x) in
-           cont (process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
-                   filename x do-check Γ empty-spans)
-           where cont : toplevel-state × ctxt × spans → toplevel-state × include-elt × mod-info
-                 cont (mk-toplevel-state ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) = 
-                   let Γ = ctxt-set-current-mod Γ prev-mod in
-                   (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is Γ ,
+           process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
+                   filename x do-check Γ empty-spans >>= cont
+           where cont : toplevel-state × ctxt × spans → IO (toplevel-state × include-elt × mod-info)
+                 cont (mk-toplevel-state ip fns is Γ , (mk-ctxt ret-mod _ _ _) , ss) =
+                   sendProgressUpdateFile filename do-check >>
+                   return (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is (ctxt-set-current-mod Γ prev-mod) ,
                      (if do-check then set-spans-include-elt ie' ss else ie') ,
                      ret-mod)
-        proceed s (just x) ie' | _ = s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s))
+        proceed s (just x) ie' | _ = return (s , ie' , (ctxt-get-current-mod (toplevel-state.Γ s)))
 

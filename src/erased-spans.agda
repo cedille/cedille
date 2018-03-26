@@ -1,17 +1,17 @@
 {- Module that generates semi-blank spans for the beta-reduction buffer -}
 
 import cedille-options
+open import general-util
 
-module erased-spans (options : cedille-options.options) where
+module erased-spans (options : cedille-options.options) {F : Set → Set} {{monadF : monad F}} where
 
 
 open import lib
 open import ctxt
 open import cedille-types
-open import spans options
+open import spans options {F}
 open import syntax-util
 open import to-string options
-open import general-util
 
 
 {- Helper functions -}
@@ -37,7 +37,7 @@ erased-term-spans : term → spanM ⊤
 erased-type-spans : type → spanM ⊤
 erased-kind-spans : kind → spanM ⊤
 error-spans : string → spanM ⊤
-error-spans s = λ Γ → λ ss → triv , Γ , (global-error s nothing)
+error-spans s = λ Γ → λ ss → returnM (triv , Γ , (global-error s nothing))
 
 inc-pi : posinfo → posinfo
 inc-pi pi = posinfo-plus pi 1
@@ -115,7 +115,7 @@ erased-term-spans (Let pi dtt t) =
         set-ctxt Γ)
 erased-term-spans (Parens pi t pi') = erased-term-spans t
 erased-term-spans (Var pi v) = erased-var-span pi v ll-term
-erased-term-spans t = error-spans ("Unknown term: " ^ (ParseTreeToString (parsed-term t))
+erased-term-spans t = error-spans ("Unexpected term: " ^ (ParseTreeToString (parsed-term t))
   ^ ", " ^ rope-to-string (to-string empty-ctxt t) ^ " (erased-spans.agda)")
 
 erased-type-spans (Abs pi b pi' v t-k tp) =

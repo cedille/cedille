@@ -1,17 +1,16 @@
 import cedille-options
-
-module meta-vars (options : cedille-options.options) where
+open import general-util
+module meta-vars (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
 open import lib
 open import functions
-open import general-util
 
 open import cedille-types
 open import conversion
 open import ctxt
 open import is-free
 open import rename
-open import spans options
+open import spans options {mF}
 open import subst
 open import syntax-util
 open import to-string options

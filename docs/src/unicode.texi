@@ -12,9 +12,6 @@ Produces λ (lambda), for anonymous functions
 @item \L
 Produces Λ (capital lambda), for anonymous functions taking in compile-time arguments (erased at run-time)
 
-@item \>
-Produces → (right arrow), for non-dependent function types
-
 @item \r
 Produces → (right arrow)
 
@@ -42,9 +39,6 @@ Produces ◂ (leftwards double arrow), for checking a term against a type, or ty
 @item \u
 Produces ↑ (upwards arrow), for lifting
 
-@item \p
-Produces π (pi), for extracting a proof of (λ xs . t_i) ≃ (λ xs . t_i') from (λ xs . x_j ts) ≃ (λ xs . x_j ts').  In other words, project out corresponding arguments of a head-normal form
-
 @item \h
 Produces ● (black circle), a hole representing a missing subterm
 
@@ -57,9 +51,6 @@ Produces ι (iota), for dependent intersections
 @item \=
 Produces ≃ (asymptotically equal to), for propositional equality
 
-@item \d
-Produces δ (delta), for proving anything one wants from an obviously inconsistent equation
-
 @item \b
 Produces β (beta), for proving propositional equalities which follow just by beta-eta reduction
 
@@ -69,6 +60,9 @@ Produces ε (epsilon), for reducing the sides of an equation
 @item \R
 Produces ρ (rho), for rewriting with an equation
 
+@item \F
+Produces φ (phi), for proving that if t ≃ t', and t has type T, then t' also has type T
+
 @item \y
 Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
 
@@ -77,9 +71,6 @@ Produces θ (theta), for elimination with a motive (of McBride)
 
 @item \x
 Produces χ (chi), for changing the form of the expected or computed classifier to a definitionally equivalent one
-
-@item \w
-Produces ω (omega), for a weak form of extensional equational reasoning
 
 @item \rho
 Produces ρ (rho)

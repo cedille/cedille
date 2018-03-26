@@ -1,8 +1,8 @@
 import cedille-options
-module classify (options : cedille-options.options) where
+open import general-util
+module classify (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
 open import lib
-open import general-util
 
 open import cedille-types
 open import constants
@@ -12,8 +12,8 @@ open import is-free
 open import lift
 open import rename
 open import rewriting
-open import meta-vars options
-open import spans options
+open import meta-vars options {mF}
+open import spans options {mF}
 open import subst
 open import syntax-util
 open import to-string options

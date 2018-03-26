@@ -1,5 +1,6 @@
 import cedille-options
-module spans (options : cedille-options.options) where
+open import general-util
+module spans (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
 open import lib
 open import functions
@@ -9,7 +10,6 @@ open import constants
 open import conversion
 open import ctxt
 open import is-free
-open import general-util
 open import syntax-util
 open import to-string options
 open import subst
@@ -61,15 +61,6 @@ mk-error-span msg s@(mk-span dsc pi pi' tv)
 empty-spans : spans
 empty-spans = regular-spans nothing []
 
-{-
-spans-to-string : spans → string
-spans-to-string (regular-spans ss) = "{\"spans\":[" ^ (string-concat-sep-map "," span-to-rope ss) ^ "]}"
-spans-to-string (global-error e o) = global-error-string (e ^ helper o)
-  where helper : maybe span → string
-        helper (just x) = ", \"global-error\":" ^ span-to-rope x
-        helper nothing = ""
--}
-
 𝕃span-to-rope : 𝕃 span → rope
 𝕃span-to-rope (s :: []) = span-to-rope s
 𝕃span-to-rope (s :: ss) = span-to-rope s ⊹⊹ [[ "," ]] ⊹⊹ 𝕃span-to-rope ss
@@ -88,12 +79,13 @@ add-span s (global-error e e') = global-error e e'
 --------------------------------------------------
 -- spanM, a state monad for spans
 --------------------------------------------------
+
 spanM : Set → Set
-spanM A = ctxt → spans → A × ctxt × spans
+spanM A = ctxt → spans → mF (A × ctxt × spans)
 
 -- return for the spanM monad
 spanMr : ∀{A : Set} → A → spanM A
-spanMr a Γ ss = a , Γ , ss
+spanMr a Γ ss = returnM (a , Γ , ss)
 
 spanMok : spanM ⊤
 spanMok = spanMr triv
@@ -102,7 +94,7 @@ get-ctxt : ∀{A : Set} → (ctxt → spanM A) → spanM A
 get-ctxt m Γ ss = m Γ Γ ss
 
 set-ctxt : ctxt → spanM ⊤
-set-ctxt Γ _ ss = triv , Γ , ss
+set-ctxt Γ _ ss = returnM (triv , Γ , ss)
 
 get-error : ∀ {A : Set} → (maybe error-span → spanM A) → spanM A
 get-error m Γ ss@(global-error _ _) = m nothing Γ ss
@@ -110,39 +102,41 @@ get-error m Γ ss@(regular-spans nothing _) = m nothing Γ ss
 get-error m Γ ss@(regular-spans (just es) _) = m (just es) Γ ss
 
 set-error : maybe (error-span) → spanM ⊤
-set-error es Γ ss@(global-error _ _) = triv , Γ , ss
-set-error es Γ (regular-spans _ ss) = triv , Γ , regular-spans es ss
+set-error es Γ ss@(global-error _ _) = returnM (triv , Γ , ss)
+set-error es Γ (regular-spans _ ss) = returnM (triv , Γ , regular-spans es ss)
 
 restore-def : Set
 restore-def = maybe qualif-info × maybe sym-info
 
 -- this returns the previous ctxt-info, if any, for the given variable
 spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
-spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss
+spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss)
 
 spanM-set-params : params → spanM ⊤
-spanM-set-params ps Γ ss = triv , (ctxt-params-def ps Γ) , ss
+spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
 spanM-push-term-def : posinfo → var → term → type → spanM restore-def
-spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope x t T Γ , ss
+spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope x t T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
-spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss
+spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
  
  -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
-spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss
+spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss)
  
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
-spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in (qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope x t T Γ , ss
+spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope x t T Γ , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤
-spanM-restore-info v rd Γ ss = triv , ctxt-restore-info Γ v (fst rd) (snd rd) , ss
+spanM-restore-info v rd Γ ss = returnM (triv , ctxt-restore-info Γ v (fst rd) (snd rd) , ss)
+
+_≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
+(m₁ ≫=span m₂) ss Γ = bindM (m₁ ss Γ) (λ where (v , Γ , ss) → m₂ v Γ ss)
 
 _≫span_ : ∀{A : Set} → spanM ⊤ → spanM A → spanM A
-(m ≫span m') Γ ss with m Γ ss
-(m ≫span m') _ _ | _ , Γ , ss = m' Γ ss
+(m₁ ≫span m₂) = m₁ ≫=span (λ _ → m₂)
 
 spanM-restore-info* : 𝕃 (var × restore-def) → spanM ⊤
 spanM-restore-info* [] = spanMok
@@ -150,20 +144,16 @@ spanM-restore-info* ((v , qi , m) :: s) = spanM-restore-info v (qi , m) ≫span 
 
 infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_
 
-_≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-(m ≫=span m') ss Γ with m ss Γ
-(m ≫=span m') _ _ | v , Γ , ss = m' v Γ ss
-
 _≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
 _≫=spanj_{A} m m' = m ≫=span cont
   where cont : maybe A → spanM ⊤
         cont nothing = spanMok
         cont (just x) = m' x
 
+
 -- discard changes made by the first computation
 _≫=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-_≫=spand_{A} m m' Γ ss with m Γ ss 
-_≫=spand_{A} m m' Γ ss | v , _ , _ = m' v Γ ss
+_≫=spand_{A} m m' Γ ss = bindM (m Γ ss) (λ where (v , _ , _) → m' v Γ ss)
 
 _≫=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
 _≫=spanm_{A} m m' = m ≫=span cont
@@ -200,7 +190,7 @@ sequence-spanM (sp :: sps)
 
 
 spanM-add : span → spanM ⊤
-spanM-add s Γ ss = triv , Γ , add-span s ss
+spanM-add s Γ ss = returnM (triv , Γ , add-span s ss)
 
 spanM-addl : 𝕃 span → spanM ⊤
 spanM-addl [] = spanMok

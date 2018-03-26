@@ -25,6 +25,10 @@ started with `start-process'."))
  (defvar se-inf-progress-fn nil
    "A function that recieves progress updates from the process"))
 
+(make-variable-buffer-local
+ (defvar se-inf-progress-prefix nil
+    "String prefix that determines if a response is a progress update"))
+
 ; might need to UNDO:
 (make-variable-buffer-local
  (defvar se-inf-response-hook nil
@@ -127,6 +131,7 @@ will kill the process, should be skipped if process is shared."
 Keywords supported: span, batch-fn, header, extra, and restore.
 Q-STR-OR-FN should be either a string or a function that takes 0-2 arguments: SPAN, if non-nil, and EXTRA, if non-nil.
 RESPONSE-FN should be nil or a function that takes 2-4 arguments: the backend's response, SPAN, if non-nil, a boolean for if this is the original call (not a restoring one), and EXTRA, if non-nil. If SPAN is non-nil and you want something added to it, then return a dotted pair list (symbol . some-str).
+PROGRESS-FN, if non-nil, should be a function that takes the same arguments as RESPONSE-FN and returns a string to send to the backend as a stub.
 SPAN should be a span. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
 HEADER should be a string that will be displayed in the header line.
 EXTRA can be anything. If non-nil, it will be passed to RESPONSE-FN/BATCH-FN and to Q-STR-OR-FN if it is a function.
@@ -136,6 +141,7 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
 
 (defun se-inf-interactive-h (q-str-or-fn response-fn progress-fn span header extra restore delay is-restore)
   "Helper for `se-inf-interactive'"
+  ;(message "send interactive call, with queue: %s" se-inf-queue)
   (let* ((span (se-get-span span))
 	 (header (or header ""))
 	 (q-str (cond
@@ -172,11 +178,9 @@ DELAY should be non-nil if you want this to wait until the previous interactive 
                       (span (funcall response-fn response span oc))
                       (extra (funcall response-fn response oc extra))
                       (t (funcall response-fn response oc))))))
-        (if (and progress-fn (string= "progress: " (substring response 0 10)))
-            (progn
-              (funcall pair progress-fn (substring response 10))
-              (se-inf-next-header)
-              (setcar se-inf-queue (cons (cons "" (cons "\n" (cons closure #'se-inf-interactive-response))) (tq-queue se-inf-queue))))
+        (if (and progress-fn (string= se-inf-progress-prefix (substring response 0 (length se-inf-progress-prefix))))
+            (let ((msg (funcall pair progress-fn (substring response (length se-inf-progress-prefix)))))
+              (tq-enqueue se-inf-queue (concat msg "\n") "\n" closure #'se-inf-interactive-response t))
           (se-inf-next-header)
           (let ((pr (funcall pair response-fn response)))
             (when (and span pr) (se-inf-add-to-span span pr)))
@@ -263,7 +267,7 @@ buffer's file unless FILE is non-nil."
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
   (let ((ms (se-inf-get-message-from-filename (or file (buffer-file-name)))))
-    (se-inf-interactive ms #'se-inf-process-response :progress-fn se-inf-progress-fn :extra (buffer-name) :header se-inf-parsing-header)))
+    (se-inf-interactive ms #'se-inf-process-response :progress-fn se-inf-progress-fn :extra (buffer-name) :header se-inf-parsing-header :delay t)))
 
 (defun se-inf-add-final-newline ()
   "Silently adds a newline to the end of the buffer, if necessary"

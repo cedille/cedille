@@ -8,20 +8,18 @@ open import cedille-types
 open import conversion
 open import ctxt
 open import general-util
-open import spans options
+open import spans options {Id}
 open import syntax-util
 open import to-string options
-open import toplevel-state options
-open import erased-spans options
+open import toplevel-state options {IO}
+open import erased-spans options {IO}
 open import parser
+open import rewriting
+open import rename
+open import classify options {Id}
+import spans options {IO} as io-spans
 
 {- General -}
-
-maybee : ∀{A B : Set} → maybe A → B → (A → B) → B
-maybee m n j = maybe-else n j m
-
-maybe-or : ∀{ℓ}{A : Set ℓ} → maybe A → maybe A → maybe A
-maybe-or m₁ m₂ = maybe-else m₂ just m₁
 
 data parseAs : Set where
   parseAsTerm : parseAs
@@ -40,6 +38,9 @@ parseAs-lift = ⟦_⟧ ∘ parseAs-to-exprd
 parsedExpr : (pa : parseAs) → Set
 parsedExpr pa = maybe (parseAs-lift pa)
 
+ttklt : string
+ttklt = "term, type, kind, or lifting type"
+
 expr : Set
 expr = Σi parseAs parseAs-lift
 
@@ -48,19 +49,27 @@ either-to-expr (Left e) = nothing
 either-to-expr (Right e) = just e
 
 var-is-type : ctxt → var → 𝔹
-var-is-type Γ v =
-  (isJust (ctxt-lookup-type-var Γ v) || isJust (ctxt-lookup-type-var-def Γ v)) && ~
-  (isJust (ctxt-lookup-term-var Γ v) || isJust (ctxt-lookup-term-var-def Γ v))
+var-is-type Γ v = isJust (ctxt-lookup-type-var Γ v)
+
+ll-disambiguate' : ctxt → term → expr
+ll-disambiguate' Γ e @ (Var pi x) =
+  if var-is-type Γ x then , TpVar pi x else , e
+ll-disambiguate' Γ e @ (App t me t') =
+  case ll-disambiguate' Γ t of λ where
+    (,_ {parseAsType} T) → , TpAppt T t'
+    _ → , e
+ll-disambiguate' Γ e @ (AppTp t T') =
+  case ll-disambiguate' Γ t of λ where
+    (,_ {parseAsType} T) → , TpApp T T'
+    _ → , e
+ll-disambiguate' Γ e @ (Lam pi KeptLambda pi' v (SomeClass atk) t ) =
+  case ll-disambiguate' Γ t of λ where
+    (,_ {parseAsType} T) → , TpLambda pi pi' v atk T
+    _ → , e
+ll-disambiguate' Γ = ,_
 
 ll-disambiguate : ctxt → expr → expr
-ll-disambiguate Γ e @ (,_ {parseAsTerm} (Var pi x)) =
-  if var-is-type Γ x then , (TpVar pi x) else e
-ll-disambiguate Γ e @ (,_ {parseAsTerm} (App t me t')) with ll-disambiguate Γ (, t)
-...| ,_ {parseAsType} T = , (TpAppt T t')
-...| _ = e
-ll-disambiguate Γ e @ (,_ {parseAsTerm} (AppTp t T')) with ll-disambiguate Γ (, t)
-...| ,_ {parseAsType} T = , (TpApp T T')
-...| _ = e
+ll-disambiguate Γ (,_ {parseAsTerm} t) = ll-disambiguate' Γ t
 ll-disambiguate Γ e = e
 
 parse-string : (pa : parseAs) → string → parsedExpr pa
@@ -71,18 +80,32 @@ parse-string pa = either-to-expr ∘ h pa where
   h parseAsKind = parseKind
   h parseAsLiftingType = parseLiftingType
 
+parse-err-msg : (failed-to-parse : string) → (as-a : string) → string
+parse-err-msg failed-to-parse "" = "Failed to parse \\\\\"" ^ failed-to-parse ^ "\\\\\""
+parse-err-msg failed-to-parse as-a = "Failed to parse \\\\\"" ^ failed-to-parse ^ "\\\\\" as a " ^ as-a
 
-infixr 7 _≫nothing_
+infixr 7 _≫nothing_ _-_!_≫parse_ _!_≫error_
 _≫nothing_ : ∀{ℓ}{A : Set ℓ} → maybe A → maybe A → maybe A
 (nothing ≫nothing m₂) = m₂
 (m₁ ≫nothing m₂) = m₁
 
+_-_!_≫parse_ : ∀{A B : Set} → (string → maybe A) → string → (error-msg : string) → (A → string ⊎ B) → string ⊎ B
+(f - s ! e ≫parse f') = maybe-else (inj₁ (parse-err-msg s e)) f' (f s)
+
+_!_≫error_ : ∀{E A B : Set} → maybe A → E → (A → E ⊎ B) → E ⊎ B
+(just a ! e ≫error f) = f a
+(nothing ! e ≫error f) = inj₁ e
+
+map⊎ : ∀{E A B : Set} → E ⊎ A → (A → B) → E ⊎ B
+map⊎ (inj₂ a) f = inj₂ (f a)
+map⊎ (inj₁ e) f = inj₁ e
+
 parse-try : ctxt → string → maybe expr
-parse-try Γ s = maybe-map (ll-disambiguate Γ) (
-  maybe-map ,_ (parse-string parseAsTerm s) ≫nothing
-  maybe-map ,_ (parse-string parseAsType s) ≫nothing
-  maybe-map ,_ (parse-string parseAsKind s) ≫nothing
-  maybe-map ,_ (parse-string parseAsLiftingType s))
+parse-try Γ s = maybe-map (ll-disambiguate Γ)
+  (maybe-map ,_ (parse-string parseAsTerm s) ≫nothing
+   maybe-map ,_ (parse-string parseAsType s) ≫nothing
+   maybe-map ,_ (parse-string parseAsKind s) ≫nothing
+   maybe-map ,_ (parse-string parseAsLiftingType s))
 
 
 qualif-ed : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
@@ -91,8 +114,9 @@ qualif-ed{TYPE} = qualif-type
 qualif-ed{KIND} = qualif-kind
 qualif-ed Γ e = e
 
-expr-to-tv : ctxt → ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → expr → maybe tagged-val
-expr-to-tv Γ f (, t) = just (to-string-tag "" Γ (f t))
+expr-to-tv : ctxt → ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → expr → string ⊎ tagged-val
+expr-to-tv Γ f (, t) = inj₂ (to-string-tag "" Γ (f t))
+
 add-ws : 𝕃 char → 𝕃 char
 add-ws (' ' :: lc) = ' ' :: lc
 add-ws lc = ' ' :: lc
@@ -120,9 +144,6 @@ pretty-string str = 𝕃char-to-string (pretty-string-h (string-to-𝕃char str)
 𝕃char-starts-with [] (h :: t) = ff
 𝕃char-starts-with _ _ = tt
 
-parse-error-message : (failed-to-parse : string) → (as-a : string) → string × 𝔹
-parse-error-message failed-to-parse as-a = "Failed to parse \"" ^ failed-to-parse ^ "\" as a " ^ as-a , ff
-
 string-to-𝔹 : string → maybe 𝔹
 string-to-𝔹 "tt" = just tt
 string-to-𝔹 "ff" = just ff
@@ -149,17 +170,21 @@ strings-to-lcis ss = strings-to-lcis-h ss []
       strings-to-lcis-h tl (mk-lci ll x t T fn pi :: items)
     strings-to-lcis-h _ items = items
 
-ctxt-set-cur-file : ctxt → string → ctxt
-ctxt-set-cur-file (mk-ctxt (_ , ps , q) ss is os) fn = mk-ctxt (fn , ps , q) ss is os
-
 parseAs-type-of : parseAs → parseAs
 parseAs-type-of parseAsTerm = parseAsType
 parseAs-type-of parseAsType = parseAsKind
 parseAs-type-of pa = pa
 
-merge-lci-ctxt : lci → (do-erase : 𝔹) → ctxt → ctxt
-merge-lci-ctxt (mk-lci nt v t T fn pi) de Γ =
-  maybe-else Γ (λ Γ → Γ) (string-to-parseAs nt ≫=maybe λ nt → parse-string (parseAs-type-of nt ) T ≫=maybe (h (parse-string nt t) ∘ ,_)) where
+-- Adds local variables to the qualif so that their
+-- types are correctly qualified in merge-lci-ctxt
+merge-lcis-ctxth : 𝕃 lci → ctxt → ctxt
+merge-lcis-ctxth (mk-lci _ v _ _ _ pi :: tl) (mk-ctxt (fn , mn , pms , q) ss is os) =
+  merge-lcis-ctxth tl (mk-ctxt (fn , mn , pms , qualif-insert-params q (pi % v) v ParamsNil) ss is os)
+merge-lcis-ctxth [] Γ = Γ
+
+merge-lci-ctxt : lci → ctxt → ctxt
+merge-lci-ctxt (mk-lci nt v t T fn pi) Γ =
+  maybe-else Γ (λ Γ → Γ) (string-to-parseAs nt ≫=maybe λ nt → parse-string (parseAs-type-of nt ) T ≫=maybe (h (mp nt t) ∘ ,_)) where
   h : {pa : parseAs} → parsedExpr pa → expr → maybe ctxt
   h {parseAsTerm} (just t) (,_ {parseAsType} T) = just (ctxt-term-def pi localScope v t T Γ)
   h {parseAsType} (just T) (,_ {parseAsKind} k) = just (ctxt-type-def pi localScope v T k Γ)
@@ -167,10 +192,18 @@ merge-lci-ctxt (mk-lci nt v t T fn pi) de Γ =
   h nothing (,_ {parseAsKind} k) = just (ctxt-type-decl pi localScope v k Γ)
   h _ _ = nothing
 
-merge-lcis-ctxt : 𝕃 lci → (do-erase : 𝔹) → ctxt → ctxt
-merge-lcis-ctxt (h :: t) de Γ = merge-lcis-ctxt t de (merge-lci-ctxt h de Γ)
-merge-lcis-ctxt [] _ Γ = Γ
-    
+  mp : (pa : parseAs) → string → parsedExpr pa
+  mp pa "" = nothing
+  mp = parse-string
+
+merge-lcis-ctxt' : 𝕃 lci → ctxt → ctxt
+merge-lcis-ctxt' (h :: t) Γ = merge-lcis-ctxt' t (merge-lci-ctxt h Γ)
+merge-lcis-ctxt' [] Γ = Γ
+
+merge-lcis-ctxt : 𝕃 string → ctxt → ctxt
+merge-lcis-ctxt ls Γ = let lc = strings-to-lcis ls in
+  merge-lcis-ctxt' lc (merge-lcis-ctxth lc Γ)
+
 to-nyd-h : trie sym-info → string → ℕ → (so-far : 𝕃 (sym-info × string)) →
            (path : 𝕃 char) → 𝕃 (sym-info × string)
 to-nyd-h (Node msi ((c , h) :: t)) fn pos sf path =
@@ -184,77 +217,177 @@ to-nyd-h _ _ _ sf _ = sf
 to-nyd : trie sym-info → (filename : string) → (pos : ℕ) → 𝕃 (sym-info × string)
 to-nyd tr fn pos = to-nyd-h tr fn pos [] []
 
--- TODO: Use module name instead of filename
-ctxt-at : (pos : ℕ) → (filename : string) → ctxt → ctxt
-ctxt-at pos filename Γ @ (mk-ctxt _ _ si _) =
-  ctxt-nyd-all (ctxt-set-cur-file Γ filename) (to-nyd si filename pos)
+ctxt-at : (pos : ℕ) → ctxt → ctxt
+ctxt-at pos Γ @ (mk-ctxt (fn , mn , _) _ si _) =
+  ctxt-nyd-all Γ (to-nyd si fn pos)
   where
     ctxt-nyd-all : ctxt → 𝕃 (sym-info × string) → ctxt
-    ctxt-nyd-all Γ (((_ , (fn , _)) , v) :: t) = ctxt-nyd-all (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (fn # v)) t
+    ctxt-nyd-all Γ ((_ , v) :: t) =
+      ctxt-nyd-all (ctxt-clear-symbol (ctxt-clear-symbol Γ v) (mn # v)) t
     ctxt-nyd-all Γ [] = Γ
 
-get-local-ctxt : ctxt → (pos : ℕ) → (filename : string) →
-                 (local-ctxt : 𝕃 string) → (do-erase : 𝔹) → ctxt
-get-local-ctxt Γ pos filename local-ctxt de =
-  merge-lcis-ctxt (strings-to-lcis local-ctxt) de (ctxt-at pos filename Γ)
+get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
+get-local-ctxt Γ pos local-ctxt = merge-lcis-ctxt local-ctxt (ctxt-at pos Γ)
+
+
+rewrite-expr' : ctxt → expr → term → term → 𝔹 → Σi parseAs (λ p → parseAs-lift p × ℕ)
+rewrite-expr' Γ (,_ {parseAsTerm} t) t₁ t₂ b = ,
+  rewrite-term Γ empty-renamectxt b t₁ t₂ (qualif-term Γ t)
+rewrite-expr' Γ (,_ {parseAsType} T) t₁ t₂ b = ,
+  rewrite-type Γ empty-renamectxt b t₁ t₂ (qualif-type Γ T)
+rewrite-expr' Γ (,_ {parseAsKind} k) t₁ t₂ b = ,
+  rewrite-kind Γ empty-renamectxt b t₁ t₂ (qualif-kind Γ k)
+rewrite-expr' Γ (,_ {parseAsLiftingType} lT) t₁ t₂ b = ,
+  rewrite-liftingType Γ empty-renamectxt b t₁ t₂ (qualif-liftingType Γ lT)
+
+rewrite-expr : ctxt → expr → term → term → 𝔹 → string ⊎ tagged-val
+rewrite-expr Γ e t₁ t₂ b with rewrite-expr' Γ e t₁ t₂ b
+...| , e' , 0 = inj₁ "No rewrites could be performed"
+...| , e' , n = expr-to-tv Γ (λ x → x) (, e')
 
 {- Command Executors -}
 
-normalize-cmd : ctxt → (str ll pi fn hd do-erase : string) → 𝕃 string → maybe tagged-val
-normalize-cmd Γ str ll pi fn hd de ls =
-  string-to-parseAs ll ≫=maybe λ nt →
-  string-to-ℕ pi ≫=maybe λ sp →
-  string-to-𝔹 hd ≫=maybe λ is-hd →
-  string-to-𝔹 de ≫=maybe λ do-e →
-  let Γ' = get-local-ctxt Γ sp fn ls do-e in
-  parse-string nt str ≫=maybe
-  (expr-to-tv Γ' (λ t → hnf Γ' (unfold (~ is-hd) ff ff) (qualif-ed Γ' t) tt) ∘ ,_)
+normalize-cmd : ctxt → (str ll pi hd do-erase : string) → 𝕃 string → string ⊎ tagged-val
+normalize-cmd Γ str ll pi hd de ls =
+  string-to-parseAs - ll ! "language-level" ≫parse λ nt →
+  string-to-ℕ - pi ! "natural number" ≫parse λ sp →
+  string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
+  string-to-𝔹 - de ! "boolean" ≫parse λ do-e →
+  let Γ' = get-local-ctxt Γ sp ls in
+  parse-string nt - str ! ll ≫parse
+  (expr-to-tv Γ' (λ t → hnf Γ' (unfold (~ is-hd) (~ is-hd) ff) (qualif-ed Γ' t) tt) ∘ ,_)
 
-normalize-prompt : ctxt → (str hd : string) → maybe tagged-val
+normalize-prompt : ctxt → (str hd : string) → string ⊎ tagged-val
 normalize-prompt Γ str hd =
-  string-to-𝔹 hd ≫=maybe λ is-hd →
-  parse-try Γ str ≫=maybe expr-to-tv Γ (λ t → hnf Γ (unfold (~ is-hd) ff ff) (qualif-ed Γ t) tt)
+  string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
+  parse-try Γ - str ! ttklt ≫parse
+  expr-to-tv Γ (λ t → hnf Γ (unfold (~ is-hd) (~ is-hd) ff) (qualif-ed Γ t) tt)
 
-erase-cmd : ctxt → (str ll pi fn : string) → 𝕃 string → maybe tagged-val
-erase-cmd Γ str ll pi fn ls =
-  string-to-parseAs ll ≫=maybe λ nt →
-  string-to-ℕ pi ≫=maybe λ sp →
-  let Γ' = get-local-ctxt Γ sp fn ls ff in
-  parse-string nt str ≫=maybe
+erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
+erase-cmd Γ str ll pi ls =
+  string-to-parseAs - ll ! "language-level" ≫parse λ nt →
+  string-to-ℕ - pi ! "natural number" ≫parse λ sp →
+  let Γ' = get-local-ctxt Γ sp ls in
+  parse-string nt - str ! ll ≫parse
   (expr-to-tv Γ' (erase ∘ qualif-ed Γ') ∘ ,_)
 
-erase-prompt : ctxt → (str : string) → maybe tagged-val
-erase-prompt Γ str = parse-try Γ str ≫=maybe expr-to-tv Γ (erase ∘ qualif-ed Γ)
+erase-prompt : ctxt → (str : string) → string ⊎ tagged-val
+erase-prompt Γ str =
+  parse-try Γ - str ! ttklt ≫parse
+  expr-to-tv Γ (erase ∘ qualif-ed Γ)
 
-br-cmd : ctxt → (str fn : string) → 𝕃 string → IO ⊤
-br-cmd Γ str fn ls =
-  let Γ' = get-local-ctxt Γ 0 "missing" ls ff in
-  putRopeLn
-  (maybe-else (spans-to-rope (global-error "Parse error" nothing)) spans-to-rope
-  (parse-try Γ' str ≫=maybe λ ex →
-   h ex ≫=maybe λ m →
-   just (snd (snd (m Γ' empty-spans))))) where
-  h : expr → maybe (spanM ⊤)
-  h (,_ {parseAsTerm} t) = just (erased-term-spans t)
-  h (,_ {parseAsType} T) = just (erased-type-spans T)
-  h (,_ {parseAsKind} k) = just (erased-kind-spans k)
-  h _ = nothing
+br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
+br-cmd Γ str ls =
+  let Γ' = merge-lcis-ctxt ls Γ in
+  maybe-else
+    (return (io-spans.spans-to-rope (io-spans.global-error "Parse error" nothing)))
+    (λ s → s >>= return ∘ io-spans.spans-to-rope)
+    (parse-try Γ' str ≫=maybe λ ex →
+     h ex ≫=maybe λ m →
+     just (m Γ' io-spans.empty-spans >>=
+           return ∘ (snd ∘ snd))) >>=
+  putRopeLn where
+    h : expr → maybe (io-spans.spanM ⊤)
+    h (,_ {parseAsTerm} t) = just (erased-term-spans t)
+    h (,_ {parseAsType} T) = just (erased-type-spans T)
+    h (,_ {parseAsKind} k) = just (erased-kind-spans k)
+    h _ = nothing
 
-conv-cmd : ctxt → (ll str1 str2 pi fn : string) → 𝕃 string → maybe string
-conv-cmd Γ ll s1 s2 pi fn ls =
-  let Γ' = get-local-ctxt Γ 0 "missing" ls ff in
-  (string-to-ℕ pi ≫=maybe λ n →
-   string-to-parseAs ll ≫=maybe λ nt →
-   parse-string nt s1 ≫=maybe λ ex1 →
-   parse-string nt s2 ≫=maybe λ ex2 →
-   just (𝔹-to-string (h Γ' (, ex1) (, ex2)))) where
-  h : ctxt → expr → expr → 𝔹
-  h Γ (,_ {parseAsTerm} t₁) (,_ {parseAsTerm} t₂) = conv-term Γ t₁ t₂
-  h Γ (,_ {parseAsType} T₁) (,_ {parseAsType} T₂) = conv-type Γ T₁ T₂
-  h Γ (,_ {parseAsKind} k₁) (,_ {parseAsKind} k₂) = conv-kind Γ k₁ k₂
-  h Γ (,_ {parseAsLiftingType} lT₁) (,_ {parseAsLiftingType} lT₂) = conv-liftingType Γ lT₁ lT₂
-  h _ _ _ = ff
+conv-cmd : ctxt → (ll str1 str2 : string) → 𝕃 string → string ⊎ string
+conv-cmd Γ ll s1 s2 ls =
+  let Γ' = merge-lcis-ctxt ls Γ in
+  string-to-parseAs - ll ! "language-level" ≫parse λ nt →
+  parse-string nt - s1 ! ll ≫parse λ ex1 →
+  parse-string nt - s2 ! ll ≫parse λ ex2 →
+  h Γ' (, ex1) (, ex2)
+  where
+  expr-to-string : expr → string
+  expr-to-string (,_ {parseAsTerm} _) = "term"
+  expr-to-string (,_ {parseAsType} _) = "type"
+  expr-to-string (,_ {parseAsKind} _) = "kind"
+  expr-to-string (,_ {parseAsLiftingType} _) = "lifting type"
 
+  does-conv : 𝔹 → string ⊎ string
+  does-conv tt = inj₂ s2
+  does-conv ff = inj₁ "Inconvertible"
+
+  h : ctxt → expr → expr → string ⊎ string
+  h Γ (,_ {parseAsTerm} t₁) (,_ {parseAsTerm} t₂) =
+    does-conv (conv-term Γ (qualif-term Γ t₁) (qualif-term Γ t₂))
+  h Γ (,_ {parseAsType} T₁) (,_ {parseAsType} T₂) =
+    does-conv (conv-type Γ (qualif-type Γ T₁) (qualif-type Γ T₂))
+  h Γ (,_ {parseAsKind} k₁) (,_ {parseAsKind} k₂) =
+    does-conv (conv-kind Γ (qualif-kind Γ k₁) (qualif-kind Γ k₂))
+  h Γ (,_ {parseAsLiftingType} lT₁) (,_ {parseAsLiftingType} lT₂) =
+    does-conv (conv-liftingType Γ (qualif-liftingType Γ lT₁) (qualif-liftingType Γ lT₂))
+  h _ e1 e2 = inj₁ ("Mismatched language levels (\\\\\"" ^ s1 ^ "\\\\\" is a " ^ expr-to-string e1 ^ " and \\\\\"" ^ s2 ^ "\\\\\" is a " ^ expr-to-string e2 ^ ")")
+
+qualif-expr : ctxt → expr → expr
+qualif-expr Γ (,_ {parseAsTerm} t) = , qualif-term Γ t
+qualif-expr Γ (,_ {parseAsType} T) = , qualif-type Γ T
+qualif-expr Γ (,_ {parseAsKind} k) = , qualif-kind Γ k
+qualif-expr Γ (,_ {parseAsLiftingType} lT) = , qualif-liftingType Γ lT
+
+checked-with-no-errors : (maybe type × ctxt × spans) → maybe type
+checked-with-no-errors (just T , _ , (regular-spans nothing _)) = just T
+checked-with-no-errors _ = nothing
+
+rewrite-cmd : ctxt → (span-str : string) → (input-str : string) → (use-hnf : string) → (local-ctxt : 𝕃 string) → string ⊎ tagged-val
+rewrite-cmd Γ ss is hd lc =
+  string-to-𝔹 - hd ! "boolean" ≫parse λ use-hnf →
+  let Γ' = merge-lcis-ctxt lc Γ in
+  parse-try Γ' - ss ! ttklt ≫parse λ ss →
+  parse-try Γ' - is ! ttklt ≫parse λ where
+  (,_ {parseAsTerm} t) →
+    checked-with-no-errors (check-term t nothing Γ' empty-spans)
+      ! "Error when synthesizing a type for the input term" ≫error λ where
+    (TpEq t₁ t₂) → rewrite-expr Γ' ss t₁ t₂ use-hnf
+    _ → inj₁ "Synthesized a non-equational type from the input term"
+  (,_ {parseAsType} (TpEq t₁ t₂)) →
+    rewrite-expr Γ' (qualif-expr Γ' ss) (qualif-term Γ' t₁) (qualif-term Γ' t₂) use-hnf
+  (,_ {parseAsType} T) → inj₁ "Expected the input expression to be a term, but got a type"
+  (,_ {parseAsKind} _) → inj₁ "Expected the input expression to be a term, but got a kind"
+  (,_ {parseAsLiftingType} _) → inj₁ "Expected the input expression to be a term or a type, but got a lifting type"
+
+to-string-cmd : ctxt → string → string ⊎ tagged-val
+to-string-cmd Γ s = parse-try Γ - s ! ttklt ≫parse inj₂ ∘ h where
+  h : expr → tagged-val
+  h (,_ {pa} t) = to-string-tag {parseAs-to-exprd pa} "" empty-ctxt t
+
+
+{- Commands -}
+
+tv-to-rope : string ⊎ tagged-val → rope
+tv-to-rope (inj₁ s) = [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
+tv-to-rope (inj₂ (_ , v , ts)) = [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
+
+interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
+interactive-cmd ("br" :: input :: lc) ts =
+  br-cmd (toplevel-state.Γ ts) input lc >>
+  return ts
+interactive-cmd ls ts =
+  putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
+  return ts
+
+interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: head :: do-erase :: lc) =
+  normalize-cmd Γ input ll sp head do-erase lc
+interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =
+  erase-cmd Γ input ll sp lc
+interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: []) =
+  normalize-prompt Γ input head
+interactive-cmd-h Γ ("erasePrompt" :: input :: []) =
+  erase-prompt Γ input
+interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: lc) =
+  map⊎ (conv-cmd Γ ll ss is lc) (λ s → "" , [[ s ]] , [])
+interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =
+  rewrite-cmd Γ ss is head lc
+interactive-cmd-h Γ ("to-string" :: s :: []) =
+  to-string-cmd Γ s
+interactive-cmd-h Γ cs = inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
+
+{-
+-- Handy debugging function
 tree-map : ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → {ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧
 tree-map-tk : ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → tk → tk
 tree-map-optTerm : ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → optTerm → optTerm
@@ -326,39 +459,4 @@ tree-map f {LIFTINGTYPE} (LiftStar pi) = f (LiftStar pi)
 tree-map f {LIFTINGTYPE} (LiftTpArrow T lT) = f (LiftTpArrow (tree-map f T) (tree-map f lT))
 tree-map f {QUALIF} x = f x
 tree-map f {ARG} x = f x
-
-to-string-cmd : ctxt → string → maybe tagged-val
-to-string-cmd Γ s = maybe-map h (parse-try Γ s) where
-  h : expr → tagged-val
-  h (,_ {pa} t) = to-string-tag {parseAs-to-exprd pa} "" empty-ctxt t
-
-
-{- Commands -}
-
-mtv-to-rope : maybe tagged-val → rope
-mtv-to-rope nothing = [[ "{\"error\":\"Error\"}" ]]
-mtv-to-rope (just (_ , v , ts)) = [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
-
-interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
-interactive-cmd-h : ctxt → 𝕃 string → maybe tagged-val
-interactive-cmd ("br" :: input :: fn :: lc) ts =
-  br-cmd (toplevel-state.Γ ts) input fn lc >>
-  return ts
-interactive-cmd ls ts =
-  putRopeLn (mtv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
-  return ts
-
-interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: fn :: head :: do-erase :: lc) =
-  normalize-cmd Γ input ll sp fn head do-erase lc
-interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: fn :: lc) =
-  erase-cmd Γ input ll sp fn lc
-interactive-cmd-h Γ ("normalizePrompt" :: input :: fn :: head :: []) =
-  normalize-prompt Γ input head
-interactive-cmd-h Γ ("erasePrompt" :: input :: fn :: []) =
-  erase-prompt Γ input
-interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: sp :: fn :: lc) =
-  conv-cmd Γ ll ss is sp fn lc ≫=maybe λ s → just ("" , [[ s ]] , [])
-interactive-cmd-h Γ ("to-string" :: s :: []) =
-  to-string-cmd Γ s
-interactive-cmd-h Γ cs = nothing
-
+-}

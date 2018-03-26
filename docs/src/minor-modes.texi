@@ -8,7 +8,6 @@ Cedille has three minor modes that provide information about the file:
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
 * beta-reduce mode::            Beta-reduction explorer
-* scratch mode::                Buffer that helps keep track of information
 @end menu
 
 

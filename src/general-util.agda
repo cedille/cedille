@@ -243,3 +243,25 @@ writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPu
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
 
+
+record monad (F : Set → Set) : Set₁ where
+  field
+    returnM : ∀{A : Set} → A → F A
+    bindM : ∀{A B : Set} → F A → (A → F B) → F B
+
+returnM : ∀{F : Set → Set}{{m : monad F}}{A : Set} → A → F A
+returnM {{m}} = monad.returnM m
+
+bindM : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
+bindM {{m}} = monad.bindM m
+
+instance
+  IO-monad : monad IO
+  IO-monad = record { returnM = return ; bindM = _>>=_ }
+
+Id : Set → Set
+Id A = A
+
+instance
+  Id-monad : monad Id
+  Id-monad = record {returnM = λ a → a ; bindM = λ a f → f a }

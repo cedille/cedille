@@ -1,14 +1,17 @@
-@node beta-reduce mode,scratch mode,summary mode,minor modes
+@node beta-reduce mode,,summary mode,minor modes
 
 @chapter Beta-reduce mode
 
-Beta-reduce mode is a "Beta-reduction explorer". There are two ways to enter beta-reduce mode:
+Beta-reduce mode is a "beta-reduction explorer". There are three ways to enter beta-reduce mode:
 @enumerate
 @item C-i b
-Enter beta-reduce mode with a prompted expression. If a span is selected, use its local context and the global context; otherwise, use only the global context.
+Enter beta-reduce mode with a prompted expression. Copies global scope and local scope if a span is selected.
 
 @item C-i B
-Enter beta-reduce mode with the selected span, using its local context and the global context.
+Enter beta-reduce mode with the selected span and its scope
+
+@item C-i t
+Enter beta-reduce mode with the selected span's expected type and its scope
 @end enumerate
 
 @chapter Controls
@@ -21,7 +24,16 @@ Replace the selected span with its normalization
 Replace the selected span with its head-normalization
 
 @item C-i =
-Replace the selected span with a prompted expression, if convertible
+Replace the selected span with a input expression, if convertible
+
+@item C-i r
+Synthesize an equational type from an input expression and rewrite the selected span using it
+
+@item C-i R
+Same as ``C-i r'', but beta-reduces the selected span as it looks for matches
+
+@item C-i p
+Prints an outline of how to reconstruct each normalization, conversion, and rewrite applied to the scratch buffer
 
 @item C-i ,
 Undo

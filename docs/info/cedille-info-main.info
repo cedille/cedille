@@ -1,5 +1,5 @@
 This is cedille-info-main.info, produced by makeinfo version 6.1 from
-cedille-main.texi.
+cedille-info-main.texi.
 
 
 File: cedille-info-main.info,  Node: Top,  Next: cedille mode commands,  Up: (dir)
@@ -14,7 +14,7 @@ here!
 
 * cedille mode commands::       A list of cedille mode command shortcuts with brief description
 * unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
-* minor modes::                 Cedille mode has three minor modes providing additional information
+* minor modes::                 Cedille mode has several minor modes providing additional information
 * options::                     A description of the options file
 * credits::                     Who has contributed to the Cedille tool
 * Index::                       Here is the index
@@ -118,6 +118,17 @@ time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
 'C-i R'
      Remove all interactive attributes
 
+'C-i b'
+     Open the beta-reduction buffer with an input expression.  Copies
+     global scope and local scope if a span is selected.
+
+'C-i B'
+     Open the beta-reduction buffer with the selected span
+
+'C-i t'
+     Open the beta-reduction buffer with the selected span's expected
+     type (or type if there is no expected type)
+
 5 Other
 *******
 
@@ -155,9 +166,6 @@ together with the shortcut to type them in the emacs mode.
      Produces Λ (capital lambda), for anonymous functions taking in
      compile-time arguments (erased at run-time)
 
-'\>'
-     Produces → (right arrow), for non-dependent function types
-
 '\r'
      Produces → (right arrow)
 
@@ -189,11 +197,6 @@ together with the shortcut to type them in the emacs mode.
 '\u'
      Produces ↑ (upwards arrow), for lifting
 
-'\p'
-     Produces π (pi), for extracting a proof of (λ xs .  t_i) ≃ (λ xs
-     .  t_i') from (λ xs .  x_j ts) ≃ (λ xs .  x_j ts').  In other
-     words, project out corresponding arguments of a head-normal form
-
 '\h'
      Produces ● (black circle), a hole representing a missing subterm
 
@@ -207,10 +210,6 @@ together with the shortcut to type them in the emacs mode.
 '\='
      Produces ≃ (asymptotically equal to), for propositional equality
 
-'\d'
-     Produces δ (delta), for proving anything one wants from an
-     obviously inconsistent equation
-
 '\b'
      Produces β (beta), for proving propositional equalities which
      follow just by beta-eta reduction
@@ -221,6 +220,10 @@ together with the shortcut to type them in the emacs mode.
 '\R'
      Produces ρ (rho), for rewriting with an equation
 
+'\F'
+     Produces φ (phi), for proving that if t ≃ t', and t has type T,
+     then t' also has type T
+
 '\y'
      Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
 
@@ -230,10 +233,6 @@ together with the shortcut to type them in the emacs mode.
 '\x'
      Produces χ (chi), for changing the form of the expected or computed
      classifier to a definitionally equivalent one
-
-'\w'
-     Produces ω (omega), for a weak form of extensional equational
-     reasoning
 
 '\rho'
      Produces ρ (rho)
@@ -355,16 +354,21 @@ available options are:
 'import-directories "/path/to/dir"'
      This specifies a directory where Cedille will search for imported
      files.  Any number of directories may be listed, each on its own
-     line.  They will be searched after the current directory, in the
-     order they are listed.  Currently, it is not recommended to have
-     two files with the same name.
+     line.  They will be searched after the current directory.
+     Currently, it is not recommended to have two files with the same
+     name.
 
-'no-cede-files'
-     This option disables the Cedille backend's use of .cede files.
+'use-cede-files = [true/false]'
+     Enables/disables the Cedille backend's use of .cede files
 
-'no-rkt-files'
-     This option disables the Cedille backend's generation of .rkt
-     files.
+'make-rkt-files = [true/false]'
+     Enables/disables the Cedille backend's generation of .rkt files
+
+'generate-logs = [true/false]'
+     Enables/disables generation of log files (.cedille/log)
+
+'show-qualified-vars = [true/false]'
+     Enables/disables the printing of fully-qualified variables
 
 
 File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
@@ -380,7 +384,6 @@ Cedille has three minor modes that provide information about the file:
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
 * beta-reduce mode::            Beta-reduction explorer
-* scratch mode::                Buffer that helps keep track of information
 
 13 Common commands
 ******************
@@ -507,19 +510,20 @@ Displays a summary of every global definition in the file.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: beta-reduce mode,  Next: scratch mode,  Prev: summary mode,  Up: minor modes
+File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary mode,  Up: minor modes
 
 19 Beta-reduce mode
 *******************
 
-Beta-reduce mode is a "Beta-reduction explorer".  There are two ways to
-enter beta-reduce mode:
-  1. C-i b Enter beta-reduce mode with a prompted expression.  If a span
-     is selected, use its local context and the global context;
-     otherwise, use only the global context.
+Beta-reduce mode is a "beta-reduction explorer".  There are three ways
+to enter beta-reduce mode:
+  1. C-i b Enter beta-reduce mode with a prompted expression.  Copies
+     global scope and local scope if a span is selected.
 
-  2. C-i B Enter beta-reduce mode with the selected span, using its
-     local context and the global context.
+  2. C-i B Enter beta-reduce mode with the selected span and its scope
+
+  3. C-i t Enter beta-reduce mode with the selected span's expected type
+     and its scope
 
 20 Controls
 ***********
@@ -531,59 +535,25 @@ enter beta-reduce mode:
      Replace the selected span with its head-normalization
 
 'C-i ='
-     Replace the selected span with a prompted expression, if
-     convertible
+     Replace the selected span with a input expression, if convertible
+
+'C-i r'
+     Synthesize an equational type from an input expression and rewrite
+     the selected span using it
+
+'C-i R'
+     Same as "C-i r", but beta-reduces the selected span as it looks for
+     matches
+
+'C-i p'
+     Prints an outline of how to reconstruct each normalization,
+     conversion, and rewrite applied to the scratch buffer
 
 'C-i ,'
      Undo
 
 'C-i .'
      Redo
-
-
-File: cedille-info-main.info,  Node: scratch mode,  Prev: summary mode,  Up: minor modes
-
-21 Scratch mode
-***************
-
-Scratch mode enables you to keep track of information in a dedicated
-buffer.
-
-'d'
-     Delete the contents of the scratch buffer
-
-'x/X'
-     Close the scratch mode window
-
-22 Common commands
-******************
-
-'M-c'
-     Copy the contents of the current buffer to the scratch buffer
-
-'+'
-     Increase the size of the buffer by one line
-
-'-'
-     Decrease the size of the buffer by one line
-
-'='
-     Reset the buffer's size
-
-'f'
-     Moves to the next defined variable in the buffer
-
-'b'
-     Moves to the previous defined variable in the buffer
-
-'a'
-     Moves to the first defined variable in the buffer
-
-'e'
-     Moves to the last defined variable in the buffer
-
-'j'
-     Jumps to the definition of the selected variable
 
 
 File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
@@ -594,17 +564,16 @@ Index
 
 
 Tag Table:
-Node: Top90
-Node: cedille mode commands739
-Node: unicode shortcuts3455
-Node: context mode6164
-Node: credits8111
-Node: options8381
-Node: minor modes9223
-Node: inspect mode10449
-Node: summary mode11702
-Node: beta-reduce mode12467
-Node: scratch mode13298
-Node: Index14150
+Node: Top95
+Node: cedille mode commands746
+Node: unicode shortcuts3794
+Node: context mode6119
+Node: credits8066
+Node: options8336
+Node: minor modes9360
+Node: inspect mode10510
+Node: summary mode11763
+Node: beta-reduce mode12528
+Node: Index13671
 
 End Tag Table

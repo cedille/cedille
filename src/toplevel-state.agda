@@ -1,16 +1,16 @@
 import cedille-options
+open import general-util
 
-module toplevel-state (options : cedille-options.options) where
+module toplevel-state (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
 open import lib
 
 open import cedille-types
-open import classify options
+open import classify options {mF}
 open import ctxt
 open import constants
 open import conversion
-open import general-util
-open import spans options
+open import spans options {mF}
 open import syntax-util
 open import to-string options
 

@@ -10,14 +10,20 @@ available options are:
 
 @item import-directories "/path/to/dir"
 This specifies a directory where Cedille will search for imported files.
-Any number of directories may be listed, each on its own line. They will
-be searched after the current directory, in the order they are listed.
+Any number of directories may be listed, each on its own line.
+They will be searched after the current directory.
 Currently, it is not recommended to have two files with the same name.
 
-@item no-cede-files
-This option disables the Cedille backend's use of .cede files.
+@item use-cede-files = [true/false]
+Enables/disables the Cedille backend's use of .cede files
 
-@item no-rkt-files
-This option disables the Cedille backend's generation of .rkt files.
+@item make-rkt-files = [true/false]
+Enables/disables the Cedille backend's generation of .rkt files
+
+@item generate-logs = [true/false]
+Enables/disables generation of log files (.cedille/log)
+
+@item show-qualified-vars = [true/false]
+Enables/disables the printing of fully-qualified variables
 
 @end table

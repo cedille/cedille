@@ -82,6 +82,16 @@ Remove all interactive attributes associated with the selected span
 
 @item C-i R
 Remove all interactive attributes
+
+@item C-i b
+Open the beta-reduction buffer with an input expression. Copies global scope and local scope if a span is selected.
+
+@item C-i B
+Open the beta-reduction buffer with the selected span
+
+@item C-i t
+Open the beta-reduction buffer with the selected span's expected type (or type if there is no expected type)
+
 @end table
 
 @chapter Other
