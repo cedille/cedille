@@ -28,6 +28,9 @@ BoolInd ◂ Π b : Bool . ∀ P : Bool ➔ ★ .
        (x.2 · (λ x : Bool' . P (toBool x))
          a b). 
 
+if ◂ Bool ➔ ∀ X : ★ . X ➔ X ➔ X =
+  λ b . b.1 .
+
 and ◂ Bool ➔ Bool ➔ Bool = λ b1 . λ b2 . b1.1 · Bool b2 ff .
 or ◂ Bool ➔ Bool ➔ Bool = λ b1 . λ b2 . b1.1 · Bool tt b2 .
 not ◂ Bool ➔ Bool = λ b . b.1 · Bool ff tt .

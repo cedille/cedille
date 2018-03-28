@@ -28,7 +28,7 @@ rFunctor ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➔ RecFunctor · (rF · F) =
   [λ x . [Λ A . λ a .
            x.1 · A [β{a} ,
                     Λ R . Λ reveal . λ e . λ d .
-                     a.2 · R -(castCompose · R · X · Y reveal c) e d ],
+                     a.2 · R -(castCompose reveal c) e d ],
           x.2],
     β] .
         

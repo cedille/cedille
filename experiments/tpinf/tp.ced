@@ -11,9 +11,9 @@ TpF ◂ ★ ➔ ★ =
   λ TpC : ★ .
     ι x : ∀ X : ★ .
       Π z : X .
-      (ι s : Top . Π p1 : TpC . Π x1 : X . (p1 z s ≃ x1) ➾ Π p2 : TpC . Π x2 : X . (p2 z s ≃ x2) ➾ X) ➔
+      (ι s : Top . Π p1 : TpC . Π x1 : X . {p1 z s ≃ x1} ➾ Π p2 : TpC . Π x2 : X . {p2 z s ≃ x2} ➾ X) ➔
       X .
-    x baseU arrowU ≃ x .
+    {x baseU arrowU ≃ x} .
 
 TpFmap ◂ RecFunctor · TpF =
   Λ X . Λ Y . λ c .
@@ -23,8 +23,6 @@ TpFmap ◂ RecFunctor · TpF =
                 ρ+ n.2 - β{n} ] ,
               β{λ x . x}]. 
  
-%%%%%%%%%%%%%%%%%%%%%%%%%
-
 TpC ◂ ★ = Rec · TpF . 
 
 TpFold ◂ TpF · TpC ➔ TpC =
@@ -41,47 +39,43 @@ TpUnfoldIter ◂ TpC ➔ ∀ X : ★ . Π z : X . (Π x1 : X . Π x2 : X . X) �
 
 baseC ◂ TpC = TpFold [Λ X . λ a . λ f . a , β{baseU}].
 
-arrowC ◂ Π p1 : TpC . Π n1 : TpC . (p1 ≃ n1) ➾ Π p2 : TpC . Π n2 : TpC . (p2 ≃ n2) ➾ TpC =
+arrowC ◂ Π p1 : TpC . Π n1 : TpC . {p1 ≃ n1} ➾ Π p2 : TpC . Π n2 : TpC . {p2 ≃ n2} ➾ TpC =
   λ p1 . λ n1 . Λ e1 . λ p2 . λ n2 . Λ e2 .
     TpFold [Λ X . λ a . λ f .
                f.2 p1 ((TpUnfold n1).1 · X a f) -(ρ e1 - β)
                  p2 ((TpUnfold n2).1 · X a f) -(ρ e2 - β) ,
              ρ+ (TpUnfold n1).2 - ρ+ (TpUnfold n2).2 - β{arrowU p1 n1 p2 n2}].
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
-
 TpP ◂ TpC ➔ ★ =
   λ n : TpC . ∀ X : ★ . ∀ P : X ➔ ★ .
     ∀ z : X . P z ➔
-    ∀ s : ι s : Top . Π p : TpC . Π x : X . (p z s ≃ x) ➾ Π p : TpC . Π x : X . (p z s ≃ x) ➾ X .
-      (Π n1 : TpC. ∀ x1 : X . ∀ e1 : n1 z s ≃ x1 . P x1 ➔
-       Π n2 : TpC. ∀ x2 : X . ∀ e2 : n2 z s ≃ x2 . P x2 ➔ 
+    ∀ s : ι s : Top . Π p : TpC . Π x : X . {p z s ≃ x} ➾ Π p : TpC . Π x : X . {p z s ≃ x} ➾ X .
+      (Π n1 : TpC. ∀ x1 : X . ∀ e1 : {n1 z s ≃ x1} . P x1 ➔
+       Π n2 : TpC. ∀ x2 : X . ∀ e2 : {n2 z s ≃ x2} . P x2 ➔ 
         P (s.2 n1 x1 -e1 n2 x2 -e2)) ➔
     P ((TpUnfold n).1 · X z s).
 
 baseP ◂ TpP baseC = Λ X . Λ P . Λ z . λ pz . Λ s . λ ps . pz .
 
-arrowP ◂ Π n : TpC . ∀ x : TpC . ∀ e : n ≃ x . TpP x ➔
-         Π n2 : TpC . ∀ x2 : TpC . ∀ e2 : n2 ≃ x2 . TpP x2 ➔ 
+arrowP ◂ Π n : TpC . ∀ x : TpC . ∀ e : {n ≃ x} . TpP x ➔
+         Π n2 : TpC . ∀ x2 : TpC . ∀ e2 : {n2 ≃ x2} . TpP x2 ➔ 
            TpP (arrowC n x -e n2 x2 -e2) =
   λ n . Λ x . Λ e . λ px . λ n2 . Λ x2 . Λ e2 . λ px2 .
   Λ X . Λ P . Λ z . λ pz . Λ s . λ ps .
     ps n -((TpUnfold x).1 · X z s) -(ρ e - β) (px · X · P -z pz -s ps)
        n2 -((TpUnfold x2).1 · X z s) -(ρ e2 - β) (px2 · X · P -z pz -s ps).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
-
 Tp ◂ ★ = ι x : TpC . TpP x.
 
 base ◂ Tp = [ baseC , baseP].
-arrowi ◂ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Π p : TpC . Π n : Tp . (p ≃ n) ➾ Tp =
+arrowi ◂ Π p : TpC . Π n : Tp . {p ≃ n} ➾ Π p : TpC . Π n : Tp . {p ≃ n} ➾ Tp =
   λ p . λ n . Λ e . λ p2 . λ n2 . Λ e2 . [ arrowC p n.1 -e p2 n2.1 -e2 , arrowP p -n.1 -e n.2 p2 -n2.1 -e2 n2.2 ].
 
 elimTpi ◂
   Π n : Tp . 
   ∀ P : Tp ➔ ★ .
   P base ➔
-  (Π p : TpC . ∀ n : Tp . ∀ e : p ≃ n . P n ➔ Π p' : TpC . ∀ n' : Tp . ∀ e' : p' ≃ n' . P n' ➔ P (arrowi p n -e p' n' -e')) ➔
+  (Π p : TpC . ∀ n : Tp . ∀ e : {p ≃ n} . P n ➔ Π p' : TpC . ∀ n' : Tp . ∀ e' : {p' ≃ n'} . P n' ➔ P (arrowi p n -e p' n' -e')) ➔
   P n
 =
   λ n . Λ P . λ pZ . λ pS . 
