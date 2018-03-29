@@ -7,8 +7,8 @@ Bool' ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .
 tt' ◂ Bool' = Λ X . λ a . λ b . a.
 ff' ◂ Bool' = Λ X . λ a . λ b . b.
 
-BoolContra ◂ {tt' ≃ ff'} ➔ False =
-  λ e . (χ (↑ X . ff' · X : (☆ ➔↑ ☆ ➔↑ ☆) · True · False) - (ρ ς e - triv)) . 
+BoolContra ◂ {tt' ≃ ff'} ➾ False =
+  Λ e . (χ (↑ X . ff' · X : (☆ ➔↑ ☆ ➔↑ ☆) · True · False) - (ρ ς e - triv)) . 
 
 InductiveBool' ◂ Bool' ➔ ★ = λ b : Bool' . ∀ P : Bool' ➔ ★ . P tt' ➔ P ff' ➔ P b .
 
@@ -32,5 +32,6 @@ if ◂ Bool ➔ ∀ X : ★ . X ➔ X ➔ X =
   λ b . b.1 .
 
 and ◂ Bool ➔ Bool ➔ Bool = λ b1 . λ b2 . b1.1 · Bool b2 ff .
-or ◂ Bool ➔ Bool ➔ Bool = λ b1 . λ b2 . b1.1 · Bool tt b2 .
+or  ◂ Bool ➔ Bool ➔ Bool = λ b1 . λ b2 . b1.1 · Bool tt b2 .
+
 not ◂ Bool ➔ Bool = λ b . b.1 · Bool ff tt .
