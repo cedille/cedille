@@ -236,7 +236,7 @@ check-termi (Var pi x) mtp =
           spanM-add (Var-span Γ pi x synthesizing (type-data Γ tp :: [ hnf-type Γ tp ]) nothing) ≫span
           check-termi-return Γ (Var pi x) tp
         cont (just tp) Γ | just tp' = 
-          spanM-add (split-pair (Var-span Γ pi x checking) (check-for-type-mismatch Γ "synthesized" tp tp'))
+          spanM-add (uncurry (Var-span Γ pi x checking) (check-for-type-mismatch Γ "synthesized" tp tp'))
 
 check-termi t'@(AppTp t tp') tp
   =   check-term-app t' tp
@@ -336,7 +336,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) | just (mk-abs pi'' b pi''' x' atk _
   check-oc oc ≫span
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   get-ctxt (λ Γ → 
-    spanM-add (split-pair (this-span Γ atk oc) (check-erasures Γ l b)) ≫span
+    spanM-add (uncurry (this-span Γ atk oc) (check-erasures Γ l b)) ≫span
     (add-tk' (lam-is-erased l) localScope pi' x (lambda-bound-class-if oc atk)) ≫=span λ mi → 
     get-ctxt (λ Γ' → check-term t (just (rename-type Γ x' (qualif-var Γ' x) (tk-is-type atk) tp'))) ≫span
     spanM-restore-info x mi) 
@@ -429,7 +429,7 @@ check-termi (Sigma pi t) mt =
           spanMr (just r))
         cont (just tp) (just (TpEq t1 t2)) | r =
           get-ctxt (λ Γ → 
-            spanM-add (split-pair (Sigma-span Γ pi t (just tp)) (check-for-type-mismatch Γ "synthesized" tp r)))
+            spanM-add (uncurry (Sigma-span Γ pi t (just tp)) (check-for-type-mismatch Γ "synthesized" tp r)))
         cont mt (just tp) = 
           get-ctxt (λ Γ → 
           spanM-add (Sigma-span Γ pi t mt [ to-string-tag "the synthesized type" Γ tp ] (just ("The type we synthesized for the body"
@@ -496,14 +496,14 @@ check-termi (Chi pi (Atype tp) t) mtp =
         cont tp' nothing = get-ctxt (λ Γ → spanM-add (Chi-span Γ pi (Atype tp) t synthesizing [] nothing) ≫span spanMr (just tp'))
         cont tp' (just tp'') =
           get-ctxt (λ Γ → 
-           spanM-add (split-pair (Chi-span Γ pi (Atype tp') t checking) (check-for-type-mismatch Γ "asserted" tp'' tp')))
+           spanM-add (uncurry (Chi-span Γ pi (Atype tp') t checking) (check-for-type-mismatch Γ "asserted" tp'' tp')))
 check-termi (Chi pi NoAtype t) (just tp) = 
   check-term t nothing ≫=span cont 
   where cont : (m : maybe type) → spanM ⊤
         cont nothing = get-ctxt (λ Γ → spanM-add (Chi-span Γ pi NoAtype t checking [] nothing) ≫span spanMok)
         cont (just tp') =
           get-ctxt (λ Γ → 
-            spanM-add (split-pair (Chi-span Γ pi NoAtype t checking) (check-for-type-mismatch Γ "synthesized" tp tp')))
+            spanM-add (uncurry (Chi-span Γ pi NoAtype t checking) (check-for-type-mismatch Γ "synthesized" tp tp')))
 check-termi (Chi pi NoAtype t) nothing =
  get-ctxt λ Γ → spanM-add (Chi-span Γ pi NoAtype t synthesizing [] nothing) ≫span check-term t nothing
 
@@ -620,13 +620,13 @@ check-termi (IotaProj t n pi) mtp =
             return-when mtp mtp)
         cont mtp 1 computed | Iota pi' pi'' x (SomeType t1) t2 =
           get-ctxt (λ Γ →
-            spanM-add (split-pair (λ tvs → IotaProj-span t pi (maybe-to-checking mtp) (head-type Γ computed :: tvs))
+            spanM-add (uncurry (λ tvs → IotaProj-span t pi (maybe-to-checking mtp) (head-type Γ computed :: tvs))
                                            (check-for-type-mismatch-if Γ "synthesized" mtp t1)) ≫span
             return-when mtp (just t1))
         cont mtp 2 computed | Iota pi' pi'' x a t2 =
           get-ctxt (λ Γ →
             let t2' = subst-type Γ (qualif-term Γ t) x t2 in
-              spanM-add (split-pair (λ tvs → IotaProj-span t pi (maybe-to-checking mtp)
+              spanM-add (uncurry (λ tvs → IotaProj-span t pi (maybe-to-checking mtp)
                           (head-type Γ computed :: tvs)) (check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
               return-when mtp (just t2'))
         cont mtp n computed | Iota pi' pi'' x t1 t2 =
@@ -715,7 +715,7 @@ check-term-app t''@(App t m t') mtp
           else if ~ meta-vars-are-free-in-type Xs tpₐ
             then   check-term t' (just tpₐ)
                  ≫span spanM-add
-                   (split-pair (App-span t t' check-mode)
+                   (uncurry (App-span t t' check-mode)
                      ((meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs (cod t'))))
                  ≫span check-term-app-return Γ t'' Xs (cod t')
           else   check-term t' nothing
@@ -728,7 +728,7 @@ check-term-app t''@(App t m t') mtp
                  (no-error   Xs) →
                      check-meta-vars Xs
                    ≫=span λ me → spanM-add
-                     (split-pair (λ tvs → App-span t t' check-mode (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ' :: tvs))
+                     (uncurry (λ tvs → App-span t t' check-mode (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ' :: tvs))
                        (let Xs-solved = trie-filter (λ {(x , _) →
                                    are-free-in-type check-erased
                                      (trie-single x triv) tpₐ}) Xs
@@ -748,7 +748,7 @@ check-term-app (AppTp t tp) mtp
       check-term-app-agree (hnf Γ unfold-head-rec-defs htp tt) tp Xs
         on-fail (check-term-app-to-tp-error Γ Xs htp)
     ≫=spanm' λ {ret@(Xs , tp') → get-ctxt λ Γ →
-      spanM-add (split-pair (AppTp-span t tp check-mode)
+      spanM-add (uncurry (AppTp-span t tp check-mode)
         (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs
           (hnf Γ unfold-head tp' tt)))
     ≫span spanMr (just ret)}}
@@ -822,7 +822,7 @@ check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' at
    spanM-add (if conv-tk Γ (qualif-tk Γ atk) atk' then
                 TpLambda-span pi x atk body checking [ kind-data Γ k ] nothing
               else
-                split-pair (λ tvs err → TpLambda-span pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ x atk' atk [ kind-data Γ k ])) ≫span
+                uncurry (λ tvs err → TpLambda-span pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ x atk' atk [ kind-data Γ k ])) ≫span
    add-tk pi' x atk ≫=span λ mi → 
    get-ctxt (λ Γ' → check-type body (just (rename-kind Γ x' (qualif-var Γ' x) (tk-is-type atk') k'))) ≫span
    spanM-restore-info x mi)
@@ -856,7 +856,7 @@ check-typei (TpLambda pi pi' x atk body) nothing =
 
 check-typei (Abs pi b {- All or Pi -} pi' x atk body) k = 
   get-ctxt (λ Γ →
-  spanM-add (split-pair (TpQuant-span (binder-is-pi b) pi x atk body (maybe-to-checking k))
+  spanM-add (uncurry (TpQuant-span (binder-is-pi b) pi x atk body (maybe-to-checking k))
                (if-check-against-star-data Γ "A type-level quantification" k)) ≫span
   spanM-add (punctuation-span "Forall" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span
@@ -867,7 +867,7 @@ check-typei (Abs pi b {- All or Pi -} pi' x atk body) k =
 
 check-typei (TpArrow t1 _ t2) k = 
   get-ctxt (λ Γ →
-  spanM-add (split-pair (TpArrow-span t1 t2 (maybe-to-checking k)) (if-check-against-star-data Γ "An arrow type" k)) ≫span
+  spanM-add (uncurry (TpArrow-span t1 t2 (maybe-to-checking k)) (if-check-against-star-data Γ "An arrow type" k)) ≫span
   check-type t1 (just star) ≫span
   check-type t2 (just star) ≫span
     return-star-when k)
@@ -943,7 +943,7 @@ check-typei (TpEq t1 t2) k =
     var-spans-term t2 ≫span
     set-ctxt Γ) ≫span 
     get-ctxt (λ Γ → 
-    spanM-add (split-pair (TpEq-span t1 t2 (maybe-to-checking k)) (if-check-against-star-data Γ "An equation" k)) ≫span
+    spanM-add (uncurry (TpEq-span t1 t2 (maybe-to-checking k)) (if-check-against-star-data Γ "An equation" k)) ≫span
     spanM-add (unchecked-term-span t1) ≫span
     spanM-add (unchecked-term-span t2) ≫span
     return-star-when k)
@@ -964,7 +964,7 @@ check-typei (Lft pi pi' X t l) k =
               spanM-add (Lft-span pi X t checking ( expected-kind Γ k' :: [ kind-data Γ k ]) (just "The expected kind does not match the computed kind.")))
 check-typei (Iota pi pi' x (SomeType t1) t2) mk =
   get-ctxt (λ Γ → 
-  spanM-add (split-pair (Iota-span pi t2) (if-check-against-star-data Γ "A iota-type" mk)) ≫span
+  spanM-add (uncurry (Iota-span pi t2) (if-check-against-star-data Γ "A iota-type" mk)) ≫span
   check-typei t1 (just star) ≫span
   add-tk pi' x (Tkt t1) ≫=span λ mi → 
   check-typei t2 (just star) ≫span
@@ -973,7 +973,7 @@ check-typei (Iota pi pi' x (SomeType t1) t2) mk =
 
 check-typei (Iota pi pi' x NoType t2) mk =
   get-ctxt (λ Γ → 
-  spanM-add (split-pair (λ tvs err → Iota-span pi t2 tvs
+  spanM-add (uncurry (λ tvs err → Iota-span pi t2 tvs
     (if isJust err then err else just "Iota-abstractions in source text require a type for the bound variable."))
   (if-check-against-star-data Γ "A iota-type" mk)) ≫span
   return-star-when mk)

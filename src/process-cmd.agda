@@ -70,7 +70,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type 
     let Γ' = ctxt-term-def pi globalScope x t tp' Γ in
       spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
-        (spanM-add (split-pair (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
+        (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
          spanMr (mk-toplevel-state ip fns is Γ')))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
@@ -87,7 +87,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoChec
                  (λ tp → ctxt-term-def pi globalScope x t tp Γ) mtp in
       spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
-        (spanM-add (split-pair (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
+        (spanM-add (uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
          spanMr (mk-toplevel-state ip fns is Γ')))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefType pi x k tp) pi') tt {- check -} =

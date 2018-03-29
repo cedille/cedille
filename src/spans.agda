@@ -26,9 +26,6 @@ open import subst
 err-m : Set
 err-m = maybe string
 
-split-pair : ∀{A B C : Set} → (A → B → C) → (A × B) → C
-split-pair f (a , b) = f a b
-
 data span : Set where
   mk-span : string → posinfo → posinfo → 𝕃 tagged-val {- extra information for the span -} → err-m → span
 
