@@ -586,17 +586,17 @@ imps-to-cmds ImportsStart = CmdsStart
 imps-to-cmds (ImportsNext i is) = CmdsNext (ImportCmd i) (imps-to-cmds is)
 
 -- TODO handle qualif & module args
-get-imports : start → 𝕃 string
+get-imports : start → 𝕃 (string × 𝔹)
 get-imports (File _ is mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
-  where import-to-include : imprt → string
-        import-to-include (Import _ x oa _ _) = x
-        imports-to-include : imports → 𝕃 string
+  where import-to-include : imprt → string × 𝔹
+        import-to-include (Import _ x oa _ _) = x , ff {- Here is where we would need to check if the import is public -}
+        imports-to-include : imports → 𝕃 (string × 𝔹)
         imports-to-include ImportsStart = []
         imports-to-include (ImportsNext x is) = import-to-include x :: imports-to-include is
-        singleton-if-include : cmd → 𝕃 string
+        singleton-if-include : cmd → 𝕃 (string × 𝔹)
         singleton-if-include (ImportCmd imp) = [ import-to-include imp ]
         singleton-if-include _ = []
-        get-imports-cmds : cmds → 𝕃 string
+        get-imports-cmds : cmds → 𝕃 (string × 𝔹)
         get-imports-cmds (CmdsNext c cs) = singleton-if-include c ++ get-imports-cmds cs
         get-imports-cmds CmdsStart = []
 

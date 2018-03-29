@@ -13,14 +13,18 @@ open import conversion
 open import spans options {mF}
 open import syntax-util
 open import to-string options
+open import string-format
 
 import cws-types
+
+imported-file : Set
+imported-file = string {- filename -} × string {- progress name -} × 𝔹 {- is a public import -}
 
 record include-elt : Set where
   field ast : maybe start
         cwst : maybe cws-types.start
-        deps : (𝕃 string) {- dependencies -}
-        import-to-dep : trie string {- map import strings in the file to their full paths -}
+        deps : 𝕃 string {- dependencies -}
+        import-to-dep : trie imported-file {- map import strings in the file to their full paths -}
         ss : spans ⊎ string {- spans in string form (read from disk) -}
         err : 𝔹 -- is ss reporting an error
         need-to-add-symbols-to-context : 𝔹 
@@ -36,10 +40,10 @@ blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ;
                              do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff}
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
-new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
+new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string × string × 𝔹)) → (ast : start) →
                   cws-types.start → maybe UTC → include-elt
 new-include-elt filename deps x y time =
-  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
+  record { ast = just x ; cwst = just y ; deps = map (fst ∘ snd) deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
            do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
@@ -47,7 +51,7 @@ error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
 
 error-span-include-elt : string → string → posinfo → include-elt
-error-span-include-elt err errSpan pos = record blank-include-elt { ss = inj₁ (add-span (span.mk-span err pos (posinfo-plus pos 1) [ error-data errSpan ] ) empty-spans ) ; err = tt }
+error-span-include-elt err errSpan pos = record blank-include-elt { ss = inj₁ (add-span (span.mk-span err pos (posinfo-plus pos 1) [] (just errSpan) ) empty-spans ) ; err = tt }
 
 set-do-type-check-include-elt : include-elt → 𝔹 → include-elt
 set-do-type-check-include-elt ie b = 
@@ -88,12 +92,12 @@ set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err 
 
 record toplevel-state : Set where
   constructor mk-toplevel-state
-  field include-path : stringset
+  field include-path : 𝕃 string × stringset
         files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
 
-new-toplevel-state : (include-path : stringset) → toplevel-state
+new-toplevel-state : (include-path : 𝕃 string × stringset) → toplevel-state
 new-toplevel-state ip = record { include-path = ip ;
                                                                              files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
                                                                              
@@ -113,7 +117,7 @@ get-include-elt s filename | just ie = ie
 set-include-elt : toplevel-state → string → include-elt → toplevel-state 
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
 
-set-include-path : toplevel-state → stringset → toplevel-state 
+set-include-path : toplevel-state → 𝕃 string × stringset → toplevel-state 
 set-include-path s ip = record s { include-path = ip }
 
 get-do-type-check : toplevel-state → string → 𝔹
@@ -128,7 +132,7 @@ include-elt-to-string : include-elt → string
 include-elt-to-string ie =
     " deps:  " ^ (𝕃-to-string (λ x → x) "," (include-elt.deps ie)) ^
     -- ast
-    " import-to-dep:  " ^ (trie-to-string "," (λ x → x) (include-elt.import-to-dep ie)) ^ 
+    " import-to-dep:  " ^ (trie-to-string "," (λ {(fn , pn , is-public) → format "{filename: %s, progress-name: %s, is-public: %s}" fn pn (𝔹-to-string is-public)}) (include-elt.import-to-dep ie)) ^ 
     -- spans
     " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
     ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
@@ -180,7 +184,7 @@ ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-st
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
-    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (stringset-strings include-path)) ^ 
+    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^ 
     "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
     "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
 

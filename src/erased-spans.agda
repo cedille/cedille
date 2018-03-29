@@ -43,7 +43,7 @@ inc-pi : posinfo → posinfo
 inc-pi pi = posinfo-plus pi 1
 
 put-span : posinfo → posinfo → language-level → 𝕃 tagged-val → spanM ⊤
-put-span pi pi' ll tv = spanM-add (mk-span "" pi pi' (ll-data ll :: tv))
+put-span pi pi' ll tv = spanM-add (mk-span "" pi pi' (ll-data ll :: tv) nothing)
 
 pi-plus-span : posinfo → string → language-level → 𝕃 tagged-val → spanM ⊤
 pi-plus-span pi s = put-span pi (posinfo-plus-str pi s)

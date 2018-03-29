@@ -307,20 +307,21 @@ conv-cmd Γ ll s1 s2 ls =
   expr-to-string (,_ {parseAsKind} _) = "kind"
   expr-to-string (,_ {parseAsLiftingType} _) = "lifting type"
 
-  does-conv : 𝔹 → string ⊎ string
-  does-conv tt = inj₂ s2
-  does-conv ff = inj₁ "Inconvertible"
+  does-conv : ctxt → {ed : exprd} → ⟦ ed ⟧ → 𝔹 → string ⊎ string
+  does-conv Γ x tt = inj₂ (rope-to-string (to-string Γ (erase x)))
+  does-conv Γ x ff = inj₁ "Inconvertible"
 
   h : ctxt → expr → expr → string ⊎ string
   h Γ (,_ {parseAsTerm} t₁) (,_ {parseAsTerm} t₂) =
-    does-conv (conv-term Γ (qualif-term Γ t₁) (qualif-term Γ t₂))
+    does-conv Γ t₂ (conv-term Γ (qualif-term Γ t₁) (qualif-term Γ t₂))
   h Γ (,_ {parseAsType} T₁) (,_ {parseAsType} T₂) =
-    does-conv (conv-type Γ (qualif-type Γ T₁) (qualif-type Γ T₂))
+    does-conv Γ T₂ (conv-type Γ (qualif-type Γ T₁) (qualif-type Γ T₂))
   h Γ (,_ {parseAsKind} k₁) (,_ {parseAsKind} k₂) =
-    does-conv (conv-kind Γ (qualif-kind Γ k₁) (qualif-kind Γ k₂))
+    does-conv Γ k₂ (conv-kind Γ (qualif-kind Γ k₁) (qualif-kind Γ k₂))
   h Γ (,_ {parseAsLiftingType} lT₁) (,_ {parseAsLiftingType} lT₂) =
-    does-conv (conv-liftingType Γ (qualif-liftingType Γ lT₁) (qualif-liftingType Γ lT₂))
-  h _ e1 e2 = inj₁ ("Mismatched language levels (\\\\\"" ^ s1 ^ "\\\\\" is a " ^ expr-to-string e1 ^ " and \\\\\"" ^ s2 ^ "\\\\\" is a " ^ expr-to-string e2 ^ ")")
+    does-conv Γ lT₂ (conv-liftingType Γ (qualif-liftingType Γ lT₁) (qualif-liftingType Γ lT₂))
+  h _ e1 e2 = inj₁ ("Mismatched language levels (\\\\\"" ^ s1 ^ "\\\\\" is a " ^
+    expr-to-string e1 ^ " and \\\\\"" ^ s2 ^ "\\\\\" is a " ^ expr-to-string e2 ^ ")")
 
 qualif-expr : ctxt → expr → expr
 qualif-expr Γ (,_ {parseAsTerm} t) = , qualif-term Γ t

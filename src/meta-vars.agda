@@ -151,22 +151,21 @@ meta-vars-data Γ Xs
     else [ strRunTag "solve vars" Γ (meta-vars-to-string Xs) ]
 
 meta-vars-check-type-mismatch : ctxt → string → type → meta-vars → type
-                                 → 𝕃 tagged-val
+                                 → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch Γ s tp Xs tp'
-  = (expected-type Γ tp :: [ type-data Γ tp'' ])
-    ++ (if conv-type Γ tp tp''
-        then []
-        else [ error-data
-               ("The expected type does not match the "
-               ^ s ^ "type.") ])
+  = (expected-type Γ tp :: [ type-data Γ tp'' ]) ,
+    (if conv-type Γ tp tp''
+        then nothing
+        else just ("The expected type does not match the "
+               ^ s ^ "type."))
     where tp'' = meta-vars-subst-type Γ Xs tp'
 
 meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars
-                                    → type → 𝕃 tagged-val
+                                    → type → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
   = meta-vars-check-type-mismatch Γ s tp Xs tp'
 meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
-  = [ type-data Γ (meta-vars-subst-type Γ Xs tp') ]
+  = [ type-data Γ (meta-vars-subst-type Γ Xs tp') ] , nothing
 ----------------------------------------
 ----------------------------------------
 

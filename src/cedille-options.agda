@@ -3,7 +3,7 @@ open import lib
 open import general-util
 
 record options : Set where
-  field include-path : stringset
+  field include-path : 𝕃 string × stringset
         use-cede-files : 𝔹
         make-rkt-files : 𝔹
         generate-logs : 𝔹
@@ -11,7 +11,7 @@ record options : Set where
 
 default-options : options
 default-options = record {
-  include-path = empty-stringset;
+  include-path = [] , empty-stringset;
   use-cede-files = tt;
   make-rkt-files = ff;
   generate-logs = ff;
@@ -21,10 +21,16 @@ str-bool-to-𝔹 : string → 𝔹
 str-bool-to-𝔹 "true" = tt
 str-bool-to-𝔹 _ = ff
 
+include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
+include-path-insert s (l , ss) =
+  if stringset-contains ss s
+    then l , ss
+    else s :: l , stringset-insert ss s
+
 options-to-rope : options → rope
 options-to-rope ops =
   [[ "import-directories = " ]] ⊹⊹ [[ 𝕃-to-string (λ fp → "\"" ^ fp ^ "\"") " "
-     (stringset-strings (options.include-path ops)) ]] ⊹⊹ end ⊹⊹
+     (fst (options.include-path ops)) ]] ⊹⊹ end ⊹⊹
   [[ "use-cede-files = " ]] ⊹⊹ [[ 𝔹-s options.use-cede-files ]] ⊹⊹ end ⊹⊹
   [[ "make-rkt-files = " ]] ⊹⊹ [[ 𝔹-s options.make-rkt-files ]] ⊹⊹ end ⊹⊹
   [[ "generate-logs = " ]] ⊹⊹ [[ 𝔹-s options.generate-logs ]] ⊹⊹ end ⊹⊹
