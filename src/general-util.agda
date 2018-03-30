@@ -15,6 +15,9 @@ maybe-else : ∀{ℓ}{A B : Set ℓ} → B → (A → B) → maybe A → B
 maybe-else y f (just x) = f x
 maybe-else y f nothing = y
 
+maybe-join : ∀ {a} {A : Set a} → maybe (maybe A) → maybe A
+maybe-join = maybe-else nothing id
+
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
 trie-lookupd t s d | nothing = d
@@ -69,6 +72,17 @@ cal-filter f ((a , t) :: c)
   with trie-filter f t | cal-filter f c
 ... | t' | c'
   = if trie-empty? t then c' else (a , t') :: c'
+
+trie-catMaybe : ∀ {A} → trie (maybe A) → trie A
+cal-catMaybe  : ∀ {A} → cal (trie (maybe A)) → cal (trie A)
+
+trie-catMaybe (Node odata ts'@(t :: ts)) = Node (maybe-join odata) (cal-catMaybe ts')
+trie-catMaybe (Node odata []) = maybe-else empty-trie (λ a → Node (just a) []) (maybe-join odata)
+
+cal-catMaybe [] = []
+cal-catMaybe ((c , tr) :: trs)
+  with trie-catMaybe tr | cal-catMaybe trs
+... | tr' | trs' = if trie-empty? tr' then trs' else (c , tr') :: trs'
 
 string-split-h : 𝕃 char → char → 𝕃 char → 𝕃 string → 𝕃 string
 string-split-h [] delim str-build out = reverse ((𝕃char-to-string (reverse str-build)) :: out)
