@@ -226,29 +226,22 @@ meta-vars-peel Γ Xs tp
 -- if it's needed for a type application
 
 -- TODO consider abs in is-free
-data meta-vars-unfold-tpapp-ret : Set where
-  tp-is-kind-abs : posinfo → binder → posinfo → bvar → kind → type → meta-vars-unfold-tpapp-ret
+data is-tp-abs : Set where
+  yes-tp-abs : posinfo → binder → posinfo → bvar → kind → type → is-tp-abs
+  no-tp-abs  : type → is-tp-abs
 
-meta-vars-unfold-tpapp : ctxt → meta-vars → type
-                          → type ⊎ meta-vars-unfold-tpapp-ret
-meta-vars-unfold-tpapp Γ Xs (Abs pi b pi' x (Tkk k) tp)
-  = inj₂ (tp-is-kind-abs pi b pi' x k tp)
+meta-vars-unfold-tpapp : ctxt → meta-vars → type → is-tp-abs
 meta-vars-unfold-tpapp Γ Xs tp
   with meta-vars-subst-type Γ Xs tp
 ... | Abs pi b pi' x (Tkk k) tp'
-    = inj₂ (tp-is-kind-abs pi b pi' x k tp')
-... | tp'
-    = inj₁ tp'
+  = yes-tp-abs pi b pi' x k tp'
+... | tp' = no-tp-abs tp'
 
-data meta-vars-unfold-tmapp-ret : Set where
-  tp-is-arrow : type → arrowtype → type → meta-vars-unfold-tmapp-ret
-  tp-is-tmabs : posinfo → binder → posinfo → bvar → type → type → meta-vars-unfold-tmapp-ret
-  tp-is-other : type → meta-vars-unfold-tmapp-ret
-
-data is-arrow-or-abs : Set where
-  yes-arrow-or-abs : (tp tpₐ : type) → (e : maybeErased)
-                     → (cod : term → type) → is-arrow-or-abs
-  not-arrow-or-abs : (htp : type) → is-arrow-or-abs
+data is-tp-arrow : Set where
+                     -- tp is the original type, tpₐ the domain
+  yes-tp-arrow : (tp tpₐ : type) → (e : maybeErased)
+                     → (cod : term → type) → is-tp-arrow
+  no-tp-arrow : (htp : type) → is-tp-arrow
 
 private
   ba-to-e : binder ⊎ arrowtype → maybeErased
@@ -257,27 +250,29 @@ private
   ba-to-e (inj₂ ErasedArrow) = Erased
   ba-to-e (inj₂ UnerasedArrow) = NotErased
 
-meta-vars-unfold-tmapp' : ctxt → meta-vars → type → meta-vars × is-arrow-or-abs
-meta-vars-unfold-tmapp' Γ Xs tp
-  with meta-vars-peel Γ Xs tp
+meta-vars-unfold-tmapp : ctxt → meta-vars → type → meta-vars × is-tp-arrow
+meta-vars-unfold-tmapp Γ Xs tp
+  -- substitute all known solutions in immediately, and
+  -- peel type abstractions
+  with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
 ... | Xs' , tp'@(Abs _ b _ x (Tkt tpₐ) tpᵣ)
-  = Xs' , (yes-arrow-or-abs tp'
-            (meta-vars-subst-type Γ Xs' tpₐ) (ba-to-e (inj₁ b))
-            (λ t → subst-type Γ (qualif-term Γ t) x tpᵣ))
+  = Xs' , yes-tp-arrow tp (hnf Γ unfold-head-rec-defs tpₐ tt) (ba-to-e (inj₁ b))
+            -- substitute term into codomain (dependent function type)
+            (λ t → subst-type Γ (qualif-term Γ t) x tpᵣ)
 ... | Xs' , tp'@(TpArrow tpₐ at tpᵣ)
-  = Xs' , (yes-arrow-or-abs tp'
-            (meta-vars-subst-type Γ Xs tpₐ) (ba-to-e (inj₂ at))
-            (λ _ → tpᵣ))
+  = Xs' , yes-tp-arrow tp (hnf Γ unfold-head-rec-defs tpₐ tt) (ba-to-e (inj₂ at)) (λ _ → tpᵣ)
 ... | Xs' , tp'
-  with meta-vars-peel Γ Xs $' meta-vars-subst-type Γ Xs' tp'
-... | Xs″ , tp″@(Abs _ b _ x (Tkt tpₐ) tpᵣ)
-  = Xs″ , (yes-arrow-or-abs tp″
-            tpₐ (ba-to-e (inj₁ b)) (λ t → subst-type Γ (qualif-term Γ t) x tpᵣ))
-... | Xs″ , tp″@(TpArrow tpₐ at tpᵣ)
-  = Xs″ , (yes-arrow-or-abs tp″
-            tpₐ (ba-to-e (inj₂ at)) (λ _ → tpᵣ))
-... | Xs″ , tp″
-  = Xs″ , (not-arrow-or-abs tp″)
+  = Xs' , no-tp-arrow tp'
+
+-- update the kinds of HO meta-vars with
+-- solutions
+meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
+meta-vars-update-kinds Γ Xs Xsₖ
+  = record Xs { varset = trie-map
+      (λ { (meta-var-mk x (meta-var-tp k mtp))
+             → meta-var-mk x (meta-var-tp (meta-vars-subst-kind Γ Xsₖ k) mtp)
+         ; sol@(meta-var-mk _ _) → sol})
+      (varset Xs)}
 
 -- match a type with meta-vars to one without
 ----------------------------------------------------------------------

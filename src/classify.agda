@@ -687,8 +687,9 @@ check-term-app-meta-var-app-span : (Xs Xs-solved : meta-vars) (Γ : ctxt) (res-t
 check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp (just (mk-error-span nm pi pi' tvs err))
   = (meta-vars-data Γ Xs-solved ++ tvs) , just err
 check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp nothing
-  = let p = meta-vars-check-type-mismatch-if chk-tp Γ "synthesized" Xs res-tp in
-    fst p ++ meta-vars-data Γ Xs-solved , snd p
+  = fst p ++ meta-vars-data Γ Xs-solved , snd p
+
+  where p = meta-vars-check-type-mismatch-if chk-tp Γ "synthesized" Xs res-tp
 
 -- main definition
 check-term-app t''@(App t m t') mtp
@@ -708,8 +709,8 @@ check-term-app t''@(App t m t') mtp
                     → spanM (maybe (meta-vars × type))
   check-app-agree m tp Xs
     = get-ctxt λ Γ →
-      case meta-vars-unfold-tmapp' Γ Xs tp of λ where
-        (Xs , yes-arrow-or-abs tp tpₐ m' cod) →
+      case meta-vars-unfold-tmapp Γ Xs tp of λ where
+        (Xs , yes-tp-arrow tp tpₐ m' cod) →
           if ~ check-erasures-match m m'
             then check-term-app-error-erased check-mode m t t' tp Xs
           else if ~ meta-vars-are-free-in-type Xs tpₐ
@@ -726,12 +727,17 @@ check-term-app t''@(App t m t') mtp
                  (yes-error msg) →
                    check-term-app-error-unmatchable Γ t t' tpₐ tpₐ' Xs check-mode msg
                  (no-error   Xs) →
-                     check-meta-vars Xs
-                   ≫=span λ me → spanM-add
-                     (uncurry (λ tvs → App-span t t' check-mode (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ' :: tvs))
-                       (check-term-app-meta-var-app-span Xs (meta-vars-in-type Xs tpₐ) Γ (cod t') mtp me))
-                   ≫span check-term-app-return Γ t'' Xs (cod t')
-        (Xs , not-arrow-or-abs tp) →
+                     -- All solved meta-vars (tpₐ had solutions substituted in)
+                     spanMr (meta-vars-in-type Xs tpₐ)
+                   ≫=span λ Xsₐ → check-meta-vars Xsₐ
+                   ≫=span λ me →
+                     spanM-add
+                       (uncurry (λ tvs → App-span t t' check-mode
+                                  (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ' :: tvs))
+                         (check-term-app-meta-var-app-span Xs Xsₐ
+                           Γ (cod t') mtp me))
+                   ≫span check-term-app-return Γ t'' (meta-vars-update-kinds Γ Xs Xsₐ) (cod t')
+        (Xs , no-tp-arrow tp) →
             check-term-app-error-inapp Γ t t' tp Xs check-mode m
           ≫span spanMr nothing 
 
@@ -757,8 +763,8 @@ check-term-app (AppTp t tp) mtp
     check-term-app-agree htp tp Xs
       = get-ctxt λ Γ →
         case (meta-vars-unfold-tpapp Γ Xs htp) of λ where
-          (inj₁ _) → spanMr nothing
-          (inj₂ (tp-is-kind-abs pi b pi' x k htp')) →
+          (no-tp-abs _) → spanMr nothing
+          (yes-tp-abs pi b pi' x k htp') →
               -- TODO avoid double substitution
               check-type tp (just (meta-vars-subst-kind Γ Xs k))
             ≫span get-ctxt λ Γ →
@@ -1039,23 +1045,23 @@ check-kind (KndPi pi pi' x atk k) =
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
 
-check-meta-vars Xs
-  = (with-qualified-qualif $'
-        -- clear current error
-        get-error λ es → set-error nothing
-      ≫span sequence-spanM
-        -- for each meta-var, if it has a solution, kind-check it
-        -- (we should only be checking new solutions to avoid duplicate work)
-        (for trie-mappings (meta-vars.varset Xs) yield λ where
-          (_ , meta-var-mk _ (meta-var-tp k nothing)) → spanMok
-          (_ , meta-var-mk _ (meta-var-tp k (just tp)))
-            → check-type tp (just k)
-          (_ , X) → spanMok)
-        -- restore previous error
-      ≫=span λ _ → get-error λ es' → set-error es
-      ≫span spanMr es')
-    -- discard generated spans
-    ≫=spand λ es → spanMr (maybe-map retag es)
+check-meta-vars Xs -- pi
+  =   (with-qualified-qualif (with-clear-error
+        (  (spanM-for (map spanMr ((trie-mappings (meta-vars.varset Xs))))
+             init (spanMr (empty-trie{type})) do λ where
+               (x , meta-var-mk _ (meta-var-tm tp mtm)) m → m
+               (x , meta-var-mk _ (meta-var-tp k nothing)) m → m
+               (x , meta-var-mk _ (meta-var-tp k (just tp))) m
+                 →   m
+                   ≫=span λ sub → get-error λ es → get-ctxt λ Γ → if (isJust es) then spanMok else
+                     (let k' = hnf Γ unfold-head-rec-defs ((substh-kind Γ empty-renamectxt sub k)) tt
+                      in check-type tp (just k'))
+                   -- ≫span spanM-push-type-def pi x tp k
+                   -- ≫=span λ _ → spanM-push-type-decl pi localScope x k
+                   ≫=span λ _ → spanMr (trie-insert sub x tp))
+         ≫=span λ _ → get-error λ es → spanMr es)))
+    ≫=spands λ es → spanMr (maybe-map retag es)
+
   where
   open helpers
 
@@ -1070,6 +1076,18 @@ check-meta-vars Xs
     =   get-ctxt λ Γ →
       with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
         sm
+      -- ≫=span λ qi → set-ctxt (ctxt-set-qualif Γ (qualified-qualif qi))
+      -- ≫span sm
+      -- ≫=span λ x → get-ctxt λ Γ → set-ctxt (ctxt-set-qualif Γ qi)
+      -- ≫span spanMr x
+
+  -- helper to restore error state
+  with-clear-error : ∀ {A} → spanM A → spanM A
+  with-clear-error m
+    =   get-error λ es → set-error nothing
+      ≫span m
+      ≫=span λ a → set-error es
+      ≫span spanMr a
 
   retag : error-span → error-span
   retag (mk-error-span dsc pi pi' tvs err)
