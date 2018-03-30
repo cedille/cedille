@@ -126,7 +126,7 @@ abs' ◂ Π n : Nat . Trm' (S n) ➔ Trm' n
         in' n (in2 · (TrmAppF · (Trm' n)) · (Trm' (S n)) t) .
 
 
-var' ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm' n =
+var' ◂ varTp · Trm' =
   λ m . Λ n . Λ p . 
      TrmFold' -n
         [Λ X . Λ pX . Λ I . λ val . λ alg .
@@ -137,8 +137,8 @@ var' ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm' n =
 out-t1 ◂ Nat ➔ ★ = λ n : Nat . wSigma2 · Nat · (λ m : Nat . Lt m n).
 out-t2 ◂ Nat ➔ ★ = λ n : Nat . TrmIF · (Trm' n) · (Trm' (S n)) .
 out-t ◂ Nat ➔ ★ = λ n : Nat . Sum · (out-t1 n) · (out-t2 n).
-out' ◂ Π n : Nat . Trm' n ➔ out-t n =
-  λ n . λ t .
+out' ◂ ∀ n : Nat . Trm' n ➔ out-t n =
+  Λ n . λ t .
     (TrmUnfold' -n t).1 · out-t
       -(λ i . λ j . Λ pij .
         caste 
@@ -153,7 +153,7 @@ out' ◂ Π n : Nat . Trm' n ➔ out-t n =
                             (λ b . θ<b> (ind-Product b) (λ x . λ y . β))
                             (λ b . β))))
       · (λ n : Nat . λ _ : out-t (S n) . True)
-      (valuationFromFun' n · out-t · (λ n : Nat . λ _ : out-t (S n) . True)
+      (valuationFromFun' -n · out-t · (λ n : Nat . λ _ : out-t (S n) . True)
         (λ m . Λ p . mkWSigma2 · (out-t (S m)) · (λ _ : out-t (S m) . True)
                      (in1 · (out-t1 (S m)) · (out-t2 (S m)) (mkWSigma2 · Nat · (λ k : Nat . Lt k (S m)) m -(lt-nSn m))) -triv))
       [ β{λ n' . λ e1 . λ e2 . λ d . in2 d} ,

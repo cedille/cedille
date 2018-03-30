@@ -29,8 +29,6 @@ TrmPrfAlg ◂ Π Trm : Nat ➔ ★ .
     Π n : Nat .
     ∀ val : Top .
     ∀ R1 : ★ . ∀ R2 : ★ . 
-    ∀ Reveal1 : Cast · R1 · (Trm n) .
-    ∀ Reveal2 : Cast · R2 · (Trm (S n)) .
     ∀ reveal1 : Cast · R1 · (Trm' n) .
     ∀ reveal2 : Cast · R2 · (Trm' (S n)) .
     Π e1 : is · (Π r : R1 . P n (cast · R1 · (Trm' n) -reveal1 r)) (foldU1 alg val).
@@ -103,7 +101,7 @@ in ◂ Π n : Nat . TrmIF · (Trm n) · (Trm (S n)) ➔ Trm n =
                                                    β{foldU2 n alg val}]
                                                   d] .
 
-var ◂ Π n : Nat . Trm (S n) =
+var ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm n =
   λ n . 
      TrmFold -(S n)
         [var' n ,
