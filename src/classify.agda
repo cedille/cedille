@@ -729,10 +729,7 @@ check-term-app t''@(App t m t') mtp
                      check-meta-vars Xs
                    ≫=span λ me → spanM-add
                      (uncurry (λ tvs → App-span t t' check-mode (arg-exp-type Γ tpₐ :: arg-type Γ tpₐ' :: tvs))
-                       (let Xs-solved = trie-filter (λ {(x , _) →
-                                   are-free-in-type check-erased
-                                     (trie-single x triv) tpₐ}) Xs
-                             in check-term-app-meta-var-app-span Xs Xs-solved Γ (cod t') mtp me))
+                       (check-term-app-meta-var-app-span Xs (meta-vars-in-type Xs tpₐ) Γ (cod t') mtp me))
                    ≫span check-term-app-return Γ t'' Xs (cod t')
         (Xs , not-arrow-or-abs tp) →
             check-term-app-error-inapp Γ t t' tp Xs check-mode m
@@ -1049,9 +1046,9 @@ check-meta-vars Xs
       ≫span sequence-spanM
         -- for each meta-var, if it has a solution, kind-check it
         -- (we should only be checking new solutions to avoid duplicate work)
-        (for trie-mappings Xs yield λ where
-          (_ , meta-var-tp x k nothing) → spanMok
-          (_ , meta-var-tp x k (just tp))
+        (for trie-mappings (meta-vars.varset Xs) yield λ where
+          (_ , meta-var-mk _ (meta-var-tp k nothing)) → spanMok
+          (_ , meta-var-mk _ (meta-var-tp k (just tp)))
             → check-type tp (just k)
           (_ , X) → spanMok)
         -- restore previous error

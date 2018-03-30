@@ -38,37 +38,44 @@ open helpers
 
 -- misc
 ----------------------------------------------------------------------
-is-system-f-kind : kind → 𝔹
-is-system-f-kind (Star pi) = tt
-is-system-f-kind _ = ff
+kind-is-star : kind → 𝔹
+kind-is-star (Star pi) = tt
+kind-is-star _ = ff
 
 -- meta-vars:
 -- vars associated with kind and (possibly many) type solutions
 ----------------------------------------------------------------------
-meta-var-sol = kind × maybe type ∨ type × maybe term
-pattern meta-var-tp x  k mtp = x , inj₁ ( k , mtp)
-pattern meta-var-tm x tp mtm = x , inj₂ (tp , mtm)
+data meta-var-sol : Set where
+  meta-var-tp : (k : kind) → (mtp : maybe type) → meta-var-sol
+  meta-var-tm : (tp : type) → (mtm : maybe term) → meta-var-sol
 
-meta-var  = string × meta-var-sol
-meta-vars = trie meta-var
-{-# DISPLAY trie meta-var = meta-vars #-}
+record meta-var : Set where
+  constructor meta-var-mk
+  field
+    name : string
+    sol  : meta-var-sol
+open meta-var
+
+record meta-vars : Set where
+  constructor meta-vars-mk
+  field
+    order   : 𝕃 var
+    varset  : trie meta-var
+open meta-vars
 
 meta-var-name : meta-var → var
-meta-var-name (x , _) = x
+meta-var-name X = meta-var.name X
 
 -- TODO
 meta-var-to-type : meta-var → posinfo → maybe type
-meta-var-to-type (meta-var-tp x k (just tp)) pi
-  = just tp
-meta-var-to-type (meta-var-tp x k nothing) pi
-  = just (TpVar pi x)
-meta-var-to-type _ _
-  = nothing
+meta-var-to-type (meta-var-mk x (meta-var-tp k (just tp))) pi = just tp
+meta-var-to-type (meta-var-mk x (meta-var-tp k nothing)) pi = just (TpVar pi x)
+meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm)) pi = nothing
 
 meta-var-to-term : meta-var → posinfo → maybe term
-meta-var-to-term (meta-var-tm x k (just tm)) pi = just tm
-meta-var-to-term (meta-var-tm x k (nothing)) pi = just (Var pi x)
-meta-var-to-term (meta-var-tp x k _) pi         = nothing
+meta-var-to-term (meta-var-mk x (meta-var-tp k mtp)) pi = nothing
+meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm))) pi = just tm
+meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing)) pi = just (Var pi x)
 
 meta-var-to-type-unsafe : meta-var → posinfo → type
 meta-var-to-type-unsafe X pi
@@ -84,16 +91,14 @@ meta-var-to-term-unsafe X pi
 
 
 meta-vars-empty : meta-vars
-meta-vars-empty = empty-trie
+meta-vars-empty = meta-vars-mk [] empty-trie -- empty-trie
 
 meta-vars-empty? : meta-vars → 𝔹
-meta-vars-empty? Xs = ~ (trie-nonempty Xs)
+meta-vars-empty? Xs = ~ (trie-nonempty (varset Xs )) -- ~ (trie-nonempty Xs)
 
 meta-vars-get-sub : meta-vars → trie type
 meta-vars-get-sub Xs
-  -- Assuming filter is correct, we are justified to use the unsafe version
-  = trie-map (λ X → meta-var-to-type-unsafe X "")
-             (trie-filter (is-inj₁ ∘ snd) Xs)
+  = trie-catMaybe (trie-map ((flip meta-var-to-type) "") (varset Xs))
 
 -- substitutions, is-free-in
 meta-vars-subst-type : ctxt → meta-vars → type → type
@@ -109,28 +114,41 @@ meta-vars-subst-kind Γ Xs k
       tt
 
 meta-vars-get-varlist : meta-vars → 𝕃 var
-meta-vars-get-varlist Xs = map fst (trie-mappings Xs)
+meta-vars-get-varlist Xs = map (name ∘ snd) (trie-mappings (varset Xs))
+
+meta-vars-in-type : meta-vars → type → meta-vars
+meta-vars-in-type Xs tp
+  = record Xs
+      { varset = trie-filter
+          (λ x → are-free-in-type
+            check-erased (trie-single (name x) triv) tp)
+          (varset Xs)
+      }
 
 meta-vars-are-free-in-type : meta-vars → type → 𝔹
 meta-vars-are-free-in-type Xs tp
-  = are-free-in-type check-erased Xs tp
+  = are-free-in-type check-erased (varset Xs) tp
 
 meta-var-is-HO : meta-var → 𝔹
-meta-var-is-HO (meta-var-tp _ k _) = is-system-f-kind k
-meta-var-is-HO (meta-var-tm _ _ _) = tt
+meta-var-is-HO (meta-var-mk name (meta-var-tm tp mtm)) = tt
+meta-var-is-HO (meta-var-mk name (meta-var-tp k mtp)) = kind-is-star k
 
 -- string and span helpers
 ----------------------------------------
 meta-var-to-string : meta-var → strM
-meta-var-to-string (meta-var-tp x k nothing)
-  = strVar x ≫str strAdd " : " ≫str to-stringh k
-meta-var-to-string (meta-var-tp x k (just tp))
-  = strVar x ≫str strAdd " : " ≫str to-stringh k
+meta-var-to-string (meta-var-mk name (meta-var-tp k nothing))
+  = strVar name
+    ≫str strAdd " : " ≫str to-stringh k
+meta-var-to-string (meta-var-mk name (meta-var-tp k (just tp)))
+  = strVar name
+    ≫str strAdd " : " ≫str to-stringh k
     ≫str strAdd " = " ≫str to-stringh tp
-meta-var-to-string (x , inj₂ (tp , nothing))
-  = strVar x ≫str strAdd " : " ≫str to-stringh tp
-meta-var-to-string (x , inj₂ (tp , just tm))
-  = strVar x ≫str strAdd " : " ≫str to-stringh tp
+meta-var-to-string (meta-var-mk name (meta-var-tm tp nothing))
+  = strVar name
+    ≫str strAdd " : " ≫str to-stringh tp
+meta-var-to-string (meta-var-mk name (meta-var-tm tp (just tm)))
+  = strVar name
+    ≫str strAdd " : " ≫str to-stringh tp
     ≫str strAdd " = " ≫str to-stringh tm
 
 meta-vars-to-stringh : 𝕃 meta-var → strM
@@ -142,13 +160,13 @@ meta-vars-to-stringh (v :: vs)
   = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringh vs
 
 meta-vars-to-string : meta-vars → strM
-meta-vars-to-string Xs = meta-vars-to-stringh (map snd (trie-mappings Xs))
+meta-vars-to-string Xs = meta-vars-to-stringh (map snd (trie-mappings (varset Xs)))
 
 meta-vars-data : ctxt → meta-vars → 𝕃 tagged-val
 meta-vars-data Γ Xs
-  = if ~ (trie-nonempty Xs)
+  = if trie-empty? (varset Xs)
     then []
-    else [ strRunTag "solve vars" Γ (meta-vars-to-string Xs) ]
+    else [ strRunTag "meta vars" Γ (meta-vars-to-string Xs) ]
 
 meta-vars-check-type-mismatch : ctxt → string → type → meta-vars → type
                                  → 𝕃 tagged-val × err-m
@@ -172,29 +190,21 @@ meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
 -- collecting, merging, matching
 ----------------------------------------------------------------------
 
--- generate a fresh meta-var
-meta-vars-sol : tk → Set
-meta-vars-sol (Tkk k) = type
-meta-vars-sol (Tkt tp) = term
-
-meta-vars-fresh : meta-vars → var → (class : tk) → maybe (meta-vars-sol class) → meta-var
-meta-vars-fresh Xs x (Tkk k) sol
-  = meta-var-tp (rename-away-from ("?" ^ x) (trie-contains Xs) empty-renamectxt)
-      k sol
-meta-vars-fresh Xs x (Tkt tp) sol
-  = meta-var-tm (rename-away-from ("?" ^ x) (trie-contains Xs) empty-renamectxt)
-      tp sol
+meta-vars-fresh : meta-vars → var → meta-var-sol → meta-var
+meta-vars-fresh Xs x sol
+  with rename-away-from ("?" ^ x) (trie-contains (varset Xs)) empty-renamectxt
+... | x' = meta-var-mk x' sol
 
 meta-vars-fresh-tp : meta-vars → var → kind → maybe type → meta-var
-meta-vars-fresh-tp Xs x k mtp = meta-vars-fresh Xs x (Tkk k) mtp
+meta-vars-fresh-tp Xs x k mtp = meta-vars-fresh Xs x (meta-var-tp k mtp)
 
 meta-vars-fresh-tm : meta-vars → var → type → maybe term → meta-var
-meta-vars-fresh-tm Xs x tp mtm = meta-vars-fresh Xs x (Tkt tp) mtm
+meta-vars-fresh-tm Xs x tp mtm = meta-vars-fresh Xs x (meta-var-tm tp mtm)
 
 -- add a meta-var
 meta-vars-add : meta-vars → meta-var → meta-vars
-meta-vars-add Xs X@(x , mvs) -- tk@(k , tps)
- = trie-insert Xs x X -- trie-insert Xs x (x , tk)
+meta-vars-add Xs X -- @(x , mvs) -- tk@(k , tps)
+ = record Xs { varset = trie-insert (varset Xs) (name X) X } -- trie-insert Xs x X -- trie-insert Xs x (x , tk)
 
 -- peel all type quantification var from a type, adding it to a set of
 -- meta-vars
@@ -328,15 +338,15 @@ private
 local-vars = stringset
 
 meta-vars-solve-tp : ctxt → meta-vars → var → type → error-t meta-vars
-meta-vars-solve-tp Γ Xs x tp with trie-lookup Xs x
+meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 ... | nothing
   = yes-error $' x ^ " is not a meta-var!"
-... | just (meta-var-tm _ _ _)
+... | just (meta-var-mk _ (meta-var-tm tp' mtm))
   = yes-error $' x ^ " is a term meta-var!"
-... | just (meta-var-tp _ k nothing)
-  = no-error (meta-vars-add Xs (meta-var-tp x k (just tp)))
-... | just (meta-var-tp _ k (just tp'))
-  =   err-guard (~ (conv-type Γ tp tp')) (e-solution-ineq Γ tp tp' x)
+... | just (meta-var-mk _ (meta-var-tp k nothing))
+  = no-error (meta-vars-add Xs (meta-var-mk x (meta-var-tp k (just tp))))
+... | just (meta-var-mk _ (meta-var-tp k (just tp')))
+  =   err-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫err no-error Xs
 
 meta-vars-match : ctxt → meta-vars → local-vars → (tpₓ tp : type) → error-t meta-vars
@@ -346,7 +356,7 @@ meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optTyp
 -- meta-vars-match
 meta-vars-match Γ Xs Ls tpₓ@(TpVar pi x) tp
   -- check if x is a meta-var
-  = if ~ trie-contains Xs x
+  = if ~ trie-contains (meta-vars.varset Xs) x
     -- if not, then just make sure tp is the same var
     then   err-guard (~ conv-type Γ tpₓ tp) (e-type-ineq Γ tpₓ tp)
          ≫err no-error Xs
