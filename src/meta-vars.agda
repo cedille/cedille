@@ -56,6 +56,8 @@ record meta-var : Set where
     sol  : meta-var-sol
 open meta-var
 
+pattern meta-var-mk-tp x k mtp = meta-var-mk x (meta-var-tp k mtp)
+
 record meta-vars : Set where
   constructor meta-vars-mk
   field
@@ -68,12 +70,12 @@ meta-var-name X = meta-var.name X
 
 -- TODO
 meta-var-to-type : meta-var → posinfo → maybe type
-meta-var-to-type (meta-var-mk x (meta-var-tp k (just tp))) pi = just tp
-meta-var-to-type (meta-var-mk x (meta-var-tp k nothing)) pi = just (TpVar pi x)
+meta-var-to-type (meta-var-mk-tp x k (just tp)) pi = just tp
+meta-var-to-type (meta-var-mk-tp x k nothing) pi = just (TpVar pi x)
 meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm)) pi = nothing
 
 meta-var-to-term : meta-var → posinfo → maybe term
-meta-var-to-term (meta-var-mk x (meta-var-tp k mtp)) pi = nothing
+meta-var-to-term (meta-var-mk-tp x k mtp) pi = nothing
 meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm))) pi = just tm
 meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing)) pi = just (Var pi x)
 
@@ -119,11 +121,17 @@ meta-vars-get-varlist Xs = map (name ∘ snd) (trie-mappings (varset Xs))
 meta-vars-in-type : meta-vars → type → meta-vars
 meta-vars-in-type Xs tp
   = record Xs
-      { varset = trie-filter
-          (λ x → are-free-in-type
-            check-erased (trie-single (name x) triv) tp)
-          (varset Xs)
-      }
+    { varset = varset'
+    ; order  = order'
+    }
+  where
+  varset' = trie-filter
+              (λ x → are-free-in-type
+                       check-erased (trie-single (name x) triv) tp)
+              (varset Xs)
+  mvars = trie-strings varset'
+  order' = filter (λ x → list-any (x =string_) mvars) (order Xs)
+
 
 meta-vars-are-free-in-type : meta-vars → type → 𝔹
 meta-vars-are-free-in-type Xs tp
@@ -131,15 +139,15 @@ meta-vars-are-free-in-type Xs tp
 
 meta-var-is-HO : meta-var → 𝔹
 meta-var-is-HO (meta-var-mk name (meta-var-tm tp mtm)) = tt
-meta-var-is-HO (meta-var-mk name (meta-var-tp k mtp)) = kind-is-star k
+meta-var-is-HO (meta-var-mk-tp name k mtp) = kind-is-star k
 
 -- string and span helpers
 ----------------------------------------
 meta-var-to-string : meta-var → strM
-meta-var-to-string (meta-var-mk name (meta-var-tp k nothing))
+meta-var-to-string (meta-var-mk-tp name k nothing)
   = strVar name
     ≫str strAdd " : " ≫str to-stringh k
-meta-var-to-string (meta-var-mk name (meta-var-tp k (just tp)))
+meta-var-to-string (meta-var-mk-tp name k (just tp))
   = strVar name
     ≫str strAdd " : " ≫str to-stringh k
     ≫str strAdd " = " ≫str to-stringh tp
@@ -201,10 +209,14 @@ meta-vars-fresh-tp Xs x k mtp = meta-vars-fresh Xs x (meta-var-tp k mtp)
 meta-vars-fresh-tm : meta-vars → var → type → maybe term → meta-var
 meta-vars-fresh-tm Xs x tp mtm = meta-vars-fresh Xs x (meta-var-tm tp mtm)
 
+private
+  meta-vars-set : meta-vars → meta-var → meta-vars
+  meta-vars-set Xs X = record Xs { varset = trie-insert (varset Xs) (name X) X }
+
 -- add a meta-var
 meta-vars-add : meta-vars → meta-var → meta-vars
-meta-vars-add Xs X -- @(x , mvs) -- tk@(k , tps)
- = record Xs { varset = trie-insert (varset Xs) (name X) X } -- trie-insert Xs x X -- trie-insert Xs x (x , tk)
+meta-vars-add Xs X
+ = record (meta-vars-set Xs X) { order = (order Xs) ++ [ name X ] }
 
 -- peel all type quantification var from a type, adding it to a set of
 -- meta-vars
@@ -269,8 +281,8 @@ meta-vars-unfold-tmapp Γ Xs tp
 meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
 meta-vars-update-kinds Γ Xs Xsₖ
   = record Xs { varset = trie-map
-      (λ { (meta-var-mk x (meta-var-tp k mtp))
-             → meta-var-mk x (meta-var-tp (meta-vars-subst-kind Γ Xsₖ k) mtp)
+      (λ { (meta-var-mk-tp x k mtp)
+             → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp
          ; sol@(meta-var-mk _ _) → sol})
       (varset Xs)}
 
@@ -338,9 +350,9 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
   = yes-error $' x ^ " is not a meta-var!"
 ... | just (meta-var-mk _ (meta-var-tm tp' mtm))
   = yes-error $' x ^ " is a term meta-var!"
-... | just (meta-var-mk _ (meta-var-tp k nothing))
-  = no-error (meta-vars-add Xs (meta-var-mk x (meta-var-tp k (just tp))))
-... | just (meta-var-mk _ (meta-var-tp k (just tp')))
+... | just (meta-var-mk-tp _ k nothing)
+  = no-error (meta-vars-set Xs (meta-var-mk-tp x k (just tp)))
+... | just (meta-var-mk-tp _ k (just tp'))
   =   err-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫err no-error Xs
 

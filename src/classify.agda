@@ -727,7 +727,7 @@ check-term-app t''@(App t m t') mtp
                  (yes-error msg) →
                    check-term-app-error-unmatchable Γ t t' tpₐ tpₐ' Xs check-mode msg
                  (no-error   Xs) →
-                     -- All solved meta-vars (tpₐ had solutions substituted in)
+                     -- All meta-vars solved in the last match
                      spanMr (meta-vars-in-type Xs tpₐ)
                    ≫=span λ Xsₐ → check-meta-vars Xsₐ
                    ≫=span λ me →
@@ -1046,24 +1046,30 @@ check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
 
 check-meta-vars Xs -- pi
-  =   (with-qualified-qualif (with-clear-error
-        (  (spanM-for (map spanMr ((trie-mappings (meta-vars.varset Xs))))
+  =   (with-qualified-qualif $' with-clear-error
+        (  get-ctxt λ Γ →
+           (spanM-for (varset-ordered Γ)
              init (spanMr (empty-trie{type})) do λ where
-               (x , meta-var-mk _ (meta-var-tm tp mtm)) m → m
-               (x , meta-var-mk _ (meta-var-tp k nothing)) m → m
-               (x , meta-var-mk _ (meta-var-tp k (just tp))) m
+               (meta-var-mk _ (meta-var-tm tp mtm)) m → m
+               (meta-var-mk-tp _ k nothing) m → m
+               (meta-var-mk-tp x k (just tp)) m
                  →   m
-                   ≫=span λ sub → get-error λ es → get-ctxt λ Γ → if (isJust es) then spanMok else
-                     (let k' = hnf Γ unfold-head-rec-defs ((substh-kind Γ empty-renamectxt sub k)) tt
-                      in check-type tp (just k'))
+                   ≫=span λ sub → get-error λ es →
+                     if (isJust es)
+                     then spanMok
+                     else check-type tp (just k)
                    -- ≫span spanM-push-type-def pi x tp k
                    -- ≫=span λ _ → spanM-push-type-decl pi localScope x k
-                   ≫=span λ _ → spanMr (trie-insert sub x tp))
-         ≫=span λ _ → get-error λ es → spanMr es)))
+                  ≫=span λ _ → spanMr (trie-insert sub x tp))
+         ≫=span λ _ → get-error λ es → spanMr es))
     ≫=spands λ es → spanMr (maybe-map retag es)
 
   where
   open helpers
+  varset-ordered : ctxt → 𝕃 (spanM meta-var)
+  varset-ordered Γ = drop-nothing $' for (meta-vars.order Xs) yield λ where
+    x → maybe-map spanMr (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
+
 
   -- replace qualif info with one where the keys are the fully qualified variable names
   qualified-qualif : qualif → qualif
