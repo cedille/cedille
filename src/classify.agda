@@ -1047,28 +1047,23 @@ check-tk (Tkt t) = check-type t (just star)
 
 check-meta-vars Xs -- pi
   =   (with-qualified-qualif $' with-clear-error
-        (  get-ctxt λ Γ →
-           (spanM-for (varset-ordered Γ)
-             init (spanMr (empty-trie{type})) do λ where
-               (meta-var-mk _ (meta-var-tm tp mtm)) m → m
-               (meta-var-mk-tp _ k nothing) m → m
-               (meta-var-mk-tp x k (just tp)) m
-                 →   m
-                   ≫=span λ sub → get-error λ es →
-                     if (isJust es)
-                     then spanMok
-                     else check-type tp (just k)
-                   -- ≫span spanM-push-type-def pi x tp k
-                   -- ≫=span λ _ → spanM-push-type-decl pi localScope x k
-                  ≫=span λ _ → spanMr (trie-insert sub x tp))
+        (  get-ctxt λ Γ → sequence-spanM
+             (for (varset-ordered Γ) yield λ where
+               (meta-var-mk x (meta-var-tm tp mtm)) → spanMok
+               (meta-var-mk-tp x k nothing) → spanMok
+               (meta-var-mk-tp x k (just tp)) →
+                   get-error λ es → if (isJust es) then spanMok else
+                   check-type tp (just k)
+                 ≫span (spanM-push-type-def posinfo-gen x tp k
+                 ≫=span λ _ → spanMok))
          ≫=span λ _ → get-error λ es → spanMr es))
-    ≫=spands λ es → spanMr (maybe-map retag es)
+    ≫=spand λ es → spanMr (maybe-map retag es)
 
   where
   open helpers
-  varset-ordered : ctxt → 𝕃 (spanM meta-var)
+  varset-ordered : ctxt → 𝕃 meta-var
   varset-ordered Γ = drop-nothing $' for (meta-vars.order Xs) yield λ where
-    x → maybe-map spanMr (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
+    x → (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
 
 
   -- replace qualif info with one where the keys are the fully qualified variable names
@@ -1082,10 +1077,6 @@ check-meta-vars Xs -- pi
     =   get-ctxt λ Γ →
       with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
         sm
-      -- ≫=span λ qi → set-ctxt (ctxt-set-qualif Γ (qualified-qualif qi))
-      -- ≫span sm
-      -- ≫=span λ x → get-ctxt λ Γ → set-ctxt (ctxt-set-qualif Γ qi)
-      -- ≫span spanMr x
 
   -- helper to restore error state
   with-clear-error : ∀ {A} → spanM A → spanM A
