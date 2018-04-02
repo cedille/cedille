@@ -115,7 +115,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check
     let Γ' = ctxt-kind-def pi x ps k Γ in
       spanM-add (DefKind-span Γ pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
-       (spanM-add (KndVar-span Γ' pi x (ArgsNil (posinfo-plus-str pi x)) checking [] nothing) ≫span
+       (spanM-add (KndVar-span "Kind" Γ' (pi , x , (ArgsNil (posinfo-plus-str pi x))) checking [] nothing) ≫span
         spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
 
 
@@ -127,7 +127,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip 
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
 
--- TODO check import args against module param types
+-- TODO ignore checking but still gen spans if need-to-check false?
 process-cmd s (ImportCmd (Import pi x oa as pi')) _ = 
   let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
   let ie = get-include-elt s cur-file in
@@ -135,15 +135,19 @@ process-cmd s (ImportCmd (Import pi x oa as pi')) _ =
     nothing → spanM-add (Import-span pi "missing" pi' [] (just "File not found"))
       ≫span spanMr (set-include-elt s cur-file (record ie {err = tt}))
     (just (imported-file , pn , is-public)) →
-      let as = qualif-args (toplevel-state.Γ s) as in
-      λ Γ ss → bindM (process-file s imported-file pn) (λ where
-        (s , mod) →
-          (let s = scope-imports s imported-file oa as in
-           let ie = get-include-elt s imported-file in
-             spanM-add (Import-span pi imported-file pi' []
-               (if (include-elt.err ie)
-                   then just "There is an error in the imported file"
-                   else nothing)) ≫span spanMr s) Γ ss)
+      λ Γ ss → bindM (process-file s imported-file pn)
+      λ { (s , mod) →
+        (let ie = get-include-elt s imported-file in
+         spanM-add (Import-span pi imported-file pi' []
+           (if (include-elt.err ie)
+               then just "There is an error in the imported file"
+               else nothing)) ≫span
+         (maybe-else
+           (spanM-add (KndVar-span "Import" (toplevel-state.Γ s) (pi , x , as) checking [] (just "Undefined module import.")))
+           (λ ps → check-args-against-params ("Import", "import") (pi' , x , as) ps as)
+           (lookup-mod-params (toplevel-state.Γ s) imported-file)) ≫span
+         spanMr (scope-imports s imported-file oa (qualif-args (toplevel-state.Γ s) as))) Γ ss
+      }
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check =
@@ -157,7 +161,7 @@ process-params s (pi , ps) need-to-check =
   check-and-add-params globalScope pi ps ≫=span λ _ →
   spanM-set-params ps ≫span
   get-ctxt λ Γ → 
-  spanMr (record s {Γ = Γ})
+  spanMr (record s {Γ = ctxt-add-current-params Γ})
 
 process-start s filename pn (File pi is mn ps cs pi') need-to-check =
   λ Γ ss → bindM {mF} (progress-update pn need-to-check) (λ _ →

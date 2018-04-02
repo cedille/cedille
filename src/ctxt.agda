@@ -17,7 +17,7 @@ qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie) new-sym-info-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie , empty-trie) new-sym-info-trie empty-trie
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -154,6 +154,12 @@ ctxt-rename p v v' (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
 -- lookup functions
 ----------------------------------------------------------------------
 
+-- lookup mod params from filename
+lookup-mod-params : ctxt → var → maybe params
+lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps) _ _) fn =
+  trie-lookup syms fn ≫=maybe λ { (mn , _) →
+  trie-lookup mn-ps mn }
+
 -- look for a defined kind for the given var, which is assumed to be a type,
 -- then instantiate its parameters
 qual-lookup : ctxt → var → maybe (args × sym-info)
@@ -239,6 +245,13 @@ ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , Pa
 ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
+ctxt-add-current-params : ctxt → ctxt
+ctxt-add-current-params Γ@(mk-ctxt m (syms , mn-fn , mn-ps) i symb-occs) =
+  mk-ctxt m (syms , mn-fn , trie-insert mn-ps mn ps) i symb-occs
+  where
+  mn = ctxt-get-current-modname Γ
+  ps = ctxt-get-current-params Γ
+
 -- TODO I think this should trie-remove the List occurrence of the filename lookup of syms
 ctxt-clear-symbol : ctxt → string → ctxt
 ctxt-clear-symbol (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
@@ -249,8 +262,8 @@ ctxt-clear-symbols Γ [] = Γ
 ctxt-clear-symbols Γ (v :: vs) = ctxt-clear-symbols (ctxt-clear-symbol Γ v) vs
 
 ctxt-clear-symbols-of-file : ctxt → (filename : string) → ctxt
-ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn)  i symb-occs) fn =
-  mk-ctxt f (trie-insert syms fn (fst p , []) , trie-insert mn-fn (fst p) fn)
+ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i symb-occs) fn =
+  mk-ctxt f (trie-insert syms fn (fst p , []) , trie-insert mn-fn (fst p) fn , mn-ps)
     (hremove i (fst p) (snd p))
     symb-occs
   where

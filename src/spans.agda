@@ -444,9 +444,9 @@ TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
 Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v (just ll-term) :: symbol-data (unqual-local v) :: tvs)
 
-KndVar-span : ctxt → posinfo → string → args → checking-mode → 𝕃 tagged-val → err-m → span
-KndVar-span Γ pi v ys check tvs =
-  mk-span "Kind variable" pi (args-end-pos ys)
+KndVar-span : string → ctxt → (posinfo × string × args) → checking-mode → 𝕃 tagged-val → err-m → span
+KndVar-span str Γ (pi , v , ys) check tvs =
+  mk-span (str ^ " variable") pi (args-end-pos ys)
     (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data (unqual-local v) :: super-kind-data :: tvs)
 
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span

@@ -64,7 +64,7 @@ is-term-level _ = ff
 
 data ctxt : Set where
   mk-ctxt : (mod : mod-info) →                     -- current module
-            (syms : trie (string × 𝕃 string) × trie string) →    -- map each filename to its module name and the symbols declared in that file, and map each module name to its filename
+            (syms : trie (string × 𝕃 string) × trie string × trie params) →    -- map each filename to its module name and the symbols declared in that file, and map each module name to its filename and params
             (i : trie sym-info) →                  -- map symbols (from Cedille files) to their ctxt-info and location
             (sym-occurrences : trie (𝕃 (var × posinfo × string))) →  -- map symbols to a list of definitions they occur in (and relevant file info)
             ctxt
@@ -93,6 +93,9 @@ ctxt-get-current-mod (mk-ctxt m _ _ _) = m
 
 ctxt-get-current-modname : ctxt → string
 ctxt-get-current-modname (mk-ctxt (_ , mn , _ , _) _ _ _) = mn
+
+ctxt-get-current-params : ctxt → params
+ctxt-get-current-params (mk-ctxt (_ , _ , ps , _) _ _ _) = ps
 
 ctxt-get-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string))
 ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs) = symb-occs

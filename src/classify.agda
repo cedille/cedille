@@ -207,6 +207,7 @@ check-term-app : term → (m : maybe type) → spanM (maybe (meta-vars × type))
 check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
+check-args-against-params : (string × string) → (posinfo × var × args) → params → args → spanM ⊤
 check-tk : tk → spanM ⊤
 check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
 
@@ -985,47 +986,14 @@ check-kind (KndParens pi k pi') =
   spanM-add (punctuation-span "Parens (kind)" pi pi') ≫span
   check-kind k
 check-kind (Star pi) = spanM-add (Star-span pi checking nothing)
+
 check-kind (KndVar pi x ys) =
   get-ctxt (λ Γ → helper (ctxt-lookup-kind-var-qdef Γ x) ys)
   where helper : maybe (params × kind) → args → spanM ⊤
         helper (just (ps , k)) ys =
-          check-args-against-params ps ys ≫=span λ m →
-          spanM-restore-info* m
-          where check-args-against-params : params → args → spanM (𝕃 (string × restore-def))
-                check-args-against-params (ParamsCons (Decl _ pi x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
-                  check-type T (just k) ≫span
-                  spanM-push-type-def pi x T k ≫=span λ m → 
-                  check-args-against-params ps ys ≫=span λ ms →
-                  spanMr ((x , m) :: ms)
-                check-args-against-params (ParamsCons (Decl _ pi x (Tkt T) _) ps) (ArgsCons (TermArg t) ys) =
-                  check-term t (just T) ≫span
-                  spanM-push-term-def pi x t T ≫=span λ m → 
-                  check-args-against-params ps ys ≫=span λ ms →
-                  spanMr ((x , m) :: ms)
-                check-args-against-params (ParamsCons (Decl _ x₁ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg x₅) ys₂) =
-                  get-ctxt (λ Γ → 
-                  spanM-add (KndVar-span Γ pi x ys checking [ term-argument Γ x₅ ]
-                               ( just ("A term argument was supplied for type parameter " ^ x ^ " of the defined kind.")))) ≫span
-                  spanMr []
-                check-args-against-params (ParamsCons (Decl _ x₁ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
-                  get-ctxt (λ Γ → 
-                  spanM-add (KndVar-span Γ pi x ys checking [ type-argument Γ x₅ ]
-                               ( just ("A type argument was supplied for type parameter " ^ x ^ " of the defined kind.")))) ≫span
-                  spanMr []
-                check-args-against-params (ParamsCons (Decl _ _ x _ _) ps₁) (ArgsNil _) =
-                  get-ctxt (λ Γ → 
-                  spanM-add (KndVar-span Γ pi x ys checking []
-                               ( just ("Missing an argument for parameter " ^ x ^ " of the defined kind.")))) ≫span
-                  spanMr []             
-                check-args-against-params ParamsNil (ArgsCons x₁ ys₂) = 
-                  get-ctxt (λ Γ → 
-                  spanM-add (KndVar-span Γ pi x ys checking [ arg-argument Γ x₁ ]
-                               (just "An extra argument was given to the defined kind"))) ≫span
-                  spanMr []                                             
-                check-args-against-params ParamsNil (ArgsNil x₁) =
-                                  get-ctxt (λ Γ → spanM-add (KndVar-span Γ pi x ys checking [] nothing)) ≫span spanMr []
-        helper nothing _ = get-ctxt (λ Γ → spanM-add (KndVar-span Γ pi x ys checking [] (just "Undefined kind variable.")))
-    
+          check-args-against-params ("Kind" , "kind") (pi , x , ys) ps ys
+        helper nothing _ = get-ctxt (λ Γ → spanM-add (KndVar-span "Kind" Γ (pi , x , ys) checking [] (just "Undefined kind variable.")))
+
 check-kind (KndArrow k k') = 
   spanM-add (KndArrow-span k k' checking nothing) ≫span
   check-kind k ≫span
@@ -1041,6 +1009,44 @@ check-kind (KndPi pi pi' x atk k) =
   add-tk pi' x atk ≫=span λ mi → 
   check-kind k ≫span
   spanM-restore-info x mi
+
+check-args-against-params (cstr , str) orig ps ys =
+  caap orig ps ys ≫=span λ m →
+  spanM-restore-info* m
+  where
+  caap : (posinfo × var × args) → params → args → spanM (𝕃 (string × restore-def))
+  caap orig (ParamsCons (Decl _ pi x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
+    check-type T (just k) ≫span
+    spanM-push-type-def pi x T k ≫=span λ m → 
+    caap orig ps ys ≫=span λ ms →
+    spanMr ((x , m) :: ms)
+  caap orig (ParamsCons (Decl _ pi x (Tkt T) _) ps) (ArgsCons (TermArg t) ys) =
+    check-term t (just T) ≫span
+    spanM-push-term-def pi x t T ≫=span λ m → 
+    caap orig ps ys ≫=span λ ms →
+    spanMr ((x , m) :: ms)
+  caap orig (ParamsCons (Decl _ x₁ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg x₅) ys₂) =
+    get-ctxt (λ Γ → 
+    spanM-add (KndVar-span cstr Γ orig checking [ term-argument Γ x₅ ]
+                 ( just ("A term argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
+    spanMr []
+  caap orig (ParamsCons (Decl _ x₁ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
+    get-ctxt (λ Γ → 
+    spanM-add (KndVar-span cstr Γ orig checking [ type-argument Γ x₅ ]
+                 ( just ("A type argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
+    spanMr []
+  caap orig (ParamsCons (Decl _ _ x _ _) ps₁) (ArgsNil _) =
+    get-ctxt (λ Γ → 
+    spanM-add (KndVar-span cstr Γ orig checking []
+                 ( just ("Missing an argument for parameter " ^ x ^ " of the defined  " ^ str ^ ".")))) ≫span
+    spanMr []             
+  caap orig ParamsNil (ArgsCons x₁ ys₂) = 
+    get-ctxt (λ Γ → 
+    spanM-add (KndVar-span cstr Γ orig checking [ arg-argument Γ x₁ ]
+                 (just ("An extra argument was given to the defined  " ^ str ^ ".")))) ≫span
+    spanMr []                                             
+  caap orig ParamsNil (ArgsNil x₁) =
+    get-ctxt (λ Γ → spanM-add (KndVar-span cstr Γ orig checking [] nothing)) ≫span spanMr []
 
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
