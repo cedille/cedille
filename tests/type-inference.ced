@@ -151,6 +151,19 @@ test-mv-check ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A
 -- B2 is being infered as a solution, even though it is type-
 -- incorrect to provide explicitly
 
+-- (B) (Expected: ???)
+--
+-- The type synthesized for pb changes from P (cast -c a) to just P
+-- (cast a), meaning when we go to check that our solution P (cast a)
+-- for meta-var ?A' has type ★, we fail because we cannot check cast a
+-- : B since cast requires an erased argument -c firstx
+test-erased-terms
+  ◂ ∀ A : ★ . ∀ B : ★ . ∀ P : B ➔ ★ .
+    Π c : Cast · A · B . Π f : (∀ A : ★ . A ➔ Nat) . Π a : A . P (cast -c a) ➔ Nat
+  = Λ A . Λ B . Λ P . λ c . λ f . λ a . λ pb .
+      f {- · (P (cast -c a)) -} pb .
+--    ^--------------------------^
+
 -- Future Considerations
 ----------------------------------------------------------------------
 
