@@ -8,6 +8,7 @@ import Ind.
 import product.
 import sum.
 import unit.
+import cnat. -- just for example at the end
 
 ListF ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ X : ★ . Sum · Unit · (Product · A · X) .
 
@@ -46,3 +47,4 @@ appendAssoc ◂ ∀ A : ★ . Π l1 : List · A . ∀ l2 : List · A . ∀ l3 : 
           θ<d> (ind-Sum d) (λ u . β) (λ p . θ<p> (ind-Product p)
                  (λ h . λ t . ρ+ (ih.1 t) - β)) ].
       
+testList ◂ List · cNat = cons (cS (cS cZ)) (cons (cS cZ) (cons cZ (nil · cNat))) .
