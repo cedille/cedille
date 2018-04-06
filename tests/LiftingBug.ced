@@ -17,5 +17,5 @@ El ◂ Nat ➔ ★ ➔ ★ = λ n : Nat. λ C : ★.
 one ◂ Nat = suc zero.
 Foo ◂ ★ = ∀ C : ★. El one · C ➔ C.
 
-foo ◂ Unit ➔ Foo = λ u. Λ C. λ c. c.
+foo ◂ Foo = Λ C. λ c. c.
 
