@@ -1,0 +1,21 @@
+module LiftingBug.
+
+Unit ◂ ★ = ∀ C : ★. C ➔ C.
+unit ◂ Unit = Λ C. λ c. c.
+
+Nat ◂ ★ = ∀ C : ★. C ➔ ((Unit ➔ C) ➔ C) ➔ C.
+zero ◂ Nat = Λ C. λ c1. λ c2. c1.
+suc ◂ Nat ➔ Nat =
+  λ n. Λ C. λ c1. λ c2. c2 (λ u. n · C c1 c2).
+
+El ◂ Nat ➔ ★ ➔ ★ = λ n : Nat. λ C : ★.
+  (↑ S . n · S : (☆ ➔↑ ((Unit ➔↑ ☆) ➔↑ ☆) ➔↑ ☆))
+  · C
+  · (λ ih : Unit ➔ ★. ih unit)
+  .
+
+one ◂ Nat = suc zero.
+Foo ◂ ★ = ∀ C : ★. El one · C ➔ C.
+
+foo ◂ Unit ➔ Foo = λ u. Λ C. λ c. c.
+

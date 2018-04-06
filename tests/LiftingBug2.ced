@@ -1,0 +1,22 @@
+module LiftingBug2.
+
+Unit ◂ ★ = ∀ C : ★. C ➔ C.
+unit ◂ Unit = Λ C. λ c. c.
+
+KUnit ◂ Unit ➔ ★ = λ _ : Unit. Unit.
+
+Tel ◂ ★ = ∀ C : ★. C ➔ (Π u : Unit. (KUnit u ➔ C) ➔ C) ➔ C.
+End ◂ Tel = Λ C. λ c1. λ c2. c1.
+Ext ◂ Π u : Unit. (KUnit u ➔ Tel) ➔ Tel =
+  λ u. λ f. Λ C. λ c1. λ c2. c2 u (λ u'. f u' · C c1 c2).
+
+El ◂ Tel ➔ ★ ➔ ★ = λ t : Tel. λ C : ★.
+  (↑ S . t · S : (☆ ➔↑ (Π↑ u : Unit . (KUnit u ➔↑ ☆) ➔↑ ☆) ➔↑ ☆))
+  · C
+  · (λ u : Unit. λ D : KUnit u ➔ ★. Π u' : KUnit u. D u')
+  .
+
+FooT ◂ Tel = Ext unit (λ u. End).
+Foo ◂ ★ = ∀ C : ★. El FooT · C ➔ C.
+
+foo ◂ Unit ➔ Foo = λ u. Λ C. λ c. c u.
