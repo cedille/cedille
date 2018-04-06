@@ -55,7 +55,12 @@ hastpF ◂ 𝒌hastp ➔ 𝒌hastp =
    X (mkhastpI n G (abs n body) (arrow T1 T2))) ➔ 
 
   -- app case
-
+  (Π n : Nat . Π G : ctxt n . Π t1 : Trm n . Π t2 : Trm n . Π T1 : Tp . Π T2 : Tp .
+   hastp (mkhastpI n G t1 (arrow T1 T2)) ➔
+   hastp (mkhastpI n G t2 T1) ➔
+   X (mkhastpI n G t1 (arrow T1 T2)) ➔
+   X (mkhastpI n G t2 T1) ➔
+   X (mkhastpI n G (app n t1 t2) T2)) ➔
   X i.
 
 hastp ◂ 𝒌hastp = Reci · hastpI · hastpF .
