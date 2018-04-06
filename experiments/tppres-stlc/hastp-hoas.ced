@@ -1,0 +1,41 @@
+module Hastp.
+
+import ../iota-term/RecTypeI.
+import ../iota-term/trmD.
+import ../iota-term/trmInduction.
+import ../tpinf/tp.
+import nat.
+import ../iota-term/valuation.
+import product.
+import sigma.
+import true.
+
+hastpIa ◂ Π n : Nat . ★ =
+  λ n : Nat . Product · (Trm n) · Tp.
+
+hastpI ◂ ★ = Sigma · Nat · hastpIa .
+
+mkhastpI ◂ Π n : Nat . Trm n ➔ Tp ➔ hastpI =
+  λ n . λ t . λ T .
+    mksigma · Nat · hastpIa n (pair t T) .
+
+𝒌hastp = hastpI ➔ ★ .
+hastpF ◂ 𝒌hastp ➔ 𝒌hastp =
+  λ hastp : 𝒌hastp . λ i : hastpI .
+  ∀ X : 𝒌hastp .
+  -- lambda case
+  (Π n : Nat . Π G : ctxt n. Π body : Trm (S n) . Π T1 : Tp . Π T2 : Tp .
+   hastp (mkhastpI (S n) (update-ctxt n G T1) body T2) ➔
+   X (mkhastpI (S n) (update-ctxt n G T1) body T2) ➔ 
+   X (mkhastpI n G (abs n body) (arrow T1 T2))) ➔ 
+
+  -- app case
+  (Π n : Nat . Π G : ctxt n . Π t1 : Trm n . Π t2 : Trm n . Π T1 : Tp . Π T2 : Tp .
+   hastp (mkhastpI n G t1 (arrow T1 T2)) ➔
+   hastp (mkhastpI n G t2 T1) ➔
+   X (mkhastpI n G t1 (arrow T1 T2)) ➔
+   X (mkhastpI n G t2 T1) ➔
+   X (mkhastpI n G (app n t1 t2) T2)) ➔
+  X i.
+
+hastp ◂ 𝒌hastp = Reci · hastpI · hastpF .

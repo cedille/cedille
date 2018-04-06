@@ -1,0 +1,128 @@
+import iChelpers.
+import nat.
+
+module TrmC(I : Nat ➔ ★)(IF : ★ ➔ ★ ➔ ★)(biMonoIF : biMono · IF)
+           (presPerIF : ∀ X : Nat ➔ ★ . ∀ Y : Nat ➔ ★ .
+                        Persistent · X ➔ Persistent · Y ➔
+                        Persistent · (λ n : Nat . IF · (X n) · (Y n))) .
+
+import product.
+import sum.
+import cast.
+import recType.
+import RecTypeI.
+import valuation.
+import natExtras.
+import wSigma2.
+import is.
+import top.
+import sigma.
+import true.
+
+foldU1 ◂ Top ➔ Top ➔ Top = λ alg . λ val . β{λ d . d val alg} .
+foldU2 ◂ Nat ➔ Top ➔ Top ➔ Top = λ n : Nat . λ alg . λ val . β{λ x . λ d . d (updateValuation' n val x) alg} .
+inU ◂ Nat ➔ Top = λ n . β{λ d . λ val . λ alg . alg n (foldU1 alg val) (foldU2 n alg val) d}.
+inAlgU ◂ Nat ➔ Top = λ n . β{ λ _ . λ _ . λ d . inU n d}.
+varU ◂ Top = β{λ m . λ val . λ alg . lookupValuation' val m (λ a . a)}.
+--varValuationU ◂ Nat ➔ Top = λ n . β{λ m . λ _ . varU m}.
+
+TrmAlg ◂ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π Inv : Π n : Nat . X (S n) ➔ ★ . ★ =
+  λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ . λ Inv : Π n : Nat . X (S n) ➔ ★ . 
+  ι alg : Top .
+    Π n : Nat .
+    ∀ val : Valuation' n · X · Inv .
+    ∀ R1 : ★ . ∀ R2 : ★ . 
+    Cast · R1 · (Trm' n) ➾ 
+    Cast · R2 · (Trm' (S n)) ➾ 
+    Π e1 : is · (R1 ➔ X n) (foldU1 alg β{val}).
+    Π e2 : is · (Π v : X (S n) . Inv n v ➾ R2 ➔ X (S n)) (foldU2 n alg β{val}).
+    IF · R1 · R2 ➔ 
+    X n.
+
+TrmFC' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
+  λ Trm' : Nat ➔ ★ . λ n : Nat . 
+    ∀ X : Nat ➔ ★ . ∀ pX : Persistent · X . ∀ Inv : Π n : Nat . X (S n) ➔ ★ .
+      Valuation' n · X · Inv ➔ 
+      TrmAlg · Trm' · X · Inv ➔
+      X n .
+
+TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
+  λ Trm' : Nat ➔ ★ . λ n : Nat . 
+    ι x : TrmFC' · Trm' n.
+    ∀ f : Top . 
+      (Π m : Nat . Π p : Lt m n .
+                  { lookupValuation' f m (λ a . a) ≃ varU m }) ➾ 
+    { x f inAlgU ≃ x } .
+
+Trm' ◂ Nat ➔ ★ = Reci · Nat · TrmF' .
+
+TrmFFun' ◂ RecFunctori · Nat · TrmF' =
+  Λ X . Λ Y . λ c .
+    [ Λ n . λ u .
+      [ Λ Z . Λ pZ . Λ Inv . λ val . λ alg .
+          u.1 · Z -pZ · Inv val 
+          [ β{alg} ,
+            λ n . Λ val . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
+             alg.2 n -val · R1 · R2 -[λ r . casti · Nat · X · Y -c -n (cast · R1 · (X n) -c1 r), β]
+                             -[λ r . casti · Nat · X · Y -c -(S n) (cast · R2 · (X (S n)) -c2 r) , β]
+                              e1 e2 d],
+         u.2],
+       β] .
+
+TrmFold' ◂ ∀ n : Nat . TrmF' · Trm' n ➔ Trm' n =
+  casti · Nat · (TrmF' · Trm') · Trm' -(recFoldi · Nat · TrmF' -TrmFFun') . 
+
+TrmUnfold' ◂ ∀ n : Nat . Trm' n ➔ TrmF' · Trm' n = 
+  casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun') . 
+
+embed ◂ Persistent · Trm' =
+  λ m . λ n . Λ p .
+      [λ t . TrmFold' -n
+               [ Λ X . Λ pX . Λ Inv . λ val . λ alg .
+                   cast -(pX m n -p) 
+                     ((TrmUnfold' -m t).1 · X -pX · Inv
+                       (λ k . Λ pk . lookupValuation' -n · X · Inv val k -(LtLte k m n pk p)) alg) ,
+                 Λ f . Λ uf . ρ ((TrmUnfold' -m t).2 -f -(λ k . λ pk . uf k (LtLte k m n pk p))) - β{t}],
+      β].
+
+fold' ◂ ∀ X : Nat ➔ ★ . ∀ pX : Persistent · X . ∀ Inv : Π n : Nat . X (S n) ➔ ★ .
+        TrmAlg · Trm' · X · Inv ➔ ∀ n : Nat . Valuation' n · X · Inv  ➔ Trm' n ➔ X n =
+  Λ X . Λ pX . Λ Inv . λ alg . Λ n . λ val . λ t . (TrmUnfold' -n t).1 · X -pX · Inv val alg .
+
+in' ◂ Π n : Nat . IF · (Trm' n) · (Trm' (S n)) ➔ Trm' n =
+  λ n . λ d .
+    TrmFold' -n
+      [Λ X . Λ pX . Λ Inv . λ val . λ alg .
+         alg.2 n -val · (Trm' n) · (Trm' (S n))
+             -[ λ x . x , β] -[λ x . x , β]
+             [fold' · X -pX · Inv alg -n val , β{foldU1 alg val}]
+             [λ x . Λ ix . fold' · X -pX · Inv alg -(S n) (updateValuation' n · X · Inv val x -ix), β{foldU2 n alg val}]
+             d,
+        Λ f . Λ uf . β{λ val . λ alg . alg n (fold' alg val) (λ x . fold' alg (updateValuation' n val x)) d}].
+
+var' ◂ varTp · Trm' =
+  λ m . Λ n . Λ p . 
+     TrmFold' -n
+        [Λ X . Λ pX . Λ Inv . λ val . λ alg .
+          (lookupValuation' -n · X · Inv val m -p).1 · (X n) (λ a . Λ _ . cast -(pX (S m) n -(Lt-S2 m n p)) a),
+         Λ f . Λ uf . ρ+ (uf m p) - ε β{varU m} ].
+
+
+out-t1 ◂ Nat ➔ ★ = λ n : Nat . wSigma2 · Nat · (λ m : Nat . Lt m n).
+out-t2 ◂ Nat ➔ ★ = λ n : Nat . IF · (Trm' n) · (Trm' (S n)) .
+out-t ◂ Nat ➔ ★ = λ n : Nat . Sum · (out-t1 n) · (out-t2 n).
+out' ◂ ∀ n : Nat . Trm' n ➔ out-t n =
+  Λ n . λ t .
+    (TrmUnfold' -n t).1 · out-t
+      -●
+      · (λ n : Nat . λ _ : out-t (S n) . True)
+      (valuationFromFun' -n · out-t · (λ n : Nat . λ _ : out-t (S n) . True)
+        (λ m . Λ p . mkWSigma2 · (out-t (S m)) · (λ _ : out-t (S m) . True)
+                     (in1 · (out-t1 (S m)) · (out-t2 (S m)) (mkWSigma2 · Nat · (λ k : Nat . Lt k (S m)) m -(lt-nSn m))) -triv))
+      [ β{λ n' . λ e1 . λ e2 . λ d . in2 d} ,
+        λ n . Λ val . Λ R1 . Λ R2 . Λ reveal1 . Λ reveal2 . λ e1 . λ e2 . λ d .
+          in2 · (out-t1 n) · (out-t2 n)
+            (cast · (IF · R1 · R2)
+                  · (IF · (Trm' n) · (Trm' (S n)))
+                  -(biMonoIF · R1 · R2 · (Trm' n) · (Trm' (S n))
+                     reveal1 reveal2) d) ].
