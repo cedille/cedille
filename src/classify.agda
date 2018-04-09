@@ -273,7 +273,7 @@ check-termi (Let pi d t) mtp =
         add-def (DefTerm pi₁ x NoCheckType t') =
            get-ctxt λ Γ → check-term t' nothing ≫=span cont (compileFail-in Γ t') t'
           where cont : 𝕃 tagged-val × err-m → term → maybe type → spanM (var × restore-def)
-                cont (tvs , err) t' (just T) = spanM-push-term-def pi₁ x t' T ≫=span λ m →
+                cont (tvs , err) t' (just T) = spanM-push-term-def pi₁ nonParamVar x t' T ≫=span λ m →
                                      get-ctxt λ Γ → 
                                        spanM-add (Var-span Γ pi₁ x synthesizing (type-data Γ T :: tvs) err) ≫span
                                      spanMr (x , m)
@@ -286,7 +286,7 @@ check-termi (Let pi d t) mtp =
           get-ctxt λ Γ →
           let T' = qualif-type Γ T in
           check-term t' (just T') ≫span 
-          spanM-push-term-def pi₁ x t' T' ≫=span λ m →
+          spanM-push-term-def pi₁ nonParamVar x t' T' ≫=span λ m →
           get-ctxt λ Γ →
             let p = compileFail-in Γ t' in
             spanM-add (Var-span Γ pi₁ x checking (type-data Γ T' :: fst p) (snd p)) ≫span
@@ -296,7 +296,7 @@ check-termi (Let pi d t) mtp =
           get-ctxt λ Γ →
           let k' = qualif-kind Γ k in
           check-type T (just k') ≫span
-          spanM-push-type-def pi x T k' ≫=span λ m →
+          spanM-push-type-def pi nonParamVar x T k' ≫=span λ m →
           get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k' ] nothing) ≫span
           spanMr (x , m)
 
@@ -1017,12 +1017,12 @@ check-args-against-params (cstr , str) orig ps ys =
   caap : (posinfo × var × args) → params → args → spanM (𝕃 (string × restore-def))
   caap orig (ParamsCons (Decl _ pi x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
     check-type T (just k) ≫span
-    spanM-push-type-def pi x T k ≫=span λ m → 
+    spanM-push-type-def pi paramVar x T k ≫=span λ m → 
     caap orig ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
   caap orig (ParamsCons (Decl _ pi x (Tkt T) _) ps) (ArgsCons (TermArg t) ys) =
     check-term t (just T) ≫span
-    spanM-push-term-def pi x t T ≫=span λ m → 
+    spanM-push-term-def pi paramVar x t T ≫=span λ m → 
     caap orig ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
   caap orig (ParamsCons (Decl _ x₁ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg x₅) ys₂) =
@@ -1060,7 +1060,7 @@ check-meta-vars Xs -- pi
                (meta-var-mk-tp x k (just tp)) →
                    get-error λ es → if (isJust es) then spanMok else
                    check-type tp (just k)
-                 ≫span (spanM-push-type-def posinfo-gen x tp k
+                 ≫span (spanM-push-type-def posinfo-gen nonParamVar x tp k
                  ≫=span λ _ → spanMok))
          ≫=span λ _ → get-error λ es → spanMr es))
     ≫=spand λ es → spanMr (maybe-map retag es)

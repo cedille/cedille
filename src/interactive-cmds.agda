@@ -186,8 +186,8 @@ merge-lci-ctxt : lci → ctxt → ctxt
 merge-lci-ctxt (mk-lci nt v t T fn pi) Γ =
   maybe-else Γ (λ Γ → Γ) (string-to-parseAs nt ≫=maybe λ nt → parse-string (parseAs-type-of nt ) T ≫=maybe (h (mp nt t) ∘ ,_)) where
   h : {pa : parseAs} → parsedExpr pa → expr → maybe ctxt
-  h {parseAsTerm} (just t) (,_ {parseAsType} T) = just (ctxt-term-def pi localScope v t T Γ)
-  h {parseAsType} (just T) (,_ {parseAsKind} k) = just (ctxt-type-def pi localScope v T k Γ)
+  h {parseAsTerm} (just t) (,_ {parseAsType} T) = just (ctxt-term-def pi localScope nonParamVar v t T Γ)
+  h {parseAsType} (just T) (,_ {parseAsKind} k) = just (ctxt-type-def pi localScope nonParamVar v T k Γ)
   h nothing (,_ {parseAsType} T) = just (ctxt-term-decl pi localScope v T Γ)
   h nothing (,_ {parseAsKind} k) = just (ctxt-type-decl pi localScope v k Γ)
   h _ _ = nothing

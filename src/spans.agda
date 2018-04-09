@@ -115,8 +115,8 @@ spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi 
 spanM-set-params : params → spanM ⊤
 spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
-spanM-push-term-def : posinfo → var → term → type → spanM restore-def
-spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope x t T Γ , ss)
+spanM-push-term-def : posinfo → varType → var → term → type → spanM restore-def
+spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope vt x t T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
 spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
@@ -124,9 +124,9 @@ spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , 
  -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
 spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss)
- 
-spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
-spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope x t T Γ , ss)
+
+spanM-push-type-def : posinfo → varType → var → type → kind → spanM restore-def
+spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope vt x t T Γ , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤

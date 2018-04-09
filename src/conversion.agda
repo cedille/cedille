@@ -351,26 +351,28 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-oc
     h _ ps = ps
 
 -- assumption: classifier (i.e. kind) already qualified
-ctxt-type-def : posinfo → defScope → var → type → kind → ctxt → ctxt
-ctxt-type-def p s v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
-  (fn , mn , ps , qualif-insert-params q v' v ps)
+ctxt-type-def : posinfo → defScope → varType → var → type → kind → ctxt → ctxt
+ctxt-type-def p s vt v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
+  (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (type-def (def-params s ps) t' k , (fn , p)))
   symb-occs
   where
   t' = hnf Γ unfold-head (qualif-type Γ t) tt
-  v' = if s iff localScope then p % v else mn # v
+  v' = if isParamVar vt then v else if s iff localScope then p % v else mn # v
+  q' = if isParamVar vt then q else qualif-insert-params q v' v ps
 
 -- assumption: classifier (i.e. type) already qualified
-ctxt-term-def : posinfo → defScope → var → term → type → ctxt → ctxt
-ctxt-term-def p s v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
-  (fn , mn , ps , qualif-insert-params q v' v ps)
+ctxt-term-def : posinfo → defScope → varType → var → term → type → ctxt → ctxt
+ctxt-term-def p s vt v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
+  (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (term-def (def-params s ps) t' tp , (fn , p)))
   symb-occs
   where
   t' = hnf Γ unfold-head (qualif-term Γ t) tt
-  v' = if s iff localScope then p % v else mn # v
+  v' = if isParamVar vt then v else if s iff localScope then p % v else mn # v
+  q' = if isParamVar vt then q else qualif-insert-params q v' v ps
 
 ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
 ctxt-term-udef p s v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
