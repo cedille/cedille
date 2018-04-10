@@ -1,0 +1,44 @@
+module tp-inf-erased .
+
+import cast.
+import top.
+
+checked-noclass
+-- Binding occurence of pb is checked against P (cast -c a)
+-- and has no classifier
+  ◂ ∀ A : ★ . ∀ B : ★ . ∀ P : B ➔ ★ .
+    Π c : Cast · A · B . Π f : (∀ A : ★ . A ➔ Top) . Π a : A . P (cast -c a) ➔ Top
+  = Λ A . Λ B . Λ P . λ c . λ f . λ a . λ pb .
+      f {- · (P (cast -c a)) -} pb .
+-- When checking a term against a type, we first call hnf on the type
+-- (see classify:check-term:L220), which here erases P (cast -c a) to
+-- P (cast a). This is the type that gets stored in the context when
+-- we reach λ pb . (see classify:check-termi:L341)
+
+checked-class
+-- Binding occurence of pb is checked against P (cast -c a)
+-- and has a classifer
+  ◂ ∀ A : ★ . ∀ B : ★ . ∀ P : B ➔ ★ .
+    Π c : Cast · A · B . Π f : (∀ A : ★ . A ➔ Top) . Π a : A . P (cast -c a) ➔ Top
+  = Λ A . Λ B . Λ P . λ c . λ f . λ a . λ pb : P (cast -c a) .
+      f {- · (P (cast -c a)) -} pb .
+-- As before we call hnf on the checked type and get P (cast a). Now
+-- however we have classifier for pb, so this is kind-checked and the
+-- variable is added to the context with the classifier type P (cast
+-- -c a), rather than the context type (see again
+-- classify:check-termi:L341 and classify:lambda-bound-class:L132)
+--
+-- Unfortunately, we still fail - when we start checking the
+-- application f pb we call check-term `pb' nothing, which will
+-- head-normalize the synthesized type to P (cast a) (see
+-- classify:check-term-app:L718)
+
+synthed
+  -- Binding occurence of pb is synthesize to have P (cast -c a)
+  = Λ A : ★ . Λ B : ★ . Λ P : B ➔ ★ .
+    λ c : Cast · A · B. λ f : (∀ A : ★ . A ➔ Top) .
+    λ a : A . λ pb  : P (cast -c a) .
+      f {- · (P (cast -c a)) -} pb .
+-- Mostly the same as above - type given in classifier is stored in
+-- the context but check-term-app calls check-term `pb' nothing,
+-- resulting in P (cast a)
