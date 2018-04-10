@@ -16,7 +16,7 @@ type PosInfo = Text
 data Arg = TermArg Term | TypeArg Type
      deriving (Show,Eq)
 
-data Args = ArgsCons Arg Args | ArgsNil PosInfo
+data Args = ArgsCons Arg Args | ArgsNil
      deriving (Show,Eq)
      
 data ArrowType = ErasedArrow | UnerasedArrow
@@ -51,7 +51,7 @@ data Imports =
      deriving (Show,Eq)
 
 data Imprt =
-     Import PosInfo Fpth OptAs Args PosInfo
+     Import PosInfo OptPublic PosInfo Fpth OptAs Args PosInfo
      deriving (Show,Eq)
 
 data Kind =
@@ -98,7 +98,11 @@ data MaybeMinus =
      deriving (Show,Eq)
 
 data OptAs =
-     NoOptAs | SomeOptAs Var
+     NoOptAs | SomeOptAs PosInfo Var
+     deriving (Show,Eq)
+
+data OptPublic =
+     NotPublic | IsPublic
      deriving (Show,Eq)
 
 data OptClass =
@@ -107,10 +111,6 @@ data OptClass =
 
 data OptTerm =
      NoTerm | SomeTerm Term PosInfo
-     deriving (Show,Eq)
-
-data OptType =
-     NoType | SomeType Type
      deriving (Show,Eq)
 
 data Params =
@@ -123,7 +123,7 @@ data Rho =
      deriving (Show,Eq)
 
 data Start =
-     File PosInfo Imports Qvar Params Cmds PosInfo
+     File PosInfo Imports PosInfo PosInfo Qvar Params Cmds PosInfo
      deriving (Show,Eq)
      
 data Term =
@@ -154,13 +154,13 @@ data Tk = Tkk Kind | Tkt Type
 
 data Type =
        Abs PosInfo Binder PosInfo Bvar Tk Type
-     | Iota PosInfo PosInfo Bvar OptType Type
+     | Iota PosInfo PosInfo Bvar Type Type
      | Lft PosInfo PosInfo Var Term LiftingType
      | NoSpans Type PosInfo
      | TpApp Type Type
      | TpAppt Type Term
      | TpArrow Type ArrowType Type
-     | TpEq Term Term
+     | TpEq PosInfo Term Term PosInfo
      | TpHole PosInfo
      | TpLambda PosInfo PosInfo Bvar Tk Type
      | TpParens PosInfo Type PosInfo

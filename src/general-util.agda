@@ -266,8 +266,18 @@ record monad (F : Set → Set) : Set₁ where
 returnM : ∀{F : Set → Set}{{m : monad F}}{A : Set} → A → F A
 returnM {{m}} = monad.returnM m
 
+infixl 1 _≫monad_ _≫=monad_
 bindM : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
 bindM {{m}} = monad.bindM m
+
+_≫=monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
+_≫=monad_ = bindM
+
+bindM' : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
+bindM' a b = bindM a (λ a → b)
+
+_≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
+_≫monad_ = bindM'
 
 instance
   IO-monad : monad IO

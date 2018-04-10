@@ -69,7 +69,7 @@ rewrite-type : rewrite-t type
 rewrite-kind : rewrite-t kind
 rewrite-tk : rewrite-t tk
 rewrite-optClass : rewrite-t optClass
-rewrite-optType : rewrite-t optType
+-- rewrite-optType : rewrite-t optType
 rewrite-liftingType : rewrite-t liftingType
 
 rewrite-type Γ ρ u t1 t2 T with T
@@ -83,7 +83,7 @@ rewrite-type Γ ρ u t1 t2 T | Iota pi pi' y m tp =
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
     rewrite-return T
       ((rewriteA-pure (Iota pi pi' y)) rewriteA-app
-         (rewrite-optType Γ ρ u t1 t2 m) rewriteA-app
+         (rewrite-type Γ ρ u t1 t2 m) rewriteA-app
          (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
 rewrite-type Γ ρ u t1 t2 T | Lft pi pi' y t l = 
   let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
@@ -117,9 +117,9 @@ rewrite-type Γ ρ u t1 t2 T | TpArrow tp arrowtype tp' =
        (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
        (rewriteA-pure arrowtype) rewriteA-app
        (rewrite-type Γ ρ u t1 t2 tp'))
-rewrite-type Γ ρ u t1 t2 T | TpEq ta tb =
+rewrite-type Γ ρ u t1 t2 T | TpEq pi ta tb pi' =
   rewrite-return T
-    ((rewriteA-pure TpEq) rewriteA-app
+    ((rewriteA-pure (λ ta' tb' → TpEq pi ta' tb' pi')) rewriteA-app
        (rewrite-term Γ ρ u t1 t2 ta) rewriteA-app
        (rewrite-term Γ ρ u t1 t2 tb))
 rewrite-type Γ ρ u t1 t2 T | TpLambda pi pi' y atk t' = 
@@ -143,8 +143,8 @@ rewrite-tk Γ ρ u t1 t2 (Tkk x) = rewrite-return (Tkk x)
 rewrite-optClass Γ ρ u t1 t2 NoClass = NoClass , 0
 rewrite-optClass Γ ρ u t1 t2 (SomeClass x) = rewrite-return (SomeClass x)
                                               ((rewriteA-pure SomeClass) rewriteA-app (rewrite-tk Γ ρ u t1 t2 x))
-rewrite-optType Γ ρ u t1 t2 NoType = NoType , 0
+{-rewrite-optType Γ ρ u t1 t2 NoType = NoType , 0
 rewrite-optType Γ ρ u t1 t2 (SomeType x) = rewrite-return (SomeType x)
-                                              ((rewriteA-pure SomeType) rewriteA-app (rewrite-type Γ ρ u t1 t2 x))
+                                              ((rewriteA-pure SomeType) rewriteA-app (rewrite-type Γ ρ u t1 t2 x))-}
 
 rewrite-liftingType Γ ρ u t1 t2 l = l , 0 -- unimplemented

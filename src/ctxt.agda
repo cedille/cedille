@@ -11,7 +11,7 @@ new-sym-info-trie : trie sym-info
 new-sym-info-trie = trie-insert empty-trie compileFail-qual ((term-decl compileFailType) , "missing" , "missing")
 
 new-qualif : qualif
-new-qualif = trie-insert empty-trie compileFail (compileFail-qual , ArgsNil "")
+new-qualif = trie-insert empty-trie compileFail (compileFail-qual , ArgsNil)
 
 qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
@@ -100,7 +100,7 @@ qualif-params Γ ParamsNil = ParamsNil
 qualif-args : ctxt → args → args
 qualif-args Γ (ArgsCons (TermArg t) as) = ArgsCons (TermArg (qualif-term Γ t)) (qualif-args Γ as)
 qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp)) (qualif-args Γ as)
-qualif-args Γ as@(ArgsNil _) = as
+qualif-args Γ ArgsNil = ArgsNil
 
 ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
 ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
@@ -128,7 +128,7 @@ ctxt-var-decl-if p v Γ with Γ
 ... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
-... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil p))) syms
+... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms
   (trie-insert i v (var-decl , (fn , p)))
   symb-occs
 
@@ -246,11 +246,8 @@ ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
 ctxt-add-current-params : ctxt → ctxt
-ctxt-add-current-params Γ@(mk-ctxt m (syms , mn-fn , mn-ps) i symb-occs) =
-  mk-ctxt m (syms , mn-fn , trie-insert mn-ps mn ps) i symb-occs
-  where
-  mn = ctxt-get-current-modname Γ
-  ps = ctxt-get-current-params Γ
+ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps) i symb-occs) =
+  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps) i symb-occs
 
 -- TODO I think this should trie-remove the List occurrence of the filename lookup of syms
 ctxt-clear-symbol : ctxt → string → ctxt

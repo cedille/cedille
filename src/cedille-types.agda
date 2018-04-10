@@ -81,12 +81,12 @@ data maybeMinus : Set
 {-# COMPILED_DECLARE_DATA maybeMinus CedilleTypes.MaybeMinus #-}
 data optAs : Set
 {-# COMPILED_DECLARE_DATA optAs CedilleTypes.OptAs #-}
+data optPublic : Set
+{-# COMPILED_DECLARE_DATA optPublic CedilleTypes.OptPublic #-}
 data optClass : Set
 {-# COMPILED_DECLARE_DATA optClass CedilleTypes.OptClass #-}
 data optTerm : Set
 {-# COMPILED_DECLARE_DATA optTerm CedilleTypes.OptTerm #-}
-data optType : Set
-{-# COMPILED_DECLARE_DATA optType CedilleTypes.OptType #-}
 data params : Set
 {-# COMPILED_DECLARE_DATA params CedilleTypes.Params #-}
 data rho : Set
@@ -111,7 +111,7 @@ data arg where
 
 data args where 
   ArgsCons : arg → args → args
-  ArgsNil : posinfo → args
+  ArgsNil : args
 {-# COMPILED_DATA args CedilleTypes.Args CedilleTypes.ArgsCons CedilleTypes.ArgsNil #-}
 
 data arrowtype where 
@@ -150,7 +150,7 @@ data imports where
 {-# COMPILED_DATA imports CedilleTypes.Imports CedilleTypes.ImportsNext CedilleTypes.ImportsStart #-}
 
 data imprt where 
-  Import : posinfo → fpth → optAs → args → posinfo → imprt
+  Import : posinfo → optPublic → posinfo → fpth → optAs → args → posinfo → imprt
 {-# COMPILED_DATA imprt CedilleTypes.Imprt CedilleTypes.Import #-}
 
 data kind where 
@@ -208,8 +208,13 @@ data maybeMinus where
 
 data optAs where 
   NoOptAs : optAs
-  SomeOptAs : var → optAs
+  SomeOptAs : posinfo → var → optAs
 {-# COMPILED_DATA optAs CedilleTypes.OptAs CedilleTypes.NoOptAs CedilleTypes.SomeOptAs #-}
+
+data optPublic where
+  NotPublic : optPublic
+  IsPublic : optPublic
+{-# COMPILED_DATA optPublic CedilleTypes.OptPublic CedilleTypes.NotPublic CedilleTypes.IsPublic #-}
 
 data optClass where 
   NoClass : optClass
@@ -220,11 +225,6 @@ data optTerm where
   NoTerm : optTerm
   SomeTerm : term → posinfo → optTerm
 {-# COMPILED_DATA optTerm CedilleTypes.OptTerm CedilleTypes.NoTerm CedilleTypes.SomeTerm #-}  
-
-data optType where 
-  NoType : optType
-  SomeType : type → optType
-{-# COMPILED_DATA optType CedilleTypes.OptType CedilleTypes.NoType CedilleTypes.SomeType #-}    
 
 data params where 
   ParamsCons : decl → params → params
@@ -237,7 +237,7 @@ data rho where
 {-# COMPILED_DATA rho CedilleTypes.Rho CedilleTypes.RhoPlain CedilleTypes.RhoPlus #-}
 
 data start where 
-  File : posinfo → imports → qvar → params → cmds → posinfo → start
+  File : posinfo → imports → posinfo → posinfo → qvar → params → cmds → posinfo → start
 {-# COMPILED_DATA start CedilleTypes.Start CedilleTypes.File #-}  
 
 data term where 
@@ -272,13 +272,13 @@ data tk where
 
 data type where 
   Abs : posinfo → binder → posinfo → bvar → tk → type → type
-  Iota : posinfo → posinfo → bvar → optType → type → type
+  Iota : posinfo → posinfo → bvar → type → type → type
   Lft : posinfo → posinfo → var → term → liftingType → type
   NoSpans : type → posinfo → type
   TpApp : type → type → type
   TpAppt : type → term → type
   TpArrow : type → arrowtype → type → type
-  TpEq : term → term → type
+  TpEq : posinfo → term → term → posinfo → type
   TpHole : posinfo → type
   TpLambda : posinfo → posinfo → bvar → tk → type → type
   TpParens : posinfo → type → posinfo → type
@@ -327,7 +327,6 @@ data ParseTreeT : Set where
   parsed-optAs : optAs → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
   parsed-optTerm : optTerm → ParseTreeT
-  parsed-optType : optType → ParseTreeT
   parsed-params : params → ParseTreeT
   parsed-rho : rho → ParseTreeT
   parsed-start : start → ParseTreeT
@@ -512,7 +511,7 @@ mutual
 
   argsToString : args → string
   argsToString (ArgsCons x0 x1) = "(ArgsCons" ^ " " ^ (argToString x0) ^ " " ^ (argsToString x1) ^ ")"
-  argsToString (ArgsNil x0) = "(ArgsNil" ^ " " ^ (posinfoToString x0) ^ ")"
+  argsToString (ArgsNil) = "ArgsNil"
 
   arrowtypeToString : arrowtype → string
   arrowtypeToString (ErasedArrow) = "ErasedArrow" ^ ""
@@ -543,7 +542,7 @@ mutual
   importsToString (ImportsStart) = "ImportsStart" ^ ""
 
   imprtToString : imprt → string
-  imprtToString (Import x0 x1 x2 x3 x4) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (fpthToString x1) ^ " " ^ (optAsToString x2) ^ " " ^ (argsToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  imprtToString (Import x0 x1 x2 x3 x4 x5 x6) = "(Import" ^ " " ^ (posinfoToString x0) ^ " " ^ (optPublicToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (fpthToString x3) ^ " " ^ (optAsToString x4) ^ " " ^ (argsToString x5) ^ " " ^ (posinfoToString x6) ^ ")"
 
   kindToString : kind → string
   kindToString (KndArrow x0 x1) = "(KndArrow" ^ " " ^ (kindToString x0) ^ " " ^ (kindToString x1) ^ ")"
@@ -591,7 +590,11 @@ mutual
 
   optAsToString : optAs → string
   optAsToString (NoOptAs) = "NoOptAs" ^ ""
-  optAsToString (SomeOptAs x0) = "(SomeOptAs" ^ " " ^ (varToString x0) ^ ")"
+  optAsToString (SomeOptAs x0 x1) = "(SomeOptAs" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x0) ^ ")"
+
+  optPublicToString : optPublic → string
+  optPublicToString (NotPublic) = "NotPublic"
+  optPublicToString (IsPublic) = "IsPublic"
 
   optClassToString : optClass → string
   optClassToString (NoClass) = "NoClass" ^ ""
@@ -600,10 +603,6 @@ mutual
   optTermToString : optTerm → string
   optTermToString (NoTerm) = "NoTerm" ^ ""
   optTermToString (SomeTerm x0 x1) = "(SomeTerm" ^ " " ^ (termToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
-
-  optTypeToString : optType → string
-  optTypeToString (NoType) = "NoType" ^ ""
-  optTypeToString (SomeType x0) = "(SomeType" ^ " " ^ (typeToString x0) ^ ")"
 
   paramsToString : params → string
   paramsToString (ParamsCons x0 x1) = "(ParamsCons" ^ " " ^ (declToString x0) ^ " " ^ (paramsToString x1) ^ ")"
@@ -614,7 +613,7 @@ mutual
   rhoToString (RhoPlus) = "RhoPlus" ^ ""
 
   startToString : start → string
-  startToString (File x0 x1 x2 x3 x4 x5) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (importsToString x1) ^ " " ^ (qvarToString x2) ^ " " ^ (paramsToString x3) ^ " " ^ (cmdsToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
+  startToString (File x0 x1 x2 x3 x4 x5 x6 x7) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (importsToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (posinfoToString x3) ^ " " ^ (qvarToString x4) ^ " " ^ (paramsToString x5) ^ " " ^ (cmdsToString x6) ^ " " ^ (posinfoToString x7) ^ ")"
 
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
@@ -645,13 +644,13 @@ mutual
 
   typeToString : type → string
   typeToString (Abs x0 x1 x2 x3 x4 x5) = "(Abs" ^ " " ^ (posinfoToString x0) ^ " " ^ (binderToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (typeToString x5) ^ ")"
-  typeToString (Iota x0 x1 x2 x3 x4) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (optTypeToString x3) ^ " " ^ (typeToString x4) ^ ")"
+  typeToString (Iota x0 x1 x2 x3 x4) = "(Iota" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (typeToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (Lft x0 x1 x2 x3 x4) = "(Lft" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (varToString x2) ^ " " ^ (termToString x3) ^ " " ^ (liftingTypeToString x4) ^ ")"
   typeToString (NoSpans x0 x1) = "(NoSpans" ^ " " ^ (typeToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
   typeToString (TpApp x0 x1) = "(TpApp" ^ " " ^ (typeToString x0) ^ " " ^ (typeToString x1) ^ ")"
   typeToString (TpAppt x0 x1) = "(TpAppt" ^ " " ^ (typeToString x0) ^ " " ^ (termToString x1) ^ ")"
   typeToString (TpArrow x0 x1 x2) = "(TpArrow" ^ " " ^ (typeToString x0) ^ " " ^ (arrowtypeToString x1) ^ " " ^ (typeToString x2) ^ ")"
-  typeToString (TpEq x0 x1) = "(TpEq" ^ " " ^ (termToString x0) ^ " " ^ (termToString x1) ^ ")"
+  typeToString (TpEq x0 x1 x2 x3) = "(TpEq" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
   typeToString (TpHole x0) = "(TpHole" ^ " " ^ (posinfoToString x0) ^ ")"
   typeToString (TpLambda x0 x1 x2 x3 x4) = "(TpLambda" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (typeToString x4) ^ ")"
   typeToString (TpParens x0 x1 x2) = "(TpParens" ^ " " ^ (posinfoToString x0) ^ " " ^ (typeToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
@@ -684,7 +683,6 @@ ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
 ParseTreeToString (parsed-optAs t) = optAsToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
 ParseTreeToString (parsed-optTerm t) = optTermToString t
-ParseTreeToString (parsed-optType t) = optTypeToString t
 ParseTreeToString (parsed-params t) = paramsToString t
 ParseTreeToString (parsed-rho t) = rhoToString t
 ParseTreeToString (parsed-start t) = startToString t
@@ -848,10 +846,6 @@ mutual
   {-# TERMINATING #-}
   norm-params : (x : params) → params
   norm-params x = x
-
-  {-# TERMINATING #-}
-  norm-optType : (x : optType) → optType
-  norm-optType x = x
 
   {-# TERMINATING #-}
   norm-optTerm : (x : optTerm) → optTerm

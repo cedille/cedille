@@ -18,7 +18,7 @@ are-free-in-term : are-free-in-t term
 are-free-in-type : are-free-in-t type
 are-free-in-kind : are-free-in-t kind
 are-free-in-optClass : are-free-in-t optClass
-are-free-in-optType : are-free-in-t optType
+-- are-free-in-optType : are-free-in-t optType
 are-free-in-optTerm : are-free-in-t optTerm
 are-free-in-tk : are-free-in-t tk 
 are-free-in-liftingType : are-free-in-t liftingType
@@ -57,12 +57,12 @@ are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-
 
 are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
 are-free-in-type ce x (TpLambda _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
-are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-optType ce x m || are-free-in-type ce (trie-remove x x') t
+are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-type ce x m || are-free-in-type ce (trie-remove x x') t
 are-free-in-type ce x (Lft _ _ X t l) = are-free-in-liftingType ce x l || are-free-in-term ce (trie-remove x X) t
 are-free-in-type ce x (TpApp t t') = are-free-in-type ce x t || are-free-in-type ce x t'
 are-free-in-type ce x (TpAppt t t') = are-free-in-type ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpArrow t _ t') = are-free-in-type ce x t || are-free-in-type ce x t'
-are-free-in-type ce x (TpEq t t') = are-free-in-term ce x t || are-free-in-term ce x t'
+are-free-in-type ce x (TpEq _ t t' _) = are-free-in-term ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpParens x₁ t x₂) = are-free-in-type ce x t
 are-free-in-type ce x (TpVar _ x') = trie-contains x x'
 are-free-in-type ce x (NoSpans t _) = are-free-in-type ce x t
@@ -77,13 +77,13 @@ are-free-in-kind ce x (Star x₁) = ff
 
 are-free-in-args ce x (ArgsCons (TermArg y) ys) = are-free-in-term ce x y || are-free-in-args ce x ys
 are-free-in-args ce x (ArgsCons (TypeArg y) ys) = are-free-in-type ce x y || are-free-in-args ce x ys
-are-free-in-args ce x (ArgsNil x₁) = ff
+are-free-in-args ce x ArgsNil = ff
 
 are-free-in-optClass ce x NoClass = ff
 are-free-in-optClass ce x (SomeClass atk) = are-free-in-tk ce x atk
 
-are-free-in-optType ce x NoType = ff
-are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
+-- are-free-in-optType ce x NoType = ff
+-- are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
 
 are-free-in-maybeCheckType ce x NoCheckType = ff
 are-free-in-maybeCheckType ce x (Type t) = are-free-in-type ce x t

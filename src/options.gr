@@ -19,12 +19,14 @@ ShowQualifiedVars : opt -> 'show-qualified-vars' ows '=' ows str-bool ows '.' ow
 PathsNil : paths -> .
 PathsCons : paths -> ws path paths .
 
+StrBoolTrue : str-bool -> 'true' .
+StrBoolFalse : str-bool -> 'false' .
+
 
 Lexical 
 
 squote => '\"' .
 path -> squote anychar* squote.
-str-bool -> 'true' | 'false' .
 
 alpha -> ['a' - 'z'] | ['A' - 'Z'] .
 

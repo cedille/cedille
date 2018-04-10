@@ -62,11 +62,11 @@ nav-span-big pi pi' = spanM-add (mk-span "" pi pi' (punctuation-data :: not-for-
 optTerm-span : optTerm → spanM ⊤
 optTerm-span NoTerm = spanMok
 optTerm-span (SomeTerm t pi) = erased-term-spans t
-
+{-
 optType-span : optType → spanM ⊤
 optType-span NoType = spanMok
 optType-span (SomeType tp) = erased-type-spans tp
-
+-}
 ll-type-data : language-level → tagged-val
 ll-type-data ll-term = "type" , [[ "br-auto-generated-type" ]] , []
 ll-type-data ll-type = "kind" , [[ "br-auto-generated-kind" ]] , []
@@ -130,7 +130,7 @@ erased-type-spans (Abs pi b pi' v t-k tp) =
 erased-type-spans (Iota pi pi' v ot tp) =
   put-span pi (type-end-pos tp) ll-type [] ≫span
   erased-var-span pi' v ll-type ≫span
-  optType-span ot ≫span
+  erased-type-spans ot ≫span -- optType-span ot ≫span
   erased-type-spans tp
 erased-type-spans (Lft pi pi' v t lt) =
   put-span pi (term-end-pos t) ll-type [] ≫span
@@ -148,8 +148,8 @@ erased-type-spans (TpArrow tp at tp') =
   put-span (type-start-pos tp) (type-end-pos tp') ll-type [] ≫span
   erased-type-spans tp ≫span
   erased-type-spans tp'
-erased-type-spans (TpEq t t') =
-  put-span (term-start-pos t) (term-end-pos t') ll-type [] ≫span
+erased-type-spans (TpEq pi t t' pi') =
+  put-span pi pi' ll-type [] ≫span
   erased-term-spans t ≫span
   erased-term-spans t'
 erased-type-spans (TpHole pi) = inc-span pi ll-type []

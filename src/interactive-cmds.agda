@@ -342,9 +342,9 @@ rewrite-cmd Γ ss is hd lc =
   (,_ {parseAsTerm} t) →
     checked-with-no-errors (check-term t nothing Γ' empty-spans)
       ! "Error when synthesizing a type for the input term" ≫error λ where
-    (TpEq t₁ t₂) → rewrite-expr Γ' ss t₁ t₂ use-hnf
+    (TpEq _ t₁ t₂ _) → rewrite-expr Γ' ss t₁ t₂ use-hnf
     _ → inj₁ "Synthesized a non-equational type from the input term"
-  (,_ {parseAsType} (TpEq t₁ t₂)) →
+  (,_ {parseAsType} (TpEq _ t₁ t₂ _)) →
     rewrite-expr Γ' (qualif-expr Γ' ss) (qualif-term Γ' t₁) (qualif-term Γ' t₂) use-hnf
   (,_ {parseAsType} T) → inj₁ "Expected the input expression to be a term, but got a type"
   (,_ {parseAsKind} _) → inj₁ "Expected the input expression to be a term, but got a kind"

@@ -33,7 +33,7 @@ not-right _ = tt
 is-untyped : {ed : exprd} → ⟦ ed ⟧ → expr-side → 𝔹
 is-untyped{TERM} (Beta _ _) _ = tt
 is-untyped{TERM} (Phi _ _ _ _ _) right = tt
-is-untyped{TYPE} (TpEq _ _) _ = tt
+is-untyped{TYPE} (TpEq _ _ _ _) _ = tt
 is-untyped _ _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
@@ -42,7 +42,7 @@ no-parens {_} {TERM} _ (Parens pi t pi') lr = tt
 no-parens {_} {TYPE} _ (TpParens pi T pi') lr = tt
 no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
-no-parens {_} {TYPE} _ (TpEq t t') lr = tt
+no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
 no-parens {_} {TERM} _ (Beta pi ot) lr = tt
 no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
 no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
@@ -68,7 +68,7 @@ no-parens{TYPE} (NoSpans T pi) p lr = tt
 no-parens{TYPE} (TpApp T T') p lr = is-abs p || is-arrow p || is-app p && not-right lr
 no-parens{TYPE} (TpAppt T t) p lr = is-abs p || is-arrow p || is-app p && not-right lr
 no-parens{TYPE} (TpArrow T a T') p lr = (is-abs p || is-arrow p) && not-left lr
-no-parens{TYPE} (TpEq t t') p lr = tt
+no-parens{TYPE} (TpEq _ t t' _) p lr = tt
 no-parens{TYPE} (TpHole pi) p lr = tt
 no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = is-abs p
 no-parens{TYPE} (TpParens pi T pi') p lr = tt
@@ -111,7 +111,7 @@ _≫str_ : strM → strM → strM
 strΓ : var → posinfo → strM → strM
 strΓ v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   m s n ts
-    (mk-ctxt (fn , mn , ps , (trie-insert q v (v' , ArgsNil pi))) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
+    (mk-ctxt (fn , mn , ps , (trie-insert q v (v' , ArgsNil))) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
     pe
   where v' = pi % v
 
@@ -156,7 +156,7 @@ liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
 
 optTerm-to-string : optTerm → strM
-optType-to-string : optType → strM
+-- optType-to-string : optType → strM
 optClass-to-string : optClass → strM
 maybeAtype-to-string : maybeAtype → strM
 maybeCheckType-to-string : maybeCheckType → strM
@@ -228,13 +228,13 @@ term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh
 term-to-stringh (Var pi x) = strVar x
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
-type-to-stringh (Iota pi pi' x oT T) = strAdd ("ι " ^ x) ≫str optType-to-string oT ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
+type-to-stringh (Iota pi pi' x T T') = strAdd ("ι " ^ x) ≫str strAdd " : " ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T')
 type-to-stringh (Lft pi pi' x t lT) = strAdd ("↑ " ^ x ^ " . ") ≫str strΓ x pi' (to-stringh t ≫str strAdd " : " ≫str to-stringh lT)
 type-to-stringh (NoSpans T pi) = to-string-ed T
 type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
 type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
-type-to-stringh (TpEq t t') = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
+type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strAdd "●"
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
 type-to-stringh (TpParens pi T pi') = strAdd "(" ≫str to-string-ed T ≫str strAdd ")"
@@ -254,8 +254,8 @@ liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
 optTerm-to-string NoTerm = strEmpty
 optTerm-to-string (SomeTerm t _) = strAdd " { " ≫str to-stringh t ≫str strAdd " }"
-optType-to-string NoType = strEmpty
-optType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
+-- optType-to-string NoType = strEmpty
+-- optType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
 optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
 maybeAtype-to-string NoAtype = strEmpty
@@ -267,7 +267,7 @@ lterms-to-string (LtermsNil _) = strEmpty
 arg-to-string (TermArg t) = to-stringh t
 arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
 args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-to-string ts
-args-to-string (ArgsNil _) = strEmpty
+args-to-string ArgsNil = strEmpty
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
 maybeErased-to-string Erased = "-"
@@ -303,6 +303,20 @@ to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither t)
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh' neither t)
 
+tk-to-string' : tk → strM
+tk-to-string' (Tkt T) = to-stringh' neither T
+tk-to-string' (Tkk k) = to-stringh' neither k
+
 tk-to-string : ctxt → tk → rope
-tk-to-string Γ (Tkt T) = to-string Γ T
-tk-to-string Γ (Tkk k) = to-string Γ k
+tk-to-string Γ atk = strRun Γ (tk-to-string' atk)
+
+params-to-string : params → strM
+params-to-string ParamsNil = strAdd ""
+params-to-string (ParamsCons (Decl _ pi v atk _) ParamsNil) =
+  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-string' atk ≫str strAdd ")"
+params-to-string (ParamsCons (Decl _ pi v atk _) ps) =
+  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-string' atk ≫str strAdd ") " ≫str
+  strΓ v pi (params-to-string ps)
+
+params-to-string-tag : string → ctxt → params → tagged-val
+params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)

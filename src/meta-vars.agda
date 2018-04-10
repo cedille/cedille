@@ -358,7 +358,7 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 
 meta-vars-match : ctxt → meta-vars → local-vars → (tpₓ tp : type) → error-t meta-vars
 meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → error-t meta-vars
-meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
+-- meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
 
 -- meta-vars-match
 meta-vars-match Γ Xs Ls tpₓ@(TpVar pi x) tp
@@ -412,12 +412,12 @@ meta-vars-match Γ Xs Ls tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpAr
     ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
-  =   meta-vars-match-optType Γ Xs Ls mₓ m
+  =   meta-vars-match Γ Xs Ls mₓ m
     ≫=err λ Xs →
       meta-vars-match (ctxt-rename pi xₓ x (ctxt-var-decl-if pi x Γ))
         Xs (stringset-insert Ls x) tpₓ tp
 
-meta-vars-match Γ Xs Ls (TpEq t₁ₓ t₂ₓ) (TpEq t₁ t₂)
+meta-vars-match Γ Xs Ls (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
   =   err-guard (~ conv-term Γ t₁ₓ t₁) (e-term-ineq Γ t₁ₓ t₁)
     ≫err err-guard (~ conv-term Γ t₂ₓ t₂) (e-term-ineq Γ t₂ₓ t₂)
     ≫err no-error Xs
@@ -447,7 +447,7 @@ meta-vars-match-tk Γ Xs Ls tkₓ tk
   = yes-error (e-tk-ineq Γ tkₓ tk)
 
 -- meta-vars-match-optType
-meta-vars-match-optType Γ Xs Ls NoType NoType
+{-meta-vars-match-optType Γ Xs Ls NoType NoType
   = no-error Xs
 meta-vars-match-optType Γ Xs Ls (SomeType tpₓ) (SomeType tp)
   = meta-vars-match Γ Xs Ls tpₓ tp
@@ -455,3 +455,4 @@ meta-vars-match-optType Γ Xs Ls NoType (SomeType tp)
   = yes-error $' e-optType-ineq Γ tp ff
 meta-vars-match-optType Γ Xs Ls (SomeType tpₓ) NoType
   = yes-error $' e-optType-ineq Γ tpₓ tt
+-}

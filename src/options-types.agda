@@ -9,9 +9,9 @@ open import parse-tree
 
 posinfo = string
 alpha = string
-alpha-bar-5 = string
+alpha-bar-4 = string
+alpha-range-2 = string
 alpha-range-3 = string
-alpha-range-4 = string
 anychar = string
 anychar-bar-10 = string
 anychar-bar-11 = string
@@ -33,18 +33,16 @@ anychar-bar-26 = string
 anychar-bar-27 = string
 anychar-bar-28 = string
 anychar-bar-29 = string
-anychar-bar-30 = string
+anychar-bar-9 = string
 num = string
-num-plus-7 = string
+num-plus-6 = string
 numone = string
-numone-range-6 = string
+numone-range-5 = string
 numpunct = string
+numpunct-bar-7 = string
 numpunct-bar-8 = string
-numpunct-bar-9 = string
 path = string
 path-star-1 = string
-str-bool = string
-str-bool-bar-2 = string
 
 mutual
 
@@ -66,6 +64,10 @@ mutual
   data start : Set where 
     File : opts → start
 
+  data str-bool : Set where 
+    StrBoolFalse : str-bool
+    StrBoolTrue : str-bool
+
 -- embedded types:
 
 data ParseTreeT : Set where
@@ -73,11 +75,12 @@ data ParseTreeT : Set where
   parsed-opts : opts → ParseTreeT
   parsed-paths : paths → ParseTreeT
   parsed-start : start → ParseTreeT
+  parsed-str-bool : str-bool → ParseTreeT
   parsed-posinfo : posinfo → ParseTreeT
   parsed-alpha : alpha → ParseTreeT
-  parsed-alpha-bar-5 : alpha-bar-5 → ParseTreeT
+  parsed-alpha-bar-4 : alpha-bar-4 → ParseTreeT
+  parsed-alpha-range-2 : alpha-range-2 → ParseTreeT
   parsed-alpha-range-3 : alpha-range-3 → ParseTreeT
-  parsed-alpha-range-4 : alpha-range-4 → ParseTreeT
   parsed-anychar : anychar → ParseTreeT
   parsed-anychar-bar-10 : anychar-bar-10 → ParseTreeT
   parsed-anychar-bar-11 : anychar-bar-11 → ParseTreeT
@@ -99,29 +102,27 @@ data ParseTreeT : Set where
   parsed-anychar-bar-27 : anychar-bar-27 → ParseTreeT
   parsed-anychar-bar-28 : anychar-bar-28 → ParseTreeT
   parsed-anychar-bar-29 : anychar-bar-29 → ParseTreeT
-  parsed-anychar-bar-30 : anychar-bar-30 → ParseTreeT
+  parsed-anychar-bar-9 : anychar-bar-9 → ParseTreeT
   parsed-num : num → ParseTreeT
-  parsed-num-plus-7 : num-plus-7 → ParseTreeT
+  parsed-num-plus-6 : num-plus-6 → ParseTreeT
   parsed-numone : numone → ParseTreeT
-  parsed-numone-range-6 : numone-range-6 → ParseTreeT
+  parsed-numone-range-5 : numone-range-5 → ParseTreeT
   parsed-numpunct : numpunct → ParseTreeT
+  parsed-numpunct-bar-7 : numpunct-bar-7 → ParseTreeT
   parsed-numpunct-bar-8 : numpunct-bar-8 → ParseTreeT
-  parsed-numpunct-bar-9 : numpunct-bar-9 → ParseTreeT
   parsed-path : path → ParseTreeT
   parsed-path-star-1 : path-star-1 → ParseTreeT
-  parsed-str-bool : str-bool → ParseTreeT
-  parsed-str-bool-bar-2 : str-bool-bar-2 → ParseTreeT
   parsed-aws : ParseTreeT
+  parsed-aws-bar-31 : ParseTreeT
   parsed-aws-bar-32 : ParseTreeT
   parsed-aws-bar-33 : ParseTreeT
-  parsed-aws-bar-34 : ParseTreeT
   parsed-comment : ParseTreeT
-  parsed-comment-star-31 : ParseTreeT
+  parsed-comment-star-30 : ParseTreeT
   parsed-ows : ParseTreeT
-  parsed-ows-star-36 : ParseTreeT
+  parsed-ows-star-35 : ParseTreeT
   parsed-squote : ParseTreeT
   parsed-ws : ParseTreeT
-  parsed-ws-plus-35 : ParseTreeT
+  parsed-ws-plus-34 : ParseTreeT
 
 ------------------------------------------
 -- Parse tree printing functions
@@ -131,12 +132,12 @@ posinfoToString : posinfo → string
 posinfoToString x = "(posinfo " ^ x ^ ")"
 alphaToString : alpha → string
 alphaToString x = "(alpha " ^ x ^ ")"
-alpha-bar-5ToString : alpha-bar-5 → string
-alpha-bar-5ToString x = "(alpha-bar-5 " ^ x ^ ")"
+alpha-bar-4ToString : alpha-bar-4 → string
+alpha-bar-4ToString x = "(alpha-bar-4 " ^ x ^ ")"
+alpha-range-2ToString : alpha-range-2 → string
+alpha-range-2ToString x = "(alpha-range-2 " ^ x ^ ")"
 alpha-range-3ToString : alpha-range-3 → string
 alpha-range-3ToString x = "(alpha-range-3 " ^ x ^ ")"
-alpha-range-4ToString : alpha-range-4 → string
-alpha-range-4ToString x = "(alpha-range-4 " ^ x ^ ")"
 anycharToString : anychar → string
 anycharToString x = "(anychar " ^ x ^ ")"
 anychar-bar-10ToString : anychar-bar-10 → string
@@ -179,30 +180,26 @@ anychar-bar-28ToString : anychar-bar-28 → string
 anychar-bar-28ToString x = "(anychar-bar-28 " ^ x ^ ")"
 anychar-bar-29ToString : anychar-bar-29 → string
 anychar-bar-29ToString x = "(anychar-bar-29 " ^ x ^ ")"
-anychar-bar-30ToString : anychar-bar-30 → string
-anychar-bar-30ToString x = "(anychar-bar-30 " ^ x ^ ")"
+anychar-bar-9ToString : anychar-bar-9 → string
+anychar-bar-9ToString x = "(anychar-bar-9 " ^ x ^ ")"
 numToString : num → string
 numToString x = "(num " ^ x ^ ")"
-num-plus-7ToString : num-plus-7 → string
-num-plus-7ToString x = "(num-plus-7 " ^ x ^ ")"
+num-plus-6ToString : num-plus-6 → string
+num-plus-6ToString x = "(num-plus-6 " ^ x ^ ")"
 numoneToString : numone → string
 numoneToString x = "(numone " ^ x ^ ")"
-numone-range-6ToString : numone-range-6 → string
-numone-range-6ToString x = "(numone-range-6 " ^ x ^ ")"
+numone-range-5ToString : numone-range-5 → string
+numone-range-5ToString x = "(numone-range-5 " ^ x ^ ")"
 numpunctToString : numpunct → string
 numpunctToString x = "(numpunct " ^ x ^ ")"
+numpunct-bar-7ToString : numpunct-bar-7 → string
+numpunct-bar-7ToString x = "(numpunct-bar-7 " ^ x ^ ")"
 numpunct-bar-8ToString : numpunct-bar-8 → string
 numpunct-bar-8ToString x = "(numpunct-bar-8 " ^ x ^ ")"
-numpunct-bar-9ToString : numpunct-bar-9 → string
-numpunct-bar-9ToString x = "(numpunct-bar-9 " ^ x ^ ")"
 pathToString : path → string
 pathToString x = "(path " ^ x ^ ")"
 path-star-1ToString : path-star-1 → string
 path-star-1ToString x = "(path-star-1 " ^ x ^ ")"
-str-boolToString : str-bool → string
-str-boolToString x = "(str-bool " ^ x ^ ")"
-str-bool-bar-2ToString : str-bool-bar-2 → string
-str-bool-bar-2ToString x = "(str-bool-bar-2 " ^ x ^ ")"
 
 mutual
   optToString : opt → string
@@ -223,16 +220,21 @@ mutual
   startToString : start → string
   startToString (File x0) = "(File" ^ " " ^ (optsToString x0) ^ ")"
 
+  str-boolToString : str-bool → string
+  str-boolToString (StrBoolFalse) = "StrBoolFalse" ^ ""
+  str-boolToString (StrBoolTrue) = "StrBoolTrue" ^ ""
+
 ParseTreeToString : ParseTreeT → string
 ParseTreeToString (parsed-opt t) = optToString t
 ParseTreeToString (parsed-opts t) = optsToString t
 ParseTreeToString (parsed-paths t) = pathsToString t
 ParseTreeToString (parsed-start t) = startToString t
+ParseTreeToString (parsed-str-bool t) = str-boolToString t
 ParseTreeToString (parsed-posinfo t) = posinfoToString t
 ParseTreeToString (parsed-alpha t) = alphaToString t
-ParseTreeToString (parsed-alpha-bar-5 t) = alpha-bar-5ToString t
+ParseTreeToString (parsed-alpha-bar-4 t) = alpha-bar-4ToString t
+ParseTreeToString (parsed-alpha-range-2 t) = alpha-range-2ToString t
 ParseTreeToString (parsed-alpha-range-3 t) = alpha-range-3ToString t
-ParseTreeToString (parsed-alpha-range-4 t) = alpha-range-4ToString t
 ParseTreeToString (parsed-anychar t) = anycharToString t
 ParseTreeToString (parsed-anychar-bar-10 t) = anychar-bar-10ToString t
 ParseTreeToString (parsed-anychar-bar-11 t) = anychar-bar-11ToString t
@@ -254,35 +256,37 @@ ParseTreeToString (parsed-anychar-bar-26 t) = anychar-bar-26ToString t
 ParseTreeToString (parsed-anychar-bar-27 t) = anychar-bar-27ToString t
 ParseTreeToString (parsed-anychar-bar-28 t) = anychar-bar-28ToString t
 ParseTreeToString (parsed-anychar-bar-29 t) = anychar-bar-29ToString t
-ParseTreeToString (parsed-anychar-bar-30 t) = anychar-bar-30ToString t
+ParseTreeToString (parsed-anychar-bar-9 t) = anychar-bar-9ToString t
 ParseTreeToString (parsed-num t) = numToString t
-ParseTreeToString (parsed-num-plus-7 t) = num-plus-7ToString t
+ParseTreeToString (parsed-num-plus-6 t) = num-plus-6ToString t
 ParseTreeToString (parsed-numone t) = numoneToString t
-ParseTreeToString (parsed-numone-range-6 t) = numone-range-6ToString t
+ParseTreeToString (parsed-numone-range-5 t) = numone-range-5ToString t
 ParseTreeToString (parsed-numpunct t) = numpunctToString t
+ParseTreeToString (parsed-numpunct-bar-7 t) = numpunct-bar-7ToString t
 ParseTreeToString (parsed-numpunct-bar-8 t) = numpunct-bar-8ToString t
-ParseTreeToString (parsed-numpunct-bar-9 t) = numpunct-bar-9ToString t
 ParseTreeToString (parsed-path t) = pathToString t
 ParseTreeToString (parsed-path-star-1 t) = path-star-1ToString t
-ParseTreeToString (parsed-str-bool t) = str-boolToString t
-ParseTreeToString (parsed-str-bool-bar-2 t) = str-bool-bar-2ToString t
 ParseTreeToString parsed-aws = "[aws]"
+ParseTreeToString parsed-aws-bar-31 = "[aws-bar-31]"
 ParseTreeToString parsed-aws-bar-32 = "[aws-bar-32]"
 ParseTreeToString parsed-aws-bar-33 = "[aws-bar-33]"
-ParseTreeToString parsed-aws-bar-34 = "[aws-bar-34]"
 ParseTreeToString parsed-comment = "[comment]"
-ParseTreeToString parsed-comment-star-31 = "[comment-star-31]"
+ParseTreeToString parsed-comment-star-30 = "[comment-star-30]"
 ParseTreeToString parsed-ows = "[ows]"
-ParseTreeToString parsed-ows-star-36 = "[ows-star-36]"
+ParseTreeToString parsed-ows-star-35 = "[ows-star-35]"
 ParseTreeToString parsed-squote = "[squote]"
 ParseTreeToString parsed-ws = "[ws]"
-ParseTreeToString parsed-ws-plus-35 = "[ws-plus-35]"
+ParseTreeToString parsed-ws-plus-34 = "[ws-plus-34]"
 
 ------------------------------------------
 -- Reorganizing rules
 ------------------------------------------
 
 mutual
+
+  {-# TERMINATING #-}
+  norm-str-bool : (x : str-bool) → str-bool
+  norm-str-bool x = x
 
   {-# TERMINATING #-}
   norm-start : (x : start) → start

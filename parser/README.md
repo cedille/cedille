@@ -26,7 +26,7 @@ Haskell parser exported to Agda. Haskell AST datatype ([src/CedilleTypes.hs](src
 
 Description	                 | Reserved Words
 -----------------------------|----------
-module system				 | import, module, as
+module system				 | import, module, as, public
 projections					 | .0 .1 ... .9
 general symbols				 | . , _ : · ≃ > - ◂ = ∀ ● ↑ ➾ ➔ ☆ ★ ( ) { } [ ] 
 lifting symbols				 | Π↑ ➔↑
@@ -52,7 +52,7 @@ Let/in          | `'let' DefTermOrType 'in' Term`                      | `'[' De
 
 * Syntax Updates.
 
-	* Added phi rule: `Lterm -> 'φ' Lterm '-' Lterm '{' Term '}'`
+	* Added phi rule: `Lterm -> 'φ' Lterm '-' Term '{' Term '}'`
 	
 	* Changed pair rule: `Pterm -> '[' Term ',' Term ']'` (before `Pterm -> '[' Term ',' Term OptTerm ']'`)
 	
@@ -88,3 +88,7 @@ Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · {n �
 However, in this last example emacs navegation gets wrong, we should add position information to TpEq constructor, in the AST.
 
 * Added comments scanner.
+
+* Changed the Lterm after '-' in rho, chi, and phi to Term
+
+* Added the 'public' option to imports

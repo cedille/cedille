@@ -43,6 +43,7 @@ token :-
       <0> module                                { mkTokenEmpty TModule    }
       <0> import                                { mkTokenEmpty TImport    }
       <0> as                                    { mkTokenEmpty TAs        }
+      <0> public                                { mkTokenEmpty TPublic    }
       <0> $white+				{ skip'                   }
       <0> @kvar                                 { mkToken TKvar           }
       <0> @qkvar        			{ mkToken TQKvar          }      
@@ -76,6 +77,9 @@ tPos (Token p _) = p
 pos2Txt :: AlexPosn -> Text
 pos2Txt (AlexPn p _ _) = pack (show (p+1))
 
+pos2Txt0 :: AlexPosn -> Text
+pos2Txt0 (AlexPn p _ _) = pack (show p)
+
 pos2Txt1 :: AlexPosn -> Text
 pos2Txt1 (AlexPn p _ _) = pack (show (p+2))
 
@@ -93,6 +97,8 @@ tPosTxt (Token p _) = pos2Txt p
 tPosTxt2 :: Token -> Text
 tPosTxt2 (Token p _) = pos2Txt2 p
 
+posEnd :: Token -> Text
+posEnd (Token (AlexPn p a b) c) = pack (show (1 + p + (length (tStr (Token (AlexPn p a b) c)))))
 
 tTxt :: Token -> Text
 tTxt (Token _ t) = pack (tcStr t)
@@ -130,6 +136,7 @@ data TokenClass =
      |  TRSpan
      |  TImport
      |  TAs
+     |  TPublic
      |  TModule
      |  TTheta
      |  TThetaEq
@@ -159,6 +166,7 @@ instance Show TokenClass where
   show (TRSpan)      = "TRSpan"
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
+  show (TPublic)     = "TPublic"
   show (TModule)     = "TModule"
   show (TTheta)      = "TTheta"
   show (TThetaEq)    = "TThetaEq"

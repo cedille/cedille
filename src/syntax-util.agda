@@ -27,22 +27,6 @@ tag = string × rope
 
 tagged-val : Set
 tagged-val = string × rope × 𝕃 tag
-{-
-tags-to-string : 𝕃 tag → string
-tags-to-string [] = ""
-tags-to-string ((t , v) :: []) = "\"" ^ t ^ "\":" ^ v ^ ""
-tags-to-string ((t , v) :: ts) = "\"" ^ t ^ "\":" ^ v ^ "," ^ tags-to-string ts
-
--- We number these when so we can sort them back in emacs
-tagged-val-to-string : ℕ → tagged-val → string
-tagged-val-to-string n (t , v , []) = "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ^ v ^ "\"]"
-tagged-val-to-string n (t , v , tags) = "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ^ v ^ "\",{" ^ tags-to-string tags ^ "}]"
-
-tagged-vals-to-string : ℕ → 𝕃 tagged-val → string
-tagged-vals-to-string n [] = ""
-tagged-vals-to-string n (s :: []) = tagged-val-to-string n s
-tagged-vals-to-string n (s :: (s' :: ss)) = tagged-val-to-string n s ^ "," ^ tagged-vals-to-string (suc n) (s' :: ss)
--}
 
 tags-to-rope : 𝕃 tag → rope
 tags-to-rope [] = [[]]
@@ -101,12 +85,12 @@ mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) with mk-inst ps as
 mk-inst ps as = empty-trie , ps
 
 apps-term : term → args → term
-apps-term f (ArgsNil _) = f
+apps-term f (ArgsNil) = f
 apps-term f (ArgsCons (TermArg t) as) = apps-term (App f NotErased t) as
 apps-term f (ArgsCons (TypeArg t) as) = apps-term (AppTp f t) as
 
 apps-type : type → args → type
-apps-type f (ArgsNil _) = f
+apps-type f (ArgsNil) = f
 apps-type f (ArgsCons (TermArg t) as) = apps-type (TpAppt f t) as
 apps-type f (ArgsCons (TypeArg t) as) = apps-type (TpApp f t) as
 
@@ -116,7 +100,7 @@ append-params ParamsNil qs = qs
 
 append-args : args → args → args
 append-args (ArgsCons p ps) qs = ArgsCons p (append-args ps qs)
-append-args (ArgsNil _) qs = qs
+append-args (ArgsNil) qs = qs
 
 qualif-lookup-term : posinfo → qualif → string → term
 qualif-lookup-term pi σ x with trie-lookup σ x
@@ -144,7 +128,7 @@ inst-lookup-type pi σ x with trie-lookup σ x
 ... | _ = TpVar pi x
 
 params-to-args : params → args
-params-to-args ParamsNil = ArgsNil posinfo-gen
+params-to-args ParamsNil = ArgsNil
 params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p v)) (params-to-args ps)
 params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
@@ -157,7 +141,7 @@ qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert �
   where
   import-as : var → optAs → var
   import-as v NoOptAs = v
-  import-as v (SomeOptAs pfx) = pfx # v
+  import-as v (SomeOptAs pi pfx) = pfx # v
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
@@ -200,7 +184,7 @@ type-start-pos (Lft pi _ _ _ _) = pi
 type-start-pos (TpApp t t₁) = type-start-pos t
 type-start-pos (TpAppt t x) = type-start-pos t
 type-start-pos (TpArrow t _ t₁) = type-start-pos t
-type-start-pos (TpEq x x₁) = term-start-pos x
+type-start-pos (TpEq pi _ _ pi') = pi
 type-start-pos (TpParens pi _ pi') = pi
 type-start-pos (TpVar pi x₁) = pi
 type-start-pos (NoSpans t _) = type-start-pos t -- we are not expecting this on input
@@ -223,8 +207,11 @@ term-end-pos : term → posinfo
 type-end-pos : type → posinfo
 kind-end-pos : kind → posinfo
 liftingType-end-pos : liftingType → posinfo
+tk-end-pos : tk → posinfo
 lterms-end-pos : lterms → posinfo
-args-end-pos : args → posinfo
+args-end-pos : (if-nil : posinfo) → args → posinfo
+arg-end-pos : arg → posinfo
+kvar-end-pos : posinfo → var → args → posinfo
 
 term-end-pos (App t x t') = term-end-pos t'
 term-end-pos (AppTp t tp) = type-end-pos tp
@@ -251,7 +238,7 @@ type-end-pos (Lft pi _ _ _ t) = liftingType-end-pos t
 type-end-pos (TpApp t t') = type-end-pos t'
 type-end-pos (TpAppt t x) = term-end-pos x
 type-end-pos (TpArrow t _ t') = type-end-pos t'
-type-end-pos (TpEq x x') = term-end-pos x'
+type-end-pos (TpEq pi _ _ pi') = pi'
 type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
 type-end-pos (TpHole pi) = posinfo-plus pi 1
@@ -261,11 +248,19 @@ kind-end-pos (KndArrow k k') = kind-end-pos k'
 kind-end-pos (KndParens pi k pi') = pi'
 kind-end-pos (KndPi pi _ x x₁ k) = kind-end-pos k
 kind-end-pos (KndTpArrow x k) = kind-end-pos k
-kind-end-pos (KndVar pi x ys) = args-end-pos ys
+kind-end-pos (KndVar pi x ys) = args-end-pos (posinfo-plus-str pi x) ys
 kind-end-pos (Star pi) = posinfo-plus pi 1
 
-args-end-pos (ArgsCons x ys) = args-end-pos ys
-args-end-pos (ArgsNil pi) = pi
+tk-end-pos (Tkt T) = type-end-pos T
+tk-end-pos (Tkk k) = kind-end-pos k
+
+args-end-pos pi (ArgsCons x ys) = args-end-pos (arg-end-pos x) ys
+args-end-pos pi ArgsNil = pi
+
+arg-end-pos (TermArg t) = term-end-pos t
+arg-end-pos (TypeArg T) = type-end-pos T
+
+kvar-end-pos pi v = args-end-pos (posinfo-plus-str pi v)
 
 liftingType-end-pos (LiftArrow l l') = liftingType-end-pos l'
 liftingType-end-pos (LiftParens pi l pi') = pi'
@@ -285,6 +280,10 @@ optTerm-end-pos pi (SomeTerm x x₁) = x₁
 optTerm-end-pos-beta : posinfo → optTerm → posinfo
 optTerm-end-pos-beta pi NoTerm = posinfo-plus pi 1
 optTerm-end-pos-beta pi (SomeTerm x p) = p
+
+optAs-or : optAs → posinfo → var → posinfo × var
+optAs-or NoOptAs pi x = pi , x
+optAs-or (SomeOptAs pi x) _ _ = pi , x
 
 tk-arrow-kind : tk → kind → kind
 tk-arrow-kind (Tkk k) k' = KndArrow k k'
@@ -393,6 +392,10 @@ arrowtype-matches-binder ErasedArrow All = tt
 arrowtype-matches-binder UnerasedArrow Pi = tt
 arrowtype-matches-binder _ _ = ff
 
+optPublic-is-public : optPublic → 𝔹
+optPublic-is-public IsPublic = tt
+optPublic-is-public NotPublic = ff
+
 ------------------------------------------------------
 -- functions intended for building terms for testing
 ------------------------------------------------------
@@ -496,7 +499,7 @@ erase-type : type → type
 erase-kind : kind → kind
 erase-lterms : theta → lterms → 𝕃 term
 erase-tk : tk → tk
-erase-optType : optType → optType
+-- erase-optType : optType → optType
 erase-liftingType : liftingType → liftingType
 
 erase-term (Parens _ t _) = erase-term t
@@ -522,13 +525,13 @@ erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 -- Only erases TERMS in types, leaving the structure of types the same
 erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
-erase-type (Iota pi pi' v otp tp) = Iota pi pi' v (erase-optType otp) (erase-type tp)
+erase-type (Iota pi pi' v otp tp) = Iota pi pi' v (erase-type otp) (erase-type tp)
 erase-type (Lft pi pi' v t lt) = Lft pi pi' v (erase-term t) (erase-liftingType lt)
 erase-type (NoSpans tp pi) = NoSpans (erase-type tp) pi
 erase-type (TpApp tp tp') = TpApp (erase-type tp) (erase-type tp')
 erase-type (TpAppt tp t) = TpAppt (erase-type tp) (erase-term t)
 erase-type (TpArrow tp at tp') = TpArrow (erase-type tp) at (erase-type tp')
-erase-type (TpEq t t') = TpEq (erase-term t) (erase-term t')
+erase-type (TpEq pi t t' pi') = TpEq pi (erase-term t) (erase-term t') pi'
 erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-type tp)
 erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
 erase-type (TpHole pi) = TpHole pi
@@ -552,8 +555,8 @@ erase{QUALIF} q = q
 erase-tk (Tkt tp) = Tkt (erase-type tp)
 erase-tk (Tkk k) = Tkk (erase-kind k)
 
-erase-optType (SomeType tp) = SomeType (erase-type tp)
-erase-optType NoType = NoType
+-- erase-optType (SomeType tp) = SomeType (erase-type tp)
+-- erase-optType NoType = NoType
 
 erase-liftingType (LiftArrow lt lt') = LiftArrow (erase-liftingType lt) (erase-liftingType lt')
 erase-liftingType (LiftParens pi lt pi') = LiftParens pi (erase-liftingType lt) pi'
@@ -586,17 +589,17 @@ imps-to-cmds ImportsStart = CmdsStart
 imps-to-cmds (ImportsNext i is) = CmdsNext (ImportCmd i) (imps-to-cmds is)
 
 -- TODO handle qualif & module args
-get-imports : start → 𝕃 (string × 𝔹)
-get-imports (File _ is mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
-  where import-to-include : imprt → string × 𝔹
-        import-to-include (Import _ x oa _ _) = x , ff {- Here is where we would need to check if the import is public -}
-        imports-to-include : imports → 𝕃 (string × 𝔹)
+get-imports : start → 𝕃 string
+get-imports (File _ is _ _ mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
+  where import-to-include : imprt → string
+        import-to-include (Import _ _ _ x oa _ _) = x
+        imports-to-include : imports → 𝕃 string
         imports-to-include ImportsStart = []
         imports-to-include (ImportsNext x is) = import-to-include x :: imports-to-include is
-        singleton-if-include : cmd → 𝕃 (string × 𝔹)
+        singleton-if-include : cmd → 𝕃 string
         singleton-if-include (ImportCmd imp) = [ import-to-include imp ]
         singleton-if-include _ = []
-        get-imports-cmds : cmds → 𝕃 (string × 𝔹)
+        get-imports-cmds : cmds → 𝕃 string
         get-imports-cmds (CmdsNext c cs) = singleton-if-include c ++ get-imports-cmds cs
         get-imports-cmds CmdsStart = []
 
@@ -616,20 +619,19 @@ is-rho-plus RhoPlus = tt
 
 is-equation : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-equation{TYPE} (TpParens _ t _) = is-equation t
-is-equation{TYPE} (TpEq _ _) = tt
+is-equation{TYPE} (TpEq _ _ _ _) = tt
 is-equation _ = ff 
 
 is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
 is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (Iota _ _ _ (SomeType t1) t2) = is-equational t1 || is-equational t2
-is-equational (Iota _ _ _ _ t2) = is-equational t2
+is-equational (Iota _ _ _ t1 t2) = is-equational t1 || is-equational t2
 is-equational (NoSpans t _) = is-equational t
 is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
 is-equational (TpAppt t1 _) = is-equational t1
 is-equational (TpArrow t1 _ t2) = is-equational t1 || is-equational t2
-is-equational (TpEq _ _) = tt
+is-equational (TpEq _ _ _ _) = tt
 is-equational (TpLambda _ _ _ atk t2) = is-equational-tk atk || is-equational t2
 is-equational (TpParens _ t _) = is-equational t
 is-equational (Lft _ _ _ _ _) = ff
@@ -719,7 +721,7 @@ abs-expand-kind ParamsNil k = k
 
 args-length : args → ℕ
 args-length (ArgsCons p ps) = suc (args-length ps)
-args-length (ArgsNil pi) = 0
+args-length ArgsNil = 0
 
 spine : Set
 spine = 𝕃(maybeErased × arg)

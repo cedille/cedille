@@ -1,6 +1,7 @@
 module main where
 
 open import lib
+import string-format
 -- for parser for Cedille 
 open import cedille-types
 
@@ -57,6 +58,13 @@ module main-with-options (options : cedille-options.options) where
 
   logMsg : (message : string) → IO ⊤
   logMsg msg = logRope [[ msg ]]
+
+  sendProgressUpdate : string → IO ⊤
+  sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
+
+  progressUpdate : (filename : string) → (do-check : 𝔹) → IO ⊤
+  progressUpdate filename do-check =
+    sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
 
   fileBaseName : string → string
   fileBaseName fn = base-filename (takeFileName fn)
@@ -119,20 +127,21 @@ module main-with-options (options : cedille-options.options) where
     h [] = []
   -}
 
-  find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe (string × string))
+  find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe string)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
       let e = combineFileNames dir (add-cedille-extension unit-name) in
       doesFileExist e >>= λ where
         ff → find-imported-file dirs unit-name
-        tt → canonicalizePath e >>= λ e → return (just (e , combineFileNames (fileBaseName dir) unit-name))
+        tt → canonicalizePath e >>= return ∘ just
 
-  -- return a list of pairs (i,p) where i is the import string in the file, and p is the full path for that imported file
-  find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 (string × 𝔹)) → IO (𝕃 (string × string × string × 𝔹))
+  -- return a list of pairs (i,p,pn) where i is the import string in the file, p is the full path for that imported file,
+  -- and pn is the name to send to the frontend as a progress update while checking/skipping
+  find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 string) → IO (𝕃 (string × string))
   find-imported-files dirs (u :: us) =
-    find-imported-file dirs ({-replace-dots-} (fst u)) >>= λ where
-      nothing → find-imported-files dirs us
-      (just (fp , pr)) → find-imported-files dirs us >>= λ ps → return ((fst u , fp , pr , snd u) :: ps)
+    find-imported-file dirs ({-replace-dots-} u) >>= λ where
+      nothing → logMsg ("Error finding file: " ^ u) >> find-imported-files dirs us
+      (just fp) → logMsg ("Found import: " ^ fp) >> find-imported-files dirs us >>= λ ps → return ((u , fp) :: ps)
   find-imported-files dirs [] = return []
 
   {- new parser test integration -}
@@ -150,7 +159,7 @@ module main-with-options (options : cedille-options.options) where
           processText x | Right t  with cws-types.scanComments x 
           processText x | Right t | t2 = find-imported-files (fst (cedille-options.include-path-insert (takeDirectory filename) (toplevel-state.include-path st)))
                                                              (get-imports t) >>= λ deps →
-                                         return (new-include-elt filename deps t t2 nothing)
+                                         logMsg ("deps for file " ^ filename ^ ": " ^ 𝕃-to-string (λ {(a , b) → "short: " ^ a ^ ", long: " ^ b}) ", " deps) >> return (new-include-elt filename deps t t2 nothing)
 
   reparse-file : string → toplevel-state → IO toplevel-state
   reparse-file filename s =
@@ -251,18 +260,12 @@ module main-with-options (options : cedille-options.options) where
     h [] = [[]]
     h ((fn , ie) :: t) = [[ "file: " ]] ⊹⊹ [[ fn ]] ⊹⊹ [[ "\nadd-symbols: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.need-to-add-symbols-to-context ie) ]] ⊹⊹ [[ "\ndo-type-check: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.do-type-check ie) ]] ⊹⊹ [[ "\n\n" ]] ⊹⊹ h t
 
-  sendProgressUpdate : string → IO ⊤
-  sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
-
-  progressUpdate : (filename : string) → (do-check : 𝔹) → IO ⊤
-  progressUpdate filename do-check =
-    sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
-
   {- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
   checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
   checkFile s filename should-print-spans = 
     update-asts s filename >>= λ s →
     log-files-to-check s >>
+    logMsg (𝕃-to-string (λ {(im , fn) → "im: " ^ im ^ ", fn: " ^ fn}) "; " (trie-mappings (include-elt.import-to-dep (get-include-elt s filename)))) >>
     process-file progressUpdate s filename (fileBaseName filename) >>= finish
     where
           reply : toplevel-state → IO ⊤
@@ -273,14 +276,13 @@ module main-with-options (options : cedille-options.options) where
                putRopeLn (include-elt-spans-to-rope ie)
              else return triv
           finish : toplevel-state × mod-info → IO toplevel-state
-          finish (s , m) with s
-          finish (s , m) | mk-toplevel-state ip mod is Γ =
+          finish (s @ (mk-toplevel-state ip mod is Γ) , ret-mod) =
             logMsg ("Started reply for file " ^ filename) >> -- Lazy, so checking has not been calculated yet?
             reply s >>
             logMsg ("Finished reply for file " ^ filename) >>
             logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
             writeo mod >> -- Should process-file now always add files to the list of modified ones because now the cede-/rkt-up-to-date fields take care of whether to rewrite them?
-            return (mk-toplevel-state ip [] is (ctxt-set-current-mod Γ m))
+            return (mk-toplevel-state ip mod is (ctxt-set-current-mod Γ ret-mod))
               where
                 writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
@@ -360,6 +362,9 @@ createOptionsFile : (options-filepath : string) → IO ⊤
 createOptionsFile ops-fp = withFile ops-fp WriteMode (λ hdl →
   hPutRope hdl (cedille-options.options-to-rope cedille-options.default-options))
 
+str-bool-to-𝔹 : options.str-bool → 𝔹
+str-bool-to-𝔹 options.StrBoolTrue = tt
+str-bool-to-𝔹 options.StrBoolFalse = ff
 
 opts-to-options : options.opts → cedille-options.options
 opts-to-options (options.OptsCons (options.Lib fps) ops) =
@@ -369,13 +374,13 @@ opts-to-options (options.OptsCons (options.Lib fps) ops) =
           cedille-options.include-path-insert fp (paths-to-stringset fps)
         paths-to-stringset options.PathsNil = [] , empty-stringset
 opts-to-options (options.OptsCons (options.UseCedeFiles b) ops) =
-  record (opts-to-options ops) { use-cede-files = cedille-options.str-bool-to-𝔹 b }
+  record (opts-to-options ops) { use-cede-files = str-bool-to-𝔹 b }
 opts-to-options (options.OptsCons (options.MakeRktFiles b) ops) =
-  record (opts-to-options ops) { make-rkt-files = cedille-options.str-bool-to-𝔹 b }
+  record (opts-to-options ops) { make-rkt-files = str-bool-to-𝔹 b }
 opts-to-options (options.OptsCons (options.GenerateLogs b) ops) =
-  record (opts-to-options ops) { generate-logs = cedille-options.str-bool-to-𝔹 b }
+  record (opts-to-options ops) { generate-logs = str-bool-to-𝔹 b }
 opts-to-options (options.OptsCons (options.ShowQualifiedVars b) ops) =
-  record (opts-to-options ops) { show-qualified-vars = cedille-options.str-bool-to-𝔹 b }
+  record (opts-to-options ops) { show-qualified-vars = str-bool-to-𝔹 b }
 opts-to-options options.OptsNil = cedille-options.default-options
 
 -- helper function to try to parse the options file

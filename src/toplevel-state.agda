@@ -17,14 +17,11 @@ open import string-format
 
 import cws-types
 
-imported-file : Set
-imported-file = string {- filename -} × string {- progress name -} × 𝔹 {- is a public import -}
-
 record include-elt : Set where
   field ast : maybe start
         cwst : maybe cws-types.start
         deps : 𝕃 string {- dependencies -}
-        import-to-dep : trie imported-file {- map import strings in the file to their full paths -}
+        import-to-dep : trie string {- map import strings in the file to their full paths -}
         ss : spans ⊎ string {- spans in string form (read from disk) -}
         err : 𝔹 -- is ss reporting an error
         need-to-add-symbols-to-context : 𝔹 
@@ -40,10 +37,10 @@ blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ;
                              do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff}
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
-new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string × string × 𝔹)) → (ast : start) →
+new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
                   cws-types.start → maybe UTC → include-elt
 new-include-elt filename deps x y time =
-  record { ast = just x ; cwst = just y ; deps = map (fst ∘ snd) deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
+  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
            do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
@@ -132,19 +129,19 @@ include-elt-to-string : include-elt → string
 include-elt-to-string ie =
     " deps:  " ^ (𝕃-to-string (λ x → x) "," (include-elt.deps ie)) ^
     -- ast
-    " import-to-dep:  " ^ (trie-to-string "," (λ {(fn , pn , is-public) → format "{filename: %s, progress-name: %s, is-public: %s}" fn pn (𝔹-to-string is-public)}) (include-elt.import-to-dep ie)) ^ 
+    " import-to-dep:  " ^ (trie-to-string "," (format "filename: %s") (include-elt.import-to-dep ie)) ^ 
     -- spans
     " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
     ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
     ", last-parse-time: " ^ (maybe-else "" utcToString (include-elt.last-parse-time ie))
 
-params-to-string : params → string
-params-to-string ParamsNil = ""
-params-to-string (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string pms)
+params-to-string' : params → string
+params-to-string' ParamsNil = ""
+params-to-string' (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string' pms)
 
 defParams-to-string : defParams → string
-defParams-to-string (just pms) = params-to-string pms
+defParams-to-string (just pms) = params-to-string' pms
 defParams-to-string nothing = ""
 
 -- TODO also print modname?
@@ -157,7 +154,7 @@ ctxt-info-to-string (term-def dp t tp) = "term-def: {defParams: {" ^ (defParams-
 ctxt-info-to-string (term-udef dp t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
 ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, tp: " ^ rope-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string pms) ^ ", pms': " ^ (params-to-string pms') ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string' pms) ^ ", pms': " ^ (params-to-string' pms') ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 
@@ -177,7 +174,7 @@ qualif-to-string : qualif-info → string
 qualif-to-string (x , as) = x ^ rope-to-string (fst (args-to-string as {TERM} [[]] 0 [] (new-ctxt "" "") nothing neither))
 
 mod-info-to-string : mod-info → string
-mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
+mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
@@ -196,10 +193,45 @@ check-redefined pi x s c =
       (spanM-add (redefined-var-span Γ pi x) ≫span spanMr s)
     else c)
 
+{-
 scope-imports : toplevel-state → string → optAs → args → toplevel-state
 scope-imports s import-fn oa as with toplevel-state.Γ s
 ... | mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs with trie-lookup syms import-fn
 ... | nothing = s
 ... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn oa vs as in
   record s { Γ = mk-ctxt (fn , mn , ps , q') (syms , mn-fn) i symb-occs }
+-}
 
+import-as : var → optAs → var
+import-as v NoOptAs = v
+import-as v (SomeOptAs pi pfx) = pfx # v
+
+{-# TERMINATING #-}
+scope-file : toplevel-state → (fn : string) → optAs → args → toplevel-state
+scope-cmds : toplevel-state → (fn mn : string) → cmds → optAs → args → toplevel-state
+scope-cmd : toplevel-state → (fn mn : string) → cmd → optAs → args → toplevel-state
+scope-def : toplevel-state → (fn mn : string) → var → optAs → args → toplevel-state
+
+scope-file s fn oa as with include-elt.ast (get-include-elt s fn)
+...| nothing = s
+...| just (File pi0 is pi1 pi2 mn ps cs pi3) =
+  scope-cmds (scope-cmds s fn mn (imps-to-cmds is) oa as) fn mn cs oa as
+
+scope-cmds s fn mn (CmdsNext c cs) oa as =
+  scope-cmds (scope-cmd s fn mn c oa as) fn mn cs oa as
+scope-cmds s fn mn CmdsStart oa as = s
+
+-- Should this be substituting each occurence of the originally imported file's parameters
+-- in the newly imported file's parameters with their corresponding arguments?
+scope-cmd s fn mn (ImportCmd (Import pi op pi' ifn oa' as' pi'')) oa as =
+  if optPublic-is-public op
+    then scope-file s (trie-lookup-else ifn
+      (include-elt.import-to-dep (get-include-elt s fn)) ifn) oa' as'
+    else s
+scope-cmd s fn mn (DefKind pi v ps k pi') oa as = scope-def s fn mn v oa as
+scope-cmd s fn mn (DefTermOrType (DefTerm pi v mcT t) pi') oa as = scope-def s fn mn v oa as
+scope-cmd s fn mn (DefTermOrType (DefType pi v k T) pi') oa as = scope-def s fn mn v oa as
+
+scope-def (mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os)) _ mn v oa as =
+  mk-toplevel-state ip fns is
+    (mk-ctxt (mn' , fn , pms , trie-insert q (import-as v oa) (mn # v , as)) ss sis os)

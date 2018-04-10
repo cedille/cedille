@@ -203,6 +203,9 @@
 (defvar cedille-mode-highlight-face-map-default
    '(
      ("name" . (("Import of another source file" . cedille-keyword-face-df)
+               ("Module header" . cedille-keyword-face-df)
+               ("Module declaration" . cedille-kind-face-df)
+               ("Imported module" . cedille-kind-face-df)
 	       ("Constructor definition" . cedille-keyword-face-df)
 	       ("Recursive datatype definition" . cedille-keyword-face-df)
 	       ("Recursively defined type" . cedille-keyword-face-df)

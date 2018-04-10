@@ -17,7 +17,7 @@ substh-type : substh-ret-t type
 substh-kind : substh-ret-t kind
 substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
-substh-optType : substh-ret-t optType
+-- substh-optType : substh-ret-t optType
 substh-optTerm : substh-ret-t optTerm
 substh-liftingType : substh-ret-t liftingType
 substh-maybeAtype : substh-ret-t maybeAtype
@@ -83,7 +83,7 @@ substh-type Γ ρ σ (TpLambda pi pi' x atk t) =
       (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (Iota pi pi' x m t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    Iota pi pi' x' (substh-optType Γ ρ σ m)
+    Iota pi pi' x' (substh-type Γ ρ σ m)
       (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (Lft pi pi' x t l) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -92,7 +92,7 @@ substh-type Γ ρ σ (Lft pi pi' x t l) =
 substh-type Γ ρ σ (TpApp tp tp₁) = TpApp (substh-type Γ ρ σ tp) (substh-type Γ ρ σ tp₁)
 substh-type Γ ρ σ (TpAppt tp t) = TpAppt (substh-type Γ ρ σ tp) (substh-term Γ ρ σ t)
 substh-type Γ ρ σ (TpArrow tp arrowtype tp₁) = TpArrow (substh-type Γ ρ σ tp) arrowtype (substh-type Γ ρ σ tp₁)
-substh-type Γ ρ σ (TpEq x₁ x₂) = TpEq (substh-term Γ ρ σ x₁) (substh-term Γ ρ σ x₂)
+substh-type Γ ρ σ (TpEq pi x₁ x₂ pi') = TpEq pi (substh-term Γ ρ σ x₁) (substh-term Γ ρ σ x₂) pi'
 substh-type Γ ρ σ (TpParens x₁ tp x₂) = substh-type Γ ρ σ tp
 substh-type Γ ρ σ (NoSpans tp _) = substh-type Γ ρ σ tp
 substh-type{TYPE} Γ ρ σ (TpVar pi x) =
@@ -120,15 +120,15 @@ substh-kind Γ ρ σ (Star pi) = Star pi
 
 substh-args Γ ρ σ (ArgsCons (TermArg x₁) xs) = ArgsCons (TermArg (substh-term Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
 substh-args Γ ρ σ (ArgsCons (TypeArg x₁) xs) = ArgsCons (TypeArg (substh-type Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
-substh-args Γ ρ σ (ArgsNil x₁) = ArgsNil x₁
+substh-args Γ ρ σ ArgsNil = ArgsNil
 
 substh-tk Γ ρ σ (Tkk k) = Tkk (substh-kind Γ ρ σ k)
 substh-tk Γ ρ σ (Tkt t) = Tkt (substh-type Γ ρ σ t)
 
 substh-optClass Γ ρ σ NoClass = NoClass
 substh-optClass Γ ρ σ (SomeClass atk) = SomeClass (substh-tk Γ ρ σ atk)
-substh-optType Γ ρ σ NoType = NoType
-substh-optType Γ ρ σ (SomeType t1) = SomeType (substh-type Γ ρ σ t1)
+-- substh-optType Γ ρ σ NoType = NoType
+-- substh-optType Γ ρ σ (SomeType t1) = SomeType (substh-type Γ ρ σ t1)
 substh-liftingType Γ ρ σ (LiftArrow l l₁) = LiftArrow (substh-liftingType Γ ρ σ l) (substh-liftingType Γ ρ σ l₁)
 substh-liftingType Γ ρ σ (LiftParens x₁ l x₂) = substh-liftingType Γ ρ σ l
 substh-liftingType Γ ρ σ (LiftPi pi x tp l) =

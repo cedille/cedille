@@ -17,10 +17,6 @@ default-options = record {
   generate-logs = ff;
   show-qualified-vars = ff}
 
-str-bool-to-𝔹 : string → 𝔹
-str-bool-to-𝔹 "true" = tt
-str-bool-to-𝔹 _ = ff
-
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =
   if stringset-contains ss s
