@@ -1,16 +1,16 @@
 module everything .
 
-import and .
-import bool .
-import cast .
-import depcast .
-import nat .
-import list .
-import false .
-import int .
-import hastp .
-import sigma .
-import sum .
-import top .
-import true .
+import public and .
+import public bool .
+import public cast .
+import public depcast .
+import public nat .
+import public list .
+import public false .
+import public int .
+import public hastp .
+import public sigma .
+import public sum .
+import public top .
+import public true .
 

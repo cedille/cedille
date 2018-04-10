@@ -14,7 +14,7 @@ Nil ◂ ∀ A : ★ . List · A = Λ A . [ cNil · A , [ β{cNil} , Λ Q . Λ Q 
 Cons ◂ ∀ A : ★ . A ➔ List · A ➔ List · A =
   Λ A . λ h . λ t .
     [ cCons · A h t.1 ,
-    [ ε ρ t.2.1 - β{cCons h t} ,
+    [ ρ+ t.2.1 - β{cCons h t} ,
       Λ X . Λ Q . Λ cons . Λ nil . λ c . λ n . c h -(t.1 · X cons nil) (t.2.2 · X · Q -cons -nil c n) ] ].
 
 ListRec ◂ ∀ A : ★ . List · A ➔ cList · A = Λ A . λ l . l.1 .
