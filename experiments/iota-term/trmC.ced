@@ -94,7 +94,8 @@ embed' ◂ Persistent' · Trm' =
                [ Λ X . Λ pX . Λ I . λ val . λ alg .
                    cast -(pX m n -p) 
                      ((TrmUnfold' -m t).1 · X -pX · I
-                       (λ k . Λ pk . lookupValuation' -n · X · I val k -(LtLte k m n pk p)) alg) ,
+                        (restrictValuation' -m -n -p · X · I val)
+                        alg) ,
                  Λ f . Λ uf . ρ ((TrmUnfold' -m t).2 -f -(λ k . λ pk . uf k (LtLte k m n pk p))) - β{t}],
       β].
 

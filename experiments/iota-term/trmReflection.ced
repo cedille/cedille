@@ -6,6 +6,7 @@ import nat.
 import cast.
 import RecTypeI.
 import valuationp.
+import valuation.
 import natExtras.
 import trmC.
 import trmD.
@@ -51,11 +52,14 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
 embed ◂ Persistent' · Trm =
   λ m . λ n . Λ p .
       [λ t . [ (embed' m n -p).1 t.1,
-               Λ P . Λ perP . Λ I . λ val . λ alg . t.2 · P -perP · I ● alg ],
+               Λ P . Λ perP . Λ I . λ val . λ alg .
+                 cast · (P m t.1) · (P n ((embed' m n -p).1 t.1)) -(perP m n -p t.1)
+                    ( t.2 · P -perP · I
+                        (restrictValuation -m -n -p · P · I val) alg) ],
       β].
 
 toTrm ◂ Π n : Nat . Trm' n ➔ Trm n =
-  λ n . λ t. (TrmUnfold' -n t).1 · Trm -● · varValuationInv (varValuation n) inAlg .
+  λ n . λ t. (TrmUnfold' -n t).1 · Trm -embed · varValuationInv (varValuation n) inAlg .
 
 trmReflection ◂ Π n : Nat . Π t : Trm n . { toTrm n t ≃ t } =
   λ n . λ t .

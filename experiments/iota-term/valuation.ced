@@ -33,6 +33,15 @@ trivValuationInv ◂ Π P : Π n : Nat . Trm' n ➔ ★.
      λ P : Π n : Nat . Trm' n ➔ ★.
      λ n : Nat . λ m : Nat . λ p : Lt m n . λ q : P n (var' m -n -p) . True .
 
+lookupValuation ◂ ∀ n : Nat . 
+                  ∀ P : Π n : Nat . Trm' n ➔ ★. 
+                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★. 
+                  Valuation n · P · I ➔ 
+                  Π m : Nat .
+                  ∀ p : Lt m n .
+                  wSigma2 · (P (S m) (var' m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m)) =
+    Λ n . Λ P . Λ I . λ val . val .
+
 lookupValuation1 ◂ ∀ n : Nat . 
                   ∀ P : Π n : Nat . Trm' n ➔ ★. Persistent · P ➾
                   ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★. 
@@ -57,6 +66,13 @@ updateValuation ◂ Π n : Nat .
                     (λ q .val m -q) 
                     (λ q .[e = lt-S-eq m n -p q] -
 		          ρ e - (mkWSigma2 · (P (S n) (var' n -(S n) -(lt-nSn n))) · (I (S n) n (lt-nSn n)) xn -ixn)) β .
+
+restrictValuation ◂ ∀ m : Nat . ∀ n : Nat . ∀ p : Lte m n .
+                     ∀ P : Π n : Nat . Trm' n ➔ ★.
+                     ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★. 
+                     Valuation n · P · I ➔ Valuation m · P · I =
+  Λ m . Λ n . Λ p . Λ P . Λ I . λ val . λ k . Λ pk . lookupValuation -n · P · I val k -(LtLte k m n pk p) .
+
 
 -- lemma-val◂  Π n:Nat .
 --         ∀ X:★. ∀ Y:X➔★.
