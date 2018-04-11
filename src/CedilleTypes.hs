@@ -97,16 +97,28 @@ data MaybeMinus =
      EpsHanf | EpsHnf
      deriving (Show,Eq)
 
+data Nums =
+     NumsStart Num | NumsNext Num Nums
+     deriving (Show,Eq)
+
 data OptAs =
      NoOptAs | SomeOptAs PosInfo Var
      deriving (Show,Eq)
 
-data OptPublic =
-     NotPublic | IsPublic
-     deriving (Show,Eq)
-
 data OptClass =
      NoClass | SomeClass Tk
+     deriving (Show,Eq)
+
+data OptNums =
+     NoNums | SomeNums Nums
+     deriving (Show,Eq)
+
+data OptPlus =
+     RhoPlain | RhoPlus
+     deriving (Show,Eq)
+
+data OptPublic =
+     NotPublic | IsPublic
      deriving (Show,Eq)
 
 data OptTerm =
@@ -116,10 +128,6 @@ data OptTerm =
 data Params =
        ParamsCons Decl Params
      | ParamsNil
-     deriving (Show,Eq)
-
-data Rho =
-     RhoPlain | RhoPlus
      deriving (Show,Eq)
 
 data Start =
@@ -139,7 +147,7 @@ data Term =
      | Let PosInfo DefTermOrType Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
-     | Rho PosInfo Rho Term Term
+     | Rho PosInfo OptPlus OptNums Term Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
      | Var PosInfo Qvar

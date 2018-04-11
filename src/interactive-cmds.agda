@@ -229,21 +229,20 @@ ctxt-at pos Γ @ (mk-ctxt (fn , mn , _) _ si _) =
 get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
 get-local-ctxt Γ pos local-ctxt = merge-lcis-ctxt local-ctxt (ctxt-at pos Γ)
 
-
-rewrite-expr' : ctxt → expr → term → term → 𝔹 → Σi parseAs (λ p → parseAs-lift p × ℕ)
+rewrite-expr' : ctxt → expr → term → term → 𝔹 → Σi parseAs (λ p → parseAs-lift p × ℕ × ℕ)
 rewrite-expr' Γ (,_ {parseAsTerm} t) t₁ t₂ b = ,
-  rewrite-term Γ empty-renamectxt b t₁ t₂ (qualif-term Γ t)
+  rewrite-term (qualif-term Γ t) Γ empty-renamectxt b nothing t₁ t₂ 0
 rewrite-expr' Γ (,_ {parseAsType} T) t₁ t₂ b = ,
-  rewrite-type Γ empty-renamectxt b t₁ t₂ (qualif-type Γ T)
+  rewrite-type (qualif-type Γ T) Γ empty-renamectxt b nothing t₁ t₂ 0
 rewrite-expr' Γ (,_ {parseAsKind} k) t₁ t₂ b = ,
-  rewrite-kind Γ empty-renamectxt b t₁ t₂ (qualif-kind Γ k)
+  rewrite-kind (qualif-kind Γ k) Γ empty-renamectxt b nothing t₁ t₂ 0
 rewrite-expr' Γ (,_ {parseAsLiftingType} lT) t₁ t₂ b = ,
-  rewrite-liftingType Γ empty-renamectxt b t₁ t₂ (qualif-liftingType Γ lT)
+  rewrite-liftingType (qualif-liftingType Γ lT) Γ empty-renamectxt b nothing t₁ t₂ 0
 
 rewrite-expr : ctxt → expr → term → term → 𝔹 → string ⊎ tagged-val
 rewrite-expr Γ e t₁ t₂ b with rewrite-expr' Γ e t₁ t₂ b
-...| , e' , 0 = inj₁ "No rewrites could be performed"
-...| , e' , n = expr-to-tv Γ (λ x → x) (, e')
+...| , e' , 0 , _ = inj₁ "No rewrites could be performed"
+...| , e' , n , _ = expr-to-tv Γ (λ x → x) (, e')
 
 {- Command Executors -}
 

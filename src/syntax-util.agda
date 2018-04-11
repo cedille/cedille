@@ -172,7 +172,7 @@ term-start-pos (IotaPair pi _ _ _) = pi
 term-start-pos (IotaProj t _ _) = term-start-pos t
 term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Phi pi _ _ _ _) = pi
-term-start-pos (Rho pi _ _ _) = pi
+term-start-pos (Rho pi _ _ _ _) = pi
 term-start-pos (Chi pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
@@ -226,7 +226,7 @@ term-end-pos (IotaPair _ _ _ pi) = pi
 term-end-pos (IotaProj _ _ pi) = pi
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Phi _ _ _ _ pi) = pi
-term-end-pos (Rho pi _ t t') = term-end-pos t'
+term-end-pos (Rho pi _ _ t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
@@ -356,7 +356,7 @@ is-abs _ = ff
 is-eq-op : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-eq-op{TERM} (Sigma _ _) = tt
 is-eq-op{TERM} (Epsilon _ _ _ _) = tt
-is-eq-op{TERM} (Rho _ _ _ _) = tt
+is-eq-op{TERM} (Rho _ _ _ _ _) = tt
 is-eq-op{TERM} (Chi _ _ _) = tt
 is-eq-op{TERM} (Phi _ _ _ _ _) = tt
 is-eq-op _ = ff
@@ -519,7 +519,7 @@ erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
-erase-term (Rho pi _ t t') = erase-term t'
+erase-term (Rho pi _ _ t t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
@@ -613,9 +613,17 @@ ll-to-string ll-term = "term"
 ll-to-string ll-type = "type"
 ll-to-string ll-kind = "kind"
 
-is-rho-plus : rho → 𝔹
-is-rho-plus RhoPlain = ff
+is-rho-plus : optPlus → 𝔹
 is-rho-plus RhoPlus = tt
+is-rho-plus _ = ff
+
+optNums-to-stringset : optNums → maybe stringset
+optNums-to-stringset NoNums = nothing
+optNums-to-stringset (SomeNums ns) = just (h ns empty-stringset)
+  where
+    h : nums → stringset → stringset
+    h (NumsStart n) ss = stringset-insert ss n
+    h (NumsNext n ns) ss = h ns (stringset-insert ss n)
 
 is-equation : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-equation{TYPE} (TpParens _ t _) = is-equation t

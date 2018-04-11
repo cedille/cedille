@@ -79,18 +79,24 @@ data maybeErased : Set
 {-# COMPILED_DECLARE_DATA maybeErased CedilleTypes.MaybeErased #-}
 data maybeMinus : Set
 {-# COMPILED_DECLARE_DATA maybeMinus CedilleTypes.MaybeMinus #-}
+data nums : Set
+{-# COMPILED_DECLARE_DATA nums CedilleTypes.Nums #-}
 data optAs : Set
 {-# COMPILED_DECLARE_DATA optAs CedilleTypes.OptAs #-}
-data optPublic : Set
-{-# COMPILED_DECLARE_DATA optPublic CedilleTypes.OptPublic #-}
 data optClass : Set
 {-# COMPILED_DECLARE_DATA optClass CedilleTypes.OptClass #-}
+data optPlus : Set
+{-# COMPILED_DECLARE_DATA optPlus CedilleTypes.OptPlus #-}
+data optNums : Set
+{-# COMPILED_DECLARE_DATA optNums CedilleTypes.OptNums #-}
+data optPublic : Set
+{-# COMPILED_DECLARE_DATA optPublic CedilleTypes.OptPublic #-}
 data optTerm : Set
 {-# COMPILED_DECLARE_DATA optTerm CedilleTypes.OptTerm #-}
 data params : Set
 {-# COMPILED_DECLARE_DATA params CedilleTypes.Params #-}
-data rho : Set
-{-# COMPILED_DECLARE_DATA rho CedilleTypes.Rho #-}
+-- data rho : Set
+-- {-# COMPILED_DECLARE_DATA rho CedilleTypes.Rho #-}
 data start : Set
 {-# COMPILED_DECLARE_DATA start CedilleTypes.Start #-}
 data term : Set
@@ -206,6 +212,11 @@ data maybeMinus where
   EpsHnf : maybeMinus
 {-# COMPILED_DATA maybeMinus CedilleTypes.MaybeMinus CedilleTypes.EpsHanf CedilleTypes.EpsHnf #-}
 
+data nums where
+  NumsStart : num → nums
+  NumsNext : num → nums → nums
+{-# COMPILED_DATA nums CedilleTypes.Nums CedilleTypes.NumsStart CedilleTypes.NumsNext #-}
+
 data optAs where 
   NoOptAs : optAs
   SomeOptAs : posinfo → var → optAs
@@ -221,6 +232,16 @@ data optClass where
   SomeClass : tk → optClass
 {-# COMPILED_DATA optClass CedilleTypes.OptClass CedilleTypes.NoClass CedilleTypes.SomeClass #-}
 
+data optPlus where 
+  RhoPlain : optPlus
+  RhoPlus : optPlus
+{-# COMPILED_DATA optPlus CedilleTypes.OptPlus CedilleTypes.RhoPlain CedilleTypes.RhoPlus #-}
+
+data optNums where 
+  NoNums : optNums
+  SomeNums : nums → optNums
+{-# COMPILED_DATA optNums CedilleTypes.OptNums CedilleTypes.NoNums CedilleTypes.SomeNums #-}
+
 data optTerm where 
   NoTerm : optTerm
   SomeTerm : term → posinfo → optTerm
@@ -230,12 +251,14 @@ data params where
   ParamsCons : decl → params → params
   ParamsNil : params
 {-# COMPILED_DATA params CedilleTypes.Params CedilleTypes.ParamsCons CedilleTypes.ParamsNil #-}      
-
+{-
 data rho where 
   RhoPlain : rho
   RhoPlus : rho
-{-# COMPILED_DATA rho CedilleTypes.Rho CedilleTypes.RhoPlain CedilleTypes.RhoPlus #-}
-
+  RhoNums : nums → rho
+  RhoPlusNums : nums → rho
+{-# COMPILED_DATA rho CedilleTypes.Rho CedilleTypes.RhoPlain CedilleTypes.RhoPlus CedilleTypes.RhoNums CedilleTypes.RhoPlusNums #-}
+-}
 data start where 
   File : posinfo → imports → posinfo → posinfo → qvar → params → cmds → posinfo → start
 {-# COMPILED_DATA start CedilleTypes.Start CedilleTypes.File #-}  
@@ -253,7 +276,7 @@ data term where
   Let : posinfo → defTermOrType → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
-  Rho : posinfo → rho → term → term → term
+  Rho : posinfo → optPlus → optNums → term → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
   Var : posinfo → qvar → term
@@ -326,9 +349,10 @@ data ParseTreeT : Set where
   parsed-maybeMinus : maybeMinus → ParseTreeT
   parsed-optAs : optAs → ParseTreeT
   parsed-optClass : optClass → ParseTreeT
+  parsed-optNums : optNums → ParseTreeT
+  parsed-optPlus : optPlus → ParseTreeT
   parsed-optTerm : optTerm → ParseTreeT
   parsed-params : params → ParseTreeT
-  parsed-rho : rho → ParseTreeT
   parsed-start : start → ParseTreeT
   parsed-term : term → ParseTreeT
   parsed-theta : theta → ParseTreeT
@@ -588,6 +612,10 @@ mutual
   maybeMinusToString (EpsHanf) = "EpsHanf" ^ ""
   maybeMinusToString (EpsHnf) = "EpsHnf" ^ ""
 
+  numsToString : nums → string
+  numsToString (NumsStart x0) = "(NumsStart" ^ " " ^ (numToString x0) ^ ")"
+  numsToString (NumsNext x0 x1) = "(NumsNext" ^ " " ^ (numToString x0) ^ " " ^ (numsToString x1) ^ ")"
+
   optAsToString : optAs → string
   optAsToString (NoOptAs) = "NoOptAs" ^ ""
   optAsToString (SomeOptAs x0 x1) = "(SomeOptAs" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x0) ^ ")"
@@ -600,6 +628,15 @@ mutual
   optClassToString (NoClass) = "NoClass" ^ ""
   optClassToString (SomeClass x0) = "(SomeClass" ^ " " ^ (tkToString x0) ^ ")"
 
+  
+  optNumsToString : optNums → string
+  optNumsToString (NoNums) = "NoNums" ^ ""
+  optNumsToString (SomeNums x0) = "(SomeNums" ^ " " ^ (numsToString x0) ^ ")"
+
+  optPlusToString : optPlus → string
+  optPlusToString (RhoPlain) = "RhoPlain" ^ ""
+  optPlusToString (RhoPlus) = "RhoPlus" ^ ""
+
   optTermToString : optTerm → string
   optTermToString (NoTerm) = "NoTerm" ^ ""
   optTermToString (SomeTerm x0 x1) = "(SomeTerm" ^ " " ^ (termToString x0) ^ " " ^ (posinfoToString x1) ^ ")"
@@ -608,9 +645,13 @@ mutual
   paramsToString (ParamsCons x0 x1) = "(ParamsCons" ^ " " ^ (declToString x0) ^ " " ^ (paramsToString x1) ^ ")"
   paramsToString (ParamsNil) = "ParamsNil" ^ ""
 
+{-
   rhoToString : rho → string
   rhoToString (RhoPlain) = "RhoPlain" ^ ""
   rhoToString (RhoPlus) = "RhoPlus" ^ ""
+  rhoToString (RhoNums x0) = "(RhoNums" ^ " " ^ (numsToString x0) ^ ")"
+  rhoToString (RhoPlusNums x0) = "(RhoPlusNums" ^ " " ^ (numsToString x0) ^ ")"
+-}
 
   startToString : start → string
   startToString (File x0 x1 x2 x3 x4 x5 x6 x7) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (importsToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (posinfoToString x3) ^ " " ^ (qvarToString x4) ^ " " ^ (paramsToString x5) ^ " " ^ (cmdsToString x6) ^ " " ^ (posinfoToString x7) ^ ")"
@@ -628,7 +669,7 @@ mutual
   termToString (Let x0 x1 x2) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (defTermOrTypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Phi x0 x1 x2 x3 x4) = "(Phi" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  termToString (Rho x0 x1 x2 x3) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (rhoToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ ")"
+  termToString (Rho x0 x1 x2 x3 x4) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (optPlusToString x1) ^ " " ^ (optNumsToString x2) ^ " " ^ (termToString x3) ^ " " ^ (termToString x4) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (qvarToString x1) ^ ")"
@@ -682,9 +723,10 @@ ParseTreeToString (parsed-maybeErased t) = maybeErasedToString t
 ParseTreeToString (parsed-maybeMinus t) = maybeMinusToString t
 ParseTreeToString (parsed-optAs t) = optAsToString t
 ParseTreeToString (parsed-optClass t) = optClassToString t
+ParseTreeToString (parsed-optNums t) = optNumsToString t
+ParseTreeToString (parsed-optPlus t) = optPlusToString t
 ParseTreeToString (parsed-optTerm t) = optTermToString t
 ParseTreeToString (parsed-params t) = paramsToString t
-ParseTreeToString (parsed-rho t) = rhoToString t
 ParseTreeToString (parsed-start t) = startToString t
 ParseTreeToString (parsed-term t) = termToString t
 ParseTreeToString (parsed-theta t) = thetaToString t
@@ -832,8 +874,12 @@ mutual
   norm-start x = x
 
   {-# TERMINATING #-}
-  norm-rho : (x : rho) → rho
-  norm-rho x = x
+  norm-optPlus : (x : optPlus) → optPlus
+  norm-optPlus x = x
+
+  {-# TERMINATING #-}
+  norm-optNums : (x : optNums) → optNums
+  norm-optNums x = x
 
   {-# TERMINATING #-}
   norm-pterm : (x : pterm) → pterm

@@ -635,7 +635,7 @@ Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t)
         maybeMinus-description EpsHnf = "head"
         maybeMinus-description EpsHanf = "head-applicative"
 
-Rho-span : posinfo → term → term → checking-mode → rho → ℕ → 𝕃 tagged-val → err-m → span
+Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ → 𝕃 tagged-val → err-m → span
 Rho-span pi t t' expected r numrewrites tvs err =
   mk-span "Rho" pi (term-end-pos t') 
     (checking-data expected :: ll-data-term :: tvs ++

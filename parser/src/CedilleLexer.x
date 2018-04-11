@@ -12,7 +12,7 @@ import Data.Text(Text,pack)
 $alpha		= [a-zA-Zα-ωΑ-Ω]
 $numone		= 0-9
 $numpunct	= [$numone\-\~\#\_\']  
-$symbols        = [\.\,\_\(\)\{\}\[\]\:\-Π∀λ●ι↑➾➔☆β·≃>Λςχφ★◂=]
+$symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι↑➾➔☆β·≃\<>Λςχφ★◂=]
 
 @num            = $numone+
 @proj           = \. @num
@@ -23,39 +23,39 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-Π∀λ●ι↑➾➔☆β·≃>Λςχ�
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
 
 token :-
-      <0> @proj                                 { mkTokenProj  TProj      }
-      <0> $symbols                              { mkToken      TSym       }
-      <0> Π↑                                    { mkTokenEmpty TPiLift    }
-      <0> ➔↑                                    { mkTokenEmpty TArrowLift }      
-      <0> ε                                     { mkTokenEmpty TEps       }
-      <0> ε\-                                   { mkTokenEmpty TEpsM      }
-      <0> εl                                    { mkTokenEmpty TEpsL      }
-      <0> εl\-                                  { mkTokenEmpty TEpsLM     }
-      <0> εr                                    { mkTokenEmpty TEpsR      }
-      <0> εr\-                                  { mkTokenEmpty TEpsRM     }      
-      <0> θ                                     { mkTokenEmpty TTheta     }
-      <0> θ\+                                   { mkTokenEmpty TThetaEq   }
-      <0> θ\<                                   { mkTokenEmpty TThetaVars }
-      <0> ρ                                     { mkTokenEmpty TRhoPlain  }
-      <0> ρ\+                                   { mkTokenEmpty TRhoPlus   }
-      <0> \{\^                                  { mkTokenEmpty TLSpan     }
-      <0> \^\}                                  { mkTokenEmpty TRSpan     }
-      <0> module                                { mkTokenEmpty TModule    }
-      <0> import                                { mkTokenEmpty TImport    }
-      <0> as                                    { mkTokenEmpty TAs        }
-      <0> public                                { mkTokenEmpty TPublic    }
-      <0> $white+				{ skip'                   }
-      <0> @kvar                                 { mkToken TKvar           }
-      <0> @qkvar        			{ mkToken TQKvar          }      
-      <0> @var                                  { mkToken TVar            }
-      <0> @qvar					{ mkToken TQvar           }
-      <0> @fpth				        { mkToken TFpth           }
-      <0> \-\- 					{ begin' comment          }
-      <0> \{\- 					{ begin' commentMultiLines}
-      <comment> . 				{ skip'                   }
-      <comment> \n				{ begin' 0                }
-      <commentMultiLines> \-\}			{ begin' 0                }
-      <commentMultiLines> . | \n		{ skip'                   }      
+      <0> @proj                                 { mkTokenProj  TProj         }
+      <0> $symbols                              { mkToken      TSym          }
+      <0> @num                                  { mkToken      TNum          }
+      <0> Π↑                                    { mkTokenEmpty TPiLift       }
+      <0> ➔↑                                    { mkTokenEmpty TArrowLift    }      
+      <0> ε                                     { mkTokenEmpty TEps          }
+      <0> ε\-                                   { mkTokenEmpty TEpsM         }
+      <0> εl                                    { mkTokenEmpty TEpsL         }
+      <0> εl\-                                  { mkTokenEmpty TEpsLM        }
+      <0> εr                                    { mkTokenEmpty TEpsR         }
+      <0> εr\-                                  { mkTokenEmpty TEpsRM        }      
+      <0> θ                                     { mkTokenEmpty TTheta        }
+      <0> θ\+                                   { mkTokenEmpty TThetaEq      }
+      <0> θ\<                                   { mkTokenEmpty TThetaVars    }
+      <0> ρ                                     { mkTokenEmpty TRho          }
+      <0> \{\^                                  { mkTokenEmpty TLSpan        }
+      <0> \^\}                                  { mkTokenEmpty TRSpan        }
+      <0> module                                { mkTokenEmpty TModule       }
+      <0> import                                { mkTokenEmpty TImport       }
+      <0> as                                    { mkTokenEmpty TAs           }
+      <0> public                                { mkTokenEmpty TPublic       }
+      <0> $white+				{ skip'                      }
+      <0> @kvar                                 { mkToken TKvar              }
+      <0> @qkvar        			{ mkToken TQKvar             }      
+      <0> @var                                  { mkToken TVar               }
+      <0> @qvar					{ mkToken TQvar              }
+      <0> @fpth				        { mkToken TFpth              }
+      <0> \-\- 					{ begin' comment             }
+      <0> \{\- 					{ begin' commentMultiLines   }
+      <comment> . 				{ skip'                      }
+      <comment> \n				{ begin' 0                   }
+      <commentMultiLines> \-\}			{ begin' 0                   }
+      <commentMultiLines> . | \n		{ skip'                      }   
 
 {
 
@@ -114,6 +114,7 @@ tcStr (TKvar  s)     = s
 tcStr (TQKvar s)     = s
 tcStr (TSym   s)     = s
 tcStr (TProj  s)     = s
+tcStr (TNum   s)     = s
 tcStr _              = ""
 
 data TokenClass =
@@ -124,6 +125,7 @@ data TokenClass =
      |  TQKvar String
      |  TSym   String
      |  TProj  String
+     |  TNum   String
      |  TPiLift
      |  TArrowLift     
      |  TEps
@@ -141,8 +143,7 @@ data TokenClass =
      |  TTheta
      |  TThetaEq
      |  TThetaVars
-     |  TRhoPlain
-     |  TRhoPlus
+     |  TRho
      |  TEOF
      deriving Eq
 
@@ -154,6 +155,7 @@ instance Show TokenClass where
   show (TQKvar s)    = "TQKvar " ++ show s
   show (TSym   s)    = "TSym "   ++ show s
   show (TProj  s)    = "TProj "  ++ show s
+  show (TNum   s)    = "TNum "   ++ show s
   show (TPiLift)     = "TPiLift"
   show (TArrowLift)  = "TArrowLift"    
   show (TEps)        = "TEps"
@@ -171,8 +173,7 @@ instance Show TokenClass where
   show (TTheta)      = "TTheta"
   show (TThetaEq)    = "TThetaEq"
   show (TThetaVars)  = "TThetaVars"
-  show (TRhoPlain)   = "TRhoPlain"
-  show (TRhoPlus)    = "TRhoPlus"
+  show (TRho)        = "TRho"
   show (TEOF)        = "TEOF"
 
 type AlexUserState = ()
@@ -192,6 +193,9 @@ skip' _input _len = alexMonadScanErrOffset
 -- ignore this token, but set the start code to a new value
 -- begin :: Int -> AlexAction result
 begin' code _input _len = do alexSetStartCode code; alexMonadScanErrOffset
+
+-- andBegin' :: AlexAction result -> Int -> AlexAction result
+-- andBegin' act code _input _len = do act _input _len; alexSetStartCode code; alexMonadScanErrOffset
 
 alexMonadScanErrOffset = do
   inp <- alexGetInput

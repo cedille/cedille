@@ -66,7 +66,7 @@ substh-term Γ ρ σ (IotaProj t n pi) = IotaProj (substh-term Γ ρ σ t) n pi
 substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Phi pi t t₁ t₂ pi') = Phi pi (substh-term Γ ρ σ t) (substh-term Γ ρ σ t₁) (substh-term Γ ρ σ t₂) pi
-substh-term Γ ρ σ (Rho pi r t t') = Rho pi r (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Rho pi op on t t') = Rho pi op on (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
   where substh-lterms : substh-ret-t lterms

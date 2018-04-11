@@ -5,146 +5,129 @@ open import lib
 open import cedille-types
 open import conversion
 open import ctxt
+open import general-util
 open import is-free
 open import rename
 open import syntax-util
 
-{- =ACG= =NOTE=
- - RewriteA labels a group of functions designed to pair something with a 
-   natural number
- - RewriteA-pure pairs the input with 0
- - RewriteA-app is an infix operator which takes a rewrite function and 
-   argument, applies the function to the argument and adds their nats together
- - Rewrite-return: when applied to some (a) and pair (rewriteA a'), will return 
-   (rewriteA a) if the pair has zero as its nat, and (rewriteA a') otherwise.
- -}
-rewriteA : Set → Set
-rewriteA T = T × ℕ
-
-rewriteA-pure : ∀{A : Set} → A → rewriteA A
-rewriteA-pure a = a , 0
-
-infixl 4 _rewriteA-app_
-
-_rewriteA-app_ : ∀{A B : Set} → rewriteA (A → B) → rewriteA A → rewriteA B
-(f , x) rewriteA-app (a , y) = (f a , x + y)
-
-rewrite-return : ∀{A : Set} → A → rewriteA A → rewriteA A
-rewrite-return a (a' , 0) = a , 0
-rewrite-return _ r = r
-
 rewrite-t : Set → Set
-rewrite-t T = ctxt → renamectxt → (use-hnf : 𝔹) → term → term → T → rewriteA T
+rewrite-t T = ctxt → renamectxt → (is-plus : 𝔹) → (nums : maybe stringset) → term → term →
+              ℕ {- Total number of matches, including skipped ones -} →
+              T {- Returned value -} ×
+              ℕ {- Number of rewrites actually performed -} ×
+              ℕ {- Total number of matches, including skipped ones -}
 
-{- we assume the term has already been put in hnf (erased would be ok except that we are retaining let-terms when we erase,
-   but we are removing them when calling hnf). -}
-{-# TERMINATING #-}
-rewrite-terma : rewrite-t term
-rewrite-termh : rewrite-t term
-rewrite-termh Γ ρ u t1 t2 orig with orig
-rewrite-termh Γ ρ u t1 t2 orig | App t x t' =
-  rewrite-return orig
-    ((rewriteA-pure App) rewriteA-app
-       (rewrite-terma Γ ρ u t1 t2 t) rewriteA-app
-       (rewriteA-pure x) rewriteA-app
-       (rewrite-terma Γ ρ u t1 t2 t'))
-rewrite-termh Γ ρ u t1 t2 orig | Lam pi KeptLambda pi' y NoClass t =
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    rewrite-return orig
-      ((rewriteA-pure (Lam pi KeptLambda pi' y' NoClass)) rewriteA-app
-         (rewrite-terma Γ (renamectxt-insert ρ y y') u t1 t2 t))
-rewrite-termh Γ ρ u t1 t2 _ | Parens _ t _ = rewrite-terma Γ ρ u t1 t2 t
-rewrite-termh Γ ρ u t1 t2 _ | Var x x₁ = Var x (renamectxt-rep ρ x₁) , 0
-rewrite-termh Γ ρ u t1 t2 _ | x = x , 0
+infixl 4 _≫rewrite_
 
-rewrite-terma Γ ρ u t1 t2 t = 
-  if conv-term Γ t1 t then (t2 , 1)
-  else (rewrite-return t (rewrite-termh Γ ρ u t1 t2 (if u then (hnf Γ unfold-head t tt) else t)))
+_≫rewrite_ : ∀ {A B : Set} → rewrite-t (A → B) → rewrite-t A → rewrite-t B
+(f ≫rewrite a) Γ ρ op on t₁ t₂ n =
+  case f Γ ρ op on t₁ t₂ n of λ where
+    (f' , n' , sn) → case a Γ ρ op on t₁ t₂ sn of λ where
+      (b , n'' , sn') → f' b , n' + n'' , sn'
 
-rewrite-term : rewrite-t term
-rewrite-term Γ ρ u t1 t2 t = rewrite-terma Γ ρ u t1 t2 (erase-term t)
+rewriteR : ∀ {A : Set} → A → rewrite-t A
+rewriteR a Γ ρ op on t₁ t₂ n = a , 0 , n
 
 {-# TERMINATING #-}
-rewrite-type : rewrite-t type
-rewrite-kind : rewrite-t kind
-rewrite-tk : rewrite-t tk
-rewrite-optClass : rewrite-t optClass
--- rewrite-optType : rewrite-t optType
-rewrite-liftingType : rewrite-t liftingType
+rewrite-term : term → rewrite-t term
+rewrite-termh : term → rewrite-t term
+rewrite-type : type → rewrite-t type
+rewrite-kind : kind → rewrite-t kind
+rewrite-tk : tk → rewrite-t tk
+rewrite-optClass : optClass → rewrite-t optClass
+rewrite-liftingType : liftingType → rewrite-t liftingType
+rewrite-args : args → rewrite-t args
+rewrite-arg : arg → rewrite-t arg
+rewrite-params : params → rewrite-t params
+rewrite-param : decl → rewrite-t decl
 
-rewrite-type Γ ρ u t1 t2 T with T
-rewrite-type Γ ρ u t1 t2 T | Abs pi b pi' y tk tp = 
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    rewrite-return T
-      ((rewriteA-pure (Abs pi b pi' y')) rewriteA-app
-        (rewrite-tk Γ ρ u t1 t2 tk) rewriteA-app
-        (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
-rewrite-type Γ ρ u t1 t2 T | Iota pi pi' y m tp = 
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    rewrite-return T
-      ((rewriteA-pure (Iota pi pi' y)) rewriteA-app
-         (rewrite-type Γ ρ u t1 t2 m) rewriteA-app
-         (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 tp))
-rewrite-type Γ ρ u t1 t2 T | Lft pi pi' y t l = 
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-     rewrite-return T
-       ((rewriteA-pure (Lft pi pi' y')) rewriteA-app
-          (rewrite-term Γ (renamectxt-insert ρ y y') u t1 t2 t) rewriteA-app
-          (rewrite-liftingType Γ ρ u t1 t2 l))
-rewrite-type Γ ρ u t1 t2 T | TpApp tp tp' =
-  rewrite-return T
-    ((rewriteA-pure TpApp) rewriteA-app
-       (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
-       (rewrite-type Γ ρ u t1 t2 tp'))
-rewrite-type Γ ρ u t1 t2 T | TpAppt tp t =
-  rewrite-return T
-    ((rewriteA-pure TpAppt) rewriteA-app
-       (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
-       (rewrite-term Γ ρ u t1 t2 t))
-{- =ACG= =NOTE=
- - We are attempting to rewrite TpArrow. Note:
-   rewrite-type : 
-     ctxt → renamectxt → (use-hnf : 𝔹) → term → term → Type → rewriteA Type
- - In this case, T = TpArrow tp _ tp'
- - rewriteA-app associates to the left, so the second rewriteA-app is higher in 
-   the parse tree than the first
- - we have no rule for rewriting arrowtype, therefore, we will rewrite it using 
-   rewriteA-pure
- -}
-rewrite-type Γ ρ u t1 t2 T | TpArrow tp arrowtype tp' =
-  rewrite-return T
-    ((rewriteA-pure TpArrow) rewriteA-app
-       (rewrite-type Γ ρ u t1 t2 tp) rewriteA-app
-       (rewriteA-pure arrowtype) rewriteA-app
-       (rewrite-type Γ ρ u t1 t2 tp'))
-rewrite-type Γ ρ u t1 t2 T | TpEq pi ta tb pi' =
-  rewrite-return T
-    ((rewriteA-pure (λ ta' tb' → TpEq pi ta' tb' pi')) rewriteA-app
-       (rewrite-term Γ ρ u t1 t2 ta) rewriteA-app
-       (rewrite-term Γ ρ u t1 t2 tb))
-rewrite-type Γ ρ u t1 t2 T | TpLambda pi pi' y atk t' = 
-  let y' = rename-var-if Γ ρ y (App t1 NotErased t2) in
-    rewrite-return T
-      ((rewriteA-pure (TpLambda pi pi' y)) rewriteA-app
-         (rewrite-tk Γ ρ u t1 t2 atk) rewriteA-app
-         (rewrite-type Γ (renamectxt-insert ρ y y') u t1 t2 t'))
-rewrite-type Γ ρ u t1 t2 _ | TpParens x tp x₁ = rewrite-type Γ ρ u t1 t2 tp
-rewrite-type Γ ρ u t1 t2 _ | NoSpans tp _ = rewrite-type Γ ρ u t1 t2 tp
-rewrite-type Γ ρ u t1 t2 _ | TpVar pi x = TpVar pi (renamectxt-rep ρ x) , 0
-rewrite-type Γ ρ u t1 t2 _ | TpHole pi = TpHole pi , 0 --ACG
 
-rewrite-kind Γ ρ u t1 t2 k = k , 0 -- unimplemented
+rewrite-lookup-var : var → rewrite-t var
+rewrite-lookup-var x Γ ρ op on t₁ t₂ n = renamectxt-rep ρ x , 0 , n
 
-rewrite-tk Γ ρ u t1 t2 (Tkt x) = rewrite-return (Tkt x)
-                                  ((rewriteA-pure Tkt) rewriteA-app (rewrite-type Γ ρ u t1 t2 x))
-rewrite-tk Γ ρ u t1 t2 (Tkk x) = rewrite-return (Tkk x)
-                                  ((rewriteA-pure Tkk) rewriteA-app (rewrite-kind Γ ρ u t1 t2 x))
+rewrite-rename-var : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
+rewrite-rename-var x r Γ ρ op on t₁ t₂ n =
+  let x' = rename-var-if Γ ρ x (App t₁ NotErased t₂) in
+  r x' Γ ρ op on t₁ t₂ n
 
-rewrite-optClass Γ ρ u t1 t2 NoClass = NoClass , 0
-rewrite-optClass Γ ρ u t1 t2 (SomeClass x) = rewrite-return (SomeClass x)
-                                              ((rewriteA-pure SomeClass) rewriteA-app (rewrite-tk Γ ρ u t1 t2 x))
-{-rewrite-optType Γ ρ u t1 t2 NoType = NoType , 0
-rewrite-optType Γ ρ u t1 t2 (SomeType x) = rewrite-return (SomeType x)
-                                              ((rewriteA-pure SomeType) rewriteA-app (rewrite-type Γ ρ u t1 t2 x))-}
+rewrite-bind-var : ∀ {A} → var → var → rewrite-t A → rewrite-t A
+rewrite-bind-var x x' r Γ ρ = r Γ (renamectxt-insert ρ x x')
 
-rewrite-liftingType Γ ρ u t1 t2 l = l , 0 -- unimplemented
+
+rewrite-term t Γ ρ op on t₁ t₂ sn = case conv-term Γ t₁ t of λ where
+  tt → case on of λ where
+    (just ns) → case trie-contains ns (ℕ-to-string (suc sn)) of λ where
+      tt → t₂ , 1 , suc sn -- ρ nums contains n
+      ff → t , 0 , suc sn -- ρ nums does not contain n
+    nothing → t₂ , 1 , suc sn
+  ff → if op
+    then (case rewrite-termh (hnf Γ unfold-head t tt) Γ ρ op on t₁ t₂ sn of λ where
+      (t' , 0 , sn') → t , 0 , sn' -- if no rewrites were performed, return the pre-hnf t
+      (t' , n' , sn') → t' , n' , sn')
+    else rewrite-termh (erase-term t) Γ ρ op on t₁ t₂ sn
+
+rewrite-termh (App t e t') =
+  rewriteR App ≫rewrite rewrite-term t ≫rewrite rewriteR e ≫rewrite rewrite-term t'
+rewrite-termh (Lam pi KeptLambda pi' y NoClass t) =
+  rewrite-rename-var y (λ y' → rewriteR (Lam pi KeptLambda pi' y' NoClass) ≫rewrite
+  rewrite-bind-var y y' (rewrite-term t))
+rewrite-termh (Parens _ t _) = rewrite-term t
+rewrite-termh (Var pi x) = rewriteR (Var pi) ≫rewrite rewrite-lookup-var x
+rewrite-termh = rewriteR
+
+rewrite-type (Abs pi b pi' x atk T) =
+  rewrite-rename-var x (λ x' → 
+  rewriteR (Abs pi b pi' x') ≫rewrite rewrite-tk atk ≫rewrite
+  rewrite-bind-var x x' (rewrite-type T))
+rewrite-type (Iota pi pi' x T T') =
+  rewrite-rename-var x (λ x' →
+  rewriteR (Iota pi pi' x') ≫rewrite rewrite-type T ≫rewrite
+  rewrite-bind-var x x' (rewrite-type T'))
+rewrite-type (Lft pi pi' x t l) =
+  rewrite-rename-var x (λ x' →
+  rewriteR (Lft pi pi' x') ≫rewrite rewrite-term t ≫rewrite
+  rewrite-bind-var x x' (rewrite-liftingType l))
+rewrite-type (TpApp T T') =
+  rewriteR TpApp ≫rewrite rewrite-type T ≫rewrite rewrite-type T'
+rewrite-type (TpAppt T t) =
+  rewriteR TpAppt ≫rewrite rewrite-type T ≫rewrite rewrite-term t
+rewrite-type (TpEq pi t₁ t₂ pi') =
+  rewriteR (TpEq pi) ≫rewrite rewrite-term t₁ ≫rewrite
+  rewrite-term t₂ ≫rewrite rewriteR pi'
+rewrite-type (TpLambda pi pi' x atk T) =
+  rewrite-rename-var x (λ x' →
+  rewriteR (TpLambda pi pi' x') ≫rewrite rewrite-tk atk ≫rewrite
+  rewrite-bind-var x x' (rewrite-type T))
+rewrite-type (TpArrow T a T') =
+  rewriteR TpArrow ≫rewrite rewrite-type T ≫rewrite rewriteR a ≫rewrite rewrite-type T'
+rewrite-type (TpParens _ T _) = rewrite-type T
+rewrite-type (NoSpans T _) = rewrite-type T
+rewrite-type (TpVar pi x) = rewriteR (TpVar pi) ≫rewrite rewrite-lookup-var x
+rewrite-type = rewriteR
+
+rewrite-kind = rewriteR -- Unimplemented
+
+rewrite-liftingType = rewriteR -- Unimplemented
+
+rewrite-tk (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
+rewrite-tk (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
+
+rewrite-optClass (SomeClass atk) =
+  rewriteR SomeClass ≫rewrite rewrite-tk atk
+rewrite-optClass = rewriteR
+
+rewrite-args (ArgsCons a as) =
+  rewriteR ArgsCons ≫rewrite rewrite-arg a ≫rewrite rewrite-args as
+rewrite-args = rewriteR
+
+rewrite-arg (TermArg t) =
+  rewriteR TermArg ≫rewrite rewrite-term t
+rewrite-arg (TypeArg T) =
+  rewriteR TypeArg ≫rewrite rewrite-type T
+
+rewrite-params (ParamsCons p ps) =
+  rewriteR ParamsCons ≫rewrite rewrite-param p ≫rewrite rewrite-params ps
+rewrite-params = rewriteR
+
+rewrite-param (Decl pi pi' x atk pi'') =
+  rewriteR (Decl pi pi' x) ≫rewrite rewrite-tk atk ≫rewrite rewriteR pi''

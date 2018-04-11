@@ -31,9 +31,10 @@ import System.Environment
   kvar       { Token _ (TKvar _)   }
   qkvar      { Token _ (TQKvar _)  }
   fpth       { Token _ (TFpth _)   }
+  num        { Token _ (TNum _)    }
   '.num'     { Token _ (TProj _)   }
   'Π↑'       { Token $$ TPiLift    }
-  '➔↑'      { Token $$ TArrowLift }  
+  '➔↑'       { Token $$ TArrowLift }  
   'ε'        { Token $$ TEps       }
   'ε-'       { Token $$ TEpsM      }
   'εl'       { Token $$ TEpsL      }
@@ -49,10 +50,11 @@ import System.Environment
   'θ'        { Token $$ TTheta     }
   'θ+'       { Token $$ TThetaEq   }
   'θ<'       { Token $$ TThetaVars }
-  'ρ'        { Token $$ TRhoPlain  }
-  'ρ+'       { Token $$ TRhoPlus   }
+  'ρ'        { Token $$ TRho       }
   '='        { Token $$ (TSym "=") }  
+  '<'        { Token $$ (TSym "<") }
   '>'        { Token $$ (TSym ">") }
+  '+'        { Token $$ (TSym "+") }
   '_'        { Token _  (TSym "_") }
   '.'        { Token $$ (TSym ".") }
   '('        { Token $$ (TSym "(") }
@@ -137,9 +139,18 @@ Vars :: { Vars }
      : var                              { VarsStart (tTxt $1)    }
      | var Vars                         { VarsNext  (tTxt $1) $2 }
 
-Rho :: { (Rho, PosInfo) }
-    : 'ρ'                               { (RhoPlain, pos2Txt $1)  }
-    | 'ρ+'                              { (RhoPlus , pos2Txt $1)  }
+OptPlus :: { OptPlus }
+        :     { RhoPlain }
+        | '+' { RhoPlus  }
+
+OptNums :: { OptNums }
+        :              { NoNums      }
+        | '<' Nums '>' { SomeNums $2 }
+
+
+Nums :: { Nums }
+     : Num                              { NumsStart (tTxt $1) }
+     | Num Nums                         { NumsNext (tTxt $1) $2 }
 
 OptTerm :: { OptTerm }
         :                               { NoTerm                    }
@@ -148,9 +159,9 @@ OptTerm :: { OptTerm }
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) $2 $5                             }
-     | Rho Lterm '-' Term               { Rho (snd $1) (fst $1) $2 $4                         }
-     | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7)       }
-     | 'χ' MaybeAtype '-' Term          { Chi (pos2Txt $1) $2 $4                              }
+     | 'ρ' OptPlus OptNums Lterm '-' Term { Rho (pos2Txt $1) $2 $3 $4 $6 }
+     | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
+     | 'χ' MaybeAtype '-' Term          { Chi (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -263,6 +274,9 @@ Qvar :: { Token }
 Fpth :: { Token }
      : fpth                             { $1 }
      | var                              { $1 }
+
+Num :: { Token }
+    : num                               { $1 }
 
 LineNo :: { PosInfo }
        : {- empty -}                    {% getPos } 

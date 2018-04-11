@@ -1,0 +1,7 @@
+module rhonums.
+
+-- ρ+<2 4> also works, but can be trickier to use
+
+example ◂ ∀ A : ★. ∀ B : A ➔ A ➔ A ➔ A ➔ ★. ∀ a : A. ∀ a' : A. {a ≃ a'} ➾
+          B a a' a a' ➔ B a a a a =
+  Λ A. Λ B. Λ a. Λ a'. Λ e. λ b. ρ<2 4> e - b.

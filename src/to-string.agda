@@ -57,7 +57,7 @@ no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-untyped p lr || is-abs p
 no-parens{TERM} (Let pi dtT t) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = is-eq-op p
-no-parens{TERM} (Rho pi r eq t) p lr = is-eq-op p
+no-parens{TERM} (Rho pi op on eq t) p lr = is-eq-op p
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
@@ -108,15 +108,15 @@ _≫str_ : strM → strM → strM
 (m ≫str m') s n ts Γ pe lr with m s n ts Γ pe lr
 (m ≫str m') s n ts Γ pe lr | s' , n' , ts' = m' s' n' ts' Γ pe lr
 
+strAdd : string → strM
+strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
+
 strΓ : var → posinfo → strM → strM
 strΓ v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   m s n ts
     (mk-ctxt (fn , mn , ps , (trie-insert q v (v' , ArgsNil))) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
     pe
   where v' = pi % v
-
-strAdd : string → strM
-strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
 
 ctxt-global-var-location : ctxt → var → location
 ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
@@ -158,6 +158,7 @@ tk-to-stringh : tk → strM
 optTerm-to-string : optTerm → strM
 -- optType-to-string : optType → strM
 optClass-to-string : optClass → strM
+optNums-to-string : optNums → strM
 maybeAtype-to-string : maybeAtype → strM
 maybeCheckType-to-string : maybeCheckType → strM
 lterms-to-string : lterms → strM
@@ -168,10 +169,12 @@ maybeErased-to-string : maybeErased → string
 lam-to-string : lam → string
 leftRight-to-string : leftRight → string
 vars-to-string : vars → strM
+nums-to-string : nums → strM
 theta-to-string : theta → strM
-rho-to-string : rho → string
+-- rho-to-string : rho → strM
 arrowtype-to-string : arrowtype → string
 maybeMinus-to-string : maybeMinus → string
+optPlus-to-string : optPlus → string
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
 to-string-ed{TERM} = spine-term-to-stringh
@@ -222,7 +225,7 @@ term-to-stringh (Let pi dtT t) with dtT
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = strAdd "(" ≫str to-string-ed t ≫str strAdd ")"
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringh eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringr t' ≫str strAdd "}"
-term-to-stringh (Rho pi r eq t) = strAdd (rho-to-string r) ≫str to-stringh eq ≫str strAdd " - " ≫str to-stringh t
+term-to-stringh (Rho pi op on eq t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringh eq ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
@@ -282,12 +285,20 @@ vars-to-string (VarsNext v vs) = strVar v ≫str strAdd " " ≫str vars-to-strin
 theta-to-string Abstract = strAdd "θ "
 theta-to-string AbstractEq = strAdd "θ+ "
 theta-to-string (AbstractVars vs) = strAdd "θ<" ≫str vars-to-string vs ≫str strAdd "> "
-rho-to-string RhoPlain = "ρ "
-rho-to-string RhoPlus = "ρ+ "
+nums-to-string (NumsStart n) = strAdd n
+nums-to-string (NumsNext n ns) = strAdd n ≫str strAdd " " ≫str nums-to-string ns
+{-rho-to-string RhoPlain = strAdd "ρ "
+rho-to-string RhoPlus = strAdd "ρ+ "
+rho-to-string (RhoNums ns) = strAdd "ρ<" ≫str nums-to-string ns ≫str strAdd "> "
+rho-to-string (RhoNums ns) = strAdd "ρ<" ≫str nums-to-string ns ≫str strAdd "> "-}
+optNums-to-string NoNums = strAdd ""
+optNums-to-string (SomeNums ns) = nums-to-string ns
 arrowtype-to-string UnerasedArrow = " ➔ "
 arrowtype-to-string ErasedArrow = " ➾ "
 maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
+optPlus-to-string RhoPlain = ""
+optPlus-to-string RhoPlus = "+"
 
 
 strRun : ctxt → strM → rope
