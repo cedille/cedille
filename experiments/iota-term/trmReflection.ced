@@ -5,7 +5,7 @@ import sum.
 import nat.
 import cast.
 import RecTypeI.
-import valuation.
+import valuationp.
 import natExtras.
 import trmC.
 import trmD.
@@ -14,8 +14,8 @@ import wSigma2.
 varValuationInv ◂ Π n : Nat . Trm (S n) ➔ ★ = λ n : Nat. λ t : Trm (S n) . { t ≃ varU n } .
 
 varValuation ◂ Π n : Nat . Valuation' n · Trm · varValuationInv =
- λ n . valuationFromFun' n · Trm · varValuationInv
-         (λ m . Λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m) -β) . 
+ λ n . valuationFromFun' -n · Trm · varValuationInv
+         (λ m . Λ _ . mkWSigma2 · (Trm (S m)) · (varValuationInv m) (var m -(S m) -(lt-nSn m)) -β) . 
 
 inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
   [ β{λ n . λ _ . λ _ . λ d . in n d} ,
@@ -27,33 +27,39 @@ inAlg ◂ TrmAlg · Trm' · Trm · varValuationInv =
                (caste e1.1
                  -(λ a .
                      ρ ς e1.2 -
-                     ε ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
+                     ε (ρ ((TrmUnfold' -n (cast -reveal1 a)).2 -β{val}
                             -(λ m : Nat . λ p : Lt m n.
-                                 wSigma2Induction · (Trm (S m)) · (varValuationInv m) (lookupValuation' n · Trm · varValuationInv val m p)
+                                 wSigma2Induction · (Trm (S m)) · (varValuationInv m) (lookupValuation' -n · Trm · varValuationInv val m -p)
                                    · (λ q : wSigma2 · (Trm (S m)) · (varValuationInv m) .
                                        { q (λ a . a) ≃ varU m })
                                    (λ v . Λ e . ρ e - β))) -
-                       β))
-               (caste (e2.1 (var n) -β) 
+                       β)))
+               (caste (e2.1 (var n -(S n) -(lt-nSn n)) -β) 
                  -(λ a . ρ ς e2.2 -
-                         ε ρ ((TrmUnfold' -(S n) (cast -reveal2 a)).2 -β{updateValuation' n val (var n)}
+                         ε (ρ ((TrmUnfold' -(S n) (cast -reveal2 a)).2 -β{updateValuation' n val (var n)}
                                -(λ m . λ p .
                                    
-                                   valuationInv' (S n) · Trm · varValuationInv
-                                     (updateValuation' n · Trm · varValuationInv val (var n) -β)
-                                     m p · { lookupValuation' (S n)
-                                              (updateValuation' n val (var n)) m p (λ a . a)
+                                   valuationInv' -(S n) · Trm · varValuationInv
+                                     (updateValuation' n · Trm · varValuationInv val (var n -(S n) -(lt-nSn n)) -β)
+                                     m -p · { lookupValuation' 
+                                              (updateValuation' n val (var n)) m (λ a . a)
                                              ≃ varU m }
                                      (Λ c . ρ c - β))) -
-                           β)))
+                           β))))
              d)].
                
+embed ◂ Persistent' · Trm =
+  λ m . λ n . Λ p .
+      [λ t . [ (embed' m n -p).1 t.1,
+               Λ P . Λ perP . Λ I . λ val . λ alg . t.2 · P -perP · I ● alg ],
+      β].
+
 toTrm ◂ Π n : Nat . Trm' n ➔ Trm n =
-  λ n . λ t. (TrmUnfold' -n t).1 · Trm · varValuationInv (varValuation n) inAlg .
+  λ n . λ t. (TrmUnfold' -n t).1 · Trm -● · varValuationInv (varValuation n) inAlg .
 
 trmReflection ◂ Π n : Nat . Π t : Trm n . { toTrm n t ≃ t } =
   λ n . λ t .
-    (TrmUnfold' -n (TrmUnfold -n t).1).2 -β{varValuation n}
-      -(λ m . λ p . valuationInv' n · Trm · varValuationInv (varValuation n) m p
-                     · { lookupValuation' n (varValuation n) m p (λ a . a) ≃ varU m }
+    (TrmUnfold' -n t.1).2 -β{varValuation n}
+      -(λ m . λ p . valuationInv' -n · Trm · varValuationInv (varValuation n) m -p
+                     · { lookupValuation' (varValuation n) m (λ a . a) ≃ varU m }
                        (Λ c . ρ c - β)) .

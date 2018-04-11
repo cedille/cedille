@@ -15,6 +15,10 @@ El ◂ Nat ➔ ★ ➔ ★ = λ n : Nat. λ C : ★.
   .
 
 one ◂ Nat = suc zero.
+Foo2 ◂ ★ ➔ ((Unit ➔ ★) ➔ ★) ➔ ★ = (↑ S . one · S : (☆ ➔↑ ((Unit ➔↑ ☆) ➔↑ ☆) ➔↑ ☆)).
+
+test ◂ ★ ➔ ((Unit ➔ ★) ➔ ★) ➔ ★ = Foo2.
+
 Foo ◂ ★ = ∀ C : ★. El one · C ➔ C.
 
 foo ◂ Foo = Λ C. λ c. c.

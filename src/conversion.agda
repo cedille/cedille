@@ -197,7 +197,7 @@ hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) _ =
   TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp ff)
 hnf{TYPE} Γ u (Lft pi pi' y t l) _ = 
  let t = hnf (ctxt-var-decl pi' y Γ) u t tt in
-   do-lift Γ (Lft pi pi' y t l) y l t
+   do-lift Γ (Lft pi pi' y t l) y l (λ t → hnf{TERM} Γ unfold-head t ff) t
 hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e

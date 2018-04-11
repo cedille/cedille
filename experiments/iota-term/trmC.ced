@@ -6,7 +6,7 @@ import nat.
 import cast.
 import recType.
 import RecTypeI.
-import valuation.
+import valuationp.
 import natExtras.
 import wSigma2.
 import is.
@@ -20,9 +20,6 @@ inU ◂ Nat ➔ Top = λ n . β{λ d . λ val . λ alg . alg n (foldU1 alg val) 
 inAlgU ◂ Nat ➔ Top = λ n . β{ λ _ . λ _ . λ d . inU n d}.
 varU ◂ Top = β{λ m . λ val . λ alg . lookupValuation' val m (λ a . a)}.
 --varValuationU ◂ Nat ➔ Top = λ n . β{λ m . λ _ . varU m}.
-
-Persistent ◂ (Nat ➔ ★) ➔ ★ =
-  λ X : Nat ➔ ★ . Π m : Nat . Π n : Nat . Lte m n ➾ Cast · (X m) · (X n).
 
 TrmAppF ◂ ★ ➔ ★ = λ R1 : ★ . Product · R1 · R1 .
 TrmIF ◂ ★ ➔ ★ ➔ ★ =
@@ -43,7 +40,7 @@ TrmAlg ◂ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) �
 
 TrmFC' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
   λ Trm' : Nat ➔ ★ . λ n : Nat . 
-    ∀ X : Nat ➔ ★ . ∀ pX : Persistent · X . ∀ I : Π n : Nat . X (S n) ➔ ★ .
+    ∀ X : Nat ➔ ★ . ∀ pX : Persistent' · X . ∀ I : Π n : Nat . X (S n) ➔ ★ .
       Valuation' n · X · I ➔ 
       TrmAlg · Trm' · X · I ➔
       X n .
@@ -91,7 +88,7 @@ TrmFold' ◂ ∀ n : Nat . TrmF' · Trm' n ➔ Trm' n =
 TrmUnfold' ◂ ∀ n : Nat . Trm' n ➔ TrmF' · Trm' n = 
   casti · Nat · Trm' · (TrmF' · Trm') -(recUnfoldi · Nat · TrmF' -TrmFFun') . 
 
-embed ◂ Persistent · Trm' =
+embed' ◂ Persistent' · Trm' =
   λ m . λ n . Λ p .
       [λ t . TrmFold' -n
                [ Λ X . Λ pX . Λ I . λ val . λ alg .
@@ -101,7 +98,7 @@ embed ◂ Persistent · Trm' =
                  Λ f . Λ uf . ρ ((TrmUnfold' -m t).2 -f -(λ k . λ pk . uf k (LtLte k m n pk p))) - β{t}],
       β].
 
-fold' ◂ ∀ X : Nat ➔ ★ . ∀ pX : Persistent · X . ∀ I : Π n : Nat . X (S n) ➔ ★ .
+fold' ◂ ∀ X : Nat ➔ ★ . ∀ pX : Persistent' · X . ∀ I : Π n : Nat . X (S n) ➔ ★ .
         TrmAlg · Trm' · X · I ➔ ∀ n : Nat . Valuation' n · X · I  ➔ Trm' n ➔ X n =
   Λ X . Λ pX . Λ I . λ alg . Λ n . λ val . λ t . (TrmUnfold' -n t).1 · X -pX · I val alg .
 
@@ -126,6 +123,8 @@ abs' ◂ Π n : Nat . Trm' (S n) ➔ Trm' n
         in' n (in2 · (TrmAppF · (Trm' n)) · (Trm' (S n)) t) .
 
 
+varTp ◂ (Nat ➔ ★) ➔ ★ = λ Trm : Nat ➔ ★ . Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm n.
+
 var' ◂ varTp · Trm' =
   λ m . Λ n . Λ p . 
      TrmFold' -n
@@ -146,7 +145,7 @@ out' ◂ ∀ n : Nat . Trm' n ➔ out-t n =
                    (λ a . a.1 · (out-t j)
                            (λ k . Λ pk .
                              in1 · (out-t1 j) · (out-t2 j) (mkWSigma2 · Nat · (λ m : Nat . Lt m j) k -(LtLte k i j pk pij))))
-                   (λ a . in2 · (out-t1 j) · (out-t2 j) (cast -(TrmIFFun (embed i j -pij) (embed (S i) (S j) -(LteS i j pij))) a)))
+                   (λ a . in2 · (out-t1 j) · (out-t2 j) (cast -(TrmIFFun (embed' i j -pij) (embed' (S i) (S j) -(LteS i j pij))) a)))
           -(λ d . θ<d> (ind-Sum d)
                    (λ a . θ<a> (wSigma2Induction · Nat · (λ m : Nat . Lt m i) a) (λ k . Λ pk . β))
                    (λ a . θ<a> (ind-Sum a)

@@ -5,109 +5,68 @@ import nat.
 import natExtras.
 import wSigma2.
 import true.
+import valuationp.
+import trmC.
+import cast.
 
-Valuation' ◂ Π n : Nat . Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
-  λ n : Nat . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ . Π m : Nat . Lt m n ➾ wSigma2 · (X (S m)) · (I m).
+Persistent ◂ (Π n : Nat . Trm' n ➔ ★) ➔ ★ =
+  λ P : Π n : Nat . Trm' n ➔ ★ . Π m : Nat . Π n : Nat . ∀ p : Lte m n . Π t : Trm' m . 
+    Cast · (P m t) · (P n ((embed' m n -p).1 t)).
 
-lookupValuation' ◂ ∀ n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                   Valuation' n · X · I ➔
-                   Π m : Nat .
-                   Lt m n ➾
-                   wSigma2 · (X (S m)) · (I m) =
-    Λ n . Λ X . Λ I . λ val . val.
+Valuation ◂ Π n : Nat . Π P : Π n : Nat . Trm' n ➔ ★. 
+  Π I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★ . ★ =
+  λ n : Nat . λ P : Π n : Nat . Trm' n ➔ ★ .
+  λ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★ .
+    (Π m : Nat . ∀ p : Lt m n . wSigma2 · (P (S m) (var' m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m))).
 
-updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                   Valuation' n · X · I ➔ Π x : X (S n) . I n x ➾ Valuation' (S n) · X · I =
-  λ n . Λ X . Λ I . λ val . λ xn . Λ ixn .
-    λ m . Λ p . BoolInd (lt m n) · (λ b : Bool . {lt m n ≃ b} ➔ wSigma2 · (X (S m)) · (I m))
-                    (λ q . val m -q)
-                    (λ q . ρ (lt-S-eq m n -p q) - (mkWSigma2 · (X (S n)) · (I n) xn -ixn)) β.
-
-valuationInv' ◂ ∀ n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                  Π val : Valuation' n · X · I . Π m : Nat . ∀ p : Lt m n . ∀ P : ★ .
-                  (I m ((lookupValuation' -n · X · I val m -p).1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P =
-   Λ n . Λ X . Λ I . λ val . λ m . Λ p . 
-     wSigma2Induction · (X (S m)) · (I m) (lookupValuation' -n  · X · I val m -p) · (λ u : wSigma2 · (X (S m)) · (I m). ∀ P : ★ .
-                  (I m (u.1 · (X (S m)) (λ a . Λ _ . a)) ➾ P) ➔ P )
-       (λ a . Λ p . Λ P . λ c . c -p) .
-       
-
-valuationFromFun' ◂ ∀ n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                    (Π m : Nat .Lt m n➾wSigma2·(X (S m))·(I m)) ➔
-                    Valuation' n · X · I =
-  Λ n .Λ X .Λ I .λ f .  f.		    
-
-{-
-restrictValuation' ◂
-  ∀ X : Nat ➔ ★ . Π n : Nat . Π m : Nat . Lte n m ➔ Valuation' m · X ➔ Valuation' n · X =
-  Λ X . λ n . λ m . λ p . λ val . λ m' . λ p' .
-    p.1 · (X (S m')) (λ p'' . val m' (Lt-trans m' n m p' p'')) (λ e . val m' (ρ ς e - p')) .
--}
-
-varTp ◂ (Nat ➔ ★) ➔ ★ = λ Trm : Nat ➔ ★ . Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm n.
-
-Valuation ◂ Π n : Nat . Π Trm : Nat ➔ ★ . Π var : varTp · Trm . Π P : Π n : Nat . Trm n ➔ ★. 
-  Π I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★ . ★ =
-  λ n : Nat . λ Trm : Nat ➔ ★ . λ var : varTp · Trm . λ P : Π n : Nat . Trm n ➔ ★ .
-  λ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★ .
-    (Π m : Nat . ∀ p : Lt m n . wSigma2 · (P (S m) (var m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m))).
-
-valuationFromFun ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
-                  ∀ P : Π n : Nat . Trm n ➔ ★.
-                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★ .
+valuationFromFun ◂ Π n : Nat . 
+                  ∀ P : Π n : Nat . Trm' n ➔ ★.
+                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★ .
                   (Π m : Nat .
                    ∀ p : Lt m n.
-                   wSigma2 · (P (S m) (var m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m))) ➔
-                  Valuation n · Trm var · P · I =
-  λ n . Λ Trm . Λ var . Λ P . Λ I . λ f . f.
+                   wSigma2 · (P (S m) (var' m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m))) ➔
+                  Valuation n · P · I =
+  λ n . Λ P . Λ I . λ f . f.
 
-trivValuationInv ◂ Π Trm : Nat ➔ ★ . Π var : varTp · Trm .
-                   Π P : Π n : Nat . Trm n ➔ ★.
-                   Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★ =
-     λ Trm : Nat ➔ ★ . λ var : varTp · Trm .
-     λ P : Π n : Nat . Trm n ➔ ★.
-     λ n : Nat . λ m : Nat . λ p : Lt m n . λ q : P n (var m -n -p) . True .
+trivValuationInv ◂ Π P : Π n : Nat . Trm' n ➔ ★.
+                   Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★ =
+     λ P : Π n : Nat . Trm' n ➔ ★.
+     λ n : Nat . λ m : Nat . λ p : Lt m n . λ q : P n (var' m -n -p) . True .
 
-lookupValuation ◂ ∀ n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
-                  ∀ P : Π n : Nat . Trm n ➔ ★.
-                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★ .		  
-                  Valuation n · Trm var · P · I ➔ 
+lookupValuation1 ◂ ∀ n : Nat . 
+                  ∀ P : Π n : Nat . Trm' n ➔ ★. Persistent · P ➾
+                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★. 
+                  Valuation n · P · I ➔ 
                   Π m : Nat .
                   ∀ p : Lt m n .
-                  wSigma2 · (P (S m) (var m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m)) =
-    Λ n . Λ Trm . Λ var. Λ P . Λ I . λ val . val.
+                  P n (var' m -n -p) =
+    Λ n . Λ P . Λ perP . Λ I . λ val . λ m . Λ p . 
+      (val m -p).1·(P n (var' m -n -p)) 
+         (λ a .Λ _ . cast · (P (S m) (var' m -(S m) -(lt-nSn m))) · (P n (var' m -n -p))
+                       -(perP (S m) n -(Lt-S2 m n p) (var' m -(S m) -(lt-nSn m))) a) .
 
-lookupValuation1 ◂ ∀ n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
-                  ∀ P : Π n : Nat . Trm n ➔ ★.
-                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★. 
-                  Valuation n · Trm var · P · I ➔ 
-                  Π m : Nat .
-                  ∀ p : Lt m n .
-                  P (S m) (var m -(S m) -(lt-nSn m)) =
-    Λ n . Λ Trm . Λ var. Λ P . Λ I . λ val . λ m . Λ p . (val m -p).1·(P (S m) (var m -(S m) -(lt-nSn m))) (λ a .Λ _ .a) .
-
-updateValuation ◂ Π n : Nat . ∀ Trm : Nat ➔ ★ . ∀ var : varTp · Trm .
-                  ∀ P : Π n : Nat . Trm n ➔ ★.
-                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var m -n -p) ➔ ★. 
-                  Valuation n · Trm var · P · I ➔ 
-                  Π p : P (S n) (var n -(S n) -(lt-nSn n)) .
+updateValuation ◂ Π n : Nat . 
+                  ∀ P : Π n : Nat . Trm' n ➔ ★.
+                  ∀ I : Π n : Nat . Π m : Nat . Π p : Lt m n . P n (var' m -n -p) ➔ ★. 
+                  Valuation n · P · I ➔ 
+                  Π p : P (S n) (var' n -(S n) -(lt-nSn n)) .
                   I (S n) n (lt-nSn n) p ➾ 
-                  Valuation (S n) · Trm var · P · I =
-  λ n . Λ Trm . Λ var . Λ P . Λ I . λ val . λ xn . Λ ixn .
-        λ m . Λ p . BoolInd (lt m n) · (λ b : Bool . {lt m n ≃ b} ➔ wSigma2 · (P (S m) (var m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m)))
+                  Valuation (S n) · P · I =
+  λ n . Λ P . Λ I . λ val . λ xn . Λ ixn .
+        λ m . Λ p . BoolInd (lt m n) · (λ b : Bool . {lt m n ≃ b} ➔ wSigma2 · (P (S m) (var' m -(S m) -(lt-nSn m))) · (I (S m) m (lt-nSn m)))
                     (λ q .val m -q) 
                     (λ q .[e = lt-S-eq m n -p q] -
-		          ρ e - (mkWSigma2 · (P (S n) (var n -(S n) -(lt-nSn n))) · (I (S n) n (lt-nSn n)) xn -ixn)) β .
+		          ρ e - (mkWSigma2 · (P (S n) (var' n -(S n) -(lt-nSn n))) · (I (S n) n (lt-nSn n)) xn -ixn)) β .
 
 -- lemma-val◂  Π n:Nat .
 --         ∀ X:★. ∀ Y:X➔★.
--- 	∀ Trm:Nat ➔ ★ .
---         ∀ var : varTp·Trm .
+-- 	∀ Trm':Nat ➔ ★ .
+--         ∀ var' : var'Tp·Trm' .
 -- 	Π f:(Π m:Nat .Lt m (S n)➾wSigma2·X·Y) .
 --         {  lookupValuation' (S n)·(λ _:Nat .X)·(λ _:Nat .λ x:X. Y x)  
---              (valuationFromFun (S n) ·Trm -var·(λ n:Nat .λ _:Trm n .X)	·(λ n:Nat .λ x:X. Y x) f)
+--              (valuationFromFun (S n) ·Trm' -var'·(λ n:Nat .λ _:Trm' n .X)	·(λ n:Nat .λ x:X. Y x) f)
 --              n (lt-nSn n) ≃
 -- 	   f n } =
---   λ n .Λ X. Λ Y. Λ Trm .Λ _ .λ f .ρ (lem-FunfromPV·(λ _:Nat .wSigma2·X·Y) n f) -β.
+--   λ n .Λ X. Λ Y. Λ Trm' .Λ _ .λ f .ρ (lem-FunfromPV·(λ _:Nat .wSigma2·X·Y) n f) -β.
 
 
