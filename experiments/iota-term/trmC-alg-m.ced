@@ -25,10 +25,11 @@ TrmAppF ◂ ★ ➔ ★ = λ R1 : ★ . Product · R1 · R1 .
 TrmIF ◂ ★ ➔ ★ ➔ ★ =
   λ R1 : ★ . λ R2 : ★ . Sum · (TrmAppF · R1) · R2 .
 
-TrmAlg ◂ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
-  λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ . 
+TrmAlg ◂ Nat ➔ (Nat ➔ ★) ➔ Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
+  λ n : Nat . λ Trm' : Nat ➔ ★ . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ . 
   ι alg : Top .
     Π m : Nat .
+    Lte n m ➾ 
     ∀ val : Valuation' m · X · I .
     ∀ R1 : ★ . ∀ R2 : ★ . 
     Cast · R1 · (Trm' m) ➾ 
@@ -42,7 +43,7 @@ TrmFC' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
   λ Trm' : Nat ➔ ★ . λ n : Nat . 
     ∀ X : Nat ➔ ★ . ∀ pX : Persistent' · X . ∀ I : Π n : Nat . X (S n) ➔ ★ .
       Valuation' n · X · I ➔ 
-      TrmAlg · Trm' · X · I ➔
+      TrmAlg n · Trm' · X · I ➔
       X n .
 
 TrmF' ◂ (Nat ➔ ★) ➔ (Nat ➔ ★) =
@@ -61,8 +62,8 @@ TrmFFun' ◂ RecFunctori · Nat · TrmF' =
       [ Λ Z . Λ pZ . Λ I . λ val . λ alg .
           u.1 · Z -pZ · I val 
           [ β{alg} ,
-            λ n . Λ val . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
-             alg.2 n -val · R1 · R2 -[λ r . casti · Nat · X · Y -c -n (cast · R1 · (X n) -c1 r), β]
+            λ n . Λ pn . Λ val . Λ R1 . Λ R2 . Λ c1 . Λ c2 . λ e1 . λ e2 . λ d .
+             alg.2 n -pn -val · R1 · R2 -[λ r . casti · Nat · X · Y -c -n (cast · R1 · (X n) -c1 r), β]
                              -[λ r . casti · Nat · X · Y -c -(S n) (cast · R2 · (X (S n)) -c2 r) , β]
                               e1 e2 d],
          u.2],
@@ -95,7 +96,8 @@ embed' ◂ Persistent' · Trm' =
                    cast -(pX m n -p) 
                      ((TrmUnfold' -m t).1 · X -pX · I
                         (restrictValuation' -m -n -p · X · I val)
-                        alg) ,
+                        [alg.1,
+                         λ k . Λ pk . alg.2 k -●]) ,
                  Λ f . Λ uf . ρ ((TrmUnfold' -m t).2 -f -(λ k . λ pk . uf k (LtLte k m n pk p))) - β{t}],
       β].
 

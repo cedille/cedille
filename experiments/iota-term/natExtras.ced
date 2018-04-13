@@ -69,3 +69,10 @@ LtLte ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lte y z ➔ Lt x z=
  λ x .λ y .λ z .λ l .λ le .le.1·(Lt x z) (LtLt x y z l) (λ e. ρ (ς e) -l).
 
 
+subtract-nn ◂ Π n : Nat . { subtract n n ≃ Z } = ● .
+
+Lte-refl ◂ Π x : Nat . Lte x x = ● .
+
+Lte-S2 ◂ Π x : Nat . Π y : Nat . Lte x y ➔ Lte x (S y) = ● . 
+
+Lte-subtract ◂ Π x : Nat . Π y : Nat . Lte x y ➔ { subtract (S y) x ≃ S (subtract y x) } = ●.

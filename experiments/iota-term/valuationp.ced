@@ -13,6 +13,10 @@ Persistent' ◂ (Nat ➔ ★) ➔ ★ =
 Valuation' ◂ Π n : Nat . Π X : Nat ➔ ★ . Π I : Π n : Nat . X (S n) ➔ ★ . ★ =
   λ n : Nat . λ X : Nat ➔ ★ . λ I : Π n : Nat . X (S n) ➔ ★ . Π m : Nat . Lt m n ➾ wSigma2 · (X (S m)) · (I m).
 
+trivValuationInv' ◂ Π X : Nat ➔ ★.
+                    Π n : Nat . X (S n) ➔ ★ =
+   λ X : Nat ➔ ★ . λ n : Nat . λ x : X (S n) . True .
+
 lookupValuation' ◂ ∀ n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
                    Valuation' n · X · I ➔
                    Π m : Nat .

@@ -43,14 +43,15 @@ construct-subst-val ◂ Π n : Nat .
 -- (cast · (Trm' n) · (Trm' (S n)) -(embed' n (S n) -(lt-nSn n)) (subst' (S n) t1 (construct-subst-val n t2))
 
 stepup ◂ ∀ n : Nat . Trm' n ➔ Trm' (S n) =
-  Λ n : Nat . λ t . cast · (Trm' n) · (Trm' (S n)) -(embed' n (S n) -(lte-nSn n)) t .
+  Λ n : Nat . λ t . cast -(embed' n (S n) -(lte-nSn n)) t .
 
 beta-redF ◂ 𝒌beta-red ➔ 𝒌beta-red =
   λ beta-red : 𝒌beta-red . λ i : beta-redI .
   ∀ X : 𝒌beta-red .
-  -- var case
+  -- beta case
   (Π n : Nat . Π t1 : Trm' (S n) . Π t2 : Trm' n .
-    X (mkbeta-redI n (appe' n (abs' n t1) t2) (subst' (S n) t1 (construct-subst-val n (cast · (Trm' n) · (Trm' (S n)) -(embed' n (S n) -(lte-nSn n)) t2))))) ➔
+    X (mkbeta-redI n (appe' n (abs' n t1) t2)
+                     (subst' (S n) t1 (construct-subst-val n (stepup -n t2))))) ➔
   -- app1 case
   (Π n : Nat . Π t1 : Trm' n . Π t2 : Trm' n . Π t1' : Trm' n .
     (beta-red (mkbeta-redI n t1 (stepup -n t1')))

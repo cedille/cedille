@@ -108,6 +108,9 @@ exp ◂ Nat ➔ Nat ➔ Nat = λ m . λ n . NatRec n · Nat (S Z) (λ _ . mult m
 pred ◂ Nat ➔ Nat =
   λ n . NatRec n · Nat Z (λ p . λ _ . p).
 
+subtract ◂ Nat ➔ Nat ➔ Nat =
+  λ m . λ n . NatRec n · Nat m (λ _ . pred) .
+
 predS ◂ Π n : Nat . {pred (S n) ≃ n} =
   λ n . ε β .
 

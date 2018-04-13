@@ -13,11 +13,11 @@ import wSigma2.
 import trmReflection.
 
 TrmInd ◂ Π n : Nat . Π t : Trm n .
-         InductiveTrm · Trm · Trm in var n t =
+         InductiveTrm n t.1 =
   λ n . λ t .
-    Λ P . Λ I . λ val . λ alg .
+    Λ P . Λ perP . Λ I . λ val . λ alg .
      ρ ς (trmReflection n t) - 
-      ((TrmUnfold -n t).2 · (λ n : Nat . λ t : Trm' n . P n (toTrm n t))
+      (t.2 · (λ n : Nat . λ t : Trm' n . P n (toTrm n t).1) -●
         · (λ m : Nat . λ p : P (S m) (toTrm (S m) (var' m)) .
               I m (ρ ς (trmReflection (S m) (var m)) - p))
         (Λ X . λ n . λ c .

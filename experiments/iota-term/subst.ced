@@ -4,10 +4,10 @@ import trmC.
 import trmD.
 import nat.
 import natExtras.
-import valuation.
+import valuationp.
 import true.
 
-{- Substitution -}
+{- Substitution 
 subst ◂ Π n : Nat 
       . Trm n
       ➔ Valuation n · Trm var · (λ n : Nat . λ _ : Trm n . Trm n)
@@ -22,9 +22,32 @@ subst ◂ Π n : Nat
           d.1 · (Trm n)
 	      (λ a . a.1 · (Trm n) (λ a1 . λ a2 . app n (eval1.1 a1) (eval1.1 a2)))
 	      (λ a . abs n (eval2.1 (var n -(S n) -(lt-nSn n)) -triv a))].
+-}
 	      
+substX ◂ Nat ➔ Nat ➔ Nat ➔ ★ =
+  λ n : Nat . λ k : Nat . λ m : Nat . Lte n m ➾ Trm' (add (subtract m n) k) .
+
 subst' ◂ Π n : Nat 
        . Trm' n
-       ➔ Valuation n · (λ n : Nat . λ _ : Trm' n . Trm' n)
-      		    · (λ n : Nat . λ m : Nat . λ p : Lt m n . λ _ : Trm' n . True)
-       ➔ Trm' n = ● .
+       ➔ Π k : Nat
+       . Valuation' n · (substX n k) · (trivValuationInv' · (substX n k))
+       ➔ Trm' k =
+  λ n . λ t . λ k . λ val .
+    χ -
+    ρ (subtract-nn n) -
+    (TrmUnfold' -n t).1 · (substX n k) -● · (trivValuationInv' · (substX n k))
+      val
+      [ ● ,
+        λ m . Λ val . Λ R1 . Λ R2 . Λ reveal1 . Λ reveal2 .
+        λ eval1 . λ eval2 . λ d .
+          d.1 · (substX n k m)
+            (λ a . a.1 · (substX n k m)
+              (λ fn . λ arg. Λ p .
+                appe' (add (subtract m n) k) (eval1.1 fn -p) (eval1.1 arg -p)))
+            (λ a . Λ p .
+               abs' (add (subtract m n) k)
+                 (eval2.1
+                   (Λ p . ρ (Lte-subtract n m p) -
+                          vari' (add (subtract m n) k)) -triv a -(Lte-S2 n m p))) ]
+       -(Lte-refl n)
+.
