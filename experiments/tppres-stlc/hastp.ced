@@ -1,31 +1,40 @@
 module Hastp.
 
 import ../iota-term/RecTypeI.
+import ../iota-term/trmC.
 import ../iota-term/trmD.
 import ../iota-term/trmInduction.
 import ../tpinf/tp.
 import nat.
+import ../iota-term/natExtras.
+import bool.
 import ../iota-term/valuation.
+import product.
 import sigma.
 import true.
+import wSigma2.
+import ../iota-term/subst.
+import cast.
 
-ctxt-p ◂ Π n : Nat. Trm n ➔ ★ = λ n : Nat . λ _ : Trm n . Tp .
+ctxt-p ◂ Π n : Nat. Trm' n ➔ ★ = λ n : Nat . λ _ : Trm' n . Tp .
 
 ctxt-i ◂ Π n : Nat . Π m : Nat . Π p : Lt m n .
-          ctxt-p n (var m -n -p) ➔ ★ =
- trivValuationInv · Trm var · ctxt-p.
+          ctxt-p n (var' m -n -p) ➔ ★ =
+ trivValuationInv · ctxt-p.
  
 ctxt ◂ Nat ➔ ★ = 
   λ n : Nat .
-   Valuation n · Trm var · ctxt-p · ctxt-i .
+   Valuation n · ctxt-p · ctxt-i .
+
+PersistencePrf ◂ ∀ n : Nat . Persistent · (λ n' : Nat . λ _ : Trm' n' . Tp) = ● .
 
 lookup-ctxt ◂ ∀ n : Nat . Π m : Nat . Lt m n ➾ ctxt n ➔ Tp =
   Λ n . λ m . Λ p . λ G .
-    lookupValuation1 -n · Trm -var · ctxt-p · ctxt-i G m -p .
+    lookupValuation1 -n · ctxt-p -(PersistencePrf -n) · ctxt-i G m -p .
 
 update-ctxt ◂ Π n : Nat . ctxt n ➔ Tp ➔ ctxt (S n) =
   λ n . λ G . λ T .
-    updateValuation n · Trm -var · ctxt-p · ctxt-i G T -triv .
+    updateValuation n · ctxt-p · ctxt-i G T -triv .
 
 hastpIb ◂ Π n : Nat . ctxt n ➔ ★ =
   λ n : Nat . λ G : ctxt n . Sigma · (Trm n) · (λ _ : Trm n . Tp).
@@ -64,3 +73,4 @@ hastpF ◂ 𝒌hastp ➔ 𝒌hastp =
   X i.
 
 hastp ◂ 𝒌hastp = Reci · hastpI · hastpF .
+
