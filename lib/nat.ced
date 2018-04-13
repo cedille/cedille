@@ -130,4 +130,4 @@ eq ◂ Nat ➔ Nat ➔ Bool =   λ n . NatRec n · (Nat ➔ Bool)
          isZero
          (λ _ . λ f . λ m . f (pred m)).
 
-lte ◂ Nat ➔ Nat ➔ Bool = λ n : Nat . λ m : Nat . or (lt n m) (eq n m)
+lte ◂ Nat ➔ Nat ➔ Bool = λ n : Nat . λ m : Nat . or (lt n m) (eq n m).
