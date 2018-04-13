@@ -125,3 +125,9 @@ lt ◂ Nat ➔ Nat ➔ Bool =
 Lt ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . { lt n m ≃ tt }.
 
 Lte ◂ Nat ➔ Nat ➔ ★ = λ n : Nat . λ m : Nat . Sum · (Lt n m) · { n ≃ m }.
+
+eq ◂ Nat ➔ Nat ➔ Bool =   λ n . NatRec n · (Nat ➔ Bool)
+         isZero
+         (λ _ . λ f . λ m . f (pred m)).
+
+lte ◂ Nat ➔ Nat ➔ Bool = λ n : Nat . λ m : Nat . or (lt n m) (eq n m)
