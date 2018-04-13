@@ -22,3 +22,9 @@ subst ◂ Π n : Nat
           d.1 · (Trm n)
 	      (λ a . a.1 · (Trm n) (λ a1 . λ a2 . app n (eval1.1 a1) (eval1.1 a2)))
 	      (λ a . abs n (eval2.1 (var n -(S n) -(lt-nSn n)) -triv a))].
+	      
+subst' ◂ Π n : Nat 
+       . Trm' n
+       ➔ Valuation n · (λ n : Nat . λ _ : Trm' n . Trm' n)
+      		    · (λ n : Nat . λ m : Nat . λ p : Lt m n . λ _ : Trm' n . True)
+       ➔ Trm' n = ● .
