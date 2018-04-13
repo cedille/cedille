@@ -46,6 +46,8 @@ Lt-S ◂ Π m : Nat . Π n : Nat. Lt m (S n) ➾ Lte m n =
 lt-S-eq ◂ Π m : Nat . Π n : Nat . Lt m (S n) ➾ { lt m n ≃ ff } ➔ { m ≃ n } =
   λ m .λ n .Λ l .λ e .(Lt-S m n -l).1·{m≃n} (λ l .(BoolContra -(ρ (ς l) -e))·{m≃n}) (λ e. e).
 
+lte-nSn ◂ Π n : Nat . Lte n (S n) = λ n : Nat . in1·(Lt n (S n))·{n≃S n} (lt-nSn n).
+
 -- here the less hipothesis can be easily erased
 Lt-S2 ◂ Π m : Nat .Π n : Nat .Lt m n ➔ Lte (S m) n =
   λ m .λ n .λ l .Lt-S (S m) n -(lt-S m n l).
