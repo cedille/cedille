@@ -61,9 +61,13 @@ embed ◂ Persistent' · Trm =
 toTrm ◂ Π n : Nat . Trm' n ➔ Trm n =
   λ n . λ t. (TrmUnfold' -n t).1 · Trm -embed · varValuationInv (varValuation n) inAlg .
 
-trmReflection ◂ Π n : Nat . Π t : Trm n . { toTrm n t ≃ t } =
+trmReflection ◂ Π n : Nat . Π t : Trm' n . { toTrm n t ≃ t } =
   λ n . λ t .
-    (TrmUnfold' -n t.1).2 -β{varValuation n}
+    (TrmUnfold' -n t).2 -β{varValuation n}
       -(λ m . λ p . valuationInv' -n · Trm · varValuationInv (varValuation n) m -p
-                     · { lookupValuation' (varValuation n) m (λ a . a) ≃ varU m }
-                       (Λ c . ρ c - β)) .
+                      · { lookupValuation' (varValuation n) m (λ a . a) ≃ varU m }
+                      (Λ a . ρ a - β)).
+
+castTrm ◂ Π n : Nat . Cast · (Trm' n) · (Trm n) =
+  λ n . caste (toTrm n)
+             -(trmReflection n).
