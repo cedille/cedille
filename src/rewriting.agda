@@ -11,8 +11,8 @@ open import rename
 open import syntax-util
 
 rewrite-t : Set → Set
-rewrite-t T = ctxt → renamectxt → (is-plus : 𝔹) → (nums : maybe stringset) → term → term →
-              ℕ {- Total number of matches, including skipped ones -} →
+rewrite-t T = ctxt → renamectxt → (is-plus : 𝔹) → (nums : maybe stringset) →
+              (left : term) → (right : term) → (total-matches : ℕ) →
               T {- Returned value -} ×
               ℕ {- Number of rewrites actually performed -} ×
               ℕ {- Total number of matches, including skipped ones -}
@@ -20,16 +20,16 @@ rewrite-t T = ctxt → renamectxt → (is-plus : 𝔹) → (nums : maybe strings
 infixl 4 _≫rewrite_
 
 _≫rewrite_ : ∀ {A B : Set} → rewrite-t (A → B) → rewrite-t A → rewrite-t B
-(f ≫rewrite a) Γ ρ op on t₁ t₂ n =
-  case f Γ ρ op on t₁ t₂ n of λ where
-    (f' , n' , sn) → case a Γ ρ op on t₁ t₂ sn of λ where
-      (b , n'' , sn') → f' b , n' + n'' , sn'
+(f ≫rewrite a) Γ ρ op on t₁ t₂ n with f Γ ρ op on t₁ t₂ n
+...| f' , n' , sn with a Γ ρ op on t₁ t₂ sn
+...| b , n'' , sn' = f' b , n' + n'' , sn'
 
 rewriteR : ∀ {A : Set} → A → rewrite-t A
 rewriteR a Γ ρ op on t₁ t₂ n = a , 0 , n
 
 {-# TERMINATING #-}
 rewrite-term : term → rewrite-t term
+rewrite-terma : term → rewrite-t term
 rewrite-termh : term → rewrite-t term
 rewrite-type : type → rewrite-t type
 rewrite-kind : kind → rewrite-t kind
@@ -53,25 +53,26 @@ rewrite-rename-var x r Γ ρ op on t₁ t₂ n =
 rewrite-bind-var : ∀ {A} → var → var → rewrite-t A → rewrite-t A
 rewrite-bind-var x x' r Γ ρ = r Γ (renamectxt-insert ρ x x')
 
+rewrite-term t = rewrite-terma (erase-term t)
 
-rewrite-term t Γ ρ op on t₁ t₂ sn = case conv-term Γ t₁ t of λ where
+rewrite-terma t Γ ρ op on t₁ t₂ sn = case conv-term Γ t₁ t of λ where
   tt → case on of λ where
     (just ns) → case trie-contains ns (ℕ-to-string (suc sn)) of λ where
       tt → t₂ , 1 , suc sn -- ρ nums contains n
       ff → t , 0 , suc sn -- ρ nums does not contain n
     nothing → t₂ , 1 , suc sn
-  ff → if op
-    then (case rewrite-termh (hnf Γ unfold-head t tt) Γ ρ op on t₁ t₂ sn of λ where
+  ff → case op of λ where
+    tt → case rewrite-termh (hnf Γ unfold-head t tt) Γ ρ op on t₁ t₂ sn of λ where
       (t' , 0 , sn') → t , 0 , sn' -- if no rewrites were performed, return the pre-hnf t
-      (t' , n' , sn') → t' , n' , sn')
-    else rewrite-termh (erase-term t) Γ ρ op on t₁ t₂ sn
+      (t' , n' , sn') → t' , n' , sn'
+    ff → rewrite-termh t Γ ρ op on t₁ t₂ sn
 
 rewrite-termh (App t e t') =
-  rewriteR App ≫rewrite rewrite-term t ≫rewrite rewriteR e ≫rewrite rewrite-term t'
+  rewriteR App ≫rewrite rewrite-terma t ≫rewrite rewriteR e ≫rewrite rewrite-terma t'
 rewrite-termh (Lam pi KeptLambda pi' y NoClass t) =
   rewrite-rename-var y (λ y' → rewriteR (Lam pi KeptLambda pi' y' NoClass) ≫rewrite
-  rewrite-bind-var y y' (rewrite-term t))
-rewrite-termh (Parens _ t _) = rewrite-term t
+  rewrite-bind-var y y' (rewrite-terma t))
+rewrite-termh (Parens _ t _) = rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi) ≫rewrite rewrite-lookup-var x
 rewrite-termh = rewriteR
 

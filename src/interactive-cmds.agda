@@ -54,7 +54,7 @@ var-is-type Γ v = isJust (ctxt-lookup-type-var Γ v)
 ll-disambiguate' : ctxt → term → expr
 ll-disambiguate' Γ e @ (Var pi x) =
   if var-is-type Γ x then , TpVar pi x else , e
-ll-disambiguate' Γ e @ (App t me t') =
+ll-disambiguate' Γ e @ (App t NotErased t') =
   case ll-disambiguate' Γ t of λ where
     (,_ {parseAsType} T) → , TpAppt T t'
     _ → , e
@@ -66,7 +66,11 @@ ll-disambiguate' Γ e @ (Lam pi KeptLambda pi' v (SomeClass atk) t ) =
   case ll-disambiguate' Γ t of λ where
     (,_ {parseAsType} T) → , TpLambda pi pi' v atk T
     _ → , e
-ll-disambiguate' Γ = ,_
+ll-disambiguate' Γ e @ (Parens pi t pi') =
+  case ll-disambiguate' Γ t of λ where
+    (,_ {parseAsType} T) → , TpParens pi T pi'
+    _ → , e
+ll-disambiguate' Γ t = , t
 
 ll-disambiguate : ctxt → expr → expr
 ll-disambiguate Γ (,_ {parseAsTerm} t) = ll-disambiguate' Γ t
@@ -107,7 +111,6 @@ parse-try Γ s = maybe-map (ll-disambiguate Γ)
    maybe-map ,_ (parse-string parseAsKind s) ≫nothing
    maybe-map ,_ (parse-string parseAsLiftingType s))
 
-
 qualif-ed : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 qualif-ed{TERM} = qualif-term
 qualif-ed{TYPE} = qualif-type
@@ -116,33 +119,6 @@ qualif-ed Γ e = e
 
 expr-to-tv : ctxt → ({ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) → expr → string ⊎ tagged-val
 expr-to-tv Γ f (, t) = inj₂ (to-string-tag "" Γ (f t))
-
-add-ws : 𝕃 char → 𝕃 char
-add-ws (' ' :: lc) = ' ' :: lc
-add-ws lc = ' ' :: lc
-
--- Makes the string more aesthetically pleasing by removing newlines,
--- replacing tabs with spaces, and removing unnecessary double whitespaces.
--- Also, interactive parsing fails if there are newlines anywhere or periods at the end.
-pretty-string-h : 𝕃 char → 𝕃 char → 𝕃 char
-pretty-string-h ('\n' :: rest) so-far = pretty-string-h rest (add-ws so-far)
-pretty-string-h (' ' :: rest) so-far = pretty-string-h rest (add-ws so-far)
-pretty-string-h ('\t' :: rest) so-far = pretty-string-h rest (add-ws so-far)
-pretty-string-h (c :: rest) so-far = pretty-string-h rest (c :: so-far)
-pretty-string-h [] so-far = reverse (remove-proceeding-ws-period so-far)
-  where
-    remove-proceeding-ws-period : 𝕃 char → 𝕃 char
-    remove-proceeding-ws-period (' ' :: rest) = remove-proceeding-ws-period rest
-    remove-proceeding-ws-period ('.' :: rest) = remove-proceeding-ws-period rest
-    remove-proceeding-ws-period rest = rest
-
-pretty-string : string → string
-pretty-string str = 𝕃char-to-string (pretty-string-h (string-to-𝕃char str) [])
-
-𝕃char-starts-with : 𝕃 char → 𝕃 char → 𝔹
-𝕃char-starts-with (h1 :: t1) (h2 :: t2) = (h1 =char h2) && 𝕃char-starts-with t1 t2
-𝕃char-starts-with [] (h :: t) = ff
-𝕃char-starts-with _ _ = tt
 
 string-to-𝔹 : string → maybe 𝔹
 string-to-𝔹 "tt" = just tt
