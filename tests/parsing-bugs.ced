@@ -1,4 +1,10 @@
-module parsing-bugs.
+module pasing-bugs.
+
+{- hello {-  {- inner comments {- aaa  -}   -} -}
+
+   {- aaa   -} 
+-}
+
 
 -- Kind variables are getting incorrect position information, probably due to the 𝒌.
 -- Only appears to happen in classifiers, kind arrows, and kind/module parameters.

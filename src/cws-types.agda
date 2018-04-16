@@ -28,10 +28,8 @@ data start : Set where
 
 postulate
   scanComments  : string → start
-  showStart     : start  → string
 
 {-# COMPILED scanComments CedilleCommentsLexer.scanComments #-}
-{-# COMPILED showStart    CedilleCommentsLexer.showStart #-}
 
 -- embedded types:
 

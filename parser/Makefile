@@ -45,6 +45,9 @@ lexer:  ./src/CedilleLexer.x
 lexer-comments:  ./src/CedilleCommentsLexer.x
 	cd src; alex CedilleCommentsLexer.x 
 
+lexer-comments-executable:  ./src/CedilleCommentsLexer.x
+	cd src; alex CedilleCommentsLexer.x; ghc --make CedilleCommentsLexer.hs -main-is CedilleCommentsLexer; mv CedilleCommentsLexer ..;
+
 info:   
 	happy -i src/CedilleParser.y; rm -f src/CedilleParser.hs; rm -f src/CedilleLexer.hs ; rm -f src/*.hi; rm -f src/*.o
 

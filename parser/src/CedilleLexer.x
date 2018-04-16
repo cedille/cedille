@@ -51,13 +51,39 @@ token :-
       <0> @qvar					{ mkToken TQvar              }
       <0> @fpth				        { mkToken TFpth              }
       <0> \-\- 					{ begin' comment             }
-      <0> \{\- 					{ begin' commentMultiLines   }
+      <0> \-\}                                  { errorClosingParenth        }
       <comment> . 				{ skip'                      }
       <comment> \n				{ begin' 0                   }
-      <commentMultiLines> \-\}			{ begin' 0                   }
+      <0> \{\- 					{ mkCommentMultiLines        }          <commentMultiLines> \-\}                  { mkCommentMultiLinesDec     }
+      <commentMultiLines> \{\-                  { mkCommentMultiLinesInc     } 
       <commentMultiLines> . | \n		{ skip'                      }   
 
 {
+
+errorClosingParenth :: AlexAction Token
+errorClosingParenth ((AlexPn p _ _), _, _, _) len = alexError $ "L" ++ show (p + 1)
+
+mkCommentMultiLines :: AlexAction Token
+mkCommentMultiLines _ _ = do
+  alexSetStartCode commentMultiLines
+  alexSetUserState AlexUserState{ num_open_brackets=0 }
+  alexMonadScan
+
+mkCommentMultiLinesInc :: AlexAction Token
+mkCommentMultiLinesInc _ _ = do
+  s <- alexGetUserState
+  alexSetUserState s{num_open_brackets=(num_open_brackets s) + 1}
+  alexMonadScan
+
+mkCommentMultiLinesDec :: AlexAction Token
+mkCommentMultiLinesDec _ _ = do
+  s <- alexGetUserState
+  if (num_open_brackets s == 0) then do
+    alexSetStartCode 0
+    alexMonadScan    
+  else do
+    alexSetUserState s{num_open_brackets=(num_open_brackets s) - 1}
+    alexMonadScan    
 
 mkTokenEmpty :: TokenClass -> AlexAction Token
 mkTokenEmpty c (p, _, _, _)     len = return $ Token p c
@@ -176,8 +202,11 @@ instance Show TokenClass where
   show (TRho)        = "TRho"
   show (TEOF)        = "TEOF"
 
-type AlexUserState = ()
-alexInitUserState = ()
+data AlexUserState = AlexUserState {
+      num_open_brackets :: Int
+}
+
+alexInitUserState = AlexUserState { num_open_brackets=0 }
 
 alexEOF :: Alex Token
 alexEOF = do
