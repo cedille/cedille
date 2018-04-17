@@ -617,14 +617,6 @@ is-rho-plus : optPlus → 𝔹
 is-rho-plus RhoPlus = tt
 is-rho-plus _ = ff
 
-optNums-to-stringset : optNums → maybe stringset
-optNums-to-stringset NoNums = nothing
-optNums-to-stringset (SomeNums ns) = just (h ns empty-stringset)
-  where
-    h : nums → stringset → stringset
-    h (NumsStart n) ss = stringset-insert ss n
-    h (NumsNext n ns) ss = h ns (stringset-insert ss n)
-
 is-equation : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-equation{TYPE} (TpParens _ t _) = is-equation t
 is-equation{TYPE} (TpEq _ _ _ _) = tt
@@ -762,3 +754,27 @@ spapp-type : spineApp → type
 spapp-type ((pi , v) , []) = TpVar pi v
 spapp-type (v , (me , TermArg t) :: as) = TpAppt (spapp-type (v , as)) t
 spapp-type (v , (me , TypeArg T) :: as) = TpApp (spapp-type (v , as)) T
+
+
+num-gt : num → ℕ → 𝕃 string
+num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
+nums-gt : nums → ℕ → 𝕃 string
+nums-gt (NumsStart n) n' = num-gt n n'
+nums-gt (NumsNext n ns) n' =
+  maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
+  ++ nums-gt ns n'
+
+nums-to-stringset : nums → stringset × 𝕃 string {- Repeated numbers -}
+nums-to-stringset (NumsStart n) = stringset-insert empty-stringset n , []
+nums-to-stringset (NumsNext n ns) with nums-to-stringset ns
+...| ss , rs = if stringset-contains ss n
+  then ss , n :: rs
+  else stringset-insert ss n , rs
+optNums-to-stringset : optNums → maybe stringset × (ℕ → maybe string)
+optNums-to-stringset NoNums = nothing , λ _ → nothing
+optNums-to-stringset (SomeNums ns) with nums-to-stringset ns
+...| ss , [] = just ss , λ n → case nums-gt ns n of λ where
+  [] → nothing
+  ns-g → just ("Occurrences not found: " ^ 𝕃-to-string id ", " ns-g ^ " (total occurrences: " ^ ℕ-to-string n ^ ")")
+...| ss , rs = just ss , λ n →
+  just ("The list of occurrences contains the following repeats: " ^ 𝕃-to-string id ", " rs)

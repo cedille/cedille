@@ -481,9 +481,10 @@ is-pi : TpQuant-e
 is-pi = tt
 
 TpQuant-span : TpQuant-e → posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → err-m → span
-TpQuant-span is-pi pi x atk body check tvs =
+TpQuant-span is-pi pi x atk body check tvs err =
+  let err-if-type-pi = if ~ tk-is-type atk && is-pi then just "Π-types must bind a term, not a type (use ∀ instead)" else nothing in
   mk-span (if is-pi then "Dependent function type" else "Implicit dependent function type")
-       pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
+       pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data-const :: tvs) (if isJust err-if-type-pi then err-if-type-pi else err)
 
 TpLambda-span : posinfo → var → tk → type → checking-mode → 𝕃 tagged-val → err-m → span
 TpLambda-span pi x atk body check tvs =

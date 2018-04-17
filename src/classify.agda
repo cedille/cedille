@@ -463,10 +463,11 @@ check-termi (Rho pi op on t t') (just tp) =
         cont nothing = get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op 0 [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp))
         cont (just (TpEq pi' t1 t2 pi'')) = 
            get-ctxt (λ Γ →
-             let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (optNums-to-stringset on) t1 t2 0 in
+             let ns-err = optNums-to-stringset on in
+             let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
              check-term t' (just (fst s)) ≫span
              get-ctxt (λ Γ →
-             spanM-add (Rho-span pi t t' checking op (fst (snd s)) ( (to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) nothing)))
+             spanM-add (Rho-span pi t t' checking op (fst (snd s)) ( (to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) (snd ns-err (snd (snd s))))))
         cont (just tp') =
           get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op 0
                                      ((to-string-tag "the synthesized type for the first subterm" Γ tp')
@@ -479,9 +480,10 @@ check-termi (Rho pi op on t t') nothing =
   where cont : maybe type → maybe type → spanM (maybe type)
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt (λ Γ → 
-            let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (optNums-to-stringset on) t1 t2 0 in
+            let ns-err = optNums-to-stringset on in
+            let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
             let tp' = fst s in
-              spanM-add (Rho-span pi t t' synthesizing op (fst (snd s)) [ type-data Γ tp' ] nothing) ≫span
+              spanM-add (Rho-span pi t t' synthesizing op (fst (snd s)) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
               check-termi-return Γ (Rho pi op on t t') tp')
         cont (just tp') m2 =
            get-ctxt (λ Γ → spanM-add (Rho-span pi t t' synthesizing op 0 [ to-string-tag "the synthesized type for the first subterm" Γ tp' ]
