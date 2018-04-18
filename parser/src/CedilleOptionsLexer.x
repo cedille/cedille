@@ -28,7 +28,7 @@ token :-
       <0> show\-qualified\-vars         { mkTokenEmpty TShowQualVars  }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
-      <0> @path  	                { mkToken      TPath          }
+      <0> @path  	                { mkTokenPath  TPath          }
       <0> =	                        { mkTokenEmpty TEq            }
       <0> \.	                        { mkTokenEmpty TPoint         }      
       <0> $white+		        { skip                        }
@@ -65,8 +65,8 @@ data Start = File Opts
 mkTokenEmpty :: TokenClass -> AlexAction Token
 mkTokenEmpty c (p, _, _, _) len = return $ Token p c
 
-mkToken :: (Text -> TokenClass) -> AlexAction Token
-mkToken c (p, _, _, input)  len = return $ Token p (c (pack (take len input)))
+mkTokenPath :: (Text -> TokenClass) -> AlexAction Token
+mkTokenPath c (p, _, _, input)  len = return $ Token p (c (pack (take (len-2) (tail input)))) -- remove quotes from the string
 
 data Token = Token AlexPosn TokenClass
   deriving (Show, Eq)
