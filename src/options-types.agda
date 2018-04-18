@@ -44,29 +44,45 @@ numpunct-bar-8 = string
 path = string
 path-star-1 = string
 
-mutual
+{-# IMPORT CedilleOptionsParser #-}
+{-# IMPORT CedilleOptionsLexer #-}
 
-  data opt : Set where 
+data str-bool : Set where 
+    StrBoolFalse : str-bool
+    StrBoolTrue : str-bool
+{-# COMPILED_DATA str-bool CedilleOptionsLexer.StrBool CedilleOptionsLexer.StrBoolFalse CedilleOptionsLexer.StrBoolTrue #-}
+
+data paths : Set where 
+    PathsCons : path → paths → paths
+    PathsNil : paths
+{-# COMPILED_DATA paths CedilleOptionsLexer.Paths CedilleOptionsLexer.PathsCons CedilleOptionsLexer.PathsNil #-}
+
+data opt : Set where 
     GenerateLogs : str-bool → opt
     Lib : paths → opt
     MakeRktFiles : str-bool → opt
     ShowQualifiedVars : str-bool → opt
     UseCedeFiles : str-bool → opt
+{-# COMPILED_DATA opt CedilleOptionsLexer.Opt CedilleOptionsLexer.GenerateLogs CedilleOptionsLexer.Lib CedilleOptionsLexer.MakeRktFiles CedilleOptionsLexer.ShowQualifiedVars CedilleOptionsLexer.UseCedeFiles #-}
 
-  data opts : Set where 
+data opts : Set where 
     OptsCons : opt → opts → opts
     OptsNil : opts
+{-# COMPILED_DATA opts CedilleOptionsLexer.Opts CedilleOptionsLexer.OptsCons CedilleOptionsLexer.OptsNil #-}    
 
-  data paths : Set where 
-    PathsCons : path → paths → paths
-    PathsNil : paths
-
-  data start : Set where 
+data start : Set where 
     File : opts → start
+{-# COMPILED_DATA start CedilleOptionsLexer.Start CedilleOptionsLexer.File #-}
 
-  data str-bool : Set where 
-    StrBoolFalse : str-bool
-    StrBoolTrue : str-bool
+data Either (A : Set)(B : Set) : Set where
+  Left : A → Either A B
+  Right : B → Either A B
+{-# COMPILED_DATA Either Either Left Right #-}
+
+postulate
+  scanOptions  : string → Either string start
+
+{-# COMPILED scanOptions CedilleOptionsParser.parseOptions #-}
 
 -- embedded types:
 

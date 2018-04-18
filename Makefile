@@ -46,7 +46,13 @@ libraries:
 ./src/CedilleCommentsLexer.hs: parser/src/CedilleCommentsLexer.x
 	cd parser; make cedille-comments-lexer
 
-cedille:	$(SRC) Makefile libraries ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs
+./src/CedilleOptionsParser.hs: parser/src/CedilleOptionsParser.y 
+	cd parser; make cedille-options-parser
+
+./src/CedilleOptionsLexer.hs: parser/src/CedilleOptionsLexer.x
+	cd parser; make cedille-options-lexer
+
+cedille:	$(SRC) Makefile libraries ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 

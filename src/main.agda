@@ -6,14 +6,7 @@ import string-format
 open import cedille-types
 
 -- for parser for options files
-import parse
-import run
-import options
 import options-types
-module parsem2 = parse options.gratr2-nt options-types.ptr
-module options-parse = parsem2.pnoderiv options.rrs options.options-rtn
-module pr2 = run options-types.ptr
-module options-run = pr2.noderiv
 import cedille-options
 
 -- for parser for Cedille comments & whitespace
@@ -362,36 +355,32 @@ createOptionsFile : (options-filepath : string) → IO ⊤
 createOptionsFile ops-fp = withFile ops-fp WriteMode (λ hdl →
   hPutRope hdl (cedille-options.options-to-rope cedille-options.default-options))
 
-str-bool-to-𝔹 : options.str-bool → 𝔹
-str-bool-to-𝔹 options.StrBoolTrue = tt
-str-bool-to-𝔹 options.StrBoolFalse = ff
+str-bool-to-𝔹 : options-types.str-bool → 𝔹
+str-bool-to-𝔹 options-types.StrBoolTrue = tt
+str-bool-to-𝔹 options-types.StrBoolFalse = ff
 
-opts-to-options : options.opts → cedille-options.options
-opts-to-options (options.OptsCons (options.Lib fps) ops) =
+opts-to-options : options-types.opts → cedille-options.options
+opts-to-options (options-types.OptsCons (options-types.Lib fps) ops) =
   record (opts-to-options ops) { include-path = paths-to-stringset fps }
-  where paths-to-stringset : options.paths → 𝕃 string × stringset
-        paths-to-stringset (options.PathsCons fp fps) =
+  where paths-to-stringset : options-types.paths → 𝕃 string × stringset
+        paths-to-stringset (options-types.PathsCons fp fps) =
           cedille-options.include-path-insert fp (paths-to-stringset fps)
-        paths-to-stringset options.PathsNil = [] , empty-stringset
-opts-to-options (options.OptsCons (options.UseCedeFiles b) ops) =
+        paths-to-stringset options-types.PathsNil = [] , empty-stringset
+opts-to-options (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
   record (opts-to-options ops) { use-cede-files = str-bool-to-𝔹 b }
-opts-to-options (options.OptsCons (options.MakeRktFiles b) ops) =
+opts-to-options (options-types.OptsCons (options-types.MakeRktFiles b) ops) =
   record (opts-to-options ops) { make-rkt-files = str-bool-to-𝔹 b }
-opts-to-options (options.OptsCons (options.GenerateLogs b) ops) =
+opts-to-options (options-types.OptsCons (options-types.GenerateLogs b) ops) =
   record (opts-to-options ops) { generate-logs = str-bool-to-𝔹 b }
-opts-to-options (options.OptsCons (options.ShowQualifiedVars b) ops) =
+opts-to-options (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
   record (opts-to-options ops) { show-qualified-vars = str-bool-to-𝔹 b }
-opts-to-options options.OptsNil = cedille-options.default-options
+opts-to-options options-types.OptsNil = cedille-options.default-options
 
 -- helper function to try to parse the options file
 processOptions : string → string → (string ⊎ cedille-options.options)
-processOptions filename s with string-to-𝕃char s
-...                       | i with options-parse.runRtn i
-...                           | inj₁ cs =
-                                     inj₁ ("Parse error in file " ^ filename ^ " at position " ^ (ℕ-to-string (length i ∸ length cs)) ^ ".")
-...                           | inj₂ r with options-parse.rewriteRun r
-...                                    | options-run.ParseTree (options-types.parsed-start (options-types.File oo)) :: [] = inj₂ (opts-to-options oo)
-...                                    | _ =  inj₁ ("Parse error in file " ^ filename ^ ". ")
+processOptions filename s with options-types.scanOptions s
+...                           | options-types.Left cs = inj₁ ("Parse error in file " ^ filename ^ " " ^ cs ^ ".")
+...                           | options-types.Right (options-types.File oo) = inj₂ (opts-to-options oo)
 
 -- read the ~/.cedille/options file
 readOptions : IO cedille-options.options
