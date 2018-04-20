@@ -4,7 +4,8 @@ This is the first version, so it is very likely to contain several bugs.
 
 ## To Do:
 1.  Parser (probably need to make several changes to the syntax from the specification, as several terms/types would cause parsing conflicts)
-2.  Do lots of testing to find bugs, then fix them
+2. "Let" terms/types
+3.  Do lots of testing to find bugs, then fix them
 
 ## Index:
 *  CedilleCoreCheck       Functions that check a term/type/kind for errors and synthesize the type/kind/superkind of it
