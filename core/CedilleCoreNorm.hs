@@ -49,7 +49,7 @@ substType c (TpAll v tk tp) =
 substType c (TpPi v tp tp') =
   doRename' c v $ \ v' -> TpPi v' (substType c tp) (substType (ctxtRename c v v') tp')
 substType c (Iota v tp tp') =
-  doRename' c v $ \ v' -> TpPi v' (substType c tp) (substType (ctxtRename c v v') tp')
+  doRename' c v $ \ v' -> Iota v' (substType c tp) (substType (ctxtRename c v v') tp')
 substType c (TpAppTp tp tp') = TpAppTp (substType c tp) (substType c tp')
 substType c (TpAppTm tp tm) = TpAppTm (substType c tp) (substTerm c tm)
 substType c (TpEq tm tm') = TpEq (substTerm c tm) (substTerm c tm')
@@ -78,7 +78,7 @@ hnfType c (TpAll v tk tp) =
 hnfType c (TpPi v tp tp') =
   doRename' c v $ \ v' -> TpPi v' (substType c tp) (hnfType (ctxtRename c v v') tp')
 hnfType c (Iota v tp tp') =
-  doRename' c v $ \ v' -> Iota v' (substType c tp) (substType (ctxtRename c v v') tp)
+  doRename' c v $ \ v' -> Iota v' (substType c tp) (substType (ctxtRename c v v') tp')
 hnfType c (TpAppTp tp tp') = case hnfType c tp of
   TpLambda v (Tkk _) tp'' -> hnfType (ctxtInternalDef c v (Right (hnfType c tp'))) tp''
   tp'' -> TpAppTp tp'' (substType c tp')

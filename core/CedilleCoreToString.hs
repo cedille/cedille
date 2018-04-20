@@ -11,6 +11,10 @@ instance ShowBool tm => Show (PrimKind tm) where
   show = kindToString
 instance ShowBool tm => Show (PrimTk tm) where
   show = tkToString
+instance Show Cmd where
+  show = cmdToString
+instance Show Cmds where
+  show = cmdsToString
 
 class Show a => ShowBool a where
   showBool :: Bool -> a -> String
@@ -18,6 +22,7 @@ instance ShowBool PureTerm where
   showBool = pureTermToString
 instance ShowBool Term where
   showBool = termToString
+
 
 parensIf True s = "(" ++ s ++ ")"
 parensIf False s = s
@@ -58,7 +63,7 @@ typeToString b (TpVar v) = v
 typeToString b (TpLambda v tk tp) = parensIf b $ "λ " ++ v ++ " : " ++ show tk ++ " . " ++ show tp
 typeToString b (TpAll v tk tp) = parensIf b $ "∀ " ++ v ++ " : " ++ show tk ++ " . " ++ show tp
 typeToString b (TpPi v tp tp') = parensIf b $ "Π " ++ v ++ " : " ++ show tp ++ " . " ++ show tp'
-typeToString b (TpAppTp tp tp') = parensIf b $ typeToString (typeIsntApp tp) tp ++ " " ++ typeToString True tp'
+typeToString b (TpAppTp tp tp') = parensIf b $ typeToString (typeIsntApp tp) tp ++ " · " ++ typeToString True tp'
 typeToString b (TpAppTm tp tm) = parensIf b $ typeToString (typeIsntApp tp) tp ++ " " ++ showBool True tm
 typeToString b (Iota v tp tp') = parensIf True $ "ι " ++ v ++ " : " ++ show tp ++ " . " ++ show tp'
 typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
@@ -68,3 +73,8 @@ kindToString (KdPi v tk kd) = "Π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
 
 tkToString (Tkt tp) = show tp
 tkToString (Tkk kd) = show kd
+
+cmdToString (TermCmd v tm) = v ++ " = " ++ show tm
+cmdToString (TypeCmd v tp) = v ++ " ◂= " ++ show tp
+cmdsToString CmdsStart = ""
+cmdsToString (CmdsNext c cs) = show c ++ "\n" ++ show cs

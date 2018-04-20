@@ -8,6 +8,14 @@ type PureKind = PrimKind PureTerm
 type Type = PrimType Term
 type PureType = PrimType PureTerm
 
+data Cmds =
+    CmdsStart
+  | CmdsNext Cmd Cmds
+
+data Cmd =
+    TermCmd Var Term
+  | TypeCmd Var Type
+
 data Term =
     TmVar Var
   | TmLambda Var Type Term

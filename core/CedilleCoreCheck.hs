@@ -4,9 +4,13 @@ import CedilleCoreCtxt
 import CedilleCoreNorm
 import CedilleCoreToString
 
-errIf True e = Left e
+errIf True e = err e
 errIf False _ = Right ()
 errIfNot = errIf . not
+appendShowErr f tm = case f tm of
+  Left ('!' : e) -> Left $ e ++ ", in the expression \"" ++ show tm ++ "\""
+  r -> r
+err s = Left ('!' : s)
 
 hnfeTerm c = hnfTerm c . eraseTerm
 hnfeType c = hnfType c . eraseType
@@ -19,12 +23,12 @@ errIfCtxtBinds c v = errIf (ctxtBindsVar c v) ("Repeated variable in scope: " ++
 -- TODO: Make sure a lot of types have kind star
 
 --isValidTerm :: Ctxt -> PureTerm -> Either String ()
-isValidTerm c (PureVar v) = maybe (Left ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupTerm c v)
+isValidTerm c (PureVar v) = maybe (err ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupTerm c v)
 isValidTerm c (PureApp tm tm') = isValidTerm c tm >> isValidTerm c tm'
 isValidTerm c (PureLambda v tm) = isValidTerm (ctxtDefTerm c v (Just (PureVar v), Nothing)) tm
 
 --isValidType :: Ctxt -> PureType -> Either String ()
-isValidType c (TpVar v) = maybe (Left ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupType c v)
+isValidType c (TpVar v) = maybe (err ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupType c v)
 isValidType c (TpLambda v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpAll v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpPi v tp tp') = isValidType c tp >> isValidType (ctxtDefTerm c v (Nothing, Just tp)) tp'
@@ -45,17 +49,13 @@ isValidTk c (Tkk kd) = isValidKind c kd
 checkType c tp = synthType c tp >>= \ kd ->
   errIfNot (convKind c kd Star) "Type must have kind star" >> Right kd
 
-appendShowErr f tm = case f tm of
-  Left e -> Left $ e ++ ", in the expression \"" ++ show tm ++ "\""
-  r -> r
-
 synthTerm = appendShowErr . synthTerm'
 synthType = appendShowErr . synthType'
 synthKind = appendShowErr . synthKind'
 synthTk = appendShowErr . synthTk'
 
 --synthTerm' :: Ctxt -> Term -> Either String PureType
-synthTerm' c (TmVar v) = maybe (Left "") Right (ctxtLookupVarType c v)
+synthTerm' c (TmVar v) = maybe (err ("Variable not in scope: " ++ v)) Right (ctxtLookupVarType c v)
 synthTerm' c (TmLambda v tp tm) =
   errIfCtxtBinds c v >>
   synthType c tp >>
@@ -73,19 +73,19 @@ synthTerm' c (TmAppTm ltm rtm) =
     (TpPi v ltph ltpb) -> synthTerm c rtm >>= \ rtp ->
       errIfNot (convType c ltph rtp) (show ltph ++ " != " ++ show rtp) >>
       Right (substType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
-    _ -> Left "Expected the head of an application to synthesize a pi type"
+    _ -> err "Expected the head of an application to synthesize a pi type"
 synthTerm' c (TmAppTmE ltm rtm) =
   synthTerm c ltm >>= \ ltp -> case ltp of
     (TpAll v (Tkt ltph) ltpb) -> synthTerm c rtm >>= \ rtp ->
       errIfNot (convType c ltph rtp) (show ltph ++ " != " ++ show rtp) >>
       Right (substType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
-    _ -> Left "Expected the head of an application to synthesize a type-forall type"
+    _ -> err "Expected the head of an application to synthesize a type-forall type"
 synthTerm' c (TmAppTp tm tp) =
   synthTerm c tm >>= \ ltp -> case ltp of
     (TpAll v (Tkk lkdh) ltpb) -> synthType c tp >>= \ rkd ->
       errIfNot (convKind c lkdh rkd) (show lkdh ++ " != " ++ show rkd) >>
       Right (substType (ctxtInternalDef c v (Right (hnfeType c tp))) ltpb)
-    _ -> Left "Expected the head of an application to synthesize a kind-forall type"
+    _ -> err "Expected the head of an application to synthesize a kind-forall type"
 synthTerm' c (IotaPair tm tm' v tp) =
   errIfCtxtBinds c v >>
   errIfNot (convTerm c (eraseTerm tm) (eraseTerm tm')) ("In a iota pair, " ++ show tm ++ " != " ++ show tm') >>
@@ -97,14 +97,14 @@ synthTerm' c (IotaPair tm tm' v tp) =
   Right (Iota v ltp rtp)
 synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case tp of
   (Iota v tp tp') -> Right tp
-  _ -> Left "Expected a iota type"
+  _ -> err "Expected a iota type"
 synthTerm' c (IotaProj2 tm) = synthTerm c tm >>= \ tp -> case tp of
   (Iota v tp tp') -> Right (substType (ctxtInternalDef c v (Left (hnfeTerm c tm))) tp')
-  _ -> Left "Expected a iota type"
+  _ -> err "Expected a iota type"
 synthTerm' c (Beta pt pt') = let pt'' = hnfTerm c pt in Right (TpEq pt'' pt'')
 synthTerm' c (Sigma tm) = synthTerm c tm >>= \ tp -> case tp of
   (TpEq ltm rtm) -> Right (TpEq rtm ltm)
-  _ -> Left "Expected to synthesize an equational type from the body of a sigma term"
+  _ -> err "Expected to synthesize an equational type from the body of a sigma term"
 synthTerm' c (Delta tp tm) =
   doRename' c "x" $ \ x ->
   doRename' c "y" $ \ y ->
@@ -121,7 +121,7 @@ synthTerm' c (Rho tm v tp tm') =
     (TpEq ltm rtm) ->
       errIfNot (convType c rettp tp) "Inconvertible types after rewriting in a rho term" >>
       Right (substType (ctxtInternalDef c v (Left ltm)) rettp)
-    _ -> Left "Could not synthesize an equation from the first term in a rho term"
+    _ -> err "Could not synthesize an equation from the first term in a rho term"
 synthTerm' c (Phi tm tm' pt) =
   synthTerm c tm >>= \ eqtp ->
   synthTerm c tm' >>= \ rettp ->
@@ -130,7 +130,7 @@ synthTerm' c (Phi tm tm' pt) =
   Right rettp
 
 --synthType' :: Ctxt -> Type -> Either String PureKind
-synthType' c (TpVar v) = maybe (Left ("Variable not in scope: " ++ v)) Right (ctxtLookupVarKind c v)
+synthType' c (TpVar v) = maybe (err ("Variable not in scope: " ++ v)) Right (ctxtLookupVarKind c v)
 synthType' c (TpLambda v tk tp) =
   errIfCtxtBinds c v >>
   synthTk c tk >>
@@ -158,7 +158,7 @@ synthType' c (TpAppTp tp tp') =
     (KdPi v (Tkk kd'') retkd) ->
       errIfNot (convKind c kd' kd'') (show kd'' ++ " != " ++ show kd') >>
       Right retkd
-    _ -> Left "Expected the head of an application to synthesize a kind-pi binding a kind"
+    _ -> err "Expected the head of an application to synthesize a kind-pi binding a kind"
 synthType' c (TpAppTm tp tm) =
   synthType c tp >>= \ kd ->
   synthTerm c tm >>= \ tp' ->
@@ -166,7 +166,7 @@ synthType' c (TpAppTm tp tm) =
     (KdPi v (Tkt tp'') retkd) ->
       errIfNot (convType c tp' tp'') (show tp'' ++ " != " ++ show tp') >>
       Right retkd
-    _ -> Left "Expected the head of an application to synthesize a kind-pi binding a type"
+    _ -> err "Expected the head of an application to synthesize a kind-pi binding a type"
 synthType' c (TpEq tm tm') =
   isValidTerm c tm >>
   isValidTerm c tm' >>
