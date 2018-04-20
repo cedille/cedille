@@ -723,6 +723,15 @@ args-length : args → ℕ
 args-length (ArgsCons p ps) = suc (args-length ps)
 args-length ArgsNil = 0
 
+erased-args-length : args → ℕ
+erased-args-length (ArgsCons (TermArg _) ps) = suc (erased-args-length ps)
+erased-args-length (ArgsCons (TypeArg _) ps) = erased-args-length ps
+erased-args-length ArgsNil = 0
+
+me-args-length : maybeErased → args → ℕ
+me-args-length Erased = erased-args-length
+me-args-length NotErased = args-length
+
 spine : Set
 spine = 𝕃(maybeErased × arg)
 

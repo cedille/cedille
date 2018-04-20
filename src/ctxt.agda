@@ -35,10 +35,10 @@ ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
 ctxt-get-qi : ctxt → var → maybe qualif-info
 ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
 
-ctxt-qualif-args-length : ctxt → var → maybe ℕ
-ctxt-qualif-args-length Γ v =
+ctxt-qualif-args-length : ctxt → maybeErased → var → maybe ℕ
+ctxt-qualif-args-length Γ me v =
   ctxt-get-qi Γ v ≫=maybe λ qv →
-  just (args-length (snd qv))
+  just (me-args-length me (snd qv))
 
 qi-var-if : maybe qualif-info → var → var
 qi-var-if (just (v , _)) _ = v
