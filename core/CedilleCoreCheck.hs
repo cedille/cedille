@@ -20,15 +20,16 @@ hnfeTk c = hnfTk c . eraseTk
 --errIfCtxtBinds :: Ctxt -> Var -> Either String ()
 errIfCtxtBinds c v = errIf (ctxtBindsVar c v) ("Repeated variable in scope: " ++ v)
 
--- TODO: Make sure a lot of types have kind star
-
 --isValidTerm :: Ctxt -> PureTerm -> Either String ()
-isValidTerm c (PureVar v) = maybe (err ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupTerm c v)
+isValidTerm c (PureVar v) = maybe (err "Term variable not in scope") (\ _ -> Right ()) (ctxtLookupTerm c v)
 isValidTerm c (PureApp tm tm') = isValidTerm c tm >> isValidTerm c tm'
 isValidTerm c (PureLambda v tm) = isValidTerm (ctxtDefTerm c v (Just (PureVar v), Nothing)) tm
 
+typeHasKindStar (TpLambda v tk tp) = err "Expected a type of kind Star"
+typeHasKindStar _ = Right ()
+
 --isValidType :: Ctxt -> PureType -> Either String ()
-isValidType c (TpVar v) = maybe (err ("Variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupType c v)
+isValidType c (TpVar v) = maybe (err "Type variable not in scope") (\ _ -> Right ()) (ctxtLookupType c v)
 isValidType c (TpLambda v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpAll v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpPi v tp tp') = isValidType c tp >> isValidType (ctxtDefTerm c v (Nothing, Just tp)) tp'
@@ -55,7 +56,7 @@ synthKind = appendShowErr . synthKind'
 synthTk = appendShowErr . synthTk'
 
 --synthTerm' :: Ctxt -> Term -> Either String PureType
-synthTerm' c (TmVar v) = maybe (err ("Variable not in scope: " ++ v)) Right (ctxtLookupVarType c v)
+synthTerm' c (TmVar v) = maybe (err "Term variable not in scope") Right (ctxtLookupVarType c v)
 synthTerm' c (TmLambda v tp tm) =
   errIfCtxtBinds c v >>
   synthType c tp >>
@@ -72,36 +73,42 @@ synthTerm' c (TmAppTm ltm rtm) =
   synthTerm c ltm >>= \ ltp -> case ltp of
     (TpPi v ltph ltpb) -> synthTerm c rtm >>= \ rtp ->
       errIfNot (convType c ltph rtp) (show ltph ++ " != " ++ show rtp) >>
-      Right (substType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
+      Right (hnfType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
     _ -> err "Expected the head of an application to synthesize a pi type"
 synthTerm' c (TmAppTmE ltm rtm) =
   synthTerm c ltm >>= \ ltp -> case ltp of
     (TpAll v (Tkt ltph) ltpb) -> synthTerm c rtm >>= \ rtp ->
       errIfNot (convType c ltph rtp) (show ltph ++ " != " ++ show rtp) >>
-      Right (substType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
+      Right (hnfType (ctxtInternalDef c v (Left (hnfeTerm c rtm))) ltpb)
     _ -> err "Expected the head of an application to synthesize a type-forall type"
 synthTerm' c (TmAppTp tm tp) =
   synthTerm c tm >>= \ ltp -> case ltp of
     (TpAll v (Tkk lkdh) ltpb) -> synthType c tp >>= \ rkd ->
       errIfNot (convKind c lkdh rkd) (show lkdh ++ " != " ++ show rkd) >>
-      Right (substType (ctxtInternalDef c v (Right (hnfeType c tp))) ltpb)
+      Right (hnfType (ctxtInternalDef c v (Right (hnfeType c tp))) ltpb)
     _ -> err "Expected the head of an application to synthesize a kind-forall type"
 synthTerm' c (IotaPair tm tm' v tp) =
   errIfCtxtBinds c v >>
-  errIfNot (convTerm c (eraseTerm tm) (eraseTerm tm')) ("In a iota pair, " ++ show tm ++ " != " ++ show tm') >>
+  errIfNot (convTerm c (eraseTerm tm) (eraseTerm tm')) ("In a iota pair, " ++ show (hnfeTerm c tm) ++ " != " ++ show (hnfeTerm c tm')) >>
   synthTerm c tm >>= \ ltp ->
   synthTerm c tm' >>= \ rtp ->
-  let c' = ctxtInternalDef c v (Left (hnfeTerm c tm)) in
-  checkType c' tp >>
-  errIfNot (convType c' (eraseType tp) rtp) "Inconvertible types in a iota pair" >>
-  Right (Iota v ltp rtp)
-synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case tp of
-  (Iota v tp tp') -> Right tp
+  let c' = ctxtInternalDef c v (Left (hnfeTerm (ctxtRename c v v) tm)) in
+  let tp' = hnfeType c' tp in
+  isValidType c' tp' >>
+  typeHasKindStar tp' >>
+  let etp = eraseType tp in
+  errIfNot (convType c' etp rtp) "Inconvertible types in a iota pair" >>
+  Right (Iota v ltp (hnfType c etp)) -- Should indeed be c, not c'
+synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
+  (Iota v tp tp') -> Right (hnfType c tp)
   _ -> err "Expected a iota type"
-synthTerm' c (IotaProj2 tm) = synthTerm c tm >>= \ tp -> case tp of
-  (Iota v tp tp') -> Right (substType (ctxtInternalDef c v (Left (hnfeTerm c tm))) tp')
+synthTerm' c (IotaProj2 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
+  (Iota v tp tp') -> Right (hnfType (ctxtInternalDef c v (Left (hnfeTerm (ctxtRename c v v) tm))) tp')
   _ -> err "Expected a iota type"
-synthTerm' c (Beta pt pt') = let pt'' = hnfTerm c pt in Right (TpEq pt'' pt'')
+synthTerm' c (Beta pt pt') =
+  isValidTerm c pt >>
+  isValidTerm c pt' >>
+  Right (TpEq pt pt)
 synthTerm' c (Sigma tm) = synthTerm c tm >>= \ tp -> case tp of
   (TpEq ltm rtm) -> Right (TpEq rtm ltm)
   _ -> err "Expected to synthesize an equational type from the body of a sigma term"
@@ -111,26 +118,29 @@ synthTerm' c (Delta tp tm) =
   synthTerm c tm >>= \ tp' ->
   let tt = PureLambda x (PureLambda y (PureVar x)) in
   let ff = PureLambda x (PureLambda y (PureVar y)) in
+  isValidType c tp >>
   errIfNot (convType c tp' (TpEq tt ff))
     "Could not synthesize a contradiction from the body of a delta term" >>
   Right (hnfType c tp)
 synthTerm' c (Rho tm v tp tm') =
+  errIfCtxtBinds c v >>
   synthTerm c tm >>= \ eqtp ->
-  synthTerm c tm' >>= \ rettp ->
+  synthTerm c tm' >>= \ btp ->
   case eqtp of
     (TpEq ltm rtm) ->
-      errIfNot (convType c rettp tp) "Inconvertible types after rewriting in a rho term" >>
-      Right (substType (ctxtInternalDef c v (Left ltm)) rettp)
+      errIfNot (convType (ctxtInternalDef c v (Left (substTerm c ltm))) btp tp) "Inconvertible types after rewriting in a rho term" >>
+      Right (substType (ctxtInternalDef c v (Left (substTerm c rtm))) tp)
     _ -> err "Could not synthesize an equation from the first term in a rho term"
 synthTerm' c (Phi tm tm' pt) =
   synthTerm c tm >>= \ eqtp ->
   synthTerm c tm' >>= \ rettp ->
+  isValidTerm c pt >>
   errIfNot (convType c eqtp (TpEq (hnfeTerm c tm') pt))
     "Could not synthesize an equation for the terms in a phi term" >>
   Right rettp
 
 --synthType' :: Ctxt -> Type -> Either String PureKind
-synthType' c (TpVar v) = maybe (err ("Variable not in scope: " ++ v)) Right (ctxtLookupVarKind c v)
+synthType' c (TpVar v) = maybe (err "Type variable not in scope") Right (ctxtLookupVarKind c v)
 synthType' c (TpLambda v tk tp) =
   errIfCtxtBinds c v >>
   synthTk c tk >>

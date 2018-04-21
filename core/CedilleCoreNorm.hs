@@ -62,17 +62,36 @@ substTk c (Tkt tp) = Tkt $ substType c tp
 substTk c (Tkk kd) = Tkk $ substKind c kd
 
 --hnfTerm :: Ctxt -> PureTerm -> PureTerm
-hnfTerm c (PureVar v) = maybe (PureVar v) (hnfTerm c) (ctxtLookupTermVar c v)
+hnfTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm c) (ctxtLookupTermVar c v)
 hnfTerm c (PureApp tm tm') = case hnfTerm c tm of
-  PureLambda v tm'' -> hnfTerm (ctxtInternalDef c v (Left (hnfTerm c tm'))) tm''
+  PureLambda v tm'' -> hnfTerm (ctxtInternalDef c v (Left (hnfTerm (ctxtRename c v v) tm'))) tm''
   tm'' -> PureApp tm'' (substTerm c tm')
-hnfTerm c (PureLambda v tm) =
-  doRename' c v $ \ v' -> PureLambda v' (hnfTerm (ctxtRename c v v') tm)
+hnfTerm c (PureLambda v tm) = doRename' c v $ \ v' ->
+  let c' = ctxtRename c v v' in
+  let tm' = hnfTerm c' tm in
+  let etm = PureLambda v' tm' in case tm' of
+    (PureApp htm atm) -> case hnfTerm c' atm of
+      (PureVar v'') -> if v' == v'' then htm else etm
+      _ -> etm
+    _ -> etm
+
+tkIsType (Tkt _) = True
+tkIsType (Tkk _) = False
   
 --hnfType :: Ctxt -> PureType -> PureType
-hnfType c (TpVar v) = maybe (TpVar v) (hnfType c) (ctxtLookupTypeVar c v)
-hnfType c (TpLambda v tk tp) =
-  doRename' c v $ \ v' -> TpLambda v' (substTk c tk) (hnfType (ctxtRename c v v') tp)
+hnfType c (TpVar v) = maybe (TpVar (ctxtRep c v)) (substType c) (ctxtLookupTypeVar c v)
+hnfType c (TpLambda v tk tp) = doRename' c v $ \ v' ->
+  let c' = ctxtRename c v v' in
+  let tp' = hnfType c' tp in
+  let tk' = substTk c tk in
+  let etp = TpLambda v' tk' tp' in case tp' of
+    (TpAppTp htp atp) -> case hnfType c' atp of
+      (TpVar v'') -> if not (tkIsType tk) && v' == v'' then htp else etp
+      _ -> etp
+    (TpAppTm htp tm) -> case hnfTerm c' tm of
+      (PureVar v'') -> if tkIsType tk && v' == v'' then htp else etp
+      _ -> etp
+    _ -> etp
 hnfType c (TpAll v tk tp) =
   doRename' c v $ \ v' -> TpAll v' (substTk c tk) (hnfType (ctxtRename c v v') tp)
 hnfType c (TpPi v tp tp') =
@@ -80,17 +99,17 @@ hnfType c (TpPi v tp tp') =
 hnfType c (Iota v tp tp') =
   doRename' c v $ \ v' -> Iota v' (substType c tp) (substType (ctxtRename c v v') tp')
 hnfType c (TpAppTp tp tp') = case hnfType c tp of
-  TpLambda v (Tkk _) tp'' -> hnfType (ctxtInternalDef c v (Right (hnfType c tp'))) tp''
+  TpLambda v (Tkk _) tp'' -> hnfType (ctxtInternalDef c v (Right (hnfType (ctxtRename c v v) tp'))) tp''
   tp'' -> TpAppTp tp'' (substType c tp')
 hnfType c (TpAppTm tp tm) = case hnfType c tp of
-  TpLambda v (Tkt _) tp' -> hnfType (ctxtInternalDef c v (Left (hnfTerm c tm))) tp'
+  TpLambda v (Tkt _) tp' -> hnfType (ctxtInternalDef c v (Left (hnfTerm (ctxtRename c v v) tm))) tp'
   tp' -> TpAppTm tp' (substTerm c tm)
 hnfType c (TpEq tm tm') = TpEq (substTerm c tm) (substTerm c tm')
 
 --hnfKind :: Ctxt -> PureKind -> PureKind
 hnfKind c Star = Star
 hnfKind c (KdPi v tk kd) =
-  doRename' c v (\ v' -> KdPi v' (substTk c tk) (hnfKind (ctxtRename c v v') kd))
+  doRename' c v $ \ v' -> KdPi v' (substTk c tk) (hnfKind (ctxtRename c v v') kd)
 
 --hnfTk :: Ctxt -> PureTk -> PureTk
 hnfTk c (Tkt tp) = Tkt (hnfType c tp)
@@ -101,16 +120,17 @@ convType c tp tp' = convType' c (hnfType c tp) (hnfType c tp')
 convKind c kd kd' = convKind' c (hnfKind c kd) (hnfKind c kd')
 convTk c tk tk' = convTk' c (hnfTk c tk) (hnfTk c tk')
 
--- For eta contractions, there is no need to make sure the variable is free in its body,
--- as if it is then it will return false anyway and there will not be any variables of
--- the same name in the context because of the substitution that occurs in hnf
 --convTerm' :: Ctxt -> PureTerm -> PureTerm -> Bool
 convTerm' c (PureVar v) (PureVar v') =
   ctxtRep c v == ctxtRep c v'
 convTerm' c (PureLambda v tm) (PureLambda v' tm') = convTerm' (ctxtRename c v v') tm tm'
-convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convTerm' c tm' tm'''
-convTerm' c (PureLambda v (PureApp tm (PureVar v'))) tm' = v == v' && convTerm' c tm tm'
-convTerm' c tm (PureLambda v (PureApp tm' (PureVar v'))) = v == v' && convTerm' c tm tm'
+convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convTerm c tm' tm'''
+{-convTerm' c (PureLambda v (PureApp tm tmv)) tm' = case hnfTerm (ctxtRename c v v) tmv of
+  (PureVar v') -> v == v' && convTerm' c tm tm'
+  _ -> False
+convTerm' c tm (PureLambda v (PureApp tm' tmv)) = case hnfTerm (ctxtRename c v v) tmv of
+  (PureVar v') -> v == v' && convTerm' c tm tm'
+  _ -> False-}
 convTerm' _ _ _ = False
 
 --convType' :: Ctxt -> PureType -> PureType -> Bool
@@ -122,10 +142,18 @@ convType' c (Iota v tp tp') (Iota v' tp'' tp''') = convType c tp tp'' && convTyp
 convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTerm c tm tm'' && convTerm c tm' tm'''
 convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convType c tp' tp'''
 convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTerm c tm tm'
-convType' c (TpLambda v (Tkk _) (TpAppTp tp (TpVar v'))) tp' = v == v' && convType' c tp tp'
-convType' c tp (TpLambda v (Tkk _) (TpAppTp tp' (TpVar v'))) = v == v' && convType' c tp tp'
-convType' c (TpLambda v (Tkt _) (TpAppTm tp (PureVar v'))) tp' = v == v' && convType' c tp tp'
-convType' c tp (TpLambda v (Tkt _) (TpAppTm tp' (PureVar v'))) = v == v' && convType' c tp tp'
+{-convType' c (TpLambda v (Tkk _) (TpAppTp tp tpv)) tp' = case hnfType (ctxtRename c v v) tpv of
+  (TpVar v') -> v == v' && convType' c tp tp'
+  _ -> False
+convType' c tp (TpLambda v (Tkk _) (TpAppTp tp' tpv)) = case hnfType (ctxtRename c v v) tpv of
+  (TpVar v') -> v == v' && convType' c tp tp'
+  _ -> False
+convType' c (TpLambda v (Tkt _) (TpAppTm tp tmv)) tp' = case hnfTerm (ctxtRename c v v) tmv of
+  (PureVar v') -> v == v' && convType' c tp tp'
+  _ -> False
+convType' c tp (TpLambda v (Tkt _) (TpAppTm tp' tmv)) = case hnfTerm (ctxtRename c v v) tmv of
+  (PureVar v') -> v == v' && convType' c tp tp'
+  _ -> False-}
 convType' c tp tp' = False
 
 --convKind' :: Ctxt -> PureKind -> PureKind -> Bool

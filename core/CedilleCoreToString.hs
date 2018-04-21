@@ -69,7 +69,7 @@ typeToString b (Iota v tp tp') = parensIf True $ "ι " ++ v ++ " : " ++ show tp 
 typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
 
 kindToString Star = "★"
-kindToString (KdPi v tk kd) = "Π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
+kindToString (KdPi v tk kd) = "π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
 
 tkToString (Tkt tp) = show tp
 tkToString (Tkk kd) = show kd

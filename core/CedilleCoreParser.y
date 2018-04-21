@@ -37,6 +37,7 @@ import System.Environment
   '}'        { Token $$ (TSym "}") }
   ':'        { Token $$ (TSym ":") }
   'Π'        { Token $$ (TSym "Π") }
+  'π'        { Token $$ (TSym "π") }
   '∀'        { Token $$ (TSym "∀") }
   'λ'        { Token $$ (TSym "λ") }
   'Λ'        { Token $$ (TSym "Λ") }  
@@ -134,12 +135,12 @@ VPureType :: { PureType }
       | '(' PureType ')'              { $2 }
 
 Kind :: { Kind }
-     : 'Π' var ':' Tk '.' Kind         { KdPi (tStr $2) $4 $6 }
+     : 'π' var ':' Tk '.' Kind         { KdPi (tStr $2) $4 $6 }
      | '★'                             { Star }
      | '(' Kind ')'                    { $2 }
 
 PureKind :: { PureKind }
-     : 'Π' var ':' PureTk '.' PureKind  { KdPi (tStr $2) $4 $6 }
+     : 'π' var ':' PureTk '.' PureKind  { KdPi (tStr $2) $4 $6 }
      | '★'                             { Star }
      | '(' PureKind ')'                { $2 }
 

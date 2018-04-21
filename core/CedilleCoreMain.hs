@@ -1,6 +1,7 @@
 module CedillCoreMain where
 import CedilleCoreCheck
 import CedilleCoreCtxt
+import CedilleCoreNorm
 import CedilleCoreParser hiding (main)
 import CedilleCoreLexer hiding (main)
 import CedilleCoreToString
@@ -8,8 +9,8 @@ import CedilleCoreTypes
 
 
 --checkCmd :: Cmd -> Ctxt -> Either String Ctxt
-checkCmd (TermCmd v tm) c = synthTerm c tm >>= \ tp -> Right (ctxtDefTerm c v (Just (hnfeTerm c tm), Just tp))
-checkCmd (TypeCmd v tp) c = synthType c tp >>= \ kd -> Right (ctxtDefType c v (Just (hnfeType c tp), Just kd))
+checkCmd (TermCmd v tm) c = synthTerm c tm >>= \ tp -> Right (ctxtDefTerm c v (Just (hnfeTerm c tm), Just (hnfType c tp)))
+checkCmd (TypeCmd v tp) c = synthType c tp >>= \ kd -> Right (ctxtDefType c v (Just (hnfeType c tp), Just (hnfKind c kd)))
 
 --checkCmds :: Cmds -> Ctxt -> Either String Ctxt
 checkCmds CmdsStart ctxt = Right ctxt

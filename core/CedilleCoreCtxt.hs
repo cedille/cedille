@@ -11,11 +11,6 @@ type ExternalDefs = Map.Map Var ExternalDef
 type InternalDefs = Map.Map Var InternalDef
 data Ctxt = Ctxt ExternalDefs InternalDefs VarMap
 
-maybeOr Nothing m = m
-maybeOr m m' = m
-
-mapsLookup k m m' = maybeOr (Map.lookup k m) (Map.lookup k m')
-
 --varMapRep :: Ord a => Map.Map a a -> a -> a
 varMapRep m k = case Map.lookup k m of
   Just v -> v

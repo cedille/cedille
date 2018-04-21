@@ -8,11 +8,11 @@ import Control.Monad
 
 %wrapper "monadUserState"
 
-$alpha		= [a-zA-Zα-ωΑ-Ω]
+$alpha		= [a-zA-Z]
 $numone		= 0-9
 $numproj        = 1-2
 $numpunct	= [$numone\-\~\#\']
-$symbols        = [\.\,\(\)\{\}\[\]\:\-·≃★◂=@Π∀λιβρδΛςφ]
+$symbols        = [\.\,\(\)\{\}\[\]\:\-·≃★◂=@Ππ∀λιβρδΛςφ]
 
 @proj           = \. $numproj
 @var            = $alpha ($alpha | $numpunct)*
