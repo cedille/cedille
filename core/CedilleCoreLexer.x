@@ -12,7 +12,7 @@ $alpha		= [a-zA-Z]
 $numone		= 0-9
 $numproj        = 1-2
 $numpunct	= [$numone\-\~\#\']
-$symbols        = [\.\,\(\)\{\}\[\]\:\-·≃★◂=@Ππ∀λιβρδΛςφ]
+$symbols        = [\.\,\(\)\{\}\[\]\:\-\_·≃★◂=@Ππ∀λιβρδΛςφ]
 
 @proj           = \. $numproj
 @var            = $alpha ($alpha | $numpunct)*

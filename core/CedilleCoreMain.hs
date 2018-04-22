@@ -1,4 +1,4 @@
-module CedillCoreMain where
+module Main where
 import CedilleCoreCheck
 import CedilleCoreCtxt
 import CedilleCoreNorm
@@ -39,6 +39,7 @@ handleInput c ("lookup" : "term" : "hnf" : v : []) = putStrLn (maybe "Term not d
 handleInput c ("lookup" : "type" : "hnf" : v : []) = putStrLn (maybe "Type not defined" show (ctxtLookupTypeVar c v)) >> mainWithCtxt c
 handleInput c ("lookup" : "term" : "type" : v : []) = putStrLn (maybe "Term not defined" show (ctxtLookupVarType c v)) >> mainWithCtxt c
 handleInput c ("lookup" : "type" : "kind" : v : []) = putStrLn (maybe "Type not defined" show (ctxtLookupVarKind c v)) >> mainWithCtxt c
+handleInput c ("restart" : []) = mainWithCtxt emptyCtxt
 handleInput c ("quit" : []) = return ()
 handleInput c _ = putStrLn "Unknown command" >> mainWithCtxt c
 

@@ -23,8 +23,9 @@ import System.Environment
 %lexer     { lexer } { Token _ TEOF }
 
 %token
-  var        { Token _ (TVar _)    }
-  '.num'     { Token _ (TProj _)   }
+  var        { Token _  (TVar _)   }
+  '.num'     { Token _  (TProj _)  }
+  '_'        { Token _  (TSym "_") }
   '='        { Token $$ (TSym "=") }
   '◂'        { Token $$ (TSym "◂") }
   '.'        { Token $$ (TSym ".") }
@@ -64,8 +65,8 @@ Cmd :: { Cmd }
     | var '◂' '=' Type '.' { TypeCmd (tStr $1) $4 } 
 
 Term :: { Term }
-     : 'λ' var ':' Type '.' Term { TmLambda (tStr $2) $4 $6 }
-     | 'Λ' var ':' Tk '.' Term { TmLambdaE (tStr $2) $4 $6 }
+     : 'λ' Bvar ':' Type '.' Term { TmLambda (tStr $2) $4 $6 }
+     | 'Λ' Bvar ':' Tk '.' Term { TmLambdaE (tStr $2) $4 $6 }
      | 'ρ' LTerm '@' var '.' PureType '-' Term { Rho $2 (tStr $4) $6 $8 }
      | 'φ' LTerm '-' Term '{' PureTerm '}' { Phi $2 $4 $6 }
      | 'δ' PureType '-' Term { Delta $2 $4 }
@@ -89,7 +90,7 @@ VTerm :: { Term }
       | '(' Term ')' { $2 }
 
 PureTerm :: { PureTerm }
-         : 'λ' var '.' PureTerm { PureLambda (tStr $2) $4 }
+         : 'λ' Bvar '.' PureTerm { PureLambda (tStr $2) $4 }
          | APureTerm { $1 }
 
 APureTerm :: { PureTerm }
@@ -101,10 +102,10 @@ VPureTerm :: { PureTerm }
           | '(' PureTerm ')' { $2 }
 
 Type :: { Type }
-     : 'λ' var ':' Tk '.' Type { TpLambda (tStr $2) $4 $6 }
-     | '∀' var ':' Tk '.' Type { TpAll (tStr $2) $4 $6 }
-     | 'Π' var ':' Type '.' Type { TpPi (tStr $2) $4 $6 }
-     | 'ι' var ':' Type '.' Type { Iota (tStr $2) $4 $6 }
+     : 'λ' Bvar ':' Tk '.' Type { TpLambda (tStr $2) $4 $6 }
+     | '∀' Bvar ':' Tk '.' Type { TpAll (tStr $2) $4 $6 }
+     | 'Π' Bvar ':' Type '.' Type { TpPi (tStr $2) $4 $6 }
+     | 'ι' Bvar ':' Type '.' Type { Iota (tStr $2) $4 $6 }
      | AType { $1 }
 
 AType :: { Type }
@@ -118,10 +119,10 @@ VType :: { Type }
       | '(' Type ')'                  { $2 }
 
 PureType :: { PureType }
-     : 'λ' var ':' PureTk '.' PureType   { TpLambda (tStr $2) $4 $6 }
-     | '∀' var ':' PureTk '.' PureType   { TpAll (tStr $2) $4 $6 }
-     | 'Π' var ':' PureType '.' PureType { TpPi (tStr $2) $4 $6 }
-     | 'ι' var ':' PureType '.' PureType { Iota (tStr $2) $4 $6 }
+     : 'λ' Bvar ':' PureTk '.' PureType   { TpLambda (tStr $2) $4 $6 }
+     | '∀' Bvar ':' PureTk '.' PureType   { TpAll (tStr $2) $4 $6 }
+     | 'Π' Bvar ':' PureType '.' PureType { TpPi (tStr $2) $4 $6 }
+     | 'ι' Bvar ':' PureType '.' PureType { Iota (tStr $2) $4 $6 }
      | APureType { $1 }
 
 APureType :: { PureType }
@@ -135,12 +136,12 @@ VPureType :: { PureType }
       | '(' PureType ')'              { $2 }
 
 Kind :: { Kind }
-     : 'π' var ':' Tk '.' Kind         { KdPi (tStr $2) $4 $6 }
+     : 'π' Bvar ':' Tk '.' Kind         { KdPi (tStr $2) $4 $6 }
      | '★'                             { Star }
      | '(' Kind ')'                    { $2 }
 
 PureKind :: { PureKind }
-     : 'π' var ':' PureTk '.' PureKind  { KdPi (tStr $2) $4 $6 }
+     : 'π' Bvar ':' PureTk '.' PureKind  { KdPi (tStr $2) $4 $6 }
      | '★'                             { Star }
      | '(' PureKind ')'                { $2 }
 
@@ -151,6 +152,10 @@ Tk :: { Tk }
 PureTk :: { PureTk }
        : PureType  { Tkt $1 }
        | PureKind { Tkk $1 }
+
+Bvar :: { Token }
+     : '_' { $1 }
+     | var { $1 }
 
 {
 lexer :: (Token -> Alex a) -> Alex a

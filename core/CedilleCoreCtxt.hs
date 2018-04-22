@@ -16,12 +16,6 @@ varMapRep m k = case Map.lookup k m of
   Just v -> v
   Nothing -> k
 
---varMapRep' :: VarMap -> Var -> (Var -> a) -> a
-varMapRep' vs v f = f (varMapRep vs v)
-
-ctxtVarMap (Ctxt es is vs) = vs
-ctxtExternals (Ctxt es is vs) = es
-ctxtInternals (Ctxt es is vs) = is
 ctxtClearExternals (Ctxt es is vs) = Ctxt Map.empty is vs
 
 --emptyCtxt :: Ctxt
@@ -77,9 +71,11 @@ ctxtLookupInternalType (Ctxt es is vs) v = case Map.lookup (varMapRep vs v) is o
   _ -> Nothing
   
 --ctxtDef :: Ctxt -> Var -> ExternalDef -> Ctxt
+ctxtDef c "_" d = c
 ctxtDef (Ctxt es is vs) v d = Ctxt (Map.insert v d es) is (Map.insert v v vs)
 
 --ctxtInternalDef :: Ctxt -> Var -> InternalDef -> Ctxt
+ctxtInternalDef c "_" d = c
 ctxtInternalDef (Ctxt es is vs) v d = Ctxt es (Map.insert v d is) (Map.insert v v vs)
 
 --ctxtDefTerm :: Ctxt -> Var -> TermDef -> Ctxt
@@ -92,10 +88,9 @@ ctxtDefTk c v (Tkt tp) = ctxtDefTerm c v (Nothing, Just tp)
 ctxtDefTk c v (Tkk kd) = ctxtDefType c v (Nothing, Just kd)
 
 --ctxtRename :: Ctxt -> Var -> Var -> Ctxt
+ctxtRename c "_" _ = c
+ctxtRename c _ "_" = c
 ctxtRename (Ctxt es is vs) v v' = Ctxt es is (Map.insert v (varMapRep vs v') vs)
-
---ctxtDeclVar :: Ctxt -> Var -> Ctxt
-ctxtDeclVar (Ctxt es is vs) v = Ctxt (Map.delete v es) (Map.delete v is) (Map.insert v v vs)
 
 --ctxtRep :: Ctxt -> Var -> Var
 ctxtRep (Ctxt es is vs) = varMapRep vs
