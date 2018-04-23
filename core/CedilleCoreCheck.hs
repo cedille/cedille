@@ -45,6 +45,10 @@ isValidTk c (Tkk kd) = isValidKind c kd
 checkType c tp = synthType c tp >>= \ kd ->
   errIfNot (convKind c kd Star) "Type must have kind star" >> Right kd
 
+--checkTk :: Ctxt -> Tk -> Either String (Either PureKind ())
+checkTk c (Tkt tp) = checkType c tp >>= Right . Left
+checkTk c (Tkk kd) = synthKind c kd >>= Right . Right
+
 synthTerm = appendShowErr . synthTerm'
 synthType = appendShowErr . synthType'
 synthKind = appendShowErr . synthKind'
@@ -61,7 +65,7 @@ synthTerm' c (TmLambdaE v tk tm) =
   errIfCtxtBinds c v >>
   errIf (freeInTerm v (eraseTerm tm))
     ("Implicit variable occurs free in its body: " ++ v) >>
-  synthTk c tk >>
+  checkTk c tk >>
   let tk' = hnfeTk c tk in
   synthTerm (ctxtDefTk c v tk') tm >>= Right . TpAll v tk'
 synthTerm' c (TmAppTm ltm rtm) =
@@ -138,17 +142,17 @@ synthTerm' c (Phi tm tm' pt) =
 synthType' c (TpVar v) = maybe (err "Type variable not in scope") Right (ctxtLookupVarKind c v)
 synthType' c (TpLambda v tk tp) =
   errIfCtxtBinds c v >>
-  synthTk c tk >>
+  checkTk c tk >>
   let tk' = hnfeTk c tk in
   synthType (ctxtDefTk c v tk') tp >>= Right . KdPi v tk'
 synthType' c (TpAll v tk tp) =
   errIfCtxtBinds c v >>
-  synthTk c tk >>
+  checkTk c tk >>
   let tk' = hnfeTk c tk in
   checkType (ctxtDefTk c v tk') tp
 synthType' c (TpPi v tp tp') =
   errIfCtxtBinds c v >>
-  synthType c tp >>
+  checkType c tp >>
   let tp'' = hnfeType c tp in
   checkType (ctxtDefTerm c v (Nothing, Just tp'')) tp'
 synthType' c (Iota v tp tp') =
@@ -181,7 +185,7 @@ synthType' c (TpEq tm tm') =
 synthKind' c Star = Right ()
 synthKind' c (KdPi v tk kd) =
   errIfCtxtBinds c v >>
-  synthTk c tk >>
+  checkTk c tk >>
   synthKind (ctxtDefTk c v (hnfeTk c tk)) kd
 
 --synthTk' :: Ctxt -> Tk -> Either String (Either PureKind ())

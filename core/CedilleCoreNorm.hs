@@ -123,15 +123,16 @@ convType' c (Iota v tp tp') (Iota v' tp'' tp''') = convType c tp tp'' && convTyp
 convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTerm c tm tm'' && convTerm c tm' tm'''
 convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convType c tp' tp'''
 convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTerm c tm tm'
-convType' c tp tp' = False
+convType' _ _ _ = False
 
 --convKind' :: Ctxt -> PureKind -> PureKind -> Bool
 convKind' c Star Star = True
 convKind' c (KdPi v tk kd) (KdPi v' tk' kd') = convTk c tk tk' && convKind' (ctxtRename c v v') kd kd'
+convKind' _ _ _ = False
 
 convTk' c (Tkt tp) (Tkt tp') = convType' c tp tp'
 convTk' c (Tkk kd) (Tkk kd') = convKind' c kd kd'
-convTk' c _ _ = False
+convTk' _ _ _ = False
 
 --freeInTerm :: Var -> PureTerm -> Bool
 freeInTerm v (PureVar v') = v == v'
