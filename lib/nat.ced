@@ -112,7 +112,10 @@ subtract ◂ Nat ➔ Nat ➔ Nat =
   λ m . λ n . NatRec n · Nat m (λ _ . pred) .
 
 predS ◂ Π n : Nat . {pred (S n) ≃ n} =
-  λ n . ε β .
+  λ n . β .
+
+predS' ◂ Π n : Nat . {S (pred (S n)) ≃ S n} =
+  λ n . β .
 
 isZero ◂ Nat ➔ Bool =
  λ n . NatRec n · Bool tt (λ _ . λ _ . ff) .
