@@ -502,6 +502,10 @@ erase-tk : tk → tk
 -- erase-optType : optType → optType
 erase-liftingType : liftingType → liftingType
 
+erase-if : 𝔹 → { ed : exprd } → ⟦ ed ⟧ → ⟦ ed ⟧
+erase-if tt = erase
+erase-if ff = id
+
 erase-term (Parens _ t _) = erase-term t
 erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
@@ -578,6 +582,13 @@ lterms-to-𝕃h u (LtermsCons m t ls) = (m , t) :: (lterms-to-𝕃h u ls)
 
 lterms-to-𝕃 : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃 u ls = reverse (lterms-to-𝕃h u ls)
+
+lterms-to-𝕃' : theta → lterms → 𝕃 term
+lterms-to-𝕃' u ls = map snd (lterms-to-𝕃 u ls)
+
+erase-lterms-if : 𝔹 → theta → lterms → 𝕃 term
+erase-lterms-if tt = erase-lterms
+erase-lterms-if ff t lt = lterms-to-𝕃' t lt
 
 num-to-ℕ : num → ℕ
 num-to-ℕ n with string-to-ℕ n

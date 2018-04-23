@@ -23,48 +23,64 @@ open import to-string
 
 data unfolding : Set where
   no-unfolding : unfolding
-  unfold : (unfold-all : 𝔹) {- if ff we unfold just the head -} → 
-           (unfold-rec : 𝔹) {- if tt we unfold recursive type definitions -} → 
-           (dampen-after-head-beta : 𝔹) {- if tt we will not unfold definitions after a head beta reduction -} → 
-           unfolding
+  unfold : (unfold-all : 𝔹) {- if ff we unfold just the head -}
+           → (unfold-rec : 𝔹) {- if tt we unfold recursive type definitions -}
+           → (dampen-after-head-beta : 𝔹) {- if tt we will not unfold definitions after a head beta reduction -}
+           → (erase : 𝔹) -- if tt erase the term as we unfold
+           → unfolding
+
+unfolding-get-erased : unfolding → 𝔹
+unfolding-get-erased no-unfolding = ff
+unfolding-get-erased (unfold _ _ _ e) = e
+
+unfolding-set-erased : unfolding → 𝔹 → unfolding
+unfolding-set-erased no-unfolding e = no-unfolding
+unfolding-set-erased (unfold b1 b2 b3 _) e = unfold b1 b2 b3 e
 
 unfold-all : unfolding
-unfold-all = unfold tt ff ff 
+unfold-all = unfold tt ff ff tt
 
 unfold-head : unfolding
-unfold-head = unfold ff ff ff 
+unfold-head = unfold ff ff ff tt
 
 unfold-head-rec-defs : unfolding
-unfold-head-rec-defs = unfold ff tt ff 
+unfold-head-rec-defs = unfold ff tt ff tt
 
 unfold-head-one : unfolding
-unfold-head-one = unfold ff ff tt 
+unfold-head-one = unfold ff ff tt tt
 
 unfold-dampen : (after-head-beta : 𝔹) → unfolding → unfolding
 unfold-dampen _ no-unfolding = no-unfolding
-unfold-dampen _ (unfold tt b b') = unfold tt b b' -- we do not dampen unfolding when unfolding everywhere
-unfold-dampen tt (unfold ff b tt) = no-unfolding
-unfold-dampen tt (unfold ff b ff) = (unfold ff b ff)
+unfold-dampen _ (unfold tt b b' e) = unfold tt b b e -- we do not dampen unfolding when unfolding everywhere
+unfold-dampen tt (unfold ff b tt e) = no-unfolding
+unfold-dampen tt (unfold ff b ff e) = (unfold ff b ff e)
 unfold-dampen ff _ = no-unfolding
 
 unfold-dampen-rec : (after-head-beta : 𝔹) → unfolding → unfolding
 unfold-dampen-rec _ no-unfolding = no-unfolding
-unfold-dampen-rec ff (unfold b _ b') = unfold b ff b'
-unfold-dampen-rec tt (unfold b b' b'') = unfold b b' b''
+unfold-dampen-rec ff (unfold b _ b' e) = unfold b ff b' e
+unfold-dampen-rec tt (unfold b b' b'' e) = unfold b b' b'' e
+
+unfolding-elab : unfolding → unfolding
+unfolding-elab no-unfolding = no-unfolding
+unfolding-elab (unfold b b' b'' _) = unfold b b' b'' ff
 
 conv-t : Set → Set
 conv-t T = ctxt → T → T → 𝔹
 
 {-# TERMINATING #-}
 
--- main entry points
-conv-term : conv-t term -- does not assume erased
+-- main entry point
+-- does not assume erased
+conv-term : conv-t term
 conv-type : conv-t type 
 conv-kind : conv-t kind
 
--- assume terms are erased
+-- assume erased
 conv-terme : conv-t term 
 conv-argse : conv-t (𝕃 term) 
+conv-typee : conv-t type
+conv-kinde : conv-t kind
 
 -- call hnf, then the conv-X-norm functions
 conv-term' : conv-t term 
@@ -79,13 +95,23 @@ conv-kind-norm : conv-t kind
 
 hnf-optClass : ctxt → unfolding → optClass → optClass
 hnf-tk : ctxt → unfolding → tk → tk
+
+-- does not assume erased
 conv-tk : conv-t tk
 conv-liftingType : conv-t liftingType
 conv-optClass : conv-t optClass
 -- conv-optType : conv-t optType
 conv-tty* : conv-t (𝕃 tty)
 
-conv-term Γ t t' = conv-terme Γ (erase-term t) (erase-term t')
+-- assume erased
+conv-tke : conv-t tk
+conv-liftingTypee : conv-t liftingType
+conv-optClasse : conv-t optClass
+-- -- conv-optTypee : conv-t optType
+conv-ttye* : conv-t (𝕃 tty)
+
+
+conv-term Γ t t' = conv-terme Γ (erase t) (erase t')
 
 conv-terme Γ t t' with decompose-apps t | decompose-apps t'
 conv-terme Γ t t' | Var pi x , args | Var pi' x' , args' = 
@@ -97,13 +123,16 @@ conv-argse Γ [] [] = tt
 conv-argse Γ (a :: args) (a' :: args') = conv-terme Γ a a' && conv-argse Γ args args'
 conv-argse Γ _ _ = ff
 
-conv-type Γ t t' with decompose-tpapps t | decompose-tpapps t'
-conv-type Γ t t' | TpVar pi x , args | TpVar pi' x' , args' = 
+conv-type Γ t t' = conv-typee Γ (erase t) (erase t')
+
+conv-typee Γ t t' with decompose-tpapps t | decompose-tpapps t'
+conv-typee Γ t t' | TpVar pi x , args | TpVar pi' x' , args' = 
   if ctxt-eq-rep Γ x x' && conv-tty* Γ args args' then tt else
   conv-type' Γ t t'
-conv-type Γ t t' | _ | _ = conv-type' Γ t t'
+conv-typee Γ t t' | _ | _ = conv-type' Γ t t'
 
-conv-kind Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k tt) (hnf Γ unfold-head k' tt)
+conv-kind Γ k k' = conv-kinde Γ (erase k) (erase k')
+conv-kinde Γ k k' = conv-kind-norm Γ (hnf Γ unfold-head k tt) (hnf Γ unfold-head k' tt)
 
 conv-term' Γ t t' = conv-term-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
 conv-type' Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t tt) (hnf Γ unfold-head t' tt)
@@ -124,10 +153,10 @@ hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var pi'' x
 hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | t' = Lam pi KeptLambda pi' x NoClass t'
 hnf{TERM} Γ u (Let _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t') hd 
 hnf{TERM} Γ u (Let _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
-hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
-hnf{TERM} Γ (unfold _ _ _ ) (Var pi x) hd | nothing = Var pi x
-hnf{TERM} Γ (unfold ff _ _ ) (Var pi x) hd | just t = t -- definitions should be stored in hnf
-hnf{TERM} Γ (unfold tt b b' ) (Var pi x) hd | just t = hnf Γ (unfold tt b b') t hd -- this might not be fully normalized, only head-normalized
+hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
+hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd | nothing = Var pi x
+hnf{TERM} Γ (unfold ff _ _ _) (Var pi x) hd | just t = t -- definitions should be stored in hnf
+hnf{TERM} Γ (unfold tt b b' e) (Var pi x) hd | just t = hnf Γ (unfold tt b b' e) t hd -- this might not be fully normalized, only head-normalized
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
@@ -136,7 +165,8 @@ hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Phi _ eq t₁ t₂ _) hd = hnf Γ u t₂ hd
 hnf{TERM} Γ u (Rho pi _ _ t t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
-hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (App*' t (erase-lterms u' ls)) hd
+hnf{TERM} Γ u@(unfold _ _ _ e) (Theta pi u' t ls) hd
+  = hnf Γ u (App*' t (erase-lterms-if e u' ls)) hd
 hnf{TERM} Γ u (Beta _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ NoTerm) hd = id-term
 hnf{TERM} Γ u x hd = x
@@ -144,14 +174,14 @@ hnf{TERM} Γ u x hd = x
 hnf{TYPE} Γ no-unfolding e _ = e
 hnf{TYPE} Γ u (TpParens _ t _) hd = hnf Γ u t hd
 hnf{TYPE} Γ u (NoSpans t _)  hd = hnf Γ u t hd
-hnf{TYPE} Γ (unfold b b' _) (TpVar pi x) ff  = TpVar pi x 
-hnf{TYPE} Γ (unfold b b' _) (TpVar _ x) tt with ctxt-lookup-type-var-def Γ x
-hnf{TYPE} Γ (unfold b b' _) (TpVar pi x) tt | just tp = tp
-hnf{TYPE} Γ (unfold b ff _) (TpVar pi x) tt | nothing = TpVar pi x
-hnf{TYPE} Γ (unfold b tt _) (TpVar pi x) tt | nothing = TpVar pi x
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar pi x) ff  = TpVar pi x 
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) tt with ctxt-lookup-type-var-def Γ x
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar pi x) tt | just tp = tp
+hnf{TYPE} Γ (unfold b ff _ _) (TpVar pi x) tt | nothing = TpVar pi x
+hnf{TYPE} Γ (unfold b tt _ _) (TpVar pi x) tt | nothing = TpVar pi x
 hnf{TYPE} Γ u (TpAppt tp t) hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpAppt _ t) hd  | TpLambda _ _ x _ tp = hnf Γ u (subst-type Γ t x tp) hd
-hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-term t)
+hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-if (unfolding-get-erased u) t)
 hnf{TYPE} Γ u (TpApp tp tp') hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpApp _ tp') hd | TpLambda _ _ x _ tp = hnf Γ (unfold-dampen-rec tt u) (subst-type Γ tp' x tp) hd 
 hnf{TYPE} Γ u (TpApp _ tp') hd | tp with hnf Γ (unfold-dampen-rec ff u) tp' hd 
@@ -192,7 +222,9 @@ hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi All pi' x (Tkt tp') 
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') ff tp) = TpArrow tp' UnerasedArrow tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | nothing = tp''
 hnf{TYPE} Γ u (TpArrow tp1 arrowtype tp2) _ = TpArrow (hnf Γ (unfold-dampen-rec ff u) tp1 ff) arrowtype (hnf Γ (unfold-dampen-rec ff u) tp2 ff)
-hnf{TYPE} Γ u (TpEq pi t1 t2 pi') _ = TpEq pi (erase-term t1) (erase-term t2) pi'
+hnf{TYPE} Γ u (TpEq pi t1 t2 pi') _
+  = let e = unfolding-get-erased u
+    in TpEq pi (erase-if e t1) (erase-if e t2) pi'
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) _ = 
   TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp ff)
 hnf{TYPE} Γ u (Lft pi pi' y t l) _ = 
@@ -202,7 +234,7 @@ hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
 hnf{KIND} Γ u (KndParens _ k _) hd = hnf Γ u k hd
-hnf{KIND} Γ (unfold _ _ _) (KndVar pi x ys) _ with ctxt-lookup-kind-var-def Γ x 
+hnf{KIND} Γ (unfold _ _ _ _) (KndVar pi x ys) _ with ctxt-lookup-kind-var-def Γ x 
 ... | nothing = KndVar pi x ys
 ... | just (ps , k) = do-subst ys ps k
   where do-subst : args → params → kind → kind
@@ -232,20 +264,20 @@ hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf-tk Γ u atk)
    lambda-abstraction or top-level application headed by a variable for which we
    do not have a (global) definition. -}
 {-# TERMINATING #-}
-hanf : ctxt → term → term
-hanf Γ t with hnf Γ unfold-head-one t tt
-hanf Γ t | t' with decompose-apps t'
-hanf Γ t | t' | (Var _ x) , [] = t'
-hanf Γ t | t' | (Var _ x) , args with ctxt-lookup-term-var-def Γ x 
-hanf Γ t | t' | (Var _ x) , args | nothing = t'
-hanf Γ t | t' | (Var _ x) , args | just _ = hanf Γ t'
-hanf Γ t | t' | h , args {- h could be a Lambda if args is [] -} = t
+hanf : ctxt → (e : 𝔹) → term → term
+hanf Γ e t with hnf Γ (unfolding-set-erased unfold-head-one e) t tt
+hanf Γ e t | t' with decompose-apps t'
+hanf Γ e t | t' | (Var _ x) , [] = t'
+hanf Γ e t | t' | (Var _ x) , args with ctxt-lookup-term-var-def Γ x 
+hanf Γ e t | t' | (Var _ x) , args | nothing = t'
+hanf Γ e t | t' | (Var _ x) , args | just _ = hanf Γ e t'
+hanf Γ e t | t' | h , args {- h could be a Lambda if args is [] -} = t
 
 -- unfold across the term-type barrier
-hnf-term-type : ctxt → type → type
-hnf-term-type Γ (TpEq pi t1 t2 pi') = TpEq pi (hanf Γ t1) (hanf Γ t2) pi'
-hnf-term-type Γ (TpAppt tp t) = hnf Γ unfold-head (TpAppt tp (hanf Γ t)) tt
-hnf-term-type Γ tp = hnf Γ unfold-head tp tt
+hnf-term-type : ctxt → (e : 𝔹) → type → type
+hnf-term-type Γ e (TpEq pi t1 t2 pi') = TpEq pi (hanf Γ e t1) (hanf Γ e t2) pi'
+hnf-term-type Γ e (TpAppt tp t) = hnf Γ (unfolding-set-erased unfold-head e) (TpAppt tp (hanf Γ e t)) tt
+hnf-term-type Γ e tp = hnf Γ unfold-head tp tt
 
 conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
@@ -305,24 +337,38 @@ conv-kind-norm Γ (Star x) (Star x') = tt
 conv-kind-norm Γ (Star x) _ = ff
 conv-kind-norm Γ _ _ = ff -- should not happen, since the kinds are in hnf
 
-conv-tk Γ (Tkk k) (Tkk k') = conv-kind Γ k k'
-conv-tk Γ (Tkt t) (Tkt t') = conv-type Γ t t'
-conv-tk Γ _ _ = ff
+conv-tk Γ tk tk' = conv-tke Γ (erase-tk tk) (erase-tk tk')
 
-conv-liftingType Γ l l' = conv-kind Γ (liftingType-to-kind l) (liftingType-to-kind l')
+conv-tke Γ (Tkk k) (Tkk k') = conv-kind Γ k k'
+conv-tke Γ (Tkt t) (Tkt t') = conv-type Γ t t'
+conv-tke Γ _ _ = ff
+
+conv-liftingType Γ l l' = conv-liftingTypee Γ (erase l) (erase l')
+conv-liftingTypee Γ l l' = conv-kind Γ (liftingType-to-kind l) (liftingType-to-kind l')
 
 conv-optClass Γ NoClass NoClass = tt
-conv-optClass Γ (SomeClass x) (SomeClass x') = conv-tk Γ x x'
+conv-optClass Γ (SomeClass x) (SomeClass x') = conv-tk Γ (erase-tk x) (erase-tk x')
 conv-optClass Γ _ _ = ff
+
+conv-optClasse Γ NoClass NoClass = tt
+conv-optClasse Γ (SomeClass x) (SomeClass x') = conv-tk Γ x x'
+conv-optClasse Γ _ _ = ff
 
 -- conv-optType Γ NoType NoType = tt
 -- conv-optType Γ (SomeType x) (SomeType x') = conv-type Γ x x'
 -- conv-optType Γ _ _ = ff
 
 conv-tty* Γ [] [] = tt
-conv-tty* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-tty* Γ args args'
-conv-tty* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-tty* Γ args args'
+conv-tty* Γ (tterm t :: args) (tterm t' :: args')
+  = conv-term Γ (erase t) (erase t') && conv-tty* Γ args args'
+conv-tty* Γ (ttype t :: args) (ttype t' :: args')
+  = conv-type Γ (erase t) (erase t') && conv-tty* Γ args args'
 conv-tty* Γ _ _ = ff
+
+conv-ttye* Γ [] [] = tt
+conv-ttye* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-ttye* Γ args args'
+conv-ttye* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-ttye* Γ args args'
+conv-ttye* Γ _ _ = ff
 
 hnf-qualif-term : ctxt → term → term
 hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt

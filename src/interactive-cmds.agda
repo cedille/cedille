@@ -230,13 +230,13 @@ normalize-cmd Γ str ll pi hd de ls =
   string-to-𝔹 - de ! "boolean" ≫parse λ do-e →
   let Γ' = get-local-ctxt Γ sp ls in
   parse-string nt - str ! ll ≫parse
-  (expr-to-tv Γ' (λ t → hnf Γ' (unfold (~ is-hd) (~ is-hd) ff) (qualif-ed Γ' t) tt) ∘ ,_)
+  (expr-to-tv Γ' (λ t → hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt) ∘ ,_)
 
 normalize-prompt : ctxt → (str hd : string) → string ⊎ tagged-val
 normalize-prompt Γ str hd =
   string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
   parse-try Γ - str ! ttklt ≫parse
-  expr-to-tv Γ (λ t → hnf Γ (unfold (~ is-hd) (~ is-hd) ff) (qualif-ed Γ t) tt)
+  expr-to-tv Γ (λ t → hnf Γ (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ t) tt)
 
 erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
 erase-cmd Γ str ll pi ls =

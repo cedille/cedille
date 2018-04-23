@@ -256,10 +256,10 @@ missing-expected-type : tagged-val
 missing-expected-type = "expected-type" , [[ "[missing]" ]] , []
 
 hnf-type : ctxt → type → tagged-val
-hnf-type Γ tp = to-string-tag "hnf of type" Γ (hnf-term-type Γ tp)
+hnf-type Γ tp = to-string-tag "hnf of type" Γ (hnf-term-type Γ ff tp)
 
 hnf-expected-type : ctxt → type → tagged-val
-hnf-expected-type Γ tp = to-string-tag "hnf of expected type" Γ (hnf-term-type Γ tp)
+hnf-expected-type Γ tp = to-string-tag "hnf of expected type" Γ (hnf-term-type Γ ff tp)
 
 expected-kind : ctxt → kind → tagged-val
 expected-kind = to-string-tag "expected kind"
