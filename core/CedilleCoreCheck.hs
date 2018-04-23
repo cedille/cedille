@@ -12,11 +12,6 @@ appendShowErr f tm = case f tm of
   r -> r
 err s = Left ('!' : s)
 
-hnfeTerm c = hnfTerm c . eraseTerm
-hnfeType c = hnfType c . eraseType
-hnfeKind c = hnfKind c . eraseKind
-hnfeTk c = hnfTk c . eraseTk
-
 --errIfCtxtBinds :: Ctxt -> Var -> Either String ()
 errIfCtxtBinds c v = errIf (ctxtBindsVar c v) ("Repeated variable in scope: " ++ v)
 
@@ -64,7 +59,7 @@ synthTerm' c (TmLambda v tp tm) =
   synthTerm (ctxtDefTerm c v (Nothing, Just tp')) tm >>= Right . TpPi v tp'
 synthTerm' c (TmLambdaE v tk tm) =
   errIfCtxtBinds c v >>
-  errIf (freeInPureTerm v (eraseTerm tm))
+  errIf (freeInTerm v (eraseTerm tm))
     ("Implicit variable occurs free in its body: " ++ v) >>
   synthTk c tk >>
   let tk' = hnfeTk c tk in
@@ -98,7 +93,7 @@ synthTerm' c (IotaPair tm tm' v tp) =
   typeHasKindStar tp' >>
   let etp = eraseType tp in
   errIfNot (convType c' etp rtp) "Inconvertible types in a iota pair" >>
-  Right (Iota v ltp (hnfType c etp)) -- Should indeed be c, not c'
+  Right (Iota v ltp (hnfType (ctxtRename c v v) etp))
 synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
   (Iota v tp tp') -> Right (hnfType c tp)
   _ -> err "Expected a iota type"

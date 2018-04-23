@@ -37,10 +37,11 @@ eraseKind (KdPi v tk kd) = KdPi v (eraseTk tk) (eraseKind kd)
 eraseTk (Tkt tp) = Tkt (eraseType tp)
 eraseTk (Tkk kd) = Tkk (eraseKind kd)
 
+
 substTerm = hnfTerm . ctxtClearExternals
 substType = hnfType . ctxtClearExternals
 substKind = hnfKind . ctxtClearExternals
-substTk = hnfTk . ctxtClearExternals
+substTk   = hnfTk   . ctxtClearExternals
 
 --hnfTerm :: Ctxt -> PureTerm -> PureTerm
 hnfTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) id (ctxtLookupTermVar c v)
@@ -52,7 +53,7 @@ hnfTerm c (PureLambda v tm) = doRename' c v $ \ v' ->
   let tm' = hnfTerm c' tm in
   let etm = PureLambda v' tm' in case tm' of
     (PureApp htm atm) -> case hnfTerm c' atm of
-      (PureVar v'') -> if v' == v'' then htm else etm
+      (PureVar v'') -> if v' == v'' && not (freeInTerm v' htm) then htm else etm
       _ -> etm
     _ -> etm
 
@@ -67,10 +68,10 @@ hnfType c (TpLambda v tk tp) = doRename' c v $ \ v' ->
   let tk' = substTk c tk in
   let etp = TpLambda v' tk' tp' in case tp' of
     (TpAppTp htp atp) -> case hnfType c' atp of
-      (TpVar v'') -> if not (tkIsType tk) && v' == v'' then htp else etp
+      (TpVar v'') -> if not (tkIsType tk) && v' == v'' && not (freeInType v' htp) then htp else etp
       _ -> etp
     (TpAppTm htp tm) -> case hnfTerm c' tm of
-      (PureVar v'') -> if tkIsType tk && v' == v'' then htp else etp
+      (PureVar v'') -> if tkIsType tk && v' == v'' && not (freeInType v' htp) then htp else etp
       _ -> etp
     _ -> etp
 hnfType c (TpAll v tk tp) =
@@ -95,6 +96,11 @@ hnfKind c (KdPi v tk kd) =
 --hnfTk :: Ctxt -> PureTk -> PureTk
 hnfTk c (Tkt tp) = Tkt (hnfType c tp)
 hnfTk c (Tkk kd) = Tkk (hnfKind c kd)
+
+hnfeTerm c = hnfTerm c . eraseTerm
+hnfeType c = hnfType c . eraseType
+hnfeKind c = hnfKind c . eraseKind
+hnfeTk c = hnfTk c . eraseTk
 
 convTerm c tm tm' = convTerm' c (hnfTerm c tm) (hnfTerm c tm')
 convType c tp tp' = convType' c (hnfType c tp) (hnfType c tp')
@@ -127,8 +133,25 @@ convTk' c (Tkt tp) (Tkt tp') = convType' c tp tp'
 convTk' c (Tkk kd) (Tkk kd') = convKind' c kd kd'
 convTk' c _ _ = False
 
---freeInPureTerm :: Var -> PureTerm -> Bool
-freeInPureTerm v (PureVar v') = v == v'
-freeInPureTerm v (PureApp tm tm') = freeInPureTerm v tm || freeInPureTerm v tm'
-freeInPureTerm v (PureLambda v' tm) = not (v == v' || not (freeInPureTerm v tm))
+--freeInTerm :: Var -> PureTerm -> Bool
+freeInTerm v (PureVar v') = v == v'
+freeInTerm v (PureApp tm tm') = freeInTerm v tm || freeInTerm v tm'
+freeInTerm v (PureLambda v' tm) = not (v == v') && freeInTerm v tm
 
+--freeInType :: Var -> PureType -> Bool
+freeInType v (TpVar v') = v == v'
+freeInType v (TpLambda v' tk tp) = not (v == v') && (freeInTk v tk || freeInType v tp)
+freeInType v (TpAll v' tk tp) = not (v == v') && (freeInTk v tk || freeInType v tp)
+freeInType v (TpPi v' tp tp') = not (v == v') && (freeInType v tp || freeInType v tp')
+freeInType v (Iota v' tp tp') = not (v == v') && (freeInType v tp || freeInType v tp')
+freeInType v (TpEq tm tm') = freeInTerm v tm || freeInTerm v tm'
+freeInType v (TpAppTp tp tp') = freeInType v tp || freeInType v tp'
+freeInType v (TpAppTm tp tm) = freeInType v tp || freeInTerm v tm
+
+--freeInKind :: Var -> PureKind -> Bool
+freeInKind v Star = False
+freeInKind v (KdPi v' tk kd) = not (v == v') && (freeInTk v tk || freeInKind v kd)
+
+--freeInTk :: Var -> PureTk -> Bool
+freeInTk v (Tkt tp) = freeInType v tp
+freeInTk v (Tkk kd) = freeInKind v kd
