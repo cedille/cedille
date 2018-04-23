@@ -71,14 +71,15 @@ check-erasures-match Erased Erased = tt
 check-erasures-match NotErased NotErased = tt
 check-erasures-match m₁ m₂ = ff
 
-hnf-from : ctxt → maybeMinus → term → term
-hnf-from Γ EpsHnf t = hnf Γ unfold-head t tt
-hnf-from Γ EpsHanf t = hanf Γ t
+hnf-from : ctxt → (e : 𝔹) → maybeMinus → term → term
+hnf-from Γ e EpsHnf t = hnf Γ (unfolding-set-erased unfold-head e) t tt
+hnf-from Γ e EpsHanf t = hanf Γ e t
 
+-- TODO Should these be unerased sometimes?
 check-term-update-eq : ctxt → leftRight → maybeMinus → posinfo → term → term → posinfo → type
-check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ m t1) t2 pi'
-check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ m t2)  pi'
-check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ m t1) (hnf-from Γ m t2) pi'
+check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) t2 pi'
+check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ tt m t2)  pi'
+check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) (hnf-from Γ tt m t2) pi'
 
 -- a simple incomplete check for beta-inequivalence
 {-
@@ -120,7 +121,7 @@ check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
 
 check-termi-return : ctxt → (subject : term) → type → spanM (maybe type)
-check-termi-return Γ subject tp = spanMr (just (hnf Γ unfold-head tp tt))
+check-termi-return Γ subject tp = spanMr (just (hnf Γ (unfolding-elab unfold-head) tp tt))
 
 lambda-bound-var-conv-error : ctxt → var → tk → tk → 𝕃 tagged-val → 𝕃 tagged-val × string
 lambda-bound-var-conv-error Γ x atk atk' tvs = 
@@ -211,16 +212,20 @@ check-args-against-params : (kind-or-import : 𝔹) → (posinfo × var) → par
 check-tk : tk → spanM ⊤
 check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
 
-check-term subject nothing = check-termi subject nothing ≫=span cont
-  where cont : maybe type → spanM (maybe type)
-        cont (just tp) = get-ctxt (λ Γ → spanMr (just (hnf Γ unfold-head tp tt)))
-        cont nothing = spanMr nothing 
-check-term subject (just tp) =
-  get-ctxt (λ Γ →
-    check-termi subject (just (hnf Γ (if is-intro-form subject then unfold-head-rec-defs else unfold-head) tp tt)))
+check-term tm nothing =
+    check-termi tm nothing
+  ≫=span λ where
+    nothing → spanMr nothing
+    (just tp) →
+      get-ctxt λ Γ → spanMr (just (hnf Γ (unfolding-elab unfold-head) tp tt))
+check-term tm (just tp)
+  =   get-ctxt λ Γ → check-termi tm (just (hnf Γ (unfolding-elab unf) tp tt))
+  where
+  unf = if is-intro-form tm then unfold-head-rec-defs else unfold-head
 
 check-type subject nothing = check-typei subject nothing
-check-type subject (just k) = get-ctxt (λ Γ → check-typei subject (just (hnf Γ unfold-head k tt)))
+check-type subject (just k)
+  = get-ctxt (λ Γ → check-typei subject (just (hnf Γ (unfolding-elab unfold-head) k tt)))
 
 check-termi (Parens pi t pi') tp =
   spanM-add (punctuation-span "Parens" pi pi') ≫span

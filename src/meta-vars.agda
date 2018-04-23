@@ -105,13 +105,13 @@ meta-vars-get-sub Xs
 -- substitutions, is-free-in
 meta-vars-subst-type : ctxt → meta-vars → type → type
 meta-vars-subst-type Γ Xs tp
-  = hnf Γ unfold-head-rec-defs
+  = hnf Γ (unfolding-elab unfold-head-rec-defs)
       (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp)
       tt
 
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
-  = hnf Γ unfold-head-rec-defs
+  = hnf Γ (unfolding-elab unfold-head-rec-defs)
       (substh-kind Γ empty-renamectxt (meta-vars-get-sub Xs) k)
       tt
 
@@ -268,11 +268,11 @@ meta-vars-unfold-tmapp Γ Xs tp
   -- peel type abstractions
   with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
 ... | Xs' , tp'@(Abs _ b _ x (Tkt tpₐ) tpᵣ)
-  = Xs' , yes-tp-arrow tp (hnf Γ unfold-head-rec-defs tpₐ tt) (ba-to-e (inj₁ b))
+  = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₁ b))
             -- substitute term into codomain (dependent function type)
             (λ t → subst-type Γ (qualif-term Γ t) x tpᵣ)
 ... | Xs' , tp'@(TpArrow tpₐ at tpᵣ)
-  = Xs' , yes-tp-arrow tp (hnf Γ unfold-head-rec-defs tpₐ tt) (ba-to-e (inj₂ at)) (λ _ → tpᵣ)
+  = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₂ at)) (λ _ → tpᵣ)
 ... | Xs' , tp'
   = Xs' , no-tp-arrow tp'
 
