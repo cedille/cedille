@@ -81,6 +81,9 @@ var ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trm n =
         [var' m -n -p ,
          Λ P . Λ perP . Λ I . λ val . λ alg . (lookupValuation1 -n · P -perP · I val m -p)].
 
+vari ◂ Π m : Nat . Trm (S m) =
+  λ m . var m -(S m) -(lt-nSn m) .
+
 app ◂ Π n : Nat . Trm n ➔ Trm n ➔ Trm n
     = λ n .λ t1 .λ t2 . in n (in1 · (TrmAppF · (Trm n)) · (Trm (S n))
                   (pair · (Trm n) · (Trm n) t1 t2)).

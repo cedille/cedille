@@ -66,13 +66,50 @@ LtLt ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
          (λ z' .λ e' .ρ (ς e') -(ih y' z' (χ {lt (S x) (S y')≃tt} -(ρ e -lSxy)) (χ {lt (S y') (S z')≃tt} -(ρ e -ρ e' -lyz)))))).
 
 LtLte ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lte y z ➔ Lt x z=
- λ x .λ y .λ z .λ l .λ le .le.1·(Lt x z) (LtLt x y z l) (λ e. ρ (ς e) -l).
+  λ x .λ y .λ z .λ l .λ le .le.1·(Lt x z) (LtLt x y z l) (λ e. ρ (ς e) -l).
 
+Lte-refl ◂ Π n : Nat . Lte n n = λ n . in2·(Lt n n)·{n≃n} β .
 
-subtract-nn ◂ Π n : Nat . { subtract n n ≃ Z } = ● .
+Lt-Lte ◂ Π x : Nat . Π y : Nat . Lt x y ➔ Lte x y = λ x .λ y .λ l . in1·(Lt x y)·{x≃y} l.
 
-Lte-refl ◂ Π x : Nat . Lte x x = ● .
+Lt-Smn ◂ Π n : Nat . Π m : Nat . Lt (S n) m ➔ Lt n m =
+  λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt (S n) m ➔ Lt n m)
+    (λ m . λ l . ind-sigma·Nat·(λ m':Nat .{S m' ≃ m}) (lt-ExS (S Z) m -l) ·(λ s:Sigma·Nat·(λ m':Nat .{S m' ≃ m}) .{ lt Z m ≃ tt }) (λ m' . λ e . ρ (ς e) -(lt-Z m')))
+    (λ n .λ ih .λ m . λ lSnm . ih (pred m) lSnm).
 
-Lte-S2 ◂ Π x : Nat . Π y : Nat . Lte x y ➔ Lte x (S y) = ● . 
+Lt-nSm ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m) =
+  λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt n m ➔ Lt n (S m))
+    (λ m . λ _ . lt-Z m)
+    (λ n .λ ih .λ m . λ lSnm . ind-sigma·Nat·(λ m':Nat .{S m' ≃ m}) (lt-ExS (S n) m -lSnm) ·(λ s:Sigma·Nat·(λ m':Nat .{S m' ≃ m}) .Lt (S n) (S m))
+       (λ m' . λ e . Lt-Smn n m lSnm)).
 
-Lte-subtract ◂ Π x : Nat . Π y : Nat . Lte x y ➔ { subtract (S y) x ≃ S (subtract y x) } = ●.
+Lte-nSm ◂ Π n : Nat . Π m : Nat . Lte n m ➔ Lte n (S m) =
+  λ n .λ m . λ l. ind-Sum·(Lt n m)·{n≃m} l ·(λ s: Sum·(Lt n m)·{n≃m} . Lte n (S m))
+    (λ lnm .in1·(Lt n (S m))·{n≃S m} (Lt-nSm n m lnm))
+    (λ e . ρ e - lte-nSn m). 
+
+Lt-S2inv ◂ Π m : Nat .Π n : Nat .Lte (S m) n ➔ Lt m n =
+  λ m .λ n .λ l . l.1·(Lt m n) (λ l . Lt-Smn m n l) (λ e .ρ (ς e) -(lt-nSn m)) .
+
+S-pred-lt ◂ Π n : Nat . Lt Z n ➔ {S (pred n)≃n} = 
+  λ n . NatInd n·(λ n : Nat . Lt Z n ➔ {S (pred n)≃n}) (λ l . (lt-Z-False Z -l)·{S (pred Z) ≃ Z}) (λ _ . λ _ . λ _ . β) .
+
+subtract-Sn ◂ Π m : Nat . Π n : Nat . { subtract (S n) (S m) ≃ subtract n m } =
+  λ m . NatInd m·(λ m : Nat . Π n : Nat . {subtract (S n) (S m) ≃ subtract n m}) (λ _ . β) (λ m . λ ih . λ n . ρ+ (ih n) -β) .
+
+subtract-nn ◂ Π n : Nat . { subtract n n ≃ Z } =
+  λ n . NatInd n·(λ n : Nat .{subtract n n ≃ Z}) β (λ n . λ e . ρ (subtract-Sn n n) -e) .
+
+{- simultaneous induction -}
+GtZ-Lte-subtract ◂ Π y : Nat . Product·(Π x : Nat . Lte y x ➔ {subtract (S x) y ≃ S (subtract x y)})·(Π x : Nat . Lt y x ➔ Lt Z (subtract x y)) =
+  λ y . NatInd y·(λ y : Nat . Product·(Π x : Nat . Lte y x ➔ {subtract (S x) y ≃ S (subtract x y)})·(Π x : Nat . Lt y x ➔ Lt Z (subtract x y)))
+    (pair·(Π x : Nat . Lte Z x ➔ {subtract (S x) Z ≃ S (subtract x Z)})·(Π x : Nat . Lt Z x ➔ Lt Z (subtract x Z)) (λ _ .λ _ .β) (λ x . λ l . l))
+    (λ y . λ p . pair·(Π x : Nat . Lte (S y) x ➔ {subtract (S x) (S y) ≃ S (subtract x (S y))})·(Π x : Nat . Lt (S y) x ➔ Lt Z (subtract x (S y)))
+      (λ x .λ leSyx .[ lyx = Lt-S2inv y x leSyx]- ρ+ (pproj1 p x (Lt-Lte y x lyx)) -(ρ (S-pred-lt (subtract x y) (pproj2 p x lyx)) -β))
+      (λ x . NatInd x·(λ x:Nat .Lt (S y) x ➔ Lt Z (subtract x (S y)))
+        (λ l .(lt-Z-False (S y) -l)·(Lt Z (subtract Z (S y))))
+	(λ x .λ _ .λ lSySx .ρ+ (pproj1 p x (Lt-Lte y x lSySx)) -(pproj2 p x lSySx)))).
+
+GtZ-subtract ◂ Π y : Nat . Π x : Nat . Lt y x ➔ Lt Z (subtract x y) = λ y . pproj2 (GtZ-Lte-subtract y) .
+  
+Lte-subtract ◂ Π y : Nat . Π x : Nat . Lte y x ➔ {subtract (S x) y ≃ S (subtract x y)} = λ y . pproj1 (GtZ-Lte-subtract y) .
