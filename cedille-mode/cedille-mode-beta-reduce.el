@@ -268,7 +268,7 @@
 	  (cedille-mode-br-push-current)
 	  (setq cedille-mode-br-redo-stack nil)
 	  (se-inf-interactive
-	   (cedille-mode-normalize-request-text span extra cedille-mode-br-length)
+	   (cedille-mode-normalize-request-text span (cons head extra) cedille-mode-br-length)
 	   (cedille-mode-response-macro #'cedille-mode-br-receive-response)
 	   :span span
 	   :header header
@@ -353,8 +353,8 @@
   (if (se-inf-get-error json)
       (progn
 	(when cedille-mode-br-undo-stack
-	  (cedille-mode-br-revert (pop cedille-mode-br-undo-stack)))
-	(message "Parse error"))
+	  (cedille-mode-br-revert (pop cedille-mode-br-undo-stack))))
+	;(message "Parse error"))
     (let ((buffer-read-only nil))
       (erase-buffer)
       (insert cedille-mode-br-temp-str)

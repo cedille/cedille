@@ -28,7 +28,7 @@ isValidType c (TpVar v) = maybe (err "Type variable not in scope") (\ _ -> Right
 isValidType c (TpLambda v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpAll v tk tp) = isValidTk c tk >> isValidType (ctxtDefTk c v tk) tp
 isValidType c (TpPi v tp tp') = isValidType c tp >> isValidType (ctxtDefTerm c v (Nothing, Just tp)) tp'
-isValidType c (Iota v tp tp') = isValidType c tp >> isValidType (ctxtDefTerm c v (Nothing, Just tp)) tp'
+isValidType c (TpIota v tp tp') = isValidType c tp >> isValidType (ctxtDefTerm c v (Nothing, Just tp)) tp'
 isValidType c (TpAppTp tp tp') = isValidType c tp >> isValidType c tp'
 isValidType c (TpAppTm tp tm) = isValidType c tp >> isValidTerm c tm
 isValidType c (TpEq tm tm') = isValidTerm c tm >> isValidTerm c tm'
@@ -86,7 +86,7 @@ synthTerm' c (TmAppTp tm tp) =
       errIfNot (convKind c lkdh rkd) (show lkdh ++ " != " ++ show rkd) >>
       Right (hnfType (ctxtInternalDef c v (Right (hnfeType c tp))) ltpb)
     _ -> err "Expected the head of an application to synthesize a kind-forall type"
-synthTerm' c (IotaPair tm tm' v tp) =
+synthTerm' c (TmIota tm tm' v tp) =
   errIfCtxtBinds c v >>
   errIfNot (convTerm c (eraseTerm tm) (eraseTerm tm')) ("In a iota pair, " ++ show (hnfeTerm c tm) ++ " != " ++ show (hnfeTerm c tm')) >>
   synthTerm c tm >>= \ ltp ->
@@ -97,12 +97,12 @@ synthTerm' c (IotaPair tm tm' v tp) =
   typeHasKindStar tp' >>
   let etp = eraseType tp in
   errIfNot (convType c' etp rtp) "Inconvertible types in a iota pair" >>
-  Right (Iota v ltp (hnfType (ctxtRename c v v) etp))
+  Right (TpIota v ltp (hnfType (ctxtRename c v v) etp))
 synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
-  (Iota v tp tp') -> Right (hnfType c tp)
+  (TpIota v tp tp') -> Right (hnfType c tp)
   _ -> err "Expected a iota type"
 synthTerm' c (IotaProj2 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
-  (Iota v tp tp') -> Right (hnfType (ctxtInternalDef c v (Left (hnfeTerm (ctxtRename c v v) tm))) tp')
+  (TpIota v tp tp') -> Right (hnfType (ctxtInternalDef c v (Left (hnfeTerm (ctxtRename c v v) tm))) tp')
   _ -> err "Expected a iota type"
 synthTerm' c (Beta pt pt') =
   isValidTerm c pt >>
@@ -155,7 +155,7 @@ synthType' c (TpPi v tp tp') =
   checkType c tp >>
   let tp'' = hnfeType c tp in
   checkType (ctxtDefTerm c v (Nothing, Just tp'')) tp'
-synthType' c (Iota v tp tp') =
+synthType' c (TpIota v tp tp') =
   errIfCtxtBinds c v >>
   checkType c tp >>
   let tp'' = hnfeType c tp in

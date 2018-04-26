@@ -23,7 +23,7 @@ data Term =
   | TmAppTm Term Term
   | TmAppTmE Term Term
   | TmAppTp Term Type
-  | IotaPair Term Term Var Type
+  | TmIota Term Term Var Type
   | IotaProj1 Term
   | IotaProj2 Term
   | Beta PureTerm PureTerm
@@ -45,7 +45,7 @@ data PrimType tm =
   | TpEq PureTerm PureTerm
   | TpAppTp (PrimType tm) (PrimType tm)
   | TpAppTm (PrimType tm) tm
-  | Iota Var (PrimType tm) (PrimType tm)
+  | TpIota Var (PrimType tm) (PrimType tm)
 
 data PrimKind tm =
     Star

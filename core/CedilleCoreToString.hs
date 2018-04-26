@@ -50,7 +50,7 @@ termToString b (TmLambdaE v tk tm) = parensIf b $ "Λ " ++ v ++ " : " ++ show tk
 termToString b (TmAppTm tm tm') = parensIf b $ termToString (termIsntApp tm) tm ++ " " ++ termToString True tm'
 termToString b (TmAppTmE tm tm') = parensIf b $ termToString (termIsntApp tm) tm ++ " - " ++ termToString True tm'
 termToString b (TmAppTp tm tp) = parensIf b $ termToString (termIsntApp tm) tm ++ " · " ++ typeToString True tp
-termToString b (IotaPair tm tm' v tp) = "[ " ++ show tm ++ ", " ++ show tm' ++ " @ " ++ v ++ " . " ++ show tp ++ " ]"
+termToString b (TmIota tm tm' v tp) = "[ " ++ show tm ++ ", " ++ show tm' ++ " @ " ++ v ++ " . " ++ show tp ++ " ]"
 termToString b (IotaProj1 tm) = termToString True tm ++ " . 1"
 termToString b (IotaProj2 tm) = termToString True tm ++ " . 2"
 termToString b (Beta pt pt') = "β " ++ pureTermToString True pt ++ " { " ++ show pt' ++ " }"
@@ -65,7 +65,7 @@ typeToString b (TpAll v tk tp) = parensIf b $ "∀ " ++ v ++ " : " ++ show tk ++
 typeToString b (TpPi v tp tp') = parensIf b $ "Π " ++ v ++ " : " ++ show tp ++ " . " ++ show tp'
 typeToString b (TpAppTp tp tp') = parensIf b $ typeToString (typeIsntApp tp) tp ++ " · " ++ typeToString True tp'
 typeToString b (TpAppTm tp tm) = parensIf b $ typeToString (typeIsntApp tp) tp ++ " " ++ showBool True tm
-typeToString b (Iota v tp tp') = parensIf True $ "ι " ++ v ++ " : " ++ show tp ++ " . " ++ show tp'
+typeToString b (TpIota v tp tp') = parensIf True $ "ι " ++ v ++ " : " ++ show tp ++ " . " ++ show tp'
 typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
 
 kindToString Star = "★"

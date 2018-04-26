@@ -85,7 +85,7 @@ LTerm :: { Term }
 VTerm :: { Term }
       : var { TmVar (tStr $1) }
       | 'β' VPureTerm '{' PureTerm '}' { Beta $2 $4 }
-      | '[' Term ',' Term '@' var '.' Type ']' { IotaPair $2 $4 (tStr $6) $8 }
+      | '[' Term ',' Term '@' var '.' Type ']' { TmIota $2 $4 (tStr $6) $8 }
       | VTerm '.num' { mkIotaProj $1 (tStr $2) }
       | '(' Term ')' { $2 }
 
@@ -105,7 +105,7 @@ Type :: { Type }
      : 'λ' Bvar ':' Tk '.' Type { TpLambda (tStr $2) $4 $6 }
      | '∀' Bvar ':' Tk '.' Type { TpAll (tStr $2) $4 $6 }
      | 'Π' Bvar ':' Type '.' Type { TpPi (tStr $2) $4 $6 }
-     | 'ι' Bvar ':' Type '.' Type { Iota (tStr $2) $4 $6 }
+     | 'ι' Bvar ':' Type '.' Type { TpIota (tStr $2) $4 $6 }
      | AType { $1 }
 
 AType :: { Type }
@@ -122,7 +122,7 @@ PureType :: { PureType }
      : 'λ' Bvar ':' PureTk '.' PureType   { TpLambda (tStr $2) $4 $6 }
      | '∀' Bvar ':' PureTk '.' PureType   { TpAll (tStr $2) $4 $6 }
      | 'Π' Bvar ':' PureType '.' PureType { TpPi (tStr $2) $4 $6 }
-     | 'ι' Bvar ':' PureType '.' PureType { Iota (tStr $2) $4 $6 }
+     | 'ι' Bvar ':' PureType '.' PureType { TpIota (tStr $2) $4 $6 }
      | APureType { $1 }
 
 APureType :: { PureType }

@@ -1589,7 +1589,7 @@ happyReduction_23 (_ `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn10
-		 (IotaPair happy_var_2 happy_var_4 (tStr happy_var_6) happy_var_8
+		 (TmIota happy_var_2 happy_var_4 (tStr happy_var_6) happy_var_8
 	) `HappyStk` happyRest
 
 happyReduce_24 = happySpecReduce_2  13 happyReduction_24
@@ -1702,7 +1702,7 @@ happyReduction_35 ((HappyAbsSyn17  happy_var_6) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn17
-		 (Iota (tStr happy_var_2) happy_var_4 happy_var_6
+		 (TpIota (tStr happy_var_2) happy_var_4 happy_var_6
 	) `HappyStk` happyRest
 
 happyReduce_36 = happySpecReduce_1  17 happyReduction_36
@@ -1808,7 +1808,7 @@ happyReduction_46 ((HappyAbsSyn20  happy_var_6) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn20
-		 (Iota (tStr happy_var_2) happy_var_4 happy_var_6
+		 (TpIota (tStr happy_var_2) happy_var_4 happy_var_6
 	) `HappyStk` happyRest
 
 happyReduce_47 = happySpecReduce_1  20 happyReduction_47
