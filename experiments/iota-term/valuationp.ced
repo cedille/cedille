@@ -31,8 +31,12 @@ lookupValuation1' ◂ ∀ n : Nat . ∀ X : Nat ➔ ★ . Persistent' · X ➾ �
                    X n =
     Λ n . Λ X . Λ perX . Λ I . λ val . λ m . Λ p . (val m -p).1 · (X n) (λ a . Λ _ . cast -(perX (S m) n -(Lt-S2 m n p)) a).
 
-updateValuation' ◂ Π n : Nat . ∀ X : Nat ➔ ★ . ∀ I : Π n : Nat . X (S n) ➔ ★ .
-                   Valuation' n · X · I ➔ Π x : X (S n) . I n x ➾ Valuation' (S n) · X · I =
+updateValuation' ◂ Π n : Nat .
+		   ∀ X : Nat ➔ ★ .
+		   ∀ I : Π n : Nat . X (S n) ➔ ★ .
+                   Valuation' n · X · I ➔
+		   Π x : X (S n) . I n x ➾
+		   Valuation' (S n) · X · I =
   λ n . Λ X . Λ I . λ val . λ xn . Λ ixn .
     λ m . Λ p . BoolInd (lt m n) · (λ b : Bool . {lt m n ≃ b} ➔ wSigma2 · (X (S m)) · (I m))
                     (λ q . val m -q)
@@ -56,3 +60,42 @@ restrictValuation' ◂ ∀ m : Nat . ∀ n : Nat . ∀ p : Lte m n . ∀ X : Nat
                      Valuation' n · X · I ➔ Valuation' m · X · I =
   Λ m . Λ n . Λ p . Λ X . Λ I . λ val . λ k . Λ pk . lookupValuation' -n · X · I val k -(LtLte k m n pk p) .
   
+lemma-restrict ◂  ∀ X : Nat ➔ ★ .
+		  ∀ I : Π n : Nat . X (S n) ➔ ★ .
+		  Π n : Nat .
+	          Π v:Valuation' n ·X·I .
+		  {restrictValuation' v ≃ v} =
+		  Λ X . Λ I . λ n . λ v . β .
+
+lemma-lookup-update ◂ ∀ X : Nat ➔ ★ .
+		  ∀ I : Π n : Nat . X (S n) ➔ ★ .
+		  Π n : Nat . Π m : Nat .
+		  Π x : X n .
+	          Π v:Valuation' n ·X·I .
+	          { lookupValuation' (updateValuation' n v x) m (λ a . a) ≃ updateValuation' n v x m (λ a . a)} =
+	          Λ X . Λ I . λ n . λ m . λ x . λ v . β .
+
+lemma-lookup-update-less ◂ ∀ X : Nat ➔ ★ .
+		  ∀ I : Π n : Nat . X (S n) ➔ ★ .
+		  Π n : Nat . Π m : Nat .
+		  Π l : Lt m n .
+		  Π x : X n .		  
+	          Π v:Valuation' n ·X·I .
+	          { lookupValuation' (updateValuation' n v x) m (λ a . a) ≃ lookupValuation' v m (λ a . a)} =
+  Λ X . Λ I . λ n . λ m . λ l . λ x . λ v .
+    BoolInd (lt m n) · (λ b : Bool . {lt m n ≃ b} ➔ {lookupValuation' (updateValuation' n v x) m (λ a . a) ≃ lookupValuation' v m (λ a . a)})
+     (λ e .ρ+ e -β)
+     (λ e .(BoolContra -(ρ (ς l) -(ρ (ς e) -β)))·{lookupValuation' (updateValuation' n v x) m (λ a . a) ≃ lookupValuation' v m (λ a . a)} )
+     β.
+
+lemma-lookup-update-eq ◂ ∀ X : Nat ➔ ★ .
+		  ∀ I : Π n : Nat . X (S n) ➔ ★ .
+		  Π n : Nat . 
+		  Π x : X n .		  
+	          Π v:Valuation' n ·X·I .
+	          {lookupValuation' (updateValuation' n v x) n (λ a . a) ≃ x} =
+  Λ X . Λ I . λ n . λ x . λ v .
+    BoolInd (lt n n) · (λ b : Bool . {lt n n ≃ b} ➔ {lookupValuation' (updateValuation' n v x) n (λ a . a) ≃ x})
+     (λ e .(lt-eq n -e)·{lookupValuation' (updateValuation' n v x) n (λ a . a) ≃ x})
+     (λ e .ρ+ e -β)
+     β.

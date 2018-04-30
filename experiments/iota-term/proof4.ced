@@ -28,6 +28,16 @@ subst ◂ Π n : Nat
                	   (λ a . a.1 · (Trm' n) (λ fn . λ arg . appe' n (eval1.1 fn) (eval1.1 arg)))
                    (λ a . abs'  n (eval2.1  (vari' n) -triv a)) ] .
 
+subst-app◂Π n:Nat .Π t1:Trm' n . Π t2:Trm' n .
+      Π v:Valuation' n · Trm' · (trivValuationInv' · Trm') .
+      {subst n (appe' n t1 t2) v ≃ appe' n (subst n t1 v) (subst n t2 v)} =
+ λ n .λ t1 .λ t2 .λ v .β.
+
+subst-abs◂Π n:Nat .Π t:Trm' (S n) . 
+      Π v:Valuation' n · Trm' · (trivValuationInv' · Trm') .
+      {subst n (abs' n t) v ≃ abs' n (subst n t (updateValuation' n v (vari' n)))} =
+ λ n .λ t .λ v .β.
+
 nat-eq◂Π n:Nat .Π m:Nat .Bool
   =λ n. NatRec n·(Nat ➔ Bool)
      (λ m. NatRec m·Bool tt (λ _. λ _ .ff))
@@ -46,9 +56,7 @@ lem-nat-eq◂Π n:Nat .Π m:Nat .{nat-eq n m≃tt}➔{n≃m}=
      (λ eSnZ .BoolContra -(ς eSnZ)·{S n≃Z})
      (λ m .λ _ .λ e .ρ (ih m e) -β)).
 
-
-
-isFree2◂Π n:Nat .Π m:Nat .
+isFree◂Π n:Nat .Π m:Nat .
        Trm' n ➔
        Bool =
   λ n .λ m .λ t .((TrmUnfold' -n t).1 · (λ _:Nat .Bool) -(λ _ .λ _ .Λ _ .[λ x . x , β])·(trivValuationInv' · (λ _:Nat .Bool))
@@ -63,43 +71,69 @@ isFree2◂Π n:Nat .Π m:Nat .
         (λ a1 .λ a2 .or (eval1.1 a1) (eval1.1 a2)))
           (λ a .eval2.1 ff -triv a)]).
 
-lt-eq ◂ Π n:Nat . Lt n n➔False=●.
+isFree-app◂Π n:Nat . Π m:Nat .Π t1:Trm' n . Π t2:Trm' n .
+      {isFree n m (appe' n t1 t2) ≃ or (isFree n m t1) (isFree n m t2)} =
+ λ n .λ m .λ t1 .λ t2 .β.
 
 eq-lt◂Π n:Nat .Π m:Nat. Lt n m➔{nat-eq m n≃ff}=
   λ n .λ m .λ l .BoolInd (nat-eq m n) ·(λ b:Bool . {nat-eq m n≃b}➔{nat-eq m n≃ff})
     (λ et .[e  = lem-nat-eq m n et]-
            [ln = ρ e -l]-
-     	   (lt-eq n ln)·{nat-eq m n≃ff})  --Note: This should be equivalent to (lt-eq n (ρ (lem-nat-eq m n et) -l))·{nat-eq m n≃ff} ?
+     	   (lt-eq n -ln)·{nat-eq m n≃ff})  --Note: This should be equivalent to (lt-eq n (ρ (lem-nat-eq m n et) -l))·{nat-eq m n≃ff} ?
     (λ ef .ef) β.  
 
--- lemma-val◂  Π n:Nat .
---         ∀ X:★. ∀ Y:X➔★.
--- 	∀ Trm':Nat ➔ ★ .
---         ∀ var' : var'Tp·Trm' .
--- 	Π f:(Π m:Nat .Lt m (S n)➾wSigma2·X·Y) .
---         {  lookupValuation' (S n)·(λ _:Nat .X)·(λ _:Nat .λ x:X. Y x)  
---              (valuationFromFun (S n) ·Trm' -var'·(λ n:Nat .λ _:Trm' n .X)	·(λ n:Nat .λ x:X. Y x) f)
---              n (lt-nSn n) ≃
--- 	   f n } =
---   λ n .Λ X. Λ Y. Λ Trm' .Λ _ .λ f .ρ (lem-FunfromPV·(λ _:Nat .wSigma2·X·Y) n f) -β.
-
-
 lem'◂Π n:Nat .Π q:Nat .Π l:Lt q n .
-    {updateValuation' n (valuationFromFun n (λ n' . mkWSigma2 (nat-eq n' q))) ff ≃
-     valuationFromFun (S n) (λ n' . mkWSigma2 (nat-eq n' q))} =
+    { updateValuation' n (λ n' . mkWSigma2 (nat-eq n' q)) ff ≃ λ n' . mkWSigma2 (nat-eq n' q) } =
   λ n .λ q .λ l . ● . -- ρ+ (eq-lt q n l) -β.
 
-lem◂Π n:Nat .Π q:Nat .Lt q n➔{isFree2 (S n) q (var n)≃ff}=
- λ n .λ q .λ l . ●. -- ρ+ (lemma-val n ·Bool·(λ _:Bool .True)·Trm -var (λ n' .Λ l .mkWSigma2·Bool·(λ _:Bool .True) (nat-eq n' q) -triv)) -(ρ+ (eq-lt q n l) -β).
+isFree-abs◂Π n:Nat .Π m:Nat . Π l:Lt m n . Π t:Trm' (S n) . 
+      {isFree n m (abs' n t) ≃ isFree (S n) m t} =
+ λ n .λ m . λ lmn .λ t . ρ+ (lem' n m lmn) -β.
+
+isFree2-aux ◂ Π n:Nat .
+       Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) 
+     ➔ Trm' n 
+     ➔ Bool =
+  λ n .λ v .λ t . (TrmUnfold' -n t).1 · (λ _:Nat .Bool) -(λ _ .λ _ .Λ _ .[λ x . x , β])·(trivValuationInv' · (λ _:Nat .Bool))
+   v
+   [β{λ n . λ eval1 . λ eval2 . λ d . 
+     d  (λ a . a (λ a1 . λ a2 . or (eval1 a1) (eval1 a2)))
+        (λ a . eval2 ff a)},
+   λ _ .Λ _ .Λ _ .Λ _ .Λ _ .Λ _ .λ eval1 .λ eval2 .λ d . 
+     d.1·Bool
+        (λ a .a.1·Bool
+        (λ a1 .λ a2 .or (eval1.1 a1) (eval1.1 a2)))
+          (λ a .eval2.1 ff -triv a)].
+
+isFree2◂Π n:Nat .Π m:Nat .
+       Trm' n ➔
+       Bool =
+  λ n .λ m .λ t .isFree2-aux n 
+        (valuationFromFun' -n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool))
+                           (λ n .Λ _ .mkWSigma2·Bool·(λ _:Bool .True) (nat-eq n m)  -triv))
+	t.
+
+isFree2-aux-app◂Π n:Nat . Π v:Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) .Π t1:Trm' n . Π t2:Trm' n .
+      {isFree2-aux n v (appe' n t1 t2) ≃ or (isFree2-aux n v t1) (isFree2-aux n v t2)} =
+ λ n .λ v .λ t1 .λ t2 .β.
+
+isFree2-aux-abs◂Π n:Nat .Π t:Trm' (S n) . 
+      Π v : Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) .
+      {isFree2-aux n v (abs' n t) ≃ isFree2-aux (S n) (updateValuation' n v ff) t} =      
+ λ n .λ t .λ v .β.
+
+lem◂Π n:Nat .Π q:Nat .Lt q n➔{isFree (S n) q (var n)≃ff}=
+ λ n .λ q .λ l . ρ+ (eq-lt q n l) -β.
 
 P◂Π n:Nat .Trm' n➔★=
  λ n:Nat .λ t:Trm' n .
  Π m:Nat .
  Π lm:Lt m n . 
- Π v:Valuation' n·Trm' ·(λ n:Nat .λ t:Trm' (S n).{isFree2 (S n) m t≃ff}) .
- {isFree2 n m -lm (subst n t v)≃ff}.
+ Π v:Valuation' n·Trm' ·(λ n:Nat .λ t:Trm' (S n).{isFree (S n) m t≃ff}) .
+ {isFree n m -lm (subst n t v)≃ff}.
 
-embedP ◂ Π m : Nat . Π n : Nat . ∀ l : Lte m n . Π t : Trm' m . Cast · (P m t) · (P n ((embed' m n -l).1 t)) = ● .
+embedP ◂ Π m : Nat . Π n : Nat . ∀ l : Lte m n . Π t : Trm' m . Cast · (P m t) · (P n ((embed' m n -l).1 t)) =
+  λ m . λ n . Λ l . λ t . ● . -- [ λ x .  ρ ((embed' m n -l).2) -●  , ●] .
 
 thm◂Π n:Nat . Π t:Trm' n .P n t=
  λ n .λ t .TrmInd n t
@@ -109,37 +143,48 @@ thm◂Π n:Nat . Π t:Trm' n .P n t=
     (λ p. Λ lpn .mkWSigma2·(P (S p) (vari' p))·(λ _:P (S p) (vari' p). True)
       (λ m .λ lmSp .λ v .
 	[ e ◂ {lookupValuation' v p (λ a . a) ≃ subst (S p) (vari' p) v} = β]-
-        wSigma2Induction·(Trm' (S p))·(λ t:Trm' (S p). {isFree2 (S p) m t≃ff})
-	    (lookupValuation' -(S p)·Trm'·(λ n:Nat .λ t:Trm' (S n).{isFree2 (S n) m t≃ff}) v p -(lt-nSn p))
-	    ·(λ s:wSigma2·(Trm' (S p))·(λ t:Trm' (S p).{isFree2 (S p) m t≃ff}).
+        wSigma2Induction·(Trm' (S p))·(λ t:Trm' (S p). {isFree (S p) m t≃ff})
+	    (lookupValuation' -(S p)·Trm'·(λ n:Nat .λ t:Trm' (S n).{isFree (S n) m t≃ff}) v p -(lt-nSn p))
+	    ·(λ s:wSigma2·(Trm' (S p))·(λ t:Trm' (S p).{isFree (S p) m t≃ff}).
 	       {s ≃ lookupValuation' v p}➔
-	       {isFree2 (S p) m (subst (S p) (vari' p) v)≃ff})
+	       {isFree (S p) m (subst (S p) (vari' p) v)≃ff})
 	    (λ t . Λ i . λ et . ρ ς (ρ ς et - e) - ρ i - β) β
 	   )
       -triv))
   [
-   β{λ n' . λ e1 . λ e2 . λ d . d (λ a . ind-Product a (λ a1 . λ a2 . λ q . λ lq . λ v . λ x . x)) (λ a . λ p . λ lpn . λ v . λ x . x)} ,
+   ● ,
    λ n .Λ val .Λ R1 .Λ R2 .Λ c1 .Λ c2 . λ e1 .λ e2 .λ d .
     θ<d> (ind-Sum d)
       (λ a . θ<a> (ind-Product a)
         (λ a1 .λ a2 .λ q .λ lq .λ v .
-           χ {or (isFree2 n q (subst n a1 v)) (isFree2 n q (subst n a2 v)) ≃ ff}-
+           χ {or (isFree n q (subst n a1 v)) (isFree n q (subst n a2 v)) ≃ ff}-
 	   ρ (e1.1 a1 q lq v) - ρ (e1.1 a2 q lq v) - β))
       (λ a .λ p .λ lpn .λ v .
-        ρ+ (lem' n p lpn)
-	  -ρ (e2.1 (λ m .λ lmSp .λ v .
-	              [ e ◂ {lookupValuation' v n (λ a . a) ≃ subst (S n) (var n) v} = β]-
-                      wSigma2Induction·(Trm' (S n))·(λ t:Trm' (S n). {isFree2 (S n) m t≃ff})
-	                  (lookupValuation' -(S n)·Trm'·(λ n:Nat .λ t:Trm' (S n).{isFree2 (S n) m t≃ff}) v n -(lt-nSn n))
-	                  ·(λ s:wSigma2·(Trm' (S n))·(λ t:Trm' (S n).{isFree2 (S n) m t≃ff}).
-	                  {s ≃ lookupValuation' v n}➔
-	                  {isFree2 (S n) m (subst (S p) (var n) v)≃ff})
-	                  (λ t . Λ i . λ et . ρ ς (ρ ς et - e) - ρ i - β) β)
-	        -triv a
-	        p (Lt-nSm p n lpn) (updateValuation' n·Trm'·(λ n:Nat .λ t:Trm' (S n) .{isFree2 (S n) p t ≃ ff}) v (vari' n) -(lem n p lpn)))
-            -β)
+        ρ+ (lem' n p lpn) -
+ 	  ρ (e2.1 (λ m .λ lmSp .λ v .
+	               [ e ◂ {lookupValuation' v n (λ a . a) ≃ subst (S n) (var n) v} = β]-
+                       wSigma2Induction·(Trm' (S n))·(λ t:Trm' (S n). {isFree (S n) m t≃ff})
+	                   (lookupValuation' -(S n)·Trm'·(λ n:Nat .λ t:Trm' (S n).{isFree (S n) m t≃ff}) v n -(lt-nSn n))
+	                   ·(λ s:wSigma2·(Trm' (S n))·(λ t:Trm' (S n).{isFree (S n) m t≃ff}).
+	                   {s ≃ lookupValuation' v n}➔
+	                   {isFree (S n) m (subst (S p) (var n) v)≃ff})
+	                   (λ t . Λ i . λ et . ρ ς (ρ ς et - e) - ρ i - β) β)
+	         -triv a
+	         p (Lt-nSm p n lpn) (updateValuation' n·Trm'·(λ n:Nat .λ t:Trm' (S n) .{isFree (S n) p t ≃ ff}) v (vari' n) -(lem n p lpn))) -β)
   ].
 
+-- ρ+ (lem' n p lpn)
+-- 	  -ρ (e2.1 (λ m .λ lmSp .λ v .
+-- 	              [ e ◂ {lookupValuation' v n (λ a . a) ≃ subst (S n) (var n) v} = β]-
+--                       wSigma2Induction·(Trm' (S n))·(λ t:Trm' (S n). {isFree (S n) m t≃ff})
+-- 	                  (lookupValuation' -(S n)·Trm'·(λ n:Nat .λ t:Trm' (S n).{isFree (S n) m t≃ff}) v n -(lt-nSn n))
+-- 	                  ·(λ s:wSigma2·(Trm' (S n))·(λ t:Trm' (S n).{isFree (S n) m t≃ff}).
+-- 	                  {s ≃ lookupValuation' v n}➔
+-- 	                  {isFree (S n) m (subst (S p) (var n) v)≃ff})
+-- 	                  (λ t . Λ i . λ et . ρ ς (ρ ς et - e) - ρ i - β) β)
+-- 	        -triv a
+-- 	        p (Lt-nSm p n lpn) (updateValuation' n·Trm'·(λ n:Nat .λ t:Trm' (S n) .{isFree (S n) p t ≃ ff}) v (vari' n) -(lem n p lpn)))
+--             -β
 
 
 

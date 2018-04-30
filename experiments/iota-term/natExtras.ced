@@ -21,7 +21,12 @@ lt-S-inv ◂ Π n : Nat . Π m : Nat . Lt (S n) (S m) ➔ Lt n m =
 lt-nSn ◂ Π n : Nat . Lt n (S n) =
   λ n .NatInd n·(λ n : Nat . Lt n (S n)) β (λ n .λ ih .lt-S n (S n) ih).
 
-lt-Z-False ◂ Π n:Nat .Lt n Z➾False=
+lt-eq ◂ Π n:Nat . Lt n n➾False=
+  λ n .NatInd n·(λ n:Nat .Lt n n➾False)
+      (Λ l .(BoolContra -(ς l))·False)
+      (λ _ .λ ih .Λ l .ih -l).
+
+lt-Z-False ◂ Π n:Nat .Lt n Z➾False= 
   λ n .NatInd n·(λ n:Nat .Lt n Z➾False)
       (Λ l .(BoolContra -(ς l))·False)
       (λ _ .λ ih .Λ l .ih -l).
@@ -113,3 +118,5 @@ GtZ-Lte-subtract ◂ Π y : Nat . Product·(Π x : Nat . Lte y x ➔ {subtract (
 GtZ-subtract ◂ Π y : Nat . Π x : Nat . Lt y x ➔ Lt Z (subtract x y) = λ y . pproj2 (GtZ-Lte-subtract y) .
   
 Lte-subtract ◂ Π y : Nat . Π x : Nat . Lte y x ➔ {subtract (S x) y ≃ S (subtract x y)} = λ y . pproj1 (GtZ-Lte-subtract y) .
+
+
