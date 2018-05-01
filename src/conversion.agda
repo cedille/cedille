@@ -223,8 +223,7 @@ hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') f
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | nothing = tp''
 hnf{TYPE} Γ u (TpArrow tp1 arrowtype tp2) _ = TpArrow (hnf Γ (unfold-dampen-rec ff u) tp1 ff) arrowtype (hnf Γ (unfold-dampen-rec ff u) tp2 ff)
 hnf{TYPE} Γ u (TpEq pi t1 t2 pi') _
-  = let e = unfolding-get-erased u
-    in TpEq pi (erase-if e t1) (erase-if e t2) pi'
+  = TpEq pi (erase t1) (erase t2) pi'
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) _ = 
   TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp ff)
 hnf{TYPE} Γ u (Lft pi pi' y t l) _ = 
