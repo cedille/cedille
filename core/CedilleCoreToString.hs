@@ -9,12 +9,8 @@ instance ShowBool tm => Show (PrimType tm) where
   show = typeToString False
 instance ShowBool tm => Show (PrimKind tm) where
   show = kindToString
-instance ShowBool tm => Show (PrimTk tm) where
+instance ShowBool tm => Show (PrimTpKd tm) where
   show = tkToString
-instance Show Cmd where
-  show = cmdToString
-instance Show Cmds where
-  show = cmdsToString
 
 class Show a => ShowBool a where
   showBool :: Bool -> a -> String
@@ -69,12 +65,7 @@ typeToString b (TpIota v tp tp') = parensIf True $ "ι " ++ v ++ " : " ++ show t
 typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
 
 kindToString Star = "★"
-kindToString (KdPi v tk kd) = "π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
+kindToString (KdPi v tk kd) = "Π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
 
-tkToString (Tkt tp) = show tp
-tkToString (Tkk kd) = show kd
-
-cmdToString (TermCmd v tm) = v ++ " = " ++ show tm
-cmdToString (TypeCmd v tp) = v ++ " ◂= " ++ show tp
-cmdsToString CmdsStart = ""
-cmdsToString (CmdsNext c cs) = show c ++ "\n" ++ show cs
+tkToString (TpKdt tp) = show tp
+tkToString (TpKdk kd) = show kd

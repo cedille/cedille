@@ -1,8 +1,8 @@
 module CedilleCoreTypes where
 
 type Var = String
-type Tk = PrimTk Term
-type PureTk = PrimTk PureTerm
+type TpKd = PrimTpKd Term
+type PureTpKd = PrimTpKd PureTerm
 type Kind = PrimKind Term
 type PureKind = PrimKind PureTerm
 type Type = PrimType Term
@@ -14,12 +14,12 @@ data Cmds =
 
 data Cmd =
     TermCmd Var Term
-  | TypeCmd Var Type
+  | TypeCmd Var Kind Type
 
 data Term =
     TmVar Var
   | TmLambda Var Type Term
-  | TmLambdaE Var Tk Term
+  | TmLambdaE Var TpKd Term
   | TmAppTm Term Term
   | TmAppTmE Term Term
   | TmAppTp Term Type
@@ -39,8 +39,8 @@ data PureTerm =
 
 data PrimType tm =
     TpVar Var
-  | TpLambda Var (PrimTk tm) (PrimType tm)
-  | TpAll Var (PrimTk tm) (PrimType tm)
+  | TpLambda Var (PrimTpKd tm) (PrimType tm)
+  | TpAll Var (PrimTpKd tm) (PrimType tm)
   | TpPi Var (PrimType tm) (PrimType tm)
   | TpEq PureTerm PureTerm
   | TpAppTp (PrimType tm) (PrimType tm)
@@ -49,9 +49,9 @@ data PrimType tm =
 
 data PrimKind tm =
     Star
-  | KdPi Var (PrimTk tm) (PrimKind tm)
+  | KdPi Var (PrimTpKd tm) (PrimKind tm)
 
-data PrimTk tm =
-    Tkt (PrimType tm)
-  | Tkk (PrimKind tm)
+data PrimTpKd tm =
+    TpKdt (PrimType tm)
+  | TpKdk (PrimKind tm)
 
