@@ -20,6 +20,7 @@ are-free-in-kind : are-free-in-t kind
 are-free-in-optClass : are-free-in-t optClass
 -- are-free-in-optType : are-free-in-t optType
 are-free-in-optTerm : are-free-in-t optTerm
+are-free-in-optGuide : are-free-in-t optGuide
 are-free-in-tk : are-free-in-t tk 
 are-free-in-liftingType : are-free-in-t liftingType
 are-free-in-maybeAtype : are-free-in-t maybeAtype
@@ -41,13 +42,13 @@ are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Parens x₁ t x₂) = are-free-in-term ce x t
 are-free-in-term ce x (Var _ x') = trie-contains x x'
-are-free-in-term ce x (Beta _ ot) = are-free-in-optTerm ce x ot
-are-free-in-term ce x (IotaPair _ t1 t2 _) = are-free-in-term ce x t1 || (ce && are-free-in-term ce x t2)
+are-free-in-term ce x (Beta _ ot ot') = are-free-in-optTerm ce x ot' || (ce && are-free-in-optTerm ce x ot)
+are-free-in-term ce x (IotaPair _ t1 t2 ot _) = are-free-in-term ce x t1 || (ce && (are-free-in-term ce x t2 || are-free-in-optGuide ce x ot))
 are-free-in-term ce x (IotaProj t n _) = are-free-in-term ce x t
 are-free-in-term ce x (Epsilon _ _ _ t) = are-free-in-term ce x t
 are-free-in-term ce x (Sigma _ t) = are-free-in-term ce x t
 are-free-in-term ce x (Phi _ t t₁ t₂ _) = (ce && are-free-in-term ce x t) || (ce && are-free-in-term ce x t₁) || are-free-in-term ce x t₂
-are-free-in-term ce x (Rho _ _ _ t t') = (ce && are-free-in-term ce x t) || are-free-in-term ce x t'
+are-free-in-term ce x (Rho _ _ _ t ot t') = (ce && (are-free-in-term ce x t || are-free-in-optGuide ce x ot)) || are-free-in-term ce x t'
 are-free-in-term ce x (Chi _ T t') = (ce && are-free-in-maybeAtype ce x T) || are-free-in-term ce x t'
 are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
   where are-free-in-lterms : ∀{A} → are-free-e → trie A → lterms → 𝔹
@@ -90,6 +91,9 @@ are-free-in-maybeCheckType ce x (Type t) = are-free-in-type ce x t
 
 are-free-in-optTerm ce x NoTerm = ff
 are-free-in-optTerm ce x (SomeTerm t _) = are-free-in-term ce x t
+
+are-free-in-optGuide ce x NoGuide = ff
+are-free-in-optGuide ce x (Guide pi v tp) = are-free-in-type ce (trie-remove x v) tp
 
 are-free-in-tk ce x (Tkt t) = are-free-in-type ce x t
 are-free-in-tk ce x (Tkk k) = are-free-in-kind ce x k

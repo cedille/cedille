@@ -77,10 +77,11 @@ import System.Environment
   'ς'        { Token $$ (TSym "ς") }
   'χ'        { Token $$ (TSym "χ") }
   'φ'        { Token $$ (TSym "φ") }
-  '➾'       { Token $$ (TSym "➾") }
-  '➔'       { Token $$ (TSym "➔") }
+  '➾'        { Token $$ (TSym "➾") }
+  '➔'        { Token $$ (TSym "➔") }
   '≃'        { Token $$ (TSym "≃") }
-  '◂'         { Token $$ (TSym "◂") }
+  '◂'        { Token $$ (TSym "◂") }
+  '@'        { Token $$ (TSym "@") }
   '●'        { Token $$ (TSym "●") }
   '☆'        { Token $$ (TSym "☆") }
   '★'        { Token $$ (TSym "★") }  
@@ -147,6 +148,10 @@ OptNums :: { OptNums }
         :              { NoNums      }
         | '<' Nums '>' { SomeNums $2 }
 
+OptGuide :: { OptGuide }
+         :                   { NoGuide }
+         | '@' Bvar '.' Type { Guide (tPosTxt $2) (tTxt $2) $4 }
+
 
 Nums :: { Nums }
      : Num                              { NumsStart (tTxt $1) }
@@ -156,10 +161,14 @@ OptTerm :: { OptTerm }
         :                               { NoTerm                    }
         | '{' Term '}'                  { SomeTerm $2 (pos2Txt1 $3) }
 
+OptEqTerm :: { OptTerm }
+          :                             { NoTerm                    }
+          | '<' Term '>'                { SomeTerm $2 (pos2Txt1 $3) }
+
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) $2 $5                             }
-     | 'ρ' OptPlus OptNums Lterm '-' Term { Rho (pos2Txt $1) $2 $3 $4 $6 }
+     | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' MaybeAtype '-' Term          { Chi (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
@@ -172,7 +181,7 @@ Aterm :: { Term }
       | Lterm                           { $1                            }
 
 Lterm :: { Term }
-      : 'β'   OptTerm                   { Beta    (pos2Txt $1) $2                             }
+      : 'β' OptEqTerm OptTerm           { Beta    (pos2Txt $1) $2 $3                          }
       | 'ε'   Lterm                     { Epsilon (pos2Txt $1) Both               EpsHnf  $2  }
       | 'ε-'  Lterm                     { Epsilon (pos2Txt $1) Both               EpsHanf $2  }
       | 'εl'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  EpsHnf  $2  }
@@ -186,7 +195,7 @@ Pterm :: { Term }
       : Qvar                            { Var (tPosTxt $1) (tTxt $1)                  }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3)        } 
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2)         } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
-      | '[' Term ',' Term ']'           { IotaPair (pos2Txt $1) $2 $4 (pos2Txt1 $5)}
+      | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
       | '●'                             { Hole (pos2Txt $1)                           }      
 
 MaybeAtype :: { MaybeAtype }

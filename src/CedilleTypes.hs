@@ -109,6 +109,10 @@ data OptClass =
      NoClass | SomeClass Tk
      deriving (Show,Eq)
 
+data OptGuide =
+     NoGuide | Guide PosInfo Bvar Type
+     deriving (Show,Eq)
+
 data OptNums =
      NoNums | SomeNums Nums
      deriving (Show,Eq)
@@ -137,17 +141,17 @@ data Start =
 data Term =
        App Term MaybeErased Term
      | AppTp Term Type
-     | Beta PosInfo OptTerm
+     | Beta PosInfo OptTerm OptTerm
      | Chi PosInfo MaybeAtype Term
      | Epsilon PosInfo LeftRight MaybeMinus Term
      | Hole PosInfo
-     | IotaPair PosInfo Term Term PosInfo
+     | IotaPair PosInfo Term Term OptGuide PosInfo
      | IotaProj Term Num PosInfo
      | Lam PosInfo Lam PosInfo Bvar OptClass Term
      | Let PosInfo DefTermOrType Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
-     | Rho PosInfo OptPlus OptNums Term Term
+     | Rho PosInfo OptPlus OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
      | Var PosInfo Qvar

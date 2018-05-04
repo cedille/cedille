@@ -1,3 +1,4 @@
+module Nat.
 
 Top ◂ ★ = {λ x. x ≃ λ x. x}.
 
@@ -5,25 +6,25 @@ Cast ◂ Π _ : ★. Π _ : ★. ★ = λ A : ★. λ B : ★. ι cst : Π a : A
 cast = Λ A : ★. Λ B : ★. Λ c : Cast · A · B. λ a : A. φ (c.2 -a) - (c.1 a) {a}.
 
 mkCast = Λ A : ★. Λ B : ★. λ f : Π a : A. B. Λ e : ∀ a : A. {f a ≃ a}.
-  [f, Λ a : A. ρ ς (e -a) @ a' . {a' ≃ a} - β a {f} @ c. ∀ a : A. {c a ≃ a}].
+  [f, Λ a : A. ρ ς (e -a) @ a' . {a' ≃ a} - β<a>{f} @ c. ∀ a : A. {c a ≃ a}].
 
 RecFunctor ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. ∀ X : ★. ∀ Y : ★. Π _ : Cast · X · Y. Cast · (F · X) · (F · Y).
 
 Rec ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. ∀ X : ★. ∀ _ : Cast · (F · X) · X. X. 
 
 recCast = Λ F : Π _ : ★. ★. Λ X : ★. Λ c : Cast · (F · X) · X.
-  [λ a : Rec · F. a · X -c, Λ a : Rec · F. β a {λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
+  [λ a : Rec · F. a · X -c, Λ a : Rec · F. β<a>{λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
 
 recIn = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F.
     [λ a : F · (Rec · F). Λ X : ★. Λ c : Cast · (F · X) · X.
       cast · (F · X) · X -c
         (cast · (F · (Rec · F)) · (F · X)
           -(fmap · (Rec · F) · X (recCast · F · X -c)) a),
-      Λ a : F · (Rec · F). β ((λ a'. a') a) {λ a'. a'} @ cst . ∀ a : F · (Rec · F). {cst a ≃ a}].
+      Λ a : F · (Rec · F). β<(λ a'. a') a> {λ a'. a'} @ cst . ∀ a : F · (Rec · F). {cst a ≃ a}].
 
 recOut = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F.
   [λ a : Rec · F. a · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)),
-   Λ a : Rec · F. β a {λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
+   Λ a : Rec · F. β<a>{λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
 
 RecFold ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. Π x : F · (Rec · F). Rec · F.
 RecUnfold ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. Π x : Rec · F. F · (Rec · F).
@@ -31,31 +32,31 @@ RecUnfold ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. Π x : Rec �
 recFold = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F. cast · (F · (Rec · F)) · (Rec · F) -(recIn · F -fmap).
 recUnfold = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F. cast · (Rec · F) · (F · (Rec · F)) -(recOut · F -fmap).
 
-triv = β (λ x. x) {λ x. x}.
+triv = β<λ x. x> {λ x. x}.
 
 
 
 
-Zu = β triv {λ z. λ s. z}.
-Su = β triv {λ n. λ z. λ s. s n (n z s)}.
+Zu = β<triv>{λ z. λ s. z}.
+Su = β<triv>{λ n. λ z. λ s. s n (n z s)}.
 
-NatF' ◂ Π _ : ★. Π _ : Top. ★ = λ N : ★. λ x : Top. ∀ X : Π _ : Top. ★. Π z : X Zu. Π s : (Π n : N. Π _ : X (β triv {n}). X (β triv {Su n})). X x.
+NatF' ◂ Π _ : ★. Π _ : Top. ★ = λ N : ★. λ x : Top. ∀ X : Π _ : Top. ★. Π z : X Zu. Π s : (Π n : N. Π _ : X (β<triv> {n}). X (β<triv>{Su n})). X x.
 NatF ◂ Π _ : ★. ★ = λ N : ★. ι x : Top. NatF' · N x.
 Nat ◂ ★ = Rec · NatF.
 
 NatFmap = Λ N : ★. Λ M : ★. λ c : Cast · N · M. mkCast · (NatF · N) · (NatF · M)
-  (λ n : NatF · N. [n.1, Λ X : Π x : Top. ★. λ z : X Zu. λ s : Π n' : M. Π _ : X (β triv {n'}). X (β triv {Su n'}). n.2 · X z (λ n' : N. s (cast · N · M -c n')) @ x. NatF' · M x])
-  -(Λ n : NatF · N. β n {triv}).
+  (λ n : NatF · N. [n.1, Λ X : Π x : Top. ★. λ z : X Zu. λ s : Π n' : M. Π _ : X (β<triv> {n'}). X (β<triv> {Su n'}). n.2 · X z (λ n' : N. s (cast · N · M -c n')) @ x. NatF' · M x])
+  -(Λ n : NatF · N. β<n> {triv}).
 
 NatFold = recFold · NatF -NatFmap.
 NatUnfold = recUnfold · NatF -NatFmap.
 
-Z = NatFold [Zu, Λ X : Π _ : Top. ★. λ z : X Zu. λ s : Π n : Nat. Π _ : X β triv {n}. X β triv {Su n}. z @ x. NatF' · Nat x].
-S = λ n : Nat. NatFold [β triv {Su n}, Λ X : Π _ : Top. ★. λ z : X Zu. λ s : Π n' : Nat. Π _ : X β triv {n'}. X β triv {Su n'}. s n ((NatUnfold n).2 · X z s) @ x. NatF' · Nat x].
+Z = NatFold [Zu, Λ X : Π _ : Top. ★. λ z : X Zu. λ s : Π n : Nat. Π _ : X β<triv> {n}. X β<triv> {Su n}. z @ x. NatF' · Nat x].
+S = λ n : Nat. NatFold [β<triv> {Su n}, Λ X : Π _ : Top. ★. λ z : X Zu. λ s : Π n' : Nat. Π _ : X β<triv>{n'}. X β<triv> {Su n'}. s n ((NatUnfold n).2 · X z s) @ x. NatF' · Nat x].
 
 NatInd = λ n : Nat. Λ Q : Π _ : Nat. ★. λ z : Q Z. λ s : Π n' : Nat. Π _ : Q n'. Q (S n').
   (NatUnfold n).2 · (λ x : Top. ∀ x' : Nat. ∀ _ : {x' ≃ x}. Q x')
     (Λ x : Nat. Λ e : {x ≃ Z}. ρ ς e @ x'. Q x' - z)
     (λ n' : Nat. λ x : ∀ x' : Nat. ∀ e : {x' ≃ n'}. Q x'. Λ m : Nat. Λ e : {m ≃ S n'}.
-      ρ ς e @ o. Q o - s n' (x -n' -β n' {triv}))
-    -n -β n {triv}.
+      ρ ς e @ o. Q o - s n' (x -n' -β<n'>{triv}))
+    -n -β<n>{triv}.

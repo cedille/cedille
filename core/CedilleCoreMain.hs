@@ -28,7 +28,7 @@ parseFile c s = maybe
   (\ cs -> case checkCmds (fst cs) c of
     (Left err) -> putStrLn err >> return c
     (Right c') -> putStrLn "No errors" >> return c')
-  (lexStr s >>= parseMf parseCmds)
+  (lexStr s >>= parseMf (parseDropModule *> parseCmds))
 
 --splitStr :: String -> String -> [String]
 splitStr s [] = s : []

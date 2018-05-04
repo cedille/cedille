@@ -31,36 +31,36 @@ not-right right = ff
 not-right _ = tt
 
 is-untyped : {ed : exprd} → ⟦ ed ⟧ → expr-side → 𝔹
-is-untyped{TERM} (Beta _ _) _ = tt
+is-untyped{TERM} (Beta _ _ _) _ = tt
 is-untyped{TERM} (Phi _ _ _ _ _) right = tt
 is-untyped{TYPE} (TpEq _ _ _ _) _ = tt
 is-untyped _ _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
-no-parens {_} {TERM} _ (IotaPair pi t t' pi') lr = tt
+no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TERM} _ (Parens pi t pi') lr = tt
 no-parens {_} {TYPE} _ (TpParens pi T pi') lr = tt
 no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
-no-parens {_} {TERM} _ (Beta pi ot) lr = tt
+no-parens {_} {TERM} _ (Beta pi ot ot') lr = tt
 no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
 no-parens {_} {TERM} _ (Let _ _ _) _ = tt
-no-parens {_} {TERM} _ (Rho _ _ _ _ _) right = tt
+no-parens {_} {TERM} _ (Rho _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (AppTp t T) p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
-no-parens{TERM} (Beta pi ot) p lr = tt
+no-parens{TERM} (Beta pi ot ot') p lr = tt
 no-parens{TERM} (Chi pi mT t) p lr = is-eq-op p && not-left lr
 no-parens{TERM} (Epsilon pi lr' m t) p lr = is-eq-op p
 no-parens{TERM} (Hole pi) p lr = tt
-no-parens{TERM} (IotaPair pi t t' pi') p lr = tt
+no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-untyped p lr || is-abs p
 no-parens{TERM} (Let pi dtT t) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = is-eq-op p && not-left lr
-no-parens{TERM} (Rho pi op on eq t) p lr = is-eq-op p && not-left lr
+no-parens{TERM} (Rho pi op on eq og t) p lr = is-eq-op p && not-left lr
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
@@ -158,9 +158,10 @@ kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
 
-optTerm-to-string : optTerm → strM
+optTerm-to-string : optTerm → string → string → strM
 -- optType-to-string : optType → strM
 optClass-to-string : optClass → strM
+optGuide-to-string : optGuide → strM
 optNums-to-string : optNums → strM
 maybeAtype-to-string : maybeAtype → strM
 maybeCheckType-to-string : maybeCheckType → strM
@@ -216,11 +217,11 @@ spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
 
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
-term-to-stringh (Beta pi ot) = strAdd "β" ≫str optTerm-to-string ot
+term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " <" " >" ≫str optTerm-to-string ot " { " " }"
 term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strAdd "●"
-term-to-stringh (IotaPair pi t t' pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str strAdd " ]"
+term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Let pi dtT t) with dtT
@@ -228,7 +229,7 @@ term-to-stringh (Let pi dtT t) with dtT
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringr t' ≫str strAdd "}"
-term-to-stringh (Rho pi op on eq t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
@@ -258,12 +259,14 @@ liftingType-to-stringh (LiftParens pi lT pi') = strAdd "(" ≫str to-string-ed l
 liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π↑ " ^ x ^ " : ") ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi (to-stringh lT)
 liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
-optTerm-to-string NoTerm = strEmpty
-optTerm-to-string (SomeTerm t _) = strAdd " { " ≫str to-stringh t ≫str strAdd " }"
+optTerm-to-string NoTerm c1 c2 = strEmpty
+optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh t ≫str strAdd c2
 -- optType-to-string NoType = strEmpty
 -- optType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
 optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
+optGuide-to-string NoGuide = strEmpty
+optGuide-to-string (Guide pi v T) = strAdd " " ≫str strAdd v ≫str strΓ v pi (type-to-stringh T)
 maybeAtype-to-string NoAtype = strEmpty
 maybeAtype-to-string (Atype T) = strAdd " " ≫str to-stringh T
 maybeCheckType-to-string NoCheckType = strEmpty

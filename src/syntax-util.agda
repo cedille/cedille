@@ -167,12 +167,12 @@ term-start-pos (Lam pi x _ x₁ x₂ t) = pi
 term-start-pos (Let pi _ _) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
-term-start-pos (Beta pi _) = pi
-term-start-pos (IotaPair pi _ _ _) = pi
+term-start-pos (Beta pi _ _) = pi
+term-start-pos (IotaPair pi _ _ _ _) = pi
 term-start-pos (IotaProj t _ _) = term-start-pos t
 term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Phi pi _ _ _ _) = pi
-term-start-pos (Rho pi _ _ _ _) = pi
+term-start-pos (Rho pi _ _ _ _ _) = pi
 term-start-pos (Chi pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
@@ -220,13 +220,14 @@ term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
 term-end-pos (Let _ _ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
-term-end-pos (Beta pi NoTerm) = posinfo-plus pi 1
-term-end-pos (Beta pi (SomeTerm t pi')) = pi'
-term-end-pos (IotaPair _ _ _ pi) = pi
+term-end-pos (Beta pi _ (SomeTerm t pi')) = pi'
+term-end-pos (Beta pi (SomeTerm t pi') _) = pi'
+term-end-pos (Beta pi NoTerm NoTerm) = posinfo-plus pi 1
+term-end-pos (IotaPair _ _ _ _ pi) = pi
 term-end-pos (IotaProj _ _ pi) = pi
 term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Phi _ _ _ _ pi) = pi
-term-end-pos (Rho pi _ _ t t') = term-end-pos t'
+term-end-pos (Rho pi _ _ _ t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
@@ -277,9 +278,10 @@ optTerm-end-pos : posinfo → optTerm → posinfo
 optTerm-end-pos pi NoTerm = pi
 optTerm-end-pos pi (SomeTerm x x₁) = x₁
 
-optTerm-end-pos-beta : posinfo → optTerm → posinfo
-optTerm-end-pos-beta pi NoTerm = posinfo-plus pi 1
-optTerm-end-pos-beta pi (SomeTerm x p) = p
+optTerm-end-pos-beta : posinfo → optTerm → optTerm → posinfo
+optTerm-end-pos-beta pi _ (SomeTerm x pi') = pi'
+optTerm-end-pos-beta pi (SomeTerm x pi') NoTerm = pi'
+optTerm-end-pos-beta pi NoTerm NoTerm = posinfo-plus pi 1
 
 optAs-or : optAs → posinfo → var → posinfo × var
 optAs-or NoOptAs pi x = pi , x
@@ -356,13 +358,13 @@ is-abs _ = ff
 is-eq-op : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-eq-op{TERM} (Sigma _ _) = tt
 is-eq-op{TERM} (Epsilon _ _ _ _) = tt
-is-eq-op{TERM} (Rho _ _ _ _ _) = tt
+is-eq-op{TERM} (Rho _ _ _ _ _ _) = tt
 is-eq-op{TERM} (Chi _ _ _) = tt
 is-eq-op{TERM} (Phi _ _ _ _ _) = tt
 is-eq-op _ = ff
 
 is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-beta{TERM} (Beta _ _) = tt
+is-beta{TERM} (Beta _ _ _) = tt
 is-beta _ = ff
 
 eq-maybeErased : maybeErased → maybeErased → 𝔹
@@ -515,15 +517,15 @@ erase-term (Let pi (DefTerm pi'' x _ t) t') = Let pi (DefTerm pi'' x NoCheckType
 erase-term (Let _ (DefType _ _ _ _) t) = erase-term t
 erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
 erase-term (Var pi x) = Var pi x
-erase-term (Beta pi NoTerm) = id-term
-erase-term (Beta pi (SomeTerm t _)) = erase-term t
-erase-term (IotaPair pi t1 t2 pi') = erase-term t1
+erase-term (Beta pi _ NoTerm) = id-term
+erase-term (Beta pi _ (SomeTerm t _)) = erase-term t
+erase-term (IotaPair pi t1 t2 _ pi') = erase-term t1
 erase-term (IotaProj t n pi) = erase-term t
 erase-term (Epsilon pi lr _ t) = erase-term t
 erase-term (Sigma pi t) = erase-term t
 erase-term (Hole pi) = Hole pi
 erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
-erase-term (Rho pi _ _ t t') = erase-term t'
+erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
@@ -570,14 +572,14 @@ erase-liftingType lt = lt
 
 erase-lterms Abstract (LtermsNil _) = []
 erase-lterms (AbstractVars _) (LtermsNil _) = []
-erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi NoTerm ]
+erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi NoTerm NoTerm ]
 erase-lterms u (LtermsCons NotErased t ls) = (erase-term t) :: erase-lterms u ls
 erase-lterms u (LtermsCons Erased t ls) = erase-lterms u ls
 
 lterms-to-𝕃h : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃h Abstract (LtermsNil _) = []
 lterms-to-𝕃h (AbstractVars _) (LtermsNil _) = []
-lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ NotErased , Beta pi NoTerm ]
+lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ NotErased , Beta pi NoTerm NoTerm ]
 lterms-to-𝕃h u (LtermsCons m t ls) = (m , t) :: (lterms-to-𝕃h u ls)
 
 lterms-to-𝕃 : theta → lterms → 𝕃 (maybeErased × term)

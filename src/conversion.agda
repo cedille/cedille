@@ -160,15 +160,15 @@ hnf{TERM} Γ (unfold tt b b' e) (Var pi x) hd | just t = hnf Γ (unfold tt b b' 
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Epsilon _ _ _ t) hd = hnf Γ u t hd
-hnf{TERM} Γ u (IotaPair _ t1 t2 _) hd = hnf Γ u t1 hd
+hnf{TERM} Γ u (IotaPair _ t1 t2 _ _) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Phi _ eq t₁ t₂ _) hd = hnf Γ u t₂ hd
-hnf{TERM} Γ u (Rho pi _ _ t t') hd = hnf Γ u t' hd
+hnf{TERM} Γ u (Rho pi _ _ t _ t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u@(unfold _ _ _ e) (Theta pi u' t ls) hd
   = hnf Γ u (App*' t (erase-lterms-if e u' ls)) hd
-hnf{TERM} Γ u (Beta _ (SomeTerm t _)) hd = hnf Γ u t hd
-hnf{TERM} Γ u (Beta _ NoTerm) hd = id-term
+hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
 hnf{TERM} Γ u x hd = x
 
 hnf{TYPE} Γ no-unfolding e _ = e
@@ -284,9 +284,9 @@ conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && c
 conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
-conv-term-norm Γ (Beta _ NoTerm) (Beta _ NoTerm) = tt
-conv-term-norm Γ (Beta _ (SomeTerm t _)) (Beta _ (SomeTerm t' _)) = conv-term Γ t t'
-conv-term-norm Γ (Beta _ _) (Beta _ _) = ff
+conv-term-norm Γ (Beta _ _ NoTerm) (Beta _ _ NoTerm) = tt
+conv-term-norm Γ (Beta _ _ (SomeTerm t _)) (Beta _ _ (SomeTerm t' _)) = conv-term Γ t t'
+conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
 {- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing

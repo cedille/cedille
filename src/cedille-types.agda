@@ -85,6 +85,8 @@ data optAs : Set
 {-# COMPILED_DECLARE_DATA optAs CedilleTypes.OptAs #-}
 data optClass : Set
 {-# COMPILED_DECLARE_DATA optClass CedilleTypes.OptClass #-}
+data optGuide : Set
+{-# COMPILED_DECLARE_DATA optGuide CedilleTypes.OptGuide #-}
 data optPlus : Set
 {-# COMPILED_DECLARE_DATA optPlus CedilleTypes.OptPlus #-}
 data optNums : Set
@@ -95,8 +97,6 @@ data optTerm : Set
 {-# COMPILED_DECLARE_DATA optTerm CedilleTypes.OptTerm #-}
 data params : Set
 {-# COMPILED_DECLARE_DATA params CedilleTypes.Params #-}
--- data rho : Set
--- {-# COMPILED_DECLARE_DATA rho CedilleTypes.Rho #-}
 data start : Set
 {-# COMPILED_DECLARE_DATA start CedilleTypes.Start #-}
 data term : Set
@@ -232,6 +232,11 @@ data optClass where
   SomeClass : tk → optClass
 {-# COMPILED_DATA optClass CedilleTypes.OptClass CedilleTypes.NoClass CedilleTypes.SomeClass #-}
 
+data optGuide where 
+  NoGuide : optGuide
+  Guide : posinfo → var → type → optGuide
+{-# COMPILED_DATA optGuide CedilleTypes.OptGuide CedilleTypes.NoGuide CedilleTypes.Guide #-}
+
 data optPlus where 
   RhoPlain : optPlus
   RhoPlus : optPlus
@@ -250,15 +255,7 @@ data optTerm where
 data params where 
   ParamsCons : decl → params → params
   ParamsNil : params
-{-# COMPILED_DATA params CedilleTypes.Params CedilleTypes.ParamsCons CedilleTypes.ParamsNil #-}      
-{-
-data rho where 
-  RhoPlain : rho
-  RhoPlus : rho
-  RhoNums : nums → rho
-  RhoPlusNums : nums → rho
-{-# COMPILED_DATA rho CedilleTypes.Rho CedilleTypes.RhoPlain CedilleTypes.RhoPlus CedilleTypes.RhoNums CedilleTypes.RhoPlusNums #-}
--}
+{-# COMPILED_DATA params CedilleTypes.Params CedilleTypes.ParamsCons CedilleTypes.ParamsNil #-}
 data start where 
   File : posinfo → imports → posinfo → posinfo → qvar → params → cmds → posinfo → start
 {-# COMPILED_DATA start CedilleTypes.Start CedilleTypes.File #-}  
@@ -266,17 +263,17 @@ data start where
 data term where 
   App : term → maybeErased → term → term
   AppTp : term → type → term
-  Beta : posinfo → optTerm → term
+  Beta : posinfo → optTerm → optTerm → term
   Chi : posinfo → maybeAtype → term → term
   Epsilon : posinfo → leftRight → maybeMinus → term → term
   Hole : posinfo → term
-  IotaPair : posinfo → term → term → posinfo → term
+  IotaPair : posinfo → term → term → optGuide → posinfo → term
   IotaProj : term → num → posinfo → term
   Lam : posinfo → lam → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
-  Rho : posinfo → optPlus → optNums → term → term → term
+  Rho : posinfo → optPlus → optNums → term → optGuide → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
   Var : posinfo → qvar → term
@@ -620,6 +617,10 @@ mutual
   optAsToString (NoOptAs) = "NoOptAs" ^ ""
   optAsToString (SomeOptAs x0 x1) = "(SomeOptAs" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x0) ^ ")"
 
+  optGuideToString : optGuide → string
+  optGuideToString NoGuide = "NoGuide"
+  optGuideToString (Guide pi v tp) = "(SomeGuide " ^ (posinfoToString pi) ^ " " ^ v ^ " " ^ (typeToString tp) ^ ")"
+
   optPublicToString : optPublic → string
   optPublicToString (NotPublic) = "NotPublic"
   optPublicToString (IsPublic) = "IsPublic"
@@ -645,31 +646,23 @@ mutual
   paramsToString (ParamsCons x0 x1) = "(ParamsCons" ^ " " ^ (declToString x0) ^ " " ^ (paramsToString x1) ^ ")"
   paramsToString (ParamsNil) = "ParamsNil" ^ ""
 
-{-
-  rhoToString : rho → string
-  rhoToString (RhoPlain) = "RhoPlain" ^ ""
-  rhoToString (RhoPlus) = "RhoPlus" ^ ""
-  rhoToString (RhoNums x0) = "(RhoNums" ^ " " ^ (numsToString x0) ^ ")"
-  rhoToString (RhoPlusNums x0) = "(RhoPlusNums" ^ " " ^ (numsToString x0) ^ ")"
--}
-
   startToString : start → string
   startToString (File x0 x1 x2 x3 x4 x5 x6 x7) = "(File" ^ " " ^ (posinfoToString x0) ^ " " ^ (importsToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (posinfoToString x3) ^ " " ^ (qvarToString x4) ^ " " ^ (paramsToString x5) ^ " " ^ (cmdsToString x6) ^ " " ^ (posinfoToString x7) ^ ")"
 
   termToString : term → string
   termToString (App x0 x1 x2) = "(App" ^ " " ^ (termToString x0) ^ " " ^ (maybeErasedToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (AppTp x0 x1) = "(AppTp" ^ " " ^ (termToString x0) ^ " " ^ (typeToString x1) ^ ")"
-  termToString (Beta x0 x1) = "(Beta" ^ " " ^ (posinfoToString x0) ^ " " ^ (optTermToString x1) ^ ")"
+  termToString (Beta x0 x1 x2) = "(Beta" ^ " " ^ (posinfoToString x0) ^ " " ^ (optTermToString x1) ^ " " ^ (optTermToString x2) ^ ")"
   termToString (Chi x0 x1 x2) = "(Chi" ^ " " ^ (posinfoToString x0) ^ " " ^ (maybeAtypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Epsilon x0 x1 x2 x3) = "(Epsilon" ^ " " ^ (posinfoToString x0) ^ " " ^ (leftRightToString x1) ^ " " ^ (maybeMinusToString x2) ^ " " ^ (termToString x3) ^ ")"
   termToString (Hole x0) = "(Hole" ^ " " ^ (posinfoToString x0) ^ ")"
-  termToString (IotaPair x0 x1 x2 x3) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (posinfoToString x3) ^ ")"
+  termToString (IotaPair x0 x1 x2 x3 x4) = "(IotaPair" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (optGuideToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
   termToString (IotaProj x0 x1 x2) = "(IotaProj" ^ " " ^ (termToString x0) ^ " " ^ (numToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Lam x0 x1 x2 x3 x4 x5) = "(Lam" ^ " " ^ (posinfoToString x0) ^ " " ^ (lamToString x1) ^ " " ^ (posinfoToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (optClassToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Let x0 x1 x2) = "(Let" ^ " " ^ (posinfoToString x0) ^ " " ^ (defTermOrTypeToString x1) ^ " " ^ (termToString x2) ^ ")"
   termToString (Parens x0 x1 x2) = "(Parens" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (posinfoToString x2) ^ ")"
   termToString (Phi x0 x1 x2 x3 x4) = "(Phi" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ " " ^ (termToString x2) ^ " " ^ (termToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
-  termToString (Rho x0 x1 x2 x3 x4) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (optPlusToString x1) ^ " " ^ (optNumsToString x2) ^ " " ^ (termToString x3) ^ " " ^ (termToString x4) ^ ")"
+  termToString (Rho x0 x1 x2 x3 x4 x5) = "(Rho" ^ " " ^ (posinfoToString x0) ^ " " ^ (optPlusToString x1) ^ " " ^ (optNumsToString x2) ^ " " ^ (termToString x3) ^ " " ^ (optGuideToString x4) ^ " " ^ (termToString x5) ^ ")"
   termToString (Sigma x0 x1) = "(Sigma" ^ " " ^ (posinfoToString x0) ^ " " ^ (termToString x1) ^ ")"
   termToString (Theta x0 x1 x2 x3) = "(Theta" ^ " " ^ (posinfoToString x0) ^ " " ^ (thetaToString x1) ^ " " ^ (termToString x2) ^ " " ^ (ltermsToString x3) ^ ")"
   termToString (Var x0 x1) = "(Var" ^ " " ^ (posinfoToString x0) ^ " " ^ (qvarToString x1) ^ ")"

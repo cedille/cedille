@@ -94,7 +94,7 @@ erased-tk-span (Tkk k) = erased-kind-spans k
 erased-term-spans (App t me t') =
   put-span (term-start-pos t) (term-end-pos t') ll-term [] ≫span
   erased-term-spans t ≫span erased-term-spans t'
-erased-term-spans (Beta pi ot) = optTerm-span ot
+erased-term-spans (Beta pi ot ot') = optTerm-span ot ≫span optTerm-span ot'
 erased-term-spans (Hole pi) = inc-span pi ll-term []
 erased-term-spans (Lam pi l pi' v oc t) =
   put-span pi (term-end-pos t) ll-term (binder-data-const :: []) ≫span

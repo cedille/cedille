@@ -17,6 +17,7 @@ substh-type : substh-ret-t type
 substh-kind : substh-ret-t kind
 substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
+substh-optGuide : substh-ret-t optGuide
 -- substh-optType : substh-ret-t optType
 substh-optTerm : substh-ret-t optTerm
 substh-liftingType : substh-ret-t liftingType
@@ -60,13 +61,13 @@ substh-term{QUALIF} Γ ρ σ (Var pi x) =
  let x' = renamectxt-rep ρ x in
    qualif-lookup-term pi σ x'
 substh-term Γ ρ σ (Var pi x) = Var pi (renamectxt-rep ρ x)
-substh-term Γ ρ σ (Beta pi ot) = Beta pi (substh-optTerm Γ ρ σ ot)
-substh-term Γ ρ σ (IotaPair pi t1 t2 pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) pi'
+substh-term Γ ρ σ (Beta pi ot ot') = Beta pi (substh-optTerm Γ ρ σ ot) (substh-optTerm Γ ρ σ ot')
+substh-term Γ ρ σ (IotaPair pi t1 t2 og pi') = IotaPair pi (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) (substh-optGuide Γ ρ σ og) pi'
 substh-term Γ ρ σ (IotaProj t n pi) = IotaProj (substh-term Γ ρ σ t) n pi
 substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Phi pi t t₁ t₂ pi') = Phi pi (substh-term Γ ρ σ t) (substh-term Γ ρ σ t₁) (substh-term Γ ρ σ t₂) pi
-substh-term Γ ρ σ (Rho pi op on t t') = Rho pi op on (substh-term Γ ρ σ t) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Rho pi op on t og t') = Rho pi op on (substh-term Γ ρ σ t) (substh-optGuide Γ ρ σ og) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
   where substh-lterms : substh-ret-t lterms
@@ -147,6 +148,11 @@ substh-maybeCheckType Γ ρ σ (Type T) = Type (substh-type Γ ρ σ T)
 
 substh-optTerm Γ ρ σ NoTerm = NoTerm
 substh-optTerm Γ ρ σ (SomeTerm t pi') = (SomeTerm (substh-term Γ ρ σ t) pi')
+
+substh-optGuide Γ ρ σ NoGuide = NoGuide
+substh-optGuide Γ ρ σ (Guide pi x T) =
+  let x' = subst-rename-var-if Γ ρ x σ in
+  (Guide pi x' (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ T))
 
 subst-ret-t : Set → Set
 subst-ret-t T = {ed : exprd} → ctxt → ⟦ ed ⟧ → var → T → T

@@ -252,6 +252,9 @@ reason s = "reason" , [[ s ]] , []
 expected-type : ctxt → type → tagged-val
 expected-type = to-string-tag "expected-type"
 
+expected-type-subterm : ctxt → type → tagged-val
+expected-type-subterm = to-string-tag "expected-type of the subterm"
+
 missing-expected-type : tagged-val
 missing-expected-type = "expected-type" , [[ "[missing]" ]] , []
 
@@ -636,12 +639,20 @@ Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t)
         maybeMinus-description EpsHnf = "head"
         maybeMinus-description EpsHanf = "head-applicative"
 
-Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ → 𝕃 tagged-val → err-m → span
-Rho-span pi t t' expected r numrewrites tvs err =
+optGuide-spans : optGuide → checking-mode → spanM ⊤
+optGuide-spans NoGuide _ = spanMok
+optGuide-spans (Guide pi x tp) expected =
+  get-ctxt λ Γ → spanM-add (Var-span Γ pi x expected [] nothing)
+
+Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
+Rho-span pi t t' expected r (inj₂ x) tvs =
+  mk-span "Rho" pi (term-end-pos t')
+    (checking-data expected :: ll-data-term :: explain ("Rewrite all places where " ^ x ^ " occurs in the " ^ expected-to-string expected ^ " type, using an equation.") :: tvs)
+Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
   mk-span "Rho" pi (term-end-pos t') 
     (checking-data expected :: ll-data-term :: tvs ++
     (explain ("Rewrite terms in the " 
-      ^ expected-to-string expected ^ " type, using an equation. "
+      ^ expected-to-string expected ^ " type, using an equation."
       ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
   where h : 𝕃 tagged-val × err-m
         h = if isJust err

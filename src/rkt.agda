@@ -57,7 +57,7 @@ rkt-from-term (App tm₁ x tm₂)
   = "(" ^ rkt-from-term tm₁ ^ " " ^ rkt-from-term tm₂ ^ ")"
 rkt-from-term (Hole x)
   = "(error 'cedille-hole)"
-rkt-from-term (Beta _ NoTerm)
+rkt-from-term (Beta _ _ NoTerm)
   = "(lambda (x) x)\n"
 rkt-from-term _
   = rkt-dbg "unsupported/unknown term" ""

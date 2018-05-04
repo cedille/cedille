@@ -4,35 +4,36 @@ import CedilleCoreToString
 
 data Token =
     TVar String
-  | TLam
-  | TLamE
-  | TPi
-  | TAll
-  | TIota
-  | TBeta
-  | TRho
-  | TSigma
-  | TPhi
-  | TStar
-  | TAsyEq
-  | TDelta
-  | TProj1
-  | TProj2
-  | TEq
-  | TAt
-  | TDot
-  | TCenterDot
-  | TDash
-  | TTriangle
-  | TColon
-  | TComma
-  | TPrime
-  | TParenL
-  | TParenR
-  | TBracketL
-  | TBracketR
-  | TBraceL
-  | TBraceR
+  | TLam       -- λ
+  | TLamE      -- Λ
+  | TPi        -- Π
+  | TAll       -- ∀
+  | TIota      -- ι
+  | TBeta      -- β
+  | TRho       -- ρ
+  | TSigma     -- ς
+  | TPhi       -- φ
+  | TStar      -- ★
+  | TAsyEq     -- ≃
+  | TDelta     -- δ
+  | TProj1     -- .1
+  | TProj2     -- .2
+  | TEq        -- =
+  | TAt        -- @
+  | TDot       -- .
+  | TCenterDot -- ·
+  | TDash      -- -
+  | TTriangle  -- ◂
+  | TColon     -- :
+  | TComma     -- ,
+  | TParenL    -- (
+  | TParenR    -- )
+  | TBracketL  -- [
+  | TBracketR  -- ]
+  | TBraceL    -- {
+  | TBraceR    -- }
+  | TAngleL    -- <
+  | TAngleR    -- >
   deriving (Show, Eq)
 
 
@@ -56,10 +57,10 @@ lexProj ('1' : s) = consIf TProj1 $ lexStr s
 lexProj ('2' : s) = consIf TProj2 $ lexStr s
 lexProj s = consIf TDot $ lexStr s
 
---lexVar :: Var -> String -> (String, String)
+--lexVar :: Var -> String -> Maybe (String, String)
 lexVar v (c : s)
   | isVarChar c = lexVar (c : v) s
-  | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}" = Just (reverse v, (c : s))
+  | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>" = Just (reverse v, (c : s))
   | otherwise = Nothing
 lexVar v "" = Just (reverse v, "")
 
@@ -93,6 +94,8 @@ lexStr ('[' : s) = consIf TBracketL $ lexStr s
 lexStr (']' : s) = consIf TBracketR $ lexStr s
 lexStr ('{' : s) = consIf TBraceL $ lexStr s
 lexStr ('}' : s) = consIf TBraceR $ lexStr s
+lexStr ('<' : s) = consIf TAngleL $ lexStr s
+lexStr ('>' : s) = consIf TAngleR $ lexStr s
 lexStr (c : s) = if isVarChar c
   then lexVar (c : "") s >>= uncurry (\ v -> consIf (TVar v) . lexStr)
   else Nothing
@@ -182,7 +185,7 @@ parseTerm2 = ParseM $ \ ts -> case ts of
 parseTerm3 = ParseM $ \ ts -> parseMt ts parseTerm4 >>= uncurry (parseMf . parseIotaProj)
 parseTerm4 = ParseM $ \ ts -> case ts of
   (TVar v : ts) -> parseMr (TmVar v) ts
-  (TBeta : ts) -> parseMt ts $ pure Beta <*> parsePureTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
+  (TBeta : ts) -> parseMt ts $ pure Beta <* parseDrop TAngleL <*> parsePureTerm <* parseDrop TAngleR <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
   (TParenL : ts) -> parseMt ts $ parseTerm <* parseDrop TParenR
   (TBracketL : ts) -> parseMt ts $ pure TmIota <*> parseTerm <* parseDrop TComma <*> parseTerm <* parseDrop TAt <*> parseVar <* parseDrop TDot <*> parseType parseTerm3 <* parseDrop TBracketR
   _ -> Nothing
@@ -216,5 +219,9 @@ parseCmd = ParseM $ \ ts -> case ts of
 parseCmds = ParseM $ \ ts -> case ts of
   [] -> parseMr CmdsStart []
   _ -> parseMt ts $ pure CmdsNext <*> parseCmd <*> parseCmds
+
+parseDropModule = ParseM $ \ ts -> case ts of
+  (TVar "module" : TVar mn : TDot : ts) -> parseMr () ts
+  _ -> parseMr () ts
 
 parseStr (ParseM f) s = lexStr s >>= f

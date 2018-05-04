@@ -136,7 +136,7 @@ var-spans-term : term → spanM ⊤
 var-spans-optTerm : optTerm → spanM ⊤
 var-spans-term (App t x t') = spanM-add (App-span t t' checking [] nothing) ≫span var-spans-term t ≫span var-spans-term t'
 var-spans-term (AppTp t x) = var-spans-term t 
-var-spans-term (Beta x ot) = var-spans-optTerm ot 
+var-spans-term (Beta x ot ot') = var-spans-optTerm ot ≫span var-spans-optTerm ot' 
 var-spans-term (Chi x x₁ t) = var-spans-term t
 var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
 var-spans-term (Hole x) = spanM-add (hole-span empty-ctxt x nothing [])
@@ -166,14 +166,14 @@ var-spans-term (Lam pi l pi' x _ t) =
       set-ctxt Γ)
 var-spans-term (Parens x t x₁) = var-spans-term t
 var-spans-term (Phi pi eq t₁ t₂ pi') = var-spans-term eq ≫span var-spans-term t₁ ≫span var-spans-term t₂
-var-spans-term (Rho _ _ _ t t') = var-spans-term t ≫span var-spans-term t'
+var-spans-term (Rho _ _ _ t _ t') = var-spans-term t ≫span var-spans-term t'
 var-spans-term (Sigma x t) = var-spans-term t
 var-spans-term (Theta x x₁ t x₂) = var-spans-term t
 var-spans-term (Var pi x) =
   get-ctxt (λ Γ →
     spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing
                                         else just "This variable is not currently in scope." )))
-var-spans-term (IotaPair _ t1 t2 _) = var-spans-term t1 ≫span var-spans-term t2
+var-spans-term (IotaPair _ t1 t2 _ _) = var-spans-term t1 ≫span var-spans-term t2
 var-spans-term (IotaProj t _ _) = var-spans-term t
 
 var-spans-optTerm NoTerm = spanMok
@@ -373,24 +373,39 @@ check-termi (Lam pi l pi' x oc t) (just tp) | nothing =
     spanM-add (Lam-span Γ checking pi l x oc t [ expected-type Γ tp ] (just "The expected type is not of the form that can classify a λ-abstraction")))
 
 
-check-termi (Beta pi ot) (just (TpEq pi' t1 t2 pi'')) = 
+check-termi (Beta pi ot ot') (just (TpEq pi' t1 t2 pi'')) = 
   var-spans-optTerm ot ≫span
+  var-spans-optTerm ot' ≫span
   get-ctxt (λ Γ → 
     if conv-term Γ t1 t2 then
-      spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot)
-                   checking [ type-data Γ (TpEq pi' t1 t2 pi'') ] nothing)
+      spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot')
+                   checking [ type-data Γ (TpEq pi' t1 t2 pi'') ] (optTerm-conv Γ ot))
     else
-      spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot)
+      spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot')
                   checking [ expected-type Γ (TpEq pi' t1 t2 pi'') ] (just "The two terms in the equation are not β-equal")))
+  where
+    optTerm-conv : ctxt → optTerm → err-m
+    optTerm-conv Γ NoTerm = nothing
+    optTerm-conv Γ (SomeTerm t _) = if conv-term Γ (qualif-term Γ t) t1 then nothing else just "The expected type does not match the synthesized type"
 
-check-termi (Beta pi ot) (just tp) = 
+check-termi (Beta pi ot ot') (just tp) = 
   get-ctxt (λ Γ → 
    var-spans-optTerm ot ≫span
-   spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot) checking [ expected-type Γ tp ] (just "The expected type is not an equation.")))
+   var-spans-optTerm ot' ≫span
+   spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot') checking [ expected-type Γ tp ] (just "The expected type is not an equation.")))
 
-check-termi (Beta pi ot) nothing = 
+check-termi (Beta pi (SomeTerm t pi') ot) nothing =
+  get-ctxt λ Γ →
+   var-spans-term t ≫span
+   var-spans-optTerm ot ≫span
+   let tp = qualif-type Γ (TpEq posinfo-gen t t posinfo-gen) in
+   spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) (SomeTerm t pi') ot) synthesizing [ type-data Γ tp ] nothing) ≫span
+   spanMr (just tp)
+
+check-termi (Beta pi ot ot') nothing = 
   var-spans-optTerm ot ≫span
-  spanM-add (Beta-span pi (optTerm-end-pos (posinfo-plus pi 1) ot) synthesizing [] (just "An expected type is required in order to type a use of β.")) ≫span
+  var-spans-optTerm ot' ≫span
+  spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot') synthesizing [] (just "An expected type is required in order to type a use of plain β.")) ≫span
   spanMr nothing
 
 check-termi (Epsilon pi lr m t) (just (TpEq pi' t1 t2 pi'')) = 
@@ -462,24 +477,58 @@ check-termi (Phi pi t₁≃t₂ t₁ t₂ pi') nothing =
       type-data-tvs Γ (just tp) = type-data Γ tp :: [ hnf-type Γ tp ]
       type-data-tvs Γ nothing = []
 
-check-termi (Rho pi op on t t') (just tp) = 
+
+check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
+  get-ctxt λ Γ →
+  spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x synthesizing [] nothing) ≫span
+  check-term t' nothing ≫=span λ mtp →
+  -- TODO: Make a function like var-spans-term but for types and call with tp?
+  check-term t nothing ≫=span λ where
+    (just (TpEq _ t1 t2 _)) → maybe-else
+      (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [] nothing) ≫span spanMr nothing)
+      (λ tp' →
+        let tp'' = qualif-type Γ (subst-type Γ t1 x tp) in
+        let tp''' = qualif-type Γ (subst-type Γ t2 x tp) in
+        if conv-type Γ tp'' tp'
+          then (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [ type-data Γ tp''' ] nothing) ≫span spanMr (just tp'''))
+          else (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp' :: [ expected-type-subterm Γ tp'' ])
+            (just "The expected type of the subterm does not match the synthesized type")) ≫span spanMr nothing)) mtp
+    (just _) → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) []
+                 (just "We could not synthesize an equation from the first subterm in a ρ-term.")) ≫span spanMr nothing
+    nothing → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [] nothing) ≫span check-term t' nothing
+
+check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
+  get-ctxt λ Γ →
+  check-term t nothing ≫=span λ where
+    (just (TpEq _ t1 t2 _)) →
+      let tp'' = qualif-type Γ (subst-type Γ t1 x tp) in
+      let tp''' = qualif-type Γ (subst-type Γ t2 x tp) in
+      let err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
+      spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: [ expected-type Γ tp' ]) err) ≫span
+      spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x checking [] nothing) ≫span
+      check-term t' (just tp''')
+    (just _) → spanM-add (Rho-span pi t t' checking op (inj₂ x) []
+                 (just "We could not synthesize an equation from the first subterm in a ρ-term."))
+    nothing → spanM-add (Rho-span pi t t' checking op (inj₂ x) [] nothing) ≫span check-term t' (just tp)
+
+check-termi (Rho pi op on t NoGuide t') (just tp) = 
   check-term t nothing ≫=span cont
   where cont : maybe type → spanM ⊤
-        cont nothing = get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op 0 [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp))
+        cont nothing = get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op (inj₁ 0) [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp))
         cont (just (TpEq pi' t1 t2 pi'')) = 
            get-ctxt (λ Γ →
              let ns-err = optNums-to-stringset on in
              let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
              check-term t' (just (fst s)) ≫span
              get-ctxt (λ Γ →
-             spanM-add (Rho-span pi t t' checking op (fst (snd s)) ( (to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) (snd ns-err (snd (snd s))))))
+             spanM-add (Rho-span pi t t' checking op (inj₁ (fst (snd s))) ((to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) (snd ns-err (snd (snd s))))))
         cont (just tp') =
-          get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op 0
+          get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op (inj₁ 0)
                                      ((to-string-tag "the synthesized type for the first subterm" Γ tp')
                                        :: [ expected-type Γ tp ])
                                      (just "We could not synthesize an equation from the first subterm in a ρ-term.")))
 
-check-termi (Rho pi op on t t') nothing = 
+check-termi (Rho pi op on t NoGuide t') nothing = 
   check-term t nothing ≫=span λ mtp → 
   check-term t' nothing ≫=span cont mtp
   where cont : maybe type → maybe type → spanM (maybe type)
@@ -488,12 +537,12 @@ check-termi (Rho pi op on t t') nothing =
             let ns-err = optNums-to-stringset on in
             let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
             let tp' = fst s in
-              spanM-add (Rho-span pi t t' synthesizing op (fst (snd s)) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
-              check-termi-return Γ (Rho pi op on t t') tp')
+              spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
+              check-termi-return Γ (Rho pi op on t NoGuide t') tp')
         cont (just tp') m2 =
-           get-ctxt (λ Γ → spanM-add (Rho-span pi t t' synthesizing op 0 [ to-string-tag "the synthesized type for the first subterm" Γ tp' ]
+           get-ctxt (λ Γ → spanM-add (Rho-span pi t t' synthesizing op (inj₁ 0) [ to-string-tag "the synthesized type for the first subterm" Γ tp' ]
                                          (just "We could not synthesize an equation from the first subterm in a ρ-term.")) ≫span spanMr nothing)
-        cont nothing _ = spanM-add (Rho-span pi t t' synthesizing op 0 [] nothing) ≫span spanMr nothing
+        cont nothing _ = spanM-add (Rho-span pi t t' synthesizing op (inj₁ 0) [] nothing) ≫span spanMr nothing
 
 check-termi (Chi pi (Atype tp) t) mtp =
   check-type tp (just star) ≫span
@@ -588,32 +637,57 @@ check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
 check-termi (Hole pi) tp =
   get-ctxt (λ Γ → spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp)
 
-check-termi (IotaPair pi t1 t2 pi') (just (Iota pi1 pi2 x tp1 tp2)) =
+check-termi (IotaPair pi t1 t2 og pi') (just (Iota pi1 pi2 x tp1 tp2)) =
   check-term t1 (just tp1) ≫span
   get-ctxt (λ Γ → 
     let t1' = qualif-term Γ t1 in
     let t2' = qualif-term Γ t2 in
     check-term t2 (just (subst-type Γ t1' x tp2)) ≫span
+    optGuide-spans og checking ≫span
+    check-optGuide og ≫=span λ e →
     -- TODO why another get-ctxt here?
     get-ctxt (λ Γ →
-    let cc = check-conv Γ t1' t2' in
+    let cc = check-conv Γ t1' t2' e in
     spanM-add (IotaPair-span pi pi' checking (expected-type Γ (Iota pi1 pi2 x tp1 tp2) :: snd cc) (fst cc))))
   where ntag : ctxt → string → string → term → unfolding → tagged-val
         ntag Γ nkind which t u = to-string-tag (nkind ^ " of the " ^ which ^ " component: ") Γ (hnf Γ u t tt)
         err : ctxt → string → term → tagged-val
         err Γ which t = ntag Γ "Hnf" which t unfold-head
-        check-conv : ctxt → term → term → err-m × 𝕃 tagged-val
-        check-conv Γ t1 t2 = if conv-term Γ t1 t2
-          then nothing , []
+        check-conv : ctxt → term → term → err-m → err-m × 𝕃 tagged-val
+        check-conv Γ t1 t2 e = if conv-term Γ t1 t2
+          then e , []
           else just "The two components of the iota-pair are not convertible (as required)." ,
                        err Γ "first" t1 :: [ err Γ "second" t2 ]
+        check-optGuide : optGuide → spanM err-m
+        check-optGuide NoGuide = spanMr nothing
+        check-optGuide (Guide pi x' tp) = get-ctxt λ Γ → with-ctxt (ctxt-term-decl pi localScope x' tp1 Γ) (check-type tp (just (Star posinfo-gen))) ≫span
+          spanMr (if conv-type Γ tp2 (qualif-type (ctxt-var-decl pi2 x Γ) (subst-type Γ (Var pi2 x) x' tp))
+            then nothing
+            else just "The expected type does not match the guided type")
 
-check-termi (IotaPair pi t1 t2 pi') (just tp) =
+check-termi (IotaPair pi t1 t2 (Guide pi' x T2) pi'') nothing =
+  get-ctxt λ Γ →
+  check-term t1 nothing ≫=span λ T1 →
+  check-term t2 (just (qualif-type Γ (subst-type Γ (qualif-term Γ t1) x T2))) ≫span
+  maybe-else spanMok (λ T1 → with-ctxt (ctxt-term-decl pi' localScope x T1 Γ) (check-type T2 (just (Star posinfo-gen)))) T1 ≫span
+  let T2' = qualif-type (ctxt-var-decl pi' x Γ) T2 in
+  spanM-add (IotaPair-span pi pi'' synthesizing (maybe-else [] (λ T1 → [ type-data Γ (Iota posinfo-gen posinfo-gen x T1 T2') ]) T1) nothing) ≫span
+  spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x synthesizing [] nothing) ≫span
+  spanMr (T1 ≫=maybe λ T1 → just (Iota posinfo-gen posinfo-gen x T1 T2'))
+  where
+    err : ctxt → err-m × 𝕃 tagged-val
+    err Γ = if conv-term Γ t1 t2
+      then nothing , []
+      else just "The two components of the iota-pair are not convertible (as required)." ,
+        to-string-tag "Hnf of the first component" Γ (hnf Γ unfold-head t1 tt) ::
+        [ to-string-tag "Hnf of the second component" Γ (hnf Γ unfold-head t2 tt) ]
+
+check-termi (IotaPair pi t1 t2 og pi') (just tp) =
   get-ctxt (λ Γ →
   spanM-add (IotaPair-span pi pi' checking [ expected-type Γ tp ] (just "The type we are checking against is not a iota-type")))
 
-check-termi (IotaPair pi t1 t2 pi') nothing =
-  spanM-add (IotaPair-span pi pi' synthesizing [] (just "Iota pairs can only be used in a checking position")) ≫span
+check-termi (IotaPair pi t1 t2 NoGuide pi') nothing =
+  spanM-add (IotaPair-span pi pi' synthesizing [] (just "Iota pairs require a specified type when in a synthesizing position")) ≫span
   spanMr nothing
 
 
