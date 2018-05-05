@@ -211,7 +211,7 @@ parseKind tm = ParseM $ \ ts -> case ts of
   (TParenL : ts) -> parseMt ts $ parseKind tm <* parseDrop TParenR
 
 --parseTpKd :: ParseM tm -> ParseM (PrimTpKd tm)
-parseTpKd tm = parseMor (fmap TpKdt $ parseType tm) (fmap TpKdk $ parseKind tm)
+parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm)
 
 parseCmd = ParseM $ \ ts -> case ts of
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot

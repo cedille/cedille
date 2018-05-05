@@ -67,5 +67,5 @@ typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
 kindToString Star = "★"
 kindToString (KdPi v tk kd) = "Π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
 
-tkToString (TpKdt tp) = show tp
-tkToString (TpKdk kd) = show kd
+tkToString (TpKdTp tp) = show tp
+tkToString (TpKdKd kd) = show kd

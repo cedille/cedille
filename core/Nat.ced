@@ -13,7 +13,7 @@ RecFunctor ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. ∀ X : ★
 Rec ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. ∀ X : ★. ∀ _ : Cast · (F · X) · X. X. 
 
 recCast = Λ F : Π _ : ★. ★. Λ X : ★. Λ c : Cast · (F · X) · X.
-  [λ a : Rec · F. a · X -c, Λ a : Rec · F. β<a>{λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
+  [λ a : Rec · F. a · X -c, Λ a : Rec · F. β<a>{λ a'. a'} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
 
 recIn = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F.
     [λ a : F · (Rec · F). Λ X : ★. Λ c : Cast · (F · X) · X.
@@ -24,7 +24,7 @@ recIn = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F.
 
 recOut = Λ F : Π _ : ★. ★. Λ fmap : RecFunctor · F.
   [λ a : Rec · F. a · (F · (Rec · F)) -(fmap · (F · (Rec · F)) · (Rec · F) (recIn · F -fmap)),
-   Λ a : Rec · F. β<a>{λ a. a} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
+   Λ a : Rec · F. β<a>{λ a'. a'} @ cst . ∀ a : Rec · F. {cst a ≃ a}].
 
 RecFold ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. Π x : F · (Rec · F). Rec · F.
 RecUnfold ◂ Π _ : Π _ : ★. ★. ★ = λ F : Π _ : ★. ★. Π x : Rec · F. F · (Rec · F).

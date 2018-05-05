@@ -111,8 +111,8 @@ ctxtDefTerm c v d = ctxtDef c v (Left d)
 --ctxtDefType :: Ctxt -> Var -> TypeDef -> Ctxt
 ctxtDefType c v d = ctxtDef c v (Right d)
 
-ctxtDefTpKd c v (TpKdt tp) = ctxtDefTerm c v (Nothing, Just tp)
-ctxtDefTpKd c v (TpKdk kd) = ctxtDefType c v (Nothing, Just kd)
+ctxtDefTpKd c v (TpKdTp tp) = ctxtDefTerm c v (Nothing, Just tp)
+ctxtDefTpKd c v (TpKdKd kd) = ctxtDefType c v (Nothing, Just kd)
 
 --ctxtRename :: Ctxt -> Var -> Var -> Ctxt
 ctxtRename c "_" _ = c

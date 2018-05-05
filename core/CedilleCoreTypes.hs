@@ -52,6 +52,6 @@ data PrimKind tm =
   | KdPi Var (PrimTpKd tm) (PrimKind tm)
 
 data PrimTpKd tm =
-    TpKdt (PrimType tm)
-  | TpKdk (PrimKind tm)
+    TpKdTp (PrimType tm)
+  | TpKdKd (PrimKind tm)
 

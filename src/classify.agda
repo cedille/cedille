@@ -378,10 +378,10 @@ check-termi (Beta pi ot ot') (just (TpEq pi' t1 t2 pi'')) =
   var-spans-optTerm ot' ≫span
   get-ctxt (λ Γ → 
     if conv-term Γ t1 t2 then
-      spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot')
+      spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot')
                    checking [ type-data Γ (TpEq pi' t1 t2 pi'') ] (optTerm-conv Γ ot))
     else
-      spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot')
+      spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot')
                   checking [ expected-type Γ (TpEq pi' t1 t2 pi'') ] (just "The two terms in the equation are not β-equal")))
   where
     optTerm-conv : ctxt → optTerm → err-m
@@ -392,20 +392,20 @@ check-termi (Beta pi ot ot') (just tp) =
   get-ctxt (λ Γ → 
    var-spans-optTerm ot ≫span
    var-spans-optTerm ot' ≫span
-   spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot') checking [ expected-type Γ tp ] (just "The expected type is not an equation.")))
+   spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot') checking [ expected-type Γ tp ] (just "The expected type is not an equation.")))
 
 check-termi (Beta pi (SomeTerm t pi') ot) nothing =
   get-ctxt λ Γ →
    var-spans-term t ≫span
    var-spans-optTerm ot ≫span
    let tp = qualif-type Γ (TpEq posinfo-gen t t posinfo-gen) in
-   spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) (SomeTerm t pi') ot) synthesizing [ type-data Γ tp ] nothing) ≫span
+   spanM-add (Beta-span pi (optTerm-end-pos-beta pi (SomeTerm t pi') ot) synthesizing [ type-data Γ tp ] nothing) ≫span
    spanMr (just tp)
 
 check-termi (Beta pi ot ot') nothing = 
   var-spans-optTerm ot ≫span
   var-spans-optTerm ot' ≫span
-  spanM-add (Beta-span pi (optTerm-end-pos-beta (posinfo-plus pi 1) ot ot') synthesizing [] (just "An expected type is required in order to type a use of plain β.")) ≫span
+  spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot') synthesizing [] (just "An expected type is required in order to type a use of plain β.")) ≫span
   spanMr nothing
 
 check-termi (Epsilon pi lr m t) (just (TpEq pi' t1 t2 pi'')) = 
