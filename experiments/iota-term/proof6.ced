@@ -96,11 +96,34 @@ isFree-aux-abs◂Π n:Nat .Π t:Trm' (S n) .
       {isFree-aux n v (abs' n t) ≃ isFree-aux (S n) (updateValuation' n v ff) t} =      
  λ n .λ t .λ v .β.
 
-lemma-isFree-update-less ◂ Π n : Nat . Π m : Nat . Lt m n ➔
-	          Π v:Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) .
-		  Π t:Trm' (S m) .
-	          {isFree-aux (S m) (restrictValuation' (updateValuation' n v ff)) t≃isFree-aux (S m) (restrictValuation' v) t} =
- λ n .λ m .λ lmn .λ v .λ t . ●. --lemma-lookup-update-less·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) n m lmn ff v .
+Pupdate ◂ Π m:Nat .Trm' m➔★=
+  λ m:Nat .λ t:Trm' m.
+    Π n : Nat . Lte m n ➾
+    Π v:Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) .
+    {isFree-aux m (restrictValuation' (updateValuation' n v ff)) t≃isFree-aux m (restrictValuation' v) t}.
+
+embedPupdate ◂ Π m:Nat .Π n:Nat .∀ l:Lte m n. Π t:Trm' m .Cast ·(Pupdate m t)·(Pupdate n ((embed' m n -l).1 t))=
+  λ m .λ n .Λ l .λ t .
+      [ λ x .ρ ((embed' m n -l).2) -
+             (λ n' .Λ lmn' .λ v .x n' -(LteLte m n n' l lmn') (λ o . Λ l' . v o -l')) ,
+      β ] .
+
+lemma-isFree-update-less ◂ Π o : Nat . Π t:Trm' o . Pupdate o t =
+ λ o .λ t . TrmInd o t ·Pupdate -embedPupdate ·(trivValuationInv · Pupdate)
+   (λ p .Λ lpo . mkWSigma2·(Pupdate (S p) (vari' p))·(λ _:Pupdate (S p) (vari' p). True)
+     (λ n' .Λ leSpn' .λ v .
+       (BoolInd (lt p n')·(λ b:Bool .{lt p n'≃b}➔{isFree-aux (S p) (restrictValuation' (updateValuation' n' v ff)) (vari' p)≃isFree-aux (S p) (restrictValuation' v) (vari' p) })
+          (λ lpn' .lemma-lookup-update-less·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) n' p  lpn' ff v)
+	  (λ nlpn' .BoolContra -(ρ (ς (Lt-S2inv p n' leSpn')) -nlpn')·{isFree-aux (S p) (restrictValuation' (updateValuation' n' v ff)) (vari' p) ≃ isFree-aux (S p) (restrictValuation' v) (vari' p)})
+	  β))
+     -triv)
+   [● ,
+   λ n' .Λ val .Λ R1 .Λ R2 .Λ c1 .Λ c2 . λ e1 .λ e2 .λ d .
+    θ<d> (ind-Sum d)
+      (λ a . θ<a> (ind-Product a)
+        (λ a1 .λ a2 .λ o .Λ l . λ v . ρ+ (e1.1 a1 o -l v) -(ρ+ (e1.1 a2 o -l v) -β))) 
+      (λ a .λ o .Λ l .λ v . ●) --ρ+ (e2.1 ● -triv a o -l v) -●)
+   ].
 
 lemma-isFree-update-eq ◂ Π n : Nat . 
 	          Π v:Valuation' n ·(λ _:Nat .Bool)·(trivValuationInv' · (λ _:Nat .Bool)) .
@@ -126,12 +149,19 @@ lemma-invariant ◂ Π n : Nat .
  λ n .λ vf .λ v .λ f .λ m .Λ lmSn .
       (BoolInd (lt m n)·(λ b:Bool .{lt m n≃b} ➔
       {isFree-aux (S m) (restrictValuation' (updateValuation' n vf ff)) (lookupValuation' (updateValuation' n v (vari' n)) m (λ a . a)) ≃ ff})
-        (λ e . ρ+ e -(ρ+ (lemma-isFree-update-less n m e vf ((lookupValuation' -n ·Trm'·(trivValuationInv'·Trm') v m -e).1·(Trm' (S m)) (λ a : Trm' (S m) . Λ _ . a))) -(f m -e)))
+        (λ e . ρ+ e -(ρ+ (lemma-isFree-update-less  (S m) ((lookupValuation' -n ·Trm'·(trivValuationInv'·Trm') v m -e).1·(Trm' (S m)) (λ a : Trm' (S m) . Λ _ . a))
+	                                            n -(Lt-S2 m n e) vf)-
+		      (f m -e)))
         (λ e . ρ+ e -(lemma-isFree-update-eq n vf (var' n -(S n) -(lt-nSn n))))
       β).
 
 embedP ◂ Π m : Nat . Π n : Nat . ∀ l : Lte m n . Π t : Trm' m . Cast · (P m t) · (P n ((embed' m n -l).1 t)) =
-  λ m . λ n . Λ l . λ t . ● . -- [ λ x .  ρ ((embed' m n -l).2) -●  , ●] .
+  λ m . λ n . Λ l . λ t .
+    [ λ x .ρ ((embed' m n -l).2) -
+             (λ vf . λ v . λ p . x  (λ o . Λ lom . vf o -(LtLte o m n lom l))
+	                            (λ o . Λ lom . v o -(LtLte o m n lom l))
+				    (λ o . Λ lom . p o -(LtLte o m n lom l))) ,
+     β ] .
 
 thm◂Π n:Nat . Π t:Trm' n .P n t=
  λ n .λ t .TrmInd n t

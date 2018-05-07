@@ -73,9 +73,12 @@ LtLt ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lt y z ➔ Lt x z =
 LtLte ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lt x y ➔ Lte y z ➔ Lt x z=
   λ x .λ y .λ z .λ l .λ le .le.1·(Lt x z) (LtLt x y z l) (λ e. ρ (ς e) -l).
 
-Lte-refl ◂ Π n : Nat . Lte n n = λ n . in2·(Lt n n)·{n≃n} β .
-
 Lt-Lte ◂ Π x : Nat . Π y : Nat . Lt x y ➔ Lte x y = λ x .λ y .λ l . in1·(Lt x y)·{x≃y} l.
+
+LteLte ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lte x y ➔ Lte y z ➔ Lte x z=
+  λ x .λ y .λ z .λ lexy .λ leyz .lexy.1·(Lte x z) (λ lxy .(Lt-Lte x z (LtLte x y z lxy leyz))) (λ exy .ρ exy -leyz).
+
+Lte-refl ◂ Π n : Nat . Lte n n = λ n . in2·(Lt n n)·{n≃n} β .
 
 Lt-Smn ◂ Π n : Nat . Π m : Nat . Lt (S n) m ➔ Lt n m =
   λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt (S n) m ➔ Lt n m)
