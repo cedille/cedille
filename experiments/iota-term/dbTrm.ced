@@ -1,0 +1,126 @@
+module dbTrm.
+
+import nat.
+import top.
+import cast.
+import recType.
+
+updateVal ◂ ∀ X : ★ . (Nat ➔ X) ➔ X ➔ Nat ➔ X =
+  Λ X . λ v . λ x .
+    λ m . NatRec m · X x (λ p . λ _ . v p) .
+
+shiftVal ◂ ∀ X : ★ . (Nat ➔ X) ➔ Nat ➔ X =
+  Λ X . λ v . λ m . v (S m).
+
+varu ◂ Top = β{λ n . λ v . λ a . λ l . v n }.
+appu ◂ Top = β{λ t1 . λ t2 . λ x1 . λ x2 . λ v . λ a . λ l . a t1 t2 (x1 v a l) (x2 v a l)}.
+lamu ◂ Top = β{λ t . λ f . λ v . λ a . λ l . l t (λ x . t (updateVal v x) a l)}.
+
+updateShift ◂ Π n : Nat . { updateVal (shiftVal varu) (varu Z) n ≃ varu n } = 
+  λ n . θ<n> (NatInd n) β (λ p . λ ih . β) .
+
+TrmF ◂ ★ ➔ ★ = λ Trm : ★ .
+  ι x : 
+    ∀ X : ★ .
+    Π v : (Nat ➔ X) . 
+    ∀ au : Top . ∀ lu : Top . 
+    Π a : Π t1 : Trm . Π t2 : Trm . Π x1 : X . Π x2 : X . ∀ v : Nat ➔ X . { x1 ≃ t1 v au lu } ➾ { x2 ≃ t2 v au lu} ➾ X .
+    Π l : Π t : Trm .
+          Π f : X ➔ X .
+          ∀ v : Nat ➔ X .
+          { f ≃ λ x . t (updateVal v x) au lu } ➾
+          X.
+      { a ≃ au} ➾ {l ≃ lu} ➾
+      X.
+    ∀ v : Top . (Π n : Nat . { v n ≃ varu n }) ➾ 
+    { x v appu lamu ≃ x }.
+
+
+Trm ◂ ★ = Rec · TrmF .
+
+TrmFun ◂ RecFunctor · TrmF = ● .
+
+TrmUnfold ◂ Trm ➔ (TrmF · Trm) = cast -(recUnfold · TrmF -TrmFun) .
+TrmFold ◂ (TrmF · Trm) ➔ Trm = cast -(recFold · TrmF -TrmFun) .
+
+var ◂ Nat ➔ Trm = λ n . TrmFold [Λ X . λ v . Λ _ . Λ _ . λ a . λ l . Λ _ . Λ _ . v n , Λ v . Λ ve . ρ (ve n) - β{varu n}].
+
+
+app ◂ Π t1 : Trm . Π t2 : Trm . Π x1 : Trm . Π x2 : Trm . { x1 ≃ t1 } ➾ { x2 ≃ t2} ➾ Trm = 
+λ t1 . λ t2 . λ x1 . λ x2 . Λ e1 . Λ e2 .
+  TrmFold [Λ X . λ v . Λ au . Λ lu . λ a . λ l . Λ ae . Λ le .
+             a t1 t2
+               ((TrmUnfold x1).1 · X v -au -lu a l -ae -le)
+               ((TrmUnfold x2).1 · X v -au -lu a l -ae -le)
+               -v
+               -(ρ ae - ρ le - ρ e1 - β)
+               -(ρ ae - ρ le - ρ e2 - β),
+           (Λ v . Λ ve . ρ+ ((TrmUnfold x1).2 -v -ve) - ρ ((TrmUnfold x2).2 -v -ve) - β{appu t1 t2 x1 x2})].
+
+lam ◂ Π t : Trm . Π f : Trm ➔ Trm . { f ≃ λ x . t (updateVal (shiftVal varu) x) appu lamu} ➾ Trm = 
+  λ t . λ f . Λ e .
+    TrmFold [Λ X . λ v . Λ au . Λ lu . λ a . λ l . Λ ae . Λ le .
+              l t (λ x . (TrmUnfold (f (var Z))).1 · X (updateVal · X v x) -au -lu a l -ae -le)
+                -v -(ρ e - ρ ((TrmUnfold t).2 -β{updateVal (shiftVal varu) (var Z)}
+                              -updateShift) -
+                     ρ ae - ρ le - β),
+             Λ v . Λ ve . ρ e - ρ ((TrmUnfold t).2 -β{updateVal (shiftVal varu) (var Z)} -updateShift) -
+             β{λ v . λ a . λ l . l t (λ x . TrmUnfold (f (var Z)) (updateVal v x) a l)}].
+
+-- VarPersist ◂ (Trm ➔ ★) ➔ ★ = λ P : Trm ➔ ★ . Π x : Nat . Cast · (P (var x)) · (P (var (S x))).
+
+TrmParam ◂ Trm ➔ ★ =
+  λ t : Trm .
+  ∀ X : ★.
+  ∀ var : (Nat ➔ X) . 
+  ∀ au : Top . ∀ lu : Top . 
+  ∀ app : Π t1 : Trm . Π t2 : Trm . Π x1 : X . Π x2 : X . ∀ v : Nat ➔ X . { x1 ≃ t1 v au lu } ➾ { x2 ≃ t2 v au lu} ➾ X .
+  ∀ lam : Π t : Trm .
+          Π f : X ➔ X .
+          ∀ v : Nat ➔ X .
+          { f ≃ λ x . t (updateVal v x) au lu } ➾
+          X.
+  ∀ e1 : { app ≃ au} . ∀ e2 : {lam ≃ lu} .
+  ∀ P : X ➔ ★ . 
+  Π v : Π x : Nat . P (var x) .
+  ∀ au' : Top . ∀ lu' : Top . 
+  Π a : Π t1 : Trm . Π t2 : Trm . ∀ x1 : X . ∀ x2 : X . ∀ v : Nat ➔ X.
+        ∀ e1 : { x1 ≃ t1 v au lu } . ∀ e2 : { x2 ≃ t2 v au lu } .
+        Π p1 : P x1 . Π p2 : P x2 . 
+        P (app t1 t2 x1 x2 -v -e1 -e2) .
+  Π l : Π t : Trm .
+        ∀ f : X ➔ X .
+        ∀ v : Nat ➔ X .
+        ∀ e : { f ≃ λ x . t (updateVal v x) au lu } .
+        (P (v Z) ➔ P (f (v Z))) ➔ 
+        P (lam t f -v -e).
+  { a ≃ au' } ➾ { l ≃ lu' } ➾ 
+  P ((TrmUnfold t).1 · X var -au -lu app lam -e1 -e2) .
+
+
+
+Trm' ◂ ★ = ι t : Trm . TrmParam t.
+
+var' ◂ Nat ➔ Trm' = λ n . [ var n , Λ P . Λ vP . λ v . Λ _ . Λ _ . λ a . λ l . Λ _ . Λ _ . v n ] .
+
+app' ◂ Π t1 : Trm . Π t2 : Trm . Π x1 : Trm' . Π x2 : Trm' . ∀ v : Nat ➔ Trm' . { x1 ≃ t1 v app lam } ➾ { x2 ≃ t2 v app lam } ➾ Trm' =
+  λ t1 . λ t2 . λ t1' . λ t2' . Λ v . Λ e1 . Λ e2 .
+     [ app t1 t2 ,
+       Λ P . Λ vP . λ v . Λ au . Λ lu . λ a . λ l . Λ ae . Λ le .
+          a t1 t2
+            (t1'.2 · P -vP v -au -lu a l -ae -le)
+            (t2'.2 · P -vP v -au -lu a l -ae -le) -v
+            -(ρ ae - ρ le - β)
+            -(ρ ae - ρ le - β)].
+
+updateVal' ◂ ∀ P : Trm ➔ ★ . VarPersist · P ➾ (Π n : Nat . P (var n)) ➔ P (var Z) ➔ Π m : Nat . P (var m) =
+  Λ P . Λ vP . λ v . λ u . λ m .
+    NatInd m · (λ x : Nat . P (var x)) u (λ p . λ _ . cast -(vP p) (v p)).
+
+lam' ◂ Trm' ➔ Trm' = λ b . [ lam b.1 ,
+                             Λ P . Λ vP . λ v . Λ au . Λ lu . λ a . λ l . Λ ae . Λ le .
+                               l b.1 -v (λ u . b.2 · P -vP (updateVal' · P -vP v u) -au -lu a l -ae -le) -(ρ ae - ρ le - β) ].
+
+
+toTrm' ◂ Trm ➔ Trm' = λ t . TrmUnfold t · Trm' var' -β{app} -β{lam} app' lam' -β -β .
+
