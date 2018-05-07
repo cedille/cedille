@@ -1,0 +1,33 @@
+module substlemma.
+
+import ../iota-term/RecTypeI.
+import ../iota-term/trmC.
+import ../iota-term/trmD.
+import ../iota-term/trmInduction.
+import ../tpinf/tp.
+import nat.
+import ../iota-term/natExtras.
+import bool.
+import ../iota-term/valuation.
+import product.
+import sigma.
+import true.
+import wSigma2.
+import ../iota-term/subst.
+import cast.
+import hastp.
+import ../iota-term/valuationp.
+import sum.
+import beta-red2.
+
+subst-lemma-type ◂ ★ = 
+  Π m : Nat .
+  Π G : ctxt m .
+  Π ta : Trm' (S m) .
+  Π tb : Trm' m .
+  Π Ta : Tp .
+  Π Tb : Tp .
+  hastp (mkhastpI (S m) (update-ctxt m G Tb) ta Ta) ➔
+  hastp (mkhastpI m G tb Tb) ➔
+  hastp (mkhastpI m G (subst (S m) ta (S m) (construct-subst-val' m (stepup -m tb)))) .
+
