@@ -97,29 +97,6 @@ module main-with-options (options : cedille-options.options) where
   add-cedille-extension : string → string
   add-cedille-extension x = x ^ "." ^ cedille-extension
 
-  
-
-  {-
-  replace-dots : string → string
-  replace-dots s = 𝕃char-to-string (h (string-to-𝕃char s)) where
-    slash : string
-    slash = combineFileNames "" ""
-    slashc : 𝕃 char → 𝕃 char
-    slashc cs = string-to-𝕃char slash ++ cs
-    is-slash : char → 𝔹
-    is-slash c = char-to-string c =string slash
-
-    h : 𝕃 char → 𝕃 char
-    h ('.' :: '.' :: c :: cs) = if is-slash c
-      then '.' :: '.' :: c :: h cs
-      else slashc (h cs)
-    h ('.' :: c :: cs) = if is-slash c
-      then '.' :: c :: h cs
-      else slashc (h cs)
-    h (c :: cs) = c :: h cs
-    h [] = []
-  -}
-
   find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe string)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =

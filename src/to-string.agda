@@ -217,7 +217,7 @@ spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
 
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
-term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " <" " >" ≫str optTerm-to-string ot " { " " }"
+term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " <" " >" ≫str optTerm-to-string ot' " { " " }"
 term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strAdd "●"

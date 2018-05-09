@@ -298,9 +298,8 @@ check-for-type-mismatch-if : ctxt → string → maybe type → type → 𝕃 ta
 check-for-type-mismatch-if Γ s (just tp) = check-for-type-mismatch Γ s tp
 check-for-type-mismatch-if Γ s nothing tp = [ type-data Γ tp ] , nothing
 
-summary-data : {ed : exprd} → (pi : string) → (fn : string) → (pos : posinfo) → ctxt → ⟦ ed ⟧ → tagged-val
-summary-data name fn pi Γ t with (strVar (qualif-var Γ name) ≫str strAdd " : " ≫str to-stringh' neither t) {TERM} [[]] 0 [] Γ nothing neither
-...| (s , n , ts') = "summary" , s , ts'
+summary-data : {ed : exprd} → (name : string) → ctxt → ⟦ ed ⟧ → tagged-val
+summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringh t)
 
 missing-kind : tagged-val
 missing-kind = "kind" , [[ "[undeclared]" ]] , []
@@ -395,14 +394,10 @@ keywords-data e t =
     (if is-equation t then
       [[ "equation" ]]
     else [[]])
-    ⊹⊹ [[ " " ]] ⊹⊹
-    (if is-equational t then
-      [[ "equational" ]]
+    ⊹⊹ (if is-equational t then
+      [[ " equational" ]]
      else [[]])
     ⊹⊹ [[ if e then " erased" else " noterased" ]] , []
-
-
-
 
 keywords-data-kind : kind → tagged-val
 keywords-data-kind k = 
@@ -555,7 +550,7 @@ DefTerm-span Γ pi x checked tp t pi' tvs =
           mk-span "Term-level definition (synthesizing)" pi pi' (("synthesized type" , [[ "[nothing]" ]] , []) :: tvs) nothing
         h-summary : maybe type → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
-        h-summary (just tp) = (checking-data checking :: [ summary-data x pi (ctxt-get-current-filename Γ) Γ tp ])
+        h-summary (just tp) = (checking-data checking :: [ summary-data x Γ tp ])
     
 CheckTerm-span : ctxt → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 CheckTerm-span Γ checked tp t pi' tvs = 
@@ -582,10 +577,10 @@ DefType-span Γ pi x checked mk tp pi' tvs =
           mk-span "Type-level definition (synthesizing)" pi pi' ( ("synthesized kind" , [[ "[nothing]" ]] , []) :: tvs) nothing
         h-summary : maybe kind → 𝕃 tagged-val
         h-summary nothing = [(checking-data synthesizing)]
-        h-summary (just k) = (checking-data checking :: [ summary-data x (ctxt-get-current-filename Γ) pi Γ k ])
+        h-summary (just k) = (checking-data checking :: [ summary-data x Γ k ])
 
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
-DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x (ctxt-get-current-filename Γ) pi Γ (Var pi "□") ]) nothing
+DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x Γ (Var pi "□") ]) nothing
 
 {-
 unimplemented-term-span : ctxt → posinfo → posinfo → maybe type → span

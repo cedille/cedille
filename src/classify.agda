@@ -274,17 +274,19 @@ check-termi (Let pi d t) mtp =
          spanM-restore-info x m ≫span
          spanMr r)
 
+        noterased = "keywords" , [[ "noterased" ]] , []
+
         add-def : defTermOrType → spanM (var × restore-def)
         add-def (DefTerm pi₁ x NoCheckType t') =
            get-ctxt λ Γ → check-term t' nothing ≫=span cont (compileFail-in Γ t') t'
           where cont : 𝕃 tagged-val × err-m → term → maybe type → spanM (var × restore-def)
                 cont (tvs , err) t' (just T) = spanM-push-term-def pi₁ nonParamVar x t' T ≫=span λ m →
                                      get-ctxt λ Γ → 
-                                       spanM-add (Var-span Γ pi₁ x synthesizing (type-data Γ T :: tvs) err) ≫span
+                                       spanM-add (Var-span Γ pi₁ x synthesizing (type-data Γ T :: noterased :: tvs) err) ≫span
                                      spanMr (x , m)
                 cont (tvs , err) t' nothing = spanM-push-term-udef pi₁ x t' ≫=span λ m →
                                     get-ctxt λ Γ →
-                                      spanM-add (Var-span Γ pi₁ x synthesizing tvs err) ≫span
+                                      spanM-add (Var-span Γ pi₁ x synthesizing (noterased :: tvs) err) ≫span
                                     spanMr (x , m)
         add-def (DefTerm pi₁ x (Type T) t') =
           check-type T (just star) ≫span
@@ -294,7 +296,7 @@ check-termi (Let pi d t) mtp =
           spanM-push-term-def pi₁ nonParamVar x t' T' ≫=span λ m →
           get-ctxt λ Γ →
             let p = compileFail-in Γ t' in
-            spanM-add (Var-span Γ pi₁ x checking (type-data Γ T' :: fst p) (snd p)) ≫span
+            spanM-add (Var-span Γ pi₁ x checking (type-data Γ T' :: noterased :: fst p) (snd p)) ≫span
           spanMr (x , m)
         add-def (DefType pi x k T) =
           check-kind k ≫span
@@ -302,7 +304,7 @@ check-termi (Let pi d t) mtp =
           let k' = qualif-kind Γ k in
           check-type T (just k') ≫span
           spanM-push-type-def pi nonParamVar x T k' ≫=span λ m →
-          get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking [ kind-data Γ k' ] nothing) ≫span
+          get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking (noterased :: [ kind-data Γ k' ]) nothing) ≫span
           spanMr (x , m)
 
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
@@ -692,7 +694,7 @@ check-termi (IotaPair pi t1 t2 NoGuide pi') nothing =
 
 
 check-termi (IotaProj t n pi) mtp =
-  check-term t nothing ≫=span cont' mtp (num-to-ℕ n)
+  check-term t nothing ≫=span cont' mtp (posinfo-to-ℕ n)
   where cont : (outer : maybe type) → ℕ → (computed : type) → spanM (check-ret outer)
         cont mtp n computed with computed
         cont mtp 1 computed | Iota pi' pi'' x t1 t2 =

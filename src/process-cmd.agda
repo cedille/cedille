@@ -73,7 +73,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type 
   check-term t (just tp') ≫span 
   get-ctxt (λ Γ →
     let Γ' = ctxt-term-def pi globalScope nonParamVar x t tp' Γ in
-      spanM-add (DefTerm-span Γ pi x checking (just tp) t pi' []) ≫span
+      spanM-add (DefTerm-span Γ' pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
          spanMr (mk-toplevel-state ip fns is Γ')))
@@ -90,7 +90,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoChec
       let Γ' = maybe-else
                  (ctxt-term-udef pi globalScope x t Γ)
                  (λ tp → ctxt-term-def pi globalScope nonParamVar x t tp Γ) mtp in
-      spanM-add (DefTerm-span Γ pi x synthesizing mtp t pi' []) ≫span
+      spanM-add (DefTerm-span Γ' pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
          spanMr (mk-toplevel-state ip fns is Γ')))
@@ -102,7 +102,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefType pi x k tp) 
     check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
       let Γ' = ctxt-type-def pi globalScope nonParamVar x tp k' Γ in
-        spanM-add (DefType-span Γ pi x checking (just k) tp pi' []) ≫span
+        spanM-add (DefType-span Γ' pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking [] nothing) ≫span
            spanMr (mk-toplevel-state ip fns is Γ')))
@@ -118,7 +118,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check
   check-kind k ≫span
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
-      spanM-add (DefKind-span Γ pi x k pi') ≫span
+      spanM-add (DefKind-span Γ' pi x k pi') ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
        (spanM-add (KndVar-span Γ' (pi , x) (posinfo-plus-str pi x) ps checking [] nothing) ≫span
         spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))

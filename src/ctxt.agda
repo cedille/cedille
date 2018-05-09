@@ -249,10 +249,9 @@ ctxt-add-current-params : ctxt → ctxt
 ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps) i symb-occs) =
   mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps) i symb-occs
 
--- TODO I think this should trie-remove the List occurrence of the filename lookup of syms
 ctxt-clear-symbol : ctxt → string → ctxt
-ctxt-clear-symbol (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
-  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-remove syms x , mn-fn) (trie-remove i x) symb-occs
+ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
+  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) symb-occs
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ

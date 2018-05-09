@@ -28,6 +28,9 @@ trieInsert (Node a ts) [] a' = Node (Just a') ts
 
 trieMember t s = maybe False (\ _ -> True) (trieLookup t s)
 
+trieAt t "" = t
+trieAt (Node a ts) (c : cs) = maybe emptyTrie (\ t -> trieAt t cs) (calLookup ts c)
+
 
 type VarMap = Trie Var
 type TermDef = (Maybe PureTerm, Maybe PureType)
@@ -127,11 +130,21 @@ ctxtBindsVar (Ctxt es is vs) v = trieMember vs v
 
 -- Returns a fresh variable (v with primes) if v is already defined in ctxt
 --doRename :: Ctxt -> Var -> Maybe Var
+{-
 doRename c @ (Ctxt es is vs) v
   | trieMember vs v =
     let v'= v ++ "'" in
     maybe (Just v') Just (doRename c v')
   | otherwise = Nothing
+-}
+
+doRename (Ctxt es is vs) v = case trieAt vs v of
+  (Node Nothing _) -> Nothing
+  t -> Just (v ++ h t)
+  where
+    h (Node Nothing _) = ""
+    h (Node (Just _) ts) = maybe "\'" (\ t -> '\'' : h t) (calLookup ts '\'')
 
 --doRename' :: Ctxt -> Var -> (Var -> a) -> a
 doRename' c v f = maybe (f v) f (doRename c v)
+

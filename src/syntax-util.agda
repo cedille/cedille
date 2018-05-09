@@ -592,10 +592,12 @@ erase-lterms-if : 𝔹 → theta → lterms → 𝕃 term
 erase-lterms-if tt = erase-lterms
 erase-lterms-if ff t lt = lterms-to-𝕃' t lt
 
+{-
 num-to-ℕ : num → ℕ
 num-to-ℕ n with string-to-ℕ n
 num-to-ℕ _ | just n = n
 num-to-ℕ _ | _ = 0
+-}
 
 imps-to-cmds : imports → cmds
 imps-to-cmds ImportsStart = CmdsStart
@@ -783,7 +785,7 @@ num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-
 nums-gt : nums → ℕ → 𝕃 string
 nums-gt (NumsStart n) n' = num-gt n n'
 nums-gt (NumsNext n ns) n' =
-  maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
+  maybe-else [] (λ n'' → if n'' > n' || iszero n'' then [ n ] else []) (string-to-ℕ n)
   ++ nums-gt ns n'
 
 nums-to-stringset : nums → stringset × 𝕃 string {- Repeated numbers -}
@@ -792,6 +794,7 @@ nums-to-stringset (NumsNext n ns) with nums-to-stringset ns
 ...| ss , rs = if stringset-contains ss n
   then ss , n :: rs
   else stringset-insert ss n , rs
+
 optNums-to-stringset : optNums → maybe stringset × (ℕ → maybe string)
 optNums-to-stringset NoNums = nothing , λ _ → nothing
 optNums-to-stringset (SomeNums ns) with nums-to-stringset ns
