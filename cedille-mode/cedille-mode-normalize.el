@@ -12,6 +12,10 @@
 ;  (interactive "MExpression: ")
 ;  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
 
+(defun cedille-mode-test-agda-string ()
+  (interactive)
+  (se-inf-interactive (concat "interactive" sep "test-agda-string" sep "lorem ipsum") (lambda (&rest args) (message "%s" args))))
+
 (defun cedille-mode-normalize(&optional head)
   "Normalizes either the currently selected span or a prompted expression completely"
   (interactive)

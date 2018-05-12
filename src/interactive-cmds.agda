@@ -135,13 +135,12 @@ strings-to-lcis ss = strings-to-lcis-h ss [] where
 
 language-level-type-of : language-level → language-level
 language-level-type-of ll-term = ll-type
-language-level-type-of ll-type = ll-kind
-language-level-type-of pa = pa
+language-level-type-of _ = ll-kind
 
 merge-lci-ctxt : lci → ctxt → ctxt
 merge-lci-ctxt (mk-lci nt v t T fn pi) Γ =
   maybe-else Γ (λ Γ → Γ) (string-to-language-level nt ≫=maybe λ nt →
-    parse-string (language-level-type-of nt ) T ≫=maybe (h (mp nt t) ∘ ,_)) where
+    parse-string (language-level-type-of nt ) T ≫=maybe (h (parse-string nt t) ∘ ,_)) where
   h : {pa : language-level} → parsedExpr pa → expr → maybe ctxt
   h {ll-term} (just t) (,_ {ll-type} T) =
     just (ctxt-term-def pi localScope nonParamVar v t (qualif-type Γ T) Γ)
@@ -151,13 +150,9 @@ merge-lci-ctxt (mk-lci nt v t T fn pi) Γ =
   h nothing (,_ {ll-kind} k) = just (ctxt-type-decl pi localScope v k Γ)
   h _ _ = nothing
 
-  mp : (pa : language-level) → string → parsedExpr pa
-  mp pa "" = nothing
-  mp = parse-string
-
 sort-lcis : 𝕃 lci → 𝕃 lci
 sort-lcis = list-merge-sort.merge-sort lci λ l l' →
-    posinfo-to-ℕ (lci.pi l) < posinfo-to-ℕ (lci.pi l')
+    posinfo-to-ℕ (lci.pi l) > posinfo-to-ℕ (lci.pi l')
   where import list-merge-sort
 
 merge-lcis-ctxt : ctxt → 𝕃 string → ctxt
@@ -315,6 +310,15 @@ interactive-cmd ls ts =
   putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
   return ts
 
+-- Agda has some issue with pattern matching and eta-contracting,
+-- which this showcases (calling this function causes Agda to crash at runtime).
+-- This is somewhat similar to the bug I found several weeks ago,
+-- so I believe that they have a common source.
+test : string → string ⊎ tagged-val
+test "" = inj₁ "empty"
+test = inj₁
+
+interactive-cmd-h _ ("test-agda-string" :: s :: []) = test s
 interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: head :: do-erase :: lc) =
   normalize-cmd Γ input ll sp head do-erase lc
 interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =
