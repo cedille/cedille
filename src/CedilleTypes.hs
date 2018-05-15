@@ -143,6 +143,7 @@ data Term =
      | AppTp Term Type
      | Beta PosInfo OptTerm OptTerm
      | Chi PosInfo MaybeAtype Term
+     | Delta PosInfo MaybeAtype Term
      | Epsilon PosInfo LeftRight MaybeMinus Term
      | Hole PosInfo
      | IotaPair PosInfo Term Term OptGuide PosInfo

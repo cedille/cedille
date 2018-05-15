@@ -16,6 +16,17 @@ dummy-var = "_dummy"
 id-term : term
 id-term = Lam posinfo-gen KeptLambda posinfo-gen "x" NoClass (Var posinfo-gen "x")
 
+compileFailType : type
+compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
+
+delta-contra =
+  let lambda x = Lam posinfo-gen KeptLambda posinfo-gen x NoClass in
+  TpEq
+    posinfo-gen
+    (lambda "x" (lambda "y" (Var posinfo-gen "x")))
+    (lambda "x" (lambda "y" (Var posinfo-gen "y")))
+    posinfo-gen
+
 qualif-info : Set
 qualif-info = var × args
 
@@ -75,9 +86,6 @@ pi % v = pi ^ "@" ^ v
 compileFail : var
 compileFail = "compileFail"
 compileFail-qual = "" % compileFail
-
-compileFailType : type
-compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
 mk-inst : params → args → trie arg × params
 mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) with mk-inst ps as
@@ -174,6 +182,7 @@ term-start-pos (Epsilon pi _ _ _) = pi
 term-start-pos (Phi pi _ _ _ _) = pi
 term-start-pos (Rho pi _ _ _ _ _) = pi
 term-start-pos (Chi pi _ _) = pi
+term-start-pos (Delta pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
 
@@ -229,6 +238,7 @@ term-end-pos (Epsilon pi _ _ t) = term-end-pos t
 term-end-pos (Phi _ _ _ _ pi) = pi
 term-end-pos (Rho pi _ _ _ t t') = term-end-pos t'
 term-end-pos (Chi pi T t') = term-end-pos t'
+term-end-pos (Delta pi oT t) = term-end-pos t
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
 
@@ -527,6 +537,7 @@ erase-term (Hole pi) = Hole pi
 erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
 erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
+erase-term (Delta pi T t) = erase-term t
 erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
 
 -- Only erases TERMS in types, leaving the structure of types the same

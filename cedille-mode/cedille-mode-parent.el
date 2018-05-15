@@ -34,10 +34,12 @@
      (if (region-active-p)
          (let ((str (buffer-substring (region-beginning) (region-end))))
            (with-current-buffer cedille-mode-parent-buffer
-             (case ,code
-               (1 (cedille-mode-normalize-send-prompt str t))
-               (2 (cedille-mode-normalize-send-prompt str nil))
-               (3 (cedille-mode-erase-send-prompt str)))))
+             (with-selected-window (get-buffer-window)
+               (case ,code
+                 (1 (cedille-mode-normalize-send-prompt str t))
+                 (2 (cedille-mode-normalize-send-prompt str nil))
+                 (3 (cedille-mode-erase-send-prompt str))
+                 (4 (cedille-mode-br-prompt str))))))
        (message "No region selected"))))
 
 (defvar cedille-mode-minor-mode-parent-keymap
@@ -54,6 +56,7 @@
     (define-key map (kbd "C-i n") (cedille-mode-parent-interactive 1))
     (define-key map (kbd "C-i h") (cedille-mode-parent-interactive 2))
     (define-key map (kbd "C-i e") (cedille-mode-parent-interactive 3))
+    (define-key map (kbd "C-i b") (cedille-mode-parent-interactive 4))
     map))
   
 (defun cedille-mode-parent-select-pin (pin)

@@ -177,6 +177,7 @@ parseTerm = ParseM $ \ ts -> case ts of
   (TLamE : ts) -> parseMt ts $ pure TmLambdaE <*> parseVar <* parseDrop TColon <*> parseTpKd parseTerm3 <* parseDrop TDot <*> parseTerm
   (TRho : ts) -> parseMt ts $ pure Rho <*> parseTerm2 <* parseDrop TAt <*> parseVar <* parseDrop TDot <*> parseType parsePureTerm2 <* parseDrop TDash <*> parseTerm
   (TPhi : ts) -> parseMt ts $ pure Phi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
+  (TDelta : ts) -> parseMt ts $ pure Delta <*> parseType2 parsePureTerm2 <* parseDrop TDash <*> parseTerm
   _ -> parseMt ts parseTerm1
 parseTerm1 = ParseM $ \ ts -> parseMt ts parseTerm2 >>= uncurry (parseMf . parseTermApp)
 parseTerm2 = ParseM $ \ ts -> case ts of
@@ -190,7 +191,7 @@ parseTerm4 = ParseM $ \ ts -> case ts of
   (TBracketL : ts) -> parseMt ts $ pure TmIota <*> parseTerm <* parseDrop TComma <*> parseTerm <* parseDrop TAt <*> parseVar <* parseDrop TDot <*> parseType parseTerm3 <* parseDrop TBracketR
   _ -> Nothing
 
---parseType :: Int -> ParseM tm -> ParseM (PrimType tm)
+--parseType :: ParseM tm -> ParseM (PrimType tm)
 parseType tm = ParseM $ \ ts -> case ts of
   (TLam : ts) -> parseMt ts $ pure TpLambda <*> parseVar <* parseDrop TColon <*> parseTpKd tm <* parseDrop TDot <*> parseType tm
   (TAll : ts) -> parseMt ts $ pure TpAll <*> parseVar <* parseDrop TColon <*> parseTpKd tm <* parseDrop TDot <*> parseType tm

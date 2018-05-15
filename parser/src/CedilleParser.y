@@ -51,6 +51,7 @@ import System.Environment
   'θ+'       { Token $$ TThetaEq   }
   'θ<'       { Token $$ TThetaVars }
   'ρ'        { Token $$ TRho       }
+  'δ'        { Token $$ (TSym "δ") }
   '='        { Token $$ (TSym "=") }  
   '<'        { Token $$ (TSym "<") }
   '>'        { Token $$ (TSym ">") }
@@ -171,6 +172,7 @@ Term :: { Term }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' MaybeAtype '-' Term          { Chi (pos2Txt $1) $2 $4 }
+     | 'δ' MaybeAtype '-' Term          { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 

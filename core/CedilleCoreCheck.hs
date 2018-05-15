@@ -20,9 +20,6 @@ isValidTerm c (PureVar v) = maybe (err ("Term variable not in scope: " ++ v)) (\
 isValidTerm c (PureApp tm tm') = isValidTerm c tm >> isValidTerm c tm'
 isValidTerm c (PureLambda v tm) = errIfCtxtBinds c v >> isValidTerm (ctxtDefTerm c v (Just (PureVar v), Nothing)) tm
 
---typeHasKindStar (TpLambda v tk tp) = err "Expected a type of kind Star"
---typeHasKindStar _ = Right ()
-
 --isValidType :: Ctxt -> PureType -> Either String ()
 isValidType c (TpVar v) = maybe (err ("Type variable not in scope: " ++ v)) (\ _ -> Right ()) (ctxtLookupType c v)
 isValidType c (TpLambda v tk tp) = errIfCtxtBinds c v >> isValidTpKd c tk >> isValidType (ctxtDefTpKd c v tk) tp

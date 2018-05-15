@@ -489,8 +489,8 @@ TpLambda-span pi x atk body check tvs =
   mk-span "Type-level lambda abstraction" pi (type-end-pos body)
     (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
-Iota-span : posinfo → type → 𝕃 tagged-val → err-m → span
-Iota-span pi t2 tvs = mk-span "Iota-abstraction" pi (type-end-pos t2) (explain "A dependent intersection type" :: ll-data-type :: tvs)
+Iota-span : posinfo → type → checking-mode → 𝕃 tagged-val → err-m → span
+Iota-span pi t2 check tvs = mk-span "Iota-abstraction" pi (type-end-pos t2) (explain "A dependent intersection type" :: checking-data check :: binder-data-const :: ll-data-type :: tvs)
 
 TpArrow-span : type → type → checking-mode → 𝕃 tagged-val → err-m → span
 TpArrow-span t1 t2 check tvs = mk-span "Arrow type" (type-start-pos t1) (type-end-pos t2) (checking-data check :: ll-data-type :: tvs)
@@ -671,6 +671,11 @@ Sigma-span Γ pi t expected tvs =
      (ll-data-term :: checking-data (maybe-to-checking expected) :: tvs ++
      (explain ("Swap the sides of the equation synthesized for the body of this term.")
      :: expected-type-if Γ expected))
+
+Delta-span : ctxt → posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → err-m → span
+Delta-span Γ pi T t check tvs =
+  mk-span "Delta" pi (term-end-pos t)
+    (ll-data-term :: explain "Prove anything you want from a contradiction (λ x . λ y . x ≃ λ x . λ y . y)" :: checking-data check :: tvs)
 
 motive-label : string
 motive-label = "the motive"

@@ -12,7 +12,7 @@ open import spans options {Id}
 open import syntax-util
 open import to-string options
 open import toplevel-state options {IO}
-open import erased-spans options {IO}
+open import untyped-spans options {IO}
 open import parser
 open import rewriting
 open import rename
@@ -242,9 +242,9 @@ br-cmd Γ str ls =
            return ∘ (snd ∘ snd))) >>=
   putRopeLn where
     h : expr → maybe (io-spans.spanM ⊤)
-    h (,_ {ll-term} t) = just (erased-term-spans t)
-    h (,_ {ll-type} T) = just (erased-type-spans T)
-    h (,_ {ll-kind} k) = just (erased-kind-spans k)
+    h (,_ {ll-term} t) = just (untyped-term-spans t)
+    h (,_ {ll-type} T) = just (untyped-type-spans T)
+    h (,_ {ll-kind} k) = just (untyped-kind-spans k)
 
 conv-cmd : ctxt → (ll str1 str2 : string) → 𝕃 string → string ⊎ string
 conv-cmd Γ ll s1 s2 ls =
@@ -314,11 +314,16 @@ interactive-cmd ls ts =
 -- which this showcases (calling this function causes Agda to crash at runtime).
 -- This is somewhat similar to the bug I found several weeks ago,
 -- so I believe that they have a common source.
-test : string → string ⊎ tagged-val
-test "" = inj₁ "empty"
-test = inj₁
+test1 : string → string ⊎ tagged-val
+test1 "" = inj₁ "empty"
+test1 = inj₁ -- Doesn't work
 
-interactive-cmd-h _ ("test-agda-string" :: s :: []) = test s
+test2 : string → string ⊎ tagged-val
+test2 "" = inj₁ "empty"
+test2 s = inj₁ s -- Works correctly
+
+interactive-cmd-h _ ("test-agda-eta1" :: s :: []) = test1 s
+interactive-cmd-h _ ("test-agda-eta2" :: s :: []) = test2 s
 interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: head :: do-erase :: lc) =
   normalize-cmd Γ input ll sp head do-erase lc
 interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =

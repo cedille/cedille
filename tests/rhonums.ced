@@ -15,9 +15,9 @@ x = β<a>.
 
 test1 = β < λ a. λ b. λ c. c (λ d. a) c b a > { λ x. x x }.
 -- Maybe make a function like var-spans-term (spans for untyped term expressions, like beta erasure) but for types?
-test3 = ρ β<a> @ x. ι n : Nat. {n ≃ x} - [a, β{a} @ x. {x ≃ b}].
+test3 = ρ β<a> @ x. (ι n : Nat. {n ≃ x}) - [a, β{a} @ x. {x ≃ b}].
 test4 ◂ ∀ X : ★. ∀ Y : X ➔ X ➔ ★. ∀ x : X. ∀ x' : X. {x' ≃ x} ➾ Y x x ➔ Y x x' =
-  Λ X. Λ Y. Λ x. Λ x'. Λ e. λ y. ρ e @ z. Y x z - y.
+  Λ X. Λ Y. Λ x. Λ x'. Λ e. λ y. ρ ς e @ z. Y x z - y.
 
 -- Using + or <...> with type-guided rewriting has no effect. Perhaps I should disable them in this case?
 test5 = ρ+<18 11 1> β<λ x. x> @ x. {x ≃ x} - β<λ x. x>.
