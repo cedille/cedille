@@ -1,0 +1,12 @@
+module meta-vars-parentheses.
+
+Product ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★. ∀ X : ★. (A ➔ B ➔ X) ➔ X.
+mkProduct ◂ ∀ A : ★. ∀ B : ★. A ➔ B ➔ Product · A · B =
+  Λ A. Λ B. λ a. λ b. Λ X. λ f. f a b.
+
+True ◂ ★ = ∀ X : ★. X ➔ X.
+triv ◂ True = Λ X. λ x. x.
+
+-- check-term-app should check if the term is parentheses to avoid this:
+test1 ◂ Product · True · True = (mkProduct triv) triv.
+test2 ◂ Product · True · True =  mkProduct triv  triv.
