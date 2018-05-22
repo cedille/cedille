@@ -686,8 +686,8 @@ split-var : var → var × var
 split-var v with split-var-h (reverse (string-to-𝕃char v))
 ... | xs , ys = 𝕃char-to-string (reverse ys) , 𝕃char-to-string (reverse xs)
 
-var-prefix : var → maybe var
-var-prefix v with split-var v
+var-suffix : var → maybe var
+var-suffix v with split-var v
 ... | "" , _ = nothing
 ... | _ , sfx = just sfx
 
@@ -723,7 +723,7 @@ unqual-local v = f (string-to-𝕃char v) [] where
   f (h :: t) acc = f t (h :: acc)
 
 unqual-all : qualif → var → string
-unqual-all q v with var-prefix v
+unqual-all q v with var-suffix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
@@ -793,7 +793,6 @@ spapp-type : spineApp → type
 spapp-type ((pi , v) , []) = TpVar pi v
 spapp-type (v , (me , TermArg t) :: as) = TpAppt (spapp-type (v , as)) t
 spapp-type (v , (me , TypeArg T) :: as) = TpApp (spapp-type (v , as)) T
-
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)

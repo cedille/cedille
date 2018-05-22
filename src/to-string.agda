@@ -10,11 +10,10 @@ open import rename
 open import general-util
 
 drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-drop-mod-args Γ me ((pi , v) , as) = (pi , v) , if (v =string qv)
+drop-mod-args Γ me ((pi , v) , as) = (pi , qv) , if (v =string qv)
   then as else maybe-else as
-  (λ n → reverse (nthTail n (reverse as))) mn
+  (λ n → reverse (drop n (reverse as))) mn
   where
-  q = ctxt-get-qualif Γ
   qv = unqual-all (ctxt-get-qualif Γ) v
   mn = ctxt-qualif-args-length Γ me qv
 
