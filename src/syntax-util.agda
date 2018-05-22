@@ -311,6 +311,7 @@ data exprd : Set where
   TYPE : exprd
   KIND : exprd
   LIFTINGTYPE : exprd
+  TK : exprd
   ARG : exprd
   QUALIF : exprd
 
@@ -319,6 +320,7 @@ data exprd : Set where
 ⟦ TYPE ⟧ = type
 ⟦ KIND ⟧ = kind
 ⟦ LIFTINGTYPE ⟧ = liftingType
+⟦ TK ⟧ = tk
 ⟦ ARG ⟧ = arg
 ⟦ QUALIF ⟧ = qualif-info
 
@@ -327,6 +329,7 @@ exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
 exprd-name LIFTINGTYPE = "lifting type"
+exprd-name TK = "type-kind"
 exprd-name ARG = "argument"
 exprd-name QUALIF = "qualification"
 
@@ -566,6 +569,7 @@ erase{TERM} t = erase-term t
 erase{TYPE} tp = erase-type tp
 erase{KIND} k = erase-kind k
 erase{LIFTINGTYPE} lt = erase-liftingType lt
+erase{TK} atk = erase-tk atk
 erase{ARG} a = a
 erase{QUALIF} q = q
 

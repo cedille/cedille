@@ -183,7 +183,7 @@ meta-vars-check-type-mismatch Γ s tp Xs tp'
     (if conv-type Γ tp tp''
         then nothing
         else just ("The expected type does not match the "
-               ^ s ^ "type."))
+               ^ s ^ " type."))
     where tp'' = meta-vars-subst-type Γ Xs tp'
 
 meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars

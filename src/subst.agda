@@ -18,7 +18,6 @@ substh-kind : substh-ret-t kind
 substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
 substh-optGuide : substh-ret-t optGuide
--- substh-optType : substh-ret-t optType
 substh-optTerm : substh-ret-t optTerm
 substh-liftingType : substh-ret-t liftingType
 substh-maybeAtype : substh-ret-t maybeAtype
@@ -26,6 +25,7 @@ substh-maybeCheckType : substh-ret-t maybeCheckType
 substh-args : substh-ret-t args
 
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → trie ⟦ ed ⟧ → var
+subst-rename-var-if Γ ρ "_" σ = "_"
 subst-rename-var-if Γ ρ x σ =
   {- rename bound variable x iff it is one of the vars being substituted for, 
      or if x occurs free in one of the terms we are substituting for vars, 

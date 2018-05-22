@@ -15,8 +15,6 @@ import cws-types
 open import constants
 open import general-util
 
-dot-cedille-directory : string → string 
-dot-cedille-directory dir = combineFileNames dir ".cedille"
 
 module main-with-options (options : cedille-options.options) where
 
@@ -29,6 +27,7 @@ module main-with-options (options : cedille-options.options) where
   open import toplevel-state options {IO}
   import interactive-cmds
   open import rkt options
+  open import elaboration options
 
   logFilepath : IO string
   logFilepath = getHomeDirectory >>= λ home →
@@ -66,20 +65,39 @@ module main-with-options (options : cedille-options.options) where
     .cede support
   -------------------------------------------------------------------------------}
 
-  cede-filename : (ced-path : string) → string
-  cede-filename ced-path = 
-    let dir = takeDirectory ced-path in
-      combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ ".cede")
+  cede-suffix = ".cede"
+  cedc-suffix = ".cedc"
 
-  -- .cede files are just a dump of the spans, prefixed by 'e' if there is an error
-  write-cede-file : (ced-path : string) → (ie : include-elt) → IO ⊤
-  write-cede-file ced-path ie = 
+  ced-ec-filename : (suffix ced-path : string) → string
+  ced-ec-filename sfx ced-path = 
     let dir = takeDirectory ced-path in
-    let cede = cede-filename ced-path in
-      createDirectoryIfMissing ff (dot-cedille-directory dir) >>
-     logMsg ("Started writing .cede file " ^ cede) >>
-     writeRopeToFile cede ((if (include-elt.err ie) then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
-     logMsg ("Finished writing .cede file " ^ cede)
+      combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ sfx)
+
+  cede-filename = ced-ec-filename cede-suffix
+  cedc-filename = ced-ec-filename cedc-suffix
+
+  maybe-write-aux-file : include-elt → (filename file-suffix : string) → (cedille-options.options → 𝔹) → (include-elt → 𝔹) → rope → IO ⊤
+  maybe-write-aux-file ie fn sfx f f' r with f options && ~ f' ie
+  ...| ff = return triv
+  ...| tt = logMsg ("Starting writing " ^ sfx ^ " file " ^ fn) >>
+            writeRopeToFile fn r >>
+            logMsg ("Finished writing " ^ sfx ^ " file " ^ fn)
+
+  write-aux-files : toplevel-state → (filename : string) → IO ⊤
+  write-aux-files s filename with get-include-elt-if s filename
+  ...| nothing = return triv
+  ...| just ie =
+    createDirectoryIfMissing ff (dot-cedille-directory (takeDirectory filename)) >>
+    maybe-write-aux-file ie (cede-filename filename) cede-suffix
+      cedille-options.options.use-cede-files
+      include-elt.cede-up-to-date
+      ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
+    maybe-write-aux-file ie (cedc-filename filename) cedc-suffix
+      cedille-options.options.make-core-files
+      include-elt.cedc-up-to-date
+      (maybe-else [[ "Elaboration error" ]] fst
+        (elab-file s empty-stringset filename))
+      -- Maybe merge racket files into this function?
 
   -- we assume the cede file is known to exist at this point
   read-cede-file : (ced-path : string) → IO (𝔹 × string)
@@ -138,16 +156,21 @@ module main-with-options (options : cedille-options.options) where
             (set-cede-file-up-to-date-include-elt
              (set-do-type-check-include-elt
               (get-include-elt s filename) tt) ff))
+  
+  &&>> : IO 𝔹 → IO 𝔹 → IO 𝔹
+  &&>> a b = a >>= λ a → if a then b else return ff
 
-  rkt-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
-  rkt-up-to-date filename s with cedille-options.options.make-rkt-files options
-  ...| ff = return s
-  ...| tt = 
-    let rkt = rkt-filename filename in
-    let ret = λ b → return (set-include-elt s filename (set-rkt-file-up-to-date-include-elt (get-include-elt s filename) b)) in
-    doesFileExist rkt >>= λ where
-      ff → ret ff
-      tt → fileIsOlder filename rkt >>= ret
+  aux-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
+  aux-up-to-date filename s =
+    let cedc = cedc-filename filename
+        rkt = rkt-filename filename in
+    &&>> (doesFileExist cedc) (fileIsOlder filename cedc) >>= λ cedc →
+    &&>> (doesFileExist rkt) (fileIsOlder filename rkt) >>= λ rkt → return
+    (set-include-elt s filename
+    (set-cedc-file-up-to-date-include-elt
+    (set-rkt-file-up-to-date-include-elt
+    (get-include-elt s filename)
+    rkt) cedc))
 
   ie-up-to-date : string → include-elt → IO 𝔹
   ie-up-to-date filename ie =
@@ -203,7 +226,7 @@ module main-with-options (options : cedille-options.options) where
                  IO (stringset {- seen already -} × toplevel-state)
   update-astsh seen s filename = 
     if stringset-contains seen filename then return (seen , s)
-    else (ensure-ast-depsh filename s >>= rkt-up-to-date filename >>= cont (stringset-insert seen filename))
+    else (ensure-ast-depsh filename s >>= aux-up-to-date filename >>= cont (stringset-insert seen filename))
     where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
           cont seen s with get-include-elt s filename
           cont seen s | ie with include-elt.deps ie
@@ -251,15 +274,17 @@ module main-with-options (options : cedille-options.options) where
             reply s >>
             logMsg ("Finished reply for file " ^ filename) >>
             logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
+            let Γ = ctxt-set-current-mod Γ ret-mod in
             writeo mod >> -- Should process-file now always add files to the list of modified ones because now the cede-/rkt-up-to-date fields take care of whether to rewrite them?
-            return (mk-toplevel-state ip mod is (ctxt-set-current-mod Γ ret-mod))
+            return (mk-toplevel-state ip mod is Γ)
               where
                 writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
                   writeo us >>
                   let ie = get-include-elt s f in
-                    (if cedille-options.options.use-cede-files options && ~ include-elt.cede-up-to-date ie then (write-cede-file f ie) else return triv) >>
+                  write-aux-files s f >> -- (record s {Γ = Γ}) f >>
+                  --  (if cedille-options.options.use-cede-files options && ~ include-elt.cede-up-to-date ie then (write-cede-file Γ f ie) else return triv) >>
                     (if cedille-options.options.make-rkt-files options && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie) else return triv)
 
   -- this is the function that handles requests (from the frontend) on standard input
@@ -351,6 +376,8 @@ opts-to-options (options-types.OptsCons (options-types.GenerateLogs b) ops) =
   record (opts-to-options ops) { generate-logs = str-bool-to-𝔹 b }
 opts-to-options (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
   record (opts-to-options ops) { show-qualified-vars = str-bool-to-𝔹 b }
+opts-to-options (options-types.OptsCons (options-types.MakeCoreFiles b) ops) =
+  record (opts-to-options ops) { make-core-files = str-bool-to-𝔹 b }
 opts-to-options options-types.OptsNil = cedille-options.default-options
 
 -- helper function to try to parse the options file

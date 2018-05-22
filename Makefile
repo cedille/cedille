@@ -15,7 +15,7 @@ AGDASRC = to-string.agda constants.agda \
 	spans.agda conversion.agda syntax-util.agda ctxt-types.agda \
 	rename.agda classify.agda subst.agda is-free.agda lift.agda rewriting.agda ctxt.agda \
         main.agda toplevel-state.agda process-cmd.agda general-util.agda interactive-cmds.agda untyped-spans.agda \
-	rkt.agda meta-vars.agda cedille-options.agda
+	rkt.agda meta-vars.agda cedille-options.agda elaboration.agda
 
 CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
                 cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \

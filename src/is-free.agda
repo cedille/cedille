@@ -41,6 +41,7 @@ are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
   || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Parens x₁ t x₂) = are-free-in-term ce x t
+are-free-in-term ce x (Var _ "_") = ff
 are-free-in-term ce x (Var _ x') = trie-contains x x'
 are-free-in-term ce x (Beta _ ot ot') = are-free-in-optTerm ce x ot' || (ce && are-free-in-optTerm ce x ot)
 are-free-in-term ce x (IotaPair _ t1 t2 ot _) = are-free-in-term ce x t1 || (ce && (are-free-in-term ce x t2 || are-free-in-optGuide ce x ot))
@@ -66,6 +67,7 @@ are-free-in-type ce x (TpAppt t t') = are-free-in-type ce x t || are-free-in-ter
 are-free-in-type ce x (TpArrow t _ t') = are-free-in-type ce x t || are-free-in-type ce x t'
 are-free-in-type ce x (TpEq _ t t' _) = are-free-in-term ce x t || are-free-in-term ce x t'
 are-free-in-type ce x (TpParens x₁ t x₂) = are-free-in-type ce x t
+are-free-in-type ce x (TpVar _ "_") = ff
 are-free-in-type ce x (TpVar _ x') = trie-contains x x'
 are-free-in-type ce x (NoSpans t _) = are-free-in-type ce x t
 are-free-in-type ce x (TpHole _) = ff
@@ -114,7 +116,8 @@ are-free-in{TERM} e x t = are-free-in-term e x t
 are-free-in{ARG} e x (TermArg t) = are-free-in-term e x t
 are-free-in{TYPE} e x t = are-free-in-type e x t 
 are-free-in{ARG} e x (TypeArg t) = are-free-in-type e x t
-are-free-in{KIND} e x t = are-free-in-kind e x t 
+are-free-in{KIND} e x t = are-free-in-kind e x t
+are-free-in{TK} e x t = are-free-in-tk e x t
 are-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e x t 
 are-free-in{QUALIF} e x (x' , as) = trie-contains x x' || are-free-in-args e x as
 
@@ -126,6 +129,7 @@ is-free-in{ARG} e x (TypeArg t) = are-free-in-type e (stringset-singleton x) t
 is-free-in{KIND} e x t = are-free-in-kind e (stringset-singleton x) t 
 is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x) t 
 is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset-singleton x) as
+is-free-in{TK} e x t = are-free-in-tk e (stringset-singleton x) t
 
 abs-tk : lam → var → posinfo → tk → type → type
 abs-tk l x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp

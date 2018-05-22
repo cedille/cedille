@@ -26,6 +26,7 @@ import Control.Monad
   'make-rkt-files'       { Token _  TMkRktFiles   }
   'generate-logs'        { Token _  TGenLogs      }
   'show-qualified-vars'  { Token _  TShowQualVars }
+  'make-core-files'      { Token _  TMkCoreFiles  }
   '.'                    { Token _  TPoint        }
   '='                    { Token _  TEq           }
   
@@ -48,6 +49,7 @@ Opt :: { Opt }
     | 'make-rkt-files'      '=' Bool   '.'  { MakeRktFiles $3 }
     | 'generate-logs'       '=' Bool   '.'  { GenerateLogs $3 }
     | 'show-qualified-vars' '=' Bool   '.'  { ShowQualifiedVars $3 }
+    | 'make-core-files'     '=' Bool   '.'  { MakeCoreFiles $3 }
 
 Paths :: { Paths }
       :             { PathsNil        }

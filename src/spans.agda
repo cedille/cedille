@@ -142,7 +142,7 @@ spanM-restore-info* : 𝕃 (var × restore-def) → spanM ⊤
 spanM-restore-info* [] = spanMok
 spanM-restore-info* ((v , qi , m) :: s) = spanM-restore-info v (qi , m) ≫span spanM-restore-info* s
 
-infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_
+infixl 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_ _≫=spanc_ _≫=spanc'_ _≫spanc_ _≫spanc'_
 
 _≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
 _≫=spanj_{A} m m' = m ≫=span cont
@@ -170,6 +170,24 @@ _≫=spanm'_{A}{B} m m' = m ≫=span cont
   where cont : maybe A → spanM (maybe B)
         cont nothing = spanMr nothing
         cont (just a) = m' a
+
+-- Currying/uncurry span binding
+_≫=spanc_ : ∀{A B C} → spanM (A × B) → (A → B → spanM C) → spanM C
+(m ≫=spanc m') Γ ss = m Γ ss ≫=monad λ where
+  ((a , b) , Γ' , ss') → m' a b Γ' ss'
+
+_≫=spanc'_ : ∀{A B C} → spanM (A × B) → (B → spanM C) → spanM C
+(m ≫=spanc' m') Γ ss = m Γ ss ≫=monad λ where
+  ((a , b) , Γ' , ss') → m' b Γ' ss'
+
+_≫spanc'_ : ∀{A B} → spanM A → B → spanM (A × B)
+(m ≫spanc' b) = m ≫=span λ a → spanMr (a , b)
+
+_≫spanc_ : ∀{A B} → spanM A → spanM B → spanM (A × B)
+(ma ≫spanc mb) = ma ≫=span λ a → mb ≫=span λ b → spanMr (a , b)
+
+spanMok' : ∀{A} → A → spanM (⊤ × A)
+spanMok' a = spanMr (triv , a)
 
 _on-fail_≫=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM B
                             → (A → spanM B) → spanM B

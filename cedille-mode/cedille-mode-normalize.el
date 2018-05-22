@@ -65,7 +65,7 @@
   "Erases span"
   (let ((lang-level (cedille-mode-normalize-get-ll span)))
     (if (and lang-level (string= lang-level "term"))
-	(se-inf-interactive
+	(se-inf-interactive-with-span
 	 'cedille-mode-erase-request-text
 	 cedille-mode-normalize-erase-receive-response
 	 'erased
@@ -93,8 +93,8 @@
 	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
 	    (cedille-mode-normalize-local-context-param span))))
 
-(defun cedille-mode-erase-request-text(span)
-  "Gets the text to send to the backend as a request to normalize a span"
+(defun cedille-mode-erase-request-text(extra span)
+  "Gets the text to send to the backend as a request to erase a span"
   (let ((s (se-span-start span))
 	(e (se-span-end span)))
     (cedille-mode-erase-request-text-h (buffer-substring s e) (cedille-mode-normalize-get-ll span) s (cedille-mode-normalize-local-context-param span))))

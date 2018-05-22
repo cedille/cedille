@@ -44,10 +44,12 @@ no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
 no-parens {_} {TERM} _ (Beta pi ot ot') lr = tt
-no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
+no-parens {_} {TERM} _ (Phi pi eq t t' pi') lr = not-left lr
 no-parens {_} {TERM} _ (Let _ _ _) _ = tt
 no-parens {_} {TERM} _ (Rho _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Chi _ _ _) right = tt
+no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) right = tt
+no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) right = tt
 no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (AppTp t T) p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (Beta pi ot ot') p lr = tt
@@ -88,6 +90,7 @@ no-parens{LIFTINGTYPE} (LiftParens pi lT pi') p lr = tt
 no-parens{LIFTINGTYPE} (LiftPi pi x T lT) p lr = (is-abs p || is-arrow p) && not-left lr
 no-parens{LIFTINGTYPE} (LiftStar pi) p lr = tt
 no-parens{LIFTINGTYPE} (LiftTpArrow T lT) p lr = (is-abs p || is-arrow p) && not-left lr
+no-parens{TK} _ _ _ = tt
 no-parens{QUALIF} _ _ _ = tt
 no-parens{ARG} _ _ _ = tt
 
@@ -176,7 +179,6 @@ leftRight-to-string : leftRight → string
 vars-to-string : vars → strM
 nums-to-string : nums → strM
 theta-to-string : theta → strM
--- rho-to-string : rho → strM
 arrowtype-to-string : arrowtype → string
 maybeMinus-to-string : maybeMinus → string
 optPlus-to-string : optPlus → string
@@ -186,6 +188,7 @@ to-string-ed{TERM} = spine-term-to-stringh
 to-string-ed{TYPE} = spine-type-to-stringh
 to-string-ed{KIND} = kind-to-stringh
 to-string-ed{LIFTINGTYPE} = liftingType-to-stringh
+to-string-ed{TK} = tk-to-stringh
 to-string-ed{ARG} = arg-to-string
 to-string-ed{QUALIF} q = strEmpty
 
@@ -218,14 +221,14 @@ spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
 
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
-term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " <" " >" ≫str optTerm-to-string ot' " { " " }"
+term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
 term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strAdd "●"
 term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
-term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringh t)
+term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringr t)
 term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
@@ -245,7 +248,7 @@ type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr 
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
 type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strAdd "●"
-type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
+type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringr T)
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
 
@@ -268,7 +271,7 @@ optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh t ≫str st
 optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
 optGuide-to-string NoGuide = strEmpty
-optGuide-to-string (Guide pi v T) = strAdd " " ≫str strAdd v ≫str strΓ v pi (type-to-stringh T)
+optGuide-to-string (Guide pi v T) = strAdd " @ " ≫str strAdd v ≫str strAdd " . " ≫str strΓ v pi (type-to-stringh T)
 maybeAtype-to-string NoAtype = strEmpty
 maybeAtype-to-string (Atype T) = strAdd " " ≫str to-stringh T
 maybeCheckType-to-string NoCheckType = strEmpty

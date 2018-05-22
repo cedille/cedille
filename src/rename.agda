@@ -18,9 +18,7 @@ renamectxt-contains : renamectxt → string → 𝔹
 renamectxt-contains (_ , r) s = trie-contains r s
 
 renamectxt-insert : renamectxt → (s1 s2 : string) → renamectxt
-renamectxt-insert (ranr , r) s x with s =string x
-renamectxt-insert (ranr , r) s x | tt = ranr , r
-renamectxt-insert (ranr , r) s x | ff = stringset-insert ranr x , trie-insert r s x
+renamectxt-insert (ranr , r) s x = stringset-insert ranr x , trie-insert r s x
 
 renamectxt-lookup : renamectxt → string → maybe string
 renamectxt-lookup (ranr , r) s = trie-lookup r s

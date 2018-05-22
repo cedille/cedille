@@ -217,6 +217,7 @@ parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm
 parseCmd = ParseM $ \ ts -> case ts of
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot
   (TVar v : TTriangle : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
+  _ -> Nothing
 parseCmds = ParseM $ \ ts -> case ts of
   [] -> parseMr CmdsStart []
   _ -> parseMt ts $ pure CmdsNext <*> parseCmd <*> parseCmds

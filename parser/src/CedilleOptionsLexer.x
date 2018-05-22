@@ -26,6 +26,7 @@ token :-
       <0> make\-rkt\-files              { mkTokenEmpty TMkRktFiles    }
       <0> generate\-logs                { mkTokenEmpty TGenLogs       }
       <0> show\-qualified\-vars         { mkTokenEmpty TShowQualVars  }
+      <0> make\-core\-files             { mkTokenEmpty TMkCoreFiles   }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
       <0> @path  	                { mkTokenPath  TPath          }
@@ -50,6 +51,7 @@ data Paths = PathsCons Text Paths
 
 data Opt = GenerateLogs         StrBool
            | Lib Paths
+           | MakeCoreFiles      StrBool
            | MakeRktFiles       StrBool
            | ShowQualifiedVars  StrBool
            | UseCedeFiles       StrBool
@@ -78,6 +80,7 @@ data TokenClass =
      |  TImpDirs
      |  TUseCedFiles
      |  TMkRktFiles
+     |  TMkCoreFiles
      |  TGenLogs
      |  TShowQualVars
      |  TEq

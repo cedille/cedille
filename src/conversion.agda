@@ -94,7 +94,7 @@ conv-type-norm : conv-t type
 conv-kind-norm : conv-t kind
 
 hnf-optClass : ctxt → unfolding → optClass → optClass
-hnf-tk : ctxt → unfolding → tk → tk
+-- hnf-tk : ctxt → unfolding → tk → tk
 
 -- does not assume erased
 conv-tk : conv-t tk
@@ -225,7 +225,7 @@ hnf{TYPE} Γ u (TpArrow tp1 arrowtype tp2) _ = TpArrow (hnf Γ (unfold-dampen-re
 hnf{TYPE} Γ u (TpEq pi t1 t2 pi') _
   = TpEq pi (erase t1) (erase t2) pi'
 hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) _ = 
-  TpLambda pi pi' x (hnf-tk Γ (unfold-dampen-rec ff u) atk) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp ff)
+  TpLambda pi pi' x (hnf Γ (unfold-dampen-rec ff u) atk ff) (hnf (ctxt-var-decl pi' x Γ) (unfold-dampen-rec ff u) tp ff)
 hnf{TYPE} Γ u (Lft pi pi' y t l) _ = 
  let t = hnf (ctxt-var-decl pi' y Γ) u t tt in
    do-lift Γ (Lft pi pi' y t l) y l (λ t → hnf{TERM} Γ unfold-head t ff) t
@@ -249,14 +249,13 @@ hnf{KIND} Γ u (KndPi pi pi' x atk k) hd =
 hnf{KIND} Γ u x hd = x
 
 hnf{LIFTINGTYPE} Γ u x hd = x
+hnf{TK} Γ u (Tkk k) _ = Tkk (hnf Γ u k tt)
+hnf{TK} Γ u (Tkt tp) _ = Tkt (hnf Γ u tp ff)
 hnf{QUALIF} Γ u x hd = x
 hnf{ARG} Γ u x hd = x
 
-hnf-tk Γ u (Tkk k) = Tkk (hnf Γ u k tt)
-hnf-tk Γ u (Tkt tp) = Tkt (hnf Γ u tp ff)
-
 hnf-optClass Γ u NoClass = NoClass
-hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf-tk Γ u atk)
+hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf Γ u atk ff)
 
 {- this function reduces a term to "head-applicative" normal form,
    which avoids unfolding definitions if they would lead to a top-level
