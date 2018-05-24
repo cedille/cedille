@@ -105,7 +105,7 @@ check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renam
 add-tk' : erased? → defScope → posinfo → var → tk → spanM restore-def
 add-tk' e s pi x atk = 
    helper atk ≫=span λ mi → 
-    (if (x =string ignored-var) then
+    (if ~ (x =string ignored-var) then
        (get-ctxt λ Γ → 
           spanM-add (var-span e Γ pi x checking atk nothing))
     else spanMok) ≫span
