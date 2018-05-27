@@ -301,14 +301,10 @@ tv-to-rope : string ⊎ tagged-val → rope
 tv-to-rope (inj₁ s) = [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
 tv-to-rope (inj₂ (_ , v , ts)) = [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
 
-interactive-cmd : 𝕃 string → toplevel-state → IO toplevel-state
+interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
 interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
-interactive-cmd ("br" :: input :: lc) ts =
-  br-cmd (toplevel-state.Γ ts) input lc >>
-  return ts
-interactive-cmd ls ts =
-  putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>
-  return ts
+interactive-cmd ("br" :: input :: lc) ts = br-cmd (toplevel-state.Γ ts) input lc
+interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))
 
 -- Agda has some issue with pattern matching and eta-contracting,
 -- which this showcases (calling this function causes Agda to crash at runtime).

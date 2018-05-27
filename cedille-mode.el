@@ -507,7 +507,16 @@ occurrences, then do so."
         (tags (cadddr tag))
         (ret (cons key (cedille-mode-apply-tags value tags))))
     ret))
-      
+
+(defun cedille-mode-elaborate(dir)
+  "Elaborates the current file"
+  (interactive "GElaboration output: ")
+  (se-inf-interactive (concat "elaborate" sep (buffer-file-name) sep (expand-file-name dir))
+    (lambda (response extra)
+      (message response)
+      (cedille-mode-split-window))
+    nil :header "Elaborating"))
+
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
   (interactive)
@@ -551,6 +560,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
   (se-navi-define-key mode (kbd "h") (make-cedille-mode-info-display-page nil))
+  (se-navi-define-key mode (kbd "E") #'cedille-mode-elaborate)
   (se-navi-define-key mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)

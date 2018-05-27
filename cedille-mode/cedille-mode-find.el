@@ -2,7 +2,7 @@
 ;;;     Debug info display
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun cedille-mode-display-debug-text(text &optional oc);buffer text)
+(defun cedille-mode-display-debug-text(text &optional extra)
   "Displays text in given buffer"
     (with-current-buffer (cedille-mode-debug-buffer)
         (setq buffer-read-only nil)
@@ -26,7 +26,7 @@
   "Requests debug info from the cedille process and displays it in a new buffer"
     (interactive)
     (let ((debug-buffer (cedille-mode-debug-buffer)))
-        (se-inf-interactive "debug" 'cedille-mode-display-debug-text)))
+        (se-inf-interactive "debug" 'cedille-mode-display-debug-text nil)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

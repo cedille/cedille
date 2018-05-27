@@ -95,8 +95,7 @@ module main-with-options (options : cedille-options.options) where
     maybe-write-aux-file ie (cedc-filename filename) cedc-suffix
       cedille-options.options.make-core-files
       include-elt.cedc-up-to-date
-      (maybe-else [[ "Elaboration error" ]] fst
-        (elab-file s empty-stringset filename))
+      (maybe-else [[ "Elaboration error" ]] id (elab-file s filename))
       -- Maybe merge racket files into this function?
 
   -- we assume the cede file is known to exist at this point
@@ -301,17 +300,17 @@ module main-with-options (options : cedille-options.options) where
               delimiter : char
               delimiter = '§'
 
-              errorCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".") >>= λ x → return s
+              errorCommand : 𝕃 string → toplevel-state → IO ⊤
+              errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
 
-              debugCommand : toplevel-state → IO toplevel-state
-              debugCommand s = putStrLn (escape-string (toplevel-state-to-string s)) >>= λ x → return s
+              debugCommand : toplevel-state → IO ⊤
+              debugCommand s = putStrLn (escape-string (toplevel-state-to-string s))
 
               checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
               checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
                           checkFile (set-include-path s (cedille-options.include-path-insert (takeDirectory input-filename) (toplevel-state.include-path s)))
                           input-filename tt {- should-print-spans -}
-              checkCommand ls s = errorCommand ls s
+              checkCommand ls s = errorCommand ls s >> return s
 
     {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
               findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
@@ -319,11 +318,12 @@ module main-with-options (options : cedille-options.options) where
 
               handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
               handleCommands ("progress stub" :: xs) = return
-              handleCommands ("check" :: xs) = checkCommand xs
-              handleCommands ("debug" :: []) = debugCommand
-              handleCommands ("interactive" :: xs) = interactive-cmds.interactive-cmd options xs
+              handleCommands ("check" :: xs) s = checkCommand xs s
+              handleCommands ("debug" :: []) s = debugCommand s >> return s
+              handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >> return s
+              handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >> return s
   --            handleCommands ("find" :: xs) s = findCommand xs s
-              handleCommands = errorCommand
+              handleCommands xs s = errorCommand xs s >> return s
 
 
   -- function to process command-line arguments

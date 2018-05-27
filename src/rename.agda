@@ -53,7 +53,7 @@ rename-away-from : string → (string → 𝔹) → renamectxt → string
 rename-away-from x g r =
   if (g x) then
     rename-away-from (pick-new-name x) g r
-  else if (renamectxt-contains r x) then
+  else if (renamectxt-in-field r x) then
     rename-away-from (pick-new-name x) g r
   else x
 

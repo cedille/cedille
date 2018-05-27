@@ -52,18 +52,18 @@ no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) right = tt
 no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (AppTp t T) p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (Beta pi ot ot') p lr = tt
-no-parens{TERM} (Chi pi mT t) p lr = is-eq-op p && not-left lr
-no-parens{TERM} (Delta pi mT t) p lr = is-eq-op p && not-left lr
-no-parens{TERM} (Epsilon pi lr' m t) p lr = is-eq-op p
+no-parens{TERM} (Chi pi mT t) p lr = ff -- is-eq-op p && not-left lr
+no-parens{TERM} (Delta pi mT t) p lr = ff -- is-eq-op p && not-left lr
+no-parens{TERM} (Epsilon pi lr' m t) p lr = tt -- is-eq-op p
 no-parens{TERM} (Hole pi) p lr = tt
 no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-untyped p lr || is-abs p
 no-parens{TERM} (Let pi dtT t) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
-no-parens{TERM} (Phi pi eq t t' pi') p lr = is-eq-op p && not-left lr
-no-parens{TERM} (Rho pi op on eq og t) p lr = is-eq-op p && not-left lr
-no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
+no-parens{TERM} (Phi pi eq t t' pi') p lr = ff -- is-eq-op p && not-left lr
+no-parens{TERM} (Rho pi op on eq og t) p lr = ff -- is-eq-op p && not-left lr
+no-parens{TERM} (Sigma pi t) p lr = tt
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = (is-abs p || is-arrow p) && not-left lr
@@ -117,12 +117,14 @@ _≫str_ : strM → strM → strM
 strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
 
-strΓ : var → posinfo → strM → strM
-strΓ v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
+strΓ' : defScope → var → posinfo → strM → strM
+strΓ' ds v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   m s n ts
     (mk-ctxt (fn , mn , ps , (trie-insert q v (v' , ArgsNil))) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
     pe
-  where v' = pi % v
+  where v' = if ds iff localScope then pi % v else mn # v
+
+strΓ = strΓ' localScope
 
 ctxt-global-var-location : ctxt → var → location
 ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
@@ -161,6 +163,12 @@ kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
 
+file-to-string : start → strM
+cmds-to-string : cmds → strM → strM
+cmd-to-string : cmd → strM → strM
+
+params-to-string : params → strM
+params-to-string' : defScope → strM → params → strM
 optTerm-to-string : optTerm → string → string → strM
 -- optType-to-string : optType → strM
 optClass-to-string : optClass → strM
@@ -181,6 +189,8 @@ theta-to-string : theta → strM
 arrowtype-to-string : arrowtype → string
 maybeMinus-to-string : maybeMinus → string
 optPlus-to-string : optPlus → string
+optPublic-to-string : optPublic → string
+optAs-to-string : optAs → strM
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
 to-string-ed{TERM} = spine-term-to-stringh
@@ -297,11 +307,7 @@ theta-to-string AbstractEq = strAdd "θ+ "
 theta-to-string (AbstractVars vs) = strAdd "θ<" ≫str vars-to-string vs ≫str strAdd "> "
 nums-to-string (NumsStart n) = strAdd n
 nums-to-string (NumsNext n ns) = strAdd n ≫str strAdd " " ≫str nums-to-string ns
-{-rho-to-string RhoPlain = strAdd "ρ "
-rho-to-string RhoPlus = strAdd "ρ+ "
-rho-to-string (RhoNums ns) = strAdd "ρ<" ≫str nums-to-string ns ≫str strAdd "> "
-rho-to-string (RhoNums ns) = strAdd "ρ<" ≫str nums-to-string ns ≫str strAdd "> "-}
-optNums-to-string NoNums = strAdd ""
+optNums-to-string NoNums = strEmpty
 optNums-to-string (SomeNums ns) = strAdd "<" ≫str nums-to-string ns ≫str strAdd ">"
 arrowtype-to-string UnerasedArrow = " ➔ "
 arrowtype-to-string ErasedArrow = " ➾ "
@@ -309,6 +315,34 @@ maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
 optPlus-to-string RhoPlain = ""
 optPlus-to-string RhoPlus = "+"
+optPublic-to-string NotPublic = ""
+optPublic-to-string Public = "public "
+optAs-to-string NoOptAs = strEmpty
+optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
+
+params-to-string' ds f ParamsNil = f
+params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ParamsNil) =
+  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ")" ≫str strΓ' ds v pi f
+params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ps) =
+  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ") " ≫str
+  strΓ' ds v pi (params-to-string' ds f ps)
+
+params-to-string = params-to-string' localScope strEmpty
+
+file-to-string (File _ is _ _ mn ps cs _) =
+  cmds-to-string (imps-to-cmds is) (strAdd "module " ≫str strAdd mn ≫str strAdd " " ≫str params-to-string' globalScope (strAdd ".\n" ≫str cmds-to-string cs strEmpty) ps)
+
+cmds-to-string CmdsStart f = f
+cmds-to-string (CmdsNext c cs) f = strAdd "\n" ≫str cmd-to-string c (strAdd "\n" ≫str cmds-to-string cs f)
+
+cmd-to-string (DefTermOrType (DefTerm pi x mcT t) _) f =
+  strAdd x ≫str maybeCheckType-to-string mcT ≫str strAdd " = " ≫str to-stringh t ≫str strAdd " ." ≫str strΓ' globalScope x pi f
+cmd-to-string (DefTermOrType (DefType pi x k T) _) f =
+  strAdd x ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh T ≫str strAdd " ." ≫str strΓ' globalScope x pi f
+cmd-to-string (DefKind pi x ps k _) f =
+  strAdd x ≫str params-to-string ps ≫str strAdd " = " ≫str to-stringh k ≫str strAdd " ." ≫str strΓ' globalScope x pi f
+cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
+  strAdd "import " ≫str strAdd (optPublic-to-string op) ≫str strAdd fn ≫str optAs-to-string oa ≫str args-to-string as ≫str strAdd " ." ≫str f
 
 
 strRun : ctxt → strM → rope
@@ -324,20 +358,9 @@ to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither t)
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh' neither t)
 
-tk-to-string' : tk → strM
-tk-to-string' (Tkt T) = to-stringh' neither T
-tk-to-string' (Tkk k) = to-stringh' neither k
 
 tk-to-string : ctxt → tk → rope
-tk-to-string Γ atk = strRun Γ (tk-to-string' atk)
-
-params-to-string : params → strM
-params-to-string ParamsNil = strAdd ""
-params-to-string (ParamsCons (Decl _ pi v atk _) ParamsNil) =
-  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-string' atk ≫str strAdd ")"
-params-to-string (ParamsCons (Decl _ pi v atk _) ps) =
-  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-string' atk ≫str strAdd ") " ≫str
-  strΓ v pi (params-to-string ps)
+tk-to-string Γ atk = strRun Γ (tk-to-stringh atk)
 
 params-to-string-tag : string → ctxt → params → tagged-val
 params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)
