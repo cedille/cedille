@@ -11,7 +11,7 @@ import Data.Text(Text,pack)
 
 $alpha		= [a-zA-Zα-ωΑ-Ω]
 $numone		= 0-9
-$numpunct	= [$numone\-\~\#\_\']  
+$numpunct	= [$numone\-\~\#\_\'\!]  
 $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι↑➾➔☆β·≃\<>Λςχφ★◂=@δ]
 
 @num            = $numone+
