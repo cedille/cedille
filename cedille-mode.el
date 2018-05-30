@@ -511,11 +511,18 @@ occurrences, then do so."
 (defun cedille-mode-elaborate(dir)
   "Elaborates the current file"
   (interactive "GElaboration output: ")
-  (se-inf-interactive (concat "elaborate" sep (buffer-file-name) sep (expand-file-name dir))
-    (lambda (response extra)
-      (message response)
-      (cedille-mode-split-window))
-    nil :header "Elaborating"))
+  (let ((dir2 (expand-file-name dir)))
+    (se-inf-interactive (concat "elaborate" sep (buffer-file-name) sep dir2)
+      (lambda (response extra)
+        (let ((num (string-to-number response)))
+          (if (zerop num)
+              (with-current-buffer (car extra)
+                (with-selected-window (cedille-mode-split-window)
+                  (with-current-buffer (window-buffer)
+                    (message "Elaboration complete")
+                    (find-file (cdr extra)))))
+            (message "Elaboration error (code %d)" num))))
+      (cons (current-buffer) dir2) :header "Elaborating")))
 
 (defun cedille-mode-restart-backend()
   "Restart cedille process"

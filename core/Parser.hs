@@ -1,6 +1,6 @@
-module CedilleCoreParser where
-import CedilleCoreTypes
-import CedilleCoreToString
+module Parser where
+import Types
+import ToString
 
 data Token =
     TVar String
@@ -63,7 +63,23 @@ lexVar v (c : s)
   | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>" = Just (reverse v, (c : s))
   | otherwise = Nothing
 lexVar v "" = Just (reverse v, "")
-
+{-
+--lexImport :: String -> Maybe [Token]
+lexImport s = h Nothing Nothing s where
+--h :: Maybe String -> Maybe String -> String -> Maybe [Token]
+  h Nothing Nothing (' ' : s) = h Nothing Nothing s
+  h Nothing Nothing ('\n' : s) = h Nothing Nothing s
+  h Nothing Nothing ('\t' : s) = h Nothing Nothing s
+  h Nothing Nothing (c : s) = h (Just (c : "")) Nothing s
+  h (Just fp) Nothing ('.' : s) = h (Just fp) (Just ".") s
+  h (Just fp) Nothing (c : s) = h (Just (c : fp)) Nothing s
+  h (Just fp) (Just afp) (' ' : s) = h (Just fp) (Just (' ' : s)) s
+  h (Just fp) (Just afp) ('\t' : s) = h (Just fp) (Just ('\t' : s)) s
+  h (Just fp) (Just afp) ('\n' : s) = consIf (TImport (reverse fp)) $ lexStr s
+  h (Just fp) (Just afp) s = h (Just (afp ++ fp)) Nothing s
+  h (Just fp) (Just afp) "" = Just (TImport (reverse fp) : [])
+  h _ _ "" = Nothing
+-}
 --lexStr :: String -> Maybe [Token]
 lexStr (' ' : s) = lexStr s
 lexStr ('\n' : s) = lexStr s
@@ -96,6 +112,7 @@ lexStr ('{' : s) = consIf TBraceL $ lexStr s
 lexStr ('}' : s) = consIf TBraceR $ lexStr s
 lexStr ('<' : s) = consIf TAngleL $ lexStr s
 lexStr ('>' : s) = consIf TAngleR $ lexStr s
+--lexStr ('i' : 'm' : 'p' : 'o' : 'r' : 't' : ' ' : s) = lexImport s
 lexStr (c : s) = if isVarChar c
   then lexVar (c : "") s >>= uncurry (\ v -> consIf (TVar v) . lexStr)
   else Nothing
@@ -215,6 +232,9 @@ parseKind tm = ParseM $ \ ts -> case ts of
 parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm)
 
 parseCmd = ParseM $ \ ts -> case ts of
+  (TVar "import" : TVar "public" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
+  (TVar "import" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
+  --(TImport fp : ts) -> parseMr (ImportCmd fp) ts
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot
   (TVar v : TTriangle : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
   _ -> Nothing

@@ -70,10 +70,16 @@ substh-term Γ ρ σ (Phi pi t t₁ t₂ pi') = Phi pi (substh-term Γ ρ σ t) 
 substh-term Γ ρ σ (Rho pi op on t og t') = Rho pi op on (substh-term Γ ρ σ t) (substh-optGuide Γ ρ σ og) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Delta pi T t') = Delta pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
-substh-term Γ ρ σ (Theta pi u t ls) = Theta pi u (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
-  where substh-lterms : substh-ret-t lterms
-        substh-lterms Γ ρ σ (LtermsNil pi) = LtermsNil pi
-        substh-lterms Γ ρ σ (LtermsCons m t ls) = LtermsCons m (substh-term Γ ρ σ t) (substh-lterms Γ ρ σ ls)
+substh-term Γ ρ σ (Theta pi θ t ls) = Theta pi (substh-theta θ) (substh-term Γ ρ σ t) (substh-lterms ls)
+  where substh-lterms : lterms → lterms
+        substh-lterms (LtermsNil pi) = LtermsNil pi
+        substh-lterms (LtermsCons m t ls) = LtermsCons m (substh-term Γ ρ σ t) (substh-lterms ls)
+        substh-vars : vars → vars
+        substh-vars (VarsStart x) = VarsStart (renamectxt-rep ρ x)
+        substh-vars (VarsNext x xs) = VarsNext (renamectxt-rep ρ x) (substh-vars xs)
+        substh-theta : theta → theta
+        substh-theta (AbstractVars xs) = AbstractVars (substh-vars xs)
+        substh-theta θ = θ
 
 substh-type Γ ρ σ (Abs pi b pi' x atk t) =
   let x' = subst-rename-var-if Γ ρ x σ in

@@ -1,5 +1,5 @@
-module CedilleCoreToString where
-import CedilleCoreTypes
+module ToString where
+import Types
 
 instance Show PureTerm where
   show = pureTermToString False
@@ -10,7 +10,7 @@ instance ShowBool tm => Show (PrimType tm) where
 instance ShowBool tm => Show (PrimKind tm) where
   show = kindToString
 instance ShowBool tm => Show (PrimTpKd tm) where
-  show = tkToString
+  show = tpKdToString
 
 class Show a => ShowBool a where
   showBool :: Bool -> a -> String
@@ -67,5 +67,5 @@ typeToString b (TpEq tm tm') = "{ " ++ show tm ++ " ≃ " ++ show tm' ++ " }"
 kindToString Star = "★"
 kindToString (KdPi v tk kd) = "Π " ++ v ++ " : " ++ show tk ++ " . " ++ show kd
 
-tkToString (TpKdTp tp) = show tp
-tkToString (TpKdKd kd) = show kd
+tpKdToString (TpKdTp tp) = show tp
+tpKdToString (TpKdKd kd) = show kd

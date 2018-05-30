@@ -1,8 +1,8 @@
 
-CedilleCore = CedilleCoreCheck.hs CedilleCoreCtxt.hs CedilleCoreMain.hs CedilleCoreNorm.hs CedilleCoreParser.hs CedilleCoreToString.hs CedilleCoreTypes.hs
+CedilleCore = Check.hs Ctxt.hs CedilleCore.hs Norm.hs Parser.hs ToString.hs Types.hs
 
 all:
-	ghc CedilleCoreMain.hs
+	ghc CedilleCore.hs
 
 cedille-core-lines:
 	wc -l $(CedilleCore)

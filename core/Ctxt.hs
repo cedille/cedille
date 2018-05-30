@@ -1,5 +1,5 @@
-module CedilleCoreCtxt where
-import CedilleCoreTypes
+module Ctxt where
+import Types
 
 type Cal a = [(Char, a)]
 
@@ -31,6 +31,12 @@ trieMember t s = maybe False (\ _ -> True) (trieLookup t s)
 trieAt t "" = t
 trieAt (Node a ts) (c : cs) = maybe emptyTrie (\ t -> trieAt t cs) (calLookup ts c)
 
+trieMappings = h [] "" where
+  h acc path (Node Nothing cs) = h' path acc cs
+  h acc path (Node (Just a) cs) = h' path ((reverse path, a) : acc) cs
+  h' path = foldr (\ (c, t) x -> h x (c : path) t)
+
+trieAdd t = foldr (\ (path, a) x -> trieInsert x path a) t . trieMappings
 
 type VarMap = Trie Var
 type VarMapRange = Trie ()
@@ -42,23 +48,27 @@ type ExternalDefs = Trie ExternalDef
 type InternalDefs = Trie InternalDef
 data Ctxt = Ctxt ExternalDefs InternalDefs VarMap VarMapRange
 
---varMapRep :: Trie a -> a -> a
+
+--varMapRep :: Trie String -> String -> String
 varMapRep m k = case trieLookup m k of
   Just v -> v
   Nothing -> k
 
 ctxtClearExternals (Ctxt es is vs rs) = Ctxt emptyTrie is vs rs
+ctxtShowAll (Ctxt es is vs _) rs = Ctxt es is vs rs
+ctxtShown (Ctxt es is vs rs) = rs
 
 --emptyCtxt :: Ctxt
 emptyCtxt = Ctxt emptyTrie emptyTrie emptyTrie emptyTrie
 
 --ctxtLookup :: Ctxt -> Var -> Maybe ExternalDef
-ctxtLookup (Ctxt es is vs rs) v = let v' = varMapRep vs v in
+ctxtLookup (Ctxt es is vs rs) v =
+  let v' = varMapRep vs v in
   maybe
-    (trieLookup es v')
+    (trieLookup rs v' >> trieLookup es v')
     (\ d -> case d of
-        (Left tmd) -> Just (Left (Just tmd, Nothing))
-        (Right tpd) -> Just (Right (Just tpd, Nothing)))
+      (Left tmd) -> Just (Left (Just tmd, Nothing))
+      (Right tpd) -> Just (Right (Just tpd, Nothing)))
     (trieLookup is v')
 
 --ctxtLookupTerm :: Ctxt -> Var -> Maybe TermDef
@@ -103,11 +113,11 @@ ctxtLookupInternalType (Ctxt es is vs rs) v = case trieLookup is (varMapRep vs v
   
 --ctxtDef :: Ctxt -> Var -> ExternalDef -> Ctxt
 ctxtDef c "_" d = c
-ctxtDef (Ctxt es is vs rs) v d = Ctxt (trieInsert es v d) is (trieInsert vs v v) rs
+ctxtDef (Ctxt es is vs rs) v d = Ctxt (trieInsert es v d) is vs (trieInsert rs v ())
 
 --ctxtInternalDef :: Ctxt -> Var -> InternalDef -> Ctxt
 ctxtInternalDef c "_" d = c
-ctxtInternalDef (Ctxt es is vs rs) v d = Ctxt es (trieInsert is v d) (trieInsert vs v v) rs
+ctxtInternalDef (Ctxt es is vs rs) v d = Ctxt es (trieInsert is v d) vs (trieInsert rs v ())
 
 --ctxtDefTerm :: Ctxt -> Var -> TermDef -> Ctxt
 ctxtDefTerm c v d = ctxtDef c v (Left d)
@@ -123,31 +133,23 @@ ctxtRename c "_" _ = c
 ctxtRename c _ "_" = c
 ctxtRename (Ctxt es is vs rs) v v' =
   let v'' = varMapRep vs v' in
-  Ctxt es is (trieInsert vs v v'') (trieInsert rs v'' ())
+  Ctxt es is (if v == v'' then vs else trieInsert vs v v'') (trieInsert rs v'' ())
 
 --ctxtRep :: Ctxt -> Var -> Var
 ctxtRep (Ctxt es is vs rs) = varMapRep vs
 
 --ctxtBindsVar :: Ctxt -> Var -> Bool
-ctxtBindsVar (Ctxt es is vs rs) v = trieMember vs v
+ctxtBindsVar (Ctxt es is vs rs) v = trieMember vs v || trieMember rs v
 
 -- Returns a fresh variable (v with primes) if v is already defined in ctxt
 --doRename :: Ctxt -> Var -> Maybe Var
-doRename c @ (Ctxt es is vs rs) v
-  | trieMember vs v || trieMember rs v =
-    let v'= v ++ "'" in
+doRename c "_" = Nothing
+doRename c v
+  | ctxtBindsVar c v =
+    let v' = v ++ "'" in
     maybe (Just v') Just (doRename c v')
   | otherwise = Nothing
 
-{-
-doRename c "_" = Nothing
-doRename (Ctxt es is vs) v = case trieAt vs v of
-  (Node Nothing _) -> Nothing
-  t -> Just (v ++ h t)
-  where
-    h (Node Nothing _) = ""
-    h (Node (Just _) ts) = maybe "\'" (\ t -> '\'' : h t) (calLookup ts '\'')
--}
 --doRename' :: Ctxt -> Var -> (Var -> a) -> a
 doRename' c v f = maybe (f v) f (doRename c v)
 

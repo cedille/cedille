@@ -1,4 +1,4 @@
-module CedilleCoreTypes where
+module Types where
 
 type Var = String
 type TpKd = PrimTpKd Term
@@ -15,6 +15,7 @@ data Cmds =
 data Cmd =
     TermCmd Var Term
   | TypeCmd Var Kind Type
+  | ImportCmd String
 
 data Term =
     TmVar Var

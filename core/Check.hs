@@ -1,8 +1,8 @@
-module CedilleCoreCheck where
-import CedilleCoreTypes
-import CedilleCoreCtxt
-import CedilleCoreNorm
-import CedilleCoreToString
+module Check where
+import Types
+import Ctxt
+import Norm
+import ToString
 
 errIf True e = err e
 errIf False _ = Right ()
@@ -62,7 +62,7 @@ synthTerm' c (TmLambdaE v tk tm) =
   errIfCtxtBinds c v >>
   errIf (freeInTerm v (eraseTerm tm))
     ("Implicit variable occurs free in its body: " ++ v) >>
-  checkTpKd c tk >>
+  synthTpKd c tk >>
   let tk' = hnfeTpKd c tk in
   synthTerm (ctxtDefTpKd c v tk') tm >>= Right . TpAll v tk'
 synthTerm' c (TmAppTm ltm rtm) =
@@ -160,7 +160,7 @@ synthType' c (TpAppTp tp tp') =
   case kd of
     (KdPi v (TpKdKd kd'') retkd) ->
       errIfNot (convKind c kd' kd'') (show kd'' ++ " != " ++ show kd') >>
-      Right retkd
+      Right (hnfKind (ctxtInternalDef c v (Right (hnfeType c tp'))) retkd)
     _ -> err "Expected the head of an application to synthesize a kind-pi binding a kind"
 synthType' c (TpAppTm tp tm) =
   synthType c tp >>= \ kd ->
@@ -168,7 +168,7 @@ synthType' c (TpAppTm tp tm) =
   case kd of
     (KdPi v (TpKdTp tp'') retkd) ->
       errIfNot (convType c tp' tp'') (show tp'' ++ " != " ++ show tp') >>
-      Right retkd
+      Right (hnfKind (ctxtInternalDef c v (Left (hnfeTerm c tm))) retkd)
     _ -> err "Expected the head of an application to synthesize a kind-pi binding a type"
 synthType' c (TpEq tm tm') =
   isValidTerm c tm >>

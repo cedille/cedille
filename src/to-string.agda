@@ -29,12 +29,6 @@ not-right : expr-side → 𝔹
 not-right right = ff
 not-right _ = tt
 
-is-untyped : {ed : exprd} → ⟦ ed ⟧ → expr-side → 𝔹
-is-untyped{TERM} (Beta _ _ _) _ = tt
-is-untyped{TERM} (Phi _ _ _ _ _) right = tt
-is-untyped{TYPE} (TpEq _ _ _ _) _ = tt
-is-untyped _ _ = ff
-
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
 no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TERM} _ (Parens pi t pi') lr = tt
@@ -43,27 +37,28 @@ no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
 no-parens {_} {TERM} _ (Beta pi ot ot') lr = tt
-no-parens {_} {TERM} _ (Phi pi eq t t' pi') lr = not-left lr
+no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
+no-parens {_} {TERM} _ (Phi pi eq t t' pi') neither = tt
 no-parens {_} {TERM} _ (Let _ _ _) _ = tt
 no-parens {_} {TERM} _ (Rho _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) right = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) right = tt
-no-parens{TERM} (App t me t') p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
-no-parens{TERM} (AppTp t T) p lr = is-untyped p lr || is-abs p || (is-arrow p || is-app p) && not-right lr
+no-parens{TERM} (App t me t') p lr = is-abs p || (is-arrow p || is-app p) && not-right lr
+no-parens{TERM} (AppTp t T) p lr = is-abs p || (is-arrow p || is-app p) && not-right lr
 no-parens{TERM} (Beta pi ot ot') p lr = tt
-no-parens{TERM} (Chi pi mT t) p lr = ff -- is-eq-op p && not-left lr
-no-parens{TERM} (Delta pi mT t) p lr = ff -- is-eq-op p && not-left lr
-no-parens{TERM} (Epsilon pi lr' m t) p lr = tt -- is-eq-op p
+no-parens{TERM} (Chi pi mT t) p lr = ff
+no-parens{TERM} (Delta pi mT t) p lr = ff
+no-parens{TERM} (Epsilon pi lr' m t) p lr = tt
 no-parens{TERM} (Hole pi) p lr = tt
 no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
-no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-untyped p lr || is-abs p
+no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-abs p
 no-parens{TERM} (Let pi dtT t) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
-no-parens{TERM} (Phi pi eq t t' pi') p lr = ff -- is-eq-op p && not-left lr
-no-parens{TERM} (Rho pi op on eq og t) p lr = ff -- is-eq-op p && not-left lr
-no-parens{TERM} (Sigma pi t) p lr = tt
+no-parens{TERM} (Phi pi eq t t' pi') p lr = ff
+no-parens{TERM} (Rho pi op on eq og t) p lr = ff
+no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = (is-abs p || is-arrow p) && not-left lr
