@@ -1,0 +1,21 @@
+module LargeIndices.
+
+ProjLastType ◂ ★ ➔ ★ ➔ ★ =
+  λ base : ★ . λ A : ★ .
+    ∀ X : ★ ➔ ★ .
+      X · (base ➔ base) ➔
+      (∀ T : ★ . X · T ➔ X · (base ➔ T)) ➔
+      X · A .
+
+projLastBase ◂ ∀ A : ★ . ProjLastType · A · (A ➔ A) = Λ A . Λ X . λ b . λ a . b .
+
+projLastArrow ◂ ∀ A : ★ . ∀ T : ★ . ProjLastType · A · T ➔ ProjLastType · A · (A ➔ T) =
+  Λ A . Λ T . λ p . Λ X . λ b . λ a . a · T (p · X b a) .
+
+-- compute the function λ a1 . ... λ ak . ak
+
+projLast ◂ ∀ A : ★ . ∀ T : ★ . ProjLastType · A · T ➔ T =
+  Λ A . Λ T . λ p . 
+    p · (λ T : ★ . T) (λ a . a) (Λ T . λ t . λ a . t) .
+
+test ◂ ∀ X : ★ . X ➔ X ➔ X = Λ X . projLast · X · (X ➔ X ➔ X) (projLastArrow · X · (X ➔ X) (projLastBase · X)) .
