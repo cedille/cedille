@@ -270,7 +270,7 @@ meta-vars-unfold-tmapp Γ Xs tp
 ... | Xs' , tp'@(Abs _ b _ x (Tkt tpₐ) tpᵣ)
   = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₁ b))
             -- substitute term into codomain (dependent function type)
-            (λ t → subst-type Γ (qualif-term Γ t) x tpᵣ)
+            (λ t → subst-type Γ t x tpᵣ) -- Used to call qualif-term Γ on t (moved it instead to check-term-app for elaboration)
 ... | Xs' , tp'@(TpArrow tpₐ at tpᵣ)
   = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₂ at)) (λ _ → tpᵣ)
 ... | Xs' , tp'

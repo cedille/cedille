@@ -155,7 +155,7 @@ hnf{TERM} Γ u (Let _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t')
 hnf{TERM} Γ u (Let _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
 hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd | nothing = Var pi x
-hnf{TERM} Γ (unfold ff _ _ _) (Var pi x) hd | just t = t -- definitions should be stored in hnf
+hnf{TERM} Γ (unfold ff _ _ e) (Var pi x) hd | just t = erase-if e t -- definitions should be stored in hnf
 hnf{TERM} Γ (unfold tt b b' e) (Var pi x) hd | just t = hnf Γ (unfold tt b b' e) t hd -- this might not be fully normalized, only head-normalized
 hnf{TERM} Γ u (AppTp t tp) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Sigma pi t) hd = hnf Γ u t hd
@@ -165,6 +165,7 @@ hnf{TERM} Γ u (IotaProj t _ _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Phi _ eq t₁ t₂ _) hd = hnf Γ u t₂ hd
 hnf{TERM} Γ u (Rho pi _ _ t _ t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
+hnf{TERM} Γ u (Delta pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u@(unfold _ _ _ e) (Theta pi u' t ls) hd
   = hnf Γ u (App*' t (erase-lterms-if e u' ls)) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd

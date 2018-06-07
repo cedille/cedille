@@ -112,14 +112,14 @@ _≫str_ : strM → strM → strM
 strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
 
-strΓ' : defScope → var → posinfo → strM → strM
-strΓ' ds v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
+strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
+strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   m s n ts
-    (mk-ctxt (fn , mn , ps , (trie-insert q v (v' , ArgsNil))) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
+    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
     pe
   where v' = if ds iff localScope then pi % v else mn # v
 
-strΓ = strΓ' localScope
+strΓ = strΓ' localScope ff
 
 ctxt-global-var-location : ctxt → var → location
 ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
@@ -157,10 +157,6 @@ type-to-stringh : type → strM
 kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
-
-file-to-string : start → strM
-cmds-to-string : cmds → strM → strM
-cmd-to-string : cmd → strM → strM
 
 params-to-string : params → strM
 params-to-string' : defScope → strM → params → strM
@@ -213,13 +209,13 @@ tk-to-stringh (Tkk k) = to-stringh k
 
 spine-term-to-stringh t s n ts Γ pe lr = term-to-stringh t' s n ts Γ pe lr
   where
-  t' = if cedille-options.options.show-qualified-vars options
+  t' = if cedille-options.options.show-qualified-vars options || cedille-options.options.show-module-params options
     then t
     else maybe-else t (spapp-term ∘ drop-mod-args Γ Erased) (term-to-spapp t)
 
 spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
   where
-  T' = if cedille-options.options.show-qualified-vars options
+  T' = if cedille-options.options.show-qualified-vars options || cedille-options.options.show-module-params options
     then T
     else maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
 
@@ -317,28 +313,12 @@ optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
 
 params-to-string' ds f ParamsNil = f
 params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ParamsNil) =
-  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ")" ≫str strΓ' ds v pi f
+  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ")" ≫str strΓ' ds ff v pi f
 params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ps) =
   strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ") " ≫str
-  strΓ' ds v pi (params-to-string' ds f ps)
+  strΓ' ds ff v pi (params-to-string' ds f ps)
 
 params-to-string = params-to-string' localScope strEmpty
-
-file-to-string (File _ is _ _ mn ps cs _) =
-  cmds-to-string (imps-to-cmds is) (strAdd "module " ≫str strAdd mn ≫str strAdd " " ≫str params-to-string' globalScope (strAdd ".\n" ≫str cmds-to-string cs strEmpty) ps)
-
-cmds-to-string CmdsStart f = f
-cmds-to-string (CmdsNext c cs) f = strAdd "\n" ≫str cmd-to-string c (strAdd "\n" ≫str cmds-to-string cs f)
-
-cmd-to-string (DefTermOrType (DefTerm pi x mcT t) _) f =
-  strAdd x ≫str maybeCheckType-to-string mcT ≫str strAdd " = " ≫str to-stringh t ≫str strAdd " ." ≫str strΓ' globalScope x pi f
-cmd-to-string (DefTermOrType (DefType pi x k T) _) f =
-  strAdd x ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh T ≫str strAdd " ." ≫str strΓ' globalScope x pi f
-cmd-to-string (DefKind pi x ps k _) f =
-  strAdd x ≫str params-to-string ps ≫str strAdd " = " ≫str to-stringh k ≫str strAdd " ." ≫str strΓ' globalScope x pi f
-cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
-  strAdd "import " ≫str strAdd (optPublic-to-string op) ≫str strAdd fn ≫str optAs-to-string oa ≫str args-to-string as ≫str strAdd " ." ≫str f
-
 
 strRun : ctxt → strM → rope
 strRun Γ m = fst (m {TERM} [[]] 0 [] Γ nothing neither)

@@ -571,13 +571,19 @@ check-termi (Chi pi NoAtype t) nothing =
  get-ctxt λ Γ → spanM-add (Chi-span Γ pi NoAtype t synthesizing [] nothing) ≫span check-term t nothing
 
 check-termi (Delta pi mT t) mtp =
-  check-term t (just delta-contra) ≫span
+  check-term t nothing ≫=span λ T →
   get-ctxt λ Γ →
-  spanM-add (Delta-span Γ pi mT t (maybe-to-checking mtp) [] nothing) ≫span
+  spanM-add (Delta-span Γ pi mT t (maybe-to-checking mtp) [] (T ≫=maybe check-contra Γ)) ≫span
   (case mT of λ where
     NoAtype → spanMr compileFailType
     (Atype T) → check-type T (just (Star posinfo-gen)) ≫span spanMr T) ≫=span λ T → 
   return-when mtp (just (qualif-type Γ T))
+  where check-contra : ctxt → type → err-m
+        check-contra Γ (TpEq _ t1 t2 _) =
+          if check-beta-inequiv (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt)
+            then nothing
+            else just "We could not find a contradiction in the synthesized type of the subterm."
+        check-contra _ _ = just "We could not synthesize an equation from the subterm."
 
 check-termi (Theta pi u t ls) nothing =
   get-ctxt (λ Γ →
@@ -594,13 +600,13 @@ check-termi (Theta pi AbstractEq t ls) (just tp) =
                           spanM-add (Theta-span Γ pi AbstractEq t ls checking [ expected-type Γ tp ] (just "We could not compute a motive from the given term"))
                                       -- (expected-type Γ tp :: [ motive-label , [[ "We could not compute a motive from the given term" ]] , [] ]))))
         cont (just htp) =
-           get-ctxt (λ Γ → 
+           get-ctxt λ Γ → 
              let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
-             let motive = mtplam x (Tkt htp) (TpArrow (TpEq posinfo-gen t (mvar x) posinfo-gen) UnerasedArrow tp) in
+             let motive = mtplam x (Tkt htp) (TpArrow (TpEq posinfo-gen t (mvar x) posinfo-gen) ErasedArrow tp) in
                spanM-add (Theta-span Γ pi AbstractEq t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
                check-term (App* (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1)))
                               (lterms-to-𝕃 AbstractEq ls))
-                 (just tp))
+                 (just tp)
 
 check-termi (Theta pi Abstract t ls) (just tp) =
   -- discard spans from checking the head, because we will check it again below
@@ -611,14 +617,15 @@ check-termi (Theta pi Abstract t ls) (just tp) =
                            spanM-add (Theta-span Γ pi Abstract t ls checking [ expected-type Γ tp ] (just "We could not compute a motive from the given term"))
                                       -- (expected-type Γ tp :: [ motive-label , [[ "We could not compute a motive from the given term" ]] , [] ]))))
         cont t (just htp) = 
-          let x = compute-var t in
-          let motive = mtplam x (Tkt htp) tp in
-           get-ctxt (λ Γ →
+          get-ctxt λ Γ →
+          let x = compute-var (hnf Γ unfold-head (qualif-term Γ t) tt)
+              x' = maybe-else (unqual-local x) id (var-suffix x) in
+          let motive = mtplam x' (Tkt htp) (rename-type Γ x x' tt tp) in
             spanM-add (Theta-span Γ pi Abstract t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
             check-term (App* (AppTp t (NoSpans motive (term-end-pos t)))
                             (lterms-to-𝕃 Abstract ls)) 
-               (just tp))
-          where compute-var : term → string
+               (just tp)
+          where compute-var : term → var
                 compute-var (Var pi' x) = x
                 compute-var t = ignored-var
 
@@ -803,6 +810,7 @@ check-term-app t''@(App t m t') mtp
     = get-ctxt λ Γ →
       case meta-vars-unfold-tmapp Γ Xs tp of λ where
         (Xs , yes-tp-arrow tp tpₐ m' cod) →
+          let cod = cod ∘ qualif-term Γ in
           if ~ check-erasures-match m m'
             then check-term-app-error-erased check-mode m t t' tp Xs
           else if ~ meta-vars-are-free-in-type Xs tpₐ

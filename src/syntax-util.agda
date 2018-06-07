@@ -18,7 +18,7 @@ id-term = Lam posinfo-gen KeptLambda posinfo-gen "x" NoClass (Var posinfo-gen "x
 
 compileFailType : type
 compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
-
+{-
 delta-contra =
   let lambda x = Lam posinfo-gen KeptLambda posinfo-gen x NoClass in
   TpEq
@@ -26,7 +26,7 @@ delta-contra =
     (lambda "x" (lambda "y" (Var posinfo-gen "x")))
     (lambda "x" (lambda "y" (Var posinfo-gen "y")))
     posinfo-gen
-
+-}
 qualif-info : Set
 qualif-info = var × args
 
@@ -594,7 +594,7 @@ erase-lterms u (LtermsCons Erased t ls) = erase-lterms u ls
 lterms-to-𝕃h : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃h Abstract (LtermsNil _) = []
 lterms-to-𝕃h (AbstractVars _) (LtermsNil _) = []
-lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ NotErased , Beta pi NoTerm NoTerm ]
+lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ Erased , Beta pi NoTerm NoTerm ]
 lterms-to-𝕃h u (LtermsCons m t ls) = (m , t) :: (lterms-to-𝕃h u ls)
 
 lterms-to-𝕃 : theta → lterms → 𝕃 (maybeErased × term)
@@ -728,10 +728,8 @@ unqual-all q v with var-suffix v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
 lam-expand-term : params → term → term
-lam-expand-term (ParamsCons (Decl pi pi' x tk@(Tkt _) _) ps) t =
-  Lam posinfo-gen KeptLambda pi' x NoClass (lam-expand-term ps t)
-lam-expand-term (ParamsCons (Decl pi pi' x tk@(Tkk _) _) ps) t =
-  lam-expand-term ps t
+lam-expand-term (ParamsCons (Decl pi pi' x tk _) ps) t =
+  Lam posinfo-gen (if tk-is-type tk then KeptLambda else ErasedLambda) pi' x (SomeClass tk) (lam-expand-term ps t)
 lam-expand-term ParamsNil t = t
 
 lam-expand-type : params → type → type
@@ -741,7 +739,7 @@ lam-expand-type ParamsNil t = t
 
 abs-expand-type : params → type → type
 abs-expand-type (ParamsCons (Decl pi pi' x tk _) ps) t =
-  Abs posinfo-gen Pi pi' x tk (abs-expand-type ps t)
+  Abs posinfo-gen (if tk-is-type tk then Pi else All) pi' x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
 abs-expand-kind : params → kind → kind
@@ -817,3 +815,48 @@ optNums-to-stringset (SomeNums ns) with nums-to-stringset ns
   ns-g → just ("Occurrences not found: " ^ 𝕃-to-string id ", " ns-g ^ " (total occurrences: " ^ ℕ-to-string n ^ ")")
 ...| ss , rs = just ss , λ n →
   just ("The list of occurrences contains the following repeats: " ^ 𝕃-to-string id ", " rs)
+
+
+------------------------------------------------------
+-- any delta contradiction → boolean contradiction
+------------------------------------------------------
+nlam : ℕ → term → term
+nlam 0 t = t
+nlam (suc n) t = mlam "_" (nlam n t)
+
+delta-contra-app : ℕ → (ℕ → term) → term
+delta-contra-app 0 nt = mvar "x"
+delta-contra-app (suc n) nt = mapp (delta-contra-app n nt) (nt n)
+
+delta-contrahh : ℕ → trie ℕ → trie ℕ → var → var → 𝕃 term → 𝕃 term → maybe term
+delta-contrahh n ls rs x1 x2 as1 as2 with trie-lookup ls x1 | trie-lookup rs x2
+...| just n1 | just n2 =
+  let t1 = nlam (length as1) (mlam "x" (mlam "y" (mvar "x")))
+      t2 = nlam (length as2) (mlam "x" (mlam "y" (mvar "y"))) in
+  if n1 =ℕ n2
+    then nothing
+    else just (mlam "x" (delta-contra-app n
+      (λ n → if n =ℕ n1 then t1 else if n =ℕ n2 then t2 else id-term)))
+...| _ | _ = nothing
+
+{-# TERMINATING #-}
+delta-contrah : ℕ → trie ℕ → trie ℕ → term → term → maybe term
+delta-contrah n ls rs (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) =
+  delta-contrah (suc n) (trie-insert ls x1 n) (trie-insert rs x2 n) t1 t2
+delta-contrah n ls rs (Lam _ _ _ x1 _ t1) t2 =
+  delta-contrah (suc n) (trie-insert ls x1 n) (trie-insert rs x1 n) t1 (mapp t2 (mvar x1))
+delta-contrah n ls rs t1 (Lam _ _ _ x2 _ t2) =
+  delta-contrah (suc n) (trie-insert ls x2 n) (trie-insert rs x2 n) (mapp t1 (mvar x2)) t2
+delta-contrah n ls rs t1 t2 with decompose-apps t1 | decompose-apps t2
+...| Var _ x1 , as1 | Var _ x2 , as2 = delta-contrahh n ls rs x1 x2 as1 as2
+...| _ | _ = nothing
+
+-- For terms t1 and t2, given that check-beta-inequiv t1 t2 ≡ tt,
+-- delta-contra produces a function f such that f t1 ≡ tt and f t2 ≡ ff
+-- If it returns nothing, no contradiction could be found
+delta-contra : term → term → maybe term
+delta-contra = delta-contrah 0 empty-trie empty-trie
+-- postulate: check-beta-inequiv t1 t2 ≡ isJust (delta-contra t1 t2)
+
+check-beta-inequiv : term → term → 𝔹
+check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)

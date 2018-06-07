@@ -693,7 +693,7 @@ Sigma-span Γ pi t expected tvs =
 Delta-span : ctxt → posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → err-m → span
 Delta-span Γ pi T t check tvs =
   mk-span "Delta" pi (term-end-pos t)
-    (ll-data-term :: explain "Prove anything you want from a contradiction (λ x . λ y . x ≃ λ x . λ y . y)" :: checking-data check :: tvs)
+    (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
 
 motive-label : string
 motive-label = "the motive"

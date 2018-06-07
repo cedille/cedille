@@ -122,7 +122,7 @@ will kill the process, should be skipped if process is shared."
 	  header-line-format nil)
     (let* ((current (nth 1 (cdr (car (car se-inf-queue)))))
 	   (symbol (nth 0 current))
-	   (span (nth 4 current))
+	   (span (nth 3 current))
 	   (pins (when span (se-pins-at (se-span-start span) (se-span-end span) 'se-interactive))))
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 

@@ -8,6 +8,7 @@ record options : Set where
         make-rkt-files : 𝔹
         generate-logs : 𝔹
         show-qualified-vars : 𝔹
+        show-module-params : 𝔹 -- Internal only
         make-core-files : 𝔹
 
 default-options : options
@@ -17,6 +18,7 @@ default-options = record {
   make-rkt-files = ff;
   generate-logs = ff;
   show-qualified-vars = ff;
+  show-module-params = ff;
   make-core-files = ff}
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset

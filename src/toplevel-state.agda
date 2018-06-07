@@ -132,7 +132,7 @@ include-elt-to-string : include-elt → string
 include-elt-to-string ie =
     " deps:  " ^ (𝕃-to-string (λ x → x) "," (include-elt.deps ie)) ^
     -- ast
-    ", ast:  " ^ maybe-else "not parsed" (λ ast → "parsed: " ^ rope-to-string (strRun empty-ctxt (file-to-string ast))) (include-elt.ast ie) ^ ", " ^
+    ", ast:  " ^ maybe-else "not parsed" (λ ast → "parsed") (include-elt.ast ie) ^ ", " ^
     " import-to-dep:  " ^ (trie-to-string "," (format "filename: %s") (include-elt.import-to-dep ie)) ^ 
     -- spans
     " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
