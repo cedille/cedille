@@ -1,0 +1,13 @@
+module ML-Universe.
+
+import nat.
+
+U ◂ ★ ➔ ★ =
+  λ T : ★ .
+  ∀ X : ★ ➔ ★ .
+    X · Nat ➔
+    (∀ A : ★ . ∀ B : A ➔ ★ .
+       X · A ➔
+       (∀ a : A . X · (B a)) ➔
+       X · (Π x : A . B x)) ➔
+    X · T.

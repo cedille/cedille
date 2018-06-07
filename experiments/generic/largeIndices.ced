@@ -1,11 +1,23 @@
 module LargeIndices.
 
+{- encode the relation
+
+   --------------------------------
+   ProjLastType_base (base -> base)
+
+   ProjLastType_base T
+   ------------------------------
+   ProjLastType_base (base -> T)
+-}
+
 ProjLastType ◂ ★ ➔ ★ ➔ ★ =
   λ base : ★ . λ A : ★ .
     ∀ X : ★ ➔ ★ .
       X · (base ➔ base) ➔
       (∀ T : ★ . X · T ➔ X · (base ➔ T)) ➔
       X · A .
+
+-- constructors for ProjLastType
 
 projLastBase ◂ ∀ A : ★ . ProjLastType · A · (A ➔ A) = Λ A . Λ X . λ b . λ a . b .
 
