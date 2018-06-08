@@ -91,12 +91,21 @@ meta-var-to-term-unsafe X pi
 ... | just tm = tm
 ... | nothing = Var pi (meta-var-name X)
 
+meta-var-solved? : meta-var → 𝔹
+meta-var-solved? (meta-var-mk n (meta-var-tp k nothing)) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tp k (just _))) = tt
+meta-var-solved? (meta-var-mk n (meta-var-tm tp nothing)) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tm tp (just _))) = tt
+
 
 meta-vars-empty : meta-vars
 meta-vars-empty = meta-vars-mk [] empty-trie -- empty-trie
 
 meta-vars-empty? : meta-vars → 𝔹
 meta-vars-empty? Xs = ~ (trie-nonempty (varset Xs )) -- ~ (trie-nonempty Xs)
+
+meta-vars-solved? : meta-vars → 𝔹
+meta-vars-solved? Xs = trie-all meta-var-solved? (varset Xs)
 
 meta-vars-get-sub : meta-vars → trie type
 meta-vars-get-sub Xs
@@ -218,42 +227,54 @@ meta-vars-add : meta-vars → meta-var → meta-vars
 meta-vars-add Xs X
  = record (meta-vars-set Xs X) { order = (order Xs) ++ [ name X ] }
 
+meta-vars-add* : meta-vars → 𝕃 meta-var → meta-vars
+meta-vars-add* Xs [] = Xs
+meta-vars-add* Xs (Y :: Ys) = meta-vars-add* (meta-vars-add Xs Y) Ys
+
 -- peel all type quantification var from a type, adding it to a set of
 -- meta-vars
 {-# TERMINATING #-} -- subst of a meta-var does not increase size of type
-meta-vars-peel : ctxt → meta-vars → type → meta-vars × type
-meta-vars-peel Γ Xs (TpParens pi tp pi')
-  = meta-vars-peel Γ Xs tp
-  -- we are only peeling type abstractions, not terms
-meta-vars-peel Γ Xs (Abs pi b pi' x tk@(Tkk k) tp)
-  with meta-vars-fresh-tp Xs x k nothing
-... | X
-  with meta-vars-add Xs X
-    | subst-type Γ (meta-var-to-type-unsafe X pi) x tp
-... | Xs' | tp' = meta-vars-peel Γ Xs' tp'
-meta-vars-peel Γ Xs tp
-  = Xs , tp
+meta-vars-peel : ctxt → meta-vars → type → (𝕃 meta-var) × type
+meta-vars-peel Γ Xs (Abs pi _ _ x tk@(Tkk k) tp) =
+  let Y   = meta-vars-fresh-tp Xs x k nothing
+      Xs' = meta-vars-add Xs Y
+      tp' = subst-type Γ (meta-var-to-type-unsafe Y pi) x tp
+      ret = meta-vars-peel Γ Xs' tp' ; Ys  = fst ret ; rtp = snd ret
+  in (Y :: Ys , rtp)
+
+meta-vars-peel Γ Xs (NoSpans tp _) =
+  meta-vars-peel Γ Xs tp
+meta-vars-peel Γ Xs (TpParens _ tp _) =
+  meta-vars-peel Γ Xs tp
+meta-vars-peel Γ Xs tp = [] , tp
 
 -- unfold a type with solve vars
 -- if it's needed for a type application
-
 -- TODO consider abs in is-free
-data is-tp-abs : Set where
-  yes-tp-abs : posinfo → binder → posinfo → bvar → kind → type → is-tp-abs
-  no-tp-abs  : type → is-tp-abs
+data tp-abs : Set where
+  mk-tp-abs  : posinfo → binder → posinfo → bvar → kind → type → tp-abs
 
-meta-vars-unfold-tpapp : ctxt → meta-vars → type → is-tp-abs
+tp-is-abs : Set
+tp-is-abs = type ∨ tp-abs
+
+pattern yes-tp-abs pi b pi' x k tp = inj₂ (mk-tp-abs pi b pi' x k tp)
+pattern not-tp-abs tp = inj₁ tp
+
+meta-vars-unfold-tpapp : ctxt → meta-vars → type → tp-is-abs
 meta-vars-unfold-tpapp Γ Xs tp
   with meta-vars-subst-type Γ Xs tp
 ... | Abs pi b pi' x (Tkk k) tp'
   = yes-tp-abs pi b pi' x k tp'
-... | tp' = no-tp-abs tp'
+... | tp' = not-tp-abs tp'
 
-data is-tp-arrow : Set where
-                     -- tp is the original type, tpₐ the domain
-  yes-tp-arrow : (tp tpₐ : type) → (e : maybeErased)
-                     → (cod : term → type) → is-tp-arrow
-  no-tp-arrow : (htp : type) → is-tp-arrow
+data arrow* : Set where
+  mk-arrow* : 𝕃 meta-var → (tp dom : type) → (e : maybeErased) → (cod : term → type) → arrow*
+
+tp-is-arrow* : Set
+tp-is-arrow* = type ∨ arrow*
+
+pattern yes-tp-arrow* Ys tp dom e cod = inj₂ (mk-arrow* Ys tp dom e cod)
+pattern not-tp-arrow* tp = inj₁ tp
 
 private
   ba-to-e : binder ⊎ arrowtype → maybeErased
@@ -262,19 +283,22 @@ private
   ba-to-e (inj₂ ErasedArrow) = Erased
   ba-to-e (inj₂ UnerasedArrow) = NotErased
 
-meta-vars-unfold-tmapp : ctxt → meta-vars → type → meta-vars × is-tp-arrow
-meta-vars-unfold-tmapp Γ Xs tp
-  -- substitute all known solutions in immediately, and
-  -- peel type abstractions
-  with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
-... | Xs' , tp'@(Abs _ b _ x (Tkt tpₐ) tpᵣ)
-  = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₁ b))
-            -- substitute term into codomain (dependent function type)
-            (λ t → subst-type Γ t x tpᵣ) -- Used to call qualif-term Γ on t (moved it instead to check-term-app for elaboration)
-... | Xs' , tp'@(TpArrow tpₐ at tpᵣ)
-  = Xs' , yes-tp-arrow tp (hnf Γ (unfolding-elab unfold-head-rec-defs) tpₐ tt) (ba-to-e (inj₂ at)) (λ _ → tpᵣ)
-... | Xs' , tp'
-  = Xs' , no-tp-arrow tp'
+meta-vars-unfold-tmapp : ctxt → meta-vars → type → tp-is-arrow*
+meta-vars-unfold-tmapp Γ Xs tp = aux
+  where
+  hnf-dom : type → type
+  hnf-dom dom = hnf Γ (unfolding-elab unfold-head-rec-defs) dom tt
+
+  aux : tp-is-arrow*
+  aux with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
+  ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =
+    yes-tp-arrow* Ys tp' (hnf-dom dom) (ba-to-e (inj₁ b))
+    (λ t → subst-type Γ t x cod') -- move `qualif-term Γ t' to check-term-spine for elaboration
+  ... | Ys , tp'@(TpArrow dom e cod') =
+    yes-tp-arrow* Ys tp' (hnf-dom dom) (ba-to-e (inj₂ e))
+      (λ _ → cod')
+  ... | Ys , tp' =
+    not-tp-arrow* tp'
 
 -- update the kinds of HO meta-vars with
 -- solutions
@@ -335,7 +359,7 @@ private
     e-meta-scope : ctxt → (x : var) → type → string
     e-meta-scope Γ x tp = rope-to-string $'
       [[ "Cannot match " ^ x ^ " with " ]] ⊹⊹ to-string Γ tp
-      ⊹⊹ [[ ", because some local vars would escape their scope." ]] 
+      ⊹⊹ [[ ", because some local vars would escape their scope." ]]
 
     e-catchall : ctxt → (tp₁ tp₂ : type) → string
     e-catchall Γ tp₁ tp₂ = e-type-ineq Γ tp₁ tp₂ ^ " (catchall case)"

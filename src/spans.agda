@@ -196,6 +196,12 @@ _on-fail_≫=spanm'_ {A}{B} m fail f = m ≫=span cont
         cont nothing  = fail
         cont (just x) = f x
 
+_on-fail_≫=spans'_ : ∀ {A B E} → spanM (E ∨ A) → (E → spanM B) → (A → spanM B) → spanM B
+_on-fail_≫=spans'_ {A}{B}{E} m fail f = m ≫=span cont
+  where cont : E ∨ A → spanM B
+        cont (inj₁ err) = fail err
+        cont (inj₂ a) = f a
+
 with-ctxt : ∀ {A} → ctxt → spanM A → spanM A
 with-ctxt Γ sm
   =   get-ctxt λ Γ' → set-ctxt Γ

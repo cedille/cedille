@@ -35,6 +35,9 @@ trie-any f (Node odata ts) = maybe-else (trie-cal-any f ts) f odata
 trie-cal-any f [] = ff
 trie-cal-any f ((c , t) :: cs) = trie-any f t || trie-cal-any f cs 
 
+trie-all : ∀{A : Set} → (A → 𝔹) → trie A → 𝔹
+trie-all f = ~_ ∘ trie-any (~_ ∘ f)
+
 trie-lookup𝕃 : ∀ {A : Set} → trie (𝕃 A) → string → 𝕃 A
 trie-lookup𝕃 t s = trie-lookupd t s []
 

@@ -615,10 +615,11 @@ module elaboration-with-renamectxt (ρ : renamectxt) where
   elab-app-term Γ (App t m t') =
     elab-app-term Γ t ≫=maybe uncurry' λ t T Xs →
     let abs-num = length (meta-vars.order Xs) in
-    case meta-vars-unfold-tmapp Γ Xs T of uncurry λ where
-      _ (no-tp-arrow _) → nothing
-      Xs (yes-tp-arrow T' Tₐ m' cod) →
-        let abs-num' = length (meta-vars.order Xs)
+    case meta-vars-unfold-tmapp Γ Xs T of λ where
+      (not-tp-arrow* _) → nothing
+      (yes-tp-arrow* Ys T' Tₐ m' cod) →
+        let Xs = meta-vars-add* Xs Ys
+            abs-num' = length (meta-vars.order Xs)
             num-apps = abs-num' ∸ abs-num
             ret t' cod' Xs = just (
               (λ Xs → t Xs ≫=maybe λ t →
@@ -634,23 +635,23 @@ module elaboration-with-renamectxt (ρ : renamectxt) where
                case meta-vars-match Γ Xs empty-trie Tₐ Tₐ' of λ where
                  (yes-error _) → nothing
                  (no-error Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
-  
+
   elab-app-term Γ (AppTp t T) =
     elab-type Γ T ≫=maybe uncurry λ T _ →
     elab-app-term Γ t ≫=maybe uncurry' λ t Tₕ Xs →
     case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
-      (no-tp-abs _) → nothing
+      (not-tp-abs _) → nothing
       (yes-tp-abs _ b _ x k Tₕ') →
         let X = meta-vars-fresh-tp Xs x k (just T)
             Tₕ'' = rename-var Γ x (meta-var-name X) ff Tₕ' in
         just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)
-  
+
   elab-app-term Γ (Parens pi t pi') = elab-app-term Γ t
   elab-app-term Γ t =
     elab-synth-term Γ t ≫=maybe uncurry λ t T →
     just ((λ _ → just t) , T , meta-vars-empty)
-  
-  
+
+
 
 {- ########################################################################## -}
 
