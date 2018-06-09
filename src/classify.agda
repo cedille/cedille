@@ -505,8 +505,8 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
   untyped-optGuide-spans (Guide pi' x tp) ≫span
   check-term t nothing ≫=span λ where
     (just (TpEq _ t1 t2 _)) →
-      let tp'' = qualif-type Γ (subst-type Γ t2 x tp) in -- This is t2 (and t1 below) so that Cedille Core files are correctly checked by regular Cedille
-      let tp''' = qualif-type Γ (subst-type Γ t1 x tp) in
+      let tp'' = subst-type Γ t2 x (qualif-type Γ tp) in -- This is t2 (and t1 below) so that Cedille Core files are correctly checked by regular Cedille
+      let tp''' = subst-type Γ t1 x (qualif-type Γ tp) in
       let err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
       spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: [ expected-type Γ tp' ]) err) ≫span
       spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x checking [] nothing) ≫span
@@ -522,7 +522,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
         cont (just (TpEq pi' t1 t2 pi'')) = 
            get-ctxt (λ Γ →
              let ns-err = optNums-to-stringset on in
-             let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
+             let s = rewrite-type tp Γ (is-rho-plus op) (fst ns-err) t1 t2 0 in
              check-term t' (just (fst s)) ≫span
              get-ctxt (λ Γ →
              spanM-add (Rho-span pi t t' checking op (inj₁ (fst (snd s))) ((to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) (snd ns-err (snd (snd s))))))
@@ -539,7 +539,7 @@ check-termi (Rho pi op on t NoGuide t') nothing =
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt (λ Γ → 
             let ns-err = optNums-to-stringset on in
-            let s = rewrite-type tp Γ empty-renamectxt (is-rho-plus op) (fst ns-err) t1 t2 0 in
+            let s = rewrite-type tp Γ (is-rho-plus op) (fst ns-err) t1 t2 0 in
             let tp' = fst s in
               spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
               check-termi-return Γ (Rho pi op on t NoGuide t') tp')

@@ -176,6 +176,10 @@ subst-kind Γ t x a = substh-kind Γ empty-renamectxt (trie-single x t) a
 subst-liftingType : subst-ret-t liftingType
 subst-liftingType Γ t x a = substh-liftingType Γ empty-renamectxt (trie-single x t) a
 
+rename-term : ctxt → var → var → (is-term-var : 𝔹) → term → term
+rename-term Γ x y tt t = subst-term Γ (Var posinfo-gen y) x t
+rename-term Γ x y ff t = subst-term Γ (TpVar posinfo-gen y) x t
+
 rename-type : ctxt → var → var → (is-term-var : 𝔹) → type → type
 rename-type Γ x y tt tp = subst-type Γ (Var posinfo-gen y) x tp
 rename-type Γ x y ff tp = subst-type Γ (TpVar posinfo-gen y) x tp

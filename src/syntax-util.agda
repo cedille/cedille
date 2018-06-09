@@ -350,6 +350,16 @@ is-app{TYPE} (TpApp _ _) = tt
 is-app{TYPE} (TpAppt _ _) = tt
 is-app _ = ff
 
+is-term-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-term-app{TERM} (App _ _ _) = tt
+is-term-app{TERM} (AppTp _ _) = tt
+is-term-app _ = ff
+
+is-type-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-type-app{TYPE} (TpApp _ _) = tt
+is-type-app{TYPE} (TpAppt _ _) = tt
+is-type-app _ = ff
+
 is-arrow : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-arrow{TYPE} (TpArrow _ _ _) = tt
 is-arrow{KIND} (KndTpArrow _ _) = tt

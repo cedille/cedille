@@ -187,11 +187,11 @@ checked-with-no-errors _ = nothing
 
 rewrite-expr' : ctxt → expr → term → term → 𝔹 → Σi language-level (λ p → language-level-lift p × ℕ × ℕ)
 rewrite-expr' Γ (,_ {ll-term} t) t₁ t₂ b = ,
-  rewrite-term (qualif-term Γ t) Γ empty-renamectxt b nothing t₁ t₂ 0
+  rewrite-term (qualif-term Γ t) Γ b nothing t₁ t₂ 0
 rewrite-expr' Γ (,_ {ll-type} T) t₁ t₂ b = ,
-  rewrite-type (qualif-type Γ T) Γ empty-renamectxt b nothing t₁ t₂ 0
+  rewrite-type (qualif-type Γ T) Γ b nothing t₁ t₂ 0
 rewrite-expr' Γ (,_ {ll-kind} k) t₁ t₂ b = ,
-  rewrite-kind (qualif-kind Γ k) Γ empty-renamectxt b nothing t₁ t₂ 0
+  rewrite-kind (qualif-kind Γ k) Γ b nothing t₁ t₂ 0
 
 rewrite-expr : ctxt → expr → term → term → 𝔹 → string ⊎ tagged-val
 rewrite-expr Γ e t₁ t₂ b with rewrite-expr' Γ e t₁ t₂ b

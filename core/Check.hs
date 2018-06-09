@@ -61,7 +61,7 @@ synthTerm' c (TmLambda v tp tm) =
 synthTerm' c (TmLambdaE v tk tm) =
   errIfCtxtBinds c v >>
   errIf (freeInTerm v (eraseTerm tm))
-    ("Implicit variable occurs free in its body: " ++ v) >>
+    ("Implicit variable occurs free in its body") >>
   synthTpKd c tk >>
   let tk' = hnfeTpKd c tk in
   synthTerm (ctxtDefTpKd c v tk') tm >>= Right . TpAll v tk'
@@ -85,12 +85,15 @@ synthTerm' c (TmAppTp tm tp) =
     _ -> err "Expected the head of an application to synthesize a kind-forall type"
 synthTerm' c (TmIota tm tm' v tp) =
   errIfCtxtBinds c v >>
-  errIfNot (convTerm c (eraseTerm tm) (eraseTerm tm')) ("in an iota pair, " ++ show (hnfeTerm c tm) ++ " != " ++ show (hnfeTerm c tm')) >>
   synthTerm c tm >>= \ ltp ->
   synthTerm c tm' >>= \ rtp ->
   checkType (ctxtDefTerm c v (Nothing, Just ltp)) tp >>
-  let tp' = eraseType tp in
-  errIfNot (convType (ctxtInternalDef c v (Left (hnfeTerm c tm))) tp' rtp) "Inconvertible types in an iota pair" >>
+  let tp' = eraseType tp
+      tm'' = eraseTerm tm
+      tm''' = eraseTerm tm'
+      htm'' = hnfTerm c tm'' in
+  errIfNot (convTerm' c htm'' (hnfTerm c tm''')) ("In an iota pair, " ++ show htm'' ++ " != " ++ show (hnfTerm c tm''')) >>
+  errIfNot (convType (ctxtInternalDef c v (Left htm'')) tp' rtp) "Inconvertible types in an iota pair" >>
   Right (TpIota v ltp tp')
 synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
   (TpIota v tp tp') -> Right (hnfType c tp)
@@ -106,8 +109,8 @@ synthTerm' c (Sigma tm) = synthTerm c tm >>= \ tp -> case tp of
   (TpEq ltm rtm) -> Right (TpEq rtm ltm)
   _ -> err "Expected to synthesize an equational type from the body of a sigma term"
 synthTerm' c (Delta tp tm) =
-  doRename' c "x" $ \ x ->
-  doRename' c "y" $ \ y ->
+  freshVar c "x" $ \ x ->
+  freshVar c "y" $ \ y ->
   synthTerm c tm >>= \ tp' ->
   let tt = PureLambda x (PureLambda y (PureVar x)) in
   let ff = PureLambda x (PureLambda y (PureVar y)) in
@@ -121,14 +124,15 @@ synthTerm' c (Rho tm v tp tm') =
   synthTerm c tm' >>= \ btp ->
   case eqtp of
     (TpEq ltm rtm) ->
-      errIfNot (convType (ctxtInternalDef c v (Left (substTerm c ltm))) btp tp) "Inconvertible types after rewriting in a rho term" >>
-      Right (substType (ctxtInternalDef c v (Left (substTerm c rtm))) tp)
+      errIfNot (convType (ctxtInternalDef c v (Left (hnfTerm c ltm))) btp tp)
+        "Inconvertible types after rewriting in a rho term with the equation" >>
+      Right (substType (ctxtInternalDef c v (Left rtm)) tp)
     _ -> err "Could not synthesize an equation from the first term in a rho term"
 synthTerm' c (Phi tm tm' pt) =
   synthTerm c tm >>= \ eqtp ->
   synthTerm c tm' >>= \ rettp ->
   isValidTerm c pt >>
-  errIfNot (convType c eqtp (TpEq (hnfeTerm c tm') pt))
+  errIfNot (convType c eqtp (TpEq (eraseTerm tm') pt))
     "Could not synthesize an equation for the terms in a phi term" >>
   Right rettp
 

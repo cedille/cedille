@@ -52,7 +52,7 @@ termToString b (IotaProj2 tm) = termToString True tm ++ " . 2"
 termToString b (Beta pt pt') = "β < " ++ pureTermToString True pt ++ " > { " ++ show pt' ++ " }"
 termToString b (Sigma tm) = "ς " ++ termToString True tm
 termToString b (Delta tp tm) = "δ " ++ typeToString True tp ++ " - " ++ termToString True tm
-termToString b (Rho tm v tp tm') = "ρ " ++ termToString True tm ++ " @ " ++ v ++ " " ++ typeToString True tp ++ " - " ++ show tm'
+termToString b (Rho tm v tp tm') = "ρ " ++ termToString True tm ++ " @ " ++ v ++ " . " ++ typeToString True tp ++ " - " ++ show tm'
 termToString b (Phi tm tm' tm'') = "φ " ++ termToString True tm ++ " - " ++ termToString True tm' ++ " { " ++ show tm'' ++ " }"
 
 typeToString b (TpVar v) = v

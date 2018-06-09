@@ -60,28 +60,3 @@ checkFile c fs fp =
 main = getArgs >>= \ as -> case as of
   (fp : []) -> checkFile emptyCtxt emptyTrie fp >> return ()
   _ -> putStrLn "Run with the name of a single file"
-
-{-
---splitStr :: String -> String -> [String]
-splitStr s [] = s : []
-splitStr s (' ' : cs) = s : splitStr "" cs
-splitStr s (c : cs) = splitStr (s ++ (c : [])) cs
-
---joinStr :: [String] -> String
-joinStr [] = ""
-joinStr (s : []) = s
-joinStr (s : ss) = s ++ " " ++ joinStr ss
-
---handleInput :: Ctxt -> [String] -> IO ()
-handleInput c ("check" : fp : []) = checkFile emptyCtxt emptyTrie fp >>= mainWithCtxt . fst
-handleInput c ("lookup" : "term" : "hnf" : v : []) = putStrLn (maybe "Term not defined" show (ctxtLookupTermVar c v)) >> mainWithCtxt c
-handleInput c ("lookup" : "type" : "hnf" : v : []) = putStrLn (maybe "Type not defined" show (ctxtLookupTypeVar c v)) >> mainWithCtxt c
-handleInput c ("lookup" : "term" : "type" : v : []) = putStrLn (maybe "Term not defined" show (ctxtLookupVarType c v)) >> mainWithCtxt c
-handleInput c ("lookup" : "type" : "kind" : v : []) = putStrLn (maybe "Type not defined" show (ctxtLookupVarKind c v)) >> mainWithCtxt c
-handleInput c ("quit" : []) = return ()
-handleInput c _ = putStrLn "Unknown command" >> mainWithCtxt c
-
-mainWithCtxt c = getLine >>= handleInput c . splitStr ""
-
-main = mainWithCtxt emptyCtxt
--}
