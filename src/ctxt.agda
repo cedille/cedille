@@ -64,12 +64,10 @@ def-params ff ps = just ps
 inst-type : ctxt → params → args → type → type
 inst-type Γ ps as T with mk-inst ps as
 ...| σ , ps' = abs-expand-type ps' (substs-type Γ σ T)
--- inst-type Γ ps as = substs-type Γ (mk-inst ps as)
 
 inst-kind : ctxt → params → args → kind → kind
 inst-kind Γ ps as k with mk-inst ps as
 ...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
--- inst-kind Γ ps as = substs-kind Γ (mk-inst ps as)
 
 -- TODO substs-params
 inst-params : ctxt → params → args → params → params
