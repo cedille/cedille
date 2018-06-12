@@ -238,8 +238,8 @@ hnf{KIND} Γ (unfold _ _ _ _) (KndVar pi x ys) _ with ctxt-lookup-kind-var-def �
 ... | nothing = KndVar pi x ys
 ... | just (ps , k) = do-subst ys ps k
   where do-subst : args → params → kind → kind
-        do-subst (ArgsCons (TermArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
-        do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+        do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+        do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
         do-subst _ _ k = k -- should not happen 
 
 hnf{KIND} Γ u (KndPi pi pi' x atk k) hd =
@@ -391,8 +391,8 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-oc
   symb-occs where
     k' = hnf Γ unfold-head (qualif-kind Γ k) tt
     h : ctxt → params → params
-    h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' x t-k pi'') ps) =
-      ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' localScope x t-k Γ) ps)
+    h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _) (ParamsCons (Decl pi pi' me x t-k pi'') ps) =
+      ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ t-k) pi'') (h (ctxt-tk-decl pi' localScope x t-k Γ) ps)
     h _ ps = ps
 
 -- assumption: classifier (i.e. kind) already qualified

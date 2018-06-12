@@ -142,7 +142,8 @@ include-elt-to-string ie =
 
 params-to-string'' : params → string
 params-to-string'' ParamsNil = ""
-params-to-string'' (ParamsCons (Decl pi pi' v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string'' pms)
+-- TODO print erased vs non-erased?
+params-to-string'' (ParamsCons (Decl pi pi' me v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string'' pms)
 
 defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string'' pms

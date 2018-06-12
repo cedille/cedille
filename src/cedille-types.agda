@@ -111,7 +111,7 @@ data vars : Set
 {-# COMPILED_DECLARE_DATA vars CedilleTypes.Vars  #-}
 
 data arg where 
-  TermArg : term → arg
+  TermArg : maybeErased → term → arg
   TypeArg : type → arg
 {-# COMPILED_DATA arg CedilleTypes.Arg CedilleTypes.TermArg CedilleTypes.TypeArg #-}
 
@@ -142,7 +142,7 @@ data cmds where
 {-# COMPILED_DATA cmds CedilleTypes.Cmds CedilleTypes.CmdsNext CedilleTypes.CmdsStart #-}
 
 data decl where 
-  Decl : posinfo → posinfo → bvar → tk → posinfo → decl
+  Decl : posinfo → posinfo → maybeErased → bvar → tk → posinfo → decl
 {-# COMPILED_DATA decl CedilleTypes.Decl CedilleTypes.Decl #-}
 
 data defTermOrType where 
@@ -528,7 +528,7 @@ var-star-12ToString x = "(var-star-12 " ^ x ^ ")"
 
 mutual
   argToString : arg → string
-  argToString (TermArg x0) = "(TermArg" ^ " " ^ (termToString x0) ^ ")"
+  argToString (TermArg x0 x1) = "(TermArg" ^ " " ^ (maybeErasedToString x0) ^ " " ^ (termToString x1) ^ ")"
   argToString (TypeArg x0) = "(TypeArg" ^ " " ^ (typeToString x0) ^ ")"
 
   argsToString : args → string
@@ -553,7 +553,7 @@ mutual
   cmdsToString (CmdsStart) = "CmdsStart" ^ ""
 
   declToString : decl → string
-  declToString (Decl x0 x1 x2 x3 x4) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (bvarToString x2) ^ " " ^ (tkToString x3) ^ " " ^ (posinfoToString x4) ^ ")"
+  declToString (Decl x0 x1 x2 x3 x4 x5) = "(Decl" ^ " " ^ (posinfoToString x0) ^ " " ^ (posinfoToString x1) ^ " " ^ (maybeErasedToString x2) ^ " " ^ (bvarToString x3) ^ " " ^ (tkToString x4) ^ " " ^ (posinfoToString x5) ^ ")"
 
   defTermOrTypeToString : defTermOrType → string
   defTermOrTypeToString (DefTerm x0 x1 x2 x3) = "(DefTerm" ^ " " ^ (posinfoToString x0) ^ " " ^ (varToString x1) ^ " " ^ (maybeCheckTypeToString x2) ^ " " ^ (termToString x3) ^ ")"

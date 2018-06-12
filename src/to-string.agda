@@ -286,7 +286,7 @@ maybeCheckType-to-string NoCheckType = strEmpty
 maybeCheckType-to-string (Type T) = strAdd " ◂ " ≫str to-stringh T
 lterms-to-string (LtermsCons m t ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string (LtermsNil _) = strEmpty
-arg-to-string (TermArg t) = to-stringh t
+arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
 arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
 args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-to-string ts
 args-to-string ArgsNil = strEmpty
@@ -319,11 +319,19 @@ optPublic-to-string Public = "public "
 optAs-to-string NoOptAs = strEmpty
 optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
 
+braceL : maybeErased → string
+braceL Erased = "{"
+braceL NotErased = "("
+
+braceR : maybeErased → string
+braceR Erased = "}"
+braceR NotErased = ")"
+
 params-to-string' ds f ParamsNil = f
-params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ParamsNil) =
-  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ")" ≫str strΓ' ds ff v pi f
-params-to-string' ds f (ParamsCons (Decl _ pi v atk _) ps) =
-  strAdd "(" ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd ") " ≫str
+params-to-string' ds f (ParamsCons (Decl _ pi me v atk _) ParamsNil) =
+  strAdd (braceL me) ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd (braceR me) ≫str strΓ' ds ff v pi f
+params-to-string' ds f (ParamsCons (Decl _ pi me v atk _) ps) =
+  strAdd (braceL me) ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd (braceR me ^ " ") ≫str
   strΓ' ds ff v pi (params-to-string' ds f ps)
 
 params-to-string = params-to-string' localScope strEmpty

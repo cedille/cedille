@@ -79,7 +79,7 @@ are-free-in-kind ce x (KndTpArrow t k) = are-free-in-type ce x t || are-free-in-
 are-free-in-kind ce x (KndVar _ x' ys) = trie-contains x x' || are-free-in-args ce x ys
 are-free-in-kind ce x (Star x₁) = ff
 
-are-free-in-args ce x (ArgsCons (TermArg y) ys) = are-free-in-term ce x y || are-free-in-args ce x ys
+are-free-in-args ce x (ArgsCons (TermArg _ y) ys) = are-free-in-term ce x y || are-free-in-args ce x ys
 are-free-in-args ce x (ArgsCons (TypeArg y) ys) = are-free-in-type ce x y || are-free-in-args ce x ys
 are-free-in-args ce x ArgsNil = ff
 
@@ -113,7 +113,7 @@ are-free-in-maybeAtype ce x (Atype T) = are-free-in-type ce x T
 
 are-free-in : {ed : exprd} → are-free-e → stringset → ⟦ ed ⟧ → 𝔹
 are-free-in{TERM} e x t = are-free-in-term e x t
-are-free-in{ARG} e x (TermArg t) = are-free-in-term e x t
+are-free-in{ARG} e x (TermArg _ t) = are-free-in-term e x t
 are-free-in{TYPE} e x t = are-free-in-type e x t 
 are-free-in{ARG} e x (TypeArg t) = are-free-in-type e x t
 are-free-in{KIND} e x t = are-free-in-kind e x t
@@ -123,7 +123,7 @@ are-free-in{QUALIF} e x (x' , as) = trie-contains x x' || are-free-in-args e x a
 
 is-free-in : {ed : exprd} → are-free-e → var → ⟦ ed ⟧ → 𝔹
 is-free-in{TERM} e x t = are-free-in-term e (stringset-singleton x) t
-is-free-in{ARG} e x (TermArg t) = are-free-in-term e (stringset-singleton x) t
+is-free-in{ARG} e x (TermArg _ t) = are-free-in-term e (stringset-singleton x) t
 is-free-in{TYPE} e x t = are-free-in-type e (stringset-singleton x) t 
 is-free-in{ARG} e x (TypeArg t) = are-free-in-type e (stringset-singleton x) t
 is-free-in{KIND} e x t = are-free-in-kind e (stringset-singleton x) t 

@@ -13,7 +13,7 @@ type Qkvar = Text
 type Kvar = Text
 type PosInfo = Text
 
-data Arg = TermArg Term | TypeArg Type
+data Arg = TermArg MaybeErased Term | TypeArg Type
      deriving (Show,Eq)
 
 data Args = ArgsCons Arg Args | ArgsNil
@@ -37,7 +37,7 @@ data Cmds =
       deriving (Show,Eq)
 
 data Decl =
-     Decl PosInfo PosInfo Bvar Tk PosInfo
+     Decl PosInfo PosInfo MaybeErased Bvar Tk PosInfo
      deriving (Show,Eq)
 
 data DefTermOrType =

@@ -90,13 +90,13 @@ qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
 qualif-tk Γ (Tkk k) = Tkk (qualif-kind Γ k)
 
 qualif-params : ctxt → params → params
-qualif-params Γ (ParamsCons (Decl pi1 pi1' x atk pi2) ps) =
+qualif-params Γ (ParamsCons (Decl pi1 pi1' me x atk pi2) ps) =
   ParamsCons p' (qualif-params Γ ps)
-  where p' = Decl pi1 pi1' (ctxt-get-current-modname Γ # x) (qualif-tk Γ atk) pi2
+  where p' = Decl pi1 pi1' me (ctxt-get-current-modname Γ # x) (qualif-tk Γ atk) pi2
 qualif-params Γ ParamsNil = ParamsNil
 
 qualif-args : ctxt → args → args
-qualif-args Γ (ArgsCons (TermArg t) as) = ArgsCons (TermArg (qualif-term Γ t)) (qualif-args Γ as)
+qualif-args Γ (ArgsCons (TermArg me t) as) = ArgsCons (TermArg me (qualif-term Γ t)) (qualif-args Γ as)
 qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp)) (qualif-args Γ as)
 qualif-args Γ ArgsNil = ArgsNil
 

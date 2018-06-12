@@ -353,7 +353,7 @@ type-argument : ctxt → type → tagged-val
 type-argument = to-string-tag "the argument"
 
 arg-argument : ctxt → arg → tagged-val
-arg-argument Γ (TermArg x) = term-argument Γ x
+arg-argument Γ (TermArg me x) = term-argument Γ x
 arg-argument Γ (TypeArg x) = type-argument Γ x
 
 kind-data : ctxt → kind → tagged-val

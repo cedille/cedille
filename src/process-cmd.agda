@@ -40,7 +40,7 @@ process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
 check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
+check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
@@ -49,7 +49,7 @@ check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
 check-and-add-params _ _ ParamsNil = spanMr []
 
 dont-check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
-dont-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' x atk pi2) ps') =
+dont-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
   add-tk' ff scope pi1' x atk ≫=span λ mi →
   dont-check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 dont-check-and-add-params _ _ ParamsNil = spanMr []

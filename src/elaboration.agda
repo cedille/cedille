@@ -64,8 +64,8 @@ private
     where
       k' = hnf Γ unfold-head k tt
       h : ctxt → params → params
-      h Γ (ParamsCons (Decl pi pi' x atk pi'') ps) =
-        ParamsCons (Decl pi pi' (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' localScope x atk Γ) ps)
+      h Γ (ParamsCons (Decl pi pi' me x atk pi'') ps) =
+        ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' localScope x atk Γ) ps)
       h _ ps = ps
 
   ctxt-lookup-term-var' : ctxt → var → maybe type
@@ -604,8 +604,8 @@ elab-kindh Γ (KndVar pi x as) b =
   env-lookup-kind-var-qdef Γ x as ≫=maybe uncurry (do-subst as)
   where
   do-subst : args → params → kind → maybe kind
-  do-subst (ArgsCons (TermArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
-  do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+  do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+  do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
   do-subst ArgsNil ParamsNil k = elab-kindh Γ k b
   do-subst _ _ _ = nothing
 elab-kindh Γ (Star pi) b = just star
@@ -771,32 +771,32 @@ elab-imports : elab-t imports
 elab-import : elab-t imprt
 
 elab-params ts ρ φ ParamsNil = just (ParamsNil , ts , ρ , φ)
-elab-params ts ρ φ (ParamsCons (Decl _ pi x atk _) ps) =
+elab-params ts ρ φ (ParamsCons (Decl _ pi me x atk _) ps) =
   let Γ = toplevel-state.Γ ts in
   elab-tk Γ (subst-qualif Γ ρ atk) ≫=maybe λ atk →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   elab-params (record ts {Γ = ctxt-param-decl x x' atk Γ}) ρ φ ps ≫=maybe uncurry λ ps ts-ρ-φ →
-  just (ParamsCons (Decl posinfo-gen posinfo-gen x' atk posinfo-gen) ps , ts-ρ-φ)
+  just (ParamsCons (Decl posinfo-gen posinfo-gen me x' atk posinfo-gen) ps , ts-ρ-φ)
 
 elab-args ts ρ φ (ArgsNil , ParamsNil) = just ((ArgsNil , ParamsNil) , ts , ρ , φ)
 elab-args ts ρ φ (_ , ParamsNil) = nothing -- Too many arguments
 elab-args ts ρ φ (ArgsNil , ParamsCons p ps) = nothing -- TODO: Partial application?
-elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ x atk _) ps) =
+elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
   let Γ = toplevel-state.Γ ts in
   case (a , atk) of λ where
-    (TermArg t , Tkt T) →
+    (TermArg me' t , Tkt T) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
       rename qualif-new-var Γ x - x from ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-term-def' x x' t T Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
-      just ((ArgsCons (TermArg t) as , ParamsCons (Decl posinfo-gen posinfo-gen x' (Tkt T) posinfo-gen) ps) , ts-ρ-φ)
+      just ((ArgsCons (TermArg me' t) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkt T) posinfo-gen) ps) , ts-ρ-φ)
     (TypeArg T , Tkk _) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       rename qualif-new-var Γ x - x from ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-type-def' x x' T k Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
-      just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen x' (Tkk k) posinfo-gen) ps) , ts-ρ-φ)
+      just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkk k) posinfo-gen) ps) , ts-ρ-φ)
     _ → nothing
 
 elab-import ts ρ φ (Import _ op _ ifn oa as _) =

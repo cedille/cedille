@@ -126,7 +126,7 @@ substh-kind{QUALIF} Γ ρ σ (KndVar pi x xs) =
 substh-kind Γ ρ σ (KndVar pi x xs) = KndVar pi x (substh-args Γ ρ σ xs)
 substh-kind Γ ρ σ (Star pi) = Star pi
 
-substh-args Γ ρ σ (ArgsCons (TermArg x₁) xs) = ArgsCons (TermArg (substh-term Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
+substh-args Γ ρ σ (ArgsCons (TermArg me x₁) xs) = ArgsCons (TermArg me (substh-term Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
 substh-args Γ ρ σ (ArgsCons (TypeArg x₁) xs) = ArgsCons (TypeArg (substh-type Γ ρ σ x₁)) (substh-args Γ ρ σ xs)
 substh-args Γ ρ σ ArgsNil = ArgsNil
 

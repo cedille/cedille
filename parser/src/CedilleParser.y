@@ -130,7 +130,7 @@ DefTermOrType :: { DefTermOrType }
               | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
 
 Decl :: { Decl }
-     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 (pos2Txt1 $5) }
+     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
 
 Theta :: { (Theta, PosInfo) }
       : 'θ'                             { (Abstract       , pos2Txt $1) }
@@ -241,7 +241,7 @@ Atype :: { Type }
       | '{' Term '≃' Term '}'           { TpEq (pos2Txt $1) $2 $4 (pos2Txt1 $5)  } -- is it not even better here? not require parenthesis in arrow types! neither in type application (cdot), but we should add info position at the end !
 
 Arg :: { Arg }
-    : Lterm                             { TermArg $1 }
+    : Lterm                             { TermArg NotErased $1 }
     | '·' Atype                         { TypeArg $2 }
 
 Args :: { Args }

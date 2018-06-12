@@ -88,18 +88,18 @@ compileFail = "compileFail"
 compileFail-qual = "" % compileFail
 
 mk-inst : params → args → trie arg × params
-mk-inst (ParamsCons (Decl _ _ x _ _) ps) (ArgsCons a as) with mk-inst ps as
+mk-inst (ParamsCons (Decl _ _ _ x _ _) ps) (ArgsCons a as) with mk-inst ps as
 ...| σ , ps' = trie-insert σ x a , ps'
 mk-inst ps as = empty-trie , ps
 
 apps-term : term → args → term
 apps-term f (ArgsNil) = f
-apps-term f (ArgsCons (TermArg t) as) = apps-term (App f NotErased t) as
+apps-term f (ArgsCons (TermArg me t) as) = apps-term (App f me t) as
 apps-term f (ArgsCons (TypeArg t) as) = apps-term (AppTp f t) as
 
 apps-type : type → args → type
 apps-type f (ArgsNil) = f
-apps-type f (ArgsCons (TermArg t) as) = apps-type (TpAppt f t) as
+apps-type f (ArgsCons (TermArg _ t) as) = apps-type (TpAppt f t) as
 apps-type f (ArgsCons (TypeArg t) as) = apps-type (TpApp f t) as
 
 append-params : params → params → params
@@ -127,7 +127,7 @@ qualif-lookup-kind pi xs σ x with trie-lookup σ x
 
 inst-lookup-term : posinfo → trie arg → string → term
 inst-lookup-term pi σ x with trie-lookup σ x
-... | just (TermArg t) = t
+... | just (TermArg me t) = t
 ... | _ = Var pi x
 
 inst-lookup-type : posinfo → trie arg → string → type
@@ -137,8 +137,8 @@ inst-lookup-type pi σ x with trie-lookup σ x
 
 params-to-args : params → args
 params-to-args ParamsNil = ArgsNil
-params-to-args (ParamsCons (Decl _ p v (Tkt t) _) ps) = ArgsCons (TermArg (Var p v)) (params-to-args ps)
-params-to-args (ParamsCons (Decl _ p v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
+params-to-args (ParamsCons (Decl _ p me v (Tkt t) _) ps) = ArgsCons (TermArg me (Var p v)) (params-to-args ps)
+params-to-args (ParamsCons (Decl _ p _ v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
 
 qualif-insert-params : qualif → var → var → params → qualif
 qualif-insert-params σ qv v ps = trie-insert σ v (qv , params-to-args ps)
@@ -154,6 +154,10 @@ qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert �
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
 tk-is-type (Tkk _) = ff
+
+me-unerased : maybeErased → 𝔹
+me-unerased Erased = ff
+me-unerased NotErased = tt
 
 binder-is-pi : binder → 𝔹
 binder-is-pi Pi = tt
@@ -268,7 +272,7 @@ tk-end-pos (Tkk k) = kind-end-pos k
 args-end-pos pi (ArgsCons x ys) = args-end-pos (arg-end-pos x) ys
 args-end-pos pi ArgsNil = pi
 
-arg-end-pos (TermArg t) = term-end-pos t
+arg-end-pos (TermArg me t) = term-end-pos t
 arg-end-pos (TypeArg T) = type-end-pos T
 
 kvar-end-pos pi v = args-end-pos (posinfo-plus-str pi v)
@@ -738,22 +742,22 @@ unqual-all q v with var-suffix v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
 lam-expand-term : params → term → term
-lam-expand-term (ParamsCons (Decl pi pi' x tk _) ps) t =
-  Lam posinfo-gen (if tk-is-type tk then KeptLambda else ErasedLambda) pi' x (SomeClass tk) (lam-expand-term ps t)
+lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
+  Lam posinfo-gen (if (tk-is-type tk && me-unerased me) then KeptLambda else ErasedLambda) pi' x (SomeClass tk) (lam-expand-term ps t)
 lam-expand-term ParamsNil t = t
 
 lam-expand-type : params → type → type
-lam-expand-type (ParamsCons (Decl pi pi' x tk _) ps) t =
+lam-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
   TpLambda posinfo-gen pi' x tk (lam-expand-type ps t)
 lam-expand-type ParamsNil t = t
 
 abs-expand-type : params → type → type
-abs-expand-type (ParamsCons (Decl pi pi' x tk _) ps) t =
-  Abs posinfo-gen (if tk-is-type tk then Pi else All) pi' x tk (abs-expand-type ps t)
+abs-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
+  Abs posinfo-gen (if (tk-is-type tk && me-unerased me) then Pi else All) pi' x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
 abs-expand-kind : params → kind → kind
-abs-expand-kind (ParamsCons (Decl pi pi' x tk _) ps) k =
+abs-expand-kind (ParamsCons (Decl pi pi' me x tk _) ps) k =
   KndPi posinfo-gen pi' x tk (abs-expand-kind ps k)
 abs-expand-kind ParamsNil k = k
 
@@ -762,7 +766,8 @@ args-length (ArgsCons p ps) = suc (args-length ps)
 args-length ArgsNil = 0
 
 erased-args-length : args → ℕ
-erased-args-length (ArgsCons (TermArg _) ps) = suc (erased-args-length ps)
+erased-args-length (ArgsCons (TermArg NotErased _) ps) = suc (erased-args-length ps)
+erased-args-length (ArgsCons (TermArg Erased _) ps) = erased-args-length ps
 erased-args-length (ArgsCons (TypeArg _) ps) = erased-args-length ps
 erased-args-length ArgsNil = 0
 
@@ -770,37 +775,34 @@ me-args-length : maybeErased → args → ℕ
 me-args-length Erased = erased-args-length
 me-args-length NotErased = args-length
 
-spine : Set
-spine = 𝕃(maybeErased × arg)
-
 spineApp : Set
-spineApp = (posinfo × qvar) × spine
+spineApp = (posinfo × qvar) × 𝕃 arg
 
 term-to-spapp : term → maybe spineApp
 term-to-spapp (App t me t') = term-to-spapp t ≫=maybe
-  (λ { (v , as) → just (v , (me , TermArg t') :: as) })
+  (λ { (v , as) → just (v , TermArg me t' :: as) })
 term-to-spapp (AppTp t T) = term-to-spapp t ≫=maybe
-  (λ { (v , as) → just (v , (NotErased , TypeArg T) :: as) })
+  (λ { (v , as) → just (v , TypeArg T :: as) })
 term-to-spapp (Var pi v) = just ((pi , v) , [])
 term-to-spapp _ = nothing
 
 type-to-spapp : type → maybe spineApp
 type-to-spapp (TpApp T T') = type-to-spapp T ≫=maybe
-  (λ { (v , as) → just (v , (NotErased , TypeArg T') :: as) })
+  (λ { (v , as) → just (v , TypeArg T' :: as) })
 type-to-spapp (TpAppt T t) = type-to-spapp T ≫=maybe
-  (λ { (v , as) → just (v , (NotErased , TermArg t) :: as) })
+  (λ { (v , as) → just (v , TermArg NotErased t :: as) })
 type-to-spapp (TpVar pi v) = just ((pi , v) , [])
 type-to-spapp _ = nothing
 
 spapp-term : spineApp → term
 spapp-term ((pi , v) , []) = Var pi v
-spapp-term (v , (me , TermArg t) :: as) = App (spapp-term (v , as)) me t
-spapp-term (v , (me , TypeArg T) :: as) = AppTp (spapp-term (v , as)) T
+spapp-term (v , TermArg me t :: as) = App (spapp-term (v , as)) me t
+spapp-term (v , TypeArg T :: as) = AppTp (spapp-term (v , as)) T
 
 spapp-type : spineApp → type
 spapp-type ((pi , v) , []) = TpVar pi v
-spapp-type (v , (me , TermArg t) :: as) = TpAppt (spapp-type (v , as)) t
-spapp-type (v , (me , TypeArg T) :: as) = TpApp (spapp-type (v , as)) T
+spapp-type (v , TermArg me t :: as) = TpAppt (spapp-type (v , as)) t
+spapp-type (v , TypeArg T :: as) = TpApp (spapp-type (v , as)) T
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)

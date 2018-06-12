@@ -1138,32 +1138,47 @@ check-args-against-params kind-or-import orig ps ys =
     then KndVar-span Γ orig (kvar-end-pos (fst orig) (snd orig) ys) ps checking
     else Import-module-span Γ orig ps
   caap : 𝔹 → params → args → spanM (𝕃 (string × restore-def))
-  caap koi (ParamsCons (Decl _ pi x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
+  caap koi (ParamsCons (Decl _ pi _ x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
     check-type T (just k) ≫span
     spanM-push-type-def pi paramVar x T k ≫=span λ m → 
     caap koi ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
-  caap koi (ParamsCons (Decl _ pi x (Tkt T) _) ps) (ArgsCons (TermArg t) ys) =
+  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) =
     check-term t (just T) ≫span
     spanM-push-term-def pi paramVar x t T ≫=span λ m → 
     caap koi ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
-  caap koi (ParamsCons (Decl _ x₁ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg x₅) ys₂) =
+  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
+    check-term t (just T) ≫span
+    spanM-push-term-def pi paramVar x t T ≫=span λ m → 
+    caap koi ps ys ≫=span λ ms →
+    spanMr ((x , m) :: ms)
+  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
+    get-ctxt (λ Γ → 
+    spanM-add (make-span Γ [ term-argument Γ t ]
+                 ( just ("A term argument was supplied for erased term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
+    spanMr []
+  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) =
+    get-ctxt (λ Γ → 
+    spanM-add (make-span Γ [ term-argument Γ t ]
+                 ( just ("An erased term argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
+    spanMr []
+  caap koi (ParamsCons (Decl _ x₁ _ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg _ x₅) ys₂) =
     get-ctxt (λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ x₅ ]
                  ( just ("A term argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
     spanMr []
-  caap koi (ParamsCons (Decl _ x₁ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
+  caap koi (ParamsCons (Decl _ x₁ _ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
     get-ctxt (λ Γ → 
     spanM-add (make-span Γ [ type-argument Γ x₅ ]
-                 ( just ("A type argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
+                 ( just ("A type argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
     spanMr []
-  caap tt (ParamsCons (Decl _ _ x _ _) ps₁) ArgsNil =
+  caap tt (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil =
     get-ctxt (λ Γ → 
     spanM-add (make-span Γ []
                  (just ("Missing an argument for parameter " ^ x ^ " of the defined  " ^ str ^ ".")))) ≫span
     spanMr []             
-  caap ff (ParamsCons (Decl _ _ x _ _) ps₁) ArgsNil =
+  caap ff (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil =
     get-ctxt (λ Γ → spanM-add (make-span Γ [] nothing)) ≫span spanMr []
   caap koi ParamsNil (ArgsCons x₁ ys₂) = 
     get-ctxt (λ Γ → 
