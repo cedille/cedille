@@ -9,6 +9,7 @@ open import conversion
 open import ctxt
 open import general-util
 open import spans options {Id}
+open import subst
 open import syntax-util
 open import to-string options
 open import toplevel-state options {IO}
@@ -185,16 +186,20 @@ checked-with-no-errors : (maybe type × ctxt × spans) → maybe type
 checked-with-no-errors (just T , _ , (regular-spans nothing _)) = just T
 checked-with-no-errors _ = nothing
 
-rewrite-expr' : ctxt → expr → term → term → 𝔹 → Σi language-level (λ p → language-level-lift p × ℕ × ℕ)
-rewrite-expr' Γ (,_ {ll-term} t) t₁ t₂ b = ,
-  rewrite-term (qualif-term Γ t) Γ b nothing t₁ t₂ 0
-rewrite-expr' Γ (,_ {ll-type} T) t₁ t₂ b = ,
-  rewrite-type (qualif-type Γ T) Γ b nothing t₁ t₂ 0
-rewrite-expr' Γ (,_ {ll-kind} k) t₁ t₂ b = ,
-  rewrite-kind (qualif-kind Γ k) Γ b nothing t₁ t₂ 0
+map-fst : ∀ {A B C : Set} → (A → C) → (A × B) → (C × B)
+map-fst f (a , b) = f a , b
+
+rewrite-expr' : ctxt → expr → term → term → var → 𝔹 → Σi language-level (λ p → language-level-lift p × ℕ × ℕ)
+rewrite-expr' Γ (,_ {ll-term} t) t₁ t₂ x b = ,
+  map-fst (subst-term Γ t₂ x ∘ erase-term) (rewrite-term (qualif-term Γ t) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
+rewrite-expr' Γ (,_ {ll-type} T) t₁ t₂ x b = ,
+  map-fst (subst-type Γ t₂ x ∘ erase-type) (rewrite-type (qualif-type Γ T) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
+rewrite-expr' Γ (,_ {ll-kind} k) t₁ t₂ x b = ,
+  map-fst (subst-kind Γ t₂ x ∘ erase-kind) (rewrite-kind (qualif-kind Γ k) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
 
 rewrite-expr : ctxt → expr → term → term → 𝔹 → string ⊎ tagged-val
-rewrite-expr Γ e t₁ t₂ b with rewrite-expr' Γ e t₁ t₂ b
+rewrite-expr Γ e t₁ t₂ b with fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+...| x with rewrite-expr' Γ e t₁ t₂ x b
 ...| , e' , 0 , _ = inj₁ "No rewrites could be performed"
 ...| , e' , n , _ = expr-to-tv Γ (λ x → x) (, e')
 

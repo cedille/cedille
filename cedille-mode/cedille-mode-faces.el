@@ -181,6 +181,14 @@
   "The face used for synthesizing mode."
   :group 'cedille-highlight-faces-checking-mode)
 
+(defface cedille-untyped-face-cm
+  '((((background light))
+     (:foreground "dark grey" ))
+    (((background dark))
+     (:foreground "light grey")))
+  "The face used for synthesizing mode."
+  :group 'cedille-highlight-faces-checking-mode)
+
 
 ;; '((quality . ((value . face)...))...)
 
@@ -241,7 +249,8 @@
   '(
     ("punctuation" . (("true" . cedille-ignore-face-df)))
     ("checking-mode" . (("checking" . cedille-checking-face-cm)
-		       ("synthesizing" . cedille-synthesizing-face-cm)))
+		       ("synthesizing" . cedille-synthesizing-face-cm)
+                       ("untyped" . cedille-untyped-face-cm)))
     )
   "Provides checking-mode highlighting scheme")
 

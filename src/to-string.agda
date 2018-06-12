@@ -217,13 +217,13 @@ tk-to-stringh (Tkk k) = to-stringh k
 
 spine-term-to-stringh t s n ts Γ pe lr = term-to-stringh t' s n ts Γ pe lr
   where
-  t' = if cedille-options.options.show-qualified-vars options || cedille-options.options.show-module-params options
+  t' = if cedille-options.options.show-qualified-vars options || cedille-options.options.during-elaboration options
     then t
     else maybe-else t (spapp-term ∘ drop-mod-args Γ Erased) (term-to-spapp t)
 
 spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
   where
-  T' = if cedille-options.options.show-qualified-vars options || cedille-options.options.show-module-params options
+  T' = if cedille-options.options.show-qualified-vars options || cedille-options.options.during-elaboration options
     then T
     else maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
 
@@ -241,7 +241,7 @@ term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
-term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - (" ≫str to-stringh t ≫str strAdd ") {" ≫str to-stringr t' ≫str strAdd "}"
+term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " {" ≫str to-stringr t' ≫str strAdd "}"
 term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
@@ -254,7 +254,7 @@ type-to-stringh (NoSpans T pi) = to-string-ed T
 type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
 type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
-type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh t ≫str strAdd " ≃ " ≫str to-stringh t' ≫str strAdd " }"
+type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh (erase-term t) ≫str strAdd " ≃ " ≫str to-stringh (erase-term t') ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strAdd "●"
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringr T)
 type-to-stringh (TpParens pi T pi') = to-stringh T
@@ -273,7 +273,7 @@ liftingType-to-stringh (LiftPi pi x T lT) = strAdd ("Π↑ " ^ x ^ " : ") ≫str
 liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
 optTerm-to-string NoTerm c1 c2 = strEmpty
-optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh t ≫str strAdd c2
+optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh (erase-term t) ≫str strAdd c2
 -- optType-to-string NoType = strEmpty
 -- optType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
 optClass-to-string NoClass = strEmpty
@@ -344,7 +344,7 @@ strRunTag name Γ m with m {TERM} [[]] 0 [] Γ nothing neither
 ...| s , n , ts = name , s , ts
 
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
-to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither t)
+to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither (if cedille-options.options.show-qualified-vars options then t else erase t))
 
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh' neither t)

@@ -1,6 +1,10 @@
 import cedille-options
 module elaboration (options : cedille-options.options) where
+
 open import lib
+
+options' = record options {during-elaboration = tt}
+
 open import general-util
 open import cedille-types
 open import classify options {Id}
@@ -8,12 +12,12 @@ open import ctxt
 open import constants
 open import conversion
 open import is-free
-open import meta-vars options {Id}
+open import meta-vars options' {Id}
 open import spans options {IO}
 open import subst
 open import syntax-util
 open import toplevel-state options {IO}
-open import to-string (record options {show-module-params = tt})
+open import to-string options'
 open import rename
 open import rewriting
 
@@ -77,8 +81,10 @@ private
         just (abs-expand-type ps T)
       _ → nothing
   
+  -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
+  -- TODO: Could variables be parameter-expanded multiple times?
   ctxt-lookup-type-var' : ctxt → var → maybe kind
-  ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x = -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
+  ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
     env-lookup Γ x ≫=maybe λ where
       (type-decl k , _) → just k
       (type-def ps T k , _ , x') →
@@ -239,30 +245,7 @@ private
     strAdd " ." ≫str
     f
 
-{-
-  Abs : posinfo → binder → posinfo → bvar → tk → type → type
-  Iota : posinfo → posinfo → bvar → type → type → type
-  Lft : posinfo → posinfo → var → term → liftingType → type
-  NoSpans : type → posinfo → type
-  TpApp : type → type → type
-  TpAppt : type → term → type
-  TpArrow : type → arrowtype → type → type
-  TpEq : posinfo → term → term → posinfo → type
-  TpHole : posinfo → type
-  TpLambda : posinfo → posinfo → bvar → tk → type → type
-  TpParens : posinfo → type → posinfo → type
-  TpVar : posinfo → qvar → type
--}
 
-  post-rewrite : ctxt → var → term → trie 𝔹 → type → type
-  post-rewrite Γ x eq xs (Abs pi b pi' x' atk T) = TpVar "" ""
-  post-rewrite Γ x eq xs (Iota pi pi' x' T T') = TpVar "" ""
-  post-rewrite Γ x eq xs (TpApp T T') = TpVar "" ""
-  post-rewrite Γ x eq xs (TpAppt T t) = TpVar "" ""
-  post-rewrite Γ x eq xs (TpArrow T a T') = TpVar "" ""
-  post-rewrite Γ x eq xs (TpLambda pi pi' x' atk T) = TpVar "" ""
-  post-rewrite Γ x eq xs T = T
-  
 
 {-# TERMINATING #-}
 elab-check-term : ctxt → term → type → maybe term
@@ -278,7 +261,12 @@ elab-pure-tk : ctxt → tk → maybe tk
 elab-typeh : ctxt → type → 𝔹 → maybe (type × kind)
 elab-kindh : ctxt → kind → 𝔹 → maybe kind
 elab-tkh : ctxt → tk → 𝔹 → maybe tk
+elab-type-arrow : type → type
+elab-kind-arrow : kind → kind
+elab-tk-arrow : tk → tk
 elab-hnf-type : ctxt → type → 𝔹 → maybe type
+elab-hnf-kind : ctxt → kind → 𝔹 → maybe kind
+elab-hnf-tk : ctxt → tk → 𝔹 → maybe tk
 elab-app-term : ctxt → term → maybe ((meta-vars → maybe term) × type × meta-vars)
 
 elab-type Γ T = elab-typeh Γ T tt
@@ -287,6 +275,31 @@ elab-tk Γ atk = elab-tkh Γ atk tt
 elab-pure-type Γ T = maybe-map fst (elab-typeh Γ T ff)
 elab-pure-kind Γ k = elab-kindh Γ k ff
 elab-pure-tk Γ atk = elab-tkh Γ atk ff
+
+elab-type-arrow (Abs pi b pi' x atk T) = Abs pi b pi' x (elab-tk-arrow atk) (elab-type-arrow T)
+elab-type-arrow (Iota pi pi' x T T') = Iota pi pi' x (elab-type-arrow T) (elab-type-arrow T')
+elab-type-arrow (TpApp T T') = TpApp (elab-type-arrow T) (elab-type-arrow T')
+elab-type-arrow (TpAppt T t) = TpAppt (elab-type-arrow T) t
+elab-type-arrow (TpArrow T a T') = Abs posinfo-gen (case a of λ {ErasedArrow → All; UnerasedArrow → Pi}) posinfo-gen "_" (Tkt (elab-type-arrow T)) (elab-type-arrow T')
+elab-type-arrow (TpEq pi t t' pi') = TpEq pi (erase-term t) (erase-term t') pi'
+elab-type-arrow (TpLambda pi pi' x atk T) = TpLambda pi pi' x (elab-tk-arrow atk) (elab-type-arrow T)
+elab-type-arrow (TpParens pi T pi') = elab-type-arrow T
+elab-type-arrow T = T
+
+elab-kind-arrow (KndArrow k k') = KndPi posinfo-gen posinfo-gen "_" (Tkk (elab-kind-arrow k)) (elab-kind-arrow k')
+elab-kind-arrow (KndParens pi k pi') = elab-kind-arrow k
+elab-kind-arrow (KndPi pi pi' x atk k) = KndPi pi pi' x (elab-tk-arrow atk) (elab-kind-arrow k)
+elab-kind-arrow (KndTpArrow T k) = KndPi posinfo-gen posinfo-gen "_" (Tkt (elab-type-arrow T)) (elab-kind-arrow k)
+elab-kind-arrow k = k
+
+elab-tk-arrow (Tkt T) = Tkt (elab-type-arrow T)
+elab-tk-arrow (Tkk k) = Tkk (elab-kind-arrow k)
+
+elab-hnf-type Γ T b = just (elab-type-arrow (substh-type {TYPE} Γ empty-renamectxt empty-trie (hnf Γ (unfolding-set-erased unfold-head (~ b)) T tt)))
+elab-hnf-kind Γ k b = just (elab-kind-arrow (substh-kind {KIND} Γ empty-renamectxt empty-trie (hnf Γ (unfolding-set-erased unfold-head (~ b)) k tt)))
+elab-hnf-tk Γ (Tkt T) b = elab-hnf-type Γ T b ≫=maybe (just ∘ Tkt)
+elab-hnf-tk Γ (Tkk k) b = elab-hnf-kind Γ k b ≫=maybe (just ∘ Tkk)
+
 
 elab-check-term Γ (App t me t') T =
   elab-app-term Γ (App t me t') ≫=maybe λ where
@@ -349,6 +362,7 @@ elab-check-term Γ (Lam pi l pi' x oc t) T =
   elab-hnf-type Γ T tt ≫=maybe λ where
     (Abs _ b pi'' x' atk T') →
       rename (if x =string "_" && is-free-in tt x' T' then x' else x) from Γ for λ x'' →
+      elab-hnf-tk Γ atk tt ≫=maybe λ atk →
       elab-check-term (ctxt-tk-decl' pi' x'' atk Γ) (rename-var Γ x x'' t)
         (rename-var Γ x' x'' T') ≫=maybe λ t →
       just (Lam posinfo-gen l posinfo-gen x'' (SomeClass atk) t)
@@ -375,14 +389,16 @@ elab-check-term Γ (Rho pi op on t og t') T =
   elab-hnf-type Γ (erase-type T') ff ≫=maybe λ where
     (TpEq _ t₁ t₂ _) → case og of λ where
       NoGuide →
-        elab-hnf-type Γ (erase-type T) ff ≫=maybe λ T →
+        elab-hnf-type Γ T tt ≫=maybe λ T →
         rename "x" from Γ for λ x →
         let ns = fst (optNums-to-stringset on)
-            rT = fst (rewrite-type T (ctxt-var-decl posinfo-gen x Γ) (is-rho-plus op) ns t₁ (mvar x) 0)
-            rT' = subst Γ t₂ x rT in
+            Γ' = ctxt-var-decl posinfo-gen x Γ
+            rT = fst (rewrite-type T Γ' (is-rho-plus op) ns t t₁ x 0)
+            rT' = post-rewrite Γ x t t₂ rT in
+        elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         elab-check-term Γ t' rT' ≫=maybe
-        (just ∘ mrho (Sigma posinfo-gen t) x rT)
-      (Guide pi' x T') →
+        (just ∘ mrho (Sigma posinfo-gen t) x (erase-type rT))
+      (Guide pi' x T') → -- TODO: post-rewrite after guided type?
         elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
         elab-check-term Γ t' (subst Γ t₂ x T') ≫=maybe
         (just ∘ mrho t x T')
@@ -521,12 +537,13 @@ elab-synth-term Γ (Rho pi op on t og t') =
   elab-hnf-type Γ (erase-type T) ff ≫=maybe λ where
     (TpEq _ t₁ t₂ _) → case og of λ where
       NoGuide →
-        elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
         rename "x" from Γ for λ x →
         let ns = fst (optNums-to-stringset on)
-            rT = fst (rewrite-type T' (ctxt-var-decl posinfo-gen x Γ) (is-rho-plus op) ns t₁ (mvar x) 0)
-            rT' = subst Γ t₂ x rT in
-        just (mrho t x rT t' , rT')
+            Γ' = ctxt-var-decl posinfo-gen x Γ
+            rT = fst (rewrite-type T' Γ' (is-rho-plus op) ns t t₁ x 0)
+            rT' = post-rewrite Γ' x t t₂ rT in
+        elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
+        just (mrho t x (erase-type rT) t' , rT')
       (Guide pi' x T') →
         elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
         just (mrho t x T' t' , subst Γ t₂ x T')
@@ -627,9 +644,6 @@ elab-pure-term Γ (Let pi (DefTerm pi' x NoCheckType t) t') =
   elab-pure-term Γ (subst Γ t x t')
 elab-pure-term _ _ = nothing -- should be erased
 
-elab-hnf-type Γ T b =
-  elab-typeh Γ (hnf Γ (unfolding-set-erased unfold-head (~ b)) T tt) b ≫=maybe (just ∘ fst)
-
 elab-app-sols : ctxt → term → meta-vars → ℕ → maybe term
 elab-app-sols Γ t Xs zero = just t
 elab-app-sols Γ t Xs (suc n) =
@@ -656,7 +670,7 @@ elab-app-term Γ (App t m t') =
             (λ Xs → t Xs ≫=maybe λ t →
               elab-app-sols Γ t (drop-meta-vars Xs abs-num) num-apps ≫=maybe λ t →
               just (App t m t')) ,
-            cod' , -- substh-type {TYPE} Γ ρ empty-trie cod' ,
+            cod' ,
             Xs) in
       case meta-vars-are-free-in-type Xs Tₐ of λ where
         ff → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
@@ -682,82 +696,8 @@ elab-app-term Γ t =
   elab-synth-term Γ t ≫=maybe uncurry λ t T →
   just ((λ _ → just t) , T , meta-vars-empty)
 
-{-
-elab-tkh Γ (Tkt T) b = elab-typeh Γ T b ≫=maybe uncurry λ T _ → just (Tkt T)
-elab-tkh Γ (Tkk k) b = elab-kindh Γ k b ≫=maybe λ k → just (Tkk k)
 
-elab-pure-term Γ (Var pi x) = just (mvar x)
-elab-pure-term Γ (App t NotErased t') = 
-  elab-pure-term Γ t ≫=maybe λ t →
-  elab-pure-term Γ t' ≫=maybe λ t' →
-  just (App t NotErased t')
-elab-pure-term Γ (Lam pi KeptLambda pi' x NoClass t) =
-  rename x from Γ for λ x' →
-  elab-pure-term (ctxt-var-decl pi x' Γ) (rename-var Γ x x' tt t) ≫=maybe λ t →
-  just (mlam x' t)
-elab-pure-term Γ (Let pi (DefTerm pi' x NoCheckType t) t') =
-  elab-pure-term Γ t ≫=maybe λ t →
-  elab-pure-term Γ (subst Γ t x t')
-elab-pure-term _ _ = nothing -- should be erased
-  
-elab-hnf-type Γ T b =
-  elab-typeh Γ (hnf Γ (unfolding-set-erased unfold-head (~ b)) T tt) b ≫=maybe (just ∘ fst)
-  
-elab-app-sols : ctxt → term → meta-vars → ℕ → maybe term
-elab-app-sols Γ t Xs zero = just t
-elab-app-sols Γ t Xs (suc n) =
-  head2 (meta-vars.order Xs) ≫=maybe λ x →
-  trie-lookup (meta-vars.varset Xs) x ≫=maybe λ X →
-  case (meta-var.sol X) of λ where
-    (meta-var-tm _ _) → nothing
-    (meta-var-tp k mtp) →
-      let id' = fresh-id-term Γ
-          T = maybe-else (mtpeq id' id') id mtp in
-      elab-type Γ T ≫=maybe uncurry λ T k →
-      elab-app-sols Γ (AppTp t T) (drop-meta-var Xs) n
-  
-elab-app-term Γ (App t m t') =
-  elab-app-term Γ t ≫=maybe uncurry' λ t T Xs →
-  let abs-num = length (meta-vars.order Xs) in
-  case meta-vars-unfold-tmapp Γ Xs T of λ where
-    (not-tp-arrow* _) → nothing
-    (yes-tp-arrow* Ys T' Tₐ m' cod) →
-      let Xs = meta-vars-add* Xs Ys
-          abs-num' = length (meta-vars.order Xs)
-          num-apps = abs-num' ∸ abs-num
-          ret t' cod' Xs = just (
-            (λ Xs → t Xs ≫=maybe λ t →
-              elab-app-sols Γ t (drop-meta-vars Xs abs-num) num-apps ≫=maybe λ t →
-              just (App t m t')) ,
-            cod' , -- substh-type {TYPE} Γ ρ empty-trie cod' ,
-            Xs) in
-      case meta-vars-are-free-in-type Xs Tₐ of λ where
-        ff → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
-             elab-check-term Γ t' Tₐ ≫=maybe λ t' →
-             ret t' (cod t') Xs
-        tt → elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
-             case meta-vars-match Γ Xs empty-trie Tₐ Tₐ' of λ where
-               (yes-error _) → nothing
-               (no-error Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
-
-elab-app-term Γ (AppTp t T) =
-  elab-type Γ T ≫=maybe uncurry λ T _ →
-  elab-app-term Γ t ≫=maybe uncurry' λ t Tₕ Xs →
-  case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
-    (not-tp-abs _) → nothing
-    (yes-tp-abs _ b _ x k Tₕ') →
-      let X = meta-vars-fresh-tp Xs x k (just T)
-          Tₕ'' = rename-var Γ x (meta-var-name X) ff Tₕ' in
-      just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)
-
-elab-app-term Γ (Parens pi t pi') = elab-app-term Γ t
-elab-app-term Γ t =
-  elab-synth-term Γ t ≫=maybe uncurry λ t T →
-  just ((λ _ → just t) , T , meta-vars-empty)
--}
-
-
-{- ########################################################################## -}
+{- ################################ IO ###################################### -}
 
 elab-t : Set → Set
 elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → X → maybe (X × toplevel-state × renamectxt × renamectxt)
@@ -844,7 +784,6 @@ elab-cmds ts ρ φ (CmdsNext (DefKind _ x ps k _) cs) =
   let Γ = toplevel-state.Γ ts
       x' = fresh-var (qualif-new-var Γ x) (renamectxt-in-range ρ) ρ
       ρ = renamectxt-insert ρ x x' in
-  -- rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-kind-def' x x' ps k Γ} in
   elab-cmds ts ρ φ cs
 elab-cmds ts ρ φ (CmdsNext (ImportCmd i) cs) =
@@ -919,3 +858,7 @@ elab-file : toplevel-state → (filename : string) → maybe rope
 elab-file ts fn =
   elab-file' ts empty-renamectxt empty-renamectxt fn ≫=maybe uncurry'' λ fn' ts ρ φ →
   get-include-elt-if ts fn ≫=maybe ie-get-span-ast
+
+
+
+

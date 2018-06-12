@@ -30,7 +30,7 @@ subst-rename-var-if Γ ρ x σ =
   {- rename bound variable x iff it is one of the vars being substituted for, 
      or if x occurs free in one of the terms we are substituting for vars, 
      or if it is the renamed version of any variable -}
-  if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x then 
+  if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then 
     rename-away-from x (λ s → ctxt-binds-var Γ s || trie-contains σ s) ρ
   else
     x
