@@ -1,0 +1,47 @@
+module tpinf-errors .
+
+import list  .
+import nat   .
+import sigma .
+
+-- Unmatchable
+-- ==================================================
+
+-- "bound var in solutions" - maybe show ?X = B a in separate span?
+test-proj2 = Λ A : ★. Λ B : A ➔ ★. λ s : Sigma · A · B.
+               s.1 (λ a : A. λ b : B a. b).
+
+-- "catch-all" - more obviously not equal
+--
+-- When displaying the mismatch between expected and computed types, I print
+-- both in hnf. In contrast, well-typed applications show a "less" normalized
+-- type
+test-length1
+  ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . λ l . ListRec {- · A -} Z {- · Nat-} (λ _ . S) Z .
+
+-- "catch-all"
+test-length2
+  ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . λ l . ListRec {- · A -} Nil {- · Nat-} (λ _ . S) Z .
+
+{- meta-vars-match might need to return L tagged-val to have more interesting / useful information
+ - for match failures
+ -}
+
+-- Misc
+-- ==================================================
+
+-- kind-checking meta-vars
+test-check-sol
+  ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ ★ .
+    ∀ C1 : (A1 ➔ ★) ➔ ★ . C1 · B1
+    ➔ (∀ B2 : A2 ➔ ★ . ∀ C2 : (A2 ➔ ★) ➔ ★ . C2 · B2 ➔ C2 · B2)
+    ➔ C1 · B1
+  = Λ A1 . Λ A2 . Λ B1 . Λ B2 . Λ C1 . λ c1 . λ fc2 .
+      fc2 {- · B2 -} c1 .
+
+-- unsolved mvars
+test-unsolved-mvars
+  ◂ (∀ X : ★ . ∀ Y : ★ . X ➔ Nat) ➔ Nat ➔ Nat
+  = λ f . λ x . f x .

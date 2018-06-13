@@ -127,19 +127,22 @@ meta-vars-subst-kind Γ Xs k
 meta-vars-get-varlist : meta-vars → 𝕃 var
 meta-vars-get-varlist Xs = map (name ∘ snd) (trie-mappings (varset Xs))
 
-meta-vars-in-type : meta-vars → type → meta-vars
-meta-vars-in-type Xs tp
-  = record Xs
-    { varset = varset'
-    ; order  = order'
-    }
+meta-vars-filter : (meta-var → 𝔹) → meta-vars → meta-vars
+meta-vars-filter f Xs =
+  meta-vars-mk or vs
   where
-  varset' = trie-filter
-              (λ x → are-free-in-type
-                       check-erased (trie-single (name x) triv) tp)
-              (varset Xs)
-  mvars = trie-strings varset'
-  order' = filter (λ x → list-any (x =string_) mvars) (order Xs)
+  vs = trie-filter f (varset Xs)
+  or = filter (trie-contains vs) (order Xs)
+
+meta-vars-in-type : meta-vars → type → meta-vars
+meta-vars-in-type Xs tp =
+  (flip meta-vars-filter) Xs λ X →
+    are-free-in-type check-erased (trie-single (name X) triv) tp
+
+meta-vars-unsolved : meta-vars → meta-vars
+meta-vars-unsolved = meta-vars-filter λ where
+  (meta-var-mk x (meta-var-tp k mtp))  → ~ isJust mtp
+  (meta-var-mk x (meta-var-tm tp mtm)) → ~ isJust mtm
 
 
 meta-vars-are-free-in-type : meta-vars → type → 𝔹
@@ -177,7 +180,12 @@ meta-vars-to-stringh (v :: vs)
   = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringh vs
 
 meta-vars-to-string : meta-vars → strM
-meta-vars-to-string Xs = meta-vars-to-stringh (map snd (trie-mappings (varset Xs)))
+meta-vars-to-string Xs = -- meta-vars-to-stringh (order Xs) Xs
+  meta-vars-to-stringh
+    ((flip map) (order Xs) λ x →
+      case trie-lookup (varset Xs) x of λ where
+        nothing  → meta-var-mk (x ^ "-missing!") (meta-var-tp (Star posinfo-gen) nothing)
+        (just X) → X)
 
 meta-vars-data : ctxt → meta-vars → 𝕃 tagged-val
 meta-vars-data Γ Xs
@@ -276,6 +284,9 @@ tp-is-arrow* = type ∨ arrow*
 pattern yes-tp-arrow* Ys tp dom e cod = inj₂ (mk-arrow* Ys tp dom e cod)
 pattern not-tp-arrow* tp = inj₁ tp
 
+arrow*-get-e? : arrow* → maybeErased
+arrow*-get-e? (mk-arrow* _ _ _ e _ ) = e
+
 private
   ba-to-e : binder ⊎ arrowtype → maybeErased
   ba-to-e (inj₁ All) = Erased
@@ -303,12 +314,11 @@ meta-vars-unfold-tmapp Γ Xs tp = aux
 -- update the kinds of HO meta-vars with
 -- solutions
 meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
-meta-vars-update-kinds Γ Xs Xsₖ
-  = record Xs { varset = trie-map
-      (λ { (meta-var-mk-tp x k mtp)
-             → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp
-         ; sol@(meta-var-mk _ _) → sol})
-      (varset Xs)}
+meta-vars-update-kinds Γ Xs Xsₖ =
+  record Xs { varset = (flip trie-map) (varset Xs) λ where
+    (meta-var-mk-tp x k mtp) → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp
+    sol → sol
+  }
 
 -- match a type with meta-vars to one without
 ----------------------------------------------------------------------
@@ -362,7 +372,7 @@ private
       ⊹⊹ [[ ", because some local vars would escape their scope." ]]
 
     e-catchall : ctxt → (tp₁ tp₂ : type) → string
-    e-catchall Γ tp₁ tp₂ = e-type-ineq Γ tp₁ tp₂ ^ " (catchall case)"
+    e-catchall Γ tp₁ tp₂ = "The expected arg type does not match the computed arg type" -- e-type-ineq Γ tp₁ tp₂ ^ " (catchall case)"
 
   open meta-vars-match-errors
 
