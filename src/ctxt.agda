@@ -89,6 +89,11 @@ qualif-tk : ctxt → tk → tk
 qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
 qualif-tk Γ (Tkk k) = Tkk (qualif-kind Γ k)
 
+erased-margs : ctxt → stringset
+erased-margs Γ = stringset-insert* empty-stringset (erased-params ps)
+  where
+  ps = ctxt-get-current-params Γ
+
 qualif-params : ctxt → params → params
 qualif-params Γ (ParamsCons (Decl pi1 pi1' me x atk pi2) ps) =
   ParamsCons p' (qualif-params Γ ps)

@@ -545,9 +545,6 @@ KndArrow-span k k' check = mk-span "Arrow kind" (kind-start-pos k) (kind-end-pos
 KndTpArrow-span : type → kind → checking-mode → err-m → span
 KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-pos k) (checking-data check :: ll-data-kind :: [ super-kind-data ])
 
-erasure : ctxt → term → tagged-val
-erasure Γ t = to-string-tag "erasure" Γ (erase-term t)
-
 {- [[file:../cedille-mode.el::(defun%20cedille-mode-filter-out-special(data)][Frontend]]  -}
 special-tags : 𝕃 string
 special-tags =
@@ -558,6 +555,14 @@ error-span-filter-special : error-span → error-span
 error-span-filter-special (mk-error-span dsc pi pi' tvs msg) =
   mk-error-span dsc pi pi' tvs' msg
   where tvs' = (flip filter) tvs λ tag → list-any (_=string (fst tag)) special-tags
+
+erasure : ctxt → term → tagged-val
+erasure Γ t = to-string-tag "erasure" Γ (erase-term t)
+
+erased-marg-span : ctxt → term → maybe type → span
+erased-marg-span Γ t mtp = mk-span "Erased module parameter" (term-start-pos t) (term-end-pos t)
+  (maybe-else [] (λ tp → [ type-data Γ tp ]) mtp)
+  (just "An implicit module parameter variable occurs free in the erasure of the term.")
 
 Lam-span-erased : lam → string
 Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"

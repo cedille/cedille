@@ -212,6 +212,7 @@ check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
 check-args-against-params : (kind-or-import : 𝔹) → (posinfo × var) → params → args → spanM ⊤
+check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
 
@@ -1166,9 +1167,12 @@ check-args-against-params kind-or-import orig ps ys =
     spanMr ((x , m) :: ms)
   caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
     check-term t (just T) ≫span
+    get-ctxt λ Γ → 
+    check-erased-margs t (just (hnf Γ (unfolding-elab unf) T tt)) ≫span 
     spanM-push-term-def pi paramVar x t T ≫=span λ m → 
     caap koi ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
+    where unf = if is-intro-form t then unfold-head-rec-defs else unfold-head
   caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
     get-ctxt (λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]
@@ -1204,6 +1208,11 @@ check-args-against-params kind-or-import orig ps ys =
   caap koi ParamsNil ArgsNil =
     get-ctxt (λ Γ → spanM-add (make-span Γ [] nothing)) ≫span spanMr []
 
+check-erased-margs t mtp = get-ctxt λ Γ →
+  let x = erased-margs Γ in
+  if are-free-in skip-erased x t
+  then spanM-add (erased-marg-span Γ t mtp)
+  else spanMok
 
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)

@@ -44,13 +44,13 @@ check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
-  add-tk' ff scope pi1' x atk ≫=span λ mi →
+  add-tk' (me-erased me) scope pi1' x atk ≫=span λ mi →
   check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 check-and-add-params _ _ ParamsNil = spanMr []
 
 dont-check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
 dont-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
-  add-tk' ff scope pi1' x atk ≫=span λ mi →
+  add-tk' (me-erased me) scope pi1' x atk ≫=span λ mi →
   dont-check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 dont-check-and-add-params _ _ ParamsNil = spanMr []
 
@@ -71,6 +71,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type 
   check-type tp (just star) ≫span
   let tp' = qualif-type Γ tp in
   check-term t (just tp') ≫span 
+  check-erased-margs t (just tp') ≫span 
   get-ctxt (λ Γ →
     let Γ' = ctxt-term-def pi globalScope nonParamVar x t tp' Γ in
       spanM-add (DefTerm-span Γ' pi x checking (just tp) t pi' []) ≫span
@@ -86,6 +87,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
+  check-erased-margs t nothing ≫span 
   get-ctxt (λ Γ → 
       let Γ' = maybe-else
                  (ctxt-term-udef pi globalScope x t Γ)

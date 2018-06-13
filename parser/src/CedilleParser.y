@@ -90,10 +90,10 @@ import System.Environment
 %%
   
 Start :: { Start }
-      : Imports 'module' Qvar Params '.' Cmds LineNo { File (pack "1") $1 (pos2Txt $2) (tPosTxt $3) (tTxt $3) $4 $6 $7 }  
+      : Imports 'module' Qvar MParams '.' Cmds LineNo { File (pack "1") $1 (pos2Txt $2) (tPosTxt $3) (tTxt $3) $4 $6 $7 }  
 
 Imprt :: { Imprt }
-      : 'import' OptPublic Fpth OptAs Args '.'    { Import (pos2Txt $1) $2 (tPosTxt $3) (tTxt $3) $4 $5 (pos2Txt1 $6) }
+      : 'import' OptPublic Fpth OptAs MArgs '.'    { Import (pos2Txt $1) $2 (tPosTxt $3) (tTxt $3) $4 $5 (pos2Txt1 $6) }
 
 OptAs :: { OptAs }
       :                                 { NoOptAs                          }
@@ -115,21 +115,29 @@ Cmds :: { Cmds }
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
     | DefTermOrType        '.'          { DefTermOrType $1 (pos2Txt1 $2)                     }
-    | kvar Params '=' Kind '.'          { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
+    | kvar KParams '=' Kind '.'         { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
 MaybeCheckType :: { MaybeCheckType }
                :                        { NoCheckType }
                | '◂' Type               { Type $2     }
 
-Params :: { Params }
+MParams :: { Params }
        :                                { ParamsNil        }
-       | Decl Params                    { ParamsCons $1 $2 }
+       | MDecl MParams                  { ParamsCons $1 $2 }
+
+KParams :: { Params }
+       :                                { ParamsNil        }
+       | KDecl KParams                  { ParamsCons $1 $2 }
 
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
               | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
 
-Decl :: { Decl }
+MDecl :: { Decl }
+     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
+     | '{' Bvar ':' Type '}'            { Decl (pos2Txt $1) (tPosTxt $2) Erased (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
+
+KDecl :: { Decl }
      : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
 
 Theta :: { (Theta, PosInfo) }
@@ -240,25 +248,34 @@ Atype :: { Type }
       | '●'                             { TpHole (pos2Txt $1)                    }
       | '{' Term '≃' Term '}'           { TpEq (pos2Txt $1) $2 $4 (pos2Txt1 $5)  } -- is it not even better here? not require parenthesis in arrow types! neither in type application (cdot), but we should add info position at the end !
 
-Arg :: { Arg }
+MArg :: { Arg }
+    : Lterm                             { TermArg NotErased $1 }
+    | '-' Lterm                         { TermArg Erased $2 }
+    | '·' Atype                         { TypeArg $2 }
+
+MArgs :: { Args }
+     :                                  { ArgsNil        }
+     | MArg MArgs                       { ArgsCons $1 $2 }
+
+KArg :: { Arg }
     : Lterm                             { TermArg NotErased $1 }
     | '·' Atype                         { TypeArg $2 }
 
-Args :: { Args }
+KArgs :: { Args }
      :                                  { ArgsNil        }
-     | Arg Args                         { ArgsCons $1 $2 }
+     | KArg KArgs                       { ArgsCons $1 $2 }
 
 Kind :: { Kind }
      : 'Π' Bvar ':' Tk '.' Kind         { KndPi (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
-     | LKind '➔' Kind                   { KndArrow   $1 $3                                }
-     | LType '➔' Kind                   { KndTpArrow $1 $3                                }
+     | LKind '➔' Kind                  { KndArrow   $1 $3                                }
+     | LType '➔' Kind                  { KndTpArrow $1 $3                                }
      | LKind                            { $1                                              }
 
 LKind :: { Kind }
      : '★'                              { Star (pos2Txt $1)                              }
      | '(' Kind ')'                     { KndParens  (pos2Txt $1) $2 (pos2Txt1 $3)       }
-     | qkvar Args                       { KndVar (tPosTxt $1) (tTxt $1) $2 }
-     | kvar  Args                       { KndVar (tPosTxt $1) (tTxt $1) $2 }     
+     | qkvar KArgs                      { KndVar (tPosTxt $1) (tTxt $1) $2 }
+     | kvar  KArgs                      { KndVar (tPosTxt $1) (tTxt $1) $2 }     
 
 LiftingType :: { LiftingType }
             : 'Π↑' Bvar ':' Type '.' LiftingType   { LiftPi (pos2Txt $1) (tTxt $2) $4 $6 } 

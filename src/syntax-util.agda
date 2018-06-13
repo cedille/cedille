@@ -159,6 +159,9 @@ me-unerased : maybeErased → 𝔹
 me-unerased Erased = ff
 me-unerased NotErased = tt
 
+me-erased : maybeErased → 𝔹
+me-erased x = ~ (me-unerased x)
+
 binder-is-pi : binder → 𝔹
 binder-is-pi Pi = tt
 binder-is-pi _ = ff
@@ -740,6 +743,13 @@ unqual-all : qualif → var → string
 unqual-all q v with var-suffix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
+
+erased-params : params → 𝕃  string
+erased-params (ParamsCons (Decl _ _ Erased x (Tkt _) _) ps) with var-suffix x
+... | nothing = x :: erased-params ps
+... | just x' = x' :: erased-params ps
+erased-params (ParamsCons p ps) = erased-params ps
+erased-params ParamsNil = []
 
 lam-expand-term : params → term → term
 lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
