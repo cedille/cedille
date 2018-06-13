@@ -399,8 +399,10 @@ elab-check-term Γ (Rho pi op on t og t') T =
         elab-check-term Γ t' rT' ≫=maybe
         (just ∘ mrho (Sigma posinfo-gen t) x (erase-type rT))
       (Guide pi' x T') → -- TODO: post-rewrite after guided type?
-        elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
-        elab-check-term Γ t' (subst Γ t₂ x T') ≫=maybe
+        let Γ' = ctxt-var-decl pi' x Γ in
+        elab-pure-type Γ' (erase-type T') ≫=maybe λ T' →
+        -- elab-check-term Γ t' (subst Γ t₂ x T') ≫=maybe
+        elab-check-term Γ t' (post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T T')) ≫=maybe
         (just ∘ mrho t x T')
     _ → nothing
 elab-check-term Γ (Sigma pi t) T =
@@ -544,9 +546,11 @@ elab-synth-term Γ (Rho pi op on t og t') =
             rT' = post-rewrite Γ' x t t₂ rT in
         elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         just (mrho t x (erase-type rT) t' , rT')
-      (Guide pi' x T') →
-        elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
-        just (mrho t x T' t' , subst Γ t₂ x T')
+      (Guide pi' x T'') →
+        let Γ' = ctxt-var-decl pi' x Γ in
+        elab-pure-type Γ' (erase-type T') ≫=maybe λ T'' →
+        -- just (mrho t x T' t' , subst Γ t₂ x T')
+        just (mrho t x T' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
     _ → nothing
 elab-synth-term Γ (Sigma pi t) =
   elab-synth-term Γ t ≫=maybe uncurry λ where
@@ -749,7 +753,7 @@ elab-import ts ρ φ (Import _ op _ ifn oa as _) =
   lookup-mod-params (toplevel-state.Γ ts) ifn' ≫=maybe λ ps →
   elab-args ts ρ φ (as , ps) ≫=maybe (uncurry' ∘ uncurry) λ as ps ts ρ-φ →
   let ts = scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) ifn' oa as in
-  just (Import posinfo-gen op posinfo-gen fn NoOptAs ArgsNil posinfo-gen , ts , ρ-φ)
+  just (Import posinfo-gen IsPublic posinfo-gen fn NoOptAs ArgsNil posinfo-gen , ts , ρ-φ)
 
 elab-imports ts ρ φ ImportsStart = just (ImportsStart , ts , ρ , φ)
 elab-imports ts ρ φ (ImportsNext i is) =

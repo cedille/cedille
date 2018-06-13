@@ -12,6 +12,14 @@ open import rename
 open import subst
 open import syntax-util
 
+mk-phi : var → (eq t t' : term) → term
+mk-phi x eq t t' =
+  Phi posinfo-gen
+    (Rho posinfo-gen RhoPlain NoNums eq
+      (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
+      (Beta posinfo-gen NoTerm NoTerm))
+    t t' posinfo-gen 
+
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) →
               (eq left : term) → (right : var) → (total-matches : ℕ) →
@@ -51,11 +59,12 @@ rewrite-kind-abs = rewrite-abs rename-kind
 
 rewrite-term t Γ op on eq t₁ t₂ sn with rewrite-terma (erase-term t) Γ op on eq t₁ t₂ sn
 ...| t' , 0 , sn' = t , 0 , sn'
-...| t' , n , sn' = Phi posinfo-gen
+...| t' , n , sn' = mk-phi t₂ eq t t' , n , sn'
+  {-Phi posinfo-gen
   (Rho posinfo-gen RhoPlain NoNums eq
     (Guide posinfo-gen t₂ (TpEq posinfo-gen t t' posinfo-gen))
     (Beta posinfo-gen NoTerm NoTerm))
-  t t' posinfo-gen , n , sn'
+  t t' posinfo-gen , n , sn'-}
 
 rewrite-terma t Γ op on eq t₁ t₂ sn =
   case conv-term Γ t₁ t of λ where
@@ -165,3 +174,35 @@ post-rewrite Γ x eq t₂ T = subst-type Γ t₂ x (fst (post-rewriteh Γ x eq p
     h : tk → ctxt-info
     h (Tkt T) = term-decl T
     h (Tkk k) = type-decl k
+
+
+-- Functions for substituting the type T in ρ e @ x . T - t
+{-# TERMINATING #-}
+rewrite-at : ctxt → var → term → 𝔹 → type → type → type
+rewrite-ath : ctxt → var → term → 𝔹 → type → type → type
+rewrite-at-tk : ctxt → var → term → 𝔹 → tk → tk → tk
+
+rewrite-at-tk Γ x eq b (Tkt T) (Tkt T') = Tkt (rewrite-at Γ x eq b T T')
+rewrite-at-tk Γ x eq b atk atk' = atk
+
+rewrite-at Γ x eq b T T' = if is-free-in tt x T' then rewrite-ath Γ x eq b T T' else T
+
+rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) =
+  Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
+rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
+  Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1' (subst-type Γ (Var posinfo-gen x1) x2 T2'))
+rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
+  Lft pi1 pi1' x1 (if is-free-in tt x (mlam x2 t2) then mk-phi x eq t1 t2 else t1) lT1
+rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
+  TpApp (rewrite-ath Γ x eq b T1 T2) (rewrite-ath Γ x eq b T1' T2')
+rewrite-ath Γ x eq b (TpAppt T1 t1) (TpAppt T2 t2) =
+  TpAppt (rewrite-ath Γ x eq b T1 T2) (if is-free-in tt x t2 then mk-phi x eq t1 t2 else t1)
+rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
+  TpArrow (rewrite-at Γ x eq tt T1 T2) a1 (rewrite-at Γ x eq tt T1' T2')
+rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
+  TpEq pi1 t2 t2' pi1'
+rewrite-ath Γ x eq b (TpLambda pi1 pi1' x1 atk1 T1) (TpLambda pi2 pi2' x2 atk2 T2) =
+  TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
+rewrite-ath Γ x eq b (TpVar pi x1) (TpVar pi' x2) = TpVar pi x1
+rewrite-ath Γ x eq tt T T' = rewrite-ath Γ x eq ff (hnf Γ unfold-head T tt) (hnf Γ unfold-head T' tt)
+rewrite-ath Γ x eq ff T T' = T
