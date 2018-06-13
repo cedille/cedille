@@ -7,6 +7,7 @@ open import conversion
 open import ctxt
 open import general-util
 open import is-free
+open import lift
 open import rename
 open import subst
 open import syntax-util
@@ -124,12 +125,13 @@ post-rewriteh Γ x eq prtk tk-decl (Abs pi b pi' x' atk T) =
 post-rewriteh Γ x eq prtk tk-decl (Iota pi pi' x' T T') =
   let T = fst (post-rewriteh Γ x eq prtk tk-decl T) in
   Iota pi pi' x' T (fst (post-rewriteh (tk-decl x' (Tkt T) Γ) x eq prtk tk-decl T')) , star
+post-rewriteh Γ x eq prtk tk-decl (Lft pi pi' x' t lT) =
+  Lft pi pi' x' t lT , liftingType-to-kind lT
 post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
+  flip uncurry (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
-    T (KndPi pi pi' x' atk k) →
-      flip uncurry (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
-      TpApp T T' , subst-kind Γ T' x' k
-    T (KndArrow k k') → TpApp T T' , k
+    T (KndPi pi pi' x' atk k) → TpApp T T' , subst-kind Γ T' x' k
+    T (KndArrow k k'') → TpApp T T' , k''
     T k → mtpvar "error in type-to-type application" , star
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
