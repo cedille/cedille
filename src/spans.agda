@@ -216,10 +216,15 @@ sequence-spanM (sp :: sps)
     ≫=span λ x → sequence-spanM sps
     ≫=span λ xs → spanMr (x :: xs)
 
-foldr-spanM : ∀ {A B} →(A → spanM B → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
+foldr-spanM : ∀ {A B} → (A → spanM B → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
 foldr-spanM f n [] = n
 foldr-spanM f n (m :: ms)
   = m ≫=span λ a → f a (foldr-spanM f n ms)
+
+foldl-spanM : ∀ {A B} → (spanM B → A → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
+foldl-spanM f m [] = m
+foldl-spanM f m (m' :: ms) =
+  m' ≫=span λ a → foldl-spanM f (f m a) ms
 
 spanM-for_init_do_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
 spanM-for xs init acc do f = foldr-spanM f acc xs
@@ -381,6 +386,9 @@ checking-data checking = "checking-mode" , [[ "checking" ]] , []
 checking-data synthesizing = "checking-mode" , [[ "synthesizing" ]] , []
 checking-data untyped = "checking-mode" , [[ "untyped" ]] , []
 
+checked-meta-var : var → tagged-val
+checked-meta-var x = "checked meta-var" , [[ x ]] , []
+
 ll-data : language-level → tagged-val
 ll-data x = "language-level" , [[ ll-to-string x ]] , []
 
@@ -539,6 +547,17 @@ KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-po
 
 erasure : ctxt → term → tagged-val
 erasure Γ t = to-string-tag "erasure" Γ (erase-term t)
+
+{- [[file:../cedille-mode.el::(defun%20cedille-mode-filter-out-special(data)][Frontend]]  -}
+special-tags : 𝕃 string
+special-tags =
+  "symbol" :: "location" :: "language-level" :: "checking-mode" :: "summary"
+  :: "binder" :: "bound-value" :: "keywords" :: "erasure" :: []
+
+error-span-filter-special : error-span → error-span
+error-span-filter-special (mk-error-span dsc pi pi' tvs msg) =
+  mk-error-span dsc pi pi' tvs' msg
+  where tvs' = (flip filter) tvs λ tag → list-any (_=string (fst tag)) special-tags
 
 Lam-span-erased : lam → string
 Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"

@@ -288,7 +288,7 @@ start of each string, and then strip out that number."
 		       (lambda (span) (assoc 'not-for-navigation (se-span-data span)))
 		       cedille-mode-highlight-spans)))
 
-
+ ;; [[file:src/spans.agda::special-tags%20:%20%F0%9D%95%83%20string][Backend]]
 (defun cedille-mode-filter-out-special(data)
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data

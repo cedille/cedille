@@ -1208,26 +1208,32 @@ check-args-against-params kind-or-import orig ps ys =
 check-tk (Tkk k) = check-kind k
 check-tk (Tkt t) = check-type t (just star)
 
-check-meta-vars Xs -- pi
-  =   (with-qualified-qualif $' with-clear-error
-        (  get-ctxt λ Γ → sequence-spanM
-             (for (varset-ordered Γ) yield λ where
-               (meta-var-mk x (meta-var-tm tp mtm)) → spanMok
-               (meta-var-mk-tp x k nothing) → spanMok
-               (meta-var-mk-tp x k (just tp)) →
-                   get-error λ es → if (isJust es) then spanMok else
-                   check-type tp (just k)
-                 ≫span (spanM-push-type-def posinfo-gen nonParamVar x tp k
-                 ≫=span λ _ → spanMok))
-         ≫=span λ _ → get-error λ es → spanMr es))
-    ≫=spand λ es → spanMr (maybe-map retag es)
+check-meta-vars Xs =
+  (with-qualified-qualif $' with-clear-error (get-ctxt λ Γ →
+      foldr-spanM
+        (λ X acc → get-error λ es →
+            if isJust es then spanMr (maybe-map (_,_ X) es)
+            else acc)
+        (spanMr nothing)
+        ((flip map) (varset-ordered Γ) check-meta-var)))
+  ≫=spand λ ret → spanMr (maybe-map (uncurry retag) ret)
 
   where
   open helpers
-  varset-ordered : ctxt → 𝕃 meta-var
-  varset-ordered Γ = drop-nothing $' for (meta-vars.order Xs) yield λ where
-    x → (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
 
+  check-meta-var : meta-var → spanM meta-var
+  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _)) =
+    spanMr X
+  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing)) =
+    spanMr X
+  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp))) =
+      check-type tp (just k)
+    ≫span spanM-push-type-def posinfo-gen nonParamVar x tp k
+    ≫=span λ _ → spanMr X
+
+  varset-ordered : ctxt → 𝕃 meta-var -- TODO don't repeat work
+  varset-ordered Γ = drop-nothing $' (flip map) (meta-vars.order Xs) λ where
+    x → (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
 
   -- replace qualif info with one where the keys are the fully qualified variable names
   qualified-qualif : qualif → qualif
@@ -1236,22 +1242,24 @@ check-meta-vars Xs -- pi
 
   -- helper to restore qualif state
   with-qualified-qualif : ∀ {A} → spanM A → spanM A
-  with-qualified-qualif sm
-    =   get-ctxt λ Γ →
-      with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
-        sm
+  with-qualified-qualif sm =
+    get-ctxt λ Γ →
+    with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
+    sm
 
   -- helper to restore error state
   with-clear-error : ∀ {A} → spanM A → spanM A
-  with-clear-error m
-    =   get-error λ es → set-error nothing
-      ≫span m
-      ≫=span λ a → set-error es
-      ≫span spanMr a
+  with-clear-error m =
+      get-error λ es → set-error nothing
+    ≫span m
+    ≫=span λ a → set-error es
+    ≫span spanMr a
 
-  retag : error-span → error-span
-  retag (mk-error-span dsc pi pi' tvs err)
-    = let tvs' = for tvs yield λ where
-                   (t , v) → "meta-var " ^ t , v
-      in mk-error-span dsc pi pi' tvs' err
-    where open helpers
+
+  -- TODO may require significant tag manipulation to be usable, such as
+  -- removing special tags
+  retag : meta-var → error-span → error-span
+  retag X (mk-error-span dsc pi pi' tvs err) =
+    mk-error-span dsc pi pi' tvs' err
+    where
+    tvs' = tvs ++ [ checked-meta-var (meta-var-name X) ]
