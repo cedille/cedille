@@ -38,60 +38,65 @@ is-type {TYPE} _ = tt
 is-type _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
-no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
-no-parens {_} {TERM} _ (Parens pi t pi') lr = tt
-no-parens {_} {TYPE} _ (TpParens pi T pi') lr = tt
-no-parens {_} {KIND} _ (KndParens pi k pi') lr = tt
+-- no-parens {_} {TERM} _ (Parens pi t pi') lr = ff
+-- no-parens {_} {TYPE} _ (TpParens pi T pi') lr = ff
+-- no-parens {_} {KIND} _ (KndParens pi k pi') lr = ff
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
+no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
 no-parens {_} {TERM} _ (Beta pi ot ot') lr = tt
 no-parens {_} {TERM} _ (Phi pi eq t t' pi') right = tt
 no-parens {_} {TERM} _ (Phi pi eq t t' pi') neither = tt
-no-parens {_} {TERM} _ (Let _ _ _) _ = tt
 no-parens {_} {TERM} _ (Rho _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Chi _ _ _) right = tt
-no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) right = tt
-no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) right = tt
-no-parens{TERM} (App t me t') p lr = is-abs p || (is-term-app p && not-right lr)
-no-parens{TERM} (AppTp t T) p lr = is-abs p || (is-term-app p && not-right lr)
+no-parens {_} {TERM} _ (Delta _ _ _) right = tt
+no-parens {_} {TERM} _ (Let _ _ _) lr = tt
+no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
+no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
+no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
+no-parens {_} {KIND} _ (KndPi _ _ _ _ _) lr = tt
+no-parens {_} {TYPE} _ (Iota _ _ _ _ _) lr = tt
+no-parens {_} {LIFTINGTYPE} _ (LiftPi _ _ _ _) lr = tt
+no-parens{TERM} (App t me t') p lr = is-term-level-app p && not-right lr
+no-parens{TERM} (AppTp t T) p lr = is-term-level-app p && not-right lr
 no-parens{TERM} (Beta pi ot ot') p lr = tt
 no-parens{TERM} (Chi pi mT t) p lr = ff
 no-parens{TERM} (Delta pi mT t) p lr = ff
-no-parens{TERM} (Epsilon pi lr' m t) p lr = tt
+no-parens{TERM} (Epsilon pi lr' m t) p lr = is-eq-op p
 no-parens{TERM} (Hole pi) p lr = tt
 no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
-no-parens{TERM} (Lam pi l' pi' x oc t) p lr = is-abs p
-no-parens{TERM} (Let pi dtT t) p lr = tt
-no-parens{TERM} (Parens pi t pi') p lr = ff
+no-parens{TERM} (Lam pi l' pi' x oc t) p lr = ff
+no-parens{TERM} (Let pi dtT t) p lr = ff
+no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = ff
 no-parens{TERM} (Rho pi op on eq og t) p lr = ff
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
-no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = (is-abs p || is-arrow p) && not-left lr
-no-parens{TYPE} (Iota pi pi' x oT T) p lr = is-abs p
+no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = is-arrow p && not-left lr
+no-parens{TYPE} (Iota pi pi' x oT T) p lr = ff
 no-parens{TYPE} (Lft pi pi' x t lT) p lr = ff
 no-parens{TYPE} (NoSpans T pi) p lr = tt
-no-parens{TYPE} (TpApp T T') p lr = is-abs p || is-arrow p || (is-type-app p && not-right lr)
-no-parens{TYPE} (TpAppt T t) p lr = is-abs p || is-arrow p || (is-type-app p && not-right lr)
-no-parens{TYPE} (TpArrow T a T') p lr = (is-abs p || is-arrow p) && not-left lr
+no-parens{TYPE} (TpApp T T') p lr = is-arrow p || (is-type-level-app p && not-right lr)
+no-parens{TYPE} (TpAppt T t) p lr = is-arrow p || (is-type-level-app p && not-right lr)
+no-parens{TYPE} (TpArrow T a T') p lr = is-arrow p && not-left lr
 no-parens{TYPE} (TpEq _ t t' _) p lr = tt
 no-parens{TYPE} (TpHole pi) p lr = tt
-no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = is-abs p
-no-parens{TYPE} (TpParens pi T pi') p lr = ff
+no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = ff
+no-parens{TYPE} (TpParens pi T pi') p lr = tt
 no-parens{TYPE} (TpVar pi x) p lr = tt
-no-parens{KIND} (KndArrow k k') p lr = (is-abs p || is-arrow p) && not-left lr
-no-parens{KIND} (KndParens pi k pi') p lr = ff
-no-parens{KIND} (KndPi pi pi' x Tk k) p lr = (is-abs p || is-arrow p) && not-left lr
-no-parens{KIND} (KndTpArrow T k) p lr = (is-abs p || is-arrow p) && not-left lr
+no-parens{KIND} (KndArrow k k') p lr = is-arrow p && not-left lr
+no-parens{KIND} (KndParens pi k pi') p lr = tt
+no-parens{KIND} (KndPi pi pi' x Tk k) p lr = is-arrow p && not-left lr
+no-parens{KIND} (KndTpArrow T k) p lr = is-arrow p && not-left lr
 no-parens{KIND} (KndVar pi x as) p lr = tt
 no-parens{KIND} (Star pi) p lr = tt
-no-parens{LIFTINGTYPE} (LiftArrow lT lT') p lr = (is-abs p || is-arrow p) && not-left lr
-no-parens{LIFTINGTYPE} (LiftParens pi lT pi') p lr = ff
-no-parens{LIFTINGTYPE} (LiftPi pi x T lT) p lr = (is-abs p || is-arrow p) && not-left lr
+no-parens{LIFTINGTYPE} (LiftArrow lT lT') p lr = is-arrow p && not-left lr
+no-parens{LIFTINGTYPE} (LiftParens pi lT pi') p lr = tt
+no-parens{LIFTINGTYPE} (LiftPi pi x T lT) p lr = is-arrow p && not-left lr
 no-parens{LIFTINGTYPE} (LiftStar pi) p lr = tt
-no-parens{LIFTINGTYPE} (LiftTpArrow T lT) p lr = (is-abs p || is-arrow p) && not-left lr
+no-parens{LIFTINGTYPE} (LiftTpArrow T lT) p lr = is-arrow p && not-left lr
 no-parens{TK} _ _ _ = tt
 no-parens{QUALIF} _ _ _ = tt
 no-parens{ARG} _ _ _ = tt
@@ -201,11 +206,19 @@ to-string-ed{ARG} = arg-to-string
 to-string-ed{QUALIF} q = strEmpty
 
 to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
+to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
+  wp (maybe-else (to-string-ed t)
+    (λ pe → if no-parens t pe lr
+      then to-string-ed t
+      else (strAdd "(" ≫str to-string-ed t ≫str strAdd ")")) mp)
+  where wp : strM → rope × ℕ × 𝕃 tag
+        wp s' = if is-parens t then s' s n ts Γ mp lr else s' s n ts Γ (just t) lr
+{-
 to-stringh' lr t s n ts Γ nothing lr' = to-string-ed t s n ts Γ (just t) lr
 to-stringh' lr t s n ts Γ (just pe) lr' = (if no-parens t pe lr
   then to-string-ed t
   else (strAdd "(" ≫str to-string-ed t ≫str strAdd ")")) s n ts Γ (just t) lr
-
+-}
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringl = to-stringh' left

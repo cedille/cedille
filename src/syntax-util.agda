@@ -357,15 +357,22 @@ is-app{TYPE} (TpApp _ _) = tt
 is-app{TYPE} (TpAppt _ _) = tt
 is-app _ = ff
 
-is-term-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-term-app{TERM} (App _ _ _) = tt
-is-term-app{TERM} (AppTp _ _) = tt
-is-term-app _ = ff
+is-term-level-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-term-level-app{TERM} (App _ _ _) = tt
+is-term-level-app{TERM} (AppTp _ _) = tt
+is-term-level-app _ = ff
 
-is-type-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-type-app{TYPE} (TpApp _ _) = tt
-is-type-app{TYPE} (TpAppt _ _) = tt
-is-type-app _ = ff
+is-type-level-app : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-type-level-app{TYPE} (TpApp _ _) = tt
+is-type-level-app{TYPE} (TpAppt _ _) = tt
+is-type-level-app _ = ff
+
+is-parens : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-parens{TERM} (Parens _ _ _) = tt
+is-parens{TYPE} (TpParens _ _ _) = tt
+is-parens{KIND} (KndParens _ _ _) = tt
+is-parens{LIFTINGTYPE} (LiftParens _ _ _) = tt
+is-parens _ = ff
 
 is-arrow : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-arrow{TYPE} (TpArrow _ _ _) = tt
@@ -391,6 +398,7 @@ is-eq-op{TERM} (Epsilon _ _ _ _) = tt
 is-eq-op{TERM} (Rho _ _ _ _ _ _) = tt
 is-eq-op{TERM} (Chi _ _ _) = tt
 is-eq-op{TERM} (Phi _ _ _ _ _) = tt
+is-eq-op{TERM} (Delta _ _ _) = tt
 is-eq-op _ = ff
 
 is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
