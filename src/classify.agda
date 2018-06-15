@@ -756,8 +756,8 @@ check-termi (IotaProj t n pi) mtp =
 
 -- check-term-app
 -- ==================================================
-check-term-app-return : ctxt → meta-vars → type → spanM (maybe (meta-vars × type))
-check-term-app-return Γ Xs tp
+check-term-spine-return : ctxt → meta-vars → type → spanM (maybe (meta-vars × type))
+check-term-spine-return Γ Xs tp
   = spanMr (just (Xs , hnf Γ unfold-head tp tt))
 
 -- errors
@@ -825,18 +825,13 @@ error-bad-meta-var-sols t₁ t₂ tpₓ tp Xs m (mk-error-span dsc _ _ tvs err) 
       (just err))
   ≫span spanMr nothing
 
-check-term-app-meta-var-app-span : (Xs Xs-solved : meta-vars) (Γ : ctxt) (res-tp : type) (chk-tp : maybe type) → maybe error-span → 𝕃 tagged-val × err-m
-check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp (just (mk-error-span nm pi pi' tvs err))
-  = (meta-vars-data Γ Xs-solved ++ tvs) , just err
-check-term-app-meta-var-app-span Xs Xs-solved Γ res-tp chk-tp nothing
-  = fst p ++ meta-vars-data Γ Xs-solved , snd p
-
-  where p = meta-vars-check-type-mismatch-if chk-tp Γ "synthesized" Xs res-tp
-
 -- main definition
 
+data check-term-app-ret : Set where
+  check-term-app-return : (Xs : meta-vars) (atp rtp : type) (arg-mode : checking-mode) → check-term-app-ret
+
 check-term-app : meta-vars → (t₁ t₂ : term) → arrow* → (mtp : maybe type)
-                 → spanM (maybe (meta-vars × (type × type)))
+                 → spanM (maybe check-term-app-ret)
 
 check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 1) type the applicand
@@ -855,19 +850,23 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
     else check-term-app Xs t₁ t₂ arr mtp
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal
-  ≫=spanm' λ ret → let Xs' = fst ret ; atp = fst (snd ret) ; rtp' = snd (snd ret) in
+  ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
     if max && ~ (meta-vars-solved? Xs')
      then error-unsolved-meta-vars t' rtp' Xs' mode
   -- 6) generate span and finish
     else (get-ctxt λ Γ →
     spanM-add (uncurry
-      (λ tvs → App-span t₁ t₂ mode (arg-type Γ atp :: tvs))
+      (λ tvs → App-span t₁ t₂ mode (arg-type-mode arg-mode Γ atp :: tvs))
       (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
         meta-vars-empty -- TODO only those updated by STAI
         rtp'))
-  ≫span check-term-app-return Γ Xs' rtp')
+  ≫span check-term-spine-return Γ Xs' rtp')}
 
   where mode = maybe-to-checking mtp
+
+        arg-type-mode : checking-mode → ctxt → type → tagged-val
+        arg-type-mode checking = arg-exp-type
+        arg-type-mode _        = arg-type
 
 check-term-spine t'@(AppTp t tp) mtp max =
   -- 1) type the applicand
@@ -910,7 +909,7 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
   if ~ meta-vars-are-free-in-type Xs dom
     -- check t₂ against a fully-known type
     then   check-term t₂ (just dom)
-         ≫span spanMr (just (Xs , dom , cod t₂))
+         ≫span spanMr (just (check-term-app-return Xs dom (cod t₂) checking))
     else (
     -- 1) synthesize a type for the applicand
       check-termi t₂ nothing
@@ -927,10 +926,8 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
         ≫=span λ where
           (just es) → error-bad-meta-var-sols t₁ t₂ dom atpₕ Xsₐ mode es
     -- 4) update mvars in mvar kinds and return arg and ret type
-          nothing   →
-            spanMr (just ((meta-vars-update-kinds Γ Xs Xsₐ)
-                    , atp , meta-vars-subst-type Γ Xs (cod t₂)))
-    )
+          nothing   → spanMr (just (check-term-app-return (meta-vars-update-kinds Γ Xs Xsₐ)
+                        atp (meta-vars-subst-type Γ Xs (cod t₂)) synthesizing)))
 
   where mode = maybe-to-checking mtp
 
