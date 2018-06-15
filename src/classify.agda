@@ -134,54 +134,6 @@ lambda-bound-var-conv-error Γ x atk atk' tvs =
 lambda-bound-class-if : optClass → tk → tk
 lambda-bound-class-if NoClass atk = atk
 lambda-bound-class-if (SomeClass atk') atk = atk'
-{-
-var-spans-term : term → spanM ⊤
-var-spans-optTerm : optTerm → spanM ⊤
-var-spans-term (App t x t') = spanM-add (App-span t t' checking [] nothing) ≫span var-spans-term t ≫span var-spans-term t'
-var-spans-term (AppTp t x) = var-spans-term t 
-var-spans-term (Beta x ot ot') = var-spans-optTerm ot ≫span var-spans-optTerm ot' 
-var-spans-term (Chi x x₁ t) = var-spans-term t
-var-spans-term (Epsilon x x₁ x₂ t) = var-spans-term t
-var-spans-term (Hole x) = spanM-add (hole-span empty-ctxt x nothing [])
-var-spans-term (Let pi (DefTerm pi' x m t) t') =
-  get-ctxt (λ Γ →
-    let Γ' = ctxt-var-decl pi' x Γ in
-      set-ctxt Γ' ≫span
-      spanM-add (Let-span Γ checking pi (DefTerm pi' x m t) t' [] nothing) ≫span
-      spanM-add (Var-span Γ' pi' x untyped [] nothing) ≫span
-      var-spans-term t ≫span
-      var-spans-term t' ≫span      
-      set-ctxt Γ)
-var-spans-term (Let pi (DefType pi' x k t) t') = 
-  get-ctxt (λ Γ →
-    let Γ' = ctxt-var-decl pi' x Γ in
-      set-ctxt Γ' ≫span
-      spanM-add (Var-span Γ' pi' x untyped [] nothing) ≫span
-      var-spans-term t' ≫span      
-      set-ctxt Γ)
-var-spans-term (Lam pi l pi' x _ t) =
-  get-ctxt (λ Γ →
-    let Γ' = ctxt-var-decl pi' x Γ in
-      set-ctxt Γ' ≫span
-      spanM-add (Lam-span Γ checking pi l x NoClass t [] nothing) ≫span
-      spanM-add (Var-span Γ' pi' x untyped [] nothing) ≫span
-      var-spans-term t ≫span
-      set-ctxt Γ)
-var-spans-term (Parens x t x₁) = var-spans-term t
-var-spans-term (Phi pi eq t₁ t₂ pi') = var-spans-term eq ≫span var-spans-term t₁ ≫span var-spans-term t₂
-var-spans-term (Rho _ _ _ t _ t') = var-spans-term t ≫span var-spans-term t'
-var-spans-term (Sigma x t) = var-spans-term t
-var-spans-term (Theta x x₁ t x₂) = var-spans-term t
-var-spans-term (Var pi x) =
-  get-ctxt (λ Γ →
-    spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing
-                                        else just "This variable is not currently in scope." )))
-var-spans-term (IotaPair _ t1 t2 _ _) = var-spans-term t1 ≫span var-spans-term t2
-var-spans-term (IotaProj t _ _) = var-spans-term t
-
-var-spans-optTerm NoTerm = spanMok
-var-spans-optTerm (SomeTerm t _) = var-spans-term t
--}
 
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type.  
@@ -1251,15 +1203,20 @@ check-meta-vars Xs =
     x → (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
 
   -- replace qualif info with one where the keys are the fully qualified variable names
-  qualified-qualif : qualif → qualif
+  {-qualified-qualif : qualif → qualif
   qualified-qualif q = for trie-mappings q accum empty-trie do λ where
-    (_ , qi@(v , as)) q → trie-insert q v qi
+    (_ , qi@(v , as)) q → trie-insert q v qi-}
+  qualified-qualif : ctxt → qualif
+  qualified-qualif (mk-ctxt mod ss is os) =
+    for trie-strings is accum empty-trie do λ x q →
+      trie-insert q x (x , ArgsNil)
 
   -- helper to restore qualif state
   with-qualified-qualif : ∀ {A} → spanM A → spanM A
   with-qualified-qualif sm =
     get-ctxt λ Γ →
-    with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
+    with-ctxt (ctxt-set-qualif Γ (qualified-qualif Γ))
+    -- with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
     sm
 
   -- helper to restore error state

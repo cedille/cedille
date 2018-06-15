@@ -398,10 +398,9 @@ elab-check-term Γ (Rho pi op on t og t') T =
         elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         elab-check-term Γ t' rT' ≫=maybe
         (just ∘ mrho (Sigma posinfo-gen t) x (erase-type rT))
-      (Guide pi' x T') → -- TODO: post-rewrite after guided type?
+      (Guide pi' x T') →
         let Γ' = ctxt-var-decl pi' x Γ in
         elab-pure-type Γ' (erase-type T') ≫=maybe λ T' →
-        -- elab-check-term Γ t' (subst Γ t₂ x T') ≫=maybe
         elab-check-term Γ t' (post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T T')) ≫=maybe
         (just ∘ mrho t x T')
     _ → nothing
@@ -549,7 +548,6 @@ elab-synth-term Γ (Rho pi op on t og t') =
       (Guide pi' x T'') →
         let Γ' = ctxt-var-decl pi' x Γ in
         elab-pure-type Γ' (erase-type T') ≫=maybe λ T'' →
-        -- just (mrho t x T' t' , subst Γ t₂ x T')
         just (mrho t x T' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
     _ → nothing
 elab-synth-term Γ (Sigma pi t) =
@@ -701,6 +699,8 @@ elab-app-term Γ t =
   just ((λ _ → just t) , T , meta-vars-empty)
 
 
+
+
 {- ################################ IO ###################################### -}
 
 elab-t : Set → Set
@@ -724,20 +724,20 @@ elab-params ts ρ φ (ParamsCons (Decl _ pi me x atk _) ps) =
 
 elab-args ts ρ φ (ArgsNil , ParamsNil) = just ((ArgsNil , ParamsNil) , ts , ρ , φ)
 elab-args ts ρ φ (_ , ParamsNil) = nothing -- Too many arguments
-elab-args ts ρ φ (ArgsNil , ParamsCons p ps) = nothing -- TODO: Partial application?
+elab-args ts ρ φ (ArgsNil , ParamsCons p ps) = just ((ArgsNil , ParamsCons p ps) , ts , ρ , φ)
 elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
   let Γ = toplevel-state.Γ ts in
   case (a , atk) of λ where
     (TermArg me' t , Tkt T) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
-      rename qualif-new-var Γ x - x from ρ for λ x' ρ →
+      rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-term-def' x x' t T Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
       just ((ArgsCons (TermArg me' t) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkt T) posinfo-gen) ps) , ts-ρ-φ)
     (TypeArg T , Tkk _) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
-      rename qualif-new-var Γ x - x from ρ for λ x' ρ →
+      rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-type-def' x x' T k Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
       just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkk k) posinfo-gen) ps) , ts-ρ-φ)

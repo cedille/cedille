@@ -690,7 +690,7 @@ optGuide-spans (Guide pi x tp) expected =
 Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
 Rho-span pi t t' expected r (inj₂ x) tvs =
   mk-span "Rho" pi (term-end-pos t')
-    (checking-data expected :: ll-data-term :: explain ("Rewrite all places where " ^ x ^ " occurs in the " ^ expected-to-string expected ^ " type, using an equation.") :: tvs)
+    (checking-data expected :: ll-data-term :: explain ("Rewrite all places where " ^ x ^ " occurs in the " ^ expected-to-string expected ^ " type, using an equation. ") :: tvs)
 Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
   mk-span "Rho" pi (term-end-pos t') 
     (checking-data expected :: ll-data-term :: tvs ++
