@@ -38,9 +38,6 @@ is-type {TYPE} _ = tt
 is-type _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
--- no-parens {_} {TERM} _ (Parens pi t pi') lr = ff
--- no-parens {_} {TYPE} _ (TpParens pi T pi') lr = ff
--- no-parens {_} {KIND} _ (KndParens pi k pi') lr = ff
 no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
 no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
@@ -162,9 +159,6 @@ strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
 
 {-# TERMINATING #-}
-spine-term-to-stringh : term → strM
-spine-type-to-stringh : type → strM
-
 term-to-stringh : term → strM
 type-to-stringh : type → strM
 kind-to-stringh : kind → strM
@@ -174,7 +168,6 @@ tk-to-stringh : tk → strM
 params-to-string : params → strM
 params-to-string' : defScope → strM → params → strM
 optTerm-to-string : optTerm → string → string → strM
--- optType-to-string : optType → strM
 optClass-to-string : optClass → strM
 optGuide-to-string : optGuide → strM
 optNums-to-string : optNums → strM
@@ -197,28 +190,35 @@ optPublic-to-string : optPublic → string
 optAs-to-string : optAs → strM
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
-to-string-ed{TERM} = spine-term-to-stringh
-to-string-ed{TYPE} = spine-type-to-stringh
+to-string-ed{TERM} = term-to-stringh
+to-string-ed{TYPE} = type-to-stringh
 to-string-ed{KIND} = kind-to-stringh
 to-string-ed{LIFTINGTYPE} = liftingType-to-stringh
 to-string-ed{TK} = tk-to-stringh
 to-string-ed{ARG} = arg-to-string
 to-string-ed{QUALIF} q = strEmpty
 
+drop-spine : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+drop-spine = h do-drop-spine
+  where
+  do-drop-spine = cedille-options.options.show-qualified-vars options
+              nor cedille-options.options.during-elaboration  options
+  h : 𝔹 → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  h tt {TERM} Γ t = maybe-else t (spapp-term ∘ drop-mod-args Γ Erased) (term-to-spapp t)
+  h tt {TYPE} Γ T = maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
+  h d Γ x = x
+
 to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
 to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
-  wp (maybe-else (to-string-ed t)
-    (λ pe → if no-parens t pe lr
-      then to-string-ed t
-      else (strAdd "(" ≫str to-string-ed t ≫str strAdd ")")) mp)
-  where wp : strM → rope × ℕ × 𝕃 tag
-        wp s' = if is-parens t then s' s n ts Γ mp lr else s' s n ts Γ (just t) lr
-{-
-to-stringh' lr t s n ts Γ nothing lr' = to-string-ed t s n ts Γ (just t) lr
-to-stringh' lr t s n ts Γ (just pe) lr' = (if no-parens t pe lr
-  then to-string-ed t
-  else (strAdd "(" ≫str to-string-ed t ≫str strAdd ")")) s n ts Γ (just t) lr
--}
+  wp (maybe-else (to-string-ed t')
+    (λ pe → if no-parens t' pe lr
+      then to-string-ed t'
+      else (strAdd "(" ≫str to-string-ed t' ≫str strAdd ")")) mp)
+  where
+  t' = drop-spine Γ t
+  wp : strM → rope × ℕ × 𝕃 tag
+  wp s' = if is-parens t' then s' s n ts Γ mp lr else s' s n ts Γ (just t') lr
+
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringl = to-stringh' left
@@ -227,19 +227,6 @@ to-stringh = to-stringh' neither
 
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
-
-spine-term-to-stringh t s n ts Γ pe lr = term-to-stringh t' s n ts Γ pe lr
-  where
-  t' = if cedille-options.options.show-qualified-vars options || cedille-options.options.during-elaboration options
-    then t
-    else maybe-else t (spapp-term ∘ drop-mod-args Γ Erased) (term-to-spapp t)
-
-spine-type-to-stringh T s n ts Γ pe lr = type-to-stringh T' s n ts Γ pe lr
-  where
-  T' = if cedille-options.options.show-qualified-vars options || cedille-options.options.during-elaboration options
-    then T
-    else maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
-
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
 term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
@@ -287,8 +274,6 @@ liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
 optTerm-to-string NoTerm c1 c2 = strEmpty
 optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh (erase-term t) ≫str strAdd c2
--- optType-to-string NoType = strEmpty
--- optType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
 optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
 optGuide-to-string NoGuide = strEmpty

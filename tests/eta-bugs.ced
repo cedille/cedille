@@ -1,0 +1,48 @@
+module type-eta.
+
+-- Right-hand side substitutes to λ x. λ x'. x' x'
+-- We then eta-expand the left-hand side, choosing x'
+-- as the name because that is what is is for the
+-- right-hand side. Thus these two terms are improperly
+-- seen as equal.
+test ◂ {λ x'. x' ≃ λ x. λ x. x x} = β.
+
+-- Now we substitute the example above to solidify
+-- the contradiction.
+test2 ◂ {λ x. x ≃ λ x. λ x'. x' x'} = ρ test - β.
+
+false ◂ ∀ X : ★. X = δ - test2.
+
+-- To avoid this contradiction, we need to check in the
+-- eta-expanding case of conv-term if the variable is defined,
+-- and if it is, to rename the bound name of the lambda.
+
+------------------------------------------------------------------
+
+-- Type-lambdas are currently not being eta-contracted.
+-- I haven't ever come across a situation where this is
+-- a problem, but it would be surprising to users who
+-- actually rely on this.
+
+
+Id ◂ ★ ➔ ★ = λ A : ★. A.
+id ◂ ∀ A : ★. A ➔ A = Λ A. λ a. a.
+
+-- hnf{TYPE} needs to check for these cases
+type-type-hnf-eta ◂ ∀ F : ★ ➔ ★. ∀ T : (★ ➔ ★) ➔ ★.
+                    T · F ➔ T · (λ X : ★. F · X) =
+  Λ F. Λ T. λ t. t.
+
+type-term-hnf-eta ◂ ∀ A : ★. ∀ D : A ➔ ★. ∀ T : (A ➔ ★) ➔ ★.
+                    T · D ➔ T · (λ a : A. D a) =
+  Λ A. Λ D. Λ T. λ t. t.
+
+
+-- conv-type-norm needs to check for these cases
+type-type-conv-eta ◂ ∀ F : ★ ➔ ★. ∀ T : (★ ➔ ★) ➔ ★.
+                     T · F ➔ T · (λ A : ★. F · (Id · A)) =
+  Λ F. Λ T. λ t. t.
+
+type-term-conv-eta ◂ ∀ A : ★. ∀ D : A ➔ ★. ∀ T : (A ➔ ★) ➔ ★.
+                     T · D ➔ T · (λ a : A. D (id a)) =
+  Λ A. Λ D. Λ T. λ t. t.
