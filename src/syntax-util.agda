@@ -18,15 +18,7 @@ id-term = Lam posinfo-gen KeptLambda posinfo-gen "x" NoClass (Var posinfo-gen "x
 
 compileFailType : type
 compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
-{-
-delta-contra =
-  let lambda x = Lam posinfo-gen KeptLambda posinfo-gen x NoClass in
-  TpEq
-    posinfo-gen
-    (lambda "x" (lambda "y" (Var posinfo-gen "x")))
-    (lambda "x" (lambda "y" (Var posinfo-gen "y")))
-    posinfo-gen
--}
+
 qualif-info : Set
 qualif-info = var × args
 

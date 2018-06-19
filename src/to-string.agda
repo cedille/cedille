@@ -139,21 +139,30 @@ ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
 ...| just (kind-def _ _ _ , loc) = loc
 ...| _ = "missing" , "missing"
 
-var-loc-tag : ctxt → location → ℕ → ℕ → 𝕃 tag
-var-loc-tag Γ ("missing" , "missing") start end = []
-var-loc-tag Γ (fn , pos) start end = [ make-tag "loc" (("fn" , [[ fn ]]) :: [ "pos" , [[ pos ]] ]) start end ]
+make-loc-tag : (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
+make-loc-tag fn s e = make-tag "loc" (("fn" , [[ fn ]]) :: ("s" , [[ s ]]) :: ("e" , [[ e ]]) :: [])
+
+var-loc-tag : ctxt → location → var → (start-from end-from : ℕ) → 𝕃 tag
+var-loc-tag Γ ("missing" , "missing") x start end = []
+var-loc-tag Γ (fn , pos) x start end = [ make-loc-tag fn pos (posinfo-plus-str pos x) start end ]
 
 var-tags : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
 var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
-...| tt = var-loc-tag Γ (ctxt-global-var-location Γ qv) s e
-...| ff = make-tag "shadowed" [] s e :: var-loc-tag Γ (ctxt-var-location Γ qv) s e
+...| tt = var-loc-tag Γ (ctxt-global-var-location Γ qv) uqv s e
+...| ff = make-tag "shadowed" [] s e :: var-loc-tag Γ (ctxt-var-location Γ qv) uqv s e
 
 strVar : var → strM
 strVar v s n ts Γ pe lr =
-  let uqv = unqual-local (unqual-all (ctxt-get-qualif Γ) v) in
-  let uqv' = if cedille-options.options.show-qualified-vars options then v else uqv in
-  let n' = n + (string-length uqv') in
+  let uqv = unqual-local (unqual-all (ctxt-get-qualif Γ) v)
+      uqv' = if cedille-options.options.show-qualified-vars options then v else uqv
+      n' = n + (string-length uqv') in
   s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
+
+strMetaVar : var → (filename : string) → posinfo → posinfo → strM
+strMetaVar x fn pi pi' s n ts Γ pe lr =
+  let n' = n + string-length x in
+  s ⊹⊹ [[ x ]] , n' , make-loc-tag fn pi pi' n n' :: ts
+  
 
 strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts

@@ -130,13 +130,16 @@
     (when (and mark-active pin)
       (setq data (se-pin-item-data (car pin))
 	    filename (cdr (assoc 'fn data))
-	    pos (string-to-number (cdr (assoc 'pos data))))
+	    start-to (string-to-number (cdr (assoc 's data)))
+            end-to (string-to-number (cdr (assoc 'e data))))
       (select-window (cedille-mode-parent-main-window))
       (setq past (car cedille-mode-browsing-history)
 	    present (buffer-file-name))
       (with-current-buffer (find-file filename)
 	(setq cedille-mode-browsing-history (cons (cons present past) nil))
-	(cedille-mode-parent-jump-to-pos pos)
+        (if se-navigation-mode
+            (cedille-mode-parent-jump-to-span start-to end-to)
+          (cedille-mode-parent-jump-to-pos start-to))
 	(se-navigation-mode))
       (cedille-mode-rebalance-windows))))
 
@@ -144,6 +147,13 @@
   "Jumps in the current file to pos"
   (goto-char pos)
   (when mark-active (deactivate-mark)))
+
+(defun cedille-mode-parent-jump-to-span (start end)
+  "Jumps to a span "
+  (goto-char start)
+  (push-mark end t t)
+  (se-mode-set-spans)
+  (cedille-mode-select-parent 1))
 
 (defun cedille-mode-parent-main-buffer ()
   "Returns the last selected buffer with a file associated with it"

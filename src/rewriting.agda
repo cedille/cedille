@@ -136,7 +136,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head (subst-kind Γ T' x' k) tt
     T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head k'' tt
-    T k → mtpvar "rewriting error in type-to-type application" , star
+    T k → TpApp T T' , k
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' (Tkt T') k) →
@@ -144,7 +144,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
         then TpAppt T (Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x T') t) , hnf Γ unfold-head (subst-kind Γ t x' k) tt
         else TpAppt T t , hnf Γ unfold-head (subst-kind Γ t x' k) tt
     T (KndTpArrow T' k) → TpAppt T t , hnf Γ unfold-head k tt
-    T k → mtpvar "rewriting error in type-to-term application" , star
+    T k → TpAppt T t , k
 post-rewriteh Γ x eq prtk tk-decl (TpArrow T a T') = TpArrow (fst (post-rewriteh Γ x eq prtk tk-decl T)) a (fst (post-rewriteh Γ x eq prtk tk-decl T')) , star
 post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
   let atk' = prtk Γ x eq atk in
@@ -155,7 +155,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head k tt
 ...| just (type-def nothing T k , _) = mtpvar x' , hnf Γ unfold-head k tt
 ...| just (type-def (just ps) T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head k tt)
-...| _ = mtpvar ("rewriting error looking up variable " ^ x') , star
+...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 
 {-# TERMINATING #-}

@@ -1,5 +1,6 @@
 module type-eta.
 
+-- [Resolved]
 -- Right-hand side substitutes to λ x. λ x'. x' x'
 -- We then eta-expand the left-hand side, choosing x'
 -- as the name because that is what is is for the
@@ -19,6 +20,7 @@ false ◂ ∀ X : ★. X = δ - test2.
 
 ------------------------------------------------------------------
 
+-- [Unresolved]
 -- Type-lambdas are currently not being eta-contracted.
 -- I haven't ever come across a situation where this is
 -- a problem, but it would be surprising to users who

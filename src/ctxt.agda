@@ -106,7 +106,6 @@ qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp
 qualif-args Γ ArgsNil = ArgsNil
 
 ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
--- ctxt-term-decl _ _ "_" _ Γ = Γ
 ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
@@ -115,7 +114,6 @@ ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   where v' = if s iff localScope then p % v else mn # v
 
 ctxt-type-decl : posinfo → defScope → var → kind → ctxt → ctxt
--- ctxt-type-decl _ _ "_" _ Γ = Γ
 ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
@@ -124,13 +122,11 @@ ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   where v' = if s iff localScope then p % v else mn # v
 
 ctxt-tk-decl : posinfo → defScope → var → tk → ctxt → ctxt
--- ctxt-tk-decl _ _ "_" _ Γ = Γ
 ctxt-tk-decl p s x (Tkt t) Γ = ctxt-term-decl p s x t Γ 
 ctxt-tk-decl p s x (Tkk k) Γ = ctxt-type-decl p s x k Γ
 
 -- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : posinfo → var → ctxt → ctxt
--- ctxt-var-decl-if _ "_" Γ = Γ
 ctxt-var-decl-if p v Γ with Γ
 ... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
@@ -152,9 +148,8 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 
 ctxt-rename : posinfo → var → var → ctxt → ctxt
-ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs) {-with v =string "_" || v' =string "_"
-... | tt = Γ
-... | ff-} = (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
+ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
   (trie-insert i v (rename-def v' , (fn , p)))
   symb-occs)
 

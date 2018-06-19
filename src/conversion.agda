@@ -284,9 +284,9 @@ conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && c
 conv-term-norm Γ (Lam _ l pi x oc t) (Lam _ l' pi' x' oc' t') = conv-term (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
-conv-term-norm Γ (Beta _ _ NoTerm) (Beta _ _ NoTerm) = tt
-conv-term-norm Γ (Beta _ _ (SomeTerm t _)) (Beta _ _ (SomeTerm t' _)) = conv-term Γ t t'
-conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
+-- conv-term-norm Γ (Beta _ _ NoTerm) (Beta _ _ NoTerm) = tt
+-- conv-term-norm Γ (Beta _ _ (SomeTerm t _)) (Beta _ _ (SomeTerm t' _)) = conv-term Γ t t'
+-- conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
 {- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing
@@ -296,8 +296,12 @@ conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
 
        λ v . t ((λ a . a) v) ≃ t
  -}
-conv-term-norm Γ (Lam pi1 l pi2 x oc t) t' = conv-term (ctxt-rename pi2 x x Γ) t (App t' NotErased (Var pi2 x))
-conv-term-norm Γ t' (Lam pi1 l pi2 x oc t) = conv-term (ctxt-rename pi2 x x Γ) (App t' NotErased (Var pi2 x)) t 
+conv-term-norm Γ (Lam pi1 l pi2 x oc t) t' =
+  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
+  conv-term (ctxt-rename pi2 x x' Γ) t (App t' NotErased (Var pi2 x'))
+conv-term-norm Γ t' (Lam pi1 l pi2 x oc t) =
+  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
+  conv-term (ctxt-rename pi2 x x' Γ) (App t' NotErased (Var pi2 x')) t 
 conv-term-norm Γ _ _ = ff
 
 conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'

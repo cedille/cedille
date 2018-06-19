@@ -140,8 +140,10 @@ convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convT
 -- For a case like \ x. \ y. x (cast y) == \ x. x, where the head is a
 -- locally-bound variable, leading to the argument not being normalized
 -- and hence not eta-contracted.
-convTerm' c (PureLambda v tm) tm' = convTerm (ctxtRename c v v) tm (PureApp tm' (PureVar v))
-convTerm' c tm (PureLambda v tm') = convTerm (ctxtRename c v v) tm' (PureApp tm (PureVar v))
+convTerm' c (PureLambda v tm) tm' = freshVar c v $ \ v' ->
+  convTerm (ctxtRename c v v') tm (PureApp tm' (PureVar v'))
+convTerm' c tm (PureLambda v tm') = freshVar c v $ \ v' ->
+  convTerm (ctxtRename c v v') tm' (PureApp tm (PureVar v'))
 convTerm' c tm tm' = False
 
 --convType' :: Ctxt -> PureType -> PureType -> Bool
@@ -153,8 +155,10 @@ convType' c (TpIota v tp tp') (TpIota v' tp'' tp''') = convType c tp tp'' && con
 convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTerm c tm tm'' && convTerm c tm' tm'''
 convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convType c tp' tp'''
 convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTerm c tm tm'
-convType' c (TpLambda v tk tp) tp' = convType (ctxtRename c v v) tp (if tpKdIsType tk then TpAppTm tp' (PureVar v) else TpAppTp tp' (TpVar v))
-convType' c tp (TpLambda v tk tp') = convType (ctxtRename c v v) tp' (if tpKdIsType tk then TpAppTm tp (PureVar v) else TpAppTp tp (TpVar v))
+convType' c (TpLambda v tk tp) tp' = freshVar c v $ \ v' ->
+  convType (ctxtRename c v v') tp (if tpKdIsType tk then TpAppTm tp' (PureVar v') else TpAppTp tp' (TpVar v'))
+convType' c tp (TpLambda v tk tp') = freshVar c v $ \ v' ->
+  convType (ctxtRename c v v') tp' (if tpKdIsType tk then TpAppTm tp (PureVar v') else TpAppTp tp (TpVar v'))
 convType' c tp tp' = False
 
 --convKind' :: Ctxt -> PureKind -> PureKind -> Bool
