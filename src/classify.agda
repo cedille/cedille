@@ -1163,11 +1163,11 @@ check-meta-vars Xs =
   open helpers
 
   check-meta-var : meta-var → spanM meta-var
-  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _)) =
+  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _) _) =
     spanMr X
-  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing)) =
+  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing) _) =
     spanMr X
-  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp))) =
+  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp)) _) =
       check-type tp (just k)
     ≫span spanM-push-type-def posinfo-gen nonParamVar x tp k
     ≫=span λ _ → spanMr X

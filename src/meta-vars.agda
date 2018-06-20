@@ -62,9 +62,10 @@ record meta-var : Set where
   field
     name : string
     sol  : meta-var-sol
+    loc  : span-location
 open meta-var
 
-pattern meta-var-mk-tp x k mtp = meta-var-mk x (meta-var-tp k mtp)
+pattern meta-var-mk-tp x k mtp l = meta-var-mk x (meta-var-tp k mtp) l
 
 record meta-vars : Set where
   constructor meta-vars-mk
@@ -78,14 +79,14 @@ meta-var-name X = meta-var.name X
 
 -- TODO
 meta-var-to-type : meta-var → posinfo → maybe type
-meta-var-to-type (meta-var-mk-tp x k (just tp)) pi = just tp
-meta-var-to-type (meta-var-mk-tp x k nothing) pi = just (TpVar pi x)
-meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm)) pi = nothing
+meta-var-to-type (meta-var-mk-tp x k (just tp) _) pi = just tp
+meta-var-to-type (meta-var-mk-tp x k nothing _) pi = just (TpVar pi x)
+meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm) _) pi = nothing
 
 meta-var-to-term : meta-var → posinfo → maybe term
-meta-var-to-term (meta-var-mk-tp x k mtp) pi = nothing
-meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm))) pi = just tm
-meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing)) pi = just (Var pi x)
+meta-var-to-term (meta-var-mk-tp x k mtp _) pi = nothing
+meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm)) _) pi = just tm
+meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing) _) pi = just (Var pi x)
 
 meta-var-to-type-unsafe : meta-var → posinfo → type
 meta-var-to-type-unsafe X pi
@@ -100,10 +101,10 @@ meta-var-to-term-unsafe X pi
 ... | nothing = Var pi (meta-var-name X)
 
 meta-var-solved? : meta-var → 𝔹
-meta-var-solved? (meta-var-mk n (meta-var-tp k nothing)) = ff
-meta-var-solved? (meta-var-mk n (meta-var-tp k (just _))) = tt
-meta-var-solved? (meta-var-mk n (meta-var-tm tp nothing)) = ff
-meta-var-solved? (meta-var-mk n (meta-var-tm tp (just _))) = tt
+meta-var-solved? (meta-var-mk n (meta-var-tp k nothing) _) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tp k (just _)) _) = tt
+meta-var-solved? (meta-var-mk n (meta-var-tm tp nothing) _) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tm tp (just _)) _) = tt
 
 
 meta-vars-empty : meta-vars
@@ -156,8 +157,8 @@ meta-vars-in-type Xs tp =
 
 meta-vars-unsolved : meta-vars → meta-vars
 meta-vars-unsolved = meta-vars-filter λ where
-  (meta-var-mk x (meta-var-tp k mtp))  → ~ isJust mtp
-  (meta-var-mk x (meta-var-tm tp mtm)) → ~ isJust mtm
+  (meta-var-mk x (meta-var-tp k mtp) _)  → ~ isJust mtp
+  (meta-var-mk x (meta-var-tm tp mtm) _) → ~ isJust mtm
 
 
 meta-vars-are-free-in-type : meta-vars → type → 𝔹
@@ -165,24 +166,24 @@ meta-vars-are-free-in-type Xs tp
   = are-free-in-type check-erased (varset Xs) tp
 
 meta-var-is-HO : meta-var → 𝔹
-meta-var-is-HO (meta-var-mk name (meta-var-tm tp mtm)) = tt
-meta-var-is-HO (meta-var-mk-tp name k mtp) = kind-is-star k
+meta-var-is-HO (meta-var-mk name (meta-var-tm tp mtm) _) = tt
+meta-var-is-HO (meta-var-mk-tp name k mtp _) = kind-is-star k
 
 -- string and span helpers
 ----------------------------------------
 meta-var-to-string : meta-var → strM
-meta-var-to-string (meta-var-mk-tp name k nothing)
-  = strVar name
+meta-var-to-string (meta-var-mk-tp name k nothing sl)
+  = strMetaVar name sl
     ≫str strAdd " : " ≫str to-stringh k
-meta-var-to-string (meta-var-mk-tp name k (just tp))
-  = strVar name
+meta-var-to-string (meta-var-mk-tp name k (just tp) sl)
+  = strMetaVar name sl
     ≫str strAdd " : " ≫str to-stringh k
     ≫str strAdd " = " ≫str to-stringh tp
-meta-var-to-string (meta-var-mk name (meta-var-tm tp nothing))
-  = strVar name
+meta-var-to-string (meta-var-mk name (meta-var-tm tp nothing) sl)
+  = strMetaVar name sl
     ≫str strAdd " : " ≫str to-stringh tp
-meta-var-to-string (meta-var-mk name (meta-var-tm tp (just tm)))
-  = strVar name
+meta-var-to-string (meta-var-mk name (meta-var-tm tp (just tm)) sl)
+  = strMetaVar name sl
     ≫str strAdd " : " ≫str to-stringh tp
     ≫str strAdd " = " ≫str to-stringh tm
 
@@ -199,7 +200,10 @@ meta-vars-to-string Xs = -- meta-vars-to-stringh (order Xs) Xs
   meta-vars-to-stringh
     ((flip map) (order Xs) λ x →
       case trie-lookup (varset Xs) x of λ where
-        nothing  → meta-var-mk (x ^ "-missing!") (meta-var-tp (Star posinfo-gen) nothing)
+        nothing  →
+          meta-var-mk
+            (x ^ "-missing!") (meta-var-tp (Star posinfo-gen) nothing)
+            missing-span-location
         (just X) → X)
 
 meta-vars-data : ctxt → meta-vars → 𝕃 tagged-val
@@ -232,16 +236,19 @@ meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
 -- collecting, merging, matching
 ----------------------------------------------------------------------
 
-meta-vars-fresh : meta-vars → var → meta-var-sol → meta-var
-meta-vars-fresh Xs x sol
+meta-var-fresh-t : (S : Set) → Set
+meta-var-fresh-t S = meta-vars → var → span-location → S → meta-var
+
+meta-var-fresh : meta-var-fresh-t meta-var-sol
+meta-var-fresh Xs x sl sol
   with rename-away-from ("?" ^ x) (trie-contains (varset Xs)) empty-renamectxt
-... | x' = meta-var-mk x' sol
+... | x' = meta-var-mk x' sol sl
 
-meta-vars-fresh-tp : meta-vars → var → kind → maybe type → meta-var
-meta-vars-fresh-tp Xs x k mtp = meta-vars-fresh Xs x (meta-var-tp k mtp)
+meta-var-fresh-tp : meta-var-fresh-t (kind × maybe type)
+meta-var-fresh-tp Xs x sl (k , mtp) = meta-var-fresh Xs x sl (meta-var-tp k mtp)
 
-meta-vars-fresh-tm : meta-vars → var → type → maybe term → meta-var
-meta-vars-fresh-tm Xs x tp mtm = meta-vars-fresh Xs x (meta-var-tm tp mtm)
+meta-var-fresh-tm : meta-var-fresh-t (type × maybe term)
+meta-var-fresh-tm Xs x sl (tp , mtm) = meta-var-fresh Xs x sl (meta-var-tm tp mtm)
 
 private
   meta-vars-set : meta-vars → meta-var → meta-vars
@@ -258,10 +265,10 @@ meta-vars-add* Xs (Y :: Ys) = meta-vars-add* (meta-vars-add Xs Y) Ys
 
 -- peel all type quantification var from a type, adding it to a set of
 -- meta-vars
-{-# TERMINATING #-} -- subst of a meta-var does not increase size of type
+{-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
 meta-vars-peel : ctxt → meta-vars → type → (𝕃 meta-var) × type
 meta-vars-peel Γ Xs (Abs pi _ _ x tk@(Tkk k) tp) =
-  let Y   = meta-vars-fresh-tp Xs x k nothing
+  let Y   = meta-var-fresh-tp Xs x missing-span-location (k , nothing)
       Xs' = meta-vars-add Xs Y
       tp' = subst-type Γ (meta-var-to-type-unsafe Y pi) x tp
       ret = meta-vars-peel Γ Xs' tp' ; Ys  = fst ret ; rtp = snd ret
@@ -330,7 +337,7 @@ meta-vars-unfold-tmapp Γ Xs tp = aux
 meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
 meta-vars-update-kinds Γ Xs Xsₖ =
   record Xs { varset = (flip trie-map) (varset Xs) λ where
-    (meta-var-mk-tp x k mtp) → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp
+    (meta-var-mk-tp x k mtp sl) → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp sl
     sol → sol
   }
 

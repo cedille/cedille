@@ -722,7 +722,7 @@ elab-app-term Γ (AppTp t T) =
   case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
     (not-tp-abs _) → nothing
     (yes-tp-abs _ b _ x k Tₕ') →
-      let X = meta-vars-fresh-tp Xs x k (just T)
+      let X = meta-var-fresh-tp Xs x missing-span-location (k , (just T))
           Tₕ'' = rename-var Γ x (meta-var-name X) Tₕ' in
       just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)
 
