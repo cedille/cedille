@@ -694,7 +694,7 @@ elab-app-sols Γ t Xs (suc n) =
 elab-app-term Γ (App t m t') =
   elab-app-term Γ t ≫=maybe uncurry' λ t T Xs →
   let abs-num = length (meta-vars.order Xs) in
-  case meta-vars-unfold-tmapp Γ Xs T of λ where
+  case meta-vars-unfold-tmapp Γ missing-span-location Xs T of λ where
     (not-tp-arrow* _) → nothing
     (yes-tp-arrow* Ys T' Tₐ m' cod) →
       let Xs = meta-vars-add* Xs Ys

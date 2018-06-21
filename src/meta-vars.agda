@@ -266,19 +266,19 @@ meta-vars-add* Xs (Y :: Ys) = meta-vars-add* (meta-vars-add Xs Y) Ys
 -- peel all type quantification var from a type, adding it to a set of
 -- meta-vars
 {-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
-meta-vars-peel : ctxt → meta-vars → type → (𝕃 meta-var) × type
-meta-vars-peel Γ Xs (Abs pi _ _ x tk@(Tkk k) tp) =
-  let Y   = meta-var-fresh-tp Xs x missing-span-location (k , nothing)
+meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
+meta-vars-peel Γ sl Xs (Abs pi _ _ x tk@(Tkk k) tp) =
+  let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
       Xs' = meta-vars-add Xs Y
       tp' = subst-type Γ (meta-var-to-type-unsafe Y pi) x tp
-      ret = meta-vars-peel Γ Xs' tp' ; Ys  = fst ret ; rtp = snd ret
+      ret = meta-vars-peel Γ sl Xs' tp' ; Ys  = fst ret ; rtp = snd ret
   in (Y :: Ys , rtp)
 
-meta-vars-peel Γ Xs (NoSpans tp _) =
-  meta-vars-peel Γ Xs tp
-meta-vars-peel Γ Xs (TpParens _ tp _) =
-  meta-vars-peel Γ Xs tp
-meta-vars-peel Γ Xs tp = [] , tp
+meta-vars-peel Γ sl Xs (NoSpans tp _) =
+  meta-vars-peel Γ sl Xs tp
+meta-vars-peel Γ sl Xs (TpParens _ tp _) =
+  meta-vars-peel Γ sl Xs tp
+meta-vars-peel Γ sl Xs tp = [] , tp
 
 -- unfold a type with solve vars
 -- if it's needed for a type application
@@ -318,11 +318,11 @@ private
   ba-to-e (inj₂ ErasedArrow) = Erased
   ba-to-e (inj₂ UnerasedArrow) = NotErased
 
-meta-vars-unfold-tmapp : ctxt → meta-vars → type → tp-is-arrow*
-meta-vars-unfold-tmapp Γ Xs tp = aux
+meta-vars-unfold-tmapp : ctxt → span-location → meta-vars → type → tp-is-arrow*
+meta-vars-unfold-tmapp Γ sl Xs tp = aux
   where
   aux : tp-is-arrow*
-  aux with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
+  aux with meta-vars-peel Γ sl Xs (meta-vars-subst-type Γ Xs tp)
   ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =
     yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) (ba-to-e (inj₁ b))
     (λ t → subst-type Γ t x cod') -- move `qualif-term Γ t' to check-term-spine for elaboration
@@ -420,11 +420,11 @@ meta-vars-solve-tp : ctxt → meta-vars → var → type → match-error-t meta-
 meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 ... | nothing
   = match-error $' x ^ " is not a meta-var!" , []
-... | just (meta-var-mk _ (meta-var-tm tp' mtm))
+... | just (meta-var-mk _ (meta-var-tm tp' mtm) _)
   = match-error $' x ^ " is a term meta-var!" , []
-... | just (meta-var-mk-tp _ k nothing)
-  = match-ok (meta-vars-set Xs (meta-var-mk-tp x k (just tp)))
-... | just (meta-var-mk-tp _ k (just tp'))
+... | just (meta-var-mk-tp _ k nothing sl)
+  = match-ok (meta-vars-set Xs (meta-var-mk-tp x k (just tp) sl))
+... | just (meta-var-mk-tp _ k (just tp') _)
   =   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫⊎ match-ok Xs
 

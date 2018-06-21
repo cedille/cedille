@@ -765,7 +765,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 2) make sure it reveals an arrow
   ≫=spanm' uncurry λ Xs htp → -- λ ret → let Xs = fst ret ; htp = snd ret in
     get-ctxt λ Γ →
-    spanMr (meta-vars-unfold-tmapp Γ Xs htp)
+    spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
      on-fail (λ _ → error-inapplicable-to-tm t₁ t₂ htp Xs mode e?)
   ≫=spans' λ arr →
   -- 3) make sure expected / given erasures match
@@ -787,7 +787,11 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
         rtp'))
   ≫span check-term-spine-return Γ Xs' rtp')}
 
-  where mode = maybe-to-checking mtp
+  where
+  mode = maybe-to-checking mtp
+
+  span-loc : (fn : string) → span-location
+  span-loc fn = fn , term-start-pos t₁ , term-end-pos t₂
 
 check-term-spine t'@(AppTp t tp) mtp max =
   -- 1) type the applicand
