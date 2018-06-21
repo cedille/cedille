@@ -112,11 +112,18 @@ meta-vars-get-sub Xs
   = trie-catMaybe (trie-map ((flip meta-var-to-type) "") (varset Xs))
 
 -- substitutions, is-free-in
+
+meta-vars-subst-type' : (unfold : 𝔹) → ctxt → meta-vars → type → type
+meta-vars-subst-type' u Γ Xs tp =
+  let tp' = substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp in
+  if u then hnf Γ (unfolding-elab unfold-head-rec-defs) tp' tt else tp'
+
 meta-vars-subst-type : ctxt → meta-vars → type → type
-meta-vars-subst-type Γ Xs tp
+meta-vars-subst-type = meta-vars-subst-type' tt
+{-meta-vars-subst-type Γ Xs tp
   = hnf Γ (unfolding-elab unfold-head-rec-defs)
       (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp)
-      tt
+      tt-}
 
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
@@ -201,14 +208,14 @@ meta-vars-check-type-mismatch Γ s tp Xs tp'
         then nothing
         else just ("The expected type does not match the "
                ^ s ^ " type."))
-    where tp'' = meta-vars-subst-type Γ Xs tp'
+    where tp'' = meta-vars-subst-type' ff Γ Xs tp'
 
 meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars
                                     → type → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
   = meta-vars-check-type-mismatch Γ s tp Xs tp'
 meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
-  = [ type-data Γ (meta-vars-subst-type Γ Xs tp') ] , nothing
+  = [ type-data Γ (meta-vars-subst-type' ff Γ Xs tp') ] , nothing
 ----------------------------------------
 ----------------------------------------
 
@@ -297,16 +304,16 @@ private
 meta-vars-unfold-tmapp : ctxt → meta-vars → type → tp-is-arrow*
 meta-vars-unfold-tmapp Γ Xs tp = aux
   where
-  hnf-dom : type → type
-  hnf-dom dom = hnf Γ (unfolding-elab unfold-head-rec-defs) dom tt
+  -- hnf-dom : type → type
+  -- hnf-dom dom = hnf Γ (unfolding-elab unfold-head-rec-defs) dom tt
 
   aux : tp-is-arrow*
   aux with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
   ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =
-    yes-tp-arrow* Ys tp' (hnf-dom dom) (ba-to-e (inj₁ b))
+    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) (ba-to-e (inj₁ b))
     (λ t → subst-type Γ t x cod') -- move `qualif-term Γ t' to check-term-spine for elaboration
   ... | Ys , tp'@(TpArrow dom e cod') =
-    yes-tp-arrow* Ys tp' (hnf-dom dom) (ba-to-e (inj₂ e))
+    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) (ba-to-e (inj₂ e))
       (λ _ → cod')
   ... | Ys , tp' =
     not-tp-arrow* tp'

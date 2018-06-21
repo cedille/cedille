@@ -245,8 +245,6 @@ private
     strAdd " ." ≫str
     f
 
-
-
 {-# TERMINATING #-}
 elab-check-term : ctxt → term → type → maybe term
 elab-synth-term : ctxt → term → maybe (term × type)
@@ -302,11 +300,9 @@ elab-hnf-tk Γ (Tkk k) b = elab-hnf-kind Γ k b ≫=maybe (just ∘ Tkk)
 
 
 elab-check-term Γ (App t me t') T =
-  elab-app-term Γ (App t me t') ≫=maybe λ where
-    (tf , T , Xs) → tf Xs
+  elab-app-term Γ (App t me t') ≫=maybe uncurry' λ tf T Xs → tf Xs
 elab-check-term Γ (AppTp t T) T' =
-  elab-app-term Γ (AppTp t T) ≫=maybe λ where
-    (tf , T , Xs) → tf Xs
+  elab-app-term Γ (AppTp t T) ≫=maybe uncurry' λ tf T Xs → tf Xs
 elab-check-term Γ (Beta pi ot ot') T =
   let ot'' = case ot' of λ where NoTerm → just (fresh-id-term Γ); (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
   case ot of λ where
@@ -415,7 +411,7 @@ elab-check-term Γ (Theta pi θ t ts) T =
   let x = case hnf Γ unfold-head t tt of λ {(Var _ x) → x; _ → "_"} in
   rename x from Γ for λ x' →
   motive x x' T T' θ ≫=maybe λ mtv →
-  elab-check-term Γ (App* (AppTp t mtv) (lterms-to-𝕃 θ ts)) T where
+  elab-check-term Γ (lterms-to-term θ (AppTp t mtv) ts) T where
   wrap-var : var → type → maybe type
   wrap-var x T =
     rename x from Γ for λ x' →
@@ -678,7 +674,8 @@ elab-app-term Γ (App t m t') =
         ff → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
              elab-check-term Γ t' Tₐ ≫=maybe λ t' →
              ret t' (cod t') Xs
-        tt → elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
+        tt → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
+             elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
              case meta-vars-match Γ Xs empty-trie Tₐ Tₐ' of λ where
                (yes-error _) → nothing
                (no-error Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))

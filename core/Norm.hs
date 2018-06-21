@@ -128,10 +128,8 @@ hnfeType c = hnfType c . eraseType
 hnfeKind c = hnfKind c . eraseKind
 hnfeTpKd c = hnfTpKd c . eraseTpKd
 
-convTerm c tm tm' = convTerm' c (hnfTerm c tm) (hnfTerm c tm')
-convType c tp tp' = convType' c (hnfType c tp) (hnfType c tp')
-convKind c kd kd' = convKind' c (hnfKind c kd) (hnfKind c kd')
-convTpKd c tk tk' = convTpKd' c (hnfTpKd c tk) (hnfTpKd c tk')
+convTerm c tm tm' = convTerm' c tm tm' || convTerm' c (hnfTerm c tm) (hnfTerm c tm')
+convType c tp tp' = convType' c tp tp' || convType' c (hnfType c tp) (hnfType c tp')
 
 --convTerm' :: Ctxt -> PureTerm -> PureTerm -> Bool
 convTerm' c (PureVar v) (PureVar v') = ctxtRep c v == ctxtRep c v'
@@ -162,13 +160,13 @@ convType' c tp (TpLambda v tk tp') = freshVar c v $ \ v' ->
 convType' c tp tp' = False
 
 --convKind' :: Ctxt -> PureKind -> PureKind -> Bool
-convKind' c Star Star = True
-convKind' c (KdPi v tk kd) (KdPi v' tk' kd') = convTpKd c tk tk' && convKind' (ctxtRename c v v') kd kd'
-convKind' _ _ _ = False
+convKind c Star Star = True
+convKind c (KdPi v tk kd) (KdPi v' tk' kd') = convTpKd c tk tk' && convKind (ctxtRename c v v') kd kd'
+convKind _ _ _ = False
 
-convTpKd' c (TpKdTp tp) (TpKdTp tp') = convType' c tp tp'
-convTpKd' c (TpKdKd kd) (TpKdKd kd') = convKind' c kd kd'
-convTpKd' _ _ _ = False
+convTpKd c (TpKdTp tp) (TpKdTp tp') = convType c tp tp'
+convTpKd c (TpKdKd kd) (TpKdKd kd') = convKind c kd kd'
+convTpKd _ _ _ = False
 
 --freeInTerm :: Var -> PureTerm -> Bool
 freeInTerm v (PureVar v') = v == v'

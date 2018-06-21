@@ -35,7 +35,9 @@ are-free-in-term ce x (Lam _ b _ x' oc t) =
   (ce && are-free-in-optClass ce x oc)
   || are-free-in-term ce (trie-remove x x') t
 are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
-  (ce && are-free-in-maybeCheckType ce x m) || (are-free-in-term ce x t)
+  (ce && are-free-in-maybeCheckType ce x m)
+  || (are-free-in-term ce x t
+      && (ce || are-free-in-term ce (stringset-insert empty-stringset x') t'))
   || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))

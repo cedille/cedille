@@ -529,7 +529,7 @@ erase : { ed : exprd } → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-term : term → term
 erase-type : type → type
 erase-kind : kind → kind
-erase-lterms : theta → lterms → 𝕃 term
+erase-lterms : term → lterms → term
 erase-tk : tk → tk
 -- erase-optType : optType → optType
 erase-liftingType : liftingType → liftingType
@@ -558,7 +558,7 @@ erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
 erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Delta pi T t) = erase-term t
-erase-term (Theta pi u t ls) = App*' (erase-term t) (erase-lterms u ls)
+erase-term (Theta pi u t ls) = erase-lterms (erase-term t) ls
 
 -- Only erases TERMS in types, leaving the structure of types the same
 erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
@@ -593,20 +593,25 @@ erase{QUALIF} q = q
 erase-tk (Tkt tp) = Tkt (erase-type tp)
 erase-tk (Tkk k) = Tkk (erase-kind k)
 
--- erase-optType (SomeType tp) = SomeType (erase-type tp)
--- erase-optType NoType = NoType
-
 erase-liftingType (LiftArrow lt lt') = LiftArrow (erase-liftingType lt) (erase-liftingType lt')
 erase-liftingType (LiftParens pi lt pi') = LiftParens pi (erase-liftingType lt) pi'
 erase-liftingType (LiftPi pi v tp lt) = LiftPi pi v (erase-type tp) (erase-liftingType lt)
 erase-liftingType (LiftTpArrow tp lt) = LiftTpArrow (erase-type tp) (erase-liftingType lt)
 erase-liftingType lt = lt
 
-erase-lterms Abstract (LtermsNil _) = []
-erase-lterms (AbstractVars _) (LtermsNil _) = []
-erase-lterms AbstractEq (LtermsNil pi) = [ Beta pi NoTerm NoTerm ]
-erase-lterms u (LtermsCons NotErased t ls) = (erase-term t) :: erase-lterms u ls
-erase-lterms u (LtermsCons Erased t ls) = erase-lterms u ls
+erase-lterms t (LtermsNil _) = t
+erase-lterms t (LtermsCons Erased t' ls) = erase-lterms t ls
+erase-lterms t (LtermsCons NotErased t' ls) = erase-lterms (App t NotErased (erase-term t')) ls
+
+lterms-to-term : theta → term → lterms → term
+lterms-to-term AbstractEq t (LtermsNil pi) = App t Erased (Beta pi NoTerm NoTerm)
+lterms-to-term _ t (LtermsNil pi) = t
+lterms-to-term u t (LtermsCons e t' ls) = lterms-to-term u (App t e t') ls
+
+{-
+erase-lterms (LtermsNil _) = []
+erase-lterms (LtermsCons NotErased t ls) = (erase-term t) :: erase-lterms ls
+erase-lterms (LtermsCons Erased t ls) = erase-lterms ls
 
 lterms-to-𝕃h : theta → lterms → 𝕃 (maybeErased × term)
 lterms-to-𝕃h Abstract (LtermsNil _) = []
@@ -621,9 +626,9 @@ lterms-to-𝕃' : theta → lterms → 𝕃 term
 lterms-to-𝕃' u ls = map snd (lterms-to-𝕃 u ls)
 
 erase-lterms-if : 𝔹 → theta → lterms → 𝕃 term
-erase-lterms-if tt = erase-lterms
+erase-lterms-if tt u lt = erase-lterms lt
 erase-lterms-if ff t lt = lterms-to-𝕃' t lt
-
+-}
 {-
 num-to-ℕ : num → ℕ
 num-to-ℕ n with string-to-ℕ n
@@ -882,3 +887,7 @@ delta-contra = delta-contrah 0 empty-trie empty-trie
 
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)
+
+_maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
+_maybe-or_ ma @ (just a) ma' = ma
+_maybe-or_ ma ma' = ma'

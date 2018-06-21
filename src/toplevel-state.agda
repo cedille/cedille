@@ -10,10 +10,12 @@ open import classify options {mF}
 open import ctxt
 open import constants
 open import conversion
+open import rename
 open import spans options {mF}
 open import syntax-util
 open import to-string options
 open import string-format
+open import subst
 
 import cws-types
 
@@ -216,6 +218,7 @@ scope-file : toplevel-state → (fn : string) → optAs → args → toplevel-st
 scope-cmds : toplevel-state → (fn mn : string) → cmds → optAs → args → toplevel-state
 scope-cmd : toplevel-state → (fn mn : string) → cmd → optAs → args → toplevel-state
 scope-def : toplevel-state → (fn mn : string) → var → optAs → args → toplevel-state
+scope-public-args : toplevel-state → (old-fn new-fn : string) → args → args → args
 
 scope-file s fn oa as with include-elt.ast (get-include-elt s fn)
 ...| nothing = s
@@ -226,13 +229,10 @@ scope-cmds s fn mn (CmdsNext c cs) oa as =
   scope-cmds (scope-cmd s fn mn c oa as) fn mn cs oa as
 scope-cmds s fn mn CmdsStart oa as = s
 
--- Should this be substituting each occurence of the originally imported file's parameters
--- in the newly imported file's parameters with their corresponding arguments?
-scope-cmd s fn mn (ImportCmd (Import pi op pi' ifn oa' as' pi'')) oa as =
-  if optPublic-is-public op
-    then scope-file s (trie-lookup-else ifn
-      (include-elt.import-to-dep (get-include-elt s fn)) ifn) oa' as'
-    else s
+scope-cmd s fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as = s
+scope-cmd s fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as =
+  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
+  scope-file s ifn' oa' (scope-public-args s fn ifn' as as')
 scope-cmd s fn mn (DefKind pi v ps k pi') oa as = scope-def s fn mn v oa as
 scope-cmd s fn mn (DefTermOrType (DefTerm pi v mcT t) pi') oa as = scope-def s fn mn v oa as
 scope-cmd s fn mn (DefTermOrType (DefType pi v k T) pi') oa as = scope-def s fn mn v oa as
@@ -240,3 +240,19 @@ scope-cmd s fn mn (DefTermOrType (DefType pi v k T) pi') oa as = scope-def s fn 
 scope-def (mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os)) _ mn v oa as =
   mk-toplevel-state ip fns is
     (mk-ctxt (mn' , fn , pms , trie-insert q (import-as v oa) (mn # v , as)) ss sis os)
+
+-- For importing a file (foo) that publicly imports another file (bar),
+-- we need to substitute the arguments given to foo for occurences of foo's
+-- parameters in the arguments to bar
+scope-public-args s ofn nfn as as' with lookup-mod-params (toplevel-state.Γ s) ofn
+...| nothing = as'
+...| just ps = flip uncurry (get-sub ps as) λ ρt ρT →
+               substh-args (toplevel-state.Γ s) empty-renamectxt ρT
+               (substh-args (toplevel-state.Γ s) empty-renamectxt ρt as)
+  where
+  get-sub : params → args → trie term × trie type
+  get-sub (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) =
+    flip uncurry (get-sub ps as) λ ρt ρT → case a of λ where
+      (TermArg me' t) → trie-insert ρt x t , ρT
+      (TypeArg T) → ρt , trie-insert ρT x T
+  get-sub ps as = empty-trie , empty-trie

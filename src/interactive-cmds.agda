@@ -191,11 +191,11 @@ map-fst f (a , b) = f a , b
 
 rewrite-expr' : ctxt → expr → term → term → var → 𝔹 → Σi language-level (λ p → language-level-lift p × ℕ × ℕ)
 rewrite-expr' Γ (,_ {ll-term} t) t₁ t₂ x b = ,
-  map-fst (subst-term Γ t₂ x ∘ erase-term) (rewrite-term (qualif-term Γ t) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
+  map-fst (subst-term Γ t₂ x ∘ erase-term) (rewrite-term t Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
 rewrite-expr' Γ (,_ {ll-type} T) t₁ t₂ x b = ,
-  map-fst (subst-type Γ t₂ x ∘ erase-type) (rewrite-type (qualif-type Γ T) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
+  map-fst (subst-type Γ t₂ x ∘ erase-type) (rewrite-type T Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
 rewrite-expr' Γ (,_ {ll-kind} k) t₁ t₂ x b = ,
-  map-fst (subst-kind Γ t₂ x ∘ erase-kind) (rewrite-kind (qualif-kind Γ k) Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
+  map-fst (subst-kind Γ t₂ x ∘ erase-kind) (rewrite-kind k Γ b nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0)
 
 rewrite-expr : ctxt → expr → term → term → 𝔹 → string ⊎ tagged-val
 rewrite-expr Γ e t₁ t₂ b with fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
@@ -287,10 +287,10 @@ rewrite-cmd Γ ss is hd ls =
   (,_ {ll-term} t) →
     checked-with-no-errors (check-term t nothing Γ' empty-spans)
       ! "Error when synthesizing a type for the input term" ≫error λ where
-    (TpEq _ t₁ t₂ _) → rewrite-expr Γ' ss t₁ t₂ use-hnf
+    (TpEq _ t₁ t₂ _) → rewrite-expr Γ' (qualif-expr Γ' ss) t₁ t₂ use-hnf
     _ → inj₁ "Synthesized a non-equational type from the input term"
   (,_ {ll-type} (TpEq _ t₁ t₂ _)) →
-    rewrite-expr Γ' (qualif-expr Γ' ss) (qualif-term Γ' t₁) (qualif-term Γ' t₂) use-hnf
+    rewrite-expr Γ' (qualif-expr Γ' ss) t₁ t₂ use-hnf
   (,_ {ll-type} T) → inj₁ "Expected the input expression to be a term, but got a type"
   (,_ {ll-kind} _) → inj₁ "Expected the input expression to be a term, but got a kind"
 

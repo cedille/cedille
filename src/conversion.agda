@@ -166,8 +166,7 @@ hnf{TERM} Γ u (Phi _ eq t₁ t₂ _) hd = hnf Γ u t₂ hd
 hnf{TERM} Γ u (Rho pi _ _ t _ t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Chi pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Delta pi T t') hd = hnf Γ u t' hd
-hnf{TERM} Γ u@(unfold _ _ _ e) (Theta pi u' t ls) hd
-  = hnf Γ u (App*' t (erase-lterms-if e u' ls)) hd
+hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
 hnf{TERM} Γ u x hd = x
