@@ -77,7 +77,7 @@ hnf-from Γ e EpsHnf t = hnf Γ (unfolding-set-erased unfold-head e) t tt
 hnf-from Γ e EpsHanf t = hanf Γ e t
 
 maybe-hnf : {ed : exprd} → ctxt → maybe ⟦ ed ⟧ → maybe ⟦ ed ⟧
-maybe-hnf Γ = maybe-map λ t → hnf Γ unfold-head t tt
+maybe-hnf Γ = maybe-map λ t → hnf Γ (unfolding-elab unfold-head) t tt
 
 -- TODO Should these be unerased sometimes?
 check-term-update-eq : ctxt → leftRight → maybeMinus → posinfo → term → term → posinfo → type
@@ -294,7 +294,7 @@ check-termi (Lam pi l _ x NoClass t) nothing =
     spanMr nothing
 
 check-termi (Lam pi l pi' x oc t) (just tp) =
-  get-ctxt λ Γ → cont (to-abs tp maybe-or to-abs (hnf Γ unfold-head-one tp tt)) where
+  get-ctxt λ Γ → cont (to-abs tp maybe-or to-abs (hnf Γ unfold-head tp tt)) where
     cont : maybe abs → spanM ⊤
     cont (just (mk-abs pi'' b pi''' x' atk _ tp')) =
       check-oc oc ≫span
@@ -466,8 +466,9 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
                  (just "We could not synthesize an equation from the first subterm in a ρ-term."))
     nothing → spanM-add (Rho-span pi t t' checking op (inj₂ x) [] nothing) ≫span check-term t' (just tp)
 
-check-termi (Rho pi op on t NoGuide t') (just tp) = 
-  check-term t nothing ≫=span λ mtp → get-ctxt λ Γ → cont (maybe-hnf Γ mtp) (hnf Γ unfold-head tp tt)
+check-termi (Rho pi op on t NoGuide t') (just tp) =
+  get-ctxt λ Γ → check-term t nothing ≫=span λ mtp →
+  cont (maybe-hnf Γ mtp) (hnf Γ (unfolding-elab unfold-head-rec-defs) tp tt)
   where cont : maybe type → type → spanM ⊤
         cont nothing tp = get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op (inj₁ 0) [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp))
         cont (just (TpEq pi' t1 t2 pi'')) tp = 
@@ -488,7 +489,8 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
 
 check-termi (Rho pi op on t NoGuide t') nothing = 
   check-term t nothing ≫=span λ mtp → 
-  check-term t' nothing ≫=span λ mtp' → get-ctxt λ Γ → cont (maybe-hnf Γ mtp) (maybe-hnf Γ mtp')
+  check-term t' nothing ≫=span λ mtp' → get-ctxt λ Γ → cont (maybe-hnf Γ mtp)
+    (maybe-map (λ mtp' → hnf Γ (unfolding-elab unfold-head-rec-defs) mtp' tt) mtp')
   where cont : maybe type → maybe type → spanM (maybe type)
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt λ Γ → 
@@ -856,7 +858,7 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-      case (meta-vars-match Γ Xs empty-trie domₕ atpₕ) of λ where
+      case (meta-vars-match Γ Xs empty-trie ff dom atp) of λ where
       (yes-error msg) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg
       (no-error  Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
     -- 3) sanity check the match (FO matching, for now)

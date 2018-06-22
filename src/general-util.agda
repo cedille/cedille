@@ -292,3 +292,7 @@ Id A = A
 instance
   Id-monad : monad Id
   Id-monad = record {returnM = λ a → a ; bindM = λ a f → f a }
+
+_maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
+_maybe-or_ ma @ (just a) ma' = ma
+_maybe-or_ ma ma' = ma'

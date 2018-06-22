@@ -397,12 +397,13 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
   =   err-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫err no-error Xs
 
-meta-vars-match : ctxt → meta-vars → local-vars → (tpₓ tp : type) → error-t meta-vars
+{-# TERMINATING #-}
+meta-vars-match : ctxt → meta-vars → local-vars → (is-hnf : 𝔹) → (tpₓ tp : type) → error-t meta-vars
 meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → error-t meta-vars
 -- meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
 
 -- meta-vars-match
-meta-vars-match Γ Xs Ls tpₓ@(TpVar pi x) tp
+meta-vars-match Γ Xs Ls u tpₓ@(TpVar pi x) tp
   -- check if x is a meta-var
   = if ~ trie-contains (meta-vars.varset Xs) x
     -- if not, then just make sure tp is the same var
@@ -414,67 +415,68 @@ meta-vars-match Γ Xs Ls tpₓ@(TpVar pi x) tp
     then yes-error (e-meta-scope Γ x tp)
     else meta-vars-solve-tp Γ Xs x tp
 
-meta-vars-match Γ Xs Ls (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
-  =   meta-vars-match Γ Xs Ls tpₓ₁ tp₁
-    ≫=err λ Xs' → meta-vars-match Γ Xs' Ls tpₓ₂ tp₂
+meta-vars-match Γ Xs Ls u (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
+  =   meta-vars-match Γ Xs Ls u tpₓ₁ tp₁
+    ≫=err λ Xs' → meta-vars-match Γ Xs' Ls ff tpₓ₂ tp₂
     ≫=err λ Xs″ → no-error Xs″
 
-meta-vars-match Γ Xs Ls (TpAppt tpₓ tmₓ) (TpAppt tp tm)
-  =   meta-vars-match Γ Xs Ls tpₓ tp
+meta-vars-match Γ Xs Ls u (TpAppt tpₓ tmₓ) (TpAppt tp tm)
+  =   meta-vars-match Γ Xs Ls u tpₓ tp
     ≫=err λ Xs' →
       err-guard (~ conv-term Γ tmₓ tm)
                 (e-term-ineq Γ tmₓ tm)
     ≫err no-error Xs'
 
-meta-vars-match Γ Xs Ls tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
+meta-vars-match Γ Xs Ls u tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
   =   err-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
     ≫err meta-vars-match-tk Γ Xs Ls tkₓ tk
     ≫=err λ Xs' →
       meta-vars-match
         (ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ))
-        Xs' (stringset-insert Ls x) tpₓ tp
+        Xs' (stringset-insert Ls x) u tpₓ tp
 
-meta-vars-match Γ Xs Ls tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err-guard (~ eq-arrowtype atₓ at)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
-meta-vars-match Γ Xs Ls tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
+meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
   =   err-guard (~ arrowtype-matches-binder atₓ b)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
-meta-vars-match Γ Xs Ls tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls u tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err-guard (~ arrowtype-matches-binder at bₓ)
                 (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls tp₂ₓ tp₂
+    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
-meta-vars-match Γ Xs Ls (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
-  =   meta-vars-match Γ Xs Ls mₓ m
+meta-vars-match Γ Xs Ls u (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
+  =   meta-vars-match Γ Xs Ls ff mₓ m
     ≫=err λ Xs →
       meta-vars-match (ctxt-rename pi xₓ x (ctxt-var-decl-if pi x Γ))
-        Xs (stringset-insert Ls x) tpₓ tp
+        Xs (stringset-insert Ls x) ff tpₓ tp
 
-meta-vars-match Γ Xs Ls (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
+meta-vars-match Γ Xs Ls u (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
   =   err-guard (~ conv-term Γ t₁ₓ t₁) (e-term-ineq Γ t₁ₓ t₁)
     ≫err err-guard (~ conv-term Γ t₂ₓ t₂) (e-term-ineq Γ t₂ₓ t₂)
     ≫err no-error Xs
 
-meta-vars-match Γ Xs Ls (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
+meta-vars-match Γ Xs Ls u (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
   =   err-guard (~ conv-liftingType Γ lₓ l) (e-liftingType-ineq Γ lₓ l)
     ≫err err-guard
       (~ conv-term (ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)) tₓ t)
       (e-term-ineq Γ tₓ t)
     ≫err no-error Xs
 
-meta-vars-match Γ Xs Ls (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
+meta-vars-match Γ Xs Ls u (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
   =   meta-vars-match-tk Γ Xs Ls atkₓ atk
-    ≫=err λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) tpₓ tp
+    ≫=err λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) u tpₓ tp
 
-meta-vars-match Γ Xs Ls tpₓ tp
+meta-vars-match Γ Xs Ls ff tpₓ tp = meta-vars-match Γ Xs Ls tt (hnf Γ (unfolding-elab unfold-head) tpₓ tt) (hnf Γ (unfolding-elab unfold-head) tp tt)
+meta-vars-match Γ Xs Ls tt tpₓ tp
   = yes-error (e-catchall Γ tpₓ tp)
 
 -- meta-vars-match-tk
@@ -483,7 +485,7 @@ meta-vars-match-tk Γ Xs Ls (Tkk kₓ) (Tkk k)
                 (e-kind-ineq Γ kₓ k)
     ≫err no-error Xs
 meta-vars-match-tk Γ Xs Ls (Tkt tpₓ) (Tkt tp)
-  = meta-vars-match Γ Xs Ls tpₓ tp
+  = meta-vars-match Γ Xs Ls ff tpₓ tp
 meta-vars-match-tk Γ Xs Ls tkₓ tk
   = yes-error (e-tk-ineq Γ tkₓ tk)
 

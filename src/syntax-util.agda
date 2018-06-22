@@ -887,7 +887,3 @@ delta-contra = delta-contrah 0 empty-trie empty-trie
 
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)
-
-_maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
-_maybe-or_ ma @ (just a) ma' = ma
-_maybe-or_ ma ma' = ma'

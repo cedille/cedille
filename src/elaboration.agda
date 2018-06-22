@@ -676,7 +676,7 @@ elab-app-term Γ (App t m t') =
              ret t' (cod t') Xs
         tt → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
              elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
-             case meta-vars-match Γ Xs empty-trie Tₐ Tₐ' of λ where
+             case meta-vars-match Γ Xs empty-trie ff Tₐ Tₐ' of λ where
                (yes-error _) → nothing
                (no-error Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
 
