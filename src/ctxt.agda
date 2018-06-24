@@ -17,7 +17,7 @@ qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie , empty-trie) new-sym-info-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -159,7 +159,7 @@ ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
 
 -- lookup mod params from filename
 lookup-mod-params : ctxt → var → maybe params
-lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps) _ _) fn =
+lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps , id) _ _) fn =
   trie-lookup syms fn ≫=maybe λ { (mn , _) →
   trie-lookup mn-ps mn }
 
@@ -249,8 +249,8 @@ ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
 
 ctxt-add-current-params : ctxt → ctxt
-ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps) i symb-occs) =
-  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps) i symb-occs
+ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps , ids) i symb-occs) =
+  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps , ids) i symb-occs
 
 ctxt-clear-symbol : ctxt → string → ctxt
 ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
@@ -271,8 +271,12 @@ ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i symb-occs) fn =
   hremove i mn [] = i
   hremove i mn (x :: xs) = hremove (trie-remove i (mn # x)) mn xs
 
+ctxt-add-current-id : ctxt → ctxt
+ctxt-add-current-id (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
+  mk-ctxt mod (syms , mn-fn , mn-ps , trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is os
+
 ctxt-initiate-file : ctxt → (filename modname : string) → ctxt
-ctxt-initiate-file Γ fn mn = ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn
+ctxt-initiate-file Γ fn mn = ctxt-add-current-id (ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn)
 
 unqual : ctxt → var → string
 unqual (mk-ctxt (_ , _ , _ , q) _ _ _ ) v =

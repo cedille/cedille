@@ -136,15 +136,11 @@ private
   
   {- Helpers -}
   
-  qualif-ed : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  qualif-ed : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
   qualif-ed{TERM} = qualif-term
   qualif-ed{TYPE} = qualif-type
   qualif-ed{KIND} = qualif-kind
   qualif-ed Γ e = e
-  
-  return-tv : {ed : exprd} → ctxt → (⟦ ed ⟧ → ⟦ ed ⟧) → ⟦ ed ⟧ → tagged-val
-  return-tv Γ f t = case to-string-tag "" Γ t of λ
-    {(n , r , ts) → n , r , {-("br" , to-string Γ (f t)) :: -} ts}
 
   {- Command Executors -}
   
@@ -155,14 +151,22 @@ private
     string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
     string-to-𝔹 - de ! "boolean" ≫parse λ do-e →
     parse-string ll' - str ! ll ≫parse λ t →
-    let Γ' = get-local-ctxt Γ sp ls in
-    inj₂ (return-tv Γ' id (hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt))
+      let Γ' = get-local-ctxt Γ sp ls
+          t' = hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt in
+    if do-e
+      then inj₂ (strRunTag "" Γ' (to-stringh t' ≫str strAdd "§" ≫str to-stringh
+        (ll-ind {λ ll → ll-lift ll → ll-lift ll → ll-lift ll}
+          -- If it is a term, we want to return (φ β - t {t'}) so that the outline
+          -- printed by the BR buffer checks
+          (λ t t' → Phi posinfo-gen (Beta posinfo-gen NoTerm NoTerm) t t' posinfo-gen)
+          (λ t t' → t') (λ t t' → t') ll' t t')))
+      else inj₂ (to-string-tag "" Γ' t')
   
   normalize-prompt : ctxt → (str hd : string) → string ⊎ tagged-val
   normalize-prompt Γ str hd =
     string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
     parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
-    inj₂ (return-tv Γ id (hnf Γ (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ t) tt))
+    inj₂ (to-string-tag "" Γ (hnf Γ (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ t) tt))
   
   erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
   erase-cmd Γ str ll pi ls =
@@ -170,12 +174,12 @@ private
     string-to-ℕ - pi ! "natural number" ≫parse λ sp →
     parse-string ll' - str ! ll ≫parse λ t →
     let Γ' = get-local-ctxt Γ sp ls in
-    inj₂ (return-tv Γ' id (erase (qualif-ed Γ' t)))
+    inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
   
   erase-prompt : ctxt → (str : string) → string ⊎ tagged-val
   erase-prompt Γ str =
     parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
-    inj₂ (return-tv Γ id (erase (qualif-ed Γ t)))
+    inj₂ (to-string-tag "" Γ (erase (qualif-ed Γ t)))
   
   br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
   br-cmd Γ str ls =
@@ -195,7 +199,7 @@ private
     let Γ' = merge-lcis-ctxt Γ ls; t2 = erase (qualif-ed Γ' t2) in
     if ll-ind {λ ll → ctxt → ll-lift ll → ll-lift ll → 𝔹}
          conv-term conv-type conv-kind ll' Γ' (qualif-ed Γ' t1) t2
-      then inj₂ (return-tv Γ' id t2)
+      then inj₂ (to-string-tag "" Γ' t2)
       else inj₁ "Inconvertible"
 
   rewrite-cmd : ctxt → (span-str : string) → (input-str : string) →
@@ -222,7 +226,8 @@ private
       rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ
       use-hnf nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0) of λ where
         (e , 0 , _) → inj₁ "No rewrites could be performed"
-        (e , _ , _) → inj₂ (return-tv Γ f e)
+        (e , _ , _) → inj₂ (strRunTag "" Γ
+          (to-stringh (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringh (erase e)))
   
   
   {- Commands -}

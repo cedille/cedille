@@ -123,16 +123,20 @@
 	  (cedille-mode-parent-last)
 	(message "No previous")))))
 
+(defun cedille-mode-lookup-filename (id)
+  "Looks up the file ID maps to"
+  (when se-mode-spans (cdr (nth (1- id) (se-span-data (car se-mode-spans))))))
+
 (defun cedille-mode-parent-jump (start end)
   "If jumpable text is selected, jump to its definition"
   (interactive "r")
   (let ((pin (se-pins-at start end 'loc)))
     (when (and mark-active pin)
+      (select-window (cedille-mode-parent-main-window))
       (setq data (se-pin-item-data (car pin))
-	    filename (cdr (assoc 'fn data))
+	    filename (cedille-mode-lookup-filename (string-to-number (cdr (assoc 'fn data))))
 	    start-to (string-to-number (cdr (assoc 's data)))
             end-to (string-to-number (cdr (assoc 'e data))))
-      (select-window (cedille-mode-parent-main-window))
       (setq past (car cedille-mode-browsing-history)
 	    present (buffer-file-name))
       (with-current-buffer (find-file filename)

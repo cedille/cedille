@@ -68,6 +68,13 @@ spans-to-rope (regular-spans _ ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-rope
 spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
+print-file-id-table : ctxt → 𝕃 tagged-val
+print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
+  h [] id-fns where
+  h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
+  h ts [] = ts
+  h {i} ts (fn :: fns) = h (("fileid" , [[ fn ]] , []) :: ts) fns
+
 add-span : span → spans → spans
 add-span s@(mk-span dsc pi pi' tv nothing) (regular-spans es ss) =
   regular-spans es (s :: ss)
@@ -742,8 +749,8 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-d
 Lft-span : posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span pi X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
 
-File-span : posinfo → posinfo → string → span
-File-span pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' [] nothing
+File-span : ctxt → posinfo → posinfo → string → span
+File-span Γ pi pi' filename = mk-span ("Cedille source file (" ^ filename ^ ")") pi pi' (print-file-id-table Γ) nothing
 
 Module-span : posinfo → posinfo → span
 Module-span pi pi' = mk-span "Module declaration" pi pi' [ not-for-navigation ] nothing

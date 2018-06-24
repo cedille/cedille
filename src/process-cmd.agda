@@ -176,7 +176,7 @@ process-start s filename pn (File pi0 is pi1 pi2 mn ps cs pi3) need-to-check =
    process-params s (pi0 , ps) need-to-check ≫=span λ s →
    process-cmds s cs need-to-check ≫=span λ s → 
    process-cwst s filename ≫=span λ s →
-     spanM-add (File-span pi0 (posinfo-plus pi3 1) filename) ≫span
+     spanM-add (File-span (toplevel-state.Γ s) pi0 (posinfo-plus pi3 1) filename) ≫span
      let pi2' = posinfo-plus-str pi2 mn in
      spanM-add (Module-span pi2 pi2') ≫span
      spanM-add (Module-header-span pi1 pi2') ≫span

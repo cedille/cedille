@@ -1,0 +1,10 @@
+module context-shadowing.
+
+Nat ◂ ★ = ∀ X : ★. X ➔ (X ➔ X) ➔ X.
+Z ◂ Nat = Λ X. λ z. λ s. z.
+S ◂ Nat ➔ Nat = λ n. Λ X. λ z. λ s. s (n z s).
+
+test ◂ ∀ Q : Nat ➔ ★. ∀ X : (Nat ➔ ★) ➔ ★. X · Q ➔ X · Q =
+  Λ Q. Λ Nat. λ x. x.
+--            ^----^
+-- "Nat" now gets shadowed in the kind of Q

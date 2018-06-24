@@ -9,9 +9,9 @@
 	     (this-file (buffer-file-name)))
 	 (if lp 
 	     (let* ((l (cdr lp))
-		    (ls (split-string l " - "))
+		    (ls (cedille-mode-location-split l))
 		    (f (car ls))
-		    (n (string-to-number (cadr ls)))
+		    (n (cdr ls))
 		    (missing (string= "missing" f))
 		    (not-exists (not (file-exists-p f)))
 		    (b (if (or missing not-exists) (current-buffer) (find-file f)))
@@ -32,6 +32,11 @@
 		   (set-mark-command 1))))
 	   (message "No location at this node")))
     (message "No node selected")))
+
+(defun cedille-mode-location-split(location)
+  "Takes a string 'fn - pos' and returns (fn . pos)"
+  (let ((ls (split-string location " - ")))
+    (cons (car ls) (string-to-number (cadr ls)))))
 
 (defmacro make-cedille-mode-history-navigate(fwd-p jmp-p)
   "Generates a function for navigating history. fwd-p determines whether the function

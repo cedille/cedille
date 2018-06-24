@@ -108,6 +108,15 @@
      ;; ((string= quality "error") (if (cdr (assoc 'error data)) "error" nil)) 
      (t (cdr (assoc (intern quality) data))))))
 
+(defun cedille-mode-highlight-shadow-range (start end &optional object)
+  "Puts the shadowed text property from START to END"
+  (put-text-property
+   start
+   end
+   'face
+   `(:foreground ,cedille-mode-context-shadowed-color)
+   object))
+
 (defun cedille-mode-highlight-shadowed ()
   "Searches for 'shadowed'-attribute markup in STR and highlights them"
   (let* ((fn (lambda (pins)
@@ -115,7 +124,7 @@
                  (let* ((h (car pins))
                         (s (se-pin-item-start h))
                         (e (se-pin-item-end h)))
-                   (put-text-property s e 'face `(:foreground ,cedille-mode-context-shadowed-color))
+                   (cedille-mode-highlight-shadow-range s e)
                  (funcall fn (cdr pins)))))))
     (funcall fn (se-get-pins 'shadowed))))
 

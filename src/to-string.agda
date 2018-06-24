@@ -38,7 +38,6 @@ is-type {TYPE} _ = tt
 is-type _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
-no-parens {_} {LIFTINGTYPE} _ (LiftParens pi lT pi') lr = tt
 no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
 no-parens {_} {TERM} _ (Beta pi ot ot') lr = tt
@@ -131,6 +130,7 @@ strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
 
 strΓ = strΓ' localScope ff
 
+{-
 ctxt-global-var-location : ctxt → var → location
 ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
 ...| just (term-def _ _ _ , loc) = loc
@@ -138,17 +138,26 @@ ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
 ...| just (type-def _ _ _ , loc) = loc
 ...| just (kind-def _ _ _ , loc) = loc
 ...| _ = "missing" , "missing"
+-}
 
-make-loc-tag : (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
-make-loc-tag fn s e = make-tag "loc" (("fn" , [[ fn ]]) :: ("s" , [[ s ]]) :: ("e" , [[ e ]]) :: [])
+
+ctxt-get-file-id : ctxt → (filename : string) → ℕ
+ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os) =
+  trie-lookup-else 0 ids
+
+make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
+make-loc-tag Γ fn s e = make-tag "loc"
+  (("fn" , [[ ℕ-to-string (ctxt-get-file-id Γ fn) ]]) ::
+   ("s" , [[ s ]]) :: ("e" , [[ e ]]) :: [])
 
 var-loc-tag : ctxt → location → var → (start-from end-from : ℕ) → 𝕃 tag
 var-loc-tag Γ ("missing" , "missing") x start end = []
-var-loc-tag Γ (fn , pos) x start end = [ make-loc-tag fn pos (posinfo-plus-str pos x) start end ]
+var-loc-tag Γ (fn , pos) x start end =
+  [ make-loc-tag Γ fn pos (posinfo-plus-str pos x) start end ]
 
 var-tags : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
 var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
-...| tt = var-loc-tag Γ (ctxt-global-var-location Γ qv) uqv s e
+...| tt = var-loc-tag Γ (ctxt-var-location Γ qv) uqv s e
 ...| ff = make-tag "shadowed" [] s e :: var-loc-tag Γ (ctxt-var-location Γ qv) uqv s e
 
 strVar : var → strM
@@ -161,7 +170,7 @@ strVar v s n ts Γ pe lr =
 strMetaVar : var → (filename : string) → posinfo → posinfo → strM
 strMetaVar x fn pi pi' s n ts Γ pe lr =
   let n' = n + string-length x in
-  s ⊹⊹ [[ x ]] , n' , make-loc-tag fn pi pi' n n' :: ts
+  s ⊹⊹ [[ x ]] , n' , make-loc-tag Γ fn pi pi' n n' :: ts
   
 
 strEmpty : strM
@@ -351,10 +360,10 @@ strRunTag name Γ m with m {TERM} [[]] 0 [] Γ nothing neither
 ...| s , n , ts = name , s , ts
 
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
-to-string-tag name Γ t = strRunTag name Γ (to-stringh' neither (if cedille-options.options.show-qualified-vars options then t else erase t))
+to-string-tag name Γ t = strRunTag name Γ (to-stringh (if cedille-options.options.show-qualified-vars options then t else erase t))
 
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
-to-string Γ t = strRun Γ (to-stringh' neither t)
+to-string Γ t = strRun Γ (to-stringh t)
 
 
 tk-to-string : ctxt → tk → rope

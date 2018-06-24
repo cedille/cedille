@@ -196,6 +196,29 @@ The context by default is ordered by parse tree position, from bottom to top."
   (setq p (se-find-point-path (se-span-start span) (se-mode-parse-tree)))
   (cedille-mode-get-context p))
 
+
+(defun cedille-mode-context-shadow-tags(list symbol fn pos)
+  "Returns a modified list, with all tags with the same symbol as SYMBOL but different location shadowed"
+  (mapcar
+   (lambda (x)
+     (setf
+      (alist-get 'value (cdr x))
+      (let* ((value (alist-get 'value (cdr x)))
+             (pins (se-get-pins 'loc value)))
+        (my-seq-reduce
+         (lambda (value pin)
+           (let* ((data (se-pin-item-data pin))
+                  (fn2 (cedille-mode-lookup-filename (string-to-number (cdr (assoc 'fn data)))))
+                  (pos2 (string-to-number (cdr (assoc 's data))))
+                  (s (se-pin-item-start pin))
+                  (e (se-pin-item-end pin)))
+             (if (and (string= (substring value s e) symbol) (not (and (string= fn fn2) (= pos pos2))))
+                 (se-pin-data s e 'shadowed nil value)
+               value)))
+         pins (substring value))))
+     x)
+   list))
+
 (defun my-seq-reduce(f list base-value)
   "Alternative to seq-reduce for versions of emacs lower than 25"
   (if list
@@ -269,6 +292,7 @@ which currently consists of:\n
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
 		    ;; we rename shadowed variables with a [+n] suffix or omit them		    
 		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) ; number of symbols shadowed by this one
+                           (fn-pos (cedille-mode-location-split location))
 			   (data (list 
 				  (cons 'value value-source) 		; the value displayed for the entry
 				  (cons 'bound-value bound-value)       ; the bound value of the variable (only used in let expressions)
@@ -276,7 +300,7 @@ which currently consists of:\n
 				  (cons 'location location)             ; the location of the definition; used in other files, but not this one
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
 		      
-		      (set q-lst (cons (cons symbol data) (eval q-lst)))))))
+		      (set q-lst (cons (cons symbol data) (cedille-mode-context-shadow-tags (eval q-lst) symbol (car fn-pos) (cdr fn-pos))))))))
 	    (when (and symbol (not (equal symbol "_")) (or type kind)) 	; separate types and kinds
 	      (if type
 		  (funcall set-list 'terms type)
@@ -331,8 +355,8 @@ which currently consists of:\n
 				     (matches (lambda (thispair) (equal (car thispair) symbol))))
 				(setq shadowed-lst (cons pair (remove-if matches shadowed-lst))))))))
 	 (loc-prop (lambda (sym loc)
-		     (let ((split (split-string loc " - ")))
-		       (se-pin-data 1 (length sym) 'loc (list (cons "fn" (car split)) (cons "pos" (cadr split))) sym))))
+		     (let ((split (cedille-mode-location-split loc)))
+		       (se-pin-data 1 (length sym) 'loc (list (cons "fn" (car split)) (cons "pos" (format "%s" (cdr split)))) sym))))
 	 ;; format symbol-value pairs for display
 	 (format (lambda (pair)
 		   (let* ((hidden-lst cedille-mode-hidden-context-tuples)
