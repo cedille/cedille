@@ -36,6 +36,14 @@ module helpers where
 
 open helpers
 
+match-error-data = string × 𝕃 tagged-val
+
+match-error-t : ∀ {a} → Set a → Set a
+match-error-t A = match-error-data ∨ A
+
+pattern match-error e = inj₁ e
+pattern match-ok a = inj₂ a
+
 -- misc
 ----------------------------------------------------------------------
 kind-is-star : kind → 𝔹
@@ -331,74 +339,91 @@ meta-vars-update-kinds Γ Xs Xsₖ =
 
 private
   module meta-vars-match-errors where
+    -- boilerplate
+    match-error-msg = "Matching failed"
 
-    e-type-ineq : ctxt → (tp₁ tp₂ : type) → string
-    e-type-ineq Γ tp₁ tp₂
-      = rope-to-string $'
-          to-string Γ tp₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tp₂
-          ⊹⊹ [[ ", in their definition" ]]
+    -- tagged values for error messages
+    match-lhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
+    match-lhs = to-string-tag "expected lhs"
 
-    e-term-ineq : ctxt → (tm₁ tm₂ : term) → string
-    e-term-ineq Γ tm₁ tm₂ = rope-to-string $' to-string Γ tm₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tm₂
+    match-rhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
+    match-rhs = to-string-tag "computed rhs"
 
-    e-kind-ineq : ctxt → (k₁ k₂ : kind) → string
-    e-kind-ineq Γ k₁ k₂ = rope-to-string $' to-string Γ k₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ k₂
+    the-meta-var : var → tagged-val
+    the-meta-var x = "the meta-var" , [[ x ]] , []
 
-    e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → string
-    e-tk-ineq Γ tk₁ tk₂ = rope-to-string $' tk-to-string Γ tk₁ ⊹⊹ [[ " != " ]] ⊹⊹ tk-to-string Γ tk₂
+    fst-snd-sol : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
+    fst-snd-sol Γ t₁ t₂ =
+      to-string-tag "first solution" Γ t₁ :: [ to-string-tag "second solution" Γ t₂ ]
 
-    -- TODO
-    e-solution-ineq : ctxt → (tp₁ tp₂ : type) → var → string
-    e-solution-ineq Γ tp₁ tp₂ X
-      = rope-to-string $'
-          to-string Γ tp₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ tp₂
-          ⊹⊹ [[ ", but " ^ X ^ " solved to both" ]]
+    lhs-rhs : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
+    lhs-rhs Γ t₁ t₂ = match-lhs Γ t₁ :: [ match-rhs Γ t₂ ]
 
-    e-optType-ineq : ctxt → type → 𝔹 → string
-    e-optType-ineq Γ tp tt = rope-to-string $' (to-string Γ tp) ⊹⊹ [[ " != NoType" ]]
-    e-optType-ineq Γ tp ff = rope-to-string $' [[ "NoType != " ]] ⊹⊹ to-string Γ tp
+    -- error-data
+    e-solution-ineq : ctxt → (tp₁ tp₂ : type) → var → match-error-data
+    e-solution-ineq Γ tp₁ tp₂ X =
+      match-error-msg ^ " because it produced two incovertible solutions for a meta-variable"
+      , the-meta-var X :: fst-snd-sol Γ tp₁ tp₂
 
-    e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → string
-    e-arrowtype-ineq Γ tp₁ tp₂
-      = rope-to-string $'
-          to-string Γ tp₁ ⊹⊹ [[ " != " ]]
-          ⊹⊹ to-string Γ tp₂
-          ⊹⊹ [[ ", in their outermost arrow" ]]
+    e-type-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
+    e-type-ineq Γ tp₁ tp₂ =
+      match-error-msg ^ " because the lhs and rhs are not convertible types"
+      , lhs-rhs Γ tp₁ tp₂
 
-    e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : binder) → string
-    e-binder-ineq Γ tp₁ tp₂ b₁ b₂ = binder-to-string b₁ ^ " != " ^ binder-to-string b₂
+    e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
+    e-meta-scope Γ x tp₁ tp₂ =
+      match-error-msg ^ " because a locally bound variable would escape its scope in this match"
+      , lhs-rhs Γ tp₁ tp₂ -- may be desirable to have an "escapees" tag?
 
-    e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → string
-    e-liftingType-ineq Γ l₁ l₂
-      = rope-to-string $' to-string Γ l₁ ⊹⊹ [[ " != " ]] ⊹⊹ to-string Γ l₂
+    e-term-ineq : ctxt → (tm₁ tm₂ : term) → match-error-data
+    e-term-ineq Γ tm₁ tm₂ =
+      match-error-msg ^ " because the lhs and rhs are not convertible terms"
+      , lhs-rhs Γ tm₁ tm₂
 
-    e-meta-scope : ctxt → (x : var) → type → string
-    e-meta-scope Γ x tp = rope-to-string $'
-      [[ "Cannot match " ^ x ^ " with " ]] ⊹⊹ to-string Γ tp
-      ⊹⊹ [[ ", because some local vars would escape their scope." ]]
+    e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : binder) → match-error-data
+    e-binder-ineq Γ tp₁ tp₂ b₁ b₂ =
+      match-error-msg ^ " because the outermost binders of the lhs and rhs are not equal"
+      , lhs-rhs Γ tp₁ tp₂
 
-    e-catchall : ctxt → (tp₁ tp₂ : type) → string
-    e-catchall Γ tp₁ tp₂ = "The expected arg type does not match the computed arg type" -- e-type-ineq Γ tp₁ tp₂ ^ " (catchall case)"
+    e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
+    e-arrowtype-ineq Γ tp₁ tp₂ =
+      match-error-msg ^ " because the outermost arrows of the lhs and rhs are not equal"
+      , lhs-rhs Γ tp₁ tp₂
+
+    e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → match-error-data
+    e-liftingType-ineq Γ l₁ l₂ =
+      match-error-msg ^ " because the lhs and rhs are not convertible (lifted) types"
+      , (lhs-rhs Γ l₁ l₂)
+
+    e-kind-ineq : ctxt → (k₁ k₂ : kind) → match-error-data
+    e-kind-ineq Γ k₁ k₂ =
+      match-error-msg ^ "because the lhs and rhs are not convertible kinds"
+      , lhs-rhs Γ k₁ k₂
+
+    e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → match-error-data
+    e-tk-ineq Γ tk₁ tk₂ =
+      match-error-msg ^ " because one classifer is a type and the other a kind"
+      , lhs-rhs Γ tk₁ tk₂
 
   open meta-vars-match-errors
 
 local-vars = stringset
 
-meta-vars-solve-tp : ctxt → meta-vars → var → type → error-t meta-vars
+meta-vars-solve-tp : ctxt → meta-vars → var → type → match-error-t meta-vars
 meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 ... | nothing
-  = yes-error $' x ^ " is not a meta-var!"
+  = match-error $' x ^ " is not a meta-var!" , []
 ... | just (meta-var-mk _ (meta-var-tm tp' mtm))
-  = yes-error $' x ^ " is a term meta-var!"
+  = match-error $' x ^ " is a term meta-var!" , []
 ... | just (meta-var-mk-tp _ k nothing)
-  = no-error (meta-vars-set Xs (meta-var-mk-tp x k (just tp)))
+  = match-ok (meta-vars-set Xs (meta-var-mk-tp x k (just tp)))
 ... | just (meta-var-mk-tp _ k (just tp'))
-  =   err-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
-    ≫err no-error Xs
+  =   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
+    ≫⊎ match-ok Xs
 
 {-# TERMINATING #-}
-meta-vars-match : ctxt → meta-vars → local-vars → (is-hnf : 𝔹) → (tpₓ tp : type) → error-t meta-vars
-meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → error-t meta-vars
+meta-vars-match : ctxt → meta-vars → local-vars → (is-hnf : 𝔹) → (tpₓ tp : type) → match-error-t meta-vars
+meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → match-error-t meta-vars
 -- meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
 
 -- meta-vars-match
@@ -406,91 +431,96 @@ meta-vars-match Γ Xs Ls u tpₓ@(TpVar pi x) tp
   -- check if x is a meta-var
   = if ~ trie-contains (meta-vars.varset Xs) x
     -- if not, then just make sure tp is the same var
-    then   err-guard (~ conv-type Γ tpₓ tp) (e-type-ineq Γ tpₓ tp)
-         ≫err no-error Xs
-    -- make sure potential solutions don't bring local variables
-    -- out of their scope
+    then   err⊎-guard (~ conv-type Γ tpₓ tp)
+            (e-type-ineq Γ tpₓ tp) -- (e-type-ineq Γ tpₓ tp)
+         ≫⊎ match-ok Xs
+    -- scope-check solutions
     else if are-free-in-type check-erased Ls tp
-    then yes-error (e-meta-scope Γ x tp)
+    then match-error (e-meta-scope Γ x tpₓ tp)
     else meta-vars-solve-tp Γ Xs x tp
 
 meta-vars-match Γ Xs Ls u (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
   =   meta-vars-match Γ Xs Ls u tpₓ₁ tp₁
-    ≫=err λ Xs' → meta-vars-match Γ Xs' Ls ff tpₓ₂ tp₂
-    ≫=err λ Xs″ → no-error Xs″
+    ≫=⊎ λ Xs' → meta-vars-match Γ Xs' Ls ff tpₓ₂ tp₂
+    ≫=⊎ λ Xs″ → match-ok Xs″
 
 meta-vars-match Γ Xs Ls u (TpAppt tpₓ tmₓ) (TpAppt tp tm)
   =   meta-vars-match Γ Xs Ls u tpₓ tp
-    ≫=err λ Xs' →
-      err-guard (~ conv-term Γ tmₓ tm)
-                (e-term-ineq Γ tmₓ tm)
-    ≫err no-error Xs'
+    ≫=⊎ λ Xs' →
+      err⊎-guard (~ conv-term Γ tmₓ tm)
+        (e-term-ineq Γ tmₓ tm)
+    ≫⊎ match-ok Xs'
 
 meta-vars-match Γ Xs Ls u tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
-  =   err-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
-    ≫err meta-vars-match-tk Γ Xs Ls tkₓ tk
-    ≫=err λ Xs' →
+  =   err⊎-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
+    ≫⊎ meta-vars-match-tk Γ Xs Ls tkₓ tk
+    ≫=⊎ λ Xs' →
       meta-vars-match
         (ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ))
         Xs' (stringset-insert Ls x) u tpₓ tp
 
 meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
-  =   err-guard (~ eq-arrowtype atₓ at)
-                (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+  =   err⊎-guard (~ eq-arrowtype atₓ at)
+       (e-arrowtype-ineq Γ tpₓ tp) -- (e-arrowtype-ineq Γ tpₓ tp)
+    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
-  =   err-guard (~ arrowtype-matches-binder atₓ b)
-                (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+  =   err⊎-guard (~ arrowtype-matches-binder atₓ b)
+       (e-arrowtype-ineq Γ tpₓ tp) --(e-arrowtype-ineq Γ tpₓ tp)
+    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls u tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
-  =   err-guard (~ arrowtype-matches-binder at bₓ)
-                (e-arrowtype-ineq Γ tpₓ tp)
-    ≫err meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=err λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+  =   err⊎-guard (~ arrowtype-matches-binder at bₓ)
+       (e-arrowtype-ineq Γ tpₓ tp)
+    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls u (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
   =   meta-vars-match Γ Xs Ls ff mₓ m
-    ≫=err λ Xs →
+    ≫=⊎ λ Xs →
       meta-vars-match (ctxt-rename pi xₓ x (ctxt-var-decl-if pi x Γ))
         Xs (stringset-insert Ls x) ff tpₓ tp
 
 meta-vars-match Γ Xs Ls u (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
-  =   err-guard (~ conv-term Γ t₁ₓ t₁) (e-term-ineq Γ t₁ₓ t₁)
-    ≫err err-guard (~ conv-term Γ t₂ₓ t₂) (e-term-ineq Γ t₂ₓ t₂)
-    ≫err no-error Xs
+  =   err⊎-guard (~ conv-term Γ t₁ₓ t₁)
+       (e-term-ineq Γ t₁ₓ t₁)
+    ≫⊎ err⊎-guard (~ conv-term Γ t₂ₓ t₂)
+       (e-term-ineq Γ t₂ₓ t₂)
+    ≫⊎ match-ok Xs
 
 meta-vars-match Γ Xs Ls u (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
-  =   err-guard (~ conv-liftingType Γ lₓ l) (e-liftingType-ineq Γ lₓ l)
-    ≫err err-guard
-      (~ conv-term (ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)) tₓ t)
-      (e-term-ineq Γ tₓ t)
-    ≫err no-error Xs
+  =   err⊎-guard (~ conv-liftingType Γ lₓ l)
+       (e-liftingType-ineq Γ lₓ l)
+    ≫⊎ err⊎-guard (~ conv-term (ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)) tₓ t)
+       (e-term-ineq Γ tₓ t)
+    ≫⊎ match-ok Xs
 
 meta-vars-match Γ Xs Ls u (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
   =   meta-vars-match-tk Γ Xs Ls atkₓ atk
-    ≫=err λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) u tpₓ tp
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) u tpₓ tp
 
-meta-vars-match Γ Xs Ls ff tpₓ tp = meta-vars-match Γ Xs Ls tt (hnf Γ (unfolding-elab unfold-head) tpₓ tt) (hnf Γ (unfolding-elab unfold-head) tp tt)
+meta-vars-match Γ Xs Ls ff tpₓ tp =
+  meta-vars-match Γ Xs Ls tt
+    (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
+    (hnf Γ (unfolding-elab unfold-head) tp tt)
 meta-vars-match Γ Xs Ls tt tpₓ tp
-  = yes-error (e-catchall Γ tpₓ tp)
+  = match-error (e-type-ineq Γ tpₓ tp)
 
 -- meta-vars-match-tk
 meta-vars-match-tk Γ Xs Ls (Tkk kₓ) (Tkk k)
-  =   err-guard (~ conv-kind Γ kₓ k)
-                (e-kind-ineq Γ kₓ k)
-    ≫err no-error Xs
+  =   err⊎-guard (~ conv-kind Γ kₓ k)
+       (e-kind-ineq Γ kₓ k)
+    ≫⊎ match-ok Xs
 meta-vars-match-tk Γ Xs Ls (Tkt tpₓ) (Tkt tp)
   = meta-vars-match Γ Xs Ls ff tpₓ tp
 meta-vars-match-tk Γ Xs Ls tkₓ tk
-  = yes-error (e-tk-ineq Γ tkₓ tk)
+  = match-error (e-tk-ineq Γ tkₓ tk)
 
 -- meta-vars-match-optType
 {-meta-vars-match-optType Γ Xs Ls NoType NoType
-  = no-error Xs
+  = match-ok Xs
 meta-vars-match-optType Γ Xs Ls (SomeType tpₓ) (SomeType tp)
   = meta-vars-match Γ Xs Ls tpₓ tp
 meta-vars-match-optType Γ Xs Ls NoType (SomeType tp)

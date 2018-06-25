@@ -155,6 +155,15 @@ err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
 
+-- sum.agda
+err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
+err⊎-guard tt err = inj₁ err
+err⊎-guard ff _   = inj₂ triv
+
+infixl 1 _≫⊎_
+_≫⊎_ : ∀ {E B : Set} → E ∨ ⊤ → E ∨ B → E ∨ B
+m₁ ≫⊎ m₂ = m₁ ≫=⊎ λ _ → m₂
+
 -- Some file writing functions
 data IOMode : Set where
   ReadMode : IOMode

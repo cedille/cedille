@@ -727,10 +727,11 @@ error-inapplicable-to-erasure t₁ t₂ htp Xs m e? =
 
 -- meta-variable errors
 error-unmatchable-tps : ∀ {A} (t₁ t₂ : term) (tpₓ tp : type)
-                        → meta-vars → checking-mode → (msg : string) → spanM (maybe A)
-error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg =
+                        → meta-vars → checking-mode → (msg : string) → 𝕃 tagged-val → spanM (maybe A)
+error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg tvs =
     get-ctxt λ Γ → spanM-add (App-span t₁ t₂ m
-      (arg-exp-type Γ tpₓ :: arg-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tpₓ))
+      (arg-exp-type Γ tpₓ :: arg-type Γ tp
+        :: tvs ++ meta-vars-data Γ (meta-vars-in-type Xs tpₓ))
       (just msg))
   ≫span spanMr nothing
 
@@ -841,8 +842,8 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
       case (meta-vars-match Γ Xs empty-trie ff dom atp) of λ where
-      (yes-error msg) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg
-      (no-error  Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
+      (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg tvs
+      (match-ok Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
     -- 3) sanity check the match (FO matching, for now)
           check-meta-vars Xsₐ
         ≫=span λ where
