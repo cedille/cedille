@@ -1,0 +1,15 @@
+module VectorThms.
+
+import nat.
+import nat-thms.
+import vector.
+import top.
+
+VlookupVmap ◂ ∀ A : ★ . ∀ f : Top . ∀ n : Nat . Π v : Vector · A n . Π m : Nat . Lt m n ➾ 
+              { f (Vlookup v m) ≃ Vlookup (Vmap f v) m } =
+  Λ A . Λ f . Λ n . λ v .
+    θ<n v> v.2 (λ m . Λ e . LtZS m -e · { f (Vlookup Vnil' m) ≃ Vlookup (Vmap f Vnil') m })
+               (Λ n . Λ tl . λ hd . λ ih . λ m . 
+                  θ<m> (NatInd m)
+                     (Λ _ . β)
+                     (λ pm . λ _ . Λ u . ρ (ih pm -u) - β)).

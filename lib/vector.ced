@@ -1,0 +1,52 @@
+module Vector.
+
+import nat.
+import nat-thms.
+
+Vector' ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
+  ∀ X : Nat ➔ ★ .
+    X Z ➔
+    (∀ n : Nat . A ➔ X n ➔ X (S n)) ➔
+    X n.
+
+Vnil' ◂ ∀ A : ★ . Vector' · A Z =
+  Λ A . Λ X . λ ni . λ c . ni .
+
+Vcons' ◂ ∀ A : ★ . ∀ n : Nat . A ➔ Vector' · A n ➔ Vector' · A (S n) =
+  Λ A . Λ n . λ a . λ v . Λ X . λ ni . λ c . c -n a (v · X ni c) .
+    
+IVector ◂ Π A : ★ . Π n : Nat . Vector' · A n ➔ ★ =
+  λ A : ★ . λ n : Nat . λ v : Vector' · A n .
+    ∀ P : Π n : Nat . Vector' · A n ➔ ★ .
+    P Z (Vnil' · A) ➔
+    (∀ n : Nat . ∀ tl : Vector' · A n . Π a : A . P n tl ➔ P (S n) (Vcons' · A -n a tl)) ➔
+    P n v .
+
+Vector ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat . ι v : Vector' · A n . IVector · A n v .
+
+Vnil ◂ ∀ A : ★ . Vector · A Z =
+  Λ A . [ Vnil' · A , Λ P . λ ni . λ c . ni ].
+
+Vcons ◂ ∀ A : ★ . ∀ n : Nat . A ➔ Vector · A n ➔ Vector · A (S n) =
+  Λ A . Λ n . λ a . λ v . [ Vcons' · A -n a v.1 ,
+                            Λ P . λ ni . λ c . c -n -v.1 a (v.2 · P ni c) ].
+
+Vlookup ◂ ∀ A : ★ . ∀ n : Nat . Vector · A n ➔ Π m : Nat . Lt m n ➾ A =
+  Λ A . Λ n . λ v . 
+    θ<n> v.1 (λ p . Λ u . LtZS p -u · A)
+      (Λ pn . λ a . λ ih . λ m .
+        θ<m> (NatInd m) (Λ _ . a) (λ pm . λ _ . Λ u . ih pm -u)) .
+{-
+    θ<m> (NatInd m) (θ<n> v (Λ u . δ - ς u) (Λ _ . λ a . λ _ . Λ _ . a))
+           (θ<n> v (λ p . λ _ . Λ u . LtZS p -u · A)
+              (Λ pn . λ a . λ _ . λ p . λ ih . Λ u . ih -(Lt-Smn p (S pn) u))) .
+-}
+
+Vmap ◂ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . (A ➔ B) ➔ Vector · A n ➔ Vector · B n =
+  Λ A . Λ B . Λ n . λ f . λ v .
+    θ<n> v.1 (Vnil · B) (Λ n . λ a . λ t . Vcons · B -n (f a) t) .
+
+testVector ◂ Vector · Nat (S (S (S Z))) = Vcons -(S (S Z)) Z (Vcons -(S Z) (S Z) (Vcons -Z (S (S (S Z))) (Vnil · Nat))) .
+testLookup ◂ { Vlookup testVector Z ≃ Z } = β .
+testLookup2 ◂ { Vlookup testVector (S Z) ≃ (S Z) } = β .
+testLookup3 ◂ { Vlookup testVector (S (S Z)) ≃ (S (S (S Z))) } = β .
