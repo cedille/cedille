@@ -1,26 +1,30 @@
 module PosVector.
 
 import nat.
+import nat-thms.
 import natExtras.
 import product.
 import sum.
 import sigma.
 import top.
 
-PosVector ◂ (Nat ➔ ★) ➔ Nat ➔ ★ =
-  λ T : Nat ➔ ★ . λ n : Nat . 
+𝒌PVPred(n : Nat) = Π m : Nat. Lt m n ➔ ★ .
+PosVector ◂ Π b : Nat . 𝒌PVPred b ➔ Π n : Nat . Lt n b ➔ ★ =
+  λ b : Nat . λ T : 𝒌PVPred b. λ n : Nat . λ e : Lt n b . 
   ∀ X : Nat ➔ ★ .
   X Z ➔
-  (Π m : Nat . T m ➔ X m ➔ X (S m)) ➔
+  (Π m : Nat . ∀ p : Lt m n . T m (LtLt m n b p e) ➔ X m ➔ X (S m)) ➔
   X n.
 
-PVNil ◂ ∀ T : Nat ➔ ★ . PosVector · T Z =
-  Λ T . Λ X . λ nil . λ cons . nil .
+PVNil ◂ ∀ b : Nat . ∀ T : 𝒌PVPred b . ∀ e : Lt Z b . PosVector b · T Z e =
+  Λ b . Λ T . Λ e . Λ X . λ nil . λ cons . nil .
 
-PVCons ◂ ∀ T : Nat ➔ ★ . Π n : Nat . T n ➔ PosVector · T n ➔ PosVector · T (S n) =
-  Λ T . λ n . λ h . λ t . Λ X . λ nil . λ cons .
-    cons n h (t · X nil cons).
+PVCons ◂ ∀ b : Nat . ∀ T : 𝒌PVPred b . Π n : Nat . ∀ e : Lt (S n) b .
+         T n (Lt-Smn n b e) ➔ PosVector b · T n (Lt-Smn n b e) ➔ PosVector b · T (S n) e =
+  Λ b . Λ T . λ n . Λ e . λ h . λ t . Λ X . λ nil . λ cons .
+    cons n -(lt-nSn n) h (t · X nil (λ m . Λ p . λ h . λ t . cons m -(Lt-nSm m n p) ● t)).
 
+{-
 posPV◂∀ C:Nat➔★.Π f:(Π n:Nat .C n).Π n:Nat .PosVector·(λ n:Nat .C n) n=
   Λ C .λ f .λ n .NatInd n·(λ n:Nat .PosVector·(λ n :Nat .C n) n)
     (PVNil·(λ n:Nat .C n))
@@ -28,6 +32,7 @@ posPV◂∀ C:Nat➔★.Π f:(Π n:Nat .C n).Π n:Nat .PosVector·(λ n:Nat .C n
 
 constPV◂∀ C:★.Π n:Nat .C➔PosVector·(λ _:Nat .C) n=
   Λ C .λ n .λ c .posPV·(λ _:Nat .C) (λ _ .c) n.
+
 
 PVfromFun ◂ ∀ T:Nat➔★.Π n:Nat .
             (Π m:Nat .Lt m n➾T m) ➔
@@ -107,3 +112,4 @@ example1◂PosVector·Nat' (S (S (S Z)))=
 lookup-example1-head◂{FunfromPV·Nat' (S (S (S Z))) example1 (S (S Z)) (lt-nSn (S (S Z)))≃testa}=β.
 lookup-example1-mid◂{FunfromPV·Nat' (S (S (S Z)))  example1 (S Z) (lt-nSSn (S Z))≃testb}=β.
 lookup-example1-last◂{FunfromPV·Nat' (S (S (S Z))) example1 Z (lt-nSSSn Z)≃testc}=β.
+-}

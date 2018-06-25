@@ -1,0 +1,114 @@
+import vtrmd.
+
+module Vtrm .
+
+import RecType2 · TrmF'.
+import cast2.
+import is.
+import top.
+import nat.
+import nat-thms.
+import vector.
+import vector-thms.
+
+Trmc' ◂ ★ ➔ ★ = Rec2.
+
+Trmo' ◂ Nat ➔ ★ = λ n : Nat . ∀ X : ★ . Vector · X n ➔ Trmc' · X .
+
+TrmFun ◂ RecFunctor2 = ● .
+
+TrmUnfold ◂ ∀ X : ★ . Trmc' · X ➔ (TrmF' · Trmc' · X) = cast2 · Trmc' · (TrmF' · Trmc') -(recUnfold2 -TrmFun) .
+TrmFold ◂ ∀ X : ★ . (TrmF' · Trmc' · X) ➔ Trmc' · X = cast2 · (TrmF' · Trmc') · Trmc' -(recFold2 -TrmFun) .
+
+var ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trmo' n =
+  λ m . Λ n . Λ u .
+   Λ X . λ v . TrmFold · X 
+            (Λ lu . λ l . Λ eu . Vlookup · X -n v m -u) .
+
+lam ◂ ∀ n : Nat .
+      Trmo' (S n) ➔
+      Trmo' n =
+ Λ n . λ tf . Λ X . λ v . 
+    TrmFold · X
+      (Λ lu . λ l . Λ le .
+        l -n · Trmc' -(castId2 · Trmc') tf -β{v}
+          [λ x . λ t . TrmUnfold · X (t · X (Vcons · X -n x v)) -lu l -le, ρ le - β{fold2u v l}] v -β) .
+
+lamAlgU ◂ Top = β{λ tf . λ v . λ eval . (λ l . (lam tf (Vmap (λ a . a l) v)) l)}.
+
+lamAlg' ◂ ∀ n : Nat .
+          ∀ R : ★ ➔ ★ . 
+          ∀ c : Cast2 · R · Trmc' .
+          Π tf : ∀ X : ★ . Vector · X (S n) ➔ R · X .
+          ∀ vu : Top .
+          Π eval : is · (Trmo' n ➔ (∀ X : ★ . Vector · X (S n) ➔ R · X) ➔ Trmo' n) β{fold2u vu lamAlgU} .
+          Π v : Vector · (Trmo' n) n . { v ≃ vu } ➾
+          Trmo' n =
+   Λ n . Λ R . Λ c . λ tf . Λ vu . λ eval . λ v . Λ e . 
+     lam -n (Λ X . λ v . cast2 · R · Trmc' -c · X (tf · X v)).
+
+flatten ◂ ∀ n : Nat . Trmc' · (Trmo' n) ➔ Trmo' n =
+  Λ n . λ t . TrmUnfold · (Trmo' n) t -lamAlgU lamAlg' -β.
+
+subst ◂ ∀ n : Nat . ∀ m : Nat . Trmo' n ➔ Vector · (Trmo' m) n ➔ Trmo' m =
+  Λ n . Λ m . λ t . λ v . flatten -m (t · (Trmo' m) v) .
+
+{-
+v1 ◂ Trmo' (S (S Z)) = var (S Z) -(S (S Z)) -β.
+pv1 ◂ { v1 ≃ λ v . λ l . Vlookup v (S Z) } = β.
+t1 ◂ Trmo' (S Z) = lam -(S Z) v1 .
+pt1 ◂ { t1 ≃ λ v . (λ l . l v1 v (fold2u v l))  } = β.
+t2 ◂ Trmo' (S Z) = subst -(S Z) -(S Z) t1 (Vcons · (Trmo' (S Z)) -Z (var Z -(S Z) -β) (Vnil · (Trmo' (S Z)))) .
+pt2 ◂ { t2 ≃ λ v . λ l . [ v = (Vcons (var Z v l) Vnil) ] - l v1 v (fold2u v l) } = β .
+-}
+
+𝒌TrmP = Π n : Nat . Trmo' n ➔ ★ .
+
+SVector ◂ Π m : Nat . (Trmo' m ➔ ★) ➔ Π n : Nat . Vector · (Trmo' m) n ➔ ★ =
+  λ m : Nat . λ P : Trmo' m ➔ ★ . λ n : Nat . λ v : Vector · (Trmo' m) n .
+  ∀ Q : Π n : Nat . Vector · (Trmo' m) n ➔ ★ .
+  Q Z (Vnil · (Trmo' m)) ➔
+  (∀ h : Trmo' m . P h ➔ 
+   ∀ n : Nat . ∀ t : Vector · (Trmo' m) n .
+   Q n t ➔
+   Q (S n) (Vcons · (Trmo' m) -n h t)) ➔
+   Q n v.
+  
+SVector-lookup ◂ ∀ m : Nat . ∀ P : Trmo' m ➔ ★ . 
+                 ∀ n : Nat . ∀ v : Vector · (Trmo' m) n . SVector m · P n v ➔ Π i : Nat. ∀ e : Lt i n . 
+                 P (Vlookup · (Trmo' m) -n v i -e) =
+  Λ m . Λ P . Λ n . Λ v . λ V . 
+    θ<n v> V 
+      (λ i . Λ e . lt-Z-False i -e · (P (Vlookup · (Trmo' m) -Z (Vnil · (Trmo' m)) i -e)))
+      (Λ h . λ ph . Λ n . Λ v . λ ih . λ i . θ<i> (NatInd i) (Λ _ . ph) (λ i . λ ih' . Λ e . ih i -e)).
+
+Trmna ◂ Π n : Nat . Trmo' (S n) ➔ (𝒌TrmP ➔ 𝒌TrmP) ➔ ★ =
+  λ n : Nat . λ tf : Trmo' (S n) . λ R : 𝒌TrmP ➔ 𝒌TrmP .
+    ∀ P : 𝒌TrmP . ∀ m : Nat . ∀ v : Vector · (Trmo' m) (S n) . SVector m · (P m) (S n) v ➔ R · P m (subst -(S n) -m tf v) .
+
+TrmInd ◂ 𝒌TrmP ➔ 𝒌TrmP =
+  λ P : 𝒌TrmP . λ n : Nat . λ t : Trmo' n .
+    ∀ lu : Top.
+    Π l : (∀ n : Nat .
+           ∀ m : Nat .
+           ∀ R : 𝒌TrmP ➔ 𝒌TrmP .
+           ∀ v : Vector · (Trmo' m) n .
+           ∀ tf : Trmo' (S n) . 
+           Π Tf : Trmna n tf · R .
+           Π V : SVector m · (P m) n v .
+           Π eval : is · (∀ t : Trmo' m . P m t ➔ ∀ t1 : Trmo' (S n) . Trmna n t1 · R ➔ P m (subst -(S n) -m t1 (Vcons · (Trmo' m) -n t v)))
+                       β{fold2u V lu} .
+           P n (lam -n tf)) .
+   { l ≃ lu } ➾ 
+   P n t .
+
+Trmo ◂ Nat ➔ ★ = λ n : Nat . ι t : Trmo' n .
+                             ∀ P : 𝒌TrmP . ∀ m : Nat . ∀ v : Vector · (Trmo' m) n .
+                             SVector m · (P m) n v ➔ TrmInd · P m (subst -n -m t v).
+
+var1 ◂ Π m : Nat . ∀ n : Nat . Lt m n ➾ Trmo n =
+  λ m . Λ n . Λ u .
+    [ var m -n -u,
+      Λ P . Λ m' . Λ v . λ V . Λ lu . λ l . Λ le .
+        SVector-lookup -m' · (P m') -n -v V m -u ].
+
