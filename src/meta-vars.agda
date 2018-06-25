@@ -215,7 +215,9 @@ meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars
 meta-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
   = meta-vars-check-type-mismatch Γ s tp Xs tp'
 meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
-  = [ type-data Γ (meta-vars-subst-type' ff Γ Xs tp') ] , nothing
+  = type-data Γ tp″ :: [ hnf-type Γ tp″ ] , nothing
+  where
+  tp″ = meta-vars-subst-type' ff Γ Xs tp'
 ----------------------------------------
 ----------------------------------------
 

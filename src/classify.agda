@@ -707,7 +707,7 @@ error-inapplicable-to-tm : ∀ {A} (t₁ t₂ : term) → (htp : type)
 error-inapplicable-to-tm t₁ t₂ htp Xs m e? =
     get-ctxt λ Γ →
     spanM-add (App-span t₁ t₂ m
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: [])
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp))
       (just ("The type of the head does not allow the head to be applied to "
              ^ h e? ^ " argument")))
   ≫span spanMr nothing
@@ -720,7 +720,7 @@ error-inapplicable-to-tp : ∀ {A} → term → (htp tp : type) → meta-vars �
 error-inapplicable-to-tp t htp tp Xs m =
     get-ctxt λ Γ →
     spanM-add (AppTp-span t tp synthesizing
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: [])
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp))
       (just "The type of the head does not allow the head to be applied to a type argument"))
   ≫span spanMr nothing
 
@@ -779,7 +779,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   ≫=spanm' uncurry λ Xs htp → -- λ ret → let Xs = fst ret ; htp = snd ret in
     get-ctxt λ Γ →
     spanMr (meta-vars-unfold-tmapp Γ Xs htp)
-     on-fail (λ htp → error-inapplicable-to-tm t₁ t₂ htp Xs mode e?)
+     on-fail (λ _ → error-inapplicable-to-tm t₁ t₂ htp Xs mode e?)
   ≫=spans' λ arr →
   -- 3) make sure expected / given erasures match
     if ~ eq-maybeErased e? (arrow*-get-e? arr)
@@ -794,17 +794,13 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 6) generate span and finish
     else (get-ctxt λ Γ →
     spanM-add (uncurry
-      (λ tvs → App-span t₁ t₂ mode (arg-type-mode arg-mode Γ atp :: tvs))
+      (λ tvs → App-span t₁ t₂ mode tvs)
       (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
         meta-vars-empty -- TODO only those updated by STAI
         rtp'))
   ≫span check-term-spine-return Γ Xs' rtp')}
 
   where mode = maybe-to-checking mtp
-
-        arg-type-mode : checking-mode → ctxt → type → tagged-val
-        arg-type-mode checking = arg-exp-type
-        arg-type-mode _        = arg-type
 
 check-term-spine t'@(AppTp t tp) mtp max =
   -- 1) type the applicand
