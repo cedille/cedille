@@ -1051,6 +1051,9 @@ check-typei (Iota pi pi' x t1 t2) mk =
   spanM-restore-info x mi ≫span
   return-star-when mk)
 
+check-typei (LetType pi pix x k T T') mk = check-typei (convert-LetType pi pix x k T T') mk
+check-typei (LetTerm pi pix x T t T') mk = check-typei (convert-LetTerm pi pix x T t T') mk
+
 {-check-typei (Iota pi pi' x NoType t2) mk =
   get-ctxt (λ Γ → 
   spanM-add (uncurry (λ tvs err → Iota-span pi t2 tvs

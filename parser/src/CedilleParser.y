@@ -234,6 +234,8 @@ Type :: { Type }
      | LType '➔' Type                  { TpArrow $1 UnerasedArrow $3                                  }
      | LType                            { $1                                                           }
      | '{^' Type '^}'                   { NoSpans $2 (pos2Txt $3)                                      }
+     | '[' Bvar '◂' Kind '=' Type  ']' '-' Type { LetType (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 $9 }
+     | '[' Bvar '◂' Type '=' Term  ']' '-' Type { LetTerm (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 $9 }     
 --   | '{' Term '≃' Term '}'            { TpEq $2 $4                                                   } -- reduce/reduce conflict with variables and holes in types and terms without brackets
 
 LType :: { Type } 

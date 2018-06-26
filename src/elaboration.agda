@@ -600,6 +600,8 @@ elab-typeh Γ (TpVar pi x) b =
   ctxt-lookup-type-var' Γ x ≫=maybe λ k →
   elab-kindh Γ k b ≫=maybe λ k →
   just (mtpvar x , k)
+elab-typeh Γ (LetType pi pix y k T T') b = elab-typeh Γ (convert-LetType pi pix y k T T') b
+elab-typeh Γ (LetTerm pi pix y T t T') b = elab-typeh Γ (convert-LetTerm pi pix y T t T') b
 
 elab-kindh Γ (KndArrow k k') b =
   elab-kindh Γ k b ≫=maybe λ k →

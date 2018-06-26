@@ -114,6 +114,12 @@ substh-type{QUALIF} Γ ρ σ (TpVar pi x) =
    qualif-lookup-type pi σ x'
 substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
+substh-type Γ ρ σ (LetType pi pix x k T T') =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    LetType pi pix x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ T) (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ T') 
+substh-type Γ ρ σ (LetTerm pi pix x T t T') =
+  let x' = subst-rename-var-if Γ ρ x σ in
+    LetTerm pi pix x' (substh-type Γ ρ σ T) (substh-term Γ ρ σ t) (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ T')
 substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
 substh-kind Γ ρ σ (KndParens x₁ k x₂) = substh-kind Γ ρ σ k
 substh-kind Γ ρ σ (KndPi pi pi' x atk k) =

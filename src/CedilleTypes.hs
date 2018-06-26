@@ -170,6 +170,8 @@ data Type =
      | Iota PosInfo PosInfo Bvar Type Type
      | Lft PosInfo PosInfo Var Term LiftingType
      | NoSpans Type PosInfo
+     | LetType PosInfo PosInfo Bvar Kind Type Type
+     | LetTerm PosInfo PosInfo Bvar Type Term Type     
      | TpApp Type Type
      | TpAppt Type Term
      | TpArrow Type ArrowType Type

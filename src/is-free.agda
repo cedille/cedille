@@ -60,6 +60,7 @@ are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-
         are-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && are-free-in-term ce x t) || are-free-in-lterms ce x ls
         are-free-in-lterms ce x (LtermsCons NotErased t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
 
+{-# TERMINATING #-}
 are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
 are-free-in-type ce x (TpLambda _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
 are-free-in-type ce x (Iota _ _ x' m t) = are-free-in-type ce x m || are-free-in-type ce (trie-remove x x') t
@@ -73,6 +74,8 @@ are-free-in-type ce x (TpVar _ "_") = ff
 are-free-in-type ce x (TpVar _ x') = trie-contains x x'
 are-free-in-type ce x (NoSpans t _) = are-free-in-type ce x t
 are-free-in-type ce x (TpHole _) = ff
+are-free-in-type ce x (LetType pi pix y k T T') = are-free-in-type ce x (convert-LetType pi pix y k T T')
+are-free-in-type ce x (LetTerm pi pix y T t T') = are-free-in-type ce x (convert-LetTerm pi pix y T t T')
 
 are-free-in-kind ce x (KndArrow k k') = are-free-in-kind ce x k || are-free-in-kind ce x k'
 are-free-in-kind ce x (KndParens x₁ k x₂) = are-free-in-kind ce x k

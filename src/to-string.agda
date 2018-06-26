@@ -82,6 +82,8 @@ no-parens{TYPE} (TpHole pi) p lr = tt
 no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = ff
 no-parens{TYPE} (TpParens pi T pi') p lr = tt
 no-parens{TYPE} (TpVar pi x) p lr = tt
+no-parens{TYPE} (LetType _ _ _ _ _ _) _ _ = ff
+no-parens{TYPE} (LetTerm _ _ _ _ _ _) _ _ = ff
 no-parens{KIND} (KndArrow k k') p lr = is-arrow p && not-left lr
 no-parens{KIND} (KndParens pi k pi') p lr = tt
 no-parens{KIND} (KndPi pi pi' x Tk k) p lr = is-arrow p && not-left lr
@@ -277,6 +279,8 @@ type-to-stringh (TpHole pi) = strAdd "●"
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringr T)
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
+type-to-stringh (LetType pi pix x k T T') = strAdd ("[ " ^ x) ≫str kind-to-stringh k ≫str strAdd " = " ≫str to-stringh T ≫str strAdd " ] - " ≫str strΓ x pix (to-stringh T')
+type-to-stringh (LetTerm pi pix x T t T') = strAdd ("[ " ^ x) ≫str type-to-stringh T ≫str strAdd " = " ≫str to-stringh t ≫str strAdd " ] - " ≫str strΓ x pix (to-stringh T')
 
 kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-stringr k'
 kind-to-stringh (KndParens pi k pi') = to-stringh k

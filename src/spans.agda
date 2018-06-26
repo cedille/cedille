@@ -786,3 +786,9 @@ IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (ch
 
 Let-span : ctxt → checking-mode → posinfo → defTermOrType → term → 𝕃 tagged-val → err-m → span
 Let-span Γ c pi d t' tvs = mk-span "Let-term" pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+
+LetTypeTy-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
+LetTypeTy-span Γ c pi d t' tvs = mk-span "Let-type-type" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+
+LetTypeTrm-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
+LetTypeTrm-span Γ c pi d t' tvs = mk-span "Let-type-term" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)

@@ -296,6 +296,8 @@ data type where
   Iota : posinfo → posinfo → bvar → type → type → type
   Lft : posinfo → posinfo → var → term → liftingType → type
   NoSpans : type → posinfo → type
+  LetType : posinfo → posinfo → bvar → kind → type → type → type
+  LetTerm : posinfo → posinfo → bvar → type → term → type → type
   TpApp : type → type → type
   TpAppt : type → term → type
   TpArrow : type → arrowtype → type → type
@@ -304,12 +306,19 @@ data type where
   TpLambda : posinfo → posinfo → bvar → tk → type → type
   TpParens : posinfo → type → posinfo → type
   TpVar : posinfo → qvar → type
-{-# COMPILED_DATA type CedilleTypes.Type CedilleTypes.Abs CedilleTypes.Iota CedilleTypes.Lft CedilleTypes.NoSpans CedilleTypes.TpApp CedilleTypes.TpAppt CedilleTypes.TpArrow CedilleTypes.TpEq CedilleTypes.TpHole CedilleTypes.TpLambda CedilleTypes.TpParens CedilleTypes.TpVar #-}
+{-# COMPILED_DATA type CedilleTypes.Type CedilleTypes.Abs CedilleTypes.Iota CedilleTypes.Lft CedilleTypes.NoSpans CedilleTypes.LetType CedilleTypes.LetTerm CedilleTypes.TpApp CedilleTypes.TpAppt CedilleTypes.TpArrow CedilleTypes.TpEq CedilleTypes.TpHole CedilleTypes.TpLambda CedilleTypes.TpParens CedilleTypes.TpVar #-}
 
 data vars where 
   VarsNext : var → vars → vars
   VarsStart : var → vars
 {-# COMPILED_DATA vars CedilleTypes.Vars CedilleTypes.VarsNext CedilleTypes.VarsStart #-}
+
+-- equivalences
+convert-LetType : posinfo → posinfo → bvar → kind → type → type → type
+convert-LetType pi pix x k T T' = TpApp (TpLambda pi pix x  (Tkk k) T') T
+
+convert-LetTerm : posinfo → posinfo → bvar → type → term → type → type
+convert-LetTerm pi pix x T t T'  = TpAppt (TpLambda pi pix x (Tkt T) T') t
 
 -- embedded types:
 aterm : Set

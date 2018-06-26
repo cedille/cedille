@@ -58,6 +58,8 @@ untyped-type-spans (TpLambda pi pi' x atk T) = untyped-tk-spans atk ≫span span
 untyped-type-spans (TpParens pi T pi') = untyped-type-spans T
 untyped-type-spans (TpVar pi x) = get-ctxt λ Γ →
   spanM-add (TpVar-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
+untyped-type-spans (LetType pi pix x k T T') = untyped-defTermOrType-spans (DefType pix x k T) ≫=span λ f → f (untyped-type-spans T') ≫span get-ctxt λ Γ → spanM-add (LetTypeTy-span Γ untyped pix (DefType pix x k T) T' [] nothing)  
+untyped-type-spans (LetTerm pi pix x T t T') = untyped-defTermOrType-spans (DefTerm pix x (Type T) t) ≫=span λ f → f (untyped-type-spans T') ≫span get-ctxt λ Γ → spanM-add (LetTypeTrm-span Γ untyped pix (DefTerm pix x (Type T) t) T' [] nothing)
 
 untyped-kind-spans (KndArrow k k') = untyped-kind-spans k ≫span untyped-kind-spans k' ≫span spanM-add (KndArrow-span k k' untyped nothing)
 untyped-kind-spans (KndParens pi k pi') = untyped-kind-spans k
@@ -87,6 +89,7 @@ untyped-lterms-spans (LtermsCons me t ls) = untyped-term-spans t ≫span untyped
 untyped-optClass-spans NoClass = spanMok
 untyped-optClass-spans (SomeClass atk) = untyped-tk-spans atk
 
+{-# TERMINATING #-}
 untyped-defTermOrType-spans (DefTerm pi x NoCheckType t) = untyped-term-spans t ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)
 untyped-defTermOrType-spans (DefTerm pi x (Type T) t) = untyped-term-spans t ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)
 untyped-defTermOrType-spans (DefType pi x k T) = untyped-kind-spans k ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)

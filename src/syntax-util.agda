@@ -197,6 +197,8 @@ type-start-pos (TpParens pi _ pi') = pi
 type-start-pos (TpVar pi x₁) = pi
 type-start-pos (NoSpans t _) = type-start-pos t -- we are not expecting this on input
 type-start-pos (TpHole pi) = pi --ACG
+type-start-pos (LetType pi _ _ _ _ _) = pi
+type-start-pos (LetTerm pi _ _ _ _ _) = pi
 
 kind-start-pos (KndArrow k k₁) = kind-start-pos k
 kind-start-pos (KndParens pi k pi') = pi
@@ -253,6 +255,8 @@ type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
 type-end-pos (TpHole pi) = posinfo-plus pi 1
 type-end-pos (NoSpans t pi) = pi
+type-end-pos (LetType _ _ _ _ _ t) = type-end-pos t
+type-end-pos (LetTerm _ _ _ _ _ t) = type-end-pos t
 
 kind-end-pos (KndArrow k k') = kind-end-pos k'
 kind-end-pos (KndParens pi k pi') = pi'
@@ -573,6 +577,8 @@ erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-
 erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
 erase-type (TpHole pi) = TpHole pi
 erase-type (TpVar pi x) = TpVar pi x
+erase-type (LetType pi pix x k T T') = LetType pi pix x (erase-kind k) (erase-type T) (erase-type T')
+erase-type (LetTerm pi pix x T t T') = LetTerm pi pix x (erase-type T) (erase-term t) (erase-type T')
 
 -- Only erases TERMS in types in kinds, leaving the structure of kinds and types in those kinds the same
 erase-kind (KndArrow k k') = KndArrow (erase-kind k) (erase-kind k')
@@ -674,6 +680,7 @@ is-equation{TYPE} (TpParens _ t _) = is-equation t
 is-equation{TYPE} (TpEq _ _ _ _) = tt
 is-equation _ = ff 
 
+{-# TERMINATING #-}
 is-equational : type → 𝔹
 is-equational-kind : kind → 𝔹
 is-equational-tk : tk → 𝔹
@@ -689,6 +696,8 @@ is-equational (TpParens _ t _) = is-equational t
 is-equational (Lft _ _ _ _ _) = ff
 is-equational (TpVar _ t) = ff
 is-equational (TpHole _) = ff --ACG
+is-equational (LetType pi pix x k T T') = is-equational (convert-LetType pi pix x k T T')
+is-equational (LetTerm pi pix x T t T') = is-equational (convert-LetTerm pi pix x T t T')
 is-equational-tk (Tkt t1) = is-equational t1
 is-equational-tk (Tkk k) = is-equational-kind k
 is-equational-kind (KndArrow k1 k2) = is-equational-kind k1 || is-equational-kind k2
