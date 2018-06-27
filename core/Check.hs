@@ -95,6 +95,15 @@ synthTerm' c (TmIota tm tm' v tp) =
   errIfNot (convTerm' c htm'' (hnfTerm c tm''')) ("In an iota pair, " ++ show htm'' ++ " != " ++ show (hnfTerm c tm''')) >>
   errIfNot (convType (ctxtInternalDef c v (Left htm'')) tp' rtp) "Inconvertible types in an iota pair" >>
   Right (TpIota v ltp tp')
+synthTerm' c (TmLetTm v tm tm') =
+  errIfCtxtBinds c v >>
+  synthTerm c tm >>= \ tp ->
+  synthTerm (ctxtDefTerm c v (Just (hnfeTerm c tm), Just (hnfType c tp))) tm'
+synthTerm' c (TmLetTp v kd tp tm) =
+  errIfCtxtBinds c v >>
+  synthType c tp >>= \ kd' ->
+  errIfNot (convKind c (eraseKind kd) kd') "Inconvertible kinds in a term-level type let" >>
+  synthTerm (ctxtDefType c v (Just (hnfeType c tp), Just (hnfeKind c kd))) tm
 synthTerm' c (IotaProj1 tm) = synthTerm c tm >>= \ tp -> case hnfType c tp of
   (TpIota v tp tp') -> Right (hnfType c tp)
   _ -> err "Expected an iota type"

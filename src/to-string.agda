@@ -259,7 +259,7 @@ term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫str optClass-to-string oc ≫str strAdd " . " ≫str strΓ x pi' (to-stringr t)
 term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
-...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
+...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " {" ≫str to-stringr t' ≫str strAdd "}"
 term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t

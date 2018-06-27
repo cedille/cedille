@@ -47,6 +47,8 @@ termToString b (TmAppTm tm tm') = parensIf b $ termToString (termIsntApp tm) tm 
 termToString b (TmAppTmE tm tm') = parensIf b $ termToString (termIsntApp tm) tm ++ " - " ++ termToString True tm'
 termToString b (TmAppTp tm tp) = parensIf b $ termToString (termIsntApp tm) tm ++ " · " ++ typeToString True tp
 termToString b (TmIota tm tm' v tp) = "[ " ++ show tm ++ ", " ++ show tm' ++ " @ " ++ v ++ " . " ++ show tp ++ " ]"
+termToString b (TmLetTm v tm tm') = parensIf b $ "[ " ++ v ++ " = " ++ show tm' ++ " ] - " ++ show tm'
+termToString b (TmLetTp v kd tp tm) = parensIf b $ "[ " ++ v ++ " ◂ " ++ show kd ++ " = " ++ show tp ++ " ] - " ++ show tm
 termToString b (IotaProj1 tm) = termToString True tm ++ " . 1"
 termToString b (IotaProj2 tm) = termToString True tm ++ " . 2"
 termToString b (Beta pt pt') = "β < " ++ pureTermToString True pt ++ " > { " ++ show pt' ++ " }"

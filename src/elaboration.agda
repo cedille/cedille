@@ -60,6 +60,16 @@ private
   ctxt-type-def' x x' T k Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
     (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
     (trie-insert is x' (type-def (just ps) (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
+
+  ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
+  ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
+    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
+      (trie-insert is x (term-def nothing t T , fn , pi)) os
+  
+  ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
+  ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
+    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
+      (trie-insert is x (type-def nothing T k , fn , pi)) os
   
   ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
   ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
@@ -349,7 +359,8 @@ elab-check-term Γ (IotaPair pi t t' og pi') T =
     (Iota _ pi x T' T'') →
       elab-check-term Γ t T' ≫=maybe λ t →
       elab-check-term Γ t' (subst Γ t x T'') ≫=maybe λ t' →
-      just (IotaPair posinfo-gen t t' (Guide posinfo-gen x T'') posinfo-gen)
+      rename x from Γ for λ x' →
+      just (IotaPair posinfo-gen t t' (Guide posinfo-gen x' T'') posinfo-gen)
     _ → nothing
 elab-check-term Γ (IotaProj t n pi) T =
   elab-synth-term Γ t ≫=maybe uncurry λ t T' →
@@ -366,14 +377,24 @@ elab-check-term Γ (Lam pi l pi' x oc t) T =
 elab-check-term Γ (Let pi d t) T =
   case d of λ where
   (DefTerm pi' x NoCheckType t') →
+    rename x from Γ for λ x' →
     elab-synth-term Γ t' ≫=maybe uncurry λ t' T' →
-    elab-check-term Γ (subst Γ (Chi posinfo-gen NoAtype t') x t) T
+    elab-check-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
+    just (Let posinfo-gen (DefTerm posinfo-gen x' NoCheckType t') t)
+    -- elab-check-term Γ (subst Γ (Chi posinfo-gen NoAtype t') x t) T
   (DefTerm pi' x (Type T') t') →
+    rename x from Γ for λ x' →
+    elab-type Γ T' ≫=maybe uncurry λ T' k →
     elab-check-term Γ t' T' ≫=maybe λ t' →
-    elab-check-term Γ (subst Γ (Chi posinfo-gen (Atype T') t') x t) T
+    elab-check-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
+    just (Let posinfo-gen (DefTerm posinfo-gen x' NoCheckType t') t)
+    -- elab-check-term Γ (subst Γ (Chi posinfo-gen (Atype T') t') x t) T
   (DefType pi' x k T') →
+    rename x from Γ for λ x' →
     elab-type Γ T' ≫=maybe uncurry λ T' k' →
-    elab-check-term Γ (subst Γ T' x t) T
+    elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
+    just (Let posinfo-gen (DefType posinfo-gen x' k' T') t)
+    -- elab-check-term Γ (subst Γ T' x t) T
 elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
 elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
   elab-check-term Γ t₁ T ≫=maybe λ t₁ →
@@ -514,14 +535,24 @@ elab-synth-term Γ (Lam pi l pi' x oc t) = (case (l , oc) of λ where
     just (Lam posinfo-gen l posinfo-gen x' (SomeClass atk) t , Abs posinfo-gen b posinfo-gen x' atk T)
 elab-synth-term Γ (Let pi d t) = case d of λ where
   (DefTerm pi' x NoCheckType t') →
-    elab-synth-term Γ t' ≫=maybe uncurry λ t' T →
-    elab-synth-term Γ (subst Γ (Chi posinfo-gen NoAtype t') x t)
-  (DefTerm pi' x (Type T) t') →
-    elab-check-term Γ t' T ≫=maybe λ t' →
-    elab-synth-term Γ (subst Γ (Chi posinfo-gen (Atype T) t') x t)
-  (DefType pi' x k T) →
-    elab-type Γ T ≫=maybe uncurry λ T k' →
-    elab-synth-term Γ (subst Γ T x t)
+    rename x from Γ for λ x' →
+    elab-synth-term Γ t' ≫=maybe uncurry λ t' T' →
+    elab-synth-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
+    just (Let posinfo-gen (DefTerm posinfo-gen x' NoCheckType t') t , subst Γ t' x' T)
+    -- elab-synth-term Γ (subst Γ (Chi posinfo-gen NoAtype t') x t)
+  (DefTerm pi' x (Type T') t') →
+    rename x from Γ for λ x' →
+    elab-type Γ T' ≫=maybe uncurry λ T' k →
+    elab-check-term Γ t' T' ≫=maybe λ t' →
+    elab-synth-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
+    just (Let posinfo-gen (DefTerm posinfo-gen x' NoCheckType t') t , subst Γ t' x' T)
+    -- elab-synth-term Γ (subst Γ (Chi posinfo-gen (Atype T) t') x t)
+  (DefType pi' x k T') →
+    rename x from Γ for λ x' →
+    elab-type Γ T' ≫=maybe uncurry λ T' k' →
+    elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
+    just (Let posinfo-gen (DefType pi' x' k' T') t , subst Γ T' x' T)
+    -- elab-synth-term Γ (subst Γ T x t)
 elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
 elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
   elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T →

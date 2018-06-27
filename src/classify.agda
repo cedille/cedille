@@ -220,13 +220,28 @@ check-termi t''@(App t m t') tp
 check-termi (Let pi d t) mtp =
   -- spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
   add-def d ≫=span finish
-  where finish : (var × restore-def) → spanM (check-ret mtp)
+  where maybe-subst : defTermOrType → (mtp : maybe type) → check-ret mtp → spanM (check-ret mtp)
+        maybe-subst _ (just T) triv = spanMok
+        maybe-subst _ nothing nothing = spanMr nothing
+        maybe-subst (DefTerm pi x NoCheckType t) nothing (just T) = get-ctxt λ Γ →
+          spanMr (just (subst-type Γ (qualif-term Γ (Chi posinfo-gen NoAtype t)) (pi % x) T))
+        maybe-subst (DefTerm pi x (Type T') t) nothing (just T) = get-ctxt λ Γ →
+          spanMr (just (subst-type Γ (qualif-term Γ (Chi posinfo-gen (Atype T') t)) (pi % x) T))
+        maybe-subst (DefType pi x k T') nothing (just T) = get-ctxt λ Γ →
+          spanMr (just (subst-type Γ (qualif-type Γ T') (pi % x) T))
+        -- maybe-subst covers the case where the synthesized type of t has the let-bound
+        -- variable in it by substituting the let definition for the let-bound variable
+        -- in the synthesized type. We also need to use Chi to maintain the checking mode
+        -- of the term so that the type still kind-checks, as a synthesizing term let could
+        -- be substituted into a checking position, or vice-versa with a checking term let.
+
+        finish : (var × restore-def) → spanM (check-ret mtp)
         finish (x , m) = 
          get-ctxt (λ Γ → 
          spanM-add (Let-span Γ (maybe-to-checking mtp) pi d t [] nothing) ≫span
          check-term t mtp ≫=span λ r →
          spanM-restore-info x m ≫span
-         spanMr r)
+         maybe-subst d mtp r)
 
         noterased = "keywords" , [[ "noterased" ]] , []
 

@@ -195,6 +195,8 @@ parseTerm = ParseM $ \ ts -> case ts of
   (TRho : ts) -> parseMt ts $ pure Rho <*> parseTerm2 <* parseDrop TAt <*> parseVar <* parseDrop TDot <*> parseType parsePureTerm2 <* parseDrop TDash <*> parseTerm
   (TPhi : ts) -> parseMt ts $ pure Phi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
   (TDelta : ts) -> parseMt ts $ pure Delta <*> parseType2 parsePureTerm2 <* parseDrop TDash <*> parseTerm
+  (TBracketL : TVar v : TEq : ts) -> parseMt ts $ pure (TmLetTm v) <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
+  (TBracketL : TVar v : TTriangle : ts) -> parseMt ts $ pure (TmLetTp v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
   _ -> parseMt ts parseTerm1
 parseTerm1 = ParseM $ \ ts -> parseMt ts parseTerm2 >>= uncurry (parseMf . parseTermApp)
 parseTerm2 = ParseM $ \ ts -> case ts of
