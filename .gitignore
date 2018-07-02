@@ -1,0 +1,12 @@
+*.agdai
+*.hi
+*.o
+MAlonzo
+cedille
+ial
+libraries
+src/CedilleCommentsLexer.hs
+src/CedilleLexer.hs
+src/CedilleOptionsLexer.hs
+src/CedilleOptionsParser.hs
+src/CedilleParser.hs
