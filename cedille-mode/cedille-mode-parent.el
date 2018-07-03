@@ -154,6 +154,7 @@
 
 (defun cedille-mode-parent-jump-to-span (start end)
   "Jumps to a span "
+  (se-mode-clear-selected)
   (goto-char start)
   (push-mark end t t)
   (se-mode-set-spans)
