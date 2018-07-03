@@ -31,13 +31,12 @@ record include-elt : Set where
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
         last-parse-time : maybe UTC
         cede-up-to-date : 𝔹
-        cedc-up-to-date : 𝔹
         rkt-up-to-date : 𝔹
 
 blank-include-elt : include-elt
 blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ; 
                              import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
-                             do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff ; cedc-up-to-date = ff }
+                             do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
 new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
@@ -45,7 +44,7 @@ new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string
 new-include-elt filename deps x y time =
   record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ; 
-           do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff ; cedc-up-to-date = ff }
+           do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
 error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
@@ -84,8 +83,6 @@ set-last-parse-time-include-elt ie time =
 
 set-cede-file-up-to-date-include-elt : include-elt → 𝔹 → include-elt
 set-cede-file-up-to-date-include-elt ie up-to-date = record ie { cede-up-to-date = up-to-date }
-set-cedc-file-up-to-date-include-elt : include-elt → 𝔹 → include-elt
-set-cedc-file-up-to-date-include-elt ie up-to-date = record ie { cedc-up-to-date = up-to-date }
 set-rkt-file-up-to-date-include-elt : include-elt → 𝔹 → include-elt
 set-rkt-file-up-to-date-include-elt ie up-to-date = record ie { rkt-up-to-date = up-to-date }
 

@@ -120,6 +120,8 @@ rewrite-liftingType = rewriteR -- Unimplemented
 rewrite-tk (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
 rewrite-tk (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
 
+private
+  unfold-head-not-erased = unfolding-elab unfold-head
 
 post-rewriteh : ctxt → var → term → (ctxt → var → term → tk → tk) → (var → tk → ctxt → ctxt) → type → type × kind
 
@@ -134,16 +136,15 @@ post-rewriteh Γ x eq prtk tk-decl (Lft pi pi' x' t lT) =
 post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
-    T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head (subst-kind Γ T' x' k) tt
-    T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head k'' tt
+    T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head-not-erased (subst-kind Γ T' x' k) tt
+    T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head-not-erased k'' tt
     T k → TpApp T T' , k
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
+  let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x T') t else t in
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' (Tkt T') k) →
-      if is-free-in tt x T'
-        then TpAppt T (Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x T') t) , hnf Γ unfold-head (subst-kind Γ t x' k) tt
-        else TpAppt T t , hnf Γ unfold-head (subst-kind Γ t x' k) tt
-    T (KndTpArrow T' k) → TpAppt T t , hnf Γ unfold-head k tt
+      let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-not-erased (subst-kind Γ t3 x' k) tt
+    T (KndTpArrow T' k) → TpAppt T (t2 T') , hnf Γ unfold-head-not-erased k tt
     T k → TpAppt T t , k
 post-rewriteh Γ x eq prtk tk-decl (TpArrow T a T') = TpArrow (fst (post-rewriteh Γ x eq prtk tk-decl T)) a (fst (post-rewriteh Γ x eq prtk tk-decl T')) , star
 post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
@@ -152,9 +153,9 @@ post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
   TpLambda pi pi' x' atk' T , KndPi pi pi' x' atk' k
 post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
-...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head k tt
-...| just (type-def nothing T k , _) = mtpvar x' , hnf Γ unfold-head k tt
-...| just (type-def (just ps) T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head k tt)
+...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-not-erased k tt
+...| just (type-def nothing T k , _) = mtpvar x' , hnf Γ unfold-head-not-erased k tt
+...| just (type-def (just ps) T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head-not-erased k tt)
 ...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 
@@ -164,7 +165,7 @@ post-rewrite Γ x eq t₂ T = subst-type Γ t₂ x (fst (post-rewriteh Γ x eq p
   prtk : ctxt → var → term → tk → tk
   tk-decl : var → tk → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
-  prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head k tt)
+  prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-not-erased k tt)
   tk-decl x atk (mk-ctxt mod ss is os) =
     mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os where
     h : tk → ctxt-info
@@ -200,5 +201,5 @@ rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
 rewrite-ath Γ x eq b (TpLambda pi1 pi1' x1 atk1 T1) (TpLambda pi2 pi2' x2 atk2 T2) =
   TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
 rewrite-ath Γ x eq b (TpVar pi x1) (TpVar pi' x2) = TpVar pi x1
-rewrite-ath Γ x eq tt T T' = rewrite-ath Γ x eq ff (hnf Γ unfold-head T tt) (hnf Γ unfold-head T' tt)
+rewrite-ath Γ x eq tt T T' = rewrite-ath Γ x eq ff (hnf Γ unfold-head-not-erased T tt) (hnf Γ unfold-head-not-erased T' tt)
 rewrite-ath Γ x eq ff T T' = T

@@ -303,7 +303,7 @@ Qvar :: { Token }
 
 Fpth :: { Token }
      : fpth                             { $1 }
-     | var                              { $1 }
+     | Qvar                             { $1 }
 
 Num :: { Token }
     : num                               { $1 }

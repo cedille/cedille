@@ -145,10 +145,12 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
       λ Γ ss → process-file s imported-file x ≫=monad λ { (s , _) →
         (let ie = get-include-elt s imported-file in
          get-ctxt λ Γ →
-         optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
+         (with-ctxt (toplevel-state.Γ s) (optAs-posinfo-var oa (pi' , x))) ≫=span λ pi-v →
          maybe-else
            (spanMr (just ("Undefined module import")))
-           (λ ps → with-ctxt (toplevel-state.Γ s) (check-args-against-params ff pi-v ps as ≫span spanMr nothing))
+           (λ ps → with-ctxt (toplevel-state.Γ s)
+             (check-args-against-params (just (location-data (imported-file , first-position))) pi-v ps as ≫span
+              spanMr nothing))
            (lookup-mod-params (toplevel-state.Γ s) imported-file) ≫=span λ err →
            spanM-add (Import-span pi imported-file pi'' []
            (if (include-elt.err ie)

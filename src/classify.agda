@@ -166,7 +166,7 @@ check-term-spine : term → (m : maybe type) → 𝔹 → spanM (maybe (meta-var
 check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
-check-args-against-params : (kind-or-import : 𝔹) → (posinfo × var) → params → args → spanM ⊤
+check-args-against-params : (kind-or-import : maybe tagged-val {- location -}) → (posinfo × var) → params → args → spanM ⊤
 check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
@@ -1084,7 +1084,7 @@ check-kind (Star pi) = spanM-add (Star-span pi checking nothing)
 check-kind (KndVar pi x ys) =
   get-ctxt λ Γ → helper (ctxt-lookup-kind-var-qdef Γ x)
   where helper : maybe (params × kind) → spanM ⊤
-        helper (just (ps , k)) = check-args-against-params tt (pi , x) ps ys
+        helper (just (ps , k)) = check-args-against-params nothing (pi , x) ps ys
         helper nothing = get-ctxt λ Γ →
           spanM-add (KndVar-span Γ (pi , x) (kvar-end-pos pi x ys) ParamsNil checking []
             (just "Undefined kind variable"))
@@ -1106,14 +1106,15 @@ check-kind (KndPi pi pi' x atk k) =
   spanM-restore-info x mi
 
 check-args-against-params kind-or-import orig ps ys =
-  caap kind-or-import ps ys ≫=span λ m →
+  caap (~ isJust kind-or-import) ps ys ≫=span λ m →
   spanM-restore-info* m
   where
-  str = if kind-or-import then "kind" else "import"
+  str = if isJust kind-or-import then "import" else "kind"
   make-span : ctxt → 𝕃 tagged-val → err-m → span
-  make-span Γ = if kind-or-import
-    then KndVar-span Γ orig (kvar-end-pos (fst orig) (snd orig) ys) ps checking
-    else Import-module-span Γ orig ps
+  make-span Γ ts err = maybe-else
+    (KndVar-span Γ orig (kvar-end-pos (fst orig) (snd orig) ys) ps checking ts err)
+    (λ loc → Import-module-span Γ orig ps (loc :: ts) err)
+    kind-or-import
   caap : 𝔹 → params → args → spanM (𝕃 (string × restore-def))
   caap koi (ParamsCons (Decl _ pi _ x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
     check-type T (just k) ≫span

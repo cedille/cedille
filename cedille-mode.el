@@ -530,7 +530,8 @@ occurrences, then do so."
   (se-inf-stop)
   (se-inf-header-timer-stop)
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
-  (message "Restarted cedille process"))
+  (message "Restarted cedille process")
+  (cedille-mode-quit))
 
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have

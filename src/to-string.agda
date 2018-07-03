@@ -364,7 +364,11 @@ strRunTag name Γ m with m {TERM} [[]] 0 [] Γ nothing neither
 ...| s , n , ts = name , s , ts
 
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
-to-string-tag name Γ t = strRunTag name Γ (to-stringh (if cedille-options.options.show-qualified-vars options then t else erase t))
+to-string-tag name Γ t = strRunTag name Γ
+  (to-stringh
+    (if cedille-options.options.erase-types options
+       then erase t
+       else t))
 
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh t)

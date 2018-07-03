@@ -60,11 +60,11 @@ data paths : Set where
 data opt : Set where 
     GenerateLogs : str-bool → opt
     Lib : paths → opt
-    MakeCoreFiles : str-bool → opt
     MakeRktFiles : str-bool → opt
     ShowQualifiedVars : str-bool → opt
     UseCedeFiles : str-bool → opt
-{-# COMPILED_DATA opt CedilleOptionsLexer.Opt CedilleOptionsLexer.GenerateLogs CedilleOptionsLexer.Lib CedilleOptionsLexer.MakeCoreFiles CedilleOptionsLexer.MakeRktFiles CedilleOptionsLexer.ShowQualifiedVars CedilleOptionsLexer.UseCedeFiles #-}
+    EraseTypes : str-bool → opt
+{-# COMPILED_DATA opt CedilleOptionsLexer.Opt CedilleOptionsLexer.GenerateLogs CedilleOptionsLexer.Lib CedilleOptionsLexer.MakeRktFiles CedilleOptionsLexer.ShowQualifiedVars CedilleOptionsLexer.UseCedeFiles CedilleOptionsLexer.EraseTypes #-}
 
 data opts : Set where 
     OptsCons : opt → opts → opts
@@ -222,10 +222,10 @@ mutual
   optToString : opt → string
   optToString (GenerateLogs x0) = "(GenerateLogs" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (Lib x0) = "(Lib" ^ " " ^ (pathsToString x0) ^ ")"
-  optToString (MakeCoreFiles x0) = "(MakeRktFiles" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (MakeRktFiles x0) = "(MakeRktFiles" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (ShowQualifiedVars x0) = "(ShowQualifiedVars" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (UseCedeFiles x0) = "(UseCedeFiles" ^ " " ^ (str-boolToString x0) ^ ")"
+  optToString (EraseTypes x0) = "(EraseTypes" ^ " " ^ (str-boolToString x0) ^ ")"
 
   optsToString : opts → string
   optsToString (OptsCons x0 x1) = "(OptsCons" ^ " " ^ (optToString x0) ^ " " ^ (optsToString x1) ^ ")"

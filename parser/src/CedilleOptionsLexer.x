@@ -26,7 +26,7 @@ token :-
       <0> make\-rkt\-files              { mkTokenEmpty TMkRktFiles    }
       <0> generate\-logs                { mkTokenEmpty TGenLogs       }
       <0> show\-qualified\-vars         { mkTokenEmpty TShowQualVars  }
-      <0> make\-core\-files             { mkTokenEmpty TMkCoreFiles   }
+      <0> erase\-types                  { mkTokenEmpty TEraseTypes    }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
       <0> @path  	                { mkTokenPath  TPath          }
@@ -51,10 +51,10 @@ data Paths = PathsCons Text Paths
 
 data Opt = GenerateLogs         StrBool
            | Lib Paths
-           | MakeCoreFiles      StrBool
            | MakeRktFiles       StrBool
            | ShowQualifiedVars  StrBool
            | UseCedeFiles       StrBool
+           | EraseTypes         StrBool
   deriving (Show)
   
 data Opts = OptsCons Opt Opts
@@ -80,9 +80,9 @@ data TokenClass =
      |  TImpDirs
      |  TUseCedFiles
      |  TMkRktFiles
-     |  TMkCoreFiles
      |  TGenLogs
      |  TShowQualVars
+     |  TEraseTypes
      |  TEq
      |  TPoint
      |  TEOF

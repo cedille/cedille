@@ -190,13 +190,16 @@ flush = hFlush stdout
 setToLineBuffering : IO ⊤
 setToLineBuffering = hSetToLineBuffering stdout
 
-infixl 1 _>>≠_
+infixl 1 _>>≠_ _>≯_
 
-_>>≠_  : ∀{A B : Set} → IO A → IO B → IO A
-(io₁ >>≠ io₂) = io₁ >>= λ result → io₂ >> return result
+_>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
+(io₁ >>≠ io₂) = io₁ >>= λ result → io₂ result >> return result
+
+_>≯_ : ∀{A B : Set} → IO A → IO B → IO A
+(io₁ >≯ io₂) = io₁ >>= λ result → io₂ >> return result
 
 withFile : {A : Set} → string → IOMode → (Handle → IO A) → IO A
-withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >>≠ closeFile hdl
+withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
 
 -- Coordinated Universal Time
 infix 15 _utc-after_ _utc-before_
@@ -208,15 +211,38 @@ postulate
   _utc-before_ : UTC → UTC → 𝔹
   utcToString : UTC → string
   getModificationTime : string → IO UTC
+  getCurrentDirectory : IO string
+  pathSeparator : char
 
 {-# IMPORT Data.Time.Clock #-}
 {-# IMPORT Data.Time.Calendar #-}
+{-# IMPORT System.FilePath #-}
 {-# COMPILED_TYPE UTC Data.Time.Clock.UTCTime #-}
 {-# COMPILED getCurrentTime Data.Time.Clock.getCurrentTime #-}
 {-# COMPILED _utc-after_ (>) #-}
 {-# COMPILED _utc-before_ (<) #-}
-{-# COMPILED utcToString (\ t -> Data.Text.pack (show t)) #-}
-{-# COMPILED getModificationTime (\ s -> System.Directory.getModificationTime (Data.Text.unpack s)) #-}
+{-# COMPILED utcToString (Data.Text.pack . show) #-}
+{-# COMPILED getModificationTime (System.Directory.getModificationTime . Data.Text.unpack) #-}
+{-# COMPILED getCurrentDirectory (System.Directory.getCurrentDirectory >>= return . Data.Text.pack) #-}
+{-# COMPILED pathSeparator System.FilePath.pathSeparator #-}
+
+pathSeparatorString = 𝕃char-to-string [ pathSeparator ]
+
+splitPath : (filepath : string) → 𝕃 string
+splitPath = h [] [] ∘ string-to-𝕃char where
+  cons-if-nonempty : 𝕃 char → 𝕃 string → 𝕃 string
+  cons-if-nonempty [] acc = acc
+  cons-if-nonempty cur acc = 𝕃char-to-string (reverse cur) :: acc
+  h : 𝕃 string → 𝕃 char → 𝕃 char → 𝕃 string
+  h acc cur [] = reverse (cons-if-nonempty cur acc)
+  h acc cur (c :: cs) with c =char pathSeparator
+  ...| tt = h (cons-if-nonempty cur acc) [] cs
+  ...| ff = h acc (c :: cur) cs
+
+joinPath : 𝕃 string → string
+joinPath [] = ""
+joinPath (x :: []) = x
+joinPath (x :: xs) = x ^ pathSeparatorString ^ joinPath xs
 
 -- string binary tree, for more efficient I/O printing than concatenation
 data rope : Set where

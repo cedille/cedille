@@ -3,7 +3,10 @@ module elaboration (options : cedille-options.options) where
 
 open import lib
 
-options' = record options {during-elaboration = tt}
+options' = record options
+  {during-elaboration = tt;
+   erase-types = ff;
+   show-qualified-vars = ff}
 
 open import general-util
 open import cedille-types

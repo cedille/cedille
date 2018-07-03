@@ -762,11 +762,7 @@ Import-span : posinfo → string → posinfo → 𝕃 tagged-val → err-m → s
 Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
 
 Import-module-span : ctxt → (posinfo × var) → params → 𝕃 tagged-val → err-m → span
-Import-module-span Γ (pi , mn) ps tvs = mk-span "Imported module" pi (posinfo-plus-str pi mn) (params-data Γ ps ++ tvs) where
-  mn-location : ctxt → (modname : string) → location
-  mn-location Γ @ (mk-ctxt mod (ss , mn-fn , mn-ps) is os) mn with trie-lookup mn-fn mn
-  ...| nothing = "missing" , "missing"
-  ...| just fn = fn , first-position
+Import-module-span Γ (pi , mn) ps tvs = mk-span "Imported module" pi (posinfo-plus-str pi mn) (params-data Γ ps ++ tvs)
 
 punctuation-span : string → posinfo → posinfo → span
 punctuation-span name pi pi'  = mk-span name pi pi' ( punctuation-data ::  not-for-navigation :: [] ) nothing
