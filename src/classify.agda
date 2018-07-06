@@ -85,26 +85,6 @@ check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) t2 p
 check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ tt m t2)  pi'
 check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) (hnf-from Γ tt m t2) pi'
 
--- a simple incomplete check for beta-inequivalence
-{-
-{-# TERMINATING #-}
-check-beta-inequivh : stringset → stringset → renamectxt → term → term → 𝔹
-check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) (Lam _ _ _ x2 _ t2) = 
-  check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x2) (renamectxt-insert m x1 x2) t1 t2
-check-beta-inequivh local-left local-right m (Lam _ _ _ x1 _ t1) t2 = 
-  check-beta-inequivh (stringset-insert local-left x1) (stringset-insert local-right x1) m t1 (mapp t2 (mvar x1))
-check-beta-inequivh local-left local-right m t1 (Lam _ _ _ x2 _ t2) = 
-  check-beta-inequivh (stringset-insert local-left x2) (stringset-insert local-right x2) m (mapp t1 (mvar x2)) t2
-check-beta-inequivh local-left local-right m t1 t2 with decompose-apps t1 | decompose-apps t2 
-check-beta-inequivh local-left local-right m t1 t2 | Var _ x1 , args1 | Var _ x2 , args2 = 
-  (~ eq-var m x1 x2) && (stringset-contains local-left x1) && (stringset-contains local-right x2)
-check-beta-inequivh local-left local-right m t1 t2 | _ | _ = ff 
-
--- t1 and t2 should be in normal form
-check-beta-inequiv : term → term → 𝔹
-check-beta-inequiv t1 t2 = check-beta-inequivh empty-trie empty-trie empty-renamectxt t1 t2
--}
-
 add-tk' : erased? → defScope → posinfo → var → tk → spanM restore-def
 add-tk' e s pi x atk = 
    helper atk ≫=span λ mi → 
@@ -170,18 +150,9 @@ check-args-against-params : (kind-or-import : maybe tagged-val {- location -}) �
 check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
-{-
-check-term tm nothing =
-    check-termi tm nothing
-  ≫=span λ where
-    nothing → spanMr nothing
-    (just tp) →
-      get-ctxt λ Γ → spanMr (just (hnf Γ (unfolding-elab unfold-head) tp tt))
-check-term tm (just tp)
-  =   get-ctxt λ Γ → check-termi tm (just (hnf Γ (unfolding-elab unf) tp tt))
-  where
-  unf = if is-intro-form tm then unfold-head-rec-defs else unfold-head-}
-check-term = check-termi
+
+
+check-term = check-termi -- Used to call hnf on expected/synthesized type
 
 check-type subject nothing = check-typei subject nothing
 check-type subject (just k)
@@ -483,7 +454,7 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
 
 check-termi (Rho pi op on t NoGuide t') (just tp) =
   get-ctxt λ Γ → check-term t nothing ≫=span λ mtp →
-  cont (maybe-hnf Γ mtp) (hnf Γ (unfolding-elab unfold-head-rec-defs) tp tt)
+  cont (maybe-hnf Γ mtp) (hnf Γ (unfolding-elab unfold-head-no-lift) tp tt)
   where cont : maybe type → type → spanM ⊤
         cont nothing tp = get-ctxt (λ Γ → spanM-add (Rho-span pi t t' checking op (inj₁ 0) [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp))
         cont (just (TpEq pi' t1 t2 pi'')) tp = 
@@ -505,7 +476,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
 check-termi (Rho pi op on t NoGuide t') nothing = 
   check-term t nothing ≫=span λ mtp → 
   check-term t' nothing ≫=span λ mtp' → get-ctxt λ Γ → cont (maybe-hnf Γ mtp)
-    (maybe-map (λ mtp' → hnf Γ (unfolding-elab unfold-head-rec-defs) mtp' tt) mtp')
+    (maybe-map (λ mtp' → hnf Γ (unfolding-elab unfold-head-no-lift) mtp' tt) mtp')
   where cont : maybe type → maybe type → spanM (maybe type)
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt λ Γ → 
@@ -517,10 +488,10 @@ check-termi (Rho pi op on t NoGuide t') nothing =
                 tp' = post-rewrite Γ' x qt t2 (fst s) in -- subst-type Γ t2 x (fst s) in
               spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
               check-termi-return-hnf Γ (Rho pi op on t NoGuide t') tp'
-        cont (just tp') m2 =
+        cont (just tp') (just _) =
            get-ctxt λ Γ → spanM-add (Rho-span pi t t' synthesizing op (inj₁ 0) [ to-string-tag "the synthesized type for the first subterm" Γ tp' ]
                                          (just "We could not synthesize an equation from the first subterm in a ρ-term.")) ≫span spanMr nothing
-        cont nothing _ = spanM-add (Rho-span pi t t' synthesizing op (inj₁ 0) [] nothing) ≫span spanMr nothing
+        cont _ _ = spanM-add (Rho-span pi t t' synthesizing op (inj₁ 0) [] nothing) ≫span spanMr nothing
 
 check-termi (Chi pi (Atype tp) t) mtp =
   check-type tp (just star) ≫span
@@ -702,7 +673,7 @@ check-termi (IotaProj t n pi) mtp =
           spanM-add (IotaProj-span t pi (maybe-to-checking mtp) [ head-type Γ computed ] (just "The head type is not a iota-abstraction.")) ≫span return-when mtp mtp)
         cont' : (outer : maybe type) → ℕ → (computed : maybe type) → spanM (check-ret outer)
         cont' mtp _ nothing = spanM-add (IotaProj-span t pi (maybe-to-checking mtp) [] nothing) ≫span return-when mtp mtp
-        cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head-rec-defs tp tt))
+        cont' mtp n (just tp) = get-ctxt (λ Γ → cont mtp n (hnf Γ unfold-head tp tt))
                                                      -- we are looking for iotas in the bodies of rec defs
 
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
@@ -1129,11 +1100,10 @@ check-args-against-params kind-or-import orig ps ys =
   caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
     check-term t (just T) ≫span
     get-ctxt λ Γ → 
-    check-erased-margs t (just (hnf Γ (unfolding-elab unf) T tt)) ≫span 
+    check-erased-margs t (just (hnf Γ (unfolding-elab unfold-head) T tt)) ≫span 
     spanM-push-term-def pi paramVar x t T ≫=span λ m → 
     caap koi ps ys ≫=span λ ms →
     spanMr ((x , m) :: ms)
-    where unf = if is-intro-form t then unfold-head-rec-defs else unfold-head
   caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
     get-ctxt (λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]

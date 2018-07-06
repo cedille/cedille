@@ -702,7 +702,7 @@ Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
   mk-span "Rho" pi (term-end-pos t') 
     (checking-data expected :: ll-data-term :: tvs ++
     (explain ("Rewrite terms in the " 
-      ^ expected-to-string expected ^ " type, using an equation."
+      ^ expected-to-string expected ^ " type, using an equation. "
       ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
   where h : 𝕃 tagged-val × err-m
         h = if isJust err

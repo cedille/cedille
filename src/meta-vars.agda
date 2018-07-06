@@ -116,7 +116,7 @@ meta-vars-get-sub Xs
 meta-vars-subst-type' : (unfold : 𝔹) → ctxt → meta-vars → type → type
 meta-vars-subst-type' u Γ Xs tp =
   let tp' = substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp in
-  if u then hnf Γ (unfolding-elab unfold-head-rec-defs) tp' tt else tp'
+  if u then hnf Γ (unfolding-elab unfold-head) tp' tt else tp'
 
 meta-vars-subst-type : ctxt → meta-vars → type → type
 meta-vars-subst-type = meta-vars-subst-type' tt
@@ -127,7 +127,7 @@ meta-vars-subst-type = meta-vars-subst-type' tt
 
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
-  = hnf Γ (unfolding-elab unfold-head-rec-defs)
+  = hnf Γ (unfolding-elab unfold-head)
       (substh-kind Γ empty-renamectxt (meta-vars-get-sub Xs) k)
       tt
 
@@ -306,9 +306,6 @@ private
 meta-vars-unfold-tmapp : ctxt → meta-vars → type → tp-is-arrow*
 meta-vars-unfold-tmapp Γ Xs tp = aux
   where
-  -- hnf-dom : type → type
-  -- hnf-dom dom = hnf Γ (unfolding-elab unfold-head-rec-defs) dom tt
-
   aux : tp-is-arrow*
   aux with meta-vars-peel Γ Xs (meta-vars-subst-type Γ Xs tp)
   ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =

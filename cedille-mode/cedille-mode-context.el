@@ -202,8 +202,8 @@ The context by default is ordered by parse tree position, from bottom to top."
   (mapcar
    (lambda (x)
      (setf
-      (alist-get 'value (cdr x))
-      (let* ((value (alist-get 'value (cdr x)))
+      (cdr (assq 'value (cdr x)))
+      (let* ((value (cdr (assq 'value (cdr x))))
              (pins (se-get-pins 'loc value)))
         (my-seq-reduce
          (lambda (value pin)
