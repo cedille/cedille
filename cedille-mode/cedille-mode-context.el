@@ -215,7 +215,7 @@ The context by default is ordered by parse tree position, from bottom to top."
              (if (and (string= (substring value s e) symbol) (not (and (string= fn fn2) (= pos pos2))))
                  (se-pin-data s e 'shadowed nil value)
                value)))
-         pins (substring value))))
+         pins (concat value))))
      x)
    list))
 
