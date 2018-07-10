@@ -4,8 +4,14 @@ To install Cedille version 1.0:
    Please note that Cedille currently does not work on Windows, only
    Linux and Mac (though Windows support should be available soon).
 
-1. check out a copy of the Iowa Agda Library (probably best to do this
-   in some other directory):
+1. clone a copy of the Iowa Agda Library (probably best to do this
+   in some other directory), and check out version 1.4:
+
+   git clone https://github.com/cedille/ial.git
+   cd ial
+   git checkout v1.4.0
+
+   For SVN users, the (soon to be deprecated) repo can be accessed by:
 
    svn co https://svn.divms.uiowa.edu/repos/clc/projects/agda/ial
 
