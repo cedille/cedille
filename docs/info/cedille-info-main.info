@@ -335,11 +335,69 @@ File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up:
 10 Credits
 **********
 
-Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
+Fall 2017 to Summer 2018:
+=========================
 
-Spring 2016: Aaron Stump
+Tony Cantor
+     opaque definitions
 
-2015: Carl A. Olson created se-mode
+Larry Diehl
+     module system design and implementation, phi terms
+
+Chris Jenkins
+     spine-local type inference, compilation to Racket
+
+Colin McDonald
+     type-preserving rewriting, bug fixes, improved communication
+     between frontend and backend, Cedille Core implementation
+
+Aaron Stump
+     Cedille Core specification, design, backend
+
+Summer 2017
+===========
+
+Larry Diehl
+     module system design and implementation
+
+Denis Firsov
+     erasure indicated in context mode
+
+Colin McDonald
+     interactive commands
+
+Aaron Stump
+     design, backend
+
+Summer 2016
+===========
+
+Richard Blair
+     navigation
+
+Ananda Guneratne
+     context mode
+
+Matthew Heimerdinger
+     syntax highlighting
+
+Chad Reynolds
+     summary mode
+
+Aaron Stump
+     design, backend
+
+Spring 2016
+===========
+
+Aaron Stump
+     initial implementation
+
+2015
+====
+
+Carl A. Olson
+     se-mode for structured navigation
 
 
 File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
@@ -569,11 +627,11 @@ Node: cedille mode commands746
 Node: unicode shortcuts3794
 Node: context mode6119
 Node: credits8066
-Node: options8336
-Node: minor modes9360
-Node: inspect mode10510
-Node: summary mode11763
-Node: beta-reduce mode12528
-Node: Index13671
+Node: options9162
+Node: minor modes10186
+Node: inspect mode11336
+Node: summary mode12589
+Node: beta-reduce mode13354
+Node: Index14497
 
 End Tag Table

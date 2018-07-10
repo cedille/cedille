@@ -561,7 +561,7 @@ erase-term (Hole pi) = Hole pi
 erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
 erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
-erase-term (Delta pi T t) = erase-term t
+erase-term (Delta pi T t) = id-term
 erase-term (Theta pi u t ls) = erase-lterms (erase-term t) ls
 
 -- Only erases TERMS in types, leaving the structure of types the same

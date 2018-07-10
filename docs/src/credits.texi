@@ -2,13 +2,79 @@
 
 @chapter Credits
 
-@table @abbr
+@unnumberedsec Fall 2017 to Summer 2018:
+@table @asis
 
-@item Summer 2016: Richard Blair, Ananda Guneratne, Matthew Heimerdinger, Chad Reynolds, Aaron Stump
+@item Tony Cantor
+opaque definitions
 
-@item Spring 2016: Aaron Stump
+@item Larry Diehl
+module system design and implementation, phi terms
 
-@item 2015: Carl A. Olson created se-mode
+@item Chris Jenkins
+spine-local type inference, compilation to Racket
+
+@item Colin McDonald
+type-preserving rewriting, bug fixes, improved communication between frontend and backend, Cedille Core implementation
+
+@item Aaron Stump
+Cedille Core specification, design, backend
+
+@end table
+
+@unnumberedsec Summer 2017
+
+@table @asis
+
+@item Larry Diehl
+module system design and implementation
+
+@item Denis Firsov
+erasure indicated in context mode
+
+@item Colin McDonald
+interactive commands
+
+@item Aaron Stump
+design, backend
+
+@end table
+
+@unnumberedsec Summer 2016
+
+@table @asis
+
+@item Richard Blair
+navigation
+
+@item Ananda Guneratne
+context mode
+
+@item Matthew Heimerdinger
+syntax highlighting
+
+@item Chad Reynolds
+summary mode
+
+@item Aaron Stump
+design, backend
+
+@end table
+
+@unnumberedsec Spring 2016
+
+@table @asis
+@item Aaron Stump
+initial implementation
+
+@end table
+
+@unnumberedsec 2015
+
+@table @asis
+
+@item Carl A. Olson
+se-mode for structured navigation
 
 @end table
 
