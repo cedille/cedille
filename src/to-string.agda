@@ -169,11 +169,10 @@ strVar v s n ts Γ pe lr =
       n' = n + (string-length uqv') in
   s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
 
-strMetaVar : var → (filename : string) → posinfo → posinfo → strM
-strMetaVar x fn pi pi' s n ts Γ pe lr =
+strMetaVar : var → span-location → strM
+strMetaVar x (fn , pi , pi') s n ts Γ pe lr =
   let n' = n + string-length x in
   s ⊹⊹ [[ x ]] , n' , make-loc-tag Γ fn pi pi' n n' :: ts
-  
 
 strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
