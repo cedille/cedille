@@ -36,19 +36,9 @@ module helpers where
 
 open helpers
 
-match-error-data = string × 𝕃 tagged-val
-
-match-error-t : ∀ {a} → Set a → Set a
-match-error-t A = match-error-data ∨ A
-
-pattern match-error e = inj₁ e
-pattern match-ok a = inj₂ a
-
 -- misc
 ----------------------------------------------------------------------
-kind-is-star : kind → 𝔹
-kind-is-star (Star pi) = tt
-kind-is-star _ = ff
+
 
 -- meta-vars:
 -- vars associated with kind and (possibly many) type solutions
@@ -165,10 +155,6 @@ meta-vars-are-free-in-type : meta-vars → type → 𝔹
 meta-vars-are-free-in-type Xs tp
   = are-free-in-type check-erased (varset Xs) tp
 
-meta-var-is-HO : meta-var → 𝔹
-meta-var-is-HO (meta-var-mk name (meta-var-tm tp mtm) _) = tt
-meta-var-is-HO (meta-var-mk-tp name k mtp _) = kind-is-star k
-
 -- string and span helpers
 ----------------------------------------
 meta-var-to-string : meta-var → strM
@@ -263,8 +249,11 @@ meta-vars-add* : meta-vars → 𝕃 meta-var → meta-vars
 meta-vars-add* Xs [] = Xs
 meta-vars-add* Xs (Y :: Ys) = meta-vars-add* (meta-vars-add Xs Y) Ys
 
--- peel all type quantification var from a type, adding it to a set of
--- meta-vars
+-- meta-vars-peel:
+-- ==================================================
+-- generate meta-variables from the type of the head of an application with
+-- leading type abstractions
+
 {-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
 meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
 meta-vars-peel Γ sl Xs (Abs pi _ _ x tk@(Tkk k) tp) =
@@ -280,8 +269,11 @@ meta-vars-peel Γ sl Xs (TpParens _ tp _) =
   meta-vars-peel Γ sl Xs tp
 meta-vars-peel Γ sl Xs tp = [] , tp
 
--- unfold a type with solve vars
--- if it's needed for a type application
+
+-- meta-vars-unfold:
+-- ==================================================
+-- Unfold a type with meta-variables in it to reveal a term or type application
+
 -- TODO consider abs in is-free
 data tp-abs : Set where
   mk-tp-abs  : posinfo → binder → posinfo → bvar → kind → type → tp-abs
@@ -341,8 +333,48 @@ meta-vars-update-kinds Γ Xs Xsₖ =
     sol → sol
   }
 
--- match a type with meta-vars to one without
-----------------------------------------------------------------------
+{-# TERMINATING #-}
+num-arrows-in-type : ctxt → type → ℕ
+num-arrows-in-type Γ tp = nait Γ (hnf' Γ tp) 0 tt
+  where
+  hnf' : ctxt → type → type
+  hnf' Γ tp = hnf Γ (unfolding-elab unfold-head) tp tt
+
+  nait : ctxt → type → (acc : ℕ) → 𝔹 → ℕ
+  -- definitely another arrow
+  nait Γ (Abs _ _ _ _ _ tp) acc uf = nait Γ tp (1 + acc) ff
+  nait Γ (TpArrow _ _ tp) acc uf = nait Γ tp (1 + acc) ff
+  -- definitely not another arrow
+  nait Γ (Iota _ _ _ _ _) acc uf = acc
+  nait Γ (Lft _ _ _ _ _) acc uf = acc
+  nait Γ (TpEq _ _ _ _) acc uf = acc
+  nait Γ (TpHole _) acc uf = acc
+  nait Γ (TpLambda _ _ _ _ _) acc uf = acc
+  nait Γ (TpVar x₁ x₂) acc tt = acc
+  nait Γ (TpApp tp₁ tp₂) acc tt = acc
+  nait Γ (TpAppt tp₁ x₁) acc tt = acc
+  -- not sure
+  nait Γ (NoSpans tp _) acc uf = nait Γ tp acc uf
+  nait Γ (LetType _ _ x k tp₁ tp₂) acc uf = nait Γ (subst-type Γ tp₁ x tp₂) acc ff
+  nait Γ (LetTerm _ _ _ _ _ tp) acc uf = nait Γ tp acc ff
+  nait Γ (TpParens _ tp _) acc uf = nait Γ tp acc uf
+  nait Γ tp acc ff = nait Γ (hnf' Γ tp) acc tt
+
+-- meta-vars-match
+-- ==================================================
+--
+-- Match a type with meta-variables in it to one without
+
+-- errors
+-- --------------------------------------------------
+
+match-error-data = string × 𝕃 tagged-val
+
+match-error-t : ∀ {a} → Set a → Set a
+match-error-t A = match-error-data ∨ A
+
+pattern match-error e = inj₁ e
+pattern match-ok a = inj₂ a
 
 private
   module meta-vars-match-errors where
@@ -414,6 +446,9 @@ private
 
   open meta-vars-match-errors
 
+-- meta-vars-match auxiliaries
+-- --------------------------------------------------
+
 local-vars = stringset
 
 meta-vars-solve-tp : ctxt → meta-vars → var → type → match-error-t meta-vars
@@ -427,6 +462,9 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 ... | just (meta-var-mk-tp _ k (just tp') _)
   =   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫⊎ match-ok Xs
+
+-- meta-vars-match main definitions
+-- --------------------------------------------------
 
 {-# TERMINATING #-}
 meta-vars-match : ctxt → meta-vars → local-vars → (is-hnf : 𝔹) → (tpₓ tp : type) → match-error-t meta-vars

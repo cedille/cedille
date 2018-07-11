@@ -85,5 +85,5 @@ test-check-sol
 
 -- unsolved mvars
 test-unsolved-mvars
-  ◂ (∀ Y : ★ . ∀ X : ★ . X ➔ Nat) ➔ Nat ➔ Nat
-  = λ f . λ x . f x .
+  ◂ (∀ Y : ★ . ∀ X : ★ . X ➔ ∀ Z : ★ . X ➔ Nat) ➔ Nat ➔ Nat
+  = λ f . λ x . f x x .
