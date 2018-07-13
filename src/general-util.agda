@@ -18,6 +18,12 @@ maybe-else y f nothing = y
 maybe-join : ∀ {a} {A : Set a} → maybe (maybe A) → maybe A
 maybe-join = maybe-else nothing id
 
+maybe-equal? : ∀ {a} {A : Set a} → (A → A → 𝔹) → (m₁ m₂ : maybe A) → 𝔹
+maybe-equal? f (just x) (just x₁) = f x x₁
+maybe-equal? f (just x) nothing = ff
+maybe-equal? f nothing (just x) = ff
+maybe-equal? f nothing nothing = tt
+
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
 trie-lookupd t s d | nothing = d
@@ -86,6 +92,19 @@ cal-catMaybe [] = []
 cal-catMaybe ((c , tr) :: trs)
   with trie-catMaybe tr | cal-catMaybe trs
 ... | tr' | trs' = if trie-empty? tr' then trs' else (c , tr') :: trs'
+
+trie-equal? : ∀ {A : Set} → (A → A → 𝔹) → (t₁ t₂ : trie A) → 𝔹
+trie-equal? {A} f t₁ t₂ =
+    length t₁𝕃 =ℕ length t₂𝕃
+  && list-all check-elems t₁𝕃
+  where
+    t₁𝕃 = trie-mappings t₁
+    t₂𝕃 = trie-mappings t₂
+
+    check-elems : string × A → 𝔹
+    check-elems (name , dat₁) with trie-lookup t₂ name
+    ... | nothing = ff
+    ... | just dat₂ = f dat₁ dat₂
 
 string-split-h : 𝕃 char → char → 𝕃 char → 𝕃 string → 𝕃 string
 string-split-h [] delim str-build out = reverse ((𝕃char-to-string (reverse str-build)) :: out)

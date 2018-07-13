@@ -40,9 +40,10 @@ open helpers
 ----------------------------------------------------------------------
 
 
--- meta-vars:
+-- meta-var type
 -- vars associated with kind and (possibly many) type solutions
-----------------------------------------------------------------------
+-- ==================================================
+
 data meta-var-sol : Set where
   meta-var-tp : (k : kind) → (mtp : maybe type) → meta-var-sol
   meta-var-tm : (tp : type) → (mtm : maybe term) → meta-var-sol
@@ -64,8 +65,57 @@ record meta-vars : Set where
     varset  : trie meta-var
 open meta-vars
 
+-- Simple definitions and accessors
+-- --------------------------------------------------
+
 meta-var-name : meta-var → var
 meta-var-name X = meta-var.name X
+
+meta-vars-get-varlist : meta-vars → 𝕃 var
+meta-vars-get-varlist Xs = map (name ∘ snd) (trie-mappings (varset Xs))
+
+meta-var-solved? : meta-var → 𝔹
+meta-var-solved? (meta-var-mk n (meta-var-tp k nothing) _) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tp k (just _)) _) = tt
+meta-var-solved? (meta-var-mk n (meta-var-tm tp nothing) _) = ff
+meta-var-solved? (meta-var-mk n (meta-var-tm tp (just _)) _) = tt
+
+meta-vars-empty : meta-vars
+meta-vars-empty = meta-vars-mk [] empty-trie
+
+meta-vars-empty? : meta-vars → 𝔹
+meta-vars-empty? Xs = ~ (trie-nonempty (varset Xs ))
+
+meta-vars-solved? : meta-vars → 𝔹
+meta-vars-solved? Xs = trie-all meta-var-solved? (varset Xs)
+
+meta-vars-filter : (meta-var → 𝔹) → meta-vars → meta-vars
+meta-vars-filter f Xs =
+  meta-vars-mk or vs
+  where
+  vs = trie-filter f (varset Xs)
+  or = filter (trie-contains vs) (order Xs)
+
+meta-var-sol-eq? : ctxt → (=S =T : meta-var-sol) → 𝔹
+meta-var-sol-eq? Γ (meta-var-tp k₁ mtp₁) (meta-var-tp k₂ mtp₂)
+  with conv-kind Γ k₁ k₂
+... | ff = ff
+... | tt = maybe-equal? (conv-type Γ) mtp₁ mtp₂
+
+meta-var-sol-eq? _ _ _ = ff
+-- TODO terms not supported
+-- meta-var-sol-eq? (meta-var-tm tp mtm) (meta-var-tm tp₁ mtm₁) = {!!}
+
+meta-var-equal? : ctxt → (X Y : meta-var) → 𝔹
+meta-var-equal? Γ (meta-var-mk name₁ sol₁ _) (meta-var-mk name₂ sol₂ _) =
+  name₁ =string name₂ && meta-var-sol-eq? Γ sol₁ sol₂
+
+meta-vars-equal? : ctxt → (Xs Ys : meta-vars) → 𝔹
+meta-vars-equal? Γ Xs Ys =
+  trie-equal? (meta-var-equal? Γ) (meta-vars.varset Xs) (meta-vars.varset Ys)
+
+-- conversion to types and terms
+-- --------------------------------------------------
 
 -- TODO
 meta-var-to-type : meta-var → posinfo → maybe type
@@ -90,27 +140,12 @@ meta-var-to-term-unsafe X pi
 ... | just tm = tm
 ... | nothing = Var pi (meta-var-name X)
 
-meta-var-solved? : meta-var → 𝔹
-meta-var-solved? (meta-var-mk n (meta-var-tp k nothing) _) = ff
-meta-var-solved? (meta-var-mk n (meta-var-tp k (just _)) _) = tt
-meta-var-solved? (meta-var-mk n (meta-var-tm tp nothing) _) = ff
-meta-var-solved? (meta-var-mk n (meta-var-tm tp (just _)) _) = tt
-
-
-meta-vars-empty : meta-vars
-meta-vars-empty = meta-vars-mk [] empty-trie -- empty-trie
-
-meta-vars-empty? : meta-vars → 𝔹
-meta-vars-empty? Xs = ~ (trie-nonempty (varset Xs )) -- ~ (trie-nonempty Xs)
-
-meta-vars-solved? : meta-vars → 𝔹
-meta-vars-solved? Xs = trie-all meta-var-solved? (varset Xs)
+-- substitutions
+-- --------------------------------------------------
 
 meta-vars-get-sub : meta-vars → trie type
-meta-vars-get-sub Xs
-  = trie-catMaybe (trie-map ((flip meta-var-to-type) "") (varset Xs))
-
--- substitutions, is-free-in
+meta-vars-get-sub Xs =
+  trie-catMaybe (trie-map ((flip meta-var-to-type) "") (varset Xs))
 
 meta-vars-subst-type' : (unfold : 𝔹) → ctxt → meta-vars → type → type
 meta-vars-subst-type' u Γ Xs tp =
@@ -119,26 +154,12 @@ meta-vars-subst-type' u Γ Xs tp =
 
 meta-vars-subst-type : ctxt → meta-vars → type → type
 meta-vars-subst-type = meta-vars-subst-type' tt
-{-meta-vars-subst-type Γ Xs tp
-  = hnf Γ (unfolding-elab unfold-head-rec-defs)
-      (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp)
-      tt-}
 
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
   = hnf Γ (unfolding-elab unfold-head)
       (substh-kind Γ empty-renamectxt (meta-vars-get-sub Xs) k)
       tt
-
-meta-vars-get-varlist : meta-vars → 𝕃 var
-meta-vars-get-varlist Xs = map (name ∘ snd) (trie-mappings (varset Xs))
-
-meta-vars-filter : (meta-var → 𝔹) → meta-vars → meta-vars
-meta-vars-filter f Xs =
-  meta-vars-mk or vs
-  where
-  vs = trie-filter f (varset Xs)
-  or = filter (trie-contains vs) (order Xs)
 
 meta-vars-in-type : meta-vars → type → meta-vars
 meta-vars-in-type Xs tp =
@@ -223,7 +244,7 @@ meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
 ----------------------------------------
 
 -- collecting, merging, matching
-----------------------------------------------------------------------
+-- --------------------------------------------------
 
 meta-var-fresh-t : (S : Set) → Set
 meta-var-fresh-t S = meta-vars → var → span-location → S → meta-var
