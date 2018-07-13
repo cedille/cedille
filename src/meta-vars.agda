@@ -192,11 +192,14 @@ meta-vars-to-string Xs = -- meta-vars-to-stringh (order Xs) Xs
             missing-span-location
         (just X) → X)
 
-meta-vars-data : ctxt → meta-vars → 𝕃 tagged-val
-meta-vars-data Γ Xs
-  = if trie-empty? (varset Xs)
+meta-vars-data-gen : string → ctxt → meta-vars → 𝕃 tagged-val
+meta-vars-data-gen s Γ Xs =
+  if trie-empty? (varset Xs)
     then []
-    else [ strRunTag "meta vars" Γ (meta-vars-to-string Xs) ]
+    else [ strRunTag s Γ (meta-vars-to-string Xs) ]
+
+meta-vars-data = meta-vars-data-gen "meta vars"
+meta-vars-new-data = meta-vars-data-gen "new meta vars"
 
 meta-vars-check-type-mismatch : ctxt → string → type → meta-vars → type
                                  → 𝕃 tagged-val × err-m
@@ -303,6 +306,9 @@ pattern not-tp-arrow* tp = inj₁ tp
 arrow*-get-e? : arrow* → maybeErased
 arrow*-get-e? (mk-arrow* _ _ _ e _ ) = e
 
+arrow*-get-Xs : arrow* → meta-vars
+arrow*-get-Xs (mk-arrow* Lx _ _ _ _) = meta-vars-add* meta-vars-empty Lx
+
 private
   ba-to-e : binder ⊎ arrowtype → maybeErased
   ba-to-e (inj₁ All) = Erased
@@ -406,7 +412,7 @@ private
 
     e-type-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
     e-type-ineq Γ tp₁ tp₂ =
-      match-error-msg ^ " because the lhs and rhs are not convertible types"
+      match-error-msg ^ " because the lhs and rhs are not equal (or because I'm not very clever)"
       , lhs-rhs Γ tp₁ tp₂
 
     e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
@@ -546,10 +552,13 @@ meta-vars-match Γ Xs Ls u (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x
   =   meta-vars-match-tk Γ Xs Ls atkₓ atk
     ≫=⊎ λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) u tpₓ tp
 
-meta-vars-match Γ Xs Ls ff tpₓ tp =
-  meta-vars-match Γ Xs Ls tt
+meta-vars-match Γ Xs Ls ff tpₓ tp
+  with meta-vars-match Γ Xs Ls tt
     (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
     (hnf Γ (unfolding-elab unfold-head) tp tt)
+... | match-ok Xs' = match-ok Xs'
+... | match-error _ = match-error (e-type-ineq Γ tpₓ tp)
+
 meta-vars-match Γ Xs Ls tt tpₓ tp
   = match-error (e-type-ineq Γ tpₓ tp)
 

@@ -1,0 +1,86 @@
+module tpinf .
+
+import nat .
+import bool .
+import sigma .
+import list .
+
+-- Inapplicability errors
+-- ==================================================
+
+test-bot
+◂ (∀ X : ★ . X) ➔ Nat ➔ Nat
+= λ bot . λ n . bot n .
+
+-- Unmatchable errors
+-- ==================================================
+
+-- Solutions contain local variables
+-- --------------------------------------------------
+
+error-local-var
+  = Λ A : ★. Λ B : A ➔ ★. λ s : Sigma · A · B.
+      s.1 (λ a : A. λ b : B a. b).
+
+-- Incompatible solutions
+-- --------------------------------------------------
+
+error-ineq-sols
+  ◂ (∀ A : ★ . (A ➔ A) ➔ A) ➔ Nat
+  = λ fix . fix (λ x : Bool . Z) .
+
+-- The meta-variable and its two solutions are shown. There's an additional,
+-- seemingly redundant field for all meta-variables present in the type, which
+-- in this example is only ?A
+
+-- Unmatchable arrows / abstractors
+-- --------------------------------------------------
+
+error-ineq-arrow
+  ◂ (∀ A : ★ . (A ➾ A) ➔ A) ➔ Nat
+  = λ res . res S  .
+
+-- Least informative unmatchable
+-- --------------------------------------------------
+
+-- When matching, we first try to match the types as given, and if that fails
+-- head normalize the sub-expressions of the types that are not equal. See Issue
+-- #7. I propose attempting to match the head-normalized /whole/ types.
+
+-- In either case, matching is liable to fail. In the hopes of making errors
+-- slightly more readable, we print the compact types if both attempts fail
+
+error-type-ineq1
+  ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . λ l . ListRec {- · A -} Z {- · Nat-} (λ _ . S) Z .
+
+error-type-ineq2
+  ◂ ∀ A : ★ . List · A ➔ Nat
+  = Λ A . λ l . ListRec {- · A -} Nil {- · Nat-} (λ _ . S) Z .
+
+-- Misc
+-- ==================================================
+
+-- Ill-kinded meta-variable solutions
+-- --------------------------------------------------
+
+-- TODO Strange highlighting bug when kind-checking solutions
+error-illkinded-sol
+  ◂ ∀ A1 : ★ . ∀ A2 : ★ . ∀ B1 : A1 ➔ ★ . ∀ B2 : A2 ➔ ★ .
+    ∀ C1 : (A1 ➔ ★) ➔ ★ . C1 · B1
+    ➔ (∀ B2 : A2 ➔ ★ . ∀ C2 : (A2 ➔ ★) ➔ ★ . C2 · B2 ➔ C2 · B2)
+    ➔ C1 · B1
+  = Λ A1 . Λ A2 . Λ B1 . Λ B2 . Λ C1 . λ c1 . λ fc2 .
+      fc2 {- · B2 -} c1 .
+
+-- Unsolved meta-variables
+-- --------------------------------------------------
+
+error-unsolved-metavars
+  ◂ (∀ Y : ★ . ∀ X : ★ . X ➔ ∀ Z : ★ . X ➔ Nat) ➔ Nat ➔ Nat
+  = λ f . λ x . f x x .
+
+-- More exotic errors
+-- ==================================================
+
+-- [[file:type-inference/tpinf-bug-copypaste.ced][file:~/vc/cedille/tests/type-inference/tpinf-bug-copypaste.ced]]

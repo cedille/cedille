@@ -781,7 +781,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 6) generate span and finish
     else (get-ctxt λ Γ →
     spanM-add (uncurry
-      (λ tvs → App-span t₁ t₂ mode tvs)
+      (λ tvs → App-span t₁ t₂ mode (tvs ++ meta-vars-new-data Γ (arrow*-get-Xs arr)))
       (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
         meta-vars-empty -- TODO only those updated by STAI
         rtp'))
@@ -846,12 +846,12 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
       case (meta-vars-match Γ Xs empty-trie ff dom atp) of λ where
-      (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg tvs
+      (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
       (match-ok Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
     -- 3) sanity check the match (FO matching, for now)
           check-meta-vars Xsₐ
         ≫=span λ where
-          (just es) → error-bad-meta-var-sols t₁ t₂ domₕ atpₕ Xsₐ mode es
+          (just es) → error-bad-meta-var-sols t₁ t₂ dom atp Xsₐ mode es
     -- 4) update mvars in mvar kinds and return arg and ret type
           nothing   → spanMr (just (check-term-app-return (meta-vars-update-kinds Γ Xs Xsₐ)
                         atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)))
