@@ -59,7 +59,9 @@
       (define-key map (kbd "s") #'cedille-mode-close-active-window)
       (define-key map (kbd "S") #'cedille-mode-close-active-window)
       (define-key map (kbd "h") (make-cedille-mode-info-display-page "summary mode"))
-      map))
+      map)
+    (when cedille-summary-view-mode
+      (set-input-method "Cedille")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;     Summary View display code
@@ -77,6 +79,7 @@
   "Handle the buffer initialization for summary mode startup"
   (let ((parent cedille-mode-parent-buffer))
     (with-current-buffer (cedille-mode-summary-buffer)
+      ;(set-input-method "Cedille")
       (setq buffer-read-only nil)
       (erase-buffer)
       (insert display-string)

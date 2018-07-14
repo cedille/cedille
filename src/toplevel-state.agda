@@ -39,7 +39,7 @@ blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ;
                              do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
-new-include-elt : (filename : string) → (dependencies : 𝕃 (string × string)) → (ast : start) →
+new-include-elt : filepath → (dependencies : 𝕃 (string × string)) → (ast : start) →
                   cws-types.start → maybe UTC → include-elt
 new-include-elt filename deps x y time =
   record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
@@ -103,17 +103,17 @@ new-toplevel-state ip = record { include-path = ip ;
 toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
 toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
 
-get-include-elt-if : toplevel-state → (filename : string) → maybe include-elt
+get-include-elt-if : toplevel-state → filepath → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
 
 -- get an include-elt assuming it will be there
-get-include-elt : toplevel-state → (filename : string) → include-elt
+get-include-elt : toplevel-state → filepath → include-elt
 get-include-elt s filename with get-include-elt-if s filename
 get-include-elt s filename | nothing = blank-include-elt {- should not happen -}
 get-include-elt s filename | just ie = ie
 
 
-set-include-elt : toplevel-state → string → include-elt → toplevel-state 
+set-include-elt : toplevel-state → filepath → include-elt → toplevel-state 
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
 
 set-include-path : toplevel-state → 𝕃 string × stringset → toplevel-state 
@@ -211,11 +211,11 @@ import-as v NoOptAs = v
 import-as v (SomeOptAs pi pfx) = pfx # v
 
 {-# TERMINATING #-}
-scope-file : toplevel-state → (fn : string) → optAs → args → toplevel-state
-scope-cmds : toplevel-state → (fn mn : string) → cmds → optAs → args → toplevel-state
-scope-cmd : toplevel-state → (fn mn : string) → cmd → optAs → args → toplevel-state
-scope-def : toplevel-state → (fn mn : string) → var → optAs → args → toplevel-state
-scope-public-args : toplevel-state → (old-fn new-fn : string) → args → args → args
+scope-file : toplevel-state → filepath → optAs → args → toplevel-state
+scope-cmds : toplevel-state → filepath → (mn : string) → cmds → optAs → args → toplevel-state
+scope-cmd : toplevel-state → filepath → (mn : string) → cmd → optAs → args → toplevel-state
+scope-def : toplevel-state → filepath → (mn : string) → var → optAs → args → toplevel-state
+scope-public-args : toplevel-state → (old-fp new-fp : filepath) → args → args → args
 
 scope-file s fn oa as with include-elt.ast (get-include-elt s fn)
 ...| nothing = s

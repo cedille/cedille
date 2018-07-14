@@ -162,10 +162,12 @@ data IOMode : Set where
   AppendMode : IOMode
   ReadWriteMode : IOMode
 
+filepath = string
+
 postulate
   Handle : Set
   -- IOMode : Set
-  openFile : string → IOMode -> IO Handle
+  openFile : filepath → IOMode -> IO Handle
   closeFile : Handle -> IO ⊤
   hPutStr : Handle → string → IO ⊤
   hSetToLineBuffering : Handle → IO ⊤
@@ -181,7 +183,7 @@ postulate
 {-# COMPILED closeFile System.IO.hClose #-}
 {-# COMPILED hPutStr (\ hdl -> (\ s -> Data.Text.IO.hPutStr hdl s)) #-}
 
-clearFile : string → IO ⊤
+clearFile : filepath → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl
 
 flush : IO ⊤
@@ -198,7 +200,7 @@ _>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
 _>≯_ : ∀{A B : Set} → IO A → IO B → IO A
 (io₁ >≯ io₂) = io₁ >>= λ result → io₂ >> return result
 
-withFile : {A : Set} → string → IOMode → (Handle → IO A) → IO A
+withFile : {A : Set} → filepath → IOMode → (Handle → IO A) → IO A
 withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
 
 -- Coordinated Universal Time
@@ -210,8 +212,8 @@ postulate
   _utc-after_ : UTC → UTC → 𝔹
   _utc-before_ : UTC → UTC → 𝔹
   utcToString : UTC → string
-  getModificationTime : string → IO UTC
-  getCurrentDirectory : IO string
+  getModificationTime : filepath → IO UTC
+  getCurrentDirectory : IO filepath
   pathSeparator : char
 
 {-# IMPORT Data.Time.Clock #-}
@@ -228,7 +230,7 @@ postulate
 
 pathSeparatorString = 𝕃char-to-string [ pathSeparator ]
 
-splitPath : (filepath : string) → 𝕃 string
+splitPath : filepath → 𝕃 string
 splitPath = h [] [] ∘ string-to-𝕃char where
   cons-if-nonempty : 𝕃 char → 𝕃 string → 𝕃 string
   cons-if-nonempty [] acc = acc
@@ -239,7 +241,7 @@ splitPath = h [] [] ∘ string-to-𝕃char where
   ...| tt = h (cons-if-nonempty cur acc) [] cs
   ...| ff = h acc (c :: cur) cs
 
-joinPath : 𝕃 string → string
+joinPath : 𝕃 string → filepath
 joinPath [] = ""
 joinPath (x :: []) = x
 joinPath (x :: xs) = x ^ pathSeparatorString ^ joinPath xs
@@ -280,7 +282,7 @@ hPutRope outh s = h s (return triv) outh where
   h (s₁ ⊹⊹ s₂) io outh = h s₁ (h s₂ io outh) outh
   h [[ s ]] io outh = hPutStr outh s >> io
 
-writeRopeToFile : (filepath : string) → rope → IO ⊤
+writeRopeToFile : filepath → rope → IO ⊤
 writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPutRope hdl s >> closeFile hdl
 
 stringset-singleton : string → stringset

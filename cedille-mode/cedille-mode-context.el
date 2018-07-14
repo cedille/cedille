@@ -98,7 +98,9 @@
     (define-key map (kbd "W") #'cedille-mode-toggle-show-tuples-in-context)				; show all hidden types/kinds
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) 				; customization page
     (define-key map (kbd "s") (make-cedille-mode-customize-set-variable 'cedille-mode-show-shadowed-variables (not cedille-mode-show-shadowed-variables)))
-    map))
+    map)
+  (when cedille-context-view-mode
+    (set-input-method "Cedille")))
 
 (defun cedille-mode-toggle-hide-tuple-in-context()
   "Hides the type or kind associated with the currently selected line"
@@ -314,6 +316,7 @@ which currently consists of:\n
         (b (cedille-mode-context-buffer)))
     (cedille-mode-process-context)
     (with-current-buffer b
+      ;(set-input-method "Cedille")
       (setq buffer-read-only nil
             cedille-mode-parent-buffer parent)
       (erase-buffer)

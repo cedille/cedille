@@ -13,7 +13,9 @@
     (define-key map (kbd "i") #'cedille-mode-close-active-window) ; exit inspect mode
     (define-key map (kbd "I") #'cedille-mode-close-active-window) ; exit inspect mode
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "inspect mode"))
-    map))
+    map)
+  (when cedille-inspect-view-mode
+    (set-input-method "Cedille")))
 
 (defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (file-name-base) "*"))
 

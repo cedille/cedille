@@ -83,7 +83,7 @@ readOptions =
         (inj₂ ops) → return (fp , ops)
 
 
-module main-with-options (options-filepath : string) (options : cedille-options.options) where
+module main-with-options (options-filepath : filepath) (options : cedille-options.options) where
 
   open import ctxt
   open import process-cmd options {IO}
@@ -95,8 +95,16 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   import interactive-cmds
   open import rkt options
   open import elaboration options
+  
+  include-path-relative-to-options : filepath → filepath
+  include-path-relative-to-options fp with string-to-𝕃char fp
+  ...| '.' :: '.' :: c :: cs =
+    if c =char pathSeparator
+      then combineFileNames options-filepath fp
+      else fp
+  ...| _ = fp
 
-  logFilepath : IO string
+  logFilepath : IO filepath
   logFilepath = getHomeDirectory >>= λ home →
                 return (combineFileNames (dot-cedille-directory home) "log")
 
@@ -107,13 +115,12 @@ module main-with-options (options-filepath : string) (options : cedille-options.
       return triv
 
   logRope : rope → IO ⊤
-  logRope s = if cedille-options.options.generate-logs options then
-        (getCurrentTime >>= λ time →
-        logFilepath >>= λ fn →
-        withFile fn AppendMode (λ hdl →
-          hPutRope hdl ([[ "([" ^ utcToString time ^ "] " ]] ⊹⊹ s ⊹⊹ [[ ")\n" ]])))
-      else
-        return triv
+  logRope s with cedille-options.options.generate-logs options
+  ...| ff = return triv
+  ...| tt = getCurrentTime >>= λ time →
+            logFilepath >>= λ fn →
+            withFile fn AppendMode λ hdl →
+              hPutRope hdl ([[ "([" ^ utcToString time ^ "] " ]] ⊹⊹ s ⊹⊹ [[ ")\n" ]])
 
   logMsg : (message : string) → IO ⊤
   logMsg msg = logRope [[ msg ]]
@@ -125,7 +132,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   progressUpdate filename do-check =
     sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
 
-  fileBaseName : string → string
+  fileBaseName : filepath → string
   fileBaseName fn = base-filename (takeFileName fn)
 
   {-------------------------------------------------------------------------------
@@ -135,7 +142,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   cede-suffix = ".cede"
   rkt-suffix = ".rkt"
 
-  ced-aux-filename : (suffix ced-path : string) → string
+  ced-aux-filename : (suffix ced-path : filepath) → filepath
   ced-aux-filename sfx ced-path = 
     let dir = takeDirectory ced-path in
       combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ sfx)
@@ -143,14 +150,14 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   cede-filename = ced-aux-filename cede-suffix
   rkt-filename = ced-aux-filename rkt-suffix
 
-  maybe-write-aux-file : include-elt → (filename file-suffix : string) → (cedille-options.options → 𝔹) → (include-elt → 𝔹) → rope → IO ⊤
+  maybe-write-aux-file : include-elt → (filename file-suffix : filepath) → (cedille-options.options → 𝔹) → (include-elt → 𝔹) → rope → IO ⊤
   maybe-write-aux-file ie fn sfx f f' r with f options && ~ f' ie
   ...| ff = return triv
   ...| tt = logMsg ("Starting writing " ^ sfx ^ " file " ^ fn) >>
             writeRopeToFile fn r >>
             logMsg ("Finished writing " ^ sfx ^ " file " ^ fn)
 
-  write-aux-files : toplevel-state → (filename : string) → IO ⊤
+  write-aux-files : toplevel-state → filepath → IO ⊤
   write-aux-files s filename with get-include-elt-if s filename
   ...| nothing = return triv
   ...| just ie =
@@ -165,7 +172,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
       (to-rkt-file filename (toplevel-state.Γ s) ie rkt-filename)
 
   -- we assume the cede file is known to exist at this point
-  read-cede-file : (ced-path : string) → IO (𝔹 × string)
+  read-cede-file : (ced-path : filepath) → IO (𝔹 × string)
   read-cede-file ced-path =
     let cede = cede-filename ced-path in
     logMsg ("Started reading .cede file " ^ cede) >>
@@ -181,7 +188,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   add-cedille-extension x = x ^ "." ^ cedille-extension
 
   -- Allows you to say "import FOO.BAR.BAZ" rather than "import FOO/BAR/BAZ"
-  replace-dots : string → string
+  replace-dots : filepath → filepath
   replace-dots s = 𝕃char-to-string (h (string-to-𝕃char s)) where
     h : 𝕃 char → 𝕃 char
     h ('.' :: '.' :: cs) = '.' :: '.' :: h cs
@@ -189,7 +196,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
     h (c :: cs) = c :: h cs
     h [] = []
   
-  find-imported-file : (dirs : 𝕃 string) → (unit-name : string) → IO (maybe string)
+  find-imported-file : (dirs : 𝕃 filepath) → (unit-name : string) → IO (maybe filepath)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
       let e = combineFileNames dir (add-cedille-extension unit-name) in
@@ -197,7 +204,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
         ff → find-imported-file dirs unit-name
         tt → canonicalizePath e >>= return ∘ just
 
-  find-imported-files : (dirs : 𝕃 string) → (imports : 𝕃 string) → IO (𝕃 (string × string))
+  find-imported-files : (dirs : 𝕃 filepath) → (imports : 𝕃 string) → IO (𝕃 (string × filepath))
   find-imported-files dirs (u :: us) =
     find-imported-file dirs (replace-dots u) >>= λ where
       nothing → logMsg ("Error finding file: " ^ replace-dots u) >> find-imported-files dirs us
@@ -205,7 +212,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   find-imported-files dirs [] = return []
 
   {- new parser test integration -}
-  reparse : toplevel-state → (filename : string) → IO toplevel-state
+  reparse : toplevel-state → filepath → IO toplevel-state
   reparse st filename = 
      doesFileExist filename >>= λ b → 
        (if b then
@@ -221,7 +228,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
                                                              (get-imports t) >>= λ deps →
                                          logMsg ("deps for file " ^ filename ^ ": " ^ 𝕃-to-string (λ {(a , b) → "short: " ^ a ^ ", long: " ^ b}) ", " deps) >> return (new-include-elt filename deps t t2 nothing)
 
-  reparse-file : string → toplevel-state → IO toplevel-state
+  reparse-file : filepath → toplevel-state → IO toplevel-state
   reparse-file filename s =
     reparse s filename >>= λ s →
     return (set-include-elt s filename
@@ -233,7 +240,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
   _&&>>_ : IO 𝔹 → IO 𝔹 → IO 𝔹
   (a &&>> b) = a >>= λ a → if a then b else return ff
 
-  aux-up-to-date : (filename : string) → toplevel-state → IO toplevel-state
+  aux-up-to-date : filepath → toplevel-state → IO toplevel-state
   aux-up-to-date filename s =
     let rkt = rkt-filename filename in
     doesFileExist rkt &&>> fileIsOlder filename rkt >>= λ rkt → return
@@ -242,12 +249,12 @@ module main-with-options (options-filepath : string) (options : cedille-options.
     (get-include-elt s filename)
     rkt))
 
-  ie-up-to-date : string → include-elt → IO 𝔹
+  ie-up-to-date : filepath → include-elt → IO 𝔹
   ie-up-to-date filename ie =
     getModificationTime filename >>= λ mt →
     return (maybe-else ff (λ lpt → lpt utc-after mt) (include-elt.last-parse-time ie))    
 
-  import-changed : toplevel-state → (filename : string) → (import-file : string) → IO 𝔹
+  import-changed : toplevel-state → filepath → (import-file : string) → IO 𝔹
   import-changed s filename import-file =
     let dtc = include-elt.do-type-check (get-include-elt s import-file)
         cede = cede-filename filename
@@ -258,14 +265,14 @@ module main-with-options (options-filepath : string) (options : cedille-options.
         ff → return ff
         tt → fileIsOlder cede cede' >>= λ fio → return (dtc || fio)
    
-  any-imports-changed : toplevel-state → (filename : string) → (imports : 𝕃 string) → IO 𝔹
+  any-imports-changed : toplevel-state → filepath → (imports : 𝕃 string) → IO 𝔹
   any-imports-changed s filename [] = return ff
   any-imports-changed s filename (h :: t) =
     import-changed s filename h >>= λ where
       tt → return tt
       ff → any-imports-changed s filename t
 
-  ensure-ast-depsh : string → toplevel-state → IO toplevel-state
+  ensure-ast-depsh : filepath → toplevel-state → IO toplevel-state
   ensure-ast-depsh filename s with get-include-elt-if s filename
   ...| just ie = ie-up-to-date filename ie >>= λ where
     ff → reparse-file filename s
@@ -291,7 +298,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
      we avoid importing the same file twice, and also avoid following cycles in the import
      graph. -}
   {-# TERMINATING #-}
-  update-astsh : stringset {- seen already -} → toplevel-state → (filename : string) →
+  update-astsh : stringset {- seen already -} → toplevel-state → filepath →
                  IO (stringset {- seen already -} × toplevel-state)
   update-astsh seen s filename = 
     if stringset-contains seen filename then return (seen , s)
@@ -312,7 +319,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
      So if we do not have an up-to-date .cede file (i.e., there is no such file at all,
      or it is older than the given file), reparse the file.  We do this recursively for all
      dependencies (i.e., imports) of the file. -}
-  update-asts : toplevel-state → (filename : string) → IO toplevel-state
+  update-asts : toplevel-state → filepath → IO toplevel-state
   update-asts s filename = update-astsh empty-stringset s filename >>= λ p → 
     return (snd p)
 
@@ -323,7 +330,7 @@ module main-with-options (options-filepath : string) (options : cedille-options.
     h ((fn , ie) :: t) = [[ "file: " ]] ⊹⊹ [[ fn ]] ⊹⊹ [[ "\nadd-symbols: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.need-to-add-symbols-to-context ie) ]] ⊹⊹ [[ "\ndo-type-check: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.do-type-check ie) ]] ⊹⊹ [[ "\n\n" ]] ⊹⊹ h t
 
   {- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
-  checkFile : toplevel-state → (filename : string) → (should-print-spans : 𝔹) → IO toplevel-state
+  checkFile : toplevel-state → filepath → (should-print-spans : 𝔹) → IO toplevel-state
   checkFile s filename should-print-spans = 
     update-asts s filename >>= λ s →
     log-files-to-check s >>

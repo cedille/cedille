@@ -31,7 +31,7 @@ process-cwst-ety cws-types.EntityNonws = spanMr triv
 process-cwst-ety (cws-types.EntityWs pi pi') = spanMr triv -- spanM-add (whitespace-span pi pi') 
 process-cwst-ety (cws-types.EntityComment pi pi') = spanM-add (comment-span pi pi')
 
-process-cwst : toplevel-state → (filename : string) → spanM toplevel-state
+process-cwst : toplevel-state → filepath → spanM toplevel-state
 process-cwst s filename with include-elt.cwst (get-include-elt s filename)
 process-cwst s filename | nothing = spanMr s
 process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys ≫span spanMr s
@@ -63,8 +63,8 @@ optAs-posinfo-var (SomeOptAs pi x) orig = get-ctxt λ Γ →
 process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-params : process-t (posinfo × params)
-process-start : toplevel-state → (filename : string) → (progress-name : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
-process-file : toplevel-state → (filename : string) → (progress-name : string) → mF (toplevel-state × mod-info)
+process-start : toplevel-state → filepath → (progress-name : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
+process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × mod-info)
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
