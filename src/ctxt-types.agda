@@ -8,6 +8,16 @@ open import syntax-util
 location : Set
 location = string × posinfo -- file path and starting position in the file 
 
+-- file path and starting / ending position in file
+span-location = string × posinfo × posinfo
+
+-- missing locations
+missing-location : location
+missing-location = ("missing" , "missing")
+
+missing-span-location : span-location
+missing-span-location = ("missing" , "missing" , "missing")
+
 {- we will generally keep classifiers of variables in hnf in the ctxt, although
    we will not necessarily unfold recursive type definitions. -}
 

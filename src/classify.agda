@@ -727,10 +727,11 @@ error-inapplicable-to-erasure t₁ t₂ htp Xs m e? =
 
 -- meta-variable errors
 error-unmatchable-tps : ∀ {A} (t₁ t₂ : term) (tpₓ tp : type)
-                        → meta-vars → checking-mode → (msg : string) → spanM (maybe A)
-error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg =
+                        → meta-vars → checking-mode → (msg : string) → 𝕃 tagged-val → spanM (maybe A)
+error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg tvs =
     get-ctxt λ Γ → spanM-add (App-span t₁ t₂ m
-      (arg-exp-type Γ tpₓ :: arg-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tpₓ))
+      (arg-exp-type Γ tpₓ :: arg-type Γ tp
+        :: tvs ++ meta-vars-data Γ (meta-vars-in-type Xs tpₓ))
       (just msg))
   ≫span spanMr nothing
 
@@ -764,7 +765,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 2) make sure it reveals an arrow
   ≫=spanm' uncurry λ Xs htp → -- λ ret → let Xs = fst ret ; htp = snd ret in
     get-ctxt λ Γ →
-    spanMr (meta-vars-unfold-tmapp Γ Xs htp)
+    spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
      on-fail (λ _ → error-inapplicable-to-tm t₁ t₂ htp Xs mode e?)
   ≫=spans' λ arr →
   -- 3) make sure expected / given erasures match
@@ -786,7 +787,11 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
         rtp'))
   ≫span check-term-spine-return Γ Xs' rtp')}
 
-  where mode = maybe-to-checking mtp
+  where
+  mode = maybe-to-checking mtp
+
+  span-loc : (fn : string) → span-location
+  span-loc fn = fn , term-start-pos t₁ , term-end-pos t₂
 
 check-term-spine t'@(AppTp t tp) mtp max =
   -- 1) type the applicand
@@ -841,8 +846,8 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
       case (meta-vars-match Γ Xs empty-trie ff dom atp) of λ where
-      (yes-error msg) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg
-      (no-error  Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
+      (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ domₕ atpₕ Xs mode msg tvs
+      (match-ok Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
     -- 3) sanity check the match (FO matching, for now)
           check-meta-vars Xsₐ
         ≫=span λ where
@@ -1162,11 +1167,11 @@ check-meta-vars Xs =
   open helpers
 
   check-meta-var : meta-var → spanM meta-var
-  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _)) =
+  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _) _) =
     spanMr X
-  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing)) =
+  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing) _) =
     spanMr X
-  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp))) =
+  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp)) _) =
       check-type tp (just k)
     ≫span spanM-push-type-def posinfo-gen nonParamVar x tp k
     ≫=span λ _ → spanMr X
