@@ -31,13 +31,26 @@ include-path-insert s (l , ss) =
 
 options-to-rope : options → rope
 options-to-rope ops =
-  [[ "import-directories = " ]] ⊹⊹ [[ 𝕃-to-string (λ fp → "\"" ^ fp ^ "\"") " "
-     (fst (options.include-path ops)) ]] ⊹⊹ end ⊹⊹
-  [[ "use-cede-files = " ]] ⊹⊹ 𝔹-s options.use-cede-files ⊹⊹ end ⊹⊹
-  [[ "make-rkt-files = " ]] ⊹⊹ 𝔹-s options.make-rkt-files ⊹⊹ end ⊹⊹
-  [[ "generate-logs = " ]] ⊹⊹ 𝔹-s options.generate-logs ⊹⊹ end ⊹⊹
-  [[ "show-qualified-vars = " ]] ⊹⊹ 𝔹-s options.show-qualified-vars ⊹⊹ end ⊹⊹
-  [[ "erase-types = " ]] ⊹⊹ 𝔹-s options.erase-types ⊹⊹ end
-  where end = [[ ".\n" ]]
-        𝔹-s : (options → 𝔹) → rope
-        𝔹-s f = [[ if f ops then "true" else "false" ]]
+  comment "Cedille Options File" ⊹⊹ [[ "\n" ]] ⊹⊹
+  comment "List of directories to search for imported files in" ⊹⊹
+  comment "Each directory should be space-delimited and inside double quotes" ⊹⊹
+  comment "The current file's directory is automatically searched first, before import-directories" ⊹⊹
+  comment "If a filepath is relative, it is considered relative to this options file" ⊹⊹
+  option "import-directories"
+    (𝕃-to-string (λ fp → "\"" ^ fp ^ "\"") " " (fst (options.include-path ops))) ⊹⊹
+  comment "Cache navigation spans for performance" ⊹⊹
+  option "use-cede-files" (𝔹-s options.use-cede-files) ⊹⊹
+  comment "Compile Cedille files to Racket after they are checked"⊹⊹
+  option "make-rkt-files" (𝔹-s options.make-rkt-files) ⊹⊹
+  comment "Write logs to ~/.cedille/log" ⊹⊹
+  option "generate-logs" (𝔹-s options.generate-logs) ⊹⊹
+  comment "Print variables fully qualified" ⊹⊹
+  option "show-qualified-vars" (𝔹-s options.show-qualified-vars) ⊹⊹
+  comment "Print types erased" ⊹⊹
+  option "erase-types" (𝔹-s options.erase-types)
+  where 𝔹-s : (options → 𝔹) → string
+        𝔹-s f = if f ops then "true" else "false"
+        comment : string → rope
+        comment s = [[ "-- " ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\n" ]]
+        option : (name : string) → (value : string) → rope
+        option name value = [[ name ]] ⊹⊹ [[ " = " ]] ⊹⊹ [[ value ]] ⊹⊹ [[ ".\n\n" ]]

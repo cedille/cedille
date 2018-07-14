@@ -201,13 +201,19 @@ flush = hFlush stdout
 setToLineBuffering : IO ⊤
 setToLineBuffering = hSetToLineBuffering stdout
 
-infixl 1 _>>≠_ _>≯_
+infixl 1 _>>≠_ _>≯_ _>>=r_ _>>r_
 
 _>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
 (io₁ >>≠ io₂) = io₁ >>= λ result → io₂ result >> return result
 
 _>≯_ : ∀{A B : Set} → IO A → IO B → IO A
 (io₁ >≯ io₂) = io₁ >>= λ result → io₂ >> return result
+
+_>>=r_ : ∀{A B : Set} → IO A → (A → B) → IO B
+a >>=r f = a >>= (return ∘ f)
+
+_>>r_ : ∀{A B : Set} → IO A → B → IO B
+a >>r b = a >> return b
 
 withFile : {A : Set} → filepath → IOMode → (Handle → IO A) → IO A
 withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
