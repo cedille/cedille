@@ -33,7 +33,7 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
         relative-to-options fp with string-to-𝕃char fp
         ...| '.' :: '.' :: c :: cs =
           if c =char pathSeparator
-            then combineFileNames (takeDirectory ofp) (𝕃char-to-string cs)
+            then combineFileNames (takeDirectory ofp) fp
             else fp
         ...| _ = fp
         paths-to-stringset : options-types.paths → IO (𝕃 string × stringset)
