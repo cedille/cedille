@@ -232,6 +232,12 @@ meta-vars-check-type-mismatch Γ s tp Xs tp'
                ^ s ^ " type."))
     where tp'' = meta-vars-subst-type' ff Γ Xs tp'
 
+meta-vars-data-locality-if : ctxt → meta-vars → 𝔹 → 𝕃 tagged-val
+meta-vars-data-locality-if Γ Xs locl? =
+  if locl?
+  then meta-vars-data-gen "meta-var locale" Γ Xs
+  else []
+
 meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars
                                     → type → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
@@ -369,7 +375,8 @@ num-arrows-in-type Γ tp = nait Γ (hnf' Γ tp) 0 tt
 
   nait : ctxt → type → (acc : ℕ) → 𝔹 → ℕ
   -- definitely another arrow
-  nait Γ (Abs _ _ _ _ _ tp) acc uf = nait Γ tp (1 + acc) ff
+  nait Γ (Abs _ _ _ _ (Tkk _) tp) acc uf = nait Γ tp acc ff
+  nait Γ (Abs _ _ _ _ (Tkt _) tp) acc uf = nait Γ tp (1 + acc) ff
   nait Γ (TpArrow _ _ tp) acc uf = nait Γ tp (1 + acc) ff
   -- definitely not another arrow
   nait Γ (Iota _ _ _ _ _) acc uf = acc

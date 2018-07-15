@@ -4,11 +4,36 @@ import nat .
 import bool .
 import sigma .
 import list .
+import true .
+import cast .
+
+-- Meta-var localities
+-- ==================================================
+
+test-new-mvar
+◂ ∀ A : ★ . A ➔ A
+= Λ A . λ a . triv a .
+
+test-cast
+◂ ∀ A : ★ . ∀ B : ★ . Cast · A · B ➾ A ➔ B
+= Λ A . Λ B . Λ c . λ a .
+    changeType {- · A · B -} a -(c.1 a) -(ρ c.2 - β).
+--  ^----------------------------------------------^
+--  ^------------------------^
+
+-- Every maximal application and locality that is *not* an error now has a
+-- tagged-val in its span that shows you all meta-variables and solutions. From
+-- here you can jump to their introduction sites
+
+test-locale
+◂ Π const : ∀ X : ★ . ∀ Y : ★ . X ➔ Y ➔ X .
+  ∀ A : ★ . A ➔ A
+= λ const . Λ A . λ a . const const a a a .
 
 -- Inapplicability errors
 -- ==================================================
 
-test-bot
+error-inapplicable
 ◂ (∀ X : ★ . X) ➔ Nat ➔ Nat
 = λ bot . λ n . bot n .
 
@@ -44,11 +69,14 @@ error-ineq-arrow
 -- --------------------------------------------------
 
 -- When matching, we first try to match the types as given, and if that fails
--- head normalize the sub-expressions of the types that are not equal. See Issue
--- #7. I propose attempting to match the head-normalized /whole/ types.
+-- continuously head-normalize the types as we try to make a match again. (See issue #7).
+-- Even the continuously unfolding approach may still fail, so we must choose
+-- between reporting a likely inaccurate error or a more accurate, but more
+-- unfolded one.
 
--- In either case, matching is liable to fail. In the hopes of making errors
--- slightly more readable, we print the compact types if both attempts fail
+-- Since the expected / computed argument types are printed compact, I lean in
+-- favor of printing the lhs / rhs erros unfolded, since in some cases this can
+-- be helpful (see below).
 
 error-type-ineq1
   ◂ ∀ A : ★ . List · A ➔ Nat
@@ -83,4 +111,10 @@ error-unsolved-metavars
 -- More exotic errors
 -- ==================================================
 
+-- copy-paste bug resolved
 -- [[file:type-inference/tpinf-bug-copypaste.ced][file:~/vc/cedille/tests/type-inference/tpinf-bug-copypaste.ced]]
+
+-- Motivation for more unfolded types in some errors
+-- [[file:~/vc/ds18-efficient-mendler/CoV/CVFixIndM.ced::cvOutFixIndM%20%E2%97%82%20%E2%88%80%20F%20:%20%E2%98%85%20%E2%9E%94%20%E2%98%85.%20%E2%88%80%20imap%20:%20IdMapping%20%C2%B7%20F.%20CVFixIndM%20%C2%B7%20F%20imap%20%E2%9E%94%20F%20%C2%B7%20(CVFixIndM%20%C2%B7%20F%20imap)]]
+
+

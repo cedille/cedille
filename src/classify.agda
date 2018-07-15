@@ -139,10 +139,17 @@ lambda-bound-class-if (SomeClass atk') atk = atk'
    original variable in the returned type, so that if the bound variable ever gets
    substituted by some other code it will work correctly.
  -}
+record spine-data : Set where
+  constructor mk-spine-data
+  field
+    spine-mvars : meta-vars
+    spine-type : type
+    spine-locale : ℕ
+
 {-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)
 check-termi : term → (m : maybe type) → spanM (check-ret m)
-check-term-spine : term → (m : maybe type) → 𝔹 → spanM (maybe (meta-vars × type))
+check-term-spine : term → (m : maybe type) → 𝔹 → spanM (maybe spine-data)
 check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
@@ -179,14 +186,14 @@ check-termi t'@(AppTp t tp') tp
   =   get-ctxt λ Γ → check-term-spine t' ({-maybe-hnf Γ-} tp) tt
     ≫=span λ ret → case ret of λ where
       nothing → check-fail tp
-      (just (Xs , tp')) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
+      (just (mk-spine-data Xs tp' _)) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
 
 -- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
 check-termi t''@(App t m t') tp
   =   get-ctxt λ Γ → check-term-spine t'' ({-maybe-hnf Γ-} tp) tt
     ≫=span λ ret → case ret of λ where
       nothing → check-fail tp
-      (just (Xs , tp')) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
+      (just (mk-spine-data Xs tp' _)) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
 
 check-termi (Let pi d t) mtp =
   -- spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
@@ -680,8 +687,8 @@ check-termi (IotaProj t n pi) mtp =
 
 -- check-term-app
 -- ==================================================
-check-term-spine-return : ctxt → meta-vars → type → spanM (maybe (meta-vars × type))
-check-term-spine-return Γ Xs tp = spanMr (just (Xs , tp))
+check-term-spine-return : ctxt → meta-vars → type → ℕ → spanM (maybe spine-data)
+check-term-spine-return Γ Xs tp locl = spanMr (just (mk-spine-data Xs tp locl))
 --  = spanMr (just (Xs , hnf Γ unfold-head tp tt))
 
 -- errors
@@ -750,6 +757,23 @@ error-bad-meta-var-sols t₁ t₂ tpₓ tp Xs m (mk-error-span dsc _ _ tvs err) 
       (just err))
   ≫span spanMr nothing
 
+-- meta-variable locality
+
+-- for debugging -- prepend to the tvs returned by check-spine-locality if you're having trouble
+locale-tag : ℕ → tagged-val
+locale-tag n = "locale n" , [[ ℕ-to-string n ]] , []
+
+check-spine-locality : ctxt → meta-vars → type → (max : 𝔹) → (locl : ℕ)
+                       → spanM (maybe (meta-vars × ℕ × 𝕃 tagged-val))
+check-spine-locality Γ Xs tp max locl =
+  let new-locl  = if iszero locl then num-arrows-in-type Γ tp else locl
+      new-Xs    = if iszero locl then meta-vars-empty else Xs
+      left-locl = (max || iszero locl)
+  in if left-locl && (~ meta-vars-solved? Xs)
+        then spanMr nothing
+     else spanMr (just (new-Xs , new-locl , meta-vars-data-locality-if Γ Xs left-locl))
+
+
 -- main definition
 
 data check-term-app-ret : Set where
@@ -763,7 +787,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
     check-term-spine t₁ nothing ff
      on-fail spanM-add (App-span t₁ t₂ mode [] nothing) ≫span spanMr nothing
   -- 2) make sure it reveals an arrow
-  ≫=spanm' uncurry λ Xs htp → -- λ ret → let Xs = fst ret ; htp = snd ret in
+  ≫=spanm' λ ret → let (mk-spine-data Xs htp locl) = ret in
     get-ctxt λ Γ →
     spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
      on-fail (λ _ → error-inapplicable-to-tm t₁ t₂ htp Xs mode e?)
@@ -774,18 +798,20 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 4) type the application, filling in missing type arguments with meta-variables
     else check-term-app Xs t₁ t₂ arr mtp
       on-fail spanMr nothing
-  -- 5) check no unsolved mvars, if maximal
+  -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
-    if max && ~ (meta-vars-solved? Xs')
-     then error-unsolved-meta-vars t' rtp' Xs' mode
+    check-spine-locality Γ Xs' rtp' max (pred locl)
+      on-fail error-unsolved-meta-vars t' rtp' Xs' mode
+  ≫=spanm' uncurry λ Xs' → uncurry λ locl' loc-tvs →
   -- 6) generate span and finish
-    else (get-ctxt λ Γ →
-    spanM-add (uncurry
-      (λ tvs → App-span t₁ t₂ mode (tvs ++ meta-vars-new-data Γ (arrow*-get-Xs arr)))
-      (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
-        meta-vars-empty -- TODO only those updated by STAI
-        rtp'))
-  ≫span check-term-spine-return Γ Xs' rtp')}
+   spanM-add (uncurry
+     (λ tvs → App-span t₁ t₂ mode
+       (tvs ++ loc-tvs ++ meta-vars-new-data Γ (arrow*-get-Xs arr)))
+     (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
+       meta-vars-empty -- TODO only those updated by STAI
+       rtp'))
+  ≫span check-term-spine-return Γ Xs' rtp' locl'
+  }
 
   where
   mode = maybe-to-checking mtp
@@ -798,7 +824,7 @@ check-term-spine t'@(AppTp t tp) mtp max =
     check-term-spine t nothing ff
      on-fail   spanM-add ((AppTp-span t tp synthesizing [] nothing))
              ≫span spanMr nothing
-  ≫=spanm' uncurry λ Xs htp → -- λ ret → let Xs = fst ret ; htp = snd ret in
+  ≫=spanm' λ ret → let (mk-spine-data Xs htp locl) = ret in
   -- 2) make sure it reveals a type abstraction
     get-ctxt λ Γ → spanMr (meta-vars-unfold-tpapp Γ Xs htp)
      on-fail (λ htp' → error-inapplicable-to-tp t htp tp Xs mode)
@@ -808,15 +834,14 @@ check-term-spine t'@(AppTp t tp) mtp max =
   -- 4) produce the result type of the application
   ≫span let rtp' = subst-type Γ (qualif-type Γ tp) x rtp in
   -- 5) leave no unsolved mvars behind!
-    if max && (~ meta-vars-solved? Xs)
-      then error-unsolved-meta-vars t' rtp' Xs mode
-  -- 6) generate span
-    else (spanM-add
-      (uncurry
-        (AppTp-span t tp mode)
-        (meta-vars-check-type-mismatch-if
-          mtp Γ "synthesized" Xs {-(hnf Γ unfold-head rtp' tt)-} rtp'))
-  ≫span spanMr (just (Xs , rtp')))}
+    check-spine-locality Γ Xs rtp' max locl
+      on-fail error-unsolved-meta-vars t' rtp' Xs mode
+  ≫=spanm' λ _ →
+    spanM-add (uncurry
+      (AppTp-span t tp mode)
+      (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs rtp'))
+  ≫span check-term-spine-return Γ Xs rtp' locl
+  }
 
   where mode = maybe-to-checking mtp
 
@@ -824,7 +849,9 @@ check-term-spine (Parens _ t _) mtp max =
   check-term-spine t mtp max
 check-term-spine t mtp max =
     check-term t nothing -- syn type for spine head
-  ≫=spanm' (λ htp → spanMr (just (meta-vars-empty , htp)))
+  ≫=spanm' λ htp → get-ctxt λ Γ →
+    let locl = num-arrows-in-type Γ htp in
+    check-term-spine-return Γ meta-vars-empty htp locl
 
 check-term-app Xs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp =
   -- with CTAI we'll do something more interesting
@@ -839,8 +866,11 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
     -- 1) synthesize a type for the applicand
       check-termi t₂ nothing
       -- TODO subst sols into tp
-       on-fail   spanM-add (App-span t₁ t₂ mode (head-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tp)) nothing)
-               ≫span spanMr nothing
+       on-fail
+           spanM-add (App-span t₁ t₂ mode
+             (head-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tp))
+             nothing)
+         ≫span spanMr nothing
     -- 2) match synthesized type with expected (partial) type
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
