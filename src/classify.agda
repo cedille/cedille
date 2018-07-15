@@ -845,7 +845,7 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-      case (meta-vars-match Γ Xs empty-trie ff dom atp) of λ where
+      case (meta-vars-match Γ Xs empty-trie match-state-toplevel dom atp) of λ where
       (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
       (match-ok Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
     -- 3) sanity check the match (FO matching, for now)

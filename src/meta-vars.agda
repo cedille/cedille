@@ -490,16 +490,43 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
   =   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫⊎ match-ok Xs
 
+record match-state : Set where
+  constructor mk-match-state
+  field
+    do-hnf : 𝔹
+    retry  : 𝔹
+
+match-state-toplevel : match-state
+match-state-toplevel = record { do-hnf = ff ; retry = tt }
+
+hnf-elab-if : {ed : exprd} → 𝔹 → ctxt → ⟦ ed ⟧ → 𝔹 → ⟦ ed ⟧
+hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else t
+
 -- meta-vars-match main definitions
 -- --------------------------------------------------
 
-{-# TERMINATING #-}
-meta-vars-match : ctxt → meta-vars → local-vars → (is-hnf : 𝔹) → (tpₓ tp : type) → match-error-t meta-vars
-meta-vars-match-tk : ctxt → meta-vars → local-vars → (tkₓ tk : tk) → match-error-t meta-vars
+{-# NON_TERMINATING #-}
+meta-vars-match : ctxt → meta-vars → local-vars → match-state → (tpₓ tp : type) → match-error-t meta-vars
+meta-vars-match-tk : ctxt → meta-vars → local-vars → match-state → (tkₓ tk : tk) → match-error-t meta-vars
 -- meta-vars-match-optType : ctxt → meta-vars → local-vars → (mₓ m : optType) → error-t meta-vars
 
 -- meta-vars-match
-meta-vars-match Γ Xs Ls u tpₓ@(TpVar pi x) tp
+meta-vars-match Γ Xs Ls (mk-match-state ff tt) tpₓ tp
+  -- attempt a first-order approximation for the match as well as an unfolding one.
+  with meta-vars-match Γ Xs Ls (mk-match-state ff ff) tpₓ tp
+  | meta-vars-match Γ Xs Ls (mk-match-state tt ff)
+      (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
+      (hnf Γ (unfolding-elab unfold-head) tp tt)
+... | (match-error msg) | (match-error _) = match-error msg
+  -- the problem is we can't kind check our solutions here, so the first match
+  -- might be bogus. I assume the second match will tend to be more accurate,
+  -- but less readable
+... | (match-ok _) | (match-error msg) = match-error msg
+... | (match-error _) | (match-ok Xs') = match-ok Xs'
+... | (match-ok Xs₁) | (match-ok Xs₂) =
+  if meta-vars-equal? Γ Xs₁ Xs₂ then match-ok Xs₁ else match-ok Xs₂
+
+meta-vars-match Γ Xs Ls state tpₓ@(TpVar pi x) tp
   -- check if x is a meta-var
   = if ~ trie-contains (meta-vars.varset Xs) x
     -- if not, then just make sure tp is the same var
@@ -511,86 +538,108 @@ meta-vars-match Γ Xs Ls u tpₓ@(TpVar pi x) tp
     then match-error (e-meta-scope Γ x tpₓ tp)
     else meta-vars-solve-tp Γ Xs x tp
 
-meta-vars-match Γ Xs Ls u (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
-  =   meta-vars-match Γ Xs Ls u tpₓ₁ tp₁
-    ≫=⊎ λ Xs' → meta-vars-match Γ Xs' Ls ff tpₓ₂ tp₂
+meta-vars-match Γ Xs Ls state (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂)
+  =   meta-vars-match Γ Xs Ls state tpₓ₁ tp₁
+    ≫=⊎ λ Xs' → meta-vars-match Γ Xs' Ls state
+                  (hnf-elab-if do-unfold Γ tpₓ₂ tt)
+                  (hnf-elab-if do-unfold Γ tp₂ tt)
     ≫=⊎ λ Xs″ → match-ok Xs″
+    where do-unfold = match-state.do-hnf state
 
-meta-vars-match Γ Xs Ls u (TpAppt tpₓ tmₓ) (TpAppt tp tm)
-  =   meta-vars-match Γ Xs Ls u tpₓ tp
+meta-vars-match Γ Xs Ls state (TpAppt tpₓ tmₓ) (TpAppt tp tm)
+  =   meta-vars-match Γ Xs Ls state tpₓ tp
     ≫=⊎ λ Xs' →
       err⊎-guard (~ conv-term Γ tmₓ tm)
         (e-term-ineq Γ tmₓ tm)
     ≫⊎ match-ok Xs'
 
-meta-vars-match Γ Xs Ls u tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
+meta-vars-match Γ Xs Ls state tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
   =   err⊎-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
-    ≫⊎ meta-vars-match-tk Γ Xs Ls tkₓ tk
+    ≫⊎ meta-vars-match-tk Γ Xs Ls state tkₓ tk
     ≫=⊎ λ Xs' →
       meta-vars-match
         (ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ))
-        Xs' (stringset-insert Ls x) u tpₓ tp
+        Xs' (stringset-insert Ls x) state tpₓ tp
 
-meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls state tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err⊎-guard (~ eq-arrowtype atₓ at)
-       (e-arrowtype-ineq Γ tpₓ tp) -- (e-arrowtype-ineq Γ tpₓ tp)
-    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+       (e-arrowtype-ineq Γ tpₓ tp)
+    ≫⊎ meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₁ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₁ tt)
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₂ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₂ tt)
+    where do-unfold = match-state.do-hnf state
 
-meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
+meta-vars-match Γ Xs Ls state tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
   =   err⊎-guard (~ arrowtype-matches-binder atₓ b)
-       (e-arrowtype-ineq Γ tpₓ tp) --(e-arrowtype-ineq Γ tpₓ tp)
-    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+       (e-arrowtype-ineq Γ tpₓ tp)
+    ≫⊎ meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₁ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₁ tt)
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₂ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₂ tt)
+    where do-unfold = match-state.do-hnf state
 
-meta-vars-match Γ Xs Ls u tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
+meta-vars-match Γ Xs Ls state tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
   =   err⊎-guard (~ arrowtype-matches-binder at bₓ)
        (e-arrowtype-ineq Γ tpₓ tp)
-    ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
-    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
+    ≫⊎ meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₁ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₁ tt)
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tp₂ₓ tt)
+      (hnf-elab-if do-unfold Γ tp₂ tt)
+    where do-unfold = match-state.do-hnf state
 
-meta-vars-match Γ Xs Ls u (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
-  =   meta-vars-match Γ Xs Ls ff mₓ m
+meta-vars-match Γ Xs Ls state (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp)
+  =   meta-vars-match Γ Xs Ls state
+        (hnf-elab-if do-unfold Γ mₓ tt)
+        (hnf-elab-if do-unfold Γ m tt)
     ≫=⊎ λ Xs →
       meta-vars-match (ctxt-rename pi xₓ x (ctxt-var-decl-if pi x Γ))
-        Xs (stringset-insert Ls x) ff tpₓ tp
+        Xs (stringset-insert Ls x) state
+        (hnf-elab-if do-unfold Γ tpₓ tt)
+        (hnf-elab-if do-unfold Γ tp tt)
+    where do-unfold = match-state.do-hnf state
 
-meta-vars-match Γ Xs Ls u (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
+meta-vars-match Γ Xs Ls state (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _)
   =   err⊎-guard (~ conv-term Γ t₁ₓ t₁)
        (e-term-ineq Γ t₁ₓ t₁)
     ≫⊎ err⊎-guard (~ conv-term Γ t₂ₓ t₂)
        (e-term-ineq Γ t₂ₓ t₂)
     ≫⊎ match-ok Xs
 
-meta-vars-match Γ Xs Ls u (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
+meta-vars-match Γ Xs Ls state (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l)
   =   err⊎-guard (~ conv-liftingType Γ lₓ l)
        (e-liftingType-ineq Γ lₓ l)
     ≫⊎ err⊎-guard (~ conv-term (ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)) tₓ t)
        (e-term-ineq Γ tₓ t)
     ≫⊎ match-ok Xs
 
-meta-vars-match Γ Xs Ls u (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
-  =   meta-vars-match-tk Γ Xs Ls atkₓ atk
-    ≫=⊎ λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) u tpₓ tp
+meta-vars-match Γ Xs Ls state (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp)
+  =   meta-vars-match-tk Γ Xs Ls state atkₓ atk
+    ≫=⊎ λ Xs → meta-vars-match Γ Xs (stringset-insert Ls x) state tpₓ tp
 
-meta-vars-match Γ Xs Ls ff tpₓ tp
-  with meta-vars-match Γ Xs Ls tt
-    (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
-    (hnf Γ (unfolding-elab unfold-head) tp tt)
-... | match-ok Xs' = match-ok Xs'
-... | match-error _ = match-error (e-type-ineq Γ tpₓ tp)
-
-meta-vars-match Γ Xs Ls tt tpₓ tp
-  = match-error (e-type-ineq Γ tpₓ tp)
+meta-vars-match Γ Xs Ls (mk-match-state ff ff) tpₓ tp =
+  match-error (e-type-ineq Γ tpₓ tp)
+meta-vars-match Γ Xs Ls (mk-match-state tt _) tpₓ tp =
+  match-error (e-type-ineq Γ tpₓ tp)
 
 -- meta-vars-match-tk
-meta-vars-match-tk Γ Xs Ls (Tkk kₓ) (Tkk k)
+meta-vars-match-tk Γ Xs Ls state (Tkk kₓ) (Tkk k)
   =   err⊎-guard (~ conv-kind Γ kₓ k)
        (e-kind-ineq Γ kₓ k)
     ≫⊎ match-ok Xs
-meta-vars-match-tk Γ Xs Ls (Tkt tpₓ) (Tkt tp)
-  = meta-vars-match Γ Xs Ls ff tpₓ tp
-meta-vars-match-tk Γ Xs Ls tkₓ tk
+meta-vars-match-tk Γ Xs Ls state (Tkt tpₓ) (Tkt tp)
+  = meta-vars-match Γ Xs Ls state
+      (hnf-elab-if do-unfold Γ tpₓ tt)
+      (hnf-elab-if do-unfold Γ tp tt)
+    where do-unfold = match-state.do-hnf state
+
+meta-vars-match-tk Γ Xs Ls state tkₓ tk
   = match-error (e-tk-ineq Γ tkₓ tk)
 
 -- meta-vars-match-optType
