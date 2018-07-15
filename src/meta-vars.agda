@@ -517,7 +517,7 @@ meta-vars-match Γ Xs Ls (mk-match-state ff tt) tpₓ tp
   | meta-vars-match Γ Xs Ls (mk-match-state tt ff)
       (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
       (hnf Γ (unfolding-elab unfold-head) tp tt)
-... | (match-error msg) | (match-error _) = match-error msg
+... | (match-error _) | (match-error msg) = match-error msg
   -- the problem is we can't kind check our solutions here, so the first match
   -- might be bogus. I assume the second match will tend to be more accurate,
   -- but less readable
