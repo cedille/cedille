@@ -10,6 +10,7 @@ open import ctxt
 open import list
 open import trie
 open import general-util
+open import monad-instances
 open import toplevel-state options {IO}
 open import unit
 open import bool

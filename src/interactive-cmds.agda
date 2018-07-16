@@ -8,7 +8,8 @@ open import cedille-types
 open import conversion
 open import ctxt
 open import general-util
-open import spans options {Id}
+open import monad-instances
+open import spans options {id}
 open import subst
 open import syntax-util
 open import to-string options
@@ -17,7 +18,7 @@ open import untyped-spans options {IO}
 open import parser
 open import rewriting
 open import rename
-open import classify options {Id}
+open import classify options {id}
 import spans options {IO} as io-spans
 
 private

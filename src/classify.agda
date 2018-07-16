@@ -1186,7 +1186,7 @@ check-meta-vars Xs =
     (_ , qi@(v , as)) q → trie-insert q v qi-}
   qualified-qualif : ctxt → qualif
   qualified-qualif (mk-ctxt mod ss is os) =
-    for trie-strings is accum empty-trie do λ x q →
+    for trie-strings is accum empty-trie use λ x q →
       trie-insert q x (x , ArgsNil)
 
   -- helper to restore qualif state

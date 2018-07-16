@@ -9,27 +9,27 @@ open import parse-tree
 
 posinfo = string
 
-{-# IMPORT CedilleCommentsLexer #-}
+{-# FOREIGN GHC import qualified CedilleCommentsLexer #-}
 
 data entity : Set where 
     EntityComment : posinfo → posinfo → entity
     EntityNonws : entity
     EntityWs : posinfo → posinfo → entity
-{-# COMPILED_DATA entity CedilleCommentsLexer.Entity CedilleCommentsLexer.EntityComment  CedilleCommentsLexer.EntityNonws CedilleCommentsLexer.EntityWs #-}
+{-# COMPILE GHC entity = data CedilleCommentsLexer.Entity (CedilleCommentsLexer.EntityComment | CedilleCommentsLexer.EntityNonws | CedilleCommentsLexer.EntityWs) #-}
 
 data entities : Set where 
     EndEntity : entities
     Entity : entity → entities → entities
-{-# COMPILED_DATA entities CedilleCommentsLexer.Entities CedilleCommentsLexer.EndEntity  CedilleCommentsLexer.Entity #-}
+{-# COMPILE GHC entities = data CedilleCommentsLexer.Entities (CedilleCommentsLexer.EndEntity | CedilleCommentsLexer.Entity) #-}
 
 data start : Set where 
     File : entities → start
-{-# COMPILED_DATA start CedilleCommentsLexer.Start CedilleCommentsLexer.File #-}
+{-# COMPILE GHC start = data CedilleCommentsLexer.Start (CedilleCommentsLexer.File) #-}
 
 postulate
   scanComments  : string → start
 
-{-# COMPILED scanComments CedilleCommentsLexer.scanComments #-}
+{-# COMPILE GHC scanComments = CedilleCommentsLexer.scanComments #-}
 
 -- embedded types:
 

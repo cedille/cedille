@@ -2,12 +2,12 @@ module parser where
 open import lib
 open import cedille-types
 
-{-# IMPORT CedilleParser #-}
+{-# FOREIGN GHC import qualified CedilleParser #-}
 
 data Either (A : Set)(B : Set) : Set where
   Left : A → Either A B
   Right : B → Either A B
-{-# COMPILED_DATA Either Either Left Right #-}
+{-# COMPILE GHC Either = data Either (Left | Right) #-}
 
 postulate
   parseStart  : string → Either (Either string string) start
@@ -17,9 +17,9 @@ postulate
   parseLiftingType : string → Either string liftingType
   parseDefTermOrType : string → Either string defTermOrType
 
-{-# COMPILED parseStart CedilleParser.parseTxt #-}
-{-# COMPILED parseTerm CedilleParser.parseTerm #-}
-{-# COMPILED parseType CedilleParser.parseType #-}
-{-# COMPILED parseKind CedilleParser.parseKind #-}
-{-# COMPILED parseLiftingType CedilleParser.parseLiftingType #-}
-{-# COMPILED parseDefTermOrType CedilleParser.parseDefTermOrType #-}
+{-# COMPILE GHC parseStart = CedilleParser.parseTxt #-}
+{-# COMPILE GHC parseTerm = CedilleParser.parseTerm #-}
+{-# COMPILE GHC parseType = CedilleParser.parseType #-}
+{-# COMPILE GHC parseKind = CedilleParser.parseKind #-}
+{-# COMPILE GHC parseLiftingType = CedilleParser.parseLiftingType #-}
+{-# COMPILE GHC parseDefTermOrType = CedilleParser.parseDefTermOrType #-}

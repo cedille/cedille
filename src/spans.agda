@@ -233,8 +233,8 @@ foldl-spanM f m [] = m
 foldl-spanM f m (m' :: ms) =
   m' ≫=span λ a → foldl-spanM f (f m a) ms
 
-spanM-for_init_do_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
-spanM-for xs init acc do f = foldr-spanM f acc xs
+spanM-for_init_use_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
+spanM-for xs init acc use f = foldr-spanM f acc xs
 
 spanM-add : span → spanM ⊤
 spanM-add s Γ ss = returnM (triv , Γ , add-span s ss)

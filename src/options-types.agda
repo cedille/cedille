@@ -44,18 +44,18 @@ numpunct-bar-8 = string
 path = string
 path-star-1 = string
 
-{-# IMPORT CedilleOptionsParser #-}
-{-# IMPORT CedilleOptionsLexer #-}
+{-# FOREIGN GHC import qualified CedilleOptionsParser #-}
+{-# FOREIGN GHC import qualified CedilleOptionsLexer #-}
 
 data str-bool : Set where 
     StrBoolFalse : str-bool
     StrBoolTrue : str-bool
-{-# COMPILED_DATA str-bool CedilleOptionsLexer.StrBool CedilleOptionsLexer.StrBoolFalse CedilleOptionsLexer.StrBoolTrue #-}
+{-# COMPILE GHC str-bool = data CedilleOptionsLexer.StrBool (CedilleOptionsLexer.StrBoolFalse | CedilleOptionsLexer.StrBoolTrue) #-}
 
 data paths : Set where 
     PathsCons : path → paths → paths
     PathsNil : paths
-{-# COMPILED_DATA paths CedilleOptionsLexer.Paths CedilleOptionsLexer.PathsCons CedilleOptionsLexer.PathsNil #-}
+{-# COMPILE GHC paths = data CedilleOptionsLexer.Paths (CedilleOptionsLexer.PathsCons | CedilleOptionsLexer.PathsNil) #-}
 
 data opt : Set where 
     GenerateLogs : str-bool → opt
@@ -64,26 +64,26 @@ data opt : Set where
     ShowQualifiedVars : str-bool → opt
     UseCedeFiles : str-bool → opt
     EraseTypes : str-bool → opt
-{-# COMPILED_DATA opt CedilleOptionsLexer.Opt CedilleOptionsLexer.GenerateLogs CedilleOptionsLexer.Lib CedilleOptionsLexer.MakeRktFiles CedilleOptionsLexer.ShowQualifiedVars CedilleOptionsLexer.UseCedeFiles CedilleOptionsLexer.EraseTypes #-}
+{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes) #-}
 
 data opts : Set where 
     OptsCons : opt → opts → opts
     OptsNil : opts
-{-# COMPILED_DATA opts CedilleOptionsLexer.Opts CedilleOptionsLexer.OptsCons CedilleOptionsLexer.OptsNil #-}    
+{-# COMPILE GHC opts = data CedilleOptionsLexer.Opts (CedilleOptionsLexer.OptsCons | CedilleOptionsLexer.OptsNil) #-}    
 
 data start : Set where 
     File : opts → start
-{-# COMPILED_DATA start CedilleOptionsLexer.Start CedilleOptionsLexer.File #-}
+{-# COMPILE GHC start = data CedilleOptionsLexer.Start (CedilleOptionsLexer.File) #-}
 
 data Either (A : Set)(B : Set) : Set where
   Left : A → Either A B
   Right : B → Either A B
-{-# COMPILED_DATA Either Either Left Right #-}
+{-# COMPILE GHC Either = data Either (Left | Right) #-}
 
 postulate
   scanOptions  : string → Either string start
 
-{-# COMPILED scanOptions CedilleOptionsParser.parseOptions #-}
+{-# COMPILE GHC scanOptions = CedilleOptionsParser.parseOptions #-}
 
 -- embedded types:
 

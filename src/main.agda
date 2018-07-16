@@ -91,9 +91,13 @@ readOptions =
         (inj₂ ops) → return (fp , ops)
 
 
-module main-with-options (options-filepath : filepath) (options : cedille-options.options) where
+module main-with-options
+  (compileTime : maybe UTC)
+  (options-filepath : filepath)
+  (options : cedille-options.options) where
 
   open import ctxt
+  open import monad-instances
   open import process-cmd options {IO}
   open import parser
   open import spans options {IO}
@@ -270,6 +274,13 @@ module main-with-options (options-filepath : filepath) (options : cedille-option
     import-changed s filename h >>= λ where
       tt → return tt
       ff → any-imports-changed s filename t
+  
+  file-after-compile : filepath → IO 𝔹
+  file-after-compile fn =
+    getModificationTime fn >>= λ mt →
+    case maybe-else tt (mt utc-after_) compileTime of λ where
+      tt → doesFileExist options-filepath &&>> fileIsOlder options-filepath fn
+      ff → return ff
 
   ensure-ast-depsh : filepath → toplevel-state → IO toplevel-state
   ensure-ast-depsh filename s with get-include-elt-if s filename
@@ -281,8 +292,7 @@ module main-with-options (options-filepath : filepath) (options : cedille-option
       return (cedille-options.options.use-cede-files options) &&>>
       doesFileExist cede &&>>
       fileIsOlder filename cede &&>>
-      doesFileExist options-filepath &&>>
-      fileIsOlder options-filepath cede >>= λ where
+      file-after-compile cede >>= λ where
          ff → reparse-file filename s
          tt → reparse s filename >>= λ s →
               read-cede-file filename >>= λ where
@@ -422,15 +432,49 @@ module main-with-options (options-filepath : filepath) (options : cedille-option
   main' : IO ⊤
   main' =
     maybeClearLogFile >>
-    logMsg "Started Cedille process" >>
+    logMsg ("Started Cedille process (compile time: " ^ maybe-else "error" utcToString compileTime ^ ")") >>
     getArgs >>=
     processArgs
 
+
+
+data Maybe (A : Set) : Set where
+  Nothing : Maybe A
+  Just : A → Maybe A
+
 postulate
+  TimeZone : Set
   initializeStdinToUTF8 : IO ⊤
   setStdinNewlineMode : IO ⊤
-{-# COMPILED initializeStdinToUTF8  System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
-{-# COMPILED setStdinNewlineMode System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
+  getCurrentTimeZone : IO TimeZone
+  compileTime : TimeZone → Maybe UTC
+  timeString : string
+
+-- Two cases where this could get messed up:
+-- 1. You switch time zones (solution: use TemplateHaskell?)
+-- 2. You check a file with a .cede file that was last modified
+--    less than a second before the new process got compiled
+--    (solution: add one second to err on the side of caution?)
+-- Both are so rare that for now I will ignore them
+getCompileTime : IO (maybe UTC)
+getCompileTime =
+  getCurrentTimeZone >>=r λ tz →
+  case compileTime tz of λ where
+    Nothing → nothing
+    (Just utc) → just utc
+
+{-# FOREIGN GHC import qualified Data.Time.LocalTime #-}
+{-# FOREIGN GHC import qualified System.IO #-}
+{-# FOREIGN GHC import qualified Data.Time.Clock #-}
+{-# FOREIGN GHC import qualified Data.Time.Format #-}
+{-# FOREIGN GHC import qualified Data.Text #-}
+{-# FOREIGN GHC {-# LANGUAGE CPP #-} #-}
+{-# COMPILE GHC Maybe = data Maybe (Nothing | Just) #-}
+{-# COMPILE GHC TimeZone = type Data.Time.LocalTime.TimeZone #-}
+{-# COMPILE GHC getCurrentTimeZone = Data.Time.LocalTime.getCurrentTimeZone #-}
+{-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
+{-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
+{-# COMPILE GHC compileTime = \ tz -> (Data.Time.Format.parseTimeM True Data.Time.Format.defaultTimeLocale "%b %e %Y %H:%M:%S" (__DATE__ ++ " " ++ __TIME__) :: Maybe Data.Time.LocalTime.LocalTime) >>= \ t -> Just (Data.Time.LocalTime.localTimeToUTC tz t) #-}
 
 -- main entrypoint for the backend
 main : IO ⊤
@@ -439,5 +483,6 @@ main = initializeStdoutToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
        setToLineBuffering >>
+       getCompileTime >>= λ utc →
        readOptions >>=
-       uncurry main-with-options.main'
+       uncurry (main-with-options.main' utc)

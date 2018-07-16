@@ -9,13 +9,14 @@ options' = record options
    show-qualified-vars = ff}
 
 open import general-util
+open import monad-instances
 open import cedille-types
-open import classify options {Id}
+open import classify options {id}
 open import ctxt
 open import constants
 open import conversion
 open import is-free
-open import meta-vars options' {Id}
+open import meta-vars options' {id}
 open import spans options {IO}
 open import subst
 open import syntax-util

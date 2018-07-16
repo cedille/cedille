@@ -147,8 +147,8 @@ zip-with f xs ys = map (uncurry f) (zip xs ys)
 for_yield_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → (A → B) → 𝕃 B
 for xs yield f = map f xs
 
-for_accum_do_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
-for xs accum n do f = foldr f n xs
+for_accum_use_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
+for xs accum n use f = foldr f n xs
 
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
@@ -183,14 +183,17 @@ postulate
   hFlush : Handle → IO ⊤
   stdout : Handle
 
-{-# COMPILED_TYPE Handle System.IO.Handle #-}
-{-# COMPILED_DATA IOMode System.IO.IOMode System.IO.ReadMode System.IO.WriteMode System.IO.AppendMode System.IO.ReadWriteMode #-}
-{-# COMPILED hSetToLineBuffering (\hdl -> System.IO.hSetBuffering hdl System.IO.LineBuffering) #-}
-{-# COMPILED hFlush System.IO.hFlush #-}
-{-# COMPILED stdout System.IO.stdout #-}
-{-# COMPILED openFile (\fp -> (\mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh)) #-}
-{-# COMPILED closeFile System.IO.hClose #-}
-{-# COMPILED hPutStr (\ hdl -> (\ s -> Data.Text.IO.hPutStr hdl s)) #-}
+{-# FOREIGN GHC import qualified System.IO #-}
+{-# FOREIGN GHC import qualified Data.Text.IO #-}
+{-# FOREIGN GHC import qualified System.Directory #-}
+{-# COMPILE GHC Handle = type System.IO.Handle #-}
+{-# COMPILE GHC IOMode = data System.IO.IOMode (System.IO.ReadMode | System.IO.WriteMode | System.IO.AppendMode | System.IO.ReadWriteMode) #-}
+{-# COMPILE GHC hSetToLineBuffering = \ hdl -> System.IO.hSetBuffering hdl System.IO.LineBuffering #-}
+{-# COMPILE GHC hFlush = System.IO.hFlush #-}
+{-# COMPILE GHC stdout = System.IO.stdout #-}
+{-# COMPILE GHC openFile = \ fp mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh #-}
+{-# COMPILE GHC closeFile = System.IO.hClose #-}
+{-# COMPILE GHC hPutStr = Data.Text.IO.hPutStr #-}
 
 clearFile : filepath → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl
@@ -201,7 +204,7 @@ flush = hFlush stdout
 setToLineBuffering : IO ⊤
 setToLineBuffering = hSetToLineBuffering stdout
 
-infixl 1 _>>≠_ _>≯_ _>>=r_ _>>r_
+infixl 1 _>>≠_ _>≯_ _>>=r_ _>>r_ _>>∘_
 
 _>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
 (io₁ >>≠ io₂) = io₁ >>= λ result → io₂ result >> return result
@@ -214,6 +217,9 @@ a >>=r f = a >>= (return ∘ f)
 
 _>>r_ : ∀{A B : Set} → IO A → B → IO B
 a >>r b = a >> return b
+
+_>>∘_ : ∀{A B : Set} → IO A → IO (A → IO B) → IO B
+a >>∘ f = a >>= λ a → f >>= λ f → f a
 
 withFile : {A : Set} → filepath → IOMode → (Handle → IO A) → IO A
 withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
@@ -231,17 +237,17 @@ postulate
   getCurrentDirectory : IO filepath
   pathSeparator : char
 
-{-# IMPORT Data.Time.Clock #-}
-{-# IMPORT Data.Time.Calendar #-}
-{-# IMPORT System.FilePath #-}
-{-# COMPILED_TYPE UTC Data.Time.Clock.UTCTime #-}
-{-# COMPILED getCurrentTime Data.Time.Clock.getCurrentTime #-}
-{-# COMPILED _utc-after_ (>) #-}
-{-# COMPILED _utc-before_ (<) #-}
-{-# COMPILED utcToString (Data.Text.pack . show) #-}
-{-# COMPILED getModificationTime (System.Directory.getModificationTime . Data.Text.unpack) #-}
-{-# COMPILED getCurrentDirectory (System.Directory.getCurrentDirectory >>= return . Data.Text.pack) #-}
-{-# COMPILED pathSeparator System.FilePath.pathSeparator #-}
+{-# FOREIGN GHC import qualified Data.Time.Clock #-}
+{-# FOREIGN GHC import qualified Data.Time.Calendar #-}
+{-# FOREIGN GHC import qualified System.FilePath #-}
+{-# COMPILE GHC UTC = type Data.Time.Clock.UTCTime #-}
+{-# COMPILE GHC getCurrentTime = Data.Time.Clock.getCurrentTime #-}
+{-# COMPILE GHC _utc-after_ = (>) #-}
+{-# COMPILE GHC _utc-before_ = (<) #-}
+{-# COMPILE GHC utcToString = Data.Text.pack . show #-}
+{-# COMPILE GHC getModificationTime = System.Directory.getModificationTime . Data.Text.unpack #-}
+{-# COMPILE GHC getCurrentDirectory = System.Directory.getCurrentDirectory >>= return . Data.Text.pack #-}
+{-# COMPILE GHC pathSeparator = System.FilePath.pathSeparator #-}
 
 pathSeparatorString = 𝕃char-to-string [ pathSeparator ]
 
@@ -324,17 +330,6 @@ bindM' a b = bindM a (λ a → b)
 
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
-
-instance
-  IO-monad : monad IO
-  IO-monad = record { returnM = return ; bindM = _>>=_ }
-
-Id : Set → Set
-Id A = A
-
-instance
-  Id-monad : monad Id
-  Id-monad = record {returnM = λ a → a ; bindM = λ a f → f a }
 
 _maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
 _maybe-or_ ma @ (just a) ma' = ma

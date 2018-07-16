@@ -173,7 +173,7 @@ process-params s (pi , ps) need-to-check =
   spanMr (record s {Γ = ctxt-add-current-params Γ})
 
 process-start s filename pn (File pi0 is pi1 pi2 mn ps cs pi3) need-to-check =
-  λ Γ ss → bindM {mF} (progress-update pn need-to-check) (λ _ →
+  λ Γ ss → progress-update pn need-to-check ≫monad
   (process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s →
    process-params s (pi0 , ps) need-to-check ≫=span λ s →
    process-cmds s cs need-to-check ≫=span λ s → 
@@ -182,7 +182,7 @@ process-start s filename pn (File pi0 is pi1 pi2 mn ps cs pi3) need-to-check =
      let pi2' = posinfo-plus-str pi2 mn in
      spanM-add (Module-span pi2 pi2') ≫span
      spanM-add (Module-header-span pi1 pi2') ≫span
-     spanMr s) Γ ss)
+     spanMr s) Γ ss
 
 {- process (type-check if necessary) the given file.  
    We assume the given top-level state has a syntax tree associated with the file. -}
@@ -193,7 +193,7 @@ process-file s filename pn | ie =
         {- update the include-elt and the toplevel state (but we will push the updated include-elt into the toplevel state
            just above, after proceed finishes. -}
   where proceed : toplevel-state → maybe start → include-elt → mF (toplevel-state × include-elt × mod-info)
-        proceed s nothing ie' = bindM' {mF} (progress-update filename tt) (returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s))) {- should not happen -}
+        proceed s nothing ie' = progress-update filename tt ≫monad returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
         proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
         proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt
           with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
@@ -203,9 +203,9 @@ process-file s filename pn | ie =
                    filename pn x do-check Γ empty-spans ≫=monad cont
            where cont : toplevel-state × ctxt × spans → mF (toplevel-state × include-elt × mod-info)
                  cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _) , ss) =
-                   bindM' {mF} (progress-update pn do-check) (returnM
+                   progress-update pn do-check ≫monad returnM
                      (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is
                        (ctxt-set-current-mod Γ prev-mod) ,
-                     (if do-check then set-spans-include-elt ie' ss else ie') , ret-mod))
+                     (if do-check then set-spans-include-elt ie' ss else ie') , ret-mod)
         proceed s (just x) ie' | _ = returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s))
 
