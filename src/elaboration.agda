@@ -653,7 +653,7 @@ elab-kindh Γ (KndTpArrow T k) b =
   elab-kindh Γ k b ≫=maybe λ k →
   just (KndPi posinfo-gen posinfo-gen "_" (Tkt T) k)
 elab-kindh Γ (KndVar pi x as) b =
-  env-lookup-kind-var-qdef Γ x as ≫=maybe uncurry (do-subst as)
+  ctxt-lookup-kind-var-def Γ x ≫=maybe uncurry (do-subst as)
   where
   do-subst : args → params → kind → maybe kind
   do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)

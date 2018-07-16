@@ -1296,9 +1296,9 @@ check-kind (KndParens pi k pi') =
 check-kind (Star pi) = spanM-add (Star-span pi checking nothing)
 
 check-kind (KndVar pi x ys) =
-  get-ctxt λ Γ → helper (ctxt-lookup-kind-var-qdef Γ x)
-  where helper : maybe (params × kind) → spanM ⊤
-        helper (just (ps , k)) = check-args-against-params nothing (pi , x) ps ys
+  get-ctxt λ Γ → helper (ctxt-lookup-kind-var-def-args Γ x)
+  where helper : maybe (params × args) → spanM ⊤
+        helper (just (ps , as)) = check-args-against-params nothing (pi , x) ps (append-args as ys)
         helper nothing = get-ctxt λ Γ →
           spanM-add (KndVar-span Γ (pi , x) (kvar-end-pos pi x ys) ParamsNil checking []
             (just "Undefined kind variable"))
