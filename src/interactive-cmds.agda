@@ -238,21 +238,7 @@ private
   tv-to-rope (inj₂ (_ , v , ts)) =
     [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
   
-  -- Agda has some issue with pattern matching and eta-contracting,
-  -- which this showcases (calling this function causes Agda to crash at runtime).
-  -- This is somewhat similar to the bug I found several weeks ago,
-  -- so I believe that they have a common source.
-  test1 : string → string ⊎ tagged-val
-  test1 "" = inj₁ "empty"
-  test1 = inj₁ -- Doesn't work
-  
-  test2 : string → string ⊎ tagged-val
-  test2 "" = inj₁ "empty"
-  test2 s = inj₁ s -- Works correctly
-  
   interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
-  interactive-cmd-h _ ("test-agda-eta1" :: s :: []) = test1 s
-  interactive-cmd-h _ ("test-agda-eta2" :: s :: []) = test2 s
   interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: head :: do-erase :: lc) =
     normalize-cmd Γ input ll sp head do-erase lc
   interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =

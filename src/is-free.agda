@@ -23,8 +23,7 @@ are-free-in-optTerm : are-free-in-t optTerm
 are-free-in-optGuide : are-free-in-t optGuide
 are-free-in-tk : are-free-in-t tk 
 are-free-in-liftingType : are-free-in-t liftingType
-are-free-in-maybeAtype : are-free-in-t maybeAtype
-are-free-in-maybeCheckType : are-free-in-t maybeCheckType
+are-free-in-optType : are-free-in-t optType
 are-free-in-args : are-free-in-t args
 
 are-free-in-term ce x (App t Erased t') = are-free-in-term ce x t || (ce && are-free-in-term ce x t')
@@ -35,7 +34,7 @@ are-free-in-term ce x (Lam _ b _ x' oc t) =
   (ce && are-free-in-optClass ce x oc)
   || are-free-in-term ce (trie-remove x x') t
 are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
-  (ce && are-free-in-maybeCheckType ce x m)
+  (ce && are-free-in-optType ce x m)
   || (are-free-in-term ce x t)
   || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
@@ -51,8 +50,8 @@ are-free-in-term ce x (Epsilon _ _ _ t) = are-free-in-term ce x t
 are-free-in-term ce x (Sigma _ t) = are-free-in-term ce x t
 are-free-in-term ce x (Phi _ t t₁ t₂ _) = (ce && are-free-in-term ce x t) || (ce && are-free-in-term ce x t₁) || are-free-in-term ce x t₂
 are-free-in-term ce x (Rho _ _ _ t ot t') = (ce && (are-free-in-term ce x t || are-free-in-optGuide ce x ot)) || are-free-in-term ce x t'
-are-free-in-term ce x (Chi _ T t') = (ce && are-free-in-maybeAtype ce x T) || are-free-in-term ce x t'
-are-free-in-term ce x (Delta _ T t') = ce && (are-free-in-maybeAtype ce x T || are-free-in-term ce x t')
+are-free-in-term ce x (Chi _ T t') = (ce && are-free-in-optType ce x T) || are-free-in-term ce x t'
+are-free-in-term ce x (Delta _ T t') = ce && (are-free-in-optType ce x T || are-free-in-term ce x t')
 are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
   where are-free-in-lterms : ∀{A} → are-free-e → trie A → lterms → 𝔹
         are-free-in-lterms ce x (LtermsNil _) = ff
@@ -73,8 +72,13 @@ are-free-in-type ce x (TpVar _ "_") = ff
 are-free-in-type ce x (TpVar _ x') = trie-contains x x'
 are-free-in-type ce x (NoSpans t _) = are-free-in-type ce x t
 are-free-in-type ce x (TpHole _) = ff
-are-free-in-type ce x (LetType pi pix y k T T') = are-free-in-type ce x (convert-LetType pi pix y k T T')
-are-free-in-type ce x (LetTerm pi pix y T t T') = are-free-in-type ce x (convert-LetTerm pi pix y T t T')
+are-free-in-type ce x (TpLet _ (DefTerm _ x' m t) T) =
+  (ce && are-free-in-optType ce x m)
+  || (are-free-in-term ce x t)
+  || are-free-in-type ce (trie-remove x x') T
+are-free-in-type ce x (TpLet _ (DefType _ x' k T) T') =
+  (ce && (are-free-in-kind ce x k || are-free-in-type ce x T))
+  || are-free-in-type ce (trie-remove x x') T'
 
 are-free-in-kind ce x (KndArrow k k') = are-free-in-kind ce x k || are-free-in-kind ce x k'
 are-free-in-kind ce x (KndParens x₁ k x₂) = are-free-in-kind ce x k
@@ -93,8 +97,8 @@ are-free-in-optClass ce x (SomeClass atk) = are-free-in-tk ce x atk
 -- are-free-in-optType ce x NoType = ff
 -- are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
 
-are-free-in-maybeCheckType ce x NoCheckType = ff
-are-free-in-maybeCheckType ce x (Type t) = are-free-in-type ce x t
+are-free-in-optType ce x NoType = ff
+are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
 
 are-free-in-optTerm ce x NoTerm = ff
 are-free-in-optTerm ce x (SomeTerm t _) = are-free-in-term ce x t
@@ -111,9 +115,6 @@ are-free-in-liftingType ce x (LiftPi _ x' t l) =
   are-free-in-type ce x t || are-free-in-liftingType ce (trie-remove x x') l
 are-free-in-liftingType ce x (LiftStar x₁) = ff
 are-free-in-liftingType ce x (LiftTpArrow t l) = are-free-in-type ce x t || are-free-in-liftingType ce x l
-
-are-free-in-maybeAtype ce x NoAtype = ff
-are-free-in-maybeAtype ce x (Atype T) = are-free-in-type ce x T
 
 are-free-in : {ed : exprd} → are-free-e → stringset → ⟦ ed ⟧ → 𝔹
 are-free-in{TERM} e x t = are-free-in-term e x t
@@ -135,12 +136,12 @@ is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x
 is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset-singleton x) as
 is-free-in{TK} e x t = are-free-in-tk e (stringset-singleton x) t
 
-abs-tk : lam → var → posinfo → tk → type → type
-abs-tk l x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp
-abs-tk ErasedLambda x pi (Tkt tp') tp = Abs posinfo-gen All pi x (Tkt tp') tp
-abs-tk KeptLambda x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
-abs-tk KeptLambda x pi (Tkt tp') tp | tt = Abs posinfo-gen Pi pi x (Tkt tp') tp
-abs-tk KeptLambda x pi (Tkt tp') tp | ff = TpArrow tp' UnerasedArrow  tp
+abs-tk : maybeErased → var → posinfo → tk → type → type
+abs-tk me x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp
+abs-tk Erased x pi (Tkt tp') tp = Abs posinfo-gen All pi x (Tkt tp') tp
+abs-tk NotErased x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
+abs-tk NotErased x pi (Tkt tp') tp | tt = Abs posinfo-gen Pi pi x (Tkt tp') tp
+abs-tk NotErased x pi (Tkt tp') tp | ff = TpArrow tp' NotErased tp
 
 absk-tk : var → posinfo → tk → kind → kind
 absk-tk x pi atk k with are-free-in check-erased (stringset-singleton (pi % x)) k
@@ -149,12 +150,12 @@ absk-tk x pi (Tkt tp) k | ff = KndTpArrow tp k
 absk-tk x pi (Tkk k') k | ff = KndArrow k' k
 
 data abs  : Set where
-  mk-abs : posinfo → binder → posinfo → var → tk → (var-free-in-body : 𝔹) → type → abs 
+  mk-abs : posinfo → maybeErased → posinfo → var → tk → (var-free-in-body : 𝔹) → type → abs 
 
 to-abs : type → maybe abs
 to-abs (Abs pi b pi' x atk tp) = just (mk-abs pi b pi' x atk (are-free-in check-erased (stringset-singleton x) tp) tp)
-to-abs (TpArrow tp1 ErasedArrow tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy-var (Tkt tp1) ff tp2)
-to-abs (TpArrow tp1 UnerasedArrow tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (TpArrow tp1 Erased tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (TpArrow tp1 NotErased tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
 data absk  : Set where

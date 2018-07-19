@@ -16,8 +16,8 @@ liftingType-to-kind (LiftTpArrow tp l) = KndTpArrow tp (liftingType-to-kind l)
 liftingType-to-kind (LiftPi _ x tp l) = KndPi posinfo-gen posinfo-gen x (Tkt tp) (liftingType-to-kind l)
 
 liftingType-to-type : var → liftingType → type
-liftingType-to-type X (LiftArrow l1 l2) = TpArrow (liftingType-to-type X l1) UnerasedArrow  (liftingType-to-type X l2)
-liftingType-to-type X (LiftTpArrow tp l) = TpArrow tp UnerasedArrow (liftingType-to-type X l)
+liftingType-to-type X (LiftArrow l1 l2) = TpArrow (liftingType-to-type X l1) NotErased (liftingType-to-type X l2)
+liftingType-to-type X (LiftTpArrow tp l) = TpArrow tp NotErased (liftingType-to-type X l)
 liftingType-to-type X (LiftStar _) = TpVar posinfo-gen X
 liftingType-to-type X (LiftParens _ l _) = liftingType-to-type X l
 liftingType-to-type X (LiftPi _ x tp l) = Abs posinfo-gen Pi posinfo-gen x (Tkt tp) (liftingType-to-type X l)

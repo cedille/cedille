@@ -1,9 +1,0 @@
-import-directories 
- "/home/aneto/cedille/examples/reuse/Datatypes"
- "/home/aneto/cedille/examples/reuse/Datatypes/Utilities"
- "/home/aneto/cedille/examples/reuse/Datatypes/IndexedMendlerInduction"
- "/home/aneto/cedille/examples/reuse/Datatypes/Examples"
- .
-
-no-rkt-files.
-no-cede-files.

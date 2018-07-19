@@ -19,12 +19,6 @@ data Arg = TermArg MaybeErased Term | TypeArg Type
 data Args = ArgsCons Arg Args | ArgsNil
      deriving (Show,Eq)
      
-data ArrowType = ErasedArrow | UnerasedArrow
-     deriving (Show,Eq)
-     
-data Binder = All | Pi
-     deriving (Show,Eq)
-     
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
      | DefTermOrType DefTermOrType PosInfo
@@ -41,7 +35,7 @@ data Decl =
      deriving (Show,Eq)
 
 data DefTermOrType =
-       DefTerm PosInfo Var MaybeCheckType Term
+       DefTerm PosInfo Var OptType Term
      | DefType PosInfo Var Kind Type
      deriving (Show,Eq)
      
@@ -63,9 +57,6 @@ data Kind =
      | Star PosInfo
      deriving (Show,Eq)
 
-data Lam = ErasedLambda | KeptLambda
-     deriving (Show,Eq)
-
 data LeftRight = Both | Left | Right
      deriving (Show,Eq)
 
@@ -82,11 +73,7 @@ data Lterms =
      | LtermsNil PosInfo
      deriving (Show,Eq)
 
-data MaybeAtype = Atype Type | NoAtype 
-     deriving (Show,Eq)
-
-data MaybeCheckType =
-     NoCheckType | Type Type
+data OptType = SomeType Type | NoType
      deriving (Show,Eq)
 
 data MaybeErased =
@@ -142,13 +129,13 @@ data Term =
        App Term MaybeErased Term
      | AppTp Term Type
      | Beta PosInfo OptTerm OptTerm
-     | Chi PosInfo MaybeAtype Term
-     | Delta PosInfo MaybeAtype Term
+     | Chi PosInfo OptType Term
+     | Delta PosInfo OptType Term
      | Epsilon PosInfo LeftRight MaybeMinus Term
      | Hole PosInfo
      | IotaPair PosInfo Term Term OptGuide PosInfo
      | IotaProj Term Num PosInfo
-     | Lam PosInfo Lam PosInfo Bvar OptClass Term
+     | Lam PosInfo MaybeErased PosInfo Bvar OptClass Term
      | Let PosInfo DefTermOrType Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
@@ -166,15 +153,14 @@ data Tk = Tkk Kind | Tkt Type
      deriving (Show,Eq)
 
 data Type =
-       Abs PosInfo Binder PosInfo Bvar Tk Type
+       Abs PosInfo MaybeErased PosInfo Bvar Tk Type
      | Iota PosInfo PosInfo Bvar Type Type
      | Lft PosInfo PosInfo Var Term LiftingType
      | NoSpans Type PosInfo
-     | LetType PosInfo PosInfo Bvar Kind Type Type
-     | LetTerm PosInfo PosInfo Bvar Type Term Type     
+     | TpLet PosInfo DefTermOrType Type
      | TpApp Type Type
      | TpAppt Type Term
-     | TpArrow Type ArrowType Type
+     | TpArrow Type MaybeErased Type
      | TpEq PosInfo Term Term PosInfo
      | TpHole PosInfo
      | TpLambda PosInfo PosInfo Bvar Tk Type

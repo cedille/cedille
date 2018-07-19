@@ -66,7 +66,7 @@ process-params : process-t (posinfo × params)
 process-start : toplevel-state → filepath → (progress-name : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
 process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × mod-info)
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') tt {- check -} = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (SomeType tp) t) pi') tt {- check -} = 
   set-ctxt Γ ≫span
   check-type tp (just star) ≫span
   let tp' = qualif-type Γ tp in
@@ -79,12 +79,12 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type 
         (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
          spanMr (mk-toplevel-state ip fns is Γ')))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (Type tp) t) pi') ff {- skip checking -} =
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x (SomeType tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
     check-redefined pi x (mk-toplevel-state ip fns is Γ)
       (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope nonParamVar x t tp' Γ)))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoCheckType t) pi') _ = 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType (DefTerm pi x NoType t) pi') _ = 
   set-ctxt Γ ≫span
   check-term t nothing ≫=span λ mtp → 
   check-erased-margs t nothing ≫span 

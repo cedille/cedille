@@ -82,8 +82,7 @@ no-parens{TYPE} (TpHole pi) p lr = tt
 no-parens{TYPE} (TpLambda pi pi' x Tk T) p lr = ff
 no-parens{TYPE} (TpParens pi T pi') p lr = tt
 no-parens{TYPE} (TpVar pi x) p lr = tt
-no-parens{TYPE} (LetType _ _ _ _ _ _) _ _ = ff
-no-parens{TYPE} (LetTerm _ _ _ _ _ _) _ _ = ff
+no-parens{TYPE} (TpLet _ _ _) _ _ = ff
 no-parens{KIND} (KndArrow k k') p lr = is-arrow p && not-left lr
 no-parens{KIND} (KndParens pi k pi') p lr = tt
 no-parens{KIND} (KndPi pi pi' x Tk k) p lr = is-arrow p && not-left lr
@@ -190,19 +189,19 @@ optTerm-to-string : optTerm → string → string → strM
 optClass-to-string : optClass → strM
 optGuide-to-string : optGuide → strM
 optNums-to-string : optNums → strM
-maybeAtype-to-string : maybeAtype → strM
-maybeCheckType-to-string : maybeCheckType → strM
+optType-to-string : optType → strM
+maybeCheckType-to-string : optType → strM
 lterms-to-string : lterms → strM
 arg-to-string : arg → strM
 args-to-string : args → strM
-binder-to-string : binder → string
+binder-to-string : maybeErased → string
 maybeErased-to-string : maybeErased → string
-lam-to-string : lam → string
+lam-to-string : maybeErased → string
 leftRight-to-string : leftRight → string
 vars-to-string : vars → strM
 nums-to-string : nums → strM
 theta-to-string : theta → strM
-arrowtype-to-string : arrowtype → string
+arrowtype-to-string : maybeErased → string
 maybeMinus-to-string : maybeMinus → string
 optPlus-to-string : optPlus → string
 optPublic-to-string : optPublic → string
@@ -249,8 +248,8 @@ tk-to-stringh (Tkk k) = to-stringh k
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
 term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
-term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
-term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str maybeAtype-to-string mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strAdd "●"
 term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
@@ -278,8 +277,9 @@ type-to-stringh (TpHole pi) = strAdd "●"
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd ("λ " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringr T)
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
-type-to-stringh (LetType pi pix x k T T') = strAdd ("[ " ^ x) ≫str kind-to-stringh k ≫str strAdd " = " ≫str to-stringh T ≫str strAdd " ] - " ≫str strΓ x pix (to-stringh T')
-type-to-stringh (LetTerm pi pix x T t T') = strAdd ("[ " ^ x) ≫str type-to-stringh T ≫str strAdd " = " ≫str to-stringh t ≫str strAdd " ] - " ≫str strΓ x pix (to-stringh T')
+type-to-stringh (TpLet pi dtT t) with dtT
+...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
+...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 
 kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-stringr k'
 kind-to-stringh (KndParens pi k pi') = to-stringh k
@@ -299,10 +299,10 @@ optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
 optGuide-to-string NoGuide = strEmpty
 optGuide-to-string (Guide pi v T) = strAdd " @ " ≫str strAdd v ≫str strAdd " . " ≫str strΓ v pi (to-stringh T)
-maybeAtype-to-string NoAtype = strEmpty
-maybeAtype-to-string (Atype T) = strAdd " " ≫str to-stringh T
-maybeCheckType-to-string NoCheckType = strEmpty
-maybeCheckType-to-string (Type T) = strAdd " ◂ " ≫str to-stringh T
+optType-to-string NoType = strEmpty
+optType-to-string (SomeType T) = strAdd " " ≫str to-stringh T
+maybeCheckType-to-string NoType = strEmpty
+maybeCheckType-to-string (SomeType T) = strAdd " ◂ " ≫str to-stringh T
 lterms-to-string (LtermsCons m t ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string (LtermsNil _) = strEmpty
 arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
@@ -313,8 +313,8 @@ binder-to-string All = "∀"
 binder-to-string Pi = "Π"
 maybeErased-to-string Erased = "-"
 maybeErased-to-string NotErased = ""
-lam-to-string ErasedLambda = "Λ"
-lam-to-string KeptLambda = "λ"
+lam-to-string Erased = "Λ"
+lam-to-string NotErased = "λ"
 leftRight-to-string Left = "l"
 leftRight-to-string Right = "r"
 leftRight-to-string Both = ""
@@ -327,8 +327,8 @@ nums-to-string (NumsStart n) = strAdd n
 nums-to-string (NumsNext n ns) = strAdd n ≫str strAdd " " ≫str nums-to-string ns
 optNums-to-string NoNums = strEmpty
 optNums-to-string (SomeNums ns) = strAdd "<" ≫str nums-to-string ns ≫str strAdd ">"
-arrowtype-to-string UnerasedArrow = " ➔ "
-arrowtype-to-string ErasedArrow = " ➾ "
+arrowtype-to-string NotErased = " ➔ "
+arrowtype-to-string Erased = " ➾ "
 maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
 optPlus-to-string RhoPlain = ""

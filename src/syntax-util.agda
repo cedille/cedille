@@ -14,10 +14,10 @@ dummy-var : var
 dummy-var = "_dummy"
 
 id-term : term
-id-term = Lam posinfo-gen KeptLambda posinfo-gen "x" NoClass (Var posinfo-gen "x")
+id-term = Lam posinfo-gen NotErased posinfo-gen "x" NoClass (Var posinfo-gen "x")
 
 compileFailType : type
-compileFailType = Abs posinfo-gen All posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
+compileFailType = Abs posinfo-gen Erased posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
 qualif-info : Set
 qualif-info = var × args
@@ -154,14 +154,6 @@ me-unerased NotErased = tt
 me-erased : maybeErased → 𝔹
 me-erased x = ~ (me-unerased x)
 
-binder-is-pi : binder → 𝔹
-binder-is-pi Pi = tt
-binder-is-pi _ = ff
-
-lam-is-erased : lam → 𝔹
-lam-is-erased ErasedLambda = tt
-lam-is-erased _ = ff
-
 term-start-pos : term → posinfo
 type-start-pos : type → posinfo
 kind-start-pos : kind → posinfo
@@ -197,8 +189,7 @@ type-start-pos (TpParens pi _ pi') = pi
 type-start-pos (TpVar pi x₁) = pi
 type-start-pos (NoSpans t _) = type-start-pos t -- we are not expecting this on input
 type-start-pos (TpHole pi) = pi --ACG
-type-start-pos (LetType pi _ _ _ _ _) = pi
-type-start-pos (LetTerm pi _ _ _ _ _) = pi
+type-start-pos (TpLet pi _ _) = pi
 
 kind-start-pos (KndArrow k k₁) = kind-start-pos k
 kind-start-pos (KndParens pi k pi') = pi
@@ -255,8 +246,7 @@ type-end-pos (TpParens pi _ pi') = pi'
 type-end-pos (TpVar pi x) = posinfo-plus-str pi x
 type-end-pos (TpHole pi) = posinfo-plus pi 1
 type-end-pos (NoSpans t pi) = pi
-type-end-pos (LetType _ _ _ _ _ t) = type-end-pos t
-type-end-pos (LetTerm _ _ _ _ _ t) = type-end-pos t
+type-end-pos (TpLet _ _ t) = type-end-pos t
 
 kind-end-pos (KndArrow k k') = kind-end-pos k'
 kind-end-pos (KndParens pi k pi') = pi'
@@ -407,27 +397,6 @@ eq-maybeErased Erased NotErased = ff
 eq-maybeErased NotErased Erased = ff
 eq-maybeErased NotErased NotErased = tt
 
-eq-lam : lam → lam → 𝔹
-eq-lam ErasedLambda ErasedLambda = tt
-eq-lam ErasedLambda KeptLambda = ff
-eq-lam KeptLambda ErasedLambda = ff
-eq-lam KeptLambda KeptLambda = tt
-
-eq-binder : binder → binder → 𝔹
-eq-binder All All = tt
-eq-binder Pi Pi = tt
-eq-binder _ _ = ff
-
-eq-arrowtype : arrowtype → arrowtype → 𝔹
-eq-arrowtype ErasedArrow ErasedArrow = tt
-eq-arrowtype UnerasedArrow UnerasedArrow = tt
-eq-arrowtype _ _ = ff
-
-arrowtype-matches-binder : arrowtype → binder → 𝔹
-arrowtype-matches-binder ErasedArrow All = tt
-arrowtype-matches-binder UnerasedArrow Pi = tt
-arrowtype-matches-binder _ _ = ff
-
 optPublic-is-public : optPublic → 𝔹
 optPublic-is-public IsPublic = tt
 optPublic-is-public NotPublic = ff
@@ -436,10 +405,10 @@ optPublic-is-public NotPublic = ff
 -- functions intended for building terms for testing
 ------------------------------------------------------
 mlam : var → term → term
-mlam x t = Lam posinfo-gen KeptLambda posinfo-gen x NoClass t
+mlam x t = Lam posinfo-gen NotErased posinfo-gen x NoClass t
 
 Mlam : var → term → term
-Mlam x t = Lam posinfo-gen ErasedLambda posinfo-gen x NoClass t
+Mlam x t = Lam posinfo-gen Erased posinfo-gen x NoClass t
 
 mappe : term → term → term
 mappe t1 t2 = App t1 Erased t2
@@ -506,7 +475,7 @@ vars-to-𝕃 (VarsNext v vs) = v :: vars-to-𝕃 vs
    the resulting term). -}
 Lam* : 𝕃 var → term → term
 Lam* [] t = t
-Lam* (x :: xs) t = Lam* xs (Lam posinfo-gen KeptLambda posinfo-gen x NoClass t)
+Lam* (x :: xs) t = Lam* xs (Lam posinfo-gen NotErased posinfo-gen x NoClass t)
 
 App* : term → 𝕃 (maybeErased × term) → term
 App* t [] = t
@@ -546,10 +515,10 @@ erase-term (Parens _ t _) = erase-term t
 erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
 erase-term (AppTp t tp) = erase-term t
-erase-term (Lam _ ErasedLambda _ _ _ t) = erase-term t
-erase-term (Let pi (DefTerm pi'' x _ t) t') = Let pi (DefTerm pi'' x NoCheckType (erase-term t)) (erase-term t')
+erase-term (Lam _ Erased _ _ _ t) = erase-term t
+erase-term (Lam pi NotErased pi' x oc t) = Lam pi NotErased pi' x NoClass (erase-term t)
+erase-term (Let pi (DefTerm pi'' x _ t) t') = Let pi (DefTerm pi'' x NoType (erase-term t)) (erase-term t')
 erase-term (Let _ (DefType _ _ _ _) t) = erase-term t
-erase-term (Lam pi KeptLambda pi' x oc t) = Lam pi KeptLambda pi' x NoClass (erase-term t)
 erase-term (Var pi x) = Var pi x
 erase-term (Beta pi _ NoTerm) = id-term
 erase-term (Beta pi _ (SomeTerm t _)) = erase-term t
@@ -577,8 +546,8 @@ erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-
 erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
 erase-type (TpHole pi) = TpHole pi
 erase-type (TpVar pi x) = TpVar pi x
-erase-type (LetType pi pix x k T T') = LetType pi pix x (erase-kind k) (erase-type T) (erase-type T')
-erase-type (LetTerm pi pix x T t T') = LetTerm pi pix x (erase-type T) (erase-term t) (erase-type T')
+erase-type (TpLet pi (DefTerm pi' x _ t) T) = TpLet pi (DefTerm pi' x NoType (erase-term t)) (erase-type T)
+erase-type (TpLet pi (DefType pi' x k T) T') = TpLet pi (DefType pi' x (erase-kind k) (erase-type T)) (erase-type T')
 
 -- Only erases TERMS in types in kinds, leaving the structure of kinds and types in those kinds the same
 erase-kind (KndArrow k k') = KndArrow (erase-kind k) (erase-kind k')
@@ -614,34 +583,6 @@ lterms-to-term AbstractEq t (LtermsNil pi) = App t Erased (Beta pi NoTerm NoTerm
 lterms-to-term _ t (LtermsNil pi) = t
 lterms-to-term u t (LtermsCons e t' ls) = lterms-to-term u (App t e t') ls
 
-{-
-erase-lterms (LtermsNil _) = []
-erase-lterms (LtermsCons NotErased t ls) = (erase-term t) :: erase-lterms ls
-erase-lterms (LtermsCons Erased t ls) = erase-lterms ls
-
-lterms-to-𝕃h : theta → lterms → 𝕃 (maybeErased × term)
-lterms-to-𝕃h Abstract (LtermsNil _) = []
-lterms-to-𝕃h (AbstractVars _) (LtermsNil _) = []
-lterms-to-𝕃h AbstractEq (LtermsNil pi) = [ Erased , Beta pi NoTerm NoTerm ]
-lterms-to-𝕃h u (LtermsCons m t ls) = (m , t) :: (lterms-to-𝕃h u ls)
-
-lterms-to-𝕃 : theta → lterms → 𝕃 (maybeErased × term)
-lterms-to-𝕃 u ls = reverse (lterms-to-𝕃h u ls)
-
-lterms-to-𝕃' : theta → lterms → 𝕃 term
-lterms-to-𝕃' u ls = map snd (lterms-to-𝕃 u ls)
-
-erase-lterms-if : 𝔹 → theta → lterms → 𝕃 term
-erase-lterms-if tt u lt = erase-lterms lt
-erase-lterms-if ff t lt = lterms-to-𝕃' t lt
--}
-{-
-num-to-ℕ : num → ℕ
-num-to-ℕ n with string-to-ℕ n
-num-to-ℕ _ | just n = n
-num-to-ℕ _ | _ = 0
--}
-
 imps-to-cmds : imports → cmds
 imps-to-cmds ImportsStart = CmdsStart
 imps-to-cmds (ImportsNext i is) = CmdsNext (ImportCmd i) (imps-to-cmds is)
@@ -674,38 +615,6 @@ ll-to-string ll-kind = "kind"
 is-rho-plus : optPlus → 𝔹
 is-rho-plus RhoPlus = tt
 is-rho-plus _ = ff
-
-is-equation : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-equation{TYPE} (TpParens _ t _) = is-equation t
-is-equation{TYPE} (TpEq _ _ _ _) = tt
-is-equation _ = ff 
-
-{-# TERMINATING #-}
-is-equational : type → 𝔹
-is-equational-kind : kind → 𝔹
-is-equational-tk : tk → 𝔹
-is-equational (Abs _ _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (Iota _ _ _ t1 t2) = is-equational t1 || is-equational t2
-is-equational (NoSpans t _) = is-equational t
-is-equational (TpApp t1 t2) = is-equational t1 || is-equational t2
-is-equational (TpAppt t1 _) = is-equational t1
-is-equational (TpArrow t1 _ t2) = is-equational t1 || is-equational t2
-is-equational (TpEq _ _ _ _) = tt
-is-equational (TpLambda _ _ _ atk t2) = is-equational-tk atk || is-equational t2
-is-equational (TpParens _ t _) = is-equational t
-is-equational (Lft _ _ _ _ _) = ff
-is-equational (TpVar _ t) = ff
-is-equational (TpHole _) = ff --ACG
-is-equational (LetType pi pix x k T T') = is-equational (convert-LetType pi pix x k T T')
-is-equational (LetTerm pi pix x T t T') = is-equational (convert-LetTerm pi pix x T t T')
-is-equational-tk (Tkt t1) = is-equational t1
-is-equational-tk (Tkk k) = is-equational-kind k
-is-equational-kind (KndArrow k1 k2) = is-equational-kind k1 || is-equational-kind k2
-is-equational-kind (KndParens _ k _) = is-equational-kind k
-is-equational-kind (KndPi _ _ _ atk k) = is-equational-tk atk || is-equational-kind k
-is-equational-kind (KndTpArrow t1 k2) = is-equational t1 || is-equational-kind k2
-is-equational-kind (KndVar _ _ _) = ff
-is-equational-kind (Star _) = ff
 
 split-var-h : 𝕃 char → 𝕃 char × 𝕃 char
 split-var-h [] = [] , []
@@ -767,7 +676,7 @@ erased-params ParamsNil = []
 
 lam-expand-term : params → term → term
 lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  Lam posinfo-gen (if (tk-is-type tk && me-unerased me) then KeptLambda else ErasedLambda) pi' x (SomeClass tk) (lam-expand-term ps t)
+  Lam posinfo-gen (if tk-is-type tk then me else Erased) pi' x (SomeClass tk) (lam-expand-term ps t)
 lam-expand-term ParamsNil t = t
 
 lam-expand-type : params → type → type
@@ -777,7 +686,7 @@ lam-expand-type ParamsNil t = t
 
 abs-expand-type : params → type → type
 abs-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  Abs posinfo-gen (if (tk-is-type tk && me-unerased me) then Pi else All) pi' x tk (abs-expand-type ps t)
+  Abs posinfo-gen (if tk-is-type tk then me else All) pi' x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
 abs-expand-kind : params → kind → kind

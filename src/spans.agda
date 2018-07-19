@@ -427,21 +427,24 @@ is-erased _ = ff
 
 erased? = 𝔹
 
+noterased : tagged-val
+noterased = "keywords" , [[ "noterased" ]] , []
+
 keywords-data : erased? → type → tagged-val
 keywords-data e t =
   "keywords" , 
-    (if is-equation t then
+    {-(if is-equation t then
       [[ "equation" ]]
     else [[]])
     ⊹⊹ (if is-equational t then
       [[ " equational" ]]
      else [[]])
-    ⊹⊹ [[ if e then " erased" else " noterased" ]] , []
+    ⊹⊹ -} [[ if e then " erased" else " noterased" ]] , []
 
 keywords-data-kind : kind → tagged-val
 keywords-data-kind k = 
   "keywords"  ,
-    (if is-equational-kind k then [[ "equational" ]] else [[]]) ⊹⊹ [[ " noterased" ]] , []
+    {-(if is-equational-kind k then [[ "equational" ]] else [[]]) ⊹⊹ -} [[ " noterased" ]] , []
 
 
 
@@ -571,11 +574,11 @@ erased-marg-span Γ t mtp = mk-span "Erased module parameter" (term-start-pos t)
   (maybe-else [] (λ tp → [ type-data Γ tp ]) mtp)
   (just "An implicit module parameter variable occurs free in the erasure of the term.")
 
-Lam-span-erased : lam → string
-Lam-span-erased ErasedLambda = "Erased lambda abstraction (term-level)"
-Lam-span-erased KeptLambda = "Lambda abstraction (term-level)"
+Lam-span-erased : maybeErased → string
+Lam-span-erased Erased = "Erased lambda abstraction (term-level)"
+Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
-Lam-span : ctxt → checking-mode → posinfo → lam → var → optClass → term → 𝕃 tagged-val → err-m → span
+Lam-span : ctxt → checking-mode → posinfo → maybeErased → var → optClass → term → 𝕃 tagged-val → err-m → span
 Lam-span _ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs)
 Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data-const :: checking-data c :: tvs)
@@ -714,11 +717,11 @@ Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
 Phi-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → err-m → span
 Phi-span pi pi' expected tvs = mk-span "Phi" pi pi' (checking-data expected :: ll-data-term :: tvs)
 
-Chi-span : ctxt → posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → err-m → span
+Chi-span : ctxt → posinfo → optType → term → checking-mode → 𝕃 tagged-val → err-m → span
 Chi-span Γ pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-term :: checking-data check :: tvs ++ helper m)
-  where helper : maybeAtype → 𝕃 tagged-val
-        helper (Atype T) =  explain ("Check a term against an asserted type") :: [ to-string-tag "the asserted type" Γ T ]
-        helper NoAtype = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
+  where helper : optType → 𝕃 tagged-val
+        helper (SomeType T) =  explain ("Check a term against an asserted type") :: [ to-string-tag "the asserted type" Γ T ]
+        helper NoType = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
 
 Sigma-span : ctxt → posinfo → term → maybe type → 𝕃 tagged-val → err-m → span
 Sigma-span Γ pi t expected tvs =
@@ -727,7 +730,7 @@ Sigma-span Γ pi t expected tvs =
      (explain ("Swap the sides of the equation synthesized for the body of this term.")
      :: expected-type-if Γ expected))
 
-Delta-span : ctxt → posinfo → maybeAtype → term → checking-mode → 𝕃 tagged-val → err-m → span
+Delta-span : ctxt → posinfo → optType → term → checking-mode → 𝕃 tagged-val → err-m → span
 Delta-span Γ pi T t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
@@ -781,10 +784,7 @@ IotaProj-span : term → posinfo → checking-mode → 𝕃 tagged-val → err-m
 IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: ll-data-term :: tvs)
 
 Let-span : ctxt → checking-mode → posinfo → defTermOrType → term → 𝕃 tagged-val → err-m → span
-Let-span Γ c pi d t' tvs = mk-span "Let-term" pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
 
-LetTypeTy-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
-LetTypeTy-span Γ c pi d t' tvs = mk-span "Let-type-type" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
-
-LetTypeTrm-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
-LetTypeTrm-span Γ c pi d t' tvs = mk-span "Let-type-term" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
+TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)

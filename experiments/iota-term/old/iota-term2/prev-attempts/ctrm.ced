@@ -1,5 +1,0 @@
-import nat.
-
-ctrm ◂ ★ = ∀ X : ★ . (X ➔ X ➔ X) ➔ ((X ➔ X) ➔ X) ➔ (Nat ➔ X) ➔ X.
-
-test-ctrm1 ◂ ctrm = Λ X . λ a . λ l . λ v . l (λ x . l (λ y . a (v (S Z)) x)) .

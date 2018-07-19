@@ -1,7 +1,0 @@
-
-% diagrammatic composition of functions
-comp ◂ ∀ X : ★ . ∀ Y : ★ . ∀ Z : ★ . (X ➔ Y) ➔ (Y ➔ Z) ➔ (X ➔ Z)
-   = Λ X . Λ Y . Λ Z . λ f . λ g . λ x . g (f x).
-
-% polymorphic identity function
-id ◂ ∀ X : ★ . X ➔ X = Λ X . λ x . x .

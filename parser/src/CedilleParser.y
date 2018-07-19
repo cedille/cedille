@@ -15,7 +15,6 @@ import System.Environment
 %name      types         Type
 %name      term          Term
 %name      kind          Kind
-%name      maybetype     MaybeCheckType
 %name      deftermtype   DefTermOrType
 %name      cmd           Cmd
 %name      liftingtype   LiftingType
@@ -114,12 +113,12 @@ Cmds :: { Cmds }
 
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
-    | DefTermOrType        '.'          { DefTermOrType $1 (pos2Txt1 $2)                     }
+    | DefTermOrType         '.'         { DefTermOrType $1 (pos2Txt1 $2)                     }
     | kvar KParams '=' Kind '.'         { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
-MaybeCheckType :: { MaybeCheckType }
-               :                        { NoCheckType }
-               | '◂' Type               { Type $2     }
+MaybeCheckType :: { OptType }
+               :                        { NoType      }
+               | '◂' Type               { SomeType $2 }
 
 MParams :: { Params }
        :                                { ParamsNil        }
@@ -139,6 +138,10 @@ MDecl :: { Decl }
 
 KDecl :: { Decl }
      : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
+
+Lam :: { (MaybeErased , PosInfo) }
+    : 'Λ'                               { (Erased,    pos2Txt $1) }
+    | 'λ'                               { (NotErased, pos2Txt $1) }
 
 Theta :: { (Theta, PosInfo) }
       : 'θ'                             { (Abstract       , pos2Txt $1) }
@@ -161,6 +164,13 @@ OptGuide :: { OptGuide }
          :                   { NoGuide }
          | '@' Bvar '.' Type { Guide (tPosTxt $2) (tTxt $2) $4 }
 
+OptType :: { OptType }
+           : Atype                      { SomeType $1 }
+           |                            { NoType  }
+
+OptClass :: { OptClass }
+         :                              { NoClass      }
+         | ':' Tk                       { SomeClass $2 }
 
 Nums :: { Nums }
      : Num                              { NumsStart (tTxt $1) }
@@ -174,13 +184,56 @@ OptEqTerm :: { OptTerm }
           :                             { NoTerm                    }
           | '<' Term '>'                { SomeTerm $2 (pos2Txt1 $3) }
 
+MArg :: { Arg }
+    : Lterm                             { TermArg NotErased $1 }
+    | '-' Lterm                         { TermArg Erased $2 }
+    | '·' Atype                         { TypeArg $2 }
+
+MArgs :: { Args }
+     :                                  { ArgsNil        }
+     | MArg MArgs                       { ArgsCons $1 $2 }
+
+KArg :: { Arg }
+    : Lterm                             { TermArg NotErased $1 }
+    | '·' Atype                         { TypeArg $2 }
+
+KArgs :: { Args }
+     :                                  { ArgsNil        }
+     | KArg KArgs                       { ArgsCons $1 $2 }
+
+Tk :: { Tk }
+   : Type                               { Tkt $1 }
+   | Kind                               { Tkk $1 } 
+
+Bvar :: { Token }
+     : '_'                              { $1 }
+     | var                              { $1 }
+
+Qvar :: { Token }
+     : var                              { $1 }
+     | qvar                             { $1 }
+
+Fpth :: { Token }
+     : fpth                             { $1 }
+     | Qvar                             { $1 }
+
+Num :: { Token }
+    : num                               { $1 }
+
+LineNo :: { PosInfo }
+       : {- empty -}                    {% getPos } 
+
+LineNo_1 :: { PosInfo }
+         : {- empty -}                  {% getPos_1 } 
+
+
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) $2 $5                             }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
-     | 'χ' MaybeAtype '-' Term          { Chi (pos2Txt $1) $2 $4 }
-     | 'δ' MaybeAtype '-' Term          { Delta (pos2Txt $1) $2 $4 }
+     | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
+     | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -207,35 +260,22 @@ Pterm :: { Term }
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2)         } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
       | '●'                             { Hole (pos2Txt $1)                           }      
-
-MaybeAtype :: { MaybeAtype }
-           : Atype                      { Atype $1 }
-           |                            { NoAtype  }
       
 Lterms :: { Lterms }
        : LineNo_1                       { LtermsNil  $1              }
        |     Lterm Lterms               { LtermsCons NotErased $1 $2 }
        | '-' Lterm Lterms               { LtermsCons Erased    $2 $3 }
 
-OptClass :: { OptClass }
-         :                              { NoClass      }
-         | ':' Tk                       { SomeClass $2 }
-
-Lam :: { (Lam , PosInfo) }
-    : 'Λ'                               { (ErasedLambda, pos2Txt $1) }
-    | 'λ'                               { (KeptLambda  , pos2Txt $1) }
-
 Type :: { Type }
-     : 'Π'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) Pi  (tPosTxt $2) (tTxt $2) $4 $6            }
-     | '∀'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) All (tPosTxt $2) (tTxt $2) $4 $6            }
+     : 'Π'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) NotErased  (tPosTxt $2) (tTxt $2) $4 $6     }
+     | '∀'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) Erased (tPosTxt $2) (tTxt $2) $4 $6         }
      | 'λ'    Bvar ':' Tk  '.' Type     { TpLambda (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6           }
-     | 'ι'    Bvar ':' Type '.' Type     { Iota     (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6           }
-     | LType '➾' Type                  { TpArrow $1 ErasedArrow   $3                                  }
-     | LType '➔' Type                  { TpArrow $1 UnerasedArrow $3                                  }
+     | 'ι'    Bvar ':' Type '.' Type    { Iota     (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6           }
+     | LType '➾' Type                   { TpArrow $1 Erased   $3                                       }
+     | LType '➔' Type                   { TpArrow $1 NotErased $3                                      }
      | LType                            { $1                                                           }
      | '{^' Type '^}'                   { NoSpans $2 (pos2Txt $3)                                      }
-     | '[' Bvar '◂' Kind '=' Type  ']' '-' Type { LetType (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 $9 }
-     | '[' Bvar '◂' Type '=' Term  ']' '-' Type { LetTerm (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 $9 }     
+     | '[' DefTermOrType ']' '-' Type   { TpLet (pos2Txt $1) $2 $5                                     }
 --   | '{' Term '≃' Term '}'            { TpEq $2 $4                                                   } -- reduce/reduce conflict with variables and holes in types and terms without brackets
 
 LType :: { Type } 
@@ -249,23 +289,6 @@ Atype :: { Type }
       | Qvar                            { TpVar (tPosTxt $1) (tTxt $1)           }
       | '●'                             { TpHole (pos2Txt $1)                    }
       | '{' Term '≃' Term '}'           { TpEq (pos2Txt $1) $2 $4 (pos2Txt1 $5)  } -- is it not even better here? not require parenthesis in arrow types! neither in type application (cdot), but we should add info position at the end !
-
-MArg :: { Arg }
-    : Lterm                             { TermArg NotErased $1 }
-    | '-' Lterm                         { TermArg Erased $2 }
-    | '·' Atype                         { TypeArg $2 }
-
-MArgs :: { Args }
-     :                                  { ArgsNil        }
-     | MArg MArgs                       { ArgsCons $1 $2 }
-
-KArg :: { Arg }
-    : Lterm                             { TermArg NotErased $1 }
-    | '·' Atype                         { TypeArg $2 }
-
-KArgs :: { Args }
-     :                                  { ArgsNil        }
-     | KArg KArgs                       { ArgsCons $1 $2 }
 
 Kind :: { Kind }
      : 'Π' Bvar ':' Tk '.' Kind         { KndPi (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
@@ -288,31 +311,6 @@ LiftingType :: { LiftingType }
 LliftingType :: { LiftingType }
              : '☆'                                { LiftStar (pos2Txt $1)                    }
              | '(' LiftingType ')'                { LiftParens  (pos2Txt $1) $2 (pos2Txt1 $3)}
-             
-Tk :: { Tk }
-   : Type                               { Tkt $1 }
-   | Kind                               { Tkk $1 } 
-
-Bvar :: { Token }
-     : '_'                              { $1 }
-     | var                              { $1 }
-
-Qvar :: { Token }
-     : var                              { $1 }
-     | qvar                             { $1 }
-
-Fpth :: { Token }
-     : fpth                             { $1 }
-     | Qvar                             { $1 }
-
-Num :: { Token }
-    : num                               { $1 }
-
-LineNo :: { PosInfo }
-       : {- empty -}                    {% getPos } 
-
-LineNo_1 :: { PosInfo }
-         : {- empty -}                  {% getPos_1 } 
 
 {
 getPos :: Alex PosInfo

@@ -5,7 +5,7 @@
 module cedille-types where
 
 open import lib
-open import parse-tree
+-- open import parse-tree
 
 posinfo = string
 alpha = string
@@ -45,10 +45,6 @@ data arg : Set
 {-# COMPILE GHC arg = type CedilleTypes.Arg #-}
 data args : Set
 {-# COMPILE GHC args = type CedilleTypes.Args #-}
-data arrowtype : Set
-{-# COMPILE GHC arrowtype = type CedilleTypes.ArrowType #-}
-data binder : Set
-{-# COMPILE GHC binder = type CedilleTypes.Binder #-}
 data cmd : Set
 {-# COMPILE GHC cmd = type CedilleTypes.Cmd #-}
 data cmds : Set
@@ -63,18 +59,14 @@ data imprt : Set
 {-# COMPILE GHC imprt = type CedilleTypes.Imprt #-}
 data kind : Set
 {-# COMPILE GHC kind = type CedilleTypes.Kind #-}
-data lam : Set
-{-# COMPILE GHC lam = type CedilleTypes.Lam #-}
 data leftRight : Set
 {-# COMPILE GHC leftRight = type CedilleTypes.LeftRight #-}
 data liftingType : Set
 {-# COMPILE GHC liftingType = type CedilleTypes.LiftingType #-}
 data lterms : Set
 {-# COMPILE GHC lterms = type CedilleTypes.Lterms #-}
-data maybeAtype : Set
-{-# COMPILE GHC maybeAtype = type CedilleTypes.MaybeAtype #-}
-data maybeCheckType : Set
-{-# COMPILE GHC maybeCheckType = type CedilleTypes.MaybeCheckType #-}
+data optType : Set
+{-# COMPILE GHC optType = type CedilleTypes.OptType #-}
 data maybeErased : Set
 {-# COMPILE GHC maybeErased = type CedilleTypes.MaybeErased #-}
 data maybeMinus : Set
@@ -120,16 +112,6 @@ data args where
   ArgsNil : args
 {-# COMPILE GHC args = data CedilleTypes.Args (CedilleTypes.ArgsCons | CedilleTypes.ArgsNil) #-}
 
-data arrowtype where 
-  ErasedArrow : arrowtype
-  UnerasedArrow : arrowtype
-{-# COMPILE GHC arrowtype = data CedilleTypes.ArrowType (CedilleTypes.ErasedArrow | CedilleTypes.UnerasedArrow) #-}
-
-data binder where 
-  All : binder
-  Pi : binder
-{-# COMPILE GHC binder = data CedilleTypes.Binder (CedilleTypes.All | CedilleTypes.Pi) #-}
-
 data cmd where 
   DefKind : posinfo → kvar → params → kind → posinfo → cmd
   DefTermOrType : defTermOrType → posinfo → cmd
@@ -146,7 +128,7 @@ data decl where
 {-# COMPILE GHC decl = data CedilleTypes.Decl (CedilleTypes.Decl) #-}
 
 data defTermOrType where 
-  DefTerm : posinfo → var → maybeCheckType → term → defTermOrType
+  DefTerm : posinfo → var → optType → term → defTermOrType
   DefType : posinfo → var → kind → type → defTermOrType
 {-# COMPILE GHC defTermOrType = data CedilleTypes.DefTermOrType (CedilleTypes.DefTerm | CedilleTypes.DefType) #-}
 
@@ -168,11 +150,6 @@ data kind where
   Star : posinfo → kind
 {-# COMPILE GHC kind = data CedilleTypes.Kind (CedilleTypes.KndArrow | CedilleTypes.KndParens | CedilleTypes.KndPi | CedilleTypes.KndTpArrow | CedilleTypes.KndVar | CedilleTypes.Star) #-}  
 
-data lam where 
-  ErasedLambda : lam
-  KeptLambda : lam
-{-# COMPILE GHC lam = data CedilleTypes.Lam (CedilleTypes.ErasedLambda | CedilleTypes.KeptLambda) #-}
-
 data leftRight where 
   Both : leftRight
   Left : leftRight
@@ -192,15 +169,10 @@ data lterms where
   LtermsNil : posinfo → lterms
 {-# COMPILE GHC lterms = data CedilleTypes.Lterms (CedilleTypes.LtermsCons | CedilleTypes.LtermsNil) #-}
 
-data maybeAtype where 
-  Atype : type → maybeAtype
-  NoAtype : maybeAtype
-{-# COMPILE GHC maybeAtype = data CedilleTypes.MaybeAtype (CedilleTypes.Atype | CedilleTypes.NoAtype) #-}  
-
-data maybeCheckType where 
-  NoCheckType : maybeCheckType
-  Type : type → maybeCheckType
-{-# COMPILE GHC maybeCheckType = data CedilleTypes.MaybeCheckType (CedilleTypes.NoCheckType | CedilleTypes.Type) #-}
+data optType where 
+  SomeType : type → optType
+  NoType : optType
+{-# COMPILE GHC optType = data CedilleTypes.OptType (CedilleTypes.SomeType | CedilleTypes.NoType) #-}
 
 data maybeErased where 
   Erased : maybeErased
@@ -265,13 +237,13 @@ data term where
   App : term → maybeErased → term → term
   AppTp : term → type → term
   Beta : posinfo → optTerm → optTerm → term
-  Chi : posinfo → maybeAtype → term → term
-  Delta : posinfo → maybeAtype → term → term
+  Chi : posinfo → optType → term → term
+  Delta : posinfo → optType → term → term
   Epsilon : posinfo → leftRight → maybeMinus → term → term
   Hole : posinfo → term
   IotaPair : posinfo → term → term → optGuide → posinfo → term
   IotaProj : term → num → posinfo → term
-  Lam : posinfo → lam → posinfo → bvar → optClass → term → term
+  Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
@@ -293,45 +265,33 @@ data tk where
 {-# COMPILE GHC tk = data CedilleTypes.Tk (CedilleTypes.Tkk | CedilleTypes.Tkt) #-}        
 
 data type where 
-  Abs : posinfo → binder → posinfo → bvar → tk → type → type
+  Abs : posinfo → maybeErased → posinfo → bvar → tk → type → type
   Iota : posinfo → posinfo → bvar → type → type → type
   Lft : posinfo → posinfo → var → term → liftingType → type
   NoSpans : type → posinfo → type
-  LetType : posinfo → posinfo → bvar → kind → type → type → type
-  LetTerm : posinfo → posinfo → bvar → type → term → type → type
+  TpLet : posinfo → defTermOrType → type → type
   TpApp : type → type → type
   TpAppt : type → term → type
-  TpArrow : type → arrowtype → type → type
+  TpArrow : type → maybeErased → type → type
   TpEq : posinfo → term → term → posinfo → type
   TpHole : posinfo → type
   TpLambda : posinfo → posinfo → bvar → tk → type → type
   TpParens : posinfo → type → posinfo → type
   TpVar : posinfo → qvar → type
-{-# COMPILE GHC type = data CedilleTypes.Type (CedilleTypes.Abs | CedilleTypes.Iota | CedilleTypes.Lft | CedilleTypes.NoSpans | CedilleTypes.LetType | CedilleTypes.LetTerm | CedilleTypes.TpApp | CedilleTypes.TpAppt | CedilleTypes.TpArrow | CedilleTypes.TpEq | CedilleTypes.TpHole | CedilleTypes.TpLambda | CedilleTypes.TpParens | CedilleTypes.TpVar) #-}
+{-# COMPILE GHC type = data CedilleTypes.Type (CedilleTypes.Abs | CedilleTypes.Iota | CedilleTypes.Lft | CedilleTypes.NoSpans | CedilleTypes.TpLet | CedilleTypes.TpApp | CedilleTypes.TpAppt | CedilleTypes.TpArrow | CedilleTypes.TpEq | CedilleTypes.TpHole | CedilleTypes.TpLambda | CedilleTypes.TpParens | CedilleTypes.TpVar) #-}
 
 data vars where 
   VarsNext : var → vars → vars
   VarsStart : var → vars
 {-# COMPILE GHC vars = data CedilleTypes.Vars (CedilleTypes.VarsNext | CedilleTypes.VarsStart) #-}
 
--- equivalences
-convert-LetType : posinfo → posinfo → bvar → kind → type → type → type
-convert-LetType pi pix x k T T' = TpApp (TpLambda pi pix x  (Tkk k) T') T
-
-convert-LetTerm : posinfo → posinfo → bvar → type → term → type → type
-convert-LetTerm pi pix x T t T'  = TpAppt (TpLambda pi pix x (Tkt T) T') t
+pattern Pi = NotErased
+pattern All = Erased
 
 -- embedded types:
-aterm : Set
 aterm = term
-atype : Set
 atype = type
-lliftingType : Set
 lliftingType = liftingType
-lterm : Set
 lterm = term
-ltype : Set
 ltype = type
-pterm : Set
 pterm = term
-

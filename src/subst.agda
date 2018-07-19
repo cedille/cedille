@@ -19,9 +19,8 @@ substh-tk : substh-ret-t tk
 substh-optClass : substh-ret-t optClass
 substh-optGuide : substh-ret-t optGuide
 substh-optTerm : substh-ret-t optTerm
+substh-optType : substh-ret-t optType
 substh-liftingType : substh-ret-t liftingType
-substh-maybeAtype : substh-ret-t maybeAtype
-substh-maybeCheckType : substh-ret-t maybeCheckType
 substh-args : substh-ret-t args
 
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → trie ⟦ ed ⟧ → var
@@ -44,7 +43,7 @@ substh-term Γ ρ σ (Lam pi b pi' x oc t) =
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-term Γ ρ σ (Let pi (DefTerm pi'' x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-     (Let pi (DefTerm pi'' x' (substh-maybeCheckType Γ ρ σ m) (substh-term Γ ρ σ t))
+     (Let pi (DefTerm pi'' x' (substh-optType Γ ρ σ m) (substh-term Γ ρ σ t))
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
 substh-term Γ ρ σ (Let pi (DefType pi'' x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -68,8 +67,8 @@ substh-term Γ ρ σ (Epsilon pi lr m t) = Epsilon pi lr m (substh-term Γ ρ σ
 substh-term Γ ρ σ (Sigma pi t) = Sigma pi (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Phi pi t t₁ t₂ pi') = Phi pi (substh-term Γ ρ σ t) (substh-term Γ ρ σ t₁) (substh-term Γ ρ σ t₂) pi
 substh-term Γ ρ σ (Rho pi op on t og t') = Rho pi op on (substh-term Γ ρ σ t) (substh-optGuide Γ ρ σ og) (substh-term Γ ρ σ t')
-substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
-substh-term Γ ρ σ (Delta pi T t') = Delta pi (substh-maybeAtype Γ ρ σ T) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Chi pi T t') = Chi pi (substh-optType Γ ρ σ T) (substh-term Γ ρ σ t')
+substh-term Γ ρ σ (Delta pi T t') = Delta pi (substh-optType Γ ρ σ T) (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (Theta pi θ t ls) = Theta pi (substh-theta θ) (substh-term Γ ρ σ t) (substh-lterms ls)
   where substh-lterms : lterms → lterms
         substh-lterms (LtermsNil pi) = LtermsNil pi
@@ -114,12 +113,14 @@ substh-type{QUALIF} Γ ρ σ (TpVar pi x) =
    qualif-lookup-type pi σ x'
 substh-type Γ ρ σ (TpVar pi x) = TpVar pi (renamectxt-rep ρ x)
 substh-type Γ ρ σ (TpHole pi) = TpHole pi --ACG
-substh-type Γ ρ σ (LetType pi pix x k T T') =
+substh-type Γ ρ σ (TpLet pi (DefTerm pi'' x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-    LetType pi pix x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ T) (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ T') 
-substh-type Γ ρ σ (LetTerm pi pix x T t T') =
+     (TpLet pi (DefTerm pi'' x' (substh-optType Γ ρ σ m) (substh-term Γ ρ σ t))
+      (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
+substh-type Γ ρ σ (TpLet pi (DefType pi'' x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-    LetTerm pi pix x' (substh-type Γ ρ σ T) (substh-term Γ ρ σ t) (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ T')
+     (TpLet pi (DefType pi'' x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
+      (substh-type (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
 substh-kind Γ ρ σ (KndArrow k k₁) = KndArrow (substh-kind Γ ρ σ k) (substh-kind Γ ρ σ k₁)
 substh-kind Γ ρ σ (KndParens x₁ k x₂) = substh-kind Γ ρ σ k
 substh-kind Γ ρ σ (KndPi pi pi' x atk k) =
@@ -153,11 +154,8 @@ substh-liftingType Γ ρ σ (LiftStar pi) = LiftStar pi
 substh-liftingType Γ ρ σ (LiftTpArrow tp l) = 
   LiftTpArrow (substh-type Γ ρ σ tp) (substh-liftingType Γ ρ σ l)
 
-substh-maybeAtype Γ ρ σ NoAtype = NoAtype
-substh-maybeAtype Γ ρ σ (Atype T) = Atype (substh-type Γ ρ σ T)
-
-substh-maybeCheckType Γ ρ σ NoCheckType = NoCheckType
-substh-maybeCheckType Γ ρ σ (Type T) = Type (substh-type Γ ρ σ T)
+substh-optType Γ ρ σ NoType = NoType
+substh-optType Γ ρ σ (SomeType T) = SomeType (substh-type Γ ρ σ T)
 
 substh-optTerm Γ ρ σ NoTerm = NoTerm
 substh-optTerm Γ ρ σ (SomeTerm t pi') = (SomeTerm (substh-term Γ ρ σ t) pi')

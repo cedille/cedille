@@ -284,7 +284,7 @@ meta-vars-peel Γ sl Xs tp = [] , tp
 -- if it's needed for a type application
 -- TODO consider abs in is-free
 data tp-abs : Set where
-  mk-tp-abs  : posinfo → binder → posinfo → bvar → kind → type → tp-abs
+  mk-tp-abs  : posinfo → maybeErased → posinfo → bvar → kind → type → tp-abs
 
 tp-is-abs : Set
 tp-is-abs = type ∨ tp-abs
@@ -311,23 +311,16 @@ pattern not-tp-arrow* tp = inj₁ tp
 arrow*-get-e? : arrow* → maybeErased
 arrow*-get-e? (mk-arrow* _ _ _ e _ ) = e
 
-private
-  ba-to-e : binder ⊎ arrowtype → maybeErased
-  ba-to-e (inj₁ All) = Erased
-  ba-to-e (inj₁ Pi) = NotErased
-  ba-to-e (inj₂ ErasedArrow) = Erased
-  ba-to-e (inj₂ UnerasedArrow) = NotErased
-
 meta-vars-unfold-tmapp : ctxt → span-location → meta-vars → type → tp-is-arrow*
 meta-vars-unfold-tmapp Γ sl Xs tp = aux
   where
   aux : tp-is-arrow*
   aux with meta-vars-peel Γ sl Xs (meta-vars-subst-type Γ Xs tp)
   ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =
-    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) (ba-to-e (inj₁ b))
+    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) b
     (λ t → subst-type Γ t x cod') -- move `qualif-term Γ t' to check-term-spine for elaboration
   ... | Ys , tp'@(TpArrow dom e cod') =
-    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) (ba-to-e (inj₂ e))
+    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) e
       (λ _ → cod')
   ... | Ys , tp' =
     not-tp-arrow* tp'
@@ -387,7 +380,7 @@ private
       match-error-msg ^ " because the lhs and rhs are not convertible terms"
       , lhs-rhs Γ tm₁ tm₂
 
-    e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : binder) → match-error-data
+    e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : maybeErased) → match-error-data
     e-binder-ineq Γ tp₁ tp₂ b₁ b₂ =
       match-error-msg ^ " because the outermost binders of the lhs and rhs are not equal"
       , lhs-rhs Γ tp₁ tp₂
@@ -459,7 +452,7 @@ meta-vars-match Γ Xs Ls u (TpAppt tpₓ tmₓ) (TpAppt tp tm)
     ≫⊎ match-ok Xs'
 
 meta-vars-match Γ Xs Ls u tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp)
-  =   err⊎-guard (~ eq-binder bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
+  =   err⊎-guard (~ eq-maybeErased bₓ b) (e-binder-ineq Γ tpₓ' tp' bₓ b)
     ≫⊎ meta-vars-match-tk Γ Xs Ls tkₓ tk
     ≫=⊎ λ Xs' →
       meta-vars-match
@@ -467,19 +460,19 @@ meta-vars-match Γ Xs Ls u tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(
         Xs' (stringset-insert Ls x) u tpₓ tp
 
 meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
-  =   err⊎-guard (~ eq-arrowtype atₓ at)
+  =   err⊎-guard (~ eq-maybeErased atₓ at)
        (e-arrowtype-ineq Γ tpₓ tp) -- (e-arrowtype-ineq Γ tpₓ tp)
     ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
     ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls u tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs _ b _ _ (Tkt tp₁) tp₂)
-  =   err⊎-guard (~ arrowtype-matches-binder atₓ b)
+  =   err⊎-guard (~ eq-maybeErased atₓ b)
        (e-arrowtype-ineq Γ tpₓ tp) --(e-arrowtype-ineq Γ tpₓ tp)
     ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
     ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂
 
 meta-vars-match Γ Xs Ls u tpₓ@(Abs _ bₓ _ _ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂)
-  =   err⊎-guard (~ arrowtype-matches-binder at bₓ)
+  =   err⊎-guard (~ eq-maybeErased at bₓ)
        (e-arrowtype-ineq Γ tpₓ tp)
     ≫⊎ meta-vars-match Γ Xs Ls ff tp₁ₓ tp₁
     ≫=⊎ λ Xs → meta-vars-match Γ Xs Ls ff tp₂ₓ tp₂

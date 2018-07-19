@@ -139,15 +139,15 @@ hnf{TERM} Γ u (App t1 Erased t2) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (App t1 NotErased t2) hd with hnf Γ u t1 hd
 hnf{TERM} Γ u (App _ NotErased t2) hd | Lam _ _ _ x _ t1 = hnf Γ (unfold-dampen tt u) (subst-term Γ t2 x t1) hd
 hnf{TERM} Γ u (App _ NotErased t2) hd | t1 = App t1 NotErased (hnf Γ (unfold-dampen ff u) t2 hd)
-hnf{TERM} Γ u (Lam _ ErasedLambda _ _ _ t) hd = hnf Γ u t hd
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd with hnf (ctxt-var-decl pi' x Γ) u t hd
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var _ x')) with x =string x' && ~ (is-free-in skip-erased x t')
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var _ x')) | tt = t' -- eta-contraction
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | (App t' NotErased (Var pi'' x')) | _ = 
-  Lam pi KeptLambda pi' x NoClass (App t' NotErased (Var pi'' x'))
-hnf{TERM} Γ u (Lam pi KeptLambda pi' x oc t) hd | t' = Lam pi KeptLambda pi' x NoClass t'
+hnf{TERM} Γ u (Lam _ Erased _ _ _ t) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Lam pi NotErased pi' x oc t) hd with hnf (ctxt-var-decl pi' x Γ) u t hd
+hnf{TERM} Γ u (Lam pi NotErased pi' x oc t) hd | (App t' NotErased (Var _ x')) with x =string x' && ~ (is-free-in skip-erased x t')
+hnf{TERM} Γ u (Lam pi NotErased pi' x oc t) hd | (App t' NotErased (Var _ x')) | tt = t' -- eta-contraction
+hnf{TERM} Γ u (Lam pi NotErased pi' x oc t) hd | (App t' NotErased (Var pi'' x')) | _ = 
+  Lam pi NotErased pi' x NoClass (App t' NotErased (Var pi'' x'))
+hnf{TERM} Γ u (Lam pi NotErased pi' x oc t) hd | t' = Lam pi NotErased pi' x NoClass t'
 hnf{TERM} Γ u (Let _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst-term Γ t x t') hd 
-hnf{TERM} Γ u (Let _ (DefType _ _ _ _) t') hd = hnf Γ u t' hd 
+hnf{TERM} Γ u (Let _ (DefType pi' x _ _) t') hd = hnf (ctxt-var-decl pi' x Γ) u t' hd 
 hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ _) (Var pi x) hd | nothing = Var pi x
 hnf{TERM} Γ (unfold ff _ _ e) (Var pi x) hd | just t = erase-if e t -- definitions should be stored in hnf
@@ -212,8 +212,7 @@ hnf{TYPE} Γ u (Abs pi b pi' x atk tp) _ with Abs pi b pi' x atk (hnf (ctxt-var-
 hnf{TYPE} Γ u (Abs pi b pi' x atk tp) _ | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi b pi' x atk tt {- x is free in tp -} tp) = Abs pi b pi' x atk tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi b pi' x (Tkk k) ff tp) = Abs pi b pi' x (Tkk k) tp
-hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi All pi' x (Tkt tp') ff tp) = TpArrow tp' ErasedArrow tp
-hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi Pi pi' x (Tkt tp') ff tp) = TpArrow tp' UnerasedArrow tp
+hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs pi b pi' x (Tkt tp') ff tp) = TpArrow tp' b tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | nothing = tp''
 hnf{TYPE} Γ u (TpArrow tp1 arrowtype tp2) _ = TpArrow (hnf Γ u tp1 ff) arrowtype (hnf Γ u tp2 ff)
 hnf{TYPE} Γ u (TpEq pi t1 t2 pi') _
@@ -226,6 +225,20 @@ hnf{TYPE} Γ u (TpLambda pi pi' x atk tp) _ =
 hnf{TYPE} Γ u @ (unfold b tt b'' b''') (Lft pi pi' y t l) _ = 
  let t = hnf (ctxt-var-decl pi' y Γ) u t tt in
    do-lift Γ (Lft pi pi' y t l) y l (λ t → hnf{TERM} Γ unfold-head t ff) t
+-- We need hnf{TYPE} to preserve types' well-kindedness, so we must check if
+-- the defined term is being checked against a type and use chi to make sure
+-- that wherever it is substituted, the term will have the same directionality.
+-- For example, "[e ◂ {a ≃ b} = ρ e' - β] - A (ρ e - a)", would otherwise
+-- head-normalize to A (ρ (ρ e' - β) - a), which wouldn't check because it
+-- synthesizes the type of "ρ e' - β" (which in turn fails to synthesize the type
+-- of "β"). Similar issues could happen if the term is synthesized and it uses a ρ,
+-- and then substitutes into a place where it would be checked against a type.
+hnf{TYPE} Γ u (TpLet _ (DefTerm pi x ot t) T) hd =
+  hnf Γ u (subst-type Γ (Chi posinfo-gen ot t) x T) hd
+-- Note that if we ever remove the requirement that type-lambdas have a classifier,
+-- we would need to introduce a type-level chi to do the same thing as above.
+-- Currently, synthesizing or checking a type should not make a difference.
+hnf{TYPE} Γ u (TpLet _ (DefType pi x k T) T') hd = hnf Γ u (subst-type Γ T x T') hd
 hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
@@ -304,10 +317,10 @@ conv-type-norm Γ (TpVar _ x) (TpVar _ x') = ctxt-eq-rep Γ x x'
 conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-type Γ t2 t2'
 conv-type-norm Γ (TpAppt t1 t2) (TpAppt t1' t2') = conv-type-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-type-norm Γ (Abs _ b pi x atk tp) (Abs _ b' pi' x' atk' tp') = 
-  eq-binder b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
-conv-type-norm Γ (TpArrow tp1 a1 tp2) (TpArrow tp1' a2  tp2') = eq-arrowtype a1 a2 && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (TpArrow tp1 a tp2) (Abs _ b _ _ (Tkt tp1') tp2') = arrowtype-matches-binder a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
-conv-type-norm Γ (Abs _ b _ _ (Tkt tp1) tp2) (TpArrow tp1' a tp2') = arrowtype-matches-binder a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+  eq-maybeErased b b' && conv-tk Γ atk atk' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
+conv-type-norm Γ (TpArrow tp1 a1 tp2) (TpArrow tp1' a2  tp2') = eq-maybeErased a1 a2 && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+conv-type-norm Γ (TpArrow tp1 a tp2) (Abs _ b _ _ (Tkt tp1') tp2') = eq-maybeErased a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
+conv-type-norm Γ (Abs _ b _ _ (Tkt tp1) tp2) (TpArrow tp1' a tp2') = eq-maybeErased a b && conv-type Γ tp1 tp1' && conv-type Γ tp2 tp2'
 conv-type-norm Γ (Iota _ pi x m tp) (Iota _ pi' x' m' tp') = 
   conv-type Γ m m' && conv-type (ctxt-rename pi x x' (ctxt-var-decl-if pi' x' Γ)) tp tp'
 conv-type-norm Γ (TpEq _ t1 t2 _) (TpEq _ t1' t2' _) = conv-term Γ t1 t1' && conv-term Γ t2 t2'

@@ -1,7 +1,0 @@
-import stlc.
-
-hastp-eg1 ◂ hastp (app (var one) (lam Z (var Z))) (base Z) =
-  hastp-app (var one) (lam Z (var Z)) (arrow (base Z) (base Z)) (base Z)
-    (hastp-assume one (arrow (arrow (base Z) (base Z)) (base Z)))
-    (hastp-lam Z (var Z) (base Z) (base Z) 
-       (hastp-assume Z (base Z))) .

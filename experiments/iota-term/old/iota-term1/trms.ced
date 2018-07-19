@@ -1,5 +1,0 @@
-import trm.
-
-test1 = lam (λ x . lam (λ y . x))!
-
-test2 = lam (λ x . app x x) !
