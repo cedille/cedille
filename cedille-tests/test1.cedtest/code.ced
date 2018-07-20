@@ -1,0 +1,3 @@
+module code.
+
+A ◂ ∀ X : ★. X ➔ ∀ Y : ★. Y ➔ X = Λ X. λ x. Λ Y. λ y. x.
