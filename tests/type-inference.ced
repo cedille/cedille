@@ -42,12 +42,12 @@ test-e2i ◂ ∀ A : ★ . ∀ B : A ➔ ★ . CastE · A · B ➾ CastI · A ·
 -- (Y) infer X : ★, Q : X ➔ ★
 Cons' ◂ ∀ A : ★ . A ➔ List · A ➔ List · A
       = Λ A . λ h . λ t .
-      	  [ cCons · A h t.1 ,
+      	  [ cCons h t.1 ,
 	    [ ε (ρ t.2.1 - β{cCons h t} ),
 	      Λ X . Λ Q . Λ cons . Λ nil . λ c . λ n .
 	      	c h -(t.1 cons nil)
 		  (t.2.2 {- X · Q -} -cons -nil c  n)]].
---                 ^--------------------------^ ^^
+--     ^--------------------------^ ^^
 -- Compare the two spans above to see why we can infer Q from c
 
 -- (N) X : ★

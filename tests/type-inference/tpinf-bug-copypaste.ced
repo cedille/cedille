@@ -1,0 +1,48 @@
+module tpinf-copypaste .
+
+import nat .
+
+cPair
+  ◂ ★ ➔ ★ ➔ ★
+  = λ A : ★ . λ B : ★ .
+      ∀ X : ★ . (A ➔ B ➔ X) ➔ X .
+
+pfst ◂ ∀ A : ★ . ∀ B : ★ . cPair · A · B ➔ A
+     = Λ A . Λ B . λ p . p · A (λ a . λ b . a) .
+
+cPairNat
+  ◂ ★ ➔ ★
+  = λ A : ★ . cPair · A · Nat .
+
+pfst-fail
+  ◂ Nat
+  = [ p ◂ cPairNat · Nat = Λ X . λ f . f Z Z ] - pfst p .
+
+-- When we go to type the application, our expected (meta-var) type is
+-- cPair · ?A · ?B
+-- we synthesize a type for the argument
+-- cPairNat · Nat
+-- and we go to match the two.
+--
+-- Right now, the behavior is this: we traverse these two types in a first-order
+-- way, stepping past each application. When we reach two (sub-expression) types
+-- that are not obviously equal, we *then* head normalize and continue matching.
+--
+-- Our FO traversal takes us here:
+--    cPair · ?A
+-- := cPairNat
+--
+-- We head normalize
+--    λ B . ∀ X . (?A ➔ B ➔ X) ➔ X
+-- := λ A . cPair · A · Nat
+--
+-- We step over the λ in both:
+--    ∀ X . (?A ➔ B ➔ X) ➔ X
+-- := cPair · A · Nat
+--
+-- Since we already head-normalized, we fail here with a weird error message! If
+-- we continued, we would get
+--    ∀ X . (?A ➔ B ➔ X) ➔ X
+-- := ∀ X . (A ➔ Nat ➔ X) ➔ X
+--
+-- With ?A getting solve to a local var -- which causes another failure!
