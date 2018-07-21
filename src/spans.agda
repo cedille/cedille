@@ -168,6 +168,11 @@ _≫=spanm_{A} m m' = m ≫=span cont
         cont nothing = spanMr nothing
         cont (just a) = m' a
 
+_≫=spans'_ : ∀ {A B E : Set} → spanM (E ∨ A) → (A → spanM (E ∨ B)) → spanM (E ∨ B)
+_≫=spans'_ m f = m ≫=span λ where
+  (inj₁ e) → spanMr (inj₁ e)
+  (inj₂ a) → f a
+
 _≫=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
 _≫=spanm'_{A}{B} m m' = m ≫=span cont
   where cont : maybe A → spanM (maybe B)

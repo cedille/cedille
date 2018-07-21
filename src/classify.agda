@@ -141,7 +141,6 @@ check-kind : kind → spanM ⊤
 check-args-against-params : (kind-or-import : maybe tagged-val {- location -}) → (posinfo × var) → params → args → spanM ⊤
 check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
-check-meta-vars : meta-vars → spanM (maybe error-span) -- no way to know when checking failed!
 check-def : defTermOrType → spanM (var × restore-def)
 
 
@@ -637,11 +636,17 @@ check-termi (IotaProj t n pi) mtp =
 
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
 
--- check-term-app
+-- check-term-spine
 -- ==================================================
 check-term-spine-return : ctxt → meta-vars → type → ℕ → spanM (maybe spine-data)
 check-term-spine-return Γ Xs tp locl = spanMr (just (mk-spine-data Xs tp locl))
---  = spanMr (just (Xs , hnf Γ unfold-head tp tt))
+
+data match-unfolding-state : Set where
+  match-unfolding-both match-unfolding-approx match-unfolding-hnf : match-unfolding-state
+
+match-types : meta-vars → local-vars → match-unfolding-state → (tpₓ tp : type) → spanM $' match-error-t meta-vars
+match-kinds : meta-vars → local-vars → match-unfolding-state → (kₓ k : kind) → spanM $' match-error-t meta-vars
+match-tks   : meta-vars → local-vars → match-unfolding-state → (tkₓ tk : tk) → spanM $' match-error-t meta-vars
 
 -- errors
 -- --------------------------------------------------
@@ -712,8 +717,9 @@ error-bad-meta-var-sols t₁ t₂ tpₓ tp Xs m (mk-error-span dsc _ _ tvs err) 
 -- meta-variable locality
 
 -- for debugging -- prepend to the tvs returned by check-spine-locality if you're having trouble
-locale-tag : ℕ → tagged-val
-locale-tag n = "locale n" , [[ ℕ-to-string n ]] , []
+private
+  locale-tag : ℕ → tagged-val
+  locale-tag n = "locale n" , [[ ℕ-to-string n ]] , []
 
 check-spine-locality : ctxt → meta-vars → type → (max : 𝔹) → (locl : ℕ)
                        → spanM (maybe (meta-vars × ℕ × 𝔹))
@@ -817,7 +823,6 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
     else (
     -- 1) synthesize a type for the applicand
       check-termi t₂ nothing
-      -- TODO subst sols into tp
        on-fail
            spanM-add (App-span ff t₁ t₂ mode
              (head-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tp))
@@ -827,19 +832,239 @@ check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-      case (meta-vars-match Γ Xs empty-trie match-state-toplevel dom atp) of λ where
-      (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
-      (match-ok Xs)  → let Xsₐ = meta-vars-in-type Xs dom in
-    -- 3) sanity check the match (FO matching, for now)
-          check-meta-vars Xsₐ
-        ≫=span λ where
-          (just es) → error-bad-meta-var-sols t₁ t₂ dom atp Xsₐ mode es
-    -- 4) update mvars in mvar kinds and return arg and ret type
-          nothing   → spanMr (just (check-term-app-return (meta-vars-update-kinds Γ Xs Xsₐ)
-                        atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)))
+            match-types Xs empty-trie match-unfolding-both dom atp
+          ≫=span λ where
+            (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
+            (match-ok Xs) → spanMr ∘ just $'
+              check-term-app-return Xs atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)
 
   where mode = maybe-to-checking mtp
 
+match-unfolding-next : match-unfolding-state → match-unfolding-state
+match-unfolding-next match-unfolding-both = match-unfolding-both
+match-unfolding-next match-unfolding-approx = match-unfolding-approx
+match-unfolding-next match-unfolding-hnf = match-unfolding-both
+
+module m-err = meta-vars-match-errors
+
+check-type-for-match : type → spanM $' match-error-t kind
+check-type-for-match tp =
+  (with-qualified-qualif $' with-clear-error $' get-ctxt λ Γ →
+      check-type tp nothing
+        on-fail spanMr ∘ match-error $' "TODO error kinding solution" , []
+    ≫=spanm' λ k → spanMr ∘ match-ok $' k)
+  ≫=spand spanMr
+  where
+  qualified-qualif : ctxt → qualif
+  qualified-qualif (mk-ctxt mod ss is os) =
+    for trie-strings is accum empty-trie use λ x q →
+      trie-insert q x (x , ArgsNil)
+
+  -- helper to restore qualif state
+  with-qualified-qualif : ∀ {A} → spanM A → spanM A
+  with-qualified-qualif sm =
+    get-ctxt λ Γ →
+    with-ctxt (ctxt-set-qualif Γ (qualified-qualif Γ))
+   sm
+
+  -- helper to restore error state
+  with-clear-error : ∀ {A} → spanM A → spanM A
+  with-clear-error m =
+      get-error λ es → set-error nothing
+    ≫span m
+    ≫=span λ a → set-error es
+    ≫span spanMr a
+
+-- match-types
+-- --------------------------------------------------
+
+match-types-ok : meta-vars → spanM $' match-error-t meta-vars
+match-types-ok = spanMr ∘ match-ok
+
+match-types-error : match-error-data → spanM $' match-error-t meta-vars
+match-types-error = spanMr ∘ match-error
+
+match-types Xs Ls match-unfolding-both tpₓ tp =
+    get-ctxt λ Γ →
+    match-types Xs Ls match-unfolding-approx tpₓ tp
+  ≫=span λ where
+    (match-ok Xs) → match-types-ok Xs
+    (match-error msg) →
+      match-types Xs Ls match-unfolding-hnf
+        (hnf Γ (unfolding-elab unfold-head) tpₓ tt)
+        (hnf Γ (unfolding-elab unfold-head) tp tt)
+
+match-types Xs Ls unf tpₓ@(TpVar pi x) tp =
+  -- check that x is a meta-var
+  get-ctxt λ Γ →
+  maybe-else' (meta-vars-lookup-kind Xs x)
+    -- if not, make sure the two variables are the same
+    -- TODO: above assumes no term meta-variables
+    (spanMr (err⊎-guard (~ conv-type Γ tpₓ tp) (m-err.e-type-ineq Γ tpₓ tp)
+            ≫⊎ match-ok Xs))
+  -- scope check the solution
+  λ kₓ → if are-free-in-type check-erased Ls tp then
+    match-types-error $' m-err.e-meta-scope Γ x tpₓ tp else
+    (  check-type-for-match tp
+    ≫=spans' λ k → match-kinds Xs empty-trie match-unfolding-both kₓ k
+    ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp)
+    ≫=spans' λ Xs → match-types-ok $' meta-vars-update-kinds Γ Xs Xs)
+
+match-types Xs Ls unf (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂) =
+    match-types Xs Ls unf tpₓ₁ tp₁
+  ≫=spans' λ Xs' → match-types Xs' Ls (match-unfolding-next unf) tpₓ₂ tp₂
+
+match-types Xs Ls unf (TpAppt tpₓ tmₓ) (TpAppt tp tm) =
+    match-types Xs Ls unf tpₓ tp
+  ≫=spans' λ Xs' → get-ctxt λ Γ →
+    spanMr $' if ~ conv-term Γ tmₓ tm
+      then (match-error $' m-err.e-term-ineq Γ tmₓ tm) else
+    match-ok Xs'
+
+match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp) =
+  get-ctxt λ Γ →
+  if ~ eq-maybeErased bₓ b
+    then (match-types-error $' m-err.e-binder-ineq Γ tpₓ' tp' bₓ b) else
+  ( match-tks Xs Ls (match-unfolding-next unf) tkₓ tk
+  ≫=spans' λ Xs' → with-ctxt (Γ→Γ' Γ) 
+    (match-types Xs' Ls' (match-unfolding-next unf) tpₓ tp))
+  where
+  Γ→Γ' : ctxt → ctxt
+  Γ→Γ' Γ = ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ)
+  Ls' = stringset-insert Ls x
+
+match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
+  get-ctxt λ Γ → if ~ eq-maybeErased atₓ at
+    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+  ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
+  ≫=spans' λ Xs → match-types Xs Ls (match-unfolding-next unf) tp₂ₓ tp₂)
+
+match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs pi b pi' x (Tkt tp₁) tp₂) =
+  get-ctxt λ Γ → if ~ eq-maybeErased atₓ b
+    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+  ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
+  ≫=spans' λ Xs → match-types Xs (stringset-insert Ls x) (match-unfolding-next unf) tp₂ₓ tp₂)
+
+match-types Xs Ls unf tpₓ@(Abs piₓ bₓ piₓ' xₓ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
+  get-ctxt λ Γ → if ~ eq-maybeErased bₓ at
+    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+  ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
+  ≫=spans' λ Xs → match-types Xs (stringset-insert Ls xₓ) (match-unfolding-next unf) tp₂ₓ tp₂)
+
+match-types Xs Ls unf (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp) =
+  get-ctxt λ Γ → match-types Xs Ls (match-unfolding-next unf) mₓ m
+  ≫=spans' λ Xs → with-ctxt (Γ→Γ' Γ)
+    (match-types Xs Ls' (match-unfolding-next unf) tpₓ tp)
+  where
+  Γ→Γ' : ctxt → ctxt
+  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Ls' = stringset-insert Ls x
+
+match-types Xs Ls unf (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _) =
+  get-ctxt λ Γ → if ~ conv-term Γ t₁ₓ t₁
+    then match-types-error $' m-err.e-term-ineq Γ t₁ₓ t₁ else
+  if ~ conv-term Γ t₂ₓ t₂
+    then match-types-error $' m-err.e-term-ineq Γ t₂ₓ t₂ else
+  match-types-ok Xs
+
+match-types Xs Ls unf (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l) =
+  get-ctxt λ Γ → if ~ conv-liftingType Γ lₓ l
+    then match-types-error $' m-err.e-liftingType-ineq Γ lₓ l else
+  if ~ conv-term (Γ→Γ' Γ) tₓ t
+    then match-types-error $' m-err.e-term-ineq (Γ→Γ' Γ) tₓ t else
+  match-types-ok Xs
+  where
+  Γ→Γ' : ctxt → ctxt
+  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+
+match-types Xs Ls unf (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp) =
+  get-ctxt λ Γ → match-tks Xs Ls (match-unfolding-next unf) atkₓ atk
+  ≫=spans' λ Xs → with-ctxt (Γ→Γ' Γ)
+  (match-types Xs Ls' (match-unfolding-next unf) tpₓ tp)
+  where
+  Γ→Γ' : ctxt → ctxt
+  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Ls' = stringset-insert Ls x
+
+match-types Xs Ls unf (NoSpans tpₓ _) (NoSpans tp _) =
+  match-types Xs Ls unf tpₓ tp
+
+-- TODO for now, don't approximate lets
+match-types Xs Ls unf (TpLet piₓ (DefTerm pi x ot t) tpₓ) tp =
+  get-ctxt λ Γ → match-types Xs Ls unf (subst-type Γ (Chi posinfo-gen ot t) x tpₓ) tp
+
+match-types Xs Ls unf (TpLet piₓ (DefType pi x k tpₓ-let) tpₓ) tp =
+  get-ctxt λ Γ → match-types Xs Ls unf (subst-type Γ tpₓ-let x tpₓ) tp
+
+match-types Xs Ls unf tpₓ (TpLet _ (DefTerm _ x ot t) tp) =
+  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst-type Γ (Chi posinfo-gen ot t) x tp)
+
+match-types Xs Ls unf tpₓ (TpLet _ (DefType _ x k tp-let) tp) =
+  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst-type Γ tp-let x tp)
+
+-- match-types Xs Ls unf (TpHole x₁) tp = {!!}
+
+match-types Xs Ls unf (TpParens _ tpₓ _) tp =
+  match-types Xs Ls unf tpₓ tp
+
+match-types Xs Ls unf tpₓ (TpParens _ tp _) =
+  match-types Xs Ls unf tpₓ tp
+
+match-types Xs Ls unf tpₓ tp =
+  get-ctxt λ Γ → match-types-error $' m-err.e-type-ineq Γ tpₓ tp
+
+match-kinds Xs Ls uf (KndParens _ kₓ _) (KndParens _ k _) =
+  match-kinds Xs Ls uf kₓ k
+
+-- Kind pi
+match-kinds Xs Ls uf (KndPi _ piₓ xₓ tkₓ kₓ) (KndPi _ pi x tk k) =
+  get-ctxt λ Γ → match-tks Xs Ls uf tkₓ tk
+  ≫=spans' λ Xs → with-ctxt (Γ→Γ' Γ)
+    (match-kinds Xs Ls uf kₓ k)
+  where
+  Γ→Γ' : ctxt → ctxt
+  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Ls' = stringset-insert Ls x
+
+-- kind arrow
+match-kinds Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndArrow k₁ k₂) =
+  match-kinds Xs Ls uf kₓ₁ k₁
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
+
+match-kinds Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndPi _ pi x (Tkk k₁) k₂) =
+  match-kinds Xs Ls uf kₓ₁ k₁
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
+
+match-kinds Xs Ls uf (KndPi _ _ x (Tkk kₓ₁) kₓ₂) (KndArrow k₁ k₂) =
+  match-kinds Xs Ls uf kₓ₁ k₁
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
+
+-- kind tp arrow
+match-kinds Xs Ls uf (KndTpArrow tpₓ kₓ) (KndTpArrow tp k) =
+  match-types Xs Ls uf tpₓ tp
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
+
+match-kinds Xs Ls uf (KndPi _ _ x (Tkt tpₓ) kₓ) (KndTpArrow tp k) =
+  match-types Xs Ls uf tpₓ tp
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
+
+match-kinds Xs Ls uf (KndTpArrow tpₓ kₓ) (KndPi _ _ x (Tkt tp) k) =
+  match-types Xs Ls uf tpₓ tp
+  ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
+
+match-kinds Xs Ls uf (Star _) (Star _) =
+  match-types-ok $' Xs
+match-kinds Xs Ls uf kₓ k =
+  get-ctxt λ Γ → match-types-error $' m-err.e-kind-ineq Γ kₓ k
+
+match-tks Xs Ls uf (Tkk kₓ) (Tkk k) = match-kinds Xs Ls uf kₓ k
+match-tks Xs Ls uf (Tkt tpₓ) (Tkt tp) = match-types Xs Ls uf tpₓ tp
+match-tks Xs Ls uf tkₓ tk =
+  get-ctxt λ Γ → match-types-error $' m-err.e-tk-ineq Γ tkₓ tk
+
+
+-- check-typei: check a type against (maybe) a kind
+-- ==================================================
 
 --ACG WIP
 --check-typei (TpHole pi) k = spanM-add
@@ -1177,64 +1402,3 @@ check-def (DefType pi x k T) =
   spanM-push-type-def pi nonParamVar x T k' ≫=span λ m →
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking (noterased :: [ kind-data Γ k' ]) nothing) ≫span
   spanMr (x , m)
-
-check-meta-vars Xs =
-  (with-qualified-qualif $' with-clear-error (get-ctxt λ Γ →
-      foldr-spanM
-        (λ X acc → get-error λ es →
-            if isJust es then spanMr (maybe-map (_,_ X) es)
-            else acc)
-        (spanMr nothing)
-        ((flip map) (varset-ordered Γ) check-meta-var)))
-  ≫=spand λ ret → spanMr (maybe-map (uncurry retag) ret)
-
-  where
-  open helpers
-
-  check-meta-var : meta-var → spanM meta-var
-  check-meta-var X@(meta-var-mk _ (meta-var-tm _ _) _) =
-    spanMr X
-  check-meta-var X@(meta-var-mk _ (meta-var-tp _ nothing) _) =
-    spanMr X
-  check-meta-var X@(meta-var-mk x (meta-var-tp k (just tp)) _) =
-      check-type tp (just k)
-    ≫span spanM-push-type-def posinfo-gen nonParamVar x tp k
-    ≫=span λ _ → spanMr X
-
-  varset-ordered : ctxt → 𝕃 meta-var -- TODO don't repeat work
-  varset-ordered Γ = drop-nothing $' (flip map) (meta-vars.order Xs) λ where
-    x → (trie-lookup (meta-vars.varset (meta-vars-update-kinds Γ Xs Xs)) x)
-
-  -- replace qualif info with one where the keys are the fully qualified variable names
-  {-qualified-qualif : qualif → qualif
-  qualified-qualif q = for trie-mappings q accum empty-trie do λ where
-    (_ , qi@(v , as)) q → trie-insert q v qi-}
-  qualified-qualif : ctxt → qualif
-  qualified-qualif (mk-ctxt mod ss is os) =
-    for trie-strings is accum empty-trie use λ x q →
-      trie-insert q x (x , ArgsNil)
-
-  -- helper to restore qualif state
-  with-qualified-qualif : ∀ {A} → spanM A → spanM A
-  with-qualified-qualif sm =
-    get-ctxt λ Γ →
-    with-ctxt (ctxt-set-qualif Γ (qualified-qualif Γ))
-    -- with-ctxt (ctxt-set-qualif Γ (qualified-qualif (ctxt-get-qualif Γ)))
-    sm
-
-  -- helper to restore error state
-  with-clear-error : ∀ {A} → spanM A → spanM A
-  with-clear-error m =
-      get-error λ es → set-error nothing
-    ≫span m
-    ≫=span λ a → set-error es
-    ≫span spanMr a
-
-
-  -- TODO may require significant tag manipulation to be usable, such as
-  -- removing special tags
-  retag : meta-var → error-span → error-span
-  retag X (mk-error-span dsc pi pi' tvs err) =
-    mk-error-span dsc pi pi' tvs' err
-    where
-    tvs' = tvs ++ [ checked-meta-var (meta-var-name X) ]
