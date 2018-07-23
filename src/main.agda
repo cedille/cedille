@@ -92,7 +92,7 @@ readOptions =
 
 
 module main-with-options
-  (compileTime : maybe UTC)
+  (compileTime : UTC)
   (options-filepath : filepath)
   (options : cedille-options.options) where
 
@@ -278,7 +278,7 @@ module main-with-options
   file-after-compile : filepath → IO 𝔹
   file-after-compile fn =
     getModificationTime fn >>= λ mt →
-    case maybe-else tt (mt utc-after_) compileTime of λ where
+    case mt utc-after compileTime of λ where
       tt → doesFileExist options-filepath &&>> fileIsOlder options-filepath fn
       ff → return ff
 
@@ -432,49 +432,33 @@ module main-with-options
   main' : IO ⊤
   main' =
     maybeClearLogFile >>
-    logMsg ("Started Cedille process (compile time: " ^ maybe-else "error" utcToString compileTime ^ ")") >>
+    logMsg ("Started Cedille process (compiled at: " ^ utcToString compileTime ^ ")") >>
     getArgs >>=
     processArgs
 
-
-
-data Maybe (A : Set) : Set where
-  Nothing : Maybe A
-  Just : A → Maybe A
-
 postulate
-  TimeZone : Set
   initializeStdinToUTF8 : IO ⊤
   setStdinNewlineMode : IO ⊤
-  getCurrentTimeZone : IO TimeZone
-  compileTime : TimeZone → Maybe UTC
-  timeString : string
+  compileTime : UTC
 
--- Two cases where this could get messed up:
--- 1. You switch time zones (solution: use TemplateHaskell?)
--- 2. You check a file with a .cede file that was last modified
---    less than a second before the new process got compiled
---    (solution: add one second to err on the side of caution?)
--- Both are so rare that for now I will ignore them
-getCompileTime : IO (maybe UTC)
-getCompileTime =
-  getCurrentTimeZone >>=r λ tz →
-  case compileTime tz of λ where
-    Nothing → nothing
-    (Just utc) → just utc
-
-{-# FOREIGN GHC import qualified Data.Time.LocalTime #-}
+{-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock #-}
 {-# FOREIGN GHC import qualified Data.Time.Format #-}
+{-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
 {-# FOREIGN GHC import qualified Data.Text #-}
-{-# FOREIGN GHC {-# LANGUAGE CPP #-} #-}
-{-# COMPILE GHC Maybe = data Maybe (Nothing | Just) #-}
-{-# COMPILE GHC TimeZone = type Data.Time.LocalTime.TimeZone #-}
-{-# COMPILE GHC getCurrentTimeZone = Data.Time.LocalTime.getCurrentTimeZone #-}
+{-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
 {-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
 {-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
-{-# COMPILE GHC compileTime = \ tz -> (Data.Time.Format.parseTimeM True Data.Time.Format.defaultTimeLocale "%b %e %Y %H:%M:%S" (__DATE__ ++ " " ++ __TIME__) :: Maybe Data.Time.LocalTime.LocalTime) >>= \ t -> Just (Data.Time.LocalTime.localTimeToUTC tz t) #-}
+{-# COMPILE GHC compileTime =
+  maybe (Data.Time.Clock.POSIX.posixSecondsToUTCTime (fromIntegral 0)) id
+  (Data.Time.Format.parseTimeM True Data.Time.Format.defaultTimeLocale "%s"
+    $(Language.Haskell.TH.Syntax.runIO
+      (Data.Time.Clock.getCurrentTime >>= \ t ->
+       return (Language.Haskell.TH.Syntax.LitE
+         (Language.Haskell.TH.Syntax.StringL
+           (Data.Time.Format.formatTime Data.Time.Format.defaultTimeLocale "%s" t)))))
+    :: Maybe Data.Time.Clock.UTCTime) #-}
 
 -- main entrypoint for the backend
 main : IO ⊤
@@ -483,6 +467,5 @@ main = initializeStdoutToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
        setToLineBuffering >>
-       getCompileTime >>= λ utc →
        readOptions >>=
-       uncurry (main-with-options.main' utc)
+       uncurry (main-with-options.main' compileTime)

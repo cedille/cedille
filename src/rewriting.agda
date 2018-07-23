@@ -172,6 +172,11 @@ post-rewrite Γ x eq t₂ T = subst-type Γ t₂ x (fst (post-rewriteh Γ x eq p
     h (Tkt T) = term-decl T
     h (Tkk k) = type-decl k
 
+private
+  head-types-match : ctxt → trie term → (complete partial : type) → 𝔹
+  head-types-match Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs-type Γ σ T')
+  head-types-match Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs-type Γ σ T')
+  head-types-match Γ σ T T' = tt
 
 -- Functions for substituting the type T in ρ e @ x . T - t
 {-# TERMINATING #-}
@@ -182,7 +187,12 @@ rewrite-at-tk : ctxt → var → term → 𝔹 → tk → tk → tk
 rewrite-at-tk Γ x eq b (Tkt T) (Tkt T') = Tkt (rewrite-at Γ x eq b T T')
 rewrite-at-tk Γ x eq b atk atk' = atk
 
-rewrite-at Γ x eq b T T' = if is-free-in tt x T' then rewrite-ath Γ x eq b T T' else T
+rewrite-at Γ x eq b T T' =
+  if ~ is-free-in tt x T'
+    then T
+    else if b && ~ head-types-match Γ (trie-single x (Hole posinfo-gen)) T T'
+      then rewrite-ath Γ x eq ff (hnf Γ unfold-head-not-erased T tt) (hnf Γ unfold-head-not-erased T' tt)
+      else rewrite-ath Γ x eq b T T'
 
 rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) =
   Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
@@ -191,15 +201,24 @@ rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
 rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
   Lft pi1 pi1' x1 (if is-free-in tt x (mlam x2 t2) then mk-phi x eq t1 t2 else t1) lT1
 rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
-  TpApp (rewrite-ath Γ x eq b T1 T2) (rewrite-ath Γ x eq b T1' T2')
+  TpApp (rewrite-at Γ x eq b T1 T2) (rewrite-at Γ x eq b T1' T2')
 rewrite-ath Γ x eq b (TpAppt T1 t1) (TpAppt T2 t2) =
-  TpAppt (rewrite-ath Γ x eq b T1 T2) (if is-free-in tt x t2 then mk-phi x eq t1 t2 else t1)
+  TpAppt (rewrite-at Γ x eq b T1 T2) (if is-free-in tt x t2 then mk-phi x eq t1 t2 else t1)
 rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
   TpArrow (rewrite-at Γ x eq tt T1 T2) a1 (rewrite-at Γ x eq tt T1' T2')
 rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
   TpEq pi1 t2 t2' pi1'
 rewrite-ath Γ x eq b (TpLambda pi1 pi1' x1 atk1 T1) (TpLambda pi2 pi2' x2 atk2 T2) =
   TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
-rewrite-ath Γ x eq b (TpVar pi x1) (TpVar pi' x2) = TpVar pi x1
-rewrite-ath Γ x eq tt T T' = rewrite-ath Γ x eq ff (hnf Γ unfold-head-not-erased T tt) (hnf Γ unfold-head-not-erased T' tt)
-rewrite-ath Γ x eq ff T T' = T
+rewrite-ath Γ x eq b (TpLet pi1 (DefTerm pi1' x1 oc1 t1) T1) T2 = rewrite-at Γ x eq b (subst-type Γ t1 x1 T1) T2
+rewrite-ath Γ x eq b T1 (TpLet pi2 (DefTerm pi2' x2 oc2 t2) T2) = rewrite-at Γ x eq b T1 (subst-type Γ t2 x2 T2)
+rewrite-ath Γ x eq b (TpLet pi1 (DefType pi1' x1 k1 T1ₗ) T1) T2 = rewrite-at Γ x eq b (subst-type Γ T1ₗ x1 T1) T2
+rewrite-ath Γ x eq b T1 (TpLet pi2 (DefType pi2' x2 k2 T2ₗ) T2) = rewrite-at Γ x eq b T1 (subst-type Γ T2ₗ x2 T2)
+rewrite-ath Γ x eq b (TpVar pi1 x1) (TpVar pi2 x2) = TpVar pi1 x1
+rewrite-ath Γ x eq b (TpHole pi1) (TpHole pi2) = TpHole pi1
+rewrite-ath Γ x eq b (TpParens pi1 T1 pi1') T2 = rewrite-at Γ x eq b T1 T2
+rewrite-ath Γ x eq b T1 (TpParens pi2 T2 pi2') = rewrite-at Γ x eq b T1 T2
+rewrite-ath Γ x eq b (NoSpans T1 pi1) T2 = rewrite-at Γ x eq b T1 T2
+rewrite-ath Γ x eq b T1 (NoSpans T2 pi2) = rewrite-at Γ x eq b T1 T2
+rewrite-ath Γ x eq tt T1 T2 = rewrite-at Γ x eq ff (hnf Γ unfold-head-not-erased T1 tt) (hnf Γ unfold-head-not-erased T2 tt)
+rewrite-ath Γ x eq ff T1 T2 = T1
