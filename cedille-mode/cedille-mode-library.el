@@ -10,6 +10,7 @@
 (require 'cedille-mode-inspect)
 (require 'cedille-mode-summary)
 (require 'cedille-mode-context)
+(require 'cedille-mode-meta-vars)
 (require 'cedille-mode-normalize)
 ;(require 'cedille-mode-beta-reduce)
 
