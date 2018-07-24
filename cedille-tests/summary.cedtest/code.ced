@@ -1,0 +1,4 @@
+module code (A : ★) (B : A ➔ ★) (a : A) (b : B a).
+
+a' = a.
+b' = b.
