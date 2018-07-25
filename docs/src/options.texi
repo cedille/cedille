@@ -26,4 +26,7 @@ Enables/disables generation of log files (.cedille/log)
 @item show-qualified-vars = [true/false]
 Enables/disables the printing of fully-qualified variables
 
+@item erase-types = [true/false]
+Sets whether or not types are erased before they are displayed, for convenience.
+
 @end table

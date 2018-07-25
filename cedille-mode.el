@@ -193,12 +193,14 @@ Defaults to `error'."
   (when cedille-mode-do-update-buffers
     (cedille-mode-inspect) 
     (cedille-mode-context) ;the string-split bug is here
+    (cedille-mode-meta-vars)
     (cedille-mode-rebalance-windows)))
 
 (defun cedille-mode-clear-buffers()
   "Clears the contents of and closes the buffers for the current file"
   (cedille-mode-clear-buffer (cedille-mode-inspect-buffer-name))
   (cedille-mode-clear-buffer (cedille-mode-context-buffer-name))
+  (cedille-mode-clear-buffer (cedille-mode-meta-vars-buffer-name))
   (cedille-mode-clear-buffer (cedille-mode-summary-buffer-name)))
 
 (defun cedille-mode-clear-buffer(buffer)
@@ -293,28 +295,30 @@ start of each string, and then strip out that number."
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
-                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'erasure) (eq key 'fileid))
+                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'erasure) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (when (> count 0)
-    (se-mode-select-next cedille-mode-wrap-navigation)
-    (cedille-mode-select-next (- count 1)))
-  (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences-if))
+  (if (> count 0)
+      (progn
+        (se-mode-select-next cedille-mode-wrap-navigation)
+        (cedille-mode-select-next (- count 1)))
+    (cedille-mode-update-buffers)
+    (cedille-mode-highlight-occurrences-if)))
 
 (defun cedille-mode-select-previous(count)
   "Selects the previous sibling from the currently selected one in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (when (> count 0)
-    (se-mode-select-previous cedille-mode-wrap-navigation)
-    (cedille-mode-select-previous (- count 1)))
-  (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences-if))
+  (if (> count 0)
+      (progn
+        (se-mode-select-previous cedille-mode-wrap-navigation)
+        (cedille-mode-select-previous (- count 1)))
+    (cedille-mode-update-buffers)
+    (cedille-mode-highlight-occurrences-if)))
 
 (defun cedille-mode-select-next-alt-test(x y)
   "Compares two spans x and y, testing whether x begins after y ends."
@@ -339,8 +343,7 @@ Updates info buffer in either case"
 	      (se-mode-select (se-mode-left-spine (car (se-mode-parse-tree))))
 	      (cedille-mode-select-first-child 1))
 	  (message "No next span"))))
-    (cedille-mode-select-next-alt (- count 1)))
-  (cedille-mode-update-buffers))
+    (cedille-mode-select-next-alt (- count 1))))
 
 (defun cedille-mode-select-previous-alt (count)
   "Selects the previous sibling of the currently selected node;
@@ -359,28 +362,29 @@ Updates info buffer in either case."
 	      (se-mode-select (se-last-span (se-mode-parse-tree)))
 	      (cedille-mode-select-first-child 1))
 	  (message "No previous span"))))
-    (cedille-mode-select-previous-alt (- count 1)))
-  (cedille-mode-update-buffers))
+    (cedille-mode-select-previous-alt (- count 1))))
 
 (defun cedille-mode-select-parent(count)
   "Selects the parent of the currently selected node in 
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
-  (when (> count 0)
-    (se-mode-expand-selected)
-    (cedille-mode-select-parent (- count 1)))
-  (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences-if))
+  (if (> count 0)
+      (progn
+        (se-mode-expand-selected)
+        (cedille-mode-select-parent (- count 1)))
+    (cedille-mode-update-buffers)
+    (cedille-mode-highlight-occurrences-if)))
 
 (defun cedille-mode-select-first-child(count)
   "Selects the first child of the lowest node in the parse tree
 containing point, and updates the Cedille info buffer."
   (interactive "p")
-  (when (> count 0)
-    (se-mode-shrink-selected)
-    (cedille-mode-select-first-child (- count 1)))
-  (cedille-mode-update-buffers)
-  (cedille-mode-highlight-occurrences-if))
+  (if (> count 0)
+    (progn
+      (se-mode-shrink-selected)
+      (cedille-mode-select-first-child (- count 1)))
+    (cedille-mode-update-buffers)
+    (cedille-mode-highlight-occurrences-if)))
 
 (defun cedille-mode-select-first()
   "Selects the first sibling of the currently selected node

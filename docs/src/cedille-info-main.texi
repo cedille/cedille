@@ -33,6 +33,8 @@ This manual is for Cedille.  Lots of interesting Cedille facts can go here!
 
 @include summary-mode.texi
 
+@include meta-vars-mode.texi
+
 @include beta-reduce-mode.texi
 
 @node Index,,credits,Top

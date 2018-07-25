@@ -428,6 +428,10 @@ available options are:
 'show-qualified-vars = [true/false]'
      Enables/disables the printing of fully-qualified variables
 
+'erase-types = [true/false]'
+     Sets whether or not types are erased before they are displayed, for
+     convenience.
+
 
 File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
@@ -441,6 +445,7 @@ Cedille has three minor modes that provide information about the file:
 * inspect mode::                Provides information about the currently selected node
 * context mode::                Displays the types and kinds of all variables in the scope of the selected node
 * summary mode::                Displays the types and kinds of every top-level entity in the file
+* meta-vars mode::              Displays the meta-variables at the current position in an application spine
 * beta-reduce mode::            Beta-reduction explorer
 
 13 Common commands
@@ -530,7 +535,7 @@ inspect mode buffer (but not jump to it), press 'i' instead.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: summary mode,  Next: beta-reduce mode,  Prev: context mode,  Up: minor modes
+File: cedille-info-main.info,  Node: summary mode,  Next: meta-vars mode,  Prev: context mode,  Up: minor modes
 
 17 Summary mode
 ***************
@@ -568,9 +573,50 @@ Displays a summary of every global definition in the file.
      Jumps to the definition of the selected variable
 
 
+File: cedille-info-main.info,  Node: meta-vars mode,  Next: beta-reduce mode,  Prev: summary mode,  Up: minor modes
+
+19 Meta-Vars mode
+*****************
+
+Meta-Vars mode displays the meta-variables along the current application
+spine, if any.  Jumping (with 'j', see below) to the position of a
+meta-variable name will select the span where it was introduced.
+Jumping at the "=" will bring you to where it was solved.
+
+20 Common commands
+******************
+
+'M-c'
+     Copy the contents of the current buffer to the scratch buffer
+
+'+'
+     Increase the size of the buffer by one line
+
+'-'
+     Decrease the size of the buffer by one line
+
+'='
+     Reset the buffer's size
+
+'f'
+     Moves to the next defined variable in the buffer
+
+'b'
+     Moves to the previous defined variable in the buffer
+
+'a'
+     Moves to the first defined variable in the buffer
+
+'e'
+     Moves to the last defined variable in the buffer
+
+'j'
+     Jumps to the definition of the selected variable
+
+
 File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary mode,  Up: minor modes
 
-19 Beta-reduce mode
+21 Beta-reduce mode
 *******************
 
 Beta-reduce mode is a "beta-reduction explorer".  There are three ways
@@ -583,7 +629,7 @@ to enter beta-reduce mode:
   3. C-i t Enter beta-reduce mode with the selected span's expected type
      and its scope
 
-20 Controls
+22 Controls
 ***********
 
 'C-i n'
@@ -628,10 +674,11 @@ Node: unicode shortcuts3794
 Node: context mode6119
 Node: credits8066
 Node: options9162
-Node: minor modes10186
-Node: inspect mode11336
-Node: summary mode12589
-Node: beta-reduce mode13354
-Node: Index14497
+Node: minor modes10307
+Node: inspect mode11565
+Node: summary mode12818
+Node: meta-vars mode13581
+Node: beta-reduce mode14556
+Node: Index15699
 
 End Tag Table

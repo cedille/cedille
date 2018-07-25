@@ -222,6 +222,43 @@ meta-vars-data-gen s Γ Xs =
 meta-vars-data = meta-vars-data-gen "meta vars"
 meta-vars-new-data = meta-vars-data-gen "new meta vars"
 
+meta-vars-data-h : ctxt → string → tk → tagged-val
+meta-vars-data-h Γ X atk =
+  strRunTag (if tk-is-type atk then "meta-vars-sol" else "meta-vars-intro") Γ
+    (strAdd (X ^ " ") ≫str to-stringh atk)
+
+
+meta-vars-data-all : ctxt → meta-vars → 𝕃 tagged-val
+meta-vars-data-all Γ = foldr
+  (uncurry λ where
+    _ (meta-var-mk X (meta-var-tp kd nothing) loc) xs →
+      meta-vars-data-h Γ X (Tkk kd) :: xs
+    _ (meta-var-mk X (meta-var-tp kd (just tp)) loc) xs →
+      meta-vars-data-h Γ X (Tkk kd) :: meta-vars-data-h Γ X (Tkt tp) :: xs
+    _ _ xs → xs)
+  [] ∘ (trie-mappings ∘ meta-vars.varset)
+
+meta-vars-intro-data : ctxt → meta-vars → 𝕃 tagged-val
+meta-vars-intro-data Γ = map (h ∘ snd) ∘ (trie-mappings ∘ meta-vars.varset)
+  where
+  h : meta-var → tagged-val
+  h (meta-var-mk X (meta-var-tp kd mtp) loc) = meta-vars-data-h Γ X (Tkk kd)
+  h (meta-var-mk X (meta-var-tm tp mtm) loc) =
+    meta-vars-data-h Γ X (Tkt (TpVar posinfo-gen "unimplemented"))
+
+meta-vars-sol-data : ctxt → meta-vars → meta-vars → 𝕃 tagged-val
+meta-vars-sol-data Γ Xsₒ Xsₙ = foldr (λ X xs → maybe-else xs (_:: xs) (h (snd X)))
+  [] (trie-mappings (meta-vars.varset Xsₙ))
+  where
+  h : meta-var → maybe tagged-val
+  h (meta-var-mk X (meta-var-tp kd (just tp)) loc) with trie-lookup (meta-vars.varset Xsₒ) X
+  ...| just (meta-var-mk _ (meta-var-tp _ (just _)) _) = nothing
+  ...| _ = just (meta-vars-data-h Γ X (Tkt tp))
+  h (meta-var-mk X (meta-var-tp kd nothing) loc) = nothing
+  h (meta-var-mk X (meta-var-tm tp mtm) loc) =
+    just (meta-vars-data-h Γ X (Tkt (TpVar posinfo-gen "unimplemented")))
+
+
 meta-vars-check-type-mismatch : ctxt → string → type → meta-vars → type
                                  → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch Γ s tp Xs tp'
@@ -232,18 +269,27 @@ meta-vars-check-type-mismatch Γ s tp Xs tp'
                ^ s ^ " type."))
     where tp'' = meta-vars-subst-type' ff Γ Xs tp'
 
+meta-vars-data-locale : tagged-val
+meta-vars-data-locale = "meta-var-locale" , [[]] , []
+
+meta-vars-data-locale-if : 𝔹 → 𝕃 tagged-val
+meta-vars-data-locale-if tt = [ meta-vars-data-locale ]
+meta-vars-data-locale-if ff = []
+
+{-
 meta-vars-data-locality-if : ctxt → meta-vars → 𝔹 → 𝕃 tagged-val
 meta-vars-data-locality-if Γ Xs locl? =
   if locl?
-  then meta-vars-data-gen "meta-var locale" Γ Xs
+  then meta-vars-data-gen "meta-var-locale" Γ Xs
   else []
+-}
 
 meta-vars-check-type-mismatch-if : maybe type → ctxt → string → meta-vars
                                     → type → 𝕃 tagged-val × err-m
 meta-vars-check-type-mismatch-if (just tp) Γ s Xs tp'
   = meta-vars-check-type-mismatch Γ s tp Xs tp'
 meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
-  = type-data Γ tp″ :: [ hnf-type Γ tp″ ] , nothing
+  = [ type-data Γ tp″ ] , nothing
   where
   tp″ = meta-vars-subst-type' ff Γ Xs tp'
 ----------------------------------------

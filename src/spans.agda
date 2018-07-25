@@ -17,10 +17,6 @@ open import subst
 
 --------------------------------------------------
 -- span datatype
---
--- individual spans with an error message should
--- include a tagged-val with the tag "error"
--- (see is-error-span below)
 --------------------------------------------------
 
 err-m : Set
@@ -294,11 +290,11 @@ expected-type-subterm = to-string-tag "expected-type of the subterm"
 missing-expected-type : tagged-val
 missing-expected-type = "expected-type" , [[ "[missing]" ]] , []
 
-hnf-type : ctxt → type → tagged-val
-hnf-type Γ tp = to-string-tag "hnf of type" Γ (hnf-term-type Γ ff tp)
+-- hnf-type : ctxt → type → tagged-val
+-- hnf-type Γ tp = to-string-tag "hnf of type" Γ (hnf-term-type Γ ff tp)
 
-hnf-expected-type : ctxt → type → tagged-val
-hnf-expected-type Γ tp = to-string-tag "hnf of expected type" Γ (hnf-term-type Γ ff tp)
+-- hnf-expected-type : ctxt → type → tagged-val
+-- hnf-expected-type Γ tp = to-string-tag "hnf of expected type" Γ (hnf-term-type Γ ff tp)
 
 expected-kind : ctxt → kind → tagged-val
 expected-kind = to-string-tag "expected kind"
@@ -311,9 +307,9 @@ expected-type-if : ctxt → maybe type → 𝕃 tagged-val
 expected-type-if _ nothing = []
 expected-type-if Γ (just tp) = [ expected-type Γ tp ]
 
-hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val
-hnf-expected-type-if Γ nothing = []
-hnf-expected-type-if Γ (just tp) = [ hnf-expected-type Γ tp ]
+-- hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val
+-- hnf-expected-type-if Γ nothing = []
+-- hnf-expected-type-if Γ (just tp) = [ hnf-expected-type Γ tp ]
 
 type-data : ctxt → type → tagged-val
 type-data = to-string-tag "type"
@@ -427,26 +423,28 @@ is-erased _ = ff
 
 erased? = 𝔹
 
+keywords = "keywords"
+keyword-erased = "erased"
+keyword-noterased = "noterased"
+keyword-application = "application"
+keyword-locale = "meta-var-locale"
+
 noterased : tagged-val
-noterased = "keywords" , [[ "noterased" ]] , []
+noterased = keywords , [[ keyword-noterased ]] , []
 
-keywords-data : erased? → type → tagged-val
-keywords-data e t =
-  "keywords" , 
-    {-(if is-equation t then
-      [[ "equation" ]]
-    else [[]])
-    ⊹⊹ (if is-equational t then
-      [[ " equational" ]]
-     else [[]])
-    ⊹⊹ -} [[ if e then " erased" else " noterased" ]] , []
+keywords-data : 𝕃 string → tagged-val
+keywords-data kws = keywords , h kws , [] where
+  h : 𝕃 string → rope
+  h [] = [[]]
+  h (k :: []) = [[ k ]]
+  h (k :: ks) = [[ k ]] ⊹⊹ [[ " " ]] ⊹⊹ h ks
 
-keywords-data-kind : kind → tagged-val
-keywords-data-kind k = 
-  "keywords"  ,
-    {-(if is-equational-kind k then [[ "equational" ]] else [[]]) ⊹⊹ -} [[ " noterased" ]] , []
+keywords-data-var : erased? → tagged-val
+keywords-data-var e =
+  keywords ,  [[ if e then keyword-erased else keyword-noterased ]] , []
 
-
+keywords-app : (is-locale : 𝔹) → tagged-val
+keywords-app l = keywords-data ([ keyword-application ] ++ (if l then [ keyword-locale ] else []))
 
 error-if-not-eq : ctxt → type → 𝕃 tagged-val → 𝕃 tagged-val × err-m
 error-if-not-eq Γ (TpEq pi t1 t2 pi') tvs = expected-type Γ (TpEq pi t1 t2 pi') :: tvs , nothing
@@ -494,10 +492,8 @@ KndVar-span Γ (pi , v) pi' ps check tvs =
     (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data (unqual-local v) :: super-kind-data :: (params-data Γ ps ++ tvs))
 
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span
-var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-kind k :: [ kind-data Γ k ])
-var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data e t :: type-data Γ t :: [ hnf-type Γ t ])
-
-
+var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-var ff :: [ kind-data Γ k ])
+var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data-var e :: [ type-data Γ t ])
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
@@ -509,11 +505,11 @@ TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-sta
 TpApp-span : type → type → checking-mode → 𝕃 tagged-val → err-m → span
 TpApp-span tp tp' check tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') (checking-data check :: ll-data-type :: tvs)
 
-App-span : term → term → checking-mode → 𝕃 tagged-val → err-m → span
-App-span t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: tvs)
+App-span : (is-locale : 𝔹) → term → term → checking-mode → 𝕃 tagged-val → err-m → span
+App-span l t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: keywords-app l :: tvs)
 
-AppTp-span : term → type → checking-mode → 𝕃 tagged-val → err-m → span
-AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: tvs)
+AppTp-span : (is-locale : 𝔹) → term → type → checking-mode → 𝕃 tagged-val → err-m → span
+AppTp-span l t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app l :: tvs)
 
 TpQuant-e = 𝔹
 
@@ -640,22 +636,10 @@ DefType-span Γ pi x checked mk tp pi' tvs =
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
 DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x Γ (Var pi "□") ]) nothing
 
-{-
-unimplemented-term-span : ctxt → posinfo → posinfo → maybe type → span
-unimplemented-term-span _ pi pi' nothing = mk-span "Unimplemented" pi pi' [] (just "Unimplemented synthesizing a type for a term")
-unimplemented-term-span Γ pi pi' (just tp) =
-  mk-span "Unimplemented" pi pi' (ll-data-term :: [ expected-type Γ tp ]) (just "Unimplemented checking a term against a type")
--}
-unchecked-term-span : term → span
+{-unchecked-term-span : term → span
 unchecked-term-span t = mk-span "Unchecked term" (term-start-pos t) (term-end-pos t)
-                           (ll-data-term :: not-for-navigation :: [ explain "This term has not been type-checked."]) nothing
-{-
-unimplemented-type-span : ctxt → posinfo → posinfo → maybe kind → span
-unimplemented-type-span _ pi pi' nothing = mk-span "Unimplemented" pi pi' (checking-data synthesizing :: error-data "Unimplemented synthesizing a kind for a type" :: [] )
-unimplemented-type-span Γ pi pi' (just k) = mk-span "Unimplemented" pi pi' 
-                                              ( error-data "Unimplemented checking a type against a kind" ::
-                                                checking-data checking :: ll-data-type :: [ expected-kind Γ k ])
--}
+                           (ll-data-term :: not-for-navigation :: [ explain "This term has not been type-checked."]) nothing-}
+
 Beta-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → err-m → span
 Beta-span pi pi' check tvs = mk-span "Beta axiom" pi pi'
                      (checking-data check :: ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
@@ -663,7 +647,7 @@ Beta-span pi pi' check tvs = mk-span "Beta axiom" pi pi'
 hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
 hole-span Γ pi tp tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1)
-    (ll-data-term :: expected-type-if Γ tp ++ hnf-expected-type-if Γ tp ++ tvs)
+    (ll-data-term :: expected-type-if Γ tp ++ tvs)
     (just "This hole remains to be filled in")
 
 tp-hole-span : ctxt → posinfo → maybe kind → 𝕃 tagged-val → span

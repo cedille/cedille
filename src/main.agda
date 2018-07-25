@@ -401,6 +401,7 @@ module main-with-options
 
               handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
               handleCommands ("progress stub" :: xs) = return
+              handleCommands ("status ping" :: xs) s = putStrLn "idle" >> return s
               handleCommands ("check" :: xs) s = checkCommand xs s
               handleCommands ("debug" :: []) s = debugCommand s >>r s
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
@@ -446,7 +447,6 @@ postulate
 {-# FOREIGN GHC import qualified Data.Time.Clock #-}
 {-# FOREIGN GHC import qualified Data.Time.Format #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
-{-# FOREIGN GHC import qualified Data.Text #-}
 {-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
 {-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
 {-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
