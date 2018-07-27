@@ -20,7 +20,7 @@
 (defun cedille-mode-meta-vars-split (meta-var)
   "Splits the string \"name value\" into (name . value)"
   (let ((split (split-string meta-var " ")))
-    (cons (car split) (cadr split))))
+    (cons (car split) (mapconcat (lambda(x)x) (cdr split) " "))))
 
 (defun cedille-mode-meta-vars-collect (key alist)
   "Collects all values from ALIST with key KEY into a list"
