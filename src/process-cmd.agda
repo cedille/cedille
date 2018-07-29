@@ -136,27 +136,46 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip 
 
 -- TODO ignore checking but still gen spans if need-to-check false?
 process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
-  let cur-file = ctxt-get-current-filename (toplevel-state.Γ s) in
-  let ie = get-include-elt s cur-file in
+  let fnₒ = ctxt-get-current-filename (toplevel-state.Γ s)
+      ie = get-include-elt s fnₒ in
   case trie-lookup (include-elt.import-to-dep ie) x of λ where
     nothing → spanM-add (Import-span pi "missing" pi'' [] (just ("File not found: " ^ x)))
-      ≫span spanMr (set-include-elt s cur-file (record ie {err = tt}))
-    (just imported-file) →
-      λ Γ ss → process-file s imported-file x ≫=monad λ { (s , _) →
-        (let ie = get-include-elt s imported-file in
-         get-ctxt λ Γ →
-         (with-ctxt (toplevel-state.Γ s) (optAs-posinfo-var oa (pi' , x))) ≫=span λ pi-v →
-         maybe-else
-           (spanMr (just ("Undefined module import")))
-           (λ ps → with-ctxt (toplevel-state.Γ s)
-             (check-args-against-params (just (location-data (imported-file , first-position))) pi-v ps as ≫span
-              spanMr nothing))
-           (lookup-mod-params (toplevel-state.Γ s) imported-file) ≫=span λ err →
-           spanM-add (Import-span pi imported-file pi'' []
-           (if (include-elt.err ie)
-               then just "There is an error in the imported file"
-               else err)) ≫span
-         spanMr (scope-file s imported-file oa (qualif-args (toplevel-state.Γ s) as))) Γ ss}
+      ≫span spanMr (set-include-elt s fnₒ (record ie {err = tt}))
+    (just fnᵢ) Γ ss →
+      process-file s fnᵢ x ≫=monad uncurry λ s _ →
+        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args Γ as) in
+         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) ≫=span λ e →
+         spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
+  where
+  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → spanM err-m
+  process-import op oa fnₒ fnᵢ nothing = spanMr (just "Undefined module import (this probably shouldn't happen?)")
+  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ps) = spanMr (just "Public import can't be qualified")
+  process-import op oa fnₒ fnᵢ (just ps) =
+    optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
+    with-ctxt (toplevel-state.Γ s)
+      (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v ps as) ≫span
+    spanMr nothing
+
+{-
+(just imported-file) →
+-      λ Γ ss → process-file s imported-file x ≫=monad λ { (s , _) →
+-        (let ie = get-include-elt s imported-file in
+-         get-ctxt λ Γ →
+-         (with-ctxt (toplevel-state.Γ s) (optAs-posinfo-var oa (pi' , x))) ≫=span λ pi-v →
+-         maybe-else
+-           (spanMr (just ("Undefined module import")))
+-           (λ ps → with-ctxt (toplevel-state.Γ s)
+-             (check-args-against-params (just (location-data (imported-file , first-position))) pi-v ps as ≫span
+-              spanMr nothing))
+-           (lookup-mod-params (toplevel-state.Γ s) imported-file) ≫=span λ err →
+-           spanM-add (Import-span pi imported-file pi'' []
+-           (if (include-elt.err ie)
+-               then just "There is an error in the imported file"
+-               else err)) ≫span
+-         spanMr (scope-file s imported-file oa (qualif-args (toplevel-state.Γ s) as))) Γ ss}
+
+
+-}
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check =

@@ -197,55 +197,75 @@ check-redefined pi x s c =
       (spanM-add (redefined-var-span Γ pi x) ≫span spanMr s)
     else c)
 
-{-
-scope-imports : toplevel-state → string → optAs → args → toplevel-state
-scope-imports s import-fn oa as with toplevel-state.Γ s
-... | mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs with trie-lookup syms import-fn
-... | nothing = s
-... | just (import-mn , vs) = let q' = qualif-insert-import q import-mn oa vs as in
-  record s { Γ = mk-ctxt (fn , mn , ps , q') (syms , mn-fn) i symb-occs }
--}
-
 import-as : var → optAs → var
 import-as v NoOptAs = v
 import-as v (SomeOptAs pi pfx) = pfx # v
 
 {-# TERMINATING #-}
-scope-file : toplevel-state → filepath → optAs → args → toplevel-state
-scope-cmds : toplevel-state → filepath → (mn : string) → cmds → optAs → args → toplevel-state
-scope-cmd : toplevel-state → filepath → (mn : string) → cmd → optAs → args → toplevel-state
-scope-def : toplevel-state → filepath → (mn : string) → var → optAs → args → toplevel-state
-scope-public-args : toplevel-state → (old-fp new-fp : filepath) → args → args → args
+scope-file : toplevel-state → (original imported : filepath) → optAs → args → toplevel-state × err-m
+scope-cmds : filepath → (mn : string) → cmds → optAs → args → toplevel-state → toplevel-state × err-m
+scope-cmd : filepath → (mn : string) → cmd → optAs → args → toplevel-state → toplevel-state × err-m
+scope-def : filepath → (mn : string) → var → optAs → args → toplevel-state → toplevel-state × err-m
+scope-public-args : (old-fp new-fp : filepath) → args → args → toplevel-state → args × err-m
 
-scope-file s fn oa as with include-elt.ast (get-include-elt s fn)
-...| nothing = s
-...| just (File pi0 is pi1 pi2 mn ps cs pi3) =
-  scope-cmds (scope-cmds s fn mn (imps-to-cmds is) oa as) fn mn cs oa as
+infixl 8 _≫×_
 
-scope-cmds s fn mn (CmdsNext c cs) oa as =
-  scope-cmds (scope-cmd s fn mn c oa as) fn mn cs oa as
-scope-cmds s fn mn CmdsStart oa as = s
+_≫×_ : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : Set ℓ'} {E : Set ℓ''} → A × maybe E → (A → B × maybe E) → B × maybe E
+_≫×_ (a , e) f with f a
+...| b , e' = b , maybe-else e' just e
 
-scope-cmd s fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as = s
-scope-cmd s fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as =
-  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
-  scope-file s ifn' oa' (scope-public-args s fn ifn' as as')
-scope-cmd s fn mn (DefKind pi v ps k pi') oa as = scope-def s fn mn v oa as
-scope-cmd s fn mn (DefTermOrType (DefTerm pi v mcT t) pi') oa as = scope-def s fn mn v oa as
-scope-cmd s fn mn (DefTermOrType (DefType pi v k T) pi') oa as = scope-def s fn mn v oa as
+error-in-import-string = "There is an error in the imported file"
 
-scope-def (mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os)) _ mn v oa as =
-  mk-toplevel-state ip fns is
-    (mk-ctxt (mn' , fn , pms , trie-insert q (import-as v oa) (mn # v , as)) ss sis os)
+-- Traverse all imports, returning an error if we encounter the same file twice
+{-# TERMINATING #-}
+check-cyclic-imports :(original current : filepath) → stringset → 𝕃 string → toplevel-state → toplevel-state × err-m
+check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
+...| ff = foldr (λ fnᵢ x → x ≫× check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path)) (s , nothing) (include-elt.deps (get-include-elt s fn))
+...| tt with fnₒ =string fn
+...| tt = s , just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
+...| ff = s , just error-in-import-string
+
+scope-file-err : 𝔹 → toplevel-state → toplevel-state × err-m
+scope-file-err b s = s , if b then just error-in-import-string else nothing
+
+scope-file s fnₒ fn oa as with get-include-elt s fn
+...| ie with include-elt.err ie | include-elt.ast ie
+...| e | nothing = scope-file-err e s
+...| e | just (File pi0 is pi1 pi2 mn ps cs pi3) =
+  check-cyclic-imports fnₒ fn (trie-single fnₒ triv) [] s ≫×
+  scope-file-err e ≫×
+  scope-cmds fn mn (imps-to-cmds is) oa as ≫×
+  scope-cmds fn mn cs oa as
+
+scope-cmds fn mn (CmdsNext c cs) oa as s =
+  scope-cmd fn mn c oa as s ≫× scope-cmds fn mn cs oa as
+scope-cmds fn mn CmdsStart oa as s = s , nothing
+
+scope-cmd fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as s = s , nothing
+scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
+  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn
+      as'' = qualif-args (toplevel-state.Γ s) as' in
+  scope-public-args fn ifn' as as' s ≫× scope-file s fn ifn' oa --<---
+  -- oa' should be NoOptAs, see public-as-err in src/process-cmd.agda |
+scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
+scope-cmd fn mn (DefTermOrType (DefTerm pi v mcT t) pi') = scope-def fn mn v
+scope-cmd fn mn (DefTermOrType (DefType pi v k T) pi') = scope-def fn mn v
+
+scope-def _ mn v oa as s with import-as v oa | s
+...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os) =
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os) ,
+  flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
+    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
+  -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^
 
 -- For importing a file (foo) that publicly imports another file (bar),
 -- we need to substitute the arguments given to foo for occurences of foo's
 -- parameters in the arguments to bar
-scope-public-args s ofn nfn as as' with lookup-mod-params (toplevel-state.Γ s) ofn
-...| nothing = as'
+scope-public-args ofn nfn as as' s with lookup-mod-params (toplevel-state.Γ s) ofn
+...| nothing = as' , nothing
 ...| just ps = flip uncurry (get-sub ps as) λ ρt ρT →
                substh-args (toplevel-state.Γ s) empty-renamectxt ρT
-               (substh-args (toplevel-state.Γ s) empty-renamectxt ρt as)
+               (substh-args (toplevel-state.Γ s) empty-renamectxt ρt as) , nothing
   where
   get-sub : params → args → trie term × trie type
   get-sub (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) =
@@ -253,3 +273,4 @@ scope-public-args s ofn nfn as as' with lookup-mod-params (toplevel-state.Γ s) 
       (TermArg me' t) → trie-insert ρt x t , ρT
       (TypeArg T) → ρt , trie-insert ρT x T
   get-sub ps as = empty-trie , empty-trie
+
