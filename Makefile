@@ -60,10 +60,12 @@ cedille-old:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda 
 		mv $(SRCDIR)/main-old cedille
 
-elisp: $(SE_MODE:%.el=%.elc) $(ELISP:%.el=%.elc)
-
-%.elc: %.el
-	emacs --batch -L se-mode -L cedille-mode -f batch-byte-compile $<
+# compilation of elisp not working
+#
+#elisp: $(SE_MODE:%.el=%.elc) $(ELISP:%.el=%.elc)
+#
+#%.elc: %.el
+#	emacs --batch -L se-mode -L cedille-mode -f batch-byte-compile $<
 
 cedille-prof:	$(SRC) Makefile
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c $(SRCDIR)/main.agda 
