@@ -1,5 +1,6 @@
 module Vector.
 
+import cast.
 import nat.
 import nat-thms.
 
@@ -36,15 +37,15 @@ Vlookup ◂ ∀ A : ★ . ∀ n : Nat . Vector · A n ➔ Π m : Nat . Lt m n �
     θ<n> v.1 (λ p . Λ u . LtZS p -u · A)
       (Λ pn . λ a . λ ih . λ m .
         θ<m> (NatInd m) (Λ _ . a) (λ pm . λ _ . Λ u . ih pm -u)) .
-{-
-    θ<m> (NatInd m) (θ<n> v (Λ u . δ - ς u) (Λ _ . λ a . λ _ . Λ _ . a))
-           (θ<n> v (λ p . λ _ . Λ u . LtZS p -u · A)
-              (Λ pn . λ a . λ _ . λ p . λ ih . Λ u . ih -(Lt-Smn p (S pn) u))) .
--}
 
 Vmap ◂ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . (A ➔ B) ➔ Vector · A n ➔ Vector · B n =
   Λ A . Λ B . Λ n . λ f . λ v .
     θ<n> v.1 (Vnil · B) (Λ n . λ a . λ t . Vcons · B -n (f a) t) .
+
+Vcast ◂ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . Cast · A · B ➾ Cast · (Vector · A n) · (Vector · B n) =
+  Λ A . Λ B . Λ n . Λ c .
+    caste · (Vector · A n) · (Vector · B n) (λ v . v.1 · (Vector · B) (Vnil · B) (Λ n . λ h . λ t . Vcons · B -n (cast -c h) t))
+      -(λ v . θ<n v> v.2 β (Λ n . Λ t . λ h . λ ih . ρ+ ih - β)).
 
 testVector ◂ Vector · Nat (S (S (S Z))) = Vcons -(S (S Z)) Z (Vcons -(S Z) (S Z) (Vcons -Z (S (S (S Z))) (Vnil · Nat))) .
 testLookup ◂ { Vlookup testVector Z ≃ Z } = β .
