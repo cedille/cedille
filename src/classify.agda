@@ -413,7 +413,7 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
 
 check-termi (Rho pi op on t NoGuide t') (just tp) =
   get-ctxt λ Γ → check-term t nothing ≫=span λ mtp →
-  cont (maybe-hnf Γ mtp) (hnf Γ (unfolding-elab unfold-head-no-lift) tp tt)
+  cont (maybe-hnf Γ mtp) (hnf Γ unfold-head-no-lift tp tt)
   where cont : maybe type → type → spanM ⊤
         cont nothing tp = get-ctxt λ Γ → spanM-add (Rho-span pi t t' checking op (inj₁ 0) [ expected-type Γ tp ] nothing) ≫span check-term t' (just tp)
         cont (just (TpEq pi' t1 t2 pi'')) tp = 
@@ -435,7 +435,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
 check-termi (Rho pi op on t NoGuide t') nothing = 
   check-term t nothing ≫=span λ mtp → 
   check-term t' nothing ≫=span λ mtp' → get-ctxt λ Γ → cont (maybe-hnf Γ mtp)
-    (maybe-map (λ mtp' → hnf Γ (unfolding-elab unfold-head-no-lift) mtp' tt) mtp')
+    (maybe-map (λ mtp' → hnf Γ unfold-head-no-lift mtp' tt) mtp')
   where cont : maybe type → maybe type → spanM (maybe type)
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt λ Γ → 

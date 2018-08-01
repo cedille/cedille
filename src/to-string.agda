@@ -110,8 +110,6 @@ strM-Γ : (ctxt → strM) → strM
 strM-Γ f s n ts Γ = f Γ s n ts Γ
 strM-n : (ℕ → strM) → strM
 strM-n f s n = f n s n
-strM-p : ({ed : exprd} → maybe ⟦ ed ⟧ → strM) → strM
-strM-p f s n ts Γ pe = f pe s n ts Γ pe
 
 infixr 4 _≫str_
 
@@ -130,17 +128,6 @@ strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   where v' = if ds iff localScope then pi % v else mn # v
 
 strΓ = strΓ' localScope ff
-
-{-
-ctxt-global-var-location : ctxt → var → location
-ctxt-global-var-location (mk-ctxt mod ss is os) v with trie-lookup is v
-...| just (term-def _ _ _ , loc) = loc
-...| just (term-udef _ _ , loc) = loc
-...| just (type-def _ _ _ , loc) = loc
-...| just (kind-def _ _ _ , loc) = loc
-...| _ = "missing" , "missing"
--}
-
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
 ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os) =
@@ -216,6 +203,11 @@ to-string-ed{TK} = tk-to-stringh
 to-string-ed{ARG} = arg-to-string
 to-string-ed{QUALIF} q = strEmpty
 
+collapse-tk : {ed : exprd} → ⟦ ed ⟧ → Σi exprd ⟦_⟧
+collapse-tk {TK} (Tkt T) = , T
+collapse-tk {TK} (Tkk k) = , k
+collapse-tk t = , t
+
 drop-spine : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine = h do-drop-spine
   where
@@ -226,8 +218,8 @@ drop-spine = h do-drop-spine
   h tt {TYPE} Γ T = maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
   h d Γ x = x
 
-to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
-to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
+to-stringh'' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
+to-stringh'' {ed} lr t {ed'} s n ts Γ mp lr' =
   wp (maybe-else (to-string-ed t')
     (λ pe → if no-parens t' pe lr
       then to-string-ed t'
@@ -237,6 +229,12 @@ to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
   wp : strM → rope × ℕ × 𝕃 tag
   wp s' = if is-parens t' then s' s n ts Γ mp lr else s' s n ts Γ (just t') lr
 
+to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
+to-stringh' lr t = uncurryΣi (to-stringh'' lr) (collapse-tk t) where
+  uncurryΣi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''} →
+              ({a : A} → B a → X) → Σi A B → X
+  uncurryΣi f (, b) = f b
+
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringl = to-stringh' left
@@ -245,6 +243,7 @@ to-stringh = to-stringh' neither
 
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
+
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
 term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"

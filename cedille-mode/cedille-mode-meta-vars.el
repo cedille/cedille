@@ -1,9 +1,10 @@
-
+;;;;;;;;;; Cedille Meta-Vars Buffer ;;;;;;;;;;
 
 (defstruct meta-var kind sol file start-intro end-intro start-sol end-sol)
 
 (defvar cedille-mode-meta-vars-list nil
   "List of (name . meta-var)")
+
 
 (defun cedille-mode-meta-vars-continue-computation (node &optional allow-locale)
   "Returns t if you should keep computing meta variables in the first child of NODE"
@@ -94,8 +95,49 @@
 
 
 
+(defun cedille-mode-meta-vars-find-locale-end(nodes)
+  (when nodes
+    (if (cedille-mode-meta-vars-continue-computation (car nodes))
+        (cedille-mode-meta-vars-find-locale-end (cdr nodes))
+      (car nodes))))
+
+(defun cedille-mode-meta-vars-find-locale-start(node &optional allow-locale)
+  (when node
+    (if (cedille-mode-meta-vars-continue-computation node allow-locale)
+        (cedille-mode-meta-vars-find-locale-start (car (se-node-children node)))
+      node)))
+
+(defun cedille-mode-fontify-meta-vars-start(node)
+  (when node
+    (overlay-put
+     (make-overlay (se-term-start node) (se-term-end node)
+                   (or cedille-mode-parent-buffer (current-buffer)))
+     'face 'cedille-meta-vars-head-face)))
+
+(defun cedille-mode-fontify-meta-vars-end(node)
+  (when node
+    (overlay-put
+     (make-overlay (se-term-start node) (se-term-end node)
+                   (or cedille-mode-parent-buffer (current-buffer)))
+     'face 'cedille-meta-vars-args-face)))
+
+(defun cedille-mode-fontify-meta-vars()
+  (with-silent-modifications
+    (remove-overlays nil nil 'face 'cedille-meta-vars-head-face)
+    (remove-overlays nil nil 'face 'cedille-meta-vars-args-face)
+    ; Make sure the meta-vars buffer is open and the selected span is an application
+    (when (and (get-buffer-window (cedille-mode-meta-vars-buffer-name))
+               (cedille-mode-meta-vars-continue-computation (se-mode-selected) t))
+      (cedille-mode-fontify-meta-vars-start
+       (cedille-mode-meta-vars-find-locale-start (se-mode-selected) t))
+      (cedille-mode-fontify-meta-vars-end
+       (cedille-mode-meta-vars-find-locale-end
+        (cons (se-mode-selected) se-mode-not-selected))))))
+
+
 (defun cedille-mode-meta-vars()
   (cedille-mode-compute-meta-vars)
+  (cedille-mode-fontify-meta-vars)
   (cedille-mode-display-meta-vars)
   (cedille-mode-rebalance-windows))
 
