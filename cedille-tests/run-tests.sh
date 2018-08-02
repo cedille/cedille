@@ -1,8 +1,16 @@
 #!/bin/bash
 
 init=
+debug=
 file=
-errmsg="Use --init to generate expected test outputs and --file TESTDIR to run only a specific test"
+outputfile="output"
+
+print_help () {
+    echo "Cedille Test Help"
+    echo "-i | --init            Initialize expected test outputs"
+    echo "-f | --file TESTDIR    Run/initialize only specific test"
+    echo "-d | --debug           Print debug information"
+}
 
 while [ "$1" != "" ]
 do
@@ -12,7 +20,9 @@ do
                    ;;
     -i | --init )  init="1"
                    ;;
-    * )            echo $errmsg
+    -d | --debug ) debug="1"
+                   ;;
+    * )            print_help
                    exit 1
   esac
   shift
@@ -23,22 +33,32 @@ run_test () {
     cd $1
     f=`pwd`
     cd $o
-    if [ "$2" == "" ]
+
+    if [ "$init" == "" ]
     then echo "Executing test $f"
     else echo "Generating test output for $f"
     fi
-    emacs --batch -file $f -l $f/../cedille-mode-tests.el -eval "(init-test \"$f\" \"$2\")"
-    if [ "$2" != "" ]
+
+    if [ "$debug" == "" ]
+    then emacs --batch -file $f -l $f/../cedille-mode-tests.el -eval "(cedille-test-init \"$f\" \"$init\")" 2>/dev/null
+    else emacs --batch -file $f -l $f/../cedille-mode-tests.el -eval "(cedille-test-init \"$f\" \"$init\")"
+    fi
+
+    if [ "$init" != "" ]
     then echo "Done"
     fi
 }
+
+echo "Cedille test output from `date`" > $outputfile
 
 if [ "$file" == "" ]
 then
   shopt -s nullglob
   for f in ./*.cedtest
-  do run_test $f $init
+  do run_test $f
   done
 else 
-  run_test $file $init
+  run_test $file
 fi
+
+echo "Output written to file cedille/cedille-tests/output"

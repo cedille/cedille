@@ -155,10 +155,11 @@ module main-with-options
   cede-filename = ced-aux-filename cede-suffix
   rkt-filename = ced-aux-filename rkt-suffix
 
-  maybe-write-aux-file : include-elt → (filename file-suffix : filepath) → (cedille-options.options → 𝔹) → (include-elt → 𝔹) → rope → IO ⊤
-  maybe-write-aux-file ie fn sfx f f' r with f options && ~ f' ie
+  maybe-write-aux-file : include-elt → (create-dot-ced-if-missing : IO ⊤) → (filename file-suffix : filepath) → (cedille-options.options → 𝔹) → (include-elt → 𝔹) → rope → IO ⊤
+  maybe-write-aux-file ie mk-dot-ced fn sfx f f' r with f options && ~ f' ie
   ...| ff = return triv
-  ...| tt = logMsg ("Starting writing " ^ sfx ^ " file " ^ fn) >>
+  ...| tt = mk-dot-ced >>
+            logMsg ("Starting writing " ^ sfx ^ " file " ^ fn) >>
             writeRopeToFile fn r >>
             logMsg ("Finished writing " ^ sfx ^ " file " ^ fn)
 
@@ -166,12 +167,12 @@ module main-with-options
   write-aux-files s filename with get-include-elt-if s filename
   ...| nothing = return triv
   ...| just ie =
-    createDirectoryIfMissing ff (dot-cedille-directory (takeDirectory filename)) >>
-    maybe-write-aux-file ie (cede-filename filename) cede-suffix
+    let dot-ced = createDirectoryIfMissing ff (dot-cedille-directory (takeDirectory filename)) in
+    maybe-write-aux-file ie dot-ced (cede-filename filename) cede-suffix
       cedille-options.options.use-cede-files
       include-elt.cede-up-to-date
       ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
-    maybe-write-aux-file ie (rkt-filename filename) rkt-suffix
+    maybe-write-aux-file ie dot-ced (rkt-filename filename) rkt-suffix
       cedille-options.options.make-rkt-files
       include-elt.rkt-up-to-date
       (to-rkt-file filename (toplevel-state.Γ s) ie rkt-filename)

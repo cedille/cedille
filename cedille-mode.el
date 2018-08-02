@@ -460,21 +460,20 @@ in the parse tree, and updates the Cedille info buffer."
 
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node and returns list of nodes"
-  ;(remove-overlays)
-  ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
   (cedille-mode-clear-interactive-highlight)
-  (if se-mode-selected
-      (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
-	(dolist (node matching-nodes)
-	  (let* ((data (se-term-to-json node))
-		 (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be highlighted
-		 (start (cdr (assoc 'start data)))
-		 (end (cdr (assoc 'end data)))
-		 (overlay (make-overlay start end)))
-	    (when symbol
-              (overlay-put overlay 'cedille-matching-occurrence t)
-	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
-	matching-nodes)))
+  (setq cedille-mode-matching-nodes-on t)
+  (when se-mode-selected
+    (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
+      (dolist (node matching-nodes)
+        (let* ((data (se-term-to-json node))
+               (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be highlighted
+               (start (cdr (assoc 'start data)))
+               (end (cdr (assoc 'end data)))
+               (overlay (make-overlay start end)))
+          (when symbol
+            (overlay-put overlay 'cedille-matching-occurrence t)
+            (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
+      matching-nodes)))
 
 (defun cedille-mode-highlight-occurrences-if()
   "If the option is set to highlight matching variable 
@@ -482,21 +481,19 @@ occurrences, then do so."
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defvar cedille-mode-matching-nodes nil)
+(defvar cedille-mode-matching-nodes-on cedille-mode-autohighlight-matching-variables
+  "Indicates if the user turned matching variable highlighting on or off for the specific node (toggled by typing 'H')")
 
 (defun cedille-mode-clear-interactive-highlight()
-  (remove-overlays (point-min) (point-max) 'cedille-matching-occurrence t))
+  (remove-overlays nil nil 'cedille-matching-occurrence t))
 
 (defun cedille-mode-interactive-highlight()
   "Interactive command to call cedille-mode-highlight-occurences"
   (interactive)
-  (let ((matching-nodes (cedille-mode-highlight-occurrences)))
-    (if (equal cedille-mode-matching-nodes matching-nodes)
-	(progn
-	  ;(remove-overlays)
-          ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
-          (cedille-mode-clear-interactive-highlight)
-	  (setq cedille-mode-matching-nodes nil))
-      (setq cedille-mode-matching-nodes matching-nodes))))
+  (cedille-mode-clear-interactive-highlight)
+  (setq cedille-mode-matching-nodes-on (not cedille-mode-matching-nodes-on)
+        cedille-mode-matching-nodes (when cedille-mode-matching-nodes-on
+                                      (cedille-mode-highlight-occurrences))))
 
 (defun cedille-mode-apply-tags (str tags)
   "Helper for `cedille-mode-apply-tag'"
@@ -631,18 +628,15 @@ occurrences, then do so."
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
-  ;(add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
-  (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
+  (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences t)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
   (setq-local se-inf-progress-prefix "progress: ")
-  ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
 
-  (set-input-method "Cedille")
-)
+  (set-input-method "Cedille"))
 
 (define-key cedille-mode-map (kbd "M-s") #'cedille-start-navigation)
 

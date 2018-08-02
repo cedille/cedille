@@ -1,11 +1,3 @@
 
-(cedille-mode-select-parent 1)
-(cedille-mode-select-first-child 2)
-(cedille-mode-select-next 2)
-(cedille-mode-select-first-child 1)
-(cedille-mode-select-next 1)
-(cedille-mode-select-first-child 1)
-(cedille-mode-select-next 1)
-(cedille-mode-select-first-child 1)
-(cedille-mode-select-next 1)
-(setq output (with-current-buffer (cedille-mode-context-buffer) (buffer-string)))
+(cedille-test-perform-key-events "p" "n" "n" "f" "f" "n" "f" "n" "f" "n" "f" "C")
+(setq output (buffer-string))
