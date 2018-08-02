@@ -575,6 +575,8 @@ Lam-span-erased Erased = "Erased lambda abstraction (term-level)"
 Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
 Lam-span : ctxt → checking-mode → posinfo → maybeErased → var → optClass → term → 𝕃 tagged-val → err-m → span
+Lam-span Γ c pi NotErased x (SomeClass (Tkk k)) t tvs e =
+  mk-span (Lam-span-erased NotErased) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs) (e maybe-or just "λ-terms must bind a term, not a type (use Λ instead)")
 Lam-span _ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs)
 Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data-const :: checking-data c :: tvs)

@@ -149,7 +149,8 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
   where
   process-import : optPublic → optAs → (cur imp : filepath) → maybe params → spanM err-m
   process-import op oa fnₒ fnᵢ nothing = spanMr (just "Undefined module import (this probably shouldn't happen?)")
-  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ps) = spanMr (just "Public import can't be qualified")
+  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ParamsNil) = spanMr (just "Public import can't be qualified")
+  process-import IsPublic oa fnₒ fnᵢ (just (ParamsCons _ _)) = spanMr (just "Public imports cant' have module parameters")
   process-import op oa fnₒ fnᵢ (just ps) =
     optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
     with-ctxt (toplevel-state.Γ s)
