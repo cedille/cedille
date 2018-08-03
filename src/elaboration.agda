@@ -398,9 +398,10 @@ elab-check-term Γ (Let pi d t) T =
     just (Let posinfo-gen (DefType posinfo-gen x' k' T') t)
 elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
 elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
-  elab-check-term Γ t₁ T ≫=maybe λ t₁ →
+  elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
   elab-pure-term Γ (erase-term t₂) ≫=maybe λ t₂ →
-  elab-check-term Γ t (mtpeq (erase-term t₁) t₂) ≫=maybe λ t →
+  elab-check-term Γ t₁ T ≫=maybe λ t₁ →
+  elab-check-term Γ t (mtpeq t₁' t₂) ≫=maybe λ t →
   just (Phi posinfo-gen t t₁ t₂ posinfo-gen)
 elab-check-term Γ (Rho pi op on t og t') T =
   elab-synth-term Γ t ≫=maybe uncurry λ t T' →
@@ -552,9 +553,10 @@ elab-synth-term Γ (Let pi d t) = case d of λ where
     just (Let posinfo-gen (DefType pi' x' k' T') t , subst Γ T' x' T)
 elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
 elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
-  elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T →
+  elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
   elab-pure-term Γ (erase-term t₂) ≫=maybe λ t₂ →
-  elab-check-term Γ t (mtpeq (erase-term t₁) t₂) ≫=maybe λ t →
+  elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T →
+  elab-check-term Γ t (mtpeq t₁' t₂) ≫=maybe λ t →
   just (Phi posinfo-gen t t₁ t₂ posinfo-gen , T)
 elab-synth-term Γ (Rho pi op on t og t') =
   elab-synth-term Γ t ≫=maybe uncurry λ t T →
@@ -666,7 +668,7 @@ elab-pure-term Γ (Lam pi NotErased pi' x NoClass t) =
   rename x from Γ for λ x' →
   elab-pure-term (ctxt-var-decl pi x' Γ) (rename-var Γ x x' t) ≫=maybe λ t →
   just (mlam x' t)
-elab-pure-term Γ (Let pi (DefTerm pi' x NoCheckType t) t') =
+elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
   elab-pure-term Γ t ≫=maybe λ t →
   elab-pure-term Γ (subst Γ t x t')
 elab-pure-term _ _ = nothing -- should be erased
