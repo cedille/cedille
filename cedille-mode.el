@@ -321,12 +321,45 @@ the parse tree, and updates the Cedille info buffer."
     (cedille-mode-update-buffers)
     (cedille-mode-highlight-occurrences-if)))
 
-(defun cedille-mode-select-next-alt-test(x y)
-  "Compares two spans x and y, testing whether x begins after y ends."
-  (> (se-term-start y) (se-term-end x)))
+;(defun cedille-mode-select-next-alt-test(x y)
+;  "Compares two spans x and y, testing whether x begins after y ends."
+;  (> (se-term-start y) (se-term-end x)))
 
-(defun cedille-mode-select-previous-alt-test(x y)
-  (> (se-term-start x) (se-term-end y)))
+;(defun cedille-mode-select-previous-alt-test(x y)
+;  (> (se-term-start x) (se-term-end y)))
+
+(defun cedille-mode-select-previous-alt-better (s0 s1 s2)
+  (if (< (se-term-start s0) (se-term-end s2)) s1
+    (if (or (null s1)
+            (cedille-mode-term-inside s2 s1)
+            (cedille-mode-term-before s1 s2))
+        s2 s1)))
+
+(defun cedille-mode-term-inside(in out)
+  (and (<= (se-term-start out) (se-term-start in))
+       (>= (se-term-end   out) (se-term-end   in))))
+
+(defun cedille-mode-term-before(before after)
+  (<= (se-term-end before) (se-term-start after)))
+
+(defun cedille-mode-select-next-alt-better (s0 s1 s2)
+  (if (> (se-term-end s0) (se-term-start s2)) s1
+    (if (or (null s1)
+            (cedille-mode-term-inside s2 s1)
+            (cedille-mode-term-before s2 s1))
+        s2 s1)))
+
+(defun cedille-mode-select-previous-alt-find (orig best spans)
+  (if (null spans)
+      best
+    (cedille-mode-select-previous-alt-find orig
+     (cedille-mode-select-previous-alt-better orig best (car spans)) (cdr spans))))
+
+(defun cedille-mode-select-next-alt-find (orig best spans)
+  (if (null spans)
+      best
+    (cedille-mode-select-next-alt-find orig
+     (cedille-mode-select-next-alt-better orig best (car spans)) (cdr spans))))
 
 (defun cedille-mode-select-next-alt (count)
   "Selects the next sibling of the currently selected span, if one exists.
@@ -335,10 +368,16 @@ Updates info buffer in either case"
   (interactive "p")
   (when (and (> count 0) se-mode-selected)
     (se-mode-set-spans)
-    (unless (se-mode-select (se-mode-next))
-      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test))
+    (if nil;(se-mode-select (se-mode-next))
+        (progn
+          (cedille-mode-update-buffers)
+          (cedille-mode-highlight-occurrences-if))
+      (setq found (cedille-mode-select-next-alt-find (se-mode-selected) nil se-mode-spans))
       (if found
-	  (cedille-mode-select-span found)
+          (progn
+            (se-mode-select found)
+            (cedille-mode-update-buffers)
+            (cedille-mode-highlight-occurrences-if))
 	(if cedille-mode-wrap-navigation
 	    (let ((inhibit-message t))
 	      (se-mode-select (se-mode-left-spine (car (se-mode-parse-tree))))
@@ -354,10 +393,16 @@ Updates info buffer in either case."
   (when (and (> count 0) se-mode-selected)
     (se-mode-set-spans)
     (setq continue t)
-    (unless (se-mode-select (se-mode-previous))
-      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-previous-alt-test :from-end t))
+    (if nil;(se-mode-select (se-mode-previous))
+        (progn
+          (cedille-mode-update-buffers)
+          (cedille-mode-highlight-occurrences-if))
+      (setq found (cedille-mode-select-previous-alt-find (se-mode-selected) nil se-mode-spans));(cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-previous-alt-test :from-end t))
       (if found
-	  (cedille-mode-select-span found)
+	  (progn
+            (cedille-mode-select-span found)
+            (cedille-mode-update-buffers)
+            (cedille-mode-highlight-occurrences-if))
 	(if cedille-mode-wrap-navigation
 	    (let ((inhibit-message t))
 	      (se-mode-select (se-last-span (se-mode-parse-tree)))
@@ -478,6 +523,7 @@ in the parse tree, and updates the Cedille info buffer."
 (defun cedille-mode-highlight-occurrences-if()
   "If the option is set to highlight matching variable 
 occurrences, then do so."
+  (cedille-mode-clear-interactive-highlight)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defvar cedille-mode-matching-nodes nil)
