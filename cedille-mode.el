@@ -24,6 +24,16 @@
  (defvar cedille-mode-do-update-buffers t
    "A boolean for whether `cedille-mode-update-buffers' should get called"))
 
+(defvar cedille-mode-caching nil
+  "Whether or not the backend is still writing .cede files")
+
+(defvar cedille-mode-print-caching-finished nil
+  "Whether or not to print when Cedille has finished writing .cede files")
+
+(defvar cedille-mode-progress-msg "progress stub")
+(defvar cedille-mode-status-msg "status ping")
+(defvar cedille-mode-progress-prefix "progress: ")
+
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -662,7 +672,25 @@ occurrences, then do so."
   "The function called when a progress update is received from the backend"
   (se-inf-queue-header response)
   (se-inf-next-header)
-  "progress stub")
+  cedille-mode-progress-msg)
+
+(defun cedille-mode-ask-quit ()
+  (or (not cedille-mode-caching)
+      (progn
+        (setq cedille-mode-print-caching-finished t)
+        (y-or-n-p "Cedille is still caching. Do you want to kill the process? "))))
+
+(defun cedille-mode-caching-start ()
+  "Sends a stub request to the backend and waits for a response, indicating that writing .cede files has finished"
+  (setq cedille-mode-caching t)
+  (se-inf-interactive
+   cedille-mode-status-msg
+   (lambda (&rest args)
+     (when cedille-mode-print-caching-finished
+       (message "Cedille caching finished"))
+     (setq cedille-mode-caching nil
+           cedille-mode-print-caching-finished nil))
+   nil))
 
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
@@ -672,15 +700,17 @@ occurrences, then do so."
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
+  (add-hook 'se-inf-init-spans-hook 'cedille-mode-caching-start t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences t)
+  (add-hook 'kill-emacs-query-functions 'cedille-mode-ask-quit)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
-  (setq-local se-inf-progress-prefix "progress: ")
+  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix)
 
   (set-input-method "Cedille"))
 

@@ -114,7 +114,7 @@
 (defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
   "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
   (se-inf-interactive
-   "status ping"
+   cedille-mode-status-msg
    (lambda (response extra)
       (with-current-buffer (car extra)
         (cedille-mode-br-init-buffer

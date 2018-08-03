@@ -29,14 +29,6 @@ not-right : expr-side → 𝔹
 not-right right = ff
 not-right _ = tt
 
-is-term : ∀ {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-term {TERM} _ = tt
-is-term _ = ff
-
-is-type : ∀ {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-type {TYPE} _ = tt
-is-type _ = ff
-
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
 no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
 no-parens {_} {TYPE} _ (TpEq _ t t' _) lr = tt
@@ -333,7 +325,7 @@ maybeMinus-to-string EpsHanf = "-"
 optPlus-to-string RhoPlain = ""
 optPlus-to-string RhoPlus = "+"
 optPublic-to-string NotPublic = ""
-optPublic-to-string Public = "public "
+optPublic-to-string IsPublic = "public "
 optAs-to-string NoOptAs = strEmpty
 optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
 

@@ -30,11 +30,11 @@ started with `start-process'."))
     "String prefix that determines if a response is a progress update"))
 
 ; might need to UNDO:
-(make-variable-buffer-local
- (defvar se-inf-response-hook nil
-  "Functions to be evaluated after response of `se-inf-ask',
-response given as only argument.  If `se-inf-response-is-json' is
-non-nil the response is parsed as JSON first."))
+;(make-variable-buffer-local
+; (defvar se-inf-response-hook nil
+;  "Functions to be evaluated after response of `se-inf-ask',
+;response given as only argument.  If `se-inf-response-is-json' is
+;non-nil the response is parsed as JSON first."))
 
 (make-variable-buffer-local
  (defvar se-inf-init-spans-hook nil
