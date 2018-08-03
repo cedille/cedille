@@ -275,8 +275,8 @@
   "Returns if the current span is checking"
   (when (se-mode-selected)
     (let* ((data (se-term-data (se-mode-selected)))
-           (cm (alist-get 'checking-mode data))
-           (et (alist-get 'expected-type data)))
+           (cm (cdr (assoc 'checking-mode data)))
+           (et (cdr (assoc 'expected-type data))))
     (if cm (string= "checking" cm) et))))
 
 (defun cedille-mode-br-get-qed (node)
