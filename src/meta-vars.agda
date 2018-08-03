@@ -23,12 +23,6 @@ module helpers where
     λ { (no-error x) → f x
       ; (yes-error x) → spanMr (yes-error x)}
 
-  -- functions.agda
-  infixr 0 _$'_
-  _$'_ : ∀ {a b} {A : Set a} {B : Set b}
-         → (A → B) → A → B
-  f $' x = f x
-
   -- sum.agda
   is-inj₁ : ∀ {a b} {A : Set a} {B : Set b} → A ∨ B → 𝔹
   is-inj₁ (inj₁ x) = tt
@@ -113,6 +107,15 @@ meta-var-equal? Γ (meta-var-mk name₁ sol₁ _) (meta-var-mk name₂ sol₂ _)
 meta-vars-equal? : ctxt → (Xs Ys : meta-vars) → 𝔹
 meta-vars-equal? Γ Xs Ys =
   trie-equal? (meta-var-equal? Γ) (meta-vars.varset Xs) (meta-vars.varset Ys)
+
+meta-vars-lookup : meta-vars → var → maybe meta-var
+meta-vars-lookup Xs x = trie-lookup (varset Xs) x
+
+meta-vars-lookup-kind : meta-vars → var → maybe kind
+meta-vars-lookup-kind Xs x with meta-vars-lookup Xs x
+... | nothing = nothing
+... | (just (meta-var-mk-tp _ k _ _)) = just k
+... | (just X) = nothing
 
 -- conversion to types and terms
 -- --------------------------------------------------
@@ -451,75 +454,74 @@ match-error-t A = match-error-data ∨ A
 pattern match-error e = inj₁ e
 pattern match-ok a = inj₂ a
 
-private
-  module meta-vars-match-errors where
-    -- boilerplate
-    match-error-msg = "Matching failed"
+module meta-vars-match-errors where
+  -- boilerplate
+  match-error-msg = "Matching failed"
 
-    -- tagged values for error messages
-    match-lhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
-    match-lhs = to-string-tag "expected lhs"
+  -- tagged values for error messages
+  match-lhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
+  match-lhs = to-string-tag "expected lhs"
 
-    match-rhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
-    match-rhs = to-string-tag "computed rhs"
+  match-rhs : {ed : exprd} → ctxt → ⟦ ed ⟧ → tagged-val
+  match-rhs = to-string-tag "computed rhs"
 
-    the-meta-var : var → tagged-val
-    the-meta-var x = "the meta-var" , [[ x ]] , []
+  the-meta-var : var → tagged-val
+  the-meta-var x = "the meta-var" , [[ x ]] , []
 
-    fst-snd-sol : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
-    fst-snd-sol Γ t₁ t₂ =
-      to-string-tag "first solution" Γ t₁ :: [ to-string-tag "second solution" Γ t₂ ]
+  fst-snd-sol : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
+  fst-snd-sol Γ t₁ t₂ =
+    to-string-tag "first solution" Γ t₁ :: [ to-string-tag "second solution" Γ t₂ ]
 
-    lhs-rhs : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
-    lhs-rhs Γ t₁ t₂ = match-lhs Γ t₁ :: [ match-rhs Γ t₂ ]
+  lhs-rhs : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
+  lhs-rhs Γ t₁ t₂ = match-lhs Γ t₁ :: [ match-rhs Γ t₂ ]
 
-    -- error-data
-    e-solution-ineq : ctxt → (tp₁ tp₂ : type) → var → match-error-data
-    e-solution-ineq Γ tp₁ tp₂ X =
-      match-error-msg ^ " because it produced two incovertible solutions for a meta-variable"
-      , the-meta-var X :: fst-snd-sol Γ tp₁ tp₂
+  -- error-data
+  e-solution-ineq : ctxt → (tp₁ tp₂ : type) → var → match-error-data
+  e-solution-ineq Γ tp₁ tp₂ X =
+    match-error-msg ^ " because it produced two incovertible solutions for a meta-variable"
+    , the-meta-var X :: fst-snd-sol Γ tp₁ tp₂
 
-    e-type-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
-    e-type-ineq Γ tp₁ tp₂ =
-      match-error-msg ^ " because the lhs and rhs are not equal (or because I'm not very clever)"
-      , lhs-rhs Γ tp₁ tp₂
+  e-type-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
+  e-type-ineq Γ tp₁ tp₂ =
+    match-error-msg ^ " because the lhs and rhs are not equal (or because I'm not very clever)"
+    , lhs-rhs Γ tp₁ tp₂
 
-    e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
-    e-meta-scope Γ x tp₁ tp₂ =
-      match-error-msg ^ " because a locally bound variable would escape its scope in this match"
-      , lhs-rhs Γ tp₁ tp₂ -- may be desirable to have an "escapees" tag?
+  e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
+  e-meta-scope Γ x tp₁ tp₂ =
+    match-error-msg ^ " because a locally bound variable would escape its scope in this match"
+    , lhs-rhs Γ tp₁ tp₂ -- may be desirable to have an "escapees" tag?
 
-    e-term-ineq : ctxt → (tm₁ tm₂ : term) → match-error-data
-    e-term-ineq Γ tm₁ tm₂ =
-      match-error-msg ^ " because the lhs and rhs are not convertible terms"
-      , lhs-rhs Γ tm₁ tm₂
+  e-term-ineq : ctxt → (tm₁ tm₂ : term) → match-error-data
+  e-term-ineq Γ tm₁ tm₂ =
+    match-error-msg ^ " because the lhs and rhs are not convertible terms"
+    , lhs-rhs Γ tm₁ tm₂
 
-    e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : maybeErased) → match-error-data
-    e-binder-ineq Γ tp₁ tp₂ b₁ b₂ =
-      match-error-msg ^ " because the outermost binders of the lhs and rhs are not equal"
-      , lhs-rhs Γ tp₁ tp₂
+  e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : maybeErased) → match-error-data
+  e-binder-ineq Γ tp₁ tp₂ b₁ b₂ =
+    match-error-msg ^ " because the outermost binders of the lhs and rhs are not equal"
+    , lhs-rhs Γ tp₁ tp₂
 
-    e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
-    e-arrowtype-ineq Γ tp₁ tp₂ =
-      match-error-msg ^ " because the outermost arrows of the lhs and rhs are not equal"
-      , lhs-rhs Γ tp₁ tp₂
+  e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
+  e-arrowtype-ineq Γ tp₁ tp₂ =
+    match-error-msg ^ " because the outermost arrows of the lhs and rhs are not equal"
+    , lhs-rhs Γ tp₁ tp₂
 
-    e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → match-error-data
-    e-liftingType-ineq Γ l₁ l₂ =
-      match-error-msg ^ " because the lhs and rhs are not convertible (lifted) types"
-      , (lhs-rhs Γ l₁ l₂)
+  e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → match-error-data
+  e-liftingType-ineq Γ l₁ l₂ =
+    match-error-msg ^ " because the lhs and rhs are not convertible (lifted) types"
+    , (lhs-rhs Γ l₁ l₂)
 
-    e-kind-ineq : ctxt → (k₁ k₂ : kind) → match-error-data
-    e-kind-ineq Γ k₁ k₂ =
-      match-error-msg ^ "because the lhs and rhs are not convertible kinds"
-      , lhs-rhs Γ k₁ k₂
+  e-kind-ineq : ctxt → (k₁ k₂ : kind) → match-error-data
+  e-kind-ineq Γ k₁ k₂ =
+    match-error-msg ^ "because the lhs and rhs are not convertible kinds"
+    , lhs-rhs Γ k₁ k₂
 
-    e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → match-error-data
-    e-tk-ineq Γ tk₁ tk₂ =
-      match-error-msg ^ " because one classifer is a type and the other a kind"
-      , lhs-rhs Γ tk₁ tk₂
+  e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → match-error-data
+  e-tk-ineq Γ tk₁ tk₂ =
+    match-error-msg ^ " because one classifer is a type and the other a kind"
+    , lhs-rhs Γ tk₁ tk₂
 
-  open meta-vars-match-errors
+open meta-vars-match-errors
 
 -- meta-vars-match auxiliaries
 -- --------------------------------------------------
@@ -552,6 +554,8 @@ hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else 
 
 -- meta-vars-match main definitions
 -- --------------------------------------------------
+
+-- TODO kept because elaboration depends on this implemetation
 
 {-# NON_TERMINATING #-}
 meta-vars-match : ctxt → meta-vars → local-vars → match-state → (tpₓ tp : type) → match-error-t meta-vars
