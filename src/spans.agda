@@ -772,3 +772,6 @@ Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data
 
 TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
+
+Mu-span : checking-mode → term → 𝕃 tagged-val → err-m → span
+Mu-span c t tvs = mk-span "Term Mu" (term-start-pos t) (term-end-pos t) tvs

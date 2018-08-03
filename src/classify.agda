@@ -635,6 +635,11 @@ check-termi (IotaProj t n pi) mtp =
         cont' mtp n (just tp) = get-ctxt λ Γ → cont mtp n (hnf Γ unfold-head tp tt)
                                                      -- we are looking for iotas in the bodies of rec defs
 
+check-termi (Mu pi x t ot cs pi') nothing   = spanMr nothing
+check-termi (Mu' pi t ot cs pi')  nothing   = spanMr nothing
+check-termi (Mu pi x t ot cs pi') (just tp) = spanMok 
+check-termi (Mu' pi t ot cs pi')  (just tp) = spanMok
+
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
 
 -- check-term-app

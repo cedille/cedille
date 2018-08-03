@@ -101,6 +101,10 @@ data type : Set
 {-# COMPILE GHC type = type CedilleTypes.Type  #-}
 data vars : Set
 {-# COMPILE GHC vars = type CedilleTypes.Vars  #-}
+data cases : Set
+{-# COMPILE GHC cases = type CedilleTypes.Cases  #-}
+data varargs : Set
+{-# COMPILE GHC varargs = type CedilleTypes.Varargs  #-}
 
 data arg where 
   TermArg : maybeErased → term → arg
@@ -250,9 +254,23 @@ data term where
   Rho : posinfo → optPlus → optNums → term → optGuide → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
+  Mu  : posinfo → bvar → term → optType → cases → posinfo → term
+  Mu' : posinfo → term → optType → cases → posinfo → term
   Var : posinfo → qvar → term
-{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Var) #-}    
+{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Mu' | CedilleTypes.Var) #-}
 
+data cases where
+  NoCase : cases
+  SomeCase : var → varargs → term → cases → cases
+{-# COMPILE GHC cases = data CedilleTypes.Cases (CedilleTypes.NoCase | CedilleTypes.SomeCase) #-}
+
+data varargs where
+  NoVarargs : varargs
+  NormalVararg : bvar → varargs → varargs 
+  ErasedVararg : bvar → varargs → varargs 
+  TypeVararg   : bvar → varargs → varargs 
+{-# COMPILE GHC varargs = data CedilleTypes.Varargs (CedilleTypes.NoVarargs | CedilleTypes.NormalVararg | CedilleTypes.ErasedVararg | CedilleTypes.TypeVararg ) #-}  
+  
 data theta where 
   Abstract : theta
   AbstractEq : theta

@@ -452,6 +452,8 @@ elab-check-term Γ (Theta pi θ t ts) T =
   motive x x' T T' AbstractEq = just (mtplam x' (Tkt T') (TpArrow (mtpeq t (mvar x')) Erased (rename-var Γ x x' T)))
   motive x x' T T' (AbstractVars vs) = wrap-vars vs T
 elab-check-term Γ (Var pi x) T = just (mvar x)
+elab-check-term Γ (Mu pi x t ot cs pi') T = nothing
+elab-check-term Γ (Mu' pi t ot cs pi')  T = nothing
 
 elab-synth-term Γ (App t me t') =
   elab-app-term Γ (App t me t') ≫=maybe λ where
@@ -583,6 +585,8 @@ elab-synth-term Γ (Var pi x) =
   ctxt-lookup-term-var' Γ x ≫=maybe λ T →
   elab-hnf-type Γ T tt ≫=maybe λ T →
   just (mvar x , T)
+elab-synth-term Γ (Mu pi x t ot cs pi') = nothing
+elab-synth-term Γ (Mu' pi t ot cs pi')  = nothing
 
 elab-typeh Γ (Abs pi b pi' x atk T) b' =
   elab-tkh Γ atk b' ≫=maybe λ atk →

@@ -1,0 +1,19 @@
+module a.
+
+import nat.
+
+
+plus
+  ◂ Nat ➔ Nat ➔ Nat
+  = λ n . λ m . μ  rec . n
+      { | zero ➔ m
+        | suc r ➔ suc (pl r)
+      }.
+
+
+plus2
+  ◂ Nat ➔ Nat ➔ Nat
+  = λ n . λ m . μ'  n 
+      { | zero ➔ m
+        | suc r ➔ suc (pl r)
+      } .

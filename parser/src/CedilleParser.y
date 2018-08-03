@@ -84,8 +84,10 @@ import System.Environment
   '@'        { Token $$ (TSym "@") }
   '●'        { Token $$ (TSym "●") }
   '☆'        { Token $$ (TSym "☆") }
-  '★'        { Token $$ (TSym "★") }  
-  
+  '★'        { Token $$ (TSym "★") }
+  'μ'        { Token $$ TMu   }
+  'μ\''      { Token $$ TMu'  }
+  '|'        { Token $$ TPipe      }    
 %%
   
 Start :: { Start }
@@ -226,7 +228,6 @@ LineNo :: { PosInfo }
 LineNo_1 :: { PosInfo }
          : {- empty -}                  {% getPos_1 } 
 
-
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) $2 $5                             }
@@ -234,8 +235,24 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
+     | 'μ'  Bvar '.' Term Motive '{' Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 $7 (pos2Txt1 $8)   }
+     | 'μ\'' Term Motive '{' Cases '}'  { Mu' (pos2Txt $1) $2 $3 $5 (pos2Txt1 $6)            }     
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
+
+Cases :: { Cases }
+     :                                  { NoCase                      }
+     | '|' var  Varargs '➔' Term Cases  { SomeCase (tTxt $2) $3 $5 $6 }
+
+Varargs :: { Varargs }
+     :                                  { NoVarargs                 }
+     |     Bvar  Varargs                { NormalVararg (tTxt $1) $2 }
+     | '-' Bvar  Varargs                { ErasedVararg (tTxt $2) $3 }
+     | '.' Bvar  Varargs                { TypeVararg   (tTxt $2) $3 }
+       
+Motive :: { OptType }
+     :                                  { NoType          }
+     | '@' Type                         { SomeType $2     }  
 
 Aterm :: { Term }
       : Aterm     Lterm                 { App $1 NotErased $2           }

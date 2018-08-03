@@ -142,7 +142,21 @@ data Term =
      | Rho PosInfo OptPlus OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
+     | Mu    PosInfo Bvar Term OptType Cases PosInfo
+     | Mu'   PosInfo      Term OptType Cases PosInfo     
      | Var PosInfo Qvar
+     deriving (Show,Eq)
+
+data Cases =
+       NoCase
+     | SomeCase Var Varargs Term Cases
+     deriving (Show,Eq)
+
+data Varargs =
+       NoVarargs
+     | NormalVararg Bvar Varargs
+     | ErasedVararg Bvar Varargs
+     | TypeVararg   Bvar Varargs
      deriving (Show,Eq)
      
 data Theta =

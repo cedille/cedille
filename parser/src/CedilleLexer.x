@@ -38,6 +38,9 @@ token :-
       <0> θ\+                                   { mkTokenEmpty TThetaEq      }
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
+      <0> μ                                     { mkTokenEmpty TMu           }
+      <0> μ'                                    { mkTokenEmpty TMu'          }
+      <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
       <0> module                                { mkTokenEmpty TModule       }
@@ -170,6 +173,9 @@ data TokenClass =
      |  TThetaEq
      |  TThetaVars
      |  TRho
+     |  TMu
+     |  TMu'
+     |  TPipe     
      |  TEOF
      deriving Eq
 
@@ -200,6 +206,9 @@ instance Show TokenClass where
   show (TThetaEq)    = "TThetaEq"
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
+  show (TMu)         = "TMu"
+  show (TMu')        = "TMu'"
+  show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 
 data AlexUserState = AlexUserState {
