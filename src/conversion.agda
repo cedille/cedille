@@ -164,6 +164,10 @@ hnf{TERM} Γ u (Delta pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
+hnf{TERM} Γ u (OpenType _ _ t) hd = hnf Γ u t hd
+  -- = case (ctxt-clarify-term-def Γ x) of λ where
+  --     (just Γ') → hnf Γ' u t hd
+  --     nothing → hnf Γ u t hd
 hnf{TERM} Γ u x hd = x
 
 hnf{TYPE} Γ no-unfolding e _ = e
@@ -409,11 +413,11 @@ ctxt-kind-def p v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-oc
     h _ ps = ps
 
 -- assumption: classifier (i.e. kind) already qualified
-ctxt-type-def : posinfo → defScope → varType → var → type → kind → ctxt → ctxt
-ctxt-type-def p s vt v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
+ctxt-type-def : posinfo → defScope → varType → opacity → var → type → kind → ctxt → ctxt
+ctxt-type-def p s vt op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (type-def (def-params s ps) t' k , (fn , p)))
+  (trie-insert i v' (type-def (def-params s ps) op t' k , (fn , p)))
   symb-occs
   where
   t' = hnf Γ unfold-head (qualif-type Γ t) tt
@@ -421,22 +425,22 @@ ctxt-type-def p s vt v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-
   q' = if isParamVar vt then q else qualif-insert-params q v' v ps
 
 -- assumption: classifier (i.e. type) already qualified
-ctxt-term-def : posinfo → defScope → varType → var → term → type → ctxt → ctxt
-ctxt-term-def p s vt v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
+ctxt-term-def : posinfo → defScope → varType → opacity → var → term → type → ctxt → ctxt
+ctxt-term-def p s vt op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (term-def (def-params s ps) t' tp , (fn , p)))
+  (trie-insert i v' (term-def (def-params s ps) op t' tp , (fn , p)))
   symb-occs
   where
   t' = hnf Γ unfold-head (qualif-term Γ t) tt
   v' = if isParamVar vt then v else if s iff localScope then p % v else mn # v
   q' = if isParamVar vt then q else qualif-insert-params q v' v ps
 
-ctxt-term-udef : posinfo → defScope → var → term → ctxt → ctxt
-ctxt-term-udef p s v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
+ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
+ctxt-term-udef p s op v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v ps)
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (term-udef (def-params s ps) t' , (fn , p)))
+  (trie-insert i v' (term-udef (def-params s ps) op t' , (fn , p)))
   symb-occs
   where
   t' = hnf Γ unfold-head (qualif-term Γ t) tt

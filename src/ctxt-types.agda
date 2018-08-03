@@ -46,16 +46,16 @@ data ctxt-info : Set where
   term-decl : type → ctxt-info
 
   -- for defining a variable to equal a term with a given type
-  term-def : defParams → term → type → ctxt-info
+  term-def : defParams → opacity → term → type → ctxt-info
 
   -- for untyped term definitions 
-  term-udef : defParams → term → ctxt-info
+  term-udef : defParams → opacity → term → ctxt-info
 
   -- for declaring a variable to have a given kind (with no definition)
   type-decl : kind → ctxt-info
 
   -- for defining a variable to equal a type with a given kind
-  type-def : defParams → type → kind → ctxt-info
+  type-def : defParams → opacity → type → kind → ctxt-info
 
   -- for defining a variable to equal a kind
   kind-def : params → params → kind → ctxt-info
@@ -75,8 +75,8 @@ mod-info = string × string × params × qualif
 
 is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
-is-term-level (term-def _ _ _) = tt
-is-term-level (term-udef _ _) = tt
+is-term-level (term-def _ _ _ _) = tt
+is-term-level (term-udef _ _ _) = tt
 is-term-level _ = ff
 
 data ctxt : Set where

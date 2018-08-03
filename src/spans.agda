@@ -113,23 +113,43 @@ restore-def = maybe qualif-info × maybe sym-info
 
 -- this returns the previous ctxt-info, if any, for the given variable
 spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
-spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss)
+spanM-push-term-decl pi s x t Γ ss =
+  let qi = ctxt-get-qi Γ x
+  in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss)
 
 spanM-set-params : params → spanM ⊤
 spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
+-- let bindings currently cannot be made opaque, so this is OpacTrans. -tony
 spanM-push-term-def : posinfo → varType → var → term → type → spanM restore-def
-spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope vt x t T Γ , ss)
+spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM
+ ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope vt OpacTrans x t T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
-spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
+spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope OpacTrans x t Γ , ss)
  
  -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
 spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss)
 
 spanM-push-type-def : posinfo → varType → var → type → kind → spanM restore-def
-spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope vt x t T Γ , ss)
+spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope vt OpacTrans x t T Γ , ss)
+
+-- returns the original sym-info.
+-- clarification is idempotent: if the definition was already clarified,
+-- then the operation succeeds, and returns (just sym-info).
+-- this only returns nothing in the case that the opening didnt make sense:
+-- you tried to open a term def, you tried to open an unknown def, etc...
+-- basically any situation where the def wasnt a "proper" type def
+spanM-clarify-type-def : var → spanM (maybe sym-info)
+spanM-clarify-type-def x Γ ss = returnM (result (ctxt-clarify-type-def Γ x))
+  where
+  result : maybe (sym-info × ctxt) → (maybe sym-info × ctxt × spans)
+  result (just (si , Γ')) = ( just si , Γ' , ss )
+  result nothing = ( nothing , Γ , ss )
+
+spanM-restore-clarified-type-def : var → sym-info → spanM ⊤
+spanM-restore-clarified-type-def x si Γ ss = returnM (triv , ctxt-set-sym-info Γ x si , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤

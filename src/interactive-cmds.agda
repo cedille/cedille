@@ -116,9 +116,9 @@ private
       h : (ll : language-level) → maybe (ll-lift ll) →
           ll-lift (language-level-type-of ll) → maybe ctxt
       h ll-term (just t) T =
-        just (ctxt-term-def pi localScope nonParamVar v t (qualif-type Γ T) Γ)
+        just (ctxt-term-def pi localScope nonParamVar OpacTrans v t (qualif-type Γ T) Γ)
       h ll-type (just T) k =
-        just (ctxt-type-def pi localScope nonParamVar v T (qualif-kind Γ k) Γ)
+        just (ctxt-type-def pi localScope nonParamVar OpacTrans v T (qualif-kind Γ k) Γ)
       h ll-term nothing T = just (ctxt-term-decl pi localScope v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi localScope v k Γ)
       h _ _ _ = nothing
