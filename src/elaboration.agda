@@ -782,7 +782,7 @@ elab-import ts ρ φ (Import _ op _ ifn oa as _) =
   elab-file' ts ρ φ ifn' ≫=maybe uncurry'' λ fn ts ρ φ →
   lookup-mod-params (toplevel-state.Γ ts) ifn' ≫=maybe λ ps →
   elab-args ts ρ φ (as , ps) ≫=maybe (uncurry' ∘ uncurry) λ as ps ts ρ-φ →
-  let ts = scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) ifn' oa as in
+  let ts = fst (scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) fn ifn' oa as) in
   just (Import posinfo-gen IsPublic posinfo-gen fn NoOptAs ArgsNil posinfo-gen , ts , ρ-φ)
 
 elab-imports ts ρ φ ImportsStart = just (ImportsStart , ts , ρ , φ)

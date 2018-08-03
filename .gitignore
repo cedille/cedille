@@ -1,6 +1,8 @@
 *.agdai
 *.hi
 *.o
+*.dyn_o
+*.dyn_hi
 MAlonzo
 cedille
 ial

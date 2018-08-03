@@ -8,6 +8,9 @@
 @item Tony Cantor
 opaque definitions
 
+@item Ernesto Copello
+parser, type-level let
+
 @item Larry Diehl
 module system design and implementation, phi terms
 

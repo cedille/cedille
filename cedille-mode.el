@@ -234,7 +234,8 @@ Defaults to `error'."
 	       (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
 	       (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
 	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
-	   (message "Error: must select a node"))))))
+	   (message "Error: must select a node")))
+       (cedille-mode-update-buffers))))
 	   
 (defun cedille-mode-concat-sep(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
@@ -459,8 +460,9 @@ in the parse tree, and updates the Cedille info buffer."
 
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node and returns list of nodes"
-  (remove-overlays) ;delete all existing overlays
-  (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
+  ;(remove-overlays)
+  ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
+  (cedille-mode-clear-interactive-highlight)
   (if se-mode-selected
       (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
 	(dolist (node matching-nodes)
@@ -470,6 +472,7 @@ in the parse tree, and updates the Cedille info buffer."
 		 (end (cdr (assoc 'end data)))
 		 (overlay (make-overlay start end)))
 	    (when symbol
+              (overlay-put overlay 'cedille-matching-occurrence t)
 	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
 	matching-nodes)))
 
@@ -480,14 +483,18 @@ occurrences, then do so."
 
 (defvar cedille-mode-matching-nodes nil)
 
+(defun cedille-mode-clear-interactive-highlight()
+  (remove-overlays (point-min) (point-max) 'cedille-matching-occurrence t))
+
 (defun cedille-mode-interactive-highlight()
   "Interactive command to call cedille-mode-highlight-occurences"
   (interactive)
   (let ((matching-nodes (cedille-mode-highlight-occurrences)))
     (if (equal cedille-mode-matching-nodes matching-nodes)
 	(progn
-	  (remove-overlays)
-          (cedille-mode-highlight-error-overlay cedille-mode-error-spans)
+	  ;(remove-overlays)
+          ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
+          (cedille-mode-clear-interactive-highlight)
 	  (setq cedille-mode-matching-nodes nil))
       (setq cedille-mode-matching-nodes matching-nodes))))
 
@@ -566,12 +573,12 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key mode (kbd "T") #'cedille-mode-select-last-error-in-file)
-  (se-navi-define-key mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode nil t))
-  (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) cedille-mode-context cedille-context-view-mode t t))
+  (se-navi-define-key mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
+  (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
   (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
-  (se-navi-define-key mode (kbd "m") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) cedille-mode-meta-vars cedille-meta-vars-mode nil t))
-  (se-navi-define-key mode (kbd "M") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) cedille-mode-meta-vars cedille-meta-vars-mode t t))
+  (se-navi-define-key mode (kbd "m") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode nil t))
+  (se-navi-define-key mode (kbd "M") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode t t))
   (se-navi-define-key mode (kbd "K") #'cedille-mode-restart-backend)
   (se-navi-define-key mode (kbd "h") (make-cedille-mode-info-display-page nil))
   (se-navi-define-key mode (kbd "E") #'cedille-mode-elaborate)

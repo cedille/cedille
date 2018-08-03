@@ -268,14 +268,14 @@ meta-vars-check-type-mismatch Γ s tp Xs tp'
         else just ("The expected type does not match the "
                ^ s ^ " type."))
     where tp'' = meta-vars-subst-type' ff Γ Xs tp'
-
+{-
 meta-vars-data-locale : tagged-val
 meta-vars-data-locale = "meta-var-locale" , [[]] , []
 
 meta-vars-data-locale-if : 𝔹 → 𝕃 tagged-val
 meta-vars-data-locale-if tt = [ meta-vars-data-locale ]
 meta-vars-data-locale-if ff = []
-
+-}
 {-
 meta-vars-data-locality-if : ctxt → meta-vars → 𝔹 → 𝕃 tagged-val
 meta-vars-data-locality-if Γ Xs locl? =

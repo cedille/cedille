@@ -136,13 +136,13 @@ expSZ ◂ Π n : Nat. {exp SZ n ≃ SZ} =
 expId ◂ Π n : Nat. {exp n SZ ≃ n} =
   λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
 
-{-
 eqEq ◂ Π n : Nat . Π m : Nat . { eq n m ≃ tt } ➾ { n ≃ m } =
   λ n . 
     θ<n> (NatInd n)
-      (λ m . θ<m> (NatInd m) (Λ _ . β) (λ pm . λ _ . Λ e . δ - (ς e)))
-      (λ pn : Nat . λ ih . (λ m . θ<m> (NatInd m) (Λ e . ●) (λ pm . λ _ . Λ e . ●))).
--}
+     (λ m . θ<m> (NatInd m) (Λ _ . β) (λ p . λ _ . Λ e . δ - e))
+     (λ n . λ ih . λ m .
+       θ<m> (NatInd m) (Λ e . δ - e)
+          (λ m . λ _ . Λ e . ρ (ih m -e) - β)).
 
 ----------------------------------------------------------------------
 -- theorems about less than
@@ -175,6 +175,14 @@ lt-ExS ◂ Π n : Nat . Π m : Nat . Lt n m ➾ Sigma·Nat·(λ p:Nat .{S p≃m}
     (Λ l .(lt-Z-False n -l)·(Sigma·Nat·(λ p:Nat .{S p≃Z})))
     (λ n .λ ih .Λ _ .mksigma·Nat·(λ p:Nat .{S p≃S n}) n β).
 
+Lt-Smn ◂ Π n : Nat . Π m : Nat . Lt (S n) m ➔ Lt n m =
+  λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt (S n) m ➔ Lt n m)
+    (λ m . λ l . ind-sigma·Nat·(λ m':Nat .{S m' ≃ m}) (lt-ExS (S Z) m -l) ·(λ s:Sigma·Nat·(λ m':Nat .{S m' ≃ m}) .{ lt Z m ≃ tt }) (λ m' . λ e . ρ (ς e) -(lt-Z m')))
+    (λ n .λ ih .λ m . λ lSnm . ih (pred m) lSnm).
+
+LtZS ◂ Π m : Nat . Lt m Z ➾ False =
+  λ m . θ<m> (NatInd m) (Λ u . δ - ρ<1> u - β<ff>)  (λ p . λ ih . Λ u . ih -(Lt-Smn p Z u)) .
+
 lte-Z ◂ Π n:Nat .Lte Z n=λ n:Nat .NatInd n·(λ n:Nat .Lte Z n) (in2·(Lt Z Z) · { Z ≃ Z } β) (λ n .λ _ .in1·(Lt Z (S n))·{Z≃S n} (lt-Z n)).
 
 lte-S ◂ Π n : Nat . Π m : Nat . Lte n m ➔ Lte (S n) (S m) =
@@ -189,6 +197,11 @@ Lt-S ◂ Π m : Nat . Π n : Nat. Lt m (S n) ➾ Lte m n =
 
 lt-S-eq ◂ Π m : Nat . Π n : Nat . Lt m (S n) ➾ { lt m n ≃ ff } ➔ { m ≃ n } =
   λ m .λ n .Λ l .λ e .(Lt-S m n -l).1·{m≃n} (λ l .(BoolContra -(ρ (ς l) -e))·{m≃n}) (λ e. e).
+
+lt-S-neq ◂ Π m : Nat . Π n : Nat . Lt m (S n) ➾ { eq m n ≃ ff } ➾ Lt m n =
+  λ m . θ<m> (NatInd m) (λ n . θ<n> (NatInd n) (Λ p . Λ e . δ - e) (λ _ . λ _ . Λ _ . Λ _ . β))
+             (λ m . λ ih . λ n . θ<n> (NatInd n) (Λ p . Λ _ . (LtZS m -p) · (Lt (S m) Z))
+                (λ n . λ _ . Λ p . Λ e . ih n -(lt-S-inv m (S n) p) -e)).
 
 lte-nSn ◂ Π n : Nat . Lte n (S n) = λ n : Nat . in1·(Lt n (S n))·{n≃S n} (lt-nSn n).
 
@@ -218,15 +231,6 @@ LteLte ◂ Π x : Nat . Π y : Nat . Π z : Nat . Lte x y ➔ Lte y z ➔ Lte x 
   λ x .λ y .λ z .λ lexy .λ leyz .lexy.1·(Lte x z) (λ lxy .(Lt-Lte x z (LtLte x y z lxy leyz))) (λ exy .ρ exy -leyz).
 
 Lte-refl ◂ Π n : Nat . Lte n n = λ n . in2·(Lt n n)·{n≃n} β .
-
-Lt-Smn ◂ Π n : Nat . Π m : Nat . Lt (S n) m ➔ Lt n m =
-  λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt (S n) m ➔ Lt n m)
-    (λ m . λ l . ind-sigma·Nat·(λ m':Nat .{S m' ≃ m}) (lt-ExS (S Z) m -l) ·(λ s:Sigma·Nat·(λ m':Nat .{S m' ≃ m}) .{ lt Z m ≃ tt }) (λ m' . λ e . ρ (ς e) -(lt-Z m')))
-    (λ n .λ ih .λ m . λ lSnm . ih (pred m) lSnm).
-
-LtZS ◂ Π m : Nat . Lt m Z ➾ False =
-  λ m . θ<m> (NatInd m) (Λ u . δ - ρ<1> u - β<ff>)  (λ p . λ ih . Λ u . ih -(Lt-Smn p Z u)) .
-
 
 Lt-nSm ◂ Π n : Nat . Π m : Nat . Lt n m ➔ Lt n (S m) =
   λ n . NatInd n·(λ n : Nat . Π m : Nat. Lt n m ➔ Lt n (S m))

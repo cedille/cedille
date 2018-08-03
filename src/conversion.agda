@@ -44,7 +44,7 @@ unfold-head : unfolding
 unfold-head = unfold ff tt ff tt
 
 unfold-head-no-lift : unfolding
-unfold-head-no-lift = unfold ff ff ff tt
+unfold-head-no-lift = unfold ff ff ff ff
 
 unfold-head-one : unfolding
 unfold-head-one = unfold ff tt tt tt
