@@ -11,7 +11,7 @@ options' = record options
 open import general-util
 open import monad-instances
 open import cedille-types
-open import classify options {id}
+open import classify options' {id}
 open import ctxt
 open import constants
 open import conversion
@@ -24,7 +24,7 @@ open import toplevel-state options {IO}
 open import to-string options'
 open import rename
 open import rewriting
-
+import spans options' {id} as id-spans
 
 private
   
@@ -707,9 +707,12 @@ elab-app-term Γ (App t m t') =
              ret t' (cod t') Xs
         tt → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
              elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
-             case meta-vars-match Γ Xs empty-trie match-state-toplevel Tₐ Tₐ' of λ where
+             case fst (match-types Xs empty-trie match-unfolding-both Tₐ Tₐ' Γ id-spans.empty-spans) of λ where
                (match-error _) → nothing
                (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
+             {-case meta-vars-match Γ Xs empty-trie match-state-toplevel Tₐ Tₐ' of λ where
+               (match-error _) → nothing
+               (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))-}
 
 elab-app-term Γ (AppTp t T) =
   elab-type Γ T ≫=maybe uncurry λ T _ →
