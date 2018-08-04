@@ -33,6 +33,7 @@
 (defvar cedille-mode-progress-msg "progress stub")
 (defvar cedille-mode-status-msg "status ping")
 (defvar cedille-mode-progress-prefix "progress: ")
+(defvar cedille-mode-caching-header "Caching")
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))

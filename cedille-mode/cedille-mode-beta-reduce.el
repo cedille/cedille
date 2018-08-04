@@ -124,7 +124,7 @@
          (cadr (cdddr extra))) ; caddddr not defined :(
         nil))
    (list (current-buffer) str context checking qed)
-   :header "Caching"))
+   :header cedille-mode-caching-header))
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"

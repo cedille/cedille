@@ -19,9 +19,9 @@
 
 (defface cedille-error-face-df	       
    '((((background light))
-      (:foreground unspecified :underline t :weight bold :slant italic))
+      (:foreground unspecified :underline t :weight bold))
      (((background dark))
-      (:foreground unspecified :underline t :weight bold :slant italic)))
+      (:foreground unspecified :underline t :weight bold)))
    "The face used for errors."
    :group 'cedille-highlight-faces-default)
 
