@@ -6,6 +6,23 @@
   "List of (name . meta-var)")
 
 
+(defgroup cedille-meta-vars nil
+  "Meta-Vars options for Cedille"
+  :group 'cedille)
+
+(defface cedille-meta-vars-head-face
+  '((((background light)) (:slant italic))
+    (((background dark)) (:slant italic)))
+  "The face used for the head in a meta-vars locale"
+  :group 'cedille-meta-vars)
+
+(defface cedille-meta-vars-args-face
+  '((((background light)) (:box (:line-width -1)))
+    (((background dark)) (:box (:line-width -1))))
+  "The face used for the arguments in a meta-vars locale"
+  :group 'cedille-meta-vars)
+
+
 (defun cedille-mode-meta-vars-continue-computation (node &optional allow-locale)
   "Returns t if you should keep computing meta variables in the first child of NODE"
   (when node

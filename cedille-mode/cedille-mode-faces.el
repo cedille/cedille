@@ -188,20 +188,6 @@
   :group 'cedille-highlight-faces-checking-mode)
 
 
-;; ------------------------------------------------------
-;; meta-vars faces
-;; ------------------------------------------------------
-
-(defface cedille-meta-vars-head-face
-  '((((background light)) (:slant italic))
-    (((background dark)) (:slant italic)))
-  "The face used for the head in a meta-vars locale")
-
-(defface cedille-meta-vars-args-face
-  '((((background light)) (:box (:line-width -1)))
-    (((background dark)) (:box (:line-width -1))))
-  "The face used for the arguments in a meta-vars locale")
-
 ;; '((quality . ((value . face)...))...)
 
 ;; quality           (list of values)
