@@ -710,9 +710,6 @@ elab-app-term Γ (App t m t') =
              case fst (match-types Xs empty-trie match-unfolding-both Tₐ Tₐ' Γ id-spans.empty-spans) of λ where
                (match-error _) → nothing
                (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
-             {-case meta-vars-match Γ Xs empty-trie match-state-toplevel Tₐ Tₐ' of λ where
-               (match-error _) → nothing
-               (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))-}
 
 elab-app-term Γ (AppTp t T) =
   elab-type Γ T ≫=maybe uncurry λ T _ →

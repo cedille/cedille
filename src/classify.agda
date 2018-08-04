@@ -106,10 +106,6 @@ lambda-bound-class-if (SomeClass atk') atk = atk'
 {- for check-term and check-type, if the optional classifier is given, we will check against it.
    Otherwise, we will try to synthesize a type.  
 
-   check-termi does not have to worry about normalizing the type it is given or the one it
-   produces, nor about instantiating with the subject.  This will be handled by interleaved 
-   calls to check-term.
-
    check-type should return kinds in hnf using check-type-return.
 
    Use add-tk above to add declarations to the ctxt, since these should be normalized

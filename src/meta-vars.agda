@@ -555,7 +555,9 @@ hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else 
 -- meta-vars-match main definitions
 -- --------------------------------------------------
 
+{-
 -- TODO kept because elaboration depends on this implemetation
+-- ^^^^ Not necessary any more, elaboration can use classify's match-types
 
 {-# NON_TERMINATING #-}
 meta-vars-match : ctxt → meta-vars → local-vars → match-state → (tpₓ tp : type) → match-error-t meta-vars
@@ -693,7 +695,7 @@ meta-vars-match-tk Γ Xs Ls state (Tkt tpₓ) (Tkt tp)
 
 meta-vars-match-tk Γ Xs Ls state tkₓ tk
   = match-error (e-tk-ineq Γ tkₓ tk)
-
+-}
 -- meta-vars-match-optType
 {-meta-vars-match-optType Γ Xs Ls NoType NoType
   = match-ok Xs

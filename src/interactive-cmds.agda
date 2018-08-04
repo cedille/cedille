@@ -43,6 +43,13 @@ private
     ll-disambiguate (ctxt-tk-decl pi' localScope x atk Γ) t ≫=maybe λ T →
     just (TpLambda pi pi' x atk T)
   ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
+  ll-disambiguate Γ (Let pi d t) =
+    ll-disambiguate (Γ' d) t ≫=maybe λ T → just (TpLet pi d T)
+    where
+    Γ' : defTermOrType → ctxt
+    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope nonParamVar x t T Γ
+    Γ' (DefTerm pi' x NoType t) = ctxt-term-udef pi' localScope x t Γ
+    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope nonParamVar x T k Γ
   ll-disambiguate Γ t = nothing
   
   parse-string : (ll : language-level) → string → maybe (ll-lift ll)
