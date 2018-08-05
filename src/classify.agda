@@ -653,7 +653,7 @@ error-inapplicable-to-tm : ∀ {A} (t₁ t₂ : term) → (htp : type)
 error-inapplicable-to-tm t₁ t₂ htp Xs m e? =
     get-ctxt λ Γ →
     spanM-add (App-span tt t₁ t₂ m
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp) ++ meta-vars-data-all Γ Xs)
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
       (just ("The type of the head does not allow the head to be applied to "
              ^ h e? ^ " argument")))
   ≫span spanMr nothing
@@ -666,7 +666,7 @@ error-inapplicable-to-tp : ∀ {A} → term → (htp tp : type) → meta-vars �
 error-inapplicable-to-tp t htp tp Xs m =
     get-ctxt λ Γ →
     spanM-add (AppTp-span tt t tp synthesizing
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp) ++ meta-vars-data-all Γ Xs)
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
       (just "The type of the head does not allow the head to be applied to a type argument"))
   ≫span spanMr nothing
 
@@ -691,23 +691,15 @@ error-unmatchable-tps : ∀ {A} (t₁ t₂ : term) (tpₓ tp : type)
 error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg tvs =
     get-ctxt λ Γ → spanM-add (App-span tt t₁ t₂ m
       (arg-exp-type Γ tpₓ :: arg-type Γ tp
-        :: tvs ++ meta-vars-data Γ (meta-vars-in-type Xs tpₓ) ++ meta-vars-data-all Γ Xs)
+        :: tvs ++ meta-vars-data-all Γ Xs)
       (just msg))
   ≫span spanMr nothing
 
 error-unsolved-meta-vars : ∀ {A} → term → type → meta-vars → checking-mode → spanM (maybe A)
 error-unsolved-meta-vars t tp Xs m =
     get-ctxt λ Γ → spanM-add (App-span tt t t m
-      (type-data Γ tp :: meta-vars-data-gen "unsolved meta vars" Γ (meta-vars-unsolved Xs) ++ meta-vars-data-all Γ Xs)
+      (type-data Γ tp :: meta-vars-data-all Γ Xs)
       (just "There are unsolved meta-variables in this maximal application"))
-  ≫span spanMr nothing
-
-error-bad-meta-var-sols : ∀ {A} → (t₁ t₂ : term) → (tpₓ tp : type)
-                          → meta-vars → checking-mode → error-span → spanM (maybe A)
-error-bad-meta-var-sols t₁ t₂ tpₓ tp Xs m (mk-error-span dsc _ _ tvs err) =
-    get-ctxt λ Γ → spanM-add (App-span tt t₁ t₂ m
-      (meta-vars-data Γ Xs ++ meta-vars-data-all Γ Xs ++ tvs)
-      (just err))
   ≫span spanMr nothing
 
 -- meta-variable locality
