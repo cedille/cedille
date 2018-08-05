@@ -733,7 +733,7 @@ check-spine-locality Γ Xs tp max locl =
 data check-term-app-ret : Set where
   check-term-app-return : (Xs : meta-vars) (atp rtp : type) (arg-mode : checking-mode) → check-term-app-ret
 
-check-term-app : meta-vars → (t₁ t₂ : term) → arrow* → (mtp : maybe type)
+check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → arrow* → (mtp : maybe type)
                  → spanM (maybe check-term-app-ret)
 
 check-term-spine t'@(App t₁ e? t₂) mtp max =
@@ -750,7 +750,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
     if ~ eq-maybeErased e? (arrow*-get-e? arr)
       then error-inapplicable-to-erasure t₁ t₂ htp Xs mode e?
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs t₁ t₂ arr mtp
+    else check-term-app Xs [] t₁ t₂ arr mtp
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
@@ -807,30 +807,31 @@ check-term-spine t mtp max =
     let locl = num-arrows-in-type Γ htp in
     check-term-spine-return Γ meta-vars-empty htp locl
 
-check-term-app Xs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp =
+check-term-app Xs Zs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp =
   -- with CTAI we'll do something more interesting
-  check-term-app (meta-vars-add Xs Y) t₁ t₂ (mk-arrow* Ys tp dom e cod) mtp
-check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
+  check-term-app Xs (Y :: Zs) t₁ t₂ (mk-arrow* Ys tp dom e cod) mtp
+check-term-app Xs Zs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
+  let Xs' = meta-vars-add* Xs Zs in
   get-ctxt λ Γ → let cod = cod ∘ qualif-term Γ in
-  if ~ meta-vars-are-free-in-type Xs dom
+  if ~ meta-vars-are-free-in-type Xs' dom
     -- check t₂ against a fully-known type
     then   check-term t₂ (just dom)
-         ≫span spanMr (just (check-term-app-return Xs dom (cod t₂) checking))
+         ≫span spanMr (just (check-term-app-return Xs' dom (cod t₂) checking))
     else (
-    -- 1) synthesize a type for the applicand
+    -- 1) synthesize a type for the argument
       check-termi t₂ nothing
-       on-fail
-           spanM-add (App-span tt t₁ t₂ mode
-             (head-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tp))
-             nothing)
+       on-fail spanM-add
+         (App-span tt t₁ t₂ mode
+           (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
          ≫span spanMr nothing
     -- 2) match synthesized type with expected (partial) type
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-            match-types Xs empty-trie match-unfolding-both dom atp
+            match-types Xs' empty-trie match-unfolding-both dom atp
           ≫=span λ where
-            (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
+            (match-error (msg , tvs)) →
+              error-unmatchable-tps t₁ t₂ dom atp Xs' mode msg tvs
             (match-ok Xs) → spanMr ∘ just $'
               check-term-app-return Xs atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)
 
