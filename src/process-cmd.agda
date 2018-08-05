@@ -143,13 +143,14 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
       ≫span spanMr (set-include-elt s fnₒ (record ie {err = tt}))
     (just fnᵢ) Γ ss →
       process-file s fnᵢ x ≫=monad uncurry λ s _ →
-        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args Γ as) in
+        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args (toplevel-state.Γ s) as) in
          process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) ≫=span λ e →
          spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
   where
   process-import : optPublic → optAs → (cur imp : filepath) → maybe params → spanM err-m
   process-import op oa fnₒ fnᵢ nothing = spanMr (just "Undefined module import (this probably shouldn't happen?)")
-  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ps) = spanMr (just "Public import can't be qualified")
+  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ParamsNil) = spanMr (just "Public import can't be qualified")
+  process-import IsPublic oa fnₒ fnᵢ (just (ParamsCons _ _)) = spanMr (just "Public imports cant' have module parameters")
   process-import op oa fnₒ fnᵢ (just ps) =
     optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
     with-ctxt (toplevel-state.Γ s)

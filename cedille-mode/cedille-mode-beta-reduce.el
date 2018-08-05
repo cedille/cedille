@@ -114,7 +114,7 @@
 (defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
   "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
   (se-inf-interactive
-   "status ping"
+   cedille-mode-status-msg
    (lambda (response extra)
       (with-current-buffer (car extra)
         (cedille-mode-br-init-buffer
@@ -124,7 +124,7 @@
          (cadr (cdddr extra))) ; caddddr not defined :(
         nil))
    (list (current-buffer) str context checking qed)
-   :header "Caching"))
+   :header cedille-mode-caching-header))
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
@@ -247,7 +247,8 @@
   (interactive)
   (if (not (se-mode-selected))
       (message "Error: must select a node")
-    (let* ((span (se-mode-selected))
+    (let* ((cedille-mode-br-original-filename (buffer-file-name))
+           (span (se-mode-selected))
            (type (or (cdr (assoc 'expected-type (se-term-data span)))
                      (cdr (assoc 'type (se-term-data span))))))
       (if type
@@ -275,8 +276,8 @@
   "Returns if the current span is checking"
   (when (se-mode-selected)
     (let* ((data (se-term-data (se-mode-selected)))
-           (cm (alist-get 'checking-mode data))
-           (et (alist-get 'expected-type data)))
+           (cm (cdr (assoc 'checking-mode data)))
+           (et (cdr (assoc 'expected-type data))))
     (if cm (string= "checking" cm) et))))
 
 (defun cedille-mode-br-get-qed (node)

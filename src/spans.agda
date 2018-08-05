@@ -113,23 +113,23 @@ restore-def = maybe qualif-info × maybe sym-info
 
 -- this returns the previous ctxt-info, if any, for the given variable
 spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
-spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-decl pi s x t Γ , ss)
+spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-decl pi s x t Γ , ss)
 
 spanM-set-params : params → spanM ⊤
 spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
 spanM-push-term-def : posinfo → varType → var → term → type → spanM restore-def
-spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-def pi localScope vt x t T Γ , ss)
+spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-def pi localScope vt x t T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
-spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
+spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
  
  -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
-spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-decl pi s x k Γ , ss)
+spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-decl pi s x k Γ , ss)
 
 spanM-push-type-def : posinfo → varType → var → type → kind → spanM restore-def
-spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , ctxt-get-info (qi-var-if qi x) Γ) , ctxt-type-def pi localScope vt x t T Γ , ss)
+spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope vt x t T Γ , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤
@@ -167,6 +167,11 @@ _≫=spanm_{A} m m' = m ≫=span cont
   where cont : maybe A → spanM (maybe A)
         cont nothing = spanMr nothing
         cont (just a) = m' a
+
+_≫=spans'_ : ∀ {A B E : Set} → spanM (E ∨ A) → (A → spanM (E ∨ B)) → spanM (E ∨ B)
+_≫=spans'_ m f = m ≫=span λ where
+  (inj₁ e) → spanMr (inj₁ e)
+  (inj₂ a) → f a
 
 _≫=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
 _≫=spanm'_{A}{B} m m' = m ≫=span cont
@@ -258,6 +263,11 @@ to-string-tag-tk t Γ (Tkk k) = to-string-tag t Γ k
 location-data : location → tagged-val
 location-data (file-name , pi) = "location" , [[ file-name ]] ⊹⊹ [[ " - " ]] ⊹⊹ [[ pi ]] , []
 
+var-location-data : ctxt → var → tagged-val
+var-location-data Γ @ (mk-ctxt _ _ i _) x =
+  location-data (maybe-else ("missing" , "missing") snd
+    (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
+{-
 {-# TERMINATING #-}
 var-location-data : ctxt → var → maybe language-level → tagged-val
 var-location-data Γ x (just ll-term) with ctxt-var-location Γ x | qualif-term Γ (Var posinfo-gen x)
@@ -274,7 +284,7 @@ var-location-data Γ x nothing with ctxt-lookup-term-var Γ x | ctxt-lookup-type
 ...| _ | just _ | _ = var-location-data Γ x (just ll-type)
 ...| _ | _ | just _ = var-location-data Γ x (just ll-kind)
 ...| _ | _ | _ = location-data ("missing" , "missing")
-
+-}
 explain : string → tagged-val
 explain s = "explanation" , [[ s ]] , []
 
@@ -481,15 +491,15 @@ Decl-span dc pi v atk pi' = mk-span ((if tk-is-type atk then "Term " else "Type 
                                       pi pi' [ binder-data-const ] nothing
 
 TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
-TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-type :: var-location-data Γ v (just ll-type) :: symbol-data (unqual-local v) :: tvs)
+TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
-Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v (just ll-term) :: symbol-data (unqual-local v) :: tvs)
+Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
 
 KndVar-span : ctxt → (posinfo × var) → (end-pi : posinfo) → params → checking-mode → 𝕃 tagged-val → err-m → span
 KndVar-span Γ (pi , v) pi' ps check tvs =
   mk-span "Kind variable" pi pi'
-    (checking-data check :: ll-data-kind :: var-location-data Γ v (just ll-kind) :: symbol-data (unqual-local v) :: super-kind-data :: (params-data Γ ps ++ tvs))
+    (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data (unqual-local v) :: super-kind-data :: (params-data Γ ps ++ tvs))
 
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-var ff :: [ kind-data Γ k ])
@@ -497,7 +507,7 @@ var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data-var e :
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
-                             [ var-location-data Γ x nothing ] (just "This symbol was defined already.")
+                             [ var-location-data Γ x ] (just "This symbol was defined already.")
 
 TpAppt-span : type → term → checking-mode → 𝕃 tagged-val → err-m → span
 TpAppt-span tp t check tvs = mk-span "Application of a type to a term" (type-start-pos tp) (term-end-pos t) (checking-data check :: ll-data-type :: tvs)
@@ -575,6 +585,8 @@ Lam-span-erased Erased = "Erased lambda abstraction (term-level)"
 Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
 Lam-span : ctxt → checking-mode → posinfo → maybeErased → var → optClass → term → 𝕃 tagged-val → err-m → span
+Lam-span Γ c pi NotErased x (SomeClass (Tkk k)) t tvs e =
+  mk-span (Lam-span-erased NotErased) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs) (e maybe-or just "λ-terms must bind a term, not a type (use Λ instead)")
 Lam-span _ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data-const :: checking-data c :: tvs)
 Lam-span Γ c pi l x (SomeClass atk) t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data-const :: checking-data c :: tvs)

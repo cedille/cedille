@@ -10,11 +10,11 @@ open import rename
 open import general-util
 
 drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-drop-mod-args Γ me ((pi , v) , as) = (pi , qv) , if (v =string qv)
+drop-mod-args Γ me ((pi , v) , as) = (pi , v) , if (v =string qv)
   then as else maybe-else as
   (λ n → reverse (drop n (reverse as))) mn
   where
-  qv = unqual-all (ctxt-get-qualif Γ) v
+  qv = unqual-local (unqual-all (ctxt-get-qualif Γ) v)
   mn = ctxt-qualif-args-length Γ me qv
 
 data expr-side : Set where
@@ -28,14 +28,6 @@ not-left _ = tt
 not-right : expr-side → 𝔹
 not-right right = ff
 not-right _ = tt
-
-is-term : ∀ {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-term {TERM} _ = tt
-is-term _ = ff
-
-is-type : ∀ {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-type {TYPE} _ = tt
-is-type _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
 no-parens {_} {TERM} _ (IotaPair pi t t' og pi') lr = tt
@@ -122,7 +114,7 @@ _≫str_ : strM → strM → strM
 (m ≫str m') s n ts Γ pe lr | s' , n' , ts' = m' s' n' ts' Γ pe lr
 
 strAdd : string → strM
-strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + (string-length s) , ts
+strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
 strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
 strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
@@ -339,7 +331,7 @@ maybeMinus-to-string EpsHanf = "-"
 optPlus-to-string RhoPlain = ""
 optPlus-to-string RhoPlus = "+"
 optPublic-to-string NotPublic = ""
-optPublic-to-string Public = "public "
+optPublic-to-string IsPublic = "public "
 optAs-to-string NoOptAs = strEmpty
 optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
 

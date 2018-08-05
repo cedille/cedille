@@ -19,9 +19,9 @@
 
 (defface cedille-error-face-df	       
    '((((background light))
-      (:foreground unspecified :underline t :weight bold :slant italic))
+      (:foreground unspecified :underline t :weight bold))
      (((background dark))
-      (:foreground unspecified :underline t :weight bold :slant italic)))
+      (:foreground unspecified :underline t :weight bold)))
    "The face used for errors."
    :group 'cedille-highlight-faces-default)
 
@@ -187,20 +187,6 @@
   "The face used for synthesizing mode."
   :group 'cedille-highlight-faces-checking-mode)
 
-
-;; ------------------------------------------------------
-;; meta-vars faces
-;; ------------------------------------------------------
-
-(defface cedille-meta-vars-head-face
-  '((((background light)) (:slant italic))
-    (((background dark)) (:slant italic)))
-  "The face used for the head in a meta-vars locale")
-
-(defface cedille-meta-vars-args-face
-  '((((background light)) (:box (:line-width -1)))
-    (((background dark)) (:box (:line-width -1))))
-  "The face used for the arguments in a meta-vars locale")
 
 ;; '((quality . ((value . face)...))...)
 

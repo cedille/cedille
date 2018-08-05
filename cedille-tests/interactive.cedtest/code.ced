@@ -1,0 +1,3 @@
+module code.
+
+A ◂ ∀ X : ★. X ➔ (X ➔ X) ➔ (X ➔ X ➔ X) ➔ X = Λ X. λ a. λ b. λ c. c (b (c a a)) (b (b a)).
