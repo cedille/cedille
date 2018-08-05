@@ -247,7 +247,8 @@
   (interactive)
   (if (not (se-mode-selected))
       (message "Error: must select a node")
-    (let* ((span (se-mode-selected))
+    (let* ((cedille-mode-br-original-filename (buffer-file-name))
+           (span (se-mode-selected))
            (type (or (cdr (assoc 'expected-type (se-term-data span)))
                      (cdr (assoc 'type (se-term-data span))))))
       (if type

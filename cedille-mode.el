@@ -681,9 +681,8 @@ occurrences, then do so."
         (setq cedille-mode-print-caching-finished t)
         (y-or-n-p "Cedille is still caching. Do you want to kill the process? "))))
 
-(defun cedille-mode-caching-start ()
+(defun cedille-mode-caching-start (&rest args)
   "Sends a stub request to the backend and waits for a response, indicating that writing .cede files has finished"
-  (setq cedille-mode-caching t)
   (se-inf-interactive
    cedille-mode-status-msg
    (lambda (&rest args)
@@ -691,7 +690,13 @@ occurrences, then do so."
        (message "Cedille caching finished"))
      (setq cedille-mode-caching nil
            cedille-mode-print-caching-finished nil))
-   nil))
+   nil)
+  (setq cedille-mode-caching t))
+
+(defun cedille-mode-caching-hook ()
+  "Hook run before an interactive request that checks if the backend is caching"
+  (when cedille-mode-caching
+    (se-inf-queue-header cedille-mode-caching-header)))
 
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
@@ -701,17 +706,18 @@ occurrences, then do so."
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
-  (add-hook 'se-inf-init-spans-hook 'cedille-mode-caching-start t)
+  (add-hook 'se-inf-post-parse-hook 'cedille-mode-caching-start t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
+  (add-hook 'se-inf-pre-interactive-hook 'cedille-mode-caching-hook)
   (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences t)
   (add-hook 'kill-emacs-query-functions 'cedille-mode-ask-quit)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
-  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix)
+  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix) 
 
   (set-input-method "Cedille"))
 

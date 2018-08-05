@@ -143,7 +143,7 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
       ≫span spanMr (set-include-elt s fnₒ (record ie {err = tt}))
     (just fnᵢ) Γ ss →
       process-file s fnᵢ x ≫=monad uncurry λ s _ →
-        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args Γ as) in
+        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args (toplevel-state.Γ s) as) in
          process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) ≫=span λ e →
          spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
   where

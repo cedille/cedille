@@ -70,6 +70,10 @@ to be sent to the backend to request parsing of that file."))
    "Functions to be evaluated after an interactive response has finished"))
 
 (make-variable-buffer-local
+ (defvar se-inf-pre-interactive-hook nil
+   "Functions to be evaluated before an interactive request is sent"))
+
+(make-variable-buffer-local
  (defvar se-inf-response-is-json t
    "Non-nil if `se-inf-process' should return JSON.  See
 `se-inf-post-parse-hook'."))
@@ -134,8 +138,9 @@ will kill the process, should be skipped if process is shared."
 		 (span (funcall q-str-or-fn extra span))
 		 (t (funcall q-str-or-fn extra))))
 	 (q (concat (se-inf-escape-string q-str) "\n"))
-	 (data (list q-str-or-fn response-fn progress-fn span extra restore (buffer-name))))
+	 (data (list q-str-or-fn response-fn progress-fn span extra restore (buffer-name) header)))
     (setq se-inf-interactive-running t)
+    (run-hooks 'se-inf-pre-interactive-hook)
     (se-inf-queue-header header)
     (tq-enqueue se-inf-queue q "\n" data #'se-inf-interactive-response)))
   ;(setq se-inf-int-time (current-time)))
@@ -177,7 +182,8 @@ RESTORE, if non-nil, will make this call get recomputed during batch processing.
 	(span (nth 3 data))
 	(extra (nth 4 data))
 	(restore (nth 5 data))
-	(buffer (nth 6 data)))
+	(buffer (nth 6 data))
+        (header (nth 7 data)))
     (with-current-buffer buffer
       (let* ((response (funcall se-inf-modify-response (se-inf-undo-escape-string response)))
              (pair (lambda (response-fn response)
@@ -459,9 +465,9 @@ hourglass feature."
   (if (string= str "")
       (setq se-inf-header-queue (append se-inf-header-queue (list "")))
     (let ((str (concat " " str " ")))
-      (setq se-inf-header-queue (append se-inf-header-queue (se-inf-string-to-header str)))
-      (when (and (null header-line-format) (equal 1 (length se-inf-header-queue)))
-	(se-inf-next-header)))))
+      (setq se-inf-header-queue (append se-inf-header-queue (se-inf-string-to-header str)))))
+  (when (and (null header-line-format) (equal 1 (length se-inf-header-queue)))
+    (se-inf-next-header)))
 
 (defun se-inf-next-header ()
   "If `header-line-format' is nil, then sets it to be the first element from `se-inf-header-queue', which gets popped"
