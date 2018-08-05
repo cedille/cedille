@@ -653,7 +653,7 @@ error-inapplicable-to-tm : ∀ {A} (t₁ t₂ : term) → (htp : type)
 error-inapplicable-to-tm t₁ t₂ htp Xs m e? =
     get-ctxt λ Γ →
     spanM-add (App-span tt t₁ t₂ m
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp) ++ meta-vars-data-all Γ Xs)
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
       (just ("The type of the head does not allow the head to be applied to "
              ^ h e? ^ " argument")))
   ≫span spanMr nothing
@@ -666,7 +666,7 @@ error-inapplicable-to-tp : ∀ {A} → term → (htp tp : type) → meta-vars �
 error-inapplicable-to-tp t htp tp Xs m =
     get-ctxt λ Γ →
     spanM-add (AppTp-span tt t tp synthesizing
-      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data Γ (meta-vars-in-type Xs htp) ++ meta-vars-data-all Γ Xs)
+      (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
       (just "The type of the head does not allow the head to be applied to a type argument"))
   ≫span spanMr nothing
 
@@ -691,23 +691,15 @@ error-unmatchable-tps : ∀ {A} (t₁ t₂ : term) (tpₓ tp : type)
 error-unmatchable-tps t₁ t₂ tpₓ tp Xs m msg tvs =
     get-ctxt λ Γ → spanM-add (App-span tt t₁ t₂ m
       (arg-exp-type Γ tpₓ :: arg-type Γ tp
-        :: tvs ++ meta-vars-data Γ (meta-vars-in-type Xs tpₓ) ++ meta-vars-data-all Γ Xs)
+        :: tvs ++ meta-vars-data-all Γ Xs)
       (just msg))
   ≫span spanMr nothing
 
 error-unsolved-meta-vars : ∀ {A} → term → type → meta-vars → checking-mode → spanM (maybe A)
 error-unsolved-meta-vars t tp Xs m =
     get-ctxt λ Γ → spanM-add (App-span tt t t m
-      (type-data Γ tp :: meta-vars-data-gen "unsolved meta vars" Γ (meta-vars-unsolved Xs) ++ meta-vars-data-all Γ Xs)
+      (type-data Γ tp :: meta-vars-data-all Γ Xs)
       (just "There are unsolved meta-variables in this maximal application"))
-  ≫span spanMr nothing
-
-error-bad-meta-var-sols : ∀ {A} → (t₁ t₂ : term) → (tpₓ tp : type)
-                          → meta-vars → checking-mode → error-span → spanM (maybe A)
-error-bad-meta-var-sols t₁ t₂ tpₓ tp Xs m (mk-error-span dsc _ _ tvs err) =
-    get-ctxt λ Γ → spanM-add (App-span tt t₁ t₂ m
-      (meta-vars-data Γ Xs ++ meta-vars-data-all Γ Xs ++ tvs)
-      (just err))
   ≫span spanMr nothing
 
 -- meta-variable locality
@@ -733,7 +725,7 @@ check-spine-locality Γ Xs tp max locl =
 data check-term-app-ret : Set where
   check-term-app-return : (Xs : meta-vars) (atp rtp : type) (arg-mode : checking-mode) → check-term-app-ret
 
-check-term-app : meta-vars → (t₁ t₂ : term) → arrow* → (mtp : maybe type)
+check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → arrow* → (mtp : maybe type)
                  → spanM (maybe check-term-app-ret)
 
 check-term-spine t'@(App t₁ e? t₂) mtp max =
@@ -750,7 +742,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
     if ~ eq-maybeErased e? (arrow*-get-e? arr)
       then error-inapplicable-to-erasure t₁ t₂ htp Xs mode e?
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs t₁ t₂ arr mtp
+    else check-term-app Xs [] t₁ t₂ arr mtp
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
@@ -807,30 +799,31 @@ check-term-spine t mtp max =
     let locl = num-arrows-in-type Γ htp in
     check-term-spine-return Γ meta-vars-empty htp locl
 
-check-term-app Xs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp =
+check-term-app Xs Zs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp =
   -- with CTAI we'll do something more interesting
-  check-term-app (meta-vars-add Xs Y) t₁ t₂ (mk-arrow* Ys tp dom e cod) mtp
-check-term-app Xs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
+  check-term-app Xs (Y :: Zs) t₁ t₂ (mk-arrow* Ys tp dom e cod) mtp
+check-term-app Xs Zs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp =
+  let Xs' = meta-vars-add* Xs Zs in
   get-ctxt λ Γ → let cod = cod ∘ qualif-term Γ in
-  if ~ meta-vars-are-free-in-type Xs dom
+  if ~ meta-vars-are-free-in-type Xs' dom
     -- check t₂ against a fully-known type
     then   check-term t₂ (just dom)
-         ≫span spanMr (just (check-term-app-return Xs dom (cod t₂) checking))
+         ≫span spanMr (just (check-term-app-return Xs' dom (cod t₂) checking))
     else (
-    -- 1) synthesize a type for the applicand
+    -- 1) synthesize a type for the argument
       check-termi t₂ nothing
-       on-fail
-           spanM-add (App-span tt t₁ t₂ mode
-             (head-type Γ tp :: meta-vars-data Γ (meta-vars-in-type Xs tp))
-             nothing)
+       on-fail spanM-add
+         (App-span tt t₁ t₂ mode
+           (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
          ≫span spanMr nothing
     -- 2) match synthesized type with expected (partial) type
     ≫=spanm' λ atp →
       let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
           domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-            match-types Xs empty-trie match-unfolding-both dom atp
+            match-types Xs' empty-trie match-unfolding-both dom atp
           ≫=span λ where
-            (match-error (msg , tvs)) → error-unmatchable-tps t₁ t₂ dom atp Xs mode msg tvs
+            (match-error (msg , tvs)) →
+              error-unmatchable-tps t₁ t₂ dom atp Xs' mode msg tvs
             (match-ok Xs) → spanMr ∘ just $'
               check-term-app-return Xs atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)
 
