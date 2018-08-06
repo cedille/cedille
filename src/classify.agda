@@ -1320,8 +1320,7 @@ check-kind (KndPi pi pi' x atk k) =
   spanM-restore-info x mi
 
 check-args-against-params kind-or-import orig ps ys =
-  caap (~ isJust kind-or-import) ps ys ≫=span λ m →
-  spanM-restore-info* m
+  caap (~ isJust kind-or-import) ps ys empty-trie
   where
   str = if isJust kind-or-import then "import" else "kind"
   make-span : ctxt → 𝕃 tagged-val → err-m → span
@@ -1329,58 +1328,54 @@ check-args-against-params kind-or-import orig ps ys =
     (KndVar-span Γ orig (kvar-end-pos (fst orig) (snd orig) ys) ps checking ts err)
     (λ loc → Import-module-span Γ orig ps (loc :: ts) err)
     kind-or-import
-  caap : 𝔹 → params → args → spanM (𝕃 (string × restore-def))
-  caap koi (ParamsCons (Decl _ pi _ x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) =
-    check-type T (just k) ≫span
-    spanM-push-type-def pi paramVar x T k ≫=span λ m → 
-    caap koi ps ys ≫=span λ ms →
-    spanMr ((x , m) :: ms)
-  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) =
-    check-term t (just T) ≫span
-    spanM-push-term-def pi paramVar x t T ≫=span λ m → 
-    caap koi ps ys ≫=span λ ms →
-    spanMr ((x , m) :: ms)
-  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
-    check-term t (just T) ≫span
+  caap : 𝔹 → params → args → trie arg → spanM ⊤
+  caap koi (ParamsCons (Decl _ pi _ x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) σ =
+    get-ctxt λ Γ →
+    let k' = hnf Γ (unfolding-elab unfold-head) (substs-kind Γ σ k) tt in
+    check-type T (just k') ≫span
+    let T' = TypeArg (qualif-type Γ T) in
+    caap koi ps ys (trie-insert σ x T')
+  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) σ =
+    get-ctxt λ Γ →
+    let T' = hnf Γ (unfolding-elab unfold-head) (substs-type Γ σ T) tt in
+    check-term t (just T') ≫span
+    let t' = TermArg Erased (qualif-term Γ t) in
+    caap koi ps ys (trie-insert σ x t')
+  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) σ =
+    get-ctxt λ Γ →
+    let T' = hnf Γ (unfolding-elab unfold-head) (substs-type Γ σ T) tt in
+    check-term t (just T') ≫span
+    check-erased-margs t (just T') ≫span
+    let t' = TermArg NotErased (qualif-term Γ t) in
+    caap koi ps ys (trie-insert σ x t')
+  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) σ =
     get-ctxt λ Γ → 
-    check-erased-margs t (just (hnf Γ (unfolding-elab unfold-head) T tt)) ≫span 
-    spanM-push-term-def pi paramVar x t T ≫=span λ m → 
-    caap koi ps ys ≫=span λ ms →
-    spanMr ((x , m) :: ms)
-  caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) =
-    get-ctxt (λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]
-                 ( just ("A term argument was supplied for erased term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
-    spanMr []
-  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) =
-    get-ctxt (λ Γ → 
+                 ( just ("A term argument was supplied for erased term parameter " ^ x ^ " of the defined " ^ str ^ ".")))
+  caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) σ =
+    get-ctxt λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]
-                 ( just ("An erased term argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
-    spanMr []
-  caap koi (ParamsCons (Decl _ x₁ _ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg _ x₅) ys₂) =
-    get-ctxt (λ Γ → 
+                 ( just ("An erased term argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))
+  caap koi (ParamsCons (Decl _ x₁ _ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg _ x₅) ys₂) σ =
+    get-ctxt λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ x₅ ]
-                 ( just ("A term argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
-    spanMr []
-  caap koi (ParamsCons (Decl _ x₁ _ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) = 
-    get-ctxt (λ Γ → 
+                 ( just ("A term argument was supplied for type parameter " ^ x ^ " of the defined " ^ str ^ ".")))
+  caap koi (ParamsCons (Decl _ x₁ _ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) σ = 
+    get-ctxt λ Γ → 
     spanM-add (make-span Γ [ type-argument Γ x₅ ]
-                 ( just ("A type argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))) ≫span
-    spanMr []
-  caap tt (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil =
-    get-ctxt (λ Γ → 
+                 ( just ("A type argument was supplied for term parameter " ^ x ^ " of the defined " ^ str ^ ".")))
+  caap tt (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil σ =
+    get-ctxt λ Γ → 
     spanM-add (make-span Γ []
-                 (just ("Missing an argument for parameter " ^ x ^ " of the defined  " ^ str ^ ".")))) ≫span
-    spanMr []             
-  caap ff (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil =
-    get-ctxt (λ Γ → spanM-add (make-span Γ [] nothing)) ≫span spanMr []
-  caap koi ParamsNil (ArgsCons x₁ ys₂) = 
-    get-ctxt (λ Γ → 
+                 (just ("Missing an argument for parameter " ^ x ^ " of the defined  " ^ str ^ ".")))
+  caap ff (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil σ =
+    get-ctxt λ Γ → spanM-add (make-span Γ [] nothing)
+  caap koi ParamsNil (ArgsCons x₁ ys₂) σ = 
+    get-ctxt λ Γ → 
     spanM-add (make-span Γ [ arg-argument Γ x₁ ]
-                 (just ("An extra argument was given to the defined  " ^ str ^ ".")))) ≫span
-    spanMr []                                             
-  caap koi ParamsNil ArgsNil =
-    get-ctxt (λ Γ → spanM-add (make-span Γ [] nothing)) ≫span spanMr []
+                 (just ("An extra argument was given to the defined  " ^ str ^ ".")))
+  caap koi ParamsNil ArgsNil σ =
+    get-ctxt λ Γ → spanM-add (make-span Γ [] nothing)
 
 check-erased-margs t mtp = get-ctxt λ Γ →
   let x = erased-margs Γ in
@@ -1396,7 +1391,7 @@ check-def (DefTerm pi₁ x NoType t') =
   where
   cont : 𝕃 tagged-val × err-m → term → maybe type → spanM (var × restore-def)
   cont (tvs , err) t' (just T) =
-    spanM-push-term-def pi₁ nonParamVar x t' T ≫=span λ m →
+    spanM-push-term-def pi₁ x t' T ≫=span λ m →
     get-ctxt λ Γ → 
     spanM-add (Var-span Γ pi₁ x synthesizing (type-data Γ T :: noterased :: tvs) err) ≫span
     spanMr (x , m)
@@ -1409,7 +1404,7 @@ check-def (DefTerm pi₁ x (SomeType T) t') =
   get-ctxt λ Γ →
   let T' = qualif-type Γ T in
   check-term t' (just T') ≫span 
-  spanM-push-term-def pi₁ nonParamVar x t' T' ≫=span λ m →
+  spanM-push-term-def pi₁ x t' T' ≫=span λ m →
   get-ctxt λ Γ →
   let p = compileFail-in Γ t' in
   spanM-add (Var-span Γ pi₁ x checking (type-data Γ T' :: noterased :: fst p) (snd p)) ≫span
@@ -1419,6 +1414,6 @@ check-def (DefType pi x k T) =
   get-ctxt λ Γ →
   let k' = qualif-kind Γ k in
   check-type T (just k') ≫span
-  spanM-push-type-def pi nonParamVar x T k' ≫=span λ m →
+  spanM-push-type-def pi x T k' ≫=span λ m →
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking (noterased :: [ kind-data Γ k' ]) nothing) ≫span
   spanMr (x , m)
