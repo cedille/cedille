@@ -174,7 +174,6 @@ post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
   flip uncurry (post-rewriteh (tk-decl x' atk' Γ) x eq prtk tk-decl T) λ T k →
   TpLambda pi pi' x' atk' T , KndPi pi pi' x' atk' k
 post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
---TODO(tony): whats the right thing to do here? right now we ignore opacity.
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
 ...| just (type-def nothing _ T k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt

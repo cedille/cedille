@@ -55,16 +55,15 @@ private
     (fn , mn , ps , trie-insert q x (mn # x , ArgsNil)) ss
     (trie-insert is x' (d , fn , posinfo-gen)) os
 
-  -- making elaborated stuff transparent for now. -tony
-  ctxt-term-def' : var → var → term → type → ctxt → ctxt
-  ctxt-term-def' x x' t T Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+  ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
+  ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
     (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (term-def (just ps) OpacTrans (hnf Γ unfold-head t tt) T , fn , x)) os
+    (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os
 
-  ctxt-type-def' : var → var → type → kind → ctxt → ctxt
-  ctxt-type-def' x x' T k Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+  ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
+  ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
     (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (type-def (just ps) OpacTrans (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
+    (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
 
   ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
   ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
@@ -224,7 +223,6 @@ private
   cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
     strM-Γ λ Γ →
     let ps = ctxt-get-current-params Γ in
-    -- TODO(tony): add the "opaque " string here if op is OpacOpaque
     strAdd x ≫str
     maybeCheckType-to-string (case mcT of λ where
        NoType → NoType
@@ -236,7 +234,6 @@ private
   cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
     strM-Γ λ Γ →
     let ps = ctxt-get-current-params Γ in
-    -- TODO(tony): add the "opaque " string here if op is OpacOpaque
     strAdd x ≫str
     strAdd " ◂ " ≫str
     to-stringh (abs-expand-kind ps k) ≫str
@@ -399,8 +396,9 @@ elab-check-term Γ (Let pi d t) T =
     elab-type Γ T' ≫=maybe uncurry λ T' k' →
     elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
     just (Let posinfo-gen (DefType posinfo-gen x' k' T') t)
--- TODO(tony): what do i do here?
-elab-check-term Γ (Open pi x t) T = nothing
+elab-check-term Γ (Open pi x t) T =
+  ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
+  elab-check-term Γ t T
 elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
 elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
   elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
@@ -556,8 +554,9 @@ elab-synth-term Γ (Let pi d t) = case d of λ where
     elab-type Γ T' ≫=maybe uncurry λ T' k' →
     elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
     just (Let posinfo-gen (DefType pi' x' k' T') t , subst Γ T' x' T)
--- TODO(tony): what do i do here?
-elab-synth-term Γ (Open pi x t) = nothing
+elab-synth-term Γ (Open pi x t) =
+  ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
+  elab-synth-term Γ t
 elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
 elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
   elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
@@ -767,13 +766,13 @@ elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
       rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
-      let ts = record ts {Γ = ctxt-term-def' x x' t T Γ} in
+      let ts = record ts {Γ = ctxt-term-def' x x' t T OpacTrans Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
       just ((ArgsCons (TermArg me' t) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkt T) posinfo-gen) ps) , ts-ρ-φ)
     (TypeArg T , Tkk _) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
-      let ts = record ts {Γ = ctxt-type-def' x x' T k Γ} in
+      let ts = record ts {Γ = ctxt-type-def' x x' T k OpacTrans Γ} in
       elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
       just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkk k) posinfo-gen) ps) , ts-ρ-φ)
     _ → nothing
@@ -801,7 +800,7 @@ elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefTerm _ x NoType t) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-synth-term Γ (subst-qualif Γ ρ t) ≫=maybe uncurry λ t T →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
-  let ts = record ts {Γ = ctxt-term-def' x x' t T Γ} in
+  let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ts-ρ-φ)
 elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _) cs) =
@@ -809,14 +808,14 @@ elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _) c
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
   elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
-  let ts = record ts {Γ = ctxt-term-def' x x' t T Γ} in
+  let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ts-ρ-φ)
 elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefType _ x _ T) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
-  let ts = record ts {Γ = ctxt-type-def' x x' T k Γ} in
+  let ts = record ts {Γ = ctxt-type-def' x x' T k op Γ} in
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (DefTermOrType op (DefType posinfo-gen x' k T) posinfo-gen) cs , ts-ρ-φ)
 elab-cmds ts ρ φ (CmdsNext (DefKind _ x ps k _) cs) =
