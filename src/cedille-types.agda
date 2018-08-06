@@ -46,7 +46,7 @@ data arg : Set
 data args : Set
 {-# COMPILE GHC args = type CedilleTypes.Args #-}
 data opacity : Set
-{-# COMPILED_DECLARE_DATA opacity CedilleTypes.Opacity #-}
+{-# COMPILE GHC opacity = type CedilleTypes.Opacity #-}
 data cmd : Set
 {-# COMPILE GHC cmd = type CedilleTypes.Cmd #-}
 data cmds : Set
@@ -117,7 +117,7 @@ data args where
 data opacity where 
   OpacOpaque : opacity
   OpacTrans : opacity
-{-# COMPILED_DATA opacity CedilleTypes.Opacity CedilleTypes.OpacOpaque CedilleTypes.OpacTrans #-}
+{-# COMPILE GHC opacity = data CedilleTypes.Opacity (CedilleTypes.OpacOpaque | CedilleTypes.OpacTrans) #-}
 
 data cmd where 
   DefKind : posinfo → kvar → params → kind → posinfo → cmd

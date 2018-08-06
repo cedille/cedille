@@ -69,12 +69,12 @@ private
   ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
   ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (term-def nothing t T , fn , pi)) os
+      (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os
   
   ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
   ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (type-def nothing T k , fn , pi)) os
+      (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os
   
   ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
   ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
@@ -91,7 +91,7 @@ private
   ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
     env-lookup Γ x ≫=maybe λ where
       (term-decl T , _) → just T
-      (term-def ps t T , _ , x') →
+      (term-def ps _ _ T , _ , x') →
         let ps = maybe-else ParamsNil id ps in
         just (abs-expand-type ps T)
       _ → nothing
@@ -102,7 +102,7 @@ private
   ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
     env-lookup Γ x ≫=maybe λ where
       (type-decl k , _) → just k
-      (type-def ps T k , _ , x') →
+      (type-def ps _ _ k , _ , x') →
         let ps = maybe-else ParamsNil id ps in
         just (abs-expand-kind ps k)
       _ → nothing
@@ -221,9 +221,10 @@ private
     (strAdd "\n" ≫str
      cmds-to-string cs f)
     
-  cmd-to-string (DefTermOrType (DefTerm pi x mcT t) _) f =
+  cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
     strM-Γ λ Γ →
     let ps = ctxt-get-current-params Γ in
+    -- TODO(tony): add the "opaque " string here if op is OpacOpaque
     strAdd x ≫str
     maybeCheckType-to-string (case mcT of λ where
        NoType → NoType
@@ -232,9 +233,10 @@ private
     to-stringh (lam-expand-term ps t) ≫str
     strAdd " ." ≫str
     strΓ' globalScope tt x pi f
-  cmd-to-string (DefTermOrType (DefType pi x k T) _) f =
+  cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
     strM-Γ λ Γ →
     let ps = ctxt-get-current-params Γ in
+    -- TODO(tony): add the "opaque " string here if op is OpacOpaque
     strAdd x ≫str
     strAdd " ◂ " ≫str
     to-stringh (abs-expand-kind ps k) ≫str
