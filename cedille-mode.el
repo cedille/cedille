@@ -24,6 +24,17 @@
  (defvar cedille-mode-do-update-buffers t
    "A boolean for whether `cedille-mode-update-buffers' should get called"))
 
+(defvar cedille-mode-caching nil
+  "Whether or not the backend is still writing .cede files")
+
+(defvar cedille-mode-print-caching-finished nil
+  "Whether or not to print when Cedille has finished writing .cede files")
+
+(defvar cedille-mode-progress-msg "progress stub")
+(defvar cedille-mode-status-msg "status ping")
+(defvar cedille-mode-progress-prefix "progress: ")
+(defvar cedille-mode-caching-header "Caching")
+
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
@@ -321,12 +332,45 @@ the parse tree, and updates the Cedille info buffer."
     (cedille-mode-update-buffers)
     (cedille-mode-highlight-occurrences-if)))
 
-(defun cedille-mode-select-next-alt-test(x y)
-  "Compares two spans x and y, testing whether x begins after y ends."
-  (> (se-term-start y) (se-term-end x)))
+;(defun cedille-mode-select-next-alt-test(x y)
+;  "Compares two spans x and y, testing whether x begins after y ends."
+;  (> (se-term-start y) (se-term-end x)))
 
-(defun cedille-mode-select-previous-alt-test(x y)
-  (> (se-term-start x) (se-term-end y)))
+;(defun cedille-mode-select-previous-alt-test(x y)
+;  (> (se-term-start x) (se-term-end y)))
+
+(defun cedille-mode-select-previous-alt-better (s0 s1 s2)
+  (if (< (se-term-start s0) (se-term-end s2)) s1
+    (if (or (null s1)
+            (cedille-mode-term-inside s2 s1)
+            (cedille-mode-term-before s1 s2))
+        s2 s1)))
+
+(defun cedille-mode-term-inside(in out)
+  (and (<= (se-term-start out) (se-term-start in))
+       (>= (se-term-end   out) (se-term-end   in))))
+
+(defun cedille-mode-term-before(before after)
+  (<= (se-term-end before) (se-term-start after)))
+
+(defun cedille-mode-select-next-alt-better (s0 s1 s2)
+  (if (> (se-term-end s0) (se-term-start s2)) s1
+    (if (or (null s1)
+            (cedille-mode-term-inside s2 s1)
+            (cedille-mode-term-before s2 s1))
+        s2 s1)))
+
+(defun cedille-mode-select-previous-alt-find (orig best spans)
+  (if (null spans)
+      best
+    (cedille-mode-select-previous-alt-find orig
+     (cedille-mode-select-previous-alt-better orig best (car spans)) (cdr spans))))
+
+(defun cedille-mode-select-next-alt-find (orig best spans)
+  (if (null spans)
+      best
+    (cedille-mode-select-next-alt-find orig
+     (cedille-mode-select-next-alt-better orig best (car spans)) (cdr spans))))
 
 (defun cedille-mode-select-next-alt (count)
   "Selects the next sibling of the currently selected span, if one exists.
@@ -335,10 +379,16 @@ Updates info buffer in either case"
   (interactive "p")
   (when (and (> count 0) se-mode-selected)
     (se-mode-set-spans)
-    (unless (se-mode-select (se-mode-next))
-      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-next-alt-test))
+    (if nil;(se-mode-select (se-mode-next))
+        (progn
+          (cedille-mode-update-buffers)
+          (cedille-mode-highlight-occurrences-if))
+      (setq found (cedille-mode-select-next-alt-find (se-mode-selected) nil se-mode-spans))
       (if found
-	  (cedille-mode-select-span found)
+          (progn
+            (se-mode-select found)
+            (cedille-mode-update-buffers)
+            (cedille-mode-highlight-occurrences-if))
 	(if cedille-mode-wrap-navigation
 	    (let ((inhibit-message t))
 	      (se-mode-select (se-mode-left-spine (car (se-mode-parse-tree))))
@@ -354,10 +404,16 @@ Updates info buffer in either case."
   (when (and (> count 0) se-mode-selected)
     (se-mode-set-spans)
     (setq continue t)
-    (unless (se-mode-select (se-mode-previous))
-      (setq found (cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-previous-alt-test :from-end t))
+    (if nil;(se-mode-select (se-mode-previous))
+        (progn
+          (cedille-mode-update-buffers)
+          (cedille-mode-highlight-occurrences-if))
+      (setq found (cedille-mode-select-previous-alt-find (se-mode-selected) nil se-mode-spans));(cl-find (se-mode-selected) se-mode-spans :test #'cedille-mode-select-previous-alt-test :from-end t))
       (if found
-	  (cedille-mode-select-span found)
+	  (progn
+            (cedille-mode-select-span found)
+            (cedille-mode-update-buffers)
+            (cedille-mode-highlight-occurrences-if))
 	(if cedille-mode-wrap-navigation
 	    (let ((inhibit-message t))
 	      (se-mode-select (se-last-span (se-mode-parse-tree)))
@@ -460,43 +516,41 @@ in the parse tree, and updates the Cedille info buffer."
 
 (defun cedille-mode-highlight-occurrences()
   "Highlights all occurrences of bound variable matching selected node and returns list of nodes"
-  ;(remove-overlays)
-  ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
   (cedille-mode-clear-interactive-highlight)
-  (if se-mode-selected
-      (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
-	(dolist (node matching-nodes)
-	  (let* ((data (se-term-to-json node))
-		 (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be highlighted
-		 (start (cdr (assoc 'start data)))
-		 (end (cdr (assoc 'end data)))
-		 (overlay (make-overlay start end)))
-	    (when symbol
-              (overlay-put overlay 'cedille-matching-occurrence t)
-	      (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
-	matching-nodes)))
+  (setq cedille-mode-matching-nodes-on t)
+  (when se-mode-selected
+    (let ((matching-nodes (cedille-mode-get-matching-variable-nodes (se-mode-selected))))
+      (dolist (node matching-nodes)
+        (let* ((data (se-term-to-json node))
+               (symbol (cdr (assoc 'symbol data))) ; nodes without symbols should not be highlighted
+               (start (cdr (assoc 'start data)))
+               (end (cdr (assoc 'end data)))
+               (overlay (make-overlay start end)))
+          (when symbol
+            (overlay-put overlay 'cedille-matching-occurrence t)
+            (overlay-put overlay 'face `(:background ,cedille-mode-autohighlight-color)))))
+      matching-nodes)))
 
 (defun cedille-mode-highlight-occurrences-if()
   "If the option is set to highlight matching variable 
 occurrences, then do so."
+  (cedille-mode-clear-interactive-highlight)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
 
 (defvar cedille-mode-matching-nodes nil)
+(defvar cedille-mode-matching-nodes-on cedille-mode-autohighlight-matching-variables
+  "Indicates if the user turned matching variable highlighting on or off for the specific node (toggled by typing 'H')")
 
 (defun cedille-mode-clear-interactive-highlight()
-  (remove-overlays (point-min) (point-max) 'cedille-matching-occurrence t))
+  (remove-overlays nil nil 'cedille-matching-occurrence t))
 
 (defun cedille-mode-interactive-highlight()
   "Interactive command to call cedille-mode-highlight-occurences"
   (interactive)
-  (let ((matching-nodes (cedille-mode-highlight-occurrences)))
-    (if (equal cedille-mode-matching-nodes matching-nodes)
-	(progn
-	  ;(remove-overlays)
-          ;(cedille-mode-highlight-error-overlay cedille-mode-error-spans)
-          (cedille-mode-clear-interactive-highlight)
-	  (setq cedille-mode-matching-nodes nil))
-      (setq cedille-mode-matching-nodes matching-nodes))))
+  (cedille-mode-clear-interactive-highlight)
+  (setq cedille-mode-matching-nodes-on (not cedille-mode-matching-nodes-on)
+        cedille-mode-matching-nodes (when cedille-mode-matching-nodes-on
+                                      (cedille-mode-highlight-occurrences))))
 
 (defun cedille-mode-apply-tags (str tags)
   "Helper for `cedille-mode-apply-tag'"
@@ -619,7 +673,30 @@ occurrences, then do so."
   "The function called when a progress update is received from the backend"
   (se-inf-queue-header response)
   (se-inf-next-header)
-  "progress stub")
+  cedille-mode-progress-msg)
+
+(defun cedille-mode-ask-quit ()
+  (or (not cedille-mode-caching)
+      (progn
+        (setq cedille-mode-print-caching-finished t)
+        (y-or-n-p "Cedille is still caching. Do you want to kill the process? "))))
+
+(defun cedille-mode-caching-start (&rest args)
+  "Sends a stub request to the backend and waits for a response, indicating that writing .cede files has finished"
+  (se-inf-interactive
+   cedille-mode-status-msg
+   (lambda (&rest args)
+     (when cedille-mode-print-caching-finished
+       (message "Cedille caching finished"))
+     (setq cedille-mode-caching nil
+           cedille-mode-print-caching-finished nil))
+   nil)
+  (setq cedille-mode-caching t))
+
+(defun cedille-mode-caching-hook ()
+  "Hook run before an interactive request that checks if the backend is caching"
+  (when cedille-mode-caching
+    (se-inf-queue-header cedille-mode-caching-header)))
 
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
@@ -629,20 +706,20 @@ occurrences, then do so."
   (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
+  (add-hook 'se-inf-post-parse-hook 'cedille-mode-caching-start t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-set-error-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-initialize-spans t)
-  ;(add-hook 'se-inf-init-spans-hook 'se-markup-propertize-spans t)
   (add-hook 'se-inf-init-spans-hook 'cedille-mode-highlight-default t)
   (add-hook 'se-inf-pre-parse-hook 'cedille-mode-clear-buffers)
-  (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences)
+  (add-hook 'se-inf-pre-interactive-hook 'cedille-mode-caching-hook)
+  (add-hook 'deactivate-mark-hook 'cedille-mode-highlight-occurrences t)
+  (add-hook 'kill-emacs-query-functions 'cedille-mode-ask-quit)
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
-  (setq-local se-inf-progress-prefix "progress: ")
-  ;(setq-local se-inf-modify-response 'cedille-mode-modify-response)
+  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix) 
 
-  (set-input-method "Cedille")
-)
+  (set-input-method "Cedille"))
 
 (define-key cedille-mode-map (kbd "M-s") #'cedille-start-navigation)
 

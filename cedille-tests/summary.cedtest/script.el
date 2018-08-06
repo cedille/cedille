@@ -1,4 +1,3 @@
 
-(cedille-mode-summary)
-(setq output
-      (with-current-buffer (cedille-mode-summary-buffer) (buffer-string)))
+(cedille-test-perform-key-events "S")
+(setq output (buffer-string))

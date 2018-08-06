@@ -11,7 +11,7 @@ options' = record options
 open import general-util
 open import monad-instances
 open import cedille-types
-open import classify options {id}
+open import classify options' {id}
 open import ctxt
 open import constants
 open import conversion
@@ -24,7 +24,7 @@ open import toplevel-state options {IO}
 open import to-string options'
 open import rename
 open import rewriting
-
+import spans options' {id} as id-spans
 
 private
   
@@ -404,9 +404,10 @@ elab-check-term Γ (OpenType pi x t) T = nothing
 elab-check-term Γ (OpenTerm pi x) T = nothing
 elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
 elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
-  elab-check-term Γ t₁ T ≫=maybe λ t₁ →
+  elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
   elab-pure-term Γ (erase-term t₂) ≫=maybe λ t₂ →
-  elab-check-term Γ t (mtpeq (erase-term t₁) t₂) ≫=maybe λ t →
+  elab-check-term Γ t₁ T ≫=maybe λ t₁ →
+  elab-check-term Γ t (mtpeq t₁' t₂) ≫=maybe λ t →
   just (Phi posinfo-gen t t₁ t₂ posinfo-gen)
 elab-check-term Γ (Rho pi op on t og t') T =
   elab-synth-term Γ t ≫=maybe uncurry λ t T' →
@@ -561,9 +562,10 @@ elab-synth-term Γ (OpenType pi x t) = nothing
 elab-synth-term Γ (OpenTerm pi x) = nothing
 elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
 elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
-  elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T →
+  elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
   elab-pure-term Γ (erase-term t₂) ≫=maybe λ t₂ →
-  elab-check-term Γ t (mtpeq (erase-term t₁) t₂) ≫=maybe λ t →
+  elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T →
+  elab-check-term Γ t (mtpeq t₁' t₂) ≫=maybe λ t →
   just (Phi posinfo-gen t t₁ t₂ posinfo-gen , T)
 elab-synth-term Γ (Rho pi op on t og t') =
   elab-synth-term Γ t ≫=maybe uncurry λ t T →
@@ -675,7 +677,7 @@ elab-pure-term Γ (Lam pi NotErased pi' x NoClass t) =
   rename x from Γ for λ x' →
   elab-pure-term (ctxt-var-decl pi x' Γ) (rename-var Γ x x' t) ≫=maybe λ t →
   just (mlam x' t)
-elab-pure-term Γ (Let pi (DefTerm pi' x NoCheckType t) t') =
+elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
   elab-pure-term Γ t ≫=maybe λ t →
   elab-pure-term Γ (subst Γ t x t')
 elab-pure-term _ _ = nothing -- should be erased
@@ -714,7 +716,7 @@ elab-app-term Γ (App t m t') =
              ret t' (cod t') Xs
         tt → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
              elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
-             case meta-vars-match Γ Xs empty-trie match-state-toplevel Tₐ Tₐ' of λ where
+             case fst (match-types Xs empty-trie match-unfolding-both Tₐ Tₐ' Γ id-spans.empty-spans) of λ where
                (match-error _) → nothing
                (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
 

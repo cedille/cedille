@@ -15,6 +15,9 @@ maybe-else : ∀{ℓ}{A B : Set ℓ} → B → (A → B) → maybe A → B
 maybe-else y f (just x) = f x
 maybe-else y f nothing = y
 
+maybe-else' : ∀{ℓ}{A B : Set ℓ} → maybe A → B → (A → B) → B
+maybe-else' m y f = maybe-else y f m
+
 maybe-join : ∀ {a} {A : Set a} → maybe (maybe A) → maybe A
 maybe-join = maybe-else nothing id
 
@@ -146,6 +149,10 @@ case x of f = case_return_of_ x _ f
 flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
        → (A → B → C) → (B → A → C)
 flip f = λ b a → f a b
+
+infixr 0 _$'_
+_$'_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
+f $' x = f x
 
 -- list.agda
 

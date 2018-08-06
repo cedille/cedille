@@ -206,7 +206,7 @@ scope-file : toplevel-state → (original imported : filepath) → optAs → arg
 scope-cmds : filepath → (mn : string) → cmds → optAs → args → toplevel-state → toplevel-state × err-m
 scope-cmd : filepath → (mn : string) → cmd → optAs → args → toplevel-state → toplevel-state × err-m
 scope-def : filepath → (mn : string) → var → optAs → args → toplevel-state → toplevel-state × err-m
-scope-public-args : (old-fp new-fp : filepath) → args → args → toplevel-state → args × err-m
+-- scope-public-args : (old-fp new-fp : filepath) → args → args → toplevel-state → args × err-m
 
 infixl 8 _≫×_
 
@@ -243,10 +243,8 @@ scope-cmds fn mn CmdsStart oa as s = s , nothing
 
 scope-cmd fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as s = s , nothing
 scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
-  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn
-      as'' = qualif-args (toplevel-state.Γ s) as' in
-  scope-public-args fn ifn' as as' s ≫× scope-file s fn ifn' oa --<---
-  -- oa' should be NoOptAs, see public-as-err in src/process-cmd.agda |
+  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
+  scope-file s fn ifn' oa ArgsNil -- oa' should be NoOptAs and as' should be ArgsNil
 scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType _ (DefTerm pi v mcT _) pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType _ (DefType pi v k _) pi') = scope-def fn mn v
@@ -257,20 +255,3 @@ scope-def _ mn v oa as s with import-as v oa | s
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
   -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^
-
--- For importing a file (foo) that publicly imports another file (bar),
--- we need to substitute the arguments given to foo for occurences of foo's
--- parameters in the arguments to bar
-scope-public-args ofn nfn as as' s with lookup-mod-params (toplevel-state.Γ s) ofn
-...| nothing = as' , nothing
-...| just ps = flip uncurry (get-sub ps as) λ ρt ρT →
-               substh-args (toplevel-state.Γ s) empty-renamectxt ρT
-               (substh-args (toplevel-state.Γ s) empty-renamectxt ρt as) , nothing
-  where
-  get-sub : params → args → trie term × trie type
-  get-sub (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) =
-    flip uncurry (get-sub ps as) λ ρt ρT → case a of λ where
-      (TermArg me' t) → trie-insert ρt x t , ρT
-      (TypeArg T) → ρt , trie-insert ρT x T
-  get-sub ps as = empty-trie , empty-trie
-
