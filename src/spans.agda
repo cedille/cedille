@@ -535,8 +535,8 @@ TpApp-span tp tp' check tvs = mk-span "Application of a type to a type" (type-st
 App-span : (is-locale : 𝔹) → term → term → checking-mode → 𝕃 tagged-val → err-m → span
 App-span l t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: keywords-app l :: tvs)
 
-AppTp-span : (is-locale : 𝔹) → term → type → checking-mode → 𝕃 tagged-val → err-m → span
-AppTp-span l t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app l :: tvs)
+AppTp-span : term → type → checking-mode → 𝕃 tagged-val → err-m → span
+AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app ff :: tvs)
 
 TpQuant-e = 𝔹
 
