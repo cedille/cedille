@@ -251,11 +251,10 @@ ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ... | just (_ , l) = l
 ... | nothing = "missing" , "missing"
 
-ctxt-clarify-type-def : ctxt → var → maybe (sym-info × ctxt)
-ctxt-clarify-type-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
-  = -- trie-lookup q "cNat"  ≫=maybe λ { (x' , _) →
-    trie-lookup i x ≫=maybe λ { (ci , l) →
-    clarified x ci l } -- }
+ctxt-clarify-def : ctxt → var → maybe (sym-info × ctxt)
+ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
+  = trie-lookup i x ≫=maybe λ { (ci , l) →
+    clarified x ci l }
   where
     ctxt' : var → ctxt-info → location → ctxt
     ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences
@@ -266,60 +265,13 @@ ctxt-clarify-type-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
     clarified v ci@(type-def ps _ T k) l = just ((ci , l) , (ctxt' v (type-def ps OpacTrans T k) l))
     clarified _ _ _ = nothing
 
--- ctxt-clarify-type-def : ctxt → var → maybe ctxt
--- ctxt-clarify-type-def Γ@(mk-ctxt mod syms i sym-occurrences) x with trie-lookup i x
--- ... | just (ci , l) = clarified ci l
---   where
---     ctxt' : ctxt-info → location → ctxt
---     ctxt' ci l = mk-ctxt mod syms (trie-insert i x (ci , l)) sym-occurrences
-
---     clarified : ctxt-info → location → maybe ctxt
---     clarified (term-def ps _ t T) l = just (ctxt' (term-def ps OpacTrans t T) l)
---     clarified (term-udef ps _ t) l = just (ctxt' (term-udef ps OpacTrans t) l)
---     clarified (type-def ps _ T k) l = just (ctxt' (type-def ps OpacTrans T k) l)
---     clarified _ _ = nothing
-
--- ... | nothing = nothing
-
--- ctxt-clarify-term-def : ctxt → var → maybe (ctxt × sym-info)
--- ctxt-clarify-term-def orig-ctxt@(mk-ctxt mod syms i sym-occurrences) x with trie-lookup i x
--- ... | just (ci , l) = (clarified ci l) ≫=maybe (λ Γ' → just (Γ' , (ci , l)))
---   where
---     ctxt' : ctxt-info → location → ctxt
---     ctxt' ci l = mk-ctxt mod syms (trie-insert i x (ci , l)) sym-occurrences
-
---     clarified : ctxt-info → location → maybe ctxt
---     clarified (term-def ps _ t T) l = just (ctxt' (term-def ps OpacTrans t T) l)
---     clarified (term-udef ps _ t) l = just (ctxt' (term-udef ps OpacTrans t) l)
---     clarified (type-def _ _ _ _) l = just orig-ctxt 
---     clarified _ _ = nothing
-
--- ... | nothing = nothing
-
-ctxt-clarify-term-def : ctxt → var → maybe ctxt
-ctxt-clarify-term-def orig-ctxt@(mk-ctxt mod syms i sym-occurrences) x with trie-lookup i x
-... | just (ci , l) = clarified ci l
-  where
-    ctxt' : ctxt-info → location → ctxt
-    ctxt' ci l = mk-ctxt mod syms (trie-insert i x (ci , l)) sym-occurrences
-
-    clarified : ctxt-info → location → maybe ctxt
-    clarified (term-def ps _ t T) l = just (ctxt' (term-def ps OpacTrans t T) l)
-    clarified (term-udef ps _ t) l = just (ctxt' (term-udef ps OpacTrans t) l)
-    clarified (type-def _ _ _ _) l = just orig-ctxt 
-    clarified _ _ = nothing
-
-... | nothing = nothing
 
 ctxt-set-sym-info : ctxt → var → sym-info → ctxt
 ctxt-set-sym-info (mk-ctxt mod syms i sym-occurrences) x si =
   mk-ctxt mod syms (trie-insert i x si) sym-occurrences
 
-ctxt-restore-clarified-type-def : ctxt → var → sym-info → ctxt
-ctxt-restore-clarified-type-def = ctxt-set-sym-info
-
--- ctxt-restore-clarified-term-def : ctxt → var → sym-info → ctxt
--- ctxt-restore-clarified-term-def = ctxt-set-sym-info
+ctxt-restore-clarified-def : ctxt → var → sym-info → ctxt
+ctxt-restore-clarified-def = ctxt-set-sym-info
 
 ctxt-set-current-file : ctxt → string → string → ctxt
 ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs

@@ -221,33 +221,17 @@ check-termi (Open pi x t) mtp =
     open-span err = mk-span span-name pi (term-end-pos t) [] err
     cont : var → (m : maybe type) → spanM (check-ret m)
     cont v mtp =
-      spanM-clarify-type-def v ≫=span λ where
+      spanM-clarify-def v ≫=span λ where
         (just si) → 
           spanM-add (open-span nothing) ≫span
           get-ctxt (λ Γ' →
           spanM-add (Var-span Γ' (posinfo-plus pi 5) x (maybe-to-checking mtp) [] nothing) ≫span
           check-term t mtp ≫=span λ r →
-          spanM-restore-clarified-type-def v si ≫span
+          spanM-restore-clarified-def v si ≫span
           spanMr r)
         nothing →
           spanM-add (open-span (just (category-err v))) ≫span
           (check-fail mtp)
-
--- check-termi (Beta pi ot ot') (just (TpEq pi' t1 t2 pi'')) = 
---   untyped-optTerm-spans ot ≫span
---   untyped-optTerm-spans ot' ≫span
---   get-ctxt (λ Γ → 
---     if conv-term Γ t1 t2 then
---       spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot')
---                    checking [ type-data Γ (TpEq pi' t1 t2 pi'') ] (optTerm-conv Γ ot))
---     else
---       spanM-add (Beta-span pi (optTerm-end-pos-beta pi ot ot')
---                   checking [ expected-type Γ (TpEq pi' t1 t2 pi'') ] (just "The two terms in the equation are not β-equal")))
---   where
---     optTerm-conv : ctxt → optTerm → err-m
---     optTerm-conv Γ NoTerm = nothing
---     optTerm-conv Γ (SomeTerm t _) = if conv-term Γ (qualif-term Γ t) t1 then nothing else just "The expected type does not match the synthesized type"
-
 
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span

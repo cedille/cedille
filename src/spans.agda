@@ -139,15 +139,15 @@ spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((q
 -- this only returns nothing in the case that the opening didnt make sense:
 -- you tried to open a term def, you tried to open an unknown def, etc...
 -- basically any situation where the def wasnt a "proper" type def
-spanM-clarify-type-def : var → spanM (maybe sym-info)
-spanM-clarify-type-def x Γ ss = returnM (result (ctxt-clarify-type-def Γ x))
+spanM-clarify-def : var → spanM (maybe sym-info)
+spanM-clarify-def x Γ ss = returnM (result (ctxt-clarify-def Γ x))
   where
   result : maybe (sym-info × ctxt) → (maybe sym-info × ctxt × spans)
   result (just (si , Γ')) = ( just si , Γ' , ss )
   result nothing = ( nothing , Γ , ss )
 
-spanM-restore-clarified-type-def : var → sym-info → spanM ⊤
-spanM-restore-clarified-type-def x si Γ ss = returnM (triv , ctxt-set-sym-info Γ x si , ss)
+spanM-restore-clarified-def : var → sym-info → spanM ⊤
+spanM-restore-clarified-def x si Γ ss = returnM (triv , ctxt-set-sym-info Γ x si , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤
