@@ -45,6 +45,8 @@ data arg : Set
 {-# COMPILE GHC arg = type CedilleTypes.Arg #-}
 data args : Set
 {-# COMPILE GHC args = type CedilleTypes.Args #-}
+data opacity : Set
+{-# COMPILE GHC opacity = type CedilleTypes.Opacity #-}
 data cmd : Set
 {-# COMPILE GHC cmd = type CedilleTypes.Cmd #-}
 data cmds : Set
@@ -112,9 +114,14 @@ data args where
   ArgsNil : args
 {-# COMPILE GHC args = data CedilleTypes.Args (CedilleTypes.ArgsCons | CedilleTypes.ArgsNil) #-}
 
+data opacity where 
+  OpacOpaque : opacity
+  OpacTrans : opacity
+{-# COMPILE GHC opacity = data CedilleTypes.Opacity (CedilleTypes.OpacOpaque | CedilleTypes.OpacTrans) #-}
+
 data cmd where 
   DefKind : posinfo → kvar → params → kind → posinfo → cmd
-  DefTermOrType : defTermOrType → posinfo → cmd
+  DefTermOrType : opacity → defTermOrType → posinfo → cmd
   ImportCmd : imprt → cmd
 {-# COMPILE GHC cmd = data CedilleTypes.Cmd (CedilleTypes.DefKind | CedilleTypes.DefTermOrType | CedilleTypes.ImportCmd) #-}
 
@@ -245,13 +252,14 @@ data term where
   IotaProj : term → num → posinfo → term
   Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
+  Open : posinfo → var → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
   Rho : posinfo → optPlus → optNums → term → optGuide → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
   Var : posinfo → qvar → term
-{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Var) #-}    
+{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Var) #-}
 
 data theta where 
   Abstract : theta

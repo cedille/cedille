@@ -202,6 +202,37 @@ check-termi (Let pi d t) mtp =
          spanM-restore-info x m ≫span
          maybe-subst d mtp r
 
+check-termi (Open pi x t) mtp =
+  get-ctxt (λ Γ → 
+  spanMr (ctxt-get-qi Γ x) ≫=span λ where
+    (just (x' , _)) → 
+      cont x' mtp 
+    nothing →
+      spanM-add (Var-span Γ (posinfo-plus pi 5) x (maybe-to-checking mtp) [] (just (nodef-err x))) ≫span
+       -- (open-span (just (nodef-err x))) ≫span
+      (check-fail mtp))
+  where
+    span-name = "Open an opaque definition in a sub-term"
+    nodef-err : string → string
+    nodef-err s = "the definition '" ^ s ^ "' is not in scope"
+    category-err : string → string
+    category-err s = "the definition '" ^ s ^ "' is not a type/term definition"
+    open-span : err-m → span
+    open-span err = mk-span span-name pi (term-end-pos t) [] err
+    cont : var → (m : maybe type) → spanM (check-ret m)
+    cont v mtp =
+      spanM-clarify-def v ≫=span λ where
+        (just si) → 
+          spanM-add (open-span nothing) ≫span
+          get-ctxt (λ Γ' →
+          spanM-add (Var-span Γ' (posinfo-plus pi 5) x (maybe-to-checking mtp) [] nothing) ≫span
+          check-term t mtp ≫=span λ r →
+          spanM-restore-clarified-def v si ≫span
+          spanMr r)
+        nothing →
+          spanM-add (open-span (just (category-err v))) ≫span
+          (check-fail mtp)
+
 check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
   check-tk atk ≫span

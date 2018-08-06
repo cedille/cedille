@@ -49,6 +49,7 @@ substh-term Γ ρ σ (Let pi (DefType pi'' x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
      (Let pi (DefType pi'' x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
       (substh-term (ctxt-var-decl posinfo-gen x' Γ) (renamectxt-insert ρ x x') σ t'))
+substh-term Γ ρ σ (Open pi x t) = Open pi x (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Parens x₁ t x₂) = substh-term Γ ρ σ t
 substh-term{TERM} Γ ρ σ (Var pi x) =
  let x' = renamectxt-rep ρ x in

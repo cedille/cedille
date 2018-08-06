@@ -176,8 +176,8 @@ post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
 post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def nothing T k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def (just ps) T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head-no-lift k tt)
+...| just (type-def nothing _ T k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
+...| just (type-def (just ps) _ T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head-no-lift k tt)
 ...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 

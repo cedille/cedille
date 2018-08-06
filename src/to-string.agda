@@ -56,6 +56,7 @@ no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = ff
 no-parens{TERM} (Let pi dtT t) p lr = ff
+no-parens{TERM} (Open _ _ _) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = ff
 no-parens{TERM} (Rho pi op on eq og t) p lr = ff
@@ -174,6 +175,7 @@ lterms-to-string : lterms → strM
 arg-to-string : arg → strM
 args-to-string : args → strM
 binder-to-string : maybeErased → string
+opacity-to-string : opacity → string
 maybeErased-to-string : maybeErased → string
 lam-to-string : maybeErased → string
 leftRight-to-string : leftRight → string
@@ -249,6 +251,7 @@ term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l ^ " " ^ x) ≫st
 term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd ("[ " ^ x) ≫str maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
 ...| DefType pi' x k t' = strAdd ("[ " ^ x) ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - " ≫str strΓ x pi' (to-stringh t)
+term-to-stringh (Open pi x t) = strAdd ("open " ^ x ^ " - (") ≫str to-stringh t ≫str strAdd ")"
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " {" ≫str to-stringr t' ≫str strAdd "}"
 term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t
@@ -302,6 +305,8 @@ args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-t
 args-to-string ArgsNil = strEmpty
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
+opacity-to-string OpacOpaque = "opaque"
+opacity-to-string OpacTrans = ""
 maybeErased-to-string Erased = "-"
 maybeErased-to-string NotErased = ""
 lam-to-string Erased = "Λ"

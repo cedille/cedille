@@ -44,6 +44,8 @@ token :-
       <0> import                                { mkTokenEmpty TImport       }
       <0> as                                    { mkTokenEmpty TAs           }
       <0> public                                { mkTokenEmpty TPublic       }
+      <0> opaque                                { mkTokenEmpty TOpaque       }
+      <0> open                                  { mkTokenEmpty TOpen         }
       <0> $white+				{ skip'                      }
       <0> @kvar                                 { mkToken TKvar              }
       <0> @qkvar        			{ mkToken TQKvar             }      
@@ -165,6 +167,8 @@ data TokenClass =
      |  TImport
      |  TAs
      |  TPublic
+     |  TOpaque
+     |  TOpen
      |  TModule
      |  TTheta
      |  TThetaEq
@@ -195,6 +199,8 @@ instance Show TokenClass where
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
   show (TPublic)     = "TPublic"
+  show (TOpaque)     = "TOpaque"
+  show (TOpen)       = "TOpen"
   show (TModule)     = "TModule"
   show (TTheta)      = "TTheta"
   show (TThetaEq)    = "TThetaEq"

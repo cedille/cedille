@@ -40,6 +40,7 @@ are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
   || are-free-in-term ce (trie-remove x x') t'
+are-free-in-term ce x (Open _ _ t) = are-free-in-term ce x t -- return the same answer as the erasure of (Open ...)
 are-free-in-term ce x (Parens x₁ t x₂) = are-free-in-term ce x t
 are-free-in-term ce x (Var _ "_") = ff
 are-free-in-term ce x (Var _ x') = trie-contains x x'
