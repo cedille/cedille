@@ -202,7 +202,7 @@ check-termi (Let pi d t) mtp =
          spanM-restore-info x m ≫span
          maybe-subst d mtp r
 
-check-termi (OpenType pi x t) mtp = 
+check-termi (Open pi x t) mtp =
   get-ctxt (λ Γ → 
   spanMr (ctxt-get-qi Γ x) ≫=span λ where
     (just (x' , _)) → 
@@ -232,18 +232,6 @@ check-termi (OpenType pi x t) mtp =
         nothing →
           spanM-add (open-span (just (category-err v))) ≫span
           (check-fail mtp)
-
-check-termi t@(OpenTerm pi x) nothing =
-  spanM-add (mk-span "A proof of a equality between an opaque term and its hidden definition" pi (term-end-pos t) [] (just "not implemented") ) ≫span
-  (check-fail nothing)
-
-check-termi t@(OpenTerm pi x) mtp@(just (TpEq pi' t1 t2 pi'')) =
-  spanM-add (mk-span "A proof of a equality between an opaque term and its hidden definition" pi (term-end-pos t) [] (just "not implemented") ) ≫span
-  (check-fail mtp)
-
-check-termi t@(OpenTerm pi x) mtp@(just _) =
-  spanM-add (mk-span "A proof of a equality between an opaque term and its hidden definition" pi (term-end-pos t) [] (just "not implemented") ) ≫span
-  (check-fail mtp)
 
 -- check-termi (Beta pi ot ot') (just (TpEq pi' t1 t2 pi'')) = 
 --   untyped-optTerm-spans ot ≫span

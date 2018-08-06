@@ -400,8 +400,7 @@ elab-check-term Γ (Let pi d t) T =
     elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
     just (Let posinfo-gen (DefType posinfo-gen x' k' T') t)
 -- TODO(tony): what do i do here?
-elab-check-term Γ (OpenType pi x t) T = nothing
-elab-check-term Γ (OpenTerm pi x) T = nothing
+elab-check-term Γ (Open pi x t) T = nothing
 elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
 elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
   elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →
@@ -558,8 +557,7 @@ elab-synth-term Γ (Let pi d t) = case d of λ where
     elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
     just (Let posinfo-gen (DefType pi' x' k' T') t , subst Γ T' x' T)
 -- TODO(tony): what do i do here?
-elab-synth-term Γ (OpenType pi x t) = nothing
-elab-synth-term Γ (OpenTerm pi x) = nothing
+elab-synth-term Γ (Open pi x t) = nothing
 elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
 elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
   elab-pure-term Γ (erase-term t₁) ≫=maybe λ t₁' →

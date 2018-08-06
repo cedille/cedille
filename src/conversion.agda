@@ -164,10 +164,7 @@ hnf{TERM} Γ u (Delta pi T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta pi u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
-hnf{TERM} Γ u (OpenType _ _ t) hd = hnf Γ u t hd
-  -- = case (ctxt-clarify-term-def Γ x) of λ where
-  --     (just Γ') → hnf Γ' u t hd
-  --     nothing → hnf Γ u t hd
+hnf{TERM} Γ u (Open _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u x hd = x
 
 hnf{TYPE} Γ no-unfolding e _ = e

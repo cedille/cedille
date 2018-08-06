@@ -252,15 +252,14 @@ data term where
   IotaProj : term → num → posinfo → term
   Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
-  OpenType : posinfo → var → term → term
-  OpenTerm : posinfo → var → term
+  Open : posinfo → var → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
   Rho : posinfo → optPlus → optNums → term → optGuide → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
   Var : posinfo → qvar → term
-{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.OpenType | CedilleTypes.OpenTerm | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Var) #-}    
+{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Var) #-}
 
 data theta where 
   Abstract : theta

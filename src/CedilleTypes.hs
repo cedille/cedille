@@ -142,8 +142,7 @@ data Term =
      | IotaProj Term Num PosInfo
      | Lam PosInfo MaybeErased PosInfo Bvar OptClass Term
      | Let PosInfo DefTermOrType Term
-     | OpenType PosInfo Qvar Term
-     | OpenTerm PosInfo Qvar
+     | Open PosInfo Qvar Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
      | Rho PosInfo OptPlus OptNums Term OptGuide Term
