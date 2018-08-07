@@ -120,8 +120,10 @@ Defaults to `error'."
 (defun cedille-mode-get-create-window(&optional buffer)
   "Retrieves the window associated with the given buffer or else creates a new window and fills it with the buffer"
   (let ((window (get-buffer-window buffer)))
+    (message "window: %s" window)
     (unless window
       (let ((sw (selected-window)))
+        (message "sw: %s" sw)
 	(setq window (split-window (selected-window))))
       (set-window-buffer window (or buffer (buffer-name)))
       (cedille-mode-rebalance-windows))

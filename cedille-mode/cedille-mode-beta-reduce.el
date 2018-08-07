@@ -128,13 +128,12 @@
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
-  (message "init-buffer %s" (current-buffer))
   (let ((parent cedille-mode-parent-buffer)
         (original-filename (buffer-file-name))
         (len (buffer-size))
 	(buffer (generate-new-buffer (cedille-mode-br-buffer-name))))
     (with-current-buffer buffer
-      (cedille-mode-get-create-window)
+      (cedille-mode-get-create-window buffer)
       (display-buffer buffer)
       (setq buffer-read-only t)
       (se-navigation-mode)
@@ -262,7 +261,8 @@
 
 (defun cedille-mode-br-prompt (str)
   "Starts the beta-reduction buffer with STR and local context"
-  (cedille-mode-br-init-buffer-wait str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking)))
+  (let ((cedille-mode-br-original-filename (buffer-file-name)))
+    (cedille-mode-br-init-buffer-wait str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking))))
 
 (defun cedille-mode-br-kill-buffer ()
   "Kills the current buffer"

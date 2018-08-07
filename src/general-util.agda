@@ -293,6 +293,9 @@ joinPath [] = ""
 joinPath (x :: []) = x
 joinPath (x :: xs) = x ^ pathSeparatorString ^ joinPath xs
 
+pathIsAbsolute : filepath → 𝔹
+pathIsAbsolute = maybe-else ff (λ c → (c =char '~') || (c =char pathSeparator)) ∘ (head2 ∘ string-to-𝕃char)
+
 -- string binary tree, for more efficient I/O printing than concatenation
 data rope : Set where
   _⊹⊹_ : rope → rope → rope
