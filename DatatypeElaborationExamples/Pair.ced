@@ -1,0 +1,100 @@
+module Pair.
+import Top.
+import Cast.
+
+pairu ◂ Top = β{λ a. λ b. λ f. f a b}.
+
+Sigma ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★.
+  ι x : Top. ∀ X : Top ➔ ★. (Π a : A. Π b : B a. X β{pairu a b}) ➔ X x.
+Pair ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★.
+  ι x : Top. ∀ X : Top ➔ ★. (Π a : A. Π b : B. X β{pairu a b}) ➔ X x.
+
+sigma ◂ ∀ A : ★. Π a : A. ∀ B : A ➔ ★. B a ➔ Sigma · A · B =
+  Λ A. λ a. Λ B. λ b. [β{pairu a b}, Λ X. λ f. f a b].
+
+pair ◂ ∀ A : ★. A ➔ ∀ B : ★. B ➔ Pair · A · B =
+  Λ A. λ a. Λ B. λ b. sigma a · (λ _ : A. B) b.
+
+SigmaInd ◂ ∀ A : ★. ∀ B : A ➔ ★. Π x : Sigma · A · B. ∀ Q : Sigma · A · B ➔ ★. (Π a : A. Π b : B a. Q (sigma a · B b)) ➔ Q x =
+  Λ A. Λ B. λ x. Λ Q. λ f. x.2 · (λ x : Top. ∀ x' : Sigma · A · B. {x' ≃ x} ➾ Q x')
+    (λ a. λ b. Λ x'. Λ e. ρ e - (f a b)) -x -β.
+
+PairInd ◂ ∀ A : ★. ∀ B : ★. Π x : Pair · A · B. ∀ Q : Pair · A · B ➔ ★. (Π a : A. Π b : B. Q (pair a b)) ➔ Q x =
+  Λ A. Λ B. λ x. Λ Q. λ f. x.2 · (λ x : Top. ∀ x' : Pair · A · B. {x' ≃ x} ➾ Q x')
+    (λ a. λ b. Λ x'. Λ e. ρ e - (f a b)) -x -β.
+
+SigmaFold ◂ ∀ A : ★. ∀ B : A ➔ ★. Sigma · A · B ➔ ∀ X : ★. (Π a : A. B a ➔ X) ➔ X =
+  Λ A. Λ B. λ x. Λ X. x.2 · (λ x : Top. X).
+
+PairFold ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔ ∀ X : ★. (A ➔ B ➔ X) ➔ X =
+  Λ A. Λ B. λ x. Λ X. x.2 · (λ x : Top. X).
+
+twist ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔ Pair · B · A =
+  Λ A. Λ B. λ x. [β{λ f. x (λ a. λ b. f b a)},
+    Λ X. λ f. x.2 · (λ x : Top. X β{λ f. x (λ a. λ b. f b a)}) (λ a. λ b. f b a)].
+
+fstS ◂ ∀ A : ★. ∀ B : A ➔ ★. Sigma · A · B ➔ A =
+  Λ A. Λ B. λ x. SigmaFold · A · B x · A (λ a. λ b. a).
+
+fst ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔ A =
+  Λ A. Λ B. λ x. PairFold x · A (λ a. λ b. a).
+
+sndS ◂ ∀ A : ★. ∀ B : A ➔ ★. Π x : Sigma · A · B. B (fstS · A · B x) =
+  Λ A. Λ B. λ x. SigmaInd · A · B x · (λ x : Sigma · A · B. B (fstS · A · B x))
+    (λ a. λ b. b).
+
+snd ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔ B =
+  Λ A. Λ B. λ x. PairFold x · B (λ a. λ b. b).
+
+map-both ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔
+           ∀ C : ★. (A ➔ C) ➔ ∀ D : ★. (B ➔ D) ➔ Pair · C · D =
+  Λ A. Λ B. λ x. Λ C. λ f1. Λ D. λ f2.
+    PairFold x · (Pair · C · D) (λ a. λ b. pair (f1 a) (f2 b)).
+
+map-fst ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔
+          ∀ C : ★. (A ➔ C) ➔ Pair · C · B =
+  Λ A. Λ B. λ x. Λ C. λ f. PairFold x (λ a : A. pair (f a) · B).
+
+map-snd ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔
+          ∀ D : ★. (B ➔ D) ➔ Pair · A · D =
+  Λ A. Λ B. λ x. Λ D. λ f. PairFold x (λ a : A. λ b : B. pair a (f b)).
+
+pair-rec ◂ ∀ A : ★. ∀ B : ★. Π p : Pair · A · B. {p pair ≃ p} =
+  Λ A. Λ B. λ x. θ<x> (PairInd x) (λ a. λ b. β).
+
+cast-both ◂ ∀ A : ★. ∀ B : ★. Pair · A · B ➔
+           ∀ C : ★. Cast · A · C ➾ ∀ D : ★. Cast · B · D ➾ Pair · C · D =
+  Λ A. Λ B. λ x. Λ C. Λ c1. Λ D. Λ c2. φ (pair-rec x) -
+    (PairFold x · (Pair · C · D) (λ a. λ b. pair (cast -c1 a) (cast -c2 b))) {x}.
+
+cast-both-strong ◂ ∀ A : ★. ∀ B : ★. Π x : Pair · A · B.
+           ∀ C : ★. Cast · (ι a : A. {a ≃ fst x}) · C ➾
+           ∀ D : ★. Cast · (ι b : B. {b ≃ snd x}) · D ➾ Pair · C · D =
+  Λ A. Λ B. λ x. φ (θ<x> (PairInd x) (λ a. λ b. β)) -
+    θ<x> (PairInd x) (λ a. λ b. Λ C. Λ ac. Λ D. Λ bd.
+      pair (cast -ac [a, β{a}]) (cast -bd [b, β{b}])) {x}.
+
+cast-fst ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. Cast · A · C ➾ Pair · A · B ➔ Pair · C · B =
+  Λ A. Λ B. Λ C. Λ c. λ x. cast-both x -c -(castId · B).
+
+cast-snd ◂ ∀ A : ★. ∀ B : ★. ∀ D : ★. Cast · B · D ➾ Pair · A · B ➔ Pair · A · D =
+  Λ A. Λ B. Λ D. Λ c. λ x. cast-both x -(castId · A) -c.
+
+uncurry ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. (A ➔ B ➔ C) ➔ Pair · A · B ➔ C =
+  Λ A. Λ B. Λ C. λ f. λ p. PairFold p f.
+
+curry ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. (Pair · A · B ➔ C) ➔ A ➔ B ➔ C =
+  Λ A. Λ B. Λ C. λ f. λ a. λ b. f (pair a b).
+
+uncurryS ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ C : ★. (Π a : A. B a ➔ C) ➔ Sigma · A · B ➔ C =
+  Λ A. Λ B. Λ C. λ f. λ p. SigmaFold p f.
+
+curryS ◂ ∀ A : ★. ∀ B : A ➔ ★. ∀ C : ★. (Sigma · A · B ➔ C) ➔ Π a : A. B a ➔ C =
+  Λ A. Λ B. Λ C. λ f. λ a. λ b. f (sigma a b).
+
+cst-bth ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. ∀ D : ★. Cast · A · C ➾ Cast · B · D ➾ Cast · (Pair · A · B) · (Pair · C · D) =
+  Λ A. Λ B. Λ C. Λ D. Λ c1. Λ c2. [λ x. cast-both x -c1 -c2, β].
+cst-fst ◂ ∀ A : ★. ∀ B : ★. ∀ C : ★. Cast · A · C ➾ Cast · (Pair · A · B) · (Pair · C · B) =
+  Λ A. Λ B. Λ C. Λ c. cst-bth -c -(castId · B).
+cst-snd ◂ ∀ A : ★. ∀ B : ★. ∀ D : ★. Cast · B · D ➾ Cast · (Pair · A · B) · (Pair · A · D) =
+  Λ A. Λ B. Λ D. Λ c. cst-bth -(castId · A) -c.

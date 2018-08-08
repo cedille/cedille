@@ -1,0 +1,36 @@
+module Maybe.
+import Bool.
+import Top.
+import Cast.
+
+nothingU ◂ Top = β{λ n. λ j. n}.
+justU ◂ Top = β{λ a. λ n. λ j. j a}.
+
+Maybe' ◂ ★ ➔ Top ➔ ★ = λ A : ★. λ x : Top. ∀ X : Top ➔ ★. X nothingU ➔ (Π a : A. X β{justU a}) ➔ X x.
+Maybe ◂ ★ ➔ ★ = λ A : ★. ι x : Top. Maybe' · A x.
+
+nothing ◂ ∀ A : ★. Maybe · A =
+  Λ A. [nothingU, Λ X. λ n. λ j. n].
+just ◂ ∀ A : ★. A ➔ Maybe · A =
+  Λ A. λ a. [β{justU a}, Λ X. λ n. λ j. j a].
+
+MaybeInd ◂ ∀ A : ★. Π m : Maybe · A. ∀ Q : Maybe · A ➔ ★. Q (nothing · A) ➔ (Π a : A. Q (just a)) ➔ Q m =
+  Λ A. λ m. Λ Q. λ n. λ j. m.2 · (λ x : Top. ∀ x' : Maybe · A. {x' ≃ x} ➾ Q x')
+    (Λ x'. Λ e. ρ e - n) (λ a. Λ x'. Λ e. ρ e - j a) -m -β.
+
+MaybeFold ◂ ∀ A : ★. Π m : Maybe · A. ∀ X : ★. X ➔ (A ➔ X) ➔ X =
+  Λ A. λ m. Λ X. MaybeInd m · (λ m : Maybe · A. X).
+
+is-just ◂ ∀ A : ★. Maybe · A ➔ Bool = Λ A. λ m. MaybeFold m ff (λ a. tt).
+
+maybe-raa ◂ ∀ x : Top. {nothing ≃ just x} ➾ RAA =
+  Λ x. Λ e. δ - χ {is-just (just x) ≃ is-just nothing} - ρ ς e - β.
+-- χ (↑ X. λ n : X. λ j : X. n : ☆ ➔↑ ☆ ➔↑ ☆ · RAA · Top) - ρ e - β.
+
+extract-just ◂ ∀ A : ★. Π m : Maybe · A. {is-just m ≃ tt} ➾ A =
+  Λ A. λ m. MaybeInd m · (λ m : Maybe · A. {is-just m ≃ tt} ➾ A)
+    (Λ e. tt-ff-raa -(ρ e - β) · A) (λ a. Λ e. a).
+
+MaybeCast ◂ ∀ A : ★. ∀ B : ★. Cast · A · B ➾ Maybe · A ➔ Maybe · B =
+  Λ A. Λ B. Λ c. λ m. φ (θ<m> (MaybeInd m) β (λ _. β)) -
+    MaybeFold m (nothing · B) (λ a. just (cast -c a)) {m}.

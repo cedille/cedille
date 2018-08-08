@@ -1,0 +1,29 @@
+module ParamList.
+
+import RecType.
+import Mendler.
+
+-- Here we see that it is unnecessary to generate a new Mendler file for parameters
+
+ListF ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ List : ★. ι x : Top. ∀ X : Top ➔ ★.
+  X β{λ n. λ c. n} ➔ (Π h : A. Π t : List. X β{λ n. λ c. c h t}) ➔ X x.
+
+ListFmap ◂ ∀ A : ★. RecFunctor · (ListF · A) = Λ A. Λ L. Λ L'. Λ cst.
+  [λ l. [l.1, Λ X. λ n. λ c. l.2 n (λ h. λ t. c h (cast -cst t))], β].
+
+List ◂ ★ ➔ ★ = λ A : ★. FixIndM · (ListF · A) (ListFmap · A).
+
+Nil ◂ ∀ A : ★. List · A = Λ A. inFixIndM -(ListFmap · A)
+  [β{λ n. λ c. n}, Λ X. λ n. λ c. n].
+Cons ◂ ∀ A : ★. A ➔ List · A ➔ List · A = Λ A. λ h. λ t. inFixIndM -(ListFmap · A)
+  [β{λ n. λ c. c h t}, Λ X. λ n. λ c. c h t].
+
+ListInd ◂ ∀ A : ★. Π l : List · A. ∀ Q : List · A ➔ ★.
+    Q (Nil · A) ➔ (Π h : A. Π t : List · A. Q t ➔ Q (Cons h t)) ➔ Q l =
+  Λ A. λ l. Λ Q. λ n. λ c. MendlerInd -(ListFmap · A) l · Q
+    (Λ R. Λ cst. λ ih. λ l.
+      l.2 · (λ x : Top. ∀ l : ListF · A · R. ∀ e : {l ≃ x}.
+          Q (inFixIndM -(ListFmap · A) (φ e - cast -(ListFmap · A -cst) l {x})))
+        (Λ l. Λ e. n)
+        (λ h. λ t. Λ l. Λ e. c h (cast -cst t) (ih t))
+        -l -β).

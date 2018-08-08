@@ -1,0 +1,138 @@
+module RecType.
+import public Cast.
+import public Top.
+
+RecFunctor ◂ (★ ➔ ★) ➔ ★ =
+  λ F : ★ ➔ ★. ∀ X : ★. ∀ Y : ★. Cast · X · Y ➾ Cast · (F · X) · (F · Y).
+
+Rec ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. ∀ X : ★. Cast · (F · X) · X ➾ X. 
+
+recCast ◂ ∀ F : ★ ➔ ★. ∀ X : ★. Cast · (F · X) · X ➾ Cast · (Rec · F) · X =
+  Λ F. Λ X. Λ c. [λ a. a · X -c, β].
+
+recIn ◂ ∀ F : ★ ➔ ★. RecFunctor · F ➾ Cast · (F · (Rec · F)) · (Rec · F) =
+  Λ F. Λ fmap.
+    [λ a. Λ X. Λ c.
+      cast · (F · X) · X -c
+        (cast · (F · (Rec · F)) · (F · X)
+          -(fmap · (Rec · F) · X -(recCast · F · X -c)) a),
+      β].
+
+recOut ◂ ∀ F : ★ ➔ ★. RecFunctor · F ➾ Cast · (Rec · F) · (F · (Rec · F)) =
+  Λ F. Λ fmap. [λ a. a · (F · (Rec · F))
+                    -(fmap · (F · (Rec · F)) · (Rec · F) -(recIn · F -fmap)),
+                  β].
+
+RecFold ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. F · (Rec · F) ➔ Rec · F.
+RecUnfold ◂ (★ ➔ ★) ➔ ★ = λ F : ★ ➔ ★. Rec · F ➔ F · (Rec · F).
+
+recFold ◂ ∀ F : ★ ➔ ★. RecFunctor · F ➾ RecFold · F =
+  Λ F. Λ fmap. cast · (F · (Rec · F)) · (Rec · F) -(recIn · F -fmap).
+recUnfold ◂ ∀ F : ★ ➔ ★. RecFunctor · F ➾ RecUnfold · F =
+  Λ F. Λ fmap. cast · (Rec · F) · (F · (Rec · F)) -(recOut · F -fmap).
+
+-----------------------------
+
+RecFunctorI ◂ Π I : ★. ((I ➔ ★) ➔ I ➔ ★) ➔ ★ =
+  λ I : ★. λ F : (I ➔ ★) ➔ I ➔ ★. ∀ X : I ➔ ★. ∀ Y : I ➔ ★.
+    CastI · I · X · Y ➾ CastI · I · (F · X) · (F · Y).
+
+RecI ◂ Π I : ★. ((I ➔ ★) ➔ I ➔ ★) ➔ I ➔ ★ = λ I : ★. λ F : (I ➔ ★) ➔ I ➔ ★. λ i : I. ∀ X : I ➔ ★. CastI · I · (F · X) · X ➾ X i. 
+
+recCastI ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ I ➔ ★. ∀ X : I ➔ ★. CastI · I · (F · X) · X ➾ CastI · I · (RecI · I · F) · X =
+  Λ I. Λ F. Λ X. Λ c. [Λ i. λ a. a · X -c, β].
+
+recInI ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ I ➔ ★. RecFunctorI · I · F ➾ CastI · I · (F · (RecI · I · F)) · (RecI · I · F) =
+  Λ I. Λ F. Λ fmap.
+    [Λ i. λ a. Λ X. Λ c.
+      castI · I · (F · X) · X -c -i
+        (castI · I · (F · (RecI · I · F)) · (F · X)
+          -(fmap · (RecI · I · F) · X -(recCastI · I · F · X -c)) -i a),
+      β].
+
+recOutI ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ I ➔ ★. RecFunctorI · I · F ➾
+          CastI · I · (RecI · I · F) · (F · (RecI · I · F)) =
+  Λ I. Λ F. Λ fmap.
+    [Λ i. λ a. a · (F · (RecI · I · F)) -(fmap · (F · (RecI · I · F)) · (RecI · I · F) -(recInI · I · F -fmap)),
+     β].
+
+
+RecFoldI ◂ Π I : ★. ((I ➔ ★) ➔ I ➔ ★) ➔ ★ = λ I : ★. λ F : (I ➔ ★) ➔ I ➔ ★.
+  ∀ i : I. F · (RecI · I · F) i ➔ RecI · I · F i.
+RecUnfoldI ◂ Π I : ★. ((I ➔ ★) ➔ I ➔ ★) ➔ ★ = λ I : ★. λ F : (I ➔ ★) ➔ I ➔ ★.
+  ∀ i : I. RecI · I · F i ➔ F · (RecI · I · F) i.
+
+recFoldI ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ I ➔ ★. RecFunctorI · I · F ➾ RecFoldI · I · F =
+  Λ I. Λ F. Λ fmap. castI · I · (F · (RecI · I · F)) · (RecI · I · F) -(recInI · I · F -fmap).
+recUnfoldI ◂ ∀ I : ★. ∀ F : (I ➔ ★) ➔ I ➔ ★. RecFunctorI · I · F ➾ RecUnfoldI · I · F =
+  Λ I. Λ F. Λ fmap. castI · I · (RecI · I · F) · (F · (RecI · I · F)) -(recOutI · I · F -fmap).
+
+-----------------------------
+
+𝒌P = ★ ➔ ★.
+
+RecFunctorP ◂ (𝒌P ➔ 𝒌P) ➔ ★ =
+  λ F : 𝒌P ➔ 𝒌P. ∀ X : ★ ➔ ★. ∀ Y : ★ ➔ ★. CastP · X · Y ➔ CastP · (F · X) · (F · Y).
+
+RecP ◂ (𝒌P ➔ 𝒌P) ➔ ★ ➔ ★ = λ F : 𝒌P ➔ 𝒌P. λ P : ★. ∀ X : ★ ➔ ★. CastP · (F · X) · X ➾ X · P. 
+
+recCastP ◂ ∀ F : 𝒌P ➔ 𝒌P. ∀ X : ★ ➔ ★. CastP · (F · X) · X ➾ CastP · (RecP · F) · X =
+  Λ F. Λ X. Λ c. [Λ P. λ a. a · X -c, β].
+
+recInP ◂ ∀ F : 𝒌P ➔ 𝒌P. RecFunctorP · F ➾ CastP · (F · (RecP · F)) · (RecP · F) =
+  Λ F. Λ fmap.
+    [Λ P. λ a. Λ X. Λ c.
+      castP · (F · X) · X · P -c
+        (castP · (F · (RecP · F)) · (F · X) · P
+          -(fmap · (RecP · F) · X (recCastP · F · X -c)) a),
+      β].
+
+recOutP ◂ ∀ F : 𝒌P ➔ 𝒌P. RecFunctorP · F ➾ CastP · (RecP · F) · (F · (RecP · F)) =
+  Λ F. Λ fmap. [Λ P. λ a. a · (F · (RecP · F))
+                    -(fmap · (F · (RecP · F)) · (RecP · F) (recInP · F -fmap)),
+                  β].
+
+RecFoldP ◂ (𝒌P ➔ 𝒌P) ➔ ★ = λ F : 𝒌P ➔ 𝒌P.
+  ∀ P : ★. F · (RecP · F) · P ➔ RecP · F · P.
+RecUnfoldP ◂ (𝒌P ➔ 𝒌P) ➔ ★ = λ F : 𝒌P ➔ 𝒌P.
+  ∀ P : ★. RecP · F · P ➔ F · (RecP · F) · P.
+
+recFoldP ◂ ∀ F : 𝒌P ➔ 𝒌P. RecFunctorP · F ➾ RecFoldP · F =
+  Λ F. Λ fmap. Λ P. castP · (F · (RecP · F)) · (RecP · F) · P -(recInP · F -fmap).
+recUnfoldP ◂ ∀ F : 𝒌P ➔ 𝒌P. RecFunctorP · F ➾ RecUnfoldP · F =
+  Λ F. Λ fmap. Λ P. castP · (RecP · F) · (F · (RecP · F)) · P -(recOutP · F -fmap).
+
+-----------------------------
+
+𝒌Π (I : ★) = ★ ➔ I ➔ ★.
+
+RecFunctorΠ ◂ Π I : ★. (𝒌Π · I ➔ 𝒌Π · I) ➔ ★ =
+  λ I : ★. λ F : 𝒌Π · I ➔ 𝒌Π · I. ∀ X : ★ ➔ I ➔ ★. ∀ Y : ★ ➔ I ➔ ★. CastΠ · I · X · Y ➔ CastΠ · I · (F · X) · (F · Y).
+
+RecΠ ◂ Π I : ★. (𝒌Π · I ➔ 𝒌Π · I) ➔ 𝒌Π · I = λ I : ★. λ F : 𝒌Π · I ➔ 𝒌Π · I. λ P : ★. λ i : I. ∀ X : 𝒌Π · I. CastΠ · I · (F · X) · X ➾ X · P i. 
+
+recCastΠ ◂ ∀ I : ★. ∀ F : 𝒌Π · I ➔ 𝒌Π · I. ∀ X : 𝒌Π · I. CastΠ · I · (F · X) · X ➾ CastΠ · I · (RecΠ · I · F) · X =
+  Λ I. Λ F. Λ X. Λ c. [Λ P. Λ i. λ a. a · X -c, β].
+
+recInΠ ◂ ∀ I : ★. ∀ F : 𝒌Π · I ➔ 𝒌Π · I. RecFunctorΠ · I · F ➾ CastΠ · I · (F · (RecΠ · I · F)) · (RecΠ · I · F) =
+  Λ I. Λ F. Λ fmap.
+    [Λ P. Λ i. λ a. Λ X. Λ c.
+      castΠ · I · (F · X) · X -c · P -i
+        (castΠ · I · (F · (RecΠ · I · F)) · (F · X)
+          -(fmap · (RecΠ · I · F) · X (recCastΠ · I · F · X -c)) · P -i a),
+      β].
+
+recOutΠ ◂ ∀ I : ★. ∀ F : 𝒌Π · I ➔ 𝒌Π · I. RecFunctorΠ · I · F ➾ CastΠ · I · (RecΠ · I · F) · (F · (RecΠ · I · F)) =
+  Λ I. Λ F. Λ fmap. [Λ P. Λ i. λ a. a · (F · (RecΠ · I · F))
+                    -(fmap · (F · (RecΠ · I · F)) · (RecΠ · I · F) (recInΠ · I · F -fmap)),
+                  β].
+
+RecFoldΠ ◂ Π I : ★. (𝒌Π · I ➔ 𝒌Π · I) ➔ ★ = λ I : ★. λ F : 𝒌Π · I ➔ 𝒌Π · I.
+  ∀ P : ★. ∀ i : I. F · (RecΠ · I · F) · P i ➔ RecΠ · I · F · P i.
+RecUnfoldΠ ◂ Π I : ★. (𝒌Π · I ➔ 𝒌Π · I) ➔ ★ = λ I : ★. λ F : 𝒌Π · I ➔ 𝒌Π · I.
+  ∀ P : ★. ∀ i : I. RecΠ · I · F · P i ➔ F · (RecΠ · I · F) · P i.
+
+recFoldΠ ◂ ∀ I : ★. ∀ F : 𝒌Π · I ➔ 𝒌Π · I. RecFunctorΠ · I · F ➾ RecFoldΠ · I · F =
+  Λ I. Λ F. Λ fmap. castΠ · I · (F · (RecΠ · I · F)) · (RecΠ · I · F) -(recInΠ · I · F -fmap).
+recUnfoldΠ ◂ ∀ I : ★. ∀ F : 𝒌Π · I ➔ 𝒌Π · I. RecFunctorΠ · I · F ➾ RecUnfoldΠ · I · F =
+  Λ I. Λ F. Λ fmap. castΠ · I · (RecΠ · I · F) · (F · (RecΠ · I · F)) -(recOutΠ · I · F -fmap).
