@@ -69,10 +69,6 @@ inst-kind : ctxt → params → args → kind → kind
 inst-kind Γ ps as k with mk-inst ps as
 ...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
 
--- TODO substs-params
-inst-params : ctxt → params → args → params → params
-inst-params Γ ps as qs = qs
-
 qualif-term : ctxt → term → term
 qualif-term Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-term Γ σ
 
@@ -201,17 +197,6 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , type-def nothing _ T k , _) = just (Tkk k)
 ... | _ = nothing
 
-env-lookup-kind-var-qdef : ctxt → var → args → maybe (params × kind)
-env-lookup-kind-var-qdef Γ v as with env-lookup Γ v
-... | just (kind-def ps1 ps2 k , _) = just (inst-params Γ ps1 as ps2 , inst-kind Γ ps1 as k)
-... | _ = nothing
-
-ctxt-lookup-kind-var-qdef : ctxt → var → maybe (params × kind)
-ctxt-lookup-kind-var-qdef Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup q v
-... | just (v' , as) = env-lookup-kind-var-qdef Γ v' as
-... | _ = nothing
-
-
 ctxt-term-if-not-opaque : opacity → term → maybe term
 ctxt-term-if-not-opaque OpacOpaque _ = nothing
 ctxt-term-if-not-opaque OpacTrans  t = just t
@@ -237,6 +222,11 @@ ctxt-lookup-type-var-def Γ v with env-lookup Γ v
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def Γ x with env-lookup Γ x
 ... | just (kind-def ps1 ps2 k , _) = just (append-params ps1 ps2 , k)
+... | _ = nothing
+
+ctxt-lookup-kind-var-def-args : ctxt → var → maybe (params × args)
+ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup q v
+... | just (v' , as) = ctxt-lookup-kind-var-def Γ v' ≫=maybe λ { (ps , k) → just (ps , as) }
 ... | _ = nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)

@@ -73,7 +73,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (So
   check-term t (just tp') ≫span 
   check-erased-margs t (just tp') ≫span 
   get-ctxt (λ Γ →
-    let Γ' = ctxt-term-def pi globalScope nonParamVar op x t tp' Γ in
+    let Γ' = ctxt-term-def pi globalScope op x t tp' Γ in
       spanM-add (DefTerm-span Γ' pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
@@ -82,7 +82,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (So
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (SomeType tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
     check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope nonParamVar op x t tp' Γ)))
+      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope op x t tp' Γ)))
 
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x NoType t) pi') _ = 
@@ -92,7 +92,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x NoT
   get-ctxt (λ Γ → 
       let Γ' = maybe-else
                  (ctxt-term-udef pi globalScope op x t Γ)
-                 (λ tp → ctxt-term-def pi globalScope nonParamVar op x t tp Γ) mtp in
+                 (λ tp → ctxt-term-def pi globalScope op x t tp Γ) mtp in
       spanM-add (DefTerm-span Γ' pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
@@ -104,7 +104,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
     let k' = qualif-kind Γ k in
     check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
-      let Γ' = ctxt-type-def pi globalScope nonParamVar op x tp k' Γ in
+      let Γ' = ctxt-type-def pi globalScope op x tp k' Γ in
         spanM-add (DefType-span Γ' pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking [] nothing) ≫span
@@ -114,7 +114,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k tp) pi') ff {- skip checking -} = 
   let k' = qualif-kind Γ k in
     check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope nonParamVar op x tp k' Γ)))
+      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope op x tp k' Γ)))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span

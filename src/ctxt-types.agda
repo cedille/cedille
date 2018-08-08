@@ -33,13 +33,6 @@ globalScope = ff
 defParams : Set
 defParams = maybe params
 
-data varType : Set where
-  paramVar nonParamVar : varType
-
-isParamVar : varType → 𝔹
-isParamVar paramVar = tt
-isParamVar nonParamVar = ff
-
 data ctxt-info : Set where
 
   -- for declaring a variable to have a given type (with no definition)
