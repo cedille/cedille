@@ -26,7 +26,6 @@ data Opacity =
 
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
-     | DefTermOrType DefTermOrType PosInfo
      | DefTermOrType Opacity DefTermOrType PosInfo
      | DefDatatype   DefDatatype   PosInfo               
      | ImportCmd Imprt

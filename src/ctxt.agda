@@ -205,11 +205,6 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , datatype-def _ k     , _) = just (Tkk k)
 ... | _ = nothing
 
-env-lookup-kind-var-qdef : ctxt → var → args → maybe (params × kind)
-env-lookup-kind-var-qdef Γ v as with env-lookup Γ v
-... | just (kind-def ps1 ps2 k , _) = just (inst-params Γ ps1 as ps2 , inst-kind Γ ps1 as k)
-... | _ = nothing
-
 ctxt-term-if-not-opaque : opacity → term → maybe term
 ctxt-term-if-not-opaque OpacOpaque _ = nothing
 ctxt-term-if-not-opaque OpacTrans  t = just t
