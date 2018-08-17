@@ -184,12 +184,10 @@ check-termi t'@(AppTp t tp') mtp =
     on-fail spanM-add (AppTp-span t tp' (maybe-to-checking mtp)
               (expected-type-if Γ mtp) nothing)
             ≫span return-when mtp mtp
-  ≫=spanm' λ tp →
-  spanMr (maybe-else' (to-abs-tp tp)
-                      (to-abs-tp (hnf Γ (unfolding-elab unfold-head) tp tt))
-                      (λ atp → just atp))
-    on-fail check-term-errors.inapplicable-tp {A = check-ret mtp} t tp' tp mtp
-  ≫=spanm' λ ret → let mk-abs-tp pis e? x k body = ret in
+  ≫=spanm' λ tp → spanMr (either-else' (to-is-tpabs tp)
+      (λ _ → to-is-tpabs (hnf Γ (unfolding-elab unfold-head) tp tt)) inj₂)
+    on-fail (λ _ → check-term-errors.inapplicable-tp {A = check-ret mtp} t tp' tp mtp)
+  ≫=spans' λ ret → let mk-tpabs pis e? x k body = ret in
   check-type tp' (just k)
   ≫span
     let rtp = subst-type Γ (qualif-type Γ tp') x body in
@@ -801,7 +799,7 @@ check-spine-locality Γ Xs tp max locl =
 data check-term-app-ret : Set where
   check-term-app-return : (Xs : meta-vars) (atp rtp : type) (arg-mode : checking-mode) → check-term-app-ret
 
-check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → arrow* → (mtp : maybe type) → 𝔹
+check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabs → (mtp : maybe type) → 𝔹
                  → spanM (maybe check-term-app-ret)
 
 check-term-spine t'@(App t₁ e? t₂) mtp max =
@@ -810,17 +808,17 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
      on-fail spanM-add (App-span max t₁ t₂ mode [] nothing) ≫span spanMr nothing
   -- 2) make sure it reveals an arrow
   ≫=spanm' λ ret → let (mk-spine-data Xs htp locl) = ret in
-    get-ctxt λ Γ →
-    spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
-     on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ htp Xs
-                      (is-locale max (just $' pred locl)) mode e?)
+  get-ctxt λ Γ → spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
+  ≫=span λ ret → let Ys = fst ret in
+  spanMr (snd ret) on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ htp Xs
+                                    (islocl locl) mode e?)
   ≫=spans' λ arr →
   -- 3) make sure expected / given erasures match
-    if ~ eq-maybeErased e? (arrow*-get-e? arr)
+    if ~ eq-maybeErased e? (is-tmabs-binder arr)
       then check-term-app-tm-errors.bad-erasure
             t₁ t₂ htp Xs (is-locale max (just $' pred locl)) mode e?
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs [] t₁ t₂ arr mtp (is-locale max (just $' pred locl))
+    else check-term-app Xs Ys t₁ t₂ arr mtp (islocl locl)
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
@@ -832,7 +830,7 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   -- 6) generate span and finish
    spanM-add (uncurry
      (λ tvs → App-span is-loc t₁ t₂ mode
-       (tvs ++ meta-vars-intro-data Γ (arrow*-get-Xs arr) ++ meta-vars-sol-data Γ Xs Xs'))
+       (tvs ++ meta-vars-intro-data Γ (meta-vars-from-list Ys) ++ meta-vars-sol-data Γ Xs Xs'))
      (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
        meta-vars-empty -- TODO only those updated by STAI
        rtp'))
@@ -845,6 +843,9 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   span-loc : (fn : string) → span-location
   span-loc fn = fn , term-start-pos t₁ , term-end-pos t₂
 
+  islocl : ℕ → 𝔹
+  islocl locl = is-locale max (just $' pred locl)
+
 check-term-spine t'@(AppTp t tp) mtp max =
   -- 1) type the applicand
     check-term-spine t nothing max
@@ -856,7 +857,7 @@ check-term-spine t'@(AppTp t tp) mtp max =
      on-fail (λ htp' →
        check-term-app-tp-errors.inapplicable t tp htp Xs mode)
   -- 3) ensure the type argument has the expected kind
-  ≫=spans' λ { (mk-tp-abs _ b _ x k rtp) →
+  ≫=spans' λ ret → let  mk-tpabs _ b x k rtp = ret in
     check-type tp (just (meta-vars-subst-kind Γ Xs k))
   -- 4) produce the result type of the application
   ≫span let rtp' = subst-type Γ (qualif-type Γ tp) x rtp in
@@ -864,7 +865,7 @@ check-term-spine t'@(AppTp t tp) mtp max =
       (AppTp-span t tp mode)
       (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs rtp'))
   ≫span check-term-spine-return Γ Xs rtp' locl
-  }
+
 
   where mode = maybe-to-checking mtp
 
@@ -876,12 +877,16 @@ check-term-spine t mtp max =
     let locl = num-arrows-in-type Γ htp in
     check-term-spine-return Γ meta-vars-empty htp locl
 
-check-term-app Xs Zs t₁ t₂ (mk-arrow* (Y :: Ys) tp dom e cod) mtp is-locl =
-  -- with CTAI we'll do something more interesting
-  check-term-app Xs (Y :: Zs) t₁ t₂ (mk-arrow* Ys tp dom e cod) mtp is-locl
-check-term-app Xs Zs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp is-locl =
-  let Xs' = meta-vars-add* Xs Zs in
-  get-ctxt λ Γ → let cod = cod ∘ qualif-term Γ in
+-- check-term-app
+-- --------------------------------------------------
+--
+-- If `dom` has unsolved meta-vars in it, synthesize argument t₂ and try to solve for them.
+-- Otherwise, check t₂ against a fully known expected type
+check-term-app Xs Zs t₁ t₂ arr@(mk-tmabs _ e? x dom occurs cod) mtp is-locl =
+  get-ctxt λ Γ →
+  let Xs' = meta-vars-add* Xs Zs
+      cod = if occurs then (λ tm → subst-type Γ (qualif-term Γ tm) x cod) else λ _ → cod
+      tp  = from-is-tmabs arr in
   if ~ meta-vars-are-free-in-type Xs' dom
     -- check t₂ against a fully-known type
     then   check-term t₂ (just dom)

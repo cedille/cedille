@@ -696,9 +696,11 @@ elab-app-term Γ (App t m t') =
   elab-app-term Γ t ≫=maybe uncurry' λ t T Xs →
   let abs-num = length (meta-vars.order Xs) in
   case meta-vars-unfold-tmapp Γ missing-span-location Xs T of λ where
-    (not-tp-arrow* _) → nothing
-    (yes-tp-arrow* Ys T' Tₐ m' cod) →
+    (Ys , (not-tmabs _)) → nothing
+    (Ys , (yes-tmabs _ m' x Tₐ occ cod)) →
+    -- (yes-tp-arrow* Ys T' Tₐ m' cod) →
       let Xs = meta-vars-add* Xs Ys
+          cod = λ tm → if occ then subst-type Γ tm x cod else cod
           abs-num' = length (meta-vars.order Xs)
           num-apps = abs-num' ∸ abs-num
           ret t' cod' Xs = just (
@@ -721,8 +723,9 @@ elab-app-term Γ (AppTp t T) =
   elab-type Γ T ≫=maybe uncurry λ T _ →
   elab-app-term Γ t ≫=maybe uncurry' λ t Tₕ Xs →
   case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
-    (not-tp-abs _) → nothing
-    (yes-tp-abs _ b _ x k Tₕ') →
+    (not-tpabs _) → nothing
+    (yes-tpabs _ b x k Tₕ') →
+    -- (yes-tp-abs _ b _ x k Tₕ') →
       let X = meta-var-fresh-tp Xs x missing-span-location (k , (just T))
           Tₕ'' = rename-var Γ x (meta-var-name X) Tₕ' in
       just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)

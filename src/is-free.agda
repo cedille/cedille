@@ -159,21 +159,30 @@ to-abs (TpArrow tp1 Erased tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy
 to-abs (TpArrow tp1 NotErased tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
-record abs-tp : Set where
-  constructor mk-abs-tp
+record is-tpabs : Set where
+  constructor mk-tpabs
   field
-    abs-tp-pi   : posinfo × posinfo
-    abs-tp-e?   : maybeErased
-    abs-tp-var  : var
-    asb-tp-kind : kind
-    abs-tp-body : type
+    is-tpabs-pi   : posinfo × posinfo
+    is-tpabs-e?   : maybeErased
+    is-tpabs-var  : var
+    is-tpabs-kind : kind
+    is-tpabs-body : type
+open is-tpabs public
 
-to-abs-tp : type → maybe abs-tp
-to-abs-tp tp with to-abs tp
-to-abs-tp tp | nothing = nothing
-to-abs-tp tp | just (mk-abs _ _ _ _ (Tkt _) _ _) = nothing
-to-abs-tp _ | just (mk-abs pi e? pi' x (Tkk k) var-free-in-body tp) =
-  just $' mk-abs-tp (pi , pi') e? x k tp
+
+is-tpabs? = type ∨ is-tpabs
+
+pattern yes-tpabs pis e? x k tp = inj₂ (mk-tpabs pis e? x k tp)
+pattern not-tpabs tp = inj₁ tp
+
+to-is-tpabs : type → is-tpabs?
+to-is-tpabs tp with to-abs tp
+... | nothing =
+  not-tpabs tp
+... | just (mk-abs _ _ _ _ (Tkt _) _ _)
+  = not-tpabs tp
+... | just (mk-abs pi e? pi' x (Tkk k) var-free-in-body tp') =
+  yes-tpabs (pi , pi') e? x k tp'
 
 data absk  : Set where
   mk-absk : posinfo → posinfo → var → tk → (var-free-in-body : 𝔹) → kind → absk 
@@ -184,3 +193,29 @@ to-absk (KndArrow k1 k2) = just (mk-absk posinfo-gen posinfo-gen dummy-var (Tkk 
 to-absk (KndTpArrow tp k) = just (mk-absk posinfo-gen posinfo-gen dummy-var (Tkt tp) ff k)
 to-absk _ = nothing
 
+record is-tmabs : Set where
+  constructor mk-tmabs
+  field
+    is-tmabs-pi     : posinfo × posinfo
+    is-tmabs-binder : maybeErased
+    is-tmabs-var    : var
+    is-tmabs-dom    : type
+    is-tmabs-var-in-body : 𝔹
+    is-tmabs-cod    : type
+open is-tmabs public
+
+is-tmabs? = type ∨ is-tmabs
+
+pattern yes-tmabs pis e? x dom occurs cod = inj₂ (mk-tmabs pis e? x dom occurs cod)
+pattern not-tmabs tp = inj₁ tp
+
+to-is-tmabs : type → is-tmabs?
+to-is-tmabs (Abs pi e? pi' x (Tkt dom) cod) =
+  yes-tmabs (pi , pi') e? x dom (is-free-in check-erased x cod) cod
+to-is-tmabs (TpArrow dom e? cod) =
+  yes-tmabs (posinfo-gen , posinfo-gen) e? "_" dom ff cod
+to-is-tmabs tp = not-tmabs tp
+
+from-is-tmabs : is-tmabs → type
+from-is-tmabs (mk-tmabs (pi , pi') b x dom occ cod) =
+  Abs pi b pi' x (Tkt dom) cod

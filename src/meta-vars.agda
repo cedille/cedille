@@ -186,6 +186,7 @@ hnf-decortype Γ uf (decor-decor e? pi x sol dt) ish =
 hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
 hnf-decortype Γ uf (decor-error tp pt) ish =
   decor-error (hnf Γ uf tp ff) pt
+
 -- substitutions
 -- --------------------------------------------------
 
@@ -219,23 +220,9 @@ meta-vars-subst-kind Γ Xs k
       (substh-kind Γ empty-renamectxt (meta-vars-get-sub Xs) k)
       tt
 
-meta-vars-in-type : meta-vars → type → meta-vars
-meta-vars-in-type Xs tp =
-  (flip meta-vars-filter) Xs λ X →
-    are-free-in-type check-erased (trie-single (name X) triv) tp
-
-meta-vars-unsolved : meta-vars → meta-vars
-meta-vars-unsolved = meta-vars-filter λ where
-  (meta-var-mk x (meta-var-tp k mtp) _)  → ~ isJust mtp
-  (meta-var-mk x (meta-var-tm tp mtm) _) → ~ isJust mtm
-
-
-meta-vars-are-free-in-type : meta-vars → type → 𝔹
-meta-vars-are-free-in-type Xs tp
-  = are-free-in-type check-erased (varset Xs) tp
-
 -- string and span helpers
-----------------------------------------
+-- --------------------------------------------------
+
 meta-var-to-string : meta-var → strM
 meta-var-to-string (meta-var-mk-tp name k nothing sl)
   = strMetaVar name sl
@@ -261,7 +248,7 @@ meta-vars-to-stringh (v :: vs)
   = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringh vs
 
 meta-vars-to-string : meta-vars → strM
-meta-vars-to-string Xs = -- meta-vars-to-stringh (order Xs) Xs
+meta-vars-to-string Xs =
   meta-vars-to-stringh
     ((flip map) (order Xs) λ x →
       case trie-lookup (varset Xs) x of λ where
@@ -294,9 +281,6 @@ decortype-to-string (decor-decor e? pi x sol dt) =
   binder Pi (meta-var-tm tp mtm) = "Π "
   -- vv clause below "shouldn't" happen
   binder Pi (meta-var-tp k mtp) = "∀ "
-  -- dec-to-string : meta-var-sol → string
-  -- dec-to-string (meta-var-tp k mtp) = {!!}
-  -- dec-to-string (meta-var-tm tp mtm) = {!!}
 
 decortype-to-string (decor-stuck tp pt) =
   strAdd "(" ≫str to-stringh tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
@@ -370,8 +354,7 @@ decortype-data Γ dt = strRunTag "head decoration" Γ (decortype-to-string dt)
 
 prototype-data : ctxt → prototype → tagged-val
 prototype-data Γ pt = strRunTag "head prototype" Γ (prototype-to-string pt)
-----------------------------------------
-----------------------------------------
+
 
 -- collecting, merging, matching
 -- --------------------------------------------------
@@ -411,85 +394,60 @@ meta-vars-remove (meta-vars-mk or vs) X =
   let x = meta-var-name X
   in meta-vars-mk (remove _=string_ x or) (trie-remove vs x)
 
--- meta-vars-peel:
+meta-vars-in-type : meta-vars → type → meta-vars
+meta-vars-in-type Xs tp =
+  (flip meta-vars-filter) Xs λ X →
+    are-free-in-type check-erased (trie-single (name X) triv) tp
+
+meta-vars-unsolved : meta-vars → meta-vars
+meta-vars-unsolved = meta-vars-filter λ where
+  (meta-var-mk x (meta-var-tp k mtp) _)  → ~ isJust mtp
+  (meta-var-mk x (meta-var-tm tp mtm) _) → ~ isJust mtm
+
+meta-vars-are-free-in-type : meta-vars → type → 𝔹
+meta-vars-are-free-in-type Xs tp =
+  are-free-in-type check-erased (varset Xs) tp
+
+-- Unfolding a type with meta-vars
 -- ==================================================
--- generate meta-variables from the type of the head of an application with
--- leading type abstractions
 
-{-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
-meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
-meta-vars-peel Γ sl Xs (Abs pi _ _ x tk@(Tkk k) tp) =
-  let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
-      Xs' = meta-vars-add Xs Y
-      tp' = subst-type Γ (meta-var-to-type-unsafe Y pi) x tp
-      ret = meta-vars-peel Γ sl Xs' tp' ; Ys  = fst ret ; rtp = snd ret
-  in (Y :: Ys , rtp)
+-- ... in order to reveal a term or type application
 
-meta-vars-peel Γ sl Xs (NoSpans tp _) =
-  meta-vars-peel Γ sl Xs tp
-meta-vars-peel Γ sl Xs (TpParens _ tp _) =
-  meta-vars-peel Γ sl Xs tp
-meta-vars-peel Γ sl Xs tp = [] , tp
+-- "View" data structures
+-- --------------------------------------------------
 
+-- The decorated type is really an arrow
+record is-tmabsd : Set where
+  constructor mk-tmabsd
+  field
+    is-tmabsd-dt  : decortype
+    is-tmabsd-e?  : maybeErased
+    is-tmabsd-var : var
+    is-tmabsd-dom : type
+    is-tmabsd-var-in-body : 𝔹
+    is-tmabsd-cod : decortype
+open is-tmabsd public
 
--- meta-vars-unfold:
--- ==================================================
--- Unfold a type with meta-variables in it to reveal a term or type application
+is-tmabsd? = decortype ∨ is-tmabsd
 
--- TODO consider abs in is-free
-data tp-abs : Set where
-  mk-tp-abs  : posinfo → maybeErased → posinfo → bvar → kind → type → tp-abs
+pattern yes-tmabsd dt e? x dom occ cod = inj₂ (mk-tmabsd dt e? x dom occ cod)
+pattern not-tmabsd tp = inj₁ tp
 
-tp-is-abs : Set
-tp-is-abs = type ∨ tp-abs
+record is-tpabsd : Set where
+  constructor mk-tpabsd
+  field
+    is-tpabsd-dt   : decortype
+    is-tpabsd-e?   : maybeErased
+    is-tpabsd-var  : var
+    is-tpabsd-kind : kind
+    is-tpabsd-sol  : maybe type
+    is-tpabsd-body : decortype
+open is-tpabsd public
 
-pattern yes-tp-abs pi b pi' x k tp = inj₂ (mk-tp-abs pi b pi' x k tp)
-pattern not-tp-abs tp = inj₁ tp
+is-tpabsd? = decortype ∨ is-tpabsd
 
-meta-vars-unfold-tpapp : ctxt → meta-vars → type → tp-is-abs
-meta-vars-unfold-tpapp Γ Xs tp
-  with meta-vars-subst-type Γ Xs tp
-... | Abs pi b pi' x (Tkk k) tp'
-  = yes-tp-abs pi b pi' x k tp'
-... | tp' = not-tp-abs tp'
-
-data arrow* : Set where
-  mk-arrow* : 𝕃 meta-var → (tp dom : type) → (e : maybeErased) → (cod : term → type) → arrow*
-
-tp-is-arrow* : Set
-tp-is-arrow* = type ∨ arrow*
-
-pattern yes-tp-arrow* Ys tp dom e cod = inj₂ (mk-arrow* Ys tp dom e cod)
-pattern not-tp-arrow* tp = inj₁ tp
-
-arrow*-get-e? : arrow* → maybeErased
-arrow*-get-e? (mk-arrow* _ _ _ e _ ) = e
-
-arrow*-get-Xs : arrow* → meta-vars
-arrow*-get-Xs (mk-arrow* Lx _ _ _ _) = meta-vars-add* meta-vars-empty Lx
-
-meta-vars-unfold-tmapp : ctxt → span-location → meta-vars → type → tp-is-arrow*
-meta-vars-unfold-tmapp Γ sl Xs tp = aux
-  where
-  aux : tp-is-arrow*
-  aux with meta-vars-peel Γ sl Xs (meta-vars-subst-type Γ Xs tp)
-  ... | Ys , tp'@(Abs _ b _ x (Tkt dom) cod') =
-    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) b
-    (λ t → subst-type Γ t x cod') -- move `qualif-term Γ t' to check-term-spine for elaboration
-  ... | Ys , tp'@(TpArrow dom e cod') =
-    yes-tp-arrow* Ys tp' ({-hnf-dom-} dom) e
-      (λ _ → cod')
-  ... | Ys , tp' =
-    not-tp-arrow* tp'
-
--- update the kinds of HO meta-vars with
--- solutions
-meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
-meta-vars-update-kinds Γ Xs Xsₖ =
-  record Xs { varset = (flip trie-map) (varset Xs) λ where
-    (meta-var-mk-tp x k mtp sl) → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp sl
-    sol → sol
-  }
+pattern yes-tpabsd dt e? x k mtp dt' = inj₂ (mk-tpabsd dt e? x k mtp dt')
+pattern not-tpabsd dt = inj₁ dt
 
 {-# TERMINATING #-}
 num-arrows-in-type : ctxt → type → ℕ
@@ -521,7 +479,7 @@ num-arrows-in-type Γ tp = nait Γ (hnf' Γ tp) 0 tt
   nait Γ (TpParens _ tp _) acc uf = nait Γ tp acc uf
   nait Γ tp acc ff = nait Γ (hnf' Γ tp) acc tt
 
--- meta-vars-match
+-- Utilities for match-types in classify.agda
 -- ==================================================
 --
 -- Match a type with meta-variables in it to one without
@@ -623,15 +581,56 @@ meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
   =   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp' x)
     ≫⊎ match-ok Xs
 
-record match-state : Set where
-  constructor mk-match-state
-  field
-    do-hnf : 𝔹
-    retry  : 𝔹
-
-match-state-toplevel : match-state
-match-state-toplevel = record { do-hnf = ff ; retry = tt }
+-- update the kinds of HO meta-vars with
+-- solutions
+meta-vars-update-kinds : ctxt → (Xs Xsₖ : meta-vars) → meta-vars
+meta-vars-update-kinds Γ Xs Xsₖ =
+  record Xs { varset = (flip trie-map) (varset Xs) λ where
+    (meta-var-mk-tp x k mtp sl) → meta-var-mk-tp x (meta-vars-subst-kind Γ Xsₖ k) mtp sl
+    sol → sol
+  }
 
 hnf-elab-if : {ed : exprd} → 𝔹 → ctxt → ⟦ ed ⟧ → 𝔹 → ⟦ ed ⟧
 hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else t
+
+
+-- Legacy for elaboration.agda
+-- ==================================================
+
+-- TODO: remove dependency and delete code
+
+meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → is-tpabs → meta-var × meta-vars × type
+meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs pis e? x k tp) =
+  let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
+      Xs' = meta-vars-add Xs Y
+      tp' = subst-type Γ (meta-var-to-type-unsafe Y (fst pis)) x tp
+  in Y , Xs' , tp'
+
+{-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
+meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
+meta-vars-peel Γ sl Xs (Abs pi e? pi' x tk@(Tkk k) tp)
+  with meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs (pi , pi') e? x k tp)
+... | (Y , Xs' , tp') =
+  let ret =  meta-vars-peel Γ sl Xs' tp' ; Ys  = fst ret ; rtp = snd ret
+  in (Y :: Ys , rtp)
+meta-vars-peel Γ sl Xs (NoSpans tp _) =
+  meta-vars-peel Γ sl Xs tp
+meta-vars-peel Γ sl Xs (TpParens _ tp _) =
+  meta-vars-peel Γ sl Xs tp
+meta-vars-peel Γ sl Xs tp = [] , tp
+
+meta-vars-unfold-tpapp : ctxt → meta-vars → type → is-tpabs?
+meta-vars-unfold-tpapp Γ Xs tp
+  with meta-vars-subst-type Γ Xs tp
+... | Abs pi b pi' x (Tkk k) tp' = yes-tpabs (pi , pi') b x k tp'
+... | tp'                        = not-tpabs tp'
+
+meta-vars-unfold-tmapp : ctxt → span-location → meta-vars → type → 𝕃 meta-var × is-tmabs?
+meta-vars-unfold-tmapp Γ sl Xs tp
+  with meta-vars-peel Γ sl Xs (meta-vars-subst-type Γ Xs tp)
+... | Ys , Abs pi b pi' x (Tkt dom) cod =
+  Ys , yes-tmabs (pi , pi') b x dom (is-free-in check-erased x cod) cod
+... | Ys , TpArrow dom e? cod =
+  Ys , yes-tmabs (posinfo-gen , posinfo-gen) e? "_" dom ff cod
+... | Ys , tp' = Ys , not-tmabs tp'
 
