@@ -64,7 +64,6 @@ hnf-from Γ e EpsHanf t = hanf Γ e t
 maybe-hnf : {ed : exprd} → ctxt → maybe ⟦ ed ⟧ → maybe ⟦ ed ⟧
 maybe-hnf Γ = maybe-map λ t → hnf Γ (unfolding-elab unfold-head) t tt
 
--- TODO Should these be unerased sometimes?
 check-term-update-eq : ctxt → leftRight → maybeMinus → posinfo → term → term → posinfo → type
 check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) t2 pi'
 check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ tt m t2)  pi'
@@ -124,13 +123,13 @@ record spine-data : Set where
   constructor mk-spine-data
   field
     spine-mvars : meta-vars
-    spine-type : type
+    spine-type : decortype
     spine-locale : ℕ
 
 {-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)
 check-termi : term → (m : maybe type) → spanM (check-ret m)
-check-term-spine : term → (m : maybe type) → 𝔹 → spanM (maybe spine-data)
+check-term-spine : term → (m : prototype) → 𝔹 → spanM (maybe spine-data)
 check-type : type → (m : maybe kind) → spanM (check-ret m)
 check-typei : type → (m : maybe kind) → spanM (check-ret m)
 check-kind : kind → spanM ⊤
@@ -197,12 +196,11 @@ check-termi t'@(AppTp t tp') mtp =
   ≫span return-when mtp (just rtp)
 
 
--- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
-check-termi t''@(App t m t') tp
-  =   get-ctxt λ Γ → check-term-spine t'' ({-maybe-hnf Γ-} tp) tt
-    ≫=span λ ret → case ret of λ where
-      nothing → check-fail tp
-      (just (mk-spine-data Xs tp' _)) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
+check-termi t''@(App t m t') tp =
+  get-ctxt λ Γ → check-term-spine t'' (proto-maybe tp) tt
+    on-fail check-fail tp
+  ≫=spanm' λ where
+    (mk-spine-data Xs tp' _) → return-when tp (just (meta-vars-subst-type' ff Γ Xs (decortype-to-type tp')))
 
 check-termi (Let pi d t) mtp =
   -- spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
@@ -696,15 +694,132 @@ check-termi (IotaProj t n pi) mtp =
 
 -- check-term-spine
 -- ==================================================
-check-term-spine-return : ctxt → meta-vars → type → ℕ → spanM (maybe spine-data)
-check-term-spine-return Γ Xs tp locl = spanMr (just (mk-spine-data Xs tp locl))
 
+-- check-term-spine is where metavariables are generated and solved, so it
+-- requires its set of helpers
+
+check-term-spine-return : ctxt → meta-vars → decortype → ℕ → spanM (maybe spine-data)
+check-term-spine-return Γ Xs dt locl = spanMr (just (mk-spine-data Xs dt locl))
+
+-- a flag indicating how aggresively we should be unfolding during matching.
+-- "both" is the backtracking flag. We will attempt "both" matches, which means
+-- first matching without unfolding, then if that fails unfolding the type once
+-- and continue matching the subexpresions with "both"
 data match-unfolding-state : Set where
   match-unfolding-both match-unfolding-approx match-unfolding-hnf : match-unfolding-state
 
+-- main matching definitions
+-- --------------------------------------------------
+
+-- NOTE: these functions don't actually ever emit spans
 match-types : meta-vars → local-vars → match-unfolding-state → (tpₓ tp : type) → spanM $' match-error-t meta-vars
 match-kinds : meta-vars → local-vars → match-unfolding-state → (kₓ k : kind) → spanM $' match-error-t meta-vars
 match-tks   : meta-vars → local-vars → match-unfolding-state → (tkₓ tk : tk) → spanM $' match-error-t meta-vars
+
+record match-prototype-data : Set where
+  constructor mk-match-prototype-data
+  field
+    match-proto-mvars : meta-vars
+    match-proto-dectp : decortype
+    match-proto-error : 𝔹
+open match-prototype-data
+match-prototype : (Xs : meta-vars) (is-hnf : 𝔹) (tp : type) (pt : prototype) → spanM $' match-prototype-data
+
+-- substitutions used during matching
+-- --------------------------------------------------
+
+-- These have be be in the spanM monad because substitution can unlock a `stuck`
+-- decoration, causing another round of prototype matching (which invokes type matching)
+
+substh-decortype : {ed : exprd} → ctxt → renamectxt → trie ⟦ ed ⟧ → decortype → spanM $' decortype
+substh-decortype Γ ρ σ (decor-type tp) = spanMr $' decor-type (substh-type Γ ρ σ tp)
+substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
+  substh-decortype Γ ρ σ cod
+  ≫=span λ cod → spanMr $' decor-arrow e? (substh-type Γ ρ σ dom) cod
+  -- spanMr $' decor-arrow e? (substh-type Γ ρ σ dom) (substh-decortype Γ ρ σ cod)
+substh-decortype Γ ρ σ (decor-decor e? pi x sol dt) =
+  let x' = subst-rename-var-if Γ ρ x σ
+      Γ' = ctxt-var-decl pi x' Γ
+      ρ' = renamectxt-insert ρ x x'
+  in substh-decortype Γ' ρ' σ dt
+  ≫=span λ dt' → spanMr $' decor-decor e? pi x' (substh-meta-var-sol Γ ρ σ sol) dt'
+  -- decor-decor e? x' (substh-meta-var-sol Γ' ρ' σ sol) (substh-decortype Γ' ρ' σ dt)
+substh-decortype Γ ρ σ (decor-stuck tp pt) =
+  match-prototype meta-vars-empty ff (substh-type Γ ρ σ tp) pt
+  -- NOTE: its an invariant that if you start with no meta-variables, prototype matching
+  -- produces no meta-variables as output
+  ≫=span λ ret → spanMr (match-proto-dectp ret)
+
+substh-decortype Γ ρ σ (decor-error tp pt) =
+  spanMr $' decor-error (substh-type Γ ρ σ tp) pt
+
+subst-decortype : {ed : exprd} → ctxt → ⟦ ed ⟧ → var → decortype → spanM $' decortype
+subst-decortype Γ s x dt = substh-decortype Γ empty-renamectxt (trie-single x s) dt
+
+meta-vars-subst-decortype' : (unfold : 𝔹) → ctxt → meta-vars → decortype → spanM decortype
+meta-vars-subst-decortype' uf Γ Xs dt =
+  substh-decortype Γ empty-renamectxt (meta-vars-get-sub Xs) dt
+  ≫=span λ dt' → spanMr $'
+    if uf then hnf-decortype Γ (unfolding-elab unfold-head) dt' tt else dt'
+
+meta-vars-subst-decortype : ctxt → meta-vars → decortype → spanM decortype
+meta-vars-subst-decortype = meta-vars-subst-decortype' tt
+
+
+-- unfolding a decorated type to reveal a term / type abstraction
+-- --------------------------------------------------
+
+{-# TERMINATING #-}
+meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM $' (𝕃 meta-var) × decortype
+meta-vars-peel' Γ sl Xs (decor-decor e? pi x (meta-var-tp k mtp) dt) =
+  let Y   = meta-var-fresh-tp Xs x sl (k , mtp)
+      Xs' = meta-vars-add Xs Y
+  in subst-decortype Γ (meta-var-to-type-unsafe Y posinfo-gen) x dt
+  ≫=span λ dt' → meta-vars-peel'  Γ sl Xs' dt'
+  ≫=span λ ret → let Ys = fst ret ; rdt = snd ret
+  in spanMr $' Y :: Ys , rdt
+meta-vars-peel' Γ sl Xs dt@(decor-decor e? pi x (meta-var-tm _ _) _) = spanMr $' [] , dt
+meta-vars-peel' Γ sl Xs dt@(decor-arrow _ _ _) = spanMr $' [] , dt
+-- NOTE: vv The clause below will later generate a type error vv
+meta-vars-peel' Γ sl Xs dt@(decor-stuck _ _) = spanMr $' [] , dt
+-- NOTE: vv The clause below is an internal error, if reached vv
+meta-vars-peel' Γ sl Xs dt@(decor-type _) = spanMr $' [] , dt
+meta-vars-peel' Γ sl Xs dt@(decor-error _ _) = spanMr $' [] , dt
+
+meta-vars-unfold-tmapp' : ctxt → span-location → meta-vars → decortype → spanM $' (𝕃 meta-var × is-tmabsd?)
+meta-vars-unfold-tmapp' Γ sl Xs dt =
+  meta-vars-subst-decortype Γ Xs dt
+  ≫=span λ dt' → meta-vars-peel' Γ sl Xs dt'
+  ≫=span λ where
+    (Ys , dt'@(decor-arrow e? dom cod)) →
+      spanMr $' Ys , yes-tmabsd dt' e? "_" dom ff cod
+    (Ys , dt'@(decor-decor e? pi x (meta-var-tm dom _) cod)) →
+      spanMr $' Ys , yes-tmabsd dt' e? x dom (is-free-in check-erased x (decortype-to-type cod)) cod
+    (Ys , dt@(decor-decor _ _ _ (meta-var-tp _ _) _)) →
+      spanMr $' Ys , not-tmabsd dt
+-- NOTE: vv this is a type error vv
+    (Ys , dt@(decor-stuck _ _)) →
+      spanMr $' Ys , not-tmabsd dt
+-- NOTE: vv this is an internal error, if reached vv
+    (Ys , dt@(decor-type _)) →
+      spanMr $' Ys , not-tmabsd dt
+    (Ys , dt@(decor-error _ _)) →
+      spanMr $' Ys , not-tmabsd dt
+
+meta-vars-unfold-tpapp' : ctxt → meta-vars → decortype → spanM is-tpabsd?
+meta-vars-unfold-tpapp' Γ Xs dt =
+  meta-vars-subst-decortype Γ Xs dt
+  ≫=span λ where
+   (dt″@(decor-decor e? pi x (meta-var-tp k mtp) dt')) →
+    spanMr $' yes-tpabsd dt″ e? x k mtp dt'
+   (dt″@(decor-decor _ _ _ (meta-var-tm _ _) _)) →
+    spanMr $' not-tpabsd dt″
+   (dt″@(decor-arrow _ _ _)) → spanMr $' not-tpabsd dt″
+   (dt″@(decor-stuck _ _)) → spanMr $' not-tpabsd dt″
+   (dt″@(decor-type _)) → spanMr $' not-tpabsd dt″
+   (dt″@(decor-error _ _)) → spanMr $' not-tpabsd dt″
+
+
 
 -- errors
 -- --------------------------------------------------
@@ -714,11 +829,14 @@ module check-term-app-tm-errors
   {A : Set} (t₁ t₂ : term) (htp : type) (Xs : meta-vars) (is-locale : 𝔹) (m : checking-mode)
   where
 
-  inapplicable : maybeErased → spanM (maybe A)
-  inapplicable e? =
+  inapplicable : maybeErased → decortype → prototype → spanM (maybe A)
+  inapplicable e? dt pt =
     get-ctxt λ Γ → spanM-add
       (App-span is-locale t₁ t₂ m
-        (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
+        (head-type Γ (meta-vars-subst-type Γ Xs htp)
+          -- :: decortype-data Γ dt
+          -- :: prototype-data Γ pt
+          :: meta-vars-data-all Γ Xs)
         (just $' "The type of the head does not allow the head to be applied to "
          ^ h e? ^ " argument"))
     ≫span spanMr nothing
@@ -762,12 +880,23 @@ module check-term-app-tp-errors
   {A : Set} (t : term) (tp htp : type) (Xs : meta-vars) (m : checking-mode)
   where
 
-  inapplicable : spanM (maybe A)
-  inapplicable =
+  inapplicable : decortype → spanM (maybe A)
+  inapplicable dt =
     get-ctxt λ Γ → spanM-add
       (AppTp-span t tp synthesizing
-        (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
+        (head-type Γ (meta-vars-subst-type Γ Xs htp)
+          -- :: decortype-data Γ dt
+          :: meta-vars-data-all Γ Xs)
         (just "The type of the head does not allow the head to be applied to a type argument"))
+    ≫span spanMr nothing
+
+  ctai-disagree : (ctai-sol : type) → spanM $' maybe A
+  ctai-disagree ctai-sol =
+    get-ctxt λ Γ → spanM-add (AppTp-span t tp m
+      (head-type Γ (meta-vars-subst-type Γ Xs htp)
+        :: contextual-type-argument Γ ctai-sol
+        :: meta-vars-data-all Γ Xs)
+      (just "The given and contextually inferred type argument differ"))
     ≫span spanMr nothing
 
 -- meta-variable locality
@@ -797,48 +926,53 @@ check-spine-locality Γ Xs tp max locl =
 --------------------------------------------------
 
 data check-term-app-ret : Set where
-  check-term-app-return : (Xs : meta-vars) (atp rtp : type) (arg-mode : checking-mode) → check-term-app-ret
+  check-term-app-return : (Xs : meta-vars) (dom : type) (cod : decortype) (arg-mode : checking-mode) → check-term-app-ret
 
-check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabs → (mtp : maybe type) → 𝔹
-                 → spanM (maybe check-term-app-ret)
+check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → spanM (maybe check-term-app-ret)
 
-check-term-spine t'@(App t₁ e? t₂) mtp max =
+check-term-spine t'@(App t₁ e? t₂) pt max =
   -- 1) type the applicand
-    check-term-spine t₁ nothing ff
-     on-fail spanM-add (App-span max t₁ t₂ mode [] nothing) ≫span spanMr nothing
+  check-term-spine t₁ (proto-arrow e? pt) ff
+    on-fail spanM-add (App-span max t₁ t₂ mode [] nothing) ≫span spanMr nothing
   -- 2) make sure it reveals an arrow
-  ≫=spanm' λ ret → let (mk-spine-data Xs htp locl) = ret in
-  get-ctxt λ Γ → spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
+  ≫=spanm' λ ret → get-ctxt λ Γ →
+  let (mk-spine-data Xs dt locl) = ret
+      sloc = span-loc $' ctxt-get-current-filename Γ
+  in meta-vars-unfold-tmapp' Γ sloc Xs dt
   ≫=span λ ret → let Ys = fst ret in
-  spanMr (snd ret) on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ htp Xs
-                                    (islocl locl) mode e?)
-  ≫=spans' λ arr →
+  spanMr (snd ret)
+    on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ (decortype-to-type dt) Xs
+               (islocl locl) mode e? dt (proto-arrow e? pt))
+  ≫=spans' λ arr → let htp = decortype-to-type ∘ is-tmabsd-dt $' arr in
   -- 3) make sure expected / given erasures match
-    if ~ eq-maybeErased e? (is-tmabs-binder arr)
+    if ~ eq-maybeErased e? (is-tmabsd-e? arr)
       then check-term-app-tm-errors.bad-erasure
-            t₁ t₂ htp Xs (is-locale max (just $' pred locl)) mode e?
+            t₁ t₂ htp Xs (islocl locl) mode e?
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs Ys t₁ t₂ arr mtp (islocl locl)
+    else check-term-app Xs Ys t₁ t₂ arr (islocl locl)
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
-    check-spine-locality Γ Xs' rtp' max (pred locl)
-      on-fail check-term-app-tm-errors.unsolved-meta-vars
-        t₁ t₂ htp Xs' (is-locale max (just $' pred locl)) mode rtp'
-        -- error-unsolved-meta-vars t' rtp' Xs' mode
+  let rtp = decortype-to-type rtp' in
+  check-spine-locality Γ Xs' rtp max (pred locl)
+    on-fail check-term-app-tm-errors.unsolved-meta-vars
+              t₁ t₂ htp Xs' (islocl locl) mode rtp
   ≫=spanm' uncurry λ Xs'' → uncurry λ locl' is-loc →
   -- 6) generate span and finish
    spanM-add (uncurry
      (λ tvs → App-span is-loc t₁ t₂ mode
-       (tvs ++ meta-vars-intro-data Γ (meta-vars-from-list Ys) ++ meta-vars-sol-data Γ Xs Xs'))
-     (meta-vars-check-type-mismatch-if mtp Γ "synthesized"
-       meta-vars-empty -- TODO only those updated by STAI
-       rtp'))
+       (tvs
+         -- For debugging
+         -- ++ (prototype-data Γ (prototype-arrow e? pt) :: [ decortype-data Γ dt])
+         ++ meta-vars-intro-data Γ (meta-vars-from-list Ys)
+         ++ meta-vars-sol-data Γ Xs Xs'))
+     (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized"
+       meta-vars-empty rtp))
   ≫span check-term-spine-return Γ Xs'' rtp' locl'
   }
 
   where
-  mode = maybe-to-checking mtp
+  mode = prototype-to-checking pt
 
   span-loc : (fn : string) → span-location
   span-loc fn = fn , term-start-pos t₁ , term-end-pos t₂
@@ -846,71 +980,81 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
   islocl : ℕ → 𝔹
   islocl locl = is-locale max (just $' pred locl)
 
-check-term-spine t'@(AppTp t tp) mtp max =
+check-term-spine t'@(AppTp t tp) pt max =
   -- 1) type the applicand
-    check-term-spine t nothing max
+    check-term-spine t pt max
      on-fail   spanM-add ((AppTp-span t tp synthesizing [] nothing))
              ≫span spanMr nothing
-  ≫=spanm' λ ret → let (mk-spine-data Xs htp locl) = ret in
+  ≫=spanm' λ ret → let (mk-spine-data Xs dt locl) = ret ; htp = decortype-to-type dt in
   -- 2) make sure it reveals a type abstraction
-    get-ctxt λ Γ → spanMr (meta-vars-unfold-tpapp Γ Xs htp)
-     on-fail (λ htp' →
-       check-term-app-tp-errors.inapplicable t tp htp Xs mode)
-  -- 3) ensure the type argument has the expected kind
-  ≫=spans' λ ret → let  mk-tpabs _ b x k rtp = ret in
-    check-type tp (just (meta-vars-subst-kind Γ Xs k))
+  get-ctxt λ Γ → meta-vars-unfold-tpapp' Γ Xs dt
+    on-fail (λ htp' → check-term-app-tp-errors.inapplicable t tp htp Xs mode dt)
+  -- 3) ensure the type argument has the expected kind,
+  --    but don't compare with the contextually infered argument (for now)
+  ≫=spans' λ ret → let mk-tpabsd dt e? x k sol rdt = ret in
+  check-type tp (just (meta-vars-subst-kind Γ Xs k))
   -- 4) produce the result type of the application
-  ≫span let rtp' = subst-type Γ (qualif-type Γ tp) x rtp in
-    spanM-add (uncurry
-      (AppTp-span t tp mode)
-      (meta-vars-check-type-mismatch-if mtp Γ "synthesized" Xs rtp'))
-  ≫span check-term-spine-return Γ Xs rtp' locl
+  ≫span subst-decortype Γ (qualif-type Γ tp) x rdt
+  ≫=span λ rdt → let rtp = decortype-to-type rdt in
+    spanM-add (uncurry (λ tvs → AppTp-span t tp mode
+        (tvs -- for debugging
+             -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
+        ))
+      (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized" Xs rtp))
+  ≫span check-term-spine-return Γ Xs rdt locl
 
+  where mode = prototype-to-checking pt
 
-  where mode = maybe-to-checking mtp
+check-term-spine (Parens _ t _) pt max =
+  check-term-spine t pt max
 
-check-term-spine (Parens _ t _) mtp max =
-  check-term-spine t mtp max
-check-term-spine t mtp max =
-    check-term t nothing -- syn type for spine head
+check-term-spine t pt max =
+  check-term t nothing
   ≫=spanm' λ htp → get-ctxt λ Γ →
-    let locl = num-arrows-in-type Γ htp in
-    check-term-spine-return Γ meta-vars-empty htp locl
+  let locl = num-arrows-in-type Γ htp
+  in match-prototype meta-vars-empty ff htp pt
+  -- NOTE: it is an invariant that the variables solved in the
+  -- solution set of the fst of this are a subset of the variables given
+  -- to match-* -- that is, for (σ , W) = match-prototype ...
+  -- we have dom(σ) = ∅
+  ≫=span λ ret → let dt = match-proto-dectp ret in
+  check-term-spine-return Γ meta-vars-empty dt locl
 
 -- check-term-app
 -- --------------------------------------------------
 --
 -- If `dom` has unsolved meta-vars in it, synthesize argument t₂ and try to solve for them.
 -- Otherwise, check t₂ against a fully known expected type
-check-term-app Xs Zs t₁ t₂ arr@(mk-tmabs _ e? x dom occurs cod) mtp is-locl =
-  get-ctxt λ Γ →
-  let Xs' = meta-vars-add* Xs Zs
-      cod = if occurs then (λ tm → subst-type Γ (qualif-term Γ tm) x cod) else λ _ → cod
-      tp  = from-is-tmabs arr in
-  if ~ meta-vars-are-free-in-type Xs' dom
+check-term-app Xs Zs t₁ t₂ arr@(mk-tmabsd dt e? x dom occurs cod) is-locl =
+  get-ctxt λ Γ → 
+  let Xs' = meta-vars-add* Xs Zs ; tp = decortype-to-type dt in
+  (if occurs then subst-decortype Γ (qualif-term Γ t₂) x cod else spanMr cod)
+  ≫=span λ rdt → if ~ meta-vars-are-free-in-type Xs' dom
     -- check t₂ against a fully-known type
-    then   check-term t₂ (just dom)
-         ≫span spanMr (just (check-term-app-return Xs' dom (cod t₂) checking))
-    else (
-    -- 1) synthesize a type for the argument
-      check-termi t₂ nothing
-       on-fail spanM-add
-         (App-span is-locl t₁ t₂ mode
-           (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
-         ≫span spanMr nothing
-    -- 2) match synthesized type with expected (partial) type
-    ≫=spanm' λ atp →
-      let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
-          domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-            match-types Xs' empty-trie match-unfolding-both dom atp
-          ≫=span λ where
-            (match-error (msg , tvs)) →
-              check-term-app-tm-errors.unmatchable t₁ t₂ tp Xs'
-                is-locl mode dom atp msg tvs
-            (match-ok Xs) → spanMr ∘ just $'
-              check-term-app-return Xs atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)
+    then (check-term t₂ (just dom)
+         ≫span spanMr (just (check-term-app-return Xs' dom rdt checking)))
+  else (
+  -- 1) synthesize a type for the argument
+  check-termi t₂ nothing
+    on-fail spanM-add
+     (App-span is-locl t₁ t₂ mode
+       (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
+ ≫span spanMr nothing
+  -- 2) match synthesized type with expected (partial) type
+  ≫=spanm' λ atp →
+  let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
+      domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
+  match-types Xs' empty-trie match-unfolding-both dom atp
+  ≫=span λ where
+    (match-error (msg , tvs)) →
+      check-term-app-tm-errors.unmatchable t₁ t₂ tp Xs'
+        is-locl mode dom atp msg tvs
+    (match-ok Xs) →
+      meta-vars-subst-decortype Γ Xs rdt
+      ≫=span λ rdt → spanMr ∘ just $' check-term-app-return Xs atp rdt mode
+  )
 
-  where mode = maybe-to-checking mtp
+    where mode = synthesizing
 
 match-unfolding-next : match-unfolding-state → match-unfolding-state
 match-unfolding-next match-unfolding-both = match-unfolding-both
@@ -1134,6 +1278,122 @@ match-tks Xs Ls uf (Tkt tpₓ) (Tkt tp) = match-types Xs Ls uf tpₓ tp
 match-tks Xs Ls uf tkₓ tk =
   get-ctxt λ Γ → match-types-error $' m-err.e-tk-ineq Γ tkₓ tk
 
+
+-- match-prototype
+-- --------------------------------------------------
+
+match-prototype-err : type → prototype → spanM match-prototype-data
+match-prototype-err tp pt = spanMr $' mk-match-prototype-data meta-vars-empty (decor-error tp pt) tt
+
+{-
+  --------------------
+  Xs ⊢? T ≔ ⁇ ⇒ (∅ , T)
+-}
+match-prototype Xs uf tp (proto-maybe nothing) =
+  spanMr $' mk-match-prototype-data Xs (decor-type tp) ff
+
+{-
+  Xs ⊢= T ≔ S ⇒ σ
+  --------------------
+  Xs ⊢? T ≔ S ⇒ (σ , T)
+-}
+match-prototype Xs uf tp (proto-maybe (just tp')) =
+  match-types Xs empty-trie match-unfolding-both tp tp'
+    on-fail (λ _ → spanMr $' mk-match-prototype-data Xs (decor-type tp) tt)
+  ≫=spans' λ Xs' → spanMr $' mk-match-prototype-data Xs' (decor-type tp) ff
+
+{-
+  Xs,X ⊢? T ≔ ⁇ → P ⇒ (σ , W)
+  -----------------------------------------------
+  Xs ⊢? ∀ X . T ≔ ⁇ → P ⇒ (σ - X , ∀ X = σ(X) . W)
+-}
+match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
+  get-ctxt λ Γ →
+  -- 1) generate a fresh meta-var Y, add it to the meta-vars, and rename
+  --    occurences of x in tp to Y
+  let ret = meta-vars-add-from-tpabs Γ missing-span-location Xs (mk-tpabs (pi , pi') Erased x k tp)
+      Y = fst ret ; Xs' = fst (snd ret) ; tp' = snd (snd ret)
+  -- 2) match the body against the original prototype to generate a decorated type
+  --    and find some solutions
+  in match-prototype Xs' ff tp' pt'
+  ≫=span λ ret →
+  let mk-match-prototype-data Xs' dt err = ret
+      Y' = maybe-else' (meta-vars-lookup Xs' (meta-var-name Y)) Y λ Y → Y
+  -- 3) replace the meta-vars with the bound type variable
+  in subst-decortype Γ (TpVar pi x) (meta-var-name Y) dt
+  -- 4) leave behind the solution for Y as a decoration and drop Y from Xs
+  ≫=span λ dt' → let dt″ = decor-decor Erased pi x (meta-var.sol Y') dt' in
+  spanMr $' mk-match-prototype-data (meta-vars-remove Xs' Y) dt″ err
+
+{-
+  Xs ⊢? T ≔ P ⇒ (σ , P)
+  -----------------------------
+  Xs ⊢? S → T ≔ ⁇ → P ⇒ (σ , P)
+-}
+match-prototype Xs uf (Abs pi bₓ pi' x (Tkt dom) cod) (proto-arrow e? pt) =
+  match-prototype Xs ff cod pt
+  ≫=span λ ret →
+  let mk-match-prototype-data Xs dt err = ret
+      dt' = decor-decor e? pi x (meta-var-tm dom nothing) dt
+  in spanMr $' if ~ eq-maybeErased bₓ e?
+    then mk-match-prototype-data meta-vars-empty dt' tt
+  else mk-match-prototype-data Xs dt' err
+match-prototype Xs uf (TpArrow dom at cod) (proto-arrow e? pt) =
+  match-prototype Xs ff cod pt
+  ≫=span λ ret →
+  let mk-match-prototype-data Xs' dt err = ret
+      dt' = decor-arrow e? dom dt
+  in spanMr $' if ~ eq-maybeErased at e?
+    then mk-match-prototype-data meta-vars-empty dt' tt
+  else mk-match-prototype-data Xs' dt' err
+
+{-
+  X ∈ Xs
+  -----------------------------------
+  Xs ⊢? X ≔ ⁇ → P ⇒ (σ , (X , ⁇ → P))
+-}
+match-prototype Xs tt tp@(TpVar pi x) pt@(proto-arrow _ _) =
+  spanMr $' mk-match-prototype-data Xs (decor-stuck tp pt) ff
+
+-- everything else...
+-- Types for which we should keep digging
+match-prototype Xs ff tp@(TpVar pi x) pt@(proto-arrow _ _) =
+  get-ctxt λ Γ →
+  match-prototype Xs tt (hnf Γ (unfolding-elab unfold-head) tp tt) pt
+match-prototype Xs uf (NoSpans tp _) pt@(proto-arrow _ _) =
+  match-prototype Xs uf tp pt
+match-prototype Xs uf (TpParens _ tp _) pt@(proto-arrow _ _) =
+  match-prototype Xs uf tp pt
+match-prototype Xs uf (TpLet pi (DefTerm piₗ x opt t) tp) pt@(proto-arrow _ _) =
+  get-ctxt λ Γ →
+  let tp' = subst-type Γ (Chi posinfo-gen opt t) x tp in
+  match-prototype Xs uf tp' pt
+match-prototype Xs uf (TpLet pi (DefType piₗ x k tp') tp) pt@(proto-arrow _ _) =
+  get-ctxt λ Γ →
+  let tp″ = subst-type Γ tp' x tp in
+  match-prototype Xs uf tp″ pt
+match-prototype Xs ff tp@(TpApp _ _) pt@(proto-arrow _ _) =
+  get-ctxt λ Γ →
+  match-prototype Xs tt (hnf Γ (unfolding-elab unfold-head) tp tt) pt
+match-prototype Xs ff tp@(TpAppt _ _) pt@(proto-arrow _ _) =
+  get-ctxt λ Γ →
+  match-prototype Xs tt (hnf Γ (unfolding-elab unfold-head) tp tt) pt
+-- types for which we should suspend disbelief
+match-prototype Xs tt tp@(TpApp _ _) pt@(proto-arrow _ _) =
+  spanMr $' mk-match-prototype-data Xs (decor-stuck tp pt) ff
+match-prototype Xs tt tp@(TpAppt _ _) pt@(proto-arrow _ _) =
+  spanMr $' mk-match-prototype-data Xs (decor-stuck tp pt) ff
+-- types which clearly do not match the prototype
+match-prototype Xs uf tp@(TpEq _ _ _ _) pt@(proto-arrow _ _) =
+  match-prototype-err tp pt
+match-prototype Xs uf tp@(TpHole _) pt@(proto-arrow _ _) =
+  match-prototype-err tp pt
+match-prototype Xs uf tp@(TpLambda _ _ _ _ _) pt@(proto-arrow _ _) =
+  match-prototype-err tp pt
+match-prototype Xs uf tp@(Iota _ _ _ _ _) pt@(proto-arrow _ _) =
+  match-prototype-err tp pt
+match-prototype Xs uf tp@(Lft _ _ _ _ _) pt@(proto-arrow _ _) =
+  match-prototype-err tp pt
 
 -- check-typei: check a type against (maybe) a kind
 -- ==================================================
