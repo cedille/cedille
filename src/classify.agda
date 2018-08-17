@@ -139,6 +139,21 @@ check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-def : defTermOrType → spanM (var × restore-def)
 
+-- check-term
+-- ==================================================
+
+module check-term-errors {A : Set} where
+  inapplicable-tp : (t : term) (tp : type) (htp : type) (mtp : maybe type) → spanM $' check-ret mtp
+  inapplicable-tp t tp htp m =
+    get-ctxt λ Γ →
+    spanM-add (AppTp-span t tp (maybe-to-checking m)
+      ([ head-type Γ htp ])
+      (just "The type of the head does not allow it to be applied to a type argument"))
+    ≫span (spanMr $' ret m)
+    where
+    ret : (m : maybe type) → check-ret m
+    ret (just x₁) = triv
+    ret nothing = nothing
 
 check-term = check-termi -- Used to call hnf on expected/synthesized type
 
@@ -163,11 +178,26 @@ check-termi (Var pi x) mtp =
         cont (just tp) Γ | just tp' = 
           spanM-add (uncurry (Var-span Γ pi x checking) (check-for-type-mismatch Γ "synthesized" tp tp'))
 
-check-termi t'@(AppTp t tp') tp
-  =   get-ctxt λ Γ → check-term-spine t' ({-maybe-hnf Γ-} tp) tt
-    ≫=span λ ret → case ret of λ where
-      nothing → check-fail tp
-      (just (mk-spine-data Xs tp' _)) → return-when tp (just (meta-vars-subst-type' ff Γ Xs tp'))
+check-termi t'@(AppTp t tp') mtp =
+  get-ctxt λ Γ →
+  check-termi t nothing
+    on-fail spanM-add (AppTp-span t tp' (maybe-to-checking mtp)
+              (expected-type-if Γ mtp) nothing)
+            ≫span return-when mtp mtp
+  ≫=spanm' λ tp →
+  spanMr (maybe-else' (to-abs-tp tp)
+                      (to-abs-tp (hnf Γ (unfolding-elab unfold-head) tp tt))
+                      (λ atp → just atp))
+    on-fail check-term-errors.inapplicable-tp {A = check-ret mtp} t tp' tp mtp
+  ≫=spanm' λ ret → let mk-abs-tp pis e? x k body = ret in
+  check-type tp' (just k)
+  ≫span
+    let rtp = subst-type Γ (qualif-type Γ tp') x body in
+    spanM-add (uncurry (λ tvs →
+      AppTp-span t tp' (maybe-to-checking mtp) (type-data Γ rtp :: tvs))
+      (check-for-type-mismatch-if Γ "synthesizing" mtp rtp))
+  ≫span return-when mtp (just rtp)
+
 
 -- =BUG= =ACG= =31= Maybe pull out repeated code in helper functions?
 check-termi t''@(App t m t') tp
@@ -662,6 +692,9 @@ check-termi (IotaProj t n pi) mtp =
                                                      -- we are looking for iotas in the bodies of rec defs
 
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
+
+-- END check-term
+-- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 -- check-term-spine
 -- ==================================================

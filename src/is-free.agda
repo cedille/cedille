@@ -159,6 +159,22 @@ to-abs (TpArrow tp1 Erased tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy
 to-abs (TpArrow tp1 NotErased tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
+record abs-tp : Set where
+  constructor mk-abs-tp
+  field
+    abs-tp-pi   : posinfo × posinfo
+    abs-tp-e?   : maybeErased
+    abs-tp-var  : var
+    asb-tp-kind : kind
+    abs-tp-body : type
+
+to-abs-tp : type → maybe abs-tp
+to-abs-tp tp with to-abs tp
+to-abs-tp tp | nothing = nothing
+to-abs-tp tp | just (mk-abs _ _ _ _ (Tkt _) _ _) = nothing
+to-abs-tp _ | just (mk-abs pi e? pi' x (Tkk k) var-free-in-body tp) =
+  just $' mk-abs-tp (pi , pi') e? x k tp
+
 data absk  : Set where
   mk-absk : posinfo → posinfo → var → tk → (var-free-in-body : 𝔹) → kind → absk 
 
