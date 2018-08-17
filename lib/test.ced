@@ -56,8 +56,10 @@ data test2(p:True)(n:Nat) : True ➔ ★ =
      bar : ∀ m:True .test2 p n m
    | foo : ∀ m: True. { m ≃ triv} ➾ test2 p n m .
 
+-- types definitions
 a ◂ True ➔ ★ = test2 triv Z .
 b ◂ Π p':True.  Π n':Nat  .True ➔ ★ = test2 .
 
--- c ◂ test2 triv Z triv = bar · triv .
+-- terms definitions
+c ◂ test2 triv Z triv = bar triv Z -triv .
 
