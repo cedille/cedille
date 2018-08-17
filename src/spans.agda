@@ -118,18 +118,35 @@ spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi 
 spanM-set-params : params → spanM ⊤
 spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
-spanM-push-term-def : posinfo → varType → var → term → type → spanM restore-def
-spanM-push-term-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-def pi localScope vt x t T Γ , ss)
+-- let bindings currently cannot be made opaque, so this is OpacTrans. -tony
+spanM-push-term-def : posinfo → var → term → type → spanM restore-def
+spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-def pi localScope OpacTrans x t T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
-spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-udef pi localScope x t Γ , ss)
+spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-udef pi localScope OpacTrans x t Γ , ss)
  
  -- return previous ctxt-info, if any
 spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
 spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-decl pi s x k Γ , ss)
 
-spanM-push-type-def : posinfo → varType → var → type → kind → spanM restore-def
-spanM-push-type-def pi vt x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope vt x t T Γ , ss)
+spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
+spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x t T Γ , ss)
+
+-- returns the original sym-info.
+-- clarification is idempotent: if the definition was already clarified,
+-- then the operation succeeds, and returns (just sym-info).
+-- this only returns nothing in the case that the opening didnt make sense:
+-- you tried to open a term def, you tried to open an unknown def, etc...
+-- basically any situation where the def wasnt a "proper" type def
+spanM-clarify-def : var → spanM (maybe sym-info)
+spanM-clarify-def x Γ ss = returnM (result (ctxt-clarify-def Γ x))
+  where
+  result : maybe (sym-info × ctxt) → (maybe sym-info × ctxt × spans)
+  result (just (si , Γ')) = ( just si , Γ' , ss )
+  result nothing = ( nothing , Γ , ss )
+
+spanM-restore-clarified-def : var → sym-info → spanM ⊤
+spanM-restore-clarified-def x si Γ ss = returnM (triv , ctxt-set-sym-info Γ x si , ss)
 
 -- restore ctxt-info for the variable with given posinfo
 spanM-restore-info : var → restore-def → spanM ⊤
@@ -518,8 +535,8 @@ TpApp-span tp tp' check tvs = mk-span "Application of a type to a type" (type-st
 App-span : (is-locale : 𝔹) → term → term → checking-mode → 𝕃 tagged-val → err-m → span
 App-span l t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: keywords-app l :: tvs)
 
-AppTp-span : (is-locale : 𝔹) → term → type → checking-mode → 𝕃 tagged-val → err-m → span
-AppTp-span l t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app l :: tvs)
+AppTp-span : term → type → checking-mode → 𝕃 tagged-val → err-m → span
+AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app ff :: tvs)
 
 TpQuant-e = 𝔹
 

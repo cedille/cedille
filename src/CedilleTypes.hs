@@ -19,10 +19,16 @@ data Arg = TermArg MaybeErased Term | TypeArg Type
 data Args = ArgsCons Arg Args | ArgsNil
      deriving (Show,Eq)
      
+data Opacity =
+       OpacOpaque
+     | OpacTrans
+     deriving (Show,Eq)
+
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
      | DefTermOrType DefTermOrType PosInfo
-     | DefDatatype   DefDatatype   PosInfo          
+     | DefTermOrType Opacity DefTermOrType PosInfo
+     | DefDatatype   DefDatatype   PosInfo               
      | ImportCmd Imprt
      deriving (Show,Eq)
 
@@ -151,6 +157,7 @@ data Term =
      | IotaProj Term Num PosInfo
      | Lam PosInfo MaybeErased PosInfo Bvar OptClass Term
      | Let PosInfo DefTermOrType Term
+     | Open PosInfo Qvar Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
      | Rho PosInfo OptPlus OptNums Term OptGuide Term

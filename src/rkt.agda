@@ -72,21 +72,21 @@ rkt-require-file fp = [[ "(require (file \"" ]] ⊹⊹ [[ fp ]] ⊹⊹ [[ "\"))"
 
 -- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → rope
-rkt-from-sym-info n (term-def (just (ParamsCons (Decl _ _ _ v _ _) _)) tm ty , _)
+rkt-from-sym-info n (term-def (just (ParamsCons (Decl _ _ _ v _ _) _)) _ tm ty , _)
   -- TODO not tested
   = rkt-dbg "term-def: paramsCons:" (rkt-define n tm)
-rkt-from-sym-info n (term-def (just ParamsNil) tm ty , _)
+rkt-from-sym-info n (term-def (just ParamsNil) _ tm ty , _)
   = rkt-dbg "term-def: paramsNil:"  (rkt-define n tm)
-rkt-from-sym-info n (term-def nothing tm ty , b)
+rkt-from-sym-info n (term-def nothing _ tm ty , b)
   -- TODO not tested
   = rkt-dbg "term-def: nothing:"    (rkt-define n tm)
-rkt-from-sym-info n (term-udef _ tm , _)
+rkt-from-sym-info n (term-udef _ _ tm , _)
   = rkt-dbg "term-udef:"            (rkt-define n tm)
 rkt-from-sym-info n (term-decl x , _)
   = rkt-dbg "term-decl"             [[]]
 rkt-from-sym-info n (type-decl x , _)
   = rkt-dbg "type-decl:"            [[]]
-rkt-from-sym-info n (type-def _ _ _ , _)
+rkt-from-sym-info n (type-def _ _ _ _ , _)
   = rkt-dbg "type-def:"             [[]]
 rkt-from-sym-info n (kind-def _ _ _ , _)
   = rkt-dbg "kind-def:"             [[]]

@@ -69,10 +69,6 @@ inst-kind : ctxt → params → args → kind → kind
 inst-kind Γ ps as k with mk-inst ps as
 ...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
 
--- TODO substs-params
-inst-params : ctxt → params → args → params → params
-inst-params Γ ps as qs = qs
-
 qualif-term : ctxt → term → term
 qualif-term Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-term Γ σ
 
@@ -180,8 +176,8 @@ env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _) v =
 ctxt-lookup-type-var : ctxt → var → maybe kind
 ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just k
-... | just (as , type-def (just ps) T k , _) = just (inst-kind Γ ps as k)
-... | just (as , type-def nothing T k , _) = just k
+... | just (as , type-def (just ps) _ T k , _) = just (inst-kind Γ ps as k)
+... | just (as , type-def nothing _ T k , _) = just k
 ... | just (as , datatype-def _ k     , _) = just k
 ... | _ = nothing
 
@@ -193,8 +189,8 @@ add-param-type ParamsNil                              ty  = ty
 ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
-... | just (as , term-def (just ps) t T , _) = just (inst-type Γ ps as T)
-... | just (as , term-def nothing t T   , _) = just T
+... | just (as , term-def (just ps) _ t T , _) = just (inst-type Γ ps as T)
+... | just (as , term-def nothing _ t T , _) = just T
 ... | just (as , const-def T            , _) = just T
 ... | _ = nothing
 
@@ -202,10 +198,10 @@ ctxt-lookup-tk-var : ctxt → var → maybe tk
 ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just (Tkt T)
 ... | just (as , type-decl k , _) = just (Tkk k)
-... | just (as , term-def (just ps) t T , _) = just (Tkt (inst-type Γ ps as T))
-... | just (as , type-def (just ps) T k , _) = just (Tkk (inst-kind Γ ps as k))
-... | just (as , term-def nothing t T , _) = just (Tkt T)
-... | just (as , type-def nothing T k , _) = just (Tkk k)
+... | just (as , term-def (just ps) _ t T , _) = just (Tkt (inst-type Γ ps as T))
+... | just (as , type-def (just ps) _ T k , _) = just (Tkk (inst-kind Γ ps as k))
+... | just (as , term-def nothing _ t T , _) = just (Tkt T)
+... | just (as , type-def nothing _ T k , _) = just (Tkk k)
 ... | just (as , datatype-def _ k     , _) = just (Tkk k)
 ... | _ = nothing
 
@@ -214,28 +210,36 @@ env-lookup-kind-var-qdef Γ v as with env-lookup Γ v
 ... | just (kind-def ps1 ps2 k , _) = just (inst-params Γ ps1 as ps2 , inst-kind Γ ps1 as k)
 ... | _ = nothing
 
-ctxt-lookup-kind-var-qdef : ctxt → var → maybe (params × kind)
-ctxt-lookup-kind-var-qdef Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup q v
-... | just (v' , as) = env-lookup-kind-var-qdef Γ v' as
-... | _ = nothing
+ctxt-term-if-not-opaque : opacity → term → maybe term
+ctxt-term-if-not-opaque OpacOpaque _ = nothing
+ctxt-term-if-not-opaque OpacTrans  t = just t
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
-... | just (term-def nothing t _ , _) = just t
-... | just (term-udef nothing t , _) = just t
-... | just (term-def (just ps) t _ , _) = just (lam-expand-term ps t)
-... | just (term-udef (just ps) t , _) = just (lam-expand-term ps t)
+... | just (term-def nothing opac t _ , _) = ctxt-term-if-not-opaque opac t
+... | just (term-udef nothing opac t , _) = ctxt-term-if-not-opaque opac t
+... | just (term-def (just ps) opac t _ , _) = ctxt-term-if-not-opaque opac (lam-expand-term ps t)
+... | just (term-udef (just ps) opac t , _) = ctxt-term-if-not-opaque opac (lam-expand-term ps t)
 ... | _ = nothing
+
+ctxt-type-if-not-opaque : opacity → type → maybe type
+ctxt-type-if-not-opaque OpacOpaque _ = nothing
+ctxt-type-if-not-opaque OpacTrans  t = just t
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def Γ v with env-lookup Γ v
-... | just (type-def nothing T _ , _) = just T
-... | just (type-def (just ps) T _ , _) = just (lam-expand-type ps T)
+... | just (type-def nothing opac T _ , _) = ctxt-type-if-not-opaque opac T
+... | just (type-def (just ps) opac T _ , _) = ctxt-type-if-not-opaque opac (lam-expand-type ps T)
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def Γ x with env-lookup Γ x
 ... | just (kind-def ps1 ps2 k , _) = just (append-params ps1 ps2 , k)
+... | _ = nothing
+
+ctxt-lookup-kind-var-def-args : ctxt → var → maybe (params × args)
+ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup q v
+... | just (v' , as) = ctxt-lookup-kind-var-def Γ v' ≫=maybe λ { (ps , k) → just (ps , as) }
 ... | _ = nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
@@ -249,6 +253,28 @@ ctxt-var-location : ctxt → var → location
 ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ... | just (_ , l) = l
 ... | nothing = "missing" , "missing"
+
+ctxt-clarify-def : ctxt → var → maybe (sym-info × ctxt)
+ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
+  = trie-lookup i x ≫=maybe λ { (ci , l) →
+    clarified x ci l }
+  where
+    ctxt' : var → ctxt-info → location → ctxt
+    ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences
+
+    clarified : var → ctxt-info → location → maybe (sym-info × ctxt)
+    clarified v ci@(term-def ps _ t T) l = just ((ci , l) , (ctxt' v (term-def ps OpacTrans t T) l))
+    clarified v ci@(term-udef ps _ t) l = just ((ci , l) , (ctxt' v (term-udef ps OpacTrans t) l))
+    clarified v ci@(type-def ps _ T k) l = just ((ci , l) , (ctxt' v (type-def ps OpacTrans T k) l))
+    clarified _ _ _ = nothing
+
+
+ctxt-set-sym-info : ctxt → var → sym-info → ctxt
+ctxt-set-sym-info (mk-ctxt mod syms i sym-occurrences) x si =
+  mk-ctxt mod syms (trie-insert i x si) sym-occurrences
+
+ctxt-restore-clarified-def : ctxt → var → sym-info → ctxt
+ctxt-restore-clarified-def = ctxt-set-sym-info
 
 ctxt-set-current-file : ctxt → string → string → ctxt
 ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs

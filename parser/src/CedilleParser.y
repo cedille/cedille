@@ -45,6 +45,8 @@ import System.Environment
   'as'       { Token $$ TAs        }
   'data'     { Token $$ TData      }    
   'public'   { Token $$ TPublic    }
+  'opaque'   { Token $$ TOpaque    }
+  'open'     { Token $$ TOpen      }
   '{^'       { Token $$ TLSpan     }
   '^}'       { Token $$ TRSpan     }
   'θ'        { Token $$ TTheta     }
@@ -114,9 +116,13 @@ Cmds :: { Cmds }
      :                                  { CmdsStart      }
      | Cmd Cmds                         { CmdsNext $1 $2 }
 
+OptOpaque :: { Opacity }
+          :          { OpacTrans }
+          | 'opaque' { OpacOpaque  }
+
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
-    | DefTermOrType         '.'         { DefTermOrType $1 (pos2Txt1 $2)                     }
+    | OptOpaque DefTermOrType '.'       { DefTermOrType $1 $2 (pos2Txt1 $3)                  }
     | DefDatatype          '.'          { DefDatatype   $1 (pos2Txt1 $2)                     }
     | kvar KParams '=' Kind '.'         { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
@@ -244,6 +250,7 @@ LineNo_1 :: { PosInfo }
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) $2 $5                             }
+     | 'open' Qvar '-' Term             { Open (pos2Txt $1) (tTxt $2) $4                     }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }

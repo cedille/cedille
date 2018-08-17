@@ -45,6 +45,8 @@ data arg : Set
 {-# COMPILE GHC arg = type CedilleTypes.Arg #-}
 data args : Set
 {-# COMPILE GHC args = type CedilleTypes.Args #-}
+data opacity : Set
+{-# COMPILE GHC opacity = type CedilleTypes.Opacity #-}
 data cmd : Set
 {-# COMPILE GHC cmd = type CedilleTypes.Cmd #-}
 data cmds : Set
@@ -122,10 +124,15 @@ data args where
   ArgsNil : args
 {-# COMPILE GHC args = data CedilleTypes.Args (CedilleTypes.ArgsCons | CedilleTypes.ArgsNil) #-}
 
+data opacity where 
+  OpacOpaque : opacity
+  OpacTrans : opacity
+{-# COMPILE GHC opacity = data CedilleTypes.Opacity (CedilleTypes.OpacOpaque | CedilleTypes.OpacTrans) #-}
+
 data cmd where 
   DefKind : posinfo → kvar → params → kind → posinfo → cmd
-  DefTermOrType : defTermOrType → posinfo → cmd
-  DefDatatype   : defDatatype   → posinfo → cmd  
+  DefTermOrType : opacity → defTermOrType → posinfo → cmd
+  DefDatatype   : defDatatype   → posinfo → cmd    
   ImportCmd : imprt → cmd
 {-# COMPILE GHC cmd = data CedilleTypes.Cmd (CedilleTypes.DefKind | CedilleTypes.DefTermOrType | CedilleTypes.DefDatatype |CedilleTypes.ImportCmd) #-}
 
@@ -269,6 +276,7 @@ data term where
   IotaProj : term → num → posinfo → term
   Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
+  Open : posinfo → var → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
   Rho : posinfo → optPlus → optNums → term → optGuide → term → term

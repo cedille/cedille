@@ -1,0 +1,32 @@
+module Elab.
+import Nat.
+import Maybe.
+import Pair.
+import RecType.
+import MendlerI.
+
+VecF ◂ ★ ➔ (Nat ➔ ★) ➔ Nat ➔ ★ = λ A : ★. λ Vec : Nat ➔ ★. λ i : Nat.
+  ι x : Top. ∀ X : Top ➔ Nat ➔ ★.
+    X β{λ n. λ c. n} Z ➔
+    (∀ i' : Nat. Π h : A. Π t : Vec i'. X β{λ n. λ c. c h t} (S i')) ➔
+    X x i.
+
+VecFmap ◂ ∀ A : ★. RecFunctorI · Nat · (VecF · A) = Λ A. Λ V. Λ W. Λ cst.
+  [Λ i. λ v. [v.1, Λ X. λ n. λ c. v.2 · X n (Λ i. λ h. λ t. c -i h (castI -cst -i t))], β].
+
+Vec ◂ ★ ➔ Nat ➔ ★ = λ A : ★. FixIndM · Nat · (VecF · A) (VecFmap · A).
+
+inVec = Λ A : ★. inFixIndM · Nat · (VecF · A) -(VecFmap · A).
+
+Nil ◂ ∀ A : ★. Vec · A Z = Λ A. inVec · A -Z [β{λ n. λ c. n}, Λ X. λ n. λ c. n].
+Cons ◂ ∀ A : ★. ∀ i : Nat. A ➔ Vec · A i ➔ Vec · A (S i) =
+  Λ A. Λ i. λ h. λ t. inVec · A -(S i)
+    [β{λ n. λ c. c h t}, Λ X. λ n. λ c. c -i h t].
+
+VecInd ◂ ∀ A : ★. ∀ i : Nat. Π v : Vec · A i. ∀ Q : Π i : Nat. Vec · A i ➔ ★. Q Z (Nil · A) ➔ (∀ i : Nat. Π h : A. Π t : Vec · A i. Q i t ➔ Q (S i) (Cons -i h t)) ➔ Q i v =
+  Λ A. Λ i. λ v. Λ Q. λ n. λ c. MendlerInd · Nat · (VecF · A) -(VecFmap · A) -i v · Q (Λ R. Λ cst. λ ih. Λ i. λ v.
+    v.2 · (λ x : Top. λ i : Nat. ∀ x' : VecF · A · R i. ∀ e : {x' ≃ x}.
+             Q i (inVec -i (castI -(VecFmap · A -cst) -i (φ e - x' {x}))))
+      (Λ x. Λ e. n)
+      (Λ i. λ h. λ t. Λ x. Λ e. c -i h (castI -cst -i t) (ih -i t))
+      -v -β).

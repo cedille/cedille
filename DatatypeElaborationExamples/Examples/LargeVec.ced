@@ -1,0 +1,119 @@
+module Elab3.
+
+import Top.
+import Cast.
+import Pair.
+
+-- It is indeed possible to use large indices, but unfortunately requires that
+-- we generate a new Mendler file with the specific number (and kinds) of
+-- parameters.
+
+{-
+data LargeVec (S : ★ ➔ ★) : ★ ➔ ★ where
+  Nil : ∀ A : ★. LargeVec · S · A
+  Cons : ∀ A : ★. A ➔ LargeVec · S · A ➔ LargeVec · S · (S · A)
+-}
+
+
+FunctorP ◂ ((★ ➔ ★) ➔ ★ ➔ ★) ➔ ★ = λ F : (★ ➔ ★) ➔ ★ ➔ ★.
+  ∀ X : ★ ➔ ★. ∀ Y : ★ ➔ ★. CastP · X · Y ➾ CastP · (F · X) · (F · Y).
+
+AlgM ◂ ((★ ➔ ★) ➔ ★ ➔ ★) ➔ ★ ➔ ★ ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ A : ★. λ P : ★.
+    ∀ R : ★ ➔ ★. (R · P ➔ A) ➔ F · R · P ➔ A.
+
+FixM ◂ ((★ ➔ ★) ➔ ★ ➔ ★) ➔ ★ ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ P : ★. ∀ A : ★. AlgM · F · A · P ➔ A.
+
+foldM ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ A : ★. ∀ P : ★. AlgM · F · A · P ➔ FixM · F · P ➔ A =  Λ F. Λ A. Λ P. λ alg. λ fix. fix alg.
+
+inFixM ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ P : ★. F · (FixM · F) · P ➔ FixM · F · P = Λ F. Λ P. λ fexp. Λ A. λ alg. alg (foldM alg) fexp.
+
+PrfAlgM ◂ Π F : (★ ➔ ★) ➔ ★ ➔ ★. FunctorP · F ➔ Π X : ★ ➔ ★. (Π P : ★. X · P ➔ ★) ➔ (∀ P : ★. F · X · P ➔ X · P) ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ fmap : FunctorP · F. λ X : ★ ➔ ★. λ Q : Π P : ★. X · P ➔ ★. λ alg : (∀ P : ★. F · X · P ➔ X · P). 
+    ∀ R : ★ ➔ ★. ∀ c : CastP · R · X. 
+    (∀ P : ★. Π r : R · P. Q · P (castP -c r)) ➔
+    ∀ P : ★. Π gr : F · R · P.  Q · P (alg (castP -(fmap -c) gr)).
+
+IsIndFixM ◂ Π F : (★ ➔ ★) ➔ ★ ➔ ★. FunctorP · F ➔ Π P : ★. FixM · F · P ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ fmap : FunctorP · F. λ P : ★. λ x : FixM · F · P.
+    ∀ Q : Π P : ★. FixM · F · P ➔ ★. PrfAlgM · F fmap · (FixM · F) · Q (inFixM · F) ➔ Q · P x.
+
+FixIndM ◂ Π F : (★ ➔ ★) ➔ ★ ➔ ★. FunctorP · F ➔ ★ ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ fmap : FunctorP · F. λ P : ★.
+    ι x : FixM · F · P. IsIndFixM · F fmap · P x.
+
+inFixIndM ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ P : ★. F · (FixIndM · F fmap) · P ➔ FixIndM · F fmap · P =
+  Λ F. Λ fmap. Λ P. λ v.
+  [outInd ◂ CastP · (FixIndM · F fmap) · (FixM · F) =
+    [Λ P. λ x. x.1, β]] -
+  [inFixM (castP -(fmap -outInd) v),
+   Λ Q. λ q. q -outInd (Λ P. λ r. r.2 q) v ].
+
+WithWitness ◂ Π X : ★. Π Y : ★. (X ➔ ★) ➔ (X ➔ Y) ➔ Y ➔ ★ =
+  λ X : ★. λ Y : ★. λ Q : X ➔ ★. λ cast : X ➔ Y. λ y : Y.
+    Sigma · X · (λ x : X. ι _ : {y ≃ cast x}. Q x).
+
+Lift ◂ Π F : (★ ➔ ★) ➔ ★ ➔ ★. Π fmap : FunctorP · F. (Π P : ★. FixIndM · F fmap · P ➔ ★) ➔ Π P : ★. FixM · F · P ➔ ★ =
+  λ F : (★ ➔ ★) ➔ ★ ➔ ★. λ fmap : FunctorP · F. λ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. λ P : ★. λ e : FixM · F · P.
+    WithWitness · (FixIndM · F fmap · P) · (FixM · F · P) · (Q · P) (λ x. x.1) e.
+
+LiftProp1 ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. ∀ P : ★. ∀ e : FixIndM · F fmap · P. (Lift · F fmap · Q · P e.1) ➔ Q · P e =
+  Λ F. Λ fmap. Λ Q. Λ P. Λ e. λ pr. ρ (sndS pr).1 - (sndS pr).2.
+
+LiftProp2 ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. ∀ P : ★. Π e : FixIndM · F fmap · P. Q · P e ➔ Lift · F fmap · Q · P e.1 =
+  Λ F. Λ fmap. Λ Q. Λ P. λ e. λ pr. sigma e · (λ x' : FixIndM · F fmap · P. ι _ : {e ≃ x'}. Q · P x') [β{pr}, pr].
+
+LiftProp3 ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. ∀ P : ★. ∀ e : FixM · F · P. Lift · F fmap · Q · P e ➔ FixIndM · F fmap · P =
+  Λ F. Λ fmap. Λ Q. Λ P. Λ e. λ pr. fstS pr.
+
+LiftProp4 ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. ∀ P : ★. ∀ e : FixM · F · P. ∀ p : Lift · F fmap · Q · P e. {LiftProp3 p ≃ e} =
+  Λ F. Λ fmap. Λ Q. Λ P. Λ e. Λ pr. ρ (sndS pr).1 - β.
+
+convIH ◂ 
+ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★.
+ ∀ fmap : FunctorP · F.
+ ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★.
+ ∀ Y : Π P : ★. FixM · F · P ➔ ★.
+ Π Yprop1 : ∀ P : ★. ∀ e : FixIndM · F fmap · P. Y · P e.1 ➔ Q · P e.
+ Π Yprop2 : ∀ P : ★. Π e : FixIndM · F fmap · P. Q · P e ➔ Y · P e.1.
+ Π Yprop3 : ∀ P : ★. ∀ e : FixM · F · P. Y · P e ➔ FixIndM · F fmap · P.
+ Π Yprop4 : ∀ P : ★. ∀ e : FixM · F · P. ∀ p : Y · P e. {Yprop3 p ≃ e}.
+ PrfAlgM · F fmap · (FixIndM · F fmap) · Q (inFixIndM · F -fmap) ➔
+ PrfAlgM · F fmap · (FixM · F) · Y (inFixM · F) =
+  Λ F. Λ fmap. Λ Q. Λ Y. λ qp3. λ qp4. λ qp1. λ qp2. λ q. Λ R. Λ cst. λ ih. Λ P. λ gr.
+    [cst2 ◂ CastP · R · (FixIndM · F fmap) =
+      [Λ P. λ r. φ (qp2 -(castP -cst r) -(ih r)) -
+        (qp1 -(castP -cst r) (ih r)) {r}, β]] -
+    qp4 (inFixIndM -fmap (castP -(fmap -cst2) gr))
+      (q -cst2 (Λ P. λ r. qp3 -(castP -cst2 r) (ih r)) gr).
+
+MendlerInd ◂ ∀ F : (★ ➔ ★) ➔ ★ ➔ ★. ∀ fmap : FunctorP · F. ∀ P : ★. Π e : FixIndM · F fmap · P. ∀ Q : Π P : ★. FixIndM · F fmap · P ➔ ★. PrfAlgM · F fmap · (FixIndM · F fmap) · Q (inFixIndM · F -fmap) ➔ Q · P e = 
+  Λ F. Λ fmap. Λ P. λ e. Λ Q. λ q. LiftProp1 -fmap -e
+    (e.2 (convIH -fmap (LiftProp1 -fmap · Q) (LiftProp2 -fmap · Q) (LiftProp3 -fmap · Q) (LiftProp4 -fmap · Q) q)).
+
+
+LargeVecF ◂ (★ ➔ ★) ➔ (★ ➔ ★) ➔ ★ ➔ ★ = λ S : ★ ➔ ★. λ Vec : ★ ➔ ★. λ A : ★. ι x : Top. ∀ X : Top ➔ ★ ➔ ★.
+  (∀ A : ★. X β{λ n. λ c. n} · A) ➔ (∀ A : ★. Π h : A. Π t : Vec · A. X β{λ n. λ c. c h t} · (S · A)) ➔ X x · A.
+
+LargeVecFmap ◂ ∀ S : ★ ➔ ★. FunctorP · (LargeVecF · S) = Λ S. Λ L. Λ L'. Λ cst.
+  [Λ A. λ v. [v.1, Λ X. λ n. λ c. v.2 n (Λ A. λ h. λ t. c h (castP -cst t))], β].
+
+LargeVec ◂ (★ ➔ ★) ➔ ★ ➔ ★ = λ S : ★ ➔ ★. FixIndM · (LargeVecF · S) (LargeVecFmap · S).
+
+Nil ◂ ∀ S : ★ ➔ ★. ∀ A : ★. LargeVec · S · A =
+  Λ S. Λ A. inFixIndM · (LargeVecF · S) -(LargeVecFmap · S) · A
+    [β{λ n. λ c. n}, Λ X. λ n. λ c. n · A].
+
+Cons ◂ ∀ S : ★ ➔ ★. ∀ A : ★. A ➔ LargeVec · S · A ➔ LargeVec · S · (S · A) =
+  Λ S. Λ A. λ h. λ t. inFixIndM · (LargeVecF · S) -(LargeVecFmap · S) · (S · A)
+    [β{λ n. λ c. c h t}, Λ X. λ n. λ c. c h t].
+
+LargeVecInd ◂ ∀ S : ★ ➔ ★. ∀ A : ★. Π v : LargeVec · S · A. ∀ Q : Π A : ★. LargeVec · S · A ➔ ★. (∀ A : ★. Q · A (Nil · S · A)) ➔ (∀ A : ★. Π h : A. Π t : LargeVec · S · A. Q · A t ➔ Q · (S · A) (Cons h t)) ➔ Q · A v =
+  Λ S. Λ A. λ v. Λ Q. λ n. λ c. MendlerInd -(LargeVecFmap · S) · A v · Q
+    (Λ R. Λ cst. λ ih. Λ A. λ v.
+      v.2 · (λ x : Top. λ A : ★. ∀ v : LargeVecF · S · R · A. ∀ e : {v ≃ x}. Q · A
+          (inFixIndM -(LargeVecFmap · S) · A (φ e - castP -(LargeVecFmap · S -cst) v {x})))
+        (Λ A. Λ v. Λ e. n · A)
+        (Λ A. λ h. λ t. Λ v. Λ e. c h (castP -cst t) (ih t))
+        -v -β).
