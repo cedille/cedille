@@ -182,13 +182,20 @@ ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just k
 ... | just (as , type-def (just ps) T k , _) = just (inst-kind Γ ps as k)
 ... | just (as , type-def nothing T k , _) = just k
+... | just (as , datatype-def _ k     , _) = just k
 ... | _ = nothing
+
+-- remove ?
+add-param-type : params → type → type
+add-param-type (ParamsCons (Decl pi pix e x tk _) ps) ty  = Abs pi e pix x tk (add-param-type ps ty)
+add-param-type ParamsNil                              ty  = ty
 
 ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
 ... | just (as , term-def (just ps) t T , _) = just (inst-type Γ ps as T)
-... | just (as , term-def nothing t T , _) = just T
+... | just (as , term-def nothing t T   , _) = just T
+... | just (as , const-def T            , _) = just T
 ... | _ = nothing
 
 ctxt-lookup-tk-var : ctxt → var → maybe tk
@@ -199,6 +206,7 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , type-def (just ps) T k , _) = just (Tkk (inst-kind Γ ps as k))
 ... | just (as , term-def nothing t T , _) = just (Tkt T)
 ... | just (as , type-def nothing T k , _) = just (Tkk k)
+... | just (as , datatype-def _ k     , _) = just (Tkk k)
 ... | _ = nothing
 
 env-lookup-kind-var-qdef : ctxt → var → args → maybe (params × kind)

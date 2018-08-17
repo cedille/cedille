@@ -65,7 +65,7 @@ are-free-in-term ce x (Mu' _   t ot cs _) = (ce && are-free-in-optType ce x ot) 
 are-free-in-cases _ _  NoCase                    = ff
 are-free-in-cases ce x (SomeCase c varargs t cs) = are-free-in-varargs ce x varargs || are-free-in-term ce x t || are-free-in-cases ce x cs
 
-are-free-in-varargs ce x NoArgs                 = ff
+are-free-in-varargs ce x NoVarargs              = ff
 are-free-in-varargs ce x (NormalVararg x' args) = trie-contains x x'         || are-free-in-varargs ce x args
 are-free-in-varargs ce x (ErasedVararg x' args) = (ce && trie-contains x x') || are-free-in-varargs ce x args
 are-free-in-varargs ce x (TypeVararg   x' args) = (ce && trie-contains x x') || are-free-in-varargs ce x args

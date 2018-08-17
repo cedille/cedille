@@ -544,7 +544,7 @@ erase-term (Mu' pi t ot c pi')  = Mu' pi  (erase-term t) NoType (erase-cases c) 
 erase-cases NoCase = NoCase
 erase-cases (SomeCase x varargs t cs) = SomeCase x (erase-varargs varargs) (erase-term t) (erase-cases cs)
 
-erase-varargs NoArgs = NoArgs
+erase-varargs NoVarargs = NoVarargs
 erase-varargs (NormalVararg x varargs) = NormalVararg x (erase-varargs varargs)
 erase-varargs (ErasedVararg x varargs) = erase-varargs varargs
 erase-varargs (TypeVararg x varargs  ) = erase-varargs varargs
@@ -704,6 +704,11 @@ abs-expand-type : params → type → type
 abs-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
   Abs posinfo-gen (if tk-is-type tk then me else All) pi' x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
+
+abs-expand-type' : params → type → type
+abs-expand-type' (ParamsCons (Decl pi pi' me x tk _) ps) t =
+  Abs pi (if tk-is-type tk then me else All) pi' x tk (abs-expand-type' ps t)
+abs-expand-type' ParamsNil t = t
 
 abs-expand-kind : params → kind → kind
 abs-expand-kind (ParamsCons (Decl pi pi' me x tk _) ps) k =

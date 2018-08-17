@@ -127,6 +127,24 @@ record spine-data : Set where
     spine-type : type
     spine-locale : ℕ
 
+{- Cedilleum specification, section 4.3 -}
+is-arrow-type : ctxt → type → kind → bool
+is-arrow-type Γ t (KndTpArrow        t' (Star _)) = conv-type Γ t t'
+is-arrow-type Γ t (KndPi _ _ _ (Tkt t') (Star _)) = conv-type Γ t t'
+is-arrow-type _ _ _                               = ff
+
+-- example of renaming: [[%CE%93%E2%86%92%CE%93' : ctxt %E2%86%92 ctxt][here]]
+-- [[check-term-spine t'@(App t%E2%82%81 e? t%E2%82%82) mtp max =]]
+valid-elim-kind : ctxt → type → kind → kind → bool
+valid-elim-kind Γ t (Star _)         k                                       = is-arrow-type Γ t k
+valid-elim-kind Γ t (KndPi _ pix x (Tkt t1)  k1) (KndPi _ _ y (Tkt  t2) k2)  = conv-type Γ t1  t2  && (valid-elim-kind (ctxt-term-decl pix localScope x t1 Γ)  (TpAppt t (Var   pix x)) k1 k2)
+valid-elim-kind Γ t (KndPi _ pix x (Tkk k1') k1) (KndPi _ _ y (Tkk  k2') k2) = conv-kind Γ k1' k2' && (valid-elim-kind (ctxt-type-decl pix localScope x k1' Γ) (TpApp  t (TpVar pix x)) k1 k2)
+valid-elim-kind Γ t (KndTpArrow t1 k1)           (KndTpArrow t2 k2)          = conv-type Γ t1  t2  && (valid-elim-kind Γ                                       (TpApp t t1)             k1 k2)
+valid-elim-kind Γ _  _                         _                             = ff
+
+{- Cedilleum specification, section 4.4 -}
+-- valid-branch-type : ctxt → term → 
+
 {-# TERMINATING #-}
 check-term : term → (m : maybe type) → spanM (check-ret m)
 check-termi : term → (m : maybe type) → spanM (check-ret m)
@@ -630,11 +648,12 @@ check-termi (IotaProj t n pi) mtp =
         cont' mtp n (just tp) = get-ctxt λ Γ → cont mtp n (hnf Γ unfold-head tp tt)
                                                      -- we are looking for iotas in the bodies of rec defs
 
-check-termi (Mu pi x t ot cs pi') nothing   = spanMr nothing
-check-termi (Mu' pi t ot cs pi')  nothing   = spanMr nothing
-check-termi (Mu pi x t ot cs pi') (just tp) = spanMok 
-check-termi (Mu' pi t ot cs pi')  (just tp) = spanMok
-
+check-termi (Mu  pi x t (SomeType m) cs pi') (just tp) = spanMok 
+check-termi (Mu  pi x t (SomeType m) cs pi') nothing   = spanMr nothing
+check-termi (Mu' pi t om cs pi')   nothing   = spanMr nothing
+check-termi (Mu' pi t om cs pi')   (just tp) = spanMok
+check-termi (Mu  pi x t NoType cs pi') nothing   = spanMr nothing
+check-termi (Mu  pi x t NoType cs pi') (just tp)   = spanMok
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
 
 -- check-term-spine

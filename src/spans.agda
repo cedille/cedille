@@ -786,4 +786,12 @@ TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → �
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
 
 Mu-span : checking-mode → term → 𝕃 tagged-val → err-m → span
-Mu-span c t tvs = mk-span "Term Mu" (term-start-pos t) (term-end-pos t) tvs
+Mu-span c t tvs = mk-span "Mu fixpoint" (term-start-pos t) (term-end-pos t) tvs
+
+DefDatatype-span : posinfo → posinfo → var → posinfo → span
+DefDatatype-span pi _ x pi' = mk-span "Datatype definition" pi pi' [] nothing
+
+DefDataConst-span : posinfo → var → span
+DefDataConst-span pi c = mk-span "Datatype constructor" pi (posinfo-plus-str pi c) [] nothing
+
+

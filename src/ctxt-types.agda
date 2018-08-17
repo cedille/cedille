@@ -41,6 +41,11 @@ isParamVar paramVar = tt
 isParamVar nonParamVar = ff
 
 data ctxt-info : Set where
+  -- for defining a datatype
+  datatype-def : params → kind → ctxt-info
+
+  -- for defining a datatype constructor
+  const-def : type → ctxt-info
 
   -- for declaring a variable to have a given type (with no definition)
   term-decl : type → ctxt-info
@@ -77,6 +82,7 @@ is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
 is-term-level (term-def _ _ _) = tt
 is-term-level (term-udef _ _) = tt
+is-term-level (const-def _ ) = tt
 is-term-level _ = ff
 
 data ctxt : Set where

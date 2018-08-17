@@ -92,7 +92,7 @@ substh-cases Γ ρ σ (SomeCase x varargs t cs) =
   let res = substh-varargs Γ ρ σ varargs in
   SomeCase x (fst res) (substh-term Γ (snd res) σ t) (substh-cases Γ ρ σ cs)
 
-substh-varargs Γ ρ σ NoArgs                = NoArgs , ρ
+substh-varargs Γ ρ σ NoVarargs                = NoVarargs , ρ
 substh-varargs Γ ρ σ (NormalVararg x varargs) =
   let x' = subst-rename-var-if Γ ρ x σ in
   let ρ' = renamectxt-insert ρ x x'    in

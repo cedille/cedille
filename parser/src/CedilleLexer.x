@@ -46,6 +46,7 @@ token :-
       <0> module                                { mkTokenEmpty TModule       }
       <0> import                                { mkTokenEmpty TImport       }
       <0> as                                    { mkTokenEmpty TAs           }
+      <0> data                                  { mkTokenEmpty TData         }            
       <0> public                                { mkTokenEmpty TPublic       }
       <0> $white+				{ skip'                      }
       <0> @kvar                                 { mkToken TKvar              }
@@ -167,6 +168,7 @@ data TokenClass =
      |  TRSpan
      |  TImport
      |  TAs
+     |  TData          
      |  TPublic
      |  TModule
      |  TTheta
@@ -200,6 +202,7 @@ instance Show TokenClass where
   show (TRSpan)      = "TRSpan"
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
+  show (TData)       = "TData"  
   show (TPublic)     = "TPublic"
   show (TModule)     = "TModule"
   show (TTheta)      = "TTheta"

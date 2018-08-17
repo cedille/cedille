@@ -161,6 +161,8 @@ ctxt-info-to-string (type-def dp tp k) = "type-def: {defParams: {" ^ (defParams-
 ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ ", pms': " ^ (params-to-string'' pms') ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
+ctxt-info-to-string (const-def _) = "const-def"
+ctxt-info-to-string (datatype-def _ _) = "datatype-def"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
@@ -248,6 +250,7 @@ scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
 scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType (DefTerm pi v mcT t) pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType (DefType pi v k T) pi') = scope-def fn mn v
+scope-cmd fn mn (DefDatatype   (Datatype pi _ v _ _ _) pi')   oa as = scope-def fn mn v oa as
 
 scope-def _ mn v oa as s with import-as v oa | s
 ...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os) =

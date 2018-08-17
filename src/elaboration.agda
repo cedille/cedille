@@ -258,6 +258,14 @@ private
     args-to-string as ≫str
     strAdd " ." ≫str
     f
+  cmd-to-string (DefDatatype (Datatype _ _ x p k d) _) f =
+    strAdd "data "   ≫str
+    strAdd x         ≫str
+    params-to-string p ≫str
+    strAdd " : "   ≫str
+    to-stringh k ≫str
+    strAdd " ."  ≫str
+    f
 
 {-# TERMINATING #-}
 elab-check-term : ctxt → term → type → maybe term
@@ -826,6 +834,9 @@ elab-cmds ts ρ φ (CmdsNext (ImportCmd i) cs) =
   elab-import ts ρ φ i ≫=maybe uncurry'' λ i ts ρ φ →
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (ImportCmd i) cs , ts-ρ-φ)
+elab-cmds ts ρ φ (CmdsNext (DefDatatype (Datatype _ _ x p k d) _) cs) =
+  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
+  just (CmdsNext (DefDatatype (Datatype posinfo-gen posinfo-gen x p k d) posinfo-gen) cs , ts-ρ-φ)
 
 elab-file' ts ρ φ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →

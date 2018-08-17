@@ -95,6 +95,10 @@ rkt-from-sym-info n (rename-def v , _)
   = rkt-dbg ("rename-def: " ^ v)    [[]]
 rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             [[]]
+rkt-from-sym-info n (const-def _ , _) 
+  = rkt-dbg "const-def:"           [[]]
+rkt-from-sym-info n (datatype-def _ _ , _) 
+  = rkt-dbg "datatype-def:"           [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
 to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences) ie rkt-filename =

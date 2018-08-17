@@ -43,6 +43,7 @@ import System.Environment
   'import'   { Token $$ TImport    }
   'module'   { Token $$ TModule    }
   'as'       { Token $$ TAs        }
+  'data'     { Token $$ TData      }    
   'public'   { Token $$ TPublic    }
   '{^'       { Token $$ TLSpan     }
   '^}'       { Token $$ TRSpan     }
@@ -116,6 +117,7 @@ Cmds :: { Cmds }
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
     | DefTermOrType         '.'         { DefTermOrType $1 (pos2Txt1 $2)                     }
+    | DefDatatype          '.'          { DefDatatype   $1 (pos2Txt1 $2)                     }
     | kvar KParams '=' Kind '.'         { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
 MaybeCheckType :: { OptType }
@@ -129,6 +131,17 @@ MParams :: { Params }
 KParams :: { Params }
        :                                { ParamsNil        }
        | KDecl KParams                  { ParamsCons $1 $2 }
+
+DefDatatype :: { DefDatatype }
+    : 'data' var KParams ':' Kind '='  OptPipe DataConsts  { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8       } 
+    | 'data' var KParams ':' Kind '='                      { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 DataNull }            
+
+DataConst :: { DataConst }
+          : var ':' Type                { DataConst (tPosTxt $1) (tTxt $1) $3 }
+
+DataConsts :: { DataConsts }
+           : DataConst                  { DataCons $1  DataNull }           
+           | DataConst '|' DataConsts   { DataCons $1  $3       }
 
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
@@ -235,10 +248,14 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
-     | 'μ'  Bvar '.' Term Motive '{' Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 $7 (pos2Txt1 $8)   }
-     | 'μ\'' Term Motive '{' Cases '}'  { Mu' (pos2Txt $1) $2 $3 $5 (pos2Txt1 $6)            }     
+     | 'μ'  Bvar '.' Term Motive '{'  Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 $7 (pos2Txt1 $8)   }
+     | 'μ\''         Term Motive '{'  Cases '}' { Mu' (pos2Txt $1) $2 $3 $5 (pos2Txt1 $6)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
+
+OptPipe :: { PosInfo }
+        :          {% getPos      } 
+        | '|'      { pos2Txt $1   }         
 
 Cases :: { Cases }
      :                                  { NoCase                      }

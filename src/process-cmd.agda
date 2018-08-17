@@ -59,7 +59,13 @@ optAs-posinfo-var NoOptAs = spanMr
 optAs-posinfo-var (SomeOptAs pi x) orig = get-ctxt λ Γ →
   spanM-add (Import-module-span Γ orig ParamsNil [ not-for-navigation ] nothing) ≫span spanMr (pi , x)
 
+add-params-kind : params → kind → kind
+add-params-kind (ParamsCons (Decl pi pi' m v k'  pi'') ps) k =
+  KndPi pi pi' v k' (add-params-kind ps k)
+add-params-kind ParamsNil k = k
+
 {-# TERMINATING #-}
+process-consts : dataConsts → params → spanM ⊤
 process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-params : process-t (posinfo × params)
@@ -157,6 +163,19 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
       (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v ps as) ≫span
     spanMr nothing
 
+process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype (Datatype pi pix x ps k cs) pi') _  =
+    set-ctxt Γ ≫span
+--  check-and-add-params localScope pi' ps ≫=span λ ms →     
+    check-kind (add-params-kind ps k) ≫span
+    get-ctxt (λ Γ → 
+      let Γ' = ctxt-datatype-def pi x (qualif-params Γ ps) (qualif-kind Γ (add-params-kind ps k)) Γ in
+        set-ctxt Γ'                                          ≫span
+        spanM-add (DefDatatype-span pi pix x pi')            ≫span
+        spanM-add (TpVar-span Γ' pix x checking [] nothing)  ≫span
+        process-consts cs ps                                 ≫span
+        get-ctxt (λ Γ →
+          spanMr (mk-toplevel-state ip fns is Γ))) --(ctxt-restore-info* Γ ms))))
+
 {-
 (just imported-file) →
 -      λ Γ ss → process-file s imported-file x ≫=monad λ { (s , _) →
@@ -228,4 +247,16 @@ process-file s filename pn | ie =
                        (ctxt-set-current-mod Γ prev-mod) ,
                      (if do-check then set-spans-include-elt ie' ss else ie') , ret-mod)
         proceed s (just x) ie' | _ = returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s))
+
+
+process-consts DataNull ps = spanMok
+process-consts (DataCons (DataConst pi c tp) cs) ps =
+      get-ctxt (λ Γ → 
+        let t = abs-expand-type' ps tp in -- add-param-type ps (qualif-type Γ tp)
+        check-type t (just star) ≫span 
+        set-ctxt (ctxt-const-def pi c (qualif-type Γ t) Γ) ≫span
+        spanM-add (DefDataConst-span pi c)  ≫span
+        process-consts cs ps)
+
+
 

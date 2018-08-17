@@ -51,6 +51,12 @@ data cmds : Set
 {-# COMPILE GHC cmds = type CedilleTypes.Cmds #-}
 data decl : Set
 {-# COMPILE GHC decl = type CedilleTypes.Decl #-}
+data defDatatype : Set
+{-# COMPILE GHC defDatatype = type CedilleTypes.DefDatatype #-}
+data dataConst : Set
+{-# COMPILE GHC dataConst = type CedilleTypes.DataConst #-}
+data dataConsts : Set
+{-# COMPILE GHC dataConsts = type CedilleTypes.DataConsts #-}
 data defTermOrType : Set
 {-# COMPILE GHC defTermOrType = type CedilleTypes.DefTermOrType #-}
 data imports : Set
@@ -119,8 +125,9 @@ data args where
 data cmd where 
   DefKind : posinfo → kvar → params → kind → posinfo → cmd
   DefTermOrType : defTermOrType → posinfo → cmd
+  DefDatatype   : defDatatype   → posinfo → cmd  
   ImportCmd : imprt → cmd
-{-# COMPILE GHC cmd = data CedilleTypes.Cmd (CedilleTypes.DefKind | CedilleTypes.DefTermOrType | CedilleTypes.ImportCmd) #-}
+{-# COMPILE GHC cmd = data CedilleTypes.Cmd (CedilleTypes.DefKind | CedilleTypes.DefTermOrType | CedilleTypes.DefDatatype |CedilleTypes.ImportCmd) #-}
 
 data cmds where 
   CmdsNext : cmd → cmds → cmds
@@ -130,6 +137,19 @@ data cmds where
 data decl where 
   Decl : posinfo → posinfo → maybeErased → bvar → tk → posinfo → decl
 {-# COMPILE GHC decl = data CedilleTypes.Decl (CedilleTypes.Decl) #-}
+
+data defDatatype where 
+  Datatype : posinfo → posinfo → var → params → kind → dataConsts → defDatatype
+{-# COMPILE GHC defDatatype = data CedilleTypes.DefDatatype (CedilleTypes.Datatype) #-}
+
+data dataConst where
+  DataConst : posinfo → var → type → dataConst
+{-# COMPILE GHC dataConst = data CedilleTypes.DataConst (CedilleTypes.DataConst) #-}
+
+data dataConsts where
+  DataNull : dataConsts
+  DataCons : dataConst → dataConsts → dataConsts
+{-# COMPILE GHC dataConsts = data CedilleTypes.DataConsts (CedilleTypes.DataNull | CedilleTypes.DataCons) #-}
 
 data defTermOrType where 
   DefTerm : posinfo → var → optType → term → defTermOrType

@@ -22,6 +22,7 @@ data Args = ArgsCons Arg Args | ArgsNil
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
      | DefTermOrType DefTermOrType PosInfo
+     | DefDatatype   DefDatatype   PosInfo          
      | ImportCmd Imprt
      deriving (Show,Eq)
 
@@ -32,6 +33,19 @@ data Cmds =
 
 data Decl =
      Decl PosInfo PosInfo MaybeErased Bvar Tk PosInfo
+     deriving (Show,Eq)
+
+data DefDatatype =
+     Datatype PosInfo PosInfo Var Params Kind DataConsts
+     deriving (Show,Eq)
+
+data DataConst =
+     DataConst PosInfo Var Type
+     deriving (Show,Eq)
+
+data DataConsts =
+       DataNull
+     | DataCons DataConst DataConsts
      deriving (Show,Eq)
 
 data DefTermOrType =

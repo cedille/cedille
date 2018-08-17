@@ -1,19 +1,63 @@
 module a.
 
 import nat.
+import true.
+import sum.
+import product.
+import sigma.
 
+data Nat' : ★ =
+     Zero : Nat'
+     | Succ : Nat' ➔ Nat' .
+
+zero ◂ Nat' = Zero .
+one ◂ Nat' = Succ Zero .
 
 plus
-  ◂ Nat ➔ Nat ➔ Nat
-  = λ n . λ m . μ  rec . n
-      { | zero ➔ m
-        | suc r ➔ suc (pl r)
+  ◂ Nat' ➔ Nat' ➔ Nat'
+  = λ n . λ m . μ  pl . n
+      { | Zero   ➔ m
+        | Succ r ➔ Succ (pl r)
       }.
 
+data ListN : ★ =
+    Nil : ListN
+    | Cons : Nat ➔ ListN ➔ ListN .
 
-plus2
-  ◂ Nat ➔ Nat ➔ Nat
-  = λ n . λ m . μ'  n 
-      { | zero ➔ m
-        | suc r ➔ suc (pl r)
-      } .
+listNilNat  ◂ ListN = Nil .
+listConsNat ◂ ListN = Cons Z listNilNat .
+
+data List(A:★):★ =
+    NilA : List·A 
+  | ConsA : A ➔ List·A ➔ List·A .
+
+ListNat ◂ ★ = List·Nat'.
+listNilA  ◂ ∀ A:★ . List·A = Λ A .NilA · A . 
+listConsA ◂ ∀ A:★ . A ➔ List·A = Λ A .λ x . ConsA·A x (listNilA·A).
+
+listNitNat ◂ ListNat = NilA·Nat' .
+listConsN ◂ ListNat = listConsA·Nat' one .
+
+length
+  ◂ ∀ A:★ .List·A ➔ Nat' 
+  = Λ A . λ xs . μ  len . xs
+      { | NilA       ➔ Zero 
+        | ConsA y ys ➔ Succ (len ys)
+      }.
+
+data test : Nat ➔ ★ = 
+   | {- first pipe is optional -} bar : Π m:Nat . Nat ➔ test m
+   | fooZ : test (S Z) ➔ test Z
+   | fooZb : test Z . -- fix indices
+   
+test_term ◂ test (S Z) = bar (S Z) (S Z). 
+
+data test2(p:True)(n:Nat) : True ➔ ★ = 
+     bar : ∀ m:True .test2 p n m
+   | foo : ∀ m: True. { m ≃ triv} ➾ test2 p n m .
+
+a ◂ True ➔ ★ = test2 triv Z .
+b ◂ Π p':True.  Π n':Nat  .True ➔ ★ = test2 .
+
+c ◂ test2 triv Z triv = bar · triv .
+
