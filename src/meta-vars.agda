@@ -34,8 +34,7 @@ open helpers
 ----------------------------------------------------------------------
 
 
--- meta-var type
--- vars associated with kind and (possibly many) type solutions
+-- Meta-variables, prototypes, decorated types
 -- ==================================================
 
 data meta-var-sol : Set where
@@ -58,6 +57,18 @@ record meta-vars : Set where
     order   : 𝕃 var
     varset  : trie meta-var
 open meta-vars
+
+data prototype : Set where
+  proto-maybe : maybe type → prototype
+  proto-arrow : maybeErased → prototype → prototype
+
+data decortype : Set where
+  decor-type  : type → decortype
+  decor-arrow : maybeErased → type → decortype → decortype
+  decor-decor : maybeErased → posinfo → bvar → meta-var-sol → decortype → decortype
+  decor-stuck : type → prototype → decortype
+  decor-error : type → prototype → decortype
+
 
 -- Simple definitions and accessors
 -- --------------------------------------------------
@@ -117,10 +128,13 @@ meta-vars-lookup-kind Xs x with meta-vars-lookup Xs x
 ... | (just (meta-var-mk-tp _ k _ _)) = just k
 ... | (just X) = nothing
 
--- conversion to types and terms
+-- conversion to types, terms, tks
 -- --------------------------------------------------
 
--- TODO
+meta-var-sol-to-tk : meta-var-sol → tk
+meta-var-sol-to-tk (meta-var-tp k mtp) = Tkk k
+meta-var-sol-to-tk (meta-var-tm tp mtm) = Tkt tp
+
 meta-var-to-type : meta-var → posinfo → maybe type
 meta-var-to-type (meta-var-mk-tp x k (just tp) _) pi = just tp
 meta-var-to-type (meta-var-mk-tp x k nothing _) pi = just (TpVar pi x)
@@ -143,8 +157,49 @@ meta-var-to-term-unsafe X pi
 ... | just tm = tm
 ... | nothing = Var pi (meta-var-name X)
 
+prototype-to-maybe : prototype → maybe type
+prototype-to-maybe (proto-maybe mtp) = mtp
+prototype-to-maybe (proto-arrow _ _) = nothing
+
+prototype-to-checking : prototype → checking-mode
+prototype-to-checking = maybe-to-checking ∘ prototype-to-maybe
+
+decortype-to-type : decortype → type
+decortype-to-type (decor-type tp) = tp
+decortype-to-type (decor-arrow at tp dt) =
+  TpArrow tp at (decortype-to-type dt)
+decortype-to-type (decor-decor b pi x sol dt) =
+  Abs pi b posinfo-gen x (meta-var-sol-to-tk sol) (decortype-to-type dt)
+decortype-to-type (decor-stuck tp pt) = tp
+decortype-to-type (decor-error tp pt) = tp
+
+-- hnf for decortype
+-- --------------------------------------------------
+
+hnf-decortype : ctxt → unfolding → decortype → (is-head : 𝔹) → decortype
+hnf-decortype Γ uf (decor-type tp) ish =
+  decor-type (hnf Γ uf tp ish)
+hnf-decortype Γ uf (decor-arrow e? tp dt) ish =
+  decor-arrow e? (hnf Γ uf tp ff) (hnf-decortype Γ uf dt ff)
+hnf-decortype Γ uf (decor-decor e? pi x sol dt) ish =
+  decor-decor e? pi x sol (hnf-decortype Γ uf dt ff)
+hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
+hnf-decortype Γ uf (decor-error tp pt) ish =
+  decor-error (hnf Γ uf tp ff) pt
 -- substitutions
 -- --------------------------------------------------
+
+substh-meta-var-sol : substh-ret-t meta-var-sol
+substh-meta-var-sol Γ ρ σ (meta-var-tp k mtp) =
+  meta-var-tp (substh-kind Γ ρ σ k) (maybe-map (λ tp → substh-type Γ ρ σ tp) mtp)
+substh-meta-var-sol Γ ρ σ (meta-var-tm tp mtm) =
+  meta-var-tm (substh-type Γ ρ σ tp) (maybe-map (λ tm → substh-term Γ ρ σ tm) mtm)
+
+subst-meta-var-sol : subst-ret-t meta-var-sol
+subst-meta-var-sol Γ t x (meta-var-tp k mtp) =
+  meta-var-tp (subst-kind Γ t x k) (maybe-map (λ tp → subst-type Γ t x tp) mtp)
+subst-meta-var-sol Γ t x (meta-var-tm tp mtm) =
+  meta-var-tm (subst-type Γ t x tp) (maybe-map (λ tm → subst-term Γ t x tm) mtm)
 
 meta-vars-get-sub : meta-vars → trie type
 meta-vars-get-sub Xs =
@@ -216,6 +271,38 @@ meta-vars-to-string Xs = -- meta-vars-to-stringh (order Xs) Xs
             missing-span-location
         (just X) → X)
 
+prototype-to-string : prototype → strM
+prototype-to-string (proto-maybe nothing) = strAdd "⁇"
+prototype-to-string (proto-maybe (just tp)) = to-stringh tp
+prototype-to-string (proto-arrow e? pt) =
+  strAdd "⁇" ≫str strAdd (arrowtype-to-string e?)
+  ≫str prototype-to-string pt
+
+decortype-to-string : decortype → strM
+decortype-to-string (decor-type tp) =
+  strAdd "[" ≫str to-stringh tp ≫str strAdd "]"
+decortype-to-string (decor-arrow e? tp dt) =
+  to-stringh tp
+  ≫str strAdd (arrowtype-to-string e?)
+  ≫str decortype-to-string dt
+decortype-to-string (decor-decor e? pi x sol dt) =
+  strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
+  ≫str strAdd " . " ≫str decortype-to-string dt
+  where
+  binder : maybeErased → meta-var-sol → string
+  binder Erased sol = "∀ "
+  binder Pi (meta-var-tm tp mtm) = "Π "
+  -- vv clause below "shouldn't" happen
+  binder Pi (meta-var-tp k mtp) = "∀ "
+  -- dec-to-string : meta-var-sol → string
+  -- dec-to-string (meta-var-tp k mtp) = {!!}
+  -- dec-to-string (meta-var-tm tp mtm) = {!!}
+
+decortype-to-string (decor-stuck tp pt) =
+  strAdd "(" ≫str to-stringh tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
+decortype-to-string (decor-error tp pt) =
+  strAdd "([" ≫str (to-stringh tp) ≫str strAdd "] ‼ " ≫str prototype-to-string pt ≫str strAdd ")"
+
 meta-vars-data-gen : string → ctxt → meta-vars → 𝕃 tagged-val
 meta-vars-data-gen s Γ Xs =
   if trie-empty? (varset Xs)
@@ -277,6 +364,12 @@ meta-vars-check-type-mismatch-if nothing Γ s Xs tp'
   = [ type-data Γ tp″ ] , nothing
   where
   tp″ = meta-vars-subst-type' ff Γ Xs tp'
+
+decortype-data : ctxt → decortype → tagged-val
+decortype-data Γ dt = strRunTag "head decoration" Γ (decortype-to-string dt)
+
+prototype-data : ctxt → prototype → tagged-val
+prototype-data Γ pt = strRunTag "head prototype" Γ (prototype-to-string pt)
 ----------------------------------------
 ----------------------------------------
 
@@ -312,6 +405,11 @@ meta-vars-add* Xs (Y :: Ys) = meta-vars-add* (meta-vars-add Xs Y) Ys
 
 meta-vars-from-list : 𝕃 meta-var → meta-vars
 meta-vars-from-list Xs = meta-vars-add* meta-vars-empty Xs
+
+meta-vars-remove : meta-vars → meta-var → meta-vars
+meta-vars-remove (meta-vars-mk or vs) X =
+  let x = meta-var-name X
+  in meta-vars-mk (remove _=string_ x or) (trie-remove vs x)
 
 -- meta-vars-peel:
 -- ==================================================
