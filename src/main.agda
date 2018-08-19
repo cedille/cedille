@@ -31,9 +31,10 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
   opts-to-options ofp ops >>= λ ops → paths-to-stringset fps >>=r λ ip → record ops { include-path = ip }
   where paths-to-stringset : options-types.paths → IO (𝕃 string × stringset)
         paths-to-stringset (options-types.PathsCons fp fps) =
-          canonicalizePath (combineFileNames (takeDirectory (takeDirectory ofp)) fp) >>= λ rfp →
-          canonicalizePath fp >>= λ afp → paths-to-stringset fps >>=r
-          cedille-options.include-path-insert rfp ∘ cedille-options.include-path-insert afp
+          canonicalizePath (if pathIsAbsolute fp
+            then fp else combineFileNames (takeDirectory ∘ takeDirectory $' ofp) fp)
+          >>= λ canonPath → paths-to-stringset fps
+          >>=r cedille-options.include-path-insert canonPath
         paths-to-stringset options-types.PathsNil = return ([] , empty-stringset)
 opts-to-options ofp (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = str-bool-to-𝔹 b }
