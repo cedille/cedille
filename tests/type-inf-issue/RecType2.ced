@@ -1,0 +1,25 @@
+module RecType2(F : (★ ➔ ★) ➔ ★ ➔ ★).
+
+import top.
+import cast2.
+
+RecFunctor2 ◂ ★ =
+  ∀ X : 𝒌 . ∀ Y : 𝒌 . Cast2 · X · Y ➔ Cast2 · (F · X) · (F · Y) .
+
+Rec2 ◂ 𝒌 = λ Y : ★ . ∀ X : 𝒌 . Cast2 · (F · X) · X ➾ X · Y. 
+
+recCast2 ◂ ∀ X : 𝒌 . Cast2 · (F · X) · X ➾ Cast2 · Rec2 · X =
+  Λ X . Λ c . [ Λ Y . λ d . d · X -c , β ].
+
+recFold2 ◂  RecFunctor2 ➾ Cast2 · (F · Rec2) · Rec2 =
+  Λ fmap . 
+    [ Λ Y . λ x . Λ X . Λ c .
+      cast2 · (F · X) · X -c · Y
+        (cast2 · (F · Rec2) · (F · X)
+          -(fmap · Rec2 · X (recCast2 · X -c)) · Y x),
+      β ].
+
+recUnfold2 ◂  RecFunctor2 ➾ Cast2 · Rec2 · (F · Rec2) =
+  Λ fmap . [Λ X . λ x . x · (F · Rec2) -(fmap · (F · Rec2) · Rec2 (recFold2 -fmap)) , β ].
+
+
