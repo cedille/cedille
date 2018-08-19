@@ -1229,11 +1229,16 @@ match-types Xs Ls unf tpₓ (TpParens _ tp _) =
 match-types Xs Ls unf tpₓ tp =
   get-ctxt λ Γ → match-types-error $' m-err.e-type-ineq Γ tpₓ tp
 
-match-kinds Xs Ls uf (KndParens _ kₓ _) (KndParens _ k _) =
+-- match-kinds
+-- --------------------------------------------------
+
+-- match-kinds-norm: match already normalized kinds
+match-kinds-norm : meta-vars → local-vars → match-unfolding-state → (kₓ k : kind) → spanM $' match-error-t meta-vars
+match-kinds-norm Xs Ls uf (KndParens _ kₓ _) (KndParens _ k _) =
   match-kinds Xs Ls uf kₓ k
 
--- Kind pi
-match-kinds Xs Ls uf (KndPi _ piₓ xₓ tkₓ kₓ) (KndPi _ pi x tk k) =
+-- kind pi
+match-kinds-norm Xs Ls uf (KndPi _ piₓ xₓ tkₓ kₓ) (KndPi _ pi x tk k) =
   get-ctxt λ Γ → match-tks Xs Ls uf tkₓ tk
   ≫=spans' λ Xs → with-ctxt (Γ→Γ' Γ)
     (match-kinds Xs Ls uf kₓ k)
@@ -1243,36 +1248,44 @@ match-kinds Xs Ls uf (KndPi _ piₓ xₓ tkₓ kₓ) (KndPi _ pi x tk k) =
   Ls' = stringset-insert Ls x
 
 -- kind arrow
-match-kinds Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndArrow k₁ k₂) =
+match-kinds-norm Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndArrow k₁ k₂) =
   match-kinds Xs Ls uf kₓ₁ k₁
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
 
-match-kinds Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndPi _ pi x (Tkk k₁) k₂) =
+match-kinds-norm Xs Ls uf (KndArrow kₓ₁ kₓ₂) (KndPi _ pi x (Tkk k₁) k₂) =
   match-kinds Xs Ls uf kₓ₁ k₁
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
 
-match-kinds Xs Ls uf (KndPi _ _ x (Tkk kₓ₁) kₓ₂) (KndArrow k₁ k₂) =
+match-kinds-norm Xs Ls uf (KndPi _ _ x (Tkk kₓ₁) kₓ₂) (KndArrow k₁ k₂) =
   match-kinds Xs Ls uf kₓ₁ k₁
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ₂ k₂
 
 -- kind tp arrow
-match-kinds Xs Ls uf (KndTpArrow tpₓ kₓ) (KndTpArrow tp k) =
+match-kinds-norm Xs Ls uf (KndTpArrow tpₓ kₓ) (KndTpArrow tp k) =
   match-types Xs Ls uf tpₓ tp
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
 
-match-kinds Xs Ls uf (KndPi _ _ x (Tkt tpₓ) kₓ) (KndTpArrow tp k) =
+match-kinds-norm Xs Ls uf (KndPi _ _ x (Tkt tpₓ) kₓ) (KndTpArrow tp k) =
   match-types Xs Ls uf tpₓ tp
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
 
-match-kinds Xs Ls uf (KndTpArrow tpₓ kₓ) (KndPi _ _ x (Tkt tp) k) =
+match-kinds-norm Xs Ls uf (KndTpArrow tpₓ kₓ) (KndPi _ _ x (Tkt tp) k) =
   match-types Xs Ls uf tpₓ tp
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
 
-match-kinds Xs Ls uf (Star _) (Star _) =
+match-kinds-norm Xs Ls uf (Star _) (Star _) =
   match-types-ok $' Xs
-match-kinds Xs Ls uf kₓ k =
+match-kinds-norm Xs Ls uf kₓ k =
   get-ctxt λ Γ → match-types-error $' m-err.e-kind-ineq Γ kₓ k
 
+match-kinds Xs Ls uf kₓ k =
+  get-ctxt λ Γ →
+  match-kinds-norm Xs Ls uf
+    (hnf Γ (unfolding-elab unfold-head) kₓ tt)
+    (hnf Γ (unfolding-elab unfold-head) k tt)
+
+-- match-tk
+-- --------------------------------------------------
 match-tks Xs Ls uf (Tkk kₓ) (Tkk k) = match-kinds Xs Ls uf kₓ k
 match-tks Xs Ls uf (Tkt tpₓ) (Tkt tp) = match-types Xs Ls uf tpₓ tp
 match-tks Xs Ls uf tkₓ tk =

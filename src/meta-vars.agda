@@ -554,7 +554,7 @@ module meta-vars-match-errors where
 
   e-kind-ineq : ctxt → (k₁ k₂ : kind) → match-error-data
   e-kind-ineq Γ k₁ k₂ =
-    match-error-msg ^ "because the lhs and rhs are not convertible kinds"
+    match-error-msg ^ " because the lhs and rhs are not convertible kinds"
     , lhs-rhs Γ k₁ k₂
 
   e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → match-error-data
