@@ -7,13 +7,10 @@ import product.
 import sigma.
 import sum.
 import top.
--- import true.
 
+-- Some convenient shorter names
 SZ = S Z.
 P = pred.
--- add2 ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n m (λ n. S).
--- mult2 ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n Z (λ n. add2 m).
--- sub ◂ Nat ➔ Nat ➔ Nat = λ m. λ n. NatRec n m (λ n. P).
 
 ZS-False ◂ ∀ n : Nat. {Z ≃ S n} ➾ False =
   Λ n . Λ e .
