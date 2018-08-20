@@ -182,6 +182,10 @@ err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
 
 -- sum.agda
+either-else' : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A ∨ B → (A → C) → (B → C) → C
+either-else' (inj₁ x) f g = f x
+either-else' (inj₂ y) f g = g y
+
 err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err
 err⊎-guard ff _   = inj₂ triv

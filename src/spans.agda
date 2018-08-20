@@ -387,6 +387,9 @@ term-argument = to-string-tag "the argument"
 type-argument : ctxt → type → tagged-val
 type-argument = to-string-tag "the argument"
 
+contextual-type-argument : ctxt → type → tagged-val
+contextual-type-argument = to-string-tag "contextual type arg"
+
 arg-argument : ctxt → arg → tagged-val
 arg-argument Γ (TermArg me x) = term-argument Γ x
 arg-argument Γ (TypeArg x) = type-argument Γ x

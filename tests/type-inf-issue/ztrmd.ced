@@ -1,0 +1,17 @@
+module ztrmd.
+
+import cast2.
+import top.
+import RecType2.
+
+Trmc ◂ (★ ➔ ★) ➔ ★ ➔ ★ =
+  λ Trmc : ★ ➔ ★ .
+  λ X : ★ .
+  (ι l : Top .
+  Π f : X ➔ X .
+  ∀ g : ∀ X : ★ . X ➔ Trmc · X .
+  (∀ x : X . { f x ≃ g x l }) ➾
+  X) ➔
+  X .
+
+TrmcF ◂ RecFunctor2 · Trmc = Λ X . Λ Y . λ c . [Λ Z . λ a . λ l . a [ ● , λ f . Λ g . Λ e . l.2 f -(Λ Q . λ q . cast2 -c (g · Q q)) -●] , ● ].
