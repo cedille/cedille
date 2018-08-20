@@ -20,6 +20,7 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import elaboration (record options {during-elaboration = ff})
 
 private
 
@@ -188,6 +189,22 @@ private
   erase-prompt Γ str =
     parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
     inj₂ (to-string-tag "" Γ (erase (qualif-ed Γ t)))
+
+  elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃} → A × B → (A → B → C) → C
+  elim-pair (a , b) f = f a b
+
+  data-cmd : ctxt → string → string → var → string → string ⊎ tagged-val
+  data-cmd Γ psₛ isₛ x csₛ =
+    parse-string ll-kind - psₛ ! "ps" ≫parse λ psₖ →
+    parse-string ll-kind - isₛ ! "is" ≫parse λ isₖ →
+    parse-string ll-kind - csₛ ! "cs" ≫parse λ csₖ →
+    elim-pair (kind-to-indices (ctxt-var-decl posinfo-gen x Γ) psₖ) λ Γ' psᵢ →
+    elim-pair (kind-to-indices Γ' isₖ) λ Γ'' is →
+    elim-pair (kind-to-indices Γ'' csₖ) λ Γ''' csᵢ →
+    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) psᵢ
+        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) csᵢ
+        d = Data x ps is cs in
+    inj₂ $ File-to-string Γ' $ mk-mendler-defs Γ' d
   
   br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
   br-cmd Γ str ls =
@@ -258,6 +275,8 @@ private
     conv-cmd Γ ll ss is lc
   interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =
     rewrite-cmd Γ ss is head lc
+  interactive-cmd-h Γ ("data" :: ps :: k :: x :: cs :: []) =
+    data-cmd Γ ps k x cs
   interactive-cmd-h Γ cs =
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
   
