@@ -27,6 +27,12 @@ open import rewriting
 import spans options' {id} as id-spans
 
 private
+
+  foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
+  foldl f b [] = b
+  foldl f b (a :: as) = foldl f (f a b) as
+
+  ctxt-var-decl' = ctxt-var-decl posinfo-gen
   
   uncurry' : ∀ {A B C D : Set} → (A → B → C → D) → (A × B × C) → D
   uncurry' f (a , b , c) = f a b c
@@ -150,6 +156,10 @@ private
   -- Returns a fresh variable name by adding primes and replacing invalid characters
   fresh-var' : string → (string → 𝔹) → renamectxt → string
   fresh-var' = fresh-var ∘ rename-validify
+
+  rename-new_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
+  rename-new "_" from Γ for f = f (fresh-var' "x" (ctxt-binds-var Γ) empty-renamectxt)
+  rename-new x from Γ for f = f (fresh-var' x (ctxt-binds-var Γ) empty-renamectxt)
   
   rename_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
   rename "_" from Γ for f = f "_"
@@ -179,6 +189,11 @@ private
   mbeta t t' = Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm t' posinfo-gen)
   mrho t x T t' = Rho posinfo-gen RhoPlain NoNums t (Guide posinfo-gen x T) t'
   mtpeq t1 t2 = TpEq posinfo-gen t1 t2 posinfo-gen
+
+  subst-args-params : ctxt → args → params → kind → kind
+  subst-args-params Γ (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = subst-args-params Γ ys ps (subst-kind Γ t x k)
+  subst-args-params Γ (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = subst-args-params Γ ys ps (subst-kind Γ t x k)
+  subst-args-params Γ ys ps k = k
 
   params-append : params → params → params
   params-append ParamsNil ps = ps
@@ -210,7 +225,7 @@ private
      strAdd mn ≫str
      strAdd " " ≫str
      params-to-string' globalScope
-    (strAdd ".\n" ≫str
+    (strAdd "." ≫str strAdd "\n" ≫str
      cmds-to-string cs strEmpty) ps)
   
   cmds-to-string CmdsStart f = f
@@ -900,3 +915,874 @@ elab-file ts fn =
 
 
 
+
+
+{- Datatypes -}
+
+parameters = 𝕃 decl
+
+data indx : Set where
+  Index : var → tk → indx
+indices = 𝕃 indx
+
+data ctr : Set where
+  Ctr : var → type → ctr
+constructors = 𝕃 ctr
+
+data datatype : Set where
+  Data : var → parameters → indices → constructors → datatype
+
+{-# TERMINATING #-}
+decompose-arrows : ctxt → type → parameters × type
+decompose-arrows Γ (Abs pi me pi' x atk T) =
+  rename-new x from Γ for λ x' →
+  case decompose-arrows (ctxt-var-decl' x' Γ) (rename-var Γ x x' T) of λ where
+    (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
+decompose-arrows Γ (TpArrow T me T') =
+  rename-new "_" from Γ for λ x →
+  case decompose-arrows (ctxt-var-decl' x Γ) T' of λ where
+    (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
+decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
+decompose-arrows Γ T = [] , T
+
+decompose-ctr-type : ctxt → type → type × parameters × 𝕃 tty
+decompose-ctr-type Γ T with decompose-arrows Γ T
+...| ps , Tᵣ with decompose-tpapps Tᵣ
+...| Tₕ , as = Tₕ , ps , as
+
+{-# TERMINATING #-}
+kind-to-indices : ctxt → kind → ctxt × indices
+kind-to-indices Γ (KndArrow k k') =
+  rename "x" from Γ for λ x' →
+  let p = kind-to-indices (ctxt-var-decl' x' Γ) k' in
+  fst p , Index x' (Tkk k) :: snd p
+kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
+kind-to-indices Γ (KndPi pi pi' x atk k) =
+  rename x from Γ for λ x' →
+  let p = kind-to-indices (ctxt-var-decl' x' Γ) k in
+  fst p , Index x atk :: snd p
+kind-to-indices Γ (KndTpArrow T k) =
+  rename "x" from Γ for λ x' →
+  let p = kind-to-indices (ctxt-var-decl' x' Γ) k in
+  fst p , Index x' (Tkt T) :: snd p
+kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
+...| nothing = Γ , []
+...| just (ps , k) = kind-to-indices Γ $ subst-args-params Γ as ps k
+kind-to-indices Γ (Star pi) = Γ , []
+
+indices-to-kind : indices → kind → kind
+indices-to-kind = flip $ foldr (λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk})
+
+parameters-to-kind : parameters → kind → kind
+parameters-to-kind = flip $ foldr (λ {(Decl pi pi' me x atk pi'') → KndPi pi pi' x atk})
+
+indices-to-tplams : indices → (body : type) → type
+indices-to-tplams = flip $ foldr λ where
+  (Index x atk) → TpLambda posinfo-gen posinfo-gen x atk
+
+parameters-to-tplams : parameters → (body : type) → type
+parameters-to-tplams = flip $ foldr λ where
+  (Decl pi pi' me x atk pi'') → TpLambda pi pi' x atk
+
+indices-to-alls : indices → (body : type) → type
+indices-to-alls = flip $ foldr λ where
+  (Index x atk) → Abs posinfo-gen Erased posinfo-gen x atk
+
+parameters-to-alls : parameters → (body : type) → type
+parameters-to-alls = flip $ foldr λ where
+  (Decl pi pi' me x atk pi'') → Abs pi me pi' x atk
+
+indices-to-lams : indices → (body : term) → term
+indices-to-lams = flip $ foldr λ where
+  (Index x atk) → Lam posinfo-gen Erased posinfo-gen x (SomeClass atk)
+
+parameters-to-lams : parameters → (body : term) → term
+parameters-to-lams = flip $ foldr λ where
+  (Decl pi pi' me x atk pi'') → Lam pi me pi' x (SomeClass atk)
+
+parameters-to-lams' : parameters → (body : term) → term
+parameters-to-lams' = flip $ foldr λ where
+  (Decl pi pi' me x atk pi'') → Lam pi me pi' x NoClass
+
+constructors-to-lams' : constructors → (body : term) → term
+constructors-to-lams' = flip $ foldr λ where
+  (Ctr x T) → Lam posinfo-gen NotErased posinfo-gen x NoClass
+
+indices-to-apps : indices → (body : term) → term
+indices-to-apps = flip $ foldl λ where
+  (Index x (Tkt T)) t → App t Erased (mvar x)
+  (Index x (Tkk k)) t → AppTp t (mtpvar x)
+
+parameters-to-apps : parameters → (body : term) → term
+parameters-to-apps = flip $ foldl λ where --↓ ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←
+  (Decl pi pi' me x (Tkt T) pi'') t → App t me (mvar x)  --                             ↑
+  (Decl pi pi' me x (Tkk k) pi'') t → AppTp t (mtpvar x) --                             ↑
+-- TODO: Should the user really be given the option to have parameters erased or not? → ↑
+
+indices-to-tpapps : indices → (body : type) → type
+indices-to-tpapps = flip $ foldl λ where
+  (Index x (Tkt T)) T' → TpAppt T' (mvar x)
+  (Index x (Tkk k)) T  → TpApp  T  (mtpvar x)
+
+parameters-to-tpapps : parameters → (body : type) → type
+parameters-to-tpapps = flip $ foldl λ where
+  (Decl pi pi' me x (Tkt T) pi'') T' → TpAppt T' (mvar x)
+  (Decl pi pi' me x (Tkk k) pi'') T  → TpApp  T  (mtpvar x)
+
+constructors-to-lams : ctxt → var → parameters → constructors → (body : term) → term
+constructors-to-lams Γ x ps cs t = foldr (λ {(Ctr y T) f Γ → Lam posinfo-gen NotErased posinfo-gen y (SomeClass $ Tkt $ subst-type Γ (parameters-to-tpapps ps $ mtpvar y) y T) $ f $ ctxt-var-decl' y Γ}) (λ Γ → t) cs Γ
+
+add-ps-to-ctxt : ctxt → parameters → ctxt
+add-ps-to-ctxt = foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''})
+
+recompose-apps : 𝕃 tty → term → term
+recompose-apps [] h = h
+recompose-apps ((tterm t') :: args) h = App (recompose-apps args h) Erased t'
+recompose-apps ((ttype t') :: args) h = AppTp (recompose-apps args h) t'
+
+
+mk-erased-ctr : ctxt → ℕ → constructors → 𝕃 term → maybe term
+mk-erased-ctr Γ n cs as = mk-erased-ctrh Γ (inj₁ n) cs as [] where
+  mk-erased-ctrh : ctxt → ℕ ⊎ var → constructors → 𝕃 term → 𝕃 var → maybe term
+  mk-erased-ctrh Γ (inj₁ zero) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
+    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₂ x') cs as (x' :: xs)
+  mk-erased-ctrh Γ (inj₁ (suc n)) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
+    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₁ n) cs as (x' :: xs)
+  mk-erased-ctrh Γ (inj₂ xₕ) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
+    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₂ xₕ) cs as (x' :: xs)
+  mk-erased-ctrh Γ (inj₁ _) [] as xs = nothing
+  mk-erased-ctrh Γ (inj₂ xₕ) [] as xs =
+    just $ foldl mlam (foldr (flip mapp) (mvar xₕ) as) $ xs
+
+get-ctr-in-ctrs : var → constructors → maybe ℕ
+get-ctr-in-ctrs x cs = h zero cs where
+  h : ℕ → constructors → maybe ℕ
+  h n [] = nothing
+  h n (Ctr y _ :: cs) = if x =string y then just n else h (suc n) cs
+
+mk-ctr-untyped-beta : ctxt → var → constructors → parameters → term
+mk-ctr-untyped-beta Γ x cs ps =
+  maybe-else
+    (mvar "error-making-untyped-beta")
+    (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen) $
+    get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs $
+      foldl (λ {(Decl pi pi' NotErased x (Tkt T) pi'') ts → mvar x :: ts; p ts → ts}) [] ps
+
+mk-ctr-type : ctxt → ctr → (head : var) → constructors → type
+mk-ctr-type Γ (Ctr x T) Tₕ cs with decompose-ctr-type Γ T
+...| Tₓ , ps , is =
+  foldr
+    (λ {(Decl pi pi' NotErased y atk pi'') f as →
+          Abs pi NotErased pi' y atk $ f (mvar y :: as);
+        (Decl pi pi' Erased y atk pi'') f as →
+          Abs pi Erased pi' y atk $ f as})
+    (λ as → curry recompose-tpapps
+      (TpAppt (mtpvar Tₕ) $ maybe-else
+        (mvar "error-making-ctr-type-beta")
+        (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen)
+        (get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs as)) is) ps []
+
+Top-type = mtpeq (mlam "x" $ mvar "x") (mlam "x" $ mvar "x")
+
+record mendler-names : Set where
+  field
+    F : var
+    fmap : var
+    Cast : var
+    cast : var
+    Functor : var
+    AlgM : var
+    FixM : var
+    inFixM : var
+    PrfAlgM : var
+    IsIndFixM : var
+    FixIndM : var
+    inFixIndM : var
+    LiftM : var
+    LiftProp1 : var
+    LiftProp2 : var
+    LiftProp3 : var
+    LiftProp4 : var
+    convIH : var
+    MendlerInd : var
+    Ind : var
+
+choose-mendler-names : var → ctxt → ctxt × mendler-names
+choose-mendler-names x =
+  choose "F" λ F →
+  choose "Fmap" λ fmap →
+  choose "Cast" λ Cast →
+  choose "cast" λ cast →
+  choose "Functor" λ Functor →
+  choose "AlgM" λ AlgM →
+  choose "FixM" λ FixM →
+  choose "inFixM" λ inFixM →
+  choose "PrfAlgM" λ PrfAlgM →
+  choose "IsIndFixM" λ IsIndFixM →
+  choose "FixIndM" λ FixIndM →
+  choose "inFixIndM" λ inFixIndM →
+  choose "LiftM" λ LiftM →
+  choose "LiftProp1" λ LiftProp1 →
+  choose "LiftProp2" λ LiftProp2 →
+  choose "LiftProp3" λ LiftProp3 →
+  choose "LiftProp4" λ LiftProp4 →
+  choose "convIH" λ convIH →
+  choose "MendlerInd" λ MendlerInd →
+  choose "Ind" λ Ind Γ →
+  Γ , record {F = F; fmap = fmap; Cast = Cast; cast = cast; Functor = Functor; AlgM = AlgM;
+              FixM = FixM; inFixM = inFixM; PrfAlgM = PrfAlgM; IsIndFixM = IsIndFixM;
+              FixIndM = FixIndM; inFixIndM = inFixIndM; LiftM = LiftM;
+              LiftProp1 = LiftProp1; LiftProp2 = LiftProp2; LiftProp3 = LiftProp3;
+              LiftProp4 = LiftProp4; convIH = convIH; MendlerInd = MendlerInd; Ind = Ind}
+  where
+  choose : ∀ {X : Set} → var → (var → ctxt → X) → ctxt → X
+  choose y f Γ = rename (x ^ y) from Γ for λ z → f z $ ctxt-var-decl' z Γ
+
+add-datatype-vars-to-ctxt : ctxt → datatype → ctxt
+add-datatype-vars-to-ctxt Γ (Data x ps is cs) =
+  foldr (λ {(Ctr x _) → ctxt-var-decl' x})
+    (foldr (λ {(Index x _) → ctxt-var-decl' x})
+      (foldr (λ {(Decl _ _ _ x _ _) → ctxt-var-decl' x}) Γ ps) is) cs
+
+mk-mendler-defs : ctxt → datatype → cmds
+mk-mendler-defs Γₒ (Data x ps is cs) =
+  csn Cast $
+  csn cast $
+  csn Functor $
+  csn AlgM $
+  csn FixM $
+  csn inFixM $
+  csn PrfAlgM $
+  csn IsIndFixM $
+  csn FixIndM $
+  csn inFixIndM $
+  csn LiftM $
+  csn LiftProp1 $
+  csn LiftProp2 $
+  csn LiftProp3 $
+  csn LiftProp4 $
+  csn convIH $
+  csn MendlerInd $
+  csn type-functor $
+  csn type-fmap $
+  csn type-actual $
+  type-ctrs-ind
+  where
+  Γ' = add-datatype-vars-to-ctxt Γₒ (Data x ps is cs)
+  Γ-ns = choose-mendler-names x Γ'
+  Γ = fst Γ-ns
+  ns = snd Γ-ns
+
+  csn = CmdsNext ∘ flip (DefTermOrType OpacTrans) posinfo-gen
+  Aₓ = rename "A" from Γ for id
+  Bₓ = rename "B" from Γ for id
+  Fₓ = rename "F" from Γ for id
+  Rₓ = rename "R" from Γ for id
+  Xₓ = rename "X" from Γ for id
+  Qₓ = rename "Q" from Γ for id
+  Yₓ = rename "Y" from Γ for id
+  Y1ₓ = rename "Yprop1" from Γ for id
+  Y2ₓ = rename "Yprop2" from Γ for id
+  Y3ₓ = rename "Yprop3" from Γ for id
+  Y4ₓ = rename "Yprop4" from Γ for id
+  algₓ = rename "alg" from Γ for id
+  fixₓ = rename "fix" from Γ for id
+  fmapₓ = rename "fmap" from Γ for id
+  cₓ = rename "c" from Γ for id
+  eₓ = rename "e" from Γ for id
+  rₓ = rename "r" from Γ for id
+  yₓ = rename "y" from Γ for id
+  zₓ = rename "z" from Γ for id
+  qₓ = rename "q" from Γ for id
+  fₓ = rename "f" from Γ for id
+  gₓ = rename "g" from Γ for id
+  hₓ = rename "h" from Γ for id
+  iₓ = rename "i" from Γ for id
+  c2ₓ = rename "c2" from Γ for id
+  ihₓ = rename "ih" from Γ for id
+
+  k = indices-to-kind is $ Star posinfo-gen
+
+  Cast =
+    DefType posinfo-gen (mendler-names.Cast ns)
+      (KndArrow k $ KndArrow k star) $
+      TpLambda posinfo-gen posinfo-gen Aₓ (Tkk k) $
+      TpLambda posinfo-gen posinfo-gen Bₓ (Tkk k) $
+      Iota posinfo-gen posinfo-gen fₓ
+        (indices-to-alls is $
+         TpArrow (indices-to-tpapps is (mtpvar Aₓ))
+           NotErased (indices-to-tpapps is (mtpvar Bₓ))) $
+        mtpeq (mvar fₓ) $ fresh-id-term Γ
+
+  cast = DefTerm posinfo-gen (mendler-names.cast ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Aₓ (SomeClass (Tkk k)) $
+    Lam posinfo-gen Erased posinfo-gen Bₓ (SomeClass (Tkk k)) $
+    Lam posinfo-gen Erased posinfo-gen fₓ (SomeClass $ Tkt $
+      TpApp (TpApp (mtpvar $ mendler-names.Cast ns) $ mtpvar Aₓ) $ mtpvar Bₓ) $
+    Phi posinfo-gen (IotaProj (mvar fₓ) "2" posinfo-gen)
+      (IotaProj (mvar fₓ) "1" posinfo-gen) (fresh-id-term Γ) posinfo-gen
+
+  Functor = DefType posinfo-gen (mendler-names.Functor ns)
+    (KndArrow (KndArrow k k) star)
+    (TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+     Abs posinfo-gen Erased posinfo-gen Aₓ (Tkk k) $
+     Abs posinfo-gen Erased posinfo-gen Bₓ (Tkk k) $ 
+     TpArrow (TpApp (TpApp (mtpvar $ mendler-names.Cast ns)
+                (mtpvar Aₓ)) (mtpvar Bₓ)) Erased $
+       (TpApp (TpApp (mtpvar $ mendler-names.Cast ns)
+         (TpApp (mtpvar Fₓ) (mtpvar Aₓ)))
+         (TpApp (mtpvar Fₓ) (mtpvar Bₓ))))
+
+  AlgM = DefType posinfo-gen (mendler-names.AlgM ns)
+    (KndArrow (KndArrow k k) (KndArrow star k)) $
+    TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+    TpLambda posinfo-gen posinfo-gen Aₓ (Tkk star) $
+    indices-to-tplams is $
+    Abs posinfo-gen Erased posinfo-gen Rₓ (Tkk $ k) $
+    TpArrow (TpArrow (indices-to-tpapps is $ mtpvar Rₓ) NotErased $ mtpvar Aₓ) NotErased $
+    TpArrow (indices-to-tpapps is $ TpApp (mtpvar Fₓ) $ mtpvar Rₓ) NotErased $ mtpvar Aₓ
+
+  FixM = DefType posinfo-gen (mendler-names.FixM ns) (KndArrow (KndArrow k k) k) $
+    TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+    indices-to-tplams is $
+    Abs posinfo-gen Erased posinfo-gen Aₓ (Tkk star) $
+    TpArrow
+      (indices-to-tpapps is $
+        TpApp (TpApp (mtpvar $ mendler-names.AlgM ns) (mtpvar Fₓ)) (mtpvar Aₓ))
+      NotErased $ mtpvar Aₓ
+  
+  inFixM = DefTerm posinfo-gen (mendler-names.inFixM ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpApp (mtpvar Fₓ) (TpApp (mtpvar $ mendler-names.FixM ns) (mtpvar Fₓ))) $
+    Lam posinfo-gen Erased posinfo-gen Aₓ (SomeClass $ Tkk star) $
+    Lam posinfo-gen NotErased posinfo-gen algₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpApp (TpApp (mtpvar $ mendler-names.AlgM ns) (mtpvar Fₓ)) (mtpvar Aₓ)) $
+    App (App (AppTp (mvar algₓ) (TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ))
+      NotErased $ Lam posinfo-gen NotErased posinfo-gen fixₓ (SomeClass $ Tkt $
+        indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+        App (AppTp (mvar fixₓ) $ mtpvar Aₓ) NotErased $ mvar algₓ) NotErased $ mvar fₓ
+
+  PrfAlgM =
+    let k1 = Tkk $ KndArrow k k
+        k2 = Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ
+        k3 = Tkk k
+        k4 = Tkk $ indices-to-kind is $ KndTpArrow
+          (indices-to-tpapps is $ mtpvar Xₓ) $ star
+        k5 = Tkt $ indices-to-alls is $ TpArrow
+          (indices-to-tpapps is $ TpApp (mtpvar Fₓ) $ mtpvar Xₓ) NotErased $
+          indices-to-tpapps is $ mtpvar Xₓ in
+    DefType posinfo-gen (mendler-names.PrfAlgM ns)
+      (KndPi posinfo-gen posinfo-gen Fₓ k1 $
+       KndPi posinfo-gen posinfo-gen ignored-var k2 $
+       KndPi posinfo-gen posinfo-gen Xₓ k3 $
+       KndPi posinfo-gen posinfo-gen ignored-var k4 $
+       KndPi posinfo-gen posinfo-gen ignored-var k5 $
+       star) $
+      TpLambda posinfo-gen posinfo-gen Fₓ k1 $
+      TpLambda posinfo-gen posinfo-gen fmapₓ k2 $
+      TpLambda posinfo-gen posinfo-gen Xₓ k3 $
+      TpLambda posinfo-gen posinfo-gen Qₓ k4 $
+      TpLambda posinfo-gen posinfo-gen algₓ k5 $
+      Abs posinfo-gen Erased posinfo-gen Rₓ (Tkk k) $
+      Abs posinfo-gen Erased posinfo-gen cₓ
+        (Tkt $ TpApp (TpApp (mtpvar $ mendler-names.Cast ns) (mtpvar Rₓ)) (mtpvar Xₓ)) $
+      TpArrow (indices-to-alls is $ Abs posinfo-gen NotErased posinfo-gen rₓ
+        (Tkt $ indices-to-tpapps is $ mtpvar Rₓ) $
+        TpAppt (indices-to-tpapps is $ mtpvar Qₓ) (App (indices-to-apps is $
+          App (AppTp (AppTp (mvar $ mendler-names.cast ns) $ mtpvar Rₓ) $ mtpvar Xₓ)
+            Erased $ mvar cₓ) NotErased $ mvar rₓ)) NotErased $
+      indices-to-alls is $ Abs posinfo-gen NotErased posinfo-gen fₓ
+        (Tkt $ indices-to-tpapps is $ TpApp (mtpvar Fₓ) $ mtpvar Rₓ) $
+      TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $
+      App (indices-to-apps is $ mvar algₓ) NotErased $
+      App (indices-to-apps is $ App
+          (AppTp (AppTp (mvar $ mendler-names.cast ns) $ TpApp (mtpvar Fₓ) $ mtpvar Rₓ) $
+             TpApp (mtpvar Fₓ) $ mtpvar Xₓ) Erased $
+          App (AppTp (AppTp (mvar fmapₓ) $ mtpvar Rₓ) $ mtpvar Xₓ) Erased $ mvar cₓ)
+        NotErased $ mvar fₓ
+  
+  IsIndFixM = DefType posinfo-gen (mendler-names.IsIndFixM ns)
+    (KndPi posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+     KndTpArrow (TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+     indices-to-kind is $ KndTpArrow (indices-to-tpapps is $
+       TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) star) $
+    TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+    TpLambda posinfo-gen posinfo-gen fmapₓ
+      (Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    indices-to-tplams is $
+    TpLambda posinfo-gen posinfo-gen yₓ
+      (Tkt $ indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+    Abs posinfo-gen Erased posinfo-gen Qₓ (Tkk $ indices-to-kind is $ KndTpArrow
+      (indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) star) $
+    TpArrow (TpAppt (TpApp (TpApp (TpAppt (TpApp (mtpvar $ mendler-names.PrfAlgM ns) $
+          mtpvar Fₓ) $ mvar fmapₓ) $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+        mtpvar Qₓ) $ AppTp (mvar $ mendler-names.inFixM ns) $ mtpvar Fₓ)
+      NotErased $ TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar yₓ
+  
+  FixIndM = DefType posinfo-gen (mendler-names.FixIndM ns)
+    (KndPi posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+     KndTpArrow (TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) k) $
+    TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+    TpLambda posinfo-gen posinfo-gen fmapₓ
+      (Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    indices-to-tplams is $
+    Iota posinfo-gen posinfo-gen yₓ
+      (indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+      (TpAppt (indices-to-tpapps is $ TpAppt (TpApp (mtpvar $ mendler-names.IsIndFixM ns) $
+        mtpvar Fₓ) $ mvar fmapₓ) $ mvar yₓ)
+  
+  inFixIndM = DefTerm posinfo-gen (mendler-names.inFixIndM ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpApp (mtpvar Fₓ) $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $
+      mvar fmapₓ) $
+    Let posinfo-gen (DefTerm posinfo-gen cₓ
+      (SomeType (TpApp (TpApp (mtpvar $ mendler-names.Cast ns) $
+           TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+         TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ)) $
+      IotaPair posinfo-gen
+        (indices-to-lams is $ Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+           IotaProj (mvar yₓ) "1" posinfo-gen)
+        (Beta posinfo-gen NoTerm NoTerm) NoGuide posinfo-gen) $
+    Chi posinfo-gen (SomeType $ indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+    IotaPair posinfo-gen (App (indices-to-apps is $ AppTp (mvar $ mendler-names.inFixM ns) $
+      mtpvar Fₓ) NotErased $
+      
+      App (indices-to-apps is $ App (AppTp (AppTp (mvar $ mendler-names.cast ns) $
+        TpApp (mtpvar Fₓ) $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $
+          mvar fmapₓ) $
+        TpApp (mtpvar Fₓ) $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) Erased $
+        App (AppTp (AppTp (mvar fmapₓ) $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $
+        mtpvar Fₓ) $ mvar fmapₓ) $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) Erased
+        $ mvar cₓ) NotErased $ mvar fₓ)
+      (Lam posinfo-gen Erased posinfo-gen Qₓ NoClass $
+       Lam posinfo-gen NotErased posinfo-gen qₓ NoClass $
+       App (indices-to-apps is $ App (App (AppTp (mvar qₓ) $
+         TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) Erased
+         $ mvar cₓ) NotErased $ indices-to-lams is $
+         Lam posinfo-gen NotErased posinfo-gen rₓ NoClass $ App (AppTp
+           (IotaProj (mvar rₓ) "2" posinfo-gen) $ mtpvar Qₓ) NotErased $ mvar qₓ)
+         NotErased $ mvar fₓ)
+      NoGuide posinfo-gen
+
+  LiftM =
+    let k' = indices-to-kind is $ KndTpArrow (indices-to-tpapps is $
+          TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star
+        T = indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ
+        T' = indices-to-tpapps is $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $
+          mtpvar Fₓ) $ mvar fmapₓ in
+    DefType posinfo-gen (mendler-names.LiftM ns)
+    (KndPi posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+     KndPi posinfo-gen posinfo-gen fmapₓ
+       (Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+     KndArrow k' $ indices-to-kind is $ KndTpArrow T star) $
+    TpLambda posinfo-gen posinfo-gen Fₓ (Tkk $ KndArrow k k) $
+    TpLambda posinfo-gen posinfo-gen fmapₓ
+      (Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    TpLambda posinfo-gen posinfo-gen Qₓ (Tkk k') $
+    indices-to-tplams is $
+    TpLambda posinfo-gen posinfo-gen fₓ (Tkt T) $
+    Iota posinfo-gen posinfo-gen gₓ (Top-type) $
+    Abs posinfo-gen Erased posinfo-gen Xₓ (Tkk $ KndTpArrow (Top-type) star) $
+    TpArrow (Abs posinfo-gen NotErased posinfo-gen yₓ (Tkt T') $
+      Abs posinfo-gen NotErased posinfo-gen hₓ
+        (Tkt $ Iota posinfo-gen posinfo-gen ignored-var (mtpeq (mvar fₓ) $ mvar yₓ)
+          (TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar yₓ)) $
+        TpAppt (mtpvar Xₓ) $ Beta posinfo-gen NoTerm $
+          SomeTerm (mlam iₓ $ mapp (mapp (mvar iₓ) $ mvar yₓ) $ mvar hₓ) posinfo-gen)
+      NotErased $ TpAppt (mtpvar Xₓ) $ mvar gₓ
+  
+  LiftProp1 = DefTerm posinfo-gen (mendler-names.LiftProp1 ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) (mtpvar Fₓ)) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ (SomeClass $ Tkk $ indices-to-kind is $
+      KndTpArrow (indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star) $
+    indices-to-lams is $
+    Lam posinfo-gen Erased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+    Lam posinfo-gen NotErased posinfo-gen rₓ
+      (SomeClass $ Tkt $ TpAppt (indices-to-tpapps is $ TpApp (TpAppt (TpApp
+        (mtpvar $ mendler-names.LiftM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $ mtpvar Qₓ) $
+          IotaProj (mvar fₓ) "1" posinfo-gen) $
+    App (AppTp (IotaProj (mvar rₓ) "2" posinfo-gen) $ TpLambda posinfo-gen posinfo-gen ignored-var (Tkt Top-type) $ TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar fₓ) NotErased $
+    Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+    Lam posinfo-gen NotErased posinfo-gen qₓ NoClass $
+    Rho posinfo-gen RhoPlain NoNums (IotaProj (mvar qₓ) "1" posinfo-gen) NoGuide $
+    IotaProj (mvar qₓ) "2" posinfo-gen
+
+  LiftProp2 = DefTerm posinfo-gen (mendler-names.LiftProp2 ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) (mtpvar Fₓ)) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ (SomeClass $ Tkk $ indices-to-kind is $
+      KndTpArrow (indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star) $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+    Lam posinfo-gen NotErased posinfo-gen rₓ
+      (SomeClass $ Tkt $ TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar fₓ) $
+    Chi posinfo-gen (SomeType $ TpAppt (indices-to-tpapps is $
+      TpApp (TpAppt (TpApp (mtpvar $ mendler-names.LiftM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+      mtpvar Qₓ) $ IotaProj (mvar fₓ) "1" posinfo-gen) $
+    IotaPair posinfo-gen (Beta posinfo-gen NoTerm $ SomeTerm
+      (mlam gₓ $ mapp (mapp (mvar gₓ) $ mvar fₓ) $ mvar rₓ) posinfo-gen)
+    (Lam posinfo-gen Erased posinfo-gen Xₓ NoClass $
+     Lam posinfo-gen NotErased posinfo-gen gₓ NoClass $
+     App (App (mvar gₓ) NotErased $ mvar fₓ) NotErased $ IotaPair posinfo-gen
+       (Beta posinfo-gen NoTerm $ SomeTerm (mvar rₓ) posinfo-gen)
+       (mvar rₓ) NoGuide posinfo-gen) NoGuide posinfo-gen
+
+  LiftProp3 = DefTerm posinfo-gen (mendler-names.LiftProp3 ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) (mtpvar Fₓ)) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ (SomeClass $ Tkk $ indices-to-kind is $
+      KndTpArrow (indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star) $
+    indices-to-lams is $
+    Lam posinfo-gen Erased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+    Lam posinfo-gen NotErased posinfo-gen rₓ
+      (SomeClass $ Tkt $ TpAppt
+        (indices-to-tpapps is $ TpApp (TpAppt (TpApp (mtpvar $ mendler-names.LiftM ns) $
+          mtpvar Fₓ) $ mvar fmapₓ) $ mtpvar Qₓ) $ mvar fₓ) $
+    App (AppTp (IotaProj (mvar rₓ) "2" posinfo-gen) $
+      TpLambda posinfo-gen posinfo-gen ignored-var (Tkt Top-type) $
+      indices-to-tpapps is $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $
+        mvar fmapₓ) NotErased $
+    Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+    Lam posinfo-gen NotErased posinfo-gen qₓ NoClass $
+    mvar yₓ
+
+  LiftProp4 = DefTerm posinfo-gen (mendler-names.LiftProp4 ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) (mtpvar Fₓ)) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ (SomeClass $ Tkk $ indices-to-kind is $
+      KndTpArrow (indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star) $
+    indices-to-lams is $
+    Lam posinfo-gen Erased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+    Lam posinfo-gen Erased posinfo-gen rₓ (SomeClass $ Tkt $
+      TpAppt (indices-to-tpapps is $
+        TpApp (TpAppt (TpApp (mtpvar $ mendler-names.LiftM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+          mtpvar Qₓ) $ mvar fₓ) $
+    Chi posinfo-gen (SomeType $ mtpeq (mapp (mvar $ mendler-names.LiftProp3 ns) $ mvar rₓ) $ mvar fₓ) $
+    Rho posinfo-gen RhoPlain NoNums
+      (App (AppTp (IotaProj (mvar rₓ) "2" posinfo-gen) $
+        TpLambda posinfo-gen posinfo-gen yₓ (Tkt Top-type) $
+        mtpeq (mapp (mvar $ mendler-names.LiftProp3 ns) $ mvar yₓ) $ mvar fₓ) NotErased $
+      Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+      Lam posinfo-gen NotErased posinfo-gen qₓ NoClass $
+      Sigma posinfo-gen $
+      IotaProj (mvar qₓ) "1" posinfo-gen) NoGuide $
+    Beta posinfo-gen NoTerm NoTerm
+
+  convIH = DefTerm posinfo-gen (mendler-names.convIH ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ
+      (SomeClass $ Tkk $ indices-to-kind is $ KndTpArrow (indices-to-tpapps is $
+        TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) star) $
+    Lam posinfo-gen Erased posinfo-gen Yₓ
+      (SomeClass $ Tkk $ indices-to-kind is $ KndTpArrow
+        (indices-to-tpapps is $ TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) star) $
+    Lam posinfo-gen NotErased posinfo-gen Y1ₓ (SomeClass $ Tkt $ indices-to-alls is $
+      Abs posinfo-gen Erased posinfo-gen fₓ (Tkt $ indices-to-tpapps is $
+        TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        TpArrow (TpAppt (indices-to-tpapps is $ mtpvar Yₓ) $
+            IotaProj (mvar fₓ) "1" posinfo-gen) NotErased $
+          TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar fₓ) $
+    Lam posinfo-gen NotErased posinfo-gen Y2ₓ (SomeClass $ Tkt $ indices-to-alls is $
+      Abs posinfo-gen NotErased posinfo-gen fₓ (Tkt $ indices-to-tpapps is $
+        TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        TpArrow (TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $ mvar fₓ) NotErased $ (TpAppt (indices-to-tpapps is $ mtpvar Yₓ) $
+            IotaProj (mvar fₓ) "1" posinfo-gen)) $
+    Lam posinfo-gen NotErased posinfo-gen Y3ₓ (SomeClass $ Tkt $ indices-to-alls is $
+      Abs posinfo-gen Erased posinfo-gen fₓ (Tkt $ indices-to-tpapps is $
+        TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+        TpArrow (TpAppt (indices-to-tpapps is $ mtpvar Yₓ) $ mvar fₓ) NotErased $
+          indices-to-tpapps is $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+    Lam posinfo-gen NotErased posinfo-gen Y4ₓ (SomeClass $ Tkt $ indices-to-alls is $
+      Abs posinfo-gen Erased posinfo-gen fₓ (Tkt $ indices-to-tpapps is $
+        TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $
+        Abs posinfo-gen Erased posinfo-gen rₓ
+          (Tkt $ TpAppt (indices-to-tpapps is $ mtpvar Yₓ) $ mvar fₓ) $
+          mtpeq (mapp (mvar Y3ₓ) $ mvar rₓ) $ mvar fₓ) $
+    Lam posinfo-gen NotErased posinfo-gen qₓ
+      (SomeClass $ Tkt $ TpAppt (TpApp (TpApp (TpAppt (TpApp
+        (mtpvar $ mendler-names.PrfAlgM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        mtpvar Qₓ) $ App (AppTp (mvar $ mendler-names.inFixIndM ns) $ mtpvar Fₓ) Erased $
+        mvar fmapₓ) $
+    Chi posinfo-gen (SomeType $ TpAppt (TpApp (TpApp (TpAppt (TpApp
+        (mtpvar $ mendler-names.PrfAlgM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) $ mtpvar Yₓ) $
+        AppTp (mvar $ mendler-names.inFixM ns) $ mtpvar Fₓ) $
+    Lam posinfo-gen Erased posinfo-gen Rₓ NoClass $
+    Lam posinfo-gen Erased posinfo-gen cₓ NoClass $
+    Lam posinfo-gen NotErased posinfo-gen ihₓ NoClass $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen rₓ NoClass $
+    Let posinfo-gen (DefTerm posinfo-gen c2ₓ
+      (SomeType $ TpApp (TpApp (mtpvar $ mendler-names.Cast ns) $ mtpvar Rₓ) $
+         TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+      IotaPair posinfo-gen
+        (indices-to-lams is $ Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+           Phi posinfo-gen
+             (App (App (indices-to-apps is $ mvar Y4ₓ) Erased $
+               App (indices-to-apps is $ App (AppTp (AppTp
+                     (mvar $ mendler-names.cast ns) $ mtpvar Rₓ) $
+                   TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) Erased $ mvar cₓ)
+                 NotErased $ mvar yₓ) Erased $
+               App (indices-to-apps is $ mvar ihₓ) NotErased $ mvar yₓ)
+             (App (App (indices-to-apps is $ mvar Y3ₓ) Erased $
+               App (indices-to-apps is $ App (AppTp (AppTp
+                     (mvar $ mendler-names.cast ns) $ mtpvar Rₓ) $
+                   TpApp (mtpvar $ mendler-names.FixM ns) $ mtpvar Fₓ) Erased $ mvar cₓ)
+                 NotErased $ mvar yₓ) NotErased $
+               App (indices-to-apps is $ mvar ihₓ) NotErased $ mvar yₓ)
+             (mvar yₓ) posinfo-gen) (Beta posinfo-gen NoTerm NoTerm) NoGuide posinfo-gen) $
+    App (App (indices-to-apps is $ mvar Y2ₓ) NotErased $ App (indices-to-apps is $
+      App (AppTp (mvar $ mendler-names.inFixIndM ns) $ mtpvar Fₓ) Erased $ mvar fmapₓ)
+        NotErased $ App (indices-to-apps is $ App (AppTp (AppTp
+          (mvar $ mendler-names.cast ns) $
+          TpApp (mtpvar Fₓ) $ mtpvar Rₓ) $ TpApp (mtpvar Fₓ) $
+            TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ)
+          Erased $ App (AppTp (AppTp (mvar fmapₓ) $ mtpvar Rₓ) $
+            TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ)
+              Erased $ mvar c2ₓ) NotErased $ mvar rₓ) NotErased $
+    App (indices-to-apps is $ App (App (mvar qₓ) Erased $ mvar c2ₓ) NotErased $
+      indices-to-lams is $ Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+        App (App (indices-to-apps is $ mvar Y1ₓ) Erased $ App (indices-to-apps is $
+            App (AppTp (AppTp (mvar $ mendler-names.cast ns) $ mtpvar Rₓ) $
+              TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ)
+               Erased $ mvar c2ₓ) NotErased $ mvar yₓ) NotErased $
+          App (indices-to-apps is $ mvar ihₓ) NotErased $ mvar yₓ) NotErased $ mvar rₓ
+
+  MendlerInd = DefTerm posinfo-gen (mendler-names.MendlerInd ns) NoType $
+    Lam posinfo-gen Erased posinfo-gen Fₓ (SomeClass $ Tkk $ KndArrow k k) $
+    Lam posinfo-gen Erased posinfo-gen fmapₓ
+      (SomeClass $ Tkt $ TpApp (mtpvar $ mendler-names.Functor ns) $ mtpvar Fₓ) $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen fₓ (SomeClass $ Tkt $ indices-to-tpapps is $
+      TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ (SomeClass $ Tkk $ indices-to-kind is $
+      KndTpArrow (indices-to-tpapps is $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $
+        mtpvar Fₓ) $ mvar fmapₓ) star) $
+    Lam posinfo-gen NotErased posinfo-gen qₓ
+      (SomeClass $ Tkt $ TpAppt (TpApp (TpApp (TpAppt (TpApp
+        (mtpvar $ mendler-names.PrfAlgM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $
+        mtpvar Qₓ) $ App (AppTp (mvar $ mendler-names.inFixIndM ns) $ mtpvar Fₓ) Erased $
+        mvar fmapₓ) $
+    App (App (indices-to-apps is $ AppTp (App (AppTp (mvar $ mendler-names.LiftProp1 ns) $
+        mtpvar Fₓ) Erased $ mvar fmapₓ) $ mtpvar Qₓ) Erased $ mvar fₓ) NotErased $
+      App (AppTp (IotaProj (mvar fₓ) "2" posinfo-gen) $ TpApp (TpAppt (TpApp
+        (mtpvar $ mendler-names.LiftM ns) $ mtpvar Fₓ) $ mvar fmapₓ) $ mtpvar Qₓ) NotErased $
+      App (App (App (App (App (App (AppTp (mvar $ mendler-names.convIH ns) $ mtpvar Fₓ)
+        Erased $ mvar fmapₓ) NotErased $ (AppTp (App (AppTp
+          (mvar $ mendler-names.LiftProp1 ns) $ mtpvar Fₓ) Erased $ mvar fmapₓ) $ mtpvar Qₓ))
+        NotErased $ AppTp (App (AppTp (mvar $ mendler-names.LiftProp2 ns) $ mtpvar Fₓ) Erased
+        $ mvar fmapₓ) $ mtpvar Qₓ) NotErased (AppTp (App (AppTp
+        (mvar $ mendler-names.LiftProp3 ns) $ mtpvar Fₓ) Erased $ mvar fmapₓ) $ mtpvar Qₓ))
+        NotErased (AppTp (App (AppTp (mvar $ mendler-names.LiftProp4 ns) $ mtpvar Fₓ) Erased
+        $ mvar fmapₓ) $ mtpvar Qₓ)) NotErased $ mvar qₓ
+
+  type-functor = DefType posinfo-gen (mendler-names.F ns)
+    (parameters-to-kind ps $ KndArrow k k) $
+    parameters-to-tplams ps $
+    TpLambda posinfo-gen posinfo-gen x (Tkk $ k) $
+    indices-to-tplams is $
+    Iota posinfo-gen posinfo-gen yₓ Top-type $
+    Abs posinfo-gen Erased posinfo-gen Xₓ
+      (Tkk $ KndTpArrow Top-type $ indices-to-kind is star) $
+    foldr
+      (λ c → Abs posinfo-gen NotErased posinfo-gen ignored-var $ Tkt $ mk-ctr-type
+        (ctxt-var-decl' yₓ $ ctxt-var-decl' Xₓ Γ) c Xₓ cs)
+      (indices-to-tpapps is $ TpAppt (mtpvar Xₓ) (mvar yₓ)) cs
+
+  eta-expand-fmaph-type : ctxt → var → type → term
+  eta-expand-fmaph-type Γ x' T with decompose-ctr-type Γ T
+  ...| Tₕ , ps , as with add-ps-to-ctxt Γ ps
+  ...| Γ' =
+    parameters-to-lams' ps $
+    -- TODO: we can't give the user a recursive value for this!
+    flip mapp (parameters-to-apps ps $ mvar x') $
+    recompose-apps as $
+    flip mappe (mvar cₓ) $
+    flip AppTp (mtpvar Bₓ) $
+    AppTp (mvar $ mendler-names.cast ns) (mtpvar Aₓ)
+
+  eta-expand-fmap : ctr → term
+  eta-expand-fmap (Ctr x' T) with ctxt-var-decl' Aₓ $ ctxt-var-decl' Bₓ $ ctxt-var-decl' cₓ Γ
+  ...| Γ' with decompose-ctr-type Γ' T
+  ...| Tₕ , ps , as with foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''}) Γ' ps
+  ...| Γ'' =
+    parameters-to-lams' ps $
+    foldl (λ {(Decl pi pi' me x'' (Tkt T) pi'') t →
+                App t me $
+                if ~ is-free-in tt x T
+                  then mvar x''
+                  else eta-expand-fmaph-type Γ'' x'' T;
+              (Decl pi pi' me x'' (Tkk k) pi'') t → AppTp t $ mtpvar x''})
+          (mvar x') $ ps
+  
+  type-fmap = DefTerm posinfo-gen (mendler-names.fmap ns)
+    (SomeType $ parameters-to-alls ps $ TpApp (mtpvar $ mendler-names.Functor ns) $
+      parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $
+    parameters-to-lams ps $
+    Lam posinfo-gen Erased posinfo-gen Aₓ NoClass $
+    Lam posinfo-gen Erased posinfo-gen Bₓ NoClass $
+    Lam posinfo-gen Erased posinfo-gen cₓ NoClass $
+    IotaPair posinfo-gen
+      (indices-to-lams is $
+       Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+       IotaPair posinfo-gen (IotaProj (mvar yₓ) "1" posinfo-gen)
+         (Lam posinfo-gen Erased posinfo-gen Xₓ NoClass $
+          constructors-to-lams' cs $
+          foldl
+            (flip mapp ∘ eta-expand-fmap)
+            (AppTp (IotaProj (mvar yₓ) "2" posinfo-gen) $ mtpvar Xₓ) cs)
+         NoGuide posinfo-gen)
+      (Beta posinfo-gen NoTerm NoTerm) NoGuide posinfo-gen
+
+  type-actual = DefType posinfo-gen x (parameters-to-kind ps $ k) $
+    parameters-to-tplams ps $
+    TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $
+        parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $
+      parameters-to-apps ps $ mvar $ mendler-names.fmap ns
+
+  mk-ind-ctr-step-typeh : decl → type → type
+  mk-ind-ctr-step-typeh (Decl pi pi' me x'' (Tkt T) pi'') with decompose-tpapps T
+  ...| TpVar _ xₕ , as =
+    if ~ xₕ =string x
+      then id
+      else (flip TpArrow NotErased $ flip TpAppt (mvar x'') $
+             curry recompose-tpapps (mtpvar Qₓ) $ take (length as ∸ length ps) as)
+  ...| _ = id
+  mk-ind-ctr-step-typeh _ = id
+
+  mk-ind-ctr-step-type : ctxt → ctr → type
+  mk-ind-ctr-step-type Γ (Ctr x' T) with
+    decompose-ctr-type Γ $ subst-type Γ (parameters-to-tpapps ps $ mtpvar x) x T
+  ...| Tₕ , ps' , as =
+    parameters-to-alls ps' $
+    foldr mk-ind-ctr-step-typeh
+      (TpAppt (curry recompose-tpapps (mtpvar Qₓ) $ take (length as ∸ length ps) as) $
+        parameters-to-apps ps' $ parameters-to-apps ps $ mvar x') ps'
+
+  type-ind-ctr-cast : decl → term → term
+  type-ind-ctr-cast (Decl pi pi' me x' (Tkk k) pi'') t = AppTp t $ mtpvar x'
+  type-ind-ctr-cast (Decl pi pi' me x' (Tkt T) pi'') t with decompose-tpapps T
+  ...| TpVar _ xₕ , as = App t me $
+    if xₕ =string x
+      then mapp (recompose-apps as $ mappe (AppTp (AppTp (mvar $ mendler-names.cast ns) $ mtpvar Rₓ) $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ parameters-to-apps ps $ mvar $ mendler-names.fmap ns) $ mvar cₓ) (mvar x')
+      else mvar x'
+  ...| _ = App t me $ mvar x'
+
+  type-ind-ctr-step : decl → term → term
+  type-ind-ctr-step (Decl pi pi' me x' (Tkk k) pi'') t = t
+  type-ind-ctr-step (Decl pi pi' me x' (Tkt T) pi'') t with decompose-tpapps T
+  ...| TpVar _ xₕ , as =
+    if xₕ =string x
+      then mapp t (mapp (recompose-apps as $ mvar ihₓ) $ mvar x')
+      else t
+  ...| _ = t
+
+  type-ind-ctr : ctr → term
+  type-ind-ctr (Ctr x' T) with
+    ctxt-var-decl' yₓ $
+    ctxt-var-decl' Qₓ $
+    ctxt-var-decl' Rₓ $
+    ctxt-var-decl' cₓ $
+    ctxt-var-decl' ihₓ Γ
+  ...| Γ' with decompose-ctr-type Γ' T
+  ...| Tₕ , ps' , as =
+    parameters-to-lams' ps' $
+    let Γ'' = add-ps-to-ctxt Γ' ps' in
+    rename "x" from Γ'' for λ xₓ →
+    rename "e" from Γ'' for λ eₓ →
+    Lam posinfo-gen Erased posinfo-gen xₓ NoClass $
+    Lam posinfo-gen Erased posinfo-gen eₓ NoClass $
+    foldl type-ind-ctr-step (foldl type-ind-ctr-cast (mvar x') ps')  ps'
+
+  type-ind = DefTerm posinfo-gen (mendler-names.Ind ns) NoType $
+    parameters-to-lams ps $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen yₓ (SomeClass $ Tkt $
+      indices-to-tpapps is $ parameters-to-tpapps ps $ mtpvar x) $
+    Lam posinfo-gen Erased posinfo-gen Qₓ
+      (SomeClass $ Tkk $ indices-to-kind is $
+        KndTpArrow (indices-to-tpapps is $ parameters-to-tpapps ps $ mtpvar x) star) $
+    -- constructors-to-lams (ctxt-var-decl' yₓ $ ctxt-var-decl' Qₓ Γ) x ps cs $
+    flip (foldr λ {(Ctr x' T) → Lam posinfo-gen NotErased posinfo-gen x' (SomeClass $ Tkt $
+      mk-ind-ctr-step-type (ctxt-var-decl' yₓ $ ctxt-var-decl' Qₓ Γ) $ Ctr x' T)}) cs $
+    mapp (AppTp (mapp (indices-to-apps is $ mappe (AppTp (mvar $ mendler-names.MendlerInd ns)
+        $ parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ parameters-to-apps ps $
+      mvar $ mendler-names.fmap ns) $ mvar yₓ) $ mtpvar Qₓ) $
+    Lam posinfo-gen Erased posinfo-gen Rₓ NoClass $
+    Lam posinfo-gen Erased posinfo-gen cₓ NoClass $
+    Lam posinfo-gen NotErased posinfo-gen ihₓ NoClass $
+    indices-to-lams is $
+    Lam posinfo-gen NotErased posinfo-gen yₓ NoClass $
+    mappe (mappe
+      (foldl (flip mapp ∘ type-ind-ctr)
+        (AppTp (IotaProj (mvar yₓ) "2" posinfo-gen) $
+          TpLambda posinfo-gen posinfo-gen yₓ (Tkt Top-type) $
+          indices-to-tplams is $
+          Abs posinfo-gen Erased posinfo-gen zₓ (Tkt $ indices-to-tpapps is $
+            TpApp (parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ mtpvar Rₓ) $
+          Abs posinfo-gen Erased posinfo-gen eₓ (Tkt $ mtpeq (mvar zₓ) $ mvar yₓ) $
+          TpAppt (indices-to-tpapps is $ mtpvar Qₓ) $
+          mapp (indices-to-apps is $ mappe (AppTp (mvar $ mendler-names.inFixIndM ns) $
+            parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ parameters-to-apps ps $
+            mvar $ mendler-names.fmap ns) $
+            mapp (indices-to-apps is $ mappe (AppTp (AppTp (mvar $ mendler-names.cast ns) $ TpApp (parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ mtpvar Rₓ) $ TpApp (parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ parameters-to-apps ps $ mvar $ mendler-names.fmap ns) $ mappe (AppTp (AppTp (parameters-to-apps ps $ mvar $ mendler-names.fmap ns) $ mtpvar Rₓ) $ (TpAppt (TpApp (mtpvar $ mendler-names.FixIndM ns) $ parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $ parameters-to-apps ps $ mvar $ mendler-names.fmap ns)) $ mvar cₓ) $
+            Phi posinfo-gen (mvar eₓ) (mvar zₓ) (mvar yₓ) posinfo-gen) cs)
+      (mvar yₓ)) $ Beta posinfo-gen NoTerm NoTerm
+
+  type-ctr-def : ctr → defTermOrType
+  type-ctr-def (Ctr x' T) with
+    decompose-ctr-type Γ (subst-type Γ (parameters-to-tpapps ps $ mtpvar x) x T)
+  ...| Tₕ , ps' , as' = DefTerm posinfo-gen x' NoType $
+    parameters-to-lams ps $
+    parameters-to-lams ps' $
+    mapp (recompose-apps (take (length as' ∸ length ps) as') $
+          mappe (AppTp (mvar $ mendler-names.inFixIndM ns) $
+            parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $
+      parameters-to-apps ps $ mvar $ mendler-names.fmap ns) $
+    let Γ' = add-ps-to-ctxt Γ ps'
+        Xₓ = rename Xₓ from Γ' for id in
+    IotaPair posinfo-gen
+      (mk-ctr-untyped-beta Γ' x' cs ps')
+      (Lam posinfo-gen Erased posinfo-gen Xₓ NoClass $
+       constructors-to-lams' cs $
+       parameters-to-apps ps' $
+       mvar x')
+      NoGuide posinfo-gen
+
+  type-ctrs-ind = foldr (csn ∘ type-ctr-def) (csn type-ind CmdsStart) cs
+
+File-to-string : ctxt → cmds → tagged-val
+File-to-string Γ = strRunTag "" Γ ∘ h where
+  h : cmds → strM
+  h CmdsStart = strEmpty
+  h (CmdsNext (DefTermOrType op (DefTerm pi x (SomeType T) t) pi') cs) =
+    strAdd x ≫str strAdd " ◂ " ≫str to-stringh T ≫str strAdd " = " ≫str to-stringh t ≫str strAdd ".\\n" ≫str h cs
+  h (CmdsNext (DefTermOrType op (DefTerm pi x NoType t) pi') cs) =
+    strAdd x ≫str strAdd " = " ≫str to-stringh t ≫str strAdd ".\\n" ≫str h cs
+  h (CmdsNext (DefTermOrType op (DefType pi x k T) pi') cs) =
+    strAdd x ≫str strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh T ≫str strAdd ".\\n" ≫str h cs
+  h (CmdsNext _ cs) = h cs

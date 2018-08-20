@@ -150,9 +150,9 @@ flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
        → (A → B → C) → (B → A → C)
 flip f = λ b a → f a b
 
-infixr 0 _$'_
-_$'_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
-f $' x = f x
+infixr 0 _$_
+_$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
+f $ x = f x
 
 -- list.agda
 
@@ -208,6 +208,7 @@ postulate
   hSetToLineBuffering : Handle → IO ⊤
   hFlush : Handle → IO ⊤
   stdout : Handle
+  doesDirectoryExist : filepath → IO 𝔹
 
 {-# FOREIGN GHC import qualified System.IO #-}
 {-# FOREIGN GHC import qualified Data.Text.IO #-}
@@ -220,6 +221,7 @@ postulate
 {-# COMPILE GHC openFile = \ fp mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh #-}
 {-# COMPILE GHC closeFile = System.IO.hClose #-}
 {-# COMPILE GHC hPutStr = Data.Text.IO.hPutStr #-}
+{-# COMPILE GHC doesDirectoryExist = System.Directory.doesDirectoryExist . Data.Text.unpack #-}
 
 clearFile : filepath → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl

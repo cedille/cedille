@@ -516,9 +516,9 @@ local-vars = stringset
 meta-vars-solve-tp : ctxt → meta-vars → var → type → match-error-t meta-vars
 meta-vars-solve-tp Γ Xs x tp with trie-lookup (varset Xs) x
 ... | nothing
-  = match-error $' x ^ " is not a meta-var!" , []
+  = match-error $ x ^ " is not a meta-var!" , []
 ... | just (meta-var-mk _ (meta-var-tm tp' mtm) _)
-  = match-error $' x ^ " is a term meta-var!" , []
+  = match-error $ x ^ " is a term meta-var!" , []
 ... | just (meta-var-mk-tp _ k nothing sl)
   = match-ok (meta-vars-set Xs (meta-var-mk-tp x k (just tp) sl))
 ... | just (meta-var-mk-tp _ k (just tp') _)

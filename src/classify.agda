@@ -671,9 +671,9 @@ check-term-spine-return Γ Xs tp locl = spanMr (just (mk-spine-data Xs tp locl))
 data match-unfolding-state : Set where
   match-unfolding-both match-unfolding-approx match-unfolding-hnf : match-unfolding-state
 
-match-types : meta-vars → local-vars → match-unfolding-state → (tpₓ tp : type) → spanM $' match-error-t meta-vars
-match-kinds : meta-vars → local-vars → match-unfolding-state → (kₓ k : kind) → spanM $' match-error-t meta-vars
-match-tks   : meta-vars → local-vars → match-unfolding-state → (tkₓ tk : tk) → spanM $' match-error-t meta-vars
+match-types : meta-vars → local-vars → match-unfolding-state → (tpₓ tp : type) → spanM $ match-error-t meta-vars
+match-kinds : meta-vars → local-vars → match-unfolding-state → (kₓ k : kind) → spanM $ match-error-t meta-vars
+match-tks   : meta-vars → local-vars → match-unfolding-state → (tkₓ tk : tk) → spanM $ match-error-t meta-vars
 
 -- errors
 -- --------------------------------------------------
@@ -688,7 +688,7 @@ module check-term-app-tm-errors
     get-ctxt λ Γ → spanM-add
       (App-span is-locale t₁ t₂ m
         (head-type Γ (meta-vars-subst-type Γ Xs htp) :: meta-vars-data-all Γ Xs)
-        (just $' "The type of the head does not allow the head to be applied to "
+        (just $ "The type of the head does not allow the head to be applied to "
          ^ h e? ^ " argument"))
     ≫span spanMr nothing
     where h : maybeErased → string
@@ -780,20 +780,20 @@ check-term-spine t'@(App t₁ e? t₂) mtp max =
     get-ctxt λ Γ →
     spanMr (meta-vars-unfold-tmapp Γ (span-loc (ctxt-get-current-filename Γ)) Xs htp)
      on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ htp Xs
-                      (is-locale max (just $' pred locl)) mode e?)
+                      (is-locale max (just $ pred locl)) mode e?)
   ≫=spans' λ arr →
   -- 3) make sure expected / given erasures match
     if ~ eq-maybeErased e? (arrow*-get-e? arr)
       then check-term-app-tm-errors.bad-erasure
-            t₁ t₂ htp Xs (is-locale max (just $' pred locl)) mode e?
+            t₁ t₂ htp Xs (is-locale max (just $ pred locl)) mode e?
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs [] t₁ t₂ arr mtp (is-locale max (just $' pred locl))
+    else check-term-app Xs [] t₁ t₂ arr mtp (is-locale max (just $ pred locl))
       on-fail spanMr nothing
   -- 5) check no unsolved mvars, if maximal or a locality
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
     check-spine-locality Γ Xs' rtp' max (pred locl)
       on-fail check-term-app-tm-errors.unsolved-meta-vars
-        t₁ t₂ htp Xs' (is-locale max (just $' pred locl)) mode rtp'
+        t₁ t₂ htp Xs' (is-locale max (just $ pred locl)) mode rtp'
         -- error-unsolved-meta-vars t' rtp' Xs' mode
   ≫=spanm' uncurry λ Xs'' → uncurry λ locl' is-loc →
   -- 6) generate span and finish
@@ -869,7 +869,7 @@ check-term-app Xs Zs t₁ t₂ (mk-arrow* [] tp dom e cod) mtp is-locl =
             (match-error (msg , tvs)) →
               check-term-app-tm-errors.unmatchable t₁ t₂ tp Xs'
                 is-locl mode dom atp msg tvs
-            (match-ok Xs) → spanMr ∘ just $'
+            (match-ok Xs) → spanMr ∘ just $
               check-term-app-return Xs atp (meta-vars-subst-type' ff Γ Xs (cod t₂)) synthesizing)
 
   where mode = maybe-to-checking mtp
@@ -881,12 +881,12 @@ match-unfolding-next match-unfolding-hnf = match-unfolding-both
 
 module m-err = meta-vars-match-errors
 
-check-type-for-match : type → spanM $' match-error-t kind
+check-type-for-match : type → spanM $ match-error-t kind
 check-type-for-match tp =
-  (with-qualified-qualif $' with-clear-error $' get-ctxt λ Γ →
+  (with-qualified-qualif $ with-clear-error $ get-ctxt λ Γ →
       check-type tp nothing
-        on-fail spanMr ∘ match-error $' "TODO error kinding solution" , []
-    ≫=spanm' λ k → spanMr ∘ match-ok $' k)
+        on-fail spanMr ∘ match-error $ "TODO error kinding solution" , []
+    ≫=spanm' λ k → spanMr ∘ match-ok $ k)
   ≫=spand spanMr
   where
   qualified-qualif : ctxt → qualif
@@ -912,10 +912,10 @@ check-type-for-match tp =
 -- match-types
 -- --------------------------------------------------
 
-match-types-ok : meta-vars → spanM $' match-error-t meta-vars
+match-types-ok : meta-vars → spanM $ match-error-t meta-vars
 match-types-ok = spanMr ∘ match-ok
 
-match-types-error : match-error-data → spanM $' match-error-t meta-vars
+match-types-error : match-error-data → spanM $ match-error-t meta-vars
 match-types-error = spanMr ∘ match-error
 
 match-types Xs Ls match-unfolding-both tpₓ tp =
@@ -938,11 +938,11 @@ match-types Xs Ls unf tpₓ@(TpVar pi x) tp =
             ≫⊎ match-ok Xs))
   -- scope check the solution
   λ kₓ → if are-free-in-type check-erased Ls tp then
-    match-types-error $' m-err.e-meta-scope Γ x tpₓ tp else
+    match-types-error $ m-err.e-meta-scope Γ x tpₓ tp else
     (  check-type-for-match tp
     ≫=spans' λ k → match-kinds Xs empty-trie match-unfolding-both kₓ k
     ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp)
-    ≫=spans' λ Xs → match-types-ok $' meta-vars-update-kinds Γ Xs Xs)
+    ≫=spans' λ Xs → match-types-ok $ meta-vars-update-kinds Γ Xs Xs)
 
 match-types Xs Ls unf (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂) =
     match-types Xs Ls unf tpₓ₁ tp₁
@@ -951,14 +951,14 @@ match-types Xs Ls unf (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂) =
 match-types Xs Ls unf (TpAppt tpₓ tmₓ) (TpAppt tp tm) =
     match-types Xs Ls unf tpₓ tp
   ≫=spans' λ Xs' → get-ctxt λ Γ →
-    spanMr $' if ~ conv-term Γ tmₓ tm
-      then (match-error $' m-err.e-term-ineq Γ tmₓ tm) else
+    spanMr $ if ~ conv-term Γ tmₓ tm
+      then (match-error $ m-err.e-term-ineq Γ tmₓ tm) else
     match-ok Xs'
 
 match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp) =
   get-ctxt λ Γ →
   if ~ eq-maybeErased bₓ b
-    then (match-types-error $' m-err.e-binder-ineq Γ tpₓ' tp' bₓ b) else
+    then (match-types-error $ m-err.e-binder-ineq Γ tpₓ' tp' bₓ b) else
   ( match-tks Xs Ls (match-unfolding-next unf) tkₓ tk
   ≫=spans' λ Xs' → with-ctxt (Γ→Γ' Γ) 
     (match-types Xs' Ls' (match-unfolding-next unf) tpₓ tp))
@@ -969,19 +969,19 @@ match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs p
 
 match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased atₓ at
-    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs Ls (match-unfolding-next unf) tp₂ₓ tp₂)
 
 match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs pi b pi' x (Tkt tp₁) tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased atₓ b
-    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs (stringset-insert Ls x) (match-unfolding-next unf) tp₂ₓ tp₂)
 
 match-types Xs Ls unf tpₓ@(Abs piₓ bₓ piₓ' xₓ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased bₓ at
-    then match-types-error $' m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs (stringset-insert Ls xₓ) (match-unfolding-next unf) tp₂ₓ tp₂)
 
@@ -996,16 +996,16 @@ match-types Xs Ls unf (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp) =
 
 match-types Xs Ls unf (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _) =
   get-ctxt λ Γ → if ~ conv-term Γ t₁ₓ t₁
-    then match-types-error $' m-err.e-term-ineq Γ t₁ₓ t₁ else
+    then match-types-error $ m-err.e-term-ineq Γ t₁ₓ t₁ else
   if ~ conv-term Γ t₂ₓ t₂
-    then match-types-error $' m-err.e-term-ineq Γ t₂ₓ t₂ else
+    then match-types-error $ m-err.e-term-ineq Γ t₂ₓ t₂ else
   match-types-ok Xs
 
 match-types Xs Ls unf (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l) =
   get-ctxt λ Γ → if ~ conv-liftingType Γ lₓ l
-    then match-types-error $' m-err.e-liftingType-ineq Γ lₓ l else
+    then match-types-error $ m-err.e-liftingType-ineq Γ lₓ l else
   if ~ conv-term (Γ→Γ' Γ) tₓ t
-    then match-types-error $' m-err.e-term-ineq (Γ→Γ' Γ) tₓ t else
+    then match-types-error $ m-err.e-term-ineq (Γ→Γ' Γ) tₓ t else
   match-types-ok Xs
   where
   Γ→Γ' : ctxt → ctxt
@@ -1045,7 +1045,7 @@ match-types Xs Ls unf tpₓ (TpParens _ tp _) =
   match-types Xs Ls unf tpₓ tp
 
 match-types Xs Ls unf tpₓ tp =
-  get-ctxt λ Γ → match-types-error $' m-err.e-type-ineq Γ tpₓ tp
+  get-ctxt λ Γ → match-types-error $ m-err.e-type-ineq Γ tpₓ tp
 
 match-kinds Xs Ls uf (KndParens _ kₓ _) (KndParens _ k _) =
   match-kinds Xs Ls uf kₓ k
@@ -1087,14 +1087,14 @@ match-kinds Xs Ls uf (KndTpArrow tpₓ kₓ) (KndPi _ _ x (Tkt tp) k) =
   ≫=spans' λ Xs → match-kinds Xs Ls uf kₓ k
 
 match-kinds Xs Ls uf (Star _) (Star _) =
-  match-types-ok $' Xs
+  match-types-ok $ Xs
 match-kinds Xs Ls uf kₓ k =
-  get-ctxt λ Γ → match-types-error $' m-err.e-kind-ineq Γ kₓ k
+  get-ctxt λ Γ → match-types-error $ m-err.e-kind-ineq Γ kₓ k
 
 match-tks Xs Ls uf (Tkk kₓ) (Tkk k) = match-kinds Xs Ls uf kₓ k
 match-tks Xs Ls uf (Tkt tpₓ) (Tkt tp) = match-types Xs Ls uf tpₓ tp
 match-tks Xs Ls uf tkₓ tk =
-  get-ctxt λ Γ → match-types-error $' m-err.e-tk-ineq Γ tkₓ tk
+  get-ctxt λ Γ → match-types-error $ m-err.e-tk-ineq Γ tkₓ tk
 
 
 -- check-typei: check a type against (maybe) a kind
