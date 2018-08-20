@@ -12,6 +12,16 @@
 ;  (interactive "MExpression: ")
 ;  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
 
+(defun cedille-mode-elab-data (x)
+  (interactive "MName: ")
+  (call-interactively (lambda (x) (interactive "MParameters: ") (setq ps x)))
+  (call-interactively (lambda (x) (interactive "MIndices: ") (setq is x)))
+  (call-interactively (lambda (x) (interactive "MConstructors: ") (setq cs x)))
+  (se-inf-interactive
+   (concat "interactive" sep "data" sep ps sep is sep x sep cs)
+   cedille-mode-normalize-erase-receive-response-prompt
+   "" :header "Elaborating"))
+
 (defun cedille-mode-test-agda-eta1 ()
   (interactive)
   (se-inf-interactive (concat "interactive" sep "test-agda-eta1" sep "lorem ipsum") (lambda (&rest args) (message "%s" args)) nil :header "Waiting"))
