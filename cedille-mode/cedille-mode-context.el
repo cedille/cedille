@@ -425,7 +425,7 @@ which currently consists of:\n
 
 (defun cedille-mode-context-buffer-name()
   (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
-    (concat "*cedille-context-" (file-name-base) "*")))
+    (concat "*cedille-context-" (cedille-mode-current-buffer-base-name) "*")))
 
 (defun cedille-mode-context-buffer() "Retrieves the context buffer" (get-buffer-create (cedille-mode-context-buffer-name)))
 

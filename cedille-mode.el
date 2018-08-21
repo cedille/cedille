@@ -48,6 +48,10 @@
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
 (require 'cedille-mode-library)
 
+(defun cedille-mode-current-buffer-base-name()
+    "A helper function to get the current buffer name without any extension"
+    (file-name-sans-extension (buffer-name (current-buffer))))
+
 (when (version< emacs-version "24.4")
   (defun define-error (name message &optional parent)
     "Define NAME as a new error signal.

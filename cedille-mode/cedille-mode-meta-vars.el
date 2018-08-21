@@ -160,7 +160,7 @@
 
 (defun cedille-mode-meta-vars-buffer-name()
   (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
-    (concat "*cedille-meta-vars-" (file-name-base) "*")))
+    (concat "*cedille-meta-vars-" (cedille-mode-current-buffer-base-name) "*")))
 
 (defun cedille-mode-meta-vars-buffer()
   (get-buffer-create (cedille-mode-meta-vars-buffer-name)))
