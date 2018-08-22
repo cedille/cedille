@@ -1,9 +1,9 @@
-@node meta-vars mode,beta-reduce mode,summary mode,minor modes
+@node meta-vars buffer,beta-reduce mode,summary buffer,extra buffers
 
-@chapter Meta-Vars mode
+@chapter Meta-Vars buffer
 
 Meta-Vars mode displays the meta-variables along the current application spine, if any.
 Jumping (with @command{j}, see below) to the position of a meta-variable name will select
 the span where it was introduced. Jumping at the ``='' will bring you to where it was solved.
 
-@include minor-mode-commands.texi
+@include extra-buffers-commands.texi

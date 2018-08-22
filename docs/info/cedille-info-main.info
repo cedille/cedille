@@ -12,9 +12,9 @@ here!
 
 * Menu:
 
-* cedille mode commands::       A list of cedille mode command shortcuts with brief description
-* unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
-* minor modes::                 Cedille mode has several minor modes providing additional information
+* cedille mode commands::       Cedille navigation mode shortcuts with brief descriptions
+* unicode shortcuts::           Keyboard shortcuts for unicode symbols
+* extra buffers::               Cedille has several other buffers for viewing information computed for the source file
 * options::                     A description of the options file
 * credits::                     Who has contributed to the Cedille tool
 * Index::                       Here is the index
@@ -151,7 +151,7 @@ time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
      Open customization window for configuring Cedille mode
 
 
-File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Prev: cedille mode commands,  Up: Top
+File: cedille-info-main.info,  Node: unicode shortcuts,  Next: extra buffers,  Prev: cedille mode commands,  Up: Top
 
 6 unicode
 *********
@@ -244,19 +244,18 @@ together with the shortcut to type them in the emacs mode.
      Produces ε (epsilon)
 
 
-File: cedille-info-main.info,  Node: context mode,  Next: summary mode,  Prev: inspect mode,  Up: minor modes
+File: cedille-info-main.info,  Node: context buffer,  Next: summary buffer,  Prev: inspect buffer,  Up: extra buffers
 
-7 Context mode
-**************
+7 Context buffer
+****************
 
-Context mode for Cedille allows the user to see the context of the
-currently selected node, making it easy to find and make use of all
-bound symbols.  To enter context mode, select a node and press 'C' and
-you will open up the context mode buffer and jump to it.  If you just
-want to open the context mode buffer (but not jump to it), press 'c'
-instead.
+The context buffer for Cedille allows the user to see the local
+variables in scope for the currently selected node.  To display the
+context buffer, select a node and press 'C'; this will open the context
+buffer and jump to it.  If you just want to open the context buffer (but
+not jump to it), press 'c' instead.
 
-   Context mode has several built-in features to organize data:
+   The context buffer has several built-in features to organize data:
 
    * Sort entries alphabetically or by binding position
 
@@ -341,6 +340,9 @@ Fall 2017 to Summer 2018:
 Tony Cantor
      opaque definitions
 
+Ernesto Copello
+     parser, type-level let
+
 Larry Diehl
      module system design and implementation, phi terms
 
@@ -400,7 +402,7 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
+File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: extra buffers,  Up: Top
 
 11 cedille-mode options
 ***********************
@@ -433,19 +435,20 @@ available options are:
      convenience.
 
 
-File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
+File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
-12 Minor modes for cedille
-**************************
+12 Minor-mode buffers for Cedille
+*********************************
 
-Cedille has three minor modes that provide information about the file:
+Cedille uses several extra buffers to provide information about the
+processed Cedille source file:
 
 * Menu:
 
-* inspect mode::                Provides information about the currently selected node
-* context mode::                Displays the types and kinds of all variables in the scope of the selected node
-* summary mode::                Displays the types and kinds of every top-level entity in the file
-* meta-vars mode::              Displays the meta-variables at the current position in an application spine
+* inspect buffer::              Provides information about the currently selected node
+* context buffer::                Displays the types and kinds of all variables in the scope of the selected node
+* summary buffer::                Displays the types and kinds of every top-level entity in the file
+* meta-vars buffer::              Displays the meta-variables at the current position in an application spine
 * beta-reduce mode::            Beta-reduction explorer
 
 13 Common commands
@@ -479,24 +482,18 @@ Cedille has three minor modes that provide information about the file:
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Up: minor modes
+File: cedille-info-main.info,  Node: inspect buffer,  Next: context buffer,  Up: extra buffers
 
-14 Inspect mode
-***************
+14 Inspect buffer
+*****************
 
-Inspect mode for Cedille provides basic information about a node.  To
-enter inspect mode, select a node and press 'I' and you will open up the
-inspect mode buffer and jump to it.  If you just want to open the
-inspect mode buffer (but not jump to it), press 'i' instead.
+The inspect buffer for Cedille provides basic information about a node.
+To display the inspect buffer, select a node and press 'I' and you will
+open up the inspect buffer and jump to it.  If you just want to open the
+inspect buffer (but not jump to it), press 'i' instead.
 
-   Inspect mode may contain the following pieces of information:
-
-   * The sort of entity that the node represents
-
-   * The type or kind of the node
-
-   * The file location in which the entity represented by the node is
-     defined
+   The inspect buffer contains information about the selected node, and
+is automatically updated during navigation.
 
 15 Controls
 ***********
@@ -535,12 +532,12 @@ inspect mode buffer (but not jump to it), press 'i' instead.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: summary mode,  Next: meta-vars mode,  Prev: context mode,  Up: minor modes
+File: cedille-info-main.info,  Node: summary buffer,  Next: meta-vars buffer,  Prev: context buffer,  Up: extra buffers
 
-17 Summary mode
-***************
+17 Summary buffer
+*****************
 
-Displays a summary of every global definition in the file.
+Displays the type or kind of every definition in the file.
 
 18 Common commands
 ******************
@@ -573,10 +570,10 @@ Displays a summary of every global definition in the file.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: meta-vars mode,  Next: beta-reduce mode,  Prev: summary mode,  Up: minor modes
+File: cedille-info-main.info,  Node: meta-vars buffer,  Next: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
 
-19 Meta-Vars mode
-*****************
+19 Meta-Vars buffer
+*******************
 
 Meta-Vars mode displays the meta-variables along the current application
 spine, if any.  Jumping (with 'j', see below) to the position of a
@@ -614,7 +611,7 @@ Jumping at the "=" will bring you to where it was solved.
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary mode,  Up: minor modes
+File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
 
 21 Beta-reduce mode
 *******************
@@ -665,20 +662,28 @@ File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
 Index
 *****
 
+ [index ]
+* Menu:
+
+* beta-reduce mode:                      beta-reduce mode.      (line 6)
+* context buffer:                        context buffer.        (line 6)
+* inspect buffer:                        inspect buffer.        (line 6)
+* summary buffer:                        summary buffer.        (line 6)
+
 
 
 Tag Table:
 Node: Top95
-Node: cedille mode commands746
-Node: unicode shortcuts3794
-Node: context mode6119
-Node: credits8066
-Node: options9162
-Node: minor modes10307
-Node: inspect mode11565
-Node: summary mode12818
-Node: meta-vars mode13581
-Node: beta-reduce mode14556
-Node: Index15699
+Node: cedille mode commands747
+Node: unicode shortcuts3795
+Node: context buffer6122
+Node: credits8046
+Node: options9187
+Node: extra buffers10334
+Node: inspect buffer11642
+Node: summary buffer12790
+Node: meta-vars buffer13565
+Node: beta-reduce mode14550
+Node: Index15697
 
 End Tag Table
