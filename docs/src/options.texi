@@ -1,4 +1,4 @@
-@node options,credits,minor modes,Top
+@node options,credits,extra buffers,Top
 
 @chapter cedille-mode options
 

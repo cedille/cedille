@@ -1,10 +1,12 @@
-@node context mode,summary mode,inspect mode,minor modes
+@node context buffer,summary buffer,inspect buffer,extra buffers
 
-@chapter Context mode
+@chapter Context buffer
 
-Context mode for Cedille allows the user to see the context of the currently selected node, making it easy to find and make use of all bound symbols. To enter context mode, select a node and press @command{C} and you will open up the context mode buffer and jump to it. If you just want to open the context mode buffer (but not jump to it), press @command{c} instead.
+@cindex context buffer
 
-Context mode has several built-in features to organize data:
+The context buffer for Cedille allows the user to see the local variables in scope for the currently selected node. To display the context buffer, select a node and press @command{C}; this will open the context buffer and jump to it. If you just want to open the context buffer (but not jump to it), press @command{c} instead.
+
+The context buffer has several built-in features to organize data:
 @itemize @bullet
 
 @item
@@ -52,4 +54,4 @@ Open information page for context mode
 
 @end table
 
-@include minor-mode-commands.texi
+@include extra-buffers-commands.texi
