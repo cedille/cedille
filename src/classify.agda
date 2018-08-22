@@ -580,9 +580,9 @@ check-termi (Theta pi Abstract t ls) (just tp) =
                 compute-var t = ignored-var
 
 check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
-  get-ctxt λ Γ → let tp = hnf Γ unfold-head tp tt in cont (wrap-vars Γ vs (substs-type empty-ctxt (rep-vars Γ vs empty-trie) tp)) tp
+  get-ctxt λ Γ → let tp = hnf Γ unfold-head tp tt in cont (wrap-vars Γ vs tp {-(substs-type empty-ctxt (rep-vars Γ vs empty-trie) tp)-}) tp
   where wrap-var : ctxt → var → type → maybe type
-        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk tp)
+        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk (rename-type Γ (qualif-var Γ v) v (tk-is-type atk) tp))
         wrap-vars : ctxt → vars → type → maybe type
         wrap-vars Γ (VarsStart v) tp = wrap-var Γ v tp
         wrap-vars Γ (VarsNext v vs) tp = wrap-vars Γ vs tp ≫=maybe wrap-var Γ v
@@ -597,13 +597,13 @@ check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
             spanM-add (Theta-span Γ pi (AbstractVars vs) t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
             check-term (lterms-to-term Abstract (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1))) ls)
                (just tp)
-        rep-var : ctxt → var → trie term → trie term
+        {-rep-var : ctxt → var → trie term → trie term
         rep-var Γ v ρ with trie-lookup (ctxt-get-qualif Γ) v
         ...| nothing = ρ
         ...| just (v' , _) = trie-insert ρ v' (Var posinfo-gen v)
         rep-vars : ctxt → vars → trie term → trie term
         rep-vars Γ (VarsStart v) = rep-var Γ v
-        rep-vars Γ (VarsNext v vs) ρ = rep-vars Γ vs (rep-var Γ v ρ)
+        rep-vars Γ (VarsNext v vs) ρ = rep-vars Γ vs (rep-var Γ v ρ)-}
 
 check-termi (Hole pi) tp =
   get-ctxt λ Γ → spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp

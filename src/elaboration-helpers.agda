@@ -268,12 +268,12 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-fresh-var ρ is "_" = "_"
   reindex-fresh-var ρ is x = fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρ
 
-  rename-indices : trie indices → indices
-  rename-indices is = foldr {B = renamectxt → indices}
+  rename-indices : renamectxt → trie indices → indices
+  rename-indices ρ is = foldr {B = renamectxt → indices}
     (λ {(Index x atk) f ρ →
        let x' = reindex-fresh-var ρ is x in
        Index x' (substh-tk {TERM} Γ ρ empty-trie atk) :: f (renamectxt-insert ρ x x')})
-    (λ ρ → []) isₒ empty-renamectxt
+    (λ ρ → []) isₒ ρ
   
   reindex-t : Set → Set
   reindex-t X = renamectxt → trie indices → X → X
@@ -333,7 +333,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-term ρ is (Lam pi me pi' x oc t) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
     Lam pi me pi' x' (reindex-optClass ρ is oc) (reindex-term (renamectxt-insert ρ x x') is t)
-  ...| tt with rename-indices is | oc
+  ...| tt with rename-indices ρ is | oc
   ...| isₙ | NoClass = indices-to-lams' isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
   ...| isₙ | SomeClass atk = indices-to-lams isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
   reindex-term ρ is (Let pi d t) =
@@ -356,7 +356,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-type ρ is (Abs pi me pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
     Abs pi me pi' x' (reindex-tk ρ is atk) (reindex-type (renamectxt-insert ρ x x') is T)
-  ...| tt = let isₙ = rename-indices is in
+  ...| tt = let isₙ = rename-indices ρ is in
     indices-to-alls isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
   reindex-type ρ is (Iota pi pi' x T T') =
     let x' = reindex-fresh-var ρ is x in
@@ -384,7 +384,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-type ρ is (TpLambda pi pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
     TpLambda pi pi' x' (reindex-tk ρ is atk) (reindex-type (renamectxt-insert ρ x x') is T)
-  ...| tt = let isₙ = rename-indices is in
+  ...| tt = let isₙ = rename-indices ρ is in
     indices-to-tplams isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
   reindex-type ρ is (TpParens pi T pi') =
     reindex-type ρ is T
@@ -398,11 +398,11 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-kind ρ is (KndPi pi pi' x atk k) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
     KndPi pi pi' x' (reindex-tk ρ is atk) (reindex-kind (renamectxt-insert ρ x x') is k)
-  ...| tt = let isₙ = rename-indices is in
+  ...| tt = let isₙ = rename-indices ρ is in
     indices-to-kind isₙ $ reindex-kind (rc-is ρ isₙ) (trie-insert is x isₙ) k
   reindex-kind ρ is (KndTpArrow (TpVar pi x) k) with is-index-type-var x
   ...| ff = KndTpArrow (reindex-type ρ is (TpVar pi x)) (reindex-kind ρ is k)
-  ...| tt = let isₙ = rename-indices is in
+  ...| tt = let isₙ = rename-indices ρ is in
     indices-to-kind isₙ $ reindex-kind (rc-is ρ isₙ) is k
   reindex-kind ρ is (KndTpArrow T k) =
     KndTpArrow (reindex-type ρ is T) (reindex-kind ρ is k)
