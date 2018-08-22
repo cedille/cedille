@@ -198,8 +198,8 @@ private
   reindex-cmd : ctxt → string → string ⊎ tagged-val
   reindex-cmd Γ isₛ =
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
-    elim-pair (kind-to-indices Γ isₖ) λ Γ' is →
-    inj₂ $ strRunTag "" Γ' $ h $ fst $ reindex-file Γ' is MendlerStart where
+    elim-pair (kind-to-indices Γ isₖ) λ _ is →
+    inj₂ $ strRunTag "" Γ $ h $ fst $ reindex-file Γ is MendlerStart where
     h : cmds → strM
     h (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str h cs
     h CmdsStart = strEmpty

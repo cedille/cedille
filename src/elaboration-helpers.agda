@@ -260,210 +260,240 @@ add-indices-to-ctxt : indices → ctxt → ctxt
 add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl' x}
 
 add-parameters-to-ctxt : parameters → ctxt → ctxt
-add-parameters-to-ctxt = flip $ foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''})
+add-parameters-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''}
 
-rename-indices : ctxt → indices → indices
-rename-indices Γ is = foldr {B = renamectxt → indices}
-  (λ {(Index x atk) is ρ →
-     let x' = fresh-var x (ctxt-binds-var Γ) ρ in
-     Index x' (substh-tk {TERM} Γ ρ empty-trie atk) :: is (renamectxt-insert ρ x x')})
-  (λ ρ → []) is empty-renamectxt
+module reindexing (Γ : ctxt) (isₒ : indices) where
 
+  reindex-fresh-var : renamectxt → trie indices → var → var
+  reindex-fresh-var ρ is "_" = "_"
+  reindex-fresh-var ρ is x = fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρ
 
-reindex : ∀ {ed} → ctxt → indices → ⟦ ed ⟧ → ⟦ ed ⟧
-reindex-term : ctxt → indices → term → term
-reindex-type : ctxt → indices → type → type
-reindex-kind : ctxt → indices → kind → kind
-reindex-tk : ctxt → indices → tk → tk
-reindex-liftingType : ctxt → indices → liftingType → liftingType
-reindex-optTerm : ctxt → indices → optTerm → optTerm
-reindex-optType : ctxt → indices → optType → optType
-reindex-optGuide : ctxt → indices → optGuide → optGuide
-reindex-optClass : ctxt → indices → optClass → optClass
-reindex-lterms : ctxt → indices → lterms → lterms
-reindex-args : ctxt → indices → args → args
-reindex-arg : ctxt → indices → arg → arg
-reindex-defTermOrType : ctxt → indices → defTermOrType → defTermOrType × ctxt
+  rename-indices : trie indices → indices
+  rename-indices is = foldr {B = renamectxt → indices}
+    (λ {(Index x atk) f ρ →
+       let x' = reindex-fresh-var ρ is x in
+       Index x' (substh-tk {TERM} Γ ρ empty-trie atk) :: f (renamectxt-insert ρ x x')})
+    (λ ρ → []) isₒ empty-renamectxt
+  
+  reindex-t : Set → Set
+  reindex-t X = renamectxt → trie indices → X → X
+  
+  reindex : ∀ {ed} → reindex-t ⟦ ed ⟧
+  reindex-term : reindex-t term
+  reindex-type : reindex-t type
+  reindex-kind : reindex-t kind
+  reindex-tk : reindex-t tk
+  reindex-liftingType : reindex-t liftingType
+  reindex-optTerm : reindex-t optTerm
+  reindex-optType : reindex-t optType
+  reindex-optGuide : reindex-t optGuide
+  reindex-optClass : reindex-t optClass
+  reindex-lterms : reindex-t lterms
+  reindex-args : reindex-t args
+  reindex-arg : reindex-t arg
+  reindex-theta : reindex-t theta
+  reindex-vars : reindex-t (maybe vars)
+  reindex-defTermOrType : renamectxt → trie indices → defTermOrType → defTermOrType × renamectxt
+  
+  reindex{TERM} = reindex-term
+  reindex{TYPE} = reindex-type
+  reindex{KIND} = reindex-kind
+  reindex{TK}   = reindex-tk
+  reindex       = λ ρ is x → x
 
-reindex{TERM} = reindex-term
-reindex{TYPE} = reindex-type
-reindex{KIND} = reindex-kind
-reindex{TK}   = reindex-tk
-reindex       = λ Γ is x → x
+  rc-is : renamectxt → indices → renamectxt
+  rc-is = foldr λ {(Index x atk) ρ → renamectxt-insert ρ x x}
+  
+  index-var = "indices"
+  index-type-var = "Indices"
+  is-index-var = isJust ∘ is-pfx index-var
+  is-index-type-var = isJust ∘ is-pfx index-type-var
+  
+  reindex-term ρ is (App t me (Var pi x)) with trie-lookup is x
+  ...| nothing = App (reindex-term ρ is t) me (reindex-term ρ is (Var pi x))
+  ...| just is' = indices-to-apps is' $ reindex-term ρ is t
+  reindex-term ρ is (App t me t') =
+    App (reindex-term ρ is t) me (reindex-term ρ is t')
+  reindex-term ρ is (AppTp t T) =
+    AppTp (reindex-term ρ is t) (reindex-type ρ is T)
+  reindex-term ρ is (Beta pi ot ot') =
+    Beta pi (reindex-optTerm ρ is ot) (reindex-optTerm ρ is ot')
+  reindex-term ρ is (Chi pi oT t) =
+    Chi pi (reindex-optType ρ is oT) (reindex-term ρ is t)
+  reindex-term ρ is (Delta pi oT t) =
+    Delta pi (reindex-optType ρ is oT) (reindex-term ρ is t)
+  reindex-term ρ is (Epsilon pi lr m t) =
+    Epsilon pi lr m (reindex-term ρ is t)
+  reindex-term ρ is (Hole pi) =
+    Hole pi
+  reindex-term ρ is (IotaPair pi t t' g pi') =
+    IotaPair pi (reindex-term ρ is t) (reindex-term ρ is t') (reindex-optGuide ρ is g) pi'
+  reindex-term ρ is (IotaProj t n pi) =
+    IotaProj (reindex-term ρ is t) n pi
+  reindex-term ρ is (Lam pi me pi' x oc t) with is-index-var x
+  ...| ff = let x' = reindex-fresh-var ρ is x in
+    Lam pi me pi' x' (reindex-optClass ρ is oc) (reindex-term (renamectxt-insert ρ x x') is t)
+  ...| tt with rename-indices is | oc
+  ...| isₙ | NoClass = indices-to-lams' isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
+  ...| isₙ | SomeClass atk = indices-to-lams isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
+  reindex-term ρ is (Let pi d t) =
+    flip uncurry (reindex-defTermOrType ρ is d) λ d' ρ' → Let pi d' (reindex-term ρ' is t)
+  reindex-term ρ is (Open pi x t) =
+    Open pi x (reindex-term ρ is t)
+  reindex-term ρ is (Parens pi t pi') =
+    reindex-term ρ is t
+  reindex-term ρ is (Phi pi t₌ t₁ t₂ pi') =
+    Phi pi (reindex-term ρ is t₌) (reindex-term ρ is t₁) (reindex-term ρ is t₂) pi'
+  reindex-term ρ is (Rho pi op on t og t') =
+    Rho pi op on (reindex-term ρ is t) (reindex-optGuide ρ is og) (reindex-term ρ is t')
+  reindex-term ρ is (Sigma pi t) =
+    Sigma pi (reindex-term ρ is t)
+  reindex-term ρ is (Theta pi θ t ts) =
+    Theta pi (reindex-theta ρ is θ) (reindex-term ρ is t) (reindex-lterms ρ is ts)
+  reindex-term ρ is (Var pi x) =
+    Var pi $ renamectxt-rep ρ x
 
-pattern reindex-term-var = "indices"
-pattern reindex-type-var = "Indices"
+  reindex-type ρ is (Abs pi me pi' x atk T) with is-index-var x
+  ...| ff = let x' = reindex-fresh-var ρ is x in
+    Abs pi me pi' x' (reindex-tk ρ is atk) (reindex-type (renamectxt-insert ρ x x') is T)
+  ...| tt = let isₙ = rename-indices is in
+    indices-to-alls isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
+  reindex-type ρ is (Iota pi pi' x T T') =
+    let x' = reindex-fresh-var ρ is x in
+    Iota pi pi' x' (reindex-type ρ is T) (reindex-type (renamectxt-insert ρ x x') is T')
+  reindex-type ρ is (Lft pi pi' x t lT) =
+    let x' = reindex-fresh-var ρ is x in
+    Lft pi pi' x' (reindex-term (renamectxt-insert ρ x x') is t) (reindex-liftingType ρ is lT)
+  reindex-type ρ is (NoSpans T pi) =
+    NoSpans (reindex-type ρ is T) pi
+  reindex-type ρ is (TpLet pi d T) =
+    flip uncurry (reindex-defTermOrType ρ is d) λ d' ρ' → TpLet pi d' (reindex-type ρ' is T)
+  reindex-type ρ is (TpApp T T') =
+    TpApp (reindex-type ρ is T) (reindex-type ρ is T')
+  reindex-type ρ is (TpAppt T (Var pi x)) with trie-lookup is x
+  ...| nothing = TpAppt (reindex-type ρ is T) (reindex-term ρ is (Var pi x))
+  ...| just is' = indices-to-tpapps is' $ reindex-type ρ is T
+  reindex-type ρ is (TpAppt T t) =
+    TpAppt (reindex-type ρ is T) (reindex-term ρ is t)
+  reindex-type ρ is (TpArrow T me T') =
+    TpArrow (reindex-type ρ is T) me (reindex-type ρ is T')
+  reindex-type ρ is (TpEq pi t t' pi') =
+    TpEq pi (reindex-term ρ is t) (reindex-term ρ is t') pi'
+  reindex-type ρ is (TpHole pi) =
+    TpHole pi
+  reindex-type ρ is (TpLambda pi pi' x atk T) with is-index-var x
+  ...| ff = let x' = reindex-fresh-var ρ is x in
+    TpLambda pi pi' x' (reindex-tk ρ is atk) (reindex-type (renamectxt-insert ρ x x') is T)
+  ...| tt = let isₙ = rename-indices is in
+    indices-to-tplams isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
+  reindex-type ρ is (TpParens pi T pi') =
+    reindex-type ρ is T
+  reindex-type ρ is (TpVar pi x) =
+    TpVar pi $ renamectxt-rep ρ x
+  
+  reindex-kind ρ is (KndParens pi k pi') =
+    reindex-kind ρ is k
+  reindex-kind ρ is (KndArrow k k') =
+    KndArrow (reindex-kind ρ is k) (reindex-kind ρ is k')
+  reindex-kind ρ is (KndPi pi pi' x atk k) with is-index-var x
+  ...| ff = let x' = reindex-fresh-var ρ is x in
+    KndPi pi pi' x' (reindex-tk ρ is atk) (reindex-kind (renamectxt-insert ρ x x') is k)
+  ...| tt = let isₙ = rename-indices is in
+    indices-to-kind isₙ $ reindex-kind (rc-is ρ isₙ) (trie-insert is x isₙ) k
+  reindex-kind ρ is (KndTpArrow (TpVar pi x) k) with is-index-type-var x
+  ...| ff = KndTpArrow (reindex-type ρ is (TpVar pi x)) (reindex-kind ρ is k)
+  ...| tt = let isₙ = rename-indices is in
+    indices-to-kind isₙ $ reindex-kind (rc-is ρ isₙ) is k
+  reindex-kind ρ is (KndTpArrow T k) =
+    KndTpArrow (reindex-type ρ is T) (reindex-kind ρ is k)
+  reindex-kind ρ is (KndVar pi x as) =
+    KndVar pi (renamectxt-rep ρ x) (reindex-args ρ is as)
+  reindex-kind ρ is (Star pi) =
+    Star pi
+  
+  reindex-tk ρ is (Tkt T) = Tkt $ reindex-type ρ is T
+  reindex-tk ρ is (Tkk k) = Tkk $ reindex-kind ρ is k
+  
+  -- Can't reindex large indices in a lifting type (LiftPi requires a type, not a tk),
+  -- so for now we will just ignore reindexing lifting types.
+  -- Types withing lifting types will still be reindexed, though.
+  reindex-liftingType ρ is (LiftArrow lT lT') =
+    LiftArrow (reindex-liftingType ρ is lT) (reindex-liftingType ρ is lT')
+  reindex-liftingType ρ is (LiftParens pi lT pi') =
+    reindex-liftingType ρ is lT
+  reindex-liftingType ρ is (LiftPi pi x T lT) =
+    let x' = reindex-fresh-var ρ is x in
+    LiftPi pi x' (reindex-type ρ is T) (reindex-liftingType (renamectxt-insert ρ x x') is lT)
+  reindex-liftingType ρ is (LiftStar pi) =
+    LiftStar pi
+  reindex-liftingType ρ is (LiftTpArrow T lT) =
+    LiftTpArrow (reindex-type ρ is T) (reindex-liftingType ρ is lT)
+  
+  reindex-optTerm ρ is NoTerm = NoTerm
+  reindex-optTerm ρ is (SomeTerm t pi) = SomeTerm (reindex-term ρ is t) pi
+  
+  reindex-optType ρ is NoType = NoType
+  reindex-optType ρ is (SomeType T) = SomeType (reindex-type ρ is T)
+  
+  reindex-optClass ρ is NoClass = NoClass
+  reindex-optClass ρ is (SomeClass atk) = SomeClass (reindex-tk ρ is atk)
+  
+  reindex-optGuide ρ is NoGuide = NoGuide
+  reindex-optGuide ρ is (Guide pi x T) =
+    let x' = reindex-fresh-var ρ is x in
+    Guide pi x' (reindex-type (renamectxt-insert ρ x x') is T)
+  
+  reindex-lterms ρ is (LtermsNil pi) = LtermsNil pi
+  reindex-lterms ρ is (LtermsCons me t ts) =
+    LtermsCons me (reindex-term ρ is t) (reindex-lterms ρ is ts)
 
--- Reindexing cases
-reindex-term Γ is (App t me (Var pi reindex-term-var)) =
-  indices-to-apps is $ reindex-term Γ is t
-reindex-term Γ is (Lam pi me pi' reindex-term-var (SomeClass (Tkt (TpVar pi'' reindex-type-var))) t) =
-  indices-to-lams is $ reindex-term Γ is t
-reindex-term Γ is (Lam pi me pi' reindex-term-var NoClass t) =
-  indices-to-lams' is $ reindex-term Γ is t
--- Other cases
-reindex-term Γ is (App t me t') =
-  App (reindex-term Γ is t) me (reindex-term Γ is t')
-reindex-term Γ is (AppTp t T) =
-  AppTp (reindex-term Γ is t) (reindex-type Γ is T)
-reindex-term Γ is (Beta pi ot ot') =
-  Beta pi (reindex-optTerm Γ is ot) (reindex-optTerm Γ is ot')
-reindex-term Γ is (Chi pi oT t) =
-  Chi pi (reindex-optType Γ is oT) (reindex-term Γ is t)
-reindex-term Γ is (Delta pi oT t) =
-  Delta pi (reindex-optType Γ is oT) (reindex-term Γ is t)
-reindex-term Γ is (Epsilon pi lr m t) =
-  Epsilon pi lr m (reindex-term Γ is t)
-reindex-term Γ is (Hole pi) =
-  Hole pi
-reindex-term Γ is (IotaPair pi t t' g pi') =
-  IotaPair pi (reindex-term Γ is t) (reindex-term Γ is t') (reindex-optGuide Γ is g) pi'
-reindex-term Γ is (IotaProj t n pi) =
-  IotaProj (reindex-term Γ is t) n pi
-reindex-term Γ is (Lam pi me pi' x oc t) =
-  Lam pi me pi' x (reindex-optClass Γ is oc) (reindex-term (ctxt-var-decl' x Γ) is t)
-reindex-term Γ is (Let pi d t) =
-  flip uncurry (reindex-defTermOrType Γ is d) λ d' Γ' → Let pi d' (reindex-term Γ' is t)
-reindex-term Γ is (Open pi x t) =
-  Open pi x (reindex-term Γ is t)
-reindex-term Γ is (Parens pi t pi') =
-  reindex-term Γ is t
-reindex-term Γ is (Phi pi t₌ t₁ t₂ pi') =
-  Phi pi (reindex-term Γ is t₌) (reindex-term Γ is t₁) (reindex-term Γ is t₂) pi'
-reindex-term Γ is (Rho pi op on t og t') =
-  Rho pi op on (reindex-term Γ is t) (reindex-optGuide Γ is og) (reindex-term Γ is t')
-reindex-term Γ is (Sigma pi t) =
-  Sigma pi (reindex-term Γ is t)
-reindex-term Γ is (Theta pi θ t ts) =
-  Theta pi θ (reindex-term Γ is t) (reindex-lterms Γ is ts)
-reindex-term Γ is (Var pi x) =
-  Var pi x
+  reindex-theta ρ is (AbstractVars xs) = maybe-else Abstract AbstractVars $ reindex-vars ρ is $ just xs
+  reindex-theta ρ is θ = θ
 
--- Reindexing cases
-reindex-type Γ is (TpAppt T (Var pi reindex-term-var)) =
-  indices-to-tpapps is $ reindex-type Γ is T
-reindex-type Γ is (TpLambda pi pi' reindex-term-var (Tkt (TpVar pi'' reindex-type-var)) T) =
-  indices-to-tplams is $ reindex-type Γ is T
-reindex-type Γ is (Abs pi me pi' reindex-term-var (Tkt (TpVar pi'' reindex-type-var)) T) =
-  indices-to-alls is $ reindex-type Γ is T
--- Other cases
-reindex-type Γ is (Abs pi me pi' x atk T) =
-  Abs pi me pi' x (reindex-tk Γ is atk) (reindex-type (ctxt-var-decl' x Γ) is T)
-reindex-type Γ is (Iota pi pi' x T T') =
-  Iota pi pi' x (reindex-type Γ is T) (reindex-type (ctxt-var-decl' x Γ) is T')
-reindex-type Γ is (Lft pi pi' x t lT) =
-  Lft pi pi' x (reindex-term (ctxt-var-decl' x Γ) is t) (reindex-liftingType Γ is lT)
-reindex-type Γ is (NoSpans T pi) =
-  NoSpans (reindex-type Γ is T) pi
-reindex-type Γ is (TpLet pi d T) =
-  flip uncurry (reindex-defTermOrType Γ is d) λ d' Γ' → TpLet pi d' (reindex-type Γ' is T)
-reindex-type Γ is (TpApp T T') =
-  TpApp (reindex-type Γ is T) (reindex-type Γ is T')
-reindex-type Γ is (TpAppt T t) =
-  TpAppt (reindex-type Γ is T) (reindex-term Γ is t)
-reindex-type Γ is (TpArrow T me T') =
-  TpArrow (reindex-type Γ is T) me (reindex-type Γ is T')
-reindex-type Γ is (TpEq pi t t' pi') =
-  TpEq pi (reindex-term Γ is t) (reindex-term Γ is t') pi'
-reindex-type Γ is (TpHole pi) =
-  TpHole pi
-reindex-type Γ is (TpLambda pi pi' x atk T) =
-  TpLambda pi pi' x (reindex-tk Γ is atk) (reindex-type (ctxt-var-decl' x Γ) is T)
-reindex-type Γ is (TpParens pi T pi') =
-  reindex-type Γ is T
-reindex-type Γ is (TpVar pi x) =
-  TpVar pi x
+  reindex-vars''' : vars → vars → vars
+  reindex-vars''' (VarsNext x xs) xs' = VarsNext x $ reindex-vars''' xs xs'
+  reindex-vars''' (VarsStart x) xs = VarsNext x xs
+  reindex-vars'' : vars → maybe vars
+  reindex-vars'' (VarsNext x (VarsStart x')) = just $ VarsStart x
+  reindex-vars'' (VarsNext x xs) = maybe-map (VarsNext x) $ reindex-vars'' xs
+  reindex-vars'' (VarsStart x) = nothing
+  reindex-vars' : renamectxt → trie indices → var → maybe vars
+  reindex-vars' ρ is x = maybe-else (just $ VarsStart $ renamectxt-rep ρ x)
+    (reindex-vars'' ∘ flip foldr (VarsStart "") λ {(Index x atk) → VarsNext x}) (trie-lookup is x)
+  reindex-vars ρ is (just (VarsStart x)) = reindex-vars' ρ is x
+  reindex-vars ρ is (just (VarsNext x xs)) = maybe-else (reindex-vars ρ is $ just xs)
+    (λ xs' → maybe-map (reindex-vars''' xs') $ reindex-vars ρ is $ just xs) $ reindex-vars' ρ is x
+  reindex-vars ρ is nothing = nothing
+  
+  reindex-arg ρ is (TermArg me t) = TermArg me (reindex-term ρ is t)
+  reindex-arg ρ is (TypeArg T) = TypeArg (reindex-type ρ is T)
+  
+  reindex-args ρ is ArgsNil = ArgsNil
+  reindex-args ρ is (ArgsCons a as) = ArgsCons (reindex-arg ρ is a) (reindex-args ρ is as)
+  
+  reindex-defTermOrType ρ is (DefTerm pi x oT t) =
+    let x' = reindex-fresh-var ρ is x in
+    DefTerm pi x' (reindex-optType ρ is oT) (reindex-term ρ is t) , renamectxt-insert ρ x x'
+  reindex-defTermOrType ρ is (DefType pi x k T) =
+    let x' = reindex-fresh-var ρ is x in
+    DefType pi x (reindex-kind ρ is k) (reindex-type ρ is T) , renamectxt-insert ρ x x'
 
--- Reindexing cases
-reindex-kind Γ is (KndTpArrow (TpVar pi reindex-type-var) k) =
-  indices-to-kind is $ reindex-kind Γ is k
-reindex-kind Γ is (KndPi pi pi' reindex-term-var (Tkt (TpVar pi'' reindex-type-var)) k) =
-  indices-to-kind is $ reindex-kind Γ is k
--- Other cases
-reindex-kind Γ is (KndParens pi k pi') =
-  reindex-kind Γ is k
-reindex-kind Γ is (KndArrow k k') =
-  KndArrow (reindex-kind Γ is k) (reindex-kind Γ is k')
-reindex-kind Γ is (KndPi pi pi' x atk k) =
-  KndPi pi pi' x (reindex-tk Γ is atk) (reindex-kind (ctxt-var-decl' x Γ) is k)
-reindex-kind Γ is (KndTpArrow T k) =
-  KndTpArrow (reindex-type Γ is T) (reindex-kind Γ is k)
-reindex-kind Γ is (KndVar pi x as) =
-  KndVar pi x (reindex-args Γ is as)
-reindex-kind Γ is (Star pi) =
-  Star pi
-
-reindex-tk Γ is (Tkt T) = Tkt $ reindex-type Γ is T
-reindex-tk Γ is (Tkk k) = Tkk $ reindex-kind Γ is k
-
--- Can't reindex large indices in a lifting type (LiftPi requires a type, not a tk),
--- so for now we will just ignore reindexing lifting types.
--- Types withing lifting types will still be reindexed, though.
-reindex-liftingType Γ is (LiftArrow lT lT') =
-  LiftArrow (reindex-liftingType Γ is lT) (reindex-liftingType Γ is lT')
-reindex-liftingType Γ is (LiftParens pi lT pi') =
-  reindex-liftingType Γ is lT
-reindex-liftingType Γ is (LiftPi pi x T lT) =
-  LiftPi pi x (reindex-type Γ is T) (reindex-liftingType (ctxt-var-decl' x Γ) is lT)
-reindex-liftingType Γ is (LiftStar pi) =
-  LiftStar pi
-reindex-liftingType Γ is (LiftTpArrow T lT) =
-  LiftTpArrow (reindex-type Γ is T) (reindex-liftingType Γ is lT)
-
-reindex-optTerm Γ is NoTerm = NoTerm
-reindex-optTerm Γ is (SomeTerm t pi) = SomeTerm (reindex-term Γ is t) pi
-
-reindex-optType Γ is NoType = NoType
-reindex-optType Γ is (SomeType T) = SomeType (reindex-type Γ is T)
-
-reindex-optClass Γ is NoClass = NoClass
-reindex-optClass Γ is (SomeClass atk) = SomeClass (reindex-tk Γ is atk)
-
-reindex-optGuide Γ is NoGuide = NoGuide
-reindex-optGuide Γ is (Guide pi x T) = Guide pi x (reindex-type Γ is T)
-
-reindex-lterms Γ is (LtermsNil pi) = LtermsNil pi
-reindex-lterms Γ is (LtermsCons me t ts) =
-  LtermsCons me (reindex-term Γ is t) (reindex-lterms Γ is ts)
-
-reindex-arg Γ is (TermArg me t) = TermArg me (reindex-term Γ is t)
-reindex-arg Γ is (TypeArg T) = TypeArg (reindex-type Γ is T)
-
-reindex-args Γ is ArgsNil = ArgsNil
-reindex-args Γ is (ArgsCons a as) = ArgsCons (reindex-arg Γ is a) (reindex-args Γ is as)
-
-reindex-defTermOrType Γ is (DefTerm pi x oT t) =
-  DefTerm pi x (reindex-optType Γ is oT) (reindex-term Γ is t) , ctxt-var-decl' x Γ
-reindex-defTermOrType Γ is (DefType pi x k T) =
-  DefType pi x (reindex-kind Γ is k) (reindex-type Γ is T) , ctxt-var-decl' x Γ
-
-reindex-dtt-name : ctxt → renamectxt → defTermOrType → defTermOrType × renamectxt
-reindex-dtt-name Γ ρ (DefTerm pi x oT t) =
-  rename x - x from ρ for λ x' → _,_ $
-    DefTerm pi x' (optType-map oT $ subst-renamectxt Γ ρ) (subst-renamectxt Γ ρ t)
-reindex-dtt-name Γ ρ (DefType pi x k T) =
-  rename x - x from ρ for λ x' → _,_ $
-    DefType pi x' (subst-renamectxt Γ ρ k) (subst-renamectxt Γ ρ T)
-
-reindex-cmds : ctxt → indices → renamectxt → cmds → cmds × renamectxt
-reindex-cmds Γ is ρ CmdsStart = CmdsStart , ρ
-reindex-cmds Γ is ρ (CmdsNext (ImportCmd i) cs) =
-  flip uncurry (reindex-cmds Γ is ρ cs) $ _,_ ∘ CmdsNext (ImportCmd i)
-reindex-cmds Γ is ρ (CmdsNext (DefTermOrType op d pi) cs) =
-  flip uncurry (reindex-dtt-name Γ ρ d) λ d' ρ' →
-  flip uncurry (reindex-defTermOrType Γ is d') λ d'' Γ' →
-  flip uncurry (reindex-cmds Γ' is ρ' cs) $ _,_ ∘ CmdsNext (DefTermOrType op d'' pi)
-reindex-cmds Γ is ρ (CmdsNext (DefKind pi x ps k pi') cs) =
-  rename x - x from ρ for λ x' ρ' →
-  flip uncurry (reindex-cmds (ctxt-var-decl' x' Γ) is ρ' cs) $ _,_ ∘ CmdsNext
-    (DefKind pi x' ps (reindex-kind (add-parameters-to-ctxt (params-to-parameters ps) Γ) is $
-       subst-renamectxt Γ ρ k) pi')
+  reindex-cmds : renamectxt → trie indices → cmds → cmds × renamectxt
+  reindex-cmds ρ is CmdsStart = CmdsStart , ρ
+  reindex-cmds ρ is (CmdsNext (ImportCmd i) cs) =
+    flip uncurry (reindex-cmds ρ is cs) $ _,_ ∘ CmdsNext (ImportCmd i)
+  reindex-cmds ρ is (CmdsNext (DefTermOrType op d pi) cs) =
+    flip uncurry (reindex-defTermOrType ρ is d) λ d' ρ' →
+    flip uncurry (reindex-cmds ρ' is cs) $ _,_ ∘ CmdsNext (DefTermOrType op d' pi)
+  reindex-cmds ρ is (CmdsNext (DefKind pi x ps k pi') cs) =
+    let x' = reindex-fresh-var ρ is x in
+    flip uncurry (reindex-cmds (renamectxt-insert ρ x x') is cs) $ _,_ ∘ CmdsNext
+      (DefKind pi x' ps (reindex-kind ρ is k) pi')
+  
 
 reindex-file : ctxt → indices → start → cmds × renamectxt
-reindex-file Γ is (File pi csᵢ pi' pi'' x
-      (ParamsCons (Decl _ _ _ reindex-type-var (Tkk (Star _)) _) ps) cs pi''') =
-  reindex-cmds Γ is empty-renamectxt cs
 reindex-file Γ is (File pi csᵢ pi' pi'' x ps cs pi''') =
-  reindex-cmds Γ is empty-renamectxt cs
+  reindex-cmds empty-renamectxt empty-trie cs
+  where open reindexing Γ is
 
 

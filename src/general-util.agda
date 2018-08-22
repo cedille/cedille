@@ -127,6 +127,15 @@ undo-escape-string-h [] so-far = reverse so-far
 undo-escape-string : string → string
 undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])
 
+is-pfx : (pfx str : string) → maybe string
+is-pfx pfx str = h (string-to-𝕃char pfx) (string-to-𝕃char str) where
+  h : 𝕃 char → 𝕃 char → maybe string
+  h [] cs = just (𝕃char-to-string cs)
+  h (cₚ :: csₚ) [] = nothing
+  h (cₚ :: csₚ) (cₛ :: csₛ) with cₚ =char cₛ
+  ...| ff = nothing
+  ...| tt = h csₚ csₛ
+
 -- functions.agda
 curry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
         → (A × B → C) → A → B → C

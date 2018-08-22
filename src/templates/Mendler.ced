@@ -260,7 +260,7 @@ indCoend ◂
       Π gr : G · R indices. Q indices (intrCoendInd · G · C · R -indices -c gr)) ➔
     Q indices e =
   Λ G. Λ C. Λ indices. λ e. Λ Q. λ i.
-    indCoend' -indices e · Q i · Q (Λ x'. Λ e'. λ u. u).
+    indCoend' -indices e · Q i · Q (Λ indices. Λ x'. λ u. u).
 
 fmapCoend ◂ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. Functor · (CoendInd · F) =
   Λ F. Λ A. Λ B. Λ f.
