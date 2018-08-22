@@ -17,7 +17,7 @@
   (when cedille-inspect-view-mode
     (set-input-method "Cedille")))
 
-(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (file-name-base) "*"))
+(defun cedille-mode-inspect-buffer-name () (concat "*cedille-inspect-" (cedille-mode-current-buffer-base-name) "*"))
 
 (defun cedille-mode-inspect-buffer ()
   (get-buffer-create (cedille-mode-inspect-buffer-name)))
