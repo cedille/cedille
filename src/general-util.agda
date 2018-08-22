@@ -176,6 +176,11 @@ for xs yield f = map f xs
 for_accum_use_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
 for xs accum n use f = foldr f n xs
 
+
+foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
+foldl f b [] = b
+foldl f b (a :: as) = foldl f (f a b) as
+
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg

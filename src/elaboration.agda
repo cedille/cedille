@@ -24,255 +24,8 @@ open import toplevel-state options {IO}
 open import to-string options'
 open import rename
 open import rewriting
+open import elaboration-helpers options
 import spans options' {id} as id-spans
-
-private
-
-  foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
-  foldl f b [] = b
-  foldl f b (a :: as) = foldl f (f a b) as
-
-  ctxt-var-decl' = ctxt-var-decl posinfo-gen
-  
-  uncurry' : ∀ {A B C D : Set} → (A → B → C → D) → (A × B × C) → D
-  uncurry' f (a , b , c) = f a b c
-
-  uncurry'' : ∀ {A B C D E : Set} → (A → B → C → D → E) → (A × B × C × D) → E
-  uncurry'' f (a , b , c , d) = f a b c d
-
-  ctxt-term-decl' : posinfo → var → type → ctxt → ctxt
-  ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os) =
-    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (term-decl T , fn , pi)) os
-
-  ctxt-type-decl' : posinfo → var → kind → ctxt → ctxt
-  ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os) =
-    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (type-decl k , fn , pi)) os
-
-  ctxt-tk-decl' : posinfo → var → tk → ctxt → ctxt
-  ctxt-tk-decl' pi x (Tkt T) = ctxt-term-decl' pi x T
-  ctxt-tk-decl' pi x (Tkk k) = ctxt-type-decl' pi x k
-
-  ctxt-param-decl : var → var → tk → ctxt → ctxt
-  ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
-    let d = case atk of λ {(Tkt T) → term-decl T; (Tkk k) → type-decl k} in
-    mk-ctxt
-    (fn , mn , ps , trie-insert q x (mn # x , ArgsNil)) ss
-    (trie-insert is x' (d , fn , posinfo-gen)) os
-
-  ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
-  ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
-    (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os
-
-  ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
-  ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
-    (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
-
-  ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
-  ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
-    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os
-  
-  ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
-  ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
-    mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os
-  
-  ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
-  ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
-    (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
-    (trie-insert is x' (kind-def ps1 (h Γ ps2) k' , fn , posinfo-gen)) os
-    where
-      k' = hnf Γ unfold-head k tt
-      h : ctxt → params → params
-      h Γ (ParamsCons (Decl pi pi' me x atk pi'') ps) =
-        ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' localScope x atk Γ) ps)
-      h _ ps = ps
-
-  ctxt-lookup-term-var' : ctxt → var → maybe type
-  ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
-    env-lookup Γ x ≫=maybe λ where
-      (term-decl T , _) → just T
-      (term-def ps _ _ T , _ , x') →
-        let ps = maybe-else ParamsNil id ps in
-        just (abs-expand-type ps T)
-      _ → nothing
-  
-  -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
-  -- TODO: Could variables be parameter-expanded multiple times?
-  ctxt-lookup-type-var' : ctxt → var → maybe kind
-  ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
-    env-lookup Γ x ≫=maybe λ where
-      (type-decl k , _) → just k
-      (type-def ps _ _ k , _ , x') →
-        let ps = maybe-else ParamsNil id ps in
-        just (abs-expand-kind ps k)
-      _ → nothing
-  
-  subst : ∀ {ed ed' : exprd} → ctxt → ⟦ ed' ⟧ → var → ⟦ ed ⟧ → ⟦ ed ⟧
-  subst{TERM} = subst-term
-  subst{TYPE} = subst-type
-  subst{KIND} = subst-kind
-  subst Γ _ _ x = x
-
-  renamectxt-single : var → var → renamectxt
-  renamectxt-single = renamectxt-insert empty-renamectxt
-
-  rename-var : ∀ {ed : exprd} → ctxt → var → var → ⟦ ed ⟧ → ⟦ ed ⟧
-  rename-var {TERM} Γ x x' = substh-term {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
-  rename-var {TYPE} Γ x x' = substh-type {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
-  rename-var {KIND} Γ x x' = substh-kind {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
-  rename-var Γ x x' = id
-  
-  subst-qualif : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  subst-qualif{TERM} Γ ρ = substh-term {TERM} Γ ρ empty-trie ∘ qualif-term Γ
-  subst-qualif{TYPE} Γ ρ = substh-type {TYPE} Γ ρ empty-trie ∘ qualif-type Γ
-  subst-qualif{KIND} Γ ρ = substh-kind {KIND} Γ ρ empty-trie ∘ qualif-kind Γ
-  subst-qualif Γ ρ = id
-
-  rename-validify : string → string
-  rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
-    validify-char : char → 𝕃 char
-    validify-char c with
-      (c =char 'a')  ||
-      (c =char 'z')  ||
-      (c =char 'A')  ||
-      (c =char 'Z')  ||
-      (c =char '\'') ||
-      (c =char '-')  ||
-      (c =char '_')  ||
-      is-digit c     ||
-      (('a' <char c) && (c <char 'z')) ||
-      (('A' <char c) && (c <char 'Z'))
-    ...| tt = [ c ]
-    ...| ff = 'Z' :: string-to-𝕃char (ℕ-to-string (toNat c)) ++ [ 'Z' ]
-    h : 𝕃 char → 𝕃 char
-    h [] = []
-    h (c :: cs) = validify-char c ++ h cs
-
-  -- Returns a fresh variable name by adding primes and replacing invalid characters
-  fresh-var' : string → (string → 𝔹) → renamectxt → string
-  fresh-var' = fresh-var ∘ rename-validify
-
-  rename-new_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
-  rename-new "_" from Γ for f = f (fresh-var' "x" (ctxt-binds-var Γ) empty-renamectxt)
-  rename-new x from Γ for f = f (fresh-var' x (ctxt-binds-var Γ) empty-renamectxt)
-  
-  rename_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
-  rename "_" from Γ for f = f "_"
-  rename x from Γ for f = f (fresh-var' x (ctxt-binds-var Γ) empty-renamectxt)
-  
-  fresh-id-term : ctxt → term
-  fresh-id-term Γ = rename "x" from Γ for λ x → mlam x (mvar x)
-
-  get-renaming : renamectxt → var → var → var × renamectxt
-  get-renaming ρ xₒ x = let x' = fresh-var' x (renamectxt-in-range ρ) ρ in x' , renamectxt-insert ρ xₒ x'
-
-  rename_-_from_for_ : ∀ {X : Set} → var → var → renamectxt → (var → renamectxt → X) → X
-  rename xₒ - "_" from ρ for f = f "_" ρ
-  rename xₒ - x from ρ for f = uncurry f (get-renaming ρ xₒ x)
-
-  rename_-_lookup_for_ : ∀ {X : Set} → var → var → renamectxt → (var → renamectxt → X) → X
-  rename xₒ - x lookup ρ for f with renamectxt-lookup ρ xₒ
-  ...| nothing = rename xₒ - x from ρ for f
-  ...| just x' = f x' ρ
-  
-  qualif-new-var : ctxt → var → var
-  qualif-new-var Γ x = ctxt-get-current-modname Γ # x
-
-  mbeta : term → term → term
-  mrho : term → var → type → term → term
-  mtpeq : term → term → type
-  mbeta t t' = Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm t' posinfo-gen)
-  mrho t x T t' = Rho posinfo-gen RhoPlain NoNums t (Guide posinfo-gen x T) t'
-  mtpeq t1 t2 = TpEq posinfo-gen t1 t2 posinfo-gen
-
-  subst-args-params : ctxt → args → params → kind → kind
-  subst-args-params Γ (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = subst-args-params Γ ys ps (subst-kind Γ t x k)
-  subst-args-params Γ (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = subst-args-params Γ ys ps (subst-kind Γ t x k)
-  subst-args-params Γ ys ps k = k
-
-  params-append : params → params → params
-  params-append ParamsNil ps = ps
-  params-append (ParamsCons p ps) ps' = ParamsCons p (params-append ps ps')
-  
-  drop-meta-var : meta-vars → meta-vars
-  drop-meta-var Xs = record Xs {order = tail (meta-vars.order Xs)}
-
-  drop-meta-vars : meta-vars → ℕ → meta-vars
-  drop-meta-vars Xs zero = Xs
-  drop-meta-vars Xs (suc n) = drop-meta-vars (drop-meta-var Xs) n
-
-  file-to-string : start → strM
-  cmds-to-string : cmds → strM → strM
-  cmd-to-string : cmd → strM → strM  
-
-  ie-set-span-ast : include-elt → ctxt → start → include-elt
-  ie-set-span-ast ie Γ ast = record ie
-    {ss = inj₁ (regular-spans nothing [ mk-span "" "" "" [ "" , strRun Γ (file-to-string ast) , [] ] nothing ])}
-
-  ie-get-span-ast : include-elt → maybe rope
-  ie-get-span-ast ie = case include-elt.ss ie of λ where
-    (inj₁ (regular-spans nothing (mk-span "" "" "" (("" , r , []) :: []) nothing :: []))) → just r
-    _ → nothing
-
-  file-to-string (File _ is _ _ mn ps cs _) =
-     cmds-to-string (imps-to-cmds is)
-    (strAdd "module " ≫str
-     strAdd mn ≫str
-     strAdd " " ≫str
-     params-to-string' globalScope
-    (strAdd "." ≫str strAdd "\n" ≫str
-     cmds-to-string cs strEmpty) ps)
-  
-  cmds-to-string CmdsStart f = f
-  cmds-to-string (CmdsNext c cs) f =
-     strAdd "\n" ≫str
-     cmd-to-string c
-    (strAdd "\n" ≫str
-     cmds-to-string cs f)
-    
-  cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
-    strM-Γ λ Γ →
-    let ps = ctxt-get-current-params Γ in
-    strAdd x ≫str
-    maybeCheckType-to-string (case mcT of λ where
-       NoType → NoType
-       (SomeType T) → SomeType (abs-expand-type ps T)) ≫str
-    strAdd " = " ≫str
-    to-stringh (lam-expand-term ps t) ≫str
-    strAdd " ." ≫str
-    strΓ' globalScope tt x pi f
-  cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
-    strM-Γ λ Γ →
-    let ps = ctxt-get-current-params Γ in
-    strAdd x ≫str
-    strAdd " ◂ " ≫str
-    to-stringh (abs-expand-kind ps k) ≫str
-    strAdd " = " ≫str
-    to-stringh (lam-expand-type ps T) ≫str
-    strAdd " ." ≫str
-    strΓ' globalScope tt x pi f
-  cmd-to-string (DefKind pi x ps k _) f =
-    strM-Γ λ Γ →
-    let ps' = ctxt-get-current-params Γ in
-    strAdd x ≫str
-    params-to-string (params-append ps' ps) ≫str
-    strAdd " = " ≫str
-    to-stringh k ≫str
-    strAdd " ." ≫str
-    strΓ' globalScope tt x pi f
-  cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
-    strAdd "import " ≫str
-    strAdd (optPublic-to-string op) ≫str
-    strAdd fn ≫str
-    optAs-to-string oa ≫str
-    args-to-string as ≫str
-    strAdd " ." ≫str
-    f
 
 {-# TERMINATING #-}
 elab-check-term : ctxt → term → type → maybe term
@@ -694,6 +447,15 @@ elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
   elab-pure-term Γ (subst Γ t x t')
 elab-pure-term _ _ = nothing -- should be erased
 
+private
+  
+  drop-meta-var : meta-vars → meta-vars
+  drop-meta-var Xs = record Xs {order = tail (meta-vars.order Xs)}
+
+  drop-meta-vars : meta-vars → ℕ → meta-vars
+  drop-meta-vars Xs zero = Xs
+  drop-meta-vars Xs (suc n) = drop-meta-vars (drop-meta-var Xs) n
+
 elab-app-sols : ctxt → term → meta-vars → ℕ → maybe term
 elab-app-sols Γ t Xs zero = just t
 elab-app-sols Γ t Xs (suc n) =
@@ -755,8 +517,21 @@ elab-app-term Γ t =
 
 {- ################################ IO ###################################### -}
 
+private
+  ie-set-span-ast : include-elt → ctxt → start → include-elt
+  ie-set-span-ast ie Γ ast = record ie
+    {ss = inj₁ (regular-spans nothing
+      [ mk-span "" "" "" [ "" , strRun Γ (file-to-string ast) , [] ] nothing ])}
+
+  ie-get-span-ast : include-elt → maybe rope
+  ie-get-span-ast ie with include-elt.ss ie
+  ...| inj₁ (regular-spans nothing (mk-span "" "" ""
+         (("" , r , []) :: []) nothing :: [])) = just r
+  ...| _ = nothing
+
 elab-t : Set → Set
-elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → X → maybe (X × toplevel-state × renamectxt × renamectxt)
+elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → X →
+  maybe (X × toplevel-state × renamectxt × renamectxt)
 
 {-# TERMINATING #-}
 elab-file' : elab-t string
@@ -922,12 +697,6 @@ elab-file ts fn =
 
 {- Datatypes -}
 
-parameters = 𝕃 decl
-
-data indx : Set where
-  Index : var → tk → indx
-indices = 𝕃 indx
-
 data ctr : Set where
   Ctr : var → type → ctr
 constructors = 𝕃 ctr
@@ -973,70 +742,12 @@ kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
 ...| just (ps , k) = kind-to-indices Γ $ subst-args-params Γ as ps k
 kind-to-indices Γ (Star pi) = Γ , []
 
-indices-to-kind : indices → kind → kind
-indices-to-kind = flip $ foldr (λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk})
-
-parameters-to-kind : parameters → kind → kind
-parameters-to-kind = flip $ foldr (λ {(Decl pi pi' me x atk pi'') → KndPi pi pi' x atk})
-
-indices-to-tplams : indices → (body : type) → type
-indices-to-tplams = flip $ foldr λ where
-  (Index x atk) → TpLambda posinfo-gen posinfo-gen x atk
-
-parameters-to-tplams : parameters → (body : type) → type
-parameters-to-tplams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → TpLambda pi pi' x atk
-
-indices-to-alls : indices → (body : type) → type
-indices-to-alls = flip $ foldr λ where
-  (Index x atk) → Abs posinfo-gen Erased posinfo-gen x atk
-
-parameters-to-alls : parameters → (body : type) → type
-parameters-to-alls = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Abs pi me pi' x atk
-
-indices-to-lams : indices → (body : term) → term
-indices-to-lams = flip $ foldr λ where
-  (Index x atk) → Lam posinfo-gen Erased posinfo-gen x (SomeClass atk)
-
-parameters-to-lams : parameters → (body : term) → term
-parameters-to-lams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x (SomeClass atk)
-
-parameters-to-lams' : parameters → (body : term) → term
-parameters-to-lams' = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x NoClass
-
 constructors-to-lams' : constructors → (body : term) → term
 constructors-to-lams' = flip $ foldr λ where
   (Ctr x T) → Lam posinfo-gen NotErased posinfo-gen x NoClass
 
-indices-to-apps : indices → (body : term) → term
-indices-to-apps = flip $ foldl λ where
-  (Index x (Tkt T)) t → App t Erased (mvar x)
-  (Index x (Tkk k)) t → AppTp t (mtpvar x)
-
-parameters-to-apps : parameters → (body : term) → term
-parameters-to-apps = flip $ foldl λ where --↓ ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←
-  (Decl pi pi' me x (Tkt T) pi'') t → App t me (mvar x)  --                             ↑
-  (Decl pi pi' me x (Tkk k) pi'') t → AppTp t (mtpvar x) --                             ↑
--- TODO: Should the user really be given the option to have parameters erased or not? → ↑
-
-indices-to-tpapps : indices → (body : type) → type
-indices-to-tpapps = flip $ foldl λ where
-  (Index x (Tkt T)) T' → TpAppt T' (mvar x)
-  (Index x (Tkk k)) T  → TpApp  T  (mtpvar x)
-
-parameters-to-tpapps : parameters → (body : type) → type
-parameters-to-tpapps = flip $ foldl λ where
-  (Decl pi pi' me x (Tkt T) pi'') T' → TpAppt T' (mvar x)
-  (Decl pi pi' me x (Tkk k) pi'') T  → TpApp  T  (mtpvar x)
-
 constructors-to-lams : ctxt → var → parameters → constructors → (body : term) → term
 constructors-to-lams Γ x ps cs t = foldr (λ {(Ctr y T) f Γ → Lam posinfo-gen NotErased posinfo-gen y (SomeClass $ Tkt $ subst-type Γ (parameters-to-tpapps ps $ mtpvar y) y T) $ f $ ctxt-var-decl' y Γ}) (λ Γ → t) cs Γ
-
-add-ps-to-ctxt : ctxt → parameters → ctxt
-add-ps-to-ctxt = foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''})
 
 recompose-apps : 𝕃 tty → term → term
 recompose-apps [] h = h
@@ -1618,7 +1329,7 @@ mk-mendler-defs Γₒ (Data x ps is cs) =
 
   eta-expand-fmaph-type : ctxt → var → type → term
   eta-expand-fmaph-type Γ x' T with decompose-ctr-type Γ T
-  ...| Tₕ , ps , as with add-ps-to-ctxt Γ ps
+  ...| Tₕ , ps , as with add-parameters-to-ctxt ps Γ
   ...| Γ' =
     parameters-to-lams' ps $
     -- TODO: we can't give the user a recursive value for this!
@@ -1714,7 +1425,7 @@ mk-mendler-defs Γₒ (Data x ps is cs) =
   ...| Γ' with decompose-ctr-type Γ' T
   ...| Tₕ , ps' , as =
     parameters-to-lams' ps' $
-    let Γ'' = add-ps-to-ctxt Γ' ps' in
+    let Γ'' = add-parameters-to-ctxt ps' Γ' in
     rename "x" from Γ'' for λ xₓ →
     rename "e" from Γ'' for λ eₓ →
     Lam posinfo-gen Erased posinfo-gen xₓ NoClass $
@@ -1766,7 +1477,7 @@ mk-mendler-defs Γₒ (Data x ps is cs) =
           mappe (AppTp (mvar $ mendler-names.inFixIndM ns) $
             parameters-to-tpapps ps $ mtpvar $ mendler-names.F ns) $
       parameters-to-apps ps $ mvar $ mendler-names.fmap ns) $
-    let Γ' = add-ps-to-ctxt Γ ps'
+    let Γ' = add-parameters-to-ctxt ps' Γ
         Xₓ = rename Xₓ from Γ' for id in
     IotaPair posinfo-gen
       (mk-ctr-untyped-beta Γ' x' cs ps')

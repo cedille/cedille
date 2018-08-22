@@ -677,6 +677,10 @@ erased-params (ParamsCons (Decl _ _ Erased x (Tkt _) _) ps) with var-suffix x
 erased-params (ParamsCons p ps) = erased-params ps
 erased-params ParamsNil = []
 
+params-append : params → params → params
+params-append ParamsNil ps = ps
+params-append (ParamsCons p ps) ps' = ParamsCons p $ params-append ps ps'
+
 lam-expand-term : params → term → term
 lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
   Lam posinfo-gen (if tk-is-type tk then me else Erased) pi' x (SomeClass tk) (lam-expand-term ps t)
@@ -808,3 +812,26 @@ delta-contra = delta-contrah 0 empty-trie empty-trie
 
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)
+
+tk-map : tk → (type → type) → (kind → kind) → tk
+tk-map (Tkt T) fₜ fₖ = Tkt $ fₜ T
+tk-map (Tkk k) fₜ fₖ = Tkk $ fₖ k
+
+tk-map2 : tk → (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tk
+tk-map2 atk f = tk-map atk f f
+
+optTerm-map : optTerm → (term → term) → optTerm
+optTerm-map NoTerm f = NoTerm
+optTerm-map (SomeTerm t pi) f = SomeTerm (f t) pi
+
+optType-map : optType → (type → type) → optType
+optType-map NoType f = NoType
+optType-map (SomeType T) f = SomeType $ f T
+
+optGuide-map : optGuide → (var → type → type) → optGuide
+optGuide-map NoGuide f = NoGuide
+optGuide-map (Guide pi x T) f = Guide pi x $ f x T
+
+optClass-map : optClass → (tk → tk) → optClass
+optClass-map NoClass f = NoClass
+optClass-map (SomeClass atk) f = SomeClass $ f atk

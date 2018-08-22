@@ -15,7 +15,7 @@ AGDASRC = to-string.agda constants.agda \
 	spans.agda conversion.agda syntax-util.agda ctxt-types.agda \
 	rename.agda classify.agda subst.agda is-free.agda lift.agda rewriting.agda ctxt.agda \
         main.agda toplevel-state.agda process-cmd.agda general-util.agda interactive-cmds.agda untyped-spans.agda \
-	rkt.agda meta-vars.agda cedille-options.agda elaboration.agda monad-instances.agda
+	rkt.agda meta-vars.agda cedille-options.agda elaboration.agda elaboration-helpers.agda monad-instances.agda templates.agda
 
 CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mode/cedille-mode-errors.el \
                 cedille-mode/cedille-mode-faces.el cedille-mode/cedille-mode-highlight.el \
@@ -24,6 +24,9 @@ CEDILLE_ELISP = cedille-mode.el cedille-mode/cedille-mode-context.el cedille-mod
 SE_MODE = se-mode/se.el se-mode/se-helpers.el se-mode/se-highlight.el se-mode/se-inf.el se-mode/se-macros.el se-mode/se-mode.el se-mode/se-navi.el se-mode/se-pin.el se-mode/se-markup.el
 
 ELISP=$(SE_MODE) $(CEDILLE_ELISP)
+
+TEMPLATESDIR = $(SRCDIR)/templates
+TEMPLATES = $(TEMPLATESDIR)/Mendler.ced
 
 FILES = $(AUTOGEN) $(AGDASRC)
 
@@ -52,7 +55,10 @@ libraries:
 ./src/CedilleOptionsLexer.hs: parser/src/CedilleOptionsLexer.x
 	cd parser; make cedille-options-lexer
 
-cedille:	$(SRC) Makefile libraries ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
+./src/templates.agda: $(TEMPLATES)
+	$(TEMPLATESDIR)/Templates
+
+cedille:	$(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 
@@ -79,6 +85,9 @@ options-main: $(SRCDIR)/options-main.agda
 
 cws-main: $(SRCDIR)/cws-main.agda
 	$(AGDA) $(LIB) -c $(SRCDIR)/cws-main.agda 
+
+cedille-templates-compiler: $(TEMPLATESDIR)/Templates.hs
+	cd $(TEMPLATESDIR); ghc --make -i../ Templates.hs
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean

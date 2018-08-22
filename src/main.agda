@@ -445,6 +445,7 @@ postulate
   initializeStdinToUTF8 : IO ⊤
   setStdinNewlineMode : IO ⊤
   compileTime : UTC
+  templatesDir : filepath
 
 {-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}

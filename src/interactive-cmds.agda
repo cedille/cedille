@@ -21,6 +21,8 @@ open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
 open import elaboration (record options {during-elaboration = ff})
+open import elaboration-helpers (record options {during-elaboration = ff})
+open import templates
 
 private
 
@@ -193,11 +195,20 @@ private
   elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃} → A × B → (A → B → C) → C
   elim-pair (a , b) f = f a b
 
+  reindex-cmd : ctxt → string → string ⊎ tagged-val
+  reindex-cmd Γ isₛ =
+    parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
+    elim-pair (kind-to-indices Γ isₖ) λ Γ' is →
+    inj₂ $ strRunTag "" Γ' $ h $ fst $ reindex-file Γ' is MendlerStart where
+    h : cmds → strM
+    h (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str h cs
+    h CmdsStart = strEmpty
+
   data-cmd : ctxt → string → string → var → string → string ⊎ tagged-val
   data-cmd Γ psₛ isₛ x csₛ =
-    parse-string ll-kind - psₛ ! "ps" ≫parse λ psₖ →
-    parse-string ll-kind - isₛ ! "is" ≫parse λ isₖ →
-    parse-string ll-kind - csₛ ! "cs" ≫parse λ csₖ →
+    parse-string ll-kind - psₛ ! "kind" ≫parse λ psₖ →
+    parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
+    parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
     elim-pair (kind-to-indices (ctxt-var-decl posinfo-gen x Γ) psₖ) λ Γ' psᵢ →
     elim-pair (kind-to-indices Γ' isₖ) λ Γ'' is →
     elim-pair (kind-to-indices Γ'' csₖ) λ Γ''' csᵢ →
@@ -277,6 +288,8 @@ private
     rewrite-cmd Γ ss is head lc
   interactive-cmd-h Γ ("data" :: ps :: k :: x :: cs :: []) =
     data-cmd Γ ps k x cs
+  interactive-cmd-h Γ ("reindex" :: is :: []) =
+    reindex-cmd Γ is
   interactive-cmd-h Γ cs =
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
   
