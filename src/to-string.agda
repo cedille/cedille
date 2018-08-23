@@ -397,7 +397,7 @@ cmd-to-string (DefKind pi x ps k _) f =
   strM-Γ λ Γ →
   let ps' = ctxt-get-current-params Γ in
   strAdd x ≫str
-  params-to-string (params-append ps' ps) ≫str
+  params-to-string (append-params ps' ps) ≫str
   strAdd " = " ≫str
   to-stringh k ≫str
   strAdd " ." ≫str

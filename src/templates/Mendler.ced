@@ -1,6 +1,5 @@
 module Mendler (Indices : ★).
 
-
 Sigma ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★.
   ι x : {β ≃ β}. ∀ X : {β ≃ β} ➔ ★. (Π a : A. Π b : B a. X β{λ f. f a b}) ➔ X x.
 Product ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★. Sigma · A · (λ _ : A. B).

@@ -190,8 +190,55 @@ subst-args-params Γ ys ps k = k
 
 data indx : Set where
   Index : var → tk → indx
+
+data ctr : Set where
+  Ctr : var → type → ctr
+
 parameters = 𝕃 decl
 indices = 𝕃 indx
+constructors = 𝕃 ctr
+
+data datatype : Set where
+  Data : var → parameters → indices → constructors → datatype
+
+params-to-parameters : params → parameters
+params-to-parameters ParamsNil = []
+params-to-parameters (ParamsCons p ps) = p :: params-to-parameters ps
+
+{-# TERMINATING #-}
+decompose-arrows : ctxt → type → parameters × type
+decompose-arrows Γ (Abs pi me pi' x atk T) =
+  rename-new x from Γ for λ x' →
+  case decompose-arrows (ctxt-var-decl' x' Γ) (rename-var Γ x x' T) of λ where
+    (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
+decompose-arrows Γ (TpArrow T me T') =
+  rename-new "_" from Γ for λ x →
+  case decompose-arrows (ctxt-var-decl' x Γ) T' of λ where
+    (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
+decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
+decompose-arrows Γ T = [] , T
+
+decompose-ctr-type : ctxt → type → type × parameters × 𝕃 tty
+decompose-ctr-type Γ T with decompose-arrows Γ T
+...| ps , Tᵣ with decompose-tpapps Tᵣ
+...| Tₕ , as = Tₕ , ps , as
+
+{-# TERMINATING #-}
+kind-to-indices : ctxt → kind → indices
+kind-to-indices Γ (KndArrow k k') =
+  rename "x" from Γ for λ x' →
+  Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl' x' Γ) k'
+kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
+kind-to-indices Γ (KndPi pi pi' x atk k) =
+  rename x from Γ for λ x' →
+  Index x' atk :: kind-to-indices (ctxt-var-decl' x' Γ) k
+kind-to-indices Γ (KndTpArrow T k) =
+  rename "x" from Γ for λ x' →
+  Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl' x' Γ) k
+kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
+...| nothing = []
+...| just (ps , k) = kind-to-indices Γ $ subst-args-params Γ as ps k
+kind-to-indices Γ (Star pi) = []
 
 indices-to-kind : indices → kind → kind
 indices-to-kind = flip $ foldr λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk}
@@ -225,11 +272,11 @@ indices-to-lams' = flip $ foldr λ where
 
 parameters-to-lams : parameters → (body : term) → term
 parameters-to-lams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi Erased pi' x (SomeClass atk)
+  (Decl pi pi' me x atk pi'') → Lam pi me pi' x (SomeClass atk)
 
 parameters-to-lams' : parameters → (body : term) → term
 parameters-to-lams' = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi Erased pi' x NoClass
+  (Decl pi pi' me x atk pi'') → Lam pi me pi' x NoClass
 
 indices-to-apps : indices → (body : term) → term
 indices-to-apps = flip $ foldl λ where
@@ -238,7 +285,7 @@ indices-to-apps = flip $ foldl λ where
 
 parameters-to-apps : parameters → (body : term) → term
 parameters-to-apps = flip $ foldl λ where
-  (Decl pi pi' me x (Tkt T) pi'') t → App t Erased (mvar x)
+  (Decl pi pi' me x (Tkt T) pi'') t → App t me (mvar x)
   (Decl pi pi' me x (Tkk k) pi'') t → AppTp t (mtpvar x)
 
 indices-to-tpapps : indices → (body : type) → type
@@ -251,10 +298,16 @@ parameters-to-tpapps = flip $ foldl λ where
   (Decl pi pi' me x (Tkt T) pi'') T' → TpAppt T' (mvar x)
   (Decl pi pi' me x (Tkk k) pi'') T  → TpApp  T  (mtpvar x)
 
+constructors-to-lams' : constructors → (body : term) → term
+constructors-to-lams' = flip $ foldr λ where
+  (Ctr x T) → Lam posinfo-gen NotErased posinfo-gen x NoClass
 
-params-to-parameters : params → parameters
-params-to-parameters ParamsNil = []
-params-to-parameters (ParamsCons p ps) = p :: params-to-parameters ps
+constructors-to-lams : ctxt → var → parameters → constructors → (body : term) → term
+constructors-to-lams Γ x ps cs t = foldr
+  (λ {(Ctr y T) f Γ → Lam posinfo-gen NotErased posinfo-gen y
+    (SomeClass $ Tkt $ subst-type Γ (parameters-to-tpapps ps $ mtpvar y) y T)
+    $ f $ ctxt-var-decl' y Γ})
+  (λ Γ → t) cs Γ
 
 add-indices-to-ctxt : indices → ctxt → ctxt
 add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl' x}
@@ -262,11 +315,16 @@ add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl' x}
 add-parameters-to-ctxt : parameters → ctxt → ctxt
 add-parameters-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''}
 
+add-constructors-to-ctxt : constructors → ctxt → ctxt
+add-constructors-to-ctxt = flip $ foldr λ where
+  (Ctr x T) → ctxt-var-decl' x
+
 module reindexing (Γ : ctxt) (isₒ : indices) where
 
   reindex-fresh-var : renamectxt → trie indices → var → var
   reindex-fresh-var ρ is "_" = "_"
-  reindex-fresh-var ρ is x = fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρ
+  reindex-fresh-var ρ is x =
+    fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρ
 
   rename-indices : renamectxt → trie indices → indices
   rename-indices ρ is = foldr {B = renamectxt → indices}
@@ -375,6 +433,10 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   ...| just is' = indices-to-tpapps is' $ reindex-type ρ is T
   reindex-type ρ is (TpAppt T t) =
     TpAppt (reindex-type ρ is T) (reindex-term ρ is t)
+  reindex-type ρ is (TpArrow (TpVar pi x) Erased T) with is-index-type-var x
+  ...| ff = TpArrow (reindex-type ρ is (TpVar pi x)) Erased (reindex-type ρ is T)
+  ...| tt = let isₙ = rename-indices ρ is in
+    indices-to-alls isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
   reindex-type ρ is (TpArrow T me T') =
     TpArrow (reindex-type ρ is T) me (reindex-type ρ is T')
   reindex-type ρ is (TpEq pi t t' pi') =

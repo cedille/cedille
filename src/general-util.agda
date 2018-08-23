@@ -145,6 +145,10 @@ uncurry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ�
           → (f : A → B → C) → (p : A × B) → C
 uncurry f (a , b) = f a b
 
+elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+            → A × B → (A → B → C) → C
+elim-pair (a , b) f = f a b
+
 infix 0 case_return_of_ case_of_
 
 case_return_of_ :

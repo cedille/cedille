@@ -7,18 +7,14 @@
 
 ;;;;;;;;        Commands        ;;;;;;;;
 
-;(defun cedille-mode-to-string (input)
-;  "Sends an interactive request to the backend to parse INPUT and return the parsed expression as a string"
-;  (interactive "MExpression: ")
-;  (se-inf-interactive (concat "interactive" sep "to-string" sep input) (lambda (r oc) (message r)) :header "To-String-ing"))
-
 (defun cedille-mode-elab-data (x)
   (interactive "MName: ")
   (call-interactively (lambda (x) (interactive "MParameters: ") (setq ps x)))
   (call-interactively (lambda (x) (interactive "MIndices: ") (setq is x)))
   (call-interactively (lambda (x) (interactive "MConstructors: ") (setq cs x)))
+  (setq encoding (if (y-or-n-p "Use Mendler encoding or simple Mendler encoding? ") "tt" "ff"))
   (se-inf-interactive
-   (concat "interactive" sep "data" sep ps sep is sep x sep cs)
+   (concat "interactive" sep "data" sep encoding sep x sep ps sep is sep cs)
    cedille-mode-normalize-erase-receive-response-prompt
    "" :header "Elaborating"))
 

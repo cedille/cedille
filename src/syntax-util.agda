@@ -102,6 +102,10 @@ append-args : args → args → args
 append-args (ArgsCons p ps) qs = ArgsCons p (append-args ps qs)
 append-args (ArgsNil) qs = qs
 
+append-cmds : cmds → cmds → cmds
+append-cmds CmdsStart = id
+append-cmds (CmdsNext c cs) = CmdsNext c ∘ append-cmds cs
+
 qualif-lookup-term : posinfo → qualif → string → term
 qualif-lookup-term pi σ x with trie-lookup σ x
 ... | just (x' , as) = apps-term (Var pi x') as
@@ -468,6 +472,11 @@ recompose-tpapps (h , []) = h
 recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
 recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
+recompose-apps : maybeErased → 𝕃 tty → term → term
+recompose-apps me [] h = h
+recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
+recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
+
 vars-to-𝕃 : vars → 𝕃 var
 vars-to-𝕃 (VarsStart v) = [ v ]
 vars-to-𝕃 (VarsNext v vs) = v :: vars-to-𝕃 vs
@@ -676,10 +685,6 @@ erased-params (ParamsCons (Decl _ _ Erased x (Tkt _) _) ps) with var-suffix x
 ... | just x' = x' :: erased-params ps
 erased-params (ParamsCons p ps) = erased-params ps
 erased-params ParamsNil = []
-
-params-append : params → params → params
-params-append ParamsNil ps = ps
-params-append (ParamsCons p ps) ps' = ParamsCons p $ params-append ps ps'
 
 lam-expand-term : params → term → term
 lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
