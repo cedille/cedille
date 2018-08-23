@@ -177,8 +177,8 @@ term-start-pos (Chi pi _ _) = pi
 term-start-pos (Delta pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
-term-start-pos (Mu pi _ _ _ _ _) = pi
-term-start-pos (Mu' pi _ _ _ _) = pi
+term-start-pos (Mu pi _ _ _ _ _ _) = pi
+term-start-pos (Mu' pi _ _ _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
@@ -237,8 +237,8 @@ term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Delta pi oT t) = term-end-pos t
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
-term-end-pos (Mu _ _ _ _ _ pi) = pi
-term-end-pos (Mu' _ _ _ _ pi) = pi
+term-end-pos (Mu _ _ _ _ _ _ pi) = pi
+term-end-pos (Mu' _ _ _ _ _ pi) = pi
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
@@ -541,11 +541,11 @@ erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Delta pi T t) = id-term
 erase-term (Theta pi u t ls) = erase-lterms (erase-term t) ls
-erase-term (Mu pi x t ot c pi') = Mu pi x (erase-term t) NoType (erase-cases c) pi'
-erase-term (Mu' pi t ot c pi')  = Mu' pi  (erase-term t) NoType (erase-cases c) pi'
+erase-term (Mu pi x t ot pi' c pi'') = Mu pi x (erase-term t) NoType pi' (erase-cases c) pi''
+erase-term (Mu' pi t ot pi' c pi'')  = Mu' pi  (erase-term t) NoType pi' (erase-cases c) pi''
 
 erase-cases NoCase = NoCase
-erase-cases (SomeCase x varargs t cs) = SomeCase x (erase-varargs varargs) (erase-term t) (erase-cases cs)
+erase-cases (SomeCase pi x varargs t cs) = SomeCase pi x (erase-varargs varargs) (erase-term t) (erase-cases cs)
 
 erase-varargs NoVarargs = NoVarargs
 erase-varargs (NormalVararg x varargs) = NormalVararg x (erase-varargs varargs)

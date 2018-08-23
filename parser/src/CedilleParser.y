@@ -123,8 +123,8 @@ OptOpaque :: { Opacity }
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
     | OptOpaque DefTermOrType '.'       { DefTermOrType $1 $2 (pos2Txt1 $3)                  }
-    | DefDatatype          '.'          { DefDatatype   $1 (pos2Txt1 $2)                     }
-    | kvar KParams '=' Kind '.'         { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
+    | DefDatatype             '.'       { DefDatatype   $1 (pos2Txt1 $2)                     }
+    | kvar KParams '=' Kind   '.'       { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
 MaybeCheckType :: { OptType }
                :                        { NoType      }
@@ -139,8 +139,8 @@ KParams :: { Params }
        | KDecl KParams                  { ParamsCons $1 $2 }
 
 DefDatatype :: { DefDatatype }
-    : 'data' var KParams ':' Kind '='  OptPipe DataConsts  { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8       } 
-    | 'data' var KParams ':' Kind '='                      { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 DataNull }            
+    : 'data' var MParams ':' Kind '='  OptPipe DataConsts  { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8       posInfo } 
+    | 'data' var MParams ':' Kind '='                      { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 DataNull posInfo }            
 
 DataConst :: { DataConst }
           : var ':' Type                { DataConst (tPosTxt $1) (tTxt $1) $3 }
@@ -255,8 +255,8 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
-     | 'μ'  Bvar '.' Term Motive '{'  Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 $7 (pos2Txt1 $8)   }
-     | 'μ\''         Term Motive '{'  Cases '}' { Mu' (pos2Txt $1) $2 $3 $5 (pos2Txt1 $6)            }
+     | 'μ'  Bvar '.' Term Motive '{'  Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
+     | 'μ\''         Term Motive '{'  Cases '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -266,7 +266,7 @@ OptPipe :: { PosInfo }
 
 Cases :: { Cases }
      :                                  { NoCase                      }
-     | '|' var  Varargs '➔' Term Cases  { SomeCase (tTxt $2) $3 $5 $6 }
+     | '|' var  Varargs '➔' Term Cases  { SomeCase (pos2Txt $1) (tTxt $2) $3 $5 $6 }
 
 Varargs :: { Varargs }
      :                                  { NoVarargs                 }

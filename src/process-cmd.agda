@@ -184,11 +184,11 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
 
 -}
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype (Datatype pi pix x ps k cs) pi') _  =
+process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype dd@(Datatype pi pix x ps k cs _) pi') _  =
     set-ctxt Γ ≫span
     check-kind (add-params-kind ps k) ≫span -- 
     get-ctxt (λ Γ → 
-      let Γ' = ctxt-datatype-def pi x (qualif-params Γ ps) (qualif-kind Γ (add-params-kind ps k)) Γ in
+      let Γ' = ctxt-datatype-def pi x (qualif-params Γ ps) (qualif-kind Γ (add-params-kind ps k)) (Datatype pi pix x ps k cs pi') Γ in
         set-ctxt Γ'                                          ≫span
         spanM-add (DefDatatype-span pi pix x pi')            ≫span
         spanM-add (TpVar-span Γ' pix x checking [] nothing)  ≫span
@@ -240,7 +240,7 @@ process-file s filename pn | ie =
            process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
                    filename pn x do-check Γ empty-spans ≫=monad cont
            where cont : toplevel-state × ctxt × spans → mF (toplevel-state × include-elt × mod-info)
-                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _) , ss) =
+                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _ _) , ss) =
                    progress-update pn do-check ≫monad returnM
                      (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is
                        (ctxt-set-current-mod Γ prev-mod) ,

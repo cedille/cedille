@@ -5,6 +5,7 @@ import true.
 import sum.
 import product.
 import sigma.
+import bool.
 
 data Nat' : ★ =
      Zero : Nat'
@@ -12,6 +13,14 @@ data Nat' : ★ =
 
 zero ◂ Nat' = Zero .
 one ◂ Nat' = Succ Zero .
+
+iszero
+  ◂ Nat' ➔ Bool
+  = λ n . μ'  n @ (λ n:Nat' . Bool)
+      { | Zero   ➔ tt
+        | Succ r ➔ ff
+--	|  aaa ➔ aaa
+      }.
 
 plus
   ◂ Nat' ➔ Nat' ➔ Nat'
@@ -46,13 +55,13 @@ length
       }.
 
 data test : Nat ➔ ★ = 
-   | {- first pipe is optional -} bar : Π m:Nat . Nat ➔ test m
+   {- first pipe is optional -} bar : Π m:Nat . Nat ➔ test m
    | fooZ : test (S Z) ➔ test Z
    | fooZb : test Z . -- fix indices
    
 test_term ◂ test (S Z) = bar (S Z) (S Z). 
 
-data test2(p:True)(n:Nat) : True ➔ ★ = 
+data test2{p:True}(n:Nat) : True ➔ ★ = 
      bar : ∀ m:True .test2 p n m
    | foo : ∀ m: True. { m ≃ triv} ➾ test2 p n m .
 
@@ -61,5 +70,5 @@ a ◂ True ➔ ★ = test2 triv Z .
 b ◂ Π p':True.  Π n':Nat  .True ➔ ★ = test2 .
 
 -- terms definitions
-c ◂ test2 triv Z triv = bar triv Z -triv .
+c ◂ test2 triv Z triv = bar -triv Z -triv . -- should be bar -triv (without parameters)
 

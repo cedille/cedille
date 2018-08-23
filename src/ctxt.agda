@@ -17,20 +17,20 @@ qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie
+new-ctxt fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie empty-trie
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
 
 ctxt-get-info : var → ctxt → maybe sym-info
-ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
+ctxt-get-info v (mk-ctxt _ _ i _ _) = trie-lookup i v
 
 ctxt-set-qualif : ctxt → qualif → ctxt
-ctxt-set-qualif (mk-ctxt (f , m , p , q') syms i sym-occurrences) q
-  = mk-ctxt (f , m , p , q) syms i sym-occurrences
+ctxt-set-qualif (mk-ctxt (f , m , p , q') syms i sym-occurrences d) q
+  = mk-ctxt (f , m , p , q) syms i sym-occurrences d
 
 ctxt-get-qualif : ctxt → qualif
-ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
+ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _ _) = q
 
 ctxt-get-qi : ctxt → var → maybe qualif-info
 ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
@@ -45,8 +45,8 @@ qi-var-if (just (v , _)) _ = v
 qi-var-if nothing v = v
 
 ctxt-restore-info : ctxt → var → maybe qualif-info → maybe sym-info → ctxt
-ctxt-restore-info (mk-ctxt (fn , mn , ps , q) syms i symb-occs) v qi si =
-  mk-ctxt (fn , mn , ps , f qi v q) syms (f si (qi-var-if qi v) (trie-remove i (qi-var-if (trie-lookup q v) v))) symb-occs
+ctxt-restore-info (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) v qi si =
+  mk-ctxt (fn , mn , ps , f qi v q) syms (f si (qi-var-if qi v) (trie-remove i (qi-var-if (trie-lookup q v) v))) symb-occs d
   where
     f : ∀{A : Set} → maybe A → string → trie A → trie A
     f (just a) s t = trie-insert t s a
@@ -70,16 +70,16 @@ inst-kind Γ ps as k with mk-inst ps as
 ...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
 
 qualif-term : ctxt → term → term
-qualif-term Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-term Γ σ
+qualif-term Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-term Γ σ
 
 qualif-type : ctxt → type → type
-qualif-type Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-type Γ σ
+qualif-type Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-type Γ σ
 
 qualif-kind : ctxt → kind → kind
-qualif-kind Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-kind Γ σ
+qualif-kind Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-kind Γ σ
 
 qualif-liftingType : ctxt → liftingType → liftingType
-qualif-liftingType Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _) = substs-liftingType Γ σ
+qualif-liftingType Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-liftingType Γ σ
 
 qualif-tk : ctxt → tk → tk
 qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
@@ -102,19 +102,21 @@ qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp
 qualif-args Γ ArgsNil = ArgsNil
 
 ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
-ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
   (trie-insert i v' ((term-decl (qualif-type Γ t)) , (fn , p)))
   symb-occs
+  d
   where v' = if s iff localScope then p % v else mn # v
 
 ctxt-type-decl : posinfo → defScope → var → kind → ctxt → ctxt
-ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
   (trie-insert i v' (type-decl (qualif-kind Γ k) , (fn , p)))
   symb-occs
+  d
   where v' = if s iff localScope then p % v else mn # v
 
 ctxt-tk-decl : posinfo → defScope → var → tk → ctxt → ctxt
@@ -124,15 +126,16 @@ ctxt-tk-decl p s x (Tkk k) Γ = ctxt-type-decl p s x k Γ
 -- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : posinfo → var → ctxt → ctxt
 ctxt-var-decl-if p v Γ with Γ
-... | mk-ctxt (fn , mn , ps , q) syms i symb-occs with trie-lookup i v
+... | mk-ctxt (fn , mn , ps , q) syms i symb-occs d with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
 ... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms
   (trie-insert i v (var-decl , (fn , p)))
   symb-occs
+  d
 
 ctxt-rename-rep : ctxt → var → var
-ctxt-rename-rep (mk-ctxt m syms i _) v with trie-lookup i v 
+ctxt-rename-rep (mk-ctxt m syms i _ _) v with trie-lookup i v 
 ...                                           | just (rename-def v' , _) = v'
 ...                                           | _ = v
 
@@ -144,10 +147,11 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 
 ctxt-rename : posinfo → var → var → ctxt → ctxt
-ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
   (trie-insert i v (rename-def v' , (fn , p)))
-  symb-occs)
+  symb-occs
+  d)
 
 ----------------------------------------------------------------------
 -- lookup functions
@@ -155,20 +159,20 @@ ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
 
 -- lookup mod params from filename
 lookup-mod-params : ctxt → var → maybe params
-lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps , id) _ _) fn =
+lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps , id) _ _ _) fn =
   trie-lookup syms fn ≫=maybe λ { (mn , _) →
   trie-lookup mn-ps mn }
 
 -- look for a defined kind for the given var, which is assumed to be a type,
 -- then instantiate its parameters
 qual-lookup : ctxt → var → maybe (args × sym-info)
-qual-lookup Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
+qual-lookup Γ@(mk-ctxt (_ , _ , _ , q) _ i _ _) v =
   trie-lookup q v ≫=maybe λ qv →
   trie-lookup i (fst qv) ≫=maybe λ si →
   just (snd qv , si)
 
 env-lookup : ctxt → var → maybe sym-info
-env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _) v =
+env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _ _) v =
   trie-lookup i v
 
 -- look for a declared kind for the given var, which is assumed to be a type,
@@ -233,29 +237,29 @@ ctxt-lookup-kind-var-def Γ x with env-lookup Γ x
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def-args : ctxt → var → maybe (params × args)
-ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-lookup q v
+ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _ _) v with trie-lookup q v
 ... | just (v' , as) = ctxt-lookup-kind-var-def Γ v' ≫=maybe λ { (ps , k) → just (ps , as) }
 ... | _ = nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
-ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs) symbol with trie-lookup symb-occs symbol
+ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs _) symbol with trie-lookup symb-occs symbol
 ... | just l = l
 ... | nothing = []
 
 ----------------------------------------------------------------------
 
 ctxt-var-location : ctxt → var → location
-ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
+ctxt-var-location (mk-ctxt _ _ i _ _) x with trie-lookup i x
 ... | just (_ , l) = l
 ... | nothing = "missing" , "missing"
 
 ctxt-clarify-def : ctxt → var → maybe (sym-info × ctxt)
-ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
+ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences d) x
   = trie-lookup i x ≫=maybe λ { (ci , l) →
     clarified x ci l }
   where
     ctxt' : var → ctxt-info → location → ctxt
-    ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences
+    ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences d
 
     clarified : var → ctxt-info → location → maybe (sym-info × ctxt)
     clarified v ci@(term-def ps _ t T) l = just ((ci , l) , (ctxt' v (term-def ps OpacTrans t T) l))
@@ -265,35 +269,36 @@ ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
 
 
 ctxt-set-sym-info : ctxt → var → sym-info → ctxt
-ctxt-set-sym-info (mk-ctxt mod syms i sym-occurrences) x si =
-  mk-ctxt mod syms (trie-insert i x si) sym-occurrences
+ctxt-set-sym-info (mk-ctxt mod syms i sym-occurrences d) x si =
+  mk-ctxt mod syms (trie-insert i x si) sym-occurrences d
 
 ctxt-restore-clarified-def : ctxt → var → sym-info → ctxt
 ctxt-restore-clarified-def = ctxt-set-sym-info
 
 ctxt-set-current-file : ctxt → string → string → ctxt
-ctxt-set-current-file (mk-ctxt _ syms i symb-occs) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs
+ctxt-set-current-file (mk-ctxt _ syms i symb-occs d) fn mn = mk-ctxt (fn , mn , ParamsNil , new-qualif) syms i symb-occs d
 
 ctxt-set-current-mod : ctxt → mod-info → ctxt
-ctxt-set-current-mod (mk-ctxt _ syms i symb-occs) m = mk-ctxt m syms i symb-occs
+ctxt-set-current-mod (mk-ctxt _ syms i symb-occs d) m = mk-ctxt m syms i symb-occs d
 
 ctxt-add-current-params : ctxt → ctxt
-ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps , ids) i symb-occs) =
-  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps , ids) i symb-occs
+ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps , ids) i symb-occs d) =
+  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps , ids) i symb-occs d
 
 ctxt-clear-symbol : ctxt → string → ctxt
-ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs) x =
-  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) symb-occs
+ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i symb-occs d) x =
+  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) symb-occs d
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ
 ctxt-clear-symbols Γ (v :: vs) = ctxt-clear-symbols (ctxt-clear-symbol Γ v) vs
 
 ctxt-clear-symbols-of-file : ctxt → (filename : string) → ctxt
-ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i symb-occs) fn =
+ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i symb-occs d) fn =
   mk-ctxt f (trie-insert syms fn (fst p , []) , trie-insert mn-fn (fst p) fn , mn-ps)
     (hremove i (fst p) (snd p))
     symb-occs
+    d
   where
   p = trie-lookup𝕃2 syms fn
   hremove : ∀ {A : Set} → trie A → var → 𝕃 string → trie A
@@ -301,14 +306,14 @@ ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i symb-occs) fn =
   hremove i mn (x :: xs) = hremove (trie-remove i (mn # x)) mn xs
 
 ctxt-add-current-id : ctxt → ctxt
-ctxt-add-current-id (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
-  mk-ctxt mod (syms , mn-fn , mn-ps , trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is os
+ctxt-add-current-id (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os d) =
+  mk-ctxt mod (syms , mn-fn , mn-ps , trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is os d
 
 ctxt-initiate-file : ctxt → (filename modname : string) → ctxt
 ctxt-initiate-file Γ fn mn = ctxt-add-current-id (ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn)
 
 unqual : ctxt → var → string
-unqual (mk-ctxt (_ , _ , _ , q) _ _ _ ) v =
+unqual (mk-ctxt (_ , _ , _ , q) _ _ _  _) v =
   if qualif-nonempty q
   then unqual-local (unqual-all q v)
   else v

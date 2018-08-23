@@ -41,7 +41,7 @@ data Decl =
      deriving (Show,Eq)
 
 data DefDatatype =
-     Datatype PosInfo PosInfo Var Params Kind DataConsts
+     Datatype PosInfo PosInfo Var Params Kind DataConsts PosInfo
      deriving (Show,Eq)
 
 data DataConst =
@@ -162,14 +162,14 @@ data Term =
      | Rho PosInfo OptPlus OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
-     | Mu    PosInfo Bvar Term OptType Cases PosInfo
-     | Mu'   PosInfo      Term OptType Cases PosInfo     
+     | Mu    PosInfo Bvar Term OptType PosInfo Cases PosInfo
+     | Mu'   PosInfo      Term OptType PosInfo Cases PosInfo     
      | Var PosInfo Qvar
      deriving (Show,Eq)
 
 data Cases =
        NoCase
-     | SomeCase Var Varargs Term Cases
+     | SomeCase PosInfo Var Varargs Term Cases
      deriving (Show,Eq)
 
 data Varargs =

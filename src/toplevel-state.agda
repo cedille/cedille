@@ -183,7 +183,7 @@ mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os d) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -250,12 +250,12 @@ scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
 scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType _ (DefTerm pi v mcT _) pi') = scope-def fn mn v
 scope-cmd fn mn (DefTermOrType _ (DefType pi v k _) pi') = scope-def fn mn v
-scope-cmd fn mn (DefDatatype   (Datatype pi _ v _ _ _) pi')   oa as = scope-def fn mn v oa as
+scope-cmd fn mn (DefDatatype   (Datatype pi _ v _ _ _ _) pi')   oa as = scope-def fn mn v oa as
 
 
 scope-def _ mn v oa as s with import-as v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os) ,
+...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
   -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^

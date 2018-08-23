@@ -35,50 +35,51 @@ private
   uncurry'' f (a , b , c , d) = f a b c d
 
   ctxt-term-decl' : posinfo → var → type → ctxt → ctxt
-  ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os) =
+  ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os d) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (term-decl T , fn , pi)) os
+      (trie-insert is x (term-decl T , fn , pi)) os d
 
   ctxt-type-decl' : posinfo → var → kind → ctxt → ctxt
-  ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os) =
+  ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os d) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (type-decl k , fn , pi)) os
+      (trie-insert is x (type-decl k , fn , pi)) os d
 
   ctxt-tk-decl' : posinfo → var → tk → ctxt → ctxt
   ctxt-tk-decl' pi x (Tkt T) = ctxt-term-decl' pi x T
   ctxt-tk-decl' pi x (Tkk k) = ctxt-type-decl' pi x k
 
   ctxt-param-decl : var → var → tk → ctxt → ctxt
-  ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
+  ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os dt) =
     let d = case atk of λ {(Tkt T) → term-decl T; (Tkk k) → type-decl k} in
     mk-ctxt
     (fn , mn , ps , trie-insert q x (mn # x , ArgsNil)) ss
-    (trie-insert is x' (d , fn , posinfo-gen)) os
+    (trie-insert is x' (d , fn , posinfo-gen)) os dt
 
   ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
-  ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+  ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) = mk-ctxt
     (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os
+    (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x))    os
+    d
 
   ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
-  ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+  ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) = mk-ctxt
     (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-    (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
+    (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os d
 
   ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
-  ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
+  ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os d) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os
+      (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os d
   
   ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
-  ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
+  ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os d) =
     mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-      (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os
+      (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os d
   
   ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
-  ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
+  ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os d) = mk-ctxt
     (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
-    (trie-insert is x' (kind-def ps1 (h Γ ps2) k' , fn , posinfo-gen)) os
+    (trie-insert is x' (kind-def ps1 (h Γ ps2) k' , fn , posinfo-gen)) os d
     where
       k' = hnf Γ unfold-head k tt
       h : ctxt → params → params
@@ -87,7 +88,7 @@ private
       h _ ps = ps
 
   ctxt-lookup-term-var' : ctxt → var → maybe type
-  ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
+  ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os _) x =
     env-lookup Γ x ≫=maybe λ where
       (term-decl T , _) → just T
       (term-def ps _ _ T , _ , x') →
@@ -98,7 +99,7 @@ private
   -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
   -- TODO: Could variables be parameter-expanded multiple times?
   ctxt-lookup-type-var' : ctxt → var → maybe kind
-  ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
+  ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os _) x =
     env-lookup Γ x ≫=maybe λ where
       (type-decl k , _) → just k
       (type-def ps _ _ k , _ , x') →
@@ -258,7 +259,7 @@ private
     args-to-string as ≫str
     strAdd " ." ≫str
     f
-  cmd-to-string (DefDatatype (Datatype _ _ x p k d) _) f =
+  cmd-to-string (DefDatatype (Datatype _ _ x p k d _) _) f =
     strAdd "data "   ≫str
     strAdd x         ≫str
     params-to-string p ≫str
@@ -464,8 +465,8 @@ elab-check-term Γ (Theta pi θ t ts) T =
   motive x x' T T' AbstractEq = just (mtplam x' (Tkt T') (TpArrow (mtpeq t (mvar x')) Erased (rename-var Γ x x' T)))
   motive x x' T T' (AbstractVars vs) = wrap-vars vs T
 elab-check-term Γ (Var pi x) T = just (mvar x)
-elab-check-term Γ (Mu pi x t ot cs pi') T = nothing
-elab-check-term Γ (Mu' pi t ot cs pi')  T = nothing
+elab-check-term Γ (Mu pi x t ot pi' cs pi'') T = nothing
+elab-check-term Γ (Mu' pi t ot pi' cs pi'')  T = nothing
 
 elab-synth-term Γ (App t me t') =
   elab-app-term Γ (App t me t') ≫=maybe λ where
@@ -601,8 +602,8 @@ elab-synth-term Γ (Var pi x) =
   ctxt-lookup-term-var' Γ x ≫=maybe λ T →
   elab-hnf-type Γ T tt ≫=maybe λ T →
   just (mvar x , T)
-elab-synth-term Γ (Mu pi x t ot cs pi') = nothing
-elab-synth-term Γ (Mu' pi t ot cs pi')  = nothing
+elab-synth-term Γ (Mu pi x t ot pi' cs pi'') = nothing
+elab-synth-term Γ (Mu' pi t ot pi' cs pi'')  = nothing
 
 elab-typeh Γ (Abs pi b pi' x atk T) b' =
   elab-tkh Γ atk b' ≫=maybe λ atk →
@@ -840,9 +841,9 @@ elab-cmds ts ρ φ (CmdsNext (ImportCmd i) cs) =
   elab-import ts ρ φ i ≫=maybe uncurry'' λ i ts ρ φ →
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (ImportCmd i) cs , ts-ρ-φ)
-elab-cmds ts ρ φ (CmdsNext (DefDatatype (Datatype _ _ x p k d) _) cs) =
+elab-cmds ts ρ φ (CmdsNext (DefDatatype (Datatype _ _ x p k d pf) _) cs) =
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (DefDatatype (Datatype posinfo-gen posinfo-gen x p k d) posinfo-gen) cs , ts-ρ-φ)
+  just (CmdsNext (DefDatatype (Datatype posinfo-gen posinfo-gen x p k d pf) posinfo-gen) cs , ts-ρ-φ)
 
 elab-file' ts ρ φ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →

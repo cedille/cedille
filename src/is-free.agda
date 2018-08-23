@@ -60,11 +60,11 @@ are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-
         are-free-in-lterms ce x (LtermsNil _) = ff
         are-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && are-free-in-term ce x t) || are-free-in-lterms ce x ls
         are-free-in-lterms ce x (LtermsCons NotErased t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
-are-free-in-term ce x (Mu _ x' t ot cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce (trie-remove x x') t || are-free-in-cases ce x cs
-are-free-in-term ce x (Mu' _   t ot cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce x t || are-free-in-cases ce x cs
+are-free-in-term ce x (Mu _ x' t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce (trie-remove x x') t || are-free-in-cases ce x cs
+are-free-in-term ce x (Mu' _   t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce x t || are-free-in-cases ce x cs
 
 are-free-in-cases _ _  NoCase                    = ff
-are-free-in-cases ce x (SomeCase c varargs t cs) = are-free-in-varargs ce x varargs || are-free-in-term ce x t || are-free-in-cases ce x cs
+are-free-in-cases ce x (SomeCase _ c varargs t cs) = are-free-in-varargs ce x varargs || are-free-in-term ce x t || are-free-in-cases ce x cs
 
 are-free-in-varargs ce x NoVarargs              = ff
 are-free-in-varargs ce x (NormalVararg x' args) = trie-contains x x'         || are-free-in-varargs ce x args

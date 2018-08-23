@@ -65,7 +65,7 @@ spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 print-file-id-table : ctxt → 𝕃 tagged-val
-print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
+print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os _) =
   h [] id-fns where
   h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
   h ts [] = ts
@@ -281,7 +281,7 @@ location-data : location → tagged-val
 location-data (file-name , pi) = "location" , [[ file-name ]] ⊹⊹ [[ " - " ]] ⊹⊹ [[ pi ]] , []
 
 var-location-data : ctxt → var → tagged-val
-var-location-data Γ @ (mk-ctxt _ _ i _) x =
+var-location-data Γ @ (mk-ctxt _ _ i _ _) x =
   location-data (maybe-else ("missing" , "missing") snd
     (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
 {-
@@ -511,7 +511,7 @@ TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val �
 TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
-Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
+Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs) 
 
 KndVar-span : ctxt → (posinfo × var) → (end-pi : posinfo) → params → checking-mode → 𝕃 tagged-val → err-m → span
 KndVar-span Γ (pi , v) pi' ps check tvs =
@@ -802,8 +802,11 @@ Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data
 TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
 
-Mu-span : checking-mode → term → 𝕃 tagged-val → err-m → span
-Mu-span c t tvs = mk-span "Mu fixpoint" (term-start-pos t) (term-end-pos t) tvs
+Mu'-span : term → 𝕃 tagged-val → err-m → span
+Mu'-span t tvs = mk-span "Mu' cases" (term-start-pos t) (term-end-pos t) tvs
+
+Mu-span : term → 𝕃 tagged-val → err-m → span
+Mu-span t tvs = mk-span "Mu fixpoint" (term-start-pos t) (term-end-pos t) tvs
 
 DefDatatype-span : posinfo → posinfo → var → posinfo → span
 DefDatatype-span pi _ x pi' = mk-span "Datatype definition" pi pi' [] nothing

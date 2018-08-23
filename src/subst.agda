@@ -82,16 +82,16 @@ substh-term Γ ρ σ (Theta pi θ t ls) = Theta pi (substh-theta θ) (substh-ter
         substh-theta : theta → theta
         substh-theta (AbstractVars xs) = AbstractVars (substh-vars xs)
         substh-theta θ = θ
-substh-term Γ ρ σ (Mu pi x t ot cs pi') =
+substh-term Γ ρ σ (Mu pi x t ot pi' cs pi'') =
   let x' = subst-rename-var-if Γ ρ x σ in
   let ρ' = renamectxt-insert ρ x x'    in
-    Mu pi x' (substh-term (ctxt-var-decl posinfo-gen x' Γ) ρ' σ t) (substh-optType Γ ρ σ ot) (substh-cases Γ ρ' σ cs) pi'
-substh-term Γ ρ σ (Mu' pi t ot cs pi')   = Mu' pi (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) (substh-cases Γ ρ σ cs) pi'
+    Mu pi x' (substh-term (ctxt-var-decl posinfo-gen x' Γ) ρ' σ t) (substh-optType Γ ρ σ ot) pi' (substh-cases Γ ρ' σ cs) pi''
+substh-term Γ ρ σ (Mu' pi t ot pi' cs pi'')   = Mu' pi (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) pi' (substh-cases Γ ρ σ cs) pi''
 
 substh-cases Γ ρ σ NoCase = NoCase
-substh-cases Γ ρ σ (SomeCase x varargs t cs) =
+substh-cases Γ ρ σ (SomeCase pi x varargs t cs) =
   let res = substh-varargs Γ ρ σ varargs in
-  SomeCase x (fst res) (substh-term Γ (snd res) σ t) (substh-cases Γ ρ σ cs)
+  SomeCase pi x (fst res) (substh-term Γ (snd res) σ t) (substh-cases Γ ρ σ cs)
 
 substh-varargs Γ ρ σ NoVarargs                = NoVarargs , ρ
 substh-varargs Γ ρ σ (NormalVararg x varargs) =

@@ -40,8 +40,8 @@ no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Delta _ _ _) right = tt
 no-parens {_} {TERM} _ (Let _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu _ _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu' _ _ _ _ _)  lr = tt
+no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _) lr = tt
+no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
 no-parens {_} {KIND} _ (KndPi _ _ _ _ _) lr = tt
@@ -65,8 +65,8 @@ no-parens{TERM} (Rho pi op on eq og t) p lr = ff
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
-no-parens{TERM} (Mu _ _ _ _ _ _) p lr = tt
-no-parens{TERM} (Mu' _ _ _ _ _)  p lr = tt
+no-parens{TERM} (Mu _ _ _ _ _ _ _) p lr = tt
+no-parens{TERM} (Mu' _ _ _ _ _ _)  p lr = tt
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = is-arrow p && not-left lr
 no-parens{TYPE} (Iota pi pi' x oT T) p lr = ff
 no-parens{TYPE} (Lft pi pi' x t lT) p lr = ff
@@ -118,16 +118,16 @@ strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
 strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
-strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
+strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
   m s n ts
-    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
+    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d)
     pe
   where v' = if ds iff localScope then pi % v else mn # v
 
 strΓ = strΓ' localScope ff
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
-ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os) =
+ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os _) =
   trie-lookup-else 0 ids
 
 make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
@@ -262,8 +262,8 @@ term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-s
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
-term-to-stringh (Mu pi x t ot cs pi') = strAdd ("μ " ^ x ^ " . ") ≫str to-stringh t ≫str  optType-to-string ot 
-term-to-stringh (Mu' pi t ot cs pi')  = strAdd "μ " ≫str to-stringh t ≫str  optType-to-string ot 
+term-to-stringh (Mu pi x t ot pi' cs pi'') = strAdd ("μ " ^ x ^ " . ") ≫str to-stringh t ≫str  optType-to-string ot 
+term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ " ≫str to-stringh t ≫str  optType-to-string ot 
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
 type-to-stringh (Iota pi pi' x T T') = strAdd ("ι " ^ x) ≫str strAdd " : " ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T')
