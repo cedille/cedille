@@ -1,0 +1,352 @@
+module Mendler (Indices : ★).
+
+Sigma ◂ Π A : ★. (A ➔ ★) ➔ ★ = λ A : ★. λ B : A ➔ ★.
+  ι x : {β ≃ β}. ∀ X : {β ≃ β} ➔ ★. (Π a : A. Π b : B a. X β{λ f. f a b}) ➔ X x.
+Product ◂ ★ ➔ ★ ➔ ★ = λ A : ★. λ B : ★. Sigma · A · (λ _ : A. B).
+
+sigma ◂ ∀ A : ★. ∀ B : A ➔ ★. Π a : A. B a ➔ Sigma · A · B =
+  Λ A. Λ B. λ a. λ b. [β{λ f. f a b}, Λ X. λ f. f a b].
+
+SigmaInd ◂
+    ∀ A : ★.
+    ∀ B : A ➔ ★.
+    Π x : Sigma · A · B.
+    ∀ Q : Sigma · A · B ➔ ★.
+    (Π a : A. Π b : B a. Q (sigma · A · B a b)) ➔
+    Q x =
+  Λ A. Λ B. λ x. Λ Q. λ f.
+    x.2 · (λ x : {β ≃ β}. ∀ x' : Sigma · A · B. {x' ≃ x} ➾ Q x')
+      (λ a. λ b. Λ x'. Λ e. ρ e - f a b) -x -β.
+
+fst ◂ ∀ A : ★. ∀ B : A ➔ ★. Sigma · A · B ➔ A = Λ A. Λ B. λ x.
+  SigmaInd x · (λ x : Sigma · A · B. A) (λ a. λ b. a).
+
+snd ◂ ∀ A : ★. ∀ B : A ➔ ★. Π x : Sigma · A · B. B (fst x) = Λ A. Λ B. λ x.
+  SigmaInd x · (λ x : Sigma · A · B. B (fst x)) (λ a. λ b. b).
+
+
+Cast ◂ (Indices ➔ ★) ➔ (Indices ➔ ★) ➔ ★ = λ A : Indices ➔ ★. λ B : Indices ➔ ★.
+  ι cast : ∀ indices : Indices. A indices ➔ B indices. {cast ≃ λ x. x}.
+
+cast ◂
+    ∀ A : Indices ➔ ★. ∀ B : Indices ➔ ★. Cast · A · B ➾
+    ∀ indices : Indices. A indices ➔ B indices =
+  Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+
+Functor ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ X : Indices ➔ ★. ∀ Y : Indices ➔ ★.
+    Cast · X · Y ➾ Cast · (F · X) · (F · Y).
+
+
+AlgM ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ ★ ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ A : ★. λ indices : Indices.
+    ∀ R : Indices ➔ ★. (R indices ➔ A) ➔ F · R indices ➔ A.
+
+FixM ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ indices : Indices. ∀ A : ★. AlgM · F · A indices ➔ A.
+
+foldM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ A : ★. ∀ indices : Indices.
+    AlgM · F · A indices ➔ FixM · F indices ➔ A =
+  Λ F. Λ A. Λ indices. λ alg. λ fix. fix alg.
+
+inFixM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ indices : Indices.
+    F · (FixM · F) indices ➔ FixM · F indices =
+  Λ F. Λ indices. λ fexp. Λ A. λ alg. alg (foldM · F · A -indices alg) fexp.
+
+PrfAlgM ◂
+    Π F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    Functor · F ➔
+    Π X : Indices ➔ ★.
+    (Π indices : Indices. X indices ➔ ★) ➔
+    (∀ indices : Indices. F · X indices ➔ X indices) ➔
+    ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ fmap : Functor · F. λ X : Indices ➔ ★.
+    λ Q : Π indices : Indices. X indices ➔ ★.
+      λ alg : (∀ indices : Indices. F · X indices ➔ X indices). 
+        ∀ R : Indices ➔ ★. ∀ c : Cast · R · X. 
+        (∀ indices : Indices. Π r : R indices. Q indices (cast -c -indices r)) ➔
+        ∀ indices : Indices. Π gr : F · R indices.
+        Q indices (alg -indices (cast -(fmap -c) -indices gr)).
+
+IsIndFixM ◂
+    Π F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    Functor · F ➔
+    Π indices : Indices.
+    FixM · F indices ➔
+    ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ fmap : Functor · F.
+    λ indices : Indices. λ x : FixM · F indices.
+      ∀ Q : Π indices : Indices. FixM · F indices ➔ ★.
+      PrfAlgM · F fmap · (FixM · F) · Q (inFixM · F) ➔ Q indices x.
+
+FixIndM ◂ Π F : (Indices ➔ ★) ➔ Indices ➔ ★. Functor · F ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ fmap : Functor · F. λ indices : Indices.
+    ι x : FixM · F indices. IsIndFixM · F fmap indices x.
+
+inFixIndM ◂ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ indices : Indices. F · (FixIndM · F fmap) indices ➔ FixIndM · F fmap indices =
+  Λ F. Λ fmap. Λ indices. λ v.
+    [outInd ◂ Cast · (FixIndM · F fmap) · (FixM · F) = [Λ indices. λ x. x.1, β]] -
+    [inFixM · F -indices (cast -(fmap -outInd) -indices v),
+     Λ Q. λ q. q -outInd (Λ indices. λ r. r.2 q) -indices v ].
+
+WithWitness ◂ Π X : ★. Π Y : ★. (X ➔ ★) ➔ Y ➔ ★ =
+  λ X : ★. λ Y : ★. λ Q : X ➔ ★. λ y : Y.
+    Sigma · (ι x : X. {y ≃ x}) · (λ x : (ι x : X. {y ≃ x}). Q x.1).
+
+Lift ◂
+    Π F : (Indices ➔ ★) ➔ Indices ➔ ★. Π fmap : Functor · F.
+    (Π indices : Indices. FixIndM · F fmap indices ➔ ★) ➔
+    Π indices : Indices. FixM · F indices ➔
+    ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ fmap : Functor · F.
+    λ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+      λ indices : Indices. λ e : FixM · F indices.
+        WithWitness · (FixIndM · F fmap indices) · (FixM · F indices) · (Q indices) e.
+
+LiftProp1 ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+    ∀ indices : Indices. ∀ e : FixIndM · F fmap indices.
+    Lift · F fmap · Q indices e.1 ➔ Q indices e =
+  Λ F. Λ fmap. Λ Q. Λ indices. Λ e. λ pr. ρ (fst pr).2 - snd pr.
+
+LiftProp2 ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+    ∀ indices : Indices. Π e : FixIndM · F fmap indices.
+    Q indices e ➔ Lift · F fmap · Q indices e.1 =
+  Λ F. Λ fmap. Λ Q. Λ indices. λ e. sigma
+    · (ι x : FixIndM · F fmap indices. {e ≃ x})
+    · (λ x : ι x : FixIndM · F fmap indices. {e ≃ x}. Q indices x.1)
+    [e, β{e}].
+
+LiftProp3 ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+    ∀ indices : Indices. ∀ e : FixM · F indices.
+    Lift · F fmap · Q indices e ➔ FixIndM · F fmap indices =
+  Λ F. Λ fmap. Λ Q. Λ indices. Λ e. λ pr. (fst pr).1.
+
+LiftProp4 ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+    ∀ indices : Indices. ∀ e : FixM · F indices.
+    ∀ p : Lift · F fmap · Q indices e. {LiftProp3 p ≃ e} =
+  Λ F. Λ fmap. Λ Q. Λ indices. Λ e. Λ pr. ρ (fst pr).2 - β.
+
+convIH ◂
+ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+ ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+ ∀ Y : Π indices : Indices. FixM · F indices ➔ ★.
+ Π Yprop1 : ∀ indices : Indices. ∀ e : FixIndM · F fmap indices. Y indices e.1 ➔ Q indices e.
+ Π Yprop2 : ∀ indices : Indices. Π e : FixIndM · F fmap indices. Q indices e ➔ Y indices e.1.
+ Π Yprop3 : ∀ indices : Indices. ∀ e : FixM · F indices. Y indices e ➔ FixIndM · F fmap indices.
+ Π Yprop4 : ∀ indices : Indices. ∀ e : FixM · F indices. ∀ p : Y indices e. {Yprop3 p ≃ e}.
+ PrfAlgM · F fmap · (FixIndM · F fmap) · Q (inFixIndM · F -fmap) ➔
+ PrfAlgM · F fmap · (FixM · F) · Y (inFixM · F) =
+  Λ F. Λ fmap. Λ Q. Λ Y. λ qp3. λ qp4. λ qp1. λ qp2. λ q. Λ R. Λ cst. λ ih. Λ indices. λ gr.
+    [cst2 ◂ Cast · R · (FixIndM · F fmap) =
+      [Λ indices. λ r. φ (qp2 -indices -(cast -cst -indices r) -(ih -indices r)) -
+        (qp1 -indices -(cast -cst -indices r) (ih -indices r)) {r}, β]] -
+    qp4 -indices (inFixIndM -fmap -indices (cast -(fmap -cst2) -indices gr))
+      (q -cst2 (Λ indices. λ r. qp3 -indices -(cast -cst2 -indices r) (ih -indices r))
+        -indices gr).
+
+indFixIndM ◂ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+             ∀ indices : Indices. Π e : FixIndM · F fmap indices.
+             ∀ Q : Π indices : Indices. FixIndM · F fmap indices ➔ ★.
+             PrfAlgM · F fmap · (FixIndM · F fmap) · Q (inFixIndM · F -fmap) ➔
+             Q indices e = 
+  Λ F. Λ fmap. Λ indices. λ e. Λ Q. λ q. LiftProp1 -fmap · Q -indices -e
+    (e.2 (convIH -fmap
+      (LiftProp1 -fmap · Q)
+      (LiftProp2 -fmap · Q)
+      (LiftProp3 -fmap · Q)
+      (LiftProp4 -fmap · Q)
+      q)).
+
+
+outAlgM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F. PrfAlgM · F fmap
+      · (FixIndM · F fmap) · (λ indices : Indices. λ _ : FixIndM · F fmap indices.
+                               F · (FixIndM · F fmap) indices) (inFixIndM · F -fmap) =
+  Λ F. Λ fmap. Λ R. Λ c. λ x. cast -(fmap -c).
+
+outFixIndM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F. ∀ indices : Indices.
+    FixIndM · F fmap indices ➔ F · (FixIndM · F fmap) indices =
+  Λ F. Λ fmap. Λ indices. λ e. indFixIndM -fmap -indices e
+    · (λ indices : Indices. λ _ : FixIndM · F fmap indices. F · (FixIndM · F fmap) indices)
+    (outAlgM · F -fmap).
+
+
+Cowedge ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ D : Indices ➔ ★. λ indices : Indices.
+    ∀ A : Indices ➔ ★.
+    (∀ indices : Indices. A indices ➔ D indices) ➔
+    F · A indices ➔
+    D indices.
+Coend ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ A : Indices ➔ ★. λ indices : Indices.
+    ∀ Y : ★.
+    (∀ R : Indices ➔ ★. (∀ indices : Indices. R indices ➔ A indices) ➔ F · R indices ➔ Y) ➔
+    Y.
+
+intrCoend ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    ∀ C : Indices ➔ ★.
+    ∀ R : Indices ➔ ★.
+    ∀ indices : Indices.
+    (∀ indices : Indices. R indices ➔ C indices) ➔
+    F · R indices ➔
+    Coend · F · C indices =
+  Λ F. Λ C. Λ R. Λ indices. λ ac. λ ga. Λ Y. λ q. q ac ga.
+
+elimCoend ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    ∀ A : Indices ➔ ★.
+    ∀ D : ★.
+    ∀ indices : Indices.
+    (∀ R : Indices ➔ ★. (∀ indices : Indices. R indices ➔ A indices) ➔ F · R indices ➔ D) ➔
+    Coend · F · A indices ➔
+    D =
+  Λ F. Λ A. Λ D. Λ indices. λ phi. λ e. e phi.
+
+CoendInductive ◂
+    Π F : (Indices ➔ ★) ➔ Indices ➔ ★. Π C : Indices ➔ ★.
+    Π indices : Indices. Coend · F · C indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ C : Indices ➔ ★.
+    λ indices : Indices. λ e : Coend · F · C indices.
+      ∀ Q : Π indices : Indices. Coend · F · C indices ➔ ★.
+      (∀ R : Indices ➔ ★. ∀ indices : Indices. Π c : Cast · R · C.
+        Π gr : F · R indices. Q indices (intrCoend · F · C · R -indices (cast -c) gr)) ➔
+      Q indices e.
+
+CoendInd ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ G : (Indices ➔ ★) ➔ Indices ➔ ★. λ C : Indices ➔ ★. λ indices : Indices.
+    ι x : Coend · G · C indices. CoendInductive  · G · C indices x. 
+
+intrCoendInd ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    ∀ C : Indices ➔ ★. ∀ R : Indices ➔ ★. ∀ indices : Indices.
+    Cast · R · C ➾ F · R indices ➔ CoendInd · F · C indices =
+  Λ F. Λ C. Λ R. Λ indices. Λ f. λ gr.
+    [intrCoend · F · C · R -indices (cast -f) gr, Λ Q. λ q. q · R -indices [cast -f, β] gr].
+
+
+indCoend' ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ C : Indices ➔ ★. ∀ indices : Indices.
+    Π e : CoendInd · F · C indices.
+    ∀ Q : Π indices : Indices. CoendInd · F · C indices ➔ ★.
+    (∀ R : Indices ➔ ★. ∀ indices : Indices. ∀ c : Cast · R · C.
+      Π gr : F · R indices. Q indices (intrCoendInd · F · C · R -indices -c gr)) ➔
+    ∀ X : Π indices : Indices. CoendInd · F · C indices ➔ ★.
+    (∀ indices : Indices. ∀ x' : CoendInd · F · C indices. Q indices x' ➔ X indices x') ➔
+    X indices e =
+  Λ F. Λ C. Λ indices. λ e. Λ Q. λ q. θ<indices e> e.2
+    (Λ R. Λ indices. λ ar. λ gr. Λ X. λ qq. qq -indices
+      -(intrCoendInd · F · C · R -indices -ar gr) (q · R -indices -ar gr)).
+
+
+indCoend ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ C : Indices ➔ ★. ∀ indices : Indices.
+    Π e : CoendInd · F · C indices.
+    ∀ Q : Π indices : Indices. CoendInd · F · C indices ➔ ★.
+    (∀ R : Indices ➔ ★. ∀ indices : Indices. ∀ c : Cast · R · C.
+      Π gr : F · R indices. Q indices (intrCoendInd · F · C · R -indices -c gr)) ➔
+    Q indices e =
+  Λ F. Λ C. Λ indices. λ e. Λ Q. λ i.
+    indCoend' · F · C -indices e · Q i · Q (Λ indices. Λ x'. λ u. u).
+
+fmapCoend ◂ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. Functor · (CoendInd · F) =
+  Λ F. Λ A. Λ B. Λ f.
+    [Λ indices. λ c.
+      φ (θ<indices c> (indCoend · F · A -indices c) (Λ R. Λ indices. Λ i. λ gr. β)) -
+         θ<indices c> (indCoend · F · A -indices c) (Λ R. Λ indices. Λ i. λ gr.
+           intrCoendInd · F · B · R -indices
+             -[Λ indices. λ r. cast -f -indices (cast -i -indices r), β] gr) {c}, β].
+
+
+AlgCVM ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ ★ ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ X : ★. λ indices : Indices.
+    ∀ R : Indices ➔ ★. (R indices ➔ F · R indices) ➔ (R indices ➔ X) ➔ F · R indices ➔ X. 
+
+FixCVM ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ indices : Indices.
+    ∀ R : ★. AlgCVM · F · R indices ➔ R.
+
+foldCVM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ A : ★. ∀ indices : Indices.
+    AlgCVM · F · A indices ➔ FixCVM · F indices ➔ A =
+  Λ F. Λ A. Λ indices. λ alg. λ fix. fix alg.
+
+CVProduct'  ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ X : Indices ➔ ★. λ indices : Indices.
+    Sigma · (F · X indices) · (λ _ : F · X indices. X indices ➔ F · X indices).
+CVF'       ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. CoendInd · (CVProduct' · F).
+CVFixIndM' ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. FixIndM · (CVF' · F) (fmapCoend · (CVProduct' · F)).
+
+cvOutFixIndM' ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F. ∀ indices : Indices.
+    CVFixIndM' · F indices ➔ F · (CVFixIndM' · F) indices =
+  Λ F. Λ fmap. Λ indices. λ v. indCoend
+    · (CVProduct' · F)
+    · (FixIndM · (CoendInd · (CVProduct' · F)) (fmapCoend · (CVProduct' · F)))
+    -indices (outFixIndM -(fmapCoend · (CVProduct' · F)) -indices v) 
+    · (λ indices : Indices. λ _ : CoendInd · (CVProduct' · F) · (CVFixIndM' · F) indices.
+        F · (CVFixIndM' · F) indices)
+ (Λ R. Λ indices. Λ c. λ v. cast -(fmap -c) -indices (fst v)).
+
+CVProduct ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ X : Indices ➔ ★. λ indices : Indices. Product
+    · (F · X indices)
+    · (ι o : ∀ indices : Indices. X indices ➔ F · X indices. {o ≃ cvOutFixIndM'}).
+CVF  ◂ ((Indices ➔ ★) ➔ Indices ➔ ★) ➔ (Indices ➔ ★) ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. CoendInd · (CVProduct · F).
+CVFixIndM ◂ Π F : (Indices ➔ ★) ➔ Indices ➔ ★. Functor · F ➔ Indices ➔ ★ =
+  λ F : (Indices ➔ ★) ➔ Indices ➔ ★. λ fmap : Functor · F.
+    FixIndM · (CVF · F) (fmapCoend · (CVProduct · F)).
+
+cvOutFixIndM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F. ∀ indices : Indices.
+    CVFixIndM · F fmap indices ➔ F · (CVFixIndM · F fmap) indices =
+  Λ F. Λ fmap. Λ indices. λ v. indCoend
+    · (CVProduct · F)
+    · (FixIndM · (CoendInd · (CVProduct · F)) (fmapCoend · (CVProduct · F)))
+    -indices
+    (outFixIndM -(fmapCoend · (CVProduct · F)) -indices v)
+    · (λ indices : Indices. λ _ : CoendInd · (CVProduct · F) · (CVFixIndM · F fmap) indices.
+        F · (CVFixIndM · F fmap) indices)
+    (Λ R. Λ indices. Λ c. λ v. cast -(fmap -c) -indices (fst v)).
+
+cvInFixIndM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F. ∀ indices : Indices.
+    F · (CVFixIndM · F fmap) indices ➔ CVFixIndM · F fmap indices =
+  Λ F. Λ fmap. Λ indices. λ fcv. inFixIndM -(fmapCoend · (CVProduct · F)) -indices
+    (intrCoendInd · (CVProduct · F) · (CVFixIndM · F fmap) · (CVFixIndM · F fmap)
+      -indices -[Λ indices. λ x. x, β]
+      (sigma fcv [cvOutFixIndM -fmap, β{cvOutFixIndM}])).
+
+cvIndFixIndM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ indices : Indices. Π e : CVFixIndM · F fmap indices.
+    ∀ Q : Π indices : Indices. CVFixIndM · F fmap indices ➔ ★.
+    (∀ R : Indices ➔ ★. ∀ c : Cast · R · (CVFixIndM · F fmap).
+     ∀ out : ∀ indices : Indices. R indices ➔ F · R indices. {out ≃ cvOutFixIndM} ➾
+     (∀ indices : Indices. Π r : R indices. Q indices (cast -c -indices r)) ➔
+     ∀ indices : Indices. Π gr : F · R indices.
+     Q indices (cvInFixIndM -fmap -indices (cast -(fmap -c) -indices gr))) ➔
+    Q indices e =
+  Λ F. Λ fmap. Λ indices. λ e. Λ Q. λ prf.
+    indFixIndM -(fmapCoend · (CVProduct · F)) -indices e · Q
+      (Λ R. Λ i. λ ih. Λ indices. λ gr.
+        θ<indices gr> (indCoend · (CVProduct · F) · R -indices gr)
+          (Λ R'. Λ indices. Λ i2. λ fr. θ<fr> (SigmaInd fr)
+            (λ a. λ b. ρ b.2 - prf · R'
+              -[Λ indices. λ r. cast -i -indices (cast -i2 -indices r), β] b.1 -b.2
+              (Λ indices. λ r'. ih -indices (cast -i2 -indices r')) -indices a))).

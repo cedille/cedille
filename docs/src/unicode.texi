@@ -1,4 +1,4 @@
-@node unicode shortcuts,minor modes,cedille mode commands,Top
+@node unicode shortcuts,extra buffers,cedille mode commands,Top
 @chapter unicode
 
 Here is a very short survey of the Unicode symbols used in Cedille, together

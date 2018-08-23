@@ -1,0 +1,9 @@
+@node summary buffer,meta-vars buffer,context buffer,extra buffers
+
+@chapter Summary buffer
+
+@cindex summary buffer
+
+Displays the type or kind of every definition in the file.
+
+@include extra-buffers-commands.texi

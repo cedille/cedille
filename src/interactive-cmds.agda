@@ -20,6 +20,9 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import elaboration (record options {during-elaboration = ff})
+open import elaboration-helpers (record options {during-elaboration = ff})
+open import templates
 
 private
 
@@ -188,6 +191,24 @@ private
   erase-prompt Γ str =
     parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
     inj₂ (to-string-tag "" Γ (erase (qualif-ed Γ t)))
+
+  private
+    cmds-to-escaped-string : cmds → strM
+    cmds-to-escaped-string (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
+    cmds-to-escaped-string CmdsStart = strEmpty
+
+  data-cmd : ctxt → (encoding name ps is cs : string) → string ⊎ tagged-val
+  data-cmd Γ encodingₛ x psₛ isₛ csₛ =
+    string-to-𝔹 - encodingₛ ! "boolean" ≫parse λ encoding →
+    parse-string ll-kind - psₛ ! "kind" ≫parse λ psₖ →
+    parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
+    parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
+    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices (ctxt-var-decl posinfo-gen x Γ) psₖ
+        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
+        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ ctxt-var-decl posinfo-gen x Γ) isₖ
+        picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
+        defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
+    inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
   
   br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
   br-cmd Γ str ls =
@@ -258,6 +279,8 @@ private
     conv-cmd Γ ll ss is lc
   interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =
     rewrite-cmd Γ ss is head lc
+  interactive-cmd-h Γ ("data" :: encoding :: x :: ps :: is :: cs :: []) =
+    data-cmd Γ encoding x ps is cs
   interactive-cmd-h Γ cs =
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
   

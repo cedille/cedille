@@ -31,9 +31,18 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
   opts-to-options ofp ops >>= λ ops → paths-to-stringset fps >>=r λ ip → record ops { include-path = ip }
   where paths-to-stringset : options-types.paths → IO (𝕃 string × stringset)
         paths-to-stringset (options-types.PathsCons fp fps) =
-          canonicalizePath (combineFileNames (takeDirectory (takeDirectory ofp)) fp) >>= λ rfp →
-          canonicalizePath fp >>= λ afp → paths-to-stringset fps >>=r
-          cedille-options.include-path-insert rfp ∘ cedille-options.include-path-insert afp
+          let rfp = combineFileNames (takeDirectory (takeDirectory ofp)) fp in
+          paths-to-stringset fps >>= λ ps →
+          doesDirectoryExist rfp >>= λ rfpₑ →
+          doesDirectoryExist fp >>= λ fpₑ →
+          (if rfpₑ
+            then (canonicalizePath rfp >>= λ rfp →
+                  return (cedille-options.include-path-insert rfp ps))
+            else return ps) >>= λ ps →
+          if fpₑ
+            then (canonicalizePath fp >>= λ fp →
+                  return (cedille-options.include-path-insert fp ps))
+            else return ps
         paths-to-stringset options-types.PathsNil = return ([] , empty-stringset)
 opts-to-options ofp (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = str-bool-to-𝔹 b }
@@ -436,6 +445,7 @@ postulate
   initializeStdinToUTF8 : IO ⊤
   setStdinNewlineMode : IO ⊤
   compileTime : UTC
+  templatesDir : filepath
 
 {-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}

@@ -10,11 +10,11 @@ open import rename
 open import general-util
 
 drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-drop-mod-args Γ me ((pi , v) , as) = (pi , v) , if (v =string qv)
+drop-mod-args Γ me ((pi , v) , as) = (pi , qv) , if (v =string qv)
   then as else maybe-else as
   (λ n → reverse (drop n (reverse as))) mn
   where
-  qv = unqual-local (unqual-all (ctxt-get-qualif Γ) v)
+  qv = unqual-all (ctxt-get-qualif Γ) v
   mn = ctxt-qualif-args-length Γ me qv
 
 data expr-side : Set where
@@ -166,9 +166,13 @@ type-to-stringh : type → strM
 kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
+constructors-to-string : dataConsts → strM
 
 params-to-string : params → strM
 params-to-string' : defScope → strM → params → strM
+file-to-string : start → strM
+cmds-to-string : cmds → strM → strM
+cmd-to-string : cmd → strM → strM  
 optTerm-to-string : optTerm → string → string → strM
 optClass-to-string : optClass → strM
 optGuide-to-string : optGuide → strM
@@ -239,6 +243,14 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
+constructors-to-string DataNull                        = strEmpty
+constructors-to-string (DataCons (DataConst _ x t) ds) =
+  strAdd "  | "  ≫str
+  strAdd x      ≫str 
+  strAdd " : "  ≫str
+  type-to-stringh  t ≫str
+  constructors-to-string ds
+  
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
@@ -311,7 +323,7 @@ args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-t
 args-to-string ArgsNil = strEmpty
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
-opacity-to-string OpacOpaque = "opaque"
+opacity-to-string OpacOpaque = "opaque "
 opacity-to-string OpacTrans = ""
 maybeErased-to-string Erased = "-"
 maybeErased-to-string NotErased = ""
@@ -357,6 +369,73 @@ params-to-string' ds f (ParamsCons (Decl _ pi me v atk _) ps) =
 
 params-to-string = params-to-string' localScope strEmpty
 
+file-to-string (File _ is _ _ mn ps cs _) =
+   cmds-to-string (imps-to-cmds is)
+  (strAdd "module " ≫str
+   strAdd mn ≫str
+   strAdd " " ≫str
+   params-to-string' globalScope
+  (strAdd "." ≫str strAdd "\n" ≫str
+   cmds-to-string cs strEmpty) ps)
+
+cmds-to-string CmdsStart f = f
+cmds-to-string (CmdsNext c cs) f =
+   strAdd "\n" ≫str
+   cmd-to-string c
+  (strAdd "\n" ≫str
+   cmds-to-string cs f)
+  
+cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
+  strM-Γ λ Γ →
+  let ps = ctxt-get-current-params Γ in
+  strAdd (opacity-to-string op) ≫str
+  strAdd x ≫str
+  maybeCheckType-to-string (case mcT of λ where
+     NoType → NoType
+     (SomeType T) → SomeType (abs-expand-type ps T)) ≫str
+  strAdd " = " ≫str
+  to-stringh (lam-expand-term ps t) ≫str
+  strAdd " ." ≫str
+  strΓ' globalScope tt x pi f
+cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
+  strM-Γ λ Γ →
+  let ps = ctxt-get-current-params Γ in
+  strAdd (opacity-to-string op) ≫str
+  strAdd x ≫str
+  strAdd " ◂ " ≫str
+  to-stringh (abs-expand-kind ps k) ≫str
+  strAdd " = " ≫str
+  to-stringh (lam-expand-type ps T) ≫str
+  strAdd " ." ≫str
+  strΓ' globalScope tt x pi f
+cmd-to-string (DefKind pi x ps k _) f =
+  strM-Γ λ Γ →
+  let ps' = ctxt-get-current-params Γ in
+  strAdd x ≫str
+  params-to-string (append-params ps' ps) ≫str
+  strAdd " = " ≫str
+  to-stringh k ≫str
+  strAdd " ." ≫str
+  strΓ' globalScope tt x pi f
+cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
+  strAdd "import " ≫str
+  strAdd (optPublic-to-string op) ≫str
+  strAdd fn ≫str
+  optAs-to-string oa ≫str
+  args-to-string as ≫str
+  strAdd " ." ≫str
+  f
+cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
+  strAdd "data " ≫str
+  strAdd x ≫str
+  strAdd " " ≫str  
+  params-to-string ps ≫str
+  strAdd " : " ≫str    
+  kind-to-stringh k ≫str
+  strAdd " = " ≫str
+  constructors-to-string cs ≫str
+  f
+
 strRun : ctxt → strM → rope
 strRun Γ m = fst (m {TERM} [[]] 0 [] Γ nothing neither)
 
@@ -380,3 +459,4 @@ tk-to-string Γ atk = strRun Γ (tk-to-stringh atk)
 
 params-to-string-tag : string → ctxt → params → tagged-val
 params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)
+

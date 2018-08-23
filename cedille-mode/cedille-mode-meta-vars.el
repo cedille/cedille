@@ -139,17 +139,18 @@
      'face 'cedille-meta-vars-args-face)))
 
 (defun cedille-mode-fontify-meta-vars()
-  (with-silent-modifications
-    (remove-overlays nil nil 'face 'cedille-meta-vars-head-face)
-    (remove-overlays nil nil 'face 'cedille-meta-vars-args-face)
-    ; Make sure the meta-vars buffer is open and the selected span is an application
-    (when (and (get-buffer-window (cedille-mode-meta-vars-buffer-name))
-               (cedille-mode-meta-vars-continue-computation (se-mode-selected) t))
-      (cedille-mode-fontify-meta-vars-start
-       (cedille-mode-meta-vars-find-locale-start (se-mode-selected) t))
-      (cedille-mode-fontify-meta-vars-end
-       (cedille-mode-meta-vars-find-locale-end
-        (cons (se-mode-selected) se-mode-not-selected))))))
+  (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
+    (with-silent-modifications
+      (remove-overlays nil nil 'face 'cedille-meta-vars-head-face)
+      (remove-overlays nil nil 'face 'cedille-meta-vars-args-face)
+      ; Make sure the meta-vars buffer is open and the selected span is an application
+      (when (and (get-buffer-window (cedille-mode-meta-vars-buffer-name))
+                 (cedille-mode-meta-vars-continue-computation (se-mode-selected) t))
+        (cedille-mode-fontify-meta-vars-start
+         (cedille-mode-meta-vars-find-locale-start (se-mode-selected) t))
+        (cedille-mode-fontify-meta-vars-end
+         (cedille-mode-meta-vars-find-locale-end
+          (cons (se-mode-selected) se-mode-not-selected)))))))
 
 
 (defun cedille-mode-meta-vars()
@@ -160,10 +161,16 @@
 
 (defun cedille-mode-meta-vars-buffer-name()
   (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
-    (concat "*cedille-meta-vars-" (file-name-base) "*")))
+    (concat "*cedille-meta-vars-" (cedille-mode-current-buffer-base-name) "*")))
 
 (defun cedille-mode-meta-vars-buffer()
   (get-buffer-create (cedille-mode-meta-vars-buffer-name)))
+
+(defun cedille-mode-meta-vars-close-window-fn()
+  (lambda ()
+    (interactive)
+    (cedille-mode-close-active-window)
+    (cedille-mode-fontify-meta-vars)))
 
 
 (define-minor-mode cedille-meta-vars-mode
@@ -172,8 +179,8 @@
   " Meta-Vars"
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map cedille-mode-minor-mode-parent-keymap)
-    (define-key map (kbd "m") #'cedille-mode-close-active-window)
-    (define-key map (kbd "M") #'cedille-mode-close-active-window)
+    (define-key map (kbd "m") (cedille-mode-meta-vars-close-window-fn))
+    (define-key map (kbd "M") (cedille-mode-meta-vars-close-window-fn))
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "meta-vars mode"))
     map)
   (when cedille-meta-vars-mode

@@ -102,6 +102,10 @@ append-args : args → args → args
 append-args (ArgsCons p ps) qs = ArgsCons p (append-args ps qs)
 append-args (ArgsNil) qs = qs
 
+append-cmds : cmds → cmds → cmds
+append-cmds CmdsStart = id
+append-cmds (CmdsNext c cs) = CmdsNext c ∘ append-cmds cs
+
 qualif-lookup-term : posinfo → qualif → string → term
 qualif-lookup-term pi σ x with trie-lookup σ x
 ... | just (x' , as) = apps-term (Var pi x') as
@@ -472,6 +476,11 @@ recompose-tpapps (h , []) = h
 recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
 recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
+recompose-apps : maybeErased → 𝕃 tty → term → term
+recompose-apps me [] h = h
+recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
+recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
+
 vars-to-𝕃 : vars → 𝕃 var
 vars-to-𝕃 (VarsStart v) = [ v ]
 vars-to-𝕃 (VarsNext v vs) = v :: vars-to-𝕃 vs
@@ -829,3 +838,26 @@ delta-contra = delta-contrah 0 empty-trie empty-trie
 
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)
+
+tk-map : tk → (type → type) → (kind → kind) → tk
+tk-map (Tkt T) fₜ fₖ = Tkt $ fₜ T
+tk-map (Tkk k) fₜ fₖ = Tkk $ fₖ k
+
+tk-map2 : tk → (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tk
+tk-map2 atk f = tk-map atk f f
+
+optTerm-map : optTerm → (term → term) → optTerm
+optTerm-map NoTerm f = NoTerm
+optTerm-map (SomeTerm t pi) f = SomeTerm (f t) pi
+
+optType-map : optType → (type → type) → optType
+optType-map NoType f = NoType
+optType-map (SomeType T) f = SomeType $ f T
+
+optGuide-map : optGuide → (var → type → type) → optGuide
+optGuide-map NoGuide f = NoGuide
+optGuide-map (Guide pi x T) f = Guide pi x $ f x T
+
+optClass-map : optClass → (tk → tk) → optClass
+optClass-map NoClass f = NoClass
+optClass-map (SomeClass atk) f = SomeClass $ f atk

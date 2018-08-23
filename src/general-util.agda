@@ -127,6 +127,15 @@ undo-escape-string-h [] so-far = reverse so-far
 undo-escape-string : string → string
 undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])
 
+is-pfx : (pfx str : string) → maybe string
+is-pfx pfx str = h (string-to-𝕃char pfx) (string-to-𝕃char str) where
+  h : 𝕃 char → 𝕃 char → maybe string
+  h [] cs = just (𝕃char-to-string cs)
+  h (cₚ :: csₚ) [] = nothing
+  h (cₚ :: csₚ) (cₛ :: csₛ) with cₚ =char cₛ
+  ...| ff = nothing
+  ...| tt = h csₚ csₛ
+
 -- functions.agda
 curry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
         → (A × B → C) → A → B → C
@@ -135,6 +144,10 @@ curry f a b = f (a , b)
 uncurry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
           → (f : A → B → C) → (p : A × B) → C
 uncurry f (a , b) = f a b
+
+elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+            → A × B → (A → B → C) → C
+elim-pair (a , b) f = f a b
 
 infix 0 case_return_of_ case_of_
 
@@ -150,9 +163,9 @@ flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
        → (A → B → C) → (B → A → C)
 flip f = λ b a → f a b
 
-infixr 0 _$'_
-_$'_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
-f $' x = f x
+infixr 0 _$_
+_$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
+f $ x = f x
 
 -- list.agda
 
@@ -176,12 +189,21 @@ for xs yield f = map f xs
 for_accum_use_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
 for xs accum n use f = foldr f n xs
 
+
+foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
+foldl f b [] = b
+foldl f b (a :: as) = foldl f (f a b) as
+
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
 
 -- sum.agda
+either-else' : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A ∨ B → (A → C) → (B → C) → C
+either-else' (inj₁ x) f g = f x
+either-else' (inj₂ y) f g = g y
+
 err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err
 err⊎-guard ff _   = inj₂ triv
@@ -208,6 +230,7 @@ postulate
   hSetToLineBuffering : Handle → IO ⊤
   hFlush : Handle → IO ⊤
   stdout : Handle
+  doesDirectoryExist : filepath → IO 𝔹
 
 {-# FOREIGN GHC import qualified System.IO #-}
 {-# FOREIGN GHC import qualified Data.Text.IO #-}
@@ -220,6 +243,7 @@ postulate
 {-# COMPILE GHC openFile = \ fp mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh #-}
 {-# COMPILE GHC closeFile = System.IO.hClose #-}
 {-# COMPILE GHC hPutStr = Data.Text.IO.hPutStr #-}
+{-# COMPILE GHC doesDirectoryExist = System.Directory.doesDirectoryExist . Data.Text.unpack #-}
 
 clearFile : filepath → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl

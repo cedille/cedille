@@ -61,6 +61,7 @@ data test : Nat ➔ ★ =
    
 test_term ◂ test (S Z) = bar (S Z) (S Z). 
 
+{- Erased parameters -}
 data test2{p:True}(n:Nat) : True ➔ ★ = 
      bar : ∀ m:True .test2 p n m
    | foo : ∀ m: True. { m ≃ triv} ➾ test2 p n m .
