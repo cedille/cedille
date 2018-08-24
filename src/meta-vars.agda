@@ -122,6 +122,13 @@ meta-vars-equal? Γ Xs Ys =
 meta-vars-lookup : meta-vars → var → maybe meta-var
 meta-vars-lookup Xs x = trie-lookup (varset Xs) x
 
+meta-vars-lookup-with-kind : meta-vars → var → maybe (meta-var × kind)
+meta-vars-lookup-with-kind Xs x
+  with meta-vars-lookup Xs x
+... | nothing = nothing
+... | (just X@(meta-var-mk-tp _ k _ _)) = just $ X , k
+... | (just X) = nothing
+
 meta-vars-lookup-kind : meta-vars → var → maybe kind
 meta-vars-lookup-kind Xs x with meta-vars-lookup Xs x
 ... | nothing = nothing
@@ -286,12 +293,6 @@ decortype-to-string (decor-stuck tp pt) =
   strAdd "(" ≫str to-stringh tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
 decortype-to-string (decor-error tp pt) =
   strAdd "([" ≫str (to-stringh tp) ≫str strAdd "] ‼ " ≫str prototype-to-string pt ≫str strAdd ")"
-
-meta-vars-data-gen : string → ctxt → meta-vars → 𝕃 tagged-val
-meta-vars-data-gen s Γ Xs =
-  if trie-empty? (varset Xs)
-    then []
-    else [ strRunTag s Γ (meta-vars-to-string Xs) ]
 
 meta-vars-data-h : ctxt → string → tk → tagged-val
 meta-vars-data-h Γ X atk =
@@ -509,6 +510,9 @@ module meta-vars-match-errors where
   the-meta-var : var → tagged-val
   the-meta-var x = "the meta-var" , [[ x ]] , []
 
+  the-solution : ctxt → type → tagged-val
+  the-solution = to-string-tag "the solution"
+
   fst-snd-sol : {ed : exprd} → ctxt → (t₁ t₂ : ⟦ ed ⟧) → 𝕃 tagged-val
   fst-snd-sol Γ t₁ t₂ =
     to-string-tag "first solution" Γ t₁ :: [ to-string-tag "second solution" Γ t₂ ]
@@ -522,45 +526,26 @@ module meta-vars-match-errors where
     match-error-msg ^ " because it produced two incovertible solutions for a meta-variable"
     , the-meta-var X :: fst-snd-sol Γ tp₁ tp₂
 
-  e-type-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
-  e-type-ineq Γ tp₁ tp₂ =
-    match-error-msg ^ " because the lhs and rhs are not equal (or because I'm not very clever)"
-    , lhs-rhs Γ tp₁ tp₂
+  e-match-failure : match-error-data
+  e-match-failure =
+    "The expected argument type is not a (first-order) match of the computed type"
+    , []
 
-  e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
-  e-meta-scope Γ x tp₁ tp₂ =
-    match-error-msg ^ " because a locally bound variable would escape its scope in this match"
-    , lhs-rhs Γ tp₁ tp₂ -- may be desirable to have an "escapees" tag?
+  e-matchk-failure : match-error-data
+  e-matchk-failure =
+    "The expected argument kind is not a (first-order) match of the computed kind"
+    , []
 
-  e-term-ineq : ctxt → (tm₁ tm₂ : term) → match-error-data
-  e-term-ineq Γ tm₁ tm₂ =
-    match-error-msg ^ " because the lhs and rhs are not convertible terms"
-    , lhs-rhs Γ tm₁ tm₂
+  e-meta-scope : ctxt → (X tp : type) → match-error-data
+--  e-meta-scope : ctxt → (x : var) → (tp₁ tp₂ : type) → match-error-data
+  e-meta-scope Γ X tp =
+    match-error-msg ^ " because the solution contains a bound variable of the computed argument type"
+    , to-string-tag "the meta var" Γ X :: [ to-string-tag "the solution" Γ tp ]
 
-  e-binder-ineq : ctxt → (tp₁ tp₂ : type) (b₁ b₂ : maybeErased) → match-error-data
-  e-binder-ineq Γ tp₁ tp₂ b₁ b₂ =
-    match-error-msg ^ " because the outermost binders of the lhs and rhs are not equal"
-    , lhs-rhs Γ tp₁ tp₂
-
-  e-arrowtype-ineq : ctxt → (tp₁ tp₂ : type) → match-error-data
-  e-arrowtype-ineq Γ tp₁ tp₂ =
-    match-error-msg ^ " because the outermost arrows of the lhs and rhs are not equal"
-    , lhs-rhs Γ tp₁ tp₂
-
-  e-liftingType-ineq : ctxt → (l₁ l₂ : liftingType) → match-error-data
-  e-liftingType-ineq Γ l₁ l₂ =
-    match-error-msg ^ " because the lhs and rhs are not convertible (lifted) types"
-    , (lhs-rhs Γ l₁ l₂)
-
-  e-kind-ineq : ctxt → (k₁ k₂ : kind) → match-error-data
-  e-kind-ineq Γ k₁ k₂ =
-    match-error-msg ^ " because the lhs and rhs are not convertible kinds"
-    , lhs-rhs Γ k₁ k₂
-
-  e-tk-ineq : ctxt → (tk₁ tk₂ : tk) → match-error-data
-  e-tk-ineq Γ tk₁ tk₂ =
-    match-error-msg ^ " because one classifer is a type and the other a kind"
-    , lhs-rhs Γ tk₁ tk₂
+  e-bad-sol-kind : ctxt → (X : var) → (sol : type) → match-error-data
+  e-bad-sol-kind Γ X sol =
+    "The meta-variable was matched to a type whose kind does not match its own"
+    , the-meta-var X :: [ the-solution Γ sol ]
 
 open meta-vars-match-errors
 
