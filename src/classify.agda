@@ -467,8 +467,9 @@ check-termi (Sigma pi t) mt =
           spanM-add (Sigma-span Γ pi t nothing [ type-data Γ (TpEq pi' t2 t1 pi'') ] nothing) ≫span
           spanMr (just (TpEq pi' t2 t1 pi''))
         ...| just tp' | TpEq pi' t1 t2 pi'' =
-          spanM-add (uncurry (Sigma-span Γ pi t (just tp'))
-            (check-for-type-mismatch Γ "synthesized" tp' (TpEq pi' t2 t1 pi'')))
+          spanM-add ∘ (flip uncurry) (check-for-type-mismatch Γ "synthesized" tp' (TpEq pi' t2 t1 pi'')) $
+            -- don't duplicate the "expected type" field
+            λ tvs err → Sigma-span Γ pi t (maybe-else' err (just tp') (const nothing)) tvs err
         ...| mt' | tp' =
           spanM-add (Sigma-span Γ pi t mt [ to-string-tag "the synthesized type" Γ tp' ]
             (just ("The type we synthesized for the body of the ς-term is not an equation."))) ≫span
@@ -1207,18 +1208,20 @@ match-types Xs Ls match-unfolding-both tpₓ tp =
 match-types Xs Ls unf tpₓ@(TpVar pi x) tp =
   -- check that x is a meta-var
   get-ctxt λ Γ →
-  maybe-else' (meta-vars-lookup-kind Xs x)
+  maybe-else' (meta-vars-lookup-with-kind Xs x)
     -- if not, make sure the two variables are the same
     -- TODO: above assumes no term meta-variables
-    (spanMr (err⊎-guard (~ conv-type Γ tpₓ tp) (m-err.e-type-ineq Γ tpₓ tp)
+    (spanMr (err⊎-guard (~ conv-type Γ tpₓ tp) m-err.e-match-failure
             ≫⊎ match-ok Xs))
   -- scope check the solution
-  λ kₓ → if are-free-in-type check-erased Ls tp then
-    match-types-error $ m-err.e-meta-scope Γ x tpₓ tp else
-    (  check-type-for-match tp
-    ≫=spans' λ k → match-kinds Xs empty-trie match-unfolding-both kₓ k
-    ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp)
-    ≫=spans' λ Xs → match-types-ok $ meta-vars-update-kinds Γ Xs Xs)
+  λ ret → let X = fst ret ; kₓ = snd ret in
+  if are-free-in-type check-erased Ls tp then
+    match-types-error $ m-err.e-meta-scope Γ tpₓ tp
+  else (check-type-for-match tp
+  ≫=spans' λ k → match-kinds Xs empty-trie match-unfolding-both kₓ k
+    on-fail (λ _ → spanMr ∘ match-error $ m-err.e-bad-sol-kind Γ x tp)
+  ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp)
+  ≫=spans' λ Xs → match-types-ok $ meta-vars-update-kinds Γ Xs Xs)
 
 match-types Xs Ls unf (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂) =
     match-types Xs Ls unf tpₓ₁ tp₁
@@ -1228,13 +1231,13 @@ match-types Xs Ls unf (TpAppt tpₓ tmₓ) (TpAppt tp tm) =
     match-types Xs Ls unf tpₓ tp
   ≫=spans' λ Xs' → get-ctxt λ Γ →
     spanMr $ if ~ conv-term Γ tmₓ tm
-      then (match-error $ m-err.e-term-ineq Γ tmₓ tm) else
+      then (match-error m-err.e-match-failure) else
     match-ok Xs'
 
 match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs pi b pi' x tk tp) =
   get-ctxt λ Γ →
   if ~ eq-maybeErased bₓ b
-    then (match-types-error $ m-err.e-binder-ineq Γ tpₓ' tp' bₓ b) else
+    then (match-types-error m-err.e-match-failure) else
   ( match-tks Xs Ls (match-unfolding-next unf) tkₓ tk
   ≫=spans' λ Xs' → with-ctxt (Γ→Γ' Γ) 
     (match-types Xs' Ls' (match-unfolding-next unf) tpₓ tp))
@@ -1245,19 +1248,19 @@ match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs p
 
 match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased atₓ at
-    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error m-err.e-match-failure else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs Ls (match-unfolding-next unf) tp₂ₓ tp₂)
 
 match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(Abs pi b pi' x (Tkt tp₁) tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased atₓ b
-    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error m-err.e-match-failure else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs (stringset-insert Ls x) (match-unfolding-next unf) tp₂ₓ tp₂)
 
 match-types Xs Ls unf tpₓ@(Abs piₓ bₓ piₓ' xₓ (Tkt tp₁ₓ) tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
   get-ctxt λ Γ → if ~ eq-maybeErased bₓ at
-    then match-types-error $ m-err.e-arrowtype-ineq Γ tpₓ tp else
+    then match-types-error m-err.e-match-failure else
   ( match-types Xs Ls (match-unfolding-next unf) tp₁ₓ tp₁
   ≫=spans' λ Xs → match-types Xs (stringset-insert Ls xₓ) (match-unfolding-next unf) tp₂ₓ tp₂)
 
@@ -1272,16 +1275,16 @@ match-types Xs Ls unf (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp) =
 
 match-types Xs Ls unf (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _) =
   get-ctxt λ Γ → if ~ conv-term Γ t₁ₓ t₁
-    then match-types-error $ m-err.e-term-ineq Γ t₁ₓ t₁ else
+    then match-types-error $ m-err.e-match-failure else
   if ~ conv-term Γ t₂ₓ t₂
-    then match-types-error $ m-err.e-term-ineq Γ t₂ₓ t₂ else
+    then match-types-error $ m-err.e-match-failure else
   match-types-ok Xs
 
 match-types Xs Ls unf (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l) =
   get-ctxt λ Γ → if ~ conv-liftingType Γ lₓ l
-    then match-types-error $ m-err.e-liftingType-ineq Γ lₓ l else
+    then match-types-error $ m-err.e-match-failure else
   if ~ conv-term (Γ→Γ' Γ) tₓ t
-    then match-types-error $ m-err.e-term-ineq (Γ→Γ' Γ) tₓ t else
+    then match-types-error $ m-err.e-match-failure else
   match-types-ok Xs
   where
   Γ→Γ' : ctxt → ctxt
@@ -1321,7 +1324,7 @@ match-types Xs Ls unf tpₓ (TpParens _ tp _) =
   match-types Xs Ls unf tpₓ tp
 
 match-types Xs Ls unf tpₓ tp =
-  get-ctxt λ Γ → match-types-error $ m-err.e-type-ineq Γ tpₓ tp
+  get-ctxt λ Γ → match-types-error m-err.e-match-failure
 
 -- match-kinds
 -- --------------------------------------------------
@@ -1370,7 +1373,7 @@ match-kinds-norm Xs Ls uf (KndTpArrow tpₓ kₓ) (KndPi _ _ x (Tkt tp) k) =
 match-kinds-norm Xs Ls uf (Star _) (Star _) =
   match-types-ok $ Xs
 match-kinds-norm Xs Ls uf kₓ k =
-  get-ctxt λ Γ → match-types-error $ m-err.e-kind-ineq Γ kₓ k
+  get-ctxt λ Γ → match-types-error $ m-err.e-matchk-failure -- m-err.e-kind-ineq Γ kₓ k
 
 match-kinds Xs Ls uf kₓ k =
   get-ctxt λ Γ →
@@ -1383,7 +1386,7 @@ match-kinds Xs Ls uf kₓ k =
 match-tks Xs Ls uf (Tkk kₓ) (Tkk k) = match-kinds Xs Ls uf kₓ k
 match-tks Xs Ls uf (Tkt tpₓ) (Tkt tp) = match-types Xs Ls uf tpₓ tp
 match-tks Xs Ls uf tkₓ tk =
-  get-ctxt λ Γ → match-types-error $ m-err.e-tk-ineq Γ tkₓ tk
+  get-ctxt λ Γ → match-types-error m-err.e-matchk-failure -- m-err.e-tk-ineq Γ tkₓ tk
 
 
 -- match-prototype

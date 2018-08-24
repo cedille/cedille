@@ -149,7 +149,7 @@ elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set �
             → A × B → (A → B → C) → C
 elim-pair (a , b) f = f a b
 
-infix 0 case_return_of_ case_of_
+infixr 0 case_return_of_ case_of_
 
 case_return_of_ :
   ∀ {ℓ₁ ℓ₂} {A : Set ℓ₁}
@@ -159,9 +159,16 @@ case x return B of f = f x
 case_of_ : ∀ {a b} {A : Set a} {B : Set b} → A → (A → B) → B
 case x of f = case_return_of_ x _ f
 
+case₂_,_of_ : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A → B → (A → B → C) → C
+case₂ x , y of f = f x y
+
 flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
        → (A → B → C) → (B → A → C)
 flip f = λ b a → f a b
+
+const : ∀ {a b} {A : Set a} {B : Set b} →
+        A → B → A
+const a b = a
 
 infixr 0 _$_
 _$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
