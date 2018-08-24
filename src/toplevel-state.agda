@@ -257,5 +257,5 @@ scope-def _ mn v oa as s with import-as v oa | s
 ...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
   mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
-    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
-  -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^
+    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
+    (if (v' =string v'') then " (perhaps it was already imported?)" else ""))

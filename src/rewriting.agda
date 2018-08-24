@@ -23,8 +23,8 @@ private
       t t' posinfo-gen 
 
   head-types-match : ctxt → trie term → (complete partial : type) → 𝔹
-  head-types-match Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs-type Γ σ T')
-  head-types-match Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs-type Γ σ T')
+  head-types-match Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
+  head-types-match Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs Γ σ T')
   head-types-match Γ σ T T' = tt
 
 rewrite-t : Set → Set
@@ -59,11 +59,8 @@ rewrite-rename-var x r Γ op on eq t₁ t₂ n =
   let x' = rename-var-if Γ (renamectxt-insert empty-renamectxt t₂ t₂) x t₁ in
   r x' Γ op on eq t₁ t₂ n
 
-rewrite-abs : ∀ {A} → (ctxt → var → var → 𝔹 → A → A) → var → var → 𝔹 → (A → rewrite-t A) → A → rewrite-t A
-rewrite-abs f x x' b g a Γ = let Γ = ctxt-var-decl posinfo-gen x' Γ in g (f Γ x x' b a) Γ
-rewrite-term-abs = rewrite-abs rename-term
-rewrite-type-abs = rewrite-abs rename-type
-rewrite-kind-abs = rewrite-abs rename-kind
+rewrite-abs : ∀ {ed} → var → var → (⟦ ed ⟧ → rewrite-t ⟦ ed ⟧) → ⟦ ed ⟧ → rewrite-t ⟦ ed ⟧
+rewrite-abs x x' g a Γ = let Γ = ctxt-var-decl x' Γ in g (rename-var Γ x x' a) Γ
 
 rewrite-term t Γ op on eq t₁ t₂ sn =
   case rewrite-terma (erase-term t) Γ op on eq t₁ t₂ sn of λ where
@@ -85,9 +82,9 @@ rewrite-terma t Γ op on eq t₁ t₂ sn =
 
 rewrite-termh (App t e t') =
   rewriteR App ≫rewrite rewrite-terma t ≫rewrite rewriteR e ≫rewrite rewrite-terma t'
-rewrite-termh (Lam pi KeptLambda pi' y NoClass t) =
-  rewrite-rename-var y λ y' → rewriteR (Lam pi KeptLambda pi' y' NoClass) ≫rewrite
-  rewrite-term-abs y y' tt rewrite-terma t
+rewrite-termh (Lam pi NotErased pi' y NoClass t) =
+  rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
+  rewrite-abs y y' rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi x)
 rewrite-termh = rewriteR
 
@@ -100,15 +97,15 @@ rewrite-type = rewrite-typeh
 rewrite-typeh (Abs pi b pi' x atk T) =
   rewrite-rename-var x λ x' → 
   rewriteR (Abs pi b pi' x') ≫rewrite rewrite-tk atk ≫rewrite
-  rewrite-type-abs x x' (tk-is-type atk) rewrite-type T
+  rewrite-abs x x' rewrite-type T
 rewrite-typeh (Iota pi pi' x T T') =
   rewrite-rename-var x λ x' →
   rewriteR (Iota pi pi' x') ≫rewrite rewrite-type T ≫rewrite
-  rewrite-type-abs x x' tt rewrite-type T'
+  rewrite-abs x x' rewrite-type T'
 rewrite-typeh (Lft pi pi' x t l) =
   rewrite-rename-var x λ x' →
   rewriteR (Lft pi pi' x') ≫rewrite
-  rewrite-term-abs x x' ff rewrite-term t ≫rewrite
+  rewrite-abs x x' rewrite-term t ≫rewrite
   rewrite-liftingType l
 rewrite-typeh (TpApp T T') =
   rewriteR TpApp ≫rewrite rewrite-typeh T ≫rewrite rewrite-type T'
@@ -120,13 +117,13 @@ rewrite-typeh (TpEq pi t₁ t₂ pi') =
 rewrite-typeh (TpLambda pi pi' x atk T) =
   rewrite-rename-var x λ x' →
   rewriteR (TpLambda pi pi' x') ≫rewrite rewrite-tk atk ≫rewrite
-  rewrite-type-abs x x' (tk-is-type atk) rewrite-type T
+  rewrite-abs x x' rewrite-type T
 rewrite-typeh (TpArrow T a T') =
   rewriteR TpArrow ≫rewrite rewrite-type T ≫rewrite rewriteR a ≫rewrite rewrite-type T'
 rewrite-typeh (TpLet pi (DefTerm pi' x T t) T') Γ =
-  rewrite-type (subst-type Γ (Chi posinfo-gen T t) x T') Γ
+  rewrite-type (subst Γ (Chi posinfo-gen T t) x T') Γ
 rewrite-typeh (TpLet pi (DefType pi' x k T) T') Γ =
-  rewrite-type (subst-type Γ T x T') Γ
+  rewrite-type (subst Γ T x T') Γ
 rewrite-typeh (TpParens _ T _) = rewrite-type T
 rewrite-typeh (NoSpans T _) = rewrite-type T
 rewrite-typeh (TpHole pi) = rewriteR (TpHole pi)
@@ -158,14 +155,14 @@ post-rewriteh Γ x eq prtk tk-decl (Lft pi pi' x' t lT) =
 post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
-    T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head-no-lift (subst-kind Γ T' x' k) tt
+    T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head-no-lift (subst Γ T' x' k) tt
     T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head-no-lift k'' tt
     T k → TpApp T T' , k
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
   let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x T') t else t in
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' (Tkt T') k) →
-      let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-no-lift (subst-kind Γ t3 x' k) tt
+      let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-no-lift (subst Γ t3 x' k) tt
     T (KndTpArrow T' k) → TpAppt T (t2 T') , hnf Γ unfold-head-no-lift k tt
     T k → TpAppt T t , k
 post-rewriteh Γ x eq prtk tk-decl (TpArrow T a T') = TpArrow (fst (post-rewriteh Γ x eq prtk tk-decl T)) a (fst (post-rewriteh Γ x eq prtk tk-decl T')) , star
@@ -183,7 +180,7 @@ post-rewriteh Γ x eq prtk tk-decl T = T , star
 
 {-# TERMINATING #-}
 post-rewrite : ctxt → var → (eq t₂ : term) → type → type
-post-rewrite Γ x eq t₂ T = subst-type Γ t₂ x (fst (post-rewriteh Γ x eq prtk tk-decl T)) where
+post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk tk-decl T)) where
   prtk : ctxt → var → term → tk → tk
   tk-decl : var → tk → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
@@ -211,9 +208,9 @@ rewrite-at Γ x eq b T T' =
       else rewrite-ath Γ x eq b T T'
 
 rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) =
-  Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
+  Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq b T1 (rename-var Γ x2 x1 T2))
 rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
-  Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1' (subst-type Γ (Var posinfo-gen x1) x2 T2'))
+  Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq b T1' (rename-var Γ x2 x1 T2'))
 rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
   Lft pi1 pi1' x1 (if is-free-in tt x (mlam x2 t2) then mk-phi x eq t1 t2 else t1) lT1
 rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
@@ -225,11 +222,11 @@ rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
 rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
   TpEq pi1 t2 t2' pi1'
 rewrite-ath Γ x eq b (TpLambda pi1 pi1' x1 atk1 T1) (TpLambda pi2 pi2' x2 atk2 T2) =
-  TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl pi1' x1 Γ) x eq b T1 (subst-type Γ (Var posinfo-gen x1) x2 T2))
-rewrite-ath Γ x eq b (TpLet pi1 (DefTerm pi1' x1 oc1 t1) T1) T2 = rewrite-at Γ x eq b (subst-type Γ t1 x1 T1) T2
-rewrite-ath Γ x eq b T1 (TpLet pi2 (DefTerm pi2' x2 oc2 t2) T2) = rewrite-at Γ x eq b T1 (subst-type Γ t2 x2 T2)
-rewrite-ath Γ x eq b (TpLet pi1 (DefType pi1' x1 k1 T1ₗ) T1) T2 = rewrite-at Γ x eq b (subst-type Γ T1ₗ x1 T1) T2
-rewrite-ath Γ x eq b T1 (TpLet pi2 (DefType pi2' x2 k2 T2ₗ) T2) = rewrite-at Γ x eq b T1 (subst-type Γ T2ₗ x2 T2)
+  TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq b T1 (rename-var Γ x2 x1 T2))
+rewrite-ath Γ x eq b (TpLet pi1 (DefTerm pi1' x1 oc1 t1) T1) T2 = rewrite-at Γ x eq b (subst Γ t1 x1 T1) T2
+rewrite-ath Γ x eq b T1 (TpLet pi2 (DefTerm pi2' x2 oc2 t2) T2) = rewrite-at Γ x eq b T1 (subst Γ t2 x2 T2)
+rewrite-ath Γ x eq b (TpLet pi1 (DefType pi1' x1 k1 T1ₗ) T1) T2 = rewrite-at Γ x eq b (subst Γ T1ₗ x1 T1) T2
+rewrite-ath Γ x eq b T1 (TpLet pi2 (DefType pi2' x2 k2 T2ₗ) T2) = rewrite-at Γ x eq b T1 (subst Γ T2ₗ x2 T2)
 rewrite-ath Γ x eq b (TpVar pi1 x1) (TpVar pi2 x2) = TpVar pi1 x1
 rewrite-ath Γ x eq b (TpHole pi1) (TpHole pi2) = TpHole pi1
 rewrite-ath Γ x eq b (TpParens pi1 T1 pi1') T2 = rewrite-at Γ x eq b T1 T2

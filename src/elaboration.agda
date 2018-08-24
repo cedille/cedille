@@ -183,14 +183,14 @@ elab-check-term Γ (Rho pi op on t og t') T =
         elab-hnf-type Γ T tt ≫=maybe λ T →
         rename "x" from Γ for λ x →
         let ns = fst (optNums-to-stringset on)
-            Γ' = ctxt-var-decl posinfo-gen x Γ
+            Γ' = ctxt-var-decl x Γ
             rT = fst (rewrite-type T Γ' (is-rho-plus op) ns t t₁ x 0)
             rT' = post-rewrite Γ x t t₂ rT in
         elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         elab-check-term Γ t' rT' ≫=maybe
         (just ∘ mrho (Sigma posinfo-gen t) x (erase-type rT))
       (Guide pi' x T') →
-        let Γ' = ctxt-var-decl pi' x Γ in
+        let Γ' = ctxt-var-decl x Γ in
         elab-pure-type Γ' (erase-type T') ≫=maybe λ T' →
         elab-check-term Γ t' (post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T T')) ≫=maybe
         (just ∘ mrho t x T')
@@ -286,7 +286,7 @@ elab-synth-term Γ (IotaPair pi t₁ t₂ og pi') = case og of λ where
   NoGuide → nothing
   (Guide pi'' x T₂) →
     rename x from Γ for λ x' →
-    elab-type (ctxt-var-decl pi'' x' Γ) (rename-var Γ x x' T₂) ≫=maybe uncurry λ T₂ k₂ →
+    elab-type (ctxt-var-decl x' Γ) (rename-var Γ x x' T₂) ≫=maybe uncurry λ T₂ k₂ →
     elab-synth-term Γ t₁ ≫=maybe uncurry λ t₁ T₁ →
     elab-check-term Γ t₂ (subst Γ t₁ x' T₂) ≫=maybe λ t₂ →
     just (IotaPair posinfo-gen t₁ t₂ (Guide posinfo-gen x' T₂) posinfo-gen ,
@@ -343,13 +343,13 @@ elab-synth-term Γ (Rho pi op on t og t') =
       NoGuide →
         rename "x" from Γ for λ x →
         let ns = fst (optNums-to-stringset on)
-            Γ' = ctxt-var-decl posinfo-gen x Γ
+            Γ' = ctxt-var-decl x Γ
             rT = fst (rewrite-type T' Γ' (is-rho-plus op) ns t t₁ x 0)
             rT' = post-rewrite Γ' x t t₂ rT in
         elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         just (mrho t x (erase-type rT) t' , rT')
       (Guide pi' x T'') →
-        let Γ' = ctxt-var-decl pi' x Γ in
+        let Γ' = ctxt-var-decl x Γ in
         elab-pure-type Γ' (erase-type T') ≫=maybe λ T'' →
         just (mrho t x T' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
     _ → nothing
@@ -429,8 +429,8 @@ elab-kindh Γ (KndVar pi x as) b =
   ctxt-lookup-kind-var-def Γ x ≫=maybe uncurry (do-subst as)
   where
   do-subst : args → params → kind → maybe kind
-  do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
-  do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst-kind Γ t x k)
+  do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
+  do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
   do-subst ArgsNil ParamsNil k = elab-kindh Γ k b
   do-subst _ _ _ = nothing
 elab-kindh Γ (Star pi) b = just star
@@ -445,7 +445,7 @@ elab-pure-term Γ (App t NotErased t') =
   just (App t NotErased t')
 elab-pure-term Γ (Lam pi NotErased pi' x NoClass t) =
   rename x from Γ for λ x' →
-  elab-pure-term (ctxt-var-decl pi x' Γ) (rename-var Γ x x' t) ≫=maybe λ t →
+  elab-pure-term (ctxt-var-decl x' Γ) (rename-var Γ x x' t) ≫=maybe λ t →
   just (mlam x' t)
 elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
   elab-pure-term Γ t ≫=maybe λ t →
@@ -479,10 +479,9 @@ elab-app-term Γ (App t m t') =
   let abs-num = length (meta-vars.order Xs) in
   case meta-vars-unfold-tmapp Γ missing-span-location Xs T of λ where
     (Ys , (not-tmabs _)) → nothing
-    (Ys , (yes-tmabs _ m' x Tₐ occ cod)) →
-    -- (yes-tp-arrow* Ys T' Tₐ m' cod) →
+    (Ys , (yes-tmabs m' x Tₐ occ cod)) →
       let Xs = meta-vars-add* Xs Ys
-          cod = λ tm → if occ then subst-type Γ tm x cod else cod
+          cod = λ tm → if occ then subst Γ tm x cod else cod
           abs-num' = length (meta-vars.order Xs)
           num-apps = abs-num' ∸ abs-num
           ret t' cod' Xs = just (
@@ -506,8 +505,7 @@ elab-app-term Γ (AppTp t T) =
   elab-app-term Γ t ≫=maybe uncurry' λ t Tₕ Xs →
   case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
     (not-tpabs _) → nothing
-    (yes-tpabs _ b x k Tₕ') →
-    -- (yes-tp-abs _ b _ x k Tₕ') →
+    (yes-tpabs b x k Tₕ') →
       let X = meta-var-fresh-tp Xs x missing-span-location (k , (just T))
           Tₕ'' = rename-var Γ x (meta-var-name X) Tₕ' in
       just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)
@@ -710,11 +708,11 @@ mk-erased-ctr : ctxt → ℕ → constructors → 𝕃 term → maybe term
 mk-erased-ctr Γ n cs as = mk-erased-ctrh Γ (inj₁ n) cs as [] where
   mk-erased-ctrh : ctxt → ℕ ⊎ var → constructors → 𝕃 term → 𝕃 var → maybe term
   mk-erased-ctrh Γ (inj₁ zero) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₂ x') cs as (x' :: xs)
+    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ x') cs as (x' :: xs)
   mk-erased-ctrh Γ (inj₁ (suc n)) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₁ n) cs as (x' :: xs)
+    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₁ n) cs as (x' :: xs)
   mk-erased-ctrh Γ (inj₂ xₕ) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl' x' Γ) (inj₂ xₕ) cs as (x' :: xs)
+    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ xₕ) cs as (x' :: xs)
   mk-erased-ctrh Γ (inj₁ _) [] as xs = nothing
   mk-erased-ctrh Γ (inj₂ xₕ) [] as xs =
     just $ foldl mlam (foldr (flip mapp) (mvar xₕ) as) $ xs
@@ -789,7 +787,7 @@ record datatype-encoding : Set where
     csn = CmdsNext ∘ flip (DefTermOrType OpacTrans) posinfo-gen
     k = indices-to-kind is $ Star posinfo-gen
     
-    Γ = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl' x Γ'
+    Γ = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl x Γ'
     
     tcs-ρ = reindex-file Γ is template
     tcs = fst tcs-ρ
@@ -816,7 +814,7 @@ record datatype-encoding : Set where
       new-var "X" λ Xₓ →
       Abs posinfo-gen Erased posinfo-gen Xₓ
         (Tkk $ KndTpArrow (mtpeq id-term id-term) $ indices-to-kind is star) $
-      foldr (λ c → flip TpArrow NotErased $ mk-ctr-type (ctxt-var-decl' Xₓ Γ) c Xₓ cs)
+      foldr (λ c → flip TpArrow NotErased $ mk-ctr-type (ctxt-var-decl Xₓ Γ) c Xₓ cs)
         (indices-to-tpapps is $ TpAppt (mtpvar Xₓ) (mvar xₓ)) cs
     
     fmap-cmd : defTermOrType
@@ -853,9 +851,9 @@ record datatype-encoding : Set where
 
       eta-expand-fmap : ctr → term
       eta-expand-fmap (Ctr x' T) with
-        ctxt-var-decl' Aₓ $ ctxt-var-decl' Bₓ $ ctxt-var-decl' cₓ Γ
+        ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ
       ...| Γ' with decompose-ctr-type Γ' T
-      ...| Tₕ , ps , as with foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''}) Γ' ps
+      ...| Tₕ , ps , as with foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''}) Γ' ps
       ...| Γ'' = parameters-to-lams' ps $ foldl
         (λ {(Decl pi pi' me x'' (Tkt T) pi'') t → App t me $
               if ~ is-free-in tt x T then mvar x'' else eta-expand-fmaph-type Γ'' x'' T;
@@ -869,7 +867,7 @@ record datatype-encoding : Set where
 
     ctr-cmd : ctr → defTermOrType
     ctr-cmd (Ctr x' T) with
-        decompose-ctr-type Γ (subst-type Γ (parameters-to-tpapps ps $ mtpvar x) x T)
+        decompose-ctr-type Γ (subst Γ (parameters-to-tpapps ps $ mtpvar x) x T)
     ...| Tₕ , ps' , as' = DefTerm posinfo-gen x' NoType $
       parameters-to-lams ps $
       parameters-to-lams ps' $

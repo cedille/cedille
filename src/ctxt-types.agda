@@ -94,9 +94,13 @@ data ctxt : Set where
 ctxt-binds-var : ctxt → var → 𝔹
 ctxt-binds-var (mk-ctxt (_ , _ , _ , q) _ i _ _) x = trie-contains q x || trie-contains i x
 
-ctxt-var-decl : posinfo → var → ctxt → ctxt
-ctxt-var-decl p v (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
-  mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms (trie-insert i v (var-decl , (fn , p))) symb-occs d
+ctxt-var-decl : var → ctxt → ctxt
+ctxt-var-decl v (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
+  mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms (trie-insert i v (var-decl , "missing" , "missing")) symb-occs d
+
+ctxt-var-decl-loc : posinfo → var → ctxt → ctxt
+ctxt-var-decl-loc pi v (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
+  mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms (trie-insert i v (var-decl , fn , pi)) symb-occs d
 
 qualif-var : ctxt → var → var
 qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _ _) v with trie-lookup q v

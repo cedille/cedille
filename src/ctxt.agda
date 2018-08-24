@@ -63,74 +63,57 @@ def-params ff ps = just ps
 -- TODO add renamectxt to avoid capture bugs?
 inst-type : ctxt → params → args → type → type
 inst-type Γ ps as T with mk-inst ps as
-...| σ , ps' = abs-expand-type ps' (substs-type Γ σ T)
+...| σ , ps' = abs-expand-type (substs-params Γ σ ps') (substs Γ σ T)
 
 inst-kind : ctxt → params → args → kind → kind
 inst-kind Γ ps as k with mk-inst ps as
-...| σ , ps' = abs-expand-kind ps' (substs-kind Γ σ k)
+...| σ , ps' = abs-expand-kind (substs-params Γ σ ps') (substs Γ σ k)
 
-qualif-term : ctxt → term → term
-qualif-term Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-term Γ σ
 
-qualif-type : ctxt → type → type
-qualif-type Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-type Γ σ
+qualif-x : ∀ {ℓ} {X : Set ℓ} → (ctxt → qualif → X) → ctxt → X
+qualif-x f Γ = f Γ (ctxt-get-qualif Γ)
 
-qualif-kind : ctxt → kind → kind
-qualif-kind Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-kind Γ σ
-
-qualif-liftingType : ctxt → liftingType → liftingType
-qualif-liftingType Γ@(mk-ctxt (_ , _ , _ , σ) _ _ _ _) = substs-liftingType Γ σ
-
-qualif-tk : ctxt → tk → tk
-qualif-tk Γ (Tkt t) = Tkt (qualif-type Γ t)
-qualif-tk Γ (Tkk k) = Tkk (qualif-kind Γ k)
+qualif-term = qualif-x $ substs {TERM}
+qualif-type = qualif-x $ substs {TYPE}
+qualif-kind = qualif-x $ substs {KIND}
+qualif-liftingType = qualif-x $ substs {LIFTINGTYPE}
+qualif-tk = qualif-x $ substs {TK}
+qualif-params = qualif-x substs-params
+qualif-args = qualif-x substs-args
 
 erased-margs : ctxt → stringset
-erased-margs Γ = stringset-insert* empty-stringset (erased-params ps)
-  where
-  ps = ctxt-get-current-params Γ
-
-qualif-params : ctxt → params → params
-qualif-params Γ (ParamsCons (Decl pi1 pi1' me x atk pi2) ps) =
-  ParamsCons p' (qualif-params Γ ps)
-  where p' = Decl pi1 pi1' me (ctxt-get-current-modname Γ # x) (qualif-tk Γ atk) pi2
-qualif-params Γ ParamsNil = ParamsNil
-
-qualif-args : ctxt → args → args
-qualif-args Γ (ArgsCons (TermArg me t) as) = ArgsCons (TermArg me (qualif-term Γ t)) (qualif-args Γ as)
-qualif-args Γ (ArgsCons (TypeArg tp) as) = ArgsCons (TypeArg (qualif-type Γ tp)) (qualif-args Γ as)
-qualif-args Γ ArgsNil = ArgsNil
+erased-margs = stringset-insert* empty-stringset ∘ (erased-params ∘ ctxt-get-current-params)
 
 ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
 ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
-  (trie-insert i v' ((term-decl (qualif-type Γ t)) , (fn , p)))
+  (trie-insert i v' ((term-decl (qualif-type Γ t)) , fn , p))
   symb-occs
   d
-  where v' = if s iff localScope then p % v else mn # v
+  where v' = if s iff localScope then p % v else {-mn #-} v
 
 ctxt-type-decl : posinfo → defScope → var → kind → ctxt → ctxt
 ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
-  (trie-insert i v' (type-decl (qualif-kind Γ k) , (fn , p)))
+  (trie-insert i v' (type-decl (qualif-kind Γ k) , fn , p))
   symb-occs
   d
-  where v' = if s iff localScope then p % v else mn # v
+  where v' = if s iff localScope then p % v else {-mn #-} v
 
 ctxt-tk-decl : posinfo → defScope → var → tk → ctxt → ctxt
 ctxt-tk-decl p s x (Tkt t) Γ = ctxt-term-decl p s x t Γ 
 ctxt-tk-decl p s x (Tkk k) Γ = ctxt-type-decl p s x k Γ
 
 -- TODO not sure how this and renaming interacts with module scope
-ctxt-var-decl-if : posinfo → var → ctxt → ctxt
-ctxt-var-decl-if p v Γ with Γ
+ctxt-var-decl-if : var → ctxt → ctxt
+ctxt-var-decl-if v Γ with Γ
 ... | mk-ctxt (fn , mn , ps , q) syms i symb-occs d with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
 ... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , ArgsNil))) syms
-  (trie-insert i v (var-decl , (fn , p)))
+  (trie-insert i v (var-decl , "missing" , "missing"))
   symb-occs
   d
 
@@ -146,10 +129,10 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
 {- add a renaming mapping the first variable to the second, unless they are equal.
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 
-ctxt-rename : posinfo → var → var → ctxt → ctxt
-ctxt-rename p v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
+ctxt-rename : var → var → ctxt → ctxt
+ctxt-rename v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
-  (trie-insert i v (rename-def v' , (fn , p)))
+  (trie-insert i v (rename-def v' , "missing" , "missing"))
   symb-occs
   d)
 
@@ -186,49 +169,41 @@ ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | _ = nothing
 
 -- remove ?
-add-param-type : params → type → type
-add-param-type (ParamsCons (Decl pi pix e x tk _) ps) ty  = Abs pi e pix x tk (add-param-type ps ty)
-add-param-type ParamsNil                              ty  = ty
+-- add-param-type : params → type → type
+-- add-param-type (ParamsCons (Decl pi pix e x tk _) ps) ty  = Abs pi e pix x tk (add-param-type ps ty)
+-- add-param-type ParamsNil                              ty  = ty
 
 ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
-... | just (as , term-def (just ps) _ t T , _) = just (inst-type Γ ps as T)
+... | just (as , term-def (just ps) _ t T , _) = just $ inst-type Γ ps as T
 ... | just (as , term-def nothing _ t T , _) = just T
 ... | just (as , const-def T            , _) = just T
 ... | _ = nothing
 
 ctxt-lookup-tk-var : ctxt → var → maybe tk
 ctxt-lookup-tk-var Γ v with qual-lookup Γ v
-... | just (as , term-decl T , _) = just (Tkt T)
-... | just (as , type-decl k , _) = just (Tkk k)
-... | just (as , term-def (just ps) _ t T , _) = just (Tkt (inst-type Γ ps as T))
-... | just (as , type-def (just ps) _ T k , _) = just (Tkk (inst-kind Γ ps as k))
-... | just (as , term-def nothing _ t T , _) = just (Tkt T)
-... | just (as , type-def nothing _ T k , _) = just (Tkk k)
-... | just (as , datatype-def _ k     , _) = just (Tkk k)
+... | just (as , term-decl T , _) = just $ Tkt T
+... | just (as , type-decl k , _) = just $ Tkk k
+... | just (as , term-def (just ps) _ t T , _) = just $ Tkt $ inst-type Γ ps as T
+... | just (as , type-def (just ps) _ T k , _) = just $ Tkk $ inst-kind Γ ps as k
+... | just (as , term-def nothing _ t T , _) = just $ Tkt T
+... | just (as , type-def nothing _ T k , _) = just $ Tkk k
+... | just (as , datatype-def _ k     , _) = just $ Tkk k
 ... | _ = nothing
-
-ctxt-term-if-not-opaque : opacity → term → maybe term
-ctxt-term-if-not-opaque OpacOpaque _ = nothing
-ctxt-term-if-not-opaque OpacTrans  t = just t
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
-... | just (term-def nothing opac t _ , _) = ctxt-term-if-not-opaque opac t
-... | just (term-udef nothing opac t , _) = ctxt-term-if-not-opaque opac t
-... | just (term-def (just ps) opac t _ , _) = ctxt-term-if-not-opaque opac (lam-expand-term ps t)
-... | just (term-udef (just ps) opac t , _) = ctxt-term-if-not-opaque opac (lam-expand-term ps t)
+... | just (term-def nothing OpacTrans t _ , _) = just t
+... | just (term-udef nothing OpacTrans t , _) = just t
+... | just (term-def (just ps) OpacTrans t _ , _) = just $ lam-expand-term ps t
+... | just (term-udef (just ps) OpacTrans t , _) = just $ lam-expand-term ps t
 ... | _ = nothing
-
-ctxt-type-if-not-opaque : opacity → type → maybe type
-ctxt-type-if-not-opaque OpacOpaque _ = nothing
-ctxt-type-if-not-opaque OpacTrans  t = just t
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def Γ v with env-lookup Γ v
-... | just (type-def nothing opac T _ , _) = ctxt-type-if-not-opaque opac T
-... | just (type-def (just ps) opac T _ , _) = ctxt-type-if-not-opaque opac (lam-expand-type ps T)
+... | just (type-def nothing OpacTrans T _ , _) = just T
+... | just (type-def (just ps) OpacTrans T _ , _) = just $ lam-expand-type ps T
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)

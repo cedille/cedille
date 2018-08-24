@@ -20,6 +20,9 @@ renamectxt-contains (_ , r) s = trie-contains r s
 renamectxt-insert : renamectxt → (s1 s2 : string) → renamectxt
 renamectxt-insert (ranr , r) s x = stringset-insert ranr x , trie-insert r s x
 
+renamectxt-single : var → var → renamectxt
+renamectxt-single = renamectxt-insert empty-renamectxt
+
 renamectxt-lookup : renamectxt → string → maybe string
 renamectxt-lookup (ranr , r) s = trie-lookup r s
 

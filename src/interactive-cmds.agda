@@ -203,9 +203,9 @@ private
     parse-string ll-kind - psₛ ! "kind" ≫parse λ psₖ →
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
     parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
-    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices (ctxt-var-decl posinfo-gen x Γ) psₖ
+    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices (ctxt-var-decl x Γ) psₖ
         cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
-        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ ctxt-var-decl posinfo-gen x Γ) isₖ
+        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ ctxt-var-decl x Γ) isₖ
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
@@ -249,7 +249,7 @@ private
     ≫=⊎ uncurry λ t₁ t₂ →
     let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
         f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
-              subst-term subst-type subst-kind ll Γ t₂ x in
+              subst subst subst ll Γ t₂ x in
     case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
                          term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
       rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ

@@ -17,8 +17,6 @@ open import toplevel-state options {id}
 open import spans options {id}
 
 
-ctxt-var-decl' = ctxt-var-decl posinfo-gen
-
 uncurry' : ∀ {A B C D : Set} → (A → B → C → D) → (A × B × C) → D
 uncurry' f (a , b , c) = f a b c
 
@@ -97,28 +95,6 @@ ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) x =
       just $ abs-expand-kind ps k
     _ → nothing
 
-subst : ∀ {ed ed' : exprd} → ctxt → ⟦ ed' ⟧ → var → ⟦ ed ⟧ → ⟦ ed ⟧
-subst{TERM} = subst-term
-subst{TYPE} = subst-type
-subst{KIND} = subst-kind
-subst Γ _ _ x = x
-
-subst-renamectxt : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
-subst-renamectxt{TERM} Γ ρ = substh-term {LIFTINGTYPE} Γ ρ empty-trie
-subst-renamectxt{TYPE} Γ ρ = substh-type {LIFTINGTYPE} Γ ρ empty-trie
-subst-renamectxt{KIND} Γ ρ = substh-kind {LIFTINGTYPE} Γ ρ empty-trie
-subst-renamectxt        Γ ρ = id
-
-renamectxt-single : var → var → renamectxt
-renamectxt-single = renamectxt-insert empty-renamectxt
-
-rename-var : ∀ {ed : exprd} → ctxt → var → var → ⟦ ed ⟧ → ⟦ ed ⟧
-rename-var Γ x x' = subst-renamectxt Γ (renamectxt-single x x')
--- rename-var {TERM} Γ x x' = substh-term {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
--- rename-var {TYPE} Γ x x' = substh-type {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
--- rename-var {KIND} Γ x x' = substh-kind {LIFTINGTYPE} Γ (renamectxt-single x x') empty-trie
--- rename-var Γ x x' = id
-
 subst-qualif : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
 subst-qualif{TERM} Γ ρ = subst-renamectxt Γ ρ ∘ qualif-term Γ
 subst-qualif{TYPE} Γ ρ = subst-renamectxt Γ ρ ∘ qualif-type Γ
@@ -184,9 +160,9 @@ mtpeq t1 t2 = TpEq posinfo-gen t1 t2 posinfo-gen
 
 subst-args-params : ctxt → args → params → kind → kind
 subst-args-params Γ (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k =
-  subst-args-params Γ ys ps $ subst-kind Γ t x k
+  subst-args-params Γ ys ps $ subst Γ t x k
 subst-args-params Γ (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k =
-  subst-args-params Γ ys ps $ subst-kind Γ t x k
+  subst-args-params Γ ys ps $ subst Γ t x k
 subst-args-params Γ ys ps k = k
 
 data indx : Set where
@@ -210,11 +186,11 @@ params-to-parameters (ParamsCons p ps) = p :: params-to-parameters ps
 decompose-arrows : ctxt → type → parameters × type
 decompose-arrows Γ (Abs pi me pi' x atk T) =
   rename-new x from Γ for λ x' →
-  case decompose-arrows (ctxt-var-decl' x' Γ) (rename-var Γ x x' T) of λ where
+  case decompose-arrows (ctxt-var-decl x' Γ) (rename-var Γ x x' T) of λ where
     (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
 decompose-arrows Γ (TpArrow T me T') =
   rename-new "_" from Γ for λ x →
-  case decompose-arrows (ctxt-var-decl' x Γ) T' of λ where
+  case decompose-arrows (ctxt-var-decl x Γ) T' of λ where
     (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
 decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
 decompose-arrows Γ T = [] , T
@@ -228,14 +204,14 @@ decompose-ctr-type Γ T with decompose-arrows Γ T
 kind-to-indices : ctxt → kind → indices
 kind-to-indices Γ (KndArrow k k') =
   rename "x" from Γ for λ x' →
-  Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl' x' Γ) k'
+  Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl x' Γ) k'
 kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
 kind-to-indices Γ (KndPi pi pi' x atk k) =
   rename x from Γ for λ x' →
-  Index x' atk :: kind-to-indices (ctxt-var-decl' x' Γ) k
+  Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) k
 kind-to-indices Γ (KndTpArrow T k) =
   rename "x" from Γ for λ x' →
-  Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl' x' Γ) k
+  Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl x' Γ) k
 kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
 ...| nothing = []
 ...| just (ps , k) = kind-to-indices Γ $ subst-args-params Γ as ps k
@@ -306,19 +282,19 @@ constructors-to-lams' = flip $ foldr λ where
 constructors-to-lams : ctxt → var → parameters → constructors → (body : term) → term
 constructors-to-lams Γ x ps cs t = foldr
   (λ {(Ctr y T) f Γ → Lam posinfo-gen NotErased posinfo-gen y
-    (SomeClass $ Tkt $ subst-type Γ (parameters-to-tpapps ps $ mtpvar y) y T)
-    $ f $ ctxt-var-decl' y Γ})
+    (SomeClass $ Tkt $ subst Γ (parameters-to-tpapps ps $ mtpvar y) y T)
+    $ f $ ctxt-var-decl y Γ})
   (λ Γ → t) cs Γ
 
 add-indices-to-ctxt : indices → ctxt → ctxt
-add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl' x}
+add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
 
 add-parameters-to-ctxt : parameters → ctxt → ctxt
-add-parameters-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl' x''}
+add-parameters-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''}
 
 add-constructors-to-ctxt : constructors → ctxt → ctxt
 add-constructors-to-ctxt = flip $ foldr λ where
-  (Ctr x T) → ctxt-var-decl' x
+  (Ctr x T) → ctxt-var-decl x
 
 module reindexing (Γ : ctxt) (isₒ : indices) where
 

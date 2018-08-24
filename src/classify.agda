@@ -259,10 +259,10 @@ check-termi t'@(AppTp t tp') mtp =
   ≫=spanm' λ tp → spanMr (either-else' (to-is-tpabs tp)
       (λ _ → to-is-tpabs (hnf Γ (unfolding-elab unfold-head) tp tt)) inj₂)
     on-fail (λ _ → check-term-errors.inapplicable-tp {A = check-ret mtp} t tp' tp mtp)
-  ≫=spans' λ ret → let mk-tpabs pis e? x k body = ret in
+  ≫=spans' λ ret → let mk-tpabs e? x k body = ret in
   check-type tp' (just k)
   ≫span
-    let rtp = subst-type Γ (qualif-type Γ tp') x body in
+    let rtp = subst Γ (qualif-type Γ tp') x body in
     spanM-add (uncurry (λ tvs →
       AppTp-span t tp' (maybe-to-checking mtp) (type-data Γ rtp :: tvs))
       (check-for-type-mismatch-if Γ "synthesizing" mtp rtp))
@@ -282,11 +282,11 @@ check-termi (Let pi d t) mtp =
         maybe-subst _ (just T) triv = spanMok
         maybe-subst _ nothing nothing = spanMr nothing
         maybe-subst (DefTerm pi x NoType t) nothing (just T) = get-ctxt λ Γ →
-          spanMr (just (subst-type Γ (qualif-term Γ (Chi posinfo-gen NoType t)) (pi % x) T))
+          spanMr (just (subst Γ (qualif-term Γ (Chi posinfo-gen NoType t)) (pi % x) T))
         maybe-subst (DefTerm pi x (SomeType T') t) nothing (just T) = get-ctxt λ Γ →
-          spanMr (just (subst-type Γ (qualif-term Γ (Chi posinfo-gen (SomeType T') t)) (pi % x) T))
+          spanMr (just (subst Γ (qualif-term Γ (Chi posinfo-gen (SomeType T') t)) (pi % x) T))
         maybe-subst (DefType pi x k T') nothing (just T) = get-ctxt λ Γ →
-          spanMr (just (subst-type Γ (qualif-type Γ T') (pi % x) T))
+          spanMr (just (subst Γ (qualif-type Γ T') (pi % x) T))
         -- maybe-subst covers the case where the synthesized type of t has the let-bound
         -- variable in it by substituting the let definition for the let-bound variable
         -- in the synthesized type. We also need to use Chi to maintain the checking mode
@@ -349,7 +349,7 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
           get-ctxt λ Γ → 
           let atk' = qualif-tk Γ atk in
           -- This should indeed "unqualify" occurrences of x in tp for rettp
-          let rettp = abs-tk l x pi' atk' (rename-type Γ (pi' % x) x (tk-is-type atk) tp) in
+          let rettp = abs-tk l x atk' (rename-var Γ (pi' % x) x tp) in
           let tvs = [ type-data Γ rettp ] in
           let p = if me-erased l && is-free-in skip-erased x t then just "The bound variable occurs free in the erasure of the body (not allowed)." , [ erasure Γ t ] else nothing , [] in
           spanM-add (Lam-span Γ synthesizing pi l x (SomeClass atk') t (snd p ++ tvs) (fst p)) ≫span
@@ -366,13 +366,13 @@ check-termi (Lam pi l _ x NoClass t) nothing =
 check-termi (Lam pi l pi' x oc t) (just tp) =
   get-ctxt λ Γ → cont (to-abs tp maybe-or to-abs (hnf Γ unfold-head tp tt)) where
     cont : maybe abs → spanM ⊤
-    cont (just (mk-abs pi'' b pi''' x' atk _ tp')) =
+    cont (just (mk-abs b x' atk _ tp')) =
       check-oc oc ≫span
       spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
       get-ctxt λ Γ →
       spanM-add (uncurry (this-span Γ atk oc) (check-erasures Γ l b)) ≫span
       add-tk' (me-erased l) localScope pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
-      get-ctxt λ Γ' → check-term t (just (rename-type Γ x' (qualif-var Γ' x) (tk-is-type atk) tp')) ≫span
+      get-ctxt λ Γ' → check-term t (just (rename-var Γ x' (qualif-var Γ' x) tp')) ≫span
       spanM-restore-info x mi where
         this-span : ctxt → tk → optClass → 𝕃 tagged-val → err-m → span
         this-span Γ _ NoClass tvs = Lam-span Γ checking pi l x oc t tvs
@@ -497,16 +497,16 @@ check-termi (Phi pi t₁≃t₂ t₁ t₂ pi') nothing =
 
 check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
   get-ctxt λ Γ →
-  spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x synthesizing [] nothing) ≫span
+  spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x synthesizing [] nothing) ≫span
   check-term t' nothing ≫=span λ mtp →
   untyped-optGuide-spans (Guide pi' x tp) ≫span
   check-term t nothing ≫=span λ mtp' → case maybe-hnf Γ mtp' of λ where
     (just (TpEq _ t1 t2 _)) → maybe-else
       (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [] nothing) ≫span spanMr nothing)
       (λ tp' →
-        let Γ' = ctxt-var-decl pi' x Γ
+        let Γ' = ctxt-var-decl-loc pi' x Γ
             tp = qualif-type Γ' tp
-            tp'' = subst-type Γ t1 x tp
+            tp'' = subst Γ t1 x tp
             qt = qualif-term Γ t
             -- tp''' = qualif-type Γ (subst-type Γ t2 x tp)
             tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x qt tt tp' tp) in
@@ -523,15 +523,15 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
   untyped-optGuide-spans (Guide pi' x tp) ≫span
   check-term t nothing ≫=span λ mtp → case maybe-hnf Γ mtp of λ where
     (just (TpEq _ t1 t2 _)) →
-      let Γ' = ctxt-var-decl pi' x Γ
+      let Γ' = ctxt-var-decl-loc pi' x Γ
           qt = qualif-term Γ t
           tp = qualif-type Γ' tp
-          tp'' = subst-type Γ' t2 x tp -- This is t2 (and t1 below) so that Cedille Core files are correctly checked by regular Cedille
+          tp'' = subst Γ' t2 x tp -- This is t2 (and t1 below) so that Cedille Core files are correctly checked by regular Cedille
           -- tp''' = subst-type Γ t1 x (qualif-type Γ tp)
           tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x qt tt tp' tp)
           err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
       spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: [ expected-type Γ tp' ]) err) ≫span
-      spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x checking [] nothing) ≫span
+      spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x checking [] nothing) ≫span
       check-term t' (just tp''')
     (just _) → spanM-add (Rho-span pi t t' checking op (inj₂ x) []
                  (just "We could not synthesize an equation from the first subterm in a ρ-term."))
@@ -546,7 +546,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
            get-ctxt λ Γ →
              let ns-err = optNums-to-stringset on
                  x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
-                 Γ' = ctxt-var-decl posinfo-gen x Γ
+                 Γ' = ctxt-var-decl x Γ
                  qt = qualif-term Γ t
                  s = rewrite-type tp Γ' (is-rho-plus op) (fst ns-err) qt t1 x 0
                  T = post-rewrite Γ' x qt t2 (fst s) in -- subst-type Γ' t2 x (fst s) in
@@ -568,7 +568,7 @@ check-termi (Rho pi op on t NoGuide t') nothing =
             let ns-err = optNums-to-stringset on
                 x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
                 qt = qualif-term Γ t
-                Γ' = ctxt-var-decl posinfo-gen x Γ
+                Γ' = ctxt-var-decl x Γ
                 s = rewrite-type tp Γ' (is-rho-plus op) (fst ns-err) qt t1 x 0
                 tp' = post-rewrite Γ' x qt t2 (fst s) in -- subst-type Γ t2 x (fst s) in
               spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
@@ -647,7 +647,7 @@ check-termi (Theta pi Abstract t ls) (just tp) =
           get-ctxt λ Γ →
           let x = compute-var (hnf Γ unfold-head (qualif-term Γ t) tt)
               x' = maybe-else (unqual-local x) id (var-suffix x) in
-          let motive = mtplam x' (Tkt htp) (rename-type Γ x x' tt tp) in
+          let motive = mtplam x' (Tkt htp) (rename-var Γ x x' tp) in
             spanM-add (Theta-span Γ pi Abstract t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
             check-term (lterms-to-term Abstract (AppTp t (NoSpans motive (term-end-pos t))) ls) 
                (just tp)
@@ -658,7 +658,7 @@ check-termi (Theta pi Abstract t ls) (just tp) =
 check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
   get-ctxt λ Γ → let tp = hnf Γ unfold-head tp tt in cont (wrap-vars Γ vs tp {-(substs-type empty-ctxt (rep-vars Γ vs empty-trie) tp)-}) tp
   where wrap-var : ctxt → var → type → maybe type
-        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk (rename-type Γ (qualif-var Γ v) v (tk-is-type atk) tp))
+        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk (rename-var Γ (qualif-var Γ v) v tp))
         wrap-vars : ctxt → vars → type → maybe type
         wrap-vars Γ (VarsStart v) tp = wrap-var Γ v tp
         wrap-vars Γ (VarsNext v vs) tp = wrap-vars Γ vs tp ≫=maybe wrap-var Γ v
@@ -690,7 +690,7 @@ check-termi (IotaPair pi t1 t2 og pi') (just tp) = -- (Iota pi1 pi2 x tp1 tp2)) 
       check-term t1 (just tp1) ≫span
       let t1' = qualif-term Γ t1
           t2' = qualif-term Γ t2 in
-      check-term t2 (just (subst-type Γ t1' x tp2)) ≫span
+      check-term t2 (just (subst Γ t1' x tp2)) ≫span
       optGuide-spans og checking ≫span
       check-optGuide og tp1 tp2 pi2 x ≫=span λ e →
       let cc = check-conv Γ t1' t2' e in
@@ -709,18 +709,18 @@ check-termi (IotaPair pi t1 t2 og pi') (just tp) = -- (Iota pi1 pi2 x tp1 tp2)) 
         check-optGuide : optGuide → type → type → posinfo → var → spanM err-m
         check-optGuide NoGuide tp1 tp2 pi2 x = spanMr nothing
         check-optGuide (Guide pi x' tp) tp1 tp2 pi2 x = get-ctxt λ Γ → with-ctxt (ctxt-term-decl pi localScope x' tp1 Γ) (check-type tp (just (Star posinfo-gen))) ≫span
-          spanMr (if conv-type Γ tp2 (qualif-type (ctxt-var-decl pi2 x Γ) (subst-type Γ (Var pi2 x) x' tp))
+          spanMr (if conv-type Γ tp2 (qualif-type (ctxt-var-decl x Γ) (subst Γ (Var pi2 x) x' tp))
             then nothing
             else just "The expected type does not match the guided type")
 
 check-termi (IotaPair pi t1 t2 (Guide pi' x T2) pi'') nothing =
   get-ctxt λ Γ →
   check-term t1 nothing ≫=span λ T1 →
-  check-term t2 (just (qualif-type Γ (subst-type Γ (qualif-term Γ t1) x T2))) ≫span
+  check-term t2 (just (qualif-type Γ (subst Γ (qualif-term Γ t1) x T2))) ≫span
   maybe-else spanMok (λ T1 → with-ctxt (ctxt-term-decl pi' localScope x T1 Γ) (check-type T2 (just (Star posinfo-gen)))) T1 ≫span
-  let T2' = qualif-type (ctxt-var-decl pi' x Γ) T2 in
+  let T2' = qualif-type (ctxt-var-decl x Γ) T2 in
   spanM-add (IotaPair-span pi pi'' synthesizing (maybe-else [] (λ T1 → [ type-data Γ (Iota posinfo-gen posinfo-gen x T1 T2') ]) T1) nothing) ≫span
-  spanM-add (Var-span (ctxt-var-decl pi' x Γ) pi' x synthesizing [] nothing) ≫span
+  spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x synthesizing [] nothing) ≫span
   spanMr (T1 ≫=maybe λ T1 → just (Iota posinfo-gen posinfo-gen x T1 T2'))
   where
     err : ctxt → err-m × 𝕃 tagged-val
@@ -746,7 +746,7 @@ check-termi (IotaProj t n pi) mtp =
             return-when mtp (just t1)
         cont mtp 2 computed | Iota pi' pi'' x a t2 =
           get-ctxt λ Γ →
-          let t2' = subst-type Γ (qualif-term Γ t) x t2 in
+          let t2' = subst Γ (qualif-term Γ t) x t2 in
           spanM-add (uncurry (λ tvs → IotaProj-span t pi (maybe-to-checking mtp)
                       (head-type Γ computed :: tvs)) (check-for-type-mismatch-if Γ "synthesized" mtp t2')) ≫span
           return-when mtp (just t2')
@@ -834,7 +834,7 @@ substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
   -- spanMr $ decor-arrow e? (substh-type Γ ρ σ dom) (substh-decortype Γ ρ σ cod)
 substh-decortype Γ ρ σ (decor-decor e? pi x sol dt) =
   let x' = subst-rename-var-if Γ ρ x σ
-      Γ' = ctxt-var-decl pi x' Γ
+      Γ' = ctxt-var-decl-loc pi x' Γ
       ρ' = renamectxt-insert ρ x x'
   in substh-decortype Γ' ρ' σ dt
   ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-meta-var-sol Γ ρ σ sol) dt'
@@ -869,7 +869,7 @@ meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM $
 meta-vars-peel' Γ sl Xs (decor-decor e? pi x (meta-var-tp k mtp) dt) =
   let Y   = meta-var-fresh-tp Xs x sl (k , mtp)
       Xs' = meta-vars-add Xs Y
-  in subst-decortype Γ (meta-var-to-type-unsafe Y posinfo-gen) x dt
+  in subst-decortype Γ (meta-var-to-type-unsafe Y) x dt
   ≫=span λ dt' → meta-vars-peel'  Γ sl Xs' dt'
   ≫=span λ ret → let Ys = fst ret ; rdt = snd ret
   in spanMr $ Y :: Ys , rdt
@@ -1243,7 +1243,7 @@ match-types Xs Ls unf tpₓ'@(Abs piₓ bₓ piₓ' xₓ tkₓ tpₓ) tp'@(Abs p
     (match-types Xs' Ls' (match-unfolding-next unf) tpₓ tp))
   where
   Γ→Γ' : ctxt → ctxt
-  Γ→Γ' Γ = ctxt-rename piₓ' xₓ x (ctxt-var-decl-if pi' x Γ)
+  Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
 match-types Xs Ls unf tpₓ@(TpArrow tp₁ₓ atₓ tp₂ₓ) tp@(TpArrow tp₁ at tp₂) =
@@ -1270,7 +1270,7 @@ match-types Xs Ls unf (Iota _ piₓ xₓ mₓ tpₓ) (Iota _ pi x m tp) =
     (match-types Xs Ls' (match-unfolding-next unf) tpₓ tp)
   where
   Γ→Γ' : ctxt → ctxt
-  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
 match-types Xs Ls unf (TpEq _ t₁ₓ t₂ₓ _) (TpEq _ t₁ t₂ _) =
@@ -1288,7 +1288,7 @@ match-types Xs Ls unf (Lft _ piₓ xₓ tₓ lₓ) (Lft _ pi x t l) =
   match-types-ok Xs
   where
   Γ→Γ' : ctxt → ctxt
-  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
 
 match-types Xs Ls unf (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk tp) =
   get-ctxt λ Γ → match-tks Xs Ls (match-unfolding-next unf) atkₓ atk
@@ -1296,7 +1296,7 @@ match-types Xs Ls unf (TpLambda _ piₓ xₓ atkₓ tpₓ) (TpLambda _ pi x atk 
   (match-types Xs Ls' (match-unfolding-next unf) tpₓ tp)
   where
   Γ→Γ' : ctxt → ctxt
-  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
 match-types Xs Ls unf (NoSpans tpₓ _) (NoSpans tp _) =
@@ -1304,16 +1304,16 @@ match-types Xs Ls unf (NoSpans tpₓ _) (NoSpans tp _) =
 
 -- TODO for now, don't approximate lets
 match-types Xs Ls unf (TpLet piₓ (DefTerm pi x ot t) tpₓ) tp =
-  get-ctxt λ Γ → match-types Xs Ls unf (subst-type Γ (Chi posinfo-gen ot t) x tpₓ) tp
+  get-ctxt λ Γ → match-types Xs Ls unf (subst Γ (Chi posinfo-gen ot t) x tpₓ) tp
 
 match-types Xs Ls unf (TpLet piₓ (DefType pi x k tpₓ-let) tpₓ) tp =
-  get-ctxt λ Γ → match-types Xs Ls unf (subst-type Γ tpₓ-let x tpₓ) tp
+  get-ctxt λ Γ → match-types Xs Ls unf (subst Γ tpₓ-let x tpₓ) tp
 
 match-types Xs Ls unf tpₓ (TpLet _ (DefTerm _ x ot t) tp) =
-  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst-type Γ (Chi posinfo-gen ot t) x tp)
+  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst Γ (Chi posinfo-gen ot t) x tp)
 
 match-types Xs Ls unf tpₓ (TpLet _ (DefType _ x k tp-let) tp) =
-  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst-type Γ tp-let x tp)
+  get-ctxt λ Γ → match-types Xs Ls unf tpₓ (subst Γ tp-let x tp)
 
 -- match-types Xs Ls unf (TpHole x₁) tp = {!!}
 
@@ -1341,7 +1341,7 @@ match-kinds-norm Xs Ls uf (KndPi _ piₓ xₓ tkₓ kₓ) (KndPi _ pi x tk k) =
     (match-kinds Xs Ls uf kₓ k)
   where
   Γ→Γ' : ctxt → ctxt
-  Γ→Γ' Γ = ctxt-rename piₓ xₓ x (ctxt-var-decl-if pi x Γ)
+  Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
 -- kind arrow
@@ -1421,7 +1421,7 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   get-ctxt λ Γ →
   -- 1) generate a fresh meta-var Y, add it to the meta-vars, and rename
   --    occurences of x in tp to Y
-  let ret = meta-vars-add-from-tpabs Γ missing-span-location Xs (mk-tpabs (pi , pi') Erased x k tp)
+  let ret = meta-vars-add-from-tpabs Γ missing-span-location Xs (mk-tpabs Erased x k tp)
       Y = fst ret ; Xs' = fst (snd ret) ; tp' = snd (snd ret)
   -- 2) match the body against the original prototype to generate a decorated type
   --    and find some solutions
@@ -1476,11 +1476,11 @@ match-prototype Xs uf (TpParens _ tp _) pt@(proto-arrow _ _) =
   match-prototype Xs uf tp pt
 match-prototype Xs uf (TpLet pi (DefTerm piₗ x opt t) tp) pt@(proto-arrow _ _) =
   get-ctxt λ Γ →
-  let tp' = subst-type Γ (Chi posinfo-gen opt t) x tp in
+  let tp' = subst Γ (Chi posinfo-gen opt t) x tp in
   match-prototype Xs uf tp' pt
 match-prototype Xs uf (TpLet pi (DefType piₗ x k tp') tp) pt@(proto-arrow _ _) =
   get-ctxt λ Γ →
-  let tp″ = subst-type Γ tp' x tp in
+  let tp″ = subst Γ tp' x tp in
   match-prototype Xs uf tp″ pt
 match-prototype Xs ff tp@(TpApp _ _) pt@(proto-arrow _ _) =
   get-ctxt λ Γ →
@@ -1535,7 +1535,7 @@ check-typei (TpVar pi x) mk =
            (expected-kind Γ k :: [ kind-data Γ k' ])
            (if conv-kind Γ k k' then nothing else just "The computed kind does not match the expected kind."))
 check-typei (TpLambda pi pi' x atk body) (just k) with to-absk k 
-check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' atk' _ k') =
+check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk x' atk' _ k') =
    check-tk atk ≫span
    spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
    get-ctxt λ Γ → 
@@ -1544,7 +1544,7 @@ check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk pik pik' x' at
               else
                 uncurry (λ tvs err → TpLambda-span pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ x atk' atk [ kind-data Γ k ])) ≫span
    add-tk pi' x atk ≫=span λ mi → 
-   get-ctxt λ Γ' → check-type body (just (rename-kind Γ x' (qualif-var Γ' x) (tk-is-type atk') k')) ≫span
+   get-ctxt λ Γ' → check-type body (just (rename-var Γ x' (qualif-var Γ' x) k')) ≫span
    spanM-restore-info x mi
 check-typei (TpLambda pi pi' x atk body) (just k) | nothing = 
    check-tk atk ≫span
@@ -1570,7 +1570,7 @@ check-typei (TpLambda pi pi' x atk body) nothing =
           get-ctxt λ Γ →
           let atk' = qualif-tk Γ atk in
           -- This should indeed "unqualify" occurrences of x in k for r
-          let r = absk-tk x pi' atk' (rename-kind Γ (pi' % x) x (tk-is-type atk) k) in
+          let r = absk-tk x atk' (rename-var Γ (pi' % x) x k) in
           spanM-add (TpLambda-span pi x atk' body synthesizing [ kind-data Γ r ] nothing) ≫span
           spanMr (just r)
 
@@ -1601,7 +1601,7 @@ check-typei (TpAppt tp t) k =
         cont (KndPi _ _ x (Tkt tp') k') = 
           check-term t (just tp') ≫span 
           get-ctxt λ Γ → 
-          spanMr (just (subst-kind Γ (qualif-term Γ t) x k'))
+          spanMr (just (subst Γ (qualif-term Γ t) x k'))
         cont k' =
           get-ctxt λ Γ → 
           spanM-add (TpAppt-span tp t (maybe-to-checking k)
@@ -1633,7 +1633,7 @@ check-typei (TpApp tp tp') k =
         cont (KndPi _ _ x (Tkk k'') k') = 
           check-type tp' (just k'') ≫span 
           get-ctxt λ Γ → 
-          spanMr (just (subst-kind Γ (qualif-type Γ tp') x k'))
+          spanMr (just (subst Γ (qualif-type Γ tp') x k'))
         cont k' =
           get-ctxt λ Γ → 
           spanM-add (TpApp-span tp tp' (maybe-to-checking k)
@@ -1698,11 +1698,11 @@ check-typei (TpLet pi d T) mk =
   maybe-subst _ (just k) triv = spanMok
   maybe-subst _ nothing nothing = spanMr nothing
   maybe-subst (DefTerm pi x NoType t) nothing (just k) = get-ctxt λ Γ →
-    spanMr (just (subst-kind Γ (qualif-term Γ (Chi posinfo-gen NoType t)) (pi % x) k))
+    spanMr (just (subst Γ (qualif-term Γ (Chi posinfo-gen NoType t)) (pi % x) k))
   maybe-subst (DefTerm pi x (SomeType T) t) nothing (just k) = get-ctxt λ Γ →
-    spanMr (just (subst-kind Γ (qualif-term Γ (Chi posinfo-gen (SomeType T) t)) (pi % x) k))
+    spanMr (just (subst Γ (qualif-term Γ (Chi posinfo-gen (SomeType T) t)) (pi % x) k))
   maybe-subst (DefType pi x k' T') nothing (just k) = get-ctxt λ Γ →
-    spanMr (just (subst-kind Γ (qualif-type Γ T') (pi % x) k))
+    spanMr (just (subst Γ (qualif-type Γ T') (pi % x) k))
 
   finish : var × restore-def → spanM (check-ret mk)
   finish (x , m) =
@@ -1753,19 +1753,19 @@ check-args-against-params kind-or-import orig ps ys =
   caap : 𝔹 → params → args → trie arg → spanM ⊤
   caap koi (ParamsCons (Decl _ pi _ x (Tkk k) _) ps) (ArgsCons (TypeArg T) ys) σ =
     get-ctxt λ Γ →
-    let k' = hnf Γ (unfolding-elab unfold-head) (substs-kind Γ σ k) tt in
+    let k' = hnf Γ (unfolding-elab unfold-head) (substs Γ σ k) tt in
     check-type T (just k') ≫span
     let T' = TypeArg (qualif-type Γ T) in
     caap koi ps ys (trie-insert σ x T')
   caap koi (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) σ =
     get-ctxt λ Γ →
-    let T' = hnf Γ (unfolding-elab unfold-head) (substs-type Γ σ T) tt in
+    let T' = hnf Γ (unfolding-elab unfold-head) (substs Γ σ T) tt in
     check-term t (just T') ≫span
     let t' = TermArg Erased (qualif-term Γ t) in
     caap koi ps ys (trie-insert σ x t')
   caap koi (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) σ =
     get-ctxt λ Γ →
-    let T' = hnf Γ (unfolding-elab unfold-head) (substs-type Γ σ T) tt in
+    let T' = hnf Γ (unfolding-elab unfold-head) (substs Γ σ T) tt in
     check-term t (just T') ≫span
     check-erased-margs t (just T') ≫span
     let t' = TermArg NotErased (qualif-term Γ t) in

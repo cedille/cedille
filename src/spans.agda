@@ -111,12 +111,12 @@ set-error es Γ (regular-spans _ ss) = returnM (triv , Γ , regular-spans es ss)
 restore-def : Set
 restore-def = maybe qualif-info × maybe sym-info
 
+spanM-set-params : params → spanM ⊤
+spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
+
 -- this returns the previous ctxt-info, if any, for the given variable
 spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
 spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-decl pi s x t Γ , ss)
-
-spanM-set-params : params → spanM ⊤
-spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
 -- let bindings currently cannot be made opaque, so this is OpacTrans. -tony
 spanM-push-term-def : posinfo → var → term → type → spanM restore-def
