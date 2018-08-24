@@ -15,6 +15,6 @@ generate-logs
 
 -- show fully-qualifed variables (for debugging)
 show-qualified-vars -- show
-  = true.
+  = false.
 
 erase-types = false. -- foo
