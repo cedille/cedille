@@ -59,7 +59,13 @@ optAs-posinfo-var NoOptAs = spanMr
 optAs-posinfo-var (SomeOptAs pi x) orig = get-ctxt λ Γ →
   spanM-add (Import-module-span Γ orig ParamsNil [ not-for-navigation ] nothing) ≫span spanMr (pi , x)
 
+add-params-kind : params → kind → kind
+add-params-kind (ParamsCons (Decl pi pi' m v k'  pi'') ps) k =
+  KndPi pi pi' v k' (add-params-kind ps k)
+add-params-kind ParamsNil k = k
+
 {-# TERMINATING #-}
+process-consts : dataConsts → params → spanM ⊤
 process-cmd : process-t cmd
 process-cmds : process-t cmds
 process-params : process-t (posinfo × params)
@@ -158,7 +164,6 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     with-ctxt (toplevel-state.Γ s)
       (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v ps as) ≫span
     spanMr nothing
-
 {-
 (just imported-file) →
 -      λ Γ ss → process-file s imported-file x ≫=monad λ { (s , _) →
@@ -177,8 +182,19 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
 -               else err)) ≫span
 -         spanMr (scope-file s imported-file oa (qualif-args (toplevel-state.Γ s) as))) Γ ss}
 
-
 -}
+
+process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype dd@(Datatype pi pix x ps k cs _) pi') _  =
+    set-ctxt Γ ≫span
+    check-kind (add-params-kind ps k) ≫span -- 
+    get-ctxt (λ Γ → 
+      let Γ' = ctxt-datatype-def pi x (qualif-params Γ ps) (qualif-kind Γ (add-params-kind ps k)) (Datatype pi pix x ps k cs pi') Γ in
+        set-ctxt Γ'                                          ≫span
+        spanM-add (DefDatatype-span pi pix x pi')            ≫span
+        spanM-add (TpVar-span Γ' pix x checking [] nothing)  ≫span
+        process-consts cs ps                                 ≫span
+        get-ctxt (λ Γ →
+          spanMr (mk-toplevel-state ip fns is Γ))) --(ctxt-restore-info* Γ ms))))
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds (mk-toplevel-state include-path files is Γ) (CmdsNext c cs) need-to-check =
@@ -224,10 +240,21 @@ process-file s filename pn | ie =
            process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
                    filename pn x do-check Γ empty-spans ≫=monad cont
            where cont : toplevel-state × ctxt × spans → mF (toplevel-state × include-elt × mod-info)
-                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _) , ss) =
+                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _ _) , ss) =
                    progress-update pn do-check ≫monad returnM
                      (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is
                        (ctxt-set-current-mod Γ prev-mod) ,
                      (if do-check then set-spans-include-elt ie' ss else ie') , ret-mod)
         proceed s (just x) ie' | _ = returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s))
+
+process-consts DataNull ps = spanMok
+process-consts (DataCons (DataConst pi c tp) cs) ps =
+      get-ctxt (λ Γ → 
+        let t = abs-expand-type' ps tp in -- add-param-type ps (qualif-type Γ tp)
+        check-type t (just star) ≫span 
+        set-ctxt (ctxt-const-def pi c (qualif-type Γ t) Γ) ≫span
+        spanM-add (DefDataConst-span pi c)  ≫span
+        process-consts cs ps)
+
+
 

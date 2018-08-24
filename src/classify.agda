@@ -136,6 +136,81 @@ check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-def : defTermOrType → spanM (var × restore-def)
 
+{- Cedilleum specification, section 4.3 -}
+is-arrow-type : type → kind → posinfo → posinfo → spanM ⊤
+is-arrow-type t (KndTpArrow        t' (Star _)) pi pi' =
+  get-ctxt (λ Γ → if (conv-type Γ t t') then spanMok
+                  else (spanM-add (mk-span "Wrong motive" pi pi' (expected-type Γ t :: [ type-argument Γ t' ]) (just "Type missmatch"))))
+is-arrow-type t (KndPi _ _ _ (Tkt t') (Star _)) pi pi' =
+  get-ctxt (λ Γ → if (conv-type Γ t t') then spanMok
+                  else (spanM-add (mk-span "Wrong motive" pi pi' (expected-type Γ t :: [ type-argument Γ t' ]) (just "Type missmatch"))))
+is-arrow-type t _ pi pi' =
+  spanM-add (mk-span "Wrong motive" pi pi' [] (just "Not a valid motive type 3"))
+
+-- example of renaming: [[%CE%93%E2%86%92%CE%93' : ctxt %E2%86%92 ctxt][here]]
+-- [[check-term-spine t'@(App t%E2%82%81 e? t%E2%82%82) mtp max =]]
+valid-elim-kind : type → kind → kind → posinfo → posinfo → spanM ⊤
+valid-elim-kind t (Star _)         k                                       pi pi' = is-arrow-type t k pi pi'
+valid-elim-kind t (KndPi _ pix x (Tkt t1)  k1) (KndPi _ _ y (Tkt  t2) k2)  pi pi' =
+  get-ctxt (λ Γ →
+    if (conv-type Γ t1 t2) then
+      set-ctxt (ctxt-term-decl pix localScope x t1 Γ) ≫span
+      valid-elim-kind (TpAppt t (Var   pix x)) k1 k2 pi pi'
+    else
+      spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 4")))
+valid-elim-kind t (KndPi _ pix x (Tkk k1') k1) (KndPi _ _ y (Tkk  k2') k2) pi pi' =
+  get-ctxt (λ Γ →
+    if (conv-kind Γ k1' k2') then
+      set-ctxt (ctxt-type-decl pix localScope x k1' Γ) ≫span 
+      valid-elim-kind (TpApp  t (TpVar pix x)) k1 k2 pi pi'
+    else
+      spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 5")))   
+valid-elim-kind t (KndTpArrow t1 k1)           (KndTpArrow t2 k2)          pi pi' =
+  get-ctxt (λ Γ →
+    if (conv-type Γ t1  t2) then
+      valid-elim-kind (TpApp t t1) k1 k2 pi pi'
+    else
+      spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 6")))
+valid-elim-kind _ _ _ pi pi'  =
+    spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 7"))
+
+{- Cedilleum specification, section 4.4 -}
+branch-type : ctxt → term → type → type → type
+--  Π x : Tk, ∀ x : T, ∀ x : k cases
+branch-type Γ t (Abs pi e pi' x tk ty) m = Abs pi e pi' x tk (branch-type Γ t ty m) 
+branch-type Γ t _                      m = TpAppt m t -- TODO: missing indices s ! is ctxt needed ?
+
+-- converts mu cases (Example: from "vcons -n -m x xs -eq → ff" to "Λ n. Λ m. λ x. λ xs. Λ eq. ff")
+abstract-varargs : varargs → term → spanM (maybe term)
+abstract-varargs NoVarargs           t = spanMr (just t)
+abstract-varargs (NormalVararg x vs) t =
+  (abstract-varargs vs t) on-fail (spanMr nothing) ≫=spanm' (λ a → 
+    spanMr (just (Lam posinfo-gen NotErased posinfo-gen x NoClass  a)))
+abstract-varargs (ErasedVararg x vs) t =
+  (abstract-varargs vs t) on-fail (spanMr nothing) ≫=spanm' (λ a → 
+    spanMr (just (Lam posinfo-gen Erased    posinfo-gen x NoClass  a)))
+abstract-varargs (TypeVararg   x vs) t =
+  (abstract-varargs vs t) on-fail (spanMr nothing) ≫=spanm' (λ a →
+    get-ctxt (λ Γ → helper (ctxt-lookup-type-var Γ x) a))
+  where
+      helper : maybe kind → term → spanM (maybe term)
+      helper nothing  t = spanMr nothing
+      helper (just k) t = spanMr (just (Lam posinfo-gen Erased posinfo-gen x (SomeClass (Tkk k)) t))
+
+check-cases : dataConsts → cases → params → type → posinfo → posinfo → spanM ⊤
+check-cases DataNull                         NoCase _ _ _ _                        = spanMok
+check-cases (DataCons (DataConst _ c t) cts) (SomeCase pi c' varsargs t' cs) ps ty pic pic' =
+  spanM-add (mk-span "Mu case" pi (term-end-pos t') [] nothing)                 ≫span
+  check-cases cts cs ps ty pic pic'
+check-cases _ _ _ _ pic pic' = spanM-add (mk-span "Mu Cases error" pic pic' [] (just "Number of cases and constructors do not match"))
+
+{- Cedilleum specification, section 4.5 -}
+well-formed-patterns : defDatatype → term → type → cases → posinfo → posinfo → spanM ⊤
+well-formed-patterns dd@(Datatype pi pix x ps k cons pf) t P cases pic pic' =
+  (check-type P nothing) on-fail (spanM-add (mk-span "Wrong motive" (type-start-pos P) (type-end-pos P) [] (just "Motive does not typecheck"))) ≫=spanm' (λ kmtv → 
+    get-ctxt (λ Γ → valid-elim-kind (lam-expand-type ps (qualif-type Γ (TpVar pix x))) k kmtv (type-start-pos P) (type-end-pos P) ≫span
+      check-cases cons cases ps P pic pic'))
+
 -- check-term
 -- ==================================================
 
@@ -580,9 +655,9 @@ check-termi (Theta pi Abstract t ls) (just tp) =
                 compute-var t = ignored-var
 
 check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
-  get-ctxt λ Γ → let tp = hnf Γ unfold-head tp tt in cont (wrap-vars Γ vs (substs-type empty-ctxt (rep-vars Γ vs empty-trie) tp)) tp
+  get-ctxt λ Γ → let tp = hnf Γ unfold-head tp tt in cont (wrap-vars Γ vs tp {-(substs-type empty-ctxt (rep-vars Γ vs empty-trie) tp)-}) tp
   where wrap-var : ctxt → var → type → maybe type
-        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk tp)
+        wrap-var Γ v tp = ctxt-lookup-tk-var Γ v ≫=maybe λ atk → just (mtplam v atk (rename-type Γ (qualif-var Γ v) v (tk-is-type atk) tp))
         wrap-vars : ctxt → vars → type → maybe type
         wrap-vars Γ (VarsStart v) tp = wrap-var Γ v tp
         wrap-vars Γ (VarsNext v vs) tp = wrap-vars Γ vs tp ≫=maybe wrap-var Γ v
@@ -597,13 +672,13 @@ check-termi (Theta pi (AbstractVars vs) t ls) (just tp) =
             spanM-add (Theta-span Γ pi (AbstractVars vs) t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
             check-term (lterms-to-term Abstract (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1))) ls)
                (just tp)
-        rep-var : ctxt → var → trie term → trie term
+        {-rep-var : ctxt → var → trie term → trie term
         rep-var Γ v ρ with trie-lookup (ctxt-get-qualif Γ) v
         ...| nothing = ρ
         ...| just (v' , _) = trie-insert ρ v' (Var posinfo-gen v)
         rep-vars : ctxt → vars → trie term → trie term
         rep-vars Γ (VarsStart v) = rep-var Γ v
-        rep-vars Γ (VarsNext v vs) ρ = rep-vars Γ vs (rep-var Γ v ρ)
+        rep-vars Γ (VarsNext v vs) ρ = rep-vars Γ vs (rep-var Γ v ρ)-}
 
 check-termi (Hole pi) tp =
   get-ctxt λ Γ → spanM-add (hole-span Γ pi tp []) ≫span return-when tp tp
@@ -685,6 +760,27 @@ check-termi (IotaProj t n pi) mtp =
         cont' mtp n (just tp) = get-ctxt λ Γ → cont mtp n (hnf Γ unfold-head tp tt)
                                                      -- we are looking for iotas in the bodies of rec defs
 
+check-termi mu@(Mu' pi t (SomeType P) pi' cs pi'')   nothing   =
+  check-term t nothing on-fail (spanMr nothing) ≫=spanm' (λ I →
+    spanM-add (Mu'-span mu [] nothing) ≫span
+    spanMr (just I)
+    )
+check-termi mu@(Mu' pi t (SomeType P) pi' cs pi'')   (just tp) =
+  check-term t nothing on-fail spanMok ≫=spanm' (λ I →
+    -- TODO: remove T parameters and s indices from expression I T s
+    get-ctxt (helper I))
+    where
+    helper : type → ctxt → spanM ⊤
+    helper (TpVar _ x) (mk-ctxt _ _ _ _ d) with trie-lookup d x
+    ...               | just dt  = well-formed-patterns dt t P cs pi' pi''
+    ...               | nothing  = spanMok
+    helper _          Γ          = spanMok
+check-termi (Mu' pi t NoType       _ cs pi')   (just tp) = spanMok
+check-termi (Mu' pi t NoType       _ cs pi')   nothing   = spanMr nothing
+check-termi (Mu  pi x t (SomeType m) _ cs pi') (just tp) = spanMok 
+check-termi (Mu  pi x t (SomeType m) _ cs pi') nothing   = spanMr nothing
+check-termi (Mu  pi x t NoType _ cs pi')       nothing   = spanMr nothing
+check-termi (Mu  pi x t NoType _ cs pi')       (just tp) = spanMok
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
 
 -- END check-term
@@ -1070,7 +1166,7 @@ check-type-for-match tp =
   ≫=spand spanMr
   where
   qualified-qualif : ctxt → qualif
-  qualified-qualif (mk-ctxt mod ss is os) =
+  qualified-qualif (mk-ctxt mod ss is os _) =
     for trie-strings is accum empty-trie use λ x q →
       trie-insert q x (x , ArgsNil)
 
