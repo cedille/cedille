@@ -225,6 +225,8 @@ elab-check-term Γ (Theta pi θ t ts) T =
   motive x x' T T' AbstractEq = just (mtplam x' (Tkt T') (TpArrow (mtpeq t (mvar x')) Erased (rename-var Γ x x' T)))
   motive x x' T T' (AbstractVars vs) = wrap-vars vs T
 elab-check-term Γ (Var pi x) T = just (mvar x)
+elab-check-term Γ (Mu pi x t ot pi' cs pi'') T = nothing
+elab-check-term Γ (Mu' pi t ot pi' cs pi'')  T = nothing
 
 elab-synth-term Γ (App t me t') =
   elab-app-term Γ (App t me t') ≫=maybe λ where
@@ -360,6 +362,8 @@ elab-synth-term Γ (Var pi x) =
   ctxt-lookup-term-var' Γ x ≫=maybe λ T →
   elab-hnf-type Γ T tt ≫=maybe λ T →
   just (mvar x , T)
+elab-synth-term Γ (Mu pi x t ot pi' cs pi'') = nothing
+elab-synth-term Γ (Mu' pi t ot pi' cs pi'')  = nothing
 
 elab-typeh Γ (Abs pi b pi' x atk T) b' =
   elab-tkh Γ atk b' ≫=maybe λ atk →
@@ -622,6 +626,9 @@ elab-cmds ts ρ φ (CmdsNext (ImportCmd i) cs) =
   elab-import ts ρ φ i ≫=maybe uncurry'' λ i ts ρ φ →
   elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
   just (CmdsNext (ImportCmd i) cs , ts-ρ-φ)
+elab-cmds ts ρ φ (CmdsNext (DefDatatype (Datatype _ _ x p k d pf) _) cs) =
+  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
+  just (CmdsNext (DefDatatype (Datatype posinfo-gen posinfo-gen x p k d pf) posinfo-gen) cs , ts-ρ-φ)
 
 elab-file' ts ρ φ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →

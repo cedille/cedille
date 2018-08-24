@@ -27,6 +27,7 @@ data Opacity =
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
      | DefTermOrType Opacity DefTermOrType PosInfo
+     | DefDatatype   DefDatatype   PosInfo               
      | ImportCmd Imprt
      deriving (Show,Eq)
 
@@ -37,6 +38,19 @@ data Cmds =
 
 data Decl =
      Decl PosInfo PosInfo MaybeErased Bvar Tk PosInfo
+     deriving (Show,Eq)
+
+data DefDatatype =
+     Datatype PosInfo PosInfo Var Params Kind DataConsts PosInfo
+     deriving (Show,Eq)
+
+data DataConst =
+     DataConst PosInfo Var Type
+     deriving (Show,Eq)
+
+data DataConsts =
+       DataNull
+     | DataCons DataConst DataConsts
      deriving (Show,Eq)
 
 data DefTermOrType =
@@ -148,7 +162,21 @@ data Term =
      | Rho PosInfo OptPlus OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
+     | Mu    PosInfo Bvar Term OptType PosInfo Cases PosInfo
+     | Mu'   PosInfo      Term OptType PosInfo Cases PosInfo     
      | Var PosInfo Qvar
+     deriving (Show,Eq)
+
+data Cases =
+       NoCase
+     | SomeCase PosInfo Var Varargs Term Cases
+     deriving (Show,Eq)
+
+data Varargs =
+       NoVarargs
+     | NormalVararg Bvar Varargs
+     | ErasedVararg Bvar Varargs
+     | TypeVararg   Bvar Varargs
      deriving (Show,Eq)
      
 data Theta =
