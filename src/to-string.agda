@@ -40,6 +40,8 @@ no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Delta _ _ _) right = tt
 no-parens {_} {TERM} _ (Let _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
+no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _) lr = tt
+no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
 no-parens {_} {KIND} _ (KndPi _ _ _ _ _) lr = tt
@@ -63,6 +65,8 @@ no-parens{TERM} (Rho pi op on eq og t) p lr = ff
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
+no-parens{TERM} (Mu _ _ _ _ _ _ _) p lr = tt
+no-parens{TERM} (Mu' _ _ _ _ _ _)  p lr = tt
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = is-arrow p && not-left lr
 no-parens{TYPE} (Iota pi pi' x oT T) p lr = ff
 no-parens{TYPE} (Lft pi pi' x t lT) p lr = ff
@@ -114,16 +118,16 @@ strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
 strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
-strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
+strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
   m s n ts
-    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs)
+    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d)
     pe
   where v' = if ds iff localScope then pi % v else mn # v
 
 strΓ = strΓ' localScope ff
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
-ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os) =
+ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os _) =
   trie-lookup-else 0 ids
 
 make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
@@ -162,6 +166,7 @@ type-to-stringh : type → strM
 kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
+constructors-to-string : dataConsts → strM
 
 params-to-string : params → strM
 params-to-string' : defScope → strM → params → strM
@@ -238,6 +243,14 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
+constructors-to-string DataNull                        = strEmpty
+constructors-to-string (DataCons (DataConst _ x t) ds) =
+  strAdd "  | "  ≫str
+  strAdd x      ≫str 
+  strAdd " : "  ≫str
+  type-to-stringh  t ≫str
+  constructors-to-string ds
+  
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
@@ -261,6 +274,8 @@ term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-s
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
+term-to-stringh (Mu pi x t ot pi' cs pi'') = strAdd ("μ " ^ x ^ " . ") ≫str to-stringh t ≫str  optType-to-string ot 
+term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ " ≫str to-stringh t ≫str  optType-to-string ot 
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " " ^ x ^ " : ") ≫str tk-to-stringh Tk ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T)
 type-to-stringh (Iota pi pi' x T T') = strAdd ("ι " ^ x) ≫str strAdd " : " ≫str to-stringh T ≫str strAdd " . " ≫str strΓ x pi' (to-stringh T')
@@ -409,6 +424,16 @@ cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
   optAs-to-string oa ≫str
   args-to-string as ≫str
   strAdd " ." ≫str
+  f
+cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
+  strAdd "data " ≫str
+  strAdd x ≫str
+  strAdd " " ≫str  
+  params-to-string ps ≫str
+  strAdd " : " ≫str    
+  kind-to-stringh k ≫str
+  strAdd " = " ≫str
+  constructors-to-string cs ≫str
   f
 
 strRun : ctxt → strM → rope

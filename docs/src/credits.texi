@@ -1,4 +1,4 @@
-@node credits,Index,options,Top
+@node credits,about,options,Top
 
 @chapter Credits
 

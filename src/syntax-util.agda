@@ -181,6 +181,8 @@ term-start-pos (Chi pi _ _) = pi
 term-start-pos (Delta pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
+term-start-pos (Mu pi _ _ _ _ _ _) = pi
+term-start-pos (Mu' pi _ _ _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
@@ -239,6 +241,8 @@ term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Delta pi oT t) = term-end-pos t
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ _ ls) = lterms-end-pos ls
+term-end-pos (Mu _ _ _ _ _ _ pi) = pi
+term-end-pos (Mu' _ _ _ _ _ pi) = pi
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
@@ -517,6 +521,8 @@ erase-lterms : term → lterms → term
 erase-tk : tk → tk
 -- erase-optType : optType → optType
 erase-liftingType : liftingType → liftingType
+erase-cases : cases → cases
+erase-varargs : varargs → varargs
 
 erase-if : 𝔹 → { ed : exprd } → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-if tt = erase
@@ -544,6 +550,16 @@ erase-term (Rho pi _ _ t _ t') = erase-term t'
 erase-term (Chi pi T t') = erase-term t'
 erase-term (Delta pi T t) = id-term
 erase-term (Theta pi u t ls) = erase-lterms (erase-term t) ls
+erase-term (Mu pi x t ot pi' c pi'') = Mu pi x (erase-term t) NoType pi' (erase-cases c) pi''
+erase-term (Mu' pi t ot pi' c pi'')  = Mu' pi  (erase-term t) NoType pi' (erase-cases c) pi''
+
+erase-cases NoCase = NoCase
+erase-cases (SomeCase pi x varargs t cs) = SomeCase pi x (erase-varargs varargs) (erase-term t) (erase-cases cs)
+
+erase-varargs NoVarargs = NoVarargs
+erase-varargs (NormalVararg x varargs) = NormalVararg x (erase-varargs varargs)
+erase-varargs (ErasedVararg x varargs) = erase-varargs varargs
+erase-varargs (TypeVararg x varargs  ) = erase-varargs varargs
 
 -- Only erases TERMS in types, leaving the structure of types the same
 erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
@@ -700,6 +716,11 @@ abs-expand-type : params → type → type
 abs-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
   Abs posinfo-gen (if tk-is-type tk then me else All) pi' x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
+
+abs-expand-type' : params → type → type
+abs-expand-type' (ParamsCons (Decl pi pi' me x tk _) ps) t =
+  Abs pi (if tk-is-type tk then me else All) pi' x tk (abs-expand-type' ps t)
+abs-expand-type' ParamsNil t = t
 
 abs-expand-kind : params → kind → kind
 abs-expand-kind (ParamsCons (Decl pi pi' me x tk _) ps) k =
