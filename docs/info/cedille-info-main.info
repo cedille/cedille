@@ -17,7 +17,7 @@ Eliminations (CDLE).
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille
 * credits::                      Who has contributed to the Cedille tool
-* about::                        About Cedille's type theory and this implementation
+* about::                        About Cedille's type theory and implementation
 * Index::                        Index to the documentation
 
 
@@ -441,8 +441,77 @@ File: cedille-info-main.info,  Node: about,  Next: Index,  Prev: credits,  Up: T
 12 Cedille's Type Theory
 ************************
 
-Cedille's type theory is described in this document on arXiv
-(https://arxiv.org/abs/1806.04709).
+Cedille's type theory is called the Calculus of Dependent Lambda
+Eliminations (CDLE). It is somewhat rare in being a Curry-style type
+theory.  Coq and Agda are based on Church-style theories.  The
+difference is that in a Curry-style (aka extrinsic) type theory, type
+annotations are merely hints to the type checker, and the "real" terms
+(the subjects of metatheoretic analysis, for example) are completely
+unannotated.  Thus, such annotations can be erased during compilation
+and during formal reasoning (in particular during conversion checking,
+where the type checker tests whether two terms are definitionally
+equal).  In contrast, with Church-style (aka intrinsic) type theory, the
+annotations are "really there", and must be preserved during compilation
+and conversion.
+
+12.1 Example
+============
+
+For an example, consider the term Λ X : ★ .  λ x : X .  x.  In
+Church-style type theory, the annotations giving the classifiers for X
+and x are truly part of the term, and the theory itself does not allow
+for them to be erased.  In contrast, in a Curry-style type theory like
+CDLE, those annotations are just hints to help the type checker see how
+to assign the type ∀ X : ★ .  X ➔ X to λ x .  x.  The type theory has a
+notion of erasure, and conversion compares the erasures of terms rather
+than the annotated terms.
+
+12.2 Cedille extends the Calculus of Constructions
+==================================================
+
+The starting point for Cedille is a Curry-style version of the Calculus
+of Constructions (CC). Coq is based on several extensions of CC, notably
+with a predicative universe hierarchy (Luo's Extended Calculus of
+Constructions), and with a primitive system of inductive datatypes (the
+Calculus of Inductive Constructions of Paulin-Mohring and Werner).
+Cedille has neither the universe hierarchy nor the inductive types.  The
+universe hierarchy is omitted to avoid additional metatheoretic and
+implementation complexity, which has not been justified to my (Aaron's)
+satisfaction by examples.  So it is omitted not for any really
+fundamental reason (that we know of).  Omitting the system of primitive
+inductive types, however, is one of the chief goals of Cedille, and will
+be discussed more below.
+
+12.3 The type constructs of Cedille
+===================================
+
+From CC, Cedille inherits the following type constructs:
+
+   * ∀ X : 𝒌 .  T - this is impredicative quantification over types X of
+     kind 𝒌.
+   * Π x : T .  T' - this is dependent function space, where the return
+     type T' may mention the input argument x.
+   * λ X : 𝒌 .  T - this is a type-level function over types X of kind
+     𝒌.
+   * λ x : T .  T' - this is a type-level function over terms x of type
+     T.
+   * T t - this is applying a type-level function T to a term t.
+   * T T' - this is applying a type-level function T to a type T'.
+   * X - type variables are types, of course.
+
+   See *Note unicode shortcuts:: for how to type these symbols in
+Cedille mode.
+
+   To the above constructs, Cedille adds:
+
+12.4 More reading
+=================
+
+The syntax and semantics of Cedille are described in this document on
+arXiv (https://arxiv.org/abs/1806.04709).
+
+   The paper first showing how to derive induction for an inductive type
+in Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
 
 
 File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
@@ -684,17 +753,17 @@ Index
 
 Tag Table:
 Node: Top95
-Node: cedille mode commands932
-Node: unicode shortcuts3980
-Node: context buffer6307
-Node: credits8231
-Node: options9372
-Node: about10519
-Node: extra buffers10754
-Node: inspect buffer12062
-Node: summary buffer13210
-Node: meta-vars buffer13985
-Node: beta-reduce mode14970
-Node: Index16117
+Node: cedille mode commands927
+Node: unicode shortcuts3975
+Node: context buffer6302
+Node: credits8226
+Node: options9367
+Node: about10514
+Node: extra buffers13989
+Node: inspect buffer15297
+Node: summary buffer16445
+Node: meta-vars buffer17220
+Node: beta-reduce mode18205
+Node: Index19352
 
 End Tag Table

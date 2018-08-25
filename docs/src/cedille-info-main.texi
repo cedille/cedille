@@ -15,7 +15,7 @@ Cedille is an implementation of the Calculus of Dependent Lambda Eliminations (C
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille 
 * credits::                      Who has contributed to the Cedille tool
-* about::                        About Cedille's type theory and this implementation
+* about::                        About Cedille's type theory and implementation
 * Index::                        Index to the documentation
 @end menu
 
