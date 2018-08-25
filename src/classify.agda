@@ -1120,7 +1120,7 @@ check-term-spine t pt max =
 --
 -- If `dom` has unsolved meta-vars in it, synthesize argument t₂ and try to solve for them.
 -- Otherwise, check t₂ against a fully known expected type
-check-term-app Xs Zs t₁ t₂ arr@(mk-tmabsd dt e? x dom occurs cod) is-locl =
+check-term-app Xs Zs t₁ t₂ (mk-tmabsd dt e? x dom occurs cod) is-locl =
   get-ctxt λ Γ → 
   let Xs' = meta-vars-add* Xs Zs ; tp = decortype-to-type dt in
   (if occurs then subst-decortype Γ (qualif-term Γ t₂) x cod else spanMr cod)
@@ -1137,8 +1137,8 @@ check-term-app Xs Zs t₁ t₂ arr@(mk-tmabsd dt e? x dom occurs cod) is-locl =
  ≫span spanMr nothing
   -- 2) match synthesized type with expected (partial) type
   ≫=spanm' λ atp →
-  let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
-      domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
+  -- let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
+  --     domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
   match-types Xs' empty-trie match-unfolding-both dom atp
   ≫=span λ where
     (match-error (msg , tvs)) →

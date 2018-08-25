@@ -48,7 +48,7 @@ elab-tk-arrow : tk → tk
 elab-hnf-type : ctxt → type → 𝔹 → maybe type
 elab-hnf-kind : ctxt → kind → 𝔹 → maybe kind
 elab-hnf-tk : ctxt → tk → 𝔹 → maybe tk
-elab-app-term : ctxt → term → maybe ((meta-vars → maybe term) × type × meta-vars)
+elab-app-term : ctxt → term → prototype → 𝔹 → maybe ((meta-vars → maybe term) × spine-data)
 
 elab-type Γ T = elab-typeh Γ T tt
 elab-kind Γ k = elab-kindh Γ k tt
@@ -59,13 +59,19 @@ elab-pure-tk Γ atk = elab-tkh Γ atk ff
 
 elab-type-arrow (Abs pi b pi' x atk T) = Abs pi b pi' x (elab-tk-arrow atk) (elab-type-arrow T)
 elab-type-arrow (Iota pi pi' x T T') = Iota pi pi' x (elab-type-arrow T) (elab-type-arrow T')
+elab-type-arrow (Lft pi pi' x t lT) = Lft pi pi' x t lT
+elab-type-arrow (NoSpans T pi) = elab-type-arrow T
+elab-type-arrow (TpLet pi (DefTerm pi' x NoType t) T') = TpLet pi (DefTerm pi x NoType t) (elab-type-arrow T')
+elab-type-arrow (TpLet pi (DefTerm pi' x (SomeType T) t) T') = TpLet pi (DefTerm pi x (SomeType (elab-type-arrow T)) t) T'
+elab-type-arrow (TpLet pi (DefType pi' x k T) T') = TpLet pi (DefType pi' x (elab-kind-arrow k) (elab-type-arrow T)) (elab-type-arrow T')
 elab-type-arrow (TpApp T T') = TpApp (elab-type-arrow T) (elab-type-arrow T')
 elab-type-arrow (TpAppt T t) = TpAppt (elab-type-arrow T) t
 elab-type-arrow (TpArrow T a T') = Abs posinfo-gen a posinfo-gen "_" (Tkt (elab-type-arrow T)) (elab-type-arrow T')
 elab-type-arrow (TpEq pi t t' pi') = TpEq pi (erase-term t) (erase-term t') pi'
+elab-type-arrow (TpHole pi) = TpHole pi
 elab-type-arrow (TpLambda pi pi' x atk T) = TpLambda pi pi' x (elab-tk-arrow atk) (elab-type-arrow T)
 elab-type-arrow (TpParens pi T pi') = elab-type-arrow T
-elab-type-arrow T = T
+elab-type-arrow (TpVar pi x) = TpVar pi x
 
 elab-kind-arrow (KndArrow k k') = KndPi posinfo-gen posinfo-gen "_" (Tkk (elab-kind-arrow k)) (elab-kind-arrow k')
 elab-kind-arrow (KndParens pi k pi') = elab-kind-arrow k
@@ -83,9 +89,12 @@ elab-hnf-tk Γ (Tkk k) b = elab-hnf-kind Γ k b ≫=maybe (just ∘ Tkk)
 
 
 elab-check-term Γ (App t me t') T =
-  elab-app-term Γ (App t me t') ≫=maybe uncurry' λ tf T Xs → tf Xs
+  elab-app-term Γ (App t me t') (proto-maybe (just T)) tt ≫=maybe uncurry λ where
+    tf (mk-spine-data Xs T' _) → tf Xs
 elab-check-term Γ (AppTp t T) T' =
-  elab-app-term Γ (AppTp t T) ≫=maybe uncurry' λ tf T Xs → tf Xs
+  elab-synth-term Γ t ≫=maybe uncurry λ t T'' →
+  elab-type Γ T ≫=maybe uncurry λ T k →
+  just (AppTp t T)
 elab-check-term Γ (Beta pi ot ot') T =
   let ot'' = case ot' of λ where NoTerm → just (fresh-id-term Γ); (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
   case ot of λ where
@@ -229,15 +238,26 @@ elab-check-term Γ (Mu pi x t ot pi' cs pi'') T = nothing
 elab-check-term Γ (Mu' pi t ot pi' cs pi'')  T = nothing
 
 elab-synth-term Γ (App t me t') =
-  elab-app-term Γ (App t me t') ≫=maybe λ where
+  elab-app-term  Γ (App t me t') (proto-maybe nothing) tt ≫=maybe uncurry λ where
+    tf (mk-spine-data Xs T _) →
+      tf Xs ≫=maybe λ t'' →
+      elab-hnf-type Γ (meta-vars-subst-type' ff Γ Xs (decortype-to-type T)) tt ≫=maybe λ T →
+      just (t'' , T)
+  {-elab-app-term Γ (App t me t') ≫=maybe λ where
     (tf , T , Xs) → tf Xs ≫=maybe λ t →
       elab-hnf-type Γ (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) T) tt ≫=maybe λ T →
-      just (t , T)
+      just (t , T)-}
 elab-synth-term Γ (AppTp t T) =
-  elab-app-term Γ (AppTp t T) ≫=maybe λ where
+  elab-synth-term Γ t ≫=maybe uncurry λ t T' →
+  elab-hnf-type Γ T' tt ≫=maybe λ where
+    (Abs _ _ _ x (Tkk k) T'') →
+      elab-type Γ T ≫=maybe uncurry λ T k' →
+        just (AppTp t T , subst Γ T x T'')
+    _ → nothing
+  {-elab-app-term Γ (AppTp t T) ≫=maybe λ where
     (tf , T , Xs) → tf Xs ≫=maybe λ t →
       elab-hnf-type Γ (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) T) tt ≫=maybe λ T →
-      just (t , T)
+      just (t , T)-}
 elab-synth-term Γ (Beta pi ot ot') =
   let ot'' = case ot' of λ where NoTerm → just (fresh-id-term Γ); (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
   case ot of λ where
@@ -452,69 +472,61 @@ elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
   elab-pure-term Γ (subst Γ t x t')
 elab-pure-term _ _ = nothing -- should be erased
 
-private
-  
-  drop-meta-var : meta-vars → meta-vars
-  drop-meta-var Xs = record Xs {order = tail (meta-vars.order Xs)}
+elab-app-term Γ (App t me t') pt max =
+  elab-app-term Γ t (proto-arrow me pt) ff ≫=maybe uncurry λ where
+    tf (mk-spine-data Xs dt locl) →
+      case fst (meta-vars-unfold-tmapp' Γ ("" , "" , "") Xs dt Γ id-spans.empty-spans) of uncurry λ where
+        Ys (not-tpabsd _) → nothing
+        Ys (inj₂ arr) →
+          elab-app-term' Xs Ys t t' arr (islocl locl) ≫=maybe uncurry λ where
+            t' (check-term-app-return Xs' T₂ Tᵣ arg-mode) →
+              fst (check-spine-locality Γ Xs' (decortype-to-type Tᵣ) max (pred locl) Γ id-spans.empty-spans) ≫=maybe uncurry' λ Xs'' locl' is-loc →
+              just ((λ Xs → tf (if is-loc then Xs' else Xs) ≫=maybe λ t → fill-meta-vars t (if is-loc then Xs' else Xs) Ys ≫=maybe λ t → just (App t me t')) ,
+                    mk-spine-data Xs'' Tᵣ locl')
+  where
+  islocl = (max ||_) ∘ (iszero ∘ pred)
+  fill-meta-vars : term → meta-vars → 𝕃 meta-var → maybe term
+  fill-meta-vars t Xs = flip foldl (just t) λ where
+    (meta-var-mk x _ _) tₘ → tₘ ≫=maybe λ t → meta-vars-lookup Xs x ≫=maybe λ where
+      (meta-var-mk _ (meta-var-tp k Tₘ) _) → Tₘ ≫=maybe λ T → just (AppTp t T)
+      (meta-var-mk _ (meta-var-tm T tₘ) _) → nothing
 
-  drop-meta-vars : meta-vars → ℕ → meta-vars
-  drop-meta-vars Xs zero = Xs
-  drop-meta-vars Xs (suc n) = drop-meta-vars (drop-meta-var Xs) n
+  elab-app-term' : (Xs : meta-vars) → (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → maybe (term × check-term-app-ret)
+  elab-app-term' Xs Zs t₁ t₂ (mk-tmabsd dt me x dom occurs cod) is-locl =
+    let Xs' = meta-vars-add* Xs Zs
+        T = decortype-to-type dt in
+    if ~ meta-vars-are-free-in-type Xs' dom
+      then (elab-check-term Γ t₂ dom ≫=maybe λ t₂ →
+            let rdt = fst $ subst-decortype Γ t₂ x cod Γ id-spans.empty-spans in
+            just (t₂ , check-term-app-return Xs' dom (if occurs then rdt else cod) checking))
+      else (elab-synth-term Γ t₂ ≫=maybe uncurry λ t₂ T₂ →
+            case fst (match-types Xs' empty-trie match-unfolding-both dom T₂ Γ id-spans.empty-spans) of λ where
+              (match-error _) → nothing
+              (match-ok Xs) →
+                let rdt = fst $ subst-decortype Γ t₂ x cod Γ id-spans.empty-spans
+                    rdt' = fst $ meta-vars-subst-decortype Γ Xs (if occurs then rdt else cod) Γ id-spans.empty-spans in
+                just (t₂ , check-term-app-return Xs T₂ rdt' synthesizing))
 
-elab-app-sols : ctxt → term → meta-vars → ℕ → maybe term
-elab-app-sols Γ t Xs zero = just t
-elab-app-sols Γ t Xs (suc n) =
-  head2 (meta-vars.order Xs) ≫=maybe λ x →
-  trie-lookup (meta-vars.varset Xs) x ≫=maybe λ X →
-  case (meta-var.sol X) of λ where
-    (meta-var-tm _ _) → nothing
-    (meta-var-tp k mtp) →
-      let id' = fresh-id-term Γ
-          T = maybe-else (mtpeq id' id') id mtp in
-      elab-type Γ T ≫=maybe uncurry λ T k →
-      elab-app-sols Γ (AppTp t T) (drop-meta-var Xs) n
+elab-app-term Γ (AppTp t T) pt max =
+  elab-app-term Γ t pt max ≫=maybe uncurry λ where
+    tf (mk-spine-data Xs dt locl) →
+      let Tₕ = decortype-to-type dt in
+      case fst (meta-vars-unfold-tpapp' Γ Xs dt Γ id-spans.empty-spans) of λ where
+        (not-tpabsd _) → nothing
+        (yes-tpabsd dt me x k sol rdt) →
+          elab-type Γ T ≫=maybe uncurry λ T k' →
+          just ((λ Xs → tf Xs ≫=maybe λ t → just (AppTp t T)) ,
+            mk-spine-data Xs (fst $ subst-decortype Γ T x rdt Γ id-spans.empty-spans) locl)
 
-elab-app-term Γ (App t m t') =
-  elab-app-term Γ t ≫=maybe uncurry' λ t T Xs →
-  let abs-num = length (meta-vars.order Xs) in
-  case meta-vars-unfold-tmapp Γ missing-span-location Xs T of λ where
-    (Ys , (not-tmabs _)) → nothing
-    (Ys , (yes-tmabs m' x Tₐ occ cod)) →
-      let Xs = meta-vars-add* Xs Ys
-          cod = λ tm → if occ then subst Γ tm x cod else cod
-          abs-num' = length (meta-vars.order Xs)
-          num-apps = abs-num' ∸ abs-num
-          ret t' cod' Xs = just (
-            (λ Xs → t Xs ≫=maybe λ t →
-              elab-app-sols Γ t (drop-meta-vars Xs abs-num) num-apps ≫=maybe λ t →
-              just (App t m t')) ,
-            cod' ,
-            Xs) in
-      case meta-vars-are-free-in-type Xs Tₐ of λ where
-        ff → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
-             elab-check-term Γ t' Tₐ ≫=maybe λ t' →
-             ret t' (cod t') Xs
-        tt → elab-hnf-type Γ Tₐ tt ≫=maybe λ Tₐ →
-             elab-synth-term Γ t' ≫=maybe uncurry λ t' Tₐ' →
-             case fst (match-types Xs empty-trie match-unfolding-both Tₐ Tₐ' Γ id-spans.empty-spans) of λ where
-               (match-error _) → nothing
-               (match-ok Xs) → ret t' (cod t') (meta-vars-update-kinds Γ Xs (meta-vars-in-type Xs Tₐ))
+elab-app-term Γ (Parens _ t _) pt max =
+  elab-app-term Γ t pt max
 
-elab-app-term Γ (AppTp t T) =
-  elab-type Γ T ≫=maybe uncurry λ T _ →
-  elab-app-term Γ t ≫=maybe uncurry' λ t Tₕ Xs →
-  case meta-vars-unfold-tpapp Γ Xs Tₕ of λ where
-    (not-tpabs _) → nothing
-    (yes-tpabs b x k Tₕ') →
-      let X = meta-var-fresh-tp Xs x missing-span-location (k , (just T))
-          Tₕ'' = rename-var Γ x (meta-var-name X) Tₕ' in
-      just ((λ Xs → t Xs ≫=maybe λ t → just (AppTp t T)) , Tₕ'' , meta-vars-add Xs X)
-
-elab-app-term Γ (Parens pi t pi') = elab-app-term Γ t
-elab-app-term Γ t =
+elab-app-term Γ t pt max =
   elab-synth-term Γ t ≫=maybe uncurry λ t T →
-  just ((λ _ → just t) , T , meta-vars-empty)
-
+  let locl = num-arrows-in-type Γ T
+      ret = fst $ match-prototype meta-vars-empty ff T pt Γ id-spans.empty-spans
+      dt = match-prototype-data.match-proto-dectp ret in
+  just ((λ Xs → just t) , mk-spine-data meta-vars-empty dt locl)
 
 
 
