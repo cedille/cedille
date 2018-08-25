@@ -28,6 +28,41 @@ open import elaboration-helpers options
 open import templates
 import spans options' {id} as id-spans
 
+
+{- Datatypes -}
+
+mendler-encoding : datatype-encoding
+mendler-encoding = record {
+  template = MendlerTemplate;
+  functor = "Functor";
+  cast = "cast";
+  fixed-point = "CVFixIndM";
+  in-fix = "cvInFixIndM";
+  induction-principle = "cvIndFixIndM";
+  elab-check-mu = λ Γ x t oT cs T → nothing;
+  elab-check-mu' = λ Γ t oT cs T → nothing;
+  elab-synth-mu = λ Γ x t oT cs → nothing;
+  elab-synth-mu' = λ Γ t oT cs → nothing}
+
+mendler-simple-encoding : datatype-encoding
+mendler-simple-encoding = record {
+  template = MendlerSimpleTemplate;
+  functor = "RecFunctor";
+  cast = "cast";
+  fixed-point = "FixM";
+  in-fix = "inFix";
+  induction-principle = "IndFixM";
+  elab-check-mu = λ Γ x t oT cs T → nothing;
+  elab-check-mu' = λ Γ t oT cs T → nothing;
+  elab-synth-mu = λ Γ x t oT cs → nothing;
+  elab-synth-mu' = λ Γ t oT cs → nothing}
+
+selected-encoding = mendler-simple-encoding
+-- TODO: ^ Add option so user can choose encoding ^
+
+
+
+
 {-# TERMINATING #-}
 elab-check-term : ctxt → term → type → maybe term
 elab-synth-term : ctxt → term → maybe (term × type)
@@ -545,8 +580,8 @@ private
   ...| _ = nothing
 
 elab-t : Set → Set
-elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → X →
-  maybe (X × toplevel-state × renamectxt × renamectxt)
+elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → trie encoded-datatype →
+             X → maybe (X × toplevel-state × renamectxt × renamectxt × trie encoded-datatype)
 
 {-# TERMINATING #-}
 elab-file' : elab-t string
@@ -554,20 +589,20 @@ elab-cmds : elab-t cmds
 elab-params : elab-t params
 elab-args : elab-t (args × params)
 elab-imports : elab-t imports
-elab-import : elab-t imprt
+-- elab-import : elab-t (imprt × imports)
 
-elab-params ts ρ φ ParamsNil = just (ParamsNil , ts , ρ , φ)
-elab-params ts ρ φ (ParamsCons (Decl _ pi me x atk _) ps) =
+elab-params ts ρ φ μ ParamsNil = just (ParamsNil , ts , ρ , φ , μ)
+elab-params ts ρ φ μ (ParamsCons (Decl _ pi me x atk _) ps) =
   let Γ = toplevel-state.Γ ts in
   elab-tk Γ (subst-qualif Γ ρ atk) ≫=maybe λ atk →
-  rename qualif-new-var Γ x - x from ρ for λ x' ρ →
-  elab-params (record ts {Γ = ctxt-param-decl x x' atk Γ}) ρ φ ps ≫=maybe uncurry λ ps ts-ρ-φ →
-  just (ParamsCons (Decl posinfo-gen posinfo-gen me x' atk posinfo-gen) ps , ts-ρ-φ)
+  rename x - x from ρ for λ x' ρ →
+  elab-params (record ts {Γ = ctxt-param-decl x x' atk Γ}) ρ φ μ ps ≫=maybe uncurry λ ps ω →
+  just (ParamsCons (Decl posinfo-gen posinfo-gen me x' atk posinfo-gen) ps , ω)
 
-elab-args ts ρ φ (ArgsNil , ParamsNil) = just ((ArgsNil , ParamsNil) , ts , ρ , φ)
-elab-args ts ρ φ (_ , ParamsNil) = nothing -- Too many arguments
-elab-args ts ρ φ (ArgsNil , ParamsCons p ps) = just ((ArgsNil , ParamsCons p ps) , ts , ρ , φ)
-elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
+elab-args ts ρ φ μ (ArgsNil , ParamsNil) = just ((ArgsNil , ParamsNil) , ts , ρ , φ , μ)
+elab-args ts ρ φ μ (_ , ParamsNil) = nothing -- Too many arguments
+elab-args ts ρ φ μ (ArgsNil , ParamsCons p ps) = just ((ArgsNil , ParamsCons p ps) , ts , ρ , φ , μ)
+elab-args ts ρ φ μ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
   let Γ = toplevel-state.Γ ts in
   case (a , atk) of λ where
     (TermArg me' t , Tkt T) →
@@ -575,91 +610,99 @@ elab-args ts ρ φ (ArgsCons a as , ParamsCons (Decl _ _ me x atk _) ps) =
       elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
       rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-term-def' x x' t T OpacTrans Γ} in
-      elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
-      just ((ArgsCons (TermArg me' t) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkt T) posinfo-gen) ps) , ts-ρ-φ)
+      elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ω →
+      just ((ArgsCons (TermArg me' t) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkt T) posinfo-gen) ps) , ω)
     (TypeArg T , Tkk _) →
       elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
       rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
       let ts = record ts {Γ = ctxt-type-def' x x' T k OpacTrans Γ} in
-      elab-args ts ρ φ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ts-ρ-φ →
-      just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkk k) posinfo-gen) ps) , ts-ρ-φ)
+      elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ω →
+      just ((ArgsCons (TypeArg T) as , ParamsCons (Decl posinfo-gen posinfo-gen me x' (Tkk k) posinfo-gen) ps) , ω)
     _ → nothing
 
-elab-import ts ρ φ (Import _ op _ ifn oa as _) =
+elab-imports ts ρ φ μ ImportsStart = just (ImportsStart , ts , ρ , φ , μ)
+elab-imports ts ρ φ μ (ImportsNext (Import _ op _ ifn oa as _) is) =
   let Γ = toplevel-state.Γ ts
       fn = ctxt-get-current-filename Γ
       mod = ctxt-get-current-mod Γ in
   get-include-elt-if ts fn ≫=maybe λ ie →
   trie-lookup (include-elt.import-to-dep ie) ifn ≫=maybe λ ifn' →
-  elab-file' ts ρ φ ifn' ≫=maybe uncurry'' λ fn ts ρ φ →
+  elab-file' ts ρ φ μ ifn' ≫=maybe uncurry''' λ fn ts ρ φ μ →
   lookup-mod-params (toplevel-state.Γ ts) ifn' ≫=maybe λ ps →
-  elab-args ts ρ φ (as , ps) ≫=maybe (uncurry' ∘ uncurry) λ as ps ts ρ-φ →
-  let ts = fst (scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) fn ifn' oa as) in
-  just (Import posinfo-gen IsPublic posinfo-gen fn NoOptAs ArgsNil posinfo-gen , ts , ρ-φ)
+  elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry''' ∘ uncurry) λ as ps ts ρ φ μ →
+  let ts-isₚ-err = scope-file' fn ifn' oa as (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) []
+      ts = fst ts-isₚ-err
+      isₚ = fst $ snd ts-isₚ-err in
+  elab-imports ts ρ φ μ is ≫=maybe uncurry''' λ is ts ρ φ μ →
+  add-public-imports ts φ isₚ (just is) ≫=maybe λ is →
+  let i = Import posinfo-gen NotPublic posinfo-gen fn NoOptAs ArgsNil posinfo-gen in
+  just (ImportsNext i is , ts , ρ , φ , μ)
+  where
+  add-public-imports : toplevel-state → renamectxt → 𝕃 string → maybe imports → maybe imports
+  add-public-imports ts φ = flip $ foldl λ fn isₘ → renamectxt-lookup φ fn ≫=maybe λ ifn → isₘ ≫=maybe
+    (just ∘ ImportsNext (Import posinfo-gen NotPublic posinfo-gen ifn NoOptAs ArgsNil posinfo-gen))
 
-elab-imports ts ρ φ ImportsStart = just (ImportsStart , ts , ρ , φ)
-elab-imports ts ρ φ (ImportsNext i is) =
-  elab-import ts ρ φ i ≫=maybe uncurry'' λ i ts ρ φ →
-  elab-imports ts ρ φ is ≫=maybe uncurry λ is ts-ρ-φ →
-  just (ImportsNext i is , ts-ρ-φ)
-
-elab-cmds ts ρ φ CmdsStart = just (CmdsStart , ts , ρ , φ)
-elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefTerm _ x NoType t) _) cs) =
+elab-cmds ts ρ φ μ CmdsStart = just (CmdsStart , ts , ρ , φ , μ)
+elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefTerm _ x NoType t) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-synth-term Γ (subst-qualif Γ ρ t) ≫=maybe uncurry λ t T →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
-  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ts-ρ-φ)
-elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _) cs) =
+  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
+elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
   elab-check-term Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
-  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ts-ρ-φ)
-elab-cmds ts ρ φ (CmdsNext (DefTermOrType op (DefType _ x _ T) _) cs) =
+  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
+elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefType _ x _ T) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-type-def' x x' T k op Γ} in
-  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (DefTermOrType op (DefType posinfo-gen x' k T) posinfo-gen) cs , ts-ρ-φ)
-elab-cmds ts ρ φ (CmdsNext (DefKind _ x ps k _) cs) =
+  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  just (CmdsNext (DefTermOrType op (DefType posinfo-gen x' k T) posinfo-gen) cs , ω)
+elab-cmds ts ρ φ μ (CmdsNext (DefKind _ x ps k _) cs) =
   let Γ = toplevel-state.Γ ts
-      x' = fresh-var (qualif-new-var Γ x) (renamectxt-in-range ρ) ρ
-      ρ = renamectxt-insert ρ x x' in
-  let ts = record ts {Γ = ctxt-kind-def' x x' ps k Γ} in
-  elab-cmds ts ρ φ cs
-elab-cmds ts ρ φ (CmdsNext (ImportCmd i) cs) =
-  elab-import ts ρ φ i ≫=maybe uncurry'' λ i ts ρ φ →
-  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (ImportCmd i) cs , ts-ρ-φ)
-elab-cmds ts ρ φ (CmdsNext (DefDatatype (Datatype _ _ x p k d pf) _) cs) =
-  elab-cmds ts ρ φ cs ≫=maybe uncurry λ cs ts-ρ-φ →
-  just (CmdsNext (DefDatatype (Datatype posinfo-gen posinfo-gen x p k d pf) posinfo-gen) cs , ts-ρ-φ)
+      x' = fresh-var (qualif-new-var Γ x) (λ _ → ff) ρ
+      ρ = renamectxt-insert ρ x x'
+      ts = record ts {Γ = ctxt-kind-def' x x' ps k Γ} in
+  elab-cmds ts ρ φ μ cs
+elab-cmds ts ρ φ μ (CmdsNext (ImportCmd i) cs) =
+  elab-imports ts ρ φ μ (ImportsNext i ImportsStart) ≫=maybe uncurry''' λ is ts ρ φ μ →
+  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  just (append-cmds (imps-to-cmds is) cs , ω)
+elab-cmds ts ρ φ μ (CmdsNext (DefDatatype (Datatype pi pi' x ps k dcs pi'') _) cs) =
+  let Γ = toplevel-state.Γ ts in
+  rename qualif-new-var Γ x - x from ρ for λ x' ρ →
+  let d = defDatatype-to-datatype Γ (Datatype pi pi' x' ps k dcs pi'') in
+  elim-pair (datatype-encoding.mk-defs selected-encoding Γ d) λ cs' d →
+  elab-cmds ts ρ φ (trie-insert μ x' d) (append-cmds cs' cs)
 
-elab-file' ts ρ φ fn =
+elab-file' ts ρ φ μ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →
   case include-elt.need-to-add-symbols-to-context ie of λ where
-    ff → rename fn - base-filename (takeFileName fn) lookup φ for λ fn' φ → just (fn' , ts , ρ , φ)
+    ff → rename fn - base-filename (takeFileName fn) lookup φ for λ fn' φ → just (fn' , ts , ρ , φ , μ)
     tt → include-elt.ast ie ≫=maybe λ where
       (File _ is _ _ mn ps cs _) →
         rename fn - base-filename (takeFileName fn) from φ for λ fn' φ →
         let ie = record ie {need-to-add-symbols-to-context = ff; do-type-check = ff; inv = refl} in
         elab-imports (record (set-include-elt ts fn ie)
-          {Γ = ctxt-set-current-file (toplevel-state.Γ ts) fn mn}) ρ φ is ≫=maybe uncurry'' λ is ts ρ φ →
-        elab-params ts ρ φ ps ≫=maybe uncurry'' λ ps' ts ρ φ →
+          {Γ = ctxt-set-current-file (toplevel-state.Γ ts) fn mn}) ρ φ μ is ≫=maybe uncurry''' λ is ts ρ φ μ →
+        elab-params ts ρ φ μ ps ≫=maybe uncurry''' λ ps' ts ρ φ μ →
         let Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
-        elab-cmds (record ts {Γ = Γ}) ρ φ cs ≫=maybe uncurry' λ cs ts ρ-φ →
+        elab-cmds (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry' λ cs ts ω →
         let ast = File posinfo-gen ImportsStart posinfo-gen posinfo-gen mn ParamsNil cs posinfo-gen in
-        just (fn' , set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast) , ρ-φ)
+        just (fn' , set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast) , ω)
 
 {-# TERMINATING #-}
 elab-all : toplevel-state → (from-fp to-fp : string) → IO ⊤
-elab-all ts fm to = elab-file' prep-ts empty-renamectxt empty-renamectxt fm err-code 1 else h
+elab-all ts fm to =
+  elab-file' prep-ts empty-renamectxt empty-renamectxt empty-trie fm err-code 1 else h
   where
   _err-code_else_ : ∀ {X : Set} → maybe X → ℕ → (X → IO ⊤) → IO ⊤
   nothing err-code n else f = putStrLn (ℕ-to-string n)
@@ -685,233 +728,31 @@ elab-all ts fm to = elab-file' prep-ts empty-renamectxt empty-renamectxt fm err-
       (just is)
       (include-elt.deps ie)
 
-  h : (string × toplevel-state × renamectxt × renamectxt) → IO ⊤
+  h : (string × toplevel-state × renamectxt × renamectxt × trie encoded-datatype) → IO ⊤
   h' : toplevel-state → renamectxt → stringset → IO ⊤
-  h (_ , ts , _ , φ) = get-file-imports ts fm (trie-single fm triv) err-code 3 else h' ts φ
+  h (_ , ts , _ , φ , μ) =
+    get-file-imports ts fm (trie-single fm triv) err-code 3 else h' ts φ
   h' ts φ is = foldr
     (λ fn x → x >>= λ e →
       maybe-else
         (return ff)
-        (λ fn-ie →
-          writeRopeToFile (combineFileNames to (fst fn-ie) ^ ".ced")
-            (maybe-else [[ "Error lookup up elaborated data" ]] id (ie-get-span-ast (snd fn-ie))) >>
+        (uncurry λ fn ie →
+          writeRopeToFile (combineFileNames to fn ^ ".ced")
+            (maybe-else [[ "Error lookup up elaborated data" ]] id (ie-get-span-ast ie)) >>
           return e)
       (renamectxt-lookup φ fn ≫=maybe λ fn' →
-      get-include-elt-if ts fn ≫=maybe λ ie →
-      include-elt.ast ie ≫=maybe λ ast → just (fn' , ie)))
+       get-include-elt-if ts fn ≫=maybe λ ie →
+       include-elt.ast ie ≫=maybe λ ast → just (fn' , ie)))
     (createDirectoryIfMissing tt to >> return tt)
     (stringset-strings is) >>= λ e →
     putStrLn (if e then "0" else "2")
 
 elab-file : toplevel-state → (filename : string) → maybe rope
 elab-file ts fn =
-  elab-file' ts empty-renamectxt empty-renamectxt fn ≫=maybe uncurry'' λ fn' ts ρ φ →
+  elab-file' ts empty-renamectxt empty-renamectxt empty-trie fn ≫=maybe uncurry'' λ fn' ts ρ φ →
   get-include-elt-if ts fn ≫=maybe ie-get-span-ast
 
 
 
 
 
-
-{- Datatypes -}
-
-
-mk-erased-ctr : ctxt → ℕ → constructors → 𝕃 term → maybe term
-mk-erased-ctr Γ n cs as = mk-erased-ctrh Γ (inj₁ n) cs as [] where
-  mk-erased-ctrh : ctxt → ℕ ⊎ var → constructors → 𝕃 term → 𝕃 var → maybe term
-  mk-erased-ctrh Γ (inj₁ zero) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ x') cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₁ (suc n)) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₁ n) cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₂ xₕ) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ xₕ) cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₁ _) [] as xs = nothing
-  mk-erased-ctrh Γ (inj₂ xₕ) [] as xs =
-    just $ foldl mlam (foldr (flip mapp) (mvar xₕ) as) $ xs
-
-get-ctr-in-ctrs : var → constructors → maybe ℕ
-get-ctr-in-ctrs x cs = h zero cs where
-  h : ℕ → constructors → maybe ℕ
-  h n [] = nothing
-  h n (Ctr y _ :: cs) = if x =string y then just n else h (suc n) cs
-
-mk-ctr-untyped-beta : ctxt → var → constructors → parameters → term
-mk-ctr-untyped-beta Γ x cs ps =
-  maybe-else
-    (mvar "error-making-untyped-beta")
-    (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen) $
-    get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs $
-      foldl (λ {(Decl pi pi' NotErased x (Tkt T) pi'') ts → mvar x :: ts; p ts → ts}) [] ps
-
-mk-ctr-type : ctxt → ctr → (head : var) → constructors → type
-mk-ctr-type Γ (Ctr x T) Tₕ cs with decompose-ctr-type Γ T
-...| Tₓ , ps , is =
-  foldr
-    (λ {(Decl pi pi' NotErased y atk pi'') f as →
-          Abs pi NotErased pi' y atk $ f (mvar y :: as);
-        (Decl pi pi' Erased y atk pi'') f as →
-          Abs pi Erased pi' y atk $ f as})
-    (λ as → curry recompose-tpapps
-      (TpAppt (mtpvar Tₕ) $ maybe-else
-        (mvar "error-making-ctr-type-beta")
-        (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen)
-        (get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs as)) is) ps []
-
-record encoded-datatype : Set where
-  constructor mk-encoded-datatype
-  field
-    data-def : datatype
-    data-functor : var
-    data-fmap : var
-    functor : var
-    cast : var
-    fixed-point : var
-    in-fix : var
-    induction-principle : var
-  x  = case data-def of λ where (Data x ps is cs) → x
-  ps = case data-def of λ where (Data x ps is cs) → ps
-  is = case data-def of λ where (Data x ps is cs) → is
-  cs = case data-def of λ where (Data x ps is cs) → cs
-
-record datatype-encoding : Set where
-  constructor mk-datatype-encoding
-  field
-    template : start
-    functor : var
-    cast : var
-    fixed-point : var
-    in-fix : var
-    induction-principle : var
-
-  mk-defs : ctxt → datatype → cmds × encoded-datatype
-  mk-defs Γ' (Data x ps is cs) = append-cmds tcs
-    (csn functor-cmd $ csn fmap-cmd $ csn type-cmd $ foldr (csn ∘ ctr-cmd) CmdsStart cs) ,
-    record {
-      data-def = Data x ps is cs;
-      data-functor = data-functorₓ;
-      data-fmap = data-fmapₓ;
-      functor = functorₓ;
-      cast = castₓ;
-      fixed-point = fixed-pointₓ;
-      in-fix = in-fixₓ;
-      induction-principle = induction-principleₓ}
-    where
-    csn = CmdsNext ∘ flip (DefTermOrType OpacTrans) posinfo-gen
-    k = indices-to-kind is $ Star posinfo-gen
-    
-    Γ = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl x Γ'
-    
-    tcs-ρ = reindex-file Γ is template
-    tcs = fst tcs-ρ
-    ρ' = snd tcs-ρ
-
-    data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ) ρ'
-    data-fmapₓ = fresh-var (x ^ "Fmap") (ctxt-binds-var Γ) ρ'
-    functorₓ = renamectxt-rep ρ' functor
-    castₓ = renamectxt-rep ρ' cast
-    fixed-pointₓ = renamectxt-rep ρ' fixed-point
-    in-fixₓ = renamectxt-rep ρ' in-fix
-    induction-principleₓ = renamectxt-rep ρ' induction-principle
-    ρ = renamectxt-insert (renamectxt-insert ρ' (x ^ "F") data-functorₓ) (x ^ "Fmap") data-fmapₓ
-    
-    new-var : ∀ {ℓ} {X : Set ℓ} → var → (var → X) → X
-    new-var x f = f $ fresh-var x (ctxt-binds-var $ add-indices-to-ctxt is Γ) ρ
-
-    functor-cmd = DefType posinfo-gen data-functorₓ (parameters-to-kind ps $ KndArrow k k) $
-      parameters-to-tplams ps $
-      TpLambda posinfo-gen posinfo-gen x (Tkk $ k) $
-      indices-to-tplams is $
-      new-var "x" λ xₓ →
-      Iota posinfo-gen posinfo-gen xₓ (mtpeq id-term id-term) $
-      new-var "X" λ Xₓ →
-      Abs posinfo-gen Erased posinfo-gen Xₓ
-        (Tkk $ KndTpArrow (mtpeq id-term id-term) $ indices-to-kind is star) $
-      foldr (λ c → flip TpArrow NotErased $ mk-ctr-type (ctxt-var-decl Xₓ Γ) c Xₓ cs)
-        (indices-to-tpapps is $ TpAppt (mtpvar Xₓ) (mvar xₓ)) cs
-    
-    fmap-cmd : defTermOrType
-    fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
-    ...| Aₓ | Bₓ | cₓ = DefTerm posinfo-gen data-fmapₓ (SomeType $
-        parameters-to-alls ps $
-        TpApp (mtpvar functorₓ) $
-        parameters-to-tpapps ps $
-        mtpvar data-functorₓ) $
-      parameters-to-lams ps $
-      Mlam Aₓ $ Mlam Bₓ $ Mlam cₓ $
-      IotaPair posinfo-gen
-        (indices-to-lams is $
-         new-var "x" λ xₓ → mlam xₓ $
-         IotaPair posinfo-gen (IotaProj (mvar xₓ) "1" posinfo-gen)
-           (new-var "X" λ Xₓ → Mlam Xₓ $
-             constructors-to-lams' cs $
-             foldl
-               (flip mapp ∘ eta-expand-fmap)
-               (AppTp (IotaProj (mvar xₓ) "2" posinfo-gen) $ mtpvar Xₓ) cs)
-          NoGuide posinfo-gen)
-        (Beta posinfo-gen NoTerm NoTerm) NoGuide posinfo-gen
-      where
-      eta-expand-fmaph-type : ctxt → var → type → term
-      eta-expand-fmaph-type Γ x' T with decompose-ctr-type Γ T
-      ...| Tₕ , ps , as with add-parameters-to-ctxt ps Γ
-      ...| Γ' =
-        parameters-to-lams' ps $
-        flip mapp (parameters-to-apps ps $ mvar x') $
-        recompose-apps Erased as $
-        flip mappe (mvar cₓ) $
-        flip AppTp (mtpvar Bₓ) $
-        AppTp (mvar castₓ) (mtpvar Aₓ)
-
-      eta-expand-fmap : ctr → term
-      eta-expand-fmap (Ctr x' T) with
-        ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ
-      ...| Γ' with decompose-ctr-type Γ' T
-      ...| Tₕ , ps , as with foldr (λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''}) Γ' ps
-      ...| Γ'' = parameters-to-lams' ps $ foldl
-        (λ {(Decl pi pi' me x'' (Tkt T) pi'') t → App t me $
-              if ~ is-free-in tt x T then mvar x'' else eta-expand-fmaph-type Γ'' x'' T;
-            (Decl pi pi' me x'' (Tkk k) pi'') t → AppTp t $ mtpvar x''})
-        (mvar x') $ ps
-
-    type-cmd = DefType posinfo-gen x (parameters-to-kind ps $ k) $
-      parameters-to-tplams ps $ TpAppt
-        (TpApp (mtpvar fixed-pointₓ) $ parameters-to-tpapps ps $ mtpvar data-functorₓ)
-        (parameters-to-apps ps $ mvar data-fmapₓ)
-
-    ctr-cmd : ctr → defTermOrType
-    ctr-cmd (Ctr x' T) with
-        decompose-ctr-type Γ (subst Γ (parameters-to-tpapps ps $ mtpvar x) x T)
-    ...| Tₕ , ps' , as' = DefTerm posinfo-gen x' NoType $
-      parameters-to-lams ps $
-      parameters-to-lams ps' $
-      mapp (recompose-apps Erased (take (length as' ∸ length ps) as') $
-            mappe (AppTp (mvar in-fixₓ) $
-              parameters-to-tpapps ps $ mtpvar data-functorₓ) $
-        parameters-to-apps ps $ mvar data-fmapₓ) $
-      let Γ' = add-parameters-to-ctxt ps' Γ
-          Xₓ = rename "X" from Γ' for id in
-      IotaPair posinfo-gen
-        (mk-ctr-untyped-beta Γ' x' cs ps')
-        (Mlam Xₓ $
-         constructors-to-lams' cs $
-         parameters-to-apps ps' $
-         mvar x')
-        NoGuide posinfo-gen
-
-
-mendler-encoding : datatype-encoding
-mendler-encoding = record {
-  template = MendlerTemplate;
-  functor = "Functor";
-  cast = "cast";
-  fixed-point = "CVFixIndM";
-  in-fix = "cvInFixIndM";
-  induction-principle = "cvIndFixIndM"}
-
-mendler-simple-encoding : datatype-encoding
-mendler-simple-encoding = record {
-  template = MendlerSimpleTemplate;
-  functor = "RecFunctor";
-  cast = "cast";
-  fixed-point = "FixM";
-  in-fix = "inFix";
-  induction-principle = "IndFixM"}
