@@ -238,7 +238,7 @@ context buffer, select a node and press ‘C’; this will open the context
 buffer and jump to it.  If you just want to open the context buffer (but
 not jump to it), press ‘c’ instead.
 
-   The context buffer has several built-in features to organize data:
+The context buffer has several built-in features to organize data:
 
    • Sort entries alphabetically or by binding position
 
@@ -481,10 +481,65 @@ From CC, Cedille inherits the following type constructs:
    • T T’ – this is applying a type-level function T to a type T’.
    • X – type variables are types, of course.
 
-   See *note unicode shortcuts:: for how to type these symbols in
-Cedille mode.
+See *note unicode shortcuts:: for how to type these symbols in Cedille
+mode.
 
-   To the above constructs, Cedille adds:
+To the above constructs, Cedille adds the following, discussed more
+below:
+
+   • ι x : T .  T’ – dependent intersection of T and T’, where T’ may
+     contain x.
+   • { t ≃ t’ } – untyped equality between terms t and t’.
+   • ∀ x : T .  T’ – the dependent type for functions taking in an
+     erased argument x of type T (aka implicit product)
+
+12.3.1 Dependent intersections
+------------------------------
+
+In (Curry-style) type theory, an intersection type T ∩ T’ can be
+assigned to a term t iff both T and T’ separately can be assigned to t.
+Dependent intersection types, introduced by Kopylov in this paper
+(https://doi.org/10.1109/LICS.2003.1210048), extend this idea to allow
+the type T’ to reference the term t (i.e., the subject of typing) via a
+bound variable x.  Kopylov’s notation for this is x : T ∩ T’.  Cedille
+uses the notation ι x : T .  T’ for the same concept.
+
+One very helpful way to think of these types is that they allow the type
+T’ of t to refer to t itself, but through a weaker view; namely, the
+type T. So if you are writing some function f, say, the type T’ you give
+for f can mention f itself – which seems insane (as in insane dependent
+typing) – but sanity is preserved by the fact that T’ is only allowed to
+reference f through some other type T.
+
+In Cedille, dependent intersections are used to derive inductive
+datatypes, using a critical observation of Leivant’s from this paper
+(https://doi.org/10.1109/SFCS.1983.50).  Suppose one is trying to prove
+the natural-number induction principle for a specific number N; that is,
+for any predicate P on natural numbers, if the base and steps cases
+hold, then P holds for N. What would the proof look like for this?  One
+would assume predicate P, assume P 0 (base case) and ∀ n : Nat .  P n ➔
+P (S n) (step case), and prove P N by apply the step case N times to the
+base case.  Leivant’s remarkable observation is that this proof, seen
+through the lens of the Curry-Howard isomorphism, is
+
+Λ P .  λ z .  λ s .  s (...  (s z))
+
+where s is applied N times.  This erases exactly to the Church-encoding
+of N. This means that using the Church-encoding we can view a number N
+two ways: as an iterator of type ∀ X : ★ .  X ➔ (X ➔ X) ➔ X – call this
+type cNat – and as a proof of its own induction principle, which we can
+see as some kind of dependent enrichment of the first type:
+
+∀ P : cNat ➔ ★ .  P 0 ➔ (∀ n : cNat .  P n ➔ P (S n)) ➔ P N
+
+Calling this second type, as a predicate on N, Inductive, the crucial
+role of dependent intersection types is to allow us to define Nat as
+
+ι N : cNat.  Inductive N
+
+This definition seems to allow one to prove universality of predicates
+on cNats – not Nats!  But universality of Nat-predicates turns out to
+follow from this, in several different ways.
 
 12.4 More reading
 =================
@@ -492,8 +547,8 @@ Cedille mode.
 The syntax and semantics of Cedille are described in this document on
 arXiv (https://arxiv.org/abs/1806.04709).
 
-   The paper first showing how to derive induction for an inductive type
-in Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
+The paper first showing how to derive induction for an inductive type in
+Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
 
 
 File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
@@ -553,8 +608,8 @@ To display the inspect buffer, select a node and press ‘I’ and you will
 open up the inspect buffer and jump to it.  If you just want to open the
 inspect buffer (but not jump to it), press ‘i’ instead.
 
-   The inspect buffer contains information about the selected node, and
-is automatically updated during navigation.
+The inspect buffer contains information about the selected node, and is
+automatically updated during navigation.
 
 16 Controls
 ***********
@@ -738,15 +793,15 @@ Node: Top95
 Node: cedille mode commands929
 Node: unicode shortcuts4111
 Node: context buffer6227
-Node: credits8251
-Node: options9392
-Node: about10571
-Node: extra buffers14100
-Node: inspect buffer15446
-Node: summary buffer16644
-Node: meta-vars buffer17457
-Node: beta-reduce mode18488
-Node: Index19673
+Node: credits8248
+Node: options9389
+Node: about10568
+Node: extra buffers16913
+Node: inspect buffer18259
+Node: summary buffer19454
+Node: meta-vars buffer20267
+Node: beta-reduce mode21298
+Node: Index22483
 
 End Tag Table
 

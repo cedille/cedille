@@ -2,6 +2,7 @@
 @settitle Cedille Main Page
 
 @documentencoding UTF-8
+@paragraphindent 0
 
 @ifnottex
 @node Top
