@@ -10,7 +10,7 @@ open import rename
 open import general-util
 
 drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-drop-mod-args Γ me ((pi , v) , as) = (pi , qv) , if (v =string qv)
+drop-mod-args Γ me (v , as) = qv , if (v =string qv)
   then as else maybe-else as
   (λ n → reverse (drop n (reverse as))) mn
   where
@@ -119,9 +119,9 @@ strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
 strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
 strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
-  m s n ts
-    (mk-ctxt (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil)) syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d)
-    pe
+  m s n ts (mk-ctxt
+      (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil))
+      syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d) pe
   where v' = if ds iff localScope then pi % v else mn # v
 
 strΓ = strΓ' localScope ff

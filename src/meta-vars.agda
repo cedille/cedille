@@ -142,27 +142,27 @@ meta-var-sol-to-tk : meta-var-sol → tk
 meta-var-sol-to-tk (meta-var-tp k mtp) = Tkk k
 meta-var-sol-to-tk (meta-var-tm tp mtm) = Tkt tp
 
-meta-var-to-type : meta-var → posinfo → maybe type
-meta-var-to-type (meta-var-mk-tp x k (just tp) _) pi = just tp
-meta-var-to-type (meta-var-mk-tp x k nothing _) pi = just (TpVar pi x)
-meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm) _) pi = nothing
+meta-var-to-type : meta-var → maybe type
+meta-var-to-type (meta-var-mk-tp x k (just tp) _) = just tp
+meta-var-to-type (meta-var-mk-tp x k nothing _) = just (TpVar posinfo-gen x)
+meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm) _) = nothing
 
-meta-var-to-term : meta-var → posinfo → maybe term
-meta-var-to-term (meta-var-mk-tp x k mtp _) pi = nothing
-meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm)) _) pi = just tm
-meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing) _) pi = just (Var pi x)
+meta-var-to-term : meta-var → maybe term
+meta-var-to-term (meta-var-mk-tp x k mtp _) = nothing
+meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm)) _) = just tm
+meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing) _) = just (Var posinfo-gen x)
 
-meta-var-to-type-unsafe : meta-var → posinfo → type
-meta-var-to-type-unsafe X pi
-  with meta-var-to-type X pi
+meta-var-to-type-unsafe : meta-var → type
+meta-var-to-type-unsafe X
+  with meta-var-to-type X
 ... | just tp = tp
-... | nothing = TpVar pi (meta-var-name X)
+... | nothing = TpVar posinfo-gen (meta-var-name X)
 
-meta-var-to-term-unsafe : meta-var → posinfo → term
-meta-var-to-term-unsafe X pi
-  with meta-var-to-term X pi
+meta-var-to-term-unsafe : meta-var → term
+meta-var-to-term-unsafe X
+  with meta-var-to-term X
 ... | just tm = tm
-... | nothing = Var pi (meta-var-name X)
+... | nothing = Var posinfo-gen (meta-var-name X)
 
 prototype-to-maybe : prototype → maybe type
 prototype-to-maybe (proto-maybe mtp) = mtp
@@ -199,23 +199,23 @@ hnf-decortype Γ uf (decor-error tp pt) ish =
 
 substh-meta-var-sol : substh-ret-t meta-var-sol
 substh-meta-var-sol Γ ρ σ (meta-var-tp k mtp) =
-  meta-var-tp (substh-kind Γ ρ σ k) (maybe-map (λ tp → substh-type Γ ρ σ tp) mtp)
+  meta-var-tp (substh Γ ρ σ k) (maybe-map (λ tp → substh Γ ρ σ tp) mtp)
 substh-meta-var-sol Γ ρ σ (meta-var-tm tp mtm) =
-  meta-var-tm (substh-type Γ ρ σ tp) (maybe-map (λ tm → substh-term Γ ρ σ tm) mtm)
+  meta-var-tm (substh Γ ρ σ tp) (maybe-map (λ tm → substh Γ ρ σ tm) mtm)
 
 subst-meta-var-sol : subst-ret-t meta-var-sol
 subst-meta-var-sol Γ t x (meta-var-tp k mtp) =
-  meta-var-tp (subst-kind Γ t x k) (maybe-map (λ tp → subst-type Γ t x tp) mtp)
+  meta-var-tp (subst Γ t x k) (maybe-map (λ tp → subst Γ t x tp) mtp)
 subst-meta-var-sol Γ t x (meta-var-tm tp mtm) =
-  meta-var-tm (subst-type Γ t x tp) (maybe-map (λ tm → subst-term Γ t x tm) mtm)
+  meta-var-tm (subst Γ t x tp) (maybe-map (λ tm → subst Γ t x tm) mtm)
 
 meta-vars-get-sub : meta-vars → trie type
 meta-vars-get-sub Xs =
-  trie-catMaybe (trie-map ((flip meta-var-to-type) "") (varset Xs))
+  trie-catMaybe (trie-map meta-var-to-type (varset Xs))
 
 meta-vars-subst-type' : (unfold : 𝔹) → ctxt → meta-vars → type → type
 meta-vars-subst-type' u Γ Xs tp =
-  let tp' = substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) tp in
+  let tp' = substh Γ empty-renamectxt (meta-vars-get-sub Xs) tp in
   if u then hnf Γ (unfolding-elab unfold-head) tp' tt else tp'
 
 meta-vars-subst-type : ctxt → meta-vars → type → type
@@ -224,7 +224,7 @@ meta-vars-subst-type = meta-vars-subst-type' tt
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
   = hnf Γ (unfolding-elab unfold-head)
-      (substh-kind Γ empty-renamectxt (meta-vars-get-sub Xs) k)
+      (substh Γ empty-renamectxt (meta-vars-get-sub Xs) k)
       tt
 
 -- string and span helpers
@@ -474,9 +474,9 @@ num-arrows-in-type Γ tp = nait Γ (hnf' Γ tp) 0 tt
   -- not sure
   nait Γ (NoSpans tp _) acc uf = nait Γ tp acc uf
   nait Γ (TpLet _ (DefTerm _ x _ tm) tp) acc uf =
-    nait Γ (subst-type Γ tm x tp) acc uf
+    nait Γ (subst Γ tm x tp) acc uf
   nait Γ (TpLet _ (DefType _ x _ tp-let) tp-in) acc uf =
-    nait Γ (subst-type Γ tp-let x tp-in) acc uf
+    nait Γ (subst Γ tp-let x tp-in) acc uf
   nait Γ (TpParens _ tp _) acc uf = nait Γ tp acc uf
   nait Γ tp acc ff = nait Γ (hnf' Γ tp) acc tt
 
@@ -585,16 +585,16 @@ hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else 
 -- TODO: remove dependency and delete code
 
 meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → is-tpabs → meta-var × meta-vars × type
-meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs pis e? x k tp) =
+meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs e? x k tp) =
   let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
       Xs' = meta-vars-add Xs Y
-      tp' = subst-type Γ (meta-var-to-type-unsafe Y (fst pis)) x tp
+      tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
   in Y , Xs' , tp'
 
 {-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
 meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
 meta-vars-peel Γ sl Xs (Abs pi e? pi' x tk@(Tkk k) tp)
-  with meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs (pi , pi') e? x k tp)
+  with meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs e? x k tp)
 ... | (Y , Xs' , tp') =
   let ret =  meta-vars-peel Γ sl Xs' tp' ; Ys  = fst ret ; rtp = snd ret
   in (Y :: Ys , rtp)
@@ -607,15 +607,15 @@ meta-vars-peel Γ sl Xs tp = [] , tp
 meta-vars-unfold-tpapp : ctxt → meta-vars → type → is-tpabs?
 meta-vars-unfold-tpapp Γ Xs tp
   with meta-vars-subst-type Γ Xs tp
-... | Abs pi b pi' x (Tkk k) tp' = yes-tpabs (pi , pi') b x k tp'
+... | Abs _ b _ x (Tkk k) tp' = yes-tpabs b x k tp'
 ... | tp'                        = not-tpabs tp'
 
 meta-vars-unfold-tmapp : ctxt → span-location → meta-vars → type → 𝕃 meta-var × is-tmabs?
 meta-vars-unfold-tmapp Γ sl Xs tp
   with meta-vars-peel Γ sl Xs (meta-vars-subst-type Γ Xs tp)
-... | Ys , Abs pi b pi' x (Tkt dom) cod =
-  Ys , yes-tmabs (pi , pi') b x dom (is-free-in check-erased x cod) cod
+... | Ys , Abs _ b _ x (Tkt dom) cod =
+  Ys , yes-tmabs b x dom (is-free-in check-erased x cod) cod
 ... | Ys , TpArrow dom e? cod =
-  Ys , yes-tmabs (posinfo-gen , posinfo-gen) e? "_" dom ff cod
+  Ys , yes-tmabs e? "_" dom ff cod
 ... | Ys , tp' = Ys , not-tmabs tp'
 

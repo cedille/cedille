@@ -107,9 +107,6 @@ are-free-in-args ce x ArgsNil = ff
 are-free-in-optClass ce x NoClass = ff
 are-free-in-optClass ce x (SomeClass atk) = are-free-in-tk ce x atk
 
--- are-free-in-optType ce x NoType = ff
--- are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
-
 are-free-in-optType ce x NoType = ff
 are-free-in-optType ce x (SomeType t) = are-free-in-type ce x t
 
@@ -117,7 +114,7 @@ are-free-in-optTerm ce x NoTerm = ff
 are-free-in-optTerm ce x (SomeTerm t _) = are-free-in-term ce x t
 
 are-free-in-optGuide ce x NoGuide = ff
-are-free-in-optGuide ce x (Guide pi v tp) = are-free-in-type ce (trie-remove x v) tp
+are-free-in-optGuide ce x (Guide _ v tp) = are-free-in-type ce (trie-remove x v) tp
 
 are-free-in-tk ce x (Tkt t) = are-free-in-type ce x t
 are-free-in-tk ce x (Tkk k) = are-free-in-kind ce x k
@@ -149,32 +146,29 @@ is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x
 is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset-singleton x) as
 is-free-in{TK} e x t = are-free-in-tk e (stringset-singleton x) t
 
-abs-tk : maybeErased → var → posinfo → tk → type → type
-abs-tk me x pi (Tkk k) tp = Abs posinfo-gen All pi x (Tkk k) tp
-abs-tk Erased x pi (Tkt tp') tp = Abs posinfo-gen All pi x (Tkt tp') tp
-abs-tk NotErased x pi (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
-abs-tk NotErased x pi (Tkt tp') tp | tt = Abs posinfo-gen Pi pi x (Tkt tp') tp
-abs-tk NotErased x pi (Tkt tp') tp | ff = TpArrow tp' NotErased tp
+abs-tk : maybeErased → var → tk → type → type
+abs-tk me x (Tkk k) tp = Abs posinfo-gen Erased posinfo-gen x (Tkk k) tp
+abs-tk me x (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
+abs-tk me x (Tkt tp') tp | tt = Abs posinfo-gen me posinfo-gen x (Tkt tp') tp
+abs-tk me x (Tkt tp') tp | ff = TpArrow tp' me tp
 
-absk-tk : var → posinfo → tk → kind → kind
-absk-tk x pi atk k with are-free-in check-erased (stringset-singleton (pi % x)) k
-absk-tk x pi atk k | tt = KndPi posinfo-gen pi x atk k
-absk-tk x pi (Tkt tp) k | ff = KndTpArrow tp k
-absk-tk x pi (Tkk k') k | ff = KndArrow k' k
+absk-tk : var → tk → kind → kind
+absk-tk x atk k with are-free-in check-erased (stringset-singleton x) k
+absk-tk x atk k | tt = KndPi posinfo-gen posinfo-gen x atk k
+absk-tk x (Tkt tp) k | ff = KndTpArrow tp k
+absk-tk x (Tkk k') k | ff = KndArrow k' k
 
 data abs  : Set where
-  mk-abs : posinfo → maybeErased → posinfo → var → tk → (var-free-in-body : 𝔹) → type → abs 
+  mk-abs : maybeErased → var → tk → (var-free-in-body : 𝔹) → type → abs 
 
 to-abs : type → maybe abs
-to-abs (Abs pi b pi' x atk tp) = just (mk-abs pi b pi' x atk (are-free-in check-erased (stringset-singleton x) tp) tp)
-to-abs (TpArrow tp1 Erased tp2) = just (mk-abs posinfo-gen All posinfo-gen dummy-var (Tkt tp1) ff tp2)
-to-abs (TpArrow tp1 NotErased tp2) = just (mk-abs posinfo-gen Pi posinfo-gen dummy-var (Tkt tp1) ff tp2)
+to-abs (Abs _ me _ x atk tp) = just (mk-abs me x atk (are-free-in check-erased (stringset-singleton x) tp) tp)
+to-abs (TpArrow tp1 me tp2) = just (mk-abs me dummy-var (Tkt tp1) ff tp2)
 to-abs _ = nothing
 
 record is-tpabs : Set where
   constructor mk-tpabs
   field
-    is-tpabs-pi   : posinfo × posinfo
     is-tpabs-e?   : maybeErased
     is-tpabs-var  : var
     is-tpabs-kind : kind
@@ -184,31 +178,30 @@ open is-tpabs public
 
 is-tpabs? = type ∨ is-tpabs
 
-pattern yes-tpabs pis e? x k tp = inj₂ (mk-tpabs pis e? x k tp)
+pattern yes-tpabs e? x k tp = inj₂ (mk-tpabs e? x k tp)
 pattern not-tpabs tp = inj₁ tp
 
 to-is-tpabs : type → is-tpabs?
 to-is-tpabs tp with to-abs tp
 ... | nothing =
   not-tpabs tp
-... | just (mk-abs _ _ _ _ (Tkt _) _ _)
+... | just (mk-abs _ _ (Tkt _) _ _)
   = not-tpabs tp
-... | just (mk-abs pi e? pi' x (Tkk k) var-free-in-body tp') =
-  yes-tpabs (pi , pi') e? x k tp'
+... | just (mk-abs e? x (Tkk k) var-free-in-body tp') =
+  yes-tpabs e? x k tp'
 
 data absk  : Set where
-  mk-absk : posinfo → posinfo → var → tk → (var-free-in-body : 𝔹) → kind → absk 
+  mk-absk : var → tk → (var-free-in-body : 𝔹) → kind → absk 
 
 to-absk : kind → maybe absk
-to-absk (KndPi pi pi' x atk k) = just (mk-absk pi pi' x atk (are-free-in check-erased (stringset-singleton x) k) k)
-to-absk (KndArrow k1 k2) = just (mk-absk posinfo-gen posinfo-gen dummy-var (Tkk k1) ff k2)
-to-absk (KndTpArrow tp k) = just (mk-absk posinfo-gen posinfo-gen dummy-var (Tkt tp) ff k)
+to-absk (KndPi _ _ x atk k) = just (mk-absk x atk (are-free-in check-erased (stringset-singleton x) k) k)
+to-absk (KndArrow k1 k2) = just (mk-absk dummy-var (Tkk k1) ff k2)
+to-absk (KndTpArrow tp k) = just (mk-absk dummy-var (Tkt tp) ff k)
 to-absk _ = nothing
 
 record is-tmabs : Set where
   constructor mk-tmabs
   field
-    is-tmabs-pi     : posinfo × posinfo
     is-tmabs-binder : maybeErased
     is-tmabs-var    : var
     is-tmabs-dom    : type
@@ -218,16 +211,16 @@ open is-tmabs public
 
 is-tmabs? = type ∨ is-tmabs
 
-pattern yes-tmabs pis e? x dom occurs cod = inj₂ (mk-tmabs pis e? x dom occurs cod)
+pattern yes-tmabs e? x dom occurs cod = inj₂ (mk-tmabs e? x dom occurs cod)
 pattern not-tmabs tp = inj₁ tp
 
 to-is-tmabs : type → is-tmabs?
-to-is-tmabs (Abs pi e? pi' x (Tkt dom) cod) =
-  yes-tmabs (pi , pi') e? x dom (is-free-in check-erased x cod) cod
+to-is-tmabs (Abs _ e? _ x (Tkt dom) cod) =
+  yes-tmabs e? x dom (is-free-in check-erased x cod) cod
 to-is-tmabs (TpArrow dom e? cod) =
-  yes-tmabs (posinfo-gen , posinfo-gen) e? "_" dom ff cod
+  yes-tmabs e? "_" dom ff cod
 to-is-tmabs tp = not-tmabs tp
 
 from-is-tmabs : is-tmabs → type
-from-is-tmabs (mk-tmabs (pi , pi') b x dom occ cod) =
-  Abs pi b pi' x (Tkt dom) cod
+from-is-tmabs (mk-tmabs b x dom occ cod) =
+  Abs posinfo-gen b posinfo-gen x (Tkt dom) cod

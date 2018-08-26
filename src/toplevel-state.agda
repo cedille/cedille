@@ -205,57 +205,57 @@ import-as v (SomeOptAs pi pfx) = pfx # v
 
 {-# TERMINATING #-}
 scope-file : toplevel-state → (original imported : filepath) → optAs → args → toplevel-state × err-m
-scope-cmds : filepath → (mn : string) → cmds → optAs → args → toplevel-state → toplevel-state × err-m
-scope-cmd : filepath → (mn : string) → cmd → optAs → args → toplevel-state → toplevel-state × err-m
-scope-def : filepath → (mn : string) → var → optAs → args → toplevel-state → toplevel-state × err-m
--- scope-public-args : (old-fp new-fp : filepath) → args → args → toplevel-state → args × err-m
-
-infixl 8 _≫×_
-
-_≫×_ : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : Set ℓ'} {E : Set ℓ''} → A × maybe E → (A → B × maybe E) → B × maybe E
-_≫×_ (a , e) f with f a
-...| b , e' = b , maybe-else e' just e
+scope-file' : filepath → filepath → optAs → args → toplevel-state → 𝕃 string → toplevel-state × 𝕃 string × err-m
+scope-cmds : filepath → (mn : string) → cmds → optAs → args → toplevel-state → 𝕃 string → toplevel-state × 𝕃 string × err-m
+scope-cmd : filepath → (mn : string) → cmd → optAs → args → toplevel-state → 𝕃 string → toplevel-state × 𝕃 string × err-m
+scope-def : filepath → (mn : string) → var → optAs → args → toplevel-state → 𝕃 string → toplevel-state × 𝕃 string × err-m
 
 error-in-import-string = "There is an error in the imported file"
 
+scope-file ts fnₒ fnᵢ oa as with scope-file' fnₒ fnᵢ oa as ts []
+...| ts' , isₚ , err = ts' , err
+
+infixl 0 _≫=scope_
+_≫=scope_ : toplevel-state × 𝕃 string × err-m → (toplevel-state → 𝕃 string → toplevel-state × 𝕃 string × err-m) → toplevel-state × 𝕃 string × err-m
+_≫=scope_ (ts , isₚ , err) f with f ts isₚ
+...| ts' , isₚ' , err' = ts' , isₚ' , err maybe-or err'
+
 -- Traverse all imports, returning an error if we encounter the same file twice
 {-# TERMINATING #-}
-check-cyclic-imports :(original current : filepath) → stringset → 𝕃 string → toplevel-state → toplevel-state × err-m
+check-cyclic-imports : (original current : filepath) → stringset → (path : 𝕃 string) → toplevel-state → err-m
 check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
-...| ff = foldr (λ fnᵢ x → x ≫× check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path)) (s , nothing) (include-elt.deps (get-include-elt s fn))
+...| ff = foldr (λ fnᵢ x → x maybe-or check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
+            nothing (include-elt.deps (get-include-elt s fn))
 ...| tt with fnₒ =string fn
-...| tt = s , just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
-...| ff = s , just error-in-import-string
+...| tt = just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
+...| ff = just error-in-import-string
 
-scope-file-err : 𝔹 → toplevel-state → toplevel-state × err-m
-scope-file-err b s = s , if b then just error-in-import-string else nothing
-
-scope-file s fnₒ fn oa as with get-include-elt s fn
+scope-file' fnₒ fn oa as s isₚ with get-include-elt s fn
 ...| ie with include-elt.err ie | include-elt.ast ie
-...| e | nothing = scope-file-err e s
+...| e | nothing = s , isₚ , maybe-if_ e ≫maybe just error-in-import-string
 ...| e | just (File pi0 is pi1 pi2 mn ps cs pi3) =
-  check-cyclic-imports fnₒ fn (trie-single fnₒ triv) [] s ≫×
-  scope-file-err e ≫×
-  scope-cmds fn mn (imps-to-cmds is) oa as ≫×
+  (s , isₚ , check-cyclic-imports fnₒ fn (trie-single fnₒ triv) [] s) ≫=scope λ s isₚ →
+  (s , isₚ , maybe-if_ e ≫maybe just error-in-import-string) ≫=scope
+  scope-cmds fn mn (imps-to-cmds is) oa as ≫=scope
   scope-cmds fn mn cs oa as
 
-scope-cmds fn mn (CmdsNext c cs) oa as s =
-  scope-cmd fn mn c oa as s ≫× scope-cmds fn mn cs oa as
-scope-cmds fn mn CmdsStart oa as s = s , nothing
+scope-cmds fn mn (CmdsNext c cs) oa as s isₚ =
+  scope-cmd fn mn c oa as s isₚ ≫=scope scope-cmds fn mn cs oa as
+scope-cmds fn mn CmdsStart oa as s isₚ = s , isₚ , nothing
 
-scope-cmd fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as s = s , nothing
-scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
+scope-cmd fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as s isₚ = s , isₚ , nothing
+scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s isₚ =
   let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
-  scope-file s fn ifn' oa ArgsNil -- oa' should be NoOptAs and as' should be ArgsNil
-scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
-scope-cmd fn mn (DefTermOrType _ (DefTerm pi v mcT _) pi') = scope-def fn mn v
-scope-cmd fn mn (DefTermOrType _ (DefType pi v k _) pi') = scope-def fn mn v
-scope-cmd fn mn (DefDatatype   (Datatype pi _ v _ _ _ _) pi')   oa as = scope-def fn mn v oa as
+  scope-file' fn ifn' oa ArgsNil s (ifn' :: isₚ) -- oa' should be NoOptAs and as' should be ArgsNil
+scope-cmd fn mn (DefKind _ v _ _ _) = scope-def fn mn v
+scope-cmd fn mn (DefTermOrType _ (DefTerm _ v _ _) _) = scope-def fn mn v
+scope-cmd fn mn (DefTermOrType _ (DefType _ v _ _) _) = scope-def fn mn v
+scope-cmd fn mn (DefDatatype (Datatype _ _ v _ _ _ _) _) oa as = scope-def fn mn v oa as
 
 
-scope-def _ mn v oa as s with import-as v oa | s
+scope-def _ mn v oa as s isₚ with import-as v oa | s
 ...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) , isₚ ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
-    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
-  -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^
+    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
+    (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

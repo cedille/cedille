@@ -27,6 +27,22 @@ maybe-equal? f (just x) nothing = ff
 maybe-equal? f nothing (just x) = ff
 maybe-equal? f nothing nothing = tt
 
+_≫maybe_ : ∀ {ℓ}{A B : Set ℓ} → maybe A → maybe B → maybe B
+nothing ≫maybe f = nothing
+just x  ≫maybe f = f
+
+_maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
+(nothing maybe-or ma) = ma
+(just a  maybe-or ma) = just a
+
+maybe-not_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
+maybe-not just a  = nothing
+maybe-not nothing = just triv
+
+maybe-if_ : 𝔹 → maybe ⊤
+maybe-if tt = just triv
+maybe-if ff = nothing
+
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
 trie-lookupd t s d | nothing = d
@@ -391,6 +407,3 @@ bindM' a b = bindM a (λ a → b)
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
 
-_maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
-_maybe-or_ ma @ (just a) ma' = ma
-_maybe-or_ ma ma' = ma'

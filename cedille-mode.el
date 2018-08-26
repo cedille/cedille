@@ -1,5 +1,6 @@
 ;;; cedille-mode.el --- Major mode for Cedille
 ;;;
+;;; Only follow these instruction if you did NOT use the Debian package:
 ;;; You need to set cedille-path to be the path to your Cedille installation.
 ;;; Then add that path to your load path for emacs.
 ;;; Then put (require 'cedille-mode) in your .emacs file. 
@@ -14,9 +15,11 @@
 (require 'quail)
 
 ;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
-(defvar cedille-program-name (concat cedille-path "/cedille"))
+(defvar cedille-program-name (if (boundp 'cedille-path) (concat cedille-path "/cedille") "/usr/bin/cedille"))
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
+
+(setq cedille-path-el (if (boundp 'cedille-path) cedille-path "/usr/share/emacs/site-lisp/cedille-mode"))
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
@@ -38,14 +41,17 @@
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
-(let ((se-path (concat cedille-path "/se-mode")))
+(let ((se-path (concat cedille-path-el "/se-mode")))
   (add-to-list 'load-path se-path)
   (add-to-list 'load-path (concat se-path "/json.el")))
-(require 'se)
 
-(let ((cedille-mode-library-path (concat cedille-path "/cedille-mode")))
+(let ((cedille-mode-library-path (concat cedille-path-el "/cedille-mode")))
   (add-to-list 'load-path cedille-mode-library-path)
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
+
+(message "about to load se")
+(require 'se)
+(message "loaded se")
 (require 'cedille-mode-library)
 
 (defun cedille-mode-current-buffer-base-name()
@@ -600,7 +606,7 @@ occurrences, then do so."
         cedille-mode-print-caching-finished nil)
   (se-inf-stop)
   (se-inf-header-timer-stop)
-  (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
+  (cedille-mode-start-process)
   (message "Restarted cedille process")
   (cedille-mode-quit))
 
@@ -704,12 +710,16 @@ occurrences, then do so."
   (when cedille-mode-caching
     (se-inf-queue-header cedille-mode-caching-header)))
 
+(defun cedille-mode-start-process ()
+  "Starts the Cedille process"
+  (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
+
 (se-create-mode "cedille" nil
   "Major mode for Cedille files."
 
   (setq-local comment-start "--")
 
-  (se-inf-start (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS"))
+  (cedille-mode-start-process)
   ;;(or (get-buffer-process "*cedille-mode*") ;; reuse if existing process
     ;;   (start-process "cedille-mode" "*cedille-mode*" cedille-program-name "+RTS" "-K1000000000" "-RTS")))
   (add-hook 'se-inf-post-parse-hook 'cedille-mode-caching-start t)
@@ -747,7 +757,7 @@ occurrences, then do so."
           ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "φ")
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\==" "≅") ("\\d" "δ") ("\\-" "➾")
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")
-          ("\\E" "∃") ("\\F" "φ")
+          ("\\E" "∃") ("\\F" "φ") ("\\m" "μ")
           ("\\\\" "\\")
 
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\phi" "φ"); add some more of these

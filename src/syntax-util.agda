@@ -106,35 +106,35 @@ append-cmds : cmds → cmds → cmds
 append-cmds CmdsStart = id
 append-cmds (CmdsNext c cs) = CmdsNext c ∘ append-cmds cs
 
-qualif-lookup-term : posinfo → qualif → string → term
-qualif-lookup-term pi σ x with trie-lookup σ x
-... | just (x' , as) = apps-term (Var pi x') as
-... | _ = Var pi x
+qualif-lookup-term : qualif → string → term
+qualif-lookup-term σ x with trie-lookup σ x
+... | just (x' , as) = apps-term (Var posinfo-gen x') as
+... | _ = Var posinfo-gen x
 
-qualif-lookup-type : posinfo → qualif → string → type
-qualif-lookup-type pi σ x with trie-lookup σ x
-... | just (x' , as) = apps-type (TpVar pi x') as
-... | _ = TpVar pi x
+qualif-lookup-type : qualif → string → type
+qualif-lookup-type σ x with trie-lookup σ x
+... | just (x' , as) = apps-type (TpVar posinfo-gen x') as
+... | _ = TpVar posinfo-gen x
 
-qualif-lookup-kind : posinfo → args → qualif → string → kind
-qualif-lookup-kind pi xs σ x with trie-lookup σ x
-... | just (x' , as) = KndVar pi x' (append-args as xs)
-... | _ = KndVar pi x xs
+qualif-lookup-kind : args → qualif → string → kind
+qualif-lookup-kind xs σ x with trie-lookup σ x
+... | just (x' , as) = KndVar posinfo-gen x' (append-args as xs)
+... | _ = KndVar posinfo-gen x xs
 
-inst-lookup-term : posinfo → trie arg → string → term
-inst-lookup-term pi σ x with trie-lookup σ x
+inst-lookup-term : trie arg → string → term
+inst-lookup-term σ x with trie-lookup σ x
 ... | just (TermArg me t) = t
-... | _ = Var pi x
+... | _ = Var posinfo-gen x
 
-inst-lookup-type : posinfo → trie arg → string → type
-inst-lookup-type pi σ x with trie-lookup σ x
+inst-lookup-type : trie arg → string → type
+inst-lookup-type σ x with trie-lookup σ x
 ... | just (TypeArg t) = t
-... | _ = TpVar pi x
+... | _ = TpVar posinfo-gen x
 
 params-to-args : params → args
 params-to-args ParamsNil = ArgsNil
-params-to-args (ParamsCons (Decl _ p me v (Tkt t) _) ps) = ArgsCons (TermArg me (Var p v)) (params-to-args ps)
-params-to-args (ParamsCons (Decl _ p _ v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar p v)) (params-to-args ps)
+params-to-args (ParamsCons (Decl _ p me v (Tkt t) _) ps) = ArgsCons (TermArg me (Var posinfo-gen v)) (params-to-args ps)
+params-to-args (ParamsCons (Decl _ p _ v (Tkk k) _) ps) = ArgsCons (TypeArg (TpVar posinfo-gen v)) (params-to-args ps)
 
 qualif-insert-params : qualif → var → var → params → qualif
 qualif-insert-params σ qv v ps = trie-insert σ v (qv , params-to-args ps)
@@ -145,7 +145,7 @@ qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert �
   where
   import-as : var → optAs → var
   import-as v NoOptAs = v
-  import-as v (SomeOptAs pi pfx) = pfx # v
+  import-as v (SomeOptAs _ pfx) = pfx # v
 
 tk-is-type : tk → 𝔹
 tk-is-type (Tkt _) = tt
@@ -533,28 +533,28 @@ erase-term (App t1 Erased t2) = erase-term t1
 erase-term (App t1 NotErased t2) = App (erase-term t1) NotErased (erase-term t2)
 erase-term (AppTp t tp) = erase-term t
 erase-term (Lam _ Erased _ _ _ t) = erase-term t
-erase-term (Lam pi NotErased pi' x oc t) = Lam pi NotErased pi' x NoClass (erase-term t)
-erase-term (Let pi (DefTerm pi'' x _ t) t') = Let pi (DefTerm pi'' x NoType (erase-term t)) (erase-term t')
+erase-term (Lam _ NotErased _ x oc t) = Lam posinfo-gen NotErased posinfo-gen x NoClass (erase-term t)
+erase-term (Let _ (DefTerm _ x _ t) t') = Let posinfo-gen (DefTerm posinfo-gen x NoType (erase-term t)) (erase-term t')
 erase-term (Let _ (DefType _ _ _ _) t) = erase-term t
 erase-term (Open _ _ t) = erase-term t
-erase-term (Var pi x) = Var pi x
-erase-term (Beta pi _ NoTerm) = id-term
-erase-term (Beta pi _ (SomeTerm t _)) = erase-term t
-erase-term (IotaPair pi t1 t2 _ pi') = erase-term t1
-erase-term (IotaProj t n pi) = erase-term t
-erase-term (Epsilon pi lr _ t) = erase-term t
-erase-term (Sigma pi t) = erase-term t
-erase-term (Hole pi) = Hole pi
-erase-term (Phi pi t t₁ t₂ pi') = erase-term t₂
-erase-term (Rho pi _ _ t _ t') = erase-term t'
-erase-term (Chi pi T t') = erase-term t'
-erase-term (Delta pi T t) = id-term
-erase-term (Theta pi u t ls) = erase-lterms (erase-term t) ls
-erase-term (Mu pi x t ot pi' c pi'') = Mu pi x (erase-term t) NoType pi' (erase-cases c) pi''
-erase-term (Mu' pi t ot pi' c pi'')  = Mu' pi  (erase-term t) NoType pi' (erase-cases c) pi''
+erase-term (Var _ x) = Var posinfo-gen x
+erase-term (Beta _ _ NoTerm) = id-term
+erase-term (Beta _ _ (SomeTerm t _)) = erase-term t
+erase-term (IotaPair _ t1 t2 _ _) = erase-term t1
+erase-term (IotaProj t n _) = erase-term t
+erase-term (Epsilon _ lr _ t) = erase-term t
+erase-term (Sigma _ t) = erase-term t
+erase-term (Hole _) = Hole posinfo-gen
+erase-term (Phi _ t t₁ t₂ _) = erase-term t₂
+erase-term (Rho _ _ _ t _ t') = erase-term t'
+erase-term (Chi _ T t') = erase-term t'
+erase-term (Delta _ T t) = id-term
+erase-term (Theta _ u t ls) = erase-lterms (erase-term t) ls
+erase-term (Mu _ x t ot _ c _) = Mu posinfo-gen x (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
+erase-term (Mu' _ t ot _ c _)  = Mu' posinfo-gen (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
 
 erase-cases NoCase = NoCase
-erase-cases (SomeCase pi x varargs t cs) = SomeCase pi x (erase-varargs varargs) (erase-term t) (erase-cases cs)
+erase-cases (SomeCase _ x varargs t cs) = SomeCase posinfo-gen x (erase-varargs varargs) (erase-term t) (erase-cases cs)
 
 erase-varargs NoVarargs = NoVarargs
 erase-varargs (NormalVararg x varargs) = NormalVararg x (erase-varargs varargs)
@@ -562,28 +562,28 @@ erase-varargs (ErasedVararg x varargs) = erase-varargs varargs
 erase-varargs (TypeVararg x varargs  ) = erase-varargs varargs
 
 -- Only erases TERMS in types, leaving the structure of types the same
-erase-type (Abs pi b pi' v t-k tp) = Abs pi b pi' v (erase-tk t-k) (erase-type tp)
-erase-type (Iota pi pi' v otp tp) = Iota pi pi' v (erase-type otp) (erase-type tp)
-erase-type (Lft pi pi' v t lt) = Lft pi pi' v (erase-term t) (erase-liftingType lt)
-erase-type (NoSpans tp pi) = NoSpans (erase-type tp) pi
+erase-type (Abs _ b _ v atk tp) = Abs posinfo-gen b posinfo-gen v (erase-tk atk) (erase-type tp)
+erase-type (Iota _ _ v otp tp) = Iota posinfo-gen posinfo-gen v (erase-type otp) (erase-type tp)
+erase-type (Lft _ _ v t lt) = Lft posinfo-gen posinfo-gen v (erase-term t) (erase-liftingType lt)
+erase-type (NoSpans tp _) = NoSpans (erase-type tp) posinfo-gen
 erase-type (TpApp tp tp') = TpApp (erase-type tp) (erase-type tp')
 erase-type (TpAppt tp t) = TpAppt (erase-type tp) (erase-term t)
 erase-type (TpArrow tp at tp') = TpArrow (erase-type tp) at (erase-type tp')
-erase-type (TpEq pi t t' pi') = TpEq pi (erase-term t) (erase-term t') pi'
-erase-type (TpLambda pi pi' v t-k tp) = TpLambda pi pi' v (erase-tk t-k) (erase-type tp)
-erase-type (TpParens pi tp pi') = TpParens pi (erase-type tp) pi'
-erase-type (TpHole pi) = TpHole pi
-erase-type (TpVar pi x) = TpVar pi x
-erase-type (TpLet pi (DefTerm pi' x _ t) T) = TpLet pi (DefTerm pi' x NoType (erase-term t)) (erase-type T)
-erase-type (TpLet pi (DefType pi' x k T) T') = TpLet pi (DefType pi' x (erase-kind k) (erase-type T)) (erase-type T')
+erase-type (TpEq _ t t' _) = TpEq posinfo-gen (erase-term t) (erase-term t') posinfo-gen
+erase-type (TpLambda _ _ v atk tp) = TpLambda posinfo-gen posinfo-gen v (erase-tk atk) (erase-type tp)
+erase-type (TpParens _ tp _) = erase-type tp
+erase-type (TpHole _) = TpHole posinfo-gen
+erase-type (TpVar _ x) = TpVar posinfo-gen x
+erase-type (TpLet _ (DefTerm _ x _ t) T) = TpLet posinfo-gen (DefTerm posinfo-gen x NoType (erase-term t)) (erase-type T)
+erase-type (TpLet _ (DefType _ x k T) T') = TpLet posinfo-gen (DefType posinfo-gen x (erase-kind k) (erase-type T)) (erase-type T')
 
 -- Only erases TERMS in types in kinds, leaving the structure of kinds and types in those kinds the same
 erase-kind (KndArrow k k') = KndArrow (erase-kind k) (erase-kind k')
-erase-kind (KndParens pi k pi') = KndParens pi (erase-kind k) pi'
-erase-kind (KndPi pi pi' v t-k k) = KndPi pi pi' v (erase-tk t-k) (erase-kind k)
+erase-kind (KndParens _ k _) = erase-kind k
+erase-kind (KndPi _ _ v atk k) = KndPi posinfo-gen posinfo-gen v (erase-tk atk) (erase-kind k)
 erase-kind (KndTpArrow tp k) = KndTpArrow (erase-type tp) (erase-kind k)
-erase-kind (KndVar pi x ps) = KndVar pi x ps
-erase-kind (Star pi) = Star pi
+erase-kind (KndVar _ x ps) = KndVar posinfo-gen x ps
+erase-kind (Star _) = Star posinfo-gen
 
 erase{TERM} t = erase-term t
 erase{TYPE} tp = erase-type tp
@@ -597,8 +597,8 @@ erase-tk (Tkt tp) = Tkt (erase-type tp)
 erase-tk (Tkk k) = Tkk (erase-kind k)
 
 erase-liftingType (LiftArrow lt lt') = LiftArrow (erase-liftingType lt) (erase-liftingType lt')
-erase-liftingType (LiftParens pi lt pi') = LiftParens pi (erase-liftingType lt) pi'
-erase-liftingType (LiftPi pi v tp lt) = LiftPi pi v (erase-type tp) (erase-liftingType lt)
+erase-liftingType (LiftParens _ lt _) = erase-liftingType lt
+erase-liftingType (LiftPi _ v tp lt) = LiftPi posinfo-gen v (erase-type tp) (erase-liftingType lt)
 erase-liftingType (LiftTpArrow tp lt) = LiftTpArrow (erase-type tp) (erase-liftingType lt)
 erase-liftingType lt = lt
 
@@ -607,8 +607,8 @@ erase-lterms t (LtermsCons Erased t' ls) = erase-lterms t ls
 erase-lterms t (LtermsCons NotErased t' ls) = erase-lterms (App t NotErased (erase-term t')) ls
 
 lterms-to-term : theta → term → lterms → term
-lterms-to-term AbstractEq t (LtermsNil pi) = App t Erased (Beta pi NoTerm NoTerm)
-lterms-to-term _ t (LtermsNil pi) = t
+lterms-to-term AbstractEq t (LtermsNil _) = App t Erased (Beta posinfo-gen NoTerm NoTerm)
+lterms-to-term _ t (LtermsNil _) = t
 lterms-to-term u t (LtermsCons e t' ls) = lterms-to-term u (App t e t') ls
 
 imps-to-cmds : imports → cmds
@@ -703,28 +703,28 @@ erased-params (ParamsCons p ps) = erased-params ps
 erased-params ParamsNil = []
 
 lam-expand-term : params → term → term
-lam-expand-term (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  Lam posinfo-gen (if tk-is-type tk then me else Erased) pi' x (SomeClass tk) (lam-expand-term ps t)
+lam-expand-term (ParamsCons (Decl _ _ me x tk _) ps) t =
+  Lam posinfo-gen (if tk-is-type tk then me else Erased) posinfo-gen x (SomeClass tk) (lam-expand-term ps t)
 lam-expand-term ParamsNil t = t
 
 lam-expand-type : params → type → type
-lam-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  TpLambda posinfo-gen pi' x tk (lam-expand-type ps t)
+lam-expand-type (ParamsCons (Decl _ _ me x tk _) ps) t =
+  TpLambda posinfo-gen posinfo-gen x tk (lam-expand-type ps t)
 lam-expand-type ParamsNil t = t
 
 abs-expand-type : params → type → type
-abs-expand-type (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  Abs posinfo-gen (if tk-is-type tk then me else All) pi' x tk (abs-expand-type ps t)
+abs-expand-type (ParamsCons (Decl _ _ me x tk _) ps) t =
+  Abs posinfo-gen (if tk-is-type tk then me else All) posinfo-gen x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
 abs-expand-type' : params → type → type
-abs-expand-type' (ParamsCons (Decl pi pi' me x tk _) ps) t =
-  Abs pi (if tk-is-type tk then me else All) pi' x tk (abs-expand-type' ps t)
+abs-expand-type' (ParamsCons (Decl _ _ me x tk _) ps) t =
+  Abs posinfo-gen (if tk-is-type tk then me else All) posinfo-gen x tk (abs-expand-type' ps t)
 abs-expand-type' ParamsNil t = t
 
 abs-expand-kind : params → kind → kind
-abs-expand-kind (ParamsCons (Decl pi pi' me x tk _) ps) k =
-  KndPi posinfo-gen pi' x tk (abs-expand-kind ps k)
+abs-expand-kind (ParamsCons (Decl _ _ me x tk _) ps) k =
+  KndPi posinfo-gen posinfo-gen x tk (abs-expand-kind ps k)
 abs-expand-kind ParamsNil k = k
 
 args-length : args → ℕ
@@ -742,14 +742,14 @@ me-args-length Erased = erased-args-length
 me-args-length NotErased = args-length
 
 spineApp : Set
-spineApp = (posinfo × qvar) × 𝕃 arg
+spineApp = qvar × 𝕃 arg
 
 term-to-spapp : term → maybe spineApp
 term-to-spapp (App t me t') = term-to-spapp t ≫=maybe
   (λ { (v , as) → just (v , TermArg me t' :: as) })
 term-to-spapp (AppTp t T) = term-to-spapp t ≫=maybe
   (λ { (v , as) → just (v , TypeArg T :: as) })
-term-to-spapp (Var pi v) = just ((pi , v) , [])
+term-to-spapp (Var _ v) = just (v , [])
 term-to-spapp _ = nothing
 
 type-to-spapp : type → maybe spineApp
@@ -757,16 +757,16 @@ type-to-spapp (TpApp T T') = type-to-spapp T ≫=maybe
   (λ { (v , as) → just (v , TypeArg T' :: as) })
 type-to-spapp (TpAppt T t) = type-to-spapp T ≫=maybe
   (λ { (v , as) → just (v , TermArg NotErased t :: as) })
-type-to-spapp (TpVar pi v) = just ((pi , v) , [])
+type-to-spapp (TpVar _ v) = just (v , [])
 type-to-spapp _ = nothing
 
 spapp-term : spineApp → term
-spapp-term ((pi , v) , []) = Var pi v
+spapp-term (v , []) = Var posinfo-gen v
 spapp-term (v , TermArg me t :: as) = App (spapp-term (v , as)) me t
 spapp-term (v , TypeArg T :: as) = AppTp (spapp-term (v , as)) T
 
 spapp-type : spineApp → type
-spapp-type ((pi , v) , []) = TpVar pi v
+spapp-type (v , []) = TpVar posinfo-gen v
 spapp-type (v , TermArg me t :: as) = TpAppt (spapp-type (v , as)) t
 spapp-type (v , TypeArg T :: as) = TpApp (spapp-type (v , as)) T
 
