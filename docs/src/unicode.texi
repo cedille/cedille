@@ -18,17 +18,11 @@ Produces → (right arrow)
 @item \a
 Produces ∀ (forall), for quantification over terms which are erased at run-time, and also over type-level expressions
 
-@item \B
-Produces □ (white square), for the sole superkind of the language
-
 @item \P
 Produces Π (capital pi), for dependent function types and for all type-level quantification (even over types)
 
 @item \s
 Produces ★ (black star), the kind of types
-
-@item \S
-Produces ☆ (white star), used in lifting types
 
 @item \.
 Produces · (center dot), for applying a function (term- or type-level) to a type-level argument
@@ -36,14 +30,11 @@ Produces · (center dot), for applying a function (term- or type-level) to a typ
 @item \f
 Produces ◂ (leftwards double arrow), for checking a term against a type, or type against a kind, at the top-level
 
-@item \u
-Produces ↑ (upwards arrow), for lifting
-
 @item \h
 Produces ● (black circle), a hole representing a missing subterm
 
 @item \k
-Produces 𝒌 (math bold italic small k), all kind-level defined symbols must start with this character
+Produces 𝒌 (math bold italic small k). All kind-level defined symbols must start with this character.
 
 @item \i
 Produces ι (iota), for dependent intersections
@@ -71,14 +62,5 @@ Produces θ (theta), for elimination with a motive (of McBride)
 
 @item \x
 Produces χ (chi), for changing the form of the expected or computed classifier to a definitionally equivalent one
-
-@item \rho
-Produces ρ (rho)
-
-@item \theta
-Produces θ (theta)
-
-@item \epsilon
-Produces ε (epsilon)
 
 @end table

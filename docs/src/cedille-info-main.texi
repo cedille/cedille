@@ -1,6 +1,8 @@
 \input texinfo
 @settitle Cedille Main Page
 
+@documentencoding UTF-8
+
 @ifnottex
 @node Top
 @top Cedille Documentation

@@ -55,7 +55,7 @@ From CC, Cedille inherits the following type constructs:
 @item X -- type variables are types, of course.
 @end itemize
 
-See @xref{unicode shortcuts} for how to type these symbols in Cedille mode.
+See @ref{unicode shortcuts} for how to type these symbols in Cedille mode.
 
 To the above constructs, Cedille adds:
 

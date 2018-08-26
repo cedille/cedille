@@ -4,5 +4,7 @@
 makeinfo -o ../info/cedille-info-main.info cedille-info-main.texi
 
 # for later, generating more forms of the documentation
-# makeinfo -o ../html --html cedille-main.texi
+
+makeinfo -o ../html --html cedille-info-main.texi
+
 # texi2pdf -o ../pdf/Cedille-info-main.pdf cedille-main.texi

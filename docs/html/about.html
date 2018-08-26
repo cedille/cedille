@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>Cedille Main Page: about</title>
+
+<meta name="description" content="Cedille Main Page: about">
+<meta name="keywords" content="Cedille Main Page: about">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="extra-buffers.html#extra-buffers" rel="next" title="extra buffers">
+<link href="options.html#options" rel="prev" title="options">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="about"></a>
+<div class="header">
+<p>
+Next: <a href="Index.html#Index" accesskey="n" rel="next">Index</a>, Previous: <a href="credits.html#credits" accesskey="p" rel="prev">credits</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="Cedille_0027s-Type-Theory"></a>
+<h2 class="chapter">12 Cedille&rsquo;s Type Theory</h2>
+
+<p>Cedille&rsquo;s type theory is called the Calculus of Dependent Lambda
+Eliminations (CDLE).  It is somewhat rare in being a Curry-style type
+theory.  Coq and Agda are based on Church-style theories.  The
+difference is that in a Curry-style (aka extrinsic) type theory, type
+annotations are merely hints to the type checker, and the &ldquo;real&rdquo;
+terms (the subjects of metatheoretic analysis, for example) are
+completely unannotated.  Thus, such annotations can be erased during
+compilation and during formal reasoning (in particular during
+conversion checking, where the type checker tests whether two terms
+are definitionally equal).  In contrast, with Church-style (aka
+intrinsic) type theory, the annotations are &ldquo;really there&rdquo;, and must
+be preserved during compilation and conversion.
+</p>
+<a name="Example"></a>
+<h3 class="section">12.1 Example</h3>
+
+<p>For an example, consider the term Λ X : ★ . λ x : X . x.  In Church-style
+type theory, the annotations giving the classifiers for X and x are truly
+part of the term, and the theory itself does not allow for them to be erased.
+In contrast, in a Curry-style type theory like CDLE, those annotations are
+just hints to help the type checker see how to assign the type ∀ X : ★ . X ➔ X
+to λ x . x.  The type theory has a notion of erasure, and conversion 
+compares the erasures of terms rather than the annotated terms.  
+</p>
+<a name="Cedille-extends-the-Calculus-of-Constructions"></a>
+<h3 class="section">12.2 Cedille extends the Calculus of Constructions</h3>
+
+<p>The starting point for Cedille is a Curry-style version of the
+Calculus of Constructions (CC).  Coq is based on several extensions of
+CC, notably with a predicative universe hierarchy (Luo&rsquo;s Extended
+Calculus of Constructions), and with a primitive system of inductive
+datatypes (the Calculus of Inductive Constructions of Paulin-Mohring
+and Werner).  Cedille has neither the universe hierarchy nor the
+inductive types.  The universe hierarchy is omitted to avoid
+additional metatheoretic and implementation complexity, which has not
+been justified to my (Aaron&rsquo;s) satisfaction by examples.  So it is
+omitted not for any really fundamental reason (that we know of).
+Omitting the system of primitive inductive types, however, is one of
+the chief goals of Cedille, and will be discussed more below.
+</p>
+
+<a name="The-type-constructs-of-Cedille"></a>
+<h3 class="section">12.3 The type constructs of Cedille</h3>
+
+<p>From CC, Cedille inherits the following type constructs:
+</p>
+<ul>
+<li> ∀ X : 𝒌 . T &ndash; this is impredicative quantification over types X of kind 𝒌.
+</li><li> Π x : T . T&rsquo; &ndash; this is dependent function space, where the return type T&rsquo; may mention the input argument x.
+</li><li> λ X : 𝒌 . T &ndash; this is a type-level function over types X of kind 𝒌.
+</li><li> λ x : T . T&rsquo; &ndash; this is a type-level function over terms x of type T.
+</li><li> T t &ndash; this is applying a type-level function T to a term t.
+</li><li> T T&rsquo; &ndash; this is applying a type-level function T to a type T&rsquo;.
+</li><li> X &ndash; type variables are types, of course.
+</li></ul>
+
+<p>See <a href="unicode-shortcuts.html#unicode-shortcuts">unicode shortcuts</a> for how to type these symbols in Cedille mode.
+</p>
+<p>To the above constructs, Cedille adds:
+</p>
+
+<a name="More-reading"></a>
+<h3 class="section">12.4 More reading</h3>
+
+<p>The syntax and semantics of Cedille are described in this document
+<a href="https://arxiv.org/abs/1806.04709">on arXiv</a>.
+</p>
+<p>The paper first showing how to derive induction for an inductive type
+in Cedille is <a href="https://doi.org/10.1016/j.apal.2018.03.002">here</a>.
+</p>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="Index.html#Index" accesskey="n" rel="next">Index</a>, Previous: <a href="credits.html#credits" accesskey="p" rel="prev">credits</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>
