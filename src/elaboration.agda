@@ -32,30 +32,68 @@ import spans options' {id} as id-spans
 {- Datatypes -}
 
 mendler-encoding : datatype-encoding
-mendler-encoding = record {
-  template = MendlerTemplate;
-  functor = "Functor";
-  cast = "cast";
-  fixed-point = "CVFixIndM";
-  in-fix = "cvInFixIndM";
-  induction-principle = "cvIndFixIndM";
-  elab-check-mu = λ Γ x t oT cs T → nothing;
-  elab-check-mu' = λ Γ t oT cs T → nothing;
-  elab-synth-mu = λ Γ x t oT cs → nothing;
-  elab-synth-mu' = λ Γ t oT cs → nothing}
+mendler-encoding =
+  let functorₓ = "Functor"
+      castₓ = "cast"
+      fixed-pointₓ = "CVFixIndM"
+      in-fixₓ = "cvInFixIndM"
+      induction-principleₓ = "cvIndFixIndM" in
+  record {
+    template = MendlerTemplate;
+    functor = functorₓ;
+    cast = castₓ;
+    fixed-point = fixed-pointₓ;
+    in-fix = in-fixₓ;
+    induction-principle = induction-principleₓ;
+
+    elab-check-mu = λ {Γ (Data x ps is cs) rₓ t oT ms T →
+      nothing
+    };
+    elab-synth-mu = λ {Γ (Data x ps is cs) rₓ t NoType ms → nothing;
+                       Γ (Data x ps is cs) rₓ t (SomeType T) ms →
+      nothing
+    };
+
+    elab-check-mu' = λ {Γ (Data x ps is cs) t oT ms T →
+      nothing
+    };
+    elab-synth-mu' = λ {Γ (Data x ps is cs) t NoType ms → nothing;
+                        Γ (Data x ps is cs) t (SomeType T) ms →
+      nothing
+    }
+  }
 
 mendler-simple-encoding : datatype-encoding
-mendler-simple-encoding = record {
-  template = MendlerSimpleTemplate;
-  functor = "RecFunctor";
-  cast = "cast";
-  fixed-point = "FixM";
-  in-fix = "inFix";
-  induction-principle = "IndFixM";
-  elab-check-mu = λ Γ x t oT cs T → nothing;
-  elab-check-mu' = λ Γ t oT cs T → nothing;
-  elab-synth-mu = λ Γ x t oT cs → nothing;
-  elab-synth-mu' = λ Γ t oT cs → nothing}
+mendler-simple-encoding =
+  let functorₓ = "RecFunctor"
+      castₓ = "cast"
+      fixed-pointₓ = "FixM"
+      in-fixₓ = "inFix"
+      induction-principleₓ = "IndFixM" in
+  record {
+    template = MendlerSimpleTemplate;
+    functor = functorₓ;
+    cast = castₓ;
+    fixed-point = fixed-pointₓ;
+    in-fix = in-fixₓ;
+    induction-principle = induction-principleₓ;
+
+    elab-check-mu = λ {Γ (Data x ps is cs) rₓ t oT ms T →
+      nothing
+    };
+    elab-synth-mu = λ {Γ (Data x ps is cs) rₓ t NoType ms → nothing;
+                       Γ (Data x ps is cs) rₓ t (SomeType T) ms →
+      nothing
+    };
+
+    elab-check-mu' = λ {Γ (Data x ps is cs) t oT ms T →
+      nothing
+    };
+    elab-synth-mu' = λ {Γ (Data x ps is cs) t NoType ms → nothing;
+                        Γ (Data x ps is cs) t (SomeType T) ms →
+      nothing
+    }
+  }
 
 selected-encoding = mendler-simple-encoding
 -- TODO: ^ Add option so user can choose encoding ^

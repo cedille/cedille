@@ -619,10 +619,10 @@ record datatype-encoding : Set where
     fixed-point : var
     in-fix : var
     induction-principle : var
-    elab-check-mu : ctxt → var → term → optType → cases → type → maybe term
-    elab-check-mu' : ctxt → term → optType → cases → type → maybe term
-    elab-synth-mu : ctxt → var → term → optType → cases → maybe (term × type)
-    elab-synth-mu' : ctxt → term → optType → cases → maybe (term × type)
+    elab-check-mu : ctxt → datatype → var → term → optType → cases → type → maybe term
+    elab-check-mu' : ctxt → datatype → term → optType → cases → type → maybe term
+    elab-synth-mu : ctxt → datatype → var → term → optType → cases → maybe (term × type)
+    elab-synth-mu' : ctxt → datatype → term → optType → cases → maybe (term × type)
 
   mk-defs : ctxt → datatype → cmds × encoded-datatype
   mk-defs Γ' (Data x ps is cs) = append-cmds tcs
