@@ -47,7 +47,7 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
 opts-to-options ofp (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.MakeRktFiles b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = ff {- str-bool-to-𝔹 b -} }
 opts-to-options ofp (options-types.OptsCons (options-types.GenerateLogs b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { generate-logs = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
