@@ -1,0 +1,34 @@
+module EquationalReasoning.
+
+-- β proves equations whose sides are indeed beta-eta equal
+using-beta ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β .
+
+{- you can choose any term you want to inhabit a true equation,
+   by writing that term in brackets right after the β.  This
+   lets you type any closed term, including ones that diverge.
+   But you can only type them at true equational types, not
+   other types.
+    
+   In Cedille navigation mode, highlight the entire beta-term and then
+   press Control-i e to see that the erasure of that term is indeed
+   (λ x . x x) (λ x . x x).
+ -}
+using-beta2 ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β{(λ x . x x) (λ x . x x)} .
+
+{- assuming
+
+   eq1 : { a ≃ b }
+   eq2 : { b ≃ c }
+   eq3 : { f a ≃ a }
+
+   prove { f a ≃ c } by rewriting. -}
+using-rho ◂ ∀ A : ★ . ∀ a : A . ∀ b : A . ∀ c : A . ∀ f : A ➔ A .
+            { a ≃ b } ➔
+            { b ≃ c } ➔
+            { f a ≃ a } ➔ 
+            { f a ≃ c } =
+  Λ A . Λ a . Λ b . Λ c . Λ f .
+  λ eq1 . λ eq2 . λ eq3 .
+    ρ eq3 - 
+    ρ eq1 - 
+    eq2 .

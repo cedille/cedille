@@ -1,0 +1,42 @@
+module Nat.
+
+-- define version of naturals via non-dependent elimination
+cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
+cZ ◂ cNat = Λ X . λ s . λ z . z .
+cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+
+-- now describe dependent elimination
+Inductive ◂ cNat ➔ ★ =
+  λ x : cNat . ∀ Q : cNat ➔ ★ .
+  (∀ x : cNat . Q x ➔ Q (cS x)) ➔
+  Q cZ ➔
+  Q x.
+
+-- a Nat is a cNat that also supports dependent elimination
+Nat ◂ ★ = ι x : cNat . Inductive x.
+
+-- now we can define the constructors for Nat
+Z ◂ Nat = [ cZ , Λ X . λ s . λ z . z ] .
+S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
+
+{- this function converts from cNat to Nat just by using the
+   Nat constructors in an elimination of a cNat -}
+toNat ◂ cNat ➔ Nat = λ x . x · Nat S Z .
+
+-- we can prove that reflection is the identity on the erasures of the terms
+reflection ◂ Π n : Nat . { toNat n.1 ≃ n } =
+  λ n . n.2 · (λ x : cNat . {(toNat x).1 ≃ x}) (Λ x . λ ih . χ {cS (toNat x).1 ≃ cS x} - ρ ih - β) β .
+
+{- now we prove induction for Nat-predicate P by a dependent elimination
+   on Nat n.  Since Nats only support induction on cNat-predicates, we
+   cannot use P directly.  Instead, we use the predicate
+
+   λ x : cNat . P (toNat x)
+
+   and then use reflection to get rid of the reference to toNat. -}
+Induction2 ◂ Π n : Nat . ∀ P : Nat ➔ ★ . (∀ m : Nat . P m ➔ P (S m)) ➔ P Z ➔ P n =
+  λ n . Λ P . λ s . λ z . 
+    ρ (ς (reflection n)) -
+      (n.2 · (λ x : cNat . P (toNat x))
+        (Λ p . λ q . s -(toNat p) q) z) .
+      

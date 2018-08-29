@@ -1,4 +1,4 @@
-@node about,Index,credits,Top
+@node about,tooling,Index,Top
 
 @chapter Cedille's Type Theory
 
@@ -14,8 +14,6 @@ conversion checking, where the type checker tests whether two terms
 are definitionally equal).  In contrast, with Church-style (aka
 intrinsic) type theory, the annotations are ``really there'', and must
 be preserved during compilation and conversion.
-
-@section Example
 
 For an example, consider the term Λ X : ★ . λ x : X . x.  In Church-style
 type theory, the annotations giving the classifiers for X and x are truly
@@ -111,7 +109,59 @@ of dependent intersection types is to allow us to define Nat as
 
 This definition seems to allow one to prove universality of predicates on cNats -- not Nats!
 But universality of Nat-predicates turns out to follow from this, in several different ways.  
+See language-overview/induction-for-church-nats.ced for one example.
 
+@subsection Primitive equality between untyped terms
+
+The type @{ t ≃ t' @} is a primitive equality type, between untyped
+terms.  The meaning of such a type is that t and t' are beta-eta equal
+(where any necessary instantiations of variables bound outside the
+equation are applied to t and t').  Cedille provides a primitive
+operation to rewrite with such equalities (namely ρ), and to prove them when the
+sides of the equation can be seen themselves to be beta-eta equal
+(without instantiating variables bound outside the equation); this is β.
+
+In more detail: whenever t and t' are beta-eta equal, the
+type-assignment system of CDLE considers any term to inhabit type @{ t
+≃ t' @}.  In Cedille, β is an annotated term inhabiting that type; β
+itself erases to λ x . x.  If one wishes to pick a different
+unannotated term t1 to inhabit an obviously true equation like this,
+then one writes β@{t1@}.  We call this the Kleene trick, after Stephen
+Cole Kleene's similar approach to realizing true equations by any
+number whatsoever.  Here, any term proves an obviously true equation.
+This has the intriguing side effect of giving Cedille a type for all
+terms, even ones otherwise untypable.  Thus Cedille is
+Turing-complete: any closed term can be assigned type @{ λ x . x ≃ λ x
+. x @}.  In principle type checking becomes undecidable at this point,
+because checking whether two terms of pure untyped lambda calculus are
+beta-eta equal is undecidable.  In practice, however, we think of the
+type checker as having some bound on the number of steps of
+beta-eta-normalization it will perform on the sides before testing for
+alpha-equivalence.  This bound is currently up to the user to enforce
+by terminating the tool if it is taking too long.
+
+Rewriting is performed by a construct ρ t - t'.  Here, t should prove
+an equation @{ t1 ≃ t2 @}.  Then the type synthesized from or used to
+check t' will be rewritten to replace any subterm beta-eta equal to t1
+with t2.
+
+See language-overview/equational-reasoning.ced for examples.
+
+@subsection Implicit products
+
+For unannotated terms, the type ∀ x : T . T' introduces x of type T
+into the typing context, but otherwise does not affect the subject of
+typing.  So such an x is purely specificational, and cannot appear in
+the unannotated term.  In annotated terms, we use the construct Λ x :
+T . t to introduce this x, which may appear in annotations (only).
+An example is specifying the length of a vector as an erased argument
+to a function like map on vectors.  In this case, the function does not
+need to use the length of the vector to compute the result.  The length
+is only used specificationally, to state that the lengths of the input
+and output vectors are the same.
+
+If one has a term t of type ∀ x : T . T' and wishes to instantiate x
+with some term t', the notation in Cedille is t -t'.
 
 @section More reading 
 

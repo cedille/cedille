@@ -2,10 +2,10 @@
 <html>
 <!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
 <head>
-<title>Cedille Main Page: about</title>
+<title>Cedille Documentation: about</title>
 
-<meta name="description" content="Cedille Main Page: about">
-<meta name="keywords" content="Cedille Main Page: about">
+<meta name="description" content="Cedille Documentation: about">
+<meta name="keywords" content="Cedille Documentation: about">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -13,8 +13,8 @@
 <link href="index.html#Top" rel="start" title="Top">
 <link href="Index.html#Index" rel="index" title="Index">
 <link href="index.html#Top" rel="up" title="Top">
-<link href="extra-buffers.html#extra-buffers" rel="next" title="extra buffers">
-<link href="options.html#options" rel="prev" title="options">
+<link href="tooling.html#tooling" rel="next" title="tooling">
+<link href="index.html#Top" rel="prev" title="Top">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -50,12 +50,12 @@ ul.no-bullet {list-style: none}
 <a name="about"></a>
 <div class="header">
 <p>
-Next: <a href="Index.html#Index" accesskey="n" rel="next">Index</a>, Previous: <a href="credits.html#credits" accesskey="p" rel="prev">credits</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="tooling.html#tooling" accesskey="n" rel="next">tooling</a>, Previous: <a href="Index.html#Index" accesskey="p" rel="prev">Index</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 
 <a name="Cedille_0027s-Type-Theory"></a>
-<h2 class="chapter">12 Cedille&rsquo;s Type Theory</h2>
+<h2 class="chapter">1 Cedille&rsquo;s Type Theory</h2>
 
 <p>Cedille&rsquo;s type theory is called the Calculus of Dependent Lambda
 Eliminations (CDLE).  It is somewhat rare in being a Curry-style type
@@ -70,9 +70,6 @@ are definitionally equal).  In contrast, with Church-style (aka
 intrinsic) type theory, the annotations are &ldquo;really there&rdquo;, and must
 be preserved during compilation and conversion.
 </p>
-<a name="Example"></a>
-<h3 class="section">12.1 Example</h3>
-
 <p>For an example, consider the term Λ X : ★ . λ x : X . x.  In Church-style
 type theory, the annotations giving the classifiers for X and x are truly
 part of the term, and the theory itself does not allow for them to be erased.
@@ -82,7 +79,7 @@ to λ x . x.  The type theory has a notion of erasure, and conversion
 compares the erasures of terms rather than the annotated terms.  
 </p>
 <a name="Cedille-extends-the-Calculus-of-Constructions"></a>
-<h3 class="section">12.2 Cedille extends the Calculus of Constructions</h3>
+<h3 class="section">1.1 Cedille extends the Calculus of Constructions</h3>
 
 <p>The starting point for Cedille is a Curry-style version of the
 Calculus of Constructions (CC).  Coq is based on several extensions of
@@ -99,7 +96,7 @@ the chief goals of Cedille, and will be discussed more below.
 </p>
 
 <a name="The-type-constructs-of-Cedille"></a>
-<h3 class="section">12.3 The type constructs of Cedille</h3>
+<h3 class="section">1.2 The type constructs of Cedille</h3>
 
 <p>From CC, Cedille inherits the following type constructs:
 </p>
@@ -124,7 +121,7 @@ the chief goals of Cedille, and will be discussed more below.
 </li></ul>
 
 <a name="Dependent-intersections"></a>
-<h4 class="subsection">12.3.1 Dependent intersections</h4>
+<h4 class="subsection">1.2.1 Dependent intersections</h4>
 
 <p>In (Curry-style) type theory, an intersection type T ∩ T&rsquo; can be
 assigned to a term t iff both T and T&rsquo; separately can be assigned to
@@ -170,10 +167,64 @@ of dependent intersection types is to allow us to define Nat as
 </p>
 <p>This definition seems to allow one to prove universality of predicates on cNats &ndash; not Nats!
 But universality of Nat-predicates turns out to follow from this, in several different ways.  
+See language-overview/induction-for-church-nats.ced for one example.
 </p>
+<a name="Primitive-equality-between-untyped-terms"></a>
+<h4 class="subsection">1.2.2 Primitive equality between untyped terms</h4>
 
+<p>The type { t ≃ t&rsquo; } is a primitive equality type, between untyped
+terms.  The meaning of such a type is that t and t&rsquo; are beta-eta equal
+(where any necessary instantiations of variables bound outside the
+equation are applied to t and t&rsquo;).  Cedille provides a primitive
+operation to rewrite with such equalities (namely ρ), and to prove them when the
+sides of the equation can be seen themselves to be beta-eta equal
+(without instantiating variables bound outside the equation); this is β.
+</p>
+<p>In more detail: whenever t and t&rsquo; are beta-eta equal, the
+type-assignment system of CDLE considers any term to inhabit type { t
+≃ t&rsquo; }.  In Cedille, β is an annotated term inhabiting that type; β
+itself erases to λ x . x.  If one wishes to pick a different
+unannotated term t1 to inhabit an obviously true equation like this,
+then one writes β{t1}.  We call this the Kleene trick, after Stephen
+Cole Kleene&rsquo;s similar approach to realizing true equations by any
+number whatsoever.  Here, any term proves an obviously true equation.
+This has the intriguing side effect of giving Cedille a type for all
+terms, even ones otherwise untypable.  Thus Cedille is
+Turing-complete: any closed term can be assigned type { λ x . x ≃ λ x
+. x }.  In principle type checking becomes undecidable at this point,
+because checking whether two terms of pure untyped lambda calculus are
+beta-eta equal is undecidable.  In practice, however, we think of the
+type checker as having some bound on the number of steps of
+beta-eta-normalization it will perform on the sides before testing for
+alpha-equivalence.  This bound is currently up to the user to enforce
+by terminating the tool if it is taking too long.
+</p>
+<p>Rewriting is performed by a construct ρ t - t&rsquo;.  Here, t should prove
+an equation { t1 ≃ t2 }.  Then the type synthesized from or used to
+check t&rsquo; will be rewritten to replace any subterm beta-eta equal to t1
+with t2.
+</p>
+<p>See language-overview/equational-reasoning.ced for examples.
+</p>
+<a name="Implicit-products"></a>
+<h4 class="subsection">1.2.3 Implicit products</h4>
+
+<p>For unannotated terms, the type ∀ x : T . T&rsquo; introduces x of type T
+into the typing context, but otherwise does not affect the subject of
+typing.  So such an x is purely specificational, and cannot appear in
+the unannotated term.  In annotated terms, we use the construct Λ x :
+T . t to introduce this x, which may appear in annotations (only).
+An example is specifying the length of a vector as an erased argument
+to a function like map on vectors.  In this case, the function does not
+need to use the length of the vector to compute the result.  The length
+is only used specificationally, to state that the lengths of the input
+and output vectors are the same.
+</p>
+<p>If one has a term t of type ∀ x : T . T&rsquo; and wishes to instantiate x
+with some term t&rsquo;, the notation in Cedille is t -t&rsquo;.
+</p>
 <a name="More-reading"></a>
-<h3 class="section">12.4 More reading</h3>
+<h3 class="section">1.3 More reading</h3>
 
 <p>The syntax and semantics of Cedille are described in this document
 <a href="https://arxiv.org/abs/1806.04709">on arXiv</a>.
@@ -185,7 +236,7 @@ in Cedille is <a href="https://doi.org/10.1016/j.apal.2018.03.002">here</a>.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Index.html#Index" accesskey="n" rel="next">Index</a>, Previous: <a href="credits.html#credits" accesskey="p" rel="prev">credits</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="tooling.html#tooling" accesskey="n" rel="next">tooling</a>, Previous: <a href="Index.html#Index" accesskey="p" rel="prev">Index</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

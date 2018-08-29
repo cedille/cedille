@@ -57,7 +57,7 @@ context mode
 syntax highlighting
 
 @item Chad Reynolds
-summary mode
+summary mode , initial documentation
 
 @item Aaron Stump
 design, backend

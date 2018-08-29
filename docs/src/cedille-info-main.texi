@@ -1,5 +1,5 @@
 \input texinfo
-@settitle Cedille Main Page
+@settitle Cedille Documentation
 
 @documentencoding UTF-8
 @paragraphindent 0
@@ -8,31 +8,28 @@
 @node Top
 @top Cedille Documentation
 
-Cedille is an implementation of the Calculus of Dependent Lambda Eliminations (CDLE).  
+This is the documentation for the Cedille language and its implementation.
 
 @end ifnottex
 
 @menu
+* about::                        About Cedille's type theory and implementation
+* tooling::                      How Cedille's implementation is set up
 * cedille mode commands::       Cedille navigation mode shortcuts with brief descriptions
 * unicode shortcuts::            Keyboard shortcuts for unicode symbols
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille 
 * credits::                      Who has contributed to the Cedille tool
-* about::                        About Cedille's type theory and implementation
 * Index::                        Index to the documentation
 @end menu
+
+@include about.texi
+
+@include tooling.texi
 
 @include commands.texi
 
 @include unicode.texi
-
-@include context-buffer.texi
-
-@include credits.texi
-
-@include options.texi
-
-@include about.texi
 
 @include extra-buffers.texi
 
@@ -44,7 +41,13 @@ Cedille is an implementation of the Calculus of Dependent Lambda Eliminations (C
 
 @include beta-reduce-mode.texi
 
-@node Index,,credits,Top
+@include context-buffer.texi
+
+@include credits.texi
+
+@include options.texi
+
+@node Index,about,credits,Top
 @unnumbered Index
 
 @printindex cp
