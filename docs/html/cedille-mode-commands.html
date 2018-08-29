@@ -1,0 +1,218 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>Cedille Documentation: cedille mode commands</title>
+
+<meta name="description" content="Cedille Documentation: cedille mode commands">
+<meta name="keywords" content="Cedille Documentation: cedille mode commands">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="unicode-shortcuts.html#unicode-shortcuts" rel="next" title="unicode shortcuts">
+<link href="tooling.html#tooling" rel="prev" title="tooling">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="cedille-mode-commands"></a>
+<div class="header">
+<p>
+Next: <a href="unicode-shortcuts.html#unicode-shortcuts" accesskey="n" rel="next">unicode shortcuts</a>, Previous: <a href="tooling.html#tooling" accesskey="p" rel="prev">tooling</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="cedille_002dmode-commands"></a>
+<h2 class="chapter">3 cedille-mode commands</h2>
+
+<p>Cedille mode supports the following commands:
+</p>
+<a name="Navigation"></a>
+<h2 class="chapter">4 Navigation</h2>
+<dl compact="compact">
+<dt><code>f/F</code></dt>
+<dd><p>Navigate to the next same-level node in the parse tree
+</p>
+</dd>
+<dt><code>b/B</code></dt>
+<dd><p>Navigate to the previous same-level node in the parse tree
+</p>
+</dd>
+<dt><code>p</code></dt>
+<dd><p>Navigate to the parent of the current node in the parse tree
+</p>
+</dd>
+<dt><code>n</code></dt>
+<dd><p>Navigate to the previously visited child (first by default) node of the current node in the parse tree
+</p>
+</dd>
+<dt><code>a/e</code></dt>
+<dd><p>Navigate to the first/last node in the current level of the parse tree
+</p>
+</dd>
+<dt><code>r/R</code></dt>
+<dd><p>Select next/previous error
+</p>
+</dd>
+<dt><code>t/T</code></dt>
+<dd><p>Select first/last error in file
+</p>
+</dd>
+<dt><code>j</code></dt>
+<dd><p>Jump to location associated with selected node
+</p>
+</dd>
+<dt><code>g</code></dt>
+<dd><p>Clear current selection
+</p>
+</dd>
+<dt><code>,/.</code></dt>
+<dd><p>Navigate to the previous/next page in browsing history
+</p>
+</dd>
+<dt><code>&lt;/&gt;</code></dt>
+<dd><p>Navigate to the first/last page in browsing history
+</p></dd>
+</dl>
+
+<a name="Information"></a>
+<h2 class="chapter">5 Information</h2>
+<dl compact="compact">
+<dt><code>i/I</code></dt>
+<dd><p>Toggle info mode (provides information about the currently selected node)
+</p>
+</dd>
+<dt><code>c/C</code></dt>
+<dd><p>Toggle context mode (provides information about the context of the currently selected term)
+</p>
+</dd>
+<dt><code>s/S</code></dt>
+<dd><p>Toggle summary mode (provides information about the contents of the entire file)
+</p>
+</dd>
+<dt><code>x/X</code></dt>
+<dd><p>Toggle scratch mode
+</p>
+</dd>
+<dt><code>h</code></dt>
+<dd><p>Open information documents describing how to use Cedille mode
+</p>
+</dd>
+<dt><code>1</code></dt>
+<dd><p>Close all emacs windows except the current one; convenience keystroke for emacs command delete-other-windows.
+</p>
+</dd>
+<dt><code>m</code></dt>
+<dd><p>Highlight/unhighlight all instances of the selected symbol (context-sensitive)
+</p></dd>
+</dl>
+
+<a name="Interactive"></a>
+<h2 class="chapter">6 Interactive</h2>
+<p>If associated with a span (and the beginning and end characters of the span were not deleted), each of these commands will be re-called each time you enter into Cedille mode. They all begin with the &rsquo;C-i&rsquo; prefix.
+</p>
+<dl compact="compact">
+<dt><code>C-i n</code></dt>
+<dd><p>Show normalization of selected span. If no span is selected, this will prompt an expression to normalize.
+</p>
+</dd>
+<dt><code>C-i h</code></dt>
+<dd><p>Like &rsquo;C-i n&rsquo;, but shows head-normalization
+</p>
+</dd>
+<dt><code>C-i e</code></dt>
+<dd><p>Show erasure of selected span. If no span is selected, this will prompt an expression to erase.
+</p>
+</dd>
+<dt><code>C-i r</code></dt>
+<dd><p>Remove all interactive attributes associated with the selected span
+</p>
+</dd>
+<dt><code>C-i R</code></dt>
+<dd><p>Remove all interactive attributes
+</p>
+</dd>
+<dt><code>C-i b</code></dt>
+<dd><p>Open the beta-reduction buffer with an input expression. Copies global scope and local scope if a span is selected.
+</p>
+</dd>
+<dt><code>C-i B</code></dt>
+<dd><p>Open the beta-reduction buffer with the selected span
+</p>
+</dd>
+<dt><code>C-i t</code></dt>
+<dd><p>Open the beta-reduction buffer with the selected span&rsquo;s expected type (or type if there is no expected type)
+</p>
+</dd>
+</dl>
+
+<a name="Other"></a>
+<h2 class="chapter">7 Other</h2>
+<dl compact="compact">
+<dt><code>M-x</code></dt>
+<dd><p>Copy the selected span to the scratch buffer
+</p>
+</dd>
+<dt><code>C-h &lt;int&gt;</code></dt>
+<dd><p>Alters highlighting scheme depending on value of &lt;int&gt;:
+1: default highlighting
+2: language level highlighting
+3: checking mode highlighting
+</p>
+</dd>
+<dt><code>q/M-s/C-g</code></dt>
+<dd><p>Quit Cedille mode
+</p>
+</dd>
+<dt><code>K</code></dt>
+<dd><p>Kill the Cedille process and restart it if it is taking an unusually long time
+</p>
+</dd>
+<dt><code>$</code></dt>
+<dd><p>Open customization window for configuring Cedille mode
+</p>
+</dd>
+</dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="unicode-shortcuts.html#unicode-shortcuts" accesskey="n" rel="next">unicode shortcuts</a>, Previous: <a href="tooling.html#tooling" accesskey="p" rel="prev">tooling</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

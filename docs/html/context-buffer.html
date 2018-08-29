@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>Cedille Documentation: context buffer</title>
+
+<meta name="description" content="Cedille Documentation: context buffer">
+<meta name="keywords" content="Cedille Documentation: context buffer">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="extra-buffers.html#extra-buffers" rel="up" title="extra buffers">
+<link href="credits.html#credits" rel="next" title="credits">
+<link href="beta_002dreduce-mode.html#beta_002dreduce-mode" rel="prev" title="beta-reduce mode">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="context-buffer"></a>
+<div class="header">
+<p>
+Next: <a href="summary-buffer.html#summary-buffer" accesskey="n" rel="next">summary buffer</a>, Previous: <a href="inspect-buffer.html#inspect-buffer" accesskey="p" rel="prev">inspect buffer</a>, Up: <a href="extra-buffers.html#extra-buffers" accesskey="u" rel="up">extra buffers</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="Context-buffer"></a>
+<h2 class="chapter">20 Context buffer</h2>
+
+<a name="index-context-buffer"></a>
+
+<p>The context buffer for Cedille allows the user to see the local variables in scope for the currently selected node. To display the context buffer, select a node and press <code>C</code>; this will open the context buffer and jump to it. If you just want to open the context buffer (but not jump to it), press <code>c</code> instead.
+</p>
+<p>The context buffer has several built-in features to organize data:
+</p><ul>
+<li> Sort entries alphabetically or by binding position
+
+</li><li> Filter entries according to common properties. Only one filter may be active at a time.
+
+</li><li> Show or hide shadowed variables
+
+</li></ul>
+
+<a name="Controls-2"></a>
+<h2 class="chapter">21 Controls</h2>
+<dl compact="compact">
+<dt><code>a/z</code></dt>
+<dd><p>Sort all entries alphabetically from a-z/z-a 
+</p>
+</dd>
+<dt><code>d/u</code></dt>
+<dd><p>Sort all entries according to binding position in parse tree (descending/ascending)
+</p>
+</dd>
+<dt><code>e</code></dt>
+<dd><p>Filter out entries that do not have an &rsquo;≃&rsquo; symbol
+</p>
+</dd>
+<dt><code>E</code></dt>
+<dd><p>Filter out entries that are not literal statements of β-equality
+</p>
+</dd>
+<dt><code>f</code></dt>
+<dd><p>Clear current filter so all entries are shown
+</p>
+</dd>
+<dt><code>s</code></dt>
+<dd><p>Toggle display of shadowed variables
+</p>
+</dd>
+<dt><code>w</code></dt>
+<dd><p>Hide or unhide type or kind of line currently under cursor
+</p>
+</dd>
+<dt><code>W</code></dt>
+<dd><p>Unhide all types and kinds hidden with &rsquo;w&rsquo;
+</p>
+</dd>
+<dt><code>c/C</code></dt>
+<dd><p>Close the context mode window
+</p>
+</dd>
+<dt><code>h</code></dt>
+<dd><p>Open information page for context mode
+</p>
+</dd>
+</dl>
+
+<a name="Common-commands-4"></a>
+<h2 class="chapter">22 Common commands</h2>
+<dl compact="compact">
+<dt><code>M-c</code></dt>
+<dd><p>Copy the contents of the current buffer to the scratch buffer
+</p>
+</dd>
+<dt><code>+</code></dt>
+<dd><p>Increase the size of the buffer by one line
+</p>
+</dd>
+<dt><code>-</code></dt>
+<dd><p>Decrease the size of the buffer by one line
+</p>
+</dd>
+<dt><code>=</code></dt>
+<dd><p>Reset the buffer&rsquo;s size
+</p>
+</dd>
+<dt><code>f</code></dt>
+<dd><p>Moves to the next defined variable in the buffer
+</p>
+</dd>
+<dt><code>b</code></dt>
+<dd><p>Moves to the previous defined variable in the buffer
+</p>
+</dd>
+<dt><code>a</code></dt>
+<dd><p>Moves to the first defined variable in the buffer
+</p>
+</dd>
+<dt><code>e</code></dt>
+<dd><p>Moves to the last defined variable in the buffer
+</p>
+</dd>
+<dt><code>j</code></dt>
+<dd><p>Jumps to the definition of the selected variable
+</p>
+</dd>
+</dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="summary-buffer.html#summary-buffer" accesskey="n" rel="next">summary buffer</a>, Previous: <a href="inspect-buffer.html#inspect-buffer" accesskey="p" rel="prev">inspect buffer</a>, Up: <a href="extra-buffers.html#extra-buffers" accesskey="u" rel="up">extra buffers</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

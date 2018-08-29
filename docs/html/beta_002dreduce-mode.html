@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>Cedille Documentation: beta-reduce mode</title>
+
+<meta name="description" content="Cedille Documentation: beta-reduce mode">
+<meta name="keywords" content="Cedille Documentation: beta-reduce mode">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="extra-buffers.html#extra-buffers" rel="up" title="extra buffers">
+<link href="context-buffer.html#context-buffer" rel="next" title="context buffer">
+<link href="meta_002dvars-buffer.html#meta_002dvars-buffer" rel="prev" title="meta-vars buffer">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="beta_002dreduce-mode"></a>
+<div class="header">
+<p>
+Previous: <a href="summary-buffer.html#summary-buffer" accesskey="p" rel="prev">summary buffer</a>, Up: <a href="extra-buffers.html#extra-buffers" accesskey="u" rel="up">extra buffers</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="Beta_002dreduce-mode"></a>
+<h2 class="chapter">18 Beta-reduce mode</h2>
+
+<a name="index-beta_002dreduce-mode"></a>
+
+<p>Beta-reduce mode is a &quot;beta-reduction explorer&quot;. There are three ways to enter beta-reduce mode:
+</p><ol>
+<li> C-i b
+Enter beta-reduce mode with a prompted expression. Copies global scope and local scope if a span is selected.
+
+</li><li> C-i B
+Enter beta-reduce mode with the selected span and its scope
+
+</li><li> C-i t
+Enter beta-reduce mode with the selected span&rsquo;s expected type and its scope
+</li></ol>
+
+<a name="Controls-1"></a>
+<h2 class="chapter">19 Controls</h2>
+<dl compact="compact">
+<dt><code>C-i n</code></dt>
+<dd><p>Replace the selected span with its normalization
+</p>
+</dd>
+<dt><code>C-i h</code></dt>
+<dd><p>Replace the selected span with its head-normalization
+</p>
+</dd>
+<dt><code>C-i =</code></dt>
+<dd><p>Replace the selected span with a input expression, if convertible
+</p>
+</dd>
+<dt><code>C-i r</code></dt>
+<dd><p>Synthesize an equational type from an input expression and rewrite the selected span using it
+</p>
+</dd>
+<dt><code>C-i R</code></dt>
+<dd><p>Same as &ldquo;C-i r&rdquo;, but beta-reduces the selected span as it looks for matches
+</p>
+</dd>
+<dt><code>C-i p</code></dt>
+<dd><p>Prints an outline of how to reconstruct each normalization, conversion, and rewrite applied to the scratch buffer
+</p>
+</dd>
+<dt><code>C-i ,</code></dt>
+<dd><p>Undo
+</p>
+</dd>
+<dt><code>C-i .</code></dt>
+<dd><p>Redo
+</p>
+</dd>
+</dl>
+
+
+
+
+</body>
+</html>
