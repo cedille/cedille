@@ -561,7 +561,7 @@ elab-app-term Γ (App t me t') pt max =
   fill-meta-vars : term → meta-vars → 𝕃 meta-var → maybe term
   fill-meta-vars t Xs = flip foldl (just t) λ where
     (meta-var-mk x _ _) tₘ → tₘ ≫=maybe λ t → meta-vars-lookup Xs x ≫=maybe λ where
-      (meta-var-mk _ (meta-var-tp k Tₘ) _) → Tₘ ≫=maybe λ T → just (AppTp t T)
+      (meta-var-mk _ (meta-var-tp k Tₘ) _) → Tₘ ≫=maybe λ T → just (AppTp t (meta-var-sol.sol T))
       (meta-var-mk _ (meta-var-tm T tₘ) _) → nothing
 
   elab-app-term' : (Xs : meta-vars) → (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → maybe (term × check-term-app-ret)
