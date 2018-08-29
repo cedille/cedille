@@ -1121,7 +1121,7 @@ check-term-spine t pt max =
 -- If `dom` has unsolved meta-vars in it, synthesize argument t₂ and try to solve for them.
 -- Otherwise, check t₂ against a fully known expected type
 check-term-app Xs Zs t₁ t₂ (mk-tmabsd dt e? x dom occurs cod) is-locl =
-  get-ctxt λ Γ → 
+  get-ctxt λ Γ →
   let Xs' = meta-vars-add* Xs Zs ; tp = decortype-to-type dt in
   (if occurs then subst-decortype Γ (qualif-term Γ t₂) x cod else spanMr cod)
   ≫=span λ rdt → if ~ meta-vars-are-free-in-type Xs' dom
@@ -1440,19 +1440,20 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   -----------------------------
   Xs ⊢? S → T ≔ ⁇ → P ⇒ (σ , P)
 -}
-match-prototype Xs uf (Abs pi bₓ pi' x (Tkt dom) cod) (proto-arrow e? pt) =
+match-prototype Xs uf (Abs pi b pi' x (Tkt dom) cod) (proto-arrow e? pt) =
   match-prototype Xs ff cod pt
   ≫=span λ ret →
   let mk-match-prototype-data Xs dt err = ret
-      dt' = decor-decor e? pi x (meta-var-tm dom nothing) dt
-  in spanMr $ if ~ eq-maybeErased bₓ e?
+      dt' = decor-decor b pi x (meta-var-tm dom nothing) dt
+  in spanMr $ if ~ eq-maybeErased b e?
     then mk-match-prototype-data meta-vars-empty dt' tt
   else mk-match-prototype-data Xs dt' err
+
 match-prototype Xs uf (TpArrow dom at cod) (proto-arrow e? pt) =
   match-prototype Xs ff cod pt
   ≫=span λ ret →
   let mk-match-prototype-data Xs' dt err = ret
-      dt' = decor-arrow e? dom dt
+      dt' = decor-arrow at dom dt
   in spanMr $ if ~ eq-maybeErased at e?
     then mk-match-prototype-data meta-vars-empty dt' tt
   else mk-match-prototype-data Xs' dt' err
