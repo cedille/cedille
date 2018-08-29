@@ -14,6 +14,7 @@ open import classify options {mF}
 open import constants
 open import conversion
 open import ctxt
+open import is-free
 open import spans options {mF}
 open import syntax-util
 open import toplevel-state options {mF}
@@ -39,20 +40,20 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
-check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
+check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
+check-and-add-params pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
   check-tk atk ≫span
   spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
-  add-tk' (me-erased me) scope pi1' x atk ≫=span λ mi →
-  check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-check-and-add-params _ _ ParamsNil = spanMr []
+  add-tk' (me-erased me) pi1' x atk ≫=span λ mi →
+  check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+check-and-add-params _ ParamsNil = spanMr []
 
-dont-check-and-add-params : defScope → posinfo → params → spanM (𝕃 (string × restore-def))
-dont-check-and-add-params scope pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
-  add-tk' (me-erased me) scope pi1' x atk ≫=span λ mi →
-  dont-check-and-add-params scope pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-dont-check-and-add-params _ _ ParamsNil = spanMr []
+dont-check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
+dont-check-and-add-params pi' (ParamsCons p@(Decl pi1 pi1' me x atk pi2) ps') =
+  add-tk' (me-erased me) pi1' x atk ≫=span λ mi →
+  dont-check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
+dont-check-and-add-params _ ParamsNil = spanMr []
 
 optAs-posinfo-var : optAs → (posinfo × var) → spanM (posinfo × var)
 optAs-posinfo-var NoOptAs = spanMr
@@ -124,7 +125,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
-  check-and-add-params localScope pi' ps ≫=span λ ms → 
+  check-and-add-params pi' ps ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
@@ -136,7 +137,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   set-ctxt Γ ≫span
-  dont-check-and-add-params localScope pi' ps ≫=span λ ms → 
+  dont-check-and-add-params pi' ps ≫=span λ ms → 
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
@@ -152,18 +153,49 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     (just fnᵢ) Γ ss →
       process-file s fnᵢ x ≫=monad uncurry λ s _ →
         (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args (toplevel-state.Γ s) as) in
-         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) ≫=span λ e →
+         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) (lookup-mod-params (toplevel-state.Γ s) fnₒ) ≫=span λ e →
          spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
   where
-  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → spanM err-m
-  process-import op oa fnₒ fnᵢ nothing = spanMr (just "Undefined module import (this probably shouldn't happen?)")
-  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just ParamsNil) = spanMr (just "Public import can't be qualified")
-  process-import IsPublic oa fnₒ fnᵢ (just (ParamsCons _ _)) = spanMr (just "Public imports cant' have module parameters")
-  process-import op oa fnₒ fnᵢ (just ps) =
+  -- When importing a file publicly, you may use any number of arguments as long as the
+  -- parameters of the current module are not free in them.
+  -- You may then use any number of single-variable parameters from the current module
+  -- as arguments as long as they retain the same order as before and have no non-parameter
+  -- arguments between them
+  -- (so parameters A, B, C, ..., Z can be used as arguments ∙ C ∙ X, but not ∙ X ∙ C)
+  public-import-params-ok : params → args → err-m
+  public-import-params-ok ps = h nothing where
+    err = just "You can only use parameters for arguments to public imports if the are in order at the end"
+    params-order : params → trie ℕ
+    params-order = h 0 where
+      h : ℕ → params → trie ℕ
+      h n ParamsNil = empty-trie
+      h n (ParamsCons (Decl _ _ me x atk _) ps) = trie-insert (h (suc n) ps) x n
+    arg-var : arg → maybe var
+    arg-var (TermArg me (Var pi x)) = just x
+    arg-var (TypeArg (TpVar pi x)) = just x
+    arg-var _ = nothing
+    pso = params-order ps
+    ps-free : arg → err-m → err-m
+    ps-free a e = if ~ are-free-in-args check-erased pso (ArgsCons a ArgsNil) then e else err
+    h : maybe ℕ → args → err-m
+    h c (ArgsCons a as) =
+      maybe-else' (arg-var a ≫=maybe trie-lookup pso)
+        (maybe-else' c (ps-free a $ h nothing as) λ _ → err) λ aₙ →
+      maybe-else' c (h (just aₙ) as) λ cₙ →
+      if cₙ ≥ aₙ then err else h (just aₙ) as
+    h n ArgsNil = nothing
+
+  
+  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → maybe params → spanM err-m
+  process-import op oa fnₒ fnᵢ nothing _ = spanMr (just "Undefined module import (this probably shouldn't happen?)")
+  process-import op oa fnₒ fnᵢ (just psᵢ) nothing = spanMr (just "Current module undefined (this shouldn't happen!)")
+  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just psᵢ) (just psₒ) = spanMr (just "Public import can't be qualified")
+  process-import op oa fnₒ fnᵢ (just psᵢ) (just psₒ) =
     optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
     with-ctxt (toplevel-state.Γ s)
-      (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v ps as) ≫span
-    spanMr nothing
+      (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v psᵢ as) ≫span
+    spanMr ((maybe-if optPublic-is-public op) ≫maybe
+            public-import-params-ok psₒ (qualif-args (toplevel-state.Γ s) as))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype dd@(Datatype pi pix x ps k cs _) pi') _  =
     set-ctxt Γ ≫span
@@ -186,7 +218,7 @@ process-cmds s CmdsStart need-to-check = set-ctxt (toplevel-state.Γ s) ≫span 
 -- TODO ignore checking but still qualify if need-to-check false?
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
-  check-and-add-params globalScope pi ps ≫=span λ _ →
+  check-and-add-params pi ps ≫=span λ _ →
   spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = ctxt-add-current-params Γ})

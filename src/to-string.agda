@@ -117,14 +117,14 @@ _≫str_ : strM → strM → strM
 strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
-strΓ' : defScope → (add-params : 𝔹) → var → posinfo → strM → strM
-strΓ' ds ap v pi m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
+strΓ' : var → strM → strM
+strΓ' v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
   m s n ts (mk-ctxt
-      (fn , mn , ps , qualif-insert-params q v' v (if ap then ps else ParamsNil))
-      syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d) pe
-  where v' = if ds iff localScope then pi % v else mn # v
+      (fn , mn , ps , qualif-insert-params q (mn # v) v ps)
+      syms (trie-insert i (mn # v) (var-decl , ("missing" , "missing"))) symb-occs d) pe
 
-strΓ = strΓ' localScope ff
+strΓ : var → posinfo → strM → strM
+strΓ x pi m s n ts Γ = m s n ts (ctxt-var-decl x Γ)
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
 ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os _) =
@@ -169,7 +169,7 @@ tk-to-stringh : tk → strM
 constructors-to-string : dataConsts → strM
 
 params-to-string : params → strM
-params-to-string' : defScope → strM → params → strM
+params-to-string' : strM → params → strM
 file-to-string : start → strM
 cmds-to-string : cmds → strM → strM
 cmd-to-string : cmd → strM → strM  
@@ -360,21 +360,21 @@ braceR : maybeErased → string
 braceR Erased = "}"
 braceR NotErased = ")"
 
-params-to-string' ds f ParamsNil = f
-params-to-string' ds f (ParamsCons (Decl _ pi me v atk _) ParamsNil) =
-  strAdd (braceL me) ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd (braceR me) ≫str strΓ' ds ff v pi f
-params-to-string' ds f (ParamsCons (Decl _ pi me v atk _) ps) =
+params-to-string' f ParamsNil = f
+params-to-string' f (ParamsCons (Decl _ pi me v atk _) ParamsNil) =
+  strAdd (braceL me) ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd (braceR me) ≫str strΓ v pi f
+params-to-string' f (ParamsCons (Decl _ pi me v atk _) ps) =
   strAdd (braceL me) ≫str strVar v ≫str strAdd " : " ≫str tk-to-stringh atk ≫str strAdd (braceR me ^ " ") ≫str
-  strΓ' ds ff v pi (params-to-string' ds f ps)
+  strΓ v pi (params-to-string' f ps)
 
-params-to-string = params-to-string' localScope strEmpty
+params-to-string = params-to-string' strEmpty
 
 file-to-string (File _ is _ _ mn ps cs _) =
    cmds-to-string (imps-to-cmds is)
   (strAdd "module " ≫str
    strAdd mn ≫str
    strAdd " " ≫str
-   params-to-string' globalScope
+   params-to-string'
   (strAdd "." ≫str strAdd "\n" ≫str
    cmds-to-string cs strEmpty) ps)
 
@@ -396,7 +396,7 @@ cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
   strAdd " = " ≫str
   to-stringh (lam-expand-term ps t) ≫str
   strAdd " ." ≫str
-  strΓ' globalScope tt x pi f
+  strΓ' x f
 cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ in
@@ -407,7 +407,7 @@ cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strAdd " = " ≫str
   to-stringh (lam-expand-type ps T) ≫str
   strAdd " ." ≫str
-  strΓ' globalScope tt x pi f
+  strΓ' x f
 cmd-to-string (DefKind pi x ps k _) f =
   strM-Γ λ Γ →
   let ps' = ctxt-get-current-params Γ in
@@ -416,7 +416,7 @@ cmd-to-string (DefKind pi x ps k _) f =
   strAdd " = " ≫str
   to-stringh k ≫str
   strAdd " ." ≫str
-  strΓ' globalScope tt x pi f
+  strΓ' x f
 cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
   strAdd "import " ≫str
   strAdd (optPublic-to-string op) ≫str
@@ -434,7 +434,7 @@ cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
   kind-to-stringh k ≫str
   strAdd " = " ≫str
   constructors-to-string cs ≫str
-  f
+  strΓ' x f
 
 strRun : ctxt → strM → rope
 strRun Γ m = fst (m {TERM} [[]] 0 [] Γ nothing neither)

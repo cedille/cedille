@@ -35,31 +35,33 @@ mendler-encoding : datatype-encoding
 mendler-encoding =
   let functorₓ = "Functor"
       castₓ = "cast"
-      fixed-pointₓ = "CVFixIndM"
-      in-fixₓ = "cvInFixIndM"
-      induction-principleₓ = "cvIndFixIndM" in
+      fixpoint-typeₓ = "CVFixIndM"
+      fixpoint-inₓ = "cvInFixIndM"
+      fixpoint-indₓ = "cvIndFixIndM" in
   record {
     template = MendlerTemplate;
     functor = functorₓ;
     cast = castₓ;
-    fixed-point = fixed-pointₓ;
-    in-fix = in-fixₓ;
-    induction-principle = induction-principleₓ;
-
-    elab-check-mu = λ {Γ (Data x ps is cs) rₓ t oT ms T →
-      nothing
-    };
-    elab-synth-mu = λ {Γ (Data x ps is cs) rₓ t NoType ms → nothing;
-                       Γ (Data x ps is cs) rₓ t (SomeType T) ms →
-      nothing
-    };
-
-    elab-check-mu' = λ {Γ (Data x ps is cs) t oT ms T →
-      nothing
-    };
-    elab-synth-mu' = λ {Γ (Data x ps is cs) t NoType ms → nothing;
-                        Γ (Data x ps is cs) t (SomeType T) ms →
-      nothing
+    fixpoint-type = fixpoint-typeₓ;
+    fixpoint-in = fixpoint-inₓ;
+    fixpoint-ind = fixpoint-indₓ;
+    elab-mu = λ {
+      (Data x ps is cs)
+      (mk-encoded-datatype-names data-functorₓ data-fmapₓ data-functor-indₓ castₓ
+        fixpoint-typeₓ fixpoint-inₓ fixpoint-indₓ)
+      Γ t oT ms → record {
+        elab-check-mu = λ ihₓ T → nothing;
+        elab-synth-mu = case oT of λ {
+          NoType ihₓ → nothing;
+          (SomeType Tₘ) ihₓ → nothing
+        };
+      
+        elab-check-mu' = λ T → nothing;
+        elab-synth-mu' = case oT of λ {
+          NoType → nothing;
+          (SomeType Tₘ) → nothing
+        }
+      }
     }
   }
 
@@ -67,31 +69,35 @@ mendler-simple-encoding : datatype-encoding
 mendler-simple-encoding =
   let functorₓ = "RecFunctor"
       castₓ = "cast"
-      fixed-pointₓ = "FixM"
-      in-fixₓ = "inFix"
-      induction-principleₓ = "IndFixM" in
+      fixpoint-typeₓ = "FixM"
+      fixpoint-inₓ = "inFix"
+      fixpoint-indₓ = "IndFixM" in
   record {
     template = MendlerSimpleTemplate;
     functor = functorₓ;
     cast = castₓ;
-    fixed-point = fixed-pointₓ;
-    in-fix = in-fixₓ;
-    induction-principle = induction-principleₓ;
-
-    elab-check-mu = λ {Γ (Data x ps is cs) rₓ t oT ms T →
-      nothing
-    };
-    elab-synth-mu = λ {Γ (Data x ps is cs) rₓ t NoType ms → nothing;
-                       Γ (Data x ps is cs) rₓ t (SomeType T) ms →
-      nothing
-    };
-
-    elab-check-mu' = λ {Γ (Data x ps is cs) t oT ms T →
-      nothing
-    };
-    elab-synth-mu' = λ {Γ (Data x ps is cs) t NoType ms → nothing;
-                        Γ (Data x ps is cs) t (SomeType T) ms →
-      nothing
+    fixpoint-type = fixpoint-typeₓ;
+    fixpoint-in = fixpoint-inₓ;
+    fixpoint-ind = fixpoint-indₓ;
+    elab-mu = λ {
+      (Data x ps is cs)
+      (mk-encoded-datatype-names data-functorₓ data-fmapₓ data-functor-indₓ castₓ
+        fixpoint-typeₓ fixpoint-inₓ fixpoint-indₓ)
+      Γ t oT ms → record {
+        elab-check-mu = λ ihₓ T →
+          -- let Tₘ = case oT of λ {(SomeType Tₘ) → Tₘ; NoType → indices-to-tplams is $ TpLambda posinfo-gen posinfo-gen ignored-var (Tkt {!!}) T} in
+          nothing;
+        elab-synth-mu = case oT of λ {
+          NoType ihₓ → nothing;
+          (SomeType Tₘ) ihₓ → nothing
+        };
+      
+        elab-check-mu' = λ T → nothing;
+        elab-synth-mu' = case oT of λ {
+          NoType → nothing;
+          (SomeType Tₘ) → nothing
+        }
+      }
     }
   }
 
@@ -221,14 +227,13 @@ elab-check-term Γ (IotaProj t n pi) T =
   elab-synth-term Γ t ≫=maybe uncurry λ t T' →
   just (IotaProj t n posinfo-gen)
 elab-check-term Γ (Lam pi l pi' x oc t) T =
-  elab-hnf-type Γ T tt ≫=maybe λ where
-    (Abs _ b pi'' x' atk T') →
-      rename (if x =string "_" && is-free-in tt x' T' then x' else x) from Γ for λ x'' →
-      elab-hnf-tk Γ atk tt ≫=maybe λ atk →
+  (elab-hnf-type Γ T tt ≫=maybe to-abs) ≫=maybe λ where
+    (mk-abs b x' atk free T') →
+      rename (if x =string "_" && free then x' else x) from Γ for λ x'' →
+      elab-tk Γ atk ≫=maybe λ tk →
       elab-check-term (ctxt-tk-decl' pi' x'' atk Γ) (rename-var Γ x x'' t)
         (rename-var Γ x' x'' T') ≫=maybe λ t →
       just (Lam posinfo-gen l posinfo-gen x'' (SomeClass atk) t)
-    _ → nothing
 elab-check-term Γ (Let pi d t) T =
   case d of λ where
   (DefTerm pi' x NoType t') →
@@ -316,10 +321,6 @@ elab-synth-term Γ (App t me t') =
       tf Xs ≫=maybe λ t'' →
       elab-hnf-type Γ (meta-vars-subst-type' ff Γ Xs (decortype-to-type T)) tt ≫=maybe λ T →
       just (t'' , T)
-  {-elab-app-term Γ (App t me t') ≫=maybe λ where
-    (tf , T , Xs) → tf Xs ≫=maybe λ t →
-      elab-hnf-type Γ (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) T) tt ≫=maybe λ T →
-      just (t , T)-}
 elab-synth-term Γ (AppTp t T) =
   elab-synth-term Γ t ≫=maybe uncurry λ t T' →
   elab-hnf-type Γ T' tt ≫=maybe λ where
@@ -327,10 +328,6 @@ elab-synth-term Γ (AppTp t T) =
       elab-type Γ T ≫=maybe uncurry λ T k' →
         just (AppTp t T , subst Γ T x T'')
     _ → nothing
-  {-elab-app-term Γ (AppTp t T) ≫=maybe λ where
-    (tf , T , Xs) → tf Xs ≫=maybe λ t →
-      elab-hnf-type Γ (substh-type Γ empty-renamectxt (meta-vars-get-sub Xs) T) tt ≫=maybe λ T →
-      just (t , T)-}
 elab-synth-term Γ (Beta pi ot ot') =
   let ot'' = case ot' of λ where NoTerm → just (fresh-id-term Γ); (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
   case ot of λ where
@@ -391,7 +388,7 @@ elab-synth-term Γ (IotaProj t n pi) =
         "1" → elab-hnf-type Γ T₁ tt ≫=maybe λ T₁ →
               just (IotaProj t n posinfo-gen , T₁)
         "2" → elab-hnf-type Γ (subst Γ (IotaProj t "1" posinfo-gen) x T₂) tt ≫=maybe λ T₂ →
-              just (IotaProj t n posinfo-gen , T₂)
+              just (IotaProj t n posinfo-gen , subst Γ (IotaProj t "1" posinfo-gen) x T₂) -- , T₂)
         _ → nothing
     _ _ → nothing
 elab-synth-term Γ (Lam pi l pi' x oc t) = (case (l , oc) of λ where
@@ -627,7 +624,6 @@ elab-cmds : elab-t cmds
 elab-params : elab-t params
 elab-args : elab-t (args × params)
 elab-imports : elab-t imports
--- elab-import : elab-t (imprt × imports)
 
 elab-params ts ρ φ μ ParamsNil = just (ParamsNil , ts , ρ , φ , μ)
 elab-params ts ρ φ μ (ParamsCons (Decl _ pi me x atk _) ps) =
@@ -668,16 +664,19 @@ elab-imports ts ρ φ μ (ImportsNext (Import _ op _ ifn oa as _) is) =
   elab-file' ts ρ φ μ ifn' ≫=maybe uncurry''' λ fn ts ρ φ μ →
   lookup-mod-params (toplevel-state.Γ ts) ifn' ≫=maybe λ ps →
   elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry''' ∘ uncurry) λ as ps ts ρ φ μ →
-  let ts-isₚ-err = scope-file' fn ifn' oa as (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) []
-      ts = fst ts-isₚ-err
-      isₚ = fst $ snd ts-isₚ-err in
+  elim-pair (scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) fn ifn' oa as) λ ts _ →
   elab-imports ts ρ φ μ is ≫=maybe uncurry''' λ is ts ρ φ μ →
-  add-public-imports ts φ isₚ (just is) ≫=maybe λ is →
+  add-imports ts φ (stringset-strings $ get-all-deps ifn' empty-stringset) (just is) ≫=maybe λ is →
   let i = Import posinfo-gen NotPublic posinfo-gen fn NoOptAs ArgsNil posinfo-gen in
   just (ImportsNext i is , ts , ρ , φ , μ)
   where
-  add-public-imports : toplevel-state → renamectxt → 𝕃 string → maybe imports → maybe imports
-  add-public-imports ts φ = flip $ foldl λ fn isₘ → renamectxt-lookup φ fn ≫=maybe λ ifn → isₘ ≫=maybe
+  get-all-deps : filepath → stringset → stringset
+  get-all-deps fp fs = maybe-else fs (foldr get-all-deps $ stringset-insert fs fp)
+    ((maybe-not trie-lookup fs fp) ≫=maybe λ _ →
+     get-include-elt-if ts fp ≫=maybe
+     (just ∘ include-elt.deps))
+  add-imports : toplevel-state → renamectxt → 𝕃 string → maybe imports → maybe imports
+  add-imports ts φ = flip $ foldl λ fn isₘ → renamectxt-lookup φ fn ≫=maybe λ ifn → isₘ ≫=maybe
     (just ∘ ImportsNext (Import posinfo-gen NotPublic posinfo-gen ifn NoOptAs ArgsNil posinfo-gen))
 
 elab-cmds ts ρ φ μ CmdsStart = just (CmdsStart , ts , ρ , φ , μ)
@@ -714,9 +713,11 @@ elab-cmds ts ρ φ μ (CmdsNext (ImportCmd i) cs) =
   elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
   just (append-cmds (imps-to-cmds is) cs , ω)
 elab-cmds ts ρ φ μ (CmdsNext (DefDatatype (Datatype pi pi' x ps k dcs pi'') _) cs) =
-  let Γ = toplevel-state.Γ ts in
-  rename qualif-new-var Γ x - x from ρ for λ x' ρ →
-  let d = defDatatype-to-datatype Γ (Datatype pi pi' x' ps k dcs pi'') in
+  let Γ = toplevel-state.Γ ts
+      x' = rename qualif-new-var Γ x - x from ρ for λ x' ρ' → x'
+      -- Still need to use x (not x') so constructors work,
+      -- but we need to know what it will be renamed to later for μ
+      d = defDatatype-to-datatype Γ (Datatype pi pi' x ps k dcs pi'') in
   elim-pair (datatype-encoding.mk-defs selected-encoding Γ d) λ cs' d →
   elab-cmds ts ρ φ (trie-insert μ x' d) (append-cmds cs' cs)
 
@@ -734,8 +735,16 @@ elab-file' ts ρ φ μ fn =
         let Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
         elab-cmds (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry' λ cs ts ω →
-        let ast = File posinfo-gen ImportsStart posinfo-gen posinfo-gen mn ParamsNil cs posinfo-gen in
+        let ast = File posinfo-gen ImportsStart posinfo-gen posinfo-gen mn ParamsNil (remove-dup-imports empty-stringset cs) posinfo-gen in
         just (fn' , set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast) , ω)
+  where
+  remove-dup-imports : stringset → cmds → cmds
+  remove-dup-imports is CmdsStart = CmdsStart
+  remove-dup-imports is (CmdsNext c @ (ImportCmd (Import _ _ _ fp _ _ _)) cs) =
+    if stringset-contains is fp
+      then remove-dup-imports is cs
+      else CmdsNext c (remove-dup-imports (stringset-insert is fp) cs)
+  remove-dup-imports is (CmdsNext c cs) = CmdsNext c $ remove-dup-imports is cs
 
 {-# TERMINATING #-}
 elab-all : toplevel-state → (from-fp to-fp : string) → IO ⊤

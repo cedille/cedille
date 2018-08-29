@@ -84,27 +84,27 @@ qualif-args = qualif-x substs-args
 erased-margs : ctxt → stringset
 erased-margs = stringset-insert* empty-stringset ∘ (erased-params ∘ ctxt-get-current-params)
 
-ctxt-term-decl : posinfo → defScope → var → type → ctxt → ctxt
-ctxt-term-decl p s v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
+ctxt-term-decl : posinfo → var → type → ctxt → ctxt
+ctxt-term-decl p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
   (trie-insert i v' ((term-decl (qualif-type Γ t)) , fn , p))
   symb-occs
   d
-  where v' = if s iff localScope then p % v else {-mn #-} v
+  where v' = p % v
 
-ctxt-type-decl : posinfo → defScope → var → kind → ctxt → ctxt
-ctxt-type-decl p s v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
+ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
+ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v ParamsNil))
   syms
   (trie-insert i v' (type-decl (qualif-kind Γ k) , fn , p))
   symb-occs
   d
-  where v' = if s iff localScope then p % v else {-mn #-} v
+  where v' = p % v
 
-ctxt-tk-decl : posinfo → defScope → var → tk → ctxt → ctxt
-ctxt-tk-decl p s x (Tkt t) Γ = ctxt-term-decl p s x t Γ 
-ctxt-tk-decl p s x (Tkk k) Γ = ctxt-type-decl p s x k Γ
+ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
+ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
+ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ
 
 -- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : var → ctxt → ctxt

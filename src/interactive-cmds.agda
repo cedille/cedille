@@ -43,7 +43,7 @@ private
     just (TpAppt T t')
   ll-disambiguate Γ (AppTp t T') = ll-disambiguate Γ t ≫=maybe λ T → just (TpApp T T')
   ll-disambiguate Γ (Lam pi KeptLambda pi' x (SomeClass atk) t) =
-    ll-disambiguate (ctxt-tk-decl pi' localScope x atk Γ) t ≫=maybe λ T →
+    ll-disambiguate (ctxt-tk-decl pi' x atk Γ) t ≫=maybe λ T →
     just (TpLambda pi pi' x atk T)
   ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
   ll-disambiguate Γ (Let pi d t) =
@@ -129,8 +129,8 @@ private
         just (ctxt-term-def pi localScope OpacTrans v t (qualif-type Γ T) Γ)
       h ll-type (just T) k =
         just (ctxt-type-def pi localScope OpacTrans v T (qualif-kind Γ k) Γ)
-      h ll-term nothing T = just (ctxt-term-decl pi localScope v T Γ)
-      h ll-type nothing k = just (ctxt-type-decl pi localScope v k Γ)
+      h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
+      h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
     
     sort-lcis : 𝕃 lci → 𝕃 lci
@@ -203,9 +203,9 @@ private
     parse-string ll-kind - psₛ ! "kind" ≫parse λ psₖ →
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
     parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
-    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices (ctxt-var-decl x Γ) psₖ
+    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices Γ psₖ
         cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
-        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ ctxt-var-decl x Γ) isₖ
+        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ Γ) isₖ
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs

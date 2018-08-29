@@ -69,8 +69,8 @@ check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) t2 p
 check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ tt m t2)  pi'
 check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) (hnf-from Γ tt m t2) pi'
 
-add-tk' : erased? → defScope → posinfo → var → tk → spanM restore-def
-add-tk' e s pi x atk = 
+add-tk' : erased? → posinfo → var → tk → spanM restore-def
+add-tk' e pi x atk = 
    helper atk ≫=span λ mi → 
     (if ~ (x =string ignored-var) then
        (get-ctxt λ Γ → 
@@ -78,14 +78,11 @@ add-tk' e s pi x atk =
     else spanMok) ≫span
    spanMr mi
   where helper : tk → spanM restore-def
-        helper (Tkk k) = spanM-push-type-decl pi s x k 
-        helper (Tkt t) = spanM-push-term-decl pi s x t
-
-add-mod-tk : posinfo → var → tk → spanM restore-def
-add-mod-tk = add-tk' ff globalScope
+        helper (Tkk k) = spanM-push-type-decl pi x k 
+        helper (Tkt t) = spanM-push-term-decl pi x t
 
 add-tk : posinfo → var → tk → spanM restore-def
-add-tk = add-tk' ff localScope
+add-tk = add-tk' ff
 
 check-type-return : ctxt → kind → spanM (maybe kind)
 check-type-return Γ k = spanMr (just (hnf Γ unfold-head k tt))
@@ -154,14 +151,14 @@ valid-elim-kind t (Star _)         k                                       pi pi
 valid-elim-kind t (KndPi _ pix x (Tkt t1)  k1) (KndPi _ _ y (Tkt  t2) k2)  pi pi' =
   get-ctxt (λ Γ →
     if (conv-type Γ t1 t2) then
-      set-ctxt (ctxt-term-decl pix localScope x t1 Γ) ≫span
+      set-ctxt (ctxt-term-decl pix x t1 Γ) ≫span
       valid-elim-kind (TpAppt t (Var   pix x)) k1 k2 pi pi'
     else
       spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 4")))
 valid-elim-kind t (KndPi _ pix x (Tkk k1') k1) (KndPi _ _ y (Tkk  k2') k2) pi pi' =
   get-ctxt (λ Γ →
     if (conv-kind Γ k1' k2') then
-      set-ctxt (ctxt-type-decl pix localScope x k1' Γ) ≫span 
+      set-ctxt (ctxt-type-decl pix x k1' Γ) ≫span 
       valid-elim-kind (TpApp  t (TpVar pix x)) k1 k2 pi pi'
     else
       spanM-add (mk-span "Motive error" pi pi' [] (just "Not a valid motive 5")))   
@@ -371,7 +368,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
       spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
       get-ctxt λ Γ →
       spanM-add (uncurry (this-span Γ atk oc) (check-erasures Γ l b)) ≫span
-      add-tk' (me-erased l) localScope pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
+      add-tk' (me-erased l) pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
       get-ctxt λ Γ' → check-term t (just (rename-var Γ x' (qualif-var Γ' x) tp')) ≫span
       spanM-restore-info x mi where
         this-span : ctxt → tk → optClass → 𝕃 tagged-val → err-m → span
@@ -708,7 +705,7 @@ check-termi (IotaPair pi t1 t2 og pi') (just tp) = -- (Iota pi1 pi2 x tp1 tp2)) 
                        err Γ "first" t1 :: [ err Γ "second" t2 ]
         check-optGuide : optGuide → type → type → posinfo → var → spanM err-m
         check-optGuide NoGuide tp1 tp2 pi2 x = spanMr nothing
-        check-optGuide (Guide pi x' tp) tp1 tp2 pi2 x = get-ctxt λ Γ → with-ctxt (ctxt-term-decl pi localScope x' tp1 Γ) (check-type tp (just (Star posinfo-gen))) ≫span
+        check-optGuide (Guide pi x' tp) tp1 tp2 pi2 x = get-ctxt λ Γ → with-ctxt (ctxt-term-decl pi x' tp1 Γ) (check-type tp (just (Star posinfo-gen))) ≫span
           spanMr (if conv-type Γ tp2 (qualif-type (ctxt-var-decl x Γ) (subst Γ (Var pi2 x) x' tp))
             then nothing
             else just "The expected type does not match the guided type")
@@ -717,7 +714,7 @@ check-termi (IotaPair pi t1 t2 (Guide pi' x T2) pi'') nothing =
   get-ctxt λ Γ →
   check-term t1 nothing ≫=span λ T1 →
   check-term t2 (just (qualif-type Γ (subst Γ (qualif-term Γ t1) x T2))) ≫span
-  maybe-else spanMok (λ T1 → with-ctxt (ctxt-term-decl pi' localScope x T1 Γ) (check-type T2 (just (Star posinfo-gen)))) T1 ≫span
+  maybe-else spanMok (λ T1 → with-ctxt (ctxt-term-decl pi' x T1 Γ) (check-type T2 (just (Star posinfo-gen)))) T1 ≫span
   let T2' = qualif-type (ctxt-var-decl x Γ) T2 in
   spanM-add (IotaPair-span pi pi'' synthesizing (maybe-else [] (λ T1 → [ type-data Γ (Iota posinfo-gen posinfo-gen x T1 T2') ]) T1) nothing) ≫span
   spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x synthesizing [] nothing) ≫span
@@ -823,7 +820,7 @@ match-prototype : (Xs : meta-vars) (is-hnf : 𝔹) (tp : type) (pt : prototype) 
 -- substitutions used during matching
 -- --------------------------------------------------
 
--- These have be be in the spanM monad because substitution can unlock a `stuck`
+-- These have to be in the spanM monad because substitution can unlock a `stuck`
 -- decoration, causing another round of prototype matching (which invokes type matching)
 
 substh-decortype : {ed : exprd} → ctxt → renamectxt → trie ⟦ ed ⟧ → decortype → spanM $ decortype

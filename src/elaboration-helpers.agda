@@ -76,7 +76,7 @@ ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os d) = mk-ctx
     k' = hnf Γ unfold-head k tt
     h : ctxt → params → params
     h Γ (ParamsCons (Decl pi pi' me x atk pi'') ps) =
-      ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' localScope x atk Γ) ps)
+      ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' x atk Γ) ps)
     h _ ps = ps
 
 ctxt-lookup-term-var' : ctxt → var → maybe type
@@ -529,7 +529,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     DefTerm pi x' (reindex-optType ρ is oT) (reindex-term ρ is t) , renamectxt-insert ρ x x'
   reindex-defTermOrType ρ is (DefType pi x k T) =
     let x' = reindex-fresh-var ρ is x in
-    DefType pi x (reindex-kind ρ is k) (reindex-type ρ is T) , renamectxt-insert ρ x x'
+    DefType pi x' (reindex-kind ρ is k) (reindex-type ρ is T) , renamectxt-insert ρ x x'
 
   reindex-cmds : renamectxt → trie indices → cmds → cmds × renamectxt
   reindex-cmds ρ is CmdsStart = CmdsStart , ρ
@@ -551,64 +551,50 @@ reindex-file Γ is (File pi csᵢ pi' pi'' x ps cs pi''') =
   where open reindexing Γ is
 
 
+mk-ctr-term : maybeErased → (x X : var) → constructors → parameters → term
+mk-ctr-term me x X cs ps =
+  let t = Mlam X $ constructors-to-lams' cs $ parameters-to-apps ps $ mvar x in
+  case me of λ where
+    Erased → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen
+    NotErased → IotaPair posinfo-gen (Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen)
+                  t NoGuide posinfo-gen
 
-
-mk-erased-ctr : ctxt → ℕ → constructors → 𝕃 term → maybe term
-mk-erased-ctr Γ n cs as = mk-erased-ctrh Γ (inj₁ n) cs as [] where
-  mk-erased-ctrh : ctxt → ℕ ⊎ var → constructors → 𝕃 term → 𝕃 var → maybe term
-  mk-erased-ctrh Γ (inj₁ zero) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ x') cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₁ (suc n)) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₁ n) cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₂ xₕ) (Ctr x _ :: cs) as xs = rename x from Γ for λ x' →
-    mk-erased-ctrh (ctxt-var-decl x' Γ) (inj₂ xₕ) cs as (x' :: xs)
-  mk-erased-ctrh Γ (inj₁ _) [] as xs = nothing
-  mk-erased-ctrh Γ (inj₂ xₕ) [] as xs =
-    just $ foldl mlam (foldr (flip mapp) (mvar xₕ) as) $ xs
-
-get-ctr-in-ctrs : var → constructors → maybe ℕ
-get-ctr-in-ctrs x cs = h zero cs where
-  h : ℕ → constructors → maybe ℕ
-  h n [] = nothing
-  h n (Ctr y _ :: cs) = if x =string y then just n else h (suc n) cs
-
-mk-ctr-untyped-beta : ctxt → var → constructors → parameters → term
-mk-ctr-untyped-beta Γ x cs ps =
-  maybe-else
-    (mvar "error-making-untyped-beta")
-    (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen) $
-    get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs $
-      foldl (λ {(Decl pi pi' NotErased x (Tkt T) pi'') ts → mvar x :: ts; p ts → ts}) [] ps
-
-mk-ctr-type : ctxt → ctr → (head : var) → constructors → type
-mk-ctr-type Γ (Ctr x T) Tₕ cs with decompose-ctr-type Γ T
+mk-ctr-type : maybeErased → ctxt → ctr → constructors → var → type
+mk-ctr-type me Γ (Ctr x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl Tₕ Γ) T
 ...| Tₓ , ps , is =
-  foldr
-    (λ {(Decl pi pi' NotErased y atk pi'') f as →
-          Abs pi NotErased pi' y atk $ f (mvar y :: as);
-        (Decl pi pi' Erased y atk pi'') f as →
-          Abs pi Erased pi' y atk $ f as})
-    (λ as → curry recompose-tpapps
-      (TpAppt (mtpvar Tₕ) $ maybe-else
-        (mvar "error-making-ctr-type-beta")
-        (λ t → Beta posinfo-gen NoTerm $ SomeTerm t posinfo-gen)
-        (get-ctr-in-ctrs x cs ≫=maybe λ n → mk-erased-ctr Γ n cs as)) is) ps []
+  parameters-to-alls ps $
+  TpAppt (curry recompose-tpapps (mtpvar Tₕ) is) $
+  rename "X" from add-parameters-to-ctxt ps (ctxt-var-decl Tₕ Γ) for λ X →
+  mk-ctr-term me x X cs ps
+
+record encoded-datatype-names : Set where
+  constructor mk-encoded-datatype-names
+  field
+    data-functor : var
+    data-fmap : var
+    data-functor-ind : var
+    cast : var
+    fixpoint-type : var
+    fixpoint-in : var
+    fixpoint-ind : var
+
+record elab-mus : Set where
+  field
+    elab-check-mu : var → type → maybe term
+    elab-synth-mu : var → maybe (term × type)
+    elab-check-mu' : type → maybe term
+    elab-synth-mu' : maybe (term × type)
 
 record encoded-datatype : Set where
   constructor mk-encoded-datatype
   field
     data-def : datatype
-    data-functor : var
-    data-fmap : var
-    functor : var
-    cast : var
-    fixed-point : var
-    in-fix : var
-    induction-principle : var
-  x  = case data-def of λ where (Data x ps is cs) → x
-  ps = case data-def of λ where (Data x ps is cs) → ps
-  is = case data-def of λ where (Data x ps is cs) → is
-  cs = case data-def of λ where (Data x ps is cs) → cs
+    names : encoded-datatype-names
+    elab-mu : datatype → encoded-datatype-names → ctxt → term → optType → cases → elab-mus
+  elab-check-mu = λ Γ t oT ms → elab-mus.elab-check-mu $ elab-mu data-def names Γ t oT ms
+  elab-synth-mu = λ Γ t oT ms → elab-mus.elab-synth-mu $ elab-mu data-def names Γ t oT ms
+  elab-check-mu' = λ Γ t oT ms → elab-mus.elab-check-mu' $ elab-mu data-def names Γ t oT ms
+  elab-synth-mu' = λ Γ t oT ms → elab-mus.elab-synth-mu' $ elab-mu data-def names Γ t oT ms
 
 record datatype-encoding : Set where
   constructor mk-datatype-encoding
@@ -616,59 +602,92 @@ record datatype-encoding : Set where
     template : start
     functor : var
     cast : var
-    fixed-point : var
-    in-fix : var
-    induction-principle : var
-    elab-check-mu : ctxt → datatype → var → term → optType → cases → type → maybe term
-    elab-check-mu' : ctxt → datatype → term → optType → cases → type → maybe term
-    elab-synth-mu : ctxt → datatype → var → term → optType → cases → maybe (term × type)
-    elab-synth-mu' : ctxt → datatype → term → optType → cases → maybe (term × type)
+    fixpoint-type : var
+    fixpoint-in : var
+    fixpoint-ind : var
+    elab-mu : datatype → encoded-datatype-names → ctxt → term → optType → cases → elab-mus
 
   mk-defs : ctxt → datatype → cmds × encoded-datatype
-  mk-defs Γ' (Data x ps is cs) = append-cmds tcs
-    (csn functor-cmd $ csn fmap-cmd $ csn type-cmd $ foldr (csn ∘ ctr-cmd) CmdsStart cs) ,
+  mk-defs Γ'' (Data x ps is cs) =
+    append-cmds tcs
+    (csn functor-cmd $
+     csn functor-ind-cmd $
+     csn fmap-cmd $
+     csn type-cmd $
+     foldr (csn ∘ ctr-cmd) CmdsStart cs) ,
     record {
+      elab-mu = elab-mu;
       data-def = Data x ps is cs;
-      data-functor = data-functorₓ;
-      data-fmap = data-fmapₓ;
-      functor = functorₓ;
-      cast = castₓ;
-      fixed-point = fixed-pointₓ;
-      in-fix = in-fixₓ;
-      induction-principle = induction-principleₓ}
+      names = record {
+        data-functor = data-functorₓ;
+        data-fmap = data-fmapₓ;
+        data-functor-ind = data-functor-indₓ;
+        cast = castₓ;
+        fixpoint-type = fixpoint-typeₓ;
+        fixpoint-in = fixpoint-inₓ;
+        fixpoint-ind = fixpoint-indₓ}}
     where
     csn = CmdsNext ∘ flip (DefTermOrType OpacTrans) posinfo-gen
     k = indices-to-kind is $ Star posinfo-gen
     
-    Γ = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl x Γ'
+    Γ' = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl x Γ''
     
-    tcs-ρ = reindex-file Γ is template
+    tcs-ρ = reindex-file Γ' is template
     tcs = fst tcs-ρ
-    ρ' = snd tcs-ρ
+    ρ = snd tcs-ρ
 
-    data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ) ρ'
-    data-fmapₓ = fresh-var (x ^ "Fmap") (ctxt-binds-var Γ) ρ'
-    functorₓ = renamectxt-rep ρ' functor
-    castₓ = renamectxt-rep ρ' cast
-    fixed-pointₓ = renamectxt-rep ρ' fixed-point
-    in-fixₓ = renamectxt-rep ρ' in-fix
-    induction-principleₓ = renamectxt-rep ρ' induction-principle
-    ρ = renamectxt-insert (renamectxt-insert ρ' (x ^ "F") data-functorₓ) (x ^ "Fmap") data-fmapₓ
+    data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ') ρ
+    data-fmapₓ = fresh-var (x ^ "Fmap") (ctxt-binds-var Γ') ρ
+    data-functor-indₓ = fresh-var (x ^ "IndF") (ctxt-binds-var Γ') ρ
+    functorₓ = renamectxt-rep ρ functor
+    castₓ = renamectxt-rep ρ cast
+    fixpoint-typeₓ = renamectxt-rep ρ fixpoint-type
+    fixpoint-inₓ = renamectxt-rep ρ fixpoint-in
+    fixpoint-indₓ = renamectxt-rep ρ fixpoint-ind
+    Γ = add-indices-to-ctxt is $ ctxt-var-decl data-functorₓ $ ctxt-var-decl data-fmapₓ $ ctxt-var-decl data-functor-indₓ Γ'
     
     new-var : ∀ {ℓ} {X : Set ℓ} → var → (var → X) → X
-    new-var x f = f $ fresh-var x (ctxt-binds-var $ add-indices-to-ctxt is Γ) ρ
+    new-var x f = f $ fresh-var x (ctxt-binds-var Γ) ρ
 
     functor-cmd = DefType posinfo-gen data-functorₓ (parameters-to-kind ps $ KndArrow k k) $
       parameters-to-tplams ps $
       TpLambda posinfo-gen posinfo-gen x (Tkk $ k) $
       indices-to-tplams is $
-      new-var "x" λ xₓ →
+      new-var "x" λ xₓ → new-var "X" λ Xₓ →
       Iota posinfo-gen posinfo-gen xₓ (mtpeq id-term id-term) $
-      new-var "X" λ Xₓ →
       Abs posinfo-gen Erased posinfo-gen Xₓ
-        (Tkk $ KndTpArrow (mtpeq id-term id-term) $ indices-to-kind is star) $
-      foldr (λ c → flip TpArrow NotErased $ mk-ctr-type (ctxt-var-decl Xₓ Γ) c Xₓ cs)
-        (indices-to-tpapps is $ TpAppt (mtpvar Xₓ) (mvar xₓ)) cs
+        (Tkk $ indices-to-kind is $ KndTpArrow (mtpeq id-term id-term) star) $
+      foldr (λ c → flip TpArrow NotErased $ mk-ctr-type Erased Γ c cs Xₓ)
+        (TpAppt (indices-to-tpapps is $ mtpvar Xₓ) (mvar xₓ)) cs
+
+    functor-ind-cmd = DefTerm posinfo-gen data-functor-indₓ NoType $
+      parameters-to-lams ps $
+      Lam posinfo-gen Erased posinfo-gen x (SomeClass $ Tkk k) $
+      indices-to-lams is $
+      new-var "x" λ xₓ → new-var "y" λ yₓ → new-var "e" λ eₓ → new-var "X" λ Xₓ →
+      let T = indices-to-tpapps is $ TpApp (parameters-to-tpapps ps $ mtpvar data-functorₓ) (mtpvar x) in
+      Lam posinfo-gen NotErased posinfo-gen xₓ (SomeClass $ Tkt T) $
+      Lam posinfo-gen Erased posinfo-gen Xₓ
+        (SomeClass $ Tkk $ indices-to-kind is $ KndTpArrow T star) $
+      flip (foldr λ {c @ (Ctr x' _) → Lam posinfo-gen NotErased posinfo-gen x' $ SomeClass $
+                                        Tkt $ mk-ctr-type NotErased Γ c cs Xₓ}) cs $
+      flip mappe (Beta posinfo-gen NoTerm NoTerm) $
+      flip mappe (mvar xₓ) $
+      let Γ' = ctxt-var-decl xₓ $ ctxt-var-decl yₓ $ ctxt-var-decl eₓ $ ctxt-var-decl Xₓ Γ in
+      flip (foldl λ {(Ctr x' T) → flip mapp $
+                                  elim-pair (decompose-arrows Γ T) λ ps' Tₕ →
+                                  parameters-to-lams' ps' $
+                                  Mlam yₓ $ Mlam eₓ $
+                                  parameters-to-apps ps' $ mvar x'}) cs $
+      AppTp (IotaProj (mvar xₓ) "2" posinfo-gen) $
+      indices-to-tplams is $
+      TpLambda posinfo-gen posinfo-gen xₓ (Tkt $ mtpeq id-term id-term) $
+      Abs posinfo-gen Erased posinfo-gen yₓ (Tkt T) $
+      Abs posinfo-gen Erased posinfo-gen eₓ (Tkt $ mtpeq (mvar yₓ) (mvar xₓ)) $
+      TpAppt (indices-to-tpapps is $ mtpvar Xₓ) $
+      Phi posinfo-gen (mvar eₓ) (mvar yₓ) (mvar xₓ) posinfo-gen
+    
+    
     
     fmap-cmd : defTermOrType
     fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
@@ -715,7 +734,7 @@ record datatype-encoding : Set where
 
     type-cmd = DefType posinfo-gen x (parameters-to-kind ps $ k) $
       parameters-to-tplams ps $ TpAppt
-        (TpApp (mtpvar fixed-pointₓ) $ parameters-to-tpapps ps $ mtpvar data-functorₓ)
+        (TpApp (mtpvar fixpoint-typeₓ) $ parameters-to-tpapps ps $ mtpvar data-functorₓ)
         (parameters-to-apps ps $ mvar data-fmapₓ)
 
     ctr-cmd : ctr → defTermOrType
@@ -725,15 +744,8 @@ record datatype-encoding : Set where
       parameters-to-lams ps $
       parameters-to-lams ps' $
       mapp (recompose-apps Erased (take (length as' ∸ length ps) as') $
-            mappe (AppTp (mvar in-fixₓ) $
+            mappe (AppTp (mvar fixpoint-inₓ) $
               parameters-to-tpapps ps $ mtpvar data-functorₓ) $
         parameters-to-apps ps $ mvar data-fmapₓ) $
-      let Γ' = add-parameters-to-ctxt ps' Γ
-          Xₓ = rename "X" from Γ' for id in
-      IotaPair posinfo-gen
-        (mk-ctr-untyped-beta Γ' x' cs ps')
-        (Mlam Xₓ $
-         constructors-to-lams' cs $
-         parameters-to-apps ps' $
-         mvar x')
-        NoGuide posinfo-gen
+      rename "X" from add-parameters-to-ctxt ps' Γ for λ Xₓ →
+      mk-ctr-term NotErased x' Xₓ cs ps'

@@ -111,20 +111,20 @@
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
 
-(defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
-  "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
-  (se-inf-interactive
-   cedille-mode-status-msg
-   (lambda (response extra)
-      (with-current-buffer (car extra)
-        (cedille-mode-br-init-buffer
-         (cadr extra)
-         (caddr extra)
-         (cadddr extra)
-         (cadr (cdddr extra))) ; caddddr not defined :(
-        nil))
-   (list (current-buffer) str context checking qed)
-   :header cedille-mode-caching-header))
+;(defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
+;  "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
+;  (se-inf-interactive
+;   cedille-mode-status-msg
+;   (lambda (response extra)
+;      (with-current-buffer (car extra)
+;        (cedille-mode-br-init-buffer
+;         (cadr extra)
+;         (caddr extra)
+;         (cadddr extra)
+;         (cadr (cdddr extra))) ; caddddr not defined :(
+;        nil))
+;   (list (current-buffer) str context checking qed)
+;   :header cedille-mode-caching-header))
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
@@ -238,7 +238,7 @@
     (if (not node)
 	(message "Error: must select a node")
       (let* ((text (cedille-mode-br-get-qed node)))
-	(cedille-mode-br-init-buffer-wait text (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) text))))
+	(cedille-mode-br-init-buffer text (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) text))))
   nil)
 
 (defun cedille-mode-br-type ()
@@ -251,18 +251,18 @@
            (type (or (cdr (assoc 'expected-type (se-term-data span)))
                      (cdr (assoc 'type (se-term-data span))))))
       (if type
-          (cedille-mode-br-init-buffer-wait type (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed span))
+          (cedille-mode-br-init-buffer type (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed span))
         (message "Span must have an expected type or a type"))))
   nil)
 
 (defun cedille-mode-br-start-prompt (&optional context checking)
   "Starts beta-reduction buffer with the prompted input INPUT"
-  (cedille-mode-br-init-buffer-wait (call-interactively (lambda (input) (interactive "MBeta-reduce: ") input)) context checking))
+  (cedille-mode-br-init-buffer (call-interactively (lambda (input) (interactive "MBeta-reduce: ") input)) context checking))
 
 (defun cedille-mode-br-prompt (str)
   "Starts the beta-reduction buffer with STR and local context"
   (let ((cedille-mode-br-original-filename (buffer-file-name)))
-    (cedille-mode-br-init-buffer-wait str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking))))
+    (cedille-mode-br-init-buffer str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking))))
 
 (defun cedille-mode-br-kill-buffer ()
   "Kills the current buffer"

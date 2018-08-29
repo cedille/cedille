@@ -180,9 +180,12 @@ substh-arg Γ ρ σ (TypeArg T) = TypeArg (substh-type Γ ρ σ T)
 substh-args Γ ρ σ (ArgsCons a as) = ArgsCons (substh-arg Γ ρ σ a) (substh-args Γ ρ σ as)
 substh-args Γ ρ σ ArgsNil = ArgsNil
 
+substh-params{QUALIF} Γ ρ σ (ParamsCons (Decl _ pi me x atk _) ps) =
+  ParamsCons (Decl posinfo-gen posinfo-gen me (pi % x) (substh-tk Γ ρ σ atk) posinfo-gen)
+    (substh-params Γ (renamectxt-insert ρ x (pi % x)) (trie-remove σ (pi % x)) ps)
 substh-params Γ ρ σ (ParamsCons (Decl _ _ me x atk _) ps) =
   ParamsCons (Decl posinfo-gen posinfo-gen me x (substh-tk Γ ρ σ atk) posinfo-gen)
-    (substh-params (ctxt-var-decl x Γ) ρ (trie-remove σ x) ps)
+    (substh-params Γ (renamectxt-insert ρ x x) (trie-remove σ x) ps)
 substh-params Γ ρ σ ParamsNil = ParamsNil
 
 substh-tk Γ ρ σ (Tkk k) = Tkk (substh-kind Γ ρ σ k)
