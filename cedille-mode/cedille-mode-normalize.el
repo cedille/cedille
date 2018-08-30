@@ -3,28 +3,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defvar sep "§")
-
 ;;;;;;;;        Commands        ;;;;;;;;
 
-(defun cedille-mode-elab-data (x)
-  (interactive "MName: ")
-  (call-interactively (lambda (x) (interactive "MParameters: ") (setq ps x)))
-  (call-interactively (lambda (x) (interactive "MIndices: ") (setq is x)))
-  (call-interactively (lambda (x) (interactive "MConstructors: ") (setq cs x)))
-  (setq encoding (if (y-or-n-p "Use Mendler encoding or simple Mendler encoding? ") "tt" "ff"))
-  (se-inf-interactive
-   (concat "interactive" sep "data" sep encoding sep x sep ps sep is sep cs)
-   cedille-mode-normalize-erase-receive-response-prompt
-   "" :header "Elaborating"))
-
-(defun cedille-mode-test-agda-eta1 ()
-  (interactive)
-  (se-inf-interactive (concat "interactive" sep "test-agda-eta1" sep "lorem ipsum") (lambda (&rest args) (message "%s" args)) nil :header "Waiting"))
-
-(defun cedille-mode-test-agda-eta2 ()
-  (interactive)
-  (se-inf-interactive (concat "interactive" sep "test-agda-eta2" sep "lorem ipsum") (lambda (&rest args) (message "%s" args)) nil :header "Waiting"))
+;(defun cedille-mode-elab-data (x)
+;  (interactive "MName: ")
+;  (call-interactively (lambda (x) (interactive "MParameters: ") (setq ps x)))
+;  (call-interactively (lambda (x) (interactive "MIndices: ") (setq is x)))
+;  (call-interactively (lambda (x) (interactive "MConstructors: ") (setq cs x)))
+;  (setq encoding (if (y-or-n-p "Use Mendler encoding or simple Mendler encoding? ") "tt" "ff"))
+;  (se-inf-interactive
+;   (concat "interactive" cedille-mode-sep "data" cedille-mode-sep encoding cedille-mode-sep x cedille-mode-sep ps cedille-mode-sep is cedille-mode-sep cs)
+;   cedille-mode-normalize-erase-receive-response-prompt
+;   "" :header "Elaborating"))
 
 (defun cedille-mode-normalize(&optional head)
   "Normalizes either the selected span or a prompted expression"
@@ -90,14 +80,15 @@
   (let* ((head (eq 'head-normalized extra))
 	 (s (se-span-start span))
 	 (e (se-span-end span)))
-    (concat "interactive"
-	    sep "normalize"
-	    sep (buffer-substring s e)
-	    sep (cedille-mode-normalize-get-ll span)
-	    sep (number-to-string (+ s (or add-to-pos 0)))
-	    sep (if head "tt" "ff")
-	    sep (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
-	    (cedille-mode-normalize-local-context-param span))))
+    (cedille-mode-concat-sep
+     "interactive"
+     "normalize"
+     (buffer-substring s e)
+     (cedille-mode-normalize-get-ll span)
+     (number-to-string (+ s (or add-to-pos 0)))
+     (if head "tt" "ff")
+     (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
+     (cedille-mode-normalize-local-context-param span))))
 
 (defun cedille-mode-erase-request-text(extra span)
   "Gets the text to send to the backend as a request to erase a span"
@@ -106,12 +97,7 @@
     (cedille-mode-erase-request-text-h (buffer-substring s e) (cedille-mode-normalize-get-ll span) s (cedille-mode-normalize-local-context-param span))))
 
 (defun cedille-mode-erase-request-text-h (str ll pos lc-str)
-  (concat "interactive"
-	  sep "erase"
-	  sep str
-	  sep ll
-	  sep (number-to-string pos)
-	  lc-str))
+  (cedille-mode-concat-sep "interactive" "erase" str ll (number-to-string pos) lc-str))
 
 (defun cedille-mode-normalize-local-context-param(span)
   "Formats the local context into a string suitable to be sent to the backend"
@@ -130,19 +116,28 @@
 		    (when loc
 		      (let ((dash (string-match del loc)))
 			(when dash
-			  (cons (substring loc 0 dash) (substring loc (+ dash (length del)))))))))))
-    (while terms
-      (let* ((item (pop terms))
-	     (loc (funcall split item))
-	     (value (cdr (assoc 'value item)))
-	     (bv (or (cdr (assoc 'bound-value item)) "")))
-	(setq out (concat out sep "term" sep (car item) sep bv sep value sep (car loc) sep (cdr loc)))))
-    (while types
-      (let* ((item (pop types))
-	     (loc (funcall split item))
-	     (value (cdr (assoc 'value item)))
-	     (bv (or (cdr (assoc 'bound-value item)) "")))
-	(setq out (concat out sep "type" sep (car item) sep bv sep value sep (car loc) sep (cdr loc)))))
+			  (cons (substring loc 0 dash) (substring loc (+ dash (length del))))))))))
+         (mk (lambda (str l)
+               (while l
+                 (let* ((item (pop l))
+                        (loc (funcall split item))
+                        (value (cdr (assoc 'value item)))
+                        (bv (or (cdr (assoc 'bound-value item)) "")))
+                   (setq out (cedille-mode-concat-sep out str (car item) bv value (car loc) (cdr loc))))))))
+    ;(while terms
+    ;  (let* ((item (pop terms))
+;	     (loc (funcall split item))
+;	     (value (cdr (assoc 'value item)))
+;	     (bv (or (cdr (assoc 'bound-value item)) "")))
+;	(setq out (cedille-mode-concat-sep out "term" (car item) bv value (car loc) (cdr loc)))))
+;    (while types
+;      (let* ((item (pop types))
+;	     (loc (funcall split item))
+;	     (value (cdr (assoc 'value item)))
+;	     (bv (or (cdr (assoc 'bound-value item)) "")))
+;	(setq out (cedille-mode-concat-sep out "type" (car item) bv value (car loc) (cdr loc)))))
+    (funcall mk "term" terms)
+    (funcall mk "type" types)
     out))
 
 (defun cedille-mode-normalize-shadow-filter(lst)
@@ -183,14 +178,23 @@
 (defun cedille-mode-normalize-send-prompt (input head)
   "Sends the prompted normalize request to the backend"
   (se-inf-interactive
-   (concat "interactive" sep "normalizePrompt" sep input sep (if head "tt" "ff"))
+   (cedille-mode-concat-sep
+    "interactive"
+    "normalizePrompt"
+    input
+    (if head "tt" "ff")
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    cedille-mode-normalize-erase-receive-response-prompt
    (concat "Expression: " input "\n" (if head "Head-n" "N") "ormalized: ")
    :header "Normalizing"))
 
 (defun cedille-mode-erase-send-prompt (input)
   (se-inf-interactive
-   (concat "interactive" sep "erasePrompt" sep input)
+   (cedille-mode-concat-sep
+    "interactive"
+    "erasePrompt"
+    input
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    cedille-mode-normalize-erase-receive-response-prompt
    (concat "Expression: " input "\nErased: ")
    :header "Erasing"))

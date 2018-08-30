@@ -110,7 +110,6 @@ Should be called at the start of an `se-mode'.
 
 When NO-AUTO-KILL is nil the user will not be queried about PROC
 still being active upon exiting emacs."
-  (message "se-inf-start")
   (se-inf-put-remove-interactive-property 1 (+ 1 (buffer-size)))
   (unless (process-get proc 'se-inf-queue)
     (process-put proc 'se-inf-queue (tq-create proc))

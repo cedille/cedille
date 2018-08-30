@@ -43,6 +43,7 @@
 (defvar cedille-mode-status-msg "status ping")
 (defvar cedille-mode-progress-prefix "progress: ")
 (defvar cedille-mode-caching-header "Caching")
+(defvar cedille-mode-sep "§")
 
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
@@ -55,9 +56,7 @@
   (add-to-list 'load-path cedille-mode-library-path)
   (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
 
-(message "about to load se")
 (require 'se)
-(message "loaded se")
 (require 'cedille-mode-library)
 
 (defun cedille-mode-current-buffer-base-name()
@@ -263,20 +262,26 @@ Defaults to `error'."
 	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
 	   (message "Error: must select a node")))
        (cedille-mode-update-buffers))))
+
+(defun cedille-mode-concat-sep (&rest seqs)
+  "Concatenates STRS with cedille-mode-sep between each"
+  (when seqs
+    (let* ((foldr (lambda (f xs n c) (if xs (funcall c (car xs) (funcall f f (cdr xs) n c)) n))))
+      (concat (car seqs) (funcall foldr foldr (cdr seqs) "" (lambda (h x) (concat cedille-mode-sep h x)))))))
 	   
-(defun cedille-mode-concat-sep(sep ss)
+(defun cedille-mode-concat-sep2(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
   (let ((he (car ss))
         (ta (cdr ss)))
     (if (not ta) he
-      (concat he sep (cedille-mode-concat-sep sep ta)))))
+      (concat he sep (cedille-mode-concat-sep2 sep ta)))))
 
 (defun cedille-mode-split-string(s)
   "Return a pair of the prefix of the string up to the first space, 
 and the remaining suffix."
   (let ((ss (split-string s " ")))
     (if (< (length ss) 2) s
-      (cons (car ss) (cedille-mode-concat-sep " " (cdr ss))))))
+      (cons (car ss) (cedille-mode-concat-sep2 " " (cdr ss))))))
 
 (defun cedille-mode-get-seqnum(a)
   "Get the seqnum from a json pair. The second component

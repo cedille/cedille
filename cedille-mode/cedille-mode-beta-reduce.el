@@ -159,7 +159,11 @@
 (defun cedille-mode-br-erase (s)
   "Erases the text before parsing"
   (se-inf-interactive
-   (concat "interactive§erasePrompt§" s)
+   (cedille-mode-concat-sep
+    "interactive"
+    "erasePrompt"
+    s
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    (cedille-mode-response-macro #'cedille-mode-br-erase-response)
    (current-buffer)
    :header "Erasing"))
@@ -200,9 +204,11 @@
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
   (se-inf-interactive
-   (concat "interactive§br"
-	   "§" cedille-mode-br-temp-str
-	   (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
+   (cedille-mode-concat-sep
+    "interactive"
+    "br"
+    cedille-mode-br-temp-str
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    #'cedille-mode-br-process-response
    (current-buffer)
    :header "Parsing"
@@ -297,8 +303,8 @@
     (if (null span)
 	(message "Error: must select a node")
       (let* ((ll (cdr (assoc 'language-level (se-span-data span))))
-             (op-fn1 (lambda (response) (car (split-string response sep))))
-             (op-fn2 (lambda (response new-str) (concat "χ " (cedille-mode-br-add-parens (format new-str (cedille-mode-br-add-parens (cadr (split-string response sep))))) " - ")))
+             (op-fn1 (lambda (response) (car (split-string response cedille-mode-sep))))
+             (op-fn2 (lambda (response new-str) (concat "χ " (cedille-mode-br-add-parens (format new-str (cedille-mode-br-add-parens (cadr (split-string response cedille-mode-sep))))) " - ")))
              (extra (cons (current-buffer) (cons t (cons op-fn1 op-fn2))))
              (header (if head "Head-normalizing" "Normalizing")))
 	(if (not (and ll (or (string= ll "term") (string= ll "type") (string= ll "kind"))))
@@ -329,11 +335,12 @@
 			 input))
 	       (input (call-interactively ask-fn))
 	       (extra (cons (current-buffer) (cons t nil)))
-	       (q (concat
-		   "interactive§conv"
-		   "§" ll
-		   "§" (buffer-substring (se-span-start span) (se-span-end span))
-		   "§" input
+	       (q (cedille-mode-concat-sep
+		   "interactive"
+                   "conv"
+		   ll
+		   (buffer-substring (se-span-start span) (se-span-end span))
+		   input
 		   (cedille-mode-normalize-local-context-param span))))
 	  (se-inf-interactive-with-span
 	   q
@@ -357,19 +364,20 @@
              (input (call-interactively (if head ask-fn2 ask-fn1)))
              (op-fn1
               (lambda (response)
-                (car (split-string response sep))))
+                (car (split-string response cedille-mode-sep))))
              (op-fn2
               `(lambda (response new-str)
-                (let* ((xT (cdr (split-string response ,sep)))
+                (let* ((xT (cdr (split-string response ,cedille-mode-sep)))
                        (x (car xT))
                        (T (cadr xT)))
                   (concat "ρ " (if ,cedille-mode-br-checking "ς " "") (cedille-mode-br-add-parens ,input) " @ " x " . " (format new-str T) " - "))))
              (extra (cons (current-buffer) (cons cedille-mode-br-checking (cons op-fn1 op-fn2))))
              (q (concat
-                 "interactive§rewrite"
-                 "§" (buffer-substring (se-span-start span) (se-span-end span))
-                 "§" input
-                 "§" (if head "tt" "ff")
+                 "interactive"
+                 "rewrite"
+                 (buffer-substring (se-span-start span) (se-span-end span))
+                 input
+                 (if head "tt" "ff")
                  (cedille-mode-normalize-local-context-param span))))
         (se-inf-interactive-with-span
          q
