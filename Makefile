@@ -83,7 +83,6 @@ FILES = $(AUTOGEN) $(AGDASRC)
 SRC = $(FILES:%=$(SRCDIR)//%)
 OBJ = $(SRC:%.agda=%.agdai)
 
-#LIB = --library-file=libraries --library=ial --library=gratr-agda --library=cedille
 LIB = --library-file=libraries --library=ial --library=cedille
 
 all: cedille # elisp

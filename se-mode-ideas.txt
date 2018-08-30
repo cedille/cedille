@@ -1,2 +1,0 @@
--- highlighting based on the names of spans 
--- cross references
