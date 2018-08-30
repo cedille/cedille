@@ -735,7 +735,8 @@ elab-file' ts ρ φ μ fn =
         let Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
         elab-cmds (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry' λ cs ts ω →
-        let ast = File posinfo-gen ImportsStart posinfo-gen posinfo-gen mn ParamsNil (remove-dup-imports empty-stringset cs) posinfo-gen in
+        let ast = File posinfo-gen ImportsStart posinfo-gen posinfo-gen mn ParamsNil
+                    (remove-dup-imports empty-stringset (append-cmds (imps-to-cmds is) cs)) posinfo-gen in
         just (fn' , set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast) , ω)
   where
   remove-dup-imports : stringset → cmds → cmds
