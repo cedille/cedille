@@ -1,7 +1,0 @@
-And ◂ ★ ➔ ★ ➔ ★ = λ P : ★ . λ Q : ★ . ∀ X : ★ . (P ➔ Q ➔ X) ➔ X.
-Andi ◂ ∀ P : ★ . ∀ Q : ★ . P ➔ Q ➔ And · P · Q =
-  Λ P . Λ Q . λ p . λ q . Λ X . λ c . c p q .
-fst ◂ ∀ P : ★ . ∀ Q : ★ . And · P · Q ➔ P =
-  Λ P . Λ Q . λ x . x · P (λ p . λ _ . p) .
-snd ◂ ∀ P : ★ . ∀ Q : ★ . And · P · Q ➔ Q =
-  Λ P . Λ Q . λ x . x · Q (λ _ . λ q . q) .

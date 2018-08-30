@@ -1,7 +1,0 @@
-import cnat.
-
-% should become a module parameter when module system is ready
-
-Ind ◂ ∀ Q : cNat ➔ ★ . (∀ x : cNat . Q x ➔ Q (cS x)) ➔ Q cZ ➔ Π x : cNat . Q x = ● .
-
-eqnatEq ◂ Π n : cNat . Π m : cNat . (eqnat n m ≃ tt) ➔ n ≃ m = ● .

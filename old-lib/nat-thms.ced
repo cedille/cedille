@@ -1,9 +1,0 @@
-module Nat-thms.
-
-import nat.
-import false.
-import true.
-
-ZS-False ◂ ∀ n : Nat . (Z ≃ S n) ➔ False =
-  Λ n . λ e .
-    χ (↑ X . NatRec Z · X : (☆ ➔ (Nat ➔ ☆ ➔ ☆) ➔ ☆) · False · (λ _ : Nat . λ _ : ★ . True)) - ρ e - triv .
