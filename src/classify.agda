@@ -834,7 +834,7 @@ substh-decortype Γ ρ σ (decor-decor e? pi x sol dt) =
       Γ' = ctxt-var-decl-loc pi x' Γ
       ρ' = renamectxt-insert ρ x x'
   in substh-decortype Γ' ρ' σ dt
-  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-meta-var-sol Γ ρ σ sol) dt'
+  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-meta-var-sort Γ ρ σ sol) dt'
   -- decor-decor e? x' (substh-meta-var-sol Γ' ρ' σ sol) (substh-decortype Γ' ρ' σ dt)
 substh-decortype Γ ρ σ (decor-stuck tp pt) =
   match-prototype meta-vars-empty ff (substh-type Γ ρ σ tp) pt
@@ -903,7 +903,7 @@ meta-vars-unfold-tpapp' Γ Xs dt =
   meta-vars-subst-decortype Γ Xs dt
   ≫=span λ where
    (dt″@(decor-decor e? pi x (meta-var-tp k mtp) dt')) →
-    spanMr $ yes-tpabsd dt″ e? x k mtp dt'
+    spanMr $ yes-tpabsd dt″ e? x k (flip maybe-map mtp meta-var-sol.sol) dt'
    (dt″@(decor-decor _ _ _ (meta-var-tm _ _) _)) →
     spanMr $ not-tpabsd dt″
    (dt″@(decor-arrow _ _ _)) → spanMr $ not-tpabsd dt″
@@ -1217,7 +1217,7 @@ match-types Xs Ls unf tpₓ@(TpVar pi x) tp =
   else (check-type-for-match tp
   ≫=spans' λ k → match-kinds Xs empty-trie match-unfolding-both kₓ k
     on-fail (λ _ → spanMr ∘ match-error $ m-err.e-bad-sol-kind Γ x tp)
-  ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp)
+  ≫=spans' λ Xs → spanMr (meta-vars-solve-tp Γ Xs x tp synthesizing)
   ≫=spans' λ Xs → match-types-ok $ meta-vars-update-kinds Γ Xs Xs)
 
 match-types Xs Ls unf (TpApp tpₓ₁ tpₓ₂) (TpApp tp₁ tp₂) =
@@ -1429,7 +1429,9 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   -- 3) replace the meta-vars with the bound type variable
   in subst-decortype Γ (TpVar pi x) (meta-var-name Y) dt
   -- 4) leave behind the solution for Y as a decoration and drop Y from Xs
-  ≫=span λ dt' → let dt″ = decor-decor Erased pi x (meta-var.sol Y') dt' in
+  ≫=span λ dt' →
+  let sort' = meta-var.sort (meta-var-set-src Y' checking)
+      dt″ = decor-decor Erased pi x sort' dt' in
   spanMr $ mk-match-prototype-data (meta-vars-remove Xs' Y) dt″ err
 
 {-

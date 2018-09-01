@@ -407,6 +407,17 @@ eq-maybeErased Erased NotErased = ff
 eq-maybeErased NotErased Erased = ff
 eq-maybeErased NotErased NotErased = tt
 
+eq-checking-mode : (m₁ m₂ : checking-mode) → 𝔹
+eq-checking-mode checking checking = tt
+eq-checking-mode checking synthesizing = ff
+eq-checking-mode checking untyped = ff
+eq-checking-mode synthesizing checking = ff
+eq-checking-mode synthesizing synthesizing = tt
+eq-checking-mode synthesizing untyped = ff
+eq-checking-mode untyped checking = ff
+eq-checking-mode untyped synthesizing = ff
+eq-checking-mode untyped untyped = tt
+
 optPublic-is-public : optPublic → 𝔹
 optPublic-is-public IsPublic = tt
 optPublic-is-public NotPublic = ff

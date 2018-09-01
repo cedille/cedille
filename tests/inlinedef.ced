@@ -1,5 +1,0 @@
-module Tests.Inlinedef.
-import nat.
-
-test = add [tmp = add (S Z) (S Z)] tmp .
-

@@ -1,8 +1,0 @@
-module a (F : ★ ➔ ★ ➔ ★).
-
-True ◂ ★ = ∀ X : ★ . X ➔ X .
-
-triv ◂ True = Λ X . λ x . x .
-
-foo ◂ ★ = F · True · True .
-

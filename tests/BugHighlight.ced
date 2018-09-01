@@ -1,4 +1,0 @@
-module Tests.BugHighlight.
-
-
-bug ◂ ∀ X : ★. ∀ x : X. ∀ y : X. x ≃ y = Λ X. Λ x. Λ y. β .
