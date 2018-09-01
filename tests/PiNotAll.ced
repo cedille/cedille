@@ -1,9 +1,0 @@
-module Tests.PiNotAll.
-Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X .
-Is ◂ Bool ➔ ★ = λ b : Bool . ∀ X : Bool ➔ ★ . X b ➔ X b .
-
-problem1 ◂ (Π b : Bool . Is b ) ➔ (∀ b : Bool . Is b)  = λ p . p .
-
-problem2 ◂ (Π b : Bool . Bool ) ➔ (∀ b : Bool . Bool)  = λ p . p .
-
-

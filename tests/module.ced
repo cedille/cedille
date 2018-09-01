@@ -1,8 +1,0 @@
-module Tests.Module.
-import A .
-import B x (bar y) .
-module(a : A)(b : B) .
-
-import C as MyC a (foo b) · T .
-
-hi ◂ A = there.
