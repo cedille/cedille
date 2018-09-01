@@ -414,10 +414,13 @@ tk-data : ctxt → tk → tagged-val
 tk-data Γ (Tkk k) = kind-data Γ k
 tk-data Γ (Tkt t) = type-data Γ t
 
+checking-to-string : checking-mode → string
+checking-to-string checking = "checking"
+checking-to-string synthesizing = "synthesizing"
+checking-to-string untyped = "untyped"
+
 checking-data : checking-mode → tagged-val
-checking-data checking = "checking-mode" , [[ "checking" ]] , []
-checking-data synthesizing = "checking-mode" , [[ "synthesizing" ]] , []
-checking-data untyped = "checking-mode" , [[ "untyped" ]] , []
+checking-data cm = "checking-mode" , [[ checking-to-string cm ]] , []
 
 checked-meta-var : var → tagged-val
 checked-meta-var x = "checked meta-var" , [[ x ]] , []
