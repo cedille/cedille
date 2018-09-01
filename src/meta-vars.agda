@@ -323,12 +323,12 @@ decortype-to-string (decor-error tp pt) =
 meta-vars-data-h : ctxt → string → kind ∨ (meta-var-sol type) → tagged-val
 meta-vars-data-h Γ X (inj₁ k) =
   strRunTag "meta-vars-intro" Γ
-    (strAdd (X ^ " ") ≫str to-stringh k)
+    (strAdd (X ^ "  ") ≫str to-stringh k)
 meta-vars-data-h Γ X (inj₂ sol) =
-  strRunTag
-    (if eq-checking-mode checking $ meta-var-sol.src sol
-     then "meta-vars-sol-ctx" else "meta-vars-sol")
-    Γ $ strAdd (X ^ " ") ≫str (to-stringh ∘ meta-var-sol.sol $ sol)
+  strRunTag "meta-vars-sol" Γ $
+  strAdd (X ^ " ") ≫str
+  strAdd (checking-to-string (meta-var-sol.src sol) ^ " ") ≫str
+  (to-stringh ∘ meta-var-sol.sol $ sol)
 
 meta-vars-data-all : ctxt → meta-vars → 𝕃 tagged-val
 meta-vars-data-all Γ = foldr
