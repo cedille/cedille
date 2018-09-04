@@ -22,4 +22,10 @@ transformed element."
   (loop while list
 	thereis (funcall fn (pop list))))
 
+(defun se-foldr (list n c)
+  "Folds (right) over LIST"
+  (if list
+      (funcall c (car list) (se-foldr (cdr list) n c))
+    n))
+
 (provide 'se-helpers)

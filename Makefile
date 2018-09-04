@@ -100,7 +100,7 @@ libraries:
 ./src/CedilleOptionsLexer.hs: parser/src/CedilleOptionsLexer.x
 	cd parser; make cedille-options-lexer
 
-./src/templates.agda: $(TEMPLATES)
+./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 cedille:	$(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
@@ -136,7 +136,7 @@ cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 
 cedille-deb-pkg:
 	mkdir -p ./cedille-deb-pkg/usr/bin/
-	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode
+	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	mkdir -p ./cedille-deb-pkg/debian/
 	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	cp ./cedille ./cedille-deb-pkg/usr/bin/
