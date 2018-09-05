@@ -1,5 +1,11 @@
 module EquationalReasoning.
 
+----------------------------------------------------------------------
+-- β 
+--
+-- Prove an equation when its sides are beta-eta equal.
+----------------------------------------------------------------------
+
 -- β proves equations whose sides are indeed beta-eta equal
 using-beta ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β .
 
@@ -14,6 +20,19 @@ using-beta ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β .
    (λ x . x x) (λ x . x x).
  -}
 using-beta2 ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β{(λ x . x x) (λ x . x x)} .
+
+-- we often define a Top type, which any term then inhabits if wrapped with β
+Top ◂ ★ = { λ x . x ≃ λ x . x }.
+id ◂ Top = β{λ x . x}.
+
+----------------------------------------------------------------------
+-- ρ t - t'
+--
+-- Rewrite the type for t' using the equation proved by t (see the
+-- manual for longer explanation).  Cedille will look for terms
+-- convertible (beta-eta equivalent) to the lhs of the equation,
+-- and replace them with the rhs.
+----------------------------------------------------------------------
 
 {- assuming
 
@@ -32,3 +51,73 @@ using-rho ◂ ∀ A : ★ . ∀ a : A . ∀ b : A . ∀ c : A . ∀ f : A ➔ A 
     ρ eq3 - 
     ρ eq1 - 
     eq2 .
+
+----------------------------------------------------------------------
+-- ρ+ t - t'
+--
+-- Normalizing version of ρ
+--
+-- The situation is the same as for plain ρ, but now Cedille will
+-- normalize the type for t' as it looks for subexpressions beta-eta
+-- equivalent to the lhs of the equation.  Sometimes this can succeed
+-- where just ρ fails.  ρ+ is just for convenience; one can always
+-- change the form of the goal using χ (see structural-operations.ced)
+-- and then rewrite with ρ.
+----------------------------------------------------------------------
+
+{- Here, we are assuming f a ≃ a, and need to show that
+
+   (λ h . f (h a)) f
+
+   equals a.  Now, the displayed term beta-reduces to f (f a), and
+   so two uses of the assumed equation should turn this into a.
+
+   But if you consider carefully the specification of ρ, you will
+   see we cannot just apply ρ in this case.  For Cedille checks a
+   ρ-term by looking in the type (which is here, the goal equation)
+   for a subterm convertible to the lhs of the equation.  Consider
+   the subterms of the displayed term:
+
+   (λ h . f (h a)) f
+   f
+   (λ h . f (h a))
+   f (h a)
+   (h a)
+   a
+
+   None of these is beta-eta equivalent to f a.
+
+   But if we start beta-eta-reducing that term, we will get transform
+   it in one step to the term f (f a), which does have a subterm
+   equivalent to f a.  ρ+ does this beta-eta-reduction while looking
+   for subterms equivalent to the lhs of the equation, while ρ does
+   not.  ρ still uses beta-eta-reduction, but only in checking that
+   the lhs is beta-eta-equal to each subterm; it will not reduce the
+   term itself as it looks for equivalent subterms.  As this example
+   shows, sometimes that can make a difference. -}
+using-rho-plus ◂ ∀ f : Top . ∀ a : Top .
+  { f a ≃ a } ➔
+  { (λ h . f (h a)) f ≃ a } =
+  Λ f . Λ a . λ e .
+  ρ+ e - e.
+
+
+----------------------------------------------------------------------
+-- ε, εl, εr
+--
+-- Head-normalize sides of the equation.
+--
+-- This can be helpful just for seeing the sides in a simplified (maybe)
+-- form. It should never be necessary to use ε and then immediately
+-- β, because β already checks if the two sides normalize to the same
+-- result (so normalizing one or the other or both sides a bit will
+-- not affect whether or not β succeeds).
+--
+-- We do not generally use these as much these days...
+----------------------------------------------------------------------
+
+{- If you highlight the β span in Cedille navigation mode, you will
+   see the goal has been simplified.  εl simplifies just the lhs,
+   and εr just the rhs. The simplification is head normalization. -}
+using-epsilon ◂ { (λ x . λ y . id y) id ≃ id } = ε β .
+

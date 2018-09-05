@@ -13,7 +13,7 @@ implementation.
 * Menu:
 
 * about::                        About Cedille’s type theory and implementation
-* tooling::                      How Cedille’s implementation is set up
+* tooling::                      How Cedille is implemented
 * cedille mode commands::       Cedille navigation mode shortcuts with brief descriptions
 * unicode shortcuts::            Keyboard shortcuts for unicode symbols
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
@@ -34,20 +34,21 @@ difference is that in a Curry-style (aka extrinsic) type theory, type
 annotations are merely hints to the type checker, and the “real” terms
 (the subjects of metatheoretic analysis, for example) are completely
 unannotated.  Thus, such annotations can be erased during compilation
-and during formal reasoning (in particular during conversion checking,
-where the type checker tests whether two terms are definitionally
-equal).  In contrast, with Church-style (aka intrinsic) type theory, the
+and during formal reasoning; in particular during conversion checking,
+where the type checker tests whether two terms are definitionally equal.
+In contrast, with Church-style (aka intrinsic) type theory, the
 annotations are “really there”, and must be preserved during compilation
 and conversion.
 
-For an example, consider the term Λ X : ★ .  λ x : X .  x.  In
-Church-style type theory, the annotations giving the classifiers for X
-and x are truly part of the term, and the theory itself does not allow
-for them to be erased.  In contrast, in a Curry-style type theory like
-CDLE, those annotations are just hints to help the type checker see how
-to assign the type ∀ X : ★ .  X ➔ X to λ x .  x.  The type theory has a
-notion of erasure, and conversion compares the erasures of terms rather
-than the annotated terms.
+For an example, consider the polymorphic identity function Λ X : ★ .  λ
+x : X .  x.  In Church-style type theory, the binder introducting the
+type variable X and the annotation giving the classifier for x are truly
+part of the term, and the theory itself does not allow for them to be
+erased.  In contrast, in a Curry-style type theory like CDLE, those
+annotations are just hints to help the type checker see how to assign
+the type ∀ X : ★ .  X ➔ X to λ x .  x.  The type theory has a notion of
+erasure, and conversion compares the erasures of terms rather than the
+annotated terms.
 
 1.1 Cedille extends the Calculus of Constructions
 =================================================
@@ -65,6 +66,14 @@ fundamental reason (that we know of).  Omitting the system of primitive
 inductive types, however, is one of the chief goals of Cedille, and will
 be discussed more below.
 
+The language is divided into three layers: terms, types, and kinds.
+Terms are the programs we intend eventually to execute, or to use as
+proofs.  Types describe programs, and under the Curry-Howard isomorphism
+which Cedille makes use of, can be seen as formulas to be proved.  Kinds
+are the classifiers for types.  So in Cedille we have
+
+term : type : kind
+
 1.2 The type constructs of Cedille
 ==================================
 
@@ -79,7 +88,8 @@ From CC, Cedille inherits the following type constructs:
    • λ x : T .  T’ – this is a type-level function over terms x of type
      T.
    • T t – this is applying a type-level function T to a term t.
-   • T T’ – this is applying a type-level function T to a type T’.
+   • T · T’ – this is applying a type-level function T to a type T’
+     (note the required center dot).
    • X – type variables are types, of course.
 
 See *note unicode shortcuts:: for how to type these symbols in Cedille
@@ -200,7 +210,8 @@ with some term t’, the notation in Cedille is t -t’.
 ================
 
 The syntax and semantics of Cedille are described in this document on
-arXiv (https://arxiv.org/abs/1806.04709).
+arXiv (https://arxiv.org/abs/1806.04709).  You can also find this in the
+docs/semantics subdirectory of this distribution.
 
 The paper first showing how to derive induction for an inductive type in
 Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
@@ -210,6 +221,16 @@ File: cedille-info-main.info,  Node: tooling,  Next: cedille mode commands,  Pre
 
 2 Architecture of Cedille
 *************************
+
+Cedille is implemented in around 10kloc of elisp + Agda.  There is an
+emacs Cedille mode for reading and writing Cedille code using *note
+unicode shortcuts::.  Most importantly, from Cedille mode one can
+request that the Cedille backend process the current Cedille source
+buffer, and enter Cedille navigation mode.  In Cedille navigation mode,
+a rich amount of type information computed from the backend is available
+and can be viewed node by node of the abstract syntax tree for the text
+of the buffer.  One navigates this tree using individual keystrokes (in
+Cedille navigation mode) like p and n.  *Note cedille mode commands::
 
 
 File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: tooling,  Up: Top
@@ -848,19 +869,19 @@ Index
 
 Tag Table:
 Node: Top95
-Node: about976
-Node: tooling10295
-Node: cedille mode commands10450
-Node: unicode shortcuts13634
-Node: extra buffers15750
-Node: inspect buffer17094
-Node: summary buffer18289
-Node: meta-vars buffer19102
-Node: beta-reduce mode20133
-Node: context buffer21318
-Node: credits23345
-Node: options24510
-Node: Index25689
+Node: about962
+Node: tooling10822
+Node: cedille mode commands11609
+Node: unicode shortcuts14793
+Node: extra buffers16909
+Node: inspect buffer18253
+Node: summary buffer19448
+Node: meta-vars buffer20261
+Node: beta-reduce mode21292
+Node: context buffer22477
+Node: credits24504
+Node: options25669
+Node: Index26848
 
 End Tag Table
 
