@@ -243,11 +243,11 @@ hnf{KIND} Γ no-unfolding e hd = e
 hnf{KIND} Γ u (KndParens _ k _) hd = hnf Γ u k hd
 hnf{KIND} Γ (unfold _ _ _ _) (KndVar _ x ys) _ with ctxt-lookup-kind-var-def Γ x 
 ... | nothing = KndVar posinfo-gen x ys
-... | just (ps , k) = do-subst ys ps k
+... | just (ps , k) = fst $ subst-params-args Γ ps ys k {- do-subst ys ps k
   where do-subst : args → params → kind → kind
         do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
         do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
-        do-subst _ _ k = k -- should not happen 
+        do-subst _ _ k = k -- should not happen -}
 
 hnf{KIND} Γ u (KndPi _ _ x atk k) hd =
     if is-free-in check-erased x k then
@@ -398,16 +398,11 @@ ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
 ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-occs d) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
   (trie-insert-append2 syms fn mn v , mn-fn)
-  (trie-insert i (mn # v) (kind-def ps1 (h Γ ps2) k' , fn , pi))
+  (trie-insert i (mn # v) (kind-def (append-params ps1 $ qualif-params Γ ps2) k' , fn , pi))
   symb-occs
   d
   where
-    k' = hnf Γ unfold-head (qualif-kind Γ k) tt
-    h : ctxt → params → params
-    h Γ@(mk-ctxt (_ , mn , _ , _) _ _ _ _) (ParamsCons (Decl _ _ me x atk _) ps) =
-      ParamsCons (Decl posinfo-gen posinfo-gen me x (qualif-tk Γ atk) posinfo-gen)
-        (h (ctxt-var-decl x Γ) ps)
-    h _ ps = ps
+  k' = hnf Γ unfold-head (qualif-kind Γ k) tt
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-datatype-def : posinfo → var → params → kind → defDatatype → ctxt → ctxt

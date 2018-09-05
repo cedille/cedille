@@ -71,13 +71,9 @@ ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os d) =
 ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
 ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os d) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
-  (trie-insert is x' (kind-def ps1 (h Γ ps2) k' , fn , posinfo-gen)) os d
+  (trie-insert is x' (kind-def (append-params ps1 $ qualif-params Γ ps2) k' , fn , posinfo-gen)) os d
   where
     k' = hnf Γ unfold-head k tt
-    h : ctxt → params → params
-    h Γ (ParamsCons (Decl pi pi' me x atk pi'') ps) =
-      ParamsCons (Decl pi pi' me (pi' % x) (qualif-tk Γ atk) pi'') (h (ctxt-tk-decl pi' x atk Γ) ps)
-    h _ ps = ps
 
 ctxt-lookup-term-var' : ctxt → var → maybe type
 ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) x =

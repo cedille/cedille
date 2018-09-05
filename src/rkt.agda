@@ -88,7 +88,7 @@ rkt-from-sym-info n (type-decl x , _)
   = rkt-dbg "type-decl:"            [[]]
 rkt-from-sym-info n (type-def _ _ _ _ , _)
   = rkt-dbg "type-def:"             [[]]
-rkt-from-sym-info n (kind-def _ _ _ , _)
+rkt-from-sym-info n (kind-def _ _ , _)
   = rkt-dbg "kind-def:"             [[]]
 rkt-from-sym-info n (rename-def v , _)
   -- TODO Not implemented!

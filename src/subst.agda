@@ -252,3 +252,8 @@ substs-args Γ = substh-args Γ empty-renamectxt
 
 substs-params : substs-ret-t params
 substs-params Γ = substh-params Γ empty-renamectxt
+
+subst-params-args : ∀ {ed} → ctxt → params → args → ⟦ ed ⟧ → ⟦ ed ⟧ × params × args
+subst-params-args Γ (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) t =
+  subst-params-args Γ (substs-params Γ (trie-single x a) ps) as (subst Γ a x t)
+subst-params-args Γ ps as t = t , ps , as

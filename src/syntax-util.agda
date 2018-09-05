@@ -695,11 +695,11 @@ unqual-bare q sfx v with trie-lookup q sfx
 ... | nothing = v
 
 unqual-local : var → var
-unqual-local v = f (string-to-𝕃char v) [] where
-  f : 𝕃 char → 𝕃 char → string
-  f [] acc = 𝕃char-to-string (reverse acc)
-  f ('@' :: t) acc = f t []
-  f (h :: t) acc = f t (h :: acc)
+unqual-local v = f (string-to-𝕃char v)where
+  f : 𝕃 char → string
+  f [] = v
+  f ('@' :: t) = 𝕃char-to-string t
+  f (h :: t) = f t
 
 unqual-all : qualif → var → string
 unqual-all q v with var-suffix v

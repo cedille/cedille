@@ -208,7 +208,7 @@ ctxt-lookup-type-var-def Γ v with env-lookup Γ v
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def Γ x with env-lookup Γ x
-... | just (kind-def ps1 ps2 k , _) = just (append-params ps1 ps2 , k)
+... | just (kind-def ps k , _) = just (ps , k)
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def-args : ctxt → var → maybe (params × args)

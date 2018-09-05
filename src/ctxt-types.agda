@@ -56,7 +56,7 @@ data ctxt-info : Set where
   type-def : defParams → opacity → type → kind → ctxt-info
 
   -- for defining a variable to equal a kind
-  kind-def : params → params → kind → ctxt-info
+  kind-def : params → kind → ctxt-info
 
   -- to rename a variable at any level to another
   rename-def : var → ctxt-info
