@@ -115,8 +115,8 @@ spanM-set-params : params → spanM ⊤
 spanM-set-params ps Γ ss = returnM (triv , (ctxt-params-def ps Γ) , ss)
 
 -- this returns the previous ctxt-info, if any, for the given variable
-spanM-push-term-decl : posinfo → defScope → var → type → spanM restore-def
-spanM-push-term-decl pi s x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-decl pi s x t Γ , ss)
+spanM-push-term-decl : posinfo → var → type → spanM restore-def
+spanM-push-term-decl pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-decl pi x t Γ , ss)
 
 -- let bindings currently cannot be made opaque, so this is OpacTrans. -tony
 spanM-push-term-def : posinfo → var → term → type → spanM restore-def
@@ -126,8 +126,8 @@ spanM-push-term-udef : posinfo → var → term → spanM restore-def
 spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-udef pi localScope OpacTrans x t Γ , ss)
  
  -- return previous ctxt-info, if any
-spanM-push-type-decl : posinfo → defScope → var → kind → spanM restore-def
-spanM-push-type-decl pi s x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-decl pi s x k Γ , ss)
+spanM-push-type-decl : posinfo → var → kind → spanM restore-def
+spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-decl pi x k Γ , ss)
 
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
 spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x t T Γ , ss)
@@ -414,10 +414,13 @@ tk-data : ctxt → tk → tagged-val
 tk-data Γ (Tkk k) = kind-data Γ k
 tk-data Γ (Tkt t) = type-data Γ t
 
+checking-to-string : checking-mode → string
+checking-to-string checking = "checking"
+checking-to-string synthesizing = "synthesizing"
+checking-to-string untyped = "untyped"
+
 checking-data : checking-mode → tagged-val
-checking-data checking = "checking-mode" , [[ "checking" ]] , []
-checking-data synthesizing = "checking-mode" , [[ "synthesizing" ]] , []
-checking-data untyped = "checking-mode" , [[ "untyped" ]] , []
+checking-data cm = "checking-mode" , [[ checking-to-string cm ]] , []
 
 checked-meta-var : var → tagged-val
 checked-meta-var x = "checked meta-var" , [[ x ]] , []

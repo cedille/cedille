@@ -1,9 +1,0 @@
-module Tests.ScopingBug.
-True ◂ ★ = ∀ X : ★ . X ➔ X .
-triv ◂ True = Λ X . λ x . x .
-
-val ◂ True = triv .
-thm ◂ val ≃ triv = β .
-
-test ◂ ∀ A : ★ . ∀ val : A . val ≃ triv =
-  Λ A . Λ val . ρ thm - β .

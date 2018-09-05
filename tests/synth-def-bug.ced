@@ -1,5 +1,0 @@
-module synth-def-bug.
-
-a = Λ X : ★. λ x : X. x.
-b ◂ ∀ X : ★. X ➔ X = a.
-c ◂ ∀ X : ★. X ➔ X = [d = Λ X : ★. λ x : X. x] - d.

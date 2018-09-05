@@ -17,11 +17,6 @@ AUTOGEN = \
 	cws-main.agda \
 	templates.agda
 
-#GRAMMARS = \
-#	cedille.gr \
-#	options.gr \
-#	cws.gr
-
 AGDASRC = \
 	to-string.agda \
 	constants.agda \
@@ -83,7 +78,6 @@ FILES = $(AUTOGEN) $(AGDASRC)
 SRC = $(FILES:%=$(SRCDIR)//%)
 OBJ = $(SRC:%.agda=%.agdai)
 
-#LIB = --library-file=libraries --library=ial --library=gratr-agda --library=cedille
 LIB = --library-file=libraries --library=ial --library=cedille
 
 all: cedille # elisp
@@ -106,7 +100,7 @@ libraries:
 ./src/CedilleOptionsLexer.hs: parser/src/CedilleOptionsLexer.x
 	cd parser; make cedille-options-lexer
 
-./src/templates.agda: $(TEMPLATES)
+./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 cedille:	$(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
@@ -140,6 +134,14 @@ cws-main: $(SRCDIR)/cws-main.agda
 cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
 
+cedille-deb-pkg:
+	mkdir -p ./cedille-deb-pkg/usr/bin/
+	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
+	mkdir -p ./cedille-deb-pkg/debian/
+	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
+	cp ./cedille ./cedille-deb-pkg/usr/bin/
+	cp ./cedille-deb-control ./cedille-deb-pkg/debian/control
+
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
 
@@ -151,9 +153,6 @@ lines:
 
 elisp-lines:
 	wc -l $(CEDILLE_ELISP)
-
-#grammar-lines:
-#	wc -l $(GRAMMARS:%=$(SRCDIR)//%)
 
 agda-lines:
 	wc -l $(AGDASRC:%=$(SRCDIR)//%)

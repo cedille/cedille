@@ -348,5 +348,5 @@ cvIndFixIndM ◂
         θ<indices gr> (indCoend · (CVProduct · F) · R -indices gr)
           (Λ R'. Λ indices. Λ i2. λ fr. θ<fr> (SigmaInd fr)
             (λ a. λ b. ρ b.2 - prf · R'
-              -[Λ indices. λ r. cast -i -indices (cast -i2 -indices r), β] b.1 -b.2
+              -[Λ indices. λ r. cast -i -indices (cast -i2 -indices r), β] -b.1 -b.2
               (Λ indices. λ r'. ih -indices (cast -i2 -indices r')) -indices a))).

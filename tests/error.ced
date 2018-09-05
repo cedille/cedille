@@ -1,7 +1,0 @@
-module Tests.Error.
-% run first, then change Fale to False and see the lagging error
-Fale ◂ ★ = ∀ X : ★ . X .
-
-True ◂ ★ = False ➔ False.
-
-

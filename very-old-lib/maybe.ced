@@ -1,9 +1,0 @@
-rec Maybe(A : ★) | just : A ➔ Maybe , nothing : Maybe =
-  ∀ P : Maybe ➔ ★ .
-    (Π a : A . P (just a)) ➔ P nothing ➔ P self
-with
-  just = λ a . Λ P . λ j . λ n . j a ,
-  nothing = Λ P . λ j . λ n .  n .
-
-maybeBind ◂ ∀ A : ★ . ∀ B : ★ . Maybe · A ➔ (A ➔ Maybe · B) ➔ Maybe · B =
-  Λ A . Λ B . λ m . λ m' . θ m (λ a . m' a) (nothing · B) .

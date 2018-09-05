@@ -1,6 +1,6 @@
 ;;;;;;;;;; Cedille Meta-Vars Buffer ;;;;;;;;;;
 
-(defstruct meta-var kind sol file start-intro end-intro start-sol end-sol)
+(defstruct meta-var kind sol cm file start-intro end-intro start-sol end-sol)
 
 (defvar cedille-mode-meta-vars-list nil
   "List of (name . meta-var)")
@@ -36,9 +36,9 @@
   (append (assq-delete-all key alist) (list (cons key new-value))))
 
 (defun cedille-mode-meta-vars-split (meta-var)
-  "Splits the string \"name value\" into (name . value)"
+  "Splits the string \"name [cm] value\" (cm is optional) into triple (name . cm . value)"
   (let ((split (split-string meta-var " ")))
-    (cons (car split) (mapconcat (lambda(x)x) (cdr split) " "))))
+    (cons (car split) (cons (cadr split) (mapconcat 'identity (cddr split) " ")))))
 
 (defun cedille-mode-meta-vars-collect (key alist)
   "Collects all values from ALIST with key KEY into a list"
@@ -57,7 +57,7 @@
       (while introduced-meta-vars
         (let* ((name-kind (pop introduced-meta-vars))
                (name (intern (car name-kind)))
-               (kind (cdr name-kind))
+               (kind (cddr name-kind))
                (mv (or
                     (cdr (assoc name meta-vars))
                     (make-meta-var
@@ -67,11 +67,13 @@
                      :end-intro (se-term-end node)))))
           (setq meta-vars (cedille-mode-set-assoc-value meta-vars name mv))))
       (while solved-meta-vars
-        (let* ((name-sol (pop solved-meta-vars))
-               (name (intern (car name-sol)))
-               (sol (cdr name-sol))
+        (let* ((name-cm-sol (pop solved-meta-vars))
+               (name (intern (car name-cm-sol)))
+               (cm (cadr name-cm-sol))
+               (sol (cddr name-cm-sol))
                (mv (cdr (assoc name meta-vars)))) ; Assumed to exist
           (setf (meta-var-sol mv) sol
+                (meta-var-cm mv) cm
                 (meta-var-start-sol mv) (se-term-start node)
                 (meta-var-end-sol mv) (se-term-end node))
           (setf (cdr (assoc name meta-vars)) mv)))
@@ -91,7 +93,7 @@
    (meta-var-kind mv)
    (when (meta-var-sol mv)
      (concat
-      (se-pin-data 1 2 'loc (list (cons 'fn (meta-var-file mv)) (cons 's (number-to-string (meta-var-start-sol mv))) (cons 'e (number-to-string (meta-var-end-sol mv)))) " = ")
+      (se-pin-data 1 2 'loc (list (cons 'fn (meta-var-file mv)) (cons 's (number-to-string (meta-var-start-sol mv))) (cons 'e (number-to-string (meta-var-end-sol mv)))) (if (string= (meta-var-cm mv) "checking") " ◂ " " = "))
       (meta-var-sol mv)
       ))
    "\n"))
