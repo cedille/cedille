@@ -9,19 +9,21 @@ difference is that in a Curry-style (aka extrinsic) type theory, type
 annotations are merely hints to the type checker, and the ``real''
 terms (the subjects of metatheoretic analysis, for example) are
 completely unannotated.  Thus, such annotations can be erased during
-compilation and during formal reasoning (in particular during
+compilation and during formal reasoning; in particular during
 conversion checking, where the type checker tests whether two terms
-are definitionally equal).  In contrast, with Church-style (aka
+are definitionally equal.  In contrast, with Church-style (aka
 intrinsic) type theory, the annotations are ``really there'', and must
 be preserved during compilation and conversion.
 
-For an example, consider the term Λ X : ★ . λ x : X . x.  In Church-style
-type theory, the annotations giving the classifiers for X and x are truly
-part of the term, and the theory itself does not allow for them to be erased.
-In contrast, in a Curry-style type theory like CDLE, those annotations are
-just hints to help the type checker see how to assign the type ∀ X : ★ . X ➔ X
-to λ x . x.  The type theory has a notion of erasure, and conversion 
-compares the erasures of terms rather than the annotated terms.  
+For an example, consider the polymorphic identity function Λ X : ★ . λ
+x : X . x.  In Church-style type theory, the binder introducting the
+type variable X and the annotation giving the classifier for x are
+truly part of the term, and the theory itself does not allow for them
+to be erased.  In contrast, in a Curry-style type theory like CDLE,
+those annotations are just hints to help the type checker see how to
+assign the type ∀ X : ★ . X ➔ X to λ x . x.  The type theory has a
+notion of erasure, and conversion compares the erasures of terms
+rather than the annotated terms.
 
 @section Cedille extends the Calculus of Constructions
 
@@ -38,6 +40,13 @@ omitted not for any really fundamental reason (that we know of).
 Omitting the system of primitive inductive types, however, is one of
 the chief goals of Cedille, and will be discussed more below.
 
+The language is divided into three layers: terms, types, and kinds.  Terms
+are the programs we intend eventually to execute, or to use as proofs.
+Types describe programs, and under the Curry-Howard isomorphism which
+Cedille makes use of, can be seen as formulas to be proved.  Kinds are the
+classifiers for types.  So in Cedille we have
+
+term : type : kind
 
 @section The type constructs of Cedille
 
@@ -49,7 +58,7 @@ From CC, Cedille inherits the following type constructs:
 @item λ X : 𝒌 . T -- this is a type-level function over types X of kind 𝒌.
 @item λ x : T . T' -- this is a type-level function over terms x of type T.
 @item T t -- this is applying a type-level function T to a term t.
-@item T T' -- this is applying a type-level function T to a type T'.
+@item T · T' -- this is applying a type-level function T to a type T' (note the required center dot).
 @item X -- type variables are types, of course.
 @end itemize
 
@@ -166,7 +175,8 @@ with some term t', the notation in Cedille is t -t'.
 @section More reading 
 
 The syntax and semantics of Cedille are described in this document
-@uref{https://arxiv.org/abs/1806.04709, on arXiv}.
+@uref{https://arxiv.org/abs/1806.04709, on arXiv}.  You can also
+find this in the docs/semantics subdirectory of this distribution.
 
 The paper first showing how to derive induction for an inductive type
 in Cedille is @uref{https://doi.org/10.1016/j.apal.2018.03.002, here}.

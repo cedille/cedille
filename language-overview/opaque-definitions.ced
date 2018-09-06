@@ -1,0 +1,30 @@
+module OpaqueDefinitions.
+
+{- if you mark definitions as opaque, Cedille will never expand them
+   during conversion checking, unless you explicitly open them.
+   The point of opaque definitions is to support abstraction,
+   which in Cedille is all the more needed as the basic terms are
+   just pure lambda terms.  With lambda encodings, terms can quickly
+   become large and hard to read.  Marking definitions as opaque can
+   help mitigate this.  Below is an example. -}
+
+opaque cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
+opaque cZ ◂ cNat = open cNat - Λ X . λ f . λ a . a .
+opaque cS ◂ cNat ➔ cNat = λ n . open cNat - Λ X . λ f . λ a . f (n · X f a) .
+
+redS ◂ ∀ X : ★ . ∀ f : X ➔ X . ∀ a : X . ∀ n : cNat . { cS n f a ≃ f (n f a) } =
+  Λ X . Λ f . Λ a . Λ n . open cS - β.
+
+redZ ◂ ∀ X : ★ . ∀ f : X ➔ X . ∀ a : X . ∀ n : cNat . { cZ f a ≃ a } =
+  Λ X . Λ f . Λ a . Λ n . open cZ - β.
+
+add ◂ cNat ➔ cNat ➔ cNat =
+  λ n . λ m .
+    open cNat - n cS m .
+
+{- in the course of the reasoning below, we never see a lambda-encoded number,
+   just applications of cS and cZ (and add). -}
+add-test ◂ ∀ n : cNat . ∀ m : cNat . { add (cS (cS n)) m ≃ cS (cS (add n m)) } =
+  Λ n . Λ m .
+    ρ (redS -cS -m -(cS n)) -
+    ρ (redS -cS -m -n) - β .

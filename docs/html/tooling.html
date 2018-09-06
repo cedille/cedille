@@ -57,6 +57,16 @@ Next: <a href="cedille-mode-commands.html#cedille-mode-commands" accesskey="n" r
 <a name="Architecture-of-Cedille"></a>
 <h2 class="chapter">2 Architecture of Cedille</h2>
 
+<p>Cedille is implemented in around 10kloc of elisp + Agda.  There is an
+emacs Cedille mode for reading and writing Cedille code using
+<a href="unicode-shortcuts.html#unicode-shortcuts">unicode shortcuts</a>.  Most importantly, from Cedille mode one can
+request that the Cedille backend process the current Cedille source
+buffer, and enter Cedille navigation mode.  In Cedille navigation
+mode, a rich amount of type information computed from the backend is
+available and can be viewed node by node of the abstract syntax tree
+for the text of the buffer.  One navigates this tree using individual
+keystrokes (in Cedille navigation mode) like p and n.  See <a href="cedille-mode-commands.html#cedille-mode-commands">cedille mode commands</a>
+</p>
 
 
 

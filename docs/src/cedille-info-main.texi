@@ -14,7 +14,7 @@ This is the documentation for the Cedille language and its implementation.
 
 @menu
 * about::                        About Cedille's type theory and implementation
-* tooling::                      How Cedille's implementation is set up
+* tooling::                      How Cedille is implemented
 * cedille mode commands::       Cedille navigation mode shortcuts with brief descriptions
 * unicode shortcuts::            Keyboard shortcuts for unicode symbols
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
