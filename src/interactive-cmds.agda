@@ -173,11 +173,10 @@ private
           (λ t t' → t') (λ t t' → t') ll' t t')))
       else inj₂ (to-string-tag "" Γ' t')
   
-  normalize-prompt : ctxt → (str hd pi : string) → 𝕃 string → string ⊎ tagged-val
-  normalize-prompt Γ str hd pi ls =
+  normalize-prompt : ctxt → (str hd : string) → 𝕃 string → string ⊎ tagged-val
+  normalize-prompt Γ str hd ls =
     string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
-    string-to-ℕ - pi ! "natural number" ≫parse λ sp →
-    let Γ' = get-local-ctxt Γ sp ls in
+    let Γ' = merge-lcis-ctxt Γ ls in
     parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
     inj₂ (to-string-tag "" Γ' (hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt))
   
@@ -189,10 +188,9 @@ private
     let Γ' = get-local-ctxt Γ sp ls in
     inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
   
-  erase-prompt : ctxt → (str pi : string) → 𝕃 string → string ⊎ tagged-val
-  erase-prompt Γ str pi ls =
-    string-to-ℕ - pi ! "natural number" ≫parse λ sp →
-    let Γ' = get-local-ctxt Γ sp ls in
+  erase-prompt : ctxt → (str : string) → 𝕃 string → string ⊎ tagged-val
+  erase-prompt Γ str ls =
+    let Γ' = merge-lcis-ctxt Γ ls in
     parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
     inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
 
@@ -275,10 +273,10 @@ private
     normalize-cmd Γ input ll sp head do-erase lc
   interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =
     erase-cmd Γ input ll sp lc
-  interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: sp :: lc) =
-    normalize-prompt Γ input head sp lc
-  interactive-cmd-h Γ ("erasePrompt" :: input :: sp :: lc) =
-    erase-prompt Γ input sp lc
+  interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: lc) =
+    normalize-prompt Γ input head lc
+  interactive-cmd-h Γ ("erasePrompt" :: input :: lc) =
+    erase-prompt Γ input lc
   interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: lc) =
     conv-cmd Γ ll ss is lc
   interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =

@@ -109,7 +109,7 @@
   "Converts CTXT into a string suitable to be sent to the backend"
   (let* ((terms (car ctxt));(cedille-mode-normalize-shadow-filter (car ctxt)))
 	 (types (cdr ctxt));(cedille-mode-normalize-shadow-filter (cdr ctxt)))
-	 (out "")
+	 (out nil)
 	 (split (lambda (item)
 		  (let ((loc (cdr (assoc 'location item)))
 			(del " - "))
@@ -123,22 +123,12 @@
                         (loc (funcall split item))
                         (value (cdr (assoc 'value item)))
                         (bv (or (cdr (assoc 'bound-value item)) "")))
-                   (setq out (cedille-mode-concat-sep out str (car item) bv value (car loc) (cdr loc))))))))
-    ;(while terms
-    ;  (let* ((item (pop terms))
-;	     (loc (funcall split item))
-;	     (value (cdr (assoc 'value item)))
-;	     (bv (or (cdr (assoc 'bound-value item)) "")))
-;	(setq out (cedille-mode-concat-sep out "term" (car item) bv value (car loc) (cdr loc)))))
-;    (while types
-;      (let* ((item (pop types))
-;	     (loc (funcall split item))
-;	     (value (cdr (assoc 'value item)))
-;	     (bv (or (cdr (assoc 'bound-value item)) "")))
-;	(setq out (cedille-mode-concat-sep out "type" (car item) bv value (car loc) (cdr loc)))))
+                   (if out
+                       (setq out (cedille-mode-concat-sep out str (car item) bv value (car loc) (cdr loc)))
+                     (setq out (cedille-mode-concat-sep str (car item) bv value (car loc) (cdr loc)))))))))
     (funcall mk "term" terms)
     (funcall mk "type" types)
-    out))
+    (or out "")))
 
 (defun cedille-mode-normalize-shadow-filter(lst)
   (let (shadowed-lst)
