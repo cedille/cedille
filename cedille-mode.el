@@ -401,8 +401,8 @@ Updates info buffer in either case"
           (let ((inhibit-message t))
             (se-mode-select (se-mode-left-spine (car (se-mode-parse-tree))))
             (cedille-mode-select-first-child 1))
-        (message "No next span"))))
-  (cedille-mode-select-next-alt (- count 1)))
+        (message "No next span")))
+    (cedille-mode-select-next-alt (- count 1))))
 
 (defun cedille-mode-select-previous-alt (count)
   "Selects the previous sibling of the currently selected node;
@@ -421,8 +421,8 @@ Updates info buffer in either case."
           (let ((inhibit-message t))
             (se-mode-select (se-last-span (se-mode-parse-tree)))
             (cedille-mode-select-first-child 1))
-        (message "No previous span"))))
-  (cedille-mode-select-previous-alt (- count 1)))
+        (message "No previous span")))
+    (cedille-mode-select-previous-alt (- count 1))))
 
 (defun cedille-mode-select-parent(count)
   "Selects the parent of the currently selected node in 
