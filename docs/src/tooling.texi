@@ -2,7 +2,7 @@
 
 @chapter Architecture of Cedille
 
-Cedille is implemented in around 10kloc of elisp + Agda.  There is an
+Cedille is implemented in around 13kloc of elisp + Agda.  There is an
 emacs Cedille mode for reading and writing Cedille code using
 @ref{unicode shortcuts}.  Most importantly, from Cedille mode one can
 request that the Cedille backend process the current Cedille source
@@ -10,4 +10,44 @@ buffer, and enter Cedille navigation mode.  In Cedille navigation
 mode, a rich amount of type information computed from the backend is
 available and can be viewed node by node of the abstract syntax tree
 for the text of the buffer.  One navigates this tree using individual
-keystrokes (in Cedille navigation mode) like p and n.  @xref{cedille mode commands}
+keystrokes (in Cedille navigation mode) like p and n.  One can also
+issue interactive commands, even use a beta-reduction explorer.
+@xref{cedille mode commands} There are several @ref{extra buffers}
+available to display information about the current node (the inspect
+buffer), current typing context, meta-variable solutions, and summary
+information for the source file.
+
+Additionally, one can request that Cedille compile a given source
+buffer and its dependencies to Cedille Core, a much more minimalistic
+core type theory lacking many of the nice features of Cedille,
+especially spine-local type inference.  @code{core} contains an implementation
+of Cedille Core in Haskell.  There is a specification of Cedille Core
+@uref{https://github.com/astump/cedille-core-spec, here}.
+
+@section Spans
+
+The frontend (i.e., the emacs mode) sends request to the backend in a
+simple text format.  The backend replies with @emph{spans}, which
+consist of a starting and ending character position in the file, a
+name for the node, and a list of attribute-value pairs.  The inspect
+buffer, which one views with keystroke @key{i} when a span is
+highlighted (with @key{p}), shows this information.  Some of the
+attribute-value pairs are suppressed by default, because they are
+intended just for use by the frontend.  You can see them if you wish
+by changing the setting of the Cedille Mode Debug customization
+variable; to do this, use keystroke @key{$} from Cedille navigation
+mode to see customization options, or do @command{customize-group} @code{cedille}.
+
+Spans for file @code{F} are cached in a @code{F.cede} file written to
+a @code{.cedille} subdirectory of @code{F}'s directory.  Spans are
+stored and transmitted to the frontend in JSON format.  Hence, one
+can easily read the span data directly -- but you will find that it
+is very verbose and much easier to understand through the emacs mode.
+
+The @code{se-mode} (``structured editing'', though it is really just
+structured navigation) part of the elisp code is concerned with
+processing the spans and assembly an abstract syntax tree based on
+span containment.  @code{se-mode} is generic, and can be used as the
+basis for structured navigation for other languages.  @code{se-mode}
+was proposed, designed, and implemented by U. Iowa undergraduate Carl
+Olson, before the current Cedille implementation began.
