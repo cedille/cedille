@@ -3,6 +3,7 @@ module syntax-util where
 open import lib
 open import cedille-types
 open import general-util
+open import constants
 
 posinfo-gen : posinfo
 posinfo-gen = "generated"
@@ -70,10 +71,10 @@ star = Star posinfo-gen
 
 -- qualify variable by module name
 _#_ : string → string → string
-fn # v = fn ^ "." ^  v
+fn # v = fn ^ qual-global-str ^  v
 
 _%_ : posinfo → var → string
-pi % v = pi ^ "@" ^ v
+pi % v = pi ^ qual-local-str ^ v
 
 compileFail : var
 compileFail = "compileFail"
@@ -657,7 +658,7 @@ is-rho-plus _ = ff
 
 split-var-h : 𝕃 char → 𝕃 char × 𝕃 char
 split-var-h [] = [] , []
-split-var-h ('.' :: xs) = [] , xs
+split-var-h (qual-global-chr :: xs) = [] , xs
 split-var-h (x :: xs) with split-var-h xs
 ... | xs' , ys = (x :: xs') , ys
 
@@ -695,11 +696,14 @@ unqual-bare q sfx v with trie-lookup q sfx
 ... | nothing = v
 
 unqual-local : var → var
-unqual-local v = f (string-to-𝕃char v)where
-  f : 𝕃 char → string
-  f [] = v
-  f ('@' :: t) = 𝕃char-to-string t
+unqual-local v = f' (string-to-𝕃char v) where
+  f : 𝕃 char → maybe (𝕃 char)
+  f [] = nothing
+  f ('@' :: t) = just t
   f (h :: t) = f t
+  f' : 𝕃 char → string
+  f' (meta-var-pfx :: t) = maybe-else' (f t) v (𝕃char-to-string ∘ _::_ meta-var-pfx)
+  f' t = maybe-else' (f t) v 𝕃char-to-string
 
 unqual-all : qualif → var → string
 unqual-all q v with var-suffix v
@@ -811,7 +815,7 @@ optNums-to-stringset (SomeNums ns) with nums-to-stringset ns
 ------------------------------------------------------
 nlam : ℕ → term → term
 nlam 0 t = t
-nlam (suc n) t = mlam "_" (nlam n t)
+nlam (suc n) t = mlam ignored-var (nlam n t)
 
 delta-contra-app : ℕ → (ℕ → term) → term
 delta-contra-app 0 nt = mvar "x"

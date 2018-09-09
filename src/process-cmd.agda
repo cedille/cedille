@@ -194,7 +194,7 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
     with-ctxt (toplevel-state.Γ s)
       (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v psᵢ as) ≫span
-    spanMr ((maybe-if optPublic-is-public op) ≫maybe
+    spanMr (maybe-if (optPublic-is-public op) ≫maybe
             public-import-params-ok psₒ (qualif-args (toplevel-state.Γ s) as))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefDatatype dd@(Datatype pi pix x ps k cs _) pi') _  =

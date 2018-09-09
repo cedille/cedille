@@ -6,6 +6,7 @@ open import lib
 open import functions
 
 open import cedille-types
+open import constants
 open import conversion
 open import ctxt
 open import is-free
@@ -323,10 +324,10 @@ decortype-to-string (decor-error tp pt) =
 meta-vars-data-h : ctxt → string → kind ∨ (meta-var-sol type) → tagged-val
 meta-vars-data-h Γ X (inj₁ k) =
   strRunTag "meta-vars-intro" Γ
-    (strAdd (X ^ "  ") ≫str to-stringh k)
+    (strAdd (unqual-local X ^ "  ") ≫str to-stringh k)
 meta-vars-data-h Γ X (inj₂ sol) =
   strRunTag "meta-vars-sol" Γ $
-  strAdd (X ^ " ") ≫str
+  strAdd (unqual-local X ^ " ") ≫str
   strAdd (checking-to-string (meta-var-sol.src sol) ^ " ") ≫str
   (to-stringh ∘ meta-var-sol.sol $ sol)
 
@@ -399,7 +400,7 @@ meta-var-fresh-t S = meta-vars → var → span-location → S → meta-var
 
 meta-var-fresh : meta-var-fresh-t meta-var-sort
 meta-var-fresh Xs x sl sol
-  with rename-away-from ("?" ^ x) (trie-contains (varset Xs)) empty-renamectxt
+  with rename-away-from (meta-var-pfx-str ^ x) (trie-contains (varset Xs)) empty-renamectxt
 ... | x' = meta-var-mk x' sol sl
 
 meta-var-fresh-tp : meta-var-fresh-t (kind × maybe (meta-var-sol type))

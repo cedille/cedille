@@ -73,6 +73,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "t") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "s") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "S") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "m") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "M") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
     (se-navi-define-key 'cedille-br-mode (kbd "C-i e") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i b") #'se-navi-nothing)
@@ -372,7 +374,7 @@
                        (T (cadr xT)))
                   (concat "ρ " (if ,cedille-mode-br-checking "ς " "") (cedille-mode-br-add-parens ,input) " @ " x " . " (format new-str T) " - "))))
              (extra (cons (current-buffer) (cons cedille-mode-br-checking (cons op-fn1 op-fn2))))
-             (q (concat
+             (q (cedille-mode-concat-sep
                  "interactive"
                  "rewrite"
                  (buffer-substring (se-span-start span) (se-span-end span))

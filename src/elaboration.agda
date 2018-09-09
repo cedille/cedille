@@ -672,7 +672,7 @@ elab-imports ts ρ φ μ (ImportsNext (Import _ op _ ifn oa as _) is) =
   where
   get-all-deps : filepath → stringset → stringset
   get-all-deps fp fs = maybe-else fs (foldr get-all-deps $ stringset-insert fs fp)
-    ((maybe-not trie-lookup fs fp) ≫=maybe λ _ →
+    ((maybe-not $ trie-lookup fs fp) ≫=maybe λ _ →
      get-include-elt-if ts fp ≫=maybe
      (just ∘ include-elt.deps))
   add-imports : toplevel-state → renamectxt → 𝕃 string → maybe imports → maybe imports

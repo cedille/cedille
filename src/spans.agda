@@ -479,6 +479,10 @@ keywords-data-var e =
 keywords-app : (is-locale : 𝔹) → tagged-val
 keywords-app l = keywords-data ([ keyword-application ] ++ (if l then [ keyword-locale ] else []))
 
+keywords-app-if-typed : checking-mode → (is-locale : 𝔹) → 𝕃 tagged-val
+keywords-app-if-typed untyped l = []
+keywords-app-if-typed _ l = [ keywords-app l ]
+
 error-if-not-eq : ctxt → type → 𝕃 tagged-val → 𝕃 tagged-val × err-m
 error-if-not-eq Γ (TpEq pi t1 t2 pi') tvs = expected-type Γ (TpEq pi t1 t2 pi') :: tvs , nothing
 error-if-not-eq Γ tp tvs = expected-type Γ tp :: tvs , just "This term is being checked against the following type, but an equality type was expected"
@@ -539,10 +543,10 @@ TpApp-span : type → type → checking-mode → 𝕃 tagged-val → err-m → s
 TpApp-span tp tp' check tvs = mk-span "Application of a type to a type" (type-start-pos tp) (type-end-pos tp') (checking-data check :: ll-data-type :: tvs)
 
 App-span : (is-locale : 𝔹) → term → term → checking-mode → 𝕃 tagged-val → err-m → span
-App-span l t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: keywords-app l :: tvs)
+App-span l t t' check tvs = mk-span "Application of a term to a term" (term-start-pos t) (term-end-pos t') (checking-data check :: ll-data-term :: keywords-app-if-typed check l ++ tvs)
 
 AppTp-span : term → type → checking-mode → 𝕃 tagged-val → err-m → span
-AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app ff :: tvs)
+AppTp-span t tp check tvs = mk-span "Application of a term to a type" (term-start-pos t) (type-end-pos tp) (checking-data check :: ll-data-term :: keywords-app-if-typed check ff ++ tvs)
 
 TpQuant-e = 𝔹
 

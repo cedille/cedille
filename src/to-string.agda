@@ -4,18 +4,11 @@ module to-string (options : cedille-options.options) where
 
 open import lib
 open import cedille-types
+open import constants
 open import syntax-util
 open import ctxt
 open import rename
 open import general-util
-
-drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-drop-mod-args Γ me (v , as) = qv , if (v =string qv)
-  then as else maybe-else as
-  (λ n → reverse (drop n (reverse as))) mn
-  where
-  qv = unqual-all (ctxt-get-qualif Γ) v
-  mn = ctxt-qualif-args-length Γ me qv
 
 data expr-side : Set where
   left : expr-side
@@ -95,18 +88,46 @@ no-parens{TK} _ _ _ = tt
 no-parens{QUALIF} _ _ _ = tt
 no-parens{ARG} _ _ _ = tt
 
+drop-spine : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+drop-spine = h do-drop-spine
+  where
+  drop-mod-args : ctxt → maybeErased → spineApp → spineApp
+  drop-mod-args Γ me (v , as) =
+    qv , maybe-else' (maybe-if (~ v =string qv) ≫maybe ctxt-qualif-args-length Γ me qv) as
+           (λ n → reverse (drop n (reverse as)))
+    where
+    qv = unqual-all (ctxt-get-qualif Γ) v
+
+  do-drop-spine = cedille-options.options.show-qualified-vars options
+              nor cedille-options.options.during-elaboration  options
+
+  h : 𝔹 → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  h tt {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ Erased)
+  h tt {TYPE} Γ T = maybe-else' (type-to-spapp T) T (spapp-type ∘ drop-mod-args Γ NotErased)
+  h d Γ x = x
+
+to-string-rewrite : {ed : exprd} → ctxt → ⟦ ed ⟧ → Σi exprd ⟦_⟧
+to-string-rewrite{TERM} Γ (Parens _ t _) = to-string-rewrite Γ t
+to-string-rewrite{TYPE} Γ (TpParens _ T _) = to-string-rewrite Γ T
+to-string-rewrite{KIND} Γ (KndParens _ k _) = to-string-rewrite Γ k
+to-string-rewrite{LIFTINGTYPE} Γ (LiftParens _ lT _) = to-string-rewrite Γ lT
+to-string-rewrite{TK} Γ (Tkt T) = to-string-rewrite Γ T
+to-string-rewrite{TK} Γ (Tkk k) = to-string-rewrite Γ k
+to-string-rewrite{TYPE} Γ (Abs _ me _ ignored-var (Tkt T) T') = , TpArrow T me T'
+to-string-rewrite{KIND} Γ (KndPi _ _ ignored-var (Tkt T) k) = , KndTpArrow T k
+to-string-rewrite{KIND} Γ (KndPi _ _ ignored-var (Tkk k) k') = , KndArrow k k'
+to-string-rewrite{LIFTINGTYPE} Γ (LiftPi _ ignored-var T lT) = , LiftTpArrow T lT
+to-string-rewrite Γ x = , drop-spine Γ x
+
 
 -------------------------------
 strM : Set
-strM = {ed : exprd} → rope → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side →
-  rope × ℕ × 𝕃 tag
+strM = ∀ {ed} → rope → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side → rope × ℕ × 𝕃 tag
 
 to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
 
 strM-Γ : (ctxt → strM) → strM
 strM-Γ f s n ts Γ = f Γ s n ts Γ
-strM-n : (ℕ → strM) → strM
-strM-n f s n = f n s n
 
 infixr 4 _≫str_
 
@@ -140,7 +161,7 @@ make-loc-tag Γ fn s e = make-tag "loc"
 var-loc-tag : ctxt → location → var → (start-from end-from : ℕ) → 𝕃 tag
 var-loc-tag Γ ("missing" , "missing") x start end = []
 var-loc-tag Γ (fn , pos) x start end =
-  [ make-loc-tag Γ fn pos (posinfo-plus-str pos x) start end ]
+  [ make-loc-tag Γ fn pos (posinfo-plus-str pos (unqual-local x)) start end ]
 
 var-tags : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
 var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
@@ -149,8 +170,8 @@ var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
 
 strVar : var → strM
 strVar v s n ts Γ pe lr =
-  let uqv = unqual-local (unqual-all (ctxt-get-qualif Γ) v)
-      uqv' = if cedille-options.options.show-qualified-vars options then v else uqv
+  let uqv = unqual-all (ctxt-get-qualif Γ) v
+      uqv' = if cedille-options.options.show-qualified-vars options then v else unqual-local uqv
       n' = n + (string-length uqv') in
   s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
 
@@ -211,37 +232,14 @@ to-string-ed{TK} = tk-to-stringh
 to-string-ed{ARG} = arg-to-string
 to-string-ed{QUALIF} q = strEmpty
 
-collapse-tk : {ed : exprd} → ⟦ ed ⟧ → Σi exprd ⟦_⟧
-collapse-tk {TK} (Tkt T) = , T
-collapse-tk {TK} (Tkk k) = , k
-collapse-tk t = , t
-
-drop-spine : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-drop-spine = h do-drop-spine
-  where
-  do-drop-spine = cedille-options.options.show-qualified-vars options
-              nor cedille-options.options.during-elaboration  options
-  h : 𝔹 → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  h tt {TERM} Γ t = maybe-else t (spapp-term ∘ drop-mod-args Γ Erased) (term-to-spapp t)
-  h tt {TYPE} Γ T = maybe-else T (spapp-type ∘ drop-mod-args Γ NotErased) (type-to-spapp T)
-  h d Γ x = x
-
-to-stringh'' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
-to-stringh'' {ed} lr t {ed'} s n ts Γ mp lr' =
-  wp (maybe-else (to-string-ed t')
-    (λ pe → if no-parens t' pe lr
-      then to-string-ed t'
-      else (strAdd "(" ≫str to-string-ed t' ≫str strAdd ")")) mp)
-  where
-  t' = drop-spine Γ t
-  wp : strM → rope × ℕ × 𝕃 tag
-  wp s' = if is-parens t' then s' s n ts Γ mp lr else s' s n ts Γ (just t') lr
-
 to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
-to-stringh' lr t = uncurryΣi (to-stringh'' lr) (collapse-tk t) where
-  uncurryΣi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''} →
-              ({a : A} → B a → X) → Σi A B → X
-  uncurryΣi f (, b) = f b
+to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
+  elim-Σi (to-string-rewrite Γ t) λ t' →
+  parens-unless (~ isJust (mp ≫=maybe λ pe → maybe-if (~ no-parens t' pe lr)))
+    (to-string-ed t') s n ts Γ (just t') lr
+  where
+  parens-unless : 𝔹 → strM → strM
+  parens-unless p s = if p then s else (strAdd "(" ≫str s ≫str strAdd ")")
 
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM

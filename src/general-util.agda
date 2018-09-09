@@ -35,11 +35,11 @@ _maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
 (nothing maybe-or ma) = ma
 (just a  maybe-or ma) = just a
 
-maybe-not_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
-maybe-not just a  = nothing
+maybe-not : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
+maybe-not (just a) = nothing
 maybe-not nothing = just triv
 
-maybe-if_ : 𝔹 → maybe ⊤
+maybe-if : 𝔹 → maybe ⊤
 maybe-if tt = just triv
 maybe-if ff = nothing
 
@@ -164,6 +164,10 @@ uncurry f (a , b) = f a b
 elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
             → A × B → (A → B → C) → C
 elim-pair (a , b) f = f a b
+
+elim-Σi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''}
+          → Σi A B → ({a : A} → B a → X) → X
+elim-Σi (, b) f = f b
 
 infixr 0 case_return_of_ case_of_
 
