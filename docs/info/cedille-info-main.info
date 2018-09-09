@@ -222,7 +222,7 @@ File: cedille-info-main.info,  Node: tooling,  Next: cedille mode commands,  Pre
 2 Architecture of Cedille
 *************************
 
-Cedille is implemented in around 10kloc of elisp + Agda.  There is an
+Cedille is implemented in around 13kloc of elisp + Agda.  There is an
 emacs Cedille mode for reading and writing Cedille code using *note
 unicode shortcuts::.  Most importantly, from Cedille mode one can
 request that the Cedille backend process the current Cedille source
@@ -230,7 +230,48 @@ buffer, and enter Cedille navigation mode.  In Cedille navigation mode,
 a rich amount of type information computed from the backend is available
 and can be viewed node by node of the abstract syntax tree for the text
 of the buffer.  One navigates this tree using individual keystrokes (in
-Cedille navigation mode) like p and n.  *Note cedille mode commands::
+Cedille navigation mode) like p and n.  One can also issue interactive
+commands, even use a beta-reduction explorer.  *Note cedille mode
+commands:: There are several *note extra buffers:: available to display
+information about the current node (the inspect buffer), current typing
+context, meta-variable solutions, and summary information for the source
+file.
+
+Additionally, one can request that Cedille compile a given source buffer
+and its dependencies to Cedille Core, a much more minimalistic core type
+theory lacking many of the nice features of Cedille, especially
+spine-local type inference.  ‘core’ contains an implementation of
+Cedille Core in Haskell.  There is a specification of Cedille Core here
+(https://github.com/astump/cedille-core-spec).
+
+2.1 Spans
+=========
+
+The frontend (i.e., the emacs mode) sends request to the backend in a
+simple text format.  The backend replies with _spans_, which consist of
+a starting and ending character position in the file, a name for the
+node, and a list of attribute-value pairs.  The inspect buffer, which
+one views with keystroke <i> when a span is highlighted (with <p>),
+shows this information.  Some of the attribute-value pairs are
+suppressed by default, because they are intended just for use by the
+frontend.  You can see them if you wish by changing the setting of the
+Cedille Mode Debug customization variable; to do this, use keystroke <$>
+from Cedille navigation mode to see customization options, or do
+‘customize-group’ ‘cedille’.
+
+Spans for file ‘F’ are cached in a ‘F.cede’ file written to a ‘.cedille’
+subdirectory of ‘F’’s directory.  Spans are stored and transmitted to
+the frontend in JSON format.  Hence, one can easily read the span data
+directly – but you will find that it is very verbose and much easier to
+understand through the emacs mode.
+
+The ‘se-mode’ (“structured editing”, though it is really just structured
+navigation) part of the elisp code is concerned with processing the
+spans and assembly an abstract syntax tree based on span containment.
+‘se-mode’ is generic, and can be used as the basis for structured
+navigation for other languages.  ‘se-mode’ was proposed, designed, and
+implemented by U. Iowa undergraduate Carl Olson, before the current
+Cedille implementation began.
 
 
 File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: tooling,  Up: Top
@@ -871,17 +912,17 @@ Tag Table:
 Node: Top95
 Node: about962
 Node: tooling10822
-Node: cedille mode commands11609
-Node: unicode shortcuts14793
-Node: extra buffers16909
-Node: inspect buffer18253
-Node: summary buffer19448
-Node: meta-vars buffer20261
-Node: beta-reduce mode21292
-Node: context buffer22477
-Node: credits24504
-Node: options25669
-Node: Index26848
+Node: cedille mode commands13853
+Node: unicode shortcuts17037
+Node: extra buffers19153
+Node: inspect buffer20497
+Node: summary buffer21692
+Node: meta-vars buffer22505
+Node: beta-reduce mode23536
+Node: context buffer24721
+Node: credits26748
+Node: options27913
+Node: Index29092
 
 End Tag Table
 
