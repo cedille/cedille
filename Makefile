@@ -104,7 +104,7 @@ libraries:
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 cedille:	$(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
+		$(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda 
 		mv $(SRCDIR)/main cedille
 
 cedille-old:	$(SRC) Makefile libraries
