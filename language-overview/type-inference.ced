@@ -29,3 +29,9 @@ mkpair ◂ ∀ A : ★ . ∀ B : ★ . A ➔ B ➔ pair · A · B =
    in from contextual type information (namely, the type we are declaring
    test3 to have. -}
 test3 ◂ pair · (Bool ➔ Bool) · Bool = mkpair not tt.
+
+K ◂ ∀ X : ★ . ∀ Y : ★ . X ➔ Y ➔ X = Λ X . Λ Y . λ x . λ y . x .
+
+{- if you select K tt, you will see (in the meta-vars buffer) that X is solved
+   but Y is not yet. -}
+test4 = K tt ff .
