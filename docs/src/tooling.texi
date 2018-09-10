@@ -49,5 +49,27 @@ structured navigation) part of the elisp code is concerned with
 processing the spans and assembly an abstract syntax tree based on
 span containment.  @code{se-mode} is generic, and can be used as the
 basis for structured navigation for other languages.  @code{se-mode}
-was proposed, designed, and implemented by U. Iowa undergraduate Carl
-Olson, before the current Cedille implementation began.
+was proposed, designed, and implemented by (then) U. Iowa
+undergraduate Carl Olson, before the current Cedille implementation
+began.
+
+@section Spine-local type inference
+
+Cedille implements a novel form of local type inference due to Chris
+Jenkins, called spine-local type inference.  Cedille will try to fill
+in omitted values for type variables via first-order matching (not
+unification).  There is currently some heuristic support for
+second-order matching, but a complete second-order matcher (note that
+second-order matching is decidable, unlike second-order unification)
+is planned for after the 1.0 release.  The inference is local in the
+sense that type meta-variables are never propagated out of a locale,
+which is an application spine (i.e., head applied to arguments).
+Spine-local type inference also uses the expected type for a locale to
+fill in missing values for type variables used in the type of the
+locale.  For more information, see
+@uref{https://arxiv.org/abs/1805.10383, the paper on ArXiv.}  See also
+some examples in @code{language-overview/type-inference.ced}.  When in
+Cedille navigation mode, use keystroke @key{m} to view the
+meta-variables buffer, where information on meta-variables and their
+current solutions (if any) is shown; when this buffer is shown, the
+locale will also be highlighted in the Cedille source buffer.

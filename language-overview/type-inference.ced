@@ -1,0 +1,31 @@
+module TypeInference.
+
+Unit ◂ ★ = ∀ X : ★ . X ➔ X .
+id ◂ Unit = Λ X . λ x . x .
+
+Bool ◂ ★ = ∀ X : ★ . X ➔ X ➔ X.
+tt ◂ Bool = Λ X . λ t . λ f . t .
+ff ◂ Bool = Λ X . λ t . λ f . f .
+not ◂ Bool ➔ Bool = λ b . Λ X . λ t . λ f . b · X f t.
+
+test1 = id id.
+
+{- in Cedille navigation mode (Meta-s), select a span like the id id one
+   by typing "p" twice with your cursor on the first id, and then hit
+   "m" to see the meta-variables buffer.  Here, the types Unit and Bool
+   just have a single type variables which gets solved immediately
+   when the head of the locale is applied to its argument. -}
+test2 = id id not tt .
+
+pair ◂ ★ ➔ ★ ➔ ★ = λ A : ★ . λ B : ★ . ∀ X : ★ . (A ➔ B ➔ X) ➔ X.
+mkpair ◂ ∀ A : ★ . ∀ B : ★ . A ➔ B ➔ pair · A · B =
+  Λ A . Λ B . λ a . λ b . Λ X . λ c . c a b.
+
+{- in the meta-vars buffer for mkpair not tt, you will see the notation
+
+   ?A : ★ ◂ Bool ➔ Bool
+
+   indicating (by the left triangle) that meta-variable A has been filled
+   in from contextual type information (namely, the type we are declaring
+   test3 to have. -}
+test3 ◂ pair · (Bool ➔ Bool) · Bool = mkpair not tt.
