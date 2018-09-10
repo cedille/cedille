@@ -1,42 +1,42 @@
 module Nat.
 
 -- define version of naturals via non-dependent elimination
-cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
-cZ ◂ cNat = Λ X . λ s . λ z . z .
-cS ◂ cNat ➔ cNat = λ n . Λ X . λ s . λ z . s (n · X s z) .
+Nat' ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
+zero' ◂ Nat' = Λ X . λ s . λ z . z .
+suc' ◂ Nat' ➔ Nat' = λ n . Λ X . λ s . λ z . s (n · X s z) .
 
 -- now describe dependent elimination
-Inductive ◂ cNat ➔ ★ =
-  λ x : cNat . ∀ Q : cNat ➔ ★ .
-  (∀ x : cNat . Q x ➔ Q (cS x)) ➔
-  Q cZ ➔
+InductiveNat ◂ Nat' ➔ ★ =
+  λ x : Nat' . ∀ Q : Nat' ➔ ★ .
+  (∀ x : Nat' . Q x ➔ Q (suc' x)) ➔
+  Q zero' ➔
   Q x.
 
--- a Nat is a cNat that also supports dependent elimination
-Nat ◂ ★ = ι x : cNat . Inductive x.
+-- a Nat is a Nat' that also supports dependent elimination
+Nat ◂ ★ = ι x : Nat' . InductiveNat x.
 
 -- now we can define the constructors for Nat
-Z ◂ Nat = [ cZ , Λ X . λ s . λ z . z ] .
-S ◂ Nat ➔ Nat = λ n . [ cS n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
+zero ◂ Nat = [ zero' , Λ X . λ s . λ z . z ] .
+suc ◂ Nat ➔ Nat = λ n . [ suc' n.1 , Λ P . λ s . λ z . s -n.1 (n.2 · P s z) ] .
 
-{- this function converts from cNat to Nat just by using the
-   Nat constructors in an elimination of a cNat -}
-toNat ◂ cNat ➔ Nat = λ x . x · Nat S Z .
+{- this function converts from Nat' to Nat just by using the
+   Nat constructors in an elimination of a Nat' -}
+toNat ◂ Nat' ➔ Nat = λ x . x · Nat suc zero .
 
 -- we can prove that reflection is the identity on the erasures of the terms
-reflection ◂ Π n : Nat . { toNat n.1 ≃ n } =
-  λ n . n.2 · (λ x : cNat . {(toNat x).1 ≃ x}) (Λ x . λ ih . χ {cS (toNat x).1 ≃ cS x} - ρ ih - β) β .
+reflectionNat ◂ Π n : Nat . { toNat n.1 ≃ n } =
+  λ n . n.2 · (λ x : Nat' . {(toNat x).1 ≃ x}) (Λ x . λ ih . χ {suc' (toNat x).1 ≃ suc' x} - ρ ih - β) β .
 
 {- now we prove induction for Nat-predicate P by a dependent elimination
-   on Nat n.  Since Nats only support induction on cNat-predicates, we
+   on Nat n.  sucince Nats only support induction on Nat'-predicates, we
    cannot use P directly.  Instead, we use the predicate
 
-   λ x : cNat . P (toNat x)
+   λ x : Nat' . P (toNat x)
 
    and then use reflection to get rid of the reference to toNat. -}
-Induction2 ◂ Π n : Nat . ∀ P : Nat ➔ ★ . (∀ m : Nat . P m ➔ P (S m)) ➔ P Z ➔ P n =
+inductionNat ◂ Π n : Nat . ∀ P : Nat ➔ ★ . (∀ m : Nat . P m ➔ P (suc m)) ➔ P zero ➔ P n =
   λ n . Λ P . λ s . λ z . 
-    ρ (ς (reflection n)) -
-      (n.2 · (λ x : cNat . P (toNat x))
+    ρ (ς (reflectionNat n)) -
+      (n.2 · (λ x : Nat' . P (toNat x))
         (Λ p . λ q . s -(toNat p) q) z) .
       
