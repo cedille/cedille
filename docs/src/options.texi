@@ -1,4 +1,4 @@
-@node options,credits,extra buffers,Top
+@node options,roadmap,extra buffers,Top
 
 @chapter cedille-mode options
 

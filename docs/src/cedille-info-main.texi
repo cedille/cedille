@@ -19,6 +19,7 @@ This is the documentation for the Cedille language and its implementation.
 * unicode shortcuts::            Keyboard shortcuts for unicode symbols
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille 
+* roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
 * Index::                        Index to the documentation
 @end menu
@@ -43,9 +44,11 @@ This is the documentation for the Cedille language and its implementation.
 
 @include context-buffer.texi
 
-@include credits.texi
-
 @include options.texi
+
+@include roadmap.texi
+
+@include credits.texi
 
 @node Index,about,credits,Top
 @unnumbered Index

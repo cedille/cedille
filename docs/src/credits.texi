@@ -1,6 +1,10 @@
-@node credits,about,options,Top
+@node credits,about,roadmap,Top
 
 @chapter Credits
+
+@unnumberedsec Fall 2018:
+
+Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew Marmaduke, Colin McDonald, Aaron Stump
 
 @unnumberedsec Fall 2017 to Summer 2018:
 @table @asis

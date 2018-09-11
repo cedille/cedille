@@ -18,6 +18,7 @@ implementation.
 * unicode shortcuts::            Keyboard shortcuts for unicode symbols
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille
+* roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
 * Index::                        Index to the documentation
 
@@ -809,10 +810,69 @@ The context buffer has several built-in features to organize data:
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: options,  Up: Top
+File: cedille-info-main.info,  Node: options,  Next: roadmap,  Prev: extra buffers,  Up: Top
 
-23 Credits
+23 cedille-mode options
+***********************
+
+The options file resides in ~/.cedille/options and consists of a list of
+options, each on its own line, with a terminating period (“.”).  The
+available options are:
+
+‘import-directories "/path/to/dir"’
+     This specifies a directory where Cedille will search for imported
+     files.  Any number of directories may be listed, each on its own
+     line.  They will be searched after the current directory.
+     Currently, it is not recommended to have two files with the same
+     name.
+
+‘use-cede-files = [true/false]’
+     Enables/disables the Cedille backend’s use of .cede files
+
+‘make-rkt-files = [true/false]’
+     Enables/disables the Cedille backend’s generation of .rkt files
+
+‘generate-logs = [true/false]’
+     Enables/disables generation of log files (.cedille/log)
+
+‘show-qualified-vars = [true/false]’
+     Enables/disables the printing of fully-qualified variables
+
+‘erase-types = [true/false]’
+     Sets whether or not types are erased before they are displayed, for
+     convenience.
+
+
+File: cedille-info-main.info,  Node: roadmap,  Next: credits,  Prev: options,  Up: Top
+
+24 Roadmap
 **********
+
+Cedille is under active development, and the following major changes are
+planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far
+from done with the datatype notations).  Cedille 1.2 is likely Winter
+2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are
+still immersed in the basic research for that.
+
+   • Datatype declarations and pattern-matching recursion, compiled to a
+     Mendler lambda-encoding, Cedille 1.1
+   • Second-order matching and term inference incorporated into
+     spine-local type inference, Cedille 1.2
+   • Rebase Cedille on sequent calculus to enable deriving types like
+     existentials as dual to universals, and support constructive
+     control operators, Cedille 2.0
+
+
+File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
+
+25 Credits
+**********
+
+Fall 2018:
+==========
+
+Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew
+Marmaduke, Colin McDonald, Aaron Stump
 
 Fall 2017 to Summer 2018:
 =========================
@@ -882,39 +942,6 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: extra buffers,  Up: Top
-
-24 cedille-mode options
-***********************
-
-The options file resides in ~/.cedille/options and consists of a list of
-options, each on its own line, with a terminating period (“.”).  The
-available options are:
-
-‘import-directories "/path/to/dir"’
-     This specifies a directory where Cedille will search for imported
-     files.  Any number of directories may be listed, each on its own
-     line.  They will be searched after the current directory.
-     Currently, it is not recommended to have two files with the same
-     name.
-
-‘use-cede-files = [true/false]’
-     Enables/disables the Cedille backend’s use of .cede files
-
-‘make-rkt-files = [true/false]’
-     Enables/disables the Cedille backend’s generation of .rkt files
-
-‘generate-logs = [true/false]’
-     Enables/disables generation of log files (.cedille/log)
-
-‘show-qualified-vars = [true/false]’
-     Enables/disables the printing of fully-qualified variables
-
-‘erase-types = [true/false]’
-     Sets whether or not types are erased before they are displayed, for
-     convenience.
-
-
 File: cedille-info-main.info,  Node: Index,  Next: about,  Prev: credits,  Up: Top
 
 Index
@@ -932,19 +959,20 @@ Index
 
 Tag Table:
 Node: Top95
-Node: about962
-Node: tooling10822
-Node: cedille mode commands15094
-Node: unicode shortcuts18278
-Node: extra buffers20394
-Node: inspect buffer21738
-Node: summary buffer22933
-Node: meta-vars buffer23746
-Node: beta-reduce mode24777
-Node: context buffer25962
-Node: credits27989
-Node: options29154
-Node: Index30333
+Node: about1045
+Node: tooling10905
+Node: cedille mode commands15177
+Node: unicode shortcuts18361
+Node: extra buffers20477
+Node: inspect buffer21821
+Node: summary buffer23016
+Node: meta-vars buffer23829
+Node: beta-reduce mode24860
+Node: context buffer26045
+Node: options28072
+Node: roadmap29251
+Node: credits30098
+Node: Index31392
 
 End Tag Table
 
