@@ -7,10 +7,9 @@ import public depcast .
 import public nat .
 import public list .
 import public false .
-import public int .
 import public hastp .
 import public sigma .
 import public sum .
 import public top .
 import public true .
-
+import public vector.
