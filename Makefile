@@ -137,10 +137,12 @@ cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 cedille-deb-pkg:
 	mkdir -p ./cedille-deb-pkg/usr/bin/
 	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
-	mkdir -p ./cedille-deb-pkg/debian/
+	mkdir -p ./cedille-deb-pkg/DEBIAN/
 	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	cp ./cedille ./cedille-deb-pkg/usr/bin/
-	cp ./cedille-deb-control ./cedille-deb-pkg/debian/control
+	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
+	dpkg-deb --build cedille-deb-pkg
+	rm -R cedille-deb-pkg
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean

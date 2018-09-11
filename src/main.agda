@@ -47,7 +47,7 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
 opts-to-options ofp (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.MakeRktFiles b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = ff {- str-bool-to-𝔹 b -} }
+  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.GenerateLogs b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { generate-logs = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
@@ -60,7 +60,11 @@ opts-to-options ofp options-types.OptsNil = return cedille-options.default-optio
 processOptions : filepath → string → IO (string ⊎ cedille-options.options)
 processOptions filename s with options-types.scanOptions s
 ...| options-types.Left cs = return (inj₁ ("Parse error in file " ^ filename ^ " " ^ cs ^ "."))
-...| options-types.Right (options-types.File oo) = opts-to-options filename oo >>=r inj₂
+...| options-types.Right (options-types.File oo) =
+  opts-to-options filename oo
+  >>= λ opts → if cedille-options.options.make-rkt-files opts
+    then return ∘ inj₁ $ "Racket compilation disabled, please set to false in " ^ filename ^ "."
+  else (return ∘ inj₂ $ opts) 
 
 
 getOptionsFile : (filepath : string) → string
