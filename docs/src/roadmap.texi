@@ -12,3 +12,9 @@ Cedille is under active development, and the following major changes are planned
 
 @end itemize
 
+For datatype notations, we have, in a number of papers and works in
+progress, devised semantics in Cedille for various somewhat advanced
+features: histomorphic recursion, inductive-recursive types, and
+inductive-inductive types.  We will be gradually incorporating
+high-level syntax for these into Cedille, starting with histomorphic
+recursion.
