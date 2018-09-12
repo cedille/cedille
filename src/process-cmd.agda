@@ -153,7 +153,7 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     (just fnᵢ) Γ ss →
       process-file s fnᵢ x ≫=monad uncurry λ s _ →
         (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args (toplevel-state.Γ s) as) in
-         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) (lookup-mod-params (toplevel-state.Γ s) fnₒ) ≫=span λ e →
+         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) (maybe-else' (lookup-mod-params (toplevel-state.Γ s) fnₒ) ParamsNil id) ≫=span λ e →
          spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
   where
   -- When importing a file publicly, you may use any number of arguments as long as the
@@ -186,11 +186,11 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     h n ArgsNil = nothing
 
   
-  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → maybe params → spanM err-m
+  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → params → spanM err-m
   process-import op oa fnₒ fnᵢ nothing _ = spanMr (just "Undefined module import (this probably shouldn't happen?)")
-  process-import op oa fnₒ fnᵢ (just psᵢ) nothing = spanMr (just "Current module undefined (this shouldn't happen!)")
-  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just psᵢ) (just psₒ) = spanMr (just "Public import can't be qualified")
-  process-import op oa fnₒ fnᵢ (just psᵢ) (just psₒ) =
+  -- process-import op oa fnₒ fnᵢ (just psᵢ) nothing = spanMr (just "Current module undefined (this shouldn't happen!)")
+  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just psᵢ) {-(just-} psₒ {-)-} = spanMr (just "Public import aren't allowed to be qualified")
+  process-import op oa fnₒ fnᵢ (just psᵢ) {-(just-} psₒ {-)-} =
     optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
     with-ctxt (toplevel-state.Γ s)
       (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v psᵢ as) ≫span
