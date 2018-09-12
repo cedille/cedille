@@ -320,8 +320,8 @@ Type :: { Type }
 --   | '{' Term '≃' Term '}'            { TpEq $2 $4                                                   } -- reduce/reduce conflict with variables and holes in types and terms without brackets
 
 LType :: { Type } 
-      : '↑' var '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
-      | LType   '·' Atype                 { TpApp $1 $3                                   }
+--    : '↑' var '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
+      : LType   '·' Atype                 { TpApp $1 $3                                   }
       | LType Lterm                       { TpAppt $1 $2                                  }
       | Atype                             { $1                                            }
 
