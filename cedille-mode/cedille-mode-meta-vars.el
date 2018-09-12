@@ -1,6 +1,6 @@
 ;;;;;;;;;; Cedille Meta-Vars Buffer ;;;;;;;;;;
 
-(defstruct meta-var kind sol file start-intro end-intro start-sol end-sol)
+(defstruct meta-var kind sol cm file start-intro end-intro start-sol end-sol)
 
 (defvar cedille-mode-meta-vars-list nil
   "List of (name . meta-var)")
@@ -36,9 +36,9 @@
   (append (assq-delete-all key alist) (list (cons key new-value))))
 
 (defun cedille-mode-meta-vars-split (meta-var)
-  "Splits the string \"name value\" into (name . value)"
+  "Splits the string \"name [cm] value\" (cm is optional) into triple (name . cm . value)"
   (let ((split (split-string meta-var " ")))
-    (cons (car split) (mapconcat (lambda(x)x) (cdr split) " "))))
+    (cons (car split) (cons (cadr split) (mapconcat 'identity (cddr split) " ")))))
 
 (defun cedille-mode-meta-vars-collect (key alist)
   "Collects all values from ALIST with key KEY into a list"
@@ -57,7 +57,7 @@
       (while introduced-meta-vars
         (let* ((name-kind (pop introduced-meta-vars))
                (name (intern (car name-kind)))
-               (kind (cdr name-kind))
+               (kind (cddr name-kind))
                (mv (or
                     (cdr (assoc name meta-vars))
                     (make-meta-var
@@ -67,11 +67,13 @@
                      :end-intro (se-term-end node)))))
           (setq meta-vars (cedille-mode-set-assoc-value meta-vars name mv))))
       (while solved-meta-vars
-        (let* ((name-sol (pop solved-meta-vars))
-               (name (intern (car name-sol)))
-               (sol (cdr name-sol))
+        (let* ((name-cm-sol (pop solved-meta-vars))
+               (name (intern (car name-cm-sol)))
+               (cm (cadr name-cm-sol))
+               (sol (cddr name-cm-sol))
                (mv (cdr (assoc name meta-vars)))) ; Assumed to exist
           (setf (meta-var-sol mv) sol
+                (meta-var-cm mv) cm
                 (meta-var-start-sol mv) (se-term-start node)
                 (meta-var-end-sol mv) (se-term-end node))
           (setf (cdr (assoc name meta-vars)) mv)))
@@ -91,7 +93,7 @@
    (meta-var-kind mv)
    (when (meta-var-sol mv)
      (concat
-      (se-pin-data 1 2 'loc (list (cons 'fn (meta-var-file mv)) (cons 's (number-to-string (meta-var-start-sol mv))) (cons 'e (number-to-string (meta-var-end-sol mv)))) " = ")
+      (se-pin-data 1 2 'loc (list (cons 'fn (meta-var-file mv)) (cons 's (number-to-string (meta-var-start-sol mv))) (cons 'e (number-to-string (meta-var-end-sol mv)))) (if (string= (meta-var-cm mv) "checking") " ◂ " " = "))
       (meta-var-sol mv)
       ))
    "\n"))
@@ -139,17 +141,18 @@
      'face 'cedille-meta-vars-args-face)))
 
 (defun cedille-mode-fontify-meta-vars()
-  (with-silent-modifications
-    (remove-overlays nil nil 'face 'cedille-meta-vars-head-face)
-    (remove-overlays nil nil 'face 'cedille-meta-vars-args-face)
-    ; Make sure the meta-vars buffer is open and the selected span is an application
-    (when (and (get-buffer-window (cedille-mode-meta-vars-buffer-name))
-               (cedille-mode-meta-vars-continue-computation (se-mode-selected) t))
-      (cedille-mode-fontify-meta-vars-start
-       (cedille-mode-meta-vars-find-locale-start (se-mode-selected) t))
-      (cedille-mode-fontify-meta-vars-end
-       (cedille-mode-meta-vars-find-locale-end
-        (cons (se-mode-selected) se-mode-not-selected))))))
+  (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
+    (with-silent-modifications
+      (remove-overlays nil nil 'face 'cedille-meta-vars-head-face)
+      (remove-overlays nil nil 'face 'cedille-meta-vars-args-face)
+      ; Make sure the meta-vars buffer is open and the selected span is an application
+      (when (and (get-buffer-window (cedille-mode-meta-vars-buffer-name))
+                 (cedille-mode-meta-vars-continue-computation (se-mode-selected) t))
+        (cedille-mode-fontify-meta-vars-start
+         (cedille-mode-meta-vars-find-locale-start (se-mode-selected) t))
+        (cedille-mode-fontify-meta-vars-end
+         (cedille-mode-meta-vars-find-locale-end
+          (cons (se-mode-selected) se-mode-not-selected)))))))
 
 
 (defun cedille-mode-meta-vars()
@@ -160,10 +163,16 @@
 
 (defun cedille-mode-meta-vars-buffer-name()
   (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
-    (concat "*cedille-meta-vars-" (file-name-base) "*")))
+    (concat "*cedille-meta-vars-" (cedille-mode-current-buffer-base-name) "*")))
 
 (defun cedille-mode-meta-vars-buffer()
   (get-buffer-create (cedille-mode-meta-vars-buffer-name)))
+
+(defun cedille-mode-meta-vars-close-window-fn()
+  (lambda ()
+    (interactive)
+    (cedille-mode-close-active-window)
+    (cedille-mode-fontify-meta-vars)))
 
 
 (define-minor-mode cedille-meta-vars-mode
@@ -172,8 +181,8 @@
   " Meta-Vars"
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map cedille-mode-minor-mode-parent-keymap)
-    (define-key map (kbd "m") #'cedille-mode-close-active-window)
-    (define-key map (kbd "M") #'cedille-mode-close-active-window)
+    (define-key map (kbd "m") (cedille-mode-meta-vars-close-window-fn))
+    (define-key map (kbd "M") (cedille-mode-meta-vars-close-window-fn))
     (define-key map (kbd "h") (make-cedille-mode-info-display-page "meta-vars mode"))
     map)
   (when cedille-meta-vars-mode

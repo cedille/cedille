@@ -1,0 +1,20 @@
+@node inspect buffer,context buffer,,extra buffers
+
+@chapter Inspect buffer
+
+@cindex inspect buffer
+
+The inspect buffer for Cedille provides basic information about a node. To display the inspect buffer, select a node and press @command{I} and you will open up the inspect buffer and jump to it. If you just want to open the inspect buffer (but not jump to it), press @command{i} instead.
+
+The inspect buffer contains information about the selected node, and is automatically updated during navigation.
+
+@chapter Controls
+
+@table @command
+
+@item i/I
+Close the inspect mode window
+
+@end table
+
+@include extra-buffers-commands.texi

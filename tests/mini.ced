@@ -1,8 +1,0 @@
-module Mini.
-
-import nat.
-import ri .
-
-TrmF ◂ (Nat ➔ ★) ➔ Nat ➔ ★ = ● .
-    
-Trm ◂ Nat ➔ ★ = Reci · Nat · TrmF .

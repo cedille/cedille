@@ -24,7 +24,7 @@ untyped-optClass-spans : optClass → spanM ⊤
 untyped-defTermOrType-spans : defTermOrType → spanM (spanM ⊤ → spanM ⊤)
 untyped-var-spans : posinfo → var → (ctxt → posinfo → var → checking-mode → 𝕃 tagged-val → err-m → span) → spanM ⊤ → spanM ⊤
 
-untyped-var-spans pi x f m = get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (get-ctxt λ Γ → spanM-add (f Γ pi x untyped [] nothing) ≫span m)
+untyped-var-spans pi x f m = get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (get-ctxt λ Γ → spanM-add (f Γ pi x untyped [] nothing) ≫span m)
 
 untyped-term-spans (App t me t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span spanM-add (App-span ff t t' untyped [] nothing)
 untyped-term-spans (AppTp t T) = untyped-term-spans t ≫span untyped-type-spans T ≫span spanM-add (AppTp-span t T untyped [] nothing)
@@ -45,6 +45,8 @@ untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ �
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
+untyped-term-spans (Mu pi x t ot pi' cs pi'') = spanM-add (Mu-span t [] nothing) 
+untyped-term-spans (Mu' pi t ot pi' cs pi'')  = spanM-add (Mu-span t [] nothing) 
 
 untyped-type-spans (Abs pi b pi' x atk T) = untyped-tk-spans atk ≫span spanM-add (TpQuant-span (me-unerased b) pi x atk T untyped [] nothing) ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (untyped-type-spans T)
 untyped-type-spans (Iota pi pi' x T T') = untyped-type-spans T ≫span spanM-add (Iota-span pi T' untyped [] nothing) ≫span untyped-var-spans pi' x TpVar-span (untyped-type-spans T')
@@ -89,6 +91,6 @@ untyped-lterms-spans (LtermsCons me t ls) = untyped-term-spans t ≫span untyped
 untyped-optClass-spans NoClass = spanMok
 untyped-optClass-spans (SomeClass atk) = untyped-tk-spans atk
 
-untyped-defTermOrType-spans (DefTerm pi x NoType t) = untyped-term-spans t ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)
-untyped-defTermOrType-spans (DefTerm pi x (SomeType T) t) = untyped-term-spans t ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)
-untyped-defTermOrType-spans (DefType pi x k T) = untyped-kind-spans k ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl pi x Γ) (spanMr λ x → x)
+untyped-defTermOrType-spans (DefTerm pi x NoType t) = untyped-term-spans t ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (spanMr λ x → x)
+untyped-defTermOrType-spans (DefTerm pi x (SomeType T) t) = untyped-term-spans t ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (spanMr λ x → x)
+untyped-defTermOrType-spans (DefType pi x k T) = untyped-kind-spans k ≫span untyped-type-spans T ≫span get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (spanMr λ x → x)

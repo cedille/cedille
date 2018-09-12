@@ -2,344 +2,895 @@ This is cedille-info-main.info, produced by makeinfo version 6.1 from
 cedille-info-main.texi.
 
 
-File: cedille-info-main.info,  Node: Top,  Next: cedille mode commands,  Up: (dir)
+File: cedille-info-main.info,  Node: Top,  Next: about,  Up: (dir)
 
-Main
-****
+Cedille Documentation
+*********************
 
-This manual is for Cedille.  Lots of interesting Cedille facts can go
-here!
+This is the documentation for the Cedille language and its
+implementation.
 
 * Menu:
 
-* cedille mode commands::       A list of cedille mode command shortcuts with brief description
-* unicode shortcuts::           A list of keyboard shortcuts for unicode symbols
-* minor modes::                 Cedille mode has several minor modes providing additional information
-* options::                     A description of the options file
-* credits::                     Who has contributed to the Cedille tool
-* Index::                       Here is the index
+* about::                        About Cedille’s type theory and implementation
+* tooling::                      How Cedille is implemented
+* cedille mode commands::       Cedille navigation mode shortcuts with brief descriptions
+* unicode shortcuts::            Keyboard shortcuts for unicode symbols
+* extra buffers::                Cedille has several other buffers for viewing information computed for the source file
+* options::                      A description of the options file, holding some global settings for Cedille
+* roadmap::                      What is the plan for upcoming Cedille development
+* credits::                      Who has contributed to the Cedille tool
+* Index::                        Index to the documentation
 
 
-File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: Index,  Up: Top
+File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: Index,  Up: Top
 
-1 cedille-mode commands
+1 Cedille’s Type Theory
 ***********************
 
-Cedille mode supports the following commands:
+Cedille’s type theory is called the Calculus of Dependent Lambda
+Eliminations (CDLE). It is somewhat rare in being a Curry-style type
+theory.  Coq and Agda are based on Church-style theories.  The
+difference is that in a Curry-style (aka extrinsic) type theory, type
+annotations are merely hints to the type checker, and the “real” terms
+(the subjects of metatheoretic analysis, for example) are completely
+unannotated.  Thus, such annotations can be erased during compilation
+and during formal reasoning; in particular during conversion checking,
+where the type checker tests whether two terms are definitionally equal.
+In contrast, with Church-style (aka intrinsic) type theory, the
+annotations are “really there”, and must be preserved during compilation
+and conversion.
 
-2 Navigation
+For an example, consider the polymorphic identity function Λ X : ★ .  λ
+x : X .  x.  In Church-style type theory, the binder introducting the
+type variable X and the annotation giving the classifier for x are truly
+part of the term, and the theory itself does not allow for them to be
+erased.  In contrast, in a Curry-style type theory like CDLE, those
+annotations are just hints to help the type checker see how to assign
+the type ∀ X : ★ .  X ➔ X to λ x .  x.  The type theory has a notion of
+erasure, and conversion compares the erasures of terms rather than the
+annotated terms.
+
+1.1 Cedille extends the Calculus of Constructions
+=================================================
+
+The starting point for Cedille is a Curry-style version of the Calculus
+of Constructions (CC). Coq is based on several extensions of CC, notably
+with a predicative universe hierarchy (Luo’s Extended Calculus of
+Constructions), and with a primitive system of inductive datatypes (the
+Calculus of Inductive Constructions of Paulin-Mohring and Werner).
+Cedille has neither the universe hierarchy nor the inductive types.  The
+universe hierarchy is omitted to avoid additional metatheoretic and
+implementation complexity, which has not been justified to my (Aaron’s)
+satisfaction by examples.  So it is omitted not for any really
+fundamental reason (that we know of).  Omitting the system of primitive
+inductive types, however, is one of the chief goals of Cedille, and will
+be discussed more below.
+
+The language is divided into three layers: terms, types, and kinds.
+Terms are the programs we intend eventually to execute, or to use as
+proofs.  Types describe programs, and under the Curry-Howard isomorphism
+which Cedille makes use of, can be seen as formulas to be proved.  Kinds
+are the classifiers for types.  So in Cedille we have
+
+term : type : kind
+
+1.2 The type constructs of Cedille
+==================================
+
+From CC, Cedille inherits the following type constructs:
+
+   • ∀ X : 𝒌 .  T – this is impredicative quantification over types X of
+     kind 𝒌.
+   • Π x : T .  T’ – this is dependent function space, where the return
+     type T’ may mention the input argument x.
+   • λ X : 𝒌 .  T – this is a type-level function over types X of kind
+     𝒌.
+   • λ x : T .  T’ – this is a type-level function over terms x of type
+     T.
+   • T t – this is applying a type-level function T to a term t.
+   • T · T’ – this is applying a type-level function T to a type T’
+     (note the required center dot).
+   • X – type variables are types, of course.
+
+See *note unicode shortcuts:: for how to type these symbols in Cedille
+mode.
+
+To the above constructs, Cedille adds the following, discussed more
+below:
+
+   • ι x : T .  T’ – dependent intersection of T and T’, where T’ may
+     contain x.
+   • { t ≃ t’ } – untyped equality between terms t and t’.
+   • ∀ x : T .  T’ – the dependent type for functions taking in an
+     erased argument x of type T (aka implicit product)
+
+1.2.1 Dependent intersections
+-----------------------------
+
+In (Curry-style) type theory, an intersection type T ∩ T’ can be
+assigned to a term t iff both T and T’ separately can be assigned to t.
+Dependent intersection types, introduced by Kopylov in this paper
+(https://doi.org/10.1109/LICS.2003.1210048), extend this idea to allow
+the type T’ to reference the term t (i.e., the subject of typing) via a
+bound variable x.  Kopylov’s notation for this is x : T ∩ T’.  Cedille
+uses the notation ι x : T .  T’ for the same concept.
+
+One very helpful way to think of these types is that they allow the type
+T’ of t to refer to t itself, but through a weaker view; namely, the
+type T. So if you are writing some function f, say, the type T’ you give
+for f can mention f itself – which seems insane (as in insane dependent
+typing) – but sanity is preserved by the fact that T’ is only allowed to
+reference f through some other type T.
+
+In Cedille, dependent intersections are used to derive inductive
+datatypes, using a critical observation of Leivant’s from this paper
+(https://doi.org/10.1109/SFCS.1983.50).  Suppose one is trying to prove
+the natural-number induction principle for a specific number N; that is,
+for any predicate P on natural numbers, if the base and steps cases
+hold, then P holds for N. What would the proof look like for this?  One
+would assume predicate P, assume P 0 (base case) and ∀ n : Nat .  P n ➔
+P (S n) (step case), and prove P N by apply the step case N times to the
+base case.  Leivant’s remarkable observation is that this proof, seen
+through the lens of the Curry-Howard isomorphism, is
+
+Λ P .  λ z .  λ s .  s (...  (s z))
+
+where s is applied N times.  This erases exactly to the Church-encoding
+of N. This means that using the Church-encoding we can view a number N
+two ways: as an iterator of type ∀ X : ★ .  X ➔ (X ➔ X) ➔ X – call this
+type cNat – and as a proof of its own induction principle, which we can
+see as some kind of dependent enrichment of the first type:
+
+∀ P : cNat ➔ ★ .  P 0 ➔ (∀ n : cNat .  P n ➔ P (S n)) ➔ P N
+
+Calling this second type, as a predicate on N, Inductive, the crucial
+role of dependent intersection types is to allow us to define Nat as
+
+ι N : cNat.  Inductive N
+
+This definition seems to allow one to prove universality of predicates
+on cNats – not Nats!  But universality of Nat-predicates turns out to
+follow from this, in several different ways.  See
+language-overview/induction-for-church-nats.ced for one example.
+
+1.2.2 Primitive equality between untyped terms
+----------------------------------------------
+
+The type { t ≃ t’ } is a primitive equality type, between untyped terms.
+The meaning of such a type is that t and t’ are beta-eta equal (where
+any necessary instantiations of variables bound outside the equation are
+applied to t and t’).  Cedille provides a primitive operation to rewrite
+with such equalities (namely ρ), and to prove them when the sides of the
+equation can be seen themselves to be beta-eta equal (without
+instantiating variables bound outside the equation); this is β.
+
+In more detail: whenever t and t’ are beta-eta equal, the
+type-assignment system of CDLE considers any term to inhabit type { t ≃
+t’ }.  In Cedille, β is an annotated term inhabiting that type; β itself
+erases to λ x .  x.  If one wishes to pick a different unannotated term
+t1 to inhabit an obviously true equation like this, then one writes
+β{t1}.  We call this the Kleene trick, after Stephen Cole Kleene’s
+similar approach to realizing true equations by any number whatsoever.
+Here, any term proves an obviously true equation.  This has the
+intriguing side effect of giving Cedille a type for all terms, even ones
+otherwise untypable.  Thus Cedille is Turing-complete: any closed term
+can be assigned type { λ x .  x ≃ λ x .  x }.  In principle type
+checking becomes undecidable at this point, because checking whether two
+terms of pure untyped lambda calculus are beta-eta equal is undecidable.
+In practice, however, we think of the type checker as having some bound
+on the number of steps of beta-eta-normalization it will perform on the
+sides before testing for alpha-equivalence.  This bound is currently up
+to the user to enforce by terminating the tool if it is taking too long.
+
+Rewriting is performed by a construct ρ t - t’.  Here, t should prove an
+equation { t1 ≃ t2 }.  Then the type synthesized from or used to check
+t’ will be rewritten to replace any subterm beta-eta equal to t1 with
+t2.
+
+See language-overview/equational-reasoning.ced for examples.
+
+1.2.3 Implicit products
+-----------------------
+
+For unannotated terms, the type ∀ x : T .  T’ introduces x of type T
+into the typing context, but otherwise does not affect the subject of
+typing.  So such an x is purely specificational, and cannot appear in
+the unannotated term.  In annotated terms, we use the construct Λ x : T
+.  t to introduce this x, which may appear in annotations (only).  An
+example is specifying the length of a vector as an erased argument to a
+function like map on vectors.  In this case, the function does not need
+to use the length of the vector to compute the result.  The length is
+only used specificationally, to state that the lengths of the input and
+output vectors are the same.
+
+If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
+with some term t’, the notation in Cedille is t -t’.
+
+1.3 More reading
+================
+
+The syntax and semantics of Cedille are described in this document on
+arXiv (https://arxiv.org/abs/1806.04709).  You can also find this in the
+docs/semantics subdirectory of this distribution.
+
+The paper first showing how to derive induction for an inductive type in
+Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
+
+
+File: cedille-info-main.info,  Node: tooling,  Next: cedille mode commands,  Prev: about,  Up: Top
+
+2 Architecture of Cedille
+*************************
+
+Cedille is implemented in around 13kloc of elisp + Agda.  There is an
+emacs Cedille mode for reading and writing Cedille code using *note
+unicode shortcuts::.  Most importantly, from Cedille mode one can
+request that the Cedille backend process the current Cedille source
+buffer, and enter Cedille navigation mode.  In Cedille navigation mode,
+a rich amount of type information computed from the backend is available
+and can be viewed node by node of the abstract syntax tree for the text
+of the buffer.  One navigates this tree using individual keystrokes (in
+Cedille navigation mode) like p and n.  One can also issue interactive
+commands, even use a beta-reduction explorer.  *Note cedille mode
+commands:: There are several *note extra buffers:: available to display
+information about the current node (the inspect buffer), current typing
+context, meta-variable solutions, and summary information for the source
+file.
+
+Additionally, one can request that Cedille compile a given source buffer
+and its dependencies to Cedille Core, a much more minimalistic core type
+theory lacking many of the nice features of Cedille, especially
+spine-local type inference.  ‘core’ contains an implementation of
+Cedille Core in Haskell.  There is a specification of Cedille Core here
+(https://github.com/astump/cedille-core-spec).
+
+2.1 Spans
+=========
+
+The frontend (i.e., the emacs mode) sends request to the backend in a
+simple text format.  The backend replies with _spans_, which consist of
+a starting and ending character position in the file, a name for the
+node, and a list of attribute-value pairs.  The inspect buffer, which
+one views with keystroke <i> when a span is highlighted (with <p>),
+shows this information.  Some of the attribute-value pairs are
+suppressed by default, because they are intended just for use by the
+frontend.  You can see them if you wish by changing the setting of the
+Cedille Mode Debug customization variable; to do this, use keystroke <$>
+from Cedille navigation mode to see customization options, or do
+‘customize-group’ ‘cedille’.
+
+Spans for file ‘F’ are cached in a ‘F.cede’ file written to a ‘.cedille’
+subdirectory of ‘F’’s directory.  Spans are stored and transmitted to
+the frontend in JSON format.  Hence, one can easily read the span data
+directly – but you will find that it is very verbose and much easier to
+understand through the emacs mode.
+
+The ‘se-mode’ (“structured editing”, though it is really just structured
+navigation) part of the elisp code is concerned with processing the
+spans and assembly an abstract syntax tree based on span containment.
+‘se-mode’ is generic, and can be used as the basis for structured
+navigation for other languages.  ‘se-mode’ was proposed, designed, and
+implemented by (then) U. Iowa undergraduate Carl Olson, before the
+current Cedille implementation began.
+
+2.2 Spine-local type inference
+==============================
+
+Cedille implements a novel form of local type inference due to Chris
+Jenkins, called spine-local type inference.  Cedille will try to fill in
+omitted values for type variables via first-order matching (not
+unification).  There is currently some heuristic support for
+second-order matching, but a complete second-order matcher (note that
+second-order matching is decidable, unlike second-order unification) is
+planned for after the 1.0 release.  The inference is local in the sense
+that type meta-variables are never propagated out of a locale, which is
+an application spine (i.e., head applied to arguments).  Spine-local
+type inference also uses the expected type for a locale to fill in
+missing values for type variables used in the type of the locale.  For
+more information, see the paper on ArXiv.
+(https://arxiv.org/abs/1805.10383) See also some examples in
+‘language-overview/type-inference.ced’.  When in Cedille navigation
+mode, use keystroke <m> to view the meta-variables buffer, where
+information on meta-variables and their current solutions (if any) is
+shown; when this buffer is shown, the locale will also be highlighted in
+the Cedille source buffer.
+
+
+File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: tooling,  Up: Top
+
+3 cedille-mode commands
+***********************
+
+To enter Cedille navigation mode (invoking the backend), the command is
+<Alt-s>.  In Cedille navigation mode, the following commands are
+available:
+
+4 Navigation
 ************
 
-'f/F'
+‘f/F’
      Navigate to the next same-level node in the parse tree
 
-'b/B'
+‘b/B’
      Navigate to the previous same-level node in the parse tree
 
-'p'
+‘p’
      Navigate to the parent of the current node in the parse tree
 
-'n'
+‘n’
      Navigate to the previously visited child (first by default) node of
      the current node in the parse tree
 
-'a/e'
+‘a/e’
      Navigate to the first/last node in the current level of the parse
      tree
 
-'r/R'
+‘r/R’
      Select next/previous error
 
-'t/T'
+‘t/T’
      Select first/last error in file
 
-'j'
+‘j’
      Jump to location associated with selected node
 
-'g'
+‘g’
      Clear current selection
 
-',/.'
+‘,/.’
      Navigate to the previous/next page in browsing history
 
-'</>'
+‘</>’
      Navigate to the first/last page in browsing history
 
-3 Information
+5 Information
 *************
 
-'i/I'
+‘i/I’
      Toggle info mode (provides information about the currently selected
      node)
 
-'c/C'
+‘c/C’
      Toggle context mode (provides information about the context of the
      currently selected term)
 
-'s/S'
+‘s/S’
      Toggle summary mode (provides information about the contents of the
      entire file)
 
-'x/X'
+‘x/X’
      Toggle scratch mode
 
-'h'
+‘h’
      Open information documents describing how to use Cedille mode
 
-'1'
+‘1’
      Close all emacs windows except the current one; convenience
      keystroke for emacs command delete-other-windows.
 
-'m'
+‘m’
      Highlight/unhighlight all instances of the selected symbol
      (context-sensitive)
 
-4 Interactive
+6 Interactive
 *************
 
 If associated with a span (and the beginning and end characters of the
 span were not deleted), each of these commands will be re-called each
-time you enter into Cedille mode.  They all begin with the 'C-i' prefix.
+time you enter into Cedille mode.  They all begin with the ’C-i’ prefix.
 
-'C-i n'
+‘C-i n’
      Show normalization of selected span.  If no span is selected, this
      will prompt an expression to normalize.
 
-'C-i h'
-     Like 'C-i n', but shows head-normalization
+‘C-i h’
+     Like ’C-i n’, but shows head-normalization
 
-'C-i e'
+‘C-i e’
      Show erasure of selected span.  If no span is selected, this will
      prompt an expression to erase.
 
-'C-i r'
+‘C-i r’
      Remove all interactive attributes associated with the selected span
 
-'C-i R'
+‘C-i R’
      Remove all interactive attributes
 
-'C-i b'
+‘C-i b’
      Open the beta-reduction buffer with an input expression.  Copies
      global scope and local scope if a span is selected.
 
-'C-i B'
+‘C-i B’
      Open the beta-reduction buffer with the selected span
 
-'C-i t'
-     Open the beta-reduction buffer with the selected span's expected
+‘C-i t’
+     Open the beta-reduction buffer with the selected span’s expected
      type (or type if there is no expected type)
 
-5 Other
+7 Other
 *******
 
-'M-x'
+‘M-x’
      Copy the selected span to the scratch buffer
 
-'C-h <int>'
+‘C-h <int>’
      Alters highlighting scheme depending on value of <int>: 1: default
      highlighting 2: language level highlighting 3: checking mode
      highlighting
 
-'q/M-s/C-g'
+‘q/M-s/C-g’
      Quit Cedille mode
 
-'K'
+‘K’
      Kill the Cedille process and restart it if it is taking an
      unusually long time
 
-'$'
+‘$’
      Open customization window for configuring Cedille mode
 
 
-File: cedille-info-main.info,  Node: unicode shortcuts,  Next: minor modes,  Prev: cedille mode commands,  Up: Top
+File: cedille-info-main.info,  Node: unicode shortcuts,  Next: extra buffers,  Prev: cedille mode commands,  Up: Top
 
-6 unicode
+8 unicode
 *********
 
 Here is a very short survey of the Unicode symbols used in Cedille,
 together with the shortcut to type them in the emacs mode.
 
-'\l'
+‘\l’
      Produces λ (lambda), for anonymous functions
 
-'\L'
+‘\L’
      Produces Λ (capital lambda), for anonymous functions taking in
      compile-time arguments (erased at run-time)
 
-'\r'
+‘\r’
      Produces → (right arrow)
 
-'\a'
+‘\a’
      Produces ∀ (forall), for quantification over terms which are erased
      at run-time, and also over type-level expressions
 
-'\B'
-     Produces □ (white square), for the sole superkind of the language
-
-'\P'
+‘\P’
      Produces Π (capital pi), for dependent function types and for all
      type-level quantification (even over types)
 
-'\s'
+‘\s’
      Produces ★ (black star), the kind of types
 
-'\S'
-     Produces ☆ (white star), used in lifting types
-
-'\.'
+‘\.’
      Produces · (center dot), for applying a function (term- or
      type-level) to a type-level argument
 
-'\f'
+‘\f’
      Produces ◂ (leftwards double arrow), for checking a term against a
      type, or type against a kind, at the top-level
 
-'\u'
-     Produces ↑ (upwards arrow), for lifting
-
-'\h'
+‘\h’
      Produces ● (black circle), a hole representing a missing subterm
 
-'\k'
-     Produces 𝒌 (math bold italic small k), all kind-level defined
-     symbols must start with this character
+‘\k’
+     Produces 𝒌 (math bold italic small k).  All kind-level defined
+     symbols must start with this character.
 
-'\i'
+‘\i’
      Produces ι (iota), for dependent intersections
 
-'\='
+‘\=’
      Produces ≃ (asymptotically equal to), for propositional equality
 
-'\b'
+‘\b’
      Produces β (beta), for proving propositional equalities which
      follow just by beta-eta reduction
 
-'\e'
+‘\e’
      Produces ε (epsilon), for reducing the sides of an equation
 
-'\R'
+‘\R’
      Produces ρ (rho), for rewriting with an equation
 
-'\F'
-     Produces φ (phi), for proving that if t ≃ t', and t has type T,
-     then t' also has type T
+‘\F’
+     Produces φ (phi), for proving that if t ≃ t’, and t has type T,
+     then t’ also has type T
 
-'\y'
-     Produces ς (lowercase final sigma), for proving t ≃ t' from t' ≃ t.
+‘\y’
+     Produces ς (lowercase final sigma), for proving t ≃ t’ from t’ ≃ t.
 
-'\t'
+‘\t’
      Produces θ (theta), for elimination with a motive (of McBride)
 
-'\x'
+‘\x’
      Produces χ (chi), for changing the form of the expected or computed
      classifier to a definitionally equivalent one
 
-'\rho'
-     Produces ρ (rho)
-
-'\theta'
-     Produces θ (theta)
-
-'\epsilon'
-     Produces ε (epsilon)
-
 
-File: cedille-info-main.info,  Node: context mode,  Next: summary mode,  Prev: inspect mode,  Up: minor modes
+File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
-7 Context mode
-**************
+9 Minor-mode buffers for Cedille
+********************************
 
-Context mode for Cedille allows the user to see the context of the
-currently selected node, making it easy to find and make use of all
-bound symbols.  To enter context mode, select a node and press 'C' and
-you will open up the context mode buffer and jump to it.  If you just
-want to open the context mode buffer (but not jump to it), press 'c'
-instead.
+Cedille uses several extra buffers to provide information about the
+processed Cedille source file:
 
-   Context mode has several built-in features to organize data:
+* Menu:
 
-   * Sort entries alphabetically or by binding position
+* inspect buffer::              Provides information about the currently selected node
+* context buffer::                Displays the types and kinds of all variables in the scope of the selected node
+* summary buffer::                Displays the types and kinds of every top-level entity in the file
+* meta-vars buffer::              Displays the meta-variables at the current position in an application spine
+* beta-reduce mode::            Beta-reduction explorer
 
-   * Filter entries according to common properties.  Only one filter may
-     be active at a time.
+10 Common commands
+******************
 
-   * Show or hide shadowed variables
-
-8 Controls
-**********
-
-'a/z'
-     Sort all entries alphabetically from a-z/z-a
-
-'d/u'
-     Sort all entries according to binding position in parse tree
-     (descending/ascending)
-
-'e'
-     Filter out entries that do not have an '≃' symbol
-
-'E'
-     Filter out entries that are not literal statements of β-equality
-
-'f'
-     Clear current filter so all entries are shown
-
-'s'
-     Toggle display of shadowed variables
-
-'w'
-     Hide or unhide type or kind of line currently under cursor
-
-'W'
-     Unhide all types and kinds hidden with 'w'
-
-'c/C'
-     Close the context mode window
-
-'h'
-     Open information page for context mode
-
-9 Common commands
-*****************
-
-'M-c'
+‘M-c’
      Copy the contents of the current buffer to the scratch buffer
 
-'+'
+‘+’
      Increase the size of the buffer by one line
 
-'-'
+‘-’
      Decrease the size of the buffer by one line
 
-'='
-     Reset the buffer's size
+‘=’
+     Reset the buffer’s size
 
-'f'
+‘f’
      Moves to the next defined variable in the buffer
 
-'b'
+‘b’
      Moves to the previous defined variable in the buffer
 
-'a'
+‘a’
      Moves to the first defined variable in the buffer
 
-'e'
+‘e’
      Moves to the last defined variable in the buffer
 
-'j'
+‘j’
      Jumps to the definition of the selected variable
 
 
-File: cedille-info-main.info,  Node: credits,  Next: Index,  Prev: options,  Up: Top
+File: cedille-info-main.info,  Node: inspect buffer,  Next: context buffer,  Up: extra buffers
 
-10 Credits
+11 Inspect buffer
+*****************
+
+The inspect buffer for Cedille provides basic information about a node.
+To display the inspect buffer, select a node and press ‘I’ and you will
+open up the inspect buffer and jump to it.  If you just want to open the
+inspect buffer (but not jump to it), press ‘i’ instead.
+
+The inspect buffer contains information about the selected node, and is
+automatically updated during navigation.
+
+12 Controls
+***********
+
+‘i/I’
+     Close the inspect mode window
+
+13 Common commands
+******************
+
+‘M-c’
+     Copy the contents of the current buffer to the scratch buffer
+
+‘+’
+     Increase the size of the buffer by one line
+
+‘-’
+     Decrease the size of the buffer by one line
+
+‘=’
+     Reset the buffer’s size
+
+‘f’
+     Moves to the next defined variable in the buffer
+
+‘b’
+     Moves to the previous defined variable in the buffer
+
+‘a’
+     Moves to the first defined variable in the buffer
+
+‘e’
+     Moves to the last defined variable in the buffer
+
+‘j’
+     Jumps to the definition of the selected variable
+
+
+File: cedille-info-main.info,  Node: summary buffer,  Next: meta-vars buffer,  Prev: context buffer,  Up: extra buffers
+
+14 Summary buffer
+*****************
+
+Displays the type or kind of every definition in the file.
+
+15 Common commands
+******************
+
+‘M-c’
+     Copy the contents of the current buffer to the scratch buffer
+
+‘+’
+     Increase the size of the buffer by one line
+
+‘-’
+     Decrease the size of the buffer by one line
+
+‘=’
+     Reset the buffer’s size
+
+‘f’
+     Moves to the next defined variable in the buffer
+
+‘b’
+     Moves to the previous defined variable in the buffer
+
+‘a’
+     Moves to the first defined variable in the buffer
+
+‘e’
+     Moves to the last defined variable in the buffer
+
+‘j’
+     Jumps to the definition of the selected variable
+
+
+File: cedille-info-main.info,  Node: meta-vars buffer,  Next: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
+
+16 Meta-Vars buffer
+*******************
+
+Meta-Vars mode displays the meta-variables along the current application
+spine, if any.  Jumping (with ‘j’, see below) to the position of a
+meta-variable name will select the span where it was introduced.
+Jumping at the “=” will bring you to where it was solved.
+
+17 Common commands
+******************
+
+‘M-c’
+     Copy the contents of the current buffer to the scratch buffer
+
+‘+’
+     Increase the size of the buffer by one line
+
+‘-’
+     Decrease the size of the buffer by one line
+
+‘=’
+     Reset the buffer’s size
+
+‘f’
+     Moves to the next defined variable in the buffer
+
+‘b’
+     Moves to the previous defined variable in the buffer
+
+‘a’
+     Moves to the first defined variable in the buffer
+
+‘e’
+     Moves to the last defined variable in the buffer
+
+‘j’
+     Jumps to the definition of the selected variable
+
+
+File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
+
+18 Beta-reduce mode
+*******************
+
+Beta-reduce mode is a "beta-reduction explorer".  There are three ways
+to enter beta-reduce mode:
+  1. C-i b Enter beta-reduce mode with a prompted expression.  Copies
+     global scope and local scope if a span is selected.
+
+  2. C-i B Enter beta-reduce mode with the selected span and its scope
+
+  3. C-i t Enter beta-reduce mode with the selected span’s expected type
+     and its scope
+
+19 Controls
+***********
+
+‘C-i n’
+     Replace the selected span with its normalization
+
+‘C-i h’
+     Replace the selected span with its head-normalization
+
+‘C-i =’
+     Replace the selected span with a input expression, if convertible
+
+‘C-i r’
+     Synthesize an equational type from an input expression and rewrite
+     the selected span using it
+
+‘C-i R’
+     Same as “C-i r”, but beta-reduces the selected span as it looks for
+     matches
+
+‘C-i p’
+     Prints an outline of how to reconstruct each normalization,
+     conversion, and rewrite applied to the scratch buffer
+
+‘C-i ,’
+     Undo
+
+‘C-i .’
+     Redo
+
+
+File: cedille-info-main.info,  Node: context buffer,  Next: summary buffer,  Prev: inspect buffer,  Up: extra buffers
+
+20 Context buffer
+*****************
+
+The context buffer for Cedille allows the user to see the local
+variables in scope for the currently selected node.  To display the
+context buffer, select a node and press ‘C’; this will open the context
+buffer and jump to it.  If you just want to open the context buffer (but
+not jump to it), press ‘c’ instead.
+
+The context buffer has several built-in features to organize data:
+
+   • Sort entries alphabetically or by binding position
+
+   • Filter entries according to common properties.  Only one filter may
+     be active at a time.
+
+   • Show or hide shadowed variables
+
+21 Controls
+***********
+
+‘a/z’
+     Sort all entries alphabetically from a-z/z-a
+
+‘d/u’
+     Sort all entries according to binding position in parse tree
+     (descending/ascending)
+
+‘e’
+     Filter out entries that do not have an ’≃’ symbol
+
+‘E’
+     Filter out entries that are not literal statements of β-equality
+
+‘f’
+     Clear current filter so all entries are shown
+
+‘s’
+     Toggle display of shadowed variables
+
+‘w’
+     Hide or unhide type or kind of line currently under cursor
+
+‘W’
+     Unhide all types and kinds hidden with ’w’
+
+‘c/C’
+     Close the context mode window
+
+‘h’
+     Open information page for context mode
+
+22 Common commands
+******************
+
+‘M-c’
+     Copy the contents of the current buffer to the scratch buffer
+
+‘+’
+     Increase the size of the buffer by one line
+
+‘-’
+     Decrease the size of the buffer by one line
+
+‘=’
+     Reset the buffer’s size
+
+‘f’
+     Moves to the next defined variable in the buffer
+
+‘b’
+     Moves to the previous defined variable in the buffer
+
+‘a’
+     Moves to the first defined variable in the buffer
+
+‘e’
+     Moves to the last defined variable in the buffer
+
+‘j’
+     Jumps to the definition of the selected variable
+
+
+File: cedille-info-main.info,  Node: options,  Next: roadmap,  Prev: extra buffers,  Up: Top
+
+23 cedille-mode options
+***********************
+
+The options file resides in ~/.cedille/options and consists of a list of
+options, each on its own line, with a terminating period (“.”).  The
+available options are:
+
+‘import-directories "/path/to/dir"’
+     This specifies a directory where Cedille will search for imported
+     files.  Any number of directories may be listed, each on its own
+     line.  They will be searched after the current directory.
+     Currently, it is not recommended to have two files with the same
+     name.
+
+‘use-cede-files = [true/false]’
+     Enables/disables the Cedille backend’s use of .cede files
+
+‘make-rkt-files = [true/false]’
+     Enables/disables the Cedille backend’s generation of .rkt files
+
+‘generate-logs = [true/false]’
+     Enables/disables generation of log files (.cedille/log)
+
+‘show-qualified-vars = [true/false]’
+     Enables/disables the printing of fully-qualified variables
+
+‘erase-types = [true/false]’
+     Sets whether or not types are erased before they are displayed, for
+     convenience.
+
+
+File: cedille-info-main.info,  Node: roadmap,  Next: credits,  Prev: options,  Up: Top
+
+24 Roadmap
 **********
+
+Cedille is under active development, and the following major changes are
+planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far
+from done with the datatype notations).  Cedille 1.2 is likely Winter
+2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are
+still immersed in the basic research for that.
+
+   • Datatype declarations and pattern-matching recursion, compiled to a
+     Mendler lambda-encoding, Cedille 1.1
+   • Second-order matching and term inference incorporated into
+     spine-local type inference, Cedille 1.2
+   • Rebase Cedille on sequent calculus to enable deriving types like
+     existentials as dual to universals, and support constructive
+     control operators, Cedille 2.0
+
+For datatype notations, we have, in a number of papers and works in
+progress, devised semantics in Cedille for various somewhat advanced
+features: histomorphic recursion, inductive-recursive types, and
+inductive-inductive types.  We will be gradually incorporating
+high-level syntax for these into Cedille, starting with histomorphic
+recursion.
+
+
+File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
+
+25 Credits
+**********
+
+Fall 2018:
+==========
+
+Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew
+Marmaduke, Colin McDonald, Aaron Stump
 
 Fall 2017 to Summer 2018:
 =========================
 
 Tony Cantor
      opaque definitions
+
+Ernesto Copello
+     parser, type-level let
 
 Larry Diehl
      module system design and implementation, phi terms
@@ -382,7 +933,7 @@ Matthew Heimerdinger
      syntax highlighting
 
 Chad Reynolds
-     summary mode
+     summary mode , initial documentation
 
 Aaron Stump
      design, backend
@@ -400,285 +951,41 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: options,  Next: credits,  Prev: minor modes,  Up: Top
-
-11 cedille-mode options
-***********************
-
-The options file resides in ~/.cedille/options and consists of a list of
-options, each on its own line, with a terminating period (".").  The
-available options are:
-
-'import-directories "/path/to/dir"'
-     This specifies a directory where Cedille will search for imported
-     files.  Any number of directories may be listed, each on its own
-     line.  They will be searched after the current directory.
-     Currently, it is not recommended to have two files with the same
-     name.
-
-'use-cede-files = [true/false]'
-     Enables/disables the Cedille backend's use of .cede files
-
-'make-rkt-files = [true/false]'
-     Enables/disables the Cedille backend's generation of .rkt files
-
-'generate-logs = [true/false]'
-     Enables/disables generation of log files (.cedille/log)
-
-'show-qualified-vars = [true/false]'
-     Enables/disables the printing of fully-qualified variables
-
-'erase-types = [true/false]'
-     Sets whether or not types are erased before they are displayed, for
-     convenience.
-
-
-File: cedille-info-main.info,  Node: minor modes,  Next: options,  Prev: unicode shortcuts,  Up: Top
-
-12 Minor modes for cedille
-**************************
-
-Cedille has three minor modes that provide information about the file:
-
-* Menu:
-
-* inspect mode::                Provides information about the currently selected node
-* context mode::                Displays the types and kinds of all variables in the scope of the selected node
-* summary mode::                Displays the types and kinds of every top-level entity in the file
-* meta-vars mode::              Displays the meta-variables at the current position in an application spine
-* beta-reduce mode::            Beta-reduction explorer
-
-13 Common commands
-******************
-
-'M-c'
-     Copy the contents of the current buffer to the scratch buffer
-
-'+'
-     Increase the size of the buffer by one line
-
-'-'
-     Decrease the size of the buffer by one line
-
-'='
-     Reset the buffer's size
-
-'f'
-     Moves to the next defined variable in the buffer
-
-'b'
-     Moves to the previous defined variable in the buffer
-
-'a'
-     Moves to the first defined variable in the buffer
-
-'e'
-     Moves to the last defined variable in the buffer
-
-'j'
-     Jumps to the definition of the selected variable
-
-
-File: cedille-info-main.info,  Node: inspect mode,  Next: context mode,  Up: minor modes
-
-14 Inspect mode
-***************
-
-Inspect mode for Cedille provides basic information about a node.  To
-enter inspect mode, select a node and press 'I' and you will open up the
-inspect mode buffer and jump to it.  If you just want to open the
-inspect mode buffer (but not jump to it), press 'i' instead.
-
-   Inspect mode may contain the following pieces of information:
-
-   * The sort of entity that the node represents
-
-   * The type or kind of the node
-
-   * The file location in which the entity represented by the node is
-     defined
-
-15 Controls
-***********
-
-'i/I'
-     Close the inspect mode window
-
-16 Common commands
-******************
-
-'M-c'
-     Copy the contents of the current buffer to the scratch buffer
-
-'+'
-     Increase the size of the buffer by one line
-
-'-'
-     Decrease the size of the buffer by one line
-
-'='
-     Reset the buffer's size
-
-'f'
-     Moves to the next defined variable in the buffer
-
-'b'
-     Moves to the previous defined variable in the buffer
-
-'a'
-     Moves to the first defined variable in the buffer
-
-'e'
-     Moves to the last defined variable in the buffer
-
-'j'
-     Jumps to the definition of the selected variable
-
-
-File: cedille-info-main.info,  Node: summary mode,  Next: meta-vars mode,  Prev: context mode,  Up: minor modes
-
-17 Summary mode
-***************
-
-Displays a summary of every global definition in the file.
-
-18 Common commands
-******************
-
-'M-c'
-     Copy the contents of the current buffer to the scratch buffer
-
-'+'
-     Increase the size of the buffer by one line
-
-'-'
-     Decrease the size of the buffer by one line
-
-'='
-     Reset the buffer's size
-
-'f'
-     Moves to the next defined variable in the buffer
-
-'b'
-     Moves to the previous defined variable in the buffer
-
-'a'
-     Moves to the first defined variable in the buffer
-
-'e'
-     Moves to the last defined variable in the buffer
-
-'j'
-     Jumps to the definition of the selected variable
-
-
-File: cedille-info-main.info,  Node: meta-vars mode,  Next: beta-reduce mode,  Prev: summary mode,  Up: minor modes
-
-19 Meta-Vars mode
-*****************
-
-Meta-Vars mode displays the meta-variables along the current application
-spine, if any.  Jumping (with 'j', see below) to the position of a
-meta-variable name will select the span where it was introduced.
-Jumping at the "=" will bring you to where it was solved.
-
-20 Common commands
-******************
-
-'M-c'
-     Copy the contents of the current buffer to the scratch buffer
-
-'+'
-     Increase the size of the buffer by one line
-
-'-'
-     Decrease the size of the buffer by one line
-
-'='
-     Reset the buffer's size
-
-'f'
-     Moves to the next defined variable in the buffer
-
-'b'
-     Moves to the previous defined variable in the buffer
-
-'a'
-     Moves to the first defined variable in the buffer
-
-'e'
-     Moves to the last defined variable in the buffer
-
-'j'
-     Jumps to the definition of the selected variable
-
-
-File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary mode,  Up: minor modes
-
-21 Beta-reduce mode
-*******************
-
-Beta-reduce mode is a "beta-reduction explorer".  There are three ways
-to enter beta-reduce mode:
-  1. C-i b Enter beta-reduce mode with a prompted expression.  Copies
-     global scope and local scope if a span is selected.
-
-  2. C-i B Enter beta-reduce mode with the selected span and its scope
-
-  3. C-i t Enter beta-reduce mode with the selected span's expected type
-     and its scope
-
-22 Controls
-***********
-
-'C-i n'
-     Replace the selected span with its normalization
-
-'C-i h'
-     Replace the selected span with its head-normalization
-
-'C-i ='
-     Replace the selected span with a input expression, if convertible
-
-'C-i r'
-     Synthesize an equational type from an input expression and rewrite
-     the selected span using it
-
-'C-i R'
-     Same as "C-i r", but beta-reduces the selected span as it looks for
-     matches
-
-'C-i p'
-     Prints an outline of how to reconstruct each normalization,
-     conversion, and rewrite applied to the scratch buffer
-
-'C-i ,'
-     Undo
-
-'C-i .'
-     Redo
-
-
-File: cedille-info-main.info,  Node: Index,  Prev: credits,  Up: Top
+File: cedille-info-main.info,  Node: Index,  Next: about,  Prev: credits,  Up: Top
 
 Index
 *****
+
+ [index ]
+* Menu:
+
+* beta-reduce mode:                      beta-reduce mode.      (line 6)
+* context buffer:                        context buffer.        (line 6)
+* inspect buffer:                        inspect buffer.        (line 6)
+* summary buffer:                        summary buffer.        (line 6)
 
 
 
 Tag Table:
 Node: Top95
-Node: cedille mode commands746
-Node: unicode shortcuts3794
-Node: context mode6119
-Node: credits8066
-Node: options9162
-Node: minor modes10307
-Node: inspect mode11565
-Node: summary mode12818
-Node: meta-vars mode13581
-Node: beta-reduce mode14556
-Node: Index15699
+Node: about1045
+Node: tooling10905
+Node: cedille mode commands15177
+Node: unicode shortcuts18463
+Node: extra buffers20579
+Node: inspect buffer21923
+Node: summary buffer23118
+Node: meta-vars buffer23931
+Node: beta-reduce mode24962
+Node: context buffer26147
+Node: options28174
+Node: roadmap29353
+Node: credits30546
+Node: Index31840
 
 End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:

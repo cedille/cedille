@@ -1,0 +1,4 @@
+         name:	Application of a term to a term
+expected-type:	X
+         type:	X
+   normalized:	c (b (c a a)) (b (b a))

@@ -50,7 +50,7 @@ to the buffer.")
     (push (cons 'se-navigation-mode se-navi-current-keymap)
 	  minor-mode-overriding-map-alist)
 
-    (add-hook 'se-inf-post-parse-hook 'se-inf-process-spans)
+    (add-hook 'se-inf-post-parse-hook 'se-inf-process-spans t)
     (add-hook 'se-inf-post-parse-hook 'se-inf-process-error t)
     (add-hook 'se-inf-post-parse-hook 'se-inf-process-error-span t)
     (add-hook 'deactivate-mark-hook 'se-navi-mark-deactivated-hook)

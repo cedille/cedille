@@ -38,11 +38,15 @@ token :-
       <0> θ\+                                   { mkTokenEmpty TThetaEq      }
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
+      <0> μ                                     { mkTokenEmpty TMu           }
+      <0> μ'                                    { mkTokenEmpty TMu'          }
+      <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
       <0> module                                { mkTokenEmpty TModule       }
       <0> import                                { mkTokenEmpty TImport       }
       <0> as                                    { mkTokenEmpty TAs           }
+      <0> data                                  { mkTokenEmpty TData         }            
       <0> public                                { mkTokenEmpty TPublic       }
       <0> opaque                                { mkTokenEmpty TOpaque       }
       <0> open                                  { mkTokenEmpty TOpen         }
@@ -166,6 +170,7 @@ data TokenClass =
      |  TRSpan
      |  TImport
      |  TAs
+     |  TData          
      |  TPublic
      |  TOpaque
      |  TOpen
@@ -174,6 +179,9 @@ data TokenClass =
      |  TThetaEq
      |  TThetaVars
      |  TRho
+     |  TMu
+     |  TMu'
+     |  TPipe     
      |  TEOF
      deriving Eq
 
@@ -198,6 +206,7 @@ instance Show TokenClass where
   show (TRSpan)      = "TRSpan"
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
+  show (TData)       = "TData"  
   show (TPublic)     = "TPublic"
   show (TOpaque)     = "TOpaque"
   show (TOpen)       = "TOpen"
@@ -206,6 +215,9 @@ instance Show TokenClass where
   show (TThetaEq)    = "TThetaEq"
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
+  show (TMu)         = "TMu"
+  show (TMu')        = "TMu'"
+  show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 
 data AlexUserState = AlexUserState {

@@ -27,6 +27,22 @@ maybe-equal? f (just x) nothing = ff
 maybe-equal? f nothing (just x) = ff
 maybe-equal? f nothing nothing = tt
 
+_≫maybe_ : ∀ {ℓ}{A B : Set ℓ} → maybe A → maybe B → maybe B
+nothing ≫maybe f = nothing
+just x  ≫maybe f = f
+
+_maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
+(nothing maybe-or ma) = ma
+(just a  maybe-or ma) = just a
+
+maybe-not : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
+maybe-not (just a) = nothing
+maybe-not nothing = just triv
+
+maybe-if : 𝔹 → maybe ⊤
+maybe-if tt = just triv
+maybe-if ff = nothing
+
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
 trie-lookupd t s d | nothing = d
@@ -127,6 +143,15 @@ undo-escape-string-h [] so-far = reverse so-far
 undo-escape-string : string → string
 undo-escape-string str = 𝕃char-to-string (undo-escape-string-h (string-to-𝕃char str) [])
 
+is-pfx : (pfx str : string) → maybe string
+is-pfx pfx str = h (string-to-𝕃char pfx) (string-to-𝕃char str) where
+  h : 𝕃 char → 𝕃 char → maybe string
+  h [] cs = just (𝕃char-to-string cs)
+  h (cₚ :: csₚ) [] = nothing
+  h (cₚ :: csₚ) (cₛ :: csₛ) with cₚ =char cₛ
+  ...| ff = nothing
+  ...| tt = h csₚ csₛ
+
 -- functions.agda
 curry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
         → (A × B → C) → A → B → C
@@ -136,7 +161,15 @@ uncurry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ�
           → (f : A → B → C) → (p : A × B) → C
 uncurry f (a , b) = f a b
 
-infix 0 case_return_of_ case_of_
+elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+            → A × B → (A → B → C) → C
+elim-pair (a , b) f = f a b
+
+elim-Σi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''}
+          → Σi A B → ({a : A} → B a → X) → X
+elim-Σi (, b) f = f b
+
+infixr 0 case_return_of_ case_of_
 
 case_return_of_ :
   ∀ {ℓ₁ ℓ₂} {A : Set ℓ₁}
@@ -146,13 +179,20 @@ case x return B of f = f x
 case_of_ : ∀ {a b} {A : Set a} {B : Set b} → A → (A → B) → B
 case x of f = case_return_of_ x _ f
 
+case₂_,_of_ : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A → B → (A → B → C) → C
+case₂ x , y of f = f x y
+
 flip : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
        → (A → B → C) → (B → A → C)
 flip f = λ b a → f a b
 
-infixr 0 _$'_
-_$'_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
-f $' x = f x
+const : ∀ {a b} {A : Set a} {B : Set b} →
+        A → B → A
+const a b = a
+
+infixr 0 _$_
+_$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
+f $ x = f x
 
 -- list.agda
 
@@ -176,12 +216,21 @@ for xs yield f = map f xs
 for_accum_use_ : ∀ {a b} {A : Set a} {B : Set b} → 𝕃 A → B → (A → B → B) → B
 for xs accum n use f = foldr f n xs
 
+
+foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
+foldl f b [] = b
+foldl f b (a :: as) = foldl f (f a b) as
+
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg
 err-guard ff _   = no-error triv
 
 -- sum.agda
+either-else' : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A ∨ B → (A → C) → (B → C) → C
+either-else' (inj₁ x) f g = f x
+either-else' (inj₂ y) f g = g y
+
 err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err
 err⊎-guard ff _   = inj₂ triv
@@ -208,6 +257,7 @@ postulate
   hSetToLineBuffering : Handle → IO ⊤
   hFlush : Handle → IO ⊤
   stdout : Handle
+  doesDirectoryExist : filepath → IO 𝔹
 
 {-# FOREIGN GHC import qualified System.IO #-}
 {-# FOREIGN GHC import qualified Data.Text.IO #-}
@@ -220,6 +270,7 @@ postulate
 {-# COMPILE GHC openFile = \ fp mode -> do outh <- System.IO.openFile (Data.Text.unpack fp) mode; System.IO.hSetNewlineMode outh System.IO.noNewlineTranslation; System.IO.hSetEncoding outh System.IO.utf8; return outh #-}
 {-# COMPILE GHC closeFile = System.IO.hClose #-}
 {-# COMPILE GHC hPutStr = Data.Text.IO.hPutStr #-}
+{-# COMPILE GHC doesDirectoryExist = System.Directory.doesDirectoryExist . Data.Text.unpack #-}
 
 clearFile : filepath → IO ⊤
 clearFile fp = openFile fp WriteMode >>= λ hdl → hPutStr hdl "" >> closeFile hdl
@@ -360,6 +411,3 @@ bindM' a b = bindM a (λ a → b)
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
 
-_maybe-or_ : ∀{A : Set} → maybe A → maybe A → maybe A
-_maybe-or_ ma @ (just a) ma' = ma
-_maybe-or_ ma ma' = ma'

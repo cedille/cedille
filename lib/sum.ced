@@ -22,3 +22,7 @@ ind-Sum ◂ ∀ A : ★ . ∀ B : ★ . Π x : Sum · A · B .
   Λ A . Λ B . λ x . Λ P . λ pa . λ pb .
     ρ ς x.2.1 - (x.2.2 · (Sum · A · B) · P -(in1 · A · B) -(in2 · A · B) pa pb) .
 
+rec-Sum ◂ ∀ A : ★ . ∀ B : ★ . Π x : Sum · A · B .
+          ∀ X : ★ . (A ➔ X) ➔ (B ➔ X) ➔ X =
+  Λ A . Λ B . λ x . Λ X . λ pa . λ pb .
+    x.1 · X pa pb .

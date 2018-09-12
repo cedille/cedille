@@ -73,6 +73,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "t") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "s") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "S") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "m") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "M") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
     (se-navi-define-key 'cedille-br-mode (kbd "C-i e") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i b") #'se-navi-nothing)
@@ -111,20 +113,20 @@
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
 
-(defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
-  "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
-  (se-inf-interactive
-   cedille-mode-status-msg
-   (lambda (response extra)
-      (with-current-buffer (car extra)
-        (cedille-mode-br-init-buffer
-         (cadr extra)
-         (caddr extra)
-         (cadddr extra)
-         (cadr (cdddr extra))) ; caddddr not defined :(
-        nil))
-   (list (current-buffer) str context checking qed)
-   :header cedille-mode-caching-header))
+;(defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
+;  "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
+;  (se-inf-interactive
+;   cedille-mode-status-msg
+;   (lambda (response extra)
+;      (with-current-buffer (car extra)
+;        (cedille-mode-br-init-buffer
+;         (cadr extra)
+;         (caddr extra)
+;         (cadddr extra)
+;         (cadr (cdddr extra))) ; caddddr not defined :(
+;        nil))
+;   (list (current-buffer) str context checking qed)
+;   :header cedille-mode-caching-header))
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
@@ -159,7 +161,11 @@
 (defun cedille-mode-br-erase (s)
   "Erases the text before parsing"
   (se-inf-interactive
-   (concat "interactive§erasePrompt§" s)
+   (cedille-mode-concat-sep
+    "interactive"
+    "erasePrompt"
+    s
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    (cedille-mode-response-macro #'cedille-mode-br-erase-response)
    (current-buffer)
    :header "Erasing"))
@@ -200,9 +206,11 @@
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
   (se-inf-interactive
-   (concat "interactive§br"
-	   "§" cedille-mode-br-temp-str
-	   (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
+   (cedille-mode-concat-sep
+    "interactive"
+    "br"
+    cedille-mode-br-temp-str
+    (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    #'cedille-mode-br-process-response
    (current-buffer)
    :header "Parsing"
@@ -238,7 +246,7 @@
     (if (not node)
 	(message "Error: must select a node")
       (let* ((text (cedille-mode-br-get-qed node)))
-	(cedille-mode-br-init-buffer-wait text (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) text))))
+	(cedille-mode-br-init-buffer text (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) text))))
   nil)
 
 (defun cedille-mode-br-type ()
@@ -251,18 +259,18 @@
            (type (or (cdr (assoc 'expected-type (se-term-data span)))
                      (cdr (assoc 'type (se-term-data span))))))
       (if type
-          (cedille-mode-br-init-buffer-wait type (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed span))
+          (cedille-mode-br-init-buffer type (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed span))
         (message "Span must have an expected type or a type"))))
   nil)
 
 (defun cedille-mode-br-start-prompt (&optional context checking)
   "Starts beta-reduction buffer with the prompted input INPUT"
-  (cedille-mode-br-init-buffer-wait (call-interactively (lambda (input) (interactive "MBeta-reduce: ") input)) context checking))
+  (cedille-mode-br-init-buffer (call-interactively (lambda (input) (interactive "MBeta-reduce: ") input)) context checking))
 
 (defun cedille-mode-br-prompt (str)
   "Starts the beta-reduction buffer with STR and local context"
   (let ((cedille-mode-br-original-filename (buffer-file-name)))
-    (cedille-mode-br-init-buffer-wait str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking))))
+    (cedille-mode-br-init-buffer str (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking))))
 
 (defun cedille-mode-br-kill-buffer ()
   "Kills the current buffer"
@@ -297,8 +305,8 @@
     (if (null span)
 	(message "Error: must select a node")
       (let* ((ll (cdr (assoc 'language-level (se-span-data span))))
-             (op-fn1 (lambda (response) (car (split-string response sep))))
-             (op-fn2 (lambda (response new-str) (concat "χ " (cedille-mode-br-add-parens (format new-str (cedille-mode-br-add-parens (cadr (split-string response sep))))) " - ")))
+             (op-fn1 (lambda (response) (car (split-string response cedille-mode-sep))))
+             (op-fn2 (lambda (response new-str) (concat "χ " (cedille-mode-br-add-parens (format new-str (cedille-mode-br-add-parens (cadr (split-string response cedille-mode-sep))))) " - ")))
              (extra (cons (current-buffer) (cons t (cons op-fn1 op-fn2))))
              (header (if head "Head-normalizing" "Normalizing")))
 	(if (not (and ll (or (string= ll "term") (string= ll "type") (string= ll "kind"))))
@@ -329,11 +337,12 @@
 			 input))
 	       (input (call-interactively ask-fn))
 	       (extra (cons (current-buffer) (cons t nil)))
-	       (q (concat
-		   "interactive§conv"
-		   "§" ll
-		   "§" (buffer-substring (se-span-start span) (se-span-end span))
-		   "§" input
+	       (q (cedille-mode-concat-sep
+		   "interactive"
+                   "conv"
+		   ll
+		   (buffer-substring (se-span-start span) (se-span-end span))
+		   input
 		   (cedille-mode-normalize-local-context-param span))))
 	  (se-inf-interactive-with-span
 	   q
@@ -357,19 +366,20 @@
              (input (call-interactively (if head ask-fn2 ask-fn1)))
              (op-fn1
               (lambda (response)
-                (car (split-string response sep))))
+                (car (split-string response cedille-mode-sep))))
              (op-fn2
               `(lambda (response new-str)
-                (let* ((xT (cdr (split-string response ,sep)))
+                (let* ((xT (cdr (split-string response ,cedille-mode-sep)))
                        (x (car xT))
                        (T (cadr xT)))
                   (concat "ρ " (if ,cedille-mode-br-checking "ς " "") (cedille-mode-br-add-parens ,input) " @ " x " . " (format new-str T) " - "))))
              (extra (cons (current-buffer) (cons cedille-mode-br-checking (cons op-fn1 op-fn2))))
-             (q (concat
-                 "interactive§rewrite"
-                 "§" (buffer-substring (se-span-start span) (se-span-end span))
-                 "§" input
-                 "§" (if head "tt" "ff")
+             (q (cedille-mode-concat-sep
+                 "interactive"
+                 "rewrite"
+                 (buffer-substring (se-span-start span) (se-span-end span))
+                 input
+                 (if head "tt" "ff")
                  (cedille-mode-normalize-local-context-param span))))
         (se-inf-interactive-with-span
          q

@@ -158,9 +158,11 @@ ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defPa
 ctxt-info-to-string (term-udef dp opac t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
 ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", tp: " ^ rope-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (kind-def pms pms' k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ ", pms': " ^ (params-to-string'' pms') ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
+ctxt-info-to-string (const-def _) = "const-def"
+ctxt-info-to-string (datatype-def _ _) = "datatype-def"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
@@ -181,7 +183,7 @@ mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os d) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -201,57 +203,87 @@ import-as : var → optAs → var
 import-as v NoOptAs = v
 import-as v (SomeOptAs pi pfx) = pfx # v
 
-{-# TERMINATING #-}
-scope-file : toplevel-state → (original imported : filepath) → optAs → args → toplevel-state × err-m
-scope-cmds : filepath → (mn : string) → cmds → optAs → args → toplevel-state → toplevel-state × err-m
-scope-cmd : filepath → (mn : string) → cmd → optAs → args → toplevel-state → toplevel-state × err-m
-scope-def : filepath → (mn : string) → var → optAs → args → toplevel-state → toplevel-state × err-m
--- scope-public-args : (old-fp new-fp : filepath) → args → args → toplevel-state → args × err-m
-
-infixl 8 _≫×_
-
-_≫×_ : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : Set ℓ'} {E : Set ℓ''} → A × maybe E → (A → B × maybe E) → B × maybe E
-_≫×_ (a , e) f with f a
-...| b , e' = b , maybe-else e' just e
-
 error-in-import-string = "There is an error in the imported file"
 
 -- Traverse all imports, returning an error if we encounter the same file twice
 {-# TERMINATING #-}
-check-cyclic-imports :(original current : filepath) → stringset → 𝕃 string → toplevel-state → toplevel-state × err-m
+check-cyclic-imports : (original current : filepath) → stringset → (path : 𝕃 string) → toplevel-state → err-m
 check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
-...| ff = foldr (λ fnᵢ x → x ≫× check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path)) (s , nothing) (include-elt.deps (get-include-elt s fn))
+...| ff = foldr (λ fnᵢ x → x maybe-or check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
+            nothing (include-elt.deps (get-include-elt s fn))
 ...| tt with fnₒ =string fn
-...| tt = s , just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
-...| ff = s , just error-in-import-string
+...| tt = just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
+...| ff = just error-in-import-string
 
-scope-file-err : 𝔹 → toplevel-state → toplevel-state × err-m
-scope-file-err b s = s , if b then just error-in-import-string else nothing
+scope-t : Set → Set
+scope-t X = filepath → string → optAs → params → args → X → toplevel-state → toplevel-state × err-m
 
-scope-file s fnₒ fn oa as with get-include-elt s fn
+infixl 0 _≫=scope_
+_≫=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
+_≫=scope_ (ts , err) f with f ts
+...| ts' , err' = ts' , err maybe-or err'
+
+{-# TERMINATING #-}
+scope-file : toplevel-state → (original imported : filepath) → optAs → args → toplevel-state × err-m
+scope-file' : scope-t ⊤
+scope-cmds : scope-t cmds
+scope-cmd : scope-t cmd
+scope-var : scope-t var
+
+scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
+...| just e = ts , just e
+...| nothing = scope-file' fnₒ fnᵢ oa ParamsNil as triv ts
+
+scope-file' fnₒ fn oa psₒ as triv s with get-include-elt s fn
 ...| ie with include-elt.err ie | include-elt.ast ie
-...| e | nothing = scope-file-err e s
+...| e | nothing = s , (maybe-if e) ≫maybe just error-in-import-string
 ...| e | just (File pi0 is pi1 pi2 mn ps cs pi3) =
-  check-cyclic-imports fnₒ fn (trie-single fnₒ triv) [] s ≫×
-  scope-file-err e ≫×
-  scope-cmds fn mn (imps-to-cmds is) oa as ≫×
-  scope-cmds fn mn cs oa as
+  (s , (maybe-if e) ≫maybe just error-in-import-string) ≫=scope
+  scope-cmds fn mn oa ps as (imps-to-cmds is) ≫=scope
+  scope-cmds fn mn oa ps as cs
 
-scope-cmds fn mn (CmdsNext c cs) oa as s =
-  scope-cmd fn mn c oa as s ≫× scope-cmds fn mn cs oa as
-scope-cmds fn mn CmdsStart oa as s = s , nothing
+scope-cmds fn mn oa ps as (CmdsNext c cs) s =
+  scope-cmd fn mn oa ps as c s ≫=scope scope-cmds fn mn oa ps as cs
+scope-cmds fn mn oa ps as CmdsStart s = s , nothing
 
-scope-cmd fn mn (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) oa as s = s , nothing
-scope-cmd fn mn (ImportCmd (Import pi IsPublic pi' ifn oa' as' pi'')) oa as s =
+scope-cmd fn mn oa ps as (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) s = s , nothing
+scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ' pi'')) s =
   let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
-  scope-file s fn ifn' oa ArgsNil -- oa' should be NoOptAs and as' should be ArgsNil
-scope-cmd fn mn (DefKind pi v ps k pi') = scope-def fn mn v
-scope-cmd fn mn (DefTermOrType _ (DefTerm pi v mcT _) pi') = scope-def fn mn v
-scope-cmd fn mn (DefTermOrType _ (DefType pi v k _) pi') = scope-def fn mn v
+  scope-file' fn ifn' oa psₒ asᵢ triv s
+  -- ^ oa' should be NoOptAs, so we can use oa ^
+  where
 
-scope-def _ mn v oa as s with import-as v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os) ,
+  merged : trie (maybe arg) → params → args → trie (maybe arg)
+  merged σ (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) =
+    merged (trie-insert σ x $ just a) ps as
+  merged σ (ParamsCons (Decl _ _ me x atk _) ps) ArgsNil =
+    merged (trie-insert σ x nothing) ps ArgsNil
+  merged σ _ _ = σ
+  
+  arg-var : arg → maybe var
+  arg-var (TermArg me (Var pi x)) = just x
+  arg-var (TypeArg (TpVar pi x)) = just x
+  arg-var _ = nothing
+
+  σ = merged empty-trie psₒ asₒ
+  
+  reorder : args → args
+  reorder (ArgsCons a as) =
+    maybe-else' (arg-var a ≫=maybe trie-lookup σ) (ArgsCons a $ reorder as) λ ma →
+    maybe-else' ma ArgsNil λ a → ArgsCons a $ reorder as
+  reorder ArgsNil = ArgsNil
+  
+  asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
+
+scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ _ _) _) = scope-var fn mn oa ps as v
+
+
+scope-var _ mn oa ps as v s with import-as v oa | s
+...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
-    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^ " (perhaps it was already imported?)")
-  -- ^ Maybe don't cause error if mn # v == v'' && as == as'? ^
+    "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
+    (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

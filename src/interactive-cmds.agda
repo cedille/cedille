@@ -20,6 +20,9 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import elaboration (record options {during-elaboration = ff})
+open import elaboration-helpers (record options {during-elaboration = ff})
+open import templates
 
 private
 
@@ -40,7 +43,7 @@ private
     just (TpAppt T t')
   ll-disambiguate Γ (AppTp t T') = ll-disambiguate Γ t ≫=maybe λ T → just (TpApp T T')
   ll-disambiguate Γ (Lam pi KeptLambda pi' x (SomeClass atk) t) =
-    ll-disambiguate (ctxt-tk-decl pi' localScope x atk Γ) t ≫=maybe λ T →
+    ll-disambiguate (ctxt-tk-decl pi' x atk Γ) t ≫=maybe λ T →
     just (TpLambda pi pi' x atk T)
   ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
   ll-disambiguate Γ (Let pi d t) =
@@ -126,8 +129,8 @@ private
         just (ctxt-term-def pi localScope OpacTrans v t (qualif-type Γ T) Γ)
       h ll-type (just T) k =
         just (ctxt-type-def pi localScope OpacTrans v T (qualif-kind Γ k) Γ)
-      h ll-term nothing T = just (ctxt-term-decl pi localScope v T Γ)
-      h ll-type nothing k = just (ctxt-type-decl pi localScope v k Γ)
+      h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
+      h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
     
     sort-lcis : 𝕃 lci → 𝕃 lci
@@ -136,7 +139,7 @@ private
       where import list-merge-sort
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
-  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _) pi =
+  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ _) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))
@@ -170,11 +173,12 @@ private
           (λ t t' → t') (λ t t' → t') ll' t t')))
       else inj₂ (to-string-tag "" Γ' t')
   
-  normalize-prompt : ctxt → (str hd : string) → string ⊎ tagged-val
-  normalize-prompt Γ str hd =
+  normalize-prompt : ctxt → (str hd : string) → 𝕃 string → string ⊎ tagged-val
+  normalize-prompt Γ str hd ls =
     string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
-    parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
-    inj₂ (to-string-tag "" Γ (hnf Γ (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ t) tt))
+    let Γ' = merge-lcis-ctxt Γ ls in
+    parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
+    inj₂ (to-string-tag "" Γ' (hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt))
   
   erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
   erase-cmd Γ str ll pi ls =
@@ -184,10 +188,29 @@ private
     let Γ' = get-local-ctxt Γ sp ls in
     inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
   
-  erase-prompt : ctxt → (str : string) → string ⊎ tagged-val
-  erase-prompt Γ str =
-    parse-try Γ - str ! ttk ≫parse λ f → f λ ll t →
-    inj₂ (to-string-tag "" Γ (erase (qualif-ed Γ t)))
+  erase-prompt : ctxt → (str : string) → 𝕃 string → string ⊎ tagged-val
+  erase-prompt Γ str ls =
+    let Γ' = merge-lcis-ctxt Γ ls in
+    parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
+    inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
+
+  private
+    cmds-to-escaped-string : cmds → strM
+    cmds-to-escaped-string (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
+    cmds-to-escaped-string CmdsStart = strEmpty
+
+  data-cmd : ctxt → (encoding name ps is cs : string) → string ⊎ tagged-val
+  data-cmd Γ encodingₛ x psₛ isₛ csₛ =
+    string-to-𝔹 - encodingₛ ! "boolean" ≫parse λ encoding →
+    parse-string ll-kind - psₛ ! "kind" ≫parse λ psₖ →
+    parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
+    parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
+    let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices Γ psₖ
+        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
+        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ Γ) isₖ
+        picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
+        defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
+    inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
   
   br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
   br-cmd Γ str ls =
@@ -228,7 +251,7 @@ private
     ≫=⊎ uncurry λ t₁ t₂ →
     let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
         f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
-              subst-term subst-type subst-kind ll Γ t₂ x in
+              subst subst subst ll Γ t₂ x in
     case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
                          term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
       rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ
@@ -250,14 +273,16 @@ private
     normalize-cmd Γ input ll sp head do-erase lc
   interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =
     erase-cmd Γ input ll sp lc
-  interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: []) =
-    normalize-prompt Γ input head
-  interactive-cmd-h Γ ("erasePrompt" :: input :: []) =
-    erase-prompt Γ input
+  interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: lc) =
+    normalize-prompt Γ input head lc
+  interactive-cmd-h Γ ("erasePrompt" :: input :: lc) =
+    erase-prompt Γ input lc
   interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: lc) =
     conv-cmd Γ ll ss is lc
   interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =
     rewrite-cmd Γ ss is head lc
+  interactive-cmd-h Γ ("data" :: encoding :: x :: ps :: is :: cs :: []) =
+    data-cmd Γ encoding x ps is cs
   interactive-cmd-h Γ cs =
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
   

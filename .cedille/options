@@ -1,6 +1,6 @@
  -- list of directories (separated by spaces) to import files, besides current one
 import-directories
-  = "../lib" .
+  = "./lib" .
 
  -- write Cedille spans to ./.cedille/file.cede
 use-cede-files

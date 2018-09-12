@@ -3,7 +3,9 @@
 
 (eval-when-compile (require 'cl))
 
-(defvar se-inf-parsing-header nil "If non-nil, displays header during parsing")
+;(make-variable-buffer-local
+(defvar se-inf-parsing-header nil
+  "If non-nil, displays header during parsing");)
 
 (make-variable-buffer-local
  (defvar se-inf-process nil
@@ -90,9 +92,9 @@ to be sent to the backend to request parsing of that file."))
  (defvar se-inf-header-index 0
    "Current index of the header loop."))
 
-(defvar se-inf-header-line-format nil
-  "Format to set `header-line-format' to during background
-parsing.")
+(make-variable-buffer-local
+ (defvar se-inf-header-line-format nil
+   "Format to set `header-line-format' to during background parsing."))
 
 (make-variable-buffer-local
  (defvar se-inf-header-timer nil
@@ -131,6 +133,8 @@ will kill the process, should be skipped if process is shared."
       (se-unpin-list (se-inf-filter-pins-symbol symbol pins '())))))
 
 (defun se-inf-interactive-h (q-str-or-fn response-fn extra span progress-fn header restore)
+  (setq se-inf-interactive-running t)
+  (run-hooks 'se-inf-pre-interactive-hook)
   (let* ((span (se-get-span span))
 	 (header (or header ""))
 	 (q-str (cond
@@ -139,10 +143,9 @@ will kill the process, should be skipped if process is shared."
 		 (t (funcall q-str-or-fn extra))))
 	 (q (concat (se-inf-escape-string q-str) "\n"))
 	 (data (list q-str-or-fn response-fn progress-fn span extra restore (buffer-name) header)))
-    (setq se-inf-interactive-running t)
-    (run-hooks 'se-inf-pre-interactive-hook)
     (se-inf-queue-header header)
-    (tq-enqueue se-inf-queue q "\n" data #'se-inf-interactive-response)))
+    (se-inf-next-header)
+    (tq-enqueue se-inf-queue q "\n" data #'se-inf-interactive-response t)))
   ;(setq se-inf-int-time (current-time)))
 
 (cl-defun se-inf-interactive (q-str response-fn extra &key progress-fn header)
@@ -193,7 +196,8 @@ RESTORE, if non-nil, will make this call get recomputed during batch processing.
                       (t (funcall response-fn response extra))))))
         (if (and progress-fn (string= se-inf-progress-prefix (substring response 0 (length se-inf-progress-prefix))))
             (let ((msg (funcall pair progress-fn (substring response (length se-inf-progress-prefix)))))
-              (tq-enqueue se-inf-queue (concat msg "\n") "\n" data #'se-inf-interactive-response t))
+              (tq-enqueue se-inf-queue (concat msg "\n") "\n" data #'se-inf-interactive-response))
+          (setq header-line-format nil)
           (se-inf-next-header)
           (let ((pr (funcall pair response-fn response)))
             (when (and span pr (car-safe pr) (cdr-safe pr)) (se-inf-add-to-span span pr)))
@@ -462,16 +466,17 @@ hourglass feature."
 
 (defun se-inf-queue-header (str)
   "Adds str to  `se-inf-header-queue'"
+  ;(message "queue %s" str)
   (if (string= str "")
       (setq se-inf-header-queue (append se-inf-header-queue (list "")))
     (let ((str (concat " " str " ")))
-      (setq se-inf-header-queue (append se-inf-header-queue (se-inf-string-to-header str)))))
-  (when (and (null header-line-format) (equal 1 (length se-inf-header-queue)))
-    (se-inf-next-header)))
+      (setq se-inf-header-queue (append se-inf-header-queue (se-inf-string-to-header str))))))
+  ;(when (and (null header-line-format) (equal 1 (length se-inf-header-queue)))
+  ;  (se-inf-next-header)))
 
 (defun se-inf-next-header ()
   "If `header-line-format' is nil, then sets it to be the first element from `se-inf-header-queue', which gets popped"
-  (when (or se-inf-header-queue se-inf-interactive-running)
+  (when (and (null header-line-format) (or se-inf-header-queue se-inf-interactive-running))
     (let* ((popped (pop se-inf-header-queue)))
       (if (and (null popped) (null se-inf-header-queue))
 	  (se-inf-finish-response)

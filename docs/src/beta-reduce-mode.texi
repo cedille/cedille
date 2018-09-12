@@ -1,6 +1,8 @@
-@node beta-reduce mode,,summary mode,minor modes
+@node beta-reduce mode,,summary buffer,extra buffers
 
 @chapter Beta-reduce mode
+
+@cindex beta-reduce mode
 
 Beta-reduce mode is a "beta-reduction explorer". There are three ways to enter beta-reduce mode:
 @enumerate

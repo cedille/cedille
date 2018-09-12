@@ -40,8 +40,8 @@ options-to-rope ops =
     (𝕃-to-string (λ fp → "\"" ^ fp ^ "\"") " " (fst (options.include-path ops))) ⊹⊹
   comment "Cache navigation spans for performance" ⊹⊹
   option "use-cede-files" (𝔹-s options.use-cede-files) ⊹⊹
-  comment "Compile Cedille files to Racket after they are checked"⊹⊹
-  option "make-rkt-files" (𝔹-s options.make-rkt-files) ⊹⊹
+--  comment "Compile Cedille files to Racket after they are checked"⊹⊹
+--  option "make-rkt-files" (𝔹-s options.make-rkt-files) ⊹⊹
   comment "Write logs to ~/.cedille/log" ⊹⊹
   option "generate-logs" (𝔹-s options.generate-logs) ⊹⊹
   comment "Print variables fully qualified" ⊹⊹

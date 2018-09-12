@@ -40,7 +40,7 @@ do-liftargs Γ tp (LiftArrow l1 l2) (arg :: args) X tobind =
 do-liftargs Γ tp (LiftTpArrow l1 l2) (arg :: args) X tobind =
   do-liftargs Γ (TpAppt tp arg) l2 args X tobind
 do-liftargs Γ tp (LiftPi _ x _ l) (arg :: args) X tobind =
-  do-liftargs Γ (TpAppt tp arg) (subst-liftingType Γ arg x l) args X tobind
+  do-liftargs Γ (TpAppt tp arg) (subst Γ arg x l) args X tobind
 do-liftargs Γ tp (LiftParens _ l _) args X tobind = do-liftargs Γ tp l args X tobind 
 do-liftargs Γ tp _ _ _ _ = tp
 

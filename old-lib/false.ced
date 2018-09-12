@@ -1,3 +1,0 @@
-module False .
-
-False ◂ ★ = ∀ X : ★ . X .

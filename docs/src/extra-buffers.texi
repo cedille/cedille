@@ -1,0 +1,15 @@
+@node extra buffers,options,unicode shortcuts,Top
+
+@chapter Minor-mode buffers for Cedille
+Cedille uses several extra buffers to provide information about the processed Cedille source file:
+
+@menu
+* inspect buffer::              Provides information about the currently selected node
+* context buffer::                Displays the types and kinds of all variables in the scope of the selected node
+* summary buffer::                Displays the types and kinds of every top-level entity in the file
+* meta-vars buffer::              Displays the meta-variables at the current position in an application spine
+* beta-reduce mode::            Beta-reduction explorer
+@end menu
+
+
+@include extra-buffers-commands.texi

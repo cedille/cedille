@@ -8,8 +8,16 @@ cedille-extension = "ced"
 self-name : string
 self-name = "self"
 
-ignored-var : string
-ignored-var = "_"
+
+pattern ignored-var = "_"
+
+pattern meta-var-pfx = '?'
+pattern qual-local-chr = '@'
+pattern qual-global-chr = '.'
+
+meta-var-pfx-str = 𝕃char-to-string [ meta-var-pfx ]
+qual-local-str = 𝕃char-to-string [ qual-local-chr ]
+qual-global-str = 𝕃char-to-string [ qual-global-chr ]
 
 options-file-name : string
 options-file-name = "options"

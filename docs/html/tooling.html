@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<head>
+<title>Cedille Documentation: tooling</title>
+
+<meta name="description" content="Cedille Documentation: tooling">
+<meta name="keywords" content="Cedille Documentation: tooling">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="cedille-mode-commands.html#cedille-mode-commands" rel="next" title="cedille mode commands">
+<link href="about.html#about" rel="prev" title="about">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="tooling"></a>
+<div class="header">
+<p>
+Next: <a href="cedille-mode-commands.html#cedille-mode-commands" accesskey="n" rel="next">cedille mode commands</a>, Previous: <a href="about.html#about" accesskey="p" rel="prev">about</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="Architecture-of-Cedille"></a>
+<h2 class="chapter">2 Architecture of Cedille</h2>
+
+<p>Cedille is implemented in around 13kloc of elisp + Agda.  There is an
+emacs Cedille mode for reading and writing Cedille code using
+<a href="unicode-shortcuts.html#unicode-shortcuts">unicode shortcuts</a>.  Most importantly, from Cedille mode one can
+request that the Cedille backend process the current Cedille source
+buffer, and enter Cedille navigation mode.  In Cedille navigation
+mode, a rich amount of type information computed from the backend is
+available and can be viewed node by node of the abstract syntax tree
+for the text of the buffer.  One navigates this tree using individual
+keystrokes (in Cedille navigation mode) like p and n.  One can also
+issue interactive commands, even use a beta-reduction explorer.
+See <a href="cedille-mode-commands.html#cedille-mode-commands">cedille mode commands</a> There are several <a href="extra-buffers.html#extra-buffers">extra buffers</a>
+available to display information about the current node (the inspect
+buffer), current typing context, meta-variable solutions, and summary
+information for the source file.
+</p>
+<p>Additionally, one can request that Cedille compile a given source
+buffer and its dependencies to Cedille Core, a much more minimalistic
+core type theory lacking many of the nice features of Cedille,
+especially spine-local type inference.  <code>core</code> contains an implementation
+of Cedille Core in Haskell.  There is a specification of Cedille Core
+<a href="https://github.com/astump/cedille-core-spec">here</a>.
+</p>
+<a name="Spans"></a>
+<h3 class="section">2.1 Spans</h3>
+
+<p>The frontend (i.e., the emacs mode) sends request to the backend in a
+simple text format.  The backend replies with <em>spans</em>, which
+consist of a starting and ending character position in the file, a
+name for the node, and a list of attribute-value pairs.  The inspect
+buffer, which one views with keystroke <tt class="key">i</tt> when a span is
+highlighted (with <tt class="key">p</tt>), shows this information.  Some of the
+attribute-value pairs are suppressed by default, because they are
+intended just for use by the frontend.  You can see them if you wish
+by changing the setting of the Cedille Mode Debug customization
+variable; to do this, use keystroke <tt class="key">$</tt> from Cedille navigation
+mode to see customization options, or do <code>customize-group</code> <code>cedille</code>.
+</p>
+<p>Spans for file <code>F</code> are cached in a <code>F.cede</code> file written to
+a <code>.cedille</code> subdirectory of <code>F</code>&rsquo;s directory.  Spans are
+stored and transmitted to the frontend in JSON format.  Hence, one
+can easily read the span data directly &ndash; but you will find that it
+is very verbose and much easier to understand through the emacs mode.
+</p>
+<p>The <code>se-mode</code> (&ldquo;structured editing&rdquo;, though it is really just
+structured navigation) part of the elisp code is concerned with
+processing the spans and assembly an abstract syntax tree based on
+span containment.  <code>se-mode</code> is generic, and can be used as the
+basis for structured navigation for other languages.  <code>se-mode</code>
+was proposed, designed, and implemented by (then) U. Iowa
+undergraduate Carl Olson, before the current Cedille implementation
+began.
+</p>
+<a name="Spine_002dlocal-type-inference"></a>
+<h3 class="section">2.2 Spine-local type inference</h3>
+
+<p>Cedille implements a novel form of local type inference due to Chris
+Jenkins, called spine-local type inference.  Cedille will try to fill
+in omitted values for type variables via first-order matching (not
+unification).  There is currently some heuristic support for
+second-order matching, but a complete second-order matcher (note that
+second-order matching is decidable, unlike second-order unification)
+is planned for after the 1.0 release.  The inference is local in the
+sense that type meta-variables are never propagated out of a locale,
+which is an application spine (i.e., head applied to arguments).
+Spine-local type inference also uses the expected type for a locale to
+fill in missing values for type variables used in the type of the
+locale.  For more information, see
+<a href="https://arxiv.org/abs/1805.10383">the paper on ArXiv.</a>  See also
+some examples in <code>language-overview/type-inference.ced</code>.  When in
+Cedille navigation mode, use keystroke <tt class="key">m</tt> to view the
+meta-variables buffer, where information on meta-variables and their
+current solutions (if any) is shown; when this buffer is shown, the
+locale will also be highlighted in the Cedille source buffer.
+</p>
+<hr>
+<div class="header">
+<p>
+Next: <a href="cedille-mode-commands.html#cedille-mode-commands" accesskey="n" rel="next">cedille mode commands</a>, Previous: <a href="about.html#about" accesskey="p" rel="prev">about</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

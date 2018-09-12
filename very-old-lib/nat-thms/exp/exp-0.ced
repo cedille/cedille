@@ -1,4 +1,0 @@
-import nat.
-
-exp-defn ◂ Π b : Nat . Π e : Nat . exp b ( S e ) ≃ mult b ( exp b e ) = λ _ . λ _ . β .
-

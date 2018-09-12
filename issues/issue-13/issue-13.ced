@@ -1,0 +1,10 @@
+module issue-13.
+
+-- https://github.com/cedille/cedille/issues/13
+test1
+  ◂ ∀ A : ★. A ➔ (A ➔ A) ➔ A
+  = Λ A. λ a. λ f. f -a.
+
+test2
+  ◂ ∀ A : ★. A ➔ (A ➾ A) ➔ A
+  = Λ A. λ a. λ f. f a.

@@ -1,0 +1,20 @@
+@node roadmap,credits,options,Top
+
+@chapter Roadmap
+
+Cedille is under active development, and the following major changes are planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far from done with the datatype notations).  Cedille 1.2 is likely Winter 2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are still immersed in the basic research for that.
+
+@itemize
+@item Datatype declarations and pattern-matching recursion, compiled to a Mendler lambda-encoding, Cedille 1.1
+@item Second-order matching and term inference incorporated into spine-local type inference, Cedille 1.2
+@item Rebase Cedille on sequent calculus to enable deriving types like existentials as dual to universals, and support constructive control operators, Cedille 2.0
+
+
+@end itemize
+
+For datatype notations, we have, in a number of papers and works in
+progress, devised semantics in Cedille for various somewhat advanced
+features: histomorphic recursion, inductive-recursive types, and
+inductive-inductive types.  We will be gradually incorporating
+high-level syntax for these into Cedille, starting with histomorphic
+recursion.

@@ -1,9 +1,0 @@
-module test.
-
-Top ◂ ★ = ∀ X : ★. X ➔ X.
-
-𝒌1 (A : ★) = A ➔ ★.
-example1 ◂ Π B : ★. 𝒌1 · B = λ B : ★. λ a : B. Top.
-
-𝒌2 (A : ★) (a : A) = A ➔ {a ≃ a} ➔ ★.
-example2 ◂ Π B : ★. Π b : B. 𝒌2 · B b = λ B : ★. λ b : B. λ b' : B. λ e : {b ≃ b}. Top.

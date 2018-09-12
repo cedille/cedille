@@ -1,7 +1,0 @@
-module RecTypeI.
-
-import top.
-
-𝒌(I : ★) = I ➔ ★ .
-
-Reci ◂ Π I : ★ . (𝒌 · I ➔ 𝒌 · I) ➔ 𝒌 · I = ● .

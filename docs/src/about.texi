@@ -1,0 +1,183 @@
+@node about,tooling,Index,Top
+
+@chapter Cedille's Type Theory
+
+Cedille's type theory is called the Calculus of Dependent Lambda
+Eliminations (CDLE).  It is somewhat rare in being a Curry-style type
+theory.  Coq and Agda are based on Church-style theories.  The
+difference is that in a Curry-style (aka extrinsic) type theory, type
+annotations are merely hints to the type checker, and the ``real''
+terms (the subjects of metatheoretic analysis, for example) are
+completely unannotated.  Thus, such annotations can be erased during
+compilation and during formal reasoning; in particular during
+conversion checking, where the type checker tests whether two terms
+are definitionally equal.  In contrast, with Church-style (aka
+intrinsic) type theory, the annotations are ``really there'', and must
+be preserved during compilation and conversion.
+
+For an example, consider the polymorphic identity function Λ X : ★ . λ
+x : X . x.  In Church-style type theory, the binder introducting the
+type variable X and the annotation giving the classifier for x are
+truly part of the term, and the theory itself does not allow for them
+to be erased.  In contrast, in a Curry-style type theory like CDLE,
+those annotations are just hints to help the type checker see how to
+assign the type ∀ X : ★ . X ➔ X to λ x . x.  The type theory has a
+notion of erasure, and conversion compares the erasures of terms
+rather than the annotated terms.
+
+@section Cedille extends the Calculus of Constructions
+
+The starting point for Cedille is a Curry-style version of the
+Calculus of Constructions (CC).  Coq is based on several extensions of
+CC, notably with a predicative universe hierarchy (Luo's Extended
+Calculus of Constructions), and with a primitive system of inductive
+datatypes (the Calculus of Inductive Constructions of Paulin-Mohring
+and Werner).  Cedille has neither the universe hierarchy nor the
+inductive types.  The universe hierarchy is omitted to avoid
+additional metatheoretic and implementation complexity, which has not
+been justified to my (Aaron's) satisfaction by examples.  So it is
+omitted not for any really fundamental reason (that we know of).
+Omitting the system of primitive inductive types, however, is one of
+the chief goals of Cedille, and will be discussed more below.
+
+The language is divided into three layers: terms, types, and kinds.  Terms
+are the programs we intend eventually to execute, or to use as proofs.
+Types describe programs, and under the Curry-Howard isomorphism which
+Cedille makes use of, can be seen as formulas to be proved.  Kinds are the
+classifiers for types.  So in Cedille we have
+
+term : type : kind
+
+@section The type constructs of Cedille
+
+From CC, Cedille inherits the following type constructs:
+
+@itemize
+@item ∀ X : 𝒌 . T -- this is impredicative quantification over types X of kind 𝒌.
+@item Π x : T . T' -- this is dependent function space, where the return type T' may mention the input argument x.
+@item λ X : 𝒌 . T -- this is a type-level function over types X of kind 𝒌.
+@item λ x : T . T' -- this is a type-level function over terms x of type T.
+@item T t -- this is applying a type-level function T to a term t.
+@item T · T' -- this is applying a type-level function T to a type T' (note the required center dot).
+@item X -- type variables are types, of course.
+@end itemize
+
+See @ref{unicode shortcuts} for how to type these symbols in Cedille mode.
+
+To the above constructs, Cedille adds the following, discussed more below:
+
+@itemize
+@item ι x : T . T' -- dependent intersection of T and T', where T' may contain x.
+@item @{ t ≃ t' @} -- untyped equality between terms t and t'.
+@item ∀ x : T . T' -- the dependent type for functions taking in an erased argument x of type T (aka implicit product)
+@end itemize
+
+@subsection Dependent intersections
+
+In (Curry-style) type theory, an intersection type T ∩ T' can be
+assigned to a term t iff both T and T' separately can be assigned to
+t.  Dependent intersection types, introduced by Kopylov in
+@uref{https://doi.org/10.1109/LICS.2003.1210048, this paper}, extend
+this idea to allow the type T' to reference the term t (i.e., the
+subject of typing) via a bound variable x.  Kopylov's notation for
+this is x : T ∩ T'.  Cedille uses the notation ι x : T . T' for the
+same concept.
+
+One very helpful way to think of these types is that they allow the
+type T' of t to refer to t itself, but through a weaker view; namely,
+the type T.  So if you are writing some function f, say, the type T'
+you give for f can mention f itself -- which seems insane (as in
+insane dependent typing) -- but sanity is preserved by the fact that
+T' is only allowed to reference f through some other type T.
+
+In Cedille, dependent intersections are used to derive inductive
+datatypes, using a critical observation of Leivant's from
+@uref{https://doi.org/10.1109/SFCS.1983.50, this paper}.  Suppose
+one is trying to prove the natural-number induction principle for
+a specific number N; that is, for any predicate P on natural
+numbers, if the base and steps cases hold, then P holds for N.
+What would the proof look like for this?  One would assume predicate P,
+assume P 0 (base case) and ∀ n : Nat . P n ➔ P (S n) (step case), and prove P N by apply the
+step case N times to the base case.  Leivant's remarkable observation is that
+this proof, seen through the lens of the Curry-Howard isomorphism, is
+
+Λ P . λ z . λ s . s (... (s z))
+
+where s is applied N times.  This erases exactly to the Church-encoding of N.
+This means that using the Church-encoding we can view a number N two ways:
+as an iterator of type ∀ X : ★ . X ➔ (X ➔ X) ➔ X -- call this type cNat -- and as a proof of its own
+induction principle, which we can see as some kind of dependent enrichment
+of the first type:
+
+∀ P : cNat ➔ ★ . P 0 ➔ (∀ n : cNat . P n ➔ P (S n)) ➔ P N
+
+Calling this second type, as a predicate on N, Inductive, the crucial role
+of dependent intersection types is to allow us to define Nat as
+
+ι N : cNat. Inductive N
+
+This definition seems to allow one to prove universality of predicates on cNats -- not Nats!
+But universality of Nat-predicates turns out to follow from this, in several different ways.  
+See language-overview/induction-for-church-nats.ced for one example.
+
+@subsection Primitive equality between untyped terms
+
+The type @{ t ≃ t' @} is a primitive equality type, between untyped
+terms.  The meaning of such a type is that t and t' are beta-eta equal
+(where any necessary instantiations of variables bound outside the
+equation are applied to t and t').  Cedille provides a primitive
+operation to rewrite with such equalities (namely ρ), and to prove them when the
+sides of the equation can be seen themselves to be beta-eta equal
+(without instantiating variables bound outside the equation); this is β.
+
+In more detail: whenever t and t' are beta-eta equal, the
+type-assignment system of CDLE considers any term to inhabit type @{ t
+≃ t' @}.  In Cedille, β is an annotated term inhabiting that type; β
+itself erases to λ x . x.  If one wishes to pick a different
+unannotated term t1 to inhabit an obviously true equation like this,
+then one writes β@{t1@}.  We call this the Kleene trick, after Stephen
+Cole Kleene's similar approach to realizing true equations by any
+number whatsoever.  Here, any term proves an obviously true equation.
+This has the intriguing side effect of giving Cedille a type for all
+terms, even ones otherwise untypable.  Thus Cedille is
+Turing-complete: any closed term can be assigned type @{ λ x . x ≃ λ x
+. x @}.  In principle type checking becomes undecidable at this point,
+because checking whether two terms of pure untyped lambda calculus are
+beta-eta equal is undecidable.  In practice, however, we think of the
+type checker as having some bound on the number of steps of
+beta-eta-normalization it will perform on the sides before testing for
+alpha-equivalence.  This bound is currently up to the user to enforce
+by terminating the tool if it is taking too long.
+
+Rewriting is performed by a construct ρ t - t'.  Here, t should prove
+an equation @{ t1 ≃ t2 @}.  Then the type synthesized from or used to
+check t' will be rewritten to replace any subterm beta-eta equal to t1
+with t2.
+
+See language-overview/equational-reasoning.ced for examples.
+
+@subsection Implicit products
+
+For unannotated terms, the type ∀ x : T . T' introduces x of type T
+into the typing context, but otherwise does not affect the subject of
+typing.  So such an x is purely specificational, and cannot appear in
+the unannotated term.  In annotated terms, we use the construct Λ x :
+T . t to introduce this x, which may appear in annotations (only).
+An example is specifying the length of a vector as an erased argument
+to a function like map on vectors.  In this case, the function does not
+need to use the length of the vector to compute the result.  The length
+is only used specificationally, to state that the lengths of the input
+and output vectors are the same.
+
+If one has a term t of type ∀ x : T . T' and wishes to instantiate x
+with some term t', the notation in Cedille is t -t'.
+
+@section More reading 
+
+The syntax and semantics of Cedille are described in this document
+@uref{https://arxiv.org/abs/1806.04709, on arXiv}.  You can also
+find this in the docs/semantics subdirectory of this distribution.
+
+The paper first showing how to derive induction for an inductive type
+in Cedille is @uref{https://doi.org/10.1016/j.apal.2018.03.002, here}.
+

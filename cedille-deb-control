@@ -1,0 +1,5 @@
+Package: cedille
+Version: 1.0.0
+Maintainer: Cedille Development Team, The University of Iowa <aaron-stump@uiowa.edu>
+Architecture: all
+Description: Cedille Debian package
