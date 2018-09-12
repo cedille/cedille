@@ -40,3 +40,7 @@ inductionNat ◂ Π n : Nat . ∀ P : Nat ➔ ★ . (∀ m : Nat . P m ➔ P (su
       (n.2 · (λ x : Nat' . P (toNat x))
         (Λ p . λ q . s -(toNat p) q) z) .
       
+recNat ◂ Π n : Nat . ∀ X : ★ . (X ➔ X) ➔ X ➔ X = λ n . n.1.
+
+add ◂ Nat ➔ Nat ➔ Nat =
+  λ n . λ m . recNat n suc m.
