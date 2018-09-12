@@ -13,4 +13,5 @@ for an introduction to Cedille.
  * `se-mode/`: The Elisp source code for the Emacs "Structured Editing Mode"
  * `src/`: The Cedille source code (written in Agda)
  
- 
+## License
+MIT
