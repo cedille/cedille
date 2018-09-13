@@ -2,7 +2,8 @@
 
 @chapter cedille-mode commands
 
-Cedille mode supports the following commands:
+To enter Cedille navigation mode (invoking the backend), the command is @key{Alt-s}.
+In Cedille navigation mode, the following commands are available:
 
 @chapter Navigation
 @table @command

@@ -103,9 +103,15 @@ libraries:
 ./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
 	$(TEMPLATESDIR)/TemplatesCompiler
 
-cedille:	$(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda 
-		mv $(SRCDIR)/main cedille
+CEDILLE_DEPS = $(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
+CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda
+cedille:	$(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD)
+		mv $(SRCDIR)/main $@
+
+cedille-static: 	$(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread 
+		mv $(SRCDIR)/main $@
 
 cedille-old:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda 
@@ -134,19 +140,21 @@ cws-main: $(SRCDIR)/cws-main.agda
 cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
 
-cedille-deb-pkg:
+cedille-deb-pkg: cedille-static
 	mkdir -p ./cedille-deb-pkg/usr/bin/
 	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	mkdir -p ./cedille-deb-pkg/DEBIAN/
 	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	cp ./cedille-mode.el ./cedille-deb-pkg/usr/share/emacs/site-lisp/
-	cp ./cedille ./cedille-deb-pkg/usr/bin/
+	cp ./cedille-static ./cedille-deb-pkg/usr/bin/cedille
 	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
+	cp ./cedille-deb-copyright ./cedille-deb-pkg/DEBIAN/copyright
 	dpkg-deb --build cedille-deb-pkg
 	rm -R cedille-deb-pkg
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
+	rm -rf cedille-deb-pkg
 
 #lines:
 #	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)

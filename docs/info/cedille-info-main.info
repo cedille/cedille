@@ -302,7 +302,9 @@ File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode short
 3 cedille-mode commands
 ***********************
 
-Cedille mode supports the following commands:
+To enter Cedille navigation mode (invoking the backend), the command is
+<Alt-s>.  In Cedille navigation mode, the following commands are
+available:
 
 4 Navigation
 ************
@@ -862,6 +864,13 @@ still immersed in the basic research for that.
      existentials as dual to universals, and support constructive
      control operators, Cedille 2.0
 
+For datatype notations, we have, in a number of papers and works in
+progress, devised semantics in Cedille for various somewhat advanced
+features: histomorphic recursion, inductive-recursive types, and
+inductive-inductive types.  We will be gradually incorporating
+high-level syntax for these into Cedille, starting with histomorphic
+recursion.
+
 
 File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
 
@@ -962,17 +971,17 @@ Node: Top95
 Node: about1045
 Node: tooling10905
 Node: cedille mode commands15177
-Node: unicode shortcuts18361
-Node: extra buffers20477
-Node: inspect buffer21821
-Node: summary buffer23016
-Node: meta-vars buffer23829
-Node: beta-reduce mode24860
-Node: context buffer26045
-Node: options28072
-Node: roadmap29251
-Node: credits30098
-Node: Index31392
+Node: unicode shortcuts18463
+Node: extra buffers20579
+Node: inspect buffer21923
+Node: summary buffer23118
+Node: meta-vars buffer23931
+Node: beta-reduce mode24962
+Node: context buffer26147
+Node: options28174
+Node: roadmap29353
+Node: credits30546
+Node: Index31840
 
 End Tag Table
 
