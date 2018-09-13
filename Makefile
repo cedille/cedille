@@ -147,11 +147,13 @@ cedille-deb-pkg: cedille-static
 	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/
 	cp ./cedille-static ./cedille-deb-pkg/usr/bin/cedille
 	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
+	cp ./cedille-deb-copyright ./cedille-deb-pkg/DEBIAN/copyright
 	dpkg-deb --build cedille-deb-pkg
 	rm -R cedille-deb-pkg
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
+	rm -rf cedille-deb-pkg
 
 #lines:
 #	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)

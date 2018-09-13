@@ -15,3 +15,5 @@ src/CedilleParser.hs
 *.cedille
 *.racket
 *.*~
+cedille-deb-pkg
+cedille-deb-pkg.deb
