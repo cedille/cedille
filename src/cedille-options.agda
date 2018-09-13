@@ -3,6 +3,7 @@ open import lib
 open import general-util
 
 record options : Set where
+  constructor mk-options
   field include-path : 𝕃 string × stringset
         use-cede-files : 𝔹
         make-rkt-files : 𝔹
