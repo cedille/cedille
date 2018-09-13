@@ -58,7 +58,7 @@
       (set-keymap-parent map cedille-mode-minor-mode-parent-keymap)
       (define-key map (kbd "s") #'cedille-mode-close-active-window)
       (define-key map (kbd "S") #'cedille-mode-close-active-window)
-      (define-key map (kbd "h") (make-cedille-mode-info-display-page "summary mode"))
+      (define-key map (kbd "h") (make-cedille-mode-info-display-page "summary buffer"))
       map)
     (when cedille-summary-view-mode
       (set-input-method "Cedille")))
