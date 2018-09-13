@@ -14,7 +14,7 @@ P = pred.
 
 ZS-False ◂ ∀ n : Nat. {Z ≃ S n} ➾ False =
   Λ n . Λ e .
-    χ (↑ X . NatInd Z · (λ n : Nat. X) : (☆ ➔↑ (Nat ➔↑ ☆ ➔↑ ☆) ➔↑ ☆) · False · (λ _ : Nat . λ _ : ★ . Top)) - ρ e - β .
+    δ - e .
 
 ps-comm ◂ Π n : Nat. {P (S (S n)) ≃ S (P (S n))} = λ n. β.
 ps-impl ◂ Π n : Nat. Π m : Nat. {S m ≃ n} ➾ {m ≃ P n} = λ n. λ m. Λ e. ρ ς e - β.

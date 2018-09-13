@@ -73,3 +73,13 @@ Cedille navigation mode, use keystroke @key{m} to view the
 meta-variables buffer, where information on meta-variables and their
 current solutions (if any) is shown; when this buffer is shown, the
 locale will also be highlighted in the Cedille source buffer.
+
+@section File structure and modules
+
+A Cedille source file consists first of a header consisting of optional module imports (@code{import X.}), then a module declaration for the file (@code{module X(params)}), and then more optional imports.  The parameters can be term- or type-level, and one can indicate erased term-level parameters with curly braces.  For an example of a module parametrized by a type of natural numbers mod 2:
+
+@code{module X(A : ★)(z : A)(s : A ➔ A)@{p : @{ z ≃ s (s z) @}@} .}
+
+After the header, the file consists of term, type, or kind definitions.
+
+Modules may be partially applied.
