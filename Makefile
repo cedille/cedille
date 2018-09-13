@@ -141,15 +141,17 @@ cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
 
 cedille-deb-pkg: cedille-static
+	rm -rf cedille-deb-pkg
 	mkdir -p ./cedille-deb-pkg/usr/bin/
 	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	mkdir -p ./cedille-deb-pkg/DEBIAN/
+	mkdir -p ./cedille-deb-pkg/usr/share/cedille/docs/info
 	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/
 	cp ./cedille-static ./cedille-deb-pkg/usr/bin/cedille
+	cp -R ./docs/info ./cedille-deb-pkg/usr/share/cedille/docs/
 	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
 	cp ./cedille-deb-copyright ./cedille-deb-pkg/DEBIAN/copyright
 	dpkg-deb --build cedille-deb-pkg
-	rm -R cedille-deb-pkg
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean

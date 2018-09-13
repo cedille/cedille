@@ -19,7 +19,8 @@
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
 
-(setq cedille-path-el (if (boundp 'cedille-path) cedille-path "/usr/share/emacs/site-lisp"))
+(defvar cedille-path-el (if (boundp 'cedille-path) cedille-path "/usr/share/emacs/site-lisp") "Path to Cedille mode's elisp code.")
+(defvar cedille-path-docs (concat (if (boundp 'cedille-path) cedille-path "/usr/share/cedille") "/docs/info/cedille-info-main.info") "Path to the info mode docs for Cedille mode.")
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
