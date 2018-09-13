@@ -138,10 +138,12 @@ cedille-deb-pkg:
 	mkdir -p ./cedille-deb-pkg/usr/bin/
 	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	mkdir -p ./cedille-deb-pkg/DEBIAN/
-	cp -R ./cedille-mode/ ./cedille-mode.el ./se-mode/ ./cedille-deb-pkg/usr/share/emacs/site-lisp/
+	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
+	cp ./cedille-mode.el ./cedille-deb-pkg/usr/share/emacs/site-lisp/
 	cp ./cedille ./cedille-deb-pkg/usr/bin/
 	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
 	dpkg-deb --build cedille-deb-pkg
+	rm -R cedille-deb-pkg
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean

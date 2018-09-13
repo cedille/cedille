@@ -15,11 +15,17 @@
 (require 'quail)
 
 ;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
-(defvar cedille-program-name (if (boundp 'cedille-path) (concat cedille-path "/cedille") "/usr/bin/cedille"))
+(defvar cedille-program-name
+  (if (boundp 'cedille-path)
+      (concat cedille-path "/cedille")
+    "/usr/bin/cedille"))
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
 
-(setq cedille-path-el (if (boundp 'cedille-path) cedille-path "/usr/share/emacs/site-lisp"))
+(setq cedille-path-el
+      (if (boundp 'cedille-path)
+          cedille-path
+        "/usr/share/emacs/site-lisp/cedille-mode"))
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
