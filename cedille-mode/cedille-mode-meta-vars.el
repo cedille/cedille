@@ -183,7 +183,7 @@
     (set-keymap-parent map cedille-mode-minor-mode-parent-keymap)
     (define-key map (kbd "m") (cedille-mode-meta-vars-close-window-fn))
     (define-key map (kbd "M") (cedille-mode-meta-vars-close-window-fn))
-    (define-key map (kbd "h") (make-cedille-mode-info-display-page "meta-vars mode"))
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "meta-vars buffer"))
     map)
   (when cedille-meta-vars-mode
     (set-input-method "Cedille")))

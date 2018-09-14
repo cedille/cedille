@@ -93,7 +93,7 @@
     (define-key map (kbd "r") (make-cedille-mode-set-variable cedille-mode-context-filtering nil)) 	; no filter
     (define-key map (kbd "C") #'cedille-mode-close-active-window) 					; exit context mode
     (define-key map (kbd "c") #'cedille-mode-close-active-window) 					; exit context mode
-    (define-key map (kbd "h") (make-cedille-mode-info-display-page "context mode")) 			; help page
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "context buffer")) 			; help page
     (define-key map (kbd "w") #'cedille-mode-toggle-hide-tuple-in-context)				; hide type or kind
     (define-key map (kbd "W") #'cedille-mode-toggle-show-tuples-in-context)				; show all hidden types/kinds
     (define-key map (kbd "$") (make-cedille-mode-customize "cedille-context")) 				; customization page

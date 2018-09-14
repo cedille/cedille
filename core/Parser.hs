@@ -234,9 +234,7 @@ parseKind tm = ParseM $ \ ts -> case ts of
 parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm)
 
 parseCmd = ParseM $ \ ts -> case ts of
-  (TVar "import" : TVar "public" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
   (TVar "import" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
-  --(TImport fp : ts) -> parseMr (ImportCmd fp) ts
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot
   (TVar v : TTriangle : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
   _ -> Nothing

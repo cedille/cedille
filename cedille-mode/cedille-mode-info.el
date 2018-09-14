@@ -2,7 +2,12 @@
 ;;; in cedille-mode
 ;;;
 
-(defun cedille-mode-info-path() "Returns the path for the info pages" (concat cedille-path "/docs/info/cedille-info-main.info"))
+(defun cedille-mode-info-path()
+  "Returns the path for the info pages"
+  (concat
+   (if (boundp 'cedille-path)
+       (concat cedille-path "/docs/info/cedille-info-main.info")
+   (concat cedille-path-el "/cedille-info-main.info"))))
 
 (defmacro make-cedille-mode-info-display-page(node)
   "Makes a function that opens the info file and (optionally) jumps to a particular node."

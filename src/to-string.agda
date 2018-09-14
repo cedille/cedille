@@ -88,36 +88,42 @@ no-parens{TK} _ _ _ = tt
 no-parens{QUALIF} _ _ _ = tt
 no-parens{ARG} _ _ _ = tt
 
-drop-spine : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-drop-spine = h do-drop-spine
+pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ ff
+pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ ff
+pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ tt
+
+drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+drop-spine ced-ops-drop-spine = h
   where
   drop-mod-args : ctxt → maybeErased → spineApp → spineApp
   drop-mod-args Γ me (v , as) =
-    qv , maybe-else' (maybe-if (~ v =string qv) ≫maybe ctxt-qualif-args-length Γ me qv) as
-           (λ n → reverse (drop n (reverse as)))
-    where
-    qv = unqual-all (ctxt-get-qualif Γ) v
+    let qv = unqual-all (ctxt-get-qualif Γ) v in qv ,
+    maybe-else' (maybe-if (~ v =string qv) ≫maybe ctxt-qualif-args-length Γ me qv)
+      as (λ n → reverse (drop n (reverse as)))
 
-  do-drop-spine = cedille-options.options.show-qualified-vars options
-              nor cedille-options.options.during-elaboration  options
+  h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  h {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ Erased)
+  h {TYPE} Γ T = maybe-else' (type-to-spapp T) T (spapp-type ∘ drop-mod-args Γ NotErased)
+  h Γ x = x
+drop-spine ops Γ x = x
 
-  h : 𝔹 → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  h tt {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ Erased)
-  h tt {TYPE} Γ T = maybe-else' (type-to-spapp T) T (spapp-type ∘ drop-mod-args Γ NotErased)
-  h d Γ x = x
-
-to-string-rewrite : {ed : exprd} → ctxt → ⟦ ed ⟧ → Σi exprd ⟦_⟧
-to-string-rewrite{TERM} Γ (Parens _ t _) = to-string-rewrite Γ t
-to-string-rewrite{TYPE} Γ (TpParens _ T _) = to-string-rewrite Γ T
-to-string-rewrite{KIND} Γ (KndParens _ k _) = to-string-rewrite Γ k
-to-string-rewrite{LIFTINGTYPE} Γ (LiftParens _ lT _) = to-string-rewrite Γ lT
-to-string-rewrite{TK} Γ (Tkt T) = to-string-rewrite Γ T
-to-string-rewrite{TK} Γ (Tkk k) = to-string-rewrite Γ k
-to-string-rewrite{TYPE} Γ (Abs _ me _ ignored-var (Tkt T) T') = , TpArrow T me T'
-to-string-rewrite{KIND} Γ (KndPi _ _ ignored-var (Tkt T) k) = , KndTpArrow T k
-to-string-rewrite{KIND} Γ (KndPi _ _ ignored-var (Tkk k) k') = , KndArrow k k'
-to-string-rewrite{LIFTINGTYPE} Γ (LiftPi _ ignored-var T lT) = , LiftTpArrow T lT
-to-string-rewrite Γ x = , drop-spine Γ x
+to-string-rewrite : {ed : exprd} → ctxt → cedille-options.options → ⟦ ed ⟧ → Σi exprd ⟦_⟧
+to-string-rewrite{TERM} Γ ops (Parens _ t _) = to-string-rewrite Γ ops t
+to-string-rewrite{TYPE} Γ ops (TpParens _ T _) = to-string-rewrite Γ ops T
+to-string-rewrite{KIND} Γ ops (KndParens _ k _) = to-string-rewrite Γ ops k
+to-string-rewrite{LIFTINGTYPE} Γ ops (LiftParens _ lT _) = to-string-rewrite Γ ops lT
+to-string-rewrite{TK} Γ ops (Tkt T) = to-string-rewrite Γ ops T
+to-string-rewrite{TK} Γ ops (Tkk k) = to-string-rewrite Γ ops k
+to-string-rewrite{TYPE} Γ ced-ops-conv-arr (Abs _ me _ ignored-var (Tkt T) T') = , TpArrow T me T'
+to-string-rewrite{KIND} Γ ced-ops-conv-arr (KndPi _ _ ignored-var (Tkt T) k) = , KndTpArrow T k
+to-string-rewrite{KIND} Γ ced-ops-conv-arr (KndPi _ _ ignored-var (Tkk k) k') = , KndArrow k k'
+to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-arr (LiftPi _ ignored-var T lT) = , LiftTpArrow T lT
+to-string-rewrite{TYPE} Γ ced-ops-conv-abs (TpArrow T me T') = , Abs posinfo-gen me posinfo-gen ignored-var (Tkt T) T'
+to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndTpArrow T k) = , KndPi posinfo-gen posinfo-gen ignored-var (Tkt T) k
+to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndArrow k k') = , KndPi posinfo-gen posinfo-gen ignored-var (Tkk k) k'
+to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-abs (LiftTpArrow T lT) = , LiftPi posinfo-gen ignored-var T lT
+to-string-rewrite{TERM} Γ ops (Sigma pi (Sigma pi' t)) = to-string-rewrite Γ ops t
+to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
 
 -------------------------------
@@ -234,7 +240,7 @@ to-string-ed{QUALIF} q = strEmpty
 
 to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
 to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
-  elim-Σi (to-string-rewrite Γ t) λ t' →
+  elim-Σi (to-string-rewrite Γ options t) λ t' →
   parens-unless (~ isJust (mp ≫=maybe λ pe → maybe-if (~ no-parens t' pe lr)))
     (to-string-ed t') s n ts Γ (just t') lr
   where

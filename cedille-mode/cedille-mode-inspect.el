@@ -12,7 +12,7 @@
     (set-keymap-parent map cedille-mode-minor-mode-parent-keymap) ; inherit bindings from parent keymap
     (define-key map (kbd "i") #'cedille-mode-close-active-window) ; exit inspect mode
     (define-key map (kbd "I") #'cedille-mode-close-active-window) ; exit inspect mode
-    (define-key map (kbd "h") (make-cedille-mode-info-display-page "inspect mode"))
+    (define-key map (kbd "h") (make-cedille-mode-info-display-page "inspect buffer"))
     map)
   (when cedille-inspect-view-mode
     (set-input-method "Cedille")))
