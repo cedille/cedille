@@ -19,7 +19,7 @@ private
     Phi posinfo-gen
       (Rho posinfo-gen RhoPlain NoNums eq
         (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
-        (Beta posinfo-gen NoTerm NoTerm))
+        (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
       t t' posinfo-gen 
 
   head-types-match : ctxt → trie term → (complete partial : type) → 𝔹

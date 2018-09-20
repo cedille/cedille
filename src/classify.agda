@@ -457,19 +457,18 @@ check-termi (Sigma pi t) mt =
   check-term t nothing ≫=span λ mt' → get-ctxt λ Γ → cont Γ mt (maybe-hnf Γ mt')
   where cont : ctxt → (outer : maybe type) → maybe type → spanM (check-ret outer)
         cont Γ mt nothing = 
-          spanM-add (Sigma-span Γ pi t mt [] (just "We could not synthesize a type from the body of the ς-term.")) ≫span
+          spanM-add (Sigma-span pi t (maybe-to-checking mt) [] (just "We could not synthesize a type from the body of the ς-term")) ≫span
           check-fail mt
         cont Γ mt (just tp) with mt | hnf Γ unfold-head tp tt
         ...| nothing | TpEq pi' t1 t2 pi'' =
-          spanM-add (Sigma-span Γ pi t nothing [ type-data Γ (TpEq pi' t2 t1 pi'') ] nothing) ≫span
+          spanM-add (Sigma-span pi t synthesizing [ type-data Γ (TpEq pi' t2 t1 pi'') ] nothing) ≫span
           spanMr (just (TpEq pi' t2 t1 pi''))
         ...| just tp' | TpEq pi' t1 t2 pi'' =
           spanM-add ∘ (flip uncurry) (check-for-type-mismatch Γ "synthesized" tp' (TpEq pi' t2 t1 pi'')) $
-            -- don't duplicate the "expected type" field
-            λ tvs err → Sigma-span Γ pi t (maybe-else' err (just tp') (const nothing)) tvs err
+            λ tvs err → Sigma-span pi t checking tvs err
         ...| mt' | tp' =
-          spanM-add (Sigma-span Γ pi t mt [ to-string-tag "the synthesized type" Γ tp' ]
-            (just ("The type we synthesized for the body of the ς-term is not an equation."))) ≫span
+          spanM-add (Sigma-span pi t (maybe-to-checking mt') (to-string-tag "the synthesized type" Γ tp' :: expected-type-if Γ mt')
+            (just ("The type we synthesized for the body of the ς-term is not an equation"))) ≫span
           check-fail mt'
 
 check-termi (Phi pi t₁≃t₂ t₁ t₂ pi') (just tp) =

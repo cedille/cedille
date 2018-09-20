@@ -436,11 +436,11 @@ elab-synth-term Γ (Rho pi op on t og t') =
             Γ' = ctxt-var-decl x Γ
             rT = fst (rewrite-type T' Γ' (is-rho-plus op) ns t t₁ x 0)
             rT' = post-rewrite Γ' x t t₂ rT in
-        elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
+        -- elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         just (mrho t x (erase-type rT) t' , rT')
       (Guide pi' x T'') →
         let Γ' = ctxt-var-decl x Γ in
-        elab-pure-type Γ' (erase-type T') ≫=maybe λ T'' →
+        elab-pure-type Γ' (erase-type T'') ≫=maybe λ T'' →
         just (mrho t x T' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
     _ → nothing
 elab-synth-term Γ (Sigma pi t) =
@@ -686,7 +686,7 @@ elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefTerm _ x NoType t) _) cs) 
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
   elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
-  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
+  just (CmdsNext (DefTermOrType OpacTrans (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
 elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
@@ -694,14 +694,14 @@ elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefTerm _ x (SomeType T) t) _
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
   elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
-  just (CmdsNext (DefTermOrType op (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
+  just (CmdsNext (DefTermOrType OpacTrans (DefTerm posinfo-gen x' NoType t) posinfo-gen) cs , ω)
 elab-cmds ts ρ φ μ (CmdsNext (DefTermOrType op (DefType _ x _ T) _) cs) =
   let Γ = toplevel-state.Γ ts in
   elab-type Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-type-def' x x' T k op Γ} in
   elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
-  just (CmdsNext (DefTermOrType op (DefType posinfo-gen x' k T) posinfo-gen) cs , ω)
+  just (CmdsNext (DefTermOrType OpacTrans (DefType posinfo-gen x' k T) posinfo-gen) cs , ω)
 elab-cmds ts ρ φ μ (CmdsNext (DefKind _ x ps k _) cs) =
   let Γ = toplevel-state.Γ ts
       x' = fresh-var (qualif-new-var Γ x) (λ _ → ff) ρ

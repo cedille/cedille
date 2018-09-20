@@ -176,8 +176,8 @@ var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
 
 strVar : var → strM
 strVar v s n ts Γ pe lr =
-  let uqv = unqual-all (ctxt-get-qualif Γ) v
-      uqv' = if cedille-options.options.show-qualified-vars options then v else unqual-local uqv
+  let uqv = unqual-local $ unqual-all (ctxt-get-qualif Γ) v
+      uqv' = if cedille-options.options.show-qualified-vars options then v else uqv
       n' = n + (string-length uqv') in
   s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
 

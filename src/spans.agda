@@ -746,12 +746,10 @@ Chi-span Γ pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-ter
         helper (SomeType T) =  explain ("Check a term against an asserted type") :: [ to-string-tag "the asserted type" Γ T ]
         helper NoType = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
 
-Sigma-span : ctxt → posinfo → term → maybe type → 𝕃 tagged-val → err-m → span
-Sigma-span Γ pi t expected tvs =
+Sigma-span : posinfo → term → checking-mode → 𝕃 tagged-val → err-m → span
+Sigma-span pi t check tvs =
   mk-span "Sigma" pi (term-end-pos t) 
-     (ll-data-term :: checking-data (maybe-to-checking expected) :: tvs ++
-     (explain ("Swap the sides of the equation synthesized for the body of this term.")
-     :: expected-type-if Γ expected))
+     (ll-data-term :: checking-data check :: explain "Swap the sides of the equation synthesized for the body of this term" :: tvs)
 
 Delta-span : ctxt → posinfo → optType → term → checking-mode → 𝕃 tagged-val → err-m → span
 Delta-span Γ pi T t check tvs =

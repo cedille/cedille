@@ -699,7 +699,7 @@ unqual-local : var → var
 unqual-local v = f' (string-to-𝕃char v) where
   f : 𝕃 char → maybe (𝕃 char)
   f [] = nothing
-  f ('@' :: t) = just t
+  f ('@' :: t) = f t maybe-or just t
   f (h :: t) = f t
   f' : 𝕃 char → string
   f' (meta-var-pfx :: t) = maybe-else' (f t) v (𝕃char-to-string ∘ _::_ meta-var-pfx)
