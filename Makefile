@@ -159,6 +159,19 @@ cedille-win-pkg: cedille-static
 	cp ./cedille-static ./cedille-win-pkg/src/cedille.exe
 	cp ./packages/cedille-win-install.bat ./cedille-win-pkg/
 
+cedille-mac-pkg: cedille
+	rm -rf cedille-mac-pkg
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/Resources/
+	cp -r cedille ./cedille-mode/ ./se-mode/ ./cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp ./docs/info/cedille-info-main.info ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
+	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/Cedille.app/Contents/Resources/
+	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/
+	cp ./packages/mac/Info.plist ./cedille-mac-pkg/Cedille.app/Contents/
+	cp ./packages/mac/Cedille ./cedille-mac-pkg/Cedille.app/Contents/MacOS/
+	cp ./appdmg.json ./cedille-mac-pkg/
+	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
+
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
 	rm -rf cedille-deb-pkg
