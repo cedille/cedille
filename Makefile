@@ -148,9 +148,16 @@ cedille-deb-pkg: cedille-static
 	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	cp ./cedille-mode.el ./cedille-deb-pkg/usr/share/emacs/site-lisp/
 	cp ./cedille-static ./cedille-deb-pkg/usr/bin/cedille
-	cp ./cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
-	cp ./cedille-deb-copyright ./cedille-deb-pkg/DEBIAN/copyright
+	cp ./packages/cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
+	cp ./packages/copyright ./cedille-deb-pkg/DEBIAN/copyright
 	dpkg-deb --build cedille-deb-pkg
+
+cedille-win-pkg: cedille-static
+	rm -rf cedille-win-pkg
+	mkdir -p ./cedille-win-pkg/src/
+	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-mode.el ./packages/copyright ./cedille-win-pkg/src/
+	cp ./cedille-static ./cedille-win-pkg/src/cedille.exe
+	cp ./packages/cedille-win-install.bat ./cedille-win-pkg/
 
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean

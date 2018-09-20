@@ -14,18 +14,31 @@
 
 (require 'quail)
 
-;(defvar cedille-program-name (concat cedille-path "/mock-cedille.sh"))
-(defvar cedille-program-name
-  (if (boundp 'cedille-path)
-      (concat cedille-path "/cedille")
-    "/usr/bin/cedille"))
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
 
-(setq cedille-path-el
-      (if (boundp 'cedille-path)
-          cedille-path
-        "/usr/share/emacs/site-lisp/cedille-mode"))
+(defmacro cedille-platform-case (win osx unix dev)
+  "If running on Windows, evaluate WIN; if OS X, OSX; otherwise, UNIX. If `cedille-path' is set, evaluate DEV instead."
+  `(cond
+    (,(boundp 'cedille-path) ,dev)
+    (,(string= system-type "windows-nt") ,win)
+    (,(string= system-type "darwin") ,osx)
+    (t ,unix)))
+
+(defvar cedille-program-name
+  (cedille-platform-case
+   "cedille"
+   nil
+   "/usr/bin/cedille"
+   (concat (file-name-as-directory cedille-path) "cedille")))
+
+(defvar cedille-path-el
+  (file-name-as-directory
+   (cedille-platform-case
+    "C:\\Program Files\\cedille"
+    nil
+    "/usr/share/emacs/site-lisp/cedille-mode"
+    cedille-path)))
 
 (defvar cedille-mode-browsing-history '(nil nil)) ;stores history while jumping between files
 
@@ -54,13 +67,13 @@
 (autoload 'cedille-mode "cedille-mode" "Major mode for editing cedille files ." t)
 (add-to-list 'auto-mode-alist (cons "\\.ced\\'" 'cedille-mode))
 
-(let ((se-path (concat cedille-path-el "/se-mode")))
+(let ((se-path (file-name-as-directory (concat cedille-path-el "se-mode"))))
   (add-to-list 'load-path se-path)
-  (add-to-list 'load-path (concat se-path "/json.el")))
+  (add-to-list 'load-path (concat se-path "json.el")))
 
-(let ((cedille-mode-library-path (concat cedille-path-el "/cedille-mode")))
+(let ((cedille-mode-library-path (file-name-as-directory (concat cedille-path-el "cedille-mode"))))
   (add-to-list 'load-path cedille-mode-library-path)
-  (add-to-list 'load-path (concat cedille-mode-library-path "/json.el")))
+  (add-to-list 'load-path (concat cedille-mode-library-path "json.el")))
 
 (require 'se)
 (require 'cedille-mode-library)
