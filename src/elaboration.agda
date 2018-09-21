@@ -441,7 +441,7 @@ elab-synth-term Γ (Rho pi op on t og t') =
       (Guide pi' x T'') →
         let Γ' = ctxt-var-decl x Γ in
         elab-pure-type Γ' (erase-type T'') ≫=maybe λ T'' →
-        just (mrho t x T' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
+        just (mrho t x T'' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
     _ → nothing
 elab-synth-term Γ (Sigma pi t) =
   elab-synth-term Γ t ≫=maybe uncurry λ where
