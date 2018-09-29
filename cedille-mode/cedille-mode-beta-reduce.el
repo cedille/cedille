@@ -11,8 +11,8 @@
 
 (defstruct
     (br-frame
-     (:constructor br-new-frame (tree str op checking)))
-  tree str op checking)
+     (:constructor br-new-frame (tree str op)))
+  tree str op)
 
 
 ;;;;;;;; Variables ;;;;;;;;
@@ -51,8 +51,8 @@
  (defvar cedille-mode-br-checking nil))
 
 (make-variable-buffer-local
- (defvar cedille-mode-br-qed nil))
-
+ (defvar cedille-mode-br-qed nil
+   "(original span . original span text"))
 
 
 ;;;;;;;; Mode code ;;;;;;;;
@@ -95,8 +95,8 @@
     (set-input-method "Cedille")
     (setq-local comment-start "--")
     (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
-    (setq-local se-inf-progress-prefix "progress: ")
-    (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
+    (setq-local se-inf-progress-prefix "inhabited: ")
+    (setq-local se-inf-progress-fn 'cedille-mode-br-progress-fn)
     (setq se-navi-current-keymap (se-navi-get-keymap 'cedille-br-mode))
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push (cons 'se-navigation-mode se-navi-current-keymap)
@@ -110,23 +110,13 @@
   (unless cedille-br-mode
     (message "Quitting cedille-br-mode")))
 
+(defun cedille-mode-br-progress-fn (response &optional oc buffer span)
+  "Beta-Reduction buffer progress function for telling you when the type is inhabited"
+  (message response)
+  cedille-mode-progress-msg)
+
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
-
-;(defun cedille-mode-br-init-buffer-wait (str &optional context checking qed)
-;  "Waits to make sure the backend is idle, then calls cedille-mode-br-init-buffer"
-;  (se-inf-interactive
-;   cedille-mode-status-msg
-;   (lambda (response extra)
-;      (with-current-buffer (car extra)
-;        (cedille-mode-br-init-buffer
-;         (cadr extra)
-;         (caddr extra)
-;         (cadddr extra)
-;         (cadr (cdddr extra))) ; caddddr not defined :(
-;        nil))
-;   (list (current-buffer) str context checking qed)
-;   :header cedille-mode-caching-header))
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
@@ -150,7 +140,7 @@
 	    cedille-mode-br-in-buffer t
 	    cedille-mode-br-length len
             cedille-mode-br-checking checking
-            cedille-mode-br-qed (or qed "●")
+            cedille-mode-br-qed (or qed (cons nil "●"))
 	    cedille-mode-global-context context
 	    buffer-read-only nil
 	    window-size-fixed nil)
@@ -199,7 +189,9 @@
     (cedille-mode-br-revert (pop cedille-mode-br-redo-stack))))
 
 (defun cedille-mode-br-process-response (response buffer)
-  (when response (se-inf-process-response response buffer)))
+  (when response
+    (se-inf-process-response response buffer)
+    (cedille-mode-matching-nodes-init)))
 
 (defun cedille-mode-br-parse ()
   (interactive)
@@ -210,6 +202,7 @@
     "interactive"
     "br"
     cedille-mode-br-temp-str
+    (cdr cedille-mode-br-qed)
     (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    #'cedille-mode-br-process-response
    (current-buffer)
@@ -293,7 +286,7 @@
   (when node
     (let* ((start (se-term-start node))
            (end (min (1+ (buffer-size)) (se-term-end node))))
-      (buffer-substring start end))))
+      (cons (se-get-span node) (buffer-substring start end)))))
 
 
 ;;;;;;;; Normalizing code ;;;;;;;;
@@ -305,9 +298,7 @@
     (if (null span)
 	(message "Error: must select a node")
       (let* ((ll (cdr (assoc 'language-level (se-span-data span))))
-             (op-fn1 (lambda (response) (car (split-string response cedille-mode-sep))))
-             (op-fn2 (lambda (response new-str) (concat "χ " (cedille-mode-br-add-parens (format new-str (cedille-mode-br-add-parens (cadr (split-string response cedille-mode-sep))))) " - ")))
-             (extra (cons (current-buffer) (cons t (cons op-fn1 op-fn2))))
+             (extra (cons (current-buffer) (cons t nil)))
              (header (if head "Head-normalizing" "Normalizing")))
 	(if (not (and ll (or (string= ll "term") (string= ll "type") (string= ll "kind"))))
 	    (message "Node must be a term, type, or kind")
@@ -405,7 +396,7 @@
                        response2 (se-term-start span) (se-term-end span)))
            (temp-str2 (car (cedille-mode-br-add-parens-buffer "%s" (se-term-start span) (se-term-end span))))
            (temp-str (car str-range))
-           (op (concat "χ " (cedille-mode-br-add-parens temp-str) " - "))
+           (op "")
            (op (if (cdr op-fns) (funcall (cdr op-fns) response temp-str2) op))
            (span-range (cdr str-range)))
       (setq cedille-mode-br-temp-str temp-str
@@ -433,7 +424,7 @@
 
 (defun cedille-mode-br-push-current (&optional is-redo)
   "Pushes the current frame to either the undo or the redo stack"
-  (let ((frame (br-new-frame se-mode-parse-tree (buffer-string) cedille-mode-br-current-op cedille-mode-br-checking)))
+  (let ((frame (br-new-frame se-mode-parse-tree (buffer-string) cedille-mode-br-current-op)))
     (push frame (if is-redo cedille-mode-br-redo-stack cedille-mode-br-undo-stack))))
 
 (defun cedille-mode-br-revert (frame)
@@ -443,7 +434,6 @@
       (setq se-mode-parse-tree (br-frame-tree frame)
 	    se-mode-selected nil
 	    se-mode-not-selected se-mode-parse-tree
-            cedille-mode-br-checking (br-frame-checking frame)
             cedille-mode-br-current-op (br-frame-op frame))
       (erase-buffer)
       (insert (br-frame-str frame))
@@ -455,12 +445,21 @@
   (interactive)
   (let* ((out "")
          (cur-op (or cedille-mode-br-current-op ""))
-         (qed cedille-mode-br-qed))
+         (qed (cdr cedille-mode-br-qed))
+         (node (car cedille-mode-br-qed)))
     (loop for frame in cedille-mode-br-undo-stack do
           (setq out (concat (or (br-frame-op frame) "") out)))
-    (with-current-buffer cedille-mode-parent-buffer
-      (with-selected-window (get-buffer-window)
-        (cedille-mode-scratch-insert-text (concat out cur-op qed))))))
+    (let ((proof (concat out cur-op qed)))
+      (with-current-buffer cedille-mode-parent-buffer
+        (select-window (get-buffer-window))
+        (if (null node)
+            (cedille-mode-scratch-insert-text proof)
+          (let ((buffer-read-only nil))
+            (delete-region (se-span-start node) (se-span-end node))
+            (goto-char (se-span-start node))
+            (deactivate-mark)
+            (insert proof)
+            (cedille-start-navigation)))))))
 
 
 

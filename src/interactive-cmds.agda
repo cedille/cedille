@@ -37,6 +37,11 @@ private
   ll-lift : language-level → Set
   ll-lift = ⟦_⟧ ∘ ll-ind TERM TYPE KIND
 
+  ll-ind' : ∀ {X : Σ language-level ll-lift → Set} → (s : Σ language-level ll-lift) → ((t : term) → X (ll-term , t)) → ((T : type) → X (ll-type , T)) → ((k : kind) → X (ll-kind , k)) → X s
+  ll-ind' (ll-term , t) tf Tf kf = tf t
+  ll-ind' (ll-type , T) tf Tf kf = Tf T
+  ll-ind' (ll-kind , k) tf Tf kf = kf k
+
   ll-disambiguate : ctxt → term → maybe type
   ll-disambiguate Γ (Var pi x) = ctxt-lookup-type-var Γ x ≫=maybe λ _ → just (TpVar pi x)
   ll-disambiguate Γ (App t NotErased t') = ll-disambiguate Γ t ≫=maybe λ T →
@@ -153,6 +158,13 @@ private
   qualif-ed{KIND} = qualif-kind
   qualif-ed Γ e = e
 
+  --step-reduce : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
+  --step-reduce{TERM} Γ (Lam pi b pi' x oc t) = {!!}
+  --step-reduce{TERM} Γ (App t me t') = {!!}
+  --step-reduce{TERM} Γ (Var pi x) = ctxt-lookup-term-var-def Γ x
+  --step-reduce Γ t = nothing
+
+
   {- Command Executors -}
   
   normalize-cmd : ctxt → (str ll pi hd do-erase : string) → 𝕃 string → string ⊎ tagged-val
@@ -164,14 +176,7 @@ private
     parse-string ll' - str ! ll ≫parse λ t →
       let Γ' = get-local-ctxt Γ sp ls
           t' = hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt in
-    if do-e
-      then inj₂ (strRunTag "" Γ' (to-stringh t' ≫str strAdd "§" ≫str to-stringh
-        (ll-ind {λ ll → ll-lift ll → ll-lift ll → ll-lift ll}
-          -- If it is a term, we want to return (φ β - t {t'}) so that the outline
-          -- printed by the BR buffer checks
-          (λ t t' → Phi posinfo-gen (Beta posinfo-gen NoTerm NoTerm) t t' posinfo-gen)
-          (λ t t' → t') (λ t t' → t') ll' t t')))
-      else inj₂ (to-string-tag "" Γ' t')
+    inj₂ (to-string-tag "" Γ' t')
   
   normalize-prompt : ctxt → (str hd : string) → 𝕃 string → string ⊎ tagged-val
   normalize-prompt Γ str hd ls =
@@ -212,16 +217,25 @@ private
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
   
-  br-cmd : ctxt → (str : string) → 𝕃 string → IO ⊤
-  br-cmd Γ str ls =
+  br-cmd : ctxt → (str qed : string) → 𝕃 string → IO ⊤
+  br-cmd Γ str qed ls =
     let Γ' = merge-lcis-ctxt Γ ls in
     maybe-else
       (return (io-spans.spans-to-rope (io-spans.global-error "Parse error" nothing)))
       (λ s → s >>= return ∘ io-spans.spans-to-rope)
-      (parse-try Γ' str ≫=maybe λ f →
-       just (f (ll-ind untyped-term-spans untyped-type-spans untyped-kind-spans)
-               Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))) >>= putRopeLn
-  
+      (parse-try {maybe (IO io-spans.spans)} Γ' str ≫=maybe λ f → f λ where
+         ll-term t → just (untyped-term-spans t Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+         ll-type T →
+           parse-string ll-term qed ≫=maybe λ q →
+           case check-term q (just $ qualif-type Γ' T) Γ' empty-spans of λ where
+             (triv , _ , ss @ (regular-spans nothing _)) →
+               just (putStrLn "inhabited: Type inhabited" >> untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+             (triv , _ , _) →
+               just (untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+         ll-kind k →
+           just (untyped-kind-spans k Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd)))
+      >>= putRopeLn
+
   conv-cmd : ctxt → (ll str1 str2 : string) → 𝕃 string → string ⊎ tagged-val
   conv-cmd Γ ll s1 s2 ls =
     parse-ll - ll ! "language-level" ≫parse λ ll' →
@@ -288,5 +302,5 @@ private
   
   
 interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
-interactive-cmd ("br" :: input :: lc) ts = br-cmd (toplevel-state.Γ ts) input lc
+interactive-cmd ("br" :: input :: qed :: lc) ts = br-cmd (toplevel-state.Γ ts) input qed lc
 interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))
