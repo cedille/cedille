@@ -16,7 +16,7 @@ eraseTerm (IotaProj1 tm) = eraseTerm tm
 eraseTerm (IotaProj2 tm) = eraseTerm tm
 eraseTerm (Beta pt pt') = pt'
 eraseTerm (Sigma tm) = eraseTerm tm
-eraseTerm (Delta tp tm) = eraseTerm tm
+eraseTerm (Delta tp tm) = PureLambda "x" (PureVar "x")
 eraseTerm (Rho tm v tp tm') = eraseTerm tm'
 eraseTerm (Phi tm tm' pt) = pt
 
@@ -46,30 +46,6 @@ substTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlySubs
 substTerm c (PureApp tm tm') = PureApp (substTerm c tm) (substTerm c tm')
 substTerm c (PureLambda v tm) = freshVar c v $ \ v' ->
   PureLambda v' (substTerm (ctxtRename c v v') tm)
-{-
---substType :: Ctxt -> PureType -> PureType
-substType c (TpVar v) = maybe (TpVar (ctxtRep c v)) id (ctxtLookupTypeVar c v)
-substType c (TpLambda v tk tp) = freshVar c v $ \ v' ->
-  TpLambda v' (substTpKd c tk) (substType (ctxtRename c v v') tp)
-substType c (TpAll v tk tp) = freshVar c v $ \ v' ->
-  TpAll v' (substTpKd c tk) (substType (ctxtRename c v v') tp)
-substType c (TpPi v tp tp') = freshVar c v $ \ v' ->
-  TpPi v' (substType c tp) (substType (ctxtRename c v v') tp')
-substType c (TpIota v tp tp') = freshVar c v $ \ v' ->
-  TpIota v' (substType c tp) (substType (ctxtRename c v v') tp')
-substType c (TpAppTp tp tp') = TpAppTp (substType c tp) (substType c tp')
-substType c (TpAppTm tp tm) = TpAppTm (substType c tp) (substTerm c tm)
-substType c (TpEq tm tm') = TpEq (substTerm c tm) (substTerm c tm')
-
---substKind :: Ctxt -> PureKind -> PureKind
-substKind c Star = Star
-substKind c (KdPi v tk kd) = freshVar c v $ \ v' ->
-  KdPi v' (substTpKd c tk) (substKind (ctxtRename c v v') kd)
-
---substTpKd :: Ctxt -> PureTpKd -> PureTpKd
-substTpKd c (TpKdTp tp) = TpKdTp (substType c tp)
-substTpKd c (TpKdKd kd) = TpKdKd (substKind c kd)
--}
 
 substType = hnfType . ctxtClearExternals
 substKind = hnfKind . ctxtClearExternals
