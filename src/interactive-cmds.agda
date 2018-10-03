@@ -158,32 +158,48 @@ private
   qualif-ed{KIND} = qualif-kind
   qualif-ed Γ e = e
 
-  --step-reduce : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
-  --step-reduce{TERM} Γ (Lam pi b pi' x oc t) = {!!}
-  --step-reduce{TERM} Γ (App t me t') = {!!}
-  --step-reduce{TERM} Γ (Var pi x) = ctxt-lookup-term-var-def Γ x
-  --step-reduce Γ t = nothing
+  step-reduce : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  step-reduce Γ t = let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
+    step-reduceh : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
+    step-reduceh{TERM} Γ (Var pi x) = ctxt-lookup-term-var-def Γ (qualif-var Γ x)
+    step-reduceh{TYPE} Γ (TpVar pi x) = ctxt-lookup-type-var-def Γ (qualif-var Γ x)
+    step-reduceh{TERM} Γ (App (Lam pi b pi' x oc t) me t') = just (subst Γ t' x t)
+    step-reduceh{TYPE} Γ (TpApp (TpLambda pi pi' x (Tkk _) T) T') = just (subst Γ T' x T)
+    step-reduceh{TYPE} Γ (TpAppt (TpLambda pi pi' x (Tkt _) T) t) = just (subst Γ t x T)
+    step-reduceh{TERM} Γ (App t me t') = step-reduceh Γ t ≫=maybe λ t → just (App t me t')
+    step-reduceh{TYPE} Γ (TpApp T T') = step-reduceh Γ T ≫=maybe λ T → just (TpApp T T')
+    step-reduceh{TYPE} Γ (TpAppt T t) = step-reduceh Γ T ≫=maybe λ T → just (TpAppt T t)
+    step-reduceh{TERM} Γ (Lam pi b pi' x oc t) = step-reduceh (ctxt-var-decl x Γ) t ≫=maybe λ t → just (Lam pi b pi' x oc t)
+    step-reduceh{TYPE} Γ (TpLambda pi pi' x atk T) = step-reduceh (ctxt-var-decl x Γ) T ≫=maybe λ T → just (TpLambda pi pi' x atk T)
+    step-reduceh{TERM} Γ (Let pi (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
+    step-reduceh{TYPE} Γ (TpLet pi (DefTerm pi' x ot t) T) = just (subst Γ t x T)
+    step-reduceh{TYPE} Γ (TpLet pi (DefType pi' x k T') T) = just (subst Γ T' x T)
+    step-reduceh Γ t = nothing
+
+  parse-norm : string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)
+  parse-norm "all" = just λ Γ t → hnf Γ unfold-all t tt
+  parse-norm "head" = just λ Γ t → hnf Γ unfold-head t tt
+  parse-norm "once" = just λ Γ → step-reduce Γ ∘ erase
+  parse-norm _ = nothing
 
 
   {- Command Executors -}
   
-  normalize-cmd : ctxt → (str ll pi hd do-erase : string) → 𝕃 string → string ⊎ tagged-val
-  normalize-cmd Γ str ll pi hd de ls =
+  normalize-cmd : ctxt → (str ll pi norm : string) → 𝕃 string → string ⊎ tagged-val
+  normalize-cmd Γ str ll pi norm ls =
     parse-ll - ll ! "language-level" ≫parse λ ll' →
     string-to-ℕ - pi ! "natural number" ≫parse λ sp →
-    string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
-    string-to-𝔹 - de ! "boolean" ≫parse λ do-e →
+    parse-norm - norm ! "normalization method (all, head, once)" ≫parse λ norm →
     parse-string ll' - str ! ll ≫parse λ t →
-      let Γ' = get-local-ctxt Γ sp ls
-          t' = hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt in
-    inj₂ (to-string-tag "" Γ' t')
+      let Γ' = get-local-ctxt Γ sp ls in
+    inj₂ (to-string-tag "" Γ' (norm Γ' (qualif-ed Γ' t)))
   
-  normalize-prompt : ctxt → (str hd : string) → 𝕃 string → string ⊎ tagged-val
-  normalize-prompt Γ str hd ls =
-    string-to-𝔹 - hd ! "boolean" ≫parse λ is-hd →
+  normalize-prompt : ctxt → (str norm : string) → 𝕃 string → string ⊎ tagged-val
+  normalize-prompt Γ str norm ls =
+    parse-norm - norm ! "normalization method (all, head, once)" ≫parse λ norm →
     let Γ' = merge-lcis-ctxt Γ ls in
     parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
-    inj₂ (to-string-tag "" Γ' (hnf Γ' (unfold (~ is-hd) (~ is-hd) ff tt) (qualif-ed Γ' t) tt))
+    inj₂ (to-string-tag "" Γ' (norm Γ' (qualif-ed Γ' t)))
   
   erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
   erase-cmd Γ str ll pi ls =
@@ -283,12 +299,12 @@ private
     [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
   
   interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
-  interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: head :: do-erase :: lc) =
-    normalize-cmd Γ input ll sp head do-erase lc
+  interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: norm :: lc) =
+    normalize-cmd Γ input ll sp norm lc
   interactive-cmd-h Γ ("erase" :: input :: ll :: sp :: lc) =
     erase-cmd Γ input ll sp lc
-  interactive-cmd-h Γ ("normalizePrompt" :: input :: head :: lc) =
-    normalize-prompt Γ input head lc
+  interactive-cmd-h Γ ("normalizePrompt" :: input :: norm :: lc) =
+    normalize-prompt Γ input norm lc
   interactive-cmd-h Γ ("erasePrompt" :: input :: lc) =
     erase-prompt Γ input lc
   interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: lc) =

@@ -16,17 +16,22 @@
 ;   cedille-mode-normalize-erase-receive-response-prompt
 ;   "" :header "Elaborating"))
 
-(defun cedille-mode-normalize(&optional head)
+(defun cedille-mode-normalize (&optional norm-method)
   "Normalizes either the selected span or a prompted expression"
   (interactive)
   (if se-mode-selected
-      (cedille-mode-normalize-span (se-mode-selected) head)
-    (cedille-mode-normalize-prompt head)))
+      (cedille-mode-normalize-span (se-mode-selected) (or norm-method 'normalized))
+    (cedille-mode-normalize-prompt (or norm-method 'normalized))))
 
 (defun cedille-mode-head-normalize ()
   "Head-normalizes either the selected span or a prompted expression"
   (interactive)
-  (cedille-mode-normalize t))
+  (cedille-mode-normalize 'head-normalized))
+
+(defun cedille-mode-single-reduction ()
+  "Performs a single reduction on either the selected span or a prompted expression"
+  (interactive)
+  (cedille-mode-normalize 'single-reduction))
 
 (defun cedille-mode-erase ()
   "Erases either the selected span or a prompted expression"
@@ -41,19 +46,18 @@
 
 ;;;;;;;;        Span Code        ;;;;;;;;
 
-(defun cedille-mode-normalize-span(span head)
-  "Normalizes (or head-normalizes when HEAD) SPAN"
-  (let ((lang-level (cedille-mode-normalize-get-ll span))
-	(header (concat (if head "Head-n" "N") "ormalizing")))
+(defun cedille-mode-normalize-span(span norm-method)
+  "Normalizes SPAN according to NORM-METHOD ('normalized, 'head-normalized, or 'single-reduction)"
+  (let ((lang-level (cedille-mode-normalize-get-ll span)))
     (if (and lang-level (or (string= lang-level "term")
 			    (string= lang-level "type")
 			    (string= lang-level "kind")))
 	(se-inf-interactive-with-span
 	 'cedille-mode-normalize-request-text
 	 cedille-mode-normalize-erase-receive-response
-         (if head 'head-normalized 'normalized)
+         norm-method
 	 span
-	 :header header
+	 :header "Normalizing"
 	 :restore cedille-mode-normalize-erase-receive-response-batch)
       (message "Node must be a term, type, or kind"))))
 
@@ -77,18 +81,14 @@
 
 (defun cedille-mode-normalize-request-text(extra span &optional add-to-pos) ; add-to-pos is for beta-reduction
   "Gets the text to send to the backend as a request to normalize a span"
-  (let* ((head (eq 'head-normalized extra))
-	 (s (se-span-start span))
-	 (e (se-span-end span)))
-    (cedille-mode-concat-sep
-     "interactive"
-     "normalize"
-     (buffer-substring s e)
-     (cedille-mode-normalize-get-ll span)
-     (number-to-string (+ s (or add-to-pos 0)))
-     (if head "tt" "ff")
-     (if add-to-pos "tt" "ff") ; do-erase, which coincides with add-to-pos
-     (cedille-mode-normalize-local-context-param span))))
+  (cedille-mode-concat-sep
+   "interactive"
+   "normalize"
+   (buffer-substring (se-span-start span) (se-span-end span))
+   (cedille-mode-normalize-get-ll span)
+   (number-to-string (+ (se-span-start span) (or add-to-pos 0)))
+   (cedille-mode-norm-method-case extra "all" "head" "once")
+   (cedille-mode-normalize-local-context-param span)))
 
 (defun cedille-mode-erase-request-text(extra span)
   "Gets the text to send to the backend as a request to erase a span"
@@ -155,27 +155,26 @@
 
 ;;;;;;;;        Prompt Code        ;;;;;;;;
 
-(defun cedille-mode-normalize-prompt (&optional head)
+(defun cedille-mode-normalize-prompt (&optional norm-method)
   "Prompts the user to input an expression to normalize/head-normalize"
-  (let ((head-t (lambda (input)
-		  (interactive "MHead-normalize: ")
-		  (cedille-mode-normalize-send-prompt input t)))
-	(head-nil (lambda (input)
-		    (interactive "MNormalize: ")
-		    (cedille-mode-normalize-send-prompt input nil))))
-  (call-interactively (if head head-t head-nil))))
+  (call-interactively
+   `(lambda (input)
+      (interactive ,(cedille-mode-norm-method-case norm-method "MNormalize: " "MHead-normalize" "MReduce: "))
+      (cedille-mode-normalize-send-prompt input ',norm-method))))
 
-(defun cedille-mode-normalize-send-prompt (input head)
+(defun cedille-mode-normalize-send-prompt (input norm-method)
   "Sends the prompted normalize request to the backend"
   (se-inf-interactive
    (cedille-mode-concat-sep
     "interactive"
     "normalizePrompt"
     input
-    (if head "tt" "ff")
+    (cedille-mode-norm-method-case norm-method "all" "head" "once")
     (cedille-mode-normalize-local-context-to-string cedille-mode-global-context))
    cedille-mode-normalize-erase-receive-response-prompt
-   (concat "Expression: " input "\n" (if head "Head-n" "N") "ormalized: ")
+   (concat "Expression: " input "\n"
+           (cedille-mode-norm-method-case
+            norm-method "Normalized: " "Head-normalized: " "Single-reduction: " ))
    :header "Normalizing"))
 
 (defun cedille-mode-erase-send-prompt (input)
@@ -190,6 +189,12 @@
    :header "Erasing"))
 
 ;;;;;;;;        Helpers        ;;;;;;;;
+
+(defun cedille-mode-norm-method-case (norm-method all head once)
+  (cond
+   ((eq 'normalized norm-method) all)
+   ((eq 'head-normalized norm-method) head)
+   ((eq 'single-reduction norm-method) once)))
 
 (defmacro cedille-mode-response-macro (fn)
   `(lambda (response extra &optional span)

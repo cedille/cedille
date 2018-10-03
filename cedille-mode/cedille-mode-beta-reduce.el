@@ -80,6 +80,7 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i b") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i n") #'cedille-mode-br-normalize)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i h") #'cedille-mode-br-head-normalize)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i u") #'cedille-mode-br-single-reduction)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i =") #'cedille-mode-br-conv)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i r") #'cedille-mode-br-rewrite)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i R") #'cedille-mode-br-rewrite-plus)
@@ -238,8 +239,8 @@
 	(node (se-mode-selected)))
     (if (not node)
 	(message "Error: must select a node")
-      (let* ((text (cedille-mode-br-get-qed node)))
-	(cedille-mode-br-init-buffer text (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking) text))))
+      (let* ((text (cedille-mode-br-get-qed-h node)))
+	(cedille-mode-br-init-buffer (cdr text) (cedille-mode-get-context se-mode-not-selected) (cedille-mode-br-is-checking)))))
   nil)
 
 (defun cedille-mode-br-type ()
@@ -281,38 +282,45 @@
            (et (cdr (assoc 'expected-type data))))
     (if cm (string= "checking" cm) et))))
 
+(defun cedille-mode-br-get-qed-h (node)
+  (let* ((start (se-term-start node))
+         (end (min (1+ (buffer-size)) (se-term-end node))))
+    (cons (se-get-span node) (buffer-substring start end))))
+  
 (defun cedille-mode-br-get-qed (node)
-  "Returns the buffer's text from the start to the end of NODE"
-  (when node
-    (let* ((start (se-term-start node))
-           (end (min (1+ (buffer-size)) (se-term-end node))))
-      (cons (se-get-span node) (buffer-substring start end)))))
+  "Returns the buffer's text from the start to the end of NODE, if it has an error"
+  (when (and node (cedille-span-has-error-data (se-term-data node)))
+    (cedille-mode-br-get-qed-h node)))
 
 
 ;;;;;;;; Normalizing code ;;;;;;;;
 
-(defun cedille-mode-br-normalize (&optional head)
+(defun cedille-mode-br-normalize (&optional norm-method)
   "Replace the selected span with its normalized value"
   (interactive)
   (let ((span (se-get-span (se-mode-selected))))
     (if (null span)
 	(message "Error: must select a node")
       (let* ((ll (cdr (assoc 'language-level (se-span-data span))))
-             (extra (cons (current-buffer) (cons t nil)))
-             (header (if head "Head-normalizing" "Normalizing")))
+             (extra (cons (current-buffer) (cons t nil))))
 	(if (not (and ll (or (string= ll "term") (string= ll "type") (string= ll "kind"))))
 	    (message "Node must be a term, type, or kind")
 	  (se-inf-interactive-with-span
-	   (cedille-mode-normalize-request-text (if head 'head-normalized 'normalized) span cedille-mode-br-length)
+	   (cedille-mode-normalize-request-text (or norm-method 'normalized) span cedille-mode-br-length)
 	   (cedille-mode-response-macro #'cedille-mode-br-receive-response)
 	   extra
            span
-	   :header header))))))
+	   :header "Normalizing"))))))
 
 (defun cedille-mode-br-head-normalize ()
   "Replace the selected span with its head-normalized value"
   (interactive)
-  (cedille-mode-br-normalize t))
+  (cedille-mode-br-normalize 'head-normalized))
+
+(defun cedille-mode-br-single-reduction ()
+  "Replace the selected span after performing a single reduction on it"
+  (interactive)
+  (cedille-mode-br-normalize 'single-reduction))
 
 (defun cedille-mode-br-conv ()
   "Replaces the selected span with the prompted expression if they are convertible"
