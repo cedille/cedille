@@ -403,6 +403,9 @@ time you enter into Cedille mode.  They all begin with the ’C-i’ prefix.
 ‘C-i h’
      Like ’C-i n’, but shows head-normalization
 
+‘C-i u’
+     Show a single reduction of the selected span
+
 ‘C-i e’
      Show erasure of selected span.  If no span is selected, this will
      prompt an expression to erase.
@@ -721,20 +724,23 @@ to enter beta-reduce mode:
 ‘C-i h’
      Replace the selected span with its head-normalization
 
+‘C-i u’
+     Perform a single reduction on the selected span
+
 ‘C-i =’
-     Replace the selected span with a input expression, if convertible
+     Replace the selected span with a prompted expression, if
+     convertible
 
 ‘C-i r’
-     Synthesize an equational type from an input expression and rewrite
-     the selected span using it
+     Synthesize an equational type from a prompted expression and
+     rewrite the selected span using it
 
 ‘C-i R’
      Same as “C-i r”, but beta-reduces the selected span as it looks for
      matches
 
 ‘C-i p’
-     Prints an outline of how to reconstruct each normalization,
-     conversion, and rewrite applied to the scratch buffer
+     Reconstruct a proof from each step taken so far
 
 ‘C-i ,’
      Undo
@@ -987,17 +993,17 @@ Node: Top95
 Node: about1045
 Node: tooling10905
 Node: cedille mode commands15812
-Node: unicode shortcuts19098
-Node: extra buffers21214
-Node: inspect buffer22558
-Node: summary buffer23753
-Node: meta-vars buffer24566
-Node: beta-reduce mode25597
-Node: context buffer26782
-Node: options28809
-Node: roadmap29988
-Node: credits31181
-Node: Index32475
+Node: unicode shortcuts19161
+Node: extra buffers21277
+Node: inspect buffer22621
+Node: summary buffer23816
+Node: meta-vars buffer24629
+Node: beta-reduce mode25660
+Node: context buffer26850
+Node: options28877
+Node: roadmap30056
+Node: credits31249
+Node: Index32543
 
 End Tag Table
 

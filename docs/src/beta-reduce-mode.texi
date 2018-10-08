@@ -25,17 +25,20 @@ Replace the selected span with its normalization
 @item C-i h
 Replace the selected span with its head-normalization
 
+@item C-i u
+Perform a single reduction on the selected span
+
 @item C-i =
-Replace the selected span with a input expression, if convertible
+Replace the selected span with a prompted expression, if convertible
 
 @item C-i r
-Synthesize an equational type from an input expression and rewrite the selected span using it
+Synthesize an equational type from a prompted expression and rewrite the selected span using it
 
 @item C-i R
 Same as ``C-i r'', but beta-reduces the selected span as it looks for matches
 
 @item C-i p
-Prints an outline of how to reconstruct each normalization, conversion, and rewrite applied to the scratch buffer
+Reconstruct a proof from each step taken so far
 
 @item C-i ,
 Undo

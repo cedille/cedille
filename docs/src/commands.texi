@@ -75,6 +75,9 @@ Show normalization of selected span. If no span is selected, this will prompt an
 @item C-i h
 Like 'C-i n', but shows head-normalization
 
+@item C-i u
+Show a single reduction of the selected span
+
 @item C-i e
 Show erasure of selected span. If no span is selected, this will prompt an expression to erase.
 
