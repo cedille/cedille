@@ -1,0 +1,10 @@
+#!/bin/bash
+
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+
+open -a Emacs --args --execute '(setq cedille-path "'$SCRIPTPATH/bin'")' --execute "(add-to-list 'load-path cedille-path)" --execute "(require 'cedille-mode)"
+
+# Note that this file HAS A SIZE REQUIREMENT
+# Meaning, you should be careful when you remove comments
+# like this one, because they might have actual semantic
+# importance, like padding the size of the bash script!
