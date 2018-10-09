@@ -1,0 +1,26 @@
+module issue-26.
+
+import sigma.
+
+
+-- Observed: in synthesis mode, after the first argument hole is encountered,
+-- type-checking the remaining arguments, or the remaining applications, stops.
+test1 = mksigma ● ●.
+
+-- It would be nicer instead to see
+-- 1) `mksigma ● ●` <-- ?Y ● ➔ Sigma ·?X ·?Y
+-- 2) mksigma ● `●` <-- Ability to visit the second hole
+
+-- Observed: when a type variable is instantiated with a whole, this gets
+-- substituted in directory to the result -- but likely the programer would
+-- prefer to see the meta-variable instead.
+test2 = mksigma ·● ·● ● ●.
+
+-- It would be nicier instead to see
+-- 1) `mksigma ·● ·●` ● ● <-- Π x: ?X . ?Y x ➔ Sigma ·?X ·?Y
+-- 2) `mksigma ·● ·● ●` ● <-- ?Y ● ➔ Sigma ·?X ·?Y
+
+test3 = mksigma ·(Sigma ·● ·●) ·● ● ●.
+
+-- But if the user provides an incomplete type argument, substitute that in to
+-- the result.
