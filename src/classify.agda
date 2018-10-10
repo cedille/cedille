@@ -1062,7 +1062,8 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
   handleApplicandTypeError : spanM ∘ maybe $ _
   handleApplicandTypeError =
       spanM-add (App-span max t₁ t₂ mode [] nothing)
-    ≫span spanMr nothing
+    ≫span check-term t₂ nothing
+    ≫=span (const $ spanMr nothing)
 
   genInapplicableError : meta-vars → decortype → prototype → (locl : ℕ) → spanM (maybe _)
   genInapplicableError Xs dt pt locl =
