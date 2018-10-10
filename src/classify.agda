@@ -1137,35 +1137,44 @@ check-term-spine t pt max =
 -- If `dom` has unsolved meta-vars in it, synthesize argument t₂ and try to solve for them.
 -- Otherwise, check t₂ against a fully known expected type
 check-term-app Xs Zs t₁ t₂ (mk-tmabsd dt e? x dom occurs cod) is-locl =
-  get-ctxt λ Γ →
-  let Xs' = meta-vars-add* Xs Zs ; tp = decortype-to-type dt in
-  (if occurs then subst-decortype Γ (qualif-term Γ t₂) x cod else spanMr cod)
-  ≫=span λ rdt → if ~ meta-vars-are-free-in-type Xs' dom
-    -- check t₂ against a fully-known type
-    then (check-term t₂ (just dom)
-         ≫span spanMr (just (check-term-app-return Xs' dom rdt checking)))
-  else (
-  -- 1) synthesize a type for the argument
-  check-termi t₂ nothing
-    on-fail spanM-add
-     (App-span is-locl t₁ t₂ mode
-       (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
- ≫span spanMr nothing
-  -- 2) match synthesized type with expected (partial) type
-  ≫=spanm' λ atp →
-  -- let atpₕ = hnf Γ (unfolding-elab unfold-head) atp tt
-  --     domₕ = hnf Γ (unfolding-elab unfold-head) dom tt in
-  match-types Xs' empty-trie match-unfolding-both dom atp
-  ≫=span λ where
-    (match-error (msg , tvs)) →
-      check-term-app-tm-errors.unmatchable t₁ t₂ tp Xs'
-        is-locl mode dom atp msg tvs
-    (match-ok Xs) →
-      meta-vars-subst-decortype Γ Xs rdt
-      ≫=span λ rdt → spanMr ∘ just $ check-term-app-return Xs atp rdt mode
-  )
+   get-ctxt λ Γ → let Xs' = meta-vars-add* Xs Zs ; tp = decortype-to-type dt in
+  -- 1) calculate return type of function (possible subst)
+   genAppRetType Γ
+  -- 2) either synth or check arg type, depending on available info
+  --    checking "exits early", as well as failure
+  ≫=span λ rdt → checkArgWithMetas Xs' tp rdt
+    exit-early spanMr
+  -- 3) match *synthesized* type with expected (partial) type
+  ≫=spans' λ atp → match-types Xs' empty-trie match-unfolding-both dom atp
+  ≫=span (handleMatchResult Xs' atp tp rdt)
 
-    where mode = synthesizing
+  where
+  mode = synthesizing
+
+  genAppRetType : ctxt → spanM decortype
+  genAppRetType Γ = if occurs then subst-decortype Γ (qualif-term Γ t₂) x cod else spanMr cod
+
+  checkArgWithMetas : meta-vars → type → decortype → spanM $ (maybe check-term-app-ret ∨ type)
+  checkArgWithMetas Xs' tp rdt = get-ctxt λ Γ →
+    -- check arg against fully known type
+    if ~ meta-vars-are-free-in-type Xs' dom
+      then check-term t₂ (just dom)
+          ≫span (spanMr ∘' inj₁ ∘' just $ check-term-app-return Xs' dom rdt mode)
+    -- synthesize type for the argument
+      else check-term t₂ nothing
+          on-fail spanM-add
+            (App-span is-locl t₁ t₂ mode
+                      (head-type Γ tp :: meta-vars-data-all Γ Xs') nothing)
+            ≫span (spanMr ∘ inj₁ $ nothing)
+         ≫=spanm' λ tp → spanMr ∘' inj₂ $ tp
+
+  handleMatchResult : meta-vars → (atp tp : type) → decortype → match-error-t meta-vars → spanM ∘ maybe $ check-term-app-ret
+  handleMatchResult Xs' atp tp rdt (match-error (msg , tvs)) =
+    check-term-app-tm-errors.unmatchable
+      t₁ t₂ tp Xs' is-locl mode dom atp msg tvs
+  handleMatchResult Xs' atp tp rdt (match-ok Xs) = get-ctxt λ Γ →
+      meta-vars-subst-decortype Γ Xs rdt
+    ≫=span λ rdt → spanMr ∘ just $ check-term-app-return Xs atp rdt mode
 
 match-unfolding-next : match-unfolding-state → match-unfolding-state
 match-unfolding-next match-unfolding-both = match-unfolding-both
