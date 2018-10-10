@@ -1,6 +1,6 @@
 To install Cedille version 1.0:
 
-0. install Agda version 2.5.x, which is needed to compile Cedille.
+0. install Agda version 2.5.4, which is needed to compile Cedille.
    Please note that Cedille currently does not work on Windows, only
    Linux and Mac (though Windows support should be available soon).
 
@@ -30,7 +30,7 @@ To install Cedille version 1.0:
 
 To edit Agda source files for Cedille:
 
--- since Agda 2.5.x now uses a library system, you need to tell Agda
+-- because Agda 2.5.4 uses a library system, you need to tell Agda
    about the three libraries used for Cedille (these are for the Cedille
    sources, the IAL, and some stuff for the parser).  If you run make
    (or directly ./create-libraries.sh) it will create the libraries
