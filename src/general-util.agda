@@ -161,6 +161,10 @@ uncurry : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ�
           → (f : A → B → C) → (p : A × B) → C
 uncurry f (a , b) = f a b
 
+uncurry₂ : ∀{a b c d}{A : Set a}{B : Set b}{C : Set c}{D : Set d}
+          → (f : A → B → C → D) → (p : A × B × C) → D
+uncurry₂ f (a , b , c) = f a b c
+
 elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
             → A × B → (A → B → C) → C
 elim-pair (a , b) f = f a b

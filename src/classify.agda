@@ -1022,43 +1022,31 @@ data check-term-app-ret : Set where
 check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → spanM (maybe check-term-app-ret)
 
 check-term-spine t'@(App t₁ e? t₂) pt max =
-  -- 1) type the applicand
-  check-term-spine t₁ (proto-arrow e? pt) ff
-    on-fail spanM-add (App-span max t₁ t₂ mode [] nothing) ≫span spanMr nothing
-  -- 2) make sure it reveals an arrow
-  ≫=spanm' λ ret → get-ctxt λ Γ →
-  let (mk-spine-data Xs dt locl) = ret
-      sloc = span-loc $ ctxt-get-current-filename Γ
-  in meta-vars-unfold-tmapp' Γ sloc Xs dt
-  ≫=span λ ret → let Ys = fst ret in
-  spanMr (snd ret)
-    on-fail (λ _ → check-term-app-tm-errors.inapplicable t₁ t₂ (decortype-to-type dt) Xs
-               (islocl locl) mode e? dt (proto-arrow e? pt))
+  -- 1) type the applicand, extending the prototype
+    let pt' = proto-arrow e? pt in
+    check-term-spine t₁ pt' ff
+      on-fail handleApplicandTypeError
+  -- 2) make sure the applicand type reveals an arrow (term abstraction)
+  ≫=spanm' λ ret → let (mk-spine-data Xs dt locl) = ret in
+    -- the meta-vars need to know the span they were introduced in
+    get-ctxt λ Γ  → let sloc = span-loc $ ctxt-get-current-filename Γ in
+    -- see if the decorated type of the head `dt` reveals an arrow
+    meta-vars-unfold-tmapp' Γ sloc Xs dt
+  ≫=span λ ret → let Ys = fst ret ; tm-arrow? = snd ret in
+    spanMr tm-arrow? on-fail (λ _ → genInapplicableError Xs dt pt' locl)
+    -- if so, get the (plain, undecorated) type of the head `htp`
   ≫=spans' λ arr → let htp = decortype-to-type ∘ is-tmabsd-dt $ arr in
-  -- 3) make sure expected / given erasures match
-    if ~ eq-maybeErased e? (is-tmabsd-e? arr)
-      then check-term-app-tm-errors.bad-erasure
-            t₁ t₂ htp Xs (islocl locl) mode e?
+  -- 3) make sure erasures of the applicand type + syntax of application match
+    checkErasuresMatch e? (is-tmabsd-e? arr) htp Xs locl
   -- 4) type the application, filling in missing type arguments with meta-variables
-    else check-term-app Xs Ys t₁ t₂ arr (islocl locl)
-      on-fail spanMr nothing
-  -- 5) check no unsolved mvars, if maximal or a locality
+  ≫=spanm' λ _ → check-term-app Xs Ys t₁ t₂ arr (islocl locl)
+  -- 5) check no unsolved mvars, if the application is maximal (or a locality)
   ≫=spanm' λ {(check-term-app-return Xs' atp rtp' arg-mode) →
-  let rtp = decortype-to-type rtp' in
-  check-spine-locality Γ Xs' rtp max (pred locl)
-    on-fail check-term-app-tm-errors.unsolved-meta-vars
-              t₁ t₂ htp Xs' (islocl locl) mode rtp
-  ≫=spanm' uncurry λ Xs'' → uncurry λ locl' is-loc →
+    let rtp = decortype-to-type rtp' in
+    checkLocality Γ Xs' htp rtp max (pred locl)
+  ≫=spanm' uncurry₂ λ Xs'' locl' is-loc →
   -- 6) generate span and finish
-   spanM-add (uncurry
-     (λ tvs → App-span is-loc t₁ t₂ mode
-       (tvs
-         -- For debugging
-         -- ++ (prototype-data Γ (prototype-arrow e? pt) :: [ decortype-data Γ dt])
-         ++ meta-vars-intro-data Γ (meta-vars-from-list Ys)
-         ++ meta-vars-sol-data Γ Xs Xs'))
-     (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized"
-       meta-vars-empty rtp))
+    genAppSpan Γ Xs Xs' Ys pt rtp is-loc
   ≫span check-term-spine-return Γ Xs'' rtp' locl'
   }
 
@@ -1070,6 +1058,37 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
 
   islocl : ℕ → 𝔹
   islocl locl = is-locale max (just $ pred locl)
+
+  handleApplicandTypeError : spanM ∘ maybe $ _
+  handleApplicandTypeError =
+      spanM-add (App-span max t₁ t₂ mode [] nothing)
+    ≫span spanMr nothing
+
+  genInapplicableError : meta-vars → decortype → prototype → (locl : ℕ) → spanM (maybe _)
+  genInapplicableError Xs dt pt locl =
+    check-term-app-tm-errors.inapplicable
+      t₁ t₂ (decortype-to-type dt) Xs (islocl locl) mode e? dt (proto-arrow e? pt)
+
+  checkErasuresMatch : (e?₁ e?₂ : maybeErased) → type → meta-vars → (locl : ℕ) → spanM ∘ maybe $ ⊤
+  checkErasuresMatch e?₁ e?₂ htp Xs locl =
+    if ~ eq-maybeErased e?₁ e?₂
+      then check-term-app-tm-errors.bad-erasure t₁ t₂ htp Xs (islocl locl) mode e?₁
+    else (spanMr ∘ just $ triv)
+
+  checkLocality : ctxt → meta-vars → (htp rtp : type) → (max : 𝔹) (locl : ℕ) → spanM ∘ maybe $ _
+  checkLocality Γ Xs htp rtp max locl =
+    check-spine-locality Γ Xs rtp max locl
+      on-fail check-term-app-tm-errors.unsolved-meta-vars
+        t₁ t₂ htp Xs (islocl locl) mode rtp
+    ≫=spanm' (spanMr ∘ just)
+
+  genAppSpan : ctxt → (Xs Xs' : meta-vars) → (Ys : 𝕃 meta-var) → prototype → type → (is-locl : 𝔹) → spanM ⊤
+  genAppSpan Γ Xs Xs' Ys pt rtp is-loc =
+    spanM-add $ (flip uncurry)
+      (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized" meta-vars-empty rtp)
+      λ tvs → App-span is-loc t₁ t₂ mode
+        (tvs ++ meta-vars-intro-data Γ (meta-vars-from-list Ys)
+          ++ meta-vars-sol-data Γ Xs Xs')
 
 check-term-spine t'@(AppTp t tp) pt max =
   -- 1) type the applicand
