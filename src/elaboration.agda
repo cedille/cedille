@@ -549,7 +549,7 @@ elab-app-term Γ (App t me t') pt max =
         Ys (not-tpabsd _) → nothing
         Ys (inj₂ arr) →
           elab-app-term' Xs Ys t t' arr (islocl locl) ≫=maybe uncurry λ where
-            t' (check-term-app-return Xs' T₂ Tᵣ arg-mode) →
+            t' (check-term-app-return Xs' Tᵣ arg-mode _) →
               fst (check-spine-locality Γ Xs' (decortype-to-type Tᵣ) max (pred locl) Γ id-spans.empty-spans) ≫=maybe uncurry' λ Xs'' locl' is-loc →
               just ((λ Xs → tf (if is-loc then Xs' else Xs) ≫=maybe λ t → fill-meta-vars t (if is-loc then Xs' else Xs) Ys ≫=maybe λ t → just (App t me t')) ,
                     mk-spine-data Xs'' Tᵣ locl')
@@ -568,14 +568,14 @@ elab-app-term Γ (App t me t') pt max =
     if ~ meta-vars-are-free-in-type Xs' dom
       then (elab-check-term Γ t₂ dom ≫=maybe λ t₂ →
             let rdt = fst $ subst-decortype Γ t₂ x cod Γ id-spans.empty-spans in
-            just (t₂ , check-term-app-return Xs' dom (if occurs then rdt else cod) checking))
+            just (t₂ , check-term-app-return Xs' (if occurs then rdt else cod) checking []))
       else (elab-synth-term Γ t₂ ≫=maybe uncurry λ t₂ T₂ →
             case fst (match-types Xs' empty-trie match-unfolding-both dom T₂ Γ id-spans.empty-spans) of λ where
               (match-error _) → nothing
               (match-ok Xs) →
                 let rdt = fst $ subst-decortype Γ t₂ x cod Γ id-spans.empty-spans
                     rdt' = fst $ meta-vars-subst-decortype Γ Xs (if occurs then rdt else cod) Γ id-spans.empty-spans in
-                just (t₂ , check-term-app-return Xs T₂ rdt' synthesizing))
+                just (t₂ , check-term-app-return Xs rdt' synthesizing []))
 
 elab-app-term Γ (AppTp t T) pt max =
   elab-app-term Γ t pt max ≫=maybe uncurry λ where
