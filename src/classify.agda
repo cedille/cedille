@@ -1104,14 +1104,17 @@ check-term-spine t'@(AppTp t tp) pt max = get-ctxt λ Γ →
   ≫=spans' λ ret → let mk-tpabsd dt e? x k sol rdt = ret in
     check-type tp (just (meta-vars-subst-kind Γ Xs k))
   -- 4) produce the result type of the application
-  ≫span subst-decortype Γ (qualif-type Γ tp) x rdt
-  ≫=span λ rdt → let rtp = decortype-to-type rdt in
+  ≫span subst-decortype-if Γ Xs x k sol rdt
+  ≫=span λ ret → let Xs = fst ret ; rdt = snd ret ; rtp = decortype-to-type rdt in
   -- 5) generate span data and finish
     genAppTpSpan Γ Xs pt rtp
   ≫span check-term-spine-return Γ Xs rdt locl
 
   where
   mode = prototype-to-checking pt
+
+  span-loc : ctxt → span-location
+  span-loc Γ = (ctxt-get-current-filename Γ) , term-start-pos t , type-end-pos tp
 
   handleApplicandTypeError : spanM ∘ maybe $ spine-data
   handleApplicandTypeError =
@@ -1123,12 +1126,21 @@ check-term-spine t'@(AppTp t tp) pt max = get-ctxt λ Γ →
   genInapplicableError Xs htp dt =
     check-term-app-tp-errors.inapplicable t tp htp Xs mode dt
 
+  subst-decortype-if : ctxt → meta-vars → var → kind → maybe type → decortype → spanM (meta-vars × decortype)
+  subst-decortype-if Γ Xs x k sol rdt =
+    if ~ is-hole tp
+      then subst-decortype Γ (qualif-type Γ tp) x rdt ≫=span (λ res → spanMr (Xs , res))
+      else let sol = maybe-map (λ t → mk-meta-var-sol t checking) sol
+               Y   = meta-var-fresh-tp Xs x (span-loc Γ) (k , sol)
+               Xs' = meta-vars-add Xs Y
+           in subst-decortype Γ (meta-var-to-type-unsafe Y) x rdt ≫=span λ rdt' → spanMr (Xs' , rdt')
+
   genAppTpSpan : ctxt → meta-vars → prototype → (ret-tp : type) → spanM ⊤
   genAppTpSpan Γ Xs pt ret-tp = spanM-add ∘ (flip uncurry)
     -- check for a type mismatch, if there even is an expected type
     (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesizing" Xs ret-tp) $
     -- then take the generated 𝕃 tagged-val and add to the span
-    λ tvs → AppTp-span t tp mode tvs -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
+    λ tvs → AppTp-span t tp mode $ tvs ++ meta-vars-data-all Γ Xs -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
 
 check-term-spine (Parens _ t _) pt max =
   check-term-spine t pt max
@@ -1464,7 +1476,7 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   -- 1) generate a fresh meta-var Y, add it to the meta-vars, and rename
   --    occurences of x in tp to Y
   let ret = meta-vars-add-from-tpabs Γ missing-span-location Xs (mk-tpabs Erased x k tp)
-      Y = fst ret ; Xs' = fst (snd ret) ; tp' = snd (snd ret)
+      Y = fst ret ; Xs' = snd ret ; tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
   -- 2) match the body against the original prototype to generate a decorated type
   --    and find some solutions
   in match-prototype Xs' ff tp' pt'
