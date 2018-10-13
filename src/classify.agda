@@ -1091,30 +1091,44 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
         (tvs' ++ meta-vars-intro-data Γ (meta-vars-from-list Ys)
           ++ meta-vars-sol-data Γ Xs Xs' ++ tvs)
 
-check-term-spine t'@(AppTp t tp) pt max =
+check-term-spine t'@(AppTp t tp) pt max = get-ctxt λ Γ →
   -- 1) type the applicand
     check-term-spine t pt max
-     on-fail   spanM-add ((AppTp-span t tp synthesizing [] nothing))
-             ≫span spanMr nothing
+      on-fail handleApplicandTypeError
   ≫=spanm' λ ret → let (mk-spine-data Xs dt locl) = ret ; htp = decortype-to-type dt in
   -- 2) make sure it reveals a type abstraction
-  get-ctxt λ Γ → meta-vars-unfold-tpapp' Γ Xs dt
-    on-fail (λ htp' → check-term-app-tp-errors.inapplicable t tp htp Xs mode dt)
+    meta-vars-unfold-tpapp' Γ Xs dt
+     on-fail (λ _ → genInapplicableError Xs htp dt)
   -- 3) ensure the type argument has the expected kind,
-  --    but don't compare with the contextually infered argument (for now)
+  --    but don't compare with the contextually infered type argument (for now)
   ≫=spans' λ ret → let mk-tpabsd dt e? x k sol rdt = ret in
-  check-type tp (just (meta-vars-subst-kind Γ Xs k))
+    check-type tp (just (meta-vars-subst-kind Γ Xs k))
   -- 4) produce the result type of the application
   ≫span subst-decortype Γ (qualif-type Γ tp) x rdt
   ≫=span λ rdt → let rtp = decortype-to-type rdt in
-    spanM-add (uncurry (λ tvs → AppTp-span t tp mode
-        (tvs -- for debugging
-             -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
-        ))
-      (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized" Xs rtp))
+  -- 5) generate span data and finish
+    genAppTpSpan Γ Xs pt rtp
   ≫span check-term-spine-return Γ Xs rdt locl
 
-  where mode = prototype-to-checking pt
+  where
+  mode = prototype-to-checking pt
+
+  handleApplicandTypeError : spanM ∘ maybe $ spine-data
+  handleApplicandTypeError =
+      spanM-add (AppTp-span t tp synthesizing [] nothing)
+    ≫span check-type tp nothing
+    ≫=span (const $ spanMr nothing)
+
+  genInapplicableError : meta-vars → type → decortype → spanM ∘ maybe $ spine-data
+  genInapplicableError Xs htp dt =
+    check-term-app-tp-errors.inapplicable t tp htp Xs mode dt
+
+  genAppTpSpan : ctxt → meta-vars → prototype → (ret-tp : type) → spanM ⊤
+  genAppTpSpan Γ Xs pt ret-tp = spanM-add ∘ (flip uncurry)
+    -- check for a type mismatch, if there even is an expected type
+    (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesizing" Xs ret-tp) $
+    -- then take the generated 𝕃 tagged-val and add to the span
+    λ tvs → AppTp-span t tp mode tvs -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
 
 check-term-spine (Parens _ t _) pt max =
   check-term-spine t pt max
