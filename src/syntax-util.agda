@@ -402,6 +402,19 @@ is-beta : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-beta{TERM} (Beta _ _ _) = tt
 is-beta _ = ff
 
+is-hole : {ed : exprd} → ⟦ ed ⟧ → 𝔹
+is-hole{TERM} (Hole _) = tt
+is-hole{TERM} _        = ff
+is-hole{TYPE} (TpHole _) = tt
+is-hole{TYPE} _          = ff
+is-hole{KIND} e = ff
+is-hole{LIFTINGTYPE} e = ff
+is-hole{TK} (Tkk x) = is-hole x
+is-hole{TK} (Tkt x) = is-hole x
+is-hole{ARG} (TermArg e? t) = is-hole t
+is-hole{ARG} (TypeArg tp) = is-hole tp
+is-hole{QUALIF} _ = ff
+
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt
 eq-maybeErased Erased NotErased = ff

@@ -227,6 +227,8 @@ _on-fail_≫=spans'_ {A}{B}{E} m fail f = m ≫=span cont
         cont (inj₁ err) = fail err
         cont (inj₂ a) = f a
 
+_exit-early_≫=spans'_ = _on-fail_≫=spans'_
+
 with-ctxt : ∀ {A} → ctxt → spanM A → spanM A
 with-ctxt Γ sm
   =   get-ctxt λ Γ' → set-ctxt Γ
