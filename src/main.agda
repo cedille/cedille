@@ -71,14 +71,30 @@ getOptionsFile : (filepath : string) → string
 getOptionsFile fp = combineFileNames (dot-cedille-directory fp) options-file-name
 
 findOptionsFile : (filepath : string) → IO (maybe string)
-findOptionsFile fp = h fp (pred (length (splitPath fp))) where
-  h : string → ℕ → IO (maybe string)
-  h fp 0 = return nothing
-  h fp (suc n) =
-    let fpc = getOptionsFile fp in
-    doesFileExist fpc >>= λ where
-      ff → h (takeDirectory fp) n
-      tt → return (just fpc)
+findOptionsFile fp =
+  traverseParents fp (fp-fuel fp)
+  >>= λ where
+    fpc?@(just fpc) → return fpc?
+    nothing → getHomeDirectory >>= canonicalizePath >>= getOptions?
+
+  where
+  getOptions? : (filepath : string) → IO ∘ maybe $ string
+  getOptions? fp =
+    let fpc = getOptionsFile fp in doesFileExist fpc
+    >>= λ where
+      ff → return nothing
+      tt → return ∘ just $ fpc
+
+  traverseParents : string → ℕ → IO (maybe string)
+  traverseParents fp 0 = return nothing
+  traverseParents fp (suc n) =
+    getOptions? fp
+    >>= λ where
+      nothing → traverseParents (takeDirectory fp) n
+      fpc?@(just fpc) → return fpc?
+
+  fp-fuel : (filepath : string) → ℕ
+  fp-fuel fp = pred ∘' length ∘' splitPath $ fp
 
 readOptions : IO (string × cedille-options.options)
 readOptions =

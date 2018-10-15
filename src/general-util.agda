@@ -194,6 +194,12 @@ infixr 0 _$_
 _$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
 f $ x = f x
 
+-- _∘_ just needs a fixity and association declaration in the IAL
+infixr 9 _∘'_
+_∘'_ : ∀ {a b c} {A : Set a}{B : Set b}{C : Set c}
+         → (B → C) → (A → B) → A → C
+g ∘' f = λ a → g (f a)
+
 -- list.agda
 
 take : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
