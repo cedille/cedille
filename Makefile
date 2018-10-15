@@ -100,7 +100,10 @@ libraries:
 ./src/CedilleOptionsLexer.hs: parser/src/CedilleOptionsLexer.x
 	cd parser; make cedille-options-lexer
 
-./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
+$(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
+	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
+
+./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./src/templates.agda ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
@@ -137,8 +140,7 @@ options-main: $(SRCDIR)/options-main.agda
 cws-main: $(SRCDIR)/cws-main.agda
 	$(AGDA) $(LIB) -c $(SRCDIR)/cws-main.agda 
 
-cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
-	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
+cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler
 
 cedille-deb-pkg: cedille-static
 	rm -rf cedille-deb-pkg
@@ -175,6 +177,11 @@ cedille-mac-pkg: cedille
 clean:
 	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
 	rm -rf cedille-deb-pkg
+	rm -f src/*.hi src/*.o
+
+realclean: clean
+	rm -f $(TEMPLATESDIR)/TemplatesCompiler
+
 
 #lines:
 #	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)
