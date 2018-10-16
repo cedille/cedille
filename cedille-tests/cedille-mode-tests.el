@@ -25,7 +25,7 @@
 
 (defun cedille-test-init(file init)
   "Initializes a test with the test directory FILE"
-  (load "~/.emacs" nil t)
+  ;(load "~/.emacs" nil t)
   (let* ((init (= 1 (length init)))
          (script-file (concat file "/" script-file-name))
          (testcase-file (concat file "/" testcase-file-name))

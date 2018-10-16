@@ -1,8 +1,0 @@
-Instructions for Setting Up a Cedille Test
-
-cedille/cedille-mode/tests/      Test directory
-  TESTNAME.cedtest/              Individual test name
-    script.el                    File that is executed during test; should set the value of 'output to a string
-    code.ced                     Cedille file to process
-    expected                     Expected output, generated when you use the --init option for run-tests.sh
-    actual                       Actual output, which is compared to expected
