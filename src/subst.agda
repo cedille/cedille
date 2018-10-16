@@ -49,7 +49,6 @@ subst-rename-var-if Γ ρ x σ =
 
 substh-term Γ ρ σ (App t m t') = App (substh-term Γ ρ σ t) m (substh-term Γ ρ σ t')
 substh-term Γ ρ σ (AppTp t tp) = AppTp (substh-term Γ ρ σ t) (substh-type Γ ρ σ tp)
-substh-term Γ ρ σ (Hole x₁) = Hole x₁
 substh-term Γ ρ σ (Lam _ b _ x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     Lam posinfo-gen b posinfo-gen x' (substh-optClass Γ ρ σ oc) 
@@ -73,7 +72,9 @@ substh-term{ARG} Γ ρ σ (Var _ x) =
 substh-term{QUALIF} Γ ρ σ (Var _ x) =
  let x' = renamectxt-rep ρ x in
    qualif-lookup-term σ x'
+substh-term{QUALIF} Γ ρ σ (Hole pi) = Hole (ctxt-get-current-filename Γ # pi)
 substh-term Γ ρ σ (Var _ x) = Var posinfo-gen (renamectxt-rep ρ x)
+substh-term Γ ρ σ (Hole pi) = Hole pi -- Retain position, so jumping to hole works
 substh-term Γ ρ σ (Beta _ ot ot') = Beta posinfo-gen (substh-optTerm Γ ρ σ ot) (substh-optTerm Γ ρ σ ot')
 substh-term Γ ρ σ (IotaPair _ t1 t2 og pi') = IotaPair posinfo-gen (substh-term Γ ρ σ t1) (substh-term Γ ρ σ t2) (substh-optGuide Γ ρ σ og) pi'
 substh-term Γ ρ σ (IotaProj t n _) = IotaProj (substh-term Γ ρ σ t) n posinfo-gen
@@ -153,7 +154,8 @@ substh-type{QUALIF} Γ ρ σ (TpVar _ x) =
  let x' = renamectxt-rep ρ x in
    qualif-lookup-type σ x'
 substh-type Γ ρ σ (TpVar _ x) = TpVar posinfo-gen (renamectxt-rep ρ x)
-substh-type Γ ρ σ (TpHole _) = TpHole posinfo-gen --ACG
+substh-type{QUALIF} Γ ρ σ (TpHole pi) = TpHole (ctxt-get-current-filename Γ # pi)
+substh-type Γ ρ σ (TpHole pi) = TpHole pi -- Retain position, so jumping to hole works
 substh-type Γ ρ σ (TpLet _ (DefTerm _ x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
      (TpLet posinfo-gen (DefTerm posinfo-gen x' (substh-optType Γ ρ σ m) (substh-term Γ ρ σ t))

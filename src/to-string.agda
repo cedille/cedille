@@ -122,7 +122,10 @@ to-string-rewrite{TYPE} Γ ced-ops-conv-abs (TpArrow T me T') = , Abs posinfo-ge
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndTpArrow T k) = , KndPi posinfo-gen posinfo-gen ignored-var (Tkt T) k
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndArrow k k') = , KndPi posinfo-gen posinfo-gen ignored-var (Tkk k) k'
 to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-abs (LiftTpArrow T lT) = , LiftPi posinfo-gen ignored-var T lT
-to-string-rewrite{TERM} Γ ops (Sigma pi (Sigma pi' t)) = to-string-rewrite Γ ops t
+to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
+...| ,_ {TERM} (Sigma pi' t') = , t'
+...| ,_ {TERM} t' = , Sigma posinfo-gen t'
+...| t? = t? -- Shouldn't happen
 to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
 
@@ -164,22 +167,32 @@ make-loc-tag Γ fn s e = make-tag "loc"
   (("fn" , [[ ℕ-to-string (ctxt-get-file-id Γ fn) ]]) ::
    ("s" , [[ s ]]) :: ("e" , [[ e ]]) :: [])
 
-var-loc-tag : ctxt → location → var → (start-from end-from : ℕ) → 𝕃 tag
-var-loc-tag Γ ("missing" , "missing") x start end = []
-var-loc-tag Γ (fn , pos) x start end =
-  [ make-loc-tag Γ fn pos (posinfo-plus-str pos (unqual-local x)) start end ]
+var-loc-tag : ctxt → location → var → 𝕃 (string × 𝕃 tag)
+var-loc-tag Γ ("missing" , "missing") x = []
+var-loc-tag Γ ("" , _) x = []
+var-loc-tag Γ (_ , "") x = []
+var-loc-tag Γ (fn , pi) x =
+  let fn-tag = "fn" , [[ ℕ-to-string (ctxt-get-file-id Γ fn) ]]
+      s-tag = "s" , [[ pi ]]
+      e-tag = "e" , [[ posinfo-plus-str pi x ]] in
+  [ "loc" , fn-tag :: s-tag :: e-tag :: [] ]
 
-var-tags : ctxt → qvar → var → ℕ → ℕ → 𝕃 tag
-var-tags Γ qv uqv s e with qv =string (qualif-var Γ uqv)
-...| tt = var-loc-tag Γ (ctxt-var-location Γ qv) uqv s e
-...| ff = make-tag "shadowed" [] s e :: var-loc-tag Γ (ctxt-var-location Γ qv) uqv s e
+var-tags : ctxt → qvar → var → 𝕃 (string × 𝕃 tag)
+var-tags Γ qv uqv =
+  (if qv =string qualif-var Γ uqv then id else ("shadowed" , []) ::_)
+  (var-loc-tag Γ (ctxt-var-location Γ qv) uqv)
+
+strAddTags : string → 𝕃 (string × 𝕃 tag) → strM
+strAddTags sₙ tsₙ sₒ n tsₒ Γ pe lr =
+  let n' = n + string-length sₙ in
+  sₒ ⊹⊹ [[ sₙ ]] , n' , map (uncurry λ k vs → make-tag k vs n n') tsₙ ++ tsₒ
 
 strVar : var → strM
-strVar v s n ts Γ pe lr =
-  let uqv = unqual-local $ unqual-all (ctxt-get-qualif Γ) v
-      uqv' = if cedille-options.options.show-qualified-vars options then v else uqv
-      n' = n + (string-length uqv') in
-  s ⊹⊹ [[ uqv' ]] , n' , var-tags Γ (qualif-var Γ v) uqv n n' ++ ts
+strVar v = strM-Γ λ Γ →
+  let uqv = unqual-local v -- $ unqual-all (ctxt-get-qualif Γ) v
+      uqv' = if cedille-options.options.show-qualified-vars options then v else uqv in
+  strAddTags uqv' (var-tags Γ (qualif-var Γ v) uqv)
+
 
 -- Only necessary to unqual-local because of module parameters
 strBvar : var → (class body : strM) → strM
@@ -270,7 +283,7 @@ term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < "
 term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
-term-to-stringh (Hole pi) = strAdd "●"
+term-to-stringh (Hole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
 term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l) ≫str strAdd " " ≫str strBvar x (optClass-to-string oc) (strAdd " . " ≫str to-stringr t)
@@ -295,7 +308,7 @@ type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-strin
 type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
 type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
 type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh (erase-term t) ≫str strAdd " ≃ " ≫str to-stringh (erase-term t') ≫str strAdd " }"
-type-to-stringh (TpHole pi) = strAdd "●"
+type-to-stringh (TpHole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
 type-to-stringh (TpLambda pi pi' x Tk T) = strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringr T)
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
