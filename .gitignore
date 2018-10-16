@@ -19,3 +19,7 @@ cedille-deb-pkg
 cedille-deb-pkg.deb
 cedille-mac-pkg
 .DS_Store
+*.aux
+*.bbl
+*.blg
+*.log

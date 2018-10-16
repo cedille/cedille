@@ -621,18 +621,20 @@ hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else 
 
 -- TODO: remove dependency and delete code
 
-meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → is-tpabs → meta-var × meta-vars × type
+meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → is-tpabs → meta-var × meta-vars
 meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs e? x k tp) =
   let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
       Xs' = meta-vars-add Xs Y
       tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
-  in Y , Xs' , tp'
+  in Y , Xs'
 
 {-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
 meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type
 meta-vars-peel Γ sl Xs (Abs pi e? pi' x tk@(Tkk k) tp)
   with meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs e? x k tp)
-... | (Y , Xs' , tp') =
+... | (Y , Xs')
+  with subst Γ (meta-var-to-type-unsafe Y) x tp
+... | tp' =
   let ret =  meta-vars-peel Γ sl Xs' tp' ; Ys  = fst ret ; rtp = snd ret
   in (Y :: Ys , rtp)
 meta-vars-peel Γ sl Xs (NoSpans tp _) =
