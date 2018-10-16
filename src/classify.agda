@@ -454,8 +454,10 @@ check-termi (Epsilon pi lr m t) nothing =
           spanMr nothing
 
 check-termi (Sigma pi t) nothing = get-ctxt λ Γ →
-    check-term t nothing                 on-fail errSynthBody
-  ≫=spanm' λ tp → spanMr (is-eq-tp? tp) on-fail errSynthNonEq Γ tp
+    check-term t nothing
+      on-fail errSynthBody
+  ≫=spanm' λ tp → spanMr (is-eq-tp? (hnf Γ (unfolding-elab unfold-head) tp tt))
+      on-fail errSynthNonEq Γ tp
   ≫=spanm' λ ret →
     let mk-eq-tp! t₁ t₂ pi₁ pi₂ = ret in
     let tp' = TpEq posinfo-gen t₂ t₁ posinfo-gen in
@@ -480,7 +482,7 @@ check-termi (Sigma pi t) (just tp) = get-ctxt λ Γ →
       eq? = is-eq-tp? (hnf Γ (unfolding-elab unfold-head) tp tt)
   in spanMr eq? on-fail errChkNotEq Γ
   ≫=spanm' λ ret → let mk-eq-tp! lhs rhs lpi rpi = ret in
-    check-termi t (just $ TpEq posinfo-gen lhs rhs posinfo-gen)
+    check-termi t (just $ TpEq posinfo-gen rhs lhs posinfo-gen)
   ≫span spanM-add (Sigma-span pi t checking [ expected-type Γ (TpEq lpi lhs rhs rpi) ] nothing)
 
   where
@@ -520,10 +522,9 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
       (λ tp' →
         let Γ' = ctxt-var-decl-loc pi' x Γ
             tp = qualif-type Γ' tp
-            tp'' = subst Γ t1 x tp
+            tp'' = subst Γ t2 x tp
             qt = qualif-term Γ t
-            -- tp''' = qualif-type Γ (subst-type Γ t2 x tp)
-            tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x qt tt tp' tp) in
+            tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x qt tt tp' tp) in
         if conv-type Γ tp'' tp'
           then (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [ type-data Γ tp''' ] nothing) ≫span spanMr (just tp'''))
           else (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp' :: [ expected-type-subterm Γ tp'' ])
@@ -540,9 +541,8 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
       let Γ' = ctxt-var-decl-loc pi' x Γ
           qt = qualif-term Γ t
           tp = qualif-type Γ' tp
-          tp'' = subst Γ' t2 x tp -- This is t2 (and t1 below) so that Cedille Core files are correctly checked by regular Cedille
-          -- tp''' = subst-type Γ t1 x (qualif-type Γ tp)
-          tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x qt tt tp' tp)
+          tp'' = subst Γ' t1 x tp
+          tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x qt tt tp' tp)
           err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
       spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: [ expected-type Γ tp' ]) err) ≫span
       spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x checking [] nothing) ≫span
@@ -583,8 +583,8 @@ check-termi (Rho pi op on t NoGuide t') nothing =
                 x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
                 qt = qualif-term Γ t
                 Γ' = ctxt-var-decl x Γ
-                s = rewrite-type tp Γ' (is-rho-plus op) (fst ns-err) qt t1 x 0
-                tp' = post-rewrite Γ' x qt t2 (fst s) in -- subst-type Γ t2 x (fst s) in
+                s = rewrite-type tp Γ' (is-rho-plus op) (fst ns-err) qt t2 x 0
+                tp' = post-rewrite Γ' x qt t1 (fst s) in
               spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
               check-termi-return-hnf Γ (Rho pi op on t NoGuide t') tp'
         cont (just tp') (just _) =

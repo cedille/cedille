@@ -133,9 +133,9 @@ synthTerm' c (Rho tm v tp tm') =
   synthTerm c tm' >>= \ btp ->
   case eqtp of
     (TpEq ltm rtm) ->
-      errIfNot (convType (ctxtInternalDef c v (Left (hnfTerm c ltm))) btp tp)
+      errIfNot (convType (ctxtInternalDef c v (Left (hnfTerm c rtm))) btp tp)
         "Inconvertible types after rewriting in a rho term with the equation" >>
-      Right (substType (ctxtInternalDef c v (Left rtm)) tp)
+      Right (substType (ctxtInternalDef c v (Left ltm)) tp)
     _ -> err "Could not synthesize an equation from the first term in a rho term"
 synthTerm' c (Phi tm tm' pt) =
   synthTerm c tm >>= \ eqtp ->
