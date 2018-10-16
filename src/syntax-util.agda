@@ -415,6 +415,19 @@ is-hole{ARG} (TermArg e? t) = is-hole t
 is-hole{ARG} (TypeArg tp) = is-hole tp
 is-hole{QUALIF} _ = ff
 
+record is-eq-tp! : Set where
+  constructor mk-eq-tp!
+  field
+    lhs rhs : term    -- left-hand side, right-hand side
+    pil pir : posinfo -- position left, position right
+
+is-eq-tp? : {ed : exprd} → ⟦ ed ⟧ → maybe is-eq-tp!
+is-eq-tp? {TYPE} (NoSpans t _) = is-eq-tp? t
+is-eq-tp? {TYPE} (TpParens _ t _) = is-eq-tp? t
+is-eq-tp? {TYPE} (TpEq pi t₁ t₂ pi') = just $ mk-eq-tp! t₁ t₂ pi pi'
+is-eq-tp?{_} _ = nothing
+
+
 eq-maybeErased : maybeErased → maybeErased → 𝔹
 eq-maybeErased Erased Erased = tt
 eq-maybeErased Erased NotErased = ff

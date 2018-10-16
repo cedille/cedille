@@ -453,23 +453,41 @@ check-termi (Epsilon pi lr m t) nothing =
             (just "There is no expected type, and the type we synthesized for the body of the ε-term is not an equation.")) ≫span
           spanMr nothing
 
-check-termi (Sigma pi t) mt = 
-  check-term t nothing ≫=span λ mt' → get-ctxt λ Γ → cont Γ mt (maybe-hnf Γ mt')
-  where cont : ctxt → (outer : maybe type) → maybe type → spanM (check-ret outer)
-        cont Γ mt nothing = 
-          spanM-add (Sigma-span pi t (maybe-to-checking mt) [] (just "We could not synthesize a type from the body of the ς-term")) ≫span
-          check-fail mt
-        cont Γ mt (just tp) with mt | hnf Γ unfold-head tp tt
-        ...| nothing | TpEq pi' t1 t2 pi'' =
-          spanM-add (Sigma-span pi t synthesizing [ type-data Γ (TpEq pi' t2 t1 pi'') ] nothing) ≫span
-          spanMr (just (TpEq pi' t2 t1 pi''))
-        ...| just tp' | TpEq pi' t1 t2 pi'' =
-          spanM-add ∘ (flip uncurry) (check-for-type-mismatch Γ "synthesized" tp' (TpEq pi' t2 t1 pi'')) $
-            λ tvs err → Sigma-span pi t checking tvs err
-        ...| mt' | tp' =
-          spanM-add (Sigma-span pi t (maybe-to-checking mt') (to-string-tag "the synthesized type" Γ tp' :: expected-type-if Γ mt')
-            (just ("The type we synthesized for the body of the ς-term is not an equation"))) ≫span
-          check-fail mt'
+check-termi (Sigma pi t) nothing = get-ctxt λ Γ →
+    check-term t nothing                 on-fail errSynthBody
+  ≫=spanm' λ tp → spanMr (is-eq-tp? tp) on-fail errSynthNonEq Γ tp
+  ≫=spanm' λ ret →
+    let mk-eq-tp! t₁ t₂ pi₁ pi₂ = ret in
+    let tp' = TpEq posinfo-gen t₂ t₁ posinfo-gen in
+    spanM-add (Sigma-span pi t synthesizing [ type-data Γ tp' ] nothing)
+  ≫span (spanMr ∘ just $ tp')
+
+  where
+  errSynthBody : spanM (maybe type)
+  errSynthBody =
+      spanM-add (Sigma-span pi t synthesizing []
+        (just "We could not synthesize a type from the body of the ς-term"))
+    ≫span check-fail nothing
+
+  errSynthNonEq : ctxt → type → spanM (maybe type)
+  errSynthNonEq Γ tp =
+    spanM-add (Sigma-span pi t synthesizing ([ to-string-tag "synthesized type" Γ tp ])
+      (just ("The type we synthesized for the body of the ς-term is not an equation")))
+    ≫span check-fail nothing
+
+check-termi (Sigma pi t) (just tp) = get-ctxt λ Γ →
+  let eq? : maybe is-eq-tp!
+      eq? = is-eq-tp? (hnf Γ (unfolding-elab unfold-head) tp tt)
+  in spanMr eq? on-fail errChkNotEq Γ
+  ≫=spanm' λ ret → let mk-eq-tp! lhs rhs lpi rpi = ret in
+    check-termi t (just $ TpEq posinfo-gen lhs rhs posinfo-gen)
+  ≫span spanM-add (Sigma-span pi t checking [ expected-type Γ (TpEq lpi lhs rhs rpi) ] nothing)
+
+  where
+  errChkNotEq : ctxt → spanM ⊤
+  errChkNotEq Γ =
+      spanM-add (Sigma-span pi t checking [ expected-type Γ tp ]
+                  (just "The expected type is not (convertible to) an equation"))
 
 check-termi (Phi pi t₁≃t₂ t₁ t₂ pi') (just tp) =
   get-ctxt λ Γ →
