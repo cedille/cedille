@@ -68,6 +68,10 @@ defDatatype-to-datatype : ctxt → defDatatype → datatype
 defDatatype-to-datatype Γ (Datatype _ _ x ps k dcs _) =
   Data x (params-to-parameters ps) (kind-to-indices Γ k) (dataConsts-to-ctrs dcs)
 
+tk-erased : tk → maybeErased → maybeErased
+tk-erased (Tkk _) me = Erased
+tk-erased (Tkt _) me = me
+
 indices-to-kind : indices → kind → kind
 indices-to-kind = flip $ foldr λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk}
 
@@ -88,7 +92,7 @@ indices-to-alls = flip $ foldr λ where
 
 parameters-to-alls : parameters → (body : type) → type
 parameters-to-alls = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Abs pi me pi' x atk
+  (Decl pi pi' me x atk pi'') → Abs pi (tk-erased atk me) pi' x atk
 
 indices-to-lams : indices → (body : term) → term
 indices-to-lams = flip $ foldr λ where
@@ -100,11 +104,11 @@ indices-to-lams' = flip $ foldr λ where
 
 parameters-to-lams : parameters → (body : term) → term
 parameters-to-lams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x (SomeClass atk)
+  (Decl pi pi' me x atk pi'') → Lam pi (tk-erased atk me) pi' x (SomeClass atk)
 
 parameters-to-lams' : parameters → (body : term) → term
 parameters-to-lams' = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x NoClass
+  (Decl pi pi' me x atk pi'') → Lam pi (tk-erased atk me) pi' x NoClass
 
 indices-to-apps : indices → (body : term) → term
 indices-to-apps = flip $ foldl λ where
