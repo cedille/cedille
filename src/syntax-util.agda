@@ -758,11 +758,6 @@ abs-expand-type (ParamsCons (Decl _ _ me x tk _) ps) t =
   Abs posinfo-gen (if tk-is-type tk then me else All) posinfo-gen x tk (abs-expand-type ps t)
 abs-expand-type ParamsNil t = t
 
-abs-expand-type' : params → type → type
-abs-expand-type' (ParamsCons (Decl _ _ me x tk _) ps) t =
-  Abs posinfo-gen (if tk-is-type tk then me else All) posinfo-gen x tk (abs-expand-type' ps t)
-abs-expand-type' ParamsNil t = t
-
 abs-expand-kind : params → kind → kind
 abs-expand-kind (ParamsCons (Decl _ _ me x tk _) ps) k =
   KndPi posinfo-gen posinfo-gen x tk (abs-expand-kind ps k)
@@ -902,3 +897,5 @@ optGuide-map (Guide pi x T) f = Guide pi x $ f x T
 optClass-map : optClass → (tk → tk) → optClass
 optClass-map NoClass f = NoClass
 optClass-map (SomeClass atk) f = SomeClass $ f atk
+
+

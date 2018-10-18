@@ -148,18 +148,18 @@ strAdd : string → strM
 strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
 
 strΓ' : defScope → var → strM → strM
-strΓ' ds v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) pe =
+strΓ' ds v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   let gl = ds iff globalScope
       v' = if gl then (mn # v) else v in
   m s n ts (mk-ctxt
       (fn , mn , ps , qualif-insert-params q v' (unqual-local v) (if gl then ps else ParamsNil))
-      syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs d) pe
+      syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs) pe
 
 strΓ : var → strM → strM
 strΓ x m s n ts Γ = m s n ts (ctxt-var-decl x Γ)
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
-ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os _) =
+ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os) =
   trie-lookup-else 0 ids
 
 make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
@@ -196,7 +196,7 @@ strVar v = strM-Γ λ Γ →
 
 -- Only necessary to unqual-local because of module parameters
 strBvar : var → (class body : strM) → strM
-strBvar v cm bm = strAdd (unqual-local v) ≫str cm ≫str strΓ v bm
+strBvar v cm bm = strAdd (unqual-local v) ≫str cm ≫str strΓ' localScope v bm
 
 strMetaVar : var → span-location → strM
 strMetaVar x (fn , pi , pi') s n ts Γ pe lr =

@@ -58,10 +58,10 @@ FixFmap ◂
 inFixM ◂
     ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fm : RecFunctor · F.
     ∀ indices : Indices. FixMF · F fm · (FixM · F fm) indices ➔ FixM · F fm indices =
-  Λ F. Λ fm. cast -(recIn -(FixFmap fm)).
+  Λ F. Λ fm. cast -(recIn -(FixFmap -fm)).
 outFixM ◂ ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fm : RecFunctor · F.
     ∀ indices : Indices. FixM · F fm indices ➔ FixMF · F fm · (FixM · F fm) indices =
-  Λ F. Λ fm. cast -(recOut -(FixFmap fm)).
+  Λ F. Λ fm. cast -(recOut -(FixFmap -fm)).
 
 inFix ◂
     ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fm : RecFunctor · F.

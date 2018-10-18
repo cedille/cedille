@@ -16,7 +16,7 @@ open import rename
 open import is-free
 open import toplevel-state options {id}
 open import spans options {id}
-
+open import datatype-functions
 
 uncurry' : ∀ {A B C D : Set} → (A → B → C → D) → (A × B × C) → D
 uncurry' f (a , b , c) = f a b c
@@ -28,55 +28,55 @@ uncurry''' : ∀ {A B C D E F : Set} → (A → B → C → D → E → F) → (
 uncurry''' f (a , b , c , d , e) = f a b c d e
 
 ctxt-term-decl' : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os d) =
+ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-    (trie-insert is x (term-decl T , fn , pi)) os d
+    (trie-insert is x (term-decl T , fn , pi)) os
 
 ctxt-type-decl' : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os d) =
+ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-    (trie-insert is x (type-decl k , fn , pi)) os d
+    (trie-insert is x (type-decl k , fn , pi)) os
 
 ctxt-tk-decl' : posinfo → var → tk → ctxt → ctxt
 ctxt-tk-decl' pi x (Tkt T) = ctxt-term-decl' pi x T
 ctxt-tk-decl' pi x (Tkk k) = ctxt-type-decl' pi x k
 
 ctxt-param-decl : var → var → tk → ctxt → ctxt
-ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os ds) =
+ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
   let d = case atk of λ {(Tkt T) → term-decl T; (Tkk k) → type-decl k} in
   mk-ctxt
   (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-  (trie-insert is x' (d , fn , posinfo-gen)) os ds
+  (trie-insert is x' (d , fn , posinfo-gen)) os
 
 ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
-ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) = mk-ctxt
+ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os d
+  (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os
 
 ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
-ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) = mk-ctxt
+ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os d
+  (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
 
 ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
-ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os d) =
+ctxt-let-term-def pi x t T (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-    (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os d
+    (trie-insert is x (term-def nothing OpacTrans t T , fn , pi)) os
 
 ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
-ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os d) =
+ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , ArgsNil)) ss
-    (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os d
+    (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os
 
 ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
-ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os d) = mk-ctxt
+ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
-  (trie-insert is x' (kind-def (append-params ps1 $ qualif-params Γ ps2) k' , fn , posinfo-gen)) os d
+  (trie-insert is x' (kind-def (append-params ps1 $ qualif-params Γ ps2) k' , fn , posinfo-gen)) os
   where
     k' = hnf Γ unfold-head k tt
 
 ctxt-lookup-term-var' : ctxt → var → maybe type
-ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) x =
+ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
   env-lookup Γ x ≫=maybe λ where
     (term-decl T , _) → just T
     (term-def ps _ _ T , _ , x') →
@@ -87,7 +87,7 @@ ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) x =
 -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
 -- TODO: Could variables be parameter-expanded multiple times?
 ctxt-lookup-type-var' : ctxt → var → maybe kind
-ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os d) x =
+ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
   env-lookup Γ x ≫=maybe λ where
     (type-decl k , _) → just k
     (type-def ps _ _ k , _ , x') →
@@ -157,152 +157,15 @@ mtpeq : term → term → type
 mbeta t t' = Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm t' posinfo-gen)
 mrho t x T t' = Rho posinfo-gen RhoPlain NoNums t (Guide posinfo-gen x T) t'
 mtpeq t1 t2 = TpEq posinfo-gen t1 t2 posinfo-gen
-
+{-
 subst-args-params : ctxt → args → params → kind → kind
 subst-args-params Γ (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k =
   subst-args-params Γ ys ps $ subst Γ t x k
 subst-args-params Γ (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k =
   subst-args-params Γ ys ps $ subst Γ t x k
 subst-args-params Γ ys ps k = k
+-}
 
-data indx : Set where
-  Index : var → tk → indx
-
-data ctr : Set where
-  Ctr : var → type → ctr
-
-parameters = 𝕃 decl
-indices = 𝕃 indx
-constructors = 𝕃 ctr
-
-data datatype : Set where
-  Data : var → parameters → indices → constructors → datatype
-
-params-to-parameters : params → parameters
-params-to-parameters ParamsNil = []
-params-to-parameters (ParamsCons p ps) = p :: params-to-parameters ps
-
-{-# TERMINATING #-}
-decompose-arrows : ctxt → type → parameters × type
-decompose-arrows Γ (Abs pi me pi' x atk T) =
-  rename-new x from Γ for λ x' →
-  case decompose-arrows (ctxt-var-decl x' Γ) (rename-var Γ x x' T) of λ where
-    (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
-decompose-arrows Γ (TpArrow T me T') =
-  rename-new "_" from Γ for λ x →
-  case decompose-arrows (ctxt-var-decl x Γ) T' of λ where
-    (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
-decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
-decompose-arrows Γ T = [] , T
-
-decompose-ctr-type : ctxt → type → type × parameters × 𝕃 tty
-decompose-ctr-type Γ T with decompose-arrows Γ T
-...| ps , Tᵣ with decompose-tpapps Tᵣ
-...| Tₕ , as = Tₕ , ps , as
-
-{-# TERMINATING #-}
-kind-to-indices : ctxt → kind → indices
-kind-to-indices Γ (KndArrow k k') =
-  rename "x" from Γ for λ x' →
-  Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl x' Γ) k'
-kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
-kind-to-indices Γ (KndPi pi pi' x atk k) =
-  rename x from Γ for λ x' →
-  Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) k
-kind-to-indices Γ (KndTpArrow T k) =
-  rename "x" from Γ for λ x' →
-  Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl x' Γ) k
-kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
-...| nothing = []
-...| just (ps , k) = kind-to-indices Γ $ subst-args-params Γ as ps k
-kind-to-indices Γ (Star pi) = []
-
-dataConsts-to-ctrs : dataConsts → constructors
-dataConsts-to-ctrs DataNull = []
-dataConsts-to-ctrs (DataCons (DataConst _ x T) cs) = Ctr x T :: dataConsts-to-ctrs cs
-
-defDatatype-to-datatype : ctxt → defDatatype → datatype
-defDatatype-to-datatype Γ (Datatype _ _ x ps k dcs _) =
-  Data x (params-to-parameters ps) (kind-to-indices Γ k) (dataConsts-to-ctrs dcs)
-
-indices-to-kind : indices → kind → kind
-indices-to-kind = flip $ foldr λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk}
-
-parameters-to-kind : parameters → kind → kind
-parameters-to-kind = flip $ foldr λ {(Decl pi pi' me x atk pi'') → KndPi pi pi' x atk}
-
-indices-to-tplams : indices → (body : type) → type
-indices-to-tplams = flip $ foldr λ where
-  (Index x atk) → TpLambda posinfo-gen posinfo-gen x atk
-
-parameters-to-tplams : parameters → (body : type) → type
-parameters-to-tplams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → TpLambda pi pi' x atk
-
-indices-to-alls : indices → (body : type) → type
-indices-to-alls = flip $ foldr λ where
-  (Index x atk) → Abs posinfo-gen Erased posinfo-gen x atk
-
-parameters-to-alls : parameters → (body : type) → type
-parameters-to-alls = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Abs pi me pi' x atk
-
-indices-to-lams : indices → (body : term) → term
-indices-to-lams = flip $ foldr λ where
-  (Index x atk) → Lam posinfo-gen Erased posinfo-gen x (SomeClass atk)
-
-indices-to-lams' : indices → (body : term) → term
-indices-to-lams' = flip $ foldr λ where
-  (Index x atk) → Lam posinfo-gen Erased posinfo-gen x NoClass
-
-parameters-to-lams : parameters → (body : term) → term
-parameters-to-lams = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x (SomeClass atk)
-
-parameters-to-lams' : parameters → (body : term) → term
-parameters-to-lams' = flip $ foldr λ where
-  (Decl pi pi' me x atk pi'') → Lam pi me pi' x NoClass
-
-indices-to-apps : indices → (body : term) → term
-indices-to-apps = flip $ foldl λ where
-  (Index x (Tkt T)) t → App t Erased (mvar x)
-  (Index x (Tkk k)) t → AppTp t (mtpvar x)
-
-parameters-to-apps : parameters → (body : term) → term
-parameters-to-apps = flip $ foldl λ where
-  (Decl pi pi' me x (Tkt T) pi'') t → App t me (mvar x)
-  (Decl pi pi' me x (Tkk k) pi'') t → AppTp t (mtpvar x)
-
-indices-to-tpapps : indices → (body : type) → type
-indices-to-tpapps = flip $ foldl λ where
-  (Index x (Tkt T)) T' → TpAppt T' (mvar x)
-  (Index x (Tkk k)) T  → TpApp  T  (mtpvar x)
-
-parameters-to-tpapps : parameters → (body : type) → type
-parameters-to-tpapps = flip $ foldl λ where
-  (Decl pi pi' me x (Tkt T) pi'') T' → TpAppt T' (mvar x)
-  (Decl pi pi' me x (Tkk k) pi'') T  → TpApp  T  (mtpvar x)
-
-constructors-to-lams' : constructors → (body : term) → term
-constructors-to-lams' = flip $ foldr λ where
-  (Ctr x T) → Lam posinfo-gen NotErased posinfo-gen x NoClass
-
-constructors-to-lams : ctxt → var → parameters → constructors → (body : term) → term
-constructors-to-lams Γ x ps cs t = foldr
-  (λ {(Ctr y T) f Γ → Lam posinfo-gen NotErased posinfo-gen y
-    (SomeClass $ Tkt $ subst Γ (parameters-to-tpapps ps $ mtpvar y) y T)
-    $ f $ ctxt-var-decl y Γ})
-  (λ Γ → t) cs Γ
-
-add-indices-to-ctxt : indices → ctxt → ctxt
-add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
-
-add-parameters-to-ctxt : parameters → ctxt → ctxt
-add-parameters-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''}
-
-add-constructors-to-ctxt : constructors → ctxt → ctxt
-add-constructors-to-ctxt = flip $ foldr λ where
-  (Ctr x T) → ctxt-var-decl x
 
 module reindexing (Γ : ctxt) (isₒ : indices) where
 

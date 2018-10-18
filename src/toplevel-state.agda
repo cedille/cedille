@@ -161,8 +161,8 @@ ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defPa
 ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
-ctxt-info-to-string (const-def _) = "const-def"
-ctxt-info-to-string (datatype-def _ _) = "datatype-def"
+ctxt-info-to-string (const-def _ _) = "const-def"
+ctxt-info-to-string (datatype-def _ _ _ _) = "datatype-def"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
@@ -183,7 +183,7 @@ mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os d) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -229,6 +229,7 @@ scope-file' : scope-t ⊤
 scope-cmds : scope-t cmds
 scope-cmd : scope-t cmd
 scope-var : scope-t var
+scope-ctrs : scope-t dataConsts
 
 scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
 ...| just e = ts , just e
@@ -278,12 +279,15 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ _ _) _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs _) _) s = scope-var fn mn oa ps as v s ≫=scope scope-ctrs fn mn oa ps as cs
+
+scope-ctrs fn mn oa ps as DataNull s = s , nothing
+scope-ctrs fn mn oa ps as (DataCons (DataConst pi x T) ds) s = scope-var fn mn oa ps as x s ≫=scope scope-ctrs fn mn oa ps as ds
 
 
 scope-var _ mn oa ps as v s with import-as v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
+...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os) =
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os) ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
     (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

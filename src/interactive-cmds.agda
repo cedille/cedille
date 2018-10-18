@@ -20,6 +20,7 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import datatype-functions
 open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
@@ -144,7 +145,7 @@ private
       where import list-merge-sort
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
-  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ _) pi =
+  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))

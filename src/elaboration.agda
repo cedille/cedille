@@ -24,6 +24,7 @@ open import toplevel-state options {IO}
 open import to-string options'
 open import rename
 open import rewriting
+open import datatype-functions
 open import elaboration-helpers options
 open import templates
 import spans options' {id} as id-spans

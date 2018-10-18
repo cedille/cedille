@@ -65,7 +65,7 @@ spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 print-file-id-table : ctxt → 𝕃 tagged-val
-print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os _) =
+print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
   h [] id-fns where
   h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
   h ts [] = ts
@@ -283,7 +283,7 @@ location-data : location → tagged-val
 location-data (file-name , pi) = "location" , [[ file-name ]] ⊹⊹ [[ " - " ]] ⊹⊹ [[ pi ]] , []
 
 var-location-data : ctxt → var → tagged-val
-var-location-data Γ @ (mk-ctxt _ _ i _ _) x =
+var-location-data Γ @ (mk-ctxt _ _ i _) x =
   location-data (maybe-else ("missing" , "missing") snd
     (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
 {-
@@ -677,6 +677,9 @@ DefType-span Γ pi x checked mk tp pi' tvs =
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
 DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x Γ (Var pi "□") ]) nothing
 
+DefDatatype-span : ctxt → posinfo → var → kind → posinfo → span
+DefDatatype-span Γ pi x k pi' = mk-span "Datatype definition" pi pi' (binder-data-const :: [ summary-data x Γ k ]) nothing
+
 {-unchecked-term-span : term → span
 unchecked-term-span t = mk-span "Unchecked term" (term-start-pos t) (term-end-pos t)
                            (ll-data-term :: not-for-navigation :: [ explain "This term has not been type-checked."]) nothing-}
@@ -784,6 +787,9 @@ Module-span pi pi' = mk-span "Module declaration" pi pi' [ not-for-navigation ] 
 Module-header-span : posinfo → posinfo → span
 Module-header-span pi pi' = mk-span "Module header" pi pi' [ not-for-navigation ] nothing
 
+DefDatatype-header-span : posinfo → span
+DefDatatype-header-span pi = mk-span "Data" pi (posinfo-plus-str pi "data") [ not-for-navigation ] nothing
+
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → err-m → span
 Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
 
@@ -811,17 +817,5 @@ Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data
 
 TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
-
-Mu'-span : term → 𝕃 tagged-val → err-m → span
-Mu'-span t tvs = mk-span "Mu' cases" (term-start-pos t) (term-end-pos t) tvs
-
-Mu-span : term → 𝕃 tagged-val → err-m → span
-Mu-span t tvs = mk-span "Mu fixpoint" (term-start-pos t) (term-end-pos t) tvs
-
-DefDatatype-span : posinfo → posinfo → var → posinfo → span
-DefDatatype-span pi _ x pi' = mk-span "Datatype definition" pi pi' [] nothing
-
-DefDataConst-span : posinfo → var → span
-DefDataConst-span pi c = mk-span "Datatype constructor" pi (posinfo-plus-str pi c) [] nothing
 
 

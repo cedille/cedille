@@ -42,7 +42,8 @@ AGDASRC = \
 	cedille-options.agda \
 	elaboration.agda \
 	elaboration-helpers.agda \
-	monad-instances.agda
+	monad-instances.agda \
+	datatype-functions.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

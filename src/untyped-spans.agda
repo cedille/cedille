@@ -45,8 +45,8 @@ untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ �
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi x t ot pi' cs pi'') = spanM-add (Mu-span t [] nothing) 
-untyped-term-spans (Mu' pi t ot pi' cs pi'')  = spanM-add (Mu-span t [] nothing) 
+untyped-term-spans (Mu pi x t ot pi' cs pi'') = spanMok
+untyped-term-spans (Mu' pi t ot pi' cs pi'')  = spanMok 
 
 untyped-type-spans (Abs pi b pi' x atk T) = untyped-tk-spans atk ≫span spanM-add (TpQuant-span (me-unerased b) pi x atk T untyped [] nothing) ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (untyped-type-spans T)
 untyped-type-spans (Iota pi pi' x T T') = untyped-type-spans T ≫span spanM-add (Iota-span pi T' untyped [] nothing) ≫span untyped-var-spans pi' x TpVar-span (untyped-type-spans T')
