@@ -5,7 +5,6 @@
 *.dyn_hi
 MAlonzo
 cedille
-ial
 libraries
 src/CedilleCommentsLexer.hs
 src/CedilleLexer.hs
