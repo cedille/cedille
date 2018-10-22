@@ -77,7 +77,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: cedille # elisp
+all: cedille elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
@@ -120,12 +120,8 @@ cedille-old:	$(SRC) Makefile libraries
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda
 		mv $(SRCDIR)/main-old cedille
 
-# compilation of elisp not working
-#
-#elisp: $(SE_MODE:%.el=%.elc) $(ELISP:%.el=%.elc)
-#
-#%.elc: %.el
-#	emacs --batch -L se-mode -L cedille-mode -f batch-byte-compile $<
+elisp:
+	emacs --batch --quick -L . -L se-mode -L cedille-mode --eval '(byte-recompile-directory "." 0)'
 
 cedille-prof:	$(SRC) Makefile
 		$(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c $(SRCDIR)/main.agda
@@ -175,14 +171,7 @@ cedille-mac-pkg: cedille
 	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
 
 clean:
-	rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean
-	rm -rf cedille-deb-pkg
-	rm -f src/*.hi src/*.o
-
-realclean: clean
-	rm -rf ial/*
-	rm -f $(TEMPLATESDIR)/TemplatesCompiler
-
+	git clean -Xfd # only remove .gitignore files and directories
 
 #lines:
 #	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)
