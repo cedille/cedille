@@ -31,6 +31,15 @@ if [ -z "$(which cabal)" ]; then
     fi
 fi
 
+if [ "$(uname -s)" = "Darwin" ]; then
+    cat <<EOF
+Do you see this error on OSX?
+> clang: error: unknown argument: '-no-pie'
+Try setting "C compiler supports -no-pie" to "NO":
+> https://stackoverflow.com/questions/50386787/cabal-install-gcc-failed-in-phase-c-compiler/50419101#50419101
+EOF
+fi
+
 cabal_install alex
 cabal_install happy
 cabal_install cpphs
