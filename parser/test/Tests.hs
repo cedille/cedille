@@ -94,7 +94,7 @@ test_parser_cmd_str = unlines [
 --  "import ChurchNat ." ,                         
 --  "cNat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X . " ,
 --  "cZ ◂ cNat = Λ X . λ f . λ a . a.1  . " ,
-    "cS ◂ X ➔ X  = λ n . Λ X . λ f . λ a . f (n · X f a) . "  ,
+    "cS : X ➔ X  = λ n . Λ X . λ f . λ a . f (n · X f a) . "  ,
     " "
   ]
 
@@ -124,7 +124,7 @@ test_parser_cnat_str = unlines [
   ""                                           ,
   "cZ ◂ cNat = Λ X . λ f . λ a . a . "         ,
   ""                                           ,
-  "cS ◂ cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) . ",
+  "cS : cNat ➔ cNat = λ n . Λ X . λ f . λ a . f (n · X f a) . ",
   "{- Multi -   ",
   "    Lines    ",
   "    Comments ",
