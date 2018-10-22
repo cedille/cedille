@@ -1034,10 +1034,16 @@ check-spine-locality Γ Xs tp max locl =
 -- main definition
 --------------------------------------------------
 
-data check-term-app-ret : Set where
-  check-term-app-return : (Xs : meta-vars) (cod : decortype) (arg-mode : checking-mode) → (tvs : 𝕃 tagged-val) → check-term-app-ret
+record check-app-data : Set where
+  constructor mk-check-app-data
+  field
+    Xs   : meta-vars
+    cod  : decortype
+    mode : checking-mode
+    err  : err-m
+    tvs  : 𝕃 tagged-val
 
-check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → spanM (maybe check-term-app-ret)
+check-term-app : (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ : term) → is-tmabsd → 𝔹 → spanM (maybe check-app-data)
 
 check-term-spine t'@(App t₁ e? t₂) pt max =
   -- 1) type the applicand, extending the prototype
@@ -1059,14 +1065,14 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
   -- 4) type the application, filling in missing type arguments with meta-variables
   ≫=spanm' λ _ → check-term-app Xs Ys t₁ t₂ arr (islocl locl)
   -- 5) check no unsolved mvars, if the application is maximal (or a locality)
-  ≫=spanm' λ {(check-term-app-return Xs' rtp' arg-mode tvs) →
+  ≫=spanm' λ ret → let mk-check-app-data Xs' rtp' arg-mode err tvs = ret in
     let rtp = decortype-to-type rtp' in
     checkLocality Γ Xs' htp rtp max (pred locl) tvs
   ≫=spanm' uncurry₂ λ Xs'' locl' is-loc →
   -- 6) generate span and finish
-    genAppSpan Γ Xs Xs' Ys pt rtp is-loc tvs
+    genAppSpan Γ Xs Xs' Ys pt rtp is-loc err tvs
   ≫span check-term-spine-return Γ Xs'' rtp' locl'
-  }
+  -- }
 
   where
   mode = prototype-to-checking pt
@@ -1101,13 +1107,14 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
         t₁ t₂ htp Xs (islocl locl) mode rtp tvs
     ≫=spanm' (spanMr ∘ just)
 
-  genAppSpan : ctxt → (Xs Xs' : meta-vars) → (Ys : 𝕃 meta-var) → prototype → type → (is-locl : 𝔹) → 𝕃 tagged-val → spanM ⊤
-  genAppSpan Γ Xs Xs' Ys pt rtp is-loc tvs =
+  genAppSpan : ctxt → (Xs Xs' : meta-vars) → (Ys : 𝕃 meta-var) → prototype → type → (is-locl : 𝔹) → err-m → 𝕃 tagged-val → spanM ⊤
+  genAppSpan Γ Xs Xs' Ys pt rtp is-loc err tvs =
     spanM-add $ (flip uncurry)
       (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesized" meta-vars-empty rtp)
-      λ tvs' → App-span is-loc t₁ t₂ mode
+      λ tvs' err' → App-span is-loc t₁ t₂ mode
         (tvs' ++ meta-vars-intro-data Γ (meta-vars-from-list Ys)
           ++ meta-vars-sol-data Γ Xs Xs' ++ tvs)
+        (err' maybe-or err)
 
 check-term-spine t'@(AppTp t tp) pt max = get-ctxt λ Γ →
   -- 1) type the applicand
@@ -1201,27 +1208,28 @@ check-term-app Xs Zs t₁ t₂ (mk-tmabsd dt e? x dom occurs cod) is-locl =
   genAppRetTypeHole : ctxt → spanM decortype
   genAppRetTypeHole Γ = if occurs then subst-decortype Γ (Hole posinfo-gen) x cod else spanMr cod
 
-  checkArgWithMetas : meta-vars → type → decortype → spanM $ (maybe check-term-app-ret ∨ type)
+  checkArgWithMetas : meta-vars → type → decortype → spanM $ (maybe check-app-data ∨ type)
   checkArgWithMetas Xs' tp rdt = get-ctxt λ Γ →
     -- check arg against fully known type
     if ~ meta-vars-are-free-in-type Xs' dom
       then check-term t₂ (just dom)
-          ≫span (spanMr ∘' inj₁ ∘' just $ check-term-app-return Xs' rdt mode [])
+          ≫span (spanMr ∘' inj₁ ∘' just $ mk-check-app-data Xs' rdt mode nothing [])
     -- synthesize type for the argument
       else check-term t₂ nothing
      -- if that doesn't work, press on -- feeding a hole for the dependency, if needed
           on-fail (genAppRetTypeHole Γ
                   ≫=span λ rdt-hole → spanMr ∘' inj₁ ∘' just $
-                    check-term-app-return Xs' rdt-hole mode [ arg-exp-type Γ dom ])
+                    mk-check-app-data Xs' rdt-hole mode
+                      (just "Argument failed to synthesize a type") [ arg-exp-type Γ dom ])
         ≫=spanm' λ tp → spanMr ∘' inj₂ $ tp
 
-  handleMatchResult : meta-vars → (atp tp : type) → decortype → match-error-t meta-vars → spanM ∘ maybe $ check-term-app-ret
+  handleMatchResult : meta-vars → (atp tp : type) → decortype → match-error-t meta-vars → spanM ∘ maybe $ check-app-data
   handleMatchResult Xs' atp tp rdt (match-error (msg , tvs)) =
     check-term-app-tm-errors.unmatchable
       t₁ t₂ tp Xs' is-locl mode dom atp msg tvs
   handleMatchResult Xs' atp tp rdt (match-ok Xs) = get-ctxt λ Γ →
       meta-vars-subst-decortype Γ Xs rdt
-    ≫=span λ rdt → spanMr ∘ just $ check-term-app-return Xs rdt mode []
+    ≫=span λ rdt → spanMr ∘ just $ mk-check-app-data Xs rdt mode nothing []
 
 match-unfolding-next : match-unfolding-state → match-unfolding-state
 match-unfolding-next match-unfolding-both = match-unfolding-both
