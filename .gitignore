@@ -11,6 +11,7 @@ src/CedilleLexer.hs
 src/CedilleOptionsLexer.hs
 src/CedilleOptionsParser.hs
 src/CedilleParser.hs
+src/templates/TemplatesCompiler
 *.cedille
 *.racket
 *.*~
