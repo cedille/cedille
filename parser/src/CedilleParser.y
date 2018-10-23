@@ -59,17 +59,17 @@ import System.Environment
   '>'        { Token $$ (TSym ">") }
   '+'        { Token $$ (TSym "+") }
   '_'        { Token _  (TSym "_") }
-  '.'        { Token $$ (TSym ".") }
-  '('        { Token $$ (TSym "(") }
-  ')'        { Token $$ (TSym ")") }
-  '['        { Token $$ (TSym "[") }
-  ']'        { Token $$ (TSym "]") }
-  ','        { Token $$ (TSym ",") }  
-  '{'        { Token $$ (TSym "{") }
-  '}'        { Token $$ (TSym "}") }
-  ':'        { Token $$ (TSym ":") }
-  'Π'        { Token $$ (TSym "Π") }
-  '∀'        { Token $$ (TSym "∀") }
+  '.'        { Token $$ (TSym ".") }			
+  '('        { Token $$ (TSym "(") }			
+  ')'        { Token $$ (TSym ")") }			
+  '['        { Token $$ (TSym "[") }			
+  ']'        { Token $$ (TSym "]") }			
+  ','        { Token $$ (TSym ",") }			
+  '{'        { Token $$ (TSym "{") }			
+  '}'        { Token $$ (TSym "}") }			
+  ':'        { Token $$ (TSym ":") }			
+  'Π'        { Token $$ (TSym "Π") }			
+  '∀'        { Token $$ (TSym "∀") }			
   'λ'        { Token $$ (TSym "λ") }
   'Λ'        { Token $$ (TSym "Λ") }  
   'ι'        { Token $$ (TSym "ι") }
@@ -129,6 +129,7 @@ Cmd :: { Cmd }
 MaybeCheckType :: { OptType }
                :                        { NoType      }
                | '◂' Type               { SomeType $2 }
+               | ':' Type               { SomeType $2 }
 
 MParams :: { Params }
        :                                { ParamsNil        }
@@ -152,6 +153,7 @@ DataConsts :: { DataConsts }
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
               | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
+              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
 
 MDecl :: { Decl }
      : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }

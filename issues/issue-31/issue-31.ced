@@ -1,0 +1,36 @@
+module issue-31.
+
+{-
+  The rewrite primitive ρ works two different ways, depending on whether the
+  expression formed by ρ eq - t is having its type synthessized or checked.
+
+  In type checking mode, we rewrite the expected type T using the type of the
+  given equation eq then check the body t has the rewritten type
+
+  In type synthesis mode, we synthesize a type T from the body t then
+  rewrite this by the type of the equation eq, and synthesize this result
+  type. Most notably, if t does not synthesize its type, then the whole
+  expression will not typecheck.
+-}
+
+nosigma-chk ◂ ∀ A: ★. ∀ a: A. ∀ b: A. {a ≃ b} ➔ {a ≃ b}
+  = Λ A. Λ a. Λ b. λ eq. ρ eq - β.
+
+{-                       ^------^
+  Expected type: {a ≃ b}
+  Rewritten to:  {b ≃ b}  (using `eq`)
+  Check body:    β
+
+Currently ς does not pass down the checked type, meaning that even though
+the above succeeds, below fails
+
+-}
+
+sigma-chk ◂ ∀ A: ★. ∀ a: A. ∀ b: A. {a ≃ b} ➔ {a ≃ b}
+  = Λ A. Λ a. Λ b. λ eq.    ς (ρ eq - β).
+
+{-                            ^-------^
+                            ^-|--------^
+   Expected type { a ≃ b} __| |
+   Fails to synthesize _______| (should check against {b ≃ a})
+-}
