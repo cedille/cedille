@@ -40,7 +40,7 @@ Try setting "C compiler supports -no-pie" to "NO":
 EOF
 fi
 
-cabal_install alex
-cabal_install happy
-cabal_install cpphs
-cabal_install Agda agda
+cabal_install 'alex == 3.2.4' alex
+cabal_install 'happy == 1.19.9' happy
+cabal_install 'cpphs == 1.20.8' cpphs
+cabal_install 'Agda == 2.5.4.*' agda
