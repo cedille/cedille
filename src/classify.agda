@@ -1071,6 +1071,11 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
   where
   mode = prototype-to-checking pt
 
+  expected-type-if-pt : ctxt → prototype → 𝕃 tagged-val
+  expected-type-if-pt Γ pt = case pt of λ where
+    (proto-maybe mt) → maybe-else [] (λ tp → [ expected-type Γ tp ]) mt
+    (proto-arrow _ _) → []
+
   span-loc : (fn : string) → span-location
   span-loc fn = fn , term-start-pos t₁ , term-end-pos t₂
 
@@ -1078,8 +1083,8 @@ check-term-spine t'@(App t₁ e? t₂) pt max =
   islocl locl = is-locale max (just $ pred locl)
 
   handleApplicandTypeError : spanM ∘ maybe $ _
-  handleApplicandTypeError =
-      spanM-add (App-span max t₁ t₂ mode [] nothing)
+  handleApplicandTypeError = get-ctxt λ Γ →
+      spanM-add (App-span max t₁ t₂ mode (expected-type-if-pt Γ pt) nothing)
     ≫span check-term t₂ nothing
     ≫=span (const $ spanMr nothing)
 
