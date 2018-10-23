@@ -1,0 +1,20 @@
+module issue-38.
+
+import nat.
+
+-- Because we use a variant of local type inference in Cedille, expected type
+-- information that contains meta-variables is not passed down into arguments of
+-- functions. However, this can cause some counter-intuitive behavior in error
+-- reporting: namely, that when a user write an application with missing type
+-- arguments and a a hole for a (term) argument, re-checks the file with M-s,
+-- then uses R to jump to the hole they just wrote -- they aren't presented with
+-- any useful information at that site!
+
+add-zero-r : Π m: Nat. { add m Z ≃ m }
+--       v----------v   <-- Expected arg type info here
+= λ m. NatInd m (●) ● .
+--                ^-^   <-- No expected type info at arg
+
+-- For now the simplest thing to do is: using the same detection as as for
+-- Issue #26 to generate an additional error span at the spine with the
+-- extra contextual info, so that the user jumps to this error first.
