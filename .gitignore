@@ -5,13 +5,13 @@
 *.dyn_hi
 MAlonzo
 cedille
-ial
 libraries
 src/CedilleCommentsLexer.hs
 src/CedilleLexer.hs
 src/CedilleOptionsLexer.hs
 src/CedilleOptionsParser.hs
 src/CedilleParser.hs
+src/templates/TemplatesCompiler
 *.cedille
 *.racket
 *.*~
@@ -23,3 +23,5 @@ cedille-mac-pkg
 *.bbl
 *.blg
 *.log
+*.elc
+/core/CedilleCore

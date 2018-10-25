@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+
+# script/bootstrap: Resolve all dependencies that the application requires to run.
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+cabal_install() {
+    # Check if a package is installed, install with cabal if not.
+
+    PACKAGE=$1
+    EXE=${2:-"$PACKAGE"}
+    if ! ([ -x "$(command -v $EXE)" ] ||
+	      [ -n "$(cabal exec $EXE -- --version 2>/dev/null)" ]); then
+	echo "Installing $PACKAGE"
+	cabal install "$PACKAGE"
+    fi
+}
+
+if [ -z "$(which cabal)" ]; then
+    echo Installing cabal
+
+    if [ "$(uname -s)" = "Darwin" ]; then
+	brew install cabal-install
+    elif [ -x "$(command -v apt-get)" ]; then
+	sudo apt-get install cabal-install
+    else
+	echo Could not install cabal
+	exit 1
+    fi
+fi
+
+if [ "$(uname -s)" = "Darwin" ]; then
+    cat <<EOF
+Do you see this error on OSX?
+> clang: error: unknown argument: '-no-pie'
+Try setting "C compiler supports -no-pie" to "NO":
+> https://stackoverflow.com/questions/50386787/cabal-install-gcc-failed-in-phase-c-compiler/50419101#50419101
+EOF
+fi
+
+cabal_install 'alex == 3.2.4' alex
+cabal_install 'happy == 1.19.9' happy
+cabal_install 'cpphs == 1.20.8' cpphs
+cabal_install 'Agda == 2.5.4.*' agda
