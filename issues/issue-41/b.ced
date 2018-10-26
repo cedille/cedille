@@ -1,0 +1,17 @@
+module b(I : ★).
+
+{- I get this type error message for the import below:
+
+        name:	Imported module
+       error:	A term argument was supplied for type parameter 10@I
+  parameters:	(I : ★)
+the argument:	I
+
+This is a correct error report, but it includes the strange text "10@I".  Having this text in the error
+is the bug I am reporting.
+
+-}
+
+
+
+import a I.
