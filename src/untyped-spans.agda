@@ -48,7 +48,7 @@ untyped-term-spans (Var pi x) = get-ctxt λ Γ →
 untyped-term-spans (Mu pi x t ot pi' cs pi'') = spanMok
 untyped-term-spans (Mu' pi t ot pi' cs pi'')  = spanMok 
 
-untyped-type-spans (Abs pi b pi' x atk T) = untyped-tk-spans atk ≫span spanM-add (TpQuant-span (me-unerased b) pi x atk T untyped [] nothing) ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (untyped-type-spans T)
+untyped-type-spans (Abs pi me pi' x atk T) = untyped-tk-spans atk ≫span spanM-add (TpQuant-span (~ me) pi x atk T untyped [] nothing) ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (untyped-type-spans T)
 untyped-type-spans (Iota pi pi' x T T') = untyped-type-spans T ≫span spanM-add (Iota-span pi T' untyped [] nothing) ≫span untyped-var-spans pi' x TpVar-span (untyped-type-spans T')
 untyped-type-spans (Lft pi pi' x t lT) = untyped-liftingType-spans lT ≫span spanM-add (Lft-span pi x t untyped [] nothing) ≫span untyped-var-spans pi' x Var-span (untyped-term-spans t)
 untyped-type-spans (NoSpans T pi) = spanMok
@@ -68,7 +68,7 @@ untyped-kind-spans (KndParens pi k pi') = untyped-kind-spans k
 untyped-kind-spans (KndPi pi pi' x atk k) = untyped-tk-spans atk ≫span spanM-add (KndPi-span pi x atk k untyped nothing) ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (untyped-kind-spans k)
 untyped-kind-spans (KndTpArrow T k) = untyped-type-spans T ≫span untyped-kind-spans k ≫span spanM-add (KndTpArrow-span T k untyped nothing)
 untyped-kind-spans (KndVar pi x as) = get-ctxt λ Γ →
-  spanM-add (KndVar-span Γ (pi , x) (kvar-end-pos pi x as) ParamsNil untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
+  spanM-add (KndVar-span Γ (pi , x) (kvar-end-pos pi x as) [] untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
 untyped-kind-spans (Star pi) = spanM-add (Star-span pi untyped nothing)
 
 untyped-liftingType-spans lT = spanMok -- Unimplemented
@@ -85,8 +85,8 @@ untyped-optType-spans (SomeType T) = untyped-type-spans T
 untyped-optGuide-spans NoGuide = spanMok
 untyped-optGuide-spans (Guide pi x T) = untyped-var-spans pi x Var-span (untyped-type-spans T)
 
-untyped-lterms-spans (LtermsNil pi) = spanMok
-untyped-lterms-spans (LtermsCons me t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls
+untyped-lterms-spans [] = spanMok
+untyped-lterms-spans ((Lterm me t) :: ls) = untyped-term-spans t ≫span untyped-lterms-spans ls
 
 untyped-optClass-spans NoClass = spanMok
 untyped-optClass-spans (SomeClass atk) = untyped-tk-spans atk

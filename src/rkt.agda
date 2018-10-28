@@ -72,7 +72,7 @@ rkt-require-file fp = [[ "(require (file \"" ]] ⊹⊹ [[ fp ]] ⊹⊹ [[ "\"))"
 
 -- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → rope
-rkt-from-sym-info n (term-def (just (ParamsCons (Decl _ _ _ v _ _) _)) _ tm ty , _)
+rkt-from-sym-info n (term-def (just ((Decl _ _ _ v _ _) :: _)) _ tm ty , _)
   -- TODO not tested
   = rkt-dbg "term-def: paramsCons:" (rkt-define n tm)
 rkt-from-sym-info n (term-def (just ParamsNil) _ tm ty , _)

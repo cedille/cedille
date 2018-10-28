@@ -152,7 +152,7 @@ strΓ' ds v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) pe =
   let gl = ds iff globalScope
       v' = if gl then (mn # v) else v in
   m s n ts (mk-ctxt
-      (fn , mn , ps , qualif-insert-params q v' (unqual-local v) (if gl then ps else ParamsNil))
+      (fn , mn , ps , qualif-insert-params q v' (unqual-local v) (if gl then ps else []))
       syms (trie-insert i v' (var-decl , ("missing" , "missing"))) symb-occs) pe
 
 strΓ : var → strM → strM
@@ -212,7 +212,7 @@ type-to-stringh : type → strM
 kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
-constructors-to-string : dataConsts → strM
+ctrs-to-string : ctrs → strM
 
 params-to-string : params → strM
 params-to-string' : strM → params → strM
@@ -238,7 +238,7 @@ nums-to-string : nums → strM
 theta-to-string : theta → strM
 arrowtype-to-string : maybeErased → string
 maybeMinus-to-string : maybeMinus → string
-optPlus-to-string : optPlus → string
+optPlus-to-string : rhoHnf → string
 optPublic-to-string : optPublic → string
 optAs-to-string : optAs → strM
 
@@ -266,13 +266,11 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
-constructors-to-string DataNull                        = strEmpty
-constructors-to-string (DataCons (DataConst _ x t) ds) =
+ctrs-to-string [] = strEmpty
+ctrs-to-string ((Ctr _ x T) :: cs) =
   strAdd "  | "  ≫str
-  strAdd x      ≫str 
-  strAdd " : "  ≫str
-  type-to-stringh  t ≫str
-  constructors-to-string ds
+  strAdd x ≫str strAdd " : " ≫str to-stringh T ≫str
+  ctrs-to-string cs
   
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
@@ -338,12 +336,11 @@ optType-to-string NoType = strEmpty
 optType-to-string (SomeType T) = strAdd " " ≫str to-stringh T
 maybeCheckType-to-string NoType = strEmpty
 maybeCheckType-to-string (SomeType T) = strAdd " ◂ " ≫str to-stringh T
-lterms-to-string (LtermsCons m t ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
-lterms-to-string (LtermsNil _) = strEmpty
+lterms-to-string ((Lterm m t) :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
+lterms-to-string [] = strEmpty
 arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
 arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
-args-to-string (ArgsCons t ts) = strAdd " " ≫str arg-to-string t ≫str args-to-string ts
-args-to-string ArgsNil = strEmpty
+args-to-string = foldr' strEmpty λ t x → strAdd " " ≫str arg-to-string t ≫str x
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
 opacity-to-string OpacOpaque = "opaque "
@@ -376,12 +373,10 @@ optAs-to-string NoOptAs = strEmpty
 optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
 
 braceL : maybeErased → string
-braceL Erased = "{"
-braceL NotErased = "("
+braceL me = if me then "{" else "("
 
 braceR : maybeErased → string
-braceR Erased = "}"
-braceR NotErased = ")"
+braceR me = if me then "}" else ")"
 
 param-to-string : decl → strM → strM
 param-to-string (Decl _ pi me v atk _) f =
@@ -391,13 +386,13 @@ param-to-string (Decl _ pi me v atk _) f =
   tk-to-stringh atk ≫str
   strAdd (braceR me) ≫str
   strΓ' localScope v f
-params-to-string' f ParamsNil = f
-params-to-string' f (ParamsCons p ParamsNil) = param-to-string p f
-params-to-string' f (ParamsCons p ps) = param-to-string p (strAdd " " ≫str params-to-string' f ps)
+params-to-string' f [] = f
+params-to-string' f (p :: []) = param-to-string p f
+params-to-string' f (p :: ps) = param-to-string p (strAdd " " ≫str params-to-string' f ps)
 
 params-to-string = params-to-string' strEmpty
 
-file-to-string (File _ is _ _ mn ps cs _) =
+file-to-string (File is _ _ mn ps cs _) =
    cmds-to-string (imps-to-cmds is)
   (strAdd "module " ≫str
    strAdd mn ≫str
@@ -406,8 +401,8 @@ file-to-string (File _ is _ _ mn ps cs _) =
   (strAdd "." ≫str strAdd "\n" ≫str
    cmds-to-string cs strEmpty) ps)
 
-cmds-to-string CmdsStart f = f
-cmds-to-string (CmdsNext c cs) f =
+cmds-to-string [] f = f
+cmds-to-string (c :: cs) f =
    strAdd "\n" ≫str
    cmd-to-string c
   (strAdd "\n" ≫str
@@ -440,7 +435,7 @@ cmd-to-string (DefKind pi x ps k _) f =
   strM-Γ λ Γ →
   let ps' = ctxt-get-current-params Γ in
   strAdd x ≫str
-  params-to-string (append-params ps' ps) ≫str
+  params-to-string (ps' ++ ps) ≫str
   strAdd " = " ≫str
   to-stringh k ≫str
   strAdd " ." ≫str
@@ -453,7 +448,7 @@ cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
   args-to-string as ≫str
   strAdd " ." ≫str
   f
-cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
+cmd-to-string (DefDatatype (Datatype pi pi' x ps k cs ) pi'') f =
   strAdd "data " ≫str
   strAdd x ≫str
   strAdd " " ≫str  
@@ -461,7 +456,7 @@ cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
   strAdd " : " ≫str    
   kind-to-stringh k ≫str
   strAdd " = " ≫str
-  constructors-to-string cs ≫str
+  ctrs-to-string cs ≫str
   strΓ' globalScope x f
 
 strRun : ctxt → strM → rope

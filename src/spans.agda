@@ -494,7 +494,7 @@ error-if-not-eq-maybe Γ (just tp) = error-if-not-eq Γ tp
 error-if-not-eq-maybe _ _ tvs = tvs , nothing
 
 params-data : ctxt → params → 𝕃 tagged-val
-params-data _ ParamsNil = []
+params-data _ [] = []
 params-data Γ ps = [ params-to-string-tag "parameters" Γ ps ]
 
 --------------------------------------------------
@@ -533,6 +533,7 @@ KndVar-span Γ (pi , v) pi' ps check tvs =
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-var ff :: [ kind-data Γ k ])
 var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data-var e :: [ type-data Γ t ])
+
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
@@ -725,7 +726,7 @@ optGuide-spans NoGuide _ = spanMok
 optGuide-spans (Guide pi x tp) expected =
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x expected [] nothing)
 
-Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
+Rho-span : posinfo → term → term → checking-mode → rhoHnf → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
 Rho-span pi t t' expected r (inj₂ x) tvs =
   mk-span "Rho" pi (term-end-pos t')
     (checking-data expected :: ll-data-term :: explain ("Rewrite all places where " ^ x ^ " occurs in the " ^ expected-to-string expected ^ " type, using an equation. ") :: tvs)
@@ -734,7 +735,7 @@ Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
     (checking-data expected :: ll-data-term :: tvs ++
     (explain ("Rewrite terms in the " 
       ^ expected-to-string expected ^ " type, using an equation. "
-      ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
+      ^ (if r then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
   where h : 𝕃 tagged-val × err-m
         h = if isJust err
               then [] , err
@@ -768,12 +769,15 @@ the-motive : ctxt → type → tagged-val
 the-motive = to-string-tag motive-label
 
 Theta-span : ctxt → posinfo → theta → term → lterms → checking-mode → 𝕃 tagged-val → err-m → span
-Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
+Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end-pos t) ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
         do-explain (AbstractVars vs) = [ strRunTag "explanation" Γ (strAdd "Perform an elimination with the first term, after abstracting the listed variables (" ≫str vars-to-string vs ≫str strAdd ") from the expected type.") ]
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
+
+Mu-span : ctxt → posinfo → posinfo → (motive? : 𝔹) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if motive? then ", with a motive" else "")) :: tvs)
 
 Lft-span : posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span pi X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data-const :: tvs)

@@ -494,3 +494,4 @@ main = initializeStdoutToUTF8 >>
        setToLineBuffering >>
        readOptions >>=
        uncurry (main-with-options.main' compileTime)
+

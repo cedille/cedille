@@ -218,8 +218,8 @@ private
 
   private
     cmds-to-escaped-string : cmds → strM
-    cmds-to-escaped-string (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
-    cmds-to-escaped-string CmdsStart = strEmpty
+    cmds-to-escaped-string (c :: cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
+    cmds-to-escaped-string [] = strEmpty
 
   data-cmd : ctxt → (encoding name ps is cs : string) → string ⊎ tagged-val
   data-cmd Γ encodingₛ x psₛ isₛ csₛ =
@@ -228,8 +228,8 @@ private
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
     parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
     let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices Γ psₖ
-        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
-        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ Γ) isₖ
+        cs = map (λ {(Index x (Tkt T)) → Ctr posinfo-gen x T; (Index x (Tkk k)) → Ctr posinfo-gen x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
+        is = kind-to-indices (add-ctrs-to-ctxt cs $ add-params-to-ctxt ps Γ) isₖ
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs

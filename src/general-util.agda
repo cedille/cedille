@@ -231,6 +231,9 @@ foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → �
 foldl f b [] = b
 foldl f b (a :: as) = foldl f (f a b) as
 
+foldr' : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → B → (A → B → B) → 𝕃 A → B
+foldr' = flip foldr
+
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
 err-guard tt msg = yes-error msg

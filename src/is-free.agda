@@ -26,7 +26,6 @@ are-free-in-liftingType : are-free-in-t liftingType
 are-free-in-optType : are-free-in-t optType
 are-free-in-args : are-free-in-t args
 are-free-in-cases : are-free-in-t cases
-are-free-in-varargs : are-free-in-t varargs
 
 are-free-in-term ce x (App t Erased t') = are-free-in-term ce x t || (ce && are-free-in-term ce x t')
 are-free-in-term ce x (App t NotErased t') = are-free-in-term ce x t || are-free-in-term ce x t'
@@ -55,21 +54,20 @@ are-free-in-term ce x (Phi _ t t₁ t₂ _) = (ce && are-free-in-term ce x t) ||
 are-free-in-term ce x (Rho _ _ _ t ot t') = (ce && (are-free-in-term ce x t || are-free-in-optGuide ce x ot)) || are-free-in-term ce x t'
 are-free-in-term ce x (Chi _ T t') = (ce && are-free-in-optType ce x T) || are-free-in-term ce x t'
 are-free-in-term ce x (Delta _ T t') = ce && (are-free-in-optType ce x T || are-free-in-term ce x t')
-are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
-  where are-free-in-lterms : ∀{A} → are-free-e → trie A → lterms → 𝔹
-        are-free-in-lterms ce x (LtermsNil _) = ff
-        are-free-in-lterms ce x (LtermsCons Erased t ls) = (ce && are-free-in-term ce x t) || are-free-in-lterms ce x ls
-        are-free-in-lterms ce x (LtermsCons NotErased t ls) = are-free-in-term ce x t || are-free-in-lterms ce x ls
+are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-lterms x ls
+  where are-free-in-lterms : ∀{A} → trie A → lterms → 𝔹
+        are-free-in-lterms x [] = ff
+        are-free-in-lterms x ((Lterm me t) :: ls) = ((ce || ~ me) && are-free-in-term ce x t) || are-free-in-lterms x ls
 are-free-in-term ce x (Mu _ x' t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce (trie-remove x x') t || are-free-in-cases ce x cs
 are-free-in-term ce x (Mu' _   t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce x t || are-free-in-cases ce x cs
 
-are-free-in-cases _ _  NoCase                    = ff
-are-free-in-cases ce x (SomeCase _ c varargs t cs) = are-free-in-varargs ce x varargs || are-free-in-term ce x t || are-free-in-cases ce x cs
-
-are-free-in-varargs ce x NoVarargs              = ff
-are-free-in-varargs ce x (NormalVararg x' args) = trie-contains x x'         || are-free-in-varargs ce x args
-are-free-in-varargs ce x (ErasedVararg x' args) = (ce && trie-contains x x') || are-free-in-varargs ce x args
-are-free-in-varargs ce x (TypeVararg   x' args) = (ce && trie-contains x x') || are-free-in-varargs ce x args
+are-free-in-cases _ _ [] = ff
+are-free-in-cases ce x ((Case _ c as t) :: cs) = are-free-in-term ce (bind-args as x) t || are-free-in-cases ce x cs
+  where
+  bind-args : ∀{A} → caseArgs → trie A → trie A
+  bind-args = flip $ foldr λ where
+    (CaseTermArg _ me v) → if me && ~ ce then id else flip trie-remove v
+    (CaseTypeArg _ v) → if ce then flip trie-remove v else id
 
 {-# TERMINATING #-}
 are-free-in-type ce x (Abs _ _ _ x' atk t) = are-free-in-tk ce x atk || are-free-in-type ce (trie-remove x x') t
@@ -100,9 +98,9 @@ are-free-in-kind ce x (KndTpArrow t k) = are-free-in-type ce x t || are-free-in-
 are-free-in-kind ce x (KndVar _ x' ys) = trie-contains x x' || are-free-in-args ce x ys
 are-free-in-kind ce x (Star x₁) = ff
 
-are-free-in-args ce x (ArgsCons (TermArg _ y) ys) = are-free-in-term ce x y || are-free-in-args ce x ys
-are-free-in-args ce x (ArgsCons (TypeArg y) ys) = are-free-in-type ce x y || are-free-in-args ce x ys
-are-free-in-args ce x ArgsNil = ff
+are-free-in-args ce x ((TermArg _ y) :: ys) = are-free-in-term ce x y || are-free-in-args ce x ys
+are-free-in-args ce x ((TypeArg y) :: ys) = are-free-in-type ce x y || are-free-in-args ce x ys
+are-free-in-args ce x [] = ff
 
 are-free-in-optClass ce x NoClass = ff
 are-free-in-optClass ce x (SomeClass atk) = are-free-in-tk ce x atk
