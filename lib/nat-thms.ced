@@ -174,7 +174,7 @@ Lt-Smn ◂ Π n : Nat . Π m : Nat . Lt (S n) m ➔ Lt n m =
     (λ n .λ ih .λ m . λ lSnm . ih (pred m) lSnm).
 
 LtZS ◂ Π m : Nat . Lt m Z ➾ False =
-  λ m . θ<m> (NatInd m) (Λ u . δ - ρ<1> u - β<ff>)  (λ p . λ ih . Λ u . ih -(Lt-Smn p Z u)) .
+  λ m . θ<m> (NatInd m) (Λ u . δ - ς u)  (λ p . λ ih . Λ u . ih -(Lt-Smn p Z u)) .
 
 lte-Z ◂ Π n:Nat .Lte Z n=λ n:Nat .NatInd n·(λ n:Nat .Lte Z n) (in2·(Lt Z Z) · { Z ≃ Z } β) (λ n .λ _ .in1·(Lt Z (S n))·{Z≃S n} (lt-Z n)).
 
