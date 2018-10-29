@@ -25,6 +25,9 @@ addId1 ◂ Π n : Nat. {add Z n ≃ n} =
 addId2 ◂ Π n : Nat. {add n Z ≃ n} =
   λ n. θ<n> (NatInd n) β (λ n. λ ih. ρ+ ih - β).
 
+addOne ◂ Π n : Nat. { add n (S Z) ≃ S n } =
+  λ n . θ<n> (NatInd n) β (λ n . λ ih . ρ+ ih - β ).
+
 addS1 ◂ Π m : Nat. Π n : Nat. {add (S m) n ≃ S (add m n)} =
   λ m. λ n. β.
 

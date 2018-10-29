@@ -47,6 +47,14 @@ Vcast ◂ ∀ A : ★ . ∀ B : ★ . ∀ n : Nat . Cast · A · B ➾ Cast · (
     caste · (Vector · A n) · (Vector · B n) (λ v . v.1 · (Vector · B) (Vnil · B) (Λ n . λ h . λ t . Vcons · B -n (cast -c h) t))
       -(λ v . θ<n v> v.2 β (Λ n . Λ t . λ h . λ ih . ρ+ ih - β)).
 
+Vappend ◂ ∀ A : ★ . ∀ n : Nat . ∀ m : Nat . Vector · A n ➔ Vector · A m ➔ Vector · A (add n m) =
+  Λ A . Λ n . Λ m . λ v1 . λ v2 .
+    θ<n> v1.1 v2 (Λ n . Vcons · A -(add n m)).
+
+
+Vconsr ◂ ∀ A : ★ . ∀ n : Nat . Vector · A n ➔ A ➔ Vector · A (S n) =
+  Λ A . Λ n . λ v . λ x . ρ (ς (addOne n)) - Vappend · A -n -(S Z) v (Vcons · A -Z x (Vnil · A)).
+
 testVector ◂ Vector · Nat (S (S (S Z))) = Vcons -(S (S Z)) Z (Vcons -(S Z) (S Z) (Vcons -Z (S (S (S Z))) (Vnil · Nat))) .
 testLookup ◂ { Vlookup testVector Z ≃ Z } = β .
 testLookup2 ◂ { Vlookup testVector (S Z) ≃ (S Z) } = β .
