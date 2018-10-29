@@ -26,12 +26,9 @@ matrix:
 
 install:
   - cabal update
-  - cabal install alex-3.1.6 happy-1.19.5 cpphs-1.20.8 agda-2.5.4
-  - git clone https://github.com/cedille/ial.git
-  - cd ial && git checkout v1.5.0 && cd ..
   - git clone https://github.com/cedille/cedille.git
   - cd cedille
-  - ln -s ../ial .
+  - make agda-install
   - make
   
 
