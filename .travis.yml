@@ -1,0 +1,37 @@
+language: c
+sudo: false
+
+cache:
+  directories:
+  - $HOME/.ghc
+  - $HOME/.cabal
+  - $HOME/.cedille
+
+before_install:
+  - export PATH=~/.cabal/bin:/opt/cabal/$CABAL_VER/bin:/opt/ghc/$GHC_VER/bin:$PATH
+  - cd ${TRAVIS_BUILD_DIR}
+
+matrix:
+  include:
+    - env: CABAL_VER=1.22 GHC_VER=7.10.3
+      addons:
+        apt:
+          packages:
+            - cabal-install-1.22
+            - ghc-7.10.3
+            - zlib1g-dev
+            - libncurses5-dev
+          sources:
+            - hvr-ghc
+
+install:
+  - cabal update
+  - cabal install alex-3.1.6 happy-1.19.5 cpphs-1.20.8 agda-2.5.4
+  - git clone https://github.com/cedille/ial.git
+  - cd ial && git checkout v1.5.0 && cd ..
+  - git clone https://github.com/cedille/cedille.git
+  - cd cedille
+  - ln -s ../ial .
+  - make
+  
+
