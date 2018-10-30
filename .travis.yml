@@ -33,4 +33,4 @@ install:
 
 branches:
   only:
-  - master
+  - travis
