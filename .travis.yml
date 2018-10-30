@@ -1,6 +1,10 @@
 language: c
 sudo: required
 
+branches:
+  only:
+  - master
+
 cache:
   directories:
   - $HOME/.ghc
@@ -24,13 +28,10 @@ matrix:
             - hvr-ghc
 
 install:
-  - cabal update
-  - git clone https://github.com/cedille/cedille.git
-  - cd cedille
-  - make agda-install
-  - make
-  
+  - travis_retry cabal update
+  - travis_retry cabal fetch alex-3.1.6 happy-1.19.5 cpphs-1.20.8 agda-2.5.4
+  - cabal install alex-3.1.6 happy-1.19.5 cpphs-1.20.8
+  - travis_wait cabal install agda-2.5.4
 
-branches:
-  only:
-  - travis
+script:
+  - make
