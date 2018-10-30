@@ -31,3 +31,6 @@ install:
   - make
   
 
+branches:
+  only:
+  - master
