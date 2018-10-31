@@ -1,0 +1,33 @@
+language: c
+sudo: required
+
+cache:
+  directories:
+  - $HOME/.ghc
+  - $HOME/.cabal
+
+before_install:
+  - export PATH=~/.cabal/bin:/opt/cabal/$CABAL_VER/bin:/opt/ghc/$GHC_VER/bin:$PATH
+  - cd ${TRAVIS_BUILD_DIR}
+
+matrix:
+  include:
+    - env: CABAL_VER=1.22 GHC_VER=7.10.3
+      addons:
+        apt:
+          packages:
+            - cabal-install-1.22
+            - ghc-7.10.3
+            - zlib1g-dev
+            - libncurses5-dev
+          sources:
+            - hvr-ghc
+
+install:
+  - travis_retry cabal update
+  - travis_retry cabal fetch alex-3.1.6 happy-1.19.5 cpphs-1.20.8 agda-2.5.4
+  - cabal install alex-3.1.6 happy-1.19.5 cpphs-1.20.8
+  - travis_wait 25 cabal install agda-2.5.4
+
+script:
+  - make

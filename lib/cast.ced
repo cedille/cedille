@@ -17,3 +17,14 @@ castCompose ◂ ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . Cast · A · B ➔ Cas
   Λ A . Λ B . Λ C . λ c1 . λ c2 . [ λ a . cast · B · C -c2 (cast · A · B -c1 a) , β] .
 
 castId ◂ ∀ A : ★ . Cast · A · A = Λ A . [ λ a . a , β].
+
+castArr ◂ ∀ A: ★. ∀ B: ★. ∀ S: ★. ∀ T: ★.
+    Cast ·S ·A ➾ Cast ·B ·T ➾ Cast ·(A ➔ B) ·(S ➔ T)
+  = Λ A. Λ B. Λ S. Λ T. Λ dom. Λ cod.
+      [ λ f. λ s. cast -cod (f (cast -dom s)) , β ].
+
+castInst ◂ ∀ B: ★ ➔ ★. ∀ S: ★. ∀ T: ★. Cast ·(B ·S) ·T ➾ Cast ·(∀ S: ★. B ·S) ·T
+  = Λ B. Λ S. Λ T. Λ c. [ λ f. cast -c (f ·S) , β ].
+
+castGen ◂ ∀ B: ★ ➔ ★. ∀ S: ★. (∀ X: ★. Cast ·S ·(B ·X)) ➾ Cast ·S ·(∀ X: ★. B ·X)
+  = Λ B. Λ S. Λ c. [ λ s. Λ X. cast -(c ·X) s , β ] .
