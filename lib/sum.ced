@@ -26,3 +26,7 @@ rec-Sum ◂ ∀ A : ★ . ∀ B : ★ . Π x : Sum · A · B .
           ∀ X : ★ . (A ➔ X) ➔ (B ➔ X) ➔ X =
   Λ A . Λ B . λ x . Λ X . λ pa . λ pb .
     x.1 · X pa pb .
+
+eta-Sum ◂ ∀ A: ★. ∀ B: ★. Π x: Sum ·A ·B.
+    { rec-Sum x in1 in2 ≃ x}
+  = Λ A. Λ B. λ x. θ<x> (ind-Sum x) (λ _. β) (λ _. β).

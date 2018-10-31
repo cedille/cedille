@@ -30,3 +30,24 @@ proj1 ◂ ∀ A : ★ . ∀ B : A ➔ ★ . Sigma · A · B  ➔  A = Λ A . Λ 
 
 proj2 ◂ ∀ A : ★. ∀ B : A ➔ ★. Π s : Sigma · A · B. B (proj1 · A · B s) =
   Λ A. Λ B. λ s. ind-sigma · A · B s · (λ s : Sigma · A · B. B (proj1 · A · B s)) (λ a. λ b. b).
+
+
+-- helpers for non-dependent Sigma
+Pair ◂ ★ ➔ ★ ➔ ★
+  = λ A: ★. λ B: ★. Sigma ·A ·(λ _: A. B).
+
+mkpair ◂ ∀ A: ★. ∀ B: ★. A ➔ B ➔ Pair ·A ·B
+  = Λ A. Λ B. λ a. λ b. mksigma a b.
+
+fst ◂ ∀ A: ★. ∀ B: ★. Pair ·A ·B ➔ A
+  = Λ A. Λ B. λ p. proj1 p.
+
+snd ◂ ∀ A: ★. ∀ B: ★. Pair ·A ·B ➔ B
+  = Λ A. Λ B. λ p. proj2 p.
+
+ind-pair ◂ ∀ A: ★. ∀ B: ★. Π x: Pair ·A ·B.
+    ∀ P: Pair ·A ·B ➔ ★. (Π a: A. Π b: B. P (mkpair a b)) ➔ P x
+  = Λ A. Λ B. λ x. Λ P. λ prf. θ<x> (ind-sigma x) prf.
+
+rec-pair : ∀ A: ★. ∀ B: ★. Pair ·A ·B ➔ ∀ X: ★. (A ➔ B ➔ X) ➔ X
+  = Λ A. Λ B. λ x. Λ X. λ alg. ind-pair x ·(λ _: Pair ·A ·B. X) alg.
