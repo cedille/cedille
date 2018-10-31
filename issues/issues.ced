@@ -8,3 +8,4 @@ module issues.
 import issue-12/issue-12. -- [O!] TODO make minimal
 import issue-13/issue-13. -- [X]
 import issue-31/issue-31. -- [O]
+import issue-43/issue-43. -- [O]
