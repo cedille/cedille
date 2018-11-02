@@ -163,7 +163,7 @@ ctxt-lookup-type-var : ctxt → var → maybe kind
 ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just k
 ... | just (as , type-def mps _ T k , _) = just (maybe-inst-kind Γ mps as k)
-... | just (as , datatype-def ps kᵢ k cs , _) = just (inst-kind Γ ps as k)
+... | just (as , datatype-def ps kᵢ k cs , _) = just (maybe-inst-kind Γ ps as k)
 ... | _ = nothing
 
 ctxt-lookup-term-var : ctxt → var → maybe type
@@ -179,7 +179,7 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just $ Tkk k
 ... | just (as , term-def mps _ t T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , type-def mps _ T k , _) = just $ Tkk $ maybe-inst-kind Γ mps as k
-... | just (as , datatype-def ps kᵢ k cs , _) = just $ Tkk $ inst-kind Γ ps as k
+... | just (as , datatype-def ps kᵢ k cs , _) = just $ Tkk $ maybe-inst-kind Γ ps as k
 ... | just (as , const-def mps T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | _ = nothing
 
@@ -204,10 +204,10 @@ ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-loo
 ... | just (v' , as) = ctxt-lookup-kind-var-def Γ v' ≫=maybe λ { (ps , k) → just (ps , as) }
 ... | _ = nothing
 
-ctxt-lookup-datatype : ctxt → var → args → maybe (kind × kind × ctrs)
+ctxt-lookup-datatype : ctxt → var → args → maybe (defParams × kind × kind × ctrs)
 ctxt-lookup-datatype Γ x as with env-lookup Γ x
 ... | just (datatype-def ps kᵢ k cs , _) =
-  just (inst-kind Γ ps as kᵢ , inst-kind Γ ps as k , cs)
+  just (ps , maybe-inst-kind Γ ps as kᵢ , maybe-inst-kind Γ ps as k , cs)
 ... | _ = nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)

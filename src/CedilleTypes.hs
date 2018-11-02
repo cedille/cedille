@@ -132,8 +132,8 @@ data Term =
      | Rho PosInfo RhoHnf OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
-     | Mu    PosInfo Bvar Term OptType PosInfo Cases PosInfo
-     | Mu'   PosInfo      Term OptType PosInfo Cases PosInfo     
+     | Mu  PosInfo PosInfo Bvar Term OptType PosInfo Cases PosInfo
+     | Mu' PosInfo              Term OptType PosInfo Cases PosInfo     
      | Var PosInfo Qvar
      deriving (Show,Eq)
 

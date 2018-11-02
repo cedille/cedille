@@ -22,6 +22,9 @@ id-term = Lam posinfo-gen NotErased posinfo-gen "x" NoClass (Var posinfo-gen "x"
 compileFailType : type
 compileFailType = Abs posinfo-gen Erased posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
+mu-name-cast : var → var
+mu-name-cast x = x ^ "/cast"
+
 qualif-info : Set
 qualif-info = var × args
 
@@ -91,13 +94,13 @@ apps-term : term → args → term
 --apps-term f [] = f
 --apps-term f ((TermArg me t) :: as) = apps-term (App f me t) as
 --apps-term f ((TypeArg t) :: as) = apps-term (AppTp f t) as
-apps-term = foldl λ {(TermArg me t) x → App x me t; (TypeArg T) x → AppTp x T}
+apps-term = foldr λ {(TermArg me t) x → App x me t; (TypeArg T) x → AppTp x T}
 
 apps-type : type → args → type
 --apps-type f [] = f
 --apps-type f ((TermArg _ t) :: as) = apps-type (TpAppt f t) as
 --apps-type f ((TypeArg t) :: as) = apps-type (TpApp f t) as
-apps-type = foldl λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x T}
+apps-type = foldr λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x T}
 
 qualif-lookup-term : qualif → string → term
 qualif-lookup-term σ x with trie-lookup σ x
@@ -170,7 +173,7 @@ term-start-pos (Chi pi _ _) = pi
 term-start-pos (Delta pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
-term-start-pos (Mu pi _ _ _ _ _ _) = pi
+term-start-pos (Mu pi _ _ _ _ _ _ _) = pi
 term-start-pos (Mu' pi _ _ _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
@@ -232,7 +235,7 @@ term-end-pos (Chi pi T t') = term-end-pos t'
 term-end-pos (Delta pi oT t) = term-end-pos t
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ t ls) = lterms-end-pos (term-end-pos t) ls
-term-end-pos (Mu _ _ _ _ _ _ pi) = pi
+term-end-pos (Mu _ _ _ _ _ _ _ pi) = pi
 term-end-pos (Mu' _ _ _ _ _ pi) = pi
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
@@ -492,6 +495,20 @@ data tty : Set where
   tterm : term → tty
   ttype : type → tty
 
+tty-to-arg : maybeErased → tty → arg
+tty-to-arg me (tterm t) = TermArg me t
+tty-to-arg me (ttype T) = TypeArg T
+
+ttys-to-args : maybeErased → 𝕃 tty → args
+ttys-to-args = map ∘ tty-to-arg
+
+ttys-to-args-for-params : params → 𝕃 tty → args
+ttys-to-args-for-params ((Decl _ _ me _ _ _) :: ps) ((tterm t) :: as) =
+  TermArg me t :: ttys-to-args-for-params ps as
+ttys-to-args-for-params (_ :: ps) ((ttype T) :: as) =
+  TypeArg T :: ttys-to-args-for-params ps as
+ttys-to-args-for-params _ _ = []
+
 decompose-tpapps : type → type × 𝕃 tty 
 decompose-tpapps (TpApp t t') with decompose-tpapps t
 decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
@@ -580,7 +597,7 @@ erase-term (Rho _ _ _ t _ t') = erase-term t'
 erase-term (Chi _ T t') = erase-term t'
 erase-term (Delta _ T t) = id-term
 erase-term (Theta _ u t ls) = erase-lterms (erase-term t) ls
-erase-term (Mu _ x t ot _ c _) = Mu posinfo-gen x (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
+erase-term (Mu _ _ x t ot _ c _) = Mu posinfo-gen posinfo-gen x (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
 erase-term (Mu' _ t ot _ c _)  = Mu' posinfo-gen (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
 
 erase-cases = map erase-case

@@ -136,63 +136,70 @@ add-params-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''
 add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr _ x T) → ctxt-var-decl x}
 
-open import conversion
-
 {-# TERMINATING #-}
 ctr-positive : ctxt → var → type → 𝔹
 ctr-positive Γ x T = arrs+ Γ (hnf' Γ T) where
+  
+  open import conversion
 
   not-free : ∀ {ed} → ⟦ ed ⟧ → 𝔹
+  not-free = ~_ ∘ is-free-in check-erased x
+
   hnf' : ctxt → type → type
   hnf' Γ T = hnf Γ unfold-all T tt
-  type+ : ctxt → type → 𝔹
-  kind+ : ctxt → kind → 𝔹
-  tk+ : ctxt → tk → 𝔹
+
+  mtt = maybe-else tt id
+  mff = maybe-else ff id
+
+  type+ : ctxt → type → maybe 𝔹
+  kind+ : ctxt → kind → maybe 𝔹
+  tk+ : ctxt → tk → maybe 𝔹
   arrs+ : ctxt → type → 𝔹
 
   arrs+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    tk+ Γ atk && arrs+ Γ' (hnf' Γ' T)
+    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpApp T T') = arrs+ Γ T && not-free T'
   arrs+ Γ (TpAppt T t) = arrs+ Γ T && not-free t
-  arrs+ Γ (TpArrow T _ T') = type+ Γ (hnf' Γ T) && arrs+ Γ (hnf' Γ T')
+  arrs+ Γ (TpArrow T _ T') = mtt (type+ Γ (hnf' Γ T)) && arrs+ Γ (hnf' Γ T')
   arrs+ Γ (TpLambda _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    tk+ Γ atk && arrs+ Γ' (hnf' Γ' T)
+    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpVar _ x') = x =string x'
   arrs+ Γ T = ff
   
   type+ Γ (Abs _ _ _ x' atk T) =
-    let Γ' = ctxt-var-decl x' Γ in
-    type+ Γ' (hnf' Γ' T)
-  type+ Γ (Iota _ _ x' T T') = not-free (Iota posinfo-gen posinfo-gen x' T T')
+    let Γ' = ctxt-var-decl x' Γ; atk+? = tk+ Γ atk in
+    maybe-else' (type+ Γ' (hnf' Γ' T)) (maybe-map ~_ atk+?) λ T+? → just $ T+? && ~ mff (tk+ Γ atk)
+  type+ Γ (Iota _ _ x' T T') = (maybe-not $ maybe-if $ not-free $ Iota posinfo-gen posinfo-gen x' T T') ≫maybe just ff
     {-let Γ' = ctxt-var-decl x' Γ in
     type+ Γ (hnf' Γ T) && type+ Γ' (hnf' Γ' T')-}
-  type+ Γ (Lft _ _ x' t lT) = not-free $ mlam x' t
+  type+ Γ (Lft _ _ x' t lT) = nothing
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
-  type+ Γ (TpApp T T') = type+ Γ T && not-free T'
-  type+ Γ (TpAppt T t) = type+ Γ T && not-free t
-  type+ Γ (TpArrow T _ T') = type+ Γ (hnf' Γ T') && ~ type+ Γ (hnf' Γ T)
-  type+ Γ (TpEq _ tₗ tᵣ _) = tt
-  type+ Γ (TpHole _) = tt
+  type+ Γ (TpApp T T') = maybe-map (_&& not-free T') (type+ Γ T)
+  type+ Γ (TpAppt T t) = maybe-map (_&& not-free t) (type+ Γ T)
+  type+ Γ (TpArrow T _ T') = maybe-else' (type+ Γ (hnf' Γ T')) (maybe-map ~_ (type+ Γ (hnf' Γ T))) λ T'+? → just $ T'+? && ~ mff (type+ Γ (hnf' Γ T))
+  type+ Γ (TpEq _ tₗ tᵣ _) = nothing
+  type+ Γ (TpHole _) = nothing
   type+ Γ (TpLambda _ _ x' atk T)=
     let Γ' = ctxt-var-decl x' Γ in
     type+ Γ' (hnf' Γ' T)
   type+ Γ (TpParens _ T _) = type+ Γ T
-  type+ Γ (TpVar _ x') = tt
+  type+ Γ (TpVar _ x') = maybe-if (x =string x') ≫maybe just tt
   
-  kind+ Γ (KndArrow k k') = kind+ Γ k' && ~ kind+ Γ k
+  kind+ Γ (KndArrow k k') = maybe-else' (kind+ Γ k') (maybe-map ~_ (kind+ Γ k)) λ k'+? → just $ k'+? && mff (kind+ Γ k)
   kind+ Γ (KndParens _ k _) = kind+ Γ k
-  kind+ Γ (KndPi _ _ x' atk k) = kind+ (ctxt-var-decl x' Γ) k && ~ tk+ Γ atk
-  kind+ Γ (KndTpArrow T k) = kind+ Γ k && ~ type+ Γ T
+  kind+ Γ (KndPi _ _ x' atk k) =
+    let Γ' = ctxt-var-decl x' Γ; tk+? = tk+ Γ atk in
+    maybe-else' (kind+ Γ' k) (maybe-map ~_ tk+?) λ k+? → just $ k+? && mff tk+?
+--    kind+ (ctxt-var-decl x' Γ) k && ~ tk+ Γ atk
+  kind+ Γ (KndTpArrow T k) = maybe-else' (kind+ Γ k) (maybe-map ~_ (type+ Γ T)) λ k+? → just $ k+? && mff (type+ Γ T)
   kind+ Γ (KndVar _ κ as) =
-    maybe-else tt (uncurry λ ps k → kind+ Γ (fst (subst-params-args Γ ps as k)))
-      (ctxt-lookup-kind-var-def Γ κ)
-  kind+ Γ (Star _) = tt
+    ctxt-lookup-kind-var-def Γ κ ≫=maybe uncurry λ ps k → kind+ Γ (fst (subst-params-args Γ ps as k))
+  kind+ Γ (Star _) = nothing
 
   tk+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tk+ Γ (Tkk k) = kind+ Γ k
 
-  not-free = ~_ ∘ is-free-in check-erased x

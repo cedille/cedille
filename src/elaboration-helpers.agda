@@ -259,7 +259,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     Theta pi (reindex-theta ρ is θ) (reindex-term ρ is t) (reindex-lterms ρ is ts)
   reindex-term ρ is (Var pi x) =
     Var pi $ renamectxt-rep ρ x
-  reindex-term ρ is (Mu pi x t oT pi' cs pi'') = Var pi-gen "template-mu-not-allowed"
+  reindex-term ρ is (Mu pi pi' x t oT pi'' cs pi''') = Var pi-gen "template-mu-not-allowed"
   reindex-term ρ is (Mu' pi t oT pi' cs pi'') = Var pi-gen "template-mu-not-allowed" 
   
   reindex-type ρ is (Abs pi me pi' x atk T) with is-index-var x

@@ -404,16 +404,15 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
   k' = hnf Γ unfold-head (qualif-kind Γ k) tt
 
 -- assumption: classifier (i.e. kind) already qualified
-ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt
+ctxt-datatype-def : posinfo → var → defParams → kind → kind → ctrs → ctxt → ctxt
 ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , q') 
   ((trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (datatype-def (ps ++ psᵢ) kᵢ k cs , fn , pi))
+  (trie-insert i v' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , pi))
   symb-occs
   where
-  v' = mn # v
-  q' = qualif-insert-params q v' v ps
-  --cs' = map (λ {(Ctr pi x T) → Ctr posinfo-gen (mn # x) (qualif-type (ctxt-set-qualif Γ q') T)}) cs
+  v' = if isJust psᵢ then mn # v else v
+  q' = qualif-insert-params q v' v (maybe-else [] (λ _ → ps) psᵢ)
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-type-def : posinfo → defScope → opacity → var → type → kind → ctxt → ctxt

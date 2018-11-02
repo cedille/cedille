@@ -132,6 +132,12 @@ spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , 
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
 spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x t T Γ , ss)
 
+spanM-lookup-restore-info : var → spanM restore-def
+spanM-lookup-restore-info x =
+  get-ctxt λ Γ →
+  let qi = ctxt-get-qi Γ x in
+  spanMr (qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ)
+
 -- returns the original sym-info.
 -- clarification is idempotent: if the definition was already clarified,
 -- then the operation succeeds, and returns (just sym-info).

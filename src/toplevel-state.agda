@@ -162,7 +162,7 @@ ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' 
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 ctxt-info-to-string (const-def _ _) = "const-def"
-ctxt-info-to-string (datatype-def _ _ _ _) = "datatype-def"
+ctxt-info-to-string (datatype-def ps kᵢ k cs) = "datatype-def: {defParams: {" ^ defParams-to-string ps ^ "}, inductive hypothesis kind: " ^ rope-to-string (to-string empty-ctxt kᵢ) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ ", cs: " ^ "TODO" ^ "}"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"

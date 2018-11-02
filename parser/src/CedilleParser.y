@@ -256,8 +256,8 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
-     | 'μ'  Bvar '.' Term Motive '{'  Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
-     | 'μ\''         Term Motive '{'  Cases '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
+     | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
+     | 'μ\''         Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -267,7 +267,12 @@ OptPipe :: { PosInfo }
 
 Cases :: { Cases }
      :                                  { []                      }
-     | '|' Qvar  CaseArgs '➔' Term Cases  { MkCase (tPosTxt $2) (tTxt $2) $3 $5 : $6 }
+     | '|' Qvar CaseArgs '➔' Term Cases { MkCase (tPosTxt $2) (tTxt $2) $3 $5 : $6 }
+
+-- Optional first pipe
+CasesAux :: { Cases }
+  : Qvar CaseArgs '➔' Term Cases { MkCase (tPosTxt $1) (tTxt $1) $2 $4 : $5 }
+  | Cases                        { $1 }
 
 CaseArgs :: { CaseArgs }
      :                           { []                 }

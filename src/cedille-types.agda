@@ -260,7 +260,7 @@ data term where
   Rho : posinfo → rhoHnf → optNums → term → optGuide → term → term
   Sigma : posinfo → term → term
   Theta : posinfo → theta → term → lterms → term
-  Mu  : posinfo → bvar → term → optType → posinfo → cases → posinfo → term
+  Mu  : posinfo → posinfo → bvar → term → optType → posinfo → cases → posinfo → term
   Mu' : posinfo → term → optType → posinfo → cases → posinfo → term
   Var : posinfo → qvar → term
 {-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Mu' | CedilleTypes.Var) #-}

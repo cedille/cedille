@@ -23,19 +23,17 @@ missing-span-location = ("missing" , "missing" , "missing")
 
 defScope : Set
 defScope = 𝔹
-
-localScope : defScope
-localScope = tt
-
-globalScope : defScope
-globalScope = ff
+pattern localScope = tt
+pattern globalScope = ff
+pattern concrete-datatype = globalScope
+pattern abstract-datatype = localScope
 
 defParams : Set
 defParams = maybe params
 
 data ctxt-info : Set where
   -- for defining a datatype
-  datatype-def : params → (ind-kind reg-kind : kind) → ctrs → ctxt-info
+  datatype-def : defParams → (ind reg : kind) → ctrs → ctxt-info
 
   -- for defining a datatype constructor
   const-def : defParams → type → ctxt-info

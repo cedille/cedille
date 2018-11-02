@@ -33,7 +33,7 @@ no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Delta _ _ _) right = tt
 no-parens {_} {TERM} _ (Let _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _) lr = tt
+no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _ _) lr = tt
 no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
@@ -58,7 +58,7 @@ no-parens{TERM} (Rho pi op on eq og t) p lr = ff
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
-no-parens{TERM} (Mu _ _ _ _ _ _ _) p lr = tt
+no-parens{TERM} (Mu _ _ _ _ _ _ _ _) p lr = tt
 no-parens{TERM} (Mu' _ _ _ _ _ _)  p lr = tt
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = is-arrow p && not-left lr
 no-parens{TYPE} (Iota pi pi' x oT T) p lr = ff
@@ -213,6 +213,8 @@ kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
 ctrs-to-string : ctrs → strM
+cases-to-string : cases → strM
+caseArgs-to-string : caseArgs → strM → strM
 
 params-to-string : params → strM
 params-to-string' : strM → params → strM
@@ -223,7 +225,7 @@ optTerm-to-string : optTerm → string → string → strM
 optClass-to-string : optClass → strM
 optGuide-to-string : optGuide → strM
 optNums-to-string : optNums → strM
-optType-to-string : optType → strM
+optType-to-string : string → optType → strM
 maybeCheckType-to-string : optType → strM
 lterms-to-string : lterms → strM
 arg-to-string : arg → strM
@@ -271,6 +273,13 @@ ctrs-to-string ((Ctr _ x T) :: cs) =
   strAdd "  | "  ≫str
   strAdd x ≫str strAdd " : " ≫str to-stringh T ≫str
   ctrs-to-string cs
+
+cases-to-string [] = strEmpty
+cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (to-stringh t)
+
+caseArgs-to-string [] m = m
+caseArgs-to-string ((CaseTermArg pi me x) :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty m
+caseArgs-to-string ((CaseTypeArg pi x) :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
   
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
@@ -278,8 +287,8 @@ tk-to-stringh (Tkk k) = to-stringh k
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
 term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
-term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
-term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str optType-to-string mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str optType-to-string " " mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str optType-to-string " " mT ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
 term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
@@ -295,8 +304,8 @@ term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-s
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
-term-to-stringh (Mu pi x t ot pi' cs pi'') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringh t) strEmpty ≫str optType-to-string ot ≫str strAdd "TODO"
-term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringh t ≫str strAdd " . " ≫str optType-to-string ot ≫str strAdd "TODO"
+term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringh t ≫str optType-to-string " @ " ot) (strAdd " {" ≫str cases-to-string cs ≫str strAdd " }")
+term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringh t ≫str optType-to-string " @ " ot ≫str strAdd " {" ≫str cases-to-string cs ≫str strAdd " }"
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringh T)
 type-to-stringh (Iota pi pi' x T T') = strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") (to-stringh T')
@@ -332,8 +341,8 @@ optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
 optGuide-to-string NoGuide = strEmpty
 optGuide-to-string (Guide pi v T) = strAdd " @ " ≫str strBvar v (strAdd " . ") (to-stringh T)
-optType-to-string NoType = strEmpty
-optType-to-string (SomeType T) = strAdd " " ≫str to-stringh T
+optType-to-string pfx NoType = strEmpty
+optType-to-string pfx (SomeType T) = strAdd pfx ≫str to-stringh T
 maybeCheckType-to-string NoType = strEmpty
 maybeCheckType-to-string (SomeType T) = strAdd " ◂ " ≫str to-stringh T
 lterms-to-string ((Lterm m t) :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts

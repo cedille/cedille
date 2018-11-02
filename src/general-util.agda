@@ -216,6 +216,9 @@ drop zero xs = xs
 drop (suc _) [] = []
 drop (suc n) (x :: xs) = drop n xs
 
+drop-last : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+drop-last n xs = take (length xs ∸ n) xs
+
 zip-with : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
            → (A → B → C) → 𝕃 A → 𝕃 B → 𝕃 C
 zip-with f xs ys = map (uncurry f) (zip xs ys)

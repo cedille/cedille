@@ -133,8 +133,9 @@ check-args-against-params : (kind-or-import : maybe tagged-val {- location -}) �
 check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-def : defTermOrType → spanM (var × restore-def)
-check-case : case → (ctrs : trie type) → (motive : type) → spanM (trie type)
-check-cases : cases → (ctrs : trie type) → (motive : type) → spanM err-m
+check-mu : posinfo → posinfo → (μ-or-μ' : maybe var) → term → (motive : optType) → cases → posinfo → (mtp : maybe type) → spanM (check-ret mtp)
+check-case : case → (μ-or-μ' : maybe (var × var × var)) → (ctrs : trie type) → params → args → indices → (motive : type) → spanM (trie type)
+check-cases : cases → (μ-or-μ' : maybe (var × var × var)) → (ctrs : trie type) → params → args → indices → (motive : type) → spanM err-m
 
 -- check-term
 -- ==================================================
@@ -307,7 +308,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
           if conv-tk Γ (qualif-tk Γ atk') atk then
             Lam-span Γ checking pi l x oc t tvs err
           else
-            let p = lambda-bound-var-conv-error Γ x atk atk' tvs in
+            let p = lambda-bound-var-conv-error Γ x atk (qualif-tk Γ atk') tvs in
             Lam-span Γ checking pi l x oc t (fst p) (just (snd p))
         check-oc : optClass → spanM ⊤
         check-oc NoClass = spanMok
@@ -705,36 +706,9 @@ check-termi (IotaProj t n pi) mtp =
         cont' mtp n (just tp) = get-ctxt λ Γ → cont mtp n (hnf Γ unfold-head tp tt)
                                                      -- we are looking for iotas in the bodies of rec defs
 
-check-termi (Mu pi x t (SomeType Tₘ) _ cs pi') mtp =
-  get-ctxt λ Γ → 
-  check-termi t nothing ≫=span λ T →
-  let syn-err-not-mch = just "The head type of the subterm cannot be pattern matched"
-      tty-as = map λ {(tterm t) → TermArg NotErased t; (ttype T) → TypeArg T}
-      ret-tp = λ as → TpAppt (apps-type Tₘ (tty-as as)) (qualif-term Γ t) in
-  case_of_ (maybe-map decompose-tpapps T) λ where
-    nothing → check-fail mtp
-    (just (TpVar _ X , as)) →
-      case (ctxt-lookup-datatype Γ X (tty-as as)) of λ where
-        nothing →
-          spanM-add (Mu-span Γ pi pi' tt (maybe-to-checking mtp) [ head-type Γ (mtpvar X) ] syn-err-not-mch) ≫span
-          return-when mtp (just (ret-tp as))
-        (just (kᵢ , k , cs')) →
-          check-type Tₘ (just kᵢ) ≫span
-          with-ctxt Γ -- TODO: Add x, x/to and x/rec to ctxt
-            (check-cases cs (foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs') (qualif-type Γ Tₘ) ≫=span λ e? →
-              spanM-add (Mu-span Γ pi pi' tt (maybe-to-checking mtp) [] e?) ≫span
-              return-when mtp (just (ret-tp as)))
-    (just (Tₕ , as)) →
-      spanM-add (Mu-span Γ pi pi' tt (maybe-to-checking mtp) [ head-type Γ Tₕ ] syn-err-not-mch) ≫span
-      return-when mtp (just (ret-tp as))
---case mtp return_of_ (spanM ∘ check-ret) λ {nothing → spanMr nothing; (just tp) → spanMok}
+check-termi (Mu  pi pi' x t Tₘ _ cs pi'') = check-mu pi pi'   (just x) t Tₘ cs pi''
+check-termi (Mu' pi       t Tₘ _ cs pi'') = check-mu pi pi-gen nothing t Tₘ cs pi''
 
-check-termi (Mu pi x t NoType _ cs pi') mtp = case mtp return_of_ (spanM ∘ check-ret) λ {nothing → spanMr nothing; (just tp) → spanMok}
-
-check-termi (Mu' pi t (SomeType P) pi' cs pi'') nothing = spanMr nothing
-check-termi (Mu' pi t (SomeType P) pi' cs pi'') (just tp) = spanMok
-check-termi (Mu' pi t NoType _ cs pi') (just tp) = spanMok
-check-termi (Mu' pi t NoType _ cs pi') nothing = spanMr nothing
 {-check-termi t tp = get-ctxt (λ Γ → spanM-add (unimplemented-term-span Γ (term-start-pos t) (term-end-pos t) tp) ≫span unimplemented-if tp)-}
 
 -- END check-term
@@ -1556,7 +1530,7 @@ check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk x' atk' _ k') 
    spanM-add (if conv-tk Γ (qualif-tk Γ atk) atk' then
                 TpLambda-span pi x atk body checking [ kind-data Γ k ] nothing
               else
-                uncurry (λ tvs err → TpLambda-span pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ x atk' atk [ kind-data Γ k ])) ≫span
+                uncurry (λ tvs err → TpLambda-span pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ x atk' (qualif-tk Γ atk) [ kind-data Γ k ])) ≫span
    add-tk pi' x atk ≫=span λ mi → 
    get-ctxt λ Γ' → check-type body (just (rename-var Γ x' (qualif-var Γ' x) k')) ≫span
    spanM-restore-info x mi
@@ -1856,23 +1830,27 @@ check-def (DefType pi x k T) =
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking (noterased :: [ kind-data Γ k' ]) nothing) ≫span
   spanMr (x , m)
 
-check-case (Case pi x as t) csₓ Tₘ =
+check-case (Case pi x as t) x? csₓ ps asₘ is Tₘ =
   get-ctxt λ Γ →
-  maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (x' , T))
+  maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (x' , inst-type Γ ps asₘ T , decompose-ctr-type Γ (inst-type Γ ps asₘ T)))
     (spanM-add (Var-span Γ pi x synthesizing []
       (just "This is not a valid constructor name (is this a duplicate case?)"))
      ≫span spanMr csₓ)
-    (uncurry λ x' T →
-      (case decompose-ctr-type Γ T of λ where
-        (Tₕ , ps , is) →
-          decl-args as ps empty-trie ≫=spanc λ e σ →
+    (--uncurry λ x' → uncurry T →
+      ({-case decompose-ctr-type Γ T of-} λ where
+        (x' , T , Tₕ , psₐ , is) →
+          let is = reverse is in -- Reverse, because decompose-tp-apps reverses!? Will change in an upcoming commit
+          decl-args as psₐ empty-trie ≫=spanc λ e σ →
           spanM-add (Var-span Γ pi x synthesizing [ type-data Γ T ] e) ≫span
-          check-term t (just (TpAppt (apps-type Tₘ (ttys-to-args Γ σ is)) (app-caseArgs (mvar x') as))) ≫span
+          check-term t (just (TpAppt
+            (apps-type Tₘ (reverse (ttys-to-args' Γ σ (drop (length ps) is))))
+            (app-caseArgs (apps-term (mvar x') {-asₘ-} (reverse (ttys-to-args' Γ σ (take (length ps) is)))) as))) ≫span
+          set-ctxt Γ ≫span
           spanMr (trie-remove csₓ x')))
   where
   free-in-term : var → err-m
   free-in-term x = maybe-if (is-free-in skip-erased x t) ≫maybe just "Erased argument occurs free in the body of the term"
-  ttys-to-args = λ Γ σ → map λ {(tterm t) → TermArg NotErased (substs Γ σ t); (ttype T) → TypeArg (substs Γ σ T)}
+  ttys-to-args' = λ Γ σ → map λ {(tterm t) → TermArg NotErased (substs Γ σ t); (ttype T) → TypeArg (substs Γ σ T)}
   tpapp-caseArgs : type → caseArgs → type
   tpapp-caseArgs = foldl λ where
     (CaseTermArg pi me x) T → TpAppt T (mvar (pi % x))
@@ -1881,7 +1859,10 @@ check-case (Case pi x as t) csₓ Tₘ =
   app-caseArgs = foldl λ where
     (CaseTermArg pi me x) t → App t me (mvar (pi % x))
     (CaseTypeArg pi x) t → AppTp t (mtpvar (pi % x))
-  decl-args : caseArgs → params → trie arg → spanM (err-m × trie arg) -- TODO: Don't forget to check erasure!
+  --subst-rec-type : ∀ {ed} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  --subst-rec-type Γ = maybe-else' x? id
+  --  λ {(x , X , X') → subst Γ (params-to-tplams ps $ mtpvar X') X}
+  decl-args : caseArgs → params → trie arg → spanM (err-m × trie arg)
   decl-args ((CaseTermArg pi me x) :: as) ((Decl _ _ me' x' (Tkt T) _) :: ps) σ =
     get-ctxt λ Γ →
     let T' = substs Γ σ T
@@ -1912,8 +1893,61 @@ check-case (Case pi x as t) csₓ Tₘ =
   decl-args as [] σ = spanMr (just (ℕ-to-string (length as) ^ " too many arguments supplied") , σ)
   decl-args [] ps σ = spanMr (just (ℕ-to-string (length ps) ^ " more arguments expected") , σ)
 
-check-cases cs csₓ Tₘ = foldr
-  (λ c x csₓ → check-case c csₓ Tₘ ≫=span x)
+check-cases cs x? csₓ psₘ asₘ is Tₘ = foldr
+  (λ c x csₓ → check-case c x? csₓ psₘ asₘ is Tₘ ≫=span x)
   spanMr cs csₓ ≫=span λ csₓ →
   spanMr (maybe-if (trie-nonempty csₓ) ≫maybe
     just ("Missing pattern matching cases: " ^ 𝕃-to-string fst ", " (trie-mappings csₓ)))
+
+check-mu pi pi' x? t NoType cs pi'' mtp = check-fail mtp -- TODO
+check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
+  get-ctxt λ Γ → 
+  check-termi t nothing ≫=span λ T →
+  let syn-err-not-mch = just "The head type of the subterm is not a datatype"
+      ret-tp = λ ps as → TpAppt (apps-type (qualif-type Γ Tₘ) $ ttys-to-args NotErased (take (length as ∸ length ps) as)) (qualif-term Γ t) in
+  case_of_ (maybe-map decompose-tpapps T) λ where
+    (just (TpVar _ X , as)) →
+      case (ctxt-lookup-datatype Γ X (ttys-to-args NotErased $ reverse as)) of λ where
+        nothing →
+          spanM-add (Mu-span Γ pi pi'' tt (maybe-to-checking mtp)
+            (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) syn-err-not-mch) ≫span
+          return-when mtp (just (ret-tp [] as))
+        (just (ps , kᵢ , k , cs')) →
+          check-type Tₘ (just kᵢ) ≫span
+          let Tₘ = qualif-type Γ Tₘ
+              uqX = maybe-else X id $ var-suffix X
+              X' = λ x → x ^ "/" ^ uqX
+              xₜₒ = mu-name-cast
+              is = drop-last 1 $ kind-to-indices Γ kᵢ
+              ps' = maybe-else [] id ps
+              subst-ctr : ctxt → ctr → ctr
+              subst-ctr = λ {Γ (Ctr pi x T) → Ctr pi x $ maybe-else' x? T λ x →
+                {-hnf Γ unfold-all-} (subst Γ (params-to-tplams ps' $ mtpvar $ X' x) X T) {-ff-}}
+              subst-ctrs = map ∘ subst-ctr
+              Γ' = maybe-else' x? Γ λ x →
+                     let Γ' = ctxt-term-def pi' localScope OpacTrans (xₜₒ x) id-term
+                                (indices-to-alls is $ TpArrow
+                                  (indices-to-tpapps is $ mtpvar $ X' x) NotErased
+                                  (indices-to-tpapps is $ params-to-tpapps ps' $ mtpvar X)) $
+                              ctxt-datatype-def pi' (X' x) nothing (indices-to-kind is $ KndTpArrow (indices-to-tpapps is $ mtpvar $ X' x) star) k (subst-ctrs (ctxt-var-decl (X' x) Γ) cs') Γ
+                         freshₓ = fresh-var "x" (ctxt-binds-var Γ') empty-renamectxt in
+                     ctxt-term-def pi' localScope OpacTrans x
+                       (substs Γ (ctxt-get-qualif Γ) (mlam freshₓ $ Mu pi-gen pi-gen x (mvar freshₓ)
+                         NoType pi-gen (erase-cases cs) pi-gen))
+                       (let freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt in
+                        indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar $ X' x) $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mvar $ xₜₒ x) $ mvar freshₓ) Γ' in
+          with-ctxt Γ'
+            (check-cases cs (maybe-map (λ x → x , X , X' x) x?)
+               (foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie $ subst-ctrs Γ' cs') ps'
+                 (maybe-else [] (flip ttys-to-args-for-params as) ps) is Tₘ ≫=span λ e? →
+             spanM-add (elim-pair
+               (check-for-type-mismatch-if Γ "synthesized" mtp (ret-tp ps' as)) λ tvs e →
+                  Mu-span Γ pi pi'' tt (maybe-to-checking mtp) tvs
+                    (e? maybe-or (e maybe-or (x? ≫=maybe λ _ → (maybe-not ps) ≫maybe
+                      just ("Abstract datatypes can only be pattern matched with μ'"))))) ≫span
+             return-when mtp (just (ret-tp ps' as)))
+    (just (Tₕ , as)) →
+      spanM-add (Mu-span Γ pi pi'' tt (maybe-to-checking mtp)
+        [ head-type Γ Tₕ ] syn-err-not-mch) ≫span
+      return-when mtp (just (ret-tp [] as))
+    nothing → check-fail mtp

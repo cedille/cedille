@@ -146,6 +146,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
   spanM-add (DefDatatype-span Γ pi x (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) pi'') ≫span
   spanM-add (DefDatatype-header-span pi) ≫span
   get-ctxt λ old-Γ →
+  spanM-lookup-restore-info x ≫=span λ m →
   check-and-add-params pi'' ps ≫=span λ ms →
   get-ctxt λ Γ →
   check-kind k ≫span
@@ -153,22 +154,23 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
       mn = ctxt-get-current-modname Γ
       qx = mn # x
       ps = qualif-params old-Γ ps
+      mps = ctxt-get-current-params Γ ++ ps
       k' = qualif-kind Γ k
       kᵢ = kind-to-indices Γ k'
       kᵢ = indices-to-kind kᵢ $ KndTpArrow
-             (indices-to-tpapps kᵢ $ params-to-tpapps ps $ mtpvar qx) star in
+             (indices-to-tpapps kᵢ $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
      spanM-add (TpVar-span Γ pi' x checking
        (keywords-data-var ff :: kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
-     process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx)
-         (params-to-args $ (ctxt-get-current-params Γ) ++ ps))
+     process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (reverse $ params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs tt ≫span
      get-ctxt λ Γ → set-ctxt
-       (ctxt-datatype-def pi' x ps kᵢ k'
+       (ctxt-datatype-def pi' x (just ps) kᵢ k'
          (flip map cs λ {(Ctr pi x' T) → Ctr posinfo-gen (mn # x')
-           (subst Γ (params-to-tpapps (ctxt-get-current-params Γ ++ ps) (mtpvar qx))
-             (qualif-var Γ x) (qualif-type Γ T))}) (ctxt-restore-info* Γ ms)) ≫span
+           (subst Γ (params-to-tpapps mps (mtpvar qx))
+             (qualif-var Γ x) (qualif-type Γ T))})
+         (ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms)) ≫span
      get-ctxt λ Γ →
      spanMr (record s {Γ = Γ}))
 
@@ -247,6 +249,7 @@ process-ctrs X Xₜ piₓ ps s ((Ctr pi x T) :: ds) tt =
      spanM-add (Var-span Γ pi x checking [ summary-data x (ctxt-type-def piₓ globalScope OpacTrans (unqual-local X) (mall "X" (Tkk star) (mtpvar "X")) star Γ) T ] neg-err) ≫span
      spanMr (record s {Γ = Γ}))
 
+-- TODO: Handle datatype definitions when need-to-check false
 process-ctrs X Xₜ piₓ ps s [] ff = spanMr s
 process-ctrs X Xₜ piₓ ps s ((Ctr pi x T) :: ds) ff = spanMr s
 

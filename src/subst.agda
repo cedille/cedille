@@ -94,10 +94,10 @@ substh-term Γ ρ σ (Theta _ θ t ls) = Theta posinfo-gen (substh-theta θ) (su
         substh-theta : theta → theta
         substh-theta (AbstractVars xs) = AbstractVars (substh-vars xs)
         substh-theta θ = θ
-substh-term Γ ρ σ (Mu _ x t ot _ cs _) =
+substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
   let x' = subst-rename-var-if Γ ρ x σ in
   let ρ' = renamectxt-insert ρ x x'    in
-    Mu posinfo-gen x' (substh-term (ctxt-var-decl x' Γ) ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ' σ cs) posinfo-gen
+    Mu posinfo-gen posinfo-gen x' (substh-term (ctxt-var-decl x' Γ) ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ' σ cs) posinfo-gen
 substh-term Γ ρ σ (Mu' _ t ot _ cs _) = Mu' posinfo-gen (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ σ cs) posinfo-gen
 
 substh-cases Γ ρ σ = map λ where
