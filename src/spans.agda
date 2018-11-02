@@ -758,6 +758,11 @@ Delta-span Γ pi T t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
 
+Open-span : ctxt → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
+Open-span Γ pi x t check tvs =
+  mk-span "Open" pi (term-end-pos t)
+    (ll-data-term :: explain "Open an opaque definition" :: checking-data check :: tvs)
+
 motive-label : string
 motive-label = "the motive"
 
