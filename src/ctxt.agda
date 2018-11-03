@@ -69,8 +69,14 @@ inst-kind : ctxt → params → args → kind → kind
 inst-kind Γ ps as k with mk-inst ps as
 ...| σ , ps' = abs-expand-kind (substs-params Γ σ ps') (substs Γ σ k)
 
+inst-ctrs : ctxt → params → args → ctrs → ctrs
+inst-ctrs Γ ps as c with mk-inst ps as
+...| σ , ps' = flip map c λ where
+  (Ctr pi x T) → Ctr pi x (abs-expand-type (substs-params Γ σ ps') (substs Γ σ T))
+
 maybe-inst-type = maybe-else (λ as T → T) ∘ inst-type
 maybe-inst-kind = maybe-else (λ as T → T) ∘ inst-kind
+maybe-inst-ctrs = maybe-else (λ as c → c) ∘ inst-ctrs
 
 
 qualif-x : ∀ {ℓ} {X : Set ℓ} → (ctxt → qualif → X) → ctxt → X
@@ -207,7 +213,7 @@ ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-loo
 ctxt-lookup-datatype : ctxt → var → args → maybe (defParams × kind × kind × ctrs)
 ctxt-lookup-datatype Γ x as with env-lookup Γ x
 ... | just (datatype-def ps kᵢ k cs , _) =
-  just (ps , maybe-inst-kind Γ ps as kᵢ , maybe-inst-kind Γ ps as k , cs)
+  just (ps , maybe-inst-kind Γ ps as kᵢ , maybe-inst-kind Γ ps as k , maybe-inst-ctrs Γ ps as cs)
 ... | _ = nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)

@@ -407,11 +407,11 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
 ctxt-datatype-def : posinfo → var → defParams → kind → kind → ctrs → ctxt → ctxt
 ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , q') 
-  ((trie-insert-append2 syms fn mn v) , mn-fn)
+  (maybe-else syms (λ _ → trie-insert-append2 syms fn mn v) psᵢ , mn-fn)
   (trie-insert i v' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , pi))
   symb-occs
   where
-  v' = if isJust psᵢ then mn # v else v
+  v' = if isJust psᵢ then mn # v else pi % v
   q' = qualif-insert-params q v' v (maybe-else [] (λ _ → ps) psᵢ)
 
 -- assumption: classifier (i.e. kind) already qualified
