@@ -176,7 +176,7 @@ ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
 ... | just (as , term-def mps _ t T , _) = just $ maybe-inst-type Γ mps as T
-... | just (as , const-def mps T , _) = just $ maybe-inst-type Γ mps as T
+... | just (as , ctr-def mps T _ _ _ , _) = just $ maybe-inst-type Γ mps as T
 ... | _ = nothing
 
 ctxt-lookup-tk-var : ctxt → var → maybe tk
@@ -186,7 +186,7 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-def mps _ t T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , type-def mps _ T k , _) = just $ Tkk $ maybe-inst-kind Γ mps as k
 ... | just (as , datatype-def ps kᵢ k cs , _) = just $ Tkk $ maybe-inst-kind Γ ps as k
-... | just (as , const-def mps T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
+... | just (as , ctr-def mps T _ _ _ , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | _ = nothing
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term

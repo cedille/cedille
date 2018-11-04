@@ -94,13 +94,13 @@ apps-term : term → args → term
 --apps-term f [] = f
 --apps-term f ((TermArg me t) :: as) = apps-term (App f me t) as
 --apps-term f ((TypeArg t) :: as) = apps-term (AppTp f t) as
-apps-term = foldr λ {(TermArg me t) x → App x me t; (TypeArg T) x → AppTp x T}
+apps-term = foldl λ {(TermArg me t) x → App x me t; (TypeArg T) x → AppTp x T}
 
 apps-type : type → args → type
 --apps-type f [] = f
 --apps-type f ((TermArg _ t) :: as) = apps-type (TpAppt f t) as
 --apps-type f ((TypeArg t) :: as) = apps-type (TpApp f t) as
-apps-type = foldr λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x T}
+apps-type = foldl λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x T}
 
 qualif-lookup-term : qualif → string → term
 qualif-lookup-term σ x with trie-lookup σ x
@@ -481,12 +481,19 @@ decompose-lams t = [] , t
 {- decompose a term into spine form consisting of a non-applications head and arguments.
    The outer arguments will come earlier in the list than the inner ones.
    As for decompose-lams, we assume the term is at least erased. -}
-decompose-apps : term → term × (𝕃 term)
+{-decompose-apps : term → term × (𝕃 term)
 decompose-apps (App t _ t') with decompose-apps t
 decompose-apps (App t _ t') | h , args = h , (t' :: args)
-decompose-apps t = t , []
+decompose-apps t = t , []-}
 
-decompose-var-headed : (var → 𝔹) → term → maybe (var × (𝕃 term))
+decompose-apps : term → term × args
+decompose-apps = h [] where
+  h : args → term → term × args
+  h acc (App t me t') = h (TermArg me t' :: acc) t
+  h acc (AppTp t T) = h (TypeArg T :: acc) t
+  h acc t = t , acc
+
+decompose-var-headed : (var → 𝔹) → term → maybe (var × args)
 decompose-var-headed is-bound t with decompose-apps t
 decompose-var-headed is-bound t | Var _ x , args = if is-bound x then nothing else (just (x , args))
 decompose-var-headed is-bound t | _ = nothing
@@ -508,24 +515,42 @@ ttys-to-args-for-params ((Decl _ _ me _ _ _) :: ps) ((tterm t) :: as) =
 ttys-to-args-for-params (_ :: ps) ((ttype T) :: as) =
   TypeArg T :: ttys-to-args-for-params ps as
 ttys-to-args-for-params _ _ = []
-
-decompose-tpapps : type → type × 𝕃 tty 
+{-
+decompose-tpapps : type → type × 𝕃 tty
 decompose-tpapps (TpApp t t') with decompose-tpapps t
 decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
 decompose-tpapps (TpAppt t t') with decompose-tpapps t
 decompose-tpapps (TpAppt t t') | h , args = h , (tterm t') :: args
 decompose-tpapps (TpParens _ t _) = decompose-tpapps t
 decompose-tpapps t = t , []
+-}
+decompose-tpapps : type → type × 𝕃 tty
+decompose-tpapps = h [] where
+  h : 𝕃 tty → type → type × 𝕃 tty
+  h acc (TpApp T T') = h (ttype T' :: acc) T
+  h acc (TpAppt T t) = h (tterm t :: acc) T
+  h acc (TpParens _ T _) = h acc T
+  h acc T = T , acc
 
-recompose-tpapps : type × 𝕃 tty → type
-recompose-tpapps (h , []) = h
-recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
-recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
+recompose-tpapps : 𝕃 tty → type → type
+recompose-tpapps = flip $ foldl λ {(ttype T') T → TpApp T T'; (tterm t) T → TpAppt T t}
+--recompose-tpapps (h , []) = h
+--recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
+--recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
-recompose-apps : maybeErased → 𝕃 tty → term → term
-recompose-apps me [] h = h
-recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
-recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
+recompose-apps : args → term → term
+recompose-apps = flip $ foldl λ {(TermArg me t') t → App t me t'; (TypeArg T) t → AppTp t T}
+--recompose-apps me [] h = h
+--recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
+--recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
+
+unerased-arrows : type → ℕ
+unerased-arrows (TpArrow T NotErased T') = suc $ unerased-arrows T'
+unerased-arrows (TpArrow T Erased T') = unerased-arrows T'
+unerased-arrows (Abs _ NotErased _ _ _ T) = suc $ unerased-arrows T
+unerased-arrows (Abs _ Erased _ _ _ T) = unerased-arrows T
+unerased-arrows (TpParens _ T _) = unerased-arrows T
+unerased-arrows T = 0
 
 vars-to-𝕃 : vars → 𝕃 var
 vars-to-𝕃 (VarsStart v) = [ v ]
@@ -570,6 +595,7 @@ erase-liftingType : liftingType → liftingType
 erase-cases : cases → cases
 erase-case : case → case
 erase-caseArgs : caseArgs → caseArgs
+erase-term-args : args → 𝕃 term
 
 erase-if : 𝔹 → { ed : exprd } → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-if tt = erase
@@ -607,6 +633,10 @@ erase-case (Case _ x as t) = Case posinfo-gen x (erase-caseArgs as) (erase-term 
 erase-caseArgs [] = []
 erase-caseArgs ((CaseTermArg pi NotErased t) :: as) = CaseTermArg posinfo-gen NotErased t :: erase-caseArgs as
 erase-caseArgs (_ :: as) = erase-caseArgs as
+
+erase-term-args [] = []
+erase-term-args (TermArg NotErased t :: as) = erase t :: erase-term-args as
+erase-term-args (_ :: as) = erase-term-args as
 
 -- Only erases TERMS in types, leaving the structure of types the same
 erase-type (Abs _ b _ v atk tp) = Abs posinfo-gen b posinfo-gen v (erase-tk atk) (erase-type tp)
@@ -746,6 +776,11 @@ erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) with var-suffix x
 erased-params (p :: ps) = erased-params ps
 erased-params [] = []
 
+unerased-args : args → 𝕃 term
+unerased-args [] = []
+unerased-args (TermArg NotErased t :: as) = t :: unerased-args as
+unerased-args (_ :: as) = unerased-args as
+
 lam-expand-term : params → term → term
 lam-expand-term ((Decl _ _ me x tk _) :: ps) t =
   Lam posinfo-gen (if tk-is-type tk then me else Erased) posinfo-gen x (SomeClass tk) (lam-expand-term ps t)
@@ -841,7 +876,7 @@ delta-contra-app : ℕ → (ℕ → term) → term
 delta-contra-app 0 nt = mvar "x"
 delta-contra-app (suc n) nt = mapp (delta-contra-app n nt) (nt n)
 
-delta-contrahh : ℕ → trie ℕ → trie ℕ → var → var → 𝕃 term → 𝕃 term → maybe term
+delta-contrahh : ℕ → trie ℕ → trie ℕ → var → var → args → args → maybe term
 delta-contrahh n ls rs x1 x2 as1 as2 with trie-lookup ls x1 | trie-lookup rs x2
 ...| just n1 | just n2 =
   let t1 = nlam (length as1) (mlam "x" (mlam "y" (mvar "x")))

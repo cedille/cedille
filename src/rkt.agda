@@ -95,7 +95,7 @@ rkt-from-sym-info n (rename-def v , _)
   = rkt-dbg ("rename-def: " ^ v)    [[]]
 rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             [[]]
-rkt-from-sym-info n (const-def _ _ , _) 
+rkt-from-sym-info n (ctr-def _ _ _ _ _ , _) 
   = rkt-dbg "const-def:"           [[]]
 rkt-from-sym-info n (datatype-def _ _ _ _ , _) 
   = rkt-dbg "datatype-def:"           [[]]

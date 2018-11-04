@@ -1898,10 +1898,10 @@ check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
   get-ctxt λ Γ → 
   check-termi t nothing ≫=span λ T →
   let syn-err-not-mch = just "The head type of the subterm is not a datatype"
-      ret-tp = λ ps as → TpAppt (apps-type (qualif-type Γ Tₘ) $ ttys-to-args NotErased (take (length as ∸ length ps) as)) (qualif-term Γ t) in
+      ret-tp = λ ps as → TpAppt (apps-type (qualif-type Γ Tₘ) $ ttys-to-args NotErased (drop (length ps) as)) (qualif-term Γ t) in
   case_of_ (maybe-map decompose-tpapps T) λ where
     (just (TpVar _ X , as)) →
-      case (ctxt-lookup-datatype Γ X (ttys-to-args NotErased $ reverse as)) of λ where
+      case (ctxt-lookup-datatype Γ X (ttys-to-args NotErased as)) of λ where
         nothing →
           spanM-add (Mu-span Γ pi pi'' tt (maybe-to-checking mtp)
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) syn-err-not-mch) ≫span

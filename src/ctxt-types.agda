@@ -36,7 +36,7 @@ data ctxt-info : Set where
   datatype-def : defParams → (ind reg : kind) → ctrs → ctxt-info
 
   -- for defining a datatype constructor
-  const-def : defParams → type → ctxt-info
+  ctr-def : defParams → type → (ctrs-length ctr-index ctr-unerased-arrows : ℕ) → ctxt-info
 
   -- for declaring a variable to have a given type (with no definition)
   term-decl : type → ctxt-info
@@ -77,7 +77,7 @@ is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
 is-term-level (term-def _ _ _ _) = tt
 is-term-level (term-udef _ _ _) = tt
-is-term-level (const-def _ _ ) = tt
+is-term-level (ctr-def _ _ _ _ _ ) = tt
 is-term-level _ = ff
 
 data ctxt : Set where

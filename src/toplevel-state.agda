@@ -161,7 +161,7 @@ ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defPa
 ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
-ctxt-info-to-string (const-def _ _) = "const-def"
+ctxt-info-to-string (ctr-def _ _ _ _ _) = "ctr-def"
 ctxt-info-to-string (datatype-def ps kᵢ k cs) = "datatype-def: {defParams: {" ^ defParams-to-string ps ^ "}, inductive hypothesis kind: " ^ rope-to-string (to-string empty-ctxt kᵢ) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ ", cs: " ^ "TODO" ^ "}"
 
 sym-info-to-string : sym-info → string

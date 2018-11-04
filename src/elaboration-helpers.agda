@@ -420,7 +420,7 @@ mk-ctr-type : maybeErased → ctxt → ctr → ctrs → var → type
 mk-ctr-type me Γ (Ctr _ x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl Tₕ Γ) T
 ...| Tₓ , ps , is =
   params-to-alls ps $
-  TpAppt (curry recompose-tpapps (mtpvar Tₕ) is) $
+  TpAppt (recompose-tpapps is $ mtpvar Tₕ) $
   rename "X" from add-params-to-ctxt ps (ctxt-var-decl Tₕ Γ) for λ X →
   mk-ctr-term me x X cs ps
 
@@ -573,7 +573,7 @@ record datatype-encoding : Set where
       ...| Γ' =
         params-to-lams' ps $
         flip mapp (params-to-apps ps $ mvar x') $
-        recompose-apps Erased as $
+        recompose-apps (ttys-to-args Erased as) $
         flip mappe (mvar cₓ) $
         flip AppTp (mtpvar Bₓ) $
         AppTp (mvar castₓ) (mtpvar Aₓ)
@@ -600,7 +600,7 @@ record datatype-encoding : Set where
     ...| Tₕ , ps' , as' = DefTerm pi-gen x' NoType $
       params-to-lams ps $
       params-to-lams ps' $
-      mapp (recompose-apps Erased (take (length as' ∸ length ps) as') $
+      mapp (recompose-apps (ttys-to-args Erased $ drop (length ps) as') $
             mappe (AppTp (mvar fixpoint-inₓ) $
               params-to-tpapps ps $ mtpvar data-functorₓ) $
         params-to-apps ps $ mvar data-fmapₓ) $
