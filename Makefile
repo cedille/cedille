@@ -184,3 +184,6 @@ elisp-lines:
 
 agda-lines:
 	wc -l $(AGDASRC:%=$(SRCDIR)//%)
+
+agda-install:
+	./script/bootstrap

@@ -1,0 +1,15 @@
+module issue-45.
+
+opaque Nat ◂ ★ = ∀ X: ★. X ➔ (X ➔ X) ➔ X.
+
+{-
+  The spans generated for the opened variable are not positioned correctly when
+  there is preceding whitespace
+-}
+zero ◂ Nat = open      Nat - Λ X. λ z. λ s. z.
+--                ^-^
+
+{-
+  It looks like the Open constructor of the AST needs to track the posinfo for
+  the opened variable itself, too.
+-}
