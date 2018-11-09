@@ -70,8 +70,8 @@ processOptions filename s with options-types.scanOptions s
 getOptionsFile : (filepath : string) → string
 getOptionsFile fp = combineFileNames (dot-cedille-directory fp) options-file-name
 
-findOptionsFile : (filepath : string) → IO (maybe string)
-findOptionsFile fp =
+findOptionsFile' : (filepath : string) → IO (maybe string)
+findOptionsFile' fp =
   traverseParents fp (fp-fuel fp)
   >>= λ where
     fpc?@(just fpc) → return fpc?
@@ -96,22 +96,22 @@ findOptionsFile fp =
   fp-fuel : (filepath : string) → ℕ
   fp-fuel fp = pred ∘' length ∘' splitPath $ fp
 
-readOptions : IO (string × cedille-options.options)
-readOptions =
-  getCurrentDirectory >>=
-  canonicalizePath >>=
-  findOptionsFile >>= λ where
-    nothing →
-      getHomeDirectory >>=
-      canonicalizePath >>= λ home →
-      createOptionsFile (dot-cedille-directory home) >>r
-      dot-cedille-directory home , cedille-options.default-options
-    (just fp) → readFiniteFile fp >>= λ fc →
-      processOptions fp fc >>= λ where
-        (inj₁ err) →
-          putStrLn (global-error-string err) >>r
-          fp , cedille-options.default-options
-        (inj₂ ops) → return (fp , ops)
+findOptionsFile : IO (maybe string)
+findOptionsFile =
+  getCurrentDirectory >>= canonicalizePath >>= findOptionsFile'
+
+readOptions : maybe string → IO (string × cedille-options.options)
+readOptions nothing =
+  getHomeDirectory >>=
+  canonicalizePath >>= λ home →
+  createOptionsFile (dot-cedille-directory home) >>r
+  dot-cedille-directory home , cedille-options.default-options
+readOptions (just fp) = readFiniteFile fp >>= λ fc →
+  processOptions fp fc >>= λ where
+    (inj₁ err) →
+      putStrLn (global-error-string err) >>r
+        fp , cedille-options.default-options
+    (inj₂ ops) → return (fp , ops)
 
 
 module main-with-options
@@ -454,12 +454,11 @@ module main-with-options
   processArgs xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                            ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
   
-  main' : IO ⊤
-  main' =
+  main' : 𝕃 string → IO ⊤
+  main' args =
     maybeClearLogFile >>
     logMsg ("Started Cedille process (compiled at: " ^ utcToString compileTime ^ ")") >>
-    getArgs >>=
-    processArgs
+    processArgs args
 
 postulate
   initializeStdinToUTF8 : IO ⊤
@@ -485,6 +484,29 @@ postulate
            (Data.Time.Format.formatTime Data.Time.Format.defaultTimeLocale "%s" t)))))
     :: Maybe Data.Time.Clock.UTCTime) #-}
 
+record cedille-args : Set where
+  constructor mk-cedille-args
+  field
+    opts-file : maybe filepath
+    files     : 𝕃 string
+
+getCedilleArgs : IO cedille-args
+getCedilleArgs = getArgs >>= λ args → filterArgs args (mk-cedille-args nothing [])
+  where
+  is-opts-flag = "--options" =string_
+
+  bad-flag : IO ⊤
+  bad-flag = putStrLn "Warning: Flag --options should be followed by a Cedille options file"
+
+  -- allow for later --options to override earlier. This is a bash idiom
+  filterArgs : 𝕃 string → cedille-args → IO cedille-args
+  filterArgs [] args = return args
+  filterArgs (x :: []) args = if is-opts-flag x then bad-flag >> return args
+    else (return $ record args {files = x :: cedille-args.files args})
+  filterArgs (x :: y :: xs) args
+    = if is-opts-flag x then filterArgs xs (record args { opts-file = just y})
+      else filterArgs (y :: xs) (record args { files = x :: cedille-args.files args})
+
 -- main entrypoint for the backend
 main : IO ⊤
 main = initializeStdoutToUTF8 >>
@@ -492,5 +514,7 @@ main = initializeStdoutToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
        setToLineBuffering >>
-       readOptions >>=
-       uncurry (main-with-options.main' compileTime)
+       getCedilleArgs >>= λ args → let (mk-cedille-args optsf fs) = args in (case optsf of λ where
+         nothing → findOptionsFile >>= readOptions
+         (just opts) → readOptions $ just opts)
+       >>= λ o → main-with-options.main' compileTime (fst o) (snd o) fs
