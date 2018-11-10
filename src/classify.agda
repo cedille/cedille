@@ -1839,7 +1839,7 @@ check-case (Case pi x as t) csₓ ctr-ps drop-ps Tₘ =
     (λ where
       (x' , T , Tₕ , ps , is) →
         decl-args as ps empty-trie ≫=spanc λ e σ →
-        let Tₘ' = TpAppt (apps-type Tₘ (ttys-to-args' Γ σ (drop-last drop-ps is))) (app-caseArgs (apps-term (mvar x') ctr-ps) as) in
+        let Tₘ' = TpAppt (apps-type Tₘ (ttys-to-args' Γ σ (drop drop-ps is))) (app-caseArgs (apps-term (mvar x') ctr-ps) as) in
         spanM-add (Var-span Γ pi x synthesizing ([ type-data Γ T ]) e) ≫span
         check-term t (just Tₘ') ≫span
         set-ctxt Γ ≫span
@@ -1924,7 +1924,7 @@ check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
                          Γ' = ctxt-term-def pi' localScope OpacTrans xₜₒ id-term
                                 (indices-to-alls is $ TpArrow
                                   (indices-to-tpapps is $ mtpvar qX') NotErased
-                                  (indices-to-tpapps is $ params-to-tpapps ps' $ mtpvar X)) $
+                                  (indices-to-tpapps is $ recompose-tpapps (take (length ps') as) $ mtpvar X)) $
                               ctxt-datatype-def pi' X' nothing (indices-to-kind is $ KndTpArrow (indices-to-tpapps is $ mtpvar qX') star) (indices-to-kind is star) (subst-ctrs (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var Γ') empty-renamectxt in
                      ctxt-term-def pi' localScope OpacTrans x
