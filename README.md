@@ -1,4 +1,6 @@
 # The Cedille Programming Language
+[![Build Status](https://travis-ci.org/cedille/cedille.svg?branch=master)](https://travis-ci.org/cedille/cedille)
+
 Please see the
 [Cedille homepage](https://cedille.github.io/)
 for an introduction to Cedille.

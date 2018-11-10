@@ -29,7 +29,7 @@
   (cedille-platform-case
    "cedille"
    nil
-   "/usr/bin/cedille"
+   "cedille"
    (concat (file-name-as-directory cedille-path) "cedille")))
 
 (defvar cedille-path-el

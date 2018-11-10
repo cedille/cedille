@@ -13,3 +13,11 @@ VlookupVmap ◂ ∀ A : ★ . ∀ f : Top . ∀ n : Nat . Π v : Vector · A n .
                   θ<m> (NatInd m)
                      (Λ _ . β)
                      (λ pm . λ _ . Λ u . ρ (ih pm -u) - β)).
+
+VectorZEq ◂ ∀ A : ★ . Π x : Vector · A Z . Π y : Vector · A Z . { x ≃ y }
+  = Λ A . λ x . λ y .
+    x.2 · (λ m : Nat . λ x : Vector' · A m . {m ≃ Z} ➔ {x ≃ y })
+      (y.2 · (λ m : Nat . λ y : Vector' · A m . {m ≃ Z} ➔ {Vnil' ≃ y})
+        (λ _ . β) (Λ n' . Λ t . λ h . λ _ . λ p . ZS-False -n' -(ς p) · { Vnil' ≃ Vcons' h t}))
+      (Λ n' . Λ tl . λ h . λ _ . λ p . ZS-False -n' -(ς p) · {Vcons' h tl ≃ y})
+      β.

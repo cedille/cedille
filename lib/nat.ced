@@ -9,6 +9,7 @@ import cast.
 import recType.
 import bool.
 import sum.
+import cnat.
 
 Zu ◂ Top = β{λ a . λ f . a}.
 Su ◂ Top = β{λ p . λ n . λ a . λ f . f p (n a f)} .
@@ -141,3 +142,5 @@ eq ◂ Nat ➔ Nat ➔ Bool =
               (λ m . λ _ . f m)).
 
 lte ◂ Nat ➔ Nat ➔ Bool = λ n : Nat . λ m : Nat . or (lt n m) (eq n m).
+
+to-cNat ◂ Nat ➔ cNat = λ n . NatRec n cZ (λ _ . cS).

@@ -181,6 +181,23 @@ ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , const-def T            , _) = just T
 ... | _ = nothing
 
+ctxt-lookup-var : ctxt → var → maybe tk
+ctxt-lookup-var Γ x with qual-lookup Γ x
+... | just (as , datatype-def _ k , _)          = just (Tkk k)
+... | just (as , const-def T , _)               = just (Tkt T)
+... | just (as , term-decl T , _)               = just $ Tkt T
+... | just (as , term-def nothing _ t T , _)    = just $ Tkt T
+... | just (as , term-def (just ps) _ t T , _)  = just $ Tkt (inst-type Γ ps as T)
+... | just (as , type-decl k , _)               = just $ Tkk k
+... | just (as , type-def nothing _ _ k , _)    = just $ Tkk k
+... | just (as , type-def (just ps) _ _ k , _)  = just ∘ Tkk $ inst-kind Γ ps as k
+... | _                                         = nothing
+-- ... | just (as , var-decl , _) = {!!}
+-- ... | just (as , rename-def _ , _) = {!!}
+-- ... | just (as , term-udef x₂ x₃ x₄ , x₁) = {!!}
+-- ... | just (as , kind-def x₂ x₃ , x₁) = {!!}
+-- ... | nothing = {!!}
+
 ctxt-lookup-tk-var : ctxt → var → maybe tk
 ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just $ Tkt T

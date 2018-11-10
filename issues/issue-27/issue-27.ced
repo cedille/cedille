@@ -1,0 +1,16 @@
+module issue-27.
+
+{-
+  This is essentially Agda feature envy. While working with incomplete programs,
+  sometimes its nice to be able to select a hole `●` and say "refine this with the
+  function `f`. This feature works best when the hole has some expected type,
+  and comparing this to `f` (say, if `f` takes two arguments) causes the hole to
+  be replaced with `f ● ●`.
+
+  As a first phase of this, we would want functionality to do the following:
+  1) `*●*` <-- In navi mode, when the user has a hole span selected
+  2) They can press say `C-i g` to open up a "Give" buffer
+  3) Type in the expression they want to give, such as `f ● ●`
+  4) Emacs will leave navi mode, replace the span with the given code, and
+     re-enter navi mode
+-}
