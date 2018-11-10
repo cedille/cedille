@@ -104,7 +104,7 @@ libraries:
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs
 	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
 
-./src/templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
+./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
