@@ -1847,11 +1847,11 @@ check-args-against-params kind-or-import orig ps ys =
   caap ff (ParamsCons (Decl _ pi Erased x (Tkt T) _) ps) (ArgsCons (TermArg NotErased t) ys) σ =
     get-ctxt λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]
-                 (just ("A term argument was supplied for erased term parameter " ^ x)))
+                 (just ("A term argument was supplied for erased term parameter " ^ unqual-local x)))
   caap ff (ParamsCons (Decl _ pi NotErased x (Tkt T) _) ps) (ArgsCons (TermArg Erased t) ys) σ =
     get-ctxt λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ t ]
-                 (just ("An erased term argument was supplied for term parameter " ^ x)))
+                 (just ("An erased term argument was supplied for term parameter " ^ unqual-local x)))
   -- Either a kind argument or a correctly erased module argument
   caap koi (ParamsCons (Decl _ pi me x (Tkt T) _) ps) (ArgsCons (TermArg me' t) ys) σ =
     get-ctxt λ Γ →
@@ -1860,15 +1860,15 @@ check-args-against-params kind-or-import orig ps ys =
   caap koi (ParamsCons (Decl _ x₁ _ x (Tkk x₃) x₄) ps₁) (ArgsCons (TermArg _ x₅) ys₂) σ =
     get-ctxt λ Γ → 
     spanM-add (make-span Γ [ term-argument Γ x₅ ]
-                 (just ("A term argument was supplied for type parameter " ^ x)))
+                 (just ("A term argument was supplied for type parameter " ^ unqual-local x)))
   caap koi (ParamsCons (Decl _ x₁ _ x (Tkt x₃) x₄) ps₁) (ArgsCons (TypeArg x₅) ys₂) σ = 
     get-ctxt λ Γ → 
     spanM-add (make-span Γ [ type-argument Γ x₅ ]
-                 (just ("A type argument was supplied for term parameter " ^ x)))
+                 (just ("A type argument was supplied for term parameter " ^ unqual-local x)))
   caap tt (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil σ =
     get-ctxt λ Γ → 
     spanM-add (make-span Γ []
-                 (just ("Missing an argument for parameter " ^ x)))
+                 (just ("Missing an argument for parameter " ^ unqual-local x)))
   caap ff (ParamsCons (Decl _ _ _ x _ _) ps₁) ArgsNil σ =
     get-ctxt λ Γ → spanM-add (make-span Γ [] nothing)
   caap koi ParamsNil (ArgsCons x₁ ys₂) σ = 
