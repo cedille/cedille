@@ -2,6 +2,7 @@ module subst where
 
 open import lib
 
+open import constants
 open import cedille-types
 open import ctxt-types
 open import is-free
@@ -95,11 +96,21 @@ substh-term Γ ρ σ (Theta _ θ t ls) = Theta posinfo-gen (substh-theta θ) (su
         substh-theta (AbstractVars xs) = AbstractVars (substh-vars xs)
         substh-theta θ = θ
 substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
-  let x' = subst-rename-var-if Γ ρ x σ in
-  let ρ' = renamectxt-insert ρ x x'    in
-    Mu posinfo-gen posinfo-gen x' (substh-term (ctxt-var-decl x' Γ) ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ' σ cs) posinfo-gen
+  let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x
+      x' = fresh-var x (λ x → fv x || fv (mu-name-cast x)) ρ
+      ρ' = renamectxt-insert ρ x x' in
+    Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases (ctxt-var-decl x' $ ctxt-var-decl (mu-name-cast x') Γ) ρ' σ cs) posinfo-gen
 substh-term Γ ρ σ (Mu' _ t ot _ cs _) = Mu' posinfo-gen (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ σ cs) posinfo-gen
 
+substh-cases{QUALIF} Γ ρ σ = map λ where
+  (Case _ x as t) →
+    elim-pair (substh-caseArgs Γ ρ σ as) λ as' ρ' →
+    maybe-else' (trie-lookup σ x)
+      (Case posinfo-gen x as' (substh-term Γ ρ' σ t))
+      λ {(x' , qas) → Case posinfo-gen x'
+        (map (λ{(TermArg me t) → CaseTermArg posinfo-gen me ignored-var;
+                (TypeArg T) → CaseTypeArg posinfo-gen ignored-var}) qas ++ as')
+             (substh-term Γ ρ' σ t)}
 substh-cases Γ ρ σ = map λ where
   (Case pi x as t) →
     elim-pair (substh-caseArgs Γ ρ σ as) λ as' ρ' →
@@ -222,6 +233,8 @@ subst-kind = subst {KIND}
 subst-liftingType = subst {LIFTINGTYPE}
 subst-tk = subst {TK}
 
+subst-cases : subst-ret-t cases
+subst-cases Γ t x = substh-cases Γ empty-renamectxt (trie-single x t)
 
 subst-renamectxt : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
 subst-renamectxt {ed} Γ ρ = substh {ed} {ed} Γ ρ empty-trie
@@ -247,6 +260,9 @@ substs-args Γ = substh-args Γ empty-renamectxt
 
 substs-params : substs-ret-t params
 substs-params Γ = substh-params Γ empty-renamectxt
+
+substs-cases : substs-ret-t cases
+substs-cases Γ = substh-cases Γ empty-renamectxt
 
 subst-params-args : ∀ {ed} → ctxt → params → args → ⟦ ed ⟧ → ⟦ ed ⟧ × params × args
 subst-params-args Γ ((Decl _ _ me x atk _) :: ps) (a :: as) t =

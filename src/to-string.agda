@@ -125,7 +125,7 @@ to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-abs (LiftTpArrow T lT) = , LiftPi
 to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
 ...| ,_ {TERM} (Sigma pi' t') = , t'
 ...| ,_ {TERM} t' = , Sigma posinfo-gen t'
-...| t? = t? -- Shouldn't happen
+...| t? = , Sigma posinfo-gen t
 to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
 
@@ -275,7 +275,7 @@ ctrs-to-string ((Ctr _ x T) :: cs) =
   ctrs-to-string cs
 
 cases-to-string [] = strEmpty
-cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (to-stringh t)
+cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringh t) ≫str cases-to-string cs
 
 caseArgs-to-string [] m = m
 caseArgs-to-string ((CaseTermArg pi me x) :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty m

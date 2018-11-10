@@ -781,6 +781,11 @@ unerased-args [] = []
 unerased-args (TermArg NotErased t :: as) = t :: unerased-args as
 unerased-args (_ :: as) = unerased-args as
 
+unerased-params : params → 𝕃 (var × type)
+unerased-params [] = []
+unerased-params (Decl _ _ NotErased x (Tkt T) _ :: ps) = (x , T) :: unerased-params ps
+unerased-params (_ :: ps) = unerased-params ps
+
 lam-expand-term : params → term → term
 lam-expand-term ((Decl _ _ me x tk _) :: ps) t =
   Lam posinfo-gen (if tk-is-type tk then me else Erased) posinfo-gen x (SomeClass tk) (lam-expand-term ps t)
@@ -839,6 +844,15 @@ spapp-type : spineApp → type
 spapp-type (v , []) = TpVar posinfo-gen v
 spapp-type (v , TermArg me t :: as) = TpAppt (spapp-type (v , as)) t
 spapp-type (v , TypeArg T :: as) = TpApp (spapp-type (v , as)) T
+
+caseArgs-to-lams : caseArgs → term → term
+caseArgs-to-lams = flip $ foldl λ {(CaseTermArg pi me x) → Lam pi-gen me pi-gen x NoClass; (CaseTypeArg pi x) → Lam pi-gen Erased pi-gen x NoClass}
+
+expand-case : case → var × term
+expand-case (Case _ x as t) = x , caseArgs-to-lams as t
+
+expand-cases : cases → trie term
+expand-cases = flip foldr empty-trie λ c σ → uncurry (trie-insert σ) (expand-case c)
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)

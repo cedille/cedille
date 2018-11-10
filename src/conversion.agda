@@ -167,6 +167,18 @@ hnf{TERM} Γ u (Theta _ u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
 hnf{TERM} Γ u (Open _ _ t) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd with decompose-apps (hnf Γ u t hd) | expand-cases cs
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | tₕ , as | α with Mu' pi-gen (recompose-apps as tₕ) NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (erase-cases cs)) pi-gen | tₕ
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | α |  tₒ | Var _ x with trie-lookup α x
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | α | tₒ | Var _ x | just tₓ = hnf Γ u (recompose-apps as tₓ) hd
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | α | tₒ | Var _ x | nothing = tₒ
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | α | tₒ | _ = tₒ
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd with decompose-apps (hnf Γ u t hd) | expand-cases cs
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | α with (λ t → Mu pi-gen pi-gen x t NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (subst-cases Γ id-term (mu-name-cast x) (erase-cases cs))) pi-gen) | tₕ
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | α | tₒ | Var _ x' with trie-lookup α x' | fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | α | tₒ | Var _ x' | just tₓ | fₓ = hnf Γ u (recompose-apps as (subst Γ (mlam fₓ $ tₒ $ mvar fₓ) x tₓ)) hd
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | α | tₒ | Var _ x' | nothing | fₓ = tₒ $ recompose-apps as tₕ
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | α | tₒ | _ = tₒ $ recompose-apps as tₕ
 hnf{TERM} Γ u x hd = x
 
 hnf{TYPE} Γ no-unfolding e _ = e
@@ -287,12 +299,28 @@ hnf-term-type Γ e (TpEq _ t1 t2 _) = TpEq posinfo-gen (hanf Γ e t1) (hanf Γ e
 hnf-term-type Γ e (TpAppt tp t) = hnf Γ (unfolding-set-erased unfold-head e) (TpAppt tp (hanf Γ e t)) tt
 hnf-term-type Γ e tp = hnf Γ unfold-head tp tt
 
+conv-cases : conv-t cases
+conv-cases Γ cs₁ = isJust ∘ foldl (λ c₂ x → x ≫=maybe λ cs₁ → conv-cases' Γ cs₁ c₂) (just cs₁) where
+  conv-cases' : ctxt → cases → case → maybe cases
+  conv-cases' Γ [] (Case _ x₁ as₁ t₁) = nothing
+  conv-cases' Γ (c₂ @ (Case _ x₂ as₂ t₂) :: cs₂) c₁ @ (Case _ x₁ as₁ t₁) with conv-ctr Γ x₁ x₂
+  ...| ff = conv-cases' Γ cs₂ c₁ ≫=maybe λ cs₂ → just (c₂ :: cs₂)
+  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (snd (expand-case c₁)) (snd (expand-case (Case pi-gen x₁ as₂ t₂)))) ≫maybe just cs₂
+
+ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
+
 conv-term-norm Γ (Var _ x) (Var _ x') = ctxt-eq-rep Γ x x' || conv-ctr Γ x x'
 -- hnf implements erasure for terms, so we can ignore some subterms for App and Lam cases below
 conv-term-norm Γ (App t1 m t2) (App t1' m' t2') = conv-term-norm Γ t1 t1' && conv-term Γ t2 t2'
 conv-term-norm Γ (Lam _ l _ x oc t) (Lam _ l' _ x' oc' t') = conv-term (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
+conv-term-norm Γ (Mu _ _ x₁ t₁ _ _ cs₁ _) (Mu _ _ x₂ t₂ _ _ cs₂ _) =
+  let fₓ = fresh-var x₂ (ctxt-binds-var Γ) empty-renamectxt
+      μ = mlam fₓ $ Mu pi-gen pi-gen x₂ (mvar fₓ) NoType pi-gen cs₂ pi-gen
+      Γ' = ctxt-rename x₁ x₂ $ ctxt-term-udef pi-gen localScope OpacTrans x₂ μ Γ in
+  conv-term Γ t₁ t₂ && conv-cases Γ' (subst-cases Γ' id-term (mu-name-cast x₁) cs₁) (subst-cases Γ' id-term (mu-name-cast x₂) cs₂)
+conv-term-norm Γ (Mu' _ t₁ _ _ cs₁ _) (Mu' _ t₂ _ _ cs₂ _) = conv-term Γ t₁ t₂ && conv-cases Γ cs₁ cs₂
 -- conv-term-norm Γ (Beta _ _ NoTerm) (Beta _ _ NoTerm) = tt
 -- conv-term-norm Γ (Beta _ _ (SomeTerm t _)) (Beta _ _ (SomeTerm t' _)) = conv-term Γ t t'
 -- conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
@@ -382,13 +410,12 @@ conv-ttye* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-
 conv-ttye* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-ttye* Γ args args'
 conv-ttye* Γ _ _ = ff
 
-conv-ctr Γ x₁ x₂ = ff
-{-
+--conv-ctr Γ x₁ x₂ = ff
 conv-ctr Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
 ...| just (ctr-def mps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def mps₂ T₂ n₂ i₂ a₂ , _) =
   n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂
 ...| _ | _ = ff
--}
+
 
 hnf-qualif-term : ctxt → term → term
 hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt
@@ -458,7 +485,6 @@ ctxt-term-def pi s op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i sym
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v ps
 
-ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
 ctxt-term-udef pi s op v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v ps)
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
