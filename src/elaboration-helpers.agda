@@ -73,7 +73,14 @@ ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
   (trie-insert is x' (kind-def (ps1 ++ qualif-params Γ ps2) k' , fn , pi-gen)) os
   where
-    k' = hnf Γ unfold-head k tt
+  k' = hnf Γ unfold-head k tt
+
+ctxt-datatype-def' : var → var → defParams → kind → kind → ctrs → ctxt → ctxt
+ctxt-datatype-def' x x' psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+  (fn , mn , ps , q') ss
+  (trie-insert is x' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , x)) os
+  where
+  q' = qualif-insert-params q x x' (maybe-else [] (λ _ → ps) psᵢ)
 
 ctxt-lookup-term-var' : ctxt → var → maybe type
 ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
@@ -433,25 +440,37 @@ record encoded-datatype-names : Set where
     cast : var
     fixpoint-type : var
     fixpoint-in : var
+    fixpoint-out : var
+    fixpoint-lambek : var
     fixpoint-ind : var
-
+{-
 record elab-mus : Set where
   field
+--    elab-mu : maybe var → term → optType → cases → maybe type → maybe (term × type)
     elab-check-mu : var → type → maybe term
     elab-synth-mu : var → maybe (term × type)
     elab-check-mu' : type → maybe term
     elab-synth-mu' : maybe (term × type)
-
+-}
 record encoded-datatype : Set where
   constructor mk-encoded-datatype
   field
     data-def : datatype
     names : encoded-datatype-names
-    elab-mu : datatype → encoded-datatype-names → ctxt → term → optType → cases → elab-mus
-  elab-check-mu = λ Γ t oT ms → elab-mus.elab-check-mu $ elab-mu data-def names Γ t oT ms
-  elab-synth-mu = λ Γ t oT ms → elab-mus.elab-synth-mu $ elab-mu data-def names Γ t oT ms
-  elab-check-mu' = λ Γ t oT ms → elab-mus.elab-check-mu' $ elab-mu data-def names Γ t oT ms
-  elab-synth-mu' = λ Γ t oT ms → elab-mus.elab-synth-mu' $ elab-mu data-def names Γ t oT ms
+    elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe term
+  get-motive : optType → type → type
+  get-motive (SomeType T) _ = T
+  get-motive NoType T with data-def
+  ...| Data _ _ is _ =
+    flip indices-to-tplams T $ flip map is λ where
+      (Index x atk) → Index ignored-var atk
+  check-mu : ctxt → maybe var → term → optType → cases → args → type → maybe term
+  check-mu Γ x? t oT ms as T with oT | data-def
+  ...| NoType | Data _ _ is _ = elab-mu Γ data-def names x? t (indices-to-tplams (map (λ {(Index x atk) → Index ignored-var atk}) is) T) as ms
+  ...| SomeType Tₘ | _ = elab-mu Γ data-def names x? t Tₘ as ms
+  synth-mu : ctxt → maybe var → term → optType → cases → args → maybe term
+  synth-mu Γ x? t NoType _ as = nothing
+  synth-mu Γ x? t (SomeType Tₘ) ms as = elab-mu Γ data-def names x? t Tₘ as ms
 
 record datatype-encoding : Set where
   constructor mk-datatype-encoding
@@ -461,8 +480,10 @@ record datatype-encoding : Set where
     cast : var
     fixpoint-type : var
     fixpoint-in : var
+    fixpoint-out : var
     fixpoint-ind : var
-    elab-mu : datatype → encoded-datatype-names → ctxt → term → optType → cases → elab-mus
+    fixpoint-lambek : var
+    elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe term
 
   mk-defs : ctxt → datatype → cmds × encoded-datatype
   mk-defs Γ'' (Data x ps is cs) =
@@ -475,14 +496,7 @@ record datatype-encoding : Set where
     record {
       elab-mu = elab-mu;
       data-def = Data x ps is cs;
-      names = record {
-        data-functor = data-functorₓ;
-        data-fmap = data-fmapₓ;
-        data-functor-ind = data-functor-indₓ;
-        cast = castₓ;
-        fixpoint-type = fixpoint-typeₓ;
-        fixpoint-in = fixpoint-inₓ;
-        fixpoint-ind = fixpoint-indₓ}}
+      names = namesₓ}
     where
     csn = _::_ ∘ flip (DefTermOrType OpacTrans) pi-gen
     k = indices-to-kind is $ Star pi-gen
@@ -500,8 +514,20 @@ record datatype-encoding : Set where
     castₓ = renamectxt-rep ρ cast
     fixpoint-typeₓ = renamectxt-rep ρ fixpoint-type
     fixpoint-inₓ = renamectxt-rep ρ fixpoint-in
+    fixpoint-outₓ = renamectxt-rep ρ fixpoint-out
     fixpoint-indₓ = renamectxt-rep ρ fixpoint-ind
+    fixpoint-lambekₓ = renamectxt-rep ρ fixpoint-lambek
     Γ = add-indices-to-ctxt is $ ctxt-var-decl data-functorₓ $ ctxt-var-decl data-fmapₓ $ ctxt-var-decl data-functor-indₓ Γ'
+    namesₓ = record {
+      data-functor = data-functorₓ;
+      data-fmap = data-fmapₓ;
+      data-functor-ind = data-functor-indₓ;
+      cast = castₓ;
+      fixpoint-type = fixpoint-typeₓ;
+      fixpoint-in = fixpoint-inₓ;
+      fixpoint-out = fixpoint-outₓ;
+      fixpoint-lambek = fixpoint-lambekₓ;
+      fixpoint-ind = fixpoint-indₓ}
     
     new-var : ∀ {ℓ} {X : Set ℓ} → var → (var → X) → X
     new-var x f = f $ fresh-var x (ctxt-binds-var Γ) ρ
