@@ -275,7 +275,7 @@ elab-check-term Γ (Rho pi op on t og t') T =
             rT' = post-rewrite Γ x t t₂ rT in
         elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
         elab-check-term Γ t' rT' ≫=maybe
-        (just ∘ mrho (Sigma posinfo-gen t) x (erase-type rT))
+        (just ∘ mrho t x (erase-type rT))
       (Guide pi' x T') →
         let Γ' = ctxt-var-decl x Γ in
         elab-pure-type Γ' (erase-type T') ≫=maybe λ T' →
