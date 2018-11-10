@@ -23,3 +23,4 @@ cedille-mac-pkg
 *.bbl
 *.blg
 *.log
+*.elc
