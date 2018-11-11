@@ -31,8 +31,8 @@ import spans options' {id} as id-spans
 
 {- Datatypes -}
 
-mendler-elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe term
-mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ data-fmapₓ data-functor-indₓ castₓ fixpoint-typeₓ fixpoint-inₓ fixpoint-outₓ fixpoint-lambekₓ fixpoint-indₓ) x? t Tₘ as ms =
+mendler-elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe (term × ctxt)
+mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ data-fmapₓ data-functor-indₓ castₓ fixpoint-typeₓ fixpoint-inₓ fixpoint-outₓ fixpoint-indₓ) x? t Tₘ as ms =
   let len-psₜ = length as ∸ length is
       len-psₙ = length ps
       len-psₘ = len-psₜ ∸ len-psₙ
@@ -42,25 +42,44 @@ mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ 
       σ = fst (mk-inst ps asₚ)
       is = map (λ {(Index x atk) → Index x (substs Γ σ atk)}) is
       ms' = foldr (λ {(Case _ x cas t) σ →
-              trie-insert σ x $ caseArgs-to-lams (drop len-psₙ cas) $
-              Mlam ignored-var $ Mlam ignored-var t}) empty-trie ms
-      app-ps = recompose-apps asₚ
+              trie-insert σ x $ caseArgs-to-lams (drop len-psₙ cas) t}) empty-trie ms
       as-ttys = map λ {(TermArg _ t) → tterm t; (TypeArg T) → ttype T}
-      fmap = recompose-apps asₜ $ mvar data-fmapₓ in
-    foldl (λ {(Ctr _ x Tₓ) rec → rec ≫=maybe λ rec → trie-lookup ms' x ≫=maybe λ t → just λ tₕ → mapp (rec tₕ) t}) (just λ t → t) cs ≫=maybe λ msf →
+      app-ps = recompose-apps asₚ
+      fmap = recompose-apps asₜ $ mvar data-fmapₓ
+      ftp = recompose-tpapps (as-ttys asₜ) $ mtpvar data-functorₓ
+      ptp = recompose-tpapps (as-ttys asₜ) $ mtpvar X in
+  foldl (λ {(Ctr _ x Tₓ) rec → rec ≫=maybe λ rec → trie-lookup ms' x ≫=maybe λ t →
+    just λ tₕ → mapp (rec tₕ) t}) (just λ t → t) cs ≫=maybe λ msf →
+  rename "x" from (add-indices-to-ctxt is Γ) for λ xₓ →
+  rename "y" from (add-indices-to-ctxt is Γ) for λ yₓ →
+  rename "z" from (add-indices-to-ctxt is Γ) for λ zₓ →
+  let μ'ₓ = "/" ^ X ^ "/mu'"
+      μTₓ = "/" ^ X ^ "/mu-type"
+      out = case (x? , env-lookup Γ μ'ₓ) of uncurry λ {(just x) _ → mvar yₓ; nothing (just (term-udef _ _ out , _)) → mapp (recompose-apps asᵢ out) $ mvar yₓ; nothing _ → mapp (indices-to-apps is $ mappe (AppTp (mvar fixpoint-outₓ) ftp) fmap) $ mvar yₓ}
+      body = msf $
+             AppTp (mapp (indices-to-apps is $ AppTp (app-ps $ mvar data-functor-indₓ) $ mtpvar μTₓ) out) $
+             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp $ mtpvar μTₓ) $ TpAppt (indices-to-tpapps is Tₘ) (mapp (mappe (AppTp (mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is $ mvar zₓ) $ mvar xₓ)
+  in
   maybe-else' x?
     (-- μ'
-     rename "x" from (add-indices-to-ctxt is Γ) for λ fₓ →
-     rename (fₓ ^ "'") from (add-indices-to-ctxt is Γ) for λ fₓ' →
-     rename "e" from (add-indices-to-ctxt is Γ) for λ fₑ →
-     just (mappe (mappe (msf
-       (AppTp (IotaProj (mapp (indices-to-apps is $ mappe (AppTp (app-ps $ mvar fixpoint-outₓ) $ (recompose-tpapps (as-ttys asₜ) $ mtpvar data-functorₓ)) fmap) t) "2" pi-gen)
-              (indices-to-tpapps is $ TpLambda pi-gen pi-gen fₓ (Tkt $ mtpeq id-term id-term) $ mall fₓ' (Tkt $ indices-to-tpapps is $ recompose-tpapps (as-ttys asₜ) $ mtpvar X) $ mall fₑ (Tkt $ mtpeq (mvar fₓ') (mapp (app-ps $ mvar fixpoint-inₓ) (mvar fₓ))) $ TpAppt (indices-to-tpapps is Tₘ) $ Phi pi-gen (mvar fₑ) (mvar fₓ') (mapp (app-ps $ mvar fixpoint-inₓ) (mvar fₓ)) pi-gen))) t)
-       (Sigma pi-gen $ mapp (indices-to-apps is $ mappe (AppTp (app-ps $ mvar fixpoint-lambekₓ) (recompose-tpapps (as-ttys asₜ) $ mtpvar data-functorₓ)) fmap) t)))
+     just $ (Let pi-gen (DefType pi-gen μTₓ (indices-to-kind is star) ptp) $
+             Let pi-gen (DefTerm pi-gen zₓ NoType $ indices-to-lams is $ Lam pi-gen NotErased pi-gen xₓ (SomeClass $ Tkt $ TpApp ftp $ mtpvar μTₓ) $ mvar xₓ) $
+             Let pi-gen (DefTerm pi-gen yₓ NoType t) body) , Γ)
     
     -- μ x
-    λ x →
-      nothing
+    λ ihₓ →
+      rename (ihₓ ^ "-mu'") from (add-indices-to-ctxt is Γ) for λ ih-mu'ₓ →
+      let Rₓ = ihₓ ^ "/" ^ X
+          rvlₓ = mu-name-cast ihₓ in
+      just $
+        (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (mvar fixpoint-indₓ) ftp) fmap) $
+         Mlam Rₓ $ Mlam rvlₓ $ Mlam ih-mu'ₓ $ mlam ihₓ $ indices-to-lams is $ mlam xₓ $
+         Let pi-gen (DefTerm pi-gen zₓ NoType $ mappe (AppTp (AppTp (mvar $ castₓ) $ TpApp ftp $ mtpvar Rₓ) $ TpApp ftp ptp) $ mappe (AppTp (AppTp fmap $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
+         Let pi-gen (DefTerm pi-gen rvlₓ NoType $
+           mappe (AppTp (AppTp (mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
+         Let pi-gen (DefType pi-gen μTₓ (indices-to-kind is star) $ mtpvar Rₓ) $
+         Let pi-gen (DefTerm pi-gen yₓ NoType $ mvar xₓ) body) ,
+        ctxt-μ-out-def μ'ₓ (Phi pi-gen (IotaProj (mvar ih-mu'ₓ) "2" pi-gen) (IotaProj (mvar ih-mu'ₓ) "1" pi-gen) (mvar fixpoint-outₓ) pi-gen) (ctxt-rename ("/" ^ Rₓ) X Γ)
 
 mendler-encoding : datatype-encoding
 mendler-encoding =
@@ -69,7 +88,6 @@ mendler-encoding =
       fixpoint-typeₓ = "CVFixIndM"
       fixpoint-inₓ = "cvInFixIndM"
       fixpoint-outₓ = "cvOutFixIndM"
-      fixpoint-lambekₓ = "[TODO: lambek's lemma { in (out x) ≃ x }]"
       fixpoint-indₓ = "cvIndFixIndM" in
   record {
     template = templateMendler;
@@ -78,7 +96,6 @@ mendler-encoding =
     fixpoint-type = fixpoint-typeₓ;
     fixpoint-in = fixpoint-inₓ;
     fixpoint-out = fixpoint-outₓ;
-    fixpoint-lambek = fixpoint-lambekₓ;
     fixpoint-ind = fixpoint-indₓ;
     elab-mu = mendler-elab-mu
   }
@@ -90,7 +107,6 @@ mendler-simple-encoding =
       fixpoint-typeₓ = "FixM"
       fixpoint-inₓ = "inFix"
       fixpoint-outₓ = "outFix"
-      fixpoint-lambekₓ = "lambek"
       fixpoint-indₓ = "IndFixM" in
   record {
     template = templateMendlerSimple;
@@ -99,45 +115,8 @@ mendler-simple-encoding =
     fixpoint-type = fixpoint-typeₓ;
     fixpoint-out = fixpoint-outₓ;
     fixpoint-in = fixpoint-inₓ;
-    fixpoint-lambek = fixpoint-lambekₓ;
     fixpoint-ind = fixpoint-indₓ;
     elab-mu = mendler-elab-mu
-      {-record {
-        elab-check-mu = λ ihₓ T →
-          -- let Tₘ = case oT of λ {(SomeType Tₘ) → Tₘ; NoType → indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var (Tkt {!!}) T} in
-          nothing;
-        elab-synth-mu = case oT of λ {
-          NoType ihₓ → nothing;
-          (SomeType Tₘ) ihₓ → nothing
-        };
-      
-        elab-check-mu' = λ T → nothing;
-        elab-synth-mu' = case oT of λ {
-          NoType → nothing;
-          (SomeType Tₘ) →
-            elab-type Γ Tₘ ≫=maybe uncurry λ Tₘ k →
-            elab-synth-term Γ t ≫=maybe uncurry λ t T →
-            case decompose-tpapps T of λ where
-              (TpVar _ X , as) →
-                let is = kind-to-indices Γ k
-                    asᵢ = drop (length as ∸ length is) as
-                    asₚ = take (length as ∸ length is) as in
-                rename "x" from (add-indices-to-ctxt is Γ) for λ fₓ →
-                rename (fₓ ^ "'") from (add-indices-to-ctxt is Γ) for λ fₓ' →
-                rename "e" from (add-indices-to-ctxt is Γ) for λ fₑ →
-                ctxt-lookup-datatype Γ ("/" ^ X) [] ≫=maybe uncurry'' λ _ _ _ cs →
-                let ms' = foldr (λ {(Case _ x cas t) σ → trie-insert σ x $ caseArgs-to-lams cas $ Mlam ignored-var $ Mlam ignored-var t}) empty-trie ms
-                    app-ps = recompose-apps $ ttys-to-args Erased asₚ
-                    fmap = app-ps $ mvar data-fmapₓ in
-                foldl (λ {(Ctr _ x Tₓ) rec → rec ≫=maybe λ rec → trie-lookup ms' x ≫=maybe λ t → just λ tₕ → mapp (rec tₕ) t}) (just λ t → t) cs ≫=maybe λ msf →
-                just (mappe (mappe (msf
-                  (AppTp (IotaProj (mapp (indices-to-apps is $ mappe (AppTp (mvar fixpoint-outₓ) $ recompose-tpapps asₚ $ mtpvar data-functorₓ) fmap) t) "2" pi-gen)
-                    (indices-to-tpapps is $ TpLambda pi-gen pi-gen fₓ (Tkt $ mtpeq id-term id-term) $ mall fₓ' (Tkt $ indices-to-tpapps is $ recompose-tpapps asₚ $ mtpvar X) $ mall fₑ (Tkt $ mtpeq (mvar fₓ) (mapp (mvar fixpoint-inₓ) (mvar fₓ'))) $ TpAppt (indices-to-tpapps is Tₘ) $ Phi pi-gen (mvar fₑ) (mvar fₓ') (mapp (mvar fixpoint-inₓ) (mvar fₓ)) pi-gen))) t)
-                    (Sigma pi-gen $ mapp (indices-to-apps is $ mappe (app-ps $ mvar fixpoint-lambekₓ) fmap) t)
-                  , TpAppt (recompose-tpapps asᵢ Tₘ) t)
-              _ → nothing
-        }
-      }-}
   }
 
 selected-encoding = mendler-simple-encoding
@@ -359,16 +338,16 @@ module elab-x (μ : trie encoded-datatype) where
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ X ≫=maybe λ d →
-        encoded-datatype.check-mu d Γ (just x) t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe λ t →
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
+        encoded-datatype.check-mu d Γ (just x) t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe uncurry λ t Γ →
         elab-check-term Γ t T
       _ → nothing
   elab-check-term Γ (Mu' pi t Tₘ? pi' ms pi'') T =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ X ≫=maybe λ d →
-        encoded-datatype.check-mu d Γ nothing t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe λ t →
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
+        encoded-datatype.check-mu d Γ nothing t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe uncurry λ t Γ →
         elab-check-term Γ t T
       _ → nothing
 
@@ -540,17 +519,17 @@ module elab-x (μ : trie encoded-datatype) where
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ X ≫=maybe λ d →
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
         encoded-datatype.synth-mu d Γ (just x) t Tₘ? ms (ttys-to-args Erased as) ≫=maybe
-        elab-synth-term Γ
+        uncurry (flip elab-synth-term)
       _ → nothing
   elab-synth-term Γ (Mu' pi t Tₘ? pi' ms pi'') =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ X ≫=maybe λ d →
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
         encoded-datatype.synth-mu d Γ nothing t Tₘ? ms (ttys-to-args Erased as) ≫=maybe
-        elab-synth-term Γ
+        uncurry (flip elab-synth-term)
       _ → nothing
   
   elab-typeh Γ (Abs pi b pi' x atk T) b' =
@@ -820,10 +799,8 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
   elim-pair (datatype-encoding.mk-defs selected-encoding Γ d) λ cs' d →
   case encoded-datatype.data-def d of λ where
     (Data X ps is dcs) →
-      ---let ts = record ts {Γ = set-ps Γ []} in
       elab-cmds ts ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
-      --let ts = record ts {Γ = set-ps (toplevel-state.Γ ts) (ctxt-get-current-params Γ)} in
-      elab-cmds ts ρ φ (trie-insert μ x' (record d {data-def = Data x' ps is $ flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (subst-qualif (toplevel-state.Γ ts) ρ T)}})) cs ≫=maybe uncurry λ cs ω →
+      elab-cmds ts ρ φ (trie-insert μ ("/" ^ x') (record d {data-def = Data x' ps is $ flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (subst-qualif (toplevel-state.Γ ts) ρ T)}})) cs ≫=maybe uncurry λ cs ω →
       just (cs' ++ cs , ω)
 
 elab-file' ts ρ φ μ fn =
