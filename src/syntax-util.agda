@@ -854,6 +854,10 @@ expand-case (Case _ x as t) = x , caseArgs-to-lams as t
 expand-cases : cases → trie term
 expand-cases = flip foldr empty-trie λ c σ → uncurry (trie-insert σ) (expand-case c)
 
+expand-cases-n : cases → trie (term × ℕ)
+expand-cases-n = flip foldr empty-trie λ where
+  (Case _ x as t) σ → trie-insert σ x (caseArgs-to-lams as t , length as)
+
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
 nums-gt : nums → ℕ → 𝕃 string
