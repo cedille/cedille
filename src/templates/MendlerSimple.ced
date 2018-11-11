@@ -79,7 +79,8 @@ outFix ◂
   Λ F. Λ fm. Λ indices. λ x. (outFixM -fm -indices x).2 · (λ x : Top. F · (FixM · F fm))
     [β{λ e. λ d. d}, Λ R. Λ c. Λ p. λ e. cast -(fm -c)].
 
-IndFixM ◂
+
+IndFixM' ◂
     ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★.
     ∀ fm : RecFunctor · F.
     ∀ indices : Indices.
@@ -102,9 +103,19 @@ IndFixM ◂
       [Λ indices. λ r. ih.1 -indices r -(cast -reveal -indices r) -β, ih.2] -indices d]
      -d -β.
 
-lambek ◂
-    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fm : RecFunctor · F.
-    ∀ indices : Indices. Π d : FixM · F fm indices. {inFix (outFix d) ≃ d} =
-  Λ F. Λ fm. Λ indices. λ d. IndFixM · F -fm -indices d
-    · (λ indices : Indices. λ d : FixM · F fm indices. {inFix (outFix d) ≃ d})
-    [β{λ ih. λ d. λ x. x}, Λ R. Λ rvl. Λ out. λ ih. Λ indices. λ d. β].
+IndFixM ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★.
+    ∀ fm : RecFunctor · F.
+    ∀ indices : Indices.
+    Π d : FixM · F fm indices.
+    ∀ Q : Π indices : Indices. FixM · F fm indices ➔ ★.
+    (∀ R : Indices ➔ ★.
+     ∀ reveal : Cast · R · (FixM · F fm).
+     (ι o : ∀ indices : Indices. R indices ➔ F · R indices. {o ≃ λ d. d (λ e. λ d. d)}) ➾
+     (∀ indices : Indices. Π r : R indices. Q indices (cast -reveal -indices r)) ➔
+     ∀ indices : Indices.
+     Π x : F · R indices.
+     Q indices (inFix -fm -indices (cast -(fm -reveal) -indices x))) ➔
+    Q indices d =
+  Λ F. Λ fm. Λ indices. λ d. Λ Q. λ alg. IndFixM' · F -fm -indices d · Q
+    [β{alg}, Λ R. Λ rvl. Λ out. λ ih. alg · R -rvl -out ih.1].
