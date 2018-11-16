@@ -450,12 +450,15 @@ record encoded-datatype-names : Set where
 elab-mu-t : Set
 elab-mu-t = ctxt → datatype → encoded-datatype-names → var → maybe var → term → type → args → cases → maybe (term × ctxt)
 
+elab-mu-prev-name = "///prev"
+
 record encoded-datatype : Set where
   constructor mk-encoded-datatype
   field
     data-def : datatype
     names : encoded-datatype-names
     elab-mu : elab-mu-t
+    elab-mu-pure : ctxt → params → encoded-datatype-names → maybe var → term → cases → maybe term
 
   check-mu : ctxt → var → maybe var → term → optType → cases → args → type → maybe (term × ctxt)
   check-mu Γ Xₒ x? t oT ms as T with data-def
@@ -484,6 +487,7 @@ record datatype-encoding : Set where
     fixpoint-out : var
     fixpoint-ind : var
     elab-mu : elab-mu-t
+    elab-mu-pure : ctxt → params → encoded-datatype-names → maybe var → term → cases → maybe term
 
   mk-defs : ctxt → datatype → cmds × encoded-datatype
   mk-defs Γ'' (Data x ps is cs) =
@@ -495,6 +499,7 @@ record datatype-encoding : Set where
      foldr (csn ∘ ctr-cmd) [] cs) ,
     record {
       elab-mu = elab-mu;
+      elab-mu-pure = elab-mu-pure;
       data-def = Data x ps is cs;
       names = namesₓ}
     where
