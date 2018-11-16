@@ -68,9 +68,9 @@ ctxt-let-type-def pi x T k (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
     (trie-insert is x (type-def nothing OpacTrans T k , fn , pi)) os
 
-ctxt-μ-out-def : var → term → ctxt → ctxt
-ctxt-μ-out-def x t (mk-ctxt mod ss is os) = mk-ctxt mod ss
-  (trie-insert is x (term-udef nothing OpacTrans t , "missing" , "missing")) os
+ctxt-μ-out-def : var → term → var → ctxt → ctxt
+ctxt-μ-out-def x t y (mk-ctxt mod ss is os) = mk-ctxt mod ss
+  (trie-insert is x (term-udef nothing OpacTrans t , y , y)) os
 
 ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
 ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
@@ -447,25 +447,31 @@ record encoded-datatype-names : Set where
     fixpoint-out : var
     fixpoint-ind : var
 
+elab-mu-t : Set
+elab-mu-t = ctxt → datatype → encoded-datatype-names → var → maybe var → term → type → args → cases → maybe (term × ctxt)
+
 record encoded-datatype : Set where
   constructor mk-encoded-datatype
   field
     data-def : datatype
     names : encoded-datatype-names
-    elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe (term × ctxt)
-  get-motive : optType → type → type
-  get-motive (SomeType T) _ = T
-  get-motive NoType T with data-def
-  ...| Data _ _ is _ =
-    flip indices-to-tplams T $ flip map is λ where
-      (Index x atk) → Index ignored-var atk
-  check-mu : ctxt → maybe var → term → optType → cases → args → type → maybe (term × ctxt)
-  check-mu Γ x? t oT ms as T with oT | data-def
-  ...| NoType | Data _ _ is _ = elab-mu Γ data-def names x? t (indices-to-tplams (map (λ {(Index x atk) → Index ignored-var atk}) is) T) as ms
-  ...| SomeType Tₘ | _ = elab-mu Γ data-def names x? t Tₘ as ms
-  synth-mu : ctxt → maybe var → term → optType → cases → args → maybe (term × ctxt)
-  synth-mu Γ x? t NoType _ as = nothing
-  synth-mu Γ x? t (SomeType Tₘ) ms as = elab-mu Γ data-def names x? t Tₘ as ms
+    elab-mu : elab-mu-t
+
+  check-mu : ctxt → var → maybe var → term → optType → cases → args → type → maybe (term × ctxt)
+  check-mu Γ Xₒ x? t oT ms as T with data-def
+  check-mu Γ Xₒ x? t oT ms as T | Data X ps is cs
+    with kind-to-indices Γ (indices-to-kind is star) | oT
+  check-mu Γ Xₒ x? t oT ms as T | Data X ps _ cs | is | NoType =
+    elab-mu Γ (Data X ps is cs) names Xₒ x? t
+      (indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var
+        (Tkt $ indices-to-tpapps is $
+          recompose-tpapps (args-to-ttys $ take (length ps) as) $ mtpvar X) T) as ms
+  check-mu Γ Xₒ x? t oT ms as T | Data X ps _ cs | is | SomeType Tₘ =
+    elab-mu Γ (Data X ps is cs) names Xₒ x? t Tₘ as ms
+
+  synth-mu : ctxt → var → maybe var → term → optType → cases → args → maybe (term × ctxt)
+  synth-mu Γ Xₒ x? t NoType _ as = nothing
+  synth-mu Γ Xₒ x? t (SomeType Tₘ) ms as = elab-mu Γ data-def names Xₒ x? t Tₘ as ms
 
 record datatype-encoding : Set where
   constructor mk-datatype-encoding
@@ -477,7 +483,7 @@ record datatype-encoding : Set where
     fixpoint-in : var
     fixpoint-out : var
     fixpoint-ind : var
-    elab-mu : ctxt → datatype → encoded-datatype-names → maybe var → term → type → args → cases → maybe (term × ctxt)
+    elab-mu : elab-mu-t
 
   mk-defs : ctxt → datatype → cmds × encoded-datatype
   mk-defs Γ'' (Data x ps is cs) =
