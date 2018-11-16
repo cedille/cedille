@@ -93,6 +93,14 @@ qualif-args = qualif-x substs-args
 erased-margs : ctxt → stringset
 erased-margs = stringset-insert* empty-stringset ∘ (erased-params ∘ ctxt-get-current-params)
 
+ctxt-term-decl-no-qualif : posinfo → var → type → ctxt → ctxt
+ctxt-term-decl-no-qualif p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
+  syms
+  (trie-insert i v' ((term-decl t) , fn , p))
+  symb-occs
+  where v' = p % v
+
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
