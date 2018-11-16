@@ -134,8 +134,8 @@ check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
 check-def : defTermOrType → spanM (var × restore-def)
 check-mu : posinfo → posinfo → (μ-or-μ' : maybe var) → term → (motive : optType) → cases → posinfo → (mtp : maybe type) → spanM (check-ret mtp)
-check-case : case → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → (motive : type) → spanM (trie type)
-check-cases : cases → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → (motive : type) → spanM err-m
+check-case : case → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie type)
+check-cases : cases → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM err-m
 
 -- check-term
 -- ==================================================
@@ -1887,29 +1887,33 @@ check-case (Case pi x as t) csₓ ctr-ps drop-ps Tₘ =
   decl-args as [] σ = spanMr (just (ℕ-to-string (length as) ^ " too many arguments supplied") , σ)
   decl-args [] ps σ = spanMr (just (ℕ-to-string (length ps) ^ " more arguments expected") , σ)
 
+
+
 check-cases cs csₓ ctr-ps drop-ps Tₘ = foldr
   (λ c x csₓ → check-case c csₓ ctr-ps drop-ps Tₘ ≫=span x)
   spanMr cs csₓ ≫=span λ csₓ →
   spanMr (maybe-if (trie-nonempty csₓ) ≫maybe
     just ("Missing pattern matching cases: " ^ 𝕃-to-string fst ", " (trie-mappings csₓ)))
 
-check-mu pi pi' x? t NoType cs pi'' mtp = check-fail mtp -- TODO
-check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
+--check-mu pi pi' x? t NoType cs pi'' mtp = check-fail mtp -- TODO
+check-mu pi pi' x? t Tₘ? cs pi'' mtp =
   get-ctxt λ Γ → 
   check-termi t nothing ≫=span λ T →
   let syn-err-not-mch = just "The head type of the subterm is not a datatype"
-      ret-tp = λ ps as → TpAppt (apps-type (qualif-type Γ Tₘ) $ ttys-to-args NotErased (drop (length ps) as)) (qualif-term Γ t) in
-  case_of_ (maybe-map decompose-tpapps T) λ where
+      ret-tp = λ ps as t → case Tₘ? of λ {(SomeType Tₘ) → just $ TpAppt (apps-type (qualif-type Γ Tₘ) $ ttys-to-args NotErased (drop (length ps) as)) t; NoType → mtp} in
+  case_of_ (maybe-map (λ T → decompose-tpapps $ hnf Γ unfold-head T tt) T) λ where
     (just (TpVar _ X , as)) →
       case (ctxt-lookup-datatype Γ X (ttys-to-args NotErased as)) of λ where
         nothing →
           spanM-add (Mu-span Γ pi pi'' tt (maybe-to-checking mtp)
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) syn-err-not-mch) ≫span
-          return-when mtp (just (ret-tp [] as))
-        (just (ps , kᵢ , _ , cs')) →
-          check-type Tₘ (just kᵢ) ≫span
-          let Tₘ = qualif-type Γ Tₘ
-              is = drop-last 1 $ kind-to-indices Γ kᵢ
+          return-when mtp (ret-tp [] as (qualif-term Γ t))
+        (just (ps , kᵢ , k , cs')) →
+          let --Tₘ = qualif-type Γ Tₘ
+              is = kind-to-indices Γ kᵢ
+              Tₘ = case Tₘ? of λ {(SomeType Tₘ) → check-type Tₘ (just kᵢ) ≫span spanMr (just $ qualif-type Γ Tₘ); NoType → spanMr (maybe-map (indices-to-tplams $ map (λ {(Index x atk) → Index ignored-var atk}) is) mtp)} in
+          Tₘ ≫=spanr λ Tₘ →
+          let is = drop-last 1 is
               ps' = maybe-else [] id ps
               X' = λ x → x ^ "/" ^ maybe-else X id (var-suffix X)
               subst-ctr : ctxt → ctr → ctr
@@ -1925,11 +1929,11 @@ check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
                                 (indices-to-alls is $ TpArrow
                                   (indices-to-tpapps is $ mtpvar qX') NotErased
                                   (indices-to-tpapps is $ recompose-tpapps (take (length ps') as) $ mtpvar X)) $
-                              ctxt-datatype-def pi' X' nothing (indices-to-kind is $ KndTpArrow (indices-to-tpapps is $ mtpvar qX') star) (indices-to-kind is star) (subst-ctrs (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
+                              ctxt-datatype-def pi' X' nothing kᵢ k (subst-ctrs (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var Γ') empty-renamectxt in
-                     ctxt-term-def pi' localScope OpacTrans x
-                       (substs Γ (ctxt-get-qualif Γ) (mlam freshₓ $ Mu pi-gen pi-gen x (mvar freshₓ)
-                         NoType pi-gen (erase-cases cs) pi-gen))
+                     ctxt-term-decl-no-qualif pi' x
+                       {-(substs Γ (ctxt-get-qualif Γ) (mlam freshₓ $ Mu pi-gen pi-gen x (mvar freshₓ)
+                         NoType pi-gen (erase-cases cs) pi-gen))-}
                        (let freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt in
                         indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mvar qxₜₒ) $ mvar freshₓ) Γ' in
           with-ctxt Γ'
@@ -1939,14 +1943,14 @@ check-mu pi pi' x? t (SomeType Tₘ) cs pi'' mtp =
                  cs''' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs''
                  ctr-ps = maybe-else [] (flip ttys-to-args-for-params as) ps
                  drop-ps = maybe-else' (maybe-not x? ≫maybe ps) 0 $ length
-                 Tᵣ = ret-tp ps' as in
+                 Tᵣ = ret-tp ps' as (cast-abstract-datatype? X (ttys-to-args Erased (drop drop-ps as)) (qualif-term Γ t)) in
              check-cases cs cs''' ctr-ps drop-ps Tₘ ≫=span λ e? →
-             spanM-add (elim-pair (check-for-type-mismatch-if Γ "synthesized" mtp Tᵣ)
+             spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))
                λ tvs e3? → Mu-span Γ pi pi'' tt (maybe-to-checking mtp) tvs
                  (e? maybe-or (e2? maybe-or e3?))) ≫span
-             return-when mtp (just Tᵣ))
+             return-when mtp Tᵣ)
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi pi'' tt (maybe-to-checking mtp)
         [ head-type Γ Tₕ ] syn-err-not-mch) ≫span
-      return-when mtp (just (ret-tp [] as))
+      return-when mtp (ret-tp [] as (qualif-term Γ t))
     nothing → check-fail mtp
