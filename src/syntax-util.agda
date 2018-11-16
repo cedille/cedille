@@ -515,6 +515,14 @@ ttys-to-args-for-params ((Decl _ _ me _ _ _) :: ps) ((tterm t) :: as) =
 ttys-to-args-for-params (_ :: ps) ((ttype T) :: as) =
   TypeArg T :: ttys-to-args-for-params ps as
 ttys-to-args-for-params _ _ = []
+
+arg-to-tty : arg → tty
+arg-to-tty (TermArg me t) = tterm t
+arg-to-tty (TypeArg T) = ttype T
+
+args-to-ttys : args → 𝕃 tty
+args-to-ttys = map arg-to-tty
+
 {-
 decompose-tpapps : type → type × 𝕃 tty
 decompose-tpapps (TpApp t t') with decompose-tpapps t
@@ -857,6 +865,15 @@ expand-cases = flip foldr empty-trie λ c σ → uncurry (trie-insert σ) (expan
 expand-cases-n : cases → trie (term × ℕ)
 expand-cases-n = flip foldr empty-trie λ where
   (Case _ x as t) σ → trie-insert σ x (caseArgs-to-lams as t , length as)
+
+caseArg-to-var : caseArg → posinfo × var × maybeErased × 𝔹
+caseArg-to-var (CaseTermArg pi me x) = pi , x , me , tt
+caseArg-to-var (CaseTypeArg pi x) = pi , x , Erased , ff
+
+cast-abstract-datatype? : var → args → term → term
+cast-abstract-datatype? x as with string-split x '/'
+...| bₓ :: Tₓ :: [] = mapp (recompose-apps as $ mvar $ mu-name-cast bₓ)
+...| _ = id
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
