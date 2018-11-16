@@ -185,8 +185,8 @@ post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk t
   tk-decl : var → tk → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
   prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-no-lift k tt)
-  tk-decl x atk (mk-ctxt mod ss is os d) =
-    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os d where
+  tk-decl x atk (mk-ctxt mod ss is os) =
+    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os where
     h : tk → ctxt-info
     h (Tkt T) = term-decl T
     h (Tkk k) = type-decl k

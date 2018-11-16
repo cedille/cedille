@@ -16,52 +16,39 @@ type PosInfo = Text
 data Arg = TermArg MaybeErased Term | TypeArg Type
      deriving (Show,Eq)
 
-data Args = ArgsCons Arg Args | ArgsNil
-     deriving (Show,Eq)
+type Args = [Arg]
      
-data Opacity =
-       OpacOpaque
-     | OpacTrans
-     deriving (Show,Eq)
+type Opacity = Bool
 
 data Cmd =
        DefKind PosInfo Kvar Params Kind PosInfo
      | DefTermOrType Opacity DefTermOrType PosInfo
-     | DefDatatype   DefDatatype   PosInfo               
+     | DefDatatype  DefDatatype PosInfo               
      | ImportCmd Imprt
      deriving (Show,Eq)
 
-data Cmds =
-        CmdsNext Cmd Cmds
-      | CmdsStart 
-      deriving (Show,Eq)
+type Cmds = [Cmd]
 
 data Decl =
      Decl PosInfo PosInfo MaybeErased Bvar Tk PosInfo
      deriving (Show,Eq)
 
 data DefDatatype =
-     Datatype PosInfo PosInfo Var Params Kind DataConsts PosInfo
+     Datatype PosInfo PosInfo Var Params Kind Ctrs
      deriving (Show,Eq)
 
-data DataConst =
-     DataConst PosInfo Var Type
+data DataCtr =
+     Ctr PosInfo Var Type
      deriving (Show,Eq)
 
-data DataConsts =
-       DataNull
-     | DataCons DataConst DataConsts
-     deriving (Show,Eq)
+type Ctrs = [DataCtr]
 
 data DefTermOrType =
        DefTerm PosInfo Var OptType Term
      | DefType PosInfo Var Kind Type
      deriving (Show,Eq)
      
-data Imports =
-       ImportsNext Imprt Imports
-     | ImportsStart
-     deriving (Show,Eq)
+type Imports = [Imprt]
 
 data Imprt =
      Import PosInfo OptPublic PosInfo Fpth OptAs Args PosInfo
@@ -87,61 +74,44 @@ data LiftingType =
      | LiftTpArrow Type LiftingType
      deriving (Show,Eq)
 
-data Lterms =
-       LtermsCons MaybeErased Term Lterms
-     | LtermsNil PosInfo
+data Lterm = MkLterm MaybeErased Term
      deriving (Show,Eq)
+type Lterms = [Lterm]
 
 data OptType = SomeType Type | NoType
      deriving (Show,Eq)
 
-data MaybeErased =
-     Erased | NotErased
-     deriving (Show,Eq)
+type MaybeErased = Bool
 
-data MaybeMinus =
-     EpsHanf | EpsHnf
-     deriving (Show,Eq)
+type MaybeMinus = Bool
 
 data Nums =
      NumsStart Num | NumsNext Num Nums
      deriving (Show,Eq)
 
-data OptAs =
-     NoOptAs | SomeOptAs PosInfo Var
+data OptAs = NoOptAs | SomeOptAs PosInfo Var
      deriving (Show,Eq)
 
-data OptClass =
-     NoClass | SomeClass Tk
+data OptClass = NoClass | SomeClass Tk
      deriving (Show,Eq)
 
-data OptGuide =
-     NoGuide | Guide PosInfo Bvar Type
+data OptGuide = NoGuide | Guide PosInfo Bvar Type
      deriving (Show,Eq)
 
-data OptNums =
-     NoNums | SomeNums Nums
+data OptNums = NoNums | SomeNums Nums
      deriving (Show,Eq)
 
-data OptPlus =
-     RhoPlain | RhoPlus
+type RhoHnf = Bool
+
+type OptPublic = Bool
+
+data OptTerm = NoTerm | SomeTerm Term PosInfo
      deriving (Show,Eq)
 
-data OptPublic =
-     NotPublic | IsPublic
-     deriving (Show,Eq)
-
-data OptTerm =
-     NoTerm | SomeTerm Term PosInfo
-     deriving (Show,Eq)
-
-data Params =
-       ParamsCons Decl Params
-     | ParamsNil
-     deriving (Show,Eq)
+type Params = [Decl]
 
 data Start =
-     File PosInfo Imports PosInfo PosInfo Qvar Params Cmds PosInfo
+     File Imports PosInfo PosInfo Qvar Params Cmds PosInfo
      deriving (Show,Eq)
      
 data Term =
@@ -159,26 +129,25 @@ data Term =
      | Open PosInfo Qvar Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo
-     | Rho PosInfo OptPlus OptNums Term OptGuide Term
+     | Rho PosInfo RhoHnf OptNums Term OptGuide Term
      | Sigma PosInfo Term
      | Theta PosInfo Theta Term Lterms
-     | Mu    PosInfo Bvar Term OptType PosInfo Cases PosInfo
-     | Mu'   PosInfo      Term OptType PosInfo Cases PosInfo     
+     | Mu  PosInfo PosInfo Bvar Term OptType PosInfo Cases PosInfo
+     | Mu' PosInfo              Term OptType PosInfo Cases PosInfo     
      | Var PosInfo Qvar
      deriving (Show,Eq)
 
-data Cases =
-       NoCase
-     | SomeCase PosInfo Var Varargs Term Cases
+data Case = MkCase PosInfo Var CaseArgs Term
      deriving (Show,Eq)
 
-data Varargs =
-       NoVarargs
-     | NormalVararg Bvar Varargs
-     | ErasedVararg Bvar Varargs
-     | TypeVararg   Bvar Varargs
-     deriving (Show,Eq)
-     
+type Cases = [Case]
+
+data CaseArg =
+    CaseTermArg PosInfo MaybeErased Bvar
+  | CaseTypeArg PosInfo Bvar
+  deriving (Show,Eq)
+type CaseArgs = [CaseArg]
+
 data Theta =
      Abstract | AbstractEq | AbstractVars Vars
      deriving (Show,Eq)

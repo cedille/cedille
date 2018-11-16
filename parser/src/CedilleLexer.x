@@ -17,7 +17,7 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι↑➾➔☆β·≃\<>Λ�
 @num            = $numone+
 @proj           = \. @num
 @var            = $alpha ($alpha | $numpunct)*
-@qvar           = @var (\. @var)+
+@qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*
 @qkvar          = @kvar (\. @var)+
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
@@ -39,7 +39,7 @@ token :-
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
       <0> μ                                     { mkTokenEmpty TMu           }
-      <0> μ'                                    { mkTokenEmpty TMu'          }
+      <0> μ\'                                   { mkTokenEmpty TMuP          }
       <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
@@ -180,7 +180,7 @@ data TokenClass =
      |  TThetaVars
      |  TRho
      |  TMu
-     |  TMu'
+     |  TMuP
      |  TPipe     
      |  TEOF
      deriving Eq
@@ -216,7 +216,7 @@ instance Show TokenClass where
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
   show (TMu)         = "TMu"
-  show (TMu')        = "TMu'"
+  show (TMuP)        = "TMuP"
   show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 

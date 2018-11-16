@@ -216,6 +216,9 @@ drop zero xs = xs
 drop (suc _) [] = []
 drop (suc n) (x :: xs) = drop n xs
 
+drop-last : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+drop-last n xs = take (length xs ∸ n) xs
+
 zip-with : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
            → (A → B → C) → 𝕃 A → 𝕃 B → 𝕃 C
 zip-with f xs ys = map (uncurry f) (zip xs ys)
@@ -230,6 +233,9 @@ for xs accum n use f = foldr f n xs
 foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
 foldl f b [] = b
 foldl f b (a :: as) = foldl f (f a b) as
+
+foldr' : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → B → (A → B → B) → 𝕃 A → B
+foldr' = flip foldr
 
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤

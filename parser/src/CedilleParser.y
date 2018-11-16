@@ -89,36 +89,36 @@ import System.Environment
   '☆'        { Token $$ (TSym "☆") }
   '★'        { Token $$ (TSym "★") }
   'μ'        { Token $$ TMu   }
-  'μ\''      { Token $$ TMu'  }
+  'μ\''      { Token $$ TMuP  }
   '|'        { Token $$ TPipe      }    
 %%
   
 Start :: { Start }
-      : Imports 'module' Qvar MParams '.' Cmds LineNo { File (pack "1") $1 (pos2Txt $2) (tPosTxt $3) (tTxt $3) $4 $6 $7 }  
+      : Imports 'module' Qvar MParams '.' Cmds LineNo { File $1 (pos2Txt $2) (tPosTxt $3) (tTxt $3) $4 $6 $7 }  
 
 Imprt :: { Imprt }
       : 'import' OptPublic Fpth OptAs MArgs '.'    { Import (pos2Txt $1) $2 (tPosTxt $3) (tTxt $3) $4 $5 (pos2Txt1 $6) }
 
 OptAs :: { OptAs }
-      :                                 { NoOptAs                          }
+      :                                 { NoOptAs                    }
       | 'as' var                        { SomeOptAs (tPosTxt $2) (tTxt $2) }
 
 OptPublic :: { OptPublic }
-          :                             { NotPublic           }
-          | 'public'                    { IsPublic            }
+          :                             { False }
+          | 'public'                    { True }
       
 Imports :: { Imports }
-        :                               { ImportsStart      }
-        | Imprt Imports                 { ImportsNext $1 $2 }
+        :                               { [] }
+        | Imprt Imports                 { $1 : $2 }
 {- Note: Happy is more efficient with left recursive rules, only important for long lists -}
 
 Cmds :: { Cmds }
-     :                                  { CmdsStart      }
-     | Cmd Cmds                         { CmdsNext $1 $2 }
+     :                                  { [] }
+     | Cmd Cmds                         { $1 : $2 }
 
 OptOpaque :: { Opacity }
-          :          { OpacTrans }
-          | 'opaque' { OpacOpaque  }
+          :          { True }
+          | 'opaque' { False  }
 
 Cmd :: { Cmd }
     : Imprt                             { ImportCmd $1                                       }
@@ -127,28 +127,29 @@ Cmd :: { Cmd }
     | kvar KParams '=' Kind   '.'       { DefKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
 MaybeCheckType :: { OptType }
-               :                        { NoType      }
+               :                        { NoType }
                | '◂' Type               { SomeType $2 }
                | ':' Type               { SomeType $2 }
 
 MParams :: { Params }
-       :                                { ParamsNil        }
-       | MDecl MParams                  { ParamsCons $1 $2 }
+       :                                { []        }
+       | MDecl MParams                  { $1 : $2 }
 
 KParams :: { Params }
-       :                                { ParamsNil        }
-       | KDecl KParams                  { ParamsCons $1 $2 }
+       :                                { [] }
+       | KDecl KParams                  { $1 : $2 }
 
 DefDatatype :: { DefDatatype }
-    : 'data' var MParams ':' Kind '='  OptPipe DataConsts  { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8       posInfo } 
-    | 'data' var MParams ':' Kind '='                      { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 DataNull posInfo }            
+    : 'data' var MParams ':' Kind '='  OptPipe Ctrs  { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8 } 
+--    | 'data' var MParams ':' Kind '='                      { Datatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 DataNull }            
 
-DataConst :: { DataConst }
-          : var ':' Type                { DataConst (tPosTxt $1) (tTxt $1) $3 }
+Ctr :: { DataCtr }
+          : var ':' Type    { Ctr (tPosTxt $1) (tTxt $1) $3 }
 
-DataConsts :: { DataConsts }
-           : DataConst                  { DataCons $1  DataNull }           
-           | DataConst '|' DataConsts   { DataCons $1  $3       }
+Ctrs :: { Ctrs }
+           :                { [] }
+           | Ctr '|' Ctrs   { $1 : $3 }
+           | Ctr            { $1 : [] }
 
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
@@ -156,15 +157,15 @@ DefTermOrType :: { DefTermOrType }
               | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
 
 MDecl :: { Decl }
-     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
-     | '{' Bvar ':' Type '}'            { Decl (pos2Txt $1) (tPosTxt $2) Erased (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
+     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) False (tTxt $2) $4 (pos2Txt1 $5) }
+     | '{' Bvar ':' Type '}'            { Decl (pos2Txt $1) (tPosTxt $2) True (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
 
 KDecl :: { Decl }
-     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) NotErased (tTxt $2) $4 (pos2Txt1 $5) }
+     : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) False (tTxt $2) $4 (pos2Txt1 $5) }
 
 Lam :: { (MaybeErased , PosInfo) }
-    : 'Λ'                               { (Erased,    pos2Txt $1) }
-    | 'λ'                               { (NotErased, pos2Txt $1) }
+    : 'Λ'                               { (True,    pos2Txt $1) }
+    | 'λ'                               { (False, pos2Txt $1) }
 
 Theta :: { (Theta, PosInfo) }
       : 'θ'                             { (Abstract       , pos2Txt $1) }
@@ -172,12 +173,12 @@ Theta :: { (Theta, PosInfo) }
       | 'θ<' Vars '>'                   { (AbstractVars $2, pos2Txt $1) }
 
 Vars :: { Vars }
-     : var                              { VarsStart (tTxt $1)    }
-     | var Vars                         { VarsNext  (tTxt $1) $2 }
+     : Qvar                              { VarsStart (tTxt $1)    }
+     | Qvar Vars                         { VarsNext  (tTxt $1) $2 }
 
-OptPlus :: { OptPlus }
-        :     { RhoPlain }
-        | '+' { RhoPlus  }
+OptPlus :: { RhoHnf }
+        :     { False }
+        | '+' { True  }
 
 OptNums :: { OptNums }
         :              { NoNums      }
@@ -189,10 +190,10 @@ OptGuide :: { OptGuide }
 
 OptType :: { OptType }
            : Atype                      { SomeType $1 }
-           |                            { NoType  }
+           |                            { NoType }
 
 OptClass :: { OptClass }
-         :                              { NoClass      }
+         :                              { NoClass }
          | ':' Tk                       { SomeClass $2 }
 
 Nums :: { Nums }
@@ -200,29 +201,29 @@ Nums :: { Nums }
      | Num Nums                         { NumsNext (tTxt $1) $2 }
 
 OptTerm :: { OptTerm }
-        :                               { NoTerm                    }
+        :                               { NoTerm                }
         | '{' Term '}'                  { SomeTerm $2 (pos2Txt1 $3) }
 
 OptEqTerm :: { OptTerm }
-          :                             { NoTerm                    }
+          :                             { NoTerm                }
           | '<' Term '>'                { SomeTerm $2 (pos2Txt1 $3) }
 
 MArg :: { Arg }
-    : Lterm                             { TermArg NotErased $1 }
-    | '-' Lterm                         { TermArg Erased $2 }
+    : Lterm                             { TermArg False $1 }
+    | '-' Lterm                         { TermArg True $2 }
     | '·' Atype                         { TypeArg $2 }
 
 MArgs :: { Args }
-     :                                  { ArgsNil        }
-     | MArg MArgs                       { ArgsCons $1 $2 }
+     :                                  { [] }
+     | MArg MArgs                       { $1 : $2 }
 
 KArg :: { Arg }
-    : Lterm                             { TermArg NotErased $1 }
+    : Lterm                             { TermArg False $1 }
     | '·' Atype                         { TypeArg $2 }
 
 KArgs :: { Args }
-     :                                  { ArgsNil        }
-     | KArg KArgs                       { ArgsCons $1 $2 }
+     :                                  { [] }
+     | KArg KArgs                       { $1 : $2 }
 
 Tk :: { Tk }
    : Type                               { Tkt $1 }
@@ -257,8 +258,8 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
-     | 'μ'  Bvar '.' Term Motive '{'  Cases '}' { Mu (pos2Txt $1) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
-     | 'μ\''         Term Motive '{'  Cases '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
+     | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
+     | 'μ\''         Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -267,33 +268,38 @@ OptPipe :: { PosInfo }
         | '|'      { pos2Txt $1   }         
 
 Cases :: { Cases }
-     :                                  { NoCase                      }
-     | '|' var  Varargs '➔' Term Cases  { SomeCase (pos2Txt $1) (tTxt $2) $3 $5 $6 }
+     :                                  { []                      }
+     | '|' Qvar CaseArgs '➔' Term Cases { MkCase (tPosTxt $2) (tTxt $2) $3 $5 : $6 }
 
-Varargs :: { Varargs }
-     :                                  { NoVarargs                 }
-     |     Bvar  Varargs                { NormalVararg (tTxt $1) $2 }
-     | '-' Bvar  Varargs                { ErasedVararg (tTxt $2) $3 }
-     | '.' Bvar  Varargs                { TypeVararg   (tTxt $2) $3 }
+-- Optional first pipe
+CasesAux :: { Cases }
+  : Qvar CaseArgs '➔' Term Cases { MkCase (tPosTxt $1) (tTxt $1) $2 $4 : $5 }
+  | Cases                        { $1 }
+
+CaseArgs :: { CaseArgs }
+     :                           { []                 }
+     |     Bvar CaseArgs         { CaseTermArg (tPosTxt $1) False (tTxt $1) : $2 }
+     | '-' Bvar CaseArgs         { CaseTermArg (tPosTxt $2) True (tTxt $2) : $3 }
+     | '.' Bvar CaseArgs         { CaseTypeArg (tPosTxt $2) (tTxt $2) : $3 }
        
 Motive :: { OptType }
-     :                                  { NoType          }
-     | '@' Type                         { SomeType $2     }  
+     :                                  { NoType }
+     | '@' Type                         { SomeType $2 }  
 
 Aterm :: { Term }
-      : Aterm     Lterm                 { App $1 NotErased $2           }
-      | Aterm '-' Lterm                 { App $1 Erased    $3           }      
+      : Aterm     Lterm                 { App $1 False $2           }
+      | Aterm '-' Lterm                 { App $1 True    $3           }      
       | Aterm '·' Atype                 { AppTp $1 $3                   } 
       | Lterm                           { $1                            }
 
 Lterm :: { Term }
       : 'β' OptEqTerm OptTerm           { Beta    (pos2Txt $1) $2 $3                          }
-      | 'ε'   Lterm                     { Epsilon (pos2Txt $1) Both               EpsHnf  $2  }
-      | 'ε-'  Lterm                     { Epsilon (pos2Txt $1) Both               EpsHanf $2  }
-      | 'εl'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  EpsHnf  $2  }
-      | 'εl-' Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  EpsHanf $2  }
-      | 'εr'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Right EpsHnf  $2  }
-      | 'εr-' Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Right EpsHanf $2  }
+      | 'ε'   Lterm                     { Epsilon (pos2Txt $1) Both               False  $2  }
+      | 'ε-'  Lterm                     { Epsilon (pos2Txt $1) Both               True $2  }
+      | 'εl'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  False  $2  }
+      | 'εl-' Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  True $2  }
+      | 'εr'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Right False  $2  }
+      | 'εr-' Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Right True $2  }
       | 'ς' Lterm                       { Sigma (pos2Txt $1) $2                               }
       | Pterm                           { $1                                                  }
 
@@ -305,24 +311,24 @@ Pterm :: { Term }
       | '●'                             { Hole (pos2Txt $1)                           }      
       
 Lterms :: { Lterms }
-       : LineNo_1                       { LtermsNil  $1              }
-       |     Lterm Lterms               { LtermsCons NotErased $1 $2 }
-       | '-' Lterm Lterms               { LtermsCons Erased    $2 $3 }
+       :                                { []                   }
+       |     Lterm Lterms               { MkLterm False $1 : $2 }
+       | '-' Lterm Lterms               { MkLterm True  $2 : $3 }
 
 Type :: { Type }
-     : 'Π'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) NotErased  (tPosTxt $2) (tTxt $2) $4 $6     }
-     | '∀'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) Erased (tPosTxt $2) (tTxt $2) $4 $6         }
+     : 'Π'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) False  (tPosTxt $2) (tTxt $2) $4 $6     }
+     | '∀'    Bvar ':' Tk  '.' Type     { Abs (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 $6         }
      | 'λ'    Bvar ':' Tk  '.' Type     { TpLambda (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6           }
      | 'ι'    Bvar ':' Type '.' Type    { Iota     (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6           }
-     | LType '➾' Type                   { TpArrow $1 Erased   $3                                       }
-     | LType '➔' Type                   { TpArrow $1 NotErased $3                                      }
+     | LType '➾' Type                   { TpArrow $1 True $3                                       }
+     | LType '➔' Type                   { TpArrow $1 False $3                                      }
      | LType                            { $1                                                           }
      | '{^' Type '^}'                   { NoSpans $2 (pos2Txt $3)                                      }
      | '[' DefTermOrType ']' '-' Type   { TpLet (pos2Txt $1) $2 $5                                     }
 --   | '{' Term '≃' Term '}'            { TpEq $2 $4                                                   } -- reduce/reduce conflict with variables and holes in types and terms without brackets
 
 LType :: { Type } 
---    : '↑' var '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
+--    : '↑' Bvar '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
       : LType   '·' Atype                 { TpApp $1 $3                                   }
       | LType Lterm                       { TpAppt $1 $2                                  }
       | Atype                             { $1                                            }

@@ -20,6 +20,7 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import datatype-functions
 open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
@@ -144,7 +145,7 @@ private
       where import list-merge-sort
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
-  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ _) pi =
+  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))
@@ -217,8 +218,8 @@ private
 
   private
     cmds-to-escaped-string : cmds → strM
-    cmds-to-escaped-string (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
-    cmds-to-escaped-string CmdsStart = strEmpty
+    cmds-to-escaped-string (c :: cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
+    cmds-to-escaped-string [] = strEmpty
 
   data-cmd : ctxt → (encoding name ps is cs : string) → string ⊎ tagged-val
   data-cmd Γ encodingₛ x psₛ isₛ csₛ =
@@ -227,8 +228,8 @@ private
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
     parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
     let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices Γ psₖ
-        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
-        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ Γ) isₖ
+        cs = map (λ {(Index x (Tkt T)) → Ctr posinfo-gen x T; (Index x (Tkk k)) → Ctr posinfo-gen x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
+        is = kind-to-indices (add-ctrs-to-ctxt cs $ add-params-to-ctxt ps Γ) isₖ
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs

@@ -72,7 +72,7 @@ rkt-require-file fp = [[ "(require (file \"" ]] ⊹⊹ [[ fp ]] ⊹⊹ [[ "\"))"
 
 -- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → rope
-rkt-from-sym-info n (term-def (just (ParamsCons (Decl _ _ _ v _ _) _)) _ tm ty , _)
+rkt-from-sym-info n (term-def (just ((Decl _ _ _ v _ _) :: _)) _ tm ty , _)
   -- TODO not tested
   = rkt-dbg "term-def: paramsCons:" (rkt-define n tm)
 rkt-from-sym-info n (term-def (just ParamsNil) _ tm ty , _)
@@ -95,13 +95,13 @@ rkt-from-sym-info n (rename-def v , _)
   = rkt-dbg ("rename-def: " ^ v)    [[]]
 rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             [[]]
-rkt-from-sym-info n (const-def _ , _) 
+rkt-from-sym-info n (ctr-def _ _ _ _ _ , _) 
   = rkt-dbg "const-def:"           [[]]
-rkt-from-sym-info n (datatype-def _ _ , _) 
+rkt-from-sym-info n (datatype-def _ _ _ _ , _) 
   = rkt-dbg "datatype-def:"           [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
-to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences _) ie rkt-filename =
+to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences) ie rkt-filename =
   rkt-header ⊹⊹ rkt-body
   where
   cdle-pair = trie-lookup𝕃2 syms ced-path

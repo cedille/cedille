@@ -65,7 +65,7 @@ spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 print-file-id-table : ctxt → 𝕃 tagged-val
-print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os _) =
+print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
   h [] id-fns where
   h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
   h ts [] = ts
@@ -131,6 +131,12 @@ spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , 
 
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
 spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x t T Γ , ss)
+
+spanM-lookup-restore-info : var → spanM restore-def
+spanM-lookup-restore-info x =
+  get-ctxt λ Γ →
+  let qi = ctxt-get-qi Γ x in
+  spanMr (qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ)
 
 -- returns the original sym-info.
 -- clarification is idempotent: if the definition was already clarified,
@@ -283,7 +289,7 @@ location-data : location → tagged-val
 location-data (file-name , pi) = "location" , [[ file-name ]] ⊹⊹ [[ " - " ]] ⊹⊹ [[ pi ]] , []
 
 var-location-data : ctxt → var → tagged-val
-var-location-data Γ @ (mk-ctxt _ _ i _ _) x =
+var-location-data Γ @ (mk-ctxt _ _ i _) x =
   location-data (maybe-else ("missing" , "missing") snd
     (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
 {-
@@ -494,7 +500,7 @@ error-if-not-eq-maybe Γ (just tp) = error-if-not-eq Γ tp
 error-if-not-eq-maybe _ _ tvs = tvs , nothing
 
 params-data : ctxt → params → 𝕃 tagged-val
-params-data _ ParamsNil = []
+params-data _ [] = []
 params-data Γ ps = [ params-to-string-tag "parameters" Γ ps ]
 
 --------------------------------------------------
@@ -533,6 +539,7 @@ KndVar-span Γ (pi , v) pi' ps check tvs =
 var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-var ff :: [ kind-data Γ k ])
 var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data-var e :: [ type-data Γ t ])
+
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
@@ -677,6 +684,9 @@ DefType-span Γ pi x checked mk tp pi' tvs =
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
 DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x Γ (Var pi "□") ]) nothing
 
+DefDatatype-span : ctxt → posinfo → var → kind → posinfo → span
+DefDatatype-span Γ pi x k pi' = mk-span "Datatype definition" pi pi' (binder-data-const :: [ summary-data x Γ k ]) nothing
+
 {-unchecked-term-span : term → span
 unchecked-term-span t = mk-span "Unchecked term" (term-start-pos t) (term-end-pos t)
                            (ll-data-term :: not-for-navigation :: [ explain "This term has not been type-checked."]) nothing-}
@@ -722,7 +732,7 @@ optGuide-spans NoGuide _ = spanMok
 optGuide-spans (Guide pi x tp) expected =
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x expected [] nothing)
 
-Rho-span : posinfo → term → term → checking-mode → optPlus → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
+Rho-span : posinfo → term → term → checking-mode → rhoHnf → ℕ ⊎ var → 𝕃 tagged-val → err-m → span
 Rho-span pi t t' expected r (inj₂ x) tvs =
   mk-span "Rho" pi (term-end-pos t')
     (checking-data expected :: ll-data-term :: explain ("Rewrite all places where " ^ x ^ " occurs in the " ^ expected-to-string expected ^ " type, using an equation. ") :: tvs)
@@ -731,7 +741,7 @@ Rho-span pi t t' expected r (inj₁ numrewrites) tvs err =
     (checking-data expected :: ll-data-term :: tvs ++
     (explain ("Rewrite terms in the " 
       ^ expected-to-string expected ^ " type, using an equation. "
-      ^ (if (is-rho-plus r) then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
+      ^ (if r then "" else "Do not ") ^ "Beta-reduce the type as we look for matches.") :: fst h)) (snd h)
   where h : 𝕃 tagged-val × err-m
         h = if isJust err
               then [] , err
@@ -770,12 +780,15 @@ the-motive : ctxt → type → tagged-val
 the-motive = to-string-tag motive-label
 
 Theta-span : ctxt → posinfo → theta → term → lterms → checking-mode → 𝕃 tagged-val → err-m → span
-Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
+Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end-pos t) ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type.") ]
         do-explain (AbstractVars vs) = [ strRunTag "explanation" Γ (strAdd "Perform an elimination with the first term, after abstracting the listed variables (" ≫str vars-to-string vs ≫str strAdd ") from the expected type.") ]
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
+
+Mu-span : ctxt → posinfo → posinfo → (motive? : 𝔹) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if motive? then ", with a motive" else "")) :: tvs)
 
 Lft-span : posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span pi X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data-const :: tvs)
@@ -788,6 +801,9 @@ Module-span pi pi' = mk-span "Module declaration" pi pi' [ not-for-navigation ] 
 
 Module-header-span : posinfo → posinfo → span
 Module-header-span pi pi' = mk-span "Module header" pi pi' [ not-for-navigation ] nothing
+
+DefDatatype-header-span : posinfo → span
+DefDatatype-header-span pi = mk-span "Data" pi (posinfo-plus-str pi "data") [ not-for-navigation ] nothing
 
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → err-m → span
 Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
@@ -816,17 +832,5 @@ Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data
 
 TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
-
-Mu'-span : term → 𝕃 tagged-val → err-m → span
-Mu'-span t tvs = mk-span "Mu' cases" (term-start-pos t) (term-end-pos t) tvs
-
-Mu-span : term → 𝕃 tagged-val → err-m → span
-Mu-span t tvs = mk-span "Mu fixpoint" (term-start-pos t) (term-end-pos t) tvs
-
-DefDatatype-span : posinfo → posinfo → var → posinfo → span
-DefDatatype-span pi _ x pi' = mk-span "Datatype definition" pi pi' [] nothing
-
-DefDataConst-span : posinfo → var → span
-DefDataConst-span pi c = mk-span "Datatype constructor" pi (posinfo-plus-str pi c) [] nothing
 
 
