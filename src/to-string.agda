@@ -88,9 +88,9 @@ no-parens{TK} _ _ _ = tt
 no-parens{QUALIF} _ _ _ = tt
 no-parens{ARG} _ _ _ = tt
 
-pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ ff
-pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ ff
-pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ tt
+pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ ff
+pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ ff
+pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ tt
 
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine ced-ops-drop-spine = h

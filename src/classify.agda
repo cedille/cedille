@@ -1917,13 +1917,13 @@ check-mu pi pi' x? t Tₘ? cs pi'' mtp =
           Tₘ ≫=spanr λ Tₘ →
           let is = drop-last 1 is
               ps' = maybe-else [] id ps
-              X' = λ x → x ^ "/" ^ maybe-else X id (var-suffix X)
+              --X' = λ x → x ^ "/" ^ maybe-else X id (var-suffix X)
               subst-ctr : ctxt → ctr → ctr
               subst-ctr = λ {Γ (Ctr pi x T) → Ctr pi x $ maybe-else' x? T λ x →
-                hnf Γ unfold-all (subst Γ (params-to-tplams ps' $ mtpvar $ pi' % X' x) X T) ff}
+                hnf Γ unfold-all (subst Γ (params-to-tplams ps' $ mtpvar $ pi' % mu-name-type x) X T) ff}
               subst-ctrs = map ∘ subst-ctr
               Γ' = maybe-else' x? Γ λ x →
-                     let X' = X' x
+                     let X' = mu-name-type x
                          xₜₒ = mu-name-cast x
                          qX' = pi' % X'
                          qxₜₒ = pi' % xₜₒ

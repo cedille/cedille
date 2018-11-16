@@ -97,9 +97,14 @@ substh-term Γ ρ σ (Theta _ θ t ls) = Theta posinfo-gen (substh-theta θ) (su
         substh-theta θ = θ
 substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
   let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x
-      x' = fresh-var x (λ x → fv x || fv (mu-name-cast x)) ρ
-      ρ' = renamectxt-insert ρ x x' in
-    Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases (ctxt-var-decl x' $ ctxt-var-decl (mu-name-cast x') Γ) ρ' σ cs) posinfo-gen
+      x' = fresh-var x (λ x → fv x || fv (mu-name-cast x) || fv (mu-name-type x)) ρ
+      ρ' = renamectxt-insert ρ x x'
+      ρ' = renamectxt-insert ρ' (mu-name-cast x) (mu-name-cast x')
+      ρ' = renamectxt-insert ρ' (mu-name-type x) (mu-name-type x')
+      Γ' = ctxt-var-decl x' Γ
+      Γ' = ctxt-var-decl (mu-name-cast x') Γ'
+      Γ' = ctxt-var-decl (mu-name-type x') Γ' in
+    Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ' ρ' σ cs) posinfo-gen
 substh-term Γ ρ σ (Mu' _ t ot _ cs _) = Mu' posinfo-gen (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ ρ σ cs) posinfo-gen
 
 substh-cases{QUALIF} Γ ρ σ = map λ where

@@ -54,6 +54,9 @@ opts-to-options ofp (options-types.OptsCons (options-types.ShowQualifiedVars b) 
   opts-to-options ofp ops >>=r λ ops → record ops { show-qualified-vars = str-bool-to-𝔹 b }
 opts-to-options ofp (options-types.OptsCons (options-types.EraseTypes b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { erase-types = str-bool-to-𝔹 b }
+opts-to-options ofp (options-types.OptsCons (options-types.DatatypeEncoding e) ops) =
+  opts-to-options ofp ops >>=r λ ops → record ops { datatype-encoding = e }
+
 opts-to-options ofp options-types.OptsNil = return cedille-options.default-options
 
 -- helper function to try to parse the options file

@@ -246,9 +246,9 @@ indCoend' ◂
     ∀ X : Π indices : Indices. CoendInd · F · C indices ➔ ★.
     (∀ indices : Indices. ∀ x' : CoendInd · F · C indices. Q indices x' ➔ X indices x') ➔
     X indices e =
-  Λ F. Λ C. Λ indices. λ e. Λ Q. λ q. θ<indices e> e.2
-    (Λ R. Λ indices. λ ar. λ gr. Λ X. λ qq. qq -indices
-      -(intrCoendInd · F · C · R -indices -ar gr) (q · R -indices -ar gr)).
+  Λ F. Λ C. Λ indices. λ e. Λ Q. λ q. e.2 · (λ indices : Indices. λ e : Coend · F · C indices. ∀ e' : CoendInd · F · C indices. ∀ eq : {e' ≃ e}. ∀ X : Π indices' : Indices . CoendInd · F · C indices' ➔ ★ . (∀ indices' : Indices . ∀ x' : CoendInd · F · C indices' . Q indices' x' ➔ X indices' x') ➔ X indices (φ eq - e' {e}))
+    (Λ R. Λ indices. λ ar. λ gr. Λ e'. Λ eq. Λ X. λ qq. qq -indices
+      -(intrCoendInd · F · C · R -indices -ar gr) (q · R -indices -ar gr)) -e -β.
 
 
 indCoend ◂

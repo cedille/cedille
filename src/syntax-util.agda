@@ -25,6 +25,9 @@ compileFailType = Abs posinfo-gen Erased posinfo-gen "X" (Tkk (Star posinfo-gen)
 mu-name-cast : var → var
 mu-name-cast x = x ^ "/cast"
 
+mu-name-type : var → var
+mu-name-type x = x ^ "/type"
+
 qualif-info : Set
 qualif-info = var × args
 

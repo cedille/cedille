@@ -280,7 +280,7 @@ CaseArgs :: { CaseArgs }
      :                           { []                 }
      |     Bvar CaseArgs         { CaseTermArg (tPosTxt $1) False (tTxt $1) : $2 }
      | '-' Bvar CaseArgs         { CaseTermArg (tPosTxt $2) True (tTxt $2) : $3 }
-     | '.' Bvar CaseArgs         { CaseTypeArg (tPosTxt $2) (tTxt $2) : $3 }
+     | '·' Bvar CaseArgs         { CaseTypeArg (tPosTxt $2) (tTxt $2) : $3 }
        
 Motive :: { OptType }
      :                                  { NoType }

@@ -27,8 +27,11 @@ token :-
       <0> generate\-logs                { mkTokenEmpty TGenLogs       }
       <0> show\-qualified\-vars         { mkTokenEmpty TShowQualVars  }
       <0> erase\-types                  { mkTokenEmpty TEraseTypes    }
+      <0> datatype\-encoding            { mkTokenEmpty TDataEnc       }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
+      <0> Mendler\-old                  { mkTokenEmpty TEncMendlerOld }
+      <0> Mendler                       { mkTokenEmpty TEncMendler    }
       <0> @path  	                { mkTokenPath  TPath          }
       <0> =	                        { mkTokenEmpty TEq            }
       <0> \.	                        { mkTokenEmpty TPoint         }      
@@ -49,12 +52,16 @@ data Paths = PathsCons Text Paths
            | PathsNil 
   deriving (Show)
 
+data DataEnc = Mendler | MendlerOld
+  deriving (Show)
+
 data Opt = GenerateLogs         StrBool
            | Lib Paths
            | MakeRktFiles       StrBool
            | ShowQualifiedVars  StrBool
            | UseCedeFiles       StrBool
            | EraseTypes         StrBool
+           | DatatypeEncoding   DataEnc
   deriving (Show)
   
 data Opts = OptsCons Opt Opts
@@ -83,6 +90,9 @@ data TokenClass =
      |  TGenLogs
      |  TShowQualVars
      |  TEraseTypes
+     |  TDataEnc
+     |  TEncMendler
+     |  TEncMendlerOld
      |  TEq
      |  TPoint
      |  TEOF
