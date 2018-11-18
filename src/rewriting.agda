@@ -41,6 +41,11 @@ _≫rewrite_ : ∀ {A B : Set} → rewrite-t (A → B) → rewrite-t A → rewri
 ...| f' , n' , sn with a Γ op on eq t₁ t₂ sn
 ...| b , n'' , sn' = f' b , n' + n'' , sn'
 
+rewriteC : ∀ {A : Set} → rewrite-t (rewrite-t A) → rewrite-t A
+rewriteC r Γ op on eq t₁ t₂ n with r Γ op on eq t₁ t₂ n
+...| r' , n' , sn with r' Γ op on eq t₁ t₂ sn
+...| a , n'' , sn' = a , n' + n'' , sn'
+
 rewriteR : ∀ {A : Set} → A → rewrite-t A
 rewriteR a Γ op on eq t₁ t₂ n = a , 0 , n
 
@@ -53,11 +58,18 @@ rewrite-typeh       : type        → rewrite-t type
 rewrite-kind        : kind        → rewrite-t kind
 rewrite-tk          : tk          → rewrite-t tk
 rewrite-liftingType : liftingType → rewrite-t liftingType
+rewrite-case : maybe (var × var)  → case   → rewrite-t case
 
 rewrite-rename-var : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
 rewrite-rename-var x r Γ op on eq t₁ t₂ n =
   let x' = rename-var-if Γ (renamectxt-insert empty-renamectxt t₂ t₂) x t₁ in
   r x' Γ op on eq t₁ t₂ n
+
+rewrite-rename-var-mu : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
+rewrite-rename-var-mu x r Γ op on eq t₁ t₂ n =
+  let x' = fresh-var x (λ x → ctxt-binds-var Γ x || ctxt-binds-var Γ (mu-name-cast x) || ctxt-binds-var Γ (mu-name-type x)) (renamectxt-insert empty-renamectxt t₂ t₂) in
+  r x' Γ op on eq t₁ t₂ n
+
 
 rewrite-abs : ∀ {ed} → var → var → (⟦ ed ⟧ → rewrite-t ⟦ ed ⟧) → ⟦ ed ⟧ → rewrite-t ⟦ ed ⟧
 rewrite-abs x x' g a Γ = let Γ = ctxt-var-decl x' Γ in g (rename-var Γ x x' a) Γ
@@ -86,7 +98,36 @@ rewrite-termh (Lam pi NotErased pi' y NoClass t) =
   rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
   rewrite-abs y y' rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi x)
+rewrite-termh (Mu  pi₁ pi₂ x t Tₘ? pi₃ ms pi₄) =
+  rewrite-rename-var-mu x λ x' →
+  rewriteR (Mu pi₁ pi₂ x') ≫rewrite
+  rewrite-terma t ≫rewrite
+  rewriteR NoType ≫rewrite
+  rewriteR pi₃ ≫rewrite
+  foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
+    (rewriteR []) ms ≫rewrite
+  rewriteR pi₄
+rewrite-termh (Mu' pi₁ t Tₘ? pi₂ ms pi₃) =
+  rewriteR (Mu' pi₁) ≫rewrite
+  rewrite-terma t ≫rewrite
+  rewriteR NoType ≫rewrite
+  rewriteR pi₂ ≫rewrite
+  foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case nothing c ≫rewrite r)
+    (rewriteR []) ms ≫rewrite
+  rewriteR pi₃
 rewrite-termh = rewriteR
+
+rewrite-case xᵣ? (Case pi x cas t) =
+  let f = maybe-else' xᵣ? rewrite-terma $ uncurry λ xₒ xₙ →
+            rewrite-abs xₒ xₙ $
+            rewrite-abs (mu-name-cast xₒ) (mu-name-cast xₙ) $
+            rewrite-abs (mu-name-type xₒ) (mu-name-type xₙ)
+            rewrite-terma in
+  rewriteR (uncurry $ Case pi x) ≫rewrite
+  foldr {B = caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
+    (λ {(CaseTermArg pi NotErased x) r cas fₜ → rewrite-rename-var x λ x' →
+      r (CaseTermArg pi NotErased x' :: cas) (rewrite-abs x x' fₜ); _ → id})
+    (λ cas fₜ → rewriteR (_,_ cas) ≫rewrite fₜ t) cas [] f
 
 rewrite-type T Γ tt on eq t₁ t₂ sn
   with rewrite-typeh (hnf Γ unfold-head-no-lift T tt) Γ tt on eq t₁ t₂ sn
