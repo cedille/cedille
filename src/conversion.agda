@@ -105,6 +105,7 @@ conv-optClasse : conv-t optClass
 -- -- conv-optTypee : conv-t optType
 conv-ttye* : conv-t (𝕃 tty)
 
+conv-ctr-args : conv-t (var × args)
 conv-ctr : conv-t var
 
 
@@ -112,8 +113,9 @@ conv-term Γ t t' = conv-terme Γ (erase t) (erase t')
 
 conv-terme Γ t t' with decompose-apps t | decompose-apps t'
 conv-terme Γ t t' | Var _ x , args | Var _ x' , args' = 
-  if (ctxt-eq-rep Γ x x' || conv-ctr Γ x x') && conv-argse Γ (unerased-args args) (unerased-args args') then tt else
-  conv-term' Γ t t'
+     ctxt-eq-rep Γ x x' && conv-argse Γ (erase-args args) (erase-args args')
+  || conv-ctr-args Γ (x , args) (x' , args')
+  || conv-term' Γ t t'
 conv-terme Γ t t' | _ | _ = conv-term' Γ t t'
 
 conv-argse Γ [] [] = tt
@@ -124,8 +126,8 @@ conv-type Γ t t' = conv-typee Γ (erase t) (erase t')
 
 conv-typee Γ t t' with decompose-tpapps t | decompose-tpapps t'
 conv-typee Γ t t' | TpVar _ x , args | TpVar _ x' , args' = 
-  if ctxt-eq-rep Γ x x' && conv-tty* Γ args args' then tt else
-  conv-type' Γ t t'
+     ctxt-eq-rep Γ x x' && conv-tty* Γ args args'
+  || conv-type' Γ t t'
 conv-typee Γ t t' | _ | _ = conv-type' Γ t t'
 
 conv-kind Γ k k' = conv-kinde Γ (erase k) (erase k')
@@ -414,10 +416,12 @@ conv-ttye* Γ (tterm t :: args) (tterm t' :: args') = conv-term Γ t t' && conv-
 conv-ttye* Γ (ttype t :: args) (ttype t' :: args') = conv-type Γ t t' && conv-ttye* Γ args args'
 conv-ttye* Γ _ _ = ff
 
---conv-ctr Γ x₁ x₂ = ff
-conv-ctr Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
+conv-ctr Γ x₁ x₂ = conv-ctr-args Γ (x₁ , []) (x₂ , [])
+
+conv-ctr-args Γ (x₁ , as₁) (x₂ , as₂) with env-lookup Γ x₁ | env-lookup Γ x₂
 ...| just (ctr-def mps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def mps₂ T₂ n₂ i₂ a₂ , _) =
-  n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂
+  let drop-ps = drop ∘ maybe-else 0 (length ∘ erase-params) in
+  n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂ && conv-argse Γ (drop-ps mps₁ $ erase-args as₁) (drop-ps mps₂ $ erase-args as₂)
 ...| _ | _ = ff
 
 

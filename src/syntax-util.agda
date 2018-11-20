@@ -555,14 +555,6 @@ recompose-apps = flip $ foldl λ {(TermArg me t') t → App t me t'; (TypeArg T)
 --recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
 --recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
 
-unerased-arrows : type → ℕ
-unerased-arrows (TpArrow T NotErased T') = suc $ unerased-arrows T'
-unerased-arrows (TpArrow T Erased T') = unerased-arrows T'
-unerased-arrows (Abs _ NotErased _ _ _ T) = suc $ unerased-arrows T
-unerased-arrows (Abs _ Erased _ _ _ T) = unerased-arrows T
-unerased-arrows (TpParens _ T _) = unerased-arrows T
-unerased-arrows T = 0
-
 vars-to-𝕃 : vars → 𝕃 var
 vars-to-𝕃 (VarsStart v) = [ v ]
 vars-to-𝕃 (VarsNext v vs) = v :: vars-to-𝕃 vs
@@ -699,6 +691,24 @@ lterms-to-term AbstractEq t [] = App t Erased (Beta (term-end-pos t) NoTerm NoTe
 lterms-to-term _ t [] = t
 lterms-to-term u t ((Lterm e t') :: ls) = lterms-to-term u (App t e t') ls
 
+erase-args : args → 𝕃 term
+erase-args [] = []
+erase-args (TermArg NotErased t :: as) = t :: erase-args as
+erase-args (_ :: as) = erase-args as
+
+erase-params : params → 𝕃 (var × type)
+erase-params [] = []
+erase-params (Decl _ _ NotErased x (Tkt T) _ :: ps) = (x , T) :: erase-params ps
+erase-params (_ :: ps) = erase-params ps
+
+unerased-arrows : type → ℕ
+unerased-arrows (TpArrow T NotErased T') = suc $ unerased-arrows T'
+unerased-arrows (TpArrow T Erased T') = unerased-arrows T'
+unerased-arrows (Abs _ NotErased _ _ _ T) = suc $ unerased-arrows T
+unerased-arrows (Abs _ Erased _ _ _ T) = unerased-arrows T
+unerased-arrows (TpParens _ T _) = unerased-arrows T
+unerased-arrows T = 0
+
 imps-to-cmds : imports → cmds
 imps-to-cmds = map ImportCmd
 
@@ -786,16 +796,6 @@ erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) with var-suffix x
 ... | just x' = x' :: erased-params ps
 erased-params (p :: ps) = erased-params ps
 erased-params [] = []
-
-unerased-args : args → 𝕃 term
-unerased-args [] = []
-unerased-args (TermArg NotErased t :: as) = t :: unerased-args as
-unerased-args (_ :: as) = unerased-args as
-
-unerased-params : params → 𝕃 (var × type)
-unerased-params [] = []
-unerased-params (Decl _ _ NotErased x (Tkt T) _ :: ps) = (x , T) :: unerased-params ps
-unerased-params (_ :: ps) = unerased-params ps
 
 lam-expand-term : params → term → term
 lam-expand-term ((Decl _ _ me x tk _) :: ps) t =

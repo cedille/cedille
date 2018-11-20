@@ -124,10 +124,10 @@ rewrite-case xᵣ? (Case pi x cas t) =
             rewrite-abs (mu-name-type xₒ) (mu-name-type xₙ)
             rewrite-terma in
   rewriteR (uncurry $ Case pi x) ≫rewrite
-  foldr {B = caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
-    (λ {(CaseTermArg pi NotErased x) r cas fₜ → rewrite-rename-var x λ x' →
-      r (CaseTermArg pi NotErased x' :: cas) (rewrite-abs x x' fₜ); _ → id})
-    (λ cas fₜ → rewriteR (_,_ cas) ≫rewrite fₜ t) cas [] f
+  foldr {B = rewrite-t caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
+    (λ {(CaseTermArg pi NotErased x) r cas fₜ →
+      r (rewrite-rename-var x λ x' → rewriteR _::_ ≫rewrite rewriteR (CaseTermArg pi NotErased x') ≫rewrite cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
+    (λ cas fₜ → rewriteR _,_ ≫rewrite cas ≫rewrite fₜ t) cas (rewriteR []) f
 
 rewrite-type T Γ tt on eq t₁ t₂ sn
   with rewrite-typeh (hnf Γ unfold-head-no-lift T tt) Γ tt on eq t₁ t₂ sn
@@ -215,7 +215,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq p
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
 ...| just (type-def nothing _ T k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def (just ps) _ T k , _) = mtpvar x' , abs-expand-kind ps (hnf Γ unfold-head-no-lift k tt)
+...| just (type-def (just ps) _ T k , _) = mtpvar x' , (hnf Γ unfold-head-no-lift (abs-expand-kind ps k) tt)
 ...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 

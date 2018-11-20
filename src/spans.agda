@@ -462,8 +462,6 @@ is-erased : type → 𝔹
 is-erased (TpVar _ _ ) = tt
 is-erased _ = ff
 
-erased? = 𝔹
-
 keywords = "keywords"
 keyword-erased = "erased"
 keyword-noterased = "noterased"
@@ -480,7 +478,7 @@ keywords-data kws = keywords , h kws , [] where
   h (k :: []) = [[ k ]]
   h (k :: ks) = [[ k ]] ⊹⊹ [[ " " ]] ⊹⊹ h ks
 
-keywords-data-var : erased? → tagged-val
+keywords-data-var : maybeErased → tagged-val
 keywords-data-var e =
   keywords ,  [[ if e then keyword-erased else keyword-noterased ]] , []
 
@@ -536,7 +534,7 @@ KndVar-span Γ (pi , v) pi' ps check tvs =
   mk-span "Kind variable" pi pi'
     (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data (unqual-local v) :: super-kind-data :: (params-data Γ ps ++ tvs))
 
-var-span :  erased? → ctxt → posinfo → string → checking-mode → tk → err-m → span
+var-span :  maybeErased → ctxt → posinfo → string → checking-mode → tk → err-m → span
 var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check (keywords-data-var ff :: [ kind-data Γ k ])
 var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check (keywords-data-var e :: [ type-data Γ t ])
 
