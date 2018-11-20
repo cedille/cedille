@@ -11,7 +11,7 @@
 
 (defun cedille-save-archive ()
   (let ((archive-file-name (concat (buffer-name) ".json"))
-	(spans se-mode-spans))
+        (spans se-mode-spans))
     (with-temp-file archive-file-name
       (insert (json-encode (cedille-spans-to-sexp spans))))
     (message "Saved archive as %s" archive-file-name)))
