@@ -436,6 +436,37 @@ mk-ctr-type me Γ (Ctr _ x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl T�
   rename "X" from add-params-to-ctxt ps (ctxt-var-decl Tₕ Γ) for λ X →
   mk-ctr-term me x X cs ps
 
+mk-ctr-fmap-t : Set
+mk-ctr-fmap-t = ctxt → (var × var × var × var × var) → var → type → term
+{-# TERMINATING #-}
+mk-ctr-fmap-η+ : mk-ctr-fmap-t
+mk-ctr-fmap-η- : mk-ctr-fmap-t
+mk-ctr-fmap-η? : mk-ctr-fmap-t → mk-ctr-fmap-t
+
+mk-ctr-fmap-η? f Γ x x' T with is-free-in tt (fst x) T
+...| tt = f Γ x x' T
+...| ff = mvar x'
+
+mk-ctr-fmap-η+ Γ x x' T with decompose-ctr-type Γ T
+...| Tₕ , ps , _ =
+  params-to-lams' ps $
+  foldl
+    (λ {(Decl _ _ me x'' (Tkt T) _) t → App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η- (add-params-to-ctxt ps Γ) x x'' T;
+        (Decl _ _ _ x'' (Tkk k) _) t → AppTp t $ mtpvar x'' {- TODO: Cast x in k? -}})
+    (mvar x') ps
+
+mk-ctr-fmap-η- Γ xₒ @ (x , Aₓ , Bₓ , cₓ , castₓ) x' T with decompose-ctr-type Γ T
+...| TpVar _ x'' , ps , as =
+  if_then_else_ (~ x'' =string x) (mvar x') $
+  params-to-lams' ps $
+  mapp
+    (recompose-apps (ttys-to-args Erased as) $
+     mappe (AppTp (AppTp (mvar castₓ) (mtpvar Aₓ)) (mtpvar Bₓ)) (mvar cₓ))
+    (foldl (λ {(Decl _ _ me x'' (Tkt T) _) t →
+                 App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ (add-params-to-ctxt ps Γ) xₒ x'' T;
+               (Decl _ _ me x'' (Tkk k) _) t → AppTp t $ mtpvar x'' {- TODO: Cast x in k? -}}) (mvar x') ps)
+...| Tₕ , ps , as = mvar x'
+
 record encoded-datatype-names : Set where
   constructor mk-encoded-datatype-names
   field
@@ -490,6 +521,7 @@ record datatype-encoding : Set where
     elab-mu : elab-mu-t
     elab-mu-pure : ctxt → params → encoded-datatype-names → maybe var → term → cases → maybe term
 
+  {-# TERMINATING #-}
   mk-defs : ctxt → datatype → cmds × encoded-datatype
   mk-defs Γ'' (Data x ps is cs) =
     tcs ++
@@ -576,8 +608,6 @@ record datatype-encoding : Set where
       TpAppt (indices-to-tpapps is $ mtpvar Xₓ) $
       Phi pi-gen (mvar eₓ) (mvar yₓ) (mvar xₓ) pi-gen
     
-    
-    
     fmap-cmd : defTermOrType
     fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
     ...| Aₓ | Bₓ | cₓ = DefTerm pi-gen data-fmapₓ (SomeType $
@@ -594,11 +624,16 @@ record datatype-encoding : Set where
            (new-var "X" λ Xₓ → Mlam Xₓ $
              ctrs-to-lams' cs $
              foldl
-               (flip mapp ∘ eta-expand-fmap)
+               (flip mapp ∘ eta-expand-ctr)
                (AppTp (IotaProj (mvar xₓ) "2" pi-gen) $ mtpvar Xₓ) cs)
           NoGuide pi-gen)
         (Beta pi-gen NoTerm NoTerm) NoGuide pi-gen
       where
+      eta-expand-ctr : ctr → term
+      eta-expand-ctr (Ctr _ x' T) =
+        mk-ctr-fmap-η+ (ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ)
+          (x , Aₓ , Bₓ , cₓ , castₓ) x' T
+{-
       eta-expand-fmaph-type : ctxt → var → type → term
       eta-expand-fmaph-type Γ x' T with decompose-ctr-type Γ T
       ...| Tₕ , ps , as with add-params-to-ctxt ps Γ
@@ -619,8 +654,8 @@ record datatype-encoding : Set where
         (λ {(Decl pi pi' me x'' (Tkt T) pi'') t → App t me $
               if ~ is-free-in tt x T then mvar x'' else eta-expand-fmaph-type Γ'' x'' T;
             (Decl pi pi' me x'' (Tkk k) pi'') t → AppTp t $ mtpvar x''})
-        (mvar x') $ ps
-
+        (mvar x') ps
+-}
     type-cmd = DefType pi-gen x (params-to-kind ps $ k) $
       params-to-tplams ps $ TpAppt
         (TpApp (mtpvar fixpoint-typeₓ) $ params-to-tpapps ps $ mtpvar data-functorₓ)
