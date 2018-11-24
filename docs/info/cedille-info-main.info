@@ -385,7 +385,7 @@ available:
      Close all emacs windows except the current one; convenience
      keystroke for emacs command delete-other-windows.
 
-‘m’
+‘#’
      Highlight/unhighlight all instances of the selected symbol
      (context-sensitive)
 

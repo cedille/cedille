@@ -680,6 +680,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
   (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+  (se-navi-define-key mode (kbd "#") #'cedille-mode-highlight-occurrences)
   (se-navi-define-key mode (kbd "m") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode nil t))
   (se-navi-define-key mode (kbd "M") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode t t))
   (se-navi-define-key mode (kbd "K") #'cedille-mode-restart-backend)

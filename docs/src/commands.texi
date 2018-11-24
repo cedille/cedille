@@ -61,7 +61,7 @@ Open information documents describing how to use Cedille mode
 @item 1
 Close all emacs windows except the current one; convenience keystroke for emacs command delete-other-windows.
 
-@item m
+@item #
 Highlight/unhighlight all instances of the selected symbol (context-sensitive)
 @end table
 
