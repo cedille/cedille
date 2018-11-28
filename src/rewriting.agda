@@ -80,7 +80,7 @@ rewrite-term t Γ op on eq t₁ t₂ sn =
     (t' , n , sn') → mk-phi t₂ eq t t' , n , sn'
 
 rewrite-terma t Γ op on eq t₁ t₂ sn =
-  case conv-term Γ t₁ t of λ where
+  case conv-term Γ t t₁ of λ where
   tt → case on of λ where
     (just ns) → case trie-contains ns (ℕ-to-string (suc sn)) of λ where
       tt → Var posinfo-gen t₂ , 1 , suc sn -- ρ nums contains n
@@ -98,7 +98,11 @@ rewrite-termh (Lam pi NotErased pi' y NoClass t) =
   rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
   rewrite-abs y y' rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi x)
-rewrite-termh (Mu  pi₁ pi₂ x t Tₘ? pi₃ ms pi₄) =
+rewrite-termh (Let pi₁ (DefTerm pi₂ x NoType t) t') = -- Γ = rewrite-terma (subst Γ t x t') Γ
+  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
+  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
+  rewrite-abs x x' rewrite-terma t'
+rewrite-termh (Mu  pi₁ pi₂ x t NoType pi₃ ms pi₄) =
   rewrite-rename-var-mu x λ x' →
   rewriteR (Mu pi₁ pi₂ x') ≫rewrite
   rewrite-terma t ≫rewrite
@@ -107,7 +111,7 @@ rewrite-termh (Mu  pi₁ pi₂ x t Tₘ? pi₃ ms pi₄) =
   foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
     (rewriteR []) ms ≫rewrite
   rewriteR pi₄
-rewrite-termh (Mu' pi₁ t Tₘ? pi₂ ms pi₃) =
+rewrite-termh (Mu' pi₁ t NoType pi₂ ms pi₃) =
   rewriteR (Mu' pi₁) ≫rewrite
   rewrite-terma t ≫rewrite
   rewriteR NoType ≫rewrite
@@ -153,8 +157,8 @@ rewrite-typeh (TpApp T T') =
 rewrite-typeh (TpAppt T t) =
   rewriteR TpAppt ≫rewrite rewrite-typeh T ≫rewrite rewrite-term t
 rewrite-typeh (TpEq pi t₁ t₂ pi') =
-  rewriteR (TpEq pi) ≫rewrite rewrite-term t₁ ≫rewrite
-  rewrite-term t₂ ≫rewrite rewriteR pi'
+  rewriteR (TpEq pi) ≫rewrite (rewriteR erase ≫rewrite rewrite-term t₁) ≫rewrite
+  (rewriteR erase ≫rewrite rewrite-term t₂) ≫rewrite rewriteR pi'
 rewrite-typeh (TpLambda pi pi' x atk T) =
   rewrite-rename-var x λ x' →
   rewriteR (TpLambda pi pi' x') ≫rewrite rewrite-tk atk ≫rewrite
@@ -214,8 +218,8 @@ post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
 post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def nothing _ T k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def (just ps) _ T k , _) = mtpvar x' , (hnf Γ unfold-head-no-lift (abs-expand-kind ps k) tt)
+...| just (type-def mps _ T k , _) = mtpvar x' , (hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt)
+...| just (datatype-def mps _ k _ , _) = mtpvar x' , hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt
 ...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 

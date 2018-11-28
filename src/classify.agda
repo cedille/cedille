@@ -153,8 +153,8 @@ module check-term-errors {A : Set} where
     ret (just x₁) = triv
     ret nothing = nothing
 
-check-term t nothing = check-termi t nothing ≫=span λ T → get-ctxt λ Γ → spanMr (maybe-map (λ T → hnf Γ unfold-head T ff) T)
-check-term t (just T) = get-ctxt λ Γ → check-termi t (just (hnf Γ unfold-head T ff))
+check-term t nothing = check-termi t nothing ≫=span λ T → get-ctxt λ Γ → spanMr (maybe-map (λ T → hnf Γ (unfolding-elab unfold-head) T ff) T)
+check-term t (just T) = get-ctxt λ Γ → check-termi t (just (hnf Γ (unfolding-elab unfold-head) T ff))
 --check-term = check-termi -- Used to call hnf on expected/synthesized type
 
 check-type subject nothing = check-typei subject nothing

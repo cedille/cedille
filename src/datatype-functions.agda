@@ -133,6 +133,9 @@ add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
 add-params-to-ctxt : params → ctxt → ctxt
 add-params-to-ctxt = flip $ foldr λ {(Decl _ _ _ x'' _ _) → ctxt-var-decl x''}
 
+add-caseArgs-to-ctxt : caseArgs → ctxt → ctxt
+add-caseArgs-to-ctxt = flip $ foldr λ {(CaseTermArg _ _ x) → ctxt-var-decl x; (CaseTypeArg _ x) → ctxt-var-decl x}
+
 add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr _ x T) → ctxt-var-decl x}
 

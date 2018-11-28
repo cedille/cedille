@@ -427,3 +427,9 @@ bindM' a b = bindM a (λ a → b)
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
 
+map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
+map-fst f (x₀ , x₁) = (f x₀ , x₁)
+
+map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₁ → X₂) → (X₀ × X₁) → (X₀ × X₂)
+map-snd f (x₀ , x₁) = (x₀ , f x₁)
+
