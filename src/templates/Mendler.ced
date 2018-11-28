@@ -350,3 +350,12 @@ cvIndFixIndM ◂
             (λ a. λ b. ρ b.2 - prf · R'
               -[Λ indices. λ r. cast -i -indices (cast -i2 -indices r), β] -b
               (Λ indices. λ r'. ih -indices (cast -i2 -indices r')) -indices a))).
+
+lambek ◂
+    ∀ F : (Indices ➔ ★) ➔ Indices ➔ ★. ∀ fmap : Functor · F.
+    ∀ indices : Indices. Π e : CVFixIndM · F fmap indices.
+    {cvInFixIndM (cvOutFixIndM e) ≃ e} =
+  Λ F. Λ fmap. Λ indices. λ e. cvIndFixIndM · F -fmap -indices e
+    · (λ indices : Indices. λ e : CVFixIndM · F fmap indices.
+         {cvInFixIndM (cvOutFixIndM e) ≃ e})
+    (Λ R. Λ i. Λ out. λ ih. Λ indices. λ gr. β).
