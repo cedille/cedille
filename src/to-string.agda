@@ -33,8 +33,8 @@ no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Delta _ _ _) right = tt
 no-parens {_} {TERM} _ (Let _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) lr = tt
+no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _ _) right = tt
+no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) right = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
 no-parens {_} {KIND} _ (KndPi _ _ _ _ _) lr = tt
@@ -58,8 +58,8 @@ no-parens{TERM} (Rho pi op on eq og t) p lr = ff
 no-parens{TERM} (Sigma pi t) p lr = is-eq-op p
 no-parens{TERM} (Theta pi theta t lts) p lr = ff
 no-parens{TERM} (Var pi x) p lr = tt
-no-parens{TERM} (Mu _ _ _ _ _ _ _ _) p lr = tt
-no-parens{TERM} (Mu' _ _ _ _ _ _)  p lr = tt
+no-parens{TERM} (Mu _ _ _ _ _ _ _ _) p lr = ff
+no-parens{TERM} (Mu' _ _ _ _ _ _)  p lr = ff
 no-parens{TYPE} (Abs pi b pi' x Tk T) p lr = is-arrow p && not-left lr
 no-parens{TYPE} (Iota pi pi' x oT T) p lr = ff
 no-parens{TYPE} (Lft pi pi' x t lT) p lr = ff
@@ -275,7 +275,7 @@ ctrs-to-string ((Ctr _ x T) :: cs) =
   ctrs-to-string cs
 
 cases-to-string [] = strEmpty
-cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringh t) ≫str cases-to-string cs
+cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) ≫str cases-to-string cs
 
 caseArgs-to-string [] m = m
 caseArgs-to-string ((CaseTermArg pi me x) :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty m
@@ -304,8 +304,8 @@ term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-s
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
-term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringh t ≫str optType-to-string " @ " ot) (strAdd " {" ≫str cases-to-string cs ≫str strAdd " }")
-term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringh t ≫str optType-to-string " @ " ot ≫str strAdd " {" ≫str cases-to-string cs ≫str strAdd " }"
+term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringl t ≫str optType-to-string " @ " ot) (strAdd " {" ≫str cases-to-string cs ≫str strAdd " }")
+term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringl t ≫str optType-to-string " @ " ot ≫str strAdd " {" ≫str cases-to-string cs ≫str strAdd " }"
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringh T)
 type-to-stringh (Iota pi pi' x T T') = strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") (to-stringh T')
