@@ -23,7 +23,7 @@ data Token =
   | TDot       -- .
   | TCenterDot -- ·
   | TDash      -- -
-  | TTriangle  -- ◂
+--  | TTriangle  -- ◂
   | TColon     -- :
   | TComma     -- ,
   | TParenL    -- (
@@ -103,7 +103,7 @@ lexStr (':' : s) = consIf TColon $ lexStr s
 lexStr ('·' : s) = consIf TCenterDot $ lexStr s
 lexStr ('-' : s) = consIf TDash $ lexStr s
 lexStr (',' : s) = consIf TComma $ lexStr s
-lexStr ('◂' : s) = consIf TTriangle $ lexStr s
+--lexStr ('◂' : s) = consIf TTriangle $ lexStr s
 lexStr ('(' : s) = consIf TParenL $ lexStr s
 lexStr (')' : s) = consIf TParenR $ lexStr s
 lexStr ('[' : s) = consIf TBracketL $ lexStr s
@@ -196,7 +196,7 @@ parseTerm = ParseM $ \ ts -> case ts of
   (TPhi : ts) -> parseMt ts $ pure Phi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
   (TDelta : ts) -> parseMt ts $ pure Delta <*> parseType2 parsePureTerm2 <* parseDrop TDash <*> parseTerm
   (TBracketL : TVar v : TEq : ts) -> parseMt ts $ pure (TmLetTm v) <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
-  (TBracketL : TVar v : TTriangle : ts) -> parseMt ts $ pure (TmLetTp v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
+  (TBracketL : TVar v : TColon : ts) -> parseMt ts $ pure (TmLetTp v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
   _ -> parseMt ts parseTerm1
 parseTerm1 = ParseM $ \ ts -> parseMt ts parseTerm2 >>= uncurry (parseMf . parseTermApp)
 parseTerm2 = ParseM $ \ ts -> case ts of
@@ -236,7 +236,7 @@ parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm
 parseCmd = ParseM $ \ ts -> case ts of
   (TVar "import" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot
-  (TVar v : TTriangle : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
+  (TVar v : TColon : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
   _ -> Nothing
 parseCmds = ParseM $ \ ts -> case ts of
   [] -> parseMr CmdsStart []

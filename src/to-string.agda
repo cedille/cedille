@@ -296,7 +296,7 @@ term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l) ≫str strAdd " " ≫str strBvar x (optClass-to-string oc) (strAdd " . " ≫str to-stringr t)
 term-to-stringh (Let pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd "[ " ≫str strBvar x (maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
 term-to-stringh (Open pi x t) = strAdd "open " ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " {" ≫str to-stringr t' ≫str strAdd "}"
@@ -321,7 +321,7 @@ type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
 type-to-stringh (TpLet pi dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd "[ " ≫str strBvar x (maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " ◂ " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
 
 kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-stringr k'
 kind-to-stringh (KndParens pi k pi') = to-stringh k
@@ -344,7 +344,7 @@ optGuide-to-string (Guide pi v T) = strAdd " @ " ≫str strBvar v (strAdd " . ")
 optType-to-string pfx NoType = strEmpty
 optType-to-string pfx (SomeType T) = strAdd pfx ≫str to-stringh T
 maybeCheckType-to-string NoType = strEmpty
-maybeCheckType-to-string (SomeType T) = strAdd " ◂ " ≫str to-stringh T
+maybeCheckType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
 lterms-to-string ((Lterm m t) :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string [] = strEmpty
 arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
@@ -434,7 +434,7 @@ cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   let ps = ctxt-get-current-params Γ in
   strAdd (opacity-to-string op) ≫str
   strAdd x ≫str
-  strAdd " ◂ " ≫str
+  strAdd " : " ≫str
   to-stringh (abs-expand-kind ps k) ≫str
   strAdd " = " ≫str
   to-stringh (lam-expand-type ps T) ≫str
