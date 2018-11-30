@@ -93,7 +93,7 @@ pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ ff
 pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ tt
 
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-drop-spine ced-ops-drop-spine = h
+drop-spine ops @ ced-ops-drop-spine = h
   where
   drop-mod-args : ctxt → maybeErased → spineApp → spineApp
   drop-mod-args Γ me (v , as) =
@@ -102,7 +102,7 @@ drop-spine ced-ops-drop-spine = h
       as (λ n → reverse (drop n (reverse as)))
 
   h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  h {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ Erased)
+  h {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ (cedille-options.options.erase-types ops))
   h {TYPE} Γ T = maybe-else' (type-to-spapp T) T (spapp-type ∘ drop-mod-args Γ NotErased)
   h Γ x = x
 drop-spine ops Γ x = x
@@ -212,7 +212,9 @@ type-to-stringh : type → strM
 kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
+ctr-to-string : ctr → strM
 ctrs-to-string : ctrs → strM
+case-to-string : case → strM
 cases-to-string : cases → strM
 caseArgs-to-string : caseArgs → strM → strM
 
@@ -268,18 +270,41 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
+ctr-to-string (Ctr _ x T) = strAdd x ≫str strAdd " : " ≫str to-stringh T
+
 ctrs-to-string [] = strEmpty
-ctrs-to-string ((Ctr _ x T) :: cs) =
-  strAdd "  | "  ≫str
-  strAdd x ≫str strAdd " : " ≫str to-stringh T ≫str
+ctrs-to-string (c :: []) = ctr-to-string c
+ctrs-to-string (c :: cs) =
+  ctr-to-string c ≫str
+  strAdd " | "  ≫str
   ctrs-to-string cs
 
+caseArgs-drop-params : params → caseArgs → caseArgs
+caseArgs-drop-params (Decl _ _ NotErased x (Tkt T) _ :: ps) (CaseTermArg _ NotErased ignored-var :: as) =
+  caseArgs-drop-params ps as
+caseArgs-drop-params (Decl _ _ Erased x (Tkt T) _ :: ps) (CaseTermArg _ Erased ignored-var :: as) =
+  caseArgs-drop-params ps as
+caseArgs-drop-params (Decl _ _ _ x (Tkk k) _ :: ps) (CaseTypeArg _ ignored-var :: as) =
+  caseArgs-drop-params ps as
+caseArgs-drop-params (_ :: ps) as = caseArgs-drop-params ps as
+caseArgs-drop-params [] as = as
+
+case-to-string (Case _ x as t) =
+  strM-Γ λ Γ →
+  let as-f = λ x as → strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) in
+  case (env-lookup Γ x , options) of uncurry λ where
+    (just (ctr-def mps T _ _ _ , _ , _)) ced-ops-drop-spine →
+          as-f (unqual-all (ctxt-get-qualif Γ) x) $
+            maybe-else' mps as $ flip caseArgs-drop-params as
+    _ _ → as-f x as
+
 cases-to-string [] = strEmpty
-cases-to-string ((Case _ x as t) :: cs) = strAdd " | " ≫str strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) ≫str cases-to-string cs
+cases-to-string (m :: []) = case-to-string m
+cases-to-string (m :: ms) = case-to-string m ≫str strAdd " | " ≫str cases-to-string ms
 
 caseArgs-to-string [] m = m
-caseArgs-to-string ((CaseTermArg pi me x) :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty m
-caseArgs-to-string ((CaseTypeArg pi x) :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseTermArg pi me x :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
   
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
@@ -299,13 +324,13 @@ term-to-stringh (Let pi dtT t) with dtT
 ...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
 term-to-stringh (Open pi x t) = strAdd "open " ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Parens pi t pi') = to-stringh t
-term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " {" ≫str to-stringr t' ≫str strAdd "}"
+term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " { " ≫str to-stringr t' ≫str strAdd " }"
 term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
-term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringl t ≫str optType-to-string " @ " ot) (strAdd " {" ≫str cases-to-string cs ≫str strAdd " }")
-term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringl t ≫str optType-to-string " @ " ot ≫str strAdd " {" ≫str cases-to-string cs ≫str strAdd " }"
+term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringl t ≫str optType-to-string " @ " ot) (strAdd " { " ≫str cases-to-string cs ≫str strAdd " }")
+term-to-stringh (Mu' pi t ot pi' cs pi'')  = strAdd "μ' " ≫str to-stringl t ≫str optType-to-string " @ " ot ≫str strAdd " { " ≫str cases-to-string cs ≫str strAdd " }"
 
 type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringh T)
 type-to-stringh (Iota pi pi' x T T') = strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") (to-stringh T')
@@ -345,7 +370,7 @@ optType-to-string pfx NoType = strEmpty
 optType-to-string pfx (SomeType T) = strAdd pfx ≫str to-stringh T
 maybeCheckType-to-string NoType = strEmpty
 maybeCheckType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
-lterms-to-string ((Lterm m t) :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
+lterms-to-string (Lterm m t :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string [] = strEmpty
 arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
 arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
