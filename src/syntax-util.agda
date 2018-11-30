@@ -857,7 +857,7 @@ spapp-type (v , TermArg me t :: as) = TpAppt (spapp-type (v , as)) t
 spapp-type (v , TypeArg T :: as) = TpApp (spapp-type (v , as)) T
 
 caseArgs-to-lams : caseArgs → term → term
-caseArgs-to-lams = flip $ foldl λ {(CaseTermArg pi me x) → Lam pi-gen me pi-gen x NoClass; (CaseTypeArg pi x) → Lam pi-gen Erased pi-gen x NoClass}
+caseArgs-to-lams = flip $ foldr λ {(CaseTermArg pi me x) → Lam pi-gen me pi-gen x NoClass; (CaseTypeArg pi x) → Lam pi-gen Erased pi-gen x NoClass}
 
 expand-case : case → var × term
 expand-case (Case _ x as t) = x , caseArgs-to-lams as t
