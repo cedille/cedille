@@ -1947,7 +1947,7 @@ check-mu pi pi' x? t Tₘ? cs pi'' mtp =
                  cs'' = subst-ctrs Γ' cs'
                  cs''' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs''
                  ctr-ps = maybe-else [] (flip ttys-to-args-for-params as) ps
-                 drop-ps = maybe-else' (maybe-not x? ≫maybe ps) 0 $ length
+                 drop-ps = maybe-else 0 length ({-maybe-not x? ≫maybe-} ps)
                  Tᵣ = ret-tp ps' as (cast-abstract-datatype? X (ttys-to-args Erased (drop drop-ps as)) (qualif-term Γ t)) in
              check-cases cs cs''' ctr-ps drop-ps Tₘ ≫=span λ e? →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))

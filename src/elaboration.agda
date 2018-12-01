@@ -253,19 +253,21 @@ module elab-x (μ : trie encoded-datatype) where
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
-        encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe uncurry λ t Γ →
-        --just t
-        elab-check-term Γ t T --maybe-or just (Chi pi-gen (SomeType T) t)
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
+        d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
+          encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
+          --just t
+          elab-check-term Γ t T maybe-or just t
       _ → nothing
   elab-check-term Γ (Mu' pi t Tₘ? pi' ms pi'') T =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
-        encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (ttys-to-args Erased as) T ≫=maybe uncurry λ t Γ →
-        --just t
-        elab-check-term Γ t T --maybe-or just (Chi pi-gen (SomeType T) t)
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
+          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
+            encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
+            --just t
+            elab-check-term Γ t T maybe-or just t
       _ → nothing
 
   
@@ -420,17 +422,19 @@ module elab-x (μ : trie encoded-datatype) where
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
-        encoded-datatype.synth-mu d Γ X (just x) t Tₘ? ms (ttys-to-args Erased as) ≫=maybe
-        uncurry (flip elab-synth-term)
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
+          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
+            encoded-datatype.synth-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) ≫=maybe
+            uncurry (flip elab-synth-term)
       _ → nothing
   elab-synth-term Γ (Mu' pi t Tₘ? pi' ms pi'') =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ d →
-        encoded-datatype.synth-mu d Γ X nothing t Tₘ? ms (ttys-to-args Erased as) ≫=maybe
-        uncurry (flip elab-synth-term)
+        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
+          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
+            encoded-datatype.synth-mu d Γ X nothing t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) ≫=maybe
+            uncurry (flip elab-synth-term)
       _ → nothing
   
   elab-typeh Γ (Abs pi b pi' x atk T) b' =
@@ -519,9 +523,9 @@ module elab-x (μ : trie encoded-datatype) where
     elab-pure-term Γ t ≫=maybe λ t →
     elab-pure-term Γ (subst Γ t x t')
   elab-pure-term Γ (Mu  pi pi' x t Tₘ? pi'' ms pi''') =
-    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → μᵤ Γ ps ns (just x) t ms ≫=maybe elab-pure-term Γ
+    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ psₘ ns (just x) t ms ≫=maybe elab-pure-term Γ
   elab-pure-term Γ (Mu' pi t Tₘ? pi'' ms pi''') =
-    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → μᵤ Γ ps ns nothing  t ms ≫=maybe elab-pure-term Γ
+    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ psₘ ns nothing  t ms ≫=maybe elab-pure-term Γ
   elab-pure-term _ _ = nothing -- should be erased
   
   elab-app-term Γ (App t me t') pt max =
@@ -706,7 +710,7 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
     (Data X ps is dcs) →
       elab-cmds ts ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
       let dcs = flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (subst-qualif (toplevel-state.Γ ts) ρ T)}
-          μ-x = record d {data-def = Data x' ps is dcs} in
+          μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in
       elab-cmds (record ts {Γ = ctxt-elab-ctrs-def (toplevel-state.Γ ts) dcs}) ρ φ (trie-insert (trie-insert μ elab-mu-prev-name μ-x) ("/" ^ x') μ-x) cs ≫=maybe uncurry λ cs ω →
       just (cs' ++ cs , ω)
 

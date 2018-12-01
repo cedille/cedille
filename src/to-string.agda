@@ -278,7 +278,7 @@ ctrs-to-string (c :: cs) =
   ctr-to-string c ≫str
   strAdd " | "  ≫str
   ctrs-to-string cs
-
+{-
 caseArgs-drop-params : params → caseArgs → caseArgs
 caseArgs-drop-params (Decl _ _ NotErased x (Tkt T) _ :: ps) (CaseTermArg _ NotErased ignored-var :: as) =
   caseArgs-drop-params ps as
@@ -288,14 +288,14 @@ caseArgs-drop-params (Decl _ _ _ x (Tkk k) _ :: ps) (CaseTypeArg _ ignored-var :
   caseArgs-drop-params ps as
 caseArgs-drop-params (_ :: ps) as = caseArgs-drop-params ps as
 caseArgs-drop-params [] as = as
-
+-}
 case-to-string (Case _ x as t) =
   strM-Γ λ Γ →
   let as-f = λ x as → strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) in
   case (env-lookup Γ x , options) of uncurry λ where
     (just (ctr-def mps T _ _ _ , _ , _)) ced-ops-drop-spine →
-          as-f (unqual-all (ctxt-get-qualif Γ) x) $
-            maybe-else' mps as $ flip caseArgs-drop-params as
+          as-f (unqual-all (ctxt-get-qualif Γ) x) as
+            -- $ maybe-else' mps as $ flip caseArgs-drop-params as
     _ _ → as-f x as
 
 cases-to-string [] = strEmpty

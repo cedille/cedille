@@ -113,8 +113,8 @@ substh-cases{QUALIF} Γ ρ σ = map λ where
     maybe-else' (trie-lookup σ x)
       (Case posinfo-gen x as' (substh-term Γ ρ' σ t))
       λ {(x' , qas) → Case posinfo-gen x'
-        (map (λ{(TermArg me t) → CaseTermArg posinfo-gen me ignored-var;
-                (TypeArg T) → CaseTypeArg posinfo-gen ignored-var}) qas ++ as')
+        ({-map (λ{(TermArg me t) → CaseTermArg posinfo-gen me ignored-var;
+                (TypeArg T) → CaseTypeArg posinfo-gen ignored-var}) qas ++ -} as')
              (substh-term Γ ρ' σ t)}
 substh-cases Γ ρ σ = map λ where
   (Case pi x as t) →
