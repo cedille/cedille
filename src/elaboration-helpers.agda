@@ -781,7 +781,7 @@ mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ 
       rename (ihₓ ^ "-mu'") from (add-indices-to-ctxt is Γ) for λ ih-mu'ₓ →
       let Rₓ = mu-name-type ihₓ --ihₓ ^ "/" ^ X
           rvlₓ = mu-name-cast ihₓ
-          fcₜ = mappe (AppTp (AppTp (mvar castₓ) $ TpApp ftp $ mtpvar Rₓ) $ TpApp ftp ptp) $
+          fcₜ = mappe (AppTp (AppTp (app-psₘ $ mvar castₓ) $ TpApp ftp $ mtpvar Rₓ) $ TpApp ftp ptp) $
                  mappe (AppTp (AppTp fmap $ mtpvar Rₓ) ptp) $ IotaPair pi-gen (mvar rvlₓ) (Beta pi-gen NoTerm NoTerm) NoGuide pi-gen
           --zₜ = mappe (AppTp (AppTp (mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ
           tₜ = mapp (indices-to-apps is $ mappe (AppTp (app-psₘ $ mvar fixpoint-inₓ) ftp) fmap) $
@@ -792,11 +792,11 @@ mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ 
              indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp (mtpvar Rₓ)) $ mall yₓ (Tkt ptp) $ mall eₓ (Tkt $ mtpeq (mapp (app-psₘ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₘ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fcₜ) $ mvar xₓ) (mvar yₓ) pi-gen)))
                    tₜ) $ mapp (mappe (AppTp (app-psₘ $ mvar fixpoint-lambekₓ) ftp) fmap) tₜ in
       just $
-        (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (mvar fixpoint-indₓ) ftp) fmap) $
+        (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (app-psₘ $ mvar fixpoint-indₓ) ftp) fmap) $
          Mlam Rₓ $ Mlam rvlₓ $ Mlam ih-mu'ₓ $ mlam ihₓ $ indices-to-lams is $ mlam xₓ $
          --Let pi-gen (DefTerm pi-gen zₓ NoType zₜ) $
          Let pi-gen (DefTerm pi-gen rvlₓ NoType $
-           mappe (AppTp (AppTp (mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
+           mappe (AppTp (AppTp (app-psₘ $ mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
          Let pi-gen (DefTerm pi-gen zₓ NoType $ mvar rvlₓ) body) ,
         ctxt-μ-out-def ("/" ^ rename-validify Rₓ ^ "/mu'") (Phi pi-gen (IotaProj (mvar ih-mu'ₓ) "2" pi-gen) (IotaProj (mvar ih-mu'ₓ) "1" pi-gen) (app-psₘ $ mvar fixpoint-outₓ) pi-gen) fcₜ zₓ (ctxt-rename ("/" ^ rename-validify Rₓ) ("/" ^ X) Γ)
 

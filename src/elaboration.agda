@@ -257,7 +257,7 @@ module elab-x (μ : trie encoded-datatype) where
         d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
           encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
           --just t
-          elab-check-term Γ t T maybe-or just t
+          elab-check-term Γ t T --maybe-or just t
       _ → nothing
   elab-check-term Γ (Mu' pi t Tₘ? pi' ms pi'') T =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
@@ -267,7 +267,7 @@ module elab-x (μ : trie encoded-datatype) where
           d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
             encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
             --just t
-            elab-check-term Γ t T maybe-or just t
+            elab-check-term Γ t T --maybe-or just t
       _ → nothing
 
   
