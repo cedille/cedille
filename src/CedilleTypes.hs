@@ -83,6 +83,8 @@ data OptType = SomeType Type | NoType
 
 type MaybeErased = Bool
 
+type ForceErased = Bool
+
 type MaybeMinus = Bool
 
 data Nums =
@@ -125,7 +127,7 @@ data Term =
      | IotaPair PosInfo Term Term OptGuide PosInfo
      | IotaProj Term Num PosInfo
      | Lam PosInfo MaybeErased PosInfo Bvar OptClass Term
-     | Let PosInfo DefTermOrType Term
+     | Let PosInfo ForceErased DefTermOrType Term
      | Open PosInfo Qvar Term
      | Parens PosInfo Term PosInfo
      | Phi PosInfo Term Term Term PosInfo

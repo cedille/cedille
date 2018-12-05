@@ -203,7 +203,7 @@ check-termi t''@(App t m t') tp =
   ≫=spanm' λ where
     (mk-spine-data Xs tp' _) → return-when tp (just (meta-vars-subst-type' ff Γ Xs (decortype-to-type tp')))
 
-check-termi (Let pi d t) mtp =
+check-termi (Let pi fe d t) mtp =
   -- spanM-add (punctuation-span "Let" pi (posinfo-plus pi 3)) ≫span
   check-def d ≫=span finish
   where maybe-subst : defTermOrType → (mtp : maybe type) → check-ret mtp → spanM (check-ret mtp)
@@ -221,10 +221,15 @@ check-termi (Let pi d t) mtp =
         -- of the term so that the type still kind-checks, as a synthesizing term let could
         -- be substituted into a checking position, or vice-versa with a checking term let.
 
+        occurs : err-m
+        occurs =
+          if defTermOrType-is-term d && fe && is-free-in skip-erased (defTermOrType-get-var d) t
+          then just "The bound variable occurs free in the erasure of the body" else nothing
+
         finish : (var × restore-def) → spanM (check-ret mtp)
         finish (x , m) = 
-         get-ctxt λ Γ → 
-         spanM-add (Let-span Γ (maybe-to-checking mtp) pi d t [] nothing) ≫span
+         get-ctxt λ Γ →
+         spanM-add (Let-span Γ (maybe-to-checking mtp) pi fe d t [] occurs) ≫span
          check-term t mtp ≫=span λ r →
          spanM-restore-info x m ≫span
          maybe-subst d mtp r

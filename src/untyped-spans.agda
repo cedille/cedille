@@ -45,9 +45,9 @@ untyped-term-spans (Lam pi me pi' x oc t) =
   ≫span untyped-var-spans pi' x Var-span (untyped-term-spans t)
   where
   occursCheck = maybe-if (me && is-free-in skip-erased x t) ≫maybe just "The bound variable occurs free in the erasure of the body (not allowed)"
-untyped-term-spans (Let pi d t) =
+untyped-term-spans (Let pi fe d t) =
   untyped-defTermOrType-spans d (untyped-term-spans t)
-  ≫span get-ctxt λ Γ → spanM-add (Let-span Γ untyped pi d t [] nothing)
+  ≫span get-ctxt λ Γ → spanM-add (Let-span Γ untyped pi fe d t [] nothing)
 untyped-term-spans (Open pi x t) = untyped-term-spans t ≫span spanM-add (mk-span "Open" pi (term-end-pos t) [] nothing)
 untyped-term-spans (Parens pi t pi') = untyped-term-spans t
 untyped-term-spans (Phi pi t t' t'' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-term-spans t'' ≫span spanM-add (Phi-span pi pi' untyped [] nothing)

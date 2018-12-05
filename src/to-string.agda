@@ -31,7 +31,7 @@ no-parens {_} {TERM} _ (Phi pi eq t t' pi') neither = tt
 no-parens {_} {TERM} _ (Rho _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Chi _ _ _) right = tt
 no-parens {_} {TERM} _ (Delta _ _ _) right = tt
-no-parens {_} {TERM} _ (Let _ _ _) lr = tt
+no-parens {_} {TERM} _ (Let _ _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _ _ _) lr = tt
 no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _) right = tt
@@ -50,7 +50,7 @@ no-parens{TERM} (Hole pi) p lr = tt
 no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = ff
-no-parens{TERM} (Let pi dtT t) p lr = ff
+no-parens{TERM} (Let pi _ dtT t) p lr = ff
 no-parens{TERM} (Open _ _ _) p lr = tt
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = ff
@@ -309,6 +309,15 @@ caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x s
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
+private
+  let-lbrack-to-string : forceErased → string
+  let-lbrack-to-string tt = "{ "
+  let-lbrack-to-string ff = "[ "
+
+  let-rbrack-to-string : forceErased → string
+  let-rbrack-to-string tt = " } - "
+  let-rbrack-to-string ff = " ] - "
+
 term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
 term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
 term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
@@ -319,9 +328,11 @@ term-to-stringh (Hole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (
 term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
 term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l) ≫str strAdd " " ≫str strBvar x (optClass-to-string oc) (strAdd " . " ≫str to-stringr t)
-term-to-stringh (Let pi dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd "[ " ≫str strBvar x (maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+term-to-stringh (Let pi fe dtT t) with dtT
+...| DefTerm pi' x m t' = strAdd (let-lbrack-to-string fe) ≫str strBvar x (maybeCheckType-to-string m
+  ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
+...| DefType pi' x k t' = strAdd (let-rbrack-to-string fe) ≫str strBvar x (strAdd " : " ≫str to-stringh k
+  ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
 term-to-stringh (Open pi x t) = strAdd "open " ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " { " ≫str to-stringr t' ≫str strAdd " }"

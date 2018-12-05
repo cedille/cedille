@@ -10,7 +10,7 @@ import cast.
 -}
 castSilly : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
   = Λ A. Λ B. Λ c.
-    [ c' = c ] - [ λ a. cast -c' a , β ].
+    { c' = c } - [ λ a. cast -c' a , β ].
 
 {- I do *not* propose that we do any kind of analysis for local definitions to
 -- see if, when we use an irrelevant variable, it only occurs irrelevantly.

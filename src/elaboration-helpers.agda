@@ -257,8 +257,8 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   ...| tt with rename-indices ρ is | oc
   ...| isₙ | NoClass = indices-to-lams' isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
   ...| isₙ | SomeClass atk = indices-to-lams isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
-  reindex-term ρ is (Let pi d t) =
-    elim-pair (reindex-defTermOrType ρ is d) λ d' ρ' → Let pi d' (reindex-term ρ' is t)
+  reindex-term ρ is (Let pi fe d t) =
+    elim-pair (reindex-defTermOrType ρ is d) λ d' ρ' → Let pi fe d' (reindex-term ρ' is t)
   reindex-term ρ is (Open pi x t) =
     Open pi x (reindex-term ρ is t)
   reindex-term ρ is (Parens pi t pi') =
@@ -795,9 +795,9 @@ mendler-elab-mu Γ (Data X ps is cs) (mk-encoded-datatype-names data-functorₓ 
         (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (app-psₘ $ mvar fixpoint-indₓ) ftp) fmap) $
          Mlam Rₓ $ Mlam rvlₓ $ Mlam ih-mu'ₓ $ mlam ihₓ $ indices-to-lams is $ mlam xₓ $
          --Let pi-gen (DefTerm pi-gen zₓ NoType zₜ) $
-         Let pi-gen (DefTerm pi-gen rvlₓ NoType $
+         Let pi-gen ff (DefTerm pi-gen rvlₓ NoType $
            mappe (AppTp (AppTp (app-psₘ $ mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
-         Let pi-gen (DefTerm pi-gen zₓ NoType $ mvar rvlₓ) body) ,
+         Let pi-gen ff (DefTerm pi-gen zₓ NoType $ mvar rvlₓ) body) ,
         ctxt-μ-out-def ("/" ^ rename-validify Rₓ ^ "/mu'") (Phi pi-gen (IotaProj (mvar ih-mu'ₓ) "2" pi-gen) (IotaProj (mvar ih-mu'ₓ) "1" pi-gen) (app-psₘ $ mvar fixpoint-outₓ) pi-gen) fcₜ zₓ (ctxt-rename ("/" ^ rename-validify Rₓ) ("/" ^ X) Γ)
 
 mendler-encoding : datatype-encoding

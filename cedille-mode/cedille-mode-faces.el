@@ -228,6 +228,7 @@
 	       ("Term-level definition (checking)" . cedille-defined-face-df)
 	       ("Type-level definition (checking)" . cedille-defined-face-df)
          ("Term Let" . cedille-defined-face-df)
+         ("Erased Term Let" . cedille-defined-face-df)
 	       ("Kind-level definition (checking)" . cedille-defined-face-df)
                ("Term-level definition (synthesizing)" . cedille-defined-face-df)
 	       ("Type-level definition (synthesizing)" . cedille-defined-face-df)

@@ -34,11 +34,11 @@ are-free-in-term ce x (Hole x₁) = ff
 are-free-in-term ce x (Lam _ b _ x' oc t) =
   (ce && are-free-in-optClass ce x oc)
   || are-free-in-term ce (trie-remove x x') t
-are-free-in-term ce x (Let _ (DefTerm _ x' m t) t') =
+are-free-in-term ce x (Let _ fe (DefTerm _ x' m t) t') =
   (ce && are-free-in-optType ce x m)
-  || (are-free-in-term ce x t)
+  || ((ce || ~ fe) && are-free-in-term ce x t)
   || are-free-in-term ce (trie-remove x x') t'
-are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
+are-free-in-term ce x (Let _ _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
   || are-free-in-term ce (trie-remove x x') t'
 are-free-in-term ce x (Open _ _ t) = are-free-in-term ce x t -- return the same answer as the erasure of (Open ...)

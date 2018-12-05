@@ -168,27 +168,27 @@ module elab-x (μ : trie encoded-datatype) where
         elab-red-type Γ' (rename-var Γ x' x'' T') ≫=maybe λ T' →
         elab-check-term Γ' (rename-var Γ x x'' t) T' ≫=maybe λ t →
         just (Lam pi-gen l pi-gen x'' (SomeClass atk) t)
-  elab-check-term Γ (Let pi d t) T =
+  elab-check-term Γ (Let pi fe d t) T =
     case d of λ where
     (DefTerm pi' x NoType t') →
       elab-synth-term Γ t' ≫=maybe uncurry λ t' T' →
       rename x from Γ for λ x' →
       --elab-check-term Γ (subst Γ (Chi pi-gen NoType t') x t) T
       elab-check-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
-      just (Let pi-gen (DefTerm pi-gen x' NoType t') t)
+      just (Let pi-gen fe (DefTerm pi-gen x' NoType t') t)
     (DefTerm pi' x (SomeType T') t') →
       elab-type Γ T' ≫=maybe uncurry λ T' k →
       elab-check-term Γ t' T' ≫=maybe λ t' →
       --elab-check-term Γ (subst Γ (Chi pi-gen NoType t') x t) T
       rename x from Γ for λ x' →
       elab-check-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
-      just (Let pi-gen (DefTerm pi-gen x' NoType t') t)
+      just (Let pi-gen fe (DefTerm pi-gen x' NoType t') t)
     (DefType pi' x k T') →
       elab-type Γ T' ≫=maybe uncurry λ T' k' →
       --elab-check-term Γ (subst Γ T' x t) T
       rename x from Γ for λ x' →
       elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
-      just (Let pi-gen (DefType pi-gen x' k' T') t)
+      just (Let pi-gen fe (DefType pi-gen x' k' T') t)
   elab-check-term Γ (Open pi x t) T =
     ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
     elab-check-term Γ t T
@@ -358,14 +358,14 @@ module elab-x (μ : trie encoded-datatype) where
     rename x from Γ for λ x' →
     elab-synth-term (ctxt-tk-decl' pi' x' atk Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       just (Lam pi-gen l pi-gen x' (SomeClass atk) t , Abs pi-gen l pi-gen x' atk T)
-  elab-synth-term Γ (Let pi d t) = case d of λ where
+  elab-synth-term Γ (Let pi fe d t) = case d of λ where
     (DefTerm pi' x NoType t') →
       elab-synth-term Γ t' ≫=maybe uncurry λ t' T' →
       --elab-synth-term Γ (subst Γ t' x t)
       rename x from Γ for λ x' →
       elab-synth-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       elab-red-type Γ (subst Γ t' x' T) ≫=maybe λ T →
-      just (Let pi-gen (DefTerm pi-gen x' NoType t') t , T)
+      just (Let pi-gen fe (DefTerm pi-gen x' NoType t') t , T)
     (DefTerm pi' x (SomeType T') t') →
       elab-type Γ T' ≫=maybe uncurry λ T' k →
       elab-check-term Γ t' T' ≫=maybe λ t' →
@@ -373,7 +373,7 @@ module elab-x (μ : trie encoded-datatype) where
       rename x from Γ for λ x' →
       elab-synth-term (ctxt-let-term-def pi' x' t' T' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       elab-red-type Γ (subst Γ t' x' T) ≫=maybe λ T →
-      just (Let pi-gen (DefTerm pi-gen x' NoType t') t , T)
+      just (Let pi-gen fe (DefTerm pi-gen x' NoType t') t , T)
     (DefType pi' x k T') →
       --rename x from Γ for λ x' →
       elab-type Γ T' ≫=maybe uncurry λ T' k' →
@@ -381,7 +381,7 @@ module elab-x (μ : trie encoded-datatype) where
       rename x from Γ for λ x' →
       elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       elab-red-type Γ (subst Γ T' x' T) ≫=maybe λ T →
-      just (Let pi-gen (DefType pi' x' k' T') t , T)
+      just (Let pi-gen fe (DefType pi' x' k' T') t , T)
   elab-synth-term Γ (Open pi x t) =
     ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
     elab-synth-term Γ t
@@ -519,7 +519,7 @@ module elab-x (μ : trie encoded-datatype) where
     rename x from Γ for λ x' →
     elab-pure-term (ctxt-var-decl x' Γ) (rename-var Γ x x' t) ≫=maybe λ t →
     just (mlam x' t)
-  elab-pure-term Γ (Let pi (DefTerm pi' x NoType t) t') =
+  elab-pure-term Γ (Let pi ff (DefTerm pi' x NoType t) t') =
     elab-pure-term Γ t ≫=maybe λ t →
     elab-pure-term Γ (subst Γ t x t')
   elab-pure-term Γ (Mu  pi pi' x t Tₘ? pi'' ms pi''') =

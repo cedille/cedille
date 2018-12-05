@@ -825,8 +825,9 @@ IotaPair-span pi pi' c tvs =
 IotaProj-span : term → posinfo → checking-mode → 𝕃 tagged-val → err-m → span
 IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: ll-data-term :: tvs)
 
-Let-span : ctxt → checking-mode → posinfo → defTermOrType → term → 𝕃 tagged-val → err-m → span
-Let-span Γ c pi d t' tvs = mk-span "Term Let" pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+Let-span : ctxt → checking-mode → posinfo → forceErased → defTermOrType → term → 𝕃 tagged-val → err-m → span
+Let-span Γ c pi fe d t' tvs = mk-span name pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+  where name = if fe then "Erased Term Let" else "Term Let"
 
 TpLet-span : ctxt → checking-mode → posinfo → defTermOrType → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi d t' tvs = mk-span "Type Let" pi (type-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-type :: checking-data c :: tvs)
