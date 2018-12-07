@@ -1,3 +1,4 @@
+(require 'cedille-mode-archive)
 (require 'cedille-mode-info)
 (require 'cedille-mode-customize)
 (require 'cedille-mode-faces)
