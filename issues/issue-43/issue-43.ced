@@ -8,19 +8,18 @@ import cast.
 -- In the example below c' is only used irrelevantly, but the occurence checker
 -- still treats it as relevant and produces an error
 -}
-castSilly : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
-  = Λ A. Λ B. Λ c.
-    { c' = c } - [ λ a. cast -c' a , β ].
+-- castSilly : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
+--   = Λ A. Λ B. Λ c. [ c' = c ] - [ λ x. cast -c x , β ].
 
 {- I do *not* propose that we do any kind of analysis for local definitions to
 -- see if, when we use an irrelevant variable, it only occurs irrelevantly.
 -- Instead, I think the most sensible thing to do is introduce new syntax for
 -- such bindings
 --
--- castSilly : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
---   = Λ A. Λ B. Λ c.
---     { c' = c } - [ λ a. cast -c' a , β ].
---
+-}
+castSilly : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
+  = Λ A. Λ B. Λ c. { c' = c } - (Λ X: ★. λ x: X. x) [ λ a. cast -c' a , β ].
+{-
 -- Which follows the same syntactic conventions as implicit module imports.
 -}
 
