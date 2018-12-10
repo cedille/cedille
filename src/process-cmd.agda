@@ -44,9 +44,10 @@ process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel
 check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
 check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') =
   check-tk atk ≫span
-  spanM-add (Decl-span param pi1 x atk pi' {- make this span go to the end of the def, so nesting will work
-                                              properly for computing the context in the frontend -}) ≫span
   add-tk' me pi1' x atk ≫=span λ mi →
+  get-ctxt λ Γ →
+  spanM-add (Decl-span Γ param pi1 x atk me pi' {- make this span go to the end of the def, so nesting will work
+                                              properly for computing the context in the frontend -}) ≫span
   check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 check-and-add-params _ [] = spanMr []
 
@@ -143,7 +144,6 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip 
 process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
   let Γ = toplevel-state.Γ s in
   set-ctxt Γ ≫span
-  spanM-add (DefDatatype-span Γ pi x (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) pi'') ≫span
   spanM-add (DefDatatype-header-span pi) ≫span
   get-ctxt λ old-Γ →
   spanM-lookup-restore-info x ≫=span λ m →
@@ -161,8 +161,9 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (indices-to-tpapps kᵢ $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
+     spanM-add (DefDatatype-span Γ pi x ps (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) cs pi'') ≫span
      spanM-add (TpVar-span Γ pi' x checking
-       (keywords-data-var ff :: kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
+       (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs tt ≫span
      get-ctxt λ Γ → set-ctxt

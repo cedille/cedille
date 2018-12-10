@@ -28,7 +28,7 @@ substh-arg : substh-ret-t arg
 substh-args : substh-ret-t args
 substh-params : substh-ret-t params
 substh-cases : substh-ret-t cases
-substh-caseArgs : {ed : exprd} → ctxt → renamectxt → trie ⟦ ed ⟧ → caseArgs → caseArgs × renamectxt
+substh-caseArgs : {ed : exprd} → ctxt → renamectxt → trie ⟦ ed ⟧ → caseArgs → caseArgs × renamectxt × ctxt
 
 substh{TERM} = substh-term
 substh{TYPE} = substh-type
@@ -109,28 +109,26 @@ substh-term Γ ρ σ (Mu' _ t ot _ cs _) = Mu' posinfo-gen (substh-term Γ ρ σ
 
 substh-cases{QUALIF} Γ ρ σ = map λ where
   (Case _ x as t) →
-    elim-pair (substh-caseArgs Γ ρ σ as) λ as' ρ' →
-    maybe-else' (trie-lookup σ x)
-      (Case posinfo-gen x as' (substh-term Γ ρ' σ t))
-      λ {(x' , qas) → Case posinfo-gen x'
-        ({-map (λ{(TermArg me t) → CaseTermArg posinfo-gen me ignored-var;
-                (TypeArg T) → CaseTypeArg posinfo-gen ignored-var}) qas ++ -} as')
-             (substh-term Γ ρ' σ t)}
+    case (substh-caseArgs Γ ρ σ as) of λ where
+      (as' , ρ' , Γ') →
+        maybe-else' (trie-lookup σ x)
+          (Case posinfo-gen x as' (substh-term Γ ρ' σ t))
+          λ {(x' , qas) → Case posinfo-gen x' as' (substh-term Γ' ρ' σ t)}
 substh-cases Γ ρ σ = map λ where
   (Case pi x as t) →
-    elim-pair (substh-caseArgs Γ ρ σ as) λ as' ρ' →
-    Case posinfo-gen x as' (substh-term Γ ρ' σ t)
+    case (substh-caseArgs Γ ρ σ as) of λ where
+      (as' , ρ' , Γ') → Case posinfo-gen x as' (substh-term Γ' ρ' σ t)
 
 substh-caseArgs Γ ρ σ as = foldr (λ where
-  (CaseTermArg _ me x) f ρ →
+  (CaseTermArg _ me x) f ρ Γ →
     let x' = subst-rename-var-if Γ ρ x σ in
-    elim-pair (f (renamectxt-insert ρ x x')) λ as ρ' →
-    CaseTermArg posinfo-gen me x' :: as , ρ'
-  (CaseTypeArg _ x) f ρ →
+    elim-pair (f (renamectxt-insert ρ x x') (ctxt-var-decl x' Γ)) λ as ρ-Γ →
+    CaseTermArg posinfo-gen me x' :: as , ρ-Γ
+  (CaseTypeArg _ x) f ρ Γ →
     let x' = subst-rename-var-if Γ ρ x σ in
-    elim-pair (f (renamectxt-insert ρ x x')) λ as ρ' →
-    CaseTypeArg posinfo-gen x' :: as , ρ')
-  (_,_ []) as ρ
+    elim-pair (f (renamectxt-insert ρ x x') (ctxt-var-decl x' Γ)) λ as ρ-Γ →
+    CaseTypeArg posinfo-gen x' :: as , ρ-Γ)
+  (λ ρ Γ → [] , ρ , Γ) as ρ Γ
 
 substh-type Γ ρ σ (Abs _ b _ x atk t) =
   let x' = subst-rename-var-if Γ ρ x σ in

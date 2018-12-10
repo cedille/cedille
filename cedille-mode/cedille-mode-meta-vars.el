@@ -31,10 +31,6 @@
            (is-locale (when keywords (member "meta-var-locale" (split-string keywords " ")))))
       (and is-application (or allow-locale (not is-locale))))))
 
-(defun cedille-mode-set-assoc-value (alist key new-value)
-  "Sets the value of 'KEY in ALIST to NEW-VALUE, or adds it if there was none"
-  (append (assq-delete-all key alist) (list (cons key new-value))))
-
 (defun cedille-mode-meta-vars-split (meta-var)
   "Splits the string \"name [cm] value\" (cm is optional) into triple (name . cm . value)"
   (let ((split (split-string meta-var " ")))

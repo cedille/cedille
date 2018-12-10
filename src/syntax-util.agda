@@ -33,6 +33,29 @@ qualif-info = var × args
 
 qualif : Set
 qualif = trie qualif-info
+{-
+data json : Set where
+  json-num : ℕ → json
+  json-bln : 𝔹 → json
+  json-str : rope → json
+  json-lst : 𝕃 json → json
+  json-obj : 𝕃 (string × json) → json
+
+print-json : json → rope
+print-json (json-num n) = [[ ℕ-to-string n ]]
+print-json (json-bln b) = [[ if b then "true" else "false" ]]
+print-json (json-str r) = r
+print-json (json-lst l) = [[ "[" ]] ⊹⊹ h l [[]] ⊹⊹ [[ "]" ]] where
+  h : 𝕃 json → rope → rope
+  h [] acc = acc
+  h (j :: []) acc = acc ⊹⊹ print-json j
+  h (j :: js) acc = h js (acc ⊹⊹ print-json j ⊹⊹ [[ ", " ]])
+print-json (json-obj o) = [[ "{" ]] ⊹⊹ h o [[]] ⊹⊹ [[ "}" ]] where
+  h : 𝕃 (string × json) → rope → rope
+  h [] acc = acc
+  h ((k , v) :: []) acc = acc ⊹⊹ [[ "\"" ^ k ^ "\": " ]] ⊹⊹ print-json v
+  h ((k , v) :: o) acc = h o (acc ⊹⊹ [[ "\"" ^ k ^ "\": " ]] ⊹⊹ print-json v ⊹⊹ [[ ", " ]])
+-}  
 
 tag : Set
 tag = string × rope
