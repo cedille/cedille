@@ -371,7 +371,7 @@
                 (let* ((xT (cdr (split-string response ,cedille-mode-sep)))
                        (x (car xT))
                        (T (cadr xT)))
-                  (concat "ρ " (if ,cedille-mode-br-checking "ς " "") (cedille-mode-br-add-parens ,input) " @ " x " . " (format new-str T) " - "))))
+                  (concat "ρ " (cedille-mode-br-add-parens ,input) " @ " x " . " (format new-str T) " - "))))
              (extra (cons (current-buffer) (cons cedille-mode-br-checking (cons op-fn1 op-fn2))))
              (q (cedille-mode-concat-sep
                  "interactive"

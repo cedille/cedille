@@ -498,6 +498,12 @@ in the parse tree, and updates the Cedille info buffer."
   (setq se-mode-parse-tree nil
 	cedille-mode-error-spans nil))
 
+(defun cedille-mode-quit-keep-mark()
+  "Quit Cedille navigation mode"
+  (interactive)
+  (cedille-mode-quit)
+  (setq mark-active t))
+
 (defun cedille-mode-get-matching-variable-nodes(node)
   "Returns list of all nodes containing variables matching the one in the input node (if any). Matching is determined by location attribute"
   (let* ((rec-path-crawler (lambda (node rec-fn)
@@ -682,6 +688,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "H") #'cedille-mode-interactive-highlight)
   (se-navi-define-key mode (kbd "g") #'se-mode-clear-selected)
   (se-navi-define-key mode (kbd "q") #'cedille-mode-quit)
+  (se-navi-define-key mode (kbd "Q") #'cedille-mode-quit-keep-mark)
   (se-navi-define-key mode (kbd "M-s") #'cedille-mode-quit)
   (se-navi-define-key mode (kbd "C-g") #'cedille-mode-quit)
   (se-navi-define-key mode (kbd "e") #'cedille-mode-select-last)
@@ -702,6 +709,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
   (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
   (se-navi-define-key mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+  (se-navi-define-key mode (kbd "#") #'cedille-mode-highlight-occurrences)
   (se-navi-define-key mode (kbd "m") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode nil t))
   (se-navi-define-key mode (kbd "M") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode t t))
   (se-navi-define-key mode (kbd "K") #'cedille-mode-restart-backend)

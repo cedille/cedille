@@ -1137,7 +1137,7 @@ check-term-app Xs Zs t₁ t₂ (mk-tmabsd dt e? x dom occurs cod) is-locl =
     check-term-app-tm-errors.unmatchable
       t₁ t₂ tp Xs' is-locl mode dom atp msg tvs
   handleMatchResult Xs' atp tp rdt (match-ok Xs) = get-ctxt λ Γ →
-      meta-vars-subst-decortype Γ Xs rdt
+      meta-vars-subst-decortype' ff Γ Xs rdt
     ≫=span λ rdt → spanMr ∘ just $ check-term-app-return Xs rdt mode []
 
 match-unfolding-next : match-unfolding-state → match-unfolding-state
