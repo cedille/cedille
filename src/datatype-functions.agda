@@ -148,8 +148,9 @@ add-caseArgs-to-ctxt = flip $ foldr λ {(CaseTermArg _ _ x) → ctxt-var-decl x;
 add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr _ x T) → ctxt-var-decl x}
 
+-- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 {-# TERMINATING #-}
-ctr-positive : ctxt → var → type → 𝔹
+ctr-positive : ctxt → var → type → 𝔹 --maybe 𝔹
 ctr-positive Γ x T = arrs+ Γ (hnf' Γ T) where
   
   open import conversion
@@ -163,10 +164,13 @@ ctr-positive Γ x T = arrs+ Γ (hnf' Γ T) where
   mtt = maybe-else tt id
   mff = maybe-else ff id
 
+  arrs+ : ctxt → type → 𝔹
+
+  -- Possible bug: what if a deeply nested x occurs both negatively and positively?
+  -- nothing = no occurrence; just ff = negative occurrence; just tt = positive occurrence
   type+ : ctxt → type → maybe 𝔹
   kind+ : ctxt → kind → maybe 𝔹
   tk+ : ctxt → tk → maybe 𝔹
-  arrs+ : ctxt → type → 𝔹
 
   arrs+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in

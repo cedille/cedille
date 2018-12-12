@@ -257,7 +257,7 @@ module elab-x (μ : trie encoded-datatype) where
         d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
           encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
           --just t
-          elab-check-term Γ t T maybe-or just (IotaProj t (trie-to-string ", " (λ {(mk-encoded-datatype (Data X' ps is cs) psₘ ns μ μᵤ) → rope-to-string (strRun Γ $ cmd-to-string (DefDatatype (Datatype pi-gen pi-gen X' ps (indices-to-kind is star) cs) pi-gen) (strAdd (", CTXT: " ^ ctxt-to-string Γ)))}) μ) pi-gen)
+          elab-check-term Γ t T -- maybe-or just (IotaProj t (trie-to-string ", " (λ {(mk-encoded-datatype (Data X' ps is cs) psₘ ns μ μᵤ) → rope-to-string (strRun Γ $ cmd-to-string (DefDatatype (Datatype pi-gen pi-gen X' ps (indices-to-kind is star) cs) pi-gen) (strAdd (", CTXT: " ^ ctxt-to-string Γ)))}) μ) pi-gen)
       _ → nothing
   elab-check-term Γ (Mu' pi t Tₘ? pi' ms pi'') T =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
@@ -269,7 +269,7 @@ module elab-x (μ : trie encoded-datatype) where
           d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
             encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (qas ++ (ttys-to-args-for-params (psₘ ++ ps) as)) T ≫=maybe uncurry λ t Γ →
             --just t
-            elab-check-term Γ t T maybe-or just t
+            elab-check-term Γ t T -- maybe-or just t
       _ → nothing
 
   

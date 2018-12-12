@@ -143,7 +143,7 @@ hnf{TERM} Γ u (Parens _ t _) hd = hnf Γ u t hd
 hnf{TERM} Γ u (App t1 Erased t2) hd = hnf Γ u t1 hd
 hnf{TERM} Γ u (App t1 NotErased t2) hd with hnf Γ u t1 hd
 hnf{TERM} Γ u (App _ NotErased t2) hd | Lam _ _ _ x _ t1 = hnf Γ (unfold-dampen tt u) (subst Γ t2 x t1) hd
-hnf{TERM} Γ u (App _ NotErased t2) hd | t1 = App t1 NotErased (hnf Γ (unfold-dampen ff u) t2 hd)
+hnf{TERM} Γ u (App _ NotErased t2) hd | t1 = App t1 NotErased (hnf Γ (unfold-dampen ff u) t2 ff)
 hnf{TERM} Γ u (Lam _ Erased _ _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Lam _ NotErased _ x oc t) hd with hnf (ctxt-var-decl x Γ) u t hd
 hnf{TERM} Γ u (Lam _ NotErased _ x oc t) hd | (App t' NotErased (Var _ x')) with x =string x' && ~ (is-free-in skip-erased x t')
@@ -175,7 +175,7 @@ hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | tₕ , as with Mu' pi-gen (recompose-apps
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as |  tₒ | Var _ x with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length (erase-params ps)))}) nothing (erase-cases cs)
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) with drop nps (erase-args as)
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' with nas =ℕ length as'
-hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' | tt = hnf Γ u (recompose-apps (map (TermArg NotErased) as') tₓ) hd
+hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' | tt = hnf Γ (unfold-dampen tt u) (recompose-apps (map (TermArg NotErased) as') tₓ) hd
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' | ff = tₒ
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | nothing = tₒ
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as | tₒ | _ = tₒ
@@ -184,7 +184,7 @@ hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as with (λ t → Mu pi-gen pi-
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x' ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length (erase-params ps)))}) nothing (erase-cases cs) | fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ with drop nps (erase-args as)
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' with nas =ℕ length as'
-hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' | tt = hnf Γ u (recompose-apps as (subst Γ (mlam fₓ $ tₒ $ mvar fₓ) x tₓ)) hd
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' | tt = hnf Γ (unfold-dampen tt u) (recompose-apps (map (TermArg NotErased) as') (subst Γ (mlam fₓ $ tₒ $ mvar fₓ) x tₓ)) hd
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' | ff = tₒ $ recompose-apps (map (TermArg NotErased) as') tₕ
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | nothing | fₓ = tₒ $ recompose-apps as tₕ
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | _ = tₒ $ recompose-apps as tₕ

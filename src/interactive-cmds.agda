@@ -160,7 +160,8 @@ private
   qualif-ed Γ e = e
 
   step-reduce : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  step-reduce Γ t = let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
+  step-reduce Γ t =
+    let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
     step-reduceh : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
     step-reduceh{TERM} Γ (Var pi x) = ctxt-lookup-term-var-def Γ (qualif-var Γ x)
     step-reduceh{TYPE} Γ (TpVar pi x) = ctxt-lookup-type-var-def Γ (qualif-var Γ x)
@@ -175,6 +176,8 @@ private
     step-reduceh{TERM} Γ (Let pi (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
     step-reduceh{TYPE} Γ (TpLet pi (DefTerm pi' x ot t) T) = just (subst Γ t x T)
     step-reduceh{TYPE} Γ (TpLet pi (DefType pi' x k T') T) = just (subst Γ T' x T)
+    step-reduceh{TERM} Γ t @ (Mu _ _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
+    step-reduceh{TERM} Γ t @ (Mu' _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
     step-reduceh Γ t = nothing
 
   parse-norm : string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)

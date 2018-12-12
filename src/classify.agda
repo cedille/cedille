@@ -132,10 +132,10 @@ check-kind : kind → spanM ⊤
 check-args-against-params : (kind-or-import : maybe tagged-val {- location -}) → (posinfo × var) → params → args → spanM ⊤
 check-erased-margs : term → maybe type → spanM ⊤
 check-tk : tk → spanM ⊤
-check-def : defTermOrType → spanM (var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type)
+check-def : defTermOrType → spanM (posinfo × var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type)
 check-mu : posinfo → posinfo → (μ-or-μ' : maybe var) → term → (motive : optType) → posinfo → cases → posinfo → (mtp : maybe type) → spanM (check-ret mtp)
-check-case : case → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie type × 𝕃 (var × tk × maybeErased × posinfo × posinfo))
-check-cases : cases → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (err-m × 𝕃 (var × tk × maybeErased × posinfo × posinfo))
+check-case : case → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie type × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
+check-cases : cases → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (err-m × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
 
 -- check-term
 -- ==================================================
@@ -221,10 +221,10 @@ check-termi (Let pi d t) mtp =
         -- of the term so that the type still kind-checks, as a synthesizing term let could
         -- be substituted into a checking position, or vice-versa with a checking term let.
 
-        finish : (var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type) → spanM (check-ret mtp)
-        finish (x , m , atk , val) = 
+        finish : (posinfo × var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type) → spanM (check-ret mtp)
+        finish (pi' , x , m , atk , val) = 
          get-ctxt λ Γ → 
-         spanM-add (Let-span Γ (maybe-to-checking mtp) pi x atk val t [] nothing) ≫span
+         spanM-add (Let-span Γ (maybe-to-checking mtp) pi pi' x atk val t [] nothing) ≫span
          check-term t mtp ≫=span λ r →
          spanM-restore-info x m ≫span
          maybe-subst d mtp r
@@ -269,7 +269,7 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
   where cont : maybe type → (old-ctxt : ctxt) → spanM (maybe type)
         cont nothing Γ' =
           get-ctxt λ Γ → 
-          spanM-add (Lam-span Γ' synthesizing pi l x atk t [] nothing) ≫span 
+          spanM-add (Lam-span Γ' synthesizing pi pi' l x atk t [] nothing) ≫span 
           spanMr nothing
         cont (just tp) Γ' =
           get-ctxt λ Γ → 
@@ -278,13 +278,13 @@ check-termi (Lam pi l pi' x (SomeClass atk) t) nothing =
           let rettp = abs-tk l x atk' (rename-var Γ (pi' % x) x tp) in
           let tvs = [ type-data Γ rettp ] in
           let p = if l && is-free-in skip-erased x t then just "The bound variable occurs free in the erasure of the body (not allowed)." , [ erasure Γ t ] else nothing , [] in
-          spanM-add (Lam-span Γ' synthesizing pi l x atk' t (snd p ++ tvs) (fst p)) ≫span
+          spanM-add (Lam-span Γ' synthesizing pi pi' l x atk' t (snd p ++ tvs) (fst p)) ≫span
           check-termi-return-hnf Γ (Lam pi l pi' x (SomeClass atk) t) rettp
 
 check-termi (Lam pi l pi' x NoClass t) nothing =
   get-ctxt λ Γ → 
   spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
-  spanM-add (Lam-span (ctxt-var-decl-loc pi' x Γ) synthesizing pi l x (Tkt $ TpHole pi') t []
+  spanM-add (Lam-span (ctxt-var-decl-loc pi' x Γ) synthesizing pi pi' l x (Tkt $ TpHole pi') t []
               (just ("We are not checking this abstraction against a type, so a classifier must be"
                           ^ " given for the bound variable " ^ x))) ≫span
   spanMr nothing
@@ -302,13 +302,13 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
       check-term t (just (rename-var Γ x' (qualif-var Γ' x) tp')) ≫span
       spanM-restore-info x mi where
         this-span : ctxt → tk → optClass → 𝕃 tagged-val → err-m → span
-        this-span Γ atk NoClass tvs = Lam-span Γ checking pi l x atk t tvs
+        this-span Γ atk NoClass tvs = Lam-span Γ checking pi pi' l x atk t tvs
         this-span Γ atk (SomeClass atk') tvs err = 
           if conv-tk Γ (qualif-tk Γ atk') atk then
-            Lam-span Γ checking pi l x atk' t tvs err
+            Lam-span Γ checking pi pi' l x atk' t tvs err
           else
             let p = lambda-bound-var-conv-error Γ x atk (qualif-tk Γ atk') tvs in
-            Lam-span Γ checking pi l x atk' t (fst p) (just (snd p))
+            Lam-span Γ checking pi pi' l x atk' t (fst p) (just (snd p))
         check-oc : optClass → spanM ⊤
         check-oc NoClass = spanMok
         check-oc (SomeClass atk) = check-tk atk
@@ -325,7 +325,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
     cont nothing =
       get-ctxt λ Γ →
       spanM-add (punctuation-span "Lambda"  pi (posinfo-plus pi 1)) ≫span
-      spanM-add (Lam-span Γ checking pi l x (Tkt $ TpHole pi') t [ expected-type Γ tp ] (just "The expected type is not of the form that can classify a λ-abstraction"))
+      spanM-add (Lam-span Γ checking pi pi' l x (Tkt $ TpHole pi') t [ expected-type Γ tp ] (just "The expected type is not of the form that can classify a λ-abstraction"))
 
 
 check-termi (Beta pi ot ot') (just tp) =
@@ -1534,16 +1534,16 @@ check-typei (TpLambda pi pi' x atk body) (just k) | just (mk-absk x' atk' _ k') 
    add-tk pi' x atk ≫=span λ mi → 
    get-ctxt λ Γ → 
    spanM-add (if conv-tk Γ' (qualif-tk Γ' atk) atk' then
-                TpLambda-span Γ pi x atk body checking [ kind-data Γ' k ] nothing
+                TpLambda-span Γ pi pi' x atk body checking [ kind-data Γ' k ] nothing
               else
-                uncurry (λ tvs err → TpLambda-span Γ pi x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ' x atk' (qualif-tk Γ' atk) [ kind-data Γ' k ])) ≫span
+                uncurry (λ tvs err → TpLambda-span Γ pi pi' x atk body checking tvs (just err)) (lambda-bound-var-conv-error Γ' x atk' (qualif-tk Γ' atk) [ kind-data Γ' k ])) ≫span
    check-type body (just (rename-var Γ' x' (qualif-var Γ x) k')) ≫span
    spanM-restore-info x mi
 check-typei (TpLambda pi pi' x atk body) (just k) | nothing = 
    check-tk atk ≫span
    spanM-add (punctuation-span "Lambda (type)" pi (posinfo-plus pi 1)) ≫span
    get-ctxt λ Γ →
-   spanM-add (TpLambda-span Γ pi x atk body checking [ expected-kind Γ k ]
+   spanM-add (TpLambda-span Γ pi pi' x atk body checking [ expected-kind Γ k ]
                (just "The type is being checked against a kind which is not an arrow- or Pi-kind."))
 
 check-typei (TpLambda pi pi' x atk body) nothing =
@@ -1558,14 +1558,14 @@ check-typei (TpLambda pi pi' x atk body) nothing =
   where cont : maybe kind → spanM (maybe kind)
         cont nothing = 
           get-ctxt λ Γ →
-          spanM-add (TpLambda-span Γ pi x atk body synthesizing [] nothing) ≫span
+          spanM-add (TpLambda-span Γ pi pi' x atk body synthesizing [] nothing) ≫span
           spanMr nothing
         cont (just k) =
           get-ctxt λ Γ →
           let atk' = qualif-tk Γ atk in
           -- This should indeed "unqualify" occurrences of x in k for r
           let r = absk-tk x atk' (rename-var Γ (pi' % x) x k) in
-          spanM-add (TpLambda-span Γ pi x atk' body synthesizing [ kind-data Γ r ] nothing) ≫span
+          spanM-add (TpLambda-span Γ pi pi' x atk' body synthesizing [ kind-data Γ r ] nothing) ≫span
           spanMr (just r)
 
 check-typei (Abs pi b {- All or Pi -} pi' x atk body) k = 
@@ -1574,7 +1574,7 @@ check-typei (Abs pi b {- All or Pi -} pi' x atk body) k =
   check-tk atk ≫span
   add-tk pi' x atk ≫=span λ mi → 
   get-ctxt λ Γ →
-  spanM-add (uncurry (TpQuant-span Γ (~ b) pi x atk body (maybe-to-checking k))
+  spanM-add (uncurry (TpQuant-span Γ (~ b) pi pi' x atk body (maybe-to-checking k))
                (if-check-against-star-data Γ "A type-level quantification" k)) ≫span
   check-type body (just star) ≫span
   spanM-restore-info x mi ≫span
@@ -1670,19 +1670,19 @@ check-typei (Lft pi pi' X t l) k =
   spanM-restore-info X mi ≫span
   cont k (qualif-kind Γ (liftingType-to-kind l))
   where cont : (outer : maybe kind) → kind → spanM (check-ret outer)
-        cont nothing k = get-ctxt λ Γ → spanM-add (Lft-span Γ pi X t synthesizing [ kind-data Γ k ] nothing) ≫span spanMr (just k)
+        cont nothing k = get-ctxt λ Γ → spanM-add (Lft-span Γ pi pi' X t synthesizing [ kind-data Γ k ] nothing) ≫span spanMr (just k)
         cont (just k') k = 
           get-ctxt λ Γ → 
           if conv-kind Γ k k' then 
-              spanM-add (Lft-span Γ pi X t checking ( expected-kind Γ k' :: [ kind-data Γ k ]) nothing)
+              spanM-add (Lft-span Γ pi pi' X t checking ( expected-kind Γ k' :: [ kind-data Γ k ]) nothing)
             else
-              spanM-add (Lft-span Γ pi X t checking ( expected-kind Γ k' :: [ kind-data Γ k ]) (just "The expected kind does not match the computed kind."))
+              spanM-add (Lft-span Γ pi pi' X t checking ( expected-kind Γ k' :: [ kind-data Γ k ]) (just "The expected kind does not match the computed kind."))
 check-typei (Iota pi pi' x t1 t2) mk =
   get-ctxt λ Γ → 
   check-typei t1 (just star) ≫span
   add-tk pi' x (Tkt t1) ≫=span λ mi → 
   get-ctxt λ Γ →
-  spanM-add (uncurry (Iota-span Γ pi x t2 (maybe-to-checking mk)) (if-check-against-star-data Γ "A iota-type" mk)) ≫span
+  spanM-add (uncurry (Iota-span Γ pi pi' x t2 (maybe-to-checking mk)) (if-check-against-star-data Γ "A iota-type" mk)) ≫span
   check-typei t2 (just star) ≫span
   spanM-restore-info x mi ≫span
   return-star-when mk
@@ -1700,10 +1700,10 @@ check-typei (TpLet pi d T) mk =
   maybe-subst (DefType pi x k' T') nothing (just k) = get-ctxt λ Γ →
     spanMr (just (subst Γ (qualif-type Γ T') (pi % x) k))
 
-  finish : var × restore-def × (Σ tk λ atk → if tk-is-type atk then term else type) → spanM (check-ret mk)
-  finish (x , m , atk , val) =
+  finish : posinfo × var × restore-def × (Σ tk λ atk → if tk-is-type atk then term else type) → spanM (check-ret mk)
+  finish (pi' , x , m , atk , val) =
     get-ctxt λ Γ → 
-    spanM-add (TpLet-span Γ (maybe-to-checking mk) pi x atk val T [] nothing) ≫span
+    spanM-add (TpLet-span Γ (maybe-to-checking mk) pi pi' x atk val T [] nothing) ≫span
     check-type T mk ≫=span λ r →
     spanM-restore-info x m ≫span
     maybe-subst d mk r
@@ -1741,7 +1741,7 @@ check-kind (KndPi pi pi' x atk k) =
   check-tk atk ≫span
   add-tk pi' x atk ≫=span λ mi → 
   get-ctxt λ Γ →
-  spanM-add (KndPi-span Γ pi x atk k checking nothing) ≫span
+  spanM-add (KndPi-span Γ pi pi' x atk k checking nothing) ≫span
   check-kind k ≫span
   spanM-restore-info x mi
 
@@ -1810,16 +1810,16 @@ check-tk (Tkt t) = check-type t (just star)
 check-def (DefTerm pi₁ x NoType t') =
   get-ctxt λ Γ → check-term t' nothing ≫=span cont (compileFail-in Γ t') t'
   where
-  cont : 𝕃 tagged-val × err-m → term → maybe type → spanM (var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type)
+  cont : 𝕃 tagged-val × err-m → term → maybe type → spanM (posinfo × var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type)
   cont (tvs , err) t' (just T) =
     spanM-push-term-def pi₁ x t' T ≫=span λ m →
     get-ctxt λ Γ → 
     spanM-add (Var-span Γ pi₁ x synthesizing (type-data Γ T :: tvs) err) ≫span
-    spanMr (x , m , Tkt T , t')
+    spanMr (pi₁ , x , m , Tkt T , t')
   cont (tvs , err) t' nothing = spanM-push-term-udef pi₁ x t' ≫=span λ m →
     get-ctxt λ Γ →
     spanM-add (Var-span Γ pi₁ x synthesizing tvs err) ≫span
-    spanMr (x , m , Tkt (TpHole pi₁) , t')
+    spanMr (pi₁ , x , m , Tkt (TpHole pi₁) , t')
 check-def (DefTerm pi₁ x (SomeType T) t') =
   check-type T (just star) ≫span
   get-ctxt λ Γ →
@@ -1829,7 +1829,7 @@ check-def (DefTerm pi₁ x (SomeType T) t') =
   get-ctxt λ Γ →
   let p = compileFail-in Γ t' in
   spanM-add (Var-span Γ pi₁ x checking (type-data Γ T' :: fst p) (snd p)) ≫span
-  spanMr (x , m , Tkt T , t')
+  spanMr (pi₁ , x , m , Tkt T , t')
 check-def (DefType pi x k T) =
   check-kind k ≫span
   get-ctxt λ Γ →
@@ -1837,7 +1837,7 @@ check-def (DefType pi x k T) =
   check-type T (just k') ≫span
   spanM-push-type-def pi x T k' ≫=span λ m →
   get-ctxt λ Γ → spanM-add (Var-span Γ pi x checking ([ kind-data Γ k' ]) nothing) ≫span
-  spanMr (x , m , Tkk k , T)
+  spanMr (pi , x , m , Tkk k , T)
 
 check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
   get-ctxt λ Γ →
@@ -1869,35 +1869,35 @@ check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
   --decl-args-xs x atk as = x , atk , λ n → let e = length asₒ + suc (suc n) in e ∸ length as , e
   range : posinfo × posinfo
   range = term-start-pos t , term-end-pos t
-  decl-args : caseArgs → params → trie arg → 𝕃 (var × tk × maybeErased × posinfo × posinfo) → spanM (err-m × trie arg × 𝕃 (var × tk × maybeErased × posinfo × posinfo))
+  decl-args : caseArgs → params → trie arg → 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo) → spanM (err-m × trie arg × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
   decl-args ((CaseTermArg pi me x) :: as) ((Decl _ _ me' x' (Tkt T) _) :: ps) σ xs =
     get-ctxt λ Γ →
     let T' = substs Γ σ T
         e₁ = maybe-if (me xor me') ≫maybe just "Mismatched erasure of term argument"
         e₂ = maybe-if me ≫maybe free-in-term x in
-    spanM-add (Var-span Γ pi x checking ([ type-data Γ T' ]) (e₁ maybe-or e₂)) ≫span
     set-ctxt (ctxt-term-decl pi x T' Γ) ≫span
-    decl-args as ps (trie-insert σ x' (TermArg me (mvar (pi % x)))) ((x , Tkt T' , me , range) :: xs)
+    spanM-add (Var-span Γ pi x checking ([ type-data Γ T' ]) (e₁ maybe-or e₂)) ≫span
+    decl-args as ps (trie-insert σ x' (TermArg me (mvar (pi % x)))) ((pi , x , Tkt T' , me , range) :: xs)
   decl-args ((CaseTypeArg pi x) :: as) ((Decl _ _ _ x' (Tkk k) _) :: ps) σ xs =
     get-ctxt λ Γ →
     let k' = substs Γ σ k in
-    spanM-add (TpVar-span Γ pi x checking ([ kind-data Γ k' ]) (free-in-term x)) ≫span
     set-ctxt (ctxt-type-decl pi x k' Γ) ≫span
-    decl-args as ps (trie-insert σ x' (TypeArg (mtpvar (pi % x)))) ((x , Tkk k' , Erased , range) :: xs)
+    spanM-add (TpVar-span Γ pi x checking ([ kind-data Γ k' ]) (free-in-term x)) ≫span
+    decl-args as ps (trie-insert σ x' (TypeArg (mtpvar (pi % x)))) ((pi , x , Tkk k' , Erased , range) :: xs)
   decl-args ((CaseTermArg pi me x) :: as) ((Decl _ _ me' x' (Tkk k) _) :: ps) σ xs =
     get-ctxt λ Γ →
     let k' = substs Γ σ k in
+    set-ctxt (ctxt-var-decl-loc pi x Γ) ≫span
     spanM-add (Var-span Γ pi x checking [ expected-kind Γ k' ]
       (just "This term argument should be a type")) ≫span
-    set-ctxt (ctxt-var-decl-loc pi x Γ) ≫span
-    decl-args as ps (trie-insert σ x' (TermArg me $ mvar x)) ((x , Tkk k' , me , range) :: xs)
+    decl-args as ps (trie-insert σ x' (TermArg me $ mvar x)) ((pi , x , Tkk k' , me , range) :: xs)
   decl-args ((CaseTypeArg pi x) :: as) ((Decl _ _ me x' (Tkt T) _) :: ps) σ xs =
     get-ctxt λ Γ →
     let T' = substs Γ σ T in
+    set-ctxt (ctxt-var-decl-loc pi x Γ) ≫span
     spanM-add (TpVar-span Γ pi x checking [ expected-type Γ T' ]
       (just ("This type argument should be a" ^ (if me then "n erased term" else " term")))) ≫span
-    set-ctxt (ctxt-var-decl-loc pi x Γ) ≫span
-    decl-args as ps (trie-insert σ x' (TypeArg $ mtpvar x)) ((x , Tkt T' , Erased , range) :: xs)
+    decl-args as ps (trie-insert σ x' (TypeArg $ mtpvar x)) ((pi , x , Tkt T' , Erased , range) :: xs)
   decl-args [] [] σ xs = spanMr (nothing , σ , xs)
   decl-args as [] σ xs = spanMr (just (ℕ-to-string (length as) ^ " too many arguments supplied") , σ , xs)
   decl-args [] ps σ xs = spanMr (just (ℕ-to-string (length ps) ^ " more arguments expected") , σ , xs)
@@ -1933,7 +1933,7 @@ check-mu pi pi' x? t Tₘ? pi'' cs pi''' mtp =
           let is = kind-to-indices Γ kᵢ in
           (case Tₘ? of λ where
             (SomeType Tₘ) → check-type Tₘ (just kᵢ) ≫span spanMr (just $ qualif-type Γ Tₘ)
-            NoType → spanMr (maybe-map (indices-to-tplams $ map
+            NoType → maybe-else' mtp (spanM-add $ Mu-span Γ pi pi''' ff synthesizing [] (just "A motive is required when synthesizing")) (λ _ → spanMok) ≫span spanMr (maybe-map (indices-to-tplams $ map
               (λ {(Index x atk) → Index ignored-var atk}) is) mtp)) ≫=spanr λ Tₘ →
           let is = drop-last 1 is
               ps' = maybe-else [] id ps
@@ -1954,11 +1954,13 @@ check-mu pi pi' x? t Tₘ? pi'' cs pi''' mtp =
                               ctxt-datatype-def pi' X' nothing kᵢ k (subst-ctrs
                                 (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
-                         Tₓ = indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mvar qxₜₒ) $ mvar freshₓ in
-                     spanM-add (var-span NotErased Γ' pi' x checking (Tkt Tₓ) nothing) ≫span
-                     spanMr (ctxt-term-decl-no-qualif pi' x Tₓ Γ' ,
-                              (binder-data Γ' xₜₒ (Tkt Tₜₒ) NotErased nothing pi'' pi''' ::
-                               binder-data Γ' X' (Tkk k) Erased nothing pi'' pi''' :: [])) in
+                         Tₓ = hnf Γ' unfold-all (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mvar qxₜₒ) $ mvar freshₓ) ff
+                         Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ' in
+                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) nothing) ≫span
+                     spanMr (Γ'' ,
+                              (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
+                               binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
+                               binder-data Γ'' pi' xₜₒ (Tkt Tₜₒ) NotErased (just id-term) pi'' pi''' :: [])) in
           Γ' ≫=spanc λ Γ' bds → with-ctxt Γ'
             (let e2 = just "Abstract datatypes can only be pattern matched by μ'"
                  e2? = x? ≫=maybe λ _ → (maybe-not ps) ≫maybe e2
@@ -1969,7 +1971,7 @@ check-mu pi pi' x? t Tₘ? pi'' cs pi''' mtp =
                  Tᵣ = ret-tp ps' as (cast-abstract-datatype? X (ttys-to-args Erased (drop drop-ps as)) (qualif-term Γ t)) in
              check-cases cs cs''' ctr-ps drop-ps Tₘ ≫=spanc λ e? xs →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))
-               λ tvs e3? → Mu-span Γ pi pi''' tt (maybe-to-checking mtp) (map (λ {(x , atk , me , s , e) → binder-data Γ' x atk me nothing s e}) xs ++ bds ++ tvs)
+               λ tvs e3? → Mu-span Γ pi pi''' tt (maybe-to-checking mtp) (map (λ {(pi , x , atk , me , s , e) → binder-data Γ' pi x atk me nothing s e}) xs ++ bds ++ tvs)
                  (e? maybe-or (e2? maybe-or e3?))) ≫span
              return-when mtp Tᵣ)
     (just (Tₕ , as)) →

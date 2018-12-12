@@ -228,7 +228,7 @@
   (let ((cedille-mode-br-original-filename (buffer-file-name))
 	(node (se-mode-selected)))
     (if node
-	(cedille-mode-br-start-prompt (cedille-mode-span-context (se-mode-selected)) (cedille-mode-br-is-checking))
+	(cedille-mode-br-start-prompt (cedille-mode-span-context node) (cedille-mode-br-is-checking))
       (cedille-mode-br-start-prompt nil t)))
   nil)
 
@@ -240,7 +240,7 @@
     (if (not node)
 	(message "Error: must select a node")
       (let* ((text (cedille-mode-br-get-qed-h node)))
-	(cedille-mode-br-init-buffer (cdr text) (cedille-mode-span-context (se-get-span node)) (cedille-mode-br-is-checking)))))
+	(cedille-mode-br-init-buffer (cdr text) (cedille-mode-span-context node) (cedille-mode-br-is-checking)))))
   nil)
 
 (defun cedille-mode-br-type ()
@@ -249,11 +249,11 @@
   (if (not (se-mode-selected))
       (message "Error: must select a node")
     (let* ((cedille-mode-br-original-filename (buffer-file-name))
-           (span (se-mode-selected))
-           (type (or (cdr (assoc 'expected-type (se-term-data span)))
-                     (cdr (assoc 'type (se-term-data span))))))
+           (node (se-mode-selected))
+           (type (or (cdr (assoc 'expected-type (se-term-data node)))
+                     (cdr (assoc 'type (se-term-data node))))))
       (if type
-          (cedille-mode-br-init-buffer type (cedille-mode-span-context (se-mode-selected)) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed span))
+          (cedille-mode-br-init-buffer type (cedille-mode-span-context node) (cedille-mode-br-is-checking) (cedille-mode-br-get-qed node))
         (message "Span must have an expected type or a type"))))
   nil)
 
@@ -353,7 +353,8 @@
 (defun cedille-mode-br-rewrite (&optional head)
   "Rewrite the selected span, using an input expression"
   (interactive)
-  (let ((span (se-get-span (se-mode-selected))))
+  (let* ((node (se-mode-selected))
+         (span (se-get-span node)))
     (if (null span)
         (message "Error: must select a node")
       (let* ((ask-fn1 (lambda (input)
@@ -379,7 +380,7 @@
                  (buffer-substring (se-span-start span) (se-span-end span))
                  input
                  (if head "tt" "ff")
-                 (cedille-mode-normalize-local-context-param span))))
+                 (cedille-mode-normalize-local-context-param node))))
         (se-inf-interactive-with-span
          q
          (cedille-mode-response-macro #'cedille-mode-br-receive-response)

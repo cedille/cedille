@@ -46,7 +46,7 @@ check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') =
   check-tk atk ≫span
   add-tk' me pi1' x atk ≫=span λ mi →
   get-ctxt λ Γ →
-  spanM-add (Decl-span Γ param pi1 x atk me pi' {- make this span go to the end of the def, so nesting will work
+  spanM-add (Decl-span Γ param pi1 pi1' x atk me pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
   check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
 check-and-add-params _ [] = spanMr []
@@ -161,7 +161,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (indices-to-tpapps kᵢ $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
-     spanM-add (DefDatatype-span Γ pi x ps (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) cs pi'') ≫span
+     spanM-add (DefDatatype-span Γ pi pi' x ps (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) cs pi'') ≫span
      spanM-add (TpVar-span Γ pi' x checking
        (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
