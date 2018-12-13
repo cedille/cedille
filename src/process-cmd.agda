@@ -247,8 +247,9 @@ process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
       (subst Γ Xₜ X (qualif-type Γ T)) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ})
   h s ((Ctr pi x T) :: cs) tt =
     check-type T (just star) ≫span get-ctxt λ Γ →
-    let neg-err = maybe-if (~ ctr-positive Γ X (qualif-type Γ T)) ≫maybe
-          just (unqual-local X ^ " occurs negatively in the type of the constructor")
+    let neg-ret-err = ctr-positive Γ X (qualif-type Γ T) ≫=maybe λ neg-ret →
+          let err-msg = if neg-ret then " occurs negatively in the" else " is not the return" in
+          just (unqual-local X ^ err-msg ^ " type of the constructor")
         T = subst Γ Xₜ X (qualif-type Γ T) in
     h s cs tt ≫=span λ s →
     set-ctxt (toplevel-state.Γ s) ≫span get-ctxt λ Γ →
@@ -256,7 +257,7 @@ process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
       (set-ctxt (ctxt-ctr-def pi x T ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ) ≫span get-ctxt λ Γ →
        spanM-add (Var-span Γ pi x checking
          [ summary-data x (ctxt-type-def piₓ globalScope OpacTrans
-           (unqual-local X) (mall "X" (Tkk star) (mtpvar "X")) star Γ) (abs-expand-type ps T) ] neg-err) ≫span
+           (unqual-local X) (mall "X" (Tkk star) (mtpvar "X")) star Γ) (abs-expand-type ps T) ] neg-ret-err) ≫span
        spanMr (record s {Γ = Γ}))
 
 process-params s (pi , ps) need-to-check =

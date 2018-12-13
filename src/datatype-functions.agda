@@ -148,73 +148,109 @@ add-caseArgs-to-ctxt = flip $ foldr λ {(CaseTermArg _ _ x) → ctxt-var-decl x;
 add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr _ x T) → ctxt-var-decl x}
 
+positivity : Set
+positivity = 𝔹 × 𝔹 -- occurs positively × occurs negatively
+
+pattern occurs-nil = ff , ff
+pattern occurs-pos = tt , ff
+pattern occurs-neg = ff , tt
+pattern occurs-all = tt , tt
+
+positivity-inc : positivity → positivity
+positivity-dec : positivity → positivity
+positivity-neg : positivity → positivity
+positivity-add : positivity → positivity → positivity
+
+positivity-inc = map-fst λ _ → tt
+positivity-dec = map-snd λ _ → tt
+positivity-neg = uncurry $ flip _,_
+positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
+
+
+
 -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 {-# TERMINATING #-}
-ctr-positive : ctxt → var → type → 𝔹 --maybe 𝔹
-ctr-positive Γ x T = arrs+ Γ (hnf' Γ T) where
+ctr-positive : ctxt → var → type → maybe 𝔹
+ctr-positive Γ x T = arrs+ Γ Tₕ where
   
   open import conversion
 
-  not-free : ∀ {ed} → ⟦ ed ⟧ → 𝔹
-  not-free = ~_ ∘ is-free-in check-erased x
+  not-free : ∀ {ed} → ⟦ ed ⟧ → maybe 𝔹
+  not-free = maybe-map (λ _ → tt) ∘' maybe-if ∘' ~_ ∘' is-free-in check-erased x
+
+  if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
+  if-free t with is-free-in check-erased x t
+  ...| f = f , f
 
   hnf' : ctxt → type → type
   hnf' Γ T = hnf Γ unfold-all T tt
+  
+  Tₕ = hnf' Γ T
 
   mtt = maybe-else tt id
   mff = maybe-else ff id
 
-  arrs+ : ctxt → type → 𝔹
+  posₒ = fst
+  negₒ = snd
+  
+  occurs : positivity → maybe 𝔹
+  occurs p = maybe-if (negₒ p) ≫maybe just tt
 
-  -- Possible bug: what if a deeply nested x occurs both negatively and positively?
-  -- nothing = no occurrence; just ff = negative occurrence; just tt = positive occurrence
-  type+ : ctxt → type → maybe 𝔹
-  kind+ : ctxt → kind → maybe 𝔹
-  tk+ : ctxt → tk → maybe 𝔹
+  arrs+ : ctxt → type → maybe 𝔹
+  type+ : ctxt → type → positivity
+  kind+ : ctxt → kind → positivity
+  tk+ : ctxt → tk → positivity
 
   arrs+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpApp T T') = arrs+ Γ T && not-free T'
-  arrs+ Γ (TpAppt T t) = arrs+ Γ T && not-free t
-  arrs+ Γ (TpArrow T _ T') = mtt (type+ Γ (hnf' Γ T)) && arrs+ Γ (hnf' Γ T')
+    occurs (tk+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+--    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
+  arrs+ Γ (TpApp T T') = arrs+ Γ T maybe-or not-free T'
+  arrs+ Γ (TpAppt T t) = arrs+ Γ T maybe-or not-free t
+  arrs+ Γ (TpArrow T _ T') = occurs (type+ Γ (hnf' Γ T)) maybe-or arrs+ Γ (hnf' Γ T')
   arrs+ Γ (TpLambda _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpVar _ x') = x =string x'
-  arrs+ Γ T = ff
+    occurs (tk+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+  arrs+ Γ (TpVar _ x') = maybe-not (maybe-if (x =string x')) ≫maybe just ff
+  arrs+ Γ T = just ff
   
   type+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ; atk+? = tk+ Γ atk in
-    maybe-else' (type+ Γ' (hnf' Γ' T)) (maybe-map ~_ atk+?) λ T+? → just $ T+? && ~ mff (tk+ Γ atk)
-  type+ Γ (Iota _ _ x' T T') = (maybe-not $ maybe-if $ not-free $ Iota posinfo-gen posinfo-gen x' T T') ≫maybe just ff
+    positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' $ hnf' Γ' T)
+--    maybe-else' (type+ Γ' (hnf' Γ' T)) (maybe-map ~_ atk+?) λ T+? → just $ T+? && ~ mff (tk+ Γ atk)
+  type+ Γ (Iota _ _ x' T T') = if-free (Iota pi-gen pi-gen x' T T')
+    -- (maybe-not $ maybe-if $ not-free $ Iota posinfo-gen posinfo-gen x' T T') ≫maybe just ff
     {-let Γ' = ctxt-var-decl x' Γ in
     type+ Γ (hnf' Γ T) && type+ Γ' (hnf' Γ' T')-}
-  type+ Γ (Lft _ _ x' t lT) = nothing
+  type+ Γ (Lft _ _ x' t lT) = occurs-all
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
-  type+ Γ (TpApp T T') = maybe-map (_&& not-free T') (type+ Γ T)
-  type+ Γ (TpAppt T t) = maybe-map (_&& not-free t) (type+ Γ T)
-  type+ Γ (TpArrow T _ T') = maybe-else' (type+ Γ (hnf' Γ T')) (maybe-map ~_ (type+ Γ (hnf' Γ T))) λ T'+? → just $ T'+? && ~ mff (type+ Γ (hnf' Γ T))
-  type+ Γ (TpEq _ tₗ tᵣ _) = nothing
-  type+ Γ (TpHole _) = nothing
+  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T') -- maybe-map (_&& not-free T') (type+ Γ T)
+  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- maybe-map (_&& not-free t) (type+ Γ T)
+  type+ Γ (TpArrow T _ T') = positivity-add (positivity-neg $ type+ Γ T) (type+ Γ $ hnf' Γ T')
+    -- maybe-else' (type+ Γ (hnf' Γ T')) (maybe-map ~_ (type+ Γ (hnf' Γ T))) λ T'+? → just $ T'+? && ~ mff (type+ Γ (hnf' Γ T))
+  type+ Γ (TpEq _ tₗ tᵣ _) = occurs-nil
+  type+ Γ (TpHole _) = occurs-nil
   type+ Γ (TpLambda _ _ x' atk T)=
     let Γ' = ctxt-var-decl x' Γ in
-    type+ Γ' (hnf' Γ' T)
+    positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' (hnf' Γ' T))
   type+ Γ (TpParens _ T _) = type+ Γ T
-  type+ Γ (TpVar _ x') = maybe-if (x =string x') ≫maybe just tt
+  type+ Γ (TpVar _ x') = x =string x' , ff
   
-  kind+ Γ (KndArrow k k') = maybe-else' (kind+ Γ k') (maybe-map ~_ (kind+ Γ k)) λ k'+? → just $ k'+? && mff (kind+ Γ k)
+  kind+ Γ (KndArrow k k') = positivity-add (positivity-neg $ kind+ Γ k) (kind+ Γ k')
+    --maybe-else' (kind+ Γ k') (maybe-map ~_ (kind+ Γ k)) λ k'+? → just $ k'+? && mff (kind+ Γ k)
   kind+ Γ (KndParens _ k _) = kind+ Γ k
   kind+ Γ (KndPi _ _ x' atk k) =
-    let Γ' = ctxt-var-decl x' Γ; tk+? = tk+ Γ atk in
-    maybe-else' (kind+ Γ' k) (maybe-map ~_ tk+?) λ k+? → just $ k+? && mff tk+?
+    let Γ' = ctxt-var-decl x' Γ in
+    positivity-add (positivity-neg $ tk+ Γ atk) (kind+ Γ' k)
+    --maybe-else' (kind+ Γ' k) (maybe-map ~_ tk+?) λ k+? → just $ k+? && mff tk+?
 --    kind+ (ctxt-var-decl x' Γ) k && ~ tk+ Γ atk
-  kind+ Γ (KndTpArrow T k) = maybe-else' (kind+ Γ k) (maybe-map ~_ (type+ Γ T)) λ k+? → just $ k+? && mff (type+ Γ T)
+  kind+ Γ (KndTpArrow T k) = positivity-add (positivity-neg $ type+ Γ T) (kind+ Γ k)
+    --maybe-else' (kind+ Γ k) (maybe-map ~_ (type+ Γ T)) λ k+? → just $ k+? && mff (type+ Γ T)
   kind+ Γ (KndVar _ κ as) =
-    ctxt-lookup-kind-var-def Γ κ ≫=maybe uncurry λ ps k → kind+ Γ (fst (subst-params-args Γ ps as k))
-  kind+ Γ (Star _) = nothing
+    maybe-else' (ctxt-lookup-kind-var-def Γ κ) occurs-nil $ uncurry λ ps k → kind+ Γ (fst (subst-params-args Γ ps as k))
+  kind+ Γ (Star _) = occurs-nil
 
   tk+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tk+ Γ (Tkk k) = kind+ Γ k
