@@ -63,7 +63,7 @@ substh-term Γ ρ σ (Let _ (DefType _ x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
      (Let posinfo-gen (DefType posinfo-gen x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
       (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t'))
-substh-term Γ ρ σ (Open _ x t) = Open posinfo-gen x (substh-term Γ ρ σ t)
+substh-term Γ ρ σ (Open _ _ x t) = Open posinfo-gen posinfo-gen x (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Parens _ t _) = substh-term Γ ρ σ t
 substh-term{TERM} Γ ρ σ (Var _ x) =
  let x' = renamectxt-rep ρ x in

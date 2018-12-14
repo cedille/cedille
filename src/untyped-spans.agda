@@ -6,6 +6,7 @@ module untyped-spans (options : cedille-options.options) {F : Set → Set} {{mon
 open import lib
 open import ctxt
 open import cedille-types
+open import conversion
 open import spans options {F}
 open import syntax-util
 open import to-string options
@@ -48,7 +49,7 @@ untyped-term-spans (Lam pi me pi' x oc t) =
 untyped-term-spans (Let pi d t) =
   untyped-defTermOrType-spans pi (λ Γ pi' x atk val → Let-span Γ untyped pi pi' x atk val t [] nothing) d (untyped-term-spans t)
   -- ≫span get-ctxt λ Γ → spanM-add (Let-span Γ untyped pi d t [] nothing)
-untyped-term-spans (Open pi x t) = untyped-term-spans t ≫span spanM-add (mk-span "Open" pi (term-end-pos t) [] nothing)
+untyped-term-spans (Open pi pi' x t) = get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [] (maybe-not (ctxt-lookup-term-loc Γ x) ≫maybe just "This term variable is not currently in scope")) ≫span untyped-term-spans t
 untyped-term-spans (Parens pi t pi') = untyped-term-spans t
 untyped-term-spans (Phi pi t t' t'' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-term-spans t'' ≫span spanM-add (Phi-span pi pi' untyped [] nothing)
 untyped-term-spans (Rho pi op on t og t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span spanM-add (mk-span "Rho" pi (term-end-pos t') (ll-data-term :: [ checking-data untyped ]) nothing)
@@ -56,7 +57,7 @@ untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ �
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-var-decl (mu-name-cast x) Γ) (untyped-cases-spans cs) ≫=span λ e → spanM-add (Mu-span Γ pi pi''' ff untyped [] e)
+untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (untyped-cases-spans cs) ≫=span λ e → spanM-add (Mu-span Γ pi pi''' ff untyped [] e)
 untyped-term-spans (Mu' pi t ot pi' cs pi'') = get-ctxt λ Γ → untyped-term-spans t ≫span untyped-cases-spans cs ≫=span λ e → spanM-add (Mu-span Γ pi pi'' ff untyped [] e)
 
 

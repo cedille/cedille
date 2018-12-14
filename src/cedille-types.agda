@@ -254,7 +254,7 @@ data term where
   IotaProj : term → num → posinfo → term
   Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
   Let : posinfo → defTermOrType → term → term
-  Open : posinfo → var → term → term
+  Open : posinfo → posinfo → var → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  
   Rho : posinfo → rhoHnf → optNums → term → optGuide → term → term

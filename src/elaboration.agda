@@ -189,7 +189,7 @@ module elab-x (μ : trie encoded-datatype) where
       rename x from Γ for λ x' →
       elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
       just (Let pi-gen (DefType pi-gen x' k' T') t)
-  elab-check-term Γ (Open pi x t) T =
+  elab-check-term Γ (Open pi pi' x t) T =
     ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
     elab-check-term Γ t T
   elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
@@ -384,7 +384,7 @@ module elab-x (μ : trie encoded-datatype) where
       elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       elab-red-type Γ (subst Γ T' x' T) ≫=maybe λ T →
       just (Let pi-gen (DefType pi' x' k' T') t , T)
-  elab-synth-term Γ (Open pi x t) =
+  elab-synth-term Γ (Open pi pi' x t) =
     ctxt-clarify-def Γ x ≫=maybe uncurry λ _ Γ →
     elab-synth-term Γ t
   elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t

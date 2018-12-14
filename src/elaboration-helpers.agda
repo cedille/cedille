@@ -261,8 +261,8 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   ...| isₙ | SomeClass atk = indices-to-lams isₙ $ reindex-term (rc-is ρ isₙ) (trie-insert is x isₙ) t
   reindex-term ρ is (Let pi d t) =
     elim-pair (reindex-defTermOrType ρ is d) λ d' ρ' → Let pi d' (reindex-term ρ' is t)
-  reindex-term ρ is (Open pi x t) =
-    Open pi x (reindex-term ρ is t)
+  reindex-term ρ is (Open pi pi' x t) =
+    Open pi pi' x (reindex-term ρ is t)
   reindex-term ρ is (Parens pi t pi') =
     reindex-term ρ is t
   reindex-term ρ is (Phi pi t₌ t₁ t₂ pi') =

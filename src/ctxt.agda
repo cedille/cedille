@@ -246,6 +246,23 @@ ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs) symbol with trie-lookup symb-o
 ... | just l = l
 ... | nothing = []
 
+ctxt-lookup-term-loc : ctxt → var → maybe location
+ctxt-lookup-term-loc Γ x = qual-lookup Γ x ≫=maybe λ where
+  (_ , term-decl _ , loc) → just loc
+  (_ , term-def _ _ _ _ , loc) → just loc
+  (_ , term-udef _ _ _ , loc) → just loc
+  (_ , ctr-def _ _ _ _ _ , loc) → just loc
+  (_ , var-decl , loc) → just loc
+  _ → nothing
+
+ctxt-lookup-type-loc : ctxt → var → maybe location
+ctxt-lookup-type-loc Γ x = qual-lookup Γ x ≫=maybe λ where
+  (_ , type-decl _ , loc) → just loc
+  (_ , type-def _ _ _ _ , loc) → just loc
+  (_ , datatype-def _ _ _ _ , loc) → just loc
+  (_ , var-decl , loc) → just loc
+  _ → nothing
+
 ----------------------------------------------------------------------
 
 ctxt-var-location : ctxt → var → location

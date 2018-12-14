@@ -169,7 +169,7 @@ hnf{TERM} Γ u (Delta _ T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta _ u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
-hnf{TERM} Γ u (Open _ _ t) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Open _ _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd with decompose-apps (hnf Γ u t hd)
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | tₕ , as with Mu' pi-gen (recompose-apps as tₕ) NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (erase-cases cs)) pi-gen | tₕ
 hnf{TERM} Γ u (Mu' _ t _ _ cs _) hd | _ , as |  tₒ | Var _ x with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length (erase-params ps)))}) nothing (erase-cases cs)

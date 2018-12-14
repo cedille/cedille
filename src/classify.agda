@@ -229,15 +229,15 @@ check-termi (Let pi d t) mtp =
          spanM-restore-info x m ≫span
          maybe-subst d mtp r
 
-check-termi (Open pi x t) mtp = get-ctxt λ Γ →
+check-termi (Open pi pi' x t) mtp = get-ctxt λ Γ →
    spanMr (ctxt-get-qi Γ x) on-fail genNoDefErr
   ≫=spanm' λ qi → let x' = fst qi in
    spanM-clarify-def x'     on-fail genCategoryErr
   ≫=spanm' λ si → (spanM-add $ open-span Γ nothing)
   ≫span get-ctxt λ Γ' → spanMr (ctxt-lookup-var Γ' x) on-fail genNoDefErr
   ≫=spanm' λ tk → (case tk of λ where
-    (Tkt tp) → spanM-add $ Var-span Γ' (posinfo-plus pi 5) x mode [ type-data Γ tp ] nothing
-    (Tkk k)  → spanM-add $ TpVar-span Γ' (posinfo-plus pi 5) x mode [ kind-data Γ k ] nothing
+    (Tkt tp) → spanM-add $ Var-span Γ' pi' x mode [ type-data Γ tp ] nothing
+    (Tkk k)  → spanM-add $ TpVar-span Γ' pi' x mode [ kind-data Γ k ] nothing
   ) ≫span check-term t mtp
   ≫=span λ tp → spanM-restore-clarified-def x' si ≫span spanMr tp
 
