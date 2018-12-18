@@ -111,20 +111,36 @@ private
   record lci : Set where
     constructor mk-lci
     field ll : string; x : var; t : string; T : string; fn : string; pi : posinfo
+
+  data 𝕃ₛ {ℓ} (A : Set ℓ) : Set ℓ where
+    [_]ₛ : A → 𝕃ₛ A
+    _::ₛ_ : A → 𝕃ₛ A → 𝕃ₛ A
+
+  headₛ : ∀ {ℓ} {A : Set ℓ} → 𝕃ₛ A → A
+  headₛ [ a ]ₛ = a
+  headₛ (a ::ₛ as) = a
+
+  𝕃ₛ-to-𝕃 : ∀ {ℓ} {A : Set ℓ} → 𝕃ₛ A → 𝕃 A
+  𝕃ₛ-to-𝕃 [ a ]ₛ = [ a ]
+  𝕃ₛ-to-𝕃 (a ::ₛ as) = a :: 𝕃ₛ-to-𝕃 as
   
   merge-lcis-ctxt : ctxt → 𝕃 string → ctxt
-  merge-lcis-ctxt c = foldr merge-lci-ctxt c ∘ (sort-lcis ∘ strings-to-lcis) where
+  merge-lcis-ctxt c = foldl merge-lcis-ctxt' c ∘ (sort-lcis ∘ strings-to-lcis) where
     strings-to-lcis : 𝕃 string → 𝕃 lci
     strings-to-lcis ss = strings-to-lcis-h ss [] where
       strings-to-lcis-h : 𝕃 string → 𝕃 lci → 𝕃 lci
       strings-to-lcis-h (ll :: x :: t :: T :: fn :: pi :: tl) items =
         strings-to-lcis-h tl (mk-lci ll x t T fn pi :: items)
       strings-to-lcis-h _ items = items
-    
+
+    decl-lci : posinfo → var → ctxt → ctxt
+    decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is os) =
+      mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is os
+
     language-level-type-of : language-level → language-level
     language-level-type-of ll-term = ll-type
-    language-level-type-of _ = ll-kind
-    
+    language-level-type-of _ = ll-kind    
+
     merge-lci-ctxt : lci → ctxt → ctxt
     merge-lci-ctxt (mk-lci ll v t T fn pi) Γ =
       maybe-else Γ (λ Γ → Γ) (parse-ll ll ≫=maybe λ ll →
@@ -138,11 +154,30 @@ private
       h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
+
+    merge-lcis-ctxt' : 𝕃ₛ lci → ctxt → ctxt
+    merge-lcis-ctxt' ls Γ =
+      let ls' = 𝕃ₛ-to-𝕃 ls in
+      foldr (merge-lci-ctxt) (foldr (λ l → decl-lci (lci.pi l) (lci.x l)) Γ ls') ls'
     
-    sort-lcis : 𝕃 lci → 𝕃 lci
+    sort-eq : ∀ {ℓ} {A : Set ℓ} → (A → A → compare-t) → 𝕃 A → 𝕃 (𝕃ₛ A)
+    sort-eq {_} {A} c = foldr insert [] where
+      insert : A → 𝕃 (𝕃ₛ A) → 𝕃 (𝕃ₛ A)
+      insert n [] = [ [ n ]ₛ ]
+      insert n (a :: as) with c (headₛ a) n
+      ...| compare-eq = n ::ₛ a :: as
+      ...| compare-gt = [ n ]ₛ :: a :: as
+      ...| compare-lt = a :: insert n as
+    
+    sort-lcis : 𝕃 lci → 𝕃 (𝕃ₛ lci) -- 𝕃 lci
+    sort-lcis = sort-eq λ l₁ l₂ →
+      compare (posinfo-to-ℕ $ lci.pi l₁) (posinfo-to-ℕ $ lci.pi l₂)
+    {-
     sort-lcis = list-merge-sort.merge-sort lci λ l l' →
                 posinfo-to-ℕ (lci.pi l) > posinfo-to-ℕ (lci.pi l')
       where import list-merge-sort
+    -}
+
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
   get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _) pi =

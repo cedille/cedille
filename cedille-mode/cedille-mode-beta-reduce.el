@@ -1,10 +1,10 @@
 
 
-(require 'se)
-(require 'se-mode)
-(require 'se-navi)
-(require 'se-inf)
-(require 'se-markup)
+;(require 'se)
+;(require 'se-mode)
+;(require 'se-navi)
+;(require 'se-inf)
+;(require 'se-markup)
 
 
 ;;;;;;;; Structures ;;;;;;;;
@@ -59,7 +59,7 @@
 
 (defvar cedille-br-keymap
   (progn
-    (cedille-modify-keymap 'cedille-br-mode)
+    (funcall 'cedille-modify-keymap 'cedille-br-mode)
     (se-navi-define-key 'cedille-br-mode (kbd "q") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)

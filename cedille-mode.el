@@ -13,6 +13,7 @@
 ;;;
 
 (require 'quail)
+(eval-when-compile (require 'cl))
 
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
@@ -677,7 +678,7 @@ occurrences, then do so."
 
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
-; separate keymaps.
+					; separate keymaps.
 (defun cedille-modify-keymap(mode)
   (se-navi-define-key mode (kbd "f") #'cedille-mode-select-next)
   (se-navi-define-key mode (kbd "F") #'cedille-mode-select-next-alt)
@@ -734,14 +735,15 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key mode (kbd "C-i u") #'cedille-mode-single-reduction)
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
-  (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br)
-  (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-node)
-  (se-navi-define-key mode (kbd "C-i t") #'cedille-mode-br-type)
+  (se-navi-define-key mode (kbd "C-i b") 'cedille-mode-br)
+  (se-navi-define-key mode (kbd "C-i B") 'cedille-mode-br-node)
+  (se-navi-define-key mode (kbd "C-i t") 'cedille-mode-br-type)
   (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)
   (se-navi-define-key mode (kbd "C-i R") #'cedille-mode-inspect-clear-all))
-(require 'cedille-mode-beta-reduce)
 
 (cedille-modify-keymap 'cedille-mode)
+
+(require 'cedille-mode-beta-reduce)
 
 (defun cedille-mode-get-message-from-filename(filename)
   "Get the message to send to the backend, from the name of the file to parse."
