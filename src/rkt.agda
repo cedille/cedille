@@ -72,12 +72,14 @@ rkt-require-file fp = [[ "(require (file \"" ]] ⊹⊹ [[ fp ]] ⊹⊹ [[ "\"))"
 
 -- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → rope
-rkt-from-sym-info n (term-def (just ((Decl _ _ _ v _ _) :: _)) _ tm ty , _)
+rkt-from-sym-info n (term-def (just ((Decl _ _ _ v _ _) :: _)) _ (just tm) ty , _)
   -- TODO not tested
   = rkt-dbg "term-def: paramsCons:" (rkt-define n tm)
-rkt-from-sym-info n (term-def (just ParamsNil) _ tm ty , _)
+rkt-from-sym-info n (term-def _ _ nothing ty , b)
+  = rkt-dbg "term-def: def nothing" [[]]
+rkt-from-sym-info n (term-def (just ParamsNil) _ (just tm) ty , _)
   = rkt-dbg "term-def: paramsNil:"  (rkt-define n tm)
-rkt-from-sym-info n (term-def nothing _ tm ty , b)
+rkt-from-sym-info n (term-def nothing _ (just tm) ty , b)
   -- TODO not tested
   = rkt-dbg "term-def: nothing:"    (rkt-define n tm)
 rkt-from-sym-info n (term-udef _ _ tm , _)
@@ -99,6 +101,8 @@ rkt-from-sym-info n (ctr-def _ _ _ _ _ , _)
   = rkt-dbg "const-def:"           [[]]
 rkt-from-sym-info n (datatype-def _ _ _ _ , _) 
   = rkt-dbg "datatype-def:"           [[]]
+rkt-from-sym-info n (mu-def ps x k , _)
+  = rkt-dbg "mu-def:" [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
 to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences) ie rkt-filename =

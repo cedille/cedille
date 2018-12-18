@@ -28,6 +28,12 @@ mu-name-cast x = x ^ "/cast"
 mu-name-type : var → var
 mu-name-type x = x ^ "/type"
 
+mu-name-mu : var → var
+mu-name-mu x = x ^ "/mu"
+
+mu-name-Mu : var → var
+mu-name-Mu x = x ^ "/Mu"
+
 qualif-info : Set
 qualif-info = var × args
 
@@ -200,7 +206,7 @@ term-start-pos (Delta pi _ _) = pi
 term-start-pos (Sigma pi _) = pi
 term-start-pos (Theta pi _ _ _) = pi
 term-start-pos (Mu pi _ _ _ _ _ _ _) = pi
-term-start-pos (Mu' pi _ _ _ _ _) = pi
+term-start-pos (Mu' pi _ _ _ _ _ _) = pi
 
 type-start-pos (Abs pi _ _ _ _ _) = pi
 type-start-pos (TpLambda pi _ _ _ _) = pi
@@ -262,7 +268,7 @@ term-end-pos (Delta pi oT t) = term-end-pos t
 term-end-pos (Sigma pi t) = term-end-pos t
 term-end-pos (Theta _ _ t ls) = lterms-end-pos (term-end-pos t) ls
 term-end-pos (Mu _ _ _ _ _ _ _ pi) = pi
-term-end-pos (Mu' _ _ _ _ _ pi) = pi
+term-end-pos (Mu' _ _ _ _ _ _ pi) = pi
 
 type-end-pos (Abs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (TpLambda _ _ _ _ t) = type-end-pos t
@@ -535,12 +541,13 @@ tty-to-arg me (ttype T) = TypeArg T
 ttys-to-args : maybeErased → 𝕃 tty → args
 ttys-to-args = map ∘ tty-to-arg
 
-ttys-to-args-for-params : params → 𝕃 tty → args
-ttys-to-args-for-params ((Decl _ _ me _ _ _) :: ps) ((tterm t) :: as) =
-  TermArg me t :: ttys-to-args-for-params ps as
-ttys-to-args-for-params (_ :: ps) ((ttype T) :: as) =
-  TypeArg T :: ttys-to-args-for-params ps as
-ttys-to-args-for-params _ _ = []
+ttys-to-args-for-params : (keep-extra : maybe maybeErased) → params → 𝕃 tty → args
+ttys-to-args-for-params b ((Decl _ _ me _ _ _) :: ps) ((tterm t) :: as) =
+  TermArg me t :: ttys-to-args-for-params b ps as
+ttys-to-args-for-params b (_ :: ps) ((ttype T) :: as) =
+  TypeArg T :: ttys-to-args-for-params b ps as
+ttys-to-args-for-params nothing _ _ = []
+ttys-to-args-for-params (just me) _ as = ttys-to-args me as
 
 arg-to-tty : arg → tty
 arg-to-tty (TermArg me t) = tterm t
@@ -650,7 +657,7 @@ erase-term (Chi _ T t') = erase-term t'
 erase-term (Delta _ T t) = id-term
 erase-term (Theta _ u t ls) = erase-lterms (erase-term t) ls
 erase-term (Mu _ _ x t ot _ c _) = Mu posinfo-gen posinfo-gen x (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
-erase-term (Mu' _ t ot _ c _)  = Mu' posinfo-gen (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
+erase-term (Mu' _ _ t _ _ c _)  = Mu' posinfo-gen NoTerm (erase-term t) NoType posinfo-gen (erase-cases c) posinfo-gen
 
 erase-cases = map erase-case
 

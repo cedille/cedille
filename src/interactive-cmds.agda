@@ -56,9 +56,9 @@ private
     ll-disambiguate (Γ' d) t ≫=maybe λ T → just (TpLet pi d T)
     where
     Γ' : defTermOrType → ctxt
-    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope OpacTrans x t T Γ
+    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope OpacTrans x (just t) T Γ
     Γ' (DefTerm pi' x NoType t) = ctxt-term-udef pi' localScope OpacTrans x t Γ
-    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x T k Γ
+    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x (just T) k Γ
   ll-disambiguate Γ t = nothing
   
   parse-string : (ll : language-level) → string → maybe (ll-lift ll)
@@ -132,9 +132,9 @@ private
       h : (ll : language-level) → maybe (ll-lift ll) →
           ll-lift (language-level-type-of ll) → maybe ctxt
       h ll-term (just t) T =
-        just (ctxt-term-def pi localScope OpacTrans v t (qualif-type Γ T) Γ)
+        just (ctxt-term-def pi localScope OpacTrans v (just t) (qualif-type Γ T) Γ)
       h ll-type (just T) k =
-        just (ctxt-type-def pi localScope OpacTrans v T (qualif-kind Γ k) Γ)
+        just (ctxt-type-def pi localScope OpacTrans v (just T) (qualif-kind Γ k) Γ)
       h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
@@ -177,7 +177,7 @@ private
     step-reduceh{TYPE} Γ (TpLet pi (DefTerm pi' x ot t) T) = just (subst Γ t x T)
     step-reduceh{TYPE} Γ (TpLet pi (DefType pi' x k T') T) = just (subst Γ T' x T)
     step-reduceh{TERM} Γ t @ (Mu _ _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
-    step-reduceh{TERM} Γ t @ (Mu' _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
+    step-reduceh{TERM} Γ t @ (Mu' _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
     step-reduceh Γ t = nothing
 
   parse-norm : string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)

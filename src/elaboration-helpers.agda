@@ -51,22 +51,22 @@ ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
 ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
 ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (term-def (just ps) op (hnf Γ unfold-head t tt) T , fn , x)) os
+  (trie-insert is x' (term-def (just ps) op (just $ hnf Γ unfold-head t tt) T , fn , x)) os
 
 ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
 ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (type-def (just ps) op (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
+  (trie-insert is x' (type-def (just ps) op (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
 
 ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
 ctxt-let-term-def pi x t T Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (term-def nothing OpacTrans (hnf Γ unfold-head t tt) T , fn , pi)) os
+    (trie-insert is x (term-def nothing OpacTrans (just $ hnf Γ unfold-head t tt) T , fn , pi)) os
 
 ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
 ctxt-let-type-def pi x T k Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (type-def nothing OpacTrans (hnf Γ (unfolding-elab unfold-head) T tt) k , fn , pi)) os
+    (trie-insert is x (type-def nothing OpacTrans (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , pi)) os
 
 ctxt-μ-out-def : var → term → term → var → ctxt → ctxt
 ctxt-μ-out-def x t c y (mk-ctxt mod ss is os) =
@@ -120,6 +120,7 @@ subst-qualif Γ ρ = id
 rename-validify : string → string
 rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
   validify-char : char → 𝕃 char
+  validify-char '/' = [ '-' ]
   validify-char c with
     (c =char 'a')  ||
     (c =char 'z')  ||
@@ -196,6 +197,9 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
        let x' = reindex-fresh-var ρ is x in
        Index x' (substh-tk {TERM} Γ ρ empty-trie atk) :: f (renamectxt-insert ρ x x')})
     (λ ρ → []) isₒ ρ
+
+  reindex-subst : ∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧
+  reindex-subst {ed} = substs {ed} {TERM} Γ empty-trie
   
   reindex-t : Set → Set
   reindex-t X = renamectxt → trie indices → X → X
@@ -276,7 +280,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-term ρ is (Var pi x) =
     Var pi $ renamectxt-rep ρ x
   reindex-term ρ is (Mu pi pi' x t oT pi'' cs pi''') = Var pi-gen "template-mu-not-allowed"
-  reindex-term ρ is (Mu' pi t oT pi' cs pi'') = Var pi-gen "template-mu-not-allowed" 
+  reindex-term ρ is (Mu' pi ot t oT pi' cs pi'') = Var pi-gen "template-mu-not-allowed" 
   
   reindex-type ρ is (Abs pi me pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
@@ -303,7 +307,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-type ρ is (TpArrow (TpVar pi x) Erased T) with is-index-type-var x
   ...| ff = TpArrow (reindex-type ρ is (TpVar pi x)) Erased (reindex-type ρ is T)
   ...| tt = let isₙ = rename-indices ρ is in
-    indices-to-alls isₙ $ reindex-type (rc-is ρ isₙ) (trie-insert is x isₙ) T
+    indices-to-alls isₙ $ reindex-type (rc-is ρ isₙ) is T
   reindex-type ρ is (TpArrow T me T') =
     TpArrow (reindex-type ρ is T) me (reindex-type ρ is T')
   reindex-type ρ is (TpEq pi t t' pi') =
@@ -398,11 +402,12 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-args ρ is = map(reindex-arg ρ is)
   
   reindex-defTermOrType ρ is (DefTerm pi x oT t) =
-    let x' = reindex-fresh-var ρ is x in
-    DefTerm pi x' (reindex-optType ρ is oT) (reindex-term ρ is t) , renamectxt-insert ρ x x'
+    let x' = reindex-fresh-var ρ is x
+        oT' = optType-map oT reindex-subst in
+    DefTerm pi x' (reindex-optType ρ is oT') (reindex-term ρ is $ reindex-subst t) , renamectxt-insert ρ x x'
   reindex-defTermOrType ρ is (DefType pi x k T) =
     let x' = reindex-fresh-var ρ is x in
-    DefType pi x' (reindex-kind ρ is k) (reindex-type ρ is T) , renamectxt-insert ρ x x'
+    DefType pi x' (reindex-kind ρ is $ reindex-subst k) (reindex-type ρ is $ reindex-subst T) , renamectxt-insert ρ x x'
 
   reindex-cmds : renamectxt → trie indices → cmds → cmds × renamectxt
   reindex-cmds ρ is [] = [] , ρ
@@ -414,7 +419,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-cmds ρ is ((DefKind pi x ps k pi') :: cs) =
     let x' = reindex-fresh-var ρ is x in
     elim-pair (reindex-cmds (renamectxt-insert ρ x x') is cs) $ _,_ ∘ _::_
-      (DefKind pi x' ps (reindex-kind ρ is k) pi')
+      (DefKind pi x' ps (reindex-kind ρ is $ reindex-subst k) pi')
   reindex-cmds ρ is ((DefDatatype dt pi) :: cs) =
     reindex-cmds ρ is cs -- Templates can't use datatypes!
 
@@ -422,6 +427,34 @@ reindex-file : ctxt → indices → start → cmds × renamectxt
 reindex-file Γ is (File csᵢ pi' pi'' x ps cs pi''') =
   reindex-cmds empty-renamectxt empty-trie cs
   where open reindexing Γ is
+
+parameterize-file : ctxt → params → cmds → cmds
+parameterize-file Γ ps cs = foldr {B = qualif → cmds}
+  (λ c cs σ → elim-pair (h c σ) λ c σ → c :: cs σ) (λ _ → []) cs empty-trie
+  where
+  ps' = ps -- substs-params {ARG} Γ empty-trie ps
+  σ+ = λ σ x → qualif-insert-params σ x x ps'
+
+  subst-ps : ∀ {ed} → qualif → ⟦ ed ⟧ → ⟦ ed ⟧
+  subst-ps = substs $ add-params-to-ctxt ps' Γ
+
+  h' : defTermOrType → qualif → defTermOrType × qualif
+  h' (DefTerm pi x T? t) σ =
+    let T?' = case T? of λ where
+                (SomeType T) → SomeType $ abs-expand-type ps' $ subst-ps σ T
+                NoType → NoType
+        t' = params-to-lams ps' $ subst-ps σ t in
+    DefTerm pi x T?' t' , σ+ σ x
+  h' (DefType pi x k T) σ =
+    let k' = abs-expand-kind ps' $ subst-ps σ k
+        T' = params-to-tplams ps' $ subst-ps σ T in
+    DefType pi x k' T' , σ+ σ x
+
+  h : cmd → qualif → cmd × qualif
+  h (ImportCmd i) σ = ImportCmd i , σ
+  h (DefTermOrType op d pi) σ = elim-pair (h' d σ) λ d σ → DefTermOrType op d pi , σ
+  h (DefKind pi x ps'' k pi') σ = DefKind pi x ps'' k pi' , σ
+  h (DefDatatype dt pi) σ = DefDatatype dt pi , σ
 
 
 mk-ctr-term : maybeErased → (x X : var) → ctrs → params → term
@@ -441,7 +474,7 @@ mk-ctr-type me Γ (Ctr _ x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl T�
   mk-ctr-term me x X cs ps
 
 mk-ctr-fmap-t : Set
-mk-ctr-fmap-t = ctxt → (var × var × var × var × var) → var → type → term
+mk-ctr-fmap-t = ctxt → (var × var × var × var × term) → var → type → term
 {-# TERMINATING #-}
 mk-ctr-fmap-η+ : mk-ctr-fmap-t
 mk-ctr-fmap-η- : mk-ctr-fmap-t
@@ -465,7 +498,7 @@ mk-ctr-fmap-η- Γ xₒ @ (x , Aₓ , Bₓ , cₓ , castₓ) x' T with decompose
   params-to-lams' ps $
   mapp
     (recompose-apps (ttys-to-args Erased as) $
-     mappe (AppTp (AppTp (mvar castₓ) (mtpvar Aₓ)) (mtpvar Bₓ)) (mvar cₓ))
+     mappe (AppTp (AppTp castₓ (mtpvar Aₓ)) (mtpvar Bₓ)) (mvar cₓ))
     (foldl (λ {(Decl _ _ me x'' (Tkt T) _) t →
                  App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ (add-params-to-ctxt ps Γ) xₒ x'' T;
                (Decl _ _ me x'' (Tkk k) _) t → AppTp t $ mtpvar x'' {- TODO: Cast x in k? -}}) (mvar x') ps)
@@ -552,7 +585,7 @@ record datatype-encoding : Set where
     Γ' = add-params-to-ctxt ps $ add-ctrs-to-ctxt cs $ ctxt-var-decl x Γ''
     
     tcs-ρ = reindex-file Γ' is template
-    tcs = fst tcs-ρ
+    tcs = parameterize-file Γ' ps $ fst tcs-ρ
     ρ = snd tcs-ρ
 
     data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ') ρ
@@ -623,7 +656,7 @@ record datatype-encoding : Set where
     fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
     ...| Aₓ | Bₓ | cₓ = DefTerm pi-gen data-fmapₓ (SomeType $
         params-to-alls ps $
-        TpApp (mtpvar functorₓ) $
+        TpApp (params-to-tpapps ps $ mtpvar functorₓ) $
         params-to-tpapps ps $
         mtpvar data-functorₓ) $
       params-to-lams ps $
@@ -643,7 +676,7 @@ record datatype-encoding : Set where
       eta-expand-ctr : ctr → term
       eta-expand-ctr (Ctr _ x' T) =
         mk-ctr-fmap-η+ (ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ)
-          (x , Aₓ , Bₓ , cₓ , castₓ) x' T
+          (x , Aₓ , Bₓ , cₓ , params-to-apps ps (mvar castₓ)) x' T
 {-
       eta-expand-fmaph-type : ctxt → var → type → term
       eta-expand-fmaph-type Γ x' T with decompose-ctr-type Γ T
@@ -667,19 +700,21 @@ record datatype-encoding : Set where
             (Decl pi pi' me x'' (Tkk k) pi'') t → AppTp t $ mtpvar x''})
         (mvar x') ps
 -}
-    type-cmd = DefType pi-gen x (params-to-kind ps $ k) $
+    type-cmd = DefType pi-gen x (params-to-kind ps k) $
       params-to-tplams ps $ TpAppt
-        (TpApp (mtpvar fixpoint-typeₓ) $ params-to-tpapps ps $ mtpvar data-functorₓ)
+        (TpApp (params-to-tpapps ps $ mtpvar fixpoint-typeₓ) $
+          params-to-tpapps ps $ mtpvar data-functorₓ)
         (params-to-apps ps $ mvar data-fmapₓ)
 
     ctr-cmd : ctr → defTermOrType
     ctr-cmd (Ctr _ x' T) with
         decompose-ctr-type Γ (subst Γ (params-to-tpapps ps $ mtpvar x) x T)
     ...| Tₕ , ps' , as' = DefTerm pi-gen x' NoType $
+      Open pi-gen pi-gen x $
       params-to-lams ps $
       params-to-lams ps' $
       mapp (recompose-apps (ttys-to-args Erased $ drop (length ps) as') $
-            mappe (AppTp (mvar fixpoint-inₓ) $
+            mappe (AppTp (params-to-apps ps $ mvar fixpoint-inₓ) $
               params-to-tpapps ps $ mtpvar data-functorₓ) $
         params-to-apps ps $ mvar data-fmapₓ) $
       rename "X" from add-params-to-ctxt ps' Γ for λ Xₓ →
@@ -732,12 +767,12 @@ mendler-elab-mu : elab-mu-t
 mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functorₓ data-fmapₓ data-functor-indₓ castₓ fixpoint-typeₓ fixpoint-inₓ fixpoint-outₓ fixpoint-indₓ fixpoint-lambekₓ) Xₒ x? t Tₘ psₘ as ms =
   let len-psₜ = length as ∸ length is
       --len-psₚ = length psₚ
-      len-psₘ = length psₘ -- len-psₜ ∸ len-psₚ
+      --len-psₘ = length psₘ -- len-psₜ ∸ len-psₚ
       asᵢ = drop len-psₜ as
       asₜ = take len-psₜ as
-      asₚ = args-set-erased Erased $ drop len-psₘ $ take len-psₜ as
-      asₘ = take len-psₘ as
-      asₜₑ = asₘ ++ asₚ
+      --asₚ = args-set-erased Erased $ drop len-psₘ $ take len-psₜ as
+      --asₘ = take len-psₘ as
+      asₜₑ = args-set-erased Erased asₜ -- asₘ ++ asₚ
       σ = fst (mk-inst (psₘ ++ psₚ) asₜ)
       is = map (λ {(Index x atk) → Index x (substs Γ σ atk)}) is in
   rename "x" from (add-indices-to-ctxt is Γ) for λ xₓ →
@@ -753,7 +788,7 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
               Mlam yₓ $ Mlam eₓ $
               Rho pi-gen RhoPlain NoNums (Sigma pi-gen $ mvar eₓ) NoGuide t}) empty-trie ms
       as-ttys = map λ {(TermArg _ t) → tterm t; (TypeArg T) → ttype T}
-      app-psₘ = recompose-apps asₘ
+      --app-psₘ = recompose-apps asₘ
       app-psₜ = recompose-apps asₜ
       fmap = recompose-apps asₜ $ mvar data-fmapₓ
       ind = recompose-apps asₜₑ $ mvar data-functor-indₓ
@@ -768,7 +803,7 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
           mapp (recompose-apps asᵢ out) tₛ ,
           just (mvar zₓ) --env-lookup Γ zₓ ≫=maybe λ {(term-udef _ _ c , _ ) → just c; _ → nothing}
         nothing _ → mapp (indices-to-apps is $
-          mappe (AppTp (app-psₘ $ mvar fixpoint-outₓ) ftp) fmap) tₛ , nothing in
+          mappe (AppTp (app-psₜ $ mvar fixpoint-outₓ) ftp) fmap) tₛ , nothing in
   maybe-else' x?
     -- μ'
      (just $
@@ -776,9 +811,9 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
      let Tₛ = maybe-else' Xₛ? ptp (λ _ → mtpvar Xₒ)
          fₛ = maybe-else' Xₛ? (indices-to-lams is $ Lam pi-gen NotErased pi-gen xₓ (SomeClass $ Tkt $ TpApp ftp ptp) $ mvar xₓ) id in
      mappe (mappe (msf $ AppTp (mapp (indices-to-apps is $ AppTp ind Tₛ) out) $
-             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp Tₛ) $ mall yₓ (Tkt ptp) $ mall eₓ (Tkt $ mtpeq (mapp (erase $ app-psₘ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₘ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fₛ) $ mvar xₓ) (mvar yₓ) pi-gen))
+             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp Tₛ) $ mall yₓ (Tkt $ indices-to-tpapps is ptp) $ mall eₓ (Tkt $ mtpeq (mapp (erase $ app-psₜ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₜ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fₛ) $ mvar xₓ) (mvar yₓ) pi-gen))
              (maybe-else' Xₛ? id (mapp ∘ indices-to-apps is) t))
-         (mapp (indices-to-apps is $ mappe (AppTp (app-psₘ $ mvar fixpoint-lambekₓ) ftp) fmap) $ (maybe-else' Xₛ? id (mapp ∘ indices-to-apps is) t))
+         (mapp (indices-to-apps is $ mappe (AppTp (app-psₜ $ mvar fixpoint-lambekₓ) ftp) fmap) $ (maybe-else' Xₛ? id (mapp ∘ indices-to-apps is) t))
        , Γ)
     
     -- μ x
@@ -786,24 +821,24 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
       rename (ihₓ ^ "-mu'") from (add-indices-to-ctxt is Γ) for λ ih-mu'ₓ →
       let Rₓ = mu-name-type ihₓ --ihₓ ^ "/" ^ X
           rvlₓ = mu-name-cast ihₓ
-          fcₜ = mappe (AppTp (AppTp (app-psₘ $ mvar castₓ) $ TpApp ftp $ mtpvar Rₓ) $ TpApp ftp ptp) $
+          fcₜ = mappe (AppTp (AppTp (app-psₜ $ mvar castₓ) $ TpApp ftp $ mtpvar Rₓ) $ TpApp ftp ptp) $
                  mappe (AppTp (AppTp fmap $ mtpvar Rₓ) ptp) $ IotaPair pi-gen (mvar rvlₓ) (Beta pi-gen NoTerm NoTerm) NoGuide pi-gen
           --zₜ = mappe (AppTp (AppTp (mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ
-          tₜ = mapp (indices-to-apps is $ mappe (AppTp (app-psₘ $ mvar fixpoint-inₓ) ftp) fmap) $
+          tₜ = mapp (indices-to-apps is $ mappe (AppTp (app-psₜ $ mvar fixpoint-inₓ) ftp) fmap) $
                  mapp (indices-to-apps is fcₜ) $ mvar xₓ
           body = mappe (mappe (msf $
             elim-pair (out $ mvar xₓ) (λ out _ →
             AppTp (mapp (indices-to-apps is $ AppTp ind (mtpvar Rₓ)) out) $
-             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp (mtpvar Rₓ)) $ mall yₓ (Tkt ptp) $ mall eₓ (Tkt $ mtpeq (mapp (app-psₘ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₘ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fcₜ) $ mvar xₓ) (mvar yₓ) pi-gen)))
-                   tₜ) $ mapp (mappe (AppTp (app-psₘ $ mvar fixpoint-lambekₓ) ftp) fmap) tₜ in
+             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp (mtpvar Rₓ)) $ mall yₓ (Tkt $ indices-to-tpapps is ptp) $ mall eₓ (Tkt $ mtpeq (mapp (app-psₜ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₜ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fcₜ) $ mvar xₓ) (mvar yₓ) pi-gen)))
+                   tₜ) $ mapp (indices-to-apps is $ mappe (AppTp (app-psₜ $ mvar fixpoint-lambekₓ) ftp) fmap) tₜ in
       just $
-        (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (app-psₘ $ mvar fixpoint-indₓ) ftp) fmap) $
+        (mapp (flip AppTp Tₘ $ flip mapp t $ recompose-apps asᵢ $ mappe (AppTp (app-psₜ $ mvar fixpoint-indₓ) ftp) fmap) $
          Mlam Rₓ $ Mlam rvlₓ $ Mlam ih-mu'ₓ $ mlam ihₓ $ indices-to-lams is $ mlam xₓ $
          --Let pi-gen (DefTerm pi-gen zₓ NoType zₜ) $
          Let pi-gen (DefTerm pi-gen rvlₓ NoType $
-           mappe (AppTp (AppTp (app-psₘ $ mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
+           mappe (AppTp (AppTp (app-psₜ $ mvar castₓ) $ mtpvar Rₓ) ptp) $ mvar rvlₓ) $
          Let pi-gen (DefTerm pi-gen zₓ NoType $ mvar rvlₓ) body) ,
-        ctxt-μ-out-def ("/" ^ rename-validify Rₓ ^ "/mu'") (Phi pi-gen (IotaProj (mvar ih-mu'ₓ) "2" pi-gen) (IotaProj (mvar ih-mu'ₓ) "1" pi-gen) (app-psₘ $ mvar fixpoint-outₓ) pi-gen) fcₜ zₓ (ctxt-rename-def' ("/" ^ rename-validify Rₓ) ("/" ^ X) asₜ Γ)
+        ctxt-μ-out-def ("/" ^ rename-validify Rₓ ^ "/mu'") (Phi pi-gen (IotaProj (mvar ih-mu'ₓ) "2" pi-gen) (IotaProj (mvar ih-mu'ₓ) "1" pi-gen) (app-psₜ $ mvar fixpoint-outₓ) pi-gen) fcₜ zₓ (ctxt-rename-def' ("/" ^ rename-validify Rₓ) ("/" ^ X) asₜ Γ)
 
 mendler-encoding : datatype-encoding
 mendler-encoding =

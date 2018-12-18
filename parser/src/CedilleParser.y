@@ -89,7 +89,7 @@ import System.Environment
   '☆'        { Token $$ (TSym "☆") }
   '★'        { Token $$ (TSym "★") }
   'μ'        { Token $$ TMu   }
-  'μ\''      { Token $$ TMuP  }
+  'μP'       { Token $$ TMuP  }
   '|'        { Token $$ TPipe      }    
 %%
   
@@ -204,7 +204,7 @@ OptTerm :: { OptTerm }
         :                               { NoTerm                }
         | '{' Term '}'                  { SomeTerm $2 (pos2Txt1 $3) }
 
-OptEqTerm :: { OptTerm }
+OptTermAngle :: { OptTerm }
           :                             { NoTerm                }
           | '<' Term '>'                { SomeTerm $2 (pos2Txt1 $3) }
 
@@ -259,7 +259,7 @@ Term :: { Term }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
-     | 'μ\''         Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
+     | 'μP' Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) NoTerm $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -293,7 +293,7 @@ Aterm :: { Term }
       | Lterm                           { $1                            }
 
 Lterm :: { Term }
-      : 'β' OptEqTerm OptTerm           { Beta    (pos2Txt $1) $2 $3                          }
+      : 'β' OptTermAngle OptTerm           { Beta    (pos2Txt $1) $2 $3                          }
       | 'ε'   Lterm                     { Epsilon (pos2Txt $1) Both               False  $2  }
       | 'ε-'  Lterm                     { Epsilon (pos2Txt $1) Both               True $2  }
       | 'εl'  Lterm                     { Epsilon (pos2Txt $1) CedilleTypes.Left  False  $2  }

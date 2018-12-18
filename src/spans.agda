@@ -121,7 +121,7 @@ spanM-push-term-decl pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , 
 
 -- let bindings currently cannot be made opaque, so this is OpacTrans. -tony
 spanM-push-term-def : posinfo → var → term → type → spanM restore-def
-spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-def pi localScope OpacTrans x t T Γ , ss)
+spanM-push-term-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-def pi localScope OpacTrans x (just t) T Γ , ss)
 
 spanM-push-term-udef : posinfo → var → term → spanM restore-def
 spanM-push-term-udef pi x t Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-term-udef pi localScope OpacTrans x t Γ , ss)
@@ -131,7 +131,7 @@ spanM-push-type-decl : posinfo → var → kind → spanM restore-def
 spanM-push-type-decl pi x k Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-decl pi x k Γ , ss)
 
 spanM-push-type-def : posinfo → var → type → kind → spanM restore-def
-spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x t T Γ , ss)
+spanM-push-type-def pi x t T Γ ss = let qi = ctxt-get-qi Γ x in returnM ((qi , qi ≫=maybe λ qi → ctxt-get-info (fst qi) Γ) , ctxt-type-def pi localScope OpacTrans x (just t) T Γ , ss)
 
 spanM-lookup-restore-info : var → spanM restore-def
 spanM-lookup-restore-info x =

@@ -154,15 +154,17 @@ syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s
 
 ctxt-info-to-string : ctxt-info → string
 ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
-ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ ", type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", maybe term: " ^ maybe-else' t "nothing" (λ t → "just " ^ rope-to-string (to-string empty-ctxt t)) ^ ", type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
 ctxt-info-to-string (term-udef dp opac t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
 ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", tp: " ^ rope-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", maybe type: " ^ maybe-else' tp "nothing" (λ tp → "just " ^ rope-to-string (to-string empty-ctxt tp)) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 ctxt-info-to-string (ctr-def _ _ _ _ _) = "ctr-def"
+--ctxt-info-to-string (mu-def x) = "mu-def: {var: " ^ x ^ "}"
 ctxt-info-to-string (datatype-def ps kᵢ k cs) = "datatype-def: {defParams: {" ^ defParams-to-string ps ^ "}, inductive hypothesis kind: " ^ rope-to-string (to-string empty-ctxt kᵢ) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ ", cs: " ^ "TODO" ^ "}"
+ctxt-info-to-string (mu-def ps x k) = "mu-def: {defParams: {" ^ defParams-to-string ps ^ "}, datatype var: " ^ x ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
@@ -230,6 +232,7 @@ scope-cmds : scope-t cmds
 scope-cmd : scope-t cmd
 scope-var : scope-t var
 scope-ctrs : scope-t ctrs
+scope-datatype-names : scope-t var
 
 scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
 ...| just e = ts , just e
@@ -279,10 +282,12 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s = scope-var fn mn oa ps as v s ≫=scope scope-ctrs fn mn oa ps as cs
+scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s = scope-var fn mn oa ps as v s ≫=scope scope-ctrs fn mn oa ps as cs ≫=scope scope-datatype-names fn mn oa ps as v
 
 scope-ctrs fn mn oa ps as [] s = s , nothing
 scope-ctrs fn mn oa ps as ((Ctr pi x T) :: ds) s = scope-var fn mn oa ps as x s ≫=scope scope-ctrs fn mn oa ps as ds
+
+scope-datatype-names fn mn oa ps as x s = scope-var fn mn oa ps as (mu-name-Mu x) s ≫=scope scope-var fn mn oa ps as (mu-name-mu x)
 
 
 scope-var _ mn oa ps as v s with import-as v oa | s

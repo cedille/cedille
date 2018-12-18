@@ -28,6 +28,8 @@ open import datatype-functions
 open import elaboration-helpers options
 import spans options' {id} as id-spans
 
+
+
 module elab-x (μ : trie encoded-datatype) where
 
   {-# TERMINATING #-}
@@ -255,11 +257,11 @@ module elab-x (μ : trie encoded-datatype) where
       (TpVar _ X , as) →
         trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
         d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-          encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
+          encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
           --just t
-          elab-check-term Γ t T -- maybe-or just (IotaProj t (trie-to-string ", " (λ {(mk-encoded-datatype (Data X' ps is cs) psₘ ns μ μᵤ) → rope-to-string (strRun Γ $ cmd-to-string (DefDatatype (Datatype pi-gen pi-gen X' ps (indices-to-kind is star) cs) pi-gen) (strAdd (", CTXT: " ^ ctxt-to-string Γ)))}) μ) pi-gen)
+          elab-check-term Γ t T maybe-or just t -- maybe-or just (IotaProj t (trie-to-string ", " (λ {(mk-encoded-datatype (Data X' ps is cs) psₘ ns μ μᵤ) → rope-to-string (strRun Γ $ cmd-to-string (DefDatatype (Datatype pi-gen pi-gen X' ps (indices-to-kind is star) cs) pi-gen) (strAdd (", CTXT: " ^ ctxt-to-string Γ)))}) μ) pi-gen)
       _ → nothing
-  elab-check-term Γ (Mu' pi t Tₘ? pi' ms pi'') T =
+  elab-check-term Γ (Mu' pi ot t Tₘ? pi' ms pi'') T =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
@@ -267,9 +269,9 @@ module elab-x (μ : trie encoded-datatype) where
             qas = maybe-else' (trie-lookup (ctxt-get-qualif Γ) ("/" ^ X)) [] snd in
         trie-lookup μ X' ≫=maybe λ where
           d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (qas ++ (ttys-to-args-for-params (psₘ ++ ps) as)) T ≫=maybe uncurry λ t Γ →
+            encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (qas ++ (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as)) T ≫=maybe uncurry λ t Γ →
             --just t
-            elab-check-term Γ t T -- maybe-or just t
+            elab-check-term Γ t T maybe-or just t
       _ → nothing
 
   
@@ -426,10 +428,10 @@ module elab-x (μ : trie encoded-datatype) where
       (TpVar _ X , as) →
         trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
           d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.synth-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (psₘ ++ ps) as) ≫=maybe
+            encoded-datatype.synth-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) ≫=maybe
             uncurry (flip elab-synth-term)
       _ → nothing
-  elab-synth-term Γ (Mu' pi t Tₘ? pi' ms pi'') =
+  elab-synth-term Γ (Mu' pi ot t Tₘ? pi' ms pi'') =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
@@ -437,7 +439,7 @@ module elab-x (μ : trie encoded-datatype) where
             qas = maybe-else' (trie-lookup (ctxt-get-qualif Γ) ("/" ^ X)) [] snd in
         trie-lookup μ X' ≫=maybe λ where
           d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.synth-mu d Γ X nothing t Tₘ? ms (qas ++ ttys-to-args-for-params (psₘ ++ ps) as) ≫=maybe
+            encoded-datatype.synth-mu d Γ X nothing t Tₘ? ms (qas ++ ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) ≫=maybe
             uncurry (flip elab-synth-term)
       _ → nothing
   
@@ -527,9 +529,9 @@ module elab-x (μ : trie encoded-datatype) where
     elab-pure-term Γ t ≫=maybe λ t →
     elab-pure-term Γ (subst Γ t x t')
   elab-pure-term Γ (Mu  pi pi' x t Tₘ? pi'' ms pi''') =
-    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ psₘ ns (just x) t ms ≫=maybe elab-pure-term Γ
-  elab-pure-term Γ (Mu' pi t Tₘ? pi'' ms pi''') =
-    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ psₘ ns nothing  t ms ≫=maybe elab-pure-term Γ
+    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ (psₘ ++ ps) ns (just x) t ms ≫=maybe elab-pure-term Γ
+  elab-pure-term Γ (Mu' pi ot t Tₘ? pi'' ms pi''') =
+    {-maybe-else (just $ mvar $ trie-to-string ", " (λ {(mk-encoded-datatype (Data X ps is cs) ns μ μᵤ) → "Data " ^ X ^ params-to-string'' ps ^ "indices: " ^ foldr (λ {(Index x atk) s → "Index " ^ x ^ " " ^ "TODO" ^ ", " ^ x}) "" is ^ "cs: " ^ 𝕃-to-string (λ {(Ctr _ x T) → "Ctr " ^ x ^ "TODO"}) ", " cs}) μ) (elab-pure-term Γ) $ -} elab-pure-term Γ t ≫=maybe λ t → trie-lookup μ elab-mu-prev-name ≫=maybe λ where (mk-encoded-datatype (Data X ps is cs) psₘ ns μ μᵤ) → μᵤ Γ (psₘ ++ ps) ns nothing  t ms ≫=maybe elab-pure-term Γ
   elab-pure-term _ _ = nothing -- should be erased
   
   elab-app-term Γ (App t me t') pt max =
@@ -708,10 +710,12 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
       x' = rename qualif-new-var Γ x - x from ρ for λ x' ρ' → x'
       -- Still need to use x (not x') so constructors work,
       -- but we need to know what it will be renamed to later for μ
-      d = defDatatype-to-datatype Γ (Datatype pi pi' x ps k dcs) in
+      d = Data x ps (kind-to-indices (add-params-to-ctxt ps Γ) k) dcs in --defDatatype-to-datatype Γ (Datatype pi pi' x ps k dcs) in
   elim-pair (datatype-encoding.mk-defs selected-encoding Γ d) λ cs' d →
   case encoded-datatype.data-def d of λ where
     (Data X ps is dcs) →
+      --just (cs' , ts , ρ , φ , μ)
+      maybe-else (just (cs' , ts , ρ , φ , μ)) just $
       elab-cmds ts ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
       let dcs = flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (subst-qualif (toplevel-state.Γ ts) ρ T)}
           μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in

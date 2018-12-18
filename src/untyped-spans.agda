@@ -58,7 +58,7 @@ untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lte
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
 untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (untyped-cases-spans cs) ≫=span λ e → spanM-add (Mu-span Γ pi pi''' ff untyped [] e)
-untyped-term-spans (Mu' pi t ot pi' cs pi'') = get-ctxt λ Γ → untyped-term-spans t ≫span untyped-cases-spans cs ≫=span λ e → spanM-add (Mu-span Γ pi pi'' ff untyped [] e)
+untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span λ e → spanM-add (Mu-span Γ pi pi'' ff untyped [] e)
 
 
 untyped-caseArgs-spans [] t = untyped-term-spans t

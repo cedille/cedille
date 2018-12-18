@@ -38,11 +38,15 @@ data ctxt-info : Set where
   -- for defining a datatype constructor
   ctr-def : defParams → type → (ctrs-length ctr-index ctr-unerased-arrows : ℕ) → ctxt-info
 
+  -- for declaring the type that proves a type is a datatype (X/Mu)
+  mu-def : defParams → var → kind → ctxt-info
+
   -- for declaring a variable to have a given type (with no definition)
   term-decl : type → ctxt-info
 
   -- for defining a variable to equal a term with a given type
-  term-def : defParams → opacity → term → type → ctxt-info
+  -- maybe term, because datatype X/Mu and X/mu have params, etc... but no def
+  term-def : defParams → opacity → maybe term → type → ctxt-info
 
   -- for untyped term definitions 
   term-udef : defParams → opacity → term → ctxt-info
@@ -51,7 +55,7 @@ data ctxt-info : Set where
   type-decl : kind → ctxt-info
 
   -- for defining a variable to equal a type with a given kind
-  type-def : defParams → opacity → type → kind → ctxt-info
+  type-def : defParams → opacity → maybe type → kind → ctxt-info
 
   -- for defining a variable to equal a kind
   kind-def : params → kind → ctxt-info

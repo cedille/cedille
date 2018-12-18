@@ -49,11 +49,11 @@ kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
 ...| nothing = []
 ...| just (ps , k) = kind-to-indices Γ $ fst $ subst-params-args Γ ps as k
 kind-to-indices Γ (Star pi) = []
-
+{-
 defDatatype-to-datatype : ctxt → defDatatype → datatype
 defDatatype-to-datatype Γ (Datatype _ _ x ps k cs) =
-  Data x ps (kind-to-indices Γ k) cs
-
+  Data x ps (kind-to-indices (add-params-to-ctxt Γ ps) k) cs
+-}
 tk-erased : tk → maybeErased → maybeErased
 tk-erased (Tkk _) me = Erased
 tk-erased (Tkt _) me = me
@@ -156,13 +156,13 @@ pattern occurs-pos = tt , ff
 pattern occurs-neg = ff , tt
 pattern occurs-all = tt , tt
 
-positivity-inc : positivity → positivity
-positivity-dec : positivity → positivity
+--positivity-inc : positivity → positivity
+--positivity-dec : positivity → positivity
 positivity-neg : positivity → positivity
 positivity-add : positivity → positivity → positivity
 
-positivity-inc = map-fst λ _ → tt
-positivity-dec = map-snd λ _ → tt
+--positivity-inc = map-fst λ _ → tt
+--positivity-dec = map-snd λ _ → tt
 positivity-neg = uncurry $ flip _,_
 positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
@@ -171,12 +171,12 @@ positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 {-# TERMINATING #-}
 ctr-positive : ctxt → var → type → maybe 𝔹
-ctr-positive Γ x T = arrs+ Γ Tₕ where
+ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   
   open import conversion
 
   not-free : ∀ {ed} → ⟦ ed ⟧ → maybe 𝔹
-  not-free = maybe-map (λ _ → tt) ∘' maybe-if ∘' ~_ ∘' is-free-in check-erased x
+  not-free = maybe-map (λ _ → tt) ∘' maybe-if ∘' is-free-in check-erased x
 
   if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
   if-free t with is-free-in check-erased x t
@@ -184,8 +184,6 @@ ctr-positive Γ x T = arrs+ Γ Tₕ where
 
   hnf' : ctxt → type → type
   hnf' Γ T = hnf Γ unfold-all T tt
-  
-  Tₕ = hnf' Γ T
 
   mtt = maybe-else tt id
   mff = maybe-else ff id

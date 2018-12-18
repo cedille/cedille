@@ -78,7 +78,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (So
   check-term t (just tp') ≫span 
   check-erased-margs t (just tp') ≫span 
   get-ctxt (λ Γ →
-    let Γ' = ctxt-term-def pi globalScope op x t tp' Γ in
+    let Γ' = ctxt-term-def pi globalScope op x (just t) tp' Γ in
       spanM-add (DefTerm-span Γ' pi x checking (just tp) t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
@@ -87,7 +87,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (So
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (SomeType tp) t) pi') ff {- skip checking -} =
   let tp' = qualif-type Γ tp in
     check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope op x t tp' Γ)))
+      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope op x (just t) tp' Γ)))
 
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x NoType t) pi') _ = 
@@ -97,7 +97,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x NoT
   get-ctxt (λ Γ → 
       let Γ' = maybe-else
                  (ctxt-term-udef pi globalScope op x t Γ)
-                 (λ tp → ctxt-term-def pi globalScope op x t tp Γ) mtp in
+                 (λ tp → ctxt-term-def pi globalScope op x (just t) tp Γ) mtp in
       spanM-add (DefTerm-span Γ' pi x synthesizing mtp t pi' []) ≫span
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanM-add (uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
@@ -109,7 +109,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
     let k' = qualif-kind Γ k in
     check-type tp (just k') ≫span 
     get-ctxt (λ Γ → 
-      let Γ' = ctxt-type-def pi globalScope op x tp k' Γ in
+      let Γ' = ctxt-type-def pi globalScope op x (just tp) k' Γ in
         spanM-add (DefType-span Γ' pi x checking (just k) tp pi' []) ≫span
         check-redefined pi x (mk-toplevel-state ip fns is Γ)
           (spanM-add (TpVar-span Γ' pi x checking [] nothing) ≫span
@@ -119,7 +119,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
 process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k tp) pi') ff {- skip checking -} = 
   let k' = qualif-kind Γ k in
     check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope op x tp k' Γ)))
+      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope op x (just tp) k' Γ)))
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
@@ -156,9 +156,9 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
       ps = qualif-params old-Γ ps
       mps = ctxt-get-current-params Γ ++ ps
       k' = qualif-kind Γ k
-      kᵢ = kind-to-indices Γ k'
-      kᵢ = indices-to-kind kᵢ $ KndTpArrow
-             (indices-to-tpapps kᵢ $ params-to-tpapps mps $ mtpvar qx) star in
+      is = kind-to-indices Γ k'
+      kᵢ = indices-to-kind is $ KndTpArrow
+             (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
      spanM-add (DefDatatype-span Γ pi pi' x ps (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) cs pi'') ≫span
@@ -170,8 +170,11 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
        (ctxt-datatype-def pi' x (just ps) kᵢ k'
          (flip map cs λ {(Ctr pi x' T) → Ctr posinfo-gen (mn # x')
            (subst Γ (params-to-tpapps mps (mtpvar qx))
-             (qualif-var Γ x) (qualif-type Γ T))})
-         (ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms)) ≫span
+             (qualif-var Γ x) (qualif-type Γ T))}) $
+         ctxt-mu-def pi' mps x (KndArrow (indices-to-kind is k) star) $
+         ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
+         --ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing (KndArrow (abs-expand-kind mps k) star) $
+         ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms) ≫span
      get-ctxt λ Γ →
      spanMr (record s {Γ = Γ}))
 
@@ -256,8 +259,7 @@ process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
     check-redefined pi x (record s {Γ = Γ})
       (set-ctxt (ctxt-ctr-def pi x T ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ) ≫span get-ctxt λ Γ →
        spanM-add (Var-span Γ pi x checking
-         [ summary-data x (ctxt-type-def piₓ globalScope OpacTrans
-           (unqual-local X) (mall "X" (Tkk star) (mtpvar "X")) star Γ) (abs-expand-type ps T) ] neg-ret-err) ≫span
+         [ summary-data x (ctxt-type-def piₓ globalScope OpacTrans (unqual-local X) nothing star Γ) (abs-expand-type ps T) ] neg-ret-err) ≫span
        spanMr (record s {Γ = Γ}))
 
 process-params s (pi , ps) need-to-check =

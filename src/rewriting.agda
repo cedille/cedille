@@ -111,8 +111,8 @@ rewrite-termh (Mu  pi₁ pi₂ x t NoType pi₃ ms pi₄) =
   foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
     (rewriteR []) ms ≫rewrite
   rewriteR pi₄
-rewrite-termh (Mu' pi₁ t NoType pi₂ ms pi₃) =
-  rewriteR (Mu' pi₁) ≫rewrite
+rewrite-termh (Mu' pi₁ NoTerm t NoType pi₂ ms pi₃) =
+  rewriteR (Mu' pi₁ NoTerm) ≫rewrite
   rewrite-terma t ≫rewrite
   rewriteR NoType ≫rewrite
   rewriteR pi₂ ≫rewrite

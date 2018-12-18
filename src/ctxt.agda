@@ -102,20 +102,20 @@ ctxt-term-decl-no-qualif p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) 
   where v' = p % v
 
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  let v' =  p % v in
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
-  (trie-insert i v' ((term-decl (qualif-type Γ t)) , fn , p))
+  (trie-insert i v' (term-decl (qualif-type Γ T) , fn , p))
   symb-occs
-  where v' = p % v
 
 ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
 ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs) =
+  let v' = p % v in
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
   (trie-insert i v' (type-decl (qualif-kind Γ k) , fn , p))
   symb-occs
-  where v' = p % v
 
 ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
 ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
@@ -178,6 +178,7 @@ ctxt-lookup-type-var Γ v with qual-lookup Γ v
 ... | just (as , type-decl k , _) = just k
 ... | just (as , type-def mps _ T k , _) = just (maybe-inst-kind Γ mps as k)
 ... | just (as , datatype-def ps kᵢ k cs , _) = just (maybe-inst-kind Γ ps as k)
+... | just (as , mu-def mps x k , _) = just (maybe-inst-kind Γ mps as k)
 ... | _ = nothing
 
 ctxt-lookup-term-var : ctxt → var → maybe type
@@ -216,13 +217,13 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
-... | just (term-def mps OpacTrans t _ , _) = just $ maybe-else id lam-expand-term mps t
+... | just (term-def mps OpacTrans (just t) _ , _) = just $ maybe-else id lam-expand-term mps t
 ... | just (term-udef mps OpacTrans t , _) = just $ maybe-else id lam-expand-term mps t
 ... | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def Γ v with env-lookup Γ v
-... | just (type-def mps OpacTrans T _ , _) = just $ maybe-else id lam-expand-type mps T
+... | just (type-def mps OpacTrans (just T) _ , _) = just $ maybe-else id lam-expand-type mps T
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
@@ -240,6 +241,15 @@ ctxt-lookup-datatype Γ x as with env-lookup Γ x
 ... | just (datatype-def ps kᵢ k cs , _) =
   just (ps , maybe-inst-kind Γ ps as kᵢ , maybe-inst-kind Γ ps as k , maybe-inst-ctrs Γ ps as cs)
 ... | _ = nothing
+
+ctxt-lookup-mu : ctxt → var → args → maybe (var × defParams × kind × kind × ctrs)
+ctxt-lookup-mu Γ x as = case env-lookup Γ x of λ where
+  (just (mu-def _ X _ , _)) → case env-lookup Γ X of λ where
+    (just (datatype-def ps kᵢ k cs , _)) →
+      just (X , ps , maybe-inst-kind Γ ps as kᵢ ,
+        maybe-inst-kind Γ ps as k , maybe-inst-ctrs Γ ps as cs)
+    _ → nothing
+  _ → nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
 ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs) symbol with trie-lookup symb-occs symbol
@@ -261,6 +271,7 @@ ctxt-lookup-type-loc Γ x = qual-lookup Γ x ≫=maybe λ where
   (_ , type-def _ _ _ _ , loc) → just loc
   (_ , datatype-def _ _ _ _ , loc) → just loc
   (_ , var-decl , loc) → just loc
+  (_ , mu-def _ _ _ , loc) → just loc
   _ → nothing
 
 ----------------------------------------------------------------------
@@ -279,9 +290,9 @@ ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences) x
     ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences
 
     clarified : var → ctxt-info → location → maybe (sym-info × ctxt)
-    clarified v ci@(term-def ps _ t T) l = just ((ci , l) , (ctxt' v (term-def ps OpacTrans t T) l))
+    clarified v ci@(term-def ps _ (just t) T) l = just ((ci , l) , (ctxt' v (term-def ps OpacTrans (just t) T) l))
     clarified v ci@(term-udef ps _ t) l = just ((ci , l) , (ctxt' v (term-udef ps OpacTrans t) l))
-    clarified v ci@(type-def ps _ T k) l = just ((ci , l) , (ctxt' v (type-def ps OpacTrans T k) l))
+    clarified v ci@(type-def ps _ (just T) k) l = just ((ci , l) , (ctxt' v (type-def ps OpacTrans (just T) k) l))
     clarified _ _ _ = nothing
 
 
