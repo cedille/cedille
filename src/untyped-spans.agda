@@ -25,9 +25,9 @@ untyped-lterms-spans : lterms → spanM ⊤
 untyped-optClass-spans : optClass → spanM ⊤
 untyped-defTermOrType-spans : posinfo → (ctxt → posinfo → var → (atk : tk) → (if tk-is-type atk then term else type) → span) → defTermOrType → spanM ⊤ → spanM ⊤
 untyped-var-spans : posinfo → var → (ctxt → posinfo → var → checking-mode → 𝕃 tagged-val → err-m → span) → spanM ⊤ → spanM ⊤
-untyped-caseArgs-spans : caseArgs → (body : term) → spanM ⊤
-untyped-case-spans : case → (ℕ → ℕ → err-m) → spanM (ℕ → ℕ → err-m)
-untyped-cases-spans : cases → spanM err-m
+untyped-caseArgs-spans : caseArgs → (body : term) → spanM (𝕃 tagged-val)
+untyped-case-spans : case → (ℕ → ℕ → err-m) → spanM ((ℕ → ℕ → err-m) × 𝕃 tagged-val)
+untyped-cases-spans : cases → spanM (err-m × 𝕃 tagged-val)
 
 untyped-var-spans pi x f m = get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (get-ctxt λ Γ → spanM-add (f Γ pi x untyped [] nothing) ≫span m)
 
@@ -57,11 +57,11 @@ untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ �
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (untyped-cases-spans cs) ≫=span λ e → spanM-add (Mu-span Γ pi pi''' ff untyped [] e)
-untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span λ e → spanM-add (Mu-span Γ pi pi'' ff untyped [] e)
+untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi''' ff untyped ts e)
+untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi'' ff untyped ts e)
 
 
-untyped-caseArgs-spans [] t = untyped-term-spans t
+untyped-caseArgs-spans [] t = untyped-term-spans t ≫span spanMr []
 untyped-caseArgs-spans (c :: cs) t with caseArg-to-var c
 ...| pi , x , me , ll =
   let e? = maybe-if (me && is-free-in skip-erased x (caseArgs-to-lams cs t)) ≫maybe
@@ -69,7 +69,8 @@ untyped-caseArgs-spans (c :: cs) t with caseArg-to-var c
       f = if ll then Var-span else TpVar-span in
   get-ctxt λ Γ →
   spanM-add (f (ctxt-var-decl-loc pi x Γ) pi x untyped [] e?) ≫span
-  with-ctxt (ctxt-var-decl x Γ) (untyped-caseArgs-spans cs t)
+  with-ctxt (ctxt-var-decl x Γ) (untyped-caseArgs-spans cs t) ≫=span λ ts →
+  spanMr (binder-data (ctxt-var-decl x Γ) pi x (if ll then Tkt (TpHole pi) else Tkk star) me nothing (term-start-pos t) (term-end-pos t) :: ts)
 
 untyped-case-spans (Case pi x cas t) fₑ =
   get-ctxt λ Γ →
@@ -80,16 +81,18 @@ untyped-case-spans (Case pi x cas t) fₑ =
       eᵢ = just $ "This constructor overlaps with " ^ x' in
   case qual-lookup Γ x of λ where
     (just (as , ctr-def ps? T Cₗ cᵢ cₐ , _ , _)) →
-      spanM-add (Var-span Γ pi x untyped [] $ fₑ Cₗ cᵢ) ≫span m ≫span spanMr λ Cₗ' cᵢ' →
-      if Cₗ =ℕ Cₗ' then if cᵢ =ℕ cᵢ' then eᵢ else nothing else eₗ
+      spanM-add (Var-span Γ pi x untyped [] $ fₑ Cₗ cᵢ) ≫span m ≫=span λ s →
+      spanMr ((λ Cₗ' cᵢ' → if Cₗ =ℕ Cₗ' then if cᵢ =ℕ cᵢ' then eᵢ else nothing else eₗ) , s)
     _ →
-      spanM-add (Var-span Γ pi x untyped [] eᵤ) ≫span m ≫span spanMr λ _ _ → nothing
+      spanM-add (Var-span Γ pi x untyped [] eᵤ) ≫span m ≫=span λ s →
+      spanMr ((λ _ _ → nothing) , s)
 
 untyped-cases-spans ms =
   let eₗ = just $ "Constructor's datatype should have " ^ ℕ-to-string (length ms) ^
              " constructor" ^ (if 1 =ℕ length ms then "" else "s") in
-  (λ c → foldr c (λ _ → spanMr nothing) ms λ Cₗ cᵢ → if Cₗ =ℕ length ms then nothing else eₗ)
-  λ c m fₑ → untyped-case-spans c fₑ ≫=span m
+  (λ c → foldr c (λ _ → spanMr (nothing , [])) ms λ Cₗ cᵢ → if Cₗ =ℕ length ms then nothing else eₗ)
+  λ c m fₑ → untyped-case-spans c fₑ ≫=span uncurry λ e s →
+               m e ≫=span (spanMr ∘ map-snd (s ++_))
 
 untyped-type-spans (Abs pi me pi' x atk T) = untyped-tk-spans atk ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (get-ctxt λ Γ → spanM-add (TpQuant-span Γ (~ me) pi pi' x atk T untyped [] nothing) ≫span untyped-type-spans T)
 untyped-type-spans (Iota pi pi' x T T') = untyped-type-spans T ≫span untyped-var-spans pi' x TpVar-span (get-ctxt λ Γ → spanM-add (Iota-span Γ pi pi' x T' untyped [] nothing) ≫span untyped-type-spans T')

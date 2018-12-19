@@ -171,8 +171,8 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          (flip map cs λ {(Ctr pi x' T) → Ctr posinfo-gen (mn # x')
            (subst Γ (params-to-tpapps mps (mtpvar qx))
              (qualif-var Γ x) (qualif-type Γ T))}) $
-         ctxt-mu-def pi' mps x (KndArrow (indices-to-kind is k) star) $
-         ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
+         --ctxt-mu-def pi' mps x (KndArrow (indices-to-kind is k) star) $
+         --ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
          --ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing (KndArrow (abs-expand-kind mps k) star) $
          ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms) ≫span
      get-ctxt λ Γ →

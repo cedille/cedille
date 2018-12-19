@@ -1984,7 +1984,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                      spanMr (Γ'' ,
                               (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
                                binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
-                               binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
+                               --binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
                                binder-data Γ'' pi' xₜₒ (Tkt Tₜₒ) NotErased (just id-term) pi'' pi''' :: [])) in
           -- TODO: Check if X' or xₘᵤ occur free in any of the cases
           Γ' ≫=spanc λ Γ' bds → with-ctxt Γ'
