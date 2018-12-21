@@ -138,11 +138,13 @@ module elab-x (μ : trie encoded-datatype) where
         if conv-term Γ t1 tt-term && conv-term Γ t2 ff-term
           then just (Delta pi-gen (SomeType T) t)
           else
+            elab-pure-term Γ t1 ≫=maybe λ t1 →
+            elab-pure-term Γ t2 ≫=maybe λ t2 →
             delta-contra (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt) ≫=maybe λ f →
             let f = substh-term {TERM} Γ ρ empty-trie f in
             elab-pure-term Γ (erase-term t) ≫=maybe λ pt →
             just (Delta pi-gen (SomeType T)
-              (mrho t z (mtpeq (mapp f t1) (mapp f (mvar z))) (mbeta tt-term pt)))
+              (mrho (Sigma pi-gen t) z (mtpeq (mapp f t1) (mapp f (mvar z))) (mbeta tt-term pt)))
       t T → nothing
   elab-check-term Γ (Epsilon pi lr mm t) T =
     elab-hnf-type Γ T ff ≫=maybe λ where
@@ -305,6 +307,7 @@ module elab-x (μ : trie encoded-datatype) where
     (SomeType T') →
       let id = fresh-id-term Γ in
       elab-pure-type Γ (erase-type T') ≫=maybe λ T'' →
+      elab-type Γ T' ≫=maybe uncurry λ T' _ →
       elab-check-term Γ t T' ≫=maybe λ t →
       just (mrho (mbeta id id) "_" T'' t , T')
   elab-synth-term Γ (Delta pi mT t) = (case mT of λ where
