@@ -446,10 +446,10 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
   get-ctxt λ Γ →
   spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x synthesizing [] nothing) ≫span
   check-term t' nothing ≫=span λ mtp →
-  untyped-optGuide-spans (Guide pi' x tp) ≫span
+  untyped-optGuide-spans (Guide pi' x tp) ≫=span λ tvs →
   check-term t nothing ≫=span λ mtp' → case maybe-hnf Γ mtp' of λ where
     (just (TpEq _ t1 t2 _)) → maybe-else
-      (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [] nothing) ≫span spanMr nothing)
+      (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) tvs nothing) ≫span spanMr nothing)
       (λ tp' →
         let Γ' = ctxt-var-decl-loc pi' x Γ
             tp = qualif-type Γ' tp
@@ -457,16 +457,16 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
             qt = qualif-term Γ t
             tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x qt tt tp' tp) in
         if conv-type Γ tp'' tp'
-          then (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [ type-data Γ tp''' ] nothing) ≫span spanMr (just tp'''))
-          else (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp' :: [ expected-type-subterm Γ tp'' ])
+          then (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp''' :: tvs) nothing) ≫span spanMr (just tp'''))
+          else (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp' :: expected-type-subterm Γ tp'' :: tvs)
             (just "The expected type of the subterm does not match the synthesized type")) ≫span spanMr nothing)) mtp
-    (just _) → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) []
+    (just _) → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) tvs
                  (just "We could not synthesize an equation from the first subterm in a ρ-term.")) ≫span spanMr nothing
-    nothing → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) [] nothing) ≫span check-term t' nothing
+    nothing → spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) tvs nothing) ≫span check-term t' nothing
 
 check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
   get-ctxt λ Γ →
-  untyped-optGuide-spans (Guide pi' x tp) ≫span
+  untyped-optGuide-spans (Guide pi' x tp) ≫=span λ tvs →
   check-term t nothing ≫=span λ mtp → case maybe-hnf Γ mtp of λ where
     (just (TpEq _ t1 t2 _)) →
       let Γ' = ctxt-var-decl-loc pi' x Γ
@@ -475,12 +475,12 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
           tp'' = subst Γ' t1 x tp
           tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x qt tt tp' tp)
           err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
-      spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: [ expected-type Γ tp' ]) err) ≫span
+      spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: expected-type Γ tp' :: tvs) err) ≫span
       spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x checking [] nothing) ≫span
       check-term t' (just tp''')
-    (just _) → spanM-add (Rho-span pi t t' checking op (inj₂ x) []
+    (just _) → spanM-add (Rho-span pi t t' checking op (inj₂ x) tvs
                  (just "We could not synthesize an equation from the first subterm in a ρ-term."))
-    nothing → spanM-add (Rho-span pi t t' checking op (inj₂ x) [] nothing) ≫span check-term t' (just tp)
+    nothing → spanM-add (Rho-span pi t t' checking op (inj₂ x) tvs nothing) ≫span check-term t' (just tp)
 
 check-termi (Rho pi op on t NoGuide t') (just tp) =
   get-ctxt λ Γ → check-term t nothing ≫=span λ mtp →
@@ -1853,7 +1853,7 @@ check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
         spanM-add (Var-span Γ pi x synthesizing ([ type-data Γ T ]) e) ≫span
         check-term t (just Tₘ') ≫span
         set-ctxt Γ ≫span
-        spanMr (trie-remove csₓ x' , xs))
+        spanMr (trie-remove csₓ x' , reverse xs))
   where
   free-in-term : var → err-m
   free-in-term x = maybe-if (is-free-in skip-erased x t) ≫maybe just "Erased argument occurs free in the body of the term"

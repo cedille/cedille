@@ -1000,4 +1000,22 @@ optClass-map : optClass → (tk → tk) → optClass
 optClass-map NoClass f = NoClass
 optClass-map (SomeClass atk) f = SomeClass $ f atk
 
+tk-elim : ∀ {ℓ} {X : Set ℓ} → tk → (type → X) → (kind → X) → X
+tk-elim (Tkt T) tp kd = tp T
+tk-elim (Tkk k) tp kd = kd k
 
+optTerm-elim : ∀ {ℓ} {X : Set ℓ} → optTerm → X → (term → X) → X
+optTerm-elim NoTerm nt st = nt
+optTerm-elim (SomeTerm t _) nt st = st t
+
+optType-elim : ∀ {ℓ} {X : Set ℓ} → optType → X → (type → X) → X
+optType-elim NoType nT sT = nT
+optType-elim (SomeType T) nT sT = sT T
+
+optGuide-elim : ∀ {a} {X : Set a} → optGuide → X → (var → type → X) → X
+optGuide-elim NoGuide ng sg = ng
+optGuide-elim (Guide pi x T) ng sg = sg x T
+
+optClass-elim : ∀ {ℓ} {X : Set ℓ} → optClass → X → (tk → X) → X
+optClass-elim NoClass nc sc = nc
+optClass-elim (SomeClass atk) nc sc = sc atk

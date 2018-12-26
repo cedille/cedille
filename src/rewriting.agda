@@ -17,7 +17,7 @@ private
   mk-phi : var → (eq t t' : term) → term
   mk-phi x eq t t' =
     Phi posinfo-gen
-      (Rho posinfo-gen RhoPlain NoNums eq
+      (Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq)
         (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
         (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
       t t' posinfo-gen 
@@ -204,7 +204,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
     T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head-no-lift k'' tt
     T k → TpApp T T' , k
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
-  let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x T') t else t in
+  let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq) (Guide posinfo-gen x T') t else t in
   flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' (Tkt T') k) →
       let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-no-lift (subst Γ t3 x' k) tt

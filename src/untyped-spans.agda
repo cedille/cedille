@@ -20,7 +20,7 @@ untyped-tk-spans : tk → spanM ⊤
 untyped-liftingType-spans : liftingType → spanM ⊤
 untyped-optTerm-spans : optTerm → spanM (posinfo → posinfo)
 untyped-optType-spans : optType → spanM ⊤
-untyped-optGuide-spans : optGuide → spanM ⊤
+untyped-optGuide-spans : optGuide → spanM (𝕃 tagged-val)
 untyped-lterms-spans : lterms → spanM ⊤
 untyped-optClass-spans : optClass → spanM ⊤
 untyped-defTermOrType-spans : posinfo → (ctxt → posinfo → var → (atk : tk) → (if tk-is-type atk then term else type) → span) → defTermOrType → spanM ⊤ → spanM ⊤
@@ -38,7 +38,7 @@ untyped-term-spans (Chi pi mT t) = untyped-optType-spans mT ≫span untyped-term
 untyped-term-spans (Delta pi mT t) = untyped-optType-spans mT ≫span untyped-term-spans t ≫span get-ctxt λ Γ → spanM-add (Delta-span Γ pi mT t untyped [] nothing)
 untyped-term-spans (Epsilon pi lr mm t) = untyped-term-spans t ≫span spanM-add (Epsilon-span pi lr mm t untyped [] nothing)
 untyped-term-spans (Hole pi) = get-ctxt λ Γ → spanM-add (hole-span Γ pi nothing [])
-untyped-term-spans (IotaPair pi t t' og pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫span spanM-add (IotaPair-span pi pi' untyped [] nothing)
+untyped-term-spans (IotaPair pi t t' og pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫=span λ tvs → spanM-add (IotaPair-span pi pi' untyped tvs nothing)
 untyped-term-spans (IotaProj t n pi) = untyped-term-spans t ≫span spanM-add (IotaProj-span t pi untyped [] nothing)
 untyped-term-spans (Lam pi me pi' x oc t) =
   untyped-optClass-spans oc
@@ -52,12 +52,12 @@ untyped-term-spans (Let pi d t) =
 untyped-term-spans (Open pi pi' x t) = get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [] (maybe-not (ctxt-lookup-term-loc Γ x) ≫maybe just "This term variable is not currently in scope")) ≫span untyped-term-spans t
 untyped-term-spans (Parens pi t pi') = untyped-term-spans t
 untyped-term-spans (Phi pi t t' t'' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-term-spans t'' ≫span spanM-add (Phi-span pi pi' untyped [] nothing)
-untyped-term-spans (Rho pi op on t og t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span spanM-add (mk-span "Rho" pi (term-end-pos t') (ll-data-term :: [ checking-data untyped ]) nothing)
+untyped-term-spans (Rho pi op on t og t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫=span λ tvs → spanM-add (mk-span "Rho" pi (term-end-pos t') (ll-data-term :: checking-data untyped :: tvs) nothing)
 untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ → spanM-add (mk-span "Sigma" pi (term-end-pos t) (ll-data-term :: [ checking-data untyped ]) nothing)
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi''' ff untyped ts e)
+untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x $ ctxt-type-decl pi' (mu-name-type x) star $ ctxt-term-udef pi' localScope OpacTrans (mu-name-cast x) id-term Γ) (get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [] nothing) ≫span untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi''' ff untyped ts e)
 untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi'' ff untyped ts e)
 
 
@@ -130,8 +130,8 @@ untyped-optTerm-spans (SomeTerm t pi) = untyped-term-spans t ≫span spanMr λ _
 untyped-optType-spans NoType = spanMok
 untyped-optType-spans (SomeType T) = untyped-type-spans T
 
-untyped-optGuide-spans NoGuide = spanMok
-untyped-optGuide-spans (Guide pi x T) = untyped-var-spans pi x Var-span (untyped-type-spans T)
+untyped-optGuide-spans NoGuide = spanMr []
+untyped-optGuide-spans (Guide pi x T) = untyped-var-spans pi x Var-span (untyped-type-spans T) ≫span get-ctxt λ Γ → spanMr [ binder-data Γ pi x (Tkt $ TpHole pi) NotErased nothing (type-start-pos T) (type-end-pos T) ]
 
 untyped-lterms-spans [] = spanMok
 untyped-lterms-spans ((Lterm me t) :: ls) = untyped-term-spans t ≫span untyped-lterms-spans ls
@@ -142,14 +142,17 @@ untyped-optClass-spans (SomeClass atk) = untyped-tk-spans atk
 untyped-defTermOrType-spans pi s (DefTerm pi' x NoType t) m =
   untyped-term-spans t ≫span
   get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span m
+  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span
+                 spanM-add (Var-span Γ pi' x untyped [] nothing) ≫span m
 untyped-defTermOrType-spans pi s (DefTerm pi' x (SomeType tp) t) m =
   untyped-type-spans tp ≫span
   untyped-term-spans t ≫span
   get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span m
+  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span
+                 spanM-add (Var-span Γ pi' x untyped [] nothing) ≫span m
 untyped-defTermOrType-spans pi s (DefType pi' x k tp) m =
   untyped-kind-spans k ≫span
   untyped-type-spans tp ≫span
   get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkk k) tp) ≫span m
+  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkk k) tp) ≫span
+                 spanM-add (TpVar-span Γ pi' x untyped [] nothing) ≫span m

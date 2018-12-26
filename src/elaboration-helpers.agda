@@ -758,7 +758,7 @@ mendler-elab-mu-pure Γ ps (mk-encoded-datatype-names _ _ _ _ _ fixpoint-inₓ f
   let ps-tm = λ t → foldr (const $ flip mapp id-term) t $ erase-params ps
       fix-ind = hnf Γ unfold-all (ps-tm $ mvar fixpoint-indₓ) tt
       fix-out = hnf Γ unfold-all (ps-tm $ mvar fixpoint-outₓ) tt
-      μ-tm = λ x msf → mapp (mapp fix-ind t) $ mlam x $ rename "x" from ctxt-var-decl x Γ for λ fₓ → mlam fₓ $ msf $ mapp fix-out $ mvar fₓ
+      μ-tm = λ x msf → mapp (mapp fix-ind t) $ mlam x $ rename "x" from ctxt-var-decl x Γ for λ fₓ → mlam fₓ $ msf $ mvar fₓ -- mapp fix-out $ mvar fₓ
       μ'-tm = λ msf → msf $ mapp fix-out t
       set-nth = λ l n a → foldr {B = maybe ℕ → 𝕃 (maybe term)} (λ {a' t nothing → a' :: t nothing; a' t (just zero) → a :: t nothing; a' t (just (suc n)) → a' :: t (just n)}) (λ _ → []) l (just n) in
   foldl (λ {(Case _ x cas t) msf l → env-lookup Γ ("//" ^ x) ≫=maybe λ {(ctr-def ps? _ n i a , _ , _) → msf $ set-nth l i (just $ caseArgs-to-lams cas t); _ → nothing}}) (λ l → foldr (λ t? msf → msf ≫=maybe λ msf → t? ≫=maybe λ t → just λ t' → (msf (mapp t' t))) (just λ t → t) l) ms (foldr (λ _ → nothing ::_) [] ms) ≫=maybe (just ∘ maybe-else' x? μ'-tm μ-tm)
@@ -790,6 +790,7 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
       as-ttys = map λ {(TermArg _ t) → tterm t; (TypeArg T) → ttype T}
       --app-psₘ = recompose-apps asₘ
       app-psₜ = recompose-apps asₜ
+      app-is = recompose-apps $ args-set-erased Erased asᵢ
       fmap = recompose-apps asₜ $ mvar data-fmapₓ
       ind = recompose-apps asₜₑ $ mvar data-functor-indₓ
       ftp = recompose-tpapps (as-ttys asₜ) $ mtpvar data-functorₓ
@@ -802,18 +803,17 @@ mendler-elab-mu Γ (Data X psₚ is cs) (mk-encoded-datatype-names data-functor�
         nothing (just (term-udef _ _ out , zₓ , _)) →
           mapp (recompose-apps asᵢ out) tₛ ,
           just (mvar zₓ) --env-lookup Γ zₓ ≫=maybe λ {(term-udef _ _ c , _ ) → just c; _ → nothing}
-        nothing _ → mapp (indices-to-apps is $
-          mappe (AppTp (app-psₜ $ mvar fixpoint-outₓ) ftp) fmap) tₛ , nothing in
+        nothing _ → mapp (app-is $ mappe (AppTp (app-psₜ $ mvar fixpoint-outₓ) ftp) fmap) tₛ , nothing in
   maybe-else' x?
     -- μ'
      (just $
      elim-pair (out t) λ out Xₛ? →
      let Tₛ = maybe-else' Xₛ? ptp (λ _ → mtpvar Xₒ)
-         fₛ = maybe-else' Xₛ? (indices-to-lams is $ Lam pi-gen NotErased pi-gen xₓ (SomeClass $ Tkt $ TpApp ftp ptp) $ mvar xₓ) id in
-     mappe (mappe (msf $ AppTp (mapp (indices-to-apps is $ AppTp ind Tₛ) out) $
-             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp Tₛ) $ mall yₓ (Tkt $ indices-to-tpapps is ptp) $ mall eₓ (Tkt $ mtpeq (mapp (erase $ app-psₜ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₜ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (indices-to-apps is fₛ) $ mvar xₓ) (mvar yₓ) pi-gen))
-             (maybe-else' Xₛ? id (mapp ∘ indices-to-apps is) t))
-         (mapp (indices-to-apps is $ mappe (AppTp (app-psₜ $ mvar fixpoint-lambekₓ) ftp) fmap) $ (maybe-else' Xₛ? id (mapp ∘ indices-to-apps is) t))
+         fₛ = maybe-else' Xₛ? (indices-to-lams is $ Lam pi-gen NotErased pi-gen xₓ (SomeClass $ Tkt $ indices-to-tpapps is $ TpApp ftp ptp) $ mvar xₓ) id in
+     mappe (mappe (msf $ AppTp (mapp ({-indices-to-apps is-} app-is $ AppTp ind Tₛ) out) $
+             indices-to-tplams is $ TpLambda pi-gen pi-gen xₓ (Tkt $ indices-to-tpapps is $ TpApp ftp Tₛ) $ mall yₓ (Tkt $ indices-to-tpapps is ptp) $ mall eₓ (Tkt $ mtpeq (mapp (erase $ app-psₜ $ mvar fixpoint-inₓ) $ mvar xₓ) $ mvar yₓ) $ TpAppt (indices-to-tpapps is Tₘ) (Phi pi-gen (mvar eₓ) (mapp (mappe (AppTp (app-psₜ $ mvar fixpoint-inₓ) ftp) fmap) $ mapp (app-is fₛ) $ mvar xₓ) (mvar yₓ) pi-gen))
+             (maybe-else' Xₛ? id (mapp ∘ app-is) t))
+         (mapp (app-is $ mappe (AppTp (app-psₜ $ mvar fixpoint-lambekₓ) ftp) fmap) $ (maybe-else' Xₛ? id (mapp ∘ app-is) t))
        , Γ)
     
     -- μ x
