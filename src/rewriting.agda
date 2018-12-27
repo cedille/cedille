@@ -98,10 +98,12 @@ rewrite-termh (Lam pi NotErased pi' y NoClass t) =
   rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
   rewrite-abs y y' rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi x)
-rewrite-termh (Let pi₁ (DefTerm pi₂ x NoType t) t') = -- Γ = rewrite-terma (subst Γ t x t') Γ
-  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
-  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
-  rewrite-abs x x' rewrite-terma t'
+rewrite-termh (Let pi₁ (DefTerm pi₂ x NoType t) t') Γ = rewrite-terma (subst Γ t x t') Γ
+--  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
+--  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
+--  rewrite-abs x x' rewrite-terma t'
+-- ^^^ Need to DEFINE "x" as "hnf Γ unfold-head t tt", not just declare it!
+--     We may instead simply rewrite t' after substituting t for x
 rewrite-termh (Mu  pi₁ pi₂ x t NoType pi₃ ms pi₄) =
   rewrite-rename-var-mu x λ x' →
   rewriteR (Mu pi₁ pi₂ x') ≫rewrite
@@ -187,34 +189,54 @@ rewrite-liftingType = rewriteR
 rewrite-tk (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
 rewrite-tk (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
 
+post-rewrite-binder-type : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → type → ⟦ ed ⟧
+post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ' with is-free-in check-erased x Tₓ'
+...| ff = Tₓ
+...| tt = subst (tk-decl x' (Tkt Tₓ') Γ) (Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x Tₓ') $ mvar x') x' Tₓ
+
+post-rewrite-binder-kind : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → kind → ⟦ ed ⟧
+post-rewrite-binder-kind Γ x eq tk-decl x' Tₓ kₓ' = Tₓ
+
+post-rewrite-binder-tk : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → tk → ⟦ ed ⟧
+post-rewrite-binder-tk Γ x eq tk-decl x' Tₓ (Tkt Tₓ') =
+  post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ'
+post-rewrite-binder-tk Γ x eq tk-decl x' Tₓ (Tkk kₓ') =
+  post-rewrite-binder-kind Γ x eq tk-decl x' Tₓ kₓ'
+
 post-rewriteh : ctxt → var → term → (ctxt → var → term → tk → tk) → (var → tk → ctxt → ctxt) → type → type × kind
 
 post-rewriteh Γ x eq prtk tk-decl (Abs pi b pi' x' atk T) =
-  let atk' = prtk Γ x eq atk in
-  Abs pi b pi' x' atk' (fst (post-rewriteh (tk-decl x' atk' Γ) x eq prtk tk-decl T)) , star
+  let atk = prtk Γ x eq atk
+      T = fst $ post-rewriteh (tk-decl x' atk Γ) x eq prtk tk-decl T
+      T = post-rewrite-binder-tk Γ x eq tk-decl x' T atk in
+  Abs pi b pi' x' atk T , star
 post-rewriteh Γ x eq prtk tk-decl (Iota pi pi' x' T T') =
-  let T = fst (post-rewriteh Γ x eq prtk tk-decl T) in
-  Iota pi pi' x' T (fst (post-rewriteh (tk-decl x' (Tkt T) Γ) x eq prtk tk-decl T')) , star
+  let T = fst $ post-rewriteh Γ x eq prtk tk-decl T
+      T' = fst $ post-rewriteh (tk-decl x' (Tkt T) Γ) x eq prtk tk-decl T'
+      T' = post-rewrite-binder-type Γ x eq tk-decl x' T' T in
+  Iota pi pi' x' T T' , star
 post-rewriteh Γ x eq prtk tk-decl (Lft pi pi' x' t lT) =
   Lft pi pi' x' t lT , liftingType-to-kind lT
 post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
-  flip uncurry (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
-  flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
+  elim-pair (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
+  elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head-no-lift (subst Γ T' x' k) tt
     T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head-no-lift k'' tt
     T k → TpApp T T' , k
 post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
   let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq) (Guide posinfo-gen x T') t else t in
-  flip uncurry (post-rewriteh Γ x eq prtk tk-decl T) λ where
+  elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KndPi pi pi' x' (Tkt T') k) →
       let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-no-lift (subst Γ t3 x' k) tt
     T (KndTpArrow T' k) → TpAppt T (t2 T') , hnf Γ unfold-head-no-lift k tt
     T k → TpAppt T t , k
 post-rewriteh Γ x eq prtk tk-decl (TpArrow T a T') = TpArrow (fst (post-rewriteh Γ x eq prtk tk-decl T)) a (fst (post-rewriteh Γ x eq prtk tk-decl T')) , star
 post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
-  let atk' = prtk Γ x eq atk in
-  flip uncurry (post-rewriteh (tk-decl x' atk' Γ) x eq prtk tk-decl T) λ T k →
-  TpLambda pi pi' x' atk' T , KndPi pi pi' x' atk' k
+  let atk = prtk Γ x eq atk in
+  elim-pair (post-rewriteh (tk-decl x' atk Γ) x eq prtk tk-decl T) λ T k →
+  let T = post-rewrite-binder-tk Γ x eq tk-decl x' T atk
+      k = post-rewrite-binder-tk Γ x eq tk-decl x' k atk in
+  TpLambda pi pi' x' atk T , KndPi pi pi' x' atk k
 post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt

@@ -415,14 +415,14 @@ module elab-x (μ : trie encoded-datatype) where
           rename "x" from Γ for λ x →
           let ns = fst (optNums-to-stringset on)
               Γ' = ctxt-var-decl x Γ
-              rT = fst (rewrite-type T' Γ' op ns t t₁ x 0)
-              rT' = post-rewrite Γ' x t t₂ rT in
+              rT = fst (rewrite-type T' Γ' op ns t t₂ x 0)
+              rT' = post-rewrite Γ' x t t₁ rT in
           elab-pure-type Γ' (erase-type rT) ≫=maybe λ rT →
           just (mrho t x rT t' , rT')
         (Guide pi' x T'') →
           let Γ' = ctxt-var-decl x Γ in
           elab-pure-type Γ' (erase-type T'') ≫=maybe λ T'' →
-          just (mrho t x T'' t' , post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T' T''))
+          just (mrho t x T'' t' , post-rewrite Γ' x t t₁ (rewrite-at Γ' x t tt T' T''))
       _ → nothing
   elab-synth-term Γ (Sigma pi t) =
     elab-synth-term Γ t ≫=maybe uncurry λ t T → elab-hnf-type Γ T tt ≫=maybe λ where
