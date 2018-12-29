@@ -2,6 +2,14 @@
 
 (require 'json)
 
+(defconst cedille-archive-html-template
+  (eval-when-compile
+    (let* ((path (file-name-directory (or byte-compile-dest-file (buffer-file-name))))
+           (file (concat path "cedille-mode-archive-template.html")))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (buffer-string)))))
+
 (defun cedille-archive ()
   "Archive a program to JSON and HTML"
   (interactive)
@@ -11,7 +19,7 @@
 
 (defun cedille-save-archive ()
   (let ((archive-file-name (concat (buffer-name) ".html"))
-	(text (buffer-substring-no-properties (point-min) (point-max)))
+        (text (buffer-substring-no-properties (point-min) (point-max)))
         (spans se-mode-spans))
     (with-temp-file archive-file-name
       (insert (cedille-spans-to-html spans text)))
@@ -30,20 +38,18 @@
     (data . ,(se-span-data span))))
 
 (defun cedille-spans-to-html (spans text)
-  (let* ((header (format
-		  "<script type=\"application/json\" id=\"spans\">%s</script><pre><code>"
-		  (cedille-spans-to-json spans)))
-	 (output (list header))
-	 (index 1))
+  (let* ((output nil)
+         (index 1))
     (dolist (char (string-to-list text))
       (dotimes (_ (cl-count index spans :key 'se-span-end))
-	(push "</span>" output))
+        (push "</span>" output))
       (dotimes (_ (cl-count index spans :key 'se-span-start))
-	(push "<span>" output))
+        (push "<span>" output))
       (push (string char) output)
       (incf index))
-    (push "</code></pre>" output)
-    (apply 'concat (reverse output))))
+    (format cedille-archive-html-template
+            (cedille-spans-to-json spans)
+            (apply 'concat (reverse output)))))
 
 (provide 'cedille-mode-archive)
 
