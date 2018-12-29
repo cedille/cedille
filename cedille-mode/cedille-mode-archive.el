@@ -2,13 +2,18 @@
 
 (require 'json)
 
+(defmacro cedille-archive-read-file-when-compile (filename)
+  `(eval-when-compile
+     (let ((path (file-name-directory (or byte-compile-dest-file (buffer-file-name)))))
+       (with-temp-buffer
+         (insert-file-contents (concat path ,filename))
+         (buffer-string)))))
+
 (defconst cedille-archive-html-template
-  (eval-when-compile
-    (let* ((path (file-name-directory (or byte-compile-dest-file (buffer-file-name))))
-           (file (concat path "cedille-mode-archive-template.html")))
-      (with-temp-buffer
-        (insert-file-contents file)
-        (buffer-string)))))
+  (cedille-archive-read-file-when-compile "cedille-mode-archive-template.html"))
+
+(defconst cedille-archive-javascript
+  (cedille-archive-read-file-when-compile "cedille-mode-archive.js"))
 
 (defun cedille-archive ()
   "Archive a program to JSON and HTML"
@@ -44,12 +49,13 @@
       (dotimes (_ (cl-count index spans :key 'se-span-end))
         (push "</span>" output))
       (dotimes (_ (cl-count index spans :key 'se-span-start))
-        (push "<span>" output))
+        (push "<span class=\"cedille-span\">" output))
       (push (string char) output)
       (incf index))
     (format cedille-archive-html-template
+            (apply 'concat (reverse output))
             (cedille-spans-to-json spans)
-            (apply 'concat (reverse output)))))
+            cedille-archive-javascript)))
 
 (provide 'cedille-mode-archive)
 
