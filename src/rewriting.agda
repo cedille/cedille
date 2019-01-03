@@ -98,7 +98,7 @@ rewrite-termh (Lam pi NotErased pi' y NoClass t) =
   rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
   rewrite-abs y y' rewrite-terma t
 rewrite-termh (Var pi x) = rewriteR (Var pi x)
-rewrite-termh (Let pi₁ (DefTerm pi₂ x NoType t) t') Γ = rewrite-terma (subst Γ t x t') Γ
+rewrite-termh (Let pi₁ fe (DefTerm pi₂ x NoType t) t') Γ = rewrite-terma (subst Γ t x t') Γ
 --  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
 --  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
 --  rewrite-abs x x' rewrite-terma t'

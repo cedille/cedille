@@ -151,8 +151,9 @@ hnf{TERM} Γ u (Lam _ NotErased _ x oc t) hd | (App t' NotErased (Var _ x')) | t
 hnf{TERM} Γ u (Lam _ NotErased _ x oc t) hd | (App t' NotErased (Var _ x')) | ff = 
   Lam posinfo-gen NotErased posinfo-gen x NoClass (App t' NotErased (Var posinfo-gen x'))
 hnf{TERM} Γ u (Lam _ NotErased _ x oc t) hd | t' = Lam posinfo-gen NotErased posinfo-gen x NoClass t'
-hnf{TERM} Γ u (Let _ (DefTerm _ x _ t) t') hd = hnf Γ u (subst Γ t x t') hd 
-hnf{TERM} Γ u (Let _ (DefType _ x _ _) t') hd = hnf (ctxt-var-decl x Γ) u t' hd 
+hnf{TERM} Γ u (Let _ ff (DefTerm _ x _ t) t') hd = hnf Γ u (subst Γ t x t') hd
+hnf{TERM} Γ u (Let _ tt (DefTerm _ x _ t) t') hd = hnf Γ u t' hd 
+hnf{TERM} Γ u (Let _ fe (DefType _ x _ _) t') hd = hnf (ctxt-var-decl x Γ) u t' hd 
 hnf{TERM} Γ (unfold _ _ _ _) (Var _ x) hd with ctxt-lookup-term-var-def Γ x
 hnf{TERM} Γ (unfold _ _ _ _) (Var _ x) hd | nothing = Var posinfo-gen x
 hnf{TERM} Γ (unfold ff _ _ e) (Var _ x) hd | just t = erase-if e t -- definitions should be stored in hnf

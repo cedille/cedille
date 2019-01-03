@@ -26,6 +26,7 @@ data Term =
   | TmAppTp Term Type
   | TmIota Term Term Var Type
   | TmLetTm Var Term Term
+  | TmLetTmE Var Term Term
   | TmLetTp Var Kind Type Term
   | IotaProj1 Term
   | IotaProj2 Term

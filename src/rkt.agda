@@ -49,7 +49,7 @@ rkt-from-term : term → rope
 rkt-from-term (Lam _ KeptLam _ v _ tm)
   = [[ "(lambda (" ]] ⊹⊹ [[ rkt-iden v ]] ⊹⊹ [[ ")" ]] ⊹⊹ rkt-from-term tm ⊹⊹ [[ ")" ]]
 -- TODO untested
-rkt-from-term (Let _ (DefTerm _ v _ tm-def) tm-body)
+rkt-from-term (Let _ _ (DefTerm _ v _ tm-def) tm-body)
   = [[ "(let ([" ]] ⊹⊹ [[ rkt-iden v ]] ⊹⊹ [[ " " ]] ⊹⊹ rkt-from-term tm-def ⊹⊹ [[ "]) " ]] ⊹⊹ rkt-from-term tm-body ⊹⊹ [[ ")\n" ]]
 rkt-from-term (Var _ v)
   = [[ rkt-iden v ]]

@@ -55,13 +55,13 @@ substh-term Γ ρ σ (Lam _ b _ x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     Lam posinfo-gen b posinfo-gen x' (substh-optClass Γ ρ σ oc) 
       (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
-substh-term Γ ρ σ (Let _ (DefTerm _ x m t) t') =
+substh-term Γ ρ σ (Let _ fe (DefTerm _ x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-     (Let posinfo-gen (DefTerm posinfo-gen x' (substh-optType Γ ρ σ m) (substh-term Γ ρ σ t))
+     (Let posinfo-gen fe (DefTerm posinfo-gen x' (substh-optType Γ ρ σ m) (substh-term Γ ρ σ t))
       (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t'))
-substh-term Γ ρ σ (Let _ (DefType _ x k t) t') =
+substh-term Γ ρ σ (Let _ fe (DefType _ x k t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-     (Let posinfo-gen (DefType posinfo-gen x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
+     (Let posinfo-gen fe (DefType posinfo-gen x' (substh-kind Γ ρ σ k) (substh-type Γ ρ σ t))
       (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t'))
 substh-term Γ ρ σ (Open _ _ x t) = Open posinfo-gen posinfo-gen x (substh-term Γ ρ σ t)
 substh-term Γ ρ σ (Parens _ t _) = substh-term Γ ρ σ t
