@@ -11,6 +11,7 @@ eraseTerm (TmAppTmE tm tm') = eraseTerm tm
 eraseTerm (TmAppTp tm tp) = eraseTerm tm
 eraseTerm (TmIota tm1 tm2 v tp) = eraseTerm tm1
 eraseTerm (TmLetTm v tm tm') = PureApp (PureLambda v (eraseTerm tm')) (eraseTerm tm)
+eraseTerm (TmLetTmE v tm tm') = eraseTerm tm'
 eraseTerm (TmLetTp v kd tp tm) = eraseTerm tm
 eraseTerm (IotaProj1 tm) = eraseTerm tm
 eraseTerm (IotaProj2 tm) = eraseTerm tm

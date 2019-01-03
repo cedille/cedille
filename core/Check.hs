@@ -99,6 +99,12 @@ synthTerm' c (TmLetTm v tm tm') =
   errIfCtxtBinds c v >>
   synthTerm c tm >>= \ tp ->
   synthTerm (ctxtDefTerm c v (Just (hnfeTerm c tm), Just (hnfType c tp))) tm'
+synthTerm' c (TmLetTmE v tm tm') =
+  errIfCtxtBinds c v >>
+  errIf (freeInTerm v (eraseTerm tm'))
+    ("Implicit variable occurs free in its body") >>
+  synthTerm c tm >>= \tp ->
+  synthTerm (ctxtDefTerm c v (Just (hnfeTerm c tm), Just (hnfType c tp))) tm'
 synthTerm' c (TmLetTp v kd tp tm) =
   errIfCtxtBinds c v >>
   synthType c tp >>= \ kd' ->
