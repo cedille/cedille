@@ -804,7 +804,7 @@ DefDatatype-header-span : posinfo → span
 DefDatatype-header-span pi = mk-span "Data" pi (posinfo-plus-str pi "data") [ not-for-navigation ] nothing
 
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → err-m → span
-Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
+Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (("Path" , [[ file ]] , []) :: location-data (file , first-position) :: tvs)
 
 Import-module-span : ctxt → (posinfo × var) → params → 𝕃 tagged-val → err-m → span
 Import-module-span Γ (pi , mn) ps tvs = mk-span "Imported module" pi (posinfo-plus-str pi mn) (params-data Γ ps ++ tvs)
