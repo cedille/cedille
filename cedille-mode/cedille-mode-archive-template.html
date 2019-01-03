@@ -10,6 +10,10 @@
           margin: 0;
       }
 
+      main {
+          height: 100%%;
+      }
+
       #vertical {
           display: flex;
           flex-direction: column;
@@ -20,6 +24,8 @@
           height: 0;
           flex-grow: 1;
           overflow: auto;
+          padding: 10px;
+          box-sizing: border-box;
       }
 
       #cedille-code {
@@ -32,11 +38,10 @@
           background-color: #eee8d5;
           color: #93a1a1;
           width: 100%%;
-          padding: 10px;
       }
 
-      #cedille-span {
-          transition: 0.1s linear 0.1s;
+      .cedille-span {
+          transition: 0.1s linear;
       }
 
       .cedille-pair {
