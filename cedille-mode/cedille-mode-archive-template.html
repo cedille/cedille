@@ -4,14 +4,10 @@
     <title>Cedille Archive</title>
     <meta charset="utf-8"/>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
-	  rel="stylesheet">
+          rel="stylesheet">
     <style>
       pre {
           margin: 0;
-      }
-
-      main {
-          height: 100%%;
       }
 
       #vertical {
@@ -21,51 +17,62 @@
       }
 
       #vertical #cedille-code, #vertical #cedille-data {
-          height: 0;
-          flex-grow: 1;
           overflow: auto;
-          padding: 10px;
-          box-sizing: border-box;
       }
 
       #cedille-code {
+          flex: 1 1 auto;
           background-color: #fdf6e3;
           color: #839496;
-	  font-weight: bold;
+          font-weight: bold;
+          padding: 10px;
       }
 
       #cedille-data {
-          background-color: #eee8d5;
+          flex: 0 1 auto;
+          background-color: #fdf6e3;
           color: #93a1a1;
+          border-top: #839496 1px solid;
           width: 100%%;
+          padding-bottom: 10px;
+      }
+
+      #cedille-data:empty {
+          display: none;
       }
 
       .cedille-span {
           transition: 0.1s linear;
       }
 
+      .cedille-pair:nth-child(2n+1) {
+          background-color: #eee8d5;
+      }
+
       .cedille-pair {
+          background-color: #fdf6e3;
           display: flex;
           flex-direction: row;
+          padding: 5px 10px;
       }
 
       .cedille-key {
-          flex: 0 50%%;
+          flex: 0 1 25%%;
           font-weight: bold;
       }
 
       .cedille-value {
-          flex: 0 50%%;
+          flex: 1 2 auto;
       }
 
       .highlight {
-	  color: white;
-	  background-color: #268bd2;
+          color: white;
+          background-color: #268bd2;
       }
 
       .hover-highlight:not(.highlight) {
-	  color: white;
-	  background-color: #6c71c4;
+          color: white;
+          background-color: #6c71c4;
       }
     </style>
   </head>
