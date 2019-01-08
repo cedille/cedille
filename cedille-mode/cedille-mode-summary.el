@@ -9,13 +9,14 @@
 
 (defun cedille-mode-get-summary-from-span(table span)
   "Pull the summary information from the span, and then insert it into the table"
-    (let* ((data (se-span-data span))
-            (summary (cdr (assoc 'summary data))))
+    (let* ((data (se-span-data span)))
+           ;(summary (cdr (assoc 'summary data))))
       ;(message "summary: %s" summary)
-      (when summary
-	(puthash (cedille-mode-format-summary-text summary)
-		 (cons nil (se-span-start span)) ; nil signifies location within current file 
-		 table))))
+      (loop for (key . value) in data
+            when (string= key 'summary)
+            do (puthash (cedille-mode-format-summary-text value)
+                     (cons nil (se-span-start span)) ; nil signifies location within current file 
+                     table))))
 
 (defun cedille-mode-construct-summary-table()
   "Return a hash table with summary-text as key and (filename, start pos) as value"

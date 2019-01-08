@@ -236,19 +236,35 @@ ctxt-lookup-kind-var-def-args Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v with trie-loo
 ... | just (v' , as) = ctxt-lookup-kind-var-def Γ v' ≫=maybe λ { (ps , k) → just (ps , as) }
 ... | _ = nothing
 
-ctxt-lookup-datatype : ctxt → var → args → maybe (defParams × kind × kind × ctrs)
+record ctxt-datatype-info : Set where
+  constructor mk-data-info
+  field
+    name : var
+    asₚ : args
+    asᵢ : 𝕃 tty
+    mps : defParams
+    kᵢ : kind
+    k : kind
+    cs : ctrs
+
+ctxt-lookup-datatype : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 ctxt-lookup-datatype Γ x as with env-lookup Γ x
 ... | just (datatype-def ps kᵢ k cs , _) =
-  just (ps , maybe-inst-kind Γ ps as kᵢ , maybe-inst-kind Γ ps as k , maybe-inst-ctrs Γ ps as cs)
+  let asₚ = ttys-to-args-for-params nothing (maybe-else [] id ps) as
+      asᵢ = drop (length asₚ) as in
+  just $ mk-data-info x asₚ asᵢ ps (maybe-inst-kind Γ ps asₚ kᵢ) (maybe-inst-kind Γ ps asₚ k) (maybe-inst-ctrs Γ ps asₚ cs)
 ... | _ = nothing
 
-ctxt-lookup-mu : ctxt → var → args → maybe (var × defParams × kind × kind × ctrs)
+ctxt-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 ctxt-lookup-mu Γ x as = case env-lookup Γ x of λ where
-  (just (mu-def _ X _ , _)) → case env-lookup Γ X of λ where
+  (just (mu-def _ X _ , _)) → ctxt-lookup-datatype Γ X as
+  {-case env-lookup Γ X of λ where
     (just (datatype-def ps kᵢ k cs , _)) →
-      just (X , ps , maybe-inst-kind Γ ps as kᵢ ,
-        maybe-inst-kind Γ ps as k , maybe-inst-ctrs Γ ps as cs)
-    _ → nothing
+      let asₚ = ttys-to-args-for-params nothing (maybe-else [] id ps) as
+          asᵢ = drop (length asₚ) as in
+      just (X , asₚ , asᵢ , ps , maybe-inst-kind Γ ps asₚ kᵢ ,
+        maybe-inst-kind Γ ps asₚ k , maybe-inst-ctrs Γ ps asₚ cs)
+    _ → nothing-}
   _ → nothing
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)

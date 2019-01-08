@@ -727,9 +727,9 @@ DefType-span Γ pi x checked mk tp pi' tvs =
 DefKind-span : ctxt → posinfo → var → kind → posinfo → span
 DefKind-span Γ pi x k pi' = mk-span "Kind-level definition" pi pi' (kind-data Γ k :: [ summary-data x Γ (Var pi "□") ]) nothing
 
-DefDatatype-span : ctxt → posinfo → posinfo → var → params → kind → ctrs → posinfo → span
-DefDatatype-span Γ pi pi' x ps k cs pi'' =
-  mk-span "Datatype definition" pi pi'' (binder-data Γ pi' x (Tkk k) ff nothing (kind-end-pos k) pi'' :: [ summary-data x Γ k ]) nothing
+DefDatatype-span : ctxt → posinfo → posinfo → var → params → kind → (Mu : kind) → (mu : type) → (cast : type) → ctrs → posinfo → span
+DefDatatype-span Γ pi pi' x ps k kₘᵤ Tₘᵤ Tₜₒ cs pi'' =
+  mk-span "Datatype definition" pi pi'' (binder-data Γ pi' x (Tkk k) ff nothing (kind-end-pos k) pi'' :: summary-data x Γ k :: summary-data (mu-name-Mu x) Γ kₘᵤ :: summary-data (mu-name-mu x) Γ Tₘᵤ :: [ summary-data (mu-name-cast x) Γ Tₜₒ ]) nothing
 
 {-unchecked-term-span : term → span
 unchecked-term-span t = mk-span "Unchecked term" (term-start-pos t) (term-end-pos t)

@@ -15,6 +15,7 @@ open import constants
 open import conversion
 open import ctxt
 open import is-free
+open import rename
 open import spans options {mF}
 open import subst
 open import syntax-util
@@ -161,20 +162,48 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
-     spanM-add (DefDatatype-span Γ pi pi' x ps (abs-expand-kind (qualif-params Γ ps) (qualif-kind Γ k)) cs pi'') ≫span
      spanM-add (TpVar-span Γ pi' x checking
        (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs tt ≫span
-     get-ctxt λ Γ → set-ctxt
+     get-ctxt λ Γ →
+     let fₓ = fresh-var "X" (ctxt-binds-var Γ) empty-renamectxt
+         Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
+         kₘᵤ = abs-expand-kind ps $ KndArrow k' star
+         --Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
+         Γ' = ctxt-mu-def pi' mps x (KndArrow k' star) Γ'
+         Tₘᵤ = params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)
+         Γ' = ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing Tₘᵤ Γ'
+         Tₜₒ =
+           abs-expand-type ps $
+           mall fₓ (Tkk $ indices-to-kind is star) $
+           TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # mu-name-Mu x) $
+                      mtpvar fₓ) Erased $
+           indices-to-alls is $
+           TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased $
+           indices-to-tpapps is $ params-to-tpapps ps $ mtpvar qx
+         Γ' = ctxt-term-def pi' globalScope OpacTrans (mu-name-cast x) (just id-term) Tₜₒ Γ'
+         cs' = flip map cs λ {(Ctr pi x' T) →
+           Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
+             (qualif-var Γ x) (qualif-type Γ T)}
+         Γ' = ctxt-datatype-def pi' x (just ps) kᵢ k' cs' Γ' in
+     set-ctxt Γ'
+       {-
        (ctxt-datatype-def pi' x (just ps) kᵢ k'
          (flip map cs λ {(Ctr pi x' T) → Ctr posinfo-gen (mn # x')
            (subst Γ (params-to-tpapps mps (mtpvar qx))
              (qualif-var Γ x) (qualif-type Γ T))}) $
-         --ctxt-mu-def pi' mps x (KndArrow (indices-to-kind is k) star) $
-         --ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
-         --ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing (KndArrow (abs-expand-kind mps k) star) $
-         ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms) ≫span
+         ctxt-term-def pi' globalScope OpacTrans (mu-name-cast x) (just id-term)
+           (abs-expand-type ps $
+            mall fₓ (Tkk $ indices-to-kind is star) $
+            TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # mu-name-Mu x) $ mtpvar fₓ) Erased $
+            indices-to-alls is $
+            TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased (indices-to-tpapps is $ params-to-tpapps ps $ mtpvar qx)) $
+         ctxt-mu-def pi' mps x (KndArrow k' star) $
+         ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
+         ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing (KndArrow (abs-expand-kind mps k) star) $
+         ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms)-} ≫span
+     spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ Tₘᵤ Tₜₒ cs pi'') ≫span
      get-ctxt λ Γ →
      spanMr (record s {Γ = Γ}))
 

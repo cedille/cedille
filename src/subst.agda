@@ -102,7 +102,7 @@ substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
       ρ' = renamectxt-insert ρ' (mu-name-cast x) (mu-name-cast x')
       ρ' = renamectxt-insert ρ' (mu-name-type x) (mu-name-type x')
       Γ' = ctxt-var-decl x' Γ
-      Γ' = ctxt-var-decl (mu-name-cast x') Γ'
+      Γ' = ctxt-var-decl (mu-name-mu x') Γ'
       Γ' = ctxt-var-decl (mu-name-type x') Γ' in
     Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ' ρ' σ cs) posinfo-gen
 substh-term Γ ρ σ (Mu' _ ot t oT _ cs _) = Mu' posinfo-gen (substh-optTerm Γ ρ σ ot) (substh-term Γ ρ σ t) (substh-optType Γ ρ σ oT) posinfo-gen (substh-cases Γ ρ σ cs) posinfo-gen

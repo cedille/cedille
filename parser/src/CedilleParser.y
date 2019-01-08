@@ -259,7 +259,7 @@ Term :: { Term }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
-     | 'μP' Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) NoTerm $2 $3 (pos2Txt1 $4) $5 (pos2Txt1 $6)            }
+     | 'μP' OptTermAngle Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
