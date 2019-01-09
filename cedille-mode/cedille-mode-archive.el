@@ -2,18 +2,17 @@
 
 (require 'json)
 
-(defmacro cedille-archive-read-file-when-compile (filename)
-  `(eval-when-compile
-     (let ((path (file-name-directory (or byte-compile-dest-file (buffer-file-name)))))
-       (with-temp-buffer
-         (insert-file-contents (concat path ,filename))
-         (buffer-string)))))
+(defun cedille-archive-read-file (filename)
+  "Read one of the template files for the archiving (to html) feature"
+   (with-temp-buffer
+     (insert-file-contents (concat cedille-path-el "cedille-mode/" filename))
+     (buffer-string)))
 
 (defconst cedille-archive-html-template
-  (cedille-archive-read-file-when-compile "cedille-mode-archive-template.html"))
+  (cedille-archive-read-file "cedille-mode-archive-template.html"))
 
 (defconst cedille-archive-javascript
-  (cedille-archive-read-file-when-compile "cedille-mode-archive.js"))
+  (cedille-archive-read-file "cedille-mode-archive.js"))
 
 (defun cedille-archive ()
   "Archive a program to JSON and HTML"
