@@ -77,7 +77,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: cedille elisp
+all: cedille #elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
