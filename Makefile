@@ -116,25 +116,8 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread
 		mv $(SRCDIR)/main $@
 
-cedille-old:	$(SRC) Makefile libraries
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda
-		mv $(SRCDIR)/main-old cedille
-
 elisp:
 	emacs --batch --quick -L . -L se-mode -L cedille-mode --eval '(byte-recompile-directory "." 0)'
-
-cedille-prof:	$(SRC) Makefile
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c $(SRCDIR)/main.agda
-		mv $(SRCDIR)/main cedille-prof
-
-cedille-main: $(SRCDIR)/cedille-main.agda
-	$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/cedille-main.agda
-
-options-main: $(SRCDIR)/options-main.agda
-	$(AGDA) $(LIB) -c $(SRCDIR)/options-main.agda
-
-cws-main: $(SRCDIR)/cws-main.agda
-	$(AGDA) $(LIB) -c $(SRCDIR)/cws-main.agda
 
 cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler
 
