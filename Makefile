@@ -101,13 +101,13 @@ libraries: ./ial/ial.agda-lib
 	cd parser; make cedille-options-lexer
 
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
-	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
+	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
 
 ./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/templates.agda
-CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda
+CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD)
 		mv $(SRCDIR)/main $@
