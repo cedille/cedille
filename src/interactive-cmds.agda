@@ -133,9 +133,13 @@ private
         strings-to-lcis-h tl (mk-lci ll x t T fn pi :: items)
       strings-to-lcis-h _ items = items
 
+    -- TODO: Local context information does not pass Δ information!
+    -- When users are using BR-explorer to rewrite with the rec function,
+    -- if they call it upon "μ' [SUBTERM] {...}", it won't work unless they say
+    -- "μ'<rec/mu> [SUBTERM] {...}".
     decl-lci : posinfo → var → ctxt → ctxt
-    decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is os) =
-      mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is os
+    decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
+      mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is os Δ
 
     language-level-type-of : language-level → language-level
     language-level-type-of ll-term = ll-type
@@ -180,7 +184,7 @@ private
 
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
-  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _) pi =
+  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ Δ) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))

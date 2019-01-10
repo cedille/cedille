@@ -241,7 +241,8 @@ post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq p
 post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
 ...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
 ...| just (type-def mps _ T k , _) = mtpvar x' , (hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt)
-...| just (datatype-def mps _ k _ , _) = mtpvar x' , hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt
+--...| just (datatype-def mps _ k _ , _) = mtpvar x' , hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt
+--...| just (mu-def mps X k , _) = mtpvar x' , hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt
 ...| _ = mtpvar x' , star
 post-rewriteh Γ x eq prtk tk-decl T = T , star
 
@@ -252,8 +253,8 @@ post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk t
   tk-decl : var → tk → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
   prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-no-lift k tt)
-  tk-decl x atk (mk-ctxt mod ss is os) =
-    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os where
+  tk-decl x atk (mk-ctxt mod ss is os Δ) =
+    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os Δ where
     h : tk → ctxt-info
     h (Tkt T) = term-decl T
     h (Tkk k) = type-decl k

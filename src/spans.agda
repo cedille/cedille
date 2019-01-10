@@ -65,7 +65,7 @@ spans-to-rope (global-error e s) =
   [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
 
 print-file-id-table : ctxt → 𝕃 tagged-val
-print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os) =
+print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is os Δ) =
   h [] id-fns where
   h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
   h ts [] = ts
@@ -290,7 +290,7 @@ location-data : location → tagged-val
 location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-name ≫str strAdd " - " ≫str strAdd pi)
 
 var-location-data : ctxt → var → tagged-val
-var-location-data Γ @ (mk-ctxt _ _ i _) x =
+var-location-data Γ @ (mk-ctxt _ _ i _ _) x =
   location-data (maybe-else ("missing" , "missing") snd
     (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
 {-
@@ -831,8 +831,8 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
 
-Mu-span : ctxt → posinfo → posinfo → (motive? : 𝔹) → checking-mode → 𝕃 tagged-val → err-m → span
-Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if motive? then ", with a motive" else "")) :: tvs)
+Mu-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
 
 Lft-span : ctxt → posinfo → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span Γ pi pi' X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data Γ pi' X (Tkk star) tt nothing (term-start-pos t) (term-end-pos t) :: tvs)

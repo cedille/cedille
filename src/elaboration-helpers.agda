@@ -28,71 +28,72 @@ uncurry''' : ∀ {A B C D E F : Set} → (A → B → C → D → E → F) → (
 uncurry''' f (a , b , c , d , e) = f a b c d e
 
 ctxt-term-decl' : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os) =
+ctxt-term-decl' pi x T (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (term-decl T , fn , pi)) os
+    (trie-insert is x (term-decl T , fn , pi)) os Δ
 
 ctxt-type-decl' : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os) =
+ctxt-type-decl' pi x k (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (type-decl k , fn , pi)) os
+    (trie-insert is x (type-decl k , fn , pi)) os Δ
 
 ctxt-tk-decl' : posinfo → var → tk → ctxt → ctxt
 ctxt-tk-decl' pi x (Tkt T) = ctxt-term-decl' pi x T
 ctxt-tk-decl' pi x (Tkk k) = ctxt-type-decl' pi x k
 
 ctxt-param-decl : var → var → tk → ctxt → ctxt
-ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
+ctxt-param-decl x x' atk Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
   let d = case atk of λ {(Tkt T) → term-decl T; (Tkk k) → type-decl k} in
   mk-ctxt
   (fn , mn , ps , trie-insert q x (x , [])) ss
-  (trie-insert is x' (d , fn , pi-gen)) os
+  (trie-insert is x' (d , fn , pi-gen)) os Δ
 
 ctxt-term-def' : var → var → term → type → opacity → ctxt → ctxt
-ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+ctxt-term-def' x x' t T op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (term-def (just ps) op (just $ hnf Γ unfold-head t tt) T , fn , x)) os
+  (trie-insert is x' (term-def (just ps) op (just $ hnf Γ unfold-head t tt) T , fn , x)) os Δ
 
 ctxt-type-def' : var → var → type → kind → opacity → ctxt → ctxt
-ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+ctxt-type-def' x x' T k op Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q (mn # x) x ps) ss
-  (trie-insert is x' (type-def (just ps) op (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os
+  (trie-insert is x' (type-def (just ps) op (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , x)) os Δ
 
 ctxt-let-term-def : posinfo → var → term → type → ctxt → ctxt
-ctxt-let-term-def pi x t T Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
+ctxt-let-term-def pi x t T Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (term-def nothing OpacTrans (just $ hnf Γ unfold-head t tt) T , fn , pi)) os
+    (trie-insert is x (term-def nothing OpacTrans (just $ hnf Γ unfold-head t tt) T , fn , pi)) os Δ
 
 ctxt-let-type-def : posinfo → var → type → kind → ctxt → ctxt
-ctxt-let-type-def pi x T k Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) =
+ctxt-let-type-def pi x T k Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
   mk-ctxt (fn , mn , ps , trie-insert q x (x , [])) ss
-    (trie-insert is x (type-def nothing OpacTrans (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , pi)) os
+    (trie-insert is x (type-def nothing OpacTrans (just $ hnf Γ (unfolding-elab unfold-head) T tt) k , fn , pi)) os Δ
 
 ctxt-μ-out-def : var → term → term → var → ctxt → ctxt
-ctxt-μ-out-def x t c y (mk-ctxt mod ss is os) =
+ctxt-μ-out-def x t c y (mk-ctxt mod ss is os Δ) =
   let is' = is --trie-insert is y (term-udef nothing OpacTrans c , "missing" , "missing")
       is'' = trie-insert is' x (term-udef nothing OpacTrans t , y , y) in
-  mk-ctxt mod ss is'' os
+  mk-ctxt mod ss is'' os Δ
 
 ctxt-rename-def' : var → var → args → ctxt → ctxt
-ctxt-rename-def' x x' as (mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt (fn , mn , ps , trie-insert q x (x' , as)) ss (trie-insert is x (rename-def x' , "missing" , "missing")) os
+ctxt-rename-def' x x' as (mk-ctxt (fn , mn , ps , q) ss is os Δ) = mk-ctxt (fn , mn , ps , trie-insert q x (x' , as)) ss (trie-insert is x (rename-def x' , "missing" , "missing")) os Δ
 
 ctxt-kind-def' : var → var → params → kind → ctxt → ctxt
-ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os) = mk-ctxt
+ctxt-kind-def' x x' ps2 k Γ @ (mk-ctxt (fn , mn , ps1 , q) ss is os Δ) = mk-ctxt
   (fn , mn , ps1 , qualif-insert-params q (mn # x) x ps1) ss
-  (trie-insert is x' (kind-def (ps1 ++ qualif-params Γ ps2) k' , fn , pi-gen)) os
+  (trie-insert is x' (kind-def (ps1 ++ qualif-params Γ ps2) k' , fn , pi-gen)) os Δ
   where
   k' = hnf Γ (unfolding-elab unfold-head) k tt
 
-ctxt-datatype-def' : var → var → defParams → kind → kind → ctrs → ctxt → ctxt
-ctxt-datatype-def' x x' psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) ss is os) = mk-ctxt
+ctxt-datatype-def' : var → var → params → kind → kind → ctrs → ctxt → ctxt
+ctxt-datatype-def' x x' psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) ss is os (Δ , μ)) = mk-ctxt
   (fn , mn , ps , q') ss
-  (trie-insert is x' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , x)) os
+  (trie-insert is x' (type-def (just $ ps ++ psᵢ) OpacTrans nothing k , fn , x)) os
+  (trie-insert Δ x' (ps ++ psᵢ , kᵢ , k , cs) , μ)
   where
-  q' = qualif-insert-params q x x' (maybe-else [] (λ _ → ps) psᵢ)
+  q' = qualif-insert-params q x x' ps
 
 ctxt-lookup-term-var' : ctxt → var → maybe type
-ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
+ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) x =
   env-lookup Γ x ≫=maybe λ where
     (term-decl T , _) → just T
     (term-def ps _ _ T , _ , x') →
@@ -103,7 +104,7 @@ ctxt-lookup-term-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
 -- TODO: Could there be parameter/argument clashes if the same parameter variable is defined multiple times?
 -- TODO: Could variables be parameter-expanded multiple times?
 ctxt-lookup-type-var' : ctxt → var → maybe kind
-ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os) x =
+ctxt-lookup-type-var' Γ @ (mk-ctxt (fn , mn , ps , q) ss is os Δ) x =
   env-lookup Γ x ≫=maybe λ where
     (type-decl k , _) → just k
     (type-def ps _ _ k , _ , x') →
@@ -624,7 +625,7 @@ record datatype-encoding : Set where
       foldr (λ c → flip TpArrow NotErased $ mk-ctr-type Erased Γ c cs Xₓ)
         (TpAppt (indices-to-tpapps is $ mtpvar Xₓ) (mvar xₓ)) cs
 
-    -- Note: need to set params to erased because args later in mu or mu' could be erased
+    -- Note: had to set params to erased because args later in mu or mu' could be erased
     functor-ind-cmd = DefTerm pi-gen data-functor-indₓ NoType $
       params-to-lams (params-set-erased Erased ps) $
       Lam pi-gen Erased pi-gen x (SomeClass $ Tkk k) $
@@ -747,8 +748,8 @@ record Γμ : Set where
 {- Datatypes -}
 
 ctxt-elab-ctr-def : var → type → (ctrs-length ctr-index : ℕ) → ctxt → ctxt
-ctxt-elab-ctr-def c t n i Γ@(mk-ctxt mod @ (fn , mn , ps , q) ss is os) = mk-ctxt
-  mod ss (trie-insert is ("//" ^ c) (ctr-def (just ps) t n i (unerased-arrows t) , "missing" , "missing")) os
+ctxt-elab-ctr-def c t n i Γ@(mk-ctxt mod @ (fn , mn , ps , q) ss is os Δ) = mk-ctxt
+  mod ss (trie-insert is ("//" ^ c) (ctr-def (just ps) t n i (unerased-arrows t) , "missing" , "missing")) os Δ
 
 ctxt-elab-ctrs-def : ctxt → ctrs → ctxt
 ctxt-elab-ctrs-def Γ cs = foldr {B = ℕ → ctxt} (λ {(Ctr _ x T) Γ i → ctxt-elab-ctr-def x T (length cs) i $ Γ $ suc i}) (λ _ → Γ) cs 0

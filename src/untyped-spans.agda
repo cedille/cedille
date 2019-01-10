@@ -57,8 +57,8 @@ untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ �
 untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
 untyped-term-spans (Var pi x) = get-ctxt λ Γ →
   spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x Γ) (get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [ binder-data (ctxt-var-decl-loc pi' x Γ) pi' x (Tkt (TpHole pi')) NotErased nothing pi'' pi''' ] nothing) ≫span untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi''' ff untyped ts e)
-untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi'' ff untyped ts e)
+untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x Γ) (get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [ binder-data (ctxt-var-decl-loc pi' x Γ) pi' x (Tkt (TpHole pi')) NotErased nothing pi'' pi''' ] nothing) ≫span untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi''' (optType-elim ot nothing just) untyped ts e)
+untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi pi'' (optType-elim oT nothing just) untyped ts e)
 
 
 untyped-caseArgs-spans [] t = untyped-term-spans t ≫span spanMr []

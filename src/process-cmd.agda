@@ -171,7 +171,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
          kₘᵤ = abs-expand-kind ps $ KndArrow k' star
          --Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
-         Γ' = ctxt-mu-def pi' mps x (KndArrow k' star) Γ'
+         Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
          Tₘᵤ = params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)
          Γ' = ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing Tₘᵤ Γ'
          Tₜₒ =
@@ -186,7 +186,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          cs' = flip map cs λ {(Ctr pi x' T) →
            Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
              (qualif-var Γ x) (qualif-type Γ T)}
-         Γ' = ctxt-datatype-def pi' x (just ps) kᵢ k' cs' Γ' in
+         Γ' = ctxt-datatype-def pi' x ps kᵢ k' cs' Γ' in
      set-ctxt Γ'
        {-
        (ctxt-datatype-def pi' x (just ps) kᵢ k'
@@ -329,7 +329,7 @@ process-file s filename pn | ie =
            process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
                    filename pn x do-check Γ empty-spans ≫=monad cont
            where cont : toplevel-state × ctxt × spans → mF (toplevel-state × include-elt × mod-info)
-                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _) , ss) =
+                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _ _) , ss) =
                    progress-update pn do-check ≫monad returnM
                      (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is
                        (ctxt-set-current-mod Γ prev-mod) ,

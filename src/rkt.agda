@@ -99,13 +99,13 @@ rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             [[]]
 rkt-from-sym-info n (ctr-def _ _ _ _ _ , _) 
   = rkt-dbg "const-def:"           [[]]
-rkt-from-sym-info n (datatype-def _ _ _ _ , _) 
-  = rkt-dbg "datatype-def:"           [[]]
-rkt-from-sym-info n (mu-def ps x k , _)
-  = rkt-dbg "mu-def:" [[]]
+--rkt-from-sym-info n (datatype-def _ _ _ _ , _) 
+--  = rkt-dbg "datatype-def:"           [[]]
+--rkt-from-sym-info n (mu-def ps x k , _)
+--  = rkt-dbg "mu-def:" [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
-to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences) ie rkt-filename =
+to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences Δ) ie rkt-filename =
   rkt-header ⊹⊹ rkt-body
   where
   cdle-pair = trie-lookup𝕃2 syms ced-path
