@@ -1942,7 +1942,6 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
       Tₘ?' = optType-elim Tₘ? nothing just in
   case_of_ (maybe-map (λ T → decompose-tpapps $ hnf Γ (unfolding-elab unfold-head) T tt) T) λ where
     (just (TpVar _ X , as)) →
-      {-maybe-else' (ctxt-lookup-datatype Γ X (ttys-to-args NotErased as)) (case ot of λ {NoTerm → spanMr nothing; (SomeTerm t _) → check-term t nothing ≫=spanm' λ T → case (decompose-tpapps $ hnf Γ (unfolding-elab unfold-head) T tt) of λ {(TpVar _ X' , as') → spanMr ((maybe-if (X' =string X) ≫maybe foldl (λ a as → just a) nothing as') ≫=maybe λ {(tterm _) → nothing; (ttype T) → case (decompose-tpapps $ hnf Γ (unfolding-elab unfold-head) T tt) of λ {(TpVar _ X' , _) → ctxt-lookup-datatype Γ X' (ttys-to-args NotErased as'); _ → nothing}}); _ → spanMr nothing}}) (λ d → (case ot of λ {NoTerm → spanMok; (SomeTerm t _) → check-term t (just $ mtpvar $ mu-name-Mu X) ≫span spanMok}) ≫span spanMr (just d)) ≫=span λ where-}
       check-mu-evidence ot X as on-fail
        (uncurry λ e tvs → spanM-add (Mu-span Γ pi pi''' Tₘ?' (maybe-to-checking mtp)
          (expected-type-if Γ mtp ++ tvs) $ just e) ≫span
@@ -1998,6 +1997,9 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
           -- TODO: Check if X' or xₘᵤ occur free in any of the cases
           Γ' ≫=spanc λ Γ' bds → with-ctxt Γ'
             (let e2 = just "Abstract datatypes can only be pattern matched by μ'"
+                 e4 = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
+                 e4ₓ? = λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert empty-trie x) cs) ≫maybe e4 x
+                 e4? = x? ≫=maybe λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert (stringset-insert empty-trie (mu-name-mu x)) (mu-name-type x)) cs) ≫=maybe λ _ → e4ₓ? (mu-name-mu x) maybe-or e4ₓ? (mu-name-type x)
                  e2? = x? ≫maybe (x/mu ≫maybe e2)
                  cs'' = subst-ctrs Γ' cs'
                  cs''' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs''
@@ -2007,7 +2009,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
              check-cases cs cs''' asₚ drop-ps Tₘ ≫=spanc λ e? xs →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))
                λ tvs e3? → Mu-span Γ pi pi''' Tₘ?' (maybe-to-checking mtp) (map (λ {(pi , x , atk , me , s , e) → binder-data Γ' pi x atk me nothing s e}) xs ++ bds ++ tvs)
-                 (e? maybe-or (e2? maybe-or e3?))) ≫span
+                 (e? maybe-or (e2? maybe-or (e3? maybe-or e4?)))) ≫span
              return-when mtp Tᵣ)
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi pi''' Tₘ?' (maybe-to-checking mtp)
