@@ -52,7 +52,7 @@ private
     ll-disambiguate (ctxt-tk-decl pi' x atk Γ) t ≫=maybe λ T →
     just (TpLambda pi pi' x atk T)
   ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
-  ll-disambiguate Γ (Let pi d t) =
+  ll-disambiguate Γ (Let pi _ d t) =
     ll-disambiguate (Γ' d) t ≫=maybe λ T → just (TpLet pi d T)
     where
     Γ' : defTermOrType → ctxt
@@ -212,7 +212,7 @@ private
     step-reduceh{TYPE} Γ (TpAppt T t) = step-reduceh Γ T ≫=maybe λ T → just (TpAppt T t)
     step-reduceh{TERM} Γ (Lam pi b pi' x oc t) = step-reduceh (ctxt-var-decl x Γ) t ≫=maybe λ t → just (Lam pi b pi' x oc t)
     step-reduceh{TYPE} Γ (TpLambda pi pi' x atk T) = step-reduceh (ctxt-var-decl x Γ) T ≫=maybe λ T → just (TpLambda pi pi' x atk T)
-    step-reduceh{TERM} Γ (Let pi (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
+    step-reduceh{TERM} Γ (Let pi _ (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
     step-reduceh{TYPE} Γ (TpLet pi (DefTerm pi' x ot t) T) = just (subst Γ t x T)
     step-reduceh{TYPE} Γ (TpLet pi (DefType pi' x k T') T) = just (subst Γ T' x T)
     step-reduceh{TERM} Γ t @ (Mu _ _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt

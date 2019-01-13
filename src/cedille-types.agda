@@ -60,6 +60,7 @@ data lterm : Set
 lterms : Set
 data optType : Set
 maybeErased : Set
+forceErased : Set
 maybeMinus : Set
 data nums : Set
 data optAs : Set
@@ -100,6 +101,7 @@ data caseArg : Set
 {-# COMPILE GHC lterms = type CedilleTypes.Lterms #-}
 {-# COMPILE GHC optType = type CedilleTypes.OptType #-}
 {-# COMPILE GHC maybeErased = type CedilleTypes.MaybeErased #-}
+{-# COMPILE GHC forceErased = type CedilleTypes.MaybeErased #-}
 {-# COMPILE GHC maybeMinus = type CedilleTypes.MaybeMinus #-}
 {-# COMPILE GHC nums = type CedilleTypes.Nums #-}
 {-# COMPILE GHC optAs = type CedilleTypes.OptAs #-}
@@ -200,6 +202,8 @@ data optType where
 
 maybeErased = 𝔹
 
+forceErased = 𝔹
+
 maybeMinus = 𝔹
 
 data nums where
@@ -253,7 +257,7 @@ data term where
   IotaPair : posinfo → term → term → optGuide → posinfo → term
   IotaProj : term → num → posinfo → term
   Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
-  Let : posinfo → defTermOrType → term → term
+  Let : posinfo → forceErased → defTermOrType → term → term
   Open : posinfo → posinfo → var → term → term
   Parens : posinfo → term → posinfo → term
   Phi : posinfo → term → term → term → posinfo → term  

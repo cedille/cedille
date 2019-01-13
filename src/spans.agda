@@ -850,7 +850,7 @@ DefDatatype-header-span : posinfo → span
 DefDatatype-header-span pi = mk-span "Data" pi (posinfo-plus-str pi "data") [ not-for-navigation ] nothing
 
 Import-span : posinfo → string → posinfo → 𝕃 tagged-val → err-m → span
-Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (location-data (file , first-position) :: tvs)
+Import-span pi file pi' tvs = mk-span ("Import of another source file") pi pi' (("Path" , [[ file ]] , []) :: location-data (file , first-position) :: tvs)
 
 Import-module-span : ctxt → (posinfo × var) → params → 𝕃 tagged-val → err-m → span
 Import-module-span Γ (pi , mn) ps tvs = mk-span "Imported module" pi (posinfo-plus-str pi mn) (params-data Γ ps ++ tvs)
@@ -871,9 +871,16 @@ IotaPair-span pi pi' c tvs =
 IotaProj-span : term → posinfo → checking-mode → 𝕃 tagged-val → err-m → span
 IotaProj-span t pi' c tvs = mk-span "Iota projection" (term-start-pos t) pi' (checking-data c :: ll-data-term :: tvs)
 
-Let-span : ctxt → checking-mode → posinfo → posinfo → var → (atk : tk) → (if tk-is-type atk then term else type) → term → 𝕃 tagged-val → err-m → span
-Let-span Γ c pi pi' x atk val t' tvs =
-  mk-span "Term Let" pi (term-end-pos t') (binder-data Γ pi' x atk ff (just val) (term-start-pos t') (term-end-pos t') :: ll-data-term :: checking-data c :: tvs)
+-- <<<<<<< HEAD
+Let-span : ctxt → checking-mode → posinfo → posinfo → forceErased → var → (atk : tk) → (if tk-is-type atk then term else type) → term → 𝕃 tagged-val → err-m → span
+Let-span Γ c pi pi' fe x atk val t' tvs =
+  mk-span name pi (term-end-pos t') (binder-data Γ pi' x atk ff (just val) (term-start-pos t') (term-end-pos t') :: ll-data-term :: checking-data c :: tvs)
+  where name = if fe then "Erased Term Let" else "Term Let"
+-- =======
+-- Let-span : ctxt → checking-mode → posinfo → forceErased → defTermOrType → term → 𝕃 tagged-val → err-m → span
+-- Let-span Γ c pi fe d t' tvs = mk-span name pi (term-end-pos t') (binder-data-const :: bound-data d Γ :: ll-data-term :: checking-data c :: tvs)
+--   where name = if fe then "Erased Term Let" else "Term Let"
+-- >>>>>>> master
 
 TpLet-span : ctxt → checking-mode → posinfo → posinfo → var → (atk : tk) → (if tk-is-type atk then term else type) → type → 𝕃 tagged-val → err-m → span
 TpLet-span Γ c pi pi' x atk val t' tvs =
