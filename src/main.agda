@@ -419,6 +419,22 @@ module main-with-options
                           input-filename tt {- should-print-spans -}
               checkCommand ls s = errorCommand ls s >>r s
 
+              allDependencies-h : toplevel-state → trie 𝔹 → 𝕃 string → 𝕃 string
+              allDependencies-h s t (filename :: filenames) with get-include-elt-if s filename
+              ...| nothing = allDependencies-h s (trie-insert t filename tt) filenames
+              ...| just ie = allDependencies-h s (trie-insert t filename tt) (filenames ++ include-elt.deps ie)
+              allDependencies-h s t [] = trie-strings t
+
+              allDependencies : toplevel-state → string → 𝕃 string
+              allDependencies s filename = allDependencies-h s empty-trie (filename :: [])
+
+              dependenciesCommand : 𝕃 string → toplevel-state → IO toplevel-state
+              dependenciesCommand (input :: []) s =
+                canonicalizePath input >>= λ filename →
+                update-asts s filename >>= λ s →
+                putStrLn (𝕃-to-string (λ x → x) (char-to-string delimiter) (allDependencies s filename)) >>r s
+              dependenciesCommand ls s = errorCommand ls s >>r s
+
     {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
               findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
               findCommand _ s = errorCommand s -}
@@ -430,6 +446,7 @@ module main-with-options
               handleCommands ("debug" :: []) s = debugCommand s >>r s
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
               handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
+              handleCommands ("dependencies" :: xs) s = dependenciesCommand xs s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s
 
