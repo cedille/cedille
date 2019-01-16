@@ -58,7 +58,7 @@ are-free-in-term ce x (Theta _ _ t ls) = are-free-in-term ce x t || are-free-in-
   where are-free-in-lterms : ∀{A} → trie A → lterms → 𝔹
         are-free-in-lterms x [] = ff
         are-free-in-lterms x ((Lterm me t) :: ls) = ((ce || ~ me) && are-free-in-term ce x t) || are-free-in-lterms x ls
-are-free-in-term ce x (Mu _ _ x' t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce (trie-remove x x') t || are-free-in-cases ce x cs
+are-free-in-term ce x (Mu _ _ x' t ot _ cs _) = (ce && are-free-in-optType ce x ot) || are-free-in-term ce (trie-remove (trie-remove (trie-remove x (mu-isType/ x')) (mu-Type/ x')) x') t || are-free-in-cases ce x cs
 are-free-in-term ce x (Mu' _ ot t oT _ cs _) = (ce && (are-free-in-optType ce x oT || are-free-in-optTerm ce x ot)) || are-free-in-term ce x t || are-free-in-cases ce x cs
 
 are-free-in-cases _ _ [] = ff

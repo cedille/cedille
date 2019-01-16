@@ -293,9 +293,9 @@ scope-ctrs fn mn oa ps as ((Ctr pi x T) :: ds) s =
   scope-ctrs fn mn oa ps as ds
 
 scope-datatype-names fn mn oa ps as x s =
-  scope-var fn mn oa ps as (mu-name-Mu x) s ≫=scope
-  scope-var fn mn oa ps as (mu-name-mu x) ≫=scope
-  scope-var fn mn oa ps as (mu-name-cast x)
+  scope-var fn mn oa ps as (data-Is/ x) s ≫=scope
+  scope-var fn mn oa ps as (data-is/ x) ≫=scope
+  scope-var fn mn oa ps as (data-to/ x)
 
 
 scope-var _ mn oa ps as v s with import-as v oa | s

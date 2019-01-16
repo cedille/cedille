@@ -761,11 +761,11 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
     (Data X ps is dcs) →
       --just (cs' , ts , ρ , φ , μ)
       maybe-else (just (cs' , ts , ρ , φ , μ)) just $
-      elab-cmds ts ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
+      elab-cmds ts ρ φ μ cs' {- ≫=maybe uncurry''' λ cs' ts ρ φ μ →
       let dcs = flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (subst-qualif (toplevel-state.Γ ts) ρ T)}
           μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in
       elab-cmds (record ts {Γ = ctxt-elab-ctrs-def (toplevel-state.Γ ts) dcs}) ρ φ (trie-insert (trie-insert μ elab-mu-prev-name μ-x) ("/" ^ x') μ-x) cs ≫=maybe uncurry λ cs ω →
-      just (cs' ++ cs , ω)
+      just (cs' ++ cs , ω)-}
 
 elab-file' ts ρ φ μ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →

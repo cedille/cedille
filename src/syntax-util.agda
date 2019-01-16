@@ -22,18 +22,6 @@ id-term = Lam posinfo-gen NotErased posinfo-gen "x" NoClass (Var posinfo-gen "x"
 compileFailType : type
 compileFailType = Abs posinfo-gen Erased posinfo-gen "X" (Tkk (Star posinfo-gen))  (TpVar posinfo-gen "X")
 
-mu-name-cast : var → var
-mu-name-cast x = x ^ "/cast"
-
-mu-name-type : var → var
-mu-name-type x = x ^ "/type"
-
-mu-name-mu : var → var
-mu-name-mu x = x ^ "/mu"
-
-mu-name-Mu : var → var
-mu-name-Mu x = x ^ "/Mu"
-
 qualif-info : Set
 qualif-info = var × args
 
@@ -821,6 +809,31 @@ unqual-all q v with var-suffix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
+
+-- Given a qualified variable and a function that renames it,
+-- we strip away the qualification prefix, call the function,
+-- then preprend the prefix to the result
+reprefix : (var → var) → var → var
+reprefix f x =
+  maybe-else' (pfx (string-to-𝕃char x) [])
+    (f x) $ uncurry λ p s → p ^ f s where
+  ret : 𝕃 char → 𝕃 char → maybe (var × var)
+  ret pfx sfx = just (𝕃char-to-string (reverse pfx) , 𝕃char-to-string sfx)
+  pfx : 𝕃 char → 𝕃 char → maybe (var × var)
+  pfx (qual-global-chr :: xs) acc =
+    pfx xs (qual-global-chr :: acc) maybe-or ret (qual-global-chr :: acc) xs
+  pfx (qual-local-chr :: xs) acc =
+    pfx xs (qual-local-chr :: acc) maybe-or ret (qual-local-chr :: acc) xs
+  pfx (x :: xs) acc = pfx xs (x :: acc)
+  pfx [] pfx = nothing
+
+data-to/ = reprefix ("to/" ^_)
+data-Is/ = reprefix ("Is/" ^_)
+data-is/ = reprefix ("is/" ^_)
+mu-Type/ = reprefix ("Type/" ^_)
+mu-isType/ = reprefix ("isType/" ^_)
+
+
 erased-params : params → 𝕃  string
 erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) with var-suffix x
 ... | nothing = x :: erased-params ps
@@ -904,10 +917,12 @@ caseArg-to-var : caseArg → posinfo × var × maybeErased × 𝔹
 caseArg-to-var (CaseTermArg pi me x) = pi , x , me , tt
 caseArg-to-var (CaseTypeArg pi x) = pi , x , Erased , ff
 
+{-
 cast-abstract-datatype? : var → args → term → term
 cast-abstract-datatype? x as with string-split x '/'
 ...| bₓ :: Tₓ :: [] = mapp (recompose-apps as $ mvar $ mu-name-cast bₓ)
 ...| _ = id
+-}
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)

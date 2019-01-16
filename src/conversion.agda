@@ -365,6 +365,14 @@ conv-type-norm Γ (Lft _ _ x t l) (Lft _ _ x' t' l') =
   conv-liftingType Γ l l' && conv-term (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) t t'
 conv-type-norm Γ (TpLambda _ _ x atk tp) (TpLambda _ _ x' atk' tp') =
   conv-tk Γ atk atk' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
+{-conv-type-norm Γ (TpLambda _ _ x atk tp) tp' =
+  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
+      tp'' = if tk-is-type atk then TpAppt tp' (mvar x') else TpApp tp' (mtpvar x') in
+  conv-type-norm (ctxt-rename x x' Γ) tp tp''
+conv-type-norm Γ tp' (TpLambda _ _ x atk tp) =
+  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
+      tp'' = if tk-is-type atk then TpAppt tp' (mvar x') else TpApp tp' (mtpvar x') in
+  conv-type-norm (ctxt-rename x x' Γ) tp'' tp-}
 conv-type-norm Γ _ _ = ff 
 
 {- even though hnf turns Pi-kinds where the variable is not free in the body into arrow kinds,
@@ -457,7 +465,7 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
 
 ctxt-datatype-decl : posinfo → var → var → args → ctxt → ctxt
 ctxt-datatype-decl pi vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) =
-  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-name-type $ pi % vᵣ) (vₒ , mu-name-mu vₒ , as) , μ
+  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ $ pi % vᵣ) (vₒ , mu-isType/ vₒ , as) , μ
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt
@@ -468,7 +476,7 @@ ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn
     (trie-insert-append2 syms fn mn v , mn-fn)
     (trie-insert i v' (type-def (just ps) OpacTrans nothing (abs-expand-kind psᵢ k) , fn , pi)) os
     (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' ,
-     trie-insert μ (mu-name-Mu v') v')
+     trie-insert μ (data-Is/ v') v')
 --    (trie-insert i v' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , pi)) os
 {-
 ctxt-mu-def : posinfo → params → var → kind → ctxt → ctxt

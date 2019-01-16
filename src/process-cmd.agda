@@ -171,18 +171,18 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
          kₘᵤ = abs-expand-kind ps $ KndArrow k' star
          --Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
-         Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
-         Tₘᵤ = params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)
-         Γ' = ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing Tₘᵤ Γ'
+         Γ' = ctxt-type-def pi' globalScope OpacTrans (data-Is/ x) nothing kₘᵤ Γ'
+         Tₘᵤ = params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # data-Is/ x))) (params-to-tpapps mps $ mtpvar qx)
+         Γ' = ctxt-term-def pi' globalScope OpacTrans (data-is/ x) nothing Tₘᵤ Γ'
          Tₜₒ =
            abs-expand-type ps $
            mall fₓ (Tkk $ indices-to-kind is star) $
-           TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # mu-name-Mu x) $
+           TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # data-Is/ x) $
                       mtpvar fₓ) Erased $
            indices-to-alls is $
            TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased $
            indices-to-tpapps is $ params-to-tpapps ps $ mtpvar qx
-         Γ' = ctxt-term-def pi' globalScope OpacTrans (mu-name-cast x) (just id-term) Tₜₒ Γ'
+         Γ' = ctxt-term-def pi' globalScope OpacTrans (data-to/ x) (just id-term) Tₜₒ Γ'
          cs' = flip map cs λ {(Ctr pi x' T) →
            Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
              (qualif-var Γ x) (qualif-type Γ T)}
