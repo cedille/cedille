@@ -419,14 +419,14 @@ module main-with-options
                           input-filename tt {- should-print-spans -}
               checkCommand ls s = errorCommand ls s >>r s
 
-              allDependencies-h : toplevel-state → trie 𝔹 → 𝕃 string → 𝕃 string
-              allDependencies-h s t (filename :: filenames) with get-include-elt-if s filename
-              ...| nothing = allDependencies-h s (trie-insert t filename tt) filenames
-              ...| just ie = allDependencies-h s (trie-insert t filename tt) (filenames ++ include-elt.deps ie)
-              allDependencies-h s t [] = trie-strings t
+              allDependencies-h : toplevel-state → stringset → 𝕃 string → 𝕃 string
+              allDependencies-h s t (filename :: filenames) with stringset-contains t filename | get-include-elt-if s filename
+              ...| ff | just ie = allDependencies-h s (stringset-insert t filename) (filenames ++ include-elt.deps ie)
+              ...| _ | _ = allDependencies-h s t filenames
+              allDependencies-h s t [] = stringset-strings t
 
               allDependencies : toplevel-state → string → 𝕃 string
-              allDependencies s filename = allDependencies-h s empty-trie (filename :: [])
+              allDependencies s filename = allDependencies-h s empty-stringset (filename :: [])
 
               dependenciesCommand : 𝕃 string → toplevel-state → IO toplevel-state
               dependenciesCommand (input :: []) s =
