@@ -78,7 +78,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: cedille elisp
+all: cedille #elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
@@ -102,13 +102,13 @@ libraries: ./ial/ial.agda-lib
 	cd parser; make cedille-options-lexer
 
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
-	cd $(TEMPLATESDIR); ghc --make -i../ TemplatesCompiler.hs
+	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
 
 ./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
-CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main.agda
+CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD)
 		mv $(SRCDIR)/main $@
@@ -117,25 +117,8 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread
 		mv $(SRCDIR)/main $@
 
-cedille-old:	$(SRC) Makefile libraries
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/main-old.agda
-		mv $(SRCDIR)/main-old cedille
-
 elisp:
 	emacs --batch --quick -L . -L se-mode -L cedille-mode --eval '(byte-recompile-directory "." 0)'
-
-cedille-prof:	$(SRC) Makefile
-		$(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-prof --ghc-flag=-fprof-auto -c $(SRCDIR)/main.agda
-		mv $(SRCDIR)/main cedille-prof
-
-cedille-main: $(SRCDIR)/cedille-main.agda
-	$(AGDA) $(LIB) --ghc-flag=-rtsopts -c $(SRCDIR)/cedille-main.agda
-
-options-main: $(SRCDIR)/options-main.agda
-	$(AGDA) $(LIB) -c $(SRCDIR)/options-main.agda
-
-cws-main: $(SRCDIR)/cws-main.agda
-	$(AGDA) $(LIB) -c $(SRCDIR)/cws-main.agda
 
 cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler
 
