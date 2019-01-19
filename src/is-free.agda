@@ -42,7 +42,7 @@ are-free-in-term check-erased x (Let _ (DefTerm _ x' m t) t') =
 are-free-in-term skip-erased x (Let _ (DefTerm _ x' m t) t') =
      (   (are-free-in-term skip-erased x t)
       && (are-free-in-term skip-erased (stringset-singleton x') t'))
-  || (are-free-in-term skip-erased x t')
+  || (are-free-in-term skip-erased (trie-remove x x') t')
 are-free-in-term ce x (Let _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
   || are-free-in-term ce (trie-remove x x') t'

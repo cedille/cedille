@@ -4,6 +4,14 @@ Nat ◂ ★ = ∀ X : ★ . (X ➔ X) ➔ X ➔ X .
 Z ◂ Nat = Λ X . λ f . λ a . a .
 S ◂ Nat ➔ Nat = λ n . Λ X . λ f . λ a . f (n · X f a) .
 
+add ◂ Nat ➔ Nat ➔ Nat
+  = λ m. λ n. m S n.
+
+-- `n` will never occur in the erasure normalized `wrong-add m n`
+-- even so, our occurrence checker probably shouldn't perform normalization
+wrong-add ◂ Nat ➔ Nat ➔ Nat
+  = λ m. λ n. m S Z.
+
 Vector ◂ ★ ➔ Nat ➔ ★ = λ A : ★ . λ n : Nat .
   ∀ X : Nat ➔ ★ .
     X Z ➔
@@ -19,5 +27,10 @@ Vcons ◂ ∀ A : ★ . ∀ n : Nat . A ➔ Vector · A n ➔ Vector · A (S n) 
 Vcons' ◂ ∀ A : ★ . ∀ n : Nat . A ➔ Vector · A n ➔ Vector · A (S n) =
   Λ A . Λ n . λ a . λ v . Λ X . λ ni . λ c . [ n' ◂ Nat = n ] - c -n' a (v · X ni c) .
 
-This-Should-Fail ◂ Nat ➾ Nat = Λ n . [ n' ◂ Nat = n x y z ] - n' .
+test1-fail ◂ Nat ➾ Nat = Λ n . [ n ◂ Nat = n ] - n .
 
+test2-ok ◂ Nat ➾ Nat ➾ Nat
+  = Λ n. Λ m. [ n = S Z ] - [ m = S n ] - add n m.
+
+test3-fail ◂ Nat ➾ Nat ➾ Nat
+  = Λ n. Λ m. [ n' = S Z ] - [ m = S n' ] - wrong-add n m.
