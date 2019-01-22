@@ -1933,7 +1933,7 @@ check-mu-evidence (SomeTerm t _) X as =
                       [ to-string-tag "evidence type" Γ T ] in
   case decompose-tpapps (hnf Γ (unfolding-elab unfold-head) T tt) of λ where
     (TpVar _ X' , as') → case reverse as' of λ where
-      (ttype T :: as') → spanMr $ if ~ conv-type Γ T (mtpvar X) then ev-err else maybe-else ev-err (λ {d@(mk-data-info X x/mu asₚ asᵢ mps kᵢ k cs) → (inj₂ ∘' just ∘' _,_ (mapp $ recompose-apps (asₚ ++ ttys-to-args Erased asᵢ) $ mvar $ data-to/ X)) d}) (data-lookup-mu Γ X' $ reverse as' ++ as) -- TODO: Make sure "X" isn't a _defined_ type, but a _declared_ one! This way we avoid the possibility that "as" has arguments to parameters in it, but only to indices.
+      (ttype T :: as') → spanMr $ if ~ conv-type Γ T (mtpvar X) then ev-err else maybe-else ev-err (λ {d@(mk-data-info X x/mu asₚ asᵢ mps kᵢ k cs fcs) → (inj₂ ∘' just ∘' _,_ (mapp $ recompose-apps (asₚ ++ ttys-to-args Erased asᵢ) $ mvar $ data-to/ X)) d}) (data-lookup-mu Γ X' $ reverse as' ++ as) -- TODO: Make sure "X" isn't a _defined_ type, but a _declared_ one! This way we avoid the possibility that "as" has arguments to parameters in it, but only to indices.
       _ → spanMr ev-err
     _ → spanMr ev-err
 
@@ -1956,7 +1956,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
           spanM-add (Mu-span Γ pi pi''' Tₘ?' (maybe-to-checking mtp)
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) nothing) ≫span
           return-when mtp (ret-tp [] as $ qualif-term Γ t)
-        (just (cast , mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs')) →
+        (just (cast , mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs)) →
           let is = kind-to-indices Γ kᵢ in
           (case Tₘ? of λ where
             (SomeType Tₘ) → check-type Tₘ (just kᵢ) ≫span spanMr (just $ qualif-type Γ Tₘ)
@@ -1968,7 +1968,8 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                 Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-all) ff $ maybe-else' x?
                   (if (Xₒ =string X) then T else subst Γ (params-to-tplams ps $ mtpvar X) Xₒ T)
                   λ x → subst Γ (params-to-tplams ps $ mtpvar $ pi' % mu-Type/ x) Xₒ T}
-              subst-ctrs = map ∘ subst-ctr
+              reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-all) T ff}
+              cs' = reduce-cs $ maybe-else' x? (if Xₒ =string X then cs' else fcs X) λ x → fcs (mu-Type/ (pi' % x))
               Γ' = maybe-else' x? (spanMr (Γ , [])) λ x →
                      let X' = mu-Type/ x
                          xₘᵤ = mu-isType/ x
@@ -1983,7 +1984,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                          --         (indices-to-tpapps is X-ps)
                          Γ' = -- ctxt-term-def pi' localScope OpacTrans xₜₒ (just id-term) Tₜₒ $
                               ctxt-term-def pi' localScope OpacTrans xₘᵤ nothing Tₘᵤ $
-                              ctxt-datatype-decl pi' Xₒ x asₚ $
+                              ctxt-datatype-decl Xₒ (pi' % x) asₚ $
                               ctxt-type-decl-no-qualif pi' X' k Γ
                               --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
                               --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
@@ -2005,12 +2006,12 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                  e4ₓ? = λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert empty-trie x) cs) ≫maybe e4 x
                  e4? = x? ≫=maybe λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert (stringset-insert empty-trie (mu-isType/ x)) (mu-Type/ x)) cs) ≫=maybe λ _ → e4ₓ? (mu-isType/ x) maybe-or e4ₓ? (mu-Type/ x)
                  e2? = x? ≫maybe (x/mu ≫maybe e2)
-                 cs'' = subst-ctrs Γ' cs'
-                 cs''' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs''
+                 --cs'' = subst-ctrs
+                 cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))
                  scrutinee = cast $ qualif-term Γ t -- cast-abstract-datatype? X (ttys-to-args Erased asᵢ) (qualif-term Γ t)
                  Tᵣ = ret-tp ps (args-to-ttys asₚ ++ asᵢ) scrutinee in
-             check-cases cs cs''' asₚ drop-ps Tₘ ≫=spanc λ e? xs →
+             check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e? xs →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))
                λ tvs e3? → Mu-span Γ pi pi''' Tₘ?' (maybe-to-checking mtp) (map (λ {(pi , x , atk , me , s , e) → binder-data Γ' pi x atk me nothing s e}) xs ++ tvs ++ bds)
                  (e? maybe-or (e2? maybe-or (e3? maybe-or e4?)))) ≫span

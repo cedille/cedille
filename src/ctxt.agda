@@ -258,6 +258,7 @@ record ctxt-datatype-info : Set where
     kᵢ : kind
     k : kind
     cs : ctrs
+    subst-cs : var → ctrs
 
 data-lookup : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 data-lookup Γ @ (mk-ctxt mod ss is os (Δ , μ' , μ)) x as =
@@ -267,12 +268,14 @@ data-lookup Γ @ (mk-ctxt mod ss is os (Δ , μ' , μ)) x as =
         let asₚ = ttys-to-args-for-params nothing ps as
             asᵢ = drop (length ps) as in
         just $ mk-data-info x nothing asₚ asᵢ ps
-          (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs)) λ where
+          (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs)
+          λ y → inst-ctrs Γ ps asₚ $ map (λ {(Ctr pi z T) → Ctr pi z $ subst Γ (lam-expand-type ps $ mtpvar y) x T}) cs) λ where
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
       trie-lookup Δ x' ≫=maybe λ where
       (ps , kᵢ , k , cs) →
         just $ mk-data-info x' (just x/mu) as' as ps
           (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs)
+          λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr pi z T) → Ctr pi z $ subst Γ (lam-expand-type ps $ mtpvar y) x' T}) cs
 
 data-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 data-lookup-mu Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) x as =

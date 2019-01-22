@@ -463,9 +463,9 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
   where
   k' = hnf Γ unfold-head (qualif-kind Γ k) tt
 
-ctxt-datatype-decl : posinfo → var → var → args → ctxt → ctxt
-ctxt-datatype-decl pi vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) =
-  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ $ pi % vᵣ) (vₒ , mu-isType/ vₒ , as) , μ
+ctxt-datatype-decl : var → var → args → ctxt → ctxt
+ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) =
+  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt
