@@ -775,14 +775,14 @@ record datatype-encoding : Set where
       mtpvar Yₓ
 
     mu-cmd = DefTerm pi-gen data-muₓ (SomeType $ params-to-alls ps $ TpApp (params-to-tpapps ps $ mtpvar data-Muₓ) $ params-to-tpapps ps $ mtpvar x) $
+      params-to-lams ps $
       Open pi-gen pi-gen x $
       Open pi-gen pi-gen data-Muₓ $
-      params-to-lams ps $
       rename "Y" from add-params-to-ctxt ps Γ for λ Yₓ →
       rename "f" from add-params-to-ctxt ps Γ for λ fₓ →
       let pair = λ t → IotaPair pi-gen t (Beta pi-gen NoTerm (SomeTerm (erase t) pi-gen)) NoGuide pi-gen in
       Mlam Yₓ $ mlam fₓ $ mapp (mapp (mvar fₓ) $ pair $ indices-to-lams is $ id-term) $ pair $
-        mappe (AppTp (mvar fixpoint-outₓ) $ (params-to-tpapps ps $ mtpvar data-functorₓ)) (params-to-apps ps $ mvar data-fmapₓ)
+        mappe (AppTp (params-to-apps ps (mvar fixpoint-outₓ)) $ (params-to-tpapps ps $ mtpvar data-functorₓ)) (params-to-apps ps $ mvar data-fmapₓ)
     
     cast-cmd =
       rename "Y" from add-params-to-ctxt ps Γ for λ Yₓ →
@@ -860,7 +860,7 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
       _·ps = recompose-tpapps $ args-to-ttys asₚ
       σ = fst (mk-inst ps (asₚ ++ ttys-to-args NotErased asᵢ))
       is = kind-to-indices Γ (substs Γ σ k)
-      Γᵢₛ = add-indices-to-ctxt is Γ
+      Γᵢₛ = add-indices-to-ctxt is $ add-params-to-ctxt ps Γ
       is-as : indices → args
       is-as = map λ {(Index x atk) →
         tk-elim atk (λ _ → TermArg Erased $ `vₓ x) (λ _ → TypeArg $ `Vₓ x)}
@@ -897,14 +897,14 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
            out = maybe-else' is/X? (`vₓ fixpoint-outₓ `ps · functor - fmap) λ is/X →
              let i = `open data-Muₓ - is/X · (`ι xₓ :ₜ Tₛ ➔ functor ·ₜ Tₛ ₊ `[ `vₓ xₓ ≃ `vₓ fixpoint-outₓ `ps ]) ` (`λ "to" ₊ `λ "out" ₊ `vₓ "out") in
              `φ i `₊2 - i `₊1 [ `vₓ fixpoint-outₓ `ps ] in
-      `vₓ data-functor-indₓ `ps · Tₛ -is
+      `vₓ data-functor-indₓ -ps · Tₛ -is
         ` (out -is ` t)
-        · (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is functor ·ₜ Tₛ ₊
+        · (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is (functor ·ₜ Tₛ) ₊
            `∀ y'ₓ :ₜ indices-to-tpapps is Xₜₚ ₊ `∀ eₓ :ₜ `[ `vₓ fixpoint-inₓ `ps ` `vₓ yₓ ≃ `vₓ y'ₓ ] ₊
            indices-to-tpapps is Tₘ `ₜ (`φ `vₓ eₓ -
              (`vₓ fixpoint-inₓ `ps · functor - fmap ` (fcₜ (`vₓ yₓ))) [ `vₓ y'ₓ ]))))) , Γ)
 
-    λ xₒ → rename xₒ from Γ for λ x →
+    λ xₒ → rename xₒ from Γᵢₛ for λ x →
     let Rₓₒ = mu-Type/ x
         isRₓₒ = mu-isType/ x in
     rename Rₓₒ from Γᵢₛ for λ Rₓ →
@@ -912,14 +912,15 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
     rename "to" from Γᵢₛ for λ toₓ →
     rename "out" from Γᵢₛ for λ outₓ →
     let fcₜ = `vₓ castₓ `ps · (functor ·ₜ `Vₓ Rₓ) · (functor ·ₜ Xₜₚ) - (fmap · `Vₓ Rₓ · Xₜₚ - `vₓ toₓ)
-        subst-msf = subst Γᵢₛ (mtpvar Rₓ) Rₓₒ ∘' subst Γᵢₛ (mvar isRₓ) isRₓₒ ∘' subst Γᵢₛ (mvar x) xₒ ∘' msf in
+        subst-msf = subst-renamectxt Γᵢₛ (maybe-extract
+          (renamectxt-insert* empty-renamectxt (xₒ :: isRₓₒ :: Rₓₒ :: toₓ :: outₓ :: xₓ :: yₓ :: y'ₓ :: []) (x :: isRₓ :: Rₓ :: toₓ :: outₓ :: xₓ :: yₓ :: y'ₓ :: [])) refl) ∘ msf in -- subst Γᵢₛ (mtpvar Rₓ) Rₓₒ ∘' subst Γᵢₛ (mvar isRₓ) isRₓₒ ∘' subst Γᵢₛ (mvar x) xₒ ∘' msf in
     open? (`vₓ fixpoint-indₓ `ps · functor - fmap -is ` t · Tₘ `
       (`Λ Rₓ  ₊ `Λ toₓ ₊ `Λ outₓ ₊ `λ x ₊
        indices-to-lams is (`λ yₓ ₊
        `-[ isRₓ :ₜ `Vₓ data-Muₓ ·ps ·ₜ (`Vₓ Rₓ) `=
-           `open data-Muₓ - (`Λ Xₓ ₊ `λ xₓ ₊ `vₓ xₓ ` (`vₓ toₓ) ` (`vₓ outₓ))]-
+           `open data-Muₓ - (`Λ ignored-var ₊ `λ xₓ ₊ `vₓ xₓ ` (`vₓ toₓ) ` (`vₓ outₓ))]-
        (app-lambek (just $ `vₓ isRₓ) (`vₓ yₓ) (`Vₓ Rₓ) (is-as is) $ subst-msf
-         (indices-to-apps is (`vₓ data-functor-indₓ `ps · (`Vₓ Rₓ)) ` `vₓ yₓ ·
+         (indices-to-apps is (`vₓ data-functor-indₓ -ps · (`Vₓ Rₓ)) ` `vₓ yₓ ·
            (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is functor ·ₜ (`Vₓ Rₓ) ₊
              `∀ y'ₓ :ₜ indices-to-tpapps is Xₜₚ ₊ `∀ eₓ :ₜ `[ `vₓ fixpoint-inₓ `ps ` `vₓ yₓ ≃ `vₓ y'ₓ ] ₊
              indices-to-tpapps is Tₘ `ₜ (`φ `vₓ eₓ -

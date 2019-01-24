@@ -181,7 +181,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
                       mtpvar fₓ) Erased $
            indices-to-alls is $
            TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased $
-           indices-to-tpapps is $ params-to-tpapps ps $ mtpvar qx
+           indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx
          Γ' = ctxt-term-def pi' globalScope OpacTrans (data-to/ x) (just id-term) Tₜₒ Γ'
          cs' = flip map cs λ {(Ctr pi x' T) →
            Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
