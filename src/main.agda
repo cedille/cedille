@@ -14,7 +14,7 @@ import cws-types
 
 open import constants
 open import general-util
-
+open import json
 
 createOptionsFile : (dot-ced-dir : string) → IO ⊤
 createOptionsFile dot-ced-dir =
@@ -242,10 +242,14 @@ module main-with-options
 
   {- new parser test integration -}
   reparse : toplevel-state → filepath → IO toplevel-state
-  reparse st filename = 
-     doesFileExist filename >>= λ b → 
-       (if b then
-           (readFiniteFile filename >>= λ s → getCurrentTime >>= λ time → processText s >>=r λ ie → set-last-parse-time-include-elt ie time)
+  reparse st filename =
+     doesFileExist filename >>= λ fileExists →
+       (if fileExists then
+           (readFiniteFile filename >>= λ source →
+            getCurrentTime >>= λ time →
+            processText source >>= λ ie →
+            return (set-last-parse-time-include-elt ie time) >>=r λ ie ->
+            set-source-include-elt ie source)
         else return (error-include-elt ("The file " ^ filename ^ " could not be opened for reading.")))
        >>=r set-include-elt st filename
     where processText : string → IO include-elt
@@ -419,21 +423,23 @@ module main-with-options
                           input-filename tt {- should-print-spans -}
               checkCommand ls s = errorCommand ls s >>r s
 
-              allDependencies-h : toplevel-state → stringset → 𝕃 string → 𝕃 string
-              allDependencies-h s t (filename :: filenames) with stringset-contains t filename | get-include-elt-if s filename
-              ...| ff | just ie = allDependencies-h s (stringset-insert t filename) (filenames ++ include-elt.deps ie)
-              ...| _ | _ = allDependencies-h s t filenames
-              allDependencies-h s t [] = stringset-strings t
+              createArchive-h : toplevel-state → trie json → 𝕃 string → json
+              createArchive-h s t (filename :: filenames) with trie-contains t filename | get-include-elt-if s filename
+              ...| ff | just ie = createArchive-h s (trie-insert t filename $ include-elt-to-archive ie) (filenames ++ include-elt.deps ie)
+              ...| _ | _ = createArchive-h s t filenames
+              createArchive-h s t [] = json-object t
 
-              allDependencies : toplevel-state → string → 𝕃 string
-              allDependencies s filename = allDependencies-h s empty-stringset (filename :: [])
+              createArchive : toplevel-state → string → json
+              createArchive s filename = createArchive-h s empty-trie (filename :: [])
 
-              dependenciesCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              dependenciesCommand (input :: []) s =
+              archiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
+              archiveCommand (input :: []) s =
                 canonicalizePath input >>= λ filename →
                 update-asts s filename >>= λ s →
-                putStrLn (𝕃-to-string (λ x → x) (char-to-string delimiter) (allDependencies s filename)) >>r s
-              dependenciesCommand ls s = errorCommand ls s >>r s
+                process-file progressUpdate s filename (fileBaseName filename) >>= λ { (s , _) →
+                return (createArchive s filename) >>= λ archive →
+                putRopeLn (json-to-rope archive) >>r s }
+              archiveCommand ls s = errorCommand ls s >>r s
 
     {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
               findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
@@ -446,7 +452,7 @@ module main-with-options
               handleCommands ("debug" :: []) s = debugCommand s >>r s
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
               handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
-              handleCommands ("dependencies" :: xs) s = dependenciesCommand xs s
+              handleCommands ("archive" :: xs) s = archiveCommand xs s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s
 
