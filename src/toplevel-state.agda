@@ -16,6 +16,7 @@ open import syntax-util
 open import to-string options
 open import string-format
 open import subst
+open import json
 
 import cws-types
 
@@ -32,19 +33,20 @@ record include-elt : Set where
         last-parse-time : maybe UTC
         cede-up-to-date : 𝔹
         rkt-up-to-date : 𝔹
+        source : string
 
 blank-include-elt : include-elt
-blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ; 
-                             import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ; 
-                             do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff }
+blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ;
+                             import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ;
+                             do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff ; source = "" }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
 new-include-elt : filepath → (dependencies : 𝕃 (string × string)) → (ast : start) →
                   cws-types.start → maybe UTC → include-elt
 new-include-elt filename deps x y time =
   record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
-           need-to-add-symbols-to-context = tt ; 
-           do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff }
+           need-to-add-symbols-to-context = tt ;
+           do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff ; source = "" }
 
 error-include-elt : string → include-elt
 error-include-elt err = record blank-include-elt { ss = inj₂ (global-error-string err) ; err = tt }
@@ -89,6 +91,9 @@ set-rkt-file-up-to-date-include-elt ie up-to-date = record ie { rkt-up-to-date =
 set-spans-string-include-elt : include-elt → (err : 𝔹) → string → include-elt
 set-spans-string-include-elt ie err ss = record ie { ss = inj₂ ss ; err = err  }
 
+set-source-include-elt : include-elt → string → include-elt
+set-source-include-elt ie source = record ie { source = source }
+
 record toplevel-state : Set where
   constructor mk-toplevel-state
   field include-path : 𝕃 string × stringset
@@ -126,6 +131,11 @@ include-elt-spans-to-rope : include-elt → rope
 include-elt-spans-to-rope ie with (include-elt.ss ie)
 include-elt-spans-to-rope ie | inj₁ ss = spans-to-rope ss
 include-elt-spans-to-rope ie | inj₂ ss = [[ ss ]]
+
+include-elt-to-archive : include-elt → json
+include-elt-to-archive ie with (include-elt.ss ie) | (include-elt.source ie)
+include-elt-to-archive ie | inj₁ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw (spans-to-rope ss)) :: []
+include-elt-to-archive ie | inj₂ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw [[ ss ]]) :: []
 
 include-elt-to-string : include-elt → string
 include-elt-to-string ie =
