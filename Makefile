@@ -39,7 +39,8 @@ AGDASRC = \
 	cedille-options.agda \
 	elaboration.agda \
 	elaboration-helpers.agda \
-	monad-instances.agda
+	monad-instances.agda \
+	json.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \
