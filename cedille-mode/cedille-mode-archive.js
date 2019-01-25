@@ -1,15 +1,55 @@
-
-const cedilleSpans = JSON.parse(document.getElementById('spans').innerHTML);
+const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML.replace(/\n/g, "\\n"));
 const cedilleData = document.getElementById('cedille-data');
-const htmlSpans = [...document.getElementsByClassName('cedille-span')];
+const cedilleCode = document.getElementById('cedille-code-block');
+const emptyNode = document.createTextNode("");
 
-function removeClassFromSpans(className) {
+const removeClassFromSpans = (className, htmlSpans) => {
   htmlSpans.forEach(htmlSpan => htmlSpan.classList.remove(className));
-}
+};
 
-function displayData({name, start, end, data}) {
-  cedilleData.innerHTML = null;
+const spanLength = ({ start, end }) => {
+  return Math.abs(end - start);
+};
 
+const isArray = x => {
+  return x && typeof x === 'object' && x.length !== null;
+};
+
+const addEventListeners = (span, htmlSpan, htmlSpans) => {
+  htmlSpan.addEventListener('click', () => {
+    removeClassFromSpans('highlight', htmlSpans);
+    htmlSpan.classList.add('highlight');
+    displayData(span);
+  }, { capture: true });
+
+  htmlSpan.addEventListener('mouseover', () => {
+    removeClassFromSpans('hover-highlight', htmlSpans);
+    htmlSpan.classList.add('hover-highlight');
+  }, { capture: true });
+
+  htmlSpan.addEventListener('mouseout', () => {
+    htmlSpan.classList.remove('hover-highlight');
+  });
+};
+
+const createDiv = (className, text, children) => {
+  const node = document.createElement('div');
+  node.className = className;
+
+  if (isArray(text)) {
+    node.innerText = text[1];
+  } else if (text) {
+    node.innerText = text;
+  }
+
+  if (children) {
+    children.forEach(child => node.appendChild(child));
+  }
+
+  return node;
+};
+
+const displayData = ({name, start, end, data}) => {
   const displayData = {
     name,
     start,
@@ -17,37 +57,39 @@ function displayData({name, start, end, data}) {
     ...data
   };
 
+  cedilleData.innerHTML = null;
   Object.keys(displayData).forEach((key) => {
-    var bodyDiv = document.createElement('div');
-    var keyDiv = document.createElement('div');
-    var valueDiv = document.createElement('div');
-
-    keyDiv.innerText = key;
-    keyDiv.className = 'cedille-key';
-
-    valueDiv.innerText = displayData[key];
-    valueDiv.className = 'cedille-value';
-
-    bodyDiv.className = 'cedille-pair';
-    bodyDiv.appendChild(keyDiv);
-    bodyDiv.appendChild(valueDiv);
+    const keyDiv = createDiv('cedille-key', key)
+    const valueDiv = createDiv('cedille-value', displayData[key]);
+    const bodyDiv = createDiv('cedille-pair', null, [keyDiv, valueDiv]);
     cedilleData.appendChild(bodyDiv);
   });
-}
+};
 
-htmlSpans.forEach((htmlSpan, index) => {
-  htmlSpan.addEventListener('click', () => {
-    removeClassFromSpans('highlight');
-    htmlSpan.classList.add('highlight');
-    displayData(cedilleSpans[index]);
-  }, { capture: true });
-
-  htmlSpan.addEventListener('mouseover', () => {
-    removeClassFromSpans('hover-highlight');
-    htmlSpan.classList.add('hover-highlight');
-  }, { capture: true });
-
-  htmlSpan.addEventListener('mouseout', () => {
-    htmlSpan.classList.remove('hover-highlight');
+const displayCode = (filename) => {
+  const source = cedilleArchive[filename].source;
+  const spans = cedilleArchive[filename].spans.spans.map(([name, start, end, data]) => {
+    return { name, start, end, data };
   });
-});
+  const nodes = [null, ...source].map(c => document.createTextNode(c));
+  const spansByAscendingLength = spans.sort((a, b) => spanLength(a) - spanLength(b));
+  const htmlSpans = [];
+
+  spansByAscendingLength.forEach(span => {
+    const htmlSpan = document.createElement("span");
+    htmlSpan.className = 'cedille-span';
+    htmlSpans.push(htmlSpan);
+    addEventListeners(span, htmlSpan, htmlSpans);
+
+    for(let i = span.start; i < span.end; i++) {
+      htmlSpan.appendChild(nodes[i] || emptyNode);
+      nodes[i] = (i === span.start) ? htmlSpan : null;
+    }
+  });
+
+  cedilleCode.innerHTML = null;
+  cedilleCode.appendChild(nodes[1]);
+};
+
+const filename = Object.keys(cedilleArchive)[0];
+displayCode(filename);

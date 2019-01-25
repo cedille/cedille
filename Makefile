@@ -39,10 +39,12 @@ AGDASRC = \
 	cedille-options.agda \
 	elaboration.agda \
 	elaboration-helpers.agda \
-	monad-instances.agda
+	monad-instances.agda \
+	json.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \
+		cedille-mode/cedille-mode-archive.el \
 		cedille-mode/cedille-mode-context.el \
 		cedille-mode/cedille-mode-errors.el \
                 cedille-mode/cedille-mode-faces.el \
