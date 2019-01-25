@@ -436,7 +436,7 @@ module main-with-options
               archiveCommand (input :: []) s =
                 canonicalizePath input >>= λ filename →
                 update-asts s filename >>= λ s →
-                process-file progressUpdate s filename (fileBaseName filename) >>= λ { (s , _) →
+                process-file (λ _, _ → return triv) s filename (fileBaseName filename) >>= λ { (s , _) →
                 return (createArchive s filename) >>= λ archive →
                 putRopeLn (json-to-rope archive) >>r s }
               archiveCommand ls s = errorCommand ls s >>r s

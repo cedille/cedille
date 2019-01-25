@@ -2,49 +2,42 @@
 
 (require 'json)
 
-(defun cedille-archive-read-file (filename)
+(defun cedille-mode-archive-read-file (filename)
   "Read one of the template files for the archiving (to html) feature"
-   (with-temp-buffer
-     (insert-file-contents (concat cedille-path-el "cedille-mode/" filename))
-     (buffer-string)))
+  (with-temp-buffer
+    (insert-file-contents (concat cedille-path-el "cedille-mode/" filename))
+    (buffer-string)))
 
-(defconst cedille-archive-html-template
-  (cedille-archive-read-file "cedille-mode-archive-template.html"))
+(defconst cedille-mode-archive-html-template
+  (cedille-mode-archive-read-file "cedille-mode-archive-template.html"))
 
-(defconst cedille-archive-javascript
-  (cedille-archive-read-file "cedille-mode-archive.js"))
+(defconst cedille-mode-archive-javascript
+  (cedille-mode-archive-read-file "cedille-mode-archive.js"))
 
-(defun cedille-archive ()
-  "Archive a program to JSON and HTML"
-  (interactive)
-  (if (eq major-mode 'cedille-mode)
-      (cedille-save-archive)
-    (user-error "Must be using cedille mode!")))
+(lexical-let (buffer-name buffer-file-name)
+  (defun cedille-mode-archive ()
+    (interactive)
+    (unless (eq major-mode 'cedille-mode)
+      (user-error "Must be using cedille mode!"))
+    (setq buffer-name (buffer-name)
+          buffer-file-name (buffer-file-name))
+    (run-with-timer 1 nil 'cedille-mode-archive-timer))
 
-(defun cedille-save-archive ()
-  (let ((buffer-name (buffer-name))
-        (archive-file-name (concat (buffer-name) ".html"))
-        (text (buffer-substring-no-properties (point-min) (point-max)))
-        (spans se-mode-spans))
-    (with-temp-file archive-file-name
-      (insert (format cedille-archive-html-template
-                      (cedille-buffer-to-json buffer-name spans text)
-                      cedille-archive-javascript)))
-    (message "Saved archive as %s" archive-file-name)))
-
-(defun cedille-buffer-to-json (buffer-name spans text)
-  (json-encode
-   `((,buffer-name . ((text . ,text)
-                      (spans . ,(cedille-spans-to-sexp spans)))))))
-
-(defun cedille-spans-to-sexp (spans)
-  (mapcar 'cedille-span-to-sexp spans))
-
-(defun cedille-span-to-sexp (span)
-  `((name . ,(se-span-name span))
-    (start . ,(se-span-start span))
-    (end . ,(se-span-end span))
-    (data . ,(se-span-data span))))
+  (defun cedille-mode-archive-timer ()
+    (with-current-buffer buffer-name
+      (when cedille-mode-caching
+        (user-error "Must wait for caching to finish!"))
+      (se-inf-interactive
+       (cedille-mode-concat-sep "archive" buffer-file-name)
+       (lambda (archive extra)
+         (let ((archive-file-name (concat buffer-name ".html")))
+           (with-temp-file archive-file-name
+             (insert (format cedille-mode-archive-html-template
+                             archive
+                             cedille-mode-archive-javascript)))
+           (message "Saved archive as %s" archive-file-name)))
+       nil
+       :header "Archiving"))))
 
 (provide 'cedille-mode-archive)
 
