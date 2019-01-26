@@ -79,6 +79,8 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
+.PHONY: all libraries elisp lines elisp-lines agda-lines agda-install whitespace
+
 all: cedille #elisp
 
 libraries: ./ial/ial.agda-lib
@@ -172,3 +174,10 @@ agda-lines:
 
 agda-install:
 	./script/bootstrap
+
+whitespace:
+# add to emacs init: (add-hook 'before-save-hook 'delete-trailing-whitespace)
+	for file in $(SRC) $(ELISP); do \
+		emacs -batch $$file -f delete-trailing-whitespace -f save-buffer & \
+	done
+	wait
