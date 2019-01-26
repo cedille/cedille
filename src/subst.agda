@@ -39,10 +39,10 @@ substh{QUALIF} = λ Γ ρ σ q → q
 subst-rename-var-if : {ed : exprd} → ctxt → renamectxt → var → trie ⟦ ed ⟧ → var
 subst-rename-var-if Γ ρ "_" σ = "_"
 subst-rename-var-if Γ ρ x σ =
-  {- rename bound variable x iff it is one of the vars being substituted for, 
-     or if x occurs free in one of the terms we are substituting for vars, 
+  {- rename bound variable x iff it is one of the vars being substituted for,
+     or if x occurs free in one of the terms we are substituting for vars,
      or if it is the renamed version of any variable -}
-  if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then 
+  if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then
     rename-away-from x (λ s → ctxt-binds-var Γ s || trie-contains σ s) ρ
   else
     x
@@ -51,7 +51,7 @@ substh-term Γ ρ σ (App t m t') = App (substh-term Γ ρ σ t) m (substh-term 
 substh-term Γ ρ σ (AppTp t tp) = AppTp (substh-term Γ ρ σ t) (substh-type Γ ρ σ tp)
 substh-term Γ ρ σ (Lam _ b _ x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    Lam posinfo-gen b posinfo-gen x' (substh-optClass Γ ρ σ oc) 
+    Lam posinfo-gen b posinfo-gen x' (substh-optClass Γ ρ σ oc)
       (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-term Γ ρ σ (Let _ (DefTerm _ x m t) t') =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -128,7 +128,7 @@ substh-type Γ ρ σ (Abs _ b _ x atk t) =
       (substh-type (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (TpLambda _ _ x atk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    TpLambda posinfo-gen posinfo-gen x' (substh-tk Γ ρ σ atk) 
+    TpLambda posinfo-gen posinfo-gen x' (substh-tk Γ ρ σ atk)
       (substh-type (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (Iota _ _ x m t) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -136,7 +136,7 @@ substh-type Γ ρ σ (Iota _ _ x m t) =
       (substh-type (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh-type Γ ρ σ (Lft _ _ x t l) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    Lft posinfo-gen posinfo-gen x' (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t) 
+    Lft posinfo-gen posinfo-gen x' (substh-term (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
       (substh-liftingType Γ ρ σ l)
 substh-type Γ ρ σ (TpApp tp tp₁) = TpApp (substh-type Γ ρ σ tp) (substh-type Γ ρ σ tp₁)
 substh-type Γ ρ σ (TpAppt tp t) = TpAppt (substh-type Γ ρ σ tp) (substh-term Γ ρ σ t)
@@ -198,11 +198,11 @@ substh-optClass Γ ρ σ (SomeClass atk) = SomeClass (substh-tk Γ ρ σ atk)
 substh-liftingType Γ ρ σ (LiftArrow l l₁) = LiftArrow (substh-liftingType Γ ρ σ l) (substh-liftingType Γ ρ σ l₁)
 substh-liftingType Γ ρ σ (LiftParens _ l _) = substh-liftingType Γ ρ σ l
 substh-liftingType Γ ρ σ (LiftPi _ x tp l) =
-  let x' = subst-rename-var-if Γ ρ x σ in 
-    LiftPi posinfo-gen x' (substh-type Γ ρ σ tp) 
+  let x' = subst-rename-var-if Γ ρ x σ in
+    LiftPi posinfo-gen x' (substh-type Γ ρ σ tp)
        (substh-liftingType (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ l)
 substh-liftingType Γ ρ σ (LiftStar _) = LiftStar posinfo-gen
-substh-liftingType Γ ρ σ (LiftTpArrow tp l) = 
+substh-liftingType Γ ρ σ (LiftTpArrow tp l) =
   LiftTpArrow (substh-type Γ ρ σ tp) (substh-liftingType Γ ρ σ l)
 
 substh-optType Γ ρ σ NoType = NoType

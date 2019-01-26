@@ -22,7 +22,7 @@ putStrRunIf : 𝔹 → Run → IO ⊤
 putStrRunIf tt r = putStr (Run-to-string r) >> putStr "\n"
 putStrRunIf ff r = return triv
 
-processArgs : (showRun : 𝔹) → (showParsed : 𝔹) → 𝕃 string → IO ⊤ 
+processArgs : (showRun : 𝔹) → (showParsed : 𝔹) → 𝕃 string → IO ⊤
 processArgs showRun showParsed (input-filename :: []) = (readFiniteFile input-filename) >>= processText
   where processText : string → IO ⊤
         processText x with runRtn (string-to-𝕃char x)
@@ -31,12 +31,11 @@ processArgs showRun showParsed (input-filename :: []) = (readFiniteFile input-fi
         processText x | s | inj₂ r with putStrRunIf showRun r | rewriteRun r
         processText x | s | inj₂ r | sr | r' with putStrRunIf showParsed r'
         processText x | s | inj₂ r | sr | r' | sr' = sr >> sr' >> putStr (process r')
-                                     
-processArgs showRun showParsed ("--showRun" :: xs) = processArgs tt showParsed xs 
-processArgs showRun showParsed ("--showParsed" :: xs) = processArgs showRun tt xs 
+
+processArgs showRun showParsed ("--showRun" :: xs) = processArgs tt showParsed xs
+processArgs showRun showParsed ("--showParsed" :: xs) = processArgs showRun tt xs
 processArgs showRun showParsed (x :: xs) = putStr ("Unknown option " ^ x ^ "\n")
 processArgs showRun showParsed [] = putStr "Please run with the name of a file to process.\n"
 
 main : IO ⊤
 main = getArgs >>= processArgs ff ff
-

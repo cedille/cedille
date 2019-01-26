@@ -42,7 +42,7 @@
      (lambda (input)
        (interactive "MErase: ")
        (cedille-mode-erase-send-prompt input)))))
-  
+
 
 ;;;;;;;;        Span Code        ;;;;;;;;
 

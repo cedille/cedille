@@ -3,8 +3,8 @@
 ;;; Only follow these instruction if you did NOT use the Debian package:
 ;;; You need to set cedille-path to be the path to your Cedille installation.
 ;;; Then add that path to your load path for emacs.
-;;; Then put (require 'cedille-mode) in your .emacs file. 
-;;; 
+;;; Then put (require 'cedille-mode) in your .emacs file.
+;;;
 ;;; For example:
 ;;;
 ;;;    (setq cedille-path "/home/astump/cedille")
@@ -235,7 +235,7 @@ Defaults to `error'."
 (defun cedille-mode-update-buffers()
   "Update the info and context buffers."
   (when cedille-mode-do-update-buffers
-    (cedille-mode-inspect) 
+    (cedille-mode-inspect)
     (cedille-mode-context)
     (cedille-mode-meta-vars)
     (cedille-mode-rebalance-windows)))
@@ -284,7 +284,7 @@ Defaults to `error'."
 (defun cedille-mode-concat-sep (&rest seqs)
   "Concatenates STRS with cedille-mode-sep between each"
   (when seqs (concat (car seqs) (se-foldr (cdr seqs) "" (lambda (h x) (concat cedille-mode-sep h x))))))
-	   
+
 (defun cedille-mode-concat-sep2(sep ss)
   "Concat the strings in nonempty list ss with sep in between each one."
   (let ((he (car ss))
@@ -293,7 +293,7 @@ Defaults to `error'."
       (concat he sep (cedille-mode-concat-sep2 sep ta)))))
 
 (defun cedille-mode-split-string(s)
-  "Return a pair of the prefix of the string up to the first space, 
+  "Return a pair of the prefix of the string up to the first space,
 and the remaining suffix."
   (let ((ss (split-string s " ")))
     (if (< (length ss) 2) s
@@ -312,12 +312,12 @@ is assumed to be a string with a sequence number (prefix up
       (< (string-to-number na) (string-to-number nb))))
 
 (defun cedille-mode-strip-seqnum(s)
-  "Return a new string just like s except without the prefix up to the 
+  "Return a new string just like s except without the prefix up to the
 first space."
   (cdr (cedille-mode-split-string s)))
 
 (defun cedille-mode-sort-and-strip-json(json)
-  "Sort the pairs in the JSON data by the number at the 
+  "Sort the pairs in the JSON data by the number at the
 start of each string, and then strip out that number."
   (when json
       (setq json (sort json 'cedille-mode-compare-seqnums))
@@ -349,7 +349,7 @@ start of each string, and then strip out that number."
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
-  "Selects the next sibling from the currently selected one in 
+  "Selects the next sibling from the currently selected one in
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
   (if (> count 0)
@@ -360,7 +360,7 @@ the parse tree, and updates the Cedille info buffer."
     (cedille-mode-highlight-occurrences-if)))
 
 (defun cedille-mode-select-previous(count)
-  "Selects the previous sibling from the currently selected one in 
+  "Selects the previous sibling from the currently selected one in
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
   (if (> count 0)
@@ -444,7 +444,7 @@ Updates info buffer in either case."
     (cedille-mode-select-previous-alt (- count 1))))
 
 (defun cedille-mode-select-parent(count)
-  "Selects the parent of the currently selected node in 
+  "Selects the parent of the currently selected node in
 the parse tree, and updates the Cedille info buffer."
   (interactive "p")
   (if (> count 0)
@@ -543,7 +543,7 @@ in the parse tree, and updates the Cedille info buffer."
 	      (insert new-label))))))))
 
 (defun cedille-mode-highlight-occurrences-if()
-  "If the option is set to highlight matching variable 
+  "If the option is set to highlight matching variable
 occurrences, then do so."
   (cedille-mode-clear-interactive-highlight)
   (when cedille-mode-autohighlight-matching-variables (cedille-mode-highlight-occurrences)))
@@ -781,7 +781,7 @@ occurrences, then do so."
 
   (setq-local se-inf-get-message-from-filename 'cedille-mode-get-message-from-filename)
   (setq-local se-inf-progress-fn 'cedille-mode-progress-fn)
-  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix) 
+  (setq-local se-inf-progress-prefix cedille-mode-progress-prefix)
 
   (set-input-method "Cedille"))
 
@@ -801,7 +801,7 @@ occurrences, then do so."
 		      nil nil nil nil nil nil t) ; maximum-shortest
 
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
-	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "➔") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
+	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "➔") ("\\a" "∀") ("\\B" "□") ("\\P" "Π")
           ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "φ")
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\==" "≅") ("\\d" "δ") ("\\-" "➾")
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")

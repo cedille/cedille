@@ -55,7 +55,7 @@ mendler-encoding =
           NoType ihₓ → nothing;
           (SomeType Tₘ) ihₓ → nothing
         };
-      
+
         elab-check-mu' = λ T → nothing;
         elab-synth-mu' = case oT of λ {
           NoType → nothing;
@@ -91,7 +91,7 @@ mendler-simple-encoding =
           NoType ihₓ → nothing;
           (SomeType Tₘ) ihₓ → nothing
         };
-      
+
         elab-check-mu' = λ T → nothing;
         elab-synth-mu' = case oT of λ {
           NoType → nothing;
@@ -529,7 +529,7 @@ elab-tkh Γ (Tkt T) b = elab-typeh Γ T b ≫=maybe uncurry λ T _ → just (Tkt
 elab-tkh Γ (Tkk k) b = elab-kindh Γ k b ≫=maybe λ k → just (Tkk k)
 
 elab-pure-term Γ (Var pi x) = just (mvar x)
-elab-pure-term Γ (App t NotErased t') = 
+elab-pure-term Γ (App t NotErased t') =
   elab-pure-term Γ t ≫=maybe λ t →
   elab-pure-term Γ t' ≫=maybe λ t' →
   just (App t NotErased t')
@@ -764,7 +764,7 @@ elab-all ts fm to =
           do-type-check = ff;
           inv = refl})
        (toplevel-state.is ts)}
-  
+
   get-file-imports : toplevel-state → (filename : string) → stringset → maybe stringset
   get-file-imports ts fn is =
     get-include-elt-if ts fn ≫=maybe λ ie →
@@ -799,8 +799,3 @@ elab-file : toplevel-state → (filename : string) → maybe rope
 elab-file ts fn =
   elab-file' ts empty-renamectxt empty-renamectxt empty-trie fn ≫=maybe uncurry'' λ fn' ts ρ φ →
   get-include-elt-if ts fn ≫=maybe ie-get-span-ast
-
-
-
-
-

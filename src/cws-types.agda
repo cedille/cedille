@@ -11,18 +11,18 @@ posinfo = string
 
 {-# FOREIGN GHC import qualified CedilleCommentsLexer #-}
 
-data entity : Set where 
+data entity : Set where
     EntityComment : posinfo → posinfo → entity
     EntityNonws : entity
     EntityWs : posinfo → posinfo → entity
 {-# COMPILE GHC entity = data CedilleCommentsLexer.Entity (CedilleCommentsLexer.EntityComment | CedilleCommentsLexer.EntityNonws | CedilleCommentsLexer.EntityWs) #-}
 
-data entities : Set where 
+data entities : Set where
     EndEntity : entities
     Entity : entity → entities → entities
 {-# COMPILE GHC entities = data CedilleCommentsLexer.Entities (CedilleCommentsLexer.EndEntity | CedilleCommentsLexer.Entity) #-}
 
-data start : Set where 
+data start : Set where
     File : entities → start
 {-# COMPILE GHC start = data CedilleCommentsLexer.Start (CedilleCommentsLexer.File) #-}
 
@@ -254,4 +254,3 @@ isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed 
 
 ptr : ParseTreeRec
 ptr = record { ParseTreeT = ParseTreeT ; isParseTree = isParseTree ; ParseTreeToString = ParseTreeToString }
-

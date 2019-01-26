@@ -218,7 +218,7 @@ params-to-string : params → strM
 params-to-string' : strM → params → strM
 file-to-string : start → strM
 cmds-to-string : cmds → strM → strM
-cmd-to-string : cmd → strM → strM  
+cmd-to-string : cmd → strM → strM
 optTerm-to-string : optTerm → string → string → strM
 optClass-to-string : optClass → strM
 optGuide-to-string : optGuide → strM
@@ -269,11 +269,11 @@ to-stringh = to-stringh' neither
 constructors-to-string DataNull                        = strEmpty
 constructors-to-string (DataCons (DataConst _ x t) ds) =
   strAdd "  | "  ≫str
-  strAdd x      ≫str 
+  strAdd x      ≫str
   strAdd " : "  ≫str
   type-to-stringh  t ≫str
   constructors-to-string ds
-  
+
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
@@ -412,7 +412,7 @@ cmds-to-string (CmdsNext c cs) f =
    cmd-to-string c
   (strAdd "\n" ≫str
    cmds-to-string cs f)
-  
+
 cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ in
@@ -456,9 +456,9 @@ cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
 cmd-to-string (DefDatatype (Datatype pi pix x ps k cs pi') pi'') f =
   strAdd "data " ≫str
   strAdd x ≫str
-  strAdd " " ≫str  
+  strAdd " " ≫str
   params-to-string ps ≫str
-  strAdd " : " ≫str    
+  strAdd " : " ≫str
   kind-to-stringh k ≫str
   strAdd " = " ≫str
   constructors-to-string cs ≫str
@@ -487,4 +487,3 @@ tk-to-string Γ atk = strRun Γ (tk-to-stringh atk)
 
 params-to-string-tag : string → ctxt → params → tagged-val
 params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)
-

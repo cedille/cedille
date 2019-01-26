@@ -47,17 +47,17 @@ path-star-1 = string
 {-# FOREIGN GHC import qualified CedilleOptionsParser #-}
 {-# FOREIGN GHC import qualified CedilleOptionsLexer #-}
 
-data str-bool : Set where 
+data str-bool : Set where
     StrBoolFalse : str-bool
     StrBoolTrue : str-bool
 {-# COMPILE GHC str-bool = data CedilleOptionsLexer.StrBool (CedilleOptionsLexer.StrBoolFalse | CedilleOptionsLexer.StrBoolTrue) #-}
 
-data paths : Set where 
+data paths : Set where
     PathsCons : path → paths → paths
     PathsNil : paths
 {-# COMPILE GHC paths = data CedilleOptionsLexer.Paths (CedilleOptionsLexer.PathsCons | CedilleOptionsLexer.PathsNil) #-}
 
-data opt : Set where 
+data opt : Set where
     GenerateLogs : str-bool → opt
     Lib : paths → opt
     MakeRktFiles : str-bool → opt
@@ -66,12 +66,12 @@ data opt : Set where
     EraseTypes : str-bool → opt
 {-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes) #-}
 
-data opts : Set where 
+data opts : Set where
     OptsCons : opt → opts → opts
     OptsNil : opts
-{-# COMPILE GHC opts = data CedilleOptionsLexer.Opts (CedilleOptionsLexer.OptsCons | CedilleOptionsLexer.OptsNil) #-}    
+{-# COMPILE GHC opts = data CedilleOptionsLexer.Opts (CedilleOptionsLexer.OptsCons | CedilleOptionsLexer.OptsNil) #-}
 
-data start : Set where 
+data start : Set where
     File : opts → start
 {-# COMPILE GHC start = data CedilleOptionsLexer.Start (CedilleOptionsLexer.File) #-}
 
@@ -331,4 +331,3 @@ isParseTree p l s = ⊤ {- this will be ignored since we are using simply typed 
 
 ptr : ParseTreeRec
 ptr = record { ParseTreeT = ParseTreeT ; isParseTree = isParseTree ; ParseTreeToString = ParseTreeToString }
-

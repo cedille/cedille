@@ -155,7 +155,7 @@
   "Sorts context according to ordering and stores in cedille-mode-sorted-context-list"
   (let* ((context (copy-sequence cedille-mode-filtered-context-list))
 	 ;; unary predicate for membership in the hidden type/kind list
-	 (hidden-p (lambda (pair) (member pair cedille-mode-hidden-context-tuples))) 
+	 (hidden-p (lambda (pair) (member pair cedille-mode-hidden-context-tuples)))
 	 ;; binary predicate for separating hidden types/kinds
 	 (whiteout (lambda (a b) (and (not (funcall hidden-p a)) (funcall hidden-p b))))
 	 ;; binary predicate for ascending alphabetical order
@@ -246,7 +246,7 @@ which currently consists of:\n
 			 (when list
 			   (let*
 			       ;; utility function for maximum of list
-			       ((maximum (lambda (list) (my-seq-reduce (lambda (acc n) (max acc n)) list 0)))  
+			       ((maximum (lambda (list) (my-seq-reduce (lambda (acc n) (max acc n)) list 0)))
 				;; compute the maximum number of terms shadowed by this symbol
 				(max-shadows (lambda (symbol)
 					       (funcall
@@ -268,7 +268,7 @@ which currently consists of:\n
 						       (append alist (list (list 'is-unshadowed-p is-unshadowed-p)))))))
 			     ;; repeat for each instance in the list
 			     (mapcar add-is-unshadowed-p list))))))
-    (dolist (node (butlast path) (when (or terms types) (cons (funcall add-shadowed terms) (funcall add-shadowed types))))  
+    (dolist (node (butlast path) (when (or terms types) (cons (funcall add-shadowed terms) (funcall add-shadowed types))))
       (let ((binder (cdr (assoc 'binder (se-term-data node))))
 	    (bound-value (cdr (assoc 'bound-value (se-term-data node))))
 	    (children (se-node-children node)))
@@ -292,16 +292,16 @@ which currently consists of:\n
 		 (set-list
 		  ;; this takes the list to be modified and the type or kind containing the value data
 		  (lambda (q-lst value-source) ; quoted list -> list -> nil [mutates input 0]
-		    ;; we rename shadowed variables with a [+n] suffix or omit them		    
+		    ;; we rename shadowed variables with a [+n] suffix or omit them
 		    (let* ((shadows (funcall count-shadowed (eval q-lst) symbol count-shadowed)) ; number of symbols shadowed by this one
                            (fn-pos (cedille-mode-location-split location))
-			   (data (list 
+			   (data (list
 				  (cons 'value value-source) 		; the value displayed for the entry
 				  (cons 'bound-value bound-value)       ; the bound value of the variable (only used in let expressions)
 				  (cons 'keywords keywords-list) 	; keywords identifying attributes of the entry
 				  (cons 'location location)             ; the location of the definition; used in other files, but not this one
 				  (cons 'shadows shadows)))) 		; number of symbols shadowed by this one
-		      
+
 		      (set q-lst (cons (cons symbol data) (cedille-mode-context-shadow-tags (eval q-lst) symbol (car fn-pos) (cdr fn-pos))))))))
 	    (when (and symbol (not (equal symbol "_")) (or type kind)) 	; separate types and kinds
 	      (if type
@@ -366,7 +366,7 @@ which currently consists of:\n
 			  (symbol (car pair))
 			  (data (cdr pair))
 			  (is-shadowed-p (not (cadr (assoc 'is-unshadowed-p data))))
-			  
+
 			  ;; add dash for erased symbols
 			  (fsymbol (concat (if (cedille-mode-helpers-has-keyword pair "noterased") " " "-") symbol))
 			  ;; hide types and kinds in whiteout list
@@ -384,14 +384,14 @@ which currently consists of:\n
 				(if shadow-p
 				    list
 				  (funcall shadow-filter list))))
-	 
+
 	 (terms (funcall apply-shadow-filter-optionally (car context)))
 	 (types (funcall apply-shadow-filter-optionally (cdr context))))
     ;; return a pair where first element is list of formatted terms and second is list of formatted types
   (list
    (mapcar format terms)
    (mapcar format types))))
-    
+
 
 					; CONVENIENT FUNCTIONS
 

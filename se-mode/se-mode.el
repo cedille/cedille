@@ -144,26 +144,26 @@ selected, select it again."
       (message "No child span found"))))
 
 (defun se-mode-select-last-helper (prev)
-  "Helper function for selecting the last sibling span from a node 
+  "Helper function for selecting the last sibling span from a node
 of the tree."
   (let ((next (se-mode-next)))
     (if (null next) prev
       (se-mode-select next)
       (se-mode-select-last-helper next))))
-  
+
 (defun se-mode-select-last()
   "Selects the last sibling of the parent of the current node."
   (interactive)
   (se-mode-select-last-helper (se-mode-selected)))
 
 (defun se-mode-select-first-helper (next)
-  "Helper function for selecting the first sibling span from a node 
+  "Helper function for selecting the first sibling span from a node
 of the tree."
   (let ((prev (se-mode-previous)))
     (if (null prev) next
       (se-mode-select prev)
       (se-mode-select-first-helper prev))))
-  
+
 (defun se-mode-select-first()
   "Selects the first sibling of the parent of the current node."
   (interactive)

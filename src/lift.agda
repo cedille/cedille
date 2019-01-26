@@ -29,7 +29,7 @@ liftingType-to-type X (LiftPi _ x tp l) = Abs posinfo-gen Pi posinfo-gen x (Tkt 
    where xs and ls are packaged as the input list of tuples, l is the
    input liftingType, and t is the input term. -}
 lift-freeze : var → 𝕃 (var × liftingType) → liftingType → term → type
-lift-freeze X tobind l t = 
+lift-freeze X tobind l t =
   let xs = map fst tobind in
     TpApp* (Lft posinfo-gen posinfo-gen X (Lam* xs t) (LiftArrow* (map snd tobind) l))
       (map (λ p → TpVar posinfo-gen (fst p)) tobind)
@@ -41,31 +41,30 @@ do-liftargs Γ tp (LiftTpArrow l1 l2) (arg :: args) X tobind =
   do-liftargs Γ (TpAppt tp arg) l2 args X tobind
 do-liftargs Γ tp (LiftPi _ x _ l) (arg :: args) X tobind =
   do-liftargs Γ (TpAppt tp arg) (subst Γ arg x l) args X tobind
-do-liftargs Γ tp (LiftParens _ l _) args X tobind = do-liftargs Γ tp l args X tobind 
+do-liftargs Γ tp (LiftParens _ l _) args X tobind = do-liftargs Γ tp l args X tobind
 do-liftargs Γ tp _ _ _ _ = tp
 
 -- tobind are the variables we have seen going through the lifting type (they are also mapped by the trie)
 do-lifth : ctxt → trie liftingType →
-           𝕃 (var × liftingType) → type → var → liftingType → 
+           𝕃 (var × liftingType) → type → var → liftingType →
            (term → term) → -- function to put terms in hnf
-           term →           
+           term →
            type
-do-lifth Γ m tobind origtp X (LiftParens _ l _) hnf t = do-lifth Γ m tobind origtp X l hnf t 
-do-lifth Γ m tobind origtp X (LiftArrow l1 l2) hnf (Lam _ _ _ x _ t) = 
+do-lifth Γ m tobind origtp X (LiftParens _ l _) hnf t = do-lifth Γ m tobind origtp X l hnf t
+do-lifth Γ m tobind origtp X (LiftArrow l1 l2) hnf (Lam _ _ _ x _ t) =
   do-lifth Γ (trie-insert m x l1) ((x , l1) :: tobind) origtp X l2 hnf t
-do-lifth Γ m tobind origtp X (LiftTpArrow tp l2) hnf (Lam _ _ _ x _ t) = 
+do-lifth Γ m tobind origtp X (LiftTpArrow tp l2) hnf (Lam _ _ _ x _ t) =
   TpLambda posinfo-gen posinfo-gen x (Tkt tp) (do-lifth Γ m tobind origtp X l2 hnf t)
 do-lifth Γ m tobind origtp X l hnf t with decompose-apps (hnf t)
 do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args with trie-lookup m x
 do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args | nothing = origtp -- the term being lifted is not headed by one of the bound vars
-do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args | just l' = 
+do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args | just l' =
   rebind tobind (do-liftargs Γ (TpVar posinfo-gen x) l' (reverse args) X tobind)
   where rebind : 𝕃 (var × liftingType) → type → type
         rebind ((x , l'):: xs) tp = rebind xs (TpLambda posinfo-gen posinfo-gen x (Tkk (liftingType-to-kind l')) tp)
-        rebind [] tp = tp 
+        rebind [] tp = tp
 do-lifth Γ m tobind origtp X l hnf t | _ , args = origtp
 
 -- lift a term to a type at the given liftingType, if possible.
 do-lift : ctxt → type → var → liftingType → (term → term) {- hnf -} → term → type
 do-lift Γ origtp X l hnf t = do-lifth Γ empty-trie [] origtp X l hnf t
-

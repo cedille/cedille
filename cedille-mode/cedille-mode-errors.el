@@ -1,7 +1,7 @@
 (make-variable-buffer-local
  (defvar cedille-mode-error-spans nil
    "List of all error spans."))
- 
+
 ;(make-variable-buffer-local
 ; (defvar cedille-mode-next-errors nil
 ;   "Next spans with an error value."))
@@ -26,7 +26,7 @@ of spans that have an error value."
       (when (cedille-span-has-error-data (se-span-data cur))
 	(push cur cedille-mode-error-spans))
       (cedille-find-error-spans (cdr spans)))))
-    
+
 (defun cedille-mode-set-error-spans()
   "After loading spans from the backend tool, this hook will look for error
 spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
@@ -52,14 +52,14 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
    (cedille-mode-update-buffers))
    ;;(display-buffer (cedille-mode-inspect)))
 
-(defun cedille-mode-select-first-error(selected-span)  
+(defun cedille-mode-select-first-error(selected-span)
   "Selects and highlights the first error in the selected span."
   (let ((first-error (car (delq nil (mapcar (lambda (x) (if (se-term-child-p x selected-span) x nil)) cedille-mode-error-spans)))))
     (if first-error
 	(cedille-mode-select-error first-error)
-        (message "No errors in selection")))) 
+        (message "No errors in selection"))))
 
-(defun cedille-mode-select-last-error(selected-span)  
+(defun cedille-mode-select-last-error(selected-span)
   "Selects and highlight the last error in the selected span."
   (let ((last-error (last (delq nil (mapcar (lambda (x) (if (se-term-child-p x selected-span) x nil)) cedille-mode-error-spans)))))
     (if last-error
@@ -176,7 +176,7 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
        ((equal selected-span cedille-mode-cur-error) (cedille-mode-next-error 1))
         ; if the selected thing is another error, make it the current error
        ((member selected-span cedille-mode-error-spans) (cedille-mode-select-error selected-span))
-        ; otherwise select the first error in the selected span 
+        ; otherwise select the first error in the selected span
        (t (cedille-mode-select-first-error selected-span))))
 	(cedille-mode-select-next-error (- count 1))))
 

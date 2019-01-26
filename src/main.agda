@@ -2,7 +2,7 @@ module main where
 
 open import lib
 import string-format
--- for parser for Cedille 
+-- for parser for Cedille
 open import cedille-types
 
 -- for parser for options files
@@ -64,7 +64,7 @@ processOptions filename s with options-types.scanOptions s
   opts-to-options filename oo
   >>= λ opts → if cedille-options.options.make-rkt-files opts
     then return ∘ inj₁ $ "Racket compilation disabled, please set to false in " ^ filename ^ "."
-  else (return ∘ inj₂ $ opts) 
+  else (return ∘ inj₂ $ opts)
 
 
 getOptionsFile : (filepath : string) → string
@@ -130,7 +130,7 @@ module main-with-options
   import interactive-cmds
   open import rkt options
   open import elaboration options
-  
+
 
   logFilepath : IO filepath
   logFilepath = getHomeDirectory >>=r λ home →
@@ -171,7 +171,7 @@ module main-with-options
   rkt-suffix = ".rkt"
 
   ced-aux-filename : (suffix ced-path : filepath) → filepath
-  ced-aux-filename sfx ced-path = 
+  ced-aux-filename sfx ced-path =
     let dir = takeDirectory ced-path in
       combineFileNames (dot-cedille-directory dir) (fileBaseName ced-path ^ sfx)
 
@@ -224,7 +224,7 @@ module main-with-options
     h ('.' :: cs) = pathSeparator :: h cs
     h (c :: cs) = c :: h cs
     h [] = []
-  
+
   find-imported-file : (dirs : 𝕃 filepath) → (unit-name : string) → IO (maybe filepath)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
@@ -255,8 +255,8 @@ module main-with-options
     where processText : string → IO include-elt
           processText x with parseStart x
           processText x | Left (Left cs)  = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Lexical error." cs)
-          processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)        
-          processText x | Right t  with cws-types.scanComments x 
+          processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)
+          processText x | Right t  with cws-types.scanComments x
           processText x | Right t | t2 = find-imported-files (fst (cedille-options.include-path-insert (takeDirectory filename) (toplevel-state.include-path st)))
                                                              (get-imports t) >>= λ deps →
                                          logMsg ("deps for file " ^ filename ^ ": " ^ 𝕃-to-string (λ {(a , b) → "short: " ^ a ^ ", long: " ^ b}) ", " deps) >>r
@@ -269,7 +269,7 @@ module main-with-options
       (set-cede-file-up-to-date-include-elt
         (set-do-type-check-include-elt
           (get-include-elt s filename) tt) ff)
-  
+
   infixl 1 _&&>>_
   _&&>>_ : IO 𝔹 → IO 𝔹 → IO 𝔹
   (a &&>> b) = a >>= λ a → if a then b else return ff
@@ -295,14 +295,14 @@ module main-with-options
       tt → doesFileExist cede &&>> doesFileExist cede' >>= λ where
         ff → return ff
         tt → fileIsOlder cede cede' >>=r λ fio → dtc || fio
-   
+
   any-imports-changed : toplevel-state → filepath → (imports : 𝕃 string) → IO 𝔹
   any-imports-changed s filename [] = return ff
   any-imports-changed s filename (h :: t) =
     import-changed s filename h >>= λ where
       tt → return tt
       ff → any-imports-changed s filename t
-  
+
   file-after-compile : filepath → IO 𝔹
   file-after-compile fn =
     getModificationTime fn >>= λ mt →
@@ -337,18 +337,18 @@ module main-with-options
   {-# TERMINATING #-}
   update-astsh : stringset {- seen already -} → toplevel-state → filepath →
                  IO (stringset {- seen already -} × toplevel-state)
-  update-astsh seen s filename = 
+  update-astsh seen s filename =
     if stringset-contains seen filename then return (seen , s)
     else (ensure-ast-depsh filename s >>= aux-up-to-date filename >>= cont (stringset-insert seen filename))
     where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
           cont seen s with get-include-elt s filename
           cont seen s | ie with include-elt.deps ie
-          cont seen s | ie | ds = 
+          cont seen s | ie | ds =
             proc seen s ds
             where proc : stringset → toplevel-state → 𝕃 string → IO (stringset × toplevel-state)
                   proc seen s [] = any-imports-changed s filename ds >>=r λ changed →
                     seen , set-include-elt s filename (set-do-type-check-include-elt ie (include-elt.do-type-check ie || changed))
-                  proc seen s (d :: ds) = update-astsh seen s d >>= λ p → 
+                  proc seen s (d :: ds) = update-astsh seen s d >>= λ p →
                                           proc (fst p) (snd p) ds
 
   {- this function updates the ast associated with the given filename in the toplevel state.
@@ -366,7 +366,7 @@ module main-with-options
 
   {- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
   checkFile : toplevel-state → filepath → (should-print-spans : 𝔹) → IO toplevel-state
-  checkFile s filename should-print-spans = 
+  checkFile s filename should-print-spans =
     update-asts s filename >>= λ s →
     log-files-to-check s >>
     logMsg (𝕃-to-string (λ {(im , fn) → "im: " ^ im ^ ", fn: " ^ fn}) "; " (trie-mappings (include-elt.import-to-dep (get-include-elt s filename)))) >>
@@ -403,8 +403,8 @@ module main-with-options
   readCommandsFromFrontend s =
       getLine >>= λ input →
       logMsg ("Frontend input: " ^ input) >>
-      let input-list : 𝕃 string 
-          input-list = (string-split (undo-escape-string input) delimiter) 
+      let input-list : 𝕃 string
+          input-list = (string-split (undo-escape-string input) delimiter)
               in (handleCommands input-list s) >>= λ s →
           readCommandsFromFrontend s
           where
@@ -458,11 +458,11 @@ module main-with-options
 
 
   -- function to process command-line arguments
-  processArgs : 𝕃 string → IO ⊤ 
+  processArgs : 𝕃 string → IO ⊤
 
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
-    canonicalizePath input-filename >>= λ input-filename → 
+    canonicalizePath input-filename >>= λ input-filename →
     checkFile (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename) (cedille-options.options.include-path options)))
       input-filename ff {- should-print-spans -} >>= finish input-filename
     where finish : string → toplevel-state → IO ⊤
@@ -476,7 +476,7 @@ module main-with-options
   -- all other cases are errors
   processArgs xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                            ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
-  
+
   main' : 𝕃 string → IO ⊤
   main' args =
     maybeClearLogFile >>

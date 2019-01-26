@@ -657,4 +657,3 @@ meta-vars-unfold-tmapp Γ sl Xs tp
 ... | Ys , TpArrow dom e? cod =
   Ys , yes-tmabs e? "_" dom ff cod
 ... | Ys , tp' = Ys , not-tmabs tp'
-

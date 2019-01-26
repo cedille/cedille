@@ -45,7 +45,7 @@ creating the parse tree from them."))
 
 (make-variable-buffer-local
  (defvar se-inf-get-message-from-filename (lambda (x) x)
-   "A function to call to compute the message to send to the backend 
+   "A function to call to compute the message to send to the backend
 a buffer is supposed to be parsed.  The function will be given the
 name of the file to parse, and should return the message that ought
 to be sent to the backend to request parsing of that file."))

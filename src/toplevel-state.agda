@@ -27,7 +27,7 @@ record include-elt : Set where
         import-to-dep : trie string {- map import strings in the file to their full paths -}
         ss : spans ⊎ string {- spans in string form (read from disk) -}
         err : 𝔹 -- is ss reporting an error
-        need-to-add-symbols-to-context : 𝔹 
+        need-to-add-symbols-to-context : 𝔹
         do-type-check : 𝔹
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
         last-parse-time : maybe UTC
@@ -55,18 +55,18 @@ error-span-include-elt : string → string → posinfo → include-elt
 error-span-include-elt err errSpan pos = record blank-include-elt { ss = inj₁ (add-span (span.mk-span err pos (posinfo-plus pos 1) [] (just errSpan) ) empty-spans ) ; err = tt }
 
 set-do-type-check-include-elt : include-elt → 𝔹 → include-elt
-set-do-type-check-include-elt ie b = 
- record ie { need-to-add-symbols-to-context = (b || include-elt.need-to-add-symbols-to-context ie) ; 
-             do-type-check = b ; 
+set-do-type-check-include-elt ie b =
+ record ie { need-to-add-symbols-to-context = (b || include-elt.need-to-add-symbols-to-context ie) ;
+             do-type-check = b ;
              inv = lem b }
  where lem : (b : 𝔹) → b imp (b || include-elt.need-to-add-symbols-to-context ie) ≡ tt
        lem tt = refl
        lem ff = refl
 
 set-need-to-add-symbols-to-context-include-elt : include-elt → 𝔹 → include-elt
-set-need-to-add-symbols-to-context-include-elt ie b = 
- record ie { need-to-add-symbols-to-context = b ; 
-             do-type-check = b && include-elt.do-type-check ie ; 
+set-need-to-add-symbols-to-context-include-elt ie b =
+ record ie { need-to-add-symbols-to-context = b ;
+             do-type-check = b && include-elt.do-type-check ie ;
              inv = lem b }
  where lem : ∀(b : 𝔹){b' : 𝔹} → b && b' imp b ≡ tt
        lem tt {tt} = refl
@@ -75,8 +75,8 @@ set-need-to-add-symbols-to-context-include-elt ie b =
        lem ff {ff} = refl
 
 set-spans-include-elt : include-elt → spans → include-elt
-set-spans-include-elt ie ss = 
- record ie { ss = inj₁ ss ; 
+set-spans-include-elt ie ss =
+ record ie { ss = inj₁ ss ;
              err = spans-have-error ss  }
 
 set-last-parse-time-include-elt : include-elt → UTC → include-elt
@@ -104,7 +104,7 @@ record toplevel-state : Set where
 new-toplevel-state : (include-path : 𝕃 string × stringset) → toplevel-state
 new-toplevel-state ip = record { include-path = ip ;
                                                                              files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
-                                                                             
+
 toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
 toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
 
@@ -118,10 +118,10 @@ get-include-elt s filename | nothing = blank-include-elt {- should not happen -}
 get-include-elt s filename | just ie = ie
 
 
-set-include-elt : toplevel-state → filepath → include-elt → toplevel-state 
+set-include-elt : toplevel-state → filepath → include-elt → toplevel-state
 set-include-elt s f ie = record s { is = trie-insert (toplevel-state.is s) f ie }
 
-set-include-path : toplevel-state → 𝕃 string × stringset → toplevel-state 
+set-include-path : toplevel-state → 𝕃 string × stringset → toplevel-state
 set-include-path s ip = record s { include-path = ip }
 
 get-do-type-check : toplevel-state → string → 𝔹
@@ -142,9 +142,9 @@ include-elt-to-string ie =
     " deps:  " ^ (𝕃-to-string (λ x → x) "," (include-elt.deps ie)) ^
     -- ast
     ", ast:  " ^ maybe-else "not parsed" (λ ast → "parsed") (include-elt.ast ie) ^ ", " ^
-    " import-to-dep:  " ^ (trie-to-string "," (format "filename: %s") (include-elt.import-to-dep ie)) ^ 
+    " import-to-dep:  " ^ (trie-to-string "," (format "filename: %s") (include-elt.import-to-dep ie)) ^
     -- spans
-    " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^ 
+    " err:  " ^ (𝔹-to-string (include-elt.err ie)) ^
     ", need-to-add-symbols-to-context:  " ^ (𝔹-to-string (include-elt.need-to-add-symbols-to-context ie)) ^
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
     ", last-parse-time: " ^ (maybe-else "" utcToString (include-elt.last-parse-time ie))
@@ -197,8 +197,8 @@ ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os d) = "mod-info: {" ^ (mod-info-to-
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
-    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^ 
-    "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
+    "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^
+    "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^
     "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
@@ -269,20 +269,20 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
   merged σ (ParamsCons (Decl _ _ me x atk _) ps) ArgsNil =
     merged (trie-insert σ x nothing) ps ArgsNil
   merged σ _ _ = σ
-  
+
   arg-var : arg → maybe var
   arg-var (TermArg me (Var pi x)) = just x
   arg-var (TypeArg (TpVar pi x)) = just x
   arg-var _ = nothing
 
   σ = merged empty-trie psₒ asₒ
-  
+
   reorder : args → args
   reorder (ArgsCons a as) =
     maybe-else' (arg-var a ≫=maybe trie-lookup σ) (ArgsCons a $ reorder as) λ ma →
     maybe-else' ma ArgsNil λ a → ArgsCons a $ reorder as
   reorder ArgsNil = ArgsNil
-  
+
   asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
 
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v

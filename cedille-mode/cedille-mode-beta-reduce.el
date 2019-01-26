@@ -286,7 +286,7 @@
   (let* ((start (se-term-start node))
          (end (min (1+ (buffer-size)) (se-term-end node))))
     (cons (se-get-span node) (buffer-substring start end))))
-  
+
 (defun cedille-mode-br-get-qed (node)
   "Returns the buffer's text from the start to the end of NODE, if it has an error"
   (when (and node (cedille-span-has-error-data (se-term-data node)))

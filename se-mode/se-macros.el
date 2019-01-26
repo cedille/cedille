@@ -39,13 +39,13 @@ Example:
 ;	 (add-hook 'before-change-functions
 ;		   #'se-mode-push-parse-tree nil t)
 )
-       
+
        (defun ,(idf "%s-parse-file" prefix) ()
 	 "Only parses when navigation mode is active to prevent
 the navigation mode hook from calling `se-inf-parse-file' when
 deactivating. Most often one should use
 `se-inf-parse-file' instead."
-	 (when 
+	 (when
            (and se-navigation-mode
 	     (null se-mode-parse-tree))
 	   (se-inf-parse-file))))))

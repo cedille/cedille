@@ -6,7 +6,7 @@ open import general-util
 open import syntax-util
 
 location : Set
-location = string × posinfo -- file path and starting position in the file 
+location = string × posinfo -- file path and starting position in the file
 
 -- file path and starting / ending position in file
 span-location = string × posinfo × posinfo
@@ -46,7 +46,7 @@ data ctxt-info : Set where
   -- for defining a variable to equal a term with a given type
   term-def : defParams → opacity → term → type → ctxt-info
 
-  -- for untyped term definitions 
+  -- for untyped term definitions
   term-udef : defParams → opacity → term → ctxt-info
 
   -- for declaring a variable to have a given kind (with no definition)
@@ -87,7 +87,7 @@ data ctxt : Set where
             (syms : trie (string × 𝕃 string) × trie string × trie params × trie ℕ × Σ ℕ (𝕍 string)) →    -- map each filename to its module name and the symbols declared in that file, map each module name to its filename and params, and file ID's for use in to-string.agda
             (i : trie sym-info) →                  -- map symbols (from Cedille files) to their ctxt-info and location
             (sym-occurrences : trie (𝕃 (var × posinfo × string))) →  -- map symbols to a list of definitions they occur in (and relevant file info)
-            (datatypes-info : trie datatype-info) → 
+            (datatypes-info : trie datatype-info) →
             ctxt
 
 
@@ -127,4 +127,3 @@ ctxt-get-symbol-occurrences (mk-ctxt _ _ _ symb-occs _) = symb-occs
 
 ctxt-set-symbol-occurrences : ctxt → trie (𝕃 (var × posinfo × string)) → ctxt
 ctxt-set-symbol-occurrences (mk-ctxt fn syms i symb-occs d) new-symb-occs = mk-ctxt fn syms i new-symb-occs d
-

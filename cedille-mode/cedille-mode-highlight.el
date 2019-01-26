@@ -25,7 +25,7 @@
 
 (make-variable-buffer-local
  (defvar cedille-mode-highlight-face-map nil
-   "Should be a mapping of qualities (strings) 
+   "Should be a mapping of qualities (strings)
    to a mapping of values (strings) with faces (variables)"))
 
 
@@ -42,14 +42,14 @@
 
 
 (defun cedille-mode-highlight-default ()
-  "Sets the cedille-mode-highlight-face-map variable to 
+  "Sets the cedille-mode-highlight-face-map variable to
    `cedille-mode-highlight-face-map-default' then highlights the file"
   (interactive)
   (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-default)
   (cedille-mode-highlight))
 
 (defun cedille-mode-highlight-language-level ()
-  "Sets the cedille-mode-highlight-face-map variable to 
+  "Sets the cedille-mode-highlight-face-map variable to
    `cedille-mode-highlight-face-map-language-level' then highlights the file"
   (interactive)
   (set-cedille-mode-highlight-face-map cedille-mode-highlight-face-map-language-level)
@@ -105,7 +105,7 @@
   (let ((data (se-span-data span)))
     (cond
      ((string= quality "name") (se-span-name span))
-     ;; ((string= quality "error") (if (cdr (assoc 'error data)) "error" nil)) 
+     ;; ((string= quality "error") (if (cdr (assoc 'error data)) "error" nil))
      (t (cdr (assoc (intern quality) data))))))
 
 (defun cedille-mode-highlight-shadow-range (start end &optional object)

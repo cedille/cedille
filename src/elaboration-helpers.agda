@@ -317,10 +317,10 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
        let x' = reindex-fresh-var ρ is x in
        Index x' (substh-tk {TERM} Γ ρ empty-trie atk) :: f (renamectxt-insert ρ x x')})
     (λ ρ → []) isₒ ρ
-  
+
   reindex-t : Set → Set
   reindex-t X = renamectxt → trie indices → X → X
-  
+
   reindex : ∀ {ed} → reindex-t ⟦ ed ⟧
   reindex-term : reindex-t term
   reindex-type : reindex-t type
@@ -337,7 +337,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-theta : reindex-t theta
   reindex-vars : reindex-t (maybe vars)
   reindex-defTermOrType : renamectxt → trie indices → defTermOrType → defTermOrType × renamectxt
-  
+
   reindex{TERM} = reindex-term
   reindex{TYPE} = reindex-type
   reindex{KIND} = reindex-kind
@@ -346,12 +346,12 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
 
   rc-is : renamectxt → indices → renamectxt
   rc-is = foldr λ {(Index x atk) ρ → renamectxt-insert ρ x x}
-  
+
   index-var = "indices"
   index-type-var = "Indices"
   is-index-var = isJust ∘ is-pfx index-var
   is-index-type-var = isJust ∘ is-pfx index-type-var
-  
+
   reindex-term ρ is (App t me (Var pi x)) with trie-lookup is x
   ...| nothing = App (reindex-term ρ is t) me (reindex-term ρ is (Var pi x))
   ...| just is' = indices-to-apps is' $ reindex-term ρ is t
@@ -396,8 +396,8 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-term ρ is (Var pi x) =
     Var pi $ renamectxt-rep ρ x
   reindex-term ρ is (Mu pi x t oT pi' cs pi'') = Var posinfo-gen "template-mu-not-allowed"
-  reindex-term ρ is (Mu' pi t oT pi' cs pi'') = Var posinfo-gen "template-mu-not-allowed" 
-  
+  reindex-term ρ is (Mu' pi t oT pi' cs pi'') = Var posinfo-gen "template-mu-not-allowed"
+
   reindex-type ρ is (Abs pi me pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρ is x in
     Abs pi me pi' x' (reindex-tk ρ is atk) (reindex-type (renamectxt-insert ρ x x') is T)
@@ -439,7 +439,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     reindex-type ρ is T
   reindex-type ρ is (TpVar pi x) =
     TpVar pi $ renamectxt-rep ρ x
-  
+
   reindex-kind ρ is (KndParens pi k pi') =
     reindex-kind ρ is k
   reindex-kind ρ is (KndArrow k k') =
@@ -459,10 +459,10 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     KndVar pi (renamectxt-rep ρ x) (reindex-args ρ is as)
   reindex-kind ρ is (Star pi) =
     Star pi
-  
+
   reindex-tk ρ is (Tkt T) = Tkt $ reindex-type ρ is T
   reindex-tk ρ is (Tkk k) = Tkk $ reindex-kind ρ is k
-  
+
   -- Can't reindex large indices in a lifting type (LiftPi requires a type, not a tk),
   -- so for now we will just ignore reindexing lifting types.
   -- Types withing lifting types will still be reindexed, though.
@@ -477,21 +477,21 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     LiftStar pi
   reindex-liftingType ρ is (LiftTpArrow T lT) =
     LiftTpArrow (reindex-type ρ is T) (reindex-liftingType ρ is lT)
-  
+
   reindex-optTerm ρ is NoTerm = NoTerm
   reindex-optTerm ρ is (SomeTerm t pi) = SomeTerm (reindex-term ρ is t) pi
-  
+
   reindex-optType ρ is NoType = NoType
   reindex-optType ρ is (SomeType T) = SomeType (reindex-type ρ is T)
-  
+
   reindex-optClass ρ is NoClass = NoClass
   reindex-optClass ρ is (SomeClass atk) = SomeClass (reindex-tk ρ is atk)
-  
+
   reindex-optGuide ρ is NoGuide = NoGuide
   reindex-optGuide ρ is (Guide pi x T) =
     let x' = reindex-fresh-var ρ is x in
     Guide pi x' (reindex-type (renamectxt-insert ρ x x') is T)
-  
+
   reindex-lterms ρ is (LtermsNil pi) = LtermsNil pi
   reindex-lterms ρ is (LtermsCons me t ts) =
     LtermsCons me (reindex-term ρ is t) (reindex-lterms ρ is ts)
@@ -513,13 +513,13 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-vars ρ is (just (VarsNext x xs)) = maybe-else (reindex-vars ρ is $ just xs)
     (λ xs' → maybe-map (reindex-vars''' xs') $ reindex-vars ρ is $ just xs) $ reindex-vars' ρ is x
   reindex-vars ρ is nothing = nothing
-  
+
   reindex-arg ρ is (TermArg me t) = TermArg me (reindex-term ρ is t)
   reindex-arg ρ is (TypeArg T) = TypeArg (reindex-type ρ is T)
-  
+
   reindex-args ρ is ArgsNil = ArgsNil
   reindex-args ρ is (ArgsCons a as) = ArgsCons (reindex-arg ρ is a) (reindex-args ρ is as)
-  
+
   reindex-defTermOrType ρ is (DefTerm pi x oT t) =
     let x' = reindex-fresh-var ρ is x in
     DefTerm pi x' (reindex-optType ρ is oT) (reindex-term ρ is t) , renamectxt-insert ρ x x'
@@ -625,9 +625,9 @@ record datatype-encoding : Set where
     where
     csn = CmdsNext ∘ flip (DefTermOrType OpacTrans) posinfo-gen
     k = indices-to-kind is $ Star posinfo-gen
-    
+
     Γ' = add-parameters-to-ctxt ps $ add-constructors-to-ctxt cs $ ctxt-var-decl x Γ''
-    
+
     tcs-ρ = reindex-file Γ' is template
     tcs = fst tcs-ρ
     ρ = snd tcs-ρ
@@ -641,7 +641,7 @@ record datatype-encoding : Set where
     fixpoint-inₓ = renamectxt-rep ρ fixpoint-in
     fixpoint-indₓ = renamectxt-rep ρ fixpoint-ind
     Γ = add-indices-to-ctxt is $ ctxt-var-decl data-functorₓ $ ctxt-var-decl data-fmapₓ $ ctxt-var-decl data-functor-indₓ Γ'
-    
+
     new-var : ∀ {ℓ} {X : Set ℓ} → var → (var → X) → X
     new-var x f = f $ fresh-var x (ctxt-binds-var Γ) ρ
 
@@ -682,9 +682,9 @@ record datatype-encoding : Set where
       Abs posinfo-gen Erased posinfo-gen eₓ (Tkt $ mtpeq (mvar yₓ) (mvar xₓ)) $
       TpAppt (indices-to-tpapps is $ mtpvar Xₓ) $
       Phi posinfo-gen (mvar eₓ) (mvar yₓ) (mvar xₓ) posinfo-gen
-    
-    
-    
+
+
+
     fmap-cmd : defTermOrType
     fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
     ...| Aₓ | Bₓ | cₓ = DefTerm posinfo-gen data-fmapₓ (SomeType $

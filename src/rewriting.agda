@@ -13,14 +13,14 @@ open import subst
 open import syntax-util
 
 private
-  
+
   mk-phi : var → (eq t t' : term) → term
   mk-phi x eq t t' =
     Phi posinfo-gen
       (Rho posinfo-gen RhoPlain NoNums eq
         (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
         (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
-      t t' posinfo-gen 
+      t t' posinfo-gen
 
   head-types-match : ctxt → trie term → (complete partial : type) → 𝔹
   head-types-match Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
@@ -95,7 +95,7 @@ rewrite-type T Γ tt on eq t₁ t₂ sn
 rewrite-type = rewrite-typeh
 
 rewrite-typeh (Abs pi b pi' x atk T) =
-  rewrite-rename-var x λ x' → 
+  rewrite-rename-var x λ x' →
   rewriteR (Abs pi b pi' x') ≫rewrite rewrite-tk atk ≫rewrite
   rewrite-abs x x' rewrite-type T
 rewrite-typeh (Iota pi pi' x T T') =

@@ -501,7 +501,7 @@ data tty : Set where
   tterm : term → tty
   ttype : type → tty
 
-decompose-tpapps : type → type × 𝕃 tty 
+decompose-tpapps : type → type × 𝕃 tty
 decompose-tpapps (TpApp t t') with decompose-tpapps t
 decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
 decompose-tpapps (TpAppt t t') with decompose-tpapps t

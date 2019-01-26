@@ -4,8 +4,8 @@ open import lib
 open import functions public
 
 get-file-contents : (filename : string) → IO (maybe string)
-get-file-contents e = 
-  doesFileExist e >>= λ b → 
+get-file-contents e =
+  doesFileExist e >>= λ b →
      if b then
       (readFiniteFile e >>= λ s → return (just s))
      else
@@ -58,7 +58,7 @@ trie-any : ∀{A : Set} → (A → 𝔹) → trie A  → 𝔹
 trie-cal-any : ∀{A : Set} → (A → 𝔹) → cal (trie A)  → 𝔹
 trie-any f (Node odata ts) = maybe-else (trie-cal-any f ts) f odata
 trie-cal-any f [] = ff
-trie-cal-any f ((c , t) :: cs) = trie-any f t || trie-cal-any f cs 
+trie-cal-any f ((c , t) :: cs) = trie-any f t || trie-cal-any f cs
 
 trie-all : ∀{A : Set} → (A → 𝔹) → trie A → 𝔹
 trie-all f = ~_ ∘ trie-any (~_ ∘ f)
@@ -425,4 +425,3 @@ bindM' a b = bindM a (λ a → b)
 
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
-

@@ -2,13 +2,13 @@ module rename where
 
 open import lib
 
-open import cedille-types 
+open import cedille-types
 open import ctxt-types
 open import is-free
 open import syntax-util
 
 renamectxt : Set
-renamectxt = stringset × trie string  {- the trie maps vars to their renamed versions, 
+renamectxt = stringset × trie string  {- the trie maps vars to their renamed versions,
                                          and the stringset stores all those renamed versions -}
 
 empty-renamectxt : renamectxt
@@ -64,8 +64,8 @@ fresh-var : string → (string → 𝔹) → renamectxt → string
 fresh-var = rename-away-from
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
-rename-var-if Γ ρ y t = 
-  if is-free-in check-erased y t || renamectxt-in-range ρ y then 
+rename-var-if Γ ρ y t =
+  if is-free-in check-erased y t || renamectxt-in-range ρ y then
     rename-away-from y (ctxt-binds-var Γ) ρ
   else
     y

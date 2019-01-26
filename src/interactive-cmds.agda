@@ -27,13 +27,13 @@ open import templates
 private
 
   {- Parsing -}
-  
+
   ll-ind : ∀ {X : language-level → Set} → X ll-term → X ll-type → X ll-kind →
              (ll : language-level) → X ll
   ll-ind t T k ll-term = t
   ll-ind t T k ll-type = T
   ll-ind t T k ll-kind = k
-  
+
   ll-lift : language-level → Set
   ll-lift = ⟦_⟧ ∘ ll-ind TERM TYPE KIND
 
@@ -59,32 +59,32 @@ private
     Γ' (DefTerm pi' x NoType t) = ctxt-term-udef pi' localScope OpacTrans x t Γ
     Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x T k Γ
   ll-disambiguate Γ t = nothing
-  
+
   parse-string : (ll : language-level) → string → maybe (ll-lift ll)
   parse-string ll s = case ll-ind {λ ll → string → Either string (ll-lift ll)}
     parseTerm parseType parseKind ll s of λ {(Left e) → nothing; (Right e) → just e}
-  
+
   ttk = "term, type, or kind"
-  
+
   parse-err-msg : (failed-to-parse : string) → (as-a : string) → string
   parse-err-msg failed-to-parse "" =
     "Failed to parse \\\\\"" ^ failed-to-parse ^ "\\\\\""
   parse-err-msg failed-to-parse as-a =
     "Failed to parse \\\\\"" ^ failed-to-parse ^ "\\\\\" as a " ^ as-a
-  
+
   infixr 7 _≫nothing_ _-_!_≫parse_ _!_≫error_
   _≫nothing_ : ∀{ℓ}{A : Set ℓ} → maybe A → maybe A → maybe A
   (nothing ≫nothing m₂) = m₂
   (m₁ ≫nothing m₂) = m₁
-  
+
   _-_!_≫parse_ : ∀{A B : Set} → (string → maybe A) → string →
                   (error-msg : string) → (A → string ⊎ B) → string ⊎ B
   (f - s ! e ≫parse f') = maybe-else (inj₁ (parse-err-msg s e)) f' (f s)
-  
+
   _!_≫error_ : ∀{E A B : Set} → maybe A → E → (A → E ⊎ B) → E ⊎ B
   (just a ! e ≫error f) = f a
   (nothing ! e ≫error f) = inj₁ e
-  
+
   parse-try : ∀ {X : Set} → ctxt → string → maybe
                 (((ll : language-level) → ll-lift ll → X) → X)
   parse-try Γ s =
@@ -92,25 +92,25 @@ private
       (parse-string ll-term s) ≫nothing
     maybe-map (λ T f → f ll-type T) (parse-string ll-type s) ≫nothing
     maybe-map (λ k f → f ll-kind k) (parse-string ll-kind s)
-  
+
   string-to-𝔹 : string → maybe 𝔹
   string-to-𝔹 "tt" = just tt
   string-to-𝔹 "ff" = just ff
   string-to-𝔹 _ = nothing
-  
+
   parse-ll : string → maybe language-level
   parse-ll "term" = just ll-term
   parse-ll "type" = just ll-type
   parse-ll "kind" = just ll-kind
   parse-ll _ = nothing
-  
-  
+
+
   {- Local Context -}
-  
+
   record lci : Set where
     constructor mk-lci
     field ll : string; x : var; t : string; T : string; fn : string; pi : posinfo
-  
+
   merge-lcis-ctxt : ctxt → 𝕃 string → ctxt
   merge-lcis-ctxt c = foldr merge-lci-ctxt c ∘ (sort-lcis ∘ strings-to-lcis) where
     strings-to-lcis : 𝕃 string → 𝕃 lci
@@ -119,11 +119,11 @@ private
       strings-to-lcis-h (ll :: x :: t :: T :: fn :: pi :: tl) items =
         strings-to-lcis-h tl (mk-lci ll x t T fn pi :: items)
       strings-to-lcis-h _ items = items
-    
+
     language-level-type-of : language-level → language-level
     language-level-type-of ll-term = ll-type
     language-level-type-of _ = ll-kind
-    
+
     merge-lci-ctxt : lci → ctxt → ctxt
     merge-lci-ctxt (mk-lci ll v t T fn pi) Γ =
       maybe-else Γ (λ Γ → Γ) (parse-ll ll ≫=maybe λ ll →
@@ -137,21 +137,21 @@ private
       h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
-    
+
     sort-lcis : 𝕃 lci → 𝕃 lci
     sort-lcis = list-merge-sort.merge-sort lci λ l l' →
                 posinfo-to-ℕ (lci.pi l) > posinfo-to-ℕ (lci.pi l')
       where import list-merge-sort
-  
+
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
   get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ _) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))
-  
-  
+
+
   {- Helpers -}
-  
+
   qualif-ed : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
   qualif-ed{TERM} = qualif-term
   qualif-ed{TYPE} = qualif-type
@@ -184,7 +184,7 @@ private
 
 
   {- Command Executors -}
-  
+
   normalize-cmd : ctxt → (str ll pi norm : string) → 𝕃 string → string ⊎ tagged-val
   normalize-cmd Γ str ll pi norm ls =
     parse-ll - ll ! "language-level" ≫parse λ ll' →
@@ -193,14 +193,14 @@ private
     parse-string ll' - str ! ll ≫parse λ t →
       let Γ' = get-local-ctxt Γ sp ls in
     inj₂ (to-string-tag "" Γ' (norm Γ' (qualif-ed Γ' t)))
-  
+
   normalize-prompt : ctxt → (str norm : string) → 𝕃 string → string ⊎ tagged-val
   normalize-prompt Γ str norm ls =
     parse-norm - norm ! "normalization method (all, head, once)" ≫parse λ norm →
     let Γ' = merge-lcis-ctxt Γ ls in
     parse-try Γ' - str ! ttk ≫parse λ f → f λ ll t →
     inj₂ (to-string-tag "" Γ' (norm Γ' (qualif-ed Γ' t)))
-  
+
   erase-cmd : ctxt → (str ll pi : string) → 𝕃 string → string ⊎ tagged-val
   erase-cmd Γ str ll pi ls =
     parse-ll - ll ! "language-level" ≫parse λ ll' →
@@ -208,7 +208,7 @@ private
     parse-string ll' - str ! ll ≫parse λ t →
     let Γ' = get-local-ctxt Γ sp ls in
     inj₂ (to-string-tag "" Γ' (erase (qualif-ed Γ' t)))
-  
+
   erase-prompt : ctxt → (str : string) → 𝕃 string → string ⊎ tagged-val
   erase-prompt Γ str ls =
     let Γ' = merge-lcis-ctxt Γ ls in
@@ -232,7 +232,7 @@ private
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
-  
+
   br-cmd : ctxt → (str qed : string) → 𝕃 string → IO ⊤
   br-cmd Γ str qed ls =
     let Γ' = merge-lcis-ctxt Γ ls in
@@ -289,15 +289,15 @@ private
         (e , 0 , _) → inj₁ "No rewrites could be performed"
         (e , _ , _) → inj₂ (strRunTag "" Γ
           (to-stringh (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringh (erase e)))
-  
-  
+
+
   {- Commands -}
-  
+
   tv-to-rope : string ⊎ tagged-val → rope
   tv-to-rope (inj₁ s) = [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
   tv-to-rope (inj₂ (_ , v , ts)) =
     [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
-  
+
   interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
   interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: norm :: lc) =
     normalize-cmd Γ input ll sp norm lc
@@ -315,8 +315,8 @@ private
     data-cmd Γ encoding x ps is cs
   interactive-cmd-h Γ cs =
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
-  
-  
+
+
 interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
 interactive-cmd ("br" :: input :: qed :: lc) ts = br-cmd (toplevel-state.Γ ts) input qed lc
 interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))

@@ -4,7 +4,7 @@
 
 (defun cedille-mode-format-summary-text(text)
   "Remove newlines and instances of string ctor for display purposes"
-    (replace-regexp-in-string "\n" " " 
+    (replace-regexp-in-string "\n" " "
                     (replace-regexp-in-string "^ctor" " " text)))
 
 (defun cedille-mode-get-summary-from-span(table span)
@@ -14,14 +14,14 @@
       ;(message "summary: %s" summary)
       (when summary
 	(puthash (cedille-mode-format-summary-text summary)
-		 (cons nil (se-span-start span)) ; nil signifies location within current file 
+		 (cons nil (se-span-start span)) ; nil signifies location within current file
 		 table))))
 
 (defun cedille-mode-construct-summary-table()
   "Return a hash table with summary-text as key and (filename, start pos) as value"
   (let ((table (make-hash-table :test #'equal)))
-    (mapcar 
-     (lambda (span) 
+    (mapcar
+     (lambda (span)
        (cedille-mode-get-summary-from-span table span))
      se-mode-spans)
     table))
@@ -29,7 +29,7 @@
 (defun cedille-mode-get-hash-table-keys(table)
   "Return a list of keys(summary texts) from the summary table"
   (let ((keys ()))
-    (maphash 
+    (maphash
      (lambda(key val) (push key keys))
      table)
     (nreverse keys)))
@@ -90,7 +90,7 @@
 
 (defun cedille-mode-summary ()
   (let* ((summary-table (cedille-mode-construct-summary-table))
-	 (summary-string (cedille-mode-keylist-to-string 
+	 (summary-string (cedille-mode-keylist-to-string
 			  (cedille-mode-get-hash-table-keys summary-table))))
     (cedille-mode-summary-buffer-setup summary-string)))
 

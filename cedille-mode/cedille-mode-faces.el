@@ -17,7 +17,7 @@
 ;; default faces
 ;; ----------------------------------------------------------
 
-(defface cedille-error-face-df	       
+(defface cedille-error-face-df
    '((((background light))
       (:foreground unspecified :underline t :weight bold))
      (((background dark))
@@ -228,7 +228,7 @@
 	       ("Whitespace" . cedille-standard-face-df)
 	       ("Term-level definition (checking)" . cedille-defined-face-df)
 	       ("Type-level definition (checking)" . cedille-defined-face-df)
-	       ("Kind-level definition (checking)" . cedille-defined-face-df)))	       
+	       ("Kind-level definition (checking)" . cedille-defined-face-df)))
      ("language-level" . (("type" . cedille-type-face-df)
 			 ("kind" . cedille-kind-face-df)
 			 ("term" . cedille-standard-face-df)))
@@ -238,7 +238,7 @@
 
 
  (defvar cedille-mode-highlight-face-map-language-level
-   '( 
+   '(
      ("language-level" . (("type" . cedille-type-face-ll)
 			 ("kind" . cedille-kind-face-ll)
 			 ("term" . cedille-term-face-ll)))
@@ -282,8 +282,8 @@
 ;; -----------------------------------------------------------------
 ;; Hole Overlay
 ;; -----------------------------------------------------------------
-    
-   
+
+
 (defun cedille-mode-highlight-hole-overlay (spans)
   (when (car spans)
     (when (string= (se-span-name (car spans)) "Hole")

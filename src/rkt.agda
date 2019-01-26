@@ -26,12 +26,12 @@ private
   rkt-dbg msg out = [[ if rkt-dbg-flag then ("; " ^ msg ^ "\n") else "" ]] ⊹⊹ out
 
 -- constructs the name of a .racket directory for the given original directory
-rkt-dirname : string → string 
+rkt-dirname : string → string
 rkt-dirname dir = combineFileNames dir ".racket"
 
 -- constructs the fully-qualified name of a .rkt file for a .ced file at the given ced-path
 {-rkt-filename : (ced-path : string) → string
-rkt-filename ced-path = 
+rkt-filename ced-path =
   let dir = takeDirectory ced-path in
   let unit-name = base-filename (takeFileName ced-path) in
     combineFileNames (rkt-dirname dir) (unit-name ^ ".rkt")-}
@@ -95,9 +95,9 @@ rkt-from-sym-info n (rename-def v , _)
   = rkt-dbg ("rename-def: " ^ v)    [[]]
 rkt-from-sym-info n (var-decl , _)
   = rkt-dbg "var-decl:"             [[]]
-rkt-from-sym-info n (const-def _ , _) 
+rkt-from-sym-info n (const-def _ , _)
   = rkt-dbg "const-def:"           [[]]
-rkt-from-sym-info n (datatype-def _ _ , _) 
+rkt-from-sym-info n (datatype-def _ _ , _)
   = rkt-dbg "datatype-def:"           [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope

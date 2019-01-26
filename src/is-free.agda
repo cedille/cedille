@@ -21,7 +21,7 @@ are-free-in-optClass : are-free-in-t optClass
 -- are-free-in-optType : are-free-in-t optType
 are-free-in-optTerm : are-free-in-t optTerm
 are-free-in-optGuide : are-free-in-t optGuide
-are-free-in-tk : are-free-in-t tk 
+are-free-in-tk : are-free-in-t tk
 are-free-in-liftingType : are-free-in-t liftingType
 are-free-in-optType : are-free-in-t optType
 are-free-in-args : are-free-in-t args
@@ -133,26 +133,26 @@ are-free-in-liftingType ce x (LiftTpArrow t l) = are-free-in-type ce x t || are-
 are-free-in : {ed : exprd} → are-free-e → stringset → ⟦ ed ⟧ → 𝔹
 are-free-in{TERM} e x t = are-free-in-term e x t
 are-free-in{ARG} e x (TermArg _ t) = are-free-in-term e x t
-are-free-in{TYPE} e x t = are-free-in-type e x t 
+are-free-in{TYPE} e x t = are-free-in-type e x t
 are-free-in{ARG} e x (TypeArg t) = are-free-in-type e x t
 are-free-in{KIND} e x t = are-free-in-kind e x t
 are-free-in{TK} e x t = are-free-in-tk e x t
-are-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e x t 
+are-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e x t
 are-free-in{QUALIF} e x (x' , as) = trie-contains x x' || are-free-in-args e x as
 
 is-free-in : {ed : exprd} → are-free-e → var → ⟦ ed ⟧ → 𝔹
 is-free-in{TERM} e x t = are-free-in-term e (stringset-singleton x) t
 is-free-in{ARG} e x (TermArg _ t) = are-free-in-term e (stringset-singleton x) t
-is-free-in{TYPE} e x t = are-free-in-type e (stringset-singleton x) t 
+is-free-in{TYPE} e x t = are-free-in-type e (stringset-singleton x) t
 is-free-in{ARG} e x (TypeArg t) = are-free-in-type e (stringset-singleton x) t
-is-free-in{KIND} e x t = are-free-in-kind e (stringset-singleton x) t 
-is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x) t 
+is-free-in{KIND} e x t = are-free-in-kind e (stringset-singleton x) t
+is-free-in{LIFTINGTYPE} e x t = are-free-in-liftingType e (stringset-singleton x) t
 is-free-in{QUALIF} e x (x' , as) = x =string x' || are-free-in-args e (stringset-singleton x) as
 is-free-in{TK} e x t = are-free-in-tk e (stringset-singleton x) t
 
 abs-tk : maybeErased → var → tk → type → type
 abs-tk me x (Tkk k) tp = Abs posinfo-gen Erased posinfo-gen x (Tkk k) tp
-abs-tk me x (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp 
+abs-tk me x (Tkt tp') tp with are-free-in check-erased (stringset-singleton x) tp
 abs-tk me x (Tkt tp') tp | tt = Abs posinfo-gen me posinfo-gen x (Tkt tp') tp
 abs-tk me x (Tkt tp') tp | ff = TpArrow tp' me tp
 
@@ -163,7 +163,7 @@ absk-tk x (Tkt tp) k | ff = KndTpArrow tp k
 absk-tk x (Tkk k') k | ff = KndArrow k' k
 
 data abs  : Set where
-  mk-abs : maybeErased → var → tk → (var-free-in-body : 𝔹) → type → abs 
+  mk-abs : maybeErased → var → tk → (var-free-in-body : 𝔹) → type → abs
 
 to-abs : type → maybe abs
 to-abs (Abs _ me _ x atk tp) = just (mk-abs me x atk (are-free-in check-erased (stringset-singleton x) tp) tp)
@@ -195,7 +195,7 @@ to-is-tpabs tp with to-abs tp
   yes-tpabs e? x k tp'
 
 data absk  : Set where
-  mk-absk : var → tk → (var-free-in-body : 𝔹) → kind → absk 
+  mk-absk : var → tk → (var-free-in-body : 𝔹) → kind → absk
 
 to-absk : kind → maybe absk
 to-absk (KndPi _ _ x atk k) = just (mk-absk x atk (are-free-in check-erased (stringset-singleton x) k) k)

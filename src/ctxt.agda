@@ -103,7 +103,7 @@ ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs d) =
   where v' = p % v
 
 ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
-ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
+ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ
 ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ
 
 -- TODO not sure how this and renaming interacts with module scope
@@ -118,7 +118,7 @@ ctxt-var-decl-if v Γ with Γ
   d
 
 ctxt-rename-rep : ctxt → var → var
-ctxt-rename-rep (mk-ctxt m syms i _ _) v with trie-lookup i v 
+ctxt-rename-rep (mk-ctxt m syms i _ _) v with trie-lookup i v
 ...                                           | just (rename-def v' , _) = v'
 ...                                           | _ = v
 
@@ -309,4 +309,3 @@ unqual (mk-ctxt (_ , _ , _ , q) _ _ _  _) v =
   if qualif-nonempty q
   then unqual-local (unqual-all q v)
   else v
-
