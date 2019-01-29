@@ -105,7 +105,7 @@ conv-optClasse : conv-t optClass
 -- -- conv-optTypee : conv-t optType
 conv-ttye* : conv-t (𝕃 tty)
 
-conv-ctr-ps : ctxt → var → var → maybe (params × params)
+conv-ctr-ps : ctxt → var → var → maybe (𝕃 (var × type) × 𝕃 (var × type))
 conv-ctr-args : conv-t (var × args)
 conv-ctr : conv-t var
 
@@ -169,10 +169,10 @@ hnf{TERM} Γ u (Delta _ T t') hd = hnf Γ u t' hd
 hnf{TERM} Γ u (Theta _ u' t ls) hd = hnf Γ u (lterms-to-term u' t ls) hd
 hnf{TERM} Γ u (Beta _ _ (SomeTerm t _)) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Beta _ _ NoTerm) hd = id-term
-hnf{TERM} Γ u (Open _ _ _ t) hd = hnf Γ u t hd
+hnf{TERM} Γ u (Open _ _ _ _ t) hd = hnf Γ u t hd
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd with decompose-apps (hnf Γ u t hd)
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | tₕ , as with Mu' pi-gen NoTerm (recompose-apps as tₕ) NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (erase-cases cs)) pi-gen | tₕ
-hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as |  tₒ | Var _ x with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length (erase-params ps)))}) nothing (erase-cases cs)
+hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as |  tₒ | Var _ x with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length ps))}) nothing (erase-cases cs)
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) with drop nps (erase-args as)
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' with nas =ℕ length as'
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | just (tₓ , nas , nps) | as' | tt = hnf Γ (unfold-dampen tt u) (recompose-apps (map (TermArg NotErased) as') tₓ) hd
@@ -181,7 +181,7 @@ hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | nothing = t�
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | _ = tₒ
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd with decompose-apps (hnf Γ u t hd)
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as with (λ t → Mu pi-gen pi-gen x t NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (erase-cases cs)) pi-gen) | tₕ
-hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x' ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length (erase-params ps)))}) nothing (erase-cases cs) | fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x' ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length ps))}) nothing (erase-cases cs) | fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ with drop nps (erase-args as)
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' with nas =ℕ length as'
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' | tt = hnf Γ (unfold-dampen tt u) (recompose-apps (map (TermArg NotErased) as') (subst Γ (mlam fₓ $ tₒ $ mvar fₓ) x tₓ)) hd
@@ -430,15 +430,14 @@ conv-ttye* Γ _ _ = ff
 conv-ctr Γ x₁ x₂ = conv-ctr-args Γ (x₁ , []) (x₂ , [])
 
 conv-ctr-ps Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
-...| just (ctr-def mps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def mps₂ T₂ n₂ i₂ a₂ , _) =
+...| just (ctr-def ps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def ps₂ T₂ n₂ i₂ a₂ , _) =
   maybe-if (n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂) ≫maybe
-  just (maybe-else [] id mps₁ , maybe-else [] id mps₂)
+  just (erase-params ps₁ , erase-params ps₂)
 ...| _ | _ = nothing
 
 conv-ctr-args Γ (x₁ , as₁) (x₂ , as₂) =
   maybe-else' (conv-ctr-ps Γ x₁ x₂) ff $ uncurry λ ps₁ ps₂ →
-  let drop-ps = drop ∘' length ∘' erase-params in
-  conv-argse Γ (drop-ps ps₁ $ erase-args as₁) (drop-ps ps₂ $ erase-args as₂)
+  conv-argse Γ (drop (length ps₁) $ erase-args as₁) (drop (length ps₂) $ erase-args as₂)
 
 hnf-qualif-term : ctxt → term → term
 hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt
@@ -448,6 +447,101 @@ hnf-qualif-type Γ t = hnf Γ unfold-head (qualif-type Γ t) tt
 
 hnf-qualif-kind : ctxt → kind → kind
 hnf-qualif-kind Γ t = hnf Γ unfold-head (qualif-kind Γ t) tt
+
+
+{-# TERMINATING #-}
+inconv : ctxt → term → term → 𝔹
+inconv Γ t₁ t₂ = inconv-lams empty-renamectxt
+                   (hnf Γ unfold-all t₁ tt) (hnf Γ unfold-all t₂ tt)
+  where
+  fresh = flip fresh-var $ ctxt-binds-var Γ
+
+  make-subst : renamectxt → 𝕃 var → 𝕃 var → term → term → (renamectxt × term × term)
+  make-subst ρ [] [] t₁ t₂ = ρ , subst-renamectxt Γ ρ t₁ , subst-renamectxt Γ ρ t₂
+  make-subst ρ (x₁ :: xs₁) [] t₁ t₂ =
+    let x = fresh x₁ ρ in
+    make-subst (renamectxt-insert ρ x₁ x) xs₁ [] t₁ (mapp t₂ $ mvar x)
+  make-subst ρ [] (x₂ :: xs₂) t₁ t₂ =
+    let x = fresh x₂ ρ in
+    make-subst (renamectxt-insert ρ x₂ x) [] xs₂ (mapp t₁ $ mvar x) t₂
+  make-subst ρ (x₁ :: xs₁) (x₂ :: xs₂) t₁ t₂ =
+    let x = fresh x₁ ρ in
+    make-subst (renamectxt-insert (renamectxt-insert ρ x₁ x) x₂ x) xs₁ xs₂ t₁ t₂
+  
+  inconv-lams : renamectxt → term → term → 𝔹
+  inconv-apps : renamectxt → var → var → args → args → 𝔹
+  inconv-ctrs : renamectxt → var → var → args → args → 𝔹
+  inconv-mu : renamectxt → maybe (var × var) → term → term → cases → cases → 𝔹
+  inconv-args : renamectxt → args → args → 𝔹
+
+  inconv-args ρ a₁ a₂ =
+    let a₁ = erase-args a₁; a₂ = erase-args a₂ in
+    ~  length a₁ =ℕ length a₂
+    || list-any (uncurry $ inconv-lams ρ) (zip a₁ a₂)
+  
+  inconv-lams ρ t₁ t₂ =
+    elim-pair (decompose-lams t₁) λ l₁ b₁ →
+    elim-pair (decompose-lams t₂) λ l₂ b₂ →
+    elim-pair (make-subst ρ l₁ l₂ b₁ b₂) λ ρ b →
+    elim-pair b λ b₁ b₂ →
+    case (decompose-apps b₁ , decompose-apps b₂) of uncurry λ where
+      (Var _ x₁ , a₁) (Var _ x₂ , a₂) →
+        inconv-apps ρ x₁ x₂ a₁ a₂ || inconv-ctrs ρ x₁ x₂ a₁ a₂
+      (Mu _ _ x₁ t₁ _ _ ms₁ _ , a₁) (Mu _ _ x₂ t₂ _ _ ms₂ _ , a₂) →
+        inconv-mu ρ (just $ x₁ , x₂) t₁ t₂ ms₁ ms₂ || inconv-args ρ a₁ a₂
+      (Mu' _ _ t₁ _ _ ms₁ _ , a₁) (Mu' _ _ t₂ _ _ ms₂ _ , a₂) →
+        inconv-mu ρ nothing t₁ t₂ ms₁ ms₂ || inconv-args ρ a₁ a₂
+      _ _ → ff
+
+  inconv-apps ρ x₁ x₂ a₁ a₂ =
+    maybe-else' (renamectxt-lookup ρ x₁) ff λ x₁ →
+    maybe-else' (renamectxt-lookup ρ x₂) ff λ x₂ →
+    ~ x₁ =string x₂
+    || inconv-args ρ a₁ a₂
+
+  inconv-ctrs ρ x₁ x₂ as₁ as₂ with env-lookup Γ x₁ | env-lookup Γ x₂
+  ...| just (ctr-def ps₁ _ n₁ i₁ a₁ , _) | just (ctr-def ps₂ _ n₂ i₂ a₂ , _) =
+    let ps₁ = erase-params ps₁; ps₂ = erase-params ps₂
+        as₁ = erase-args   as₁; as₂ = erase-args   as₂ in
+    length as₁ ≤ length ps₁ + a₁ && -- Could use of "≤" here conflict with η-equality?
+    length as₂ ≤ length ps₂ + a₂ &&
+    (~ n₁ =ℕ n₂ ||
+    ~ i₁ =ℕ i₂ ||
+    ~ a₁ =ℕ a₂ ||
+    ~ length as₁ + length ps₂ =ℕ length as₂ + length ps₁ ||
+    -- ^ as₁ ∸ ps₁ ≠ as₂ ∸ ps₂, + ps₁ + ps₂ to both sides ^
+    list-any (uncurry $ inconv-lams ρ)
+      (zip (drop (length ps₁) as₁) (drop (length ps₂) as₂)))
+  ...| _ | _ = ff
+
+  inconv-mu ρ xs? t₁ t₂ ms₁ ms₂ = ff
+
+
+  -- No need to check if x₁ or x₂ are in scope (or bound in the other's body),
+  -- because t₁ and t₂ both are already as η-contracted as possible. This is
+  -- not necessarily true (I think) for conv-term-norm above
+  {-h ρ (Lam _ _ _ x₁ _ t₁) (Lam _ _ _ x₂ _ t₂) =
+    let x = fresh x₂ ρ in
+    h (renamectxt-insert (renamectxt-insert ρ x₂ x) x₁ x) t₁ t₂
+  h ρ (App h₁ NotErased a₁) (App h₂ NotErased a₂) =
+    h ρ h₁ h₂ || h ρ a₁ a₂
+  h ρ (Var _ x₁) (Var _ x₂) with renamectxt-lookup ρ x₁ | renamectxt-lookup ρ x₂
+  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ with x₁ =string x₂
+  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ | tt = {!!}
+  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ | ff = {!!}
+  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing with env-lookup Γ x₁ | env-lookup Γ x₂
+  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing
+      | just (ctr-def ps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def ps₂ T₂ n₂ i₂ a₂ , _) =
+    {!? || ? || ?!}
+  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing | _ | _ = ff
+  h ρ (Var _ x₁) (Var _ x₂) | _ | _ = ff
+  h ρ t₁ t₂ = ff-}
+  
+
+
+
+
+
 
 ctxt-params-def : params → ctxt → ctxt
 ctxt-params-def ps Γ@(mk-ctxt (fn , mn , _ , q) syms i symb-occs Δ) =
@@ -503,7 +597,7 @@ ctxt-ctr-def : posinfo → var → type → params → (ctrs-length ctr-index : 
 ctxt-ctr-def pi c t ps' n i Γ@(mk-ctxt mod@(fn , mn , ps , q) (syms , mn-fn) is symb-occs Δ) = mk-ctxt
   (fn , mn , ps , q')
   ((trie-insert-append2 syms fn mn c) , mn-fn)  
-  (trie-insert is c' (ctr-def (just (ps ++ ps')) t n i (unerased-arrows t) , fn , pi))
+  (trie-insert is c' (ctr-def (ps ++ ps') t n i (unerased-arrows t ∸ length ps') , fn , pi))
   symb-occs Δ
   where
   c' = mn # c

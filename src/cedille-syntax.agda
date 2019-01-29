@@ -104,9 +104,11 @@ pattern -[_:ₖ_`=_]-_ x k T t' = Let _ Erased (DefType _ x k T _) t'
 
 
 -- Open
-infixr 8 open`_-_ `open_-_
-pattern open`_-_ x t = Open _ _ x t
-`open_-_ = Open pi-gen pi-gen
+infixr 8 open`_-_ `open_-_ close`_-_ `close_-_
+pattern open`_-_ x t = Open _ OpacTrans _ x t
+pattern close`_-_ x t = Open _ OpacOpaque _ x t
+`open_-_ = Open pi-gen OpacTrans pi-gen
+`close_-_ = Open pi-gen OpacOpaque pi-gen
 
 --Parens
 infix 4 ⦅_⦆ `⦅_⦆

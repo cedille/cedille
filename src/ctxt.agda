@@ -196,7 +196,7 @@ ctxt-lookup-term-var : ctxt → var → maybe type
 ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just T
 ... | just (as , term-def mps _ t T , _) = just $ maybe-inst-type Γ mps as T
-... | just (as , ctr-def mps T _ _ _ , _) = just $ maybe-inst-type Γ mps as T
+... | just (as , ctr-def ps T _ _ _ , _) = just $ inst-type Γ ps as T
 ... | _ = nothing
 
 ctxt-lookup-var : ctxt → var → maybe tk
@@ -204,7 +204,7 @@ ctxt-lookup-var Γ x with qual-lookup Γ x
 -- terms
 ... | just (as , term-def mps _ t T , _)        = just ∘ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , term-decl T , _)               = just $ Tkt T
-... | just (as , ctr-def mps T _ _ _ , _)       = just ∘ Tkt $ maybe-inst-type Γ mps as T
+... | just (as , ctr-def ps T _ _ _ , _)       = just ∘ Tkt $ inst-type Γ ps as T
 -- types
 --... | just (as , datatype-def ps k₁ k cs , _)   = just ∘ Tkk $ maybe-inst-kind Γ ps as k
 ... | just (as , type-decl k , _)               = just $ Tkk k
@@ -223,7 +223,7 @@ ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-def mps _ t T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , type-def mps _ T k , _) = just $ Tkk $ maybe-inst-kind Γ mps as k
 --... | just (as , datatype-def ps kᵢ k cs , _) = just $ Tkk $ maybe-inst-kind Γ ps as k
-... | just (as , ctr-def mps T _ _ _ , _) = just $ Tkt $ maybe-inst-type Γ mps as T
+... | just (as , ctr-def ps T _ _ _ , _) = just $ Tkt $ inst-type Γ ps as T
 ... | _ = nothing
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
@@ -332,8 +332,8 @@ ctxt-var-location (mk-ctxt _ _ i _ _) x with trie-lookup i x
 ... | just (_ , l) = l
 ... | nothing = "missing" , "missing"
 
-ctxt-clarify-def : ctxt → var → maybe (sym-info × ctxt)
-ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences Δ) x
+ctxt-clarify-def : ctxt → opacity → var → maybe (sym-info × ctxt)
+ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences Δ) o x
   = trie-lookup i x ≫=maybe λ { (ci , l) →
     clarified x ci l }
   where
@@ -341,9 +341,9 @@ ctxt-clarify-def Γ@(mk-ctxt mod@(_ , _ , _ , q) syms i sym-occurrences Δ) x
     ctxt' v ci l = mk-ctxt mod syms (trie-insert i v (ci , l)) sym-occurrences Δ
 
     clarified : var → ctxt-info → location → maybe (sym-info × ctxt)
-    clarified v ci@(term-def ps _ (just t) T) l = just ((ci , l) , (ctxt' v (term-def ps OpacTrans (just t) T) l))
-    clarified v ci@(term-udef ps _ t) l = just ((ci , l) , (ctxt' v (term-udef ps OpacTrans t) l))
-    clarified v ci@(type-def ps _ (just T) k) l = just ((ci , l) , (ctxt' v (type-def ps OpacTrans (just T) k) l))
+    clarified v ci@(term-def ps _ (just t) T) l = just ((ci , l) , (ctxt' v (term-def ps o (just t) T) l))
+    clarified v ci@(term-udef ps _ t) l = just ((ci , l) , (ctxt' v (term-udef ps o t) l))
+    clarified v ci@(type-def ps _ (just T) k) l = just ((ci , l) , (ctxt' v (type-def ps o (just T) k) l))
     clarified _ _ _ = nothing
 
 

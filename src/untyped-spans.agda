@@ -49,7 +49,7 @@ untyped-term-spans (Lam pi me pi' x oc t) =
 untyped-term-spans (Let pi fe d t) =
   untyped-defTermOrType-spans pi (λ Γ pi' x atk val → Let-span Γ untyped pi pi' fe x atk val t [] nothing) d (untyped-term-spans t)
   -- ≫span get-ctxt λ Γ → spanM-add (Let-span Γ untyped pi d t [] nothing)
-untyped-term-spans (Open pi pi' x t) = get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [] (maybe-not (ctxt-lookup-term-loc Γ x) ≫maybe just "This term variable is not currently in scope")) ≫span untyped-term-spans t
+untyped-term-spans (Open pi o pi' x t) = get-ctxt λ Γ → spanM-add (Open-span Γ o pi' x t untyped [] nothing) ≫span spanM-add (Var-span Γ pi' x untyped [] (maybe-not (ctxt-lookup-term-loc Γ x) ≫maybe just "This term variable is not currently in scope")) ≫span untyped-term-spans t
 untyped-term-spans (Parens pi t pi') = untyped-term-spans t
 untyped-term-spans (Phi pi t t' t'' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-term-spans t'' ≫span spanM-add (Phi-span pi pi' untyped [] nothing)
 untyped-term-spans (Rho pi op on t og t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫=span λ tvs → spanM-add (mk-span "Rho" pi (term-end-pos t') (ll-data-term :: checking-data untyped :: tvs) nothing)

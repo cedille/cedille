@@ -26,6 +26,7 @@ open import rename
 open import rewriting
 open import datatype-functions
 open import elaboration-helpers options
+open import bohm-out
 import spans options' {id} as id-spans
 
 
@@ -140,9 +141,10 @@ module elab-x (μ : trie encoded-datatype) where
         if conv-term Γ t1 tt-term && conv-term Γ t2 ff-term
           then just (Delta pi-gen (SomeType T) t)
           else
-            --elab-pure-term Γ t1 ≫=maybe λ t1 →
-            --elab-pure-term Γ t2 ≫=maybe λ t2 →
-            delta-contra (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt) ≫=maybe λ f →
+            elab-pure-term Γ t1 ≫=maybe λ t1 →
+            elab-pure-term Γ t2 ≫=maybe λ t2 →
+            --delta-contra (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt) ≫=maybe λ f →
+            make-contradiction (hnf Γ unfold-all t1 tt) (hnf Γ unfold-all t2 tt) ≫=maybe λ f →
             let f = substh-term {TERM} Γ ρ empty-trie f in
             elab-pure-term Γ (erase-term t) ≫=maybe λ pt →
             just (Delta pi-gen (SomeType T)
@@ -195,8 +197,8 @@ module elab-x (μ : trie encoded-datatype) where
       rename x from Γ for λ x' →
       elab-check-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) T ≫=maybe λ t →
       just (Let pi-gen tt (DefType pi-gen x' k' T') t)
-  elab-check-term Γ (Open pi pi' x t) T =
-    let Γ = maybe-else' (ctxt-clarify-def Γ x) Γ snd in
+  elab-check-term Γ (Open pi o pi' x t) T =
+    let Γ = maybe-else' (ctxt-clarify-def Γ o x) Γ snd in
     elab-check-term Γ t T
   elab-check-term Γ (Parens pi t pi') T = elab-check-term Γ t T
   elab-check-term Γ (Phi pi t t₁ t₂ pi') T =
@@ -340,7 +342,10 @@ module elab-x (μ : trie encoded-datatype) where
         if conv-term Γ t1 tt-term && conv-term Γ t2 ff-term
           then just (Delta pi-gen (SomeType T) t , T)
           else
-            delta-contra (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt) ≫=maybe λ f →
+            elab-pure-term Γ t1 ≫=maybe λ t1 →
+            elab-pure-term Γ t2 ≫=maybe λ t2 →
+            --delta-contra (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt) ≫=maybe λ f →
+            make-contradiction (hnf Γ unfold-all t1 tt) (hnf Γ unfold-all t2 tt) ≫=maybe λ f →
             let f = substh-term {TERM} Γ ρ empty-trie f in
             just (Delta pi-gen (SomeType T)
               (mrho t z (mtpeq (mapp f t1) (mapp f (mvar z))) (mbeta tt-term pt)) , T)
@@ -404,8 +409,8 @@ module elab-x (μ : trie encoded-datatype) where
       elab-synth-term (ctxt-let-type-def pi' x' T' k' Γ) (rename-var Γ x x' t) ≫=maybe uncurry λ t T →
       elab-red-type Γ (subst Γ T' x' T) ≫=maybe λ T →
       just (Let pi-gen fe (DefType pi' x' k' T') t , T)
-  elab-synth-term Γ (Open pi pi' x t) =
-    let Γ = maybe-else' (ctxt-clarify-def Γ x) Γ snd in
+  elab-synth-term Γ (Open pi o pi' x t) =
+    let Γ = maybe-else' (ctxt-clarify-def Γ o x) Γ snd in
     elab-synth-term Γ t
   elab-synth-term Γ (Parens pi t pi') = elab-synth-term Γ t
   elab-synth-term Γ (Phi pi t t₁ t₂ pi') =
@@ -778,7 +783,7 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
           dcs = flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (params-to-tplams ps $ subst-qualif (toplevel-state.Γ ts) ρ T)} in
           --μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in
       maybe-else (just (ImportCmd (Import pi-gen NotPublic pi-gen (x' ^ ", " ^ rep (data-Is/ x) ^ ", " ^ rep (data-is/ x)) NoOptAs [] pi-gen) :: cs' , ts , ρ , φ , μ)) just $
-      elab-cmds (record ts {Γ = ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is star {- no X -is; not needed-}) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) dcs}) ρ φ (trie-insert μ {-(trie-insert μ elab-mu-prev-name μ-x)-} x' d') cs ≫=maybe uncurry λ cs ω →
+      elab-cmds (record ts {Γ = ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is star {- no X -is; not needed-}) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs}) ρ φ (trie-insert μ {-(trie-insert μ elab-mu-prev-name μ-x)-} x' d') cs ≫=maybe uncurry λ cs ω →
       just (cs' ++ cs , ω)
 
 elab-file' ts ρ φ μ fn =

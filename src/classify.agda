@@ -235,10 +235,10 @@ check-termi (Let pi fe d t) mtp =
          spanM-restore-info x m ≫span
          maybe-subst d mtp r
 
-check-termi (Open pi pi' x t) mtp = get-ctxt λ Γ →
+check-termi (Open pi o pi' x t) mtp = get-ctxt λ Γ →
    spanMr (ctxt-get-qi Γ x) on-fail genNoDefErr
   ≫=spanm' λ qi → let x' = fst qi in
-   spanM-clarify-def x'     on-fail genCategoryErr
+   spanM-clarify-def o x'   on-fail genCategoryErr
   ≫=spanm' λ si → (spanM-add $ open-span Γ nothing)
   ≫span get-ctxt λ Γ' → spanMr (ctxt-lookup-var Γ' x) on-fail genNoDefErr
   ≫=spanm' λ tk → (case tk of λ where
@@ -251,7 +251,7 @@ check-termi (Open pi pi' x t) mtp = get-ctxt λ Γ →
   mode = maybe-to-checking mtp
 
   open-span : ctxt → err-m → span
-  open-span Γ err = Open-span Γ pi x t mode [] err
+  open-span Γ = Open-span Γ o pi x t mode []
 
   genNoDefErr : spanM (check-ret mtp)
   genNoDefErr = get-ctxt λ Γ →
@@ -558,7 +558,7 @@ check-termi (Delta pi mT t) mtp =
   return-when mtp (just (qualif-type Γ T))
   where check-contra : ctxt → type → err-m
         check-contra Γ (TpEq _ t1 t2 _) =
-          if check-beta-inequiv (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt)
+          if inconv Γ t1 t2 -- check-beta-inequiv (hnf Γ unfold-head t1 tt) (hnf Γ unfold-head t2 tt)
             then nothing
             else just "We could not find a contradiction in the synthesized type of the subterm."
         check-contra _ _ = just "We could not synthesize an equation from the subterm."

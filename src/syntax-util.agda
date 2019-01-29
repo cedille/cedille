@@ -180,7 +180,7 @@ term-start-pos (AppTp t tp) = term-start-pos t
 term-start-pos (Hole pi) = pi
 term-start-pos (Lam pi x _ x₁ x₂ t) = pi
 term-start-pos (Let pi _ _ _) = pi
-term-start-pos (Open pi _ _ _) = pi
+term-start-pos (Open pi _ _ _ _) = pi
 term-start-pos (Parens pi t pi') = pi
 term-start-pos (Var pi x₁) = pi
 term-start-pos (Beta pi _ _) = pi
@@ -240,7 +240,7 @@ term-end-pos (AppTp t tp) = type-end-pos tp
 term-end-pos (Hole pi) = posinfo-plus pi 1
 term-end-pos (Lam pi x _ x₁ x₂ t) = term-end-pos t
 term-end-pos (Let _ _ _ t) = term-end-pos t
-term-end-pos (Open pi _ _ t) = term-end-pos t
+term-end-pos (Open pi _ _ _ t) = term-end-pos t
 term-end-pos (Parens pi t pi') = pi'
 term-end-pos (Var pi x) = posinfo-plus-str pi x
 term-end-pos (Beta pi _ (SomeTerm t pi')) = pi'
@@ -631,7 +631,7 @@ erase-term (Lam _ NotErased _ x oc t) = Lam posinfo-gen NotErased posinfo-gen x 
 erase-term (Let _ ff (DefTerm _ x _ t) t') = Let posinfo-gen ff (DefTerm posinfo-gen x NoType (erase-term t)) (erase-term t')
 erase-term (Let _ tt (DefTerm _ x _ t) t') = erase-term t'
 erase-term (Let _ _ (DefType _ _ _ _) t) = erase-term t
-erase-term (Open _ _ _ t) = erase-term t
+erase-term (Open _ _ _ _ t) = erase-term t
 erase-term (Var _ x) = Var posinfo-gen x
 erase-term (Beta _ _ NoTerm) = id-term
 erase-term (Beta _ _ (SomeTerm t _)) = erase-term t
@@ -952,6 +952,7 @@ optNums-to-stringset (SomeNums ns) with nums-to-stringset ns
 ------------------------------------------------------
 -- any delta contradiction → boolean contradiction
 ------------------------------------------------------
+{-
 nlam : ℕ → term → term
 nlam 0 t = t
 nlam (suc n) t = mlam ignored-var (nlam n t)
@@ -992,6 +993,8 @@ delta-contra = delta-contrah 0 empty-trie empty-trie
 
 check-beta-inequiv : term → term → 𝔹
 check-beta-inequiv t1 t2 = isJust (delta-contra t1 t2)
+
+-}
 
 tk-map : tk → (type → type) → (kind → kind) → tk
 tk-map (Tkt T) fₜ fₖ = Tkt $ fₜ T

@@ -51,7 +51,7 @@ no-parens{TERM} (IotaPair pi t t' og pi') p lr = tt
 no-parens{TERM} (IotaProj t n pi) p lr = tt
 no-parens{TERM} (Lam pi l' pi' x oc t) p lr = ff
 no-parens{TERM} (Let pi _ dtT t) p lr = ff
-no-parens{TERM} (Open _ _ _ _) p lr = ff
+no-parens{TERM} (Open _ _ _ _ _) p lr = ff
 no-parens{TERM} (Parens pi t pi') p lr = tt
 no-parens{TERM} (Phi pi eq t t' pi') p lr = ff
 no-parens{TERM} (Rho pi op on eq og t) p lr = ff
@@ -332,7 +332,7 @@ term-to-stringh (Let pi fe dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd (let-lbrack-to-string fe) ≫str strBvar x (maybeCheckType-to-string m
   ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
 ...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-term-to-stringh (Open pi pi' x t) = strAdd "open " ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
+term-to-stringh (Open pi o pi' x t) = strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " { " ≫str to-stringr t' ≫str strAdd " }"
 term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t

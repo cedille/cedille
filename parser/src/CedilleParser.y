@@ -47,6 +47,7 @@ import System.Environment
   'public'   { Token $$ TPublic    }
   'opaque'   { Token $$ TOpaque    }
   'open'     { Token $$ TOpen      }
+  'close'    { Token $$ TClose     }
   '{^'       { Token $$ TLSpan     }
   '^}'       { Token $$ TRSpan     }
   'θ'        { Token $$ TTheta     }
@@ -254,7 +255,8 @@ Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) False $2 $5                       }
      | '{' DefTermOrType '}' '-' Term   { Let (pos2Txt $1) True  $2 $5                       }
-     | 'open' Qvar '-' Term             { Open (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4                     }
+     | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4                     }
+     | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }

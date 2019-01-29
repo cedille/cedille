@@ -50,6 +50,7 @@ token :-
       <0> public                                { mkTokenEmpty TPublic       }
       <0> opaque                                { mkTokenEmpty TOpaque       }
       <0> open                                  { mkTokenEmpty TOpen         }
+      <0> close                                 { mkTokenEmpty TClose        }
       <0> $white+				{ skip'                      }
       <0> @kvar                                 { mkToken TKvar              }
       <0> @qkvar        			{ mkToken TQKvar             }      
@@ -174,6 +175,7 @@ data TokenClass =
      |  TPublic
      |  TOpaque
      |  TOpen
+     |  TClose
      |  TModule
      |  TTheta
      |  TThetaEq
@@ -210,6 +212,7 @@ instance Show TokenClass where
   show (TPublic)     = "TPublic"
   show (TOpaque)     = "TOpaque"
   show (TOpen)       = "TOpen"
+  show (TClose)      = "TClose"
   show (TModule)     = "TModule"
   show (TTheta)      = "TTheta"
   show (TThetaEq)    = "TThetaEq"

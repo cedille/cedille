@@ -36,7 +36,7 @@ data ctxt-info : Set where
 --  datatype-def : defParams → (ind reg : kind) → ctrs → ctxt-info
 
   -- for defining a datatype constructor
-  ctr-def : defParams → type → (ctrs-length ctr-index ctr-unerased-arrows : ℕ) → ctxt-info
+  ctr-def : params → type → (ctrs-length ctr-index ctr-unerased-arrows : ℕ) → ctxt-info
 
   -- for declaring the type that proves a type is a datatype (X/Mu)
 --  mu-def : defParams → var → kind → ctxt-info

@@ -222,6 +222,7 @@
          ("Delta" . cedille-keyword-face-df)
          ("Sigma" , cedille-keyword-face-df)
          ("Open" ,  cedille-keyword-face-df)
+         ("Close" , cedille-keyword-face-df)
          ("Mu" . cedille-keyword-face-df)
 	       ("Comment" . cedille-comment-face-df)
 	       ("Whitespace" . cedille-standard-face-df)

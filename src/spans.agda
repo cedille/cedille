@@ -145,8 +145,8 @@ spanM-lookup-restore-info x =
 -- this only returns nothing in the case that the opening didnt make sense:
 -- you tried to open a term def, you tried to open an unknown def, etc...
 -- basically any situation where the def wasnt a "proper" type def
-spanM-clarify-def : var → spanM (maybe sym-info)
-spanM-clarify-def x Γ ss = returnM (result (ctxt-clarify-def Γ x))
+spanM-clarify-def : opacity → var → spanM (maybe sym-info)
+spanM-clarify-def o x Γ ss = returnM (result (ctxt-clarify-def Γ o x))
   where
   result : maybe (sym-info × ctxt) → (maybe sym-info × ctxt × spans)
   result (just (si , Γ')) = ( just si , Γ' , ss )
@@ -812,10 +812,13 @@ Delta-span Γ pi T t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
 
-Open-span : ctxt → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
-Open-span Γ pi x t check tvs =
-  mk-span "Open" pi (term-end-pos t)
-    (ll-data-term :: explain "Open an opaque definition" :: checking-data check :: tvs)
+Open-span : ctxt → opacity → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
+Open-span Γ o pi x t check tvs =
+  elim-pair (if o iff OpacTrans
+    then ("Open" , "Open an opaque definition")
+    else ("Close" , "Hide a definition")) λ name expl →
+  mk-span name pi (term-end-pos t)
+    (ll-data-term :: explain expl :: checking-data check :: tvs)
 
 motive-label : string
 motive-label = "the motive"
