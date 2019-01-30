@@ -1,0 +1,20 @@
+module issue-56.
+
+data List (A: ★) : ★ =
+  | nil  : List
+  | cons : A ➔ List ➔ List
+  .
+
+append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
+  = Λ A. λ xs. λ ys. μ append-ys. xs {
+  | nil ➔ ys
+  | cons x xs ➔ cons x (append-ys xs)
+  }.
+
+concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
+  = Λ A. λ xss. μ concat. xss {
+  | nil ➔ nil ·A
+  | cons xs xss ➔ append xs (concat xss)
+  }. --                  ^^
+     -- expected-type: List ·A
+     --          type: concat/type

@@ -3,26 +3,84 @@
   <head>
     <title>Cedille Archive</title>
     <meta charset="utf-8"/>
-    <link href="//cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
-	  rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+          rel="stylesheet">
     <style>
-      code {
-	  font-size: larger;
-	  font-weight: bold;
+      pre {
+          margin: 0;
+      }
+
+      #vertical {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+      }
+
+      #vertical #cedille-code, #vertical #cedille-data {
+          overflow: auto;
+      }
+
+      #cedille-code {
+          flex: 1 1 auto;
+          background-color: #fdf6e3;
+          color: #839496;
+          font-weight: bold;
+          padding: 10px;
+      }
+
+      #cedille-data {
+          flex: 0 1 auto;
+          background-color: #fdf6e3;
+          color: #93a1a1;
+          border-top: #839496 1px solid;
+          width: 100%%;
+          padding-bottom: 10px;
+      }
+
+      #cedille-data:empty {
+          display: none;
+      }
+
+      .cedille-span {
+          transition: 0.1s linear;
+      }
+
+      .cedille-pair:nth-child(2n+1) {
+          background-color: #eee8d5;
+      }
+
+      .cedille-pair {
+          background-color: #fdf6e3;
+          display: flex;
+          flex-direction: row;
+          padding: 5px 10px;
+      }
+
+      .cedille-key {
+          flex: 0 1 25%%;
+          font-weight: bold;
+      }
+
+      .cedille-value {
+          flex: 1 2 auto;
       }
 
       .highlight {
-	  color: white;
-	  background-color: #02F;
+          color: white;
+          background-color: #268bd2;
       }
 
       .hover-highlight:not(.highlight) {
-	  background-color: #0AF;
+          color: white;
+          background-color: #6c71c4;
       }
     </style>
   </head>
   <body>
-    <pre><code>%s</code></pre>
+    <main id="vertical">
+      <div id="cedille-code"><pre><code>%s</code></pre></div>
+      <div id="cedille-data"></div>
+    </main>
     <script
       src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
       integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="

@@ -8,8 +8,8 @@ open import syntax-util
 open import general-util
 
 are-free-e = 𝔹
-check-erased = tt
-skip-erased = ff
+pattern check-erased = tt
+pattern skip-erased = ff
 
 are-free-in-t : Set → Set₁
 are-free-in-t T = ∀{A} → are-free-e → trie A → T → 𝔹
@@ -34,10 +34,16 @@ are-free-in-term ce x (Hole x₁) = ff
 are-free-in-term ce x (Lam _ b _ x' oc t) =
   (ce && are-free-in-optClass ce x oc)
   || are-free-in-term ce (trie-remove x x') t
-are-free-in-term ce x (Let _ fe (DefTerm _ x' m t) t') =
-  (ce && are-free-in-optType ce x m)
-  || ((ce || ~ fe) && are-free-in-term ce x t)
-  || are-free-in-term ce (trie-remove x x') t'
+are-free-in-term check-erased x (Let _ fe (DefTerm _ x' m t) t') =
+  (are-free-in-optType check-erased x m)
+  || (are-free-in-term check-erased x t)
+  || (are-free-in-term check-erased (trie-remove x x') t')
+are-free-in-term skip-erased x (Let _ tt (DefTerm _ x' m t) t') =
+  are-free-in-term skip-erased x t'
+are-free-in-term skip-erased x (Let _ ff (DefTerm _ x' m t) t') =
+     (   (are-free-in-term skip-erased x t)
+      && (are-free-in-term skip-erased (stringset-singleton x') t'))
+  || (are-free-in-term skip-erased (trie-remove x x') t')
 are-free-in-term ce x (Let _ _ (DefType _ x' k t) t') =
   (ce && (are-free-in-kind ce x k || are-free-in-type ce x t))
   || are-free-in-term ce (trie-remove x x') t'
