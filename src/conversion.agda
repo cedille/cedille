@@ -617,7 +617,7 @@ ctxt-ctr-def : posinfo → var → type → params → (ctrs-length ctr-index : 
 ctxt-ctr-def pi c t ps' n i Γ@(mk-ctxt mod@(fn , mn , ps , q) (syms , mn-fn) is symb-occs Δ) = mk-ctxt
   (fn , mn , ps , q')
   ((trie-insert-append2 syms fn mn c) , mn-fn)  
-  (trie-insert is c' (ctr-def (ps ++ ps') t n i (unerased-arrows t ∸ length ps') , fn , pi))
+  (trie-insert is c' (ctr-def (ps ++ ps') t n i (unerased-arrows t) , fn , pi))
   symb-occs Δ
   where
   c' = mn # c
