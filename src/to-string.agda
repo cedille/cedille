@@ -122,6 +122,7 @@ to-string-rewrite{TYPE} Γ ced-ops-conv-abs (TpArrow T me T') = , Abs posinfo-ge
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndTpArrow T k) = , KndPi posinfo-gen posinfo-gen ignored-var (Tkt T) k
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndArrow k k') = , KndPi posinfo-gen posinfo-gen ignored-var (Tkk k) k'
 to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-abs (LiftTpArrow T lT) = , LiftPi posinfo-gen ignored-var T lT
+to-string-rewrite{TERM} Γ ced-ops-conv-abs (Open _ _ _ _ t) = , t
 to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
 ...| ,_ {TERM} (Sigma pi' t') = , t'
 ...| ,_ {TERM} t' = , Sigma posinfo-gen t'
@@ -332,6 +333,7 @@ term-to-stringh (Let pi fe dtT t) with dtT
 ...| DefTerm pi' x m t' = strAdd (let-lbrack-to-string fe) ≫str strBvar x (maybeCheckType-to-string m
   ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
 ...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+--term-to-stringh (Open elab-hide-key o pi' x t) = term-to-stringh t
 term-to-stringh (Open pi o pi' x t) = strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " { " ≫str to-stringr t' ≫str strAdd " }"
@@ -454,25 +456,27 @@ cmds-to-string (c :: cs) f =
   
 cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
   strM-Γ λ Γ →
-  let ps = ctxt-get-current-params Γ in
+  let ps = ctxt-get-current-params Γ
+      ps' = if pi =string elab-hide-key then [] else ps in
   strAdd (opacity-to-string op) ≫str
   strAdd x ≫str
   maybeCheckType-to-string (case mcT of λ where
      NoType → NoType
-     (SomeType T) → SomeType (abs-expand-type ps T)) ≫str
+     (SomeType T) → SomeType (abs-expand-type ps' T)) ≫str
   strAdd " = " ≫str
-  to-stringh (lam-expand-term ps t) ≫str
+  to-stringh (lam-expand-term ps' t) ≫str
   strAdd " ." ≫str
   strΓ' globalScope x f
 cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strM-Γ λ Γ →
-  let ps = ctxt-get-current-params Γ in
+  let ps = ctxt-get-current-params Γ
+      ps' = if pi =string elab-hide-key then [] else ps in
   strAdd (opacity-to-string op) ≫str
   strAdd x ≫str
   strAdd " : " ≫str
-  to-stringh (abs-expand-kind ps k) ≫str
+  to-stringh (abs-expand-kind ps' k) ≫str
   strAdd " = " ≫str
-  to-stringh (lam-expand-type ps T) ≫str
+  to-stringh (lam-expand-type ps' T) ≫str
   strAdd " ." ≫str
   strΓ' globalScope x f
 cmd-to-string (DefKind pi x ps k _) f =

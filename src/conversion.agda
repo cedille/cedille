@@ -451,55 +451,59 @@ hnf-qualif-kind Γ t = hnf Γ unfold-head (qualif-kind Γ t) tt
 
 {-# TERMINATING #-}
 inconv : ctxt → term → term → 𝔹
-inconv Γ t₁ t₂ = inconv-lams empty-renamectxt
+inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
                    (hnf Γ unfold-all t₁ tt) (hnf Γ unfold-all t₂ tt)
   where
-  fresh = flip fresh-var $ ctxt-binds-var Γ
+  fresh : var → renamectxt → renamectxt → var
+  fresh x ρ₁ = fresh-var x (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ₁ x)
 
-  make-subst : renamectxt → 𝕃 var → 𝕃 var → term → term → (renamectxt × term × term)
-  make-subst ρ [] [] t₁ t₂ = ρ , subst-renamectxt Γ ρ t₁ , subst-renamectxt Γ ρ t₂
-  make-subst ρ (x₁ :: xs₁) [] t₁ t₂ =
-    let x = fresh x₁ ρ in
-    make-subst (renamectxt-insert ρ x₁ x) xs₁ [] t₁ (mapp t₂ $ mvar x)
-  make-subst ρ [] (x₂ :: xs₂) t₁ t₂ =
-    let x = fresh x₂ ρ in
-    make-subst (renamectxt-insert ρ x₂ x) [] xs₂ (mapp t₁ $ mvar x) t₂
-  make-subst ρ (x₁ :: xs₁) (x₂ :: xs₂) t₁ t₂ =
-    let x = fresh x₁ ρ in
-    make-subst (renamectxt-insert (renamectxt-insert ρ x₁ x) x₂ x) xs₁ xs₂ t₁ t₂
+  make-subst : renamectxt → renamectxt → 𝕃 var → 𝕃 var → term → term → (renamectxt × renamectxt × term × term)
+  make-subst ρ₁ ρ₂ [] [] t₁ t₂ = ρ₁ , ρ₂ , t₁ , t₂ -- subst-renamectxt Γ ρ₁ t₁ , subst-renamectxt Γ ρ₂ t₂
+  make-subst ρ₁ ρ₂ (x₁ :: xs₁) [] t₁ t₂ =
+    let x = fresh x₁ ρ₁ ρ₂ in
+    make-subst (renamectxt-insert ρ₁ x₁ x) (renamectxt-insert ρ₂ x x) xs₁ [] t₁ (mapp t₂ $ mvar x)
+  make-subst ρ₁ ρ₂ [] (x₂ :: xs₂) t₁ t₂ =
+    let x = fresh x₂ ρ₁ ρ₂ in
+    make-subst (renamectxt-insert ρ₁ x x) (renamectxt-insert ρ₂ x₂ x) [] xs₂ (mapp t₁ $ mvar x) t₂
+  make-subst ρ₁ ρ₂ (x₁ :: xs₁) (x₂ :: xs₂) t₁ t₂ =
+    let x = fresh x₁ ρ₁ ρ₂ in
+    make-subst (renamectxt-insert ρ₁ x₁ x) (renamectxt-insert ρ₂ x₂ x) xs₁ xs₂ t₁ t₂
   
-  inconv-lams : renamectxt → term → term → 𝔹
-  inconv-apps : renamectxt → var → var → args → args → 𝔹
-  inconv-ctrs : renamectxt → var → var → args → args → 𝔹
-  inconv-mu : renamectxt → maybe (var × var) → term → term → cases → cases → 𝔹
-  inconv-args : renamectxt → args → args → 𝔹
+  inconv-lams : renamectxt → renamectxt → term → term → 𝔹
+  inconv-apps : renamectxt → renamectxt → var → var → args → args → 𝔹
+  inconv-ctrs : renamectxt → renamectxt → var → var → args → args → 𝔹
+  inconv-mu : renamectxt → renamectxt → maybe (var × var) → cases → cases → 𝔹
+  inconv-args : renamectxt → renamectxt → args → args → 𝔹
 
-  inconv-args ρ a₁ a₂ =
+  inconv-args ρ₁ ρ₂ a₁ a₂ =
     let a₁ = erase-args a₁; a₂ = erase-args a₂ in
     ~  length a₁ =ℕ length a₂
-    || list-any (uncurry $ inconv-lams ρ) (zip a₁ a₂)
+    || list-any (uncurry $ inconv-lams ρ₁ ρ₂) (zip a₁ a₂)
   
-  inconv-lams ρ t₁ t₂ =
+  inconv-lams ρ₁ ρ₂ t₁ t₂ =
     elim-pair (decompose-lams t₁) λ l₁ b₁ →
     elim-pair (decompose-lams t₂) λ l₂ b₂ →
-    elim-pair (make-subst ρ l₁ l₂ b₁ b₂) λ ρ b →
-    elim-pair b λ b₁ b₂ →
+    elim-pair (make-subst ρ₁ ρ₂ l₁ l₂ b₁ b₂) λ ρ₁ ρ₂b₁₂ →
+    elim-pair ρ₂b₁₂ λ ρ₂ b₁₂ →
+    elim-pair b₁₂ λ b₁ b₂ →
     case (decompose-apps b₁ , decompose-apps b₂) of uncurry λ where
       (Var _ x₁ , a₁) (Var _ x₂ , a₂) →
-        inconv-apps ρ x₁ x₂ a₁ a₂ || inconv-ctrs ρ x₁ x₂ a₁ a₂
+        inconv-apps ρ₁ ρ₂ x₁ x₂ a₁ a₂ || inconv-ctrs ρ₁ ρ₂ x₁ x₂ a₁ a₂
       (Mu _ _ x₁ t₁ _ _ ms₁ _ , a₁) (Mu _ _ x₂ t₂ _ _ ms₂ _ , a₂) →
-        inconv-mu ρ (just $ x₁ , x₂) t₁ t₂ ms₁ ms₂ || inconv-args ρ a₁ a₂
+        inconv-mu ρ₁ ρ₂ (just $ x₁ , x₂) ms₁ ms₂ ||
+        inconv-lams ρ₁ ρ₂ t₁ t₂ || inconv-args ρ₁ ρ₂ a₁ a₂
       (Mu' _ _ t₁ _ _ ms₁ _ , a₁) (Mu' _ _ t₂ _ _ ms₂ _ , a₂) →
-        inconv-mu ρ nothing t₁ t₂ ms₁ ms₂ || inconv-args ρ a₁ a₂
+        inconv-mu ρ₁ ρ₂ nothing ms₁ ms₂ ||
+        inconv-lams ρ₁ ρ₂ t₁ t₂ || inconv-args ρ₁ ρ₂ a₁ a₂
       _ _ → ff
 
-  inconv-apps ρ x₁ x₂ a₁ a₂ =
-    maybe-else' (renamectxt-lookup ρ x₁) ff λ x₁ →
-    maybe-else' (renamectxt-lookup ρ x₂) ff λ x₂ →
+  inconv-apps ρ₁ ρ₂ x₁ x₂ a₁ a₂ =
+    maybe-else' (renamectxt-lookup ρ₁ x₁) ff λ x₁ →
+    maybe-else' (renamectxt-lookup ρ₂ x₂) ff λ x₂ →
     ~ x₁ =string x₂
-    || inconv-args ρ a₁ a₂
+    || inconv-args ρ₁ ρ₂ a₁ a₂
 
-  inconv-ctrs ρ x₁ x₂ as₁ as₂ with env-lookup Γ x₁ | env-lookup Γ x₂
+  inconv-ctrs ρ₁ ρ₂ x₁ x₂ as₁ as₂ with env-lookup Γ x₁ | env-lookup Γ x₂
   ...| just (ctr-def ps₁ _ n₁ i₁ a₁ , _) | just (ctr-def ps₂ _ n₂ i₂ a₂ , _) =
     let ps₁ = erase-params ps₁; ps₂ = erase-params ps₂
         as₁ = erase-args   as₁; as₂ = erase-args   as₂ in
@@ -510,11 +514,27 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt
     ~ a₁ =ℕ a₂ ||
     ~ length as₁ + length ps₂ =ℕ length as₂ + length ps₁ ||
     -- ^ as₁ ∸ ps₁ ≠ as₂ ∸ ps₂, + ps₁ + ps₂ to both sides ^
-    list-any (uncurry $ inconv-lams ρ)
+    list-any (uncurry $ inconv-lams ρ₁ ρ₂)
       (zip (drop (length ps₁) as₁) (drop (length ps₂) as₂)))
   ...| _ | _ = ff
 
-  inconv-mu ρ xs? t₁ t₂ ms₁ ms₂ = ff
+  inconv-mu ρ₁ ρ₂ xs? ms₁ ms₂ =
+    ~ length ms₁ =ℕ length ms₂ ||
+    maybe-else ff id
+      (foldr {B = maybe 𝔹} (λ c b? → b? ≫=maybe λ b → inconv-case c ≫=maybe λ b' → just (b || b')) (just ff) ms₁)
+    where
+    matching-case : case → maybe (term × ℕ × ℕ)
+    matching-case (Case _ x _ _) = foldl (λ where
+      (Case _ xₘ cas tₘ) m? → m? maybe-or
+        (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps →
+         just (caseArgs-to-lams cas tₘ , length cas , length ps)))
+      nothing ms₂
+
+    inconv-case : case → maybe 𝔹
+    inconv-case c₁ @ (Case _ x cas₁ t₁) =
+      matching-case c₁ ≫=maybe λ c₂ →
+      just (inconv-lams ρ₁ ρ₂ (caseArgs-to-lams cas₁ t₁) (fst c₂))
+    
 
 
   -- No need to check if x₁ or x₂ are in scope (or bound in the other's body),
