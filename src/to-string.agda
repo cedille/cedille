@@ -122,7 +122,7 @@ to-string-rewrite{TYPE} Γ ced-ops-conv-abs (TpArrow T me T') = , Abs posinfo-ge
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndTpArrow T k) = , KndPi posinfo-gen posinfo-gen ignored-var (Tkt T) k
 to-string-rewrite{KIND} Γ ced-ops-conv-abs (KndArrow k k') = , KndPi posinfo-gen posinfo-gen ignored-var (Tkk k) k'
 to-string-rewrite{LIFTINGTYPE} Γ ced-ops-conv-abs (LiftTpArrow T lT) = , LiftPi posinfo-gen ignored-var T lT
-to-string-rewrite{TERM} Γ ced-ops-conv-abs (Open _ _ _ _ t) = , t
+to-string-rewrite{TERM} Γ ops @ ced-ops-conv-abs (Open _ _ _ _ t) = to-string-rewrite Γ ops t
 to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
 ...| ,_ {TERM} (Sigma pi' t') = , t'
 ...| ,_ {TERM} t' = , Sigma posinfo-gen t'
