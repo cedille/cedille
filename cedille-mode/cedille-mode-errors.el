@@ -81,9 +81,11 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
       (let ((ss (se-term-start span))
 	    (se (se-term-end span))
 	    (hs (se-term-start h))
-	    (he (se-term-end h)))
-      (if (and (not (and (equal ss hs) (equal se he))) (>= hs ss))
-	  h
+	    (he (se-term-end h))
+            (ns (if next (se-term-start next) (point-max)))
+            (ne (if next (se-term-end next) 0)))
+      (if (and (not (and (equal ss hs) (equal se he))) (>= hs ss) (>= ns hs) (<= ne he))
+	  (cedille-mode-get-next-error span h (cdr error-spans))
 	(cedille-mode-get-next-error span next (cdr error-spans)))))))
 
 (defun cedille-mode-get-prev-error(span prev error-spans)
@@ -94,10 +96,12 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
       (let ((ss (se-term-start span))
 	    (se (se-term-end span))
 	    (hs (se-term-start h))
-	    (he (se-term-end h)))
-      (if (and (not (and (equal ss hs) (equal se he))) (<= hs ss))
+	    (he (se-term-end h))
+            (ps (if prev (se-term-start prev) (point-max)))
+            (pe (if prev (se-term-end prev) 0)))
+      (if (and (not (and (equal ss hs) (equal se he))) (<= hs ss) (<= ns hs) (>= ne he))
 	  (cedille-mode-get-prev-error span h (cdr error-spans))
-        prev)))))
+        (cedille-mode-get-prev-error span prev (cdr error-spans)))))))
 
 (defun cedille-mode-next-error(count)
   "Select the next error from 'cedille-mode-next-errors', if any, and display the info buffer"
