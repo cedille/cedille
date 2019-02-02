@@ -97,9 +97,9 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
 	    (se (se-term-end span))
 	    (hs (se-term-start h))
 	    (he (se-term-end h))
-            (ps (if prev (se-term-start prev) (point-max)))
-            (pe (if prev (se-term-end prev) 0)))
-      (if (and (not (and (equal ss hs) (equal se he))) (<= hs ss) (<= ns hs) (>= ne he))
+            (ps (if prev (se-term-start prev) 0))
+            (pe (if prev (se-term-end prev) (point-max))))
+      (if (and (not (and (equal ss hs) (equal se he))) (<= hs ss) (if (= ps hs) (< pe he) t))
 	  (cedille-mode-get-prev-error span h (cdr error-spans))
         (cedille-mode-get-prev-error span prev (cdr error-spans)))))))
 
@@ -108,15 +108,15 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (interactive "p")
   (if (<= count 0)
       (cedille-mode-highlight-occurrences-if)
-    (if (se-mode-selected)
+    ;(if (se-mode-selected)
 	(progn
-	  (setq cedille-mode-cur-error (cedille-mode-get-next-error (se-mode-selected) nil cedille-mode-error-spans))
+	  (setq cedille-mode-cur-error (cedille-mode-get-next-error (or (se-mode-selected) (se-new-span "dummy" (point) (point))) nil cedille-mode-error-spans))
 	  (if cedille-mode-cur-error
 	      (cedille-mode-select-error cedille-mode-cur-error)
 	    (if cedille-mode-wrap-navigation
 		(cedille-mode-select-first-error-in-file)
 	      (message "No further errors"))))
-      (cedille-mode-select-first-error-in-file))
+      ;(cedille-mode-select-first-error-in-file))
     (cedille-mode-next-error (- count 1))))
 ;    (if (null cedille-mode-next-errors)
 ;	(if (and (not (se-mode-selected)) cedille-mode-cur-error)
@@ -132,16 +132,16 @@ spans and set the variable `cedille-mode-error-spans'.  The input is ignored."
   (interactive "p")
   (if (<= count 0)
       (cedille-mode-highlight-occurrences-if)
-    (if (se-mode-selected)
+    ;(if (se-mode-selected)
 	(progn
-	  (setq cedille-mode-cur-error (cedille-mode-get-prev-error (se-mode-selected) nil cedille-mode-error-spans))
+	  (setq cedille-mode-cur-error (cedille-mode-get-prev-error (or (se-mode-selected) (se-new-span "dummy" (point) (point))) nil cedille-mode-error-spans))
 	  (if cedille-mode-cur-error
 	      (cedille-mode-select-error cedille-mode-cur-error)
 	    (if cedille-mode-wrap-navigation
 		(cedille-mode-select-last-error-in-file)
 	      (message "No further errors"))))
-      (when cedille-mode-wrap-navigation
-	(cedille-mode-select-last-error-in-file)))
+      ;(when cedille-mode-wrap-navigation
+;	(cedille-mode-select-last-error-in-file)))
     (cedille-mode-previous-error (- count 1))))
 ;  (when (> count 0)
 ;    (if (null cedille-mode-prev-errors)
