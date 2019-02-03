@@ -70,12 +70,12 @@ check-term-update-eq Γ Left m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) t2 p
 check-term-update-eq Γ Right m pi t1 t2 pi' = TpEq pi t1 (hnf-from Γ tt m t2)  pi'
 check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) (hnf-from Γ tt m t2) pi'
 
-add-tk-with-err-m : maybeErased → 𝕃 tagged-val × err-m → posinfo → var → tk → spanM restore-def
-add-tk-with-err-m e tem pi x atk = 
+add-tk-with-err-m : maybeErased → 𝕃 tagged-val → err-m → posinfo → var → tk → spanM restore-def
+add-tk-with-err-m e tags em pi x atk = 
    helper atk ≫=span λ mi → 
     (if ~ (x =string ignored-var) then
        (get-ctxt λ Γ → 
-          spanM-add (var-span-with-tags e Γ pi x checking atk (fst tem) (snd tem)))
+          spanM-add (var-span-with-tags e Γ pi x checking atk tags em))
     else spanMok) ≫span
    spanMr mi
   where helper : tk → spanM restore-def
@@ -83,7 +83,7 @@ add-tk-with-err-m e tem pi x atk =
         helper (Tkt t) = spanM-push-term-decl pi x t
 
 add-tk' : maybeErased → posinfo → var → tk → spanM restore-def
-add-tk' e = add-tk-with-err-m e ( [] , nothing )
+add-tk' e = add-tk-with-err-m e [] nothing
 
 add-tk : posinfo → var → tk → spanM restore-def
 add-tk = add-tk' ff
@@ -308,7 +308,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
       check-oc oc ≫span
       spanM-add (punctuation-span "Lambda" pi (posinfo-plus pi 1)) ≫span
       get-ctxt λ Γ →
-      add-tk-with-err-m l (check-erasures Γ l b) pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
+      (uncurry (add-tk-with-err-m l) (check-erasures Γ l b) pi' x (lambda-bound-class-if oc atk)) ≫=span λ mi → 
       get-ctxt λ Γ' →
       spanM-add (this-span Γ atk oc [ type-data Γ tp ] nothing) ≫span
       check-term t (just (rename-var Γ x' (qualif-var Γ' x) tp')) ≫span
