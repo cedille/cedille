@@ -63,9 +63,7 @@ params-set-erased me = map λ where
   (Decl pi pi' me' x atk pi'') → Decl pi pi' me x atk pi''
 
 args-set-erased : maybeErased → args → args
-args-set-erased me = map λ where
-  (TermArg me' t) → TermArg me t
-  (TypeArg T) → TypeArg T
+args-set-erased = map ∘ arg-set-erased
 
 indices-to-kind : indices → kind → kind
 indices-to-kind = flip $ foldr λ {(Index x atk) → KndPi posinfo-gen posinfo-gen x atk}

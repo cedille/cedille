@@ -9,6 +9,7 @@ open import syntax-util
 open import ctxt
 open import rename
 open import general-util
+open import datatype-functions
 
 data expr-side : Set where
   left : expr-side
@@ -457,7 +458,7 @@ cmds-to-string (c :: cs) f =
 cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
-      ps' = if pi =string elab-hide-key then [] else ps in
+      ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
   strAdd (opacity-to-string op) ≫str
   strAdd x ≫str
   maybeCheckType-to-string (case mcT of λ where
@@ -470,7 +471,7 @@ cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
 cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
-      ps' = if pi =string elab-hide-key then [] else ps in
+      ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
   strAdd (opacity-to-string op) ≫str
   strAdd x ≫str
   strAdd " : " ≫str

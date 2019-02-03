@@ -636,7 +636,7 @@ record datatype-encoding : Set where
     Γ' = add-params-to-ctxt ps $ add-ctrs-to-ctxt cs $ ctxt-var-decl x Γ''
     
     tcs-ρ = reindex-file Γ' is template
-    tcs = parameterize-file Γ' (params-set-erased Erased $ ctxt-get-current-params Γ'' ++ ps) $ fst tcs-ρ
+    tcs = parameterize-file Γ' (params-set-erased Erased $ {-ctxt-get-current-params Γ'' ++-} ps) $ fst tcs-ρ
     ρₓ = snd tcs-ρ
 
     data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ') ρₓ

@@ -105,9 +105,13 @@ compileFail : var
 compileFail = "compileFail"
 compileFail-qual = "" % compileFail
 
+arg-set-erased : maybeErased → arg → arg
+arg-set-erased me (TermArg _ t) = TermArg me t
+arg-set-erased me (TypeArg T) = TypeArg T
+
 mk-inst : params → args → trie arg × params
-mk-inst ((Decl _ _ _ x _ _) :: ps) (a :: as) with mk-inst ps as
-...| σ , ps' = trie-insert σ x a , ps'
+mk-inst ((Decl _ _ me x _ _) :: ps) (a :: as) with mk-inst ps as
+...| σ , ps' = trie-insert σ x (arg-set-erased me a) , ps'
 mk-inst ps as = empty-trie , ps
 
 apps-term : term → args → term
