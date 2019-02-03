@@ -75,7 +75,7 @@ add-tk-with-err-m e tem pi x atk =
    helper atk ≫=span λ mi → 
     (if ~ (x =string ignored-var) then
        (get-ctxt λ Γ → 
-          spanM-add (var-span-with-tags e Γ pi x checking atk ([]) (snd tem)))
+          spanM-add (var-span-with-tags e Γ pi x checking atk (fst tem) (snd tem)))
     else spanMok) ≫span
    spanMr mi
   where helper : tk → spanM restore-def
@@ -310,7 +310,7 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
       get-ctxt λ Γ →
       add-tk-with-err-m l (check-erasures Γ l b) pi' x (lambda-bound-class-if oc atk) ≫=span λ mi → 
       get-ctxt λ Γ' →
-      spanM-add (this-span Γ atk oc (fst (check-erasures Γ l b)) nothing) ≫span
+      spanM-add (this-span Γ atk oc [ type-data Γ tp ] nothing) ≫span
       check-term t (just (rename-var Γ x' (qualif-var Γ' x) tp')) ≫span
       spanM-restore-info x mi where
         this-span : ctxt → tk → optClass → 𝕃 tagged-val → err-m → span
@@ -327,12 +327,12 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
         check-erasures : ctxt → maybeErased → maybeErased → 𝕃 tagged-val × err-m
         check-erasures Γ Erased All = 
           if is-free-in skip-erased x t
-            then type-data Γ tp :: [ erasure Γ t ] , just "The Λ-bound variable occurs free in the erasure of the body."
-            else [ type-data Γ tp ] , nothing
-        check-erasures Γ NotErased Pi = [ type-data Γ tp ] , nothing
-        check-erasures Γ Erased Pi =  [ expected-type Γ tp ] , just ("The expected type is a Π-abstraction (indicating explicit input), but"
+            then function-type-data Γ tp :: [ erasure Γ t ] , just "The Λ-bound variable occurs free in the erasure of the body."
+            else [ function-type-data Γ tp ] , nothing
+        check-erasures Γ NotErased Pi = [ function-type-data Γ tp ] , nothing
+        check-erasures Γ Erased Pi =  [ expected-function-type Γ tp ] , just ("The expected type is a Π-abstraction (indicating explicit input), but"
                                               ^ " the term is a Λ-abstraction (implicit input).")
-        check-erasures Γ NotErased All =  [ expected-type Γ tp ] , just ("The expected type is a ∀-abstraction (indicating implicit input), but"
+        check-erasures Γ NotErased All =  [ expected-function-type Γ tp ] , just ("The expected type is a ∀-abstraction (indicating implicit input), but"
                                               ^ " the term is a λ-abstraction (explicit input).")
     cont nothing =
       get-ctxt λ Γ →

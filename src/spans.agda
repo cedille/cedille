@@ -318,6 +318,9 @@ explain = strRunTag "explanation" empty-ctxt ∘ strAdd
 reason : string → tagged-val
 reason = strRunTag "reason" empty-ctxt ∘ strAdd
 
+expected-function-type : ctxt → type → tagged-val
+expected-function-type = to-string-tag "expected function type"
+
 expected-type : ctxt → type → tagged-val
 expected-type = to-string-tag "expected-type"
 
@@ -347,6 +350,9 @@ expected-type-if Γ (just tp) = [ expected-type Γ tp ]
 -- hnf-expected-type-if : ctxt → maybe type → 𝕃 tagged-val
 -- hnf-expected-type-if Γ nothing = []
 -- hnf-expected-type-if Γ (just tp) = [ hnf-expected-type Γ tp ]
+
+function-type-data : ctxt → type → tagged-val
+function-type-data = to-string-tag "function type"
 
 type-data : ctxt → type → tagged-val
 type-data = to-string-tag "type"
