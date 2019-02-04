@@ -9,6 +9,7 @@ open import syntax-util
 open import ctxt
 open import rename
 open import general-util
+open import erase
 
 data expr-side : Set where
   left : expr-side

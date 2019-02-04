@@ -13,7 +13,7 @@ open import is-free
 open import syntax-util
 open import to-string options
 open import subst
-
+open import erase
 
 --------------------------------------------------
 -- span datatype
