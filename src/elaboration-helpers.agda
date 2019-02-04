@@ -860,8 +860,8 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
       is-as = map λ {(Index x atk) →
         tk-elim atk (λ _ → TermArg Erased $ `vₓ x) (λ _ → TypeArg $ `Vₓ x)}
       is/X? = maybe-map `vₓ_ is/X? maybe-or either-else' x? (λ _ → nothing) (maybe-map fst)
-      open? = if Xₒ =string X then Open pi-gen OpacTrans pi-gen X else id
-      close? = if Xₒ =string X then Open pi-gen OpacOpaque pi-gen X else id
+      open? = Open pi-gen OpacTrans pi-gen X
+      close? = Open pi-gen OpacOpaque pi-gen X
       ms' = foldr (λ {(Case _ x cas t) σ →
               let Γ' = add-caseArgs-to-ctxt cas Γᵢₛ in
               trie-insert σ x $ caseArgs-to-lams cas $
@@ -872,7 +872,7 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
       functor = `Vₓ data-functorₓ ·ps
       Xₜₚ = `Vₓ X ·ps
       in-fix = λ is/X? T asᵢ t → either-else' x? (λ x → recompose-apps asᵢ (`vₓ fixpoint-inₓ -ps · functor - fmap) ` (maybe-else' is/X? t λ is/X →
-        recompose-apps asᵢ (`vₓ castₓ -ps - (fmap · T · Xₜₚ - (`open data-Muₓ - (is/X ` (`λ "to" ₊ `λ "out" ₊ `vₓ "to"))))) ` t)) (λ e → maybe-else' (is/X? maybe-or maybe-map fst e) t λ is/X → recompose-apps asᵢ (`vₓ castₓ -ps) · `Vₓ Xₒ · Xₜₚ - (`open data-Muₓ - (is/X ` (`λ "to" ₊ `λ "out" ₊ `vₓ "to"))) ` t)
+        recompose-apps asᵢ (`vₓ castₓ -ps - (fmap · T · Xₜₚ - (`open data-Muₓ - (is/X ` (`λ "to" ₊ `λ "out" ₊ `vₓ "to"))))) ` t)) (λ e → maybe-else' (is/X? maybe-or maybe-map fst e) t λ is/X → recompose-apps asᵢ (`vₓ castₓ -ps · `Vₓ Xₒ · Xₜₚ - (`open data-Muₓ - (is/X ` (`λ "to" ₊ `λ "out" ₊ `vₓ "to")))) ` t)
       app-lambek = λ is/X? t T asᵢ body → body - (in-fix is/X? T asᵢ t) -
         (recompose-apps asᵢ (`vₓ fixpoint-lambekₓ -ps · functor - fmap) ` (in-fix is/X? T asᵢ t)) in
   rename "x" from Γᵢₛ for λ xₓ →
@@ -891,13 +891,13 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
              `vₓ castₓ -ps · (functor ·ₜ Tₛ) · (functor ·ₜ Xₜₚ) -
                (fmap · Tₛ · Xₜₚ - (`open data-Muₓ - (is/X ` (`λ "to" ₊ `λ "out" ₊ `vₓ "to"))))
            out = maybe-else' is/X? (`vₓ fixpoint-outₓ -ps · functor - fmap) λ is/X →
-             let i = `open data-Muₓ - is/X · (`ι xₓ :ₜ Tₛ ➔ functor ·ₜ Tₛ ₊ `[ `vₓ xₓ ≃ `vₓ fixpoint-outₓ ]) ` (`λ "to" ₊ `λ "out" ₊ `vₓ "out") in
+             let i = `open data-Muₓ - is/X · (`ι xₓ :ₜ indices-to-alls is (indices-to-tpapps is Tₛ ➔ indices-to-tpapps is (functor ·ₜ Tₛ)) ₊ `[ `vₓ xₓ ≃ `vₓ fixpoint-outₓ ]) ` (`λ "to" ₊ `λ "out" ₊ `vₓ "out") in
              `φ i `₊2 - i `₊1 [ `vₓ fixpoint-outₓ ] in
       (`φ `β - (`vₓ data-functor-indₓ `ps · Tₛ -is ` (out -is ` t)) [ `vₓ fixpoint-outₓ ` erase t ])
         · (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is (functor ·ₜ Tₛ) ₊
            `∀ y'ₓ :ₜ indices-to-tpapps is Xₜₚ ₊ `∀ eₓ :ₜ `[ `vₓ fixpoint-inₓ -ps ` `vₓ yₓ ≃ `vₓ y'ₓ ] ₊
            indices-to-tpapps is Tₘ `ₜ (`φ `vₓ eₓ -
-             (`vₓ fixpoint-inₓ -ps · functor - fmap ` (fcₜ (`vₓ yₓ))) [ `vₓ y'ₓ ]))))) , Γ)
+             (indices-to-apps is (`vₓ fixpoint-inₓ -ps · functor - fmap) ` (fcₜ (`vₓ yₓ))) [ `vₓ y'ₓ ]))))) , Γ)
 
     λ xₒ → rename xₒ from Γᵢₛ for λ x →
     let Rₓₒ = mu-Type/ x
