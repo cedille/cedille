@@ -23,6 +23,7 @@ import spans options {IO} as io-spans
 open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
+open import erase
 
 private
 

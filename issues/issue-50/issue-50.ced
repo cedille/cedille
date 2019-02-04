@@ -34,3 +34,13 @@ test2-ok ◂ Nat ➾ Nat ➾ Nat
 
 test3-fail ◂ Nat ➾ Nat ➾ Nat
   = Λ n. Λ m. [ n' = S Z ] - [ m = S n' ] - wrong-add n m.
+
+-- test4-ok ◂ { λ x . [ n = x ] - x ≃ λ z . z } = β.
+
+-- test5 ◂ Nat ➾ { Λ n . λ x . [ n' = n ] - x ≃ λ z . z } = Λ i. [ x = i ] - β .
+
+-- in inspect buffer see {..........................}
+-- when you view the erasure of it (C-i e), you should
+-- see: λ x . x
+test4 ◂ Nat ➾ Nat ➔ Nat = Λ n . λ x . [ n' = n ] - x .
+

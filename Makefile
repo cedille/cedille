@@ -40,7 +40,8 @@ AGDASRC = \
 	elaboration.agda \
 	elaboration-helpers.agda \
 	monad-instances.agda \
-	json.agda
+	json.agda \
+	erase.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

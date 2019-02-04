@@ -2,6 +2,7 @@ import cedille-options
 module elaboration (options : cedille-options.options) where
 
 open import lib
+open import erase
 
 options' = record options
   {during-elaboration = tt;

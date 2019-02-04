@@ -11,6 +11,7 @@ open import lift
 open import rename
 open import subst
 open import syntax-util
+open import erase
 
 private
   
