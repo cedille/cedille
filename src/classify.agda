@@ -327,12 +327,12 @@ check-termi (Lam pi l pi' x oc t) (just tp) =
         check-erasures : ctxt → maybeErased → maybeErased → 𝕃 tagged-val × err-m
         check-erasures Γ Erased All = 
           if is-free-in skip-erased x t
-            then function-type-data Γ tp :: [ erasure Γ t ] , just "The Λ-bound variable occurs free in the erasure of the body."
-            else [ function-type-data Γ tp ] , nothing
-        check-erasures Γ NotErased Pi = [ function-type-data Γ tp ] , nothing
-        check-erasures Γ Erased Pi =  [ expected-function-type Γ tp ] , just ("The expected type is a Π-abstraction (indicating explicit input), but"
+            then [ erasure Γ t ] , just "The Λ-bound variable occurs free in the erasure of the body."
+            else [] , nothing
+        check-erasures Γ NotErased Pi = [] , nothing
+        check-erasures Γ Erased Pi =  [] , just ("The expected type is a Π-abstraction (indicating explicit input), but"
                                               ^ " the term is a Λ-abstraction (implicit input).")
-        check-erasures Γ NotErased All =  [ expected-function-type Γ tp ] , just ("The expected type is a ∀-abstraction (indicating implicit input), but"
+        check-erasures Γ NotErased All =  [] , just ("The expected type is a ∀-abstraction (indicating implicit input), but"
                                               ^ " the term is a λ-abstraction (explicit input).")
     cont nothing =
       get-ctxt λ Γ →
