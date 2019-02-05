@@ -2,6 +2,7 @@ import cedille-options
 module elaboration (options : cedille-options.options) where
 
 open import lib
+open import erase
 
 options' = record options
   {during-elaboration = tt;
@@ -27,6 +28,7 @@ open import rewriting
 open import datatype-functions
 open import elaboration-helpers options
 open import bohm-out
+open import erase
 import spans options' {id} as id-spans
 
 

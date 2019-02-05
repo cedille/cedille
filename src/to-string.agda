@@ -10,6 +10,7 @@ open import ctxt
 open import rename
 open import general-util
 open import datatype-functions
+open import erase
 
 data expr-side : Set where
   left : expr-side

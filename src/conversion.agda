@@ -10,7 +10,7 @@ open import rename
 open import subst
 open import syntax-util
 open import general-util
---open import to-string
+open import erase
 
 {- Some notes:
 

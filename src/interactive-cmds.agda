@@ -24,6 +24,7 @@ open import datatype-functions
 open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
+open import erase
 
 private
 

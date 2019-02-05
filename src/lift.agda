@@ -7,6 +7,7 @@ open import cedille-types
 open import ctxt
 open import syntax-util
 open import subst
+open import erase
 
 liftingType-to-kind : liftingType → kind
 liftingType-to-kind (LiftArrow l1 l2) = KndArrow (liftingType-to-kind l1) (liftingType-to-kind l2)
