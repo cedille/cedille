@@ -17,7 +17,7 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι↑➾➔☆β·≃\<>Λ�
 @num            = $numone+
 @proj           = \. @num
 @var            = $alpha ($alpha | $numpunct)*
-@qvar           = @var (\. @var)+
+@qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*
 @qkvar          = @kvar (\. @var)+
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
@@ -39,7 +39,7 @@ token :-
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
       <0> μ                                     { mkTokenEmpty TMu           }
-      <0> μ'                                    { mkTokenEmpty TMu'          }
+      <0> μ\'                                   { mkTokenEmpty TMuP          }
       <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
@@ -50,6 +50,7 @@ token :-
       <0> public                                { mkTokenEmpty TPublic       }
       <0> opaque                                { mkTokenEmpty TOpaque       }
       <0> open                                  { mkTokenEmpty TOpen         }
+      <0> close                                 { mkTokenEmpty TClose        }
       <0> $white+				{ skip'                      }
       <0> @kvar                                 { mkToken TKvar              }
       <0> @qkvar        			{ mkToken TQKvar             }      
@@ -174,13 +175,14 @@ data TokenClass =
      |  TPublic
      |  TOpaque
      |  TOpen
+     |  TClose
      |  TModule
      |  TTheta
      |  TThetaEq
      |  TThetaVars
      |  TRho
      |  TMu
-     |  TMu'
+     |  TMuP
      |  TPipe     
      |  TEOF
      deriving Eq
@@ -210,13 +212,14 @@ instance Show TokenClass where
   show (TPublic)     = "TPublic"
   show (TOpaque)     = "TOpaque"
   show (TOpen)       = "TOpen"
+  show (TClose)      = "TClose"
   show (TModule)     = "TModule"
   show (TTheta)      = "TTheta"
   show (TThetaEq)    = "TThetaEq"
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
   show (TMu)         = "TMu"
-  show (TMu')        = "TMu'"
+  show (TMuP)        = "TMuP"
   show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 

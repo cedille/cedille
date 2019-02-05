@@ -150,9 +150,9 @@ include-elt-to-string ie =
     ", last-parse-time: " ^ (maybe-else "" utcToString (include-elt.last-parse-time ie))
 
 params-to-string'' : params → string
-params-to-string'' ParamsNil = ""
+params-to-string'' [] = ""
 -- TODO print erased vs non-erased?
-params-to-string'' (ParamsCons (Decl pi pi' me v t-k pi'') pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string'' pms)
+params-to-string'' ((Decl pi pi' me v t-k pi'') :: pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string'' pms)
 
 defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string'' pms
@@ -164,15 +164,17 @@ syms-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string (λ s → s
 
 ctxt-info-to-string : ctxt-info → string
 ctxt-info-to-string (term-decl tp) = "term-decl: {type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
-ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ ", type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
+ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", maybe term: " ^ maybe-else' t "nothing" (λ t → "just " ^ rope-to-string (to-string empty-ctxt t)) ^ ", type: " ^ rope-to-string (to-string empty-ctxt tp) ^ "}"
 ctxt-info-to-string (term-udef dp opac t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
 ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", tp: " ^ rope-to-string (to-string empty-ctxt tp) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", maybe type: " ^ maybe-else' tp "nothing" (λ tp → "just " ^ rope-to-string (to-string empty-ctxt tp)) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
-ctxt-info-to-string (const-def _) = "const-def"
-ctxt-info-to-string (datatype-def _ _) = "datatype-def"
+ctxt-info-to-string (ctr-def _ _ _ _ _) = "ctr-def"
+--ctxt-info-to-string (mu-def x) = "mu-def: {var: " ^ x ^ "}"
+--ctxt-info-to-string (datatype-def ps kᵢ k cs) = "datatype-def: {defParams: {" ^ defParams-to-string ps ^ "}, inductive hypothesis kind: " ^ rope-to-string (to-string empty-ctxt kᵢ) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ ", cs: " ^ "TODO" ^ "}"
+--ctxt-info-to-string (mu-def ps x k) = "mu-def: {defParams: {" ^ defParams-to-string ps ^ "}, datatype var: " ^ x ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 
 sym-info-to-string : sym-info → string
 sym-info-to-string (ci , (fn , pi)) = "{ctxt-info: " ^ (ctxt-info-to-string ci) ^ ", location: {filename: " ^ fn ^ ", posinfo: " ^ pi ^ "}}"
@@ -193,7 +195,7 @@ mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os d) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os Δ) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -239,22 +241,24 @@ scope-file' : scope-t ⊤
 scope-cmds : scope-t cmds
 scope-cmd : scope-t cmd
 scope-var : scope-t var
+scope-ctrs : scope-t ctrs
+scope-datatype-names : scope-t var
 
 scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
 ...| just e = ts , just e
-...| nothing = scope-file' fnₒ fnᵢ oa ParamsNil as triv ts
+...| nothing = scope-file' fnₒ fnᵢ oa [] as triv ts
 
 scope-file' fnₒ fn oa psₒ as triv s with get-include-elt s fn
 ...| ie with include-elt.err ie | include-elt.ast ie
 ...| e | nothing = s , (maybe-if e) ≫maybe just error-in-import-string
-...| e | just (File pi0 is pi1 pi2 mn ps cs pi3) =
+...| e | just (File is pi1 pi2 mn ps cs pi3) =
   (s , (maybe-if e) ≫maybe just error-in-import-string) ≫=scope
   scope-cmds fn mn oa ps as (imps-to-cmds is) ≫=scope
   scope-cmds fn mn oa ps as cs
 
-scope-cmds fn mn oa ps as (CmdsNext c cs) s =
+scope-cmds fn mn oa ps as (c :: cs) s =
   scope-cmd fn mn oa ps as c s ≫=scope scope-cmds fn mn oa ps as cs
-scope-cmds fn mn oa ps as CmdsStart s = s , nothing
+scope-cmds fn mn oa ps as [] s = s , nothing
 
 scope-cmd fn mn oa ps as (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) s = s , nothing
 scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ' pi'')) s =
@@ -264,9 +268,9 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
   where
 
   merged : trie (maybe arg) → params → args → trie (maybe arg)
-  merged σ (ParamsCons (Decl _ _ me x atk _) ps) (ArgsCons a as) =
+  merged σ ((Decl _ _ me x atk _) :: ps) (a :: as) =
     merged (trie-insert σ x $ just a) ps as
-  merged σ (ParamsCons (Decl _ _ me x atk _) ps) ArgsNil =
+  merged σ ((Decl _ _ me x atk _) :: ps) ArgsNil =
     merged (trie-insert σ x nothing) ps ArgsNil
   merged σ _ _ = σ
   
@@ -278,22 +282,35 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
   σ = merged empty-trie psₒ asₒ
   
   reorder : args → args
-  reorder (ArgsCons a as) =
-    maybe-else' (arg-var a ≫=maybe trie-lookup σ) (ArgsCons a $ reorder as) λ ma →
-    maybe-else' ma ArgsNil λ a → ArgsCons a $ reorder as
-  reorder ArgsNil = ArgsNil
+  reorder (a :: as) =
+    maybe-else' (arg-var a ≫=maybe trie-lookup σ) (a :: reorder as) λ ma →
+    maybe-else' ma [] λ a → a :: reorder as
+  reorder [] = []
   
   asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
 
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ _ _) _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s =
+  scope-var fn mn oa ps as v s ≫=scope
+  scope-ctrs fn mn oa ps as cs ≫=scope
+  scope-datatype-names fn mn oa ps as v
+
+scope-ctrs fn mn oa ps as [] s = s , nothing
+scope-ctrs fn mn oa ps as ((Ctr pi x T) :: ds) s =
+  scope-var fn mn oa ps as x s ≫=scope
+  scope-ctrs fn mn oa ps as ds
+
+scope-datatype-names fn mn oa ps as x s =
+  scope-var fn mn oa ps as (data-Is/ x) s ≫=scope
+  scope-var fn mn oa ps as (data-is/ x) ≫=scope
+  scope-var fn mn oa ps as (data-to/ x)
 
 
 scope-var _ mn oa ps as v s with import-as v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os d) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os d) ,
+...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os Δ) =
+  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os Δ) ,
   flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
     (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

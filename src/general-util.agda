@@ -216,6 +216,9 @@ drop zero xs = xs
 drop (suc _) [] = []
 drop (suc n) (x :: xs) = drop n xs
 
+drop-last : ∀{ℓ}{A : Set ℓ} → ℕ → 𝕃 A → 𝕃 A
+drop-last n xs = take (length xs ∸ n) xs
+
 zip-with : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
            → (A → B → C) → 𝕃 A → 𝕃 B → 𝕃 C
 zip-with f xs ys = map (uncurry f) (zip xs ys)
@@ -230,6 +233,9 @@ for xs accum n use f = foldr f n xs
 foldl : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → (A → B → B) → B → 𝕃 A → B
 foldl f b [] = b
 foldl f b (a :: as) = foldl f (f a b) as
+
+foldr' : ∀{ℓ ℓ'}{A : Set ℓ}{B : Set ℓ'} → B → (A → B → B) → 𝕃 A → B
+foldr' = flip foldr
 
 -- error.agda
 err-guard : 𝔹 → string → error-t ⊤
@@ -425,4 +431,10 @@ bindM' a b = bindM a (λ a → b)
 
 _≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
 _≫monad_ = bindM'
+
+map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
+map-fst f (x₀ , x₁) = (f x₀ , x₁)
+
+map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₁ → X₂) → (X₀ × X₁) → (X₀ × X₂)
+map-snd f (x₀ , x₁) = (x₀ , f x₁)
 

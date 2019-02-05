@@ -544,7 +544,7 @@ module meta-vars-match-errors where
   match-rhs = to-string-tag "computed rhs"
 
   the-meta-var : var → tagged-val
-  the-meta-var x = "the meta-var" , [[ x ]] , []
+  the-meta-var = strRunTag "the meta-var" empty-ctxt ∘ strAdd
 
   the-solution : ctxt → type → tagged-val
   the-solution = to-string-tag "the solution"

@@ -40,7 +40,10 @@ AGDASRC = \
 	elaboration.agda \
 	elaboration-helpers.agda \
 	monad-instances.agda \
-	json.agda
+	json.agda \
+	datatype-functions.agda \
+	bohm-out.agda \
+	cedille-syntax.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \
@@ -105,10 +108,10 @@ libraries: ./ial/ial.agda-lib
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
 	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
 
-./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
+./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
-CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/templates.agda
+CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD)

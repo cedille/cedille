@@ -1,6 +1,7 @@
 module cedille-options where
 open import lib
 open import general-util
+open import options-types public
 
 record options : Set where
   constructor mk-options
@@ -10,6 +11,7 @@ record options : Set where
         generate-logs : 𝔹
         show-qualified-vars : 𝔹
         erase-types : 𝔹
+        datatype-encoding : data-encoding
 
         -- Internal use only
         during-elaboration : 𝔹
@@ -22,6 +24,7 @@ default-options = record {
   generate-logs = ff;
   show-qualified-vars = ff;
   erase-types = tt;
+  datatype-encoding = Mendler;
   during-elaboration = ff}
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
@@ -48,10 +51,21 @@ options-to-rope ops =
   comment "Print variables fully qualified" ⊹⊹
   option "show-qualified-vars" (𝔹-s options.show-qualified-vars) ⊹⊹
   comment "Print types erased" ⊹⊹
-  option "erase-types" (𝔹-s options.erase-types)
-  where 𝔹-s : (options → 𝔹) → string
-        𝔹-s f = if f ops then "true" else "false"
-        comment : string → rope
-        comment s = [[ "-- " ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\n" ]]
-        option : (name : string) → (value : string) → rope
-        option name value = [[ name ]] ⊹⊹ [[ " = " ]] ⊹⊹ [[ value ]] ⊹⊹ [[ ".\n\n" ]]
+  option "erase-types" (𝔹-s options.erase-types) ⊹⊹
+  comment "Datatype encoding to use when elaborating to Cedille Core" ⊹⊹
+  option "datatype-encoding" (enc-s options.datatype-encoding)
+  
+  where
+  𝔹-s : (options → 𝔹) → string
+  𝔹-s f = if f ops then "true" else "false"
+
+  enc-s : (options → data-encoding) → string
+  enc-s f with f ops
+  ...| Mendler = "Mendler"
+  ...| Mendler-old = "Mendler-old"
+
+  comment : string → rope
+  comment s = [[ "-- " ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\n" ]]
+
+  option : (name : string) → (value : string) → rope
+  option name value = [[ name ]] ⊹⊹ [[ " = " ]] ⊹⊹ [[ value ]] ⊹⊹ [[ ".\n\n" ]]

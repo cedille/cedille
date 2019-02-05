@@ -1,4 +1,5 @@
 
+(eval-when-compile (require 'cl))
 (require 'se-helpers)
 
 

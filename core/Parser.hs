@@ -23,7 +23,6 @@ data Token =
   | TDot       -- .
   | TCenterDot -- ·
   | TDash      -- -
-  | TTriangle  -- ◂
   | TColon     -- :
   | TComma     -- ,
   | TParenL    -- (
@@ -63,23 +62,7 @@ lexVar v (c : s)
   | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>" = Just (reverse v, (c : s))
   | otherwise = Nothing
 lexVar v "" = Just (reverse v, "")
-{-
---lexImport :: String -> Maybe [Token]
-lexImport s = h Nothing Nothing s where
---h :: Maybe String -> Maybe String -> String -> Maybe [Token]
-  h Nothing Nothing (' ' : s) = h Nothing Nothing s
-  h Nothing Nothing ('\n' : s) = h Nothing Nothing s
-  h Nothing Nothing ('\t' : s) = h Nothing Nothing s
-  h Nothing Nothing (c : s) = h (Just (c : "")) Nothing s
-  h (Just fp) Nothing ('.' : s) = h (Just fp) (Just ".") s
-  h (Just fp) Nothing (c : s) = h (Just (c : fp)) Nothing s
-  h (Just fp) (Just afp) (' ' : s) = h (Just fp) (Just (' ' : s)) s
-  h (Just fp) (Just afp) ('\t' : s) = h (Just fp) (Just ('\t' : s)) s
-  h (Just fp) (Just afp) ('\n' : s) = consIf (TImport (reverse fp)) $ lexStr s
-  h (Just fp) (Just afp) s = h (Just (afp ++ fp)) Nothing s
-  h (Just fp) (Just afp) "" = Just (TImport (reverse fp) : [])
-  h _ _ "" = Nothing
--}
+
 --lexStr :: String -> Maybe [Token]
 lexStr (' ' : s) = lexStr s
 lexStr ('\n' : s) = lexStr s
@@ -103,7 +86,6 @@ lexStr (':' : s) = consIf TColon $ lexStr s
 lexStr ('·' : s) = consIf TCenterDot $ lexStr s
 lexStr ('-' : s) = consIf TDash $ lexStr s
 lexStr (',' : s) = consIf TComma $ lexStr s
-lexStr ('◂' : s) = consIf TTriangle $ lexStr s
 lexStr ('(' : s) = consIf TParenL $ lexStr s
 lexStr (')' : s) = consIf TParenR $ lexStr s
 lexStr ('[' : s) = consIf TBracketL $ lexStr s
@@ -112,7 +94,6 @@ lexStr ('{' : s) = consIf TBraceL $ lexStr s
 lexStr ('}' : s) = consIf TBraceR $ lexStr s
 lexStr ('<' : s) = consIf TAngleL $ lexStr s
 lexStr ('>' : s) = consIf TAngleR $ lexStr s
---lexStr ('i' : 'm' : 'p' : 'o' : 'r' : 't' : ' ' : s) = lexImport s
 lexStr (c : s) = if isVarChar c
   then lexVar (c : "") s >>= uncurry (\ v -> consIf (TVar v) . lexStr)
   else Nothing
@@ -196,7 +177,11 @@ parseTerm = ParseM $ \ ts -> case ts of
   (TPhi : ts) -> parseMt ts $ pure Phi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
   (TDelta : ts) -> parseMt ts $ pure Delta <*> parseType2 parsePureTerm2 <* parseDrop TDash <*> parseTerm
   (TBracketL : TVar v : TEq : ts) -> parseMt ts $ pure (TmLetTm v) <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
-  (TBracketL : TVar v : TTriangle : ts) -> parseMt ts $ pure (TmLetTp v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
+  (TBraceL   : TVar v : TEq : ts) ->
+      parseMt ts $ pure (TmLetTmE v)
+      <*> parseTerm <* parseDrop TBraceR <* parseDrop TDash
+      <*> parseTerm
+  (TBracketL : TVar v : TColon : ts) -> parseMt ts $ pure (TmLetTp v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseTerm
   _ -> parseMt ts parseTerm1
 parseTerm1 = ParseM $ \ ts -> parseMt ts parseTerm2 >>= uncurry (parseMf . parseTermApp)
 parseTerm2 = ParseM $ \ ts -> case ts of
@@ -236,7 +221,7 @@ parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm
 parseCmd = ParseM $ \ ts -> case ts of
   (TVar "import" : ts) -> parseMt ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
   (TVar v : TEq : ts) -> parseMt ts $ pure (TermCmd v) <*> parseTerm <* parseDrop TDot
-  (TVar v : TTriangle : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
+  (TVar v : TColon : ts) -> parseMt ts $ pure (TypeCmd v) <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TDot
   _ -> Nothing
 parseCmds = ParseM $ \ ts -> case ts of
   [] -> parseMr CmdsStart []

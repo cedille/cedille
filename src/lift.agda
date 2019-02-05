@@ -59,7 +59,7 @@ do-lifth Γ m tobind origtp X l hnf t with decompose-apps (hnf t)
 do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args with trie-lookup m x
 do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args | nothing = origtp -- the term being lifted is not headed by one of the bound vars
 do-lifth Γ m tobind origtp X l hnf t | (Var _ x) , args | just l' = 
-  rebind tobind (do-liftargs Γ (TpVar posinfo-gen x) l' (reverse args) X tobind)
+  rebind tobind (do-liftargs Γ (TpVar posinfo-gen x) l' (erase-term-args args) X tobind)
   where rebind : 𝕃 (var × liftingType) → type → type
         rebind ((x , l'):: xs) tp = rebind xs (TpLambda posinfo-gen posinfo-gen x (Tkk (liftingType-to-kind l')) tp)
         rebind [] tp = tp 
