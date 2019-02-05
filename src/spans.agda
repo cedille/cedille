@@ -14,6 +14,7 @@ open import syntax-util
 open import to-string options
 open import subst
 open import erase
+open import datatype-functions
 
 --------------------------------------------------
 -- span datatype
@@ -569,10 +570,24 @@ Decl-span Γ dc pi pi' v atk me pi'' = mk-span ((if tk-is-type atk then "Term " 
                                       pi pi'' [ binder-data Γ pi' v atk me nothing (tk-end-pos atk) pi'' ] nothing
 
 TpVar-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
-TpVar-span Γ pi v check tvs = mk-span "Type variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
+TpVar-span Γ pi v check tvs =
+  mk-span name pi (posinfo-plus-str pi (unqual-local v))
+    (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
+  where
+  v' = unqual-local v
+  name = if isJust (data-lookup Γ (qualif-var Γ v') [])
+           then "Datatype variable" else "Type variable"
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
-Var-span Γ pi v check tvs = mk-span "Term variable" pi (posinfo-plus-str pi (unqual-local v)) (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs) 
+Var-span Γ pi v check tvs =
+  mk-span name pi (posinfo-plus-str pi v')
+    (checking-data check :: ll-data-term :: var-location-data Γ v :: symbol-data v' :: tvs)
+  where
+  v' = unqual-local v
+  name : string
+  name with qual-lookup Γ v'
+  ...| just (_ , ctr-def _ _ _ _ _ , _) = "Constructor variable"
+  ...| _ = "Term variable"
 
 KndVar-span : ctxt → (posinfo × var) → (end-pi : posinfo) → params → checking-mode → 𝕃 tagged-val → err-m → span
 KndVar-span Γ (pi , v) pi' ps check tvs =
@@ -834,8 +849,13 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type.") ]
 
-Mu-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
-Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+Mu-span : ctxt → posinfo → maybe var → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi x? pi' motive? check tvs = mk-span (if isJust x? then "Mu" else "Mu'") pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+
+pattern-ctr-span : ctxt → posinfo → var → maybe type → err-m → span
+pattern-ctr-span Γ pi x tp =
+  let x' = unqual-local x in
+  mk-span "Pattern constructor" pi (posinfo-plus-str pi x') (checking-data synthesizing :: var-location-data Γ x :: ll-data-term :: symbol-data x' :: maybe-else' tp [] (λ tp → params-to-string-tag "args" Γ (fst (decompose-arrows Γ tp)) :: []))
 
 Lft-span : ctxt → posinfo → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span Γ pi pi' X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data Γ pi' X (Tkk star) tt nothing (term-start-pos t) (term-end-pos t) :: tvs)

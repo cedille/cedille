@@ -162,8 +162,6 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
-     spanM-add (TpVar-span Γ pi' x checking
-       (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs tt ≫span
      get-ctxt λ Γ →
@@ -205,6 +203,8 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms)-} ≫span
      spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ Tₘᵤ Tₜₒ cs pi'') ≫span
      get-ctxt λ Γ →
+     spanM-add (TpVar-span Γ pi' x checking
+       (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      spanMr (record s {Γ = Γ}))
 
 {-process-cmd s (DefDatatype (Datatype pi pi' x ps k cs pi'') pi''') ff =
