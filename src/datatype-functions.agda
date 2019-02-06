@@ -200,7 +200,6 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   arrs+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tk+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
---    mtt (tk+ Γ atk) && arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpApp T T') = arrs+ Γ T maybe-or not-free T'
   arrs+ Γ (TpAppt T t) = arrs+ Γ T maybe-or not-free t
   arrs+ Γ (TpArrow T _ T') = occurs (type+ Γ (hnf' Γ T)) maybe-or arrs+ Γ (hnf' Γ T')
@@ -213,19 +212,16 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   type+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ; atk+? = tk+ Γ atk in
     positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' $ hnf' Γ' T)
---    maybe-else' (type+ Γ' (hnf' Γ' T)) (maybe-map ~_ atk+?) λ T+? → just $ T+? && ~ mff (tk+ Γ atk)
-  type+ Γ (Iota _ _ x' T T') = if-free (Iota pi-gen pi-gen x' T T')
-    -- (maybe-not $ maybe-if $ not-free $ Iota posinfo-gen posinfo-gen x' T T') ≫maybe just ff
-    {-let Γ' = ctxt-var-decl x' Γ in
-    type+ Γ (hnf' Γ T) && type+ Γ' (hnf' Γ' T')-}
+  type+ Γ (Iota _ _ x' T T') =
+    let Γ' = ctxt-var-decl x' Γ; T? = type+ Γ T in
+    positivity-add (type+ Γ T) (type+ Γ' T')
   type+ Γ (Lft _ _ x' t lT) = occurs-all
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
-  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T') -- maybe-map (_&& not-free T') (type+ Γ T)
-  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- maybe-map (_&& not-free t) (type+ Γ T)
+  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T')
+  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t)
   type+ Γ (TpArrow T _ T') = positivity-add (positivity-neg $ type+ Γ T) (type+ Γ $ hnf' Γ T')
-    -- maybe-else' (type+ Γ (hnf' Γ T')) (maybe-map ~_ (type+ Γ (hnf' Γ T))) λ T'+? → just $ T'+? && ~ mff (type+ Γ (hnf' Γ T))
   type+ Γ (TpEq _ tₗ tᵣ _) = occurs-nil
   type+ Γ (TpHole _) = occurs-nil
   type+ Γ (TpLambda _ _ x' atk T)=
@@ -235,15 +231,11 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   type+ Γ (TpVar _ x') = x =string x' , ff
   
   kind+ Γ (KndArrow k k') = positivity-add (positivity-neg $ kind+ Γ k) (kind+ Γ k')
-    --maybe-else' (kind+ Γ k') (maybe-map ~_ (kind+ Γ k)) λ k'+? → just $ k'+? && mff (kind+ Γ k)
   kind+ Γ (KndParens _ k _) = kind+ Γ k
   kind+ Γ (KndPi _ _ x' atk k) =
     let Γ' = ctxt-var-decl x' Γ in
     positivity-add (positivity-neg $ tk+ Γ atk) (kind+ Γ' k)
-    --maybe-else' (kind+ Γ' k) (maybe-map ~_ tk+?) λ k+? → just $ k+? && mff tk+?
---    kind+ (ctxt-var-decl x' Γ) k && ~ tk+ Γ atk
   kind+ Γ (KndTpArrow T k) = positivity-add (positivity-neg $ type+ Γ T) (kind+ Γ k)
-    --maybe-else' (kind+ Γ k) (maybe-map ~_ (type+ Γ T)) λ k+? → just $ k+? && mff (type+ Γ T)
   kind+ Γ (KndVar _ κ as) =
     maybe-else' (ctxt-lookup-kind-var-def Γ κ) occurs-nil $ uncurry λ ps k → kind+ Γ (fst (subst-params-args Γ ps as k))
   kind+ Γ (Star _) = occurs-nil
