@@ -773,17 +773,19 @@ elab-cmds ts ρ φ μ ((ImportCmd i) :: cs) =
 elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
   let Γ = toplevel-state.Γ ts
       set-ps = λ Γ ps → ctxt-set-current-mod Γ (case ctxt-get-current-mod Γ of λ {(fn , mn , _ , q) → fn , mn , ps , q})
+      Γ' = add-params-to-ctxt ps $ ctxt-var-decl x Γ
       -- Still need to use x (not x') so constructors work,
       -- but we need to know what it will be renamed to later for μ
-      is = kind-to-indices (add-params-to-ctxt ps Γ) k
+      is = kind-to-indices Γ' k
+      dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi x' (hnf-ctr Γ' x $ subst-qualif Γ' ρ T)}
       d = Data x ps is dcs in
   elim-pair (datatype-encoding.mk-defs selected-encoding Γ d) λ cs' → uncurry λ cs'' d' →
-      maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+      --maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
       elab-cmds (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ {-++ ps-}}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
       elab-cmds (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
       let rep = renamectxt-rep ρ ∘ qualif-var (toplevel-state.Γ ts)
           x' = rep x
-          dcs = flip map dcs λ {(Ctr pi x T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x) (params-to-tplams ps $ subst-qualif (toplevel-state.Γ ts) ρ T)} in
+          dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x') T} in
           --μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in
       --maybe-else (just (ImportCmd (Import pi-gen NotPublic pi-gen (x' ^ ", " ^ rep (data-Is/ x) ^ ", " ^ rep (data-is/ x)) NoOptAs [] pi-gen) :: cs' ++ cs'' , ts , ρ , φ , μ)) just $
       elab-cmds (record ts {Γ = ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is star {- no X -is; not needed-}) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs}) ρ φ (trie-insert μ x' d') cs ≫=maybe uncurry λ cs ω →

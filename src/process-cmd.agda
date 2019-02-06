@@ -183,24 +183,9 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
          Γ' = ctxt-term-def pi' globalScope OpacTrans (data-to/ x) (just id-term) Tₜₒ Γ'
          cs' = flip map cs λ {(Ctr pi x' T) →
            Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
-             (qualif-var Γ x) (qualif-type Γ T)}
+             (qualif-var Γ x) (hnf-ctr Γ (qualif-var Γ x) (qualif-type Γ T))}
          Γ' = ctxt-datatype-def pi' x ps kᵢ k' cs' Γ' in
-     set-ctxt Γ'
-       {-
-       (ctxt-datatype-def pi' x (just ps) kᵢ k'
-         (flip map cs λ {(Ctr pi x' T) → Ctr posinfo-gen (mn # x')
-           (subst Γ (params-to-tpapps mps (mtpvar qx))
-             (qualif-var Γ x) (qualif-type Γ T))}) $
-         ctxt-term-def pi' globalScope OpacTrans (mu-name-cast x) (just id-term)
-           (abs-expand-type ps $
-            mall fₓ (Tkk $ indices-to-kind is star) $
-            TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # mu-name-Mu x) $ mtpvar fₓ) Erased $
-            indices-to-alls is $
-            TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased (indices-to-tpapps is $ params-to-tpapps ps $ mtpvar qx)) $
-         ctxt-mu-def pi' mps x (KndArrow k' star) $
-         ctxt-term-def pi' globalScope OpacTrans (mu-name-mu x) nothing (params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # mu-name-Mu x))) (params-to-tpapps mps $ mtpvar qx)) $
-         ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing (KndArrow (abs-expand-kind mps k) star) $
-         ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms)-} ≫span
+     set-ctxt Γ' ≫span
      spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ Tₘᵤ Tₜₒ cs pi'') ≫span
      get-ctxt λ Γ →
      spanM-add (TpVar-span Γ pi' x checking
@@ -276,13 +261,14 @@ process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
   h s ((Ctr pi x T) :: cs) ff =
     h s cs ff ≫span get-ctxt λ Γ →
     spanMr (record s {Γ = ctxt-ctr-def pi x
-      (subst Γ Xₜ X (qualif-type Γ T)) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ})
+      (subst Γ Xₜ X (hnf-ctr Γ X (qualif-type Γ T))) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ})
   h s ((Ctr pi x T) :: cs) tt =
     check-type T (just star) ≫span get-ctxt λ Γ →
-    let neg-ret-err = ctr-positive Γ X (qualif-type Γ T) ≫=maybe λ neg-ret →
+    let T = hnf-ctr Γ X (qualif-type Γ T)
+        neg-ret-err = ctr-positive Γ X T ≫=maybe λ neg-ret →
           let err-msg = if neg-ret then " occurs negatively in the" else " is not the return" in
           just (unqual-local X ^ err-msg ^ " type of the constructor")
-        T = subst Γ Xₜ X (qualif-type Γ T) in
+        T = subst Γ Xₜ X T in
     h s cs tt ≫=span λ s →
     set-ctxt (toplevel-state.Γ s) ≫span get-ctxt λ Γ →
     check-redefined pi x (record s {Γ = Γ})

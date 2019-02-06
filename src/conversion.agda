@@ -308,6 +308,41 @@ hnf-term-type Γ e (TpEq _ t1 t2 _) = TpEq posinfo-gen (hanf Γ e t1) (hanf Γ e
 hnf-term-type Γ e (TpAppt tp t) = hnf Γ (unfolding-set-erased unfold-head e) (TpAppt tp (hanf Γ e t)) tt
 hnf-term-type Γ e tp = hnf Γ unfold-head tp tt
 
+
+{-# TERMINATING #-}
+-- unfold a constructor type, given the name of the datatype
+hnf-ctr : ctxt → var → type → type
+hnf-ctr Γ X T = if is-free-in check-erased X T then h Γ (substs{TYPE}{TERM} Γ empty-trie T) else T where
+  h : ctxt → type → type
+  hₖ : ctxt → kind → kind
+  hₖ' : ctxt → kind → kind
+  hₜₖ : ctxt → tk → tk
+  
+  hₜₖ Γ (Tkt T) = Tkt $ hnf-ctr Γ X T
+  hₜₖ Γ (Tkk k) = Tkk $ hₖ Γ k
+  
+  hₖ Γ k = if is-free-in check-erased X k then hₖ' Γ k else k
+  
+  hₖ' Γ (KndArrow k₁ k₂) = KndArrow (hₖ Γ k₁) (hₖ Γ k₂)
+  hₖ' Γ (KndParens _ k _) = hₖ' Γ k
+  hₖ' Γ (KndPi _ _ x atk k) = KndPi pi-gen pi-gen x (hₜₖ Γ atk) (hₖ (ctxt-var-decl x Γ) k)
+  hₖ' Γ (KndTpArrow T k) = KndTpArrow (hnf-ctr Γ X T) (hₖ Γ k)
+  hₖ' Γ (KndVar _ x as) = maybe-else' (ctxt-lookup-kind-var-def Γ x) (KndVar pi-gen x as) $ uncurry λ ps k → hₖ Γ $ fst $ subst-params-args Γ ps as k
+  hₖ' Γ (Star _) = star
+  
+  h Γ (Abs _ me _ x atk T) = Abs pi-gen me pi-gen x (hₜₖ Γ atk) (hnf-ctr (ctxt-var-decl x Γ) X T)
+  h Γ (Iota _ _ x T₁ T₂) = Iota pi-gen pi-gen x (hnf-ctr Γ X T₁) (hnf-ctr (ctxt-var-decl x Γ) X T₂)
+  h Γ (Lft _ _ x t lT) = hnf Γ (unfolding-elab unfold-all) (Lft pi-gen pi-gen x t lT) tt
+  h Γ (TpLet _ (DefTerm _ x T? t) T) = hnf-ctr Γ X $ subst Γ t x T
+  h Γ (TpLet _ (DefType _ x k T') T) = hnf-ctr Γ X $ subst Γ T' x T
+  h Γ (TpApp Tₕ Tₐ) = hnf-ctr Γ X $ hnf Γ (unfolding-elab unfold-head) (TpApp Tₕ Tₐ) tt
+  h Γ (TpAppt Tₕ tₐ) = hnf-ctr Γ X $ hnf Γ (unfolding-elab unfold-head) (TpAppt Tₕ tₐ) tt
+  h Γ (TpArrow T₁ me T₂) = TpArrow (hnf-ctr Γ X T₁) me (hnf-ctr Γ X T₂)
+  h Γ (TpLambda _ _ x atk T) = TpLambda pi-gen pi-gen x (hₜₖ Γ atk) (hnf-ctr (ctxt-var-decl x Γ) X T)
+  h Γ (TpParens _ T _) = h Γ T
+  h Γ T = T
+
+
 conv-cases : conv-t cases
 conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ → conv-cases' Γ cs₁ c₂) (just cs₁) cs₂ where
   conv-cases' : ctxt → cases → case → maybe cases

@@ -834,8 +834,8 @@ mendler-elab-mu-pure : ctxt → ctxt-datatype-info → encoded-datatype-names �
 mendler-elab-mu-pure Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs) (mk-encoded-datatype-names _ _ _ _ _ _ _ _ fixpoint-inₓ fixpoint-outₓ fixpoint-indₓ fixpoint-lambekₓ) x? t ms =
   
   let ps-tm = id --λ t → foldr (const $ flip mapp id-term) t $ erase-params ps
-      fix-ind = hnf Γ unfold-all (ps-tm $ mvar fixpoint-indₓ) tt
-      fix-out = hnf Γ unfold-all (ps-tm $ mvar fixpoint-outₓ) tt
+      fix-ind = mvar fixpoint-indₓ -- hnf Γ unfold-all (ps-tm $ mvar fixpoint-indₓ) tt
+      fix-out = mvar fixpoint-outₓ -- hnf Γ unfold-all (ps-tm $ mvar fixpoint-outₓ) tt
       μ-tm = λ x msf → mapp (mapp fix-ind t) $ mlam x $ rename "x" from ctxt-var-decl x Γ for λ fₓ → mlam fₓ $ msf $ mvar fₓ -- mapp fix-out $ mvar fₓ
       μ'-tm = λ msf → msf $ mapp fix-out t
       set-nth = λ l n a → foldr{B = maybe ℕ → 𝕃 (maybe term)}
