@@ -497,61 +497,73 @@ mk-ctr-type me Γ (Ctr _ x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl T�
 
 
 mk-ctr-fmap-t : Set → Set
-mk-ctr-fmap-t X = ctxt → (var × var × var × var × term) → var → X
+mk-ctr-fmap-t X = ctxt → (var × var × var × var × term) → X
 {-# TERMINATING #-}
-mk-ctr-fmap-η+ : mk-ctr-fmap-t (type → term)
-mk-ctr-fmap-η- : mk-ctr-fmap-t (type → term)
-mk-ctr-fmap-η? : mk-ctr-fmap-t (type → term) → mk-ctr-fmap-t (type → term)
-mk-ctr-fmapₖ-η+ : mk-ctr-fmap-t (kind → type)
-mk-ctr-fmapₖ-η- : mk-ctr-fmap-t (kind → type)
-mk-ctr-fmapₖ-η? : mk-ctr-fmap-t (kind → type) → mk-ctr-fmap-t (kind → type)
+mk-ctr-fmap-η+ : mk-ctr-fmap-t (term → type → term)
+mk-ctr-fmap-η- : mk-ctr-fmap-t (term → type → term)
+mk-ctr-fmap-η? : mk-ctr-fmap-t (term → type → term) → mk-ctr-fmap-t (term → type → term)
+mk-ctr-fmapₖ-η+ : mk-ctr-fmap-t (type → kind → type)
+mk-ctr-fmapₖ-η- : mk-ctr-fmap-t (type → kind → type)
+mk-ctr-fmapₖ-η? : mk-ctr-fmap-t (type → kind → type) → mk-ctr-fmap-t (type → kind → type)
 
 mk-ctr-fmap-η? f Γ x x' T with is-free-in tt (fst x) T
 ...| tt = f Γ x x' T
-...| ff = mvar x'
+...| ff = x'
 
 mk-ctr-fmapₖ-η? f Γ x x' k with is-free-in tt (fst x) k
 ...| tt = f Γ x x' k
-...| ff = mtpvar x'
+...| ff = x'
 
 mk-ctr-fmap-η+ Γ x x' T with decompose-ctr-type Γ T
 ...| Tₕ , ps , _ =
   params-to-lams' ps $
   let Γ' = add-params-to-ctxt ps Γ in
   foldl
-    (λ {(Decl _ _ me x'' (Tkt T) _) t → App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' x x'' T;
-        (Decl _ _ _ x'' (Tkk k) _) t → AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' x x'' k})
-    (mvar x') ps
+    (λ {(Decl _ _ me x'' (Tkt T) _) t → App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' x (mvar x'') T;
+        (Decl _ _ _ x'' (Tkk k) _) t → AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' x (mtpvar x'') k})
+    x' ps
 
 mk-ctr-fmapₖ-η+ Γ xₒ @ (x , Aₓ , Bₓ , cₓ , castₓ) x' k =
   let is = kind-to-indices Γ (subst Γ (mtpvar Aₓ) x k) in
   indices-to-tplams is $
   let Γ' = add-indices-to-ctxt is Γ in
   foldl
-    (λ {(Index x'' (Tkt T)) → flip TpAppt $ mk-ctr-fmap-η?  mk-ctr-fmap-η-  Γ' xₒ x'' T;
-        (Index x'' (Tkk k)) → flip TpApp  $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' xₒ x'' k})
-    (mtpvar x') $ map (λ {(Index x'' atk) → Index x'' $ subst Γ' (mtpvar x) Aₓ atk}) is
+    (λ {(Index x'' (Tkt T)) → flip TpAppt $ mk-ctr-fmap-η?  mk-ctr-fmap-η-  Γ' xₒ (mvar x'') T;
+        (Index x'' (Tkk k)) → flip TpApp  $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' xₒ (mtpvar x'') k})
+    x' $ map (λ {(Index x'' atk) → Index x'' $ subst Γ' (mtpvar x) Aₓ atk}) is
 
 mk-ctr-fmap-η- Γ xₒ @ (x , Aₓ , Bₓ , cₓ , castₓ) x' T with decompose-ctr-type Γ T
 ...| TpVar _ x'' , ps , as =
---  if_then_else_ (~ x'' =string x) (mvar x') $
   params-to-lams' ps $
   let Γ' = add-params-to-ctxt ps Γ in
     (if ~ x'' =string x then id else mapp
       (recompose-apps (ttys-to-args Erased as) $
         mappe (AppTp (AppTp castₓ (mtpvar Aₓ)) (mtpvar Bₓ)) (mvar cₓ)))
     (foldl (λ {(Decl _ _ me x'' (Tkt T) _) t →
-                 App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ x'' T;
-               (Decl _ _ me x'' (Tkk k) _) t → AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ x'' k}) (mvar x') ps)
-...| Tₕ , ps , as = mvar x'
+                 App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (mvar x'') T;
+               (Decl _ _ me x'' (Tkk k) _) t →
+                 AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (mtpvar x'') k}) x' ps)
+...| Iota _ _ x'' T₁ T₂ , ps , [] =
+  let Γ' = add-params-to-ctxt ps Γ
+      tₒ = foldl (λ {
+            (Decl _ _ me x'' (Tkt T) _) t →
+              App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (mvar x'') T;
+            (Decl _ _ me x'' (Tkk k) _) t →
+              AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (mtpvar x'') k
+          }) x' ps
+      t₁ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ "1" pi-gen) T₁
+      t₂ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ "2" pi-gen)
+             (subst Γ (mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (mvar x'') T₁) x'' T₂) in
+  params-to-lams' ps $ IotaPair pi-gen t₁ t₂ NoGuide pi-gen
+...| Tₕ , ps , as = x'
 
 mk-ctr-fmapₖ-η- Γ xₒ @ (x , Aₓ , Bₓ , cₓ , castₓ) x' k with kind-to-indices Γ (subst Γ (mtpvar Bₓ) x k)
 ...| is =
   indices-to-tplams is $
   let Γ' = add-indices-to-ctxt is Γ in
-  foldl (λ {(Index x'' (Tkt T)) → flip TpAppt $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ x'' T;
-            (Index x'' (Tkk k)) → flip TpApp $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ x'' k})
-    (mtpvar x') $ map (λ {(Index x'' atk) → Index x'' $ subst Γ' (mtpvar x) Bₓ atk}) is
+  foldl (λ {(Index x'' (Tkt T)) → flip TpAppt $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (mvar x'') T;
+            (Index x'' (Tkk k)) → flip TpApp $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (mtpvar x'') k})
+    x' $ map (λ {(Index x'' atk) → Index x'' $ subst Γ' (mtpvar x) Bₓ atk}) is
 
 record encoded-datatype-names : Set where
   constructor mk-encoded-datatype-names
@@ -742,7 +754,7 @@ record datatype-encoding : Set where
       eta-expand-ctr : ctr → term
       eta-expand-ctr (Ctr _ x' T) =
         mk-ctr-fmap-η+ (ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ)
-          (x , Aₓ , Bₓ , cₓ , params-to-apps (params-set-erased Erased ps) (mvar castₓ)) x' T
+          (x , Aₓ , Bₓ , cₓ , params-to-apps (params-set-erased Erased ps) (mvar castₓ)) (mvar x') T
 
     type-cmd = DefType pi-gen x (params-to-kind ps k) $
       params-to-tplams ps $ TpAppt
