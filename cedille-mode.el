@@ -351,7 +351,7 @@ start of each string, and then strip out that number."
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
-                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'erasure) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
+                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)

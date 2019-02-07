@@ -594,10 +594,12 @@ KndVar-span Γ (pi , v) pi' ps check tvs =
   mk-span "Kind variable" pi pi'
     (checking-data check :: ll-data-kind :: var-location-data Γ v :: symbol-data (unqual-local v) :: super-kind-data :: (params-data Γ ps ++ tvs))
 
-var-span :  maybeErased → ctxt → posinfo → string → checking-mode → tk → err-m → span
-var-span _ Γ pi x check (Tkk k) = TpVar-span Γ pi x check ({-keywords-data-var ff ::-} [ kind-data Γ k ])
-var-span e Γ pi x check (Tkt t) = Var-span Γ pi x check ({-keywords-data-var e ::-} [ type-data Γ t ])
+var-span-with-tags : maybeErased → ctxt → posinfo → string → checking-mode → tk → 𝕃 tagged-val → err-m → span
+var-span-with-tags _ Γ pi x check (Tkk k) tags = TpVar-span Γ pi x check ({-keywords-data-var ff ::-} [ kind-data Γ k ] ++ tags)
+var-span-with-tags e Γ pi x check (Tkt t) tags = Var-span Γ pi x check ({-keywords-data-var e ::-} [ type-data Γ t ] ++ tags)
 
+var-span :  maybeErased → ctxt → posinfo → string → checking-mode → tk → err-m → span
+var-span e Γ pi x check tk = var-span-with-tags e Γ pi x check tk []
 
 redefined-var-span : ctxt → posinfo → var → span
 redefined-var-span Γ pi x = mk-span "Variable definition" pi (posinfo-plus-str pi x)
@@ -659,7 +661,7 @@ KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-po
 special-tags : 𝕃 string
 special-tags =
   "symbol" :: "location" :: "language-level" :: "checking-mode" :: "summary"
-  :: "binder" :: "bound-value" :: "keywords" :: "erasure" :: []
+  :: "binder" :: "bound-value" :: "keywords" :: []
 
 error-span-filter-special : error-span → error-span
 error-span-filter-special (mk-error-span dsc pi pi' tvs msg) =
