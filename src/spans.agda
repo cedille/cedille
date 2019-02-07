@@ -661,7 +661,7 @@ KndTpArrow-span t k check = mk-span "Arrow kind" (type-start-pos t) (kind-end-po
 special-tags : 𝕃 string
 special-tags =
   "symbol" :: "location" :: "language-level" :: "checking-mode" :: "summary"
-  :: "binder" :: "bound-value" :: "keywords" :: "erasure" :: []
+  :: "binder" :: "bound-value" :: "keywords" :: []
 
 error-span-filter-special : error-span → error-span
 error-span-filter-special (mk-error-span dsc pi pi' tvs msg) =
