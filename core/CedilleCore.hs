@@ -39,7 +39,7 @@ checkCmds (CmdsNext c cs) b ctxt fs fp = checkCmd c b ctxt fs fp >>= \ r -> case
 --checkFile :: Bool -> Ctxt -> Trie (Trie ()) -> String -> IO (Maybe (Ctxt, Trie (Trie ())))
 checkFile b c fs fp =
   getCurrentDirectory >>= \ cd ->
-  makeAbsolute (cd </> fp -<.> "ced") >>= \ fp' ->
+  makeAbsolute (cd </> fp -<.> "cdle") >>= \ fp' ->
   setCurrentDirectory (takeDirectory fp') >>
   case trieLookup fs fp' of
     Just ds -> return (Just (ctxtShowAll c ds, fs))

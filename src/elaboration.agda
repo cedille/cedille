@@ -232,7 +232,7 @@ module elab-x (μ : trie encoded-datatype) where
           (Guide pi' x T') →
             let Γ' = ctxt-var-decl x Γ in
             elab-pure-type Γ' (erase-type T') ≫=maybe λ T' →
-            elab-check-term Γ t' (post-rewrite Γ' x t t₂ (rewrite-at Γ' x t tt T T')) ≫=maybe
+            elab-check-term Γ t' (post-rewrite Γ' x t t₂ (rewrite-at Γ' x (just t) tt T T')) ≫=maybe
             (just ∘ mrho t x T')
       _ → nothing
   elab-check-term Γ (Sigma pi t) T =
@@ -441,7 +441,7 @@ module elab-x (μ : trie encoded-datatype) where
         (Guide pi' x T'') →
           let Γ' = ctxt-var-decl x Γ in
           elab-pure-type Γ' (erase-type T'') ≫=maybe λ T'' →
-          just (mrho t x T'' t' , post-rewrite Γ' x t t₁ (rewrite-at Γ' x t tt T' T''))
+          just (mrho t x T'' t' , post-rewrite Γ' x t t₁ (rewrite-at Γ' x (just t) tt T' T''))
       _ → nothing
   elab-synth-term Γ (Sigma pi t) =
     elab-synth-term Γ t ≫=maybe uncurry λ t T → elab-hnf-type Γ T tt ≫=maybe λ where
@@ -855,7 +855,7 @@ elab-all ts fm to =
       maybe-else
         (return ff)
         (uncurry λ fn ie →
-          writeRopeToFile (combineFileNames to fn ^ ".ced")
+          writeRopeToFile (combineFileNames to fn ^ ".cdle")
             (maybe-else [[ "Error lookup up elaborated data" ]] id (ie-get-span-ast ie)) >>
           return e)
       (renamectxt-lookup φ fn ≫=maybe λ fn' →

@@ -252,9 +252,9 @@ post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk t
 
 -- Functions for substituting the type T in ρ e @ x . T - t
 {-# TERMINATING #-}
-rewrite-at : ctxt → var → term → 𝔹 → type → type → type
-rewrite-ath : ctxt → var → term → 𝔹 → type → type → type
-rewrite-at-tk : ctxt → var → term → 𝔹 → tk → tk → tk
+rewrite-at : ctxt → var → maybe term → 𝔹 → type → type → type
+rewrite-ath : ctxt → var → maybe term → 𝔹 → type → type → type
+rewrite-at-tk : ctxt → var → maybe term → 𝔹 → tk → tk → tk
 
 rewrite-at-tk Γ x eq b (Tkt T) (Tkt T') = Tkt (rewrite-at Γ x eq b T T')
 rewrite-at-tk Γ x eq b atk atk' = atk
@@ -271,11 +271,11 @@ rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) 
 rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
   Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq b T1' (rename-var Γ x2 x1 T2'))
 rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
-  Lft pi1 pi1' x1 (if is-free-in tt x (mlam x2 t2) then mk-phi x eq t1 t2 else t1) lT1
+  Lft pi1 pi1' x1 (maybe-else' (maybe-if (is-free-in tt x (mlam x2 t2)) ≫maybe eq) t1 λ eq → mk-phi x eq t1 t2) lT1
 rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
   TpApp (rewrite-at Γ x eq b T1 T2) (rewrite-at Γ x eq b T1' T2')
 rewrite-ath Γ x eq b (TpAppt T1 t1) (TpAppt T2 t2) =
-  TpAppt (rewrite-at Γ x eq b T1 T2) (if is-free-in tt x t2 then mk-phi x eq t1 t2 else t1)
+  TpAppt (rewrite-at Γ x eq b T1 T2) (maybe-else' (maybe-if (is-free-in tt x t2) ≫maybe eq) t1 λ eq → mk-phi x eq t1 t2)
 rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
   TpArrow (rewrite-at Γ x eq tt T1 T2) a1 (rewrite-at Γ x eq tt T1' T2')
 rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
@@ -294,3 +294,6 @@ rewrite-ath Γ x eq b (NoSpans T1 pi1) T2 = rewrite-at Γ x eq b T1 T2
 rewrite-ath Γ x eq b T1 (NoSpans T2 pi2) = rewrite-at Γ x eq b T1 T2
 rewrite-ath Γ x eq tt T1 T2 = rewrite-at Γ x eq ff (hnf Γ unfold-head-no-lift T1 tt) (hnf Γ unfold-head-no-lift T2 tt)
 rewrite-ath Γ x eq ff T1 T2 = T1
+
+hnf-ctr : ctxt → var → type → type
+hnf-ctr Γ x T = rewrite-at Γ x nothing tt T $ hnf Γ (unfolding-elab unfold-all) T tt

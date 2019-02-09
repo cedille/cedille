@@ -21,7 +21,7 @@ open import subst
 open import syntax-util
 open import toplevel-state options {mF}
 open import datatype-functions
-
+open import rewriting
 import cws-types
 import cws
 

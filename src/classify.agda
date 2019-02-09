@@ -466,7 +466,7 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') nothing =
             tp = qualif-type Γ' tp
             tp'' = subst Γ t2 x tp
             qt = qualif-term Γ t
-            tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x qt tt tp' tp) in
+            tp''' = post-rewrite Γ' x qt t1 (rewrite-at Γ' x (just qt) tt tp' tp) in
         if conv-type Γ tp'' tp'
           then (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp''' :: tvs) nothing) ≫span spanMr (just tp'''))
           else (spanM-add (Rho-span pi t t' synthesizing op (inj₂ x) (type-data Γ tp' :: expected-type-subterm Γ tp'' :: tvs)
@@ -484,7 +484,7 @@ check-termi (Rho pi op on t (Guide pi' x tp) t') (just tp') =
           qt = qualif-term Γ t
           tp = qualif-type Γ' tp
           tp'' = subst Γ' t1 x tp
-          tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x qt tt tp' tp)
+          tp''' = post-rewrite Γ' x qt t2 (rewrite-at Γ' x (just qt) tt tp' tp)
           err = if conv-type Γ tp'' tp' then nothing else just "The expected type does not match the specified type" in
       spanM-add (Rho-span pi t t' checking op (inj₂ x) (type-data Γ tp'' :: expected-type Γ tp' :: tvs) err) ≫span
       spanM-add (Var-span (ctxt-var-decl-loc pi' x Γ) pi' x checking [] nothing) ≫span

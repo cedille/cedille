@@ -308,7 +308,7 @@ hnf-term-type Γ e (TpEq _ t1 t2 _) = TpEq posinfo-gen (hanf Γ e t1) (hanf Γ e
 hnf-term-type Γ e (TpAppt tp t) = hnf Γ (unfolding-set-erased unfold-head e) (TpAppt tp (hanf Γ e t)) tt
 hnf-term-type Γ e tp = hnf Γ unfold-head tp tt
 
-
+{-
 {-# TERMINATING #-}
 -- unfold a constructor type, given the name of the datatype
 hnf-ctr : ctxt → var → type → type
@@ -341,7 +341,7 @@ hnf-ctr Γ X T = if is-free-in check-erased X T then h Γ (substs{TYPE}{TERM} Γ
   h Γ (TpLambda _ _ x atk T) = TpLambda pi-gen pi-gen x (hₜₖ Γ atk) (hnf-ctr (ctxt-var-decl x Γ) X T)
   h Γ (TpParens _ T _) = h Γ T
   h Γ T = T
-
+-}
 
 conv-cases : conv-t cases
 conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ → conv-cases' Γ cs₁ c₂) (just cs₁) cs₂ where

@@ -13,6 +13,7 @@
 (require 'cedille-mode-context)
 (require 'cedille-mode-meta-vars)
 (require 'cedille-mode-normalize)
+(require 'cedille-core-mode)
 ;(require 'cedille-mode-beta-reduce)
 
 (provide 'cedille-mode-library)
