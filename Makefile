@@ -71,6 +71,16 @@ SE_MODE = \
 	se-mode/se-pin.el \
 	se-mode/se-markup.el
 
+CEDILLE_CORE = \
+	core/CedilleCore.hs \
+	core/Check.hs \
+	core/Ctxt.hs \
+	core/Norm.hs \
+	core/Parser.hs \
+	core/ToString.hs \
+	core/Types.hs \
+	core/Makefile
+
 ELISP=$(SE_MODE) $(CEDILLE_ELISP)
 
 TEMPLATESDIR = $(SRCDIR)/templates
@@ -83,7 +93,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: cedille #elisp
+all: ./core/CedilleCore cedille #elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
@@ -112,8 +122,12 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
+./core/CedilleCore: $(CEDILLE_CORE)
+	cd core/; make; cd ../
+
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
+
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD)
 		mv $(SRCDIR)/main $@
