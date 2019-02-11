@@ -271,33 +271,6 @@ module elab-x (μ : trie encoded-datatype) where
     elab-mu Γ (inj₂ ot) t Tₘ? ms (just T) ≫=maybe (just ∘ fst)
   
 
-{-
-  elab-check-term Γ (Mu pi pi' x t Tₘ? pi'' ms pi''') T =
-    elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
-    elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
-    case decompose-tpapps Tₜ of λ where
-      (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
-        d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-          encoded-datatype.check-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) T ≫=maybe uncurry λ t Γ →
-          --just t
-          elab-check-term Γ t T maybe-or just t -- maybe-or just (IotaProj t (trie-to-string ", " (λ {(mk-encoded-datatype (Data X' ps is cs) psₘ ns μ μᵤ) → rope-to-string (strRun Γ $ cmd-to-string (DefDatatype (Datatype pi-gen pi-gen X' ps (indices-to-kind is star) cs) pi-gen) (strAdd (", CTXT: " ^ ctxt-to-string Γ)))}) μ) pi-gen)
-      _ → nothing
-  elab-check-term Γ (Mu' pi ot t Tₘ? pi' ms pi'') T =
-    elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
-    elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
-    case decompose-tpapps Tₜ of λ where
-      (TpVar _ X , as) →
-        let X' = ctxt-rename-rep Γ ("/" ^ X)
-            qas = maybe-else' (trie-lookup (ctxt-get-qualif Γ) ("/" ^ X)) [] snd in
-        trie-lookup μ X' ≫=maybe λ where
-          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.check-mu d Γ X nothing t Tₘ? ms (qas ++ (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as)) T ≫=maybe uncurry λ t Γ →
-            --just t
-            elab-check-term Γ t T maybe-or just t
-      _ → nothing
--}
-  
   elab-synth-term Γ (App t me t') =
     elab-app-term  Γ (App t me t') (proto-maybe nothing) tt ≫=maybe uncurry λ where
       tf (mk-spine-data Xs T _) →
@@ -456,31 +429,6 @@ module elab-x (μ : trie encoded-datatype) where
     elab-mu Γ (inj₁ x) t Tₘ? ms nothing
   elab-synth-term Γ (Mu' pi ot t Tₘ? pi' ms pi'') =
     elab-mu Γ (inj₂ ot) t Tₘ? ms nothing
-
-{-
-  elab-synth-term Γ (Mu pi pi' x t Tₘ? pi'' ms pi''') =
-    elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
-    elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
-    case decompose-tpapps Tₜ of λ where
-      (TpVar _ X , as) →
-        trie-lookup μ (ctxt-rename-rep Γ ("/" ^ X)) ≫=maybe λ where
-          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.synth-mu d Γ X (just x) t Tₘ? ms (ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) ≫=maybe
-            uncurry (flip elab-synth-term)
-      _ → nothing
-  elab-synth-term Γ (Mu' pi ot t Tₘ? pi' ms pi'') =
-    elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
-    elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
-    case decompose-tpapps Tₜ of λ where
-      (TpVar _ X , as) →
-        let X' = ctxt-rename-rep Γ ("/" ^ X)
-            qas = maybe-else' (trie-lookup (ctxt-get-qualif Γ) ("/" ^ X)) [] snd in
-        trie-lookup μ X' ≫=maybe λ where
-          d @ (mk-encoded-datatype (Data _ ps _ _) psₘ _ _ _) →
-            encoded-datatype.synth-mu d Γ X nothing t Tₘ? ms (qas ++ ttys-to-args-for-params (just Erased) (psₘ ++ ps) as) ≫=maybe
-            uncurry (flip elab-synth-term)
-      _ → nothing
--}
   
   elab-typeh Γ (Abs pi b pi' x atk T) b' =
     elab-tkh Γ atk b' ≫=maybe λ atk →
