@@ -843,5 +843,12 @@ occurrences, then do so."
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\phi" "φ"); add some more of these
  ))
 
+(defcustom cedille-mode-hook ()
+  "List of functions to run after `cedille-mode' is enabled."
+  :group 'cedille
+  :type 'hook
+  :options nil
+  )
+
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here
