@@ -806,9 +806,9 @@ record datatype-encoding : Set where
       snd (mu-proj Yₓ tt) $ mvar muₓ
 
     ctr-cmd : ctr → defTermOrType
-    ctr-cmd (Ctr _ x' T) with
-        decompose-ctr-type Γ (subst Γ (params-to-tpapps ps $ mtpvar x) x T)
-    ...| Tₕ , ps' , as' = DefTerm pi-gen x' NoType $
+    ctr-cmd (Ctr _ x' T) with subst Γ (params-to-tpapps ps $ mtpvar x) x T
+    ...| T' with decompose-ctr-type Γ T'
+    ...| Tₕ , ps' , as' = DefTerm pi-gen x' (SomeType $ params-to-alls (ps ++ ps') T') $
       Open pi-gen OpacTrans pi-gen x $
       params-to-lams ps $
       params-to-lams ps' $
