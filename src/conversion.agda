@@ -193,10 +193,10 @@ hnf{TERM} Γ u x hd = x
 hnf{TYPE} Γ no-unfolding e _ = e
 hnf{TYPE} Γ u (TpParens _ t _) hd = hnf Γ u t hd
 hnf{TYPE} Γ u (NoSpans t _)  hd = hnf Γ u t hd
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) ff  = TpVar posinfo-gen x 
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) tt with ctxt-lookup-type-var-def Γ x
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) tt | just tp = tp
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) tt | nothing = TpVar posinfo-gen x
+hnf{TYPE} Γ (unfold ff b' _ _) (TpVar _ x) ff  = TpVar posinfo-gen x 
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ with ctxt-lookup-type-var-def Γ x
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ | just tp = tp
+hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ | nothing = TpVar posinfo-gen x
 hnf{TYPE} Γ u (TpAppt tp t) hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpAppt _ t) hd  | TpLambda _ _ x _ tp = hnf Γ u (subst Γ t x tp) hd
 hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-if (unfolding-get-erased u) t)
