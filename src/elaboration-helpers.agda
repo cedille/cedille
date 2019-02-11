@@ -929,7 +929,7 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
            `open data-Muₓ - (`Λ ignored-var ₊ `λ xₓ ₊ `vₓ xₓ ` (`vₓ toₓ) ` (`vₓ outₓ))]-
        (app-lambek (just $ `vₓ isRₓ) (`vₓ yₓ) (`Vₓ Rₓ) (is-as is) $ subst-msf
          ((`φ `β - (indices-to-apps is (`vₓ data-functor-indₓ `ps · (`Vₓ Rₓ)) ` `vₓ yₓ) [ `vₓ yₓ ]) ·
-           (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is functor ·ₜ (`Vₓ Rₓ) ₊
+           (indices-to-tplams is $ `λₜ yₓ :ₜ indices-to-tpapps is (functor ·ₜ (`Vₓ Rₓ)) ₊
              `∀ y'ₓ :ₜ indices-to-tpapps is Xₜₚ ₊ `∀ eₓ :ₜ `[ `vₓ fixpoint-inₓ -ps ` `vₓ yₓ ≃ `vₓ y'ₓ ] ₊
              indices-to-tpapps is Tₘ `ₜ (`φ `vₓ eₓ -
                (`vₓ fixpoint-inₓ -ps · functor - fmap ` (indices-to-apps is fcₜ ` (`vₓ yₓ)))
