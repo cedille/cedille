@@ -115,6 +115,13 @@ private
   occurs-in-path k (Node n i b) (ps d p) =
     k =ℕ i || maybe-else ff (λ t → occurs-in-path k t p) (nth d b)
   occurs-in-path k (Node n i b) p = k =ℕ i
+
+  adjust-path : ℕ → BT → path → path
+  adjust-path k (Node n i b) (ps d p) = maybe-else' (nth d b) (ps d p) λ n → ps d (adjust-path k n p)
+  adjust-path k (Node n i b) as with k =ℕ i
+  ...| tt = hd
+  ...| ff = as
+  adjust-path k (Node n i b) hd = hd
   
   
   
@@ -185,7 +192,7 @@ private
   ...| tt with max (greatest-apps i₁ t₁) (greatest-apps i₂ t₂)
   ...| kₘ with η-equate-path (rotate-BT i₁ (greatest-η i₁ kₘ t₁))
                              (rotate-BT i₂ (greatest-η i₂ kₘ t₂)) (ps d p)
-  ...| t₁'' , t₂'' = set-nth (pred i₁) (rotate kₘ) (construct-Δ t₁'' t₂'' (ps d p))
+  ...| t₁'' , t₂'' = set-nth (pred i₁) (rotate kₘ) (construct-Δ t₁'' t₂'' (ps d $ adjust-path i₁ t₁' p))
   
   reconstruct : BT → term
   reconstruct = h zero where
