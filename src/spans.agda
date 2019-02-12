@@ -686,7 +686,11 @@ Lam-span Γ c pi pi' NotErased x {-(SomeClass-} (Tkk k) {-)-} t tvs e =
 --Lam-span Γ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data Γ x :: checking-data c :: tvs)
 Lam-span Γ c pi pi' l x {-(SomeClass-} atk {-)-} t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
-                                           ++ [ to-string-tag-tk "type of bound variable" Γ atk ])
+                                           ++ bound-tp atk)
+  where
+  bound-tp : tk → 𝕃 tagged-val
+  bound-tp (Tkt (TpHole _)) = []
+  bound-tp atk = [ to-string-tag-tk "type of bound variable" Γ atk ]
 
 
 compileFail-in : ctxt → term → 𝕃 tagged-val × err-m
@@ -702,7 +706,7 @@ compileFail-in Γ t with is-free-in check-erased compileFail-qual | qualif-term 
 
 DefTerm-span : ctxt → posinfo → var → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 DefTerm-span Γ pi x checked tp t pi' tvs = 
-  h ((h-summary tp) ++ (erasure Γ t :: tvs)) pi x checked tp pi'
+  h ((h-summary tp) ++ ({-erasure Γ t ::-} tvs)) pi x checked tp pi'
   where h : 𝕃 tagged-val → posinfo → var → (checked : checking-mode) → maybe type → posinfo → span
         h tvs pi x checking _ pi' = 
           mk-span "Term-level definition (checking)" pi pi' tvs nothing
@@ -716,7 +720,7 @@ DefTerm-span Γ pi x checked tp t pi' tvs =
     
 CheckTerm-span : ctxt → (checked : checking-mode) → maybe type → term → posinfo → 𝕃 tagged-val → span
 CheckTerm-span Γ checked tp t pi' tvs = 
-  h (erasure Γ t :: tvs) checked tp (term-start-pos t) pi'
+  h ({-erasure Γ t ::-} tvs) checked tp (term-start-pos t) pi'
   where h : 𝕃 tagged-val → (checked : checking-mode) → maybe type → posinfo → posinfo → span
         h tvs checking _ pi pi' = 
           mk-span "Checking a term" pi pi' (checking-data checking :: tvs) nothing
