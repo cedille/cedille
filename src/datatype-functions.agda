@@ -18,11 +18,11 @@ data datatype : Set where
 {-# TERMINATING #-}
 decompose-arrows : ctxt → type → params × type
 decompose-arrows Γ (Abs pi me pi' x atk T) =
-  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
+  let x' = fresh-var-new Γ x in
   case decompose-arrows (ctxt-var-decl x' Γ) (rename-var Γ x x' T) of λ where
     (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
 decompose-arrows Γ (TpArrow T me T') =
-  let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
+  let x = fresh-var-new Γ "x" in
   case decompose-arrows (ctxt-var-decl x Γ) T' of λ where
     (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
 decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
@@ -36,24 +36,20 @@ decompose-ctr-type Γ T with decompose-arrows Γ T
 {-# TERMINATING #-}
 kind-to-indices : ctxt → kind → indices
 kind-to-indices Γ (KndArrow k k') =
-  let x' = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
+  let x' = fresh-var-new Γ "x" in
   Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl x' Γ) k'
 kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
 kind-to-indices Γ (KndPi pi pi' x atk k) =
-  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
-  Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) k
+  let x' = fresh-var-new Γ x in
+  Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) (rename-var Γ x x' k)
 kind-to-indices Γ (KndTpArrow T k) =
-  let x' = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
+  let x' = fresh-var-new Γ "x" in
   Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl x' Γ) k
 kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
 ...| nothing = []
 ...| just (ps , k) = kind-to-indices Γ $ fst $ subst-params-args Γ ps as k
 kind-to-indices Γ (Star pi) = []
-{-
-defDatatype-to-datatype : ctxt → defDatatype → datatype
-defDatatype-to-datatype Γ (Datatype _ _ x ps k cs) =
-  Data x ps (kind-to-indices (add-params-to-ctxt Γ ps) k) cs
--}
+
 tk-erased : tk → maybeErased → maybeErased
 tk-erased (Tkk _) me = Erased
 tk-erased (Tkt _) me = me

@@ -3,6 +3,7 @@ module rename where
 open import lib
 
 open import cedille-types 
+open import constants
 open import ctxt-types
 open import is-free
 open import syntax-util
@@ -62,6 +63,10 @@ rename-away-from x g r =
 
 fresh-var : string → (string → 𝔹) → renamectxt → string
 fresh-var = rename-away-from
+
+fresh-var-new : ctxt → var → var
+fresh-var-new Γ ignored-var = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+fresh-var-new Γ x = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 

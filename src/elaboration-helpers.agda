@@ -156,11 +156,11 @@ fresh-var' : string → (string → 𝔹) → renamectxt → string
 fresh-var' = fresh-var ∘ rename-validify
 
 rename-new_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
-rename-new "_" from Γ for f = f $ fresh-var' "x" (ctxt-binds-var Γ) empty-renamectxt
+rename-new ignored-var from Γ for f = f $ fresh-var' "x" (ctxt-binds-var Γ) empty-renamectxt
 rename-new x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ) empty-renamectxt
 
 rename_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
-rename "_" from Γ for f = f "_"
+rename ignored-var from Γ for f = f ignored-var
 rename x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ) empty-renamectxt
 
 fresh-id-term : ctxt → term
@@ -170,7 +170,7 @@ get-renaming : renamectxt → var → var → var × renamectxt
 get-renaming ρₓ xₒ x = let x' = fresh-var' x (renamectxt-in-range ρₓ) ρₓ in x' , renamectxt-insert ρₓ xₒ x'
 
 rename_-_from_for_ : ∀ {X : Set} → var → var → renamectxt → (var → renamectxt → X) → X
-rename xₒ - "_" from ρₓ for f = f "_" ρₓ
+rename xₒ - ignored-var from ρₓ for f = f ignored-var ρₓ
 rename xₒ - x from ρₓ for f = uncurry f $ get-renaming ρₓ xₒ x
 
 rename_-_lookup_for_ : ∀ {X : Set} → var → var → renamectxt → (var → renamectxt → X) → X
@@ -207,7 +207,7 @@ subst-args-params Γ ys ps k = k
 module reindexing (Γ : ctxt) (isₒ : indices) where
 
   reindex-fresh-var : renamectxt → trie indices → var → var
-  reindex-fresh-var ρₓ is "_" = "_"
+  reindex-fresh-var ρₓ is ignored-var = ignored-var
   reindex-fresh-var ρₓ is x =
     fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρₓ
 
