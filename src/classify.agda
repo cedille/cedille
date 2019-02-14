@@ -138,7 +138,7 @@ check-tk : tk → spanM ⊤
 check-def : defTermOrType → spanM (posinfo × var × restore-def × Σ tk λ atk → if tk-is-type atk then term else type)
 check-mu : posinfo → posinfo → (μ-or-μ' : maybe var) → term → (evidence : optTerm) → (motive : optType) → posinfo → cases → posinfo → (mtp : maybe type) → spanM (check-ret mtp)
 check-mu-evidence : optTerm → var → 𝕃 tty → spanM ((string × 𝕃 tagged-val) ⊎ maybe ((term → term) × ctxt-datatype-info))
-check-case : case → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie type × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
+check-case : case → (ctrs : trie (maybe type)) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie (maybe type) × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
 check-cases : cases → (ctrs : trie type) → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (err-m × 𝕃 (posinfo × var × tk × maybeErased × posinfo × posinfo))
 
 -- check-term
@@ -1853,18 +1853,18 @@ check-def (DefType pi x k T) =
 
 check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
   get-ctxt λ Γ →
-  maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (x' , T , decompose-ctr-type Γ T))
-    (spanM-add (pattern-ctr-span Γ pi x nothing
-      (just "This is not a valid constructor name (it could be a duplicate case)"))
-     ≫span spanMr (csₓ , []))
-    (λ where
-      (x' , T , Tₕ , ps , is) →
+  maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (T ≫=maybe λ T → just (x' , T)))-- , decompose-ctr-type Γ T))
+    (spanM-add (pattern-ctr-span Γ pi x asₒ nothing
+      (just "This is not a constructor name")) ≫span spanMr (csₓ , [])) $
+    maybe-else (spanM-add (pattern-ctr-span Γ pi x asₒ nothing (just "This case is unreachable")) ≫span spanMr (csₓ , []))
+    (uncurry λ x' T → flip uncurry (decompose-ctr-type Γ T) λ Tₕ → uncurry λ ps is →
+--      (x' , T , Tₕ , ps , is) →
         decl-args asₒ ps empty-trie [] ≫=spanc λ e → uncurry λ σ xs →
         let Tₘ' = TpAppt (apps-type Tₘ (ttys-to-args' Γ σ (drop drop-ps is))) (app-caseArgs (recompose-apps ctr-ps (mvar x')) asₒ) in
-        spanM-add (pattern-ctr-span Γ pi x (just T) e) ≫span
+        spanM-add (pattern-ctr-span Γ pi x asₒ (just T) e) ≫span
         check-term t (just Tₘ') ≫span
         set-ctxt Γ ≫span
-        spanMr (trie-remove csₓ x' , reverse xs))
+        spanMr (trie-insert csₓ x' nothing , reverse xs))
   where
   free-in-term : var → err-m
   free-in-term x = maybe-if (is-free-in skip-erased x t) ≫maybe just "Erased argument occurs free in the body of the term"
@@ -1921,8 +1921,9 @@ check-cases cs csₓ ctr-ps drop-ps Tₘ = foldr -- {B = trie type → spanM (tr
     check-case c csₓ ctr-ps drop-ps Tₘ ≫=spanc λ csₓ xs →
     x csₓ ≫=spanc λ csₓ xs' →
     spanMr (csₓ , (xs ++ xs')))
-  (λ t → spanMr (t , [])) cs csₓ ≫=spanc λ csₓ xs →
+  (λ t → spanMr (t , [])) cs (trie-map just csₓ) ≫=spanc λ csₓ xs →
   get-ctxt λ Γ →
+  let csₓ = trie-catMaybe csₓ in
   spanMr (maybe-if (trie-nonempty csₓ) ≫maybe
     just ("Missing pattern matching cases: " ^ 𝕃-to-string (unqual-all (ctxt-get-qualif Γ) ∘ fst) ", " (trie-mappings csₓ)) , xs)
 

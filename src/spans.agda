@@ -858,10 +858,23 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
 Mu-span : ctxt → posinfo → maybe var → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
 Mu-span Γ pi x? pi' motive? check tvs = mk-span (if isJust x? then "Mu" else "Mu'") pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
 
-pattern-ctr-span : ctxt → posinfo → var → maybe type → err-m → span
-pattern-ctr-span Γ pi x tp =
+pattern-ctr-span : ctxt → posinfo → var → caseArgs → maybe type → err-m → span
+pattern-ctr-span Γ pi x as tp =
   let x' = unqual-local x in
-  mk-span "Pattern constructor" pi (posinfo-plus-str pi x') (checking-data synthesizing :: var-location-data Γ x :: ll-data-term :: symbol-data x' :: maybe-else' tp [] (λ tp → params-to-string-tag "args" Γ (fst (decompose-arrows Γ tp)) :: []))
+  mk-span "Pattern constructor" pi (posinfo-plus-str pi x') (checking-data synthesizing :: var-location-data Γ x :: ll-data-term :: symbol-data x' :: maybe-else' tp [] (λ tp → params-to-string-tag "args" Γ (rename-to-args empty-renamectxt as $ fst $ decompose-arrows Γ tp) :: []))
+  where
+  open import rename
+  rename-to-args : renamectxt → caseArgs → params → params
+  rename-to-args ρ (CaseTermArg _ _ x :: as) (Decl pi pi' me x' atk pi'' :: ps) =
+    Decl pi pi' me x (subst-renamectxt Γ ρ atk) pi'' ::
+      rename-to-args (renamectxt-insert ρ x' x) as ps
+  rename-to-args ρ (CaseTypeArg _ x :: as) (Decl pi pi' me x' atk pi'' :: ps) =
+    Decl pi pi' me x (subst-renamectxt Γ ρ atk) pi'' ::
+      rename-to-args (renamectxt-insert ρ x' x) as ps
+  rename-to-args ρ [] (Decl pi pi' me x atk pi'' :: ps) =
+    Decl pi pi' me x (subst-renamectxt Γ ρ atk) pi'' ::
+      rename-to-args (renamectxt-insert ρ x x) [] ps
+  rename-to-args ρ as ps = ps
 
 Lft-span : ctxt → posinfo → posinfo → var → term → checking-mode → 𝕃 tagged-val → err-m → span
 Lft-span Γ pi pi' X t check tvs = mk-span "Lift type" pi (term-end-pos t) (checking-data check :: ll-data-type :: binder-data Γ pi' X (Tkk star) tt nothing (term-start-pos t) (term-end-pos t) :: tvs)
