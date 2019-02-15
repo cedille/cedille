@@ -1,4 +1,4 @@
-const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML.replace(/\n/g, "\\n"));
+const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML);
 const cedilleData = document.getElementById('cedille-data');
 const cedilleCode = document.getElementById('cedille-code-block');
 const emptyNode = document.createTextNode("");
@@ -67,8 +67,8 @@ const displayData = ({name, start, end, data}) => {
 };
 
 const displayCode = (filename) => {
-  const source = cedilleArchive[filename].source;
-  const spans = cedilleArchive[filename].spans.spans.map(([name, start, end, data]) => {
+  const source = cedilleArchive.files[filename].source;
+  const spans = cedilleArchive.files[filename].spans.spans.map(([name, start, end, data]) => {
     return { name, start, end, data };
   });
   const nodes = [null, ...source].map(c => document.createTextNode(c));
@@ -91,5 +91,4 @@ const displayCode = (filename) => {
   cedilleCode.appendChild(nodes[1]);
 };
 
-const filename = Object.keys(cedilleArchive)[0];
-displayCode(filename);
+displayCode(cedilleArchive.archiveFilename);

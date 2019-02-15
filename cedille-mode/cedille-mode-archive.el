@@ -24,21 +24,24 @@
                   (buffer-name)
                   (buffer-file-name)))
 
-(defun cedille-mode-archive-timer (buffer-name buffer-file-name)
+(defun cedille-mode-archive-timer (buffer-name cedille-file-name)
   (with-current-buffer buffer-name
     (when cedille-mode-caching
       (user-error "Must wait for caching to finish!"))
     (se-inf-interactive
-     (cedille-mode-concat-sep "archive" buffer-file-name)
-     (lambda (archive extra)
-       (let ((archive-file-name (concat buffer-name ".html")))
-         (with-temp-file archive-file-name
-           (insert (format cedille-mode-archive-html-template
-                           archive
-                           cedille-mode-archive-javascript)))
-         (message "Saved archive as %s" archive-file-name)))
-     nil
+     (cedille-mode-concat-sep "archive" cedille-file-name)
+     'cedille-mode-archive-response-fn
+     cedille-file-name
      :header "Archiving")))
+
+(defun cedille-mode-archive-response-fn (archive-string cedille-file-name)
+  (let* ((base-file-name (file-name-base cedille-file-name))
+         (archive-file-name (concat base-file-name ".html")))
+    (with-temp-file archive-file-name
+      (insert (format cedille-mode-archive-html-template
+                      archive-string
+                      cedille-mode-archive-javascript)))
+    (message "Saved archive as %s" archive-file-name)))
 
 (provide 'cedille-mode-archive)
 
