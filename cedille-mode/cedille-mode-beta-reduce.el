@@ -120,6 +120,10 @@
 ;;;;;;;; Buffer/file code ;;;;;;;;
 
 (defun cedille-mode-br-init-buffer (str &optional context checking qed)
+  "Initializes the beta-reduction buffer, after the process finishes"
+  (se-inf-interactive "status ping" (lambda (r e) (cedille-mode-br-init-buffer-post (nth 0 e) (nth 1 e) (nth 2 e) (nth 3 e))) (list str context checking qed)))
+
+(defun cedille-mode-br-init-buffer-post (str &optional context checking qed)
   "Initializes the beta-reduction buffer"
   (let ((parent cedille-mode-parent-buffer)
         (original-filename (buffer-file-name))
@@ -128,6 +132,7 @@
     (with-current-buffer buffer
       (cedille-mode-get-create-window buffer)
       (display-buffer buffer)
+      (insert str)
       (setq buffer-read-only t)
       (se-navigation-mode)
       (cedille-br-mode)
