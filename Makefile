@@ -93,7 +93,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: ./core/CedilleCore cedille #elisp
+all: ./core/cedille-core cedille #elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
@@ -122,8 +122,11 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
-./core/CedilleCore: $(CEDILLE_CORE)
+./core/cedille-core: $(CEDILLE_CORE)
 	cd core/; make; cd ../
+
+./core/cedille-core-static: $(CEDILLE_CORE)
+	cd core/; make cedille-core-static; cd ../
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
@@ -141,7 +144,7 @@ elisp:
 
 cedille-templates-compiler: $(TEMPLATESDIR)/TemplatesCompiler
 
-cedille-deb-pkg: cedille-static
+cedille-deb-pkg: cedille-static ./core/cedille-core-static
 	rm -rf cedille-deb-pkg
 	mkdir -p ./cedille-deb-pkg/usr/bin/
 	mkdir -p ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
@@ -149,22 +152,24 @@ cedille-deb-pkg: cedille-static
 	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-deb-pkg/usr/share/emacs/site-lisp/cedille-mode/
 	cp ./cedille-mode.el ./cedille-deb-pkg/usr/share/emacs/site-lisp/
 	cp ./cedille-static ./cedille-deb-pkg/usr/bin/cedille
+	cp ./core/cedille-core-static ./cedille-deb-pkg/usr/bin/cedille-core
 	cp ./packages/cedille-deb-control ./cedille-deb-pkg/DEBIAN/control
 	cp ./packages/copyright ./cedille-deb-pkg/DEBIAN/copyright
 	dpkg-deb --build cedille-deb-pkg
 
-cedille-win-pkg: cedille-static
+cedille-win-pkg: cedille-static ./core/cedille-core-static
 	rm -rf cedille-win-pkg
 	mkdir -p ./cedille-win-pkg/src/
 	cp -R ./cedille-mode/ ./se-mode/ ./docs/info/cedille-info-main.info ./cedille-mode.el ./packages/copyright ./cedille-win-pkg/src/
 	cp ./cedille-static ./cedille-win-pkg/src/cedille.exe
+	cp ./core/cedille-core-static ./cedille-win-pkg/src/cedille-core.exe
 	cp ./packages/cedille-win-install.bat ./cedille-win-pkg/
 
-cedille-mac-pkg: cedille
+cedille-mac-pkg: cedille ./core/cedille-core-static
 	rm -rf cedille-mac-pkg
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/Resources/
-	cp -r cedille ./cedille-mode/ ./se-mode/ ./cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp -r cedille ./core/cedille-core ./cedille-mode/ ./se-mode/ ./cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
 	cp ./docs/info/cedille-info-main.info ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
 	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/Cedille.app/Contents/Resources/
 	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/

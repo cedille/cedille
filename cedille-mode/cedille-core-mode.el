@@ -37,14 +37,14 @@
 
 (defun cdle-mode-sentinel (process msg)
   "Sentinel for the Cedille Core process"
-  (message "anyway code: %s" (process-exit-status process))
+  ;(message "anyway code: %s" (process-exit-status process))
   (case (process-exit-status process)
     (0 (message "Checks!"))
-    (1 (message "Error—unknown option" (process-exit-status process)))
+    (1 (message "Error—unknown option %s" (process-exit-status process)))
     (2 (message "Parse error"))
     (3 (message "Error reading file"))
     (4 (message "Type error"))
-    (t (message "Oops—this shouldn't happen! Process signaled code %s with message \"%s\"") (process-exit-status process) msg)
+    (t (message "Oops—this shouldn't happen! Process signaled code %s with message \"%s\"" (process-exit-status process) msg))
     )
   (setq cdle-mode-running nil))
 

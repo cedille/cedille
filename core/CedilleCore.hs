@@ -69,9 +69,9 @@ exitTypeError = ExitFailure 4
 exitTypeChecks = ExitSuccess
 
 helpStr =
-  "CedilleCore [OPTIONS] [FILE]\n  " ++
+  "cedille-core [OPTIONS] [FILE]\n  " ++
   "-b --binary    exit with error code if an error is encountered (0 = type checks; 1 = options error; 2 = parse error; 3 = file does not exist; 4 = type error)\n  " ++
-  "-h --help      print this help message (the above option looked lonely by itself)"
+  "-h --help      print this help message (the above option looked lonely all by itself)"
 
 data Option =
     Binary

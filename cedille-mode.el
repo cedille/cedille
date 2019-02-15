@@ -35,10 +35,10 @@
 
 (defvar cedille-core-program-name
   (cedille-platform-case
-   "CedilleCore"
+   "cedille-core"
    nil
-   "CedilleCore"
-   (concat (file-name-as-directory (concat (file-name-as-directory cedille-path) "core")) "CedilleCore")))
+   "cedille-core"
+   (concat (file-name-as-directory (concat (file-name-as-directory cedille-path) "core")) "cedille-core")))
 
 
 (defvar cedille-path-el
