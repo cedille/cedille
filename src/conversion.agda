@@ -232,7 +232,8 @@ hnf{TYPE} Γ u (TpApp _ _) hd | tp | tp' = try-pull-lift-types tp tp'
         try-pull-lift-types tp1 tp2 | _ | _ = TpApp tp1 tp2
 
 
-hnf{TYPE} Γ u (Abs _ b _ x atk tp) _ with Abs posinfo-gen b posinfo-gen x atk (hnf (ctxt-var-decl x Γ) u tp ff)
+hnf{TYPE} Γ u@(unfold all? _ _ _) (Abs _ b _ x atk tp) _
+  with Abs posinfo-gen b posinfo-gen x (hnf Γ u atk ff) (hnf (ctxt-var-decl x Γ) u tp ff)
 hnf{TYPE} Γ u (Abs _ b _ x atk tp) _ | tp' with to-abs tp'
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs b x atk tt {- x is free in tp -} tp) = Abs posinfo-gen b posinfo-gen x atk tp
 hnf{TYPE} Γ u (Abs _ _ _ _ _ _) _ | tp'' | just (mk-abs b x (Tkk k) ff tp) = Abs posinfo-gen b posinfo-gen x (Tkk k) tp
@@ -266,11 +267,7 @@ hnf{KIND} Γ no-unfolding e hd = e
 hnf{KIND} Γ u (KndParens _ k _) hd = hnf Γ u k hd
 hnf{KIND} Γ (unfold _ _ _ _) (KndVar _ x ys) _ with ctxt-lookup-kind-var-def Γ x 
 ... | nothing = KndVar posinfo-gen x ys
-... | just (ps , k) = fst $ subst-params-args Γ ps ys k {- do-subst ys ps k
-  where do-subst : args → params → kind → kind
-        do-subst (ArgsCons (TermArg _ t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
-        do-subst (ArgsCons (TypeArg t) ys) (ParamsCons (Decl _ _ _ x _ _) ps) k = do-subst ys ps (subst Γ t x k)
-        do-subst _ _ k = k -- should not happen -}
+... | just (ps , k) = fst $ subst-params-args Γ ps ys k
 
 hnf{KIND} Γ u (KndPi _ _ x atk k) hd =
     if is-free-in check-erased x k then
@@ -287,6 +284,7 @@ hnf{ARG} Γ u x hd = x
 
 hnf-optClass Γ u NoClass = NoClass
 hnf-optClass Γ u (SomeClass atk) = SomeClass (hnf Γ u atk ff)
+
 
 {- this function reduces a term to "head-applicative" normal form,
    which avoids unfolding definitions if they would lead to a top-level
@@ -308,40 +306,6 @@ hnf-term-type Γ e (TpEq _ t1 t2 _) = TpEq posinfo-gen (hanf Γ e t1) (hanf Γ e
 hnf-term-type Γ e (TpAppt tp t) = hnf Γ (unfolding-set-erased unfold-head e) (TpAppt tp (hanf Γ e t)) tt
 hnf-term-type Γ e tp = hnf Γ unfold-head tp tt
 
-{-
-{-# TERMINATING #-}
--- unfold a constructor type, given the name of the datatype
-hnf-ctr : ctxt → var → type → type
-hnf-ctr Γ X T = if is-free-in check-erased X T then h Γ (substs{TYPE}{TERM} Γ empty-trie T) else T where
-  h : ctxt → type → type
-  hₖ : ctxt → kind → kind
-  hₖ' : ctxt → kind → kind
-  hₜₖ : ctxt → tk → tk
-  
-  hₜₖ Γ (Tkt T) = Tkt $ hnf-ctr Γ X T
-  hₜₖ Γ (Tkk k) = Tkk $ hₖ Γ k
-  
-  hₖ Γ k = if is-free-in check-erased X k then hₖ' Γ k else k
-  
-  hₖ' Γ (KndArrow k₁ k₂) = KndArrow (hₖ Γ k₁) (hₖ Γ k₂)
-  hₖ' Γ (KndParens _ k _) = hₖ' Γ k
-  hₖ' Γ (KndPi _ _ x atk k) = KndPi pi-gen pi-gen x (hₜₖ Γ atk) (hₖ (ctxt-var-decl x Γ) k)
-  hₖ' Γ (KndTpArrow T k) = KndTpArrow (hnf-ctr Γ X T) (hₖ Γ k)
-  hₖ' Γ (KndVar _ x as) = maybe-else' (ctxt-lookup-kind-var-def Γ x) (KndVar pi-gen x as) $ uncurry λ ps k → hₖ Γ $ fst $ subst-params-args Γ ps as k
-  hₖ' Γ (Star _) = star
-  
-  h Γ (Abs _ me _ x atk T) = Abs pi-gen me pi-gen x (hₜₖ Γ atk) (hnf-ctr (ctxt-var-decl x Γ) X T)
-  h Γ (Iota _ _ x T₁ T₂) = Iota pi-gen pi-gen x (hnf-ctr Γ X T₁) (hnf-ctr (ctxt-var-decl x Γ) X T₂)
-  h Γ (Lft _ _ x t lT) = hnf Γ (unfolding-elab unfold-all) (Lft pi-gen pi-gen x t lT) tt
-  h Γ (TpLet _ (DefTerm _ x T? t) T) = hnf-ctr Γ X $ subst Γ t x T
-  h Γ (TpLet _ (DefType _ x k T') T) = hnf-ctr Γ X $ subst Γ T' x T
-  h Γ (TpApp Tₕ Tₐ) = hnf-ctr Γ X $ hnf Γ (unfolding-elab unfold-head) (TpApp Tₕ Tₐ) tt
-  h Γ (TpAppt Tₕ tₐ) = hnf-ctr Γ X $ hnf Γ (unfolding-elab unfold-head) (TpAppt Tₕ tₐ) tt
-  h Γ (TpArrow T₁ me T₂) = TpArrow (hnf-ctr Γ X T₁) me (hnf-ctr Γ X T₂)
-  h Γ (TpLambda _ _ x atk T) = TpLambda pi-gen pi-gen x (hₜₖ Γ atk) (hnf-ctr (ctxt-var-decl x Γ) X T)
-  h Γ (TpParens _ T _) = h Γ T
-  h Γ T = T
--}
 
 conv-cases : conv-t cases
 conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ → conv-cases' Γ cs₁ c₂) (just cs₁) cs₂ where
@@ -365,9 +329,6 @@ conv-term-norm Γ (Mu _ _ x₁ t₁ _ _ cs₁ _) (Mu _ _ x₂ t₂ _ _ cs₂ _) 
       Γ' = ctxt-rename x₁ x₂ $ ctxt-var-decl x₂ Γ in --ctxt-term-udef pi-gen localScope OpacTrans x₂ μ Γ in
   conv-term Γ t₁ t₂ && conv-cases Γ' cs₁ cs₂ -- (subst-cases Γ' id-term (mu-name-cast x₁) cs₁) (subst-cases Γ' id-term (mu-name-cast x₂) cs₂)
 conv-term-norm Γ (Mu' _ _ t₁ _ _ cs₁ _) (Mu' _ _ t₂ _ _ cs₂ _) = conv-term Γ t₁ t₂ && conv-cases Γ cs₁ cs₂
--- conv-term-norm Γ (Beta _ _ NoTerm) (Beta _ _ NoTerm) = tt
--- conv-term-norm Γ (Beta _ _ (SomeTerm t _)) (Beta _ _ (SomeTerm t' _)) = conv-term Γ t t'
--- conv-term-norm Γ (Beta _ _ _) (Beta _ _ _) = ff
 {- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing
@@ -445,10 +406,6 @@ conv-optClass Γ _ _ = ff
 conv-optClasse Γ NoClass NoClass = tt
 conv-optClasse Γ (SomeClass x) (SomeClass x') = conv-tk Γ x x'
 conv-optClasse Γ _ _ = ff
-
--- conv-optType Γ NoType NoType = tt
--- conv-optType Γ (SomeType x) (SomeType x') = conv-type Γ x x'
--- conv-optType Γ _ _ = ff
 
 conv-tty* Γ [] [] = tt
 conv-tty* Γ (tterm t :: args) (tterm t' :: args')
@@ -569,31 +526,6 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
     inconv-case c₁ @ (Case _ x cas₁ t₁) =
       matching-case c₁ ≫=maybe λ c₂ →
       just (inconv-lams ρ₁ ρ₂ (caseArgs-to-lams cas₁ t₁) (fst c₂))
-    
-
-
-  -- No need to check if x₁ or x₂ are in scope (or bound in the other's body),
-  -- because t₁ and t₂ both are already as η-contracted as possible. This is
-  -- not necessarily true (I think) for conv-term-norm above
-  {-h ρ (Lam _ _ _ x₁ _ t₁) (Lam _ _ _ x₂ _ t₂) =
-    let x = fresh x₂ ρ in
-    h (renamectxt-insert (renamectxt-insert ρ x₂ x) x₁ x) t₁ t₂
-  h ρ (App h₁ NotErased a₁) (App h₂ NotErased a₂) =
-    h ρ h₁ h₂ || h ρ a₁ a₂
-  h ρ (Var _ x₁) (Var _ x₂) with renamectxt-lookup ρ x₁ | renamectxt-lookup ρ x₂
-  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ with x₁ =string x₂
-  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ | tt = {!!}
-  h ρ (Var _ _ ) (Var _ _ ) | just x₁ | just x₂ | ff = {!!}
-  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing with env-lookup Γ x₁ | env-lookup Γ x₂
-  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing
-      | just (ctr-def ps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def ps₂ T₂ n₂ i₂ a₂ , _) =
-    {!? || ? || ?!}
-  h ρ (Var _ x₁) (Var _ x₂) | nothing | nothing | _ | _ = ff
-  h ρ (Var _ x₁) (Var _ x₂) | _ | _ = ff
-  h ρ t₁ t₂ = ff-}
-  
-
-
 
 
 
@@ -624,18 +556,8 @@ ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn
   mk-ctxt (fn , mn , ps , q') 
     (trie-insert-append2 syms fn mn v , mn-fn)
     (trie-insert i v' (type-def (just ps) OpacTrans nothing (abs-expand-kind psᵢ k) , fn , pi)) os
-    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' ,
-     trie-insert μ (data-Is/ v') v')
---    (trie-insert i v' (datatype-def (maybe-map (ps ++_) psᵢ) kᵢ k cs , fn , pi)) os
-{-
-ctxt-mu-def : posinfo → params → var → kind → ctxt → ctxt
-ctxt-mu-def pi psᵢ x k (mk-ctxt (fn , mn , ps , q) (ss , mn-fn) is os Δ) =
-  let x' = mu-name-Mu x
-      x'' = mn # mu-name-Mu x
-      q' = qualif-insert-params q x'' x' ps in
-  mk-ctxt (fn , mn , ps , q') (trie-insert-append2 ss fn mn x' , mn-fn)
-    (trie-insert is x'' (mu-def (just psᵢ) (mn # x) k , fn , pi)) os Δ
--}
+    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' , trie-insert μ (data-Is/ v') v')
+
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt
 ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs Δ) = mk-ctxt
