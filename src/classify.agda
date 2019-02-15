@@ -1997,31 +1997,33 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                               --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
                          Tₓ = hnf Γ' (unfolding-elab unfold-all) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
-                         Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ' in
-                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) nothing) ≫span
+                         Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
+                         e₁? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
+                         e₂ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
+                         e₂ₑ = flip (are-free-in-cases skip-erased) cs ∘ stringset-insert* empty-stringset
+                         e₂ₓ? = λ x → maybe-if (e₂ₑ [ x ]) ≫maybe e₂ x
+                         e₂? = x? ≫=maybe λ x → maybe-if (e₂ₑ $ mu-isType/ x :: mu-Type/ x :: []) ≫=maybe λ _ →
+                                 e₂ₓ? (mu-isType/ x) maybe-or e₂ₓ? (mu-Type/ x)in
+                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₁? maybe-or e₂?)) ≫span
                      spanMr (Γ'' ,
-                              (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
-                               binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
-                               binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
-                               to-string-tag X' Γ'' k ::
-                               to-string-tag xₘᵤ Γ'' Tₘᵤ ::
-                               to-string-tag x Γ'' Tₓ ::
-                               [])) in -- binder-data Γ'' pi' xₜₒ (Tkt Tₜₒ) NotErased (just id-term) pi'' pi''' :: [])) in
+                             (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
+                              binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
+                              binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
+                              to-string-tag X' Γ'' k ::
+                              to-string-tag xₘᵤ Γ'' Tₘᵤ ::
+                              to-string-tag x Γ'' Tₓ ::
+                              [])) in
           Γ' ≫=spanc λ Γ' bds → with-ctxt Γ'
-            (let e2 = just "Abstract datatypes can only be pattern matched by μ'"
-                 e4 = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
-                 e4ₓ? = λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert empty-trie x) cs) ≫maybe e4 x
-                 e4? = x? ≫=maybe λ x → maybe-if (are-free-in-cases skip-erased (stringset-insert (stringset-insert empty-trie (mu-isType/ x)) (mu-Type/ x)) cs) ≫=maybe λ _ → e4ₓ? (mu-isType/ x) maybe-or e4ₓ? (mu-Type/ x)
-                 e2? = x? ≫maybe (x/mu ≫maybe e2)
-                 --cs'' = subst-ctrs
-                 cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
+            (let cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))
                  scrutinee = cast $ qualif-term Γ t
                  Tᵣ = ret-tp ps (args-to-ttys asₚ ++ asᵢ) scrutinee in
-             check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e? xs →
-             spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing") (check-for-type-mismatch-if Γ "synthesized" mtp))
-               λ tvs e3? → Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp) (map (λ {(pi , x , atk , me , s , e) → binder-data Γ' pi x atk me nothing s e}) xs ++ tvs ++ bds)
-                 (e? maybe-or (e2? maybe-or (e3? maybe-or e4?)))) ≫span
+             check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e₁ xs →
+             spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing")
+                                    (check-for-type-mismatch-if Γ "synthesized" mtp))
+               λ tvs e₂ → Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
+                 (map (λ {(pi , x , atk , me , s , e) →
+                            binder-data Γ' pi x atk me nothing s e}) xs ++ tvs ++ bds) (e₁ maybe-or e₂)) ≫span
              return-when mtp Tᵣ)
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
