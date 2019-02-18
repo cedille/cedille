@@ -11,8 +11,7 @@ AUTOGEN = \
 	options-main.agda \
         cws.agda \
 	cws-types.agda \
-	cws-main.agda \
-	templates.agda
+	cws-main.agda 
 
 AGDASRC = \
 	to-string.agda \
