@@ -17,16 +17,18 @@ const isArray = x => {
 };
 
 const addEventListeners = (span, htmlSpan, htmlSpans) => {
-  htmlSpan.addEventListener('click', () => {
+  htmlSpan.addEventListener('click', event => {
+    event.stopPropagation();
     removeClassFromSpans('highlight', htmlSpans);
     htmlSpan.classList.add('highlight');
     displayData(span);
-  }, { capture: true });
+  });
 
-  htmlSpan.addEventListener('mouseover', () => {
+  htmlSpan.addEventListener('mouseover', event => {
+    event.stopPropagation();
     removeClassFromSpans('hover-highlight', htmlSpans);
     htmlSpan.classList.add('hover-highlight');
-  }, { capture: true });
+  });
 
   htmlSpan.addEventListener('mouseout', () => {
     htmlSpan.classList.remove('hover-highlight');
