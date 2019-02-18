@@ -40,7 +40,11 @@ AGDASRC = \
 	elaboration.agda \
 	elaboration-helpers.agda \
 	monad-instances.agda \
-	json.agda
+	json.agda \
+	datatype-functions.agda \
+	bohm-out.agda \
+	cedille-syntax.agda \
+	erase.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \
@@ -67,6 +71,16 @@ SE_MODE = \
 	se-mode/se-pin.el \
 	se-mode/se-markup.el
 
+CEDILLE_CORE = \
+	core/CedilleCore.hs \
+	core/Check.hs \
+	core/Ctxt.hs \
+	core/Norm.hs \
+	core/Parser.hs \
+	core/ToString.hs \
+	core/Types.hs \
+	core/Makefile
+
 ELISP=$(SE_MODE) $(CEDILLE_ELISP)
 
 TEMPLATESDIR = $(SRCDIR)/templates
@@ -79,7 +93,7 @@ OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
 
-all: cedille #elisp
+all: ./core/CedilleCore cedille #elisp
 
 libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
@@ -105,12 +119,16 @@ libraries: ./ial/ial.agda-lib
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
 	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
 
-./src/templates.agda: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler
+./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler
 
-CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/templates.agda
+./core/CedilleCore: $(CEDILLE_CORE)
+	cd core/; make; cd ../
+
+CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
+
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@

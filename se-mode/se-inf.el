@@ -123,6 +123,7 @@ will kill the process, should be skipped if process is shared."
   (tq-close se-inf-queue)
   (kill-buffer (tq-buffer se-inf-queue))
   (when (car se-inf-queue)
+    (ignore-errors (when se-inf-header-line-format (scroll-down-line)))
     (setq se-inf-header-queue nil
 	  se-inf-headers ""
 	  header-line-format nil)
@@ -457,6 +458,16 @@ hourglass feature."
   (force-mode-line-update))
 
 (defun se-inf-set-header-format ()
+  (ignore-errors
+    (when (and (not se-inf-header-line-format)
+               se-inf-headers
+               (not (equal "" se-inf-headers)))
+      (scroll-up-line))
+    (when (and se-inf-header-line-format
+               (or (null se-inf-headers)
+                   (equal "" se-inf-headers)))
+      (scroll-down-line)))
+
   (setq se-inf-header-line-format
 	(unless (or (null se-inf-headers) (equal "" se-inf-headers))
 	  '(:eval (aref se-inf-headers (mod se-inf-header-index 4))))))

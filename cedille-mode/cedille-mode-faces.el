@@ -70,19 +70,41 @@
 
 (defface cedille-defined-face-df
   '((((background light))
-     (:foreground "green4"))
+     (:foreground "dark grey"))
     (((background dark))
-     (:foreground "darkgreen")))
-  "The face used for user-defined symbols."
+     (:foreground "light grey")))
+  "The face used for user-definitions."
   :group 'cedille-highlight-faces-default)
 
-(defface cedille-parentheses-face-df
+
+(defface cedille-constructor-face-df
   '((((background light))
-     (:foreground "DeepPink2"))
+     (:foreground "green4"))
     (((background dark))
-     (:foreground "magenta")))
-  "The face used for parentheses."
+     (:foreground "green2")))
+  "The face used for constructor variables"
   :group 'cedille-highlight-faces-default)
+
+
+(defface cedille-datatype-face-df
+  '((((background light))
+     (:foreground "#0040E8"))
+    (((background dark))
+     (:foreground "#00C0C0")))
+  "The face used for datatype variables."
+  :group 'cedille-highlight-faces-default)
+
+
+
+
+
+;(defface cedille-parentheses-face-df
+;  '((((background light))
+;     (:foreground "DeepPink2"))
+;    (((background dark))
+;     (:foreground "magenta")))
+;  "The face used for parentheses."
+;  :group 'cedille-highlight-faces-default)
 
 (defface cedille-type-face-df
   '((((background light))
@@ -149,13 +171,13 @@
   :group 'cedille-highlight-faces-language-level)
 
 
-(defface cedille-parentheses-face-ll
-  '((((background light))
-     (:foreground "DarkOrange3"))
-    (((background dark))
-     (:foreground "orange")))
-  "The face used for parentheses."
-  :group 'cedille-highlight-faces-language-level)
+;(defface cedille-parentheses-face-ll
+;  '((((background light))
+;     (:foreground "DarkOrange3"))
+;    (((background dark))
+;     (:foreground "orange")))
+;  "The face used for parentheses."
+;  :group 'cedille-highlight-faces-language-level)
 
 
 ;; ------------------------------------------------------
@@ -208,30 +230,40 @@
 
 (defvar cedille-mode-highlight-face-map-default
    '(
-     ("name" . (("Import of another source file" . cedille-keyword-face-df)
-               ("Module header" . cedille-keyword-face-df)
-               ("Module declaration" . cedille-kind-face-df)
-               ("Imported module" . cedille-kind-face-df)
-	       ("Constructor definition" . cedille-keyword-face-df)
-	       ("Recursive datatype definition" . cedille-keyword-face-df)
-	       ("Recursively defined type" . cedille-keyword-face-df)
-	       ("Beta axiom" . cedille-keyword-face-df)
-	       ("Rho" . cedille-keyword-face-df)
-         ("Phi" . cedille-keyword-face-df)
-	       ("Theta" . cedille-keyword-face-df)
-	       ("Epsilon" . ced-purple-face)
-	       ("Chi" . cedille-keyword-face-df)
-         ("Delta" . cedille-keyword-face-df)
-         ("Sigma" , cedille-keyword-face-df)
-         ("Open" ,  cedille-keyword-face-df)
-	       ("Comment" . cedille-comment-face-df)
-	       ("Whitespace" . cedille-standard-face-df)
-	       ("Term-level definition (checking)" . cedille-defined-face-df)
-	       ("Type-level definition (checking)" . cedille-defined-face-df)
-	       ("Kind-level definition (checking)" . cedille-defined-face-df)))	       
+     ("name" . (("Constructor variable" . cedille-constructor-face-df)
+                ("Pattern constructor" . cedille-constructor-face-df)
+                ("Datatype variable" . cedille-datatype-face-df)
+                ("Import of another source file" . cedille-keyword-face-df)
+                ("Module header" . cedille-keyword-face-df)
+                ("Module declaration" . cedille-kind-face-df)
+                ("Imported module" . cedille-kind-face-df)
+                ("Datatype definition" . cedille-keyword-face-df)
+                ("Beta axiom" . cedille-keyword-face-df)
+                ("Rho" . cedille-keyword-face-df)
+                ("Phi" . cedille-keyword-face-df)
+                ("Theta" . cedille-keyword-face-df)
+                ("Epsilon" . ced-purple-face)
+                ("Chi" . cedille-keyword-face-df)
+                ("Delta" . cedille-keyword-face-df)
+                ("Sigma" , cedille-keyword-face-df)
+                ("Open" ,  cedille-keyword-face-df)
+                ("Close" , cedille-keyword-face-df)
+                ("Mu" . cedille-keyword-face-df)
+                ("Mu'" . cedille-keyword-face-df)
+                ("Comment" . cedille-comment-face-df)
+                ("Whitespace" . cedille-standard-face-df)
+                ("Term-level definition (checking)" . cedille-defined-face-df)
+                ("Type-level definition (checking)" . cedille-defined-face-df)
+                ("Term Let" . cedille-defined-face-df)
+                ("Erased Term Let" . cedille-defined-face-df)
+                ("Kind-level definition (checking)" . cedille-defined-face-df)
+                ("Term-level definition (synthesizing)" . cedille-defined-face-df)
+                ("Type-level definition (synthesizing)" . cedille-defined-face-df)
+                ("Kind-level definition (synthesizing)" . cedille-defined-face-df)
+                ("Datatype definition" . cedille-standard-face-df)))	       
      ("language-level" . (("type" . cedille-type-face-df)
-			 ("kind" . cedille-kind-face-df)
-			 ("term" . cedille-standard-face-df)))
+                          ("kind" . cedille-kind-face-df)
+                          ("term" . cedille-standard-face-df)))
     )
    "Provides default highlighting scheme")
 

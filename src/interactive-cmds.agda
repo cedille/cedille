@@ -20,9 +20,11 @@ open import rewriting
 open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
+open import datatype-functions
 open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
+open import erase
 
 private
 
@@ -51,13 +53,13 @@ private
     ll-disambiguate (ctxt-tk-decl pi' x atk Γ) t ≫=maybe λ T →
     just (TpLambda pi pi' x atk T)
   ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
-  ll-disambiguate Γ (Let pi d t) =
+  ll-disambiguate Γ (Let pi _ d t) =
     ll-disambiguate (Γ' d) t ≫=maybe λ T → just (TpLet pi d T)
     where
     Γ' : defTermOrType → ctxt
-    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope OpacTrans x t T Γ
+    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope OpacTrans x (just t) T Γ
     Γ' (DefTerm pi' x NoType t) = ctxt-term-udef pi' localScope OpacTrans x t Γ
-    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x T k Γ
+    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x (just T) k Γ
   ll-disambiguate Γ t = nothing
   
   parse-string : (ll : language-level) → string → maybe (ll-lift ll)
@@ -110,20 +112,40 @@ private
   record lci : Set where
     constructor mk-lci
     field ll : string; x : var; t : string; T : string; fn : string; pi : posinfo
+
+  data 𝕃ₛ {ℓ} (A : Set ℓ) : Set ℓ where
+    [_]ₛ : A → 𝕃ₛ A
+    _::ₛ_ : A → 𝕃ₛ A → 𝕃ₛ A
+
+  headₛ : ∀ {ℓ} {A : Set ℓ} → 𝕃ₛ A → A
+  headₛ [ a ]ₛ = a
+  headₛ (a ::ₛ as) = a
+
+  𝕃ₛ-to-𝕃 : ∀ {ℓ} {A : Set ℓ} → 𝕃ₛ A → 𝕃 A
+  𝕃ₛ-to-𝕃 [ a ]ₛ = [ a ]
+  𝕃ₛ-to-𝕃 (a ::ₛ as) = a :: 𝕃ₛ-to-𝕃 as
   
   merge-lcis-ctxt : ctxt → 𝕃 string → ctxt
-  merge-lcis-ctxt c = foldr merge-lci-ctxt c ∘ (sort-lcis ∘ strings-to-lcis) where
+  merge-lcis-ctxt c = foldl merge-lcis-ctxt' c ∘ (sort-lcis ∘ strings-to-lcis) where
     strings-to-lcis : 𝕃 string → 𝕃 lci
     strings-to-lcis ss = strings-to-lcis-h ss [] where
       strings-to-lcis-h : 𝕃 string → 𝕃 lci → 𝕃 lci
       strings-to-lcis-h (ll :: x :: t :: T :: fn :: pi :: tl) items =
         strings-to-lcis-h tl (mk-lci ll x t T fn pi :: items)
       strings-to-lcis-h _ items = items
-    
+
+    -- TODO: Local context information does not pass Δ information!
+    -- When users are using BR-explorer to rewrite with the rec function,
+    -- if they call it upon "μ' [SUBTERM] {...}", it won't work unless they say
+    -- "μ'<rec/mu> [SUBTERM] {...}".
+    decl-lci : posinfo → var → ctxt → ctxt
+    decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
+      mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is os Δ
+
     language-level-type-of : language-level → language-level
     language-level-type-of ll-term = ll-type
-    language-level-type-of _ = ll-kind
-    
+    language-level-type-of _ = ll-kind    
+
     merge-lci-ctxt : lci → ctxt → ctxt
     merge-lci-ctxt (mk-lci ll v t T fn pi) Γ =
       maybe-else Γ (λ Γ → Γ) (parse-ll ll ≫=maybe λ ll →
@@ -131,20 +153,39 @@ private
       h : (ll : language-level) → maybe (ll-lift ll) →
           ll-lift (language-level-type-of ll) → maybe ctxt
       h ll-term (just t) T =
-        just (ctxt-term-def pi localScope OpacTrans v t (qualif-type Γ T) Γ)
+        just (ctxt-term-def pi localScope OpacTrans v (just t) (qualif-type Γ T) Γ)
       h ll-type (just T) k =
-        just (ctxt-type-def pi localScope OpacTrans v T (qualif-kind Γ k) Γ)
+        just (ctxt-type-def pi localScope OpacTrans v (just T) (qualif-kind Γ k) Γ)
       h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing
+
+    merge-lcis-ctxt' : 𝕃ₛ lci → ctxt → ctxt
+    merge-lcis-ctxt' ls Γ =
+      let ls' = 𝕃ₛ-to-𝕃 ls in
+      foldr (merge-lci-ctxt) (foldr (λ l → decl-lci (lci.pi l) (lci.x l)) Γ ls') ls'
     
-    sort-lcis : 𝕃 lci → 𝕃 lci
+    sort-eq : ∀ {ℓ} {A : Set ℓ} → (A → A → compare-t) → 𝕃 A → 𝕃 (𝕃ₛ A)
+    sort-eq {_} {A} c = foldr insert [] where
+      insert : A → 𝕃 (𝕃ₛ A) → 𝕃 (𝕃ₛ A)
+      insert n [] = [ [ n ]ₛ ]
+      insert n (a :: as) with c (headₛ a) n
+      ...| compare-eq = n ::ₛ a :: as
+      ...| compare-gt = [ n ]ₛ :: a :: as
+      ...| compare-lt = a :: insert n as
+    
+    sort-lcis : 𝕃 lci → 𝕃 (𝕃ₛ lci) -- 𝕃 lci
+    sort-lcis = sort-eq λ l₁ l₂ →
+      compare (posinfo-to-ℕ $ lci.pi l₁) (posinfo-to-ℕ $ lci.pi l₂)
+    {-
     sort-lcis = list-merge-sort.merge-sort lci λ l l' →
                 posinfo-to-ℕ (lci.pi l) > posinfo-to-ℕ (lci.pi l')
       where import list-merge-sort
+    -}
+
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
-  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ _) pi =
+  get-local-ctxt Γ @ (mk-ctxt (fn , mn , _) _ is _ Δ) pi =
     merge-lcis-ctxt (foldr (flip ctxt-clear-symbol ∘ fst) Γ
       (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
         fn =string fn' && posinfo-to-ℕ pi' > pi}))
@@ -159,7 +200,8 @@ private
   qualif-ed Γ e = e
 
   step-reduce : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  step-reduce Γ t = let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
+  step-reduce Γ t =
+    let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
     step-reduceh : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
     step-reduceh{TERM} Γ (Var pi x) = ctxt-lookup-term-var-def Γ (qualif-var Γ x)
     step-reduceh{TYPE} Γ (TpVar pi x) = ctxt-lookup-type-var-def Γ (qualif-var Γ x)
@@ -171,9 +213,11 @@ private
     step-reduceh{TYPE} Γ (TpAppt T t) = step-reduceh Γ T ≫=maybe λ T → just (TpAppt T t)
     step-reduceh{TERM} Γ (Lam pi b pi' x oc t) = step-reduceh (ctxt-var-decl x Γ) t ≫=maybe λ t → just (Lam pi b pi' x oc t)
     step-reduceh{TYPE} Γ (TpLambda pi pi' x atk T) = step-reduceh (ctxt-var-decl x Γ) T ≫=maybe λ T → just (TpLambda pi pi' x atk T)
-    step-reduceh{TERM} Γ (Let pi (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
+    step-reduceh{TERM} Γ (Let pi _ (DefTerm pi' x ot t') t) = just (subst Γ t' x t)
     step-reduceh{TYPE} Γ (TpLet pi (DefTerm pi' x ot t) T) = just (subst Γ t x T)
     step-reduceh{TYPE} Γ (TpLet pi (DefType pi' x k T') T) = just (subst Γ T' x T)
+    step-reduceh{TERM} Γ t @ (Mu _ _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
+    step-reduceh{TERM} Γ t @ (Mu' _ _ _ _ _ _ _) = just $ hnf Γ unfold-head-one t tt
     step-reduceh Γ t = nothing
 
   parse-norm : string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)
@@ -217,8 +261,8 @@ private
 
   private
     cmds-to-escaped-string : cmds → strM
-    cmds-to-escaped-string (CmdsNext c cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
-    cmds-to-escaped-string CmdsStart = strEmpty
+    cmds-to-escaped-string (c :: cs) = cmd-to-string c $ strAdd "\\n\\n" ≫str cmds-to-escaped-string cs
+    cmds-to-escaped-string [] = strEmpty
 
   data-cmd : ctxt → (encoding name ps is cs : string) → string ⊎ tagged-val
   data-cmd Γ encodingₛ x psₛ isₛ csₛ =
@@ -227,8 +271,8 @@ private
     parse-string ll-kind - isₛ ! "kind" ≫parse λ isₖ →
     parse-string ll-kind - csₛ ! "kind" ≫parse λ csₖ →
     let ps = map (λ {(Index x atk) → Decl posinfo-gen posinfo-gen Erased x atk posinfo-gen}) $ kind-to-indices Γ psₖ
-        cs = map (λ {(Index x (Tkt T)) → Ctr x T; (Index x (Tkk k)) → Ctr x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
-        is = kind-to-indices (add-constructors-to-ctxt cs $ add-parameters-to-ctxt ps $ Γ) isₖ
+        cs = map (λ {(Index x (Tkt T)) → Ctr posinfo-gen x T; (Index x (Tkk k)) → Ctr posinfo-gen x $ mtpvar "ErrorExpectedTypeNotKind"}) $ kind-to-indices empty-ctxt csₖ
+        is = kind-to-indices (add-ctrs-to-ctxt cs $ add-params-to-ctxt ps Γ) isₖ
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs

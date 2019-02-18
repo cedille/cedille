@@ -57,6 +57,11 @@ data paths : Set where
     PathsNil : paths
 {-# COMPILE GHC paths = data CedilleOptionsLexer.Paths (CedilleOptionsLexer.PathsCons | CedilleOptionsLexer.PathsNil) #-}
 
+data data-encoding : Set where
+  Mendler : data-encoding
+  Mendler-old : data-encoding
+{-# COMPILE GHC data-encoding = data CedilleOptionsLexer.DataEnc (CedilleOptionsLexer.Mendler | CedilleOptionsLexer.MendlerOld) #-}
+
 data opt : Set where 
     GenerateLogs : str-bool → opt
     Lib : paths → opt
@@ -64,7 +69,8 @@ data opt : Set where
     ShowQualifiedVars : str-bool → opt
     UseCedeFiles : str-bool → opt
     EraseTypes : str-bool → opt
-{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes) #-}
+    DatatypeEncoding : data-encoding → opt
+{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.DatatypeEncoding) #-}
 
 data opts : Set where 
     OptsCons : opt → opts → opts
@@ -226,6 +232,7 @@ mutual
   optToString (ShowQualifiedVars x0) = "(ShowQualifiedVars" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (UseCedeFiles x0) = "(UseCedeFiles" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (EraseTypes x0) = "(EraseTypes" ^ " " ^ (str-boolToString x0) ^ ")"
+  optToString (DatatypeEncoding x0) = "(DatatypeEncoding" ^ " " ^ (data-encodingToString x0) ^ ")"
 
   optsToString : opts → string
   optsToString (OptsCons x0 x1) = "(OptsCons" ^ " " ^ (optToString x0) ^ " " ^ (optsToString x1) ^ ")"
@@ -234,6 +241,10 @@ mutual
   pathsToString : paths → string
   pathsToString (PathsCons x0 x1) = "(PathsCons" ^ " " ^ (pathToString x0) ^ " " ^ (pathsToString x1) ^ ")"
   pathsToString (PathsNil) = "PathsNil" ^ ""
+  
+  data-encodingToString : data-encoding → string
+  data-encodingToString Mendler = "Mendler"
+  data-encodingToString Mendler-old = "Mendler-old"
 
   startToString : start → string
   startToString (File x0) = "(File" ^ " " ^ (optsToString x0) ^ ")"

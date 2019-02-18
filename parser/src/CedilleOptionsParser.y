@@ -27,6 +27,9 @@ import Control.Monad
   'generate-logs'        { Token _  TGenLogs      }
   'show-qualified-vars'  { Token _  TShowQualVars }
   'erase-types'          { Token _  TEraseTypes   }
+  'datatype-encoding'    { Token _  TDataEnc      }
+  'Mendler'              { Token _  TEncMendler   }
+  'Mendler-old'          { Token _  TEncMendlerOld}
   '.'                    { Token _  TPoint        }
   '='                    { Token _  TEq           }
   
@@ -50,10 +53,15 @@ Opt :: { Opt }
     | 'generate-logs'       '=' Bool   '.'  { GenerateLogs $3 }
     | 'show-qualified-vars' '=' Bool   '.'  { ShowQualifiedVars $3 }
     | 'erase-types'         '=' Bool   '.'  { EraseTypes $3   }
+    | 'datatype-encoding'   '=' DataEnc '.' { DatatypeEncoding $3 }
 
 Paths :: { Paths }
       :             { PathsNil        }
       | path Paths  { PathsCons $1 $2 }
+
+DataEnc :: { DataEnc }
+         : 'Mendler'     { Mendler    }
+         | 'Mendler-old' { MendlerOld }
 
 {
   

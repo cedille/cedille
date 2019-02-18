@@ -13,6 +13,7 @@
 ;;;
 
 (require 'quail)
+(eval-when-compile (require 'cl))
 
 (setq max-lisp-eval-depth 30000
       max-specpdl-size 50000)
@@ -31,6 +32,14 @@
    nil
    "cedille"
    (concat (file-name-as-directory cedille-path) "cedille")))
+
+(defvar cedille-core-program-name
+  (cedille-platform-case
+   "CedilleCore"
+   nil
+   "CedilleCore"
+   (concat (file-name-as-directory (concat (file-name-as-directory cedille-path) "core")) "CedilleCore")))
+
 
 (defvar cedille-path-el
   (file-name-as-directory
@@ -292,12 +301,17 @@ Defaults to `error'."
     (if (not ta) he
       (concat he sep (cedille-mode-concat-sep2 sep ta)))))
 
+(defun cedille-mode-set-assoc-value (alist key new-value)
+  "Sets the value of 'KEY in ALIST to NEW-VALUE, or adds it if there was none"
+  (append (assq-delete-all key alist) (list (cons key new-value))))
+
 (defun cedille-mode-split-string(s)
   "Return a pair of the prefix of the string up to the first space, 
 and the remaining suffix."
   (let ((ss (split-string s " ")))
     (if (< (length ss) 2) s
       (cons (car ss) (cedille-mode-concat-sep2 " " (cdr ss))))))
+
 
 (defun cedille-mode-get-seqnum(a)
   "Get the seqnum from a json pair. The second component
@@ -345,7 +359,7 @@ start of each string, and then strip out that number."
   "Filter out special attributes from the data in a span"
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
-                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'erasure) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
+                   (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
      collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
@@ -605,6 +619,15 @@ occurrences, then do so."
   (setq cedille-mode-matching-nodes-on (not cedille-mode-matching-nodes-on))
   (when cedille-mode-matching-nodes-on (cedille-mode-highlight-occurrences)))
 
+
+(defun cedille-mode-apply-tags-h (obj tag)
+  "Helper for `cedille-mode-apply-tags'"
+  (cond
+   ((stringp obj)
+    ())
+   ((consp obj))
+   ))
+
 (defun cedille-mode-apply-tags (str tags)
   "Helper for `cedille-mode-apply-tag'"
   (if (null tags)
@@ -619,12 +642,20 @@ occurrences, then do so."
 
 (defun cedille-mode-apply-tag (tag)
   "Applies the tags in TAG to its value"
-  (let* ((len (length (format "%s" tag)))
-        (key (car tag))
-        (value (caddr tag))
-        (tags (cadddr tag))
-        (ret (cons key (cedille-mode-apply-tags value tags))))
-    ret))
+  (cons
+   (car tag)
+   (funcall
+    (if (not (string= 'binder (car tag))) 'identity 'cedille-mode-parse-binder)
+    (cedille-mode-apply-tags (caddr tag) (cadddr tag)))))
+
+(defun cedille-mode-parse-binder (binder)
+  "Parses the `cedille-mode-sep'-delimited binder information, returning it as an alist"
+  (map
+   'list
+   (lambda (kv)
+     (let ((i (search ":" kv)))
+       (cons (intern (substring kv 0 i)) (substring kv (1+ i)))))
+   (split-string binder cedille-mode-sep)))
 
 (defun cedille-mode-elaborate(dir)
   "Elaborates the current file"
@@ -655,7 +686,7 @@ occurrences, then do so."
 
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
-; separate keymaps.
+					; separate keymaps.
 (defun cedille-modify-keymap(mode)
   (se-navi-define-key mode (kbd "f") #'cedille-mode-select-next)
   (se-navi-define-key mode (kbd "F") #'cedille-mode-select-next-alt)
@@ -712,14 +743,15 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-i n") #'cedille-mode-normalize)
   (se-navi-define-key mode (kbd "C-i u") #'cedille-mode-single-reduction)
   (se-navi-define-key mode (kbd "C-i e") #'cedille-mode-erase)
-  (se-navi-define-key mode (kbd "C-i b") #'cedille-mode-br)
-  (se-navi-define-key mode (kbd "C-i B") #'cedille-mode-br-node)
-  (se-navi-define-key mode (kbd "C-i t") #'cedille-mode-br-type)
+  (se-navi-define-key mode (kbd "C-i b") 'cedille-mode-br)
+  (se-navi-define-key mode (kbd "C-i B") 'cedille-mode-br-node)
+  (se-navi-define-key mode (kbd "C-i t") 'cedille-mode-br-type)
   (se-navi-define-key mode (kbd "C-i r") #'cedille-mode-inspect-clear)
   (se-navi-define-key mode (kbd "C-i R") #'cedille-mode-inspect-clear-all))
-(require 'cedille-mode-beta-reduce)
 
 (cedille-modify-keymap 'cedille-mode)
+
+(require 'cedille-mode-beta-reduce)
 
 (defun cedille-mode-get-message-from-filename(filename)
   "Get the message to send to the backend, from the name of the file to parse."
@@ -810,6 +842,13 @@ occurrences, then do so."
 
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\phi" "φ"); add some more of these
  ))
+
+(defcustom cedille-mode-hook ()
+  "List of functions to run after `cedille-mode' is enabled."
+  :group 'cedille
+  :type 'hook
+  :options nil
+  )
 
 (provide 'cedille-mode)
 ;;; cedille-mode.el ends here

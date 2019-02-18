@@ -2,10 +2,11 @@ module issues.
 
 {- [O] Expected pass
 -- [X] Expected fail
--- [ !] Needs attention
+-- [-]! Needs attention
 -}
 
-import issue-12/issue-12. -- [O!] TODO make minimal
+import issue-12/issue-12. -- [O]! TODO make minimal
 import issue-13/issue-13. -- [X]
 import issue-31/issue-31. -- [O]
 import issue-43/issue-43. -- [O]
+import issue-56/issue-56. -- [O]
