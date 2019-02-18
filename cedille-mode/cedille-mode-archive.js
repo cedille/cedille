@@ -1,6 +1,7 @@
 const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML);
 const cedilleData = document.getElementById('cedille-data');
 const cedilleCode = document.getElementById('cedille-code-block');
+const cedilleFiles = document.getElementById('cedille-files');
 const emptyNode = document.createTextNode("");
 
 const removeClassFromSpans = (className, htmlSpans) => {
@@ -91,4 +92,19 @@ const displayCode = (filename) => {
   cedilleCode.appendChild(nodes[1]);
 };
 
+const createFileLinks = () => {
+  const files = Object.keys(cedilleArchive.files).sort();
+
+  for(let i = 0; i < files.length; i++) {
+    const fileNode = createDiv('cedille-file', files[i]);
+
+    fileNode.addEventListener('click', () => {
+      displayCode(files[i]);
+    });
+
+    cedilleFiles.append(fileNode);
+  }
+};
+
+createFileLinks();
 displayCode(cedilleArchive.archiveFilename);

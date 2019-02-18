@@ -10,14 +10,43 @@
           margin: 0;
       }
 
-      #vertical {
+      #container {
           display: flex;
-          flex-direction: column;
+          width: 100vw;
           height: 100vh;
       }
 
-      #vertical #cedille-code, #vertical #cedille-data {
+      #vertical {
+          display: flex;
+          flex: 1 1 0;
+          flex-direction: column;
           overflow: auto;
+      }
+
+      #cedille-code, #cedille-data {
+          overflow: auto;
+      }
+
+      #cedille-files {
+          flex: 0 0 0;
+          background-color: #eee8d5;
+          border-right: #839496 1px solid;
+          color: #eee8d5;
+          font-family: monospace;
+          overflow: hidden;
+          transition: 0.5s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+          white-space: nowrap;
+          padding: 5px;
+      }
+
+      #cedille-file {
+          margin: 5px;
+      }
+
+      #cedille-files:hover {
+          flex-basis: 50vw;
+          color: #93a1a1;
+          overflow-y: auto;
       }
 
       #cedille-code {
@@ -29,7 +58,7 @@
       }
 
       #cedille-data {
-          flex: 0 1 auto;
+          flex: 0 0 auto;
           background-color: #fdf6e3;
           color: #93a1a1;
           border-top: #839496 1px solid;
@@ -77,10 +106,13 @@
     </style>
   </head>
   <body>
-    <main id="vertical">
-      <div id="cedille-code"><pre><code id="cedille-code-block"></code></pre></div>
-      <div id="cedille-data"></div>
-    </main>
+    <div id="container">
+      <aside id="cedille-files"></aside>
+      <main id="vertical">
+        <section id="cedille-code"><pre><code id="cedille-code-block"></code></pre></section>
+        <section id="cedille-data"></section>
+      </main>
+    </div>
     <script type="application/json" id="spans">%s</script>
     <script type="text/javascript">%s</script>
   </body>

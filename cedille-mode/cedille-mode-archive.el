@@ -39,7 +39,7 @@
          (archive-file-name (concat base-file-name ".html")))
     (with-temp-file archive-file-name
       (insert (format cedille-mode-archive-html-template
-                      archive-string
+                      (replace-regexp-in-string "\n" "\\\\n" archive-string)
                       cedille-mode-archive-javascript)))
     (message "Saved archive as %s" archive-file-name)))
 
