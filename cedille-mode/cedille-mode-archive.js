@@ -60,13 +60,17 @@ const displayData = ({name, start, end, data}) => {
     ...data
   };
 
-  cedilleData.innerHTML = null;
+  clearData();
   Object.keys(displayData).forEach((key) => {
     const keyDiv = createDiv('cedille-key', key)
     const valueDiv = createDiv('cedille-value', displayData[key]);
     const bodyDiv = createDiv('cedille-pair', null, [keyDiv, valueDiv]);
     cedilleData.appendChild(bodyDiv);
   });
+};
+
+const clearData = () => {
+  cedilleData.innerHTML = null;
 };
 
 const displayCode = (filename) => {
@@ -101,6 +105,7 @@ const createFileLinks = () => {
     const fileNode = createDiv('cedille-file', files[i]);
 
     fileNode.addEventListener('click', () => {
+      clearData();
       displayCode(files[i]);
     });
 
