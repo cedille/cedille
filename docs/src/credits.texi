@@ -1,5 +1,5 @@
 @node credits,about,roadmap,Top
-
+@include version.texi
 @chapter Credits
 
 @unnumberedsec Fall 2018:

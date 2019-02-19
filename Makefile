@@ -136,6 +136,12 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
+.PHONY: cedille-docs
+cedille-docs: docs/info/cedille-info-main.info
+
+docs/info/cedille-info-main.info: $(wildcard docs/src/*.texi)
+	cd docs/src && ./compile-docs.sh
+
 elisp:
 	emacs --batch --quick -L . -L se-mode -L cedille-mode --eval '(byte-recompile-directory "." 0)'
 

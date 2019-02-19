@@ -1,5 +1,5 @@
 @node inspect buffer,context buffer,,extra buffers
-
+@include version.texi
 @chapter Inspect buffer
 
 @cindex inspect buffer

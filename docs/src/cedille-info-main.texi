@@ -4,11 +4,13 @@
 @documentencoding UTF-8
 @paragraphindent 0
 
+@include version-macro.texi
+
 @ifnottex
 @node Top
 @top Cedille Documentation
 
-This is the documentation for the Cedille language and its implementation.
+This is the @i{@cedilleversion} version of the documentation for the Cedille language and its implementation.
 
 @end ifnottex
 

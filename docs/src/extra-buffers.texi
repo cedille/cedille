@@ -1,5 +1,5 @@
 @node extra buffers,options,unicode shortcuts,Top
-
+@include version.texi
 @chapter Minor-mode buffers for Cedille
 Cedille uses several extra buffers to provide information about the processed Cedille source file:
 

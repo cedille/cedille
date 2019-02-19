@@ -1,5 +1,5 @@
 @node about,tooling,Index,Top
-
+@include version.texi
 @chapter Cedille's Type Theory
 
 Cedille's type theory is called the Calculus of Dependent Lambda
