@@ -99,18 +99,25 @@ const displayCode = (filename) => {
 };
 
 const createFileLinks = () => {
-  const files = Object.keys(cedilleArchive.files).sort();
+  const filenames = Object.keys(cedilleArchive.files).sort();
 
-  for(let i = 0; i < files.length; i++) {
-    const fileNode = createDiv('cedille-file', files[i]);
+  filenames.forEach(filename => {
+    const fileNode = createDiv('cedille-file', filename);
 
     fileNode.addEventListener('click', () => {
+      if (fileNode.classList.contains('active')) return;
+      removeClassFromSpans('active', [...cedilleFiles.children]);
+      fileNode.classList.add('active');
       clearData();
-      displayCode(files[i]);
+      displayCode(filename);
     });
 
+    if (filename === cedilleArchive.archiveFilename) {
+      fileNode.classList.add('active');
+    }
+
     cedilleFiles.append(fileNode);
-  }
+  });
 };
 
 createFileLinks();
