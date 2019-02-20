@@ -11,5 +11,6 @@ cedille-core-static: $(CEDILLE_CORE) Makefile
 	ghc -O -o ./CedilleCore -Werror -rtsopts -dynamic -optl-static -optl-pthread -i./ CedilleCore.hs --make
 	mv CedilleCore cedille-core-static
 
+
 cedille-core-lines:
 	wc -l $(CEDILLE_CORE)

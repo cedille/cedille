@@ -1,0 +1,3 @@
+@flushright
+@i{(version: @b{@cedilleversion})}
+@end flushright

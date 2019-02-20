@@ -1,5 +1,5 @@
 @node cedille mode commands,unicode shortcuts,tooling,Top
-
+@include version.texi
 @chapter cedille-mode commands
 
 To enter Cedille navigation mode (invoking the backend), the command is @key{Alt-s}.

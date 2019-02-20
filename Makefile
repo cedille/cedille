@@ -11,8 +11,7 @@ AUTOGEN = \
 	options-main.agda \
         cws.agda \
 	cws-types.agda \
-	cws-main.agda \
-	templates.agda
+	cws-main.agda 
 
 AGDASRC = \
 	to-string.agda \
@@ -129,15 +128,22 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 	cd core/; make cedille-core-static; cd ../
 
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
-CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts --ghc-flag=-dynamic -c $(SRCDIR)/main.agda
+CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
+CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
 cedille:	$(CEDILLE_DEPS)
-		$(CEDILLE_BUILD_CMD)
+		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
 cedille-static: 	$(CEDILLE_DEPS)
-		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
+
+.PHONY: cedille-docs
+cedille-docs: docs/info/cedille-info-main.info
+
+docs/info/cedille-info-main.info: $(wildcard docs/src/*.texi)
+	cd docs/src && ./compile-docs.sh
 
 elisp:
 	emacs --batch --quick -L . -L se-mode -L cedille-mode --eval '(byte-recompile-directory "." 0)'

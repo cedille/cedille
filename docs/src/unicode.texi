@@ -1,4 +1,5 @@
 @node unicode shortcuts,extra buffers,cedille mode commands,Top
+@include version.texi
 @chapter unicode
 
 Here is a very short survey of the Unicode symbols used in Cedille, together

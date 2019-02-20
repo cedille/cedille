@@ -1,5 +1,5 @@
 @node roadmap,credits,options,Top
-
+@include version.texi
 @chapter Roadmap
 
 Cedille is under active development, and the following major changes are planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far from done with the datatype notations).  Cedille 1.2 is likely Winter 2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are still immersed in the basic research for that.

@@ -1,5 +1,5 @@
 @node meta-vars buffer,beta-reduce mode,summary buffer,extra buffers
-
+@include version.texi
 @chapter Meta-Vars buffer
 
 Meta-Vars mode displays the meta-variables along the current application spine, if any.

@@ -1,5 +1,5 @@
 @node beta-reduce mode,,summary buffer,extra buffers
-
+@include version.texi
 @chapter Beta-reduce mode
 
 @cindex beta-reduce mode

@@ -1,5 +1,5 @@
 @node context buffer,summary buffer,inspect buffer,extra buffers
-
+@include version.texi
 @chapter Context buffer
 
 @cindex context buffer

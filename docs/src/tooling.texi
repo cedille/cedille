@@ -1,5 +1,5 @@
 @node tooling,cedille mode commands,about,Top
-
+@include version.texi
 @chapter Architecture of Cedille
 
 Cedille is implemented in around 13kloc of elisp + Agda.  There is an

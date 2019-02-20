@@ -1,3 +1,4 @@
+@include version.texi
 @chapter Common commands
 @table @command
 @item M-c

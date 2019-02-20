@@ -1,5 +1,5 @@
 @node summary buffer,meta-vars buffer,context buffer,extra buffers
-
+@include version.texi
 @chapter Summary buffer
 
 @cindex summary buffer
