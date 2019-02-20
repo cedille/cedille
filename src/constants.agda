@@ -8,6 +8,7 @@ cedille-extension = "ced"
 self-name : string
 self-name = "self"
 
+delimiter = '§'
 
 pattern ignored-var = "_"
 

@@ -411,9 +411,6 @@ module main-with-options
               in (handleCommands input-list s) >>= λ s →
           readCommandsFromFrontend s
           where
-              delimiter : char
-              delimiter = '§'
-
               errorCommand : 𝕃 string → toplevel-state → IO ⊤
               errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
 

@@ -19,7 +19,7 @@ rewrite-mk-phi x eq t t' =
     (Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq)
       (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
       (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
-    t (erase t') posinfo-gen 
+    t (erase t') posinfo-gen
 
 rewrite-head-types-match : ∀ {ed} → ctxt → trie term → (complete partial : ⟦ ed ⟧) → 𝔹
 rewrite-head-types-match{TYPE} Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
@@ -59,6 +59,15 @@ rewrite-kind        : kind        → rewrite-t kind
 rewrite-tk          : tk          → rewrite-t tk
 rewrite-liftingType : liftingType → rewrite-t liftingType
 rewrite-case : maybe (var × var)  → case   → rewrite-t case
+rewrite-ed : ∀ {ed} → ⟦ ed ⟧ → rewrite-t ⟦ ed ⟧
+
+rewrite-ed{TERM} = rewrite-term
+rewrite-ed{TYPE} = rewrite-type
+rewrite-ed{KIND} = rewrite-kind
+rewrite-ed{TK} = rewrite-tk
+rewrite-ed{LIFTINGTYPE} = rewrite-liftingType
+rewrite-ed{QUALIF} = rewriteR
+rewrite-ed{ARG} = rewriteR
 
 rewrite-rename-var : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
 rewrite-rename-var x r Γ op on eq t₁ t₂ n =
@@ -289,8 +298,6 @@ rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
 rewrite-athₖ Γ x eq b (Star pi1) (Star pi2) = Star pi1
 rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-no-lift k1 tt) (hnf Γ unfold-head-no-lift k2 tt)
 rewrite-athₖ Γ x eq ff k1 k2 = k1
-
-
 
 rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) =
   Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
