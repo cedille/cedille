@@ -24,4 +24,4 @@ cedille-mac-pkg
 *.blg
 *.log
 *.elc
-/core/CedilleCore
+/core/cedille-core
