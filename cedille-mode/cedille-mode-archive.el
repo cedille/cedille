@@ -12,6 +12,9 @@
 (defconst cedille-mode-archive-html-template
   (cedille-mode-archive-read-file "cedille-mode-archive-template.html"))
 
+(defconst cedille-mode-archive-css
+  (cedille-mode-archive-read-file "cedille-mode-archive.css"))
+
 (defconst cedille-mode-archive-javascript
   (cedille-mode-archive-read-file "cedille-mode-archive.js"))
 
@@ -39,6 +42,7 @@
          (archive-file-name (concat base-file-name ".html")))
     (with-temp-file archive-file-name
       (insert (format cedille-mode-archive-html-template
+                      cedille-mode-archive-css
                       (replace-regexp-in-string "\n" "\\\\n" archive-string)
                       cedille-mode-archive-javascript)))
     (message "Saved archive as %s" archive-file-name)))
