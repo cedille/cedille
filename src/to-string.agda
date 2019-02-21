@@ -196,6 +196,8 @@ strVar v = strM-Γ λ Γ →
       uqv' = if cedille-options.options.show-qualified-vars options then v else uqv in
   strAddTags uqv' (var-tags Γ (qualif-var Γ v) uqv)
 
+strKvar : var → strM
+strKvar v = strM-Γ λ Γ → strVar (unqual-all (ctxt-get-qualif Γ) v)
 
 -- Only necessary to unqual-local because of module parameters
 strBvar : var → (class body : strM) → strM
@@ -366,7 +368,7 @@ kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-s
 kind-to-stringh (KndParens pi k pi') = to-stringh k
 kind-to-stringh (KndPi pi pi' x Tk k) = strAdd "Π " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringh k)
 kind-to-stringh (KndTpArrow T k) = to-stringl T ≫str strAdd " ➔ " ≫str to-stringr k
-kind-to-stringh (KndVar pi x as) = strVar x ≫str args-to-string as
+kind-to-stringh (KndVar pi x as) = strKvar x ≫str args-to-string as
 kind-to-stringh (Star pi) = strAdd "★"
 
 liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔↑ " ≫str to-stringr lT'

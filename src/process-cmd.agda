@@ -186,7 +186,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (qualif-var Γ x) (hnf-ctr Γ (qualif-var Γ x) (qualif-type Γ T))}
          Γ' = ctxt-datatype-def pi' x ps kᵢ k' cs' Γ' in
      set-ctxt Γ' ≫span
-     spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ Tₘᵤ Tₜₒ cs pi'') ≫span
+     spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ (qualif-kind Γ k) Tₘᵤ Tₜₒ cs pi'') ≫span
      get-ctxt λ Γ →
      spanM-add (TpVar-span Γ pi' x checking
        (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span

@@ -265,15 +265,22 @@ hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
 hnf{KIND} Γ u (KndParens _ k _) hd = hnf Γ u k hd
-hnf{KIND} Γ (unfold _ _ _ _) (KndVar _ x ys) _ with ctxt-lookup-kind-var-def Γ x 
+hnf{KIND} Γ u@(unfold a _ _ _) (KndVar _ x ys) hd with ctxt-lookup-kind-var-def Γ x 
 ... | nothing = KndVar posinfo-gen x ys
-... | just (ps , k) = fst $ subst-params-args Γ ps ys k
+... | just (zs , k) with a | subst-params-args Γ zs ys k
+... | tt | (kᵢ , [] , []) = hnf Γ u kᵢ hd
+... | ff | (kᵢ , [] , []) = kᵢ
+... | tf | (kᵢ , ps , as) = KndVar pi-gen x ys
 
-hnf{KIND} Γ u (KndPi _ _ x atk k) hd =
-    if is-free-in check-erased x k then
-      (KndPi posinfo-gen posinfo-gen x atk k)
-    else
-      tk-arrow-kind atk k
+hnf{KIND} Γ u@(unfold a _ _ _) (KndPi _ _ x atk k) hd =
+  if is-free-in check-erased x k then
+    KndPi posinfo-gen posinfo-gen x atk (if a then hnf (ctxt-var-decl x Γ) u k ff else k)
+  else
+    tk-arrow-kind atk (if a then hnf Γ u k ff else k)
+hnf{KIND} Γ u@(unfold tt _ _ _) (KndArrow k k') hd =
+  KndArrow (hnf Γ u k ff) (hnf Γ u k' ff)
+hnf{KIND} Γ u@(unfold tt _ _ _) (KndTpArrow T k) hd =
+  KndTpArrow (hnf Γ u T ff) (hnf Γ u k ff)
 hnf{KIND} Γ u x hd = x
 
 hnf{LIFTINGTYPE} Γ u x hd = x
