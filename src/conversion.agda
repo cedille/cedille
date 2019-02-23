@@ -552,18 +552,18 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
   k' = hnf Γ unfold-head (qualif-kind Γ k) tt
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
-ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) =
-  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ
+ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) =
+  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , stringset-insert η vᵣ
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt
-ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i os (Δ , μ' , μ)) =
+ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i os (Δ , μ' , μ , η)) =
   let v' = mn # v
       q' = qualif-insert-params q v' v ps in
   mk-ctxt (fn , mn , ps , q') 
     (trie-insert-append2 syms fn mn v , mn-fn)
     (trie-insert i v' (type-def (just ps) OpacTrans nothing (abs-expand-kind psᵢ k) , fn , pi)) os
-    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' , trie-insert μ (data-Is/ v') v')
+    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' , trie-insert μ (data-Is/ v') v' , stringset-insert η v')
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt

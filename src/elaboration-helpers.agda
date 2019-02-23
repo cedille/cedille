@@ -182,11 +182,12 @@ qualif-new-var : ctxt → var → var
 qualif-new-var Γ x = ctxt-get-current-modname Γ # x
 
 ctxt-datatype-def' : var → var → var → params → kind → kind → ctrs → ctxt → ctxt
-ctxt-datatype-def' v Is/v is/v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) ss i os (Δ , μ' , μ)) =
+ctxt-datatype-def' v Is/v is/v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) ss i os (Δ , μ' , μ , η)) =
   mk-ctxt (fn , mn , ps , q) ss i os
     (trie-insert Δ v (ps ++ psᵢ , kᵢ , k , cs) ,
      trie-insert μ' elab-mu-prev-key (v , is/v , []) ,
-     trie-insert μ Is/v v)
+     trie-insert μ Is/v v ,
+     η)
 
 mbeta : term → term → term
 mrho : term → var → type → term → term

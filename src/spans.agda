@@ -575,8 +575,11 @@ TpVar-span Γ pi v check tvs =
     (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
   where
   v' = unqual-local v
-  name = if isJust (data-lookup Γ (qualif-var Γ v') [])
-           then "Datatype variable" else "Type variable"
+  name = case Γ of λ where
+    (mk-ctxt mod ss is os (Δ , μ' , μ , η)) →
+      if stringset-contains η (qualif-var Γ v')
+        then "Datatype variable"
+        else "Type variable"
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
 Var-span Γ pi v check tvs =

@@ -161,7 +161,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
       kᵢ = indices-to-kind is $ KndTpArrow
              (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
-    (set-ctxt (ctxt-type-decl pi' x k Γ) ≫span get-ctxt λ Γ →
+    (set-ctxt (ctxt-type-decl pi' x k $ data-highlight Γ (pi' % x)) ≫span get-ctxt λ Γ →
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs tt ≫span
      get-ctxt λ Γ →

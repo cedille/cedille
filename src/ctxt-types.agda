@@ -85,7 +85,7 @@ data ctxt : Set where
             (syms : trie (string × 𝕃 string) × trie string × trie params × trie ℕ × Σ ℕ (𝕍 string)) →    -- map each filename to its module name and the symbols declared in that file, map each module name to its filename and params, and file ID's for use in to-string.agda
             (i : trie sym-info) →                  -- map symbols (from Cedille files) to their ctxt-info and location
             (sym-occurrences : trie (𝕃 (var × posinfo × string))) →  -- map symbols to a list of definitions they occur in (and relevant file info)
-            (Δ : trie (params × kind × kind × ctrs) × trie (var × var × args) × trie var) → -- datatype info: (concrete/global datatypes × abstract/local datatypes × datatype/Mu map)
+            (Δ : trie (params × kind × kind × ctrs) × trie (var × var × args) × trie var × stringset) → -- datatype info: (concrete/global datatypes × abstract/local datatypes × datatype/Mu map × highlighting-datatypes)
             ctxt
 
 

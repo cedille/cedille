@@ -17,7 +17,7 @@ qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie (empty-trie , empty-trie , empty-trie)
+new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie (empty-trie , empty-trie , empty-trie , empty-trie)
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -278,30 +278,13 @@ data-lookup Γ @ (mk-ctxt mod ss is os (Δ , μ' , μ)) x as =
           λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr pi z T) → Ctr pi z $ subst Γ (lam-expand-type ps $ mtpvar y) x' T}) cs
 
 data-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
-data-lookup-mu Γ@(mk-ctxt mod ss is os (Δ , μ' , μ)) x as =
+data-lookup-mu Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) x as =
   trie-lookup μ x ≫=maybe λ x' → data-lookup Γ x' as
 
-{-
-ctxt-lookup-datatype : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
-ctxt-lookup-datatype Γ x as with env-lookup Γ x
-... | just (datatype-def ps kᵢ k cs , _) =
-  let asₚ = ttys-to-args-for-params nothing (maybe-else [] id ps) as
-      asᵢ = drop (length asₚ) as in
-  just $ mk-data-info x asₚ asᵢ ps (maybe-inst-kind Γ ps asₚ kᵢ) (maybe-inst-kind Γ ps asₚ k) (maybe-inst-ctrs Γ ps asₚ cs)
-... | _ = nothing
+data-highlight : ctxt → var → ctxt
+data-highlight (mk-ctxt mod ss is os (Δ , μ' , μ , η)) x =
+  mk-ctxt mod ss is os (Δ , μ' , μ , stringset-insert η x)
 
-ctxt-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
-ctxt-lookup-mu Γ x as = case env-lookup Γ x of λ where
-  (just (mu-def _ X _ , _)) → ctxt-lookup-datatype Γ X as
-  {-case env-lookup Γ X of λ where
-    (just (datatype-def ps kᵢ k cs , _)) →
-      let asₚ = ttys-to-args-for-params nothing (maybe-else [] id ps) as
-          asᵢ = drop (length asₚ) as in
-      just (X , asₚ , asᵢ , ps , maybe-inst-kind Γ ps asₚ kᵢ ,
-        maybe-inst-kind Γ ps asₚ k , maybe-inst-ctrs Γ ps asₚ cs)
-    _ → nothing-}
-  _ → nothing
--}
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)
 ctxt-lookup-occurrences (mk-ctxt _ _ _ symb-occs _) symbol with trie-lookup symb-occs symbol
 ... | just l = l
