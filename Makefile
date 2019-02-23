@@ -57,7 +57,8 @@ CEDILLE_ELISP = \
 		cedille-mode/cedille-mode-summary.el \
 		cedille-mode/cedille-mode-normalize.el \
 		cedille-mode/cedille-mode-scratch.el \
-		cedille-mode/cedille-mode-beta-reduce.el
+		cedille-mode/cedille-mode-beta-reduce.el \
+		cedille-mode/cedille-core-mode.el
 
 SE_MODE = \
 	se-mode/se.el \
