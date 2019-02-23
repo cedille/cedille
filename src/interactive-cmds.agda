@@ -401,6 +401,9 @@ private
     substring : string → ℕ → ℕ → string
     substring s fm to = snd $ replace-substring s "" fm to
 
+    set-Γ-file-missing : ctxt → ctxt
+    set-Γ-file-missing (mk-ctxt (fn , mod) ss is os μ) = mk-ctxt ("missing" , mod) ss is os μ
+
     
 
     await : ctxt → term → (ll : language-level) → ll-lift ll → string → (term → term) →
@@ -432,10 +435,11 @@ private
           maybe-else' (parse-string Tₗₗ Tᵤ)
             (putRopeLn (spans-to-rope (global-error "Parse error" nothing)))
             λ T → putRopeLn $ spans-to-rope $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
-                    untyped-term-spans untyped-type-spans untyped-kind-spans Γ empty-spans
+                    untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
 
         ("checks" :: []) →
           ((_>> await Γ t Tₗₗ T Tᵤ f undo redo) ∘ put) $
+--          parse-string Tₗₗ - Tᵤ ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ T →
           ll-ind' {λ T → string ⊎ ⊤} (Tₗₗ , T)
             (λ _ → inj₁ "Expression must be a type, not a term!")
             (λ T → err⊎-guard (~ spans-have-error
@@ -446,18 +450,18 @@ private
         ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
           let Γ' = merge-lcis-ctxt Γ lc in
           either-else'
-            (parse-string ll-term - eq ! "term" ≫parse λ eq →
+            (parse-string ll-term - eq ! "term" ≫parse λ eqₒ →
              string-to-𝔹 - ρ+? ! "boolean" ≫parse λ ρ+? →
              string-to-ℕ - fm ! "natural number" ≫parse λ fm →
              string-to-ℕ - to ! "natural number" ≫parse λ to →
              parse-try Γ' - substring Tᵤ fm to ! ttk ≫parse λ Tf → Tf λ ll Tₗ →
-             fst (check-term eq nothing Γ' empty-spans) !
+             fst (check-term eqₒ nothing Γ' empty-spans) !
                "Could not synthesize a type from the input term" ≫error λ Tₑ →
              is-eq-tp? Tₑ
                ! "Synthesized a non-equational type from the input term" ≫error λ Tₑ →
              let mk-eq-tp! t₁ t₂ _ _ = Tₑ
                  x = fresh-var-new Γ' ignored-var
-                 eq = qualif-term Γ' eq
+                 eq = qualif-term Γ' eqₒ
                  Tₗ = qualif-ed Γ' Tₗ in
              elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing eq t₁ x 0) λ Tᵣ n →
              err⊎-guard (iszero n) "No rewrites could be performed" ≫=⊎ λ _ →
@@ -469,11 +473,11 @@ private
                (Tₗₗ , Tᵤ)
                (λ t T → inj₂ $ rewrite-mk-phi x eq T (subst Γ t₂ x t) , id)
                (λ Tᵤ _ → inj₂ $ post-rewrite (ctxt-var-decl x Γ) x eq t₂ Tᵤ ,
-                                Rho pi-gen RhoPlain NoNums eq (Guide pi-gen x Tᵤ))
+                                Rho pi-gen RhoPlain NoNums eqₒ (Guide pi-gen x Tᵤ))
                (λ k _ → inj₂ $ subst Γ t₂ x k , id)
                T) err $ uncurry λ T' fₜ →
             put (inj₂ $ ts-tag Γ $ erase T') >>
-            await Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ $ erase T') (f ∘ fₜ)
+            await Γ t Tₗₗ T' (rope-to-string $ ts2.to-string Γ $ erase T') (f ∘ fₜ)
               (await Γ t Tₗₗ T Tᵤ f undo :: undo) []
 
         ("normalize" :: fm :: to :: norm :: lc) →
@@ -492,7 +496,7 @@ private
              inj₂ Tᵤ')
             err λ Tᵤ' →
             put (inj₂ $ ts-tag Γ Tᵤ') >>
-            await Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ $ erase Tᵤ') f
+            await Γ t Tₗₗ Tᵤ' {-Checks?-} (rope-to-string $ ts2.to-string Γ $ erase Tᵤ') f
               (await Γ t Tₗₗ T Tᵤ f undo :: undo) []
 
         ("conv" :: ll :: fm :: to :: t' :: ls) →
@@ -540,7 +544,7 @@ private
             err $ uncurry λ Γ' → uncurry λ T' fₜ →
             put (inj₂ $ ts-tag Γ' T') >>
             await Γ' t Tₗₗ T' (rope-to-string $ ts2.to-string Γ' $ erase T')
-              (fₜ ∘ f) (await Γ t Tₗₗ T Tᵤ f undo :: undo) []
+              (f ∘ fₜ) (await Γ t Tₗₗ T Tᵤ f undo :: undo) []
 
         ("case" :: []) →
           put (inj₁ "Case splitting not supported yet!") >>

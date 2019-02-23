@@ -15,35 +15,44 @@
  (defvar cedille-mode-br-temp-str nil))
 
 (make-variable-buffer-local
- (defvar cedille-mode-br-print-in-buffer nil
-   "A boolean governing whether or not to actually insert the printed proof into the file buffer, or the scratch buffer"))
+ (defvar cedille-mode-br-do-check nil
+   "If non-nil, and buffer was opened with `C-i t', messages when the expected type matches the actual type"))
+
 
 
 ;;;;;;;; Mode code ;;;;;;;;
 
 (defvar cedille-br-keymap
   (progn
-    (funcall 'cedille-modify-keymap 'cedille-br-mode)
+    (se-navi-define-key 'cedille-br-mode (kbd "f") #'cedille-mode-select-next)
+    (se-navi-define-key 'cedille-br-mode (kbd "F") #'cedille-mode-select-next-alt)
+    (se-navi-define-key 'cedille-br-mode (kbd "b") #'cedille-mode-select-previous)
+    (se-navi-define-key 'cedille-br-mode (kbd "B") #'cedille-mode-select-previous-alt)
+    (se-navi-define-key 'cedille-br-mode (kbd "p") #'cedille-mode-select-parent)
+    (se-navi-define-key 'cedille-br-mode (kbd "n") #'cedille-mode-select-first-child)
+    (se-navi-define-key 'cedille-br-mode (kbd "e") #'cedille-mode-select-last)
+    (se-navi-define-key 'cedille-br-mode (kbd "a") #'cedille-mode-select-first)
+    (se-navi-define-key 'cedille-br-mode (kbd "g") #'se-mode-clear-selected)
+    (se-navi-define-key 'cedille-br-mode (kbd "H") #'cedille-mode-interactive-highlight)
     (se-navi-define-key 'cedille-br-mode (kbd "q") #'cedille-mode-br-kill-buffer)
+    (se-navi-define-key 'cedille-br-mode (kbd "Q") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
-    (se-navi-define-key 'cedille-br-mode (kbd "i") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "I") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "c") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "C") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "r") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "R") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "t") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "t") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "s") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "S") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "m") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "M") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "j") #'cedille-mode-br-jump)
+;    (se-navi-define-key 'cedille-br-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
+;    (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
+;    (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
+;    (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+    (se-navi-define-key 'cedille-br-mode (kbd "#") #'cedille-mode-highlight-occurrences)
+    (se-navi-define-key 'cedille-br-mode (kbd "K") #'cedille-mode-restart-backend)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i e") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i b") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i B") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i t") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "$") (make-cedille-mode-customize "cedille"))
+;    (se-navi-define-key 'cedille-br-mode (kbd "x") #'cedille-mode-scratch-toggle)
+;    (se-navi-define-key 'cedille-br-mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))
+;    (se-navi-define-key 'cedille-br-mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
+    (se-navi-define-key 'cedille-br-mode (kbd "+") (make-cedille-mode-resize-current-window 1))
+    (se-navi-define-key 'cedille-br-mode (kbd "-") (make-cedille-mode-resize-current-window -1))
+    (se-navi-define-key 'cedille-br-mode (kbd "=") #'cedille-mode-unlock-current-window-size)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i n") #'cedille-mode-br-normalize)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i h") #'cedille-mode-br-head-normalize)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i u") #'cedille-mode-br-single-reduction)
@@ -51,6 +60,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i r") #'cedille-mode-br-rewrite)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i R") #'cedille-mode-br-rewrite-plus)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i p") #'cedille-mode-br-print-outline)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i a") #'cedille-mode-br-abs)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-check)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i ,") #'cedille-mode-br-undo)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i .") #'cedille-mode-br-redo)
     (se-navi-get-keymap 'cedille-br-mode)))
@@ -76,11 +87,11 @@
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
 
-(defun cedille-mode-br-init-buffer (str &optional span)
+(defun cedille-mode-br-init-buffer (str &optional span do-check)
   "Initializes the beta-reduction buffer, after the process finishes"
-  (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span)) nil))
+  (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span ,do-check)) nil))
 
-(defun cedille-mode-br-init-buffer-post (str span)
+(defun cedille-mode-br-init-buffer-post (str span do-check)
   "Initializes the beta-reduction buffer"
   (let* ((span (when span (se-get-span span)))
          (parent (or cedille-mode-parent-buffer (current-buffer)))
@@ -88,8 +99,9 @@
          (qed (when span (cedille-mode-br-get-qed span)))
          (buffer (generate-new-buffer (cedille-mode-br-buffer-name))))
     (with-current-buffer buffer
-      (cedille-mode-get-create-window buffer)
-      (display-buffer buffer)
+;      (cedille-mode-get-create-window buffer)
+      ;(display-buffer buffer)
+      (display-buffer-in-side-window buffer (list (cons 'side 'bottom)))
       (select-window (get-buffer-window))
       (let ((buffer-read-only nil)) (insert str))
       (setq buffer-read-only t)
@@ -101,7 +113,7 @@
 	    se-inf-response-finished t
 	    cedille-mode-do-update-buffers nil
 	    cedille-mode-br-in-buffer t
-            cedille-mode-br-print-in-buffer (when span (cons (se-span-start span) (se-span-end span)))
+            cedille-mode-br-do-check (and qed do-check (cons (se-term-start span) (se-term-end span)))
 	    cedille-mode-global-context nil
 	    window-size-fixed nil)
       (se-inf-interactive
@@ -160,9 +172,22 @@
 
 (defun cedille-mode-br-process-response (response buffer)
   (when response
-    (se-inf-process-response response buffer)
-    (cedille-mode-matching-nodes-init)
+    (with-current-buffer buffer
+      (se-inf-process-response response buffer)
+      (cedille-mode-br-check t)
+      (cedille-mode-matching-nodes-init))
     nil))
+
+(defun cedille-mode-br-jump ()
+  "Jumps to the location of the selected symbol node"
+  (interactive)
+  (let ((sel se-mode-selected))
+;    (switch-to-buffer-other-window buffer)
+    (select-window (get-buffer-window cedille-mode-parent-buffer))
+    (let ((se-mode-selected sel))
+      (cedille-mode-jump))))
+  
+
 
 (defun cedille-mode-br-buffer-name ()
   (concat "*cedille-beta-reduce*"))
@@ -200,7 +225,7 @@
            (type (or (cdr (assoc 'expected-type (se-term-data node)))
                      (cdr (assoc 'type (se-term-data node))))))
       (if type
-          (cedille-mode-br-init-buffer type node)
+          (cedille-mode-br-init-buffer type node t)
         (message "Span must have an expected type or a type"))))
   nil)
 
@@ -326,6 +351,7 @@
       (deactivate-mark)
       (fit-window-to-buffer))
     (when cedille-mode-br-point
+      (goto-char cedille-mode-br-point)
       (se-mode-set-spans)
       (cedille-mode-select-parent 1))))
 
@@ -336,23 +362,47 @@
    "print"
    (cedille-mode-response-macro
     (lambda (response extra)
-      (let ((s (when (car extra) (caar extra)))
-            (e (when (car extra) (cdar extra)))
-            (cbuffer (cadr extra))
-            (fbuffer (cddr extra)))
-;        (with-current-buffer cbuffer
-;          (cedille-mode-br-kill-buffer))
-        (with-current-buffer fbuffer
-          (select-window (get-buffer-window))
-;          (if (car extra)
-;              (let ((buffer-read-only nil))
-;                (delete-region s e)
-;                (goto-char s)
-;                (deactivate-mark)
-;                (insert response)
-;                (cedille-start-navigation))
-            (cedille-mode-scratch-insert-text response)))));)
-   (cons cedille-mode-br-print-in-buffer (cons (current-buffer) cedille-mode-parent-buffer))))
+      (if (car extra)
+          (let ((s (when (car extra) (caar extra)))
+                (e (when (car extra) (cdar extra)))
+                (cbuffer (cadr extra))
+                (fbuffer (cddr extra)))
+            (with-current-buffer cbuffer
+              (cedille-mode-br-kill-buffer))
+            (with-current-buffer fbuffer
+              (select-window (get-buffer-window))
+              (let ((buffer-read-only nil))
+                (delete-region s e)
+                (goto-char s)
+                (deactivate-mark)
+                (insert response)
+                (cedille-start-navigation))))
+        (cedille-mode-scratch-insert-text response))))
+   (cons cedille-mode-br-do-check
+         (cons (current-buffer)
+               cedille-mode-parent-buffer))))
 
+(defun cedille-mode-br-abs (x)
+  (interactive "MName: ")
+  (se-inf-interactive
+   (cedille-mode-concat-sep "bind" x)
+   (cedille-mode-response-macro #'cedille-mode-br-response)
+   (current-buffer)))
+
+(defun cedille-mode-br-check (&optional suppress-err)
+  "If `cedille-mode-br-do-check' is non-nil, check if the expected type matches the actual type"
+  (interactive)
+  (when cedille-mode-br-do-check
+    (se-inf-interactive
+     "checks"
+     (cedille-mode-response-macro
+      (lambda (response suppress-err &optional span)
+        (unless suppress-err (message "Type error"))))
+     suppress-err)))
+
+;(defun cedille-mode-br-on-frame-delete (frame)
+;  (get-frame-buffer
+
+;(add-hook delete-frame-functions #'cedille-mode-br-on-frame-delete)
 
 (provide 'cedille-mode-beta-reduce2)
