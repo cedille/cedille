@@ -61,7 +61,7 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i R") #'cedille-mode-br-rewrite-plus)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i p") #'cedille-mode-br-print-outline)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i a") #'cedille-mode-br-abs)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-check)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-check-prompt)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i ,") #'cedille-mode-br-undo)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i .") #'cedille-mode-br-redo)
     (se-navi-get-keymap 'cedille-br-mode)))
@@ -135,7 +135,7 @@
     (setq cedille-mode-br-temp-str response)
     (run-hooks 'se-inf-pre-parse-hook)
     (setq se-inf-response-finished nil)
-    (se-inf-interactive "parse" #'cedille-mode-br-process-response buffer))
+    (se-inf-interactive (cedille-mode-concat-sep "br" "parse") #'cedille-mode-br-process-response buffer))
   nil)
 
 (defconst cedille-mode-br-undo-response
@@ -150,7 +150,7 @@
   "Undoes the previous buffer change"
   (interactive)
   (se-inf-interactive
-   "undo"
+   (cedille-mode-concat-sep "br" "undo")
    cedille-mode-br-undo-response
    (current-buffer)))
 
@@ -158,7 +158,7 @@
   "Redoes the previous undo"
   (interactive)
   (se-inf-interactive
-   "redo"
+   (cedille-mode-concat-sep "br" "redo")
    cedille-mode-br-undo-response
    (current-buffer)))
 
@@ -166,7 +166,7 @@
   "Syncs with the backend"
   (interactive)
   (se-inf-interactive
-   "get"
+   (cedille-mode-concat-sep "br" "get")
    (cedille-mode-response-macro #'cedille-mode-br-response)
    (current-buffer)))
 
@@ -239,7 +239,10 @@
   (interactive)
   (let ((buffer (current-buffer))
 	(window (get-buffer-window)))
-    (se-inf-interactive "quit" `(lambda (&rest args) (kill-buffer ,buffer) (delete-window ,window)) nil)))
+    (kill-buffer buffer)
+;    (delete-window window)
+    nil))
+;    (se-inf-interactive "quit" `(lambda (&rest args) (kill-buffer ,buffer) (delete-window ,window)) nil)))
 
 (defun cedille-mode-br-get-qed-h (node)
   (let* ((start (se-term-start node))
@@ -268,6 +271,7 @@
 	    (message "Node must be a term, type, or kind")
 	  (se-inf-interactive-with-span
 	   (cedille-mode-concat-sep
+            "br"
             "normalize"
             (number-to-string (1- (se-span-start span)))
             (number-to-string (1- (se-span-end span)))
@@ -298,6 +302,7 @@
 	  (message "Node must be a term, type, or kind")
 	(let* ((input (call-interactively (lambda (input) (interactive "MConvert to: ") input)))
 	       (q (cedille-mode-concat-sep
+                   "br"
                    "conv"
 		   ll
 		   (number-to-string (1- (se-span-start span)))
@@ -321,6 +326,7 @@
                         (interactive ,(if head "MRewrite(+) using: " "MRewrite using: "))
                         input)))
              (q (cedille-mode-concat-sep
+                 "br"
                  "rewrite"
                  (number-to-string (1- (se-span-start span)))
                  (number-to-string (1- (se-span-end span)))
@@ -359,7 +365,7 @@
   "Prints an outline of every normalization, conversion, and rewrite applied in the beta-reduction buffer to help reconstruct a proof"
   (interactive)
   (se-inf-interactive
-   "print"
+   (cedille-mode-concat-sep "br" "print")
    (cedille-mode-response-macro
     (lambda (response extra)
       (if (car extra)
@@ -382,11 +388,28 @@
          (cons (current-buffer)
                cedille-mode-parent-buffer))))
 
-(defun cedille-mode-br-abs (x)
-  (interactive "MName: ")
+(defun cedille-mode-br-abs ()
+  (interactive)
+  (let* ((data (when (se-mode-selected) (se-term-data (se-mode-selected))))
+         (bs (when data (cdr (assoc 'binder data))))
+         (sym (when bs (cdr (assoc 'symbol bs))))
+         (fn
+          (if sym
+              `(lambda (x) (interactive ,(format "MName (default %s): " sym)) (if (zerop (length x)) sym x))
+            (lambda (x) (interactive "MName: ") x)))
+         (x (call-interactively fn)))
+    (se-inf-interactive
+     (cedille-mode-concat-sep "br" "bind" x)
+     (cedille-mode-response-macro #'cedille-mode-br-response)
+     (current-buffer))))
+
+(defun cedille-mode-br-check-prompt (qed)
+  "Check qed against the expression (which needs to be a type or a kind)"
   (se-inf-interactive
-   (cedille-mode-concat-sep "bind" x)
-   (cedille-mode-response-macro #'cedille-mode-br-response)
+   (cedille-mode-concat-sep "br" "check" qed)
+   (cedille-mode-response-macro
+    (lambda (response buffer)
+      (message "Type error")))
    (current-buffer)))
 
 (defun cedille-mode-br-check (&optional suppress-err)
@@ -394,9 +417,9 @@
   (interactive)
   (when cedille-mode-br-do-check
     (se-inf-interactive
-     "checks"
+     (cedille-mode-concat-sep "br" "check")
      (cedille-mode-response-macro
-      (lambda (response suppress-err &optional span)
+      (lambda (response suppress-err)
         (unless suppress-err (message "Type error"))))
      suppress-err)))
 

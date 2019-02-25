@@ -130,7 +130,7 @@ module main-with-options
   open import syntax-util
   open import to-string options
   open import toplevel-state options {IO}
-  import interactive-cmds
+  open import interactive-cmds options
   open import rkt options
   open import elaboration options
   
@@ -451,8 +451,9 @@ module main-with-options
               handleCommands ("check" :: xs) s = checkCommand xs s
               handleCommands ("debug" :: []) s = debugCommand s >>r s
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
-              handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
+              handleCommands ("interactive" :: xs) s = interactive-cmd handleCommands xs s
               handleCommands ("archive" :: xs) s = archiveCommand xs s
+              handleCommands ("br" :: xs) s = putRopeLn interactive-not-br-cmd-msg >>r s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s
 
