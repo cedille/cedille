@@ -13,21 +13,19 @@ open import subst
 open import syntax-util
 open import erase
 
-private
-  
-  mk-phi : var → (eq t t' : term) → term
-  mk-phi x eq t t' =
-    Phi posinfo-gen
-      (Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq)
-        (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
-        (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
-      t t' posinfo-gen 
+rewrite-mk-phi : var → (eq t t' : term) → term
+rewrite-mk-phi x eq t t' =
+  Phi posinfo-gen
+    (Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq)
+      (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
+      (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
+    t (erase t') posinfo-gen 
 
-  head-types-match : ∀ {ed} → ctxt → trie term → (complete partial : ⟦ ed ⟧) → 𝔹
-  head-types-match{TYPE} Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
-  head-types-match{TYPE} Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs Γ σ T')
-  head-types-match{KIND} Γ σ (KndVar _ x as) (KndVar _ x' as') = x =string x' && length as =ℕ length as'
-  head-types-match Γ σ T T' = tt
+rewrite-head-types-match : ∀ {ed} → ctxt → trie term → (complete partial : ⟦ ed ⟧) → 𝔹
+rewrite-head-types-match{TYPE} Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
+rewrite-head-types-match{TYPE} Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs Γ σ T')
+rewrite-head-types-match{KIND} Γ σ (KndVar _ x as) (KndVar _ x' as') = x =string x' && length as =ℕ length as'
+rewrite-head-types-match Γ σ T T' = tt
 
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) →
@@ -73,7 +71,7 @@ rewrite-abs x x' g a Γ = let Γ = ctxt-var-decl x' Γ in g (rename-var Γ x x' 
 rewrite-term t Γ op on eq t₁ t₂ sn =
   case rewrite-terma (erase-term t) Γ op on eq t₁ t₂ sn of λ where
     (t' , 0 , sn') → t , 0 , sn'
-    (t' , n , sn') → mk-phi t₂ eq t t' , n , sn'
+    (t' , n , sn') → rewrite-mk-phi t₂ eq t t' , n , sn'
 
 rewrite-terma t Γ op on eq t₁ t₂ sn =
   case conv-term Γ t t₁ of λ where
@@ -270,7 +268,7 @@ rewrite-atₖ = rewrite-at' rewrite-athₖ
 rewrite-at' ra Γ x eq b T T' =
   if ~ is-free-in tt x T'
     then T
-    else if b && ~ head-types-match Γ (trie-single x (Hole posinfo-gen)) T T'
+    else if b && ~ rewrite-head-types-match Γ (trie-single x (Hole posinfo-gen)) T T'
       then ra Γ x eq ff (hnf Γ unfold-head-no-lift T tt) (hnf Γ unfold-head-no-lift T' tt)
       else ra Γ x eq b T T'
 
@@ -285,7 +283,7 @@ rewrite-athₖ Γ x eq b (KndTpArrow T1 k1) (KndTpArrow T2 k2) =
   KndTpArrow (rewrite-at Γ x eq tt T1 T2) (rewrite-atₖ Γ x eq tt k1 k2)
 rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
   KndVar pi1 x1 (flip map (zip as1 as2) λ where
-    (TermArg me1 t1 , TermArg me2 t2) → TermArg me1 (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → mk-phi x eq t1 t2)
+    (TermArg me1 t1 , TermArg me2 t2) → TermArg me1 (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
     (TypeArg T1 , TypeArg T2) → TypeArg (rewrite-at Γ x eq tt T1 T2)
     (a1 , a2) → a1)
 rewrite-athₖ Γ x eq b (Star pi1) (Star pi2) = Star pi1
@@ -299,11 +297,11 @@ rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) 
 rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
   Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1' (rename-var Γ x2 x1 T2'))
 rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
-  Lft pi1 pi1' x1 (maybe-else' (maybe-if (is-free-in tt x (mlam x2 t2)) ≫maybe eq) t1 λ eq → mk-phi x eq t1 t2) lT1
+  Lft pi1 pi1' x1 (maybe-else' (maybe-if (is-free-in tt x (mlam x2 t2)) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2) lT1
 rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
   TpApp (rewrite-at Γ x eq b T1 T2) (rewrite-at Γ x eq tt T1' T2')
 rewrite-ath Γ x eq b (TpAppt T1 t1) (TpAppt T2 t2) =
-  TpAppt (rewrite-at Γ x eq b T1 T2) (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → mk-phi x eq t1 t2)
+  TpAppt (rewrite-at Γ x eq b T1 T2) (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
 rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
   TpArrow (rewrite-at Γ x eq tt T1 T2) a1 (rewrite-at Γ x eq tt T1' T2')
 rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =

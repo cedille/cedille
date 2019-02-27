@@ -128,7 +128,11 @@ subst-qualif : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ e
 subst-qualif{TERM} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-term Γ
 subst-qualif{TYPE} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-type Γ
 subst-qualif{KIND} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-kind Γ
+subst-qualif{TK} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-tk Γ
 subst-qualif Γ ρₓ = id
+
+restore-renamectxt : renamectxt → 𝕃 (var × var) → renamectxt
+restore-renamectxt = foldr $ uncurry λ x x' ρ → renamectxt-insert ρ x x'
 
 rename-validify : string → string
 rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
@@ -809,7 +813,7 @@ record datatype-encoding : Set where
     ctr-cmd : ctr → defTermOrType
     ctr-cmd (Ctr _ x' T) with subst Γ (params-to-tpapps ps $ mtpvar x) x T
     ...| T' with decompose-ctr-type Γ T'
-    ...| Tₕ , ps' , as' = DefTerm pi-gen x' (SomeType $ params-to-alls (ps ++ ps') T') $
+    ...| Tₕ , ps' , as' = DefTerm pi-gen x' (SomeType $ params-to-alls ps T') $
       Open pi-gen OpacTrans pi-gen x $
       params-to-lams ps $
       params-to-lams ps' $
