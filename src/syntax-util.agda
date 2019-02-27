@@ -742,7 +742,7 @@ erased-params : params → 𝕃  string
 --erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) with var-suffix x
 --... | nothing = x :: erased-params ps
 --... | just x' = x' :: erased-params ps
-erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) = unqual-local x :: erased-params ps
+erased-params ((Decl _ _ Erased x (Tkt _) _) :: ps) = unqual-local x :: x :: erased-params ps
 erased-params (p :: ps) = erased-params ps
 erased-params [] = []
 
