@@ -43,6 +43,8 @@
 ;    (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
 ;    (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
 ;    (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+    (se-navi-define-key 'cedille-br-mode (kbd "i") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "I") #'se-navi-nothing)
     (se-navi-define-key 'cedille-br-mode (kbd "#") #'cedille-mode-highlight-occurrences)
     (se-navi-define-key 'cedille-br-mode (kbd "K") #'cedille-mode-restart-backend)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
@@ -390,7 +392,8 @@
 
 (defun cedille-mode-br-abs ()
   (interactive)
-  (let* ((data (when (se-mode-selected) (se-term-data (se-mode-selected))))
+  (let* ((top (se-get-span (se-mode-parse-tree)))
+         (data (when top (se-term-data top)))
          (bs (when data (cdr (assoc 'binder data))))
          (sym (when bs (cdr (assoc 'symbol bs))))
          (fn

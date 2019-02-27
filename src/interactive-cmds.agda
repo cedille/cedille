@@ -506,7 +506,7 @@ private
 
           _ → err $ foldl (λ a s → s ^ char-to-string delimiter ^ a)
                       "Unknown beta-reduction command: " as
-        → main        
+        → main
 
 
 
