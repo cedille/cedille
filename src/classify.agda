@@ -1852,6 +1852,8 @@ check-def (DefType pi x k T) =
   spanMr (pi , x , m , Tkk k , T)
 
 check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
+  spanM-add (pattern-span pi x asₒ) ≫span
+  spanM-add (pattern-clause-span pi t) ≫span
   get-ctxt λ Γ →
   maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (T ≫=maybe λ T → just (x' , T)))-- , decompose-ctr-type Γ T))
     (spanM-add (pattern-ctr-span Γ pi x asₒ nothing
