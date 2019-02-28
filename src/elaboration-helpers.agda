@@ -131,8 +131,11 @@ subst-qualif{KIND} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-kind Γ
 subst-qualif{TK} Γ ρₓ = subst-renamectxt Γ ρₓ ∘ qualif-tk Γ
 subst-qualif Γ ρₓ = id
 
-restore-renamectxt : renamectxt → 𝕃 (var × var) → renamectxt
-restore-renamectxt = foldr $ uncurry λ x x' ρ → renamectxt-insert ρ x x'
+restore-renamectxt : renamectxt → 𝕃 (var × maybe var) → renamectxt
+restore-renamectxt = foldr $ uncurry λ x x' ρ → maybe-else' x' (renamectxt-remove ρ x) (renamectxt-insert ρ x)
+
+restore-ctxt-params : ctxt → 𝕃 (var × maybe qualif-info) → ctxt
+restore-ctxt-params = foldr $ uncurry λ x x' Γ → ctxt-set-qualif Γ (maybe-else' x' (trie-remove (ctxt-get-qualif Γ) x) (trie-insert (ctxt-get-qualif Γ) x))
 
 rename-validify : string → string
 rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where

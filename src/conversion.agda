@@ -193,10 +193,10 @@ hnf{TERM} Γ u x hd = x
 hnf{TYPE} Γ no-unfolding e _ = e
 hnf{TYPE} Γ u (TpParens _ t _) hd = hnf Γ u t hd
 hnf{TYPE} Γ u (NoSpans t _)  hd = hnf Γ u t hd
-hnf{TYPE} Γ (unfold ff b' _ _) (TpVar _ x) ff  = TpVar posinfo-gen x 
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ with ctxt-lookup-type-var-def Γ x
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ | just tp = tp
-hnf{TYPE} Γ (unfold b b' _ _) (TpVar _ x) _ | nothing = TpVar posinfo-gen x
+hnf{TYPE} Γ u@(unfold ff b' _ _) (TpVar _ x) ff  = TpVar posinfo-gen x 
+hnf{TYPE} Γ u@(unfold b b' _ _) (TpVar _ x) hd with ctxt-lookup-type-var-def Γ x
+hnf{TYPE} Γ u@(unfold b b' _ _) (TpVar _ x) hd | just tp = if b then hnf Γ u tp hd else tp
+hnf{TYPE} Γ u@(unfold b b' _ _) (TpVar _ x) hd | nothing = TpVar posinfo-gen x
 hnf{TYPE} Γ u (TpAppt tp t) hd with hnf Γ u tp hd
 hnf{TYPE} Γ u (TpAppt _ t) hd  | TpLambda _ _ x _ tp = hnf Γ u (subst Γ t x tp) hd
 hnf{TYPE} Γ u (TpAppt _ t) hd | tp = TpAppt tp (erase-if (unfolding-get-erased u) t)
@@ -261,6 +261,7 @@ hnf{TYPE} Γ u (TpLet _ (DefTerm _ x ot t) T) hd =
 -- we would need to introduce a type-level chi to do the same thing as above.
 -- Currently, synthesizing or checking a type should not make a difference.
 hnf{TYPE} Γ u (TpLet _ (DefType _ x k T) T') hd = hnf Γ u (subst Γ T x T') hd
+hnf{TYPE} Γ u@(unfold tt _ _ _) (Iota _ _ x T₁ T₂) hd = Iota posinfo-gen posinfo-gen x (hnf Γ u T₁ ff) (hnf Γ u T₂ ff)
 hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
