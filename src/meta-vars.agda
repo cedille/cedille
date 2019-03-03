@@ -72,7 +72,7 @@ data prototype : Set where
 data decortype : Set where
   decor-type  : type → decortype
   decor-arrow : maybeErased → type → decortype → decortype
-  decor-decor : maybeErased → posinfo → bvar → meta-var-sort → decortype → decortype
+  decor-decor : maybeErased → posinfo → bvar → tk → meta-var-sort → decortype → decortype
   decor-stuck : type → prototype → decortype
   decor-error : type → prototype → decortype
 
@@ -197,8 +197,8 @@ decortype-to-type : decortype → type
 decortype-to-type (decor-type tp) = tp
 decortype-to-type (decor-arrow at tp dt) =
   TpArrow tp at (decortype-to-type dt)
-decortype-to-type (decor-decor b pi x sol dt) =
-  Abs pi b posinfo-gen x (meta-var-sort-to-tk sol) (decortype-to-type dt)
+decortype-to-type (decor-decor b pi x tk sol dt) =
+  Abs pi b posinfo-gen x tk (decortype-to-type dt)
 decortype-to-type (decor-stuck tp pt) = tp
 decortype-to-type (decor-error tp pt) = tp
 
@@ -210,8 +210,8 @@ hnf-decortype Γ uf (decor-type tp) ish =
   decor-type (hnf Γ uf tp ish)
 hnf-decortype Γ uf (decor-arrow e? tp dt) ish =
   decor-arrow e? (hnf Γ uf tp ff) (hnf-decortype Γ uf dt ff)
-hnf-decortype Γ uf (decor-decor e? pi x sol dt) ish =
-  decor-decor e? pi x sol (hnf-decortype Γ uf dt ff)
+hnf-decortype Γ uf (decor-decor e? pi x tk sol dt) ish =
+  decor-decor e? pi x tk sol (hnf-decortype Γ uf dt ff)
 hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
 hnf-decortype Γ uf (decor-error tp pt) ish =
   decor-error (hnf Γ uf tp ff) pt
@@ -306,9 +306,9 @@ decortype-to-string (decor-arrow e? tp dt) =
   to-stringh tp
   ≫str strAdd (arrowtype-to-string e?)
   ≫str decortype-to-string dt
-decortype-to-string (decor-decor e? pi x sol dt) =
+decortype-to-string (decor-decor e? pi x tk sol dt) =
   strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
-  ≫str strAdd " . " ≫str decortype-to-string dt
+  ≫str strAdd "<" ≫str tk-to-stringh tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
   where
   binder : maybeErased → meta-var-sort → string
   binder Erased sol = "∀ "
