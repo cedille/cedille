@@ -128,7 +128,7 @@ apps-type = foldl λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x 
 
 qualif-lookup-term : qualif → string → term
 qualif-lookup-term σ x with trie-lookup σ x
-... | just (x' , as) = apps-term (Var posinfo-gen x') as
+... | just (x' , as) = Chi posinfo-gen NoType $ apps-term (Var posinfo-gen x') as
 ... | _ = Var posinfo-gen x
 
 qualif-lookup-type : qualif → string → type

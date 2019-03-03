@@ -1974,10 +1974,10 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
           let is = drop-last 1 is
               subst-ctr : ctxt → ctr → ctr
               subst-ctr = λ {Γ (Ctr pi x T) →
-                Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-all) ff $ maybe-else' x?
+                Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-head) ff $ maybe-else' x?
                   (if (Xₒ =string X) then T else subst Γ (params-to-tplams ps $ mtpvar X) Xₒ T)
                   λ x → subst Γ (params-to-tplams ps $ mtpvar $ pi' % mu-Type/ x) Xₒ T}
-              reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-all) T ff}
+              reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-head) T ff}
               cs' = reduce-cs $ maybe-else' x? (if Xₒ =string X then cs' else fcs X) λ x → fcs (mu-Type/ (pi' % x))
               Γ' = maybe-else' x? (spanMr (Γ , [])) λ x →
                      let X' = mu-Type/ x
@@ -1998,7 +1998,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                               --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
                               --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
-                         Tₓ = hnf Γ' (unfolding-elab unfold-all) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
+                         Tₓ = hnf Γ' (unfolding-elab unfold-head) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
                          Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
                          e₁? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
                          e₂ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
