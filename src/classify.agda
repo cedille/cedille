@@ -770,12 +770,12 @@ substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
   substh-decortype Γ ρ σ cod
   ≫=span λ cod → spanMr $ decor-arrow e? (substh-type Γ ρ σ dom) cod
   -- spanMr $ decor-arrow e? (substh-type Γ ρ σ dom) (substh-decortype Γ ρ σ cod)
-substh-decortype Γ ρ σ (decor-decor e? pi x sol dt) =
+substh-decortype Γ ρ σ (decor-decor e? pi x tk sol dt) =
   let x' = subst-rename-var-if Γ ρ x σ
       Γ' = ctxt-var-decl-loc pi x' Γ
       ρ' = renamectxt-insert ρ x x'
   in substh-decortype Γ' ρ' σ dt
-  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-meta-var-sort Γ ρ σ sol) dt'
+  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-tk Γ ρ σ tk) (substh-meta-var-sort Γ ρ σ sol) dt'
   -- decor-decor e? x' (substh-meta-var-sol Γ' ρ' σ sol) (substh-decortype Γ' ρ' σ dt)
 substh-decortype Γ ρ σ (decor-stuck tp pt) =
   match-prototype meta-vars-empty ff (substh-type Γ ρ σ tp) pt
@@ -804,14 +804,14 @@ meta-vars-subst-decortype = meta-vars-subst-decortype' tt
 
 {-# TERMINATING #-}
 meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM $ (𝕃 meta-var) × decortype
-meta-vars-peel' Γ sl Xs (decor-decor e? pi x (meta-var-tp k mtp) dt) =
+meta-vars-peel' Γ sl Xs (decor-decor e? pi x _ (meta-var-tp k mtp) dt) =
   let Y   = meta-var-fresh-tp Xs x sl (k , mtp)
       Xs' = meta-vars-add Xs Y
   in subst-decortype Γ (meta-var-to-type-unsafe Y) x dt
   ≫=span λ dt' → meta-vars-peel'  Γ sl Xs' dt'
   ≫=span λ ret → let Ys = fst ret ; rdt = snd ret
   in spanMr $ Y :: Ys , rdt
-meta-vars-peel' Γ sl Xs dt@(decor-decor e? pi x (meta-var-tm _ _) _) = spanMr $ [] , dt
+meta-vars-peel' Γ sl Xs dt@(decor-decor e? pi x _ (meta-var-tm _ _) _) = spanMr $ [] , dt
 meta-vars-peel' Γ sl Xs dt@(decor-arrow _ _ _) = spanMr $ [] , dt
 -- NOTE: vv The clause below will later generate a type error vv
 meta-vars-peel' Γ sl Xs dt@(decor-stuck _ _) = spanMr $ [] , dt
@@ -826,9 +826,9 @@ meta-vars-unfold-tmapp' Γ sl Xs dt =
   ≫=span λ where
     (Ys , dt'@(decor-arrow e? dom cod)) →
       spanMr $ Ys , yes-tmabsd dt' e? "_" dom ff cod
-    (Ys , dt'@(decor-decor e? pi x (meta-var-tm dom _) cod)) →
+    (Ys , dt'@(decor-decor e? pi x _ (meta-var-tm dom _) cod)) →
       spanMr $ Ys , yes-tmabsd dt' e? x dom (is-free-in check-erased x (decortype-to-type cod)) cod
-    (Ys , dt@(decor-decor _ _ _ (meta-var-tp _ _) _)) →
+    (Ys , dt@(decor-decor _ _ _ _ (meta-var-tp _ _) _)) →
       spanMr $ Ys , not-tmabsd dt
 -- NOTE: vv this is a type error vv
     (Ys , dt@(decor-stuck _ _)) →
@@ -843,9 +843,9 @@ meta-vars-unfold-tpapp' : ctxt → meta-vars → decortype → spanM is-tpabsd?
 meta-vars-unfold-tpapp' Γ Xs dt =
   meta-vars-subst-decortype Γ Xs dt
   ≫=span λ where
-   (dt″@(decor-decor e? pi x (meta-var-tp k mtp) dt')) →
+   (dt″@(decor-decor e? pi x _ (meta-var-tp k mtp) dt')) →
     spanMr $ yes-tpabsd dt″ e? x k (flip maybe-map mtp meta-var-sol.sol) dt'
-   (dt″@(decor-decor _ _ _ (meta-var-tm _ _) _)) →
+   (dt″@(decor-decor _ _ _ _ (meta-var-tm _ _) _)) →
     spanMr $ not-tpabsd dt″
    (dt″@(decor-arrow _ _ _)) → spanMr $ not-tpabsd dt″
    (dt″@(decor-stuck _ _)) → spanMr $ not-tpabsd dt″
@@ -1408,9 +1408,9 @@ match-prototype Xs uf tp (proto-maybe nothing) =
   --------------------
   Xs ⊢? T ≔ S ⇒ (σ , T)
 -}
-match-prototype Xs uf tp (proto-maybe (just tp')) =
+match-prototype Xs uf tp pt@(proto-maybe (just tp')) =
   match-types Xs empty-trie match-unfolding-both tp tp'
-    on-fail (λ _ → spanMr $ mk-match-prototype-data Xs (decor-type tp) tt)
+    on-fail (λ _ → spanMr $ mk-match-prototype-data Xs (decor-error tp pt) tt)
   ≫=spans' λ Xs' → spanMr $ mk-match-prototype-data Xs' (decor-type tp) ff
 
 {-
@@ -1435,7 +1435,7 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   -- 4) leave behind the solution for Y as a decoration and drop Y from Xs
   ≫=span λ dt' →
   let sort' = meta-var.sort (meta-var-set-src Y' checking)
-      dt″ = decor-decor Erased pi x sort' dt' in
+      dt″ = decor-decor Erased pi x (Tkk k) sort' dt' in
   spanMr $ mk-match-prototype-data (meta-vars-remove Xs' Y) dt″ err
 
 {-
@@ -1447,7 +1447,7 @@ match-prototype Xs uf (Abs pi b pi' x (Tkt dom) cod) (proto-arrow e? pt) =
   match-prototype Xs ff cod pt
   ≫=span λ ret →
   let mk-match-prototype-data Xs dt err = ret
-      dt' = decor-decor b pi x (meta-var-tm dom nothing) dt
+      dt' = decor-decor b pi x (Tkt dom) (meta-var-tm dom nothing) dt
   in spanMr $ if ~ eq-maybeErased b e?
     then mk-match-prototype-data meta-vars-empty dt' tt
   else mk-match-prototype-data Xs dt' err
