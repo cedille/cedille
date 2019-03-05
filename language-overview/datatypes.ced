@@ -1,0 +1,208 @@
+module datatypes.
+
+{- Datatype Declaration Syntax
+-- =============================================================================
+--
+-- Starting with version 1.1.0, Cedille now supports convenient notation for
+-- datatype declarations, recursion, and case analysis.
+--
+-- The syntax for declarations should be familiar to anyone who has used other
+-- dependently typed languages (Agda, Idris, Coq, etc), or Haskell GADTs
+--
+-- data <name> (<params>) : <indices> ➔ ★ =
+-- | con1 : <args> ➔ <name> <indices>
+-- | con2 : <args> ➔ <name> <indices>
+-- | <...>
+-- .
+--
+-- Here's a concrete example of Nat and Vec:
+-}
+
+data Nat: ★ =
+  | zero: Nat
+  | suc: Nat ➔ Nat.
+
+data Vec (A: ★): Nat ➔ ★ =
+  | vnil: Vec zero
+  | vcons: ∀ n: Nat. A ➔ Vec n ➔ Vec (suc n).
+
+{- A few key differences for declaring datatypes in Cedille vs other languages
+-- with inductive definitions:
+-- 1. In constructor type signatures, the recursive occurrences of the datatype
+--    being defined (e.g: _Nat_ in suc: _Nat_ ➔ Nat) must occur positively, but
+--    *need not be* strictly positive
+-- 2. Occurrences of the datatype in constructor type signatures are not written
+--    explicitly applied to their parameters. For example, the type of `vnil` is
+--    written `Vec zero` rather than the more usual `Vec ·A zero` (with `·`
+--    denoting type application).
+--
+--    Outside the declaration, `vnil` has the usual type `∀ A: ★. Vec ·A zero`
+-- 3. Declarations can only refer to the datatype itself and previous
+--    definitions. Additionally, due to limits in the current positivity checker
+--    the defined datatype cannot occur as a parameter in another datatype
+-}
+
+{- Pattern Matching and Recursive Definitions
+-- =============================================================================
+-- Cedille supports pattern matching using the `μ'` operator, shown below
+-- to define the predecessor function for Nat
+-}
+
+pred : Nat ➔ Nat
+  = λ n. μ' n {zero ➔ n | suc n ➔ n}.
+
+{-
+-- Recursive definitions are defined using the μ operator, such as below to
+-- define `add`
+-}
+
+add : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ addN. m {zero ➔ n | suc m' ➔ suc (addN m')}.
+
+{-
+-- `addN` is the recursive function being defined, and `m` is the expression
+-- over which it is defined.
+--
+-- Perhaps surprisingly, in the successor case the bound variable `m'` does
+-- *not* have type `Nat'. Instead, it has type `Type/addN`, the type of legal
+-- expressions for function `addN` (which has type `Type/addN ➔ Nat`) to make
+-- recursive calls on. The reason for this is that Cedille implements a
+-- *semantic* termination checker, rather than the more common syntactic
+-- guarded-by-destructors termination checking. This is used to support
+-- course-of-values induction in Cedille, which will be covered in another file.
+--
+-- All definitions with `/` in their name are automatically generated. Cedille
+-- prevents users from binding any identifiers with this token in its name, to
+-- prevent name clashes with slashes.
+-}
+
+{-
+-- μ and μ' can also be used for proofs. Due to limitations in type inference,
+-- if you wish to prove some property `P n` by pattern-matching or recursion on
+-- `n`, you must give the motive explicitly, via the @ syntax.
+--
+-- Below, `natCases` proves `P` holds for any `n` if it holds for `zero` and the
+-- successor of any number. The motive `P` is given explicitly
+-}
+
+natCases : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)) ➔ P n
+  = Λ P. λ n. λ z. λ s. μ' n @P {zero ➔ z | suc n ➔ s n}.
+
+{-
+-- `vecInd` below proves the induction principle for `Vec` using μ. It
+-- introduces several new novel aspects of datatypes in Cedille
+-}
+
+vecInd : ∀ A: ★. ∀ P: (Π i: Nat. Vec ·A i ➔ ★). ∀ n: Nat. Π xs: Vec ·A n.
+    P zero (vnil ·A) ➔ (∀ m: Nat. Π a: A. Π xs: Vec ·A m. P m xs ➔ P (suc m) (vcons -m a xs))
+    ➔ P n xs
+  = Λ A. Λ P. Λ n. λ xs. λ vn. λ vc. μ ih. xs @P {
+  | vnil ➔ vn
+  | vcons -m hd tl ➔ vc -m hd (to/Vec -isType/ih -m tl) (ih -m tl)
+  }.
+
+{-
+-- This should look as expected except for the `vcons` case, which we will
+-- explain in more detail
+-- 1. in the `vcons` pattern, the length `m` of the tail of the vector is bound
+--    as an implicit (erased) variable. That is because the type signature for
+--    `vcons` quantifies over the same term with ∀, the type of erased arguments
+--
+-- 2. The third argument to assumption `vc` (which proves `P` holds for some
+--    vector if it holds for the tail of the vector) is expected to have type
+--    `Vec ·A m`. As discussed above, recursive subdata `tl` has type `Type/ih m`.
+--    If you need `tl` to have type `Vec ·A m`, you cast is using the global
+--    cast function `to/Vec` and the μ-local witness `isType/ih`. These are both
+--    explained below
+-}
+
+{- Global Definitions for Datatypes
+-- =============================================================================
+-- Each datatype declaration introduces three global names in addition to the
+-- datatype and constructor names. These can be viewed by selecting the span for
+-- a datatype declaration and opening the inspect buffer (M-s to check the file,
+-- navigate to the datatype declaration, and press i). The names are derived
+-- from the prefixes `Is/`, `is/` and `to/`, and the suffix for these is the
+-- name of the datatype. For Vec, these are:
+--
+-- 1. Is/Vec: Π A: ★. (Nat ➔ ★) ➔ ★
+--    `Is/Vec ·A ·R` is the type of proofs that any term of type `R n` (for any
+--    nat n) can be treated as if it had type `Vec ·A n` for the purposes of
+--    pattern matching
+--
+-- 2. is/Vec: ∀ A: ★. Is/Vec ·A ·(Vec ·A)
+--    The trivial `Is/Vec` witness
+--
+-- 3. to/Vec: ∀ A: ★. ∀ R: (Nat ➔ ★). Is/Vec ·A ·R ➾ ∀ n: Nat. R n ➔ Vec ·A r
+--    `to/Vec` coerces the type of some term (of type `R n`, for any `n`) to the
+--    type `Vec ·A n`, given an (erased) witness that `R` "is" a `Vec ·A`.
+--    Importantly, to/Vec (and all such cast functions) *erase to the identity
+--    function*. It is a zero-cost type coercion.
+--
+-- Thus, in the definition of `vecInd` above, we cast `tl` (of type `Type/ih m`)
+-- to the type `Vec ·A m` using the (erased) μ-local witness `isType/ih` of type
+-- `Is/Vec ·A ·Type/ih`
+-}
+
+{- Local Definitions for μ-expressions
+-- =============================================================================
+-- Every μ-expression introduces 3 local definitions within the body of each
+-- case branch, in addition to variables bound by pattern guards. The names are
+-- derived from the prefixes `Type/` and `isType/`, and the empty string, and
+-- the suffixes from the name of the recursive function being defined. For `vecInd`
+-- above, these are:
+--
+-- 1. Type/ih: Nat ➔ ★.
+--    The type (family) of legal arguments for recursive calls
+-- 2. isType/ih: Is/Vec ·A ·Type/ih
+--    An erased witness that the abstract recursive type (family) `Type/ih`
+--    really is a `Vec ·A`
+-- 3. ih: ∀ i: Nat. Π xs: Type/ih i. P i (to/Vec -isType/ih i xs)
+--    `ih` is the induction hypothesis phrased over terms of the abstract type
+--    `Type/ih`. Since the motive `P` is phrased over `Vec`, to state the return
+--    type (that `P` holds of `xs`) we must cast `xs` to `Vec` using our global
+--    Vec casting function `to/Vec` and local erased witness `isType/ih`
+--
+--    Again, since `to/Vec` erases to λ x. x, this does really prove that `P`
+--    holds of `xs`. Note also that since the third argument to assumption `vc`
+--    in `vecInd` is `to/Vec -isType/ih -m tl`, the fourth argument `ih -m tl` has
+--    exactly the type needed (a proof `P m (to/Vec -isType/ih -m tl)`)
+-}
+
+{- Large Indices
+-- =============================================================================
+-- Cedille also supports datatype declarations with large indices (that is,
+-- Haskell-style GADTs). This is significant because the generic framework
+-- (https://github.com/cedille/cedille-developments/tree/master/efficient-mendler-prime)
+-- on which datatypes in Cedille are based is unable to handle these
+-- (generically), due to Cedille's truncated sort hierarchy. Behind the scenes,
+-- each datatype declaration replays the generic framework tuned to the
+-- datatype's indices.
+--
+-- Here is a simple example of a GADT-like definition in Cedille -- the AST of a
+-- toy language with numbers, booleans, addition, and equality -- and an
+-- evaluation function over it.
+-}
+
+data Bool: ★ = tt: Bool | ff: Bool.
+
+data Expr: ★ ➔ ★ =
+  | nExpr: Nat ➔ Expr ·Nat                     -- Nat literals
+  | bExpr: Bool ➔ Expr ·Bool                   -- Bool literals
+  | addExpr: Expr ·Nat ➔ Expr ·Nat ➔ Expr ·Nat -- addition of Nats
+  | eqExpr: Expr ·Nat ➔ Expr ·Nat ➔ Expr ·Bool -- equality of Nats
+  .
+
+eqNat : Nat ➔ Nat ➔ Bool
+  = λ m. μ eq. m {
+  | zero ➔  λ n. μ' n {zero ➔ tt | suc _ ➔ ff}
+  | suc m ➔ λ n. μ' n {zero ➔ ff | suc n ➔ eq m n}
+  }.
+
+eval : ∀ X: ★. Expr ·X ➔ X
+  = Λ X. λ e. μ eval. e @(λ X: ★. λ x: Expr ·X. X) {
+  | nExpr n ➔ n
+  | bExpr b ➔ b
+  | addExpr m n ➔ add (eval m) (eval n)
+  | eqExpr m n ➔ eqNat (eval m) (eval n)
+  }.
