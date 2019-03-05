@@ -5,6 +5,9 @@ open import lib
 cedille-extension : string
 cedille-extension = "ced"
 
+cdle-extension : string
+cdle-extension = "cdle"
+
 self-name : string
 self-name = "self"
 

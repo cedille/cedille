@@ -461,7 +461,7 @@ parameterize-file Γ ps cs = foldr {B = qualif → cmds}
   (λ c cs σ → elim-pair (h c σ) λ c σ → c :: cs σ) (λ _ → []) cs empty-trie
   where
   ps' = ps -- substs-params {ARG} Γ empty-trie ps
-  σ+ = λ σ x → qualif-insert-params σ x x ps'
+  σ+ = λ σ x → qualif-insert-params σ x x (ctxt-get-current-params Γ ++ ps')
 
   subst-ps : ∀ {ed} → qualif → ⟦ ed ⟧ → ⟦ ed ⟧
   subst-ps = substs $ add-params-to-ctxt ps' Γ
@@ -588,6 +588,9 @@ record encoded-datatype-names : Set where
     fixpoint-out : var
     fixpoint-ind : var
     fixpoint-lambek : var
+  
+  debug : string
+  debug = foldr (uncurry λ x x' xs → "(" ^ x ^ ": " ^ x' ^ ") " ^ xs) "" (("data-functor" , data-functor) :: ("data-fmap" , data-fmap) :: ("data-Mu" , data-Mu) :: ("data-mu" , data-mu) :: ("data-cast" , data-cast) :: ("data-functor-ind" , data-functor-ind) :: ("cast" , cast) :: ("fixpoint-type" , fixpoint-type) :: ("fixpoint-in" , fixpoint-in) :: ("fixpoint-out" , fixpoint-out) :: ("fixpoint-ind" , fixpoint-ind) :: ("fixpoint-lambek" , fixpoint-lambek) :: [])
 
 elab-mu-t : Set
 elab-mu-t = ctxt → ctxt-datatype-info → encoded-datatype-names → var → var ⊎ maybe (term × var × 𝕃 tty) → term → type → cases → maybe (term × ctxt)
@@ -657,21 +660,23 @@ record datatype-encoding : Set where
     Γ' = add-params-to-ctxt ps $ add-ctrs-to-ctxt cs $ ctxt-var-decl x Γ''
     
     tcs-ρ = reindex-file Γ' is template
-    tcs = parameterize-file Γ' (params-set-erased Erased $ {-ctxt-get-current-params Γ'' ++-} ps) $ fst tcs-ρ
+    tcs = parameterize-file Γ' (params-set-erased Erased ps) $ fst tcs-ρ
     ρₓ = snd tcs-ρ
+
+    app-ps = Chi posinfo-gen NoType ∘' params-to-apps (ctxt-get-current-params Γ'' ++ params-set-erased Erased ps) ∘' mvar
+    tpapp-ps = params-to-tpapps (ctxt-get-current-params Γ'' ++ params-set-erased Erased ps) ∘ mtpvar
 
     data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ') ρₓ
     data-fmapₓ = fresh-var (x ^ "Fmap") (ctxt-binds-var Γ') ρₓ
     --data-fresh-check = λ f → fresh-var x (λ x → ctxt-binds-var Γ' (f x) || renamectxt-in-field ρₓ (rename-validify $ f x) || renamectxt-in-field ρₓ (f x) || renamectxt-in-field ρₓ (rename-validify $ f x)) ρₓ
-    data-Muₓₒ = x -- data-fresh-check data-Is/
-    data-muₓₒ = x -- data-fresh-check data-is/
-    data-castₓₒ = x -- data-fresh-check data-to/
-    data-Muₓ = data-Is/ data-Muₓₒ
-    data-muₓ = data-is/ data-muₓₒ
-    data-castₓ = data-to/ data-castₓₒ
-    data-Muₓᵣ = rename-validify data-Muₓ
-    data-muₓᵣ = rename-validify data-muₓ
-    data-castₓᵣ = rename-validify data-castₓ
+    data-Muₓₒ = data-Is/ x
+    data-muₓₒ = data-is/ x
+    data-castₓₒ = data-to/ x
+    data-Muₓ = fresh-var (rename-validify data-Muₓₒ) (ctxt-binds-var Γ') ρₓ
+    data-muₓ = fresh-var (rename-validify data-muₓₒ) (ctxt-binds-var Γ') ρₓ
+    data-castₓ = fresh-var (rename-validify data-castₓₒ) (ctxt-binds-var Γ') ρₓ
+--    data-muₓ = rename-validify data-muₓₒ
+--    data-castₓ = rename-validify data-castₓₒ
     data-functor-indₓ = fresh-var (x ^ "IndF") (ctxt-binds-var Γ') ρₓ
     functorₓ = renamectxt-rep ρₓ functor
     castₓ = renamectxt-rep ρₓ cast
@@ -680,14 +685,14 @@ record datatype-encoding : Set where
     fixpoint-outₓ = renamectxt-rep ρₓ fixpoint-out
     fixpoint-indₓ = renamectxt-rep ρₓ fixpoint-ind
     fixpoint-lambekₓ = renamectxt-rep ρₓ fixpoint-lambek
-    Γ = foldr ctxt-var-decl (add-indices-to-ctxt is Γ') (data-functorₓ :: data-fmapₓ :: data-Muₓ :: data-muₓ :: data-castₓ :: data-Muₓᵣ :: data-muₓᵣ :: data-functor-indₓ :: [])
+    Γ = foldr ctxt-var-decl (add-indices-to-ctxt is Γ') (data-functorₓ :: data-fmapₓ :: data-Muₓ :: data-muₓ :: data-castₓ :: data-Muₓₒ :: data-muₓₒ :: data-castₓₒ :: data-functor-indₓ :: [])
     --Γ = add-indices-to-ctxt is $ ctxt-var-decl data-functorₓ $ ctxt-var-decl data-fmapₓ $ ctxt-var-decl data-Muₓ $ ctxt-var-decl data-muₓ $ ctxt-var-decl data-castₓ $ ctxt-var-decl data-functor-indₓ Γ'
     namesₓ = record {
       data-functor = data-functorₓ;
       data-fmap = data-fmapₓ;
-      data-Mu = data-Muₓᵣ;
-      data-mu = data-muₓᵣ;
-      data-cast = data-castₓᵣ;
+      data-Mu = data-Muₓ;
+      data-mu = data-muₓ;
+      data-cast = data-castₓ;
       data-functor-ind = data-functor-indₓ;
       cast = castₓ;
       fixpoint-type = fixpoint-typeₓ;
@@ -716,7 +721,7 @@ record datatype-encoding : Set where
       Lam pi-gen Erased pi-gen x (SomeClass $ Tkk k) $
       indices-to-lams is $
       new-var "x" λ xₓ → new-var "y" λ yₓ → new-var "e" λ eₓ → new-var "X" λ Xₓ →
-      let T = indices-to-tpapps is $ TpApp (params-to-tpapps ps $ mtpvar data-functorₓ) (mtpvar x) in
+      let T = indices-to-tpapps is $ TpApp (tpapp-ps data-functorₓ) (mtpvar x) in
       Lam pi-gen NotErased pi-gen xₓ (SomeClass $ Tkt T) $
       Lam pi-gen Erased pi-gen Xₓ
         (SomeClass $ Tkk $ indices-to-kind is $ KndTpArrow T star) $
@@ -726,7 +731,7 @@ record datatype-encoding : Set where
       flip mappe (mvar xₓ) $
       let Γ' = ctxt-var-decl xₓ $ ctxt-var-decl yₓ $ ctxt-var-decl eₓ $ ctxt-var-decl Xₓ Γ in
       flip (foldl λ {(Ctr _ x' T) → flip mapp $
-                                  elim-pair (decompose-arrows Γ T) λ ps' Tₕ →
+                                  elim-pair (decompose-arrows Γ' T) λ ps' Tₕ →
                                   params-to-lams' ps' $
                                   Mlam yₓ $ Mlam eₓ $
                                   params-to-apps ps' $ mvar x'}) cs $
@@ -742,9 +747,8 @@ record datatype-encoding : Set where
     fmap-cmd with new-var "A" id | new-var "B" id | new-var "c" id
     ...| Aₓ | Bₓ | cₓ = DefTerm pi-gen data-fmapₓ (SomeType $
         params-to-alls ps $
-        TpApp (params-to-tpapps ps $ mtpvar functorₓ) $
-        params-to-tpapps ps $
-        mtpvar data-functorₓ) $
+        TpApp (tpapp-ps functorₓ) $
+        tpapp-ps data-functorₓ) $
       params-to-lams ps $
       Mlam Aₓ $ Mlam Bₓ $ Mlam cₓ $
       IotaPair pi-gen
@@ -762,27 +766,27 @@ record datatype-encoding : Set where
       eta-expand-ctr : ctr → term
       eta-expand-ctr (Ctr _ x' T) =
         mk-ctr-fmap-η+ (ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ)
-          (x , Aₓ , Bₓ , cₓ , params-to-apps (params-set-erased Erased ps) (mvar castₓ)) (mvar x') T
+          (x , Aₓ , Bₓ , cₓ , app-ps castₓ) (mvar x') T
 
     type-cmd = DefType pi-gen x (params-to-kind ps k) $
       params-to-tplams ps $ TpAppt
-        (TpApp (params-to-tpapps ps $ mtpvar fixpoint-typeₓ) $
-          params-to-tpapps ps $ mtpvar data-functorₓ)
-        (params-to-apps ps $ mvar data-fmapₓ)
+        (TpApp (tpapp-ps fixpoint-typeₓ) $
+          tpapp-ps data-functorₓ)
+        (app-ps data-fmapₓ)
 
     mu-proj : var → 𝔹 → type × (term → term)
     mu-proj Xₓ b =
       rename "i" from add-params-to-ctxt ps Γ for λ iₓ →
-      let u = if b then id-term else params-to-apps (params-set-erased Erased ps) (mvar fixpoint-outₓ)
+      let u = if b then id-term else app-ps fixpoint-outₓ
           Tₙ = λ T → Iota pi-gen pi-gen iₓ (indices-to-alls is $ TpArrow (indices-to-tpapps is $ mtpvar Xₓ) NotErased $ indices-to-tpapps is T) $ mtpeq (mvar iₓ) u
-          T₁ = Tₙ $ params-to-tpapps ps $ mtpvar x
-          T₂ = Tₙ $ TpApp (params-to-tpapps ps $ mtpvar data-functorₓ) $ mtpvar Xₓ
+          T₁ = Tₙ $ tpapp-ps x
+          T₂ = Tₙ $ TpApp (tpapp-ps data-functorₓ) $ mtpvar Xₓ
           T = if b then T₁ else T₂
           rₓ = if b then "c" else "o"
           t = λ mu → mapp (AppTp mu T) $ mlam "c" $ mlam "o" $ mvar rₓ in
       T , λ mu → Open pi-gen OpacTrans pi-gen data-Muₓ (Phi pi-gen (IotaProj (t mu) "2" pi-gen) (IotaProj (t mu) "1" pi-gen) u pi-gen)
 
-    Mu-cmd = DefType pi-gen data-Muₓ (params-to-kind ps $ KndArrow k star) $
+    Mu-cmd = DefType pi-gen data-Muₓₒ (params-to-kind ps $ KndArrow k star) $
       params-to-tplams ps $
       rename "X" from add-params-to-ctxt ps Γ for λ Xₓ →
       rename "Y" from add-params-to-ctxt ps Γ for λ Yₓ →
@@ -793,7 +797,7 @@ record datatype-encoding : Set where
       TpArrow (fst $ mu-proj Xₓ ff) NotErased $
       mtpvar Yₓ
 
-    mu-cmd = DefTerm pi-gen data-muₓ (SomeType $ params-to-alls (params-set-erased Erased ps) $ TpApp (params-to-tpapps ps $ mtpvar data-Muₓ) $ params-to-tpapps ps $ mtpvar x) $
+    mu-cmd = DefTerm pi-gen data-muₓₒ (SomeType $ params-to-alls (params-set-erased Erased ps) $ TpApp (tpapp-ps data-Muₓ) $ tpapp-ps x) $
       params-to-lams (params-set-erased Erased ps) $
       Open pi-gen OpacTrans pi-gen x $
       Open pi-gen OpacTrans pi-gen data-Muₓ $
@@ -801,29 +805,29 @@ record datatype-encoding : Set where
       rename "f" from add-params-to-ctxt ps Γ for λ fₓ →
       let pair = λ t → IotaPair pi-gen t (Beta pi-gen NoTerm (SomeTerm (erase t) pi-gen)) NoGuide pi-gen in
       Mlam Yₓ $ mlam fₓ $ mapp (mapp (mvar fₓ) $ pair $ indices-to-lams is $ id-term) $ pair $
-        mappe (AppTp (params-to-apps (params-set-erased Erased ps) (mvar fixpoint-outₓ)) $ (params-to-tpapps ps $ mtpvar data-functorₓ)) (params-to-apps ps $ mvar data-fmapₓ)
+        mappe (AppTp (app-ps fixpoint-outₓ) $ (tpapp-ps data-functorₓ)) (app-ps data-fmapₓ)
     
     cast-cmd =
       rename "Y" from add-params-to-ctxt ps Γ for λ Yₓ →
       rename "mu" from add-params-to-ctxt ps Γ for λ muₓ →
-      DefTerm pi-gen data-castₓ NoType $
+      DefTerm pi-gen data-castₓₒ NoType $
       params-to-lams ps $
       Lam pi-gen Erased pi-gen Yₓ (SomeClass $ Tkk k) $
       Lam pi-gen Erased pi-gen muₓ (SomeClass $ Tkt $
-        TpApp (params-to-tpapps ps $ mtpvar data-Muₓ) $ mtpvar Yₓ) $
+        TpApp (tpapp-ps data-Muₓ) $ mtpvar Yₓ) $
       snd (mu-proj Yₓ tt) $ mvar muₓ
 
     ctr-cmd : ctr → defTermOrType
-    ctr-cmd (Ctr _ x' T) with subst Γ (params-to-tpapps ps $ mtpvar x) x T
+    ctr-cmd (Ctr _ x' T) with subst Γ (tpapp-ps x) x T
     ...| T' with decompose-ctr-type Γ T'
     ...| Tₕ , ps' , as' = DefTerm pi-gen x' (SomeType $ params-to-alls ps T') $
       Open pi-gen OpacTrans pi-gen x $
       params-to-lams ps $
       params-to-lams ps' $
       mapp (recompose-apps (ttys-to-args Erased $ drop (length ps) as') $
-            mappe (AppTp (params-to-apps (params-set-erased Erased ps) $ mvar fixpoint-inₓ) $
-              params-to-tpapps ps $ mtpvar data-functorₓ) $
-        params-to-apps ps $ mvar data-fmapₓ) $
+            mappe (AppTp (app-ps fixpoint-inₓ) $
+              tpapp-ps data-functorₓ) $
+        app-ps data-fmapₓ) $
       rename "X" from add-params-to-ctxt ps' Γ for λ Xₓ →
       mk-ctr-term NotErased x' Xₓ cs ps'
 
@@ -902,8 +906,10 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
   rename "z" from Γᵢₛ for λ zₓ →
   rename "e" from Γᵢₛ for λ eₓ →
   rename "X" from Γᵢₛ for λ Xₓ →
+  maybe-else (just $ mvar "1" , Γ) just $
   foldl (λ {(Ctr _ x Tₓ) rec → rec ≫=maybe λ rec → trie-lookup ms' x ≫=maybe λ t →
     just λ tₕ → rec tₕ ` t}) (just λ t → t) cs ≫=maybe λ msf →
+  maybe-else (just $ mvar "2" , Γ) just $
   just $ flip (either-else' x?)
 
     (λ _ → open? (app-lambek is/X? t (`Vₓ Xₒ ·ps) (ttys-to-args Erased asᵢ) (msf

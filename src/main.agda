@@ -219,6 +219,9 @@ module main-with-options
   add-cedille-extension : string → string
   add-cedille-extension x = x ^ "." ^ cedille-extension
 
+  add-cdle-extension : string → string
+  add-cdle-extension x = x ^ "." ^ cdle-extension
+
   -- Allows you to say "import FOO.BAR.BAZ" rather than "import FOO/BAR/BAZ"
   replace-dots : filepath → filepath
   replace-dots s = 𝕃char-to-string (h (string-to-𝕃char s)) where
@@ -231,10 +234,12 @@ module main-with-options
   find-imported-file : (dirs : 𝕃 filepath) → (unit-name : string) → IO (maybe filepath)
   find-imported-file [] unit-name = return nothing
   find-imported-file (dir :: dirs) unit-name =
-      let e = combineFileNames dir (add-cedille-extension unit-name) in
-      doesFileExist e >>= λ where
-        ff → find-imported-file dirs unit-name
-        tt → canonicalizePath e >>=r just
+      let e₁ = combineFileNames dir (add-cedille-extension unit-name)
+          e₂ = combineFileNames dir (add-cdle-extension unit-name)
+          e? = λ e → doesFileExist e >>=r λ e? → maybe-if e? ≫maybe just e in
+      (e? e₁ >>= λ e₁ → e? e₂ >>=r λ e₂ → e₁ maybe-or e₂) >>= λ where
+        nothing → find-imported-file dirs unit-name
+        (just e) → canonicalizePath e >>=r just
 
   find-imported-files : (dirs : 𝕃 filepath) → (imports : 𝕃 string) → IO (𝕃 (string × filepath))
   find-imported-files dirs (u :: us) =

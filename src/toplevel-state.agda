@@ -290,6 +290,8 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
   asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
 
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm elab-hide-key v _ _) _) s = s , nothing
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefType elab-hide-key v _ _) _) s = s , nothing
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s =
