@@ -42,21 +42,18 @@ process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys �
 process-t : Set → Set
 process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
 
-check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
-check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') =
+check-and-add-params : posinfo → params → (need-to-check : 𝔹) → spanM (𝕃 (string × restore-def))
+check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') tt =
   check-tk atk ≫span
   add-tk' me pi1' x atk ≫=span λ mi →
   get-ctxt λ Γ →
   spanM-add (Decl-span Γ param pi1 pi1' x atk me pi' {- make this span go to the end of the def, so nesting will work
                                               properly for computing the context in the frontend -}) ≫span
-  check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-check-and-add-params _ [] = spanMr []
-
-dont-check-and-add-params : posinfo → params → spanM (𝕃 (string × restore-def))
-dont-check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') =
+  check-and-add-params pi' ps' tt ≫=span λ ms → spanMr ((x , mi) :: ms)
+check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') ff =
   add-tk' me pi1' x atk ≫=span λ mi →
-  dont-check-and-add-params pi' ps' ≫=span λ ms → spanMr ((x , mi) :: ms)
-dont-check-and-add-params _ [] = spanMr []
+  check-and-add-params pi' ps' ff ≫=span λ ms → spanMr ((x , mi) :: ms)
+check-and-add-params _ [] _ = spanMr []
 
 optAs-posinfo-var : optAs → (posinfo × var) → spanM (posinfo × var)
 optAs-posinfo-var NoOptAs = spanMr
@@ -124,7 +121,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k t
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
   set-ctxt Γ ≫span
-  check-and-add-params pi' ps ≫=span λ ms → 
+  check-and-add-params pi' ps tt ≫=span λ ms → 
   check-kind k ≫span
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
@@ -136,21 +133,22 @@ process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check
 
 process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
   set-ctxt Γ ≫span
-  dont-check-and-add-params pi' ps ≫=span λ ms → 
+  check-and-add-params pi' ps ff ≫=span λ ms → 
   get-ctxt (λ Γ → 
     let Γ' = ctxt-kind-def pi x ps k Γ in
       check-redefined pi x (mk-toplevel-state ip fns is Γ)
         (spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
 
-process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
-  let Γ = toplevel-state.Γ s in
+process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') c? =
+  let Γ = toplevel-state.Γ s
+      skip? = λ check → if c? then check else spanMok in
   set-ctxt Γ ≫span
-  spanM-add (DefDatatype-header-span pi) ≫span
+  skip? (spanM-add $ DefDatatype-header-span pi) ≫span
   get-ctxt λ old-Γ →
   spanM-lookup-restore-info x ≫=span λ m →
-  check-and-add-params pi'' ps ≫=span λ ms →
+  check-and-add-params pi'' ps c? ≫=span λ ms →
   get-ctxt λ Γ →
-  check-kind k ≫span
+  skip? (check-kind k) ≫span
   let --Γ' = foldr (λ {(Decl _ piₚ me x atk _) → ctxt-tk-decl piₚ x atk}) Γ ps
       mn = ctxt-get-current-modname Γ
       qx = mn # x
@@ -163,7 +161,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
   check-redefined pi' x s
     (set-ctxt (ctxt-type-decl pi' x k $ data-highlight Γ (pi' % x)) ≫span get-ctxt λ Γ →
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
-       pi' ps (record s {Γ = Γ}) cs tt ≫span
+       pi' ps (record s {Γ = Γ}) cs c? ≫span
      get-ctxt λ Γ →
      let fₓ = fresh-var "X" (ctxt-binds-var Γ) empty-renamectxt
          Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
@@ -186,14 +184,11 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') b{-tt-}  =
              (qualif-var Γ x) (hnf-ctr Γ (qualif-var Γ x) (qualif-type Γ T))}
          Γ' = ctxt-datatype-def pi' x ps kᵢ k' cs' Γ' in
      set-ctxt Γ' ≫span
-     spanM-add (DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ (qualif-kind Γ k) Tₘᵤ Tₜₒ cs pi'') ≫span
+     skip? (spanM-add $ DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ (qualif-kind Γ k) Tₘᵤ Tₜₒ cs pi'') ≫span
      get-ctxt λ Γ →
-     spanM-add (TpVar-span Γ pi' x checking
+     skip? (spanM-add $ TpVar-span Γ pi' x checking
        (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
      spanMr (record s {Γ = Γ}))
-
-{-process-cmd s (DefDatatype (Datatype pi pi' x ps k cs pi'') pi''') ff =
-  spanMr s-}
 
 -- TODO ignore checking but still gen spans if need-to-check false?
 process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
@@ -255,7 +250,7 @@ process-cmds (mk-toplevel-state include-path files is Γ) (c :: cs) need-to-chec
   process-cmds s cs need-to-check
 process-cmds s [] need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
 
-process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
+process-ctrs X Xₜ piₓ ps s csₒ c? = h s csₒ c? where
   h : process-t ctrs
   h s [] _ = spanMr s
   h s ((Ctr pi x T) :: cs) ff =
@@ -279,8 +274,7 @@ process-ctrs X Xₜ piₓ ps s csₒ b = h s csₒ b where
 
 process-params s (pi , ps) need-to-check =
   set-ctxt (toplevel-state.Γ s) ≫span
-  (if need-to-check then check-and-add-params else dont-check-and-add-params)
-    pi ps ≫=span λ _ →
+  check-and-add-params pi ps need-to-check ≫=span λ _ →
   spanM-set-params ps ≫span
   get-ctxt λ Γ → 
   spanMr (record s {Γ = ctxt-add-current-params Γ})
