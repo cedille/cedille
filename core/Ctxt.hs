@@ -1,46 +1,15 @@
 module Ctxt where
 import Types
+import qualified Data.Map.Lazy as Map
 
-type Cal a = [(Char, a)]
-
-calLookup [] c = Nothing
-calLookup ((c', a) : l) c
-  | c == c' = Just a
-  | otherwise = calLookup l c
-
-calInsert [] c a = (c, a) : []
-calInsert ((c', a') : l) c a
-  | c == c' = (c, a) : l
-  | otherwise = (c', a') : calInsert l c a
-
-data Trie a = Node (Maybe a) (Cal (Trie a))
-
-emptyTrie = Node Nothing []
-
-trieLookup (Node a ts) (c : cs) = calLookup ts c >>= \ t -> trieLookup t cs
-trieLookup (Node a ts) [] = a
-
-trieInsert' (Node a ts) (c : cs) a' = maybe
-  (Node a ((c, trieInsert' emptyTrie cs a') : ts))
-  (\ t -> Node a (calInsert ts c (trieInsert' t cs a')))
-  (calLookup ts c)
-trieInsert' (Node a ts) [] a' = Node a' ts
-
-trieInsert t s a = trieInsert' t s (Just a)
-
-trieMember t s = maybe False (\ _ -> True) (trieLookup t s)
-
-trieAt t "" = t
-trieAt (Node a ts) (c : cs) = maybe emptyTrie (\ t -> trieAt t cs) (calLookup ts c)
-
-trieRemove t s = trieInsert' t s Nothing
-
-trieMappings = h [] "" where
-  h acc path (Node Nothing cs) = h' path acc cs
-  h acc path (Node (Just a) cs) = h' path ((reverse path, a) : acc) cs
-  h' path = foldr (\ (c, t) x -> h x (c : path) t)
-
-trieAdd t = foldr (\ (path, a) x -> trieInsert x path a) t . trieMappings
+type Trie a = Map.Map String a
+emptyTrie = Map.empty
+trieInsert t k v = Map.insert k v t
+trieLookup t k = Map.lookup k t
+trieMember t k = Map.member k t
+trieRemove t k = Map.delete k t
+trieMappings = Map.assocs
+trieAdd t1 t2 = Map.union t2 t1
 
 type VarMap = Trie Var
 type VarMapRange = Trie ()
@@ -52,13 +21,12 @@ type ExternalDefs = Trie ExternalDef
 type InternalDefs = Trie InternalDef
 data Ctxt = Ctxt ExternalDefs InternalDefs VarMap VarMapRange
 
-
+  
 --varMapRep :: Trie String -> String -> String
-varMapRep m k = case trieLookup m k of
-  Just v -> v
-  Nothing -> k
+varMapRep m k = maybe k id $ trieLookup m k
 
 ctxtClearExternals (Ctxt es is vs rs) = Ctxt emptyTrie is vs rs
+ctxtClearSubst (Ctxt es is _ rs) = Ctxt es is emptyTrie rs
 ctxtOnlySubst (Ctxt es is vs rs) = Ctxt emptyTrie emptyTrie vs rs
 ctxtShowAll (Ctxt es is vs _) rs = Ctxt es is vs rs
 ctxtShown (Ctxt es is vs rs) = rs
@@ -87,24 +55,16 @@ ctxtLookupType c v = case ctxtLookup c v of
   _ -> Nothing
 
 --ctxtLookupTermVar :: Ctxt -> Var -> Maybe PureTerm
-ctxtLookupTermVar c v = case ctxtLookupTerm c v of
-  Just (tm, tp) -> tm
-  Nothing -> Nothing
+ctxtLookupTermVar c v = ctxtLookupTerm c v >>= fst
   
 --ctxtLookupVarType :: Ctxt -> Var -> Maybe PureType
-ctxtLookupVarType c v = case ctxtLookupTerm c v of
-  Just (tm, tp) -> tp
-  Nothing -> Nothing
+ctxtLookupVarType c v = ctxtLookupTerm c v >>= snd
   
 --ctxtLookupTypeVar :: Ctxt -> Var -> Maybe PureType
-ctxtLookupTypeVar c v = case ctxtLookupType c v of
-  Just (tp, kd) -> tp
-  Nothing -> Nothing
+ctxtLookupTypeVar c v = ctxtLookupType c v >>= fst
 
 --ctxtLookupVarKind :: Ctxt -> Var -> Maybe PureKind
-ctxtLookupVarKind c v = case ctxtLookupType c v of
-  Just (tp, kd) -> kd
-  Nothing -> Nothing
+ctxtLookupVarKind c v = ctxtLookupType c v >>= snd
 
 --ctxtLookupInternalTerm :: Ctxt -> Var -> Maybe PureTerm
 ctxtLookupInternalTerm (Ctxt es is vs rs) v = case trieLookup is (varMapRep vs v) of
@@ -125,10 +85,10 @@ ctxtInternalDef c "_" d = c
 ctxtInternalDef (Ctxt es is vs rs) v d = Ctxt es (trieInsert is v d) (trieRemove vs v) (trieInsert rs v ())
 
 --ctxtDefTerm :: Ctxt -> Var -> TermDef -> Ctxt
-ctxtDefTerm c v d = ctxtDef c v (Left d)
+ctxtDefTerm c v = ctxtDef c v . Left
 
 --ctxtDefType :: Ctxt -> Var -> TypeDef -> Ctxt
-ctxtDefType c v d = ctxtDef c v (Right d)
+ctxtDefType c v = ctxtDef c v . Right
 
 ctxtDefTpKd c v (TpKdTp tp) = ctxtDefTerm c v (Nothing, Just tp)
 ctxtDefTpKd c v (TpKdKd kd) = ctxtDefType c v (Nothing, Just kd)
@@ -138,7 +98,7 @@ ctxtRename c "_" _ = c
 ctxtRename c _ "_" = c
 ctxtRename (Ctxt es is vs rs) v v' =
   let v'' = varMapRep vs v' in
-  Ctxt es is (trieInsert' vs v (if v == v'' then Nothing else Just v'')) (trieInsert rs v'' ())
+  Ctxt es is (if v == v'' then trieRemove vs v else trieInsert vs v v'') (trieInsert rs v'' ())
 
 --ctxtRep :: Ctxt -> Var -> Var
 ctxtRep (Ctxt es is vs rs) = varMapRep vs
@@ -148,11 +108,25 @@ ctxtBindsVar (Ctxt es is vs rs) v = trieMember vs v || trieMember rs v
 
 --freshVar :: Ctxt -> Var -> (Var -> a) -> a
 freshVar c "_" f = f "_"
-freshVar (Ctxt es is vs rs) v f = f (v ++ h (trieAt vs v) (trieAt rs v) "") where
-  norM Nothing Nothing = True
-  norM _ _ = False
-
-  calAt ts = maybe emptyTrie id (calLookup ts '\'')
-  
-  h (Node a ts) (Node a' ts') acc =
-    if norM a a' then acc else h (calAt ts) (calAt ts') ('\'' : acc)
+freshVar c@(Ctxt es is vs rs) v f =
+  case Map.splitLookup v rs of
+    (_, Just _, rs) -> freshVar (Ctxt es is vs rs) (v ++ "\'") f
+    (_, Nothing, rs) -> case Map.splitLookup v vs of
+      (_, Just _, vs) -> freshVar (Ctxt es is vs rs) (v ++ "\'") f
+      (_, Nothing, vs) -> f v
+    
+--freshVar2 :: (Ctxt, Ctxt) -> Var -> Var -> (Var -> a) -> a
+freshVar2 c "_" "_" f = f "_"
+freshVar2 c "_" v f = freshVar2 c v v f
+freshVar2 (Ctxt _ _ vs rs, Ctxt _ _ vs' rs') v _ f = f $ h vs vs' rs rs' v where
+  prime v = v ++ "\'"
+  h vs vs' rs rs' v =
+    case Map.splitLookup v rs of
+      (_, Just _, rs) -> h vs vs' rs rs' (prime v)
+      (_, Nothing, rs) -> case Map.splitLookup v rs' of
+        (_, Just _, rs') -> h vs vs' rs rs' (prime v)
+        (_, Nothing, rs') -> case Map.splitLookup v vs of
+          (_, Just _, vs) -> h vs vs' rs rs' (prime v)
+          (_, Nothing, vs) -> case Map.splitLookup v vs' of
+            (_, Just _, vs') -> h vs vs' rs rs' (prime v)
+            (_, Nothing, vs') -> v

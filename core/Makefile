@@ -13,3 +13,11 @@ cedille-core-static: $(CEDILLE_CORE) Makefile
 
 cedille-core-lines:
 	wc -l $(CEDILLE_CORE)
+
+clean:
+	rm *.hi
+	rm *.o
+	rm cedille-core
+
+profiling:
+	ghc -prof -auto-all -o cedille-core CedilleCore.hs
