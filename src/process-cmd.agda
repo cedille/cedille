@@ -255,8 +255,8 @@ process-ctrs X Xₜ piₓ ps s csₒ c? = h s csₒ c? where
   h s [] _ = spanMr s
   h s ((Ctr pi x T) :: cs) ff =
     h s cs ff ≫span get-ctxt λ Γ →
-    spanMr (record s {Γ = ctxt-ctr-def pi x
-      (subst Γ Xₜ X (hnf-ctr Γ X (qualif-type Γ T))) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ})
+    set-ctxt (ctxt-ctr-def pi x (subst Γ Xₜ X (hnf-ctr Γ X (qualif-type Γ T))) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ) ≫span
+    get-ctxt λ Γ → spanMr (record s {Γ = Γ})
   h s ((Ctr pi x T) :: cs) tt =
     check-type T (just star) ≫span get-ctxt λ Γ →
     let T = hnf-ctr Γ X (qualif-type Γ T)
