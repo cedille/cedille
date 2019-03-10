@@ -182,7 +182,7 @@ cedille-mac-pkg: cedille ./core/cedille-core-static
 	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/
 	cp ./packages/mac/Info.plist ./cedille-mac-pkg/Cedille.app/Contents/
 	cp ./packages/mac/Cedille ./cedille-mac-pkg/Cedille.app/Contents/MacOS/
-	cp ./appdmg.json ./cedille-mac-pkg/
+	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
 	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
 
 clean:
