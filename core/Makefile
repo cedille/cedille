@@ -4,7 +4,7 @@ CEDILLE_CORE = Check.hs Ctxt.hs CedilleCore.hs Norm.hs Parser.hs ToString.hs Typ
 all: cedille-core
 
 cedille-core: $(CEDILLE_CORE) Makefile
-	ghc -O -o ./CedilleCore -Werror -rtsopts -i./ CedilleCore.hs --make
+	ghc -O -o ./CedilleCore -Werror -rtsopts -dynamic -i./ CedilleCore.hs --make
 	mv CedilleCore cedille-core
 
 cedille-core-static: $(CEDILLE_CORE) Makefile

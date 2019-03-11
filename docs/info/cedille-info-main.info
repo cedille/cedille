@@ -209,6 +209,29 @@ output vectors are the same.
 If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
 with some term t’, the notation in Cedille is t -t’.
 
+1.2.4 Datatype notations
+------------------------
+
+As already mentioned, the above constructs of Cedille are sufficient to
+derive induction for a class of datatypes, including parametrized and
+indexed ones, that are useful for programming and proving in practice.
+Starting with Cedille 1.1, we have added direct support for datatype
+notations.  One can declare datatypes using syntax similar to that of
+languages like Coq or Agda, and define functions using pattern matching
+and pattern-matching recursion.  Unlike Coq and Agda (as implemented at
+the time of writing), though, Cedille’s datatype notations elaborate to
+Cedille Core (see *Note tooling::), which does not have any built-in
+notion of datatypes, only the pure type theory of CDLE. One additional
+difference from the datatype notations of Coq and Agda is that Cedille’s
+pattern-matching recursion supports histomorphic recursion, where one
+can iteratively extract subdata from a pattern variable and then make a
+recursive call (on the extracted subdata).  This subsumes nested
+pattern-matching, although we do not at present support nested-pattern
+syntax (we are considering possibly adding this in a subsequent
+release).  For examples of the basics of datatypes in Cedille, see
+‘language-overview/datatypes.ced’, and for an example of histomorphic
+recursion see ‘language-overview/cov-pattern-matching.ced’.
+
 1.3 More reading
 ================
 
@@ -242,12 +265,22 @@ information about the current node (the inspect buffer), current typing
 context, meta-variable solutions, and summary information for the source
 file.
 
-Additionally, one can request that Cedille compile a given source buffer
-and its dependencies to Cedille Core, a much more minimalistic core type
-theory lacking many of the nice features of Cedille, especially
-spine-local type inference.  ‘core’ contains an implementation of
-Cedille Core in Haskell.  There is a specification of Cedille Core here
-(https://github.com/astump/cedille-core-spec).
+Additionally, one can request that Cedille elaborate a given source
+buffer and its dependencies to Cedille Core, a much more minimalistic
+core type theory lacking many of the nice features of Cedille,
+especially spine-local type inference.  ‘core’ contains an
+implementation of Cedille Core in Haskell.  There is a specification of
+Cedille Core here (https://github.com/astump/cedille-core-spec).  To
+elaborate a source file and its dependencies, use keystroke “E” in
+Cedille navigation mode.  You will be prompted for the name of a
+directory into which to store the elaborated files.  These are written
+as .cdle files.  Opening a .cdle file in emacs (with Cedille installed)
+will initiate a cdle emacs mode, whose main purpose is to support typing
+“Meta-s” to check the cdle file with the Cedille Core checker.  At
+present, the elaborated files are rather big and generally will not be
+checkable all at once in regular Cedille.  Cedille Core is a subset of
+Cedille, though, and so you can check selections from these files
+directly in Cedille (not just in Cedille Core).
 
 2.1 Spans
 =========
@@ -935,8 +968,8 @@ File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up:
 25 Credits
 **********
 
-Fall 2018:
-==========
+Fall 2018-Winter 2019:
+======================
 
 Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew
 Marmaduke, Colin McDonald, Aaron Stump
@@ -1027,19 +1060,19 @@ Index
 Tag Table:
 Node: Top95
 Node: about1072
-Node: tooling11005
-Node: cedille mode commands15985
-Node: unicode shortcuts19407
-Node: extra buffers21596
-Node: inspect buffer23086
-Node: summary buffer24427
-Node: meta-vars buffer25386
-Node: beta-reduce mode26563
-Node: context buffer27826
-Node: options29999
-Node: roadmap31251
-Node: credits32517
-Node: Index33884
+Node: tooling12389
+Node: cedille mode commands18054
+Node: unicode shortcuts21476
+Node: extra buffers23665
+Node: inspect buffer25155
+Node: summary buffer26496
+Node: meta-vars buffer27455
+Node: beta-reduce mode28632
+Node: context buffer29895
+Node: options32068
+Node: roadmap33320
+Node: credits34586
+Node: Index35977
 
 End Tag Table
 

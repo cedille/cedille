@@ -172,6 +172,29 @@ and output vectors are the same.
 If one has a term t of type ∀ x : T . T' and wishes to instantiate x
 with some term t', the notation in Cedille is t -t'.
 
+@subsection Datatype notations
+
+As already mentioned, the above constructs of Cedille are sufficient
+to derive induction for a class of datatypes, including parametrized
+and indexed ones, that are useful for programming and proving in
+practice.  Starting with Cedille 1.1, we have added direct support for
+datatype notations.  One can declare datatypes using syntax similar to
+that of languages like Coq or Agda, and define functions using pattern
+matching and pattern-matching recursion.  Unlike Coq and Agda (as
+implemented at the time of writing), though, Cedille's datatype
+notations elaborate to Cedille Core (see @xref{tooling}), which does
+not have any built-in notion of datatypes, only the pure type theory
+of CDLE.  One additional difference from the datatype notations of Coq
+and Agda is that Cedille's pattern-matching recursion supports
+histomorphic recursion, where one can iteratively extract subdata from
+a pattern variable and then make a recursive call (on the extracted
+subdata).  This subsumes nested pattern-matching, although we do not
+at present support nested-pattern syntax (we are considering possibly
+adding this in a subsequent release).  For examples of the basics of
+datatypes in Cedille, see @code{language-overview/datatypes.ced}, and
+for an example of histomorphic recursion see @code{language-overview/cov-pattern-matching.ced}.
+
+
 @section More reading 
 
 The syntax and semantics of Cedille are described in this document
