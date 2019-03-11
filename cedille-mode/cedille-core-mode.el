@@ -54,7 +54,7 @@
   (make-cedille-mode-info-display-page "cdle mode"))
 
 (define-minor-mode cdle-mode
-  "Major mode for Cedille Core (.cdle) files"
+  "Minor mode for Cedille Core (.cdle) files"
   :init-value nil
   :lighter " cdle"
   :keymap cdle-keymap
