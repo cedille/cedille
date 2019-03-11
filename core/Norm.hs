@@ -43,7 +43,7 @@ tpKdIsType (TpKdTp _) = True
 tpKdIsType (TpKdKd _) = False
 
 --substTerm :: Ctxt -> PureTerm -> PureTerm
-substTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlySubst c)) (ctxtLookupInternalTerm c v)
+substTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlyRename c)) (ctxtLookupInternalTerm c v)
 substTerm c (PureApp tm tm') = PureApp (substTerm c tm) (substTerm c tm')
 substTerm c (PureLambda v tm) = freshVar c v $ \ v' ->
   PureLambda v' (substTerm (ctxtRename c v v') tm)
@@ -53,7 +53,7 @@ substKind = hnfKind . ctxtClearExternals
 substTpKd = hnfTpKd . ctxtClearExternals
 
 --hnfTerm :: Ctxt -> PureTerm -> PureTerm
-hnfTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlySubst c)) (ctxtLookupTermVar c v)
+hnfTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlyRename c)) (ctxtLookupTermVar c v)
 hnfTerm c (PureApp tm tm') = case hnfTerm c tm of
   PureLambda v tm'' -> hnfTerm (ctxtInternalDef c v (Left (hnfTerm c tm'))) tm''
   tm'' -> PureApp tm'' (substTerm c tm')
@@ -67,7 +67,7 @@ hnfTerm c (PureLambda v tm) = freshVar c v $ \ v' ->
     _ -> etm
   
 --hnfType :: Ctxt -> PureType -> PureType
-hnfType c (TpVar v) = maybe (TpVar (ctxtRep c v)) (substType (ctxtOnlySubst c)) (ctxtLookupTypeVar c v)
+hnfType c (TpVar v) = maybe (TpVar (ctxtRep c v)) (substType (ctxtOnlyRename c)) (ctxtLookupTypeVar c v)
 hnfType c (TpLambda v tk tp) = freshVar c v $ \ v' ->
   let c' = ctxtRename c v v'
       tp' = hnfType c' tp

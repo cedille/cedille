@@ -18,4 +18,4 @@ clean:
 	rm cedille-core
 
 profiling:
-	ghc -prof -auto-all -o cedille-core CedilleCore.hs
+	ghc -prof -auto-all -O2 -Werror -rtsopts -o cedille-core CedilleCore.hs --make
