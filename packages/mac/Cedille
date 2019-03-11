@@ -2,7 +2,11 @@
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
-open -a Emacs --args --execute '(setq cedille-path "'$SCRIPTPATH/bin'")' --execute "(add-to-list 'load-path cedille-path)" --execute "(require 'cedille-mode)"
+osascript -e 'display notification "Attempting to open an instance of Emacs..." with title "Cedille"'
+open -n -a Emacs --args --execute '(setq cedille-path "'$SCRIPTPATH/bin'")' --execute "(add-to-list 'load-path cedille-path)" --execute "(require 'cedille-mode)"
+if [ $? -ne 0 ] ; then
+  osascript -e 'display notification "Emacs must be installed as a Mac App" with title "Cedille"'
+fi
 
 # Note that this file HAS A SIZE REQUIREMENT
 # Meaning, you should be careful when you remove comments

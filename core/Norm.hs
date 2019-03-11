@@ -86,7 +86,7 @@ hnfType c (TpPi v tp tp') =
 hnfType c (TpIota v tp tp') =
   freshVar c v $ \ v' -> TpIota v' (substType c tp) (substType (ctxtRename c v v') tp')
 hnfType c (TpAppTp tp tp') = case hnfType c tp of
-  TpLambda v (TpKdKd _) tp'' -> substType (ctxtInternalDef c v (Right (hnfType (ctxtRename c v v) tp'))) tp''
+  TpLambda v (TpKdKd _) tp'' -> hnfType (ctxtInternalDef c v (Right (hnfType (ctxtRename c v v) tp'))) tp''
   tp'' -> TpAppTp tp'' (substType c tp')
 hnfType c (TpAppTm tp tm) = case hnfType c tp of
   TpLambda v (TpKdTp _) tp' -> substType (ctxtInternalDef c v (Left (hnfTerm (ctxtRename c v v) tm))) tp'
@@ -107,45 +107,55 @@ hnfeType c = hnfType c . eraseType
 hnfeKind c = hnfKind c . eraseKind
 hnfeTpKd c = hnfTpKd c . eraseTpKd
 
-convTerm c tm tm' = convTerm' c tm tm' || convTerm' c (hnfTerm c tm) (hnfTerm c tm')
-convType c tp tp' = convType' c tp tp' || convType' c (hnfType c tp) (hnfType c tp')
+convTerm c = convTermh (c, c)
+convType c = convTypeh (c, c)
 
---convTerm' :: Ctxt -> PureTerm -> PureTerm -> Bool
-convTerm' c (PureVar v) (PureVar v') = ctxtRep c v == ctxtRep c v'
-convTerm' c (PureLambda v tm) (PureLambda v' tm') = convTerm' (ctxtRename c v v') tm tm'
-convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convTerm c tm' tm'''
+convTermh c tm tm' = convTerm' c tm tm' || convTerm' c (hnfTerm (fst c) tm) (hnfTerm (snd c) tm')
+convTypeh c tp tp' = convType' c tp tp' || convType' c (hnfType (fst c) tp) (hnfType (snd c) tp')
+ 
+
+--convTerm' :: (Ctxt, Ctxt) -> PureTerm -> PureTerm -> Bool
+convTerm' (c, c') (PureVar v) (PureVar v') = ctxtRep c v == ctxtRep c' v'
+convTerm' (c, c') (PureLambda v tm) (PureLambda v' tm') = freshVar2 (c, c') v v' $ \ v'' -> convTerm' (ctxtRename c v v'', ctxtRename c' v' v'') tm tm'
+convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convTermh c tm' tm'''
 -- For a case like \ x. \ y. x (cast y) == \ x. x, where the head is a
--- locally-bound variable, leading to the argument not being normalized
--- and hence not eta-contracted.
-convTerm' c (PureLambda v tm) tm' = freshVar c v $ \ v' ->
-  convTerm (ctxtRename c v v') tm (PureApp tm' (PureVar v'))
-convTerm' c tm (PureLambda v tm') = freshVar c v $ \ v' ->
-  convTerm (ctxtRename c v v') tm' (PureApp tm (PureVar v'))
+-- locally-bound variable, leading to the argument not being unfolded
+-- and hence the expression not being eta-contracted.
+convTerm' (c, c') (PureLambda v tm) tm' = freshVar2 (c, c') v v $ \ v' ->
+  convTermh (ctxtRename c v v', ctxtRename c' v' v') tm (PureApp tm' (PureVar v'))
+convTerm' (c, c') tm (PureLambda v tm') = freshVar2 (c, c') v v $ \ v' ->
+  convTermh (ctxtRename c v' v', ctxtRename c' v v') (PureApp tm (PureVar v')) tm'
 convTerm' c tm tm' = False
 
---convType' :: Ctxt -> PureType -> PureType -> Bool
-convType' c (TpVar v) (TpVar v') = ctxtRep c v == ctxtRep c v'
-convType' c (TpLambda v tk tp) (TpLambda v' tk' tp') = convTpKd c tk tk' && convType' (ctxtRename c v v') tp tp'
-convType' c (TpAll v tk tp) (TpAll v' tk' tp') = convTpKd c tk tk' && convType' (ctxtRename c v v') tp tp'
-convType' c (TpPi v tp tp') (TpPi v' tp'' tp''') = convType c tp tp'' && convType' (ctxtRename c v v') tp' tp'''
-convType' c (TpIota v tp tp') (TpIota v' tp'' tp''') = convType c tp tp'' && convType (ctxtRename c v v') tp' tp'''
-convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTerm c tm tm'' && convTerm c tm' tm'''
-convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convType c tp' tp'''
-convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTerm c tm tm'
-convType' c (TpLambda v tk tp) tp' = freshVar c v $ \ v' ->
-  convType (ctxtRename c v v') tp (if tpKdIsType tk then TpAppTm tp' (PureVar v') else TpAppTp tp' (TpVar v'))
-convType' c tp (TpLambda v tk tp') = freshVar c v $ \ v' ->
-  convType (ctxtRename c v v') tp' (if tpKdIsType tk then TpAppTm tp (PureVar v') else TpAppTp tp (TpVar v'))
+--convType' :: (Ctxt, Ctxt) -> PureType -> PureType -> Bool
+convType' (c, c') (TpVar v) (TpVar v') = ctxtRep c v == ctxtRep c' v'
+convType' (c, c') (TpLambda v tk tp) (TpLambda v' tk' tp') = freshVar2 (c, c') v v' $ \ v'' -> convTpKdh (c, c') tk tk' && convType' (ctxtRename c v v'', ctxtRename c' v' v'') tp tp'
+convType' (c, c') (TpAll v tk tp) (TpAll v' tk' tp') = freshVar2 (c, c') v v' $ \ v'' -> convTpKdh (c, c') tk tk' && convType' (ctxtRename c v v'', ctxtRename c' v' v'') tp tp'
+convType' (c, c') (TpPi v tp tp') (TpPi v' tp'' tp''') = freshVar2 (c, c') v v' $ \ v'' -> convTypeh (c, c') tp tp'' && convType' (ctxtRename c v v'', ctxtRename c' v' v'') tp' tp'''
+convType' (c, c') (TpIota v tp tp') (TpIota v' tp'' tp''') = freshVar2 (c, c') v v' $ \ v'' -> convTypeh (c, c') tp tp'' && convTypeh (ctxtRename c v v'', ctxtRename c' v' v'') tp' tp'''
+convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTermh c tm tm'' && convTermh c tm' tm'''
+convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convTypeh c tp' tp'''
+convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTermh c tm tm'
+convType' (c, c') (TpLambda v tk tp) tp' = freshVar2 (c, c') v v $ \ v' ->
+  convTypeh (ctxtRename c v v', ctxtRename c' v' v') tp (if tpKdIsType tk then TpAppTm tp' (PureVar v') else TpAppTp tp' (TpVar v'))
+convType' (c, c') tp (TpLambda v tk tp') = freshVar2 (c, c') v v $ \ v' ->
+  convTypeh (ctxtRename c v' v', ctxtRename c' v v') (if tpKdIsType tk then TpAppTm tp (PureVar v') else TpAppTp tp (TpVar v')) tp'
 convType' c tp tp' = False
 
---convKind' :: Ctxt -> PureKind -> PureKind -> Bool
-convKind c Star Star = True
-convKind c (KdPi v tk kd) (KdPi v' tk' kd') = convTpKd c tk tk' && convKind (ctxtRename c v v') kd kd'
-convKind _ _ _ = False
 
-convTpKd c (TpKdTp tp) (TpKdTp tp') = convType c tp tp'
-convTpKd c (TpKdKd kd) (TpKdKd kd') = convKind c kd kd'
-convTpKd _ _ _ = False
+convKind c = convKindh (c, c)
+--convKindh :: (Ctxt, Ctxt) -> PureKind -> PureKind -> Bool
+convKindh c Star Star = True
+convKindh (c, c') (KdPi v tk kd) (KdPi v' tk' kd') = freshVar2 (c, c') v v' $ \ v'' -> convTpKdh (c, c') tk tk' && convKindh (ctxtRename c v v'', ctxtRename c' v' v'') kd kd'
+convKindh _ _ _ = False
+
+--convTpKd :: Ctxt -> PureTpKd -> PureTpKd -> Bool
+convTpKd c = convTpKdh (c, c)
+
+convTpKdh c (TpKdTp tp) (TpKdTp tp') = convTypeh c tp tp'
+convTpKdh c (TpKdKd kd) (TpKdKd kd') = convKindh c kd kd'
+convTpKdh _ _ _ = False
+
 
 --freeInTerm :: Var -> PureTerm -> Bool
 freeInTerm v (PureVar v') = v == v'

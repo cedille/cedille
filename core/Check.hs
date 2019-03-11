@@ -92,7 +92,7 @@ synthTerm' c (TmIota tm tm' v tp) =
       tm'' = eraseTerm tm
       tm''' = eraseTerm tm'
       htm'' = hnfTerm c tm'' in
-  errIfNot (convTerm' c htm'' (hnfTerm c tm''')) ("In an iota pair, " ++ show htm'' ++ " != " ++ show (hnfTerm c tm''')) >>
+  errIfNot (convTerm' (c, c) htm'' (hnfTerm c tm''')) ("In an iota pair, " ++ show htm'' ++ " != " ++ show (hnfTerm c tm''')) >>
   errIfNot (convType (ctxtInternalDef c v (Left htm'')) tp' rtp) "Inconvertible types in an iota pair" >>
   Right (TpIota v ltp tp')
 synthTerm' c (TmLetTm v tm tm') =
