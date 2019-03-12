@@ -8,7 +8,7 @@
   .cdle files from within emacs using the Cedille Core checker.
 - colon is now allowed instead of left triangle for classifications.
 - better support for implicit arguments with let-terms; see
-  language-overview/let.ced.
+  language-overview/local-definitions.ced.
 - reversed the direction of rewriting for synthesizing rhos, for the
   benefit of checking in Cedille Core
 - various bug fixes 

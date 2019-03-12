@@ -172,6 +172,12 @@ and output vectors are the same.
 If one has a term t of type ∀ x : T . T' and wishes to instantiate x
 with some term t', the notation in Cedille is t -t'.
 
+Finally, one sometimes wishes to give a binding for a more complex
+specificational term for use within an expression. To facilitate this
+Cedille has notation for erased let-bindings @{x : T = t@} - t2, where
+x is the bound variable, t1 its definition, and t2 and expression where
+x is in scope. The syntax for ordinary let-bindings is [x : T = t1] - t2
+
 @subsection Datatype notations
 
 As already mentioned, the above constructs of Cedille are sufficient

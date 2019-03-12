@@ -1,4 +1,4 @@
-This is cedille-info-main.info, produced by makeinfo version 6.5 from
+This is cedille-info-main.info, produced by makeinfo version 6.1 from
 cedille-info-main.texi.
 
 
@@ -208,6 +208,12 @@ output vectors are the same.
 
 If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
 with some term t’, the notation in Cedille is t -t’.
+
+Finally, one sometimes wishes to give a binding for a more complex
+specificational term for use within an expression.  To facillitate this
+Cedille has notation for erased let-bindings {x : T = t} - t2, where x
+is the bound variable, t1 its definiition, and t2 and expression where x
+is in scope.  The syntax for ordinary let-bindings is [x : T = t1] - t2
 
 1.2.4 Datatype notations
 ------------------------
@@ -1060,19 +1066,19 @@ Index
 Tag Table:
 Node: Top95
 Node: about1072
-Node: tooling12389
-Node: cedille mode commands18054
-Node: unicode shortcuts21476
-Node: extra buffers23665
-Node: inspect buffer25155
-Node: summary buffer26496
-Node: meta-vars buffer27455
-Node: beta-reduce mode28632
-Node: context buffer29895
-Node: options32068
-Node: roadmap33320
-Node: credits34586
-Node: Index35977
+Node: tooling12745
+Node: cedille mode commands18410
+Node: unicode shortcuts21832
+Node: extra buffers24021
+Node: inspect buffer25511
+Node: summary buffer26852
+Node: meta-vars buffer27811
+Node: beta-reduce mode28988
+Node: context buffer30251
+Node: options32424
+Node: roadmap33676
+Node: credits34942
+Node: Index36333
 
 End Tag Table
 
