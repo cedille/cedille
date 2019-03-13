@@ -124,11 +124,11 @@ synthTerm' c (Sigma tm) = synthTerm c tm >>= \ tp -> case tp of
   (TpEq ltm rtm) -> Right (TpEq rtm ltm)
   _ -> err "Expected to synthesize an equational type from the body of a sigma term"
 synthTerm' c (Delta tp tm) =
-  freshVar c "x" $ \ x ->
-  freshVar c "y" $ \ y ->
   synthTerm c tm >>= \ tp' ->
-  let tt = PureLambda x (PureLambda y (PureVar x)) in
-  let ff = PureLambda x (PureLambda y (PureVar y)) in
+  let x = freshVar c "x"
+      y = freshVar c "y"
+      tt = PureLambda x (PureLambda y (PureVar x))
+      ff = PureLambda x (PureLambda y (PureVar y)) in
   isValidType c tp >>
   errIfNot (convType c tp' (TpEq tt ff))
     "Could not synthesize a contradiction from the body of a delta term" >>

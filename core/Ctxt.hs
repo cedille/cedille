@@ -1,6 +1,20 @@
 module Ctxt where
 import Types
 
+
+freshVars = ['a'..'z']
+freshVarsNum = length freshVars
+
+-- Evaluate "truncate (realToFrac (log 1000) / realToFrac (log 10))" to see why this is necessary
+mylog base a
+  | a >= base = succ (mylog base (a `div` base))
+  | otherwise = 0
+
+calcVar i = h "" (mylog freshVarsNum i) i where
+  h v 0 i = reverse (freshVars !! i : v)
+  h v place i =
+    h (freshVars !! (i `div` freshVarsNum ^ place) : v) (pred place) (i - (i `div` freshVarsNum ^ place) * freshVarsNum ^ place)
+
 -- Ordered Assoc List
 type Oal a b = [(a, b)]
 
@@ -25,8 +39,11 @@ data Trie a = Trie (Maybe a) (Oal Char (Trie a))
 
 emptyTrie = Trie Nothing []
 
+trieSingle "" v = Trie (Just v) []
+trieSingle (c : cs) v = Trie Nothing [(c, trieSingle cs v)]
+
 trieInsert' (Trie a os) (c : cs) v =
-  Trie a $ oalMod os c $ maybe (maybe emptyTrie (trieInsert' emptyTrie cs . Just) v) $ \ t -> trieInsert' t cs v
+  Trie a $ oalMod os c $ maybe (maybe emptyTrie (trieSingle cs) v) $ \ t -> trieInsert' t cs v
 trieInsert' (Trie _ os) "" v = Trie v os
 
 trieInsert t k = trieInsert' t k . Just
@@ -142,37 +159,12 @@ ctxtRep (Ctxt es is vs rs as) = varMapRep vs
 --ctxtBindsVar :: Ctxt -> Var -> Bool
 ctxtBindsVar (Ctxt es is vs rs as) v = trieMember as v
 
---freshVar :: Ctxt -> Var -> (Var -> a) -> a
-freshVar c "_" f = f "_"
-freshVar (Ctxt es is vs rs as) v f = f (v ++ h (trieAt as v) "") where
-  boundAt t = maybe False (const True) (t >>= \ (Trie a _) -> a)
-  luif t = t >>= \ (Trie _ os) -> oalLookup os '\''
+freshVar c "_" = "_"
+freshVar (Ctxt _ _ _ _ as) v = maybe v (\ t -> v ++ h t 0) (trieAt as v) where
+  h t i = let v = calcVar i in if trieMember t v then h t (succ i) else v
 
-  h t acc
-    | boundAt t = h (luif t) ('\'' : acc)
-    | otherwise = acc
-
-freshVar2 c "_" "_" f = f "_"
-freshVar2 c "_" v f = freshVar2 c v v f
-freshVar2 c v "_" f = freshVar2 c v v f
-freshVar2 (Ctxt _ _ _ _ t1, Ctxt _ _ _ _ t2) v _ f = f (v ++ h (trieAt t1 v) (trieAt t2 v) {-(trieAt t3 v) (trieAt t4 v) (trieAt t5 v) (trieAt t6 v) (trieAt t7 v) (trieAt t8 v)-} "") where
-  boundAt t = maybe False (const True) (t >>= \ (Trie a _) -> a)
-  luif t = t >>= \ (Trie _ os) -> oalLookup os '\''
-
-  h t1 t2  acc
-    | boundAt t1 || boundAt t2 =
-      h (luif t1) (luif t2) ('\'' : acc)
-    | otherwise = acc
-
-{-
-freshVar2 (Ctxt t1 t2 t3 t4, Ctxt t5 t6 t7 t8) v _ f = f (v ++ h (trieAt t1 v) (trieAt t2 v) (trieAt t3 v) (trieAt t4 v) (trieAt t5 v) (trieAt t6 v) (trieAt t7 v) (trieAt t8 v) "") where
-  boundAt t = maybe False (const True) (t >>= \ (Trie a _) -> a)
-  luif t = t >>= \ (Trie _ os) -> oalLookup os '\''
-
-  h t1 t2 t3 t4 t5 t6 t7 t8 acc
-    | boundAt t1 || boundAt t2 || boundAt t3 || boundAt t4 ||
-      boundAt t5 || boundAt t6 || boundAt t7 || boundAt t8 =
-      h (luif t1) (luif t2) (luif t3) (luif t4)
-        (luif t5) (luif t6) (luif t7) (luif t8) ('\'' : acc)
-    | otherwise = acc
--}
+freshVar2 c "_" "_" = "_"
+freshVar2 c "_" v = freshVar2 c v v
+freshVar2 c v "_" = freshVar2 c v v
+freshVar2 (Ctxt _ _ _ _ as, Ctxt _ _ _ _ as') v _ = h (maybe emptyTrie id $ trieAt as v) (maybe emptyTrie id $ trieAt as' v) 0 where
+  h t t' i = let v = calcVar i in if trieMember t v || trieMember t' v then h t t' (succ i) else v
