@@ -166,6 +166,9 @@ module main-with-options
   fileBaseName : filepath → string
   fileBaseName fn = base-filename (takeFileName fn)
 
+  fileSuffix : filepath → string
+  fileSuffix = maybe-else cedille-extension id ∘ var-suffix
+
   {-------------------------------------------------------------------------------
     .cede support
   -------------------------------------------------------------------------------}
@@ -216,11 +219,11 @@ module main-with-options
           finish (just ss)  | ('e' :: ss') = forceFileRead ss >>r tt , 𝕃char-to-string ss'
           finish (just ss) | _ = forceFileRead ss >>r ff , ss
 
-  add-cedille-extension : string → string
-  add-cedille-extension x = x ^ "." ^ cedille-extension
+  --add-cedille-extension : string → string
+  --add-cedille-extension x = x ^ "." ^ cedille-extension
 
-  add-cdle-extension : string → string
-  add-cdle-extension x = x ^ "." ^ cdle-extension
+  --add-cdle-extension : string → string
+  --add-cdle-extension x = x ^ "." ^ cdle-extension
 
   -- Allows you to say "import FOO.BAR.BAZ" rather than "import FOO/BAR/BAZ"
   replace-dots : filepath → filepath
@@ -231,22 +234,29 @@ module main-with-options
     h (c :: cs) = c :: h cs
     h [] = []
   
-  find-imported-file : (dirs : 𝕃 filepath) → (unit-name : string) → IO (maybe filepath)
-  find-imported-file [] unit-name = return nothing
-  find-imported-file (dir :: dirs) unit-name =
+  find-imported-file : (sfx : string) → (dirs : 𝕃 filepath) → (unit-name : string) → IO (maybe filepath)
+  find-imported-file sfx [] unit-name = return nothing
+  find-imported-file sfx (dir :: dirs) unit-name =
+    let e = combineFileNames dir (unit-name ^ "." ^ sfx) in
+    doesFileExist e >>= λ where
+      tt → canonicalizePath e >>=r just
+      ff → find-imported-file sfx dirs unit-name
+{-
+  find-imported-file sfx (dir :: dirs) unit-name =
       let e₁ = combineFileNames dir (add-cedille-extension unit-name)
           e₂ = combineFileNames dir (add-cdle-extension unit-name)
           e? = λ e → doesFileExist e >>=r λ e? → maybe-if e? ≫maybe just e in
       (e? e₁ >>= λ e₁ → e? e₂ >>=r λ e₂ → e₁ maybe-or e₂) >>= λ where
-        nothing → find-imported-file dirs unit-name
+        nothing → find-imported-file sfx dirs unit-name
         (just e) → canonicalizePath e >>=r just
+-}
 
-  find-imported-files : (dirs : 𝕃 filepath) → (imports : 𝕃 string) → IO (𝕃 (string × filepath))
-  find-imported-files dirs (u :: us) =
-    find-imported-file dirs (replace-dots u) >>= λ where
-      nothing → logMsg ("Error finding file: " ^ replace-dots u) >> find-imported-files dirs us
-      (just fp) → logMsg ("Found import: " ^ fp) >> find-imported-files dirs us >>=r (u , fp) ::_
-  find-imported-files dirs [] = return []
+  find-imported-files : (sfx : string) → (dirs : 𝕃 filepath) → (imports : 𝕃 string) → IO (𝕃 (string × filepath))
+  find-imported-files sfx dirs (u :: us) =
+    find-imported-file sfx dirs (replace-dots u) >>= λ where
+      nothing → logMsg ("Error finding file: " ^ replace-dots u) >> find-imported-files sfx dirs us
+      (just fp) → logMsg ("Found import: " ^ fp) >> find-imported-files sfx dirs us >>=r (u , fp) ::_
+  find-imported-files sfx dirs [] = return []
 
   {- new parser test integration -}
   reparse : toplevel-state → filepath → IO toplevel-state
@@ -265,7 +275,7 @@ module main-with-options
           processText x | Left (Left cs)  = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Lexical error." cs)
           processText x | Left (Right cs) = return (error-span-include-elt ("Error in file " ^ filename ^ ".") "Parsing error." cs)        
           processText x | Right t  with cws-types.scanComments x 
-          processText x | Right t | t2 = find-imported-files (fst (cedille-options.include-path-insert (takeDirectory filename) (toplevel-state.include-path st)))
+          processText x | Right t | t2 = find-imported-files (fileSuffix filename) (fst (cedille-options.include-path-insert (takeDirectory filename) (toplevel-state.include-path st)))
                                                              (get-imports t) >>= λ deps →
                                          logMsg ("deps for file " ^ filename ^ ": " ^ 𝕃-to-string (λ {(a , b) → "short: " ^ a ^ ", long: " ^ b}) ", " deps) >>r
                                          new-include-elt filename deps t t2 nothing
