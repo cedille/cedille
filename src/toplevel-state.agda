@@ -189,7 +189,7 @@ sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
 sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
 
 qualif-to-string : qualif-info → string
-qualif-to-string (x , as) = x ^ rope-to-string (fst (args-to-string as {TERM} [[]] 0 [] (new-ctxt "" "") nothing neither))
+qualif-to-string (x , as) = x ^ rope-to-string (doc-to-rope $ fst (args-to-string as {TERM} NIL 0 [] (new-ctxt "" "") nothing neither)) where open import pretty
 
 mod-info-to-string : mod-info → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
