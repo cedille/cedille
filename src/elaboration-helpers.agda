@@ -489,7 +489,7 @@ parameterize-file Γ ps cs = foldr {B = qualif → cmds}
 open import cedille-syntax
 
 mk-def : term → term
-mk-def t = φ β - t [ |` t `| ]
+mk-def t = φ β< |` t `| > - t [ |` t `| ]
 
 mk-ctr-term : maybeErased → (x X : var) → ctrs → params → term
 mk-ctr-term me x X cs ps =
