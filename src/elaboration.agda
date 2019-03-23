@@ -110,18 +110,19 @@ module elab-x (μ : trie encoded-datatype) where
     elab-type Γ T ≫=maybe uncurry λ T k →
     just (AppTp t T)
   elab-check-term Γ (Beta pi ot ot') T =
-    rename "x/x" from Γ for λ x →
+    rename "x" {-"x/x"-} from Γ for λ x →
     let idₜ = mlam x $ mvar x
-        ot'' = case ot' of λ where           -- vvv 'ρ' so that synth'd type is correct
-                 NoTerm → just (idₜ , λ t₁ t₂ → mrho (mbeta t₂ idₜ) x (mtpeq t₁ $ mvar x))
-                 (SomeTerm t _) → elab-pure-term Γ (erase-term t) ≫=maybe λ t → just (t , λ t₁ t₂ t → t) in
-    elab-hnf-type Γ T ff ≫=maybe λ where
+        Γ' = ctxt-var-decl x Γ in
+    optTerm-elim ot' (just idₜ) (elab-pure-term Γ ∘ erase) ≫=maybe λ tₑ →
+    optTerm-elim ot
+      (just λ t₁ t₂ → mrho (mbeta t₂ idₜ) x (mtpeq t₁ $ mvar x) $ mbeta t₁ tₑ)
+      (λ t → elab-pure-term Γ' (erase t) ≫=maybe λ t → just λ _ _ → mbeta t tₑ)
+      ≫=maybe λ f →
+    elab-hnf-type Γ' T ff ≫=maybe λ where
       (TpEq _ t₁ t₂ _) →
-        ot'' ≫=maybe uncurry λ tₑ f →
-        let Γ' = ctxt-var-decl x Γ in
         elab-pure-term Γ' t₁ ≫=maybe λ t₁ →
         elab-pure-term Γ' t₂ ≫=maybe λ t₂ →
-        just $ f t₁ t₂ $ mbeta t₁ tₑ
+        just $ f t₁ t₂
       _ → nothing
   elab-check-term Γ (Chi pi mT t) T = case mT of λ where
     NoType → maybe-map fst (elab-synth-term Γ t)
@@ -293,16 +294,13 @@ module elab-x (μ : trie encoded-datatype) where
           just (AppTp t T , T'')
       _ → nothing
   elab-synth-term Γ (Beta pi ot ot') =
-    let id = fresh-id-term Γ
-        ot'' = case ot' of λ where
-                 NoTerm → just id
-                 (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
-    case ot of λ where
-      (SomeTerm t _) →
-        elab-pure-term Γ (erase-term t) ≫=maybe λ t →
-        ot'' ≫=maybe λ t' →
-        just (mbeta t t' , mtpeq t t)
-      NoTerm → nothing
+    rename "x" from Γ for λ x →
+    let id = mlam x $ mvar x
+        Γ' = ctxt-var-decl x Γ in
+    optTerm-elim ot nothing λ t →
+    elab-pure-term Γ' (erase-term t) ≫=maybe λ t →
+    optTerm-elim ot' (just id) (elab-pure-term Γ ∘ erase) ≫=maybe λ t' →
+    just (mbeta t t' , mtpeq t t)
   elab-synth-term Γ (Chi pi mT t) = case mT of λ where
     NoType → elab-synth-term Γ t
     (SomeType T') →
