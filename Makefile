@@ -43,7 +43,8 @@ AGDASRC = \
 	datatype-functions.agda \
 	bohm-out.agda \
 	cedille-syntax.agda \
-	erase.agda
+	erase.agda \
+	pretty.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \
