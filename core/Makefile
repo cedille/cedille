@@ -8,7 +8,7 @@ cedille-core: $(CEDILLE_CORE) Makefile
 	mv CedilleCore cedille-core
 
 cedille-core-static: $(CEDILLE_CORE) Makefile
-	ghc -O -o cedille-core -Werror -rtsopts -optl-static -optl-pthread -i./ CedilleCore.hs --make
+	ghc -O -o cedille-core-static -Werror -rtsopts -optl-static -optl-pthread -i./ CedilleCore.hs --make
 
 cedille-core-lines:
 	wc -l $(CEDILLE_CORE)
