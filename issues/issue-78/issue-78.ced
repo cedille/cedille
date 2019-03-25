@@ -1,0 +1,16 @@
+module issue-78.
+
+data Nat: ★ =
+  | zero: Nat
+  | suc:  Nat ➔ Nat.
+
+data List (A: ★): ★ =
+  | nil:  List
+  | cons: A ➔ List ➔ List.
+
+data Vec (A: ★): Nat ➔ ★ =
+  | vnil:  Vec zero
+  | vcons: ∀ n: Nat. A ➔ Vec n ➔ Vec (suc n).
+
+_ : {nil ≃ vnil}   = β.
+_ : {cons ≃ vcons} = β.
