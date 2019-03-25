@@ -297,6 +297,7 @@ ctrs-to-string : ctrs → strM
 case-to-string : case → strM
 cases-to-string : cases → strM
 caseArgs-to-string : caseArgs → strM → strM
+let-to-string : maybeErased → defTermOrType → strM → strM
 
 params-to-string : params → strM
 params-to-string' : strM → params → strM
@@ -325,6 +326,10 @@ maybeMinus-to-string : maybeMinus → string
 optPlus-to-string : rhoHnf → string
 optPublic-to-string : optPublic → string
 optAs-to-string : optAs → strM
+bracketL : maybeErased → string
+bracketR : maybeErased → string
+braceL : maybeErased → string
+braceR : maybeErased → string
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
 to-string-ed{TERM} = term-to-stringh
@@ -350,15 +355,6 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
-
-private
-  let-lbrack-to-string : forceErased → string
-  let-lbrack-to-string tt = "{ "
-  let-lbrack-to-string ff = "[ "
-
-  let-rbrack-to-string : forceErased → string
-  let-rbrack-to-string tt = " } - "
-  let-rbrack-to-string ff = " ] - "
 
 set-parent : ∀ {ed} → ⟦ ed ⟧ → strM → strM
 set-parent t m s n ts Γ _ lr = m s n ts Γ (just t) lr
@@ -391,17 +387,13 @@ term-to-stringh (App t me t') = apps-to-string (App t me t')
 term-to-stringh (AppTp t T) = apps-to-string (AppTp t T)
 term-to-stringh (Beta pi ot ot') = strBreak 3 0 (strAdd "β") 2 (optTerm-to-string ot "< " " >") 2 (optTerm-to-string ot' "{ " " }")
 term-to-stringh (Chi pi mT t) = strBreak 3 0 (strAdd "χ") 2 (optType-to-string "" mT ≫str strAdd " -") 2 (to-stringr t)
-term-to-stringh (Delta pi mT t) = strBreak 3 0 (strAdd "δ") 2 (optType-to-string "" mT ≫str strAdd " -") 2 (to-stringr t) --strAdd "δ" ≫str optType-to-string " " mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Delta pi mT t) = strBreak 3 0 (strAdd "δ") 2 (optType-to-string "" mT ≫str strAdd " -") 2 (to-stringr t)
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
-term-to-stringh (IotaPair pi t t' og pi') = strBracket '[' ']' (strBreak 3 0 (to-stringh t ≫str strAdd ",") 0 (to-stringh t') 0 (optGuide-to-string og)) --strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
+term-to-stringh (IotaPair pi t t' og pi') = strBreak 3 1 (strAdd "[ " ≫str to-stringh t ≫str strAdd ",") 1 (to-stringh t') 1 (optGuide-to-string og ≫str strAdd " ]") --strBracket '[' ']' (strBreak 3 0 (to-stringh t ≫str strAdd ",") 0 (to-stringh t') 0 (optGuide-to-string og))
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
-term-to-stringh (Lam pi l pi' x oc t) = lams-to-string (Lam pi l pi' x oc t) -- strAdd (lam-to-string l) ≫str strAdd " " ≫str strBvar x (optClass-to-string oc) (strAdd " ." ≫str strBreak 2 2 strEmpty (to-stringr t))
-term-to-stringh (Let pi fe dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd (let-lbrack-to-string fe) ≫str strBvar x (maybeCheckType-to-string m
-  ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
---term-to-stringh (Open elab-hide-key o pi' x t) = term-to-stringh t
+term-to-stringh (Lam pi l pi' x oc t) = lams-to-string (Lam pi l pi' x oc t)
+term-to-stringh (Let pi fe dtT t) = let-to-string NotErased dtT (to-stringh t)
 term-to-stringh (Open pi o pi' x t) = strBreak 2 0 (strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " -") 2 (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strBreak 3 0 (strAdd "φ " ≫str to-stringl eq ≫str strAdd " -") 2 (to-stringh t) 2 (strAdd "{ " ≫str to-stringr t' ≫str strAdd " }")
@@ -412,21 +404,19 @@ term-to-stringh (Var pi x) = strVar x
 term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strBreak 3 0 (strAdd " .") 2 (to-stringl t) 2 (optType-to-string "@ " ot)) (strAdd " " ≫str strBracket '{' '}' (cases-to-string cs))
 term-to-stringh (Mu' pi ot t oT pi' cs pi'') = strAdd "μ' " ≫str strBreak 4 0 (optTerm-to-string ot " < " " > ") 2 (to-stringl t) 3 (optType-to-string "@ " oT) 2 (strAdd " " ≫str strBracket '{' '}' (cases-to-string cs))
 
-type-to-stringh (Abs pi b pi' x Tk T) = strBreak 2 3 (strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " . ") strEmpty) 1 (strΓ' localScope x (to-stringh T)) -- strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " . ") (to-stringh T)
+type-to-stringh (Abs pi b pi' x Tk T) = strBreak 2 3 (strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " . ") strEmpty) 1 (strΓ' localScope x (to-stringh T))
 type-to-stringh (Iota pi pi' x T T') = strBreak 2 2 (strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") strEmpty) 2 (strΓ' localScope x (to-stringh T'))
 type-to-stringh (Lft pi pi' x t lT) = strAdd "↑ " ≫str strBvar x (strAdd " . ") (to-stringh t) ≫str strAdd " : " ≫str to-stringh lT
 type-to-stringh (NoSpans T pi) = to-string-ed T
-type-to-stringh (TpApp T T') = apps-to-string (TpApp T T') -- to-stringl T ≫str strAdd " · " ≫str to-stringr T'
-type-to-stringh (TpAppt T t) = apps-to-string (TpAppt T t) -- to-stringl T ≫str strAdd " " ≫str to-stringr t
-type-to-stringh (TpArrow T a T') = strBreak 2 2 (to-stringl T ≫str strAdd (arrowtype-to-string a)) 2 (to-stringr T') -- to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
+type-to-stringh (TpApp T T') = apps-to-string (TpApp T T')
+type-to-stringh (TpAppt T t) = apps-to-string (TpAppt T t)
+type-to-stringh (TpArrow T a T') = strBreak 2 2 (to-stringl T ≫str strAdd (arrowtype-to-string a)) 2 (to-stringr T')
 type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh (erase-term t) ≫str strAdd " ≃ " ≫str to-stringh (erase-term t') ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
 type-to-stringh (TpLambda pi pi' x Tk T) = strBreak 2 3 (strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") strEmpty) 1 (strΓ' localScope x (to-stringr T))
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
-type-to-stringh (TpLet pi dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd "[ " ≫str strBvar x (maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+type-to-stringh (TpLet pi dtT T) = let-to-string NotErased dtT (to-stringh T)
 
 kind-to-stringh (KndArrow k k') = strBreak 2 2 (to-stringl k ≫str strAdd " ➔ ") 2 (to-stringr k')
 kind-to-stringh (KndParens pi k pi') = to-stringh k
@@ -510,12 +500,21 @@ caseArgs-to-string [] m = m
 caseArgs-to-string (CaseTermArg pi me x :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty (caseArgs-to-string as m)
 caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
 
+let-to-string fe (DefTerm _ x m t') t = strBreak 4
+  1 (strAdd (bracketL fe) ≫str strAdd (unqual-local x))
+  5 (maybeCheckType-to-string m ≫str strAdd " =")
+  3 (to-stringh t' ≫str strAdd (bracketR fe))
+  1 (strΓ' localScope x t)
+let-to-string _ (DefType _ x k T) t = strBreak 4
+  1 (strAdd (bracketL NotErased) ≫str strAdd (unqual-local x))
+  5 (to-stringh k ≫str strAdd " =")
+  3 (to-stringh T ≫str strAdd (bracketR NotErased))
+  1 (strΓ' localScope x t)
 
-braceL : maybeErased → string
 braceL me = if me then "{" else "("
-
-braceR : maybeErased → string
 braceR me = if me then "}" else ")"
+bracketL me = if me then "{ " else "[ "
+bracketR me = if me then " } -" else " ] -"
 
 param-to-string : decl → strM → strM
 param-to-string (Decl _ pi me v atk _) f =
@@ -537,7 +536,7 @@ file-to-string (File is _ _ mn ps cs _) =
    strAdd mn ≫str
    strAdd " " ≫str
    params-to-string'
-  (strAdd "." ≫str strLine ≫str --strAdd "\n" ≫str
+  (strAdd "." ≫str strLine ≫str
    cmds-to-string cs strEmpty) ps)
 
 cmds-to-string [] f = f
