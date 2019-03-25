@@ -1,4 +1,4 @@
-This is cedille-info-main.info, produced by makeinfo version 6.1 from
+This is cedille-info-main.info, produced by makeinfo version 6.5 from
 cedille-info-main.texi.
 
 
@@ -188,7 +188,11 @@ to the user to enforce by terminating the tool if it is taking too long.
 Rewriting is performed by a construct ρ t - t’.  Here, t should prove an
 equation { t1 ≃ t2 }.  Then the type synthesized from or used to check
 t’ will be rewritten to replace any subterm beta-eta equal to t1 with
-t2.
+t2.  If we are typing the ρ-term in synthesizing mode, then we rewrite
+the type of t’ by replacing all subterms convertible with t2 with t1 (so
+we rewrite right to left).  If we are typing the ρ-term in checking
+mode, then we rewrite the incoming (contextual) type to replace all
+subterms convertible with t1 with t2 (so we rewrite left to right).
 
 See language-overview/equational-reasoning.ced for examples.
 
@@ -210,9 +214,9 @@ If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
 with some term t’, the notation in Cedille is t -t’.
 
 Finally, one sometimes wishes to give a binding for a more complex
-specificational term for use within an expression.  To facillitate this
+specificational term for use within an expression.  To facilitate this
 Cedille has notation for erased let-bindings {x : T = t} - t2, where x
-is the bound variable, t1 its definiition, and t2 and expression where x
+is the bound variable, t1 its definition, and t2 and expression where x
 is in scope.  The syntax for ordinary let-bindings is [x : T = t1] - t2
 
 1.2.4 Datatype notations
@@ -945,26 +949,25 @@ File: cedille-info-main.info,  Node: roadmap,  Next: credits,  Prev: options,  U
 24 Roadmap
 **********
 
-Cedille is under active development, and the following major changes are
-planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far
-from done with the datatype notations).  Cedille 1.2 is likely Winter
-2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are
-still immersed in the basic research for that.
+With Cedille 1.1, we have a version of Cedille that provides familiar
+higher level concepts for datatypes like datatype declarations,
+constructors, and pattern-matching (histomorphic) recursion.  Cedille
+1.1 elaborates these down to Cedille Core, a pure type theory without
+primitive datatypesl This accomplishes a major goal in the roadmap of
+Cedille 1.0.  Future directions are somewhat up in the air at present.
+One avenue likely to be developed in 2019 is automatic subtyping, which
+will make certain examples with datatype notations more succinct.  The
+following items are still on the agenda:
 
-   • Datatype declarations and pattern-matching recursion, compiled to a
-     Mendler lambda-encoding, Cedille 1.1
    • Second-order matching and term inference incorporated into
-     spine-local type inference, Cedille 1.2
+     spine-local type inference
    • Rebase Cedille on sequent calculus to enable deriving types like
      existentials as dual to universals, and support constructive
-     control operators, Cedille 2.0
+     control operators
 
-For datatype notations, we have, in a number of papers and works in
-progress, devised semantics in Cedille for various somewhat advanced
-features: histomorphic recursion, inductive-recursive types, and
-inductive-inductive types.  We will be gradually incorporating
-high-level syntax for these into Cedille, starting with histomorphic
-recursion.
+We also plan to continue incorporating high-level syntax for advanced
+datatype features into Cedille, although exactly which might be up next
+is currently not determined.
 
 
 File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
@@ -1066,19 +1069,19 @@ Index
 Tag Table:
 Node: Top95
 Node: about1072
-Node: tooling12745
-Node: cedille mode commands18410
-Node: unicode shortcuts21832
-Node: extra buffers24021
-Node: inspect buffer25511
-Node: summary buffer26852
-Node: meta-vars buffer27811
-Node: beta-reduce mode28988
-Node: context buffer30251
-Node: options32424
-Node: roadmap33676
-Node: credits34942
-Node: Index36333
+Node: tooling13091
+Node: cedille mode commands18756
+Node: unicode shortcuts22178
+Node: extra buffers24367
+Node: inspect buffer25857
+Node: summary buffer27198
+Node: meta-vars buffer28157
+Node: beta-reduce mode29334
+Node: context buffer30597
+Node: options32770
+Node: roadmap34022
+Node: credits35240
+Node: Index36631
 
 End Tag Table
 

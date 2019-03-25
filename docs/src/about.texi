@@ -152,7 +152,12 @@ by terminating the tool if it is taking too long.
 Rewriting is performed by a construct ρ t - t'.  Here, t should prove
 an equation @{ t1 ≃ t2 @}.  Then the type synthesized from or used to
 check t' will be rewritten to replace any subterm beta-eta equal to t1
-with t2.
+with t2.  If we are typing the ρ-term in synthesizing mode, then we
+rewrite the type of t' by replacing all subterms convertible with t2
+with t1 (so we rewrite right to left).  If we are typing the ρ-term
+in checking mode, then we rewrite the incoming (contextual) type
+to replace all subterms convertible with t1 with t2 (so we rewrite left
+to right).
 
 See language-overview/equational-reasoning.ced for examples.
 

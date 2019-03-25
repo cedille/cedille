@@ -1,15 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
 <head>
-<title>Cedille Documentation: about</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>about (Cedille Documentation)</title>
 
-<meta name="description" content="Cedille Documentation: about">
-<meta name="keywords" content="Cedille Documentation: about">
+<meta name="description" content="about (Cedille Documentation)">
+<meta name="keywords" content="about (Cedille Documentation)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <link href="index.html#Top" rel="start" title="Top">
 <link href="Index.html#Index" rel="index" title="Index">
 <link href="index.html#Top" rel="up" title="Top">
@@ -211,7 +211,12 @@ by terminating the tool if it is taking too long.
 <p>Rewriting is performed by a construct ρ t - t&rsquo;.  Here, t should prove
 an equation { t1 ≃ t2 }.  Then the type synthesized from or used to
 check t&rsquo; will be rewritten to replace any subterm beta-eta equal to t1
-with t2.
+with t2.  If we are typing the ρ-term in synthesizing mode, then we
+rewrite the type of t&rsquo; by replacing all subterms convertible with t2
+with t1 (so we rewrite right to left).  If we are typing the ρ-term
+in checking mode, then we rewrite the incoming (contextual) type
+to replace all subterms convertible with t1 with t2 (so we rewrite left
+to right).
 </p>
 <p>See language-overview/equational-reasoning.ced for examples.
 </p>
@@ -233,9 +238,9 @@ and output vectors are the same.
 with some term t&rsquo;, the notation in Cedille is t -t&rsquo;.
 </p>
 <p>Finally, one sometimes wishes to give a binding for a more complex
-specificational term for use within an expression. To facillitate this
+specificational term for use within an expression. To facilitate this
 Cedille has notation for erased let-bindings {x : T = t} - t2, where
-x is the bound variable, t1 its definiition, and t2 and expression where
+x is the bound variable, t1 its definition, and t2 and expression where
 x is in scope. The syntax for ordinary let-bindings is [x : T = t1] - t2
 </p>
 <a name="Datatype-notations"></a>
