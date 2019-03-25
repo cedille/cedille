@@ -154,8 +154,12 @@ Ctrs :: { Ctrs }
 
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
-              | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
-              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
+              | '_' MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
+              | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | '_' '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | '_' ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+
 
 MDecl :: { Decl }
      : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) False (tTxt $2) $4 (pos2Txt1 $5) }

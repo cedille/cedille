@@ -14,3 +14,5 @@ data Vec (A: ★): Nat ➔ ★ =
 
 _ : {nil ≃ vnil}   = β.
 _ : {cons ≃ vcons} = β.
+
+_ : ★ = {β ≃ β}.
