@@ -2,6 +2,7 @@ module conversion where
 
 open import lib
 
+open import constants
 open import cedille-types
 open import ctxt
 open import is-free
@@ -568,6 +569,7 @@ ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt
+ctxt-type-def _  _ _ ignored-var _ _  Γ = Γ
 ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs Δ) = mk-ctxt
   (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
@@ -590,6 +592,7 @@ ctxt-ctr-def pi c t ps' n i Γ@(mk-ctxt mod@(fn , mn , ps , q) (syms , mn-fn) is
 
 -- assumption: classifier (i.e. type) already qualified
 ctxt-term-def : posinfo → defScope → opacity → var → maybe term → type → ctxt → ctxt
+ctxt-term-def _  _ _  ignored-var _ _ Γ = Γ
 ctxt-term-def pi s op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs Δ) = mk-ctxt
   (fn , mn , ps , q')
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
@@ -600,6 +603,7 @@ ctxt-term-def pi s op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i sym
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 
+ctxt-term-udef _ _ _ ignored-var _ Γ = Γ
 ctxt-term-udef pi s op v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb-occs Δ) = mk-ctxt
   (fn , mn , ps , qualif-insert-params q v' v (if s iff localScope then [] else ps))
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
