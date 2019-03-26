@@ -28,12 +28,14 @@ token :-
       <0> show\-qualified\-vars         { mkTokenEmpty TShowQualVars  }
       <0> erase\-types                  { mkTokenEmpty TEraseTypes    }
       <0> datatype\-encoding            { mkTokenEmpty TDataEnc       }
+      <0> pretty\-print\-columns        { mkTokenEmpty TPrintColumns  }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
       <0> Mendler\-old                  { mkTokenEmpty TEncMendlerOld }
       <0> Mendler                       { mkTokenEmpty TEncMendler    }
       <0> @path  	                { mkTokenPath  TPath          }
       <0> =	                        { mkTokenEmpty TEq            }
+      <0> @num                          { mkTokenNum TNum             }
       <0> \.	                        { mkTokenEmpty TPoint         }      
       <0> $white+		        { skip                        }
       <0> \-\- 				{ begin comment               }
@@ -61,6 +63,7 @@ data Opt = GenerateLogs         StrBool
            | ShowQualifiedVars  StrBool
            | UseCedeFiles       StrBool
            | EraseTypes         StrBool
+           | PrintColumns       Text
            | DatatypeEncoding   DataEnc
   deriving (Show)
   
@@ -75,7 +78,10 @@ mkTokenEmpty :: TokenClass -> AlexAction Token
 mkTokenEmpty c (p, _, _, _) len = return $ Token p c
 
 mkTokenPath :: (Text -> TokenClass) -> AlexAction Token
-mkTokenPath c (p, _, _, input)  len = return $ Token p (c (pack (take (len-2) (tail input)))) -- remove quotes from the string
+mkTokenPath c (p, _, _, input) len = return $ Token p (c (pack (take (len-2) (tail input)))) -- remove quotes from the string
+
+mkTokenNum :: (Text -> TokenClass) -> AlexAction Token
+mkTokenNum c (p, _, _, input) len = return $ Token p (c (pack (take len input)))
 
 data Token = Token AlexPosn TokenClass
   deriving (Show, Eq)
@@ -83,13 +89,15 @@ data Token = Token AlexPosn TokenClass
 data TokenClass =
         TBoolTrue
      |  TBoolFalse
-     |  TPath      Text
+     |  TPath Text
+     |  TNum Text
      |  TImpDirs
      |  TUseCedFiles
      |  TMkRktFiles
      |  TGenLogs
      |  TShowQualVars
      |  TEraseTypes
+     |  TPrintColumns
      |  TDataEnc
      |  TEncMendler
      |  TEncMendlerOld

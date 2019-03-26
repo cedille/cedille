@@ -380,6 +380,10 @@ rope-to-string = flip h "" where
   h (s₁ ⊹⊹ s₂) = h s₁ ∘ h s₂
   h [[ s ]] acc = s ^ acc
 
+rope-length : rope → ℕ
+rope-length [[ s ]] = string-length s
+rope-length (r₁ ⊹⊹ r₂) = rope-length r₁ + rope-length r₂
+
 𝕃-to-rope : ∀{A : Set} → (A → rope) → string → 𝕃 A → rope
 𝕃-to-rope to-rope sep [] = [[]]
 𝕃-to-rope to-rope sep (x :: []) = to-rope x
