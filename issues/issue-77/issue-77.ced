@@ -1,0 +1,34 @@
+module issue-77.
+
+data BNat: ★ =
+  | bZ: BNat
+  | b2: BNat ➔ BNat
+  | b2p: BNat ➔ BNat.
+
+bS : BNat ➔ BNat
+  = λ b. μ rec. b {
+  | bZ ➔ b2p bZ
+  | b2 b ➔ b2p (to/BNat -isType/rec b)
+  | b2p b ➔ b2 (rec b)
+  }.
+
+bAdd : BNat ➔ BNat ➔ BNat
+  = λ a. μ rec. a {
+  | bZ ➔ λ b. b
+  | b2 a ➔ λ b. μ' b {
+    | bZ ➔ b2 (to/BNat -isType/rec a)
+    | b2 b ➔ b2 (rec a b)
+    | b2p b ➔ bS (b2 (rec a b))
+    }
+  | b2p a ➔ λ b. μ' b {
+    | bZ ➔ b2p (to/BNat -isType/rec a)
+    | b2 b ➔ bS (b2 (rec a b))
+    | b2p b ➔ b2 (bS (rec a b))
+    }
+  }.
+
+bOne = b2p bZ.
+bTwo = b2 bOne.
+bTwo' = bAdd bOne bOne.
+
+eq2 : {bTwo ≃ bTwo'} = β.

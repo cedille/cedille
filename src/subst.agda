@@ -105,7 +105,7 @@ substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ' σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ' ρ' σ cs) posinfo-gen
+    Mu posinfo-gen posinfo-gen x' (substh-term Γ ρ σ t) (substh-optType Γ ρ σ ot) posinfo-gen (substh-cases Γ' ρ' σ cs) posinfo-gen
 substh-term Γ ρ σ (Mu' _ ot t oT _ cs _) = Mu' posinfo-gen (substh-optTerm Γ ρ σ ot) (substh-term Γ ρ σ t) (substh-optType Γ ρ σ oT) posinfo-gen (substh-cases Γ ρ σ cs) posinfo-gen
 
 substh-cases{QUALIF} Γ ρ σ = map λ where
