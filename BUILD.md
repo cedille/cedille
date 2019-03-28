@@ -1,4 +1,4 @@
-# Building Cedille version 1.0
+# Building Cedille version 1.1
 
 0. Install Agda version 2.5.4 by running `make agda-install`.
 
