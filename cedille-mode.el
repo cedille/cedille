@@ -657,6 +657,17 @@ occurrences, then do so."
        (cons (intern (substring kv 0 i)) (substring kv (1+ i)))))
    (split-string binder cedille-mode-sep)))
 
+(defun cedille-mode-prettyprint (dest)
+  "Prettyprints the current file, writing to DEST"
+  (interactive "FPrettyprint to: ")
+  (let ((fn (buffer-file-name)))
+    (if (null fn)
+        (message "Buffer must have a file associated with it to prettyprint")
+      (se-inf-interactive
+       (cedille-mode-concat-sep "interactive" "pretty" (expand-file-name fn) (expand-file-name dest))
+       (lambda (response &rest extra) (message response))
+       nil))))
+
 (defun cedille-mode-elaborate(dir)
   "Elaborates the current file"
   (interactive "GElaboration output: ")
@@ -728,6 +739,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)
   (se-navi-define-key mode (kbd "$") (make-cedille-mode-customize "cedille"))
+  (se-navi-define-key mode (kbd "&") #'cedille-mode-prettyprint)
   (se-navi-define-key mode (kbd "1") #'delete-other-windows)
   (se-navi-define-key mode (kbd "P") (lambda () (interactive) (message "se-mode-selected: %s" (se-mode-selected))))
   (se-navi-define-key mode (kbd "?") #'cedille-mode-backend-debug)

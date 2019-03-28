@@ -16,6 +16,7 @@ record options : Set where
 
         -- Internal use only
         during-elaboration : 𝔹
+        pretty-print : 𝔹
 
 default-options : options
 default-options = record {
@@ -27,7 +28,8 @@ default-options = record {
   erase-types = tt;
   datatype-encoding = Mendler;
   pretty-print-columns = 80;
-  during-elaboration = ff}
+  during-elaboration = ff;
+  pretty-print = ff}
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =
