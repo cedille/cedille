@@ -1,0 +1,14 @@
+# things to do for making a new release
+ - `git checkout -b release-N.M`
+ - make sure that cedille builds
+ - update doc files:
+   - update `docs/src/version-macro.texi` to the correct version
+   - run `make cedille-docs`
+ - update `BUILD.md` to the correct version
+ - update `packages/cedille-deb-control`:
+   - change version tag to the correct version
+   - update description if needed
+ - update `packages/mac/Info.plist` to the correct version
+ - commit all the changes
+ - go over to the "cedille.github.io" repo and do the release checklist for that repo
+ - tag the release
