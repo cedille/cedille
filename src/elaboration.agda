@@ -6,6 +6,7 @@ open import erase
 
 options' = record options
   {during-elaboration = tt;
+   pretty-print = tt;
    erase-types = ff;
    show-qualified-vars = ff}
 

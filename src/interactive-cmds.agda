@@ -333,6 +333,15 @@ private
         (e , 0 , _) → inj₁ "No rewrites could be performed"
         (e , _ , _) → inj₂ (strRunTag "" Γ
           (to-stringh (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringh (erase e)))
+
+  pretty-cmd : filepath → filepath → IO string
+  pretty-cmd src-fn dest-fn =
+    readFiniteFile src-fn >>= λ src →
+    case parseStart src of λ where
+      (Left (Left p)) → return ("Lexical error at position " ^ p)
+      (Left (Right p)) → return ("Parse error at position " ^ p)
+      (Right file) → writeFile dest-fn "" >> writeRopeToFile dest-fn (to-string.strRun empty-ctxt (to-string.file-to-string file)) >> return "Finished"
+    where import to-string (record options {pretty-print = tt}) as to-string
   
   
   {- Commands -}
@@ -363,4 +372,5 @@ private
   
 interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
 interactive-cmd ("br" :: input :: qed :: lc) ts = br-cmd (toplevel-state.Γ ts) input qed lc
+interactive-cmd ("pretty" :: src :: dest :: []) ts = pretty-cmd src dest >>= putStrLn
 interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))
