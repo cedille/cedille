@@ -78,7 +78,6 @@ CEDILLE_CORE = \
 	core/Ctxt.hs \
 	core/Norm.hs \
 	core/Parser.hs \
-	core/ToString.hs \
 	core/Types.hs \
 	core/Makefile
 

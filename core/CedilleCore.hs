@@ -1,48 +1,56 @@
 module Main where
 import Check
-import Ctxt
+import Trie
 import Norm
 import Parser
-import ToString
 import Types
 import System.FilePath
 import System.Directory
 import System.Environment
 import System.Exit
 
--- ModInfo (Module scope) (Filepath) (Context) (Binary?, Verbose?, Indentation)
-data ModInfo = ModInfo (Trie (Trie ())) FilePath Ctxt (Bool, Bool, Int)
+notM = maybe (Just ()) $ const Nothing
+maybE e = maybe (Left e) Right
+maybV e v = maybe (Left (e ++ v)) Right
 
---maybeAddDef :: Var -> ModInfo -> ModInfo
-maybeAddDef v (ModInfo fs fp c o) =
-  ModInfo (trieInsert fs fp (maybe emptyTrie (\ ds -> trieInsert ds v ()) (trieLookup fs fp))) fp c o
+-- ModInfo (Module scope) (Filepath) (Context) (Binary?, Verbose?, Indentation)
+data ModInfo = ModInfo (Trie [String]) FilePath Ctxt (Bool, Bool, Int)
+
+addDef (ModInfo fs fp (Ctxt decls types defs scope) o) v def =
+  maybV "Multiple definitions of " v (notM (trieLookup defs v)) >>
+  let fs' = trieInsert fs fp $ maybe [v] ((:) v) (trieLookup fs fp)
+      c' = Ctxt decls types (trieInsert defs v def) (trieInsert scope v ()) in
+  Right (ModInfo fs' fp c' o)
 
 putMsg tab fp msg = putStrLn $ replicate tab ' ' ++ "[" ++ fp ++ "] " ++ msg
+putMsgVrb (ModInfo _ fp _ (False, True, tab)) msg = putMsg tab fp msg
+putMsgVrb _ _ = return ()
+
+ctxtShowAll (Ctxt decls types defs scope) =
+  Ctxt decls types defs . foldr (\ v s -> trieInsert s v ()) emptyTrie
+ctxtShown (Ctxt decls types defs scope) = scope
 
 --checkCmd :: Cmd -> ModInfo -> IO (Either String ModInfo)
-checkCmd (TermCmd v tm) (ModInfo fs fp c o@(bin, vrb, tab)) =
-  (>>) (if vrb && not bin then putMsg tab fp ("Checking " ++ v) else return ()) $ return $
-  if ctxtBindsVar c v then Left ("Multiple definitions of variable " ++ v) else Right () >>
-  synthTerm c tm >>= \ tp ->
-  Right (maybeAddDef v $ ModInfo fs fp
-         (ctxtDefTerm c v (Just (hnfeTerm c tm), Just (hnfType c tp))) o)
-checkCmd (TypeCmd v kd tp) (ModInfo fs fp c o@(bin, vrb, tab)) =
-  (>>) (if vrb && not bin then putMsg tab fp ("Checking " ++ v) else return ()) $ return $
-  if ctxtBindsVar c v then Left ("Multiple definitions of variable " ++ v) else Right () >>
-  synthType c tp >>= \ kd' ->
-  errIfNot (convKind c (eraseKind kd) kd')
-    ("The expected kind does not match the synthesized kind, in the definition of " ++ v) >>
-  Right (maybeAddDef v $ ModInfo fs fp
-         (ctxtDefType c v (Just (hnfeType c tp), Just (hnfKind c kd'))) o)
+checkCmd (TermCmd v tm) mi@(ModInfo _ _ c _) =
+  putMsgVrb mi ("Checking " ++ v) >> return
+    (maybV "Error in the definition of " v (synthTerm c tm) >>= \ tp ->
+     addDef mi v (TermDef (hnfeTerm c tm) (hnfType c tp)))
+checkCmd (TypeCmd v kd tp) mi@(ModInfo _ _ c _) =
+  putMsgVrb mi ("Checking " ++ v) >> return
+    (maybV "Error in the definition of " v (synthType c tp) >>= \ kd' ->
+     maybV "Error in the declared kind of " v (synthKind c kd) >>
+     maybV "The declared kind does not match the synthesized kind of " v
+       (ifM $ convKind c (eraseKind kd) kd') >>
+     addDef mi v (TypeDef (hnfeType c tp) (hnfeKind c kd)))
 checkCmd (ImportCmd ifp) (ModInfo fs fp c o) =
-  checkFile (ModInfo fs ifp (ctxtShowAll c emptyTrie) o) >>= maybe (return $ Left "")
-  (\ (ModInfo fs' _ c' _) ->
-     let ds = trieAdd (ctxtShown c) (ctxtShown c') in
-     return (Right $ ModInfo (trieInsert fs' fp ds) fp (ctxtShowAll c' ds) o))
+  checkFile (ModInfo fs ifp (ctxtShowAll c []) o) >>= maybe (return $ Left "")
+    (\ (ModInfo fs' _ c' _) -> return $ Right $
+       let ds = map fst (trieMappings (ctxtShown c)) ++ map fst (trieMappings (ctxtShown c')) in
+       ModInfo (trieInsert fs' fp ds) fp (ctxtShowAll c' ds) o)
 
 --checkCmds :: Cmds -> ModInfo -> IO (Either String ModInfo)
-checkCmds CmdsStart m = return $ Right m
-checkCmds (CmdsNext c cs) m = checkCmd c m >>= either (return . Left) (checkCmds cs)
+checkCmds [] m = return $ Right m
+checkCmds (c : cs) m = checkCmd c m >>= either (return . Left) (checkCmds cs)
 
 --checkFile :: ModInfo -> IO (Maybe ModInfo)
 checkFile (ModInfo fs fp c (b, v, i)) =
@@ -57,7 +65,7 @@ checkFile (ModInfo fs fp c (b, v, i)) =
           nchecks = flip msg $ exitWith exitTypeError
           nexists = msg "File does not exist" $ exitWith exitFileDoesNotExist
           nparses = msg "Parse error" $ exitWith exitParseError
-          fs' = trieInsert fs fp' emptyTrie in
+          fs' = trieInsert fs fp' [] in
       msg "Checking" (return ()) >>
       doesFileExist fp' >>= \ exists ->
       if not exists
@@ -69,7 +77,7 @@ checkFile (ModInfo fs fp c (b, v, i)) =
                Left ""  -> return Nothing
                Left err -> nchecks err >> return Nothing
                Right c' -> checks >> return (Just c'))
-          (lexStr s >>= parseMf (parseDropModule *> parseCmds))
+          (lexStr [] s >>= parseMf (parseDropModule *> parseCmds) [])
 
 exitOptionsError = ExitFailure 1
 exitParseError = ExitFailure 2

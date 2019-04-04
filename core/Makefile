@@ -1,5 +1,5 @@
 
-CEDILLE_CORE = Check.hs Ctxt.hs CedilleCore.hs Norm.hs Parser.hs ToString.hs Types.hs
+CEDILLE_CORE = Check.hs Trie.hs CedilleCore.hs Norm.hs Parser.hs Types.hs
 
 all: cedille-core
 
