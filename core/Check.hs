@@ -3,6 +3,8 @@ import Types
 import Trie
 import Norm
 
+ifM b = if b then Just () else Nothing
+
 --synthTerm :: Ctxt -> Term -> Maybe PrType
 synthTerm c (TmVar i) =
   ctxtLookupDeclType c i >>=
@@ -162,7 +164,6 @@ checkType c tp =
 checkTpKd c tk =
   synthTpKd c tk >>=
   maybe (Just ()) (ifM . convKind c KdStar)
-
 
 -- Does the pure expression use only locally bound and global variables?
 validTerm (Ctxt decls types defs scope) (PrVar i) = ifM (i < length decls)

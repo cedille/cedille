@@ -5,8 +5,6 @@ import Trie
 headOr []       a' = a'
 headOr (a : as) a' = a
 
-ifM b = if b then Just () else Nothing
-
 type CtxtDef = Either (PrTerm, PrType) (PrType, PrKind)
 data Ctxt = Ctxt [PrTmTp] [PrTpKd] (Trie CtxtDef) (Trie ())
 
@@ -177,10 +175,14 @@ hnfTpKdh = mapTpKd hnfTypeh hnfKindh
 
 convTermh c (PrVar i1) (PrVar i2) = i1 == i2
 convTermh c (PrRef v1) (PrRef v2) = v1 == v2
-convTermh c (PrApp tm1 tm1') (PrApp tm2 tm2') = convTermh c tm1 tm2 && convTerm c tm1' tm2'
-convTermh c (PrLam tm1) (PrLam tm2) = convTermh (ctxtDecl c tmDecl) tm1 tm2
-convTermh c (PrLam tm1) tm2 = convTerm (ctxtDecl c tmDecl) tm1 (PrApp (deltaTerm 1 tm2) (PrVar 0))
-convTermh c tm1 (PrLam tm2) = convTerm (ctxtDecl c tmDecl) (PrApp (deltaTerm 1 tm1) (PrVar 0)) tm2
+convTermh c (PrApp tm1 tm1') (PrApp tm2 tm2') =
+  convTermh c tm1 tm2 && convTerm c tm1' tm2'
+convTermh c (PrLam tm1) (PrLam tm2) =
+  convTermh (ctxtDecl c tmDecl) tm1 tm2
+convTermh c (PrLam tm1) tm2 =
+  convTerm (ctxtDecl c tmDecl) tm1 (PrApp (deltaTerm 1 tm2) (PrVar 0))
+convTermh c tm1 (PrLam tm2) =
+  convTerm (ctxtDecl c tmDecl) (PrApp (deltaTerm 1 tm1) (PrVar 0)) tm2
 convTermh _ _ _ = False
 
 convTypeh c (TpVar i1) (TpVar i2) = i1 == i2
@@ -193,7 +195,8 @@ convTypeh c (TpPi tp1 tp1') (TpPi tp2 tp2') =
   convType c tp1 tp2 && convTypeh (ctxtDecl c tmDecl) tp1' tp2'
 convTypeh c (TpIota tp1 tp1') (TpIota tp2 tp2') =
   convType c tp1 tp2 && convType (ctxtDecl c tmDecl) tp1' tp2'
-convTypeh c (TpEq tm1 tm1') (TpEq tm2 tm2') = convTerm c tm1 tm2 && convTerm c tm1' tm2'
+convTypeh c (TpEq tm1 tm1') (TpEq tm2 tm2') =
+  convTerm c tm1 tm2 && convTerm c tm1' tm2'
 convTypeh c (TpAppTp tp1 tp1') (TpAppTp tp2 tp2') =
   convTypeh c tp1 tp2 && convType c tp1' tp2'
 convTypeh c (TpAppTm tp1 tm1) (TpAppTm tp2 tm2) =

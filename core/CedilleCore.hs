@@ -11,7 +11,6 @@ import System.Environment
 import System.Exit
 
 notM = maybe (Just ()) $ const Nothing
-maybE e = maybe (Left e) Right
 maybV e v = maybe (Left (e ++ v)) Right
 
 -- ModInfo (Module scope) (Filepath) (Context) (Binary?, Verbose?, Indentation)
