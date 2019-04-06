@@ -47,7 +47,7 @@ checkCmd (ImportCmd ifp) (ModInfo fs fp c o) =
   checkFile (ModInfo fs ifp (ctxtShowAll c []) o) >>= maybe (return $ Left "")
     (\ (ModInfo fs' _ c' _) -> return $ Right $
        let ds = trieStrings (ctxtShown c) ++ trieStrings (ctxtShown c') in
-       ModInfo (trieInsert fs' fp ds) fp (ctxtShowAll c' ds) o)
+       ModInfo fs' fp (ctxtShowAll c' ds) o)
 
 --checkCmds :: Cmds -> ModInfo -> IO (Either String ModInfo)
 checkCmds [] m = return $ Right m
