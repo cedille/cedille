@@ -50,7 +50,7 @@ lexProj ts ('1' : s) = lexStr (TProj1 : ts) s
 lexProj ts ('2' : s) = lexStr (TProj2 : ts) s
 lexProj ts s = lexStr (TDot : ts) s
 
---lexVar :: Var -> String -> Maybe (String, String)
+--lexVar :: String -> String -> Maybe (String, String)
 lexVar v (c : s)
   | isVarChar c = lexVar (c : v) s
   | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>" = Just (reverse v, (c : s))
@@ -95,8 +95,7 @@ lexStr ts (c : s) = if isVarChar c
   else Nothing
 lexStr ts "" = Just $ reverse ts
 
--- Nothing => single-line comment
--- Just x => x nested multi-line comments
+-- Nothing => single-line comment; Just x => x nested multi-line comments
 lexComment ts Nothing ('\n' : s) = lexStr ts s
 lexComment ts (Just 0) ('-' : '}' : s) = lexStr ts s
 lexComment ts (Just x) ('-' : '}' : s) = lexComment ts (Just (pred x)) s
@@ -110,7 +109,10 @@ newtype ParseM a = ParseM ([String] -> [Token] -> Maybe (a, [Token]))
 parseMf (ParseM f) = f
 parseMt xs ts (ParseM f) = f xs ts
 parseMr = curry Just
-parseMor (ParseM f) (ParseM g) = ParseM $ \ xs ts -> maybe (g xs ts) Just (f xs ts)
+
+parseDrop t = ParseM $ \ xs ts -> case ts of
+  (t' : ts') -> if t == t' then parseMr () ts' else Nothing
+  _ -> Nothing
 
 parseLookup x = h 0 where
   h acc [] = Left x
@@ -119,6 +121,7 @@ parseLookup x = h 0 where
     | True   = h (succ acc) ys
 
 parseBind x (ParseM f) = ParseM $ \ xs ts -> f (x : xs) ts
+
 
 instance Functor ParseM where
   fmap f (ParseM g) = ParseM $ \ xs ts -> g xs ts >>= \ p -> Just (f (fst p), snd p)
@@ -133,18 +136,15 @@ instance Applicative ParseM where
 instance Monad ParseM where
   (ParseM f) >>= g = ParseM $ \ xs ts -> f xs ts >>= \ (a, ts') -> parseMf (g a) xs ts'
 
-parseDrop t = ParseM $ \ xs ts -> case ts of
-  (t' : ts') -> if t == t' then parseMr () ts' else Nothing
-  _ -> Nothing
 
 parseVar = ParseM $ \ xs ts -> case ts of
   (TVar v : ts) -> parseMr v ts
   _ -> Nothing
 
-parsePureTermApp tm = ParseM $ \ xs ts -> maybe
+parsePrTermApp tm = ParseM $ \ xs ts -> maybe
   (parseMr tm ts)
-  (\ (tm', ts') -> parseMt xs ts' $ parsePureTermApp (PureApp tm tm'))
-  (parseMt xs ts parsePureTerm2)
+  (\ (tm', ts') -> parseMt xs ts' $ parsePrTermApp (PrApp tm tm'))
+  (parseMt xs ts parsePrTerm2)
 
 parseTermApp tm = ParseM $ \ xs ts -> case ts of
   (TDash : ts) -> maybe
@@ -171,39 +171,39 @@ parseTypeApp tm tp = ParseM $ \ xs ts -> case ts of
     (parseMt xs ts tm)
 
 parseIotaProj tm = ParseM $ \ xs ts -> case ts of
-  (TProj1 : ts) -> parseMt xs ts $ parseIotaProj (IotaProj1 tm)
-  (TProj2 : ts) -> parseMt xs ts $ parseIotaProj (IotaProj2 tm)
+  (TProj1 : ts) -> parseMt xs ts $ parseIotaProj (TmProj1 tm)
+  (TProj2 : ts) -> parseMt xs ts $ parseIotaProj (TmProj2 tm)
   _ -> parseMr tm ts
 
-parsePureTerm = ParseM $ \ xs ts -> case ts of
-  (TLam : TVar v : ts) -> parseMt xs ts $ pure PureLam <* parseDrop TDot <*> parseBind v parsePureTerm
-  _ -> parseMt xs ts parsePureTerm1
-parsePureTerm1 = ParseM $ \ xs ts -> parseMt xs ts parsePureTerm2 >>= \ (t', ts') -> parseMf (parsePureTermApp t') xs ts'
-parsePureTerm2 = ParseM $ \ xs ts -> case ts of
-  (TVar v : ts) -> parseMr (either PureRef PureVar $ parseLookup v xs) ts
-  (TParenL : ts) -> parseMt xs ts $ parsePureTerm <* parseDrop TParenR
+parsePrTerm = ParseM $ \ xs ts -> case ts of
+  (TLam : TVar v : ts) -> parseMt xs ts $ pure PrLam <* parseDrop TDot <*> parseBind v parsePrTerm
+  _ -> parseMt xs ts parsePrTerm1
+parsePrTerm1 = ParseM $ \ xs ts -> parseMt xs ts parsePrTerm2 >>= \ (t', ts') -> parseMf (parsePrTermApp t') xs ts'
+parsePrTerm2 = ParseM $ \ xs ts -> case ts of
+  (TVar v : ts) -> parseMr (either PrRef PrVar $ parseLookup v xs) ts
+  (TParenL : ts) -> parseMt xs ts $ parsePrTerm <* parseDrop TParenR
   _ -> Nothing
 
 parseTerm = ParseM $ \ xs ts -> case ts of
   (TLam : TVar v : ts) -> parseMt xs ts $ pure TmLam <* parseDrop TColon <*> parseType parseTerm3 <* parseDrop TDot <*> parseBind v parseTerm
   (TLamE : TVar v : ts) -> parseMt xs ts $ pure TmLamE <* parseDrop TColon <*> parseTpKd parseTerm3 <* parseDrop TDot <*> parseBind v parseTerm
-  (TRho : ts) -> parseMt xs ts $ pure Rho <*> parseTerm2 <* parseDrop TAt <*> (parseVar >>= \ v -> pure id <* parseDrop TDot <*> parseBind v (parseType parsePureTerm2)) <* parseDrop TDash <*> parseTerm  --parseVar <* parseDrop TDot <*> parseType parsePureTerm2 <* parseDrop TDash <*> parseTerm
-  (TPhi : ts) -> parseMt xs ts $ pure Phi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
-  (TDelta : ts) -> parseMt xs ts $ pure Delta <*> parseType2 parsePureTerm2 <* parseDrop TDash <*> parseTerm
+  (TRho : ts) -> parseMt xs ts $ pure TmRho <*> parseTerm2 <* parseDrop TAt <*> (parseVar >>= \ v -> parseDrop TDot *> parseBind v (parseType parsePrTerm2)) <* parseDrop TDash <*> parseTerm
+  (TPhi : ts) -> parseMt xs ts $ pure TmPhi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePrTerm <* parseDrop TBraceR
+  (TDelta : ts) -> parseMt xs ts $ pure TmDelta <*> parseType2 parsePrTerm2 <* parseDrop TDash <*> parseTerm
   (TBracketL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTm <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseBind v parseTerm
   (TBraceL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTmE <*> parseTerm <* parseDrop TBraceR <* parseDrop TDash <*> parseBind v parseTerm
   (TBracketL : TVar v : TColon : ts) -> parseMt xs ts $ pure TmLetTp <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseBind v parseTerm
   _ -> parseMt xs ts parseTerm1
 parseTerm1 = ParseM $ \ xs ts -> parseMt xs ts parseTerm2 >>= \ (t, ts') -> parseMf (parseTermApp t) xs ts'
 parseTerm2 = ParseM $ \ xs ts -> case ts of
-  (TSigma : ts) -> parseMt xs ts $ pure Sigma <*> parseTerm2
+  (TSigma : ts) -> parseMt xs ts $ pure TmSigma <*> parseTerm2
   _ -> parseMt xs ts parseTerm3
 parseTerm3 = ParseM $ \ xs ts -> parseMt xs ts parseTerm4 >>= \ (t, ts') -> parseMf (parseIotaProj t) xs ts'
 parseTerm4 = ParseM $ \ xs ts -> case ts of
   (TVar v : ts) -> parseMr (either TmRef TmVar $ parseLookup v xs) ts
-  (TBeta : ts) -> parseMt xs ts $ pure Beta <* parseDrop TAngleL <*> parsePureTerm <* parseDrop TAngleR <* parseDrop TBraceL <*> parsePureTerm <* parseDrop TBraceR
+  (TBeta : ts) -> parseMt xs ts $ pure TmBeta <* parseDrop TAngleL <*> parsePrTerm <* parseDrop TAngleR <* parseDrop TBraceL <*> parsePrTerm <* parseDrop TBraceR
   (TParenL : ts) -> parseMt xs ts $ parseTerm <* parseDrop TParenR
-  (TBracketL : ts) -> parseMt xs ts $ pure TmIota <*> parseTerm <* parseDrop TComma <*> parseTerm <* parseDrop TAt <*> (parseVar >>= \ v -> pure id <* parseDrop TDot <*> parseBind v (parseType parseTerm3) <* parseDrop TBracketR)
+  (TBracketL : ts) -> parseMt xs ts $ pure TmIota <*> parseTerm <* parseDrop TComma <*> parseTerm <* parseDrop TAt <*> (parseVar >>= \ v -> parseDrop TDot *> parseBind v (parseType parseTerm3) <* parseDrop TBracketR)
   _ -> Nothing
 
 parseType tm = ParseM $ \ xs ts -> case ts of
@@ -215,16 +215,16 @@ parseType tm = ParseM $ \ xs ts -> case ts of
 parseType1 tm = ParseM $ \ xs ts -> parseMt xs ts (parseType2 tm) >>= \ (t, ts') -> parseMf (parseTypeApp tm t) xs ts'
 parseType2 tm = ParseM $ \ xs ts -> case ts of
   (TVar v : ts) -> parseMr (either TpRef TpVar $ parseLookup v xs) ts
-  (TBraceL : ts) -> parseMt xs ts $ pure TpEq <*> parsePureTerm <* parseDrop TAsyEq <*> parsePureTerm <* parseDrop TBraceR
+  (TBraceL : ts) -> parseMt xs ts $ pure TpEq <*> parsePrTerm <* parseDrop TAsyEq <*> parsePrTerm <* parseDrop TBraceR
   (TParenL : ts) -> parseMt xs ts $ parseType tm <* parseDrop TParenR
   _ -> Nothing
 
 parseKind tm = ParseM $ \ xs ts -> case ts of
-  (TStar : ts) -> parseMr Star ts
+  (TStar : ts) -> parseMr KdStar ts
   (TPi : TVar v : ts) -> parseMt xs ts $ pure KdPi <* parseDrop TColon <*> parseTpKd tm <* parseDrop TDot <*> parseBind v (parseKind tm)
   (TParenL : ts) -> parseMt xs ts $ parseKind tm <* parseDrop TParenR
 
-parseTpKd tm = parseMor (fmap TpKdTp $ parseType tm) (fmap TpKdKd $ parseKind tm)
+parseTpKd tm = ParseM $ \ xs ts -> maybe (parseMf (fmap Right $ parseKind tm) xs ts) Just (parseMf (fmap Left $ parseType tm) xs ts)
 
 parseCmd = ParseM $ \ xs ts -> case ts of
   (TVar "import" : ts) -> parseMt xs ts $ pure ImportCmd <*> parseVar <* parseDrop TDot
@@ -235,8 +235,10 @@ parseCmds = ParseM $ \ xs ts -> case ts of
   [] -> parseMr [] []
   _ -> parseMt xs ts $ pure (:) <*> parseCmd <*> parseCmds
 
-parseDropModule = ParseM $ \ xs ts -> case ts of
+parseDropModuleHeader = ParseM $ \ xs ts -> case ts of
   (TVar "module" : TVar mn : TDot : ts) -> parseMr () ts
   _ -> parseMr () ts
 
 parseStr (ParseM f) s = lexStr [] s >>= f []
+
+parseFile = parseStr (parseDropModuleHeader *> parseCmds)

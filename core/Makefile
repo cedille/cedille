@@ -10,7 +10,7 @@ cedille-core: $(CEDILLE_CORE) Makefile
 cedille-core-static: $(CEDILLE_CORE) Makefile
 	ghc -O -o cedille-core-static -Werror -rtsopts -optl-static -optl-pthread -i./ CedilleCore.hs --make
 
-cedille-core-lines:
+lines:
 	wc -l $(CEDILLE_CORE)
 
 clean:

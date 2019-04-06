@@ -1,21 +1,7 @@
 module Types where
 
-type Var = Int
-type TpKd = PrimTpKd Term
-type PureTpKd = PrimTpKd PureTerm
-type Kind = PrimKind Term
-type PureKind = PrimKind PureTerm
-type Type = PrimType Term
-type PureType = PrimType PureTerm
-type Cmds = [Cmd]
-
-data Cmd =
-    TermCmd String Term
-  | TypeCmd String Kind Type
-  | ImportCmd String
-
 data Term =
-    TmVar Var
+    TmVar Int
   | TmRef String
   | TmLam Type Term
   | TmLamE TpKd Term
@@ -26,35 +12,50 @@ data Term =
   | TmLetTm Term Term
   | TmLetTmE Term Term
   | TmLetTp Kind Type Term
-  | IotaProj1 Term
-  | IotaProj2 Term
-  | Beta PureTerm PureTerm
-  | Sigma Term
-  | Delta PureType Term
-  | Rho Term PureType Term
-  | Phi Term Term PureTerm
+  | TmProj1 Term
+  | TmProj2 Term
+  | TmBeta PrTerm PrTerm
+  | TmSigma Term
+  | TmDelta PrType Term
+  | TmRho Term PrType Term
+  | TmPhi Term Term PrTerm
 
-data PureTerm =
-    PureVar Var
-  | PureRef String
-  | PureLam PureTerm
-  | PureApp PureTerm PureTerm
+data PrTerm =
+    PrVar Int
+  | PrRef String
+  | PrLam PrTerm
+  | PrApp PrTerm PrTerm
 
-data PrimType tm =
-    TpVar Var
+data BaseType tm =
+    TpVar Int
   | TpRef String
-  | TpLam (PrimTpKd tm) (PrimType tm)
-  | TpAll (PrimTpKd tm) (PrimType tm)
-  | TpPi (PrimType tm) (PrimType tm)
-  | TpIota (PrimType tm) (PrimType tm)
-  | TpEq PureTerm PureTerm
-  | TpAppTp (PrimType tm) (PrimType tm)
-  | TpAppTm (PrimType tm) tm
+  | TpLam (BaseTpKd tm) (BaseType tm)
+  | TpAll (BaseTpKd tm) (BaseType tm)
+  | TpPi (BaseType tm) (BaseType tm)
+  | TpIota (BaseType tm) (BaseType tm)
+  | TpEq PrTerm PrTerm
+  | TpAppTp (BaseType tm) (BaseType tm)
+  | TpAppTm (BaseType tm) tm
 
-data PrimKind tm =
-    Star
-  | KdPi (PrimTpKd tm) (PrimKind tm)
+data BaseKind tm =
+    KdStar
+  | KdPi (BaseTpKd tm) (BaseKind tm)
 
-data PrimTpKd tm =
-    TpKdTp (PrimType tm)
-  | TpKdKd (PrimKind tm)
+type Type = BaseType Term
+type Kind = BaseKind Term
+type TpKd = BaseTpKd Term
+type TmTp = BaseTmTp Term
+type PrType = BaseType PrTerm
+type PrKind = BaseKind PrTerm
+type PrTpKd = BaseTpKd PrTerm
+type PrTmTp = BaseTmTp PrTerm
+
+type BaseTpKd tm = Either (BaseType tm) (BaseKind tm)
+type BaseTmTp tm = Either tm (BaseType tm)
+
+type Cmds = [Cmd]
+
+data Cmd =
+    TermCmd String Term
+  | TypeCmd String Kind Type
+  | ImportCmd String

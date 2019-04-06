@@ -4,6 +4,7 @@ import Trie
 import Norm
 import Parser
 import Types
+
 import System.FilePath
 import System.Directory
 import System.Environment
@@ -34,18 +35,18 @@ ctxtShown (Ctxt decls types defs scope) = scope
 checkCmd (TermCmd v tm) mi@(ModInfo _ _ c _) =
   putMsgVrb mi ("Checking " ++ v) >> return
     (maybV "Error in the definition of " v (synthTerm c tm) >>= \ tp ->
-     addDef mi v (TermDef (hnfeTerm c tm) (hnfType c tp)))
+     addDef mi v (Left (hnfeTerm c tm, hnfType c tp)))
 checkCmd (TypeCmd v kd tp) mi@(ModInfo _ _ c _) =
   putMsgVrb mi ("Checking " ++ v) >> return
     (maybV "Error in the definition of " v (synthType c tp) >>= \ kd' ->
      maybV "Error in the declared kind of " v (synthKind c kd) >>
      maybV "The declared kind does not match the synthesized kind of " v
        (ifM $ convKind c (eraseKind kd) kd') >>
-     addDef mi v (TypeDef (hnfeType c tp) (hnfeKind c kd)))
+     addDef mi v (Right (hnfeType c tp, hnfeKind c kd)))
 checkCmd (ImportCmd ifp) (ModInfo fs fp c o) =
   checkFile (ModInfo fs ifp (ctxtShowAll c []) o) >>= maybe (return $ Left "")
     (\ (ModInfo fs' _ c' _) -> return $ Right $
-       let ds = map fst (trieMappings (ctxtShown c)) ++ map fst (trieMappings (ctxtShown c')) in
+       let ds = trieStrings (ctxtShown c) ++ trieStrings (ctxtShown c') in
        ModInfo (trieInsert fs' fp ds) fp (ctxtShowAll c' ds) o)
 
 --checkCmds :: Cmds -> ModInfo -> IO (Either String ModInfo)
@@ -77,7 +78,7 @@ checkFile (ModInfo fs fp c (b, v, i)) =
                Left ""  -> return Nothing
                Left err -> nchecks err >> return Nothing
                Right c' -> checks >> return (Just c'))
-          (lexStr [] s >>= parseMf (parseDropModule *> parseCmds) [])
+          (parseFile s)
 
 exitOptionsError = ExitFailure 1
 exitParseError = ExitFailure 2
@@ -94,7 +95,6 @@ helpStr =
      "  -v --verbose   enable verbose messages",
      "  -h --help      print this help message"]
 
-
 --             Options File Binary Verbose
 data Options = Options FilePath Bool Bool | Help | Unknown String
 
@@ -110,20 +110,20 @@ options =
   mkOption "-h" "--help"    (\ _ -> Help) $
   emptyTrie
 
---readArgs :: Options -> [String] -> Options
-readArgs opts (a@('-' : _) : as) =
-  maybe (Unknown a) (\ f -> mapOpts (flip readArgs as . f) opts) (trieLookup options a)
-readArgs (Options "" b v) (fp : as) = readArgs (Options fp b v) as
-readArgs (Options _ _ _) (fp : as) = Help
-readArgs opts _ = opts
-
-readArgsAux as = case readArgs (Options "" False False) as of
+--readArgs :: [String] -> Options
+readArgs as = case h (Options "" False False) as of
   Options "" b v -> Help
   opts           -> opts
+  where
+    h opts (a@('-' : _) : as) =
+      maybe (Unknown a) (\ f -> mapOpts (flip h as . f) opts) (trieLookup options a)
+    h (Options "" b v) (fp : as) = h (Options fp b v) as
+    h (Options _ _ _) (fp : as) = Help
+    h opts _ = opts
 
 main =
   getArgs >>= \ as ->
-  case readArgsAux as of
+  case readArgs as of
     opts@(Options f b v) ->
       checkFile (ModInfo emptyTrie f emptyCtxt (b, v, 0)) >>
       if b then exitWith exitTypeChecks else return ()
