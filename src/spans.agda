@@ -368,7 +368,7 @@ check-for-type-mismatch-if Γ s (just tp) = check-for-type-mismatch Γ s tp
 check-for-type-mismatch-if Γ s nothing tp = [ type-data Γ tp ] , nothing
 
 summary-data : {ed : exprd} → (name : string) → ctxt → ⟦ ed ⟧ → tagged-val
-summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringh t)
+summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringe t)
 
 missing-kind : tagged-val
 missing-kind = strRunTag "kind" empty-ctxt $ strAdd "[undeclared]"
@@ -485,16 +485,16 @@ binder-data Γ pi x atk me val s e =
   val? : ∀ {ed} → maybe ⟦ ed ⟧ → strM
   val? = maybe-else strEmpty λ x →
     strAdd "§value:" ≫str --strAdd "\\\\\",\\\\\"value\\\\\":\\\\\"" ≫str
-    to-stringh x
+    to-stringe x
   atk-val : (atk : tk) → maybe (if tk-is-type atk then term else type) → strM
   atk-val (Tkt T) t? =
     strAdd "§type:" ≫str --strAdd "\\\\\"type\\\\\":\\\\\"" ≫str
-    to-stringh T ≫str
+    to-stringe T ≫str
     val? t? -- ≫str
     --strAdd "\\\\\""
   atk-val (Tkk k) T? =
     strAdd "§kind:" ≫str --strAdd "\\\\\"kind\\\\\":\\\\\"" ≫str
-    to-stringh k ≫str
+    to-stringe k ≫str
     val? T? -- ≫str
     --strAdd "\\\\\""
 

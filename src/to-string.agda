@@ -166,7 +166,7 @@ strM = {ed : exprd} → DOC → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ �
 strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
 
-to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
+private to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
 
 strM-Γ : (ctxt → strM) → strM
 strM-Γ f s n ts Γ = f Γ s n ts Γ
@@ -378,7 +378,7 @@ lams-to-string t =
     h : 𝕃 (var × maybeErased × optClass) → term → 𝕃 (var × maybeErased × optClass) × term
     h acc (Lam _ me _ x oc t) = h ((x , me , oc) :: acc) t
     h acc t = reverse acc , t
- 
+
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
@@ -599,6 +599,13 @@ strRunTag : (name : string) → ctxt → strM → tagged-val
 strRunTag name Γ m with m {TERM} NIL 0 [] Γ nothing neither
 ...| s , n , ts = name , doc-to-rope s , ts
 
+to-stringe : {ed : exprd} → ⟦ ed ⟧ → strM
+to-stringe with cedille-options.options.erase-types options
+...| tt = to-stringh ∘ erase
+...| ff = to-stringh
+
+tk-to-stringe = to-stringe {TK}
+
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
 to-string-tag name Γ t = strRunTag name Γ
   (to-stringh
@@ -611,7 +618,7 @@ to-string Γ t = strRun Γ (to-stringh t)
 
 
 tk-to-string : ctxt → tk → rope
-tk-to-string Γ atk = strRun Γ (tk-to-stringh atk)
+tk-to-string Γ atk = strRun Γ (tk-to-stringe atk)
 
 params-to-string-tag : string → ctxt → params → tagged-val
 params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)

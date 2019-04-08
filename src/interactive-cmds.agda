@@ -332,7 +332,7 @@ private
       use-hnf nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0) of λ where
         (e , 0 , _) → inj₁ "No rewrites could be performed"
         (e , _ , _) → inj₂ (strRunTag "" Γ
-          (to-stringh (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringh (erase e)))
+          (to-stringe (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringe (erase e)))
 
   pretty-cmd : filepath → filepath → IO string
   pretty-cmd src-fn dest-fn =
