@@ -412,12 +412,12 @@ type-to-stringh (TpAppt T t) = apps-to-string (TpAppt T t)
 type-to-stringh (TpArrow T a T') = strBreak 2 2 (to-stringl T ≫str strAdd (arrowtype-to-string a)) 2 (to-stringr T')
 type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh (erase-term t) ≫str strAdd " ≃ " ≫str to-stringh (erase-term t') ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
-type-to-stringh (TpLambda pi pi' x Tk T) = strBreak 2 3 (strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") strEmpty) 1 (strΓ' localScope x (to-stringr T))
+type-to-stringh (TpLambda pi pi' x Tk T) = strBreak 2 3 (strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " .") strEmpty) 1 (strΓ' localScope x (to-stringr T))
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
 type-to-stringh (TpLet pi dtT T) = let-to-string NotErased dtT (to-stringh T)
 
-kind-to-stringh (KndArrow k k') = strBreak 2 2 (to-stringl k ≫str strAdd " ➔ ") 2 (to-stringr k')
+kind-to-stringh (KndArrow k k') = strBreak 2 2 (to-stringl k ≫str strAdd " ➔") 2 (to-stringr k')
 kind-to-stringh (KndParens pi k pi') = to-stringh k
 kind-to-stringh (KndPi pi pi' x Tk k) = strBreak 2 4 (strAdd "Π " ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " .") strEmpty) 1 (strΓ' localScope x (to-stringh k))
 kind-to-stringh (KndTpArrow T k) = strBreak 2 2 (to-stringl T ≫str strAdd " ➔") 2 (to-stringr k)
