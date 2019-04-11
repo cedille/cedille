@@ -142,6 +142,7 @@ to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
 to-string-rewrite{TERM} Γ ops (Phi pi eq t u pi') = , Phi pi eq t (erase u) pi'
 to-string-rewrite{TERM} Γ ops (Rho pi op on eq og t) = , Rho pi op on eq (optGuide-map og λ _ → erase) t
 to-string-rewrite{TERM} Γ ops (Beta pi ot ot') = , Beta pi (optTerm-map ot erase) (optTerm-map ot' erase)
+to-string-rewrite{TERM} Γ ops (Chi _ NoType t @ (Var _ _)) = to-string-rewrite Γ ops t
 to-string-rewrite{TYPE} Γ ops (TpEq pi t₁ t₂ pi') = , TpEq pi (erase t₁) (erase t₂) pi'
 to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
