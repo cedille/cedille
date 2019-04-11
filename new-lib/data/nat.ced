@@ -1,0 +1,93 @@
+module nat.
+
+import bool.
+import ../lambda/view.
+
+data Nat: ★ =
+  | zero: Nat
+  | succ: Nat ➔ Nat.
+
+num0 : Nat = zero.
+num1 : Nat = succ num0.
+num2 : Nat = succ num1.
+num3 : Nat = succ num2.
+num4 : Nat = succ num3.
+num5 : Nat = succ num4.
+num6 : Nat = succ num5.
+num7 : Nat = succ num6.
+num8 : Nat = succ num7.
+num9 : Nat = succ num8.
+num10: Nat = succ num9.
+
+-- some basic operations
+
+predCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ N
+  = Λ N. Λ is. λ n. μ'<is> n { zero ➔ n | succ n ➔ n}.
+
+pred = predCV -is/Nat.
+
+add : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ addN. m { zero ➔ n | succ m ➔ succ (addN m)}.
+
+minusCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
+  = Λ N. Λ is. λ m. λ n. μ mMinus. n {zero ➔ m | succ n ➔ predCV -is (mMinus n)}.
+
+minus = minusCV -is/Nat.
+
+-- interesting to consider extensions to allow kicking off recursion on an abstract type
+halfCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ N
+  = Λ N. Λ is. λ n. (μ half. (to/Nat -is n) @(λ x: Nat. View ·N β{x} ➾ N) {
+  | zero ➔ Λ v. elimView β{zero} -v
+  | succ n ➔ μ' n @(λ x: Nat. View ·N β{succ x} ➾ N) {
+    | zero ➔ Λ v. predCV -is (elimView β{succ zero} -v)
+    | succ n ➔ Λ v.
+      [n' : N = minusCV -is (elimView β{succ (succ n)} -v) num2]
+    - [hv : View ·N β{n} = intrView -n' β{n} β]
+    - half n -hv
+    }
+  }) -(intrView -n β{n} β).
+
+half = halfCV -is/Nat.
+
+mult : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ multM. n {zero ➔ zero | succ n ➔ add m (multM n)}.
+
+-- comparison operations
+
+lte : Nat ➔ Nat ➔ Bool
+  = λ m. λ n. μ' (minus m n) {zero ➔ tt | succ _ ➔ ff}.
+
+Lte : Nat ➔ Nat ➔ ★ = λ m : Nat . λ n : Nat . { lte m n ≃ tt }.
+
+lt : Nat ➔ Nat ➔ Bool = λ m. λ n. lte (succ m) n.
+
+gt : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lte m n).
+
+gte : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lt m n).
+
+-- division and remainder
+
+div : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ divN. m {
+  | zero ➔ zero
+  | succ m ➔
+    [m' = to/Nat -isType/divN m] -
+      ite (lt (succ m') n)
+        zero (succ (divN (minusCV -isType/divN m (pred n))))
+  }.
+
+rem : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ remN. m {
+  | zero ➔ zero
+  | succ m ➔
+    [m' = to/Nat -isType/remN m]
+  - [difMN = minusCV -isType/remN m (pred n)]
+  - ite (lt (succ m') n) (succ m') (remN (difMN))
+  }.
+
+-- operations with other types
+iter : ∀ X: ★. (X ➔ X) ➔ X ➔ Nat ➔ X
+  = Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s (rec n)
+  }.

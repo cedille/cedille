@@ -1,0 +1,3 @@
+module unit.
+
+data Unit: ★ = triv: Unit.

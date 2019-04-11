@@ -1,0 +1,5 @@
+module data/nat-thms.
+
+import public nat-thms/simple.
+import public nat-thms/le.
+

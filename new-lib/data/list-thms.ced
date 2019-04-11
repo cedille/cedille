@@ -1,0 +1,13 @@
+module list-thms.
+
+import list.
+import ../lambda/id.
+
+mapId : ∀ A: ★. ∀ B: ★. Π f: Id ·A ·B. Π xs: List ·A. {map f xs ≃ xs}
+  = Λ A. Λ B. λ f. λ xs. μ ih. xs @(λ xs: List ·A. {map f xs ≃ xs}) {
+  | nil ➔ β
+  | cons x xs ➔
+    ρ f.2     @ z. {cons (z x) (map f xs) ≃ cons x xs}
+  - ρ (ih xs) @ z. {cons x z ≃ cons x xs}
+  - β
+  }.

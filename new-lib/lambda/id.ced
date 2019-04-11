@@ -1,0 +1,9 @@
+module id.
+
+Id : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
+
+intrId : ∀ A: ★. ∀ B: ★. Π f: A ➔ B. (Π a: A. {f a ≃ a}) ➔ Id ·A ·B
+  = Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+
+elimId : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ A ➔ B
+  = Λ A. Λ B. Λ c. λ a. φ (ρ c.2 @ x . { x a ≃ a } - β) - (c.1 a) {a}.
