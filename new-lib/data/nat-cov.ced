@@ -1,0 +1,36 @@
+module nat-cov.
+
+import nat.
+import nat-thms.
+import bool.
+
+divCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
+  = Λ N. Λ is. λ m. λ n.
+    [m' = to/Nat -is m] - [x = leEAdd -(div m' n) -m' (leDiv m' n)]
+  - [eq : {minus m x ≃ div m n}
+      = ρ (ς x.2)                      @ z. {minus z x ≃ div m n}
+      - ρ (minusAddCancel x.1 (div m' n)) @ z. {z ≃ div m n}
+      - β]
+  - φ eq - (minusCV -is m x.1) {div m n}.
+
+remCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
+  = Λ N. Λ is. λ m. λ n.
+    [m' = to/Nat -is m] - [x = leEAdd -(rem m' n) -m' (leRem m' n)]
+  - [eq : {minus m x ≃ rem m n}
+      = ρ (ς x.2)                      @ z. {minus z x ≃ rem m n}
+      - ρ (minusAddCancel x.1 (rem m' n)) @ x. {x ≃ rem m n}
+      - β]
+  - φ eq - minusCV -is m x.1 {rem m n}.
+
+
+gcd : Nat ➔ Nat ➔ Nat
+  = λ m. μ gcdM. m {
+  | zero ➔ λ n. n
+  | succ m ➔ [m' = to/Nat -isType/gcdM m] - λ n. μ gcdN. n {
+    | zero ➔ succ m'
+    | succ n ➔ [n' = to/Nat -isType/gcdN n]
+    - ite (gte (succ m') (succ n'))
+        (gcdM (minusCV -isType/gcdM m n') (succ n'))
+        (gcdN (minusCV -isType/gcdN n m'))
+    }
+  }.

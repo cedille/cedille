@@ -1,20 +1,22 @@
- -- list of directories (separated by spaces) to import files, besides current one
+-- list of directories (separated by spaces) to import files, besides current one
 import-directories
   = "./lib" .
 
- -- write Cedille spans to ./.cedille/file.cede
+-- write Cedille spans to ./.cedille/file.cede
 use-cede-files
   = false.
 
- -- compile Cedille source to Racket
+-- compile Cedille source to Racket
+-- currently not supported
 make-rkt-files
   = false.
 
 generate-logs
   = false.
 
--- show fully-qualifed variables (for debugging)
-show-qualified-vars -- show
+-- show fully-qualified variables (for debugging)
+show-qualified-vars
   = false.
 
-erase-types = false. -- foo
+-- Erase erasable expressions from terms occurring in types (for debugging)
+erase-types = true.

@@ -1,0 +1,14 @@
+module data/sigma-thms.
+
+import sigma.
+
+fstCong : ∀ A1: ★. ∀ B1: A1 ➔ ★. ∀ A2: ★. ∀ B2: A2 ➔ ★.
+    Π s1: Sigma ·A1 ·B1. Π s2: Sigma ·A2 ·B2.
+    {s1 ≃ s2} ➾ {fst s1 ≃ fst s2}
+  = Λ _. Λ _. Λ _. Λ _. λ s1. λ s2. Λ eq. ρ eq @ x . { fst x ≃ fst s2 } - β.
+
+sndCong : ∀ A1: ★. ∀ B1: A1 ➔ ★. ∀ A2: ★. ∀ B2: A2 ➔ ★.
+    Π s1: Sigma ·A1 ·B1. Π s2: Sigma ·A2 ·B2.
+    {s1 ≃ s2} ➾ {snd s1 ≃ snd s2}
+  = Λ _. Λ _. Λ _. Λ _. λ s1. λ s2. Λ eq. ρ eq @ x . { snd x ≃ snd s2 } - β.
+

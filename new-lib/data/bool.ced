@@ -1,0 +1,18 @@
+module bool.
+
+data Bool: ★ =
+  | tt: Bool
+  | ff: Bool.
+
+not : Bool ➔ Bool
+  = λ b. μ' b {tt ➔ ff | ff ➔ tt}.
+
+ite : ∀ X: ★. Bool ➔ X ➔ X ➔ X
+  = Λ X. λ b. λ t. λ f. μ' b {tt ➔ t | ff ➔ f}.
+if = ite.
+
+and : Bool ➔ Bool ➔ Bool
+  = λ a. λ b. ite a b ff.
+
+or : Bool ➔ Bool ➔ Bool
+  = λ a. λ b. ite a tt b.

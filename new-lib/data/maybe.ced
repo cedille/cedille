@@ -1,0 +1,11 @@
+module maybe.
+
+data Maybe (A: ★): ★ =
+  | none: Maybe
+  | some: A ➔ Maybe.
+
+maybe-map : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ Maybe ·A ➔ Maybe ·B
+  = Λ A. Λ B. λ f. λ m. μ' m {
+  | none ➔ none ·B
+  | some x ➔ some (f x)
+  }.

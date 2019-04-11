@@ -1,0 +1,33 @@
+module lambda/rec.
+
+import top.
+import id.
+
+IdMapping : (★ ➔ ★) ➔ ★
+= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Id ·A ·B ➔ Id ·(F ·A) ·(F ·B).
+
+imap : ∀ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. IdMapping ·F ➾ Id ·A ·B ➾ F ·A ➔ F ·B
+= Λ F. Λ A. Λ B. Λ im. Λ c. λ f. elimId -(im c) f.
+
+Rec : (★ ➔ ★) ➔ ★
+= λ F: ★ ➔ ★. ∀ X: ★. Id ·(F ·X) ·X ➾ X.
+
+recId : ∀ F: ★ ➔ ★. ∀ X: ★. Id ·(F ·X) ·X ➾ Id ·(Rec ·F) ·X
+= Λ F. Λ X. Λ c. [λ d. d -c , β].
+
+recIn : ∀ F: ★ ➔ ★. IdMapping ·F ➾ Id ·(F ·(Rec ·F)) ·(Rec ·F)
+= Λ F. Λ im.
+  [f : F ·(Rec ·F) ➔ Rec ·F
+    = λ fd. Λ X. Λ c.
+      elimId -c (imap -im -(recId -c) fd)]
+- [ f , β].
+
+recFold = Λ F: ★ ➔ ★. Λ im: IdMapping ·F. elimId -(recIn -im).
+
+recOut : ∀ F: ★ ➔ ★. IdMapping ·F ➾ Id ·(Rec ·F) ·(F ·(Rec ·F))
+= Λ F. Λ im.
+  [f : Rec ·F ➔ F ·(Rec ·F)
+    = λ d. d ·(F ·(Rec ·F)) -(im (recIn -im))]
+- [ f , β].
+
+recUnfold = Λ F: ★ ➔ ★. Λ im: IdMapping ·F. elimId -(recOut -im).

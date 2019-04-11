@@ -1,0 +1,12 @@
+module sigma.
+
+data Sigma (A: ★) (B: A ➔ ★) : ★ =
+  | pair : Π a: A. Π b: B a. Sigma.
+
+Pair : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. Sigma ·A ·(λ _: A. B).
+
+fst : ∀ A: ★. ∀ B: A ➔ ★. Sigma ·A ·B ➔ A
+  = Λ A. Λ B. λ p. μ' p {pair a _ ➔ a}.
+
+snd : ∀ A: ★. ∀ B: A ➔ ★. Π p: Sigma ·A ·B. B (fst p)
+  = Λ A. Λ B. λ p. μ' p @(λ x: Sigma ·A ·B. B (fst x)) {pair _ b ➔ b}.
