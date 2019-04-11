@@ -52,12 +52,19 @@ half = halfCV -is/Nat.
 mult : Nat ➔ Nat ➔ Nat
   = λ m. λ n. μ multM. n {zero ➔ zero | succ n ➔ add m (multM n)}.
 
+exp : Nat ➔ Nat ➔ Nat
+= λ m. λ n. μ expM. n {zero ➔ num1 | succ n ➔ mult m (to/Nat -isType/expM n)}.
+
 -- comparison operations
 
 lte : Nat ➔ Nat ➔ Bool
-  = λ m. λ n. μ' (minus m n) {zero ➔ tt | succ _ ➔ ff}.
-
-Lte : Nat ➔ Nat ➔ ★ = λ m : Nat . λ n : Nat . { lte m n ≃ tt }.
+= λ m. μ lte. m {
+  | zero ➔ λ _. tt
+  | succ m ➔ λ n. μ' n {
+    | zero ➔ ff
+    | succ n ➔ lte m n
+    }
+  }.
 
 lt : Nat ➔ Nat ➔ Bool = λ m. λ n. lte (succ m) n.
 
@@ -65,15 +72,25 @@ gt : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lte m n).
 
 gte : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lt m n).
 
+Lte : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lte m n ≃ tt }.
+Lt  : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lt  m n ≃ tt }.
+
+eq : Nat ➔ Nat ➔ Bool
+= λ m. μ eq. m {
+  | zero   ➔ λ n. μ' n {zero ➔ tt | succ _ ➔ ff}
+  | succ m ➔ λ n. μ' n {zero ➔ ff | succ n ➔ eq m n}
+  }.
+
 -- division and remainder
 
 div : Nat ➔ Nat ➔ Nat
   = λ m. λ n. μ divN. m {
   | zero ➔ zero
   | succ m ➔
-    [m' = to/Nat -isType/divN m] -
-      ite (lt (succ m') n)
-        zero (succ (divN (minusCV -isType/divN m (pred n))))
+    [m' = to/Nat -isType/divN m]
+  - [dif = minusCV -isType/divN m (pred n)]
+  - ite (lt (succ m') n) zero
+      (succ (divN dif))
   }.
 
 rem : Nat ➔ Nat ➔ Nat
@@ -81,8 +98,8 @@ rem : Nat ➔ Nat ➔ Nat
   | zero ➔ zero
   | succ m ➔
     [m' = to/Nat -isType/remN m]
-  - [difMN = minusCV -isType/remN m (pred n)]
-  - ite (lt (succ m') n) (succ m') (remN (difMN))
+  - [dif = minusCV -isType/remN m (pred n)]
+  - ite (lt (succ m') n) (succ m') (remN (dif))
   }.
 
 -- operations with other types

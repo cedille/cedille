@@ -17,3 +17,18 @@ vappend : ∀ A: ★. ∀ m: Nat. ∀ n: Nat. Vec ·A m ➔ Vec ·A n ➔ Vec ·
 | vnil ➔ ys
 | vcons -m x xs ➔ vcons -(add m n) x (vappendYs -m xs)
 }.
+
+vmap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
+= Λ A. Λ B. λ f. Λ n. λ xs. μ vmap. xs @(λ i: Nat. λ _: Vec ·A i. Vec ·B i) {
+  | vnil ➔ vnil ·B
+  | vcons -n x xs ➔ vcons -n (f x) (vmap -n xs)
+  }.
+
+vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
+= Λ A. Λ n. λ xs. μ look. xs @(λ i: Nat. λ _: Vec ·A i. Π m: Nat. Lt m i ➾ A) {
+  | vnil ➔ λ m. Λ eq. δ - eq
+  | vcons -n x xs ➔ λ m. μ' m @(λ x: Nat. Lt x (succ n) ➾ A) {
+    | zero ➔ Λ _. x
+    | succ m ➔ Λ eq. look -n xs m -eq
+    }
+  }.
