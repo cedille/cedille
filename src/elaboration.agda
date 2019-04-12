@@ -232,7 +232,7 @@ module elab-x (μ : trie encoded-datatype) where
             let ns = fst (optNums-to-stringset on)
                 Γ' = ctxt-var-decl x Γ in
             elab-hnf-type Γ T tt ≫=maybe λ T →
-            let rT = fst (rewrite-type T Γ' op ns t t₁ x 0)
+            let rT = fst (rewrite-type T Γ' op ns (just t) t₁ x 0)
                 rT' = post-rewrite Γ' x t t₂ rT in
             elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
             elab-pure-type Γ' (erase-type rT) ≫=maybe λ rT →
@@ -420,7 +420,7 @@ module elab-x (μ : trie encoded-datatype) where
           rename "x" from Γ for λ x →
           let ns = fst (optNums-to-stringset on)
               Γ' = ctxt-var-decl x Γ
-              rT = fst (rewrite-type T' Γ' op ns t t₂ x 0)
+              rT = fst (rewrite-type T' Γ' op ns (just t) t₂ x 0)
               rT' = post-rewrite Γ' x t t₁ rT in
           elab-pure-type Γ' (erase-type rT) ≫=maybe λ rT →
           just (mrho t x rT t' , rT')
@@ -548,8 +548,15 @@ module elab-x (μ : trie encoded-datatype) where
     elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        (either-else' x+e (just ∘ inj₁) λ e → optTerm-elim e (just $ inj₂ nothing) λ e → elab-synth-term Γ e ≫=maybe uncurry λ t T → maybe-map decompose-tpapps (elab-hnf-type Γ T tt) ≫=maybe λ {(TpVar _ Xₑ , asₑ) → just $ inj₂ $ just $ t , Xₑ , (drop-last 1 asₑ ++ as); _ → nothing}) ≫=maybe λ x+e →
-        (data-lookup Γ X as maybe-or either-else' x+e (λ _ → nothing) (λ e → e ≫=maybe (uncurry (data-lookup-mu Γ) ∘ snd))) ≫=maybe λ d →
+        (either-else' x+e (just ∘ inj₁) λ e →
+         optTerm-elim e (just $ inj₂ nothing) λ e →
+         elab-synth-term Γ e ≫=maybe uncurry λ t T →
+         maybe-map decompose-tpapps (elab-hnf-type Γ T tt) ≫=maybe λ where
+           (TpVar _ Xₑ , asₑ) → just $ inj₂ $ just $ t , Xₑ , (drop-last 1 asₑ ++ as)
+           _ → nothing) ≫=maybe λ x+e →
+        (data-lookup Γ X as maybe-or
+         either-else' x+e (λ _ → nothing)
+           (λ e → e ≫=maybe (uncurry (data-lookup-mu Γ) ∘ snd))) ≫=maybe λ d →
         trie-lookup μ (ctxt-datatype-info.name d) ≫=maybe λ d' →
           let ed-mu = maybe-else' T? (λ d' Γ → encoded-datatype.synth-mu d' Γ d)
                 λ T d' Γ X x t Tₘ ms → encoded-datatype.check-mu d' Γ d X x t Tₘ ms T in

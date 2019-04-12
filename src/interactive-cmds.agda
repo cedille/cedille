@@ -327,9 +327,9 @@ private
         f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
               subst subst subst ll Γ t₂ x in
     case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
-                         term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
+                         maybe term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
       rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ
-      use-hnf nothing (Beta posinfo-gen NoTerm NoTerm) t₁ x 0) of λ where
+      use-hnf nothing (just (Beta posinfo-gen NoTerm NoTerm)) t₁ x 0) of λ where
         (e , 0 , _) → inj₁ "No rewrites could be performed"
         (e , _ , _) → inj₂ (strRunTag "" Γ
           (to-stringe (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringe (erase e)))

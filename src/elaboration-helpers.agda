@@ -602,20 +602,18 @@ elab-mu-t = ctxt → ctxt-datatype-info → encoded-datatype-names → var → v
 record encoded-datatype : Set where
   constructor mk-encoded-datatype
   field
-    --data-def : datatype
-    --mod-ps : params
     names : encoded-datatype-names
     elab-mu : elab-mu-t
     elab-mu-pure : ctxt → ctxt-datatype-info → maybe var → term → cases → maybe term
 
   check-mu : ctxt → ctxt-datatype-info → var → var ⊎ maybe (term × var × 𝕃 tty) → term → optType → cases → type → maybe (term × ctxt)
   check-mu Γ d Xₒ x? t oT ms T with d --data-def
-  check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs -- Data X ps is cs
-    with kind-to-indices Γ kᵢ | oT
+  check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs with kind-to-indices Γ kᵢ | oT
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | NoType =
-    elab-mu Γ {-(Data X ps is cs)-} d names Xₒ x? t
-      (indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var
-        (Tkt $ indices-to-tpapps is $ flip apps-type asₚ $ mtpvar X) T) ms
+    elab-mu Γ d names Xₒ x? t
+      (refine-motive Γ t X is asᵢ T) ms
+      {-(indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var
+        (Tkt $ indices-to-tpapps is $ flip apps-type asₚ $ mtpvar X) T) ms-}
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | SomeType Tₘ =
     elab-mu Γ d names Xₒ x? t Tₘ ms
 
