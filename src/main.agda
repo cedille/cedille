@@ -425,8 +425,7 @@ module main-with-options
       logMsg ("Frontend input: " ^ input) >>
       let input-list : 𝕃 string 
           input-list = (string-split (undo-escape-string input) delimiter) 
-              in (handleCommands input-list s) >>= λ s →
-          readCommandsFromFrontend s
+              in (handleCommands input-list s) >>= readCommandsFromFrontend
           where
               errorCommand : 𝕃 string → toplevel-state → IO ⊤
               errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
@@ -468,7 +467,7 @@ module main-with-options
               handleCommands ("check" :: xs) s = checkCommand xs s
               handleCommands ("debug" :: []) s = debugCommand s >>r s
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
-              handleCommands ("interactive" :: xs) s = interactive-cmd handleCommands xs s
+              handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
               handleCommands ("archive" :: xs) s = archiveCommand xs s
               handleCommands ("br" :: xs) s = putRopeLn interactive-not-br-cmd-msg >>r s
   --            handleCommands ("find" :: xs) s = findCommand xs s

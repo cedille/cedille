@@ -4,7 +4,7 @@
 ;;;;;;;; Variables ;;;;;;;;
 
 (make-variable-buffer-local
- (defvar cedille-mode-br-point nil
+ (defvar cedille-mode-br-range nil
    "The point to jump to and select the next parent span from after a command"))
 
 (make-variable-buffer-local
@@ -17,6 +17,14 @@
 (make-variable-buffer-local
  (defvar cedille-mode-br-do-check nil
    "If non-nil, and buffer was opened with `C-i t', messages when the expected type matches the actual type"))
+
+(make-variable-buffer-local
+ (defvar cedille-mode-br-column nil
+   "The indentation to print output at, for `C-i p'"))
+
+(make-variable-buffer-local
+ (defvar cedille-mode-br-path nil
+   "A pointer to which beta-reduction buffer instance this is"))
 
 
 
@@ -89,17 +97,19 @@
 
 ;;;;;;;; Buffer/file code ;;;;;;;;
 
-(defun cedille-mode-br-init-buffer (str &optional span do-check)
+(defun cedille-mode-br-init-buffer (str &optional span do-check path)
   "Initializes the beta-reduction buffer, after the process finishes"
-  (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span ,do-check)) nil))
+  (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span ,do-check ,path)) nil))
 
-(defun cedille-mode-br-init-buffer-post (str span do-check)
+(defun cedille-mode-br-init-buffer-post (str span do-check path)
   "Initializes the beta-reduction buffer"
   (let* ((span (when span (se-get-span span)))
          (parent (or cedille-mode-parent-buffer (current-buffer)))
          (context (when span (cedille-mode-span-context span)))
          (qed (when span (cedille-mode-br-get-qed span)))
-         (buffer (generate-new-buffer (cedille-mode-br-buffer-name))))
+         (buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
+         (column (format-mode-line "%c"))
+         (path (or path "")))
     (with-current-buffer buffer
 ;      (cedille-mode-get-create-window buffer)
       ;(display-buffer buffer)
@@ -117,6 +127,8 @@
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-do-check (and qed do-check (cons (se-term-start span) (se-term-end span)))
 	    cedille-mode-global-context nil
+            cedille-mode-br-column column
+            cedille-mode-br-path path
 	    window-size-fixed nil)
       (se-inf-interactive
        (cedille-mode-concat-sep
@@ -133,11 +145,11 @@
 
 (defun cedille-mode-br-response (response buffer &optional span)
   (with-current-buffer buffer
-    (when span (setq cedille-mode-br-point (se-term-start span)))
+    (when span (setq cedille-mode-br-range (cons (se-term-start span) (+ (se-term-end span) (length response) (- (point-max))))))
     (setq cedille-mode-br-temp-str response)
     (run-hooks 'se-inf-pre-parse-hook)
     (setq se-inf-response-finished nil)
-    (se-inf-interactive (cedille-mode-concat-sep "br" "parse") #'cedille-mode-br-process-response buffer))
+    (se-inf-interactive (cedille-mode-concat-sep "br" cedille-mode-br-path "parse") #'cedille-mode-br-process-response buffer))
   nil)
 
 (defconst cedille-mode-br-undo-response
@@ -152,7 +164,7 @@
   "Undoes the previous buffer change"
   (interactive)
   (se-inf-interactive
-   (cedille-mode-concat-sep "br" "undo")
+   (cedille-mode-concat-sep "br" cedille-mode-br-path "undo")
    cedille-mode-br-undo-response
    (current-buffer)))
 
@@ -160,7 +172,7 @@
   "Redoes the previous undo"
   (interactive)
   (se-inf-interactive
-   (cedille-mode-concat-sep "br" "redo")
+   (cedille-mode-concat-sep "br" cedille-mode-br-path "redo")
    cedille-mode-br-undo-response
    (current-buffer)))
 
@@ -168,7 +180,7 @@
   "Syncs with the backend"
   (interactive)
   (se-inf-interactive
-   (cedille-mode-concat-sep "br" "get")
+   (cedille-mode-concat-sep "br" cedille-mode-br-path "get")
    (cedille-mode-response-macro #'cedille-mode-br-response)
    (current-buffer)))
 
@@ -236,15 +248,19 @@
   "Starts the beta-reduction buffer with STR and local context"
   (cedille-mode-br-init-buffer str (se-mode-selected)))
 
-(defun cedille-mode-br-kill-buffer ()
-  "Kills the current buffer"
+(defun cedille-mode-br-kill-buffer (&optional on-kill)
+  "Kills the current buffer, calling optional ON-KILL afterwards"
   (interactive)
   (let ((buffer (current-buffer))
 	(window (get-buffer-window)))
-    (kill-buffer buffer)
-;    (delete-window window)
+    (se-inf-interactive
+     (cedille-mode-concat-sep "br" cedille-mode-br-path "quit")
+     `(lambda (response extra)
+        (kill-buffer (cadr extra))
+        ;(delete-window (cddr extra))
+        (when (car extra) (funcall (car extra))))
+    (cons on-kill (cons buffer window)))
     nil))
-;    (se-inf-interactive "quit" `(lambda (&rest args) (kill-buffer ,buffer) (delete-window ,window)) nil)))
 
 (defun cedille-mode-br-get-qed-h (node)
   (let* ((start (se-term-start node))
@@ -274,6 +290,7 @@
 	  (se-inf-interactive-with-span
 	   (cedille-mode-concat-sep
             "br"
+            cedille-mode-br-path 
             "normalize"
             (number-to-string (1- (se-span-start span)))
             (number-to-string (1- (se-span-end span)))
@@ -305,6 +322,7 @@
 	(let* ((input (call-interactively (lambda (input) (interactive "MConvert to: ") input)))
 	       (q (cedille-mode-concat-sep
                    "br"
+                   cedille-mode-br-path
                    "conv"
 		   ll
 		   (number-to-string (1- (se-span-start span)))
@@ -329,6 +347,7 @@
                         input)))
              (q (cedille-mode-concat-sep
                  "br"
+                 cedille-mode-br-path
                  "rewrite"
                  (number-to-string (1- (se-span-start span)))
                  (number-to-string (1- (se-span-end span)))
@@ -358,33 +377,37 @@
       (goto-char 1)
       (deactivate-mark)
       (fit-window-to-buffer))
-    (when cedille-mode-br-point
-      (goto-char cedille-mode-br-point)
+    (when cedille-mode-br-range
+      (goto-char (car cedille-mode-br-range))
+      (push-mark (cdr cedille-mode-br-range) t t)
       (se-mode-set-spans)
-      (cedille-mode-select-parent 1))))
+      (cedille-mode-select-parent 1)))
+  (setq cedille-mode-br-range nil))
 
 (defun cedille-mode-br-print-outline ()
   "Prints an outline of every normalization, conversion, and rewrite applied in the beta-reduction buffer to help reconstruct a proof"
   (interactive)
   (se-inf-interactive
-   (cedille-mode-concat-sep "br" "print")
+   (cedille-mode-concat-sep "br" cedille-mode-br-path "print" cedille-mode-br-column)
    (cedille-mode-response-macro
     (lambda (response extra)
       (if (car extra)
-          (let ((s (when (car extra) (caar extra)))
+          (lexical-let* ((s (when (car extra) (caar extra)))
                 (e (when (car extra) (cdar extra)))
                 (cbuffer (cadr extra))
                 (fbuffer (cddr extra)))
             (with-current-buffer cbuffer
-              (cedille-mode-br-kill-buffer))
-            (with-current-buffer fbuffer
-              (select-window (get-buffer-window))
-              (let ((buffer-read-only nil))
-                (delete-region s e)
-                (goto-char s)
-                (deactivate-mark)
-                (insert response)
-                (cedille-start-navigation))))
+              (cedille-mode-br-kill-buffer
+               `(lambda ()
+                  (with-current-buffer ,fbuffer
+                    (select-window (get-buffer-window))
+                    (let ((buffer-read-only nil))
+                      (cedille-mode-quit)
+                      (delete-region ,s ,e)
+                      (goto-char ,s)
+                      (deactivate-mark)
+                      (insert "(" ,response ")")
+                      (cedille-start-navigation)))))))
         (cedille-mode-scratch-insert-text response))))
    (cons cedille-mode-br-do-check
          (cons (current-buffer)
@@ -402,14 +425,14 @@
             (lambda (x) (interactive "MName: ") x)))
          (x (call-interactively fn)))
     (se-inf-interactive
-     (cedille-mode-concat-sep "br" "bind" x)
+     (cedille-mode-concat-sep "br" cedille-mode-br-path "bind" x)
      (cedille-mode-response-macro #'cedille-mode-br-response)
      (current-buffer))))
 
 (defun cedille-mode-br-check-prompt (qed)
   "Check qed against the expression (which needs to be a type or a kind)"
   (se-inf-interactive
-   (cedille-mode-concat-sep "br" "check" qed)
+   (cedille-mode-concat-sep "br" cedille-mode-br-path "check" qed)
    (cedille-mode-response-macro
     (lambda (response buffer)
       (message "Type error")))
@@ -420,7 +443,7 @@
   (interactive)
   (when cedille-mode-br-do-check
     (se-inf-interactive
-     (cedille-mode-concat-sep "br" "check")
+     (cedille-mode-concat-sep "br" cedille-mode-br-path "check")
      (cedille-mode-response-macro
       (lambda (response suppress-err)
         (unless suppress-err (message "Type error"))))

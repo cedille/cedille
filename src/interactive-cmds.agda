@@ -375,6 +375,7 @@ private
     inj₁ ("Unknown interactive cmd: " ^ 𝕃-to-string (λ s → s) ", " cs)
 
   record br-history : Set where
+    inductive
     constructor mk-br-history
     field
       Γ : ctxt
@@ -383,28 +384,44 @@ private
       T : ll-lift Tₗₗ
       Tᵤ : string
       f : term → term
+      undo : 𝕃 br-history
+      redo : 𝕃 br-history
+
+  data br-history2 : Set where
+    br-node : br-history → 𝕃 br-history2 → br-history2
+  
+  br-get-h : br-history2 → br-history
+  br-get-h (br-node h hs) = h
+
+  br-get-hs : br-history2 → 𝕃 br-history2
+  br-get-hs (br-node h hs) = hs
+  
+  br-lookup : 𝕃 ℕ → br-history2 → maybe br-history
+  br-lookup xs h = maybe-map br-get-h $
+    foldl (λ x h? → h? ≫=maybe λ {(br-node h hs) → head2 (nthTail x hs)}) (just h) xs
 
   {-# TERMINATING #-}
-  br-cmd2 : (𝕃 string → IO toplevel-state) → ctxt → string → string → string → 𝕃 string → IO toplevel-state
-  br-cmd2 main Γ Tₛ tₛ sp ls =
+  br-cmd2 : ctxt → string → string → string → 𝕃 string → IO ⊤
+  br-cmd2 Γ Tₛ tₛ sp ls =
+    (string-to-ℕ - sp ! "natural number" ≫parse inj₂) ≫parseIO λ sp →
+    let Γ = get-local-ctxt Γ sp ls in
     (parse-try Γ - Tₛ ! ttk ≫parse inj₂) ≫parseIO λ Tf → Tf λ Tₗₗ T →
     (parse-string ll-term - tₛ ! "term" ≫parse inj₂) ≫parseIO λ t →
-    (string-to-ℕ - sp ! "natural number" ≫parse inj₂) ≫parseIO λ sp →
-    let Γ = get-local-ctxt Γ sp ls
-        T = qualif-ed Γ T
+    let T = qualif-ed Γ T
         Tₑ = erase T in
     putRopeLn (tv-to-rope $ inj₂ $ ts-tag Γ Tₑ) >>
-    await (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) id) [] []
+    await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) id [] []) [])
     where
 
     import to-string (record options {erase-types = ff}) as ts2
+    import to-string (record options {erase-types = ff; pretty-print = tt}) as pretty2s
 
     ts-tag : ∀ {ed} → ctxt → ⟦ ed ⟧ → tagged-val
     ts-tag = ts2.to-string-tag ""
 
     infixr 6 _≫parseIO_
-    _≫parseIO_ : ∀ {A : Set} → string ⊎ A → (A → IO toplevel-state) → IO toplevel-state
-    inj₁ e ≫parseIO f = putRopeLn (tv-to-rope $ inj₁ e) >> main [ "progress stub" ]
+    _≫parseIO_ : ∀ {A : Set} → string ⊎ A → (A → IO ⊤) → IO ⊤
+    inj₁ e ≫parseIO f = putRopeLn (tv-to-rope $ inj₁ e)
     inj₂ a ≫parseIO f = f a
 
     replace-substring : string → string → ℕ → ℕ → string × string
@@ -420,167 +437,188 @@ private
     substring s fm to = snd $ replace-substring s "" fm to
 
     set-Γ-file-missing : ctxt → ctxt
-    set-Γ-file-missing (mk-ctxt (fn , mod) ss is os μ) = mk-ctxt ("missing" , mod) ss is os μ    
+    set-Γ-file-missing (mk-ctxt (fn , mod) ss is os μ) = mk-ctxt ("missing" , mod) ss is os μ
+    
+    escape-rope : rope → rope
+    escape-rope [[ s ]] = [[ escape-string s ]]
+    escape-rope (r₁ ⊹⊹ r₂) = escape-rope r₁ ⊹⊹ escape-rope r₂
 
-    await : br-history → (undo redo : 𝕃 br-history) → IO toplevel-state
-    await this@(mk-br-history Γ t Tₗₗ T Tᵤ f) undo redo =
+    parse-path : string → maybe (𝕃 ℕ)
+    parse-path "" = just []
+    parse-path s = foldr (λ n ns →  ns ≫=maybe λ ns → string-to-ℕ n ≫=maybe λ n → just (n :: ns)) (just []) (string-split s ' ')
+    
+    write-history : 𝕃 ℕ → br-history → br-history2 → br-history2
+    write-history [] h (br-node _ hs) = br-node h hs
+    write-history (n :: ns) h (br-node hₒ hs) = br-node hₒ $ writeh n hs where
+      writeh : ℕ → 𝕃 br-history2 → 𝕃 br-history2
+      writeh _ [] = []
+      writeh zero (h' :: hs) = write-history ns h h' :: hs
+      writeh (suc n) (h' :: hs) = h' :: writeh n hs
+
+    await : br-history2 → IO ⊤
+    await his =
       getLine >>= λ input →
       let input = undo-escape-string input
           as = string-split input delimiter
           put = putRopeLn ∘ tv-to-rope
-          err = (_>> await this undo redo) ∘' put ∘' inj₁ in
-      case as of λ where
-        ("br" :: as) → case as of λ where
-
-          ("undo" :: []) → case undo of λ where
-            [] → err "No undo history"
-            (u :: us) →
-              put (inj₂ $ "" , [[ "Undo" ]] , []) >>
-              await u us (this :: redo)
-              --u (await Γ t Tₗₗ T Tᵤ f undo redo :: redo)
-  
-          ("redo" :: []) → case redo of λ where
-            [] → err "No redo history"
-            (r :: rs) →
-              put (inj₂ $ "" , [[ "Redo" ]] , []) >>
-              await r (this :: undo) rs
-              --r
-  
-          ("get" :: []) →
-            put (inj₂ $ "" , [[ Tᵤ ]] , []) >>
-            await this undo redo
-  
-          ("parse" :: []) →
-            (_>> await this undo redo) $
-            maybe-else' (parse-string Tₗₗ Tᵤ)
-              (putRopeLn (spans-to-rope (global-error "Parse error" nothing)))
-              λ T → putRopeLn $ spans-to-rope $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
-                      untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
-  
-          ("check" :: t?) →
-            (λ e → either-else' e (uncurry λ t? e → put (inj₁ e) >> maybe-else' t? (await this undo redo) λ t' → await (record this {t = t'}) (this :: undo) []) (λ _ → put (inj₂ $ "Type error" , [[]] , []) >> await this undo redo)) $
-            ll-ind' {λ T → (maybe term × string) ⊎ ⊤} (Tₗₗ , T)
-              (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
-              (λ T →
-                (case t? of λ {[] → inj₂ nothing; (t :: []) → maybe-else' (parse-string ll-term t) (inj₁ $ nothing , parse-err-msg t "term") (inj₂ ∘ just); _ → inj₁ $ nothing , "To many arguments given to beta-reduction command 'check'"}) ≫=⊎ λ t? →
-                err⊎-guard (~ spans-have-error
-                  (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans)) (t? , "Type inhabited"))
-              (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
-  
-          ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
-            let Γ' = merge-lcis-ctxt Γ lc in
-            either-else'
-              (parse-string ll-term - eq ! "term" ≫parse λ eqₒ →
-               string-to-𝔹 - ρ+? ! "boolean" ≫parse λ ρ+? →
-               string-to-ℕ - fm ! "natural number" ≫parse λ fm →
-               string-to-ℕ - to ! "natural number" ≫parse λ to →
-               parse-try Γ' - substring Tᵤ fm to ! ttk ≫parse λ Tf → Tf λ ll Tₗ →
-               fst (check-term eqₒ nothing Γ' empty-spans) !
-                 "Could not synthesize a type from the input term" ≫error λ Tₑ →
-               is-eq-tp? Tₑ
-                 ! "Synthesized a non-equational type from the input term" ≫error λ Tₑ →
-               let mk-eq-tp! t₁ t₂ _ _ = Tₑ
-                   x = fresh-var-new Γ' ignored-var
-                   eq = qualif-term Γ' eqₒ
-                   Tₗ = qualif-ed Γ' Tₗ in
-               elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing (just eq) t₁ x 0) λ Tᵣ n →
-               err⊎-guard (iszero n) "No rewrites could be performed" ≫=⊎ λ _ →
-               parse-string Tₗₗ - replace Tᵤ
-                 (rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' Tᵣ ⊹⊹ [[ ")" ]]) fm to
-                 ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ →
-               let Tᵤ = qualif-ed (ctxt-var-decl x Γ) Tᵤ in
-               ll-ind' {λ {(ll , T) → ll-lift ll → string ⊎ ll-lift ll × (term → term)}}
-                 (Tₗₗ , Tᵤ)
-                 (λ t T → inj₂ $ rewrite-mk-phi x eq T (subst Γ t₂ x t) , id)
-                 (λ Tᵤ _ → inj₂ $ post-rewrite (ctxt-var-decl x Γ) x eq t₂ Tᵤ ,
-                                  Rho pi-gen RhoPlain NoNums eqₒ (Guide pi-gen x Tᵤ))
-                 (λ k _ → inj₂ $ subst Γ t₂ x k , id)
-                 T) err $ uncurry λ T' fₜ →
-              put (inj₂ $ ts-tag Γ $ erase T') >>
-              await (record this {T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ $ erase T'; f = f ∘ fₜ})
-                (this :: undo) []
-  
-          ("normalize" :: fm :: to :: norm :: lc) →
-            either-else'
-              (let Γ' = merge-lcis-ctxt Γ lc in
-               string-to-ℕ - fm ! "natural number" ≫parse λ fm →
-               string-to-ℕ - to ! "natural number" ≫parse λ to →
-               let tₛ = substring Tᵤ fm to in
-               parse-try Γ' - tₛ ! ttk ≫parse λ t → t λ ll t →
-               parse-norm ff - norm ! parse-norm-err ≫parse λ norm →
-               let s = norm Γ' $ qualif-ed Γ' t
-                   rs = rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' s ⊹⊹ [[ ")" ]]
-                   Tᵤ' = replace Tᵤ rs fm to in
-               parse-string Tₗₗ - Tᵤ' ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ' →
-               let Tᵤ' = qualif-ed Γ Tᵤ' in
-               inj₂ Tᵤ')
-              err λ Tᵤ' →
-              put (inj₂ $ ts-tag Γ Tᵤ') >>
-              await (record this {T = Tᵤ' {-Checks?-}; Tᵤ = rope-to-string $ ts2.to-string Γ $ erase Tᵤ'})
-                (this :: undo) []
-  
-          ("conv" :: ll :: fm :: to :: t' :: ls) →
-            let Γ' = merge-lcis-ctxt Γ ls in
-            either-else'
-              (parse-ll - ll ! "language level" ≫parse λ ll →
-               string-to-ℕ - fm ! "natural number" ≫parse λ fm →
-               string-to-ℕ - to ! "natural number" ≫parse λ to →
-               let t = substring Tᵤ fm to in
-               parse-string ll - t  ! ll-ind "term" "type" "kind" ll ≫parse λ t  →
-               parse-string ll - t' ! ll-ind "term" "type" "kind" ll ≫parse λ t' →
-               let t = qualif-ed Γ' t; t' = qualif-ed Γ' t' in
-               err⊎-guard (~ ll-ind {λ ll → ctxt → ll-lift ll → ll-lift ll → 𝔹}
-                 conv-term conv-type conv-kind ll Γ' t t') "Inconvertible" ≫⊎
-               let rs = [[ "(" ]] ⊹⊹ ts2.to-string Γ' (erase t') ⊹⊹ [[ ")" ]]
-                   Tᵤ = replace Tᵤ (rope-to-string rs) fm to in
-               parse-string Tₗₗ - Tᵤ ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ →
-               inj₂ (qualif-ed Γ Tᵤ)) err λ Tᵤ' →
-              put (inj₂ $ ts-tag Γ $ erase Tᵤ') >>
-              await (record this {Tᵤ = rope-to-string $ ts2.to-string Γ $ erase Tᵤ'})
-                (this :: undo) []
-  
-          ("bind" :: xᵤ :: []) →
-            either-else'
-              (ll-ind' {λ {(ll , _) → string ⊎ ctxt × ll-lift ll × (term → term)}} (Tₗₗ , T)
-                (λ t' →
-                  let R = string ⊎ ctxt × term × (term → term) in
-                  (case_of_ {B = (maybeErased → var → optClass → term → R) → R}
-                    (t' , hnf Γ unfold-head t' tt) $ uncurry λ where
-                      (Lam _ me _ x oc body) _ f → f me x oc body
-                      _ (Lam _ me _ x oc body) f → f me x oc body
-                      _ _ _ → inj₁ "Not a term abstraction") λ me x oc body →
-                  inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ body ,
-                           Lam pi-gen me pi-gen x oc)
-                  --inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ , Lam
-                (λ T → to-abs (hnf Γ (unfolding-elab unfold-head) T tt)
-                  ! "Not a type abstraction" ≫error λ where
-                    (mk-abs me x dom free cod) →
-                      tk-elim dom
-                        (λ dom f → f $ ctxt-term-decl-no-qualif pi-gen xᵤ dom Γ)
-                        (λ dom f → f $ ctxt-type-decl-no-qualif pi-gen xᵤ dom Γ) λ Γ' →
-                      inj₂ $ Γ' , rename-var Γ' x (pi-gen % xᵤ) cod ,
-                        Lam pi-gen me pi-gen xᵤ (SomeClass dom))
-                (λ k → inj₁ "Expression must be a term or a type"))
-              err $ uncurry λ Γ' → uncurry λ T' fₜ →
-              put (inj₂ $ ts-tag Γ' T') >>
-              await (record this {Γ = Γ' ; T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T'; f = f ∘ fₜ}) (this :: undo) []
-  
-          ("case" :: []) →
-            put (inj₁ "Case splitting not supported yet!") >>
-            await this undo redo
-  
-          ("print" :: []) → put (inj₂ $ ts-tag Γ $ f t) >> await this undo redo
-
-          _ → err $ foldl (λ a s → s ^ char-to-string delimiter ^ a)
+          err = (_>> await his) ∘' put ∘' inj₁ in
+      case as of λ where -- TODO: for these commands, do not add TYPES/KINDS of local decls to context, as they are probably just bound by foralls/pis/lambdas, not _really_ in scope!
+        ("br" :: path :: as) →
+          maybe-else' (parse-path path) (err ("Could not parse " ^ path ^ " as a list of space-delimited natural numbers")) λ path →
+          let await-with = await ∘ flip (write-history path) his in
+          maybe-else' (br-lookup path his) (err "Beta-reduction pointer does not exist") λ where
+            this @ (mk-br-history Γ t Tₗₗ T Tᵤ f undo redo) → case as of λ where
+             
+              ("undo" :: []) → case undo of λ where
+                [] → err "No undo history"
+                (u :: us) →
+                  put (inj₂ $ "" , [[ "Undo" ]] , []) >>
+                  await-with (record u {undo = us; redo = this :: redo})
+                  --u (await Γ t Tₗₗ T Tᵤ f undo redo :: redo)
+             
+              ("redo" :: []) → case redo of λ where
+                [] → err "No redo history"
+                (r :: rs) →
+                  put (inj₂ $ "" , [[ "Redo" ]] , []) >>
+                  await-with (record r {undo = this :: undo; redo = rs})
+                  --r
+             
+              ("get" :: []) →
+                put (inj₂ $ "" , [[ Tᵤ ]] , []) >>
+                await his
+             
+              ("parse" :: []) →
+                (_>> await his) $
+                maybe-else' (parse-string Tₗₗ Tᵤ)
+                  (putRopeLn (spans-to-rope (global-error "Parse error" nothing)))
+                  λ T → putRopeLn $ spans-to-rope $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
+                          untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
+             
+              ("check" :: t?) →
+                (λ e → either-else' e (uncurry λ t? e → put (inj₁ e) >> maybe-else' t? (await his) λ t' → await-with (record this {t = t'; undo = this :: undo; redo = []})) (λ _ → put (inj₂ $ "Type error" , [[]] , []) >> await his)) $
+                ll-ind' {λ T → (maybe term × string) ⊎ ⊤} (Tₗₗ , T)
+                  (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
+                  (λ T →
+                    (case t? of λ {[] → inj₂ nothing; (t :: []) → maybe-else' (parse-string ll-term t) (inj₁ $ nothing , parse-err-msg t "term") (inj₂ ∘ just); _ → inj₁ $ nothing , "To many arguments given to beta-reduction command 'check'"}) ≫=⊎ λ t? →
+                    err⊎-guard (~ spans-have-error
+                      (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans)) (t? , "Type inhabited"))
+                  (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
+             
+              ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
+                let Γ' = merge-lcis-ctxt Γ lc in
+                either-else'
+                  (parse-string ll-term - eq ! "term" ≫parse λ eqₒ →
+                   string-to-𝔹 - ρ+? ! "boolean" ≫parse λ ρ+? →
+                   string-to-ℕ - fm ! "natural number" ≫parse λ fm →
+                   string-to-ℕ - to ! "natural number" ≫parse λ to →
+                   parse-try Γ' - substring Tᵤ fm to ! ttk ≫parse λ Tf → Tf λ ll Tₗ →
+                   fst (check-term eqₒ nothing Γ' empty-spans) !
+                     "Could not synthesize a type from the input term" ≫error λ Tₑ →
+                   is-eq-tp? Tₑ
+                     ! "Synthesized a non-equational type from the input term" ≫error λ Tₑ →
+                   let mk-eq-tp! t₁ t₂ _ _ = Tₑ
+                       x = fresh-var-new Γ' ignored-var
+                       eq = qualif-term Γ' eqₒ
+                       Tₗ = qualif-ed Γ' Tₗ in
+                   elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing (just eq) t₁ x 0) λ Tᵣ n →
+                   err⊎-guard (iszero n) "No rewrites could be performed" ≫=⊎ λ _ →
+                   parse-string Tₗₗ - replace Tᵤ
+                     (rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' Tᵣ ⊹⊹ [[ ")" ]]) fm to
+                     ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ →
+                   let Tᵤ = qualif-ed (ctxt-var-decl x Γ) Tᵤ in
+                   ll-ind' {λ {(ll , T) → ll-lift ll → string ⊎ ll-lift ll × (term → term)}}
+                     (Tₗₗ , Tᵤ)
+                     (λ t T → inj₂ $ rewrite-mk-phi x eq T (subst Γ t₂ x t) , id)
+                     (λ Tᵤ _ → inj₂ $ post-rewrite (ctxt-var-decl x Γ) x eq t₂ Tᵤ ,
+                                      Rho pi-gen RhoPlain NoNums eqₒ (Guide pi-gen x Tᵤ))
+                     (λ k _ → inj₂ $ subst Γ t₂ x k , id)
+                     T) err $ uncurry λ T' fₜ →
+                  put (inj₂ $ ts-tag Γ $ erase T') >>
+                  await-with (record this {T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ $ erase T'; f = f ∘ fₜ; undo = this :: undo; redo = []})
+             
+              ("normalize" :: fm :: to :: norm :: lc) →
+                either-else'
+                  (let Γ' = merge-lcis-ctxt Γ lc in
+                   string-to-ℕ - fm ! "natural number" ≫parse λ fm →
+                   string-to-ℕ - to ! "natural number" ≫parse λ to →
+                   let tₛ = substring Tᵤ fm to in
+                   parse-try Γ' - tₛ ! ttk ≫parse λ t → t λ ll t →
+                   parse-norm ff - norm ! parse-norm-err ≫parse λ norm →
+                   let s = norm Γ' $ qualif-ed Γ' t
+                       rs = rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' s ⊹⊹ [[ ")" ]]
+                       Tᵤ' = replace Tᵤ rs fm to in
+                   parse-string Tₗₗ - Tᵤ' ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ' →
+                   let Tᵤ' = qualif-ed Γ Tᵤ' in
+                   inj₂ Tᵤ')
+                  err λ Tᵤ' →
+                  put (inj₂ $ ts-tag Γ Tᵤ') >>
+                  await-with (record this {T = Tᵤ' {-Checks?-}; Tᵤ = rope-to-string $ ts2.to-string Γ $ erase Tᵤ'; undo = this :: undo; redo = []})
+             
+              ("conv" :: ll :: fm :: to :: t' :: ls) →
+                let Γ' = merge-lcis-ctxt Γ ls in
+                either-else'
+                  (parse-ll - ll ! "language level" ≫parse λ ll →
+                   string-to-ℕ - fm ! "natural number" ≫parse λ fm →
+                   string-to-ℕ - to ! "natural number" ≫parse λ to →
+                   let t = substring Tᵤ fm to in
+                   parse-string ll - t  ! ll-ind "term" "type" "kind" ll ≫parse λ t  →
+                   parse-string ll - t' ! ll-ind "term" "type" "kind" ll ≫parse λ t' →
+                   let t = qualif-ed Γ' t; t' = qualif-ed Γ' t' in
+                   err⊎-guard (~ ll-ind {λ ll → ctxt → ll-lift ll → ll-lift ll → 𝔹}
+                     conv-term conv-type conv-kind ll Γ' t t') "Inconvertible" ≫⊎
+                   let rs = [[ "(" ]] ⊹⊹ ts2.to-string Γ' (erase t') ⊹⊹ [[ ")" ]]
+                       Tᵤ = replace Tᵤ (rope-to-string rs) fm to in
+                   parse-string Tₗₗ - Tᵤ ! ll-ind "term" "type" "kind" Tₗₗ ≫parse λ Tᵤ →
+                   inj₂ (qualif-ed Γ Tᵤ)) err λ Tᵤ' →
+                  put (inj₂ $ ts-tag Γ $ erase Tᵤ') >>
+                  await-with (record this {Tᵤ = rope-to-string $ ts2.to-string Γ $ erase Tᵤ'; undo = this :: undo; redo = []})
+             
+              ("bind" :: xᵤ :: []) →
+                either-else'
+                  (ll-ind' {λ {(ll , _) → string ⊎ ctxt × ll-lift ll × (term → term)}} (Tₗₗ , T)
+                    (λ t' →
+                      let R = string ⊎ ctxt × term × (term → term) in
+                      (case_of_ {B = (maybeErased → var → optClass → term → R) → R}
+                        (t' , hnf Γ unfold-head t' tt) $ uncurry λ where
+                          (Lam _ me _ x oc body) _ f → f me x oc body
+                          _ (Lam _ me _ x oc body) f → f me x oc body
+                          _ _ _ → inj₁ "Not a term abstraction") λ me x oc body →
+                      inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ body ,
+                               Lam pi-gen me pi-gen x oc)
+                      --inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ , Lam
+                    (λ T → to-abs (hnf Γ (unfolding-elab unfold-head) T tt)
+                      ! "Not a type abstraction" ≫error λ where
+                        (mk-abs me x dom free cod) →
+                          tk-elim dom
+                            (λ dom f → f $ ctxt-term-decl-no-qualif pi-gen xᵤ dom Γ)
+                            (λ dom f → f $ ctxt-type-decl-no-qualif pi-gen xᵤ dom Γ) λ Γ' →
+                          inj₂ $ Γ' , rename-var Γ' x (pi-gen % xᵤ) cod ,
+                            Lam pi-gen me pi-gen xᵤ (SomeClass dom))
+                    (λ k → inj₁ "Expression must be a term or a type"))
+                  err $ uncurry λ Γ' → uncurry λ T' fₜ →
+                  put (inj₂ $ ts-tag Γ' T') >>
+                  await-with (record this {Γ = Γ' ; T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T'; f = f ∘ fₜ; undo = this :: undo; redo = []})
+             
+              ("case" :: []) →
+                put (inj₁ "Case splitting not supported yet!") >>
+                await his
+             
+              ("print" :: tab :: []) →
+                either-else' (string-to-ℕ - tab ! "natural number" ≫parse inj₂) err λ tab →
+                putRopeLn (escape-rope (tv-to-rope (inj₂ $ pretty2s.strRunTag "" Γ $ pretty2s.strNest (suc {-left paren-} tab) (pretty2s.to-stringh $ f t)))) >> await his
+              
+              ("quit" :: []) → put $ inj₂ $ strRunTag "" Γ $ strAdd "Quitting beta-reduction mode..."
+             
+              _ → err $ foldl (λ a s → s ^ char-to-string delimiter ^ a)
                       "Unknown beta-reduction command: " as
-        → main
+        _ → err "A beta-reduction buffer is still open"
 
 
 
 
-interactive-cmd : (𝕃 string → toplevel-state → IO toplevel-state) → 𝕃 string → toplevel-state → IO toplevel-state
-interactive-cmd main ("br2" :: T :: t :: sp :: lc) ts = br-cmd2 (λ ls → {-putRopeLn (tv-to-rope $ inj₂ $ "" , [[]] , []) >>-} main ls ts) (toplevel-state.Γ ts) T t sp lc
-interactive-cmd main ("pretty" :: src :: dest :: []) ts = pretty-cmd src dest >>= λ s → putStrLn s >>r ts
-interactive-cmd main ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>r ts
+interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
+interactive-cmd ("br2" :: T :: t :: sp :: lc) ts = br-cmd2 (toplevel-state.Γ ts) T t sp lc
+interactive-cmd ("pretty" :: src :: dest :: []) ts = pretty-cmd src dest >>= putStrLn
+interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))
 
-interactive-not-br-cmd-msg = tv-to-rope $ inj₁ "Beta-reduction has been terminated"
+interactive-not-br-cmd-msg = tv-to-rope $ inj₁ "Beta-reduction mode has been terminated"

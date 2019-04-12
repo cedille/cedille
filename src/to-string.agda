@@ -167,7 +167,7 @@ strM = {ed : exprd} → DOC → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ �
 strEmpty : strM
 strEmpty s n ts Γ pe lr = s , n , ts
 
-private to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
+to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
 
 strM-Γ : (ctxt → strM) → strM
 strM-Γ f s n ts Γ = f Γ s n ts Γ
@@ -397,7 +397,7 @@ term-to-stringh (Let pi fe dtT t) = let-to-string fe dtT (to-stringh t)
 term-to-stringh (Open pi o pi' x t) = strBreak 2 0 (strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " -") 2 (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strBreak 3 0 (strAdd "φ " ≫str to-stringl eq ≫str strAdd " -") 2 (to-stringh t) 2 (strAdd "{ " ≫str to-stringr t' ≫str strAdd " }")
-term-to-stringh (Rho pi op on eq og t) = strBreak' ((0 , strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on) :: (4 , to-stringl eq) :: (optGuide-to-string og) ++ [ 1 , strAdd "- " ≫str to-stringr t ])
+term-to-stringh (Rho pi op on eq og t) = strBreak' ((0 , strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on) :: (4 , to-stringl eq) :: (optGuide-to-string og) ++ [ 2 , strAdd "- " ≫str to-stringr t ])
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
