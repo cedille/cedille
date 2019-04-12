@@ -408,7 +408,9 @@
                       (deactivate-mark)
                       (insert "(" ,response ")")
                       (cedille-start-navigation)))))))
-        (cedille-mode-scratch-insert-text response))))
+        (with-current-buffer (cddr extra)
+          (select-window (get-buffer-window))
+          (cedille-mode-scratch-insert-text response)))))
    (cons cedille-mode-br-do-check
          (cons (current-buffer)
                cedille-mode-parent-buffer))))
