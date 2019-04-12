@@ -21,12 +21,14 @@ import Control.Monad
   'true'                 { Token _  TBoolTrue     }
   'false'                { Token _  TBoolFalse    }
   path                   { Token _  (TPath $$)    }
+  num                    { Token _  (TNum $$)     }
   'import-directories'   { Token _  TImpDirs      }
   'use-cede-files'       { Token _  TUseCedFiles  }
   'make-rkt-files'       { Token _  TMkRktFiles   }
   'generate-logs'        { Token _  TGenLogs      }
   'show-qualified-vars'  { Token _  TShowQualVars }
   'erase-types'          { Token _  TEraseTypes   }
+  'pretty-print-columns' { Token _  TPrintColumns }
   'datatype-encoding'    { Token _  TDataEnc      }
   'Mendler'              { Token _  TEncMendler   }
   'Mendler-old'          { Token _  TEncMendlerOld}
@@ -47,13 +49,14 @@ Bool :: { StrBool }
      | 'true'   { StrBoolTrue }
 
 Opt :: { Opt }
-    : 'import-directories'  '=' Paths  '.'  { Lib          $3 }
-    | 'use-cede-files'      '=' Bool   '.'  { UseCedeFiles $3 }
-    | 'make-rkt-files'      '=' Bool   '.'  { MakeRktFiles $3 }
-    | 'generate-logs'       '=' Bool   '.'  { GenerateLogs $3 }
-    | 'show-qualified-vars' '=' Bool   '.'  { ShowQualifiedVars $3 }
-    | 'erase-types'         '=' Bool   '.'  { EraseTypes $3   }
-    | 'datatype-encoding'   '=' DataEnc '.' { DatatypeEncoding $3 }
+    : 'import-directories'   '=' Paths   '.' { Lib          $3 }
+    | 'use-cede-files'       '=' Bool    '.' { UseCedeFiles $3 }
+    | 'make-rkt-files'       '=' Bool    '.' { MakeRktFiles $3 }
+    | 'generate-logs'        '=' Bool    '.' { GenerateLogs $3 }
+    | 'show-qualified-vars'  '=' Bool    '.' { ShowQualifiedVars $3 }
+    | 'erase-types'          '=' Bool    '.' { EraseTypes $3   }
+    | 'datatype-encoding'    '=' DataEnc '.' { DatatypeEncoding $3 }
+    | 'pretty-print-columns' '=' num     '.' { PrintColumns $3 }
 
 Paths :: { Paths }
       :             { PathsNil        }

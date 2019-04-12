@@ -69,8 +69,9 @@ data opt : Set where
     ShowQualifiedVars : str-bool → opt
     UseCedeFiles : str-bool → opt
     EraseTypes : str-bool → opt
+    PrettyPrintColumns : string → opt
     DatatypeEncoding : data-encoding → opt
-{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.DatatypeEncoding) #-}
+{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.PrintColumns | CedilleOptionsLexer.DatatypeEncoding) #-}
 
 data opts : Set where 
     OptsCons : opt → opts → opts
@@ -232,6 +233,7 @@ mutual
   optToString (ShowQualifiedVars x0) = "(ShowQualifiedVars" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (UseCedeFiles x0) = "(UseCedeFiles" ^ " " ^ (str-boolToString x0) ^ ")"
   optToString (EraseTypes x0) = "(EraseTypes" ^ " " ^ (str-boolToString x0) ^ ")"
+  optToString (PrettyPrintColumns x0) = "PrettyPrintColumns" ^ " " ^ x0 ^ ")"
   optToString (DatatypeEncoding x0) = "(DatatypeEncoding" ^ " " ^ (data-encodingToString x0) ^ ")"
 
   optsToString : opts → string

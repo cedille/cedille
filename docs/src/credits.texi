@@ -2,7 +2,7 @@
 @include version.texi
 @chapter Credits
 
-@unnumberedsec Fall 2018:
+@unnumberedsec Fall 2018-Winter 2019:
 
 Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew Marmaduke, Colin McDonald, Aaron Stump
 

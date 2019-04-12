@@ -149,13 +149,13 @@ include-elt-to-string ie =
     ", do-type-check:  " ^ (𝔹-to-string (include-elt.do-type-check ie)) ^
     ", last-parse-time: " ^ (maybe-else "" utcToString (include-elt.last-parse-time ie))
 
-params-to-string'' : params → string
-params-to-string'' [] = ""
+params-to-string''' : params → string
+params-to-string''' [] = ""
 -- TODO print erased vs non-erased?
-params-to-string'' ((Decl pi pi' me v t-k pi'') :: pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string'' pms)
+params-to-string''' ((Decl pi pi' me v t-k pi'') :: pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string''' pms)
 
 defParams-to-string : defParams → string
-defParams-to-string (just pms) = params-to-string'' pms
+defParams-to-string (just pms) = params-to-string''' pms
 defParams-to-string nothing = ""
 
 -- TODO also print modname?
@@ -168,7 +168,7 @@ ctxt-info-to-string (term-def dp opac t tp) = "term-def: {defParams: {" ^ (defPa
 ctxt-info-to-string (term-udef dp opac t) = "term-udef: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", term: " ^ rope-to-string (to-string empty-ctxt t) ^ "}"
 ctxt-info-to-string (type-decl k) = "type-decl: {kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (type-def dp opac tp k) = "type-def: {defParams: {" ^ (defParams-to-string dp) ^ "}, opacity: " ^ (opacity-to-string opac) ^ ", maybe type: " ^ maybe-else' tp "nothing" (λ tp → "just " ^ rope-to-string (to-string empty-ctxt tp)) ^ ", kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
-ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string'' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
+ctxt-info-to-string (kind-def pms k) = "kind-def: {pms: " ^ (params-to-string''' pms) ^ "kind: " ^ rope-to-string (to-string empty-ctxt k) ^ "}"
 ctxt-info-to-string (rename-def v) = "rename-def: {var: " ^ v ^ "}"
 ctxt-info-to-string (var-decl) = "var-decl"
 ctxt-info-to-string (ctr-def _ _ _ _ _) = "ctr-def"
@@ -189,10 +189,10 @@ sym-occs-to-string : trie (𝕃 (var × posinfo × string)) → string
 sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-string ", " l) ^ "}")
 
 qualif-to-string : qualif-info → string
-qualif-to-string (x , as) = x ^ rope-to-string (fst (args-to-string as {TERM} [[]] 0 [] (new-ctxt "" "") nothing neither))
+qualif-to-string (x , as) = x ^ rope-to-string (doc-to-rope $ fst (args-to-string as {TERM} NIL 0 [] (new-ctxt "" "") nothing neither)) where open import pretty
 
 mod-info-to-string : mod-info → string
-mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string'' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
+mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string''' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os Δ) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
@@ -290,6 +290,8 @@ scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ'
   asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
 
 scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm elab-hide-key v _ _) _) s = s , nothing
+scope-cmd fn mn oa ps as (DefTermOrType _ (DefType elab-hide-key v _ _) _) s = s , nothing
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s =

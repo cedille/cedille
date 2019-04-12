@@ -12,9 +12,11 @@ record options : Set where
         show-qualified-vars : 𝔹
         erase-types : 𝔹
         datatype-encoding : data-encoding
+        pretty-print-columns : ℕ
 
         -- Internal use only
         during-elaboration : 𝔹
+        pretty-print : 𝔹
 
 default-options : options
 default-options = record {
@@ -25,7 +27,9 @@ default-options = record {
   show-qualified-vars = ff;
   erase-types = tt;
   datatype-encoding = Mendler;
-  during-elaboration = ff}
+  pretty-print-columns = 80;
+  during-elaboration = ff;
+  pretty-print = ff}
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =
@@ -52,6 +56,8 @@ options-to-rope ops =
   option "show-qualified-vars" (𝔹-s options.show-qualified-vars) ⊹⊹
   comment "Print types erased" ⊹⊹
   option "erase-types" (𝔹-s options.erase-types) ⊹⊹
+  comment "Preferred number of columns to pretty print elaborated files with" ⊹⊹
+  option "pretty-print-columns" (ℕ-to-string (options.pretty-print-columns ops)) ⊹⊹
   comment "Datatype encoding to use when elaborating to Cedille Core" ⊹⊹
   option "datatype-encoding" (enc-s options.datatype-encoding)
   

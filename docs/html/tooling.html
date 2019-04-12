@@ -72,12 +72,21 @@ available to display information about the current node (the inspect
 buffer), current typing context, meta-variable solutions, and summary
 information for the source file.
 </p>
-<p>Additionally, one can request that Cedille compile a given source
+<p>Additionally, one can request that Cedille elaborate a given source
 buffer and its dependencies to Cedille Core, a much more minimalistic
 core type theory lacking many of the nice features of Cedille,
 especially spine-local type inference.  <code>core</code> contains an implementation
 of Cedille Core in Haskell.  There is a specification of Cedille Core
-<a href="https://github.com/astump/cedille-core-spec">here</a>.
+<a href="https://github.com/astump/cedille-core-spec">here</a>.  To elaborate
+a source file and its dependencies, use keystroke &ldquo;E&rdquo; in Cedille navigation
+mode.  You will be prompted for the name of a directory into which to store
+the elaborated files.  These are written as .cdle files.  Opening a .cdle file
+in emacs (with Cedille installed) will initiate a cdle emacs mode, whose
+main purpose is to support typing &ldquo;Meta-s&rdquo; to check the cdle file with
+the Cedille Core checker.  At present, the elaborated files are rather big
+and generally will not be checkable all at once in regular Cedille.  Cedille
+Core is a subset of Cedille, though, and so you can check selections from
+these files directly in Cedille (not just in Cedille Core).
 </p>
 <a name="Spans"></a>
 <h3 class="section">2.1 Spans</h3>

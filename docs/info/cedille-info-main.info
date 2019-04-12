@@ -188,7 +188,11 @@ to the user to enforce by terminating the tool if it is taking too long.
 Rewriting is performed by a construct ρ t - t’.  Here, t should prove an
 equation { t1 ≃ t2 }.  Then the type synthesized from or used to check
 t’ will be rewritten to replace any subterm beta-eta equal to t1 with
-t2.
+t2.  If we are typing the ρ-term in synthesizing mode, then we rewrite
+the type of t’ by replacing all subterms convertible with t2 with t1 (so
+we rewrite right to left).  If we are typing the ρ-term in checking
+mode, then we rewrite the incoming (contextual) type to replace all
+subterms convertible with t1 with t2 (so we rewrite left to right).
 
 See language-overview/equational-reasoning.ced for examples.
 
@@ -208,6 +212,35 @@ output vectors are the same.
 
 If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
 with some term t’, the notation in Cedille is t -t’.
+
+Finally, one sometimes wishes to give a binding for a more complex
+specificational term for use within an expression.  To facilitate this
+Cedille has notation for erased let-bindings {x : T = t} - t2, where x
+is the bound variable, t1 its definition, and t2 and expression where x
+is in scope.  The syntax for ordinary let-bindings is [x : T = t1] - t2
+
+1.2.4 Datatype notations
+------------------------
+
+As already mentioned, the above constructs of Cedille are sufficient to
+derive induction for a class of datatypes, including parametrized and
+indexed ones, that are useful for programming and proving in practice.
+Starting with Cedille 1.1, we have added direct support for datatype
+notations.  One can declare datatypes using syntax similar to that of
+languages like Coq or Agda, and define functions using pattern matching
+and pattern-matching recursion.  Unlike Coq and Agda (as implemented at
+the time of writing), though, Cedille’s datatype notations elaborate to
+Cedille Core (see *Note tooling::), which does not have any built-in
+notion of datatypes, only the pure type theory of CDLE. One additional
+difference from the datatype notations of Coq and Agda is that Cedille’s
+pattern-matching recursion supports histomorphic recursion, where one
+can iteratively extract subdata from a pattern variable and then make a
+recursive call (on the extracted subdata).  This subsumes nested
+pattern-matching, although we do not at present support nested-pattern
+syntax (we are considering possibly adding this in a subsequent
+release).  For examples of the basics of datatypes in Cedille, see
+‘language-overview/datatypes.ced’, and for an example of histomorphic
+recursion see ‘language-overview/cov-pattern-matching.ced’.
 
 1.3 More reading
 ================
@@ -242,12 +275,22 @@ information about the current node (the inspect buffer), current typing
 context, meta-variable solutions, and summary information for the source
 file.
 
-Additionally, one can request that Cedille compile a given source buffer
-and its dependencies to Cedille Core, a much more minimalistic core type
-theory lacking many of the nice features of Cedille, especially
-spine-local type inference.  ‘core’ contains an implementation of
-Cedille Core in Haskell.  There is a specification of Cedille Core here
-(https://github.com/astump/cedille-core-spec).
+Additionally, one can request that Cedille elaborate a given source
+buffer and its dependencies to Cedille Core, a much more minimalistic
+core type theory lacking many of the nice features of Cedille,
+especially spine-local type inference.  ‘core’ contains an
+implementation of Cedille Core in Haskell.  There is a specification of
+Cedille Core here (https://github.com/astump/cedille-core-spec).  To
+elaborate a source file and its dependencies, use keystroke “E” in
+Cedille navigation mode.  You will be prompted for the name of a
+directory into which to store the elaborated files.  These are written
+as .cdle files.  Opening a .cdle file in emacs (with Cedille installed)
+will initiate a cdle emacs mode, whose main purpose is to support typing
+“Meta-s” to check the cdle file with the Cedille Core checker.  At
+present, the elaborated files are rather big and generally will not be
+checkable all at once in regular Cedille.  Cedille Core is a subset of
+Cedille, though, and so you can check selections from these files
+directly in Cedille (not just in Cedille Core).
 
 2.1 Spans
 =========
@@ -906,26 +949,25 @@ File: cedille-info-main.info,  Node: roadmap,  Next: credits,  Prev: options,  U
 24 Roadmap
 **********
 
-Cedille is under active development, and the following major changes are
-planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far
-from done with the datatype notations).  Cedille 1.2 is likely Winter
-2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are
-still immersed in the basic research for that.
+With Cedille 1.1, we have a version of Cedille that provides familiar
+higher level concepts for datatypes like datatype declarations,
+constructors, and pattern-matching (histomorphic) recursion.  Cedille
+1.1 elaborates these down to Cedille Core, a pure type theory without
+primitive datatypesl This accomplishes a major goal in the roadmap of
+Cedille 1.0.  Future directions are somewhat up in the air at present.
+One avenue likely to be developed in 2019 is automatic subtyping, which
+will make certain examples with datatype notations more succinct.  The
+following items are still on the agenda:
 
-   • Datatype declarations and pattern-matching recursion, compiled to a
-     Mendler lambda-encoding, Cedille 1.1
    • Second-order matching and term inference incorporated into
-     spine-local type inference, Cedille 1.2
+     spine-local type inference
    • Rebase Cedille on sequent calculus to enable deriving types like
      existentials as dual to universals, and support constructive
-     control operators, Cedille 2.0
+     control operators
 
-For datatype notations, we have, in a number of papers and works in
-progress, devised semantics in Cedille for various somewhat advanced
-features: histomorphic recursion, inductive-recursive types, and
-inductive-inductive types.  We will be gradually incorporating
-high-level syntax for these into Cedille, starting with histomorphic
-recursion.
+We also plan to continue incorporating high-level syntax for advanced
+datatype features into Cedille, although exactly which might be up next
+is currently not determined.
 
 
 File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
@@ -935,8 +977,8 @@ File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up:
 25 Credits
 **********
 
-Fall 2018:
-==========
+Fall 2018-Winter 2019:
+======================
 
 Development team: Tony Cantor, Larry Diehl, Chris Jenkins, Andrew
 Marmaduke, Colin McDonald, Aaron Stump
@@ -1027,19 +1069,19 @@ Index
 Tag Table:
 Node: Top95
 Node: about1072
-Node: tooling11005
-Node: cedille mode commands15985
-Node: unicode shortcuts19407
-Node: extra buffers21596
-Node: inspect buffer23086
-Node: summary buffer24427
-Node: meta-vars buffer25386
-Node: beta-reduce mode26563
-Node: context buffer27826
-Node: options29999
-Node: roadmap31251
-Node: credits32517
-Node: Index33884
+Node: tooling13091
+Node: cedille mode commands18756
+Node: unicode shortcuts22178
+Node: extra buffers24367
+Node: inspect buffer25857
+Node: summary buffer27198
+Node: meta-vars buffer28157
+Node: beta-reduce mode29334
+Node: context buffer30597
+Node: options32770
+Node: roadmap34022
+Node: credits35240
+Node: Index36631
 
 End Tag Table
 

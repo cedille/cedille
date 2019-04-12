@@ -211,7 +211,12 @@ by terminating the tool if it is taking too long.
 <p>Rewriting is performed by a construct ρ t - t&rsquo;.  Here, t should prove
 an equation { t1 ≃ t2 }.  Then the type synthesized from or used to
 check t&rsquo; will be rewritten to replace any subterm beta-eta equal to t1
-with t2.
+with t2.  If we are typing the ρ-term in synthesizing mode, then we
+rewrite the type of t&rsquo; by replacing all subterms convertible with t2
+with t1 (so we rewrite right to left).  If we are typing the ρ-term
+in checking mode, then we rewrite the incoming (contextual) type
+to replace all subterms convertible with t1 with t2 (so we rewrite left
+to right).
 </p>
 <p>See language-overview/equational-reasoning.ced for examples.
 </p>
@@ -232,6 +237,36 @@ and output vectors are the same.
 <p>If one has a term t of type ∀ x : T . T&rsquo; and wishes to instantiate x
 with some term t&rsquo;, the notation in Cedille is t -t&rsquo;.
 </p>
+<p>Finally, one sometimes wishes to give a binding for a more complex
+specificational term for use within an expression. To facilitate this
+Cedille has notation for erased let-bindings {x : T = t} - t2, where
+x is the bound variable, t1 its definition, and t2 and expression where
+x is in scope. The syntax for ordinary let-bindings is [x : T = t1] - t2
+</p>
+<a name="Datatype-notations"></a>
+<h4 class="subsection">1.2.4 Datatype notations</h4>
+
+<p>As already mentioned, the above constructs of Cedille are sufficient
+to derive induction for a class of datatypes, including parametrized
+and indexed ones, that are useful for programming and proving in
+practice.  Starting with Cedille 1.1, we have added direct support for
+datatype notations.  One can declare datatypes using syntax similar to
+that of languages like Coq or Agda, and define functions using pattern
+matching and pattern-matching recursion.  Unlike Coq and Agda (as
+implemented at the time of writing), though, Cedille&rsquo;s datatype
+notations elaborate to Cedille Core (see See <a href="tooling.html#tooling">tooling</a>), which does
+not have any built-in notion of datatypes, only the pure type theory
+of CDLE.  One additional difference from the datatype notations of Coq
+and Agda is that Cedille&rsquo;s pattern-matching recursion supports
+histomorphic recursion, where one can iteratively extract subdata from
+a pattern variable and then make a recursive call (on the extracted
+subdata).  This subsumes nested pattern-matching, although we do not
+at present support nested-pattern syntax (we are considering possibly
+adding this in a subsequent release).  For examples of the basics of
+datatypes in Cedille, see <code>language-overview/datatypes.ced</code>, and
+for an example of histomorphic recursion see <code>language-overview/cov-pattern-matching.ced</code>.
+</p>
+
 <a name="More-reading"></a>
 <h3 class="section">1.3 More reading</h3>
 

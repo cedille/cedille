@@ -1,0 +1,17 @@
+module data/sum.
+
+data Sum (A: ★) (B: ★): ★ =
+  | in1 : A ➔ Sum
+  | in2 : B ➔ Sum.
+
+case : ∀ A: ★. ∀ B: ★. ∀ X: ★. Sum ·A ·B ➔ (A ➔ X) ➔ (B ➔ X) ➔ X
+  = Λ A. Λ B. Λ X. λ s. λ l. λ r. μ' s {
+  | in1 a ➔ l a
+  | in2 b ➔ r b
+  }.
+
+sumMapR : ∀ A: ★. ∀ B: ★. ∀ C: ★. (B ➔ C) ➔ Sum ·A ·B ➔ Sum ·A ·C
+  = Λ A. Λ B. Λ C. λ f. λ s. case s (λ a. in1 a) (λ b. in2 (f b)).
+
+sumMapL : ∀ A: ★. ∀ B: ★. ∀ C: ★. (A ➔ C) ➔ Sum ·A ·B ➔ Sum ·C ·B
+  = Λ A. Λ B. Λ C. λ f. λ s. case s (λ a. in1 (f a)) (λ b. in2 b).

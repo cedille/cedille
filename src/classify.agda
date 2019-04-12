@@ -504,7 +504,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
                  x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
                  Γ' = ctxt-var-decl x Γ
                  qt = qualif-term Γ t
-                 s = rewrite-type tp Γ' op (fst ns-err) qt t1 x 0
+                 s = rewrite-type tp Γ' op (fst ns-err) (just qt) t1 x 0
                  T = post-rewrite Γ' x qt t2 (fst s) in -- subst-type Γ' t2 x (fst s) in
              check-term t' (just T) ≫span
              spanM-add (Rho-span pi t t' checking op (inj₁ (fst (snd s))) ((to-string-tag "the equation" Γ (TpEq pi' t1 t2 pi'')) :: [ type-data Γ tp ]) (snd ns-err (snd (snd s))))
@@ -525,7 +525,7 @@ check-termi (Rho pi op on t NoGuide t') nothing =
                 x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
                 qt = qualif-term Γ t
                 Γ' = ctxt-var-decl x Γ
-                s = rewrite-type tp Γ' op (fst ns-err) qt t2 x 0
+                s = rewrite-type tp Γ' op (fst ns-err) (just qt) t2 x 0
                 tp' = post-rewrite Γ' x qt t1 (fst s) in
               spanM-add (Rho-span pi t t' synthesizing op (inj₁ (fst (snd s))) [ type-data Γ tp' ] (snd ns-err (snd (snd s)))) ≫span
               check-termi-return-hnf Γ (Rho pi op on t NoGuide t') tp'
@@ -770,12 +770,12 @@ substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
   substh-decortype Γ ρ σ cod
   ≫=span λ cod → spanMr $ decor-arrow e? (substh-type Γ ρ σ dom) cod
   -- spanMr $ decor-arrow e? (substh-type Γ ρ σ dom) (substh-decortype Γ ρ σ cod)
-substh-decortype Γ ρ σ (decor-decor e? pi x sol dt) =
+substh-decortype Γ ρ σ (decor-decor e? pi x tk sol dt) =
   let x' = subst-rename-var-if Γ ρ x σ
       Γ' = ctxt-var-decl-loc pi x' Γ
       ρ' = renamectxt-insert ρ x x'
   in substh-decortype Γ' ρ' σ dt
-  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-meta-var-sort Γ ρ σ sol) dt'
+  ≫=span λ dt' → spanMr $ decor-decor e? pi x' (substh-tk Γ ρ σ tk) (substh-meta-var-sort Γ ρ σ sol) dt'
   -- decor-decor e? x' (substh-meta-var-sol Γ' ρ' σ sol) (substh-decortype Γ' ρ' σ dt)
 substh-decortype Γ ρ σ (decor-stuck tp pt) =
   match-prototype meta-vars-empty ff (substh-type Γ ρ σ tp) pt
@@ -804,14 +804,14 @@ meta-vars-subst-decortype = meta-vars-subst-decortype' tt
 
 {-# TERMINATING #-}
 meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM $ (𝕃 meta-var) × decortype
-meta-vars-peel' Γ sl Xs (decor-decor e? pi x (meta-var-tp k mtp) dt) =
+meta-vars-peel' Γ sl Xs (decor-decor e? pi x _ (meta-var-tp k mtp) dt) =
   let Y   = meta-var-fresh-tp Xs x sl (k , mtp)
       Xs' = meta-vars-add Xs Y
   in subst-decortype Γ (meta-var-to-type-unsafe Y) x dt
   ≫=span λ dt' → meta-vars-peel'  Γ sl Xs' dt'
   ≫=span λ ret → let Ys = fst ret ; rdt = snd ret
   in spanMr $ Y :: Ys , rdt
-meta-vars-peel' Γ sl Xs dt@(decor-decor e? pi x (meta-var-tm _ _) _) = spanMr $ [] , dt
+meta-vars-peel' Γ sl Xs dt@(decor-decor e? pi x _ (meta-var-tm _ _) _) = spanMr $ [] , dt
 meta-vars-peel' Γ sl Xs dt@(decor-arrow _ _ _) = spanMr $ [] , dt
 -- NOTE: vv The clause below will later generate a type error vv
 meta-vars-peel' Γ sl Xs dt@(decor-stuck _ _) = spanMr $ [] , dt
@@ -826,9 +826,9 @@ meta-vars-unfold-tmapp' Γ sl Xs dt =
   ≫=span λ where
     (Ys , dt'@(decor-arrow e? dom cod)) →
       spanMr $ Ys , yes-tmabsd dt' e? "_" dom ff cod
-    (Ys , dt'@(decor-decor e? pi x (meta-var-tm dom _) cod)) →
+    (Ys , dt'@(decor-decor e? pi x _ (meta-var-tm dom _) cod)) →
       spanMr $ Ys , yes-tmabsd dt' e? x dom (is-free-in check-erased x (decortype-to-type cod)) cod
-    (Ys , dt@(decor-decor _ _ _ (meta-var-tp _ _) _)) →
+    (Ys , dt@(decor-decor _ _ _ _ (meta-var-tp _ _) _)) →
       spanMr $ Ys , not-tmabsd dt
 -- NOTE: vv this is a type error vv
     (Ys , dt@(decor-stuck _ _)) →
@@ -843,9 +843,9 @@ meta-vars-unfold-tpapp' : ctxt → meta-vars → decortype → spanM is-tpabsd?
 meta-vars-unfold-tpapp' Γ Xs dt =
   meta-vars-subst-decortype Γ Xs dt
   ≫=span λ where
-   (dt″@(decor-decor e? pi x (meta-var-tp k mtp) dt')) →
+   (dt″@(decor-decor e? pi x _ (meta-var-tp k mtp) dt')) →
     spanMr $ yes-tpabsd dt″ e? x k (flip maybe-map mtp meta-var-sol.sol) dt'
-   (dt″@(decor-decor _ _ _ (meta-var-tm _ _) _)) →
+   (dt″@(decor-decor _ _ _ _ (meta-var-tm _ _) _)) →
     spanMr $ not-tpabsd dt″
    (dt″@(decor-arrow _ _ _)) → spanMr $ not-tpabsd dt″
    (dt″@(decor-stuck _ _)) → spanMr $ not-tpabsd dt″
@@ -1167,17 +1167,10 @@ check-type-for-match tp =
     ≫=spanm' λ k → spanMr ∘ match-ok $ k)
   ≫=spand spanMr
   where
-  qualified-qualif : ctxt → qualif
-  qualified-qualif (mk-ctxt mod ss is os Δ) =
-    for trie-strings is accum empty-trie use λ x q →
-      trie-insert q x (x , [])
-
   -- helper to restore qualif state
   with-qualified-qualif : ∀ {A} → spanM A → spanM A
   with-qualified-qualif sm =
-    get-ctxt λ Γ →
-    with-ctxt (ctxt-set-qualif Γ (qualified-qualif Γ))
-   sm
+    get-ctxt λ Γ → with-ctxt (qualified-ctxt Γ) sm
 
   -- helper to restore error state
   with-clear-error : ∀ {A} → spanM A → spanM A
@@ -1408,9 +1401,9 @@ match-prototype Xs uf tp (proto-maybe nothing) =
   --------------------
   Xs ⊢? T ≔ S ⇒ (σ , T)
 -}
-match-prototype Xs uf tp (proto-maybe (just tp')) =
+match-prototype Xs uf tp pt@(proto-maybe (just tp')) =
   match-types Xs empty-trie match-unfolding-both tp tp'
-    on-fail (λ _ → spanMr $ mk-match-prototype-data Xs (decor-type tp) tt)
+    on-fail (λ _ → spanMr $ mk-match-prototype-data Xs (decor-error tp pt) tt)
   ≫=spans' λ Xs' → spanMr $ mk-match-prototype-data Xs' (decor-type tp) ff
 
 {-
@@ -1435,7 +1428,7 @@ match-prototype Xs uf (Abs pi bₓ pi' x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   -- 4) leave behind the solution for Y as a decoration and drop Y from Xs
   ≫=span λ dt' →
   let sort' = meta-var.sort (meta-var-set-src Y' checking)
-      dt″ = decor-decor Erased pi x sort' dt' in
+      dt″ = decor-decor Erased pi x (Tkk k) sort' dt' in
   spanMr $ mk-match-prototype-data (meta-vars-remove Xs' Y) dt″ err
 
 {-
@@ -1447,7 +1440,7 @@ match-prototype Xs uf (Abs pi b pi' x (Tkt dom) cod) (proto-arrow e? pt) =
   match-prototype Xs ff cod pt
   ≫=span λ ret →
   let mk-match-prototype-data Xs dt err = ret
-      dt' = decor-decor b pi x (meta-var-tm dom nothing) dt
+      dt' = decor-decor b pi x (Tkt dom) (meta-var-tm dom nothing) dt
   in spanMr $ if ~ eq-maybeErased b e?
     then mk-match-prototype-data meta-vars-empty dt' tt
   else mk-match-prototype-data Xs dt' err
@@ -1852,6 +1845,8 @@ check-def (DefType pi x k T) =
   spanMr (pi , x , m , Tkk k , T)
 
 check-case (Case pi x asₒ t) csₓ ctr-ps drop-ps Tₘ =
+  spanM-add (pattern-span pi x asₒ) ≫span
+  spanM-add (pattern-clause-span pi t) ≫span
   get-ctxt λ Γ →
   maybe-else' (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ → trie-lookup csₓ x' ≫=maybe λ T → just (T ≫=maybe λ T → just (x' , T)))-- , decompose-ctr-type Γ T))
     (spanM-add (pattern-ctr-span Γ pi x asₒ nothing
@@ -1944,6 +1939,15 @@ check-mu-evidence (SomeTerm t _) X as =
       _ → spanMr ev-err
     _ → spanMr ev-err
 
+check-refinement : type → kind → spanM (𝕃 tagged-val × err-m)
+check-refinement T k Γ ss =
+  check-type T (just k) (qualified-ctxt Γ) (regular-spans nothing []) ≫=monad λ where
+    (triv , _ , ss') → returnM $ (λ x → x , Γ , ss) $
+      [ to-string-tag "computed motive" Γ T ] ,
+      if (spans-have-error ss')
+        then just "We could not compute a well-kinded motive"
+        else nothing
+
 check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
   get-ctxt λ Γ → 
   check-termi t nothing ≫=span λ T →
@@ -1964,18 +1968,28 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) nothing) ≫span
           return-when mtp (ret-tp [] as $ qualif-term Γ t)
         (just (cast , mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs)) →
-          let is = kind-to-indices Γ kᵢ in
+          let is = kind-to-indices Γ kᵢ
+              is' = drop-last 1 is
+              refine = refine-motive Γ (qualif-term Γ t) Xₒ is' asᵢ
+              --mkspan = λ p3 → spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
+              --                  (fst $ snd p3) (snd $ snd p3)) ≫span spanMr p3
+              no-motive = spanMr (nothing , [] ,
+                            just "A motive is required when synthesizing") in
           (case Tₘ? of λ where
-            (SomeType Tₘ) → check-type Tₘ (just kᵢ) ≫span spanMr (just $ qualif-type Γ Tₘ)
-            NoType → maybe-else' mtp (spanM-add $ Mu-span Γ pi x? pi''' Tₘ?' synthesizing [] (just "A motive is required when synthesizing")) (λ _ → spanMok) ≫span spanMr (maybe-map (indices-to-tplams $ map
-              (λ {(Index x atk) → Index ignored-var atk}) is) mtp)) ≫=spanr λ Tₘ →
-          let is = drop-last 1 is
+            (SomeType Tₘ) →
+              check-type Tₘ (just kᵢ) ≫span spanMr (just (qualif-type Γ Tₘ) , [] , nothing)
+            NoType →
+              spanMr mtp on-fail no-motive ≫=spanm' λ Tₑ →
+              let Tₘ = refine Tₑ in
+              check-refinement Tₘ kᵢ ≫=span λ p2 → spanMr (just Tₘ , p2))
+          ≫=spanc λ Tₘ → uncurry λ tvs₁ e₁ → spanMr Tₘ ≫=spanr λ Tₘ →
+          let is = is'
               subst-ctr : ctxt → ctr → ctr
               subst-ctr = λ {Γ (Ctr pi x T) →
-                Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-all) ff $ maybe-else' x?
+                Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-head) ff $ maybe-else' x?
                   (if (Xₒ =string X) then T else subst Γ (params-to-tplams ps $ mtpvar X) Xₒ T)
                   λ x → subst Γ (params-to-tplams ps $ mtpvar $ pi' % mu-Type/ x) Xₒ T}
-              reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-all) T ff}
+              reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-head) T ff}
               cs' = reduce-cs $ maybe-else' x? (if Xₒ =string X then cs' else fcs X) λ x → fcs (mu-Type/ (pi' % x))
               Γ' = maybe-else' x? (spanMr (Γ , [])) λ x →
                      let X' = mu-Type/ x
@@ -1996,15 +2010,15 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                               --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
                               --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
                          freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
-                         Tₓ = hnf Γ' (unfolding-elab unfold-all) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
+                         Tₓ = hnf Γ' (unfolding-elab unfold-head) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
                          Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
-                         e₁? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
-                         e₂ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
-                         e₂ₑ = flip (are-free-in-cases skip-erased) cs ∘ stringset-insert* empty-stringset
-                         e₂ₓ? = λ x → maybe-if (e₂ₑ [ x ]) ≫maybe e₂ x
-                         e₂? = x? ≫=maybe λ x → maybe-if (e₂ₑ $ mu-isType/ x :: mu-Type/ x :: []) ≫=maybe λ _ →
-                                 e₂ₓ? (mu-isType/ x) maybe-or e₂ₓ? (mu-Type/ x)in
-                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₁? maybe-or e₂?)) ≫span
+                         e₂? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
+                         e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
+                         e₃ₑ = flip (are-free-in-cases skip-erased) cs ∘ stringset-insert* empty-stringset
+                         e₃ₓ? = λ x → maybe-if (e₃ₑ [ x ]) ≫maybe e₃ x
+                         e₃? = x? ≫=maybe λ x → maybe-if (e₃ₑ $ mu-isType/ x :: mu-Type/ x :: []) ≫=maybe λ _ →
+                                 e₃ₓ? (mu-isType/ x) maybe-or e₃ₓ? (mu-Type/ x)in
+                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₂? maybe-or e₃?)) ≫span
                      spanMr (Γ'' ,
                              (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
                               binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
@@ -2018,12 +2032,12 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))
                  scrutinee = cast $ qualif-term Γ t
                  Tᵣ = ret-tp ps (args-to-ttys asₚ ++ asᵢ) scrutinee in
-             check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e₁ xs →
+             check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e₂ xs →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing")
                                     (check-for-type-mismatch-if Γ "synthesized" mtp))
-               λ tvs e₂ → Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
+               λ tvs e₃ → Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
                  (map (λ {(pi , x , atk , me , s , e) →
-                            binder-data Γ' pi x atk me nothing s e}) xs ++ tvs ++ bds) (e₁ maybe-or e₂)) ≫span
+                            binder-data Γ' pi x atk me nothing s e}) xs ++ tvs₁ ++ tvs ++ bds) (e₁ maybe-or (e₂ maybe-or e₃))) ≫span
              return-when mtp Tᵣ)
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)

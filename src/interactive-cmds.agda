@@ -280,8 +280,75 @@ private
         picked-encoding = if encoding then mendler-encoding else mendler-simple-encoding
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
-  
 
+{-
+  br-cmd : ctxt → (str qed : string) → 𝕃 string → IO ⊤
+  br-cmd Γ str qed ls =
+    let Γ' = merge-lcis-ctxt Γ ls in
+    maybe-else
+      (return (io-spans.spans-to-rope (io-spans.global-error "Parse error" nothing)))
+      (λ s → s >>= return ∘ io-spans.spans-to-rope)
+      (parse-try {maybe (IO io-spans.spans)} Γ' str ≫=maybe λ f → f λ where
+         ll-term t → just (untyped-term-spans t Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+         ll-type T →
+           parse-string ll-term qed ≫=maybe λ q →
+           case check-term q (just $ qualif-type Γ' T) Γ' empty-spans of λ where
+             (triv , _ , ss @ (regular-spans nothing _)) →
+               just (putStrLn "inhabited: Type inhabited" >> untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+             (triv , _ , _) →
+               just (untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
+         ll-kind k →
+           just (untyped-kind-spans k Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd)))
+      >>= putRopeLn
+
+  conv-cmd : ctxt → (ll str1 str2 : string) → 𝕃 string → string ⊎ tagged-val
+  conv-cmd Γ ll s1 s2 ls =
+    parse-ll - ll ! "language-level" ≫parse λ ll' →
+    parse-string ll' - s1 ! ll ≫parse λ t1 →
+    parse-string ll' - s2 ! ll ≫parse λ t2 →
+    let Γ' = merge-lcis-ctxt Γ ls; t2 = erase (qualif-ed Γ' t2) in
+    if ll-ind {λ ll → ctxt → ll-lift ll → ll-lift ll → 𝔹}
+         conv-term conv-type conv-kind ll' Γ' (qualif-ed Γ' t1) t2
+      then inj₂ (to-string-tag "" Γ' t2)
+      else inj₁ "Inconvertible"
+
+  rewrite-cmd : ctxt → (span-str : string) → (input-str : string) →
+                (use-hnf : string) → (local-ctxt : 𝕃 string) → string ⊎ tagged-val
+  rewrite-cmd Γ ss is hd ls =
+    string-to-𝔹 - hd ! "boolean" ≫parse λ use-hnf →
+    let Γ = merge-lcis-ctxt Γ ls in
+    parse-try Γ - ss ! ttk ≫parse λ f → f λ ll ss →
+    parse-try Γ - is ! ttk ≫parse λ f → (f λ where
+      ll-term t → (case check-term t nothing Γ empty-spans of λ
+          {(just T , _ , regular-spans nothing _) → just T; _ → nothing})
+        ! "Error when synthesizing a type for the input term" ≫error λ where
+          (TpEq _ t₁ t₂ _) → inj₂ (t₁ , t₂)
+          _ → inj₁ "Synthesized a non-equational type from the input term"
+      ll-type (TpEq _ t₁ t₂ _) → inj₂ (t₁ , t₂)
+      ll-type _ → inj₁ "Expected the input expression to be a term, but got a type"
+      ll-kind _ → inj₁ "Expected the input expression to be a term, but got a kind")
+    ≫=⊎ uncurry λ t₁ t₂ →
+    let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+        f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
+              subst subst subst ll Γ t₂ x in
+    case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
+                         maybe term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
+      rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ
+      use-hnf nothing (just (Beta posinfo-gen NoTerm NoTerm)) t₁ x 0) of λ where
+        (e , 0 , _) → inj₁ "No rewrites could be performed"
+        (e , _ , _) → inj₂ (strRunTag "" Γ
+          (to-stringe (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringe (erase e)))
+-}
+  pretty-cmd : filepath → filepath → IO string
+  pretty-cmd src-fn dest-fn =
+    readFiniteFile src-fn >>= λ src →
+    case parseStart src of λ where
+      (Left (Left p)) → return ("Lexical error at position " ^ p)
+      (Left (Right p)) → return ("Parse error at position " ^ p)
+      (Right file) → writeFile dest-fn "" >> writeRopeToFile dest-fn (to-string.strRun empty-ctxt (to-string.file-to-string file)) >> return "Finished"
+    where import to-string (record options {pretty-print = tt}) as to-string
+  
+  
   {- Commands -}
   
   tv-to-rope : string ⊎ tagged-val → rope
@@ -416,7 +483,7 @@ private
                    x = fresh-var-new Γ' ignored-var
                    eq = qualif-term Γ' eqₒ
                    Tₗ = qualif-ed Γ' Tₗ in
-               elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing eq t₁ x 0) λ Tᵣ n →
+               elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing (just eq) t₁ x 0) λ Tᵣ n →
                err⊎-guard (iszero n) "No rewrites could be performed" ≫=⊎ λ _ →
                parse-string Tₗₗ - replace Tᵤ
                  (rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' Tᵣ ⊹⊹ [[ ")" ]]) fm to
@@ -513,6 +580,7 @@ private
 
 interactive-cmd : (𝕃 string → toplevel-state → IO toplevel-state) → 𝕃 string → toplevel-state → IO toplevel-state
 interactive-cmd main ("br2" :: T :: t :: sp :: lc) ts = br-cmd2 (λ ls → {-putRopeLn (tv-to-rope $ inj₂ $ "" , [[]] , []) >>-} main ls ts) (toplevel-state.Γ ts) T t sp lc
+interactive-cmd main ("pretty" :: src :: dest :: []) ts = pretty-cmd src dest >>= λ s → putStrLn s >>r ts
 interactive-cmd main ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls)) >>r ts
 
 interactive-not-br-cmd-msg = tv-to-rope $ inj₁ "Beta-reduction has been terminated"

@@ -379,3 +379,8 @@ unqual (mk-ctxt (_ , _ , _ , q) _ _ _ _) v =
   then unqual-local (unqual-all q v)
   else v
 
+qualified-ctxt : ctxt → ctxt
+qualified-ctxt Γ @ (mk-ctxt mod ss is os Δ) =
+  ctxt-set-qualif Γ $
+    for trie-strings is accum empty-trie use λ x q →
+      trie-insert q x (x , [])

@@ -72,7 +72,7 @@ data prototype : Set where
 data decortype : Set where
   decor-type  : type → decortype
   decor-arrow : maybeErased → type → decortype → decortype
-  decor-decor : maybeErased → posinfo → bvar → meta-var-sort → decortype → decortype
+  decor-decor : maybeErased → posinfo → bvar → tk → meta-var-sort → decortype → decortype
   decor-stuck : type → prototype → decortype
   decor-error : type → prototype → decortype
 
@@ -197,8 +197,8 @@ decortype-to-type : decortype → type
 decortype-to-type (decor-type tp) = tp
 decortype-to-type (decor-arrow at tp dt) =
   TpArrow tp at (decortype-to-type dt)
-decortype-to-type (decor-decor b pi x sol dt) =
-  Abs pi b posinfo-gen x (meta-var-sort-to-tk sol) (decortype-to-type dt)
+decortype-to-type (decor-decor b pi x tk sol dt) =
+  Abs pi b posinfo-gen x tk (decortype-to-type dt)
 decortype-to-type (decor-stuck tp pt) = tp
 decortype-to-type (decor-error tp pt) = tp
 
@@ -210,8 +210,8 @@ hnf-decortype Γ uf (decor-type tp) ish =
   decor-type (hnf Γ uf tp ish)
 hnf-decortype Γ uf (decor-arrow e? tp dt) ish =
   decor-arrow e? (hnf Γ uf tp ff) (hnf-decortype Γ uf dt ff)
-hnf-decortype Γ uf (decor-decor e? pi x sol dt) ish =
-  decor-decor e? pi x sol (hnf-decortype Γ uf dt ff)
+hnf-decortype Γ uf (decor-decor e? pi x tk sol dt) ish =
+  decor-decor e? pi x tk sol (hnf-decortype Γ uf dt ff)
 hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
 hnf-decortype Γ uf (decor-error tp pt) ish =
   decor-error (hnf Γ uf tp ff) pt
@@ -260,30 +260,30 @@ meta-vars-subst-kind Γ Xs k
 meta-var-to-string : meta-var → strM
 meta-var-to-string (meta-var-mk-tp name k nothing sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringh k
+    ≫str strAdd " : " ≫str to-stringe k
 meta-var-to-string (meta-var-mk-tp name k (just tp) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringh k
-    ≫str strAdd " = " ≫str to-stringh (meta-var-sol.sol tp) -- tp
+    ≫str strAdd " : " ≫str to-stringe k
+    ≫str strAdd " = " ≫str to-stringe (meta-var-sol.sol tp) -- tp
 meta-var-to-string (meta-var-mk name (meta-var-tm tp nothing) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringh tp
+    ≫str strAdd " : " ≫str to-stringe tp
 meta-var-to-string (meta-var-mk name (meta-var-tm tp (just tm)) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringh tp
-    ≫str strAdd " = " ≫str to-stringh (meta-var-sol.sol tm) -- tm
+    ≫str strAdd " : " ≫str to-stringe tp
+    ≫str strAdd " = " ≫str to-stringe (meta-var-sol.sol tm) -- tm
 
-meta-vars-to-stringh : 𝕃 meta-var → strM
-meta-vars-to-stringh []
+meta-vars-to-stringe : 𝕃 meta-var → strM
+meta-vars-to-stringe []
   = strEmpty
-meta-vars-to-stringh (v :: [])
+meta-vars-to-stringe (v :: [])
   = meta-var-to-string v
-meta-vars-to-stringh (v :: vs)
-  = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringh vs
+meta-vars-to-stringe (v :: vs)
+  = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringe vs
 
 meta-vars-to-string : meta-vars → strM
 meta-vars-to-string Xs =
-  meta-vars-to-stringh
+  meta-vars-to-stringe
     ((flip map) (order Xs) λ x →
       case trie-lookup (varset Xs) x of λ where
         nothing  →
@@ -294,21 +294,21 @@ meta-vars-to-string Xs =
 
 prototype-to-string : prototype → strM
 prototype-to-string (proto-maybe nothing) = strAdd "⁇"
-prototype-to-string (proto-maybe (just tp)) = to-stringh tp
+prototype-to-string (proto-maybe (just tp)) = to-stringe tp
 prototype-to-string (proto-arrow e? pt) =
   strAdd "⁇" ≫str strAdd (arrowtype-to-string e?)
   ≫str prototype-to-string pt
 
 decortype-to-string : decortype → strM
 decortype-to-string (decor-type tp) =
-  strAdd "[" ≫str to-stringh tp ≫str strAdd "]"
+  strAdd "[" ≫str to-stringe tp ≫str strAdd "]"
 decortype-to-string (decor-arrow e? tp dt) =
-  to-stringh tp
+  to-stringe tp
   ≫str strAdd (arrowtype-to-string e?)
   ≫str decortype-to-string dt
-decortype-to-string (decor-decor e? pi x sol dt) =
+decortype-to-string (decor-decor e? pi x tk sol dt) =
   strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
-  ≫str strAdd " . " ≫str decortype-to-string dt
+  ≫str strAdd "<" ≫str tk-to-stringe tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
   where
   binder : maybeErased → meta-var-sort → string
   binder Erased sol = "∀ "
@@ -317,19 +317,19 @@ decortype-to-string (decor-decor e? pi x sol dt) =
   binder Pi (meta-var-tp k mtp) = "∀ "
 
 decortype-to-string (decor-stuck tp pt) =
-  strAdd "(" ≫str to-stringh tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
+  strAdd "(" ≫str to-stringe tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
 decortype-to-string (decor-error tp pt) =
-  strAdd "([" ≫str (to-stringh tp) ≫str strAdd "] ‼ " ≫str prototype-to-string pt ≫str strAdd ")"
+  strAdd "([" ≫str (to-stringe tp) ≫str strAdd "] ‼ " ≫str prototype-to-string pt ≫str strAdd ")"
 
 meta-vars-data-h : ctxt → string → kind ∨ (meta-var-sol type) → tagged-val
 meta-vars-data-h Γ X (inj₁ k) =
   strRunTag "meta-vars-intro" Γ
-    (strAdd (unqual-local X ^ "  ") ≫str to-stringh k)
+    (strAdd (unqual-local X ^ "  ") ≫str to-stringe k)
 meta-vars-data-h Γ X (inj₂ sol) =
   strRunTag "meta-vars-sol" Γ $
   strAdd (unqual-local X ^ " ") ≫str
   strAdd (checking-to-string (meta-var-sol.src sol) ^ " ") ≫str
-  (to-stringh ∘ meta-var-sol.sol $ sol)
+  (to-stringe ∘ meta-var-sol.sol $ sol)
 
 meta-vars-data-all : ctxt → meta-vars → 𝕃 tagged-val
 meta-vars-data-all Γ = foldr

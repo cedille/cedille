@@ -6,6 +6,7 @@ open import erase
 
 options' = record options
   {during-elaboration = tt;
+   pretty-print = tt;
    erase-types = ff;
    show-qualified-vars = ff}
 
@@ -69,25 +70,25 @@ module elab-x (μ : trie encoded-datatype) where
   elab-pure-kind Γ k = elab-kindh Γ k ff
   elab-pure-tk Γ atk = elab-tkh Γ atk ff
   
-  elab-type-arrow (Abs pi b pi' x atk T) = Abs pi b pi' x (elab-tk-arrow atk) (elab-type-arrow T)
-  elab-type-arrow (Iota pi pi' x T T') = Iota pi pi' x (elab-type-arrow T) (elab-type-arrow T')
-  elab-type-arrow (Lft pi pi' x t lT) = Lft pi pi' x t lT
+  elab-type-arrow (Abs pi b pi' x atk T) = Abs pi-gen b pi-gen x (elab-tk-arrow atk) (elab-type-arrow T)
+  elab-type-arrow (Iota pi pi' x T T') = Iota pi-gen pi-gen x (elab-type-arrow T) (elab-type-arrow T')
+  elab-type-arrow (Lft pi pi' x t lT) = Lft pi-gen pi-gen x t lT
   elab-type-arrow (NoSpans T pi) = elab-type-arrow T
-  elab-type-arrow (TpLet pi (DefTerm pi' x NoType t) T') = TpLet pi (DefTerm pi x NoType t) (elab-type-arrow T')
-  elab-type-arrow (TpLet pi (DefTerm pi' x (SomeType T) t) T') = TpLet pi (DefTerm pi x (SomeType (elab-type-arrow T)) t) (elab-type-arrow T')
-  elab-type-arrow (TpLet pi (DefType pi' x k T) T') = TpLet pi (DefType pi' x (elab-kind-arrow k) (elab-type-arrow T)) (elab-type-arrow T')
+  elab-type-arrow (TpLet pi (DefTerm pi' x NoType t) T') = TpLet pi-gen (DefTerm pi-gen x NoType t) (elab-type-arrow T')
+  elab-type-arrow (TpLet pi (DefTerm pi' x (SomeType T) t) T') = TpLet pi-gen (DefTerm pi-gen x (SomeType (elab-type-arrow T)) t) (elab-type-arrow T')
+  elab-type-arrow (TpLet pi (DefType pi' x k T) T') = TpLet pi-gen (DefType pi-gen x (elab-kind-arrow k) (elab-type-arrow T)) (elab-type-arrow T')
   elab-type-arrow (TpApp T T') = TpApp (elab-type-arrow T) (elab-type-arrow T')
   elab-type-arrow (TpAppt T t) = TpAppt (elab-type-arrow T) t
   elab-type-arrow (TpArrow T a T') = Abs pi-gen a pi-gen ignored-var (Tkt (elab-type-arrow T)) (elab-type-arrow T')
-  elab-type-arrow (TpEq pi t t' pi') = TpEq pi (erase-term t) (erase-term t') pi'
+  elab-type-arrow (TpEq pi t t' pi') = TpEq pi-gen (erase-term t) (erase-term t') pi-gen
   elab-type-arrow (TpHole pi) = TpHole pi
-  elab-type-arrow (TpLambda pi pi' x atk T) = TpLambda pi pi' x (elab-tk-arrow atk) (elab-type-arrow T)
+  elab-type-arrow (TpLambda pi pi' x atk T) = TpLambda pi-gen pi-gen x (elab-tk-arrow atk) (elab-type-arrow T)
   elab-type-arrow (TpParens pi T pi') = elab-type-arrow T
-  elab-type-arrow (TpVar pi x) = TpVar pi x
+  elab-type-arrow (TpVar pi x) = TpVar pi-gen x
   
   elab-kind-arrow (KndArrow k k') = KndPi pi-gen pi-gen ignored-var (Tkk (elab-kind-arrow k)) (elab-kind-arrow k')
   elab-kind-arrow (KndParens pi k pi') = elab-kind-arrow k
-  elab-kind-arrow (KndPi pi pi' x atk k) = KndPi pi pi' x (elab-tk-arrow atk) (elab-kind-arrow k)
+  elab-kind-arrow (KndPi pi pi' x atk k) = KndPi pi-gen pi-gen x (elab-tk-arrow atk) (elab-kind-arrow k)
   elab-kind-arrow (KndTpArrow T k) = KndPi pi-gen pi-gen ignored-var (Tkt (elab-type-arrow T)) (elab-kind-arrow k)
   elab-kind-arrow k = k
   
@@ -110,26 +111,33 @@ module elab-x (μ : trie encoded-datatype) where
     elab-type Γ T ≫=maybe uncurry λ T k →
     just (AppTp t T)
   elab-check-term Γ (Beta pi ot ot') T =
-    rename "x/x" from Γ for λ x →
+    rename "x" {-"x/x"-} from Γ for λ x →
     let idₜ = mlam x $ mvar x
-        ot'' = case ot' of λ where           -- vvv 'ρ' so that synth'd type is correct
-                 NoTerm → just (idₜ , λ t₁ t₂ → mrho (mbeta t₂ idₜ) x (mtpeq t₁ $ mvar x))
-                 (SomeTerm t _) → elab-pure-term Γ (erase-term t) ≫=maybe λ t → just (t , λ t₁ t₂ t → t) in
-    elab-hnf-type Γ T ff ≫=maybe λ where
+        Γ' = ctxt-var-decl x Γ in
+    optTerm-elim ot' (just idₜ) (elab-pure-term Γ ∘ erase) ≫=maybe λ tₑ →
+    optTerm-elim ot
+      (just λ t₁ t₂ → mrho (mbeta t₂ idₜ) x (mtpeq t₁ $ mvar x) $ mbeta t₁ tₑ)
+      (λ t → elab-pure-term Γ' (erase t) ≫=maybe λ t → just λ _ _ → mbeta t tₑ)
+      ≫=maybe λ f →
+    elab-hnf-type Γ' T ff ≫=maybe λ where
       (TpEq _ t₁ t₂ _) →
-        ot'' ≫=maybe uncurry λ tₑ f →
-        let Γ' = ctxt-var-decl x Γ in
         elab-pure-term Γ' t₁ ≫=maybe λ t₁ →
         elab-pure-term Γ' t₂ ≫=maybe λ t₂ →
-        just $ f t₁ t₂ $ mbeta t₁ tₑ
+        just $ f t₁ t₂
       _ → nothing
   elab-check-term Γ (Chi pi mT t) T = case mT of λ where
     NoType → maybe-map fst (elab-synth-term Γ t)
     (SomeType T') →
-      elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
+      elab-type Γ T' ≫=maybe uncurry λ T' _ →
+      elab-hnf-type Γ T' tt ≫=maybe λ T' →
+      elab-check-term Γ t T' ≫=maybe λ t' →
       let id = fresh-id-term Γ in
-      elab-check-term Γ t T' ≫=maybe
-      (just ∘ mrho (mbeta id id) ignored-var T')
+      elab-pure-type Γ T' ≫=maybe λ T'' →
+      just (mrho (mbeta id id) ignored-var T'' t')
+      --elab-pure-type Γ (erase-type T') ≫=maybe λ T' →
+      --let id = fresh-id-term Γ in
+      --elab-check-term Γ t T' ≫=maybe
+      --(just ∘ mrho (mbeta id id) ignored-var T')
   elab-check-term Γ (Delta pi mT t) T =
     elab-pure-type Γ (erase-type T) ≫=maybe λ T →
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
@@ -224,7 +232,7 @@ module elab-x (μ : trie encoded-datatype) where
             let ns = fst (optNums-to-stringset on)
                 Γ' = ctxt-var-decl x Γ in
             elab-hnf-type Γ T tt ≫=maybe λ T →
-            let rT = fst (rewrite-type T Γ' op ns t t₁ x 0)
+            let rT = fst (rewrite-type T Γ' op ns (just t) t₁ x 0)
                 rT' = post-rewrite Γ' x t t₂ rT in
             elab-hnf-type Γ rT' tt ≫=maybe λ rT' →
             elab-pure-type Γ' (erase-type rT) ≫=maybe λ rT →
@@ -287,24 +295,27 @@ module elab-x (μ : trie encoded-datatype) where
           just (AppTp t T , T'')
       _ → nothing
   elab-synth-term Γ (Beta pi ot ot') =
-    let id = fresh-id-term Γ
-        ot'' = case ot' of λ where
-                 NoTerm → just id
-                 (SomeTerm t _) → elab-pure-term Γ (erase-term t) in
-    case ot of λ where
-      (SomeTerm t _) →
-        elab-pure-term Γ (erase-term t) ≫=maybe λ t →
-        ot'' ≫=maybe λ t' →
-        just (mbeta t t' , mtpeq t t)
-      NoTerm → nothing
+    rename "x" from Γ for λ x →
+    let id = mlam x $ mvar x
+        Γ' = ctxt-var-decl x Γ in
+    optTerm-elim ot nothing λ t →
+    elab-pure-term Γ' (erase-term t) ≫=maybe λ t →
+    optTerm-elim ot' (just id) (elab-pure-term Γ ∘ erase) ≫=maybe λ t' →
+    just (mbeta t t' , mtpeq t t)
   elab-synth-term Γ (Chi pi mT t) = case mT of λ where
     NoType → elab-synth-term Γ t
     (SomeType T') →
-      let id = fresh-id-term Γ in
-      elab-pure-type Γ (erase-type T') ≫=maybe λ T'' →
       elab-type Γ T' ≫=maybe uncurry λ T' _ →
+      elab-hnf-type Γ T' tt ≫=maybe λ T' →
       elab-check-term Γ t T' ≫=maybe λ t →
+      let id = fresh-id-term Γ in
+      elab-pure-type Γ T' ≫=maybe λ T'' →
       just (mrho (mbeta id id) ignored-var T'' t , T')
+      --let id = fresh-id-term Γ in
+      --elab-pure-type Γ (erase-type T') ≫=maybe λ T'' →
+      --elab-type Γ T' ≫=maybe uncurry λ T' _ →
+      --elab-check-term Γ t T' ≫=maybe λ t →
+      --just (mrho (mbeta id id) ignored-var T'' t , T')
   elab-synth-term Γ (Delta pi mT t) = (case mT of λ where
     NoType → just compileFailType
     (SomeType T) → elab-pure-type Γ (erase-type T)) ≫=maybe λ T →
@@ -409,7 +420,7 @@ module elab-x (μ : trie encoded-datatype) where
           rename "x" from Γ for λ x →
           let ns = fst (optNums-to-stringset on)
               Γ' = ctxt-var-decl x Γ
-              rT = fst (rewrite-type T' Γ' op ns t t₂ x 0)
+              rT = fst (rewrite-type T' Γ' op ns (just t) t₂ x 0)
               rT' = post-rewrite Γ' x t t₁ rT in
           elab-pure-type Γ' (erase-type rT) ≫=maybe λ rT →
           just (mrho t x rT t' , rT')
@@ -471,7 +482,7 @@ module elab-x (μ : trie encoded-datatype) where
     elab-hnf-tk Γ atk b ≫=maybe λ atk' →
     rename x from Γ for λ x' →
     elab-typeh (ctxt-tk-decl' pi' x' atk' Γ) (rename-var Γ x x' T) b ≫=maybe uncurry λ T k →
-    just (mtplam x' atk T , KndPi pi-gen pi-gen x' atk k)
+    just (mtplam x' atk T , KndPi pi-gen pi-gen x' atk' k)
   elab-typeh Γ (TpParens pi T pi') b = elab-typeh Γ T b
   elab-typeh Γ (TpVar pi x) b =
     ctxt-lookup-type-var' Γ x ≫=maybe λ k →
@@ -537,8 +548,15 @@ module elab-x (μ : trie encoded-datatype) where
     elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
-        (either-else' x+e (just ∘ inj₁) λ e → optTerm-elim e (just $ inj₂ nothing) λ e → elab-synth-term Γ e ≫=maybe uncurry λ t T → maybe-map decompose-tpapps (elab-hnf-type Γ T tt) ≫=maybe λ {(TpVar _ Xₑ , asₑ) → just $ inj₂ $ just $ t , Xₑ , (drop-last 1 asₑ ++ as); _ → nothing}) ≫=maybe λ x+e →
-        (data-lookup Γ X as maybe-or either-else' x+e (λ _ → nothing) (λ e → e ≫=maybe (uncurry (data-lookup-mu Γ) ∘ snd))) ≫=maybe λ d →
+        (either-else' x+e (just ∘ inj₁) λ e →
+         optTerm-elim e (just $ inj₂ nothing) λ e →
+         elab-synth-term Γ e ≫=maybe uncurry λ t T →
+         maybe-map decompose-tpapps (elab-hnf-type Γ T tt) ≫=maybe λ where
+           (TpVar _ Xₑ , asₑ) → just $ inj₂ $ just $ t , Xₑ , (drop-last 1 asₑ ++ as)
+           _ → nothing) ≫=maybe λ x+e →
+        (data-lookup Γ X as maybe-or
+         either-else' x+e (λ _ → nothing)
+           (λ e → e ≫=maybe (uncurry (data-lookup-mu Γ) ∘ snd))) ≫=maybe λ d →
         trie-lookup μ (ctxt-datatype-info.name d) ≫=maybe λ d' →
           let ed-mu = maybe-else' T? (λ d' Γ → encoded-datatype.synth-mu d' Γ d)
                 λ T d' Γ X x t Tₘ ms → encoded-datatype.check-mu d' Γ d X x t Tₘ ms T in
@@ -624,41 +642,33 @@ elab-t X = toplevel-state → (var-mapping file-mapping : renamectxt) → trie e
 
 {-# TERMINATING #-}
 elab-file' : elab-t string
-elab-cmds : elab-t cmds
-elab-params : elab-t (params × 𝕃 (var × var))
-elab-args : elab-t (args × params)
+elab-cmds : (qual? : maybe renamectxt) → elab-t cmds
+elab-params : elab-t (params × 𝕃 (var × maybe qualif-info) × 𝕃 (var × maybe var))
 elab-imports : elab-t imports
 
-elab-params ts ρ φ μ ([] , _) = just (([] , []) , ts , ρ , φ , μ)
+elab-params ts ρ φ μ ([] , _) = just (([] , [] , []) , ts , ρ , φ , μ)
 elab-params ts ρ φ μ ((Decl _ pi me x atk _) :: ps , _) =
   let Γ = toplevel-state.Γ ts
+      qxₒ = trie-lookup (ctxt-get-qualif Γ) x
       xₒ = renamectxt-lookup ρ x in
   elab-tk μ Γ (subst-qualif Γ ρ atk) ≫=maybe λ atk →
   elab-hnf-tk μ Γ atk tt ≫=maybe λ atk' →
   rename x - x from ρ for λ x' ρ →
-  elab-params (record ts {Γ = ctxt-param-decl x x' atk' Γ}) ρ φ μ (ps , []) ≫=maybe uncurry λ ps ω →
-  just (((Decl pi-gen pi-gen me x' atk pi-gen) :: fst ps , maybe-else' xₒ (snd ps) λ xₒ → (x , xₒ) :: snd ps) , ω)
+  elab-params (record ts {Γ = ctxt-param-decl x x' atk' Γ}) ρ φ μ (ps , [] , []) ≫=maybe uncurry λ ps ω →
+  just (((Decl pi-gen pi-gen me x' atk pi-gen) :: fst ps , ((x , qxₒ) :: fst (snd ps)) , ((x , xₒ) :: snd (snd ps))) , ω)
 
-elab-args ts ρ φ μ ([] , []) = just (([] , []) , ts , ρ , φ , μ)
-elab-args ts ρ φ μ (_ , []) = nothing -- Too many arguments
-elab-args ts ρ φ μ ([] , p :: ps) = just (([] , p :: ps) , ts , ρ , φ , μ)
-elab-args ts ρ φ μ (a :: as , (Decl _ _ me x atk _) :: ps) =
-  let Γ = toplevel-state.Γ ts in
-  case (a , atk) of λ where
-    (TermArg me' t , Tkt T) →
-      elab-type μ Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
-      elab-check-term μ Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
-      rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
-      let ts = record ts {Γ = ctxt-term-def' x x' t T OpacTrans Γ} in
-      elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ω →
-      just ((TermArg me' t :: as , Decl pi-gen pi-gen me x' (Tkt T) pi-gen :: ps) , ω)
-    (TypeArg T , Tkk _) →
-      elab-type μ Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
-      rename qualif-new-var Γ x - x lookup ρ for λ x' ρ →
-      let ts = record ts {Γ = ctxt-type-def' x x' T k OpacTrans Γ} in
-      elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry ∘ uncurry) λ as ps ω →
-      just ((TypeArg T :: as , Decl pi-gen pi-gen me x' (Tkk k) pi-gen :: ps) , ω)
-    _ → nothing
+{-
+elab-params' : elab-t params
+elab-params' ts ρ φ μ [] = just $ [] , ts , ρ , φ , μ
+elab-params' ts ρ φ μ (Decl _ _ me x atk _ :: ps) =
+  let Γ = toplevel-state.Γ ts
+      ω = ts , ρ , φ , μ in
+  elab-tk μ Γ (subst-qualif Γ ρ atk) ≫=maybe λ atk →
+  elab-hnf-tk μ Γ atk tt ≫=maybe λ atk' →
+  rename pi-gen % x - x from ρ for λ x' ρ →
+  elab-params' (record ts {Γ = ctxt-param-decl x x' atk' Γ}) ρ φ μ ps ≫=maybe uncurry λ ps _ →
+  just (Decl pi-gen pi-gen me x' atk pi-gen :: ps , ω)
+-}
 
 elab-imports ts ρ φ μ [] = just ([] , ts , ρ , φ , μ)
 elab-imports ts ρ φ μ ((Import _ op _ ifn oa as _) :: is) =
@@ -669,7 +679,7 @@ elab-imports ts ρ φ μ ((Import _ op _ ifn oa as _) :: is) =
   trie-lookup (include-elt.import-to-dep ie) ifn ≫=maybe λ ifn' →
   elab-file' ts ρ φ μ ifn' ≫=maybe uncurry''' λ fn ts ρ φ μ →
   lookup-mod-params (toplevel-state.Γ ts) ifn' ≫=maybe λ ps →
-  elab-args ts ρ φ μ (as , ps) ≫=maybe (uncurry''' ∘ uncurry) λ as ps ts ρ φ μ →
+  let as = qualif-args Γ as in
   elim-pair (scope-file (record ts {Γ = ctxt-set-current-mod (toplevel-state.Γ ts) mod}) fn ifn' oa as) λ ts _ →
   elab-imports ts ρ φ μ is ≫=maybe uncurry''' λ is ts ρ φ μ →
   add-imports ts φ (stringset-strings $ get-all-deps ifn' empty-stringset) (just is) ≫=maybe λ is →
@@ -685,44 +695,48 @@ elab-imports ts ρ φ μ ((Import _ op _ ifn oa as _) :: is) =
   add-imports ts φ = flip $ foldl λ fn isₘ → renamectxt-lookup φ fn ≫=maybe λ ifn → isₘ ≫=maybe
     (just ∘ _::_ (Import pi-gen NotPublic pi-gen ifn NoOptAs [] pi-gen))
 
-elab-cmds ts ρ φ μ [] = just ([] , ts , ρ , φ , μ)
-elab-cmds ts ρ φ μ ((DefTermOrType op (DefTerm pi x NoType t) _) :: cs) =
-  let Γ = toplevel-state.Γ ts in
-  elab-synth-term μ Γ (subst-qualif Γ ρ t) ≫=maybe uncurry λ t T →
+elab-cmds q? ts ρ φ μ [] = just ([] , ts , ρ , φ , μ)
+elab-cmds q? ts ρ φ μ ((DefTermOrType op (DefTerm pi x NoType t) _) :: cs) =
+  let Γ = toplevel-state.Γ ts
+      t = mk-def $ maybe-else' q? (subst-qualif Γ ρ t) λ ρ → subst-renamectxt Γ ρ t in
+  elab-synth-term μ Γ t ≫=maybe uncurry λ t T →
   elab-hnf-type μ Γ T tt ≫=maybe λ T →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
-  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  elab-cmds (maybe-map (λ ρ → renamectxt-insert ρ x x') q?) ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
   just (DefTermOrType OpacTrans (DefTerm pi x' NoType t) pi-gen :: cs , ω)
-elab-cmds ts ρ φ μ ((DefTermOrType op (DefTerm pi x (SomeType T) t) _) :: cs) =
-  let Γ = toplevel-state.Γ ts in
-  elab-type μ Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
+elab-cmds q? ts ρ φ μ ((DefTermOrType op (DefTerm pi x (SomeType T) t) _) :: cs) =
+  let Γ = toplevel-state.Γ ts
+      sρ = λ {ed} → maybe-else' q? (subst-qualif{ed} Γ ρ) (subst-renamectxt{ed} Γ)
+      t = mk-def $ sρ t in
+  elab-type μ Γ (sρ T) ≫=maybe uncurry λ T k →
   elab-hnf-type μ Γ T tt ≫=maybe λ T →
-  elab-check-term μ Γ (subst-qualif Γ ρ t) T ≫=maybe λ t →
+  elab-check-term μ Γ t T ≫=maybe λ t →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-term-def' x x' t T op Γ} in
-  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  elab-cmds (maybe-map (λ ρ → renamectxt-insert ρ x x') q?) ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
   just (DefTermOrType OpacTrans (DefTerm pi x' NoType t) pi-gen :: cs , ω)
-elab-cmds ts ρ φ μ ((DefTermOrType op (DefType pi x _ T) _) :: cs) =
-  let Γ = toplevel-state.Γ ts in
-  elab-type μ Γ (subst-qualif Γ ρ T) ≫=maybe uncurry λ T k →
+elab-cmds q? ts ρ φ μ ((DefTermOrType op (DefType pi x _ T) _) :: cs) =
+  let Γ = toplevel-state.Γ ts
+      T = maybe-else' q? (subst-qualif Γ ρ T) λ ρ → subst-renamectxt Γ ρ T in
+  elab-type μ Γ T ≫=maybe uncurry λ T k →
   elab-hnf-kind μ Γ k tt ≫=maybe λ k →
   rename qualif-new-var Γ x - x from ρ for λ x' ρ →
   let ts = record ts {Γ = ctxt-type-def' x x' T k op Γ} in
-  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  elab-cmds (maybe-map (λ ρ → renamectxt-insert ρ x x') q?) ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
   just (DefTermOrType OpacTrans (DefType pi x' k T) pi-gen :: cs , ω)
-elab-cmds ts ρ φ μ ((DefKind _ x ps k _) :: cs) =
+elab-cmds q? ts ρ φ μ ((DefKind _ x ps k _) :: cs) =
   let Γ = toplevel-state.Γ ts
       x' = fresh-var (qualif-new-var Γ x) (λ _ → ff) ρ
       ρ = renamectxt-insert ρ x x'
       ts = record ts {Γ = ctxt-kind-def' x x' ps k Γ} in
-  elab-cmds ts ρ φ μ cs
-elab-cmds ts ρ φ μ ((ImportCmd i) :: cs) =
+  elab-cmds (maybe-map (λ ρ → renamectxt-insert ρ x x') q?) ts ρ φ μ cs
+elab-cmds q? ts ρ φ μ ((ImportCmd i) :: cs) =
   elab-imports ts ρ φ μ [ i ] ≫=maybe uncurry''' λ is ts ρ φ μ →
-  elab-cmds ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
+  elab-cmds q? ts ρ φ μ cs ≫=maybe uncurry λ cs ω →
   just (imps-to-cmds is ++ cs , ω)
-elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
-  elab-params ts ρ φ μ (ps , []) ≫=maybe uncurry''' λ ps ts' ρ' φ' μ' →
+elab-cmds q? ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
+  elab-params ts ρ φ μ (ps , [] , []) ≫=maybe uncurry''' λ ps ts' ρ' φ' μ' →
   elab-kind μ' (toplevel-state.Γ ts') (subst-qualif (toplevel-state.Γ ts') ρ' k) ≫=maybe λ k →
   let rps = snd ps
       ps = fst ps
@@ -732,19 +746,20 @@ elab-cmds ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs) =
       -- Still need to use x (not x') so constructors work,
       -- but we need to know what it will be renamed to later for μ
       is = kind-to-indices Γ' k
-      dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi x' (hnf-ctr Γ' x $ subst-qualif Γ' ρ' T)}
-      d = Data x ps is dcs in
-  elim-pair (datatype-encoding.mk-defs selected-encoding (toplevel-state.Γ ts) d) λ cs' → uncurry λ cs'' d' →
-      maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
-      elab-cmds (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
-      elab-cmds (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
+      dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi x' (hnf-ctr Γ' x $ subst-qualif Γ' ρ' T)} in
+--      d = Data x ps is dcs in
+  -- TODO: what if datatype encoding has a definition with the same name as a constructor?
+  elim-pair (datatype-encoding.mk-defs selected-encoding (toplevel-state.Γ ts) (Data x ps is dcs)) λ cs' → uncurry λ cs'' d' →
+      --maybe-else (just (cs' , ts , ρ , φ , μ)) just $
+      elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
+      --maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+      elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
       let rep = renamectxt-rep ρ ∘ qualif-var (toplevel-state.Γ ts)
           x' = rep x
           dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi {-(rep x')-} (qualif-var (toplevel-state.Γ ts) x') T} in
-          --μ-x = record d {data-def = Data x' ({-ctxt-get-current-params (toplevel-state.Γ ts) ++-} ps) is dcs} in
-      maybe-else (just (ImportCmd (Import pi-gen NotPublic pi-gen (x' ^ ", " ^ rep (data-Is/ x) ^ ", " ^ rep (data-is/ x)) NoOptAs [] pi-gen) :: cs' ++ cs'' , ts , ρ , φ , μ)) just $
-      elab-cmds (record ts {Γ = ctxt-clear-symbols (ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is star {- no X -is; not needed-}) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs) $ flip map ps λ {(Decl _ _ _ x _ _) → x}}) ρ φ (trie-insert μ x' d') cs ≫=maybe uncurry'' λ cs ts ρ ω →
-      just (cs' ++ cs'' ++ cs , ts , restore-renamectxt ρ rps , ω)
+      --maybe-else (just (ImportCmd (Import pi-gen NotPublic pi-gen (x' ^ ", " ^ rep (data-Is/ x) ^ ", " ^ rep (data-is/ x) ^ ", μ: " ^ encoded-datatype-names.debug (encoded-datatype.names d') ^ ", ρ: " ^ trie-to-string "\n" id (snd ρ) ^ ", " ^ toplevel-state-to-string ts) NoOptAs [] pi-gen) :: cs' ++ cs'' , ts , ρ , φ , μ)) just $
+      elab-cmds q? (record ts {Γ = {-restore-ctxt-params-} (ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is star {- no X -is; not needed-}) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs) {-(fst rps)-}}) {-(restore-renamectxt ρ $ snd rps)-} ρ φ (trie-insert μ x' d') cs ≫=maybe uncurry'' λ cs ts ρ ω →
+      just (cs' ++ cs'' ++ cs , ts , ρ , ω)
 
 elab-file' ts ρ φ μ fn =
   get-include-elt-if ts fn ≫=maybe λ ie →
@@ -756,17 +771,15 @@ elab-file' ts ρ φ μ fn =
         let ie = record ie {need-to-add-symbols-to-context = ff; do-type-check = ff; inv = refl} in
         elab-imports (record (set-include-elt ts fn ie)
           {Γ = ctxt-set-current-file (toplevel-state.Γ ts) fn mn}) ρ φ μ is ≫=maybe uncurry''' λ is ts ρ φ μ →
-        let restore-ps = foldr {B = 𝕃 (var × var)}
-              (λ {(Decl _ _ _ x _ _) → maybe-else' (renamectxt-lookup ρ x) id λ x' → (x , x') ::_}) [] ps in
-        elab-params ts ρ φ μ (ps , []) ≫=maybe uncurry''' λ ps' ts ρ φ μ →
+        elab-params ts ρ φ μ (ps , [] , []) ≫=maybe uncurry''' λ ps' ts ρ φ μ →
         let rps = snd ps'
             ps' = fst ps'
             Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
-        elab-cmds (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry'' λ cs ts ρ ω →
+        elab-cmds nothing (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry'' λ cs ts ρ ω →
         let ast = File [] pi-gen pi-gen mn []
                     (remove-dup-imports empty-stringset (imps-to-cmds is ++ cs)) pi-gen in
-        just (fn' , set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast) , restore-renamectxt ρ rps , ω)
+        just (fn' , record (set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast)) {Γ = restore-ctxt-params (toplevel-state.Γ ts) (fst rps)} , restore-renamectxt ρ (snd rps) , ω)
   where
   remove-dup-imports : stringset → cmds → cmds
   remove-dup-imports is [] = []

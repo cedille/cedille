@@ -1,0 +1,45 @@
+module list.
+
+import bool.
+import nat.
+import maybe.
+
+data List (A: ★): ★ =
+  | nil: List
+  | cons: A ➔ List ➔ List.
+
+map : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ List ·A ➔ List ·B
+  = Λ A. Λ B. λ f. λ xs. μ mapF. xs {
+  | nil ➔ nil ·B
+  | cons x xs ➔ cons (f x) (mapF xs)
+  }.
+
+length : ∀ A: ★. List ·A ➔ Nat
+  = Λ A. λ xs. μ len. xs {
+  | nil ➔ zero
+  | cons x xs ➔ succ (len xs)
+  }.
+
+append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
+  = Λ A. λ xs. λ ys. μ appYs. xs {
+  | nil ➔ ys
+  | cons x xs ➔ cons x (appYs xs)
+  }.
+
+lookup : ∀ A: ★. List ·A ➔ Nat ➔ Maybe ·A
+  = Λ A. λ xs. μ l. xs {
+  | nil ➔ λ _. none ·A
+  | cons x xs ➔ λ n. μ' n {zero ➔ some x | succ n ➔ l xs n}
+  }.
+
+foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
+  = Λ A. Λ B. λ f. λ e. λ xs. μ foldFE. xs {
+  | nil ➔ e
+  | cons x xs ➔ f (foldFE xs) x
+  }.
+
+filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A =
+Λ A . λ p . λ l .
+  μ filter . l {
+    | nil ➔ nil ·A
+    | cons x xs ➔ [ r = filter xs ] - ite (p x) (cons x r) r }.

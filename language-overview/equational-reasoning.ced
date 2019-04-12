@@ -52,6 +52,20 @@ using-rho ◂ ∀ A : ★ . ∀ a : A . ∀ b : A . ∀ c : A . ∀ f : A ➔ A 
     ρ eq1 - 
     eq2 .
 
+synthesizing-rho ◂ ∀ A : ★ . ∀ a : A . ∀ b : A . ∀ c : A . 
+                   { a ≃ b } ➔
+                   { b ≃ c } ➔
+                   { a ≃ c } = 
+  Λ A . Λ a . Λ b . Λ c .
+  λ eq1 . λ eq2 . χ - {- this form of χ means to change from checking to synthesizing mode,
+                         which is done here solely to demonstrate the direction of rewriting for
+                         ρ-terms in synthesizing mode. -}
+    ρ eq1 - {- we synthesize the type {b ≃ c} for eq2,
+               and then rewrite from right to left using eq1 (so changing b to a).
+               When typing a ρ-term in synthesizing mode we rewrite right to left,
+               and in checking mode it is from left to right. -}
+      eq2 .
+
 ----------------------------------------------------------------------
 -- ρ+ t - t'
 --

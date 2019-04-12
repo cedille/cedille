@@ -1,0 +1,10 @@
+module bot.
+
+False : ★ = ∀ X: ★. X.
+Bot : ★ = False.
+Not : ★ ➔ ★ = λ A: ★. A ➔ False.
+
+botElim : ∀ X: ★. False ➔ X
+  = Λ X. λ f. f ·X.
+
+explode = botElim.

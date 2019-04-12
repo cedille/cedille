@@ -176,8 +176,12 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   if-free t with is-free-in check-erased x t
   ...| f = f , f
 
+  if-free-args : args → positivity
+  if-free-args as with are-free-in-args check-erased (stringset-singleton x) as
+  ...| f = f , f
+
   hnf' : ctxt → type → type
-  hnf' Γ T = hnf Γ unfold-all T tt
+  hnf' Γ T = hnf Γ unfold-head T tt
 
   mtt = maybe-else tt id
   mff = maybe-else ff id
@@ -192,6 +196,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   type+ : ctxt → type → positivity
   kind+ : ctxt → kind → positivity
   tk+ : ctxt → tk → positivity
+--  tpapp+ : ctxt → type → positivity
 
   arrs+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
@@ -202,7 +207,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   arrs+ Γ (TpLambda _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tk+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpVar _ x') = maybe-not (maybe-if (x =string x')) ≫maybe just ff
+  arrs+ Γ (TpVar _ x') = maybe-if (~ x =string x') ≫maybe just ff
   arrs+ Γ T = just ff
   
   type+ Γ (Abs _ _ _ x' atk T) =
@@ -215,8 +220,8 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
-  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T')
-  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t)
+  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T') -- tpapp+ Γ (TpApp T T')
+  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- tpapp+ Γ (TpAppt T t)
   type+ Γ (TpArrow T _ T') = positivity-add (positivity-neg $ type+ Γ T) (type+ Γ $ hnf' Γ T')
   type+ Γ (TpEq _ tₗ tᵣ _) = occurs-nil
   type+ Γ (TpHole _) = occurs-nil
@@ -225,6 +230,21 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
     positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' (hnf' Γ' T))
   type+ Γ (TpParens _ T _) = type+ Γ T
   type+ Γ (TpVar _ x') = x =string x' , ff
+
+{-
+  tpapp+ Γ T with decompose-tpapps T
+  ...| TpVar _ x' , as =
+    let f = if-free-args (ttys-to-args NotErased as) in
+    if x =string x'
+      then f
+      else maybe-else' (data-lookup Γ x' as) f
+        λ {(mk-data-info x'' mu asₚ asᵢ ps kᵢ k cs subst-cs) →
+          let x''' = fresh-var x'' (ctxt-binds-var Γ) empty-renamectxt
+              Γ' = ctxt-var-decl x''' Γ in
+          type+ Γ' (hnf' Γ' $ foldr (λ {(Ctr _ cₓ cₜ) → TpArrow cₜ NotErased})
+            (mtpvar x''') (subst-cs x'''))}
+  ...| _ , _ = if-free T
+-}
   
   kind+ Γ (KndArrow k k') = positivity-add (positivity-neg $ kind+ Γ k) (kind+ Γ k')
   kind+ Γ (KndParens _ k _) = kind+ Γ k

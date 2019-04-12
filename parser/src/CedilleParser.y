@@ -154,8 +154,12 @@ Ctrs :: { Ctrs }
 
 DefTermOrType :: { DefTermOrType }
               : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
-              | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
-              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 } 
+              | '_' MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
+              | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | '_' '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | '_' ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+
 
 MDecl :: { Decl }
      : '(' Bvar ':' Tk ')'              { Decl (pos2Txt $1) (tPosTxt $2) False (tTxt $2) $4 (pos2Txt1 $5) }
@@ -261,8 +265,6 @@ Term :: { Term }
      | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
-     | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
-     | 'μP' OptTermAngle Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)            }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3                      }
      | Aterm                            { $1                                                 }
 
@@ -311,6 +313,8 @@ Pterm :: { Term }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3)        } 
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2)         } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
+      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8)   }
+      | 'μP' OptTermAngle Term Motive '{' CasesAux '}' { Mu' (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)            }
       | '●'                             { Hole (pos2Txt $1)                           }      
       
 Lterms :: { Lterms }

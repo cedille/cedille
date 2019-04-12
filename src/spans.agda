@@ -368,7 +368,7 @@ check-for-type-mismatch-if Γ s (just tp) = check-for-type-mismatch Γ s tp
 check-for-type-mismatch-if Γ s nothing tp = [ type-data Γ tp ] , nothing
 
 summary-data : {ed : exprd} → (name : string) → ctxt → ⟦ ed ⟧ → tagged-val
-summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringh t)
+summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringe t)
 
 missing-kind : tagged-val
 missing-kind = strRunTag "kind" empty-ctxt $ strAdd "[undeclared]"
@@ -485,16 +485,16 @@ binder-data Γ pi x atk me val s e =
   val? : ∀ {ed} → maybe ⟦ ed ⟧ → strM
   val? = maybe-else strEmpty λ x →
     strAdd "§value:" ≫str --strAdd "\\\\\",\\\\\"value\\\\\":\\\\\"" ≫str
-    to-stringh x
+    to-stringe x
   atk-val : (atk : tk) → maybe (if tk-is-type atk then term else type) → strM
   atk-val (Tkt T) t? =
     strAdd "§type:" ≫str --strAdd "\\\\\"type\\\\\":\\\\\"" ≫str
-    to-stringh T ≫str
+    to-stringe T ≫str
     val? t? -- ≫str
     --strAdd "\\\\\""
   atk-val (Tkk k) T? =
     strAdd "§kind:" ≫str --strAdd "\\\\\"kind\\\\\":\\\\\"" ≫str
-    to-stringh k ≫str
+    to-stringe k ≫str
     val? T? -- ≫str
     --strAdd "\\\\\""
 
@@ -860,6 +860,12 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
 
 Mu-span : ctxt → posinfo → maybe var → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
 Mu-span Γ pi x? pi' motive? check tvs = mk-span (if isJust x? then "Mu" else "Mu'") pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+
+pattern-span : posinfo → var → caseArgs → span
+pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(CaseTermArg pi me x) → posinfo-plus-str pi x; (CaseTypeArg pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) [] nothing
+
+pattern-clause-span : posinfo → term → span
+pattern-clause-span pi t = mk-span "Pattern clause" pi (term-end-pos t) [] nothing
 
 pattern-ctr-span : ctxt → posinfo → var → caseArgs → maybe type → err-m → span
 pattern-ctr-span Γ pi x as tp =

@@ -49,11 +49,11 @@ no-parens {_} {TERM} _ (Mu _ _ _ _ _ _ _ _) right = tt
 no-parens {_} {TERM} _ (Mu' _ _ _ _ _ _ _) right = tt
 no-parens {_} {TYPE} _ (TpLambda _ _ _ _ _) lr = tt
 no-parens {_} {TYPE} _ (Abs _ _ _ _ _ _) lr = tt
-no-parens {_} {KIND} _ (KndPi _ _ _ _ _) right = tt
+no-parens {_} {KIND} _ (KndPi _ _ _ _ _) neither = tt
 no-parens {_} {TYPE} _ (Iota _ _ _ _ _) lr = tt
 no-parens {_} {LIFTINGTYPE} _ (LiftPi _ _ _ _) lr = tt
-no-parens {TERM} {_} (App t me t') p lr = is-term-level-app p && not-right lr
-no-parens {TERM} {_} (AppTp t T) p lr = is-term-level-app p && not-right lr
+no-parens {TERM} {_} (App t me t') p lr = ff --is-term-level-app p && not-right lr
+no-parens {TERM} {_} (AppTp t T) p lr = ff --is-term-level-app p && not-right lr
 no-parens {TERM} {_} (Beta pi ot ot') p lr = tt
 no-parens {TERM} {_} (Chi pi mT t) p lr = ff
 no-parens {TERM} {_} (Delta pi mT t) p lr = ff
@@ -76,8 +76,8 @@ no-parens {TYPE} {e} (Abs pi b pi' x Tk T) p lr = exprd-eq e TYPE && is-arrow p 
 no-parens {TYPE} {_} (Iota pi pi' x oT T) p lr = ff
 no-parens {TYPE} {_} (Lft pi pi' x t lT) p lr = ff
 no-parens {TYPE} {_} (NoSpans T pi) p lr = tt
-no-parens {TYPE} {_} (TpApp T T') p lr = is-arrow p || (is-type-level-app p && not-right lr)
-no-parens {TYPE} {_} (TpAppt T t) p lr = is-arrow p || (is-type-level-app p && not-right lr)
+no-parens {TYPE} {_} (TpApp T T') p lr = is-arrow p -- || (is-type-level-app p && not-right lr)
+no-parens {TYPE} {_} (TpAppt T t) p lr = is-arrow p -- || (is-type-level-app p && not-right lr)
 no-parens {TYPE} {e} (TpArrow T a T') p lr = exprd-eq e TYPE && is-arrow p && not-left lr
 no-parens {TYPE} {_} (TpEq _ t t' _) p lr = tt
 no-parens {TYPE} {_} (TpHole pi) p lr = tt
@@ -100,9 +100,9 @@ no-parens {TK} _ _ _ = tt
 no-parens {QUALIF} _ _ _ = tt
 no-parens {ARG} _ _ _ = tt
 
-pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ ff
-pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ ff
-pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ tt
+pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ _ ff _
+pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ _ ff _
+pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ _ tt _
 
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine ops @ ced-ops-drop-spine = h
@@ -142,15 +142,32 @@ to-string-rewrite{TERM} Γ ops (Sigma pi t) with to-string-rewrite Γ ops t
 to-string-rewrite{TERM} Γ ops (Phi pi eq t u pi') = , Phi pi eq t (erase u) pi'
 to-string-rewrite{TERM} Γ ops (Rho pi op on eq og t) = , Rho pi op on eq (optGuide-map og λ _ → erase) t
 to-string-rewrite{TERM} Γ ops (Beta pi ot ot') = , Beta pi (optTerm-map ot erase) (optTerm-map ot' erase)
+to-string-rewrite{TERM} Γ ops (Chi _ NoType t @ (Var _ _)) = to-string-rewrite Γ ops t
 to-string-rewrite{TYPE} Γ ops (TpEq pi t₁ t₂ pi') = , TpEq pi (erase t₁) (erase t₂) pi'
 to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
 
 -------------------------------
-strM : Set
-strM = ∀ {ed} → rope → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side → rope × ℕ × 𝕃 tag
 
-to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
+open import pretty
+
+use-newlines : 𝔹
+use-newlines =
+  ~ iszero (cedille-options.options.pretty-print-columns options)
+  &&        cedille-options.options.pretty-print         options
+
+doc-to-rope : DOC → rope
+doc-to-rope = if use-newlines
+  then pretty (cedille-options.options.pretty-print-columns options)
+  else flatten-out
+
+strM : Set
+strM = {ed : exprd} → DOC → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side → DOC × ℕ × 𝕃 tag
+
+strEmpty : strM
+strEmpty s n ts Γ pe lr = s , n , ts
+
+private to-stringh : {ed : exprd} → ⟦ ed ⟧ → strM
 
 strM-Γ : (ctxt → strM) → strM
 strM-Γ f s n ts Γ = f Γ s n ts Γ
@@ -162,7 +179,53 @@ _≫str_ : strM → strM → strM
 (m ≫str m') s n ts Γ pe lr | s' , n' , ts' = m' s' n' ts' Γ pe lr
 
 strAdd : string → strM
-strAdd s s' n ts Γ pe lr = s' ⊹⊹ [[ s ]] , n + string-length s , ts
+strAdd s s' n ts Γ pe lr = s' <> TEXT [[ s ]] , n + string-length s , ts
+
+--strFlatten : strM → strM
+--strFlatten m s n ts Γ pe lr with m nil n ts Γ pe lr
+--...| s' , n' , ts' = s <> flatten s' , n' , ts'
+
+strLine : strM
+strLine s n ts Γ pe lr = s <> LINE , suc n , ts
+
+strNest : ℕ → strM → strM
+strNest i m s n ts Γ pe lr with m nil n ts Γ pe lr
+...| s' , n' , ts' = s <> nest i s' , n' , ts'
+
+
+strFold' : (ℕ → ℕ) → {ed : exprd} → 𝕃 (ℕ × strM) → ℕ → 𝕃 tag → ctxt → maybe ⟦ ed ⟧ → expr-side → 𝕃 (ℕ × DOC) × ℕ × 𝕃 tag
+strFold' l [] n ts Γ pe lr = [] , n , ts
+strFold' l ((i , x) :: []) n ts Γ pe lr with x nil n ts Γ pe lr
+...| sₓ , nₓ , tsₓ = [ i , sₓ ] , nₓ , tsₓ
+strFold' l ((i , x) :: xs) n ts Γ pe lr with x nil n ts Γ pe lr
+...| sₓ , nₓ , tsₓ with strFold' l xs (l nₓ) tsₓ Γ pe lr
+...| sₓₛ , nₓₛ , tsₓₛ = (i , sₓ) :: sₓₛ , nₓₛ , tsₓₛ
+
+strFold : (ℕ → ℕ) → (𝕃 (ℕ × DOC) → DOC) → 𝕃 (ℕ × strM) → strM
+strFold l f ms s n ts Γ pe lr with strFold' l ms n ts Γ pe lr
+...| s' , n' , ts' = s <> f s' , n' , ts'
+
+strFoldi : ℕ → (ℕ → ℕ) → (𝕃 DOC → DOC) → 𝕃 strM → strM
+strFoldi i l f = strNest i ∘' strFold suc (f ∘' map snd) ∘' map (_,_ 0)
+
+strList : ℕ → 𝕃 strM → strM
+strList i = strFoldi i suc λ ms → flatten (spread ms) :<|> stack ms
+-- strNest i ∘' strFold suc (λ ms → let ms = map snd ms in flatten (spread ms) :<|> stack ms) ∘' map (_,_ 0)
+
+strBreak' : 𝕃 (ℕ × strM) → strM
+strBreak' = strFold suc filln
+
+-- i = indent, n = number of strM args
+strBreak : (n : ℕ) → fold n strM λ X → ℕ → strM → X
+strBreak = h [] where
+  h : 𝕃 (ℕ × strM) → (n : ℕ) → fold n strM λ X → ℕ → strM → X
+  h ms (suc n) i m = h ((i , m) :: ms) n
+  h ms zero = strBreak' $ reverse ms
+
+
+strBracket : char → char → strM → strM
+strBracket l r m s n ts Γ pe lr with m nil (suc (suc n)) ts Γ pe lr
+...| s' , n' , ts' = s <> bracket (char-to-string l) s' (char-to-string r) , suc (suc n') , ts'
 
 strΓ' : defScope → var → strM → strM
 strΓ' ds v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) pe =
@@ -202,7 +265,7 @@ var-tags Γ qv uqv =
 strAddTags : string → 𝕃 (string × 𝕃 tag) → strM
 strAddTags sₙ tsₙ sₒ n tsₒ Γ pe lr =
   let n' = n + string-length sₙ in
-  sₒ ⊹⊹ [[ sₙ ]] , n' , map (uncurry λ k vs → make-tag k vs n n') tsₙ ++ tsₒ
+  sₒ <> TEXT [[ sₙ ]] , n' , map (uncurry λ k vs → make-tag k vs n n') tsₙ ++ tsₒ
 
 strVar : var → strM
 strVar v = strM-Γ λ Γ →
@@ -220,10 +283,8 @@ strBvar v cm bm = strAdd (unqual-local v) ≫str cm ≫str strΓ' localScope v b
 strMetaVar : var → span-location → strM
 strMetaVar x (fn , pi , pi') s n ts Γ pe lr =
   let n' = n + string-length x in
-  s ⊹⊹ [[ x ]] , n' , make-loc-tag Γ fn pi pi' n n' :: ts
+  s <> TEXT [[ x ]] , n' , make-loc-tag Γ fn pi pi' n n' :: ts
 
-strEmpty : strM
-strEmpty s n ts Γ pe lr = s , n , ts
 
 {-# TERMINATING #-}
 term-to-stringh : term → strM
@@ -232,22 +293,23 @@ kind-to-stringh : kind → strM
 liftingType-to-stringh : liftingType → strM
 tk-to-stringh : tk → strM
 ctr-to-string : ctr → strM
-ctrs-to-string : ctrs → strM
+--ctrs-to-string : ctrs → strM
 case-to-string : case → strM
 cases-to-string : cases → strM
 caseArgs-to-string : caseArgs → strM → strM
+let-to-string : maybeErased → defTermOrType → strM → strM
 
 params-to-string : params → strM
 params-to-string' : strM → params → strM
+params-to-string'' : params → strM → strM
 file-to-string : start → strM
 cmds-to-string : cmds → strM → strM
 cmd-to-string : cmd → strM → strM  
-optTerm-to-string : optTerm → string → string → strM
+optTerm-to-string : optTerm → string → string → 𝕃 (ℕ × strM)
 optClass-to-string : optClass → strM
-optGuide-to-string : optGuide → strM
+optGuide-to-string : optGuide → 𝕃 (ℕ × strM)
 optNums-to-string : optNums → strM
-optType-to-string : string → optType → strM
-maybeCheckType-to-string : optType → strM
+optType-to-string : ℕ → maybe char → optType → 𝕃 (ℕ × strM)
 lterms-to-string : lterms → strM
 arg-to-string : arg → strM
 args-to-string : args → strM
@@ -264,6 +326,10 @@ maybeMinus-to-string : maybeMinus → string
 optPlus-to-string : rhoHnf → string
 optPublic-to-string : optPublic → string
 optAs-to-string : optAs → strM
+bracketL : maybeErased → string
+bracketR : maybeErased → string
+braceL : maybeErased → string
+braceR : maybeErased → string
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
 to-string-ed{TERM} = term-to-stringh
@@ -281,7 +347,7 @@ to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
     (to-string-ed t') s n ts Γ (just t') lr
   where
   parens-unless : 𝔹 → strM → strM
-  parens-unless p s = if p then s else (strAdd "(" ≫str s ≫str strAdd ")")
+  parens-unless p s = if p then s else (strAdd "(" ≫str strNest 1 s ≫str strAdd ")")
 
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM
@@ -289,100 +355,74 @@ to-stringl = to-stringh' left
 to-stringr = to-stringh' right
 to-stringh = to-stringh' neither
 
-ctr-to-string (Ctr _ x T) = strAdd x ≫str strAdd " : " ≫str to-stringh T
 
-ctrs-to-string [] = strEmpty
-ctrs-to-string (c :: []) = ctr-to-string c
-ctrs-to-string (c :: cs) =
-  ctr-to-string c ≫str
-  strAdd " | "  ≫str
-  ctrs-to-string cs
-{-
-caseArgs-drop-params : params → caseArgs → caseArgs
-caseArgs-drop-params (Decl _ _ NotErased x (Tkt T) _ :: ps) (CaseTermArg _ NotErased ignored-var :: as) =
-  caseArgs-drop-params ps as
-caseArgs-drop-params (Decl _ _ Erased x (Tkt T) _ :: ps) (CaseTermArg _ Erased ignored-var :: as) =
-  caseArgs-drop-params ps as
-caseArgs-drop-params (Decl _ _ _ x (Tkk k) _ :: ps) (CaseTypeArg _ ignored-var :: as) =
-  caseArgs-drop-params ps as
-caseArgs-drop-params (_ :: ps) as = caseArgs-drop-params ps as
-caseArgs-drop-params [] as = as
--}
-case-to-string (Case _ x as t) =
-  strM-Γ λ Γ →
-  let as-f = λ x as → strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) in
-  case (env-lookup Γ x , options) of uncurry λ where
-    (just (ctr-def mps T _ _ _ , _ , _)) ced-ops-drop-spine →
-          as-f (unqual-all (ctxt-get-qualif Γ) x) as
-            -- $ maybe-else' mps as $ flip caseArgs-drop-params as
-    _ _ → as-f x as
+set-parent : ∀ {ed} → ⟦ ed ⟧ → strM → strM
+set-parent t m s n ts Γ _ lr = m s n ts Γ (just t) lr
 
-cases-to-string [] = strEmpty
-cases-to-string (m :: []) = case-to-string m
-cases-to-string (m :: ms) = case-to-string m ≫str strAdd " | " ≫str cases-to-string ms
+apps-to-string : ∀ {ll : 𝔹} → (if ll then term else type) → strM
+apps-to-string {tt} t with decompose-apps t
+...| tₕ , as = set-parent t $ strList 2 $ (to-stringl tₕ :: map arg-to-string as)
+apps-to-string {ff} T with decompose-tpapps T
+...| Tₕ , as = set-parent T $ strList 2 $ (to-stringl Tₕ :: map (arg-to-string ∘ tty-to-arg NotErased) as)
 
-caseArgs-to-string [] m = m
-caseArgs-to-string (CaseTermArg pi me x :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty (caseArgs-to-string as m)
-caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
-  
+lams-to-string : term → strM
+lams-to-string t =
+  elim-pair (decompose-lams-pretty t) λ xs b →
+  set-parent t $ strBreak' $ foldr {B = 𝕃 (ℕ × strM)}
+    (λ {(x , me , oc) r →
+      (0 , strAdd (lam-to-string me) ≫str strAdd " " ≫str
+        strBvar x (strNest 4 (optClass-to-string oc)) (strAdd " .")) ::
+      map (map-snd $ strΓ' localScope x) r}) [ 2 , to-stringr b ] xs
+  where
+  decompose-lams-pretty : term → 𝕃 (var × maybeErased × optClass) × term
+  decompose-lams-pretty = h [] where
+    h : 𝕃 (var × maybeErased × optClass) → term → 𝕃 (var × maybeErased × optClass) × term
+    h acc (Lam _ me _ x oc t) = h ((x , me , oc) :: acc) t
+    h acc t = reverse acc , t
+
 tk-to-stringh (Tkt T) = to-stringh T
 tk-to-stringh (Tkk k) = to-stringh k
 
-private
-  let-lbrack-to-string : forceErased → string
-  let-lbrack-to-string tt = "{ "
-  let-lbrack-to-string ff = "[ "
-
-  let-rbrack-to-string : forceErased → string
-  let-rbrack-to-string tt = " } - "
-  let-rbrack-to-string ff = " ] - "
-
-term-to-stringh (App t me t') = to-stringl t ≫str strAdd (" " ^ maybeErased-to-string me) ≫str to-stringr t'
-term-to-stringh (AppTp t T) = to-stringl t ≫str strAdd " · " ≫str to-stringr T
-term-to-stringh (Beta pi ot ot') = strAdd "β" ≫str optTerm-to-string ot " < " " >" ≫str optTerm-to-string ot' " { " " }"
-term-to-stringh (Chi pi mT t) = strAdd "χ" ≫str optType-to-string " " mT ≫str strAdd " - " ≫str to-stringr t
-term-to-stringh (Delta pi mT t) = strAdd "δ" ≫str optType-to-string " " mT ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (App t me t') = apps-to-string (App t me t')
+term-to-stringh (AppTp t T) = apps-to-string (AppTp t T)
+term-to-stringh (Beta pi ot ot') = strBreak' ((0 , strAdd "β") :: optTerm-to-string ot "< " " >" ++ optTerm-to-string ot' "{ " " }") -- strBreak 3 0 (strAdd "β") 2 (optTerm-to-string ot "< " " >") 2 (optTerm-to-string ot' "{ " " }")}
+term-to-stringh (Chi pi mT t) = strBreak' ((0 , strAdd "χ") :: (optType-to-string 2 nothing mT) ++ (2 , strAdd "-") :: [ 2 , to-stringr t ])
+term-to-stringh (Delta pi mT t) = strBreak' ((0 , strAdd "δ") :: (optType-to-string 2 nothing mT) ++ (2 , strAdd "-") :: [ 2 , to-stringr t ])
 term-to-stringh (Epsilon pi lr m t) = strAdd "ε" ≫str strAdd (leftRight-to-string lr) ≫str strAdd (maybeMinus-to-string m) ≫str to-stringh t
 term-to-stringh (Hole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
-term-to-stringh (IotaPair pi t t' og pi') = strAdd "[ " ≫str to-stringh t ≫str strAdd " , " ≫str to-stringh t' ≫str optGuide-to-string og ≫str strAdd " ]"
+term-to-stringh (IotaPair pi t t' og pi') = strBreak' ((1 , strAdd "[ " ≫str to-stringh t ≫str strAdd ",") :: (1 , to-stringh t')  :: optGuide-to-string og) ≫str strAdd " ]"
 term-to-stringh (IotaProj t n pi) = to-stringh t ≫str strAdd ("." ^ n)
-term-to-stringh (Lam pi l pi' x oc t) = strAdd (lam-to-string l) ≫str strAdd " " ≫str strBvar x (optClass-to-string oc) (strAdd " . " ≫str to-stringr t)
-term-to-stringh (Let pi fe dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd (let-lbrack-to-string fe) ≫str strBvar x (maybeCheckType-to-string m
-  ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd (let-rbrack-to-string fe)) (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
---term-to-stringh (Open elab-hide-key o pi' x t) = term-to-stringh t
-term-to-stringh (Open pi o pi' x t) = strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " - " ≫str to-stringh t
+term-to-stringh (Lam pi l pi' x oc t) = lams-to-string (Lam pi l pi' x oc t)
+term-to-stringh (Let pi fe dtT t) = let-to-string fe dtT (to-stringh t)
+term-to-stringh (Open pi o pi' x t) = strBreak 2 0 (strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " -") 2 (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
-term-to-stringh (Phi pi eq t t' pi') = strAdd "φ " ≫str to-stringl eq ≫str strAdd " - " ≫str to-stringh t ≫str strAdd " { " ≫str to-stringr t' ≫str strAdd " }"
-term-to-stringh (Rho pi op on eq og t) = strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on ≫str strAdd " " ≫str to-stringl eq ≫str optGuide-to-string og ≫str strAdd " - " ≫str to-stringr t
+term-to-stringh (Phi pi eq t t' pi') = strBreak 3 0 (strAdd "φ " ≫str to-stringl eq ≫str strAdd " -") 2 (to-stringh t) 2 (strAdd "{ " ≫str to-stringr t' ≫str strAdd " }")
+term-to-stringh (Rho pi op on eq og t) = strBreak' ((0 , strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on) :: (4 , to-stringl eq) :: (optGuide-to-string og) ++ [ 1 , strAdd "- " ≫str to-stringr t ])
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
-term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str to-stringl t ≫str optType-to-string " @ " ot) (strAdd " { " ≫str cases-to-string cs ≫str strAdd " }")
-term-to-stringh (Mu' pi ot t oT pi' cs pi'') = strAdd "μ' " ≫str optTerm-to-string ot " < " " > " ≫str to-stringl t ≫str optType-to-string " @ " oT ≫str strAdd " { " ≫str cases-to-string cs ≫str strAdd " }"
+term-to-stringh (Mu pi pi' x t ot pi'' cs pi''') = strAdd "μ " ≫str strBvar x (strAdd " . " ≫str strBreak' ((2 , to-stringl t) :: (optType-to-string 3 (just '@') ot))) (strAdd " " ≫str strBracket '{' '}' (cases-to-string cs))
+term-to-stringh (Mu' pi ot t oT pi' cs pi'') = strAdd "μ' " ≫str strBreak' ((optTerm-to-string ot " < " " > ") ++ (2 , to-stringl t) :: (optType-to-string 3 (just '@') oT)) ≫str strAdd " " ≫str strBracket '{' '}' (cases-to-string cs)
 
-type-to-stringh (Abs pi b pi' x Tk T) = strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " . ") (to-stringh T)
-type-to-stringh (Iota pi pi' x T T') = strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") (to-stringh T')
+type-to-stringh (Abs pi b pi' x Tk T) = strBreak 2 3 (strAdd (binder-to-string b ^ " ") ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " .") strEmpty) 1 (strΓ' localScope x (to-stringh T))
+type-to-stringh (Iota pi pi' x T T') = strBreak 2 2 (strAdd "ι " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " .") strEmpty) 2 (strΓ' localScope x (to-stringh T'))
 type-to-stringh (Lft pi pi' x t lT) = strAdd "↑ " ≫str strBvar x (strAdd " . ") (to-stringh t) ≫str strAdd " : " ≫str to-stringh lT
 type-to-stringh (NoSpans T pi) = to-string-ed T
-type-to-stringh (TpApp T T') = to-stringl T ≫str strAdd " · " ≫str to-stringr T'
-type-to-stringh (TpAppt T t) = to-stringl T ≫str strAdd " " ≫str to-stringr t
-type-to-stringh (TpArrow T a T') = to-stringl T ≫str strAdd (arrowtype-to-string a) ≫str to-stringr T'
+type-to-stringh (TpApp T T') = apps-to-string (TpApp T T')
+type-to-stringh (TpAppt T t) = apps-to-string (TpAppt T t)
+type-to-stringh (TpArrow T a T') = strBreak 2 2 (to-stringl T ≫str strAdd (arrowtype-to-string a)) 2 (to-stringr T')
 type-to-stringh (TpEq _ t t' _) = strAdd "{ " ≫str to-stringh (erase-term t) ≫str strAdd " ≃ " ≫str to-stringh (erase-term t') ≫str strAdd " }"
 type-to-stringh (TpHole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
-type-to-stringh (TpLambda pi pi' x Tk T) = strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " . ") (to-stringr T)
+type-to-stringh (TpLambda pi pi' x Tk T) = strBreak 2 3 (strAdd "λ " ≫str strBvar x (strAdd " : " ≫str tk-to-stringh Tk ≫str strAdd " .") strEmpty) 1 (strΓ' localScope x (to-stringr T))
 type-to-stringh (TpParens pi T pi') = to-stringh T
 type-to-stringh (TpVar pi x) = strVar x
-type-to-stringh (TpLet pi dtT t) with dtT
-...| DefTerm pi' x m t' = strAdd "[ " ≫str strBvar x (maybeCheckType-to-string m ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
-...| DefType pi' x k t' = strAdd "[ " ≫str strBvar x (strAdd " : " ≫str to-stringh k ≫str strAdd " = " ≫str to-stringh t' ≫str strAdd " ] - ") (to-stringh t)
+type-to-stringh (TpLet pi dtT T) = let-to-string NotErased dtT (to-stringh T)
 
-kind-to-stringh (KndArrow k k') = to-stringl k ≫str strAdd " ➔ " ≫str to-stringr k'
+kind-to-stringh (KndArrow k k') = strBreak 2 2 (to-stringl k ≫str strAdd " ➔") 2 (to-stringr k')
 kind-to-stringh (KndParens pi k pi') = to-stringh k
-kind-to-stringh (KndPi pi pi' x Tk k) = strAdd "Π " ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " . ") (to-stringh k)
-kind-to-stringh (KndTpArrow T k) = to-stringl T ≫str strAdd " ➔ " ≫str to-stringr k
-kind-to-stringh (KndVar pi x as) = strKvar x ≫str args-to-string as
+kind-to-stringh (KndPi pi pi' x Tk k) = strBreak 2 4 (strAdd "Π " ≫str strBvar x (strAdd " : " ≫str to-stringl Tk ≫str strAdd " .") strEmpty) 1 (strΓ' localScope x (to-stringh k))
+kind-to-stringh (KndTpArrow T k) = strBreak 2 2 (to-stringl T ≫str strAdd " ➔") 2 (to-stringr k)
+kind-to-stringh (KndVar pi x as) = strList 2 (strKvar x :: map arg-to-string as)
 kind-to-stringh (Star pi) = strAdd "★"
 
 liftingType-to-stringh (LiftArrow lT lT') = to-stringl lT ≫str strAdd " ➔↑ " ≫str to-stringr lT'
@@ -390,20 +430,19 @@ liftingType-to-stringh (LiftParens pi lT pi') = strAdd "(" ≫str to-string-ed l
 liftingType-to-stringh (LiftPi pi x T lT) = strAdd "Π↑ " ≫str strBvar x (strAdd " : " ≫str to-stringh T ≫str strAdd " . ") (to-stringh lT)
 liftingType-to-stringh (LiftStar pi) = strAdd "☆"
 liftingType-to-stringh (LiftTpArrow T lT) = to-stringl T ≫str strAdd " ➔↑ " ≫str to-stringr lT
-optTerm-to-string NoTerm c1 c2 = strEmpty
-optTerm-to-string (SomeTerm t _) c1 c2 = strAdd c1 ≫str to-stringh (erase-term t) ≫str strAdd c2
+optTerm-to-string NoTerm c1 c2 = []
+optTerm-to-string (SomeTerm t _) c1 c2 = [ string-length c1 , strAdd c1 ≫str to-stringh t  ≫str strAdd c2 ]
 optClass-to-string NoClass = strEmpty
 optClass-to-string (SomeClass Tk) = strAdd " : " ≫str tk-to-stringh Tk
-optGuide-to-string NoGuide = strEmpty
-optGuide-to-string (Guide pi v T) = strAdd " @ " ≫str strBvar v (strAdd " . ") (to-stringh T)
-optType-to-string pfx NoType = strEmpty
-optType-to-string pfx (SomeType T) = strAdd pfx ≫str to-stringh T
-maybeCheckType-to-string NoType = strEmpty
-maybeCheckType-to-string (SomeType T) = strAdd " : " ≫str to-stringh T
+optGuide-to-string NoGuide = []
+optGuide-to-string (Guide pi v T) = [ 2 , strAdd "@ " ≫str strBvar v (strAdd " . ") (to-stringh T) ]
+optType-to-string i pfx NoType = []
+optType-to-string i pfx (SomeType T) = [ i , maybe-else strEmpty (λ pfx → strAdd (𝕃char-to-string (pfx :: [ ' ' ]))) pfx ≫str to-stringh T ]
 lterms-to-string (Lterm m t :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫str to-stringh t ≫str lterms-to-string ts
 lterms-to-string [] = strEmpty
-arg-to-string (TermArg me t) = strAdd (maybeErased-to-string me) ≫str to-stringh t
-arg-to-string (TypeArg T) = strAdd "· " ≫str to-stringh T
+arg-to-string (TermArg Erased t) = strAdd "-" ≫str strNest 1 (to-stringh t)
+arg-to-string (TermArg NotErased t) = to-stringh t
+arg-to-string (TypeArg T) = strAdd "· " ≫str strNest 2 (to-stringh T)
 args-to-string = foldr' strEmpty λ t x → strAdd " " ≫str arg-to-string t ≫str x
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
@@ -425,8 +464,8 @@ nums-to-string (NumsStart n) = strAdd n
 nums-to-string (NumsNext n ns) = strAdd n ≫str strAdd " " ≫str nums-to-string ns
 optNums-to-string NoNums = strEmpty
 optNums-to-string (SomeNums ns) = strAdd "<" ≫str nums-to-string ns ≫str strAdd ">"
-arrowtype-to-string NotErased = " ➔ "
-arrowtype-to-string Erased = " ➾ "
+arrowtype-to-string NotErased = " ➔"
+arrowtype-to-string Erased = " ➾"
 maybeMinus-to-string EpsHnf = ""
 maybeMinus-to-string EpsHanf = "-"
 optPlus-to-string RhoPlain = ""
@@ -435,24 +474,58 @@ optPublic-to-string NotPublic = ""
 optPublic-to-string IsPublic = "public "
 optAs-to-string NoOptAs = strEmpty
 optAs-to-string (SomeOptAs _ x) = strAdd " as " ≫str strAdd x
+ctr-to-string (Ctr _ x T) = strAdd x ≫str strAdd " : " ≫str to-stringh T
+case-to-string (Case _ x as t) =
+  strM-Γ λ Γ →
+  let as-f = λ x as → strVar x ≫str caseArgs-to-string as (strAdd " ➔ " ≫str to-stringr t) in
+  case (env-lookup Γ x , options) of uncurry λ where
+    (just (ctr-def mps T _ _ _ , _ , _)) ced-ops-drop-spine →
+          as-f (unqual-all (ctxt-get-qualif Γ) x) as
+    _ _ → as-f x as
 
-braceL : maybeErased → string
+cases-to-string = h use-newlines where
+  h : 𝔹 → cases → strM
+  h _ [] = strEmpty
+  h tt (m :: []) = strAdd "| " ≫str case-to-string m
+  h tt (m :: ms) = strAdd "| " ≫str case-to-string m ≫str strLine ≫str h tt ms
+  h ff (m :: []) = case-to-string m
+  h ff (m :: ms) = case-to-string m ≫str strAdd " | " ≫str h ff ms
+
+caseArgs-to-string [] m = m
+caseArgs-to-string (CaseTermArg pi me x :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
+
+let-to-string fe (DefTerm _ x m t') t = strBreak' $
+  (1 , strAdd (bracketL fe) ≫str strAdd (unqual-local x)) ::
+  (optType-to-string 5 (just ':') m) ++
+  (3 , strAdd "= " ≫str to-stringh t' ≫str strAdd (bracketR fe)) ::
+  [ 1 , strΓ' localScope x t ]
+let-to-string _ (DefType _ x k T) t = strBreak 4
+  1 (strAdd (bracketL NotErased) ≫str strAdd (unqual-local x))
+  5 (strAdd ": " ≫str to-stringh k)
+  3 (strAdd "= " ≫str to-stringh T ≫str strAdd (bracketR NotErased))
+  1 (strΓ' localScope x t)
+
 braceL me = if me then "{" else "("
-
-braceR : maybeErased → string
 braceR me = if me then "}" else ")"
+bracketL me = if me then "{ " else "[ "
+bracketR me = if me then " } -" else " ] -"
 
-param-to-string : decl → strM → strM
-param-to-string (Decl _ pi me v atk _) f =
+param-to-string : decl → (strM → strM) × strM
+param-to-string (Decl _ pi me v atk _) =
+  strΓ' localScope v ,
   strAdd (braceL me) ≫str
   strAdd (unqual-local v) ≫str
   strAdd " : " ≫str
   tk-to-stringh atk ≫str
-  strAdd (braceR me) ≫str
-  strΓ' localScope v f
+  strAdd (braceR me)
+
+params-to-string'' ps f = elim-pair (foldr (λ p → uncurry λ g ms → elim-pair (param-to-string p) λ h m → g ∘ h , m :: map h ms) (id , []) ps) λ g ms → strList 2 (strEmpty :: ms) ≫str g f
+
+
 params-to-string' f [] = f
-params-to-string' f (p :: []) = param-to-string p f
-params-to-string' f (p :: ps) = param-to-string p (strAdd " " ≫str params-to-string' f ps)
+params-to-string' f (p :: []) = elim-pair (param-to-string p) λ g m → m ≫str g f
+params-to-string' f (p :: ps) = elim-pair (param-to-string p) λ g m → m ≫str strAdd " " ≫str params-to-string' (g f) ps
 
 params-to-string = params-to-string' strEmpty
 
@@ -460,77 +533,79 @@ file-to-string (File is _ _ mn ps cs _) =
    cmds-to-string (imps-to-cmds is)
   (strAdd "module " ≫str
    strAdd mn ≫str
-   strAdd " " ≫str
-   params-to-string'
-  (strAdd "." ≫str strAdd "\n" ≫str
-   cmds-to-string cs strEmpty) ps)
+   params-to-string'' ps
+    (strAdd "." ≫str strLine ≫str
+     cmds-to-string cs strEmpty))
 
 cmds-to-string [] f = f
 cmds-to-string (c :: cs) f =
-   strAdd "\n" ≫str
-   cmd-to-string c
-  (strAdd "\n" ≫str
+  let nl = if use-newlines then "" else "\n" in
+  strLine ≫str
+  strAdd nl ≫str
+  cmd-to-string c
+  (strLine ≫str
+   strAdd nl ≫str
    cmds-to-string cs f)
   
 cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
       ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
-  strAdd (opacity-to-string op) ≫str
-  strAdd x ≫str
-  maybeCheckType-to-string (case mcT of λ where
-     NoType → NoType
-     (SomeType T) → SomeType (abs-expand-type ps' T)) ≫str
-  strAdd " = " ≫str
-  to-stringh (lam-expand-term ps' t) ≫str
-  strAdd " ." ≫str
+  strBreak'
+    ((2 , strAdd (opacity-to-string op) ≫str strAdd x) ::
+     optType-to-string 4 (just ':') (optType-map mcT $ abs-expand-type ps') ++
+     [ 2 , strAdd "= " ≫str to-stringh (lam-expand-term ps' t) ≫str strAdd " ." ]) ≫str
   strΓ' globalScope x f
 cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
       ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
-  strAdd (opacity-to-string op) ≫str
-  strAdd x ≫str
-  strAdd " : " ≫str
-  to-stringh (abs-expand-kind ps' k) ≫str
-  strAdd " = " ≫str
-  to-stringh (lam-expand-type ps' T) ≫str
-  strAdd " ." ≫str
+  strBreak'
+    ((2 , strAdd (opacity-to-string op) ≫str strAdd x) ::
+     (4 , strAdd ": " ≫str to-stringh (abs-expand-kind ps' k)) ::
+     [ 2 , strAdd "= " ≫str to-stringh (lam-expand-type ps' T) ≫str strAdd " ." ]) ≫str
   strΓ' globalScope x f
 cmd-to-string (DefKind pi x ps k _) f =
   strM-Γ λ Γ →
   let ps' = ctxt-get-current-params Γ in
   strAdd x ≫str
-  params-to-string (ps' ++ ps) ≫str
-  strAdd " = " ≫str
-  to-stringh k ≫str
-  strAdd " ." ≫str
+  params-to-string'' (ps' ++ ps)
+  (strAdd " = " ≫str
+   to-stringh k ≫str
+   strAdd " .") ≫str
   strΓ' globalScope x f
 cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
   strAdd "import " ≫str
   strAdd (optPublic-to-string op) ≫str
   strAdd fn ≫str
   optAs-to-string oa ≫str
-  args-to-string as ≫str
+  strList 2 (strEmpty :: map arg-to-string as) ≫str
   strAdd " ." ≫str
   f
 cmd-to-string (DefDatatype (Datatype pi pi' x ps k cs ) pi'') f =
   strAdd "data " ≫str
-  strAdd x ≫str
-  strAdd " " ≫str  
-  params-to-string ps ≫str
-  strAdd " : " ≫str    
-  kind-to-stringh k ≫str
-  strAdd " = " ≫str
-  ctrs-to-string cs ≫str
+  strAdd x ≫str  
+  params-to-string'' ps
+   (strBreak 2 0 (strAdd " :") 4 (kind-to-stringh k ≫str strAdd " =") ≫str
+    strNest 2 (foldr {B = strM}
+      (λ c m → strLine ≫str strAdd "| " ≫str strNest 2 (ctr-to-string c) ≫str m)
+      strEmpty cs) ≫str
+    strAdd " .") ≫str
   strΓ' globalScope x f
 
 strRun : ctxt → strM → rope
-strRun Γ m = fst (m {TERM} [[]] 0 [] Γ nothing neither)
+strRun Γ m = doc-to-rope $ fst $ m {TERM} NIL 0 [] Γ nothing neither
 
 strRunTag : (name : string) → ctxt → strM → tagged-val
-strRunTag name Γ m with m {TERM} [[]] 0 [] Γ nothing neither
-...| s , n , ts = name , s , ts
+strRunTag name Γ m with m {TERM} NIL 0 [] Γ nothing neither
+...| s , n , ts = name , doc-to-rope s , ts
+
+to-stringe : {ed : exprd} → ⟦ ed ⟧ → strM
+to-stringe with cedille-options.options.erase-types options
+...| tt = to-stringh ∘ erase
+...| ff = to-stringh
+
+tk-to-stringe = to-stringe {TK}
 
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
 to-string-tag name Γ t = strRunTag name Γ
@@ -544,7 +619,7 @@ to-string Γ t = strRun Γ (to-stringh t)
 
 
 tk-to-string : ctxt → tk → rope
-tk-to-string Γ atk = strRun Γ (tk-to-stringh atk)
+tk-to-string Γ atk = strRun Γ (tk-to-stringe atk)
 
 params-to-string-tag : string → ctxt → params → tagged-val
 params-to-string-tag name Γ ps = strRunTag name Γ (params-to-string ps)

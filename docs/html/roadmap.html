@@ -57,22 +57,23 @@ Next: <a href="credits.html#credits" accesskey="n" rel="next">credits</a>, Previ
 </p><a name="Roadmap"></a>
 <h2 class="chapter">24 Roadmap</h2>
 
-<p>Cedille is under active development, and the following major changes are planned.  Cedille 1.1 will probably be Fall 2018 (we are not too far from done with the datatype notations).  Cedille 1.2 is likely Winter 2018 or Spring 2019.  Cedille 2.0 is hopefully Summer 2019, but we are still immersed in the basic research for that.
+<p>With Cedille 1.1, we have a version of Cedille that provides familiar
+higher level concepts for datatypes like datatype declarations,
+constructors, and pattern-matching (histomorphic) recursion.  Cedille 1.1 elaborates
+these down to Cedille Core, a pure type theory without primitive datatypesl
+This accomplishes a major goal in the roadmap of Cedille 1.0.  Future
+directions are somewhat up in the air at present.  One avenue likely to be
+developed in 2019 is automatic subtyping, which will make certain examples
+with datatype notations more succinct.  The following items are still on the agenda:
 </p>
 <ul>
-<li> Datatype declarations and pattern-matching recursion, compiled to a Mendler lambda-encoding, Cedille 1.1
-</li><li> Second-order matching and term inference incorporated into spine-local type inference, Cedille 1.2
-</li><li> Rebase Cedille on sequent calculus to enable deriving types like existentials as dual to universals, and support constructive control operators, Cedille 2.0
-
-
+<li> Second-order matching and term inference incorporated into spine-local type inference
+</li><li> Rebase Cedille on sequent calculus to enable deriving types like existentials as dual to universals, and support constructive control operators
 </li></ul>
 
-<p>For datatype notations, we have, in a number of papers and works in
-progress, devised semantics in Cedille for various somewhat advanced
-features: histomorphic recursion, inductive-recursive types, and
-inductive-inductive types.  We will be gradually incorporating
-high-level syntax for these into Cedille, starting with histomorphic
-recursion.
+<p>We also plan to continue incorporating high-level syntax for advanced
+datatype features into Cedille, although exactly which might be up
+next is currently not determined.
 </p>
 
 
