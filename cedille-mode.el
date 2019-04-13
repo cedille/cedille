@@ -763,7 +763,7 @@ occurrences, then do so."
 
 (cedille-modify-keymap 'cedille-mode)
 
-(require 'cedille-mode-beta-reduce2)
+(require 'cedille-mode-beta-reduce)
 
 (defun cedille-mode-get-message-from-filename(filename)
   "Get the message to send to the backend, from the name of the file to parse."
