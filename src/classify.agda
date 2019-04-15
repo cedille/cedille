@@ -2009,7 +2009,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
         (just (cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs))) →
           let is = kind-to-indices Γ kᵢ
               is' = drop-last 1 is
-              refine = refine-motive Γ (qualif-term Γ t) Xₒ is' asᵢ
+              refine = refine-motive Γ (qualif-term Γ t) Xₒ is' (args-to-ttys asₚ) asᵢ
               --mkspan = λ p3 → spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
               --                  (fst $ snd p3) (snd $ snd p3)) ≫span spanMr p3
               no-motive = spanMr (nothing , [] ,

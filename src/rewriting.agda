@@ -394,14 +394,15 @@ refine-kind Γ fm to (KndVar pi k as) with hnf Γ unfold-head (KndVar pi k as) t
 refine-kind Γ fm to (Star pi) = Star pi
 
 -- Given a context, the (qualified) scrutinee, the (qualified) datatype name,
--- the datatype's indices, the arguments for the indices in the type of the scrutinee,
--- and the expected type, calculate a possibly ill-typed motive that is approximately
--- abstracted over the indices and the scrutinee itself.
-refine-motive : ctxt → (scrutinee : term) → (datatype-name : var) → indices → (as : 𝕃 tty) → (expected : type) → type
-refine-motive Γ t name is as =
+-- the datatype's indices, the arguments for module parameter instantiation,
+-- the arguments for the indices in the type of the scrutinee, and the expected type,
+-- calculate a possibly ill-typed motive that is approximately abstracted over the
+-- indices and the scrutinee itself.
+refine-motive : ctxt → (scrutinee : term) → (datatype-name : var) → indices → (mod-as : 𝕃 tty) → (idx-as : 𝕃 tty) → (expected : type) → type
+refine-motive Γ t name is asₚ asᵢ =
   let x = fresh-var-new (add-indices-to-ctxt is Γ) "x"
-      as = zip is as ++
-             [ Index x (Tkt $ indices-to-tpapps is $ TpVar pi-gen name) , tterm t ] in
+      as = zip is asᵢ ++
+             [ Index x (Tkt $ indices-to-tpapps is $ recompose-tpapps asₚ $ TpVar pi-gen name) , tterm t ] in
   foldr
     (λ {(Index x atk , ty) f Γ T →
       TpLambda pi-gen pi-gen x atk $ f (ctxt-var-decl x Γ) $

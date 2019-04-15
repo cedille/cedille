@@ -611,7 +611,7 @@ record encoded-datatype : Set where
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs with kind-to-indices Γ kᵢ | oT
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | NoType =
     elab-mu Γ d names Xₒ x? t
-      (refine-motive Γ t X is asᵢ T) ms
+      (refine-motive Γ t X is (args-to-ttys asₚ) asᵢ T) ms
       {-(indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var
         (Tkt $ indices-to-tpapps is $ flip apps-type asₚ $ mtpvar X) T) ms-}
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | SomeType Tₘ =
