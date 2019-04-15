@@ -1948,6 +1948,45 @@ check-refinement T k Γ ss =
         then just "We could not compute a well-kinded motive"
         else nothing
 
+ctxt-mu-decls : indices → type → cases → ctxt-datatype-info → posinfo → posinfo → posinfo → var → spanM (𝕃 tagged-val)
+ctxt-mu-decls is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs) pi' pi'' pi''' x =
+  get-ctxt λ Γ →
+  let X' = mu-Type/ x
+      xₘᵤ = mu-isType/ x
+      qXₒₘᵤ = data-Is/ Xₒ
+      qXₜₒ = data-to/ Xₒ
+      qX' = pi' % X'
+      qxₘᵤ = pi' % xₘᵤ
+      Tₘᵤ = TpApp (flip apps-type asₚ $ mtpvar qXₒₘᵤ) $ mtpvar qX'
+      --X-ps = flip apps-type asₚ $ mtpvar X
+      --Tₜₒ = indices-to-alls is $ TpArrow
+      --         (indices-to-tpapps is $ mtpvar qX') NotErased
+      --         (indices-to-tpapps is X-ps)
+      Γ' = -- ctxt-term-def pi' localScope OpacTrans xₜₒ (just id-term) Tₜₒ $
+           ctxt-term-def pi' localScope OpacTrans xₘᵤ nothing Tₘᵤ $
+           ctxt-datatype-decl Xₒ (pi' % x) asₚ $
+           ctxt-type-decl-no-qualif pi' X' k Γ
+           --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
+           --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
+      freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
+      Tₓ = hnf Γ' (unfolding-elab unfold-head) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
+      Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
+      e₂? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
+      e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
+      e₃ₑ = flip (are-free-in-cases skip-erased) cs ∘ stringset-insert* empty-stringset
+      e₃ₓ? = λ x → maybe-if (e₃ₑ [ x ]) ≫maybe e₃ x
+      e₃? = maybe-if (e₃ₑ $ mu-isType/ x :: mu-Type/ x :: []) ≫=maybe λ _ →
+              e₃ₓ? (mu-isType/ x) maybe-or e₃ₓ? (mu-Type/ x) in
+  spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₂? maybe-or e₃?)) ≫span
+  set-ctxt Γ'' ≫span
+  spanMr (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
+          binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
+          binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
+          to-string-tag X' Γ'' k ::
+          to-string-tag xₘᵤ Γ'' Tₘᵤ ::
+          to-string-tag x Γ'' Tₓ ::
+          [])
+
 check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
   get-ctxt λ Γ → 
   check-termi t nothing ≫=span λ T →
@@ -1967,7 +2006,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
           spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) nothing) ≫span
           return-when mtp (ret-tp [] as $ qualif-term Γ t)
-        (just (cast , mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs)) →
+        (just (cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs))) →
           let is = kind-to-indices Γ kᵢ
               is' = drop-last 1 is
               refine = refine-motive Γ (qualif-term Γ t) Xₒ is' asᵢ
@@ -1991,43 +2030,8 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                   λ x → subst Γ (params-to-tplams ps $ mtpvar $ pi' % mu-Type/ x) Xₒ T}
               reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-head) T ff}
               cs' = reduce-cs $ maybe-else' x? (if Xₒ =string X then cs' else fcs X) λ x → fcs (mu-Type/ (pi' % x))
-              Γ' = maybe-else' x? (spanMr (Γ , [])) λ x →
-                     let X' = mu-Type/ x
-                         xₘᵤ = mu-isType/ x
-                         qXₒₘᵤ = data-Is/ Xₒ
-                         qXₜₒ = data-to/ Xₒ
-                         qX' = pi' % X'
-                         qxₘᵤ = pi' % xₘᵤ
-                         Tₘᵤ = TpApp (flip apps-type asₚ $ mtpvar qXₒₘᵤ) $ mtpvar qX'
-                         --X-ps = flip apps-type asₚ $ mtpvar X
-                         --Tₜₒ = indices-to-alls is $ TpArrow
-                         --         (indices-to-tpapps is $ mtpvar qX') NotErased
-                         --         (indices-to-tpapps is X-ps)
-                         Γ' = -- ctxt-term-def pi' localScope OpacTrans xₜₒ (just id-term) Tₜₒ $
-                              ctxt-term-def pi' localScope OpacTrans xₘᵤ nothing Tₘᵤ $
-                              ctxt-datatype-decl Xₒ (pi' % x) asₚ $
-                              ctxt-type-decl-no-qualif pi' X' k Γ
-                              --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
-                              --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
-                         freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
-                         Tₓ = hnf Γ' (unfolding-elab unfold-head) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
-                         Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
-                         e₂? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
-                         e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
-                         e₃ₑ = flip (are-free-in-cases skip-erased) cs ∘ stringset-insert* empty-stringset
-                         e₃ₓ? = λ x → maybe-if (e₃ₑ [ x ]) ≫maybe e₃ x
-                         e₃? = x? ≫=maybe λ x → maybe-if (e₃ₑ $ mu-isType/ x :: mu-Type/ x :: []) ≫=maybe λ _ →
-                                 e₃ₓ? (mu-isType/ x) maybe-or e₃ₓ? (mu-Type/ x)in
-                     spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₂? maybe-or e₃?)) ≫span
-                     spanMr (Γ'' ,
-                             (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
-                              binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
-                              binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
-                              to-string-tag X' Γ'' k ::
-                              to-string-tag xₘᵤ Γ'' Tₘᵤ ::
-                              to-string-tag x Γ'' Tₓ ::
-                              [])) in
-          Γ' ≫=spanc λ Γ' bds → with-ctxt Γ'
+              Γ' = maybe-else' x? (spanMr []) (ctxt-mu-decls is Tₘ cs d pi' pi'' pi''') in
+          with-ctxt Γ (Γ' ≫=span λ bds → get-ctxt λ Γ' →
             (let cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))
                  scrutinee = cast $ qualif-term Γ t
@@ -2038,7 +2042,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                λ tvs e₃ → Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
                  (map (λ {(pi , x , atk , me , s , e) →
                             binder-data Γ' pi x atk me nothing s e}) xs ++ tvs₁ ++ tvs ++ bds) (e₁ maybe-or (e₂ maybe-or e₃))) ≫span
-             return-when mtp Tᵣ)
+             return-when mtp Tᵣ))
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
         [ head-type Γ Tₕ ] (just "The head type of the subterm is not a datatype")) ≫span

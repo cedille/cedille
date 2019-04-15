@@ -27,6 +27,7 @@ open import elaboration (record options {during-elaboration = ff})
 open import elaboration-helpers (record options {during-elaboration = ff})
 open import templates
 open import erase
+open import json
 
 private
 
@@ -388,17 +389,14 @@ private
       redo : 𝕃 br-history
 
   data br-history2 : Set where
-    br-node : br-history → 𝕃 br-history2 → br-history2
+    br-node : br-history → 𝕃 (ctr × br-history2) → br-history2
   
   br-get-h : br-history2 → br-history
   br-get-h (br-node h hs) = h
 
-  br-get-hs : br-history2 → 𝕃 br-history2
-  br-get-hs (br-node h hs) = hs
-  
   br-lookup : 𝕃 ℕ → br-history2 → maybe br-history
   br-lookup xs h = maybe-map br-get-h $
-    foldl (λ x h? → h? ≫=maybe λ {(br-node h hs) → head2 (nthTail x hs)}) (just h) xs
+    foldl (λ x h? → h? ≫=maybe λ {(br-node h hs) → maybe-map snd $ head2 (nthTail x hs)}) (just h) xs
 
   {-# TERMINATING #-}
   br-cmd2 : ctxt → string → string → string → 𝕃 string → IO ⊤
@@ -445,22 +443,43 @@ private
 
     parse-path : string → maybe (𝕃 ℕ)
     parse-path "" = just []
-    parse-path s = foldr (λ n ns →  ns ≫=maybe λ ns → string-to-ℕ n ≫=maybe λ n → just (n :: ns)) (just []) (string-split s ' ')
+    parse-path s with string-split s ' ' | foldr (λ n ns →  ns ≫=maybe λ ns → string-to-ℕ n ≫=maybe λ n → just (n :: ns)) (just [])
+    ...| "" :: ss | f = f ss
+    ...| path | f = f path
+
     
     write-history : 𝕃 ℕ → br-history → br-history2 → br-history2
     write-history [] h (br-node _ hs) = br-node h hs
     write-history (n :: ns) h (br-node hₒ hs) = br-node hₒ $ writeh n hs where
-      writeh : ℕ → 𝕃 br-history2 → 𝕃 br-history2
+      writeh : ℕ → 𝕃 (ctr × br-history2) → 𝕃 (ctr × br-history2)
       writeh _ [] = []
-      writeh zero (h' :: hs) = write-history ns h h' :: hs
+      writeh zero ((c , h') :: hs) = (c , write-history ns h h') :: hs
       writeh (suc n) (h' :: hs) = h' :: writeh n hs
 
+    write-children : 𝕃 ℕ → 𝕃 (ctr × br-history) → br-history2 → br-history2
+    write-children [] hs (br-node h _) = br-node h (map (uncurry λ c h → c , br-node h []) hs)
+    write-children (n :: ns) hs (br-node h hsₒ) = br-node h $ writeh n hsₒ where
+      writeh : ℕ → 𝕃 (ctr × br-history2) → 𝕃 (ctr × br-history2)
+      writeh _ [] = []
+      writeh zero ((c , h') :: hs') = (c , write-children ns hs h') :: hs'
+      writeh (suc n) (h' :: hs) = h' :: writeh n hs
+
+    outline : br-history2 → term
+    outline (br-node (mk-br-history Γ t ll-type T Tₛ f undo redo) []) = f (Chi pi-gen (SomeType T) t)
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) []) = f t
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) hs) =
+      f $ Mu' pi-gen NoTerm t NoType pi-gen (map (λ {(Ctr _ x T , h) → case decompose-ctr-type Γ (hnf Γ (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps , as) → Case pi-gen x (map (λ {(Decl _ _ me x atk _) → if tk-is-type atk then CaseTermArg pi-gen me x else CaseTypeArg pi-gen x}) ps) $ params-to-apps ps $ outline h}}) hs) pi-gen
+
     await : br-history2 → IO ⊤
+    awaith : br-history2 → 𝕃 string → IO ⊤
     await his =
       getLine >>= λ input →
       let input = undo-escape-string input
-          as = string-split input delimiter
-          put = putRopeLn ∘ tv-to-rope
+          as = string-split input delimiter in
+      awaith his as
+    
+    awaith his as =
+      let put = putRopeLn ∘ tv-to-rope
           err = (_>> await his) ∘' put ∘' inj₁ in
       case as of λ where -- TODO: for these commands, do not add TYPES/KINDS of local decls to context, as they are probably just bound by foralls/pis/lambdas, not _really_ in scope!
         ("br" :: path :: as) →
@@ -495,13 +514,25 @@ private
                           untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
              
               ("check" :: t?) →
-                (λ e → either-else' e (uncurry λ t? e → put (inj₁ e) >> maybe-else' t? (await his) λ t' → await-with (record this {t = t'; undo = this :: undo; redo = []})) (λ _ → put (inj₂ $ "Type error" , [[]] , []) >> await his)) $
-                ll-ind' {λ T → (maybe term × string) ⊎ ⊤} (Tₗₗ , T)
+                let await-set = maybe-else (await his) λ t → await-with $ record this
+                                  {t = qualif-term Γ t; undo = this :: undo; redo = []} in
+                (λ e → either-else' e
+                  (uncurry λ t? e → put (inj₁ e) >> await-set t?)
+                  (λ t? → put (inj₂ $ "Type error" , [[]] , []) >> await-set t?)) $
+                ll-ind' {λ T → (maybe term × string) ⊎ maybe term} (Tₗₗ , T)
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
                   (λ T →
-                    (case t? of λ {[] → inj₂ nothing; (t :: []) → maybe-else' (parse-string ll-term t) (inj₁ $ nothing , parse-err-msg t "term") (inj₂ ∘ just); _ → inj₁ $ nothing , "To many arguments given to beta-reduction command 'check'"}) ≫=⊎ λ t? →
+                    (case t? of λ where
+                      [] → inj₂ nothing
+                      (t :: []) → maybe-else' (parse-string ll-term t)
+                        (inj₁ $ nothing , parse-err-msg t "term")
+                        (inj₂ ∘ just)
+                      _ → inj₁ $ nothing ,
+                        "To many arguments given to beta-reduction command 'check'")
+                  ≫=⊎ λ t? →
                     err⊎-guard (~ spans-have-error
-                      (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans)) (t? , "Type inhabited"))
+                      (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans))
+                     (t? , "Type inhabited") ≫=⊎ λ _ → inj₂ t?)
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
              
               ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
@@ -599,13 +630,49 @@ private
                   put (inj₂ $ ts-tag Γ' T') >>
                   await-with (record this {Γ = Γ' ; T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T'; f = f ∘ fₜ; undo = this :: undo; redo = []})
              
-              ("case" :: []) →
-                put (inj₁ "Case splitting not supported yet!") >>
-                await his
+              ("case" :: scrutinee :: rec :: motive?) → -- TODO: Motive?
+                either-else'
+                  (parse-string ll-term - scrutinee ! "term" ≫parse λ scrutinee →
+                   maybe-else' (fst $ check-term scrutinee nothing Γ empty-spans)
+                     (inj₁ "Error synthesizing a type from the input term") inj₂ ≫=⊎ λ Tₛ →
+                   let Tₛ = hnf Γ (unfolding-elab unfold-head) Tₛ tt in
+                   case decompose-ctr-type Γ Tₛ of λ where
+                     (TpVar _ Xₛ , [] , as) →
+                       ll-ind' {λ T → string ⊎ (term × 𝕃 (ctr × type) × type × ctxt)} (Tₗₗ , T)
+                         (λ t → inj₁ "Expression must be a type to case split")
+                         (λ T → maybe-else' (data-lookup Γ Xₛ as)
+                           (inj₁ "The synthesized type of the input term is not a datatype")
+                           λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k cs σ = d
+                                     is' = kind-to-indices (add-params-to-ctxt ps Γ) kᵢ
+                                     is = drop-last 1 is'
+                                     Tₘ = refine-motive Γ (qualif-term Γ scrutinee) X is asᵢ T
+                                     Γ' = if iszero (string-length rec) then Γ else fst (snd (ctxt-mu-decls is Tₘ [] d pi-gen pi-gen pi-gen rec Γ empty-spans)) in
+                             if spans-have-error (snd (snd (check-type Tₘ (just kᵢ) (qualified-ctxt Γ) empty-spans)))
+                               then inj₁ "Computed an ill-typed motive"
+                               else inj₂ (scrutinee , map (λ {(Ctr pi x T) → Ctr pi x T ,
+                                 (case decompose-ctr-type Γ' (hnf Γ' (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps' , as) →
+                                   params-to-alls ps' $ TpAppt
+                                     (recompose-tpapps (drop (length ps) as) Tₘ)
+                                     (recompose-apps (params-to-args ps') $
+                                       recompose-apps asₚ (mvar x))})}) (σ (mu-Type/ rec)) , Tₘ ,
+                                 Γ'))
+                         (λ k → inj₁ "Expression must be a type to case split")
+                     (Tₕ , [] , as) → inj₁ "Synthesized a non-datatype from the input term"
+                     (Tₕ , ps , as) → inj₁ "Case splitting is currently restricted to datatypes")
+                  err $ uncurry λ scrutinee → uncurry λ cs → uncurry λ Tₘ Γ →
+                putRopeLn (json-to-rope (json-object (trie-single "value" (json-array (json-nat 0 :: [ (json-new (map (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x , json-raw ([[ "\"" ]] ⊹⊹ to-string Γ (erase T) ⊹⊹ [[ "\"" ]])}) cs)) ]))))) >>
+                let shallow = iszero (string-length rec)
+                    f'' = λ {(Mu' pi _ t oT pi' cs pi'') →
+                               Mu pi pi-gen rec t oT pi' cs pi'';
+                             t → t}
+                    f' = if shallow then f else (f ∘ f'')in
+                await (write-children path (map (uncurry λ c T'' → c , mk-br-history Γ t ll-type T'' (rope-to-string $ to-string Γ $ erase T'') id [] []) cs) $ write-history path (record this {f = f'; Γ = Γ; t = scrutinee; undo = this :: undo; redo = []}) his)
+                --put (inj₁ "Case splitting not supported yet!") >>
+                --await his
              
               ("print" :: tab :: []) →
                 either-else' (string-to-ℕ - tab ! "natural number" ≫parse inj₂) err λ tab →
-                putRopeLn (escape-rope (tv-to-rope (inj₂ $ pretty2s.strRunTag "" Γ $ pretty2s.strNest (suc {-left paren-} tab) (pretty2s.to-stringh $ f t)))) >> await his
+                putRopeLn (escape-rope (tv-to-rope (inj₂ $ pretty2s.strRunTag "" Γ $ pretty2s.strNest (suc {-left paren-} tab) (pretty2s.to-stringh $ outline his)))) >> await his
               
               ("quit" :: []) → put $ inj₂ $ strRunTag "" Γ $ strAdd "Quitting beta-reduction mode..."
              

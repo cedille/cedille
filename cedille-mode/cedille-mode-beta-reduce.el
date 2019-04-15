@@ -72,6 +72,7 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i p") #'cedille-mode-br-print-outline)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i a") #'cedille-mode-br-abs)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-check-prompt)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i m") #'cedille-mode-br-match)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i ,") #'cedille-mode-br-undo)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i .") #'cedille-mode-br-redo)
     (se-navi-get-keymap 'cedille-br-mode)))
@@ -100,6 +101,35 @@
 (defun cedille-mode-br-init-buffer (str &optional span do-check path)
   "Initializes the beta-reduction buffer, after the process finishes"
   (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span ,do-check ,path)) nil))
+
+(defun cedille-mode-br-spawn-buffer (str path)
+  "Spawns a child beta-reduction buffer from another one"
+  (let* ((parent cedille-mode-parent-buffer)
+         (buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
+         (check cedille-mode-br-do-check)
+         (column cedille-mode-br-column))
+    (with-current-buffer parent
+      (with-selected-window (get-buffer-window)
+        (cedille-mode-get-create-window buffer)))
+    (with-current-buffer buffer
+      (select-window (get-buffer-window))
+      (let ((buffer-read-only nil)) (insert str))
+      (se-navigation-mode)
+      (cedille-br-mode)
+      (se-inf-start (get-buffer-process "*cedille-mode*"))
+      (setq cedille-mode-parent-buffer parent
+            se-mode-not-selected se-mode-parse-tree
+            se-inf-response-finished t
+	    cedille-mode-do-update-buffers nil
+	    cedille-mode-br-in-buffer t
+            cedille-mode-br-do-check check
+	    cedille-mode-global-context nil
+            cedille-mode-br-column column
+            cedille-mode-br-path path
+	    window-size-fixed nil)
+      (cedille-mode-br-response str buffer))
+    (cedille-mode-rebalance-windows)
+    buffer))
 
 (defun cedille-mode-br-init-buffer-post (str span do-check path)
   "Initializes the beta-reduction buffer"
@@ -251,16 +281,20 @@
 (defun cedille-mode-br-kill-buffer (&optional on-kill)
   "Kills the current buffer, calling optional ON-KILL afterwards"
   (interactive)
-  (let ((buffer (current-buffer))
-	(window (get-buffer-window)))
-    (se-inf-interactive
-     (cedille-mode-concat-sep "br" cedille-mode-br-path "quit")
-     `(lambda (response extra)
-        (kill-buffer (cadr extra))
-        ;(delete-window (cddr extra))
-        (when (car extra) (funcall (car extra))))
-    (cons on-kill (cons buffer window)))
-    nil))
+  (if (zerop (length cedille-mode-br-path))
+      (let ((buffer (current-buffer))
+            (window (get-buffer-window)))
+        (se-inf-interactive
+         (cedille-mode-concat-sep "br" cedille-mode-br-path "quit")
+         `(lambda (response extra)
+            (kill-buffer (cadr extra))
+            (when (car extra) (funcall (car extra))))
+         (cons on-kill (cons buffer window))))
+    (let ((buffer cedille-mode-parent-buffer))
+      ;(kill-buffer)
+      (delete-window (get-buffer-window))
+      (select-window (get-buffer-window buffer))))
+  nil)
 
 (defun cedille-mode-br-get-qed-h (node)
   (let* ((start (se-term-start node))
@@ -431,18 +465,42 @@
      (cedille-mode-response-macro #'cedille-mode-br-response)
      (current-buffer))))
 
+(defun cedille-mode-br-match (scrutinee)
+  "Case split over a scrutinee (currently, must be a datatype)"
+  (interactive "MScrutinee: ")
+  (let ((rec (call-interactively
+              (lambda (x)
+                (interactive "MRecursive name (optional): ")
+                x))))
+    (se-inf-interactive
+     (cedille-mode-concat-sep "br" cedille-mode-br-path "case" scrutinee rec)
+;   (lambda (response &rest args) (message "response: %s" response))
+     (cedille-mode-response-macro #'cedille-mode-br-match-response)
+     (current-buffer))))
+
+(defun cedille-mode-br-match-response (response buffer &optional span)
+  (with-current-buffer buffer
+    (with-current-buffer cedille-mode-parent-buffer
+      (let ((n 0))
+        (loop for (key . val) in response
+              do (progn (cedille-mode-br-spawn-buffer val (concat cedille-mode-br-path " " (number-to-string n))) (incf n)))))))
+
 (defun cedille-mode-br-check-prompt (qed)
   "Check qed against the expression (which needs to be a type or a kind)"
-  (se-inf-interactive
-   (cedille-mode-concat-sep "br" cedille-mode-br-path "check" qed)
-   (cedille-mode-response-macro
-    (lambda (response buffer)
-      (message "Type error")))
-   (current-buffer)))
+  (interactive "MCheck with: ")
+  (let ((question (if (zerop (length qed))
+                      (cedille-mode-concat-sep "br" cedille-mode-br-path "check")
+                    (cedille-mode-concat-sep "br" cedille-mode-br-path "check" qed))))
+    (se-inf-interactive
+     question
+     (cedille-mode-response-macro
+      (lambda (response extra)
+        (message response)))
+     nil)))
 
 (defun cedille-mode-br-check (&optional suppress-err)
   "If `cedille-mode-br-do-check' is non-nil, check if the expected type matches the actual type"
-  (interactive)
+  ;(interactive)
   (when cedille-mode-br-do-check
     (se-inf-interactive
      (cedille-mode-concat-sep "br" cedille-mode-br-path "check")
@@ -450,10 +508,5 @@
       (lambda (response suppress-err)
         (unless suppress-err (message "Type error"))))
      suppress-err)))
-
-;(defun cedille-mode-br-on-frame-delete (frame)
-;  (get-frame-buffer
-
-;(add-hook delete-frame-functions #'cedille-mode-br-on-frame-delete)
 
 (provide 'cedille-mode-beta-reduce)
