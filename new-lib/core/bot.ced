@@ -1,4 +1,4 @@
-module bot.
+module core/bot.
 
 False : ★ = ∀ X: ★. X.
 Bot : ★ = False.

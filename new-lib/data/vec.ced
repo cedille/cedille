@@ -6,11 +6,17 @@ data Vec (A: ★): Nat ➔ ★ =
   | vnil: Vec zero
   | vcons: ∀ n: Nat. A ➔ Vec n ➔ Vec (succ n).
 
+vhead : ∀ A: ★. ∀ m: Nat. Vec ·A (succ m) ➔ A
+= Λ A. Λ m. λ xs. μ' xs @λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ A {
+  | vnil ➔ Λ eq. δ - eq
+  | vcons -i x xs ➔ Λ _. x
+  } -β.
+
 vtail : ∀ A: ★. ∀ m: Nat. Vec ·A (succ m) ➔ Vec ·A m
-= Λ A. Λ m. λ xs. (μ' xs @(λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ Vec ·A (pred i)) {
+= Λ A. Λ m. λ xs. μ' xs @(λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ Vec ·A (pred i)) {
   | vnil ➔ Λ eq. δ - eq
   | vcons -m x xs ➔ Λ _. xs
-  }) -β.
+  } -β.
 
 vappend : ∀ A: ★. ∀ m: Nat. ∀ n: Nat. Vec ·A m ➔ Vec ·A n ➔ Vec ·A (add m n)
 = Λ A. Λ m. Λ n. λ xs. λ ys. μ vappendYs. xs @(λ i: Nat. λ x: Vec ·A i. Vec ·A (add i n)) {

@@ -2,7 +2,7 @@ module nat-thms.
 
 import ../nat.
 import ../bool.
-import ../../lambda/bot.
+import ../../core/bot.
 import ../sum.
 
 -- basic properties of constructors
@@ -13,7 +13,7 @@ succInj : ∀ m: Nat. ∀ n: Nat. {succ m ≃ succ n} ➾ {m ≃ n}
   = Λ m. Λ n. Λ eq. ρ eq @ x. {pred x ≃ pred (succ n)} - β.
 
 succAcyc : Π m: Nat. {succ m ≃ m} ➔ Bot
-  = λ m. μ acyc. m @(λ x: Nat. {succ x ≃ x} ➔ Bot) {
+  = λ m. μ acyc. m {
   | zero ➔ λ eq. neqZS -zero (ς eq)
   | succ m ➔ λ eq. acyc m (ρ eq @ x. {pred x ≃ pred (succ m)} - β)
   }.

@@ -8,6 +8,22 @@ data List (A: ★): ★ =
   | nil: List
   | cons: A ➔ List ➔ List.
 
+head : ∀ A: ★. List ·A ➔ Maybe ·A
+= Λ A. λ xs. μ' xs { nil ➔ none ·A | cons x xs ➔ some x}.
+
+isCons : ∀ A: ★. List ·A ➔ Bool
+= Λ A. λ xs. μ' xs { nil ➔ ff | cons _ _ ➔ tt}.
+
+isNil = Λ A: ★. λ xs: List ·A. not (isCons xs).
+
+headSafe : ∀ A: ★. Π xs: List ·A. {isCons xs ≃ tt} ➾ A
+= Λ A. λ xs. μ' xs {nil ➔ Λ eq. δ - eq | cons x xs ➔ Λ _. x}.
+
+tailCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ L ➔ L
+= Λ A. Λ L. Λ is. λ xs. μ'<is> xs {nil ➔ xs | cons x xs ➔ xs}.
+
+tail = Λ A: ★. tailCV ·A -(is/List ·A).
+
 map : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ List ·A ➔ List ·B
   = Λ A. Λ B. λ f. λ xs. μ mapF. xs {
   | nil ➔ nil ·B
@@ -43,3 +59,20 @@ filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A =
   μ filter . l {
     | nil ➔ nil ·A
     | cons x xs ➔ [ r = filter xs ] - ite (p x) (cons x r) r }.
+
+take : ∀ A: ★. Nat ➔ List ·A ➔ List ·A
+= Λ A. λ n. μ take. n {
+  | zero ➔ λ xs. nil ·A
+  | succ n ➔ λ xs. μ' xs {
+    | nil ➔ xs
+    | cons x xs ➔ cons x (take n xs)
+    }
+  }.
+
+dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
+= Λ A. Λ L. Λ is. λ n. μ drop. n {
+  | zero ➔ λ xs. xs
+  | succ n ➔ λ xs. tailCV -is xs
+  }.
+
+drop = Λ A: ★. dropCV -(is/List ·A).
