@@ -384,7 +384,7 @@ private
       Tₗₗ : language-level
       T : ll-lift Tₗₗ
       Tᵤ : string
-      f : term → term
+      f : term → 𝕃 (ctr × term) → term
       undo : 𝕃 br-history
       redo : 𝕃 br-history
 
@@ -408,7 +408,7 @@ private
     let T = qualif-ed Γ T
         Tₑ = erase T in
     putRopeLn (tv-to-rope $ inj₂ $ ts-tag Γ Tₑ) >>
-    await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) id [] []) [])
+    await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const [] []) [])
     where
 
     import to-string (record options {erase-types = ff}) as ts2
@@ -465,10 +465,10 @@ private
       writeh (suc n) (h' :: hs) = h' :: writeh n hs
 
     outline : br-history2 → term
-    outline (br-node (mk-br-history Γ t ll-type T Tₛ f undo redo) []) = f (Chi pi-gen (SomeType T) t)
-    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) []) = f t
-    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) hs) =
-      f $ Mu' pi-gen NoTerm t NoType pi-gen (map (λ {(Ctr _ x T , h) → case decompose-ctr-type Γ (hnf Γ (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps , as) → Case pi-gen x (map (λ {(Decl _ _ me x atk _) → if tk-is-type atk then CaseTermArg pi-gen me x else CaseTypeArg pi-gen x}) ps) $ params-to-apps ps $ outline h}}) hs) pi-gen
+    outline (br-node (mk-br-history Γ t ll-type T Tₛ f undo redo) []) = f (Chi pi-gen (SomeType T) t) []
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) []) = f t []
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) hs) = f t (map (uncurry λ c h → c , outline h) hs)
+{-      f $ Mu' pi-gen NoTerm t NoType pi-gen (map (λ {(Ctr _ x T , h) → case decompose-ctr-type Γ (hnf Γ (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps , as) → Case pi-gen x (map (λ {(Decl _ _ me x atk _) → if tk-is-type atk then CaseTermArg pi-gen me x else CaseTypeArg pi-gen x}) ps) $ params-to-apps ps $ outline h}}) hs) pi-gen-}
 
     await : br-history2 → IO ⊤
     awaith : br-history2 → 𝕃 string → IO ⊤
@@ -518,8 +518,8 @@ private
                                   {t = qualif-term Γ t; undo = this :: undo; redo = []} in
                 (λ e → either-else' e
                   (uncurry λ t? e → put (inj₁ e) >> await-set t?)
-                  (λ t? → put (inj₂ $ "Type error" , [[]] , []) >> await-set t?)) $
-                ll-ind' {λ T → (maybe term × string) ⊎ maybe term} (Tₗₗ , T)
+                  (uncurry λ t? m → put (inj₂ $ m , [[]] , []) >> await-set t?)) $
+                ll-ind' {λ T → (maybe term × string) ⊎ (maybe term × string)} (Tₗₗ , T)
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
                   (λ T →
                     (case t? of λ where
@@ -530,9 +530,9 @@ private
                       _ → inj₁ $ nothing ,
                         "To many arguments given to beta-reduction command 'check'")
                   ≫=⊎ λ t? →
-                    err⊎-guard (~ spans-have-error
-                      (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans))
-                     (t? , "Type inhabited") ≫=⊎ λ _ → inj₂ t?)
+                    if (spans-have-error (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans))
+                      then inj₁ (t? , "Type error")
+                      else inj₂ (t? , "Type inhabited"))
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
              
               ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
@@ -628,47 +628,90 @@ private
                     (λ k → inj₁ "Expression must be a term or a type"))
                   err $ uncurry λ Γ' → uncurry λ T' fₜ →
                   put (inj₂ $ ts-tag Γ' T') >>
-                  await-with (record this {Γ = Γ' ; T = T'; Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T'; f = f ∘ fₜ; undo = this :: undo; redo = []})
+                  await-with (record this
+                      {Γ = Γ' ;
+                       T = T';
+                       Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T';
+                       f = f ∘ fₜ;
+                       undo = this :: undo;
+                       redo = []})
              
               ("case" :: scrutinee :: rec :: motive?) → -- TODO: Motive?
                 either-else'
                   (parse-string ll-term - scrutinee ! "term" ≫parse λ scrutinee →
                    maybe-else' (fst $ check-term scrutinee nothing Γ empty-spans)
                      (inj₁ "Error synthesizing a type from the input term") inj₂ ≫=⊎ λ Tₛ →
-                   let Tₛ = hnf Γ (unfolding-elab unfold-head) Tₛ tt in
+                   let Tₛ = hnf Γ (unfolding-elab unfold-head) Tₛ ff in
                    case decompose-ctr-type Γ Tₛ of λ where
                      (TpVar _ Xₛ , [] , as) →
-                       ll-ind' {λ T → string ⊎ (term × 𝕃 (ctr × type) × type × ctxt)} (Tₗₗ , T)
+                       ll-ind' {λ T → string ⊎ (term × 𝕃 (ctr × type) × type × ctxt)} (Tₗₗ , T)
                          (λ t → inj₁ "Expression must be a type to case split")
                          (λ T → maybe-else' (data-lookup Γ Xₛ as)
                            (inj₁ "The synthesized type of the input term is not a datatype")
                            λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k cs σ = d
                                      is' = kind-to-indices (add-params-to-ctxt ps Γ) kᵢ
                                      is = drop-last 1 is'
-                                     Tₘ = refine-motive Γ (qualif-term Γ scrutinee) X is asᵢ T
-                                     Γ' = if iszero (string-length rec) then Γ else fst (snd (ctxt-mu-decls is Tₘ [] d pi-gen pi-gen pi-gen rec Γ empty-spans)) in
-                             if spans-have-error (snd (snd (check-type Tₘ (just kᵢ) (qualified-ctxt Γ) empty-spans)))
+                                     Tₘ = refine-motive Γ (qualif-term Γ scrutinee) X is
+                                            (args-to-ttys asₚ) asᵢ T
+                                     Γ' = if iszero (string-length rec)
+                                            then Γ
+                                            else fst (snd (ctxt-mu-decls is Tₘ [] d
+                                                pi-gen pi-gen pi-gen rec Γ empty-spans)) in
+                             if spans-have-error (snd $ snd $
+                                  check-type Tₘ (just kᵢ) (qualified-ctxt Γ) empty-spans)
                                then inj₁ "Computed an ill-typed motive"
-                               else inj₂ (scrutinee , map (λ {(Ctr pi x T) → Ctr pi x T ,
-                                 (case decompose-ctr-type Γ' (hnf Γ' (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps' , as) →
-                                   params-to-alls ps' $ TpAppt
+                               else inj₂ (scrutinee , map (λ {(Ctr pi x T) →
+                                 let T' = hnf Γ' (unfolding-elab unfold-head) T tt in
+                                 Ctr pi x T ,
+                                 (case decompose-ctr-type Γ' T' of λ {(Tₕ , ps' , as) →
+                                   params-to-alls ps' $ hnf Γ' (unfolding-elab unfold-head) (TpAppt
                                      (recompose-tpapps (drop (length ps) as) Tₘ)
                                      (recompose-apps (params-to-args ps') $
-                                       recompose-apps asₚ (mvar x))})}) (σ (mu-Type/ rec)) , Tₘ ,
+                                       recompose-apps asₚ (mvar x))) ff})})
+                                   (σ (mu-Type/ rec)) ,
+                                 Tₘ ,
                                  Γ'))
                          (λ k → inj₁ "Expression must be a type to case split")
                      (Tₕ , [] , as) → inj₁ "Synthesized a non-datatype from the input term"
-                     (Tₕ , ps , as) → inj₁ "Case splitting is currently restricted to datatypes")
+                     (Tₕ , ps , as) →
+                       inj₁ "Case splitting is currently restricted to datatypes")
                   err $ uncurry λ scrutinee → uncurry λ cs → uncurry λ Tₘ Γ →
-                putRopeLn (json-to-rope (json-object (trie-single "value" (json-array (json-nat 0 :: [ (json-new (map (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x , json-raw ([[ "\"" ]] ⊹⊹ to-string Γ (erase T) ⊹⊹ [[ "\"" ]])}) cs)) ]))))) >>
+                let json = json-object $ trie-single "value" $ json-array $ json-nat 0 ::
+                             [ (json-new (map
+                                 (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
+                                   json-raw ([[ "\"" ]] ⊹⊹
+                                   to-string Γ (erase T) ⊹⊹
+                                   [[ "\"" ]])})
+                                 cs)) ] in
+                putRopeLn (json-to-rope json) >>
                 let shallow = iszero (string-length rec)
-                    f'' = λ {(Mu' pi _ t oT pi' cs pi'') →
-                               Mu pi pi-gen rec t oT pi' cs pi'';
-                             t → t}
-                    f' = if shallow then f else (f ∘ f'')in
-                await (write-children path (map (uncurry λ c T'' → c , mk-br-history Γ t ll-type T'' (rope-to-string $ to-string Γ $ erase T'') id [] []) cs) $ write-history path (record this {f = f'; Γ = Γ; t = scrutinee; undo = this :: undo; redo = []}) his)
-                --put (inj₁ "Case splitting not supported yet!") >>
-                --await his
+                    mk-cs = map λ where
+                      (Ctr _ x T , t) →
+                        let T' = hnf Γ (unfolding-elab unfold-head) T tt in
+                        case decompose-ctr-type Γ T' of λ where
+                          (Tₕ , ps , as) →
+                            let mf = map λ where
+                                       (Decl _ _ me x atk _) →
+                                         if tk-is-type atk
+                                           then CaseTermArg pi-gen me x
+                                           else CaseTypeArg pi-gen x in
+                            Case pi-gen x (mf ps) $ params-to-apps ps t
+                    f'' = λ t cs → if shallow
+                      then Mu' pi-gen NoTerm t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
+                      else Mu pi-gen pi-gen rec t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
+                    f' = λ t cs → f (f'' t cs) cs
+                    mk-hs = map $ map-snd λ T'' →
+                              mk-br-history Γ t ll-type T''
+                                (rope-to-string $ to-string Γ $ erase T'')
+                                (λ t cs → t) [] [] in
+                await (write-children path (mk-hs cs) $
+                         write-history path (record this
+                           {f = f';
+                            Γ = Γ;
+                            t = scrutinee;
+                            undo = this :: undo;
+                            redo = []})
+                           his)
              
               ("print" :: tab :: []) →
                 either-else' (string-to-ℕ - tab ! "natural number" ≫parse inj₂) err λ tab →
