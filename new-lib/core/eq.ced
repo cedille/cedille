@@ -1,4 +1,4 @@
-module eq.
+module core/eq.
 
 import top.
 import bot.
