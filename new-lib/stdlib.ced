@@ -1,10 +1,10 @@
 module stdlib.
 
-import public lambda/bot.
-import public lambda/top.
-import public lambda/id.
-import public lambda/view.
-import public lambda/tpeq.
+import public core/bot.
+import public core/top.
+import public core/id.
+import public core/view.
+import public core/tpeq.
 
 import public data/nat.
 import public data/bool.

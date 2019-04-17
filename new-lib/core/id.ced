@@ -1,4 +1,4 @@
-module id.
+module core/id.
 
 Id : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
 

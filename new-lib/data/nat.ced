@@ -1,7 +1,7 @@
 module nat.
 
 import bool.
-import ../lambda/view.
+import ../core/view.
 
 data Nat: ★ =
   | zero: Nat

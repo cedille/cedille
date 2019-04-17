@@ -438,7 +438,9 @@ conv-ctr-ps Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
 
 conv-ctr-args Γ (x₁ , as₁) (x₂ , as₂) =
   maybe-else' (conv-ctr-ps Γ x₁ x₂) ff $ uncurry λ ps₁ ps₂ →
-  conv-argse Γ (drop (length ps₁) $ erase-args as₁) (drop (length ps₂) $ erase-args as₂)
+  let as₁ = erase-args as₁; as₂ = erase-args as₂ in
+  length ps₁ ∸ length as₁ =ℕ length ps₂ ∸ length as₂ &&
+  conv-argse Γ (drop (length ps₁) as₁) (drop (length ps₂) as₂)
 
 hnf-qualif-term : ctxt → term → term
 hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt
