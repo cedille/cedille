@@ -1,5 +1,7 @@
+;;;;; Cedille Beta-Reduce Mode / Beta-Reduction Buffer ;;;;;
 
 
+;;;;; Faces ;;;;;
 
 (defgroup cedille-highlight-faces-beta-reduction nil
   "Faces used in Cedille's beta-reduction buffer."
@@ -7,14 +9,17 @@
 
 (defface cedille-checking-face-br
   '((((background light))
-     (:background "dark green" :slant italic))
+     (:overline "dark green")) ;:box (:line-width 1 :color "dark green")))
+;     (:slant italic :weight bold)) ; :background "dark green"
     (((background dark))
-     (:foreground "light green" :slant italic)))
+     (:overline "light green")))
+;     (:box (:line-width 1 :color "light green"))))
+;     (:slant italic :weight bold))) ; :foreground "light green"
   "The face used when the initial term checks against the current type."
   :group 'cedille-highlight-faces-beta-reduction)
 
 
-;;;;;;;; Variables ;;;;;;;;
+;;;;; Variables ;;;;;
 
 (make-variable-buffer-local
  (defvar cedille-mode-br-range nil
@@ -48,9 +53,7 @@
  (defvar cedille-mode-br-children nil))
 
 
-
-
-;;;;;;;; Mode code ;;;;;;;;
+;;;;; Mode ;;;;;
 
 (defvar cedille-br-keymap
   (progn
@@ -69,19 +72,19 @@
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "j") #'cedille-mode-br-jump)
-;    (se-navi-define-key 'cedille-br-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
-;    (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
-;    (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
-;    (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
-    (se-navi-define-key 'cedille-br-mode (kbd "i") #'se-navi-nothing)
-    (se-navi-define-key 'cedille-br-mode (kbd "I") #'se-navi-nothing)
+    (se-navi-define-key 'cedille-br-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
+    (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
+    (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
+    (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
+  (se-navi-define-key 'cedille-br-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
+  (se-navi-define-key 'cedille-br-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect t t))
     (se-navi-define-key 'cedille-br-mode (kbd "#") #'cedille-mode-highlight-occurrences)
     (se-navi-define-key 'cedille-br-mode (kbd "K") #'cedille-mode-restart-backend)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
     (se-navi-define-key 'cedille-br-mode (kbd "$") (make-cedille-mode-customize "cedille"))
-;    (se-navi-define-key 'cedille-br-mode (kbd "x") #'cedille-mode-scratch-toggle)
-;    (se-navi-define-key 'cedille-br-mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))
-;    (se-navi-define-key 'cedille-br-mode (kbd "M-c") #'cedille-mode-scratch-copy-span)
+    (se-navi-define-key 'cedille-br-mode (kbd "x") #'cedille-mode-scratch-toggle)
+    (se-navi-define-key 'cedille-br-mode (kbd "X") (lambda () (interactive) (cedille-mode-scratch-toggle t)))
+    (se-navi-define-key 'cedille-br-mode (kbd "M-c") #'cedille-mode-scratch-copy-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "+") (make-cedille-mode-resize-current-window 1))
     (se-navi-define-key 'cedille-br-mode (kbd "-") (make-cedille-mode-resize-current-window -1))
     (se-navi-define-key 'cedille-br-mode (kbd "=") #'cedille-mode-unlock-current-window-size)
@@ -118,11 +121,65 @@
     (message "Quitting cedille-br-mode")))
 
 
-;;;;;;;; Buffer/file code ;;;;;;;;
+
+;;;;; Buffer ;;;;;
+
+(defun cedille-mode-br-buffer-name ()
+  "The base name for the beta-reduction buffer"
+  "*cedille-beta-reduce*")
+
+(defun cedille-mode-br-buffer ()
+  "Creates or gets the beta-reduction buffer"
+  (if cedille-mode-br-in-buffer
+      (current-buffer)
+    (get-buffer-create (cedille-mode-br-buffer-name))))
 
 (defun cedille-mode-br-init-buffer (str &optional span do-check path column)
   "Initializes the beta-reduction buffer, after the process finishes"
-  (se-inf-interactive "status ping" `(lambda (r e) (cedille-mode-br-init-buffer-post ,str ,span ,do-check ,path ,column)) nil))
+  (se-inf-interactive
+   "status ping"
+   `(lambda (r e)
+      (cedille-mode-br-init-buffer-post ,str ,span ,do-check ,path ,column))
+   nil))
+
+(defun cedille-mode-br-init-buffer-post (str span do-check path column)
+  "Initializes the beta-reduction buffer"
+  (let* ((span (when span (se-get-span span)))
+         (parent (or cedille-mode-parent-buffer (current-buffer)))
+         (context (when span (cedille-mode-span-context span)))
+         (qed (when span (cedille-mode-br-get-qed span)))
+         (buffer (generate-new-buffer (cedille-mode-br-buffer-name))))
+    (with-current-buffer buffer
+      (display-buffer-in-side-window buffer (list (cons 'side 'bottom)))
+      (select-window (get-buffer-window))
+      (let ((buffer-read-only nil)) (insert str))
+      (setq buffer-read-only t)
+      (se-navigation-mode)
+      (cedille-br-mode)
+      (se-inf-start (get-buffer-process "*cedille-mode*"))
+      (setq cedille-mode-parent-buffer parent
+            se-mode-not-selected se-mode-parse-tree
+	    se-inf-response-finished t
+	    cedille-mode-do-update-buffers nil
+	    cedille-mode-br-in-buffer t
+            cedille-mode-br-do-check (and qed do-check
+                                          (cons (se-term-start span) (se-term-end span)))
+	    cedille-mode-global-context nil
+            cedille-mode-br-column column
+            cedille-mode-br-path path
+	    window-size-fixed nil)
+      (se-inf-interactive
+       (cedille-mode-concat-sep
+        "interactive"
+        "br2"
+        str
+        (or qed "●")
+        (number-to-string (if span (1- (se-span-start span)) (point-max)))
+        (if context (cedille-mode-normalize-local-context-to-string context) ""))
+       (cedille-mode-response-macro #'cedille-mode-br-response)
+       nil))
+    (cedille-mode-rebalance-windows)
+    buffer))
 
 (defun cedille-mode-br-spawn-buffer (str path)
   "Spawns a child beta-reduction buffer from another one"
@@ -130,6 +187,8 @@
          (br-parent (current-buffer))
          (buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
          (column cedille-mode-br-column))
+    (with-current-buffer br-parent
+      (add-to-list 'cedille-mode-br-children buffer))
     (with-current-buffer parent
       (with-selected-window (get-buffer-window)
         (cedille-mode-get-create-window buffer)))
@@ -153,47 +212,8 @@
     (cedille-mode-rebalance-windows)
     buffer))
 
-(defun cedille-mode-br-init-buffer-post (str span do-check path column)
-  "Initializes the beta-reduction buffer"
-  (let* ((span (when span (se-get-span span)))
-         (parent (or cedille-mode-parent-buffer (current-buffer)))
-         (context (when span (cedille-mode-span-context span)))
-         (qed (when span (cedille-mode-br-get-qed span)))
-         (buffer (generate-new-buffer (cedille-mode-br-buffer-name))))
-    (with-current-buffer buffer
-      (display-buffer-in-side-window buffer (list (cons 'side 'bottom)))
-      (select-window (get-buffer-window))
-      (let ((buffer-read-only nil)) (insert str))
-      (setq buffer-read-only t)
-      (se-navigation-mode)
-      (cedille-br-mode)
-      (se-inf-start (get-buffer-process "*cedille-mode*"))
-      (setq cedille-mode-parent-buffer parent
-            se-mode-not-selected se-mode-parse-tree
-	    se-inf-response-finished t
-	    cedille-mode-do-update-buffers nil
-	    cedille-mode-br-in-buffer t
-            cedille-mode-br-do-check (and qed do-check (cons (se-term-start span) (se-term-end span)))
-	    cedille-mode-global-context nil
-            cedille-mode-br-column column
-            cedille-mode-br-path path
-	    window-size-fixed nil)
-      (se-inf-interactive
-       (cedille-mode-concat-sep
-        "interactive"
-        "br2"
-        str
-        (or qed "●")
-        (number-to-string (if span (1- (se-span-start span)) (point-max)))
-        (if context (cedille-mode-normalize-local-context-to-string context) ""))
-       (cedille-mode-response-macro #'cedille-mode-br-response)
-       nil))
-    (cedille-mode-rebalance-windows)
-    buffer))
 
-(defun cedille-mode-br-path ()
-  "Concatenates all the strings in `cedille-mode-br-path'"
-  (se-foldr cedille-mode-br-path "" (lambda (p x) (concat x " " p))))
+;;;;; Helpers ;;;;;
 
 (defun cedille-mode-br-response (response buffer &optional span)
   (when span (setq cedille-mode-br-range (cons (se-term-start span) (+ (se-term-end span) (length response) (- (point-max))))))
@@ -202,6 +222,47 @@
   (setq se-inf-response-finished nil)
   (se-inf-interactive (cedille-mode-concat-sep "br" (cedille-mode-br-path) "parse") #'cedille-mode-br-process-response nil)
   nil)
+
+(defun cedille-mode-br-process-response (response extra)
+  (when response
+    (se-inf-process-response response (current-buffer))
+    (cedille-mode-matching-nodes-init))
+  nil)
+
+(defun cedille-mode-br-post-parse (&optional json)
+  "Called after the file was parsed, error or no."
+  (if (se-inf-get-error json)
+      (progn
+        (message (se-inf-get-error json))
+        (setq cedille-mode-br-temp-str nil))
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (insert cedille-mode-br-temp-str)
+      (goto-char 1)
+      (deactivate-mark)
+      (fit-window-to-buffer))
+    (when cedille-mode-br-range
+      (goto-char (car cedille-mode-br-range))
+      (push-mark (cdr cedille-mode-br-range) t t)
+      (se-mode-set-spans)
+      (cedille-mode-select-parent 1))
+    (cedille-mode-br-check "" t))
+  (setq cedille-mode-br-range nil))  
+
+(defun cedille-mode-br-sync ()
+  "Syncs with the backend"
+  (interactive)
+  (se-inf-interactive
+   (cedille-mode-concat-sep "br" (cedille-mode-br-path) "get")
+   (cedille-mode-response-macro #'cedille-mode-br-response)
+   nil))
+
+(defun cedille-mode-br-path ()
+  "Concatenates all the strings in `cedille-mode-br-path'"
+  (se-foldr cedille-mode-br-path "" (lambda (p x) (concat x " " p))))
+
+
+;;;;; Undo/Redo ;;;;;
 
 (defconst cedille-mode-br-undo-response
   (cedille-mode-response-macro
@@ -226,39 +287,6 @@
    cedille-mode-br-undo-response
    nil))
 
-(defun cedille-mode-br-sync ()
-  "Syncs with the backend"
-  (interactive)
-  (se-inf-interactive
-   (cedille-mode-concat-sep "br" (cedille-mode-br-path) "get")
-   (cedille-mode-response-macro #'cedille-mode-br-response)
-   nil))
-
-(defun cedille-mode-br-process-response (response extra)
-  (when response
-    (se-inf-process-response response (current-buffer))
-    (cedille-mode-br-check t)
-    (cedille-mode-matching-nodes-init))
-  nil)
-
-(defun cedille-mode-br-jump ()
-  "Jumps to the location of the selected symbol node"
-  (interactive)
-  (let ((sel se-mode-selected))
-    (select-window (get-buffer-window cedille-mode-parent-buffer))
-    (let ((se-mode-selected sel))
-      (cedille-mode-jump))))
-  
-
-
-(defun cedille-mode-br-buffer-name ()
-  (concat "*cedille-beta-reduce*"))
-
-(defun cedille-mode-br-buffer ()
-  "Creates or gets the beta-reduction buffer"
-  (if cedille-mode-br-in-buffer
-      (current-buffer)
-    (get-buffer-create (cedille-mode-br-buffer-name))))
 
 ;;;;;;;; Starting code ;;;;;;;;
 
@@ -308,9 +336,12 @@
             (kill-buffer (cadr extra))
             (when (car extra) (funcall (car extra))))
          (cons on-kill (cons buffer window))))
-    (let ((buffer cedille-mode-parent-buffer))
-      ;(kill-buffer)
-      (delete-window (get-buffer-window))
+    (let ((buffer (if (buffer-live-p cedille-mode-br-parent)
+                      cedille-mode-br-parent
+                    cedille-mode-parent-buffer))
+          (window (get-buffer-window)))
+      (kill-buffer)
+      (delete-window window)
       (select-window (get-buffer-window buffer))))
   nil)
 
@@ -328,7 +359,18 @@
     (cedille-mode-br-get-qed-h node)))
 
 
-;;;;;;;; Normalizing code ;;;;;;;;
+;;;;; Jumping ;;;;;
+
+(defun cedille-mode-br-jump ()
+  "Jumps to the location of the selected symbol node"
+  (interactive)
+  (let ((sel se-mode-selected))
+    (select-window (get-buffer-window cedille-mode-parent-buffer))
+    (let ((se-mode-selected sel))
+      (cedille-mode-jump))))
+
+
+;;;;; Normalizing ;;;;;
 
 (defun cedille-mode-br-normalize (&optional norm-method)
   "Replace the selected span with its normalized value"
@@ -362,6 +404,9 @@
   (interactive)
   (cedille-mode-br-normalize 'single-reduction))
 
+
+;;;;; Conversion ;;;;;
+
 (defun cedille-mode-br-conv ()
   "Replaces the selected span with the prompted expression if they are convertible"
   (interactive)
@@ -386,6 +431,9 @@
 	   (cedille-mode-response-macro #'cedille-mode-br-response)
 	   nil
            span))))))
+
+
+;;;;; Rewriting ;;;;;
 
 (defun cedille-mode-br-rewrite (&optional head)
   "Rewrite the selected span, using an input expression"
@@ -417,24 +465,8 @@
   (interactive)
   (cedille-mode-br-rewrite t))
 
-(defun cedille-mode-br-post-parse (&optional json)
-  "Called after the file was parsed, error or no."
-  (if (se-inf-get-error json)
-      (progn
-        (message (se-inf-get-error json))
-        (setq cedille-mode-br-temp-str nil))
-    (let ((buffer-read-only nil))
-      (erase-buffer)
-      (insert cedille-mode-br-temp-str)
-      (goto-char 1)
-      (deactivate-mark)
-      (fit-window-to-buffer))
-    (when cedille-mode-br-range
-      (goto-char (car cedille-mode-br-range))
-      (push-mark (cdr cedille-mode-br-range) t t)
-      (se-mode-set-spans)
-      (cedille-mode-select-parent 1)))
-  (setq cedille-mode-br-range nil))
+
+;;;;; Printing ;;;;;
 
 (defun cedille-mode-br-print-outline ()
   "Prints an outline of every normalization, conversion, and rewrite applied in the beta-reduction buffer to help reconstruct a proof"
@@ -443,25 +475,26 @@
    (cedille-mode-concat-sep "br" (cedille-mode-br-path) "print" cedille-mode-br-column)
    (cedille-mode-response-macro
     (lambda (response extra)
-      (if (car extra)
-          (lexical-let* ((s (when (car extra) (caar extra)))
-                (e (when (car extra) (cdar extra)))
-                (fbuffer (cdr extra)))
-              (cedille-mode-br-kill-buffer
-               `(lambda ()
-                  (with-current-buffer ,fbuffer
-                    (select-window (get-buffer-window))
-                    (let ((buffer-read-only nil))
-                      (cedille-mode-quit)
-                      (delete-region ,s ,e)
-                      (goto-char ,s)
-                      (deactivate-mark)
-                      (insert "(" ,response ")")
-                      (cedille-start-navigation))))))
-        (with-current-buffer (cdr extra)
-          (select-window (get-buffer-window))
+      (if extra
+          (lexical-let* ((s (car extra))
+                         (e (cdr extra))
+                         (fbuffer (cdr extra)))
+            (cedille-mode-br-kill-buffer
+             `(lambda ()
+                (with-cedille-buffer t
+                  (let ((buffer-read-only nil))
+                    (cedille-mode-quit)
+                    (delete-region ,s ,e)
+                    (goto-char ,s)
+                    (deactivate-mark)
+                    (insert "(" ,response ")")
+                    (cedille-start-navigation))))))
+        (with-cedille-buffer nil
           (cedille-mode-scratch-insert-text response)))))
-   (cons cedille-mode-br-do-check cedille-mode-parent-buffer)))
+   cedille-mode-br-do-check))
+
+
+;;;;; Abstracting ;;;;;
 
 (defun cedille-mode-br-abs ()
   (interactive)
@@ -471,13 +504,20 @@
          (sym (when bs (cdr (assoc 'symbol bs))))
          (fn
           (if sym
-              `(lambda (x) (interactive ,(format "MName (default %s): " sym)) (if (zerop (length x)) sym x))
-            (lambda (x) (interactive "MName: ") x)))
+              `(lambda (x)
+                 (interactive ,(format "MName (default %s): " sym))
+                 (if (zerop (length x)) ,sym x))
+            (lambda (x)
+              (interactive "MName: ")
+              x)))
          (x (call-interactively fn)))
     (se-inf-interactive
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "bind" x)
      (cedille-mode-response-macro #'cedille-mode-br-response)
      nil)))
+
+
+;;;;; Matching ;;;;;
 
 (defun cedille-mode-br-match (scrutinee)
   "Case split over a scrutinee (currently, must be a datatype)"
@@ -492,35 +532,63 @@
      nil)))
 
 (defun cedille-mode-br-match-response (response extra &optional span)
-    (let ((n 0))
-      (loop for (key . val) in response
-            do (progn (cedille-mode-br-spawn-buffer val (cons (number-to-string n) cedille-mode-br-path)) (incf n)))))
+  (let ((n 0))
+    (loop for (key . val) in response
+          do (progn
+               (cedille-mode-br-spawn-buffer
+                val (cons (number-to-string n) cedille-mode-br-path))
+               (incf n)))))
 
-(defun cedille-mode-br-check-response (response suppress-msg)
-  "Handles response from backend, after a query as to whether a term checks against the current expression"
-  (setq cedille-mode-br-checks t)
-  (with-silent-modifications
-    (put-text-property (point-min) (point-max) 'face 'cedille-checking-face-br nil))
-  (unless suppress-msg
-    (message response)))
+
+;;;;; Checking ;;;;;
 
 (defun cedille-mode-br-check-prompt (qed)
   "Check qed against the expression (which needs to be a type or a kind)"
   (interactive "MCheck with: ")
-  (let ((question (if (zerop (length qed))
-                      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check")
-                    (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check" qed))))
-    (se-inf-interactive
-     question
-     (cedille-mode-response-macro #'cedille-mode-br-check-response)
-     nil)))
+  (cedille-mode-br-check qed))
 
-(defun cedille-mode-br-check (&optional suppress-err)
+(defun cedille-mode-br-check (qed &optional suppress-err)
   "If `cedille-mode-br-column' is non-nil, check if the expected type matches the actual type"
+  (cedille-mode-br-clear-check)
   (when cedille-mode-br-column
     (se-inf-interactive
-     (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check")
-     (cedille-mode-response-macro #'cedille-mode-br-check-response suppress-err)
+     (if (zerop (length qed))
+         (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check")
+       (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check" qed))
+     (if suppress-err
+         (cedille-mode-response-macro-suppress-err #'cedille-mode-br-check-response)
+       (cedille-mode-response-macro #'cedille-mode-br-check-response))
      suppress-err)))
+
+(defun cedille-mode-br-check-response (response suppress-msg &optional span)
+  "Handles response from backend, after a query as to whether a term checks against the current expression"
+  (cedille-mode-br-does-check)
+  (when cedille-mode-br-parent
+    (with-current-buffer cedille-mode-br-parent
+      (when (funcall
+             `(lambda ()
+                (and ,@(mapcar
+                        (lambda (child)
+                          (with-current-buffer child
+                            cedille-mode-br-checks))
+                        cedille-mode-br-children))))
+        (cedille-mode-br-does-check))))
+  (unless suppress-msg
+    (message response)))
+
+(defun cedille-mode-br-clear-check ()
+  "Clears `cedille-checking-face-br' and resets `cedille-mode-br-checks' to nil"
+  (setq cedille-mode-br-checks nil)
+  (with-silent-modifications
+    (put-text-property (point-min) (point-max) 'face nil)))
+
+(defun cedille-mode-br-does-check ()
+  "Applies `cedille-checking-face-br' and sets `cedille-mode-br-checks' to t"
+  (setq cedille-mode-br-checks t)
+  (with-silent-modifications
+    (put-text-property (point-min) (point-max) 'face 'cedille-checking-face-br)))
+
+
+;;;;; End ;;;;;
 
 (provide 'cedille-mode-beta-reduce)

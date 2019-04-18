@@ -269,6 +269,19 @@ Defaults to `error'."
 
 					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
 
+(defmacro with-cedille-buffer(no-revert-window-p &rest body)
+  "Executes BODY inside the cedille buffer, reverting to whatever initial window was selected unless no-revert-window-p is non-nil."
+  (declare (indent 1) (debug t))
+  `(let ((window (get-buffer-window)))
+     (if (null cedille-mode-parent-buffer)
+         (error "Not a cedille buffer")
+       (let ((ret (with-current-buffer cedille-mode-parent-buffer
+                    (select-window (get-buffer-window) t)
+                    ,@body)))
+         (unless ,no-revert-window-p
+           (select-window window))
+         ret))))
+
 (defmacro make-cedille-mode-buffer(buffer opt-fn minor-mode-fn jump-to-window-p require-selection-p)
   "Creates a function that can be used to toggle one of the buffers. Has five arguments:\n
 1. The buffer\n
@@ -278,17 +291,18 @@ Defaults to `error'."
 5. A boolean indicating whether or not to require that a node be selected"
   `(lambda()
      (interactive)
-     (let* ((buffer ,buffer)
-	    (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
-       (when window                                                          ;if a window was created...
-	 (if (or (not ,require-selection-p) se-mode-selected)                ;if selection requirements are met..
-	     (progn
-	       (,opt-fn)                                                     ;...run the optional function...
-	       (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
-	       (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
-	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
-	   (message "Error: must select a node")))
-       (cedille-mode-update-buffers))))
+     (with-cedille-buffer ,jump-to-window-p
+         (let* ((buffer ,buffer)
+                (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
+           (when window                                                          ;if a window was created...
+             (if (or (not ,require-selection-p) se-mode-selected)                ;if selection requirements are met..
+                 (progn
+                   (,opt-fn)                                                     ;...run the optional function...
+                   (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
+                   (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
+               (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
+               (message "Error: must select a node")))
+           (cedille-mode-update-buffers)))))
 
 (defun cedille-mode-concat-sep (&rest seqs)
   "Concatenates STRS with cedille-mode-sep between each"

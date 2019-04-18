@@ -518,7 +518,7 @@ private
                                   {t = qualif-term Γ t; undo = this :: undo; redo = []} in
                 (λ e → either-else' e
                   (uncurry λ t? e → put (inj₁ e) >> await-set t?)
-                  (uncurry λ t? m → put (inj₂ $ m , [[]] , []) >> await-set t?)) $
+                  (uncurry λ t? m → put (inj₂ $ "value" , [[ m ]] , []) >> await-set t?)) $
                 ll-ind' {λ T → (maybe term × string) ⊎ (maybe term × string)} (Tₗₗ , T)
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
                   (λ T →
@@ -615,16 +615,16 @@ private
                           _ (Lam _ me _ x oc body) f → f me x oc body
                           _ _ _ → inj₁ "Not a term abstraction") λ me x oc body →
                       inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ body ,
-                               Lam pi-gen me pi-gen x oc)
+                               Lam pi-gen me "missing" x oc)
                       --inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ , Lam
                     (λ T → to-abs (hnf Γ (unfolding-elab unfold-head) T tt)
                       ! "Not a type abstraction" ≫error λ where
                         (mk-abs me x dom free cod) →
                           tk-elim dom
-                            (λ dom f → f $ ctxt-term-decl-no-qualif pi-gen xᵤ dom Γ)
-                            (λ dom f → f $ ctxt-type-decl-no-qualif pi-gen xᵤ dom Γ) λ Γ' →
-                          inj₂ $ Γ' , rename-var Γ' x (pi-gen % xᵤ) cod ,
-                            Lam pi-gen me pi-gen xᵤ (SomeClass dom))
+                            (λ dom f → f $ ctxt-term-decl-no-qualif "missing" xᵤ dom Γ)
+                            (λ dom f → f $ ctxt-type-decl-no-qualif "missing" xᵤ dom Γ) λ Γ' →
+                          inj₂ $ Γ' , rename-var Γ' x ("missing" % xᵤ) cod ,
+                            Lam pi-gen me "missing" xᵤ (SomeClass dom))
                     (λ k → inj₁ "Expression must be a term or a type"))
                   err $ uncurry λ Γ' → uncurry λ T' fₜ →
                   put (inj₂ $ ts-tag Γ' T') >>

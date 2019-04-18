@@ -198,9 +198,13 @@
    ((eq 'head-normalized norm-method) head)
    ((eq 'single-reduction norm-method) once)))
 
-(defmacro cedille-mode-response-macro (fn &optional suppress-err)
+(defmacro cedille-mode-response-macro (fn)
   `(lambda (response extra &optional span)
-     (cedille-mode-response ,fn response extra span ,suppress-err)))
+     (cedille-mode-response ,fn response extra span nil)))
+
+(defmacro cedille-mode-response-macro-suppress-err (fn)
+  `(lambda (response extra &optional span)
+     (cedille-mode-response ,fn response extra span t)))
 
 (defvar cedille-mode-normalize-erase-receive-response-prompt
   (cedille-mode-response-macro

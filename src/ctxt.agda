@@ -97,19 +97,21 @@ ctxt-term-decl-no-qualif : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl-no-qualif p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
-  (trie-insert i v' ((term-decl t) , fn , p))
+  (trie-insert i v' ((term-decl t) , loc))
   symb-occs
   Δ
   where v' = p % v
+        loc = if p =string "missing" then "missing" , "missing" else fn , p
 
 ctxt-type-decl-no-qualif : posinfo → var → kind → ctxt → ctxt
 ctxt-type-decl-no-qualif p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
-  (trie-insert i v' ((type-decl k) , fn , p))
+  (trie-insert i v' ((type-decl k) , loc))
   symb-occs
   Δ
   where v' = p % v
+        loc = if p =string "missing" then "missing" , "missing" else fn , p
 
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
