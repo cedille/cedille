@@ -9,12 +9,9 @@
 
 (defface cedille-checking-face-br
   '((((background light))
-     (:overline "dark green")) ;:box (:line-width 1 :color "dark green")))
-;     (:slant italic :weight bold)) ; :background "dark green"
+     (:overline "dark green"))
     (((background dark))
      (:overline "light green")))
-;     (:box (:line-width 1 :color "light green"))))
-;     (:slant italic :weight bold))) ; :foreground "light green"
   "The face used when the initial term checks against the current type."
   :group 'cedille-highlight-faces-beta-reduction)
 
@@ -76,8 +73,10 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
     (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
     (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
-  (se-navi-define-key 'cedille-br-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
-  (se-navi-define-key 'cedille-br-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect t t))
+    (se-navi-define-key 'cedille-br-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
+    (se-navi-define-key 'cedille-br-mode (kbd "I") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect t t))
+    (se-navi-define-key 'cedille-br-mode (kbd "m") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode nil t))
+    (se-navi-define-key 'cedille-br-mode (kbd "M") (make-cedille-mode-buffer (cedille-mode-meta-vars-buffer) lambda cedille-meta-vars-mode t t))
     (se-navi-define-key 'cedille-br-mode (kbd "#") #'cedille-mode-highlight-occurrences)
     (se-navi-define-key 'cedille-br-mode (kbd "K") #'cedille-mode-restart-backend)
     (se-navi-define-key 'cedille-br-mode (kbd "h") (make-cedille-mode-info-display-page "beta-reduce mode"))
@@ -111,12 +110,12 @@
     (setq se-navi-current-keymap (se-navi-get-keymap 'cedille-br-mode))
     (make-local-variable 'minor-mode-overriding-map-alist)
     (push (cons 'se-navigation-mode se-navi-current-keymap) minor-mode-overriding-map-alist)
-    (add-hook    'se-inf-init-spans-hook  #'cedille-mode-initialize-spans  t   t)
-    (remove-hook 'se-inf-pre-parse-hook   #'cedille-mode-clear-buffers         t)
-    (add-hook    'se-inf-pre-parse-hook   #'se-mode-clear-selected         t   t)
-    (add-hook    'se-inf-post-parse-hook  #'cedille-mode-br-post-parse     t   t)
-    (remove-hook 'se-inf-pre-parse-hook   #'se-inf-save                        t)
-    (remove-hook 'before-change-functions #'se-navigation-mode-quit            t))
+    (add-hook    'se-inf-init-spans-hook  #'cedille-mode-initialize-spans t t)
+    (add-hook    'se-inf-pre-parse-hook   #'se-mode-clear-selected        t t)
+    (add-hook    'se-inf-post-parse-hook  #'cedille-mode-br-post-parse    t t)
+    (remove-hook 'se-inf-pre-parse-hook   #'cedille-mode-clear-buffers      t)
+    (remove-hook 'se-inf-pre-parse-hook   #'se-inf-save                     t)
+    (remove-hook 'before-change-functions #'se-navigation-mode-quit         t))
   (unless cedille-br-mode
     (message "Quitting cedille-br-mode")))
 
@@ -160,7 +159,7 @@
       (setq cedille-mode-parent-buffer parent
             se-mode-not-selected se-mode-parse-tree
 	    se-inf-response-finished t
-	    cedille-mode-do-update-buffers nil
+	    cedille-mode-do-update-buffers t
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-do-check (and qed do-check
                                           (cons (se-term-start span) (se-term-end span)))
@@ -186,6 +185,7 @@
   (let* ((parent cedille-mode-parent-buffer)
          (br-parent (current-buffer))
          (buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
+         (context cedille-mode-global-context)
          (column cedille-mode-br-column))
     (with-current-buffer br-parent
       (add-to-list 'cedille-mode-br-children buffer))
@@ -204,7 +204,7 @@
 	    cedille-mode-do-update-buffers nil
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-parent br-parent
-	    cedille-mode-global-context nil
+	    cedille-mode-global-context context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
@@ -215,7 +215,7 @@
 
 ;;;;; Helpers ;;;;;
 
-(defun cedille-mode-br-response (response buffer &optional span)
+(defun cedille-mode-br-response (response extra  &optional span)
   (when span (setq cedille-mode-br-range (cons (se-term-start span) (+ (se-term-end span) (length response) (- (point-max))))))
   (setq cedille-mode-br-temp-str response)
   (run-hooks 'se-inf-pre-parse-hook)
@@ -261,6 +261,11 @@
   "Concatenates all the strings in `cedille-mode-br-path'"
   (se-foldr cedille-mode-br-path "" (lambda (p x) (concat x " " p))))
 
+(defun cedille-mode-br-add-to-context (decls)
+  "Adds a symbol and its type/kind to the global context"
+  (message "decls: %s" decls)
+  (setq cedille-mode-global-context
+        (cedille-mode-get-context (list (se-new-span "dummy" 0 0 (mapcar (lambda (decl) (if (string= (intern "binder") (car decl)) (cons (car decl) (cedille-mode-parse-binder (cdr decl))) decl)) decls))))))
 
 ;;;;; Undo/Redo ;;;;;
 
@@ -330,6 +335,8 @@
   (if (null cedille-mode-br-parent)
       (let ((buffer (current-buffer))
             (window (get-buffer-window)))
+        (loop for child in cedille-mode-br-children
+              do (with-current-buffer child (cedille-ode-br-kill-buffer)))
         (se-inf-interactive
          (cedille-mode-concat-sep "br" (cedille-mode-br-path) "quit")
          `(lambda (response extra)
@@ -513,7 +520,13 @@
          (x (call-interactively fn)))
     (se-inf-interactive
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "bind" x)
-     (cedille-mode-response-macro #'cedille-mode-br-response)
+     (cedille-mode-response-macro
+      (lambda (response extra)
+        (message "response: %s" response)
+        (cedille-mode-br-add-to-context (list (cons 'binder (car response))))
+        (cedille-mode-br-response (cadr response) nil)
+; #'cedille-mode-br-response)
+        ))
      nil)))
 
 
@@ -528,13 +541,20 @@
                 x))))
     (se-inf-interactive
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "case" scrutinee rec)
-     (cedille-mode-response-macro #'cedille-mode-br-match-response)
+     (cedille-mode-response-macro
+      (lambda (response extra)
+        (message "response-cadr: %s" (cadr response))
+        (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (caddr tv))) (car response)))
+        (cedille-mode-br-match-response (cadr response) nil)
+      ;#'cedille-mode-br-match-response)
+        ))
      nil)))
 
 (defun cedille-mode-br-match-response (response extra &optional span)
   (let ((n 0))
     (loop for (key . val) in response
           do (progn
+               (message "(%s . %s)" key val)
                (cedille-mode-br-spawn-buffer
                 val (cons (number-to-string n) cedille-mode-br-path))
                (incf n)))))

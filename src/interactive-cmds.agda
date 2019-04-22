@@ -287,8 +287,8 @@ private
   br-cmd Γ str qed ls =
     let Γ' = merge-lcis-ctxt Γ ls in
     maybe-else
-      (return (io-spans.spans-to-rope (io-spans.global-error "Parse error" nothing)))
-      (λ s → s >>= return ∘ io-spans.spans-to-rope)
+      (return (io-spans.spans-to-json (io-spans.global-error "Parse error" nothing)))
+      (λ s → s >>= return ∘ io-spans.spans-to-json)
       (parse-try {maybe (IO io-spans.spans)} Γ' str ≫=maybe λ f → f λ where
          ll-term t → just (untyped-term-spans t Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
          ll-type T →
@@ -352,10 +352,9 @@ private
   
   {- Commands -}
   
-  tv-to-rope : string ⊎ tagged-val → rope
-  tv-to-rope (inj₁ s) = [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
-  tv-to-rope (inj₂ (_ , v , ts)) =
-    [[ "{" ]] ⊹⊹ tagged-val-to-rope 0 ("value" , v , ts) ⊹⊹ [[ "}" ]]
+  tv-to-json : string ⊎ tagged-val → json
+  tv-to-json (inj₁ s) = json-object [ "error" , json-string s ] -- [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
+  tv-to-json (inj₂ (_ , v , ts)) = tagged-vals-to-rope [ "value" , v , ts ]
   
   interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
   interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: norm :: lc) =
@@ -366,10 +365,6 @@ private
     normalize-prompt Γ input norm lc
   interactive-cmd-h Γ ("erasePrompt" :: input :: lc) =
     erase-prompt Γ input lc
---  interactive-cmd-h Γ ("conv" :: ll :: ss :: is :: lc) =
---    conv-cmd Γ ll ss is lc
---  interactive-cmd-h Γ ("rewrite" :: ss :: is :: head :: lc) =
---    rewrite-cmd Γ ss is head lc
   interactive-cmd-h Γ ("data" :: encoding :: x :: ps :: is :: cs :: []) =
     data-cmd Γ encoding x ps is cs
   interactive-cmd-h Γ cs =
@@ -407,7 +402,7 @@ private
     (parse-string ll-term - tₛ ! "term" ≫parse inj₂) ≫parseIO λ t →
     let T = qualif-ed Γ T
         Tₑ = erase T in
-    putRopeLn (tv-to-rope $ inj₂ $ ts-tag Γ Tₑ) >>
+    putJson (tv-to-json $ inj₂ $ ts-tag Γ Tₑ) >>
     await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const [] []) [])
     where
 
@@ -419,7 +414,7 @@ private
 
     infixr 6 _≫parseIO_
     _≫parseIO_ : ∀ {A : Set} → string ⊎ A → (A → IO ⊤) → IO ⊤
-    inj₁ e ≫parseIO f = putRopeLn (tv-to-rope $ inj₁ e)
+    inj₁ e ≫parseIO f = putJson $ tv-to-json $ inj₁ e
     inj₂ a ≫parseIO f = f a
 
     replace-substring : string → string → ℕ → ℕ → string × string
@@ -479,7 +474,7 @@ private
       awaith his as
     
     awaith his as =
-      let put = putRopeLn ∘ tv-to-rope
+      let put = putJson ∘ tv-to-json
           err = (_>> await his) ∘' put ∘' inj₁ in
       case as of λ where -- TODO: for these commands, do not add TYPES/KINDS of local decls to context, as they are probably just bound by foralls/pis/lambdas, not _really_ in scope!
         ("br" :: path :: as) →
@@ -509,8 +504,8 @@ private
               ("parse" :: []) →
                 (_>> await his) $
                 maybe-else' (parse-string Tₗₗ Tᵤ)
-                  (putRopeLn (spans-to-rope (global-error "Parse error" nothing)))
-                  λ T → putRopeLn $ spans-to-rope $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
+                  (putJson $ spans-to-json $ global-error "Parse error" nothing)
+                  λ T → putJson $ spans-to-json $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
                           untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
              
               ("check" :: t?) →
@@ -606,35 +601,39 @@ private
              
               ("bind" :: xᵤ :: []) →
                 either-else'
-                  (ll-ind' {λ {(ll , _) → string ⊎ ctxt × ll-lift ll × (term → term)}} (Tₗₗ , T)
+                  (ll-ind' {λ {(ll , _) → string ⊎ ctxt × maybeErased × tk × ll-lift ll × (term → term)}} (Tₗₗ , T)
                     (λ t' →
-                      let R = string ⊎ ctxt × term × (term → term) in
+                      let R = string ⊎ ctxt × maybeErased × tk × term × (term → term) in
                       (case_of_ {B = (maybeErased → var → optClass → term → R) → R}
                         (t' , hnf Γ unfold-head t' tt) $ uncurry λ where
                           (Lam _ me _ x oc body) _ f → f me x oc body
                           _ (Lam _ me _ x oc body) f → f me x oc body
                           _ _ _ → inj₁ "Not a term abstraction") λ me x oc body →
-                      inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ body ,
-                               Lam pi-gen me "missing" x oc)
-                      --inj₂ $ ctxt-var-decl x Γ , rename-var (ctxt-var-decl x Γ) x xᵤ , Lam
+                      inj₂ $ ctxt-var-decl xᵤ Γ ,
+                             me ,
+                             optClass-elim oc (Tkt $ TpHole pi-gen) id ,
+                             rename-var (ctxt-var-decl xᵤ Γ) x xᵤ body ,
+                             Lam pi-gen me "missing" xᵤ oc)
                     (λ T → to-abs (hnf Γ (unfolding-elab unfold-head) T tt)
                       ! "Not a type abstraction" ≫error λ where
                         (mk-abs me x dom free cod) →
-                          tk-elim dom
-                            (λ dom f → f $ ctxt-term-decl-no-qualif "missing" xᵤ dom Γ)
-                            (λ dom f → f $ ctxt-type-decl-no-qualif "missing" xᵤ dom Γ) λ Γ' →
-                          inj₂ $ Γ' , rename-var Γ' x ("missing" % xᵤ) cod ,
-                            Lam pi-gen me "missing" xᵤ (SomeClass dom))
+                          let Γ' = ctxt-tk-decl-no-qualif "missing" xᵤ dom Γ in
+                          inj₂ $ Γ' ,
+                                 me ,
+                                 dom ,
+                                 rename-var Γ' x ("missing" % xᵤ) cod ,
+                                 Lam pi-gen me "missing" xᵤ (SomeClass dom))
                     (λ k → inj₁ "Expression must be a term or a type"))
-                  err $ uncurry λ Γ' → uncurry λ T' fₜ →
-                  put (inj₂ $ ts-tag Γ' T') >>
-                  await-with (record this
-                      {Γ = Γ' ;
-                       T = T';
-                       Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase T';
-                       f = f ∘ fₜ;
-                       undo = this :: undo;
-                       redo = []})
+                  err $ λ where
+                    (Γ' , me , dom , cod , fₜ) →
+                      putJson (json-object [ "value" , json-array (json-string "0" :: json-array (json-rope (fst $ snd $ binder-data Γ' "0" xᵤ dom me nothing "0" "0") :: json-rope (to-string Γ' $ erase cod) :: []) :: []) ]) >>
+                      await-with (record this
+                        {Γ = Γ' ;
+                         T = cod;
+                         Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase cod;
+                         f = f ∘ fₜ;
+                         undo = this :: undo;
+                         redo = []})
              
               ("case" :: scrutinee :: rec :: motive?) → -- TODO: Motive?
                 either-else'
@@ -644,7 +643,7 @@ private
                    let Tₛ = hnf Γ (unfolding-elab unfold-head) Tₛ ff in
                    case decompose-ctr-type Γ Tₛ of λ where
                      (TpVar _ Xₛ , [] , as) →
-                       ll-ind' {λ T → string ⊎ (term × 𝕃 (ctr × type) × type × ctxt)} (Tₗₗ , T)
+                       ll-ind' {λ T → string ⊎ (term × 𝕃 (ctr × type) × type × ctxt × 𝕃 tagged-val)} (Tₗₗ , T)
                          (λ t → inj₁ "Expression must be a type to case split")
                          (λ T → maybe-else' (data-lookup Γ Xₛ as)
                            (inj₁ "The synthesized type of the input term is not a datatype")
@@ -653,69 +652,74 @@ private
                                      is = drop-last 1 is'
                                      Tₘ = refine-motive Γ (qualif-term Γ scrutinee) X is
                                             (args-to-ttys asₚ) asᵢ T
-                                     Γ' = if iszero (string-length rec)
-                                            then Γ
-                                            else fst (snd (ctxt-mu-decls is Tₘ [] d
-                                                pi-gen pi-gen pi-gen rec Γ empty-spans)) in
+                                     sM' = ctxt-mu-decls is Tₘ [] d "0" "0" "0" rec Γ empty-spans
+                                     sM = if rec =string ""
+                                             then ([] , Γ , empty-spans)
+                                             else sM'
+                                     Γ' = fst $ snd sM
+                                     ts = fst sM in
                              if spans-have-error (snd $ snd $
                                   check-type Tₘ (just kᵢ) (qualified-ctxt Γ) empty-spans)
                                then inj₁ "Computed an ill-typed motive"
-                               else inj₂ (scrutinee , map (λ {(Ctr pi x T) →
-                                 let T' = hnf Γ' (unfolding-elab unfold-head) T tt in
-                                 Ctr pi x T ,
-                                 (case decompose-ctr-type Γ' T' of λ {(Tₕ , ps' , as) →
-                                   params-to-alls ps' $ hnf Γ' (unfolding-elab unfold-head) (TpAppt
-                                     (recompose-tpapps (drop (length ps) as) Tₘ)
-                                     (recompose-apps (params-to-args ps') $
-                                       recompose-apps asₚ (mvar x))) ff})})
+                               else inj₂ (
+                                 scrutinee ,
+                                 map (λ {(Ctr pi x T) →
+                                   let T' = hnf Γ' (unfolding-elab unfold-head) T tt in
+                                   Ctr pi x T ,
+                                   (case decompose-ctr-type Γ' T' of λ {(Tₕ , ps' , as) →
+                                     params-to-alls ps' $ hnf Γ' (unfolding-elab unfold-head) (TpAppt
+                                       (recompose-tpapps (drop (length ps) as) Tₘ)
+                                       (recompose-apps (params-to-args ps') $
+                                         recompose-apps asₚ (mvar x))) ff})})
                                    (σ (mu-Type/ rec)) ,
                                  Tₘ ,
-                                 Γ'))
+                                 Γ' ,
+                                 ts))
                          (λ k → inj₁ "Expression must be a type to case split")
                      (Tₕ , [] , as) → inj₁ "Synthesized a non-datatype from the input term"
                      (Tₕ , ps , as) →
                        inj₁ "Case splitting is currently restricted to datatypes")
-                  err $ uncurry λ scrutinee → uncurry λ cs → uncurry λ Tₘ Γ →
-                let json = json-object $ trie-single "value" $ json-array $ json-nat 0 ::
-                             [ (json-new (map
-                                 (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
-                                   json-raw ([[ "\"" ]] ⊹⊹
-                                   to-string Γ (erase T) ⊹⊹
-                                   [[ "\"" ]])})
-                                 cs)) ] in
-                putRopeLn (json-to-rope json) >>
-                let shallow = iszero (string-length rec)
-                    mk-cs = map λ where
-                      (Ctr _ x T , t) →
-                        let T' = hnf Γ (unfolding-elab unfold-head) T tt in
-                        case decompose-ctr-type Γ T' of λ where
-                          (Tₕ , ps , as) →
-                            let mf = map λ where
-                                       (Decl _ _ me x atk _) →
-                                         if tk-is-type atk
-                                           then CaseTermArg pi-gen me x
-                                           else CaseTypeArg pi-gen x in
-                            Case pi-gen x (mf ps) $ params-to-apps ps t
-                    f'' = λ t cs → if shallow
-                      then Mu' pi-gen NoTerm t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
-                      else Mu pi-gen pi-gen rec t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
-                    f' = λ t cs → f (f'' t cs) cs
-                    mk-hs = map $ map-snd λ T'' →
-                              mk-br-history Γ t ll-type T''
-                                (rope-to-string $ to-string Γ $ erase T'')
-                                (λ t cs → t) [] [] in
-                await (write-children path (mk-hs cs) $
-                         write-history path (record this
-                           {f = f';
-                            Γ = Γ;
-                            t = scrutinee;
-                            undo = this :: undo;
-                            redo = []})
-                           his)
+                err $ λ where
+                 (scrutinee , cs , Tₘ , Γ , ts) →
+                   let json = json-object [ "value" , json-array (json-nat 0 ::
+                                [ json-array (tagged-vals-to-rope ts ::
+                                   [ json-object (map
+                                    (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
+                                      json-rope (to-string Γ (erase T))})
+                                    cs) ]) ]) ] in
+                   putJson json >>
+                   let shallow = iszero (string-length rec)
+                       mk-cs = map λ where
+                         (Ctr _ x T , t) →
+                           let T' = hnf Γ (unfolding-elab unfold-head) T tt in
+                           case decompose-ctr-type Γ T' of λ where
+                             (Tₕ , ps , as) →
+                               let mf = map λ where
+                                          (Decl _ _ me x atk _) →
+                                            if tk-is-type atk
+                                              then CaseTermArg pi-gen me x
+                                              else CaseTypeArg pi-gen x in
+                               Case pi-gen x (mf ps) $ params-to-apps ps t
+                       f'' = λ t cs → if shallow
+                         then Mu' pi-gen NoTerm t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
+                         else Mu pi-gen pi-gen rec t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
+                       f' = λ t cs → f (f'' t cs) cs
+                       mk-hs = map $ map-snd λ T'' →
+                                 mk-br-history Γ t ll-type T''
+                                   (rope-to-string $ to-string Γ $ erase T'')
+                                   (λ t cs → t) [] [] in
+                   await (write-children path (mk-hs cs) $
+                            write-history path (record this
+                              {f = f';
+                               Γ = Γ;
+                               t = scrutinee;
+                               undo = this :: undo;
+                               redo = []})
+                              his)
              
               ("print" :: tab :: []) →
                 either-else' (string-to-ℕ - tab ! "natural number" ≫parse inj₂) err λ tab →
-                putRopeLn (escape-rope (tv-to-rope (inj₂ $ pretty2s.strRunTag "" Γ $ pretty2s.strNest (suc {-left paren-} tab) (pretty2s.to-stringh $ outline his)))) >> await his
+                putRopeLn (escape-rope (json-to-rope (tv-to-json (inj₂ $ pretty2s.strRunTag "" Γ $ pretty2s.strNest (suc {-left paren-} tab) (pretty2s.to-stringh $ outline his))))) >> await his
               
               ("quit" :: []) → put $ inj₂ $ strRunTag "" Γ $ strAdd "Quitting beta-reduction mode..."
              
@@ -729,6 +733,6 @@ private
 interactive-cmd : 𝕃 string → toplevel-state → IO ⊤
 interactive-cmd ("br2" :: T :: t :: sp :: lc) ts = br-cmd2 (toplevel-state.Γ ts) T t sp lc
 interactive-cmd ("pretty" :: src :: dest :: []) ts = pretty-cmd src dest >>= putStrLn
-interactive-cmd ls ts = putRopeLn (tv-to-rope (interactive-cmd-h (toplevel-state.Γ ts) ls))
+interactive-cmd ls ts = putRopeLn (json-to-rope (tv-to-json (interactive-cmd-h (toplevel-state.Γ ts) ls)))
 
-interactive-not-br-cmd-msg = tv-to-rope $ inj₁ "Beta-reduction mode has been terminated"
+interactive-not-br-cmd-msg = tv-to-json $ inj₁ "Beta-reduction mode has been terminated"

@@ -126,9 +126,9 @@
 
 (defun cedille-mode-lookup-filename (id)
   "Looks up the file ID maps to"
-  (let ((id2 (if (numberp id) id (string-to-number id))))
+  (let ((id2 (cond ((numberp id) id) (t (string-to-number id)))))
     (if id2
-        (when se-mode-spans (cdr (nth (1- id2) (se-span-data (car se-mode-spans)))))
+        (when se-mode-spans (cdr (nth (- id2 2) (se-span-data (car se-mode-spans)))))
       id)))
 
 (defun cedille-mode-parent-jump (start end)
@@ -139,8 +139,8 @@
       (select-window (cedille-mode-parent-main-window))
       (setq data (se-pin-item-data (car pin))
 	    filename (cedille-mode-lookup-filename (cdr (assoc 'fn data)))
-	    start-to (string-to-number (format "%s" (cdr (assoc 's data))))
-            end-to (string-to-number (format "%s" (cdr (assoc 'e data))))
+	    start-to (cdr (assoc 's data))
+            end-to (cdr (assoc 'e data))
             past (car cedille-mode-browsing-history)
 	    present (buffer-file-name))
       (with-current-buffer (find-file filename)

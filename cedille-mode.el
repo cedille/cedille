@@ -633,23 +633,14 @@ occurrences, then do so."
   (setq cedille-mode-matching-nodes-on (not cedille-mode-matching-nodes-on))
   (when cedille-mode-matching-nodes-on (cedille-mode-highlight-occurrences)))
 
-
-(defun cedille-mode-apply-tags-h (obj tag)
-  "Helper for `cedille-mode-apply-tags'"
-  (cond
-   ((stringp obj)
-    ())
-   ((consp obj))
-   ))
-
 (defun cedille-mode-apply-tags (str tags)
   "Helper for `cedille-mode-apply-tag'"
   (if (null tags)
       str
     (let* ((tag (car tags))
            (tail (cdr tags))
-           (start (string-to-number (cdr (assoc 'start (cdr tag)))))
-           (end (string-to-number (cdr (assoc 'end (cdr tag)))))
+           (start (cdr (assoc 'start (cdr tag))))
+           (end (cdr (assoc 'end (cdr tag))))
            (data (cdr tag))
            (symbol (car tag)))
       (cedille-mode-apply-tags (se-pin-data start end symbol data str) tail))))

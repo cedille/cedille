@@ -11,6 +11,7 @@ open import rename
 open import general-util
 open import datatype-functions
 open import erase
+open import json
 
 data expr-side : Set where
   left : expr-side
@@ -244,17 +245,17 @@ ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is os Δ) =
 
 make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
 make-loc-tag Γ fn s e = make-tag "loc"
-  (("fn" , [[ ℕ-to-string (ctxt-get-file-id Γ fn) ]]) ::
-   ("s" , [[ s ]]) :: ("e" , [[ e ]]) :: [])
+  (("fn" , json-nat (ctxt-get-file-id Γ fn)) ::
+   ("s" , json-raw [[ s ]]) :: ("e" , json-raw [[ e ]]) :: [])
 
 var-loc-tag : ctxt → location → var → 𝕃 (string × 𝕃 tag)
 var-loc-tag Γ ("missing" , "missing") x = []
 var-loc-tag Γ ("" , _) x = []
 var-loc-tag Γ (_ , "") x = []
 var-loc-tag Γ (fn , pi) x =
-  let fn-tag = "fn" , [[ ℕ-to-string (ctxt-get-file-id Γ fn) ]]
-      s-tag = "s" , [[ pi ]]
-      e-tag = "e" , [[ posinfo-plus-str pi x ]] in
+  let fn-tag = "fn" , json-nat (ctxt-get-file-id Γ fn)
+      s-tag = "s" , json-raw [[ pi ]]
+      e-tag = "e" , json-raw [[ posinfo-plus-str pi x ]] in
   [ "loc" , fn-tag :: s-tag :: e-tag :: [] ]
 
 var-tags : ctxt → qvar → var → 𝕃 (string × 𝕃 tag)

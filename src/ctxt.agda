@@ -113,6 +113,10 @@ ctxt-type-decl-no-qualif p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs �
   where v' = p % v
         loc = if p =string "missing" then "missing" , "missing" else fn , p
 
+ctxt-tk-decl-no-qualif : posinfo → var → tk → ctxt → ctxt
+ctxt-tk-decl-no-qualif pi x (Tkt T) = ctxt-term-decl-no-qualif pi x T
+ctxt-tk-decl-no-qualif pi x (Tkk k) = ctxt-type-decl-no-qualif pi x k
+
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
   let v' =  p % v in

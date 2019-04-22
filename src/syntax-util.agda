@@ -4,6 +4,7 @@ open import lib
 open import cedille-types
 open import general-util
 open import constants
+open import json
 
 posinfo-gen : posinfo
 posinfo-gen = "generated"
@@ -27,58 +28,30 @@ qualif-info = var × args
 
 qualif : Set
 qualif = trie qualif-info
-{-
-data json : Set where
-  json-num : ℕ → json
-  json-bln : 𝔹 → json
-  json-str : rope → json
-  json-lst : 𝕃 json → json
-  json-obj : 𝕃 (string × json) → json
-
-print-json : json → rope
-print-json (json-num n) = [[ ℕ-to-string n ]]
-print-json (json-bln b) = [[ if b then "true" else "false" ]]
-print-json (json-str r) = r
-print-json (json-lst l) = [[ "[" ]] ⊹⊹ h l [[]] ⊹⊹ [[ "]" ]] where
-  h : 𝕃 json → rope → rope
-  h [] acc = acc
-  h (j :: []) acc = acc ⊹⊹ print-json j
-  h (j :: js) acc = h js (acc ⊹⊹ print-json j ⊹⊹ [[ ", " ]])
-print-json (json-obj o) = [[ "{" ]] ⊹⊹ h o [[]] ⊹⊹ [[ "}" ]] where
-  h : 𝕃 (string × json) → rope → rope
-  h [] acc = acc
-  h ((k , v) :: []) acc = acc ⊹⊹ [[ "\"" ^ k ^ "\": " ]] ⊹⊹ print-json v
-  h ((k , v) :: o) acc = h o (acc ⊹⊹ [[ "\"" ^ k ^ "\": " ]] ⊹⊹ print-json v ⊹⊹ [[ ", " ]])
--}  
 
 tag : Set
-tag = string × rope
+tag = string × json
 
 tagged-val : Set
 tagged-val = string × rope × 𝕃 tag
 
-tags-to-rope : 𝕃 tag → rope
-tags-to-rope [] = [[]]
-tags-to-rope ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
-tags-to-rope ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-rope ts
+tags-to-rope : 𝕃 tag → 𝕃 json
+tags-to-rope [] = []
+tags-to-rope ts = [ json-object ts ]
+--tags-to-rope ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
+--tags-to-rope ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-rope ts
 
 -- We number these when so we can sort them back in emacs
-tagged-val-to-rope : ℕ → tagged-val → rope
-tagged-val-to-rope n (t , v , []) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
-tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
+tagged-val-to-rope : ℕ → tagged-val → string × json
+tagged-val-to-rope n (t , v , tags) = t , json-array (json-string (ℕ-to-string n) :: json-rope v :: tags-to-rope tags)
+--[[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
+--tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
 
-tagged-vals-to-rope : ℕ → 𝕃 tagged-val → rope
-tagged-vals-to-rope n [] = [[]]
-tagged-vals-to-rope n (s :: []) = tagged-val-to-rope n s
-tagged-vals-to-rope n (s :: (s' :: ss)) = tagged-val-to-rope n s ⊹⊹ [[ "," ]] ⊹⊹ tagged-vals-to-rope (suc n) (s' :: ss)
-
+tagged-vals-to-rope : 𝕃 tagged-val → json
+tagged-vals-to-rope ts = json-object $ foldr (λ t js n → tagged-val-to-rope n t :: js (suc n)) (const []) ts 0
 
 make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
-make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ]] ⊹⊹ vs-to-rope vs ⊹⊹ [[ "}" ]]
-  where
-    vs-to-rope : 𝕃 tag → rope
-    vs-to-rope [] = [[]]
-    vs-to-rope ((t , v) :: ts) = [[ ",\"" ^ t ^ "\":\"" ]] ⊹⊹ v ⊹⊹ [[ "\"" ]] ⊹⊹ vs-to-rope ts
+make-tag name vs start end = name , json-object (("start" , json-nat start) :: ("end" , json-nat end) :: vs)
 
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi

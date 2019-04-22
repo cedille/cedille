@@ -127,15 +127,15 @@ set-include-path s ip = record s { include-path = ip }
 get-do-type-check : toplevel-state → string → 𝔹
 get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
 
-include-elt-spans-to-rope : include-elt → rope
-include-elt-spans-to-rope ie with (include-elt.ss ie)
-include-elt-spans-to-rope ie | inj₁ ss = spans-to-rope ss
-include-elt-spans-to-rope ie | inj₂ ss = [[ ss ]]
+include-elt-spans-to-json : include-elt → json
+include-elt-spans-to-json ie with (include-elt.ss ie)
+include-elt-spans-to-json ie | inj₁ ss = spans-to-json ss
+include-elt-spans-to-json ie | inj₂ ss = json-raw [[ ss ]]
 
 include-elt-to-archive : include-elt → json
 include-elt-to-archive ie with (include-elt.ss ie) | (include-elt.source ie)
-include-elt-to-archive ie | inj₁ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw (spans-to-rope ss)) :: []
-include-elt-to-archive ie | inj₂ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw [[ ss ]]) :: []
+include-elt-to-archive ie | inj₁ ss | source = json-object $ ("source" , json-string source) :: spans-to-json' ss
+include-elt-to-archive ie | inj₂ ss | source = json-object $ ("source" , json-string source) :: [ "spans" , json-raw [[ ss ]] ]
 
 include-elt-to-string : include-elt → string
 include-elt-to-string ie =

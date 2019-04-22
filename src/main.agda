@@ -202,7 +202,7 @@ module main-with-options
     maybe-write-aux-file ie dot-ced (cede-filename filename) cede-suffix
       cedille-options.options.use-cede-files
       include-elt.cede-up-to-date
-      ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
+      ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ json-to-rope (include-elt-spans-to-json ie)) >>
     maybe-write-aux-file ie dot-ced (rkt-filename filename) rkt-suffix
       cedille-options.options.make-rkt-files
       include-elt.rkt-up-to-date
@@ -397,7 +397,7 @@ module main-with-options
           reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
           reply s | just ie =
              if should-print-spans then
-               putRopeLn (include-elt-spans-to-rope ie)
+               putJson (include-elt-spans-to-json ie)
              else return triv
           finish : toplevel-state × mod-info → IO toplevel-state
           finish (s @ (mk-toplevel-state ip mod is Γ) , ret-mod) =
@@ -443,7 +443,7 @@ module main-with-options
               createArchive-h s t (filename :: filenames) with trie-contains t filename | get-include-elt-if s filename
               ...| ff | just ie = createArchive-h s (trie-insert t filename $ include-elt-to-archive ie) (filenames ++ include-elt.deps ie)
               ...| _ | _ = createArchive-h s t filenames
-              createArchive-h s t [] = json-object t
+              createArchive-h s t [] = json-object $ trie-mappings t
 
               createArchive : toplevel-state → string → json
               createArchive s filename = createArchive-h s empty-trie (filename :: [])
@@ -469,7 +469,7 @@ module main-with-options
               handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
               handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
               handleCommands ("archive" :: xs) s = archiveCommand xs s
-              handleCommands ("br" :: xs) s = putRopeLn interactive-not-br-cmd-msg >>r s
+              handleCommands ("br" :: xs) s = putJson interactive-not-br-cmd-msg >>r s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s
 
@@ -485,7 +485,7 @@ module main-with-options
     where finish : string → toplevel-state → IO ⊤
           finish input-filename s = return triv
 {-            let ie = get-include-elt s input-filename in
-            if include-elt.err ie then (putRopeLn (include-elt-spans-to-rope ie)) else return triv
+            if include-elt.err ie then (putRopeLn (include-elt-spans-to-json ie)) else return triv
 -}
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))

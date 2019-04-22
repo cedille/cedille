@@ -219,11 +219,11 @@ The context by default is ordered by parse tree position, from bottom to top."
         (cedille-seq-reduce
          (lambda (value pin)
            (let* ((data (se-pin-item-data pin))
-                  (fn2 (cedille-mode-lookup-filename (string-to-number (cdr (assoc 'fn data)))))
+                  (fn2 (cedille-mode-lookup-filename (cdr (assoc 'fn data))))
                   (pos2 (cdr (assoc 's data)))
                   (s (se-pin-item-start pin))
                   (e (se-pin-item-end pin)))
-             (if (and (string= (substring value s e) symbol) (not (and (string= fn fn2) (string= pos pos2))))
+             (if (and (string= (substring value s e) symbol) (not (and (string= fn fn2) (string= (format "%s" pos) (format "%s" pos2)))))
                  (se-pin-data s e 'shadowed nil value)
                value)))
          pins (concat value))))
