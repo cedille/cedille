@@ -43,7 +43,7 @@ tags-to-rope ts = [ json-object ts ]
 
 -- We number these when so we can sort them back in emacs
 tagged-val-to-rope : ℕ → tagged-val → string × json
-tagged-val-to-rope n (t , v , tags) = t , json-array (json-string (ℕ-to-string n) :: json-rope v :: tags-to-rope tags)
+tagged-val-to-rope n (t , v , tags) = t , json-array ({-json-string (ℕ-to-string n) ::-} json-rope v :: tags-to-rope tags)
 --[[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
 --tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
 

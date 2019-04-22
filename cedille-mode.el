@@ -327,28 +327,28 @@ and the remaining suffix."
       (cons (car ss) (cedille-mode-concat-sep2 " " (cdr ss))))))
 
 
-(defun cedille-mode-get-seqnum(a)
-  "Get the seqnum from a json pair. The second component
-is assumed to be a string with a sequence number (prefix up
- to the first space in each string)."
-  (car (cedille-mode-split-string (cdr a))))
+;(defun cedille-mode-get-seqnum(a)
+;  "Get the seqnum from a json pair. The second component
+;is assumed to be a string with a sequence number (prefix up
+; to the first space in each string)."
+;  (car (cedille-mode-split-string (cdr a))))
 
-(defun cedille-mode-compare-seqnums(a b)
-  "Compare two pairs by seqnum."
-  (let ((na (cadr a))
-        (nb (cadr b)))
-      (< (string-to-number na) (string-to-number nb))))
+;(defun cedille-mode-compare-seqnums(a b)
+;  "Compare two pairs by seqnum."
+;  (let ((na (cadr a))
+;        (nb (cadr b)))
+;      (< (string-to-number na) (string-to-number nb))))
 
-(defun cedille-mode-strip-seqnum(s)
-  "Return a new string just like s except without the prefix up to the 
-first space."
-  (cdr (cedille-mode-split-string s)))
+;(defun cedille-mode-strip-seqnum(s)
+;  "Return a new string just like s except without the prefix up to the 
+;first space."
+;  (cdr (cedille-mode-split-string s)))
 
 (defun cedille-mode-sort-and-strip-json(json)
   "Sort the pairs in the JSON data by the number at the 
 start of each string, and then strip out that number."
   (when json
-      (setq json (sort json 'cedille-mode-compare-seqnums))
+      ;(setq json (sort json 'cedille-mode-compare-seqnums))
       (setq json (loop for kv in json
                    collecting (cedille-mode-apply-tag kv)))
       json))
@@ -374,7 +374,7 @@ start of each string, and then strip out that number."
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
                    (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
-     collecting (cons key value)))
+        collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
@@ -651,7 +651,7 @@ occurrences, then do so."
    (car tag)
    (funcall
     (if (not (string= 'binder (car tag))) 'identity 'cedille-mode-parse-binder)
-    (cedille-mode-apply-tags (caddr tag) (cadddr tag)))))
+    (cedille-mode-apply-tags (cadr tag) (caddr tag)))))
 
 (defun cedille-mode-parse-binder (binder)
   "Parses the `cedille-mode-sep'-delimited binder information, returning it as an alist"

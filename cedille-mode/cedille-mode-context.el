@@ -260,8 +260,11 @@ which currently consists of:\n
   (let* ((start (se-term-start (last path)));(car (last path))))
          (end (se-term-end (last path)));(car (last path))))
          (in-range (lambda (item)
-                     (and (>= start (string-to-number (or (cdr (assoc 'from item)))))
-                          (<= end (string-to-number (or (cdr (assoc 'to item))))))))
+                     (let ((from (string-to-number (cdr (assoc 'from item))))
+                           (to (string-to-number (cdr (assoc 'to item)))))
+                       ;(or (= from to)
+                           (and (>= start from)
+                                (<= end to)))));)
          ;(path (cedille-mode-helpers-filter path in-range))
          (terms (car cedille-mode-global-context)) ; Used to be: terms
 	 (types (cdr cedille-mode-global-context)) ; Used to be: types

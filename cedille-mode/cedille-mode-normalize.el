@@ -233,8 +233,8 @@
          (json (json-read-from-string response))
          (ls (cdr (assoc 'value json)))
          (err (cdr (assoc 'error json)))
-         (val (cadr ls))
-         (ts (caddr ls))
+         (val (car ls))
+         (ts (cadr ls))
          (str (cedille-mode-apply-tags val ts)))
     (if err
         (unless suppress-err (message err))

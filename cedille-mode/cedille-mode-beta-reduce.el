@@ -163,7 +163,7 @@
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-do-check (and qed do-check
                                           (cons (se-term-start span) (se-term-end span)))
-	    cedille-mode-global-context nil
+	    cedille-mode-global-context context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
@@ -215,7 +215,7 @@
 
 ;;;;; Helpers ;;;;;
 
-(defun cedille-mode-br-response (response extra  &optional span)
+(defun cedille-mode-br-response (response extra &optional span)
   (when span (setq cedille-mode-br-range (cons (se-term-start span) (+ (se-term-end span) (length response) (- (point-max))))))
   (setq cedille-mode-br-temp-str response)
   (run-hooks 'se-inf-pre-parse-hook)
@@ -263,7 +263,7 @@
 
 (defun cedille-mode-br-add-to-context (decls)
   "Adds a symbol and its type/kind to the global context"
-  (message "decls: %s" decls)
+  ;(message "decls: %s" decls)
   (setq cedille-mode-global-context
         (cedille-mode-get-context (list (se-new-span "dummy" 0 0 (mapcar (lambda (decl) (if (string= (intern "binder") (car decl)) (cons (car decl) (cedille-mode-parse-binder (cdr decl))) decl)) decls))))))
 
@@ -335,8 +335,8 @@
   (if (null cedille-mode-br-parent)
       (let ((buffer (current-buffer))
             (window (get-buffer-window)))
-        (loop for child in cedille-mode-br-children
-              do (with-current-buffer child (cedille-ode-br-kill-buffer)))
+        ;(loop for child in cedille-mode-br-children
+        ;      do (with-current-buffer child (cedille-mode-br-kill-buffer)))
         (se-inf-interactive
          (cedille-mode-concat-sep "br" (cedille-mode-br-path) "quit")
          `(lambda (response extra)
@@ -396,7 +396,7 @@
             (number-to-string (1- (se-span-start span)))
             (number-to-string (1- (se-span-end span)))
             (cedille-mode-norm-method-case (or norm-method 'normalized) "all" "head" "once")
-            (cedille-mode-normalize-local-context-to-string (copy-tree (cedille-mode-span-context span))))
+            (cedille-mode-normalize-local-context-to-string (copy-tree (let (cedille-mode-global-context) (cedille-mode-span-context span)))))
 	   (cedille-mode-response-macro #'cedille-mode-br-response)
 	   nil
            span))))))
@@ -432,7 +432,7 @@
 		   (number-to-string (1- (se-span-start span)))
                    (number-to-string (1- (se-span-end span)))
 		   input
-		   (cedille-mode-normalize-local-context-param span))))
+		   (let (cedille-mode-global-context) (cedille-mode-normalize-local-context-param span)))))
 	  (se-inf-interactive-with-span
 	   q
 	   (cedille-mode-response-macro #'cedille-mode-br-response)
@@ -460,7 +460,7 @@
                  (number-to-string (1- (se-span-end span)))
                  input
                  (if head "tt" "ff")
-                 (cedille-mode-normalize-local-context-param span))))
+                 (let (cedille-mode-global-context) (cedille-mode-normalize-local-context-param span)))))
         (se-inf-interactive-with-span
          q
          (cedille-mode-response-macro #'cedille-mode-br-response)
@@ -484,8 +484,7 @@
     (lambda (response extra)
       (if extra
           (lexical-let* ((s (car extra))
-                         (e (cdr extra))
-                         (fbuffer (cdr extra)))
+                         (e (cdr extra)))
             (cedille-mode-br-kill-buffer
              `(lambda ()
                 (with-cedille-buffer t
@@ -522,7 +521,7 @@
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "bind" x)
      (cedille-mode-response-macro
       (lambda (response extra)
-        (message "response: %s" response)
+        ;(message "response: %s" response)
         (cedille-mode-br-add-to-context (list (cons 'binder (car response))))
         (cedille-mode-br-response (cadr response) nil)
 ; #'cedille-mode-br-response)
@@ -543,18 +542,16 @@
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "case" scrutinee rec)
      (cedille-mode-response-macro
       (lambda (response extra)
-        (message "response-cadr: %s" (cadr response))
-        (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (caddr tv))) (car response)))
-        (cedille-mode-br-match-response (cadr response) nil)
-      ;#'cedille-mode-br-match-response)
+        ;(message "response-cadr: %s" response)
+        (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (cadr tv))) (car response)))
+        (cedille-mode-br-match-response (cadr response))
         ))
      nil)))
 
-(defun cedille-mode-br-match-response (response extra &optional span)
+(defun cedille-mode-br-match-response (response)
   (let ((n 0))
     (loop for (key . val) in response
           do (progn
-               (message "(%s . %s)" key val)
                (cedille-mode-br-spawn-buffer
                 val (cons (number-to-string n) cedille-mode-br-path))
                (incf n)))))

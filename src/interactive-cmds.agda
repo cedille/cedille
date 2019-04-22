@@ -626,7 +626,7 @@ private
                     (λ k → inj₁ "Expression must be a term or a type"))
                   err $ λ where
                     (Γ' , me , dom , cod , fₜ) →
-                      putJson (json-object [ "value" , json-array (json-string "0" :: json-array (json-rope (fst $ snd $ binder-data Γ' "0" xᵤ dom me nothing "0" "0") :: json-rope (to-string Γ' $ erase cod) :: []) :: []) ]) >>
+                      putJson (json-object [ "value" , json-array (json-array (json-rope (fst $ snd $ binder-data Γ' "0" xᵤ dom me nothing "0" "0") :: json-rope (to-string Γ' $ erase cod) :: []) :: []) ]) >>
                       await-with (record this
                         {Γ = Γ' ;
                          T = cod;
@@ -681,12 +681,12 @@ private
                        inj₁ "Case splitting is currently restricted to datatypes")
                 err $ λ where
                  (scrutinee , cs , Tₘ , Γ , ts) →
-                   let json = json-object [ "value" , json-array (json-nat 0 ::
+                   let json = json-object [ "value" , json-array
                                 [ json-array (tagged-vals-to-rope ts ::
                                    [ json-object (map
                                     (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
                                       json-rope (to-string Γ (erase T))})
-                                    cs) ]) ]) ] in
+                                    cs) ]) ] ] in
                    putJson json >>
                    let shallow = iszero (string-length rec)
                        mk-cs = map λ where
