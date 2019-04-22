@@ -1,4 +1,4 @@
-@node about,tooling,Index,Top
+@node about,tooling,documentation index,Top
 @include version.texi
 @chapter Cedille's Type Theory
 

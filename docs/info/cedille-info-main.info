@@ -20,10 +20,10 @@ language and its implementation.
 * options::                      A description of the options file, holding some global settings for Cedille
 * roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
-* Index::                        Index to the documentation
+* documentation index::                        Index to the documentation
 
 
-File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: Index,  Up: Top
+File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: documentation index,  Up: Top
 
                                                  (version: development)
 
@@ -1051,10 +1051,10 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: Index,  Next: about,  Prev: credits,  Up: Top
+File: cedille-info-main.info,  Node: documentation index,  Next: about,  Prev: credits,  Up: Top
 
-Index
-*****
+documentation index
+*******************
 
  [index ]
 * Menu:
@@ -1068,20 +1068,20 @@ Index
 
 Tag Table:
 Node: Top95
-Node: about1072
-Node: tooling13091
-Node: cedille mode commands18756
-Node: unicode shortcuts22178
-Node: extra buffers24367
-Node: inspect buffer25857
-Node: summary buffer27198
-Node: meta-vars buffer28157
-Node: beta-reduce mode29334
-Node: context buffer30597
-Node: options32770
-Node: roadmap34022
-Node: credits35240
-Node: Index36631
+Node: about1086
+Node: tooling13119
+Node: cedille mode commands18784
+Node: unicode shortcuts22206
+Node: extra buffers24395
+Node: inspect buffer25885
+Node: summary buffer27226
+Node: meta-vars buffer28185
+Node: beta-reduce mode29362
+Node: context buffer30625
+Node: options32798
+Node: roadmap34050
+Node: credits35268
+Node: documentation index36659
 
 End Tag Table
 
