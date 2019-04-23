@@ -323,7 +323,7 @@ private
       ll-type _ → inj₁ "Expected the input expression to be a term, but got a type"
       ll-kind _ → inj₁ "Expected the input expression to be a term, but got a kind")
     ≫=⊎ uncurry λ t₁ t₂ →
-    let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+    let x = fresh-var Γ "x"
         f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
               subst subst subst ll Γ t₂ x in
     case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →

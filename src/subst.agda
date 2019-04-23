@@ -45,7 +45,7 @@ subst-rename-var-if Γ ρ x σ =
      or if x occurs free in one of the terms we are substituting for vars, 
      or if it is the renamed version of any variable -}
   if trie-contains σ x || trie-any (is-free-in check-erased x) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then 
-    rename-away-from x (λ s → ctxt-binds-var Γ s || trie-contains σ s) ρ
+    fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) x
   else
     x
 
@@ -98,7 +98,7 @@ substh-term Γ ρ σ (Theta _ θ t ls) = Theta posinfo-gen (substh-theta θ) (su
         substh-theta θ = θ
 substh-term Γ ρ σ (Mu _ _ x t ot _ cs _) =
   let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x || renamectxt-in-field ρ x
-      x' = fresh-var x (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x)) ρ
+      x' = fresh-h (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x)) x
       ρ' = renamectxt-insert ρ x x'
       ρ' = renamectxt-insert ρ' (mu-Type/ x) (mu-Type/ x')
       ρ' = renamectxt-insert ρ' (mu-isType/ x) (mu-isType/ x')
