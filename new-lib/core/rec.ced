@@ -31,3 +31,6 @@ recOut : ∀ F: ★ ➔ ★. IdMapping ·F ➾ Id ·(Rec ·F) ·(F ·(Rec ·F))
 - [ f , β].
 
 recUnfold = Λ F: ★ ➔ ★. Λ im: IdMapping ·F. elimId -(recOut -im).
+
+_ : {recFold ≃ λ x. x} = β.
+_ : {recUnfold ≃ λ x. x} = β.

@@ -1,6 +1,9 @@
 module vec.
 
 import nat.
+import nat-thms.
+import ../core/id.
+import ../core/bot.
 
 data Vec (A: ★): Nat ➔ ★ =
   | vnil: Vec zero
@@ -29,6 +32,25 @@ vmap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
   | vnil ➔ vnil ·B
   | vcons -n x xs ➔ vcons -n (f x) (vmap -n xs)
   }.
+
+idVec : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Id ·(Vec ·A n) ·(Vec ·B n)
+= Λ A. Λ B. Λ c. Λ n.
+  [f : Vec ·A n ➔ Vec ·B n
+    = λ xs. μ f. xs {
+      | vnil ➔ vnil ·B
+      | vcons -n x xs ➔ vcons -n (elimId -c x) (f -n xs)
+      }]
+- [pf : Π xs: Vec ·A n. {f xs ≃ xs}
+    = λ xs. μ pf. xs {
+      | vnil ➔ β
+      | vcons -n x xs ➔ ρ (pf -n xs) @ z . {vcons x z ≃ vcons x xs} - β
+      }]
+- intrId f pf.
+
+vimap : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
+= Λ A. Λ B. Λ c. Λ n. elimId -(idVec -c -n).
+
+_ : {vimap ≃ λ x. x} = β.
 
 vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
 = Λ A. Λ n. λ xs. μ look. xs @(λ i: Nat. λ _: Vec ·A i. Π m: Nat. Lt m i ➾ A) {
