@@ -4,6 +4,7 @@ import ../nat.
 import simple.
 import ../../core/bot.
 import ../../core/eq.
+import ../../core/top.
 
 import ../bool.
 
@@ -28,7 +29,7 @@ lteZN : Π m: Nat. Lte zero m
 = λ m. β.
 
 -- inversion of `succ`
-lteInv : Π m: Nat. Π n: Nat. Lte (succ m) (succ n) ➔ Lte m n
+lteSInv : Π m: Nat. Π n: Nat. Lte (succ m) (succ n) ➔ Lte m n
 = λ m. λ n. λ eq. eq.
 
 -- `succ` on rhs, `pred` on lhs
@@ -71,6 +72,22 @@ lteSLeftESRight : Π m: Nat. Π n: Nat. Lte (succ m) n ➔ ι x: Nat. {succ x �
     }
   }.
 
+-- if Lte m n, then there is some x s.t. add x m ≃ n
+lteEAdd : Π m: Nat. Π n: Nat. Lte m n ➔ ι x: Nat. {add x m ≃ n}
+= λ m. μ ih. m {
+  | zero ➔ λ n. λ _. [ n , ρ (addZRight n) - β{n} ]
+  | succ m ➔
+    [m' = to/Nat -isType/ih m]
+  - λ n. μ' n @λ y: Nat. Lte (succ m') y ➔ ι x: Nat. {add x (succ m') ≃ y} {
+    | zero ➔ λ lte. δ - lte
+    | succ n ➔ λ lteMN.
+      [x = ih m n lteMN]
+    - [x.1 , ρ (addSRight x.1 m') @ x. {x ≃ succ n}
+           - ρ x.2                @ x. {succ x ≃ succ n}
+           - β{x}]
+    }
+  }.
+
 -- <Nat,Lte> forms a partially ordered set
 -- ==================================================
 
@@ -110,7 +127,7 @@ lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
     }
   }.
 
--- Theorems for minus, divide
+-- Theorems for minus, divide, rem
 -- ==================================================
 
 lteMinus : Π m: Nat. Π n: Nat. Lte (minus m n) m
@@ -134,172 +151,30 @@ lteDiv : Π m: Nat. Π n: Nat. Lte (div m n) m
   - χ {lte (ite (lt (succ m) n)
               zero (succ (div (minus m (pred n)) n))) (succ m)
        ≃ tt}
-  - μ' (lt (succ m') n) @λ x: Bool.
-       {x ≃ lt (succ m) n}
-       ➾ {lte (ite x zero (succ (div (minus m (pred n)) n))) (succ m)
-          ≃ tt}{
-     | tt ➔ Λ _. β
-     | ff ➔ Λ eq.
+  - μ' (lt (succ m') n) {
+     | tt ➔ β
+     | ff ➔
        [dif = minusCV -isType/ih m (pred n)]
      - [dif' = to/Nat -isType/ih dif]
      - [ih' = ih dif n]
      - lteTrans (div dif' n) dif' m' ih' (lteMinus m' (pred n))
-    } -β
-  }.
-
-{-
-data LE : Nat ➔ Nat ➔ ★ =
-  | leZ : Π n: Nat. LE zero n
-  | leS : Π n: Nat. Π m: Nat. LE n m ➔ LE (succ n) (succ m).
-
-LT : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. LE (succ m) n.
-
--- Basic Theorems
--- ==================================================
-leSZ : ∀ m: Nat. LE (succ m) zero ➔ Bot
-= Λ m. λ le. μ' le @λ i: Nat. λ j: Nat. λ x: LE i j. {i ≃ succ m} ➾ {j ≃ zero} ➾ Bot {
-  | leZ n ➔ Λ eq. δ - eq
-  | leS n m le ➔ Λ _. Λ eq. δ - eq
-  } -β -β.
--- Lemmas
--- -----------------------------------------------------------------------------
-
--- inversion of leS
-leSInv : ∀ m: Nat. ∀ n: Nat. LE (succ m) (succ n) ➔ LE m n
-  = Λ m. Λ n. λ le. (μ' le @(λ i: Nat. λ j: Nat. λ x: LE i j. ∀ i': Nat. {i ≃ succ i'} ➾ LE i' (pred j)) {
-  | leZ j ➔ Λ i'. Λ ei.  δ (LE i' j) - ei
-  | leS i j le' ➔ Λ i'. Λ ei.
-    ρ ς (succInj -i -i' -ei) - le'
-  }) -m -β.
-
--- LE left succ implies right succ
-leSLSR : ∀ m: Nat. ∀ n: Nat. LE (succ m) n ➔ ι x: Nat. {n ≃ succ x}
-  = Λ m. Λ n. λ le. (μ' le @(λ i: Nat. λ j: Nat. λ x: LE i j. ∀ pi: Nat. {i ≃ succ pi} ➾ ι x: Nat. {j ≃ succ x}) {
-  | leZ n' ➔ Λ pi. Λ eq. δ (ι x: Nat. {n' ≃ succ x}) - eq
-  | leS n' m' le' ➔ Λ pi. Λ eq. [ m' , β{m'} ]
-  }) -m -β.
-
--- successor on right
-leSRight : ∀ m: Nat. ∀ n: Nat. LE m n ➔ LE m (succ n)
-  = Λ m. Λ n. λ le. μ lesr. le @(λ i: Nat. λ j: Nat. λ x: LE i j. LE i (succ j)) {
-  | leZ n ➔ leZ (succ n)
-  | leS m n le' ➔ leS m (succ n) (lesr -m -n le')
-  }.
-
--- predecessor on left
-lePLeft : ∀ m: Nat. ∀ n: Nat. LE m n ➔ LE (pred m) n
-  = Λ m. Λ n. λ le. μ' le @(λ i: Nat. λ j: Nat. λ x: LE i j. LE (pred i) j) {
-  | leZ n' ➔ leZ n'
-  | leS n' m' le' ➔ leSRight -n' -m' le'
-  }.
-
-leEAdd : ∀ m: Nat. ∀ n: Nat. LE m n ➔ ι x: Nat. {add x m ≃ n}
-  = Λ m. Λ n. λ le. μ ih. le @(λ i: Nat. λ j: Nat. λ _: LE i j. ι x: Nat. {add x i ≃ j}) {
-  | leZ n ➔ [ n , ρ (addZRight n) - β{n}]
-  | leS i j le' ➔
-    [x = ih -i -j le']
-  - [ x.1
-    , ρ (addSRight x.1 i) @ x. {x      ≃ succ j}
-    - ρ x.2               @ x. {succ x ≃ succ j}
-    - β{x} ]
-  }.
-
--- LE is a POSet
--- -----------------------------------------------------------------------------
-leRefl : Π m: Nat. LE m m
-  = λ m. μ leRefl. m @(λ x: Nat. LE x x) {
-  | zero ➔ leZ zero
-  | succ m' ➔ [tm' = to/Nat -isType/leRefl m'] - leS tm' tm' (leRefl m')
-  }.
-
-leTrans : Π l: Nat. Π m: Nat. Π n: Nat.
-    LE l m ➔ LE m n ➔ LE l n
-  = λ l. λ m. λ n. λ le-lm.
-    (μ le-trans. le-lm @(λ i: Nat. λ j: Nat. λ x: LE i j. Π n: Nat. LE j n ➔ LE i n) {
-    | leZ j ➔ λ n. λ _. leZ n
-    | leS i j le-i-j ➔ λ n. λ le-sj-n.
-      [pn : ι pn: Nat. {n ≃ succ pn}
-        = leSLSR -j -n le-sj-n]
-    - [le-j-pn : LE j pn.1
-        = leSInv -j -pn.1 (ρ ς pn.2 @ x . LE (succ j) x - le-sj-n)]
-    - [ih : LE i pn.1
-        = le-trans -i -j le-i-j pn.1 le-j-pn]
-    - (ρ pn.2 - leS i pn.1 ih)
-    }) n.
-
-leAntiSym : Π m: Nat. Π n: Nat. LE m n ➔ LE n m ➔ {m ≃ n}
-= λ m. λ n. λ leMN.
-  μ anti. leMN @(λ i: Nat. λ j: Nat. λ x: LE i j. LE j i ➔ {i ≃ j}) {
-  | leZ j ➔ λ leJZ. (μ' leJZ @(λ j': Nat. λ i': Nat. λ x: LE j' i'. {j' ≃ j} ➾ {i' ≃ zero} ➾ {zero ≃ j}) {
-    | leZ i' ➔ Λ eq. Λ _. ρ eq - β
-    | leS j' i' _ ➔ Λ _. Λ eq. δ - eq
-    }) -β -β
-  | leS i j le ➔ λ leJI. (μ' leJI @(λ j': Nat. λ i': Nat. λ x: LE j' i'. {j' ≃ succ j} ➾ {i' ≃ succ i} ➾ {i' ≃ j'}) {
-    | leZ i' ➔ Λ eq. Λ _. δ - eq
-    | leS j' i' le' ➔ Λ eqj. Λ eqi.
-      [eqj' : {j' ≃ j} = succInj -j' -j -eqj]
-    - [eqi' : {i' ≃ i} = succInj -i' -i -eqi]
-    - [le   = ρ eqi' - ρ eqj' - le]
-    - [a = anti -i' -j' le le']
-    - ρ a @ x . { succ x ≃ succ j' } - β
-    }) -β -β
-  }.
-
-leMinus : Π m: Nat. Π n: Nat. LE (minus m n) m
-  = λ m. λ n. μ le-minus. n @(λ x: Nat. LE (minus m x) m) {
-  | zero ➔ leRefl m
-  | succ n' ➔
-    [m-n' = minus m (to/Nat -isType/le-minus n')]
-  - lePLeft -m-n' -m (le-minus n')
-  }.
-
-
-leDiv : Π n: Nat. Π d: Nat. LE (div n d) n
-  = λ n. λ d. μ le-div. n @(λ x: Nat. LE (div x d) x) {
-  | zero ➔ leZ zero
-  | succ pn ➔
-    [pn' = to/Nat -isType/le-div pn]
-  - [n-d = minus pn' (pred d)] - [l = div n-d d]
-  - μ' (lt (succ pn') d) @(λ x: Bool. LE (ite x zero (succ l)) (succ pn')) {
-    | tt ➔ leZ (succ pn')
-    | ff ➔
-      [ih : LE l n-d = le-div (minusCV -isType/le-div pn (pred d))]
-    - [mi : LE n-d pn' = leMinus pn' (pred d)]
-    - leS l pn' (leTrans l n-d pn' ih mi)
     }
   }.
 
-leRem : Π n: Nat. Π d: Nat. LE (rem n d) n
-  = λ n. λ d. μ leRem. n @(λ x: Nat. LE (rem x d) x) {
-  | zero ➔ leZ zero
-  | succ n ➔
-    [n' = to/Nat -isType/leRem n] - [difND = minus n' (pred d)]
-  - μ' (lt (succ n') d) @(λ x: Bool. LE (ite x (succ n') (rem difND d)) (succ n')){
-    | tt ➔ leRefl (succ n')
-    | ff ➔
-      [ih : LE (rem difND d) difND = leRem (minusCV -isType/leRem n (pred d))]
-    - [le : LE difND (succ n')
-        = leTrans (minus n' (pred d)) n' (succ n') (
-          leMinus n' (pred d)) (leSRight -n' -n' (leRefl n'))]
-    - leTrans (rem difND d) difND (succ n') ih le
-    }
-  }.
-
--- conversion between LE and Lte
--- ==================================================
-
-le2lte : ∀ m: Nat. ∀ n: Nat. LE m n ➔ Lte m n
-= Λ m. Λ n. λ le. μ ih. le {
-  | leZ n ➔ β
-  | leS m n le ➔ ih -m -n le
-  }.
-
-lte2le : Π m: Nat. Π n: Nat. Lte m n ➾ LE m n
+lteRem : Π m: Nat. Π n: Nat. Lte (rem m n) m
 = λ m. μ ih. m {
-  | zero ➔ λ n. Λ _. leZ n
-  | succ m ➔ [m' : Nat = to/Nat -isType/ih m] -
-    λ n. μ' n @λ x: Nat. Lte (succ m') x ➾ LE (succ m') x {
-    | zero ➔ Λ lte. δ - lte
-    | succ n ➔ Λ lte. leS m' n (ih m n -lte)
+  | zero ➔ λ _. β
+  | succ m ➔ λ n.
+    [m' = to/Nat -isType/ih m]
+  - [lhs : Top ➔ Top
+      = λ x. β{ite x (succ m) (rem (minus m (pred n)) n)}]
+  - μ' (lt (succ m') n) @λ x: Bool. {lte (lhs x) (succ m) ≃ tt} {
+    | tt ➔ lteRefl m'
+    | ff ➔
+      [dif = minusCV -isType/ih m (pred n)]
+    - [dif' = to/Nat -isType/ih dif]
+    - [ih' = ih dif n]
+    - lteTrans (rem dif' n) dif' (succ m') ih'
+        (lteSRight dif' m' (lteMinus m' (pred n)))
     }
   }.
