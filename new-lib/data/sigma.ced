@@ -10,3 +10,13 @@ fst : ∀ A: ★. ∀ B: A ➔ ★. Sigma ·A ·B ➔ A
 
 snd : ∀ A: ★. ∀ B: A ➔ ★. Π p: Sigma ·A ·B. B (fst p)
   = Λ A. Λ B. λ p. μ' p @(λ x: Sigma ·A ·B. B (fst x)) {pair _ b ➔ b}.
+
+curry : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★.
+  (Sigma ·A ·B ➔ X) ➔ Π a: A. Π b: B a. X
+= Λ A. Λ B. Λ X. λ f. λ a. λ b. f (pair a b).
+
+uncurry : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★.
+  (Π a: A. Π b: B a. X) ➔ Sigma ·A ·B ➔ X
+= Λ A. Λ B. Λ X. λ f. λ p. μ' p {
+  | pair a b ➔ f a b
+  }.

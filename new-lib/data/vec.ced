@@ -33,6 +33,16 @@ vmap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
   | vcons -n x xs ➔ vcons -n (f x) (vmap -n xs)
   }.
 
+vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
+= Λ A. Λ n. λ xs. μ look. xs @(λ i: Nat. λ _: Vec ·A i. Π m: Nat. Lt m i ➾ A) {
+  | vnil ➔ λ m. Λ eq. δ - eq
+  | vcons -n x xs ➔ λ m. μ' m @(λ x: Nat. Lt x (succ n) ➾ A) {
+    | zero ➔ Λ _. x
+    | succ m ➔ Λ eq. look -n xs m -eq
+    }
+  }.
+
+-- Vec and Id
 idVec : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Id ·(Vec ·A n) ·(Vec ·B n)
 = Λ A. Λ B. Λ c. Λ n.
   [f : Vec ·A n ➔ Vec ·B n
@@ -47,16 +57,8 @@ idVec : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Id ·(Vec ·A n) ·(V
       }]
 - intrId f pf.
 
-vimap : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
+imapVec : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
 = Λ A. Λ B. Λ c. Λ n. elimId -(idVec -c -n).
 
-_ : {vimap ≃ λ x. x} = β.
+_ : {imapVec ≃ λ x. x} = β.
 
-vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
-= Λ A. Λ n. λ xs. μ look. xs @(λ i: Nat. λ _: Vec ·A i. Π m: Nat. Lt m i ➾ A) {
-  | vnil ➔ λ m. Λ eq. δ - eq
-  | vcons -n x xs ➔ λ m. μ' m @(λ x: Nat. Lt x (succ n) ➾ A) {
-    | zero ➔ Λ _. x
-    | succ m ➔ Λ eq. look -n xs m -eq
-    }
-  }.
