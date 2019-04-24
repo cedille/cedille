@@ -128,6 +128,7 @@ apps-type = foldl λ {(TermArg _ t) x → TpAppt x t; (TypeArg T) x → TpApp x 
 
 qualif-lookup-term : qualif → string → term
 qualif-lookup-term σ x with trie-lookup σ x
+... | just (x' , []) = Var posinfo-gen x'
 ... | just (x' , as) = Chi posinfo-gen NoType $ apps-term (Var posinfo-gen x') as
 ... | _ = Var posinfo-gen x
 
@@ -713,10 +714,17 @@ unqual-all q v with var-suffix v
 ... | nothing = v
 ... | just sfx = unqual-bare q sfx (unqual-prefix q (qual-pfxs q) sfx v)
 
+is-var : tty → maybe var
+is-var (tterm (Var _ x)) = just x
+is-var (ttype (TpVar _ x)) = just x
+is-var _ = nothing
+
+is-var-unqual : tty → maybe var
+is-var-unqual = maybe-map (λ x → maybe-else (unqual-local x) id (var-suffix x)) ∘ is-var
 
 -- Given a qualified variable and a function that renames it,
 -- we strip away the qualification prefix, call the function,
--- then preprend the prefix to the result
+-- then prepend the prefix to the result
 reprefix : (var → var) → var → var
 reprefix f x =
   maybe-else' (pfx (string-to-𝕃char x) [])

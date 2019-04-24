@@ -400,7 +400,7 @@ meta-var-fresh-t S = meta-vars → var → span-location → S → meta-var
 
 meta-var-fresh : meta-var-fresh-t meta-var-sort
 meta-var-fresh Xs x sl sol
-  with rename-away-from (meta-var-pfx-str ^ x) (trie-contains (varset Xs)) empty-renamectxt
+  with fresh-h (trie-contains (varset Xs)) (meta-var-pfx-str ^ x)
 ... | x' = meta-var-mk x' sol sl
 
 meta-var-fresh-tp : meta-var-fresh-t (kind × maybe (meta-var-sol type))

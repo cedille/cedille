@@ -160,22 +160,22 @@ rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
   h (c :: cs) = validify-char c ++ h cs
 
 -- Returns a fresh variable name by adding primes and replacing invalid characters
-fresh-var' : string → (string → 𝔹) → renamectxt → string
-fresh-var' = fresh-var ∘ rename-validify
+fresh-var' : string → (string → 𝔹) → string
+fresh-var' x f = fresh-h f (rename-validify x)
 
 rename-new_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
-rename-new ignored-var from Γ for f = f $ fresh-var' "x" (ctxt-binds-var Γ) empty-renamectxt
-rename-new x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ) empty-renamectxt
+rename-new ignored-var from Γ for f = f $ fresh-var' "x" (ctxt-binds-var Γ)
+rename-new x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ)
 
 rename_from_for_ : ∀ {X : Set} → var → ctxt → (var → X) → X
 rename ignored-var from Γ for f = f ignored-var
-rename x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ) empty-renamectxt
+rename x from Γ for f = f $ fresh-var' x (ctxt-binds-var Γ)
 
 fresh-id-term : ctxt → term
 fresh-id-term Γ = rename "x" from Γ for λ x → mlam x $ mvar x
 
 get-renaming : renamectxt → var → var → var × renamectxt
-get-renaming ρₓ xₒ x = let x' = fresh-var' x (renamectxt-in-range ρₓ) ρₓ in x' , renamectxt-insert ρₓ xₒ x'
+get-renaming ρₓ xₒ x = let x' = fresh-var' x (renamectxt-in-field ρₓ) in x' , renamectxt-insert ρₓ xₒ x'
 
 rename_-_from_for_ : ∀ {X : Set} → var → var → renamectxt → (var → renamectxt → X) → X
 rename xₒ - ignored-var from ρₓ for f = f ignored-var ρₓ
@@ -218,10 +218,10 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-fresh-var : renamectxt → trie indices → var → var
   reindex-fresh-var ρₓ is ignored-var = ignored-var
   reindex-fresh-var ρₓ is x =
-    fresh-var x (λ x' → ctxt-binds-var Γ x' || trie-contains is x') ρₓ
+    fresh-h (λ x' → ctxt-binds-var Γ x' || trie-contains is x' || renamectxt-in-field ρₓ x') x
 
-  rename-indices : renamectxt → trie indices → indices
-  rename-indices ρₓ is = foldr {B = renamectxt → indices}
+  rename-indices' : renamectxt → trie indices → indices
+  rename-indices' ρₓ is = foldr {B = renamectxt → indices}
     (λ {(Index x atk) f ρₓ →
        let x' = reindex-fresh-var ρₓ is x in
        Index x' (substh-tk {TERM} Γ ρₓ empty-trie atk) :: f (renamectxt-insert ρₓ x x')})
@@ -289,7 +289,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-term ρₓ is (Lam pi me pi' x oc t) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρₓ is x in
     Lam pi me pi' x' (reindex-optClass ρₓ is oc) (reindex-term (renamectxt-insert ρₓ x x') is t)
-  ...| tt with rename-indices ρₓ is | oc
+  ...| tt with rename-indices' ρₓ is | oc
   ...| isₙ | NoClass = indices-to-lams' isₙ $ reindex-term (rc-is ρₓ isₙ) (trie-insert is x isₙ) t
   ...| isₙ | SomeClass atk = indices-to-lams isₙ $ reindex-term (rc-is ρₓ isₙ) (trie-insert is x isₙ) t
   reindex-term ρₓ is (Let pi fe d t) =
@@ -314,7 +314,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-type ρₓ is (Abs pi me pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρₓ is x in
     Abs pi me pi' x' (reindex-tk ρₓ is atk) (reindex-type (renamectxt-insert ρₓ x x') is T)
-  ...| tt = let isₙ = rename-indices ρₓ is in
+  ...| tt = let isₙ = rename-indices' ρₓ is in
     indices-to-alls isₙ $ reindex-type (rc-is ρₓ isₙ) (trie-insert is x isₙ) T
   reindex-type ρₓ is (Iota pi pi' x T T') =
     let x' = reindex-fresh-var ρₓ is x in
@@ -335,7 +335,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
     TpAppt (reindex-type ρₓ is T) (reindex-term ρₓ is t)
   reindex-type ρₓ is (TpArrow (TpVar pi x) Erased T) with is-index-type-var x
   ...| ff = TpArrow (reindex-type ρₓ is (TpVar pi x)) Erased (reindex-type ρₓ is T)
-  ...| tt = let isₙ = rename-indices ρₓ is in
+  ...| tt = let isₙ = rename-indices' ρₓ is in
     indices-to-alls isₙ $ reindex-type (rc-is ρₓ isₙ) is T
   reindex-type ρₓ is (TpArrow T me T') =
     TpArrow (reindex-type ρₓ is T) me (reindex-type ρₓ is T')
@@ -346,7 +346,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-type ρₓ is (TpLambda pi pi' x atk T) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρₓ is x in
     TpLambda pi pi' x' (reindex-tk ρₓ is atk) (reindex-type (renamectxt-insert ρₓ x x') is T)
-  ...| tt = let isₙ = rename-indices ρₓ is in
+  ...| tt = let isₙ = rename-indices' ρₓ is in
     indices-to-tplams isₙ $ reindex-type (rc-is ρₓ isₙ) (trie-insert is x isₙ) T
   reindex-type ρₓ is (TpParens pi T pi') =
     reindex-type ρₓ is T
@@ -360,11 +360,11 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   reindex-kind ρₓ is (KndPi pi pi' x atk k) with is-index-var x
   ...| ff = let x' = reindex-fresh-var ρₓ is x in
     KndPi pi pi' x' (reindex-tk ρₓ is atk) (reindex-kind (renamectxt-insert ρₓ x x') is k)
-  ...| tt = let isₙ = rename-indices ρₓ is in
+  ...| tt = let isₙ = rename-indices' ρₓ is in
     indices-to-kind isₙ $ reindex-kind (rc-is ρₓ isₙ) (trie-insert is x isₙ) k
   reindex-kind ρₓ is (KndTpArrow (TpVar pi x) k) with is-index-type-var x
   ...| ff = KndTpArrow (reindex-type ρₓ is (TpVar pi x)) (reindex-kind ρₓ is k)
-  ...| tt = let isₙ = rename-indices ρₓ is in
+  ...| tt = let isₙ = rename-indices' ρₓ is in
     indices-to-kind isₙ $ reindex-kind (rc-is ρₓ isₙ) is k
   reindex-kind ρₓ is (KndTpArrow T k) =
     KndTpArrow (reindex-type ρₓ is T) (reindex-kind ρₓ is k)
@@ -378,7 +378,7 @@ module reindexing (Γ : ctxt) (isₒ : indices) where
   
   -- Can't reindex large indices in a lifting type (LiftPi requires a type, not a tk),
   -- so for now we will just ignore reindexing lifting types.
-  -- Types withing lifting types will still be reindexed, though.
+  -- Types within lifting types will still be reindexed, though.
   reindex-liftingType ρₓ is (LiftArrow lT lT') =
     LiftArrow (reindex-liftingType ρₓ is lT) (reindex-liftingType ρₓ is lT')
   reindex-liftingType ρₓ is (LiftParens pi lT pi') =
@@ -607,13 +607,10 @@ record encoded-datatype : Set where
     elab-mu-pure : ctxt → ctxt-datatype-info → maybe var → term → cases → maybe term
 
   check-mu : ctxt → ctxt-datatype-info → var → var ⊎ maybe (term × var × 𝕃 tty) → term → optType → cases → type → maybe (term × ctxt)
-  check-mu Γ d Xₒ x? t oT ms T with d --data-def
+  check-mu Γ d Xₒ x? t oT ms T with d
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs with kind-to-indices Γ kᵢ | oT
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | NoType =
-    elab-mu Γ d names Xₒ x? t
-      (refine-motive Γ t X is (args-to-ttys asₚ) asᵢ T) ms
-      {-(indices-to-tplams is $ TpLambda pi-gen pi-gen ignored-var
-        (Tkt $ indices-to-tpapps is $ flip apps-type asₚ $ mtpvar X) T) ms-}
+    elab-mu Γ d names Xₒ x? t (refine-motive Γ is (asᵢ ++ [ tterm t ]) T) ms
   check-mu Γ d Xₒ x? t oT ms T | mk-data-info X mu asₚ asᵢ ps kᵢ k cs fcs | is | SomeType Tₘ =
     elab-mu Γ d names Xₒ x? t Tₘ ms
 
@@ -650,8 +647,6 @@ record datatype-encoding : Set where
     record {
       elab-mu = elab-mu;
       elab-mu-pure = λ Γ d → elab-mu-pure Γ d namesₓ;
-      --data-def = Data x ps is cs;
-      --mod-ps = ctxt-get-current-params Γ;
       names = namesₓ}
     where
     csn : opacity → defTermOrType → cmds → cmds
@@ -668,18 +663,17 @@ record datatype-encoding : Set where
     app-ps = Chi posinfo-gen NoType ∘' params-to-apps (ctxt-get-current-params Γ'' ++ params-set-erased Erased ps) ∘' mvar
     tpapp-ps = params-to-tpapps (ctxt-get-current-params Γ'' ++ params-set-erased Erased ps) ∘ mtpvar
 
-    data-functorₓ = fresh-var (x ^ "F") (ctxt-binds-var Γ') ρₓ
-    data-fmapₓ = fresh-var (x ^ "Fmap") (ctxt-binds-var Γ') ρₓ
-    --data-fresh-check = λ f → fresh-var x (λ x → ctxt-binds-var Γ' (f x) || renamectxt-in-field ρₓ (rename-validify $ f x) || renamectxt-in-field ρₓ (f x) || renamectxt-in-field ρₓ (rename-validify $ f x)) ρₓ
+    fresh = fresh-h λ x → ctxt-binds-var Γ' x || renamectxt-in-field ρₓ x
+
+    data-functorₓ = fresh (x ^ "F")
+    data-fmapₓ = fresh (x ^ "Fmap")
     data-Muₓₒ = data-Is/ x
     data-muₓₒ = data-is/ x
     data-castₓₒ = data-to/ x
-    data-Muₓ = fresh-var (rename-validify data-Muₓₒ) (ctxt-binds-var Γ') ρₓ
-    data-muₓ = fresh-var (rename-validify data-muₓₒ) (ctxt-binds-var Γ') ρₓ
-    data-castₓ = fresh-var (rename-validify data-castₓₒ) (ctxt-binds-var Γ') ρₓ
---    data-muₓ = rename-validify data-muₓₒ
---    data-castₓ = rename-validify data-castₓₒ
-    data-functor-indₓ = fresh-var (x ^ "IndF") (ctxt-binds-var Γ') ρₓ
+    data-Muₓ = fresh (rename-validify data-Muₓₒ)
+    data-muₓ = fresh (rename-validify data-muₓₒ)
+    data-castₓ = fresh (rename-validify data-castₓₒ)
+    data-functor-indₓ = fresh (x ^ "IndF")
     functorₓ = renamectxt-rep ρₓ functor
     castₓ = renamectxt-rep ρₓ cast
     fixpoint-typeₓ = renamectxt-rep ρₓ fixpoint-type
@@ -688,7 +682,6 @@ record datatype-encoding : Set where
     fixpoint-indₓ = renamectxt-rep ρₓ fixpoint-ind
     fixpoint-lambekₓ = renamectxt-rep ρₓ fixpoint-lambek
     Γ = foldr ctxt-var-decl (add-indices-to-ctxt is Γ') (data-functorₓ :: data-fmapₓ :: data-Muₓ :: data-muₓ :: data-castₓ :: data-Muₓₒ :: data-muₓₒ :: data-castₓₒ :: data-functor-indₓ :: [])
-    --Γ = add-indices-to-ctxt is $ ctxt-var-decl data-functorₓ $ ctxt-var-decl data-fmapₓ $ ctxt-var-decl data-Muₓ $ ctxt-var-decl data-muₓ $ ctxt-var-decl data-castₓ $ ctxt-var-decl data-functor-indₓ Γ'
     namesₓ = record {
       data-functor = data-functorₓ;
       data-fmap = data-fmapₓ;
@@ -704,7 +697,7 @@ record datatype-encoding : Set where
       fixpoint-lambek = fixpoint-lambekₓ}
     
     new-var : ∀ {ℓ} {X : Set ℓ} → var → (var → X) → X
-    new-var x f = f $ fresh-var x (ctxt-binds-var Γ) ρₓ
+    new-var x f = f $ fresh-h (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρₓ x) x
 
     functor-cmd = DefType pi-gen data-functorₓ (params-to-kind ps (k ➔ k)) $
       new-var "x" λ xₓ → new-var "X" λ Xₓ →
