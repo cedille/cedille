@@ -22,3 +22,11 @@ trans : Π x: Top. Π y: Top. Π z: Top. {x ≃ y} ➔ {y ≃ z} ➔ {x ≃ z}
 
 cong : Π f: Top. Π x: Top. Π y: Top. {x ≃ y} ➔ {f x ≃ f y}
   = λ f. λ x. λ y. λ eq. ρ eq - β.
+
+
+-- Theorems about equality
+-- ==================================================
+
+-- proof irrelevance (phrased for a theory with implicit products)
+ proofIrrel : ∀ x: Top. ∀ y: Top. {x ≃ y} ➾ {x ≃ y}
+ = Λ x. Λ y. Λ eq. ρ eq - β.

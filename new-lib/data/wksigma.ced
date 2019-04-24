@@ -1,0 +1,18 @@
+module wksigma.
+
+import ../core/top.
+
+data WkSigma (A: ★) (B: A ➔ ★) : ★ =
+  | wkpair : Π a: A. ∀ b: B a. WkSigma.
+
+WkPair : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. WkSigma ·A ·(λ _: A. B).
+
+wkfst : ∀ A: ★. ∀ B: A ➔ ★. WkSigma ·A ·B ➔ A
+= Λ A. Λ B. λ p. μ' p {
+  wkpair a -b ➔ a
+  }.
+
+wksnd : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★. Π p: WkSigma ·A ·B. (B (wkfst p) ➾ X) ➔ X
+= Λ A. Λ B. Λ X. λ p. μ' p {
+  wkpair a -b ➔ λ f. f -b
+  }.

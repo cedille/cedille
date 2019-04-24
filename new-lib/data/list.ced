@@ -4,6 +4,8 @@ import bool.
 import nat.
 import maybe.
 
+import ../core/id.
+
 data List (A: ★): ★ =
   | nil: List
   | cons: A ➔ List ➔ List.
@@ -76,3 +78,18 @@ dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
   }.
 
 drop = Λ A: ★. dropCV -(is/List ·A).
+
+-- List and Id
+idList : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ Id ·(List ·A) ·(List ·B)
+= Λ A. Λ B. Λ c.
+  [f : List ·A ➔ List ·B
+    = λ xs. μ rec. xs {
+      | nil ➔ nil ·B
+      | cons x xs ➔ cons (elimId -c x) (rec xs)
+    }]
+- [pf : Π xs: List ·A. {f xs ≃ xs}
+    = λ xs. μ ih. xs {
+      | nil ➔ β
+      | cons x xs ➔ ρ (ih xs) @ y. {cons x y ≃ cons x xs} - β
+      }]
+- intrId f pf.
