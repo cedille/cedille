@@ -1,6 +1,7 @@
 module data/nat-le.
 
 import ../nat.
+import ../sum.
 import ../decidable.
 import simple.
 import ../../core/bot.
@@ -19,21 +20,22 @@ Gt  : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. {gt  m n ≃ tt}.
 -- Basic theorems
 -- ==================================================
 
--- `succ n` is never lte `zero`
-lteSZ : Π m: Nat. Lte (succ m) zero ➔ Bot
+-- Π m, 1+ m ≰ 0
+lteSZ : Π m: Nat. Not ·(Lte (succ m) zero)
 = λ m. λ lte. δ - lte.
 
-ltNZ : Π m: Nat. Lt m zero ➔ Bot = lteSZ.
+-- Π m, m ≮ 0
+ltNZ : Π m: Nat. Not ·(Lt m zero) = lteSZ.
 
--- zero is lte every number
+-- Π m, 0 ≤ m
 lteZN : Π m: Nat. Lte zero m
 = λ m. β.
 
--- inversion of `succ`
+-- Π m n, 1+ m ≤ 1+ n → m ≤ n
 lteSInv : Π m: Nat. Π n: Nat. Lte (succ m) (succ n) ➔ Lte m n
 = λ m. λ n. λ eq. eq.
 
--- `succ` on rhs, `pred` on lhs
+-- Π m n, m ≤ n → m ≤ 1+ n
 lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
 = λ m. μ ih. m {
   | zero ➔ λ _. λ _. β
@@ -45,6 +47,7 @@ lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
     }
   }.
 
+-- Π m n, m ≤ n → m -1 ≤ n
 ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
 = λ m. μ' m {
   | zero ➔ λ _. Λ _. β
@@ -54,6 +57,7 @@ ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
     }
   }.
 
+-- Π m n, m ≰ n → m > n
 notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
 = λ m. μ ih. m {
   | zero ➔ λ n. λ neg. neg β ·(Gt zero n)
@@ -68,7 +72,7 @@ notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
 -- Lemmas
 -- ==================================================
 
--- `succ` on the left implies exists `succ` on the right
+-- Π m n, 1+ m ≤ n → ∃ x, 1+ x = n
 lteSLeftESRight : Π m: Nat. Π n: Nat. Lte (succ m) n ➔ ι x: Nat. {succ x ≃ n}
 = λ m. μ ih. m {
   | zero ➔ λ n. μ' n {
@@ -84,7 +88,7 @@ lteSLeftESRight : Π m: Nat. Π n: Nat. Lte (succ m) n ➔ ι x: Nat. {succ x �
     }
   }.
 
--- if Lte m n, then there is some x s.t. add x m ≃ n
+-- Π m n, m ≤ n → ∃ x, x + m = n
 lteEAdd : Π m: Nat. Π n: Nat. Lte m n ➔ ι x: Nat. {add x m ≃ n}
 = λ m. μ ih. m {
   | zero ➔ λ n. λ _. [ n , ρ (addZRight n) - β{n} ]
@@ -142,8 +146,22 @@ lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
 -- <N,Lte> is a *total* order
 -- ==================================================
 
--- lteDecidable : Π m: Nat. Π n: Nat. Decision ·(Lte m n)
--- = λ m. λ n. ●.
+lteDecidable : Π m: Nat. Π n: Nat. Decision ·(Lte m n)
+= λ m. μ ih. m {
+  | zero ➔ λ n. decYes β
+  | succ m ➔
+    [m' = to/Nat -isType/ih m]
+  - λ n. μ' n @λ x: Nat. Decision ·(Lte (succ m') x) {
+    | zero ➔ decNo (λ eq. δ - eq)
+    | succ n ➔ ih m n
+    }
+  }.
+
+lteOrGt : Π m: Nat. Π n: Nat. Sum ·(Lte m n) ·(Gt m n)
+= λ m. λ n. μ' (lteDecidable m n) {
+  | decYes pf ➔ in1 pf
+  | decNo npf ➔ in2 (notLteThenGt m n npf)
+  }.
 
 -- Theorems for minus, divide, rem
 -- ==================================================

@@ -10,6 +10,7 @@ import public ../core/view.
 
 import public ../data/bool.
 import public ../data/bool-thms.
+import public ../data/decidable.
 import public ../data/list.
 import public ../data/list-thms.
 import public ../data/maybe.

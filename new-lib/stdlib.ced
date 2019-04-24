@@ -9,6 +9,7 @@ import public core/tpeq.
 import public core/view.
 
 import public data/bool.
+import public data/decidable.
 import public data/list.
 import public data/maybe.
 import public data/nat.

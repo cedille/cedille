@@ -1,0 +1,10 @@
+module decidable.
+
+import ../core/bot.
+
+data Decision (A: ★): ★ =
+  | decYes : A ➔ Decision
+  | decNo  : Not ·A ➔ Decision.
+
+DecidableProp : Π X: ★. (X ➔ ★) ➔ ★
+= λ X: ★. λ P: X ➔ ★. Π x: X. Decision ·(P x).
