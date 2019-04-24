@@ -70,6 +70,15 @@ minusPLeft : Π m: Nat. Π n: Nat. {minus (pred m) n ≃ pred (minus m n)}
 minusSS : Π m: Nat. Π n: Nat. {minus (succ m) (succ n) ≃ minus m n}
   = λ m. λ n. ρ ς (minusPLeft (succ m) n) @ x. {x ≃ minus m n} - β.
 
+-- Π n, n - n = 0
+minusNNZ : Π n: Nat. {minus n n ≃ zero}
+= λ n. μ ih. n {
+  | zero ➔ β
+  | succ n ➔
+    [n' = to/Nat -isType/ih n]
+  - ρ (minusSS n' n') - ih n
+  }.
+
 minusZLeft : Π n: Nat. {minus zero n ≃ zero}
   = λ n. μ ih. n @(λ x: Nat. {minus zero x ≃ zero}) {
   | zero ➔ β
@@ -150,6 +159,7 @@ minusEq : Π m: Nat. Π n: Nat. {minus m n ≃ zero} ➾ {minus n m ≃ zero} �
     }
   }.
 
+{-
 -- equivalent to Sum ·{lte m n ≃ tt} ·{lt n m ≃ tt}
 lteDecide : Π m: Nat. Π n: Nat. Sum ·{minus m n ≃ zero} ·{minus (succ n) m ≃ zero}
   = λ m. μ lte1. m @(λ x: Nat. Π n: Nat. Sum ·{minus x n ≃ zero} ·{minus (succ n) x ≃ zero}) {

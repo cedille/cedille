@@ -1,6 +1,7 @@
 module data/nat-le.
 
 import ../nat.
+import ../decidable.
 import simple.
 import ../../core/bot.
 import ../../core/eq.
@@ -50,6 +51,17 @@ ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
   | succ m ➔ λ n. μ' n {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lte. lteSRight m n lte
+    }
+  }.
+
+notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
+= λ m. μ ih. m {
+  | zero ➔ λ n. λ neg. neg β ·(Gt zero n)
+  | succ m ➔
+    [m' = to/Nat -isType/ih m]
+  - λ n. μ' n @λ x: Nat. Not ·(Lte (succ m') x) ➔ Gt (succ m') x {
+    | zero ➔ λ neg. β
+    | succ n ➔ λ neg. ih m n neg
     }
   }.
 
@@ -126,6 +138,12 @@ lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
     - cong β{succ} β{m} β{n} eqMN
     }
   }.
+
+-- <N,Lte> is a *total* order
+-- ==================================================
+
+-- lteDecidable : Π m: Nat. Π n: Nat. Decision ·(Lte m n)
+-- = λ m. λ n. ●.
 
 -- Theorems for minus, divide, rem
 -- ==================================================
