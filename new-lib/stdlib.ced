@@ -13,7 +13,7 @@ import public data/decidable.
 import public data/list.
 import public data/maybe.
 import public data/nat.
-import public data/nat-cov.
+import public data/nat-cv.
 import public data/sigma.
 import public data/sum.
 import public data/unit.
