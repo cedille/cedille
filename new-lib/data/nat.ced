@@ -72,9 +72,6 @@ gt : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lte m n).
 
 gte : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lt m n).
 
-Lte : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lte m n ≃ tt }.
-Lt  : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lt  m n ≃ tt }.
-
 eq : Nat ➔ Nat ➔ Bool
 = λ m. μ eq. m {
   | zero   ➔ λ n. μ' n {zero ➔ tt | succ _ ➔ ff}

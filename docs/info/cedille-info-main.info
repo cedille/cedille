@@ -20,10 +20,10 @@ language and its implementation.
 * options::                      A description of the options file, holding some global settings for Cedille
 * roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
-* Index::                        Index to the documentation
+* documentation index::                        Index to the documentation
 
 
-File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: Index,  Up: Top
+File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: documentation index,  Up: Top
 
                                                  (version: development)
 
@@ -776,40 +776,70 @@ File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary buffer,  U
 
 Beta-reduce mode is a "beta-reduction explorer".  There are three ways
 to enter beta-reduce mode:
-  1. C-i b Enter beta-reduce mode with a prompted expression.  Copies
+  1. “C-i b” Enter beta-reduce mode with a prompted expression.  Copies
      global scope and local scope if a span is selected.
 
-  2. C-i B Enter beta-reduce mode with the selected span and its scope
+  2. “C-i B” Enter beta-reduce mode with selection and its scope
 
-  3. C-i t Enter beta-reduce mode with the selected span’s expected type
+  3. “C-i t” Enter beta-reduce mode with selection’s type/expected type
      and its scope
+
+– f/b/n/p/...  Regular cedille-mode navigation
+
+– C-i h Replace selection with its head normal form – C-i n Replace
+selection with its normal form – C-i u Only reduce selection by one
+step, then stop
+
+– C-i = Replace selection with some other expression, if βη-equal – C-i
+r Rewrite selection with a proof of some equation – C-i R If “C-i r”
+operates like a ρ term, this is a ρ+ term
+
+– C-i f Check some term (prompt) against the expression, which must be a
+type – C-i a Abstract the outermost binder (λ, ∀, Π) of the entire
+expression – C-i c Match upon some term (prompt), spawning another
+buffer for each case
+
+– C-i , Undo – C-i .  Redo
+
+– C-i p Print a proof of your work
 
 19 Controls
 ***********
 
+‘f/b/n/p/...’
+     Regular cedille-mode syntax navigation
+
 ‘C-i n’
-     Replace the selected span with its normalization
+     Replace selection with its normal form
 
 ‘C-i h’
-     Replace the selected span with its head-normalization
+     Replace selection with its head normal form
 
 ‘C-i u’
-     Perform a single reduction on the selected span
+     Only reduce selection by one step, then stop
 
 ‘C-i =’
-     Replace the selected span with a prompted expression, if
-     convertible
+     Replace selection with some other expression (prompt), if βη-equal
 
 ‘C-i r’
-     Synthesize an equational type from a prompted expression and
-     rewrite the selected span using it
+     Rewrite selection with a proof of some equation
 
 ‘C-i R’
-     Same as “C-i r”, but beta-reduces the selected span as it looks for
-     matches
+     If “C-i r” operates like a ρ term, this is like a ρ+ term: it
+     β-reduces as it looks for matches
+
+‘C-i f’
+     Fill this type with some term (prompt), if it type-checks
+
+‘C-i a’
+     Abstract the outermost binder (λ/∀/Π/➔/➾) of the entire expression
+
+‘C-i c’
+     Match upon some term (prompt), spawning another buffer for each
+     case
 
 ‘C-i p’
-     Reconstruct a proof from each step taken so far
+     Reconstruct a proof of your work from each step taken so far
 
 ‘C-i ,’
      Undo
@@ -1051,10 +1081,10 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: Index,  Next: about,  Prev: credits,  Up: Top
+File: cedille-info-main.info,  Node: documentation index,  Next: about,  Prev: credits,  Up: Top
 
-Index
-*****
+documentation index
+*******************
 
  [index ]
 * Menu:
@@ -1068,20 +1098,20 @@ Index
 
 Tag Table:
 Node: Top95
-Node: about1072
-Node: tooling13091
-Node: cedille mode commands18756
-Node: unicode shortcuts22178
-Node: extra buffers24367
-Node: inspect buffer25857
-Node: summary buffer27198
-Node: meta-vars buffer28157
-Node: beta-reduce mode29334
-Node: context buffer30597
-Node: options32770
-Node: roadmap34022
-Node: credits35240
-Node: Index36631
+Node: about1086
+Node: tooling13119
+Node: cedille mode commands18784
+Node: unicode shortcuts22206
+Node: extra buffers24395
+Node: inspect buffer25885
+Node: summary buffer27226
+Node: meta-vars buffer28185
+Node: beta-reduce mode29362
+Node: context buffer31627
+Node: options33800
+Node: roadmap35052
+Node: credits36270
+Node: documentation index37661
 
 End Tag Table
 

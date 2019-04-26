@@ -501,7 +501,7 @@ check-termi (Rho pi op on t NoGuide t') (just tp) =
         cont (just (TpEq pi' t1 t2 pi'')) tp = 
            get-ctxt λ Γ →
              let ns-err = optNums-to-stringset on
-                 x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+                 x = fresh-var Γ "x"
                  Γ' = ctxt-var-decl x Γ
                  qt = qualif-term Γ t
                  s = rewrite-type tp Γ' op (fst ns-err) (just qt) t1 x 0
@@ -522,7 +522,7 @@ check-termi (Rho pi op on t NoGuide t') nothing =
         cont (just (TpEq pi' t1 t2 pi'')) (just tp) = 
           get-ctxt λ Γ → 
             let ns-err = optNums-to-stringset on
-                x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+                x = fresh-var Γ "x"
                 qt = qualif-term Γ t
                 Γ' = ctxt-var-decl x Γ
                 s = rewrite-type tp Γ' op (fst ns-err) (just qt) t2 x 0
@@ -585,8 +585,8 @@ check-termi (Theta pi AbstractEq t ls) (just tp) =
                                       -- (expected-type Γ tp :: [ motive-label , [[ "We could not compute a motive from the given term" ]] , [] ]))))
         cont (just htp) tp =
            get-ctxt λ Γ → 
-             let x = (fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt) in
-             let motive = mtplam x (Tkt htp) (TpArrow (TpEq posinfo-gen t (mvar x) posinfo-gen) Erased tp) in
+             let x = fresh-var Γ "x"
+                 motive = mtplam x (Tkt htp) (TpArrow (TpEq posinfo-gen t (mvar x) posinfo-gen) Erased tp) in
                spanM-add (Theta-span Γ pi AbstractEq t ls checking (expected-type Γ tp :: [ the-motive Γ motive ]) nothing) ≫span 
                check-term (lterms-to-term AbstractEq (AppTp t (NoSpans motive (posinfo-plus (term-end-pos t) 1))) ls)
                  (just tp)
@@ -1948,8 +1948,8 @@ check-refinement T k Γ ss =
         then just "We could not compute a well-kinded motive"
         else nothing
 
-ctxt-mu-decls : indices → type → cases → ctxt-datatype-info → posinfo → posinfo → posinfo → var → spanM (𝕃 tagged-val)
-ctxt-mu-decls is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs) pi' pi'' pi''' x =
+ctxt-mu-decls : term → indices → type → cases → ctxt-datatype-info → posinfo → posinfo → posinfo → var → spanM (𝕃 tagged-val)
+ctxt-mu-decls t is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs) pi' pi'' pi''' x =
   get-ctxt λ Γ →
   let X' = mu-Type/ x
       xₘᵤ = mu-isType/ x
@@ -1968,7 +1968,7 @@ ctxt-mu-decls is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs) 
            ctxt-type-decl-no-qualif pi' X' k Γ
            --ctxt-datatype-def pi' X' [] kᵢ k (subst-ctrs
            --  (ctxt-type-decl pi' X' (indices-to-kind is star) Γ) cs') Γ
-      freshₓ = fresh-var "x" (ctxt-binds-var $ add-indices-to-ctxt is Γ') empty-renamectxt
+      freshₓ = fresh-var (add-indices-to-ctxt is Γ') (maybe-else "x" id (is-var (tterm t)))
       Tₓ = hnf Γ' (unfolding-elab unfold-head) (indices-to-alls is $ Abs posinfo-gen Pi posinfo-gen freshₓ (Tkt $ indices-to-tpapps is $ mtpvar qX') $ TpAppt (indices-to-tpapps is Tₘ) $ mapp (indices-to-apps is $ mappe (AppTp (flip apps-term asₚ $ mvar qXₜₒ) $ mtpvar qX') $ mvar $ qxₘᵤ) $ mvar freshₓ) ff
       Γ'' = ctxt-term-decl-no-qualif pi' x Tₓ Γ'
       e₂? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
@@ -2008,10 +2008,6 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
           return-when mtp (ret-tp [] as $ qualif-term Γ t)
         (just (cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs))) →
           let is = kind-to-indices Γ kᵢ
-              is' = drop-last 1 is
-              refine = refine-motive Γ (qualif-term Γ t) Xₒ is' (args-to-ttys asₚ) asᵢ
-              --mkspan = λ p3 → spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
-              --                  (fst $ snd p3) (snd $ snd p3)) ≫span spanMr p3
               no-motive = spanMr (nothing , [] ,
                             just "A motive is required when synthesizing") in
           (case Tₘ? of λ where
@@ -2019,10 +2015,10 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
               check-type Tₘ (just kᵢ) ≫span spanMr (just (qualif-type Γ Tₘ) , [] , nothing)
             NoType →
               spanMr mtp on-fail no-motive ≫=spanm' λ Tₑ →
-              let Tₘ = refine Tₑ in
+              let Tₘ = refine-motive Γ is (asᵢ ++ [ tterm (qualif-term Γ t) ]) Tₑ in
               check-refinement Tₘ kᵢ ≫=span λ p2 → spanMr (just Tₘ , p2))
           ≫=spanc λ Tₘ → uncurry λ tvs₁ e₁ → spanMr Tₘ ≫=spanr λ Tₘ →
-          let is = is'
+          let is = drop-last 1 is
               subst-ctr : ctxt → ctr → ctr
               subst-ctr = λ {Γ (Ctr pi x T) →
                 Ctr pi x $ flip (hnf Γ $ unfolding-elab unfold-head) ff $ maybe-else' x?
@@ -2030,7 +2026,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                   λ x → subst Γ (params-to-tplams ps $ mtpvar $ pi' % mu-Type/ x) Xₒ T}
               reduce-cs = map λ {(Ctr pi x T) → Ctr pi x $ hnf Γ (unfolding-elab unfold-head) T ff}
               cs' = reduce-cs $ maybe-else' x? (if Xₒ =string X then cs' else fcs X) λ x → fcs (mu-Type/ (pi' % x))
-              Γ' = maybe-else' x? (spanMr []) (ctxt-mu-decls is Tₘ cs d pi' pi'' pi''') in
+              Γ' = maybe-else' x? (spanMr []) (ctxt-mu-decls t is Tₘ cs d pi' pi'' pi''') in
           with-ctxt Γ (Γ' ≫=span λ bds → get-ctxt λ Γ' →
             (let cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))

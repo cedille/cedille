@@ -79,6 +79,8 @@ untyped-case-spans (Case pi x cas t) fₑ =
       eᵤ = just $ "This is not a valid constructor name"
       eₗ = just $ "Constructor's datatype has a different number of constructors than " ^ x'
       eᵢ = just $ "This constructor overlaps with " ^ x' in
+  spanM-add (pattern-span pi x cas) ≫span
+  spanM-add (pattern-clause-span pi t) ≫=span λ _ →
   case qual-lookup Γ x of λ where
     (just (as , ctr-def ps? T Cₗ cᵢ cₐ , _ , _)) →
       spanM-add (Var-span Γ pi x untyped [] $ fₑ Cₗ cᵢ) ≫span m ≫=span λ s →

@@ -69,8 +69,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "j") #'cedille-mode-br-jump)
-    (se-navi-define-key 'cedille-br-mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
-    (se-navi-define-key 'cedille-br-mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
+    (se-navi-define-key 'cedille-br-mode (kbd "c") (lambda () (interactive) (let ((se-mode-selected se-mode-selected) (se-mode-not-selected se-mode-not-selected)) (call-interactively (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))) (cedille-mode-update-buffers))) ; TODO: remove defs after undo, if they were added
+    (se-navi-define-key 'cedille-br-mode (kbd "C") (lambda () (interactive) (let ((se-mode-selected se-mode-selected) (se-mode-not-selected se-mode-not-selected)) (call-interactively (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))) (cedille-mode-update-buffers)))
     (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
     (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
     (se-navi-define-key 'cedille-br-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
@@ -95,8 +95,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "C-i R") #'cedille-mode-br-rewrite-plus)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i p") #'cedille-mode-br-print-outline)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i a") #'cedille-mode-br-abs)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-check-prompt)
-    (se-navi-define-key 'cedille-br-mode (kbd "C-i m") #'cedille-mode-br-match)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i f") #'cedille-mode-br-fill-prompt)
+    (se-navi-define-key 'cedille-br-mode (kbd "C-i c") #'cedille-mode-br-case)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i ,") #'cedille-mode-br-undo)
     (se-navi-define-key 'cedille-br-mode (kbd "C-i .") #'cedille-mode-br-redo)
     (se-navi-get-keymap 'cedille-br-mode)))
@@ -157,7 +157,6 @@
       (cedille-br-mode)
       (se-inf-start (get-buffer-process "*cedille-mode*"))
       (setq cedille-mode-parent-buffer parent
-            se-mode-not-selected se-mode-parse-tree
 	    se-inf-response-finished t
 	    cedille-mode-do-update-buffers t
 	    cedille-mode-br-in-buffer t
@@ -199,7 +198,6 @@
       (cedille-br-mode)
       (se-inf-start (get-buffer-process "*cedille-mode*"))
       (setq cedille-mode-parent-buffer parent
-            se-mode-not-selected se-mode-parse-tree
             se-inf-response-finished t
 	    cedille-mode-do-update-buffers nil
 	    cedille-mode-br-in-buffer t
@@ -220,12 +218,14 @@
   (setq cedille-mode-br-temp-str response)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (se-inf-interactive (cedille-mode-concat-sep "br" (cedille-mode-br-path) "parse") #'cedille-mode-br-process-response nil)
+  (se-inf-interactive (cedille-mode-concat-sep "br" (cedille-mode-br-path) "parse") #'cedille-mode-br-process-response span)
   nil)
 
 (defun cedille-mode-br-process-response (response extra)
   (when response
     (se-inf-process-response response (current-buffer))
+    (unless extra
+      (setq se-mode-not-selected (list (se-get-span (se-mode-parse-tree)))))
     (cedille-mode-matching-nodes-init))
   nil)
 
@@ -246,7 +246,7 @@
       (push-mark (cdr cedille-mode-br-range) t t)
       (se-mode-set-spans)
       (cedille-mode-select-parent 1))
-    (cedille-mode-br-check "" t))
+    (cedille-mode-br-fill "" t))
   (setq cedille-mode-br-range nil))  
 
 (defun cedille-mode-br-sync ()
@@ -263,7 +263,6 @@
 
 (defun cedille-mode-br-add-to-context (decls)
   "Adds a symbol and its type/kind to the global context"
-  ;(message "decls: %s" decls)
   (setq cedille-mode-global-context
         (cedille-mode-get-context (list (se-new-span "dummy" 0 0 (mapcar (lambda (decl) (if (string= (intern "binder") (car decl)) (cons (car decl) (cedille-mode-parse-binder (cdr decl))) decl)) decls))))))
 
@@ -520,18 +519,15 @@
     (se-inf-interactive
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "bind" x)
      (cedille-mode-response-macro
-      (lambda (response extra)
-        ;(message "response: %s" response)
+      (lambda (response top)
         (cedille-mode-br-add-to-context (list (cons 'binder (car response))))
-        (cedille-mode-br-response (cadr response) nil)
-; #'cedille-mode-br-response)
-        ))
-     nil)))
+        (cedille-mode-br-response (cadr response) nil top)))
+     top)))
 
 
-;;;;; Matching ;;;;;
+;;;;; Case Splitting ;;;;;
 
-(defun cedille-mode-br-match (scrutinee)
+(defun cedille-mode-br-case (scrutinee)
   "Case split over a scrutinee (currently, must be a datatype)"
   (interactive "MScrutinee: ")
   (let ((rec (call-interactively
@@ -542,29 +538,28 @@
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "case" scrutinee rec)
      (cedille-mode-response-macro
       (lambda (response extra)
-        ;(message "response-cadr: %s" response)
         (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (cadr tv))) (car response)))
-        (cedille-mode-br-match-response (cadr response))
+        (cedille-mode-br-case-response (cadr response))
         ))
      nil)))
 
-(defun cedille-mode-br-match-response (response)
-  (let ((n 0))
-    (loop for (key . val) in response
+(defun cedille-mode-br-case-response (response)
+  (let ((n (length response)))
+    (loop for (key . val) in (reverse response)
           do (progn
+               (decf n)
                (cedille-mode-br-spawn-buffer
-                val (cons (number-to-string n) cedille-mode-br-path))
-               (incf n)))))
+                val (cons (number-to-string n) cedille-mode-br-path))))))
 
 
 ;;;;; Checking ;;;;;
 
-(defun cedille-mode-br-check-prompt (qed)
-  "Check qed against the expression (which needs to be a type or a kind)"
-  (interactive "MCheck with: ")
-  (cedille-mode-br-check qed))
+(defun cedille-mode-br-fill-prompt (qed)
+  "Check some term/type against the expression, which must be either a type or a kind"
+  (interactive "MFill with: ")
+  (cedille-mode-br-fill qed))
 
-(defun cedille-mode-br-check (qed &optional suppress-err)
+(defun cedille-mode-br-fill (qed &optional suppress-err)
   "If `cedille-mode-br-column' is non-nil, check if the expected type matches the actual type"
   (cedille-mode-br-clear-check)
   (when cedille-mode-br-column
@@ -573,11 +568,11 @@
          (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check")
        (cedille-mode-concat-sep "br" (cedille-mode-br-path) "check" qed))
      (if suppress-err
-         (cedille-mode-response-macro-suppress-err #'cedille-mode-br-check-response)
-       (cedille-mode-response-macro #'cedille-mode-br-check-response))
+         (cedille-mode-response-macro-suppress-err #'cedille-mode-br-fill-response)
+       (cedille-mode-response-macro #'cedille-mode-br-fill-response))
      suppress-err)))
 
-(defun cedille-mode-br-check-response (response suppress-msg &optional span)
+(defun cedille-mode-br-fill-response (response suppress-msg &optional span)
   "Handles response from backend, after a query as to whether a term checks against the current expression"
   (cedille-mode-br-does-check)
   (when cedille-mode-br-parent
@@ -586,8 +581,10 @@
              `(lambda ()
                 (and ,@(mapcar
                         (lambda (child)
-                          (with-current-buffer child
-                            cedille-mode-br-checks))
+                          (if (buffer-live-p child)
+                              (with-current-buffer child
+                                cedille-mode-br-checks)
+                            t))
                         cedille-mode-br-children))))
         (cedille-mode-br-does-check))))
   (unless suppress-msg

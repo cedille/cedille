@@ -6,39 +6,51 @@
 
 Beta-reduce mode is a "beta-reduction explorer". There are three ways to enter beta-reduce mode:
 @enumerate
-@item C-i b
+@item ``C-i b''
 Enter beta-reduce mode with a prompted expression. Copies global scope and local scope if a span is selected.
 
-@item C-i B
-Enter beta-reduce mode with the selected span and its scope
+@item ``C-i B''
+Enter beta-reduce mode with selection and its scope
 
-@item C-i t
-Enter beta-reduce mode with the selected span's expected type and its scope
+@item ``C-i t''
+Enter beta-reduce mode with selection's type/expected type and its scope
 @end enumerate
 
 @chapter Controls
 @table @command
 
+@item f/b/n/p/...
+Regular cedille-mode syntax navigation
+
 @item C-i n
-Replace the selected span with its normalization
+Replace selection with its normal form
 
 @item C-i h
-Replace the selected span with its head-normalization
+Replace selection with its head normal form
 
 @item C-i u
-Perform a single reduction on the selected span
+Only reduce selection by one step, then stop
 
 @item C-i =
-Replace the selected span with a prompted expression, if convertible
+Replace selection with some other expression (prompt), if βη-equal
 
 @item C-i r
-Synthesize an equational type from a prompted expression and rewrite the selected span using it
+Rewrite selection with a proof of some equation
 
 @item C-i R
-Same as ``C-i r'', but beta-reduces the selected span as it looks for matches
+If ``C-i r'' operates like a ρ term, this is like a ρ+ term: it β-reduces as it looks for matches
+
+@item C-i f
+Fill this type with some term (prompt), if it type-checks
+
+@item C-i a
+Abstract the outermost binder (λ/∀/Π/➔/➾) of the entire expression
+
+@item C-i c
+Match upon some term (prompt), spawning another buffer for each case
 
 @item C-i p
-Reconstruct a proof from each step taken so far
+Reconstruct a proof of your work from each step taken so far
 
 @item C-i ,
 Undo

@@ -18,11 +18,11 @@ data datatype : Set where
 {-# TERMINATING #-}
 decompose-arrows : ctxt → type → params × type
 decompose-arrows Γ (Abs pi me pi' x atk T) =
-  let x' = fresh-var-new Γ x in
+  let x' = fresh-var Γ x in
   case decompose-arrows (ctxt-var-decl x' Γ) (rename-var Γ x x' T) of λ where
     (ps , T') → Decl posinfo-gen posinfo-gen me x' atk posinfo-gen :: ps , T'
 decompose-arrows Γ (TpArrow T me T') =
-  let x = fresh-var-new Γ "x" in
+  let x = fresh-var Γ "x" in
   case decompose-arrows (ctxt-var-decl x Γ) T' of λ where
     (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
 decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
@@ -36,19 +36,40 @@ decompose-ctr-type Γ T with decompose-arrows Γ T
 {-# TERMINATING #-}
 kind-to-indices : ctxt → kind → indices
 kind-to-indices Γ (KndArrow k k') =
-  let x' = fresh-var-new Γ "x" in
+  let x' = fresh-var Γ "X" in
   Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl x' Γ) k'
 kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
 kind-to-indices Γ (KndPi pi pi' x atk k) =
-  let x' = fresh-var-new Γ x in
+  let x' = fresh-var Γ x in
   Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) (rename-var Γ x x' k)
 kind-to-indices Γ (KndTpArrow T k) =
-  let x' = fresh-var-new Γ "x" in
+  let x' = fresh-var Γ "x" in
   Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl x' Γ) k
 kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
 ...| nothing = []
 ...| just (ps , k) = kind-to-indices Γ $ fst $ subst-params-args Γ ps as k
 kind-to-indices Γ (Star pi) = []
+
+rename-indices-h : ctxt → renamectxt → indices → 𝕃 tty → indices
+rename-indices-h Γ ρ (Index x atk :: is) (ty :: tys) =
+  Index x' atk' ::
+    rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is tys
+  where
+--  get-var : tty → var
+--  get-var (tterm (Var _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
+--  get-var (ttype (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
+  get-var = maybe-else (fresh-var Γ x) id ∘ is-var-unqual
+  x' = fresh-h (renamectxt-in-field ρ) $ get-var ty
+  atk' = subst-renamectxt Γ ρ atk
+rename-indices-h Γ ρ (Index x atk :: is) [] =
+  let x' = fresh-var-renamectxt Γ ρ x in
+  Index x' (subst-renamectxt Γ ρ atk) ::
+    rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is []
+rename-indices-h _ _ [] _ = []
+
+rename-indices : ctxt → indices → 𝕃 tty → indices
+rename-indices Γ = rename-indices-h Γ empty-renamectxt
+
 
 tk-erased : tk → maybeErased → maybeErased
 tk-erased (Tkk _) me = Erased
@@ -118,6 +139,11 @@ params-to-tpapps : params → (body : type) → type
 params-to-tpapps = flip $ foldl λ where
   (Decl pi pi' me x (Tkt T) pi'') T' → TpAppt T' (mvar x)
   (Decl pi pi' me x (Tkk k) pi'') T  → TpApp  T  (mtpvar x)
+
+params-to-caseArgs : params → caseArgs
+params-to-caseArgs = map λ where
+  (Decl pi pi' me x (Tkt T) pi'') → CaseTermArg pi' me x
+  (Decl pi pi' me x (Tkk k) pi'') → CaseTypeArg pi' x
 
 ctrs-to-lams' : ctrs → (body : term) → term
 ctrs-to-lams' = flip $ foldr λ where

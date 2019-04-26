@@ -1,0 +1,25 @@
+module everything.
+
+import public ../core/bot.
+import public ../core/eq.
+import public ../core/id.
+import public ../core/rec.
+import public ../core/top.
+import public ../core/tpeq.
+import public ../core/view.
+
+import public ../data/bool.
+import public ../data/bool-thms.
+import public ../data/list.
+import public ../data/list-thms.
+import public ../data/maybe.
+import public ../data/nat.
+import public ../data/nat-cov.
+import public ../data/nat-thms.
+import public ../data/sigma.
+import public ../data/sigma-thms.
+import public ../data/sum.
+import public ../data/unit.
+import public ../data/vec.
+import public ../data/vec-thms.
+import public ../data/wksigma.

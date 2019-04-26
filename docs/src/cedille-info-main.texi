@@ -23,7 +23,7 @@ This is the @i{@cedilleversion} version of the documentation for the Cedille lan
 * options::                      A description of the options file, holding some global settings for Cedille 
 * roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
-* Index::                        Index to the documentation
+* documentation index::                        Index to the documentation
 @end menu
 
 @include about.texi
@@ -52,8 +52,8 @@ This is the @i{@cedilleversion} version of the documentation for the Cedille lan
 
 @include credits.texi
 
-@node Index,about,credits,Top
-@unnumbered Index
+@node documentation index,about,credits,Top
+@unnumbered documentation index
 
 @printindex cp
 

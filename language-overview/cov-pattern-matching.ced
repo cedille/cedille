@@ -1,7 +1,7 @@
 module cov-pattern-matching.
 
--- You are encouraged to read the description of the file below before
--- continuing to read this one.
+-- You are encouraged to read the documentaion in the file below on datatypes
+-- before continuing to read this one.
 import datatypes.
 
 {- Course-of-values Recursion

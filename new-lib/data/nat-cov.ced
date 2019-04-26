@@ -6,7 +6,7 @@ import bool.
 
 divCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
   = Λ N. Λ is. λ m. λ n.
-    [m' = to/Nat -is m] - [x = leEAdd -(div m' n) -m' (leDiv m' n)]
+    [m' = to/Nat -is m] - [x = lteEAdd (div m' n) m' (lteDiv m' n)]
   - [eq : {minus m x ≃ div m n}
       = ρ (ς x.2)                      @ z. {minus z x ≃ div m n}
       - ρ (minusAddCancel x.1 (div m' n)) @ z. {z ≃ div m n}
@@ -15,7 +15,7 @@ divCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
 
 remCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
   = Λ N. Λ is. λ m. λ n.
-    [m' = to/Nat -is m] - [x = leEAdd -(rem m' n) -m' (leRem m' n)]
+    [m' = to/Nat -is m] - [x = lteEAdd (rem m' n) m' (lteRem m' n)]
   - [eq : {minus m x ≃ rem m n}
       = ρ (ς x.2)                      @ z. {minus z x ≃ rem m n}
       - ρ (minusAddCancel x.1 (rem m' n)) @ x. {x ≃ rem m n}

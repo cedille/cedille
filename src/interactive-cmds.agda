@@ -329,7 +329,7 @@ private
       ll-type _ → inj₁ "Expected the input expression to be a term, but got a type"
       ll-kind _ → inj₁ "Expected the input expression to be a term, but got a kind")
     ≫=⊎ uncurry λ t₁ t₂ →
-    let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+    let x = fresh-var Γ "x"
         f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
               subst subst subst ll Γ t₂ x in
     case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
@@ -463,7 +463,13 @@ private
     outline (br-node (mk-br-history Γ t ll-type T Tₛ f undo redo) []) = f (Chi pi-gen (SomeType T) t) []
     outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) []) = f t []
     outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) hs) = f t (map (uncurry λ c h → c , outline h) hs)
-{-      f $ Mu' pi-gen NoTerm t NoType pi-gen (map (λ {(Ctr _ x T , h) → case decompose-ctr-type Γ (hnf Γ (unfolding-elab unfold-head) T tt) of λ {(Tₕ , ps , as) → Case pi-gen x (map (λ {(Decl _ _ me x atk _) → if tk-is-type atk then CaseTermArg pi-gen me x else CaseTypeArg pi-gen x}) ps) $ params-to-apps ps $ outline h}}) hs) pi-gen-}
+
+    make-case : ctxt → params → term → caseArgs × term
+    make-case = h [] where
+      h : params → ctxt → params → term → caseArgs × term
+      h acc Γ (Decl pi pi' me x atk pi'' :: ps) (Lam _ me' _ x' oc' t') =
+        h (Decl pi pi' me x' atk pi'' :: acc) (ctxt-var-decl x' Γ) (substh-params {TERM} Γ (renamectxt-single x x') empty-trie ps) t'
+      h acc Γ ps t = params-to-caseArgs (reverse acc ++ ps) , params-to-apps ps t
 
     await : br-history2 → IO ⊤
     awaith : br-history2 → 𝕃 string → IO ⊤
@@ -543,7 +549,7 @@ private
                    is-eq-tp? Tₑ
                      ! "Synthesized a non-equational type from the input term" ≫error λ Tₑ →
                    let mk-eq-tp! t₁ t₂ _ _ = Tₑ
-                       x = fresh-var-new Γ' ignored-var
+                       x = fresh-var Γ' ignored-var
                        eq = qualif-term Γ' eqₒ
                        Tₗ = qualif-ed Γ' Tₗ in
                    elim-pair (map-snd snd $ rewrite-ed Tₗ Γ' ρ+? nothing (just eq) t₁ x 0) λ Tᵣ n →
@@ -650,9 +656,8 @@ private
                            λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k cs σ = d
                                      is' = kind-to-indices (add-params-to-ctxt ps Γ) kᵢ
                                      is = drop-last 1 is'
-                                     Tₘ = refine-motive Γ (qualif-term Γ scrutinee) X is
-                                            (args-to-ttys asₚ) asᵢ T
-                                     sM' = ctxt-mu-decls is Tₘ [] d "0" "0" "0" rec Γ empty-spans
+                                     Tₘ = refine-motive Γ is' (asᵢ ++ [ tterm (qualif-term Γ scrutinee) ]) T
+                                     sM' = ctxt-mu-decls scrutinee is Tₘ [] d "0" "0" "0" rec Γ empty-spans
                                      sM = if rec =string ""
                                              then ([] , Γ , empty-spans)
                                              else sM'
@@ -693,13 +698,14 @@ private
                          (Ctr _ x T , t) →
                            let T' = hnf Γ (unfolding-elab unfold-head) T tt in
                            case decompose-ctr-type Γ T' of λ where
-                             (Tₕ , ps , as) →
+                             (Tₕ , ps , as) →{-
                                let mf = map λ where
                                           (Decl _ _ me x atk _) →
                                             if tk-is-type atk
                                               then CaseTermArg pi-gen me x
                                               else CaseTypeArg pi-gen x in
-                               Case pi-gen x (mf ps) $ params-to-apps ps t
+                               Case pi-gen x (mf ps) $-}
+                               elim-pair (make-case Γ ps t) $ Case pi-gen x
                        f'' = λ t cs → if shallow
                          then Mu' pi-gen NoTerm t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
                          else Mu pi-gen pi-gen rec t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen

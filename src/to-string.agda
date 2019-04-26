@@ -398,7 +398,7 @@ term-to-stringh (Let pi fe dtT t) = let-to-string fe dtT (to-stringh t)
 term-to-stringh (Open pi o pi' x t) = strBreak 2 0 (strAdd (if o iff OpacTrans then "open " else "close ") ≫str strVar x ≫str strAdd " -") 2 (to-stringh t)
 term-to-stringh (Parens pi t pi') = to-stringh t
 term-to-stringh (Phi pi eq t t' pi') = strBreak 3 0 (strAdd "φ " ≫str to-stringl eq ≫str strAdd " -") 2 (to-stringh t) 2 (strAdd "{ " ≫str to-stringr t' ≫str strAdd " }")
-term-to-stringh (Rho pi op on eq og t) = strBreak' ((0 , strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on) :: (4 , to-stringl eq) :: (optGuide-to-string og) ++ [ 2 , strAdd "- " ≫str to-stringr t ])
+term-to-stringh (Rho pi op on eq og t) = strBreak' ((0 , strAdd "ρ" ≫str strAdd (optPlus-to-string op) ≫str optNums-to-string on) :: (4 , to-stringl eq) :: (optGuide-to-string og) ++ [ 1 , strAdd "- " ≫str strNest 2 (to-stringr t) ])
 term-to-stringh (Sigma pi t) = strAdd "ς " ≫str to-stringh t
 term-to-stringh (Theta pi theta t lts) = theta-to-string theta ≫str to-stringh t ≫str lterms-to-string lts
 term-to-stringh (Var pi x) = strVar x
@@ -443,7 +443,7 @@ lterms-to-string (Lterm m t :: ts) = strAdd (" " ^ maybeErased-to-string m) ≫s
 lterms-to-string [] = strEmpty
 arg-to-string (TermArg Erased t) = strAdd "-" ≫str strNest 1 (to-stringh t)
 arg-to-string (TermArg NotErased t) = to-stringh t
-arg-to-string (TypeArg T) = strAdd "· " ≫str strNest 2 (to-stringh T)
+arg-to-string (TypeArg T) = strAdd "·" ≫str strNest 2 (to-stringh T)
 args-to-string = foldr' strEmpty λ t x → strAdd " " ≫str arg-to-string t ≫str x
 binder-to-string All = "∀"
 binder-to-string Pi = "Π"
@@ -494,7 +494,7 @@ cases-to-string = h use-newlines where
 
 caseArgs-to-string [] m = m
 caseArgs-to-string (CaseTermArg pi me x :: as) m = strAdd (" " ^ maybeErased-to-string me) ≫str strBvar x strEmpty (caseArgs-to-string as m)
-caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " · " ≫str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseTypeArg pi x :: as) m = strAdd " ·" ≫str strBvar x strEmpty (caseArgs-to-string as m)
 
 let-to-string fe (DefTerm _ x m t') t = strBreak' $
   (1 , strAdd (bracketL fe) ≫str strAdd (unqual-local x)) ::
@@ -548,23 +548,31 @@ cmds-to-string (c :: cs) f =
    strAdd nl ≫str
    cmds-to-string cs f)
   
-cmd-to-string (DefTermOrType op (DefTerm pi x mcT t) _) f =
+cmd-to-string (DefTermOrType op (DefTerm pi x NoType t) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
       ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
   strBreak'
-    ((2 , strAdd (opacity-to-string op) ≫str strAdd x) ::
-     optType-to-string 4 (just ':') (optType-map mcT $ abs-expand-type ps') ++
-     [ 2 , strAdd "= " ≫str to-stringh (lam-expand-term ps' t) ≫str strAdd " ." ]) ≫str
+    ( (0 , strAdd (opacity-to-string op) ≫str strAdd x ≫str strAdd " =") ::
+     [ 2 , to-stringh (lam-expand-term ps' t) ≫str strAdd " ." ]) ≫str
+  strΓ' globalScope x f
+cmd-to-string (DefTermOrType op (DefTerm pi x (SomeType T) t) _) f =
+  strM-Γ λ Γ →
+  let ps = ctxt-get-current-params Γ
+      ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
+  strBreak'
+    (( 2 , strAdd (opacity-to-string op) ≫str strAdd x ≫str strAdd " :" ) ::
+     ( 4 , to-stringh (abs-expand-type ps' T)           ≫str strAdd " =" ) ::
+     [ 2 , to-stringh (lam-expand-term ps' t)           ≫str strAdd " ." ]) ≫str
   strΓ' globalScope x f
 cmd-to-string (DefTermOrType op (DefType pi x k T) _) f =
   strM-Γ λ Γ →
   let ps = ctxt-get-current-params Γ
       ps' = if pi =string elab-hide-key then params-set-erased Erased ps else ps in
   strBreak'
-    ((2 , strAdd (opacity-to-string op) ≫str strAdd x) ::
-     (4 , strAdd ": " ≫str to-stringh (abs-expand-kind ps' k)) ::
-     [ 2 , strAdd "= " ≫str to-stringh (lam-expand-type ps' T) ≫str strAdd " ." ]) ≫str
+    (( 2 , strAdd (opacity-to-string op) ≫str strAdd x ≫str strAdd " :" ) ::
+     ( 4 , to-stringh (abs-expand-kind ps' k)           ≫str strAdd " =" ) ::
+     [ 2 , to-stringh (lam-expand-type ps' T)           ≫str strAdd " ." ]) ≫str
   strΓ' globalScope x f
 cmd-to-string (DefKind pi x ps k _) f =
   strM-Γ λ Γ →
@@ -576,11 +584,11 @@ cmd-to-string (DefKind pi x ps k _) f =
    strAdd " .") ≫str
   strΓ' globalScope x f
 cmd-to-string (ImportCmd (Import _ op _ fn oa as _)) f =
-  strAdd "import " ≫str
-  strAdd (optPublic-to-string op) ≫str
-  strAdd fn ≫str
-  optAs-to-string oa ≫str
-  strList 2 (strEmpty :: map arg-to-string as) ≫str
+  let m = strAdd "import " ≫str
+          strAdd (optPublic-to-string op) ≫str
+          strAdd fn ≫str
+          optAs-to-string oa in
+  strList 2 (m :: map arg-to-string as) ≫str
   strAdd " ." ≫str
   f
 cmd-to-string (DefDatatype (Datatype pi pi' x ps k cs ) pi'') f =
