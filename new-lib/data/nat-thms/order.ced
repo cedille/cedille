@@ -179,6 +179,17 @@ lteMinus : Π m: Nat. Π n: Nat. Lte (minus m n) m
     }
   } m.
 
+lteHalf : Π b: Bool. Π m: Nat. Lte (halfGen b m) m
+= λ b. λ m. μ ih. m {
+  | zero ➔ β
+  | succ m ➔ μ' m {
+    | zero ➔ μ' b {tt ➔ β | ff ➔ β}
+    | succ m ➔
+      [m' = to/Nat -isType/ih m]
+    - lteSRight (halfGen b m') m' (ih m)
+    }
+  }.
+
 lteDiv : Π m: Nat. Π n: Nat. Lte (div m n) m
 = λ m. μ ih. m {
   | zero ➔ λ n. β
