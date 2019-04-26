@@ -7,6 +7,7 @@ open import constants
 open import ctxt-types
 open import is-free
 open import syntax-util
+open import general-util
 
 renamectxt : Set
 renamectxt = stringset × trie string  {- the trie maps vars to their renamed versions, 
@@ -46,9 +47,41 @@ renamectxt-rep r x | just x' = x'
 eq-var : renamectxt → string → string → 𝔹
 eq-var r x y = renamectxt-rep r x =string renamectxt-rep r y
 
+{-# NON_TERMINATING #-}
+fresh' : (var → 𝔹) → ℕ → var → var
+fresh' bound n base with base ^ ℕ-to-string n
+...| x with bound x
+...| tt = fresh' bound (suc n) base
+...| ff = x
+
+fresh-h : (var → 𝔹) → var → var
+fresh-h bound x =
+  if ~ bound x'
+    then x'
+    else uncurry (fresh' bound) (fresh-split [] (reverse (string-to-𝕃char x')))
+  where
+  x' = if x =string ignored-var then "x" else x
+
+  to-num : 𝕃 char → ℕ
+  to-num [] = 1
+  to-num ns = string-to-ℕ0 (𝕃char-to-string ns)
+
+  fresh-split : 𝕃 char → 𝕃 char → ℕ × var
+  fresh-split ns [] = to-num ns , ""
+  fresh-split ns (c :: cs) with is-digit c
+  ...| tt = fresh-split (c :: ns) cs
+  ...| ff = to-num ns , 𝕃char-to-string (reverse (c :: cs))
+
+fresh-var : ctxt → var → var
+fresh-var = fresh-h ∘' ctxt-binds-var
+
+fresh-var-renamectxt : ctxt → renamectxt → var → var
+fresh-var-renamectxt Γ ρ = fresh-h λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x
+{-
 pick-new-name : string → string
 pick-new-name x = x ^ "'"
-
+-}
+{-
 {- rename-away-from x g r rename the variable x to be some new name (related to x)
    which does not satisfy the given predicate on names (assuming this is possible),
    and is not in the domain of the renamectxt . -}
@@ -67,11 +100,12 @@ fresh-var = rename-away-from
 fresh-var-new : ctxt → var → var
 fresh-var-new Γ ignored-var = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
 fresh-var-new Γ x = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
+-}
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 
   if is-free-in check-erased y t || renamectxt-in-range ρ y then 
-    rename-away-from y (ctxt-binds-var Γ) ρ
+    fresh-var-renamectxt Γ ρ y --rename-away-from y (ctxt-binds-var Γ) ρ
   else
     y
 

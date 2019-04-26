@@ -3,6 +3,7 @@ module rewriting where
 open import lib
 
 open import cedille-types
+open import constants
 open import conversion
 open import ctxt
 open import general-util
@@ -12,6 +13,7 @@ open import rename
 open import subst
 open import syntax-util
 open import erase
+open import datatype-functions
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =
@@ -28,8 +30,8 @@ rewrite-head-types-match{KIND} Γ σ (KndVar _ x as) (KndVar _ x' as') = x =stri
 rewrite-head-types-match Γ σ T T' = tt
 
 rewrite-t : Set → Set
-rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) →
-              (eq left : term) → (right : var) → (total-matches : ℕ) →
+rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : maybe term) →
+              (left : term) → (right : var) → (total-matches : ℕ) →
               T {- Returned value -} ×
               ℕ {- Number of rewrites actually performed -} ×
               ℕ {- Total number of matches, including skipped ones -}
@@ -71,7 +73,7 @@ rewrite-abs x x' g a Γ = let Γ = ctxt-var-decl x' Γ in g (rename-var Γ x x' 
 rewrite-term t Γ op on eq t₁ t₂ sn =
   case rewrite-terma (erase-term t) Γ op on eq t₁ t₂ sn of λ where
     (t' , 0 , sn') → t , 0 , sn'
-    (t' , n , sn') → rewrite-mk-phi t₂ eq t t' , n , sn'
+    (t' , n , sn') → maybe-else' eq t' (λ eq → rewrite-mk-phi t₂ eq t t') , n , sn'
 
 rewrite-terma t Γ op on eq t₁ t₂ sn =
   case conv-term Γ t t₁ of λ where
@@ -323,3 +325,106 @@ rewrite-ath Γ x eq ff T1 T2 = T1
 
 hnf-ctr : ctxt → var → type → type
 hnf-ctr Γ x T = rewrite-at Γ x nothing tt (hnf Γ (unfolding-elab unfold-head) T ff) $ hnf Γ (unfolding-elab unfold-all) T tt
+
+
+
+{-# TERMINATING #-}
+refine-term : ctxt → tty → var → term → term
+refine-type : ctxt → tty → var → type → type
+refine-typeh : ctxt → tty → var → type → type
+refine-kind : ctxt → tty → var → kind → kind
+refine-tk : ctxt → tty → var → tk → tk
+
+refine-tk Γ fm to tk =
+  tk-map tk (refine-type Γ fm to) (refine-kind Γ fm to)
+
+refine-term Γ (ttype T) to t = t
+refine-term Γ (tterm t') to t with rewrite-term t Γ ff nothing nothing t' to 0
+...| t'' , zero , _ = t
+...| t'' , suc _ , _ = t''
+
+refine-type Γ fm to T with case fm of λ {(ttype T') → conv-type Γ T T'; _ → ff}
+...| tt = TpVar pi-gen to
+...| ff = refine-typeh Γ fm to T
+
+refine-typeh Γ fm to (Abs pi b pi' x atk T) =
+  let x' = fresh-var Γ x in 
+  Abs pi b pi' x' (refine-tk Γ fm to atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
+refine-typeh Γ fm to (Iota pi pi' x T T') =
+  let x' = fresh-var Γ x in
+  Iota pi pi' x' (refine-type Γ fm to T) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T'))
+refine-typeh Γ fm to (Lft pi pi' x t l) =
+  let x' = fresh-var Γ x in
+  Lft pi pi' x' (refine-term Γ fm to (rename-var Γ x x' t)) l
+refine-typeh Γ fm to (TpApp T T') =
+   TpApp (refine-type Γ fm to T) (refine-type Γ fm to T')
+refine-typeh Γ fm to (TpAppt T t) =
+   TpAppt (refine-type Γ fm to T) (refine-term Γ fm to t)
+refine-typeh Γ fm to (TpEq pi t₁ t₂ pi') =
+  TpEq pi (refine-term Γ fm to t₁) (refine-term Γ fm to t₂) pi'
+refine-typeh Γ fm to (TpLambda pi pi' x atk T) =
+  let x' = fresh-var Γ x in
+  TpLambda pi pi' x' (refine-tk Γ fm to atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
+refine-typeh Γ fm to (TpArrow T a T') =
+  TpArrow (refine-type Γ fm to T) a (refine-type Γ fm to T')
+refine-typeh Γ fm to (TpLet pi (DefTerm pi' x T t) T') =
+  refine-type Γ fm to (subst Γ (Chi posinfo-gen T t) x T')
+refine-typeh Γ fm to (TpLet pi (DefType pi' x k T) T') =
+  refine-type Γ fm to (subst Γ T x T')
+refine-typeh Γ fm to (TpParens _ T _) = refine-type Γ fm to T
+refine-typeh Γ fm to (NoSpans T _) = refine-type Γ fm to T
+refine-typeh Γ fm to (TpHole pi) =  TpHole pi
+refine-typeh Γ fm to (TpVar pi x) = TpVar pi x
+
+refine-kind Γ fm to (KndArrow k k') = KndArrow (refine-kind Γ fm to k) (refine-kind Γ fm to k')
+refine-kind Γ fm to (KndParens pi k pi') = refine-kind Γ fm to k
+refine-kind Γ fm to (KndPi pi pi' x atk k) =
+  let x' = fresh-var Γ x in
+  KndPi pi pi' x (refine-tk Γ fm to atk) (refine-kind (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' k))
+refine-kind Γ fm to (KndTpArrow T k) = KndTpArrow (refine-type Γ fm to T) (refine-kind Γ fm to k)
+refine-kind Γ fm to (KndVar pi k as) with hnf Γ unfold-head (KndVar pi k as) tt
+...| KndVar _ _ _ = KndVar pi k as
+...| k' = refine-kind Γ fm to k'
+refine-kind Γ fm to (Star pi) = Star pi
+
+refine-motive : ctxt → indices → (asᵢ : 𝕃 tty) → (expected : type) → type
+refine-motive Γ is as = --recompose-tpapps as ∘ indices-to-tplams (rename-indices Γ is as)
+  foldr
+    (λ where
+      (Index x atk , ty) f Γ T →
+        let body = f (ctxt-var-decl x Γ) $ refine-type (ctxt-var-decl x Γ) ty x T
+            x' = x in --if is-free-in check-erased x body then x else ignored-var in
+        TpLambda pi-gen pi-gen x' atk body)
+    (λ Γ T → T) (zip (rename-indices Γ is as) as) Γ
+
+-- Given a context, the (qualified) scrutinee, the (qualified) datatype name,
+-- the datatype's indices, the arguments for module parameter instantiation,
+-- the arguments for the indices in the type of the scrutinee, and the expected type,
+-- calculate a possibly ill-typed motive that is approximately abstracted over the
+-- indices and the scrutinee itself.
+{-
+refine-motive : ctxt → (scrutinee : term) → (datatype-name : var) → indices → (mod-as : 𝕃 tty) → (idx-as : 𝕃 tty) → (expected : type) → type
+refine-motive Γ t name is asₚ asᵢ =
+  let x = fresh-var (add-indices-to-ctxt is Γ) "x"
+      atkₓ = Tkt $ indices-to-tpapps is $ recompose-tpapps asₚ $ TpVar pi-gen name
+      as' = asᵢ ++ [ tterm t ]
+      is' = rename? Γ empty-renamectxt (is ++ [ Index x atkₓ ]) as'
+      as = zip is' as' in
+  foldr
+    (λ where
+      (Index x atk , ty) f Γ T →
+        TpLambda pi-gen pi-gen x atk $ f (ctxt-var-decl x Γ) $
+          refine-type (ctxt-var-decl x Γ) ty x T)
+    (λ Γ T → T) as Γ
+  where
+  get-var : var → tty → var
+  get-var x (tterm (Var _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
+  get-var x (ttype (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
+  get-var x _ = x
+
+  rename? : ctxt → renamectxt → indices → 𝕃 tty → indices
+  rename? Γ ρ (Index x atk :: is) (ty :: tys) =
+    let x' = get-var x ty in
+    Index x' (subst-renamectxt Γ ρ atk) :: rename? (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is tys
+  rename? _ _ _ _ = []
+-}

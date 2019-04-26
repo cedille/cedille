@@ -1,0 +1,3 @@
+module core/top.
+
+Top : ★ = {β ≃ β}.

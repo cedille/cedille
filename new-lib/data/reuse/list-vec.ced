@@ -1,0 +1,50 @@
+module data/reuse/list-vec.
+
+import ../nat.
+import ../list.
+import ../vec.
+
+import ../../core/id.
+
+vec2ListId : ∀ A: ★. ∀ n: Nat. Id ·(Vec ·A n) ·(List ·A)
+= Λ A.
+  [f : ∀ n: Nat. Vec ·A n ➔ List ·A
+    = Λ n. λ xs. μ rec. xs {
+      | vnil ➔ nil ·A
+      | vcons -n x xs ➔ cons x (rec -n xs)
+      }]
+- [pf : ∀ n: Nat. Π xs: Vec ·A n. {f xs ≃ xs}
+    = Λ n. λ xs. μ ih. xs {
+      | vnil ➔ β
+      | vcons -n x xs ➔
+        ρ (ih -n xs) @ z. {cons x z ≃ vcons x xs} - β
+      }]
+- Λ n. intrId (f -n) (pf -n).
+
+vec2List! : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ List ·A
+= Λ A. Λ n. elimId -(vec2ListId ·A -n).
+
+_ : {vec2List! ≃ λ x. x} = β.
+
+list2VecId : ∀ A: ★. IdDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length xs))
+= Λ A.
+  [f : Π xs: List ·A. Vec ·A (length xs)
+    = λ xs. μ rec. xs {
+      | nil ➔ vnil ·A
+      | cons x xs ➔
+        [xs' = to/List -isType/rec xs]
+      - vcons -(length xs') x (rec xs)
+      }]
+- [pf : Π xs: List ·A. {f xs ≃ xs}
+    = λ xs. μ ih. xs {
+      | nil ➔ β
+      | cons x xs ➔
+        ρ (ih xs) @ z. {cons x z ≃ cons x xs}
+      - β
+      }]
+- intrIdDep f pf.
+
+list2Vec! : ∀ A: ★. Π xs: List ·A. Vec ·A (length xs)
+= Λ A. elimIdDep -(list2VecId ·A).
+
+_ : {list2Vec! ≃ λ x. x} = β.

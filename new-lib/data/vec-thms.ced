@@ -1,0 +1,23 @@
+module vec-thms (A: ★).
+
+import nat.
+import nat-thms.
+import vec.
+import ../core/top.
+import ../core/bot.
+
+vlookupVmap : ∀ f: Top. ∀ n: Nat. Π xs: Vec ·A n.
+  Π m: Nat. Lt m n ➾
+  {f (vlookup xs m) ≃ vlookup (vmap f xs) m}
+= Λ f. Λ n. λ xs.
+  μ ih. xs {
+  | vnil ➔ λ m. Λ le.
+    [bad : Bot = botIrrel -(lteSZ m le)]
+  - bad ·{f (vlookup vnil m) ≃ vlookup (vmap f vnil) m}
+  | vcons -n x xs ➔ λ m. μ' m {
+    | zero ➔ Λ _. β
+    | succ m ➔ Λ le.
+      {le' = lteSInv (succ m) n le}
+    - ih -n xs m -le'
+    }
+  }.

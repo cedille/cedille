@@ -1,0 +1,15 @@
+module issue-83.
+
+data Nat: ★ =
+  | zero: Nat
+  | suc: Nat ➔ Nat.
+
+data Vec (A: ★): Nat ➔ ★ =
+  | vnil: Vec zero
+  | vcons: ∀ n: Nat. A ➔ Vec n ➔ Vec (suc n).
+
+head: ∀ A: ★. ∀ n: Nat. Vec ·A (suc n) ➔ A
+= Λ A. Λ n. λ xs. μ' xs @(λ i: Nat. λ x: Vec ·A i. {i ≃ suc n} ➾ A) {
+  | vnil ➔ Λ eq. δ - eq
+  | vcons -n x xs ➔ Λ _. x
+  } -β.

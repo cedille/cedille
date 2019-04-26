@@ -1,0 +1,21 @@
+module list-thms.
+
+import list.
+import ../core/id.
+import ../core/tpeq.
+
+mapId : ∀ A: ★. ∀ B: ★. Π f: Id ·A ·B. Π xs: List ·A. {map f xs ≃ xs}
+  = Λ A. Λ B. λ f. λ xs. μ ih. xs @(λ xs: List ·A. {map f xs ≃ xs}) {
+  | nil ➔ β
+  | cons x xs ➔
+    ρ f.2     @ z. {cons (z x) (map f xs) ≃ cons x xs}
+  - ρ (ih xs) @ z. {cons x z ≃ cons x xs}
+  - β
+  }.
+
+-- injectivity of List
+ListInj : ∀ A: ★. ∀ B: ★. Id ·(List ·A) ·(List ·B) ➔ Id ·A ·B
+= Λ A. Λ B. λ idL.
+  [a2l = λ a: A. cons a (nil ·A)]
+- [f : A ➔ B = λ a. headSafe (elimId -idL (a2l a)) -β]
+- intrId f (λ _. β).

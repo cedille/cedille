@@ -1,0 +1,11 @@
+module core/view.
+
+import top.
+
+View : Π A: ★. Top ➔ ★ = λ A: ★. λ x: Top. ι z: A. {z ≃ x}.
+
+intrView : ∀ A: ★. ∀ a: A. Π b: Top. {a ≃ b} ➔ View ·A b
+  = Λ A. Λ a. λ b. λ eq. [ φ eq - a {b} , β{b} ].
+
+elimView : ∀ A: ★. Π b: Top. View ·A b ➾ A
+  = Λ A. λ b. Λ v. φ v.2 - v.1 {b}.

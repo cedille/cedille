@@ -1,185 +1,238 @@
 module Norm where
 import Types
-import Ctxt
+import Trie
 
---eraseTerm :: Term -> PureTerm
-eraseTerm (TmVar v) = PureVar v
-eraseTerm (TmLambda v tp tm) = PureLambda v (eraseTerm tm)
-eraseTerm (TmAppTm tm tm') = PureApp (eraseTerm tm) (eraseTerm tm')
-eraseTerm (TmLambdaE v c tm) = eraseTerm tm
-eraseTerm (TmAppTmE tm tm') = eraseTerm tm
-eraseTerm (TmAppTp tm tp) = eraseTerm tm
-eraseTerm (TmIota tm1 tm2 v tp) = eraseTerm tm1
-eraseTerm (TmLetTm v tm tm') = PureApp (PureLambda v (eraseTerm tm')) (eraseTerm tm)
-eraseTerm (TmLetTmE v tm tm') = eraseTerm tm'
-eraseTerm (TmLetTp v kd tp tm) = eraseTerm tm
-eraseTerm (IotaProj1 tm) = eraseTerm tm
-eraseTerm (IotaProj2 tm) = eraseTerm tm
-eraseTerm (Beta pt pt') = pt'
-eraseTerm (Sigma tm) = eraseTerm tm
-eraseTerm (Delta tp tm) = PureLambda "x" (PureVar "x")
-eraseTerm (Rho tm v tp tm') = eraseTerm tm'
-eraseTerm (Phi tm tm' pt) = pt
+headOr []       a' = a'
+headOr (a : as) a' = a
 
---eraseType :: Type -> PureType
-eraseType (TpVar v) = TpVar v
-eraseType (TpLambda v tk tp) = TpLambda v (eraseTpKd tk) (eraseType tp)
-eraseType (TpAll v tk tp) = TpAll v (eraseTpKd tk) (eraseType tp)
-eraseType (TpPi v tp tp') = TpPi v (eraseType tp) (eraseType tp')
-eraseType (TpEq ptm ptm') = TpEq ptm ptm'
-eraseType (TpAppTp tp tp') = TpAppTp (eraseType tp) (eraseType tp')
-eraseType (TpAppTm tp tm) = TpAppTm (eraseType tp) (eraseTerm tm)
-eraseType (TpIota v tp tp') = TpIota v (eraseType tp) (eraseType tp')
+type CtxtDef = Either (PrTerm, PrType) (PrType, PrKind)
+data Ctxt = Ctxt [PrTmTp] [PrTpKd] (Trie CtxtDef) (Trie ())
 
---eraseKind :: Kind -> PureKind
-eraseKind Star = Star
-eraseKind (KdPi v tk kd) = KdPi v (eraseTpKd tk) (eraseKind kd)
+emptyCtxt = Ctxt [] [] emptyTrie emptyTrie
 
---eraseTpKd :: TpKd -> PureTpKd
-eraseTpKd (TpKdTp tp) = TpKdTp (eraseType tp)
-eraseTpKd (TpKdKd kd) = TpKdKd (eraseKind kd)
+ctxtDecl (Ctxt decls types defs scope) decl =
+  Ctxt (decl : decls) types defs scope
+ctxtDeclType (Ctxt decls types defs scope) decl tp =
+  -- Increment all free variables to account for this itself being declared
+  Ctxt (decl : decls) (mapTpKd' (deltaType 1) (deltaKind 1) tp : types) defs scope
+ctxtDef (Ctxt decls types defs scope) x def =
+  Ctxt decls types (trieInsert defs x def) (trieInsert scope x ())
+ctxtDeclTpKd c = either
+  (ctxtDeclType c tmDecl . Left)
+  (ctxtDeclType c tpDecl . Right)
 
-tpKdIsType (TpKdTp _) = True
-tpKdIsType (TpKdKd _) = False
+tmDecl = Left (PrVar 0)
+tpDecl = Right (TpVar 0)
+tkDecl = either (const tmDecl) (const tpDecl)
 
---substTerm :: Ctxt -> PureTerm -> PureTerm
-substTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlyRename c)) (ctxtLookupInternalTerm c v)
-substTerm c (PureApp tm tm') = PureApp (substTerm c tm) (substTerm c tm')
-substTerm c (PureLambda v tm) = let v' = freshVar c v in PureLambda v' (substTerm (ctxtRename c v v') tm)
+ctxtLookupDef (Ctxt decls types defs scope) x =
+  trieLookup scope x >> trieLookup defs x
+ctxtLookupDeclType (Ctxt decls types defs scope) i
+  | i >= length types = Nothing
+  | otherwise = Just $ mapTpKd' (deltaType i) (deltaKind i) (types !! i)
+ctxtLookupDecl (Ctxt decls types defs scope) i
+  | i >= length decls = Nothing
+  | otherwise = Just (decls !! i)
 
-substType = hnfType . ctxtClearExternals
-substKind = hnfKind . ctxtClearExternals
-substTpKd = hnfTpKd . ctxtClearExternals
+ctxtLookupTermDef c v = ctxtLookupDef c v >>= either Just (const Nothing)
+ctxtLookupTypeDef c v = ctxtLookupDef c v >>= either (const Nothing) Just
 
---hnfTerm :: Ctxt -> PureTerm -> PureTerm
-hnfTerm c (PureVar v) = maybe (PureVar (ctxtRep c v)) (substTerm (ctxtOnlyRename c)) (ctxtLookupTermVar c v)
-hnfTerm c (PureApp tm tm') = case hnfTerm c tm of
-  PureLambda v tm'' -> hnfTerm (ctxtInternalDef c v (Left (hnfTerm c tm'))) tm''
-  tm'' -> PureApp tm'' (substTerm c tm')
-hnfTerm c (PureLambda v tm) =
-  let v' = freshVar c v
-      c' = ctxtRename c v v'
-      tm' = hnfTerm c' tm
-      etm = PureLambda v' tm' in
-  case tm' of
-    (PureApp htm (PureVar v'')) ->
-      if v' == v'' && not (freeInTerm v' htm) then htm else etm
-    _ -> etm
-  
---hnfType :: Ctxt -> PureType -> PureType
-hnfType c (TpVar v) = maybe (TpVar (ctxtRep c v)) (substType (ctxtOnlyRename c)) (ctxtLookupTypeVar c v)
-hnfType c (TpLambda v tk tp) =
-  let v' = freshVar c v in
-  TpLambda v' (substTpKd c tk) (hnfType (ctxtRename c v v') tp)
-  
---      c' = ctxtRename c v v'
---      tp' = hnfType c' tp
---      tk' = substTpKd c tk
---      etp = TpLambda v' tk' tp' in
-{-  case tp' of
-    (TpAppTp htp (TpVar v'')) ->
-      if not (tpKdIsType tk) && v' == v'' && not (freeInType v' htp) then htp else etp
-    (TpAppTm htp (PureVar v'')) ->
-      if tpKdIsType tk && v' == v'' && not (freeInType v' htp) then htp else etp
-    _ -> etp-}
-hnfType c (TpAll v tk tp) =
-  let v' = freshVar c v in TpAll v' (substTpKd c tk) ({-hnf-}substType (ctxtRename c v v') tp)
-hnfType c (TpPi v tp tp') =
-  let v' = freshVar c v in TpPi v' (substType c tp) ({-hnf-}substType (ctxtRename c v v') tp')
-hnfType c (TpIota v tp tp') =
-  let v' = freshVar c v in TpIota v' (substType c tp) (substType (ctxtRename c v v') tp')
-hnfType c (TpAppTp tp tp') = case hnfType c tp of
-  TpLambda v (TpKdKd _) tp'' -> hnfType (ctxtInternalDef c v (Right (hnfType (ctxtRename c v v) tp'))) tp''
-  tp'' -> TpAppTp tp'' (substType c tp')
-hnfType c (TpAppTm tp tm) = case hnfType c tp of
-  TpLambda v (TpKdTp _) tp' -> substType (ctxtInternalDef c v (Left (hnfTerm (ctxtRename c v v) tm))) tp'
-  tp' -> TpAppTm tp' (substTerm c tm)
-hnfType c (TpEq tm tm') = TpEq (substTerm c tm) (substTerm c tm')
 
---hnfKind :: Ctxt -> PureKind -> PureKind
-hnfKind c Star = Star
-hnfKind c (KdPi v tk kd) =
-  let v' = freshVar c v in KdPi v' (substTpKd c tk) (hnfKind (ctxtRename c v v') kd)
+erasePrTermh e c (PrVar k) = PrVar (if k < length c then k + (c !! k) - head c else k - e)
+erasePrTermh e c (PrRef v) = PrRef v
+erasePrTermh e c (PrApp tm tm') = PrApp (erasePrTermh e c tm) (erasePrTermh e c tm')
+erasePrTermh e c (PrLam tm) = PrLam (erasePrTermh e (headOr c 0 : c) tm)
 
---hnfTpKd :: Ctxt -> PureTpKd -> PureTpKd
-hnfTpKd c (TpKdTp tp) = TpKdTp (hnfType c tp)
-hnfTpKd c (TpKdKd kd) = TpKdKd (hnfKind c kd)
+eraseTermh e c (TmVar k) = PrVar (if k < length c then k + (c !! k) - head c else k - e)
+eraseTermh e c (TmRef v) = PrRef v
+eraseTermh e c (TmLam _ t) = PrLam (eraseTermh e (headOr c 0 : c) t)
+eraseTermh e c (TmLamE _ t) = eraseTermh (succ e) (succ (headOr c 0) : c) t
+eraseTermh e c (TmAppTm t t') = PrApp (eraseTermh e c t) (eraseTermh e c t')
+eraseTermh e c (TmAppTmE t _) = eraseTermh e c t
+eraseTermh e c (TmAppTp t _) = eraseTermh e c t
+eraseTermh e c (TmIota t _ _) = eraseTermh e c t
+eraseTermh e c (TmLetTm t t') = PrApp (PrLam (eraseTermh e (headOr c 0 : c) t')) (eraseTermh e c t)
+eraseTermh e c (TmLetTmE _ t) = eraseTermh (succ e) (succ (headOr c 0) : c) t
+eraseTermh e c (TmLetTp _ _ t) = eraseTermh (succ e) (succ (headOr c 0) : c) t
+eraseTermh e c (TmProj1 t) = eraseTermh e c t
+eraseTermh e c (TmProj2 t) = eraseTermh e c t
+eraseTermh e c (TmBeta _ t) = erasePrTermh e c t
+eraseTermh e c (TmSigma t) = eraseTermh e c t
+eraseTermh e c (TmDelta _ t) = eraseTermh e c t
+eraseTermh e c (TmRho _ _ t) = eraseTermh e c t
+eraseTermh e c (TmPhi _ _ t) = erasePrTermh e c t
+eraseTerm = eraseTermh 0 []
+
+eraseTypeh e c (TpVar k) = TpVar (if k < length c then k + (c !! k) - head c else k - e)
+eraseTypeh e c (TpRef v) = TpRef v
+eraseTypeh e c (TpLam tk tp) = TpLam (eraseTpKdh e c tk) (eraseTypeh e (headOr c 0 : c) tp)
+eraseTypeh e c (TpAll tk tp) = TpAll (eraseTpKdh e c tk) (eraseTypeh e (headOr c 0 : c) tp)
+eraseTypeh e c (TpPi tp tp') = TpPi (eraseTypeh e c tp) (eraseTypeh e (headOr c 0 : c) tp')
+eraseTypeh e c (TpEq tm tm') = TpEq (erasePrTermh e c tm) (erasePrTermh e c tm')
+eraseTypeh e c (TpAppTp tp tp') = TpAppTp (eraseTypeh e c tp) (eraseTypeh e c tp')
+eraseTypeh e c (TpAppTm tp tm) = TpAppTm (eraseTypeh e c tp) (eraseTermh e c tm)
+eraseTypeh e c (TpIota tp tp') = TpIota (eraseTypeh e c tp) (eraseTypeh e (headOr c 0 : c) tp')
+eraseType = eraseTypeh 0 []
+
+eraseKindh e c KdStar = KdStar
+eraseKindh e c (KdPi tk kd) = KdPi (eraseTpKdh e c tk) (eraseKindh e (headOr c 0 : c) kd)
+eraseKind = eraseKindh 0 []
+
+eraseTpKdh = mapTpKd eraseTypeh eraseKindh
+eraseTpKd = eraseTpKdh 0 []
+
+freeInTerm = h 0 . eraseTerm where
+  h i (PrVar j) = i == j
+  h i (PrRef v) = False
+  h i (PrApp tm tm') = h i tm || h i tm'
+  h i (PrLam tm) = h (succ i) tm
+
+mapTpKd' f g = either (Left . f) (Right . g)
+mapTpKd f g a b = mapTpKd' (f a b) (g a b)
+
+deltaTermh r d (PrVar j)      = PrVar (if j >= r then j + d else j)
+deltaTermh r d (PrRef v)      = PrRef v
+deltaTermh r d (PrApp tm tm') = PrApp (deltaTermh r d tm) (deltaTermh r d tm')
+deltaTermh r d (PrLam tm)     = PrLam (deltaTermh (succ r) d tm)
+
+deltaTypeh r d (TpVar j)        = TpVar (if j >= r then j + d else j)
+deltaTypeh r d (TpRef v)        = TpRef v
+deltaTypeh r d (TpLam tk tp)    = TpLam    (deltaTpKdh r d tk) (deltaTypeh (succ r) d tp)
+deltaTypeh r d (TpAll tk tp)    = TpAll    (deltaTpKdh r d tk) (deltaTypeh (succ r) d tp)
+deltaTypeh r d (TpPi tp tp')    = TpPi     (deltaTypeh r d tp) (deltaTypeh (succ r) d tp')
+deltaTypeh r d (TpIota tp tp')  = TpIota   (deltaTypeh r d tp) (deltaTypeh (succ r) d tp')
+deltaTypeh r d (TpEq tm tm')    = TpEq     (deltaTermh r d tm) (deltaTermh r        d tm')
+deltaTypeh r d (TpAppTp tp tp') = TpAppTp  (deltaTypeh r d tp) (deltaTypeh r        d tp')
+deltaTypeh r d (TpAppTm tp tm)  = TpAppTm  (deltaTypeh r d tp) (deltaTermh r        d tm)
+
+deltaKindh r d KdStar = KdStar
+deltaKindh r d (KdPi tk kd) = KdPi (deltaTpKdh r d tk) (deltaKindh (succ r) d kd)
+
+deltaTpKdh = mapTpKd deltaTypeh deltaKindh
+
+substTermh i z (PrVar j) = case compare j i of
+  LT -> PrVar j
+  EQ -> either (deltaTerm i) (const $ PrVar j) z
+  GT -> PrVar (pred j)
+substTermh i z (PrRef v)      = PrRef v
+substTermh i z (PrApp tm tm') = PrApp (substTermh i z tm) (substTermh i z tm')
+substTermh i z (PrLam tm)     = PrLam (substTermh (succ i) z tm)
+
+
+substTypeh i z (TpVar j) = case compare j i of
+  LT -> TpVar j
+  EQ -> either (const $ TpVar j) (deltaType i) z
+  GT -> TpVar (pred j)
+substTypeh i z (TpRef v)        = TpRef v
+substTypeh i z (TpLam tk tp)    = TpLam   (substTpKdh i z tk) (substTypeh (succ i) z tp)
+substTypeh i z (TpAll tk tp)    = TpAll   (substTpKdh i z tk) (substTypeh (succ i) z tp)
+substTypeh i z (TpPi tp tp')    = TpPi    (substTypeh i z tp) (substTypeh (succ i) z tp')
+substTypeh i z (TpIota tp tp')  = TpIota  (substTypeh i z tp) (substTypeh (succ i) z tp')
+substTypeh i z (TpEq tm tm')    = TpEq    (substTermh i z tm) (substTermh i        z tm')
+substTypeh i z (TpAppTp tp tp') = TpAppTp (substTypeh i z tp) (substTypeh i        z tp')
+substTypeh i z (TpAppTm tp tm)  = TpAppTm (substTypeh i z tp) (substTermh i        z tm)
+
+substKindh i z KdStar = KdStar
+substKindh i z (KdPi tk kd) = KdPi (substTpKdh i z tk) (substKindh (succ i) z kd)
+
+substTpKdh = mapTpKd substTypeh substKindh
+
+
+hnfTermh i (Ctxt decls _ _ _) (PrVar j)
+  | j >= i && j < i + length decls = either (deltaTerm j) (const $ PrVar j) (decls !! (j - i))
+  | otherwise = PrVar j
+hnfTermh i (Ctxt _ _ defs _) (PrRef v) =
+  maybe (PrRef v) id (trieLookup defs v >>= either (Just . fst) (const Nothing))
+hnfTermh i c (PrApp tm tm') =
+  case hnfTermh i c tm of
+    (PrLam btm) -> hnfTermh i c (substTerm (Left tm') btm)
+    htm -> PrApp htm tm'
+hnfTermh i c (PrLam tm) = PrLam (hnfTermh (succ i) c tm)
+
+hnfTypeh i (Ctxt decls _ _ _) (TpVar j)
+  | j >= i && j < i + length decls = either (const $ TpVar j) (deltaType j) (decls !! (j - i))
+  | otherwise = TpVar j
+hnfTypeh i (Ctxt _ _ defs _) (TpRef v) = 
+  maybe (TpRef v) id (trieLookup defs v >>= either (const Nothing) (Just . fst))
+hnfTypeh i c (TpLam tk tp)    = TpLam tk (hnfTypeh (succ i) c tp)
+hnfTypeh i c (TpAll tk tp)    = TpAll tk (hnfTypeh (succ i) c tp)
+hnfTypeh i c (TpPi tp tp')    = TpPi  tp (hnfTypeh (succ i) c tp')
+hnfTypeh i c (TpIota tp tp')  = TpIota tp tp'
+hnfTypeh i c (TpEq tm tm')    = TpEq tm tm'
+hnfTypeh i c (TpAppTp tp tp') =
+  case hnfTypeh i c tp of
+    (TpLam (Right _) btp) -> hnfTypeh i c (substType (Right tp') btp)
+    htp -> TpAppTp htp tp'
+hnfTypeh i c (TpAppTm tp tm) =
+  case hnfTypeh i c tp of
+    (TpLam (Left _) btp) -> hnfTypeh i c (substType (Left tm) btp)
+    htp -> TpAppTm htp tm
+
+hnfKindh i c k = k
+
+hnfTpKdh = mapTpKd hnfTypeh hnfKindh
+
+
+convTermh c (PrVar i1) (PrVar i2) = i1 == i2
+convTermh c (PrRef v1) (PrRef v2) = v1 == v2
+convTermh c (PrApp tm1 tm1') (PrApp tm2 tm2') =
+  convTermh c tm1 tm2 && convTerm c tm1' tm2'
+convTermh c (PrLam tm1) (PrLam tm2) =
+  convTermh (ctxtDecl c tmDecl) tm1 tm2
+convTermh c (PrLam tm1) tm2 =
+  convTerm (ctxtDecl c tmDecl) tm1 (PrApp (deltaTerm 1 tm2) (PrVar 0))
+convTermh c tm1 (PrLam tm2) =
+  convTerm (ctxtDecl c tmDecl) (PrApp (deltaTerm 1 tm1) (PrVar 0)) tm2
+convTermh _ _ _ = False
+
+convTypeh c (TpVar i1) (TpVar i2) = i1 == i2
+convTypeh c (TpRef v1) (TpRef v2) = v1 == v2
+convTypeh c (TpAll tk1 tp1) (TpAll tk2 tp2) =
+  convTpKd c tk1 tk2 && convTypeh (ctxtDecl c (tkDecl tk1)) tp1 tp2
+convTypeh c (TpLam tk1 tp1) (TpLam tk2 tp2) =
+  convTpKd c tk1 tk2 && convTypeh (ctxtDecl c (tkDecl tk1)) tp1 tp2
+convTypeh c (TpPi tp1 tp1') (TpPi tp2 tp2') =
+  convType c tp1 tp2 && convTypeh (ctxtDecl c tmDecl) tp1' tp2'
+convTypeh c (TpIota tp1 tp1') (TpIota tp2 tp2') =
+  convType c tp1 tp2 && convType (ctxtDecl c tmDecl) tp1' tp2'
+convTypeh c (TpEq tm1 tm1') (TpEq tm2 tm2') =
+  convTerm c tm1 tm2 && convTerm c tm1' tm2'
+convTypeh c (TpAppTp tp1 tp1') (TpAppTp tp2 tp2') =
+  convTypeh c tp1 tp2 && convType c tp1' tp2'
+convTypeh c (TpAppTm tp1 tm1) (TpAppTm tp2 tm2) =
+  convTypeh c tp1 tp2 && convTerm c tm1 tm2
+convTypeh _ _ _ = False
+
+convKindh c KdStar KdStar = True
+convKindh c (KdPi tk1 kd1) (KdPi tk2 kd2) =
+  convTpKd c tk1 tk2 && convKind (ctxtDecl c (tkDecl tk1)) kd1 kd2
+convKindh c _ _ = False
+
+convTpKdh c (Left tp) (Left tp') = convTypeh c tp tp'
+convTpKdh c (Right kd) (Right kd') = convKindh c kd kd'
+convTpKdh c _ _ = False
+
+deltaTerm = deltaTermh 0
+deltaType = deltaTypeh 0
+deltaKind = deltaKindh 0
+deltaTpKd = deltaTpKdh 0
+
+hnfTerm = hnfTermh 0
+hnfType = hnfTypeh 0
+hnfKind = hnfKindh 0
+hnfTpKd = hnfTpKdh 0
 
 hnfeTerm c = hnfTerm c . eraseTerm
 hnfeType c = hnfType c . eraseType
 hnfeKind c = hnfKind c . eraseKind
 hnfeTpKd c = hnfTpKd c . eraseTpKd
 
-convTerm c = convTermh (c, c)
-convType c = convTypeh (c, c)
+substTerm = substTermh 0
+substType = substTypeh 0
+substKind = substKindh 0
+substTpKd = substTpKdh 0
 
-convTermh c tm tm' = convTerm' c tm tm' || convTerm' c (hnfTerm (fst c) tm) (hnfTerm (snd c) tm')
-convTypeh c tp tp' = convType' c tp tp' || convType' c (hnfType (fst c) tp) (hnfType (snd c) tp')
- 
-
---convTerm' :: (Ctxt, Ctxt) -> PureTerm -> PureTerm -> Bool
-convTerm' (c, c') (PureVar v) (PureVar v') = ctxtRep c v == ctxtRep c' v'
-convTerm' (c, c') (PureLambda v tm) (PureLambda v' tm') = let v'' = freshVar2 (c, c') v v' in convTerm' (ctxtRename c v v'', ctxtRename c' v' v'') tm tm'
-convTerm' c (PureApp tm tm') (PureApp tm'' tm''') = convTerm' c tm tm'' && convTermh c tm' tm'''
--- For a case like \ x. \ y. x (cast y) == \ x. x, where the head is a
--- locally-bound variable, leading to the argument not being unfolded
--- and hence the expression not being eta-contracted.
-convTerm' (c, c') (PureLambda v tm) tm' = let v' = freshVar2 (c, c') v v in
-  convTermh (ctxtRename c v v', ctxtRename c' v' v') tm (PureApp tm' (PureVar v'))
-convTerm' (c, c') tm (PureLambda v tm') = let v' = freshVar2 (c, c') v v in
-  convTermh (ctxtRename c v' v', ctxtRename c' v v') (PureApp tm (PureVar v')) tm'
-convTerm' c tm tm' = False
-
---convType' :: (Ctxt, Ctxt) -> PureType -> PureType -> Bool
-convType' (c, c') (TpVar v) (TpVar v') = ctxtRep c v == ctxtRep c' v'
-convType' (c, c') (TpLambda v tk tp) (TpLambda v' tk' tp') = let v'' = freshVar2 (c, c') v v' in convTpKdh (c, c') tk tk' && convTypeh{-'-} (ctxtRename c v v'', ctxtRename c' v' v'') tp tp'
-convType' (c, c') (TpAll v tk tp) (TpAll v' tk' tp') = let v'' = freshVar2 (c, c') v v' in convTpKdh (c, c') tk tk' && convTypeh{-'-} (ctxtRename c v v'', ctxtRename c' v' v'') tp tp'
-convType' (c, c') (TpPi v tp tp') (TpPi v' tp'' tp''') = let v'' = freshVar2 (c, c') v v' in convTypeh (c, c') tp tp'' && convTypeh{-'-} (ctxtRename c v v'', ctxtRename c' v' v'') tp' tp'''
-convType' (c, c') (TpIota v tp tp') (TpIota v' tp'' tp''') = let v'' = freshVar2 (c, c') v v' in convTypeh (c, c') tp tp'' && convTypeh (ctxtRename c v v'', ctxtRename c' v' v'') tp' tp'''
-convType' c (TpEq tm tm') (TpEq tm'' tm''') = convTermh c tm tm'' && convTermh c tm' tm'''
-convType' c (TpAppTp tp tp') (TpAppTp tp'' tp''') = convType' c tp tp'' && convTypeh c tp' tp'''
-convType' c (TpAppTm tp tm) (TpAppTm tp' tm') = convType' c tp tp' && convTermh c tm tm'
-convType' (c, c') (TpLambda v tk tp) tp' = let v' = freshVar2 (c, c') v v in
-  convTypeh (ctxtRename c v v', ctxtRename c' v' v') tp (if tpKdIsType tk then TpAppTm tp' (PureVar v') else TpAppTp tp' (TpVar v'))
-convType' (c, c') tp (TpLambda v tk tp') = let v' = freshVar2 (c, c') v v in
-  convTypeh (ctxtRename c v' v', ctxtRename c' v v') (if tpKdIsType tk then TpAppTm tp (PureVar v') else TpAppTp tp (TpVar v')) tp'
-convType' c tp tp' = False
-
-
-convKind c = convKindh (c, c)
---convKindh :: (Ctxt, Ctxt) -> PureKind -> PureKind -> Bool
-convKindh c Star Star = True
-convKindh (c, c') (KdPi v tk kd) (KdPi v' tk' kd') = let v'' = freshVar2 (c, c') v v' in
-  convTpKdh (c, c') tk tk' && convKindh (ctxtRename c v v'', ctxtRename c' v' v'') kd kd'
-convKindh _ _ _ = False
-
---convTpKd :: Ctxt -> PureTpKd -> PureTpKd -> Bool
-convTpKd c = convTpKdh (c, c)
-
-convTpKdh c (TpKdTp tp) (TpKdTp tp') = convTypeh c tp tp'
-convTpKdh c (TpKdKd kd) (TpKdKd kd') = convKindh c kd kd'
-convTpKdh _ _ _ = False
-
-
---freeInTerm :: Var -> PureTerm -> Bool
-freeInTerm v (PureVar v') = v == v'
-freeInTerm v (PureApp tm tm') = freeInTerm v tm || freeInTerm v tm'
-freeInTerm v (PureLambda v' tm) = not (v == v') && freeInTerm v tm
-
---freeInType :: Var -> PureType -> Bool
-freeInType v (TpVar v') = v == v'
-freeInType v (TpLambda v' tk tp) = not (v == v') && (freeInTpKd v tk || freeInType v tp)
-freeInType v (TpAll v' tk tp) = not (v == v') && (freeInTpKd v tk || freeInType v tp)
-freeInType v (TpPi v' tp tp') = not (v == v') && (freeInType v tp || freeInType v tp')
-freeInType v (TpIota v' tp tp') = not (v == v') && (freeInType v tp || freeInType v tp')
-freeInType v (TpEq tm tm') = freeInTerm v tm || freeInTerm v tm'
-freeInType v (TpAppTp tp tp') = freeInType v tp || freeInType v tp'
-freeInType v (TpAppTm tp tm) = freeInType v tp || freeInTerm v tm
-
---freeInKind :: Var -> PureKind -> Bool
-freeInKind v Star = False
-freeInKind v (KdPi v' tk kd) = not (v == v') && (freeInTpKd v tk || freeInKind v kd)
-
---freeInTpKd :: Var -> PureTpKd -> Bool
-freeInTpKd v (TpKdTp tp) = freeInType v tp
-freeInTpKd v (TpKdKd kd) = freeInKind v kd
+convTerm c tm tm' = convTermh c tm tm' || convTermh c (hnfTerm c tm) (hnfTerm c tm')
+convType c tp tp' = convTypeh c tp tp' || convTypeh c (hnfType c tp) (hnfType c tp')
+convKind c kd kd' = convKindh c kd kd' || convKindh c (hnfKind c kd) (hnfKind c kd')
+convTpKd c tk tk' = convTpKdh c tk tk' || convTpKdh c (hnfTpKd c tk) (hnfTpKd c tk')

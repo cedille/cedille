@@ -1,61 +1,61 @@
 module Types where
 
-type Var = String
-type TpKd = PrimTpKd Term
-type PureTpKd = PrimTpKd PureTerm
-type Kind = PrimKind Term
-type PureKind = PrimKind PureTerm
-type Type = PrimType Term
-type PureType = PrimType PureTerm
-
-data Cmds =
-    CmdsStart
-  | CmdsNext Cmd Cmds
-
-data Cmd =
-    TermCmd Var Term
-  | TypeCmd Var Kind Type
-  | ImportCmd String
-
 data Term =
-    TmVar Var
-  | TmLambda Var Type Term
-  | TmLambdaE Var TpKd Term
+    TmVar Int
+  | TmRef String
+  | TmLam Type Term
+  | TmLamE TpKd Term
   | TmAppTm Term Term
   | TmAppTmE Term Term
   | TmAppTp Term Type
-  | TmIota Term Term Var Type
-  | TmLetTm Var Term Term
-  | TmLetTmE Var Term Term
-  | TmLetTp Var Kind Type Term
-  | IotaProj1 Term
-  | IotaProj2 Term
-  | Beta PureTerm PureTerm
-  | Sigma Term
-  | Delta PureType Term
-  | Rho Term Var PureType Term
-  | Phi Term Term PureTerm
+  | TmIota Term Term Type
+  | TmLetTm Term Term
+  | TmLetTmE Term Term
+  | TmLetTp Kind Type Term
+  | TmProj1 Term
+  | TmProj2 Term
+  | TmBeta PrTerm PrTerm
+  | TmSigma Term
+  | TmDelta PrType Term
+  | TmRho Term PrType Term
+  | TmPhi Term Term PrTerm
 
-data PureTerm =
-    PureVar Var
-  | PureLambda Var PureTerm
-  | PureApp PureTerm PureTerm
+data PrTerm =
+    PrVar Int
+  | PrRef String
+  | PrLam PrTerm
+  | PrApp PrTerm PrTerm
 
-data PrimType tm =
-    TpVar Var
-  | TpLambda Var (PrimTpKd tm) (PrimType tm)
-  | TpAll Var (PrimTpKd tm) (PrimType tm)
-  | TpPi Var (PrimType tm) (PrimType tm)
-  | TpEq PureTerm PureTerm
-  | TpAppTp (PrimType tm) (PrimType tm)
-  | TpAppTm (PrimType tm) tm
-  | TpIota Var (PrimType tm) (PrimType tm)
+data BaseType tm =
+    TpVar Int
+  | TpRef String
+  | TpLam (BaseTpKd tm) (BaseType tm)
+  | TpAll (BaseTpKd tm) (BaseType tm)
+  | TpPi (BaseType tm) (BaseType tm)
+  | TpIota (BaseType tm) (BaseType tm)
+  | TpEq PrTerm PrTerm
+  | TpAppTp (BaseType tm) (BaseType tm)
+  | TpAppTm (BaseType tm) tm
 
-data PrimKind tm =
-    Star
-  | KdPi Var (PrimTpKd tm) (PrimKind tm)
+data BaseKind tm =
+    KdStar
+  | KdPi (BaseTpKd tm) (BaseKind tm)
 
-data PrimTpKd tm =
-    TpKdTp (PrimType tm)
-  | TpKdKd (PrimKind tm)
+type Type = BaseType Term
+type Kind = BaseKind Term
+type TpKd = BaseTpKd Term
+type TmTp = BaseTmTp Term
+type PrType = BaseType PrTerm
+type PrKind = BaseKind PrTerm
+type PrTpKd = BaseTpKd PrTerm
+type PrTmTp = BaseTmTp PrTerm
 
+type BaseTpKd tm = Either (BaseType tm) (BaseKind tm)
+type BaseTmTp tm = Either tm (BaseType tm)
+
+type Cmds = [Cmd]
+
+data Cmd =
+    TermCmd String Term
+  | TypeCmd String Kind Type
+  | ImportCmd String

@@ -75,10 +75,9 @@ SE_MODE = \
 CEDILLE_CORE = \
 	core/CedilleCore.hs \
 	core/Check.hs \
-	core/Ctxt.hs \
 	core/Norm.hs \
 	core/Parser.hs \
-	core/ToString.hs \
+	core/Trie.hs \
 	core/Types.hs \
 	core/Makefile
 

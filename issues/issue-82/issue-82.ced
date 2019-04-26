@@ -1,0 +1,17 @@
+module issue-82.
+
+data Nat : ★ =
+  | zero : Nat
+  | suc : Nat ➔ Nat.
+
+indNat : ∀ P: Nat ➔ ★. P zero ➔ (∀ m: Nat. P m ➔ P (suc m)) ➔ Π n: Nat. P n
+= Λ P. λ z. λ s. λ n. ●.
+--                    ^
+--  Context here: ____|
+-- ==== TERMS ====
+--  z:	P (χ - zero)
+--  s:	∀ m : Nat . P m ➔ P ((χ - suc) m)
+--  n:	Nat
+--
+-- ==== TYPES ====
+-- -P:	Nat ➔ ★

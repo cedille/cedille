@@ -1,0 +1,74 @@
+module issue-with-issue-81.
+
+
+------ Minimal(-ish?) Example ------
+
+data Top : ★ =
+  | triv : Top.
+
+data Bool : ★ =
+  | tt : Bool
+  | ff : Bool.
+
+data Bool2 : Bool ➔ ★ =
+  | tt2 : Bool2 tt
+  | ff2 : Bool2 ff.
+
+data BoolP : Bool2 tt ➔ ★ =
+  | BoolPc : BoolP tt2.
+
+idx-refinement : BoolP tt2 ➔ Top =
+  μ' tt2 @ λ b : Bool. λ b2 : Bool2 b.
+             BoolP {-!-} b2 {- : Bool2 b != Bool2 tt -} ➔ Top {
+    | tt2 ➔ λ _. triv
+    | ff2 ➔ λ _. triv
+  }.
+
+
+------ Even If We Didn't Refine the Scrutinee... ------
+
+data Bool3 : Π b : Bool. Bool2 b ➔ ★ =
+  | tt3 : Bool3 tt tt2
+  | ff3 : Bool3 ff ff2.
+
+skipping-scrutinee-insufficient
+  : Bool3 tt tt2 ➔ BoolP tt2 ➔ Top
+  = λ b3. μ' b3 @ λ b : Bool. λ b2 : Bool2 b. λ b3 : Bool3 b b2.
+                    BoolP {-!-} b2 {- : Bool2 b != Bool2 tt -} ➔ Top {
+    | tt3 ➔ λ _. triv
+    | ff3 ➔ λ _. triv
+  }.
+
+
+
+------ Some More Examples ------
+
+data Large : (Bool ➔ ★) ➔ ★ =
+  | LargeCtr : ∀ P : Bool ➔ ★. Large · P.
+
+data Another : Bool2 tt ➔ ★ =
+  | AnotherCtr : Π b : Bool2 tt. Another b.
+
+large-matching : ∀ Q : Bool ➔ ★. Large · Bool2 ➔ Π b : Bool2 tt. Another b ➔ Top =
+  Λ Q. λ l. μ' l @ λ P : Bool ➔ ★. λ l : Large · P. Π b : P tt.
+                     Another {-!-} b {- b : P tt != Bool2 tt-} ➔ Top {
+    | LargeCtr · P ➔ λ _. λ _. triv
+  }.
+
+
+-- Here we do not rewrite/substitute any large indices,
+-- but by the very existence of one we would produce an
+-- ill-typed motive.
+
+data LargeAndSmall : Π Q : Bool ➔ ★. Π b : Bool. Q b ➔ ★ =
+  | lsCtr : ∀ P : Bool ➔ ★. Π b : Bool. Π p : P b. LargeAndSmall · P b p.
+
+data YetAnother : Π b : Bool. Bool2 b ➔ ★ =
+  | YetAnotherCtr : Π b : Bool. Π b2 : Bool2 b. YetAnother b b2.
+
+large-small-matching : ∀ Q : Bool ➔ ★. LargeAndSmall · Bool2 tt tt2 ➔ YetAnother tt tt2 ➔ Top =
+  Λ Q. λ l. μ' l @ λ P : Bool ➔ ★. λ b : Bool. λ p : P b. λ l : LargeAndSmall · P b p.
+                     YetAnother b {-!-} p {- b : P tt != Bool2 tt-} ➔ Top {
+    | lsCtr · P p b ➔ λ _. triv
+  }.
+

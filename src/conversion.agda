@@ -182,7 +182,7 @@ hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | Var _ x | nothing = t�
 hnf{TERM} Γ u (Mu' _ _ t _ _ cs _) hd | _ , as | tₒ | _ = tₒ
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd with decompose-apps (hnf Γ u t hd)
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as with (λ t → Mu pi-gen pi-gen x t NoType pi-gen (map (λ {(Case _ x as' t) → Case pi-gen x as' (hnf (foldr (λ {(CaseTermArg _ NotErased x) → ctxt-var-decl x; _ → id}) Γ as') (unfold-dampen ff u) t hd)}) (erase-cases cs)) pi-gen) | tₕ
-hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x' ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length ps))}) nothing (erase-cases cs) | fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
+hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' with foldl (λ {(Case _ xₘ cas tₘ) m? → m? maybe-or (conv-ctr-ps Γ xₘ x' ≫=maybe uncurry λ psₘ ps → just (caseArgs-to-lams cas tₘ , length (erase-caseArgs cas) , length ps))}) nothing (erase-cases cs) | fresh-var Γ "x"
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ with drop nps (erase-args as)
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' with nas =ℕ length as'
 hnf{TERM} Γ u (Mu _ _ x t _ _ cs _) hd | tₕ , as | tₒ | Var _ x' | just (tₓ , nas , nps) | fₓ | as' | tt = hnf Γ (unfold-dampen tt u) (recompose-apps (map (TermArg NotErased) as') (subst Γ (mlam fₓ $ tₒ $ mvar fₓ) x tₓ)) hd
@@ -226,7 +226,7 @@ hnf{TYPE} Γ u (TpApp _ _) hd | tp | tp' = try-pull-lift-types tp tp'
                 try-pull-term-in Γ (Lam _ _ _ x _ t) (LiftArrow l1 l2) (suc n) vars ltps =
                   try-pull-term-in (ctxt-var-decl x Γ) t l2 n (x :: vars) (l1 :: ltps) 
                 try-pull-term-in Γ t (LiftArrow l1 l2) (suc n) vars ltps =
-                  let x = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt in
+                  let x = fresh-var Γ "x" in
                     try-pull-term-in (ctxt-var-decl x Γ) (App t NotErased (mvar x)) l2 n (x :: vars) (l1 :: ltps) 
                 try-pull-term-in Γ t l n vars ltps = TpApp tp1 tp2
 
@@ -348,10 +348,10 @@ conv-term-norm Γ (Mu' _ _ t₁ _ _ cs₁ _) (Mu' _ _ t₂ _ _ cs₂ _) = conv-t
        λ v . t ((λ a . a) v) ≃ t
  -}
 conv-term-norm Γ (Lam _ l _ x oc t) t' =
-  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
+  let x' = fresh-var Γ x in
   conv-term (ctxt-rename x x' Γ) t (App t' NotErased (Var posinfo-gen x'))
 conv-term-norm Γ t' (Lam _ l _ x oc t) =
-  let x' = fresh-var x (ctxt-binds-var Γ) empty-renamectxt in
+  let x' = fresh-var Γ x in
   conv-term (ctxt-rename x x' Γ) (App t' NotErased (Var posinfo-gen x')) t 
 conv-term-norm Γ _ _ = ff
 
@@ -438,7 +438,9 @@ conv-ctr-ps Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
 
 conv-ctr-args Γ (x₁ , as₁) (x₂ , as₂) =
   maybe-else' (conv-ctr-ps Γ x₁ x₂) ff $ uncurry λ ps₁ ps₂ →
-  conv-argse Γ (drop (length ps₁) $ erase-args as₁) (drop (length ps₂) $ erase-args as₂)
+  let as₁ = erase-args as₁; as₂ = erase-args as₂ in
+  length ps₁ ∸ length as₁ =ℕ length ps₂ ∸ length as₂ &&
+  conv-argse Γ (drop (length ps₁) as₁) (drop (length ps₂) as₂)
 
 hnf-qualif-term : ctxt → term → term
 hnf-qualif-term Γ t = hnf Γ unfold-head (qualif-term Γ t) tt
@@ -456,7 +458,7 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
                    (hnf Γ unfold-all t₁ tt) (hnf Γ unfold-all t₂ tt)
   where
   fresh : var → renamectxt → renamectxt → var
-  fresh x ρ₁ = fresh-var x (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ₁ x)
+  fresh x ρ₁ ρ₂ = fresh-h (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ₁ x || renamectxt-in-field ρ₂ x) x
 
   make-subst : renamectxt → renamectxt → 𝕃 var → 𝕃 var → term → term → (renamectxt × renamectxt × term × term)
   make-subst ρ₁ ρ₂ [] [] t₁ t₂ = ρ₁ , ρ₂ , t₁ , t₂ -- subst-renamectxt Γ ρ₁ t₁ , subst-renamectxt Γ ρ₂ t₂
@@ -555,7 +557,7 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
 ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) =
-  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , stringset-insert η vᵣ
+  mk-ctxt mod ss is os $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , stringset-insert η (mu-Type/ vᵣ)
 
 -- assumption: classifier (i.e. kind) already qualified
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt

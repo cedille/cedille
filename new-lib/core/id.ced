@@ -1,0 +1,19 @@
+module core/id.
+
+Id : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
+
+intrId : ∀ A: ★. ∀ B: ★. Π f: A ➔ B. (Π a: A. {f a ≃ a}) ➔ Id ·A ·B
+  = Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+
+elimId : ∀ A: ★. ∀ B: ★. Id ·A ·B ➾ A ➔ B
+  = Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+
+-- Dependent version
+IdDep : Π A: ★. Π B: A ➔ ★. ★
+= λ A: ★. λ B: A ➔ ★. ι f: Π a: A. B a. {f ≃ λ x. x}.
+
+intrIdDep : ∀ A: ★. ∀ B: A ➔ ★. Π f: Π a: A. B a. (Π a: A. {f a ≃ a}) ➔ IdDep ·A ·B
+= Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - f a {a} , β].
+
+elimIdDep : ∀ A: ★. ∀ B: A ➔ ★. IdDep ·A ·B ➾ Π a: A. B a
+= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.

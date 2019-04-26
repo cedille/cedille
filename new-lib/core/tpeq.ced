@@ -1,0 +1,14 @@
+module tpeq.
+
+import id.
+
+TpEq : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι _: Id ·A ·B. Id ·B ·A.
+
+intrTpEq : ∀ A: ★. ∀ B: ★. Id ·A ·B ➔ Id ·B ·A ➔ TpEq ·A ·B
+  = Λ A. Λ B. λ c1. λ c2. [ [ λ a. elimId -c1 a , β] , [ λ b. elimId -c2 b , β ] ].
+
+elimTpEq1 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ A ➔ B
+  = Λ A. Λ B. Λ teq. λ a. elimId -teq.1 a.
+
+elimTpEq2 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ B ➔ A
+  = Λ A. Λ B. Λ teq. λ b. elimId -teq.2 b.
