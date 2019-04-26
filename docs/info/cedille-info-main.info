@@ -1,4 +1,4 @@
-This is cedille-info-main.info, produced by makeinfo version 6.6 from
+This is cedille-info-main.info, produced by makeinfo version 6.5 from
 cedille-info-main.texi.
 
 
@@ -7,7 +7,7 @@ File: cedille-info-main.info,  Node: Top,  Next: about,  Up: (dir)
 Cedille Documentation
 *********************
 
-This is the 1.1.0 version of the documentation for the Cedille language
+This is the 1.1.1 version of the documentation for the Cedille language
 and its implementation.
 
 * Menu:
@@ -20,12 +20,12 @@ and its implementation.
 * options::                      A description of the options file, holding some global settings for Cedille
 * roadmap::                      What is the plan for upcoming Cedille development
 * credits::                      Who has contributed to the Cedille tool
-* Index::                        Index to the documentation
+* documentation index::                        Index to the documentation
 
 
-File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: Index,  Up: Top
+File: cedille-info-main.info,  Node: about,  Next: tooling,  Prev: documentation index,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 1 Cedille’s Type Theory
 ***********************
@@ -255,7 +255,7 @@ Cedille is here (https://doi.org/10.1016/j.apal.2018.03.002).
 
 File: cedille-info-main.info,  Node: tooling,  Next: cedille mode commands,  Prev: about,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 2 Architecture of Cedille
 *************************
@@ -362,7 +362,7 @@ Modules may be partially applied.
 
 File: cedille-info-main.info,  Node: cedille mode commands,  Next: unicode shortcuts,  Prev: tooling,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 3 cedille-mode commands
 ***********************
@@ -500,7 +500,7 @@ time you enter into Cedille mode.  They all begin with the ’C-i’ prefix.
 
 File: cedille-info-main.info,  Node: unicode shortcuts,  Next: extra buffers,  Prev: cedille mode commands,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 8 unicode
 *********
@@ -577,7 +577,7 @@ together with the shortcut to type them in the emacs mode.
 
 File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 9 Minor-mode buffers for Cedille
 ********************************
@@ -593,7 +593,7 @@ processed Cedille source file:
 * meta-vars buffer::              Displays the meta-variables at the current position in an application spine
 * beta-reduce mode::            Beta-reduction explorer
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 10 Common commands
 ******************
@@ -628,7 +628,7 @@ processed Cedille source file:
 
 File: cedille-info-main.info,  Node: inspect buffer,  Next: context buffer,  Up: extra buffers
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 11 Inspect buffer
 *****************
@@ -647,7 +647,7 @@ automatically updated during navigation.
 ‘i/I’
      Close the inspect mode window
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 13 Common commands
 ******************
@@ -682,14 +682,14 @@ automatically updated during navigation.
 
 File: cedille-info-main.info,  Node: summary buffer,  Next: meta-vars buffer,  Prev: context buffer,  Up: extra buffers
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 14 Summary buffer
 *****************
 
 Displays the type or kind of every definition in the file.
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 15 Common commands
 ******************
@@ -724,7 +724,7 @@ Displays the type or kind of every definition in the file.
 
 File: cedille-info-main.info,  Node: meta-vars buffer,  Next: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 16 Meta-Vars buffer
 *******************
@@ -734,7 +734,7 @@ spine, if any.  Jumping (with ‘j’, see below) to the position of a
 meta-variable name will select the span where it was introduced.
 Jumping at the “=” will bring you to where it was solved.
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 17 Common commands
 ******************
@@ -769,7 +769,7 @@ Jumping at the “=” will bring you to where it was solved.
 
 File: cedille-info-main.info,  Node: beta-reduce mode,  Prev: summary buffer,  Up: extra buffers
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 18 Beta-reduce mode
 *******************
@@ -820,7 +820,7 @@ to enter beta-reduce mode:
 
 File: cedille-info-main.info,  Node: context buffer,  Next: summary buffer,  Prev: inspect buffer,  Up: extra buffers
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 20 Context buffer
 *****************
@@ -874,7 +874,7 @@ The context buffer has several built-in features to organize data:
 ‘h’
      Open information page for context mode
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 22 Common commands
 ******************
@@ -909,7 +909,7 @@ The context buffer has several built-in features to organize data:
 
 File: cedille-info-main.info,  Node: options,  Next: roadmap,  Prev: extra buffers,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 23 cedille-mode options
 ***********************
@@ -944,7 +944,7 @@ available options are:
 
 File: cedille-info-main.info,  Node: roadmap,  Next: credits,  Prev: options,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 24 Roadmap
 **********
@@ -972,7 +972,7 @@ is currently not determined.
 
 File: cedille-info-main.info,  Node: credits,  Next: about,  Prev: roadmap,  Up: Top
 
-                                                       (version: 1.1.0)
+                                                       (version: 1.1.1)
 
 25 Credits
 **********
@@ -1051,10 +1051,10 @@ Carl A. Olson
      se-mode for structured navigation
 
 
-File: cedille-info-main.info,  Node: Index,  Next: about,  Prev: credits,  Up: Top
+File: cedille-info-main.info,  Node: documentation index,  Next: about,  Prev: credits,  Up: Top
 
-Index
-*****
+documentation index
+*******************
 
  [index ]
 * Menu:
@@ -1068,20 +1068,20 @@ Index
 
 Tag Table:
 Node: Top95
-Node: about1066
-Node: tooling13085
-Node: cedille mode commands18750
-Node: unicode shortcuts22172
-Node: extra buffers24361
-Node: inspect buffer25851
-Node: summary buffer27192
-Node: meta-vars buffer28151
-Node: beta-reduce mode29328
-Node: context buffer30591
-Node: options32764
-Node: roadmap34016
-Node: credits35234
-Node: Index36625
+Node: about1080
+Node: tooling13113
+Node: cedille mode commands18778
+Node: unicode shortcuts22200
+Node: extra buffers24389
+Node: inspect buffer25879
+Node: summary buffer27220
+Node: meta-vars buffer28179
+Node: beta-reduce mode29356
+Node: context buffer30619
+Node: options32792
+Node: roadmap34044
+Node: credits35262
+Node: documentation index36653
 
 End Tag Table
 
