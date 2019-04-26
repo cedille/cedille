@@ -784,25 +784,6 @@ to enter beta-reduce mode:
   3. “C-i t” Enter beta-reduce mode with selection’s type/expected type
      and its scope
 
-– f/b/n/p/...  Regular cedille-mode navigation
-
-– C-i h Replace selection with its head normal form – C-i n Replace
-selection with its normal form – C-i u Only reduce selection by one
-step, then stop
-
-– C-i = Replace selection with some other expression, if βη-equal – C-i
-r Rewrite selection with a proof of some equation – C-i R If “C-i r”
-operates like a ρ term, this is a ρ+ term
-
-– C-i f Check some term (prompt) against the expression, which must be a
-type – C-i a Abstract the outermost binder (λ, ∀, Π) of the entire
-expression – C-i c Match upon some term (prompt), spawning another
-buffer for each case
-
-– C-i , Undo – C-i .  Redo
-
-– C-i p Print a proof of your work
-
 19 Controls
 ***********
 
@@ -835,8 +816,8 @@ buffer for each case
      Abstract the outermost binder (λ/∀/Π/➔/➾) of the entire expression
 
 ‘C-i c’
-     Match upon some term (prompt), spawning another buffer for each
-     case
+     Case split upon some term (prompt), spawning another buffer for
+     each case
 
 ‘C-i p’
      Reconstruct a proof of your work from each step taken so far
@@ -1107,11 +1088,11 @@ Node: inspect buffer25885
 Node: summary buffer27226
 Node: meta-vars buffer28185
 Node: beta-reduce mode29362
-Node: context buffer31627
-Node: options33800
-Node: roadmap35052
-Node: credits36270
-Node: documentation index37661
+Node: context buffer30916
+Node: options33089
+Node: roadmap34341
+Node: credits35559
+Node: documentation index36950
 
 End Tag Table
 

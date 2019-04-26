@@ -47,7 +47,7 @@ Fill this type with some term (prompt), if it type-checks
 Abstract the outermost binder (λ/∀/Π/➔/➾) of the entire expression
 
 @item C-i c
-Match upon some term (prompt), spawning another buffer for each case
+Case split upon some term (prompt), spawning another buffer for each case
 
 @item C-i p
 Reconstruct a proof of your work from each step taken so far

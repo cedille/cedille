@@ -71,25 +71,6 @@ Enter beta-reduce mode with selection and its scope
 Enter beta-reduce mode with selection&rsquo;s type/expected type and its scope
 </li></ol>
 
-<p>&ndash;   f/b/n/p/...   Regular cedille-mode navigation
-</p>
-<p>&ndash;   C-i h         Replace selection with its head normal form
-&ndash;   C-i n         Replace selection with its normal form
-&ndash;   C-i u         Only reduce selection by one step, then stop
-</p>
-<p>&ndash;   C-i =         Replace selection with some other expression, if βη-equal
-&ndash;   C-i r         Rewrite selection with a proof of some equation
-&ndash;   C-i R         If &ldquo;C-i r&rdquo; operates like a ρ term, this is a ρ+ term
-</p>
-<p>&ndash;   C-i f         Check some term (prompt) against the expression, which must be a type
-&ndash;   C-i a         Abstract the outermost binder (λ, ∀, Π) of the entire expression
-&ndash;   C-i c         Match upon some term (prompt), spawning another buffer for each case
-</p>
-<p>&ndash;   C-i ,         Undo
-&ndash;   C-i .         Redo
-</p>
-<p>&ndash;   C-i p         Print a proof of your work
-</p>
 <a name="Controls-1"></a>
 <h2 class="chapter">19 Controls</h2>
 <dl compact="compact">
@@ -130,7 +111,7 @@ Enter beta-reduce mode with selection&rsquo;s type/expected type and its scope
 </p>
 </dd>
 <dt><code>C-i c</code></dt>
-<dd><p>Match upon some term (prompt), spawning another buffer for each case
+<dd><p>Case split upon some term (prompt), spawning another buffer for each case
 </p>
 </dd>
 <dt><code>C-i p</code></dt>
@@ -147,11 +128,6 @@ Enter beta-reduce mode with selection&rsquo;s type/expected type and its scope
 </dd>
 </dl>
 
-<hr>
-<div class="header">
-<p>
-Previous: <a href="summary-buffer.html#summary-buffer" accesskey="p" rel="prev">summary buffer</a>, Up: <a href="extra-buffers.html#extra-buffers" accesskey="u" rel="up">extra buffers</a> &nbsp; [<a href="documentation-index.html#documentation-index" title="Index" rel="index">Index</a>]</p>
-</div>
 
 
 
