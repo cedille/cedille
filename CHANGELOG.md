@@ -1,3 +1,13 @@
+# Cedille 1.1.1
+
+- support for simple inference of motives for pattern matches.  This probably
+  should have been 1.1, but we are releasing it now.  It is demo'ed in the
+  language-overview/datatypes.ced file.
+- Cedille Core checker now uses de Bruijn indices for bound variables, and
+  runs quite a bit faster now.
+- you no longer need to parenthesize mu and mu' expressions if you are 
+  applying them to arguments.
+
 # Cedille 1.1
 
 - support for datatype notations.  See language-overview/datatypes.ced and 
