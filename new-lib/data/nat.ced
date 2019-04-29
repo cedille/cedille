@@ -34,20 +34,17 @@ minusCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
 
 minus = minusCV -is/Nat.
 
--- interesting to consider extensions to allow kicking off recursion on an abstract type
-halfCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ N
-  = Λ N. Λ is. λ n. (μ half. (to/Nat -is n) @(λ x: Nat. View ·N β{x} ➾ N) {
-  | zero ➔ Λ v. elimView β{zero} -v
-  | succ n ➔ μ' n @(λ x: Nat. View ·N β{succ x} ➾ N) {
-    | zero ➔ Λ v. predCV -is (elimView β{succ zero} -v)
-    | succ n ➔ Λ v.
-      [n' : N = minusCV -is (elimView β{succ (succ n)} -v) num2]
-    - [hv : View ·N β{n} = intrView -n' β{n} β]
-    - half n -hv
+halfGen : Bool ➔ Nat ➔ Nat
+= λ b. λ n. μ half. n {
+  | zero ➔ zero
+  | succ n ➔ μ' n {
+    | zero ➔ ite b num1 zero
+    | succ n ➔ succ (half n)
     }
-  }) -(intrView -n β{n} β).
+  }.
 
-half = halfCV -is/Nat.
+half = halfGen ff.
+halfUp = halfGen tt.
 
 mult : Nat ➔ Nat ➔ Nat
   = λ m. λ n. μ multM. n {zero ➔ zero | succ n ➔ add m (multM n)}.
@@ -71,9 +68,6 @@ lt : Nat ➔ Nat ➔ Bool = λ m. λ n. lte (succ m) n.
 gt : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lte m n).
 
 gte : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lt m n).
-
-Lte : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lte m n ≃ tt }.
-Lt  : Nat ➔ Nat ➔ ★ = λ m: Nat. λ n: Nat. { lt  m n ≃ tt }.
 
 eq : Nat ➔ Nat ➔ Bool
 = λ m. μ eq. m {

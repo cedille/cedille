@@ -76,27 +76,46 @@ add : Nat ➔ Nat ➔ Nat
 -- prevent name clashes with slashes.
 -}
 
-{-
--- μ and μ' can also be used for proofs. Due to limitations in type inference,
--- if you wish to prove some property `P n` by pattern-matching or recursion on
--- `n`, you must give the motive explicitly, via the @ syntax.
---
--- Below, `natCases` proves `P` holds for any `n` if it holds for `zero` and the
--- successor of any number. The motive `P` is given explicitly
+{- μ and μ' can also be used for proofs. In general, these will require the user
+-- give a motive explicitly using the `@` syntax shown below in
+-- `natCasesWGuide`, which proves that P holds for any n whenever it holds for
+-- `zero` and `suc n` (for all `n`)
+-}
+
+natCasesWGuide : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)) ➔ P n
+= Λ P. λ n. λ z. λ s. μ' n @P {- alternatively, @λ x: Nat. P x -} {
+  | zero ➔ z
+  | suc n ➔ s n
+  }.
+
+{- For many definitions, however, the motive can be inferred from the type of
+-- the scrutinee and the expected type. This is done by abstracting over the
+-- datatype's indices and the datatype itself and replacing all occurrences of
+-- the scrutinee and its indices in the expected type with these abstracted
+-- variables.
 -}
 
 natCases : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)) ➔ P n
-  = Λ P. λ n. λ z. λ s. μ' n @P {zero ➔ z | suc n ➔ s n}.
+= Λ P. λ n. λ z. λ s. μ' n { zero ➔ z | suc n ➔ s n}.
+--                    ^----------------------------^
+-- Computed motive: λ x: Nat. P x
+
+{- Here, Nat has no indices. We abstract over the scrutinee `n` with a variable `x`
+-- and replace all occurrences of `n` in the result type `P n` with `x`, forming
+-- the motive `λ x: Nat. P x`
+-}
 
 {-
 -- `vecInd` below proves the induction principle for `Vec` using μ. It
--- introduces several new novel aspects of datatypes in Cedille
+-- introduces several new and novel aspects of datatypes in Cedille. Selecting
+-- the span for the entire μ-expression itself, you can see that it inferred the
+-- slightly more complex motive `λ x: Nat. λ x': Vec ·A x. P x x'`
 -}
 
 vecInd : ∀ A: ★. ∀ P: (Π i: Nat. Vec ·A i ➔ ★). ∀ n: Nat. Π xs: Vec ·A n.
     P zero (vnil ·A) ➔ (∀ m: Nat. Π a: A. Π xs: Vec ·A m. P m xs ➔ P (suc m) (vcons -m a xs))
     ➔ P n xs
-  = Λ A. Λ P. Λ n. λ xs. λ vn. λ vc. μ ih. xs @P {
+  = Λ A. Λ P. Λ n. λ xs. λ vn. λ vc. μ ih. xs {
   | vnil ➔ vn
   | vcons -m hd tl ➔ vc -m hd (to/Vec -isType/ih -m tl) (ih -m tl)
   }.
@@ -200,7 +219,7 @@ eqNat : Nat ➔ Nat ➔ Bool
   }.
 
 eval : ∀ X: ★. Expr ·X ➔ X
-  = Λ X. λ e. μ eval. e @(λ X: ★. λ x: Expr ·X. X) {
+  = Λ X. λ e. μ eval. e {
   | nExpr n ➔ n
   | bExpr b ➔ b
   | addExpr m n ➔ add (eval m) (eval n)

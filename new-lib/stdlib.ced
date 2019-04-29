@@ -1,14 +1,21 @@
 module stdlib.
 
 import public core/bot.
-import public core/top.
+import public core/eq.
 import public core/id.
-import public core/view.
+import public core/rec.
+import public core/top.
 import public core/tpeq.
+import public core/view.
 
-import public data/nat.
 import public data/bool.
-import public data/unit.
+import public data/decidable.
+import public data/list.
+import public data/maybe.
+import public data/nat.
+import public data/nat-cov.
 import public data/sigma.
 import public data/sum.
-import public data/list.
+import public data/unit.
+import public data/vec.
+import public data/wksigma.
