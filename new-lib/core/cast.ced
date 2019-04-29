@@ -1,0 +1,26 @@
+module core/cast.
+
+Cast : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
+
+intrCast : ∀ A: ★. ∀ B: ★. Π f: A ➔ B. (Π a: A. {f a ≃ a}) ➔ Cast ·A ·B
+  = Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+
+elimCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ A ➔ B
+  = Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+
+CastMap : (★ ➔ ★) ➔ ★
+= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·(F ·A) ·(F ·B).
+
+castMap : ∀ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★.
+  CastMap ·F ➾ Cast ·A ·B ➾ F ·A ➔ F ·B
+= Λ F. Λ A. Λ B. Λ cm. Λ c. λ f. elimCast -(cm c) f.
+
+-- Dependent version
+CastDep : Π A: ★. Π B: A ➔ ★. ★
+= λ A: ★. λ B: A ➔ ★. ι f: Π a: A. B a. {f ≃ λ x. x}.
+
+intrCastDep : ∀ A: ★. ∀ B: A ➔ ★. Π f: Π a: A. B a. (Π a: A. {f a ≃ a}) ➔ CastDep ·A ·B
+= Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - f a {a} , β].
+
+elimCastDep : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ Π a: A. B a
+= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.

@@ -1,7 +1,7 @@
 import bool.
 import list.
 import nat.
-import nat-cov.
+import nat-cv.
 import nat-thms.
 import sigma.
 import sum.
