@@ -24,6 +24,8 @@ vec2ListId : ∀ A: ★. ∀ n: Nat. Id ·(Vec ·A n) ·(List ·A)
 vec2List! : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ List ·A
 = Λ A. Λ n. elimId -(vec2ListId ·A -n).
 
+_ : {vec2List! ≃ λ x. x} = β.
+
 list2VecId : ∀ A: ★. IdDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length xs))
 = Λ A.
   [f : Π xs: List ·A. Vec ·A (length xs)
@@ -44,3 +46,5 @@ list2VecId : ∀ A: ★. IdDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length 
 
 list2Vec! : ∀ A: ★. Π xs: List ·A. Vec ·A (length xs)
 = Λ A. elimIdDep -(list2VecId ·A).
+
+_ : {list2Vec! ≃ λ x. x} = β.

@@ -1,14 +1,14 @@
 module tpeq.
 
-import id.
+import cast.
 
-TpEq : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι _: Id ·A ·B. Id ·B ·A.
+TpEq : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι _: Cast ·A ·B. Cast ·B ·A.
 
-intrTpEq : ∀ A: ★. ∀ B: ★. Id ·A ·B ➔ Id ·B ·A ➔ TpEq ·A ·B
-  = Λ A. Λ B. λ c1. λ c2. [ [ λ a. elimId -c1 a , β] , [ λ b. elimId -c2 b , β ] ].
+intrTpEq : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·B ·A ➔ TpEq ·A ·B
+  = Λ A. Λ B. λ c1. λ c2. [ [ λ a. elimCast -c1 a , β] , [ λ b. elimCast -c2 b , β ] ].
 
 elimTpEq1 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ A ➔ B
-  = Λ A. Λ B. Λ teq. λ a. elimId -teq.1 a.
+  = Λ A. Λ B. Λ teq. λ a. elimCast -teq.1 a.
 
 elimTpEq2 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ B ➔ A
-  = Λ A. Λ B. Λ teq. λ b. elimId -teq.2 b.
+  = Λ A. Λ B. Λ teq. λ b. elimCast -teq.2 b.

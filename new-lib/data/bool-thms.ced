@@ -3,7 +3,4 @@ module bool-thms.
 import bool.
 
 notNotId : Π b: Bool. {not (not b) ≃ b}
-= λ b. μ' b {
-  | tt ➔ β
-  | ff ➔ β
-  }.
+= λ b. μ' b { tt ➔ β | ff ➔ β }.

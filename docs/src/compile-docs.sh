@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # to be run in docs/src/ because of the relative path
 
 makeinfo -o ../info/cedille-info-main.info cedille-info-main.texi

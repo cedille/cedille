@@ -4,6 +4,11 @@
 @documentencoding UTF-8
 @paragraphindent 0
 
+@dircategory Programming
+@direntry
+* Cedille: (cedille-info-main).       Cedille Documentation
+@end direntry
+
 @include version-macro.texi
 
 @ifnottex
