@@ -198,8 +198,7 @@ check-termi t'@(AppTp t tp') mtp =
   check-type tp' (just k)
   ≫span
     let rtp = subst Γ (qualif-type Γ tp') x body in
-    spanM-add (uncurry (λ tvs →
-      AppTp-span t tp' (maybe-to-checking mtp) (type-data Γ rtp :: tvs))
+    spanM-add (uncurry (AppTp-span t tp' (maybe-to-checking mtp))
       (check-for-type-mismatch-if Γ "synthesizing" mtp rtp))
   ≫span return-when mtp (just rtp)
 
