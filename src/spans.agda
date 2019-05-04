@@ -27,12 +27,9 @@ err-m = maybe string
 data span : Set where
   mk-span : string → posinfo → posinfo → 𝕃 tagged-val {- extra information for the span -} → err-m → span
 
-span-to-rope : span → json
-span-to-rope (mk-span name s e tvs err?) =
-  json-array $ json-string name :: json-raw [[ s ]] :: json-raw [[ e ]] :: [ tagged-vals-to-rope (maybe-else' err? tvs λ err → ("error" , [[ err ]] , []) :: tvs) ]
-{-span-to-rope (mk-span name start end extra nothing) = [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 extra ⊹⊹ [[ "}]" ]]
-span-to-rope (mk-span name start end extra (just err)) = 
-  [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 (strRunTag "error" empty-ctxt (strAdd err) :: extra) ⊹⊹ [[ "}]" ]]-}
+span-to-json : span → json
+span-to-json (mk-span name s e tvs err?) =
+  json-array $ json-string name :: json-raw [[ s ]] :: json-raw [[ e ]] :: [ tagged-vals-to-json (maybe-else' err? tvs λ err → ("error" , [[ err ]] , []) :: tvs) ]
 
 data error-span : Set where
   mk-error-span : string → posinfo → posinfo → 𝕃 tagged-val → string → error-span
@@ -58,9 +55,9 @@ empty-spans : spans
 empty-spans = regular-spans nothing []
 
 spans-to-json' : spans → 𝕃 (string × json)
-spans-to-json' (regular-spans _ ss) = [ "spans" , json-array (map span-to-rope ss) ]
+spans-to-json' (regular-spans _ ss) = [ "spans" , json-array (map span-to-json ss) ]
 spans-to-json' (global-error e s) =
-  ("error" , json-string e) :: maybe-else' s [] λ s → [ "global-error" , span-to-rope s ]
+  ("error" , json-string e) :: maybe-else' s [] λ s → [ "global-error" , span-to-json s ]
 
 spans-to-json : spans → json
 spans-to-json = json-object ∘ spans-to-json'

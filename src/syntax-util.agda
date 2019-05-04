@@ -35,20 +35,15 @@ tag = string × json
 tagged-val : Set
 tagged-val = string × rope × 𝕃 tag
 
-tags-to-rope : 𝕃 tag → 𝕃 json
-tags-to-rope [] = []
-tags-to-rope ts = [ json-object ts ]
---tags-to-rope ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
---tags-to-rope ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-rope ts
+tags-to-json : 𝕃 tag → 𝕃 json
+tags-to-json [] = []
+tags-to-json ts = [ json-object ts ]
 
--- We number these when so we can sort them back in emacs
-tagged-val-to-rope : ℕ → tagged-val → string × json
-tagged-val-to-rope n (t , v , tags) = t , json-array ({-json-string (ℕ-to-string n) ::-} json-rope v :: tags-to-rope tags)
---[[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
---tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
+tagged-val-to-json : tagged-val → string × json
+tagged-val-to-json (t , v , tags) = t , json-array (json-rope v :: tags-to-json tags)
 
-tagged-vals-to-rope : 𝕃 tagged-val → json
-tagged-vals-to-rope ts = json-object $ foldr (λ t js n → tagged-val-to-rope n t :: js (suc n)) (const []) ts 0
+tagged-vals-to-json : 𝕃 tagged-val → json
+tagged-vals-to-json = json-object ∘ map tagged-val-to-json
 
 make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
 make-tag name vs start end = name , json-object (("start" , json-nat start) :: ("end" , json-nat end) :: vs)

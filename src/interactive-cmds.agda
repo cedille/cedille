@@ -282,64 +282,6 @@ private
         defs = datatype-encoding.mk-defs picked-encoding Γ $ Data x ps is cs in
     inj₂ $ strRunTag "" Γ $ cmds-to-escaped-string $ fst defs
 
-{-
-  br-cmd : ctxt → (str qed : string) → 𝕃 string → IO ⊤
-  br-cmd Γ str qed ls =
-    let Γ' = merge-lcis-ctxt Γ ls in
-    maybe-else
-      (return (io-spans.spans-to-json (io-spans.global-error "Parse error" nothing)))
-      (λ s → s >>= return ∘ io-spans.spans-to-json)
-      (parse-try {maybe (IO io-spans.spans)} Γ' str ≫=maybe λ f → f λ where
-         ll-term t → just (untyped-term-spans t Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
-         ll-type T →
-           parse-string ll-term qed ≫=maybe λ q →
-           case check-term q (just $ qualif-type Γ' T) Γ' empty-spans of λ where
-             (triv , _ , ss @ (regular-spans nothing _)) →
-               just (putStrLn "inhabited: Type inhabited" >> untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
-             (triv , _ , _) →
-               just (untyped-type-spans T Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd))
-         ll-kind k →
-           just (untyped-kind-spans k Γ' io-spans.empty-spans >>= return ∘ (snd ∘ snd)))
-      >>= putRopeLn
-
-  conv-cmd : ctxt → (ll str1 str2 : string) → 𝕃 string → string ⊎ tagged-val
-  conv-cmd Γ ll s1 s2 ls =
-    parse-ll - ll ! "language-level" ≫parse λ ll' →
-    parse-string ll' - s1 ! ll ≫parse λ t1 →
-    parse-string ll' - s2 ! ll ≫parse λ t2 →
-    let Γ' = merge-lcis-ctxt Γ ls; t2 = erase (qualif-ed Γ' t2) in
-    if ll-ind {λ ll → ctxt → ll-lift ll → ll-lift ll → 𝔹}
-         conv-term conv-type conv-kind ll' Γ' (qualif-ed Γ' t1) t2
-      then inj₂ (to-string-tag "" Γ' t2)
-      else inj₁ "Inconvertible"
-
-  rewrite-cmd : ctxt → (span-str : string) → (input-str : string) →
-                (use-hnf : string) → (local-ctxt : 𝕃 string) → string ⊎ tagged-val
-  rewrite-cmd Γ ss is hd ls =
-    string-to-𝔹 - hd ! "boolean" ≫parse λ use-hnf →
-    let Γ = merge-lcis-ctxt Γ ls in
-    parse-try Γ - ss ! ttk ≫parse λ f → f λ ll ss →
-    parse-try Γ - is ! ttk ≫parse λ f → (f λ where
-      ll-term t → (case check-term t nothing Γ empty-spans of λ
-          {(just T , _ , regular-spans nothing _) → just T; _ → nothing})
-        ! "Error when synthesizing a type for the input term" ≫error λ where
-          (TpEq _ t₁ t₂ _) → inj₂ (t₁ , t₂)
-          _ → inj₁ "Synthesized a non-equational type from the input term"
-      ll-type (TpEq _ t₁ t₂ _) → inj₂ (t₁ , t₂)
-      ll-type _ → inj₁ "Expected the input expression to be a term, but got a type"
-      ll-kind _ → inj₁ "Expected the input expression to be a term, but got a kind")
-    ≫=⊎ uncurry λ t₁ t₂ →
-    let x = fresh-var Γ "x"
-        f = ll-ind {λ ll → ctxt → term → var → ll-lift ll → ll-lift ll}
-              subst subst subst ll Γ t₂ x in
-    case (ll-ind {λ ll → ll-lift ll → ctxt → 𝔹 → maybe stringset →
-                         maybe term → term → var → ℕ → ll-lift ll × ℕ × ℕ}
-      rewrite-term rewrite-type rewrite-kind ll (qualif-ed Γ ss) Γ
-      use-hnf nothing (just (Beta posinfo-gen NoTerm NoTerm)) t₁ x 0) of λ where
-        (e , 0 , _) → inj₁ "No rewrites could be performed"
-        (e , _ , _) → inj₂ (strRunTag "" Γ
-          (to-stringe (erase (f e)) ≫str strAdd "§" ≫str strAdd x ≫str strAdd "§" ≫str to-stringe (erase e)))
--}
   pretty-cmd : filepath → filepath → IO string
   pretty-cmd src-fn dest-fn =
     readFiniteFile src-fn >>= λ src →
@@ -354,7 +296,7 @@ private
   
   tv-to-json : string ⊎ tagged-val → json
   tv-to-json (inj₁ s) = json-object [ "error" , json-string s ] -- [[ "{\"error\":\"" ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\"}" ]]
-  tv-to-json (inj₂ (_ , v , ts)) = tagged-vals-to-rope [ "value" , v , ts ]
+  tv-to-json (inj₂ (_ , v , ts)) = tagged-vals-to-json [ "value" , v , ts ]
   
   interactive-cmd-h : ctxt → 𝕃 string → string ⊎ tagged-val
   interactive-cmd-h Γ ("normalize" :: input :: ll :: sp :: norm :: lc) =
@@ -380,6 +322,7 @@ private
       T : ll-lift Tₗₗ
       Tᵤ : string
       f : term → 𝕃 (ctr × term) → term
+      Γₗ : 𝕃 tagged-val
       undo : 𝕃 br-history
       redo : 𝕃 br-history
 
@@ -403,7 +346,7 @@ private
     let T = qualif-ed Γ T
         Tₑ = erase T in
     putJson (tv-to-json $ inj₂ $ ts-tag Γ Tₑ) >>
-    await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const [] []) [])
+    await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const [] [] []) [])
     where
 
     import to-string (record options {erase-types = ff}) as ts2
@@ -460,9 +403,9 @@ private
       writeh (suc n) (h' :: hs) = h' :: writeh n hs
 
     outline : br-history2 → term
-    outline (br-node (mk-br-history Γ t ll-type T Tₛ f undo redo) []) = f (Chi pi-gen (SomeType T) t) []
-    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) []) = f t []
-    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f undo redo) hs) = f t (map (uncurry λ c h → c , outline h) hs)
+    outline (br-node (mk-br-history Γ t ll-type T Tₛ f Γₗ undo redo) []) = f (Chi pi-gen (SomeType T) t) []
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) []) = f t []
+    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) hs) = f t (map (uncurry λ c h → c , outline h) hs)
 
     make-case : ctxt → params → term → caseArgs × term
     make-case = h [] where
@@ -487,7 +430,7 @@ private
           maybe-else' (parse-path path) (err ("Could not parse " ^ path ^ " as a list of space-delimited natural numbers")) λ path →
           let await-with = await ∘ flip (write-history path) his in
           maybe-else' (br-lookup path his) (err "Beta-reduction pointer does not exist") λ where
-            this @ (mk-br-history Γ t Tₗₗ T Tᵤ f undo redo) → case as of λ where
+            this @ (mk-br-history Γ t Tₗₗ T Tᵤ f Γₗ undo redo) → case as of λ where
              
               ("undo" :: []) → case undo of λ where
                 [] → err "No undo history"
@@ -513,6 +456,9 @@ private
                   (putJson $ spans-to-json $ global-error "Parse error" nothing)
                   λ T → putJson $ spans-to-json $ snd $ snd $ ll-ind' {λ _ → spanM ⊤} (Tₗₗ , T)
                           untyped-term-spans untyped-type-spans untyped-kind-spans (set-Γ-file-missing Γ) empty-spans
+
+              ("context" :: []) →
+                putJson (json-object [ "value" , json-array [ tagged-vals-to-json Γₗ ] ]) >> await his
              
               ("check" :: t?) →
                 let await-set = maybe-else (await his) λ t → await-with $ record this
@@ -531,8 +477,13 @@ private
                       _ → inj₁ $ nothing ,
                         "To many arguments given to beta-reduction command 'check'")
                   ≫=⊎ λ t? →
-                    if (spans-have-error (snd $ snd $ check-term (maybe-else' t? t id) (just T) Γ empty-spans))
-                      then inj₁ (t? , "Type error")
+                    let β = Beta pi-gen NoTerm NoTerm
+                        tp-err = λ t → spans-have-error $ snd $ snd $
+                                         check-term t (just T) Γ empty-spans in
+                    if tp-err (maybe-else' t? t id)
+                      then if maybe-else' t? (tp-err β) (const tt)
+                             then inj₁ (t? , "Type error")
+                             else inj₂ (just β , "Equal by beta")
                       else inj₂ (t? , "Type inhabited"))
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
              
@@ -632,12 +583,15 @@ private
                     (λ k → inj₁ "Expression must be a term or a type"))
                   err $ λ where
                     (Γ' , me , dom , cod , fₜ) →
-                      putJson (json-object [ "value" , json-array (json-array (json-rope (fst $ snd $ binder-data Γ' "0" xᵤ dom me nothing "0" "0") :: json-rope (to-string Γ' $ erase cod) :: []) :: []) ]) >>
+                      let tv = binder-data Γ' "0" xᵤ dom me nothing "0" "0" in
+--                      putJson (json-object [ "value" , json-array (json-array (json-rope (fst (snd tv)) :: json-rope (to-string Γ' $ erase cod) :: []) :: []) ]) >>
+                      putJson (json-object [ "value" , json-array [ json-rope (to-string Γ' $ erase cod) ] ]) >>
                       await-with (record this
                         {Γ = Γ' ;
                          T = cod;
                          Tᵤ = rope-to-string $ ts2.to-string Γ' $ erase cod;
                          f = f ∘ fₜ;
+                         Γₗ = Γₗ ++ [ tv ];
                          undo = this :: undo;
                          redo = []})
              
@@ -687,24 +641,18 @@ private
                 err $ λ where
                  (scrutinee , cs , Tₘ , Γ , ts) →
                    let json = json-object [ "value" , json-array
-                                [ json-array (tagged-vals-to-rope ts ::
+                               -- [ json-array (tagged-vals-to-json ts ::
                                    [ json-object (map
                                     (λ {(Ctr _ x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
                                       json-rope (to-string Γ (erase T))})
-                                    cs) ]) ] ] in
+                                    cs) ] ] in -- ) ] ] in
                    putJson json >>
                    let shallow = iszero (string-length rec)
                        mk-cs = map λ where
                          (Ctr _ x T , t) →
                            let T' = hnf Γ (unfolding-elab unfold-head) T tt in
                            case decompose-ctr-type Γ T' of λ where
-                             (Tₕ , ps , as) →{-
-                               let mf = map λ where
-                                          (Decl _ _ me x atk _) →
-                                            if tk-is-type atk
-                                              then CaseTermArg pi-gen me x
-                                              else CaseTypeArg pi-gen x in
-                               Case pi-gen x (mf ps) $-}
+                             (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) $ Case pi-gen x
                        f'' = λ t cs → if shallow
                          then Mu' pi-gen NoTerm t (SomeType Tₘ) pi-gen (mk-cs cs) pi-gen
@@ -713,12 +661,13 @@ private
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t ll-type T''
                                    (rope-to-string $ to-string Γ $ erase T'')
-                                   (λ t cs → t) [] [] in
+                                   (λ t cs → t) (Γₗ ++ ts) [] [] in
                    await (write-children path (mk-hs cs) $
                             write-history path (record this
                               {f = f';
                                Γ = Γ;
                                t = scrutinee;
+                               Γₗ = Γₗ ++ ts;-- TODO: Should we really do this?
                                undo = this :: undo;
                                redo = []})
                               his)

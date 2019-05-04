@@ -44,11 +44,26 @@
  (defvar cedille-mode-br-checks nil))
 
 (make-variable-buffer-local
+ (defvar cedille-mode-br-local-context nil))
+
+(make-variable-buffer-local
  (defvar cedille-mode-br-parent nil))
 
 (make-variable-buffer-local
  (defvar cedille-mode-br-children nil))
 
+
+;;;;; Context Buffer ;;;;;
+
+(defmacro cedille-mode-br-show-context (&optional jump-to-window-p)
+  "Macro for showing context with `c' or `C' while in `beta-reduce-mode'"
+  `(lambda ()
+     (interactive)
+     (call-interactively
+      (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
+     (when ,jump-to-window-p
+       (select-window (get-buffer-window (cedille-mode-context-buffer-name))))
+     (cedille-mode-update-buffers)))
 
 ;;;;; Mode ;;;;;
 
@@ -69,8 +84,8 @@
     (se-navi-define-key 'cedille-br-mode (kbd "M-s") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "C-g") #'cedille-mode-br-kill-buffer)
     (se-navi-define-key 'cedille-br-mode (kbd "j") #'cedille-mode-br-jump)
-    (se-navi-define-key 'cedille-br-mode (kbd "c") (lambda () (interactive) (let ((se-mode-selected se-mode-selected) (se-mode-not-selected se-mode-not-selected)) (call-interactively (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))) (cedille-mode-update-buffers))) ; TODO: remove defs after undo, if they were added
-    (se-navi-define-key 'cedille-br-mode (kbd "C") (lambda () (interactive) (let ((se-mode-selected se-mode-selected) (se-mode-not-selected se-mode-not-selected)) (call-interactively (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))) (cedille-mode-update-buffers)))
+    (se-navi-define-key 'cedille-br-mode (kbd "c") (cedille-mode-br-show-context))
+    (se-navi-define-key 'cedille-br-mode (kbd "C") (cedille-mode-br-show-context t))
     (se-navi-define-key 'cedille-br-mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
     (se-navi-define-key 'cedille-br-mode (kbd "S") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode t nil))
     (se-navi-define-key 'cedille-br-mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
@@ -163,6 +178,7 @@
             cedille-mode-br-do-check (and qed do-check
                                           (cons (se-term-start span) (se-term-end span)))
 	    cedille-mode-global-context context
+            cedille-mode-br-local-context context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
@@ -173,7 +189,7 @@
         str
         (or qed "●")
         (number-to-string (if span (1- (se-span-start span)) (point-max)))
-        (if context (cedille-mode-normalize-local-context-to-string context) ""))
+        (if context (cedille-mode-normalize-local-context-to-string (copy-tree context)) ""))
        (cedille-mode-response-macro #'cedille-mode-br-response)
        nil))
     (cedille-mode-rebalance-windows)
@@ -184,7 +200,7 @@
   (let* ((parent cedille-mode-parent-buffer)
          (br-parent (current-buffer))
          (buffer (generate-new-buffer (cedille-mode-br-buffer-name)))
-         (context cedille-mode-global-context)
+         (context (copy-tree cedille-mode-global-context))
          (column cedille-mode-br-column))
     (with-current-buffer br-parent
       (add-to-list 'cedille-mode-br-children buffer))
@@ -199,34 +215,36 @@
       (se-inf-start (get-buffer-process "*cedille-mode*"))
       (setq cedille-mode-parent-buffer parent
             se-inf-response-finished t
-	    cedille-mode-do-update-buffers nil
+	    cedille-mode-do-update-buffers t
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-parent br-parent
 	    cedille-mode-global-context context
+            cedille-mode-br-local-context context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
-      (cedille-mode-br-response str buffer))
+      (cedille-mode-br-response str t))
     (cedille-mode-rebalance-windows)
     buffer))
 
 
 ;;;;; Helpers ;;;;;
 
-(defun cedille-mode-br-response (response extra &optional span)
+(defun cedille-mode-br-response (response update-context &optional span)
   (when span (setq cedille-mode-br-range (cons (se-term-start span) (+ (se-term-end span) (length response) (- (point-max))))))
   (setq cedille-mode-br-temp-str response)
   (run-hooks 'se-inf-pre-parse-hook)
   (setq se-inf-response-finished nil)
-  (se-inf-interactive (cedille-mode-concat-sep "br" (cedille-mode-br-path) "parse") #'cedille-mode-br-process-response span)
+  (se-inf-interactive (cedille-mode-concat-sep "br" (cedille-mode-br-path) "parse") #'cedille-mode-br-process-response (cons update-context span))
   nil)
 
 (defun cedille-mode-br-process-response (response extra)
   (when response
     (se-inf-process-response response (current-buffer))
-    (unless extra
+    (unless (cdr extra)
       (setq se-mode-not-selected (list (se-get-span (se-mode-parse-tree)))))
-    (cedille-mode-matching-nodes-init))
+    (cedille-mode-matching-nodes-init)
+    (when (car extra) (cedille-mode-br-update-context)))
   nil)
 
 (defun cedille-mode-br-post-parse (&optional json)
@@ -255,7 +273,19 @@
   (se-inf-interactive
    (cedille-mode-concat-sep "br" (cedille-mode-br-path) "get")
    (cedille-mode-response-macro #'cedille-mode-br-response)
-   nil))
+   t))
+
+(defun cedille-mode-br-update-context (&optional fn)
+  "Updates the context, querying the backend"
+  (interactive)
+  (se-inf-interactive
+   (cedille-mode-concat-sep "br" (cedille-mode-br-path) "context")
+   (cedille-mode-response-macro
+    (lambda (response extra)
+      (cedille-mode-br-add-to-context response)
+      (cedille-mode-update-buffers)
+      (when extra (funcall extra))))
+   fn))
 
 (defun cedille-mode-br-path ()
   "Concatenates all the strings in `cedille-mode-br-path'"
@@ -264,7 +294,21 @@
 (defun cedille-mode-br-add-to-context (decls)
   "Adds a symbol and its type/kind to the global context"
   (setq cedille-mode-global-context
-        (cedille-mode-get-context (list (se-new-span "dummy" 0 0 (mapcar (lambda (decl) (if (string= (intern "binder") (car decl)) (cons (car decl) (cedille-mode-parse-binder (cdr decl))) decl)) decls))))))
+        (let ((cedille-mode-global-context cedille-mode-br-local-context))
+          (cedille-mode-get-context
+           (list
+            (se-new-span "dummy" 0 0
+                         (mapcar
+                          (lambda (decl)
+                            (if (string= (intern "binder") (car decl))
+                                (cons (car decl)
+                                      (if (consp (cdr decl))
+                                          (cedille-mode-parse-binder
+                                           (cedille-mode-apply-tags
+                                            (cadr decl) (caddr decl)))
+                                        (cdr decl)))
+                              decl))
+                          decls)))))))
 
 ;;;;; Undo/Redo ;;;;;
 
@@ -516,12 +560,14 @@
               (interactive "MName: ")
               x)))
          (x (call-interactively fn)))
-    (se-inf-interactive
+    (se-inf-interactive-with-span ; used to be without span
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "bind" x)
-     (cedille-mode-response-macro
-      (lambda (response top)
-        (cedille-mode-br-add-to-context (list (cons 'binder (car response))))
-        (cedille-mode-br-response (cadr response) nil top)))
+     (cedille-mode-response-macro #'cedille-mode-br-response) ;
+;     (cedille-mode-response-macro
+;      (lambda (response top)
+;        (cedille-mode-br-add-to-context (list (cons 'binder (car response))))
+;        (cedille-mode-br-response (cadr response) nil top)))
+     t
      top)))
 
 
@@ -536,20 +582,25 @@
                 x))))
     (se-inf-interactive
      (cedille-mode-concat-sep "br" (cedille-mode-br-path) "case" scrutinee rec)
-     (cedille-mode-response-macro
-      (lambda (response extra)
-        (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (cadr tv))) (car response)))
-        (cedille-mode-br-case-response (cadr response))
-        ))
+     (cedille-mode-response-macro #'cedille-mode-br-case-response)
+;     (cedille-mode-response-macro
+;      (lambda (response extra)
+;        (cedille-mode-br-add-to-context (mapcar (lambda (tv) (cons (car tv) (cadr tv))) (car response)))
+;        (cedille-mode-br-case-response (cadr response))
+;        ))
      nil)))
 
-(defun cedille-mode-br-case-response (response)
-  (let ((n (length response)))
-    (loop for (key . val) in (reverse response)
-          do (progn
-               (decf n)
-               (cedille-mode-br-spawn-buffer
-                val (cons (number-to-string n) cedille-mode-br-path))))))
+(defun cedille-mode-br-case-response (response &optional extra)
+  "Response function for `cedille-mode-br-case'"
+  (lexical-let ((cases response))
+    (cedille-mode-br-update-context
+     (lambda (&rest args)
+        (let ((n (length cases)))
+          (loop for (key . val) in (reverse cases)
+                do (progn
+                     (decf n)
+                     (cedille-mode-br-spawn-buffer
+                      val (cons (number-to-string n) cedille-mode-br-path)))))))))
 
 
 ;;;;; Checking ;;;;;
@@ -601,7 +652,6 @@
   (setq cedille-mode-br-checks t)
   (with-silent-modifications
     (put-text-property (point-min) (point-max) 'face 'cedille-checking-face-br)))
-
 
 ;;;;; End ;;;;;
 
