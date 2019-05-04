@@ -163,7 +163,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') c? =
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs c? ≫span
      get-ctxt λ Γ →
-     let fₓ = fresh-var Γ "X"
+     let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
          Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
          kₘᵤ = abs-expand-kind ps $ KndArrow k' star
          --Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
