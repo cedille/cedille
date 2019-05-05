@@ -1,4 +1,4 @@
-@node roadmap,credits,options,Top
+@node roadmap,changelog,options,Top
 @include version.texi
 @chapter Roadmap
 

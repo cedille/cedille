@@ -1,4 +1,4 @@
-@node credits,about,roadmap,Top
+@node credits,about,changelog,Top
 @include version.texi
 @chapter Credits
 
