@@ -1993,7 +1993,9 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
         (SomeType Tₘ) → just $ hnf Γ (unfolding-elab unfold-head) (TpAppt (apps-type (qualif-type Γ Tₘ) $
                           ttys-to-args NotErased (drop (length ps) as)) t) tt;
         NoType → mtp}
-      Tₘ?' = optType-elim Tₘ? nothing just in
+      Tₘ?' = optType-elim Tₘ? nothing just
+      no-motive-err = just "A motive is required when synthesizing"
+      no-motive = spanMr (nothing , [] , no-motive-err) in
   case_of_ (maybe-map (λ T → decompose-tpapps $ hnf Γ (unfolding-elab unfold-head) T tt) T) λ where
     (just (TpVar _ X , as)) →
       check-mu-evidence ot X as on-fail
@@ -2003,12 +2005,10 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
        ≫=spans' λ where
         nothing →
           spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
-            (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) nothing) ≫span
+            (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) (maybe-not mtp ≫=maybe λ _ → maybe-not Tₘ?' ≫=maybe λ _ → no-motive-err)) ≫span
           return-when mtp (ret-tp [] as $ qualif-term Γ t)
         (just (cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs))) →
-          let is = kind-to-indices Γ kᵢ
-              no-motive = spanMr (nothing , [] ,
-                            just "A motive is required when synthesizing") in
+          let is = kind-to-indices Γ kᵢ in
           (case Tₘ? of λ where
             (SomeType Tₘ) →
               check-type Tₘ (just kᵢ) ≫span spanMr (just (qualif-type Γ Tₘ) , [] , nothing)

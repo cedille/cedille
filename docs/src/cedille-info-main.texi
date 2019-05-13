@@ -27,6 +27,7 @@ This is the @i{@cedilleversion} version of the documentation for the Cedille lan
 * extra buffers::                Cedille has several other buffers for viewing information computed for the source file
 * options::                      A description of the options file, holding some global settings for Cedille 
 * roadmap::                      What is the plan for upcoming Cedille development
+* changelog::                    The history of changes to Cedille
 * credits::                      Who has contributed to the Cedille tool
 * documentation index::                        Index to the documentation
 @end menu
@@ -54,6 +55,8 @@ This is the @i{@cedilleversion} version of the documentation for the Cedille lan
 @include options.texi
 
 @include roadmap.texi
+
+@include changelog.texi
 
 @include credits.texi
 
