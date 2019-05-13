@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>changelog (Cedille Documentation)</title>
+
+<meta name="description" content="changelog (Cedille Documentation)">
+<meta name="keywords" content="changelog (Cedille Documentation)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="documentation-index.html#documentation-index" rel="index" title="documentation index">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="credits.html#credits" rel="next" title="credits">
+<link href="roadmap.html#roadmap" rel="prev" title="roadmap">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="changelog"></a>
+<div class="header">
+<p>
+Next: <a href="credits.html#credits" accesskey="n" rel="next">credits</a>, Previous: <a href="roadmap.html#roadmap" accesskey="p" rel="prev">roadmap</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="documentation-index.html#documentation-index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<p align="right"><i>(version: <b>development</b>)</i>
+</p><a name="Change-Log"></a>
+<h2 class="chapter">25 Change Log</h2>
+<a name="Cedille-1_002e1_002e1"></a>
+<h3 class="section">25.1 Cedille 1.1.1</h3>
+<ul>
+<li> support for simple inference of motives for pattern matches.  This probably
+  should have been 1.1, but we are releasing it now.  It is demo&rsquo;ed in the
+  language-overview/datatypes.ced file.
+</li><li> Cedille Core checker now uses de Bruijn indices for bound variables, and
+  runs quite a bit faster now.
+</li><li> you no longer need to parenthesize mu and mu&rsquo; expressions if you are 
+  applying them to arguments.
+
+</li></ul>
+<a name="Cedille-1_002e1"></a>
+<h3 class="section">25.2 Cedille 1.1</h3>
+<ul>
+<li> support for datatype notations.  See language-overview/datatypes.ced and 
+  language-overview/cov-pattern-matching.ced.  Please note that &quot;data&quot;
+  and &quot;close&quot; are now keywords and cannot be used as identifiers in Cedille
+  code.
+</li><li> elaboration to Cedille Core with keystroke &quot;E&quot;, and checking of generated
+  .cdle files from within emacs using the Cedille Core checker.
+</li><li> colon is now allowed instead of left triangle for classifications.
+</li><li> better support for implicit arguments with let-terms; see
+  language-overview/local-definitions.ced.
+</li><li> reversed the direction of rewriting for synthesizing rhos, for the
+  benefit of checking in Cedille Core
+</li><li> various bug fixes 
+
+</li></ul>
+<a name="Cedille-1_002e0"></a>
+<h3 class="section">25.3 Cedille 1.0</h3>
+<ul>
+<li> initial release
+</li></ul>
+
+
+
+
+</body>
+</html>
