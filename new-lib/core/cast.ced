@@ -8,6 +8,9 @@ intrCast : ∀ A: ★. ∀ B: ★. Π f: A ➔ B. (Π a: A. {f a ≃ a}) ➔ Cas
 elimCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ A ➔ B
   = Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
 
+trivCast : ∀ A: ★. Cast ·A ·A
+= Λ A. intrCast (λ x. x) (λ _. β).
+
 CastMap : (★ ➔ ★) ➔ ★
 = λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·(F ·A) ·(F ·B).
 
@@ -24,3 +27,6 @@ intrCastDep : ∀ A: ★. ∀ B: A ➔ ★. Π f: Π a: A. B a. (Π a: A. {f a �
 
 elimCastDep : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ Π a: A. B a
 = Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+
+trivCastDep : ∀ A: ★. CastDep ·A ·(λ _: A. A)
+= Λ A. intrCastDep (λ x. x) (λ _. β).
