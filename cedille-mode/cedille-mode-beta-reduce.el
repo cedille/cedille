@@ -60,7 +60,7 @@
   `(lambda ()
      (interactive)
      (call-interactively
-      (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
+      (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil nil))
      (when ,jump-to-window-p
        (select-window (get-buffer-window (cedille-mode-context-buffer-name))))
      (cedille-mode-update-buffers)))
