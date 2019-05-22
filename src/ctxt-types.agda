@@ -105,8 +105,8 @@ qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _ _) v with trie-lookup q v
 ...| just (v' , _) = v'
 ...| nothing = v
 
-start-modname : start → string
-start-modname (File _ _ _ mn _ _ _) = mn
+start-modname : file → string
+start-modname (Module _ _ _ mn _ _ _) = mn
 
 ctxt-get-current-filename : ctxt → string
 ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _ _) = fn

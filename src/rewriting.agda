@@ -7,7 +7,7 @@ open import constants
 open import conversion
 open import ctxt
 open import general-util
-open import is-free
+open import free-vars
 open import lift
 open import rename
 open import subst

@@ -17,13 +17,13 @@ are-free-in-t T = ∀{A} → are-free-e → trie A → T → 𝔹
 are-free-in-term : are-free-in-t term
 are-free-in-type : are-free-in-t type
 are-free-in-kind : are-free-in-t kind
-are-free-in-optClass : are-free-in-t optClass
+--are-free-in-optClass : are-free-in-t optClass
 -- are-free-in-optType : are-free-in-t optType
-are-free-in-optTerm : are-free-in-t optTerm
-are-free-in-optGuide : are-free-in-t optGuide
+--are-free-in-optTerm : are-free-in-t optTerm
+--are-free-in-optGuide : are-free-in-t optGuide
 are-free-in-tk : are-free-in-t tk 
-are-free-in-liftingType : are-free-in-t liftingType
-are-free-in-optType : are-free-in-t optType
+--are-free-in-liftingType : are-free-in-t liftingType
+--are-free-in-optType : are-free-in-t optType
 are-free-in-args : are-free-in-t args
 are-free-in-cases : are-free-in-t cases
 

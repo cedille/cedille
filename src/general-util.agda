@@ -442,3 +442,15 @@ map-fst f (x₀ , x₁) = (f x₀ , x₁)
 map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₁ → X₂) → (X₀ × X₁) → (X₀ × X₂)
 map-snd f (x₀ , x₁) = (x₀ , f x₁)
 
+
+-- Syntax sugar for Haskell-esque list construction
+infixr 5 _,,_
+infix 6 [:_:]
+data 𝕃, {ℓ} (A : Set ℓ) : Set ℓ where
+  _,,_ : ∀ {b} → A → (if b then 𝕃, A else A) → 𝕃, A
+
+[:_:] : ∀ {ℓ} {A : Set ℓ} → 𝕃, A → 𝕃 A
+[: _,,_ {tt} a as :] = a :: [: as :]
+[: _,,_ {ff} a a' :] = a :: a' :: []
+
+𝕃,-example = [: 0 ,, 1 ,, 2 ,, 3 ,, 4 :]

@@ -6,6 +6,8 @@ open import ctxt-types public
 open import subst
 open import general-util
 open import syntax-util
+open import type-util
+open import free-vars
 
 new-sym-info-trie : trie sym-info
 new-sym-info-trie = trie-insert empty-trie compileFail-qual ((term-decl compileFailType) , "missing" , "missing")
@@ -15,6 +17,14 @@ new-qualif = trie-insert empty-trie compileFail (compileFail-qual , [])
 
 qualif-nonempty : qualif → 𝔹
 qualif-nonempty q = trie-nonempty (trie-remove q compileFail)
+
+qualif-insert-params : qualif → var → var → params → qualif
+qualif-insert-params σ qv v ps = trie-insert σ v (qv , params-to-args ps)
+
+qualif-insert-import : qualif → var → maybe import-as → 𝕃 string → args → qualif
+qualif-insert-import σ mn oa [] as = σ
+qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert σ (maybe-else v (λ {(ImportAs _ pfx) → pfx # v}) oa) (mn # v , as)) mn oa vs as
+
 
 new-ctxt : (filename modname : string) → ctxt
 new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie empty-trie (empty-trie , empty-trie , empty-trie , empty-trie)
@@ -35,10 +45,10 @@ ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _ _) = q
 ctxt-get-qi : ctxt → var → maybe qualif-info
 ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
 
-ctxt-qualif-args-length : ctxt → maybeErased → var → maybe ℕ
+ctxt-qualif-args-length : ctxt → erased? → var → maybe ℕ
 ctxt-qualif-args-length Γ me v =
   ctxt-get-qi Γ v ≫=maybe λ qv →
-  just (me-args-length me (snd qv))
+  just (if me then length (snd qv) else length (erase-args (snd qv)))
 
 qi-var-if : maybe qualif-info → var → var
 qi-var-if (just (v , _)) _ = v
@@ -62,36 +72,21 @@ def-params ff ps = just ps
 
 -- TODO add renamectxt to avoid capture bugs?
 inst-type : ctxt → params → args → type → type
-inst-type Γ ps as T with mk-inst ps as
-...| σ , ps' = abs-expand-type (substs-params Γ σ ps') (substs Γ σ T)
+inst-type Γ ps as T with subst-params-args ps as
+...| σ , ps' , as' = abs-expand-type (substs-params Γ σ ps') (substs Γ σ T)
 
 inst-kind : ctxt → params → args → kind → kind
-inst-kind Γ ps as k with mk-inst ps as
-...| σ , ps' = abs-expand-kind (substs-params Γ σ ps') (substs Γ σ k)
+inst-kind Γ ps as k with subst-params-args ps as
+...| σ , ps' , as' = abs-expand-kind (substs-params Γ σ ps') (substs Γ σ k)
 
 inst-ctrs : ctxt → params → args → ctrs → ctrs
-inst-ctrs Γ ps as c with mk-inst ps as
-...| σ , ps' = flip map c λ where
-  (Ctr pi x T) → Ctr pi x (abs-expand-type (substs-params Γ σ ps') (substs Γ σ T))
+inst-ctrs Γ ps as c with subst-params-args ps as
+...| σ , ps' , as' = flip map c λ where
+  (Ctr x T) → Ctr x (abs-expand-type (substs-params Γ σ ps') (substs Γ σ T))
 
 maybe-inst-type = maybe-else (λ as T → T) ∘ inst-type
 maybe-inst-kind = maybe-else (λ as T → T) ∘ inst-kind
 maybe-inst-ctrs = maybe-else (λ as c → c) ∘ inst-ctrs
-
-
-qualif-x : ∀ {ℓ} {X : Set ℓ} → (ctxt → qualif → X) → ctxt → X
-qualif-x f Γ = f Γ (ctxt-get-qualif Γ)
-
-qualif-term = qualif-x $ substs {TERM}
-qualif-type = qualif-x $ substs {TYPE}
-qualif-kind = qualif-x $ substs {KIND}
-qualif-liftingType = qualif-x $ substs {LIFTINGTYPE}
-qualif-tk = qualif-x $ substs {TK}
-qualif-params = qualif-x substs-params
-qualif-args = qualif-x substs-args
-
-erased-margs : ctxt → stringset
-erased-margs = stringset-insert* empty-stringset ∘ (erased-params ∘ ctxt-get-current-params)
 
 ctxt-term-decl-no-qualif : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl-no-qualif p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
@@ -116,7 +111,7 @@ ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
   let v' =  p % v in
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
-  (trie-insert i v' (term-decl (qualif-type Γ T) , fn , p))
+  (trie-insert i v' (term-decl T , fn , p))
   symb-occs
   Δ
 
@@ -125,11 +120,11 @@ ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i symb-occs Δ) =
   let v' = p % v in
   mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
   syms
-  (trie-insert i v' (type-decl (qualif-kind Γ k) , fn , p))
+  (trie-insert i v' (type-decl k , fn , p))
   symb-occs
   Δ
 
-ctxt-tk-decl : posinfo → var → tk → ctxt → ctxt
+ctxt-tk-decl : posinfo → var → tpkd → ctxt → ctxt
 ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
 ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ
 
@@ -199,30 +194,21 @@ ctxt-lookup-term-var Γ v with qual-lookup Γ v
 ... | just (as , ctr-def ps T _ _ _ , _) = just $ inst-type Γ ps as T
 ... | _ = nothing
 
-ctxt-lookup-var : ctxt → var → maybe tk
+ctxt-lookup-var : ctxt → var → maybe tpkd
 ctxt-lookup-var Γ x with qual-lookup Γ x
--- terms
 ... | just (as , term-def mps _ t T , _)        = just ∘ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , term-decl T , _)               = just $ Tkt T
 ... | just (as , ctr-def ps T _ _ _ , _)       = just ∘ Tkt $ inst-type Γ ps as T
--- types
---... | just (as , datatype-def ps k₁ k cs , _)   = just ∘ Tkk $ maybe-inst-kind Γ ps as k
 ... | just (as , type-decl k , _)               = just $ Tkk k
 ... | just (as , type-def mps _ _ k , _)        = just ∘ Tkk $ maybe-inst-kind Γ mps as k
 ... | _                                         = nothing
--- ... | just (as , var-decl , _) = {!!}
--- ... | just (as , rename-def _ , _) = {!!}
--- ... | just (as , term-udef x₂ x₃ x₄ , x₁) = {!!}
--- ... | just (as , kind-def x₂ x₃ , x₁) = {!!}
--- ... | nothing = {!!}
 
-ctxt-lookup-tk-var : ctxt → var → maybe tk
+ctxt-lookup-tk-var : ctxt → var → maybe tpkd
 ctxt-lookup-tk-var Γ v with qual-lookup Γ v
 ... | just (as , term-decl T , _) = just $ Tkt T
 ... | just (as , type-decl k , _) = just $ Tkk k
 ... | just (as , term-def mps _ t T , _) = just $ Tkt $ maybe-inst-type Γ mps as T
 ... | just (as , type-def mps _ T k , _) = just $ Tkk $ maybe-inst-kind Γ mps as k
---... | just (as , datatype-def ps kᵢ k cs , _) = just $ Tkk $ maybe-inst-kind Γ ps as k
 ... | just (as , ctr-def ps T _ _ _ , _) = just $ Tkt $ inst-type Γ ps as T
 ... | _ = nothing
 
@@ -269,13 +255,13 @@ data-lookup Γ @ (mk-ctxt mod ss is os (Δ , μ' , μ)) x as =
             asᵢ = drop (length ps) as in
         just $ mk-data-info x nothing asₚ asᵢ ps
           (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs)
-          λ y → inst-ctrs Γ ps asₚ $ map (λ {(Ctr pi z T) → Ctr pi z $ subst Γ (lam-expand-type ps $ mtpvar y) x T}) cs) λ where
+          λ y → inst-ctrs Γ ps asₚ $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x T}) cs) λ where
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
       trie-lookup Δ x' ≫=maybe λ where
       (ps , kᵢ , k , cs) →
         just $ mk-data-info x' (just x/mu) as' as ps
           (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs)
-          λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr pi z T) → Ctr pi z $ subst Γ (lam-expand-type ps $ mtpvar y) x' T}) cs
+          λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x' T}) cs
 
 data-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 data-lookup-mu Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) x as =

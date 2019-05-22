@@ -9,12 +9,13 @@ open import cedille-types
 open import constants 
 open import conversion
 open import ctxt
-open import is-free
+open import free-vars
 open import syntax-util
+open import type-util
 open import to-string options
 open import subst
-open import erase
 open import datatype-functions
+
 
 --------------------------------------------------
 -- span datatype

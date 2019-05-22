@@ -5,7 +5,8 @@ open import lib
 open import cedille-types 
 open import constants
 open import ctxt-types
-open import is-free
+--open import is-free
+open import free-vars
 open import syntax-util
 open import general-util
 
@@ -104,7 +105,7 @@ fresh-var-new Γ x = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 
-  if is-free-in check-erased y t || renamectxt-in-range ρ y then 
+  if is-free-in y t || renamectxt-in-range ρ y then 
     fresh-var-renamectxt Γ ρ y --rename-away-from y (ctxt-binds-var Γ) ρ
   else
     y
