@@ -61,10 +61,10 @@ rename-indices-h Γ ρ (Index x atk :: is) (ty :: tys) =
 --  get-var (ttype (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
   get-var = maybe-else (fresh-var Γ x) id ∘ is-var-unqual
   x' = fresh-h (renamectxt-in-field ρ) $ get-var ty
-  atk' = subst-renamectxt Γ ρ atk
+  atk' = subst-renamectxt Γ ρ -tk atk
 rename-indices-h Γ ρ (Index x atk :: is) [] =
   let x' = fresh-var-renamectxt Γ ρ x in
-  Index x' (subst-renamectxt Γ ρ atk) ::
+  Index x' (subst-renamectxt Γ ρ -tk atk) ::
     rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is []
 rename-indices-h _ _ [] _ = []
 
@@ -203,7 +203,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   ...| f = f , f
 
   hnf' : ctxt → type → type
-  hnf' Γ T = hnf Γ unfold-head T tt
+  hnf' Γ T = hnf Γ unfold-head T
 
   mtt = maybe-else tt id
   mff = maybe-else ff id

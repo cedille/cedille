@@ -54,10 +54,10 @@ decompose-tpapps = h [] where
   h acc (TpAppt T t) = h (tterm t :: acc) T
   h acc T = T , acc
 
-decompose-var-headed : (var → 𝔹) → term → maybe (var × args)
-decompose-var-headed is-bound t with decompose-apps t
-decompose-var-headed is-bound t | Var x , as = if is-bound x then nothing else (just (x , as))
-decompose-var-headed is-bound t | _ = nothing
+decompose-var-headed : term → maybe (var × args)
+decompose-var-headed t with decompose-apps t
+decompose-var-headed t | Var x , as = just (x , as)
+decompose-var-headed t | _ = nothing
 
 recompose-apps : args → term → term
 recompose-apps = flip $ foldl λ {(TmArg me t') t → App t me t'; (TpArg T) t → AppTp t T}

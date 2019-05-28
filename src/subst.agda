@@ -37,7 +37,7 @@ substh {TERM} Γ ρ σ (App t m t') = App (substh Γ ρ σ t) m (substh Γ ρ σ
 substh {TERM} Γ ρ σ (AppTp t tp) = AppTp (substh Γ ρ σ t) (substh Γ ρ σ tp)
 substh {TERM} Γ ρ σ (Lam me x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    Lam me x' (maybe-map (substh Γ ρ σ) oc) 
+    Lam me x' (maybe-map (substh Γ ρ σ -tk_) oc) 
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TERM} Γ ρ σ (LetTm me x T t t') =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -74,17 +74,17 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ cs) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (maybe-map (substh Γ ρ σ) T) (substh Γ ρ σ t~) (substh-cases Γ' ρ' σ cs)
+    Mu (inj₂ x') (substh Γ ρ σ t) (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ' ρ' σ cs)
 substh {TERM} Γ ρ σ (Mu (inj₁ t?) t' T t~ cs) =
-  Mu (inj₁ (maybe-map (substh Γ ρ σ) t?)) (substh Γ ρ σ t') (maybe-map (substh Γ ρ σ) T) (substh Γ ρ σ t~) (substh-cases Γ ρ σ cs)
+  Mu (inj₁ (maybe-map (substh Γ ρ σ) t?)) (substh Γ ρ σ t') (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ ρ σ cs)
 
-substh {TYPE} Γ ρ σ (TpAbs me x atk t) =
+substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    TpAbs me x' (substh Γ ρ σ atk)
+    TpAbs me x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
-substh {TYPE} Γ ρ σ (TpLam x atk t) =
+substh {TYPE} Γ ρ σ (TpLam x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    TpLam x' (substh Γ ρ σ atk) 
+    TpLam x' (substh Γ ρ σ -tk tk) 
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TYPE} Γ ρ σ (TpIota x T₁ T₂) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -100,22 +100,19 @@ substh {TYPE} Γ ρ σ (TpVar x) =
      _ → TpVar x'
 substh {TYPE} Γ ρ σ (TpHole pi) = TpHole pi -- Retain position, so jumping to hole works
 
-substh {KIND} Γ ρ σ (KdAbs x atk k) =
+substh {KIND} Γ ρ σ (KdAbs x tk k) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    KdAbs x' (substh Γ ρ σ atk)
+    KdAbs x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ k)
 substh {KIND} Γ ρ σ KdStar = KdStar
-
-substh {TPKD} Γ ρ σ (Tkt t) = Tkt (substh Γ ρ σ t)
-substh {TPKD} Γ ρ σ (Tkk k) = Tkk (substh Γ ρ σ k)
 
 substh-arg Γ ρ σ (TmArg me t) = TmArg me (substh Γ ρ σ t)
 substh-arg Γ ρ σ (TpArg T) = TpArg (substh Γ ρ σ T)
 
 substh-args Γ ρ σ = map (substh-arg Γ ρ σ)
 
-substh-params Γ ρ σ ((Param me x atk) :: ps) =
-  (Param me x (substh Γ ρ σ atk) ) ::
+substh-params Γ ρ σ ((Param me x tk) :: ps) =
+  (Param me x (substh Γ ρ σ -tk tk) ) ::
     (substh-params Γ (renamectxt-insert ρ x x) (trie-remove σ x) ps)
 substh-params Γ ρ σ [] = []
 
@@ -165,15 +162,15 @@ substs-cases = flip substh-cases empty-renamectxt
 subst-params-args : params → args → trie (Σi exprd ⟦_⟧) × params × args
 subst-params-args ps as = subst-params-args' ps as empty-trie where
   subst-params-args' : params → args → trie (Σi exprd ⟦_⟧) → trie (Σi exprd ⟦_⟧) × params × args
-  subst-params-args' (Param me x atk :: ps) (TmArg me' t :: as) σ =
+  subst-params-args' (Param me x tk :: ps) (TmArg me' t :: as) σ =
     subst-params-args' ps as (trie-insert σ x (, t))
-  subst-params-args' (Param me x atk :: ps) (TpArg T :: as) σ =
+  subst-params-args' (Param me x tk :: ps) (TpArg T :: as) σ =
     subst-params-args' ps as (trie-insert σ x (, T))
   subst-params-args' ps as σ = σ , ps , as
 
 subst-params-args' : ctxt → params → args → ∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧ × params × args
 subst-params-args' Γ ps as t = map-fst (λ σ → substs Γ σ t) (subst-params-args ps as)
 
-infixr 3 _[_/_]_
-_[_/_]_ : ∀ {ed ed'} → ctxt → ⟦ ed ⟧ → var → ⟦ ed' ⟧ → ⟦ ed' ⟧
-Γ [ t / x ] t' = subst Γ t x t'
+infixr 3 [_-_/_]_
+[_-_/_]_ : ∀ {ed ed'} → ctxt → ⟦ ed ⟧ → var → ⟦ ed' ⟧ → ⟦ ed' ⟧
+[ Γ - t / x ] t' = subst Γ t x t'

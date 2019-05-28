@@ -51,6 +51,7 @@ mutual
     TmArg : erased? → term → arg
     TpArg : type → arg
 
+--  {-# NO_POSITIVITY_CHECK #-}
   data term : Set where
     App : term → erased? → term → term
     AppTp : term → type → term
@@ -66,7 +67,7 @@ mutual
     Phi : term → term → term → term
     Rho : term → var → type → term → term
     Sigma : term → term
-    Mu : is-mu → term → maybe type  → term {- elaboration of this mu -} → cases → term
+    Mu : is-mu → term → maybe type → (ex-is-mu → ex-tm → maybe ex-tp → ex-cases → ex-tm) → cases → term
     Var : var → term
 
   data case : Set where
@@ -140,10 +141,10 @@ mutual
 
   infix 14
     ₓ_ -- \_x
-    `μ_`,_~>_`
-    `μ'_~>_`
-    `μ_`,_`:_~>_`
-    `μ'_`:_~>_` -- \Gm or \mu
+    `μ_`,_`
+    `μ'_`
+    `μ_`,_`:_`
+    `μ'_`:_` -- \Gm or \mu
   infixl 14 _`1 _`2
   infix 14 `[_`,_`:_`,_] ● -- \ci
   pattern ₓ_ x = Var x
@@ -151,10 +152,10 @@ mutual
   pattern _`1 t = IotaProj t ff
   pattern _`2 t = IotaProj t tt
   pattern `[_`,_`:_`,_] t₁ t₂ x Tₓ = IotaPair t₁ t₂ x Tₓ
-  pattern `μ_`,_~>_` x t t~ {cs} = Mu (inj₂ x) t nothing t~ cs
-  pattern `μ'_~>_` t t~ {cs} = Mu (inj₁ nothing) t nothing t~ cs
-  pattern `μ_`,_`:_~>_` x t T t~ {cs} = Mu (inj₂ x) nothing t (just T) t~ cs
-  pattern `μ'_`:_~>_` t T t~ {cs} = Mu (inj₁ nothing) t (just T) t~ cs
+  pattern `μ_`,_` x t {cs} = Mu (inj₂ x) t nothing cs
+  pattern `μ'_` t {cs} = Mu (inj₁ nothing) t nothing cs
+  pattern `μ_`,_`:_` x t T {cs} = Mu (inj₂ x) t (just T) cs
+  pattern `μ'_`:_` t T {cs} = Mu (inj₁ nothing) t (just T) cs
   pattern ● {pi} = Hole pi
     
   infixr 15
@@ -170,9 +171,9 @@ mutual
   pattern `λ'_`:'_`,_ x k T = TpLam x (Tkk k) T
   pattern `ι_`:_`,_ x T₁ T₂ = TpIota x T₁ T₂
   
---  infixl 16 _`_ _`·_
-  pattern _`_ T t = TpAppt T t
-  pattern _`·_ T T' = TpApp T T'
+  infixl 16 _``_ _``·_
+  pattern _``_ T t = TpAppt T t
+  pattern _``·_ T T' = TpApp T T'
 
   infix 16 `[_≃_]
   pattern `[_≃_] t₁ t₂ = TpEq t₁ t₂

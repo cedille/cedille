@@ -373,26 +373,50 @@ data exprd : Set where
   TERM : exprd
   TYPE : exprd
   KIND : exprd
-  TPKD : exprd
+--  TPKD : exprd
 
 ⟦_⟧ : exprd → Set
 ⟦ TERM ⟧ = term
 ⟦ TYPE ⟧ = type
 ⟦ KIND ⟧ = kind
-⟦ TPKD ⟧ = tpkd
+--⟦ TPKD ⟧ = tpkd
 
 ⟦_⟧' : exprd → Set
 ⟦ TERM ⟧' = ex-tm
 ⟦ TYPE ⟧' = ex-tp
 ⟦ KIND ⟧' = ex-kd
-⟦ TPKD ⟧' = ex-tk
+--⟦ TPKD ⟧' = ex-tk
 
 exprd-name : exprd → string
 exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
-exprd-name TPKD = "type-kind"
+--exprd-name TPKD = "type-kind"
 
+infixl 12 _-tk_ _-tk'_ _-tkx_ _-tks_
+
+data 𝕃n {ℓ} (A : Set ℓ) : Set ℓ where
+  niln : A → 𝕃n A
+  consn : A → 𝕃n A → 𝕃n A
+
+Xs-to-arrows : ∀ {ℓ} → 𝕃n (Set ℓ) → Set ℓ
+Xs-to-arrows (niln X) = X
+Xs-to-arrows (consn X Xs) = X → Xs-to-arrows Xs
+
+_-tks_ : ∀ {Xs : 𝕃n Set} → (∀ {ed : exprd} → Xs-to-arrows (consn ⟦ ed ⟧ Xs)) → Xs-to-arrows (consn tpkd Xs)
+_-tks_ f (Tkt T) = f T
+_-tks_ f (Tkk k) = f k
+
+_-tk_ : (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tpkd → tpkd
+f -tk Tkt T = Tkt (f T)
+f -tk Tkk k = Tkk (f k)
+
+_-tk'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → tpkd → X
+_-tk'_ {X} = _-tks_ {Xs = niln X}
+
+_-tkx_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧' → X) → ex-tk → X
+f -tkx ExTkt T = f T
+f -tkx ExTkk k = f k
 
 
 tag : Set
