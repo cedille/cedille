@@ -681,16 +681,10 @@ Lam-span-erased Erased = "Erased lambda abstraction (term-level)"
 Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
 Lam-span : ctxt → checking-mode → posinfo → posinfo → maybeErased → var → tk → term → 𝕃 tagged-val → err-m → span
-Lam-span Γ c pi pi' NotErased x {-(SomeClass-} (Tkk k) {-)-} t tvs e =
+Lam-span Γ c pi pi' NotErased x (Tkk k) t tvs e =
   mk-span (Lam-span-erased NotErased) pi (term-end-pos t) (ll-data-term :: binder-data Γ pi' x (Tkk k) NotErased nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs) (e maybe-or just "λ-terms must bind a term, not a type (use Λ instead)")
---Lam-span Γ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data Γ x :: checking-data c :: tvs)
-Lam-span Γ c pi pi' l x {-(SomeClass-} atk {-)-} t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
-                                           ((ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
-                                           ++ bound-tp atk)
-  where
-  bound-tp : tk → 𝕃 tagged-val
-  bound-tp (Tkt (TpHole _)) = []
-  bound-tp atk = [ to-string-tag-tk "type of bound variable" Γ atk ]
+Lam-span Γ c pi pi' l x atk t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
+                                           ((ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs))
 
 
 compileFail-in : ctxt → term → 𝕃 tagged-val × err-m
