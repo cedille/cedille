@@ -54,6 +54,11 @@ decompose-var-headed t with decompose-apps t
 decompose-var-headed t | Var x , as = just (x , as)
 decompose-var-headed t | _ = nothing
 
+decompose-tpvar-headed : type → maybe (var × 𝕃 tmtp)
+decompose-tpvar-headed T with decompose-tpapps T
+decompose-tpvar-headed T | TpVar x , as = just (x , as)
+decompose-tpvar-headed T | _ = nothing
+
 recompose-apps : args → term → term
 recompose-apps = flip $ foldl λ a t → either-else' a (App t) (AppE t)
 

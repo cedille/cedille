@@ -100,21 +100,32 @@ pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ _ tt
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine ops @ ced-ops-drop-spine = h
   where
-  drop-mod-args : ∀ {X : Set} → ctxt → erased? → var × 𝕃 X → var × 𝕃 X
-  drop-mod-args Γ me (v , as) =
-    let qv = unqual-all (ctxt-get-qualif Γ) v in qv ,
-    maybe-else' (maybe-if (~ v =string qv) ≫maybe ctxt-qualif-args-length Γ me qv)
-      as (λ n → reverse (drop n (reverse as)))
+  drop-mod-argse : (mod : args) → (actual : args) → args
+  drop-mod-argse (ArgE _ :: asₘ) (ArgE _ :: asₐ) = drop-mod-argse asₘ asₐ
+  drop-mod-argse (Arg _ :: asₘ) (Arg t :: asₐ) = drop-mod-argse asₘ asₐ
+  drop-mod-argse (_ :: asₘ) asₐ@(Arg t :: _) = drop-mod-argse asₘ asₐ
+  -- ^ Relevant term arg, so wait until we find its corresponding relevant module arg ^
+  drop-mod-argse _ asₐ = asₐ
+
+  drop-mod-args-term : ctxt → var × args → term
+  drop-mod-args-term Γ (v , as) =
+    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    flip recompose-apps (Var uqv) $
+      maybe-else' (maybe-if (~ v =string uqv) ≫maybe
+                   ctxt-get-qi Γ uqv)
+        as λ qi → drop-mod-argse (snd qi) as
+
+  drop-mod-args-type : ctxt → var × 𝕃 tmtp → type
+  drop-mod-args-type Γ (v , as) =
+    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    flip recompose-tpapps (TpVar uqv) $
+      maybe-else' (maybe-if (~ v =string uqv) ≫maybe
+                   ctxt-qualif-args-length Γ NotErased uqv)
+        as λ n → drop n as
 
   h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  h {TERM} Γ t with decompose-apps t
-  ...| Var x , as = uncurry (flip recompose-apps) $
-                      map-fst Var $ drop-mod-args Γ ff (x , as)
-  ...| _ = t
-  h {TYPE} Γ T with decompose-tpapps T
-  ...| TpVar x , as = uncurry (flip recompose-tpapps) $
-                        map-fst TpVar $ drop-mod-args Γ ff (x , as)
-  ...| _ = T
+  h {TERM} Γ t = maybe-else' (decompose-var-headed t) t (drop-mod-args-term Γ)
+  h {TYPE} Γ T = maybe-else' (decompose-tpvar-headed T) T (drop-mod-args-type Γ)
   h Γ x = x
 drop-spine ops Γ x = x
 
