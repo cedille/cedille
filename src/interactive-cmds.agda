@@ -344,7 +344,8 @@ private
     (parse-try Γ - Tₛ ! ttk ≫parse inj₂) ≫parseIO λ Tf → Tf λ Tₗₗ T →
     (parse-string ll-term - tₛ ! "term" ≫parse inj₂) ≫parseIO λ t →
     let T = qualif-ed Γ T
-        Tₑ = erase T in
+        Tₑ = erase T
+        t = qualif-ed Γ t in
     putJson (tv-to-json $ inj₂ $ ts-tag Γ Tₑ) >>
     await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const [] [] []) [])
     where

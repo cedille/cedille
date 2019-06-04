@@ -108,15 +108,34 @@ pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ _ tt
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine ops @ ced-ops-drop-spine = h
   where
-  drop-mod-args : ctxt → maybeErased → spineApp → spineApp
-  drop-mod-args Γ me (v , as) =
-    let qv = unqual-all (ctxt-get-qualif Γ) v in qv ,
-    maybe-else' (maybe-if (~ v =string qv) ≫maybe ctxt-qualif-args-length Γ me qv)
-      as (λ n → reverse (drop n (reverse as)))
+
+  drop-mod-argse : (mod : args) → (actual : args) → args
+  drop-mod-argse (TypeArg _ :: asₘ) (TypeArg _ :: asₐ) = drop-mod-argse asₘ asₐ
+  drop-mod-argse (TermArg Erased _ :: asₘ) (TermArg Erased _ :: asₐ) = drop-mod-argse asₘ asₐ
+  drop-mod-argse (TermArg NotErased _ :: asₘ) (TermArg NotErased t :: asₐ) = drop-mod-argse asₘ asₐ
+  drop-mod-argse (_ :: asₘ) asₐ@(TermArg NotErased t :: _) = drop-mod-argse asₘ asₐ
+  -- ^ Relevant term arg, so wait until we find its corresponding relevant module arg ^
+  drop-mod-argse _ asₐ = asₐ
+
+  drop-mod-args-term : ctxt → var × args → term
+  drop-mod-args-term Γ (v , as) =
+    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    apps-term (Var pi-gen uqv) $
+      maybe-else' (maybe-if (~ v =string uqv) ≫maybe
+                   ctxt-get-qi Γ uqv)
+        as λ qi → drop-mod-argse (snd qi) as
+
+  drop-mod-args-type : ctxt → var × args → type
+  drop-mod-args-type Γ (v , as) =
+    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    apps-type (TpVar pi-gen uqv) $
+      maybe-else' (maybe-if (~ v =string uqv) ≫maybe
+                   ctxt-qualif-args-length Γ NotErased uqv)
+        as λ n → drop n as
 
   h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
-  h {TERM} Γ t = maybe-else' (term-to-spapp t) t (spapp-term ∘ drop-mod-args Γ (cedille-options.options.erase-types ops))
-  h {TYPE} Γ T = maybe-else' (type-to-spapp T) T (spapp-type ∘ drop-mod-args Γ NotErased)
+  h {TERM} Γ t = maybe-else' (decompose-var-headed (inj₁ t)) t (drop-mod-args-term Γ)
+  h {TYPE} Γ T = maybe-else' (decompose-var-headed (inj₂ T)) T (drop-mod-args-type Γ)
   h Γ x = x
 drop-spine ops Γ x = x
 
@@ -617,11 +636,7 @@ to-stringe with cedille-options.options.erase-types options
 tk-to-stringe = to-stringe {TK}
 
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
-to-string-tag name Γ t = strRunTag name Γ
-  (to-stringh
-    (if cedille-options.options.erase-types options
-       then erase t
-       else t))
+to-string-tag name Γ t = strRunTag name Γ (to-stringe t)
 
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh t)

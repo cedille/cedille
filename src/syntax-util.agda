@@ -463,34 +463,6 @@ mall x tk tp = Abs posinfo-gen All posinfo-gen x tk tp
 mtplam : var → tk → type → type
 mtplam x tk tp = TpLambda posinfo-gen posinfo-gen x tk tp
 
-{- strip off lambda-abstractions from the term, return the lambda-bound vars and the innermost body.
-   The intention is to call this with at least the erasure of a term, if not the hnf -- so we do
-   not check for parens, etc. -}
-decompose-lams : term → (𝕃 var) × term
-decompose-lams (Lam _ _ _ x _ t) with decompose-lams t
-decompose-lams (Lam _ _ _ x _ t) | vs , body = (x :: vs) , body
-decompose-lams t = [] , t
-
-{- decompose a term into spine form consisting of a non-applications head and arguments.
-   The outer arguments will come earlier in the list than the inner ones.
-   As for decompose-lams, we assume the term is at least erased. -}
-{-decompose-apps : term → term × (𝕃 term)
-decompose-apps (App t _ t') with decompose-apps t
-decompose-apps (App t _ t') | h , args = h , (t' :: args)
-decompose-apps t = t , []-}
-
-decompose-apps : term → term × args
-decompose-apps = h [] where
-  h : args → term → term × args
-  h acc (App t me t') = h (TermArg me t' :: acc) t
-  h acc (AppTp t T) = h (TypeArg T :: acc) t
-  h acc t = t , acc
-
-decompose-var-headed : (var → 𝔹) → term → maybe (var × args)
-decompose-var-headed is-bound t with decompose-apps t
-decompose-var-headed is-bound t | Var _ x , args = if is-bound x then nothing else (just (x , args))
-decompose-var-headed is-bound t | _ = nothing
-
 data tty : Set where
   tterm : term → tty
   ttype : type → tty
@@ -517,15 +489,19 @@ arg-to-tty (TypeArg T) = ttype T
 args-to-ttys : args → 𝕃 tty
 args-to-ttys = map arg-to-tty
 
-{-
-decompose-tpapps : type → type × 𝕃 tty
-decompose-tpapps (TpApp t t') with decompose-tpapps t
-decompose-tpapps (TpApp t t') | h , args = h , (ttype t') :: args
-decompose-tpapps (TpAppt t t') with decompose-tpapps t
-decompose-tpapps (TpAppt t t') | h , args = h , (tterm t') :: args
-decompose-tpapps (TpParens _ t _) = decompose-tpapps t
-decompose-tpapps t = t , []
--}
+
+decompose-lams : term → (𝕃 var) × term
+decompose-lams (Lam _ _ _ x _ t) with decompose-lams t
+decompose-lams (Lam _ _ _ x _ t) | vs , body = (x :: vs) , body
+decompose-lams t = [] , t
+
+decompose-apps : term → term × args
+decompose-apps = h [] where
+  h : args → term → term × args
+  h acc (App t me t') = h (TermArg me t' :: acc) t
+  h acc (AppTp t T) = h (TypeArg T :: acc) t
+  h acc t = t , acc
+
 decompose-tpapps : type → type × 𝕃 tty
 decompose-tpapps = h [] where
   h : 𝕃 tty → type → type × 𝕃 tty
@@ -536,15 +512,18 @@ decompose-tpapps = h [] where
 
 recompose-tpapps : 𝕃 tty → type → type
 recompose-tpapps = flip $ foldl λ {(ttype T') T → TpApp T T'; (tterm t) T → TpAppt T t}
---recompose-tpapps (h , []) = h
---recompose-tpapps (h , ((tterm t') :: args)) = TpAppt (recompose-tpapps (h , args)) t'
---recompose-tpapps (h , ((ttype t') :: args)) = TpApp (recompose-tpapps (h , args)) t'
 
 recompose-apps : args → term → term
 recompose-apps = flip $ foldl λ {(TermArg me t') t → App t me t'; (TypeArg T) t → AppTp t T}
---recompose-apps me [] h = h
---recompose-apps me ((tterm t') :: args) h = App (recompose-apps me args h) me t'
---recompose-apps me ((ttype t') :: args) h = AppTp (recompose-apps me args h) t'
+
+
+decompose-var-headed : term ⊎ type → maybe (var × args)
+decompose-var-headed (inj₁ t) with decompose-apps t
+decompose-var-headed (inj₁ t) | Var _ x , as = just (x , as)
+decompose-var-headed (inj₁ t) | _ = nothing
+decompose-var-headed (inj₂ T) with decompose-tpapps T
+decompose-var-headed (inj₂ T) | TpVar _ x , as = just (x , ttys-to-args NotErased as)
+decompose-var-headed (inj₂ T) | _ = nothing
 
 vars-to-𝕃 : vars → 𝕃 var
 vars-to-𝕃 (VarsStart v) = [ v ]
@@ -751,35 +730,6 @@ erased-args-length [] = 0
 me-args-length : maybeErased → args → ℕ
 me-args-length Erased = erased-args-length
 me-args-length NotErased = length
-
-spineApp : Set
-spineApp = qvar × 𝕃 arg
-
-term-to-spapp : term → maybe spineApp
-term-to-spapp (App t me t') = term-to-spapp t ≫=maybe
-  (λ { (v , as) → just (v , TermArg me t' :: as) })
-term-to-spapp (AppTp t T) = term-to-spapp t ≫=maybe
-  (λ { (v , as) → just (v , TypeArg T :: as) })
-term-to-spapp (Var _ v) = just (v , [])
-term-to-spapp _ = nothing
-
-type-to-spapp : type → maybe spineApp
-type-to-spapp (TpApp T T') = type-to-spapp T ≫=maybe
-  (λ { (v , as) → just (v , TypeArg T' :: as) })
-type-to-spapp (TpAppt T t) = type-to-spapp T ≫=maybe
-  (λ { (v , as) → just (v , TermArg NotErased t :: as) })
-type-to-spapp (TpVar _ v) = just (v , [])
-type-to-spapp _ = nothing
-
-spapp-term : spineApp → term
-spapp-term (v , []) = Var posinfo-gen v
-spapp-term (v , TermArg me t :: as) = App (spapp-term (v , as)) me t
-spapp-term (v , TypeArg T :: as) = AppTp (spapp-term (v , as)) T
-
-spapp-type : spineApp → type
-spapp-type (v , []) = TpVar posinfo-gen v
-spapp-type (v , TermArg me t :: as) = TpAppt (spapp-type (v , as)) t
-spapp-type (v , TypeArg T :: as) = TpApp (spapp-type (v , as)) T
 
 caseArgs-to-lams : caseArgs → term → term
 caseArgs-to-lams = flip $ foldr λ {(CaseTermArg pi me x) → Lam pi-gen me pi-gen x NoClass; (CaseTypeArg pi x) → Lam pi-gen Erased pi-gen x NoClass}
