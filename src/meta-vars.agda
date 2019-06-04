@@ -9,7 +9,7 @@ open import cedille-types
 open import constants
 open import conversion
 open import ctxt
-open import is-free
+open import free-vars
 open import rename
 open import spans options {mF}
 open import subst
@@ -67,12 +67,12 @@ open meta-vars
 
 data prototype : Set where
   proto-maybe : maybe type → prototype
-  proto-arrow : maybeErased → prototype → prototype
+  proto-arrow : erased? → prototype → prototype
 
 data decortype : Set where
   decor-type  : type → decortype
-  decor-arrow : maybeErased → type → decortype → decortype
-  decor-decor : maybeErased → posinfo → bvar → tk → meta-var-sort → decortype → decortype
+  decor-arrow : erased? → type → decortype → decortype
+  decor-decor : erased? → posinfo → var → tpkd → meta-var-sort → decortype → decortype
   decor-stuck : type → prototype → decortype
   decor-error : type → prototype → decortype
 
@@ -160,31 +160,31 @@ meta-vars-lookup-kind Xs x with meta-vars-lookup Xs x
 -- conversion to types, terms, tks
 -- --------------------------------------------------
 
-meta-var-sort-to-tk : meta-var-sort → tk
+meta-var-sort-to-tk : meta-var-sort → tpkd
 meta-var-sort-to-tk (meta-var-tp k mtp) = Tkk k
 meta-var-sort-to-tk (meta-var-tm tp mtm) = Tkt tp
 
 meta-var-to-type : meta-var → maybe type
 meta-var-to-type (meta-var-mk-tp x k (just tp) _) = just (meta-var-sol.sol tp)
-meta-var-to-type (meta-var-mk-tp x k nothing _) = just (TpVar posinfo-gen x)
+meta-var-to-type (meta-var-mk-tp x k nothing _) = just (TpVar x)
 meta-var-to-type (meta-var-mk x (meta-var-tm tp mtm) _) = nothing
 
 meta-var-to-term : meta-var → maybe term
 meta-var-to-term (meta-var-mk-tp x k mtp _) = nothing
 meta-var-to-term (meta-var-mk x (meta-var-tm tp (just tm)) _) = just (meta-var-sol.sol tm)
-meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing) _) = just (Var posinfo-gen x)
+meta-var-to-term (meta-var-mk x (meta-var-tm tp nothing) _) = just (Var x)
 
 meta-var-to-type-unsafe : meta-var → type
 meta-var-to-type-unsafe X
   with meta-var-to-type X
 ... | just tp = tp
-... | nothing = TpVar posinfo-gen (meta-var-name X)
+... | nothing = TpVar (meta-var-name X)
 
 meta-var-to-term-unsafe : meta-var → term
 meta-var-to-term-unsafe X
   with meta-var-to-term X
 ... | just tm = tm
-... | nothing = Var posinfo-gen (meta-var-name X)
+... | nothing = Var (meta-var-name X)
 
 prototype-to-maybe : prototype → maybe type
 prototype-to-maybe (proto-maybe mtp) = mtp
@@ -198,7 +198,7 @@ decortype-to-type (decor-type tp) = tp
 decortype-to-type (decor-arrow at tp dt) =
   TpArrow tp at (decortype-to-type dt)
 decortype-to-type (decor-decor b pi x tk sol dt) =
-  Abs pi b posinfo-gen x tk (decortype-to-type dt)
+  TpAbs b x tk (decortype-to-type dt)
 decortype-to-type (decor-stuck tp pt) = tp
 decortype-to-type (decor-error tp pt) = tp
 
@@ -207,14 +207,14 @@ decortype-to-type (decor-error tp pt) = tp
 
 hnf-decortype : ctxt → unfolding → decortype → (is-head : 𝔹) → decortype
 hnf-decortype Γ uf (decor-type tp) ish =
-  decor-type (hnf Γ uf tp ish)
+  decor-type (hnf Γ (record uf {unfold-defs = ish}) tp)
 hnf-decortype Γ uf (decor-arrow e? tp dt) ish =
-  decor-arrow e? (hnf Γ uf tp ff) (hnf-decortype Γ uf dt ff)
+  decor-arrow e? (hnf Γ (record uf {unfold-defs = ff}) tp) (hnf-decortype Γ uf dt ff)
 hnf-decortype Γ uf (decor-decor e? pi x tk sol dt) ish =
   decor-decor e? pi x tk sol (hnf-decortype Γ uf dt ff)
 hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
 hnf-decortype Γ uf (decor-error tp pt) ish =
-  decor-error (hnf Γ uf tp ff) pt
+  decor-error (hnf Γ (record uf {unfold-defs = ff}) tp) pt
 
 -- substitutions
 -- --------------------------------------------------
@@ -236,23 +236,21 @@ subst-meta-var-sort Γ t x (meta-var-tm tp mtm) =
   meta-var-tm (subst Γ t x tp) $ (flip maybe-map) mtm λ where
     (mk-meta-var-sol sol src) → mk-meta-var-sol (subst Γ t x sol) src
 
-meta-vars-get-sub : meta-vars → trie type
+meta-vars-get-sub : meta-vars → trie (Σi exprd ⟦_⟧)
 meta-vars-get-sub Xs =
-  trie-catMaybe (trie-map meta-var-to-type (varset Xs))
+  trie-catMaybe (trie-map (maybe-map ,_ ∘ meta-var-to-type) (varset Xs))
 
 meta-vars-subst-type' : (unfold : 𝔹) → ctxt → meta-vars → type → type
 meta-vars-subst-type' u Γ Xs tp =
-  let tp' = substh Γ empty-renamectxt (meta-vars-get-sub Xs) tp in
-  if u then hnf Γ (unfolding-elab unfold-head) tp' tt else tp'
+  let tp' = substs Γ (meta-vars-get-sub Xs) tp in
+  if u then hnf Γ unfold-head-elab tp' else tp'
 
 meta-vars-subst-type : ctxt → meta-vars → type → type
 meta-vars-subst-type = meta-vars-subst-type' tt
 
 meta-vars-subst-kind : ctxt → meta-vars → kind → kind
 meta-vars-subst-kind Γ Xs k
-  = hnf Γ (unfolding-elab unfold-head)
-      (substh Γ empty-renamectxt (meta-vars-get-sub Xs) k)
-      tt
+  = hnf Γ unfold-head-elab (substh Γ empty-renamectxt (meta-vars-get-sub Xs) k)
 
 -- string and span helpers
 -- --------------------------------------------------
@@ -288,7 +286,7 @@ meta-vars-to-string Xs =
       case trie-lookup (varset Xs) x of λ where
         nothing  →
           meta-var-mk
-            (x ^ "-missing!") (meta-var-tp (Star posinfo-gen) nothing)
+            (x ^ "-missing!") (meta-var-tp KdStar nothing)
             missing-span-location
         (just X) → X)
 
@@ -308,9 +306,9 @@ decortype-to-string (decor-arrow e? tp dt) =
   ≫str decortype-to-string dt
 decortype-to-string (decor-decor e? pi x tk sol dt) =
   strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
-  ≫str strAdd "<" ≫str tk-to-stringe tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
+  ≫str strAdd "<" ≫str tpkd-to-stringe tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
   where
-  binder : maybeErased → meta-var-sort → string
+  binder : erased? → meta-var-sort → string
   binder Erased sol = "∀ "
   binder Pi (meta-var-tm tp mtm) = "Π "
   -- vv clause below "shouldn't" happen
@@ -349,7 +347,7 @@ meta-vars-intro-data Γ = map (h ∘ snd) ∘ (trie-mappings ∘ meta-vars.varse
   h (meta-var-mk X (meta-var-tp kd mtp) loc) = meta-vars-data-h Γ X (inj₁ kd)
   h (meta-var-mk X (meta-var-tm tp mtm) loc) =
     meta-vars-data-h Γ X
-      (inj₂ (mk-meta-var-sol (TpVar posinfo-gen "unimplemented") untyped))
+      (inj₂ (mk-meta-var-sol (TpVar "unimplemented") untyped))
 
 meta-vars-sol-data : ctxt → meta-vars → meta-vars → 𝕃 tagged-val
 meta-vars-sol-data Γ Xsₒ Xsₙ = foldr (λ X xs → maybe-else xs (_:: xs) (h (snd X)))
@@ -363,7 +361,7 @@ meta-vars-sol-data Γ Xsₒ Xsₙ = foldr (λ X xs → maybe-else xs (_:: xs) (h
   h (meta-var-mk X (meta-var-tp kd nothing) loc) = nothing
   h (meta-var-mk X (meta-var-tm tp mtm) loc) =
     just (meta-vars-data-h Γ X
-      (inj₂ (mk-meta-var-sol (TpVar posinfo-gen "unimplemented") untyped)))
+      (inj₂ (mk-meta-var-sol (TpVar "unimplemented") untyped)))
 
 
 meta-vars-check-type-mismatch : ctxt → string → type → meta-vars → type
@@ -433,8 +431,8 @@ meta-vars-remove (meta-vars-mk or vs) X =
 
 meta-vars-in-type : meta-vars → type → meta-vars
 meta-vars-in-type Xs tp =
-  (flip meta-vars-filter) Xs λ X →
-    are-free-in-type check-erased (trie-single (name X) triv) tp
+  let xs = free-vars tp in
+  meta-vars-filter (stringset-contains xs ∘ name) Xs
 
 meta-vars-unsolved : meta-vars → meta-vars
 meta-vars-unsolved = meta-vars-filter λ where
@@ -443,7 +441,9 @@ meta-vars-unsolved = meta-vars-filter λ where
 
 meta-vars-are-free-in-type : meta-vars → type → 𝔹
 meta-vars-are-free-in-type Xs tp =
-  are-free-in-type check-erased (varset Xs) tp
+  let xs = free-vars tp in
+  list-any (stringset-contains xs) (order Xs)
+
 
 -- Unfolding a type with meta-vars
 -- ==================================================
@@ -458,7 +458,7 @@ record is-tmabsd : Set where
   constructor mk-tmabsd
   field
     is-tmabsd-dt  : decortype
-    is-tmabsd-e?  : maybeErased
+    is-tmabsd-e?  : erased?
     is-tmabsd-var : var
     is-tmabsd-dom : type
     is-tmabsd-var-in-body : 𝔹
@@ -474,7 +474,7 @@ record is-tpabsd : Set where
   constructor mk-tpabsd
   field
     is-tpabsd-dt   : decortype
-    is-tpabsd-e?   : maybeErased
+    is-tpabsd-e?   : erased?
     is-tpabsd-var  : var
     is-tpabsd-kind : kind
     is-tpabsd-sol  : maybe type
@@ -491,29 +491,19 @@ num-arrows-in-type : ctxt → type → ℕ
 num-arrows-in-type Γ tp = nait Γ (hnf' Γ tp) 0 tt
   where
   hnf' : ctxt → type → type
-  hnf' Γ tp = hnf Γ (unfolding-elab unfold-head) tp tt
+  hnf' Γ tp = hnf Γ unfold-head-elab tp
 
   nait : ctxt → type → (acc : ℕ) → 𝔹 → ℕ
   -- definitely another arrow
-  nait Γ (Abs _ _ _ _ (Tkk _) tp) acc uf = nait Γ tp acc ff
-  nait Γ (Abs _ _ _ _ (Tkt _) tp) acc uf = nait Γ tp (1 + acc) ff
-  nait Γ (TpArrow _ _ tp) acc uf = nait Γ tp (1 + acc) ff
+  nait Γ (TpAbs _ _ (Tkk _) tp) acc uf = nait Γ tp acc ff
+  nait Γ (TpAbs _ _ (Tkt _) tp) acc uf = nait Γ tp (1 + acc) ff
   -- definitely not another arrow
-  nait Γ (Iota _ _ _ _ _) acc uf = acc
-  nait Γ (Lft _ _ _ _ _) acc uf = acc
-  nait Γ (TpEq _ _ _ _) acc uf = acc
+  nait Γ (TpIota _ _ _) acc uf = acc
+  nait Γ (TpEq _ _) acc uf = acc
   nait Γ (TpHole _) acc uf = acc
-  nait Γ (TpLambda _ _ _ _ _) acc uf = acc
-  nait Γ (TpVar x₁ x₂) acc tt = acc
+  nait Γ (TpLam _ _ _) acc uf = acc
+  nait Γ (TpVar x) acc tt = acc
   nait Γ (TpApp tp₁ tp₂) acc tt = acc
-  nait Γ (TpAppt tp₁ x₁) acc tt = acc
-  -- not sure
-  nait Γ (NoSpans tp _) acc uf = nait Γ tp acc uf
-  nait Γ (TpLet _ (DefTerm _ x _ tm) tp) acc uf =
-    nait Γ (subst Γ tm x tp) acc uf
-  nait Γ (TpLet _ (DefType _ x _ tp-let) tp-in) acc uf =
-    nait Γ (subst Γ tp-let x tp-in) acc uf
-  nait Γ (TpParens _ tp _) acc uf = nait Γ tp acc uf
   nait Γ tp acc ff = nait Γ (hnf' Γ tp) acc tt
 
 -- Utilities for match-types in classify.agda
@@ -613,9 +603,10 @@ meta-vars-update-kinds Γ Xs Xsₖ =
   }
 
 hnf-elab-if : {ed : exprd} → 𝔹 → ctxt → ⟦ ed ⟧ → 𝔹 → ⟦ ed ⟧
-hnf-elab-if b Γ t b' = if b then hnf Γ (unfolding-elab unfold-head) t b' else t
+hnf-elab-if b Γ t b' = if b then hnf Γ (record unfold-head-elab {unfold-defs = b'}) t else t
 
 
+{-
 -- Legacy for elaboration.agda
 -- ==================================================
 
@@ -658,3 +649,4 @@ meta-vars-unfold-tmapp Γ sl Xs tp
   Ys , yes-tmabs e? "_" dom ff cod
 ... | Ys , tp' = Ys , not-tmabs tp'
 
+-}

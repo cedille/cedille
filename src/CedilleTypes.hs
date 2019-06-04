@@ -102,9 +102,9 @@ data Term =
   deriving Show
 
 data Kind =
-    KdArrow TpKd Kind
+    KdAbs PosInfo PosInfo Var TpKd Kind
+  | KdArrow TpKd Kind
   | KdParens PosInfo Kind PosInfo
-  | KdAbs PosInfo PosInfo Var TpKd Kind
-  | KdVar PosInfo Var Args
   | KdStar PosInfo
+  | KdVar PosInfo Var Args
   deriving Show

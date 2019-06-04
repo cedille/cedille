@@ -33,8 +33,8 @@ subst-rename-var-if Γ ρ x σ =
   else
     x
 
-substh {TERM} Γ ρ σ (App t m t') = App (substh Γ ρ σ t) m (substh Γ ρ σ t')
-substh {TERM} Γ ρ σ (AppTp t tp) = AppTp (substh Γ ρ σ t) (substh Γ ρ σ tp)
+substh {TERM} Γ ρ σ (App t t') = App (substh Γ ρ σ t) (substh Γ ρ σ t')
+substh {TERM} Γ ρ σ (AppE t tT) = AppE (substh Γ ρ σ t) (substh Γ ρ σ -tT tT)
 substh {TERM} Γ ρ σ (Lam me x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     Lam me x' (maybe-map (substh Γ ρ σ -tk_) oc) 
@@ -47,7 +47,6 @@ substh {TERM} Γ ρ σ (LetTp x k T t) =
   let x' = subst-rename-var-if Γ ρ x σ in
     LetTp x' (substh Γ ρ σ k) (substh Γ ρ σ T)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
-substh {TERM} Γ ρ σ (Open o x t) = Open o (renamectxt-rep ρ x) (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Var x) =
  let x' = renamectxt-rep ρ x in
    case trie-lookup σ x' of λ where
@@ -90,8 +89,7 @@ substh {TYPE} Γ ρ σ (TpIota x T₁ T₂) =
   let x' = subst-rename-var-if Γ ρ x σ in
     TpIota x' (substh Γ ρ σ T₁)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T₂)
-substh {TYPE} Γ ρ σ (TpApp tp tp₁) = TpApp (substh Γ ρ σ tp) (substh Γ ρ σ tp₁)
-substh {TYPE} Γ ρ σ (TpAppt tp t) = TpAppt (substh Γ ρ σ tp) (substh Γ ρ σ t)
+substh {TYPE} Γ ρ σ (TpApp tp tT) = TpApp (substh Γ ρ σ tp) (substh Γ ρ σ -tT tT)
 substh {TYPE} Γ ρ σ (TpEq t₁ t₂) = TpEq (substh Γ ρ σ t₁) (substh Γ ρ σ t₂)
 substh {TYPE} Γ ρ σ (TpVar x) =
  let x' = renamectxt-rep ρ x in
@@ -106,8 +104,8 @@ substh {KIND} Γ ρ σ (KdAbs x tk k) =
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ k)
 substh {KIND} Γ ρ σ KdStar = KdStar
 
-substh-arg Γ ρ σ (TmArg me t) = TmArg me (substh Γ ρ σ t)
-substh-arg Γ ρ σ (TpArg T) = TpArg (substh Γ ρ σ T)
+substh-arg Γ ρ σ (Arg t) = Arg (substh Γ ρ σ t)
+substh-arg Γ ρ σ (ArgE tT) = ArgE (substh Γ ρ σ -tT tT)
 
 substh-args Γ ρ σ = map (substh-arg Γ ρ σ)
 
@@ -138,6 +136,9 @@ subst Γ t x = substh Γ empty-renamectxt (trie-single x (, t))
 subst-cases : subst-ret-t cases
 subst-cases Γ t x = substh-cases Γ empty-renamectxt (trie-single x (, t))
 
+subst-params : subst-ret-t params
+subst-params Γ t x = substh-params Γ empty-renamectxt (trie-single x (, t))
+
 subst-renamectxt : ∀ {ed : exprd} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
 subst-renamectxt Γ ρ = substh Γ ρ empty-trie
 
@@ -162,9 +163,11 @@ substs-cases = flip substh-cases empty-renamectxt
 subst-params-args : params → args → trie (Σi exprd ⟦_⟧) × params × args
 subst-params-args ps as = subst-params-args' ps as empty-trie where
   subst-params-args' : params → args → trie (Σi exprd ⟦_⟧) → trie (Σi exprd ⟦_⟧) × params × args
-  subst-params-args' (Param me x tk :: ps) (TmArg me' t :: as) σ =
+  subst-params-args' (Param me x tk :: ps) (Arg t :: as) σ =
     subst-params-args' ps as (trie-insert σ x (, t))
-  subst-params-args' (Param me x tk :: ps) (TpArg T :: as) σ =
+  subst-params-args' (Param me x tk :: ps) (ArgE (inj₁ t) :: as) σ =
+    subst-params-args' ps as (trie-insert σ x (, t))
+  subst-params-args' (Param me x tk :: ps) (ArgE (inj₂ T) :: as) σ =
     subst-params-args' ps as (trie-insert σ x (, T))
   subst-params-args' ps as σ = σ , ps , as
 

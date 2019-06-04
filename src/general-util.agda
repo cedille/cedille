@@ -173,15 +173,15 @@ elim-Σi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ'
           → Σi A B → ({a : A} → B a → X) → X
 elim-Σi (, b) f = f b
 
-infixr 0 case_return_of_ case_of_
+infixr 0 case_ret_of_ case_of_
 
-case_return_of_ :
+case_ret_of_ :
   ∀ {ℓ₁ ℓ₂} {A : Set ℓ₁}
   (x : A) (B : A → Set ℓ₂) → ((x : A) → B x) → B x
-case x return B of f = f x
+case x ret B of f = f x
 
 case_of_ : ∀ {a b} {A : Set a} {B : Set b} → A → (A → B) → B
-case x of f = case_return_of_ x _ f
+case x of f = case_ret_of_ x _ f
 
 case₂_,_of_ : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A → B → (A → B → C) → C
 case₂ x , y of f = f x y
@@ -246,6 +246,10 @@ err-guard ff _   = no-error triv
 either-else' : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A ∨ B → (A → C) → (B → C) → C
 either-else' (inj₁ x) f g = f x
 either-else' (inj₂ y) f g = g y
+
+either-else : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → (A → C) → (B → C) → A ∨ B → C
+either-else f g (inj₁ x) = f x
+either-else f g (inj₂ y) = g y
 
 err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err

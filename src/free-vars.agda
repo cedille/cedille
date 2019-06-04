@@ -20,13 +20,15 @@ free-vars-arg : arg → stringset
 free-vars-cases : cases → stringset
 free-vars-case : case → stringset
 free-vars-tk : tpkd → stringset
+free-vars-tT : tmtp → stringset
 
 free-vars-tk = free-vars -tk'_
+free-vars-tT = free-vars -tT'_
 
 free-vars? = maybe-else empty-stringset free-vars
 
-free-vars {TERM} (App t me t') = free-vars t ++ₛ free-vars t'
-free-vars {TERM} (AppTp t T) = free-vars t ++ₛ free-vars T
+free-vars {TERM} (App t t') = free-vars t ++ₛ free-vars t'
+free-vars {TERM} (AppE t tT) = free-vars t ++ₛ free-vars -tT' tT
 free-vars {TERM} (Beta t t') = free-vars? t ++ₛ free-vars? t'
 free-vars {TERM} (Delta T t) = free-vars T ++ₛ free-vars t
 free-vars {TERM} (Hole pi) = empty-stringset
@@ -35,7 +37,6 @@ free-vars {TERM} (IotaProj t n) = free-vars t
 free-vars {TERM} (Lam me x tk t) = maybe-else empty-stringset (free-vars-tk) tk ++ₛ stringset-remove (free-vars t) x
 free-vars {TERM} (LetTm me x T? t t') = free-vars? T? ++ₛ free-vars t ++ₛ stringset-remove (free-vars t') x
 free-vars {TERM} (LetTp x k T t) = free-vars k ++ₛ free-vars T ++ₛ stringset-remove (free-vars t) x
-free-vars {TERM} (Open o x t) = stringset-insert (free-vars t) x
 free-vars {TERM} (Phi tₑ t₁ t₂) = free-vars tₑ ++ₛ free-vars t₁ ++ₛ free-vars t₂
 free-vars {TERM} (Rho t x T t') = free-vars t ++ₛ stringset-remove (free-vars T) x ++ₛ free-vars t'
 free-vars {TERM} (Sigma t) = free-vars t
@@ -43,8 +44,7 @@ free-vars {TERM} (Mu μ t T t~ cs) = free-vars t ++ₛ free-vars? T ++ₛ free-v
 free-vars {TERM} (Var x) = stringset-single x
 free-vars {TYPE} (TpAbs me x tk T) = free-vars-tk tk ++ₛ stringset-remove (free-vars T) x
 free-vars {TYPE} (TpIota x T₁ T₂) = free-vars T₁ ++ₛ stringset-remove (free-vars T₂) x
-free-vars {TYPE} (TpApp T T') = free-vars T ++ₛ free-vars T'
-free-vars {TYPE} (TpAppt T t) = free-vars T ++ₛ free-vars t
+free-vars {TYPE} (TpApp T tT) = free-vars T ++ₛ free-vars -tT' tT
 free-vars {TYPE} (TpEq t₁ t₂) = free-vars t₁ ++ₛ free-vars t₂
 free-vars {TYPE} (TpHole pi) = empty-stringset
 free-vars {TYPE} (TpLam x tk T) = free-vars-tk tk ++ₛ stringset-remove (free-vars T) x
@@ -52,8 +52,8 @@ free-vars {TYPE} (TpVar x) = stringset-single x
 free-vars {KIND} KdStar = empty-stringset
 free-vars {KIND} (KdAbs x tk k) = free-vars-tk tk ++ₛ stringset-remove (free-vars k) x
 
-free-vars-arg (TmArg me t) = free-vars t
-free-vars-arg (TpArg T) = free-vars T
+free-vars-arg (Arg t) = free-vars t
+free-vars-arg (ArgE tT) = free-vars -tT' tT
 free-vars-args = foldr (_++ₛ_ ∘ free-vars-arg) empty-stringset
 free-vars-case (Case x cas t) = foldr (λ {(CaseArg e x) → flip trie-remove x}) (free-vars t) cas
 free-vars-cases = foldr (_++ₛ_ ∘ free-vars-case) empty-stringset
@@ -65,11 +65,13 @@ erase-case : case → case
 erase-args : args → 𝕃 term
 erase-params : params → 𝕃 var
 erase-tk : tpkd → tpkd
+erase-tT : tmtp → tmtp
 
 erase-tk = erase -tk_
+erase-tT = erase -tT_
 
-erase {TERM} (App t me t') = if me then erase t else App (erase t) ff (erase t')
-erase {TERM} (AppTp t T) = erase t
+erase {TERM} (App t t') = App (erase t) (erase t')
+erase {TERM} (AppE t T) = erase t
 erase {TERM} (Beta t t') = maybe-else id-term erase t'
 erase {TERM} (Delta T t) = id-term
 erase {TERM} (Hole pi) = Hole pi
@@ -82,7 +84,6 @@ erase {TERM} (LetTm me x T? t t') =
     then LetTm ff x nothing (erase t) t''
     else t''
 erase {TERM} (LetTp x k T t) = erase t
-erase {TERM} (Open o x t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
@@ -90,8 +91,7 @@ erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ maybe-map erase
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)
-erase {TYPE} (TpApp T T') = TpApp (erase T) (erase T')
-erase {TYPE} (TpAppt T t) = TpAppt (erase T) (erase t)
+erase {TYPE} (TpApp T tT) = TpApp (erase T) (erase -tT tT)
 erase {TYPE} (TpEq t₁ t₂) = TpEq (erase t₁) (erase t₂)
 erase {TYPE} (TpHole pi) = TpHole pi
 erase {TYPE} (TpLam x tk T) = TpLam x (erase-tk tk) (erase T)
@@ -107,7 +107,7 @@ erase-case-args [] = []
 erase-cases = map erase-case
 erase-case (Case x cas t) = Case x (erase-case-args cas) (erase t)
 
-erase-args (TmArg ff t :: as) = erase t :: erase-args as
+erase-args (Arg t :: as) = erase t :: erase-args as
 erase-args (_ :: as) = erase-args as
 erase-args [] = []
 

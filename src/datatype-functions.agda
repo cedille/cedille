@@ -29,7 +29,7 @@ decompose-arrows Γ (TpAbs me x atk T) =
 --decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
 decompose-arrows Γ T = [] , T
 
-decompose-ctr-type : ctxt → type → type × params × 𝕃 tty
+decompose-ctr-type : ctxt → type → type × params × 𝕃 tmtp
 decompose-ctr-type Γ T with decompose-arrows Γ T
 ...| ps , Tᵣ with decompose-tpapps Tᵣ
 ...| Tₕ , as = Tₕ , ps , as
@@ -51,14 +51,14 @@ kind-to-indices Γ (KdAbs x atk k) =
 --...| just (ps , k) = kind-to-indices Γ $ fst $ subst-params-args Γ ps as k
 kind-to-indices Γ KdStar = []
 
-rename-indices-h : ctxt → renamectxt → indices → 𝕃 tty → indices
+rename-indices-h : ctxt → renamectxt → indices → 𝕃 tmtp → indices
 rename-indices-h Γ ρ (Index x atk :: is) (ty :: tys) =
   Index x' atk' ::
     rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is tys
   where
---  get-var : tty → var
+--  get-var : tmtp → var
 --  get-var (tterm (Var _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
---  get-var (ttype (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
+--  get-var (tmtppe (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
   get-var = maybe-else (fresh-var Γ x) id ∘ is-var-unqual
   x' = fresh-h (renamectxt-in-field ρ) $ get-var ty
   atk' = subst-renamectxt Γ ρ -tk atk
@@ -68,7 +68,7 @@ rename-indices-h Γ ρ (Index x atk :: is) [] =
     rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is []
 rename-indices-h _ _ [] _ = []
 
-rename-indices : ctxt → indices → 𝕃 tty → indices
+rename-indices : ctxt → indices → 𝕃 tmtp → indices
 rename-indices Γ = rename-indices-h Γ empty-renamectxt
 
 
@@ -123,23 +123,19 @@ params-to-lams' = flip $ foldr λ where
 
 indices-to-apps : indices → (body : term) → term
 indices-to-apps = flip $ foldl λ where
-  (Index x (Tkt T)) t → App t Erased (Var x)
-  (Index x (Tkk k)) t → AppTp t (TpVar x)
+  (Index x (Tkt T)) t → AppE t (Ttm (Var x))
+  (Index x (Tkk k)) t → AppE t (Ttp (TpVar x))
 
 params-to-apps : params → (body : term) → term
-params-to-apps = flip $ foldl λ where
-  (Param me x (Tkt T)) t → App t me (Var x)
-  (Param me x (Tkk k)) t → AppTp t (TpVar x)
+params-to-apps = recompose-apps ∘ params-to-args
 
 indices-to-tpapps : indices → (body : type) → type
 indices-to-tpapps = flip $ foldl λ where
-  (Index x (Tkt T)) T' → TpAppt T' (Var x)
-  (Index x (Tkk k)) T  → TpApp  T  (TpVar x)
+  (Index x (Tkt _)) T → TpApp T (Ttm (Var x))
+  (Index x (Tkk _)) T → TpApp T (Ttp (TpVar x))
 
 params-to-tpapps : params → (body : type) → type
-params-to-tpapps = flip $ foldl λ where
-  (Param me x (Tkt T)) T' → TpAppt T' (Var x)
-  (Param me x (Tkk k)) T  → TpApp  T  (TpVar x)
+params-to-tpapps = flip apps-type ∘ params-to-args
 
 ctrs-to-lams' : ctrs → (body : term) → term
 ctrs-to-lams' = flip $ foldr λ where
@@ -223,8 +219,8 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   arrs+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tpkd+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpApp T T') = arrs+ Γ T maybe-or not-free T'
-  arrs+ Γ (TpAppt T t) = arrs+ Γ T maybe-or not-free t
+  arrs+ Γ (TpApp T tT) = arrs+ Γ T maybe-or (not-free -tT' tT)
+--  arrs+ Γ (TpApp T t) = arrs+ Γ T maybe-or not-free t
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tpkd+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
@@ -237,8 +233,8 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   type+ Γ (TpIota x' T T') =
     let Γ' = ctxt-var-decl x' Γ; T? = type+ Γ T in
     positivity-add (type+ Γ T) (type+ Γ' T')
-  type+ Γ (TpApp T T') = positivity-add (type+ Γ T) (if-free T') -- tpapp+ Γ (TpApp T T')
-  type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- tpapp+ Γ (TpAppt T t)
+  type+ Γ (TpApp T tT) = positivity-add (type+ Γ T) (if-free -tT' tT) -- tpapp+ Γ (TpApp T T')
+  --type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- tpapp+ Γ (TpAppt T t)
   type+ Γ (TpEq tₗ tᵣ) = occurs-nil
   type+ Γ (TpHole _) = occurs-nil
   type+ Γ (TpLam x' atk T)=
@@ -249,7 +245,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
 {-
   tpapp+ Γ T with decompose-tpapps T
   ...| TpVar _ x' , as =
-    let f = if-free-args (ttys-to-args NotErased as) in
+    let f = if-free-args (tmtps-to-args NotErased as) in
     if x =string x'
       then f
       else maybe-else' (data-lookup Γ x' as) f

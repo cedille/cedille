@@ -18,7 +18,7 @@ dummy-var : var
 dummy-var = "_dummy"
 
 id-term : term
-id-term = `λ "x" `, ₓ "x"
+id-term = Lam ff "x" nothing (Var "x")
 
 compileFailType : type
 compileFailType = TpAbs tt "X" (Tkk KdStar) (TpVar "X")
@@ -52,8 +52,10 @@ compileFail = "compileFail"
 compileFail-qual = "" % compileFail
 
 tk-is-type : tpkd → 𝔹
-tk-is-type (Tkt _) = tt
-tk-is-type (Tkk _) = ff
+tk-is-type = either-else (const tt) (const ff)
+
+tT-is-term : tmtp → 𝔹
+tT-is-term = either-else (const tt) (const ff)
 
 tk-start-pos : ex-tk → posinfo
 term-start-pos : ex-tm → posinfo
@@ -190,8 +192,8 @@ optAs-or nothing pi x = pi , x
 optAs-or (just (ImportAs pi x)) _ _ = pi , x
 
 TpApp-tk : type → var → tpkd → type
-TpApp-tk tp x (Tkk _) = TpApp tp (TpVar x)
-TpApp-tk tp x (Tkt _) = TpAppt tp (Var x)
+TpApp-tk tp x (Tkk _) = TpApp tp (Ttp (TpVar x))
+TpApp-tk tp x (Tkt _) = TpApp tp (Ttm (Var x))
 
 -- checking-sythesizing enum
 data checking-mode : Set where
@@ -220,10 +222,10 @@ Mlam : var → term → term
 Mlam x t = Lam Erased x nothing t
 
 mappe : term → term → term
-mappe t1 t2 = App t1 tt t2
+mappe t1 t2 = AppE t1 (Ttm t2)
 
-mapp : term → term → term
-mapp t1 t2 = App t1 ff t2
+mapptp : term → type → term
+mapptp t T = AppE t (Ttp T)
 
 mall : var → tpkd → type → type
 mall = TpAbs tt
@@ -231,21 +233,20 @@ mall = TpAbs tt
 mpi : var → tpkd → type → type
 mpi  = TpAbs ff
 
-
-imps-to-cmds : imports → cmds
-imps-to-cmds = map CmdImport
+imps-to-cmds : imports → ex-cmds
+imps-to-cmds = map ExCmdImport
 
 -- TODO handle qualif & module args
-get-imports : file → 𝕃 string
-get-imports (Module is _ _ mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
+get-imports : ex-file → 𝕃 string
+get-imports (ExModule is _ _ mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
   where import-to-include : imprt → string
         import-to-include (Import _ _ _ x oa _ _) = x
         imports-to-include : imports → 𝕃 string
         imports-to-include = map import-to-include
-        singleton-if-include : cmd → 𝕃 string
-        singleton-if-include (CmdImport imp) = [ import-to-include imp ]
+        singleton-if-include : ex-cmd → 𝕃 string
+        singleton-if-include (ExCmdImport imp) = [ import-to-include imp ]
         singleton-if-include _ = []
-        get-imports-cmds : cmds → 𝕃 string
+        get-imports-cmds : ex-cmds → 𝕃 string
         get-imports-cmds (c :: cs) = singleton-if-include c ++ get-imports-cmds cs
         get-imports-cmds [] = []
 
@@ -363,9 +364,9 @@ optNums-to-stringset (just ns) with nums-to-stringset ns
 ...| ss , rs = just ss , λ n →
   just ("The list of occurrences contains the following repeats: " ^ 𝕃-to-string id ", " rs)
 
-def-var : def → var
-def-var (DefTerm _ x _ _) = x
-def-var (DefType _ x _ _) = x
+def-var : ex-def → var
+def-var (ExDefTerm _ x _ _) = x
+def-var (ExDefType _ x _ _) = x
 
 
 -- expression descriptor
@@ -391,33 +392,24 @@ exprd-name : exprd → string
 exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
---exprd-name TPKD = "type-kind"
 
-infixl 12 _-tk_ _-tk'_ _-tkx_ _-tks_
-
-data 𝕃n {ℓ} (A : Set ℓ) : Set ℓ where
-  niln : A → 𝕃n A
-  consn : A → 𝕃n A → 𝕃n A
-
-Xs-to-arrows : ∀ {ℓ} → 𝕃n (Set ℓ) → Set ℓ
-Xs-to-arrows (niln X) = X
-Xs-to-arrows (consn X Xs) = X → Xs-to-arrows Xs
-
-_-tks_ : ∀ {Xs : 𝕃n Set} → (∀ {ed : exprd} → Xs-to-arrows (consn ⟦ ed ⟧ Xs)) → Xs-to-arrows (consn tpkd Xs)
-_-tks_ f (Tkt T) = f T
-_-tks_ f (Tkk k) = f k
+infixl 12 _-tk_ _-tk'_ _-tT_ _-tT'_
 
 _-tk_ : (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tpkd → tpkd
 f -tk Tkt T = Tkt (f T)
 f -tk Tkk k = Tkk (f k)
 
 _-tk'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → tpkd → X
-_-tk'_ {X} = _-tks_ {Xs = niln X}
+f -tk' Tkt T = f T
+f -tk' Tkk k = f k
 
-_-tkx_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧' → X) → ex-tk → X
-f -tkx ExTkt T = f T
-f -tkx ExTkk k = f k
+_-tT_ : (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tmtp → tmtp
+f -tT Ttm t = Ttm (f t)
+f -tT Ttp T = Ttp (f T)
 
+_-tT'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → tmtp → X
+f -tT' Ttm t = f t
+f -tT' Ttp T = f T
 
 tag : Set
 tag = string × rope

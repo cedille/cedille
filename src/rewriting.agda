@@ -8,26 +8,17 @@ open import conversion
 open import ctxt
 open import general-util
 open import free-vars
-open import lift
+--open import lift
 open import rename
 open import subst
 open import syntax-util
-open import erase
+open import type-util
+--open import erase
 open import datatype-functions
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =
-  Phi posinfo-gen
-    (Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq)
-      (Guide posinfo-gen x (TpEq posinfo-gen t t' posinfo-gen))
-      (Beta posinfo-gen (SomeTerm t posinfo-gen) (SomeTerm id-term posinfo-gen)))
-    t (erase t') posinfo-gen 
-
-rewrite-head-types-match : ∀ {ed} → ctxt → trie term → (complete partial : ⟦ ed ⟧) → 𝔹
-rewrite-head-types-match{TYPE} Γ σ (TpApp T _) (TpApp T' _) = conv-type Γ T (substs Γ σ T')
-rewrite-head-types-match{TYPE} Γ σ (TpAppt T _) (TpAppt T' _) = conv-type Γ T (substs Γ σ T')
-rewrite-head-types-match{KIND} Γ σ (KndVar _ x as) (KndVar _ x' as') = x =string x' && length as =ℕ length as'
-rewrite-head-types-match Γ σ T T' = tt
+  Phi (Rho (Sigma eq) x (TpEq t t') (Beta (just t) (just id-term))) t t'
 
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : maybe term) →
@@ -58,9 +49,10 @@ rewrite-termh       : term        → rewrite-t term
 rewrite-type        : type        → rewrite-t type
 rewrite-typeh       : type        → rewrite-t type
 rewrite-kind        : kind        → rewrite-t kind
-rewrite-tk          : tk          → rewrite-t tk
-rewrite-liftingType : liftingType → rewrite-t liftingType
-rewrite-case : maybe (var × var)  → case   → rewrite-t case
+rewrite-tpkd        : tpkd        → rewrite-t tpkd
+rewrite-tmtp        : tmtp        → rewrite-t tmtp
+rewrite-case : maybe (var × var) → case → rewrite-t case
+
 
 rewrite-rename-var : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
 rewrite-rename-var x r Γ op on eq t₁ t₂ n =
@@ -71,7 +63,7 @@ rewrite-abs : ∀ {ed} → var → var → (⟦ ed ⟧ → rewrite-t ⟦ ed ⟧)
 rewrite-abs x x' g a Γ = let Γ = ctxt-var-decl x' Γ in g (rename-var Γ x x' a) Γ
 
 rewrite-term t Γ op on eq t₁ t₂ sn =
-  case rewrite-terma (erase-term t) Γ op on eq t₁ t₂ sn of λ where
+  case rewrite-terma (erase t) Γ op on eq t₁ t₂ sn of λ where
     (t' , 0 , sn') → t , 0 , sn'
     (t' , n , sn') → maybe-else' eq t' (λ eq → rewrite-mk-phi t₂ eq t t') , n , sn'
 
@@ -79,94 +71,77 @@ rewrite-terma t Γ op on eq t₁ t₂ sn =
   case conv-term Γ t t₁ of λ where
   tt → case on of λ where
     (just ns) → case trie-contains ns (ℕ-to-string (suc sn)) of λ where
-      tt → Var posinfo-gen t₂ , 1 , suc sn -- ρ nums contains n
+      tt → Var t₂ , 1 , suc sn -- ρ nums contains n
       ff → t , 0 , suc sn -- ρ nums does not contain n
-    nothing → Var posinfo-gen t₂ , 1 , suc sn
+    nothing → Var t₂ , 1 , suc sn
   ff → case op of λ where
-    tt → case rewrite-termh (hnf Γ unfold-head t tt) Γ op on eq t₁ t₂ sn of λ where
+    tt → case rewrite-termh (hnf Γ unfold-head t) Γ op on eq t₁ t₂ sn of λ where
       (t' , 0 , sn') → t , 0 , sn' -- if no rewrites were performed, return the pre-hnf t
       (t' , n' , sn') → t' , n' , sn'
     ff → rewrite-termh t Γ op on eq t₁ t₂ sn
 
-rewrite-termh (App t e t') =
-  rewriteR App ≫rewrite rewrite-terma t ≫rewrite rewriteR e ≫rewrite rewrite-terma t'
-rewrite-termh (Lam pi NotErased pi' y NoClass t) =
-  rewrite-rename-var y λ y' → rewriteR (Lam pi NotErased pi' y' NoClass) ≫rewrite
+rewrite-termh (App t t') =
+  rewriteR App ≫rewrite rewrite-terma t ≫rewrite rewrite-terma t'
+rewrite-termh (Lam NotErased y nothing t) =
+  rewrite-rename-var y λ y' → rewriteR (Lam NotErased y' nothing) ≫rewrite
   rewrite-abs y y' rewrite-terma t
-rewrite-termh (Var pi x) = rewriteR (Var pi x)
-rewrite-termh (Let pi₁ fe (DefTerm pi₂ x NoType t) t') Γ = rewrite-terma (subst Γ t x t') Γ
+rewrite-termh (Var x) = rewriteR (Var x)
+rewrite-termh (LetTm ff x nothing t t') Γ = rewrite-terma (subst Γ t x t') Γ
 --  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
 --  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
 --  rewrite-abs x x' rewrite-terma t'
 -- ^^^ Need to DEFINE "x" as "hnf Γ unfold-head t tt", not just declare it!
 --     We may instead simply rewrite t' after substituting t for x
-rewrite-termh (Mu  pi₁ pi₂ x t NoType pi₃ ms pi₄) =
+rewrite-termh (Mu (inj₂ x) t nothing t~ ms) =
   rewrite-rename-var x λ x' →
-  rewriteR (Mu pi₁ pi₂ x') ≫rewrite
+  rewriteR (Mu (inj₂ x')) ≫rewrite
   rewrite-terma t ≫rewrite
-  rewriteR NoType ≫rewrite
-  rewriteR pi₃ ≫rewrite
+  rewriteR nothing ≫rewrite
+  rewriteR t~ ≫rewrite
   foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
-    (rewriteR []) ms ≫rewrite
-  rewriteR pi₄
-rewrite-termh (Mu' pi₁ NoTerm t NoType pi₂ ms pi₃) =
-  rewriteR (Mu' pi₁ NoTerm) ≫rewrite
+    (rewriteR []) ms
+rewrite-termh (Mu (inj₁ nothing) t nothing t~ ms) =
+  rewriteR (Mu (inj₁ nothing)) ≫rewrite
   rewrite-terma t ≫rewrite
-  rewriteR NoType ≫rewrite
-  rewriteR pi₂ ≫rewrite
+  rewriteR nothing ≫rewrite
+  rewriteR t~ ≫rewrite
   foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case nothing c ≫rewrite r)
-    (rewriteR []) ms ≫rewrite
-  rewriteR pi₃
+    (rewriteR []) ms
 rewrite-termh = rewriteR
 
-rewrite-case xᵣ? (Case pi x cas t) =
+rewrite-case xᵣ? (Case x cas t) =
   let f = maybe-else' xᵣ? id (uncurry rewrite-abs) rewrite-terma in
-  rewriteR (uncurry $ Case pi x) ≫rewrite
-  foldr {B = rewrite-t caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
-    (λ {(CaseTermArg pi NotErased x) r cas fₜ →
-      r (rewrite-rename-var x λ x' → rewriteR _::_ ≫rewrite rewriteR (CaseTermArg pi NotErased x') ≫rewrite cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
+  rewriteR (uncurry $ Case x) ≫rewrite
+  foldr {B = rewrite-t case-args → (term → rewrite-t term) → rewrite-t (case-args × term)}
+    (λ {(CaseArg CaseArgTm x) r cas fₜ →
+      r (rewrite-rename-var x λ x' → rewriteR _::_ ≫rewrite rewriteR (CaseArg CaseArgTm x') ≫rewrite cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
     (λ cas fₜ → rewriteR _,_ ≫rewrite cas ≫rewrite fₜ t) cas (rewriteR []) f
 
 rewrite-type T Γ tt on eq t₁ t₂ sn
-  with rewrite-typeh (hnf Γ unfold-head-no-lift T tt) Γ tt on eq t₁ t₂ sn
+  with rewrite-typeh (hnf Γ unfold-head-elab T) Γ tt on eq t₁ t₂ sn
 ...| T' , 0 , sn' = T  , 0 , sn'
 ...| T' , n , sn' = T' , n , sn'
 rewrite-type = rewrite-typeh
 
-rewrite-typeh (Abs pi b pi' x atk T) =
+rewrite-typeh (TpAbs me x atk T) =
   rewrite-rename-var x λ x' → 
-  rewriteR (Abs pi b pi' x') ≫rewrite rewrite-tk atk ≫rewrite
+  rewriteR (TpAbs me x') ≫rewrite rewrite-tpkd atk ≫rewrite
   rewrite-abs x x' rewrite-type T
-rewrite-typeh (Iota pi pi' x T T') =
+rewrite-typeh (TpIota x T T') =
   rewrite-rename-var x λ x' →
-  rewriteR (Iota pi pi' x') ≫rewrite rewrite-type T ≫rewrite
+  rewriteR (TpIota x') ≫rewrite rewrite-type T ≫rewrite
   rewrite-abs x x' rewrite-type T'
-rewrite-typeh (Lft pi pi' x t l) =
+rewrite-typeh (TpApp T tT) =
+  rewriteR TpApp ≫rewrite rewrite-typeh T ≫rewrite rewrite-tmtp tT
+rewrite-typeh (TpEq t₁ t₂) =
+  rewriteR TpEq ≫rewrite (rewriteR erase ≫rewrite rewrite-term t₁) ≫rewrite
+  (rewriteR erase ≫rewrite rewrite-term t₂)
+rewrite-typeh (TpLam x atk T) =
   rewrite-rename-var x λ x' →
-  rewriteR (Lft pi pi' x') ≫rewrite
-  rewrite-abs x x' rewrite-term t ≫rewrite
-  rewrite-liftingType l
-rewrite-typeh (TpApp T T') =
-  rewriteR TpApp ≫rewrite rewrite-typeh T ≫rewrite rewrite-type T'
-rewrite-typeh (TpAppt T t) =
-  rewriteR TpAppt ≫rewrite rewrite-typeh T ≫rewrite rewrite-term t
-rewrite-typeh (TpEq pi t₁ t₂ pi') =
-  rewriteR (TpEq pi) ≫rewrite (rewriteR erase ≫rewrite rewrite-term t₁) ≫rewrite
-  (rewriteR erase ≫rewrite rewrite-term t₂) ≫rewrite rewriteR pi'
-rewrite-typeh (TpLambda pi pi' x atk T) =
-  rewrite-rename-var x λ x' →
-  rewriteR (TpLambda pi pi' x') ≫rewrite rewrite-tk atk ≫rewrite
+  rewriteR (TpLam x') ≫rewrite rewrite-tpkd atk ≫rewrite
   rewrite-abs x x' rewrite-type T
-rewrite-typeh (TpArrow T a T') =
-  rewriteR TpArrow ≫rewrite rewrite-type T ≫rewrite rewriteR a ≫rewrite rewrite-type T'
-rewrite-typeh (TpLet pi (DefTerm pi' x T t) T') Γ =
-  rewrite-type (subst Γ (Chi posinfo-gen T t) x T') Γ
-rewrite-typeh (TpLet pi (DefType pi' x k T) T') Γ =
-  rewrite-type (subst Γ T x T') Γ
-rewrite-typeh (TpParens _ T _) = rewrite-type T
-rewrite-typeh (NoSpans T _) = rewrite-type T
 rewrite-typeh (TpHole pi) = rewriteR (TpHole pi)
-rewrite-typeh (TpVar pi x) = rewriteR (TpVar pi x)
+rewrite-typeh (TpVar x) = rewriteR (TpVar x)
 
 -- If we ever implement kind-level rewriting, we will need to go through
 -- all the types of kind pi binding a term or type-to-kind arrow
@@ -178,74 +153,71 @@ rewrite-typeh (TpVar pi x) = rewriteR (TpVar pi x)
 rewrite-kind = rewriteR
 rewrite-liftingType = rewriteR
 
-rewrite-tk (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
-rewrite-tk (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
+rewrite-tpkd (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
+rewrite-tpkd (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
 
-post-rewrite-binder-type : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → type → ⟦ ed ⟧
-post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ' with is-free-in check-erased x Tₓ'
+rewrite-tmtp (Ttm t) = rewriteR Ttm ≫rewrite rewrite-term t
+rewrite-tmtp (Ttp T) = rewriteR Ttp ≫rewrite rewrite-type T
+
+post-rewrite-binder-type : ∀ {ed} → ctxt → var → term → (var → tpkd → ctxt → ctxt) → var → ⟦ ed ⟧ → type → ⟦ ed ⟧
+post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ' with is-free-in x Tₓ'
 ...| ff = Tₓ
-...| tt = subst (tk-decl x' (Tkt Tₓ') Γ) (Rho posinfo-gen RhoPlain NoNums eq (Guide posinfo-gen x Tₓ') $ mvar x') x' Tₓ
+...| tt = subst (tk-decl x' (Tkt Tₓ') Γ) (Rho eq x Tₓ' (Var x')) x' Tₓ
 
-post-rewrite-binder-kind : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → kind → ⟦ ed ⟧
+post-rewrite-binder-kind : ∀ {ed} → ctxt → var → term → (var → tpkd → ctxt → ctxt) → var → ⟦ ed ⟧ → kind → ⟦ ed ⟧
 post-rewrite-binder-kind Γ x eq tk-decl x' Tₓ kₓ' = Tₓ
 
-post-rewrite-binder-tk : ∀ {ed} → ctxt → var → term → (var → tk → ctxt → ctxt) → var → ⟦ ed ⟧ → tk → ⟦ ed ⟧
+post-rewrite-binder-tk : ∀ {ed} → ctxt → var → term → (var → tpkd → ctxt → ctxt) → var → ⟦ ed ⟧ → tpkd → ⟦ ed ⟧
 post-rewrite-binder-tk Γ x eq tk-decl x' Tₓ (Tkt Tₓ') =
   post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ'
 post-rewrite-binder-tk Γ x eq tk-decl x' Tₓ (Tkk kₓ') =
   post-rewrite-binder-kind Γ x eq tk-decl x' Tₓ kₓ'
 
-post-rewriteh : ctxt → var → term → (ctxt → var → term → tk → tk) → (var → tk → ctxt → ctxt) → type → type × kind
+post-rewriteh : ctxt → var → term → (ctxt → var → term → tpkd → tpkd) → (var → tpkd → ctxt → ctxt) → type → type × kind
 
-post-rewriteh Γ x eq prtk tk-decl (Abs pi b pi' x' atk T) =
+post-rewriteh Γ x eq prtk tk-decl (TpAbs me x' atk T) =
   let atk = prtk Γ x eq atk
       T = fst $ post-rewriteh (tk-decl x' atk Γ) x eq prtk tk-decl T
       T = post-rewrite-binder-tk Γ x eq tk-decl x' T atk in
-  Abs pi b pi' x' atk T , star
-post-rewriteh Γ x eq prtk tk-decl (Iota pi pi' x' T T') =
+  TpAbs me x' atk T , KdStar
+post-rewriteh Γ x eq prtk tk-decl (TpIota x' T T') =
   let T = fst $ post-rewriteh Γ x eq prtk tk-decl T
       T' = fst $ post-rewriteh (tk-decl x' (Tkt T) Γ) x eq prtk tk-decl T'
       T' = post-rewrite-binder-type Γ x eq tk-decl x' T' T in
-  Iota pi pi' x' T T' , star
-post-rewriteh Γ x eq prtk tk-decl (Lft pi pi' x' t lT) =
-  Lft pi pi' x' t lT , liftingType-to-kind lT
-post-rewriteh Γ x eq prtk tk-decl (TpApp T T') =
+  TpIota x' T T' , KdStar
+post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttp T')) =
   elim-pair (post-rewriteh Γ x eq prtk tk-decl T') λ T' k' →
   elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
-    T (KndPi pi pi' x' atk k) → TpApp T T' , hnf Γ unfold-head-no-lift (subst Γ T' x' k) tt
-    T (KndArrow k k'') → TpApp T T' , hnf Γ unfold-head-no-lift k'' tt
-    T k → TpApp T T' , k
-post-rewriteh Γ x eq prtk tk-decl (TpAppt T t) =
-  let t2 T' = if is-free-in check-erased x T' then Rho posinfo-gen RhoPlain NoNums (Sigma posinfo-gen eq) (Guide posinfo-gen x T') t else t in
+    T (KdAbs x' atk k) → TpApp T (Ttp T') , hnf Γ unfold-head-elab (subst Γ T' x' k)
+    T k → TpApp T (Ttp T') , k
+post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttm t)) =
+  let t2 T' = if is-free-in x T' then Rho (Sigma eq) x T' t else t in
   elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
-    T (KndPi pi pi' x' (Tkt T') k) →
-      let t3 = t2 T' in TpAppt T t3 , hnf Γ unfold-head-no-lift (subst Γ t3 x' k) tt
-    T (KndTpArrow T' k) → TpAppt T (t2 T') , hnf Γ unfold-head-no-lift k tt
-    T k → TpAppt T t , k
-post-rewriteh Γ x eq prtk tk-decl (TpArrow T a T') = TpArrow (fst (post-rewriteh Γ x eq prtk tk-decl T)) a (fst (post-rewriteh Γ x eq prtk tk-decl T')) , star
-post-rewriteh Γ x eq prtk tk-decl (TpLambda pi pi' x' atk T) =
+    T (KdAbs x' (Tkt T') k) →
+      let t3 = t2 T' in TpApp T (Ttm t3) , hnf Γ unfold-head-elab (subst Γ t3 x' k)
+    T k → TpApp T (Ttm t) , k
+post-rewriteh Γ x eq prtk tk-decl (TpLam x' atk T) =
   let atk = prtk Γ x eq atk in
   elim-pair (post-rewriteh (tk-decl x' atk Γ) x eq prtk tk-decl T) λ T k →
   let T = post-rewrite-binder-tk Γ x eq tk-decl x' T atk
       k = post-rewrite-binder-tk Γ x eq tk-decl x' k atk in
-  TpLambda pi pi' x' atk T , KndPi pi pi' x' atk k
-post-rewriteh Γ x eq prtk tk-decl (TpParens pi T pi') = post-rewriteh Γ x eq prtk tk-decl T
-post-rewriteh Γ x eq prtk tk-decl (TpVar pi x') with env-lookup Γ x'
-...| just (type-decl k , _) = mtpvar x' , hnf Γ unfold-head-no-lift k tt
-...| just (type-def mps _ T k , _) = mtpvar x' , (hnf Γ unfold-head-no-lift (maybe-else id abs-expand-kind mps k) tt)
-...| _ = mtpvar x' , star
-post-rewriteh Γ x eq prtk tk-decl T = T , star
+  TpLam x' atk T , KdAbs x' atk k
+post-rewriteh Γ x eq prtk tk-decl (TpVar x') with env-lookup Γ x'
+...| just (type-decl k , _) = TpVar x' , hnf Γ unfold-head-elab k
+...| just (type-def mps _ T k , _) = TpVar x' , (hnf Γ unfold-head-elab (maybe-else id abs-expand-kind mps k))
+...| _ = TpVar x' , KdStar
+post-rewriteh Γ x eq prtk tk-decl T = T , KdStar
 
 {-# TERMINATING #-}
 post-rewrite : ctxt → var → (eq t₂ : term) → type → type
 post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk tk-decl T)) where
-  prtk : ctxt → var → term → tk → tk
-  tk-decl : var → tk → ctxt → ctxt
+  prtk : ctxt → var → term → tpkd → tpkd
+  tk-decl : var → tpkd → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
-  prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-no-lift k tt)
-  tk-decl x atk (mk-ctxt mod ss is os Δ) =
-    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) os Δ where
-    h : tk → ctxt-info
+  prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-elab k)
+  tk-decl x atk (mk-ctxt mod ss is Δ) =
+    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) Δ where
+    h : tpkd → ctxt-info
     h (Tkt T) = term-decl T
     h (Tkk k) = type-decl k
 
@@ -258,7 +230,7 @@ rewrite-at' : ∀ {ed} → rewrite-at-t ⟦ ed ⟧ → rewrite-at-t ⟦ ed ⟧
 rewrite-ath : rewrite-at-t type
 rewrite-atₖ : rewrite-at-t kind
 rewrite-athₖ : rewrite-at-t kind
-rewrite-at-tk : rewrite-at-t tk
+rewrite-at-tk : rewrite-at-t tpkd
 
 rewrite-at-tk Γ x eq b (Tkt T) (Tkt T') = Tkt (rewrite-at Γ x eq b T T')
 rewrite-at-tk Γ x eq b (Tkk k) (Tkk k') = Tkk (rewrite-atₖ Γ x eq b k k')
@@ -267,134 +239,103 @@ rewrite-at-tk Γ x eq b atk1 atk2 = atk1
 rewrite-at = rewrite-at' rewrite-ath
 rewrite-atₖ = rewrite-at' rewrite-athₖ
 
+
+rewrite-head-types-match : ∀ {ed} → ctxt → var → (complete partial : ⟦ ed ⟧) → 𝔹
+rewrite-head-types-match{TYPE} Γ x (TpApp T _) (TpApp T' _) = conv-type Γ T ([ Γ - Hole pi-gen / x ] T')
+rewrite-head-types-match Γ x T T' = tt
+
 rewrite-at' ra Γ x eq b T T' =
-  if ~ is-free-in tt x T'
+  if ~ is-free-in x T'
     then T
-    else if b && ~ rewrite-head-types-match Γ (trie-single x (Hole posinfo-gen)) T T'
-      then ra Γ x eq ff (hnf Γ unfold-head-no-lift T tt) (hnf Γ unfold-head-no-lift T' tt)
+    else if b && ~ rewrite-head-types-match Γ x T T'
+      then ra Γ x eq ff (hnf Γ unfold-head-elab T) (hnf Γ unfold-head-elab T')
       else ra Γ x eq b T T'
 
 
-rewrite-athₖ Γ x eq b (KndArrow k1 k1') (KndArrow k2 k2') =
-  KndArrow (rewrite-atₖ Γ x eq tt k1 k2) (rewrite-atₖ Γ x eq tt k1' k2')
-rewrite-athₖ Γ x eq b (KndParens pi1 k1 pi1') k2 = rewrite-atₖ Γ x eq b k1 k2
-rewrite-athₖ Γ x eq b k1 (KndParens pi2 k2 pi2') = rewrite-atₖ Γ x eq b k1 k2
-rewrite-athₖ Γ x eq b (KndPi pi1 pi1' x1 atk1 k1) (KndPi pi2 pi2' x2 atk2 k2) =
-  KndPi pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-atₖ (ctxt-var-decl x1 Γ) x eq tt k1 $ rename-var Γ x2 x1 k2)
-rewrite-athₖ Γ x eq b (KndTpArrow T1 k1) (KndTpArrow T2 k2) =
-  KndTpArrow (rewrite-at Γ x eq tt T1 T2) (rewrite-atₖ Γ x eq tt k1 k2)
-rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
+rewrite-athₖ Γ x eq b (KdAbs x1 atk1 k1) (KdAbs x2 atk2 k2) =
+  KdAbs x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-atₖ (ctxt-var-decl x1 Γ) x eq tt k1 $ rename-var Γ x2 x1 k2)
+{-rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
   KndVar pi1 x1 (flip map (zip as1 as2) λ where
     (TermArg me1 t1 , TermArg me2 t2) → TermArg me1 (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
     (TypeArg T1 , TypeArg T2) → TypeArg (rewrite-at Γ x eq tt T1 T2)
-    (a1 , a2) → a1)
-rewrite-athₖ Γ x eq b (Star pi1) (Star pi2) = Star pi1
-rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-no-lift k1 tt) (hnf Γ unfold-head-no-lift k2 tt)
+    (a1 , a2) → a1)-}
+rewrite-athₖ Γ x eq b KdStar KdStar = KdStar
+rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-elab k1) (hnf Γ unfold-head-elab k2)
 rewrite-athₖ Γ x eq ff k1 k2 = k1
 
 
-
-rewrite-ath Γ x eq b (Abs pi1 b1 pi1' x1 atk1 T1) (Abs pi2 b2 pi2' x2 atk2 T2) =
-  Abs pi1 b1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
-rewrite-ath Γ x eq b (Iota pi1 pi1' x1 T1 T1') (Iota pi2 pi2' x2 T2 T2') =
-  Iota pi1 pi1' x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1' (rename-var Γ x2 x1 T2'))
-rewrite-ath Γ x eq b (Lft pi1 pi1' x1 t1 lT1) (Lft pi2 pi2' x2 t2 lT2) =
-  Lft pi1 pi1' x1 (maybe-else' (maybe-if (is-free-in tt x (mlam x2 t2)) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2) lT1
-rewrite-ath Γ x eq b (TpApp T1 T1') (TpApp T2 T2') =
-  TpApp (rewrite-at Γ x eq b T1 T2) (rewrite-at Γ x eq tt T1' T2')
-rewrite-ath Γ x eq b (TpAppt T1 t1) (TpAppt T2 t2) =
-  TpAppt (rewrite-at Γ x eq b T1 T2) (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
-rewrite-ath Γ x eq b (TpArrow T1 a1 T1') (TpArrow T2 a2 T2') =
-  TpArrow (rewrite-at Γ x eq tt T1 T2) a1 (rewrite-at Γ x eq tt T1' T2')
-rewrite-ath Γ x eq b (TpEq pi1 t1 t1' pi1') (TpEq pi2 t2 t2' pi2') =
-  TpEq pi1 t2 t2' pi1'
-rewrite-ath Γ x eq b (TpLambda pi1 pi1' x1 atk1 T1) (TpLambda pi2 pi2' x2 atk2 T2) =
-  TpLambda pi1 pi1' x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
-rewrite-ath Γ x eq b (TpLet pi1 (DefTerm pi1' x1 oc1 t1) T1) T2 = rewrite-at Γ x eq b (subst Γ t1 x1 T1) T2
-rewrite-ath Γ x eq b T1 (TpLet pi2 (DefTerm pi2' x2 oc2 t2) T2) = rewrite-at Γ x eq b T1 (subst Γ t2 x2 T2)
-rewrite-ath Γ x eq b (TpLet pi1 (DefType pi1' x1 k1 T1ₗ) T1) T2 = rewrite-at Γ x eq tt (subst Γ T1ₗ x1 T1) T2
-rewrite-ath Γ x eq b T1 (TpLet pi2 (DefType pi2' x2 k2 T2ₗ) T2) = rewrite-at Γ x eq tt T1 (subst Γ T2ₗ x2 T2)
-rewrite-ath Γ x eq b (TpVar pi1 x1) (TpVar pi2 x2) = TpVar pi1 x1
+rewrite-ath Γ x eq b (TpAbs me1 x1 atk1 T1) (TpAbs me2 x2 atk2 T2) =
+  TpAbs me1 x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
+rewrite-ath Γ x eq b (TpIota x1 T1 T1') (TpIota x2 T2 T2') =
+  TpIota x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1' (rename-var Γ x2 x1 T2'))
+rewrite-ath Γ x eq b (TpApp T1 (Ttp T1')) (TpApp T2 (Ttp T2')) =
+  TpApp (rewrite-at Γ x eq b T1 T2) (Ttp (rewrite-at Γ x eq tt T1' T2'))
+rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) =
+  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (maybe-if (is-free-in x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
+rewrite-ath Γ x eq b (TpEq t1 t1') (TpEq t2 t2') =
+  TpEq t2 t2'
+rewrite-ath Γ x eq b (TpLam x1 atk1 T1) (TpLam x2 atk2 T2) =
+  TpLam x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
+rewrite-ath Γ x eq b (TpVar x1) (TpVar x2) = TpVar x1
 rewrite-ath Γ x eq b (TpHole pi1) (TpHole pi2) = TpHole pi1
-rewrite-ath Γ x eq b (TpParens pi1 T1 pi1') T2 = rewrite-at Γ x eq b T1 T2
-rewrite-ath Γ x eq b T1 (TpParens pi2 T2 pi2') = rewrite-at Γ x eq b T1 T2
-rewrite-ath Γ x eq b (NoSpans T1 pi1) T2 = rewrite-at Γ x eq b T1 T2
-rewrite-ath Γ x eq b T1 (NoSpans T2 pi2) = rewrite-at Γ x eq b T1 T2
-rewrite-ath Γ x eq tt T1 T2 = rewrite-at Γ x eq ff (hnf Γ unfold-head-no-lift T1 tt) (hnf Γ unfold-head-no-lift T2 tt)
+rewrite-ath Γ x eq tt T1 T2 = rewrite-at Γ x eq ff (hnf Γ unfold-head-elab T1) (hnf Γ unfold-head-elab T2)
 rewrite-ath Γ x eq ff T1 T2 = T1
 
 hnf-ctr : ctxt → var → type → type
-hnf-ctr Γ x T = rewrite-at Γ x nothing tt (hnf Γ (unfolding-elab unfold-head) T ff) $ hnf Γ (unfolding-elab unfold-all) T tt
+hnf-ctr Γ x T = rewrite-at Γ x nothing tt (hnf Γ (unfold tt ff ff) T) $ hnf Γ (record unfold-all {unfold-erase = ff}) T
 
 
 
 {-# TERMINATING #-}
-refine-term : ctxt → tty → var → term → term
-refine-type : ctxt → tty → var → type → type
-refine-typeh : ctxt → tty → var → type → type
-refine-kind : ctxt → tty → var → kind → kind
-refine-tk : ctxt → tty → var → tk → tk
+refine-term : ctxt → tmtp → var → term → term
+refine-type : ctxt → tmtp → var → type → type
+refine-typeh : ctxt → tmtp → var → type → type
+refine-kind : ctxt → tmtp → var → kind → kind
+refine : ∀ {ed} → ctxt → tmtp → var → ⟦ ed ⟧ → ⟦ ed ⟧
 
-refine-tk Γ fm to tk =
-  tk-map tk (refine-type Γ fm to) (refine-kind Γ fm to)
+refine {TERM} = refine-term
+refine {TYPE} = refine-type
+refine {KIND} = refine-kind
 
-refine-term Γ (ttype T) to t = t
-refine-term Γ (tterm t') to t with rewrite-term t Γ ff nothing nothing t' to 0
+refine-term Γ (Ttp T) to t = t
+refine-term Γ (Ttm t') to t with rewrite-term t Γ ff nothing nothing t' to 0
 ...| t'' , zero , _ = t
 ...| t'' , suc _ , _ = t''
 
-refine-type Γ fm to T with case fm of λ {(ttype T') → conv-type Γ T T'; _ → ff}
-...| tt = TpVar pi-gen to
-...| ff = refine-typeh Γ fm to T
+refine-type Γ fm to T =
+  if either-else' fm (const ff) (conv-type Γ T)
+    then TpVar to
+    else refine-typeh Γ fm to T
 
-refine-typeh Γ fm to (Abs pi b pi' x atk T) =
+refine-typeh Γ fm to (TpAbs me x atk T) =
   let x' = fresh-var Γ x in 
-  Abs pi b pi' x' (refine-tk Γ fm to atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
-refine-typeh Γ fm to (Iota pi pi' x T T') =
+  TpAbs me x' (refine Γ fm to -tk atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
+refine-typeh Γ fm to (TpIota x T T') =
   let x' = fresh-var Γ x in
-  Iota pi pi' x' (refine-type Γ fm to T) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T'))
-refine-typeh Γ fm to (Lft pi pi' x t l) =
+  TpIota x' (refine-type Γ fm to T) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T'))
+refine-typeh Γ fm to (TpApp T tT) =
+   TpApp (refine-type Γ fm to T) (refine Γ fm to -tT tT)
+refine-typeh Γ fm to (TpEq t₁ t₂) =
+  TpEq (refine-term Γ fm to t₁) (refine-term Γ fm to t₂)
+refine-typeh Γ fm to (TpLam x atk T) =
   let x' = fresh-var Γ x in
-  Lft pi pi' x' (refine-term Γ fm to (rename-var Γ x x' t)) l
-refine-typeh Γ fm to (TpApp T T') =
-   TpApp (refine-type Γ fm to T) (refine-type Γ fm to T')
-refine-typeh Γ fm to (TpAppt T t) =
-   TpAppt (refine-type Γ fm to T) (refine-term Γ fm to t)
-refine-typeh Γ fm to (TpEq pi t₁ t₂ pi') =
-  TpEq pi (refine-term Γ fm to t₁) (refine-term Γ fm to t₂) pi'
-refine-typeh Γ fm to (TpLambda pi pi' x atk T) =
-  let x' = fresh-var Γ x in
-  TpLambda pi pi' x' (refine-tk Γ fm to atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
-refine-typeh Γ fm to (TpArrow T a T') =
-  TpArrow (refine-type Γ fm to T) a (refine-type Γ fm to T')
-refine-typeh Γ fm to (TpLet pi (DefTerm pi' x T t) T') =
-  refine-type Γ fm to (subst Γ (Chi posinfo-gen T t) x T')
-refine-typeh Γ fm to (TpLet pi (DefType pi' x k T) T') =
-  refine-type Γ fm to (subst Γ T x T')
-refine-typeh Γ fm to (TpParens _ T _) = refine-type Γ fm to T
-refine-typeh Γ fm to (NoSpans T _) = refine-type Γ fm to T
+  TpLam x' (refine Γ fm to -tk atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
 refine-typeh Γ fm to (TpHole pi) =  TpHole pi
-refine-typeh Γ fm to (TpVar pi x) = TpVar pi x
+refine-typeh Γ fm to (TpVar x) = TpVar x
 
-refine-kind Γ fm to (KndArrow k k') = KndArrow (refine-kind Γ fm to k) (refine-kind Γ fm to k')
-refine-kind Γ fm to (KndParens pi k pi') = refine-kind Γ fm to k
-refine-kind Γ fm to (KndPi pi pi' x atk k) =
+refine-kind Γ fm to (KdAbs x atk k) =
   let x' = fresh-var Γ x in
-  KndPi pi pi' x (refine-tk Γ fm to atk) (refine-kind (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' k))
-refine-kind Γ fm to (KndTpArrow T k) = KndTpArrow (refine-type Γ fm to T) (refine-kind Γ fm to k)
-refine-kind Γ fm to (KndVar pi k as) with hnf Γ unfold-head (KndVar pi k as) tt
-...| KndVar _ _ _ = KndVar pi k as
-...| k' = refine-kind Γ fm to k'
-refine-kind Γ fm to (Star pi) = Star pi
+  KdAbs x (refine Γ fm to -tk atk) (refine-kind (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' k))
+refine-kind Γ fm to KdStar = KdStar
 
-refine-motive : ctxt → indices → (asᵢ : 𝕃 tty) → (expected : type) → type
-refine-motive Γ is as = --recompose-tpapps as ∘ indices-to-tplams (rename-indices Γ is as)
+refine-motive : ctxt → indices → (asᵢ : 𝕃 tmtp) → (expected : type) → type
+refine-motive Γ is as =
   foldr
     (λ where
       (Index x atk , ty) f Γ T →
         let body = f (ctxt-var-decl x Γ) $ refine-type (ctxt-var-decl x Γ) ty x T
-            x' = x in --if is-free-in check-erased x body then x else ignored-var in
-        TpLambda pi-gen pi-gen x' atk body)
+            x' = if is-free-in x body then x else ignored-var in
+        TpLam x' atk body)
     (λ Γ T → T) (zip (rename-indices Γ is as) as) Γ
 
 -- Given a context, the (qualified) scrutinee, the (qualified) datatype name,
