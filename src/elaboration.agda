@@ -139,7 +139,7 @@ module elab-x (μ : trie encoded-datatype) where
       --elab-check-term Γ t T' ≫=maybe
       --(just ∘ mrho (mbeta id id) ignored-var T')
   elab-check-term Γ (Delta pi mT t) T =
-    elab-pure-type Γ (erase-type T) ≫=maybe λ T →
+    --elab-pure-type Γ (erase-type T) ≫=maybe λ T →
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
     elab-hnf-type Γ T' ff ≫=maybe λ where
       (TpEq _ t1 t2 _) →
@@ -318,7 +318,7 @@ module elab-x (μ : trie encoded-datatype) where
       --just (mrho (mbeta id id) ignored-var T'' t , T')
   elab-synth-term Γ (Delta pi mT t) = (case mT of λ where
     NoType → just compileFailType
-    (SomeType T) → elab-pure-type Γ (erase-type T)) ≫=maybe λ T →
+    (SomeType T) → maybe-map fst (elab-type Γ T) {-elab-pure-type Γ (erase-type T)-}) ≫=maybe λ T →
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
     elab-hnf-type Γ T' ff ≫=maybe λ where
       (TpEq _ t1 t2 _) →
@@ -774,7 +774,7 @@ elab-file' ts ρ φ μ fn =
             Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
         elab-cmds nothing (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry'' λ cs ts ρ ω →
-        let ast = File [] pi-gen pi-gen mn []
+        let ast = File [] pi-gen pi-gen (rename-validify mn) []
                     (remove-dup-imports empty-stringset (imps-to-cmds is ++ cs)) pi-gen in
         just (fn' , record (set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast)) {Γ = restore-ctxt-params (toplevel-state.Γ ts) (fst rps)} , restore-renamectxt ρ (snd rps) , ω)
   where

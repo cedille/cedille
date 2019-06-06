@@ -189,7 +189,7 @@ parseTerm = ParseM $ \ xs ts -> case ts of
   (TLamE : TVar v : ts) -> parseMt xs ts $ pure TmLamE <* parseDrop TColon <*> parseTpKd parseTerm3 <* parseDrop TDot <*> parseBind v parseTerm
   (TRho : ts) -> parseMt xs ts $ pure TmRho <*> parseTerm2 <* parseDrop TAt <*> (parseVar >>= \ v -> parseDrop TDot *> parseBind v (parseType parsePrTerm2)) <* parseDrop TDash <*> parseTerm
   (TPhi : ts) -> parseMt xs ts $ pure TmPhi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePrTerm <* parseDrop TBraceR
-  (TDelta : ts) -> parseMt xs ts $ pure TmDelta <*> parseType2 parsePrTerm2 <* parseDrop TDash <*> parseTerm
+  (TDelta : ts) -> parseMt xs ts $ pure TmDelta <*> parseType2 parseTerm3 <* parseDrop TDash <*> parseTerm
   (TBracketL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTm <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseBind v parseTerm
   (TBraceL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTmE <*> parseTerm <* parseDrop TBraceR <* parseDrop TDash <*> parseBind v parseTerm
   (TBracketL : TVar v : TColon : ts) -> parseMt xs ts $ pure TmLetTp <*> parseKind parseTerm3 <* parseDrop TEq <*> parseType parseTerm3 <* parseDrop TBracketR <* parseDrop TDash <*> parseBind v parseTerm
