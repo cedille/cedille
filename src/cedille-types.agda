@@ -15,7 +15,7 @@ mutual
   var = string
   num = string
   erased? = 𝔹
-  maybeMinus = 𝔹
+  minus? = 𝔹
   imports = 𝕃 imprt
   params = 𝕃 param
   ex-params = 𝕃 ex-param
@@ -30,7 +30,7 @@ mutual
   left-right = maybe 𝔹
   rho-hnf = 𝔹
   opt-public = 𝔹
-  is-mu = maybe term ⊎ var
+  is-mu = term ⊎ var
   iota-num = 𝔹
   case-args = 𝕃 case-arg
   tmtp = term ⊎ type
@@ -65,7 +65,7 @@ mutual
   data term : Set where
     App : term → term → term
     AppE : term → tmtp → term
-    Beta : maybe term → maybe term → term
+    Beta : term → term → term
     Delta : type → term → term
     Hole : posinfo → term
     IotaPair : term → term → var → type → term
@@ -185,7 +185,7 @@ mutual
     ExBeta : posinfo → maybe pos-tm → maybe pos-tm → ex-tm
     ExChi : posinfo → maybe ex-tp → ex-tm → ex-tm
     ExDelta : posinfo → maybe ex-tp → ex-tm → ex-tm
-    ExEpsilon : posinfo → left-right → maybeMinus → ex-tm → ex-tm
+    ExEpsilon : posinfo → left-right → minus? → ex-tm → ex-tm
     ExHole : posinfo → ex-tm
     ExIotaPair : posinfo → ex-tm → ex-tm → maybe ex-guide → posinfo → ex-tm
     ExIotaProj : ex-tm → num → posinfo → ex-tm

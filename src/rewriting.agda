@@ -18,7 +18,7 @@ open import datatype-functions
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =
-  Phi (Rho (Sigma eq) x (TpEq t t') (Beta (just t) (just id-term))) t t'
+  Phi (Rho (Sigma eq) x (TpEq t t') (Beta t id-term)) t t'
 
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : maybe term) →
@@ -100,8 +100,8 @@ rewrite-termh (Mu (inj₂ x) t nothing t~ ms) =
   rewriteR t~ ≫rewrite
   foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
     (rewriteR []) ms
-rewrite-termh (Mu (inj₁ nothing) t nothing t~ ms) =
-  rewriteR (Mu (inj₁ nothing)) ≫rewrite
+rewrite-termh (Mu (inj₁ tᵢ) t nothing t~ ms) =
+  rewriteR (Mu (inj₁ tᵢ)) ≫rewrite
   rewrite-terma t ≫rewrite
   rewriteR nothing ≫rewrite
   rewriteR t~ ≫rewrite

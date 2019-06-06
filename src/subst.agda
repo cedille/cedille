@@ -53,7 +53,7 @@ substh {TERM} Γ ρ σ (Var x) =
      (just (,_ {TERM} t)) → t
      _ → Var x'
 substh {TERM} Γ ρ σ (Hole pi) = Hole pi -- Retain position, so jumping to hole works
-substh {TERM} Γ ρ σ (Beta ot ot') = Beta (maybe-map (substh Γ ρ σ) ot) (maybe-map (substh Γ ρ σ) ot')
+substh {TERM} Γ ρ σ (Beta t t') = Beta (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (IotaPair t₁ t₂ x T) =
   let x' = subst-rename-var-if Γ ρ x σ in
   IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
@@ -74,8 +74,8 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ cs) =
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
     Mu (inj₂ x') (substh Γ ρ σ t) (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ' ρ' σ cs)
-substh {TERM} Γ ρ σ (Mu (inj₁ t?) t' T t~ cs) =
-  Mu (inj₁ (maybe-map (substh Γ ρ σ) t?)) (substh Γ ρ σ t') (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ ρ σ cs)
+substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ cs) =
+  Mu (inj₁ (substh Γ ρ σ tᵢ)) (substh Γ ρ σ t') (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ ρ σ cs)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ in

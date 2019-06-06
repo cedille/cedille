@@ -348,7 +348,7 @@ Atype :: { Type }
       | '{' Term '≃' Term '}'           { TpEq (pos2Txt $1) $2 $4 (pos2Txt1 $5) }
 
 Kind :: { Kind }
-     : 'Π' Bvar ':' TpKd '.' Kind         { KdPi (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
+     : 'Π' Bvar ':' TpKd '.' Kind         { KdAbs (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
      | LKind '➔' Kind                  { KdArrow (Tkk $1) $3 }
      | LType '➔' Kind                  { KdArrow (Tkt $1) $3 }
      | LKind                            { $1 }

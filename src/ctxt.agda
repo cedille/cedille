@@ -116,6 +116,11 @@ ctxt-tk-decl : posinfo → var → tpkd → ctxt → ctxt
 ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
 ctxt-tk-decl p x (Tkk k) Γ = ctxt-type-decl p x k Γ
 
+infix 4 _,_-_:`_
+_,_-_:`_ : ctxt → posinfo → var → tpkd → ctxt
+Γ , pi - x :` tk = ctxt-tk-decl pi x tk Γ
+
+
 -- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : var → ctxt → ctxt
 ctxt-var-decl-if v Γ with Γ
@@ -179,19 +184,33 @@ ctxt-lookup-term-var Γ v with qual-lookup Γ v
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
-... | just (term-def mps OpacTrans (just t) _ , _) = just $ maybe-else id lam-expand-term mps t
-... | just (term-udef mps OpacTrans t , _) = just $ maybe-else id lam-expand-term mps t
+... | just (term-def mps opacity-open (just t) _ , _) = just $ maybe-else id lam-expand-term mps t
+... | just (term-udef mps opacity-open t , _) = just $ maybe-else id lam-expand-term mps t
 ... | _ = nothing
 
 ctxt-lookup-type-var-def : ctxt → var → maybe type
 ctxt-lookup-type-var-def Γ v with env-lookup Γ v
-... | just (type-def mps OpacTrans (just T) _ , _) = just $ maybe-else id lam-expand-type mps T
+... | just (type-def mps opacity-open (just T) _ , _) = just $ maybe-else id lam-expand-type mps T
 ... | _ = nothing
 
 ctxt-lookup-kind-var-def : ctxt → var → maybe (params × kind)
 ctxt-lookup-kind-var-def Γ x with qual-lookup Γ x
 ...| just (_ , as , kind-def ps k , _) = case subst-params-args' Γ ps as k of λ where
   (k' , ps' , as') → just (ps' , k')
+...| _ = nothing
+
+ctxt-binds-term-var : ctxt → var → maybe (var × args)
+ctxt-binds-term-var Γ x with qual-lookup Γ x
+...| just (qx , as , term-def _ _ _ _ , _) = just (qx , as)
+...| just (qx , as , term-udef _ _ _ , _) = just (qx , as)
+...| just (qx , as , term-decl _ , _) = just (qx , as)
+--...| just (qx , as , var-decl , _) = just (qx , as)
+...| _ = nothing
+
+ctxt-binds-type-var : ctxt → var → maybe (var × args)
+ctxt-binds-type-var Γ x with qual-lookup Γ x
+...| just (qx , as , type-def _ _ _ _ , _) = just (qx , as)
+...| just (qx , as , type-decl _ , _) = just (qx , as)
 ...| _ = nothing
 
 record ctxt-datatype-info : Set where

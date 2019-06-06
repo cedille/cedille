@@ -111,7 +111,11 @@ _≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 _≫span_ : ∀{A B : Set} → spanM A → spanM B → spanM B
 (m₁ ≫span m₂) = m₁ ≫=span (λ _ → m₂)
 
-infixr 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_ _≫=spanc_ _≫=spanc'_ _≫spanc_ _≫spanc'_
+infixr 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_ _≫=spanc_ _≫=spanc'_ _≫spanc_ _≫spanc'_ _≫=span?_
+
+_≫=span?_ : ∀{A B : Set} → maybe (spanM A) → (maybe A → spanM B) → spanM B
+nothing ≫=span? f = f nothing
+just a ≫=span? f = a ≫=span (f ∘ just)
 
 _≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
 _≫=spanj_{A} m m' = m ≫=span cont
@@ -139,6 +143,7 @@ _≫=spanm'_{A}{B} m m' = m ≫=span cont
   where cont : maybe A → spanM (maybe B)
         cont nothing = spanMr nothing
         cont (just a) = m' a
+
 
 -- Currying/uncurry span binding
 _≫=spanc_ : ∀{A B C} → spanM (A × B) → (A → B → spanM C) → spanM C
@@ -195,6 +200,10 @@ spanM-for xs init acc use f = foldr-spanM f acc xs
 
 spanM-add : span → spanM ⊤
 spanM-add s ss = returnM (triv , add-span s ss)
+
+infixr 2 [-_-]_
+[-_-]_ : ∀ {X} → span → spanM X → spanM X
+[- s -] m = spanM-add s ≫span m
 
 spanM-addl : 𝕃 span → spanM ⊤
 spanM-addl [] = spanMok
@@ -597,10 +606,7 @@ Lam-span-erased Erased = "Erased lambda abstraction (term-level)"
 Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
 Lam-span : ctxt → checking-mode → posinfo → posinfo → erased? → var → tpkd → ex-tm → 𝕃 tagged-val → err-m → span
-Lam-span Γ c pi pi' NotErased x {-(SomeClass-} (Tkk k) {-)-} t tvs e =
-  mk-span (Lam-span-erased NotErased) pi (term-end-pos t) (ll-data-term :: binder-data Γ pi' x (Tkk k) NotErased nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs) (e maybe-or just "λ-terms must bind a term, not a type (use Λ instead)")
---Lam-span Γ c pi l x NoClass t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) (ll-data-term :: binder-data Γ x :: checking-data c :: tvs)
-Lam-span Γ c pi pi' l x {-(SomeClass-} atk {-)-} t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
+Lam-span Γ c pi pi' l x atk t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            ((ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
                                            ++ bound-tp atk)
   where
@@ -676,16 +682,16 @@ Beta-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → err-m 
 Beta-span pi pi' check tvs = mk-span "Beta axiom" pi pi'
                      (checking-data check :: ll-data-term :: explain "A term constant whose type states that β-equal terms are provably equal" :: tvs)
 
-hole-span : ctxt → posinfo → maybe type → 𝕃 tagged-val → span
-hole-span Γ pi tp tvs = 
+hole-span : ctxt → posinfo → maybe type → checking-mode → 𝕃 tagged-val → span
+hole-span Γ pi tp check tvs = 
   mk-span "Hole" pi (posinfo-plus pi 1)
-    (ll-data-term :: expected-type-if Γ tp ++ tvs)
+    (checking-data check :: ll-data-term :: expected-type-if Γ tp ++ tvs)
     (just "This hole remains to be filled in")
 
-tp-hole-span : ctxt → posinfo → maybe kind → 𝕃 tagged-val → span
-tp-hole-span Γ pi k tvs =
+tp-hole-span : ctxt → posinfo → maybe kind → checking-mode → 𝕃 tagged-val → span
+tp-hole-span Γ pi k check tvs =
   mk-span "Hole" pi (posinfo-plus pi 1) 
-    (ll-data-term :: expected-kind-if Γ k ++ tvs)
+    (checking-data check :: ll-data-term :: expected-kind-if Γ k ++ tvs)
     (just "This hole remains to be filled in")
 
 
@@ -694,7 +700,7 @@ expected-to-string checking = "expected"
 expected-to-string synthesizing = "synthesized"
 expected-to-string untyped = "untyped"
 
-Epsilon-span : posinfo → left-right → maybeMinus → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
+Epsilon-span : posinfo → left-right → minus? → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
 Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t) 
                                          (checking-data check :: ll-data-term :: tvs ++
                                          [ explain ("Normalize " ^ side lr ^ " of the " 
@@ -704,7 +710,7 @@ Epsilon-span pi lr m t check tvs = mk-span "Epsilon" pi (term-end-pos t)
         side Left = "the left-hand side"
         side Right = "the right-hand side"
         side Both = "both sides"
-        maybeMinus-description : maybeMinus → string
+        maybeMinus-description : minus? → string
         maybeMinus-description EpsHnf = "head"
         maybeMinus-description EpsHanf = "head-applicative"
 
@@ -744,8 +750,8 @@ Sigma-span pi t check tvs =
   mk-span "Sigma" pi (term-end-pos t) 
      (ll-data-term :: checking-data check :: explain "Swap the sides of the equation synthesized for the body of this term" :: tvs)
 
-Delta-span : ctxt → posinfo → maybe type → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
-Delta-span Γ pi T t check tvs =
+Delta-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
+Delta-span pi t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
 

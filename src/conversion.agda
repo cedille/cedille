@@ -103,7 +103,7 @@ conv-type' Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-hea
 
 
 hnf {TERM} Γ u (AppE t T) = hnf Γ u t
-hnf {TERM} Γ u (Beta _ (just t)) = hnf Γ u t
+hnf {TERM} Γ u (Beta _ t) = hnf Γ u t
 hnf {TERM} Γ u (Delta T t) = hnf Γ u t
 hnf {TERM} Γ u (Hole pi) = Hole pi
 hnf {TERM} Γ u (IotaPair t₁ t₂ x Tₓ) = hnf Γ u t₁
@@ -113,7 +113,6 @@ hnf {TERM} Γ u (LetTp x k T t) = hnf Γ u t
 hnf {TERM} Γ u (Phi tₑ t₁ t₂) = hnf Γ u t₂
 hnf {TERM} Γ u (Rho tₑ x Tₓ t) = hnf Γ u t
 hnf {TERM} Γ u (Sigma t) = hnf Γ u t
-hnf {TERM} Γ u (Beta _ nothing) = let x = fresh-var Γ "x" in Lam ff x nothing (Var x)
 hnf {TERM} Γ u (App t t') with hnf Γ u t
 ...| Lam ff x nothing t'' = hnf Γ u ([ Γ - t' / x ] t'')
 ...| t'' = App t'' (hnf Γ (unfold-dampen u) t')
@@ -127,7 +126,7 @@ hnf {TERM} Γ u (Var x) with
 ...| just t = hnf Γ (unfold-dampen u) t
 hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
   let t = hnf Γ u tₒ
-      μ = either-else' μₒ (λ _ → inj₁ nothing) inj₂
+      μ = either-else' μₒ (inj₁ ∘ erase) inj₂
       Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
       cs = erase-cases cs'
       t-else = λ t → Mu μ t nothing t~ $ flip map cs λ where

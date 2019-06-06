@@ -43,8 +43,6 @@ data Arg = TermArg MaybeErased Term | TypeArg Type deriving Show
 
 data CaseArgSym = CaseArgTm {- x -} | CaseArgEr {- -x -} | CaseArgTp {- ·x -} deriving Show
 
-data CaseArg = CaseArg CaseArgSym Var deriving Show
-
 data Lterm = Lterm MaybeErased Term deriving Show
 
 data Theta = Abstract | AbstractEq | AbstractVars [Var] deriving Show

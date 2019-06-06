@@ -29,7 +29,7 @@ free-vars? = maybe-else empty-stringset free-vars
 
 free-vars {TERM} (App t t') = free-vars t ++ₛ free-vars t'
 free-vars {TERM} (AppE t tT) = free-vars t ++ₛ free-vars -tT' tT
-free-vars {TERM} (Beta t t') = free-vars? t ++ₛ free-vars? t'
+free-vars {TERM} (Beta t t') = free-vars t ++ₛ free-vars t'
 free-vars {TERM} (Delta T t) = free-vars T ++ₛ free-vars t
 free-vars {TERM} (Hole pi) = empty-stringset
 free-vars {TERM} (IotaPair t t' x T) = free-vars t ++ₛ free-vars t' ++ₛ stringset-remove (free-vars T) x
@@ -72,7 +72,7 @@ erase-tT = erase -tT_
 
 erase {TERM} (App t t') = App (erase t) (erase t')
 erase {TERM} (AppE t T) = erase t
-erase {TERM} (Beta t t') = maybe-else id-term erase t'
+erase {TERM} (Beta t t') = erase t'
 erase {TERM} (Delta T t) = id-term
 erase {TERM} (Hole pi) = Hole pi
 erase {TERM} (IotaPair t t' x T) = erase t
@@ -87,7 +87,7 @@ erase {TERM} (LetTp x k T t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
-erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ maybe-map erase) inj₂) (erase t) nothing (λ μ2 t2 T2 → t~ μ2 t2 nothing) (erase-cases cs)
+erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ erase) inj₂) (erase t) nothing (λ μ2 t2 T2 → t~ μ2 t2 nothing) (erase-cases cs)
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)
@@ -110,6 +110,12 @@ erase-case (Case x cas t) = Case x (erase-case-args cas) (erase t)
 erase-args (Arg t :: as) = erase t :: erase-args as
 erase-args (_ :: as) = erase-args as
 erase-args [] = []
+
+erase-arg-keep : arg → arg
+erase-args-keep : args → args
+erase-args-keep = map erase-arg-keep
+erase-arg-keep (Arg t) = Arg (erase t)
+erase-arg-keep (ArgE tT) = ArgE (erase -tT tT)
 
 erase-params (Param ff x (Tkt T) :: ps) = x :: erase-params ps
 erase-params (_ :: ps) = erase-params ps

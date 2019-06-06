@@ -352,10 +352,10 @@ term-to-stringh (App t t') = apps-to-string (App t t')
 
 term-to-stringh (AppE t tT) = apps-to-string (AppE t tT)
 
-term-to-stringh (Beta ot ot') = strBreak 3
+term-to-stringh (Beta t t') = strBreak 3
   0 [ strAdd "β" ]
-  2 ( optTerm-to-string (maybe-map erase ot)  '<' '>' )
-  2 ( optTerm-to-string (maybe-map erase ot') '{' '}' )
+  2 [ strAdd "<" ≫str to-stringh (erase t ) ≫str strAdd ">" ]
+  2 [ strAdd "{" ≫str to-stringh (erase t') ≫str strAdd "}" ]
 
 term-to-stringh (Delta T t) = strBreak 3
   0 [ strAdd "δ" ]
@@ -411,7 +411,7 @@ term-to-stringh (Mu (inj₂ x) t ot t~ cs) =
 
 term-to-stringh (Mu (inj₁ ot) t oT t~ cs) =
   strAdd "μ' " ≫str strBreak 3
-    2 ( optTerm-to-string ot '<' '>' )
+    2 [ strAdd "<" ≫str to-stringh ot ≫str strAdd ">" ]
     2 [ to-stringl t ]
     3 ( optType-to-string (just '@') oT ) ≫str
   strAdd " " ≫str strBracket '{' (cases-to-string cs) '}'
