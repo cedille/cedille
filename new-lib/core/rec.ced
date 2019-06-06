@@ -3,25 +3,25 @@ module core/rec (F: ★ ➔ ★).
 import top.
 import cast.
 
-Rec : (★ ➔ ★) ➔ ★
-= λ F: ★ ➔ ★. ∀ X: ★. Cast ·(F ·X) ·X ➾ X.
+Rec : ★
+= ∀ X: ★. Cast ·(F ·X) ·X ➾ X.
 
-recCast : ∀ F: ★ ➔ ★. ∀ X: ★. Cast ·(F ·X) ·X ➾ Cast ·(Rec ·F) ·X
-= Λ F. Λ X. Λ c. [λ d. d -c , β].
+recCast : ∀ X: ★. Cast ·(F ·X) ·X ➾ Cast ·Rec ·X
+= Λ X. Λ c. [λ d. d -c , β].
 
-recIn : CastMap ·F ➾ Cast ·(F ·(Rec ·F)) ·(Rec ·F)
+recIn : CastMap ·F ➾ Cast ·(F ·Rec) ·Rec
 = Λ im.
-  [f : F ·(Rec ·F) ➔ Rec ·F
+  [f : F ·Rec ➔ Rec
     = λ fd. Λ X. Λ c.
       elimCast -c (castMap -im -(recCast -c) fd)]
 - [ f , β].
 
 recFold = Λ im: CastMap ·F. elimCast -(recIn -im).
 
-recOut : CastMap ·F ➾ Cast ·(Rec ·F) ·(F ·(Rec ·F))
+recOut : CastMap ·F ➾ Cast ·Rec ·(F ·Rec)
 = Λ im.
-  [f : Rec ·F ➔ F ·(Rec ·F)
-    = λ d. d ·(F ·(Rec ·F)) -(im (recIn -im))]
+  [f : Rec ➔ F ·Rec
+    = λ d. d ·(F ·Rec) -(im (recIn -im))]
 - [ f , β].
 
 recUnfold = Λ im: CastMap ·F. elimCast -(recOut -im).
