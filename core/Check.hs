@@ -81,12 +81,12 @@ synthTerm c (TmSigma tm) =
     (TpEq l r) -> Just (TpEq r l)
     _ -> Nothing
 synthTerm c (TmDelta tp tm) =
-  validType c tp >>
+  checkType c tp >>
   synthTerm c tm >>= \ tp' -> case hnfType c tp' of
     (TpEq l r) ->
       ifM (convTerm c l (PrLam $ PrLam $ PrVar 1)) >>
       ifM (convTerm c r (PrLam $ PrLam $ PrVar 0)) >>
-      Just tp
+      Just (eraseType tp)
     _ -> Nothing
 synthTerm c (TmRho pf gd tm) =
   validType (ctxtDecl c tmDecl) gd >>

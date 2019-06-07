@@ -139,7 +139,7 @@ module elab-x (μ : trie encoded-datatype) where
       --elab-check-term Γ t T' ≫=maybe
       --(just ∘ mrho (mbeta id id) ignored-var T')
   elab-check-term Γ (Delta pi mT t) T =
-    elab-pure-type Γ (erase-type T) ≫=maybe λ T →
+    --elab-pure-type Γ (erase-type T) ≫=maybe λ T →
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
     elab-hnf-type Γ T' ff ≫=maybe λ where
       (TpEq _ t1 t2 _) →
@@ -318,7 +318,7 @@ module elab-x (μ : trie encoded-datatype) where
       --just (mrho (mbeta id id) ignored-var T'' t , T')
   elab-synth-term Γ (Delta pi mT t) = (case mT of λ where
     NoType → just compileFailType
-    (SomeType T) → elab-pure-type Γ (erase-type T)) ≫=maybe λ T →
+    (SomeType T) → maybe-map fst (elab-type Γ T) {-elab-pure-type Γ (erase-type T)-}) ≫=maybe λ T →
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
     elab-hnf-type Γ T' ff ≫=maybe λ where
       (TpEq _ t1 t2 _) →
