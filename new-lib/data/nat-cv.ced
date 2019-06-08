@@ -40,12 +40,19 @@ divCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
 
 _ : {divCV ≃ div} = β.
 
-remCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
-= Λ N. Λ is. λ m. λ n.
-  [m' = to/Nat -is m]
-- cvFromLte -is -m (rem m' n) -(lteRem m' n).
+remCVGen : ∀ N1: ★. ∀ N2: ★. Is/Nat ·N1 ➾ Is/Nat ·N2 ➾ N1 ➔ N2 ➔ ι _: N1. N2
+= Λ N1. Λ N2. Λ is1. Λ is2. λ m. λ n.
+  [m' = to/Nat -is1 m] - [n' = to/Nat -is2 n] -
+    [ cvFromLte -is1 -m (rem m' n') -(lteRem1 m' n')
+    , cvFromLte -is2 -n (rem m' n') -(lteRem2 m' n') ].
 
-_ : {remCV ≃ rem} = β.
+remCV1 : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
+= Λ N. Λ is. λ m. λ n. (remCVGen -is -is/Nat m n).1.
+
+remCV2 : ∀ N: ★. Is/Nat ·N ➾ Nat ➔ N ➔ N
+= Λ N. Λ is. λ m. λ n. (remCVGen -is/Nat -is m n).2.
+
+_ : {remCVGen ≃ rem} = β.
 
 gcd : Nat ➔ Nat ➔ Nat
   = λ m. μ gcdM. m {

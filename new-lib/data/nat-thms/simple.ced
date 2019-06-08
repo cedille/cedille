@@ -6,12 +6,15 @@ import ../../core/bot.
 import ../sum.
 
 -- basic properties of constructors
+-- Π n, 0 ≠ 1 + n
 neqZS : Π n: Nat. Not ·{zero ≃ succ n}
   = λ n. λ eq. δ - eq.
 
+-- Π m n, 1 + m = 1 + n → m = n
 succInj : Π m: Nat. Π n: Nat. {succ m ≃ succ n} ➔ {m ≃ n}
   = λ m. λ n. λ eq. ρ eq @ x. {pred x ≃ pred (succ n)} - β.
 
+-- Π m, 1 + m ≠ m
 succAcyc : Π m: Nat. {succ m ≃ m} ➔ Bot
   = λ m. μ acyc. m {
   | zero ➔ λ eq. neqZS zero (ς eq)
@@ -19,18 +22,21 @@ succAcyc : Π m: Nat. {succ m ≃ m} ➔ Bot
   }.
 
 -- properties of add
+-- Π n, n + 0 = n
 addZRight : Π n: Nat. {add n zero ≃ n}
   = λ n. μ ih. n {
   | zero ➔ β
   | succ n ➔ ρ (ih n) @ x. {succ x ≃ succ n} - β
   }.
 
+-- Π m n, m + (1 + n) = 1 + (m + n)
 addSRight : Π m: Nat. Π n: Nat. {add m (succ n) ≃ succ (add m n)}
   = λ m. λ n. μ ih. m {
   | zero ➔ β
   | succ m ➔ ρ (ih m) @ x. {succ x ≃ succ (add (succ m) n)} - β
   }.
 
+-- Π l m n, l + m = l + n → m = n
 addInj : Π l: Nat. Π m: Nat. Π n: Nat. {add l m ≃ add l n} ➔ {m ≃ n}
   = λ l. λ m. λ n. μ addInj. l {
   | zero ➔ λ eq. ρ eq - β

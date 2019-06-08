@@ -9,8 +9,8 @@ kleene : Π a: Top. Π b: Top. {a ≃ b} ➔ Top ➔ {a ≃ b}
 phi : ∀ A: ★. Π b: Top. ∀ a: A. {a ≃ b} ➾ A
   = Λ A. λ b. Λ a. Λ eq. φ eq - a {b}.
 
-delta : {λ x. λ y. x ≃ λ x. λ y. y} ➔ False
-  = λ eq. δ - eq.
+delta : {λ x. λ y. x ≃ λ x. λ y. y} ➾ False
+  = Λ eq. δ - eq.
 
 rho : ∀ P: Top ➔ ★. ∀ t1: Top. ∀ t2: Top. P t1 ➔ {t2 ≃ t1} ➾ P t2
   = Λ P. Λ t1. Λ t2. λ p. Λ eq. ρ eq - p.
@@ -28,5 +28,5 @@ cong : Π f: Top. Π x: Top. Π y: Top. {x ≃ y} ➔ {f x ≃ f y}
 -- ==================================================
 
 -- proof irrelevance (phrased for a theory with implicit products)
- proofIrrel : ∀ x: Top. ∀ y: Top. {x ≃ y} ➾ {x ≃ y}
+eqIrrel : ∀ x: Top. ∀ y: Top. {x ≃ y} ➾ {x ≃ y}
  = Λ x. Λ y. Λ eq. ρ eq - β.

@@ -18,8 +18,8 @@ isCons : ∀ A: ★. List ·A ➔ Bool
 
 isNil = Λ A: ★. λ xs: List ·A. not (isCons xs).
 
-headSafe : ∀ A: ★. Π xs: List ·A. {isCons xs ≃ tt} ➾ A
-= Λ A. λ xs. μ' xs {nil ➔ Λ eq. δ - eq | cons x xs ➔ Λ _. x}.
+headSafe : ∀ A: ★. Π xs: List ·A. {isCons xs ≃ tt} ➔ A
+= Λ A. λ xs. μ' xs {nil ➔ λ eq. δ - eq | cons x xs ➔ λ eq. x}.
 
 tailCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ L ➔ L
 = Λ A. Λ L. Λ is. λ xs. μ'<is> xs {nil ➔ xs | cons x xs ➔ xs}.
@@ -56,9 +56,9 @@ foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
   | cons x xs ➔ f (foldFE xs) x
   }.
 
-filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A =
-Λ A . λ p . λ l .
-  μ filter . l {
+filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A
+  = Λ A . λ p . λ l .
+    μ filter. l {
     | nil ➔ nil ·A
     | cons x xs ➔ [ r = filter xs ] - ite (p x) (cons x r) r }.
 

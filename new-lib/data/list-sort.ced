@@ -82,5 +82,5 @@ mergeSort : List ·A ➔ List ·A
                   - β{snd sp}]]
     - [ys' = ms lenYs ys] - [zs' = ms lenZs zs]
     - lmerge ys' zs'
-    } -(intrView -n β{n} β)
+    } -(intrView n β{n} β)
   } [xs , β{xs}].

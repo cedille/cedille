@@ -57,6 +57,9 @@ ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
     }
   }.
 
+lt2lte : Π m: Nat. Π n: Nat. Lt m n ➔ Lte m n
+= λ m. ltePLeft (succ m).
+
 -- Π m n, m ≰ n → m > n
 notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
 = λ m. μ ih. m {
@@ -208,7 +211,7 @@ lteDiv : Π m: Nat. Π n: Nat. Lte (div m n) m
     }
   }.
 
-lteRem : Π m: Nat. Π n: Nat. Lte (rem m n) m
+lteRem1 : Π m: Nat. Π n: Nat. Lte (rem m n) m
 = λ m. μ ih. m {
   | zero ➔ λ _. β
   | succ m ➔ λ n.
@@ -224,4 +227,16 @@ lteRem : Π m: Nat. Π n: Nat. Lte (rem m n) m
     - lteTrans (rem dif' n) dif' (succ m') ih'
         (lteSRight dif' m' (lteMinus m' (pred n)))
     }
+  }.
+
+lteRem2 : Π m: Nat. Π n: Nat. Lte (rem m n) n
+= λ m. μ ih. m {
+  | zero ➔ λ n. β
+  | succ m ➔ λ n.
+    [m' = to/Nat -isType/ih m] -
+    [lhs : Top ➔ Top = λ x. β{ite x (succ m) (rem (minus m (pred n)) n)}] -
+    μ' (lt (succ m') n) @λ x: Bool. {lt (succ m) n ≃ x} ➔ {lte (lhs x) n ≃ tt} {
+    | tt ➔ lt2lte (succ m') n
+    | ff ➔ λ _. [dif = minusCV -isType/ih m (pred n)] - ih dif n
+    } β
   }.
