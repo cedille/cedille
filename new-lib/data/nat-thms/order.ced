@@ -229,14 +229,14 @@ lteRem1 : Π m: Nat. Π n: Nat. Lte (rem m n) m
     }
   }.
 
-lteRem2 : Π m: Nat. Π n: Nat. Lte (rem m n) n
+lteRem2 : Π m: Nat. Π n: Nat. Lte (rem m (succ n)) n
 = λ m. μ ih. m {
   | zero ➔ λ n. β
   | succ m ➔ λ n.
-    [m' = to/Nat -isType/ih m] -
-    [lhs : Top ➔ Top = λ x. β{ite x (succ m) (rem (minus m (pred n)) n)}] -
-    μ' (lt (succ m') n) @λ x: Bool. {lt (succ m) n ≃ x} ➔ {lte (lhs x) n ≃ tt} {
-    | tt ➔ lt2lte (succ m') n
-    | ff ➔ λ _. [dif = minusCV -isType/ih m (pred n)] - ih dif n
+    [m' = to/Nat -isType/ih m]
+  - [lhs : Top ➔ Top = λ x. β{ite x (succ m) (rem (minus m n) (succ n))}]
+  - μ' (lt (succ m') (succ n)) @λ x: Bool. {lt (succ m) (succ n) ≃ x} ➔ {lte (lhs x) n ≃ tt} {
+    | tt ➔ λ eq. eq
+    | ff ➔ λ eq. ih (minusCV -isType/ih m n) n
     } β
   }.

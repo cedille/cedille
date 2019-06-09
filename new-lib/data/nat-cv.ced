@@ -4,8 +4,6 @@ import nat.
 import nat-thms.
 import bool.
 
-import ../core/view.
-
 cvFromLte : ∀ N: ★. ∀ is: Is/Nat ·N. ∀ n: N. Π m: Nat.
   [n' = to/Nat -is n] - Lte m n' ➾ N
 = Λ N. Λ is. Λ n. λ m. Λ pf.
@@ -40,28 +38,25 @@ divCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
 
 _ : {divCV ≃ div} = β.
 
-remCVGen : ∀ N1: ★. ∀ N2: ★. Is/Nat ·N1 ➾ Is/Nat ·N2 ➾ N1 ➔ N2 ➔ ι _: N1. N2
-= Λ N1. Λ N2. Λ is1. Λ is2. λ m. λ n.
-  [m' = to/Nat -is1 m] - [n' = to/Nat -is2 n] -
-    [ cvFromLte -is1 -m (rem m' n') -(lteRem1 m' n')
-    , cvFromLte -is2 -n (rem m' n') -(lteRem2 m' n') ].
-
 remCV1 : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
-= Λ N. Λ is. λ m. λ n. (remCVGen -is -is/Nat m n).1.
+= Λ N. Λ is. λ m. λ n.
+  [m' = to/Nat -is m]
+- cvFromLte -is -m (rem m' n) -(lteRem1 m' n).
 
-remCV2 : ∀ N: ★. Is/Nat ·N ➾ Nat ➔ N ➔ N
-= Λ N. Λ is. λ m. λ n. (remCVGen -is/Nat -is m n).2.
+_ : {remCV1 ≃ rem} = β.
 
-_ : {remCVGen ≃ rem} = β.
+remCV2 : ∀ N: ★. Is/Nat ·N ➾ Nat ➔ ∀ n: N. (ι x: Nat. {x ≃ succ n}) ➔ N
+= Λ N. Λ is. λ m. Λ n. λ x.
+  [n' = to/Nat -is n]
+- cvFromLte -is -n (rem m x.1) -(ρ x.2 - lteRem2 m n').
+
+_ : {remCV2 ≃ rem} = β.
 
 gcd : Nat ➔ Nat ➔ Nat
-  = λ m. μ gcdM. m {
+= λ m. μ gcd. m {
   | zero ➔ λ n. n
-  | succ m ➔ [m' = to/Nat -isType/gcdM m] - λ n. μ gcdN. n {
-    | zero ➔ succ m'
-    | succ n ➔ [n' = to/Nat -isType/gcdN n]
-    - ite (gte (succ m') (succ n'))
-        (gcdM (minusCV -isType/gcdM m n') (succ n'))
-        (gcdN (minusCV -isType/gcdN n m'))
-    }
+  | succ m ➔
+    [m' = to/Nat -isType/gcd m]
+  - [sm : ι x: Nat. {x ≃ succ m} = [ succ m' , β{succ m'} ]]
+  - λ n. gcd (remCV2 -isType/gcd n -m sm) (succ m')
   }.
