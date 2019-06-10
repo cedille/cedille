@@ -13,5 +13,5 @@ elimTpEq1 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ A ➔ B
 elimTpEq2 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ B ➔ A
   = Λ A. Λ B. Λ teq. λ b. elimCast -teq.2 b.
 
-trivTpEq : ∀ A: ★. TpEq ·A ·A
-= Λ A. intrTpEq (trivCast ·A) (trivCast ·A).
+tpEqRefl : ∀ A: ★. TpEq ·A ·A
+= Λ A. intrTpEq (castRefl ·A) (castRefl ·A).
