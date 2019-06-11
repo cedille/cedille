@@ -96,3 +96,6 @@ lCastMap : CastMap ·List
 
 lcastMap : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ List ·A ➔ List ·B
 = Λ A. Λ B. Λ c. castMap -lCastMap -c.
+
+singleton : ∀ A : ★ . A ➔ List · A
+= Λ A . λ a . cons a (nil · A).
