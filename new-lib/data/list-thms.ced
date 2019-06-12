@@ -18,4 +18,4 @@ ListInj : ∀ A: ★. ∀ B: ★. Cast ·(List ·A) ·(List ·B) ➔ Cast ·A ·
 = Λ A. Λ B. λ idL.
   [a2l = λ a: A. cons a (nil ·A)]
 - [f : A ➔ B = λ a. headSafe (elimCast -idL (a2l a)) β]
-- intrCast f (λ _. β).
+- intrCast -f -(λ _. β).

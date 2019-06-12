@@ -92,7 +92,7 @@ lCastMap : CastMap ·List
       | nil ➔ β
       | cons x xs ➔ ρ (ih xs) @ y. {cons x y ≃ cons x xs} - β
       }]
-- intrCast f pf.
+- intrCast -f -pf.
 
 lcastMap : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ List ·A ➔ List ·B
 = Λ A. Λ B. Λ c. castMap -lCastMap -c.

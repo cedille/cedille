@@ -19,7 +19,7 @@ vec2ListId : ∀ A: ★. ∀ n: Nat. Cast ·(Vec ·A n) ·(List ·A)
       | vcons -n x xs ➔
         ρ (ih -n xs) @ z. {cons x z ≃ vcons x xs} - β
       }]
-- Λ n. intrCast (f -n) (pf -n).
+- Λ n. intrCast -(f -n) -(pf -n).
 
 vec2List! : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ List ·A
 = Λ A. Λ n. elimCast -(vec2ListId ·A -n).
