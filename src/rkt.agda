@@ -46,19 +46,17 @@ rkt-iden = 𝕃char-to-string
 
 -- Racket string from erase Cedile term
 rkt-from-term : term → rope
-rkt-from-term (Lam _ KeptLam _ v _ tm)
+rkt-from-term (Lam ff v _ tm)
   = [[ "(lambda (" ]] ⊹⊹ [[ rkt-iden v ]] ⊹⊹ [[ ")" ]] ⊹⊹ rkt-from-term tm ⊹⊹ [[ ")" ]]
 -- TODO untested
-rkt-from-term (Let _ _ (DefTerm _ v _ tm-def) tm-body)
+rkt-from-term (LetTm ff v _ tm-def tm-body)
   = [[ "(let ([" ]] ⊹⊹ [[ rkt-iden v ]] ⊹⊹ [[ " " ]] ⊹⊹ rkt-from-term tm-def ⊹⊹ [[ "]) " ]] ⊹⊹ rkt-from-term tm-body ⊹⊹ [[ ")\n" ]]
-rkt-from-term (Var _ v)
+rkt-from-term (Var v)
   = [[ rkt-iden v ]]
-rkt-from-term (App tm₁ x tm₂)
+rkt-from-term (App tm₁ tm₂)
   = [[ "(" ]] ⊹⊹ rkt-from-term tm₁ ⊹⊹ [[ " " ]] ⊹⊹ rkt-from-term tm₂ ⊹⊹ [[ ")" ]]
 rkt-from-term (Hole x)
   = [[ "(error 'cedille-hole)" ]]
-rkt-from-term (Beta _ _ NoTerm)
-  = [[ "(lambda (x) x)\n" ]]
 rkt-from-term _
   = rkt-dbg "unsupported/unknown term" [[]]
 
@@ -72,7 +70,7 @@ rkt-require-file fp = [[ "(require (file \"" ]] ⊹⊹ [[ fp ]] ⊹⊹ [[ "\"))"
 
 -- Racket term from Cedille term sym-info
 rkt-from-sym-info : string → sym-info → rope
-rkt-from-sym-info n (term-def (just ((Decl _ _ _ v _ _) :: _)) _ (just tm) ty , _)
+rkt-from-sym-info n (term-def (just (Param _ v _ :: _)) _ (just tm) ty , _)
   -- TODO not tested
   = rkt-dbg "term-def: paramsCons:" (rkt-define n tm)
 rkt-from-sym-info n (term-def _ _ nothing ty , b)
@@ -105,7 +103,7 @@ rkt-from-sym-info n (ctr-def _ _ _ _ _ , _)
 --  = rkt-dbg "mu-def:" [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
-to-rkt-file ced-path (mk-ctxt _ (syms , _) i sym-occurences Δ) ie rkt-filename =
+to-rkt-file ced-path (mk-ctxt _ (syms , _) i Δ) ie rkt-filename =
   rkt-header ⊹⊹ rkt-body
   where
   cdle-pair = trie-lookup𝕃2 syms ced-path

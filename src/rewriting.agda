@@ -27,20 +27,27 @@ rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : m
               ℕ {- Number of rewrites actually performed -} ×
               ℕ {- Total number of matches, including skipped ones -}
 
+instance
+  rewrite-functor : functor rewrite-t
+  rewrite-applicative : applicative rewrite-t
+  rewrite-monad : monad rewrite-t
+  
+  fmap ⦃ rewrite-functor ⦄ g r Γ op on eq t₁ t₂ n with r Γ op on eq t₁ t₂ n
+  ...| a , n' , sn = g a , n' , sn
+  
+  pure ⦃ rewrite-applicative ⦄ a Γ p on eq t₁ t₂ n = a , 0 , n
+  _<*>_ ⦃ rewrite-applicative ⦄ f a Γ op on eq t₁ t₂ n with f Γ op on eq t₁ t₂ n
+  ...| f' , n' , sn with a Γ op on eq t₁ t₂ sn
+  ...| b , n'' , sn' = f' b , n' + n'' , sn'
+
+  returnM ⦃ rewrite-monad ⦄ a = pure a
+  _≫=_ ⦃ rewrite-monad ⦄ fa fab Γ op on eq t₁ t₂ n with fa Γ op on eq t₁ t₂ n
+  ...| a' , n' , sn with fab a' Γ op on eq t₁ t₂ sn
+  ...| b , n'' , sn' = b , n' + n'' , sn'
+
 infixl 4 _≫rewrite_
+_≫rewrite_ = _<*>_
 
-_≫rewrite_ : ∀ {A B : Set} → rewrite-t (A → B) → rewrite-t A → rewrite-t B
-(f ≫rewrite a) Γ op on eq t₁ t₂ n with f Γ op on eq t₁ t₂ n
-...| f' , n' , sn with a Γ op on eq t₁ t₂ sn
-...| b , n'' , sn' = f' b , n' + n'' , sn'
-
-rewriteC : ∀ {A : Set} → rewrite-t (rewrite-t A) → rewrite-t A
-rewriteC r Γ op on eq t₁ t₂ n with r Γ op on eq t₁ t₂ n
-...| r' , n' , sn with r' Γ op on eq t₁ t₂ sn
-...| a , n'' , sn' = a , n' + n'' , sn'
-
-rewriteR : ∀ {A : Set} → A → rewrite-t A
-rewriteR a Γ op on eq t₁ t₂ n = a , 0 , n
 
 {-# TERMINATING #-}
 rewrite-term        : term        → rewrite-t term
@@ -81,41 +88,41 @@ rewrite-terma t Γ op on eq t₁ t₂ sn =
     ff → rewrite-termh t Γ op on eq t₁ t₂ sn
 
 rewrite-termh (App t t') =
-  rewriteR App ≫rewrite rewrite-terma t ≫rewrite rewrite-terma t'
+  pure App <*> rewrite-terma t <*> rewrite-terma t'
 rewrite-termh (Lam NotErased y nothing t) =
-  rewrite-rename-var y λ y' → rewriteR (Lam NotErased y' nothing) ≫rewrite
+  rewrite-rename-var y λ y' → pure (Lam NotErased y' nothing) <*>
   rewrite-abs y y' rewrite-terma t
-rewrite-termh (Var x) = rewriteR (Var x)
+rewrite-termh (Var x) = pure (Var x)
 rewrite-termh (LetTm ff x nothing t t') Γ = rewrite-terma (subst Γ t x t') Γ
---  rewrite-rename-var x λ x' → rewriteR (Let pi₁) ≫rewrite
---  (rewriteR (DefTerm pi₂ x' NoType) ≫rewrite rewrite-terma t) ≫rewrite
+--  rewrite-rename-var x λ x' → pure (Let pi₁) <*>
+--  (pure (DefTerm pi₂ x' NoType) <*> rewrite-terma t) <*>
 --  rewrite-abs x x' rewrite-terma t'
 -- ^^^ Need to DEFINE "x" as "hnf Γ unfold-head t tt", not just declare it!
 --     We may instead simply rewrite t' after substituting t for x
 rewrite-termh (Mu (inj₂ x) t nothing t~ ms) =
   rewrite-rename-var x λ x' →
-  rewriteR (Mu (inj₂ x')) ≫rewrite
-  rewrite-terma t ≫rewrite
-  rewriteR nothing ≫rewrite
-  rewriteR t~ ≫rewrite
-  foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case (just $ x , x') c ≫rewrite r)
-    (rewriteR []) ms
+  pure (Mu (inj₂ x')) <*>
+  rewrite-terma t <*>
+  pure nothing <*>
+  pure t~ <*>
+  foldr (λ c r → pure _::_ <*> rewrite-case (just $ x , x') c <*> r)
+    (pure []) ms
 rewrite-termh (Mu (inj₁ tᵢ) t nothing t~ ms) =
-  rewriteR (Mu (inj₁ tᵢ)) ≫rewrite
-  rewrite-terma t ≫rewrite
-  rewriteR nothing ≫rewrite
-  rewriteR t~ ≫rewrite
-  foldr (λ c r → rewriteR _::_ ≫rewrite rewrite-case nothing c ≫rewrite r)
-    (rewriteR []) ms
-rewrite-termh = rewriteR
+  pure (Mu (inj₁ tᵢ)) <*>
+  rewrite-terma t <*>
+  pure nothing <*>
+  pure t~ <*>
+  foldr (λ c r → pure _::_ <*> rewrite-case nothing c <*> r)
+    (pure []) ms
+rewrite-termh = pure
 
 rewrite-case xᵣ? (Case x cas t) =
   let f = maybe-else' xᵣ? id (uncurry rewrite-abs) rewrite-terma in
-  rewriteR (uncurry $ Case x) ≫rewrite
+  pure (uncurry $ Case x) <*>
   foldr {B = rewrite-t case-args → (term → rewrite-t term) → rewrite-t (case-args × term)}
     (λ {(CaseArg CaseArgTm x) r cas fₜ →
-      r (rewrite-rename-var x λ x' → rewriteR _::_ ≫rewrite rewriteR (CaseArg CaseArgTm x') ≫rewrite cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
-    (λ cas fₜ → rewriteR _,_ ≫rewrite cas ≫rewrite fₜ t) cas (rewriteR []) f
+      r (rewrite-rename-var x λ x' → pure _::_ <*> pure (CaseArg CaseArgTm x') <*> cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
+    (λ cas fₜ → pure _,_ <*> cas <*> fₜ t) cas (pure []) f
 
 rewrite-type T Γ tt on eq t₁ t₂ sn
   with rewrite-typeh (hnf Γ unfold-head-elab T) Γ tt on eq t₁ t₂ sn
@@ -125,23 +132,23 @@ rewrite-type = rewrite-typeh
 
 rewrite-typeh (TpAbs me x atk T) =
   rewrite-rename-var x λ x' → 
-  rewriteR (TpAbs me x') ≫rewrite rewrite-tpkd atk ≫rewrite
+  pure (TpAbs me x') <*> rewrite-tpkd atk <*>
   rewrite-abs x x' rewrite-type T
 rewrite-typeh (TpIota x T T') =
   rewrite-rename-var x λ x' →
-  rewriteR (TpIota x') ≫rewrite rewrite-type T ≫rewrite
+  pure (TpIota x') <*> rewrite-type T <*>
   rewrite-abs x x' rewrite-type T'
 rewrite-typeh (TpApp T tT) =
-  rewriteR TpApp ≫rewrite rewrite-typeh T ≫rewrite rewrite-tmtp tT
+  pure TpApp <*> rewrite-typeh T <*> rewrite-tmtp tT
 rewrite-typeh (TpEq t₁ t₂) =
-  rewriteR TpEq ≫rewrite (rewriteR erase ≫rewrite rewrite-term t₁) ≫rewrite
-  (rewriteR erase ≫rewrite rewrite-term t₂)
+  pure TpEq <*> (pure erase <*> rewrite-term t₁) <*>
+  (pure erase <*> rewrite-term t₂)
 rewrite-typeh (TpLam x atk T) =
   rewrite-rename-var x λ x' →
-  rewriteR (TpLam x') ≫rewrite rewrite-tpkd atk ≫rewrite
+  pure (TpLam x') <*> rewrite-tpkd atk <*>
   rewrite-abs x x' rewrite-type T
-rewrite-typeh (TpHole pi) = rewriteR (TpHole pi)
-rewrite-typeh (TpVar x) = rewriteR (TpVar x)
+rewrite-typeh (TpHole pi) = pure (TpHole pi)
+rewrite-typeh (TpVar x) = pure (TpVar x)
 
 -- If we ever implement kind-level rewriting, we will need to go through
 -- all the types of kind pi binding a term or type-to-kind arrow
@@ -150,14 +157,14 @@ rewrite-typeh (TpVar x) = rewriteR (TpVar x)
 -- in the body of the type with itself surrounded by a rewrite back the original
 -- expected type (unless we lifted a term, then it gets really tricky because
 -- we may not want to rewrite back?).
-rewrite-kind = rewriteR
-rewrite-liftingType = rewriteR
+rewrite-kind = pure
+rewrite-liftingType = pure
 
-rewrite-tpkd (Tkt T) = rewriteR Tkt ≫rewrite rewrite-type T
-rewrite-tpkd (Tkk k) = rewriteR Tkk ≫rewrite rewrite-kind k
+rewrite-tpkd (Tkt T) = pure Tkt <*> rewrite-type T
+rewrite-tpkd (Tkk k) = pure Tkk <*> rewrite-kind k
 
-rewrite-tmtp (Ttm t) = rewriteR Ttm ≫rewrite rewrite-term t
-rewrite-tmtp (Ttp T) = rewriteR Ttp ≫rewrite rewrite-type T
+rewrite-tmtp (Ttm t) = pure Ttm <*> rewrite-term t
+rewrite-tmtp (Ttp T) = pure Ttp <*> rewrite-type T
 
 post-rewrite-binder-type : ∀ {ed} → ctxt → var → term → (var → tpkd → ctxt → ctxt) → var → ⟦ ed ⟧ → type → ⟦ ed ⟧
 post-rewrite-binder-type Γ x eq tk-decl x' Tₓ Tₓ' with is-free-in x Tₓ'

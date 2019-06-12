@@ -7,19 +7,17 @@ open import cedille-types
 data Either (A : Set)(B : Set) : Set where
   Left : A → Either A B
   Right : B → Either A B
-{-# COMPILE GHC Either = data Either (Left | Right) #-}
+{-# COMPILE GHC Either = data Prelude.Either (Prelude.Left | Prelude.Right) #-}
 
 postulate
-  parseStart  : string → Either (Either string string) start
-  parseTerm : string → Either string term
-  parseType : string → Either string type
-  parseKind : string → Either string kind
-  parseLiftingType : string → Either string liftingType
-  parseDefTermOrType : string → Either string defTermOrType
+  parseStart  : string → Either (Either string string) ex-file
+  parseTerm : string → Either string ex-tm
+  parseType : string → Either string ex-tp
+  parseKind : string → Either string ex-kd
+  parseDefTermOrType : string → Either string ex-def
 
 {-# COMPILE GHC parseStart = CedilleParser.parseTxt #-}
 {-# COMPILE GHC parseTerm = CedilleParser.parseTerm #-}
 {-# COMPILE GHC parseType = CedilleParser.parseType #-}
 {-# COMPILE GHC parseKind = CedilleParser.parseKind #-}
-{-# COMPILE GHC parseLiftingType = CedilleParser.parseLiftingType #-}
 {-# COMPILE GHC parseDefTermOrType = CedilleParser.parseDefTermOrType #-}

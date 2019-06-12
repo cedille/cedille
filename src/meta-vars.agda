@@ -72,7 +72,7 @@ data prototype : Set where
 data decortype : Set where
   decor-type  : type → decortype
   decor-arrow : erased? → type → decortype → decortype
-  decor-decor : erased? → posinfo → var → tpkd → meta-var-sort → decortype → decortype
+  decor-decor : erased? → var → tpkd → meta-var-sort → decortype → decortype
   decor-stuck : type → prototype → decortype
   decor-error : type → prototype → decortype
 
@@ -186,6 +186,15 @@ meta-var-to-term-unsafe X
 ... | just tm = tm
 ... | nothing = Var (meta-var-name X)
 
+-- if all meta-vars are solved, return their solutions as args
+meta-vars-to-args : meta-vars → maybe args
+meta-vars-to-args (meta-vars-mk or vs) =
+  flip 𝕃maybe-map or λ x → trie-lookup vs x ≫=maybe λ where
+    (meta-var-mk name (meta-var-tm tp tm?) loc) →
+      tm? ≫=maybe (just ∘' ArgE ∘' Ttm ∘' meta-var-sol.sol)
+    (meta-var-mk name (meta-var-tp kd tp?) loc) →
+      tp? ≫=maybe (just ∘' ArgE ∘' Ttp ∘' meta-var-sol.sol)
+
 prototype-to-maybe : prototype → maybe type
 prototype-to-maybe (proto-maybe mtp) = mtp
 prototype-to-maybe (proto-arrow _ _) = nothing
@@ -197,7 +206,7 @@ decortype-to-type : decortype → type
 decortype-to-type (decor-type tp) = tp
 decortype-to-type (decor-arrow at tp dt) =
   TpArrow tp at (decortype-to-type dt)
-decortype-to-type (decor-decor b pi x tk sol dt) =
+decortype-to-type (decor-decor b x tk sol dt) =
   TpAbs b x tk (decortype-to-type dt)
 decortype-to-type (decor-stuck tp pt) = tp
 decortype-to-type (decor-error tp pt) = tp
@@ -210,8 +219,8 @@ hnf-decortype Γ uf (decor-type tp) ish =
   decor-type (hnf Γ (record uf {unfold-defs = ish}) tp)
 hnf-decortype Γ uf (decor-arrow e? tp dt) ish =
   decor-arrow e? (hnf Γ (record uf {unfold-defs = ff}) tp) (hnf-decortype Γ uf dt ff)
-hnf-decortype Γ uf (decor-decor e? pi x tk sol dt) ish =
-  decor-decor e? pi x tk sol (hnf-decortype Γ uf dt ff)
+hnf-decortype Γ uf (decor-decor e? x tk sol dt) ish =
+  decor-decor e? x tk sol (hnf-decortype Γ uf dt ff)
 hnf-decortype Γ uf dt@(decor-stuck _ _) ish = dt
 hnf-decortype Γ uf (decor-error tp pt) ish =
   decor-error (hnf Γ (record uf {unfold-defs = ff}) tp) pt
@@ -304,7 +313,7 @@ decortype-to-string (decor-arrow e? tp dt) =
   to-stringe tp
   ≫str strAdd (arrowtype-to-string e?)
   ≫str decortype-to-string dt
-decortype-to-string (decor-decor e? pi x tk sol dt) =
+decortype-to-string (decor-decor e? x tk sol dt) =
   strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
   ≫str strAdd "<" ≫str tpkd-to-stringe tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
   where
@@ -605,6 +614,12 @@ meta-vars-update-kinds Γ Xs Xsₖ =
 hnf-elab-if : {ed : exprd} → 𝔹 → ctxt → ⟦ ed ⟧ → 𝔹 → ⟦ ed ⟧
 hnf-elab-if b Γ t b' = if b then hnf Γ (record unfold-head-elab {unfold-defs = b'}) t else t
 
+meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → erased? → var → kind → type → meta-var × meta-vars
+meta-vars-add-from-tpabs Γ sl Xs e? x k tp =
+  let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
+      Xs' = meta-vars-add Xs Y
+      tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
+  in Y , Xs'
 
 {-
 -- Legacy for elaboration.agda
@@ -612,12 +627,6 @@ hnf-elab-if b Γ t b' = if b then hnf Γ (record unfold-head-elab {unfold-defs =
 
 -- TODO: remove dependency and delete code
 
-meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → is-tpabs → meta-var × meta-vars
-meta-vars-add-from-tpabs Γ sl Xs (mk-tpabs e? x k tp) =
-  let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
-      Xs' = meta-vars-add Xs Y
-      tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
-  in Y , Xs'
 
 {-# TERMINATING #-} -- subst of a meta-var does not increase distance to arrow
 meta-vars-peel : ctxt → span-location → meta-vars → type → (𝕃 meta-var) × type

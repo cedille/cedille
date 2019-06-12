@@ -88,18 +88,6 @@ maybe-inst-type = maybe-else (λ as T → T) ∘ inst-type
 maybe-inst-kind = maybe-else (λ as T → T) ∘ inst-kind
 maybe-inst-ctrs = maybe-else (λ as c → c) ∘ inst-ctrs
 
-ctxt-term-decl-no-qualif : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl-no-qualif p v t Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
-    syms (trie-insert i v' ((term-decl t) , fn , p)) Δ
-  where v' = p % v
-
-ctxt-type-decl-no-qualif : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl-no-qualif p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
-    syms (trie-insert i v' ((type-decl k) , fn , p)) Δ
-  where v' = p % v
-
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
   let v' =  p % v in
@@ -169,18 +157,24 @@ env-lookup : ctxt → var → maybe sym-info
 env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _) v =
   trie-lookup i v
 
-ctxt-lookup-type-var : ctxt → var → maybe (var × args × kind)
-ctxt-lookup-type-var Γ v with qual-lookup Γ v
-... | just (qv , as , type-decl k , _) = just $ qv , as , k
-... | just (qv , as , type-def mps _ T k , _) = just $ qv , as , maybe-inst-kind Γ mps as k
+ctxt-lookup-tpkd-var : ctxt → var → maybe (var × args × tpkd)
+ctxt-lookup-tpkd-var Γ v with qual-lookup Γ v
+... | just (qv , as , term-decl T , _) = just $ qv , as , Tkt T
+... | just (qv , as , type-decl k , _) = just $ qv , as , Tkk k
+... | just (qv , as , term-def mps _ t T , _) = just $ qv , as , Tkt (maybe-inst-type Γ mps as T)
+... | just (qv , as , ctr-def ps T _ _ _ , _) = just $ qv , as , Tkt (inst-type Γ ps as T)
+... | just (qv , as , type-def mps _ T k , _) = just $ qv , as , Tkk (maybe-inst-kind Γ mps as k)
 ... | _ = nothing
 
+ctxt-lookup-type-var : ctxt → var → maybe (var × args × kind)
+ctxt-lookup-type-var Γ v = ctxt-lookup-tpkd-var Γ v ≫=maybe λ where
+  (qv , as , Tkt T) → nothing
+  (qv , as , Tkk k) → just (qv , as , k)
+
 ctxt-lookup-term-var : ctxt → var → maybe (var × args × type)
-ctxt-lookup-term-var Γ v with qual-lookup Γ v
-... | just (qv , as , term-decl T , _) = just $ qv , as , T
-... | just (qv , as , term-def mps _ t T , _) = just $ qv , as , maybe-inst-type Γ mps as T
-... | just (qv , as , ctr-def ps T _ _ _ , _) = just $ qv , as , inst-type Γ ps as T
-... | _ = nothing
+ctxt-lookup-term-var Γ v = ctxt-lookup-tpkd-var Γ v ≫=maybe λ where
+  (qv , as , Tkt T) → just (qv , as , T)
+  (qv , as , Tkk k) → nothing
 
 ctxt-lookup-term-var-def : ctxt → var → maybe term
 ctxt-lookup-term-var-def Γ v with env-lookup Γ v
@@ -204,6 +198,7 @@ ctxt-binds-term-var Γ x with qual-lookup Γ x
 ...| just (qx , as , term-def _ _ _ _ , _) = just (qx , as)
 ...| just (qx , as , term-udef _ _ _ , _) = just (qx , as)
 ...| just (qx , as , term-decl _ , _) = just (qx , as)
+...| just (qx , as , ctr-def _ _ _ _ _ , _) = just (qx , as)
 --...| just (qx , as , var-decl , _) = just (qx , as)
 ...| _ = nothing
 
@@ -217,7 +212,7 @@ record ctxt-datatype-info : Set where
   constructor mk-data-info
   field
     name : var
-    mu : maybe var
+    mu : maybe term
     asₚ : args
     asᵢ : 𝕃 tmtp
     ps : params
@@ -239,7 +234,7 @@ data-lookup Γ @ (mk-ctxt mod ss is (Δ , μ' , μ)) x as =
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
       trie-lookup Δ x' ≫=maybe λ where
       (ps , kᵢ , k , cs) →
-        just $ mk-data-info x' (just x/mu) as' as ps
+        just $ mk-data-info x' (just (Var x/mu)) as' as ps
           (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs)
           λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x' T}) cs
 
@@ -294,6 +289,9 @@ ctxt-set-current-file Γ fn mn = record Γ { mod = fn , mn , [] , new-qualif }
 ctxt-set-current-mod : ctxt → mod-info → ctxt
 ctxt-set-current-mod (mk-ctxt _ syms i Δ) m = mk-ctxt m syms i Δ
 
+ctxt-set-current-params : ctxt → params → ctxt
+ctxt-set-current-params (mk-ctxt (fn , mn , ps , q) ss is Δ) ps' = mk-ctxt (fn , mn , ps' , q) ss is Δ
+
 ctxt-add-current-params : ctxt → ctxt
 ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps , ids) i Δ) =
   mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps , ids) i Δ
@@ -317,8 +315,10 @@ ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i Δ) fn =
   hremove i mn (x :: xs) = hremove (trie-remove i (mn # x)) mn xs
 
 ctxt-add-current-id : ctxt → ctxt
-ctxt-add-current-id (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is Δ) =
-  mk-ctxt mod (syms , mn-fn , mn-ps , trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is Δ
+ctxt-add-current-id Γ @ (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is Δ) with trie-contains fn-ids (fst mod)
+...| tt = Γ
+...| ff = mk-ctxt mod (syms , mn-fn , mn-ps ,
+                trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is Δ
 
 ctxt-initiate-file : ctxt → (filename modname : string) → ctxt
 ctxt-initiate-file Γ fn mn = ctxt-add-current-id (ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn)

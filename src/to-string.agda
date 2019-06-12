@@ -297,6 +297,7 @@ bracketL : erased? → string
 bracketR : erased? → string
 braceL : erased? → string
 braceR : erased? → string
+opacity-to-string : opacity → string
 
 to-string-ed : {ed : exprd} → ⟦ ed ⟧ → strM
 to-string-ed{TERM} = term-to-stringh
@@ -435,7 +436,7 @@ type-to-stringh (TpApp T tT) = apps-to-string (TpApp T tT)
 
 type-to-stringh (TpEq t₁ t₂) = strBreak 2
   2 [ strAdd "{ " ≫str to-stringh (erase t₁) ]
-  2 [ strAdd " ≃ " ≫str to-stringh (erase t₂) ≫str strAdd " }" ]
+  2 [ strAdd "≃ " ≫str to-stringh (erase t₂) ≫str strAdd " }" ]
 
 type-to-stringh (TpHole pi) = strM-Γ λ Γ → strAddTags "●" (var-loc-tag Γ (split-var pi) "●")
 
@@ -486,6 +487,9 @@ lam-to-string ff = "λ"
 
 arrowtype-to-string ff = " ➔"
 arrowtype-to-string tt = " ➾"
+
+opacity-to-string opacity-open = ""
+opacity-to-string opacity-closed = "opaque "
 
 vars-to-string [] = strEmpty
 vars-to-string (v :: []) = strVar v

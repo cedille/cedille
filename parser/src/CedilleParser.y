@@ -12,11 +12,11 @@ import System.Environment
 }
 
 %name      cedilleParser File
-%name      types         Type
-%name      term          Term
-%name      kind          Kind
-%name      deftermtype   DefTermOrType
-%name      cmd           Cmd
+%name      typee         Type
+%name      terme         Term
+%name      kinde         Kind
+%name      deftermtype   Def
+--%name      cmde          Cmd
 --%name      liftingtype   LiftingType
 
 %tokentype { Token }
@@ -123,7 +123,7 @@ OptOpaque :: { Opacity }
 
 Cmd :: { Cmd }
     : Imprt                             { CmdImport $1 }
-    | OptOpaque DefTermOrType '.'       { CmdDef $1 $2 (pos2Txt1 $3) }
+    | OptOpaque Def '.'                 { CmdDef $1 $2 (pos2Txt1 $3) }
     | DefDatatype             '.'       { CmdData $1 (pos2Txt1 $2) }
     | kvar KParams '=' Kind   '.'       { CmdKind (tPosTxt $1) (tTxt $1) $2 $4 (pos2Txt1 $5) }
 
@@ -151,17 +151,15 @@ Ctrs :: { Ctrs }
            | Ctr '|' Ctrs   { $1 : $3 }
            | Ctr            { $1 : [] }
 
-DefTermOrType :: { Def }
-              : var MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
-              | '_' MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
-              | var '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
-              | '_' '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
-              | var ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
-              | '_' ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+Def :: { Def }
+              : Bvar MaybeCheckType '=' Term  { DefTerm (tPosTxt $1) (tTxt $1) $2 $4 }
+              | Bvar '◂' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
+              | Bvar ':' Kind       '=' Type  { DefType (tPosTxt $1) (tTxt $1) $3 $5 }
 
 MDecl :: { Param }
-     : '(' Bvar ':' TpKd ')'              { Param (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 (pos2Txt1 $5) }
-     | '{' Bvar ':' Type '}'            { Param (pos2Txt $1) True (tPosTxt $2) (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
+     : '(' Bvar ':' Kind ')'            { Param (pos2Txt $1) True  (tPosTxt $2) (tTxt $2) (Tkk $4) (pos2Txt1 $5) }
+     | '(' Bvar ':' Type ')'            { Param (pos2Txt $1) False (tPosTxt $2) (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
+     | '{' Bvar ':' Type '}'            { Param (pos2Txt $1) True  (tPosTxt $2) (tTxt $2) (Tkt $4) (pos2Txt1 $5) }
 
 KDecl :: { Param }
      : '(' Bvar ':' TpKd ')'              { Param (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 (pos2Txt1 $5) }
@@ -259,8 +257,8 @@ LineNo :: { PosInfo }
 
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
-     | '[' DefTermOrType ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
-     | '{' DefTermOrType '}' '-' Term   { Let (pos2Txt $1) True  $2 $5 }
+     | '[' Def ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
+     | '{' Def '}' '-' Term   { Let (pos2Txt $1) True  $2 $5 }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
      | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
@@ -333,7 +331,7 @@ Type :: { Type }
      | LType '➔' Type                   { TpArrow $1 False $3 }
      | LType                            { $1 }
      | '{^' Type '^}'                   { TpNoSpans $2 (pos2Txt $3) }
-     | '[' DefTermOrType ']' '-' Type   { TpLet (pos2Txt $1) $2 $5 }
+     | '[' Def ']' '-' Type   { TpLet (pos2Txt $1) $2 $5 }
 
 LType :: { Type } 
 --    : '↑' Bvar '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
@@ -400,16 +398,16 @@ parse p s = case runAlex (unpack s) $ p of
          Prelude.Right r  -> Prelude.Right r
 		 
 parseTerm :: Text -> Either Text Term
-parseTerm  = parse term
+parseTerm  = parse terme
 
 parseType :: Text -> Either Text Type
-parseType = parse types
+parseType = parse typee
 
---parseLiftingType :: Text -> Either Text LiftingType
---parseLiftingType = parse liftingtype
+-- parseLiftingType :: Text -> Either Text LiftingType
+-- parseLiftingType = parse liftingtype
 
 parseKind :: Text -> Either Text Kind
-parseKind = parse kind
+parseKind = parse kinde
 
 parseDefTermOrType :: Text -> Either Text Def
 parseDefTermOrType = parse deftermtype

@@ -28,6 +28,9 @@ unfold-head = unfold ff tt tt
 unfold-head-elab : unfolding
 unfold-head-elab = unfold ff tt ff
 
+unfold-no-defs : unfolding
+unfold-no-defs = unfold tt ff ff
+
 unfold-dampen : unfolding → unfolding
 unfold-dampen (unfold tt d e) = unfold tt d e
 unfold-dampen (unfold ff d e) = unfold ff ff e
@@ -129,7 +132,7 @@ hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
       μ = either-else' μₒ (inj₁ ∘ erase) inj₂
       Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
       cs = erase-cases cs'
-      t-else = λ t → Mu μ t nothing t~ $ flip map cs λ where
+      t-else = λ t → Mu μ t nothing (λ t T? → t~ t nothing) $ flip map cs λ where
                  (Case x cas t) → Case x cas (hnf
                    (foldr (λ {(CaseArg _ x) → ctxt-var-decl x}) Γ' cas) (unfold-dampen u) t)
       case-matches : var → args → case → maybe (term × case-args × args)

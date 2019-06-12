@@ -50,12 +50,12 @@ untyped-let Γ (ExDefType pi x k T) e? fm to =
      (λ t' → LetTp x k~ T~ ([ Γ - TpVar x / (pi % x) ] t')))
 
 untyped-term Γ (ExApp t e t') =
-  [- App-span ff (term-start-pos t) (term-end-pos t') untyped [] nothing -]
+  [- App-span tt (term-start-pos t) (term-end-pos t') untyped [] nothing -]
   untyped-term Γ t ≫=span λ t~ →
   untyped-term Γ t' ≫=span λ t'~ →
   spanMr (if e then t~ else App t~ t'~)
 untyped-term Γ (ExAppTp t T) =
-  [- AppTp-span (term-start-pos t) (type-end-pos T) untyped [] nothing -]
+  [- AppTp-span tt (term-start-pos t) (type-end-pos T) untyped [] nothing -]
   untyped-type Γ T ≫=span λ T~ →
   untyped-term Γ t
 untyped-term Γ (ExBeta pi t? t?') =
@@ -93,13 +93,13 @@ untyped-term Γ (ExIotaProj t n pi) =
   untyped-term Γ t
 untyped-term Γ (ExLam pi e pi' x tk? t) =
   (spanMr tk? on-fail spanMr (Tkt (TpHole pi')) ≫=spanm' untyped-tpkd Γ) ≫=span λ tk~ →
-  untyped-term (ctxt-tk-decl pi' x tk~ Γ) t ≫=span λ t~ →
+  untyped-term (Γ , pi' - x :` tk~) t ≫=span λ t~ →
   let eₖ? = tk? ≫=maybe λ _ → maybe-if (tk-is-type tk~ && ~ e) ≫maybe
                 just "λ-terms must bind a term, not a type (use Λ instead)"
-      eₑ? = maybe-if (e && is-free-in x (erase t~)) ≫maybe
+      eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) ≫maybe
                 just "The Λ-bound variable occurs free in the erasure of the body" in
   [- Lam-span Γ untyped pi pi' e x tk~ t [] (eₖ? maybe-or eₑ?) -]
-  spanMr (if e then t~ else Lam ff x nothing t~)
+  spanMr (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
 untyped-term Γ (ExLet pi e? d t) =
   untyped-let Γ d e? (term-start-pos t) (term-end-pos t) ≫=span λ where
     (Γ' , x , tv , σ , f) →

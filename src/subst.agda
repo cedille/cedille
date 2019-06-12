@@ -177,3 +177,10 @@ subst-params-args' Γ ps as t = map-fst (λ σ → substs Γ σ t) (subst-params
 infixr 3 [_-_/_]_
 [_-_/_]_ : ∀ {ed ed'} → ctxt → ⟦ ed ⟧ → var → ⟦ ed' ⟧ → ⟦ ed' ⟧
 [ Γ - t / x ] t' = subst Γ t x t'
+
+subst-unqual : ∀ {ed} → ctxt → 𝕃 (posinfo × var) → ⟦ ed ⟧ → ⟦ ed ⟧
+subst-unqual Γ xs t =
+  subst-renamectxt
+    Γ
+    (foldr (uncurry λ pi x xs → renamectxt-insert xs (pi % x) x) empty-renamectxt xs)
+    t

@@ -61,7 +61,8 @@ token :-
       <0> \-\}                                  { errorClosingParenth        }
       <comment> . 				{ skip'                      }
       <comment> \n				{ begin' 0                   }
-      <0> \{\- 					{ mkCommentMultiLines        }          <commentMultiLines> \-\}                  { mkCommentMultiLinesDec     }
+      <0> \{\- 					{ mkCommentMultiLines        }
+      <commentMultiLines> \-\}                  { mkCommentMultiLinesDec     }
       <commentMultiLines> \{\-                  { mkCommentMultiLinesInc     } 
       <commentMultiLines> . | \n		{ skip'                      }   
 

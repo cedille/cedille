@@ -87,7 +87,7 @@ erase {TERM} (LetTp x k T t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
-erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ erase) inj₂) (erase t) nothing (λ μ2 t2 T2 → t~ μ2 t2 nothing) (erase-cases cs)
+erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ erase) inj₂) (erase t) nothing (λ t2 T2 → t~ t2 nothing) (erase-cases cs)
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)
@@ -126,6 +126,12 @@ free-vars-erased = free-vars ∘ erase
 
 is-free-in : ∀ {ed} → var → ⟦ ed ⟧ → 𝔹
 is-free-in x t = stringset-contains (free-vars t) x
+
+are-free-in-h : ∀ {X} → trie X → stringset → 𝔹
+are-free-in-h xs fxs = list-any (trie-contains fxs) (map fst (trie-mappings xs))
+
+are-free-in : ∀ {X} {ed} → trie X → ⟦ ed ⟧ → 𝔹
+are-free-in xs t = are-free-in-h xs (free-vars t)
 
 erase-if : ∀ {ed} → 𝔹 → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-if tt = erase

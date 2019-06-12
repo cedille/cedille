@@ -132,9 +132,9 @@ module main-with-options
   open import syntax-util
   open import to-string options
   open import toplevel-state options {IO}
-  import interactive-cmds
+--  import interactive-cmds
   open import rkt options
-  open import elaboration options
+--  open import elaboration options
   
 
   logFilepath : IO filepath
@@ -161,9 +161,9 @@ module main-with-options
   sendProgressUpdate : string → IO ⊤
   sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
 
-  progressUpdate : (filename : string) → (do-check : 𝔹) → IO ⊤
-  progressUpdate filename do-check =
-    sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
+  progressUpdate : (filename : string) → {-(do-check : 𝔹) → -} IO ⊤
+  progressUpdate filename {-do-check-} =
+    sendProgressUpdate ((if {-do-check-} tt then "Checking " else "Skipping ") ^ filename)
 
   fileBaseName : filepath → string
   fileBaseName fn = base-filename (takeFileName fn)
@@ -259,6 +259,10 @@ module main-with-options
       nothing → logMsg ("Error finding file: " ^ replace-dots u) >> find-imported-files sfx dirs us
       (just fp) → logMsg ("Found import: " ^ fp) >> find-imported-files sfx dirs us >>=r (u , fp) ::_
   find-imported-files sfx dirs [] = return []
+
+  get-imports : ex-file → 𝕃 string
+  get-imports (ExModule is _ _ mn _ cs _) =
+    map (λ {(ExImport _ _ _ x _ _ _) → x}) (is ++ ex-cmds-to-imps cs)
 
   {- new parser test integration -}
   reparse : toplevel-state → filepath → IO toplevel-state
@@ -390,7 +394,7 @@ module main-with-options
     update-asts s filename >>= λ s →
     log-files-to-check s >>
     logMsg (𝕃-to-string (λ {(im , fn) → "im: " ^ im ^ ", fn: " ^ fn}) "; " (trie-mappings (include-elt.import-to-dep (get-include-elt s filename)))) >>
-    process-file progressUpdate s filename (fileBaseName filename) >>= finish
+    process-file progressUpdate logMsg s filename (fileBaseName filename) >>= finish
     where
           reply : toplevel-state → IO ⊤
           reply s with get-include-elt-if s filename
@@ -399,21 +403,21 @@ module main-with-options
              if should-print-spans then
                putRopeLn (include-elt-spans-to-rope ie)
              else return triv
-          finish : toplevel-state × mod-info → IO toplevel-state
-          finish (s @ (mk-toplevel-state ip mod is Γ) , ret-mod) =
+          finish : (toplevel-state × file × mod-info) → IO toplevel-state
+          finish (s @ (mk-toplevel-state ip mod is Γ) , f , ret-mod) =
             logMsg ("Started reply for file " ^ filename) >> -- Lazy, so checking has not been calculated yet?
             reply s >>
             logMsg ("Finished reply for file " ^ filename) >>
             logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
             let Γ = ctxt-set-current-mod Γ ret-mod in
             writeo mod >>r -- Should process-file now always add files to the list of modified ones because now the cede-/rkt-up-to-date fields take care of whether to rewrite them?
-            mk-toplevel-state ip mod is Γ
+            mk-toplevel-state ip [] is Γ -- Reset files with updated spans
               where
                 writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
                   writeo us >>
-                  -- let ie = get-include-elt s f in
+                  --let ie = get-include-elt s f in
                   write-aux-files s f
                   --  (if cedille-options.options.make-rkt-files options && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie rkt-filename) else return triv)
 
@@ -456,7 +460,7 @@ module main-with-options
               archiveCommand (input :: []) s =
                 canonicalizePath input >>= λ filename →
                 update-asts s filename >>= λ s →
-                process-file (λ _, _ → return triv) s filename (fileBaseName filename) >>= λ { (s , _) →
+                process-file (λ _ → return triv) (λ _ → return triv) s filename (fileBaseName filename) >>= λ { (s , _) →
                 return (createArchive s filename) >>= λ archive →
                 putRopeLn (json-to-rope archive) >>r s }
               archiveCommand ls s = errorCommand ls s >>r s
@@ -470,8 +474,8 @@ module main-with-options
               handleCommands ("status ping" :: xs) s = putStrLn "idle" >> return s
               handleCommands ("check" :: xs) s = checkCommand xs s
               handleCommands ("debug" :: []) s = debugCommand s >>r s
-              handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
-              handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
+--              handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
+--              handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
               handleCommands ("archive" :: xs) s = archiveCommand xs s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s

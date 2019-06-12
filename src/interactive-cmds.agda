@@ -21,49 +21,41 @@ open import rename
 open import classify options {id}
 import spans options {IO} as io-spans
 open import datatype-functions
-open import elaboration (record options {during-elaboration = ff})
-open import elaboration-helpers (record options {during-elaboration = ff})
-open import templates
-open import erase
+--open import elaboration (record options {during-elaboration = ff})
+--open import elaboration-helpers (record options {during-elaboration = ff})
+--open import templates
+--open import erase
 
 private
 
   {- Parsing -}
   
-  ll-ind : ∀ {X : language-level → Set} → X ll-term → X ll-type → X ll-kind →
-             (ll : language-level) → X ll
+  ll-ind : ∀ {X : exprd → Set} → X TERM → X TYPE → X KIND → (ll : exprd) → X ll
   ll-ind t T k ll-term = t
   ll-ind t T k ll-type = T
   ll-ind t T k ll-kind = k
-  
-  ll-lift : language-level → Set
-  ll-lift = ⟦_⟧ ∘ ll-ind TERM TYPE KIND
 
-  ll-ind' : ∀ {X : Σ language-level ll-lift → Set} → (s : Σ language-level ll-lift) → ((t : term) → X (ll-term , t)) → ((T : type) → X (ll-type , T)) → ((k : kind) → X (ll-kind , k)) → X s
+  ll-ind' : ∀ {X : Σ exprd ⟦_⟧ → Set} → (s : Σ exprd ⟦_⟧) → ((t : term) → X (TERM , t)) → ((T : type) → X (TYPE , T)) → ((k : kind) → X (KIND , k)) → X s
   ll-ind' (ll-term , t) tf Tf kf = tf t
   ll-ind' (ll-type , T) tf Tf kf = Tf T
   ll-ind' (ll-kind , k) tf Tf kf = kf k
 
   ll-disambiguate : ctxt → term → maybe type
   ll-disambiguate Γ (Var pi x) = ctxt-lookup-type-var Γ x ≫=maybe λ _ → just (TpVar pi x)
-  ll-disambiguate Γ (App t NotErased t') = ll-disambiguate Γ t ≫=maybe λ T →
-    just (TpAppt T t')
-  ll-disambiguate Γ (AppTp t T') = ll-disambiguate Γ t ≫=maybe λ T → just (TpApp T T')
-  ll-disambiguate Γ (Lam pi KeptLambda pi' x (SomeClass atk) t) =
-    ll-disambiguate (ctxt-tk-decl pi' x atk Γ) t ≫=maybe λ T →
-    just (TpLambda pi pi' x atk T)
-  ll-disambiguate Γ (Parens pi t pi') = ll-disambiguate Γ t
-  ll-disambiguate Γ (Let pi _ d t) =
-    ll-disambiguate (Γ' d) t ≫=maybe λ T → just (TpLet pi d T)
-    where
-    Γ' : defTermOrType → ctxt
-    Γ' (DefTerm pi' x (SomeType T) t) = ctxt-term-def pi' localScope OpacTrans x (just t) T Γ
-    Γ' (DefTerm pi' x NoType t) = ctxt-term-udef pi' localScope OpacTrans x t Γ
-    Γ' (DefType pi' x k T) = ctxt-type-def pi' localScope OpacTrans x (just T) k Γ
+  ll-disambiguate Γ (App t t') = ll-disambiguate Γ t ≫=maybe λ T →
+    just (TpApp T (Ttm t'))
+  ll-disambiguate Γ (AppE t tT) = ll-disambiguate Γ t ≫=maybe λ T → just (TpApp T tT)
+  ll-disambiguate Γ (Lam NotErased x (just atk) t) =
+    ll-disambiguate (ctxt-tk-decl posinfo-gen x atk Γ) t ≫=maybe λ T →
+    just (TpLam x atk T)
+  ll-disambiguate Γ (LetTm e? x T t t') =
+    ?
+  ll-disambiguate Γ (LetTp x k T t) =
+    ?
   ll-disambiguate Γ t = nothing
   
-  parse-string : (ll : language-level) → string → maybe (ll-lift ll)
-  parse-string ll s = case ll-ind {λ ll → string → Either string (ll-lift ll)}
+  parse-string : (ll : exprd) → string → maybe ⟦ ll ⟧
+  parse-string ll s = case ll-ind {λ ll → string → Either string ⟦ ll ⟧}
     parseTerm parseType parseKind ll s of λ {(Left e) → nothing; (Right e) → just e}
   
   ttk = "term, type, or kind"
@@ -88,22 +80,22 @@ private
   (nothing ! e ≫error f) = inj₁ e
   
   parse-try : ∀ {X : Set} → ctxt → string → maybe
-                (((ll : language-level) → ll-lift ll → X) → X)
+                (((ll : exprd) → ⟦ ll ⟧ → X) → X)
   parse-try Γ s =
-    maybe-map (λ t f → maybe-else (f ll-term t) (f ll-type) (ll-disambiguate Γ t))
-      (parse-string ll-term s) ≫nothing
-    maybe-map (λ T f → f ll-type T) (parse-string ll-type s) ≫nothing
-    maybe-map (λ k f → f ll-kind k) (parse-string ll-kind s)
+    maybe-map (λ t f → maybe-else (f TERM t) (f TYPE) (ll-disambiguate Γ t))
+      (parse-string TERM s) ≫nothing
+    maybe-map (λ T f → f TYPE T) (parse-string TYPE s) ≫nothing
+    maybe-map (λ k f → f KIND k) (parse-string KIND s)
   
   string-to-𝔹 : string → maybe 𝔹
   string-to-𝔹 "tt" = just tt
   string-to-𝔹 "ff" = just ff
   string-to-𝔹 _ = nothing
   
-  parse-ll : string → maybe language-level
-  parse-ll "term" = just ll-term
-  parse-ll "type" = just ll-type
-  parse-ll "kind" = just ll-kind
+  parse-ll : string → maybe exprd
+  parse-ll "term" = just TERM
+  parse-ll "type" = just TYPE
+  parse-ll "kind" = just KIND
   parse-ll _ = nothing
   
   
@@ -142,20 +134,19 @@ private
     decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is os Δ) =
       mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is os Δ
 
-    language-level-type-of : language-level → language-level
-    language-level-type-of ll-term = ll-type
-    language-level-type-of _ = ll-kind    
+    exprd-type-of : exprd → exprd
+    exprd-type-of TERM = TYPE
+    exprd-type-of _ = KIND    
 
     merge-lci-ctxt : lci → ctxt → ctxt
     merge-lci-ctxt (mk-lci ll v t T fn pi) Γ =
       maybe-else Γ (λ Γ → Γ) (parse-ll ll ≫=maybe λ ll →
-        parse-string (language-level-type-of ll) T ≫=maybe h ll (parse-string ll t)) where
-      h : (ll : language-level) → maybe (ll-lift ll) →
-          ll-lift (language-level-type-of ll) → maybe ctxt
+        parse-string (exprd-type-of ll) T ≫=maybe h ll (parse-string ll t)) where
+      h : (ll : exprd) → maybe ⟦ ll ⟧ → ⟦ exprd-type-of ll ⟧ → maybe ctxt
       h ll-term (just t) T =
-        just (ctxt-term-def pi localScope OpacTrans v (just t) (qualif-type Γ T) Γ)
+        just (ctxt-term-def pi localScope opacity-open v (just t) (qualif-type Γ T) Γ)
       h ll-type (just T) k =
-        just (ctxt-type-def pi localScope OpacTrans v (just T) (qualif-kind Γ k) Γ)
+        just (ctxt-type-def pi localScope opacity-open v (just T) (qualif-kind Γ k) Γ)
       h ll-term nothing T = just (ctxt-term-decl pi v T Γ)
       h ll-type nothing k = just (ctxt-type-decl pi v k Γ)
       h _ _ _ = nothing

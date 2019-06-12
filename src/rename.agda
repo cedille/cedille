@@ -108,7 +108,6 @@ rename-var-if Γ ρ y t =
   else
     y
 
-renamectxt-insert* : renamectxt → (vs1 vs2 : 𝕃 string) → maybe renamectxt
-renamectxt-insert* ρ [] [] = just ρ
-renamectxt-insert* ρ (x :: vs1) (y :: vs2) = renamectxt-insert* (renamectxt-insert ρ x y) vs1 vs2
-renamectxt-insert* ρ _ _ = nothing
+renamectxt-insert* : renamectxt → 𝕃 (var × var) → renamectxt
+renamectxt-insert* ρ [] = ρ
+renamectxt-insert* ρ ((x , y) :: vs) = renamectxt-insert* (renamectxt-insert ρ x y) vs

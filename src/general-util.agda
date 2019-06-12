@@ -101,6 +101,10 @@ cal-filter f ((a , t) :: c)
 ... | t' | c'
   = if trie-empty? t then c' else (a , t') :: c'
 
+trie-fold : ∀ {F : Set → Set} {A B : Set} → trie A →
+            F B → (string → A → F B → F B) → F B
+trie-fold t n c = foldr (λ {(k , v) → c k v}) n (trie-mappings t)
+
 trie-catMaybe : ∀ {A} → trie (maybe A) → trie A
 cal-catMaybe  : ∀ {A} → cal (trie (maybe A)) → cal (trie A)
 
@@ -419,26 +423,91 @@ stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
 
 
-record monad (F : Set → Set) : Set₁ where
+record functor (F : Set → Set) : Set₁ where
+  infixl 2 _<$>_ _<$_
   field
-    returnM : ∀{A : Set} → A → F A
-    bindM : ∀{A B : Set} → F A → (A → F B) → F B
+    fmap : ∀ {A B} → (A → B) → F A → F B
+{-
+    functor-identity-law :
+      ∀ {A} (fa : F A) →
+        fmap id fa ≡ fa
+    functor-composition-law :
+      ∀ {A B C} (f : B → C) (g : A → B) (fa : F A) →
+        fmap (f ∘ g) fa ≡ fmap f (fmap g fa)
+-}
+  
+  _<$>_ = fmap
 
-returnM : ∀{F : Set → Set}{{m : monad F}}{A : Set} → A → F A
-returnM {{m}} = monad.returnM m
+  _<$_ : ∀ {A B} → A → F B → F A
+  a <$ fb = const a <$> fb
 
-infixl 1 _≫monad_ _≫=monad_
-bindM : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
-bindM {{m}} = monad.bindM m
+open functor ⦃...⦄ public
 
-_≫=monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
-_≫=monad_ = bindM
+record applicative (F : Set → Set) : Set₁ where
+  infixl 2 _<*>_ _<*_ _*>_
+  field
+    pure : ∀ {A} → A → F A
+    _<*>_ : ∀ {A B} → F (A → B) → F A → F B
+    ⦃ functorF ⦄ : functor F
+{-
+    applicative-identity-law :
+      ∀ {A} (v : F A) →
+        pure id <*> v ≡ v
+    applicative-composition-law :
+      ∀ {A B C} (u : F (B → C)) (v : F (A → B)) (w : F A) →
+        pure _∘_ <*> u <*> v <*> w ≡ u <*> (v <*> w)
+    applicative-homomorphism-law :
+      ∀ {A B} (f : A → B) (x : A) →
+        pure f <*> pure x ≡ pure (f x)
+    applicative-interchange-law :
+      ∀ {A B} (u : F (A → B)) (y : A) →
+        u <*> pure y ≡ pure (_$ y) <*> u
+-}
+  
+  _<*_ : ∀ {A B} → F A → F B → F A
+  fa <* fb = (λ a b → a) <$> fa <*> fb
 
-bindM' : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
-bindM' a b = bindM a (λ a → b)
+  _*>_ : ∀ {A B} → F A → F B → F B
+  fa *> fb = (λ a b → b) <$> fa <*> fb
 
-_≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
-_≫monad_ = bindM'
+  liftA : ∀ {A B} → (A → B) → F A → F B
+  liftA g fa = pure g <*> fa
+
+  liftA2 : ∀ {A B C} → (A → B → C) → F A → F B → F C
+  liftA2 g fa fb = pure g <*> fa <*> fb
+
+open applicative ⦃...⦄ public
+
+record monad (F : Set → Set) : Set₁ where
+  infixl 2 _≫_ _≫=_ _=≪_ _>=>_
+  field
+    returnM : ∀{A} → A → F A
+    _≫=_ : ∀{A B} → F A → (A → F B) → F B
+{-
+    monad-left-identity-law :
+      ∀ {A B} (a : A) (k : A → F B) →
+        returnM a ≫= k ≡ k a
+    monad-right-identity-law :
+      ∀ {A} (m : F A) →
+        m ≫= returnM ≡ m
+    monad-associativity-law :
+      ∀ {A B C} (m : F A) (k : A → F B) (h : B → F C) →
+        m ≫= (λ x → k x ≫= h) ≡ (m ≫= k) ≫= h
+-}
+
+  _≫_ : ∀ {A B} → F A → F B → F B
+  fa ≫ fb = fa ≫= λ _ → fb
+
+  _=≪_ : ∀ {A B} → (A → F B) → F A → F B
+  fab =≪ fa = fa ≫= fab
+  
+  _>=>_ : ∀ {A B C : Set} → (A → F B) → (B → F C) → (A → F C)
+  fab >=> fbc = λ a → fab a ≫= fbc
+
+  join : ∀ {A} → F (F A) → F A
+  join ffa = ffa ≫= id
+  
+open monad ⦃...⦄ public
 
 map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
 map-fst f (x₀ , x₁) = (f x₀ , x₁)

@@ -23,8 +23,7 @@ AGDASRC = \
 	rename.agda \
 	classify.agda \
 	subst.agda \
-	is-free.agda \
-	lift.agda \
+	free-vars.agda \
 	rewriting.agda \
 	ctxt.agda \
 	main.agda \
@@ -43,8 +42,8 @@ AGDASRC = \
 	datatype-functions.agda \
 	bohm-out.agda \
 	cedille-syntax.agda \
-	erase.agda \
-	pretty.agda
+	pretty.agda \
+	type-inf.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

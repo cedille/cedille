@@ -233,32 +233,19 @@ mall = TpAbs tt
 mpi : var → tpkd → type → type
 mpi  = TpAbs ff
 
-imps-to-cmds : imports → ex-cmds
-imps-to-cmds = map ExCmdImport
+imps-to-cmds : imports → cmds
+imps-to-cmds = map CmdImport
 
--- TODO handle qualif & module args
-get-imports : ex-file → 𝕃 string
-get-imports (ExModule is _ _ mn _ cs _) = imports-to-include is ++ get-imports-cmds cs
-  where import-to-include : imprt → string
-        import-to-include (Import _ _ _ x oa _ _) = x
-        imports-to-include : imports → 𝕃 string
-        imports-to-include = map import-to-include
-        singleton-if-include : ex-cmd → 𝕃 string
-        singleton-if-include (ExCmdImport imp) = [ import-to-include imp ]
-        singleton-if-include _ = []
-        get-imports-cmds : ex-cmds → 𝕃 string
-        get-imports-cmds (c :: cs) = singleton-if-include c ++ get-imports-cmds cs
-        get-imports-cmds [] = []
+cmds-to-imps : cmds → imports
+cmds-to-imps [] = []
+cmds-to-imps (CmdImport i :: cs) = i :: cmds-to-imps cs
+cmds-to-imps (_ :: cs) = cmds-to-imps cs
 
-data language-level : Set where
-  ll-term : language-level
-  ll-type : language-level
-  ll-kind : language-level
+ex-cmds-to-imps : ex-cmds → ex-imports
+ex-cmds-to-imps [] = []
+ex-cmds-to-imps (ExCmdImport i :: cs) = i :: ex-cmds-to-imps cs
+ex-cmds-to-imps (_ :: cs) = ex-cmds-to-imps cs
 
-ll-to-string : language-level → string
-ll-to-string ll-term = "term"
-ll-to-string ll-type = "type"
-ll-to-string ll-kind = "kind"
 
 split-var-h : 𝕃 char → 𝕃 char × 𝕃 char
 split-var-h [] = [] , []
@@ -442,3 +429,7 @@ make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "
 
 pos-tm-to-tm : pos-tm → ex-tm
 pos-tm-to-tm (PosTm t pi) = t
+
+case-arg-erased : case-arg-sym → erased?
+case-arg-erased CaseArgTm = ff
+case-arg-erased _ = tt

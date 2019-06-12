@@ -28,7 +28,7 @@ args-to-tmtps = map arg-to-tmtp
 params-to-args : params → args
 params-to-args = map λ where
   (Param ff v _) → Arg (Var v)
-  (Param tt v (Tkt _)) → ArgE (inj₂ (TpVar v))
+  (Param tt v (Tkt _)) → ArgE (inj₁ (Var v))
   (Param tt v (Tkk _)) → ArgE (inj₂ (TpVar v))
 
 decompose-lams : term → (𝕃 var) × term
@@ -110,9 +110,22 @@ is-var (Ttm (Var x)) = just x
 is-var (Ttp (TpVar x)) = just x
 is-var _ = nothing
 
+arg-var : arg → maybe var
+arg-var = either-else (is-var ∘ Ttm) is-var
+
 is-var-unqual : tmtp → maybe var
 is-var-unqual = maybe-map (λ x → maybe-else (unqual-local x) id (var-suffix x)) ∘ is-var
 
 unerased-arrows : type → ℕ
 unerased-arrows (TpAbs ff x atk T) = suc (unerased-arrows T)
 unerased-arrows _ = zero
+
+lterms-to-term : theta → ex-tm → 𝕃 lterm → ex-tm
+lterms-to-term AbstractEq t [] = ExApp t Erased (ExBeta (term-end-pos t) nothing nothing)
+lterms-to-term _ t [] = t
+lterms-to-term θ t (Lterm e t' :: ls) = lterms-to-term θ (ExApp t e t') ls
+
+is-hole : ∀ {ed} → ⟦ ed ⟧ → 𝔹
+is-hole {TERM} (Hole pi) = tt
+is-hole {TYPE} (TpHole pi) = tt
+is-hole _ = ff
