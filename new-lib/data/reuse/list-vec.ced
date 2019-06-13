@@ -5,6 +5,7 @@ import ../list.
 import ../vec.
 
 import ../../core/cast.
+import ../../core/castDep.
 
 vec2ListId : ∀ A: ★. ∀ n: Nat. Cast ·(Vec ·A n) ·(List ·A)
 = Λ A.
@@ -42,7 +43,7 @@ list2VecId : ∀ A: ★. CastDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (lengt
         ρ (ih xs) @ z. {cons x z ≃ cons x xs}
       - β
       }]
-- intrCastDep f pf.
+- intrCastDep -f -pf.
 
 list2Vec! : ∀ A: ★. Π xs: List ·A. Vec ·A (length xs)
 = Λ A. elimCastDep -(list2VecId ·A).

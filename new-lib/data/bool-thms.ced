@@ -2,5 +2,11 @@ module bool-thms.
 
 import bool.
 
+boolEta : Π b: Bool. {ite b tt ff ≃ b}
+= λ b. μ' b {
+  | tt ➔ β
+  | ff ➔ β
+  }.
+
 notNotId : Π b: Bool. {not (not b) ≃ b}
 = λ b. μ' b { tt ➔ β | ff ➔ β }.

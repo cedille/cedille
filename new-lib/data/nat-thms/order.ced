@@ -5,7 +5,6 @@ import ../sum.
 import ../decidable.
 import simple.
 import ../../core/bot.
-import ../../core/eq.
 import ../../core/top.
 
 import ../bool.
@@ -142,7 +141,7 @@ lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
     | zero ➔ λ lteSZ. δ - lteSZ
     | succ n ➔ λ lteMN. λ lteNM.
       [eqMN = ih m n lteMN lteNM]
-    - cong β{succ} β{m} β{n} eqMN
+    - ρ eqMN - β
     }
   }.
 

@@ -13,39 +13,17 @@ elimCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ A ➔ B
 castRefl : ∀ A: ★. Cast ·A ·A
 = Λ A. intrCast -(λ x. x) -(λ _. β).
 
-castTrans : ∀ A: ★. ∀ B: ★. ∀ C: ★. Cast ·A ·B ➔ Cast ·B ·C ➔ Cast ·A ·C
-= Λ A. Λ B. Λ C. λ c1. λ c2. intrCast -(λ a. elimCast -c2 (elimCast -c1 a)) -(λ _. β).
-
-castIrrel : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
-= Λ A. Λ B. Λ c. intrCast -(elimCast -c) -(λ x. β).
+castTrans : ∀ A: ★. ∀ B: ★. ∀ C: ★. Cast ·A ·B ➾ Cast ·B ·C ➾ Cast ·A ·C
+= Λ A. Λ B. Λ C. Λ c1. Λ c2. intrCast -(λ a. elimCast -c2 (elimCast -c1 a)) -(λ _. β).
 
 CastMap : (★ ➔ ★) ➔ ★
-= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·(F ·A) ·(F ·B).
+= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·(F ·A) ·(F ·B).
 
 castMap : ∀ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★.
   CastMap ·F ➾ Cast ·A ·B ➾ F ·A ➔ F ·B
-= Λ F. Λ A. Λ B. Λ cm. Λ c. λ f. elimCast -(cm c) f.
+= Λ F. Λ A. Λ B. Λ cm. Λ c. λ f. elimCast -(cm -c) f.
 
 castMapComp : ∀ F: ★ ➔ ★. ∀ G: ★ ➔ ★.
-  CastMap ·F ➔ CastMap ·G ➔ CastMap ·(λ X: ★. F ·(G ·X))
-= Λ F. Λ G. λ cm1. λ cm2. Λ X. Λ Y. λ c.
-  intrCast -(λ fs. castMap -cm1 -(cm2 c) fs) -(λ _. β).
-
-castMapIrrel : ∀ F: ★ ➔ ★. CastMap ·F ➾ CastMap ·F
-= Λ F. Λ cm. Λ A. Λ B. λ c. intrCast -(elimCast -(cm c)) -(λ _. β).
-
--- Dependent version
-CastDep : Π A: ★. Π B: A ➔ ★. ★
-= λ A: ★. λ B: A ➔ ★. ι f: Π a: A. B a. {f ≃ λ x. x}.
-
-intrCastDep : ∀ A: ★. ∀ B: A ➔ ★. Π f: Π a: A. B a. (Π a: A. {f a ≃ a}) ➔ CastDep ·A ·B
-= Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - f a {a} , β].
-
-elimCastDep : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ Π a: A. B a
-= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
-
-trivCastDep : ∀ A: ★. CastDep ·A ·(λ _: A. A)
-= Λ A. intrCastDep (λ x. x) (λ _. β).
-
-castDepIrrel : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ CastDep ·A ·B
-= Λ A. Λ B. Λ c. intrCastDep (elimCastDep -c) (λ _. β).
+  CastMap ·F ➾ CastMap ·G ➾ CastMap ·(λ X: ★. F ·(G ·X))
+= Λ F. Λ G. Λ cm1. Λ cm2. Λ X. Λ Y. Λ c.
+  intrCast -(λ fs. castMap -cm1 -(cm2 -c) fs) -(λ _. β).

@@ -81,7 +81,7 @@ drop = Λ A: ★. dropCV -(is/List ·A).
 
 -- List and Cast
 lCastMap : CastMap ·List
-= Λ A. Λ B. λ c.
+= Λ A. Λ B. Λ c.
   [f : List ·A ➔ List ·B
     = λ xs. μ rec. xs {
       | nil ➔ nil ·B

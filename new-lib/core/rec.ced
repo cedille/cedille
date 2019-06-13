@@ -21,7 +21,7 @@ recFold = Λ im: CastMap ·F. elimCast -(recIn -im).
 recOut : CastMap ·F ➾ Cast ·Rec ·(F ·Rec)
 = Λ im.
   [f : Rec ➔ F ·Rec
-    = λ d. d ·(F ·Rec) -(im (recIn -im))]
+    = λ d. d ·(F ·Rec) -(im -(recIn -im))]
 - [ f , β].
 
 recUnfold = Λ im: CastMap ·F. elimCast -(recOut -im).
