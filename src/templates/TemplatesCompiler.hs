@@ -3,6 +3,7 @@ import System.Directory
 import System.FilePath
 import qualified Data.Text
 import qualified CedilleParser
+import GHC.IO.Encoding
 
 templatesDir = "src" </> "templates"
 agda = "src" </> "templates.agda"
@@ -48,6 +49,7 @@ writeMsgs =
       writeMsg hs (c ++ f' ++ " = " ++ show pt) >> x
 
 main =
+  setLocaleEncoding utf8 >>
   writeHdrAgda >> writeHdrHs >>
   getDirectoryContents templatesDir >>=
   readFiles . addPfxs . getCedFiles >>=
