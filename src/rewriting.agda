@@ -1,7 +1,5 @@
 module rewriting where
 
-open import lib
-
 open import cedille-types
 open import constants
 open import conversion
@@ -40,8 +38,8 @@ instance
   ...| f' , n' , sn with a Γ op on eq t₁ t₂ sn
   ...| b , n'' , sn' = f' b , n' + n'' , sn'
 
-  returnM ⦃ rewrite-monad ⦄ a = pure a
-  _≫=_ ⦃ rewrite-monad ⦄ fa fab Γ op on eq t₁ t₂ n with fa Γ op on eq t₁ t₂ n
+  return ⦃ rewrite-monad ⦄ a = pure a
+  _>>=_ ⦃ rewrite-monad ⦄ fa fab Γ op on eq t₁ t₂ n with fa Γ op on eq t₁ t₂ n
   ...| a' , n' , sn with fab a' Γ op on eq t₁ t₂ sn
   ...| b , n'' , sn' = b , n' + n'' , sn'
 
@@ -50,16 +48,20 @@ _≫rewrite_ = _<*>_
 
 
 {-# TERMINATING #-}
-rewrite-term        : term        → rewrite-t term
-rewrite-terma       : term        → rewrite-t term
-rewrite-termh       : term        → rewrite-t term
-rewrite-type        : type        → rewrite-t type
-rewrite-typeh       : type        → rewrite-t type
-rewrite-kind        : kind        → rewrite-t kind
-rewrite-tpkd        : tpkd        → rewrite-t tpkd
-rewrite-tmtp        : tmtp        → rewrite-t tmtp
-rewrite-case : maybe (var × var) → case → rewrite-t case
+rewrite-term  : term → rewrite-t term
+rewrite-terma : term → rewrite-t term
+rewrite-termh : term → rewrite-t term
+rewrite-type  : type → rewrite-t type
+rewrite-typeh : type → rewrite-t type
+rewrite-kind  : kind → rewrite-t kind
+rewrite-tpkd  : tpkd → rewrite-t tpkd
+rewrite-tmtp  : tmtp → rewrite-t tmtp
+rewrite-exprd : ∀ {ed} → ⟦ ed ⟧ → rewrite-t ⟦ ed ⟧
+rewrite-case  : maybe (var × var) → case → rewrite-t case
 
+rewrite-exprd {TERM} = rewrite-term
+rewrite-exprd {TYPE} = rewrite-type
+rewrite-exprd {KIND} = rewrite-kind
 
 rewrite-rename-var : ∀ {A} → var → (var → rewrite-t A) → rewrite-t A
 rewrite-rename-var x r Γ op on eq t₁ t₂ n =
@@ -270,7 +272,6 @@ rewrite-athₖ Γ x eq b KdStar KdStar = KdStar
 rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-elab k1) (hnf Γ unfold-head-elab k2)
 rewrite-athₖ Γ x eq ff k1 k2 = k1
 
-
 rewrite-ath Γ x eq b (TpAbs me1 x1 atk1 T1) (TpAbs me2 x2 atk2 T2) =
   TpAbs me1 x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1 (rename-var Γ x2 x1 T2))
 rewrite-ath Γ x eq b (TpIota x1 T1 T1') (TpIota x2 T2 T2') =
@@ -278,7 +279,7 @@ rewrite-ath Γ x eq b (TpIota x1 T1 T1') (TpIota x2 T2 T2') =
 rewrite-ath Γ x eq b (TpApp T1 (Ttp T1')) (TpApp T2 (Ttp T2')) =
   TpApp (rewrite-at Γ x eq b T1 T2) (Ttp (rewrite-at Γ x eq tt T1' T2'))
 rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) =
-  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (maybe-if (is-free-in x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
+  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (maybe-if (is-free-in x t2) >> eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
 rewrite-ath Γ x eq b (TpEq t1 t1') (TpEq t2 t2') =
   TpEq t2 t2'
 rewrite-ath Γ x eq b (TpLam x1 atk1 T1) (TpLam x2 atk2 T2) =
@@ -327,12 +328,13 @@ refine-typeh Γ fm to (TpEq t₁ t₂) =
 refine-typeh Γ fm to (TpLam x atk T) =
   let x' = fresh-var Γ x in
   TpLam x' (refine Γ fm to -tk atk) (refine-type (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' T))
-refine-typeh Γ fm to (TpHole pi) =  TpHole pi
+refine-typeh Γ fm to (TpHole pi) = TpHole pi
 refine-typeh Γ fm to (TpVar x) = TpVar x
 
 refine-kind Γ fm to (KdAbs x atk k) =
   let x' = fresh-var Γ x in
   KdAbs x (refine Γ fm to -tk atk) (refine-kind (ctxt-var-decl x' Γ) fm to (rename-var Γ x x' k))
+refine-kind Γ fm to (KdHole pi) = KdHole pi
 refine-kind Γ fm to KdStar = KdStar
 
 refine-motive : ctxt → indices → (asᵢ : 𝕃 tmtp) → (expected : type) → type

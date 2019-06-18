@@ -1,7 +1,6 @@
 module general-util where
 
-open import lib
-open import functions public
+open import instances public
 
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
@@ -27,10 +26,6 @@ maybe-equal? f (just x) nothing = ff
 maybe-equal? f nothing (just x) = ff
 maybe-equal? f nothing nothing = tt
 
-_≫maybe_ : ∀ {ℓ}{A B : Set ℓ} → maybe A → maybe B → maybe B
-nothing ≫maybe f = nothing
-just x  ≫maybe f = f
-
 _maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
 (nothing maybe-or ma) = ma
 (just a  maybe-or ma) = just a
@@ -42,6 +37,12 @@ maybe-not nothing = just triv
 maybe-if : 𝔹 → maybe ⊤
 maybe-if tt = just triv
 maybe-if ff = nothing
+
+when : ∀ {A : Set} → 𝔹 → A → maybe A
+when b a = maybe-if b >> just a
+
+unless : ∀ {A : Set} → 𝔹 → A → maybe A
+unless b a = maybe-if (~ b) >> just a
 
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
@@ -259,9 +260,9 @@ err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err
 err⊎-guard ff _   = inj₂ triv
 
-infixl 1 _≫⊎_
-_≫⊎_ : ∀ {E B : Set} → E ∨ ⊤ → E ∨ B → E ∨ B
-m₁ ≫⊎ m₂ = m₁ ≫=⊎ λ _ → m₂
+--infixl 1 _≫⊎_
+--_≫⊎_ : ∀ {E B : Set} → E ∨ ⊤ → E ∨ B → E ∨ B
+--m₁ ≫⊎ m₂ = m₁ ≫=⊎ λ _ → m₂
 
 -- Some file writing functions
 data IOMode : Set where
@@ -304,23 +305,6 @@ flush = hFlush stdout
 
 setToLineBuffering : IO ⊤
 setToLineBuffering = hSetToLineBuffering stdout
-
-infixl 1 _>>≠_ _>≯_ _>>=r_ _>>r_ _>>∘_
-
-_>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
-(io₁ >>≠ io₂) = io₁ >>= λ result → io₂ result >> return result
-
-_>≯_ : ∀{A B : Set} → IO A → IO B → IO A
-(io₁ >≯ io₂) = io₁ >>= λ result → io₂ >> return result
-
-_>>=r_ : ∀{A B : Set} → IO A → (A → B) → IO B
-a >>=r f = a >>= (return ∘ f)
-
-_>>r_ : ∀{A B : Set} → IO A → B → IO B
-a >>r b = a >> return b
-
-_>>∘_ : ∀{A B : Set} → IO A → IO (A → IO B) → IO B
-a >>∘ f = a >>= λ a → f >>= λ f → f a
 
 withFile : {A : Set} → filepath → IOMode → (Handle → IO A) → IO A
 withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
@@ -422,93 +406,6 @@ writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPu
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
 
-
-record functor (F : Set → Set) : Set₁ where
-  infixl 2 _<$>_ _<$_
-  field
-    fmap : ∀ {A B} → (A → B) → F A → F B
-{-
-    functor-identity-law :
-      ∀ {A} (fa : F A) →
-        fmap id fa ≡ fa
-    functor-composition-law :
-      ∀ {A B C} (f : B → C) (g : A → B) (fa : F A) →
-        fmap (f ∘ g) fa ≡ fmap f (fmap g fa)
--}
-  
-  _<$>_ = fmap
-
-  _<$_ : ∀ {A B} → A → F B → F A
-  a <$ fb = const a <$> fb
-
-open functor ⦃...⦄ public
-
-record applicative (F : Set → Set) : Set₁ where
-  infixl 2 _<*>_ _<*_ _*>_
-  field
-    pure : ∀ {A} → A → F A
-    _<*>_ : ∀ {A B} → F (A → B) → F A → F B
-    ⦃ functorF ⦄ : functor F
-{-
-    applicative-identity-law :
-      ∀ {A} (v : F A) →
-        pure id <*> v ≡ v
-    applicative-composition-law :
-      ∀ {A B C} (u : F (B → C)) (v : F (A → B)) (w : F A) →
-        pure _∘_ <*> u <*> v <*> w ≡ u <*> (v <*> w)
-    applicative-homomorphism-law :
-      ∀ {A B} (f : A → B) (x : A) →
-        pure f <*> pure x ≡ pure (f x)
-    applicative-interchange-law :
-      ∀ {A B} (u : F (A → B)) (y : A) →
-        u <*> pure y ≡ pure (_$ y) <*> u
--}
-  
-  _<*_ : ∀ {A B} → F A → F B → F A
-  fa <* fb = (λ a b → a) <$> fa <*> fb
-
-  _*>_ : ∀ {A B} → F A → F B → F B
-  fa *> fb = (λ a b → b) <$> fa <*> fb
-
-  liftA : ∀ {A B} → (A → B) → F A → F B
-  liftA g fa = pure g <*> fa
-
-  liftA2 : ∀ {A B C} → (A → B → C) → F A → F B → F C
-  liftA2 g fa fb = pure g <*> fa <*> fb
-
-open applicative ⦃...⦄ public
-
-record monad (F : Set → Set) : Set₁ where
-  infixl 2 _≫_ _≫=_ _=≪_ _>=>_
-  field
-    returnM : ∀{A} → A → F A
-    _≫=_ : ∀{A B} → F A → (A → F B) → F B
-{-
-    monad-left-identity-law :
-      ∀ {A B} (a : A) (k : A → F B) →
-        returnM a ≫= k ≡ k a
-    monad-right-identity-law :
-      ∀ {A} (m : F A) →
-        m ≫= returnM ≡ m
-    monad-associativity-law :
-      ∀ {A B C} (m : F A) (k : A → F B) (h : B → F C) →
-        m ≫= (λ x → k x ≫= h) ≡ (m ≫= k) ≫= h
--}
-
-  _≫_ : ∀ {A B} → F A → F B → F B
-  fa ≫ fb = fa ≫= λ _ → fb
-
-  _=≪_ : ∀ {A B} → (A → F B) → F A → F B
-  fab =≪ fa = fa ≫= fab
-  
-  _>=>_ : ∀ {A B C : Set} → (A → F B) → (B → F C) → (A → F C)
-  fab >=> fbc = λ a → fab a ≫= fbc
-
-  join : ∀ {A} → F (F A) → F A
-  join ffa = ffa ≫= id
-  
-open monad ⦃...⦄ public
-
 map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
 map-fst f (x₀ , x₁) = (f x₀ , x₁)
 
@@ -516,14 +413,15 @@ map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X�
 map-snd f (x₀ , x₁) = (x₀ , f x₁)
 
 
--- Syntax sugar for Haskell-esque list construction
-infixr 5 _,,_
-infix 6 [:_:]
-data 𝕃, {ℓ} (A : Set ℓ) : Set ℓ where
-  _,,_ : ∀ {b} → A → (if b then 𝕃, A else A) → 𝕃, A
+-- Syntactic sugar for Haskell-esque list construction
+infixr 4 _,,_
+infixr 5 [:_ _:]
 
-[:_:] : ∀ {ℓ} {A : Set ℓ} → 𝕃, A → 𝕃 A
-[: _,,_ {tt} a as :] = a :: [: as :]
-[: _,,_ {ff} a a' :] = a :: a' :: []
+[:_ = id
 
-𝕃,-example = [: 0 ,, 1 ,, 2 ,, 3 ,, 4 :]
+_:] = [_]
+
+_,,_ : ∀ {ℓ} {A : Set ℓ} → A → 𝕃 A → 𝕃 A
+_,,_ = _::_
+
+𝕃-sugar-example = [: 0 ,, 1 ,, 2 ,, 3 ,, 4 :]

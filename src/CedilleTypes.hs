@@ -102,6 +102,7 @@ data Term =
 data Kind =
     KdAbs PosInfo PosInfo Var TpKd Kind
   | KdArrow TpKd Kind
+  | KdHole PosInfo
   | KdParens PosInfo Kind PosInfo
   | KdStar PosInfo
   | KdVar PosInfo Var Args

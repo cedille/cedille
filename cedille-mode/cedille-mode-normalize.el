@@ -200,7 +200,11 @@
 
 (defmacro cedille-mode-response-macro (fn)
   `(lambda (response extra &optional span)
-     (cedille-mode-response ,fn response extra span)))
+     (cedille-mode-response ,fn response extra span nil)))
+
+(defmacro cedille-mode-response-macro-suppress-err (fn)
+  `(lambda (response extra &optional span)
+     (cedille-mode-response ,fn response extra span t)))
 
 (defvar cedille-mode-normalize-erase-receive-response-prompt
   (cedille-mode-response-macro
@@ -223,17 +227,17 @@
   "Returns t if STR is a variable"
   (not (string-match " " str)))
 
-(defun cedille-mode-response (fn response extra span)
+(defun cedille-mode-response (fn response extra span suppress-err)
   "Wrapper function that turns RESPONSE into a json, propertizes it, and passes it to FN along with EXTRA and SPAN (if non-nil)"
   (let* ((json-array-type 'list)
          (json (json-read-from-string response))
          (ls (cdr (assoc 'value json)))
          (err (cdr (assoc 'error json)))
-         (val (cadr ls))
-         (ts (caddr ls))
+         (val (car ls))
+         (ts (cadr ls))
          (str (cedille-mode-apply-tags val ts)))
     (if err
-        (message err)
+        (unless suppress-err (message err))
       (if span
           (funcall fn str extra span)
         (funcall fn str extra)))))

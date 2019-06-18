@@ -1,6 +1,5 @@
 module main where
 
-open import lib
 import string-format
 -- for parser for Cedille 
 open import cedille-types
@@ -80,21 +79,20 @@ findOptionsFile' fp =
   traverseParents fp (fp-fuel fp)
   >>= λ where
     fpc?@(just fpc) → return fpc?
-    nothing → getHomeDirectory >>= canonicalizePath >>= getOptions?
+    nothing → getHomeDirectory >>= λ hd → canonicalizePath hd >>= getOptions?
 
   where
   getOptions? : (filepath : string) → IO ∘ maybe $ string
   getOptions? fp =
-    let fpc = getOptionsFile fp in doesFileExist fpc
-    >>= λ where
+    let fpc = getOptionsFile fp in
+    doesFileExist fpc >>= λ where
       ff → return nothing
       tt → return ∘ just $ fpc
 
   traverseParents : string → ℕ → IO (maybe string)
   traverseParents fp 0 = return nothing
   traverseParents fp (suc n) =
-    getOptions? fp
-    >>= λ where
+    getOptions? fp >>= λ where
       nothing → traverseParents (takeDirectory fp) n
       fpc?@(just fpc) → return fpc?
 
@@ -103,12 +101,12 @@ findOptionsFile' fp =
 
 findOptionsFile : IO (maybe string)
 findOptionsFile =
-  getCurrentDirectory >>= canonicalizePath >>= findOptionsFile'
+  (getCurrentDirectory >>= canonicalizePath) >>= findOptionsFile'
 
 readOptions : maybe string → IO (string × cedille-options.options)
 readOptions nothing =
-  getHomeDirectory >>=
-  canonicalizePath >>= λ home →
+  (getHomeDirectory >>=
+   canonicalizePath) >>= λ home →
   createOptionsFile (dot-cedille-directory home) >>r
   dot-cedille-directory home , cedille-options.default-options
 readOptions (just fp) = readFiniteFile fp >>= λ fc →
@@ -132,7 +130,7 @@ module main-with-options
   open import syntax-util
   open import to-string options
   open import toplevel-state options {IO}
---  import interactive-cmds
+  open import interactive-cmds options
   open import rkt options
 --  open import elaboration options
   
@@ -202,7 +200,7 @@ module main-with-options
     maybe-write-aux-file ie dot-ced (cede-filename filename) cede-suffix
       cedille-options.options.use-cede-files
       include-elt.cede-up-to-date
-      ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ include-elt-spans-to-rope ie) >>
+      ((if include-elt.err ie then [[ "e" ]] else [[]]) ⊹⊹ json-to-rope (include-elt-spans-to-json ie)) >>
     maybe-write-aux-file ie dot-ced (rkt-filename filename) rkt-suffix
       cedille-options.options.make-rkt-files
       include-elt.rkt-up-to-date
@@ -213,7 +211,7 @@ module main-with-options
   read-cede-file ced-path =
     let cede = cede-filename ced-path in
     logMsg ("Started reading .cede file " ^ cede) >>
-    get-file-contents cede >>= finish >≯
+    (get-file-contents cede >>= finish) >≯
     logMsg ("Finished reading .cede file " ^ cede)
     where finish : maybe string → IO (𝔹 × string)
           finish nothing = return (tt , global-error-string ("Could not read the file " ^ cede-filename ced-path ^ "."))
@@ -294,14 +292,14 @@ module main-with-options
         (set-do-type-check-include-elt
           (get-include-elt s filename) tt) ff)
   
-  infixl 1 _&&>>_
+  infixl 2 _&&>>_
   _&&>>_ : IO 𝔹 → IO 𝔹 → IO 𝔹
   (a &&>> b) = a >>= λ a → if a then b else return ff
 
   aux-up-to-date : filepath → toplevel-state → IO toplevel-state
   aux-up-to-date filename s =
     let rkt = rkt-filename filename in
-    doesFileExist rkt &&>> fileIsOlder filename rkt >>=r
+    (doesFileExist rkt &&>> fileIsOlder filename rkt) >>=r
     (set-include-elt s filename ∘  (set-rkt-file-up-to-date-include-elt (get-include-elt s filename)))
 
   ie-up-to-date : filepath → include-elt → IO 𝔹
@@ -316,7 +314,7 @@ module main-with-options
         cede' = cede-filename import-file in
     case cedille-options.options.use-cede-files options of λ where
       ff → return dtc
-      tt → doesFileExist cede &&>> doesFileExist cede' >>= λ where
+      tt → (doesFileExist cede &&>> doesFileExist cede') >>= λ where
         ff → return ff
         tt → fileIsOlder cede cede' >>=r λ fio → dtc || fio
    
@@ -341,10 +339,10 @@ module main-with-options
     tt → return s
   ...| nothing =
       let cede = cede-filename filename in
-      return (cedille-options.options.use-cede-files options) &&>>
-      doesFileExist cede &&>>
-      fileIsOlder filename cede &&>>
-      file-after-compile cede >>= λ where
+      (return (cedille-options.options.use-cede-files options) &&>>
+       doesFileExist cede &&>>
+       fileIsOlder filename cede &&>>
+       file-after-compile cede) >>= λ where
          ff → reparse-file filename s
          tt → reparse s filename >>= λ s →
               read-cede-file filename >>= λ where
@@ -363,7 +361,7 @@ module main-with-options
                  IO (stringset {- seen already -} × toplevel-state)
   update-astsh seen s filename = 
     if stringset-contains seen filename then return (seen , s)
-    else (ensure-ast-depsh filename s >>= aux-up-to-date filename >>= cont (stringset-insert seen filename))
+    else ((ensure-ast-depsh filename s >>= aux-up-to-date filename) >>= cont (stringset-insert seen filename))
     where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
           cont seen s with get-include-elt s filename
           cont seen s | ie with include-elt.deps ie
@@ -401,7 +399,7 @@ module main-with-options
           reply s | nothing = putStrLn (global-error-string ("Internal error looking up information for file " ^ filename ^ "."))
           reply s | just ie =
              if should-print-spans then
-               putRopeLn (include-elt-spans-to-rope ie)
+               putJson (include-elt-spans-to-json ie)
              else return triv
           finish : (toplevel-state × file × mod-info) → IO toplevel-state
           finish (s @ (mk-toplevel-state ip mod is Γ) , f , ret-mod) =
@@ -429,12 +427,8 @@ module main-with-options
       logMsg ("Frontend input: " ^ input) >>
       let input-list : 𝕃 string 
           input-list = (string-split (undo-escape-string input) delimiter) 
-              in (handleCommands input-list s) >>= λ s →
-          readCommandsFromFrontend s
+              in (handleCommands input-list s) >>= readCommandsFromFrontend
           where
-              delimiter : char
-              delimiter = '§'
-
               errorCommand : 𝕃 string → toplevel-state → IO ⊤
               errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
 
@@ -451,7 +445,7 @@ module main-with-options
               createArchive-h s t (filename :: filenames) with trie-contains t filename | get-include-elt-if s filename
               ...| ff | just ie = createArchive-h s (trie-insert t filename $ include-elt-to-archive ie) (filenames ++ include-elt.deps ie)
               ...| _ | _ = createArchive-h s t filenames
-              createArchive-h s t [] = json-object t
+              createArchive-h s t [] = json-object $ trie-mappings t
 
               createArchive : toplevel-state → string → json
               createArchive s filename = createArchive-h s empty-trie (filename :: [])
@@ -475,8 +469,9 @@ module main-with-options
               handleCommands ("check" :: xs) s = checkCommand xs s
               handleCommands ("debug" :: []) s = debugCommand s >>r s
 --              handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
---              handleCommands ("interactive" :: xs) s = interactive-cmds.interactive-cmd options xs s >>r s
+              handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
               handleCommands ("archive" :: xs) s = archiveCommand xs s
+              handleCommands ("br" :: xs) s = putJson interactive-not-br-cmd-msg >>r s
   --            handleCommands ("find" :: xs) s = findCommand xs s
               handleCommands xs s = errorCommand xs s >>r s
 
@@ -492,7 +487,7 @@ module main-with-options
     where finish : string → toplevel-state → IO ⊤
           finish input-filename s = return triv
 {-            let ie = get-include-elt s input-filename in
-            if include-elt.err ie then (putRopeLn (include-elt-spans-to-rope ie)) else return triv
+            if include-elt.err ie then (putRopeLn (include-elt-spans-to-json ie)) else return triv
 -}
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))

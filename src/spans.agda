@@ -1,10 +1,6 @@
 import cedille-options
 open import general-util
 module spans (options : cedille-options.options) {mF : Set → Set} {{mFm : monad mF}} where
-
-open import lib
-open import functions
-
 open import cedille-types
 open import constants 
 open import conversion
@@ -15,6 +11,7 @@ open import type-util
 open import to-string options
 open import subst
 open import datatype-functions
+open import json
 
 
 --------------------------------------------------
@@ -27,11 +24,9 @@ err-m = maybe string
 data span : Set where
   mk-span : string → posinfo → posinfo → 𝕃 tagged-val {- extra information for the span -} → err-m → span
 
-span-to-rope : span → rope
-span-to-rope (mk-span name start end extra nothing) = 
-  [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 extra ⊹⊹ [[ "}]" ]]
-span-to-rope (mk-span name start end extra (just err)) = 
-  [[ "[\"" ^ name ^ "\"," ^ start ^ "," ^ end ^ ",{" ]] ⊹⊹ tagged-vals-to-rope 0 (strRunTag "error" empty-ctxt (strAdd err) :: extra) ⊹⊹ [[ "}]" ]]
+span-to-json : span → json
+span-to-json (mk-span name s e tvs err?) =
+  json-array $ json-string name :: json-raw [[ s ]] :: json-raw [[ e ]] :: [ tagged-vals-to-json (maybe-else' err? tvs λ err → ("error" , [[ err ]] , []) :: tvs) ]
 
 data error-span : Set where
   mk-error-span : string → posinfo → posinfo → 𝕃 tagged-val → string → error-span
@@ -46,6 +41,10 @@ is-error-span (mk-span _ _ _ _ err) = isJust err
 get-span-error : span → err-m
 get-span-error (mk-span _ _ _ _ err) = err
 
+get-spans-error : spans → maybe (string × 𝕃 tagged-val)
+get-spans-error (global-error e _) = just $ e , []
+get-spans-error (regular-spans e? _) = maybe-map (λ {(mk-error-span _ _ _ tvs e) → e , tvs}) e?
+
 get-tagged-vals : span → 𝕃 tagged-val
 get-tagged-vals (mk-span _ _ _ tvs _) = tvs
 
@@ -56,15 +55,13 @@ spans-have-error (global-error _ _) = tt
 empty-spans : spans
 empty-spans = regular-spans nothing []
 
-𝕃span-to-rope : 𝕃 span → rope
-𝕃span-to-rope (s :: []) = span-to-rope s
-𝕃span-to-rope (s :: ss) = span-to-rope s ⊹⊹ [[ "," ]] ⊹⊹ 𝕃span-to-rope ss
-𝕃span-to-rope [] = [[]]
+spans-to-json' : spans → 𝕃 (string × json)
+spans-to-json' (regular-spans _ ss) = [ "spans" , json-array (map span-to-json ss) ]
+spans-to-json' (global-error e s) =
+  ("error" , json-string e) :: maybe-else' s [] λ s → [ "global-error" , span-to-json s ]
 
-spans-to-rope : spans → rope
-spans-to-rope (regular-spans _ ss) = [[ "{\"spans\":["]] ⊹⊹ 𝕃span-to-rope ss ⊹⊹ [[ "]}" ]] where
-spans-to-rope (global-error e s) =
-  [[ global-error-string e ]] ⊹⊹ maybe-else [[]] (λ s → [[", \"global-error\":"]] ⊹⊹ span-to-rope s) s
+spans-to-json : spans → json
+spans-to-json = json-object ∘ spans-to-json'
 
 print-file-id-table : ctxt → 𝕃 tagged-val
 print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is Δ) =
@@ -91,25 +88,21 @@ spanM A = spans → mF (A × spans)
 
 instance
   spanM-monad : monad spanM
-  returnM ⦃ spanM-monad ⦄ = curry returnM
-  _≫=_ ⦃ spanM-monad ⦄ m₁ m₂ ss = m₁ ss ≫= uncurry m₂
+  return ⦃ spanM-monad ⦄ = curry return
+  _>>=_ ⦃ spanM-monad ⦄ m₁ m₂ ss = m₁ ss >>= uncurry m₂
 
   spanM-functor : functor spanM
-  fmap ⦃ spanM-functor ⦄ g m ss = m ss ≫= uncurry λ a ss' → returnM (g a , ss')
+  fmap ⦃ spanM-functor ⦄ g m ss = m ss >>= uncurry λ a ss' → return (g a , ss')
 
   spanM-applicative : applicative spanM
-  pure ⦃ spanM-applicative ⦄ = returnM
+  pure ⦃ spanM-applicative ⦄ = return
   _<*>_ ⦃ spanM-applicative ⦄ mab ma ss =
-    mab ss ≫= uncurry λ f ss₁ →
-    ma ss₁ ≫= uncurry λ a →
-    returnM (f a)
-
--- return for the spanM monad
-spanMr : ∀{A : Set} → A → spanM A
-spanMr = curry returnM
+    mab ss >>= uncurry λ f ss₁ →
+    ma ss₁ >>= uncurry λ a →
+    return (f a)
 
 spanMok : spanM ⊤
-spanMok = spanMr triv
+spanMok = return triv
 
 get-error : ∀ {A : Set} → (maybe error-span → spanM A) → spanM A
 get-error m ss@(global-error _ _) = m nothing ss
@@ -117,115 +110,115 @@ get-error m ss@(regular-spans nothing _) = m nothing ss
 get-error m ss@(regular-spans (just es) _) = m (just es) ss
 
 set-error : maybe (error-span) → spanM ⊤
-set-error es ss@(global-error _ _) = returnM (triv , ss)
-set-error es (regular-spans _ ss) = returnM (triv , regular-spans es ss)
+set-error es ss@(global-error _ _) = return (triv , ss)
+set-error es (regular-spans _ ss) = return (triv , regular-spans es ss)
 
 spanM-push : mF ⊤ → spanM ⊤
-spanM-push mf ss = mf ≫ returnM (triv , ss)
+spanM-push mf ss = mf >> return (triv , ss)
 
-_≫=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-(m₁ ≫=span m₂) ss = m₁ ss ≫= λ where (v , ss) → m₂ v ss
+--_>>=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
+--(m₁ >>=span m₂) ss = m₁ ss >>= λ where (v , ss) → m₂ v ss
 
-_≫span_ : ∀{A B : Set} → spanM A → spanM B → spanM B
-(m₁ ≫span m₂) = m₁ ≫=span (λ _ → m₂)
+--_≫span_ : ∀{A B : Set} → spanM A → spanM B → spanM B
+--(m₁ ≫span m₂) = m₁ >>=span (λ _ → m₂)
 
-infixr 2 _≫span_ _≫=span_ _≫=spanj_ _≫=spanm_ _≫=spanm'_ _≫=spanc_ _≫=spanc'_ _≫spanc_ _≫spanc'_ _≫=span?_
+--infixr 2 _≫span_ _>>=span_ _>>=spanj_ _>>=spanm_ _>>=spanm'_ _>>=spanc_ _>>=spanc'_ _≫spanc_ _≫spanc'_ _>>=span?_
 
-_≫=span?_ : ∀{A B : Set} → maybe (spanM A) → (maybe A → spanM B) → spanM B
-nothing ≫=span? f = f nothing
-just a ≫=span? f = a ≫=span (f ∘ just)
+--_>>=span?_ : ∀{A B : Set} → maybe (spanM A) → (maybe A → spanM B) → spanM B
+--nothing >>=span? f = f nothing
+--just a >>=span? f = a >>=span (f ∘ just)
 
-_≫=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
-_≫=spanj_{A} m m' = m ≫=span cont
-  where cont : maybe A → spanM ⊤
-        cont nothing = spanMok
-        cont (just x) = m' x
+--_>>=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
+--_>>=spanj_{A} m m' = m >>=span cont
+--  where cont : maybe A → spanM ⊤
+--        cont nothing = spanMok
+--        cont (just x) = m' x
 
 -- discard changes made by the first computation
-_≫=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
-_≫=spand_{A} m m' ss = m ss ≫= λ where (v , _) → m' v ss
+_>>=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
+_>>=spand_{A} m m' ss = m ss >>= λ where (v , _) → m' v ss
 
-_≫=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
-_≫=spanm_{A} m m' = m ≫=span cont
-  where cont : maybe A → spanM (maybe A)
-        cont nothing = spanMr nothing
-        cont (just a) = m' a
+--_>>=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
+--_>>=spanm_{A} m m' = m >>=span cont
+--  where cont : maybe A → spanM (maybe A)
+--        cont nothing = return nothing
+--        cont (just a) = m' a
 
-_≫=spans'_ : ∀ {A B E : Set} → spanM (E ∨ A) → (A → spanM (E ∨ B)) → spanM (E ∨ B)
-_≫=spans'_ m f = m ≫=span λ where
-  (inj₁ e) → spanMr (inj₁ e)
-  (inj₂ a) → f a
+--_>>=spans'_ : ∀ {A B E : Set} → spanM (E ∨ A) → (A → spanM (E ∨ B)) → spanM (E ∨ B)
+--_>>=spans'_ m f = m >>=span λ where
+--  (inj₁ e) → return (inj₁ e)
+--  (inj₂ a) → f a
 
-_≫=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
-_≫=spanm'_{A}{B} m m' = m ≫=span cont
-  where cont : maybe A → spanM (maybe B)
-        cont nothing = spanMr nothing
-        cont (just a) = m' a
+--_>>=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
+--_>>=spanm'_{A}{B} m m' = m >>=span cont
+--  where cont : maybe A → spanM (maybe B)
+--        cont nothing = return nothing
+--        cont (just a) = m' a
 
 
 -- Currying/uncurry span binding
-_≫=spanc_ : ∀{A B C} → spanM (A × B) → (A → B → spanM C) → spanM C
-(m ≫=spanc m') ss = m ss ≫= λ where
-  ((a , b) , ss') → m' a b ss'
+--_>>=spanc_ : ∀{A B C} → spanM (A × B) → (A → B → spanM C) → spanM C
+--(m >>=spanc m') ss = m ss >>= λ where
+--  ((a , b) , ss') → m' a b ss'
 
-_≫=spanc'_ : ∀{A B C} → spanM (A × B) → (B → spanM C) → spanM C
-(m ≫=spanc' m') ss = m ss ≫= λ where
-  ((a , b) , ss') → m' b ss'
+--_>>=spanc'_ : ∀{A B C} → spanM (A × B) → (B → spanM C) → spanM C
+--(m >>=spanc' m') ss = m ss >>= λ where
+--  ((a , b) , ss') → m' b ss'
 
-_≫spanc'_ : ∀{A B} → spanM A → B → spanM (A × B)
-(m ≫spanc' b) = m ≫=span λ a → spanMr (a , b)
+--_≫spanc'_ : ∀{A B} → spanM A → B → spanM (A × B)
+--(m ≫spanc' b) = m >>=span λ a → return (a , b)
 
-_≫spanc_ : ∀{A B} → spanM A → spanM B → spanM (A × B)
-(ma ≫spanc mb) = ma ≫=span λ a → mb ≫=span λ b → spanMr (a , b)
+--_≫spanc_ : ∀{A B} → spanM A → spanM B → spanM (A × B)
+--(ma ≫spanc mb) = ma >>=span λ a → mb >>=span λ b → return (a , b)
 
-spanMok' : ∀{A} → A → spanM (⊤ × A)
-spanMok' a = spanMr (triv , a)
+--spanMok' : ∀{A} → A → spanM (⊤ × A)
+--spanMok' a = return (triv , a)
 
-_on-fail_≫=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM B
-                            → (A → spanM B) → spanM B
-_on-fail_≫=spanm'_ {A}{B} m fail f = m ≫=span cont
-  where cont : maybe A → spanM B
-        cont nothing  = fail
-        cont (just x) = f x
+--_on-fail_>>=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM B
+--                            → (A → spanM B) → spanM B
+--_on-fail_>>=spanm'_ {A}{B} m fail f = m >>=span cont
+--  where cont : maybe A → spanM B
+--        cont nothing  = fail
+--        cont (just x) = f x
 
-_on-fail_≫=spans'_ : ∀ {A B E} → spanM (E ∨ A) → (E → spanM B) → (A → spanM B) → spanM B
-_on-fail_≫=spans'_ {A}{B}{E} m fail f = m ≫=span cont
-  where cont : E ∨ A → spanM B
-        cont (inj₁ err) = fail err
-        cont (inj₂ a) = f a
+--_on-fail_>>=spans'_ : ∀ {A B E} → spanM (E ∨ A) → (E → spanM B) → (A → spanM B) → spanM B
+--_on-fail_>>=spans'_ {A}{B}{E} m fail f = m >>=span cont
+--  where cont : E ∨ A → spanM B
+--        cont (inj₁ err) = fail err
+--        cont (inj₂ a) = f a
 
-_exit-early_≫=spans'_ = _on-fail_≫=spans'_
+--_exit-early_>>=spans'_ = _on-fail_>>=spans'_
 
-sequence-spanM : ∀ {A} → 𝕃 (spanM A) → spanM (𝕃 A)
-sequence-spanM [] = spanMr []
-sequence-spanM (sp :: sps)
-  =   sp
-    ≫=span λ x → sequence-spanM sps
-    ≫=span λ xs → spanMr (x :: xs)
+--sequence-spanM : ∀ {A} → 𝕃 (spanM A) → spanM (𝕃 A)
+--sequence-spanM [] = return []
+--sequence-spanM (sp :: sps)
+--  =   sp
+--    >>=span λ x → sequence-spanM sps
+--    >>=span λ xs → return (x :: xs)
 
-foldr-spanM : ∀ {A B} → (A → spanM B → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
-foldr-spanM f n [] = n
-foldr-spanM f n (m :: ms)
-  = m ≫=span λ a → f a (foldr-spanM f n ms)
+--foldr-spanM : ∀ {A B} → (A → spanM B → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
+--foldr-spanM f n [] = n
+--foldr-spanM f n (m :: ms)
+--  = m >>=span λ a → f a (foldr-spanM f n ms)
 
-foldl-spanM : ∀ {A B} → (spanM B → A → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
-foldl-spanM f m [] = m
-foldl-spanM f m (m' :: ms) =
-  m' ≫=span λ a → foldl-spanM f (f m a) ms
+--foldl-spanM : ∀ {A B} → (spanM B → A → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
+--foldl-spanM f m [] = m
+--foldl-spanM f m (m' :: ms) =
+--  m' >>=span λ a → foldl-spanM f (f m a) ms
 
-spanM-for_init_use_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
-spanM-for xs init acc use f = foldr-spanM f acc xs
+--spanM-for_init_use_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
+--spanM-for xs init acc use f = foldr-spanM f acc xs
 
 spanM-add : span → spanM ⊤
-spanM-add s ss = returnM (triv , add-span s ss)
+spanM-add s ss = return (triv , add-span s ss)
 
 infixr 2 [-_-]_
 [-_-]_ : ∀ {X} → span → spanM X → spanM X
-[- s -] m = spanM-add s ≫span m
+[- s -] m = spanM-add s >> m
 
-spanM-addl : 𝕃 span → spanM ⊤
-spanM-addl [] = spanMok
-spanM-addl (s :: ss) = spanM-add s ≫span spanM-addl ss
+--spanM-addl : 𝕃 span → spanM ⊤
+--spanM-addl [] = spanMok
+--spanM-addl (s :: ss) = spanM-add s ≫span spanM-addl ss
 
 debug-span : posinfo → posinfo → 𝕃 tagged-val → span
 debug-span pi pi' tvs = mk-span "Debug" pi pi' tvs nothing
@@ -234,28 +227,24 @@ spanM-debug : posinfo → posinfo → 𝕃 tagged-val → spanM ⊤
 --spanM-debug pi pi' tvs = spanM-add (debug-span pi pi' tvs)
 spanM-debug pi pi' tvs = spanMok
 
-
-spanMr2 : ∀ {X Y} → X → Y → spanM (X × Y)
-spanMr2 = curry spanMr
-
 check-ret : ∀ {Y : Set} → maybe Y → Set → Set
 check-ret {Y} T t = if isJust T then t else (t × Y)
 
 return-when : ∀ {X Y} {m : maybe Y} → X → Y → spanM (check-ret m X)
-return-when {X} {Y} {nothing} x u = spanMr2 x u
-return-when {X} {Y} {just _} x u = spanMr x
+return-when {X} {Y} {nothing} x u = return2 x u
+return-when {X} {Y} {just _} x u = return x
 
 case-ret : ∀ {X Y} {m : maybe Y} → spanM (X × Y) → (Y → spanM X) → spanM (check-ret m X)
 case-ret {X} {Y} {nothing} n j = n
 case-ret {X} {Y} {just y} n j = j y
 
 case-ret-body : ∀ {X Y} {m : maybe Y} → spanM (check-ret m X) → (X → Y → spanM (check-ret m X)) → spanM (check-ret m X)
-case-ret-body {X} {Y} {nothing} m f = m ≫=span uncurry f
-case-ret-body {X} {Y} {just y} m f = m ≫=span λ x → f x y
+case-ret-body {X} {Y} {nothing} m f = m >>= uncurry f
+case-ret-body {X} {Y} {just y} m f = m >>= λ x → f x y
 
 with-clear-error : ∀ {A} → spanM A → spanM A
 with-clear-error m =
-  get-error λ es → set-error nothing ≫span m ≫=span λ a → set-error es ≫span spanMr a
+  get-error λ es → set-error nothing >> m >>= λ a → set-error es >> return a
 
 
 --------------------------------------------------
@@ -267,7 +256,7 @@ to-string-tag-tk t Γ (Tkt T) = to-string-tag t Γ T
 to-string-tag-tk t Γ (Tkk k) = to-string-tag t Γ k
 
 location-data : location → tagged-val
-location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-name ≫str strAdd " - " ≫str strAdd pi)
+location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-name >>str strAdd " - " >>str strAdd pi)
 
 var-location-data : ctxt → var → tagged-val
 var-location-data Γ @ (mk-ctxt _ _ i _) x =
@@ -337,17 +326,17 @@ check-for-type-mismatch Γ s tp tp' =
   if conv-type Γ tp tp' then nothing else just ("The expected type does not match the " ^ s ^ " type")
 
 check-for-type-mismatch-if : ctxt → string → maybe type → type → err-m
-check-for-type-mismatch-if Γ s T? T = T? ≫=maybe check-for-type-mismatch Γ s T
+check-for-type-mismatch-if Γ s T? T = T? >>= check-for-type-mismatch Γ s T
 
 check-for-kind-mismatch : ctxt → string → kind → kind → err-m
 check-for-kind-mismatch Γ s kd kd' =
   if conv-kind Γ kd kd' then nothing else just ("The expected kind does not match the " ^ s ^ " kind")
 
 check-for-kind-mismatch-if : ctxt → string → maybe kind → kind → err-m
-check-for-kind-mismatch-if Γ s k? k = k? ≫=maybe check-for-kind-mismatch Γ s k
+check-for-kind-mismatch-if Γ s k? k = k? >>= check-for-kind-mismatch Γ s k
 
 summary-data : {ed : exprd} → (name : string) → ctxt → ⟦ ed ⟧ → tagged-val
-summary-data name Γ t = strRunTag "summary" Γ (strVar name ≫str strAdd " : " ≫str to-stringe t)
+summary-data name Γ t = strRunTag "summary" Γ (strVar name >>str strAdd " : " >>str to-stringe t)
 
 head-kind : ctxt → kind → tagged-val
 head-kind = to-string-tag "the kind of the head"
@@ -420,34 +409,34 @@ ll-data-kind = ll-data KIND
 binder-data : ctxt → posinfo → var → (atk : tpkd) → erased? → maybe (if tk-is-type atk then term else type) → (from to : posinfo) → tagged-val
 binder-data Γ pi x atk me val s e =
   strRunTag "binder" Γ $
-  strAdd "symbol:" ≫str
-  strAdd x ≫str
-  atk-val atk val ≫str
-  strAdd "§from:" ≫str
-  strAdd s ≫str
-  strAdd "§to:" ≫str
-  strAdd e ≫str
-  loc ≫str
+  strAdd "symbol:" >>str
+  strAdd x >>str
+  atk-val atk val >>str
+  strAdd "§from:" >>str
+  strAdd s >>str
+  strAdd "§to:" >>str
+  strAdd e >>str
+  loc >>str
   strErased?
   where
   loc : strM
-  loc = strAdd "§fn:" ≫str strAdd (ctxt-get-current-filename Γ) ≫str strAdd "§pos:" ≫str strAdd pi
+  loc = strAdd "§fn:" >>str strAdd (ctxt-get-current-filename Γ) >>str strAdd "§pos:" >>str strAdd pi
   strErased? : strM
   strErased? =
-    strAdd "§erased:" ≫str
+    strAdd "§erased:" >>str
     strAdd (if me then "true" else "false")
   val? : ∀ {ed} → maybe ⟦ ed ⟧ → strM
   val? = maybe-else strEmpty λ x →
-    strAdd "§value:" ≫str
+    strAdd "§value:" >>str
     to-stringe x
   atk-val : (atk : tpkd) → maybe (if tk-is-type atk then term else type) → strM
   atk-val (Tkt T) t? =
-    strAdd "§type:" ≫str
-    to-stringe T ≫str
+    strAdd "§type:" >>str
+    to-stringe T >>str
     val? t?
   atk-val (Tkk k) T? =
-    strAdd "§kind:" ≫str
-    to-stringe k ≫str
+    strAdd "§kind:" >>str
+    to-stringe k >>str
     val? T?
 
 punctuation-data : tagged-val
@@ -569,7 +558,7 @@ AppTp-span l pi pi' check tvs = mk-span "Application of a term to a type" pi pi'
 
 TpQuant-span : ctxt → erased? → posinfo → posinfo → var → tpkd → ex-tp → checking-mode → 𝕃 tagged-val → err-m → span
 TpQuant-span Γ me pi pi' x atk body check tvs err =
-  let err-if-type-pi = maybe-if ( ~ (tk-is-type atk || me)) ≫maybe
+  let err-if-type-pi = maybe-if ( ~ (tk-is-type atk || me)) >>
                        just "Π-types must bind a term, not a type (use ∀ instead)"
       name = if me then "Implicit dependent function type" else "Dependent function type" in
   mk-span name pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data Γ pi' x atk me nothing (type-start-pos body) (type-end-pos body) :: tvs) (if isJust err-if-type-pi then err-if-type-pi else err)
@@ -625,12 +614,7 @@ Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 
 Lam-span : ctxt → checking-mode → posinfo → posinfo → erased? → var → tpkd → ex-tm → 𝕃 tagged-val → err-m → span
 Lam-span Γ c pi pi' l x atk t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
-                                           ((ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
-                                           ++ bound-tp atk)
-  where
-  bound-tp : tpkd → 𝕃 tagged-val
-  bound-tp (Tkt (TpHole _)) = []
-  bound-tp atk = [ to-string-tag-tk "type of bound variable" Γ atk ]
+                                           (ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
 
 
 compileFail-in : ctxt → term → 𝕃 tagged-val × err-m
@@ -708,8 +692,14 @@ hole-span Γ pi tp check tvs =
 
 tp-hole-span : ctxt → posinfo → maybe kind → checking-mode → 𝕃 tagged-val → span
 tp-hole-span Γ pi k check tvs =
-  mk-span "Hole" pi (posinfo-plus pi 1) 
-    (checking-data check :: ll-data-term :: expected-kind-if Γ k ++ tvs)
+  mk-span "Hole" pi (posinfo-plus pi 1)
+    (checking-data check :: ll-data-type :: expected-kind-if Γ k ++ tvs)
+    (just "This hole remains to be filled in")
+
+kd-hole-span : posinfo → checking-mode → span
+kd-hole-span pi check =
+  mk-span "Hole" pi (posinfo-plus pi 1)
+    (checking-data check :: ll-data-kind :: [])
     (just "This hole remains to be filled in")
 
 
@@ -791,7 +781,7 @@ Theta-span : ctxt → posinfo → theta → ex-tm → 𝕃 lterm → checking-mo
 Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end-pos t) ls) (ll-data-term :: checking-data check :: tvs ++ do-explain u)
   where do-explain : theta → 𝕃 tagged-val
         do-explain Abstract = [ explain ("Perform an elimination with the first term, after abstracting it from the expected type") ]
-        do-explain (AbstractVars vs) = [ strRunTag "explanation" Γ (strAdd "Perform an elimination with the first term, after abstracting the listed variables (" ≫str vars-to-string vs ≫str strAdd ") from the expected type") ]
+        do-explain (AbstractVars vs) = [ strRunTag "explanation" Γ (strAdd "Perform an elimination with the first term, after abstracting the listed variables (" >>str vars-to-string vs >>str strAdd ") from the expected type") ]
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type") ]
 
@@ -801,8 +791,8 @@ Mu-span Γ pi x? pi' motive? check tvs = mk-span (case x? of λ {(ExIsMu pi x) �
 pattern-span : posinfo → var → 𝕃 ex-case-arg → span
 pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(ExCaseArg me pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) [] nothing
 
-pattern-clause-span : posinfo → ex-tm → span
-pattern-clause-span pi t = mk-span "Pattern clause" pi (term-end-pos t) [] nothing
+pattern-clause-span : posinfo → ex-tm → 𝕃 tagged-val → span
+pattern-clause-span pi t tvs = mk-span "Pattern clause" pi (term-end-pos t) tvs nothing
 
 pattern-ctr-span : ctxt → posinfo → var → case-args → maybe type → 𝕃 tagged-val → err-m → span
 pattern-ctr-span Γ pi x as tp tvs =

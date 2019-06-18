@@ -3,8 +3,6 @@ open import general-util
 
 module toplevel-state (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
-open import lib
-
 open import cedille-types
 open import classify options {mF}
 open import ctxt
@@ -125,15 +123,15 @@ set-include-path s ip = record s { include-path = ip }
 get-do-type-check : toplevel-state → string → 𝔹
 get-do-type-check s filename = include-elt.do-type-check (get-include-elt s filename)
 
-include-elt-spans-to-rope : include-elt → rope
-include-elt-spans-to-rope ie with (include-elt.ss ie)
-include-elt-spans-to-rope ie | inj₁ ss = spans-to-rope ss
-include-elt-spans-to-rope ie | inj₂ ss = [[ ss ]]
+include-elt-spans-to-json : include-elt → json
+include-elt-spans-to-json ie with (include-elt.ss ie)
+include-elt-spans-to-json ie | inj₁ ss = spans-to-json ss
+include-elt-spans-to-json ie | inj₂ ss = json-raw [[ ss ]]
 
 include-elt-to-archive : include-elt → json
 include-elt-to-archive ie with (include-elt.ss ie) | (include-elt.source ie)
-include-elt-to-archive ie | inj₁ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw (spans-to-rope ss)) :: []
-include-elt-to-archive ie | inj₂ ss | source = json-new $ ("source" , json-string source) :: ("spans" , json-raw [[ ss ]]) :: []
+include-elt-to-archive ie | inj₁ ss | source = json-object $ ("source" , json-string source) :: spans-to-json' ss
+include-elt-to-archive ie | inj₂ ss | source = json-object $ ("source" , json-string source) :: [ "spans" , json-raw [[ ss ]] ]
 
 include-elt-to-string : include-elt → string
 include-elt-to-string ie =
@@ -206,8 +204,8 @@ check-redefined : ∀ {X} → posinfo → var → toplevel-state → X → spanM
 check-redefined pi v s x c =
   let Γ = toplevel-state.Γ s in
   if ctxt-binds-var Γ v then
-    (spanM-add (redefined-var-span Γ pi v) ≫span spanMr2 s x)
-  else (c ≫=span λ s → spanMr2 s x)
+    ([- redefined-var-span Γ pi v -] return2 s x)
+  else (c >>= λ s → return2 s x)
 
 import-as-x : var → maybe var → var
 import-as-x v nothing = v
@@ -228,9 +226,9 @@ check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
 scope-t : Set → Set
 scope-t X = filepath → string → maybe var → params → args → X → toplevel-state → toplevel-state × err-m
 
-infixl 0 _≫=scope_
-_≫=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
-_≫=scope_ (ts , err) f with f ts
+infixl 0 _>>=scope_
+_>>=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
+_>>=scope_ (ts , err) f with f ts
 ...| ts' , err' = ts' , err maybe-or err'
 
 {-# TERMINATING #-}
@@ -248,14 +246,14 @@ scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-sing
 
 scope-file' fnₒ fn oa psₒ as triv s with get-include-elt s fn
 ...| ie with include-elt.err ie | include-elt.ast~ ie
-...| e | nothing = s , maybe-if e ≫maybe just error-in-import-string
+...| e | nothing = s , when e error-in-import-string
 ...| e | just (Module is mn ps cs) =
-  (s , maybe-if e ≫maybe just error-in-import-string) ≫=scope
-  scope-cmds fn mn oa ps as (imps-to-cmds is) ≫=scope
+  (s , when e error-in-import-string) >>=scope
+  scope-cmds fn mn oa ps as (imps-to-cmds is) >>=scope
   scope-cmds fn mn oa ps as cs
 
 scope-cmds fn mn oa ps as (c :: cs) s =
-  scope-cmd fn mn oa ps as c s ≫=scope scope-cmds fn mn oa ps as cs
+  scope-cmd fn mn oa ps as c s >>=scope scope-cmds fn mn oa ps as cs
 scope-cmds fn mn oa ps as [] s = s , nothing
 
 scope-cmd fn mn oa ps as (CmdImport (Import Private ifn oa' as')) s = s , nothing
@@ -282,7 +280,7 @@ scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn oa' asᵢ')) s =
   
   reorder : args → args
   reorder (a :: as) =
-    maybe-else' (arg-var a ≫=maybe trie-lookup σ) (a :: reorder as) λ ma →
+    maybe-else' (arg-var a >>= trie-lookup σ) (a :: reorder as) λ ma →
     maybe-else' ma [] λ a → a :: reorder as
   reorder [] = []
   
@@ -292,18 +290,18 @@ scope-cmd fn mn oa ps as (CmdDefKind v _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (CmdDefTerm _ v _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (CmdDefType _ v _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (CmdDefData v _ _ cs) s =
-  scope-var fn mn oa ps as v s ≫=scope
-  scope-ctrs fn mn oa ps as cs ≫=scope
+  scope-var fn mn oa ps as v s >>=scope
+  scope-ctrs fn mn oa ps as cs >>=scope
   scope-datatype-names fn mn oa ps as v
 
 scope-ctrs fn mn oa ps as [] s = s , nothing
 scope-ctrs fn mn oa ps as (Ctr x T :: ds) s =
-  scope-var fn mn oa ps as x s ≫=scope
+  scope-var fn mn oa ps as x s >>=scope
   scope-ctrs fn mn oa ps as ds
 
 scope-datatype-names fn mn oa ps as x s =
-  scope-var fn mn oa ps as (data-Is/ x) s ≫=scope
-  scope-var fn mn oa ps as (data-is/ x) ≫=scope
+  scope-var fn mn oa ps as (data-Is/ x) s >>=scope
+  scope-var fn mn oa ps as (data-is/ x) >>=scope
   scope-var fn mn oa ps as (data-to/ x)
 
 

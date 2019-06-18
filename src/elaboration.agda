@@ -774,7 +774,7 @@ elab-file' ts ρ φ μ fn =
             Γ = toplevel-state.Γ ts
             Γ = ctxt-add-current-params (ctxt-set-current-mod Γ (fn , mn , ps' , ctxt-get-qualif Γ)) in
         elab-cmds nothing (record ts {Γ = Γ}) ρ φ μ cs ≫=maybe uncurry'' λ cs ts ρ ω →
-        let ast = File [] pi-gen pi-gen mn []
+        let ast = File [] pi-gen pi-gen (rename-validify mn) []
                     (remove-dup-imports empty-stringset (imps-to-cmds is ++ cs)) pi-gen in
         just (fn' , record (set-include-elt ts fn (ie-set-span-ast ie (toplevel-state.Γ ts) ast)) {Γ = restore-ctxt-params (toplevel-state.Γ ts) (fst rps)} , restore-renamectxt ρ (snd rps) , ω)
   where
@@ -834,11 +834,6 @@ elab-all ts fm to =
     (createDirectoryIfMissing tt to >> return tt)
     (stringset-strings is) >>= λ e →
     putStrLn (if e then "0" else "2")
-
-elab-file : toplevel-state → (filename : string) → maybe rope
-elab-file ts fn =
-  elab-file' ts empty-renamectxt empty-renamectxt empty-trie fn ≫=maybe uncurry'' λ fn' ts ρ φ →
-  get-include-elt-if ts fn ≫=maybe ie-get-span-ast
 
 
 

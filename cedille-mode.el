@@ -269,6 +269,19 @@ Defaults to `error'."
 
 					;UTILITY MACROS TO CUT DOWN ON NUMBER OF FUNCTIONS
 
+(defmacro with-cedille-buffer(no-revert-window-p &rest body)
+  "Executes BODY inside the cedille buffer, reverting to whatever initial window was selected unless no-revert-window-p is non-nil."
+  (declare (indent 1) (debug t))
+  `(let ((window (get-buffer-window)))
+     (if (null cedille-mode-parent-buffer)
+         (error "Not a cedille buffer")
+       (let ((ret (with-current-buffer cedille-mode-parent-buffer
+                    (select-window (get-buffer-window) t)
+                    ,@body)))
+         (unless ,no-revert-window-p
+           (select-window window))
+         ret))))
+
 (defmacro make-cedille-mode-buffer(buffer opt-fn minor-mode-fn jump-to-window-p require-selection-p)
   "Creates a function that can be used to toggle one of the buffers. Has five arguments:\n
 1. The buffer\n
@@ -278,17 +291,18 @@ Defaults to `error'."
 5. A boolean indicating whether or not to require that a node be selected"
   `(lambda()
      (interactive)
-     (let* ((buffer ,buffer)
-	    (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
-       (when window                                                          ;if a window was created...
-	 (if (or (not ,require-selection-p) se-mode-selected)                ;if selection requirements are met..
-	     (progn
-	       (,opt-fn)                                                     ;...run the optional function...
-	       (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
-	       (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
-	   (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
-	   (message "Error: must select a node")))
-       (cedille-mode-update-buffers))))
+     (with-cedille-buffer ,jump-to-window-p
+         (let* ((buffer ,buffer)
+                (window (cedille-mode-toggle-buffer-display buffer)))            ;c.m.t.b.d returns the window (or nil)
+           (when window                                                          ;if a window was created...
+             (if (or (not ,require-selection-p) se-mode-selected)                ;if selection requirements are met..
+                 (progn
+                   (,opt-fn)                                                     ;...run the optional function...
+                   (with-current-buffer buffer (,minor-mode-fn))                 ;...enable minor mode in that window...
+                   (when ,jump-to-window-p (select-window window)))              ;...and optionally jump to window
+               (cedille-mode-toggle-buffer-display buffer)                       ;..else we close the window and give an error message
+               (message "Error: must select a node")))
+           (cedille-mode-update-buffers)))))
 
 (defun cedille-mode-concat-sep (&rest seqs)
   "Concatenates STRS with cedille-mode-sep between each"
@@ -313,28 +327,28 @@ and the remaining suffix."
       (cons (car ss) (cedille-mode-concat-sep2 " " (cdr ss))))))
 
 
-(defun cedille-mode-get-seqnum(a)
-  "Get the seqnum from a json pair. The second component
-is assumed to be a string with a sequence number (prefix up
- to the first space in each string)."
-  (car (cedille-mode-split-string (cdr a))))
+;(defun cedille-mode-get-seqnum(a)
+;  "Get the seqnum from a json pair. The second component
+;is assumed to be a string with a sequence number (prefix up
+; to the first space in each string)."
+;  (car (cedille-mode-split-string (cdr a))))
 
-(defun cedille-mode-compare-seqnums(a b)
-  "Compare two pairs by seqnum."
-  (let ((na (cadr a))
-        (nb (cadr b)))
-      (< (string-to-number na) (string-to-number nb))))
+;(defun cedille-mode-compare-seqnums(a b)
+;  "Compare two pairs by seqnum."
+;  (let ((na (cadr a))
+;        (nb (cadr b)))
+;      (< (string-to-number na) (string-to-number nb))))
 
-(defun cedille-mode-strip-seqnum(s)
-  "Return a new string just like s except without the prefix up to the 
-first space."
-  (cdr (cedille-mode-split-string s)))
+;(defun cedille-mode-strip-seqnum(s)
+;  "Return a new string just like s except without the prefix up to the 
+;first space."
+;  (cdr (cedille-mode-split-string s)))
 
 (defun cedille-mode-sort-and-strip-json(json)
   "Sort the pairs in the JSON data by the number at the 
 start of each string, and then strip out that number."
   (when json
-      (setq json (sort json 'cedille-mode-compare-seqnums))
+      ;(setq json (sort json 'cedille-mode-compare-seqnums))
       (setq json (loop for kv in json
                    collecting (cedille-mode-apply-tag kv)))
       json))
@@ -360,7 +374,7 @@ start of each string, and then strip out that number."
   (loop for (key . value) in data
         unless (or (eq key 'symbol) (eq key 'location) (eq key 'language-level) (eq key 'checking-mode)
                    (eq key 'summary) (eq key 'binder) (eq key 'bound-value) (eq key 'keywords) (eq key 'fileid) (eq key 'meta-vars-intro) (eq key 'meta-vars-sol) (eq key 'meta-var-locale))
-     collecting (cons key value)))
+        collecting (cons key value)))
 
 (defun cedille-mode-select-next(count)
   "Selects the next sibling from the currently selected one in 
@@ -619,23 +633,14 @@ occurrences, then do so."
   (setq cedille-mode-matching-nodes-on (not cedille-mode-matching-nodes-on))
   (when cedille-mode-matching-nodes-on (cedille-mode-highlight-occurrences)))
 
-
-(defun cedille-mode-apply-tags-h (obj tag)
-  "Helper for `cedille-mode-apply-tags'"
-  (cond
-   ((stringp obj)
-    ())
-   ((consp obj))
-   ))
-
 (defun cedille-mode-apply-tags (str tags)
   "Helper for `cedille-mode-apply-tag'"
   (if (null tags)
       str
     (let* ((tag (car tags))
            (tail (cdr tags))
-           (start (string-to-number (cdr (assoc 'start (cdr tag)))))
-           (end (string-to-number (cdr (assoc 'end (cdr tag)))))
+           (start (cdr (assoc 'start (cdr tag))))
+           (end (cdr (assoc 'end (cdr tag))))
            (data (cdr tag))
            (symbol (car tag)))
       (cedille-mode-apply-tags (se-pin-data start end symbol data str) tail))))
@@ -646,7 +651,7 @@ occurrences, then do so."
    (car tag)
    (funcall
     (if (not (string= 'binder (car tag))) 'identity 'cedille-mode-parse-binder)
-    (cedille-mode-apply-tags (caddr tag) (cadddr tag)))))
+    (cedille-mode-apply-tags (cadr tag) (caddr tag)))))
 
 (defun cedille-mode-parse-binder (binder)
   "Parses the `cedille-mode-sep'-delimited binder information, returning it as an alist"

@@ -1,5 +1,4 @@
 module type-util where
-open import lib
 open import cedille-types
 open import general-util
 open import syntax-util
@@ -20,7 +19,7 @@ tmtps-to-args-for-params nothing _ _ = []
 tmtps-to-args-for-params (just me) _ as = tmtps-to-args me as
 
 arg-to-tmtp : arg → tmtp
-arg-to-tmtp a = a ≫=⊎ id
+arg-to-tmtp a = a >>= id
 
 args-to-tmtps : args → 𝕃 tmtp
 args-to-tmtps = map arg-to-tmtp
@@ -128,4 +127,5 @@ lterms-to-term θ t (Lterm e t' :: ls) = lterms-to-term θ (ExApp t e t') ls
 is-hole : ∀ {ed} → ⟦ ed ⟧ → 𝔹
 is-hole {TERM} (Hole pi) = tt
 is-hole {TYPE} (TpHole pi) = tt
+is-hole {KIND} (KdHole pi) = tt
 is-hole _ = ff

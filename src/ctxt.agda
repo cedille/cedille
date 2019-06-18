@@ -1,6 +1,5 @@
 module ctxt where
 
-open import lib
 open import cedille-types
 open import ctxt-types public
 open import subst
@@ -273,13 +272,13 @@ ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
 ctxt-clarify-def : ctxt → opacity → var → maybe ctxt
 ctxt-clarify-def Γ o x with qual-lookup Γ x
 ...| just (qx , as , type-def ps o' T? k , loc) =
-  maybe-if (o xor o') ≫maybe
+  maybe-if (o xor o') >>
   just (record Γ { i = trie-insert (ctxt.i Γ) qx (type-def ps o T? k , loc) })
 ...| just (qx , as , term-def ps o' t? T , loc) =
-  maybe-if (o xor o') ≫maybe
+  maybe-if (o xor o') >>
   just (record Γ { i = trie-insert (ctxt.i Γ) qx (term-def ps o t? T , loc) })
 ...| just (qx , as , term-udef ps o' t , loc) =
-  maybe-if (o xor o') ≫maybe
+  maybe-if (o xor o') >>
   just (record Γ { i = trie-insert (ctxt.i Γ) qx (term-udef ps o t , loc) })
 ...| _ = nothing
 

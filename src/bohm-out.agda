@@ -1,5 +1,4 @@
 module bohm-out where
-open import lib
 open import general-util
 open import cedille-types
 open import syntax-util
@@ -129,11 +128,11 @@ private
   construct-BT : term → maybe BT
   construct-BT = h zero empty-trie Node where
     h : ℕ → trie ℕ → ((n i : ℕ) → 𝕃 BT → BT) → term → maybe BT
-    h n vm f (Var _ x) = just (f n (trie-lookup-else zero vm x) [])
-    h n vm f (App t NotErased t') =
+    h n vm f (Var x) = just (f n (trie-lookup-else zero vm x) [])
+    h n vm f (App t t') =
       h n vm Node t' ≫=maybe λ t' →
       h n vm (λ n i b → f n i (b ++ [ t' ])) t
-    h n vm f (Lam _ NotErased _ x NoClass t) = h (suc n) (trie-insert vm x (suc n)) f t
+    h n vm f (Lam NotErased x nothing t) = h (suc n) (trie-insert vm x (suc n)) f t
     h n vm f t = nothing
   
   {-# TERMINATING #-}
@@ -201,8 +200,8 @@ private
     h : ℕ → BT → term
     a : ℕ → term → 𝕃 BT → term
     a n t [] = t
-    a n t (b :: bs) = a n (mapp t (h n b)) bs
-    h m (Node n i b) = nfoldl (n ∸ m) (a n (mvar (mkvar i)) b) (λ nm → mlam (mkvar (suc (m + nm))))
+    a n t (b :: bs) = a n (App t (h n b)) bs
+    h m (Node n i b) = nfoldl (n ∸ m) (a n (Var (mkvar i)) b) (λ nm → mlam (mkvar (suc (m + nm))))
   
 -- Returns a term f such that f t₁ ≃ λ t. λ f. t and f t₂ ≃ λ t. λ f. f, assuming two things:
 -- 1. t₁ ≄ t₂

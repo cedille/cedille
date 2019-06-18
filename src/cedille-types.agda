@@ -96,6 +96,7 @@ mutual
   
   data kind : Set where
     KdStar : kind
+    KdHole : posinfo → kind
     KdAbs : var → tpkd → kind → kind
 
   data case-arg-sym : Set where
@@ -221,6 +222,7 @@ mutual
   data ex-kd : Set where
     ExKdAbs : posinfo → posinfo → var → ex-tk → ex-kd → ex-kd
     ExKdArrow : ex-tk → ex-kd → ex-kd
+    ExKdHole : posinfo → ex-kd
     ExKdParens : posinfo → ex-kd → posinfo → ex-kd
     ExKdStar : posinfo → ex-kd
     ExKdVar : posinfo → var → ex-args → ex-kd
@@ -246,4 +248,4 @@ mutual
 {-# COMPILE GHC pos-tm = data CedilleTypes.PosTerm (CedilleTypes.PosTerm) #-}
 {-# COMPILE GHC ex-is-mu = data CedilleTypes.IsMu (CedilleTypes.IsMu | CedilleTypes.IsMu') #-}
 {-# COMPILE GHC ex-tm = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Var) #-}
-{-# COMPILE GHC ex-kd = data CedilleTypes.Kind (CedilleTypes.KdAbs | CedilleTypes.KdArrow | CedilleTypes.KdParens | CedilleTypes.KdStar | CedilleTypes.KdVar) #-}
+{-# COMPILE GHC ex-kd = data CedilleTypes.Kind (CedilleTypes.KdAbs | CedilleTypes.KdArrow | CedilleTypes.KdHole | CedilleTypes.KdParens | CedilleTypes.KdStar | CedilleTypes.KdVar) #-}

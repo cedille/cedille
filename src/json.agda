@@ -1,6 +1,5 @@
 module json where
 
-open import lib
 open import general-util
 
 data json : Set where
@@ -9,7 +8,7 @@ data json : Set where
   json-string : string → json
   json-nat : nat → json
   json-array : 𝕃 json → json
-  json-object : trie json → json
+  json-object : 𝕃 (string × json) → json
 
 json-escape-string : string → string
 json-escape-string str = 𝕃char-to-string $ rec $ string-to-𝕃char str where
@@ -31,13 +30,13 @@ json-to-rope (json-raw rope) = rope
 json-to-rope (json-string string) = [[ "\"" ]] ⊹⊹ [[ json-escape-string string ]] ⊹⊹ [[ "\"" ]]
 json-to-rope (json-nat nat) = [[ ℕ-to-string nat ]]
 json-to-rope (json-array array) = [[ "[" ]] ⊹⊹ 𝕃-to-rope json-to-rope "," array ⊹⊹ [[ "]" ]]
-json-to-rope (json-object t) = [[ "{" ]] ⊹⊹ 𝕃-to-rope key-to-rope "," (trie-strings t) ⊹⊹ [[ "}" ]] where
-  key-to-rope : string → rope
-  key-to-rope key with trie-lookup t key
-  ...| just value = [[ "\"" ]] ⊹⊹ [[ json-escape-string key ]] ⊹⊹ [[ "\":" ]] ⊹⊹ json-to-rope value
-  ...| nothing = [[ "\"" ]] ⊹⊹ [[ json-escape-string key ]] ⊹⊹ [[ "\":null" ]] -- shouldn't happen
+json-to-rope (json-object t) = [[ "{" ]] ⊹⊹ 𝕃-to-rope (uncurry λ k v → [[ "\"" ]] ⊹⊹ [[ json-escape-string k ]] ⊹⊹ [[ "\":" ]] ⊹⊹ json-to-rope v)  "," t ⊹⊹ [[ "}" ]]
 
-json-new : 𝕃 (string × json) → json
-json-new pairs = json-object $ foldr insert empty-trie pairs where
-  insert : string × json → trie json → trie json
-  insert (key , value) trie = trie-insert trie key value
+json-rope : rope → json
+json-rope rope = json-raw ([[ "\"" ]] ⊹⊹ rope ⊹⊹ [[ "\"" ]])
+
+json-raw-string : string → json
+json-raw-string str = json-raw [[ str ]]
+
+putJson : json → IO ⊤
+putJson = putRopeLn ∘ json-to-rope

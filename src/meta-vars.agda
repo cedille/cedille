@@ -1,9 +1,6 @@
 import cedille-options
 open import general-util
-module meta-vars (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
-
-open import lib
-open import functions
+module meta-vars (options : cedille-options.options) {mF : Set → Set} ⦃ _ : monad mF ⦄ where
 
 open import cedille-types
 open import constants
@@ -15,21 +12,6 @@ open import spans options {mF}
 open import subst
 open import syntax-util
 open import to-string options
-
--- TODO propose adding these to the standard lib
-module helpers where
-  -- src/spans.agda
-  _≫=spane_ : ∀ {A B : Set} → spanM (error-t A) → (A → spanM (error-t B)) → spanM (error-t B)
-  (s₁ ≫=spane f) = s₁ ≫=span
-    λ { (no-error x) → f x
-      ; (yes-error x) → spanMr (yes-error x)}
-
-  -- sum.agda
-  is-inj₁ : ∀ {a b} {A : Set a} {B : Set b} → A ∨ B → 𝔹
-  is-inj₁ (inj₁ x) = tt
-  is-inj₁ (inj₂ y) = ff
-
-open helpers
 
 -- misc
 ----------------------------------------------------------------------
@@ -267,18 +249,18 @@ meta-vars-subst-kind Γ Xs k
 meta-var-to-string : meta-var → strM
 meta-var-to-string (meta-var-mk-tp name k nothing sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringe k
+    >>str strAdd " : " >>str to-stringe k
 meta-var-to-string (meta-var-mk-tp name k (just tp) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringe k
-    ≫str strAdd " = " ≫str to-stringe (meta-var-sol.sol tp) -- tp
+    >>str strAdd " : " >>str to-stringe k
+    >>str strAdd " = " >>str to-stringe (meta-var-sol.sol tp) -- tp
 meta-var-to-string (meta-var-mk name (meta-var-tm tp nothing) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringe tp
+    >>str strAdd " : " >>str to-stringe tp
 meta-var-to-string (meta-var-mk name (meta-var-tm tp (just tm)) sl)
   = strMetaVar name sl
-    ≫str strAdd " : " ≫str to-stringe tp
-    ≫str strAdd " = " ≫str to-stringe (meta-var-sol.sol tm) -- tm
+    >>str strAdd " : " >>str to-stringe tp
+    >>str strAdd " = " >>str to-stringe (meta-var-sol.sol tm) -- tm
 
 meta-vars-to-stringe : 𝕃 meta-var → strM
 meta-vars-to-stringe []
@@ -286,7 +268,7 @@ meta-vars-to-stringe []
 meta-vars-to-stringe (v :: [])
   = meta-var-to-string v
 meta-vars-to-stringe (v :: vs)
-  = meta-var-to-string v ≫str strAdd ", " ≫str meta-vars-to-stringe vs
+  = meta-var-to-string v >>str strAdd ", " >>str meta-vars-to-stringe vs
 
 meta-vars-to-string : meta-vars → strM
 meta-vars-to-string Xs =
@@ -303,19 +285,19 @@ prototype-to-string : prototype → strM
 prototype-to-string (proto-maybe nothing) = strAdd "⁇"
 prototype-to-string (proto-maybe (just tp)) = to-stringe tp
 prototype-to-string (proto-arrow e? pt) =
-  strAdd "⁇" ≫str strAdd (arrowtype-to-string e?)
-  ≫str prototype-to-string pt
+  strAdd "⁇" >>str strAdd (arrowtype-to-string e?)
+  >>str prototype-to-string pt
 
 decortype-to-string : decortype → strM
 decortype-to-string (decor-type tp) =
-  strAdd "[" ≫str to-stringe tp ≫str strAdd "]"
+  strAdd "[" >>str to-stringe tp >>str strAdd "]"
 decortype-to-string (decor-arrow e? tp dt) =
   to-stringe tp
-  ≫str strAdd (arrowtype-to-string e?)
-  ≫str decortype-to-string dt
+  >>str strAdd (arrowtype-to-string e?)
+  >>str decortype-to-string dt
 decortype-to-string (decor-decor e? x tk sol dt) =
-  strAdd (binder e? sol) ≫str meta-var-to-string (meta-var-mk x sol missing-span-location)
-  ≫str strAdd "<" ≫str tpkd-to-stringe tk ≫str strAdd ">" ≫str strAdd " . " ≫str decortype-to-string dt
+  strAdd (binder e? sol) >>str meta-var-to-string (meta-var-mk x sol missing-span-location)
+  >>str strAdd "<" >>str tpkd-to-stringe tk >>str strAdd ">" >>str strAdd " . " >>str decortype-to-string dt
   where
   binder : erased? → meta-var-sort → string
   binder Erased sol = "∀ "
@@ -324,18 +306,18 @@ decortype-to-string (decor-decor e? x tk sol dt) =
   binder Pi (meta-var-tp k mtp) = "∀ "
 
 decortype-to-string (decor-stuck tp pt) =
-  strAdd "(" ≫str to-stringe tp ≫str strAdd " , " ≫str prototype-to-string pt ≫str strAdd ")"
+  strAdd "(" >>str to-stringe tp >>str strAdd " , " >>str prototype-to-string pt >>str strAdd ")"
 decortype-to-string (decor-error tp pt) =
-  strAdd "([" ≫str (to-stringe tp) ≫str strAdd "] ‼ " ≫str prototype-to-string pt ≫str strAdd ")"
+  strAdd "([" >>str (to-stringe tp) >>str strAdd "] ‼ " >>str prototype-to-string pt >>str strAdd ")"
 
 meta-vars-data-h : ctxt → string → kind ∨ (meta-var-sol type) → tagged-val
 meta-vars-data-h Γ X (inj₁ k) =
   strRunTag "meta-vars-intro" Γ
-    (strAdd (unqual-local X ^ "  ") ≫str to-stringe k)
+    (strAdd (unqual-local X ^ "  ") >>str to-stringe k)
 meta-vars-data-h Γ X (inj₂ sol) =
   strRunTag "meta-vars-sol" Γ $
-  strAdd (unqual-local X ^ " ") ≫str
-  strAdd (checking-to-string (meta-var-sol.src sol) ^ " ") ≫str
+  strAdd (unqual-local X ^ " ") >>str
+  strAdd (checking-to-string (meta-var-sol.src sol) ^ " ") >>str
   (to-stringe ∘ meta-var-sol.sol $ sol)
 
 meta-vars-data-all : ctxt → meta-vars → 𝕃 tagged-val
@@ -600,7 +582,7 @@ meta-vars-solve-tp Γ Xs x tp m with trie-lookup (varset Xs) x
 ... | just (meta-var-mk-tp _ k (just sol) _) =
   let mk-meta-var-sol tp' src = sol in
   err⊎-guard (~ conv-type Γ tp tp') (e-solution-ineq Γ tp tp x)
-  ≫⊎ match-ok Xs
+  >> match-ok Xs
 
 -- update the kinds of HO meta-vars with
 -- solutions

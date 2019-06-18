@@ -1,11 +1,8 @@
 module rename where
 
-open import lib
-
 open import cedille-types 
 open import constants
 open import ctxt-types
---open import is-free
 open import free-vars
 open import syntax-util
 open import general-util
@@ -76,35 +73,15 @@ fresh-var = fresh-h ∘' ctxt-binds-var
 
 fresh-var-renamectxt : ctxt → renamectxt → var → var
 fresh-var-renamectxt Γ ρ = fresh-h λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x
-{-
-pick-new-name : string → string
-pick-new-name x = x ^ "'"
--}
-{-
-{- rename-away-from x g r rename the variable x to be some new name (related to x)
-   which does not satisfy the given predicate on names (assuming this is possible),
-   and is not in the domain of the renamectxt . -}
-{-# NON_TERMINATING #-}
-rename-away-from : string → (string → 𝔹) → renamectxt → string
-rename-away-from x g r =
-  if (g x) then
-    rename-away-from (pick-new-name x) g r
-  else if (renamectxt-in-field r x) then
-    rename-away-from (pick-new-name x) g r
-  else x
-
-fresh-var : string → (string → 𝔹) → renamectxt → string
-fresh-var = rename-away-from
 
 fresh-var-new : ctxt → var → var
-fresh-var-new Γ ignored-var = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
-fresh-var-new Γ x = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
--}
+fresh-var-new Γ ignored-var = fresh-var Γ "x"
+fresh-var-new Γ x = fresh-var Γ x
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 
   if is-free-in y t || renamectxt-in-range ρ y then 
-    fresh-var-renamectxt Γ ρ y --rename-away-from y (ctxt-binds-var Γ) ρ
+    fresh-var-renamectxt Γ ρ y
   else
     y
 

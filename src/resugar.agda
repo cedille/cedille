@@ -1,5 +1,4 @@
 module resugar where
-open import lib
 open import cedille-types
 open import general-util
 open import syntax-util
@@ -65,6 +64,8 @@ resugar {TYPE} (TpVar x) =
 
 resugar {KIND} (KdAbs x tk k) =
   ExKdAbs pi-gen pi-gen x (resugar-tk tk) (resugar k)
+resugar {KIND} (KdHole pi) =
+  ExKdHole pi
 resugar {KIND} KdStar =
   ExKdStar pi-gen
 

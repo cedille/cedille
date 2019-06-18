@@ -61,45 +61,61 @@ Previous: <a href="summary-buffer.html#summary-buffer" accesskey="p" rel="prev">
 
 <p>Beta-reduce mode is a &quot;beta-reduction explorer&quot;. There are three ways to enter beta-reduce mode:
 </p><ol>
-<li> C-i b
+<li> &ldquo;C-i b&rdquo;
 Enter beta-reduce mode with a prompted expression. Copies global scope and local scope if a span is selected.
 
-</li><li> C-i B
-Enter beta-reduce mode with the selected span and its scope
+</li><li> &ldquo;C-i B&rdquo;
+Enter beta-reduce mode with selection and its scope
 
-</li><li> C-i t
-Enter beta-reduce mode with the selected span&rsquo;s expected type and its scope
+</li><li> &ldquo;C-i t&rdquo;
+Enter beta-reduce mode with selection&rsquo;s type/expected type and its scope
 </li></ol>
 
 <a name="Controls-1"></a>
 <h2 class="chapter">19 Controls</h2>
 <dl compact="compact">
+<dt><code>f/b/n/p/...</code></dt>
+<dd><p>Regular cedille-mode syntax navigation
+</p>
+</dd>
 <dt><code>C-i n</code></dt>
-<dd><p>Replace the selected span with its normalization
+<dd><p>Replace selection with its normal form
 </p>
 </dd>
 <dt><code>C-i h</code></dt>
-<dd><p>Replace the selected span with its head-normalization
+<dd><p>Replace selection with its head normal form
 </p>
 </dd>
 <dt><code>C-i u</code></dt>
-<dd><p>Perform a single reduction on the selected span
+<dd><p>Only reduce selection by one step, then stop
 </p>
 </dd>
 <dt><code>C-i =</code></dt>
-<dd><p>Replace the selected span with a prompted expression, if convertible
+<dd><p>Replace selection with some other expression (prompt), if βη-equal
 </p>
 </dd>
 <dt><code>C-i r</code></dt>
-<dd><p>Synthesize an equational type from a prompted expression and rewrite the selected span using it
+<dd><p>Rewrite selection with a proof of some equation
 </p>
 </dd>
 <dt><code>C-i R</code></dt>
-<dd><p>Same as &ldquo;C-i r&rdquo;, but beta-reduces the selected span as it looks for matches
+<dd><p>If &ldquo;C-i r&rdquo; operates like a ρ term, this is like a ρ+ term: it β-reduces as it looks for matches
+</p>
+</dd>
+<dt><code>C-i f</code></dt>
+<dd><p>Fill this type with some term (prompt), if it type-checks
+</p>
+</dd>
+<dt><code>C-i a</code></dt>
+<dd><p>Abstract the outermost binder (λ/∀/Π/➔/➾) of the entire expression
+</p>
+</dd>
+<dt><code>C-i c</code></dt>
+<dd><p>Case split upon some term (prompt), spawning another buffer for each case
 </p>
 </dd>
 <dt><code>C-i p</code></dt>
-<dd><p>Reconstruct a proof from each step taken so far
+<dd><p>Reconstruct a proof of your work from each step taken so far
 </p>
 </dd>
 <dt><code>C-i ,</code></dt>

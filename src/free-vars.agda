@@ -1,5 +1,4 @@
 module free-vars where
-open import lib
 open import cedille-types
 open import syntax-util
 open import general-util
@@ -50,6 +49,7 @@ free-vars {TYPE} (TpHole pi) = empty-stringset
 free-vars {TYPE} (TpLam x tk T) = free-vars-tk tk ++ₛ stringset-remove (free-vars T) x
 free-vars {TYPE} (TpVar x) = stringset-single x
 free-vars {KIND} KdStar = empty-stringset
+free-vars {KIND} (KdHole pi) = empty-stringset
 free-vars {KIND} (KdAbs x tk k) = free-vars-tk tk ++ₛ stringset-remove (free-vars k) x
 
 free-vars-arg (Arg t) = free-vars t
@@ -97,6 +97,7 @@ erase {TYPE} (TpHole pi) = TpHole pi
 erase {TYPE} (TpLam x tk T) = TpLam x (erase-tk tk) (erase T)
 erase {TYPE} (TpVar x) = TpVar x
 erase {KIND} KdStar = KdStar
+erase {KIND} (KdHole pi) = KdHole pi
 erase {KIND} (KdAbs x tk k) = KdAbs x (erase-tk tk) (erase k)
 
 erase-case-args : case-args → case-args

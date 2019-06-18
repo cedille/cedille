@@ -1,6 +1,4 @@
 module pretty where
-open import lib
-open import functions
 open import general-util
 
 -- Adapted from A Prettier Printer (Philip Wadler)

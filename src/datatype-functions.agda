@@ -1,5 +1,4 @@
 module datatype-functions where
-open import lib
 open import ctxt
 open import syntax-util
 open import general-util
@@ -19,14 +18,9 @@ data datatype : Set where
 {-# TERMINATING #-}
 decompose-arrows : ctxt → type → params × type
 decompose-arrows Γ (TpAbs me x atk T) =
-  let x' = fresh-var Γ x in
+  let x' = fresh-var-new Γ x in
   case decompose-arrows (ctxt-var-decl x' Γ) (rename-var Γ x x' T) of λ where
     (ps , T') → Param me x' atk :: ps , T'
---decompose-arrows Γ (TpArrow T me T') =
---  let x = fresh-var Γ "x" in
---  case decompose-arrows (ctxt-var-decl x Γ) T' of λ where
---    (ps , T'') → Decl posinfo-gen posinfo-gen me x (Tkt T) posinfo-gen :: ps , T''
---decompose-arrows Γ (TpParens pi T pi') = decompose-arrows Γ T
 decompose-arrows Γ T = [] , T
 
 decompose-ctr-type : ctxt → type → type × params × 𝕃 tmtp
@@ -36,29 +30,16 @@ decompose-ctr-type Γ T with decompose-arrows Γ T
 
 {-# TERMINATING #-}
 kind-to-indices : ctxt → kind → indices
---kind-to-indices Γ (KndArrow k k') =
---  let x' = fresh-var Γ "X" in
---  Index x' (Tkk k) :: kind-to-indices (ctxt-var-decl x' Γ) k'
---kind-to-indices Γ (KndParens pi k pi') = kind-to-indices Γ k
 kind-to-indices Γ (KdAbs x atk k) =
-  let x' = fresh-var Γ x in
+  let x' = fresh-var-new Γ x in
   Index x' atk :: kind-to-indices (ctxt-var-decl x' Γ) (rename-var Γ x x' k)
---kind-to-indices Γ (KndTpArrow T k) =
---  let x' = fresh-var Γ "x" in
---  Index x' (Tkt T) :: kind-to-indices (ctxt-var-decl x' Γ) k
---kind-to-indices Γ (KndVar pi x as) with ctxt-lookup-kind-var-def Γ x
---...| nothing = []
---...| just (ps , k) = kind-to-indices Γ $ fst $ subst-params-args Γ ps as k
-kind-to-indices Γ KdStar = []
+kind-to-indices Γ _ = []
 
 rename-indices-h : ctxt → renamectxt → indices → 𝕃 tmtp → indices
 rename-indices-h Γ ρ (Index x atk :: is) (ty :: tys) =
   Index x' atk' ::
     rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is tys
   where
---  get-var : tmtp → var
---  get-var (tterm (Var _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
---  get-var (tmtppe (TpVar _ x')) = maybe-else (unqual-local x') id $ var-suffix x'
   get-var = maybe-else (fresh-var Γ x) id ∘ is-var-unqual
   x' = fresh-h (renamectxt-in-field ρ) $ get-var ty
   atk' = subst-renamectxt Γ ρ -tk atk
@@ -137,6 +118,11 @@ indices-to-tpapps = flip $ foldl λ where
 params-to-tpapps : params → (body : type) → type
 params-to-tpapps = flip apps-type ∘ params-to-args
 
+params-to-caseArgs : params → case-args
+params-to-caseArgs = map λ where
+  (Param me x (Tkt T)) → CaseArg (if me then CaseArgEr else CaseArgTm) x
+  (Param me x (Tkk k)) → CaseArg CaseArgTp x
+
 ctrs-to-lams' : ctrs → (body : term) → term
 ctrs-to-lams' = flip $ foldr λ where
   (Ctr x T) → Lam NotErased x nothing
@@ -208,7 +194,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   negₒ = snd
   
   occurs : positivity → maybe 𝔹
-  occurs p = maybe-if (negₒ p) ≫maybe just tt
+  occurs p = maybe-if (negₒ p) >> just tt
 
   arrs+ : ctxt → type → maybe 𝔹
   type+ : ctxt → type → positivity
@@ -224,7 +210,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tpkd+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpVar x') = maybe-if (~ x =string x') ≫maybe just ff
+  arrs+ Γ (TpVar x') = maybe-if (~ x =string x') >> just ff
   arrs+ Γ T = just ff
   
   type+ Γ (TpAbs me x' atk T) =
@@ -260,7 +246,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   kind+ Γ (KdAbs x' atk k) =
     let Γ' = ctxt-var-decl x' Γ in
     positivity-add (positivity-neg $ tpkd+ Γ atk) (kind+ Γ' k)
-  kind+ Γ KdStar = occurs-nil
+  kind+ Γ _ = occurs-nil
 
   tpkd+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tpkd+ Γ (Tkk k) = kind+ Γ k

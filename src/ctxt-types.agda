@@ -1,6 +1,5 @@
 module ctxt-types where
 
-open import lib
 open import cedille-types
 open import general-util
 open import syntax-util

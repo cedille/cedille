@@ -1,11 +1,8 @@
 module subst where
 
-open import lib
-
 open import constants
 open import cedille-types
 open import ctxt-types
---open import is-free
 open import free-vars
 open import rename
 open import general-util
@@ -102,6 +99,7 @@ substh {KIND} Γ ρ σ (KdAbs x tk k) =
   let x' = subst-rename-var-if Γ ρ x σ in
     KdAbs x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ k)
+substh {KIND} Γ ρ σ (KdHole pi) = KdHole pi -- Retain position, so jumping to hole works
 substh {KIND} Γ ρ σ KdStar = KdStar
 
 substh-arg Γ ρ σ (Arg t) = Arg (substh Γ ρ σ t)

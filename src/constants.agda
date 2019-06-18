@@ -1,6 +1,6 @@
 module constants where
 
-open import lib
+open import general-util
 
 cedille-extension : string
 cedille-extension = "ced"
@@ -11,6 +11,7 @@ cdle-extension = "cdle"
 self-name : string
 self-name = "self"
 
+delimiter = '§'
 
 pattern ignored-var = "_"
 

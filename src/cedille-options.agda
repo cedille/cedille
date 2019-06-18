@@ -1,5 +1,4 @@
 module cedille-options where
-open import lib
 open import general-util
 open import options-types public
 

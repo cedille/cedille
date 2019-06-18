@@ -1,10 +1,9 @@
 module syntax-util where
 
-open import lib
 open import cedille-types
 open import general-util
 open import constants
---open import type-util
+open import json
 
 posinfo-gen : posinfo
 posinfo-gen = "generated"
@@ -28,6 +27,25 @@ qualif-info = var × args
 
 qualif : Set
 qualif = trie qualif-info
+
+tag : Set
+tag = string × json
+
+tagged-val : Set
+tagged-val = string × rope × 𝕃 tag
+
+tags-to-json : 𝕃 tag → 𝕃 json
+tags-to-json [] = []
+tags-to-json ts = [ json-object ts ]
+
+tagged-val-to-json : tagged-val → string × json
+tagged-val-to-json (t , v , tags) = t , json-array (json-rope v :: tags-to-json tags)
+
+tagged-vals-to-json : 𝕃 tagged-val → json
+tagged-vals-to-json = json-object ∘ map tagged-val-to-json
+
+make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
+make-tag name vs start end = name , json-object (("start" , json-nat start) :: ("end" , json-nat end) :: vs)
 
 posinfo-to-ℕ : posinfo → ℕ
 posinfo-to-ℕ pi with string-to-ℕ pi
@@ -95,9 +113,10 @@ type-start-pos (ExTpNoSpans t _) = type-start-pos t -- we are not expecting this
 type-start-pos (ExTpHole pi) = pi --ACG
 type-start-pos (ExTpLet pi _ _) = pi
 
-kind-start-pos (ExKdArrow atk k₁) = tk-start-pos atk
-kind-start-pos (ExKdParens pi k pi') = pi
 kind-start-pos (ExKdAbs pi _ x x₁ k) = pi
+kind-start-pos (ExKdArrow atk k₁) = tk-start-pos atk
+kind-start-pos (ExKdHole pi) = pi
+kind-start-pos (ExKdParens pi k pi') = pi
 kind-start-pos (ExKdVar pi x₁ _) = pi
 kind-start-pos (ExKdStar pi) = pi
 
@@ -150,9 +169,10 @@ type-end-pos (ExTpHole pi) = posinfo-plus pi 1
 type-end-pos (ExTpNoSpans t pi) = pi
 type-end-pos (ExTpLet _ _ t) = type-end-pos t
 
-kind-end-pos (ExKdArrow atk k) = kind-end-pos k
-kind-end-pos (ExKdParens pi k pi') = pi'
 kind-end-pos (ExKdAbs pi _ x x₁ k) = kind-end-pos k
+kind-end-pos (ExKdArrow atk k) = kind-end-pos k
+kind-end-pos (ExKdHole pi) = posinfo-plus pi 1
+kind-end-pos (ExKdParens pi k pi') = pi'
 kind-end-pos (ExKdVar pi x ys) = args-end-pos (posinfo-plus-str pi x) ys
 kind-end-pos (ExKdStar pi) = posinfo-plus pi 1
 
@@ -324,9 +344,6 @@ data-is/ = reprefix ("is/" ^_)
 mu-Type/ = reprefix ("Type/" ^_)
 mu-isType/ = reprefix ("isType/" ^_)
 
-
-
-
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
 nums-gt : 𝕃 num → ℕ → 𝕃 string
@@ -398,38 +415,12 @@ _-tT'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → tmtp → 
 f -tT' Ttm t = f t
 f -tT' Ttp T = f T
 
-tag : Set
-tag = string × rope
-
-tagged-val : Set
-tagged-val = string × rope × 𝕃 tag
-
-tags-to-rope : 𝕃 tag → rope
-tags-to-rope [] = [[]]
-tags-to-rope ((t , v) :: []) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v
-tags-to-rope ((t , v) :: ts) = [[ "\"" ^ t ^ "\":" ]] ⊹⊹ v ⊹⊹ [[ "," ]] ⊹⊹ tags-to-rope ts
-
--- We number these when so we can sort them back in emacs
-tagged-val-to-rope : ℕ → tagged-val → rope
-tagged-val-to-rope n (t , v , []) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\"]" ]]
-tagged-val-to-rope n (t , v , tags) = [[ "\"" ^ t ^ "\":[\"" ^ ℕ-to-string n ^ "\",\"" ]] ⊹⊹ v ⊹⊹ [[ "\",{" ]] ⊹⊹ tags-to-rope tags ⊹⊹ [[ "}]" ]]
-
-tagged-vals-to-rope : ℕ → 𝕃 tagged-val → rope
-tagged-vals-to-rope n [] = [[]]
-tagged-vals-to-rope n (s :: []) = tagged-val-to-rope n s
-tagged-vals-to-rope n (s :: (s' :: ss)) = tagged-val-to-rope n s ⊹⊹ [[ "," ]] ⊹⊹ tagged-vals-to-rope (suc n) (s' :: ss)
-
-
-make-tag : (name : string) → (values : 𝕃 tag) → (start : ℕ) → (end : ℕ) → tag
-make-tag name vs start end = name , [[ "{\"start\":\"" ^ ℕ-to-string start ^ "\",\"end\":\"" ^ ℕ-to-string end ^ "\"" ]] ⊹⊹ vs-to-rope vs ⊹⊹ [[ "}" ]]
-  where
-    vs-to-rope : 𝕃 tag → rope
-    vs-to-rope [] = [[]]
-    vs-to-rope ((t , v) :: ts) = [[ ",\"" ^ t ^ "\":\"" ]] ⊹⊹ v ⊹⊹ [[ "\"" ]] ⊹⊹ vs-to-rope ts
-
 pos-tm-to-tm : pos-tm → ex-tm
 pos-tm-to-tm (PosTm t pi) = t
 
 case-arg-erased : case-arg-sym → erased?
 case-arg-erased CaseArgTm = ff
 case-arg-erased _ = tt
+
+ex-case-ctr : ex-case → var
+ex-case-ctr (ExCase pi x cas t) = x

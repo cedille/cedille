@@ -13,12 +13,11 @@ open import to-string options
 open import subst
 open import rename
 open import rewriting
-open import is-free
+open import free-vars
 open import toplevel-state options {id}
 open import spans options {id}
 open import datatype-functions
 open import templates
-open import erase
 
 uncurry' : ∀ {A B C D : Set} → (A → B → C → D) → (A × B × C) → D
 uncurry' f (a , b , c) = f a b c

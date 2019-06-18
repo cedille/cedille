@@ -1,7 +1,5 @@
 module conversion where
 
-open import lib
-
 open import constants
 open import cedille-types
 open import ctxt
@@ -30,6 +28,9 @@ unfold-head-elab = unfold ff tt ff
 
 unfold-no-defs : unfolding
 unfold-no-defs = unfold tt ff ff
+
+unfold-head-no-defs : unfolding
+unfold-head-no-defs = unfold ff ff ff
 
 unfold-dampen : unfolding → unfolding
 unfold-dampen (unfold tt d e) = unfold tt d e
@@ -124,7 +125,7 @@ hnf {TERM} Γ u (Lam ff x T t) with hnf (ctxt-var-decl x Γ) u t
 ...| t' = Lam ff x nothing t'
 hnf {TERM} Γ u (LetTm me x T t t') = hnf Γ u ([ Γ - t / x ] t')
 hnf {TERM} Γ u (Var x) with
-   maybe-if (unfolding.unfold-defs u) ≫maybe ctxt-lookup-term-var-def Γ x
+   maybe-if (unfolding.unfold-defs u) >> ctxt-lookup-term-var-def Γ x
 ...| nothing = Var x
 ...| just t = hnf Γ (unfold-dampen u) t
 hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
@@ -160,12 +161,13 @@ hnf{TYPE} Γ u (TpEq tm₁ tm₂) = TpEq (hnf Γ (unfold-dampen u) tm₁) (hnf �
 hnf{TYPE} Γ u (TpHole pi) = TpHole pi
 hnf{TYPE} Γ u (TpLam x tk tp) = TpLam x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (TpVar x) with
-   maybe-if (unfolding.unfold-defs u) ≫maybe ctxt-lookup-type-var-def Γ x
+   maybe-if (unfolding.unfold-defs u) >> ctxt-lookup-type-var-def Γ x
 ...| nothing = TpVar x
 ...| just t = hnf Γ (unfold-dampen u) t
 
 hnf{KIND} Γ u (KdAbs x tk kd) =
   KdAbs x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) u kd)
+hnf{KIND} Γ u (KdHole pi) = KdHole pi
 hnf{KIND} Γ u KdStar = KdStar
 
 hanf : ctxt → (erase : 𝔹) → term → term
@@ -187,7 +189,7 @@ conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ �
   conv-cases' Γ [] (Case x₂ as₂ t₂) = nothing
   conv-cases' Γ (c₁ @ (Case x₁ as₁ t₁) :: cs₁) c₂ @ (Case x₂ as₂ t₂) with conv-ctr Γ x₁ x₂
   ...| ff = conv-cases' Γ cs₁ c₂ ≫=maybe λ cs₁ → just (c₁ :: cs₁)
-  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂))) ≫maybe just cs₁
+  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂))) >> just cs₁
 
 ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
 
@@ -256,7 +258,7 @@ conv-ctr Γ x₁ x₂ = conv-ctr-args Γ (x₁ , []) (x₂ , [])
 
 conv-ctr-ps Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
 ...| just (ctr-def ps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def ps₂ T₂ n₂ i₂ a₂ , _) =
-  maybe-if (n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂) ≫maybe
+  maybe-if (n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂) >>
   just (length (erase-params ps₁) , length (erase-params ps₂))
 ...| _ | _ = nothing
 

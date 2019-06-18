@@ -1,8 +1,7 @@
 import cedille-options
 open import general-util
-module classify (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
-
-open import lib
+module classify (options : cedille-options.options)
+                {mF : Set → Set} ⦃ mFm : monad mF ⦄ where
 
 open import cedille-types
 open import constants
@@ -10,16 +9,19 @@ open import conversion
 open import ctxt
 open import datatype-functions
 open import free-vars
-open import meta-vars options {mF}
+open import meta-vars options {mF} ⦃ mFm ⦄
+open import monad-instances
 open import rename
 open import resugar
 open import rewriting
-open import spans options {mF}
+open import spans options {mF} ⦃ mFm ⦄
 open import subst
 open import syntax-util
 open import type-util
 open import to-string options
-open import untyped-spans options {mF}
+open import untyped-spans options {mF} ⦃ mFm ⦄
+
+
 
 {-# TERMINATING #-}
 check-term : ctxt → ex-tm → (T? : maybe type) → spanM (check-ret T? term)
@@ -31,20 +33,20 @@ check-let : ctxt → ex-def → erased? → posinfo → posinfo → spanM (ctxt 
 check-mu : ctxt → posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → (T? : maybe type) → spanM (check-ret T? term)
 check-mu-evidence : ctxt → ex-is-mu → var → 𝕃 tmtp → spanM ((string × 𝕃 tagged-val) ⊎ (term × (term → term) × ctxt-datatype-info))
 check-cases : ctxt → ex-cases → (ctrs : trie type) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (cases × err-m)
-check-case : ctxt → ex-case → (ctrs : trie (case ⊎ type)) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (trie (case ⊎ type))
+check-case : ctxt → ex-case → (earlier : stringset) → (ctrs : trie (type × params × 𝕃 tmtp)) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (case × trie (type × params × 𝕃 tmtp))
 check-refinement : ctxt → type → kind → spanM (𝕃 tagged-val × err-m)
 
 synth-tmtp' : ∀ {b X} → ctxt → if b then ex-tm else ex-tp → (if b then term else type → if b then type else kind → spanM X) → spanM X
-synth-tmtp' {tt} Γ t f = check-term Γ t nothing ≫=span uncurry f
-synth-tmtp' {ff} Γ T f = check-type Γ T nothing ≫=span uncurry f
+synth-tmtp' {tt} Γ t f = check-term Γ t nothing >>= uncurry f
+synth-tmtp' {ff} Γ T f = check-type Γ T nothing >>= uncurry f
 
 check-tmtp' : ∀ {b X} → ctxt → if b then ex-tm else ex-tp → if b then type else kind → (if b then term else type → spanM X) → spanM X
-check-tmtp' {tt} Γ t T f = check-term Γ t (just T) ≫=span f
-check-tmtp' {ff} Γ T k f = check-type Γ T (just k) ≫=span f
+check-tmtp' {tt} Γ t T f = check-term Γ t (just T) >>= f
+check-tmtp' {ff} Γ T k f = check-type Γ T (just k) >>= f
 
 check-tpkd' : ∀ {b X} → ctxt → if b then ex-kd else ex-tk → (if b then kind else tpkd → spanM X) → spanM X
-check-tpkd' {tt} Γ k f = check-kind Γ k ≫=span f
-check-tpkd' {ff} Γ k f = check-tpkd Γ k ≫=span f
+check-tpkd' {tt} Γ k f = check-kind Γ k >>= f
+check-tpkd' {ff} Γ k f = check-tpkd Γ k >>= f
 
 lambda-bound-conv? : ctxt → var → tpkd → tpkd → 𝕃 tagged-val → 𝕃 tagged-val × err-m
 lambda-bound-conv? Γ x tk tk' ts with conv-tpkd Γ tk tk'
@@ -71,7 +73,7 @@ syntax hnf-of Γ t f = Γ ⊢ t =β= f
 check-term Γ (ExApp t e t') Tₑ? =
   check-term-spine Γ (ExApp t e t') (proto-maybe Tₑ?) tt
     on-fail return-when (Hole (term-start-pos t)) (TpHole (term-start-pos t))
-    ≫=spanm' (uncurry return-when ∘ check-term-spine-elim Γ)
+    >>=m (uncurry return-when ∘ check-term-spine-elim Γ)
   where open import type-inf options {mF} check-term check-type
 
 -- t ·T
@@ -85,21 +87,19 @@ check-term Γ (ExAppTp tₕ Tₐ) Tₑ? =
            (head-type Γ Tₕ~ :: type-data Γ Tᵣ :: expected-type-if Γ Tₑ?)
            (check-for-type-mismatch-if Γ "synthesized" Tₑ? Tᵣ) -]
       return-when (AppE tₕ~ (Ttp Tₐ~)) Tᵣ
-    (TpHole pi) →
-      [- AppTp-span tt (term-start-pos tₕ) (type-end-pos Tₐ) (maybe-to-checking Tₑ?)
-           (expected-type-if Γ Tₑ?) nothing -]
-      return-when (Hole pi) (TpHole pi)
     Tₕ'~ →
+      untyped-type Γ Tₐ >>= λ Tₐ~ →
       [- AppTp-span tt (term-start-pos tₕ) (type-end-pos Tₐ) (maybe-to-checking Tₑ?)
-           (head-type Γ Tₕ'~ :: expected-type-if Γ Tₑ?)
-           (just $ "The type synthesized from the head does not allow it to be applied" ^
-                   " to a type argument") -]
-      return-when (Hole (term-start-pos tₕ)) (TpHole (term-start-pos tₕ))
+           (head-type Γ Tₕ'~ :: arg-type Γ Tₐ~ :: expected-type-if Γ Tₑ?)
+           (unless (is-hole Tₕ'~)
+              ("The type synthesized from the head does not allow it to be applied" ^
+               " to a type argument")) -]
+      return-when (AppE tₕ~ (Ttp Tₐ~)) (TpHole (term-start-pos tₕ))
 
 -- β[<t?>][{t?'}]
 check-term Γ (ExBeta pi t? t?') Tₑ? =
-  maybe-map (λ {(PosTm t _) → untyped-term Γ t}) t?  ≫=span? λ t?~  →
-  maybe-map (λ {(PosTm t _) → untyped-term Γ t}) t?' ≫=span? λ t?'~ →
+  maybe-map (λ {(PosTm t _) → untyped-term Γ t}) t?  >>=? λ t?~  →
+  maybe-map (λ {(PosTm t _) → untyped-term Γ t}) t?' >>=? λ t?'~ →
   let t'~ = maybe-else' t?'~ id-term id
       e-t~ = maybe-else' Tₑ?
         (maybe-else' t?~
@@ -108,8 +108,8 @@ check-term Γ (ExBeta pi t? t?') Tₑ? =
         λ Tₑ → Γ ⊢ Tₑ =β= λ where
           (TpEq t₁ t₂) →
             if conv-term Γ t₁ t₂
-              then maybe-else' (t?~ ≫=maybe λ t~ → check-for-type-mismatch Γ "computed"
-                                    (TpEq t~ t~) (TpEq t₁ t₂) ≫=maybe λ e → just (e , t~))
+              then maybe-else' (t?~ >>= λ t~ → check-for-type-mismatch Γ "computed"
+                                    (TpEq t~ t~) (TpEq t₁ t₂) >>= λ e → just (e , t~))
                      (inj₂ (maybe-else' t?~ t₁ id))
                      (uncurry λ e t~ → inj₁ ([ type-data Γ (TpEq t~ t~) ] , e))
               else inj₁ ([] , "The two terms in the equation are not β-equal")
@@ -127,8 +127,8 @@ check-term Γ (ExChi pi T? t) Tₑ? =
     (check-term Γ t nothing)
     λ T → Γ ⊢ T ⇐ KdStar ↝ T~ /
           Γ ⊢ t ⇐ T~ ↝ t~ /
-          spanMr (t~ , T~)
-  ) ≫=span uncurry λ t~ T~ →
+          return2 t~ T~
+  ) >>= uncurry λ t~ T~ →
   [- Chi-span Γ pi (just T~) t (maybe-to-checking Tₑ?)
        (type-data Γ T~ :: expected-type-if Γ Tₑ?)
        (check-for-type-mismatch-if Γ
@@ -138,12 +138,12 @@ check-term Γ (ExChi pi T? t) Tₑ? =
 -- δ [T?] - t
 check-term Γ (ExDelta pi T? t) Tₑ? =
   Γ ⊢ t ↝ t~ ⇒ Tcontra /
-  maybe-else' T? (spanMr (maybe-else' Tₑ? (TpAbs Erased "X" (Tkk KdStar) (TpVar "X")) id))
-                 (λ T → Γ ⊢ T ⇐ KdStar ↝ spanMr) ≫=span λ T~' →
+  maybe-else' T? (return (maybe-else' Tₑ? (TpAbs Erased "X" (Tkk KdStar) (TpVar "X")) id))
+                 (λ T → Γ ⊢ T ⇐ KdStar ↝ return) >>= λ T~' →
   [- Delta-span pi t (maybe-to-checking Tₑ?)
       (to-string-tag "the contradiction" Γ Tcontra ::
        type-data Γ T~' :: expected-type-if Γ Tₑ?)
-       (maybe-if (Γ ⊢ Tcontra =β= λ {(TpEq t₁ t₂) → ~ inconv Γ t₁ t₂; _ → tt}) ≫maybe
+       (maybe-if (Γ ⊢ Tcontra =β= λ {(TpEq t₁ t₂) → ~ inconv Γ t₁ t₂; _ → tt}) >>
         just "We could not find a contradiction in the synthesized type of the subterm") -]
   return-when (Delta T~' t~) T~'
 
@@ -159,25 +159,22 @@ check-term Γ (ExEpsilon pi lr -? t) Tₑ? =
        (TpEq t₁ t₂) →
          let Tᵣ = update-eq t₁ t₂ in
          [- Epsilon-span pi lr -? t (maybe-to-checking Tₑ?) [ type-data Γ Tᵣ ] nothing -]
-         spanMr2 t~ Tᵣ
+         return2 t~ Tᵣ
        Tₕ →
          [- Epsilon-span pi lr -? t (maybe-to-checking Tₑ?)
               [ to-string-tag "synthesized type" Γ Tₕ ]
-              (just "The synthesized type of the body is not an equation") -]
-         spanMr2 t~ (TpHole pi))
+              (unless (is-hole Tₕ)
+                 "The synthesized type of the body is not an equation") -]
+         return2 t~ Tₕ)
     λ Tₑ → Γ ⊢ Tₑ =β= λ where
       (TpEq t₁ t₂) →
-        Γ ⊢ t ⇐ update-eq t₁ t₂ ↝ t~ /
         [- Epsilon-span pi lr -? t (maybe-to-checking Tₑ?)
              [ expected-type Γ (TpEq t₁ t₂) ] nothing -]
-        spanMr t~
-      (TpHole pi') →
-        [- Epsilon-span pi lr -? t (maybe-to-checking Tₑ?) [] nothing -]
-        spanMr (Hole pi)
+        Γ ⊢ t ⇐ update-eq t₁ t₂ ↝ return
       Tₕ →
         [- Epsilon-span pi lr -? t (maybe-to-checking Tₑ?) [ expected-type Γ Tₕ ]
-             (just "The expected type is not an equation") -]
-        spanMr (Hole pi)
+             (unless (is-hole Tₕ) "The expected type is not an equation") -]
+        untyped-term Γ t
 
 -- ●
 check-term Γ (ExHole pi) Tₑ? =
@@ -188,8 +185,10 @@ check-term Γ (ExHole pi) Tₑ? =
 check-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') Tₑ? =
   maybe-else' {B = spanM (err-m × 𝕃 tagged-val × term × term × term × type)} Tₑ?
     (maybe-else' Tₘ?
-       (spanMr (just "Iota pairs require a specified type when synthesizing" , [] ,
-                Hole pi , Hole pi , Hole pi , TpHole pi))
+       (untyped-term Γ t₁ >>= λ t₁~ →
+        untyped-term Γ t₂ >>= λ t₂~ →
+        return (just "Iota pairs require a specified type when synthesizing" , [] ,
+                t₁~ , t₁~ , t₂~ , TpHole pi))
        λ {(ExGuide pi'' x T₂) →
             Γ ⊢ t₁ ↝ t₁~ ⇒ T₁~ /
             (Γ , pi'' - x :` Tkt T₁~) ⊢ T₂ ⇐ KdStar ↝ T₂~ /
@@ -197,14 +196,14 @@ check-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') Tₑ? =
             let T₂~ = [ Γ - Var x / (pi'' % x) ] T₂~
                 bd = binder-data Γ pi'' x (Tkt T₁~) ff nothing
                        (type-start-pos T₂) (type-end-pos T₂) in
-            spanMr (nothing , (type-data Γ (TpIota x T₁~ T₂~) :: [ bd ]) ,
+            return (nothing , (type-data Γ (TpIota x T₁~ T₂~) :: [ bd ]) ,
                     IotaPair t₁~ t₂~ x T₂~ , t₁~ , t₂~ , TpIota x T₁~ T₂~)})
     (λ Tₑ → Γ ⊢ Tₑ =β= λ where
       (TpIota x T₁ T₂) →
         Γ ⊢ t₁ ⇐ T₁ ↝ t₁~ /
         maybe-else' Tₘ?
           (Γ ⊢ t₂ ⇐ [ Γ - t₁~ / x ] T₂ ↝ t₂~ /
-           spanMr (nothing , (type-data Γ (TpIota x T₁ T₂) :: [ expected-type Γ Tₑ ]) ,
+           return (nothing , (type-data Γ (TpIota x T₁ T₂) :: [ expected-type Γ Tₑ ]) ,
                    IotaPair t₁~ t₂~ x T₂ , t₁~ , t₂~ , TpIota x T₁ T₂))
           λ {(ExGuide pi'' x' Tₘ) →
                (Γ , pi'' - x' :` Tkt T₁) ⊢ Tₘ ⇐ KdStar ↝ Tₘ~ /
@@ -212,19 +211,19 @@ check-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') Tₑ? =
                    T₂ = [ Γ - Var x' / x ] T₂
                    Tₛ = TpIota x' T₁ Tₘ~ in
                Γ ⊢ t₂ ⇐ [ Γ - t₁~ / x' ] Tₘ~ ↝ t₂~ /
-               spanMr (check-for-type-mismatch Γ "computed" Tₘ~ T₂ ,
+               return (check-for-type-mismatch Γ "computed" Tₘ~ T₂ ,
                        (type-data Γ Tₛ :: expected-type Γ (TpIota x' T₁ T₂) ::
                         [ binder-data Γ pi'' x' (Tkt T₁) ff nothing
                             (type-start-pos Tₘ) (type-end-pos Tₘ) ]) ,
                        IotaPair t₁~ t₂~ x' Tₘ~ , t₁~ , t₂~ , Tₛ)}
-      (TpHole pi'') →
-        spanMr (nothing , [] , Hole pi'' , Hole pi'' , Hole pi'' , TpHole pi'')
       Tₕ →
-        spanMr (just "The expected type is not an iota-type" , [ expected-type Γ Tₕ ] ,
-                Hole pi , Hole pi , Hole pi , Tₕ)) ≫=span λ where
+        untyped-term Γ t₁ >>= λ t₁~ →
+        untyped-term Γ t₂ >>= λ t₂~ →
+        return (unless (is-hole Tₕ) "The expected type is not an iota-type" ,
+                [ expected-type Γ Tₕ ] , t₁~ , t₁~ , t₂~ , Tₕ)) >>= λ where
     (err? , tvs , t~ , t₁~ , t₂~ , T~) →
       let conv-e = "The two components of the iota-pair are not convertible (as required)"
-          conv-e? = maybe-if (~ conv-term Γ t₁~ t₂~) ≫maybe just conv-e
+          conv-e? = maybe-if (~ conv-term Γ t₁~ t₂~) >> just conv-e
           conv-tvs = maybe-else' conv-e? [] λ _ →
               to-string-tag "hnf of the first component"  Γ (hnf Γ unfold-head t₁~) ::
             [ to-string-tag "hnf of the second component" Γ (hnf Γ unfold-head t₂~) ] in
@@ -239,7 +238,7 @@ check-term Γ (ExIotaProj t n pi) Tₑ? =
   maybe-else' n?
     ([- IotaProj-span t pi (maybe-to-checking Tₑ?) (expected-type-if Γ Tₑ?)
           (just "Iota-projections must use .1 or .2 only") -]
-     return-when (Hole pi) (TpHole pi)) λ n →
+     return-when t~ (TpHole pi)) λ n →
     Γ ⊢ T~ =β= λ where
       (TpIota x T₁ T₂) →
         let Tᵣ = if n iff ι1 then T₁ else ([ Γ - t~ / x ] T₂) in
@@ -247,12 +246,11 @@ check-term Γ (ExIotaProj t n pi) Tₑ? =
              (type-data Γ Tᵣ :: expected-type-if Γ Tₑ?)
              (check-for-type-mismatch-if Γ "synthesized" Tₑ? Tᵣ) -]
         return-when (IotaProj t~ n) Tᵣ
-      (TpHole pi') →
-        [- IotaProj-span t pi (maybe-to-checking Tₑ?) (expected-type-if Γ Tₑ?) nothing -]
-        return-when (IotaProj t~ n) (TpHole pi')
       Tₕ~ →
         [- IotaProj-span t pi (maybe-to-checking Tₑ?)
-             (head-type Γ Tₕ~ :: expected-type-if Γ Tₑ?) nothing -]
+             (head-type Γ Tₕ~ :: expected-type-if Γ Tₑ?)
+             (unless (is-hole Tₕ~)
+                "The synthesized type of the head is not an iota-type") -]
         return-when (IotaProj t~ n) (TpHole pi)
 
 -- λ/Λ x [: T?]. t
@@ -268,7 +266,7 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
                 "but the term is a Λ-abstraction (implicit input)") , []
         Erased Erased tk t →
           maybe-else (nothing , []) (λ e-tv → just (fst e-tv) , [ snd e-tv ])
-            (trie-lookup (free-vars (erase t)) (pi' % x) ≫maybe
+            (trie-lookup (free-vars (erase t)) (pi' % x) >>
              just ("The Λ-bound variable occurs free in the erasure of the body" ,
                    erasure Γ t))
         NotErased NotErased (Tkk _) t →
@@ -277,10 +275,11 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
           nothing , [] in
   case-ret {m = Tₑ?}
     (maybe-else' tk?
-      ([- Lam-span Γ synthesizing pi pi' e x (Tkt (TpHole pi')) t []
+      (untyped-term (Γ , pi' - x :` Tkt (TpHole pi')) t >>= λ t~ →
+       [- Lam-span Γ synthesizing pi pi' e x (Tkt (TpHole pi')) t []
            (just ("We are not checking this abstraction against a type, " ^
                   "so a classifier must be given for the bound variable " ^ x)) -]
-       spanMr2 (Hole pi') (TpHole pi'))
+       return2 (Lam e x nothing (rename-var Γ (pi' % x) x t~)) (TpHole pi'))
       λ tk →
         Γ ⊢ tk ↝ tk~ /
         (Γ , pi' - x :` tk~) ⊢ t ↝ t~ ⇒ T~ /
@@ -290,10 +289,10 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
         [- var-span e (Γ , pi' - x :` tk~) pi' x checking tk~ nothing -]
         [- uncurry (λ tvs → Lam-span Γ synthesizing pi pi' e x tk~ t
                (type-data Γ Tᵣ :: tvs)) (twist-× (erase-err e e tk~ t~)) -]
-        spanMr2 (Lam e x (just tk~) t~) Tᵣ)
+        return2 (Lam e x (just tk~) t~) Tᵣ)
     λ Tₑ → Γ ⊢ Tₑ =β= λ where
       (TpAbs e' x' tk T) →
-        maybe-else' tk? (spanMr tk) (λ tk → Γ ⊢ tk ↝ spanMr) ≫=span tk~ /
+        maybe-else' tk? (return tk) (λ tk → Γ ⊢ tk ↝ return) >>= tk~ /
         (Γ , pi' - x :` tk~) ⊢ t ⇐ rename-var Γ x' (pi' % x) T ↝ t~ /
         let t~ = rename-var Γ (pi' % x) x t~
             T = rename-var Γ x' x T
@@ -304,27 +303,30 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
                  (type-data Γ Tₛ :: expected-type Γ Tₑ :: tvs)
                  (err maybe-or check-for-type-mismatch Γ "computed" Tₑ Tₛ))
              (erase-err e' e tk~ t~) -]
-        spanMr (Lam e x (just tk~) t~)
-      (TpHole pi'') →
+        return (Lam e x (just tk~) t~)
+      {-(TpHole pi'') →
         Γ ⊢ t ⇐ TpHole pi'' ↝ t~ /
         [- uncurry (λ tvs → Lam-span Γ checking pi pi' e x (Tkt (TpHole pi'')) t
                               (expected-type Γ (TpHole pi'') :: tvs))
                    (twist-× (erase-err e e (Tkt (TpHole pi'')) t~)) -]
-        spanMr (Lam e x (just (Tkt (TpHole pi''))) t~)
+        return (Lam e x (just (Tkt (TpHole pi''))) t~)-}
       Tₕ →
+        maybe-else' tk? (return (Tkt (TpHole pi'))) (check-tpkd Γ) >>= tk~ /
+        untyped-term (Γ , pi' - x :` tk~) t >>= t~ /
         [- Lam-span Γ checking pi pi' e x (Tkt (TpHole pi')) t
              [ expected-type Γ Tₕ ] (just "The expected type is not a ∀- or a Π-type") -]
-        spanMr (Hole pi')
+        return (Lam e x (maybe-if (~ is-hole -tk' tk~) >> just tk~)
+                 (rename-var Γ (pi' % x) x t~))
 
 -- [d] - t
 check-term Γ (ExLet pi e? d t) Tₑ? =
-  check-let Γ d e? (term-start-pos t) (term-end-pos t) ≫=span λ where
+  check-let Γ d e? (term-start-pos t) (term-end-pos t) >>= λ where
     (Γ' , x , tv , σ , f) →
       case-ret-body {m = Tₑ?} (check-term Γ' t Tₑ?) λ t~ T~ →
       [- punctuation-span "Parens (let)" pi (term-end-pos t) -]
       [- Let-span e? pi (term-end-pos t) (maybe-to-checking Tₑ?)
            (maybe-else' Tₑ? (type-data Γ T~) (expected-type Γ) :: [ tv ])
-           (maybe-if (e? && is-free-in x (erase t~)) ≫maybe
+           (maybe-if (e? && is-free-in x (erase t~)) >>
             just (unqual-local x ^ "occurs free in the body of the term")) -]
       return-when (f t~) (σ T~)
 
@@ -332,7 +334,7 @@ check-term Γ (ExLet pi e? d t) Tₑ? =
 -- open/close x - t
 check-term Γ (ExOpen pi o pi' x t) Tₑ? =
   let Γ? = ctxt-clarify-def Γ o x
-      e? = maybe-not Γ? ≫maybe just (x ^ " does not have a definition that can be " ^
+      e? = maybe-not Γ? >> just (x ^ " does not have a definition that can be " ^
                                        (if o then "opened" else "closed")) in
   [- Var-span Γ pi' x (maybe-to-checking Tₑ?) [ not-for-navigation ] nothing -]
   [- Open-span o pi x t (maybe-to-checking Tₑ?) (expected-type-if Γ Tₑ?) e? -]
@@ -346,7 +348,7 @@ check-term Γ (ExParens pi t pi') Tₑ? =
 -- φ t₌ - t₁ {t₂}
 check-term Γ (ExPhi pi t₌ t₁ t₂ pi') Tₑ? =
   case-ret-body {m = Tₑ?} (check-term Γ t₁ Tₑ?) λ t₁~ T~ →
-  untyped-term Γ t₂ ≫=span λ t₂~ →
+  untyped-term Γ t₂ >>= λ t₂~ →
   Γ ⊢ t₌ ⇐ TpEq t₁~ t₂~ ↝ t₌~ /
   [- Phi-span pi pi' (maybe-to-checking Tₑ?)
        [ maybe-else' Tₑ? (type-data Γ T~) (expected-type Γ)] nothing -]
@@ -374,9 +376,9 @@ check-term Γ (ExRho pi ρ+ <ns> t₌ Tₘ? t) Tₑ? =
              Tₚ-f = map-fst (post-rewrite Γ' x t₌~ tᵣ) ∘ T-f in
          maybe-else' Tₑ?
            (Γ ⊢ t ↝ t~ ⇒ T~ /
-            spanMr2 t~ T~)
+            return2 t~ T~)
            (λ Tₑ → Γ ⊢ t ⇐ fst (Tₚ-f Tₑ) ↝ t~ /
-             spanMr2 t~ Tₑ) ≫=spanc λ t~ T~ →
+             return2 t~ Tₑ) >>=c λ t~ T~ →
          elim-pair (Tₚ-f T~) λ Tₚ nn →
          [- Rho-span pi t₌ t (maybe-to-checking Tₑ?) ρ+
               (inj₁ (fst nn)) (tvs T~ Tₚ) (ns-e? (snd nn)) -]
@@ -385,7 +387,7 @@ check-term Γ (ExRho pi ρ+ <ns> t₌ Tₘ? t) Tₑ? =
           (ExGuide pi' x Tₘ) →
             [- Var-span Γ pi' x untyped [] nothing -]
             let Γ' = Γ , pi' - x :` Tkt (TpHole pi') in
-            untyped-type Γ' Tₘ ≫=span λ Tₘ~ →
+            untyped-type Γ' Tₘ >>= λ Tₘ~ →
             let Tₘ~ = [ Γ' - Var x / (pi' % x) ] Tₘ~
                 T' = [ Γ' - tₗ / x ] Tₘ~
                 T'' = post-rewrite Γ' x t₌~ tᵣ (rewrite-at Γ' x (just t₌~) tt T' Tₘ~)
@@ -393,18 +395,18 @@ check-term Γ (ExRho pi ρ+ <ns> t₌ Tₘ? t) Tₑ? =
             maybe-else' Tₑ?
               (check-term Γ t nothing)
               (λ Tₑ → Γ ⊢ t ⇐ T'' ↝ t~ /
-                spanMr2 t~ Tₑ) ≫=spanc λ t~ T~ →
+                return2 t~ Tₑ) >>=c λ t~ T~ →
             [- Rho-span pi t₌ t (maybe-to-checking Tₑ?) ρ+ (inj₂ x) (tvs T~ T'')
                  (check-for-type-mismatch Γ check-str T' T~) -]
             return-when (Rho t₌~ x Tₘ~ t~) T''
     Tₕ →
-      let ●? = case Tₕ of λ {(TpHole _) → nothing; _ → just triv} in
       Γ ⊢ t ↝ t~ ⇒ λ T~ →
       [- Rho-span pi t₌ t (maybe-to-checking Tₑ?) ρ+ (inj₁ 1)
            (to-string-tag "type of first subterm" Γ Tₕ ::
             [ to-string-tag "type of second subterm" Γ T~ ])
-           (●? ≫maybe just "We could not synthesize an equation from the first subterm") -]
-      return-when (Hole pi) (TpHole pi)
+           (unless (is-hole Tₕ)
+              "We could not synthesize an equation from the first subterm") -]
+      return-when t~ T~
 
 -- ς t
 check-term Γ (ExSigma pi t) Tₑ? =
@@ -412,23 +414,23 @@ check-term Γ (ExSigma pi t) Tₑ? =
     (Γ ⊢ t ↝ t~ ⇒ T /
      Γ ⊢ T =β= λ where
        (TpEq t₁ t₂) →
-         spanMr2 (Sigma t~) (TpEq t₂ t₁)
-       (TpHole _) →
-         spanMr2 (Sigma t~) (TpHole pi)
+         return2 (Sigma t~) (TpEq t₂ t₁)
        Tₕ →
          [- Sigma-span pi t synthesizing [ type-data Γ Tₕ ]
-           (just "The synthesized type of the body is not an equation") -]
-         spanMr2 (Sigma t~) (TpHole pi))
+           (unless (is-hole Tₕ)
+              "The synthesized type of the body is not an equation") -]
+         return2 (Sigma t~) Tₕ)
   λ Tₑ →
     Γ ⊢ Tₑ =β= λ where
       (TpEq t₁ t₂) →
         Γ ⊢ t ⇐ TpEq t₂ t₁ ↝ t~ /
-          [- Sigma-span pi t checking [ expected-type Γ (TpEq t₁ t₂) ] nothing -]
-          spanMr (Sigma t~)
-      (TpHole _) → spanMr (Hole pi)
-      Tₕ → [- Sigma-span pi t checking [ expected-type Γ Tₕ ]
-                (just "The expected type is not an equation") -]
-           spanMr (Hole pi)
+        [- Sigma-span pi t checking [ expected-type Γ (TpEq t₁ t₂) ] nothing -]
+        return (Sigma t~)
+      Tₕ →
+        [- Sigma-span pi t checking [ expected-type Γ Tₕ ]
+             (unless (is-hole Tₕ)
+                "The expected type is not an equation") -]
+        untyped-term Γ t
 
 -- θ t ts
 check-term Γ (ExTheta pi θ t ts) Tₑ? =
@@ -439,7 +441,7 @@ check-term Γ (ExTheta pi θ t ts) Tₑ? =
   case-ret {m = Tₑ?}
     ([- Theta-span Γ pi θ t ts synthesizing [] (just
             "Theta-terms can only be used when checking (and we are synthesizing here)") -]
-     spanMr2 (Hole pi) (TpHole pi))
+     return2 (Hole pi) (TpHole pi))
     λ Tₑ → case θ of λ where
       (AbstractVars vs) →
         either-else' (wrap-vars vs Tₑ)
@@ -447,7 +449,7 @@ check-term Γ (ExTheta pi θ t ts) Tₑ? =
              [- Theta-span Γ pi θ t ts checking [ expected-type Γ Tₑ ]
                   (just ("We could not compute a motive from the given term because " ^
                            "the abstracted variable " ^ x ^ " is not in scope")) -]
-           spanMr (Hole pi))
+           return (Hole pi))
           λ Tₘ →
             [- Theta-span Γ pi θ t ts checking (expected-type Γ Tₑ :: [ the-motive Γ Tₘ ])
                  nothing -]
@@ -465,7 +467,7 @@ check-term Γ (ExTheta pi θ t ts) Tₑ? =
       λ {(qx , as , tk) → inj₂ (TpLam x' tk (rename-var Γ x x' T))}
   wrap-vars : 𝕃 var → type → var ⊎ type
   wrap-vars [] T = inj₂ T
-  wrap-vars (x :: xs) T = wrap-vars xs T ≫=⊎ wrap-var x
+  wrap-vars (x :: xs) T = wrap-vars xs T >>=⊎ wrap-var x
 
   motive : var → var → type → type → theta → term → type
   motive x x' T T' Abstract t = TpLam x' (Tkt T') (rename-var Γ x x' T)
@@ -483,7 +485,7 @@ check-term Γ (ExVar pi x) Tₑ? =
     ([- Var-span Γ pi x (maybe-to-checking Tₑ?)
           (expected-type-if Γ Tₑ?)
           (just "Missing a type for a term variable") -]
-     return-when (Hole pi) (TpHole pi))
+     return-when (Var x) (TpHole pi))
     λ {(qx , as , T) →
       [- Var-span Γ pi x (maybe-to-checking Tₑ?)
            (type-data Γ T :: expected-type-if Γ Tₑ?)
@@ -515,11 +517,11 @@ check-type Γ (ExTpIota pi pi' x T₁ T₂) kₑ? =
   return-when (TpIota x T₁~ T₂~) KdStar
 
 -- {^ T ^} (generated by theta)
-check-type Γ (ExTpNoSpans T pi) kₑ? = check-type Γ T kₑ? ≫=spand spanMr
+check-type Γ (ExTpNoSpans T pi) kₑ? = check-type Γ T kₑ? >>=spand return
 
 -- [d] - T
 check-type Γ (ExTpLet pi d T) kₑ? =
-  check-let Γ d ff (type-start-pos T) (type-end-pos T) ≫=span λ where
+  check-let Γ d ff (type-start-pos T) (type-end-pos T) >>= λ where
     (Γ' , x , tv , σ , f) →
       case-ret-body {m = kₑ?} (check-type Γ' T kₑ?) λ T~ k~ →
       [- punctuation-span "Parens (let)" pi (type-end-pos T) -]
@@ -533,16 +535,19 @@ check-type Γ (ExTpApp T T') kₑ? =
   Γ ⊢ kₕ =β= λ where
     (KdAbs x (Tkk dom) cod) →
       Γ ⊢ T' ⇐ dom ↝ T'~ /
+      let cod' = [ Γ - T'~ / x ] cod in
       [- TpApp-span (type-start-pos T) (type-end-pos T') (maybe-to-checking kₑ?)
-           (kind-data Γ cod :: expected-kind-if Γ kₑ?)
-           (check-for-kind-mismatch-if Γ "synthesized" kₑ? cod) -]
-      return-when (TpApp T~ (Ttp T'~)) cod
+           (kind-data Γ cod' :: expected-kind-if Γ kₑ?)
+           (check-for-kind-mismatch-if Γ "synthesized" kₑ? cod') -]
+      return-when (TpApp T~ (Ttp T'~)) cod'
     kₕ' →
+      untyped-type Γ T' >>= T'~ /
       [- TpApp-span (type-start-pos T) (type-end-pos T') (maybe-to-checking kₑ?)
            (head-kind Γ kₕ' :: expected-kind-if Γ kₑ?)
-           (just ("The synthesized kind of the head does not allow it to be applied" ^
-                  "to a type argument")) -]
-      return-when (TpHole (type-start-pos T')) KdStar
+           (unless (is-hole kₕ') $
+              "The synthesized kind of the head does not allow it to be applied" ^
+              "to a type argument") -]
+      return-when (TpApp T~ (Ttp T'~)) (KdHole (type-start-pos T))
 
 -- T t
 check-type Γ (ExTpAppt T t) kₑ? =
@@ -550,16 +555,19 @@ check-type Γ (ExTpAppt T t) kₑ? =
   Γ ⊢ kₕ =β= λ where
     (KdAbs x (Tkt dom) cod) →
       Γ ⊢ t ⇐ dom ↝ t~ /
+      let cod' = [ Γ - t~ / x ] cod in
       [- TpAppt-span (type-start-pos T) (term-end-pos t) (maybe-to-checking kₑ?)
-           (kind-data Γ cod :: expected-kind-if Γ kₑ?)
-           (check-for-kind-mismatch-if Γ "synthesized" kₑ? cod) -]
-      return-when (TpApp T~ (Ttm t~)) cod
+           (kind-data Γ cod' :: expected-kind-if Γ kₑ?)
+           (check-for-kind-mismatch-if Γ "synthesized" kₑ? cod') -]
+      return-when (TpApp T~ (Ttm t~)) cod'
     kₕ' →
+      untyped-term Γ t >>= t~ /
       [- TpAppt-span (type-start-pos T) (term-end-pos t) (maybe-to-checking kₑ?)
            (head-kind Γ kₕ' :: expected-kind-if Γ kₑ?)
-           (just ("The synthesized kind of the head does not allow it to be applied" ^
-                  "to a term argument")) -]
-      return-when (TpHole (term-start-pos t)) KdStar
+           (unless (is-hole kₕ') $
+              "The synthesized kind of the head does not allow it to be applied" ^
+              "to a term argument") -]
+      return-when (TpApp T~ (Ttm t~)) (KdHole (type-start-pos T))
 
 -- T ➔/➾ T'
 check-type Γ (ExTpArrow T e T') kₑ? =
@@ -572,8 +580,8 @@ check-type Γ (ExTpArrow T e T') kₑ? =
 
 -- { t₁ ≃ t₂ }
 check-type Γ (ExTpEq pi t₁ t₂ pi') kₑ? =
-  untyped-term Γ t₁ ≫=span t₁~ /
-  untyped-term Γ t₂ ≫=span t₂~ /
+  untyped-term Γ t₁ >>= t₁~ /
+  untyped-term Γ t₂ >>= t₂~ /
   [- punctuation-span "Parens (equation)" pi pi' -]
   [- TpEq-span pi pi' (maybe-to-checking kₑ?)
        (kind-data Γ KdStar :: expected-kind-if Γ kₑ?)
@@ -582,8 +590,8 @@ check-type Γ (ExTpEq pi t₁ t₂ pi') kₑ? =
 
 -- ●
 check-type Γ (ExTpHole pi) kₑ? =
-  [- tp-hole-span Γ pi kₑ? (maybe-to-checking kₑ?) (expected-kind-if Γ kₑ?) -]
-  return-when (TpHole pi) KdStar
+  [- tp-hole-span Γ pi kₑ? (maybe-to-checking kₑ?) [] -]
+  return-when (TpHole pi) (KdHole pi)
 
 -- λ x : tk. T
 check-type Γ (ExTpLam pi pi' x tk T) kₑ? =
@@ -594,21 +602,21 @@ check-type Γ (ExTpLam pi pi' x tk T) kₑ? =
      let kₛ = KdAbs x tk~ (rename-var Γ (pi' % x) x k) in
      [- var-span ff (Γ , pi' - x :` tk~) pi' x checking tk~ nothing -]
      [- TpLambda-span Γ pi (type-end-pos T) x tk~ T synthesizing [ kind-data Γ kₛ ] nothing -]
-     spanMr2 (TpLam x tk~ (rename-var Γ (pi' % x) x T~)) kₛ)
+     return2 (TpLam x tk~ (rename-var Γ (pi' % x) x T~)) kₛ)
     λ kₑ →
       (Γ ⊢ kₑ =β= λ where
         (KdAbs x' tk' k) →
           (Γ , pi' - x :` tk~) ⊢ T ⇐ (rename-var Γ x' (pi' % x) k) ↝ T~ /
-          spanMr (rename-var Γ (pi' % x) x T~ , lambda-bound-conv? Γ x tk' tk~ [])
-        KdStar →
+          return (rename-var Γ (pi' % x) x T~ , lambda-bound-conv? Γ x tk' tk~ [])
+        kₕ →
           (Γ , pi' - x :` tk~) ⊢ T ↝ T~ ⇒ _ /
-          spanMr (rename-var Γ (pi' % x) x T~ , [] , just
+          return (rename-var Γ (pi' % x) x T~ , [] , unless (is-hole kₕ)
               "The expected kind is not an arrow- or Pi-kind")
-      ) ≫=span λ where
+      ) >>= λ where
         (T~ , tvs , e?) →
           [- var-span ff (Γ , pi' - x :` tk~) pi' x checking tk~ nothing -]
           [- TpLambda-span Γ pi (type-end-pos T) x tk~ T checking (expected-kind Γ kₑ :: tvs) e? -]
-          spanMr (TpLam x tk~ T~)
+          return (TpLam x tk~ T~)
 
 -- (T)
 check-type Γ (ExTpParens pi T pi') kₑ? =
@@ -620,12 +628,12 @@ check-type Γ (ExTpVar pi x) kₑ? =
   maybe-else' (ctxt-lookup-type-var Γ x)
     ([- TpVar-span Γ pi x (maybe-to-checking kₑ?) (expected-kind-if Γ kₑ?)
           (just "Undefined type variable") -]
-     return-when (TpHole pi) KdStar)
-    λ {(qx , as , k) →
+     return-when (TpVar x) (KdHole pi)) λ where
+    (qx , as , k) →
       [- TpVar-span Γ pi x (maybe-to-checking kₑ?)
            (expected-kind-if Γ kₑ? ++ [ kind-data Γ k ])
            (check-for-kind-mismatch-if Γ "computed" kₑ? k) -]
-      return-when (apps-type (TpVar qx) as) k}
+      return-when (apps-type (TpVar qx) as) k
   
 
 
@@ -636,14 +644,19 @@ check-kind Γ (ExKdAbs pi pi' x tk k) =
   [- KdAbs-span Γ pi pi' x tk~ k checking nothing -]
   [- var-span ff Γ pi' x checking tk~ nothing -]
   [- punctuation-span "Pi (kind)" pi (posinfo-plus pi 1) -]
-  spanMr (KdAbs x tk~ (rename-var Γ (pi' % x) x k~))
+  return (KdAbs x tk~ (rename-var Γ (pi' % x) x k~))
 
 -- tk ➔ k
 check-kind Γ (ExKdArrow tk k) =
   Γ ⊢ tk ↝ tk~ /
   Γ ⊢ k ↝ k~ /
   [- KdArrow-span tk k checking nothing -]
-  spanMr (KdAbs ignored-var tk~ k~)
+  return (KdAbs ignored-var tk~ k~)
+
+-- ●
+check-kind Γ (ExKdHole pi) =
+  [- kd-hole-span pi checking -]
+  return (KdHole pi)
 
 -- (k)
 check-kind Γ (ExKdParens pi k pi') =
@@ -653,7 +666,7 @@ check-kind Γ (ExKdParens pi k pi') =
 -- ★
 check-kind Γ (ExKdStar pi) =
   [- Star-span pi checking nothing -]
-  spanMr KdStar
+  return KdStar
 
 -- κ as...
 check-kind Γ (ExKdVar pi κ as) =
@@ -661,54 +674,54 @@ check-kind Γ (ExKdVar pi κ as) =
     nothing →
       [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) [] checking []
            (just "Undefined kind variable") -]
-      spanMr KdStar -- TODO: Maybe make a "KdHole"?
+      return (KdHole pi)
     (just (ps , k)) →
-      check-args Γ as ps ≫=span λ as~ →
-      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) ps checking (params-data Γ ps) (maybe-if (length as < length ps) ≫maybe just ("Needed " ^ ℕ-to-string (length ps ∸ length as) ^ " further argument(s)")) -]
-      spanMr (fst (subst-params-args' Γ ps as~ k))
+      check-args Γ as ps >>= λ as~ →
+      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) ps checking (params-data Γ ps) (maybe-if (length as < length ps) >> just ("Needed " ^ ℕ-to-string (length ps ∸ length as) ^ " further argument(s)")) -]
+      return (fst (subst-params-args' Γ ps as~ k))
 
 
 check-tpkd Γ (ExTkt T) =
-  check-type Γ T (just KdStar) ≫=span T~ /
-  spanMr (Tkt T~)
+  check-type Γ T (just KdStar) >>= T~ /
+  return (Tkt T~)
 
 check-tpkd Γ (ExTkk k) =  
-  check-kind Γ k ≫=span k~ /
-  spanMr (Tkk k~)
+  check-kind Γ k >>= k~ /
+  return (Tkk k~)
 
 check-args Γ (ExTmArg me t :: as) (Param me' x (Tkt T) :: ps) =
   Γ ⊢ t ⇐ T ↝ t~ /
   let e-s = mk-span "Argument" (term-start-pos t) (term-end-pos t)
               [ expected-type Γ T ] (just "Mismatched argument erasure") 
-      e-m = λ r → if me iff me' then spanMr r else ([- e-s -] spanMr r) in
-  check-args Γ as (subst-params Γ t~ x ps) ≫=span λ as~ →
+      e-m = λ r → if me iff me' then return r else ([- e-s -] return r) in
+  check-args Γ as (subst-params Γ t~ x ps) >>= λ as~ →
   e-m ((if me then inj₂ (inj₁ t~) else inj₁ t~) :: as~)
 check-args Γ (ExTpArg T :: as) (Param _ x (Tkk k) :: ps) =
   Γ ⊢ T ⇐ k ↝ T~ /
-  check-args Γ as (subst-params Γ T~ x ps) ≫=span λ as~ →
-  spanMr (inj₂ (inj₂ T~) :: as~)
+  check-args Γ as (subst-params Γ T~ x ps) >>= λ as~ →
+  return (inj₂ (inj₂ T~) :: as~)
 check-args Γ (ExTmArg me t :: as) (Param _ x (Tkk k) :: ps) =
   [- mk-span "Argument" (term-start-pos t) (term-end-pos t) [ expected-kind Γ k ]
        (just "Expected a type argument") -]
-  spanMr []
+  return []
 check-args Γ (ExTpArg T :: as) (Param me x (Tkt T') :: ps) =
   [- mk-span "Argument" (type-start-pos T) (type-end-pos T) [ expected-type Γ T' ]
        (just ("Expected a" ^ (if me then "n erased" else "") ^ " term argument")) -]
-  spanMr []
+  return []
 check-args Γ (a :: as) [] =
   let range = case a of λ {(ExTmArg me t) → term-start-pos t , term-end-pos t;
                            (ExTpArg T) → type-start-pos T , type-end-pos T} in
-  check-args Γ as [] ≫=span λ as~ →
+  check-args Γ as [] >>= λ as~ →
   [- mk-span "Argument" (fst range) (snd range) [] (just "Too many arguments given") -]
-  spanMr []
-check-args Γ [] _ = spanMr []
+  return []
+check-args Γ [] _ = return []
 
 check-let Γ (ExDefTerm pi x (just Tₑ) t) e? fm to =
   Γ ⊢ Tₑ ⇐ KdStar ↝ Tₑ~ /
   Γ ⊢ t ⇐ Tₑ~ ↝ t~ /
   elim-pair (compileFail-in Γ t~) λ tvs e →
   [- Var-span Γ pi x checking (type-data Γ Tₑ~ :: tvs) e -]
-  spanMr
+  return
     (ctxt-term-def pi localScope opacity-open x (just t~) Tₑ~ Γ ,
      pi % x ,
      binder-data Γ pi x (Tkt Tₑ~) e? (just t~) fm to ,
@@ -718,7 +731,7 @@ check-let Γ (ExDefTerm pi x nothing t) e? fm to =
   Γ ⊢ t ↝ t~ ⇒ Tₛ~ /
   elim-pair (compileFail-in Γ t~) λ tvs e →
   [- Var-span Γ pi x synthesizing (type-data Γ Tₛ~ :: tvs) e -]
-  spanMr
+  return
     (ctxt-term-def pi localScope opacity-open x (just t~) Tₛ~ Γ ,
      pi % x ,
      binder-data Γ pi x (Tkt Tₛ~) e? (just t~) fm to ,
@@ -728,40 +741,42 @@ check-let Γ (ExDefType pi x k T) e? fm to =
   Γ ⊢ k ↝ k~ /
   Γ ⊢ T ⇐ k~ ↝ T~ /
   [- TpVar-span Γ pi x checking [ kind-data Γ k~ ] nothing -]
-  spanMr
+  return
     (ctxt-type-def pi localScope opacity-open x (just T~) k~ Γ ,
      pi % x ,
      binder-data Γ pi x (Tkk k~) e? (just T~) fm to ,
      (λ {ed} T' → [ Γ - T~ / (pi % x) ] T') ,
      (λ t' → LetTp x k~ T~ ([ Γ - TpVar x / (pi % x) ] t')))
 
-check-case Γ (ExCase pi x cas t) cs ρ as dps Tₘ =
+check-case Γ (ExCase pi x cas t) es cs ρ as dps Tₘ =
   [- pattern-span pi x cas -]
-  [- pattern-clause-span pi t -]
   maybe-else'
-    (trie-lookup (ctxt-get-qualif Γ) x ≫=maybe uncurry λ x' _ →
-     trie-lookup cs x' ≫=maybe λ c-T →
-     just (c-T ≫=⊎ λ T → inj₂ (x' , T)))
-    ([- pattern-ctr-span Γ pi x cas' nothing [] (just "This is not a constructor name") -]
-     spanMr cs)
-    (either-else
-      (λ c → [- pattern-ctr-span Γ pi x cas' nothing [] (just "This case is unreachable") -]
-             spanMr cs)
-      (uncurry λ x' T → elim-pair (decompose-ctr-type Γ T) λ Tₕ → uncurry λ ps is →
-        decl-args Γ cas ps empty-trie ρ [] (const spanMok) ≫=span λ where
-          (Γ' , e , σ , ρ , tvs , sm) →
-            let Tₘ' = TpApp (apps-type Tₘ (tmtps-to-args' Γ' σ (drop dps is)))
-                            (Ttm (app-caseArgs (recompose-apps as (Var x')) cas))
-                Tₘ' = hnf Γ' unfold-no-defs Tₘ' in
-            Γ' ⊢ t ⇐ Tₘ' ↝ t~ /
-            sm t~ ≫span
-            [- pattern-ctr-span Γ' pi x cas' (just T) (reverse tvs) e -]
-            spanMr (trie-insert cs x' (inj₁ (Case x' cas' (subst-renamectxt Γ ρ t~))))))
+    (trie-lookup (ctxt-get-qualif Γ) x >>= uncurry λ x' _ →
+     trie-lookup cs x' >>= λ T →
+     just (x' , T))
+    (let e = maybe-else' (trie-lookup es x)
+               "This is not a constructor name"
+               λ _ → "This case is unreachable" in
+     [- pattern-ctr-span Γ pi x cas' nothing [] (just e) -]
+     return2 (Case x [] (Hole pi)) cs)
+    λ where
+     (x' , Tₕ , ps , is) → --uncurry λ x' T → elim-pair (decompose-ctr-type Γ T) λ Tₕ → uncurry λ ps is →
+      decl-args Γ cas ps empty-trie ρ [] (const spanMok) >>= λ where
+        (Γ' , e , σ , ρ , tvs , sm) →
+          let Tₘ' = TpApp (apps-type Tₘ (tmtps-to-args' Γ' σ (drop dps is)))
+                          (Ttm (app-caseArgs (recompose-apps as (Var x')) cas))
+              Tₘ' = hnf Γ' unfold-no-defs Tₘ'
+              T = params-to-alls ps $ apps-type Tₕ as in
+          Γ' ⊢ t ⇐ Tₘ' ↝ t~ /
+          sm t~ >>
+          [- pattern-clause-span pi t (reverse tvs) -]
+          [- pattern-ctr-span Γ' pi x cas' (just T) [] e -]
+          return2 (Case x' cas' (subst-renamectxt Γ ρ t~)) (trie-remove cs x')
   where
   cas' : case-args
   cas' = flip map cas λ {(ExCaseArg me pi x) → CaseArg me x}
   free-in-term : var → term → err-m
-  free-in-term x t = maybe-if (is-free-in x (erase t)) ≫maybe
+  free-in-term x t = maybe-if (is-free-in x (erase t)) >>
                      just "Erased argument occurs free in the body of the term"
   tmtp-to-arg' = λ Γ σ → either-else (Arg ∘ substs Γ σ) (ArgE ∘' Ttp ∘' substs Γ σ)
   tmtps-to-args' = λ Γ σ → map (tmtp-to-arg' Γ σ)
@@ -798,9 +813,9 @@ check-case Γ (ExCase pi x cas t) cs ρ as dps Tₘ =
       λ t → [- TpVar-span Γ pi x checking [ kind-data Γ k' ] (free-in-term x t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
-        e₁ = maybe-if (case-arg-erased me xor me') ≫maybe
+        e₁ = maybe-if (case-arg-erased me xor me') >>
                just "Mismatched erasure of term argument"
-        e₂ = λ t → maybe-if (case-arg-erased me) ≫maybe free-in-term x t
+        e₂ = λ t → maybe-if (case-arg-erased me) >> free-in-term x t
         Γ' = ctxt-term-decl pi x T' Γ in
     decl-args Γ' as ps
       (trie-insert σ x' (, Var (pi % x)))
@@ -815,38 +830,43 @@ check-case Γ (ExCase pi x cas t) cs ρ as dps Tₘ =
       λ t → [- Var-span Γ pi x checking [ expected-kind Γ k' ]
                  (just "This term argument should be a type") -] sm t
   decl-args Γ [] [] σ ρ xs sm =
-    spanMr (Γ , nothing , σ , ρ , xs , sm)
+    return (Γ , nothing , σ , ρ , xs , sm)
   decl-args Γ as [] σ ρ xs sm =
-    spanMr (Γ , just (ℕ-to-string (length as) ^ " too many arguments supplied") ,
+    return (Γ , just (ℕ-to-string (length as) ^ " too many arguments supplied") ,
               σ , ρ , xs , sm)
   decl-args Γ [] ps σ ρ xs sm =
-    spanMr (Γ , just (ℕ-to-string (length ps) ^ " more arguments expected") ,
+    return (Γ , just (ℕ-to-string (length ps) ^ " more arguments expected") ,
               σ , ρ , xs , sm)
 
 
 check-cases Γ ms cs ρ as dps Tₘ =
-  foldr (λ c x cs → check-case Γ c cs ρ as dps Tₘ ≫=span x)
-    (λ t → spanMr t) ms (trie-map inj₂ cs) ≫=span λ cs →
-  either-else'
-    (trie-fold {F = 𝕃 var ⊎_} cs (inj₂ [])
-      λ x → either-else
-        (λ c → either-else (inj₁ ∘ _::_ x) (inj₂ ∘ _::_ c))
-        (λ _ → inj₁ ∘' _::_ x ∘' either-else id (λ _ → [])))
-    (λ mxs → spanMr2 []
-      (just ("Missing pattern matching cases: " ^
-               𝕃-to-string (unqual-all (ctxt-get-qualif Γ)) ", " mxs)))
-    λ cs → spanMr2 cs nothing
+  foldr {B = stringset → trie (type × params × 𝕃 tmtp) → spanM (cases × trie (type × params × 𝕃 tmtp))}
+    (λ m x es cs' →
+      check-case Γ m es cs' ρ as dps Tₘ >>=c λ m~ cs →
+      x (stringset-insert es (ex-case-ctr m)) cs >>=c λ ms~ →
+      return2 (m~ :: ms~))
+    (λ es → return2 [])
+    ms
+    empty-stringset
+    (trie-map (decompose-ctr-type Γ) cs)
+  >>=c λ ms~ missing-cases →
+  let xs = map (map-snd snd) $ trie-mappings missing-cases
+      csf = uncurry₂ λ Tₕ ps as →
+              rope-to-string $ strRun Γ $
+                strVar Tₕ >>str args-to-string (params-to-args ps)
+      e = "Missing patterns: " ^ 𝕃-to-string csf ", " xs in
+  return2 ms~ (unless (iszero (length xs)) e)
 
 check-refinement Γ Tₘ kₘ s =
-  check-type (qualified-ctxt Γ) (resugar Tₘ) (just kₘ) empty-spans ≫= uncurry λ _ s' →
-    returnM $ (λ x → x , s) $
+  check-type (qualified-ctxt Γ) (resugar Tₘ) (just kₘ) empty-spans >>= uncurry λ _ s' →
+    return $ (λ x → x , s) $
       [ to-string-tag "computed motive" Γ Tₘ ] ,
-      (maybe-if (spans-have-error s') ≫maybe
+      (maybe-if (spans-have-error s') >>
        just "We could not compute a well-kinded motive")
 
 check-mu-evidence Γ μ X as = maybe-else'
   (case μ of λ {(ExIsMu pi x) → nothing; (ExIsMu' tₑ?) → tₑ?})
-  (spanMr $ maybe-else' (data-lookup Γ X as)
+  (return $ maybe-else' (data-lookup Γ X as)
     (inj₁ $ "The head type of the subterm is not a datatype" , [ head-type Γ (TpVar X) ])
     (λ μ → inj₂ (maybe-else (recompose-apps (ctxt-datatype-info.asₚ μ) (Var (data-is/ X)))
                    id (ctxt-datatype-info.mu μ) , id , μ)))
@@ -858,7 +878,7 @@ check-mu-evidence Γ μ X as = maybe-else'
                     [ to-string-tag "evidence type" Γ T ] in
     case decompose-tpapps (hnf Γ unfold-head-elab T) of λ where
       (TpVar X' , as') → case reverse as' of λ where
-        (Ttp T :: as') → spanMr $ if ~ conv-type Γ T (TpVar X)
+        (Ttp T :: as') → return $ if ~ conv-type Γ T (TpVar X)
           then ev-err
           else maybe-else
             ev-err
@@ -870,10 +890,10 @@ check-mu-evidence Γ μ X as = maybe-else'
             --       This way we avoid the possibility that "as" has arguments
             --       to parameters in it, but only to indices.
             -- Also TODO: Make sure that parameters are equal in above conversion check!
-        _ → spanMr ev-err
-      _ → spanMr ev-err
+        _ → return ev-err
+      _ → return ev-err
 
-ctxt-mu-decls : ctxt → term → indices → type → ctxt-datatype-info → posinfo → posinfo → posinfo → var → spanM ((cases → spanM ⊤) × ctxt × 𝕃 tagged-val × renamectxt)
+ctxt-mu-decls : ctxt → term → indices → type → ctxt-datatype-info → posinfo → posinfo → posinfo → var → (cases → spanM ⊤) × ctxt × 𝕃 tagged-val × renamectxt
 ctxt-mu-decls Γ t is Tₘ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs fcs) pi₁ pi₂ pi₃ x =
   let X' = mu-Type/ x
       xₘᵤ = mu-isType/ x
@@ -886,46 +906,45 @@ ctxt-mu-decls Γ t is Tₘ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs fcs)
            ctxt-datatype-decl Xₒ (pi₁ % x) asₚ $
            ctxt-type-decl pi₁ X' k Γ
       freshₓ = fresh-var (add-indices-to-ctxt is Γ') (maybe-else "x" id (is-var (Ttm t)))
-      Tₓ = hnf Γ' (record unfold-head-elab {unfold-defs = ff}) (indices-to-alls is $ TpAbs ff freshₓ (Tkt $ indices-to-tpapps is $ TpVar qX') $ TpApp (indices-to-tpapps is Tₘ) $ Ttm $ App (indices-to-apps is $ AppE (AppE (flip apps-term asₚ $ Var qXₜₒ) $ Ttp $ TpVar qX') $ Ttm $ Var qxₘᵤ) $ Var freshₓ)
+      Tₓ = hnf Γ' unfold-no-defs (indices-to-alls is $ TpAbs ff freshₓ (Tkt $ indices-to-tpapps is $ TpVar qX') $ TpApp (indices-to-tpapps is Tₘ) $ Ttm $ Phi (Beta (Var freshₓ) (Var freshₓ)) (App (indices-to-apps is $ AppE (AppE (flip apps-term asₚ $ Var qXₜₒ) $ Ttp $ TpVar qX') $ Ttm $ Var qxₘᵤ) $ Var freshₓ) (Var freshₓ))
       Γ'' = ctxt-term-decl pi₁ x Tₓ Γ'
-      e₂? = x/mu ≫maybe just "Abstract datatypes can only be pattern matched by μ'"
+      e₂? = x/mu >> just "Abstract datatypes can only be pattern matched by μ'"
       e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
-      e₃ₓ? = λ cs x → maybe-if (stringset-contains (free-vars-cases cs) x) ≫maybe e₃ x
+      e₃ₓ? = λ cs x → maybe-if (stringset-contains (free-vars-cases cs) x) >> e₃ x
       e₃? = λ cs → e₃ₓ? cs (mu-isType/ x) maybe-or e₃ₓ? cs (mu-Type/ x) in
-  spanMr
-    ((λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? maybe-or e₃? cs) -] spanMok) ,
+    (λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? maybe-or e₃? cs) -] spanMok) ,
      Γ'' ,
-     (binder-data Γ'' pi₁ X' (Tkk k) Erased nothing pi₂ pi₃ ::
-      binder-data Γ'' pi₁ x (Tkt Tₓ) NotErased nothing pi₂ pi₃ ::
-      binder-data Γ'' pi₁ xₘᵤ (Tkt Tₘᵤ) Erased nothing pi₂ pi₃ ::
-      to-string-tag X' Γ'' k ::
-      to-string-tag xₘᵤ Γ'' Tₘᵤ ::
-      to-string-tag x Γ'' Tₓ :: []) ,
-     renamectxt-insert* empty-renamectxt
-       ((qX' , X') :: (qxₘᵤ , xₘᵤ) :: (pi₁ % x , x) :: []))
+    (binder-data Γ'' pi₁ X' (Tkk k) Erased nothing pi₂ pi₃ ::
+     binder-data Γ'' pi₁ xₘᵤ (Tkt Tₘᵤ) Erased nothing pi₂ pi₃ ::
+     binder-data Γ'' pi₁ x (Tkt Tₓ) NotErased nothing pi₂ pi₃ ::
+     to-string-tag X' Γ'' k ::
+     to-string-tag xₘᵤ Γ'' Tₘᵤ ::
+     to-string-tag x Γ'' Tₓ :: []) ,
+    renamectxt-insert* empty-renamectxt
+      ((qX' , X') :: (qxₘᵤ , xₘᵤ) :: (pi₁ % x , x) :: [])
 
 check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
-  check-term Γ t nothing ≫=spanc λ t~ T →
+  check-term Γ t nothing >>=c λ t~ T →
   let no-motive-err = just "A motive is required when synthesizing"
-      no-motive = spanMr (nothing , [] , no-motive-err) in
+      no-motive = return (nothing , [] , no-motive-err) in
   case decompose-tpapps (hnf Γ unfold-head-elab T) of λ where
     (TpVar X , as) →
       check-mu-evidence Γ μ X as on-fail
        (uncurry λ e tvs → spanM-add (Mu-span Γ pi μ pi''' nothing (maybe-to-checking Tₑ?)
-         (expected-type-if Γ Tₑ? ++ tvs) $ just e) ≫span
+         (expected-type-if Γ Tₑ? ++ tvs) $ just e) >>
         return-when {m = Tₑ?} (Hole pi) (TpHole pi))
-       ≫=spans' λ where -- maybe-not Tₑ? ≫=maybe λ _ → maybe-not Tₘ? ≫=maybe λ _ → no-motive-err
+       >>=s λ where -- maybe-not Tₑ? >>= λ _ → maybe-not Tₘ? >>= λ _ → no-motive-err
         (tₑ~ , cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs)) →
-          maybe-map (λ Tₘ → check-type Γ Tₘ (just kᵢ)) Tₘ? ≫=span? λ Tₘ?' →
+          maybe-map (λ Tₘ → check-type Γ Tₘ (just kᵢ)) Tₘ? >>=? λ Tₘ?' →
           let is = kind-to-indices Γ kᵢ
               ret-tp = λ ps as t → maybe-else' Tₘ?' Tₑ? (λ Tₘ → just $ hnf Γ unfold-head-elab (TpApp (apps-type Tₘ $
                           tmtps-to-args NotErased (drop (length ps) as)) (Ttm t))) in
           (maybe-else' Tₘ?'
-             (spanMr Tₑ? on-fail no-motive ≫=spanm' λ Tₑ →
+             (return Tₑ? on-fail no-motive >>=m λ Tₑ →
               let Tₘ = refine-motive Γ is (asᵢ ++ [ Ttm t~ ]) Tₑ in
-              check-refinement Γ Tₘ kᵢ ≫=span λ p2 → spanMr (just Tₘ , p2))
-             λ Tₘ → spanMr (just Tₘ , [] , nothing))
-          ≫=spanc λ Tₘ → uncurry λ tvs₁ e₁ →
+              check-refinement Γ Tₘ kᵢ >>= λ p2 → return (just Tₘ , p2))
+             λ Tₘ → return (just Tₘ , [] , nothing))
+          >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
           let Tₘ = maybe-else' Tₘ (TpHole pi) id
               is = drop-last 1 is
               subst-ctr : ctxt → ctr → ctr
@@ -942,25 +961,26 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
               cs' = reduce-cs $ case μ of λ where
                       (ExIsMu' _) → if Xₒ =string X then cs' else fcs X
                       (ExIsMu pi' x) → fcs (mu-Type/ (pi' % x)) in
-          (case μ of λ where
-             (ExIsMu' _) → spanMr (const spanMok , Γ , [] , empty-renamectxt)
-             (ExIsMu pi' x) → ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) ≫=span λ where
+          case
+            (case μ of λ where
+              (ExIsMu' _) → const spanMok , Γ , [] , empty-renamectxt
+              (ExIsMu pi' x) → ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) of λ where
             (sm , Γ' , bds , ρ) →
               let cs'' = foldl (λ {(Ctr x T) σ → trie-insert σ x T}) empty-trie cs'
                   drop-ps = maybe-else 0 length
                               (case μ of λ {
-                                (ExIsMu' _) → maybe-if (Xₒ =string X) ≫maybe just ps;
+                                (ExIsMu' _) → maybe-if (Xₒ =string X) >> just ps;
                                 _ → nothing
                                })
                   scrutinee = cast t~
                   Tᵣ = ret-tp ps (args-to-tmtps asₚ ++ asᵢ) scrutinee in
-              check-cases Γ' cs cs'' ρ asₚ drop-ps Tₘ ≫=spanc λ cs~ e₂ →
+              check-cases Γ' cs cs'' ρ asₚ drop-ps Tₘ >>=c λ cs~ e₂ →
               let e₃ = maybe-else' Tᵣ
                          (just "A motive is required when synthesizing")
                          (check-for-type-mismatch-if Γ "synthesized" Tₑ?) in
               [- Mu-span Γ pi μ pi''' Tₘ?' (maybe-to-checking Tₑ?)
                      (tvs₁ ++ bds) (e₁ maybe-or (e₂ maybe-or e₃)) -]
-              sm cs~ ≫span
+              sm cs~ >>
               return-when {m = Tₑ?}
                 (Mu (case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ tₑ~}) t~ Tₘ?'
                   (λ tₛ Tₘ? cs →
