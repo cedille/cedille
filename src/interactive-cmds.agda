@@ -8,7 +8,6 @@ open import conversion
 open import constants
 open import ctxt
 open import general-util
-open import monad-instances
 open import spans options {Id}
 open import subst
 open import syntax-util
@@ -439,6 +438,7 @@ private
       h : params → ctxt → params → term → case-args × term
       h acc Γ (Param me x atk :: ps) (Lam me' x' oc' t') =
         h (Param me x' atk :: acc) (ctxt-var-decl x' Γ) (substh-params Γ (renamectxt-single x x') empty-trie ps) t'
+      h acc Γ ps (Hole pi) = params-to-caseArgs (reverse acc ++ ps) , Hole pi
       h acc Γ ps t = params-to-caseArgs (reverse acc ++ ps) , params-to-apps ps t
 
     await : br-history2 → IO ⊤
@@ -641,10 +641,10 @@ private
                                      Tₘ = refine-motive Γ is' (asᵢ ++ [ Ttm tₛ ]) T
                                      sM' = ctxt-mu-decls Γ tₛ is Tₘ d Γₚᵢ "0" "0" rec
                                      sM = if rec =string ""
-                                             then (const spanMok , Γ , [] , empty-renamectxt)
-                                             else sM' in
+                                             then (σ X , const spanMok , Γ , [] , empty-renamectxt)
+                                             else (σ (Γₚᵢ % mu-Type/ rec) , sM') in
                              case sM of λ where
-                               (_ , Γ' , ts , ρ) →
+                               (σ-cs , _ , Γ' , ts , ρ) →
                                  if spans-have-error (snd $ id-out $
                                       check-type (qualified-ctxt Γ) (resugar Tₘ) (just kᵢ) empty-spans)
                                    then inj₁ "Computed an ill-typed motive"
@@ -660,7 +660,7 @@ private
                                            (recompose-tpapps (drop (length ps) as) Tₘ)
                                            (Ttm (recompose-apps (params-to-args ps') $
                                              recompose-apps asₚ (Var x))))})})
-                                       (σ (Γₚᵢ % mu-Type/ rec)) ,
+                                       σ-cs ,
                                      Tₘ ,
                                      Γ' ,
                                      ts))

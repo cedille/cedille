@@ -24,6 +24,7 @@ AGDASRC = \
 	classify.agda \
 	subst.agda \
 	free-vars.agda \
+	resugar.agda \
 	rewriting.agda \
 	ctxt.agda \
 	main.agda \
@@ -37,11 +38,10 @@ AGDASRC = \
 	cedille-options.agda \
 	elaboration.agda \
 	elaboration-helpers.agda \
-	monad-instances.agda \
+	instances.agda \
 	json.agda \
 	datatype-functions.agda \
 	bohm-out.agda \
-	cedille-syntax.agda \
 	pretty.agda \
 	type-inf.agda
 

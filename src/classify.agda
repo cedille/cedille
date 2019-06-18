@@ -10,7 +10,6 @@ open import ctxt
 open import datatype-functions
 open import free-vars
 open import meta-vars options {mF} ⦃ mFm ⦄
-open import monad-instances
 open import rename
 open import resugar
 open import rewriting

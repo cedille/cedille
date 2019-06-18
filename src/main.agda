@@ -123,7 +123,7 @@ module main-with-options
   (options : cedille-options.options) where
 
   open import ctxt
-  open import monad-instances
+  --open import instances
   open import process-cmd options {IO}
   open import parser
   open import spans options {IO}
