@@ -1,0 +1,8 @@
+module ListF(A : ★).
+
+import public product.
+import public sum.
+import public unit.
+
+ListF ◂ ★ ➔ ★ = λ X : ★ . Sum · Unit · (Product · A · X) .
+
