@@ -258,3 +258,18 @@ instance
   return ⦃ maybe-monad ⦄ = just
   _>>=_ ⦃ maybe-monad ⦄ = _≫=maybe_
   
+
+--========== 𝕃 ==========--
+
+instance
+  list-functor : ∀ {ℓ} → functor {ℓ} 𝕃
+  list-applicative : ∀ {ℓ} → applicative {ℓ} 𝕃
+  list-monad : ∀ {ℓ} → monad {ℓ} 𝕃
+  
+  fmap ⦃ list-functor ⦄ = map
+  
+  pure ⦃ list-applicative ⦄ = [_]
+  _<*>_ ⦃ list-applicative ⦄ fs as = map (λ {(f , a) → f a}) (zip fs as)
+
+  return ⦃ list-monad ⦄ = [_]
+  _>>=_ ⦃ list-monad ⦄ as f = concat (map f as)

@@ -73,9 +73,10 @@ set-need-to-add-symbols-to-context-include-elt ie b =
        lem ff {tt} = refl
        lem ff {ff} = refl
 
-set-spans-include-elt : include-elt → spans → include-elt
-set-spans-include-elt ie ss = 
+set-spans-include-elt : include-elt → spans → file → include-elt
+set-spans-include-elt ie ss f = 
  record ie { ss = inj₁ ss ; 
+             ast~ = just f ;
              err = spans-have-error ss  }
 
 set-last-parse-time-include-elt : include-elt → UTC → include-elt
@@ -197,7 +198,7 @@ toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
     "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^ 
     "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
-    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
+    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "\n}"
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
 check-redefined : ∀ {X} → posinfo → var → toplevel-state → X → spanM toplevel-state → spanM (toplevel-state × X)
@@ -247,27 +248,25 @@ scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-sing
 scope-file' fnₒ fn oa psₒ as triv s with get-include-elt s fn
 ...| ie with include-elt.err ie | include-elt.ast~ ie
 ...| e | nothing = s , when e error-in-import-string
-...| e | just (Module is mn ps cs) =
+...| e | just (Module mn ps cs) =
   (s , when e error-in-import-string) >>=scope
-  scope-cmds fn mn oa ps as (imps-to-cmds is) >>=scope
   scope-cmds fn mn oa ps as cs
 
 scope-cmds fn mn oa ps as (c :: cs) s =
   scope-cmd fn mn oa ps as c s >>=scope scope-cmds fn mn oa ps as cs
 scope-cmds fn mn oa ps as [] s = s , nothing
 
-scope-cmd fn mn oa ps as (CmdImport (Import Private ifn oa' as')) s = s , nothing
-scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn oa' asᵢ')) s =
-  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
-  scope-file' fn ifn' oa psₒ asᵢ triv s
+scope-cmd fn mn oa ps as (CmdImport (Import Private ifn mn' oa' as')) s = s , nothing
+scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn mn' oa' asᵢ')) s =
+  scope-file' fn ifn oa psₒ asᵢ triv s
   -- ^ oa' should be NoOptAs, so we can use oa ^
   where
 
   merged : trie (maybe arg) → params → args → trie (maybe arg)
   merged σ (Param me x tk :: ps) (a :: as) =
     merged (trie-insert σ x $ just a) ps as
-  merged σ (Param me x tk :: ps) ArgsNil =
-    merged (trie-insert σ x nothing) ps ArgsNil
+  merged σ (Param me x tk :: ps) [] =
+    merged (trie-insert σ x nothing) ps []
   merged σ _ _ = σ
   
   arg-var : arg → maybe var
@@ -287,9 +286,9 @@ scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn oa' asᵢ')) s =
   asᵢ = reorder asᵢ'
 
 scope-cmd fn mn oa ps as (CmdDefKind v _ _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (CmdDefTerm _ v _ _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (CmdDefType _ v _ _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (CmdDefData v _ _ cs) s =
+scope-cmd fn mn oa ps as (CmdDefTerm v   _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (CmdDefType v _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (CmdDefData _ v _ _ cs) s =
   scope-var fn mn oa ps as v s >>=scope
   scope-ctrs fn mn oa ps as cs >>=scope
   scope-datatype-names fn mn oa ps as v

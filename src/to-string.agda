@@ -52,6 +52,11 @@ is-type-level-app {TYPE} (TpApp T tT) = tt
 is-type-level-app _ = ff
 
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
+no-parens {TYPE} {TYPE} (TpAbs _ _ _ _) (TpArrow _ _ _) left = ff
+no-parens {TYPE} {TYPE} (TpIota _ _ _) (TpArrow _ _ _) left = ff
+no-parens {KIND} {KIND} (KdAbs _ _ _) (KdArrow _ _) left = ff
+no-parens {TYPE} {KIND} (TpAbs _ _ _ _) (KdArrow _ _) left = ff
+no-parens {TYPE} {KIND} (TpIota _ _ _) (KdArrow _ _) left = ff
 no-parens {_} {TERM} _ (IotaPair t₁ t₂ x Tₓ) lr = tt
 no-parens {_} {TYPE} _ (TpEq t₁ t₂) lr = tt
 no-parens {_} {TERM} _ (Beta ot ot') lr = tt
@@ -413,7 +418,8 @@ term-to-stringh (Mu (inj₂ x) t ot t~ cs) =
 
 term-to-stringh (Mu (inj₁ ot) t oT t~ cs) =
   strAdd "μ' " >>str strBreak 3
-    2 [ strAdd "<" >>str to-stringh ot >>str strAdd ">" ]
+    2 (maybe-else' {B = 𝕃 strM} ot []
+         λ t → [ strAdd "<" >>str to-stringh t >>str strAdd ">" ])
     2 [ to-stringl t ]
     3 ( optType-to-string (just '@') oT ) >>str
   strAdd " " >>str strBracket '{' (cases-to-string cs) '}'
@@ -539,7 +545,6 @@ param-to-string (Param me v atk) =
    strAdd (braceR me))
 
 params-to-string'' ps f = elim-pair (foldr (λ p → uncurry λ g ms → elim-pair (param-to-string p) λ h m → g ∘ h , m :: map h ms) (id , []) ps) λ g ms → strList 2 (strEmpty :: ms) >>str g f
-
 
 params-to-string' f [] = f
 params-to-string' f (p :: []) = elim-pair (param-to-string p) λ g m → m >>str g f

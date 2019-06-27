@@ -130,7 +130,7 @@ hnf {TERM} Γ u (Var x) with
 ...| just t = hnf Γ (unfold-dampen u) t
 hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
   let t = hnf Γ u tₒ
-      μ = either-else' μₒ (inj₁ ∘ erase) inj₂
+      μ = either-else' μₒ (λ _ → inj₁ nothing) inj₂
       Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
       cs = erase-cases cs'
       t-else = λ t → Mu μ t nothing (λ t T? → t~ t nothing) $ flip map cs λ where
@@ -390,7 +390,7 @@ ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ) 
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (type-def (def-params s ps) op t' k , fn , pi)) Δ
   where
-  t' = maybe-map (λ t → hnf Γ unfold-head t) t
+  t' = hnf Γ unfold-head <$> t
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 
@@ -410,7 +410,7 @@ ctxt-term-def pi s op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ)
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (term-def (def-params s ps) op t' tp , fn , pi)) Δ
   where
-  t' = maybe-map (λ t → hnf Γ unfold-head t) t
+  t' = hnf Γ unfold-head <$> t
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 

@@ -173,9 +173,9 @@ meta-vars-to-args : meta-vars → maybe args
 meta-vars-to-args (meta-vars-mk or vs) =
   flip 𝕃maybe-map or λ x → trie-lookup vs x ≫=maybe λ where
     (meta-var-mk name (meta-var-tm tp tm?) loc) →
-      tm? ≫=maybe (just ∘' ArgE ∘' Ttm ∘' meta-var-sol.sol)
+      tm? >>= just ∘' ArgEr ∘' meta-var-sol.sol
     (meta-var-mk name (meta-var-tp kd tp?) loc) →
-      tp? ≫=maybe (just ∘' ArgE ∘' Ttp ∘' meta-var-sol.sol)
+      tp? >>= just ∘' ArgTp ∘' meta-var-sol.sol
 
 prototype-to-maybe : prototype → maybe type
 prototype-to-maybe (proto-maybe mtp) = mtp

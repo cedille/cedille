@@ -23,6 +23,7 @@ open import resugar
 open import subst
 open import conversion
 open import free-vars
+open import constants
 
 record spine-data : Set where
   constructor mk-spine-data
@@ -30,16 +31,17 @@ record spine-data : Set where
     spine-mvars : meta-vars
     spine-type : decortype
     spine-locale : ℕ
-    spine-elab : args → args × term
+    spine-elab : meta-vars → term
 
 check-term-spine-elim : ctxt → spine-data → term × type
 check-term-spine-elim Γ (mk-spine-data Xs dt locl f~) =
-  elim-pair (maybe-else' (meta-vars-to-args Xs) ([] , Hole pi-gen) f~) recompose-apps ,
-  meta-vars-subst-type' ff Γ Xs (decortype-to-type dt)
+  f~ Xs , meta-vars-subst-type' ff Γ Xs (decortype-to-type dt)
+--  elim-pair (maybe-else' (meta-vars-to-args Xs) ([] , Hole pi-gen) f~) recompose-apps ,
+--  meta-vars-subst-type' ff Γ Xs (decortype-to-type dt)
 
 check-term-spine : ctxt → ex-tm → (m : prototype) → 𝔹 → spanM (maybe spine-data)
 
-check-term-spine-return : meta-vars → decortype → ℕ → (args → args × term) → spanM (maybe spine-data)
+check-term-spine-return : meta-vars → decortype → ℕ → (meta-vars → term) → spanM (maybe spine-data)
 check-term-spine-return Xs dt locl f~ = return (just (mk-spine-data Xs dt locl f~))
 
 -- a flag indicating how aggresively we should be unfolding during matching.
@@ -64,7 +66,7 @@ record match-prototype-data : Set where
     match-proto-dectp : decortype
     match-proto-error : 𝔹
 open match-prototype-data
-match-prototype : ctxt → (Xs : meta-vars) (is-hnf : 𝔹) (tp : type) (pt : prototype) → spanM $ match-prototype-data
+match-prototype : ctxt → (Xs : meta-vars) (is-hnf : 𝔹) (tp : type) (pt : prototype) → spanM match-prototype-data
 
 -- substitutions used during matching
 -- --------------------------------------------------
@@ -72,7 +74,7 @@ match-prototype : ctxt → (Xs : meta-vars) (is-hnf : 𝔹) (tp : type) (pt : pr
 -- These have to be in the spanM monad because substitution can unlock a `stuck`
 -- decoration, causing another round of prototype matching (which invokes type matching)
 
-substh-decortype : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → decortype → spanM $ decortype
+substh-decortype : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → decortype → spanM decortype
 substh-decortype Γ ρ σ (decor-type tp) = return $ decor-type (substh Γ ρ σ tp)
 substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
   substh-decortype Γ ρ σ cod
@@ -109,7 +111,7 @@ meta-vars-subst-decortype = meta-vars-subst-decortype' tt
 -- --------------------------------------------------
 
 {-# TERMINATING #-}
-meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM $ (𝕃 meta-var) × decortype
+meta-vars-peel' : ctxt → span-location → meta-vars → decortype → spanM (𝕃 meta-var × decortype)
 meta-vars-peel' Γ sl Xs (decor-decor e? x _ (meta-var-tp k mtp) dt) =
   let Y   = meta-var-fresh-tp Xs x sl (k , mtp)
       Xs' = meta-vars-add Xs Y
@@ -125,13 +127,13 @@ meta-vars-peel' Γ sl Xs dt@(decor-stuck _ _) = return $ [] , dt
 meta-vars-peel' Γ sl Xs dt@(decor-type _) = return $ [] , dt
 meta-vars-peel' Γ sl Xs dt@(decor-error _ _) = return $ [] , dt
 
-meta-vars-unfold-tmapp' : ctxt → span-location → meta-vars → decortype → spanM $ (𝕃 meta-var × is-tmabsd?)
+meta-vars-unfold-tmapp' : ctxt → span-location → meta-vars → decortype → spanM (𝕃 meta-var × is-tmabsd?)
 meta-vars-unfold-tmapp' Γ sl Xs dt =
   meta-vars-subst-decortype Γ Xs dt
   >>= λ dt' → meta-vars-peel' Γ sl Xs dt'
   >>= λ where
     (Ys , dt'@(decor-arrow e? dom cod)) →
-      return $ Ys , yes-tmabsd dt' e? "_" dom ff cod
+      return $ Ys , yes-tmabsd dt' e? ignored-var dom ff cod
     (Ys , dt'@(decor-decor e? x _ (meta-var-tm dom _) cod)) →
       return $ Ys , yes-tmabsd dt' e? x dom (is-free-in x (decortype-to-type cod)) cod
     (Ys , dt@(decor-decor _ _ _ (meta-var-tp _ _) _)) →
@@ -229,7 +231,7 @@ module check-term-app-tp-errors
         (just "The type of the head does not allow the head to be applied to a type argument"))
     >> return nothing
 
-  ctai-disagree : (ctai-sol : type) → spanM $ maybe A
+  ctai-disagree : (ctai-sol : type) → spanM (maybe A)
   ctai-disagree ctai-sol =
     spanM-add (AppTp-span tt (term-start-pos t) (type-end-pos tp) m
       (head-type Γ (meta-vars-subst-type Γ Xs htp)
@@ -271,7 +273,7 @@ check-term-app : ctxt → (Xs : meta-vars) (Ys : 𝕃 meta-var) → (t₁ t₂ :
 
 check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
   -- 1) type the applicand, extending the prototype
-    let pt' = proto-arrow NotErased pt in
+    let pt' = proto-arrow e? pt in
     check-term-spine Γ t₁ pt' ff
       on-fail handleApplicandTypeError
   -- 2) make sure the applicand type reveals an arrow (term abstraction)
@@ -298,12 +300,20 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
   >> check-term-spine-return Xs'' rtp' locl'
   -- 7) fill in solutions to meta-vars introduced here and return the rest
     λ sols →
-      elim-pair (fₕ~ sols) λ sols tₕₓ~ →
-      let num-sols-here = length Ys
-          sols-here = take num-sols-here sols
-          sols-rest = drop num-sols-here sols
-          tₕ~ = recompose-apps sols-here tₕₓ~ in
-      sols-rest , if e? then AppE tₕ~ (Ttm t₂~) else App tₕ~ t₂~
+      let sols = if max then Xs' else sols
+--          num-sols-here = length Ys
+--          sols-here = take num-sols-here sols
+--          sols-rest = drop num-sols-here sols
+--          as = maybe-else' (meta-vars-to-args (meta-vars-from-list sols-here)) [] id
+--          tₕ~ = recompose-apps as tₕₓ~
+          tₕ~ = foldl (λ X t → maybe-else' (meta-vars-lookup sols (meta-var.name X)) t
+                         λ {(meta-var-mk X' (meta-var-tp k T?) _) →
+                              maybe-else' T? t (AppTp t ∘ meta-var-sol.sol);
+                            (meta-var-mk X' (meta-var-tm T t?) _) →
+                              maybe-else' t? t (AppEr t ∘ meta-var-sol.sol)})
+                      (fₕ~ sols) Ys
+          app = if e? then AppEr else App in
+      app tₕ~ t₂~
   }
 
   where
@@ -320,7 +330,7 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
   islocl : ℕ → 𝔹
   islocl locl = is-locale max (just $ pred locl)
 
-  handleApplicandTypeError : spanM ∘ maybe $ _
+  handleApplicandTypeError : spanM (maybe _)
   handleApplicandTypeError =
       spanM-add (App-span max (term-start-pos t₁) (term-end-pos t₂) mode (expected-type-if-pt Γ pt) nothing)
     >> check-term Γ t₂ nothing
@@ -331,7 +341,7 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
     check-term-app-tm-errors.inapplicable
       t₁ t₂ (decortype-to-type dt) Xs (islocl locl) mode Γ e? dt (proto-arrow e? pt)
 
-  checkErasuresMatch : (e?₁ e?₂ : erased?) → type → meta-vars → (locl : ℕ) → spanM ∘ maybe $ ⊤
+  checkErasuresMatch : (e?₁ e?₂ : erased?) → type → meta-vars → (locl : ℕ) → spanM (maybe ⊤)
   checkErasuresMatch e?₁ e?₂ htp Xs locl =
     if e?₁ xor e?₂
       then check-term-app-tm-errors.bad-erasure t₁ t₂ htp Xs (islocl locl) mode Γ e?₁
@@ -371,7 +381,8 @@ check-term-spine Γ t'@(ExAppTp t tp) pt max =
     genAppTpSpan Γ Xs pt rtp
   >> check-term-spine-return Xs rdt locl
   -- 7) fill in solutions to meta-vars introduced here and return the rest
-    (map-snd (λ tₕ~ → AppE tₕ~ (Ttp tp~)) ∘ fₕ~)
+    λ sols → AppTp (fₕ~ sols) tp~
+    --(map-snd (λ tₕ~ → AppE tₕ~ (Ttp tp~)) ∘ fₕ~)
 
   where
   mode = prototype-to-checking pt
@@ -416,7 +427,7 @@ check-term-spine Γ t pt max =
   -- to match-* -- that is, for (σ , W) = match-prototype ...
   -- we have dom(σ) = ∅
   >>= λ ret → let dt = match-proto-dectp ret in
-  check-term-spine-return meta-vars-empty dt locl (_, t~)
+  check-term-spine-return meta-vars-empty dt locl λ _ → t~
 
 -- check-term-app
 -- --------------------------------------------------

@@ -167,10 +167,10 @@ untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
                [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ])
     (ExIsMu' t?) →
       maybe-map (untyped-term Γ) t? >>=? λ t~? →
-      return (Γ , empty-renamectxt , inj₁ (maybe-else' t~? (Hole pi) id) , []))
+      return (Γ , empty-renamectxt , inj₁ t~? , []))
   >>= λ where
     (Γ' , ρ , μ~ , tvs) →
-      untyped-cases Γ ms ρ >>= λ ms~ →
+      untyped-cases Γ' ms ρ >>= λ ms~ →
       [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
       return (Mu μ~ t~ nothing (λ t~ _ → untyped-elab-mu Γ t~) ms~)
 
@@ -361,10 +361,10 @@ untyped-case-args Γ pi cas t =
 
 untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
   untyped-case-args Γ pi cas t >>=c λ cas~ t~ →
-  let c~ = Case x cas~ t~ in
   case (qual-lookup Γ x) of λ where
     (just (qx , as , ctr-def ps T Cₗ cᵢ cₐ , loc)) →
-      let eᵢ = "This constructor overlaps with " ^ x
+      let c~ = Case qx cas~ t~
+          eᵢ = "This constructor overlaps with " ^ x
           eₐ = unless (length cas~ =ℕ cₐ)
                  ("Expected " ^ ℕ-to-string cₐ ^
                   " arguments after erasure, but got " ^ ℕ-to-string (length cas~))
@@ -373,10 +373,10 @@ untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
                   (if Cₗ =ℕ 1 then " constructor" else " constructors") ^
                   ", but expected " ^ ℕ-to-string csₗ) in
       [- Var-span Γ pi x untyped [] (asₗ cᵢ maybe-or (eₐ maybe-or eₗ)) -]
-      return2 c~ λ cᵢ' → unless (cᵢ =ℕ cᵢ') eᵢ
+      return2 c~ λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ
     _ →
       [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
-      return2 c~ asₗ
+      return2 (Case x cas~ t~) asₗ
 
 untyped-elab-mu Γ t cs =
-  Hole posinfo-gen
+  Hole posinfo-gen -- TODO

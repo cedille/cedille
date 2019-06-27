@@ -105,11 +105,11 @@ ctxt-binds-var (mk-ctxt (_ , _ , _ , q) _ i _) x = trie-contains q x || trie-con
 
 ctxt-var-decl : var → ctxt → ctxt
 ctxt-var-decl v (mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , (trie-insert q v (v , []))) syms (trie-insert i v (var-decl , "missing" , "missing")) Δ
+  mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms (trie-insert i v (var-decl , "missing" , "missing")) Δ
 
 ctxt-var-decl-loc : posinfo → var → ctxt → ctxt
 ctxt-var-decl-loc pi v (mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , (trie-insert q v (v , []))) syms (trie-insert i v (var-decl , fn , pi)) Δ
+  mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms (trie-insert i v (var-decl , fn , pi)) Δ
 
 qualif-var : ctxt → var → var
 qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _) v with trie-lookup q v

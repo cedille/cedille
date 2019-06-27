@@ -53,17 +53,17 @@ qi-var-if : maybe qualif-info → var → var
 qi-var-if (just (v , _)) _ = v
 qi-var-if nothing v = v
 
-ctxt-restore-info : ctxt → var → maybe qualif-info → maybe sym-info → ctxt
-ctxt-restore-info (mk-ctxt (fn , mn , ps , q) syms i Δ) v qi si =
-  mk-ctxt (fn , mn , ps , f qi v q) syms (f si (qi-var-if qi v) (trie-remove i (qi-var-if (trie-lookup q v) v))) Δ
-  where
-    f : ∀{A : Set} → maybe A → string → trie A → trie A
-    f (just a) s t = trie-insert t s a
-    f nothing s t = trie-remove t s
+--ctxt-restore-info : ctxt → var → maybe qualif-info → maybe sym-info → ctxt
+--ctxt-restore-info (mk-ctxt (fn , mn , ps , q , ) syms i Δ) v qi si =
+--  mk-ctxt (fn , mn , ps , f qi v q) syms (f si (qi-var-if qi v) (trie-remove i (qi-var-if (trie-lookup q v) v))) Δ
+--  where
+--    f : ∀{A : Set} → maybe A → string → trie A → trie A
+--    f (just a) s t = trie-insert t s a
+--    f nothing s t = trie-remove t s
 
-ctxt-restore-info* : ctxt → 𝕃 (string × maybe qualif-info × maybe sym-info) → ctxt
-ctxt-restore-info* Γ [] = Γ
-ctxt-restore-info* Γ ((v , qi , m) :: ms) = ctxt-restore-info* (ctxt-restore-info Γ v qi m) ms
+--ctxt-restore-info* : ctxt → 𝕃 (string × maybe qualif-info × maybe sym-info) → ctxt
+--ctxt-restore-info* Γ [] = Γ
+--ctxt-restore-info* Γ ((v , qi , m) :: ms) = ctxt-restore-info* (ctxt-restore-info Γ v qi m) ms
 
 def-params : defScope → params → defParams
 def-params tt ps = nothing
@@ -90,13 +90,13 @@ maybe-inst-ctrs = maybe-else (λ as c → c) ∘ inst-ctrs
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
 ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
   let v' =  p % v in
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
+  mk-ctxt (fn , mn , ps , qualif-insert-params q v' v [])
     syms (trie-insert i v' (term-decl T , fn , p)) Δ
 
 ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
 ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
   let v' = p % v in
-  mk-ctxt (fn , mn , ps , (qualif-insert-params q v' v []))
+  mk-ctxt (fn , mn , ps , qualif-insert-params q v' v [])
     syms (trie-insert i v' (type-decl k , fn , p)) Δ
 
 ctxt-tk-decl : posinfo → var → tpkd → ctxt → ctxt
@@ -114,7 +114,7 @@ ctxt-var-decl-if v Γ with Γ
 ... | mk-ctxt (fn , mn , ps , q) syms i Δ with trie-lookup i v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
-... | _ = mk-ctxt (fn , mn , ps , (trie-insert q v (v , []))) syms
+... | _ = mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms
   (trie-insert i v (var-decl , "missing" , "missing")) Δ
 
 ctxt-rename-rep : ctxt → var → var
@@ -297,7 +297,7 @@ ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps ,
 
 ctxt-clear-symbol : ctxt → string → ctxt
 ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i Δ) x =
-  mk-ctxt (fn , mn , pms , (trie-remove q x)) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) Δ
+  mk-ctxt (fn , mn , pms , trie-remove q x) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) Δ
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ

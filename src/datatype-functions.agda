@@ -90,17 +90,9 @@ indices-to-lams : indices → (body : term) → term
 indices-to-lams = flip $ foldr λ where
   (Index x atk) → Lam Erased x (just atk)
 
-indices-to-lams' : indices → (body : term) → term
-indices-to-lams' = flip $ foldr λ where
-  (Index x atk) → Lam Erased x nothing
-
 params-to-lams : params → (body : term) → term
 params-to-lams = flip $ foldr λ where
   (Param me x atk) → Lam (tk-erased atk me) x (just atk)
-
-params-to-lams' : params → (body : term) → term
-params-to-lams' = flip $ foldr λ where
-  (Param me x atk) → Lam (tk-erased atk me) x nothing
 
 indices-to-apps : indices → (body : term) → term
 indices-to-apps = flip $ foldl λ where
@@ -123,16 +115,15 @@ params-to-caseArgs = map λ where
   (Param me x (Tkt T)) → CaseArg (if me then CaseArgEr else CaseArgTm) x
   (Param me x (Tkk k)) → CaseArg CaseArgTp x
 
-ctrs-to-lams' : ctrs → (body : term) → term
-ctrs-to-lams' = flip $ foldr λ where
-  (Ctr x T) → Lam NotErased x nothing
+--ctrs-to-lams : ctxt → var → params → ctrs → (body : term) → term
+--ctrs-to-lams Γ x ps cs t = foldr
+--  (λ {(Ctr y T) f Γ → Lam NotErased y
+--    (just $ Tkt $ subst Γ (params-to-tpapps ps $ TpVar y) y T)
+--    $ f $ ctxt-var-decl y Γ})
+--  (λ Γ → t) cs Γ
 
-ctrs-to-lams : ctxt → var → params → ctrs → (body : term) → term
-ctrs-to-lams Γ x ps cs t = foldr
-  (λ {(Ctr y T) f Γ → Lam NotErased y
-    (just $ Tkt $ subst Γ (params-to-tpapps ps $ TpVar y) y T)
-    $ f $ ctxt-var-decl y Γ})
-  (λ Γ → t) cs Γ
+ctrs-to-lams : ctrs → term → term
+ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just $ Tkt T)}
 
 add-indices-to-ctxt : indices → ctxt → ctxt
 add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}

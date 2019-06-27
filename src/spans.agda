@@ -110,104 +110,15 @@ get-error m ss@(regular-spans nothing _) = m nothing ss
 get-error m ss@(regular-spans (just es) _) = m (just es) ss
 
 set-error : maybe (error-span) → spanM ⊤
-set-error es ss@(global-error _ _) = return (triv , ss)
-set-error es (regular-spans _ ss) = return (triv , regular-spans es ss)
+set-error es ss@(global-error _ _) = return2 triv ss
+set-error es (regular-spans _ ss) = return2 triv (regular-spans es ss)
 
-spanM-push : mF ⊤ → spanM ⊤
-spanM-push mf ss = mf >> return (triv , ss)
-
---_>>=span_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
---(m₁ >>=span m₂) ss = m₁ ss >>= λ where (v , ss) → m₂ v ss
-
---_≫span_ : ∀{A B : Set} → spanM A → spanM B → spanM B
---(m₁ ≫span m₂) = m₁ >>=span (λ _ → m₂)
-
---infixr 2 _≫span_ _>>=span_ _>>=spanj_ _>>=spanm_ _>>=spanm'_ _>>=spanc_ _>>=spanc'_ _≫spanc_ _≫spanc'_ _>>=span?_
-
---_>>=span?_ : ∀{A B : Set} → maybe (spanM A) → (maybe A → spanM B) → spanM B
---nothing >>=span? f = f nothing
---just a >>=span? f = a >>=span (f ∘ just)
-
---_>>=spanj_ : ∀{A : Set} → spanM (maybe A) → (A → spanM ⊤) → spanM ⊤
---_>>=spanj_{A} m m' = m >>=span cont
---  where cont : maybe A → spanM ⊤
---        cont nothing = spanMok
---        cont (just x) = m' x
+spanM-push : ∀ {A} → mF A → spanM A
+spanM-push mf ss = mf >>= λ a → return2 a ss
 
 -- discard changes made by the first computation
 _>>=spand_ : ∀{A B : Set} → spanM A → (A → spanM B) → spanM B
 _>>=spand_{A} m m' ss = m ss >>= λ where (v , _) → m' v ss
-
---_>>=spanm_ : ∀{A : Set} → spanM (maybe A) → (A → spanM (maybe A)) → spanM (maybe A)
---_>>=spanm_{A} m m' = m >>=span cont
---  where cont : maybe A → spanM (maybe A)
---        cont nothing = return nothing
---        cont (just a) = m' a
-
---_>>=spans'_ : ∀ {A B E : Set} → spanM (E ∨ A) → (A → spanM (E ∨ B)) → spanM (E ∨ B)
---_>>=spans'_ m f = m >>=span λ where
---  (inj₁ e) → return (inj₁ e)
---  (inj₂ a) → f a
-
---_>>=spanm'_ : ∀{A B : Set} → spanM (maybe A) → (A → spanM (maybe B)) → spanM (maybe B)
---_>>=spanm'_{A}{B} m m' = m >>=span cont
---  where cont : maybe A → spanM (maybe B)
---        cont nothing = return nothing
---        cont (just a) = m' a
-
-
--- Currying/uncurry span binding
---_>>=spanc_ : ∀{A B C} → spanM (A × B) → (A → B → spanM C) → spanM C
---(m >>=spanc m') ss = m ss >>= λ where
---  ((a , b) , ss') → m' a b ss'
-
---_>>=spanc'_ : ∀{A B C} → spanM (A × B) → (B → spanM C) → spanM C
---(m >>=spanc' m') ss = m ss >>= λ where
---  ((a , b) , ss') → m' b ss'
-
---_≫spanc'_ : ∀{A B} → spanM A → B → spanM (A × B)
---(m ≫spanc' b) = m >>=span λ a → return (a , b)
-
---_≫spanc_ : ∀{A B} → spanM A → spanM B → spanM (A × B)
---(ma ≫spanc mb) = ma >>=span λ a → mb >>=span λ b → return (a , b)
-
---spanMok' : ∀{A} → A → spanM (⊤ × A)
---spanMok' a = return (triv , a)
-
---_on-fail_>>=spanm'_ : ∀ {A B} → spanM (maybe A) → spanM B
---                            → (A → spanM B) → spanM B
---_on-fail_>>=spanm'_ {A}{B} m fail f = m >>=span cont
---  where cont : maybe A → spanM B
---        cont nothing  = fail
---        cont (just x) = f x
-
---_on-fail_>>=spans'_ : ∀ {A B E} → spanM (E ∨ A) → (E → spanM B) → (A → spanM B) → spanM B
---_on-fail_>>=spans'_ {A}{B}{E} m fail f = m >>=span cont
---  where cont : E ∨ A → spanM B
---        cont (inj₁ err) = fail err
---        cont (inj₂ a) = f a
-
---_exit-early_>>=spans'_ = _on-fail_>>=spans'_
-
---sequence-spanM : ∀ {A} → 𝕃 (spanM A) → spanM (𝕃 A)
---sequence-spanM [] = return []
---sequence-spanM (sp :: sps)
---  =   sp
---    >>=span λ x → sequence-spanM sps
---    >>=span λ xs → return (x :: xs)
-
---foldr-spanM : ∀ {A B} → (A → spanM B → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
---foldr-spanM f n [] = n
---foldr-spanM f n (m :: ms)
---  = m >>=span λ a → f a (foldr-spanM f n ms)
-
---foldl-spanM : ∀ {A B} → (spanM B → A → spanM B) → spanM B → 𝕃 (spanM A) → spanM B
---foldl-spanM f m [] = m
---foldl-spanM f m (m' :: ms) =
---  m' >>=span λ a → foldl-spanM f (f m a) ms
-
---spanM-for_init_use_ : ∀ {A B} → 𝕃 (spanM A) → spanM B → (A → spanM B → spanM B) → spanM B
---spanM-for xs init acc use f = foldr-spanM f acc xs
 
 spanM-add : span → spanM ⊤
 spanM-add s ss = return (triv , add-span s ss)
@@ -215,10 +126,6 @@ spanM-add s ss = return (triv , add-span s ss)
 infixr 2 [-_-]_
 [-_-]_ : ∀ {X} → span → spanM X → spanM X
 [- s -] m = spanM-add s >> m
-
---spanM-addl : 𝕃 span → spanM ⊤
---spanM-addl [] = spanMok
---spanM-addl (s :: ss) = spanM-add s ≫span spanM-addl ss
 
 debug-span : posinfo → posinfo → 𝕃 tagged-val → span
 debug-span pi pi' tvs = mk-span "Debug" pi pi' tvs nothing
@@ -262,24 +169,7 @@ var-location-data : ctxt → var → tagged-val
 var-location-data Γ @ (mk-ctxt _ _ i _) x =
   location-data (maybe-else ("missing" , "missing") snd
     (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
-{-
-{-# TERMINATING #-}
-var-location-data : ctxt → var → maybe language-level → tagged-val
-var-location-data Γ x (just ll-term) with ctxt-var-location Γ x | qualif-term Γ (Var posinfo-gen x)
-...| ("missing" , "missing") | (Var pi x') = location-data (ctxt-var-location Γ x')
-...| loc | _ = location-data loc
-var-location-data Γ x (just ll-type) with ctxt-var-location Γ x | qualif-type Γ (TpVar posinfo-gen x)
-...| ("missing" , "missing") | (TpVar pi x') = location-data (ctxt-var-location Γ x')
-...| loc | _ = location-data loc
-var-location-data Γ x (just ll-kind) with ctxt-var-location Γ x | qualif-kind Γ (KndVar posinfo-gen x ArgsNil)
-...| ("missing" , "missing") | (KndVar pi x' as) = location-data (ctxt-var-location Γ x')
-...| loc | _ = location-data loc
-var-location-data Γ x nothing with ctxt-lookup-term-var Γ x | ctxt-lookup-type-var Γ x | ctxt-lookup-kind-var-def Γ x
-...| just _ | _ | _ = var-location-data Γ x (just ll-term)
-...| _ | just _ | _ = var-location-data Γ x (just ll-type)
-...| _ | _ | just _ = var-location-data Γ x (just ll-kind)
-...| _ | _ | _ = location-data ("missing" , "missing")
--}
+
 explain : string → tagged-val
 explain = strRunTag "explanation" empty-ctxt ∘ strAdd
 
@@ -294,12 +184,6 @@ expected-type-subterm = to-string-tag "expected-type of the subterm"
 
 missing-expected-type : tagged-val
 missing-expected-type = strRunTag "expected-type" empty-ctxt $ strAdd "[missing]"
-
--- hnf-type : ctxt → type → tagged-val
--- hnf-type Γ tp = to-string-tag "hnf of type" Γ (hnf-term-type Γ ff tp)
-
--- hnf-expected-type : ctxt → type → tagged-val
--- hnf-expected-type Γ tp = to-string-tag "hnf of expected type" Γ (hnf-term-type Γ ff tp)
 
 expected-kind : ctxt → kind → tagged-val
 expected-kind = to-string-tag "expected kind"
@@ -370,9 +254,6 @@ arg-argument Γ = either-else (term-argument Γ) (type-argument Γ) ∘ arg-to-t
 
 kind-data : ctxt → kind → tagged-val
 kind-data = to-string-tag "kind"
-
---liftingType-data : ctxt → liftingType → tagged-val
---liftingType-data = to-string-tag "lifting type"
 
 kind-data-if : ctxt → maybe kind → 𝕃 tagged-val
 kind-data-if Γ (just k) = [ kind-data Γ k ]
@@ -459,11 +340,7 @@ keywords-data kws = keywords , h kws , [] where
   h [] = [[]]
   h (k :: []) = [[ k ]]
   h (k :: ks) = [[ k ]] ⊹⊹ [[ " " ]] ⊹⊹ h ks
-{-
-keywords-data-var : erased? → tagged-val
-keywords-data-var e =
-  keywords ,  [[ if e then keyword-erased else keyword-noterased ]] , []
--}
+
 keywords-app : (is-locale : 𝔹) → tagged-val
 keywords-app l = keywords-data ([ keyword-application ] ++ (if l then [ keyword-locale ] else []))
 
@@ -854,5 +731,3 @@ Let-span me pi pi' c tvs =
 TpLet-span : posinfo → posinfo → checking-mode → 𝕃 tagged-val → span
 TpLet-span pi pi' c tvs =
   mk-span "Type Let" pi pi' (ll-data-type :: checking-data c :: tvs) nothing
-
-

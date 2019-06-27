@@ -835,7 +835,3 @@ elab-all ts fm to =
     (stringset-strings is) >>= λ e →
     putStrLn (if e then "0" else "2")
 
-
-
-
-

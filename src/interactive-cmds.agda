@@ -683,7 +683,7 @@ private
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) $ Case x
-                       f'' = λ t cs → Mu (if shallow then inj₁ mu else inj₂ rec) t (just Tₘ) (λ _ _ _ → Hole pi-gen ) (mk-cs cs)
+                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) (λ _ _ _ → Hole pi-gen ) (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t TYPE T''

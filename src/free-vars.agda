@@ -87,7 +87,7 @@ erase {TERM} (LetTp x k T t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
-erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ erase) inj₂) (erase t) nothing (λ t2 T2 → t~ t2 nothing) (erase-cases cs)
+erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (inj₁ ∘ (erase <$>_)) inj₂) (erase t) nothing (λ t2 T2 → t~ t2 nothing) (erase-cases cs)
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)
@@ -137,3 +137,6 @@ are-free-in xs t = are-free-in-h xs (free-vars t)
 erase-if : ∀ {ed} → 𝔹 → ⟦ ed ⟧ → ⟦ ed ⟧
 erase-if tt = erase
 erase-if ff = id
+
+infix 5 `|_|`
+`|_|` = erase

@@ -31,7 +31,7 @@ mutual
   left-right = maybe 𝔹
   rho-hnf = 𝔹
   opt-public = 𝔹
-  is-mu = term ⊎ var
+  is-mu = maybe term ⊎ var
   iota-num = 𝔹
   case-args = 𝕃 case-arg
   tmtp = term ⊎ type
@@ -44,6 +44,8 @@ mutual
   pattern Ttp T = inj₂ T
   pattern Arg t = inj₁ t
   pattern ArgE tT = inj₂ tT
+  pattern ArgTp T = ArgE (Ttp T)
+  pattern ArgEr t = ArgE (Ttm t)
   pattern ι1 = ff
   pattern ι2 = tt
   pattern NotErased = ff
@@ -57,12 +59,20 @@ mutual
   pattern EpsBoth = nothing
   pattern Public = tt
   pattern Private = ff
+  
+--  data ctr : Set where
+--    Ctr : var → type → ctr
 
-  data ctr : Set where
-    Ctr : var → type → ctr
+  ctr = var × type
+--  Ctr : var → type → ctr
+  pattern Ctr x T = x , T
 
   data param : Set where
     Param : erased? → var → tpkd → param
+  pattern ParamTp x k = Param _  x (Tkk k)
+  pattern ParamTm x T = Param ff x (Tkt T)
+  pattern ParamEr x T = Param tt x (Tkt T)
+
 
   {-# NO_POSITIVITY_CHECK #-} -- Necessary due to mu elaboration argument
   data term : Set where
@@ -81,6 +91,8 @@ mutual
     Sigma : term → term
     Mu : is-mu → term → maybe type → (term → maybe type → cases → term) → cases → term
     Var : var → term
+  pattern AppTp t T = AppE t (Ttp T)
+  pattern AppEr t t' = AppE t (Ttm t')
 
   data case : Set where
     Case : var → case-args → term → case
@@ -93,6 +105,8 @@ mutual
     TpHole : posinfo → type
     TpLam : var → tpkd → type → type
     TpVar : var → type
+  pattern TpAppTp T T' = TpApp T (Ttp T')
+  pattern TpAppTm T t = TpApp T (Ttm t)
   
   data kind : Set where
     KdStar : kind
@@ -113,17 +127,35 @@ mutual
   cmds = 𝕃 cmd
 
   data file : Set where
-    Module : imports → var → params → cmds → file
+    Module : var → params → cmds → file
+
+  record encoding-defs : Set where
+    constructor mk-enc-defs
+    field
+      ecs : cmds
+      Cast : type
+      cast-in : term
+      cast-out : term
+      cast-is : term
+      Functor : type
+      functor-in : term
+      functor-out : term
+      Fix : type
+      fix-in : term
+      fix-out : term
+      lambek1 : term
+      lambek2 : term
+      fix-ind : term
 
   data cmd : Set where
-    CmdDefTerm : opacity → var → type → term → cmd
-    CmdDefType : opacity → var → kind → type → cmd
+    CmdDefTerm : var → term → cmd
+    CmdDefType : var → kind → type → cmd
     CmdDefKind : var → params → kind → cmd
-    CmdDefData : var → params → kind → ctrs → cmd
+    CmdDefData : encoding-defs → var → params → kind → ctrs → cmd
     CmdImport : imprt → cmd
 
   data imprt : Set where
-    Import : opt-public → filepath → maybe var → args → imprt
+    Import : opt-public → filepath → var → maybe var → args → imprt
 
   data ex-cmd : Set where
     ExCmdKind : posinfo → var → ex-params → ex-kd → posinfo → ex-cmd

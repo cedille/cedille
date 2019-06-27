@@ -14,11 +14,13 @@ $alpha   = [a-zA-Z]
 $anychar = [ \t\%\(\)\:\.\[\]\,\!\{\}\-=\+\<>\/_]
 $numone  = 0-9
 $squote  = \"
+$homechar = \~
 
 @num      = $numone+
 @numpunct = $numone | \' | \-
 @anychar  = $alpha | @numpunct | $anychar
-@path     = $squote @anychar* $squote
+@homechar = $homechar?
+@path     = $squote @homechar @anychar* $squote
 
 token :-
       <0> import\-directories           { mkTokenEmpty TImpDirs       }
@@ -31,8 +33,8 @@ token :-
       <0> pretty\-print\-columns        { mkTokenEmpty TPrintColumns  }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
-      <0> Mendler\-old                  { mkTokenEmpty TEncMendlerOld }
-      <0> Mendler                       { mkTokenEmpty TEncMendler    }
+--      <0> Mendler\-old                  { mkTokenEmpty TEncMendlerOld }
+--      <0> Mendler                       { mkTokenEmpty TEncMendler    }
       <0> @path  	                { mkTokenPath  TPath          }
       <0> =	                        { mkTokenEmpty TEq            }
       <0> @num                          { mkTokenNum TNum             }
@@ -47,24 +49,21 @@ token :-
 
 {
 
-data StrBool = StrBoolFalse | StrBoolTrue
-  deriving (Show)
-
 data Paths = PathsCons Text Paths
            | PathsNil 
   deriving (Show)
 
-data DataEnc = Mendler | MendlerOld
-  deriving (Show)
+--data DataEnc = Mendler | MendlerOld
+--  deriving (Show)
 
-data Opt = GenerateLogs         StrBool
+data Opt = GenerateLogs         Bool
            | Lib Paths
-           | MakeRktFiles       StrBool
-           | ShowQualifiedVars  StrBool
-           | UseCedeFiles       StrBool
-           | EraseTypes         StrBool
+           | MakeRktFiles       Bool
+           | ShowQualifiedVars  Bool
+           | UseCedeFiles       Bool
+           | EraseTypes         Bool
            | PrintColumns       Text
-           | DatatypeEncoding   DataEnc
+           | DatatypeEncoding   (Maybe Text)
   deriving (Show)
   
 data Opts = OptsCons Opt Opts
@@ -99,8 +98,8 @@ data TokenClass =
      |  TEraseTypes
      |  TPrintColumns
      |  TDataEnc
-     |  TEncMendler
-     |  TEncMendlerOld
+--     |  TEncMendler
+--     |  TEncMendlerOld
      |  TEq
      |  TPoint
      |  TEOF

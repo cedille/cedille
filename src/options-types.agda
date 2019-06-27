@@ -47,30 +47,25 @@ path-star-1 = string
 {-# FOREIGN GHC import qualified CedilleOptionsParser #-}
 {-# FOREIGN GHC import qualified CedilleOptionsLexer #-}
 
-data str-bool : Set where 
-    StrBoolFalse : str-bool
-    StrBoolTrue : str-bool
-{-# COMPILE GHC str-bool = data CedilleOptionsLexer.StrBool (CedilleOptionsLexer.StrBoolFalse | CedilleOptionsLexer.StrBoolTrue) #-}
-
 data paths : Set where 
     PathsCons : path → paths → paths
     PathsNil : paths
 {-# COMPILE GHC paths = data CedilleOptionsLexer.Paths (CedilleOptionsLexer.PathsCons | CedilleOptionsLexer.PathsNil) #-}
 
-data data-encoding : Set where
-  Mendler : data-encoding
-  Mendler-old : data-encoding
-{-# COMPILE GHC data-encoding = data CedilleOptionsLexer.DataEnc (CedilleOptionsLexer.Mendler | CedilleOptionsLexer.MendlerOld) #-}
+--data data-encoding : Set where
+--  Mendler : data-encoding
+--  Mendler-old : data-encoding
+--{-# COMPILE GHC data-encoding = data CedilleOptionsLexer.DataEnc (CedilleOptionsLexer.Mendler | CedilleOptionsLexer.MendlerOld) #-}
 
 data opt : Set where 
-    GenerateLogs : str-bool → opt
+    GenerateLogs : 𝔹 → opt
     Lib : paths → opt
-    MakeRktFiles : str-bool → opt
-    ShowQualifiedVars : str-bool → opt
-    UseCedeFiles : str-bool → opt
-    EraseTypes : str-bool → opt
+    MakeRktFiles : 𝔹 → opt
+    ShowQualifiedVars : 𝔹 → opt
+    UseCedeFiles : 𝔹 → opt
+    EraseTypes : 𝔹 → opt
     PrettyPrintColumns : string → opt
-    DatatypeEncoding : data-encoding → opt
+    DatatypeEncoding : maybe path → opt
 {-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.PrintColumns | CedilleOptionsLexer.DatatypeEncoding) #-}
 
 data opts : Set where 
@@ -99,7 +94,7 @@ data ParseTreeT : Set where
   parsed-opts : opts → ParseTreeT
   parsed-paths : paths → ParseTreeT
   parsed-start : start → ParseTreeT
-  parsed-str-bool : str-bool → ParseTreeT
+  parsed-bool : 𝔹 → ParseTreeT
   parsed-posinfo : posinfo → ParseTreeT
   parsed-alpha : alpha → ParseTreeT
   parsed-alpha-bar-4 : alpha-bar-4 → ParseTreeT
@@ -226,15 +221,20 @@ path-star-1ToString : path-star-1 → string
 path-star-1ToString x = "(path-star-1 " ^ x ^ ")"
 
 mutual
+  boolToString : 𝔹 → string
+  boolToString tt = "true"
+  boolToString ff = "false"
+  
   optToString : opt → string
-  optToString (GenerateLogs x0) = "(GenerateLogs" ^ " " ^ (str-boolToString x0) ^ ")"
+  optToString (GenerateLogs x0) = "(GenerateLogs" ^ " " ^ (boolToString x0) ^ ")"
   optToString (Lib x0) = "(Lib" ^ " " ^ (pathsToString x0) ^ ")"
-  optToString (MakeRktFiles x0) = "(MakeRktFiles" ^ " " ^ (str-boolToString x0) ^ ")"
-  optToString (ShowQualifiedVars x0) = "(ShowQualifiedVars" ^ " " ^ (str-boolToString x0) ^ ")"
-  optToString (UseCedeFiles x0) = "(UseCedeFiles" ^ " " ^ (str-boolToString x0) ^ ")"
-  optToString (EraseTypes x0) = "(EraseTypes" ^ " " ^ (str-boolToString x0) ^ ")"
+  optToString (MakeRktFiles x0) = "(MakeRktFiles" ^ " " ^ (boolToString x0) ^ ")"
+  optToString (ShowQualifiedVars x0) = "(ShowQualifiedVars" ^ " " ^ (boolToString x0) ^ ")"
+  optToString (UseCedeFiles x0) = "(UseCedeFiles" ^ " " ^ (boolToString x0) ^ ")"
+  optToString (EraseTypes x0) = "(EraseTypes" ^ " " ^ (boolToString x0) ^ ")"
   optToString (PrettyPrintColumns x0) = "PrettyPrintColumns" ^ " " ^ x0 ^ ")"
-  optToString (DatatypeEncoding x0) = "(DatatypeEncoding" ^ " " ^ (data-encodingToString x0) ^ ")"
+  optToString (DatatypeEncoding nothing) = "(DatatypeEncoding nothing)"
+  optToString (DatatypeEncoding (just x0)) = "(DatatypeEncoding (just " ^ x0 ^ "))"
 
   optsToString : opts → string
   optsToString (OptsCons x0 x1) = "(OptsCons" ^ " " ^ (optToString x0) ^ " " ^ (optsToString x1) ^ ")"
@@ -244,23 +244,19 @@ mutual
   pathsToString (PathsCons x0 x1) = "(PathsCons" ^ " " ^ (pathToString x0) ^ " " ^ (pathsToString x1) ^ ")"
   pathsToString (PathsNil) = "PathsNil" ^ ""
   
-  data-encodingToString : data-encoding → string
-  data-encodingToString Mendler = "Mendler"
-  data-encodingToString Mendler-old = "Mendler-old"
+--  data-encodingToString : data-encoding → string
+--  data-encodingToString Mendler = "Mendler"
+--  data-encodingToString Mendler-old = "Mendler-old"
 
   startToString : start → string
   startToString (File x0) = "(File" ^ " " ^ (optsToString x0) ^ ")"
-
-  str-boolToString : str-bool → string
-  str-boolToString (StrBoolFalse) = "StrBoolFalse" ^ ""
-  str-boolToString (StrBoolTrue) = "StrBoolTrue" ^ ""
 
 ParseTreeToString : ParseTreeT → string
 ParseTreeToString (parsed-opt t) = optToString t
 ParseTreeToString (parsed-opts t) = optsToString t
 ParseTreeToString (parsed-paths t) = pathsToString t
 ParseTreeToString (parsed-start t) = startToString t
-ParseTreeToString (parsed-str-bool t) = str-boolToString t
+ParseTreeToString (parsed-bool t) = boolToString t
 ParseTreeToString (parsed-posinfo t) = posinfoToString t
 ParseTreeToString (parsed-alpha t) = alphaToString t
 ParseTreeToString (parsed-alpha-bar-4 t) = alpha-bar-4ToString t
@@ -316,8 +312,8 @@ ParseTreeToString parsed-ws-plus-34 = "[ws-plus-34]"
 mutual
 
   {-# TERMINATING #-}
-  norm-str-bool : (x : str-bool) → str-bool
-  norm-str-bool x = x
+  norm-bool : (x : bool) → bool
+  norm-bool x = x
 
   {-# TERMINATING #-}
   norm-start : (x : start) → start

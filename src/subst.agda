@@ -22,10 +22,10 @@ substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-arg
 subst-rename-var-if : ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → var
 subst-rename-var-if Γ ρ "_" σ = "_"
 subst-rename-var-if Γ ρ x σ =
-  {- rename bound variable x iff it is one of the vars being substituted for, 
-     or if x occurs free in one of the terms we are substituting for vars, 
+  {- rename bound variable x iff it is one of the vars being substituted for,
+     or if x occurs free in one of the terms we are substituting for vars,
      or if it is the renamed version of any variable -}
-  if trie-contains σ x || trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then 
+  if trie-contains σ x || trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then
     fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) x
   else
     x
@@ -34,11 +34,11 @@ substh {TERM} Γ ρ σ (App t t') = App (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (AppE t tT) = AppE (substh Γ ρ σ t) (substh Γ ρ σ -tT tT)
 substh {TERM} Γ ρ σ (Lam me x oc t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    Lam me x' (maybe-map (substh Γ ρ σ -tk_) oc) 
+    Lam me x' (substh Γ ρ σ -tk_ <$> oc)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TERM} Γ ρ σ (LetTm me x T t t') =
   let x' = subst-rename-var-if Γ ρ x σ in
-    LetTm me x' (maybe-map (substh Γ ρ σ) T) (substh Γ ρ σ t)
+    LetTm me x' (substh Γ ρ σ <$> T) (substh Γ ρ σ t)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t')
 substh {TERM} Γ ρ σ (LetTp x k T t) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -56,7 +56,7 @@ substh {TERM} Γ ρ σ (IotaPair t₁ t₂ x T) =
   IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
 substh {TERM} Γ ρ σ (IotaProj t n) = IotaProj (substh Γ ρ σ t) n
 substh {TERM} Γ ρ σ (Sigma t) = Sigma (substh Γ ρ σ t)
-substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) 
+substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ σ t₁) (substh Γ ρ σ t₂)
 substh {TERM} Γ ρ σ (Rho tₑ x T t) =
   let x' = subst-rename-var-if Γ ρ x σ in
   Rho (substh Γ ρ σ tₑ) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T) (substh Γ ρ σ t)
@@ -70,9 +70,9 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ cs) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ' ρ' σ cs)
+    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) t~ (substh-cases Γ' ρ' σ cs)
 substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ cs) =
-  Mu (inj₁ (substh Γ ρ σ tᵢ)) (substh Γ ρ σ t') (maybe-map (substh Γ ρ σ) T) t~ (substh-cases Γ ρ σ cs)
+  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) t~ (substh-cases Γ ρ σ cs)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -80,7 +80,7 @@ substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TYPE} Γ ρ σ (TpLam x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ in
-    TpLam x' (substh Γ ρ σ -tk tk) 
+    TpLam x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TYPE} Γ ρ σ (TpIota x T₁ T₂) =
   let x' = subst-rename-var-if Γ ρ x σ in
@@ -102,10 +102,9 @@ substh {KIND} Γ ρ σ (KdAbs x tk k) =
 substh {KIND} Γ ρ σ (KdHole pi) = KdHole pi -- Retain position, so jumping to hole works
 substh {KIND} Γ ρ σ KdStar = KdStar
 
-substh-arg Γ ρ σ (Arg t) = Arg (substh Γ ρ σ t)
-substh-arg Γ ρ σ (ArgE tT) = ArgE (substh Γ ρ σ -tT tT)
+substh-arg Γ ρ σ = substh Γ ρ σ -arg_
 
-substh-args Γ ρ σ = map (substh-arg Γ ρ σ)
+substh-args Γ ρ σ = substh Γ ρ σ -arg_ <$>_
 
 substh-params Γ ρ σ ((Param me x tk) :: ps) =
   (Param me x (substh Γ ρ σ -tk tk) ) ::
@@ -182,3 +181,14 @@ subst-unqual Γ xs t =
     Γ
     (foldr (uncurry λ pi x xs → renamectxt-insert xs (pi % x) x) empty-renamectxt xs)
     t
+
+-- Given the parameters (32@x : ...) (41@y : ...32@x...),
+-- returns (x : ...) (y : ...x...) × (32@x → x, 41@y → y)
+unqual-params : ctxt → params → params × renamectxt
+unqual-params = h empty-renamectxt where
+  h : renamectxt → ctxt → params → params × renamectxt
+  h ρ Γ [] = [] , ρ
+  h ρ Γ (Param me qx atk :: ps) =
+    let x = unqual-local qx in
+    map-fst (Param me x (subst-renamectxt Γ ρ -tk atk) ::_)
+      (h (renamectxt-insert ρ qx x) (ctxt-var-decl x Γ) ps)

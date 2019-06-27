@@ -238,15 +238,6 @@ eq-checking-mode _ _ = ff
 mlam : var → term → term
 mlam x t = Lam ff x nothing t
 
-Mlam : var → term → term
-Mlam x t = Lam Erased x nothing t
-
-mappe : term → term → term
-mappe t1 t2 = AppE t1 (Ttm t2)
-
-mapptp : term → type → term
-mapptp t T = AppE t (Ttp T)
-
 mall : var → tpkd → type → type
 mall = TpAbs tt
 
@@ -343,6 +334,11 @@ data-Is/ = reprefix ("Is/" ^_)
 data-is/ = reprefix ("is/" ^_)
 mu-Type/ = reprefix ("Type/" ^_)
 mu-isType/ = reprefix ("isType/" ^_)
+-- Generated during elaboration
+data-TypeF/ = reprefix ("F/" ^_)
+data-IndF/ = reprefix ("IndF/" ^_)
+data-fmap/ = reprefix ("fmap/" ^_)
+--
 
 num-gt : num → ℕ → 𝕃 string
 num-gt n n' = maybe-else [] (λ n'' → if n'' > n' then [ n ] else []) (string-to-ℕ n)
@@ -397,7 +393,7 @@ exprd-name TERM = "term"
 exprd-name TYPE = "type"
 exprd-name KIND = "kind"
 
-infixl 12 _-tk_ _-tk'_ _-tT_ _-tT'_
+infixl 12 _-tk_ _-tk'_ _-tT_ _-tT'_ _-arg_ _-arg'_
 
 _-tk_ : (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → tpkd → tpkd
 f -tk Tkt T = Tkt (f T)
@@ -414,6 +410,14 @@ f -tT Ttp T = Ttp (f T)
 _-tT'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → tmtp → X
 f -tT' Ttm t = f t
 f -tT' Ttp T = f T
+
+_-arg_ : (∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧) → arg → arg
+f -arg Arg t = Arg (f t)
+f -arg ArgE tT = ArgE (f -tT tT)
+
+_-arg'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → arg → X
+f -arg' Arg t = f t
+f -arg' ArgE tT = f -tT' tT
 
 pos-tm-to-tm : pos-tm → ex-tm
 pos-tm-to-tm (PosTm t pi) = t

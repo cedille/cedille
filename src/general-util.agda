@@ -412,7 +412,25 @@ map-fst f (x₀ , x₁) = (f x₀ , x₁)
 map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₁ → X₂) → (X₀ × X₁) → (X₀ × X₂)
 map-snd f (x₀ , x₁) = (x₀ , f x₁)
 
+--cons = _::_
+--nil = []
 
+--data 𝕃ᵢ (A : ℕ → Set) : ℕ → Set where
+--  cons : ∀ {n} → A 0 → 𝕃ᵢ A n → 𝕃ᵢ A (suc n)
+--  nil : 𝕃ᵢ A 0
+
+--pattern _,_ = _::_
+
+
+--{-# TERMINATING #-}
+--𝕃ᵢ-nests : Set → ℕ → Set
+--𝕃ᵢ-nests A 0 = A
+--𝕃ᵢ-nests A (suc n) = 𝕃ᵢ (𝕃ᵢ-nests A) 1
+
+--cons' : ∀ {A n} → A → 𝕃ᵢ (𝕃ᵢ-nests A) n → 𝕃ᵢ (𝕃ᵢ-nests A) (suc n)
+--cons' h t = cons h t
+
+{-
 -- Syntactic sugar for Haskell-esque list construction
 infixr 4 _,,_
 infixr 5 [:_ _:]
@@ -423,5 +441,44 @@ _:] = [_]
 
 _,,_ : ∀ {ℓ} {A : Set ℓ} → A → 𝕃 A → 𝕃 A
 _,,_ = _::_
+-}
 
-𝕃-sugar-example = [: 0 ,, 1 ,, 2 ,, 3 ,, 4 :]
+infixr 4 _⌟_
+_⌟_ : ∀ {ℓ}{A : Set ℓ}{b : 𝔹} → A → if b then A else 𝕃 A → 𝕃 A
+_⌟_ {b = tt} a a' = a :: a' :: []
+_⌟_ {b = ff} a as = a :: as
+
+[:_:] = id
+
+𝕃-sugar-example = [: 0 ⌟ 1 ⌟ 2 ⌟ 3 ⌟ 4 :]
+
+{-
+postulate
+  ord : char → ℕ
+  chr : ℕ → char
+{-# FOREIGN GHC import qualified Data.Char #-}
+{-# COMPILE GHC ord = toInteger . Data.Char.ord #-}
+{-# COMPILE GHC chr = Data.Char.chr . fromIntegral #-}
+
+toLower : char → char
+toLower c =
+  let n = ord c
+      up? = n ≥ 65 {- A -} && n ≤ 90 {- Z -} in
+  chr (if up? then n ∸ 32 else n)
+
+toUpper : char → char
+toUpper c =
+  let n = ord c
+      low? = n ≥ 97 {- A -} && n ≤ 122 {- Z -} in
+  chr (if low? then n + 32 else n)
+
+capitalize : string → string
+capitalize x with string-to-𝕃char x
+...| [] = ""
+...| c :: cs = 𝕃char-to-string (toUpper c :: cs)
+
+uncapitalize : string → string
+uncapitalize x with string-to-𝕃char x
+...| [] = ""
+...| c :: cs = 𝕃char-to-string (toLower c :: cs)
+-}

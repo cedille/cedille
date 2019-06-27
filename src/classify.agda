@@ -191,7 +191,7 @@ check-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') Tₑ? =
        λ {(ExGuide pi'' x T₂) →
             Γ ⊢ t₁ ↝ t₁~ ⇒ T₁~ /
             (Γ , pi'' - x :` Tkt T₁~) ⊢ T₂ ⇐ KdStar ↝ T₂~ /
-            Γ ⊢ t₂ ⇐ T₂~ ↝ t₂~ /
+            Γ ⊢ t₂ ⇐ [ Γ - t₁~ / (pi'' % x) ] T₂~ ↝ t₂~ /
             let T₂~ = [ Γ - Var x / (pi'' % x) ] T₂~
                 bd = binder-data Γ pi'' x (Tkt T₁~) ff nothing
                        (type-start-pos T₂) (type-end-pos T₂) in
@@ -390,7 +390,7 @@ check-term Γ (ExRho pi ρ+ <ns> t₌ Tₘ? t) Tₑ? =
             let Tₘ~ = [ Γ' - Var x / (pi' % x) ] Tₘ~
                 T' = [ Γ' - tₗ / x ] Tₘ~
                 T'' = post-rewrite Γ' x t₌~ tᵣ (rewrite-at Γ' x (just t₌~) tt T' Tₘ~)
-                check-str = if isJust Tₑ? then "expected" else "synthesized" in
+                check-str = if isJust Tₑ? then "computed" else "synthesized" in
             maybe-else' Tₑ?
               (check-term Γ t nothing)
               (λ Tₑ → Γ ⊢ t ⇐ T'' ↝ t~ /
@@ -413,6 +413,7 @@ check-term Γ (ExSigma pi t) Tₑ? =
     (Γ ⊢ t ↝ t~ ⇒ T /
      Γ ⊢ T =β= λ where
        (TpEq t₁ t₂) →
+         [- Sigma-span pi t synthesizing [ type-data Γ (TpEq t₂ t₁) ] nothing -]
          return2 (Sigma t~) (TpEq t₂ t₁)
        Tₕ →
          [- Sigma-span pi t synthesizing [ type-data Γ Tₕ ]
@@ -680,13 +681,8 @@ check-kind Γ (ExKdVar pi κ as) =
       return (fst (subst-params-args' Γ ps as~ k))
 
 
-check-tpkd Γ (ExTkt T) =
-  check-type Γ T (just KdStar) >>= T~ /
-  return (Tkt T~)
-
-check-tpkd Γ (ExTkk k) =  
-  check-kind Γ k >>= k~ /
-  return (Tkk k~)
+check-tpkd Γ (ExTkt T) = Tkt <$> check-type Γ T (just KdStar)
+check-tpkd Γ (ExTkk k) = Tkk <$> check-kind Γ k
 
 check-args Γ (ExTmArg me t :: as) (Param me' x (Tkt T) :: ps) =
   Γ ⊢ t ⇐ T ↝ t~ /
@@ -778,7 +774,7 @@ check-case Γ (ExCase pi x cas t) es cs ρ as dps Tₘ =
   free-in-term x t = maybe-if (is-free-in x (erase t)) >>
                      just "Erased argument occurs free in the body of the term"
   tmtp-to-arg' = λ Γ σ → either-else (Arg ∘ substs Γ σ) (ArgE ∘' Ttp ∘' substs Γ σ)
-  tmtps-to-args' = λ Γ σ → map (tmtp-to-arg' Γ σ)
+  tmtps-to-args' = λ Γ σ → tmtp-to-arg' Γ σ <$>_
   tpapp-caseArgs : type → ex-case-args → type
   tpapp-caseArgs = foldl λ where
     (ExCaseArg CaseArgTp pi x) T → TpApp T (Ttp (TpVar (pi % x)))
@@ -909,7 +905,8 @@ ctxt-mu-decls Γ t is Tₘ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs fcs)
       Γ'' = ctxt-term-decl pi₁ x Tₓ Γ'
       e₂? = x/mu >> just "Abstract datatypes can only be pattern matched by μ'"
       e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
-      e₃ₓ? = λ cs x → maybe-if (stringset-contains (free-vars-cases cs) x) >> e₃ x
+      cs-fvs = stringset-contains ∘' free-vars-cases ∘' erase-cases
+      e₃ₓ? = λ cs x → maybe-if (cs-fvs cs x) >> e₃ x
       e₃? = λ cs → e₃ₓ? cs (mu-isType/ x) maybe-or e₃ₓ? cs (mu-Type/ x) in
     (λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? maybe-or e₃? cs) -] spanMok) ,
      Γ'' ,
@@ -981,7 +978,7 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
                      (tvs₁ ++ bds) (e₁ maybe-or (e₂ maybe-or e₃)) -]
               sm cs~ >>
               return-when {m = Tₑ?}
-                (Mu (case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ tₑ~}) t~ Tₘ?'
+                (Mu (case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)}) t~ Tₘ?'
                   (λ tₛ Tₘ? cs →
                      let Tₘ = maybe-else' Tₘ? (TpHole pi) id in
                      erase-if (~ isJust Tₘ?) $

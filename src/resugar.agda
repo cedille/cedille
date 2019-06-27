@@ -37,7 +37,7 @@ resugar {TERM} (Sigma t) =
 resugar {TERM} (Mu μ t Tₘ? f~ ms) =
   ExMu
     pi-gen
-    (either-else' μ (λ t → ExIsMu' (just (resugar t))) (ExIsMu pi-gen))
+    (either-else' μ (λ t → ExIsMu' (resugar <$> t)) (ExIsMu pi-gen))
     (resugar t)
     (maybe-map resugar Tₘ?)
     pi-gen
