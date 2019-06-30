@@ -85,6 +85,15 @@ dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
 
 drop = Λ A: ★. dropCV -(is/List ·A).
 
+eqList : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
+= Λ A. λ eq. λ xs. μ eqList. xs {
+  | nil ➔ λ ys. isNil ys
+  | cons x xs ➔ λ ys. μ' ys {
+    | nil ➔ ff
+    | cons y ys ➔ and (eq x y) (eqList xs ys)
+    }
+  }.
+
 -- List and Cast
 lCastMap : CastMap ·List
 = Λ A. Λ B. Λ c.
