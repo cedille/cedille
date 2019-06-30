@@ -56,6 +56,12 @@ foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
   | cons x xs ➔ f (foldFE xs) x
   }.
 
+reverse : ∀ A: ★. List ·A ➔ List ·A
+= Λ A. λ xs. μ rev. xs {
+  | nil ➔ nil ·A
+  | cons x xs ➔ append (rev xs) (cons x (nil ·A))
+  }.
+
 filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A
   = Λ A . λ p . λ l .
     μ filter. l {
