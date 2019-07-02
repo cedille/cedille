@@ -4,7 +4,7 @@ open import general-util
 module toplevel-state (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
 open import cedille-types
-open import classify options {mF}
+--open import classify options {mF}
 open import ctxt
 open import constants
 open import conversion

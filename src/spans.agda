@@ -219,6 +219,14 @@ check-for-kind-mismatch Γ s kd kd' =
 check-for-kind-mismatch-if : ctxt → string → maybe kind → kind → err-m
 check-for-kind-mismatch-if Γ s k? k = k? >>= check-for-kind-mismatch Γ s k
 
+check-for-tpkd-mismatch-if : ctxt → string → maybe tpkd → tpkd → err-m
+check-for-tpkd-mismatch-if Γ check tk? tk =
+  tk? >>= either-else
+    (either-else' tk (check-for-type-mismatch Γ check)
+      λ kd tp → just "Expected a kind classifier, but got a type")
+    (either-else' tk (λ tp kd → just "Expected a type classifier, but got a kind")
+      (check-for-kind-mismatch Γ check))
+
 summary-data : {ed : exprd} → (name : string) → ctxt → ⟦ ed ⟧ → tagged-val
 summary-data name Γ t = strRunTag "summary" Γ (strVar name >>str strAdd " : " >>str to-stringe t)
 

@@ -97,7 +97,7 @@ record ctxt : Set where
     -- abstract/local datatypes ×
     -- datatype/Mu map ×
     -- highlighting datatypes
-    Δ : trie (params × kind × kind × ctrs) × trie (var × var × args) × trie var × stringset
+    Δ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs) × trie (var × var × args) × trie var × stringset
 
 
 ctxt-binds-var : ctxt → var → 𝔹

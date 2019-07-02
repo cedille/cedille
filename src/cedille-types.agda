@@ -95,7 +95,7 @@ mutual
   pattern AppEr t t' = AppE t (Ttm t')
 
   data case : Set where
-    Case : var → case-args → term → case
+    Case : var → case-args → term → 𝕃 tmtp → case
 
   data type : Set where
     TpAbs : erased? → var → tpkd → type → type
@@ -132,7 +132,9 @@ mutual
   record encoding-defs : Set where
     constructor mk-enc-defs
     field
-      ecs : cmds
+      ecs : cmds -- encoding
+      gcs : cmds -- generated
+      emn : var
       Cast : type
       cast-in : term
       cast-out : term
@@ -146,6 +148,16 @@ mutual
       lambek1 : term
       lambek2 : term
       fix-ind : term
+
+  record encoded-defs : Set where
+    constructor mk-encd-defs
+    field
+      Is/D : var
+      is/D : var
+      to/D : var
+      TypeF/D : var
+      IndF/D : var
+      fmap/D :  var
 
   data cmd : Set where
     CmdDefTerm : var → term → cmd

@@ -212,8 +212,8 @@ optAs-or nothing pi x = pi , x
 optAs-or (just (ImportAs pi x)) _ _ = pi , x
 
 TpApp-tk : type → var → tpkd → type
-TpApp-tk tp x (Tkk _) = TpApp tp (Ttp (TpVar x))
-TpApp-tk tp x (Tkt _) = TpApp tp (Ttm (Var x))
+TpApp-tk tp x (Tkk _) = TpAppTp tp (TpVar x)
+TpApp-tk tp x (Tkt _) = TpAppTm tp (Var x)
 
 -- checking-sythesizing enum
 data checking-mode : Set where

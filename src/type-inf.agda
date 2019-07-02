@@ -277,7 +277,7 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
     check-term-spine Γ t₁ pt' ff
       on-fail handleApplicandTypeError
   -- 2) make sure the applicand type reveals an arrow (term abstraction)
-  >>=m λ ret → let (mk-spine-data Xs dt locl fₕ~) = ret in
+  >>=m λ ret → let mk-spine-data Xs dt locl fₕ~ = ret in
     -- the meta-vars need to know the span they were introduced in
     let sloc = span-loc $ ctxt-get-current-filename Γ in
     -- see if the decorated type of the head `dt` reveals an arrow
@@ -366,7 +366,7 @@ check-term-spine Γ t'@(ExAppTp t tp) pt max =
   -- 1) type the applicand
     check-term-spine Γ t pt max
       on-fail handleApplicandTypeError
-  >>=m λ ret → let (mk-spine-data Xs dt locl fₕ~) = ret ; htp = decortype-to-type dt in
+  >>=m λ ret → let mk-spine-data Xs dt locl fₕ~ = ret ; htp = decortype-to-type dt in
   -- 2) make sure it reveals a type abstraction
     meta-vars-unfold-tpapp' Γ Xs dt
      on-fail (λ _ → genInapplicableError Xs htp dt)

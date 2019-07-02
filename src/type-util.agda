@@ -11,7 +11,7 @@ tmtps-to-args : erased? → 𝕃 tmtp → args
 tmtps-to-args = map ∘ tmtp-to-arg
 
 tmtps-to-args-for-params : (keep-extra : maybe erased?) → params → 𝕃 tmtp → args
-tmtps-to-args-for-params b ((Param ff _ _) :: ps) ((inj₁ t) :: as) =
+tmtps-to-args-for-params b (ParamTm _ _ :: ps) (inj₁ t :: as) =
    Arg t :: tmtps-to-args-for-params b ps as
 tmtps-to-args-for-params b (_ :: ps) (tT :: as) =
   ArgE tT :: tmtps-to-args-for-params b ps as
@@ -26,9 +26,9 @@ args-to-tmtps = map arg-to-tmtp
 
 params-to-args : params → args
 params-to-args = map λ where
-  (Param ff v _) → Arg (Var v)
-  (Param tt v (Tkt _)) → ArgE (inj₁ (Var v))
-  (Param tt v (Tkk _)) → ArgE (inj₂ (TpVar v))
+  (ParamTm v _) → Arg (Var v)
+  (ParamEr v _) → ArgEr (Var v)
+  (ParamTp v _) → ArgTp (TpVar v)
 
 decompose-lams : term → (𝕃 var) × term
 decompose-lams (Lam _ x _ t) with decompose-lams t
@@ -92,15 +92,15 @@ case-args-to-lams = flip $ foldr λ where
   (CaseArg _ x) → Lam tt x nothing
 
 expand-case : case → term
-expand-case (Case x xs t) = case-args-to-lams xs t
+expand-case (Case x xs t T) = case-args-to-lams xs t
 
 is-eq-tp? : {ed : exprd} → ⟦ ed ⟧ → maybe (term × term)
 is-eq-tp? {TYPE} (TpEq t₁ t₂) = just $ t₁ , t₂
 is-eq-tp? _ = nothing
 
 arg-set-erased : erased? → arg → arg
-arg-set-erased tt (Arg t) = ArgE (inj₁ t)
-arg-set-erased ff (ArgE (inj₁ t)) = Arg t
+arg-set-erased tt (Arg t) = ArgEr t
+arg-set-erased ff (ArgEr t) = Arg t
 arg-set-erased e a = a
 
 
@@ -129,3 +129,77 @@ is-hole {TERM} (Hole pi) = tt
 is-hole {TYPE} (TpHole pi) = tt
 is-hole {KIND} (KdHole pi) = tt
 is-hole _ = ff
+
+
+data indx : Set where
+  Index : var → tpkd → indx
+indices = 𝕃 indx
+
+data datatype : Set where
+  Data : var → params → indices → ctrs → datatype
+
+
+tk-erased : tpkd → erased? → erased?
+tk-erased (Tkk _) me = Erased
+tk-erased (Tkt _) me = me
+
+params-set-erased : erased? → params → params
+params-set-erased me = map λ where
+  (Param me' x atk) → Param me x atk
+
+args-set-erased : erased? → args → args
+args-set-erased = map ∘ arg-set-erased
+
+indices-to-kind : indices → kind → kind
+indices-to-kind = flip $ foldr λ {(Index x atk) → KdAbs x atk}
+
+params-to-kind : params → kind → kind
+params-to-kind = flip $ foldr λ {(Param me x atk) → KdAbs x atk}
+
+indices-to-tplams : indices → (body : type) → type
+indices-to-tplams = flip $ foldr λ where
+  (Index x atk) → TpLam x atk
+
+params-to-tplams : params → (body : type) → type
+params-to-tplams = flip $ foldr λ where
+  (Param me x atk) → TpLam x atk
+
+indices-to-alls : indices → (body : type) → type
+indices-to-alls = flip $ foldr λ where
+  (Index x atk) → TpAbs Erased x atk
+
+params-to-alls : params → (body : type) → type
+params-to-alls = flip $ foldr λ where
+  (Param me x atk) → TpAbs (tk-erased atk me) x atk
+
+indices-to-lams : indices → (body : term) → term
+indices-to-lams = flip $ foldr λ where
+  (Index x atk) → Lam Erased x (just atk)
+
+params-to-lams : params → (body : term) → term
+params-to-lams = flip $ foldr λ where
+  (Param me x atk) → Lam (tk-erased atk me) x (just atk)
+
+indices-to-apps : indices → (body : term) → term
+indices-to-apps = flip $ foldl λ where
+  (Index x (Tkt T)) t → AppEr t (Var x)
+  (Index x (Tkk k)) t → AppTp t (TpVar x)
+
+params-to-apps : params → (body : term) → term
+params-to-apps = recompose-apps ∘ params-to-args
+
+indices-to-tpapps : indices → (body : type) → type
+indices-to-tpapps = flip $ foldl λ where
+  (Index x (Tkt _)) T → TpAppTm T (Var x)
+  (Index x (Tkk _)) T → TpAppTp T (TpVar x)
+
+params-to-tpapps : params → (body : type) → type
+params-to-tpapps = flip apps-type ∘ params-to-args
+
+params-to-caseArgs : params → case-args
+params-to-caseArgs = map λ where
+  (Param me x (Tkt T)) → CaseArg (if me then CaseArgEr else CaseArgTm) x
+  (Param me x (Tkk k)) → CaseArg CaseArgTp x
+
+ctrs-to-lams : ctrs → term → term
+ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just $ Tkt T)}

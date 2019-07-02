@@ -33,8 +33,7 @@ unfold-head-no-defs : unfolding
 unfold-head-no-defs = unfold ff ff ff
 
 unfold-dampen : unfolding → unfolding
-unfold-dampen (unfold tt d e) = unfold tt d e
-unfold-dampen (unfold ff d e) = unfold ff ff e
+unfold-dampen (unfold a d e) = unfold a (a && d) e
 
 conv-t : Set → Set
 conv-t T = ctxt → T → T → 𝔹
@@ -120,8 +119,8 @@ hnf {TERM} Γ u (Sigma t) = hnf Γ u t
 hnf {TERM} Γ u (App t t') with hnf Γ u t
 ...| Lam ff x nothing t'' = hnf Γ u ([ Γ - t' / x ] t'')
 ...| t'' = App t'' (hnf Γ (unfold-dampen u) t')
-hnf {TERM} Γ u (Lam ff x T t) with hnf (ctxt-var-decl x Γ) u t
-...| App t' (Var x') = if x' =string x then t' else Lam ff x nothing (App t' (Var x'))
+hnf {TERM} Γ u (Lam ff x _ t) with hnf (ctxt-var-decl x Γ) u t
+...| App t' (Var x') = if x' =string x && ~ is-free-in x t' then t' else Lam ff x nothing (App t' (Var x'))
 ...| t' = Lam ff x nothing t'
 hnf {TERM} Γ u (LetTm me x T t t') = hnf Γ u ([ Γ - t / x ] t')
 hnf {TERM} Γ u (Var x) with
@@ -134,29 +133,28 @@ hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
       Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
       cs = erase-cases cs'
       t-else = λ t → Mu μ t nothing (λ t T? → t~ t nothing) $ flip map cs λ where
-                 (Case x cas t) → Case x cas (hnf
-                   (foldr (λ {(CaseArg _ x) → ctxt-var-decl x}) Γ' cas) (unfold-dampen u) t)
+                 (Case x cas t T) → Case x cas (hnf (foldr (λ {(CaseArg _ x) → ctxt-var-decl x}) Γ' cas) (unfold-dampen u) t) T
       case-matches : var → args → case → maybe (term × case-args × args)
-      case-matches = λ {cₓ as (Case cₓ' cas t) →
+      case-matches = λ {cₓ as (Case cₓ' cas t T) →
                           conv-ctr-ps Γ cₓ' cₓ ≫=maybe uncurry λ ps' ps →
                           maybe-if (length as =ℕ length cas + ps) ≫=maybe λ _ →
                           just (t , cas , drop ps as)}
       matching-case = λ cₓ as → foldr (_maybe-or_ ∘ case-matches cₓ as) nothing cs
       sub-mu = let x = fresh-var Γ "x" in , Lam ff x nothing (t-else (Var x))
-      sub = either-else' μₒ (λ _ → id {A = term})
+      sub = λ Γ → either-else' μₒ (λ _ → id {A = term})
         (λ x → substs Γ (trie-insert (trie-single x sub-mu) (data-to/ x) (, id-term))) in
   maybe-else' (decompose-var-headed t ≫=maybe uncurry matching-case) (t-else t) λ where
-    (tₓ , cas , as) → hnf Γ u (recompose-apps as (case-args-to-lams cas (sub tₓ)))
+    (tₓ , cas , as) → hnf Γ u (recompose-apps as (case-args-to-lams cas (sub (add-caseArgs-to-ctxt cas Γ') tₓ)))
 
 hnf{TYPE} Γ u (TpAbs me x tk tp) = TpAbs me x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (TpIota x tp₁ tp₂) = TpIota x (hnf Γ (unfold-dampen u) tp₁) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp₂)
-hnf{TYPE} Γ u (TpApp tp (inj₂ tp')) with hnf Γ u tp
+hnf{TYPE} Γ u (TpAppTp tp tp') with hnf Γ u tp
 ...| TpLam x _ tp'' = hnf Γ u ([ Γ - tp' / x ] tp'')
-...| tp'' = TpApp tp'' (inj₂ (hnf Γ (unfold-dampen u) tp'))
-hnf{TYPE} Γ u (TpApp tp (inj₁ tm)) with hnf Γ u tp
+...| tp'' = TpAppTp tp'' (hnf Γ (unfold-dampen u) tp')
+hnf{TYPE} Γ u (TpAppTm tp tm) with hnf Γ u tp
 ...| TpLam x _ tp'' = hnf Γ u ([ Γ - tm / x ] tp'')
-...| tp'' = TpApp tp''
-              (inj₁ (if unfolding.unfold-erase u then hnf Γ (unfold-dampen u) tm else tm))
+...| tp'' = TpAppTm tp''
+              (if unfolding.unfold-erase u then hnf Γ (unfold-dampen u) tm else tm)
 hnf{TYPE} Γ u (TpEq tm₁ tm₂) = TpEq (hnf Γ (unfold-dampen u) tm₁) (hnf Γ (unfold-dampen u) tm₂)
 hnf{TYPE} Γ u (TpHole pi) = TpHole pi
 hnf{TYPE} Γ u (TpLam x tk tp) = TpLam x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
@@ -180,16 +178,16 @@ hanf Γ e t with erase-if e t
 -- unfold across the term-type barrier
 hnf-term-type : ctxt → (erase : 𝔹) → type → type
 hnf-term-type Γ e (TpEq t₁ t₂) = TpEq (hanf Γ e t₁) (hanf Γ e t₂)
-hnf-term-type Γ e (TpApp tp (inj₁ t)) = hnf Γ (record unfold-head {unfold-erase = e}) (TpApp tp (inj₁ (hanf Γ e t)))
+hnf-term-type Γ e (TpAppTm tp t) = hnf Γ (record unfold-head {unfold-erase = e}) (TpAppTm tp (hanf Γ e t))
 hnf-term-type Γ e tp = hnf Γ unfold-head tp
 
 conv-cases : conv-t cases
 conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ → conv-cases' Γ cs₁ c₂) (just cs₁) cs₂ where
   conv-cases' : ctxt → cases → case → maybe cases
-  conv-cases' Γ [] (Case x₂ as₂ t₂) = nothing
-  conv-cases' Γ (c₁ @ (Case x₁ as₁ t₁) :: cs₁) c₂ @ (Case x₂ as₂ t₂) with conv-ctr Γ x₁ x₂
+  conv-cases' Γ [] (Case x₂ as₂ t₂ T₂) = nothing
+  conv-cases' Γ (c₁ @ (Case x₁ as₁ t₁ T₁) :: cs₁) c₂ @ (Case x₂ as₂ t₂ T₂) with conv-ctr Γ x₁ x₂
   ...| ff = conv-cases' Γ cs₁ c₂ ≫=maybe λ cs₁ → just (c₁ :: cs₁)
-  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂))) >> just cs₁
+  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂ T₂))) >> just cs₁
 
 ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
 
@@ -223,7 +221,7 @@ conv-term-norm Γ _ _ = ff
 conv-type-norm Γ (TpVar x) (TpVar x') = ctxt-eq-rep Γ x x'
 conv-type-norm Γ (TpApp t1 t2) (TpApp t1' t2') = conv-type-norm Γ t1 t1' && conv-tmtp Γ t2 t2'
 conv-type-norm Γ (TpAbs me x tk tp) (TpAbs me' x' tk' tp') = 
-  me iff me' && conv-tpkd Γ tk tk' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
+  (me iff me') && conv-tpkd Γ tk tk' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
 conv-type-norm Γ (TpIota x m tp) (TpIota x' m' tp') = 
   conv-type Γ m m' && conv-type (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) tp tp'
 conv-type-norm Γ (TpEq t₁ t₂) (TpEq t₁' t₂') = conv-term Γ t₁ t₁' && conv-term Γ t₂ t₂'
@@ -344,14 +342,14 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
       (foldr {B = maybe 𝔹} (λ c b? → b? ≫=maybe λ b → inconv-case c ≫=maybe λ b' → just (b || b')) (just ff) ms₁)
     where
     matching-case : case → maybe (term × ℕ × ℕ)
-    matching-case (Case x _ _) = foldl (λ where
-      (Case xₘ cas tₘ) m? → m? maybe-or
+    matching-case (Case x _ _ _) = foldl (λ where
+      (Case xₘ cas tₘ _) m? → m? maybe-or
         (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps →
          just (case-args-to-lams cas tₘ , length cas , ps)))
       nothing ms₂
 
     inconv-case : case → maybe 𝔹
-    inconv-case c₁ @ (Case x cas₁ t₁) =
+    inconv-case c₁ @ (Case x cas₁ t₁ _) =
       matching-case c₁ ≫=maybe λ c₂ →
       just (inconv-lams ρ₁ ρ₂ (case-args-to-lams cas₁ t₁) (fst c₂))
 
@@ -368,20 +366,27 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i Δ) = 
   (trie-insert-append2 syms fn mn v , mn-fn)
   (trie-insert i (mn # v) (kind-def (ps1 ++ ps2) k' , fn , pi)) Δ
   where
-  k' = hnf Γ unfold-head k
+  k' = hnf Γ unfold-head-elab k
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
 ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is (Δ , μ' , μ , η)) =
   mk-ctxt mod ss is $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , stringset-insert η (mu-Type/ vᵣ)
 
-ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → ctxt → ctxt
-ctxt-datatype-def pi v psᵢ kᵢ k cs Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i (Δ , μ' , μ , η)) =
+ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → encoding-defs → ctxt → ctxt
+ctxt-datatype-def pi v psᵢ kᵢ k cs eds Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i (Δ , μ' , μ , η)) =
   let v' = mn # v
-      q' = qualif-insert-params q v' v ps in
+      q' = qualif-insert-params q v' v ps
+      ecds = record {
+        Is/D = data-Is/ v';
+        is/D = data-is/ v';
+        to/D = data-to/ v';
+        TypeF/D = data-TypeF/ v';
+        fmap/D = data-fmap/ v';
+        IndF/D = data-IndF/ v'} in
   mk-ctxt (fn , mn , ps , q')
     (trie-insert-append2 syms fn mn v , mn-fn)
     (trie-insert i v' (type-def (just ps) tt nothing (abs-expand-kind psᵢ k) , fn , pi))
-    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs) , μ' , trie-insert μ (data-Is/ v') v' , stringset-insert η v')
+    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs , eds , ecds) , μ' , trie-insert μ (data-Is/ v') v' , stringset-insert η v')
 
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt
 ctxt-type-def _  _ _ ignored-var _ _  Γ = Γ
@@ -390,7 +395,7 @@ ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ) 
   ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
   (trie-insert i v' (type-def (def-params s ps) op t' k , fn , pi)) Δ
   where
-  t' = hnf Γ unfold-head <$> t
+  t' = hnf Γ unfold-head-elab <$> t
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 

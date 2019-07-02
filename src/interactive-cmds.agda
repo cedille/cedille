@@ -46,6 +46,13 @@ private
   elab-untyped {TYPE} Γ T = fst $ id-out $ untyped-type Γ T empty-spans
   elab-untyped {KIND} Γ k = fst $ id-out $ untyped-kind Γ k empty-spans
 
+  elab-untyped-no-params : ∀ {ed} → ctxt → ⟦ ed ⟧' → ⟦ ed ⟧
+  elab-untyped-no-params Γ =
+    elab-untyped (record Γ {mod = h (ctxt.mod Γ)})
+    where
+    h : mod-info → mod-info
+    h (fn , mn , ps , q) = fn , mn , ps , trie-map (map-snd λ _ → []) q
+
   {- Parsing -}
   
   ll-ind : ∀ {X : exprd → Set} → X TERM → X TYPE → X KIND → (ll : exprd) → X ll
@@ -233,8 +240,8 @@ private
   step-reduce Γ t =
     let t' = erase t in maybe-else t' id (step-reduceh Γ t') where
     step-reduceh : ∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → maybe ⟦ ed ⟧
-    step-reduceh{TERM} Γ (Var x) = ctxt-lookup-term-var-def Γ (qualif-var Γ x)
-    step-reduceh{TYPE} Γ (TpVar x) = ctxt-lookup-type-var-def Γ (qualif-var Γ x)
+    step-reduceh{TERM} Γ (Var x) = ctxt-lookup-term-var-def Γ x
+    step-reduceh{TYPE} Γ (TpVar x) = ctxt-lookup-type-var-def Γ x
     step-reduceh{TERM} Γ (App (Lam ff x nothing t) t') = just (subst Γ t' x t)
     step-reduceh{TYPE} Γ (TpApp (TpLam x (Tkk _) T) (Ttp T')) = just (subst Γ T' x T)
     step-reduceh{TYPE} Γ (TpApp (TpLam x (Tkt _) T) (Ttm t)) = just (subst Γ t x T)
@@ -243,7 +250,10 @@ private
     step-reduceh{TERM} Γ (Lam ff x nothing t) = step-reduceh (ctxt-var-decl x Γ) t >>= λ t → just (Lam ff x nothing t)
     step-reduceh{TYPE} Γ (TpLam x atk T) = step-reduceh (ctxt-var-decl x Γ) T >>= λ T → just (TpLam x atk T)
     step-reduceh{TERM} Γ (LetTm ff x T t' t) = just (subst Γ t' x t)
-    step-reduceh{TERM} Γ t @ (Mu _ _ _ _ _) = just $ hnf Γ unfold-head-no-defs t
+    step-reduceh{TERM} Γ t @ (Mu μ s Tₘ f~ ms) with
+      decompose-var-headed s >>=c λ sₕ sₐs → env-lookup Γ sₕ
+    ...| just (ctr-def _ _ _ _ _ , _) = just (hnf Γ unfold-head-no-defs t)
+    ...| _ = step-reduceh Γ s >>= λ s → just (Mu μ s Tₘ f~ ms)
     step-reduceh Γ t = nothing
 
   parse-norm : erased? → string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)
@@ -340,7 +350,7 @@ private
     constructor mk-br-history
     field
       Γ : ctxt
-      t : ex-tm
+      t : term
       Tₗₗ : exprd
       T : ⟦ Tₗₗ ⟧
       Tᵤ : string
@@ -368,7 +378,7 @@ private
     (parse-string TERM - tₛ ! "term" >>parse inj₂) >>parseIO λ t →
     let T = elab-typed Γ T
         Tₑ = erase T
-        t = {-qualif-ed Γ-} t in
+        t = elab-typed Γ t in
     putJson (tv-to-json $ inj₂ $ ts-tag Γ Tₑ) >>
     await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const Γₗ [] []) [])
     where
@@ -427,11 +437,13 @@ private
       writeh (suc n) (h' :: hs) = h' :: writeh n hs
 
     outline : br-history2 → term
-    outline (br-node (mk-br-history Γ t TYPE T Tₛ f Γₗ undo redo) []) =
-      elim-pair (id-out $ check-term Γ t (just T) empty-spans) λ t~ ss → f t~ []
-    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) []) = f (elab-untyped Γ t) []
+--    outline (br-node (mk-br-history Γ t TYPE T Tₛ f Γₗ undo redo) []) =
+--      elim-pair (id-out $ check-term Γ t (just T) empty-spans) λ t~ ss → f t~ []
+--    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) []) = f (elab-untyped-no-params Γ t) []
+--    outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) hs) =
+--      f (elab-typed Γ t) (map (uncurry λ c h → c , outline h) hs)
     outline (br-node (mk-br-history Γ t Tₗₗ T Tₛ f Γₗ undo redo) hs) =
-      f (elab-typed Γ t) (map (uncurry λ c h → c , outline h) hs)
+      f t (map-snd outline <$> hs)
 
     make-case : ctxt → params → term → case-args × term
     make-case = h [] where
@@ -493,7 +505,7 @@ private
                 (λ e → either-else' e
                   (uncurry λ t? e → put (inj₁ e) >> await-set t?)
                   (uncurry λ t? m → put (inj₂ $ "value" , [[ m ]] , []) >> await-set t?)) $
-                ll-ind' {λ T → (maybe ex-tm × string) ⊎ (maybe ex-tm × string)} (Tₗₗ , T)
+                ll-ind' {λ T → (maybe term × string) ⊎ (maybe term × string)} (Tₗₗ , T)
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a term!")
                   (λ T →
                     (case t? of λ where
@@ -504,14 +516,14 @@ private
                       _ → inj₁ $ nothing ,
                         "To many arguments given to beta-reduction command 'check'")
                   >>= λ t? →
-                    elim-pair (maybe-else' t? (elim-pair (id-out (check-term Γ t (just T) empty-spans)) λ t~ ss → nothing , spans-have-error ss)
+                    elim-pair (maybe-else' t? (elim-pair (id-out (check-term (qualified-ctxt Γ) (resugar t) (just T) empty-spans)) λ t~ ss → nothing , spans-have-error ss)
                                  λ t → elim-pair (id-out (check-term Γ t (just T) empty-spans))
                                          λ t~ ss → just t~ , spans-have-error ss) λ t~? e? →
-                    let fail = inj₁ (just (maybe-else' t~? t resugar) , "Type error")
-                        try-β = elim-pair (id-out (check-term Γ (ExBeta pi-gen nothing nothing) (just T) empty-spans)) λ β~ ss → if spans-have-error ss then inj₁ (nothing , "Type error") else inj₂ (just (resugar β~) , "Equal by beta") in
+                    let fail = inj₁ (just (maybe-else' t~? t id) , "Type error")
+                        try-β = elim-pair (id-out (check-term Γ (ExBeta pi-gen nothing nothing) (just T) empty-spans)) λ β~ ss → if spans-have-error ss then inj₁ (nothing , "Type error") else inj₂ (just β~ , "Equal by beta") in
                     if e?
                       then if isJust t? then fail else try-β
-                      else inj₂ (maybe-map resugar t~? , "Type inhabited"))
+                      else inj₂ (t~? , "Type inhabited"))
                   (λ _ → inj₁ $ nothing , "Expression must be a type, not a kind!")
              
               ("rewrite" :: fm :: to :: eq :: ρ+? :: lc) →
@@ -528,13 +540,13 @@ private
                    err⊎-guard (spans-have-error ss) "Proof does not type check" >>
                    let Tₑ = TpEq t₁ t₂
                        x = fresh-var Γ' "x"
-                       Tₗ = elab-untyped Γ' Tₗ in
+                       Tₗ = elab-untyped-no-params Γ' Tₗ in
                    elim-pair (map-snd snd $ rewrite-exprd Tₗ Γ' ρ+? nothing (just eq) t₁ x 0) λ Tᵣ n →
                    err⊎-guard (iszero n) "No rewrites could be performed" >>
                    parse-string Tₗₗ - replace Tᵤ
                      (rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' Tᵣ ⊹⊹ [[ ")" ]]) fm to
                      ! ll-ind "term" "type" "kind" Tₗₗ >>parse λ Tᵤ →
-                   let Tᵤ = elab-untyped (ctxt-var-decl x Γ) Tᵤ in
+                   let Tᵤ = elab-untyped-no-params (ctxt-var-decl x Γ) Tᵤ in
                    ll-ind' {λ {(ll , T) → ⟦ ll ⟧ → string ⊎ ⟦ ll ⟧ × (term → term)}}
                      (Tₗₗ , Tᵤ)
                      (λ t T → inj₂ $ rewrite-mk-phi x eq T (subst Γ t₂ x t) , id)
@@ -553,11 +565,11 @@ private
                    let tₛ = substring Tᵤ fm to in
                    parse-try Γ' - tₛ ! ttk >>parse λ t → t λ ll t →
                    parse-norm ff - norm ! parse-norm-err >>parse λ norm →
-                   let s = norm Γ' $ elab-untyped Γ' t
+                   let s = norm Γ' $ elab-untyped-no-params Γ' t
                        rs = rope-to-string $ [[ "(" ]] ⊹⊹ ts2.to-string Γ' s ⊹⊹ [[ ")" ]]
                        Tᵤ' = replace Tᵤ rs fm to in
                    parse-string Tₗₗ - Tᵤ' ! ll-ind "term" "type" "kind" Tₗₗ >>parse λ Tᵤ' →
-                   let Tᵤ' = elab-untyped Γ' Tᵤ' in
+                   let Tᵤ' = elab-untyped-no-params Γ' Tᵤ' in
                    inj₂ Tᵤ')
                   err λ Tᵤ' →
                   put (inj₂ $ ts-tag Γ Tᵤ') >>
@@ -572,13 +584,13 @@ private
                    let t = substring Tᵤ fm to in
                    parse-string ll - t  ! ll-ind "term" "type" "kind" ll >>parse λ t  →
                    parse-string ll - t' ! ll-ind "term" "type" "kind" ll >>parse λ t' →
-                   let t = elab-untyped Γ' t; t' = elab-untyped Γ' t' in
+                   let t = elab-untyped-no-params Γ' t; t' = elab-untyped-no-params Γ' t' in
                    err⊎-guard (~ ll-ind {λ ll → ctxt → ⟦ ll ⟧ → ⟦ ll ⟧ → 𝔹}
                      conv-term conv-type conv-kind ll Γ' t t') "Inconvertible" >>
                    let rs = [[ "(" ]] ⊹⊹ ts2.to-string Γ' (erase t') ⊹⊹ [[ ")" ]]
                        Tᵤ = replace Tᵤ (rope-to-string rs) fm to in
                    parse-string Tₗₗ - Tᵤ ! ll-ind "term" "type" "kind" Tₗₗ >>parse λ Tᵤ →
-                   inj₂ (elab-untyped Γ Tᵤ)) err λ Tᵤ' →
+                   inj₂ (elab-untyped-no-params Γ Tᵤ)) err λ Tᵤ' →
                   put (inj₂ $ ts-tag Γ $ erase Tᵤ') >>
                   await-with (record this {Tᵤ = rope-to-string $ ts2.to-string Γ $ erase Tᵤ'; undo = this :: undo; redo = []})
              
@@ -635,7 +647,7 @@ private
                          (λ t → inj₁ "Expression must be a type to case split")
                          (λ T → maybe-else' (data-lookup Γ Xₛ as)
                            (inj₁ "The synthesized type of the input term is not a datatype")
-                           λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k cs σ = d
+                           λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k _ _ cs σ = d
                                      is' = kind-to-indices (add-params-to-ctxt ps Γ) kᵢ
                                      is = drop-last 1 is'
                                      Tₘ = refine-motive Γ is' (asᵢ ++ [ Ttm tₛ ]) T
@@ -682,7 +694,7 @@ private
                            let T' = hnf Γ unfold-head-elab T in
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
-                               elim-pair (make-case Γ ps t) $ Case x
+                               elim-pair (make-case Γ ps t) λ cas t → Case x cas t []
                        f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) (λ _ _ _ → Hole pi-gen ) (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
@@ -693,7 +705,7 @@ private
                             write-history path (record this
                               {f = f';
                                Γ = Γ;
-                               t = resugar scrutinee;
+                               t = scrutinee;
                                Γₗ = Γₗ ++ ts;-- TODO: Should we really do this?
                                undo = this :: undo;
                                redo = []})

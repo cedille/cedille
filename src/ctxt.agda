@@ -69,6 +69,10 @@ def-params : defScope → params → defParams
 def-params tt ps = nothing
 def-params ff ps = just ps
 
+inst-term : ctxt → params → args → term → term
+inst-term Γ ps as t with subst-params-args ps as
+...| σ , ps' , as' = lam-expand-term (substs-params Γ σ ps') (substs Γ σ t)
+
 -- TODO add renamectxt to avoid capture bugs?
 inst-type : ctxt → params → args → type → type
 inst-type Γ ps as T with subst-params-args ps as
@@ -116,6 +120,18 @@ ctxt-var-decl-if v Γ with Γ
 ... | just (var-decl , _) = Γ
 ... | _ = mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms
   (trie-insert i v (var-decl , "missing" , "missing")) Δ
+
+add-indices-to-ctxt : indices → ctxt → ctxt
+add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
+
+add-params-to-ctxt : params → ctxt → ctxt
+add-params-to-ctxt = flip $ foldr λ {(Param me x'' _) → ctxt-var-decl x''}
+
+add-caseArgs-to-ctxt : case-args → ctxt → ctxt
+add-caseArgs-to-ctxt = flip $ foldr λ {(CaseArg me x) → ctxt-var-decl x}
+
+add-ctrs-to-ctxt : ctrs → ctxt → ctxt
+add-ctrs-to-ctxt = flip $ foldr λ {(Ctr x T) → ctxt-var-decl x}
 
 ctxt-rename-rep : ctxt → var → var
 ctxt-rename-rep (mk-ctxt m syms i _) v with trie-lookup i v 
@@ -218,23 +234,44 @@ record ctxt-datatype-info : Set where
     kᵢ : kind
     k : kind
     cs : ctrs
+    eds : encoding-defs
+    gds : encoded-defs
     subst-cs : var → ctrs
+
+inst-enc-defs : ctxt → args → encoding-defs → encoding-defs
+inst-enc-defs Γ as (mk-enc-defs ecs gcs emn Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
+  let as = arg-set-erased tt <$> as
+      bs = args-to-tmtps as in
+  mk-enc-defs ecs gcs emn
+    (recompose-tpapps bs Cast)
+    (recompose-apps   as cast-in)
+    (recompose-apps   as cast-out)
+    (recompose-apps   as cast-is)
+    (recompose-tpapps bs Functor)
+    (recompose-apps   as functor-in)
+    (recompose-apps   as functor-out)
+    (recompose-tpapps bs Fix)
+    (recompose-apps   as fix-in)
+    (recompose-apps   as fix-out)
+    (recompose-apps   as lambek1)
+    (recompose-apps   as lambek2)
+    (recompose-apps   as fix-ind)
 
 data-lookup : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
 data-lookup Γ @ (mk-ctxt mod ss is (Δ , μ' , μ)) x as =
   maybe-else' (trie-lookup μ' x) -- Is x known locally to be a datatype?
     (trie-lookup Δ x ≫=maybe λ where -- No, so is it a global datatype?
-      (ps , kᵢ , k , cs) →
+      (ps , kᵢ , k , cs , eds , gds) →
         let asₚ = tmtps-to-args-for-params nothing ps as
             asᵢ = drop (length ps) as in
         just $ mk-data-info x nothing asₚ asᵢ ps
-          (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs)
+          (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs) (inst-enc-defs Γ asₚ eds) gds
           λ y → inst-ctrs Γ ps asₚ $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x T}) cs) λ where
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
       trie-lookup Δ x' ≫=maybe λ where
-      (ps , kᵢ , k , cs) →
+      (ps , kᵢ , k , cs , eds , gds) →
         just $ mk-data-info x' (just (Var x/mu)) as' as ps
-          (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs)
+          (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs) eds gds
           λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x' T}) cs
 
 data-lookup-mu : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info

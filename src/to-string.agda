@@ -57,6 +57,15 @@ no-parens {TYPE} {TYPE} (TpIota _ _ _) (TpArrow _ _ _) left = ff
 no-parens {KIND} {KIND} (KdAbs _ _ _) (KdArrow _ _) left = ff
 no-parens {TYPE} {KIND} (TpAbs _ _ _ _) (KdArrow _ _) left = ff
 no-parens {TYPE} {KIND} (TpIota _ _ _) (KdArrow _ _) left = ff
+no-parens {TERM} {_} (Var x) p lr = tt
+no-parens {TERM} {_} (Hole pi) p lr = tt
+no-parens {TERM} {_} (IotaPair t₁ t₂ x Tₓ) p lr = tt
+no-parens {TERM} {_} (IotaProj t n) p lr = tt
+no-parens {TYPE} {_} (TpVar x) p lr = tt
+no-parens {TYPE} {_} (TpEq t₁ t₂) p lr = tt
+no-parens {TYPE} {_} (TpHole pi) p lr = tt
+no-parens {KIND} {_} (KdHole pi) p lr = tt
+no-parens {KIND} {_} KdStar p lr = tt
 no-parens {_} {TERM} _ (IotaPair t₁ t₂ x Tₓ) lr = tt
 no-parens {_} {TYPE} _ (TpEq t₁ t₂) lr = tt
 no-parens {_} {TERM} _ (Beta ot ot') lr = tt
@@ -75,27 +84,18 @@ no-parens {TERM} {_} (App t t') p lr = ff
 no-parens {TERM} {_} (AppE t tT) p lr = ff
 no-parens {TERM} {_} (Beta ot ot') p lr = tt
 no-parens {TERM} {_} (Delta T t) p lr = ff
-no-parens {TERM} {_} (Hole pi) p lr = tt
-no-parens {TERM} {_} (IotaPair t₁ t₂ x Tₓ) p lr = tt
-no-parens {TERM} {_} (IotaProj t n) p lr = tt
 no-parens {TERM} {_} (Lam me x tk? t) p lr = ff
 no-parens {TERM} {_} (LetTm me x T t t') p lr = ff
 no-parens {TERM} {_} (LetTp x T t t') p lr = ff
 no-parens {TERM} {_} (Phi tₑ t₁ t₂) p lr = ff
 no-parens {TERM} {_} (Rho tₑ x Tₓ t) p lr = ff
 no-parens {TERM} {_} (Sigma t) p lr = is-eq-op p
-no-parens {TERM} {_} (Var x) p lr = tt
 no-parens {TERM} {_} (Mu _ _ _ _ _) p lr = ff
 no-parens {TYPE} {e} (TpAbs me x tk T) p lr = exprd-eq e TYPE && is-arrow p && not-left lr
 no-parens {TYPE} {_} (TpIota x T₁ T₂) p lr = ff
 no-parens {TYPE} {_} (TpApp T tT) p lr = is-arrow p || (is-type-level-app p && not-right lr)
-no-parens {TYPE} {_} (TpEq t₁ t₂) p lr = tt
-no-parens {TYPE} {_} (TpHole pi) p lr = tt
 no-parens {TYPE} {_} (TpLam x tk T) p lr = ff
-no-parens {TYPE} {_} (TpVar x) p lr = tt
 no-parens {KIND} {_} (KdAbs x tk k) p lr = is-arrow p && not-left lr
-no-parens {KIND} {_} (KdHole pi) p lr = tt
-no-parens {KIND} {_} KdStar p lr = tt
 
 pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ _ ff _
 pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ _ ff _
@@ -280,7 +280,6 @@ strMetaVar x (fn , pi , pi') s n ts Γ pe lr =
 term-to-stringh : term → strM
 type-to-stringh : type → strM
 kind-to-stringh : kind → strM
-tk-to-stringh : tpkd → strM
 ctr-to-string : ctr → strM
 case-to-string : case → strM
 cases-to-string : cases → strM
@@ -341,7 +340,7 @@ lams-to-string t =
   elim-pair (decompose-lams-pretty t) λ xs b →
   set-parent t $ strFold suc filln $ foldr {B = 𝕃 (ℕ × strM)}
     (λ {(x , me , oc) r →
-      (0 , (strAdd (lam-to-string me) >>str strAdd " " >>str
+      (1 , (strAdd (lam-to-string me) >>str strAdd " " >>str
             strBvar x (strNest 4 (optClass-to-string oc)) (strAdd " ."))) ::
       map (map-snd $ strΓ' localScope x) r}) [ 2 , to-stringr b ] xs
   where
@@ -350,10 +349,6 @@ lams-to-string t =
     h : 𝕃 (var × erased? × maybe tpkd) → term → 𝕃 (var × erased? × maybe tpkd) × term
     h acc (Lam me x oc t) = h ((x , me , oc) :: acc) t
     h acc t = reverse acc , t
-
-tk-to-stringh (Tkt T) = to-stringh T
-tk-to-stringh (Tkk k) = to-stringh k
-
 
 term-to-stringh (App t t') = apps-to-string (App t t')
 
@@ -449,7 +444,7 @@ type-to-stringh (TpHole pi) = hole-to-string pi
 
 type-to-stringh (TpLam x tk T) = strBreak 2
   3 [ strAdd "λ " >>str
-      strBvar x (strAdd " : " >>str tk-to-stringh tk >>str strAdd " .") strEmpty ]
+      strBvar x (strAdd " : " >>str to-stringh -tk' tk >>str strAdd " .") strEmpty ]
   1 [ strΓ' localScope x (to-stringr T) ]
 
 type-to-stringh (TpVar x) = strVar x
@@ -478,7 +473,7 @@ optTerm-to-string (just t) c1 c2 =
     strAdd (𝕃char-to-string (' ' :: [ c2 ])) ]
 
 optClass-to-string nothing = strEmpty
-optClass-to-string (just atk) = strAdd " : " >>str tk-to-stringh atk
+optClass-to-string (just atk) = strAdd " : " >>str to-stringh -tk' atk
 
 optType-to-string pfx nothing = []
 optType-to-string pfx (just T) =
@@ -508,7 +503,7 @@ vars-to-string (v :: vs) = strVar v >>str strAdd " " >>str vars-to-string vs
 
 ctr-to-string (Ctr x T) = strAdd x >>str strAdd " : " >>str to-stringh T
 
-case-to-string (Case x as t) =
+case-to-string (Case x as t _) =
   strM-Γ λ Γ →
   let as-f = λ x as → strVar x >>str caseArgs-to-string as (strAdd " ➔ " >>str to-stringr t) in
   case (env-lookup Γ x , options) of uncurry λ where
@@ -541,7 +536,7 @@ param-to-string (Param me v atk) =
   (strAdd (braceL me) >>str
    strAdd (unqual-local v) >>str
    strAdd " : " >>str
-   tk-to-stringh atk >>str
+   to-stringh -tk' atk >>str
    strAdd (braceR me))
 
 params-to-string'' ps f = elim-pair (foldr (λ p → uncurry λ g ms → elim-pair (param-to-string p) λ h m → g ∘ h , m :: map h ms) (id , []) ps) λ g ms → strList 2 (strEmpty :: ms) >>str g f
@@ -562,15 +557,15 @@ strRunTag name Γ m with m {TERM} NIL 0 [] Γ nothing neither
 to-stringe : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringe = to-stringh ∘' (if cedille-options.options.erase-types options then erase else id)
 
-tpkd-to-stringe : tpkd → strM
-tpkd-to-stringe = to-stringe -tk'_
-
 to-string-tag : {ed : exprd} → string → ctxt → ⟦ ed ⟧ → tagged-val
 to-string-tag name Γ t = strRunTag name Γ (to-stringe t)
 
 to-string : {ed : exprd} → ctxt → ⟦ ed ⟧ → rope
 to-string Γ t = strRun Γ (to-stringh t)
 
+
+tpkd-to-stringe : tpkd → strM
+tpkd-to-stringe = to-stringe -tk'_
 
 tpkd-to-string : ctxt → tpkd → rope
 tpkd-to-string Γ atk = strRun Γ (tpkd-to-stringe atk)

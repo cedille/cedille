@@ -23,9 +23,10 @@ createOptionsFile dot-ced-dir =
 
 options-absolute-path : (options-fp some-fp : filepath) → IO filepath
 options-absolute-path ofp fp =
-  let rfp = combineFileNames (takeDirectory ofp) fp in
-  doesFileExist fp >>= λ fpₑ →
-  canonicalizePath (if fpₑ then fp else rfp)
+  (filepath-replace-tilde fp >>= flip maybe-else return
+    (doesFileExist fp >>=r λ fpₑ →
+      if fpₑ then fp else combineFileNames (takeDirectory ofp) fp))
+  >>= canonicalizePath
 
 opts-to-options : filepath → options-types.opts → IO cedille-options.options
 opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =

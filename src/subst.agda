@@ -53,7 +53,7 @@ substh {TERM} Γ ρ σ (Hole pi) = Hole pi -- Retain position, so jumping to hol
 substh {TERM} Γ ρ σ (Beta t t') = Beta (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (IotaPair t₁ t₂ x T) =
   let x' = subst-rename-var-if Γ ρ x σ in
-  IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
+  IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
 substh {TERM} Γ ρ σ (IotaProj t n) = IotaProj (substh Γ ρ σ t) n
 substh {TERM} Γ ρ σ (Sigma t) = Sigma (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ σ t₁) (substh Γ ρ σ t₂)
@@ -112,9 +112,9 @@ substh-params Γ ρ σ ((Param me x tk) :: ps) =
 substh-params Γ ρ σ [] = []
 
 substh-cases Γ ρ σ = map λ where
-  (Case x as t) →
+  (Case x as t asₜₚ) →
     case (substh-case-args Γ ρ σ as) of λ where
-      (as' , ρ' , Γ') → Case x as' (substh Γ' ρ' σ t)
+      (as' , ρ' , Γ') → Case x as' (substh Γ' ρ' σ t) (substh Γ' ρ' σ -tT_ <$> asₜₚ)
 
 substh-case-args Γ ρ σ as = foldr (λ where
   (CaseArg e x) f ρ Γ →

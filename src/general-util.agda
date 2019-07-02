@@ -170,13 +170,16 @@ uncurry₂ : ∀{a b c d}{A : Set a}{B : Set b}{C : Set c}{D : Set d}
           → (f : A → B → C → D) → (p : A × B × C) → D
 uncurry₂ f (a , b , c) = f a b c
 
-elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+elim-pair : ∀{ℓ₀ ℓ₁ ℓ₂}{A : Set ℓ₀}{B : Set ℓ₁}{C : Set ℓ₂}
             → A × B → (A → B → C) → C
 elim-pair (a , b) f = f a b
 
-elim-Σi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''}
+elim-Σi : ∀ {ℓ₀ ℓ₁ ℓ₂} {A : Set ℓ₀} {B : A → Set ℓ₁} {X : Set ℓ₂}
           → Σi A B → ({a : A} → B a → X) → X
 elim-Σi (, b) f = f b
+
+elim_for : ∀ {ℓ₀ ℓ₁ ℓ₂} {A : Set ℓ₀} {B : Set ℓ₁} {X : Set ℓ₂} → A × B → (A → B → X) → X
+elim (a , b) for f = f a b
 
 infixr 0 case_ret_of_ case_of_
 
@@ -354,6 +357,12 @@ joinPath (x :: xs) = x ^ pathSeparatorString ^ joinPath xs
 
 pathIsAbsolute : filepath → 𝔹
 pathIsAbsolute = maybe-else ff (λ c → (c =char '~') || (c =char pathSeparator)) ∘ (head2 ∘ string-to-𝕃char)
+
+filepath-replace-tilde : filepath → IO (maybe filepath)
+filepath-replace-tilde fp with string-to-𝕃char fp
+...| '~' :: '/' :: fp-cs = getHomeDirectory >>=r λ home →
+                           just (combineFileNames home (𝕃char-to-string fp-cs))
+...| fp-cs = return nothing
 
 -- string binary tree, for more efficient I/O printing than concatenation
 data rope : Set where

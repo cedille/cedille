@@ -8,13 +8,6 @@ open import subst
 open import rename
 open import free-vars
 
-data indx : Set where
-  Index : var → tpkd → indx
-indices = 𝕃 indx
-
-data datatype : Set where
-  Data : var → params → indices → ctrs → datatype
-
 {-# TERMINATING #-}
 decompose-arrows : ctxt → type → params × type
 decompose-arrows Γ (TpAbs me x atk T) =
@@ -51,91 +44,6 @@ rename-indices-h _ _ [] _ = []
 
 rename-indices : ctxt → indices → 𝕃 tmtp → indices
 rename-indices Γ = rename-indices-h Γ empty-renamectxt
-
-
-tk-erased : tpkd → erased? → erased?
-tk-erased (Tkk _) me = Erased
-tk-erased (Tkt _) me = me
-
-params-set-erased : erased? → params → params
-params-set-erased me = map λ where
-  (Param me' x atk) → Param me x atk
-
-args-set-erased : erased? → args → args
-args-set-erased = map ∘ arg-set-erased
-
-indices-to-kind : indices → kind → kind
-indices-to-kind = flip $ foldr λ {(Index x atk) → KdAbs x atk}
-
-params-to-kind : params → kind → kind
-params-to-kind = flip $ foldr λ {(Param me x atk) → KdAbs x atk}
-
-indices-to-tplams : indices → (body : type) → type
-indices-to-tplams = flip $ foldr λ where
-  (Index x atk) → TpLam x atk
-
-params-to-tplams : params → (body : type) → type
-params-to-tplams = flip $ foldr λ where
-  (Param me x atk) → TpLam x atk
-
-indices-to-alls : indices → (body : type) → type
-indices-to-alls = flip $ foldr λ where
-  (Index x atk) → TpAbs Erased x atk
-
-params-to-alls : params → (body : type) → type
-params-to-alls = flip $ foldr λ where
-  (Param me x atk) → TpAbs (tk-erased atk me) x atk
-
-indices-to-lams : indices → (body : term) → term
-indices-to-lams = flip $ foldr λ where
-  (Index x atk) → Lam Erased x (just atk)
-
-params-to-lams : params → (body : term) → term
-params-to-lams = flip $ foldr λ where
-  (Param me x atk) → Lam (tk-erased atk me) x (just atk)
-
-indices-to-apps : indices → (body : term) → term
-indices-to-apps = flip $ foldl λ where
-  (Index x (Tkt T)) t → AppE t (Ttm (Var x))
-  (Index x (Tkk k)) t → AppE t (Ttp (TpVar x))
-
-params-to-apps : params → (body : term) → term
-params-to-apps = recompose-apps ∘ params-to-args
-
-indices-to-tpapps : indices → (body : type) → type
-indices-to-tpapps = flip $ foldl λ where
-  (Index x (Tkt _)) T → TpApp T (Ttm (Var x))
-  (Index x (Tkk _)) T → TpApp T (Ttp (TpVar x))
-
-params-to-tpapps : params → (body : type) → type
-params-to-tpapps = flip apps-type ∘ params-to-args
-
-params-to-caseArgs : params → case-args
-params-to-caseArgs = map λ where
-  (Param me x (Tkt T)) → CaseArg (if me then CaseArgEr else CaseArgTm) x
-  (Param me x (Tkk k)) → CaseArg CaseArgTp x
-
---ctrs-to-lams : ctxt → var → params → ctrs → (body : term) → term
---ctrs-to-lams Γ x ps cs t = foldr
---  (λ {(Ctr y T) f Γ → Lam NotErased y
---    (just $ Tkt $ subst Γ (params-to-tpapps ps $ TpVar y) y T)
---    $ f $ ctxt-var-decl y Γ})
---  (λ Γ → t) cs Γ
-
-ctrs-to-lams : ctrs → term → term
-ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just $ Tkt T)}
-
-add-indices-to-ctxt : indices → ctxt → ctxt
-add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
-
-add-params-to-ctxt : params → ctxt → ctxt
-add-params-to-ctxt = flip $ foldr λ {(Param me x'' _) → ctxt-var-decl x''}
-
-add-caseArgs-to-ctxt : case-args → ctxt → ctxt
-add-caseArgs-to-ctxt = flip $ foldr λ {(CaseArg me x) → ctxt-var-decl x}
-
-add-ctrs-to-ctxt : ctrs → ctxt → ctxt
-add-ctrs-to-ctxt = flip $ foldr λ {(Ctr x T) → ctxt-var-decl x}
 
 positivity : Set
 positivity = 𝔹 × 𝔹 -- occurs positively × occurs negatively

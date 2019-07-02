@@ -110,7 +110,8 @@ untyped-term Γ (ExLam pi e pi' x tk? t) =
                 just "λ-terms must bind a term, not a type (use Λ instead)"
       eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) >>
                 just "The Λ-bound variable occurs free in the erasure of the body" in
-  [- Lam-span Γ untyped pi pi' e x tk~ t [] (eₖ? maybe-or eₑ?) -]
+  [- var-span e Γ pi' x untyped tk~ eₑ? -]
+  [- Lam-span Γ untyped pi pi' e x tk~ t [] eₖ? -]
   return (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
 
 untyped-term Γ (ExLet pi e? d t) =
@@ -221,14 +222,14 @@ untyped-type Γ (ExTpApp T T') =
   untyped-type Γ T >>= λ T~ →
   untyped-type Γ T' >>= λ T'~ →
   [- TpApp-span (type-start-pos T) (type-end-pos T) untyped [] nothing -]
-  return (TpApp T~ (Ttp T'~))
+  return (TpAppTp T~ T'~)
 
 -- T t
 untyped-type Γ (ExTpAppt T t) =
   untyped-type Γ T >>= λ T~ →
   untyped-term Γ t >>= λ t~ →
   [- TpAppt-span (type-start-pos T) (term-end-pos t) untyped [] nothing -]
-  return (TpApp T~ (Ttm t~))
+  return (TpAppTm T~ t~)
 
 -- T ➔/➾ T'
 untyped-type Γ (ExTpArrow T e T') =
@@ -333,17 +334,17 @@ untyped-tpkd Γ (ExTkk k) = Tkk <$> untyped-kind Γ k
 
 untyped-cases Γ ms ρ =
   let msₗ = length ms in
-  foldr (λ m rec ms f → untyped-case Γ m msₗ f ρ >>=c λ m asₗ → rec (m :: ms) asₗ)
+  foldl (λ m rec ms f → untyped-case Γ m msₗ f ρ >>=c λ m asₗ → rec (m :: ms) asₗ)
     (const ∘ return) ms [] (λ _ → nothing)
 
-untyped-case-args : ctxt → posinfo → ex-case-args → ex-tm → spanM (case-args × term)
-untyped-case-args Γ pi cas t =
-  foldr {B = ctxt → 𝕃 (posinfo × var) → 𝕃 tagged-val → (term → spanM ⊤) → spanM (case-args × term)}
+untyped-case-args : ctxt → posinfo → ex-case-args → ex-tm → renamectxt → spanM (case-args × term)
+untyped-case-args Γ pi cas t ρ =
+  foldr {B = ctxt → renamectxt → 𝕃 tagged-val → (term → spanM ⊤) → spanM (case-args × term)}
     (λ {(ExCaseArg me pi x) rec Γ' ρ tvs sm →
       let tk = case me of λ {CaseArgTp → Tkk (KdHole pi); _ → Tkt (TpHole pi)} in
       rec
         (ctxt-tk-decl pi x tk Γ')
-        ((pi , x) :: ρ)
+        (renamectxt-insert ρ (pi % x) x)
         (binder-data Γ' pi x tk (case-arg-erased me) nothing
           (term-start-pos t) (term-end-pos t) :: tvs)
         (λ t →
@@ -356,14 +357,14 @@ untyped-case-args Γ pi cas t =
       [- pattern-clause-span pi t (reverse tvs) -]
       untyped-term Γ' t >>= λ t~ →
       sm t~ >>
-      return2 [] (subst-unqual Γ' ρ t~))
-    cas Γ [] [] λ _ → spanMok
+      return2 [] (subst-renamectxt Γ' ρ t~))
+    cas Γ ρ [] λ _ → spanMok
 
 untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
-  untyped-case-args Γ pi cas t >>=c λ cas~ t~ →
+  untyped-case-args Γ pi cas t ρ >>=c λ cas~ t~ →
   case (qual-lookup Γ x) of λ where
     (just (qx , as , ctr-def ps T Cₗ cᵢ cₐ , loc)) →
-      let c~ = Case qx cas~ t~
+      let c~ = Case qx cas~ t~ []
           eᵢ = "This constructor overlaps with " ^ x
           eₐ = unless (length cas~ =ℕ cₐ)
                  ("Expected " ^ ℕ-to-string cₐ ^
@@ -376,7 +377,7 @@ untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
       return2 c~ λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ
     _ →
       [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
-      return2 (Case x cas~ t~) asₗ
+      return2 (Case x cas~ t~ []) asₗ
 
 untyped-elab-mu Γ t cs =
   Hole posinfo-gen -- TODO

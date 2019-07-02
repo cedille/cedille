@@ -148,7 +148,7 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
         TpAbs NotErased ignored-var (Tkt (indices-to-tpapps is $ TpVar fₓ)) $
         indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx
       Γ' = ctxt-term-def pi' globalScope opacity-open (data-to/ x) (just id-term) Tₜₒ Γ'
-      Γ' = ctxt-datatype-def pi' x ps' kᵢ k' cs~ Γ' in
+      Γ' = ctxt-datatype-def pi' x ps' kᵢ k' cs~ ecs Γ' in
   [- DefDatatype-span Γ' pi pi' x ps' (abs-expand-kind ps' k') kₘᵤ k' Tₘᵤ Tₜₒ cs~ k pi'' -]
   [- TpVar-span Γ' pi' x checking (kind-data old-Γ k' :: params-data old-Γ ps') nothing -]
   return (record s {Γ = Γ'})
@@ -275,9 +275,10 @@ process-file s filename pn | ie =
     return (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s) ,
              maybe-else' f~ (Module ignored-var [] []) id) {- should not happen -}
   proceed s (just x) f~ ie' with include-elt.need-to-add-symbols-to-context ie
-  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | tt-t
+  proceed s (just x) (just f~) ie' | ff = return (s , ie' , ctxt.mod (toplevel-state.Γ s) , f~)
+  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _
     with include-elt.do-type-check ie | ctxt-get-current-mod Γ
-  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | tt-t | do-check | prev-mod =
+  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _ | do-check | prev-mod =
    let Γ = ctxt-initiate-file Γ filename (start-modname x) in
      process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
              filename pn x empty-spans >>= λ where
