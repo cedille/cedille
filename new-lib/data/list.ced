@@ -11,7 +11,7 @@ data List (A: ★): ★ =
   | cons: A ➔ List ➔ List.
 
 head : ∀ A: ★. List ·A ➔ Maybe ·A
-= Λ A. λ xs. μ' xs { nil ➔ none ·A | cons x xs ➔ some x}.
+= Λ A. λ xs. μ' xs { nil ➔ nothing ·A | cons x xs ➔ just x}.
 
 isCons : ∀ A: ★. List ·A ➔ Bool
 = Λ A. λ xs. μ' xs { nil ➔ ff | cons _ _ ➔ tt}.
@@ -46,8 +46,8 @@ append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
 
 lookup : ∀ A: ★. List ·A ➔ Nat ➔ Maybe ·A
   = Λ A. λ xs. μ l. xs {
-  | nil ➔ λ _. none ·A
-  | cons x xs ➔ λ n. μ' n {zero ➔ some x | succ n ➔ l xs n}
+  | nil ➔ λ _. nothing ·A
+  | cons x xs ➔ λ n. μ' n {zero ➔ just x | succ n ➔ l xs n}
   }.
 
 foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
