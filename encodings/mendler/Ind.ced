@@ -1,37 +1,35 @@
-module Ind(F : ★ ➔ ★) .
+import stdlib.
 
-import is.
-import top.
-import true.
+module Ind(F : ★ ➔ ★){fm : CastMap · F} .
 
-import public D · F.
+import public D · F -fm.
+import libmods.
 
-toD ◂ ∀ fm : RecFunctor · F . C ➔ (D fm) =
-  Λ fm . λ x . (rUnfold -fm x).1 · (D fm) (inAlg' -fm) .
+toD : C ➔ D =
+  λ x . (rUnfold x).1 · (λ _ : ★ . D) -(constCastMap · D) inAlg' .
 
-reflection ◂ ∀ fm : RecFunctor · F . Π x : C . { toD x ≃ x } =
-  Λ fm . λ x . (rUnfold -fm x).2.
+reflection : Π x : C . { toD x ≃ x } =
+  λ x . (rUnfold x).2.
 
-castD ◂ ∀ fm : RecFunctor · F . Cast · C · (D fm) =
-  Λ fm . caste · C · (D fm)
-                 (toD -fm)
-                 -(reflection -fm).
+castD : Cast · C · D =
+  intrCast · C · D -toD -reflection.
 
-Ind ◂ ∀ fm : RecFunctor · F . Π c : C . Inductive fm c =
-  Λ fm . λ c . (cast · C · (D fm) -(castD -fm) c).2.
+Ind : Π c : C . Inductive · C c =
+  λ c . cast -(indFunctor -c · D · C -[λ d . (dUnfold d).1 , β]) (dUnfold (cast -castD c)).2.
 
-lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : C . { out (in x) ≃ x} = Λ F . Λ fm . λ x . β .
+lambek1 : ∀ F : ★ ➔ ★ . Π x : C . { out (in x) ≃ x} = Λ F . λ x . β .
 
-lambek2 ◂ ∀ fm : RecFunctor · F . Π x : C . { in (out x) ≃ x } =
-  Λ fm . λ x .
-    θ<x> (Ind -fm x)
+lambek2 : Π x : C . { in (out x) ≃ x } =
+  λ x .
+    Ind x · (λ x : C . λ _ : ★ . { in (out x) ≃ x }) -(λ c . constCastMap · { in (out c) ≃ c })
       [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . λ ih . λ p . β] .
 
-IsHomomorphism : RecFunctor · F ➔ 
+{- revise in light of Uustala Vene "Coding..." paper
+IsHomomorphism : CastMap · F ➔ 
                  Π X1 : ★ . (Alg · C · X1) ➔
                  Π X2 : ★ . (Alg · C · X2) ➔ 
                  Π h : X1 ➔ X2 . ★ =
-  λ fm : RecFunctor · F . 
+  λ fm : CastMap · F . 
   λ X1 : ★ . λ alg1 : Alg · C · X1 .
   λ X2 : ★ . λ alg2 : Alg · C · X2 .
   λ h : X1 ➔ X2 .
@@ -40,17 +38,19 @@ IsHomomorphism : RecFunctor · F ➔
     { h (alg1 (foldU alg1) fr) ≃ alg2 (foldU alg2) fr }.
 
 WeakInitiality : ∀ X : ★ . ∀ alg : Alg · C · X .
-                 ∀ fm : RecFunctor · F .
+                 ∀ fm : CastMap · F .
                  IsHomomorphism fm · C (inAlg -fm) · X alg (fold -fm · X alg) =
   Λ X . Λ alg . Λ fm .
   Λ R . Λ fr . β.
 
 Initiality : ∀ X : ★ . ∀ alg : Alg · C · X .
-             ∀ fm : RecFunctor · F .
+             ∀ fm : CastMap · F .
              ∀ h : C ➔ X .
              IsHomomorphism fm · C (inAlg -fm) · X alg h ➔
              Π c : C . { h c ≃ fold alg c } =
-  Λ X . Λ alg . Λ fm . Λ h . λ hh . λ c .
+  Λ X . Λ alg . Λ h . λ hh . λ c .
     θ<c> (Ind -fm c)
       [ β{λ rec . λ d . β} ,
         Λ R . Λ reveal . λ rec . λ d . ρ (hh · R -d) - β ].
+
+-}
