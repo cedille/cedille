@@ -117,6 +117,7 @@ is-var-unqual = maybe-map (λ x → maybe-else (unqual-local x) id (var-suffix x
 
 unerased-arrows : type → ℕ
 unerased-arrows (TpAbs ff x atk T) = suc (unerased-arrows T)
+unerased-arrows (TpAbs tt x atk T) = unerased-arrows T
 unerased-arrows _ = zero
 
 lterms-to-term : theta → ex-tm → 𝕃 lterm → ex-tm

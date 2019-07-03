@@ -36,14 +36,14 @@ AGDASRC = \
 	rkt.agda \
 	meta-vars.agda \
 	cedille-options.agda \
-	elaboration.agda \
 	elaboration-helpers.agda \
 	instances.agda \
 	json.agda \
 	datatype-functions.agda \
 	bohm-out.agda \
 	pretty.agda \
-	type-inf.agda
+	type-inf.agda \
+	type-util.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

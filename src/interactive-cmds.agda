@@ -376,9 +376,9 @@ private
     elim-pair (get-local-ctxt-tvs Γ sp ls) λ Γ Γₗ →
     (parse-try Γ - Tₛ ! ttk >>parse inj₂) >>parseIO λ Tf → Tf λ Tₗₗ T →
     (parse-string TERM - tₛ ! "term" >>parse inj₂) >>parseIO λ t →
-    let T = elab-typed Γ T
+    let T = elab-untyped Γ T
         Tₑ = erase T
-        t = elab-typed Γ t in
+        t = elab-typed Γ t in -- TODO: Probably should switch back to ex-tm so if this doesn't currently check it won't elaborate to a hole!
     putJson (tv-to-json $ inj₂ $ ts-tag Γ Tₑ) >>
     await (br-node (mk-br-history Γ t Tₗₗ T (rope-to-string $ ts2.to-string Γ Tₑ) const Γₗ [] []) [])
     where
