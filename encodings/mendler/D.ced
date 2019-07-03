@@ -6,20 +6,20 @@ import true.
 
 import public C · F.
 
-PrfAlg ◂ RecFunctor · F ➔ (C ➔ ★) ➔ ★ =
-  λ fm : RecFunctor · F . λ P : C ➔ ★ .
+PrfAlg ◂ RecFunctor · F ➔ (C ➔ ★ ➔ ★) ➔ ★ =
+  λ fm : RecFunctor · F . λ P : C ➔ ★ ➔ ★ .
     ι alg : Top .
     ∀ R : ★ . 
     ∀ reveal : Cast · R · C.    
-      is · (Π r : R . P (cast -reveal r)) (foldU alg) ➔
+      is · (Π r : R . P (cast -reveal r) · R) (foldU alg) ➔
       Π p : F · R .
-      P (in -fm (cast · (F · R) · (F · C) -(fm · R · C reveal) p)) .
+      P (in -fm (cast · (F · R) · (F · C) -(fm · R · C reveal) p)) · R .
 
 Inductive ◂ RecFunctor · F ➔ C ➔ ★ =
    λ fm : RecFunctor · F . λ d : C.
-    ∀ P : C ➔ ★ .
+    ∀ P : C ➔ ★ ➔ ★ .
       PrfAlg fm · P ➔
-      P d .
+      P d · C .
 
 D ◂ RecFunctor · F ➔ ★ = 
    λ fm : RecFunctor · F . ι x : C . Inductive fm x .
