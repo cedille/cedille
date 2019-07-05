@@ -17,7 +17,7 @@ castD : Cast · C · D =
 Ind : Π c : C . Inductive · C c =
   λ c . cast -(indFunctor -c · D · C -[λ d . (dUnfold d).1 , β]) (dUnfold (cast -castD c)).2.
 
-lambek1 : ∀ F : ★ ➔ ★ . Π x : C . { out (in x) ≃ x} = Λ F . λ x . β .
+lambek1 : Π x : F · C . { out (in x) ≃ x} = λ x . β .
 
 lambek2 : Π x : C . { in (out x) ≃ x } =
   λ x .
