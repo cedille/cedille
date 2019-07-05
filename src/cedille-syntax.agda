@@ -72,7 +72,7 @@ infixr 8 ε_ εl_ εr_ ε-_ εl-_ εr-_
 --● = Hole pi-gen
 
 -- IotaPair ("₊" = "\_+")
-[_,_] = λ t₁ t₂ → IotaPair pi-gen t₁ t₂ NoGuide pi-gen
+[_`,_] = λ t₁ t₂ → IotaPair pi-gen t₁ t₂ NoGuide pi-gen
 [_`,_*_₊_] = λ t₁ t₂ x T → IotaPair pi-gen t₁ t₂ (Guide pi-gen x T) pi-gen
 
 -- IotaProj

@@ -574,7 +574,7 @@ TpVar-span Γ pi v check tvs =
   v' = unqual-local v
   name = case Γ of λ where
     (mk-ctxt mod ss is os (Δ , μ' , μ , η)) →
-      if stringset-contains η (qualif-var Γ v')
+      if stringset-contains η (qualif-var Γ v)
         then "Datatype variable"
         else "Type variable"
 

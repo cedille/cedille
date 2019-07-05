@@ -287,8 +287,8 @@ data-lookup-mu : ctxt → var → 𝕃 tty → maybe ctxt-datatype-info
 data-lookup-mu Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) x as =
   trie-lookup μ x ≫=maybe λ x' → data-lookup Γ x' as
 
-data-highlight : ctxt → var → ctxt
-data-highlight (mk-ctxt mod ss is os (Δ , μ' , μ , η)) x =
+data-highlight : var → ctxt → ctxt
+data-highlight x (mk-ctxt mod ss is os (Δ , μ' , μ , η)) =
   mk-ctxt mod ss is os (Δ , μ' , μ , stringset-insert η x)
 
 ctxt-lookup-occurrences : ctxt → var → 𝕃 (var × posinfo × string)

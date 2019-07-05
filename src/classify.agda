@@ -1978,7 +1978,7 @@ ctxt-mu-decls t is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs
               e₃ₓ? (mu-isType/ x) maybe-or e₃ₓ? (mu-Type/ x) in
   spanM-add (var-span NotErased Γ'' pi' x checking (Tkt Tₓ) (e₂? maybe-or e₃?)) ≫span
   set-ctxt Γ'' ≫span
-  spanMr (binder-data Γ'' pi' X' (Tkk k) Erased nothing pi'' pi''' ::
+  spanMr (binder-data Γ'' pi' X' (Tkk k) Erased nothing (posinfo-plus (term-end-pos t) 1) pi''' ::
           binder-data Γ'' pi' x (Tkt Tₓ) NotErased nothing pi'' pi''' ::
           binder-data Γ'' pi' xₘᵤ (Tkt Tₘᵤ) Erased nothing pi'' pi''' ::
           to-string-tag X' Γ'' k ::
@@ -1989,29 +1989,42 @@ ctxt-mu-decls t is Tₘ cs (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs
 check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
   get-ctxt λ Γ → 
   check-termi t nothing ≫=span λ T →
-  let ret-tp = λ ps as t → case Tₘ? of λ {
-        (SomeType Tₘ) → just $ hnf Γ (unfolding-elab unfold-head) (TpAppt (apps-type (qualif-type Γ Tₘ) $
-                          ttys-to-args NotErased (drop (length ps) as)) t) tt;
-        NoType → mtp}
-      Tₘ?' = optType-elim Tₘ? nothing just
+  let Tₘ?' = optType-elim Tₘ? nothing just
       no-motive-err = just "A motive is required when synthesizing"
       no-motive = spanMr (nothing , [] , no-motive-err) in
   case_of_ (maybe-map (λ T → decompose-tpapps $ hnf Γ (unfolding-elab unfold-head) T tt) T) λ where
     (just (TpVar _ X , as)) →
+      let subst-Type/x-if = λ Γ ps as → maybe-else' x? id λ x → subst Γ (recompose-tpapps (take (length ps) as) (mtpvar X)) (pi' % mu-Type/ x)
+          ret-tp = λ Γ ps as t → case Tₘ? of λ {
+            (SomeType Tₘ) → just $ subst-Type/x-if Γ ps as $
+                              hnf Γ (unfolding-elab unfold-head)
+                                (TpAppt (apps-type (qualif-type Γ Tₘ) $
+                                  ttys-to-args NotErased (drop (length ps) as)) t) tt;
+            NoType → mtp} in
       check-mu-evidence ot X as on-fail
        (uncurry λ e tvs → spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
          (expected-type-if Γ mtp ++ tvs) $ just e) ≫span
-        return-when mtp (ret-tp [] as $ qualif-term Γ t))
+        return-when mtp (ret-tp Γ [] as $ qualif-term Γ t))
        ≫=spans' λ where
         nothing →
           spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
             (expected-type-if Γ mtp ++ [ head-type Γ (mtpvar X) ]) (maybe-not mtp ≫=maybe λ _ → maybe-not Tₘ?' ≫=maybe λ _ → no-motive-err)) ≫span
-          return-when mtp (ret-tp [] as $ qualif-term Γ t)
+          return-when mtp (ret-tp Γ [] as $ qualif-term Γ t)
         (just (cast , d @ (mk-data-info Xₒ x/mu asₚ asᵢ ps kᵢ k cs' fcs))) →
           let is = kind-to-indices Γ kᵢ in
           (case Tₘ? of λ where
             (SomeType Tₘ) →
-              check-type Tₘ (just kᵢ) ≫span spanMr (just (qualif-type Γ Tₘ) , [] , nothing)
+              let Γ' = maybe-else' x? Γ λ x → data-highlight (pi' % mu-Type/ x)
+                         (ctxt-type-decl pi' (mu-Type/ x)
+                           (indices-to-kind (drop-last 1 is) (Star pi-gen)) Γ) in
+              with-ctxt Γ' (check-type Tₘ (just kᵢ) ≫span
+                let Tₘ' = qualif-type Γ' Tₘ
+                    Tₘₕ = λ x → hnf-ctr Γ' (pi' % mu-Type/ x) Tₘ'
+                    Tₘ+ = λ x → positivity.type+ (pi' % mu-Type/ x) Γ' (Tₘₕ x)
+                    e-? = λ x → maybe-if (positivity.negₒ (pi' % mu-Type/ x) (Tₘ+ x))
+                    e-  = λ x → just (mu-Type/ x ^ " occurs negatively in the motive")
+                    e   = x? ≫=maybe λ x → e-? x ≫maybe e- x in
+                spanMr (just Tₘ' , [] , e))
             NoType →
               spanMr mtp on-fail no-motive ≫=spanm' λ Tₑ →
               let Tₘ = refine-motive Γ is (asᵢ ++ [ tterm (qualif-term Γ t) ]) Tₑ in
@@ -2030,7 +2043,7 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
             (let cs'' = foldl (λ {(Ctr pi x T) σ → trie-insert σ x T}) empty-trie cs'
                  drop-ps = maybe-else 0 length (maybe-not x? ≫maybe (maybe-if (Xₒ =string X) ≫maybe just ps))
                  scrutinee = cast $ qualif-term Γ t
-                 Tᵣ = ret-tp ps (args-to-ttys asₚ ++ asᵢ) scrutinee in
+                 Tᵣ = ret-tp Γ' ps (args-to-ttys asₚ ++ asᵢ) scrutinee in
              check-cases cs cs'' asₚ drop-ps Tₘ ≫=spanc λ e₂ xs →
              spanM-add (elim-pair (maybe-else' Tᵣ ([] , just "A motive is required when synthesizing")
                                     (check-for-type-mismatch-if Γ "synthesized" mtp))
@@ -2038,9 +2051,10 @@ check-mu pi pi' x? t ot Tₘ? pi'' cs pi''' mtp =
                  (map (λ {(pi , x , atk , me , s , e) →
                             binder-data Γ' pi x atk me nothing s e}) xs ++ tvs₁ ++ tvs ++ bds) (e₁ maybe-or (e₂ maybe-or e₃))) ≫span
              return-when mtp Tᵣ))
+
     (just (Tₕ , as)) →
       spanM-add (Mu-span Γ pi x? pi''' Tₘ?' (maybe-to-checking mtp)
         [ head-type Γ Tₕ ] (just "The head type of the subterm is not a datatype")) ≫span
-      return-when mtp (ret-tp [] as (qualif-term Γ t))
+      return-when mtp nothing --(ret-tp [] as (qualif-term Γ t))
     nothing → check-fail mtp
 

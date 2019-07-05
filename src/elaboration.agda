@@ -545,7 +545,6 @@ module elab-x (μ : trie encoded-datatype) where
   elab-mu Γ x+e t Tₘ? ms T? =
     elab-synth-term Γ t ≫=maybe uncurry λ t Tₜ →
     elab-hnf-type Γ Tₜ tt ≫=maybe λ Tₜ →
-    elab-optType Γ Tₘ? ≫=maybe λ Tₘ? →
     case decompose-tpapps Tₜ of λ where
       (TpVar _ X , as) →
         (either-else' x+e (just ∘ inj₁) λ e →
@@ -557,6 +556,7 @@ module elab-x (μ : trie encoded-datatype) where
         (data-lookup Γ X as maybe-or
          either-else' x+e (λ _ → nothing)
            (λ e → e ≫=maybe (uncurry (data-lookup-mu Γ) ∘ snd))) ≫=maybe λ d →
+        elab-optType (either-else' x+e (λ x → ctxt-type-decl' pi-gen (mu-Type/ x) (ctxt-datatype-info.k d) Γ) λ _ → Γ) Tₘ? ≫=maybe λ Tₘ? →
         trie-lookup μ (ctxt-datatype-info.name d) ≫=maybe λ d' →
           let ed-mu = maybe-else' T?
                 (encoded-datatype.synth-mu d' Γ d X x+e t Tₘ? ms)
@@ -750,12 +750,14 @@ elab-cmds q? ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs)
       dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi x' (hnf-ctr Γ' x $ subst-qualif Γ' ρ' T)} in
   -- TODO: what if datatype encoding has a definition with the same name as a constructor?
   elim-pair (datatype-encoding.mk-defs selected-encoding (toplevel-state.Γ ts) (Data x ps is dcs)) λ cs' → uncurry λ cs'' d' →
-      elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
-      elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
-      let rep = renamectxt-rep ρ ∘ qualif-var (toplevel-state.Γ ts)
-          x' = rep x
-          dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x') T} in
-      elab-cmds q? (record ts {Γ = (ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is (KndTpArrow (indices-to-tpapps is $ params-to-tpapps (ctxt-get-current-params Γ ++ ps) $ mtpvar x') star)) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs)}) ρ φ (trie-insert μ x' d') cs ≫=maybe uncurry'' λ cs ts ρ ω →
+  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+  elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
+  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+  elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
+  let rep = renamectxt-rep ρ ∘ qualif-var (toplevel-state.Γ ts)
+      x' = rep x
+      dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi (qualif-var (toplevel-state.Γ ts) x') T} in
+  elab-cmds q? (record ts {Γ = (ctxt-elab-ctrs-def (ctxt-datatype-def' x' (rep $ data-Is/ x) (rep $ data-is/ x) ps (indices-to-kind is (KndTpArrow (indices-to-tpapps is $ params-to-tpapps (ctxt-get-current-params Γ ++ ps) $ mtpvar x') star)) (indices-to-kind is star) dcs $ toplevel-state.Γ ts) ps dcs)}) ρ φ (trie-insert μ x' d') cs ≫=maybe uncurry'' λ cs ts ρ ω →
       just (cs' ++ cs'' ++ cs , ts , ρ , ω)
 
 elab-file' ts ρ φ μ fn =

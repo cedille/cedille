@@ -159,7 +159,7 @@ process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') c? =
       kᵢ = indices-to-kind is $ KndTpArrow
              (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
   check-redefined pi' x s
-    (set-ctxt (ctxt-type-decl pi' x k $ data-highlight Γ (pi' % x)) ≫span get-ctxt λ Γ →
+    (set-ctxt (ctxt-type-decl pi' x k $ data-highlight (pi' % x) Γ) ≫span get-ctxt λ Γ →
      process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
        pi' ps (record s {Γ = Γ}) cs c? ≫span
      get-ctxt λ Γ →
@@ -260,7 +260,7 @@ process-ctrs X Xₜ piₓ ps s csₒ c? = h s csₒ c? where
   h s ((Ctr pi x T) :: cs) tt =
     check-type T (just star) ≫span get-ctxt λ Γ →
     let T = hnf-ctr Γ X (qualif-type Γ T)
-        neg-ret-err = ctr-positive Γ X T ≫=maybe λ neg-ret →
+        neg-ret-err = positivity.ctr-positive X Γ T ≫=maybe λ neg-ret →
           let err-msg = if neg-ret then " occurs negatively in the" else " is not the return" in
           just (unqual-local X ^ err-msg ^ " type of the constructor")
         T = subst Γ Xₜ X T in

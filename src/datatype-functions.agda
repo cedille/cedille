@@ -188,11 +188,8 @@ positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
 
 
--- just tt = negative occurrence; just ff = not in the return type; nothing = okay
-{-# TERMINATING #-}
-ctr-positive : ctxt → var → type → maybe 𝔹
-ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
-  
+module positivity (x : var) where
+
   open import conversion
 
   not-free : ∀ {ed} → ⟦ ed ⟧ → maybe 𝔹
@@ -218,6 +215,7 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   occurs : positivity → maybe 𝔹
   occurs p = maybe-if (negₒ p) ≫maybe just tt
 
+  {-# TERMINATING #-}
   arrs+ : ctxt → type → maybe 𝔹
   type+ : ctxt → type → positivity
   kind+ : ctxt → kind → positivity
@@ -237,12 +235,12 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   arrs+ Γ T = just ff
   
   type+ Γ (Abs _ _ _ x' atk T) =
-    let Γ' = ctxt-var-decl x' Γ; atk+? = tk+ Γ atk in
+    let Γ' = ctxt-var-decl x' Γ in
     positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' $ hnf' Γ' T)
   type+ Γ (Iota _ _ x' T T') =
-    let Γ' = ctxt-var-decl x' Γ; T? = type+ Γ T in
+    let Γ' = ctxt-var-decl x' Γ in
     positivity-add (type+ Γ T) (type+ Γ' T')
-  type+ Γ (Lft _ _ x' t lT) = occurs-all
+  type+ Γ (Lft _ _ x' t lT) = if-free (Lft pi-gen pi-gen x' t lT)
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
@@ -284,4 +282,9 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
 
   tk+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tk+ Γ (Tkk k) = kind+ Γ k
+
+  -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
+  ctr-positive : ctxt → type → maybe 𝔹
+  ctr-positive Γ = arrs+ Γ ∘ hnf' Γ
+  
 
