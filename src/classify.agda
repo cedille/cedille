@@ -73,7 +73,7 @@ check-term-update-eq Γ Both m pi t1 t2 pi' = TpEq pi (hnf-from Γ tt m t1) (hnf
 add-tk-with-err-m : maybeErased → 𝕃 tagged-val → err-m → posinfo → var → tk → spanM restore-def
 add-tk-with-err-m e tags em pi x atk = 
    helper atk ≫=span λ mi → 
-    (if ~ (x =string ignored-var) then
+    (if ~ (x =string ignored-var) || isJust em then
        (get-ctxt λ Γ → 
           spanM-add (var-span-with-tags e Γ pi x checking atk tags em))
     else spanMok) ≫span
