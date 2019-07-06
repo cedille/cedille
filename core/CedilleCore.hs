@@ -16,6 +16,7 @@ maybV e v = maybe (Left (e ++ v)) Right
 -- ModInfo (Module scope) (Filepath) (Context) (Binary?, Verbose?, Indentation)
 data ModInfo = ModInfo (Trie [String]) FilePath Ctxt (Bool, Bool, Int)
 
+addDef mi "_" _ = Right mi
 addDef (ModInfo fs fp (Ctxt decls types defs scope) o) v def =
   maybV "Multiple definitions of " v (notM (trieLookup defs v)) >>
   let fs' = trieInsert fs fp $ maybe [v] ((:) v) (trieLookup fs fp)
