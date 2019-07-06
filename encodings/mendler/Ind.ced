@@ -22,18 +22,18 @@ lambek1 : Π x : F · C . { out (in x) ≃ x} = λ x . β .
 lambek2 : Π x : C . { in (out x) ≃ x } =
   λ x .
     Ind x · (λ x : C . λ _ : ★ . { in (out x) ≃ x }) -(λ c . constCastMap · { in (out c) ≃ c })
-      [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . λ ih . λ p . β] .
+      [β{λ _ . λ _ . λ x .x} , Λ R . Λ cc . Λ cd . Λ o. λ ih . λ p . β] .
 
 {- revise in light of Uustala Vene "Coding..." paper
-IsHomomorphism : CastMap · F ➔ 
+IsHomomorphism : CastMap · F ➔
                  Π X1 : ★ . (Alg · C · X1) ➔
-                 Π X2 : ★ . (Alg · C · X2) ➔ 
+                 Π X2 : ★ . (Alg · C · X2) ➔
                  Π h : X1 ➔ X2 . ★ =
-  λ fm : CastMap · F . 
+  λ fm : CastMap · F .
   λ X1 : ★ . λ alg1 : Alg · C · X1 .
   λ X2 : ★ . λ alg2 : Alg · C · X2 .
   λ h : X1 ➔ X2 .
-    ∀ R : ★ . 
+    ∀ R : ★ .
     ∀ fr : F · R .
     { h (alg1 (foldU alg1) fr) ≃ alg2 (foldU alg2) fr }.
 
