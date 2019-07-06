@@ -174,7 +174,7 @@ module elab-x (μ : trie encoded-datatype) where
         elab-check-term Γ t T' ≫=maybe λ t →
         elab-check-term Γ t' (subst Γ t x T'') ≫=maybe λ t' →
         rename x from Γ for λ x' →
-        just (IotaPair pi-gen t t' (Guide pi-gen x' T'') pi-gen)
+        just (IotaPair pi-gen t t' (Guide pi-gen x' (rename-var Γ x x' T'')) pi-gen)
       _ → nothing
   elab-check-term Γ (IotaProj t n pi) T =
     elab-synth-term Γ t ≫=maybe uncurry λ t T' →
