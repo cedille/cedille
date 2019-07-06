@@ -5,11 +5,12 @@ module D(F : ★ ➔ ★){fm : CastMap · F} .
 import libmods.
 import public C · F -fm.
 
-PrfAlg : (C ➔ ★ ➔ ★) ➔ ★ =
-  λ P : C ➔ ★ ➔ ★ .
+PrfAlg : ★ ➔ (C ➔ ★ ➔ ★) ➔ ★ =
+  λ D: ★. λ P : C ➔ ★ ➔ ★ .
     ι alg : Top .
-    ∀ R : ★ . 
-    ∀ reveal : Cast · R · C.    
+    ∀ R : ★ .
+    ∀ reveal : Cast · R · C. ∀ revealh: Cast · R · D.
+      View · (R ➔ F · R) outU ➾
       View · (Π r : R . P (cast -reveal r) · R) (foldU alg) ➔
       Π p : F · R .
       P (in (cast · (F · R) · (F · C) -(fm -reveal) p)) · R .
@@ -18,7 +19,7 @@ Inductive : ★ ➔ C ➔ ★ =
   λ D : ★ . λ d : C.
     ∀ P : C ➔ ★ ➔ ★ .
     (Π c : C . CastMap · (P c)) ➾
-      PrfAlg · P ➔
+      PrfAlg · D · P ➔
       P d · D .
 
 DF : ★ ➔ ★ = λ D : ★ . ι x : C . Inductive · D x.
@@ -27,7 +28,12 @@ D : ★ = Rec · DF .
 
 indFunctor : ∀ x : C . CastMap · (λ X : ★ . Inductive · X x) =
   Λ x . Λ A . Λ B . Λ c .
-    [ λ d . Λ P . Λ fP . λ palg . cast -(fP x -c) (d · P -fP palg) , β ] .
+    [ λ d . Λ P . Λ fP . λ palg .
+      [palg' : PrfAlg ·A ·P =
+        [ β{palg}
+        , Λ R. Λ cc. Λ cd. Λ o. λ ih. λ xs.
+          palg.2 -cc -([ λ r. elimCast -c (elimCast -cd r) , β ]) -o ih xs]] -
+      cast -(fP x -c) (d · P -fP palg') , β ] .
 
 dFunctor : CastMap · DF =
   Λ X . Λ Y . Λ c .
@@ -39,21 +45,23 @@ dFold ◂ DF · D ➔ D =
 dUnfold ◂ D ➔ DF · D =
   recUnfold · DF -dFunctor .
 
+out' : D ➔ F · D = λ d.
+  (dUnfold d).2 ·(λ _: C. λ _: ★. F · D) -(λ x. Λ X. Λ Y. Λ c. castRefl ·(F ·D))
+    [ β{λ ih. λ xs. xs} , Λ R. Λ c. Λ d. Λ o. λ ih. λ xs. castMap -fm -d xs ].
+
 in' : F · D ➔ D =
   λ d .
     dFold
-      [ in 
+      [ in
         (cast · (F · D) · (F · C)
             -(fm · D · C -[λ x . (dUnfold x).1 , β]) d) ,
      Λ P . Λ fP . λ palg . palg.2 · D
-                      -[λ x . (dUnfold x).1 , β] 
+                      -[λ x . (dUnfold x).1 , β] -[ λ x. x , β ] -[out' , β{out'}]
                        [ λ r . (dUnfold r).2 · P -fP palg , β{λ r . r palg}] d].
 
 inAlg' : Alg · C · (λ _ : ★ . D) =
   [ β{λ eval . λ p . (in p)} ,
-    Λ R . Λ reveal . λ eval . λ p .
-      in' (cast -(fm 
+    Λ R . Λ reveal . Λ o. λ eval . λ p .
+      in' (cast -(fm
                    -(intrCast -eval.1
                       -(λ r . ρ eval.2 - ρ (rUnfold (cast -reveal r)).2 - β))) p) ] .
-
-
