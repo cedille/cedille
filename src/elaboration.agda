@@ -750,9 +750,9 @@ elab-cmds q? ts ρ φ μ ((DefDatatype (Datatype pi pi' x ps k dcs) pi'') :: cs)
       dcs = flip map dcs λ {(Ctr pi x' T) → Ctr pi x' (hnf-ctr Γ' x $ subst-qualif Γ' ρ' T)} in
   -- TODO: what if datatype encoding has a definition with the same name as a constructor?
   elim-pair (datatype-encoding.mk-defs selected-encoding (toplevel-state.Γ ts) (Data x ps is dcs)) λ cs' → uncurry λ cs'' d' →
-  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+--  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
   elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps Γ $ params-set-erased Erased $ ctxt-get-current-params Γ}) ρ φ μ cs' ≫=maybe uncurry''' λ cs' ts ρ φ μ →
-  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
+--  maybe-else (just (cs' ++ cs'' , ts , ρ , φ , μ)) just $
   elab-cmds (just empty-renamectxt) (record ts {Γ = set-ps (toplevel-state.Γ ts) $ ctxt-get-current-params Γ}) ρ φ μ cs'' ≫=maybe uncurry''' λ cs'' ts ρ φ μ →
   let rep = renamectxt-rep ρ ∘ qualif-var (toplevel-state.Γ ts)
       x' = rep x
