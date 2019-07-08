@@ -63,7 +63,7 @@ addAssoc : Π l: Nat. Π m: Nat. Π n: Nat. {add l (add m n) ≃ add (add l m) n
 
 addIsZero : Π m: Nat. Π n: Nat. {add m n ≃ zero} ➔ {m ≃ zero}
 = λ m. λ n. μ' m {
-  | zero ➔ Λ _. β
+  | zero ➔ λ _. β
   | succ m ➔ λ eq. δ - eq
   }.
 
