@@ -262,7 +262,7 @@ hnf{TYPE} Γ u (TpLet _ (DefTerm _ x ot t) T) hd =
 -- we would need to introduce a type-level chi to do the same thing as above.
 -- Currently, synthesizing or checking a type should not make a difference.
 hnf{TYPE} Γ u (TpLet _ (DefType _ x k T) T') hd = hnf Γ u (subst Γ T x T') hd
-hnf{TYPE} Γ u@(unfold tt _ _ _) (Iota _ _ x T₁ T₂) hd = Iota posinfo-gen posinfo-gen x (hnf Γ u T₁ ff) (hnf Γ u T₂ ff)
+hnf{TYPE} Γ u@(unfold tt _ _ _) (Iota _ _ x T₁ T₂) hd = Iota posinfo-gen posinfo-gen x (hnf Γ u T₁ ff) (hnf (ctxt-var-decl x Γ) u T₂ ff)
 hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
