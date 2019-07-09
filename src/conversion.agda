@@ -553,7 +553,7 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
   (trie-insert i (mn # v) (kind-def (ps1 ++ qualif-params Γ ps2) k' , fn , pi))
   symb-occs Δ
   where
-  k' = hnf Γ unfold-head (qualif-kind Γ k) tt
+  k' = hnf Γ (unfolding-elab unfold-head) (qualif-kind Γ k) tt
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
 ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) =
@@ -578,7 +578,7 @@ ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb
   (trie-insert i v' (type-def (def-params s ps) op t' k , fn , pi))
   symb-occs Δ
   where
-  t' = maybe-map (λ t → hnf Γ unfold-head (qualif-type Γ t) tt) t
+  t' = maybe-map (λ t → hnf Γ (unfolding-elab unfold-head) (qualif-type Γ t) tt) t
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 
