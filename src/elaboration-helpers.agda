@@ -507,6 +507,13 @@ mk-ctr-type me Γ (Ctr _ x T) cs Tₕ with decompose-ctr-type (ctxt-var-decl T�
   rename "X" from add-params-to-ctxt ps (ctxt-var-decl Tₕ Γ) for λ X →
   mk-ctr-term me x X cs ps
 
+open-all-datatypes : ctxt → ctxt × 𝕃 var
+open-all-datatypes Γ @ (mk-ctxt mod ss is os Δ) =
+  foldr (uncurry λ x _ → uncurry λ Γ xs →
+           maybe-else' (ctxt-clarify-def Γ OpacTrans x) (Γ , xs) (λ si-Γ → snd si-Γ , x :: xs))
+        (Γ , [])
+        (trie-mappings (fst Δ))
+
 mk-ctr-fmap-t : Set → Set
 mk-ctr-fmap-t X = ctxt → (var × var × var × term) → X
 {-# TERMINATING #-}
@@ -527,9 +534,16 @@ mk-ctr-fmapₖ-η? f Γ x x' k with is-free-in tt (fst x) k
 
 mk-ctr-fmap-η+ Γ x x' T with decompose-ctr-type Γ T
 ...| Tₕ , ps , _ =
-  params-to-lams' ps $
-  let Γ' = add-params-to-ctxt ps Γ in
-  foldl
+  params-to-lams ps $
+  let Γ' = add-params-to-ctxt ps Γ
+      tₓ' = case Tₕ of λ where
+              (Iota _ _ x'' T₁ T₂) x' →
+                let t₁ = mk-ctr-fmap-η+ Γ' x (IotaProj x' "1" pi-gen) T₁
+                    t₂ = mk-ctr-fmap-η+ Γ' x (IotaProj x' "2" pi-gen) (subst Γ' t₁ x'' T₂) in
+                IotaPair pi-gen t₁ t₂ NoGuide pi-gen
+              _ x' → x'
+  in
+  tₓ' $ foldl
     (λ {(Decl _ _ me x'' (Tkt T) _) t → App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' x (mvar x'') T;
         (Decl _ _ _ x'' (Tkk k) _) t → AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' x (mtpvar x'') k})
     x' ps
@@ -545,7 +559,7 @@ mk-ctr-fmapₖ-η+ Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) x' k =
 
 mk-ctr-fmap-η- Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) x' T with decompose-ctr-type Γ T
 ...| TpVar _ x'' , ps , as =
-  params-to-lams' ps $
+  params-to-lams (substh-params {TERM} Γ (renamectxt-single Aₓ Bₓ) empty-trie ps) $
   let Γ' = add-params-to-ctxt ps Γ in
     (if ~ x'' =string Aₓ then id else mapp
       (recompose-apps (ttys-to-args Erased as) $
@@ -556,16 +570,17 @@ mk-ctr-fmap-η- Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) x' T with decompose-ctr
                  AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (mtpvar x'') k}) x' ps)
 ...| Iota _ _ x'' T₁ T₂ , ps , [] =
   let Γ' = add-params-to-ctxt ps Γ
-      tₒ = foldl (λ {
+      tₒ = foldl (λ where
             (Decl _ _ me x'' (Tkt T) _) t →
-              App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (mvar x'') T;
+              App t me $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (mvar x'') T
             (Decl _ _ me x'' (Tkk k) _) t →
               AppTp t $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (mtpvar x'') k
-          }) x' ps
+          ) x' ps
       t₁ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ "1" pi-gen) T₁
       t₂ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ "2" pi-gen)
-             (subst Γ (mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (mvar x'') T₁) x'' T₂) in
-  params-to-lams' ps $ IotaPair pi-gen t₁ t₂ NoGuide pi-gen
+             (subst Γ' {-(mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (mvar x'') T₁)-} t₁ x'' T₂) in
+  params-to-lams (substh-params {TERM} Γ (renamectxt-single Aₓ Bₓ) empty-trie ps) $
+  IotaPair pi-gen t₁ t₂ NoGuide pi-gen
 ...| Tₕ , ps , as = x'
 
 mk-ctr-fmapₖ-η- Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) x' k with kind-to-indices Γ (subst Γ (mtpvar Bₓ) Aₓ k)
@@ -759,8 +774,10 @@ record datatype-encoding : Set where
       where
       eta-expand-ctr : ctr → term
       eta-expand-ctr (Ctr _ x' T) =
-        let Γ' = ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ in
-        mk-ctr-fmap-η+ Γ' (Aₓ , Bₓ , cₓ , app-ps castₓ) (mvar x') (subst Γ' (mtpvar Aₓ) x T)
+        elim-pair (open-all-datatypes Γ) λ Γ' δsₓ →
+        foldr (λ x f → Open pi-gen OpacTrans pi-gen x ∘ f) id δsₓ $
+        let Γ' = ctxt-var-decl Aₓ $ ctxt-var-decl Bₓ $ ctxt-var-decl cₓ Γ' in
+        mk-ctr-fmap-η+ Γ' (Aₓ , Bₓ , cₓ , app-ps castₓ) (mvar x') (hnf-ctr Γ' Aₓ (subst Γ' (mtpvar Aₓ) x T))
 
     type-cmd = DefType pi-gen x (params-to-kind ps k) $
       params-to-tplams ps $ TpAppt
@@ -936,8 +953,10 @@ mendler-elab-mu Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs)
                   rename "c" from Γᵢₛ for λ cₓ →
                   rename "d" from Γᵢₛ for λ dₓ →
                   rename "q" from Γᵢₛ for λ qₓ →
-                  let Γ' = foldr ctxt-var-decl Γ (Aₓ :: Bₓ :: cₓ :: dₓ :: qₓ :: [])
-                      Tₘₐₕ = hnf Γ' (unfolding-elab unfold-head) (Tₘₐ · ₓ Aₓ ·is ` ₓ dₓ) ff in
+                  let Γ' = foldr ctxt-var-decl Γ (Aₓ :: Bₓ :: cₓ :: dₓ :: qₓ :: []) in
+                  elim-pair (open-all-datatypes Γ') λ Γ' δsₓ →
+                  foldr (λ x f → Open pi-gen OpacTrans pi-gen x ∘ f) id δsₓ $
+                  let Tₘₐₕ = hnf-ctr Γ' Aₓ (Tₘₐ · ₓ Aₓ ·is ` ₓ dₓ) in
                   Λ Aₓ ₊ Λ Bₓ ₊ Λ cₓ ₊ indices-to-lams is
                     (Λ dₓ ₊ [ λ` qₓ ₊ mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' (Aₓ , Bₓ , cₓ , ₓ castₓ -ps) (mvar qₓ) Tₘₐₕ `, β ]) in
     open` X -
