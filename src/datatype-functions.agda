@@ -203,7 +203,7 @@ module positivity (x : var) where
   if-free-args as with are-free-in-args check-erased (stringset-singleton x) as
   ...| f = f , f
 
-  hnf' : ctxt → type → type
+  hnf' : ∀ {ed} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
   hnf' Γ T = hnf Γ unfold-head T tt
 
   mtt = maybe-else tt id
@@ -236,22 +236,22 @@ module positivity (x : var) where
   
   type+ Γ (Abs _ _ _ x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' $ hnf' Γ' T)
+    positivity-add (positivity-neg $ tk+ Γ $ hnf' Γ atk) (type+ Γ' $ hnf' Γ' T)
   type+ Γ (Iota _ _ x' T T') =
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (type+ Γ T) (type+ Γ' T')
+    positivity-add (type+ Γ $ hnf' Γ T) (type+ Γ' $ hnf' Γ' T')
   type+ Γ (Lft _ _ x' t lT) = if-free (Lft pi-gen pi-gen x' t lT)
   type+ Γ (NoSpans T _) = type+ Γ T
   type+ Γ (TpLet _ (DefTerm _ x' T? t) T) = type+ Γ (hnf' Γ (subst Γ t x' T))
   type+ Γ (TpLet _ (DefType _ x' k T) T') = type+ Γ (hnf' Γ (subst Γ T x' T'))
-  type+ Γ (TpApp T T') = tpapp+ Γ (TpApp T T')
-  type+ Γ (TpAppt T t) = tpapp+ Γ (TpAppt T t)
-  type+ Γ (TpArrow T _ T') = positivity-add (positivity-neg $ type+ Γ T) (type+ Γ $ hnf' Γ T')
+  type+ Γ (TpApp T T') = tpapp+ Γ $ hnf' Γ (TpApp T T')
+  type+ Γ (TpAppt T t) = tpapp+ Γ $ hnf' Γ (TpAppt T t)
+  type+ Γ (TpArrow T _ T') = positivity-add (positivity-neg $ type+ Γ $ hnf' Γ T) (type+ Γ $ hnf' Γ T')
   type+ Γ (TpEq _ tₗ tᵣ _) = occurs-nil
   type+ Γ (TpHole _) = occurs-nil
   type+ Γ (TpLambda _ _ x' atk T)=
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (positivity-neg $ tk+ Γ atk) (type+ Γ' (hnf' Γ' T))
+    positivity-add (positivity-neg $ tk+ Γ $ hnf' Γ atk) (type+ Γ' (hnf' Γ' T))
   type+ Γ (TpParens _ T _) = type+ Γ T
   type+ Γ (TpVar _ x') = x =string x' , ff
 
