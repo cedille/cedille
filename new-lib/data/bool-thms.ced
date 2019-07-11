@@ -1,12 +1,30 @@
 module bool-thms.
 
 import bool.
+import sigma.
+import sum.
+import ../stdcore.
 
-boolEta : Π b: Bool. {ite b tt ff ≃ b}
+IsTT : Bool ➔ ★ = λ b: Bool. { b ≃ tt }.
+IsFF : Bool ➔ ★ = λ b: Bool. { b ≃ ff }.
+
+boolEta : Π b: Bool. { ite b tt ff ≃ b }
 = λ b. μ' b {
   | tt ➔ β
   | ff ➔ β
   }.
 
-notNotId : Π b: Bool. {not (not b) ≃ b}
+notNotId : Π b: Bool. { not (not b) ≃ b }
 = λ b. μ' b { tt ➔ β | ff ➔ β }.
+
+orFF: ∀ b1: Bool. ∀ b2: Bool. IsFF (or b1 b2) ➾ Pair ·(IsFF b1) ·(IsFF b2)
+= Λ b1. Λ b2. Λ isFF.
+  {pf : IsFF (or b1 b2) ➔ ι _: IsFF b1. IsFF b2
+    = μ' b1 {tt ➔ λ eq. δ - eq | ff ➔ λ eq. [β , ρ eq - β]}}
+- pair (ρ (pf isFF).1 - β) (ρ (pf isFF).2 - β) .
+
+andFF: Π b1: Bool. ∀ b2: Bool. IsFF (and b1 b2) ➾ Sum ·(IsFF b1) ·(IsFF b2)
+= λ b1. Λ b2. μ' b1 {
+  | ff ➔ Λ isFF. in1 β
+  | tt ➔ Λ isFF. in2 (ρ+ isFF - β)
+  }.

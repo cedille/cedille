@@ -21,6 +21,9 @@ succAcyc : Π m: Nat. {succ m ≃ m} ➔ Bot
   | succ m ➔ λ eq. acyc m (ρ eq @ x. {pred x ≃ pred (succ m)} - β)
   }.
 
+succPred: Π n: Nat. Not ·{n ≃ zero} ➔ {succ (pred n) ≃ n}
+= λ n. μ' n {zero ➔ λ nz. elimBot (nz β) | succ _ ➔ λ _. β}.
+
 -- properties of add
 -- Π n, n + 0 = n
 addZRight : Π n: Nat. {add n zero ≃ n}
@@ -63,7 +66,7 @@ addAssoc : Π l: Nat. Π m: Nat. Π n: Nat. {add l (add m n) ≃ add (add l m) n
 
 addIsZero : Π m: Nat. Π n: Nat. {add m n ≃ zero} ➔ {m ≃ zero}
 = λ m. λ n. μ' m {
-  | zero ➔ Λ _. β
+  | zero ➔ λ _. β
   | succ m ➔ λ eq. δ - eq
   }.
 
