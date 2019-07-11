@@ -290,7 +290,7 @@ rewrite-ath Γ x eq tt T1 T2 = rewrite-at Γ x eq ff (hnf Γ unfold-head-elab T1
 rewrite-ath Γ x eq ff T1 T2 = T1
 
 hnf-ctr : ctxt → var → type → type
-hnf-ctr Γ x T = rewrite-at Γ x nothing tt (hnf Γ (unfold tt ff ff) T) $ hnf Γ (record unfold-all {unfold-erase = ff}) T
+hnf-ctr Γ x T = hnf Γ unfold-no-defs (rewrite-at Γ x nothing tt (hnf Γ (unfold tt ff ff) T) $ hnf Γ (record unfold-all {unfold-erase = ff}) T)
 
 
 

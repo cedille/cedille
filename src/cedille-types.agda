@@ -74,7 +74,9 @@ mutual
   pattern ParamEr x T = Param tt x (Tkt T)
 
 
-  {-# NO_POSITIVITY_CHECK #-} -- Necessary due to mu elaboration argument
+  -- Below pragma is necessary due to mu elaboration argument
+  -- (which we might want to change away from a function for memory efficiency)
+  {-# NO_POSITIVITY_CHECK #-}
   data term : Set where
     App : term → term → term
     AppE : term → tmtp → term
@@ -134,7 +136,6 @@ mutual
     field
       ecs : cmds -- encoding
       gcs : cmds -- generated
-      emn : var
       Cast : type
       cast-in : term
       cast-out : term

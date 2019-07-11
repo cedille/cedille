@@ -63,7 +63,7 @@ optAs-posinfo-var Γ (just (ImportAs pi x)) orig =
 {-# TERMINATING #-}
 process-cmd : toplevel-state → ex-cmd → spanM (toplevel-state × cmd)
 process-cmds : toplevel-state → ex-cmds → spanM (toplevel-state × cmds)
-process-ctrs : var → type → posinfo → params → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
+process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
 process-params : toplevel-state → posinfo → ex-params → spanM (toplevel-state × params)
 process-start : toplevel-state → filepath → (progress-name : string) → ex-file → spanM (toplevel-state × file)
 process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × file × mod-info)
@@ -127,14 +127,13 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
       Γ-decl = λ Γ → ctxt-type-decl pi' x k' $ data-highlight Γ (pi' % x)
       cmd-fail = CmdDefType x (params-to-kind ps' k') (TpHole pi')
       fail = λ e → [- TpVar-span Γ pi' x checking [] (just e) -] return2 s cmd-fail in
-  process-ctrs (pi' % x) (apps-type (TpVar qx) (params-to-args mps))
-    pi' ps' (record s {Γ = Γ-decl Γₚₛ}) cs >>=c λ Γ-cs cs~ →
+  process-ctrs x (pi' % x) qx mps pi' (record s {Γ = Γ-decl Γₚₛ}) cs >>=c λ Γ-cs cs~ →
   maybe-else' (cedille-options.options.datatype-encoding options >>=c λ fp f → f)
     (fail "Internal error (datatype encoding should have been parsed!)") λ de →
   either-else' (init-encoding Γₚₛ de (Data x ps' (kind-to-indices Γₚₛ k') cs~)) fail λ ecs →
   check-redefined pi' x (record s {Γ = Γ-cs Γ}) (CmdDefData ecs x ps' k' cs~)
   let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
-      cs~ = map (λ {(Ctr x T) → Ctr (mn # x) T}) cs~
+      cs~ = map-fst (mn #_) <$> cs~
       Γ' = Γ-cs Γ
       kₘᵤ = abs-expand-kind ps' $ KdAbs ignored-var (Tkk k') KdStar
       Γ' = ctxt-type-def pi' globalScope opacity-open (data-Is/ x) nothing kₘᵤ Γ'
@@ -216,27 +215,28 @@ process-cmds s (c :: cs) =
   return2 s (c :: cs)
 process-cmds s [] = return2 s []
 
-process-ctrs X Xₜ piₓ ps s csₒ c? = h s csₒ c? where
+process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
   h : toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
   h s [] = return2 id []
   h s (ExCtr pi x T :: cs) =
     let Γ = toplevel-state.Γ s in
     Γ ⊢ T ⇐ KdStar ↝ T~ /
-    let T = hnf-ctr Γ X T~
-        neg-ret-err = ctr-positive Γ X T >>= λ neg-ret →
+    let T = hnf-ctr Γ lX T~
+        neg-ret-err = positivity.ctr-positive lX Γ T >>= λ neg-ret →
           let err-msg = if neg-ret
                           then " occurs negatively in the"
                           else " is not the return" in
-          just (unqual-local X ^ err-msg ^ " type of the constructor")
-        T = subst Γ Xₜ X T in
+          just (uX ^ err-msg ^ " type of the constructor")
+        T = [ Γ - TpVar mX / lX ] T
+        Tₚₛ = [ Γ - params-to-tpapps ps (TpVar mX) / lX ] T~ in
     h s cs >>=c λ Γ-f cs →
     let Γ = toplevel-state.Γ s
-        Γ-f' = ctxt-ctr-def pi x T ps (length csₒ) (length csₒ ∸ suc (length cs)) in
+        Γ-f' = ctxt-ctr-def pi x Tₚₛ ps (length csₒ) (length csₒ ∸ suc (length cs)) in
     check-redefined pi x s (Ctr x T :: cs)
       (let Γ = Γ-f' Γ in
        [- Var-span Γ pi x checking
-            [ summary-data x (ctxt-type-def piₓ globalScope opacity-open
-                (unqual-local X) nothing KdStar Γ) (abs-expand-type ps T) ] neg-ret-err -]
+           [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
+               (abs-expand-type ps T) ] neg-ret-err -]
        return (record s {Γ = Γ})) >>=c λ s cs →
     return2 (Γ-f ∘ Γ-f') cs
 

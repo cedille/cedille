@@ -756,7 +756,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
      [- pattern-ctr-span Γ pi x cas' nothing [] (just e) -]
      return2 (Case x [] (Hole pi) []) cs)
     λ where
-     (x' , Tₕ , ps , is) → --uncurry λ x' T → elim-pair (decompose-ctr-type Γ T) λ Tₕ → uncurry λ ps is →
+     (x' , Tₕ , ps , is) →
       decl-args Γ cas ps empty-trie ρ [] (const spanMok) >>= λ where
         (Γ' , e , σ , ρ , tvs , sm) →
           let Tₘ' = TpAppTm (apps-type Tₘ (tmtps-to-args' Γ' σ (drop dps is)))
@@ -836,7 +836,8 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
 
 
 check-cases Γ ms Dₓ cs ρ as dps Tₘ =
-  foldr {B = stringset → trie (type × params × 𝕃 tmtp) → spanM (cases × trie (type × params × 𝕃 tmtp))}
+  foldr {B = stringset → trie (type × params × 𝕃 tmtp) →
+              spanM (cases × trie (type × params × 𝕃 tmtp))}
     (λ m x es cs' →
       check-case Γ m es Dₓ cs' ρ as dps Tₘ >>=c λ m~ cs →
       x (stringset-insert es (ex-case-ctr m)) cs >>=c λ ms~ →

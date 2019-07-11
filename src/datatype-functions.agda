@@ -1,4 +1,5 @@
 module datatype-functions where
+open import constants
 open import ctxt
 open import syntax-util
 open import general-util
@@ -66,9 +67,7 @@ positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
 
 -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
-{-# TERMINATING #-}
-ctr-positive : ctxt → var → type → maybe 𝔹
-ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
+module positivity (x : var) where
   
   open import conversion
 
@@ -83,8 +82,8 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   if-free-args as with stringset-contains (free-vars-args as) x
   ...| f = f , f
 
-  hnf' : ctxt → type → type
-  hnf' Γ T = hnf Γ unfold-head T
+  hnf' : ∀ {ed} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
+  hnf' Γ T = hnf Γ unfold-no-defs T
 
   mtt = maybe-else tt id
   mff = maybe-else ff id
@@ -95,20 +94,21 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   occurs : positivity → maybe 𝔹
   occurs p = maybe-if (negₒ p) >> just tt
 
+  {-# TERMINATING #-}
   arrs+ : ctxt → type → maybe 𝔹
   type+ : ctxt → type → positivity
   kind+ : ctxt → kind → positivity
   tpkd+ : ctxt → tpkd → positivity
---  tpapp+ : ctxt → type → positivity
+  tpapp+ : ctxt → type → positivity
 
   arrs+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpApp T tT) = arrs+ Γ T maybe-or (not-free -tT' tT)
---  arrs+ Γ (TpApp T t) = arrs+ Γ T maybe-or not-free t
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+  arrs+ Γ (TpApp T tT) = occurs (tpapp+ Γ $ hnf' Γ (TpApp T tT))
+                       --arrs+ Γ T maybe-or (not-free -tT' tT)
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) maybe-or arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpVar x') = maybe-if (~ x =string x') >> just ff
   arrs+ Γ T = just ff
   
@@ -116,31 +116,29 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
     let Γ' = ctxt-var-decl x' Γ in
     positivity-add (positivity-neg $ tpkd+ Γ atk) (type+ Γ' $ hnf' Γ' T)
   type+ Γ (TpIota x' T T') =
-    let Γ' = ctxt-var-decl x' Γ; T? = type+ Γ T in
-    positivity-add (type+ Γ T) (type+ Γ' T')
-  type+ Γ (TpApp T tT) = positivity-add (type+ Γ T) (if-free -tT' tT) -- tpapp+ Γ (TpApp T T')
-  --type+ Γ (TpAppt T t) = positivity-add (type+ Γ T) (if-free t) -- tpapp+ Γ (TpAppt T t)
+    let Γ' = ctxt-var-decl x' Γ in
+    positivity-add (type+ Γ $ hnf' Γ T) (type+ Γ' $ hnf' Γ' T')
+  type+ Γ (TpApp T tT) = tpapp+ Γ $ hnf' Γ $ TpApp T tT
   type+ Γ (TpEq tₗ tᵣ) = occurs-nil
   type+ Γ (TpHole _) = occurs-nil
   type+ Γ (TpLam x' atk T)=
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (positivity-neg $ tpkd+ Γ atk) (type+ Γ' (hnf' Γ' T))
+    positivity-add (positivity-neg $ tpkd+ Γ $ hnf' Γ -tk atk) (type+ Γ' (hnf' Γ' T))
   type+ Γ (TpVar x') = x =string x' , ff
 
-{-
   tpapp+ Γ T with decompose-tpapps T
-  ...| TpVar _ x' , as =
+  ...| TpVar x' , as =
     let f = if-free-args (tmtps-to-args NotErased as) in
     if x =string x'
-      then f
+      then positivity-add occurs-pos f
       else maybe-else' (data-lookup Γ x' as) f
-        λ {(mk-data-info x'' mu asₚ asᵢ ps kᵢ k cs subst-cs) →
-          let x''' = fresh-var x'' (ctxt-binds-var Γ) empty-renamectxt
+        λ {(mk-data-info x'' mu asₚ asᵢ ps kᵢ k cs eds gds subst-cs) →
+          let x''' = fresh-var Γ x''
               Γ' = ctxt-var-decl x''' Γ in
-          type+ Γ' (hnf' Γ' $ foldr (λ {(Ctr _ cₓ cₜ) → TpArrow cₜ NotErased})
-            (mtpvar x''') (subst-cs x'''))}
+          type+ Γ' (hnf' Γ' $ foldr (λ {(Ctr cₓ cₜ) → TpAbs NotErased ignored-var (Tkt cₜ)})
+                     (TpVar x''') (subst-cs x'''))}
   ...| _ , _ = if-free T
--}
+
   
   kind+ Γ (KdAbs x' atk k) =
     let Γ' = ctxt-var-decl x' Γ in
@@ -150,3 +148,5 @@ ctr-positive Γ x = arrs+ Γ ∘ hnf' Γ where
   tpkd+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tpkd+ Γ (Tkk k) = kind+ Γ k
 
+  ctr-positive : ctxt → type → maybe 𝔹
+  ctr-positive Γ = arrs+ Γ ∘ hnf' Γ

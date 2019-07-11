@@ -96,8 +96,9 @@ record ctxt : Set where
     -- concrete/global datatypes ×
     -- abstract/local datatypes ×
     -- datatype/Mu map ×
+    -- encoding defs (needed to generate fmaps for some datatypes, like rose tree)
     -- highlighting datatypes
-    Δ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs) × trie (var × var × args) × trie var × stringset
+    Δ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs) × trie (var × var × args) × trie var × 𝕃 (var × tmtp) × stringset
 
 
 ctxt-binds-var : ctxt → var → 𝔹

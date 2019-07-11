@@ -26,7 +26,7 @@ qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert �
 
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie (empty-trie , empty-trie , empty-trie , empty-trie)
+new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie (empty-trie , empty-trie , empty-trie , [] , empty-trie)
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
@@ -46,7 +46,7 @@ ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
 
 ctxt-qualif-args-length : ctxt → erased? → var → maybe ℕ
 ctxt-qualif-args-length Γ me v =
-  ctxt-get-qi Γ v ≫=maybe λ qv →
+  ctxt-get-qi Γ v >>= λ qv →
   just (if me then length (snd qv) else length (erase-args (snd qv)))
 
 qi-var-if : maybe qualif-info → var → var
@@ -157,15 +157,15 @@ ctxt-rename v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i Δ) =
 -- lookup mod params from filename
 lookup-mod-params : ctxt → var → maybe params
 lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps , id) _ _) fn =
-  trie-lookup syms fn ≫=maybe λ { (mn , _) →
+  trie-lookup syms fn >>= λ { (mn , _) →
   trie-lookup mn-ps mn }
 
 -- look for a defined kind for the given var, which is assumed to be a type,
 -- then instantiate its parameters
 qual-lookup : ctxt → var → maybe (var × args × sym-info)
 qual-lookup Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
-  trie-lookup q v ≫=maybe λ qv →
-  trie-lookup i (fst qv) ≫=maybe λ si →
+  trie-lookup q v >>= λ qv →
+  trie-lookup i (fst qv) >>= λ si →
   just (fst qv , snd qv , si)
 
 env-lookup : ctxt → var → maybe sym-info
@@ -182,12 +182,12 @@ ctxt-lookup-tpkd-var Γ v with qual-lookup Γ v
 ... | _ = nothing
 
 ctxt-lookup-type-var : ctxt → var → maybe (var × args × kind)
-ctxt-lookup-type-var Γ v = ctxt-lookup-tpkd-var Γ v ≫=maybe λ where
+ctxt-lookup-type-var Γ v = ctxt-lookup-tpkd-var Γ v >>= λ where
   (qv , as , Tkt T) → nothing
   (qv , as , Tkk k) → just (qv , as , k)
 
 ctxt-lookup-term-var : ctxt → var → maybe (var × args × type)
-ctxt-lookup-term-var Γ v = ctxt-lookup-tpkd-var Γ v ≫=maybe λ where
+ctxt-lookup-term-var Γ v = ctxt-lookup-tpkd-var Γ v >>= λ where
   (qv , as , Tkt T) → just (qv , as , T)
   (qv , as , Tkk k) → nothing
 
@@ -239,10 +239,10 @@ record ctxt-datatype-info : Set where
     subst-cs : var → ctrs
 
 inst-enc-defs : ctxt → args → encoding-defs → encoding-defs
-inst-enc-defs Γ as (mk-enc-defs ecs gcs emn Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
+inst-enc-defs Γ as (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
   let as = arg-set-erased tt <$> as
       bs = args-to-tmtps as in
-  mk-enc-defs ecs gcs emn
+  mk-enc-defs ecs gcs
     (recompose-tpapps bs Cast)
     (recompose-apps   as cast-in)
     (recompose-apps   as cast-out)
@@ -259,32 +259,38 @@ inst-enc-defs Γ as (mk-enc-defs ecs gcs emn Cast cast-in cast-out cast-is Funct
 
 data-lookup : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
 data-lookup Γ @ (mk-ctxt mod ss is (Δ , μ' , μ)) x as =
-  maybe-else' (trie-lookup μ' x) -- Is x known locally to be a datatype?
-    (trie-lookup Δ x ≫=maybe λ where -- No, so is it a global datatype?
-      (ps , kᵢ , k , cs , eds , gds) →
-        let asₚ = tmtps-to-args-for-params nothing ps as
-            asᵢ = drop (length ps) as in
-        just $ mk-data-info x nothing asₚ asᵢ ps
-          (inst-kind Γ ps asₚ kᵢ) (inst-kind Γ ps asₚ k) (inst-ctrs Γ ps asₚ cs) (inst-enc-defs Γ asₚ eds) gds
-          λ y → inst-ctrs Γ ps asₚ $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x T}) cs) λ where
+  (maybe-else'
+    {B = maybe (var × maybe term × args × 𝕃 tmtp ×
+                 params × kind × kind × ctrs × encoding-defs × encoded-defs)}
+    (trie-lookup μ' x) -- Is x known locally to be a datatype?
+    (trie-lookup Δ x >>=c λ ps rest → -- No, so is it a global datatype?
+      let asₚ = tmtps-to-args-for-params nothing ps as
+          asᵢ = drop (length ps) as in
+      just (x , nothing , asₚ , asᵢ , ps , rest))
+   λ where
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
-      trie-lookup Δ x' ≫=maybe λ where
-      (ps , kᵢ , k , cs , eds , gds) →
-        just $ mk-data-info x' (just (Var x/mu)) as' as ps
-          (inst-kind Γ ps as' kᵢ) (inst-kind Γ ps as' k) (inst-ctrs Γ ps as' cs) eds gds
-          λ y → inst-ctrs Γ ps as' $ map (λ {(Ctr z T) → Ctr z $ subst Γ (lam-expand-type ps $ TpVar y) x' T}) cs
+      trie-lookup Δ x' >>= λ rest → just (x' , just (Var x/mu) , as' , as , rest))
+  >>= λ where
+    (x' , x/mu , asₚ , asᵢ , ps , kᵢ , k , cs , eds , gds) →
+      just $ mk-data-info x' x/mu asₚ asᵢ ps
+        (inst-kind Γ ps asₚ kᵢ)
+        (inst-kind Γ ps asₚ k)
+        (inst-ctrs Γ ps asₚ (map-snd (subst Γ (params-to-tpapps ps (TpVar x')) x') <$> cs))
+        (inst-enc-defs Γ asₚ eds)
+        gds
+        λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ x' y) <$> cs)
 
 data-lookup-mu : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
 data-lookup-mu Γ@(mk-ctxt mod ss is (Δ , μ' , μ , η)) x as =
-  trie-lookup μ x ≫=maybe λ x' → data-lookup Γ x' as
+  trie-lookup μ x >>= λ x' → data-lookup Γ x' as
 
 data-highlight : ctxt → var → ctxt
-data-highlight (mk-ctxt mod ss is (Δ , μ' , μ , η)) x =
-  mk-ctxt mod ss is (Δ , μ' , μ , stringset-insert η x)
+data-highlight (mk-ctxt mod ss is (Δ , μ' , μ , μ~ , η)) x =
+  mk-ctxt mod ss is (Δ , μ' , μ , μ~ , stringset-insert η x)
 
 
 ctxt-lookup-term-loc : ctxt → var → maybe location
-ctxt-lookup-term-loc Γ x = qual-lookup Γ x ≫=maybe λ where
+ctxt-lookup-term-loc Γ x = qual-lookup Γ x >>= λ where
   (_ , _ , term-decl _ , loc) → just loc
   (_ , _ , term-def _ _ _ _ , loc) → just loc
   (_ , _ , term-udef _ _ _ , loc) → just loc
@@ -293,7 +299,7 @@ ctxt-lookup-term-loc Γ x = qual-lookup Γ x ≫=maybe λ where
   _ → nothing
 
 ctxt-lookup-type-loc : ctxt → var → maybe location
-ctxt-lookup-type-loc Γ x = qual-lookup Γ x ≫=maybe λ where
+ctxt-lookup-type-loc Γ x = qual-lookup Γ x >>= λ where
   (_ , _ , type-decl _ , loc) → just loc
   (_ , _ , type-def _ _ _ _ , loc) → just loc
   (_ , _ , var-decl , loc) → just loc

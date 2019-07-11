@@ -369,24 +369,33 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i Δ) = 
   k' = hnf Γ unfold-head-elab k
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
-ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is (Δ , μ' , μ , η)) =
-  mk-ctxt mod ss is $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , stringset-insert η (mu-Type/ vᵣ)
+ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is (Δ , μ' , μ , μ~ , η)) =
+  mk-ctxt mod ss is $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , μ~ , stringset-insert η (mu-Type/ vᵣ)
 
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → encoding-defs → ctxt → ctxt
-ctxt-datatype-def pi v psᵢ kᵢ k cs eds Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i (Δ , μ' , μ , η)) =
-  let v' = mn # v
-      q' = qualif-insert-params q v' v ps
+ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i (Δ , μ' , μ , μ~ , η)) =
+  let D' = mn # D
+      q' = qualif-insert-params q D' D ps
       ecds = record {
-        Is/D = data-Is/ v';
-        is/D = data-is/ v';
-        to/D = data-to/ v';
-        TypeF/D = data-TypeF/ v';
-        fmap/D = data-fmap/ v';
-        IndF/D = data-IndF/ v'} in
+        Is/D = data-Is/ D';
+        is/D = data-is/ D';
+        to/D = data-to/ D';
+        TypeF/D = data-TypeF/ D';
+        fmap/D = data-fmap/ D';
+        IndF/D = data-IndF/ D'} in
   mk-ctxt (fn , mn , ps , q')
-    (trie-insert-append2 syms fn mn v , mn-fn)
-    (trie-insert i v' (type-def (just ps) tt nothing (abs-expand-kind psᵢ k) , fn , pi))
-    (trie-insert Δ v' (ps ++ psᵢ , kᵢ , k , cs , eds , ecds) , μ' , trie-insert μ (data-Is/ v') v' , stringset-insert η v')
+    (trie-insert-append2 syms fn mn D , mn-fn)
+    (trie-insert i D' (type-def (just ps) tt nothing (abs-expand-kind psᵢ k) , fn , pi))
+    (trie-insert Δ D' (ps ++ psᵢ , kᵢ , k , cs , eds , ecds) ,
+     μ' ,
+     trie-insert μ (data-Is/ D') D' ,
+     foldl pull-defs μ~ (encoding-defs.ecs eds ++ encoding-defs.gcs eds) ,
+     stringset-insert η D')
+  where
+  pull-defs : cmd → 𝕃 (var × tmtp) → 𝕃 (var × tmtp)
+  pull-defs (CmdDefTerm x t) μ~ = ((mn # x) , Ttm t) :: μ~
+  pull-defs (CmdDefType x k T) μ~ = ((mn # x) , Ttp T) :: μ~
+  pull-defs _ μ~ = μ~
 
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt
 ctxt-type-def _  _ _ ignored-var _ _  Γ = Γ
@@ -403,7 +412,7 @@ ctxt-ctr-def : posinfo → var → type → params → (ctrs-length ctr-index : 
 ctxt-ctr-def pi c t ps' n i Γ@(mk-ctxt mod@(fn , mn , ps , q) (syms , mn-fn) is Δ) = mk-ctxt
   (fn , mn , ps , q')
   ((trie-insert-append2 syms fn mn c) , mn-fn)  
-  (trie-insert is c' (ctr-def (ps ++ ps') t n i (unerased-arrows t) , fn , pi)) Δ
+  (trie-insert is c' (ctr-def ps' t n i (unerased-arrows t) , fn , pi)) Δ
   where
   c' = mn # c
   q' = qualif-insert-params q c' c ps
