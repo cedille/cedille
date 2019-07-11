@@ -131,7 +131,7 @@ rewrite-termh = rewriteR
 rewrite-case xᵣ? (Case pi x cas t) =
   let f = maybe-else' xᵣ? id (uncurry rewrite-abs) rewrite-terma in
   rewriteR (uncurry $ Case pi x) ≫rewrite
-  foldr {B = rewrite-t caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
+  foldl {B = rewrite-t caseArgs → (term → rewrite-t term) → rewrite-t (caseArgs × term)}
     (λ {(CaseTermArg pi NotErased x) r cas fₜ →
       r (rewrite-rename-var x λ x' → rewriteR _::_ ≫rewrite rewriteR (CaseTermArg pi NotErased x') ≫rewrite cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
     (λ cas fₜ → rewriteR _,_ ≫rewrite cas ≫rewrite fₜ t) cas (rewriteR []) f
