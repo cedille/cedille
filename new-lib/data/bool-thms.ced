@@ -10,3 +10,18 @@ boolEta : Π b: Bool. {ite b tt ff ≃ b}
 
 notNotId : Π b: Bool. {not (not b) ≃ b}
 = λ b. μ' b { tt ➔ β | ff ➔ β }.
+
+or-tt : Π b : Bool . { or b tt ≃ tt } =
+  λ b . μ' b { tt ➔ β | ff ➔ β }.
+
+or-ff1 : Π b : Bool . Π b' : Bool . { or b b' ≃ ff } ➾ {b ≃ ff} =
+  λ b . λ b' .
+    μ' b
+      { tt ➔ (Λ u . ρ u - β)
+      | ff ➔ (Λ u . β) }.
+
+or-ff2 : Π b : Bool . Π b' : Bool . { or b b' ≃ ff } ➾ {b' ≃ ff} =
+  λ b . λ b' .
+    μ' b'
+      { tt ➔ ρ (or-tt b) - (Λ u . ρ u - β)
+      | ff ➔ (Λ u . β) }.

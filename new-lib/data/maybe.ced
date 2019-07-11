@@ -15,3 +15,7 @@ maybeBind : ∀ A: ★. ∀ B: ★. Maybe ·A ➔ (A ➔ Maybe ·B) ➔ Maybe ·
   | nothing ➔ nothing ·B
   | just x ➔ f x
   }.
+
+justInj : ∀ A : ★ . ∀ a : A . ∀ a' : A . { just a ≃ just a' } ➾ { a ≃ a'} =
+  Λ A . Λ a . Λ a' . Λ u .
+    χ {μ' (just a) { just x ➔ x | nothing ➔ nothing }  ≃ a'} - ρ u - β.
