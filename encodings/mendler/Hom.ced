@@ -1,0 +1,34 @@
+module Hom(F : ★ ➔ ★).
+
+import Ind · F.
+
+IsHomomorphism : RecFunctor · F ➔ 
+                 Π X1 : ★ . (Alg · C · X1) ➔
+                 Π X2 : ★ . (Alg · C · X2) ➔ 
+                 Π h : X1 ➔ X2 . ★ =
+  λ fm : RecFunctor · F . 
+  λ X1 : ★ . λ alg1 : Alg · C · X1 .
+  λ X2 : ★ . λ alg2 : Alg · C · X2 .
+  λ h : X1 ➔ X2 .
+    ∀ R : ★ .
+    ( Π r : R . { h (foldU alg1 r) ≃ foldU alg2 r }) ➾
+    Π fr : F · R .
+    { h (alg1 (foldU alg1) fr) ≃ alg2 (foldU alg2) fr }.
+
+
+
+WeakInitiality : ∀ X : ★ . ∀ alg : Alg · C · X .
+                 ∀ fm : RecFunctor · F .
+                 IsHomomorphism fm · C (inAlg -fm) · X alg (fold -fm · X alg) =
+  Λ X . Λ alg . Λ fm .
+  Λ R . Λ U . λ fr . β.
+
+Initiality : ∀ X : ★ . ∀ alg : Alg · C · X .
+             ∀ fm : RecFunctor · F .
+             ∀ h : C ➔ X . 
+             IsHomomorphism fm · C (inAlg -fm) · X alg h ➔
+             Π c : C . { h c ≃ fold alg c } =
+  Λ X . Λ alg . Λ fm . Λ h . λ hh . λ c .
+    θ<c> (Ind -fm c)
+      [ β{λ rec . λ d . β} ,
+        Λ R . Λ reveal . λ rec . λ d . ρ (hh · R -(λ r . ρ+ (rUnfold -fm (cast -reveal r)).2 - rec.1 r) d) - β ].
