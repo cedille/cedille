@@ -1,57 +1,28 @@
-module Ind(F : ★ ➔ ★) .
+import recType.
+
+module Ind(F : ★ ➔ ★){fm : RecFunctor · F}.
 
 import is.
 import top.
 import true.
 
-import public D · F.
+import public D · F -fm.
 
-toD ◂ ∀ fm : RecFunctor · F . C ➔ (D fm) =
-  Λ fm . λ x . (rUnfold -fm x).1 · (D fm) (inAlg' -fm) .
+toD ◂ C ➔ D =
+  λ x . (rUnfold -fm x).1 · D inAlg' .
 
-reflection ◂ ∀ fm : RecFunctor · F . Π x : C . { toD x ≃ x } =
-  Λ fm . λ x . (rUnfold -fm x).2.
+reflection ◂ Π x : C . { toD x ≃ x } =
+  λ x . (rUnfold -fm x).2.
 
-castD ◂ ∀ fm : RecFunctor · F . Cast · C · (D fm) =
-  Λ fm . caste · C · (D fm)
-                 (toD -fm)
-                 -(reflection -fm).
+castD ◂ Cast · C · D =
+  caste toD -reflection.
 
-Ind ◂ ∀ fm : RecFunctor · F . Π c : C . Inductive fm c =
-  Λ fm . λ c . (cast · C · (D fm) -(castD -fm) c).2.
+Ind ◂ Π c : C . Inductive c =
+  λ c . (cast -castD c).2.
 
 lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : C . { out (in x) ≃ x} = Λ F . Λ fm . λ x . β .
 
-lambek2 ◂ ∀ fm : RecFunctor · F . Π x : C . { in (out x) ≃ x } =
-  Λ fm . λ x .
-    θ<x> (Ind -fm x)
-      [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . λ ih . λ p . β] .
+lambek2 ◂ Π x : C . { in (out x) ≃ x } =
+  λ x . θ<x> (Ind x)
+         [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . λ ih . λ p . β] .
 
-IsHomomorphism : RecFunctor · F ➔ 
-                 Π X1 : ★ . (Alg · C · X1) ➔
-                 Π X2 : ★ . (Alg · C · X2) ➔ 
-                 Π h : X1 ➔ X2 . ★ =
-  λ fm : RecFunctor · F . 
-  λ X1 : ★ . λ alg1 : Alg · C · X1 .
-  λ X2 : ★ . λ alg2 : Alg · C · X2 .
-  λ h : X1 ➔ X2 .
-    ∀ R : ★ .
-    ( Π r : R . { h (foldU alg1 r) ≃ foldU alg2 r }) ➾
-    Π fr : F · R .
-    { h (alg1 (foldU alg1) fr) ≃ alg2 (foldU alg2) fr }.
-
-WeakInitiality : ∀ X : ★ . ∀ alg : Alg · C · X .
-                 ∀ fm : RecFunctor · F .
-                 IsHomomorphism fm · C (inAlg -fm) · X alg (fold -fm · X alg) =
-  Λ X . Λ alg . Λ fm .
-  Λ R . Λ U . λ fr . β.
-
-Initiality : ∀ X : ★ . ∀ alg : Alg · C · X .
-             ∀ fm : RecFunctor · F .
-             ∀ h : C ➔ X . 
-             IsHomomorphism fm · C (inAlg -fm) · X alg h ➔
-             Π c : C . { h c ≃ fold alg c } =
-  Λ X . Λ alg . Λ fm . Λ h . λ hh . λ c .
-    θ<c> (Ind -fm c)
-      [ β{λ rec . λ d . β} ,
-        Λ R . Λ reveal . λ rec . λ d . ρ (hh · R -(λ r . ρ+ (rUnfold -fm (cast -reveal r)).2 - rec.1 r) d) - β ].

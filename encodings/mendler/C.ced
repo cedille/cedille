@@ -2,7 +2,7 @@
 module C (F : ★ ➔ ★).
 
 import public cast.
-import public recType.
+import recType.
 import is.
 import top.
 
