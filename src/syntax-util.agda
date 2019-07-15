@@ -422,9 +422,9 @@ f -arg' ArgE tT = f -tT' tT
 pos-tm-to-tm : pos-tm → ex-tm
 pos-tm-to-tm (PosTm t pi) = t
 
-case-arg-erased : case-arg-sym → erased?
-case-arg-erased CaseArgTm = ff
-case-arg-erased _ = tt
+ex-case-arg-erased : ex-case-arg-sym → erased?
+ex-case-arg-erased ExCaseArgTm = ff
+ex-case-arg-erased _ = tt
 
 ex-case-ctr : ex-case → var
 ex-case-ctr (ExCase pi x cas t) = x

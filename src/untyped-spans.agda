@@ -341,18 +341,20 @@ untyped-case-args : ctxt → posinfo → ex-case-args → ex-tm → renamectxt �
 untyped-case-args Γ pi cas t ρ =
   foldr {B = ctxt → renamectxt → 𝕃 tagged-val → (term → spanM ⊤) → spanM (case-args × term)}
     (λ {(ExCaseArg me pi x) rec Γ' ρ tvs sm →
-      let tk = case me of λ {CaseArgTp → Tkk (KdHole pi); _ → Tkt (TpHole pi)} in
+      let tk = case me of λ {ExCaseArgTp → Tkk (KdHole pi-gen);
+                             ExCaseArgTm → Tkt (TpHole pi-gen);
+                             ExCaseArgEr → Tkt (TpHole pi-gen)} in
       rec
         (ctxt-tk-decl pi x tk Γ')
         (renamectxt-insert ρ (pi % x) x)
-        (binder-data Γ' pi x tk (case-arg-erased me) nothing
+        (binder-data Γ' pi x tk (ex-case-arg-erased me) nothing
           (term-start-pos t) (term-end-pos t) :: tvs)
         (λ t →
-          [- var-span (case-arg-erased me) Γ' pi x untyped tk
-            (when (case-arg-erased me)
+          [- var-span (ex-case-arg-erased me) Γ' pi x untyped tk
+            (when (ex-case-arg-erased me && is-free-in (pi % x) (erase t))
               "The bound variable occurs free in the erasure of the body (not allowed)") -]
-          sm t) >>=c λ cas → return2
-                               (if case-arg-erased me then cas else (CaseArg me x :: cas))})
+          sm t) >>=c λ cas →
+      return2 (case me of λ {ExCaseArgTm → CaseArg ff x nothing :: cas; _ → cas})})
     (λ Γ' ρ tvs sm →
       [- pattern-clause-span pi t (reverse tvs) -]
       untyped-term Γ' t >>= λ t~ →

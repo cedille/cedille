@@ -55,7 +55,7 @@ free-vars {KIND} (KdAbs x tk k) = free-vars-tk tk ++ₛ stringset-remove (free-v
 free-vars-arg (Arg t) = free-vars t
 free-vars-arg (ArgE tT) = free-vars -tT' tT
 free-vars-args = foldr (_++ₛ_ ∘ free-vars-arg) empty-stringset
-free-vars-case (Case x cas t T) = foldr (λ {(CaseArg e x) → flip trie-remove x}) (free-vars t) cas
+free-vars-case (Case x cas t T) = foldr (λ {(CaseArg e x tk) → flip trie-remove x}) (free-vars t) cas
 free-vars-cases = foldr (_++ₛ_ ∘ free-vars-case) empty-stringset
 
 {-# TERMINATING #-}
@@ -101,7 +101,7 @@ erase {KIND} (KdHole pi) = KdHole pi
 erase {KIND} (KdAbs x tk k) = KdAbs x (erase-tk tk) (erase k)
 
 erase-case-args : case-args → case-args
-erase-case-args (CaseArg CaseArgTm x :: cas) = CaseArg CaseArgTm x :: erase-case-args cas
+erase-case-args (CaseArg ff x _ :: cas) = CaseArg ff x nothing :: erase-case-args cas
 erase-case-args (_ :: cas) = erase-case-args cas
 erase-case-args [] = []
 

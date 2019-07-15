@@ -679,23 +679,12 @@ pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r th
 pattern-clause-span : posinfo → ex-tm → 𝕃 tagged-val → span
 pattern-clause-span pi t tvs = mk-span "Pattern clause" pi (term-end-pos t) tvs nothing
 
-pattern-ctr-span : ctxt → posinfo → var → case-args → maybe type → 𝕃 tagged-val → err-m → span
-pattern-ctr-span Γ pi x as tp tvs =
-  mk-span "Pattern constructor" pi (posinfo-plus-str pi x) (checking-data synthesizing :: var-location-data Γ x :: ll-data-term :: symbol-data x :: maybe-else' tp [] (λ tp → args-data (fst $ decompose-arrows Γ tp)) ++ tvs)
+pattern-ctr-span : ctxt → posinfo → var → case-args → 𝕃 tagged-val → err-m → span
+pattern-ctr-span Γ pi x as tvs =
+  mk-span "Pattern constructor" pi (posinfo-plus-str pi x) (checking-data synthesizing :: var-location-data Γ x :: ll-data-term :: symbol-data x :: args-data ++ tvs)
   where
-  open import rename
-  rename-to-args : renamectxt → case-args → params → params
-  rename-to-args ρ (CaseArg e x :: as) (Param me x' atk :: ps) =
-    Param me x (subst-renamectxt Γ ρ -tk atk) ::
-      rename-to-args (renamectxt-insert ρ x' x) as ps
-  rename-to-args ρ [] (Param me x atk :: ps) =
-    Param me x (subst-renamectxt Γ ρ -tk atk) ::
-      rename-to-args (renamectxt-insert ρ x x) [] ps
-  rename-to-args ρ as ps = ps
-  
-  args-data : params → 𝕃 tagged-val
-  args-data [] = []
-  args-data ps = [ params-to-string-tag "args" Γ (rename-to-args empty-renamectxt as ps) ]
+  args-data : 𝕃 tagged-val
+  args-data = if iszero (length as) then [] else [ params-to-string-tag "args" Γ (map (λ {(CaseArg me x tk?) → Param me x (maybe-else' tk? (Tkt (TpHole pi-gen)) id)}) as) ]
 
 
 File-span : ctxt → posinfo → posinfo → string → span

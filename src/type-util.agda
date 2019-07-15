@@ -88,8 +88,7 @@ abs-expand-kind = flip $ foldr λ where
 
 case-args-to-lams : case-args → term → term
 case-args-to-lams = flip $ foldr λ where
-  (CaseArg CaseArgTm x) → Lam ff x nothing
-  (CaseArg _ x) → Lam tt x nothing
+  (CaseArg me x atk) → Lam me x atk
 
 expand-case : case → term
 expand-case (Case x xs t T) = case-args-to-lams xs t
@@ -197,10 +196,9 @@ indices-to-tpapps = flip $ foldl λ where
 params-to-tpapps : params → (body : type) → type
 params-to-tpapps = flip apps-type ∘ params-to-args
 
-params-to-caseArgs : params → case-args
-params-to-caseArgs = map λ where
-  (Param me x (Tkt T)) → CaseArg (if me then CaseArgEr else CaseArgTm) x
-  (Param me x (Tkk k)) → CaseArg CaseArgTp x
+params-to-case-args : params → case-args
+params-to-case-args = map λ where
+  (Param me x tk) → CaseArg me x (just tk)
 
 ctrs-to-lams : ctrs → term → term
-ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just $ Tkt T)}
+ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just (Tkt T))}

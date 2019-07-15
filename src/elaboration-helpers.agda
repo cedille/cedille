@@ -602,7 +602,7 @@ encode-datatype Γ eds @ (mk-enc-defs ecs _
       (TpEq (Var iₓ) t)
 
   is-proj1 = λ T → is-projn T D id-term
-  is-proj2 = λ T → is-projn T (TpAppTp TypeF/D D) fix-out
+  is-proj2 = λ T → is-projn T (TpAppTp TypeF/D T) fix-out
 
   is-proj' : var → term → term
   is-proj' Xₓ mu =
@@ -740,13 +740,13 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
                 rename "x" from Γ' for λ xₓ →
                 case-args-to-lams cas $
                 Lam tt yₓ (just (Tkt Xₜₚ)) $
-                Lam tt eₓ (just (Tkt (TpEq (App fix-in (foldr (uncurry λ x T → Lam ff (snd (split-var x)) nothing) (foldl (λ ca t → case ca of λ {(CaseArg CaseArgTm x) → App t (Var (snd (split-var x))); _ → t}) (Var (snd (split-var x))) cas) cs)) (Var yₓ)))) $
+                Lam tt eₓ (just (Tkt (TpEq (App fix-in (foldr (uncurry λ x T → Lam ff (snd (split-var x)) nothing) (foldl (λ ca t → case ca of λ {(CaseArg ff x _) → App t (Var (snd (split-var x))); _ → t}) (Var (snd (split-var x))) cas) cs)) (Var yₓ)))) $
                 Rho (Sigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps asₜₚ Tₘ) (Var xₓ)) t})
               empty-trie ms
       in-fix = λ is/X? T asᵢ t → either-else' x?
         (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (AppEr (recompose-apps asᵢ (AppTp (AppTp cast-out (TpVar Xₒ)) Xₜₚ)) (App is/X (Lam ff "to" (just (Tkt (to-tp (TpVar Xₒ)))) $ Lam ff "out" (just (Tkt (out-tp (TpVar Xₒ)))) $ Var "to"))) t)
         (λ x → App (recompose-apps asᵢ (AppEr (AppTp fix-in TypeF/D) fmap/D)) (maybe-else' is/X? t λ is/X →
-        App (recompose-apps asᵢ (AppEr cast-out (AppEr (AppTp (AppTp fmap/D T) Xₜₚ) ({-open` data-Muₓ - -} (App is/X (Lam ff "to" (just (Tkt (to-tp (TpVar Xₒ)))) $ Lam ff "out" (just (Tkt (out-tp (TpVar Xₒ)))) $ Var "to")))))) t))
+        App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D T)) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D T) Xₜₚ) ({-open` data-Muₓ - -} (App is/X (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to")))))) t))
       app-lambek = λ is/X? t T asᵢ body → AppEr (AppEr body (in-fix is/X? T asᵢ t))
         (App (recompose-apps asᵢ (AppEr (AppTp lambek1 TypeF/D) fmap/D)) (in-fix is/X? T asᵢ t)) in
   rename "x" from Γᵢₛ for λ xₓ →
@@ -766,7 +766,7 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
         isRₓₒ = mu-isType/ x in
     rename Rₓₒ from Γᵢₛ for λ Rₓ →
     rename isRₓₒ from Γᵢₛ for λ isRₓ →
-    let fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ))
+    let fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓₒ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓₒ)) Xₜₚ) (Var toₓ))
         subst-msf = subst-renamectxt Γᵢₛ
           (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (isRₓₒ , isRₓ) :: (Rₓₒ , Rₓ) :: (toₓ , toₓ) :: (outₓ , outₓ) :: (xₓ , xₓ) :: (yₓ , yₓ) :: (y'ₓ , y'ₓ) :: [])) ∘ msf in
     {-open` X - -} (App (AppTp (App (recompose-apps (tmtps-to-args tt asᵢ) (AppEr (AppTp fix-ind TypeF/D) fmap/D)) t) Tₘ)
@@ -776,16 +776,16 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
        Lam ff x (just (Tkt (indices-to-alls is (TpAbs ff xₓ (Tkt (TpVar Rₓ)) (TpAppTm (indices-to-tpapps is Tₘ) (App (AppEr (AppTp (AppTp cast-out (TpVar Rₓ)) Xₜₚ) (Var toₓ)) (Var xₓ))))))) $
        indices-to-lams is $
        Lam ff yₓ (just (Tkt (indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓ))))) $
-       LetTm tt isRₓ (just $ TpAppTp Is/D (TpVar Rₓ)) 
+       LetTm tt isRₓ nothing -- (just $ TpAppTp Is/D (TpVar Rₓ))
            (Lam tt Xₓ (just (Tkk KdStar)) $
             Lam ff xₓ (just (Tkt (TpAbs ff ignored-var (Tkt (to-tp (TpVar Rₓ)))
                                    (TpAbs ff ignored-var (Tkt (out-tp (TpVar Rₓ)))
                                      (TpVar Xₓ))))) $
             App (App (Var xₓ) (Var toₓ)) (Var outₓ))
        (app-lambek (just $ Var isRₓ) (Var yₓ) (TpVar Rₓ) (is-as is) $ subst-msf
-         (AppTp (Phi (Beta (Var yₓ) id-term) (App (indices-to-apps is (AppTp indF/D (TpVar Rₓ))) (Var yₓ)) (Var yₓ))
+         (AppTp (Phi (Beta (Var yₓ) id-term) (App (indices-to-apps is (AppTp indF/D (TpVar Rₓₒ))) (Var yₓ)) (Var yₓ))
            (indices-to-tplams is $
-            TpLam yₓ (Tkt $ indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓ))) $
+            TpLam yₓ (Tkt $ indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓₒ))) $
             TpAbs tt y'ₓ (Tkt $ indices-to-tpapps is Xₜₚ) $
             TpAbs tt eₓ (Tkt $ TpEq (App fix-in (Var yₓ)) (Var y'ₓ)) $
              TpAppTm (indices-to-tpapps is Tₘ) (Phi (Var eₓ)

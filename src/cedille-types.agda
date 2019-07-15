@@ -115,13 +115,8 @@ mutual
     KdHole : posinfo → kind
     KdAbs : var → tpkd → kind → kind
 
-  data case-arg-sym : Set where
-    CaseArgTm {-  x -} : case-arg-sym
-    CaseArgEr {- -x -} : case-arg-sym
-    CaseArgTp {- ·x -} : case-arg-sym
-  
   data case-arg : Set where
-    CaseArg : case-arg-sym → var → case-arg
+    CaseArg : erased? → var → maybe tpkd → case-arg
 
   data ex-file : Set where
     ExModule : ex-imports → posinfo → posinfo → var → ex-params → ex-cmds → posinfo → ex-file
@@ -215,8 +210,13 @@ mutual
 
   ex-case-args = 𝕃 ex-case-arg
   
+  data ex-case-arg-sym : Set where
+    ExCaseArgTm : ex-case-arg-sym
+    ExCaseArgEr : ex-case-arg-sym
+    ExCaseArgTp : ex-case-arg-sym
+
   data ex-case-arg : Set where
-    ExCaseArg : case-arg-sym → posinfo → var → ex-case-arg
+    ExCaseArg : ex-case-arg-sym → posinfo → var → ex-case-arg
   
   data ex-tk : Set where
     ExTkt : ex-tp → ex-tk
@@ -280,7 +280,7 @@ mutual
 {-# COMPILE GHC def-datatype = data CedilleTypes.DefDatatype (CedilleTypes.DefDatatype) #-}
 {-# COMPILE GHC import-as = data CedilleTypes.ImportAs (CedilleTypes.ImportAs) #-}
 {-# COMPILE GHC ex-imprt = data CedilleTypes.Imprt (CedilleTypes.Import) #-}
-{-# COMPILE GHC case-arg-sym = data CedilleTypes.CaseArgSym (CedilleTypes.CaseArgTm | CedilleTypes.CaseArgEr | CedilleTypes.CaseArgTp) #-}
+{-# COMPILE GHC ex-case-arg-sym = data CedilleTypes.CaseArgSym (CedilleTypes.CaseArgTm | CedilleTypes.CaseArgEr | CedilleTypes.CaseArgTp) #-}
 --{-# COMPILE GHC case-arg = data CedilleTypes.CaseArg (CedilleTypes.CaseArg) #-}
 {-# COMPILE GHC lterm = data CedilleTypes.Lterm (CedilleTypes.Lterm) #-}
 {-# COMPILE GHC theta = data CedilleTypes.Theta (CedilleTypes.Abstract | CedilleTypes.AbstractEq | CedilleTypes.AbstractVars) #-}

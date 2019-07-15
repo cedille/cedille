@@ -520,9 +520,9 @@ cases-to-string = h use-newlines where
   h ff (m :: ms) = case-to-string m >>str strAdd " | " >>str h ff ms
 
 caseArgs-to-string [] m = m
-caseArgs-to-string (CaseArg CaseArgTm x :: as) m = strAdd " " >>str strBvar x strEmpty (caseArgs-to-string as m)
-caseArgs-to-string (CaseArg CaseArgEr x :: as) m = strAdd " -" >>str strBvar x strEmpty (caseArgs-to-string as m)
-caseArgs-to-string (CaseArg CaseArgTp x :: as) m = strAdd " ·" >>str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseArg _ x (just (Tkk _)) :: as) m = strAdd " ·" >>str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseArg ff x _ :: as) m = strAdd " " >>str strBvar x strEmpty (caseArgs-to-string as m)
+caseArgs-to-string (CaseArg tt x _ :: as) m = strAdd " -" >>str strBvar x strEmpty (caseArgs-to-string as m)
 
 braceL me = if me then "{" else "("
 braceR me = if me then "}" else ")"

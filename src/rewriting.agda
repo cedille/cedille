@@ -122,8 +122,8 @@ rewrite-case xᵣ? (Case x cas t T) =
   let f = maybe-else' xᵣ? id (uncurry rewrite-abs) rewrite-terma in
   pure (uncurry $ Case x) <*>
   foldr {B = rewrite-t case-args → (term → rewrite-t term) → rewrite-t (case-args × term)}
-    (λ {(CaseArg CaseArgTm x) r cas fₜ →
-      r (rewrite-rename-var x λ x' → pure _::_ <*> pure (CaseArg CaseArgTm x') <*> cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
+    (λ {(CaseArg ff x nothing) r cas fₜ →
+      r (rewrite-rename-var x λ x' → pure _::_ <*> pure (CaseArg ff x' nothing) <*> cas) (λ t → rewrite-rename-var x λ x' → rewrite-abs x x' fₜ t); _ → id})
     (λ cas fₜ → pure (_,_ ∘ reverse) <*> cas <*> fₜ t) cas (pure []) f <*> return T
 
 rewrite-type T Γ tt on eq t₁ t₂ sn

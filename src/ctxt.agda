@@ -122,13 +122,13 @@ ctxt-var-decl-if v Γ with Γ
   (trie-insert i v (var-decl , "missing" , "missing")) Δ
 
 add-indices-to-ctxt : indices → ctxt → ctxt
-add-indices-to-ctxt = flip $ foldr λ {(Index x atk) → ctxt-var-decl x}
+add-indices-to-ctxt = flip $ foldr λ {(Index x _) → ctxt-var-decl x}
 
 add-params-to-ctxt : params → ctxt → ctxt
-add-params-to-ctxt = flip $ foldr λ {(Param me x'' _) → ctxt-var-decl x''}
+add-params-to-ctxt = flip $ foldr λ {(Param me x _) → ctxt-var-decl x}
 
 add-caseArgs-to-ctxt : case-args → ctxt → ctxt
-add-caseArgs-to-ctxt = flip $ foldr λ {(CaseArg me x) → ctxt-var-decl x}
+add-caseArgs-to-ctxt = flip $ foldr λ {(CaseArg me x _) → ctxt-var-decl x}
 
 add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr x T) → ctxt-var-decl x}

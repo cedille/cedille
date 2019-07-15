@@ -450,8 +450,8 @@ private
       h : params → ctxt → params → term → case-args × term
       h acc Γ (Param me x atk :: ps) (Lam me' x' oc' t') =
         h (Param me x' atk :: acc) (ctxt-var-decl x' Γ) (substh-params Γ (renamectxt-single x x') empty-trie ps) t'
-      h acc Γ ps (Hole pi) = params-to-caseArgs (reverse acc ++ ps) , Hole pi
-      h acc Γ ps t = params-to-caseArgs (reverse acc ++ ps) , params-to-apps ps t
+      h acc Γ ps (Hole pi) = params-to-case-args (reverse acc ++ ps) , Hole pi
+      h acc Γ ps t = params-to-case-args (reverse acc ++ ps) , params-to-apps ps t
 
     await : br-history2 → IO ⊤
     awaith : br-history2 → 𝕃 string → IO ⊤

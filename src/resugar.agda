@@ -42,7 +42,12 @@ resugar {TERM} (Mu μ t Tₘ? f~ ms) =
     (maybe-map resugar Tₘ?)
     pi-gen
     (map (λ {(Case x cas t _) → ExCase pi-gen x
-      (map (λ {(CaseArg me x) → ExCaseArg me pi-gen x}) cas) (resugar t)}) ms)
+      (map (λ {(CaseArg me x tk?) →
+        let me' = case (me , tk?) of uncurry λ where
+                    ff _ → ExCaseArgTm
+                    tt (just (Tkk _)) → ExCaseArgTp
+                    tt _ → ExCaseArgEr in
+        ExCaseArg me' pi-gen x}) cas) (resugar t)}) ms)
     pi-gen
 resugar {TERM} (Var x) =
   ExVar pi-gen x

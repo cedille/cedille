@@ -753,12 +753,12 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
                ("This is not a constructor of " ^
                   unqual-local (unqual-all (ctxt-get-qualif Γ) Dₓ))
                λ _ → "This case is unreachable" in
-     [- pattern-ctr-span Γ pi x cas' nothing [] (just e) -]
+     [- pattern-ctr-span Γ pi x [] [] (just e) -]
      return2 (Case x [] (Hole pi) []) cs)
     λ where
      (x' , Tₕ , ps , is) →
       decl-args Γ cas ps empty-trie ρ [] (const spanMok) >>= λ where
-        (Γ' , e , σ , ρ , tvs , sm) →
+        (Γ' , cas' , e , σ , ρ , tvs , sm) →
           let Tₘ' = TpAppTm (apps-type Tₘ (tmtps-to-args' Γ' σ (drop dps is)))
                             (app-caseArgs (recompose-apps as (Var x')) cas)
               Tₘ' = hnf Γ' unfold-no-defs Tₘ'
@@ -766,11 +766,9 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
           Γ' ⊢ t ⇐ Tₘ' ↝ t~ /
           sm t~ >>
           [- pattern-clause-span pi t (reverse tvs) -]
-          [- pattern-ctr-span Γ' pi x cas' (just T) [] e -]
+          [- pattern-ctr-span Γ' pi x cas' [] e -]
           return2 (Case x' cas' (subst-renamectxt Γ ρ t~) (subst-renamectxt Γ ρ -tT_ <$> (args-to-tmtps as))) (trie-remove cs x')
   where
-  cas' : case-args
-  cas' = flip map cas λ {(ExCaseArg me pi x) → CaseArg me x}
   free-in-term : var → term → err-m
   free-in-term x t = maybe-if (is-free-in x (erase t)) >>
                      just "Erased argument occurs free in the body of the term"
@@ -778,30 +776,34 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
   tmtps-to-args' = λ Γ σ → tmtp-to-arg' Γ σ <$>_
   tpapp-caseArgs : type → ex-case-args → type
   tpapp-caseArgs = foldl λ where
-    (ExCaseArg CaseArgTp pi x) T → TpAppTp T (TpVar (pi % x))
-    (ExCaseArg _         pi x) T → TpAppTm T (Var (pi % x))
+    (ExCaseArg ExCaseArgTp pi x) T → TpAppTp T (TpVar (pi % x))
+    (ExCaseArg _           pi x) T → TpAppTm T (Var (pi % x))
   app-caseArgs : term → ex-case-args → term
   app-caseArgs = foldl λ where
-    (ExCaseArg CaseArgTm pi x) t → App t (Var (pi % x))
-    (ExCaseArg CaseArgEr pi x) t → AppEr t (Var (pi % x))
-    (ExCaseArg CaseArgTp pi x) t → AppTp t (TpVar (pi % x))
+    (ExCaseArg ExCaseArgTm pi x) t → App t (Var (pi % x))
+    (ExCaseArg ExCaseArgEr pi x) t → AppEr t (Var (pi % x))
+    (ExCaseArg ExCaseArgTp pi x) t → AppTp t (TpVar (pi % x))
   spos = term-start-pos t
   epos = term-end-pos t
+  add-case-arg : ∀ {X Y} → ctxt → posinfo → var → case-arg → spanM (X × case-args × Y) → spanM (X × case-args × Y)
+  add-case-arg Γ pi x ca m = m >>=c λ X → return2 X ∘ map-fst λ cas → ca :: map (λ {(CaseArg me x tk?) → CaseArg me x (rename-var Γ (pi % x) x -tk_ <$> tk?)}) cas
   decl-args : ctxt → ex-case-args → params → trie (Σi exprd ⟦_⟧) →
                 renamectxt → 𝕃 tagged-val → (term → spanM ⊤) →
-              spanM (ctxt × err-m × trie (Σi exprd ⟦_⟧) ×
+              spanM (ctxt × case-args × err-m × trie (Σi exprd ⟦_⟧) ×
                      renamectxt × 𝕃 tagged-val × (term → spanM ⊤))
-  decl-args Γ (ExCaseArg CaseArgTp pi x :: as) (Param me x' (Tkt T) :: ps) σ ρ xs sm =
+  decl-args Γ (ExCaseArg ExCaseArgTp pi x :: as) (Param me x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
         Γ' = ctxt-var-decl-loc pi x Γ in
+    add-case-arg Γ' pi x (CaseArg tt x (just (Tkt T'))) $
     decl-args Γ' as ps (trie-insert σ x' (, TpVar x)) (renamectxt-insert ρ (pi % x) x)
       (binder-data Γ' pi x (Tkt T') Erased nothing spos epos :: xs)
       λ t → [- TpVar-span Γ pi x checking [ expected-type Γ T' ]
                  (just ("This type argument should be a" ^
                      (if me then "n erased term" else " term"))) -] sm t
-  decl-args Γ (ExCaseArg CaseArgTp pi x :: as) (Param _ x' (Tkk k) :: ps) σ ρ xs sm =
+  decl-args Γ (ExCaseArg ExCaseArgTp pi x :: as) (Param _ x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
         Γ' = ctxt-type-decl pi x k' Γ in
+    add-case-arg Γ' pi x (CaseArg tt x (just (Tkk k'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, TpVar (pi % x)))
       (renamectxt-insert ρ (pi % x) x)
@@ -809,30 +811,32 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
       λ t → [- TpVar-span Γ pi x checking [ kind-data Γ k' ] (free-in-term x t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
-        e₁ = maybe-if (case-arg-erased me xor me') >>
+        e₁ = maybe-if (ex-case-arg-erased me xor me') >>
                just "Mismatched erasure of term argument"
-        e₂ = λ t → maybe-if (case-arg-erased me) >> free-in-term x t
+        e₂ = λ t → maybe-if (ex-case-arg-erased me) >> free-in-term x t
         Γ' = ctxt-term-decl pi x T' Γ in
+    add-case-arg Γ' pi x (CaseArg me' x (just (Tkt T'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, Var (pi % x)))
       (renamectxt-insert ρ (pi % x) x)
-      (binder-data Γ' pi x (Tkt T') (case-arg-erased me) nothing spos epos :: xs)
+      (binder-data Γ' pi x (Tkt T') (ex-case-arg-erased me) nothing spos epos :: xs)
       λ t → [- Var-span Γ pi x checking [ type-data Γ T' ] (e₁ maybe-or e₂ t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
         Γ' = ctxt-var-decl-loc pi x Γ in
+    add-case-arg Γ' pi x (CaseArg tt x (just (Tkk k'))) $
     decl-args Γ' as ps (trie-insert σ x' (, Var x)) (renamectxt-insert ρ (pi % x) x)
-      (binder-data Γ' pi x (Tkk k') (case-arg-erased me) nothing spos epos :: xs)
+      (binder-data Γ' pi x (Tkk k') (ex-case-arg-erased me) nothing spos epos :: xs)
       λ t → [- Var-span Γ pi x checking [ expected-kind Γ k' ]
                  (just "This term argument should be a type") -] sm t
   decl-args Γ [] [] σ ρ xs sm =
-    return (Γ , nothing , σ , ρ , xs , sm)
+    return (Γ , [] , nothing , σ , ρ , xs , sm)
   decl-args Γ as [] σ ρ xs sm =
-    return (Γ , just (ℕ-to-string (length as) ^ " too many arguments supplied") ,
+    return (Γ , [] , just (ℕ-to-string (length as) ^ " too many arguments supplied") ,
               σ , ρ , xs , sm)
   decl-args Γ [] ps σ ρ xs sm =
-    return (Γ , just (ℕ-to-string (length ps) ^ " more arguments expected") ,
-              σ , ρ , xs , sm)
+    return (Γ , params-to-case-args (substs-params Γ σ ps) ,
+            just (ℕ-to-string (length ps) ^ " more arguments expected") , σ , ρ , xs , sm)
 
 
 check-cases Γ ms Dₓ cs ρ as dps Tₘ =

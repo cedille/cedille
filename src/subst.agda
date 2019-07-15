@@ -16,8 +16,9 @@ substh : ∀ {ed} → substh-ret-t ⟦ ed ⟧
 substh-arg : substh-ret-t arg
 substh-args : substh-ret-t args
 substh-params : substh-ret-t params
+substh-case : substh-ret-t case
 substh-cases : substh-ret-t cases
-substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-args → case-args × renamectxt × ctxt
+substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-args → case-args × renamectxt × ctxt × trie (Σi exprd ⟦_⟧)
 
 subst-rename-var-if : ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → var
 subst-rename-var-if Γ ρ "_" σ = "_"
@@ -111,17 +112,19 @@ substh-params Γ ρ σ ((Param me x tk) :: ps) =
     (substh-params Γ (renamectxt-insert ρ x x) (trie-remove σ x) ps)
 substh-params Γ ρ σ [] = []
 
-substh-cases Γ ρ σ = map λ where
-  (Case x as t asₜₚ) →
-    case (substh-case-args Γ ρ σ as) of λ where
-      (as' , ρ' , Γ') → Case x as' (substh Γ' ρ' σ t) (substh Γ' ρ' σ -tT_ <$> asₜₚ)
+substh-case Γ ρ σ (Case x as t asₜₚ) =
+  case (substh-case-args Γ ρ σ as) of λ where
+    (as' , ρ' , Γ' , σ') →
+      Case x as' (substh Γ' ρ' σ' t) (substh Γ' ρ' σ' -tT_ <$> asₜₚ)
 
+substh-cases Γ ρ σ = map (substh-case Γ ρ σ)
+    
 substh-case-args Γ ρ σ as = foldr (λ where
-  (CaseArg e x) f ρ Γ →
+  (CaseArg e x tk) f ρ Γ σ →
     let x' = subst-rename-var-if Γ ρ x σ in
-    elim-pair (f (renamectxt-insert ρ x x') (ctxt-var-decl x' Γ)) λ as ρ-Γ →
-    CaseArg e x' :: as , ρ-Γ)
-  (λ ρ Γ → [] , ρ , Γ) as ρ Γ
+    map-fst (CaseArg e x' (substh Γ ρ σ -tk_ <$> tk) ::_)
+            (f (renamectxt-insert ρ x x') (ctxt-var-decl x' Γ) (trie-remove σ x)))
+  (λ ρ Γ σ → [] , ρ , Γ , σ) as ρ Γ σ
 
 
 subst-ret-t : Set → Set
