@@ -415,6 +415,11 @@ writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPu
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
 
+set-nth : ∀ {ℓ} {X : Set ℓ} → ℕ → X → 𝕃 X → 𝕃 X
+set-nth n x [] = []
+set-nth zero x (x' :: xs) = x :: xs
+set-nth (suc n) x (x' :: xs) = x' :: set-nth n x xs
+
 map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
 map-fst f (x₀ , x₁) = (f x₀ , x₁)
 

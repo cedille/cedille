@@ -711,6 +711,13 @@ check-args Γ (a :: as) [] =
   return []
 check-args Γ [] _ = return []
 
+check-erased-margs : ctxt → posinfo → posinfo → term → maybe type → spanM ⊤
+check-erased-margs Γ pi pi' t T? =
+  let psₑ = foldr (λ {(Param me x tk) psₑ → if me then x :: psₑ else psₑ}) [] (ctxt.ps Γ)
+      fvs = free-vars (erase t)
+      e = list-any (stringset-contains fvs) psₑ in
+  if e then spanM-add (erased-marg-span Γ pi pi' T?) else spanMok
+
 check-let Γ (ExDefTerm pi x (just Tₑ) t) e? fm to =
   Γ ⊢ Tₑ ⇐ KdStar ↝ Tₑ~ /
   Γ ⊢ t ⇐ Tₑ~ ↝ t~ /
@@ -1000,10 +1007,3 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
         [ head-type Γ Tₕ ] (just "The head type of the subterm is not a datatype") -]
       return-when {m = Tₑ?} (Hole pi) (TpHole pi)
   where open import elaboration-helpers options
-
-check-erased-margs : ctxt → posinfo → posinfo → term → maybe type → spanM ⊤
-check-erased-margs Γ pi pi' t T? =
-  let psₑ = foldr (λ {(Param me x tk) psₑ → if me then x :: psₑ else psₑ}) [] (ctxt.ps Γ)
-      fvs = free-vars (erase t)
-      e = list-any (stringset-contains fvs) psₑ in
-  if e then spanM-add (erased-marg-span Γ pi pi' T?) else spanMok

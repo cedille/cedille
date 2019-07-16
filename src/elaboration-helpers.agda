@@ -677,36 +677,27 @@ init-encoding Γ (Module mn mps mcs) (Data Dₓ ps is cs) =
          "for index telescoping"
 
 
-{-
 
-
-{- Datatypes -}
-
-
-mendler-elab-mu-pure : ctxt → ctxt-datatype-info → encoded-datatype-names → maybe var → term → cases → maybe term
-mendler-elab-mu-pure Γ (mk-data-info X is/X? asₚ asᵢ ps kᵢ k cs fcs) (mk-encoded-datatype-names _ _ _ _ _ _ _ _ fixpoint-inₓ fixpoint-outₓ fixpoint-indₓ fixpoint-lambekₓ) x? t ms =
-  
-  let ps-tm = id --λ t → foldr (const $ flip App id-term) t $ erase-params ps
-      fix-ind = Var fixpoint-indₓ -- hnf Γ unfold-all (ps-tm $ Var fixpoint-indₓ) tt
-      fix-out = Var fixpoint-outₓ -- hnf Γ unfold-all (ps-tm $ Var fixpoint-outₓ) tt
-      μ-tm = λ x msf → App (App fix-ind t) $ mlam x $ rename "x" from ctxt-var-decl x Γ for λ fₓ → mlam fₓ $ msf $ Var fₓ -- App fix-out $ Var fₓ
-      μ'-tm = λ msf → msf $ App fix-out t
-      set-nth = λ l n a → foldr{B = maybe ℕ → 𝕃 (maybe term)}
-        (λ {a' t nothing → a' :: t nothing;
-            a' t (just zero) → a :: t nothing;
-            a' t (just (suc n)) → a' :: t (just n)})
-        (λ _ → []) l (just n) in
-  -- Note: removing the implicit arguments below hangs Agda's type-checker!
-  foldl{B = 𝕃 (maybe term) → maybe (term → term)}
-    (λ c msf l → case_of_{B = maybe (term → term)} c
-       λ {(Case _ x cas t) → env-lookup Γ ("//" ^ x) >>=
-         λ {(ctr-def ps? _ n i a , _ , _) →
-           msf (set-nth l i (just $ caseArgs-to-lams cas t)); _ → nothing}})
-    (-- Note: lambda-expanding this "foldr..." also hangs Agda...?
-     foldr (λ t? msf → msf >>= λ msf → t? >>= λ t →
-              just λ t' → (msf (App t' t))) (just λ t → t))
-    ms (map (λ _ → nothing) ms) >>= (just ∘ maybe-else' x? μ'-tm μ-tm)
--}
+mendler-elab-mu-pure : ctxt → maybe term ⊎ var → term → cases → term
+mendler-elab-mu-pure Γ x? t ms =
+  maybe-else (Var "1") id $
+  head2 (trie-mappings (ctxt.μ Γ)) >>= λ where
+    (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
+      let fix-out = erase (encoding-defs.fix-out eds)
+          fix-ind = erase (encoding-defs.fix-ind eds)
+          msf = λ t → foldr
+                        (λ {(Case mₓ cas mₜ asₜₚ) t →
+                              App t (case-args-to-lams cas mₜ)})
+                        t ms in
+      maybe-else (just $ Var "2") just $
+      just $ either-else' x?
+        (λ _ → msf (App fix-out t))
+        (λ xₒ →
+          rename xₒ from Γ for λ x →
+          rename "y" from Γ for λ yₓ →
+          let subst-msf = subst-renamectxt Γ
+                (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (yₓ , yₓ) :: [])) ∘ msf in
+          App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ)))
 
 
 mendler-elab-mu : ctxt → ctxt-datatype-info → var → maybe term ⊎ var → term → type → cases → term

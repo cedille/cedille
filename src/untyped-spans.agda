@@ -14,6 +14,7 @@ open import subst
 open import syntax-util
 open import to-string options
 open import type-util
+open import elaboration-helpers options
 
 {-# TERMINATING #-}
 untyped-term : ctxt → ex-tm → spanM term
@@ -24,8 +25,7 @@ untyped-arg : ctxt → ex-arg → spanM arg
 untyped-args : ctxt → ex-args → spanM args
 untyped-let : ctxt → ex-def → erased? → posinfo → posinfo → spanM (ctxt × var × tagged-val × (∀ {ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) × (term → term))
 untyped-cases : ctxt → ex-cases → renamectxt → spanM cases
-untyped-case : ctxt → ex-case → (siblings : ℕ) → (ℕ → err-m) → renamectxt → spanM (case × (ℕ → err-m))
-untyped-elab-mu : ctxt → term → cases → term
+untyped-case : ctxt → ex-case → (siblings : ℕ) → (ℕ → err-m) → renamectxt → spanM (case × (ℕ → err-m) × maybe ℕ)
 
 untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
   maybe-map (untyped-type Γ) Tₑ? >>=? λ Tₑ?~ →
@@ -172,8 +172,12 @@ untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
   >>= λ where
     (Γ' , ρ , μ~ , tvs) →
       untyped-cases Γ' ms ρ >>= λ ms~ →
-      [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
-      return (Mu μ~ t~ nothing (λ t~ _ → untyped-elab-mu Γ t~) ms~)
+      -- Make sure we aren't matching upon a "False" datatype (e.g., one
+      -- with no constructors) before any datatypes have been declared
+      let e = when (is-empty ms && is-empty (trie-mappings (ctxt.μ Γ)))
+                "No datatypes have been declared yet" in
+      [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs e -]
+      return (Mu μ~ t~ nothing (λ t~ _ → mendler-elab-mu-pure Γ μ~ t~) ms~)
 
 -- x
 untyped-term Γ (ExVar pi x) =
@@ -334,8 +338,8 @@ untyped-tpkd Γ (ExTkk k) = Tkk <$> untyped-kind Γ k
 
 untyped-cases Γ ms ρ =
   let msₗ = length ms in
-  foldl (λ m rec ms f → untyped-case Γ m msₗ f ρ >>=c λ m asₗ → rec (m :: ms) asₗ)
-    (const ∘ return) ms [] (λ _ → nothing)
+  foldl (λ m rec ms f → untyped-case Γ m msₗ f ρ >>= uncurry₂ λ m asₗ n? → rec (maybe-else' n? ms (λ n → set-nth n (just m) ms)) asₗ)
+    (const ∘ return) ms (repeat (length ms) nothing) (λ _ → nothing) >>=r drop-nothing
 
 untyped-case-args : ctxt → posinfo → ex-case-args → ex-tm → renamectxt → spanM (case-args × term)
 untyped-case-args Γ pi cas t ρ =
@@ -376,10 +380,7 @@ untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
                   (if Cₗ =ℕ 1 then " constructor" else " constructors") ^
                   ", but expected " ^ ℕ-to-string csₗ) in
       [- Var-span Γ pi x untyped [] (asₗ cᵢ maybe-or (eₐ maybe-or eₗ)) -]
-      return2 c~ λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ
+      return2 c~ ((λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ) , (maybe-not (asₗ cᵢ) >> just cᵢ))
     _ →
       [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
-      return2 (Case x cas~ t~ []) asₗ
-
-untyped-elab-mu Γ t cs =
-  Hole posinfo-gen -- TODO
+      return2 (Case x cas~ t~ []) (asₗ , nothing)

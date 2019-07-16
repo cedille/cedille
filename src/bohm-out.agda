@@ -13,13 +13,7 @@ private
   
   nfoldl : ℕ → ∀ {ℓ} {X : Set ℓ} → X → (ℕ → X → X) → X
   nfoldl zero    z s = z
-  nfoldl (suc n) z s = nfoldl n (s n z) s
-  
-  set-nth : ∀ {ℓ} {X : Set ℓ} → ℕ → X → 𝕃 X → 𝕃 X
-  set-nth n x [] = []
-  set-nth zero x (x' :: xs) = x :: xs
-  set-nth (suc n) x (x' :: xs) = x' :: set-nth n x xs
-  
+  nfoldl (suc n) z s = nfoldl n (s n z) s  
   
   
   -- Böhm Tree
