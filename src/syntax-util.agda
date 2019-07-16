@@ -428,3 +428,6 @@ ex-case-arg-erased _ = tt
 
 ex-case-ctr : ex-case → var
 ex-case-ctr (ExCase pi x cas t) = x
+
+start-modname : ex-file → string
+start-modname (ExModule _ _ _ mn _ _ _) = mn

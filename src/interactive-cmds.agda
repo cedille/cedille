@@ -48,10 +48,7 @@ private
 
   elab-untyped-no-params : ∀ {ed} → ctxt → ⟦ ed ⟧' → ⟦ ed ⟧
   elab-untyped-no-params Γ =
-    elab-untyped (record Γ {mod = h (ctxt.mod Γ)})
-    where
-    h : mod-info → mod-info
-    h (fn , mn , ps , q) = fn , mn , ps , trie-map (map-snd λ _ → []) q
+    elab-untyped (record Γ {qual = trie-map (map-snd λ _ → []) (ctxt.qual Γ)})
 
   {- Parsing -}
   
@@ -162,8 +159,8 @@ private
     -- if they call it upon "μ' [SUBTERM] {...}", it won't work unless they say
     -- "μ'<rec/mu> [SUBTERM] {...}".
     decl-lci : posinfo → var → ctxt → ctxt
-    decl-lci pi x (mk-ctxt (fn , mn , ps , q) ss is Δ) =
-      mk-ctxt (fn , mn , ps , trie-insert q x (pi % x , [])) ss is Δ
+    decl-lci pi x Γ =
+      record Γ { qual = trie-insert (ctxt.qual Γ) x (pi % x , []) }
 
     exprd-type-of : exprd → exprd
     exprd-type-of TERM = TYPE
@@ -225,10 +222,10 @@ private
 
   
   get-local-ctxt-tvs : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt × 𝕃 tagged-val
-  get-local-ctxt-tvs Γ @ (mk-ctxt (fn , mn , _) _ is Δ) pi =
+  get-local-ctxt-tvs Γ pi =
     merge-lcis-ctxt-tvs (foldr (flip ctxt-clear-symbol ∘ fst) Γ
-      (flip filter (trie-mappings is) λ {(x , ci , fn' , pi') →
-        fn =string fn' && posinfo-to-ℕ pi' > pi}))
+      (flip filter (trie-mappings (ctxt.i Γ)) λ {(x , ci , fn' , pi') →
+        ctxt.fn Γ =string fn' && posinfo-to-ℕ pi' > pi}))
   
   get-local-ctxt : ctxt → (pos : ℕ) → (local-ctxt : 𝕃 string) → ctxt
   get-local-ctxt Γ pi ls = fst (get-local-ctxt-tvs Γ pi ls)
@@ -405,9 +402,6 @@ private
     
     substring : string → ℕ → ℕ → string
     substring s fm to = snd $ replace-substring s "" fm to
-
-    set-Γ-file-missing : ctxt → ctxt
-    set-Γ-file-missing (mk-ctxt (fn , mod) ss is Δ) = mk-ctxt ("missing" , mod) ss is Δ
     
     escape-rope : rope → rope
     escape-rope [[ s ]] = [[ escape-string s ]]
@@ -494,7 +488,7 @@ private
                 maybe-else' (parse-string Tₗₗ Tᵤ)
                   (putJson $ spans-to-json $ global-error "Parse error" nothing)
                   λ T → putJson $ spans-to-json $ snd $ id-out $ ll-ind {λ ll → ctxt → ⟦ ll ⟧' → spanM ⟦ ll ⟧}
-                          untyped-term untyped-type untyped-kind Tₗₗ (set-Γ-file-missing Γ) T empty-spans
+                          untyped-term untyped-type untyped-kind Tₗₗ (record Γ { fn = "missing" }) T empty-spans
 
               ("context" :: []) →
                 putJson (json-object [ "value" , json-array [ tagged-vals-to-json Γₗ ] ]) >> await his
@@ -684,7 +678,7 @@ private
                  (scrutinee , mu , cs , Tₘ , Γ , ts) →
                    let json = json-object [ "value" , json-array
                                    [ json-object (map
-                                    (λ {(Ctr x _ , T) → unqual-all (ctxt-get-qualif Γ) x ,
+                                    (λ {(Ctr x _ , T) → unqual-all (ctxt.qual Γ) x ,
                                       json-rope (to-string Γ (erase T))})
                                     cs) ] ] in -- ) ] ] in
                    putJson json >>

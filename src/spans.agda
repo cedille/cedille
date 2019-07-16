@@ -64,8 +64,7 @@ spans-to-json : spans → json
 spans-to-json = json-object ∘ spans-to-json'
 
 print-file-id-table : ctxt → 𝕃 tagged-val
-print-file-id-table (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is Δ) =
-  h [] id-fns where
+print-file-id-table Γ = h [] (ctxt.id-list Γ) where
   h : ∀ {i} → 𝕃 tagged-val → 𝕍 string i → 𝕃 tagged-val
   h ts [] = ts
   h {i} ts (fn :: fns) = h (strRunTag "fileid" empty-ctxt (strAdd fn) :: ts) fns
@@ -166,9 +165,9 @@ location-data : location → tagged-val
 location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-name >>str strAdd " - " >>str strAdd pi)
 
 var-location-data : ctxt → var → tagged-val
-var-location-data Γ @ (mk-ctxt _ _ i _) x =
-  location-data (maybe-else ("missing" , "missing") snd
-    (trie-lookup i x maybe-or trie-lookup i (qualif-var Γ x)))
+var-location-data Γ x =
+  location-data (maybe-else missing-location snd
+    (trie-lookup (ctxt.i Γ) x maybe-or trie-lookup (ctxt.i Γ) (qualif-var Γ x)))
 
 explain : string → tagged-val
 explain = strRunTag "explanation" empty-ctxt ∘ strAdd
@@ -309,7 +308,7 @@ binder-data Γ pi x atk me val s e =
   strErased?
   where
   loc : strM
-  loc = strAdd "§fn:" >>str strAdd (ctxt-get-current-filename Γ) >>str strAdd "§pos:" >>str strAdd pi
+  loc = strAdd "§fn:" >>str strAdd (ctxt.fn Γ) >>str strAdd "§pos:" >>str strAdd pi
   strErased? : strM
   strErased? =
     strAdd "§erased:" >>str
@@ -396,11 +395,9 @@ TpVar-span Γ pi v check tvs =
     (checking-data check :: ll-data-type :: var-location-data Γ v :: symbol-data (unqual-local v) :: tvs)
   where
   v' = unqual-local v
-  name = case Γ of λ where
-    (mk-ctxt mod ss is (Δ , μ' , μ , μ~ , η)) →
-      if stringset-contains η (qualif-var Γ v)
-        then "Datatype variable"
-        else "Type variable"
+  name = if stringset-contains (ctxt.μ̲ Γ) (qualif-var Γ v)
+           then "Datatype variable"
+           else "Type variable"
 
 Var-span : ctxt → posinfo → string → checking-mode → 𝕃 tagged-val → err-m → span
 Var-span Γ pi v check tvs =

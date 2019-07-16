@@ -743,21 +743,21 @@ check-let Γ (ExDefType pi x k T) e? fm to =
      (λ {ed} T' → [ Γ - T~ / (pi % x) ] T') ,
      (λ t' → LetTp x k~ T~ ([ Γ - TpVar x / (pi % x) ] t')))
 
-check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
+check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
   [- pattern-span pi x cas -]
   maybe-else'
-    (trie-lookup (ctxt-get-qualif Γ) x >>= uncurry λ x' _ →
+    (trie-lookup (ctxt.qual Γ) x >>= uncurry λ x' _ →
      trie-lookup cs x' >>= λ T →
      just (x' , T))
     (let e = maybe-else' (trie-lookup es x)
                ("This is not a constructor of " ^
-                  unqual-local (unqual-all (ctxt-get-qualif Γ) Dₓ))
+                  unqual-local (unqual-all (ctxt.qual Γ) Dₓ))
                λ _ → "This case is unreachable" in
      [- pattern-ctr-span Γ pi x [] [] (just e) -]
      return2 (Case x [] (Hole pi) []) cs)
     λ where
      (x' , Tₕ , ps , is) →
-      decl-args Γ cas ps empty-trie ρ [] (const spanMok) >>= λ where
+      decl-args Γ cas ps empty-trie ρₒ [] (const spanMok) >>= λ where
         (Γ' , cas' , e , σ , ρ , tvs , sm) →
           let Tₘ' = TpAppTm (apps-type Tₘ (tmtps-to-args' Γ' σ (drop dps is)))
                             (app-caseArgs (recompose-apps as (Var x')) cas)
@@ -767,8 +767,14 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
           sm t~ >>
           [- pattern-clause-span pi t (reverse tvs) -]
           [- pattern-ctr-span Γ' pi x cas' [] e -]
-          return2 (Case x' cas' (subst-renamectxt Γ ρ t~) (subst-renamectxt Γ ρ -tT_ <$> (args-to-tmtps as))) (trie-remove cs x')
+          return2 (Case x' (subst-case-args cas' Γ ρₒ) (subst-renamectxt Γ ρ t~) (subst-renamectxt Γ ρ -tT_ <$> (args-to-tmtps as))) (trie-remove cs x')
   where
+  subst-case-args : case-args → ctxt → renamectxt → case-args
+  subst-case-args [] Γ ρ = []
+  subst-case-args (CaseArg e x tk? :: cs) Γ ρ =
+    CaseArg e x (subst-renamectxt Γ ρ -tk_ <$> tk?) ::
+      subst-case-args cs (ctxt-var-decl x Γ) (renamectxt-remove ρ x)
+
   free-in-term : var → term → err-m
   free-in-term x t = maybe-if (is-free-in x (erase t)) >>
                      just "Erased argument occurs free in the body of the term"
@@ -786,7 +792,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρ as dps Tₘ =
   spos = term-start-pos t
   epos = term-end-pos t
   add-case-arg : ∀ {X Y} → ctxt → posinfo → var → case-arg → spanM (X × case-args × Y) → spanM (X × case-args × Y)
-  add-case-arg Γ pi x ca m = m >>=c λ X → return2 X ∘ map-fst λ cas → ca :: map (λ {(CaseArg me x tk?) → CaseArg me x (rename-var Γ (pi % x) x -tk_ <$> tk?)}) cas
+  add-case-arg Γ pi x ca m = m >>=c λ X → return2 X ∘ map-fst λ cas → ca :: subst-case-args cas Γ (renamectxt-single (pi % x) x)
   decl-args : ctxt → ex-case-args → params → trie (Σi exprd ⟦_⟧) →
                 renamectxt → 𝕃 tagged-val → (term → spanM ⊤) →
               spanM (ctxt × case-args × err-m × trie (Σi exprd ⟦_⟧) ×
@@ -854,7 +860,7 @@ check-cases Γ ms Dₓ cs ρ as dps Tₘ =
   let xs = map (map-snd snd) $ trie-mappings missing-cases
       csf = uncurry₂ λ Tₕ ps as →
               rope-to-string $ strRun Γ $
-                strVar (unqual-all (ctxt-get-qualif Γ) Tₕ) >>str args-to-string (params-to-args ps)
+                strVar (unqual-all (ctxt.qual Γ) Tₕ) >>str args-to-string (params-to-args ps)
       e = "Missing patterns: " ^ 𝕃-to-string csf ", " xs in
   return2 ms~ (unless (iszero (length xs)) e)
 
@@ -875,7 +881,7 @@ check-mu-evidence Γ μ X as = maybe-else'
     Γ ⊢ tₑ ↝ tₑ~ ⇒ T /
     let ev-err = inj₁ $
                    ("The synthesized type of the evidence does not prove " ^
-                      unqual-local (unqual-all (ctxt-get-qualif Γ) X) ^ " is a datatype") ,
+                      unqual-local (unqual-all (ctxt.qual Γ) X) ^ " is a datatype") ,
                     [ to-string-tag "evidence type" Γ T ] in
     case decompose-tpapps (hnf Γ unfold-head-elab T) of λ where
       (TpVar X' , as') → case reverse as' of λ where
@@ -996,8 +1002,8 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
   where open import elaboration-helpers options
 
 check-erased-margs : ctxt → posinfo → posinfo → term → maybe type → spanM ⊤
-check-erased-margs Γ @ (mk-ctxt (fn , mn , ps , q) φ ι δ) pi pi' t T? =
-  let psₑ = foldr (λ {(Param me x tk) psₑ → if me then x :: psₑ else psₑ}) [] ps
+check-erased-margs Γ pi pi' t T? =
+  let psₑ = foldr (λ {(Param me x tk) psₑ → if me then x :: psₑ else psₑ}) [] (ctxt.ps Γ)
       fvs = free-vars (erase t)
       e = list-any (stringset-contains fvs) psₑ in
   if e then spanM-add (erased-marg-span Γ pi pi' T?) else spanMok

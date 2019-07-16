@@ -96,10 +96,10 @@ rkt-from-sym-info n (ctr-def _ _ _ _ _ , _)
 --  = rkt-dbg "mu-def:" [[]]
 
 to-rkt-file : (ced-path : string) → ctxt → include-elt → ((cede-filename : string) → string) → rope
-to-rkt-file ced-path (mk-ctxt _ (syms , _) i Δ) ie rkt-filename =
+to-rkt-file ced-path Γ ie rkt-filename =
   rkt-header ⊹⊹ rkt-body
   where
-  cdle-pair = trie-lookup𝕃2 syms ced-path
+  cdle-pair = trie-lookup𝕃2 (ctxt.syms Γ) ced-path
   cdle-mod  = fst cdle-pair
   cdle-defs = snd cdle-pair
 
@@ -120,7 +120,7 @@ to-rkt-file ced-path (mk-ctxt _ (syms , _) i Δ) ie rkt-filename =
                         [[ "\n" ]] ⊹⊹ rkt-from-sym-info (qual-name n) s}) [[]]
                (drop-nothing (map
                  (λ name → maybe-map (λ syminf → name , syminf)
-                   (trie-lookup i (qual-name name)))
+                   (trie-lookup (ctxt.i Γ) (qual-name name)))
                  cdle-defs))
 {-
 -- write a Racket file to .racket subdirectory from Cedille file path,

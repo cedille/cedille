@@ -404,7 +404,7 @@ module main-with-options
              if should-print-spans then
                putJson (include-elt-spans-to-json ie)
              else return triv
-          finish : (toplevel-state × file × mod-info) → IO toplevel-state
+          finish : (toplevel-state × file × string × string × params × qualif) → IO toplevel-state
           finish (s @ (mk-toplevel-state ip mod is Γ) , f , ret-mod) =
             logMsg ("Started reply for file " ^ filename) >> -- Lazy, so checking has not been calculated yet?
             reply s >>

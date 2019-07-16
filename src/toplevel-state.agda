@@ -188,11 +188,11 @@ sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-
 qualif-to-string : qualif-info → string
 qualif-to-string (x , as) = x ^ rope-to-string (doc-to-rope $ fst (args-to-string as {TERM} NIL 0 [] (new-ctxt "" "") nothing neither)) where open import pretty
 
-mod-info-to-string : mod-info → string
+mod-info-to-string : (string × string × params × qualif) → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string''' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is Δ) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
+ctxt-to-string (mk-ctxt fn mn ps qual syms mod-map _ _ _ is _ _ _ _ _) = "mod-info: {" ^ (mod-info-to-string (fn , mn , ps , qual)) ^ "}, syms: {" ^ (syms-to-string syms) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -306,8 +306,9 @@ scope-datatype-names fn mn oa ps as x s =
 
 scope-var fn mn oa ps as ignored-var s = s , nothing
 scope-var _ mn oa ps as v s with import-as-x v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis Δ) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis Δ) ,
-  flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
+...| v' | mk-toplevel-state ip fns is Γ =
+  mk-toplevel-state ip fns is
+    (record Γ { qual = trie-insert (ctxt.qual Γ) v' (mn # v , as) }) ,
+  flip maybe-map (trie-lookup (ctxt.qual Γ) v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
     (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

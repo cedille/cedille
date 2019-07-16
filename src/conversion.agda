@@ -355,28 +355,25 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
       just (inconv-lams ρ₁ ρ₂ (case-args-to-lams cas₁ t₁) (fst c₂))
 
 
-
-
-ctxt-params-def : params → ctxt → ctxt
-ctxt-params-def ps Γ@(mk-ctxt (fn , mn , _ , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , q) syms i Δ
-
 ctxt-kind-def : posinfo → var → params → kind → ctxt → ctxt
-ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i Δ) = mk-ctxt
-  (fn , mn , ps1 , qualif-insert-params q (mn # v) v ps1)
-  (trie-insert-append2 syms fn mn v , mn-fn)
-  (trie-insert i (mn # v) (kind-def (ps1 ++ ps2) k' , fn , pi)) Δ
-  where
-  k' = hnf Γ unfold-head-elab k
+ctxt-kind-def pi v ps2 k Γ =
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) (ctxt.mn Γ # v) v (ctxt.ps Γ);
+    syms = trie-insert-append2 (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ) v;
+    i = trie-insert (ctxt.i Γ) (ctxt.mn Γ # v)
+          (kind-def (ctxt.ps Γ ++ ps2) (hnf Γ unfold-head-elab k) , ctxt.fn Γ , pi)
+  }
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
-ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is (Δ , μ' , μ , μ~ , η)) =
-  mk-ctxt mod ss is $ Δ , trie-insert μ' (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as) , μ , μ~ , stringset-insert η (mu-Type/ vᵣ)
+ctxt-datatype-decl vₒ vᵣ as Γ =
+  record Γ {
+    μ' = trie-insert (ctxt.μ' Γ) (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as);
+    μ̲ = stringset-insert (ctxt.μ̲ Γ) (mu-Type/ vᵣ)
+  }
 
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → encoding-defs → ctxt → ctxt
-ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i (Δ , μ' , μ , μ~ , η)) =
-  let D' = mn # D
-      q' = qualif-insert-params q D' D ps
+ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ =
+  let D' = ctxt.mn Γ # D
       ecds = record {
         Is/D = data-Is/ D';
         is/D = data-is/ D';
@@ -384,56 +381,54 @@ ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ@(mk-ctxt (fn , mn , ps , q) (syms 
         TypeF/D = data-TypeF/ D';
         fmap/D = data-fmap/ D';
         IndF/D = data-IndF/ D'} in
-  mk-ctxt (fn , mn , ps , q')
-    (trie-insert-append2 syms fn mn D , mn-fn)
-    (trie-insert i D' (type-def (just ps) tt nothing (abs-expand-kind psᵢ k) , fn , pi))
-    (trie-insert Δ D' (ps ++ psᵢ , kᵢ , k , cs , eds , ecds) ,
-     μ' ,
-     trie-insert μ (data-Is/ D') D' ,
-     foldl pull-defs μ~ (encoding-defs.ecs eds ++ encoding-defs.gcs eds) ,
-     stringset-insert η D')
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) D' D (ctxt.ps Γ);
+    syms = trie-insert-append2 (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ) D;
+    i = trie-insert (ctxt.i Γ) D' (type-def (just (ctxt.ps Γ)) tt nothing (abs-expand-kind psᵢ k) , ctxt.fn Γ , pi);
+    μ = trie-insert (ctxt.μ Γ) D' (ctxt.ps Γ ++ psᵢ , kᵢ , k , cs , eds , ecds);
+    Is/μ = trie-insert (ctxt.Is/μ Γ) (data-Is/ D') D';
+    μ~ = trie-insert (ctxt.μ~ Γ) D' (foldl pull-defs [] (encoding-defs.ecs eds ++ encoding-defs.gcs eds));
+    μ̲ = stringset-insert (ctxt.μ̲ Γ) D'
+  }
   where
   pull-defs : cmd → 𝕃 (var × tmtp) → 𝕃 (var × tmtp)
-  pull-defs (CmdDefTerm x t) μ~ = ((mn # x) , Ttm t) :: μ~
-  pull-defs (CmdDefType x k T) μ~ = ((mn # x) , Ttp T) :: μ~
+  pull-defs (CmdDefTerm x t) μ~ = ((ctxt.mn Γ # x) , Ttm t) :: μ~
+  pull-defs (CmdDefType x k T) μ~ = ((ctxt.mn Γ # x) , Ttp T) :: μ~
   pull-defs _ μ~ = μ~
 
 ctxt-type-def : posinfo → defScope → opacity → var → maybe type → kind → ctxt → ctxt
 ctxt-type-def _  _ _ ignored-var _ _  Γ = Γ
-ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ) = mk-ctxt
-  (fn , mn , ps , q')
-  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (type-def (def-params s ps) op t' k , fn , pi)) Δ
-  where
-  t' = hnf Γ unfold-head-elab <$> t
-  v' = if s iff localScope then pi % v else mn # v
-  q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
+ctxt-type-def pi s op v t k Γ =
+  let v' = if s iff localScope then pi % v else ctxt.mn Γ # v in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) v' v (if s iff localScope then [] else ctxt.ps Γ);
+    i = trie-insert (ctxt.i Γ) v' (type-def (def-params s (ctxt.ps Γ)) op (hnf Γ unfold-head-elab <$> t) k , ctxt.fn Γ , pi)
+  }
 
 ctxt-ctr-def : posinfo → var → type → params → (ctrs-length ctr-index : ℕ) → ctxt → ctxt
-ctxt-ctr-def pi c t ps' n i Γ@(mk-ctxt mod@(fn , mn , ps , q) (syms , mn-fn) is Δ) = mk-ctxt
-  (fn , mn , ps , q')
-  ((trie-insert-append2 syms fn mn c) , mn-fn)  
-  (trie-insert is c' (ctr-def ps' t n i (unerased-arrows t) , fn , pi)) Δ
-  where
-  c' = mn # c
-  q' = qualif-insert-params q c' c ps
+ctxt-ctr-def pi c t ps' n i Γ =
+  let c' = ctxt.mn Γ # c in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) c' c (ctxt.ps Γ);
+    syms = trie-insert-append2 (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ) c;
+    i = trie-insert (ctxt.i Γ) c' (ctr-def ps' t n i (unerased-arrows t) , ctxt.fn Γ , pi)
+  }
 
 ctxt-term-def : posinfo → defScope → opacity → var → maybe term → type → ctxt → ctxt
 ctxt-term-def _  _ _  ignored-var _ _ Γ = Γ
-ctxt-term-def pi s op v t tp Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ) = mk-ctxt
-  (fn , mn , ps , q')
-  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (term-def (def-params s ps) op t' tp , fn , pi)) Δ
-  where
-  t' = hnf Γ unfold-head <$> t
-  v' = if s iff localScope then pi % v else mn # v
-  q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
+ctxt-term-def pi s op v t tp Γ =
+  let v' = if s iff localScope then pi % v else ctxt.mn Γ # v in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) v' v (if s iff localScope then [] else ctxt.ps Γ);
+    syms = if s iff localScope then ctxt.syms Γ else trie-insert-append2 (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ) v;
+    i = trie-insert (ctxt.i Γ) v' (term-def (def-params s (ctxt.ps Γ)) op (hnf Γ unfold-head <$> t) tp , ctxt.fn Γ , pi)
+  }
 
 ctxt-term-udef _ _ _ ignored-var _ Γ = Γ
-ctxt-term-udef pi s op v t Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i Δ) = mk-ctxt
-  (fn , mn , ps , qualif-insert-params q v' v (if s iff localScope then [] else ps))
-  ((if (s iff localScope) then syms else trie-insert-append2 syms fn mn v) , mn-fn)
-  (trie-insert i v' (term-udef (def-params s ps) op t' , fn , pi)) Δ
-  where
-  t' = hnf Γ unfold-head t
-  v' = if s iff localScope then pi % v else mn # v
+ctxt-term-udef pi s op v t Γ =
+  let v' = if s iff localScope then pi % v else ctxt.mn Γ # v in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) v' v (if s iff localScope then [] else ctxt.ps Γ);
+    syms = if s iff localScope then ctxt.syms Γ else trie-insert-append2 (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ) v;
+    i = trie-insert (ctxt.i Γ) v' (term-udef (def-params s (ctxt.ps Γ)) op (hnf Γ unfold-head t) , ctxt.fn Γ , pi)
+  }

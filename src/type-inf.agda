@@ -279,7 +279,7 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
   -- 2) make sure the applicand type reveals an arrow (term abstraction)
   >>=m λ ret → let mk-spine-data Xs dt locl fₕ~ = ret in
     -- the meta-vars need to know the span they were introduced in
-    let sloc = span-loc $ ctxt-get-current-filename Γ in
+    let sloc = span-loc $ ctxt.fn Γ in
     -- see if the decorated type of the head `dt` reveals an arrow
     meta-vars-unfold-tmapp' Γ sloc Xs dt
   >>=c λ Ys tm-arrow? →
@@ -388,7 +388,7 @@ check-term-spine Γ t'@(ExAppTp t tp) pt max =
   mode = prototype-to-checking pt
 
   span-loc : ctxt → span-location
-  span-loc Γ = (ctxt-get-current-filename Γ) , term-start-pos t , type-end-pos tp
+  span-loc Γ = (ctxt.fn Γ) , term-start-pos t , type-end-pos tp
 
   handleApplicandTypeError : spanM ∘ maybe $ spine-data
   handleApplicandTypeError =

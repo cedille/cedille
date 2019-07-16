@@ -49,8 +49,8 @@ check-and-add-params Γ pi' (p@(ExParam pi1 me pi1' x atk pi2) :: ps') =
   [- punctuation-span "Parens (parameter)" pi1 pi2 -]
   [- Decl-span Γ' decl-param pi1 pi1' x atk~ me pi2 pi' -]
   [- var-span me Γ' pi1' x checking atk~ nothing -]
-  check-and-add-params Γ' pi' ps' >>=c λ Γ'' ps' →
-  return2 Γ'' (Param me qx atk~ :: ps')
+  check-and-add-params Γ' pi' ps' >>=c λ Γ'' ps~ →
+  return2 Γ'' (Param me qx atk~ :: ps~)
 check-and-add-params Γ pi' [] = return2 Γ []
 
 optAs-posinfo-var : ctxt → maybe import-as → posinfo × var → spanM (posinfo × var)
@@ -66,17 +66,16 @@ process-cmds : toplevel-state → ex-cmds → spanM (toplevel-state × cmds)
 process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
 process-params : toplevel-state → posinfo → ex-params → spanM (toplevel-state × params)
 process-start : toplevel-state → filepath → (progress-name : string) → ex-file → spanM (toplevel-state × file)
-process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × file × mod-info)
+process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × file × string × string × params × qualif)
  
 process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just tp) t) pi') =
   Γ ⊢ tp ⇐ KdStar ↝ tp' /
   Γ ⊢ t ⇐ tp' ↝ t' /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t' (just tp') >>
   let Γ' = ctxt-term-def pi globalScope op x (just t') tp' Γ in
---      ps = ctxt-get-current-params Γ
---      t'ₑ = lam-expand-term ps t' in
   [- DefTerm-span Γ' pi x checking (just tp') t' pi' [] -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ) (CmdDefTerm x t')
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefTerm x t')
     ([- uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t') -]
      return (mk-toplevel-state ip fns is Γ'))
 
@@ -84,10 +83,9 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothin
   Γ ⊢ t ↝ t~ ⇒ T~ /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t~ nothing >> 
   let Γ' = ctxt-term-def pi globalScope op x (just t~) T~ Γ in
---      ps = ctxt-get-current-params Γ
---      t~ₑ = lam-expand-term ps t~ in
   [- DefTerm-span Γ' pi x synthesizing (just T~) t~ pi' [] -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ) (CmdDefTerm x t~)
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefTerm x t~)
     ([- uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t~) -]
      return (mk-toplevel-state ip fns is Γ'))
 
@@ -95,11 +93,9 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefType pi x k tp) 
   Γ ⊢ k ↝ k~ /
   Γ ⊢ tp ⇐ k~ ↝ tp~ /
   let Γ' = ctxt-type-def pi globalScope op x (just tp~) k~ Γ in
---      ps = ctxt-get-current-params Γ
---      k~ₑ = abs-expand-kind ps k~
---      tp~ₑ = lam-expand-type ps tp~ in
   spanM-add (DefType-span Γ' pi x checking (just k~) tp~ pi' []) >>
-  check-redefined pi x (mk-toplevel-state ip fns is Γ) (CmdDefType x k~ tp~)
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefType x k~ tp~)
     ([- TpVar-span Γ' pi x checking [] nothing -]
      return (mk-toplevel-state ip fns is Γ'))
 
@@ -118,9 +114,9 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   [- DefDatatype-header-span pi -]  
   check-and-add-params Γ pi'' ps >>=c λ Γₚₛ ps' →
   Γₚₛ ⊢ k ↝ k' /
-  let mn = ctxt-get-current-modname Γ
+  let mn = ctxt.mn Γ
       qx = mn # x
-      mps = ctxt-get-current-params Γ ++ ps'
+      mps = ctxt.ps Γ ++ ps'
       is = kind-to-indices Γₚₛ k'
       kᵢ = indices-to-kind is $ KdAbs ignored-var
              (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar
@@ -156,7 +152,7 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
 
 -- TODO ignore checking but still gen spans if need-to-check false?
 process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
-  let fnₒ = ctxt-get-current-filename (toplevel-state.Γ s)
+  let fnₒ = ctxt.fn (toplevel-state.Γ s)
       ie = get-include-elt s fnₒ
       oa' = maybe-map (λ {(ImportAs pi x) → x}) oa in
   case trie-lookup (include-elt.import-to-dep ie) x of λ where
@@ -168,7 +164,8 @@ process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
         process-import (toplevel-state.Γ s) op oa fnₒ fnᵢ
           (lookup-mod-params (toplevel-state.Γ s) fnᵢ)
           (maybe-else' (lookup-mod-params (toplevel-state.Γ s) fnₒ) [] id) >>=c λ e as~ →
-         let s-e = scope-file s fnₒ fnᵢ oa' as~ in
+         let s-e = scope-file s fnₒ fnᵢ oa' as~
+             Γ = toplevel-state.Γ s in
          [- Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e) -]
          return2 (fst s-e) (CmdImport (Import op fnᵢ x oa' as~))
   where
@@ -244,7 +241,7 @@ process-params s pi ps =
   let Γ = toplevel-state.Γ s in
   check-and-add-params Γ pi ps >>=c λ Γₚₛ ps →
   return2
-    (record s {Γ = ctxt-add-current-params (ctxt-set-current-params Γₚₛ ps)})
+    (record s {Γ = ctxt-add-current-params (record Γₚₛ { ps = ps })})
     ps
 
 process-start s filename pn (ExModule is pi1 pi2 mn ps cs pi3) =
@@ -258,6 +255,13 @@ process-start s filename pn (ExModule is pi1 pi2 mn ps cs pi3) =
   [- Module-span pi2 pi2' -]
   [- Module-header-span pi1 pi2' -]
   return2 s (Module mn ps (is' ++ cs))
+--  where
+--  unqual-cmd : ctxt → renamectxt → cmd → cmd
+--  unqual-cmd Γ ρ (CmdDefTerm x t) = CmdDefTerm x (subst-renamectxt Γ ρ t)
+--  unqual-cmd Γ ρ (CmdDefType x k T) = CmdDefType x (subst-renamectxt Γ ρ k) (subst-renamectxt Γ ρ T)
+--  unqual-cmd Γ ρ (CmdDefKind x ps k) = CmdDefKind x (substh-params Γ ρ empty-trie ps) (subst-renamectxt (add-params-to-ctxt ps Γ) ρ k)
+--  unqual-cmd Γ ρ (CmdDefData eds x ps k cs) = CmdDefData eds x (substh-params Γ ρ empty-trie ps) (subst-renamectxt (add-params-to-ctxt ps Γ) ρ k) (map-snd (subst-renamectxt (add-params-to-ctxt ps Γ) ρ) <$> cs)
+--  unqual-cmd Γ ρ (CmdImport (Import op fnᵢ x oa as)) = CmdImport (Import op fnᵢ x oa (subst-renamectxt Γ ρ -arg_ <$> as))
 
 {- process (type-check if necessary) the given file.  
    We assume the given top-level state has a syntax tree associated with the file. -}
@@ -268,22 +272,26 @@ process-file s filename pn | ie =
     (s , ie , ret-mod , f) → return ({-set-include-elt s filename ie-} s , f , ret-mod)
   where
   proceed : toplevel-state → maybe ex-file → maybe file → include-elt →
-            mF (toplevel-state × include-elt × mod-info × file)
+            mF (toplevel-state × include-elt × (string × string × params × qualif) × file)
   proceed s nothing f~ ie' =
     progress-update filename >>
 --    write-to-log "should not happen" >>
     return (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s) ,
              maybe-else' f~ (Module ignored-var [] []) id) {- should not happen -}
   proceed s (just x) f~ ie' with include-elt.need-to-add-symbols-to-context ie
-  proceed s (just x) (just f~) ie' | ff = return (s , ie' , ctxt.mod (toplevel-state.Γ s) , f~)
+  proceed s (just x) (just f~) ie' | ff =
+    let Γ = toplevel-state.Γ s
+        mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ in
+    return (s , ie' , mod , f~)
   proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _
     with include-elt.do-type-check ie | ctxt-get-current-mod Γ
   proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _ | do-check | prev-mod =
    let Γ = ctxt-initiate-file Γ filename (start-modname x) in
      process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
              filename pn x empty-spans >>= λ where
-       ((mk-toplevel-state ip fns is Γ @ (mk-ctxt ret-mod _ _ _) , f) , ss) →
-         let ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' maybe-or just f } in
+       ((mk-toplevel-state ip fns is Γ , f) , ss) →
+         let ret-mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ
+             ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' maybe-or just f } in
          progress-update pn >> return
            (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) (trie-insert is filename ie'')
              (ctxt-set-current-mod Γ prev-mod) ,

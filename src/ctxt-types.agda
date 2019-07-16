@@ -68,10 +68,6 @@ data ctxt-info : Set where
 sym-info : Set
 sym-info = ctxt-info × location
 
--- module filename, name, parameters, and qualifying substitution
-mod-info : Set
-mod-info = string × string × params × qualif
-
 is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
 is-term-level (term-def _ _ _ _) = tt
@@ -82,53 +78,61 @@ is-term-level _ = ff
 record ctxt : Set where
   constructor mk-ctxt
   field
-    -- current module
-    mod : mod-info
+    -- current module fields
+    fn : string
+    mn : string
+    ps : params
+    qual : qualif
 
     -- filename → module name × symbols declared in that module,
+    syms : trie (string × 𝕃 string)
+    
     -- module name → filename × params,
-    -- and file ID's for use in to-string.agda
-    syms : trie (string × 𝕃 string) × trie string × trie params × trie ℕ × Σ ℕ (𝕍 string)
+    mod-map : trie (string × params)
+
+    -- file ID's for use in to-string.agda
+    id-map : trie ℕ
+    id-current : ℕ
+    id-list : 𝕍 string id-current
 
     -- symbols → ctxt-info × location
     i : trie sym-info
 
-    -- concrete/global datatypes ×
-    -- abstract/local datatypes ×
-    -- datatype/Mu map ×
+    -- concrete/global datatypes
+    μ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs)
+    -- abstract/local datatypes
+    μ' : trie (var × var × args)
+    -- Is/D map
+    Is/μ : trie var
     -- encoding defs (needed to generate fmaps for some datatypes, like rose tree)
-    -- highlighting datatypes
-    Δ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs) × trie (var × var × args) × trie var × 𝕃 (var × tmtp) × stringset
+    μ~ : trie (𝕃 (var × tmtp))
+    -- highlighting datatypes (μ̲ = \Gm \_--)
+    μ̲ :  stringset
 
 
 ctxt-binds-var : ctxt → var → 𝔹
-ctxt-binds-var (mk-ctxt (_ , _ , _ , q) _ i _) x = trie-contains q x || trie-contains i x
+ctxt-binds-var Γ x = trie-contains (ctxt.qual Γ) x || trie-contains (ctxt.i Γ) x
 
 ctxt-var-decl : var → ctxt → ctxt
-ctxt-var-decl v (mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms (trie-insert i v (var-decl , "missing" , "missing")) Δ
+ctxt-var-decl v Γ =
+  record Γ {
+    qual = trie-insert (ctxt.qual Γ) v (v , []);
+    i = trie-insert (ctxt.i Γ) v (var-decl , "missing" , "missing")
+  }
 
 ctxt-var-decl-loc : posinfo → var → ctxt → ctxt
-ctxt-var-decl-loc pi v (mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms (trie-insert i v (var-decl , fn , pi)) Δ
+ctxt-var-decl-loc pi v Γ =
+  record Γ {
+    qual = trie-insert (ctxt.qual Γ) v (v , []);
+    i = trie-insert (ctxt.i Γ) v (var-decl , ctxt.fn Γ , pi)
+  }
 
 qualif-var : ctxt → var → var
-qualif-var (mk-ctxt (_ , _ , _ , q) _ _ _) v with trie-lookup q v
+qualif-var Γ v with trie-lookup (ctxt.qual Γ) v
 ...| just (v' , _) = v'
 ...| nothing = v
 
-start-modname : ex-file → string
-start-modname (ExModule _ _ _ mn _ _ _) = mn
+ctxt-get-current-mod : ctxt → string × string × params × qualif
+ctxt-get-current-mod (mk-ctxt fn mn ps qual _ _ _ _ _ _ _ _ _ _ _) = fn , mn , ps , qual
 
-ctxt-get-current-filename : ctxt → string
-ctxt-get-current-filename (mk-ctxt (fn , _) _ _ _) = fn
-
-ctxt-get-current-mod : ctxt → mod-info
-ctxt-get-current-mod (mk-ctxt m _ _ _) = m
-
-ctxt-get-current-modname : ctxt → string
-ctxt-get-current-modname (mk-ctxt (_ , mn , _ , _) _ _ _) = mn
-
-ctxt-get-current-params : ctxt → params
-ctxt-get-current-params (mk-ctxt (_ , _ , ps , _) _ _ _) = ps
 

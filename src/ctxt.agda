@@ -26,23 +26,33 @@ qualif-insert-import σ mn oa (v :: vs) as = qualif-insert-import (trie-insert �
 
 
 new-ctxt : (filename modname : string) → ctxt
-new-ctxt fn mn = mk-ctxt (fn , mn , [] , new-qualif) (empty-trie , empty-trie , empty-trie , empty-trie , 0 , []) new-sym-info-trie (empty-trie , empty-trie , empty-trie , [] , empty-trie)
+new-ctxt fn mn =
+  record {
+    fn = fn;
+    mn = mn;
+    ps = [];
+    qual = new-qualif;
+    syms = empty-trie;
+    mod-map = empty-trie;
+    id-map = empty-trie;
+    id-current = 0;
+    id-list = [];
+    i = empty-trie;
+    μ = empty-trie;
+    μ' = empty-trie;
+    Is/μ = empty-trie;
+    μ~ = empty-trie;
+    μ̲ = empty-stringset
+  }
 
 empty-ctxt : ctxt
 empty-ctxt = new-ctxt "" ""
 
 ctxt-get-info : var → ctxt → maybe sym-info
-ctxt-get-info v (mk-ctxt _ _ i _) = trie-lookup i v
-
-ctxt-set-qualif : ctxt → qualif → ctxt
-ctxt-set-qualif (mk-ctxt (f , m , p , q') syms i Δ) q
-  = mk-ctxt (f , m , p , q) syms i Δ
-
-ctxt-get-qualif : ctxt → qualif
-ctxt-get-qualif (mk-ctxt (_ , _ , _ , q) _ _ _) = q
+ctxt-get-info v Γ = trie-lookup (ctxt.i Γ) v
 
 ctxt-get-qi : ctxt → var → maybe qualif-info
-ctxt-get-qi Γ = trie-lookup (ctxt-get-qualif Γ)
+ctxt-get-qi = trie-lookup ∘ ctxt.qual
 
 ctxt-qualif-args-length : ctxt → erased? → var → maybe ℕ
 ctxt-qualif-args-length Γ me v =
@@ -92,16 +102,20 @@ maybe-inst-kind = maybe-else (λ as T → T) ∘ inst-kind
 maybe-inst-ctrs = maybe-else (λ as c → c) ∘ inst-ctrs
 
 ctxt-term-decl : posinfo → var → type → ctxt → ctxt
-ctxt-term-decl p v T Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  let v' =  p % v in
-  mk-ctxt (fn , mn , ps , qualif-insert-params q v' v [])
-    syms (trie-insert i v' (term-decl T , fn , p)) Δ
+ctxt-term-decl pi v T Γ =
+  let v' =  pi % v in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) v' v [];
+    i = trie-insert (ctxt.i Γ) v' (term-decl T , ctxt.fn Γ , pi)
+  }
 
 ctxt-type-decl : posinfo → var → kind → ctxt → ctxt
-ctxt-type-decl p v k Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  let v' = p % v in
-  mk-ctxt (fn , mn , ps , qualif-insert-params q v' v [])
-    syms (trie-insert i v' (type-decl k , fn , p)) Δ
+ctxt-type-decl pi v k Γ =
+  let v' = pi % v in
+  record Γ {
+    qual = qualif-insert-params (ctxt.qual Γ) v' v [];
+    i = trie-insert (ctxt.i Γ) v' (type-decl k , ctxt.fn Γ , pi)
+  }
 
 ctxt-tk-decl : posinfo → var → tpkd → ctxt → ctxt
 ctxt-tk-decl p x (Tkt t) Γ = ctxt-term-decl p x t Γ 
@@ -114,18 +128,16 @@ _,_-_:`_ : ctxt → posinfo → var → tpkd → ctxt
 
 -- TODO not sure how this and renaming interacts with module scope
 ctxt-var-decl-if : var → ctxt → ctxt
-ctxt-var-decl-if v Γ with Γ
-... | mk-ctxt (fn , mn , ps , q) syms i Δ with trie-lookup i v
+ctxt-var-decl-if v Γ with trie-lookup (ctxt.i Γ) v
 ... | just (rename-def _ , _) = Γ
 ... | just (var-decl , _) = Γ
-... | _ = mk-ctxt (fn , mn , ps , trie-insert q v (v , [])) syms
-  (trie-insert i v (var-decl , "missing" , "missing")) Δ
+... | _ = ctxt-var-decl v Γ
 
 add-indices-to-ctxt : indices → ctxt → ctxt
 add-indices-to-ctxt = flip $ foldr λ {(Index x _) → ctxt-var-decl x}
 
 add-params-to-ctxt : params → ctxt → ctxt
-add-params-to-ctxt = flip $ foldr λ {(Param me x _) → ctxt-var-decl x}
+add-params-to-ctxt = flip $ foldr λ {(Param me x _) Γ → if ctxt-binds-var Γ (unqual-local x) then Γ else (ctxt-var-decl x ∘ ctxt-var-decl (unqual-local x)) Γ}
 
 add-caseArgs-to-ctxt : case-args → ctxt → ctxt
 add-caseArgs-to-ctxt = flip $ foldr λ {(CaseArg me x _) → ctxt-var-decl x}
@@ -134,9 +146,9 @@ add-ctrs-to-ctxt : ctrs → ctxt → ctxt
 add-ctrs-to-ctxt = flip $ foldr λ {(Ctr x T) → ctxt-var-decl x}
 
 ctxt-rename-rep : ctxt → var → var
-ctxt-rename-rep (mk-ctxt m syms i _) v with trie-lookup i v 
-...                                           | just (rename-def v' , _) = v'
-...                                           | _ = v
+ctxt-rename-rep Γ v with trie-lookup (ctxt.i Γ) v 
+...| just (rename-def v' , _) = v'
+...| _ = v
 
 -- we assume that only the left variable might have been renamed
 ctxt-eq-rep : ctxt → var → var → 𝔹
@@ -146,9 +158,11 @@ ctxt-eq-rep Γ x y = (ctxt-rename-rep Γ x) =string y
    Notice that adding a renaming for v will overwrite any other declarations for v. -}
 
 ctxt-rename : var → var → ctxt → ctxt
-ctxt-rename v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i Δ) =
-  mk-ctxt (fn , mn , ps , qualif-insert-params q v' v ps) syms
-    (trie-insert i v (rename-def v' , "missing" , "missing")) Δ
+ctxt-rename v v' Γ =
+  record Γ {
+    qual = trie-insert (ctxt.qual Γ) v (v' , []);
+    i = trie-insert (ctxt.i Γ) v (rename-def v' , missing-location)
+  }
 
 ----------------------------------------------------------------------
 -- lookup functions
@@ -156,21 +170,20 @@ ctxt-rename v v' Γ @ (mk-ctxt (fn , mn , ps , q) syms i Δ) =
 
 -- lookup mod params from filename
 lookup-mod-params : ctxt → var → maybe params
-lookup-mod-params (mk-ctxt _ (syms , _ , mn-ps , id) _ _) fn =
-  trie-lookup syms fn >>= λ { (mn , _) →
-  trie-lookup mn-ps mn }
+lookup-mod-params Γ fn =
+  trie-lookup (ctxt.syms Γ) fn >>=c λ mn _ →
+  trie-lookup (ctxt.mod-map Γ) mn >>=c λ fn' → just
 
 -- look for a defined kind for the given var, which is assumed to be a type,
 -- then instantiate its parameters
 qual-lookup : ctxt → var → maybe (var × args × sym-info)
-qual-lookup Γ@(mk-ctxt (_ , _ , _ , q) _ i _) v =
-  trie-lookup q v >>= λ qv →
-  trie-lookup i (fst qv) >>= λ si →
-  just (fst qv , snd qv , si)
+qual-lookup Γ v =
+  trie-lookup (ctxt.qual Γ) v >>=c λ qv as →
+  trie-lookup (ctxt.i Γ) qv >>= λ si →
+  just (qv , as , si)
 
 env-lookup : ctxt → var → maybe sym-info
-env-lookup Γ@(mk-ctxt (_ , _ , _ , _) _ i _) v =
-  trie-lookup i v
+env-lookup = trie-lookup ∘ ctxt.i
 
 ctxt-lookup-tpkd-var : ctxt → var → maybe (var × args × tpkd)
 ctxt-lookup-tpkd-var Γ v with qual-lookup Γ v
@@ -238,55 +251,53 @@ record ctxt-datatype-info : Set where
     gds : encoded-defs
     subst-cs : var → ctrs
 
-inst-enc-defs : ctxt → args → encoding-defs → encoding-defs
-inst-enc-defs Γ as (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
-  let as = arg-set-erased tt <$> as
-      bs = args-to-tmtps as in
+inst-enc-defs : ctxt → params → args → encoding-defs → encoding-defs
+inst-enc-defs Γ ps as (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
+  let as = arg-set-erased tt <$> as in
   mk-enc-defs ecs gcs
-    (recompose-tpapps bs Cast)
-    (recompose-apps   as cast-in)
-    (recompose-apps   as cast-out)
-    (recompose-apps   as cast-is)
-    (recompose-tpapps bs Functor)
-    (recompose-apps   as functor-in)
-    (recompose-apps   as functor-out)
-    (recompose-tpapps bs Fix)
-    (recompose-apps   as fix-in)
-    (recompose-apps   as fix-out)
-    (recompose-apps   as lambek1)
-    (recompose-apps   as lambek2)
-    (recompose-apps   as fix-ind)
+    (inst-type Γ ps as Cast)
+    (inst-term Γ ps as cast-in)
+    (inst-term Γ ps as cast-out)
+    (inst-term Γ ps as cast-is)
+    (inst-type Γ ps as Functor)
+    (inst-term Γ ps as functor-in)
+    (inst-term Γ ps as functor-out)
+    (inst-type Γ ps as Fix)
+    (inst-term Γ ps as fix-in)
+    (inst-term Γ ps as fix-out)
+    (inst-term Γ ps as lambek1)
+    (inst-term Γ ps as lambek2)
+    (inst-term Γ ps as fix-ind)
 
 data-lookup : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
-data-lookup Γ @ (mk-ctxt mod ss is (Δ , μ' , μ)) x as =
+data-lookup Γ x as =
   (maybe-else'
     {B = maybe (var × maybe term × args × 𝕃 tmtp ×
                  params × kind × kind × ctrs × encoding-defs × encoded-defs)}
-    (trie-lookup μ' x) -- Is x known locally to be a datatype?
-    (trie-lookup Δ x >>=c λ ps rest → -- No, so is it a global datatype?
+    (trie-lookup (ctxt.μ' Γ) x) -- Is x known locally to be a datatype?
+    (trie-lookup (ctxt.μ Γ) x >>=c λ ps rest → -- No, so is it a global datatype?
       let asₚ = tmtps-to-args-for-params nothing ps as
           asᵢ = drop (length ps) as in
       just (x , nothing , asₚ , asᵢ , ps , rest))
    λ where
     (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
-      trie-lookup Δ x' >>= λ rest → just (x' , just (Var x/mu) , as' , as , rest))
+      trie-lookup (ctxt.μ Γ) x' >>= λ rest → just (x' , just (Var x/mu) , as' , as , rest))
   >>= λ where
     (x' , x/mu , asₚ , asᵢ , ps , kᵢ , k , cs , eds , gds) →
       just $ mk-data-info x' x/mu asₚ asᵢ ps
         (inst-kind Γ ps asₚ kᵢ)
         (inst-kind Γ ps asₚ k)
         (inst-ctrs Γ ps asₚ (map-snd (subst Γ (params-to-tpapps ps (TpVar x')) x') <$> cs))
-        (inst-enc-defs Γ asₚ eds)
+        (inst-enc-defs Γ ps asₚ eds)
         gds
         λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ x' y) <$> cs)
 
 data-lookup-mu : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
-data-lookup-mu Γ@(mk-ctxt mod ss is (Δ , μ' , μ , η)) x as =
-  trie-lookup μ x >>= λ x' → data-lookup Γ x' as
+data-lookup-mu Γ x as =
+  trie-lookup (ctxt.Is/μ Γ) x >>= λ x' → data-lookup Γ x' as
 
 data-highlight : ctxt → var → ctxt
-data-highlight (mk-ctxt mod ss is (Δ , μ' , μ , μ~ , η)) x =
-  mk-ctxt mod ss is (Δ , μ' , μ , μ~ , stringset-insert η x)
+data-highlight Γ x = record Γ { μ̲ = stringset-insert (ctxt.μ̲ Γ) x }
 
 
 ctxt-lookup-term-loc : ctxt → var → maybe location
@@ -308,9 +319,9 @@ ctxt-lookup-type-loc Γ x = qual-lookup Γ x >>= λ where
 ----------------------------------------------------------------------
 
 ctxt-var-location : ctxt → var → location
-ctxt-var-location (mk-ctxt _ _ i _) x with trie-lookup i x
+ctxt-var-location Γ x with trie-lookup (ctxt.i Γ) x
 ... | just (_ , l) = l
-... | nothing = "missing" , "missing"
+... | nothing = missing-location
 
 ctxt-clarify-def : ctxt → opacity → var → maybe ctxt
 ctxt-clarify-def Γ o x with qual-lookup Γ x
@@ -326,53 +337,70 @@ ctxt-clarify-def Γ o x with qual-lookup Γ x
 ...| _ = nothing
 
 ctxt-set-current-file : ctxt → string → string → ctxt
-ctxt-set-current-file Γ fn mn = record Γ { mod = fn , mn , [] , new-qualif }
+ctxt-set-current-file Γ fn mn = record Γ { fn = fn; mn = mn; ps = []; qual = new-qualif }
 
-ctxt-set-current-mod : ctxt → mod-info → ctxt
-ctxt-set-current-mod (mk-ctxt _ syms i Δ) m = mk-ctxt m syms i Δ
-
-ctxt-set-current-params : ctxt → params → ctxt
-ctxt-set-current-params (mk-ctxt (fn , mn , ps , q) ss is Δ) ps' = mk-ctxt (fn , mn , ps' , q) ss is Δ
+ctxt-set-current-mod : ctxt → string × string × params × qualif → ctxt
+ctxt-set-current-mod Γ (fn , mn , ps , qual) = record Γ { fn = fn; mn = mn; ps = ps; qual = qual }
 
 ctxt-add-current-params : ctxt → ctxt
-ctxt-add-current-params Γ@(mk-ctxt m@(fn , mn , ps , _) (syms , mn-fn , mn-ps , ids) i Δ) =
-  mk-ctxt m (trie-insert syms fn (mn , []) , mn-fn , trie-insert mn-ps mn ps , ids) i Δ
+ctxt-add-current-params Γ =
+  record Γ {
+    syms = trie-insert (ctxt.syms Γ) (ctxt.fn Γ) (ctxt.mn Γ , []);
+    mod-map = trie-insert (ctxt.mod-map Γ) (ctxt.mn Γ) (ctxt.fn Γ , ctxt.ps Γ)
+  }
 
 ctxt-clear-symbol : ctxt → string → ctxt
-ctxt-clear-symbol Γ @ (mk-ctxt (fn , mn , pms , q) (syms , mn-fn) i Δ) x =
-  mk-ctxt (fn , mn , pms , trie-remove q x) (trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) syms , mn-fn) (trie-remove i (qualif-var Γ x)) Δ
+ctxt-clear-symbol Γ x =
+  let qx = qualif-var Γ x in
+  record Γ {
+    qual = trie-remove (ctxt.qual Γ) x;
+    syms = trie-map (λ ss → fst ss , remove _=string_ x (snd ss)) (ctxt.syms Γ);
+    i = trie-remove (ctxt.i Γ) qx;
+    μ = trie-remove (ctxt.μ Γ) qx;
+    Is/μ = trie-remove (ctxt.Is/μ Γ) qx;
+    μ̲ = trie-remove (ctxt.μ̲ Γ) qx
+  }
 
 ctxt-clear-symbols : ctxt → 𝕃 string → ctxt
 ctxt-clear-symbols Γ [] = Γ
 ctxt-clear-symbols Γ (v :: vs) = ctxt-clear-symbols (ctxt-clear-symbol Γ v) vs
 
 ctxt-clear-symbols-of-file : ctxt → (filename : string) → ctxt
-ctxt-clear-symbols-of-file (mk-ctxt f (syms , mn-fn , mn-ps) i Δ) fn =
-  mk-ctxt f (trie-insert syms fn (fst p , []) , trie-insert mn-fn (fst p) fn , mn-ps)
-    (hremove i (fst p) (snd p)) Δ
+ctxt-clear-symbols-of-file Γ fn =
+  elim-pair (trie-lookup𝕃2 (ctxt.syms Γ) fn) λ mn xs →
+  let ps = maybe-else' (trie-lookup (ctxt.mod-map Γ) mn) [] snd in
+  record Γ {
+    syms = trie-insert (ctxt.syms Γ) fn (mn , []);
+    mod-map = trie-insert (ctxt.mod-map Γ) mn (fn , ps);
+    i = hremove (ctxt.i Γ) mn xs;
+    μ = hremove (ctxt.μ Γ) mn xs;
+    Is/μ = hremove (ctxt.Is/μ Γ) mn xs;
+    μ̲ = hremove (ctxt.μ̲ Γ) mn xs
+  }
   where
-  p = trie-lookup𝕃2 syms fn
   hremove : ∀ {A : Set} → trie A → var → 𝕃 string → trie A
   hremove i mn [] = i
   hremove i mn (x :: xs) = hremove (trie-remove i (mn # x)) mn xs
 
 ctxt-add-current-id : ctxt → ctxt
-ctxt-add-current-id Γ @ (mk-ctxt mod (syms , mn-fn , mn-ps , fn-ids , id , id-fns) is Δ) with trie-contains fn-ids (fst mod)
+ctxt-add-current-id Γ with trie-contains (ctxt.id-map Γ) (ctxt.fn Γ)
 ...| tt = Γ
-...| ff = mk-ctxt mod (syms , mn-fn , mn-ps ,
-                trie-insert fn-ids (fst mod) (suc id) , suc id , (fst mod) :: id-fns) is Δ
+...| ff =
+  record Γ {
+    id-map = trie-insert (ctxt.id-map Γ) (ctxt.fn Γ) (suc (ctxt.id-current Γ));
+    id-current = suc (ctxt.id-current Γ);
+    id-list = ctxt.fn Γ :: ctxt.id-list Γ
+  }
 
 ctxt-initiate-file : ctxt → (filename modname : string) → ctxt
 ctxt-initiate-file Γ fn mn = ctxt-add-current-id (ctxt-set-current-file (ctxt-clear-symbols-of-file Γ fn) fn mn)
 
 unqual : ctxt → var → string
-unqual (mk-ctxt (_ , _ , _ , q) _ _ _) v =
-  if qualif-nonempty q
-  then unqual-local (unqual-all q v)
+unqual Γ v =
+  if qualif-nonempty (ctxt.qual Γ)
+  then unqual-local (unqual-all (ctxt.qual Γ) v)
   else v
 
 qualified-ctxt : ctxt → ctxt
-qualified-ctxt Γ @ (mk-ctxt mod ss is Δ) =
-  ctxt-set-qualif Γ $
-    for trie-strings is accum empty-trie use λ x q →
-      trie-insert q x (x , [])
+qualified-ctxt Γ = -- use ctxt.i so we bring ALL defs (even from cousin modules, etc...) into scope
+  record Γ {qual = for trie-strings (ctxt.i Γ) accum empty-trie use λ x q → trie-insert q x (x , [])}

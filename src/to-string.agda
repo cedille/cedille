@@ -113,7 +113,7 @@ drop-spine ops @ ced-ops-drop-spine = h
 
   drop-mod-args-term : ctxt → var × args → term
   drop-mod-args-term Γ (v , as) =
-    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    let uqv = unqual-all (ctxt.qual Γ) v in
     flip recompose-apps (Var uqv) $
       maybe-else' (maybe-if (~ v =string uqv) >>
                    ctxt-get-qi Γ uqv)
@@ -121,7 +121,7 @@ drop-spine ops @ ced-ops-drop-spine = h
 
   drop-mod-args-type : ctxt → var × 𝕃 tmtp → type
   drop-mod-args-type Γ (v , as) =
-    let uqv = unqual-all (ctxt-get-qualif Γ) v in
+    let uqv = unqual-all (ctxt.qual Γ) v in
     flip recompose-tpapps (TpVar uqv) $
       maybe-else' (maybe-if (~ v =string uqv) >>
                    ctxt-qualif-args-length Γ NotErased uqv)
@@ -218,19 +218,20 @@ strBracket l m r s n ts Γ pe lr with m nil (suc (suc n)) ts Γ pe lr
 ...| s' , n' , ts' = s <> bracket (char-to-string l) s' (char-to-string r) , suc (suc n') , ts'
 
 strΓ' : defScope → var → strM → strM
-strΓ' ds v m s n ts Γ@(mk-ctxt (fn , mn , ps , q) syms i Δ) pe =
+strΓ' ds v m s n ts Γ =
   let gl = ds iff globalScope
-      v' = if gl then (mn # v) else v in
-  m s n ts (mk-ctxt
-      (fn , mn , ps , qualif-insert-params q v' (unqual-local v) (if gl then ps else []))
-      syms (trie-insert i v' (var-decl , ("missing" , "missing"))) Δ) pe
+      v' = if gl then (ctxt.mn Γ # v) else v in
+  m s n ts
+    (record Γ {
+       qual = qualif-insert-params (ctxt.qual Γ) v' (unqual-local v) (if gl then ctxt.ps Γ else []);
+       i = trie-insert (ctxt.i Γ) v' (var-decl , missing-location)
+     })
 
 strΓ : var → strM → strM
 strΓ x m s n ts Γ = m s n ts (ctxt-var-decl x Γ)
 
 ctxt-get-file-id : ctxt → (filename : string) → ℕ
-ctxt-get-file-id (mk-ctxt mod (syms , mn-fn , mn-ps , ids , id) is Δ) =
-  trie-lookup-else 0 ids
+ctxt-get-file-id = trie-lookup-else 0 ∘ ctxt.id-map
 
 make-loc-tag : ctxt → (filename start-to end-to : string) → (start-from end-from : ℕ) → tag
 make-loc-tag Γ fn s e = make-tag "loc"
@@ -264,7 +265,7 @@ strVar v = strM-Γ λ Γ →
   strAddTags uqv' (var-tags Γ (qualif-var Γ v) uqv)
 
 strKvar : var → strM
-strKvar v = strM-Γ λ Γ → strVar (unqual-all (ctxt-get-qualif Γ) v)
+strKvar v = strM-Γ λ Γ → strVar (unqual-all (ctxt.qual Γ) v)
 
 -- Only necessary to unqual-local because of module parameters
 strBvar : var → (class body : strM) → strM
@@ -508,7 +509,7 @@ case-to-string (Case x as t _) =
   let as-f = λ x as → strVar x >>str caseArgs-to-string as (strAdd " ➔ " >>str to-stringr t) in
   case (env-lookup Γ x , options) of uncurry λ where
     (just (ctr-def mps T _ _ _ , _ , _)) ced-ops-drop-spine →
-          as-f (unqual-all (ctxt-get-qualif Γ) x) as
+          as-f (unqual-all (ctxt.qual Γ) x) as
     _ _ → as-f x as
 
 cases-to-string = h use-newlines where

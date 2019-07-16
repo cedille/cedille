@@ -54,10 +54,12 @@ fresh' bound n base with base ^ ℕ-to-string n
 
 fresh-h : (var → 𝔹) → var → var
 fresh-h bound x =
-  if ~ bound x
-    then x
-    else uncurry (fresh' bound) (fresh-split [] (reverse (string-to-𝕃char x)))
+  if ~ bound x'
+    then x'
+    else uncurry (fresh' bound) (fresh-split [] (reverse (string-to-𝕃char x')))
   where
+  x' = unqual-local x
+
   to-num : 𝕃 char → ℕ
   to-num [] = 1
   to-num ns = string-to-ℕ0 (𝕃char-to-string ns)

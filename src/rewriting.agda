@@ -224,11 +224,8 @@ post-rewrite Γ x eq t₂ T = subst Γ t₂ x (fst (post-rewriteh Γ x eq prtk t
   tk-decl : var → tpkd → ctxt → ctxt
   prtk Γ x t (Tkt T) = Tkt (fst (post-rewriteh Γ x t prtk tk-decl T))
   prtk Γ x t (Tkk k) = Tkk (hnf Γ unfold-head-elab k)
-  tk-decl x atk (mk-ctxt mod ss is Δ) =
-    mk-ctxt mod ss (trie-insert is x (h atk , "" , "")) Δ where
-    h : tpkd → ctxt-info
-    h (Tkt T) = term-decl T
-    h (Tkk k) = type-decl k
+  tk-decl x atk Γ =
+    record Γ { i = trie-insert (ctxt.i Γ) x (either-else' atk term-decl type-decl , "" , "") }
 
 -- Functions for substituting the type T in ρ e @ x . T - t
 rewrite-at-t : Set → Set

@@ -21,12 +21,12 @@ substh-cases : substh-ret-t cases
 substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-args → case-args × renamectxt × ctxt × trie (Σi exprd ⟦_⟧)
 
 subst-rename-var-if : ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → var
-subst-rename-var-if Γ ρ "_" σ = "_"
+subst-rename-var-if Γ ρ ignored-var σ = ignored-var
 subst-rename-var-if Γ ρ x σ =
   {- rename bound variable x iff it is one of the vars being substituted for,
      or if x occurs free in one of the terms we are substituting for vars,
      or if it is the renamed version of any variable -}
-  if trie-contains σ x || trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ || renamectxt-in-range ρ x || ctxt-binds-var Γ x then
+  if trie-contains σ x {-|| trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ-} || renamectxt-in-range ρ x || ctxt-binds-var Γ x then
     fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) x
   else
     x
