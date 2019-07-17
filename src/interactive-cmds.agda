@@ -21,10 +21,7 @@ open import rewriting
 open import rename
 open import classify options {Id}
 import spans options {IO} as io-spans
-open import datatype-functions
---open import elaboration (record options {during-elaboration = ff})
---open import elaboration-helpers (record options {during-elaboration = ff})
---open import templates
+open import datatype-util
 open import free-vars
 open import json
 
@@ -689,7 +686,7 @@ private
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) λ cas t → Case x cas t []
-                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) (λ _ _ _ → Hole pi-gen ) (mk-cs cs)
+                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) (λ _ _ → Hole pi-gen) (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t TYPE T''

@@ -1,5 +1,5 @@
 import cedille-options
-module elaboration-helpers (options : cedille-options.options) where
+module elab-util (options : cedille-options.options) where
 
 open import general-util
 open import cedille-types
@@ -14,7 +14,7 @@ open import rename
 open import rewriting
 open import free-vars
 open import toplevel-state options {IO}
-open import datatype-functions
+open import datatype-util
 
 rename-validify : string → string
 rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
@@ -238,7 +238,7 @@ choose-mu {TERM} (LetTp x k T t) = LetTp x (choose-mu k) (choose-mu T) (choose-m
 choose-mu {TERM} (Phi tm₌ tm₁ tm₂) = Phi (choose-mu tm₌) (choose-mu tm₁) (choose-mu tm₂)
 choose-mu {TERM} (Rho tm₌ x Tₓ tm) = Rho (choose-mu tm₌) x (choose-mu Tₓ) (choose-mu tm)
 choose-mu {TERM} (Sigma tm) = Sigma (choose-mu tm)
-choose-mu {TERM} (Mu μ t tp? ~> cs) = ~> t tp? cs
+choose-mu {TERM} (Mu μ t tp? ~> cs) = choose-mu $ ~> t cs
 choose-mu {TERM} (Var x) = Var x
 choose-mu {TYPE} (TpAbs e x tk tp) = TpAbs e x (choose-mu -tk tk) (choose-mu tp)
 choose-mu {TYPE} (TpIota x tp₁ tp₂) = TpIota x (choose-mu tp₁) (choose-mu tp₂)
@@ -714,6 +714,7 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
       to/D = recompose-apps asₚ (Var to/Dₓ)
       indF/D = recompose-apps (args-set-erased tt asₚ) (Var indF/Dₓ)
       Xₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar X)
+      Xₒₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar Xₒ)
       toₓ = rename "to" from Γᵢₛ for id
       outₓ = rename "out" from Γᵢₛ for id
       to-tp = λ R → TpAppTp (TpAppTp Cast R) Xₜₚ
@@ -731,7 +732,7 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
                 Rho (Sigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps (drop (length asₚ) asₜₚ) Tₘ) (Var xₓ)) t})
               empty-trie ms
       in-fix = λ is/X? T asᵢ t → either-else' x?
-        (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (AppEr (recompose-apps asᵢ (AppTp (AppTp cast-out (TpVar Xₒ)) Xₜₚ)) (App (AppTp is/X (to-tp (TpVar Xₒ))) (Lam ff "to" (just (Tkt (to-tp (TpVar Xₒ)))) $ Lam ff "out" (just (Tkt (out-tp (TpVar Xₒ)))) $ Var "to"))) t)
+        (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (AppEr (recompose-apps asᵢ (AppTp (AppTp cast-out Xₒₜₚ) Xₜₚ)) (App (AppTp is/X (to-tp Xₒₜₚ)) (Lam ff "to" (just (Tkt (to-tp Xₒₜₚ))) $ Lam ff "out" (just (Tkt (out-tp Xₒₜₚ))) $ Var "to"))) t)
         (λ x → App (recompose-apps asᵢ (AppEr (AppTp fix-in TypeF/D) fmap/D)) (maybe-else' is/X? t λ is/X →
         App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D T)) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D T) Xₜₚ) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to"))))) t))
       app-lambek = λ is/X? t T asᵢ body → AppEr (AppEr body (in-fix is/X? T asᵢ t))
@@ -779,12 +780,12 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
                (App (indices-to-apps is (AppEr (AppTp fix-in TypeF/D) fmap/D))
                     (App (indices-to-apps is fcₜ) (Var yₓ)))
                (Var y'ₓ)))))))
-    (λ _ → app-lambek is/X? t (recompose-tpapps (args-to-tmtps asₚ) (TpVar Xₒ))
+    (λ _ → app-lambek is/X? t Xₒₜₚ
              (tmtps-to-args tt asᵢ) (msf
-      (let Tₛ = maybe-else' is/X? Xₜₚ λ _ → TpVar Xₒ
+      (let Tₛ = maybe-else' is/X? Xₜₚ λ _ → Xₒₜₚ
            fcₜ = maybe-else' is/X? id λ is/X → App $ indices-to-apps is $
              AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D Tₛ)) (TpAppTp TypeF/D Xₜₚ))
-               (AppEr (AppTp (AppTp (AppEr (AppTp functor-out TypeF/D) fmap/D) Tₛ) Xₜₚ) (App is/X (Lam ff "to" (just (Tkt (to-tp Tₛ))) $ Lam ff "out" (just (Tkt (out-tp Tₛ))) $ Var "to")))
+               (AppEr (AppTp (AppTp (AppEr (AppTp functor-out TypeF/D) fmap/D) Tₛ) Xₜₚ) (App (AppTp is/X (to-tp Tₛ)) (Lam ff "to" (just (Tkt (to-tp Tₛ))) $ Lam ff "out" (just (Tkt (out-tp Tₛ))) $ Var "to")))
            out = maybe-else' is/X? (AppEr (AppTp fix-out TypeF/D) fmap/D) λ is/X →
              let i = App (AppTp is/X (TpIota xₓ (indices-to-alls is (TpAbs ff ignored-var (Tkt (indices-to-tpapps is Tₛ)) (indices-to-tpapps is (TpAppTp TypeF/D Tₛ)))) (TpEq (Var xₓ) fix-out))) (Lam ff "to" (just (Tkt (to-tp Tₛ))) $ Lam ff "out" (just (Tkt (out-tp Tₛ))) $ Var "out") in
              Phi (IotaProj i ι2) (IotaProj i ι1) fix-out in
@@ -798,7 +799,7 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
 
 {- ################################ IO ###################################### -}
 
-open import to-string (record options {during-elaboration = tt; show-qualified-vars = ff; erase-types = ff; pretty-print = tt})
+open import to-string (record options {during-elaboration = tt; show-qualified-vars = tt; erase-types = ff; pretty-print = tt})
 
 {-# TERMINATING #-}
 cmds-to-string : (newline-before-after : 𝔹) → params → cmds → strM

@@ -80,7 +80,7 @@ substh-decortype Γ ρ σ (decor-arrow e? dom cod) =
   substh-decortype Γ ρ σ cod
   >>= λ cod → return $ decor-arrow e? (substh Γ ρ σ dom) cod
 substh-decortype Γ ρ σ (decor-decor e? x tk sol dt) =
-  let x' = subst-rename-var-if Γ ρ x σ
+  let x' = subst-rename-var-if Γ ρ x σ (decortype-to-type dt)
       Γ' = ctxt-var-decl x' Γ
       ρ' = renamectxt-insert ρ x x'
   in substh-decortype Γ' ρ' σ dt

@@ -36,10 +36,10 @@ AGDASRC = \
 	rkt.agda \
 	meta-vars.agda \
 	cedille-options.agda \
-	elaboration-helpers.agda \
+	elab-util.agda \
 	instances.agda \
 	json.agda \
-	datatype-functions.agda \
+	datatype-util.agda \
 	bohm-out.agda \
 	pretty.agda \
 	type-inf.agda \

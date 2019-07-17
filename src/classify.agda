@@ -7,7 +7,7 @@ open import cedille-types
 open import constants
 open import conversion
 open import ctxt
-open import datatype-functions
+open import datatype-util
 open import free-vars
 open import meta-vars options {mF} ⦃ mFm ⦄
 open import rename
@@ -50,7 +50,10 @@ check-tpkd' {ff} Γ k f = check-tpkd Γ k >>= f
 lambda-bound-conv? : ctxt → var → tpkd → tpkd → 𝕃 tagged-val → 𝕃 tagged-val × err-m
 lambda-bound-conv? Γ x tk tk' ts with conv-tpkd Γ tk tk'
 ...| tt = ts , nothing
-...| ff = (to-string-tag-tk "declared classifier" Γ tk' :: to-string-tag-tk "expected classifier" Γ tk :: ts) , just "The classifier given for a λ-bound variable is not the one we expected"
+...| ff =
+  (to-string-tag-tk "declared classifier" Γ tk' ::
+   to-string-tag-tk "expected classifier" Γ tk :: ts) ,
+  just "The classifier given for a λ-bound variable is not the one we expected"
 
 id' = id
 
@@ -672,12 +675,16 @@ check-kind Γ (ExKdStar pi) =
 check-kind Γ (ExKdVar pi κ as) =
   case ctxt-lookup-kind-var-def Γ κ of λ where
     nothing →
-      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) [] checking []
-           (just "Undefined kind variable") -]
+      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as)
+           [] checking [] (just "Undefined kind variable") -]
       return (KdHole pi)
     (just (ps , k)) →
       check-args Γ as ps >>= λ as~ →
-      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) ps checking (params-data Γ ps) (maybe-if (length as < length ps) >> just ("Needed " ^ ℕ-to-string (length ps ∸ length as) ^ " further argument(s)")) -]
+      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as)
+          ps checking (params-data Γ ps)
+          (when (length as < length ps)
+            ("Needed " ^ ℕ-to-string (length ps ∸ length as)
+              ^ " further argument(s)")) -]
       return (fst (subst-params-args' Γ ps as~ k))
 
 
@@ -808,7 +815,9 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
     let T' = substs Γ σ T
         Γ' = ctxt-var-decl-loc pi x Γ in
     add-case-arg Γ' pi x (CaseArg tt x (just (Tkt T'))) $
-    decl-args Γ' as ps (trie-insert σ x' (, TpVar x)) (renamectxt-insert ρ (pi % x) x)
+    decl-args Γ' as ps
+      (trie-insert σ x' (, TpVar (pi % x)))
+      (renamectxt-insert ρ (pi % x) x)
       (binder-data Γ' pi x (Tkt T') Erased nothing spos epos :: xs)
       λ t → [- TpVar-span Γ pi x checking [ expected-type Γ T' ]
                  (just ("This type argument should be a" ^
@@ -838,7 +847,9 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
     let k' = substs Γ σ k
         Γ' = ctxt-var-decl-loc pi x Γ in
     add-case-arg Γ' pi x (CaseArg tt x (just (Tkk k'))) $
-    decl-args Γ' as ps (trie-insert σ x' (, Var x)) (renamectxt-insert ρ (pi % x) x)
+    decl-args Γ' as ps
+      (trie-insert σ x' (, Var (pi % x)))
+      (renamectxt-insert ρ (pi % x) x)
       (binder-data Γ' pi x (Tkk k') (ex-case-arg-erased me) nothing spos epos :: xs)
       λ t → [- Var-span Γ pi x checking [ expected-kind Γ k' ]
                  (just "This term argument should be a type") -] sm t
@@ -998,12 +1009,10 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
               sm cs~ >>
               let μ = case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)} in
               return-when {m = Tₑ?}
-                (Mu μ t~ (just Tₘ)
-                  (λ tₛ Tₘ? cs → erase-if (~ isJust Tₘ?) $
-                     mendler-elab-mu Γ d X μ t~ (maybe-else' Tₘ? (TpHole pi) id) cs) cs~)
+                (Mu μ t~ (just Tₘ) (λ tₛ → mendler-elab-mu Γ' d X μ tₛ Tₘ) cs~)
                 (maybe-else' Tᵣ (TpHole pi) id)
     (Tₕ , as) →
       [- Mu-span Γ pi μ pi''' nothing (maybe-to-checking Tₑ?)
         [ head-type Γ Tₕ ] (just "The head type of the subterm is not a datatype") -]
       return-when {m = Tₑ?} (Hole pi) (TpHole pi)
-  where open import elaboration-helpers options
+  where open import elab-util options

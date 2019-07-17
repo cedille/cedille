@@ -10,7 +10,7 @@ open import syntax-util
 open import type-util
 open import to-string options
 open import subst
-open import datatype-functions
+open import datatype-util
 open import json
 
 

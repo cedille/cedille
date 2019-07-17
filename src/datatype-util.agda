@@ -1,4 +1,4 @@
-module datatype-functions where
+module datatype-util where
 open import constants
 open import ctxt
 open import syntax-util

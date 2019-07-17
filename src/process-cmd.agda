@@ -21,9 +21,9 @@ open import subst
 open import syntax-util
 open import type-util
 open import toplevel-state options {mF}
-open import datatype-functions
+open import datatype-util
 open import rewriting
-open import elaboration-helpers options
+open import elab-util options
 import cws-types
 import cws
 

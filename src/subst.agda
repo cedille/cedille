@@ -20,9 +20,9 @@ substh-case : substh-ret-t case
 substh-cases : substh-ret-t cases
 substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-args → case-args × renamectxt × ctxt × trie (Σi exprd ⟦_⟧)
 
-subst-rename-var-if : ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → var
-subst-rename-var-if Γ ρ ignored-var σ = ignored-var
-subst-rename-var-if Γ ρ x σ =
+subst-rename-var-if : ∀ {ed} → ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → ⟦ ed ⟧ → var
+subst-rename-var-if Γ ρ ignored-var σ t = if is-free-in ignored-var t then fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) "x" else ignored-var
+subst-rename-var-if Γ ρ x σ _ =
   {- rename bound variable x iff it is one of the vars being substituted for,
      or if x occurs free in one of the terms we are substituting for vars,
      or if it is the renamed version of any variable -}
@@ -34,15 +34,15 @@ subst-rename-var-if Γ ρ x σ =
 substh {TERM} Γ ρ σ (App t t') = App (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (AppE t tT) = AppE (substh Γ ρ σ t) (substh Γ ρ σ -tT tT)
 substh {TERM} Γ ρ σ (Lam me x oc t) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ t in
     Lam me x' (substh Γ ρ σ -tk_ <$> oc)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TERM} Γ ρ σ (LetTm me x T t t') =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ t' in
     LetTm me x' (substh Γ ρ σ <$> T) (substh Γ ρ σ t)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t')
 substh {TERM} Γ ρ σ (LetTp x k T t) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ t in
     LetTp x' (substh Γ ρ σ k) (substh Γ ρ σ T)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TERM} Γ ρ σ (Var x) =
@@ -53,38 +53,39 @@ substh {TERM} Γ ρ σ (Var x) =
 substh {TERM} Γ ρ σ (Hole pi) = Hole pi -- Retain position, so jumping to hole works
 substh {TERM} Γ ρ σ (Beta t t') = Beta (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (IotaPair t₁ t₂ x T) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ T in
   IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
 substh {TERM} Γ ρ σ (IotaProj t n) = IotaProj (substh Γ ρ σ t) n
 substh {TERM} Γ ρ σ (Sigma t) = Sigma (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ σ t₁) (substh Γ ρ σ t₂)
 substh {TERM} Γ ρ σ (Rho tₑ x T t) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ T in
   Rho (substh Γ ρ σ tₑ) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T) (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Delta T t) = Delta (substh Γ ρ σ T) (substh Γ ρ σ t)
-substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ cs) =
+substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
   let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x || renamectxt-in-field ρ x
-      x' = fresh-h (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x)) x
+      x' = fresh-h (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x))
+                   (if x =string ignored-var then "x" else x)
       ρ' = renamectxt-insert ρ x x'
       ρ' = renamectxt-insert ρ' (mu-Type/ x) (mu-Type/ x')
       ρ' = renamectxt-insert ρ' (mu-isType/ x) (mu-isType/ x')
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) t~ (substh-cases Γ' ρ' σ cs)
-substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ cs) =
-  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) t~ (substh-cases Γ ρ σ cs)
+    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) (λ t ms → substh Γ ρ σ (t~ t ms)) (substh-cases Γ' ρ' σ ms)
+substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ ms) =
+  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (λ t ms → substh Γ ρ σ (t~ t ms)) (substh-cases Γ ρ σ ms)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ t in
     TpAbs me x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TYPE} Γ ρ σ (TpLam x tk t) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ t in
     TpLam x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ t)
 substh {TYPE} Γ ρ σ (TpIota x T₁ T₂) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ T₂ in
     TpIota x' (substh Γ ρ σ T₁)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T₂)
 substh {TYPE} Γ ρ σ (TpApp tp tT) = TpApp (substh Γ ρ σ tp) (substh Γ ρ σ -tT tT)
@@ -97,7 +98,7 @@ substh {TYPE} Γ ρ σ (TpVar x) =
 substh {TYPE} Γ ρ σ (TpHole pi) = TpHole pi -- Retain position, so jumping to hole works
 
 substh {KIND} Γ ρ σ (KdAbs x tk k) =
-  let x' = subst-rename-var-if Γ ρ x σ in
+  let x' = subst-rename-var-if Γ ρ x σ k in
     KdAbs x' (substh Γ ρ σ -tk tk)
       (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ k)
 substh {KIND} Γ ρ σ (KdHole pi) = KdHole pi -- Retain position, so jumping to hole works
@@ -105,7 +106,7 @@ substh {KIND} Γ ρ σ KdStar = KdStar
 
 substh-arg Γ ρ σ = substh Γ ρ σ -arg_
 
-substh-args Γ ρ σ = substh Γ ρ σ -arg_ <$>_
+substh-args Γ ρ σ = substh-arg Γ ρ σ <$>_
 
 substh-params Γ ρ σ ((Param me x tk) :: ps) =
   (Param me x (substh Γ ρ σ -tk tk) ) ::
@@ -121,7 +122,7 @@ substh-cases Γ ρ σ = map (substh-case Γ ρ σ)
     
 substh-case-args Γ ρ σ as = foldr (λ where
   (CaseArg e x tk) f ρ Γ σ →
-    let x' = subst-rename-var-if Γ ρ x σ in
+    let x' = subst-rename-var-if Γ ρ x σ (Var x) in
     map-fst (CaseArg e x' (substh Γ ρ σ -tk_ <$> tk) ::_)
             (f (renamectxt-insert ρ x x') (ctxt-var-decl x' Γ) (trie-remove σ x)))
   (λ ρ Γ σ → [] , ρ , Γ , σ) as ρ Γ σ

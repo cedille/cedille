@@ -419,6 +419,7 @@ _-arg'_ : ∀ {X : Set} → (∀ {ed : exprd} → ⟦ ed ⟧ → X) → arg → 
 f -arg' Arg t = f t
 f -arg' ArgE tT = f -tT' tT
 
+
 pos-tm-to-tm : pos-tm → ex-tm
 pos-tm-to-tm (PosTm t pi) = t
 
@@ -431,3 +432,39 @@ ex-case-ctr (ExCase pi x cas t) = x
 
 start-modname : ex-file → string
 start-modname (ExModule _ _ _ mn _ _ _) = mn
+
+{-
+traverse-internal : ∀ {ed} {X} → (∀ {ed} → X → ⟦ ed ⟧ → X × ⟦ ed ⟧) → X → ⟦ ed ⟧ → ⟦ ed ⟧
+traverse-internal {_} {X} f = h (fr ff) where
+  fr : ∀ {ed} → 𝔹 → (X → ⟦ ed ⟧ → ⟦ ed ⟧)
+  fr tt = f
+  fr ff = λ x t → t
+
+  h : ∀ {ed} → (∀ {ed} → X → ⟦ ed ⟧ → X × ⟦ ed ⟧) → X → ⟦ ed ⟧ → ⟦ ed ⟧
+  h {TERM} f (App t t') = ?
+  h {TERM} f (AppE t tT) = ?
+  h {TERM} f (Beta t t') = ?
+  h {TERM} f (Delta T t) = ?
+  h {TERM} f (Hole pi) = ?
+  h {TERM} f (Internal r t) = ?
+  h {TERM} f (IotaPair t t' x T) =?
+  h {TERM} f (IotaProj t n) = ?
+  h {TERM} f (Lam me x tk t) = ?
+  h {TERM} f (LetTm me x T? t t') = ?
+  h {TERM} f (LetTp x k T t) = ?
+  h {TERM} f (Phi tₑ t₁ t₂) = ?
+  h {TERM} f (Rho t x T t') = ?
+  h {TERM} f (Sigma t) = ?
+  h {TERM} f (Mu μ t T t~ cs) = ?
+  h {TERM} f (Var x) = ?
+  h {TYPE} f (TpAbs me x tk T) = ?
+  h {TYPE} f (TpIota x T₁ T₂) = ?
+  h {TYPE} f (TpApp T tT) = ?
+  h {TYPE} f (TpEq t₁ t₂) = ?
+  h {TYPE} f (TpHole pi) = ?
+  h {TYPE} f (TpLam x tk T) = ?
+  h {TYPE} f (TpVar x) = ?
+  h {KIND} f KdStar = ?
+  h {KIND} f (KdHole pi) = ?
+  h {KIND} f (KdAbs x tk k) = ?
+-}

@@ -83,6 +83,7 @@ mutual
     Beta : term → term → term
     Delta : type → term → term
     Hole : posinfo → term
+--    Internal : maybe term → term → term -- external term → internal representation → ...
     IotaPair : term → term → var → type → term
     IotaProj : term → iota-num → term
     Lam : erased? → var → maybe tpkd → term → term
@@ -91,7 +92,7 @@ mutual
     Phi : term → term → term → term
     Rho : term → var → type → term → term
     Sigma : term → term
-    Mu : is-mu → term → maybe type → (term → maybe type → cases → term) → cases → term
+    Mu : is-mu → term → maybe type → (elab : term → cases → term) → cases → term
     Var : var → term
   pattern AppTp t T = AppE t (Ttp T)
   pattern AppEr t t' = AppE t (Ttm t')
@@ -128,6 +129,7 @@ mutual
 
   record encoding-defs : Set where
     constructor mk-enc-defs
+    inductive
     field
       ecs : cmds -- encoding
       gcs : cmds -- generated

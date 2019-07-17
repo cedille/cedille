@@ -8,7 +8,7 @@ open import syntax-util
 open import ctxt
 open import rename
 open import general-util
-open import datatype-functions
+open import datatype-util
 open import type-util
 open import free-vars
 open import json

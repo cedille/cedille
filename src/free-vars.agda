@@ -31,6 +31,7 @@ free-vars {TERM} (AppE t tT) = free-vars t ++ₛ free-vars -tT' tT
 free-vars {TERM} (Beta t t') = free-vars t ++ₛ free-vars t'
 free-vars {TERM} (Delta T t) = free-vars T ++ₛ free-vars t
 free-vars {TERM} (Hole pi) = empty-stringset
+--free-vars {TERM} (Internal r t) = maybe-else' r (free-vars t) free-vars
 free-vars {TERM} (IotaPair t t' x T) = free-vars t ++ₛ free-vars t' ++ₛ stringset-remove (free-vars T) x
 free-vars {TERM} (IotaProj t n) = free-vars t
 free-vars {TERM} (Lam me x tk t) = maybe-else empty-stringset (free-vars-tk) tk ++ₛ stringset-remove (free-vars t) x
@@ -66,6 +67,9 @@ erase-args : args → 𝕃 term
 erase-params : params → 𝕃 var
 erase-tk : tpkd → tpkd
 erase-tT : tmtp → tmtp
+erase-is-mu : is-mu → is-mu
+
+erase-is-mu = either-else (λ _ → inj₁ nothing) inj₂
 
 erase-tk = erase -tk_
 erase-tT = erase -tT_
@@ -75,6 +79,7 @@ erase {TERM} (AppE t T) = erase t
 erase {TERM} (Beta t t') = erase t'
 erase {TERM} (Delta T t) = id-term
 erase {TERM} (Hole pi) = Hole pi
+--erase {TERM} (Internal tₑ tᵢ) = Internal (erase <$> tₑ) (erase tᵢ)
 erase {TERM} (IotaPair t t' x T) = erase t
 erase {TERM} (IotaProj t n) = erase t
 erase {TERM} (Lam me x tk t) = if me then erase t else Lam ff x nothing (erase t)
@@ -87,7 +92,7 @@ erase {TERM} (LetTp x k T t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
-erase {TERM} (Mu μ t T t~ cs) = Mu (either-else' μ (λ _ → inj₁ nothing) inj₂) (erase t) nothing (λ t2 T2 → t~ t2 nothing) (erase-cases cs)
+erase {TERM} (Mu μ t T t~ ms) = Mu (erase-is-mu μ) (erase t) nothing (λ t ms → erase (t~ t ms)) (erase-cases ms)
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)

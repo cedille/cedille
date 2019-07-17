@@ -12,7 +12,7 @@ open import subst
 open import syntax-util
 open import type-util
 --open import erase
-open import datatype-functions
+open import datatype-util
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =

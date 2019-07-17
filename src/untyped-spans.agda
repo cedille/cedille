@@ -14,7 +14,7 @@ open import subst
 open import syntax-util
 open import to-string options
 open import type-util
-open import elaboration-helpers options
+open import elab-util options
 
 {-# TERMINATING #-}
 untyped-term : ctxt → ex-tm → spanM term
@@ -177,7 +177,7 @@ untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
       let e = when (is-empty ms && is-empty (trie-mappings (ctxt.μ Γ)))
                 "No datatypes have been declared yet" in
       [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs e -]
-      return (Mu μ~ t~ nothing (λ t~ _ → mendler-elab-mu-pure Γ μ~ t~) ms~)
+      return (Mu μ~ t~ nothing (λ t~ ms → mendler-elab-mu-pure Γ μ~ t~ ms) ms~)
 
 -- x
 untyped-term Γ (ExVar pi x) =

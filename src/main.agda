@@ -135,7 +135,7 @@ module main-with-options
   open import toplevel-state options {IO}
   open import interactive-cmds options
   open import rkt options
-  open import elaboration-helpers options
+  open import elab-util options
   
 
   logFilepath : IO filepath

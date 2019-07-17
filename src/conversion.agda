@@ -132,7 +132,7 @@ hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
       μ = either-else' μₒ (λ _ → inj₁ nothing) inj₂
       Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
       cs = erase-cases cs'
-      t-else = λ t → Mu μ t nothing (λ t T? → t~ t nothing) $ flip map cs λ where
+      t-else = λ t → Mu μ t nothing t~ $ flip map cs λ where
                  (Case x cas t T) → Case x cas
                    (hnf (add-caseArgs-to-ctxt cas Γ') (unfold-dampen u) t) T
       case-matches : var → args → case → maybe (term × case-args × args)
