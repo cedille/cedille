@@ -1,6 +1,7 @@
-const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML.replace(/\n/g, "\\n"));
+const cedilleArchive = JSON.parse(document.getElementById('spans').innerHTML);
 const cedilleData = document.getElementById('cedille-data');
 const cedilleCode = document.getElementById('cedille-code-block');
+const cedilleFiles = document.getElementById('cedille-files');
 const emptyNode = document.createTextNode("");
 
 const removeClassFromSpans = (className, htmlSpans) => {
@@ -16,16 +17,18 @@ const isArray = x => {
 };
 
 const addEventListeners = (span, htmlSpan, htmlSpans) => {
-  htmlSpan.addEventListener('click', () => {
+  htmlSpan.addEventListener('click', event => {
+    event.stopPropagation();
     removeClassFromSpans('highlight', htmlSpans);
     htmlSpan.classList.add('highlight');
     displayData(span);
-  }, { capture: true });
+  });
 
-  htmlSpan.addEventListener('mouseover', () => {
+  htmlSpan.addEventListener('mouseover', event => {
+    event.stopPropagation();
     removeClassFromSpans('hover-highlight', htmlSpans);
     htmlSpan.classList.add('hover-highlight');
-  }, { capture: true });
+  });
 
   htmlSpan.addEventListener('mouseout', () => {
     htmlSpan.classList.remove('hover-highlight');
@@ -57,7 +60,7 @@ const displayData = ({name, start, end, data}) => {
     ...data
   };
 
-  cedilleData.innerHTML = null;
+  clearData();
   Object.keys(displayData).forEach((key) => {
     const keyDiv = createDiv('cedille-key', key)
     const valueDiv = createDiv('cedille-value', displayData[key]);
@@ -66,9 +69,13 @@ const displayData = ({name, start, end, data}) => {
   });
 };
 
+const clearData = () => {
+  cedilleData.innerHTML = null;
+};
+
 const displayCode = (filename) => {
-  const source = cedilleArchive[filename].source;
-  const spans = cedilleArchive[filename].spans.spans.map(([name, start, end, data]) => {
+  const source = cedilleArchive.files[filename].source;
+  const spans = cedilleArchive.files[filename].spans.spans.map(([name, start, end, data]) => {
     return { name, start, end, data };
   });
   const nodes = [null, ...source].map(c => document.createTextNode(c));
@@ -91,5 +98,27 @@ const displayCode = (filename) => {
   cedilleCode.appendChild(nodes[1]);
 };
 
-const filename = Object.keys(cedilleArchive)[0];
-displayCode(filename);
+const createFileLinks = () => {
+  const filenames = Object.keys(cedilleArchive.files).sort();
+
+  filenames.forEach(filename => {
+    const fileNode = createDiv('cedille-file', filename);
+
+    fileNode.addEventListener('click', () => {
+      if (fileNode.classList.contains('active')) return;
+      removeClassFromSpans('active', [...cedilleFiles.children]);
+      fileNode.classList.add('active');
+      clearData();
+      displayCode(filename);
+    });
+
+    if (filename === cedilleArchive.archiveFilename) {
+      fileNode.classList.add('active');
+    }
+
+    cedilleFiles.append(fileNode);
+  });
+};
+
+createFileLinks();
+displayCode(cedilleArchive.archiveFilename);

@@ -454,7 +454,7 @@ module main-with-options
                 update-asts s filename >>= λ s →
                 process-file (λ _, _ → return triv) s filename (fileBaseName filename) >>= λ { (s , _) →
                 return (createArchive s filename) >>= λ archive →
-                putRopeLn (json-to-rope archive) >>r s }
+                putRopeLn (json-to-rope (json-new (("archiveFilename", json-string filename) :: ("files", archive) :: []))) >>r s }
               archiveCommand ls s = errorCommand ls s >>r s
 
     {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
