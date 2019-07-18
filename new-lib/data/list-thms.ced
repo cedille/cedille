@@ -20,13 +20,14 @@ injList : ∀ A: ★. ∀ B: ★. Cast ·(List ·A) ·(List ·B) ➾ Cast ·A ·
 - intrCast -f -(λ _. β).
 
 tailDrop: ∀ A: ★. Π n: Nat. Π l: List ·A. {tail (drop n l) ≃ drop n (tail l)}
-= Λ A. λ n. λ l. μ ih. n {
-  | zero ➔ β
-  | succ n ➔ ρ+ ς (ih n) - β
+= Λ A. λ n. μ ih. n {
+  | zero ➔ λ l. β
+  | succ n ➔ λ l. ρ+ (ih n (tail l)) - β
   }.
 
 compDrop: ∀ A: ★. Π m: Nat. Π n: Nat. Π l: List ·A. {drop m (drop n l) ≃ drop (add m n) l}
 = Λ A. λ m. μ ih. m {
   | zero ➔ λ n. λ l. β
-  | succ m ➔ λ n. λ l. ρ+ (ih m n l) - β
+  | succ m ➔ λ n. λ l.
+    ρ+ (tailDrop n l) - ρ+ (ih m n (tail l)) - β
   }.

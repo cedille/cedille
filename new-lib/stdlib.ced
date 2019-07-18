@@ -14,7 +14,6 @@ import public data/decidable.
 import public data/list.
 import public data/list-sort.
 import public data/list-thms.
-import public data/maybe.
 import public data/nat.
 import public data/nat-cv.
 import public data/nat-thms.

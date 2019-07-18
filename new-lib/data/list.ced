@@ -2,7 +2,7 @@ module list.
 
 import bool.
 import nat.
-import maybe.
+import option.
 
 import ../core/cast.
 
@@ -10,8 +10,8 @@ data List (A: ★): ★ =
   | nil: List
   | cons: A ➔ List ➔ List.
 
-head : ∀ A: ★. List ·A ➔ Maybe ·A
-= Λ A. λ xs. μ' xs { nil ➔ nothing ·A | cons x xs ➔ just x}.
+head : ∀ A: ★. List ·A ➔ Option ·A
+= Λ A. λ xs. μ' xs { nil ➔ none ·A | cons x xs ➔ some x}.
 
 isCons : ∀ A: ★. List ·A ➔ Bool
 = Λ A. λ xs. μ' xs { nil ➔ ff | cons _ _ ➔ tt}.
@@ -25,6 +25,9 @@ tailCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ L ➔ L
 = Λ A. Λ L. Λ is. λ xs. μ'<is> xs {nil ➔ xs | cons x xs ➔ xs}.
 
 tail = Λ A: ★. tailCV ·A -(is/List ·A).
+
+singleton : ∀ A : ★ . A ➔ List · A
+= Λ A . λ a . cons a (nil · A).
 
 map : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ List ·A ➔ List ·B
   = Λ A. Λ B. λ f. λ xs. μ mapF. xs {
@@ -44,10 +47,10 @@ append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
   | cons x xs ➔ cons x (appYs xs)
   }.
 
-lookup : ∀ A: ★. List ·A ➔ Nat ➔ Maybe ·A
+lookup : ∀ A: ★. List ·A ➔ Nat ➔ Option ·A
   = Λ A. λ xs. μ l. xs {
-  | nil ➔ λ _. nothing ·A
-  | cons x xs ➔ λ n. μ' n {zero ➔ just x | succ n ➔ l xs n}
+  | nil ➔ λ _. none ·A
+  | cons x xs ➔ λ n. μ' n {zero ➔ some x | succ n ➔ l xs n}
   }.
 
 foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
@@ -80,7 +83,7 @@ take : ∀ A: ★. Nat ➔ List ·A ➔ List ·A
 dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
 = Λ A. Λ L. Λ is. λ n. μ drop. n {
   | zero ➔ λ xs. xs
-  | succ n ➔ λ xs. tailCV -is (drop n xs)
+  | succ n ➔ λ xs. drop n (tailCV -is xs)
   }.
 
 drop = Λ A: ★. dropCV -(is/List ·A).
@@ -96,7 +99,6 @@ concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
   | nil ➔ nil ·A
   | cons xs xss ➔ append xs (concat xss)
   }.
-
 
 eqList : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
 = Λ A. λ eq. λ xs. μ eqList. xs {
@@ -124,6 +126,3 @@ lCastMap : CastMap ·List
 
 lcastMap : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ List ·A ➔ List ·B
 = Λ A. Λ B. Λ c. castMap -lCastMap -c.
-
-singleton : ∀ A : ★ . A ➔ List · A
-= Λ A . λ a . cons a (nil · A).
