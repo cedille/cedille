@@ -447,7 +447,7 @@ TpQuant-span Γ me pi pi' x atk body check tvs err =
 
 TpLambda-span : ctxt → posinfo → posinfo → var → tpkd → ex-tp → checking-mode → 𝕃 tagged-val → err-m → span
 TpLambda-span Γ pi pi' x atk body check tvs =
-  mk-span "Type-level lambda abstraction" pi pi'
+  mk-span "Type-level lambda abstraction" pi (type-end-pos body)
     (checking-data check :: ll-data-type :: binder-data Γ pi' x atk NotErased nothing (type-start-pos body) (type-end-pos body) :: tvs)
 
 Iota-span : ctxt → posinfo → posinfo → var → type → ex-tp → checking-mode → 𝕃 tagged-val → err-m → span

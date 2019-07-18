@@ -334,6 +334,7 @@ data-Is/ = reprefix ("Is/" ^_)
 data-is/ = reprefix ("is/" ^_)
 mu-Type/ = reprefix ("Type/" ^_)
 mu-isType/ = reprefix ("isType/" ^_)
+mu-isType/' = reprefix ("is" ^_)
 -- Generated during elaboration
 data-TypeF/ = reprefix ("F/" ^_)
 data-IndF/ = reprefix ("IndF/" ^_)

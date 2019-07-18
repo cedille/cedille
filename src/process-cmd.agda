@@ -117,15 +117,15 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   let mn = ctxt.mn Γ
       qx = mn # x
       mps = ctxt.ps Γ ++ ps'
-      is = kind-to-indices Γₚₛ k'
-      kᵢ = indices-to-kind is $ KdAbs ignored-var
-             (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar
       Γ-decl = λ Γ → ctxt-type-decl pi' x k' $ data-highlight Γ (pi' % x)
       cmd-fail = CmdDefType x (params-to-kind ps' k') (TpHole pi')
       fail = λ e → [- TpVar-span Γ pi' x checking [] (just e) -] return2 s cmd-fail in
   process-ctrs x (pi' % x) qx mps pi' (record s {Γ = Γ-decl Γₚₛ}) cs >>=c λ Γ-cs cs~ →
   maybe-else' (cedille-options.options.datatype-encoding options >>=c λ fp f → f)
     (fail "Internal error (datatype encoding should have been parsed!)") λ de →
+  let is = kind-to-indices Γₚₛ k'
+      kᵢ = indices-to-kind is $ KdAbs ignored-var
+             (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar in
   either-else' (init-encoding Γₚₛ de (Data x ps' (kind-to-indices Γₚₛ k') cs~)) fail λ ecs →
   check-redefined pi' x (record s {Γ = Γ-cs Γ}) (CmdDefData ecs x ps' k' cs~)
   let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"

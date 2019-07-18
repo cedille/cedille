@@ -29,6 +29,7 @@ rename-validify = 𝕃char-to-string ∘ (h ∘ string-to-𝕃char) where
     (c =char '-')  ||
     (c =char '_')  ||
     is-digit c     ||
+    (c =char qual-local-chr)  ||
     (('a' <char c) && (c <char 'z')) ||
     (('A' <char c) && (c <char 'Z'))
   ...| tt = [ c ]
@@ -60,6 +61,12 @@ rename_-_lookup_for_ : ∀ {X : Set} → var → var → renamectxt → (var →
 rename xₒ - x lookup ρₓ for f with renamectxt-lookup ρₓ xₒ
 ...| nothing = rename xₒ - x from ρₓ for f
 ...| just x' = f x' ρₓ
+
+rename_from_and_for_ : ∀ {X : Set} → var → ctxt → renamectxt → (var → ctxt → renamectxt → X) → X
+rename ignored-var from Γ and ρ for f = f ignored-var Γ ρ
+rename x from Γ and ρ for f =
+  let x' = fresh-var' x (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x) in
+  f x' (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x')
 
 module reindexing (Γ : ctxt) (D I mn : var) (isₒ : indices) (psₜ : params) where
 
@@ -222,34 +229,75 @@ reindex-file Γ D I mn is ps cs =
       open reindexing (add-params-to-ctxt ps' Γ) D I mn is ps' in
   reindex-cmds cs
 
+mendler-elab-mu : ctxt → datatype-info → maybe term ⊎ var → term → type → cases → term
+mendler-elab-mu-pure : ctxt → maybe term ⊎ var → term → cases → term
+
 -- Maps over expression, elaborating all mu-terms
 {-# TERMINATING #-}
-choose-mu : ∀ {ed} → ⟦ ed ⟧ → ⟦ ed ⟧
-choose-mu {TERM} (App tm tm') = App (choose-mu tm) (choose-mu tm')
-choose-mu {TERM} (AppE tm tT) = AppE (choose-mu tm) (choose-mu -tT tT)
-choose-mu {TERM} (Beta tm tm') = Beta (choose-mu tm) (choose-mu tm')
-choose-mu {TERM} (Delta tp tm) = Delta (choose-mu tp) (choose-mu tm)
-choose-mu {TERM} (Hole pi) = Hole pi
-choose-mu {TERM} (IotaPair tm₁ tm₂ x Tₓ) = IotaPair (choose-mu tm₁) (choose-mu tm₂) x (choose-mu Tₓ)
-choose-mu {TERM} (IotaProj tm n) = IotaProj (choose-mu tm) n
-choose-mu {TERM} (Lam e x tk? tm) = Lam e x (choose-mu -tk_ <$> tk?) (choose-mu tm)
-choose-mu {TERM} (LetTm e x tp? tm tm') = LetTm e x (choose-mu <$> tp?) (choose-mu tm) (choose-mu tm')
-choose-mu {TERM} (LetTp x k T t) = LetTp x (choose-mu k) (choose-mu T) (choose-mu t)
-choose-mu {TERM} (Phi tm₌ tm₁ tm₂) = Phi (choose-mu tm₌) (choose-mu tm₁) (choose-mu tm₂)
-choose-mu {TERM} (Rho tm₌ x Tₓ tm) = Rho (choose-mu tm₌) x (choose-mu Tₓ) (choose-mu tm)
-choose-mu {TERM} (Sigma tm) = Sigma (choose-mu tm)
-choose-mu {TERM} (Mu μ t tp? ~> cs) = choose-mu $ ~> t cs
-choose-mu {TERM} (Var x) = Var x
-choose-mu {TYPE} (TpAbs e x tk tp) = TpAbs e x (choose-mu -tk tk) (choose-mu tp)
-choose-mu {TYPE} (TpIota x tp₁ tp₂) = TpIota x (choose-mu tp₁) (choose-mu tp₂)
-choose-mu {TYPE} (TpApp tp tT) = TpApp (choose-mu tp) (choose-mu -tT tT)
-choose-mu {TYPE} (TpEq tmₗ tmᵣ) = TpEq (choose-mu tmₗ) (choose-mu tmᵣ)
-choose-mu {TYPE} (TpHole pi) = TpHole pi
-choose-mu {TYPE} (TpLam x tk tp) = TpLam x (choose-mu -tk tk) (choose-mu tp)
-choose-mu {TYPE} (TpVar x) = TpVar x
-choose-mu {KIND} (KdAbs x tk kd) = KdAbs x (choose-mu -tk tk) (choose-mu kd)
-choose-mu {KIND} (KdHole pi) = KdHole pi
-choose-mu {KIND} KdStar = KdStar
+choose-mu : ∀ {ed} → ctxt → renamectxt → ⟦ ed ⟧ → ⟦ ed ⟧
+choose-mu {TERM} Γ ρ (App tm tm') =
+  App (choose-mu Γ ρ tm) (choose-mu Γ ρ tm')
+choose-mu {TERM} Γ ρ (AppE tm tT) =
+  AppE (choose-mu Γ ρ tm) (choose-mu Γ ρ -tT tT)
+choose-mu {TERM} Γ ρ (Beta tm tm') =
+  Beta (choose-mu Γ ρ tm) (choose-mu Γ ρ tm')
+choose-mu {TERM} Γ ρ (Delta tp tm) =
+  Delta (choose-mu Γ ρ tp) (choose-mu Γ ρ tm)
+choose-mu {TERM} Γ ρ (Hole pi) =
+  Hole pi
+choose-mu {TERM} Γ ρ (IotaPair tm₁ tm₂ x Tₓ) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  IotaPair (choose-mu Γ ρ tm₁) (choose-mu Γ ρ tm₂) x' (choose-mu Γ' ρ' Tₓ)
+choose-mu {TERM} Γ ρ (IotaProj tm n) =
+  IotaProj (choose-mu Γ ρ tm) n
+choose-mu {TERM} Γ ρ (Lam e x tk? tm) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  Lam e x' (choose-mu Γ ρ -tk_ <$> tk?) (choose-mu Γ' ρ' tm)
+choose-mu {TERM} Γ ρ (LetTm e x tp? tm tm') =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  LetTm e x' (choose-mu Γ ρ <$> tp?) (choose-mu Γ ρ tm) (choose-mu Γ' ρ' tm')
+choose-mu {TERM} Γ ρ (LetTp x k T t) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  LetTp x' (choose-mu Γ ρ k) (choose-mu Γ ρ T) (choose-mu Γ' ρ' t)
+choose-mu {TERM} Γ ρ (Phi tm₌ tm₁ tm₂) =
+  Phi (choose-mu Γ ρ tm₌) (choose-mu Γ ρ tm₁) (choose-mu Γ ρ tm₂)
+choose-mu {TERM} Γ ρ (Rho tm₌ x Tₓ tm) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  Rho (choose-mu Γ ρ tm₌) x' (choose-mu Γ' ρ' Tₓ) (choose-mu Γ ρ tm)
+choose-mu {TERM} Γ ρ (Sigma tm) =
+  Sigma (choose-mu Γ ρ tm)
+choose-mu {TERM} Γ ρ (Mu μ t tp? t~ ms) =
+  choose-mu Γ ρ
+    (maybe-else'
+      (t~ >>= λ t~ → tp? >>=r (_,_ t~))
+      (mendler-elab-mu-pure Γ μ t ms)
+      $ uncurry λ t~ tp → mendler-elab-mu Γ t~ μ t tp ms)
+choose-mu {TERM} Γ ρ (Var x) =
+  Var (renamectxt-rep ρ x)
+choose-mu {TYPE} Γ ρ (TpAbs e x tk tp) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  TpAbs e x' (choose-mu Γ ρ -tk tk) (choose-mu Γ' ρ' tp)
+choose-mu {TYPE} Γ ρ (TpIota x tp₁ tp₂) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  TpIota x' (choose-mu Γ ρ tp₁) (choose-mu Γ' ρ' tp₂)
+choose-mu {TYPE} Γ ρ (TpApp tp tT) =
+  TpApp (choose-mu Γ ρ tp) (choose-mu Γ ρ -tT tT)
+choose-mu {TYPE} Γ ρ (TpEq tmₗ tmᵣ) =
+  TpEq (choose-mu Γ ρ tmₗ) (choose-mu Γ ρ tmᵣ)
+choose-mu {TYPE} Γ ρ (TpHole pi) =
+  TpHole pi
+choose-mu {TYPE} Γ ρ (TpLam x tk tp) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  TpLam x' (choose-mu Γ ρ -tk tk) (choose-mu Γ' ρ' tp)
+choose-mu {TYPE} Γ ρ (TpVar x) =
+  TpVar (renamectxt-rep ρ x)
+choose-mu {KIND} Γ ρ (KdAbs x tk kd) =
+  rename x from Γ and ρ for λ x' Γ' ρ' →
+  KdAbs x' (choose-mu Γ ρ -tk tk) (choose-mu Γ' ρ' kd)
+choose-mu {KIND} Γ ρ (KdHole pi) =
+  KdHole pi
+choose-mu {KIND} Γ ρ KdStar =
+  KdStar
 
 
 -- Adds all Dₓ's encoding defs to the ctxt
@@ -420,6 +468,20 @@ encode-datatype Γ eds @ (mk-enc-defs ecs _
 
   app-ps = params-to-apps psₜ ∘ Var
   tpapp-ps = params-to-tpapps psₜ ∘ TpVar
+
+--  Cast = tpapp-ps Castₓ
+--  cast-in = app-ps cast-inₓ
+--  cast-out = app-ps cast-outₓ
+--  cast-is = app-ps cast-isₓ
+--  Functor = tpapp-ps Functorₓ
+--  functor-in = app-ps functor-inₓ
+--  functor-out = app-ps functor-outₓ
+--  Fix = tpapp-ps Fixₓ
+--  fix-in = app-ps fix-inₓ
+--  fix-out = app-ps fix-outₓ
+--  lambek1 = app-ps lambek1ₓ
+--  lambek2 = app-ps lambek2ₓ
+--  fix-ind = app-ps fix-indₓ
 
   mn = ctxt.mn Γ
 
@@ -677,8 +739,6 @@ init-encoding Γ (Module mn mps mcs) (Data Dₓ ps is cs) =
          "for index telescoping"
 
 
-
-mendler-elab-mu-pure : ctxt → maybe term ⊎ var → term → cases → term
 mendler-elab-mu-pure Γ x? t ms =
   maybe-else (Var "1") id $
   head2 (trie-mappings (ctxt.μ Γ)) >>= λ where
@@ -699,22 +759,37 @@ mendler-elab-mu-pure Γ x? t ms =
                 (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (yₓ , yₓ) :: [])) ∘ msf in
           App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ)))
 
-
-mendler-elab-mu : ctxt → ctxt-datatype-info → var → maybe term ⊎ var → term → type → cases → term
-mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ) fcs) Xₒ x? t Tₘ ms =
+mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ)) x? t Tₘ ms =
   let is = kind-to-indices Γ k
       Γᵢₛ = add-indices-to-ctxt is $ add-params-to-ctxt ps $ add-params-to-ctxt (ctxt.ps Γ) Γ
       is-as : indices → args
       is-as = λ is → map (λ {(Index x atk) → either-else' atk (λ _ → ArgEr (Var x)) (λ _ → ArgTp (TpVar x))}) is
-      is/X? = is/X?' maybe-or either-else' x? id λ _ → nothing
-      fmap/D = recompose-apps (args-set-erased tt asₚ) (Var fmap/Dₓ)
-      TypeF/D = recompose-tpapps (args-to-tmtps asₚ) (TpVar TypeF/Dₓ)
-      Is/D = recompose-tpapps (args-to-tmtps asₚ) (TpVar Is/Dₓ)
+      is/X? = either-else' x? id λ _ → unless (X =string Xₒ) (Var (mu-isType/' Xₒ))
+      app-ps = recompose-apps (args-set-erased tt asₚ) ∘ Var
+      tpapp-ps = recompose-tpapps (args-to-tmtps asₚ) ∘ TpVar
+      app-ps' = inst-term Γ ps asₚ
+      tpapp-ps' = inst-type Γ ps asₚ
+      fmap/D = app-ps fmap/Dₓ
+      TypeF/D = tpapp-ps TypeF/Dₓ
+      Is/D = tpapp-ps Is/Dₓ
       is/D = recompose-apps asₚ (Var is/Dₓ)
       to/D = recompose-apps asₚ (Var to/Dₓ)
-      indF/D = recompose-apps (args-set-erased tt asₚ) (Var indF/Dₓ)
+      indF/D = app-ps indF/Dₓ
+      Cast = tpapp-ps' Cast
+      cast-in = app-ps' cast-in
+      cast-out = app-ps' cast-out
+      cast-is = app-ps' cast-is
+      Functor = tpapp-ps' Functor
+      functor-in = app-ps' functor-in
+      functor-out = app-ps' functor-out
+      Fix = tpapp-ps' Fix
+      fix-in = app-ps' fix-in
+      fix-out = app-ps' fix-out
+      lambek1 = app-ps' lambek1
+      lambek2 = app-ps' lambek2
+      fix-ind = app-ps' fix-ind
       Xₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar X)
-      Xₒₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar Xₒ)
+      Xₒₜₚ = if Xₒ =string X then Xₜₚ else TpVar Xₒ
       toₓ = rename "to" from Γᵢₛ for id
       outₓ = rename "out" from Γᵢₛ for id
       to-tp = λ R → TpAppTp (TpAppTp Cast R) Xₜₚ
@@ -732,7 +807,7 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
                 Rho (Sigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps (drop (length asₚ) asₜₚ) Tₘ) (Var xₓ)) t})
               empty-trie ms
       in-fix = λ is/X? T asᵢ t → either-else' x?
-        (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (AppEr (recompose-apps asᵢ (AppTp (AppTp cast-out Xₒₜₚ) Xₜₚ)) (App (AppTp is/X (to-tp Xₒₜₚ)) (Lam ff "to" (just (Tkt (to-tp Xₒₜₚ))) $ Lam ff "out" (just (Tkt (out-tp Xₒₜₚ))) $ Var "to"))) t)
+        (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (AppEr (recompose-apps asᵢ (AppTp (AppTp cast-out T) Xₜₚ)) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to"))) t)
         (λ x → App (recompose-apps asᵢ (AppEr (AppTp fix-in TypeF/D) fmap/D)) (maybe-else' is/X? t λ is/X →
         App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D T)) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D T) Xₜₚ) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to"))))) t))
       app-lambek = λ is/X? t T asᵢ body → AppEr (AppEr body (in-fix is/X? T asᵢ t))
@@ -749,14 +824,10 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
       just λ tₕ → App (rec tₕ) t) (just λ t → t) cs >>= λ msf →
   maybe-else (just $ Var "2") just $
   just $ flip (either-else' x?)
-    (λ xₒ → rename xₒ from Γᵢₛ for λ x →
-    let Rₓₒ = mu-Type/ x
-        isRₓₒ = mu-isType/ x in
-    rename Rₓₒ from Γᵢₛ for λ Rₓ →
-    rename isRₓₒ from Γᵢₛ for λ isRₓ →
-    let fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓₒ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓₒ)) Xₜₚ) (Var toₓ))
-        subst-msf = subst-renamectxt Γᵢₛ
-          (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (isRₓₒ , isRₓ) :: (Rₓₒ , Rₓ) :: (toₓ , toₓ) :: (outₓ , outₓ) :: (xₓ , xₓ) :: (yₓ , yₓ) :: (y'ₓ , y'ₓ) :: [])) ∘ msf in
+    (λ x →
+    let Rₓ = mu-Type/ x
+        isRₓ = mu-isType/ x
+        fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ)) in
     App (AppTp (App (recompose-apps (tmtps-to-args tt asᵢ) (AppEr (AppTp fix-ind TypeF/D) fmap/D)) t) Tₘ)
       (Lam tt Rₓ (just (Tkk k)) $
        Lam tt toₓ (just (Tkt (to-tp (TpVar Rₓ)))) $
@@ -770,10 +841,10 @@ mendler-elab-mu Γ (mk-data-info X is/X?' asₚ asᵢ ps kᵢ k cs (mk-enc-defs 
                                    (TpAbs ff ignored-var (Tkt (out-tp (TpVar Rₓ)))
                                      (TpVar Xₓ))))) $
             App (App (Var xₓ) (Var toₓ)) (Var outₓ))
-       (app-lambek (just $ Var isRₓ) (Var yₓ) (TpVar Rₓ) (is-as is) $ subst-msf
-         (AppTp (Phi (Beta (Var yₓ) id-term) (App (indices-to-apps is (AppTp indF/D (TpVar Rₓₒ))) (Var yₓ)) (Var yₓ))
+       (app-lambek (just $ Var isRₓ) (Var yₓ) (TpVar Rₓ) (is-as is) $ msf
+         (AppTp (Phi (Beta (Var yₓ) id-term) (App (indices-to-apps is (AppTp indF/D (TpVar Rₓ))) (Var yₓ)) (Var yₓ))
            (indices-to-tplams is $
-            TpLam yₓ (Tkt $ indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓₒ))) $
+            TpLam yₓ (Tkt $ indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓ))) $
             TpAbs tt y'ₓ (Tkt $ indices-to-tpapps is Xₜₚ) $
             TpAbs tt eₓ (Tkt $ TpEq (App fix-in (Var yₓ)) (Var y'ₓ)) $
              TpAppTm (indices-to-tpapps is Tₘ) (Phi (Var eₓ)
@@ -863,12 +934,12 @@ elab-cmds ei mn ps [] = ei , []
 elab-cmds (mk-elab-info τ ρ φ) mn ps (CmdDefTerm x t :: csᵣ) =
   rename (mn # x) - x from ρ for λ x' ρ' →
   elim elab-cmds (mk-elab-info τ ρ' φ) mn ps csᵣ for λ ei csᵣ →
-  ei , CmdDefTerm x' (subst-renamectxt (toplevel-state.Γ τ) ρ (choose-mu (params-to-lams ps t))) :: csᵣ
+  ei , CmdDefTerm x' (choose-mu (toplevel-state.Γ τ) ρ (params-to-lams ps t)) :: csᵣ
 elab-cmds (mk-elab-info τ ρ φ) mn ps (CmdDefType x k T :: csᵣ) =
   rename (mn # x) - x from ρ for λ x' ρ' →
   elim elab-cmds (mk-elab-info τ ρ' φ) mn ps csᵣ for λ ei csᵣ →
-  ei , CmdDefType x' (subst-renamectxt (toplevel-state.Γ τ) ρ (choose-mu (params-to-kind ps k)))
-                     (subst-renamectxt (toplevel-state.Γ τ) ρ (choose-mu (params-to-tplams ps T))) :: csᵣ
+  ei , CmdDefType x' (choose-mu (toplevel-state.Γ τ) ρ (params-to-kind ps k))
+                     (choose-mu (toplevel-state.Γ τ) ρ (params-to-tplams ps T)) :: csᵣ
 elab-cmds ei mn ps (CmdDefKind x psₖ k :: csᵣ) =
   elab-cmds ei mn ps csᵣ
 elab-cmds ei mn ps (CmdDefData es x psₓ k cs :: csᵣ) =

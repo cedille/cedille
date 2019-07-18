@@ -484,7 +484,7 @@ arg-to-string (Arg t) = to-stringr t
 arg-to-string (ArgE (Ttm t)) = strAdd "-" >>str strNest 1 (to-stringr t)
 arg-to-string (ArgE (Ttp T)) = strAdd "·" >>str strNest 2 (to-stringr T)
 
-args-to-string = foldr' strEmpty λ t x → strAdd " " >>str arg-to-string t >>str x
+args-to-string = set-parent (App (Hole pi-gen) (Hole pi-gen)) ∘ foldr' strEmpty λ t x → strAdd " " >>str arg-to-string t >>str x
 
 binder-to-string tt = "∀"
 binder-to-string ff = "Π"

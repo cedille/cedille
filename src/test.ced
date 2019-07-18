@@ -1,0 +1,96 @@
+module test (x : {β ≃ β}).
+
+
+--Fix : {β ≃ β} = β{λ f. f (λ x. f (x x)) (λ x. f (x x))}.
+--Fix2 : {β ≃ β} = β{(λ x. x x) (λ x. x x)}.
+
+--hmm : {Fix ≃ Fix} = β.
+--hmm-eta : {λ x. Fix2 x ≃ (λ x. x) Fix2} = β.
+
+{-
+data Nat : ★ =
+| zero : Nat
+| succ : Π n : Nat. Nat.
+
+add : Nat ➔ Nat ➔ Nat =
+  λ m. λ n. μ add. m {
+    | zero ➔ n
+    | succ m ➔ succ (add m)
+  }.
+
+data MyData (x : {β ≃ β}) : ★ =
+| MyCtr : MyData.
+
+erased-problem : ∀ x : {β ≃ β}. MyData x ➔ MyData β{λ x. x} =
+  Λ x. λ d. μ' d { MyCtr ➔ MyCtr β{λ x. x} }.
+  ^----------------------------------------^
+... because the indicated term would elaborate to something like
+
+Λ x. λ d. FixInd x ·MyData d ·(λ _ : MyData x. MyData β{λ x. x}) ...
+
+and "x" is bound by an erased lambda, but used in an unerased position!
+
+-}
+
+{-
+data Nat : ★ =
+| Z : Nat
+| S : Π n : Nat. Nat.
+
+half : Nat ➔ Nat = λ n. μ' n {
+  | Z ➔ Z
+  | S n ➔ μ' n {
+    | Z ➔ S Z
+    | S n ➔ n
+  }
+}.
+
+add : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ addN. m { Z ➔ n | S m ➔ S (addN m)}.
+-}
+
+data List (A : ★) : ★ =
+| nil : List
+| cons : A ➔ List ➔ List.
+
+
+cast-test : ∀ B : ★. List ·B ➔ List ·B =
+  Λ C. λ l. μ ct. l {
+    | nil ➔ nil ·C
+    | cons a l ➔ to/List -isType/ct l
+  }.
+
+{-
+
+data RoseTree (A : ★) : ★ =
+| node : A ➔ List ·RoseTree ➔ RoseTree.
+
+lmap : ∀ A : ★. ∀ B : ★. (A ➔ B) ➔ List ·A ➔ List ·B =
+  Λ X. Λ Y. λ f. λ l. μ lmap. l {
+    | nil ➔ nil ·Y
+    | cons a l ➔ cons (f a) (lmap l)
+  }.
+
+rmap : ∀ A : ★. ∀ B : ★. (A ➔ B) ➔ RoseTree ·A ➔ RoseTree ·B =
+  Λ Y. Λ X. λ f. λ r. μ rmap. r {
+    | node a rs ➔ node (f a) (lmap rmap rs)
+  }.
+
+rmap' = β<β>{Λ Y. Λ X. λ f. λ r. μ rmap. r {
+    | node a rs ➔ node (f a) (lmap rmap rs)
+  }}.
+
+_ = φ β - rmap {rmap'}.
+
+{-
+
+μ n @ Motive {
+  | zero ➔ χ (Motive zero) - ...
+  | succ n ➔ χ (Motive (succ n)) - ...
+}.
+
+test : Nat ➔ (Nat ➔ Nat) ➔ Nat =
+  λ n. μ rec. n @ λ n : Nat. (Type/rec ➔ Nat) ➔ Nat {
+    | Z ➔ ●
+    | S n ➔ ●
+  }.

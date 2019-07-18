@@ -101,7 +101,7 @@ record ctxt : Set where
     -- concrete/global datatypes
     μ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs)
     -- abstract/local datatypes
-    μ' : trie (var × var × args)
+    μ' : trie (var × args)
     -- Is/D map
     Is/μ : trie var
     -- encoding defs (needed to generate fmaps for some datatypes, like rose tree)

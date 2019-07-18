@@ -132,11 +132,12 @@ module positivity (x : var) where
     if x =string x'
       then positivity-add occurs-pos f
       else maybe-else' (data-lookup Γ x' as) f
-        λ {(mk-data-info x'' mu asₚ asᵢ ps kᵢ k cs eds gds subst-cs) →
+        λ {(mk-data-info x'' xₒ'' asₚ asᵢ ps kᵢ k cs csₚₛ eds gds) →
           let x''' = fresh-var Γ x''
-              Γ' = ctxt-var-decl x''' Γ in
+              Γ' = ctxt-var-decl x''' Γ
+              cs' = map-snd (rename-var Γ' x'' x''') <$> csₚₛ in
           type+ Γ' (hnf' Γ' $ foldr (λ {(Ctr cₓ cₜ) → TpAbs NotErased ignored-var (Tkt cₜ)})
-                     (TpVar x''') (subst-cs x'''))}
+                     (TpVar x''') cs')}
   ...| _ , _ = if-free T
 
   

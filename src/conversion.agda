@@ -367,7 +367,7 @@ ctxt-kind-def pi v ps2 k Γ =
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
 ctxt-datatype-decl vₒ vᵣ as Γ =
   record Γ {
-    μ' = trie-insert (ctxt.μ' Γ) (mu-Type/ vᵣ) (vₒ , mu-isType/ vₒ , as);
+    μ' = trie-insert (ctxt.μ' Γ) (mu-Type/ vᵣ) (vₒ , as);
     μ̲ = stringset-insert (ctxt.μ̲ Γ) (mu-Type/ vᵣ)
   }
 

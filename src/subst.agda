@@ -15,10 +15,12 @@ substh-ret-t T = ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → T → T
 substh : ∀ {ed} → substh-ret-t ⟦ ed ⟧
 substh-arg : substh-ret-t arg
 substh-args : substh-ret-t args
+substh-params' : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → params → params × ctxt × renamectxt × trie (Σi exprd ⟦_⟧)
 substh-params : substh-ret-t params
 substh-case : substh-ret-t case
 substh-cases : substh-ret-t cases
 substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-args → case-args × renamectxt × ctxt × trie (Σi exprd ⟦_⟧)
+substh-datatype-info : substh-ret-t datatype-info
 
 subst-rename-var-if : ∀ {ed} → ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → ⟦ ed ⟧ → var
 subst-rename-var-if Γ ρ ignored-var σ t = if is-free-in ignored-var t then fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) "x" else ignored-var
@@ -72,9 +74,9 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) (λ t ms → substh Γ ρ σ (t~ t ms)) (substh-cases Γ' ρ' σ ms)
+    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ <$> t~) (substh-cases Γ' ρ' σ ms)
 substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ ms) =
-  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (λ t ms → substh Γ ρ σ (t~ t ms)) (substh-cases Γ ρ σ ms)
+  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ <$> t~) (substh-cases Γ ρ σ ms)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ t in
@@ -104,14 +106,34 @@ substh {KIND} Γ ρ σ (KdAbs x tk k) =
 substh {KIND} Γ ρ σ (KdHole pi) = KdHole pi -- Retain position, so jumping to hole works
 substh {KIND} Γ ρ σ KdStar = KdStar
 
+substh-datatype-info Γ ρ σ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ gds eds) =
+  let Γ' = foldr (λ { (Param me x tk) Γ → ctxt-var-decl x Γ       }) Γ ps
+      ρ' = foldr (λ { (Param me x tk) ρ → renamectxt-insert ρ x x }) ρ ps
+      σ' = foldr (λ { (Param me x tk) σ → trie-remove σ x         }) σ ps in
+  mk-data-info
+    (renamectxt-rep ρ X)
+    (renamectxt-rep ρ Xₒ)
+    (substh Γ ρ σ -arg_ <$> asₚ)
+    (substh Γ ρ σ -tT_ <$> asᵢ)
+    ps
+    (substh Γ' ρ' σ' kᵢ)
+    (substh Γ' ρ' σ' k)
+    (map-snd (substh Γ' ρ' σ') <$> cs)
+    (map-snd (substh Γ ρ σ) <$> csₚₛ)
+    gds
+    eds
+
+
 substh-arg Γ ρ σ = substh Γ ρ σ -arg_
 
 substh-args Γ ρ σ = substh-arg Γ ρ σ <$>_
 
-substh-params Γ ρ σ ((Param me x tk) :: ps) =
-  (Param me x (substh Γ ρ σ -tk tk) ) ::
-    (substh-params Γ (renamectxt-insert ρ x x) (trie-remove σ x) ps)
-substh-params Γ ρ σ [] = []
+substh-params' Γ ρ σ ((Param me x tk) :: ps) =
+  map-fst (Param me x (substh Γ ρ σ -tk tk) ::_)
+    (substh-params' Γ (renamectxt-insert ρ x x) (trie-remove σ x) ps)
+substh-params' Γ ρ σ [] = [] , Γ , ρ , σ
+
+substh-params Γ ρ σ ps = fst (substh-params' Γ ρ σ ps)
 
 substh-case Γ ρ σ (Case x as t asₜₚ) =
   case (substh-case-args Γ ρ σ as) of λ where

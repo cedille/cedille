@@ -236,21 +236,7 @@ ctxt-binds-type-var Γ x with qual-lookup Γ x
 ...| just (qx , as , type-decl _ , _) = just (qx , as)
 ...| _ = nothing
 
-record ctxt-datatype-info : Set where
-  constructor mk-data-info
-  field
-    name : var
-    mu : maybe term
-    asₚ : args
-    asᵢ : 𝕃 tmtp
-    ps : params
-    kᵢ : kind
-    k : kind
-    cs : ctrs
-    eds : encoding-defs
-    gds : encoded-defs
-    subst-cs : var → ctrs
-
+{-
 inst-enc-defs : ctxt → params → args → encoding-defs → encoding-defs
 inst-enc-defs Γ ps as (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) =
   let as = arg-set-erased tt <$> as in
@@ -268,33 +254,38 @@ inst-enc-defs Γ ps as (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functo
     (inst-term Γ ps as lambek1)
     (inst-term Γ ps as lambek2)
     (inst-term Γ ps as fix-ind)
+-}
 
-data-lookup : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
-data-lookup Γ x as =
+data-lookup' : ctxt → var → var → 𝕃 tmtp → maybe datatype-info
+data-lookup' Γ xₒ x as =
   (maybe-else'
-    {B = maybe (var × maybe term × args × 𝕃 tmtp ×
+    {B = maybe (var × args × 𝕃 tmtp ×
                  params × kind × kind × ctrs × encoding-defs × encoded-defs)}
     (trie-lookup (ctxt.μ' Γ) x) -- Is x known locally to be a datatype?
     (trie-lookup (ctxt.μ Γ) x >>=c λ ps rest → -- No, so is it a global datatype?
       let asₚ = tmtps-to-args-for-params nothing ps as
           asᵢ = drop (length ps) as in
-      just (x , nothing , asₚ , asᵢ , ps , rest))
+      just (x , asₚ , asᵢ , ps , rest))
    λ where
-    (x' , x/mu , as') → -- Yes, it is a local datatype of x', as evinced by x/mu, and gives as' as parameters to x'
-      trie-lookup (ctxt.μ Γ) x' >>= λ rest → just (x' , just (Var x/mu) , as' , as , rest))
+    (x' , as') → -- Yes, it is a local datatype of x', and gives as' as parameters to x'
+      trie-lookup (ctxt.μ Γ) x' >>= λ rest → just (x' , as' , as , rest))
   >>= λ where
-    (x' , x/mu , asₚ , asᵢ , ps , kᵢ , k , cs , eds , gds) →
-      just $ mk-data-info x' x/mu asₚ asᵢ ps
+    (x' , asₚ , asᵢ , ps , kᵢ , k , cs , eds , gds) →
+      just $ mk-data-info x' xₒ asₚ asᵢ ps
         (inst-kind Γ ps asₚ kᵢ)
         (inst-kind Γ ps asₚ k)
+        cs
         (inst-ctrs Γ ps asₚ (map-snd (subst Γ (params-to-tpapps ps (TpVar x')) x') <$> cs))
-        (inst-enc-defs Γ ps asₚ eds)
+        eds {-(inst-enc-defs Γ ps asₚ eds)-}
         gds
-        λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ x' y) <$> cs)
+        --λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ x' y) <$> cs)
 
-data-lookup-mu : ctxt → var → 𝕃 tmtp → maybe ctxt-datatype-info
-data-lookup-mu Γ x as =
-  trie-lookup (ctxt.Is/μ Γ) x >>= λ x' → data-lookup Γ x' as
+data-lookup : ctxt → var → 𝕃 tmtp → maybe datatype-info
+data-lookup Γ x = data-lookup' Γ x x
+
+data-lookup-mu : ctxt → var → var → 𝕃 tmtp → maybe datatype-info
+data-lookup-mu Γ xₒ x as =
+  trie-lookup (ctxt.Is/μ Γ) x >>= λ x' → data-lookup' Γ xₒ x' as
 
 data-highlight : ctxt → var → ctxt
 data-highlight Γ x = record Γ { μ̲ = stringset-insert (ctxt.μ̲ Γ) x }

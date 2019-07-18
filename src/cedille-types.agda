@@ -76,7 +76,7 @@ mutual
 
   -- Below pragma is necessary due to mu elaboration argument
   -- (which we might want to change away from a function for memory efficiency)
-  {-# NO_POSITIVITY_CHECK #-}
+--  {-# NO_POSITIVITY_CHECK #-}
   data term : Set where
     App : term → term → term
     AppE : term → tmtp → term
@@ -92,7 +92,7 @@ mutual
     Phi : term → term → term → term
     Rho : term → var → type → term → term
     Sigma : term → term
-    Mu : is-mu → term → maybe type → (elab : term → cases → term) → cases → term
+    Mu : is-mu → term → maybe type → maybe datatype-info → cases → term
     Var : var → term
   pattern AppTp t T = AppE t (Ttp T)
   pattern AppEr t t' = AppE t (Ttm t')
@@ -156,6 +156,24 @@ mutual
       TypeF/D : var
       IndF/D : var
       fmap/D :  var
+
+  record datatype-info : Set where
+    constructor mk-data-info
+    inductive
+    field
+      name : var
+      original : var
+      asₚ : args
+      asᵢ : 𝕃 tmtp
+      ps : params
+      kᵢ : kind
+      k : kind
+      cs : ctrs
+      csₚₛ : ctrs
+      eds : encoding-defs
+      gds : encoded-defs
+--      subst-cs : var → ctrs
+
 
   data cmd : Set where
     CmdDefTerm : var → term → cmd

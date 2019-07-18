@@ -638,14 +638,16 @@ private
                          (λ t → inj₁ "Expression must be a type to case split")
                          (λ T → maybe-else' (data-lookup Γ Xₛ as)
                            (inj₁ "The synthesized type of the input term is not a datatype")
-                           λ d → let mk-data-info X mu asₚ asᵢ ps kᵢ k _ _ cs σ = d
+                           λ d → let mk-data-info X _ asₚ asᵢ ps kᵢ k cs csₚₛ _ _ = d
                                      is' = kind-to-indices (add-params-to-ctxt ps Γ) kᵢ
                                      is = drop-last 1 is'
                                      Tₘ = refine-motive Γ is' (asᵢ ++ [ Ttm tₛ ]) T
                                      sM' = ctxt-mu-decls Γ tₛ is Tₘ d Γₚᵢ "0" "0" rec
+                                     σ = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ X y) <$> cs)
                                      sM = if rec =string ""
                                              then (σ X , const spanMok , Γ , [] , empty-renamectxt)
-                                             else (σ (Γₚᵢ % mu-Type/ rec) , sM') in
+                                             else (σ (Γₚᵢ % mu-Type/ rec) , sM')
+                                     mu = if X =string Xₛ then recompose-apps asₚ (Var (data-is/ X)) else Var (mu-isType/' Xₛ) in
                              case sM of λ where
                                (σ-cs , _ , Γ' , ts , ρ) →
                                  if spans-have-error (snd $ id-out $
@@ -653,8 +655,7 @@ private
                                    then inj₁ "Computed an ill-typed motive"
                                    else inj₂ (
                                      tₛ ,
-                                     maybe-else' mu
-                                       (recompose-apps asₚ (Var (data-is/ X))) id ,
+                                     mu ,
                                      map (λ {(Ctr x T) →
                                        let T' = hnf Γ' unfold-head-elab T in
                                        Ctr x T ,
@@ -686,7 +687,7 @@ private
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) λ cas t → Case x cas t []
-                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) (λ _ _ → Hole pi-gen) (mk-cs cs)
+                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) nothing (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t TYPE T''
