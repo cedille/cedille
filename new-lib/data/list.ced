@@ -11,7 +11,7 @@ data List (A: ★): ★ =
   | cons: A ➔ List ➔ List.
 
 head : ∀ A: ★. List ·A ➔ Maybe ·A
-= Λ A. λ xs. μ' xs { nil ➔ none ·A | cons x xs ➔ some x}.
+= Λ A. λ xs. μ' xs { nil ➔ nothing ·A | cons x xs ➔ just x}.
 
 isCons : ∀ A: ★. List ·A ➔ Bool
 = Λ A. λ xs. μ' xs { nil ➔ ff | cons _ _ ➔ tt}.
@@ -46,8 +46,8 @@ append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
 
 lookup : ∀ A: ★. List ·A ➔ Nat ➔ Maybe ·A
   = Λ A. λ xs. μ l. xs {
-  | nil ➔ λ _. none ·A
-  | cons x xs ➔ λ n. μ' n {zero ➔ some x | succ n ➔ l xs n}
+  | nil ➔ λ _. nothing ·A
+  | cons x xs ➔ λ n. μ' n {zero ➔ just x | succ n ➔ l xs n}
   }.
 
 foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
@@ -80,10 +80,23 @@ take : ∀ A: ★. Nat ➔ List ·A ➔ List ·A
 dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
 = Λ A. Λ L. Λ is. λ n. μ drop. n {
   | zero ➔ λ xs. xs
-  | succ n ➔ λ xs. tailCV -is xs
+  | succ n ➔ λ xs. tailCV -is (drop n xs)
   }.
 
 drop = Λ A: ★. dropCV -(is/List ·A).
+
+repeat : ∀ A: ★. A ➔ Nat ➔ List ·A
+= Λ A. λ x. λ n. μ repeat. n {
+  | zero ➔ nil ·A
+  | succ n ➔ cons x (repeat n)
+  }.
+
+concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
+= Λ A. λ xss. μ concat. xss {
+  | nil ➔ nil ·A
+  | cons xs xss ➔ append xs (concat xss)
+  }.
+
 
 eqList : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
 = Λ A. λ eq. λ xs. μ eqList. xs {

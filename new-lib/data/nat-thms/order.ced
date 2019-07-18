@@ -49,7 +49,7 @@ lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
 -- Π m n, m ≤ n → m -1 ≤ n
 ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
 = λ m. μ' m {
-  | zero ➔ λ _. Λ _. β
+  | zero ➔ λ _. λ _. β
   | succ m ➔ λ n. μ' n {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lte. lteSRight m n lte

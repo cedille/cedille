@@ -1,6 +1,6 @@
 module unit.
 
-data Unit: ★ = triv: Unit.
+data Unit: ★ = unit: Unit.
 
-etaUnit : Π u: Unit. {u ≃ triv}
-= λ u. μ' u { triv ➔ β }.
+etaUnit : Π u: Unit. {u ≃ unit}
+= λ u. μ' u { unit ➔ β }.
