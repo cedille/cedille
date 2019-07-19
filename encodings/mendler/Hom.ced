@@ -6,6 +6,11 @@ import sigma.
 
 import Ind · F -fm.
 
+{- IsHom and IsHom2 are two notions of homomorphism that are provably
+   equivalent.  Using IsHom allows one to avoid doing induction on
+   the form of an inhabitant of C when reasoning with Initiality below,
+   as that induction is performed already in the proof of Initiality. -}
+
 IsHom : Π X1 : ★ . (Alg · C · X1) ➔
         Π X2 : ★ . (Alg · C · X2) ➔ 
         Π h : X1 ➔ X2 . ★ =
@@ -15,19 +20,35 @@ IsHom : Π X1 : ★ . (Alg · C · X1) ➔
     ∀ R : ★ . Cast · R · C ➾
     Π fr : F · R . { h (alg1 (foldU alg1) fr) ≃ alg2 (foldU alg2) fr }.
 
-HomFold : ∀ X1 : ★ . ∀ alg1 : Alg · C · X1 . 
+IsHom2 : Π X1 : ★ . (Alg · C · X1) ➔
+         Π X2 : ★ . (Alg · C · X2) ➔ 
+         Π h : X1 ➔ X2 . ★ =
+   λ X1 : ★ . λ alg1 : Alg · C · X1 .
+   λ X2 : ★ . λ alg2 : Alg · C · X2 .
+   λ h : X1 ➔ X2 .
+   Π r : C .
+     { h (fold alg1 r) ≃ fold alg2 r }.
+
+HomHom2 : ∀ X1 : ★ . ∀ alg1 : Alg · C · X1 . 
           ∀ X2 : ★ . ∀ alg2 : Alg · C · X2 .
           ∀ h : X1 ➔ X2 .
           IsHom · X1 alg1 · X2 alg2 h ➔
-          ∀ R : ★ . Cast · R · C ➾
-          Π r : R .
-          { h (fold alg1 r) ≃ fold alg2 r } =
+          IsHom2 · X1 alg1 · X2 alg2 h =
   Λ X1 . Λ alg1 . Λ X2 . Λ alg2 . Λ h . λ H .
-  Λ R . Λ c . λ r . 
-    θ<r> (Ind (cast -c r))
+  λ r . 
+    θ<r> (Ind r)
     [ β{λ ih . λ fr . H fr} ,
       Λ R . Λ reveal . λ ih . λ fr .
         (H · R -reveal fr)].
+
+Hom2Hom : ∀ X1 : ★ . ∀ alg1 : Alg · C · X1 . 
+          ∀ X2 : ★ . ∀ alg2 : Alg · C · X2 .
+          ∀ h : X1 ➔ X2 .
+          IsHom2 · X1 alg1 · X2 alg2 h ➔
+          IsHom · X1 alg1 · X2 alg2 h =
+  Λ X1 . Λ alg1 . Λ X2 . Λ alg2 . Λ h . λ H .
+  Λ R . Λ c . λ r . 
+  ρ (H (in -fm (cast -(fm c) r))) - β.
 
 IdHom : ∀ X : ★ . ∀ alg : Alg · C · X .
         IsHom · X alg · X alg (λ x . x) =
