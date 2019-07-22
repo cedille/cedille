@@ -4,8 +4,8 @@ import cast.
 
 TpEq : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι _: Cast ·A ·B. Cast ·B ·A.
 
-intrTpEq : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·B ·A ➔ TpEq ·A ·B
-  = Λ A. Λ B. λ c1. λ c2. [ [ λ a. elimCast -c1 a , β] , [ λ b. elimCast -c2 b , β ] ].
+intrTpEq : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·B ·A ➾ TpEq ·A ·B
+  = Λ A. Λ B. Λ c1. Λ c2. [ [ elimCast -c1 , β] , [ elimCast -c2 , β ] ].
 
 elimTpEq1 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ A ➔ B
   = Λ A. Λ B. Λ teq. λ a. elimCast -teq.1 a.
@@ -13,5 +13,5 @@ elimTpEq1 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ A ➔ B
 elimTpEq2 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ B ➔ A
   = Λ A. Λ B. Λ teq. λ b. elimCast -teq.2 b.
 
-trivTpEq : ∀ A: ★. TpEq ·A ·A
-= Λ A. intrTpEq (trivCast ·A) (trivCast ·A).
+tpEqRefl : ∀ A: ★. TpEq ·A ·A
+= Λ A. intrTpEq -(castRefl ·A) -(castRefl ·A).

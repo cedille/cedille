@@ -12,8 +12,17 @@ ite : ∀ X: ★. Bool ➔ X ➔ X ➔ X
 
 if = ite.
 
+indBool : ∀ P: Bool ➔ ★. Π b: Bool. P tt ➔ P ff ➔ P b
+= Λ P. λ b. λ t. λ f. μ' b {
+  | tt ➔ t
+  | ff ➔ f
+  }.
+
 and : Bool ➔ Bool ➔ Bool
 = λ a. λ b. ite a b ff.
 
 or : Bool ➔ Bool ➔ Bool
 = λ a. λ b. ite a tt b.
+
+implies : Bool ➔ Bool ➔ Bool
+= λ a . λ b . ite a b tt.

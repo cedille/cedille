@@ -5,7 +5,6 @@ import ../sum.
 import ../decidable.
 import simple.
 import ../../core/bot.
-import ../../core/eq.
 import ../../core/top.
 
 import ../bool.
@@ -50,12 +49,15 @@ lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
 -- Π m n, m ≤ n → m -1 ≤ n
 ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
 = λ m. μ' m {
-  | zero ➔ λ _. Λ _. β
+  | zero ➔ λ _. λ _. β
   | succ m ➔ λ n. μ' n {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lte. lteSRight m n lte
     }
   }.
+
+lt2lte : Π m: Nat. Π n: Nat. Lt m n ➔ Lte m n
+= λ m. ltePLeft (succ m).
 
 -- Π m n, m ≰ n → m > n
 notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
@@ -139,7 +141,7 @@ lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
     | zero ➔ λ lteSZ. δ - lteSZ
     | succ n ➔ λ lteMN. λ lteNM.
       [eqMN = ih m n lteMN lteNM]
-    - cong β{succ} β{m} β{n} eqMN
+    - ρ eqMN - β
     }
   }.
 
@@ -208,7 +210,7 @@ lteDiv : Π m: Nat. Π n: Nat. Lte (div m n) m
     }
   }.
 
-lteRem : Π m: Nat. Π n: Nat. Lte (rem m n) m
+lteRem1 : Π m: Nat. Π n: Nat. Lte (rem m n) m
 = λ m. μ ih. m {
   | zero ➔ λ _. β
   | succ m ➔ λ n.
@@ -224,4 +226,16 @@ lteRem : Π m: Nat. Π n: Nat. Lte (rem m n) m
     - lteTrans (rem dif' n) dif' (succ m') ih'
         (lteSRight dif' m' (lteMinus m' (pred n)))
     }
+  }.
+
+lteRem2 : Π m: Nat. Π n: Nat. Lte (rem m (succ n)) n
+= λ m. μ ih. m {
+  | zero ➔ λ n. β
+  | succ m ➔ λ n.
+    [m' = to/Nat -isType/ih m]
+  - [lhs : Top ➔ Top = λ x. β{ite x (succ m) (rem (minus m n) (succ n))}]
+  - μ' (lt (succ m') (succ n)) @λ x: Bool. {lt (succ m) (succ n) ≃ x} ➔ {lte (lhs x) n ≃ tt} {
+    | tt ➔ λ eq. eq
+    | ff ➔ λ eq. ih (minusCV -isType/ih m n) n
+    } β
   }.

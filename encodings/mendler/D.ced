@@ -1,0 +1,45 @@
+import recType.
+
+module D(F : ★ ➔ ★){fm : RecFunctor · F}.
+
+import is.
+import top.
+import true.
+
+import public C · F.
+
+PrfAlg ◂ (C ➔ ★) ➔ ★ =
+  λ P : C ➔ ★ .
+    ι alg : Top .
+    ∀ R : ★ . 
+    ∀ reveal : Cast · R · C.    
+      is · (Π r : R . P (cast -reveal r)) (foldU alg) ➔
+      Π p : F · R .
+      P (in -fm (cast · (F · R) · (F · C) -(fm · R · C reveal) p)) .
+
+Inductive ◂ C ➔ ★ =
+   λ d : C.
+    ∀ P : C ➔ ★ .
+      PrfAlg · P ➔
+      P d .
+
+D ◂ ★ = 
+   ι x : C . Inductive x .
+
+in' ◂ F · D ➔ D =
+  λ d .
+    [ in -fm
+        (cast · (F · D) · (F · C)
+            -(fm · D · C [λ x . x.1 , β]) d) ,
+     Λ P . λ palg . palg.2 · D
+                      -[λ x . x.1 , β] 
+                       [ λ r . r.2 · P palg , β{λ r . r palg}] d].
+
+inAlg' ◂ Alg · C · D =
+  [ β{λ eval . λ p . (in p)} ,
+    Λ R . Λ reveal . λ eval . λ p .
+      in' (cast -(fm 
+                    (caste eval.1
+                     -(λ r . ρ ς eval.2 - ρ (rUnfold -fm (cast -reveal r)).2 - β))) p) ] .
+
+

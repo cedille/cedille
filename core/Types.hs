@@ -16,7 +16,7 @@ data Term =
   | TmProj2 Term
   | TmBeta PrTerm PrTerm
   | TmSigma Term
-  | TmDelta PrType Term
+  | TmDelta Type Term
   | TmRho Term PrType Term
   | TmPhi Term Term PrTerm
 

@@ -2,31 +2,33 @@ module core/cast.
 
 Cast : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
 
-intrCast : ∀ A: ★. ∀ B: ★. Π f: A ➔ B. (Π a: A. {f a ≃ a}) ➔ Cast ·A ·B
-  = Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+intrCast : ∀ A: ★. ∀ B: ★. ∀ f: A ➔ B. (Π a: A. {f a ≃ a}) ➾ Cast ·A ·B
+= Λ A. Λ B. Λ f. Λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+
+intrCastI : ∀ A: ★. ∀ B: ★. (Π a : A . ι b : B . { a ≃ b }) ➔ Cast ·A ·B
+= Λ A. Λ B. λ f. [ λ a. [ p = f a ] - φ ς p.2 - p.1 {a} , β].
 
 elimCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ A ➔ B
-  = Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
 
-trivCast : ∀ A: ★. Cast ·A ·A
-= Λ A. intrCast (λ x. x) (λ _. β).
+cast = elimCast.
+
+-- Cast is a pre-order on types
+
+castRefl : ∀ A: ★. Cast ·A ·A
+= Λ A. intrCast -(λ x. x) -(λ _. β).
+
+castTrans : ∀ A: ★. ∀ B: ★. ∀ C: ★. Cast ·A ·B ➾ Cast ·B ·C ➾ Cast ·A ·C
+= Λ A. Λ B. Λ C. Λ c1. Λ c2. intrCast -(λ a. elimCast -c2 (elimCast -c1 a)) -(λ _. β).
 
 CastMap : (★ ➔ ★) ➔ ★
-= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➔ Cast ·(F ·A) ·(F ·B).
+= λ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·(F ·A) ·(F ·B).
 
 castMap : ∀ F: ★ ➔ ★. ∀ A: ★. ∀ B: ★.
   CastMap ·F ➾ Cast ·A ·B ➾ F ·A ➔ F ·B
-= Λ F. Λ A. Λ B. Λ cm. Λ c. λ f. elimCast -(cm c) f.
+= Λ F. Λ A. Λ B. Λ cm. Λ c. λ f. elimCast -(cm -c) f.
 
--- Dependent version
-CastDep : Π A: ★. Π B: A ➔ ★. ★
-= λ A: ★. λ B: A ➔ ★. ι f: Π a: A. B a. {f ≃ λ x. x}.
-
-intrCastDep : ∀ A: ★. ∀ B: A ➔ ★. Π f: Π a: A. B a. (Π a: A. {f a ≃ a}) ➔ CastDep ·A ·B
-= Λ A. Λ B. λ f. λ eq. [ λ a. φ (eq a) - f a {a} , β].
-
-elimCastDep : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ Π a: A. B a
-= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
-
-trivCastDep : ∀ A: ★. CastDep ·A ·(λ _: A. A)
-= Λ A. intrCastDep (λ x. x) (λ _. β).
+castMapComp : ∀ F: ★ ➔ ★. ∀ G: ★ ➔ ★.
+  CastMap ·F ➾ CastMap ·G ➾ CastMap ·(λ X: ★. F ·(G ·X))
+= Λ F. Λ G. Λ cm1. Λ cm2. Λ X. Λ Y. Λ c.
+  intrCast -(λ fs. castMap -cm1 -(cm2 -c) fs) -(λ _. β).

@@ -44,7 +44,7 @@ vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
 
 -- Vec and Id
 vCastMap : ∀ n: Nat. CastMap ·(λ X: ★. Vec ·X n)
-= Λ n. Λ A. Λ B. λ c.
+= Λ n. Λ A. Λ B. Λ c.
   [f : Vec ·A n ➔ Vec ·B n
     = λ xs. μ f. xs {
       | vnil ➔ vnil ·B
@@ -55,7 +55,7 @@ vCastMap : ∀ n: Nat. CastMap ·(λ X: ★. Vec ·X n)
       | vnil ➔ β
       | vcons -n x xs ➔ ρ (pf -n xs) @ z . {vcons x z ≃ vcons x xs} - β
       }]
-- intrCast f pf.
+- intrCast -f -pf.
 
 vcastMap : ∀ n: Nat. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Vec ·A n ➔ Vec ·B n
 = Λ n. Λ A. Λ B. Λ c. castMap -(vCastMap -n) -c.

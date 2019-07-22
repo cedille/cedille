@@ -1,0 +1,28 @@
+import recType.
+
+module Ind(F : ★ ➔ ★){fm : RecFunctor · F}.
+
+import is.
+import top.
+import true.
+
+import public D · F -fm.
+
+toD ◂ C ➔ D =
+  λ x . (rUnfold -fm x).1 · D inAlg' .
+
+reflection ◂ Π x : C . { toD x ≃ x } =
+  λ x . (rUnfold -fm x).2.
+
+castD ◂ Cast · C · D =
+  caste toD -reflection.
+
+Ind ◂ Π c : C . Inductive c =
+  λ c . (cast -castD c).2.
+
+lambek1 ◂ ∀ F : ★ ➔ ★ . ∀ fm : RecFunctor · F . Π x : C . { out (in x) ≃ x} = Λ F . Λ fm . λ x . β .
+
+lambek2 ◂ Π x : C . { in (out x) ≃ x } =
+  λ x . θ<x> (Ind x)
+         [β{λ _ . λ _ . λ x .x} , Λ R . Λ reveal . λ ih . λ p . β] .
+

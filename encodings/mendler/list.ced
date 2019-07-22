@@ -1,0 +1,26 @@
+module list(A : ★).
+
+import public listf · A.
+import Ind · ListF.
+import cnat. -- just for example at the end
+
+ListFunctor ◂ RecFunctor · ListF =
+  Λ X . Λ Y . λ c .
+    caste (λ d : ListF · X. d.1 · (ListF · Y)
+              (λ _ . in1 · Unit · (Product · A · Y) unit)
+              (λ p . p.1 · (ListF · Y)
+                      (λ h . λ t . in2 · Unit · (Product · A · Y) (pair h (cast -c t)))))
+      -(λ a . θ<a> (ind-Sum a) (λ x . ρ (eta-Unit x) - β)
+                (λ p . θ<p> (ind-Product p) (λ a . λ b . β))) .
+
+List ◂ ★ = C.
+
+listRec : C ➔ rF' · C = cRec -ListFunctor.
+
+listInd : Π c : List . Inductive ListFunctor c = Ind -ListFunctor.
+
+nil ◂ List = in -ListFunctor (in1 unit) .
+
+cons ◂ A ➔ List ➔ List =
+  λ h . λ t . in -ListFunctor (in2 (pair h t)) .
+

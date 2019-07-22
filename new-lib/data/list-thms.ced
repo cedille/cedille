@@ -1,21 +1,33 @@
+import ../stdcore.
+
 module list-thms.
 
 import list.
-import ../core/cast.
-import ../core/tpeq.
+import nat.
 
-mapId : ∀ A: ★. ∀ B: ★. Π f: Cast ·A ·B. Π xs: List ·A. {map f xs ≃ xs}
-  = Λ A. Λ B. λ f. λ xs. μ ih. xs @(λ xs: List ·A. {map f xs ≃ xs}) {
+mapId : ∀ A: ★. ∀ B: ★. ∀ c: Cast ·A ·B. Π xs: List ·A. {map (elimCast -c) xs ≃ xs}
+= Λ A. Λ B. Λ c. λ xs. μ ih. xs @(λ xs: List ·A. {map (elimCast -c) xs ≃ xs}) {
   | nil ➔ β
   | cons x xs ➔
-    ρ f.2     @ z. {cons (z x) (map f xs) ≃ cons x xs}
-  - ρ (ih xs) @ z. {cons x z ≃ cons x xs}
-  - β
+    ρ (ih xs) @ z. {cons x z ≃ cons x xs} - β
   }.
 
 -- injectivity of List
-ListInj : ∀ A: ★. ∀ B: ★. Cast ·(List ·A) ·(List ·B) ➔ Cast ·A ·B
-= Λ A. Λ B. λ idL.
+injList : ∀ A: ★. ∀ B: ★. Cast ·(List ·A) ·(List ·B) ➾ Cast ·A ·B
+= Λ A. Λ B. Λ idL.
   [a2l = λ a: A. cons a (nil ·A)]
-- [f : A ➔ B = λ a. headSafe (elimCast -idL (a2l a)) -β]
-- intrCast f (λ _. β).
+- [f : A ➔ B = λ a. headSafe (elimCast -idL (a2l a)) β]
+- intrCast -f -(λ _. β).
+
+tailDrop: ∀ A: ★. Π n: Nat. Π l: List ·A. {tail (drop n l) ≃ drop n (tail l)}
+= Λ A. λ n. μ ih. n {
+  | zero ➔ λ l. β
+  | succ n ➔ λ l. ρ+ (ih n (tail l)) - β
+  }.
+
+compDrop: ∀ A: ★. Π m: Nat. Π n: Nat. Π l: List ·A. {drop m (drop n l) ≃ drop (add m n) l}
+= Λ A. λ m. μ ih. m {
+  | zero ➔ λ n. λ l. β
+  | succ m ➔ λ n. λ l.
+    ρ+ (tailDrop n l) - ρ+ (ih m n (tail l)) - β
+  }.

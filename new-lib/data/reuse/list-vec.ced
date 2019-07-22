@@ -4,9 +4,10 @@ import ../nat.
 import ../list.
 import ../vec.
 
-import ../../core/id.
+import ../../core/cast.
+import ../../core/castDep.
 
-vec2ListId : ∀ A: ★. ∀ n: Nat. Id ·(Vec ·A n) ·(List ·A)
+vec2ListId : ∀ A: ★. ∀ n: Nat. Cast ·(Vec ·A n) ·(List ·A)
 = Λ A.
   [f : ∀ n: Nat. Vec ·A n ➔ List ·A
     = Λ n. λ xs. μ rec. xs {
@@ -19,14 +20,14 @@ vec2ListId : ∀ A: ★. ∀ n: Nat. Id ·(Vec ·A n) ·(List ·A)
       | vcons -n x xs ➔
         ρ (ih -n xs) @ z. {cons x z ≃ vcons x xs} - β
       }]
-- Λ n. intrId (f -n) (pf -n).
+- Λ n. intrCast -(f -n) -(pf -n).
 
 vec2List! : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ List ·A
-= Λ A. Λ n. elimId -(vec2ListId ·A -n).
+= Λ A. Λ n. elimCast -(vec2ListId ·A -n).
 
 _ : {vec2List! ≃ λ x. x} = β.
 
-list2VecId : ∀ A: ★. IdDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length xs))
+list2VecId : ∀ A: ★. CastDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length xs))
 = Λ A.
   [f : Π xs: List ·A. Vec ·A (length xs)
     = λ xs. μ rec. xs {
@@ -42,9 +43,9 @@ list2VecId : ∀ A: ★. IdDep ·(List ·A) ·(λ xs: List ·A. Vec ·A (length 
         ρ (ih xs) @ z. {cons x z ≃ cons x xs}
       - β
       }]
-- intrIdDep f pf.
+- intrCastDep -f -pf.
 
 list2Vec! : ∀ A: ★. Π xs: List ·A. Vec ·A (length xs)
-= Λ A. elimIdDep -(list2VecId ·A).
+= Λ A. elimCastDep -(list2VecId ·A).
 
 _ : {list2Vec! ≃ λ x. x} = β.

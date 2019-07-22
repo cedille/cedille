@@ -116,7 +116,7 @@ libraries: ./ial/ial.agda-lib
 	cd parser; make cedille-options-lexer
 
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
-	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
+	cd $(TEMPLATESDIR); ghc -static --make -i../ TemplatesCompiler.hs
 
 ./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
 	$(TEMPLATESDIR)/TemplatesCompiler

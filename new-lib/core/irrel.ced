@@ -1,0 +1,32 @@
+module core/irrel.
+
+import top.
+import cast.
+import bot.
+import view.
+
+-- Proof irrelevance in implicit calculi: erased evidence of a proposition is
+-- sufficient to construct a proof of that proposition.
+--
+-- Phrased another way: the proposition is computationally irrelevant
+
+-- the heart of proof irrelevance: equality
+irrelEq : ∀ t: Top. ∀ s: Top. {t ≃ s} ➾ {t ≃ s}
+= Λ t. Λ s. Λ eq. ρ eq - β.
+
+-- bot is proof irrelevant because equality is
+irrelBot : Bot ➾ Bot
+= Λ b. δ Bot - b ·{λ x. λ y. x ≃ λ x. λ y. y}.
+
+irrelNot : ∀ A: ★. Not ·A ➾ Not ·A
+= Λ A. Λ neg. λ x. irrelBot -(neg x).
+
+-- cast is proof irrelevant because you already know what its underlying
+-- computational content is (identity function)
+irrelCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Cast ·A ·B
+= Λ A. Λ B. Λ c. intrCast -(elimCast -c) -(λ _. β).
+
+-- View has a weak form of irrelevance: you need relevantly that of which you
+-- have some view of, but not the view itself
+irrelView : ∀ A: ★. Π x: Top. View ·A x ➾ View ·A x
+= Λ A. λ x. Λ v. intrView x -(elimView x -v) -β.

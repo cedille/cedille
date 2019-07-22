@@ -1,0 +1,13 @@
+module Cextras.
+
+import is.
+import top.
+import C. 
+
+out' ◂ ∀ F : ★ ➔ ★ . RecFunctor · F ➾ C · F ➔ F · (C · F) =
+  Λ F . Λ fm . λ x .
+    (rUnfold · F -fm x).1 · (F · (C · F))
+      [ β{λ e . λ d . d} ,
+        Λ R . Λ reveal . λ e . λ d . cast · (F · R) · (F · (C · F))
+                                       -(fm · R · (C · F) reveal) d] .
+

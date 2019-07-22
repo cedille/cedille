@@ -1,0 +1,7 @@
+import-directories = "../../lib" 
+  .
+
+use-cede-files = true.
+make-rkt-files = false.
+generate-logs = true.
+show-qualified-vars = false.

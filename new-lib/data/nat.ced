@@ -97,8 +97,20 @@ rem : Nat ➔ Nat ➔ Nat
   }.
 
 -- operations with other types
-iter : ∀ X: ★. (X ➔ X) ➔ X ➔ Nat ➔ X
+iterNat : ∀ X: ★. (X ➔ X) ➔ X ➔ Nat ➔ X
   = Λ X. λ s. λ z. λ n. μ rec. n {
   | zero ➔ z
   | succ n ➔ s (rec n)
+  }.
+
+recNat : ∀ X: ★. (X ➔ Nat ➔ X) ➔ X ➔ Nat ➔ X
+= Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s (rec n) (to/Nat -isType/rec n)
+  }.
+
+covNat : ∀ X: ★. (∀ R: ★. R ➔ (R ➔ R) ➔ (R ➔ X) ➔ X) ➔ X ➔ Nat ➔ X
+= Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s ·Type/rec n (predCV -isType/rec) rec
   }.

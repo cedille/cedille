@@ -2,7 +2,7 @@ module stdlib.
 
 import public core/bot.
 import public core/cast.
-import public core/eq.
+import public core/castDep.
 import public core/rec.
 import public core/top.
 import public core/tpeq.
@@ -14,10 +14,11 @@ import public data/decidable.
 import public data/list.
 import public data/list-sort.
 import public data/list-thms.
-import public data/maybe.
 import public data/nat.
 import public data/nat-cv.
 import public data/nat-thms.
+import public data/option.
+import public data/reuse/list-vec.
 import public data/sigma.
 import public data/sigma-thms.
 import public data/sum.
