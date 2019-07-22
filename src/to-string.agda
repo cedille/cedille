@@ -35,7 +35,7 @@ is-eq-op : {ed : exprd} → ⟦ ed ⟧ → 𝔹
 is-eq-op{TERM} (Sigma _) = tt
 is-eq-op{TERM} (Rho _ _ _ _) = tt
 is-eq-op{TERM} (Phi _ _ _) = tt
-is-eq-op{TERM} (Delta _ _) = tt
+is-eq-op{TERM} (Delta _ _ _) = tt
 is-eq-op _ = ff
 
 pattern arrow-var = "_arrow_"
@@ -71,7 +71,7 @@ no-parens {_} {TYPE} _ (TpEq t₁ t₂) lr = tt
 no-parens {_} {TERM} _ (Beta ot ot') lr = tt
 no-parens {_} {TERM} _ (Phi tₑ t₁ t₂) lr = not-left lr
 no-parens {_} {TERM} _ (Rho _ _ _ _) right = tt
-no-parens {_} {TERM} _ (Delta _ _) right = tt
+no-parens {_} {TERM} _ (Delta _ _ _) right = tt
 no-parens {_} {TERM} _ (LetTm _ _ _ _ _) lr = tt
 no-parens {_} {TERM} _ (LetTp _ _ _ _) lr = tt
 no-parens {_} {TERM} _ (Lam _ _ _ _) lr = tt
@@ -83,7 +83,7 @@ no-parens {_} {TYPE} _ (TpIota _ _ _) lr = tt
 no-parens {TERM} {_} (App t t') p lr = ff
 no-parens {TERM} {_} (AppE t tT) p lr = ff
 no-parens {TERM} {_} (Beta ot ot') p lr = tt
-no-parens {TERM} {_} (Delta T t) p lr = ff
+no-parens {TERM} {_} (Delta _ T t) p lr = ff
 no-parens {TERM} {_} (Lam me x tk? t) p lr = ff
 no-parens {TERM} {_} (LetTm me x T t t') p lr = ff
 no-parens {TERM} {_} (LetTp x T t t') p lr = ff
@@ -360,7 +360,7 @@ term-to-stringh (Beta t t') = strBreak 3
   2 [ strAdd "<" >>str to-stringh (erase t ) >>str strAdd ">" ]
   2 [ strAdd "{" >>str to-stringh (erase t') >>str strAdd "}" ]
 
-term-to-stringh (Delta T t) = strBreak 3
+term-to-stringh (Delta _ T t) = strBreak 3
   0 [ strAdd "δ" ]
   2 [ to-stringl T >>str strAdd " -" ]
   1 [ to-stringr t ]

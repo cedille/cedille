@@ -19,6 +19,9 @@ dummy-var = "_dummy"
 id-term : term
 id-term = Lam ff "x" nothing (Var "x")
 
+tt-term = Lam ff "t" nothing (Lam ff "f" nothing (Var "t"))
+ff-term = Lam ff "t" nothing (Lam ff "f" nothing (Var "f"))
+
 compileFailType : type
 compileFailType = TpAbs tt "X" (Tkk KdStar) (TpVar "X")
 

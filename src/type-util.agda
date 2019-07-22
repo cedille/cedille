@@ -150,6 +150,11 @@ params-set-erased me = map λ where
 args-set-erased : erased? → args → args
 args-set-erased = map ∘ arg-set-erased
 
+indices-to-tmtps : indices → 𝕃 tmtp
+indices-to-tmtps = map λ where
+  (Index x (Tkt T)) → Ttm (Var x)
+  (Index x (Tkk k)) → Ttp (TpVar x)
+
 indices-to-kind : indices → kind → kind
 indices-to-kind = flip $ foldr λ {(Index x atk) → KdAbs x atk}
 

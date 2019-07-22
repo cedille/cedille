@@ -14,7 +14,7 @@ resugar {TERM} (AppE t tT) =
   either-else' tT (ExApp (resugar t) tt ∘ resugar) (ExAppTp (resugar t) ∘ resugar)
 resugar {TERM} (Beta t t') =
   ExBeta pi-gen (just (PosTm (resugar t) pi-gen)) (just (PosTm (resugar t') pi-gen))
-resugar {TERM} (Delta T t) =
+resugar {TERM} (Delta b? T t) =
   ExDelta pi-gen (just (resugar T)) (resugar t)
 resugar {TERM} (Hole pi) =
   ExHole pi

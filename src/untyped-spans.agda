@@ -260,6 +260,7 @@ untyped-type Γ (ExTpLam pi pi' x tk T) =
   untyped-tpkd Γ tk >>= λ tk~ →
   untyped-type (Γ , pi' - x :` tk~) T >>= λ T~ →
   [- punctuation-span "Lambda (type)" pi (posinfo-plus pi 1) -]
+  [- var-span ff (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
   [- TpLambda-span Γ pi pi' x tk~ T untyped [] nothing -]
   return (TpLam x tk~ (rename-var Γ (pi' % x) x T~))
 

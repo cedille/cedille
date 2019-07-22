@@ -53,6 +53,7 @@ fresh' bound n base with base ^ ℕ-to-string n
 ...| ff = x
 
 fresh-h : (var → 𝔹) → var → var
+fresh-h bound ignored-var = ignored-var
 fresh-h bound x =
   if ~ bound x'
     then x'
@@ -74,7 +75,8 @@ fresh-var : ctxt → var → var
 fresh-var = fresh-h ∘' ctxt-binds-var
 
 fresh-var-renamectxt : ctxt → renamectxt → var → var
-fresh-var-renamectxt Γ ρ = fresh-h λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x
+fresh-var-renamectxt Γ ρ ignored-var = ignored-var
+fresh-var-renamectxt Γ ρ x = fresh-h (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x) x
 
 fresh-var-new : ctxt → var → var
 fresh-var-new Γ ignored-var = fresh-var Γ "x"

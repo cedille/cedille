@@ -107,7 +107,7 @@ conv-type' Γ t t' = conv-type-norm Γ (hnf Γ unfold-head t) (hnf Γ unfold-hea
 
 hnf {TERM} Γ u (AppE t T) = hnf Γ u t
 hnf {TERM} Γ u (Beta _ t) = hnf Γ u t
-hnf {TERM} Γ u (Delta T t) = id-term
+hnf {TERM} Γ u (Delta b? T t) = id-term
 hnf {TERM} Γ u (Hole pi) = Hole pi
 hnf {TERM} Γ u (IotaPair t₁ t₂ x Tₓ) = hnf Γ u t₁
 hnf {TERM} Γ u (IotaProj t n) = hnf Γ u t

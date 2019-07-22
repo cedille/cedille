@@ -33,7 +33,7 @@ check-mu : ctxt → posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo �
 check-mu-evidence : ctxt → ex-is-mu → var → 𝕃 tmtp → spanM ((string × 𝕃 tagged-val) ⊎ (term × (term → term) × datatype-info))
 check-cases : ctxt → ex-cases → (Dₓ : var) → (ctrs : trie type) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (cases × err-m)
 check-case : ctxt → ex-case → (earlier : stringset) → (Dₓ : var) → (ctrs : trie (type × params × 𝕃 tmtp)) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → spanM (case × trie (type × params × 𝕃 tmtp))
-check-refinement : ctxt → type → kind → spanM (𝕃 tagged-val × err-m)
+check-refinement : ctxt → type → kind → spanM (type × 𝕃 tagged-val × err-m)
 
 synth-tmtp' : ∀ {b X} → ctxt → if b then ex-tm else ex-tp → (if b then term else type → if b then type else kind → spanM X) → spanM X
 synth-tmtp' {tt} Γ t f = check-term Γ t nothing >>= uncurry f
@@ -142,14 +142,17 @@ check-term Γ (ExChi pi T? t) Tₑ? =
 -- δ [T?] - t
 check-term Γ (ExDelta pi T? t) Tₑ? =
   Γ ⊢ t ↝ t~ ⇒ Tcontra /
-  maybe-else' T? (return (maybe-else' Tₑ? (TpAbs Erased "X" (Tkk KdStar) (TpVar "X")) id))
-                 (λ T → Γ ⊢ T ⇐ KdStar ↝ return) >>= λ T~' →
+  maybe-else' T?
+    (return (maybe-else' Tₑ? (TpAbs Erased "X" (Tkk KdStar) (TpVar "X")) id))
+    (λ T → Γ ⊢ T ⇐ KdStar ↝ return) >>= λ T~' →
+  let b = Γ ⊢ Tcontra =β= λ {(TpEq t₁ t₂) → when (inconv Γ t₁ t₂) (t₁ , t₂); _ → nothing}
+      b? = unless (conv-type Γ Tcontra (TpEq tt-term ff-term)) triv >> b in
   [- Delta-span pi t (maybe-to-checking Tₑ?)
       (to-string-tag "the contradiction" Γ Tcontra ::
        type-data Γ T~' :: expected-type-if Γ Tₑ?)
-       (unless (Γ ⊢ Tcontra =β= λ {(TpEq t₁ t₂) → inconv Γ t₁ t₂; _ → ff})
+       (maybe-not b >> just
          "We could not find a contradiction in the synthesized type of the subterm") -]
-  return-when (Delta T~' t~) T~'
+  return-when (Delta b? T~' t~) T~'
 
 -- ε[lr][-?] t
 check-term Γ (ExEpsilon pi lr -? t) Tₑ? =
@@ -302,16 +305,17 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
         let tk~ = maybe-else' tk~? tk id in
         --maybe-else' tk? (return tk) (λ tk → Γ ⊢ tk ↝ return) >>= tk~ /
         (Γ , pi' - x :` tk~) ⊢ t ⇐ rename-var Γ x' (pi' % x) T ↝ t~ /
-        let t~ = rename-var Γ (pi' % x) x t~
-            T = rename-var Γ x' x T
-            Tₛ = TpAbs e x tk~ T
-            Tₑ = TpAbs e' x tk T
+        let xₙ = if x =string ignored-var && is-free-in x' T then x' else x
+            t~ = rename-var Γ (pi' % x) xₙ t~
+            T = rename-var Γ x' xₙ T
+            Tₛ = TpAbs e xₙ tk~ T
+            Tₑ = TpAbs e' xₙ tk T
             vₑ = check-for-tpkd-mismatch-if Γ "computed" tk~? tk in
         [- var-span e (Γ , pi' - x :` tk~) pi' x (maybe-to-checking tk?) tk~ nothing -]
         [- uncurry (λ err tvs → Lam-span Γ checking pi pi' e x tk~ t
                  (type-data Γ Tₛ :: expected-type Γ Tₑ :: tvs) (err maybe-or vₑ))
              (erase-err e' e tk~ t~) -]
-        return (Lam e x (just tk~) t~)
+        return (Lam e xₙ (just tk~) t~)
       Tₕ →
         maybe-else' tk? (return (Tkt (TpHole pi'))) (check-tpkd Γ) >>= tk~ /
         untyped-term (Γ , pi' - x :` tk~) t >>= t~ /
@@ -610,16 +614,17 @@ check-type Γ (ExTpLam pi pi' x tk T) kₑ? =
       (Γ ⊢ kₑ =β= λ where
         (KdAbs x' tk' k) →
           (Γ , pi' - x :` tk~) ⊢ T ⇐ (rename-var Γ x' (pi' % x) k) ↝ T~ /
-          return (rename-var Γ (pi' % x) x T~ , lambda-bound-conv? Γ x tk' tk~ [])
+          let xₙ = if x =string ignored-var && is-free-in x' k then x' else x in
+          return (xₙ , rename-var Γ (pi' % x) xₙ T~ , lambda-bound-conv? Γ x tk' tk~ [])
         kₕ →
           (Γ , pi' - x :` tk~) ⊢ T ↝ T~ ⇒ _ /
-          return (rename-var Γ (pi' % x) x T~ , [] , unless (is-hole kₕ)
+          return (x , rename-var Γ (pi' % x) x T~ , [] , unless (is-hole kₕ)
               "The expected kind is not an arrow- or Pi-kind")
       ) >>= λ where
-        (T~ , tvs , e?) →
+        (xₙ , T~ , tvs , e?) →
           [- var-span ff (Γ , pi' - x :` tk~) pi' x checking tk~ nothing -]
           [- TpLambda-span Γ pi pi' x tk~ T checking (expected-kind Γ kₑ :: tvs) e? -]
-          return (TpLam x tk~ T~)
+          return (TpLam xₙ tk~ T~)
 
 -- (T)
 check-type Γ (ExTpParens pi T pi') kₑ? =
@@ -745,7 +750,8 @@ check-let Γ (ExDefTerm pi x nothing t) e? fm to =
      pi % x ,
      binder-data Γ pi x (Tkt Tₛ~) e? (just t~) fm to ,
      (λ {ed} T' → [ Γ - t~ / (pi % x) ] T') ,
-     (λ t' → LetTm e? x nothing t~ ([ Γ - Var x / (pi % x) ] t')))
+     (λ t' → LetTm (e? || ~ is-free-in (pi % x) (erase t')) x nothing t~
+                   ([ Γ - Var x / (pi % x) ] t')))
 check-let Γ (ExDefType pi x k T) e? fm to =
   Γ ⊢ k ↝ k~ /
   Γ ⊢ T ⇐ k~ ↝ T~ /
@@ -882,8 +888,9 @@ check-cases Γ ms Dₓ cs ρ as dps Tₘ =
   return2 ms~ (unless (iszero (length xs)) e)
 
 check-refinement Γ Tₘ kₘ s =
-  check-type (qualified-ctxt Γ) (resugar Tₘ) (just kₘ) empty-spans >>= uncurry λ _ s' →
+  check-type (qualified-ctxt Γ) (resugar Tₘ) (just kₘ) empty-spans >>= uncurry λ Tₘ' s' →
     return $ (λ x → x , s) $
+      Tₘ' ,
       [ to-string-tag "computed motive" Γ Tₘ ] ,
       (when (spans-have-error s') "We could not compute a well-kinded motive")
 
@@ -965,7 +972,7 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
           (maybe-else' Tₘ?'
              (return Tₑ? on-fail no-motive >>=m λ Tₑ →
               let Tₘ = refine-motive Γ is (asᵢ ++ [ Ttm t~ ]) Tₑ in
-              check-refinement Γ Tₘ kᵢ >>= return2 (just Tₘ))
+              check-refinement Γ Tₘ kᵢ >>=c λ Tₘ → return2 (just Tₘ))
              λ Tₘ → return (just Tₘ , [] , nothing))
           >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
           let Tₘ = maybe-else' Tₘ (TpHole pi) id

@@ -34,8 +34,7 @@ rename-indices-h Γ ρ (Index x atk :: is) (ty :: tys) =
   Index x' atk' ::
     rename-indices-h (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') is tys
   where
-  get-var = maybe-else (fresh-var Γ x) id ∘ is-var-unqual
-  x' = fresh-h (renamectxt-in-field ρ) $ get-var ty
+  x' = fresh-var-renamectxt Γ ρ (maybe-else x id (is-var-unqual ty))
   atk' = subst-renamectxt Γ ρ -tk atk
 rename-indices-h Γ ρ (Index x atk :: is) [] =
   let x' = fresh-var-renamectxt Γ ρ x in

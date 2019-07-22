@@ -63,7 +63,9 @@ substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ
 substh {TERM} Γ ρ σ (Rho tₑ x T t) =
   let x' = subst-rename-var-if Γ ρ x σ T in
   Rho (substh Γ ρ σ tₑ) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T) (substh Γ ρ σ t)
-substh {TERM} Γ ρ σ (Delta T t) = Delta (substh Γ ρ σ T) (substh Γ ρ σ t)
+substh {TERM} Γ ρ σ (Delta b? T t) =
+  Delta (b? >>=c λ t₁ t₂ → just (substh Γ ρ σ t₁ , substh Γ ρ σ t₂))
+        (substh Γ ρ σ T) (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
   let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x || renamectxt-in-field ρ x
       x' = fresh-h (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x))

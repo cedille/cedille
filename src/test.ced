@@ -1,4 +1,17 @@
-module test (x : {β ≃ β}).
+module test. -- (x : {β ≃ β}).
+
+False : ★ = ∀ X : ★. X.
+
+data Bool : ★ =
+| tt : Bool
+| ff : Bool.
+
+_ : { λ b. μ' b { tt ➔ μ' b { tt ➔ ff | ff ➔ tt } | ff ➔ ff } ≃
+      λ b. μ' b { tt ➔ μ' b { tt ➔ ff | ff ➔ ff } | ff ➔ ff } } ➾ False = Λ e. δ - e.
+
+_ : { λ x. λ y. x ≃ λ x. λ y. y } ➾ False = Λ e. δ - e.
+
+{-
 
 
 --Fix : {β ≃ β} = β{λ f. f (λ x. f (x x)) (λ x. f (x x))}.

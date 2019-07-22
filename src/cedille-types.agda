@@ -81,7 +81,7 @@ mutual
     App : term → term → term
     AppE : term → tmtp → term
     Beta : term → term → term
-    Delta : type → term → term
+    Delta : (do-bohm? : maybe (term × term)) → (Tᵣ : type) → (contra : term) → term
     Hole : posinfo → term
 --    Internal : maybe term → term → term -- external term → internal representation → ...
     IotaPair : term → term → var → type → term
