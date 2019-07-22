@@ -441,46 +441,69 @@ check-term Γ (ExSigma pi t) Tₑ? =
 
 -- θ t ts
 check-term Γ (ExTheta pi θ t ts) Tₑ? =
-  return-when (Hole pi) (TpHole pi)
-
-  {-let x = case t of λ {(ExVar _ x) → x; _ → "x"}
-      x' = fresh-var Γ x in
   case-ret {m = Tₑ?}
     ([- Theta-span Γ pi θ t ts synthesizing [] (just
             "Theta-terms can only be used when checking (and we are synthesizing here)") -]
      return2 (Hole pi) (TpHole pi))
-    λ Tₑ → case θ of λ where
-      (AbstractVars vs) →
-        either-else' (wrap-vars vs Tₑ)
-          (λ x →
-             [- Theta-span Γ pi θ t ts checking [ expected-type Γ Tₑ ]
-                  (just ("We could not compute a motive from the given term because " ^
-                           "the abstracted variable " ^ x ^ " is not in scope")) -]
-           return (Hole pi))
-          λ Tₘ →
-            [- Theta-span Γ pi θ t ts checking (expected-type Γ Tₑ :: [ the-motive Γ Tₘ ])
-                 nothing -]
-            check-term Γ (lterms-to-term Abstract (ExAppTp t (ExTpNoSpans {!Tₘ!} (posinfo-plus (term-end-pos t) 1))) ts) (just Tₑ)
-      _ →
-        Γ ⊢ t ↝ t~ ⇒ T~ /
-        let Tₘ = motive x x' Tₑ T~ in
-        ?
+    λ Tₑ →
+      Γ ⊢ t ↝ t~ ⇒ T /
+      let x = case hnf Γ unfold-head t~ of λ {(Var x) → x; _ → "x"}
+          x' = fresh-var Γ x in
+      Γ ⊢ T =β= λ where
+        (TpAbs me x (Tkk kd) tp) →
+          (case θ of λ where
+            (AbstractVars vs) → either-else' (wrap-vars vs Tₑ) (return2 (TpHole pi) ∘ just) λ Tₘ → return2 Tₘ nothing
+            Abstract → return2 (TpLam x' (Tkt T) (rename-var Γ x x' Tₑ)) nothing
+            AbstractEq → return2 (TpLam x' (Tkt T) (TpAbs Erased ignored-var (Tkt (TpEq t~ (Var x'))) (rename-var Γ x x' Tₑ))) nothing) >>=c λ Tₘ e₁ →
+          check-refinement Γ Tₘ kd >>=c λ Tₘ → uncurry λ tvs e₂ →
+          let tp' = [ Γ - Tₘ / x ] tp in
+          check-lterms ts (AppTp t~ Tₘ) tp' >>=c λ t~ T~ →
+          let e₃ = check-for-type-mismatch Γ "synthesized" T~ Tₑ
+              t~ = case θ of λ {AbstractEq → AppEr t~ (Beta (erase t~) id-term); _ → t~} in
+          [- Theta-span Γ pi θ t ts checking
+               (type-data Γ T~ :: expected-type Γ Tₑ :: tvs)
+               (e₁ maybe-or (e₂ maybe-or e₃)) -]
+          return t~
+        Tₕ →
+          [- Theta-span Γ pi θ t ts checking (head-type Γ Tₕ :: expected-type Γ Tₑ :: [])
+               (unless (is-hole Tₕ) "The synthesized type of the head is not a type-forall") -]
+          return (Hole pi)
   where
-  wrap-var : var → type → var ⊎ type
+  check-lterms : 𝕃 lterm → term → type → spanM (term × type)
+  check-lterms [] tm tp = return2 tm tp
+  check-lterms (Lterm me t :: ts) tm tp =
+    Γ ⊢ tp =β= λ where
+      (TpAbs me' x (Tkt T) T') →
+        Γ ⊢ t ⇐ T ↝ t~ /
+        (if me iff me' then return triv else spanM-add
+          (Theta-span Γ pi θ t [] checking [] (just "Mismatched erasure of theta arg"))) >>
+        check-lterms ts (if me then AppEr tm t~ else App tm t~) ([ Γ - t~ / x ] T')
+      Tₕ →
+        (if is-hole Tₕ then id
+          else [- Theta-span Γ pi θ t [] checking [ expected-type Γ Tₕ ]
+                    (just "The expected type is not an arrow type") -]_)
+        (untyped-term Γ t >>= λ t~ → check-lterms ts (if me then AppEr tm t~ else App tm t~) Tₕ)
+
+  var-not-in-scope : var → string
+  var-not-in-scope x =
+    "We could not compute a motive from the given term because " ^
+    "the abstracted variable " ^ x ^ " is not in scope"
+  
+  wrap-var : var → type → string ⊎ type
   wrap-var x T =
     let x' = fresh-var Γ x in
     maybe-else' (ctxt-lookup-tpkd-var Γ x)
-      (inj₁ x)
-      λ {(qx , as , tk) → inj₂ (TpLam x' tk (rename-var Γ x x' T))}
+      (inj₁ (var-not-in-scope x))
+      λ {(qx , as , tk) → inj₂ (TpLam x' tk (rename-var Γ qx x' T))}
   wrap-vars : 𝕃 var → type → var ⊎ type
   wrap-vars [] T = inj₂ T
-  wrap-vars (x :: xs) T = wrap-vars xs T >>=⊎ wrap-var x
+  wrap-vars (x :: xs) T = wrap-vars xs T >>= wrap-var x
 
   motive : var → var → type → type → theta → term → type
   motive x x' T T' Abstract t = TpLam x' (Tkt T') (rename-var Γ x x' T)
   motive x x' T T' AbstractEq t = TpLam x' (Tkt T') (TpAbs Erased ignored-var (Tkt (TpEq t (Var x'))) (rename-var Γ x x' T))
   motive x x' T T' (AbstractVars vs) t = T -- Shouldn't happen
--}
+
 
 -- μ(' / rec.) t [@ Tₘ?] {ms...}
 check-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') Tₑ? =

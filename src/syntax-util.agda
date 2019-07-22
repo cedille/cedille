@@ -196,8 +196,8 @@ params-end-pos pi (p :: ps) = params-end-pos (param-end-pos p) ps
 param-end-pos (ExParam pi me pi' x atk pi'') = pi''
 
 
-lterms-end-pos pi [] = posinfo-plus pi 1 -- must add one for the implicit Beta that we will add at the end
-lterms-end-pos pi ((Lterm _ t) :: ls) = lterms-end-pos (term-end-pos t) ls
+lterms-end-pos pi [] = pi
+lterms-end-pos pi (Lterm _ t :: ls) = lterms-end-pos (term-end-pos t) ls
 
 {- return the end position of the given term if it is there, otherwise
    the given posinfo -}
