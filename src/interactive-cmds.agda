@@ -634,7 +634,7 @@ private
                    let Tₛ = hnf Γ unfold-no-defs Tₛ in
                    case decompose-ctr-type Γ Tₛ of λ where
                      (TpVar Xₛ , [] , as) →
-                       ll-ind' {λ T → string ⊎ (term × term × 𝕃 (ctr × type) × type × ctxt × 𝕃 tagged-val)} (Tₗₗ , T)
+                       ll-ind' {λ T → string ⊎ (term × term × 𝕃 (ctr × type) × type × ctxt × 𝕃 tagged-val × datatype-info)} (Tₗₗ , T)
                          (λ t → inj₁ "Expression must be a type to case split")
                          (λ T → maybe-else' (data-lookup Γ Xₛ as)
                            (inj₁ "The synthesized type of the input term is not a datatype")
@@ -667,13 +667,14 @@ private
                                        σ-cs ,
                                      Tₘ ,
                                      Γ' ,
-                                     ts))
+                                     ts ,
+                                     d))
                          (λ k → inj₁ "Expression must be a type to case split")
                      (Tₕ , [] , as) → inj₁ "Synthesized a non-datatype from the input term"
                      (Tₕ , ps , as) →
                        inj₁ "Case splitting is currently restricted to datatypes")
                 err $ λ where
-                 (scrutinee , mu , cs , Tₘ , Γ , ts) →
+                 (scrutinee , mu , cs , Tₘ , Γ , ts , d) →
                    let json = json-object [ "value" , json-array
                                    [ json-object (map
                                     (λ {(Ctr x _ , T) → unqual-all (ctxt.qual Γ) x ,
@@ -687,7 +688,7 @@ private
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) λ cas t → Case x cas t []
-                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) nothing (mk-cs cs)
+                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) d (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t TYPE T''

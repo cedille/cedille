@@ -92,7 +92,7 @@ mutual
     Phi : term → term → term → term
     Rho : term → var → type → term → term
     Sigma : term → term
-    Mu : is-mu → term → maybe type → maybe datatype-info → cases → term
+    Mu : is-mu → term → maybe type → datatype-info → cases → term
     Var : var → term
   pattern AppTp t T = AppE t (Ttp T)
   pattern AppEr t t' = AppE t (Ttm t')

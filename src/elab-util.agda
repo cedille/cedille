@@ -233,7 +233,7 @@ reindex-file Γ D I mn is ps cs =
   reindex-cmds cs
 
 mendler-elab-mu : ctxt → datatype-info → maybe term ⊎ var → term → type → cases → term
-mendler-elab-mu-pure : ctxt → maybe term ⊎ var → term → cases → term
+mendler-elab-mu-pure : ctxt → datatype-info → maybe term ⊎ var → term → cases → term
 
 -- Maps over expression, elaborating all mu-terms
 {-# TERMINATING #-}
@@ -278,10 +278,9 @@ choose-mu {TERM} Γ ρ (Sigma tm) =
   Sigma (choose-mu Γ ρ tm)
 choose-mu {TERM} Γ ρ (Mu μ t tp? t~ ms) =
   choose-mu Γ ρ
-    (maybe-else'
-      (t~ >>= λ t~ → tp? >>=r (_,_ t~))
-      (mendler-elab-mu-pure Γ μ t ms)
-      $ uncurry λ t~ tp → mendler-elab-mu Γ t~ μ t tp ms)
+    (maybe-else' tp?
+      (mendler-elab-mu-pure Γ t~ μ t ms)
+      (λ tp → mendler-elab-mu Γ t~ μ t tp ms))
 choose-mu {TERM} Γ ρ (Var x) =
   Var (renamectxt-rep ρ x)
 choose-mu {TYPE} Γ ρ (TpAbs e x tk tp) =
@@ -759,25 +758,21 @@ init-encoding Γ (Module mn mps mcs) (Data Dₓ ps is cs) =
          "for index telescoping"
 
 
-mendler-elab-mu-pure Γ x? t ms =
-  maybe-else (Var "1") id $
-  head2 (trie-mappings (ctxt.μ Γ)) >>= λ where
-    (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
-      let fix-out = erase (encoding-defs.fix-out eds)
-          fix-ind = erase (encoding-defs.fix-ind eds)
-          msf = λ t → foldr
-                        (λ {(Case mₓ cas mₜ asₜₚ) t →
-                              App t (case-args-to-lams cas mₜ)})
-                        t ms in
-      maybe-else (just $ Var "2") just $
-      just $ either-else' x?
-        (λ _ → msf (App fix-out t))
-        (λ xₒ →
-          rename xₒ from Γ for λ x →
-          rename "y" from Γ for λ yₓ →
-          let subst-msf = subst-renamectxt Γ
-                (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (yₓ , yₓ) :: [])) ∘ msf in
-          App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ)))
+mendler-elab-mu-pure Γ (mk-data-info _ _ _ _ _ _ _ _ _ eds ecs) x? t ms =
+  let fix-out = erase (encoding-defs.fix-out eds)
+      fix-ind = erase (encoding-defs.fix-ind eds)
+      msf = λ t → foldl
+                    (λ {(Case mₓ cas mₜ asₜₚ) t →
+                          App t (case-args-to-lams cas mₜ)})
+                    t ms in
+  either-else' x?
+    (λ _ → msf (App fix-out t))
+    (λ xₒ →
+      rename xₒ from Γ for λ x →
+      rename "y" from Γ for λ yₓ →
+      let subst-msf = subst-renamectxt Γ
+            (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (yₓ , yₓ) :: [])) ∘ msf in
+      App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ)))
 
 mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ)) x? t Tₘ ms =
   let is = kind-to-indices Γ k

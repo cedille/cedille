@@ -76,9 +76,9 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ <$> t~) (substh-cases Γ' ρ' σ ms)
+    Mu (inj₂ x') (substh Γ ρ σ t) (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ' ρ' σ ms)
 substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ ms) =
-  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ <$> t~) (substh-cases Γ ρ σ ms)
+  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ ρ σ ms)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ t in

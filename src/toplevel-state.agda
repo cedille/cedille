@@ -192,7 +192,7 @@ mod-info-to-string : (string × string × params × qualif) → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string''' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt fn mn ps qual syms mod-map _ _ _ is _ _ _ _ _) = "mod-info: {" ^ (mod-info-to-string (fn , mn , ps , qual)) ^ "}, syms: {" ^ (syms-to-string syms) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
+ctxt-to-string (mk-ctxt fn mn ps qual syms mod-map _ _ _ is _ _ _ _ _ _) = "mod-info: {" ^ (mod-info-to-string (fn , mn , ps , qual)) ^ "}, syms: {" ^ (syms-to-string syms) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
@@ -240,6 +240,7 @@ scope-cmd : scope-t cmd
 scope-var : scope-t var
 scope-ctrs : scope-t ctrs
 scope-datatype-names : scope-t var
+scope-enc-defs : scope-t encoding-defs
 
 scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
 ...| just e = ts , just e
@@ -288,9 +289,10 @@ scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn mn' oa' asᵢ')) s 
 scope-cmd fn mn oa ps as (CmdDefKind v _ _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (CmdDefTerm v   _) = scope-var fn mn oa ps as v
 scope-cmd fn mn oa ps as (CmdDefType v _ _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (CmdDefData _ v _ _ cs) s =
+scope-cmd fn mn oa ps as (CmdDefData eds v _ _ cs) s =
   scope-var fn mn oa ps as v s >>=scope
   scope-ctrs fn mn oa ps as cs >>=scope
+  scope-enc-defs fn mn oa ps as eds >>=scope
   scope-datatype-names fn mn oa ps as v
 
 scope-ctrs fn mn oa ps as [] s = s , nothing
@@ -302,6 +304,9 @@ scope-datatype-names fn mn oa ps as x s =
   scope-var fn mn oa ps as (data-Is/ x) s >>=scope
   scope-var fn mn oa ps as (data-is/ x) >>=scope
   scope-var fn mn oa ps as (data-to/ x)
+
+scope-enc-defs fn mn oa ps as eds s =
+  record s { Γ = record (toplevel-state.Γ s) { μᵤ = just eds } } , nothing
 
 
 scope-var fn mn oa ps as ignored-var s = s , nothing

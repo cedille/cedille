@@ -68,6 +68,9 @@ data ctxt-info : Set where
 sym-info : Set
 sym-info = ctxt-info × location
 
+data-info : Set
+data-info = params × kind × kind × ctrs × encoding-defs × encoded-defs
+
 is-term-level : ctxt-info → 𝔹
 is-term-level (term-decl _) = tt
 is-term-level (term-def _ _ _ _) = tt
@@ -99,7 +102,7 @@ record ctxt : Set where
     i : trie sym-info
 
     -- concrete/global datatypes
-    μ : trie (params × kind × kind × ctrs × encoding-defs × encoded-defs)
+    μ : trie data-info
     -- abstract/local datatypes
     μ' : trie (var × args)
     -- Is/D map
@@ -107,6 +110,7 @@ record ctxt : Set where
     -- encoding defs (needed to generate fmaps for some datatypes, like rose tree)
     μ~ : trie (𝕃 (var × tmtp))
     -- highlighting datatypes (μ̲ = \Gm \_--)
+    μᵤ : maybe encoding-defs  -- most recent datatype declaration, for use in untyped μ[']
     μ̲ :  stringset
 
 
@@ -133,6 +137,6 @@ qualif-var Γ v with trie-lookup (ctxt.qual Γ) v
 ...| nothing = v
 
 ctxt-get-current-mod : ctxt → string × string × params × qualif
-ctxt-get-current-mod (mk-ctxt fn mn ps qual _ _ _ _ _ _ _ _ _ _ _) = fn , mn , ps , qual
+ctxt-get-current-mod (mk-ctxt fn mn ps qual _ _ _ _ _ _ _ _ _ _ _ _) = fn , mn , ps , qual
 
 

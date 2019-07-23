@@ -388,6 +388,7 @@ ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ =
     μ = trie-insert (ctxt.μ Γ) D' (ctxt.ps Γ ++ psᵢ , kᵢ , k , cs , eds , ecds);
     Is/μ = trie-insert (ctxt.Is/μ Γ) (data-Is/ D') D';
     μ~ = trie-insert (ctxt.μ~ Γ) D' (foldl pull-defs [] (encoding-defs.ecs eds ++ encoding-defs.gcs eds));
+    μᵤ = just eds;
     μ̲ = stringset-insert (ctxt.μ̲ Γ) D'
   }
   where

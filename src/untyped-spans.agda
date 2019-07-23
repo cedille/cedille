@@ -174,10 +174,14 @@ untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
       untyped-cases Γ' ms ρ >>= λ ms~ →
       -- Make sure we aren't matching upon a "False" datatype (e.g., one
       -- with no constructors) before any datatypes have been declared
-      let e = when (is-empty ms && is-empty (trie-mappings (ctxt.μ Γ)))
-                "No datatypes have been declared yet" in
-      [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs e -]
-      return (Mu μ~ t~ nothing nothing ms~)
+      maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
+        ([- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs
+              (just "No datatypes have been declared yet") -]
+         return (Hole pi))
+        λ where
+          (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
+            [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
+            return (Mu μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
 
 -- x
 untyped-term Γ (ExVar pi x) =

@@ -763,7 +763,8 @@ check-let Γ (ExDefTerm pi x (just Tₑ) t) e? fm to =
      pi % x ,
      binder-data Γ pi x (Tkt Tₑ~) e? (just t~) fm to ,
      (λ {ed} T' → [ Γ - t~ / (pi % x) ] T') ,
-     (λ t' → LetTm e? x nothing t~ ([ Γ - Var x / (pi % x) ] t')))
+     (λ t' → LetTm (e? || ~ is-free-in (pi % x) (erase t')) x nothing t~
+                   ([ Γ - Var x / (pi % x) ] t')))
 check-let Γ (ExDefTerm pi x nothing t) e? fm to =
   Γ ⊢ t ↝ t~ ⇒ Tₛ~ /
   elim-pair (compileFail-in Γ t~) λ tvs e →
@@ -834,50 +835,54 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
     (ExCaseArg ExCaseArgTp pi x) t → AppTp t (TpVar (pi % x))
   spos = term-start-pos t
   epos = term-end-pos t
-  add-case-arg : ∀ {X Y} → ctxt → posinfo → var → case-arg → spanM (X × case-args × Y) → spanM (X × case-args × Y)
-  add-case-arg Γ pi x ca m = m >>=c λ X → return2 X ∘ map-fst λ cas → ca :: subst-case-args cas Γ (renamectxt-single (pi % x) x)
+  add-case-arg : ∀ {X Y} → ctxt → var → var → case-arg → spanM (X × case-args × Y) → spanM (X × case-args × Y)
+  add-case-arg Γ x xₙ ca m = m >>=c λ X → return2 X ∘ map-fst λ cas → ca :: subst-case-args cas Γ (renamectxt-single x xₙ)
   decl-args : ctxt → ex-case-args → params → trie (Σi exprd ⟦_⟧) →
                 renamectxt → 𝕃 tagged-val → (term → spanM ⊤) →
               spanM (ctxt × case-args × err-m × trie (Σi exprd ⟦_⟧) ×
                      renamectxt × 𝕃 tagged-val × (term → spanM ⊤))
   decl-args Γ (ExCaseArg ExCaseArgTp pi x :: as) (Param me x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
-        Γ' = ctxt-var-decl-loc pi x Γ in
-    add-case-arg Γ' pi x (CaseArg tt x (just (Tkt T'))) $
+        Γ' = ctxt-var-decl-loc pi x Γ
+        xₙ = if x =string ignored-var then x' else x in
+    add-case-arg Γ' (pi % x) xₙ (CaseArg tt xₙ (just (Tkt T'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, TpVar (pi % x)))
-      (renamectxt-insert ρ (pi % x) x)
+      (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') Erased nothing spos epos :: xs)
       λ t → [- TpVar-span Γ pi x checking [ expected-type Γ T' ]
                  (just ("This type argument should be a" ^
                      (if me then "n erased term" else " term"))) -] sm t
   decl-args Γ (ExCaseArg ExCaseArgTp pi x :: as) (Param _ x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
-        Γ' = ctxt-type-decl pi x k' Γ in
-    add-case-arg Γ' pi x (CaseArg tt x (just (Tkk k'))) $
+        Γ' = ctxt-type-decl pi x k' Γ
+        xₙ = if x =string ignored-var then x' else x in
+    add-case-arg Γ' (pi % x) xₙ (CaseArg tt xₙ (just (Tkk k'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, TpVar (pi % x)))
-      (renamectxt-insert ρ (pi % x) x)
+      (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkk k') Erased nothing spos epos :: xs)
       λ t → [- TpVar-span Γ pi x checking [ kind-data Γ k' ] (free-in-term x t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
         e₁ = when (ex-case-arg-erased me xor me') "Mismatched erasure of term argument"
         e₂ = λ t → maybe-if (ex-case-arg-erased me) >> free-in-term x t
-        Γ' = ctxt-term-decl pi x T' Γ in
-    add-case-arg Γ' pi x (CaseArg me' x (just (Tkt T'))) $
+        Γ' = ctxt-term-decl pi x T' Γ
+        xₙ = if x =string ignored-var then x' else x in
+    add-case-arg Γ' (pi % x) xₙ (CaseArg me' xₙ (just (Tkt T'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, Var (pi % x)))
-      (renamectxt-insert ρ (pi % x) x)
+      (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') (ex-case-arg-erased me) nothing spos epos :: xs)
       λ t → [- Var-span Γ pi x checking [ type-data Γ T' ] (e₁ maybe-or e₂ t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
-        Γ' = ctxt-var-decl-loc pi x Γ in
-    add-case-arg Γ' pi x (CaseArg tt x (just (Tkk k'))) $
+        Γ' = ctxt-var-decl-loc pi x Γ
+        xₙ = if x =string ignored-var then x' else x in
+    add-case-arg Γ' (pi % x) xₙ (CaseArg tt xₙ (just (Tkk k'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, Var (pi % x)))
-      (renamectxt-insert ρ (pi % x) x)
+      (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkk k') (ex-case-arg-erased me) nothing spos epos :: xs)
       λ t → [- Var-span Γ pi x checking [ expected-kind Γ k' ]
                  (just "This term argument should be a type") -] sm t
@@ -1037,7 +1042,7 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
               sm cs~ >>
               let μ = case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)} in
               return-when {m = Tₑ?}
-                (subst-renamectxt Γ ρ (Mu μ t~ (just Tₘ) (just d) cs~))
+                (subst-renamectxt Γ ρ (Mu μ t~ (just Tₘ) d cs~))
                 (maybe-else' Tᵣ (TpHole pi) id)
     (Tₕ , as) →
       [- Mu-span Γ pi μ pi''' nothing (maybe-to-checking Tₑ?)

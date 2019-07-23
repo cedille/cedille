@@ -42,6 +42,7 @@ new-ctxt fn mn =
     μ' = empty-trie;
     Is/μ = empty-trie;
     μ~ = empty-trie;
+    μᵤ = nothing;
     μ̲ = empty-stringset
   }
 
