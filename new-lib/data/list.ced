@@ -100,8 +100,8 @@ concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
   | cons xs xss ➔ append xs (concat xss)
   }.
 
-eqList : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
-= Λ A. λ eq. λ xs. μ eqList. xs {
+eqList : ∀ A: ★. ∀ B : ★ . (A ➔ B ➔ Bool) ➔ List ·A ➔ List ·B ➔ Bool
+= Λ A. Λ B . λ eq. λ xs. μ eqList. xs {
   | nil ➔ λ ys. isNil ys
   | cons x xs ➔ λ ys. μ' ys {
     | nil ➔ ff
