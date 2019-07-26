@@ -1,0 +1,30 @@
+import ../stdcore.
+import bool.
+
+module option.
+
+data Option (A: ★): ★ =
+| none: Option
+| some: A ➔ Option.
+
+isNone: ∀ A: ★. Option ·A ➔ Bool = Λ A. λ m. μ' m {none ➔ tt | some _ ➔ ff}.
+
+option: ∀ A: ★. ∀ X: ★. Option ·A ➔ X ➔ (A ➔ X) ➔ X
+= Λ A. Λ X. λ m. λ x. λ f. μ' m {none ➔ x | some a ➔ f a}.
+
+someInj: ∀ A: ★. ∀ a1: A. ∀ a2: A. {some a1 ≃ some a2} ➾ {a1 ≃ a2}
+= Λ A. Λ a1. Λ a2. Λ eq.
+  ρ eq @ x . { option x a1 (λ z. z) ≃ option (some a2) a2 (λ z. z) }
+- β.
+
+optionMap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ Option ·A ➔ Option ·B
+= Λ A. Λ B. λ f. λ m. μ' m {
+  | none ➔ none ·B
+  | some x ➔ some (f x)
+  }.
+
+optionBind : ∀ A: ★. ∀ B: ★. Option ·A ➔ (A ➔ Option ·B) ➔ Option ·B
+= Λ A. Λ B. λ m. λ f. μ' m {
+  | none ➔ none ·B
+  | some x ➔ f x
+  }.
