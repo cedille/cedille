@@ -110,7 +110,7 @@ untyped-term Γ (ExLam pi e pi' x tk? t) =
                 just "λ-terms must bind a term, not a type (use Λ instead)"
       eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) >>
                 just "The Λ-bound variable occurs free in the erasure of the body" in
-  [- var-span e Γ pi' x untyped tk~ eₑ? -]
+  [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ eₑ? -]
   [- Lam-span Γ untyped pi pi' e x tk~ t [] eₖ? -]
   return (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
 
@@ -199,7 +199,7 @@ untyped-type Γ (ExTpAbs pi e pi' x tk T) =
   untyped-type (Γ , pi' - x :` tk~) T >>= λ T~ →
   let T~ = rename-var Γ (pi' % x) x T~ in
   [- punctuation-span "Forall" pi (posinfo-plus pi 1) -]
-  [- var-span e Γ pi' x untyped tk~ nothing -]
+  [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
   [- TpQuant-span Γ e pi pi' x tk~ T untyped [] nothing -]
   return (TpAbs e x tk~ T~)
 
@@ -209,7 +209,7 @@ untyped-type Γ (ExTpIota pi pi' x T₁ T₂) =
   untyped-type (Γ , pi' - x :` Tkt T₁~) T₂ >>= λ T₂~ →
   let T₂~ = rename-var Γ (pi' % x) x T₂~ in
   [- punctuation-span "Forall" pi (posinfo-plus pi 1) -]
-  [- var-span ff Γ pi' x untyped (Tkt T₁~) nothing -]
+  [- var-span ff (Γ , pi' - x :` Tkt T₁~) pi' x untyped (Tkt T₁~) nothing -]
   [- Iota-span Γ pi pi' x T₂~ T₂ untyped [] nothing -]
   return (TpIota x T₁~ T₂~)
 
@@ -288,7 +288,7 @@ untyped-kind Γ (ExKdAbs pi pi' x tk k) =
   untyped-tpkd Γ tk >>= λ tk~ →
   untyped-kind (Γ , pi' - x :` tk~) k >>= λ k~ →
   [- KdAbs-span Γ pi pi' x tk~ k untyped nothing -]
-  [- var-span ff Γ pi' x untyped tk~ nothing -]
+  [- var-span ff (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
   [- punctuation-span "Pi (kind)" pi (posinfo-plus pi 1) -]
   return (KdAbs x tk~ (rename-var Γ (pi' % x) x k~))
 
