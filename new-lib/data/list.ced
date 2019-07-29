@@ -100,8 +100,8 @@ concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
   | cons xs xss ➔ append xs (concat xss)
   }.
 
-eqList : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
-= Λ A. λ eq. λ xs. μ eqList. xs {
+eqList : ∀ A: ★. ∀ B : ★ . (A ➔ B ➔ Bool) ➔ List ·A ➔ List ·B ➔ Bool
+= Λ A. Λ B . λ eq. λ xs. μ eqList. xs {
   | nil ➔ λ ys. isNil ys
   | cons x xs ➔ λ ys. μ' ys {
     | nil ➔ ff
@@ -126,3 +126,22 @@ lCastMap : CastMap ·List
 
 lcastMap : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ List ·A ➔ List ·B
 = Λ A. Λ B. Λ c. castMap -lCastMap -c.
+
+absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
+  Λ L . Λ A . Λ il . λ l .
+    [projNil = λ l : L . μ projNil . (to/List -il l)
+                 @ (λ l : List · A . Π l' : L . { l ≃ l' } ➾ L)
+                 { nil ➔ λ l' . Λ u . φ ς u - l' { nil }
+                 | cons x xs ➔ λ l' . Λ u . projNil xs (μ'<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾ L)
+                                                        { nil ➔ Λ v . δ - v
+                                                        | cons y ys ➔ Λ v . ys} -u)
+                                                        -(μ'<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾
+                                                              { xs ≃ μ' l' { nil ➔ λ x . x
+                                                                           | cons y ys ➔ ys}})
+                                                          { nil ➔ Λ v . δ - v 
+                                                          | cons y ys ➔ Λ v . ρ ς v - β} -u)}
+                 l -β] - 
+    φ (μ projNilEq . (to/List -il l)
+         { nil ➔ β
+         | cons x xs ➔ ρ+ (projNilEq xs) - β}) - projNil l {nil}.
+
