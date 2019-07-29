@@ -25,7 +25,7 @@ options-absolute-path : (options-fp some-fp : filepath) → IO filepath
 options-absolute-path ofp fp =
   (filepath-replace-tilde fp >>= flip maybe-else return
     (doesFileExist fp >>=r λ fpₑ →
-      if fpₑ then fp else combineFileNames (takeDirectory ofp) fp))
+      if fpₑ then fp else combineFileNames (takeDirectory (takeDirectory ofp)) fp))
   >>= canonicalizePath
 
 opts-to-options : filepath → options-types.opts → IO cedille-options.options
@@ -565,19 +565,20 @@ process-encoding ofp ops @ (cedille-options.mk-options ip cede rkt log qvs etp d
       s = new-toplevel-state (cedille-options.include-path-insert (takeDirectory de) ip) in
   update-asts s de >>= λ s →
   process-encoding-file s de >>= λ f? →
-  maybe-else' f? (putStrLn "Error finding datatype encoding" >> return ops) λ ast~ →
+  maybe-else' f? (return ops) λ ast~ →
   return (record ops {datatype-encoding = just (de , just ast~)})
   where
-  open main-with-options compileTime ofp ops
-  open import spans ops {IO}
-  open import toplevel-state ops {IO}
-  open import process-cmd ops {IO} (λ _ → return triv) (λ _ → return triv)
+  ops' = record ops {datatype-encoding = nothing; use-cede-files = ff}
+  open main-with-options compileTime ofp ops'
+  open import spans ops' {IO}
+  open import toplevel-state ops' {IO}
+  open import process-cmd ops' {IO} (λ _ → return triv) (λ _ → return triv)
   open import syntax-util
   open import ctxt
 
   process-encoding-file : toplevel-state → filepath → IO (maybe file)
   process-encoding-file s fp with get-include-elt-if s fp >>= include-elt.ast
-  ...| nothing = putStrLn "Error looking up datatype encoding information" >> return nothing
+  ...| nothing = putStrLn ("Error looking up datatype encoding information from file " ^ fp) >> return nothing
   ...| just (ExModule is pi1 pi2 mn ps cs pi3) =
     (process-cmds (record s {Γ = ctxt-initiate-file (toplevel-state.Γ s) fp mn}) (map ExCmdImport is) >>=c λ s is' →
      process-params s first-position [] >>=c λ s _ →
