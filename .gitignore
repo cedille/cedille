@@ -5,6 +5,10 @@
 *.dyn_hi
 MAlonzo
 cedille
+cedille-optimized
+cedille-profile
+*.prof
+*-speed-test.txt
 libraries
 src/CedilleCommentsLexer.hs
 src/CedilleLexer.hs
