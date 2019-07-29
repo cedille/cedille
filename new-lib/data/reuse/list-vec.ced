@@ -1,4 +1,4 @@
-module data/reuse/list-vec.
+module data.reuse.list-vec.
 
 import ../nat.
 import ../list.

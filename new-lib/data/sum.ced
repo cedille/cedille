@@ -1,4 +1,4 @@
-module data/sum.
+module data.sum.
 
 data Sum (A: ★) (B: ★): ★ =
   | in1 : A ➔ Sum

@@ -1,4 +1,4 @@
-module core/castDep.
+module core.castDep.
 
 -- Dependent cast
 CastDep : Π A: ★. Π B: A ➔ ★. ★

@@ -1,4 +1,4 @@
-module core/rec (F: ★ ➔ ★).
+module core.rec (F: ★ ➔ ★).
 
 import top.
 import cast.

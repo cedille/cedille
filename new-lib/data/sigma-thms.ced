@@ -1,4 +1,4 @@
-module data/sigma-thms.
+module data.sigma-thms.
 
 import sigma.
 
