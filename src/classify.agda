@@ -850,7 +850,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
       (trie-insert σ x' (, TpVar (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') Erased nothing spos epos :: xs)
-      λ t → [- TpVar-span Γ pi x checking [ expected-type Γ T' ]
+      λ t → [- TpVar-span Γ' pi x checking [ expected-type Γ T' ]
                  (just ("This type argument should be a" ^
                      (if me then "n erased term" else " term"))) -] sm t
   decl-args Γ (ExCaseArg ExCaseArgTp pi x :: as) (Param _ x' (Tkk k) :: ps) σ ρ xs sm =
@@ -862,7 +862,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
       (trie-insert σ x' (, TpVar (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkk k') Erased nothing spos epos :: xs)
-      λ t → [- TpVar-span Γ pi x checking [ kind-data Γ k' ] (free-in-term x t) -] sm t
+      λ t → [- TpVar-span Γ' pi x checking [ kind-data Γ k' ] (free-in-term x t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
         e₁ = when (ex-case-arg-erased me xor me') "Mismatched erasure of term argument"
@@ -874,7 +874,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
       (trie-insert σ x' (, Var (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') (ex-case-arg-erased me) nothing spos epos :: xs)
-      λ t → [- Var-span Γ pi x checking [ type-data Γ T' ] (e₁ maybe-or e₂ t) -] sm t
+      λ t → [- Var-span Γ' pi x checking [ type-data Γ T' ] (e₁ maybe-or e₂ t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
         Γ' = ctxt-var-decl-loc pi x Γ
@@ -884,7 +884,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ =
       (trie-insert σ x' (, Var (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkk k') (ex-case-arg-erased me) nothing spos epos :: xs)
-      λ t → [- Var-span Γ pi x checking [ expected-kind Γ k' ]
+      λ t → [- Var-span Γ' pi x checking [ expected-kind Γ k' ]
                  (just "This term argument should be a type") -] sm t
   decl-args Γ [] [] σ ρ xs sm =
     return (Γ , [] , nothing , σ , ρ , xs , sm)
