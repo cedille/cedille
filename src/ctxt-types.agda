@@ -117,19 +117,21 @@ record ctxt : Set where
 ctxt-binds-var : ctxt → var → 𝔹
 ctxt-binds-var Γ x = trie-contains (ctxt.qual Γ) x || trie-contains (ctxt.i Γ) x
 
-ctxt-var-decl : var → ctxt → ctxt
-ctxt-var-decl v Γ =
+ctxt-var-decl' : location → var → ctxt → ctxt
+ctxt-var-decl' loc v Γ =
   record Γ {
     qual = trie-insert (ctxt.qual Γ) v (v , []);
-    i = trie-insert (ctxt.i Γ) v (var-decl , "missing" , "missing")
+    i = trie-insert (ctxt.i Γ) v (var-decl , loc);
+    μ = trie-remove (ctxt.μ Γ) v;
+    μ' = trie-remove (ctxt.μ' Γ) v;
+    Is/μ = trie-remove (ctxt.Is/μ Γ) v;
+    μ~ = trie-remove (ctxt.μ~ Γ) v;
+    μ̲ = trie-remove (ctxt.μ̲ Γ) v
   }
+ctxt-var-decl = ctxt-var-decl' missing-location
 
 ctxt-var-decl-loc : posinfo → var → ctxt → ctxt
-ctxt-var-decl-loc pi v Γ =
-  record Γ {
-    qual = trie-insert (ctxt.qual Γ) v (v , []);
-    i = trie-insert (ctxt.i Γ) v (var-decl , ctxt.fn Γ , pi)
-  }
+ctxt-var-decl-loc pi v Γ = ctxt-var-decl' (ctxt.fn Γ , pi) v Γ
 
 qualif-var : ctxt → var → var
 qualif-var Γ v with trie-lookup (ctxt.qual Γ) v

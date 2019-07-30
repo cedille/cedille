@@ -63,8 +63,6 @@ positivity-add : positivity → positivity → positivity
 positivity-neg = uncurry $ flip _,_
 positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
-
-
 -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 module positivity (x : var) where
   
@@ -113,7 +111,7 @@ module positivity (x : var) where
   
   type+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (positivity-neg $ tpkd+ Γ atk) (type+ Γ' $ hnf' Γ' T)
+    positivity-add (positivity-neg $ tpkd+ Γ $ hnf' Γ -tk atk) (type+ Γ' $ hnf' Γ' T)
   type+ Γ (TpIota x' T T') =
     let Γ' = ctxt-var-decl x' Γ in
     positivity-add (type+ Γ $ hnf' Γ T) (type+ Γ' $ hnf' Γ' T')
@@ -132,17 +130,13 @@ module positivity (x : var) where
       then positivity-add occurs-pos f
       else maybe-else' (data-lookup Γ x' as) f
         λ {(mk-data-info x'' xₒ'' asₚ asᵢ ps kᵢ k cs csₚₛ eds gds) →
-          let x''' = fresh-var Γ x''
-              Γ' = ctxt-var-decl x''' Γ
-              cs' = map-snd (rename-var Γ' x'' x''') <$> csₚₛ in
-          type+ Γ' (hnf' Γ' $ foldr (λ {(Ctr cₓ cₜ) → TpAbs NotErased ignored-var (Tkt cₜ)})
-                     (TpVar x''') cs')}
+          type+ Γ (hnf' Γ $ TpAbs tt x'' (Tkk k) $ foldr (uncurry λ cₓ cₜ → TpAbs ff ignored-var (Tkt cₜ)) (TpVar x'') (inst-ctrs Γ ps asₚ cs))}
   ...| _ , _ = if-free T
 
   
   kind+ Γ (KdAbs x' atk k) =
     let Γ' = ctxt-var-decl x' Γ in
-    positivity-add (positivity-neg $ tpkd+ Γ atk) (kind+ Γ' k)
+    positivity-add (positivity-neg $ tpkd+ Γ $ hnf' Γ -tk atk) (kind+ Γ' k)
   kind+ Γ _ = occurs-nil
 
   tpkd+ Γ (Tkt T) = type+ Γ (hnf' Γ T)

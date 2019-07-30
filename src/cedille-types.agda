@@ -59,12 +59,8 @@ mutual
   pattern EpsBoth = nothing
   pattern Public = tt
   pattern Private = ff
-  
---  data ctr : Set where
---    Ctr : var → type → ctr
 
   ctr = var × type
---  Ctr : var → type → ctr
   pattern Ctr x T = x , T
 
   data param : Set where
@@ -74,16 +70,12 @@ mutual
   pattern ParamEr x T = Param tt x (Tkt T)
 
 
-  -- Below pragma is necessary due to mu elaboration argument
-  -- (which we might want to change away from a function for memory efficiency)
---  {-# NO_POSITIVITY_CHECK #-}
   data term : Set where
     App : term → term → term
     AppE : term → tmtp → term
     Beta : term → term → term
     Delta : (do-bohm? : maybe (term × term)) → (Tᵣ : type) → (contra : term) → term
     Hole : posinfo → term
---    Internal : maybe term → term → term -- external term → internal representation → ...
     IotaPair : term → term → var → type → term
     IotaProj : term → iota-num → term
     Lam : erased? → var → maybe tpkd → term → term
@@ -126,6 +118,11 @@ mutual
 
   data file : Set where
     Module : var → params → cmds → file
+
+  indx : Set
+  indx = var × tpkd
+  pattern Index x tk = x , tk
+  indices = 𝕃 indx
 
   record encoding-defs : Set where
     constructor mk-enc-defs
@@ -172,7 +169,6 @@ mutual
       csₚₛ : ctrs
       eds : encoding-defs
       gds : encoded-defs
---      subst-cs : var → ctrs
 
 
   data cmd : Set where

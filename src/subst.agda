@@ -7,6 +7,7 @@ open import free-vars
 open import rename
 open import general-util
 open import syntax-util
+open import type-util
 
 substh-ret-t : Set → Set
 substh-ret-t T = ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → T → T
@@ -16,6 +17,7 @@ substh : ∀ {ed} → substh-ret-t ⟦ ed ⟧
 substh-arg : substh-ret-t arg
 substh-args : substh-ret-t args
 substh-params' : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → params → params × ctxt × renamectxt × trie (Σi exprd ⟦_⟧)
+substh-indices : substh-ret-t indices
 substh-params : substh-ret-t params
 substh-case : substh-ret-t case
 substh-cases : substh-ret-t cases
@@ -136,6 +138,8 @@ substh-params' Γ ρ σ ((Param me x tk) :: ps) =
 substh-params' Γ ρ σ [] = [] , Γ , ρ , σ
 
 substh-params Γ ρ σ ps = fst (substh-params' Γ ρ σ ps)
+
+substh-indices Γ ρ σ = params-to-indices ∘' substh-params Γ ρ σ ∘' indices-to-params
 
 substh-case Γ ρ σ (Case x as t asₜₚ) =
   case (substh-case-args Γ ρ σ as) of λ where

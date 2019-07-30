@@ -131,10 +131,6 @@ is-hole {KIND} (KdHole pi) = tt
 is-hole _ = ff
 
 
-data indx : Set where
-  Index : var → tpkd → indx
-indices = 𝕃 indx
-
 data datatype : Set where
   Data : var → params → indices → ctrs → datatype
 
@@ -149,6 +145,14 @@ params-set-erased me = map λ where
 
 args-set-erased : erased? → args → args
 args-set-erased = map ∘ arg-set-erased
+
+indices-to-params : indices → params
+indices-to-params = map λ where
+  (Index x tk) → Param ff x tk
+
+params-to-indices : params → indices
+params-to-indices = map λ where
+  (Param me x tk) → Index x tk
 
 indices-to-tmtps : indices → 𝕃 tmtp
 indices-to-tmtps = map λ where
