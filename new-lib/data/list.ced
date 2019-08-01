@@ -139,7 +139,7 @@ absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
                                                               { xs ≃ μ' l' { nil ➔ λ x . x
                                                                            | cons y ys ➔ ys}})
                                                           { nil ➔ Λ v . δ - v 
-                                                          | cons y ys ➔ Λ v . ρ ς v - β} -u)}
+                                                          | cons y ys ➔ Λ v . ρ v @ x. {tail x ≃ ys} - β} -u)}
                  l -β] - 
     φ (μ projNilEq . (to/List -il l)
          { nil ➔ β
