@@ -645,11 +645,11 @@ private
                                      sM' = ctxt-mu-decls Γ tₛ is Tₘ d Γₚᵢ "0" "0" rec
                                      σ = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ X y) <$> cs)
                                      sM = if rec =string ""
-                                             then (σ X , const spanMok , Γ , [] , empty-renamectxt)
+                                             then (σ X , const spanMok , Γ , [] , empty-renamectxt , (λ Γ t T → t) , (λ Γ T k → T))
                                              else (σ (Γₚᵢ % mu-Type/ rec) , sM')
                                      mu = if X =string Xₛ then recompose-apps asₚ (Var (data-is/ X)) else Var (mu-isType/' Xₛ) in
                              case sM of λ where
-                               (σ-cs , _ , Γ' , ts , ρ) →
+                               (σ-cs , _ , Γ' , ts , ρ , tf , Tf) →
                                  if spans-have-error (snd $ id-out $
                                       check-type (qualified-ctxt Γ) (resugar Tₘ) (just kᵢ) empty-spans)
                                    then inj₁ "Computed an ill-typed motive"

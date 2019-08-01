@@ -331,28 +331,69 @@ ctxt-open-all-encoding-defs Γ =
 
 
 mk-ctr-fmap-t : Set → Set
-mk-ctr-fmap-t X = ctxt → (var × var × var × term) → X
+mk-ctr-fmap-t X = ctxt → (var × type × term) → X
 {-# TERMINATING #-}
 mk-ctr-fmap-η+ : mk-ctr-fmap-t (term → type → term)
 mk-ctr-fmap-η- : mk-ctr-fmap-t (term → type → term)
-mk-ctr-fmap-η? : mk-ctr-fmap-t (term → type → term) → mk-ctr-fmap-t (term → type → term)
-mk-ctr-fmap-η= : mk-ctr-fmap-t (term → type → term) → mk-ctr-fmap-t (term → type → term)
+mk-ctr-fmap-η? : 𝔹 → mk-ctr-fmap-t (term → type → term)
+mk-ctr-fmap-η= : 𝔹 → mk-ctr-fmap-t (term → type → term)
 mk-ctr-fmapₖ-η+ : mk-ctr-fmap-t (type → kind → type)
 mk-ctr-fmapₖ-η- : mk-ctr-fmap-t (type → kind → type)
-mk-ctr-fmapₖ-η? : mk-ctr-fmap-t (type → kind → type) → mk-ctr-fmap-t (type → kind → type)
+mk-ctr-fmapₖ-η? : 𝔹 → mk-ctr-fmap-t (type → kind → type)
 
-mk-ctr-fmap-η= f Γ x body T with decompose-ctr-type Γ T
+-- TODO: Join fmap+ and fmap- into one function, to handle this for both strictly positive and strictly negative parameter occurrences in other datatypes
+mk-ctr-fmap-η= f Γ x @ (Aₓ , Bₓ , castₓ) body T with decompose-ctr-type Γ T
 ...| TpVar x'' , as , rs =
-  maybe-else' (ctxt-open-encoding-defs x'' Γ) (f Γ x body T)
-    λ Γ → f Γ x body (hnf-ctr Γ (fst x) T)
-...| _ = f Γ x body T
+  maybe-else' (data-lookup (add-params-to-ctxt as Γ) x'' rs) ((if f then mk-ctr-fmap-η+ else mk-ctr-fmap-η-) Γ x body T) λ where
+    d @ (mk-data-info X _ asₚ asᵢ ps kᵢ k cs csₚₛ eds gds) →
+      params-to-lams (if f then as else (substh-params Γ empty-renamectxt (trie-single Aₓ (, Bₓ)) as)) $
+      let Γ' = add-params-to-ctxt as Γ
+          recₓ = fresh-var Γ' "fmap"
+          Γ' = ctxt-var-decl recₓ Γ'
+          is = kind-to-indices Γ k
+          uₓ = fresh-var (add-indices-to-ctxt is Γ') "u"
+          vₓ = fresh-var (add-indices-to-ctxt is Γ') "v"
+          Γ'' = ctxt-var-decl vₓ $ ctxt-var-decl uₓ $ add-indices-to-ctxt is Γ' in
+      LetTm tt uₓ nothing
+        (Mu (inj₂ recₓ)
+          (foldl
+            (λ {(Param me x'' (Tkt T)) body →
+                  (if me then AppEr body else App body) $
+                     mk-ctr-fmap-η? (~ f) Γ' x (Var x'') T;
+                (Param _ x'' (Tkk k)) body →
+                  AppTp body $ mk-ctr-fmapₖ-η? (~ f) Γ' x (TpVar x'') k})
+            body as)
+          (just (indices-to-tplams is $
+            TpLam uₓ (Tkt $ indices-to-tpapps is $ recompose-tpapps (args-to-tmtps asₚ) (TpVar X)) $
+              TpIota vₓ (subst Γ'' Bₓ Aₓ (recompose-tpapps (args-to-tmtps asₚ) (TpVar X)))
+                (TpEq (Var vₓ) (Var uₓ)))) d $
+          flip map (map-snd (rename-var Γ'' (mu-Type/ recₓ) X) <$> inst-ctrs Γ'' ps asₚ cs) $ uncurry λ cₓ T → case decompose-ctr-type Γ T of λ where
+            (Tₕ , as , rs) →
+              Case cₓ (map (λ {(Param me x tk) → CaseArg me x (just tk)}) as)
+                (let Xₚₛ = recompose-tpapps (args-to-tmtps asₚ) (TpVar X)
+                     cg = mu-Type/ recₓ , Xₚₛ ,
+                          (indices-to-lams is $ Lam ff vₓ (just (Tkt (indices-to-tpapps is (TpVar (mu-Type/ recₓ))))) (Phi (IotaProj (App (indices-to-apps is (Var recₓ)) (Var vₓ)) ι2) (IotaProj (App (indices-to-apps is (Var recₓ)) (Var vₓ)) ι1) (Var vₓ)))
+                     t = foldl
+                           (λ {(Param me x'' (Tkt T)) body →
+                                 (if me then AppEr body else App body) $
+                                   mk-ctr-fmap-η? f Γ' x (mk-ctr-fmap-η? ff Γ' cg (Var x'') T) (subst Γ'' Xₚₛ (mu-Type/ recₓ) T);
+                               (Param _ x'' (Tkk k)) body →
+                                 AppTp body $ mk-ctr-fmapₖ-η? f Γ' x (mk-ctr-fmapₖ-η? ff Γ' cg (TpVar x'') k) (subst Γ'' Xₚₛ (mu-Type/ recₓ) k)})
+                           (subst (add-params-to-ctxt as Γ) Bₓ Aₓ (recompose-apps asₚ (Var cₓ))) as
+                     tₑ = erase t in
+                 IotaPair t (Beta tₑ tₑ) vₓ (TpEq (Var vₓ) tₑ))
+                rs)
+        (Phi (IotaProj (Var uₓ) ι2) (IotaProj (Var uₓ) ι1) (erase (params-to-apps as body)))
+--  maybe-else' (ctxt-open-encoding-defs x'' Γ) (f Γ x body T)
+--    λ Γ → f Γ x body (hnf-ctr Γ (fst x) T)
+...| _ = (if f then mk-ctr-fmap-η+ else mk-ctr-fmap-η-) Γ x body T
 
 mk-ctr-fmap-η? f Γ x body T with is-free-in (fst x) T
 ...| tt = mk-ctr-fmap-η= f Γ x body T
 ...| ff = body
 
 mk-ctr-fmapₖ-η? f Γ x body k with is-free-in (fst x) k
-...| tt = f Γ x body k
+...| tt = (if f then mk-ctr-fmapₖ-η+ else mk-ctr-fmapₖ-η-) Γ x body k
 ...| ff = body
 
 mk-ctr-fmap-η+ Γ x @ (Aₓ , Bₓ , _) body T with decompose-ctr-type Γ T
@@ -369,54 +410,53 @@ mk-ctr-fmap-η+ Γ x @ (Aₓ , Bₓ , _) body T with decompose-ctr-type Γ T
   tₓ' $ foldl
     (λ {(Param me x'' (Tkt T)) body →
           (if me then AppEr body else App body) $
-            mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' x (Var x'') T;
+            mk-ctr-fmap-η? ff Γ' x (Var x'') T;
         (Param _ x'' (Tkk k)) body →
-          AppTp body $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' x (TpVar x'') k})
+          AppTp body $ mk-ctr-fmapₖ-η? ff Γ' x (TpVar x'') k})
     body as
 
-mk-ctr-fmap-η- Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) body T with decompose-ctr-type Γ T
+mk-ctr-fmap-η- Γ xₒ @ (Aₓ , Bₓ , castₓ) body T with decompose-ctr-type Γ T
 ...| TpVar x'' , as , rs =
-  params-to-lams (substh-params Γ (renamectxt-single Aₓ Bₓ) empty-trie as) $
+  params-to-lams (substh-params Γ empty-renamectxt (trie-single Aₓ (, Bₓ)) as) $
   let Γ' = add-params-to-ctxt as Γ in
   if x'' =string Aₓ
-    then App (recompose-apps (tmtps-to-args Erased rs) $
-                AppEr (AppTp (AppTp castₓ (TpVar Aₓ)) (TpVar Bₓ)) (Var cₓ))
+    then App (recompose-apps (tmtps-to-args Erased rs) castₓ)
     else id $
   foldl (λ {(Param me x'' (Tkt T)) body →
               (if me then AppEr body else App body) $
-                 mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (Var x'') T;
+                 mk-ctr-fmap-η? tt Γ' xₒ (Var x'') T;
             (Param me x'' (Tkk k)) body →
-              AppTp body $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (TpVar x'') k}) body as
+              AppTp body $ mk-ctr-fmapₖ-η? tt Γ' xₒ (TpVar x'') k}) body as
 ...| TpIota x'' T₁ T₂ , as , [] =
   let Γ' = add-params-to-ctxt as Γ
       tₒ = foldl (λ where
             (Param me x'' (Tkt T)) body →
               (if me then AppEr body else App body) $
-                mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (Var x'') T
+                mk-ctr-fmap-η? tt Γ' xₒ (Var x'') T
             (Param me x'' (Tkk k)) body →
-              AppTp body $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (TpVar x'') k
+              AppTp body $ mk-ctr-fmapₖ-η? tt Γ' xₒ (TpVar x'') k
            ) body as
-      t₁ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ ι1) T₁
-      t₂ = mk-ctr-fmap-η? mk-ctr-fmap-η- Γ' xₒ (IotaProj tₒ ι2) ([ Γ' - t₁ / x'' ] T₂) in
-  params-to-lams (substh-params Γ (renamectxt-single Aₓ Bₓ) empty-trie as) $
-  IotaPair t₁ t₂ x'' (rename-var (ctxt-var-decl x'' Γ') Aₓ Bₓ T₂)
+      t₁ = mk-ctr-fmap-η? ff Γ' xₒ (IotaProj tₒ ι1) T₁
+      t₂ = mk-ctr-fmap-η? ff Γ' xₒ (IotaProj tₒ ι2) ([ Γ' - t₁ / x'' ] T₂) in
+  params-to-lams (substh-params Γ empty-renamectxt (trie-single Aₓ (, Bₓ)) as) $
+  IotaPair t₁ t₂ x'' (subst (ctxt-var-decl x'' Γ') Bₓ Aₓ T₂)
 ...| Tₕ , as , rs = body
 
-mk-ctr-fmapₖ-η+ Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) body k =
+mk-ctr-fmapₖ-η+ Γ xₒ @ (Aₓ , Bₓ , castₓ) body k =
   let is = kind-to-indices Γ k in
   indices-to-tplams is $
   let Γ' = add-indices-to-ctxt is Γ in
   foldl
-    (λ {(Index x'' (Tkt T)) → flip TpAppTm $ mk-ctr-fmap-η?  mk-ctr-fmap-η-  Γ' xₒ (Var x'') T;
-        (Index x'' (Tkk k)) → flip TpAppTp $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η- Γ' xₒ (TpVar x'') k})
+    (λ {(Index x'' (Tkt T)) → flip TpAppTm $ mk-ctr-fmap-η?  ff Γ' xₒ (Var x'') T;
+        (Index x'' (Tkk k)) → flip TpAppTp $ mk-ctr-fmapₖ-η? ff Γ' xₒ (TpVar x'') k})
     body is
 
-mk-ctr-fmapₖ-η- Γ xₒ @ (Aₓ , Bₓ , cₓ , castₓ) body k with kind-to-indices Γ k
+mk-ctr-fmapₖ-η- Γ xₒ @ (Aₓ , Bₓ , castₓ) body k with kind-to-indices Γ k
 ...| is =
   indices-to-tplams is $
   let Γ' = add-indices-to-ctxt is Γ in
-  foldl (λ {(Index x'' (Tkt T)) → flip TpAppTm $ mk-ctr-fmap-η? mk-ctr-fmap-η+ Γ' xₒ (Var x'') T;
-            (Index x'' (Tkk k)) → flip TpApp $ Ttp $ mk-ctr-fmapₖ-η? mk-ctr-fmapₖ-η+ Γ' xₒ (TpVar x'') k})
+  foldl (λ {(Index x'' (Tkt T)) → flip TpAppTm $ mk-ctr-fmap-η? tt Γ' xₒ (Var x'') T;
+            (Index x'' (Tkk k)) → flip TpApp $ Ttp $ mk-ctr-fmapₖ-η? tt Γ' xₒ (TpVar x'') k})
     body is
 
 
@@ -600,8 +640,7 @@ encode-datatype Γ eds @ (mk-enc-defs ecs _
     rename "X" from Γ' for λ Xₓ →
     params-to-lams psₜ $
     let cs-a = map-snd (rename-var Γ' Dₓ Aₓ) <$> cs
-        cs-b = map-snd (rename-var Γ' Dₓ Bₓ) <$> cs
-        Γ-η = decl-Γ Γ' [: Aₓ ⌟ Bₓ ⌟ cₓ :] in
+        cs-b = map-snd (rename-var Γ' Dₓ Bₓ) <$> cs in
     AppEr (AppTp functor-in TypeF/D) $
     Lam tt Aₓ jtkᵢ $
     Lam tt Bₓ jtkᵢ $
@@ -618,13 +657,13 @@ encode-datatype Γ eds @ (mk-enc-defs ecs _
             (flip App ∘ uncurry
               (λ bodyₓ T →
                 mk-ctr-fmap-η?
-                  mk-ctr-fmap-η+
-                  Γ-η
-                  (Aₓ , Bₓ , cₓ , cast-out)
+                  tt
+                  (decl-Γ Γ' [: Aₓ ⌟ Bₓ ⌟ cₓ ⌟ xₓ ⌟ Xₓ :])
+                  (Aₓ , TpVar Bₓ , AppEr (AppTp (AppTp cast-out (TpVar Aₓ)) (TpVar Bₓ)) (Var cₓ))
                   (Var bodyₓ)
-                  (hnf-ctr Γ-η Aₓ T)))
+                  (hnf-ctr (decl-Γ Γ' [: Aₓ ⌟ Bₓ ⌟ cₓ ⌟ xₓ ⌟ Xₓ :]) Aₓ T)))
             (AppTp (IotaProj (Var xₓ) ι2) (TpVar Xₓ)) cs-a)
-         xₓ (mk-ftype2 (decl-Γ Γ' [: Aₓ ⌟ Bₓ ⌟ cₓ :]) (indices-to-tmtps is) xₓ cs-b)))
+         xₓ (mk-ftype2 (decl-Γ Γ' [: Aₓ ⌟ Bₓ ⌟ cₓ ⌟ xₓ :]) (indices-to-tmtps is) xₓ cs-b)))
       (Beta id-term id-term)
 
   IndF-cmd = CmdDefTerm (data-IndF/ Dₓ') $

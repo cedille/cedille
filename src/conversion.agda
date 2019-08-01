@@ -371,6 +371,16 @@ ctxt-datatype-decl vₒ vᵣ as Γ =
     μ̲ = stringset-insert (ctxt.μ̲ Γ) (mu-Type/ vᵣ)
   }
 
+ctxt-datatype-undef : var → ctxt → ctxt
+ctxt-datatype-undef v Γ =
+  record Γ {
+    μ = trie-remove (ctxt.μ Γ) v;
+    μ' = trie-remove (ctxt.μ' Γ) v;
+    Is/μ = trie-remove (ctxt.Is/μ Γ) v;
+    μ~ = trie-remove (ctxt.μ~ Γ) v;
+    μ̲ = trie-remove (ctxt.μ̲ Γ) v
+  }
+
 ctxt-datatype-def : posinfo → var → params → kind → kind → ctrs → encoding-defs → ctxt → ctxt
 ctxt-datatype-def pi D psᵢ kᵢ k cs eds Γ =
   let D' = ctxt.mn Γ # D
