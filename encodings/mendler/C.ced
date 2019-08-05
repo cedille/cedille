@@ -1,63 +1,65 @@
+import stdlib.
 
-module C (F : ★ ➔ ★).
+module C (F : ★ ➔ ★){fm : CastMap · F}.
 
-import public cast.
-import recType.
-import is.
-import top.
+import libmods.
 
 foldU ◂ Top ➔ Top = λ alg . β{λ d . d alg} .
 inU ◂ Top = β{λ d . λ alg . alg (foldU alg) d}.
 inAlgU ◂ Top = β{λ _ . λ d . inU d}.
+outU ◂ Top = β{λ x. x (λ _. λ xs. xs)}.
 
-Alg ◂ ★ ➔ ★ ➔ ★ =
-  λ C : ★ . λ X : ★ . 
+Alg ◂ ★ ➔ (★ ➔ ★) ➔ ★ =
+  λ C : ★ . λ X : ★ ➔ ★ .
     ι alg : Top . ∀ R : ★ .
       Cast · R · C ➾
-      is · (R ➔ X) (foldU alg) ➔
+      View · (R ➔ F · R) outU ➾
+      View · (R ➔ X · R) (foldU alg) ➔
       F · R ➔
-      X. 
+      X · R.
 
-rF' ◂ ★ ➔ ★ = λ C : ★ . ∀ X : ★ . Alg · C · X ➔ X .
+rF' ◂ ★ ➔ ★ = λ C : ★ . ∀ X : ★ ➔ ★ . CastMap · X ➾ Alg · C · X ➔ X · C .
 
 rF ◂ ★ ➔ ★ = λ C : ★ . ι x : rF' · C . { x inAlgU ≃ x } .
 
 C ◂ ★ = Rec · rF.
 
-rFunctor ◂ RecFunctor · F ➔ RecFunctor · rF =
- λ fm . Λ X . Λ Y . λ c .
-  [λ x . [Λ A . λ a .
-           x.1 · A [β{a} ,
-                    Λ R . Λ reveal . λ e . λ d .
-                     a.2 · R -(castCompose reveal c) e d ],
+rFunctor ◂ CastMap · rF =
+ Λ X . Λ Y . Λ c .
+  [λ x . [Λ A . Λ fA . λ a .
+           cast -(fA -c)
+             (x.1 · A -fA
+               [β{a} ,
+                Λ R . Λ reveal . Λ o. λ e . λ d .
+                  a.2 · R -(castTrans -reveal -c) -o e d ]),
           x.2],
     β] .
-        
-rFold ◂ RecFunctor · F ➾ rF · C ➔ C =
-  Λ fm . cast -(recFold · rF -(rFunctor fm)) .
 
-rUnfold ◂ RecFunctor · F ➾ C ➔ rF · C =
-  Λ fm . cast -(recUnfold · rF -(rFunctor fm)) .
+rFold ◂ rF · C ➔ C =
+  recFold · rF -rFunctor .
 
-fold ◂ RecFunctor · F ➾ ∀ X : ★ . Alg · C · X ➔ C ➔ X =
-  Λ fm . Λ X . λ alg . λ d . (rUnfold -fm d).1 · X alg .
+rUnfold ◂ C ➔ rF · C =
+  recUnfold · rF -rFunctor .
 
-cRec ◂ RecFunctor · F ➾ C ➔ rF' · C =
-  Λ fm . λ t . (rUnfold -fm t).1 .
+fold ◂ ∀ X : ★ ➔ ★ . CastMap · X ➾ Alg · C · X ➔ C ➔ X · C =
+  Λ X . Λ fX . λ alg . λ d . (rUnfold d).1 · X -fX alg .
 
-in ◂ RecFunctor · F ➾ F · C ➔ C =
-  Λ fm . λ d .
-    rFold -fm
-      [Λ X . λ alg . alg.2 · C -(castId · C ) 
-                       [fold -fm · X alg , β{fold alg} ] d,
+cRec ◂ C ➔ rF' · C =
+  λ t . (rUnfold t).1 .
+
+
+out ◂ C ➔ F · C =
+  λ x .
+    (rUnfold x).1 · F -fm
+      [β{λ _ . λ d . d} , Λ R . Λ reveal . Λ o. λ eval . λ d . d] .
+
+in ◂ F · C ➔ C =
+  λ d .
+    rFold
+      [Λ X . Λ fX . λ alg . alg.2 · C -(castRefl · C ) -[ out , β{out} ]
+                       [fold · X -fX alg , β{fold alg} ] d,
        β{λ alg . (alg (fold alg) d)}].
 
-out ◂ RecFunctor · F ➾ C ➔ F · C =
-  Λ fm . λ x .
-    (rUnfold -fm x).1 · (F · C)
-      [β{λ _ . λ d . d} , Λ R . Λ reveal . λ eval . λ d . cast · (F · R) · (F · C) -(fm · R · C reveal) d] .
-
-inAlg ◂ RecFunctor · F ➾ Alg · C · C =
-  Λ fm .
+inAlg ◂ Alg · C · (λ _ : ★ . C) =
    [ β{λ eval . λ d . in d} ,
-     Λ R . Λ reveal . λ eval . λ d . in -fm (cast -(fm reveal) d)].
+     Λ R . Λ reveal . Λ o . λ eval . λ d . in (cast -(fm -reveal) d)].

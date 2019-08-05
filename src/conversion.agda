@@ -262,7 +262,7 @@ hnf{TYPE} Γ u (TpLet _ (DefTerm _ x ot t) T) hd =
 -- we would need to introduce a type-level chi to do the same thing as above.
 -- Currently, synthesizing or checking a type should not make a difference.
 hnf{TYPE} Γ u (TpLet _ (DefType _ x k T) T') hd = hnf Γ u (subst Γ T x T') hd
-hnf{TYPE} Γ u@(unfold tt _ _ _) (Iota _ _ x T₁ T₂) hd = Iota posinfo-gen posinfo-gen x (hnf Γ u T₁ ff) (hnf Γ u T₂ ff)
+hnf{TYPE} Γ u@(unfold tt _ _ _) (Iota _ _ x T₁ T₂) hd = Iota posinfo-gen posinfo-gen x (hnf Γ u T₁ ff) (hnf (ctxt-var-decl x Γ) u T₂ ff)
 hnf{TYPE} Γ u x _ = x
 
 hnf{KIND} Γ no-unfolding e hd = e
@@ -553,7 +553,7 @@ ctxt-kind-def pi v ps2 k Γ@(mk-ctxt (fn , mn , ps1 , q) (syms , mn-fn) i symb-o
   (trie-insert i (mn # v) (kind-def (ps1 ++ qualif-params Γ ps2) k' , fn , pi))
   symb-occs Δ
   where
-  k' = hnf Γ unfold-head (qualif-kind Γ k) tt
+  k' = hnf Γ (unfolding-elab unfold-head) (qualif-kind Γ k) tt
 
 ctxt-datatype-decl : var → var → args → ctxt → ctxt
 ctxt-datatype-decl vₒ vᵣ as Γ@(mk-ctxt mod ss is os (Δ , μ' , μ , η)) =
@@ -578,7 +578,7 @@ ctxt-type-def pi s op v t k Γ@(mk-ctxt (fn , mn , ps , q) (syms , mn-fn) i symb
   (trie-insert i v' (type-def (def-params s ps) op t' k , fn , pi))
   symb-occs Δ
   where
-  t' = maybe-map (λ t → hnf Γ unfold-head (qualif-type Γ t) tt) t
+  t' = maybe-map (λ t → hnf Γ (unfolding-elab unfold-head) (qualif-type Γ t) tt) t
   v' = if s iff localScope then pi % v else mn # v
   q' = qualif-insert-params q v' v (if s iff localScope then [] else ps)
 
