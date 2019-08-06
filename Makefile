@@ -184,6 +184,14 @@ cedille-mac-pkg: cedille ./core/cedille-core-static
 	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
 	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
 
+cedille-src-pkg: libraries ./ial/ial.agda-lib
+	rm -rf cedille-src.zip cedille-src.tar.gz
+	mkdir -p ./cedille-src-pkg
+	cp -R ./ial/ ./cedille-src-pkg/
+	cp $(SRC) ./cedille-src-pkg
+	zip -r cedille-src-pkg.zip cedille-src-pkg
+	rm -rf cedille-src-pkg
+
 clean:
 	git clean -Xfd # only remove .gitignore files and directories
 
