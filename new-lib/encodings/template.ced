@@ -39,12 +39,12 @@ module template
               ∀ fm : Functor ·F.
                ∀ i : I.
                 Π d : Fix ·F fm i.
-                 ∀ Q : Π i : I. Fix ·F fm i ➔ ★.
+                 ∀ Q : Π R : I ➔ ★. Π i : I. Fix ·F fm i ➔ ★.
+                 (∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . Cast ·X ·Y ➾ ∀ indices : I. ∀ d1 : Fix ·F fm indices. ι f : Q ·X indices d1 ➔ Q ·Y indices d1. {f ≃ λ x. x}) ➾
                   (∀ R : I ➔ ★.
                     ∀ rvl : Cast ·R ·(Fix ·F fm).
                      (ι o : ∀ i : I. R i ➔ F ·R i. {o ≃ fix-out}) ➾
-                      (∀ i : I. Π r : R i. Q i (cast-out -rvl -i r)) ➔
+                      (∀ i : I. Π r : R i. Q ·R i (cast-out -rvl -i r)) ➔
                        ∀ i : I. Π x : F ·R i.
-                        Q i (fix-in -fm -i (cast-out -(functor-out -fm -rvl) -i x))) ➔
-                   Q i d).
-
+                        Q ·R i (fix-in -fm -i (cast-out -(functor-out -fm -rvl) -i x))) ➔
+                   Q ·(Fix ·F fm) i d).

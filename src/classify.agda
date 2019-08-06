@@ -993,59 +993,70 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
        (uncurry λ e tvs → spanM-add (Mu-span Γ pi μ pi''' nothing (maybe-to-checking Tₑ?)
          (expected-type-if Γ Tₑ? ++ tvs) $ just e) >>
         return-when {m = Tₑ?} (Hole pi) (TpHole pi))
-       >>=s λ where -- maybe-not Tₑ? >>= λ _ → maybe-not Tₘ? >>= λ _ → no-motive-err
+       >>=s λ where
         (tₑ~ , cast , d @ (mk-data-info Xₒ _ asₚ asᵢ ps kᵢ k cs' csₚₛ eds gds)) →
-          maybe-map (λ Tₘ → check-type Γ Tₘ (just kᵢ)) Tₘ? >>=? λ Tₘ?' →
-          let is = kind-to-indices Γ kᵢ
-              ret-tp = λ ps as t → maybe-else' Tₘ?' Tₑ? (λ Tₘ → just $ hnf Γ unfold-head-elab (TpAppTm (apps-type Tₘ $
-                          tmtps-to-args NotErased (drop (length ps) as)) t)) in
-          (maybe-else' Tₘ?'
-             (return Tₑ? on-fail no-motive >>=m λ Tₑ →
-              let Tₘ = refine-motive Γ is (asᵢ ++ [ Ttm t~ ]) Tₑ in
-              check-refinement Γ Tₘ kᵢ >>=c λ Tₘ → return2 (just Tₘ))
-             λ Tₘ → return (just Tₘ , [] , nothing))
-          >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
-          let Tₘ = maybe-else' Tₘ (TpHole pi) id
-              is = drop-last 1 is
-              subst-ctr : ctxt → ctr → ctr
-              subst-ctr =
-                λ {Γ (Ctr x T) →
-                     Ctr x $ hnf Γ unfold-no-defs $
-                       case μ of λ where
-                         (ExIsMu' _) → if (Xₒ =string X)
-                           then T
-                           else subst Γ (params-to-tplams ps $ TpVar X) Xₒ T
-                         (ExIsMu pi' x) →
-                           subst Γ (params-to-tplams ps $ TpVar $ pi' % mu-Type/ x) Xₒ T}
-              reduce-cs = map λ {(Ctr x T) → Ctr x $ hnf Γ unfold-no-defs T}
-              fcs = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ Xₒ y) <$> cs')
-              cs' = reduce-cs $ case μ of λ where
-                      (ExIsMu' _) → if Xₒ =string X then csₚₛ else fcs X
-                      (ExIsMu pi' x) → fcs (mu-Type/ (pi' % x)) in
-          case
-            (case μ of λ where
-              (ExIsMu' _) → const spanMok , Γ , [] , empty-renamectxt , (λ Γ t T → t) , (λ Γ T k → T)
-              (ExIsMu pi' x) → ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) of λ where
-            (sm , Γ' , bds , ρ , cast-tm , cast-tp) →
-              let cs'' = foldl (λ {(Ctr x T) σ → trie-insert σ x T}) empty-trie cs'
-                  drop-ps = maybe-else 0 length
-                              (case μ of λ {
-                                (ExIsMu' _) → when (Xₒ =string X) ps;
-                                _ → nothing
-                               })
-                  scrutinee = cast t~
-                  Tᵣ = ret-tp ps (args-to-tmtps asₚ ++ asᵢ) scrutinee in
-              check-cases Γ' cs Xₒ cs'' ρ asₚ drop-ps Tₘ cast-tm cast-tp >>=c λ cs~ e₂ →
-              let e₃ = maybe-else' Tᵣ
-                         (just "A motive is required when synthesizing")
-                         (check-for-type-mismatch-if Γ "synthesized" Tₑ?) in
-              [- Mu-span Γ pi μ pi''' Tₘ?' (maybe-to-checking Tₑ?)
-                     (expected-type-if Γ Tₑ? ++ maybe-else' Tᵣ [] (λ Tᵣ → [ type-data Γ Tᵣ ]) ++ tvs₁ ++ bds) (e₁ maybe-or (e₂ maybe-or e₃)) -]
-              sm cs~ >>
-              let μ = case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)} in
-              return-when {m = Tₑ?}
-                (subst-renamectxt Γ ρ (Mu μ t~ (just Tₘ) d cs~))
-                (maybe-else' Tᵣ (TpHole pi) id)
+          case_of_ (case_of_ {B = ctxt × (type → type) × (type → type) × (type → err-m)} μ
+              λ {(ExIsMu pi' x) →
+                   let Rₓ = mu-Type/ x; qRₓ = pi' % Rₓ
+                       Γ' = data-highlight (ctxt-type-decl pi' Rₓ k Γ) qRₓ in
+                   Γ' , subst Γ' (recompose-tpapps (args-to-tmtps asₚ) (TpVar Xₒ)) qRₓ ,
+                   subst Γ' (TpVar Rₓ) qRₓ ,
+                   λ Tₘ → when (positivity.negₒ qRₓ (positivity.type+ qRₓ Γ' (hnf-ctr Γ' qRₓ Tₘ)))
+                            (Rₓ ^ " occurs negatively in the motive");
+                 _ → Γ , id , id , λ _ → nothing}) λ where
+            (Γₘ , ρₘ , ρₘ' , eₘ) →
+              maybe-map (λ Tₘ → check-type Γₘ Tₘ (just kᵢ)) Tₘ? >>=? λ Tₘ?' →
+              let is = kind-to-indices Γ kᵢ
+                  eₘ = Tₘ?' >>= eₘ
+                  ret-tp = λ ps as t → maybe-else' Tₘ?' Tₑ? (λ Tₘ → just $ hnf Γ unfold-head-elab (TpAppTm (apps-type (ρₘ Tₘ) $
+                              tmtps-to-args NotErased (drop (length ps) as)) t)) in
+              (maybe-else' Tₘ?'
+                 (return Tₑ? on-fail no-motive >>=m λ Tₑ →
+                  let Tₘ = refine-motive Γ is (asᵢ ++ [ Ttm t~ ]) Tₑ in
+                  check-refinement Γ Tₘ kᵢ >>=c λ Tₘ → return2 (just Tₘ))
+                 λ Tₘ → return (just Tₘ , [] , nothing))
+              >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
+              let Tₘ = maybe-else' Tₘ (TpHole pi) id
+                  is = drop-last 1 is
+                  subst-ctr : ctxt → ctr → ctr
+                  subst-ctr =
+                    λ {Γ (Ctr x T) →
+                         Ctr x $ hnf Γ unfold-no-defs $
+                           case μ of λ where
+                             (ExIsMu' _) → if (Xₒ =string X)
+                               then T
+                               else subst Γ (params-to-tplams ps $ TpVar X) Xₒ T
+                             (ExIsMu pi' x) →
+                               subst Γ (params-to-tplams ps $ TpVar $ pi' % mu-Type/ x) Xₒ T}
+                  reduce-cs = map λ {(Ctr x T) → Ctr x $ hnf Γ unfold-no-defs T}
+                  fcs = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ Xₒ y) <$> cs')
+                  cs' = reduce-cs $ case μ of λ where
+                          (ExIsMu' _) → if Xₒ =string X then csₚₛ else fcs X
+                          (ExIsMu pi' x) → fcs (mu-Type/ (pi' % x)) in
+              case
+                (case μ of λ where
+                  (ExIsMu' _) → const spanMok , Γ , [] , empty-renamectxt , (λ Γ t T → t) , (λ Γ T k → T)
+                  (ExIsMu pi' x) → ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) of λ where
+                (sm , Γ' , bds , ρ , cast-tm , cast-tp) →
+                  let cs'' = foldl (λ {(Ctr x T) σ → trie-insert σ x T}) empty-trie cs'
+                      drop-ps = maybe-else 0 length
+                                  (case μ of λ {
+                                    (ExIsMu' _) → when (Xₒ =string X) ps;
+                                    _ → nothing
+                                   })
+                      scrutinee = cast t~
+                      Tᵣ = ret-tp ps (args-to-tmtps asₚ ++ asᵢ) scrutinee in
+                  check-cases Γ' cs Xₒ cs'' ρ asₚ drop-ps Tₘ cast-tm cast-tp >>=c λ cs~ e₂ →
+                  let e₃ = maybe-else' Tᵣ
+                             (just "A motive is required when synthesizing")
+                             (check-for-type-mismatch-if Γ "synthesized" Tₑ?) in
+                  [- Mu-span Γ pi μ pi''' Tₘ?' (maybe-to-checking Tₑ?)
+                         (expected-type-if Γ Tₑ? ++ maybe-else' Tᵣ [] (λ Tᵣ → [ type-data Γ Tᵣ ]) ++ tvs₁ ++ bds) (e₁ maybe-or (e₂ maybe-or (e₃ maybe-or eₘ))) -]
+                  sm cs~ >>
+                  let μ = case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)} in
+                  return-when {m = Tₑ?}
+                    (subst-renamectxt Γ ρ (Mu μ t~ (just (ρₘ' Tₘ)) d cs~))
+                    (maybe-else' Tᵣ (TpHole pi) id)
     (Tₕ , as) →
       [- Mu-span Γ pi μ pi''' nothing (maybe-to-checking Tₑ?)
         [ head-type Γ Tₕ ] (just "The head type of the subterm is not a datatype") -]

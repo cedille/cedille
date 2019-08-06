@@ -881,8 +881,24 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
     (λ x →
     let Rₓ = mu-Type/ x
         isRₓ = mu-isType/ x
-        fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ)) in
-    App (AppTp (App (recompose-apps (tmtps-to-args tt asᵢ) (AppEr (AppTp fix-ind TypeF/D) fmap/D)) t) Tₘ)
+        fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ))
+        Tₘₐ = TpLam Rₓ (Tkk (indices-to-kind is KdStar)) Tₘ
+        Tₘ-fmap = rename "A" from Γᵢₛ for λ Aₓ →
+                  rename "B" from Γᵢₛ for λ Bₓ →
+                  rename "c" from Γᵢₛ for λ cₓ →
+                  rename "d" from Γᵢₛ for λ dₓ →
+                  rename "q" from Γᵢₛ for λ qₓ →
+                  let Γ' = foldr ctxt-var-decl Γ (Aₓ :: Bₓ :: cₓ :: dₓ :: qₓ :: [])
+                      Tₘₐ' = TpAppTm (indices-to-tpapps is (TpAppTp Tₘₐ (TpVar Aₓ))) (Var dₓ)
+                      Tₘₐₕ = hnf-ctr Γ' Aₓ Tₘₐ' in
+                  Lam tt Aₓ (just (Tkk k)) $
+                  Lam tt Bₓ (just (Tkk k)) $
+                  Lam tt cₓ (just (Tkt (TpAppTp (TpAppTp Cast (TpVar Aₓ)) (TpVar Bₓ)))) $
+                  indices-to-lams is $
+                  Lam tt dₓ (just (Tkt (indices-to-tpapps is Xₜₚ))) $
+                  IotaPair (Lam ff qₓ (just (Tkt Tₘₐ')) (mk-ctr-fmap-η? ff Γ' (Aₓ , TpVar Bₓ , AppEr (AppTp (AppTp cast-out (TpVar Aₓ)) (TpVar Bₓ)) (Var cₓ)) (Var qₓ) Tₘₐₕ)) (Beta id-term id-term) qₓ (TpEq (Var qₓ) id-term)
+    in
+    App (AppEr (AppTp (App (recompose-apps (tmtps-to-args tt asᵢ) (AppEr (AppTp fix-ind TypeF/D) fmap/D)) t) Tₘₐ) Tₘ-fmap)
       (Lam tt Rₓ (just (Tkk k)) $
        Lam tt toₓ (just (Tkt (to-tp (TpVar Rₓ)))) $
        Lam tt outₓ (just (Tkt (out-tp (TpVar Rₓ)))) $
