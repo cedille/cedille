@@ -6,331 +6,307 @@ module cedille-types where
 
 open import lib
 -- open import parse-tree
-
-posinfo = string
-alpha = string
-alpha-bar-3 = string
-alpha-range-1 = string
-alpha-range-2 = string
-bvar = string
-bvar-bar-13 = string
-fpth = string
-fpth-bar-15 = string
-fpth-bar-16 = string
-fpth-bar-17 = string
-fpth-plus-14 = string
-fpth-star-18 = string
-kvar = string
-kvar-bar-19 = string
-kvar-star-20 = string
-num = string
-num-plus-5 = string
-numone = string
-numone-range-4 = string
-numpunct = string
-numpunct-bar-10 = string
-numpunct-bar-6 = string
-numpunct-bar-7 = string
-numpunct-bar-8 = string
-numpunct-bar-9 = string
-qkvar = string
-qvar = string
-var = string
-var-bar-11 = string
-var-star-12 = string
+open import general-util
 
 {-# FOREIGN GHC import qualified CedilleTypes #-}
 
-data arg : Set
-args : Set
-opacity : Set
-data cmd : Set
-cmds : Set
-data decl : Set
-data defDatatype : Set
-data ctr : Set
-ctrs : Set
-data defTermOrType : Set
-imports : Set
-data imprt : Set
-data kind : Set
-data leftRight : Set
-data liftingType : Set
-data lterm : Set
-lterms : Set
-data optType : Set
-maybeErased : Set
-forceErased : Set
-maybeMinus : Set
-data nums : Set
-data optAs : Set
-data optClass : Set
-data optGuide : Set
-rhoHnf : Set
-data optNums : Set
-optPublic : Set
-data optTerm : Set
-params : Set
-data start : Set
-data term : Set
-data theta : Set
-data tk : Set
-data type : Set
-data vars : Set
-cases : Set
-data case : Set
-caseArgs : Set
-data caseArg : Set
+mutual
+  posinfo = string
+  var = string
+  num = string
+  erased? = 𝔹
+  minus? = 𝔹
+  imports = 𝕃 imprt
+  ex-imports = 𝕃 ex-imprt
+  params = 𝕃 param
+  ex-params = 𝕃 ex-param
+  ex-cmds = 𝕃 ex-cmd
+  ex-ctrs = 𝕃 ex-ctr
+  ctrs = 𝕃 ctr
+  args = 𝕃 arg
+  ex-args = 𝕃 ex-arg
+  opacity = 𝔹
+  cases = 𝕃 case
+  ex-cases = 𝕃 ex-case
+  left-right = maybe 𝔹
+  rho-hnf = 𝔹
+  opt-public = 𝔹
+  is-mu = maybe term ⊎ var
+  iota-num = 𝔹
+  case-args = 𝕃 case-arg
+  tmtp = term ⊎ type
+  tpkd = type ⊎ kind
+  arg = term ⊎ tmtp
 
-{-# COMPILE GHC arg = type CedilleTypes.Arg #-}
-{-# COMPILE GHC args = type CedilleTypes.Args #-}
-{-# COMPILE GHC opacity = type CedilleTypes.Opacity #-}
-{-# COMPILE GHC cmd = type CedilleTypes.Cmd #-}
-{-# COMPILE GHC cmds = type CedilleTypes.Cmds #-}
-{-# COMPILE GHC decl = type CedilleTypes.Decl #-}
-{-# COMPILE GHC defDatatype = type CedilleTypes.DefDatatype #-}
-{-# COMPILE GHC ctr = type CedilleTypes.DataCtr #-}
-{-# COMPILE GHC ctrs = type CedilleTypes.Ctrs #-}
-{-# COMPILE GHC defTermOrType = type CedilleTypes.DefTermOrType #-}
-{-# COMPILE GHC imports = type CedilleTypes.Imports #-}
-{-# COMPILE GHC imprt = type CedilleTypes.Imprt #-}
-{-# COMPILE GHC kind = type CedilleTypes.Kind #-}
-{-# COMPILE GHC leftRight = type CedilleTypes.LeftRight #-}
-{-# COMPILE GHC liftingType = type CedilleTypes.LiftingType #-}
-{-# COMPILE GHC lterm = type CedilleTypes.Lterm #-}
-{-# COMPILE GHC lterms = type CedilleTypes.Lterms #-}
-{-# COMPILE GHC optType = type CedilleTypes.OptType #-}
-{-# COMPILE GHC maybeErased = type CedilleTypes.MaybeErased #-}
-{-# COMPILE GHC forceErased = type CedilleTypes.MaybeErased #-}
-{-# COMPILE GHC maybeMinus = type CedilleTypes.MaybeMinus #-}
-{-# COMPILE GHC nums = type CedilleTypes.Nums #-}
-{-# COMPILE GHC optAs = type CedilleTypes.OptAs #-}
-{-# COMPILE GHC optClass = type CedilleTypes.OptClass #-}
-{-# COMPILE GHC optGuide = type CedilleTypes.OptGuide #-}
-{-# COMPILE GHC rhoHnf = type CedilleTypes.RhoHnf #-}
-{-# COMPILE GHC optNums = type CedilleTypes.OptNums #-}
-{-# COMPILE GHC optPublic = type CedilleTypes.OptPublic #-}
-{-# COMPILE GHC optTerm = type CedilleTypes.OptTerm #-}
-{-# COMPILE GHC params = type CedilleTypes.Params #-}
-{-# COMPILE GHC start = type CedilleTypes.Start #-}
-{-# COMPILE GHC term = type CedilleTypes.Term  #-}
-{-# COMPILE GHC theta = type CedilleTypes.Theta  #-}
-{-# COMPILE GHC tk = type CedilleTypes.Tk  #-}
-{-# COMPILE GHC type = type CedilleTypes.Type  #-}
-{-# COMPILE GHC vars = type CedilleTypes.Vars  #-}
-{-# COMPILE GHC cases = type CedilleTypes.Cases  #-}
-{-# COMPILE GHC case = type CedilleTypes.Case #-}
-{-# COMPILE GHC caseArgs = type CedilleTypes.CaseArgs  #-}
-{-# COMPILE GHC caseArg = type CedilleTypes.CaseArg #-}
+  pattern Tkt T = inj₁ T
+  pattern Tkk k = inj₂ k
+  pattern Ttm t = inj₁ t
+  pattern Ttp T = inj₂ T
+  pattern Arg t = inj₁ t
+  pattern ArgE tT = inj₂ tT
+  pattern ArgTp T = ArgE (Ttp T)
+  pattern ArgEr t = ArgE (Ttm t)
+  pattern ι1 = ff
+  pattern ι2 = tt
+  pattern NotErased = ff
+  pattern Erased = tt
+  pattern opacity-open = tt
+  pattern opacity-closed = ff
+  pattern EpsHanf = tt
+  pattern EpsHnf = ff
+  pattern EpsLeft = just ff
+  pattern EpsRight = just tt
+  pattern EpsBoth = nothing
+  pattern Public = tt
+  pattern Private = ff
 
-data arg where 
-  TermArg : maybeErased → term → arg
-  TypeArg : type → arg
-{-# COMPILE GHC arg = data CedilleTypes.Arg (CedilleTypes.TermArg | CedilleTypes.TypeArg) #-}
+  ctr = var × type
+  pattern Ctr x T = x , T
 
-args = 𝕃 arg
+  data param : Set where
+    Param : erased? → var → tpkd → param
+  pattern ParamTp x k = Param _  x (Tkk k)
+  pattern ParamTm x T = Param ff x (Tkt T)
+  pattern ParamEr x T = Param tt x (Tkt T)
 
-opacity = 𝔹
 
-data cmd where 
-  DefKind : posinfo → kvar → params → kind → posinfo → cmd
-  DefTermOrType : opacity → defTermOrType → posinfo → cmd
-  DefDatatype   : defDatatype   → posinfo → cmd    
-  ImportCmd : imprt → cmd
-{-# COMPILE GHC cmd = data CedilleTypes.Cmd (CedilleTypes.DefKind | CedilleTypes.DefTermOrType | CedilleTypes.DefDatatype |CedilleTypes.ImportCmd) #-}
+  data term : Set where
+    App : term → term → term
+    AppE : term → tmtp → term
+    Beta : term → term → term
+    Delta : (do-bohm? : maybe (term × term)) → (Tᵣ : type) → (contra : term) → term
+    Hole : posinfo → term
+    IotaPair : term → term → var → type → term
+    IotaProj : term → iota-num → term
+    Lam : erased? → var → maybe tpkd → term → term
+    LetTm : erased? → var → maybe type → term → term → term
+    LetTp : var → kind → type → term → term
+    Phi : term → term → term → term
+    Rho : term → var → type → term → term
+    Sigma : term → term
+    Mu : is-mu → term → maybe type → datatype-info → cases → term
+    Var : var → term
+  pattern AppTp t T = AppE t (Ttp T)
+  pattern AppEr t t' = AppE t (Ttm t')
 
-cmds = 𝕃 cmd
+  data case : Set where
+    Case : var → case-args → term → 𝕃 tmtp → case
 
-data decl where 
-  Decl : posinfo → posinfo → maybeErased → bvar → tk → posinfo → decl
-{-# COMPILE GHC decl = data CedilleTypes.Decl (CedilleTypes.Decl) #-}
-
-data defDatatype where 
-  Datatype : posinfo → posinfo → var → params → kind → ctrs → defDatatype
-{-# COMPILE GHC defDatatype = data CedilleTypes.DefDatatype (CedilleTypes.Datatype) #-}
-
-data ctr where
-  Ctr : posinfo → var → type → ctr
-{-# COMPILE GHC ctr = data CedilleTypes.DataCtr (CedilleTypes.Ctr) #-}
-
-ctrs = 𝕃 ctr
-
-data defTermOrType where 
-  DefTerm : posinfo → var → optType → term → defTermOrType
-  DefType : posinfo → var → kind → type → defTermOrType
-{-# COMPILE GHC defTermOrType = data CedilleTypes.DefTermOrType (CedilleTypes.DefTerm | CedilleTypes.DefType) #-}
-
-imports = 𝕃 imprt
-
-data imprt where 
-  Import : posinfo → optPublic → posinfo → fpth → optAs → args → posinfo → imprt
-{-# COMPILE GHC imprt = data CedilleTypes.Imprt (CedilleTypes.Import) #-}
-
-data kind where 
-  KndArrow : kind → kind → kind
-  KndParens : posinfo → kind → posinfo → kind
-  KndPi : posinfo → posinfo → bvar → tk → kind → kind
-  KndTpArrow : type → kind → kind
-  KndVar : posinfo → qkvar → args → kind
-  Star : posinfo → kind
-{-# COMPILE GHC kind = data CedilleTypes.Kind (CedilleTypes.KndArrow | CedilleTypes.KndParens | CedilleTypes.KndPi | CedilleTypes.KndTpArrow | CedilleTypes.KndVar | CedilleTypes.Star) #-}  
-
-data leftRight where 
-  Both : leftRight
-  Left : leftRight
-  Right : leftRight
-{-# COMPILE GHC leftRight = data CedilleTypes.LeftRight (CedilleTypes.Both | CedilleTypes.Left | CedilleTypes.Right) #-}
-
-data liftingType where 
-  LiftArrow : liftingType → liftingType → liftingType
-  LiftParens : posinfo → liftingType → posinfo → liftingType
-  LiftPi : posinfo → bvar → type → liftingType → liftingType
-  LiftStar : posinfo → liftingType
-  LiftTpArrow : type → liftingType → liftingType
-{-# COMPILE GHC liftingType = data CedilleTypes.LiftingType (CedilleTypes.LiftArrow | CedilleTypes.LiftParens | CedilleTypes.LiftPi | CedilleTypes.LiftStar | CedilleTypes.LiftTpArrow) #-}
-
-data lterm where
-  Lterm : maybeErased → term → lterm
-{-# COMPILE GHC lterm = data CedilleTypes.Lterm (CedilleTypes.MkLterm) #-}
-
-lterms = 𝕃 lterm
-
-data optType where
-  SomeType : type → optType
-  NoType : optType
-{-# COMPILE GHC optType = data CedilleTypes.OptType (CedilleTypes.SomeType | CedilleTypes.NoType) #-}
-
-maybeErased = 𝔹
-
-forceErased = 𝔹
-
-maybeMinus = 𝔹
-
-data nums where
-  NumsStart : num → nums
-  NumsNext : num → nums → nums
-{-# COMPILE GHC nums = data CedilleTypes.Nums (CedilleTypes.NumsStart | CedilleTypes.NumsNext) #-}
-
-data optAs where
-  NoOptAs : optAs
-  SomeOptAs : posinfo → var → optAs
-{-# COMPILE GHC optAs = data CedilleTypes.OptAs (CedilleTypes.NoOptAs | CedilleTypes.SomeOptAs) #-}
-
-optPublic = 𝔹
-
-data optClass where
-  NoClass : optClass
-  SomeClass : tk → optClass
-{-# COMPILE GHC optClass = data CedilleTypes.OptClass (CedilleTypes.NoClass | CedilleTypes.SomeClass) #-}
-
-data optGuide where 
-  NoGuide : optGuide
-  Guide : posinfo → var → type → optGuide
-{-# COMPILE GHC optGuide = data CedilleTypes.OptGuide (CedilleTypes.NoGuide | CedilleTypes.Guide) #-}
-
-rhoHnf = 𝔹
-
-data optNums where 
-  NoNums : optNums
-  SomeNums : nums → optNums
-{-# COMPILE GHC optNums = data CedilleTypes.OptNums (CedilleTypes.NoNums | CedilleTypes.SomeNums) #-}
-
-data optTerm where
-  NoTerm : optTerm
-  SomeTerm : term → posinfo → optTerm
-{-# COMPILE GHC optTerm = data CedilleTypes.OptTerm (CedilleTypes.NoTerm | CedilleTypes.SomeTerm) #-}
-
-params = 𝕃 decl
-
-data start where 
-  File : imports → posinfo → posinfo → qvar → params → cmds → posinfo → start
-{-# COMPILE GHC start = data CedilleTypes.Start (CedilleTypes.File) #-}  
-
-data term where 
-  App : term → maybeErased → term → term
-  AppTp : term → type → term
-  Beta : posinfo → optTerm → optTerm → term
-  Chi : posinfo → optType → term → term
-  Delta : posinfo → optType → term → term
-  Epsilon : posinfo → leftRight → maybeMinus → term → term
-  Hole : posinfo → term
-  IotaPair : posinfo → term → term → optGuide → posinfo → term
-  IotaProj : term → num → posinfo → term
-  Lam : posinfo → maybeErased → posinfo → bvar → optClass → term → term
-  Let : posinfo → forceErased → defTermOrType → term → term
-  Open : posinfo → opacity → posinfo → var → term → term
-  Parens : posinfo → term → posinfo → term
-  Phi : posinfo → term → term → term → posinfo → term  
-  Rho : posinfo → rhoHnf → optNums → term → optGuide → term → term
-  Sigma : posinfo → term → term
-  Theta : posinfo → theta → term → lterms → term
-  Mu  : posinfo → posinfo → bvar → term → optType → posinfo → cases → posinfo → term
-  Mu' : posinfo → optTerm → term → optType → posinfo → cases → posinfo → term
-  Var : posinfo → qvar → term
-{-# COMPILE GHC term = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Mu' | CedilleTypes.Var) #-}
-
-data case where
-  Case : posinfo → var → caseArgs → term → case
-{-# COMPILE GHC case = data CedilleTypes.Case (CedilleTypes.MkCase) #-}
-
-cases = 𝕃 case
-
-data caseArg where
-  CaseTermArg : posinfo → maybeErased → var → caseArg
-  CaseTypeArg : posinfo → var → caseArg
-{-# COMPILE GHC caseArg = data CedilleTypes.CaseArg (CedilleTypes.CaseTermArg | CedilleTypes.CaseTypeArg) #-}
-
-caseArgs = 𝕃 caseArg
+  data type : Set where
+    TpAbs : erased? → var → tpkd → type → type
+    TpIota : var → type → type → type
+    TpApp : type → tmtp → type
+    TpEq : term → term → type
+    TpHole : posinfo → type
+    TpLam : var → tpkd → type → type
+    TpVar : var → type
+  pattern TpAppTp T T' = TpApp T (Ttp T')
+  pattern TpAppTm T t = TpApp T (Ttm t)
   
-data theta where 
-  Abstract : theta
-  AbstractEq : theta
-  AbstractVars : vars → theta
-{-# COMPILE GHC theta = data CedilleTypes.Theta (CedilleTypes.Abstract | CedilleTypes.AbstractEq | CedilleTypes.AbstractVars) #-}      
+  data kind : Set where
+    KdStar : kind
+    KdHole : posinfo → kind
+    KdAbs : var → tpkd → kind → kind
 
-data tk where 
-  Tkk : kind → tk
-  Tkt : type → tk
-{-# COMPILE GHC tk = data CedilleTypes.Tk (CedilleTypes.Tkk | CedilleTypes.Tkt) #-}        
+  data case-arg : Set where
+    CaseArg : erased? → var → maybe tpkd → case-arg
 
-data type where 
-  Abs : posinfo → maybeErased → posinfo → bvar → tk → type → type
-  Iota : posinfo → posinfo → bvar → type → type → type
-  Lft : posinfo → posinfo → var → term → liftingType → type
-  NoSpans : type → posinfo → type
-  TpLet : posinfo → defTermOrType → type → type
-  TpApp : type → type → type
-  TpAppt : type → term → type
-  TpArrow : type → maybeErased → type → type
-  TpEq : posinfo → term → term → posinfo → type
-  TpHole : posinfo → type
-  TpLambda : posinfo → posinfo → bvar → tk → type → type
-  TpParens : posinfo → type → posinfo → type
-  TpVar : posinfo → qvar → type
-{-# COMPILE GHC type = data CedilleTypes.Type (CedilleTypes.Abs | CedilleTypes.Iota | CedilleTypes.Lft | CedilleTypes.NoSpans | CedilleTypes.TpLet | CedilleTypes.TpApp | CedilleTypes.TpAppt | CedilleTypes.TpArrow | CedilleTypes.TpEq | CedilleTypes.TpHole | CedilleTypes.TpLambda | CedilleTypes.TpParens | CedilleTypes.TpVar) #-}
+  data ex-file : Set where
+    ExModule : ex-imports → posinfo → posinfo → var → ex-params → ex-cmds → posinfo → ex-file
 
-data vars where 
-  VarsNext : var → vars → vars
-  VarsStart : var → vars
-{-# COMPILE GHC vars = data CedilleTypes.Vars (CedilleTypes.VarsNext | CedilleTypes.VarsStart) #-}
+  cmds = 𝕃 cmd
 
-pattern Erased = tt
-pattern NotErased = ff
-pattern Pi = NotErased
-pattern All = Erased
-pattern OpacTrans = tt
-pattern OpacOpaque = ff
-pattern IsPublic = tt
-pattern NotPublic = ff
-pattern EpsHnf = ff
-pattern EpsHanf = tt
-pattern RhoPlain = ff
-pattern RhoPlus = tt
+  data file : Set where
+    Module : var → params → cmds → file
 
--- embedded types:
--- aterm = term
--- atype = type
--- lliftingType = liftingType
--- lterm = term
--- ltype = type
--- pterm = term
+  indx : Set
+  indx = var × tpkd
+  pattern Index x tk = x , tk
+  indices = 𝕃 indx
+
+  record encoding-defs : Set where
+    constructor mk-enc-defs
+    inductive
+    field
+      ecs : cmds -- encoding
+      gcs : cmds -- generated
+      Cast : type
+      cast-in : term
+      cast-out : term
+      cast-is : term
+      Functor : type
+      functor-in : term
+      functor-out : term
+      Fix : type
+      fix-in : term
+      fix-out : term
+      lambek1 : term
+      lambek2 : term
+      fix-ind : term
+
+  record encoded-defs : Set where
+    constructor mk-encd-defs
+    field
+      Is/D : var
+      is/D : var
+      to/D : var
+      TypeF/D : var
+      IndF/D : var
+      fmap/D :  var
+
+  record datatype-info : Set where
+    constructor mk-data-info
+    inductive
+    field
+      name : var
+      original : var
+      asₚ : args
+      asᵢ : 𝕃 tmtp
+      ps : params
+      kᵢ : kind
+      k : kind
+      cs : ctrs
+      csₚₛ : ctrs
+      eds : encoding-defs
+      gds : encoded-defs
+
+
+  data cmd : Set where
+    CmdDefTerm : var → term → cmd
+    CmdDefType : var → kind → type → cmd
+    CmdDefKind : var → params → kind → cmd
+    CmdDefData : encoding-defs → var → params → kind → ctrs → cmd
+    CmdImport : imprt → cmd
+
+  data imprt : Set where
+    Import : opt-public → filepath → var → maybe var → args → imprt
+
+  data ex-cmd : Set where
+    ExCmdKind : posinfo → var → ex-params → ex-kd → posinfo → ex-cmd
+    ExCmdDef : opacity → ex-def → posinfo → ex-cmd
+    ExCmdData : def-datatype → posinfo → ex-cmd
+    ExCmdImport : ex-imprt → ex-cmd
+
+  data def-datatype : Set where
+    DefDatatype : posinfo → posinfo → var → ex-params → ex-kd → ex-ctrs → def-datatype
+  
+  data import-as : Set where
+    ImportAs : posinfo → var → import-as
+  
+  data ex-imprt : Set where
+    ExImport : posinfo → opt-public → posinfo → filepath → maybe import-as → ex-args → posinfo → ex-imprt
+
+  data ex-param : Set where
+    ExParam : posinfo → erased? → posinfo → var → ex-tk → posinfo → ex-param  
+  
+  data ex-ctr : Set where
+    ExCtr : posinfo → var → ex-tp → ex-ctr
+    
+  data ex-arg : Set where
+    ExTmArg : erased? → ex-tm → ex-arg
+    ExTpArg : ex-tp → ex-arg
+    
+  data lterm : Set where
+    Lterm : erased? → ex-tm → lterm
+  
+  data theta : Set where
+    Abstract : theta
+    AbstractEq : theta
+    AbstractVars : 𝕃 var → theta
+  
+  data ex-def : Set where
+    ExDefTerm : posinfo → var → maybe ex-tp → ex-tm → ex-def
+    ExDefType : posinfo → var → ex-kd → ex-tp → ex-def
+  
+  data ex-guide : Set where
+    ExGuide : posinfo → var → ex-tp → ex-guide
+  
+  data ex-case : Set where
+    ExCase : posinfo → var → ex-case-args → ex-tm → ex-case
+
+  ex-case-args = 𝕃 ex-case-arg
+  
+  data ex-case-arg-sym : Set where
+    ExCaseArgTm : ex-case-arg-sym
+    ExCaseArgEr : ex-case-arg-sym
+    ExCaseArgTp : ex-case-arg-sym
+
+  data ex-case-arg : Set where
+    ExCaseArg : ex-case-arg-sym → posinfo → var → ex-case-arg
+  
+  data ex-tk : Set where
+    ExTkt : ex-tp → ex-tk
+    ExTkk : ex-kd → ex-tk
+  
+  data ex-tp : Set where
+    ExTpAbs : posinfo → erased? → posinfo → var → ex-tk → ex-tp → ex-tp
+    ExTpIota : posinfo → posinfo → var → ex-tp → ex-tp → ex-tp
+    ExTpNoSpans : ex-tp → posinfo → ex-tp
+    ExTpLet : posinfo → ex-def → ex-tp → ex-tp
+    ExTpApp : ex-tp → ex-tp → ex-tp
+    ExTpAppt : ex-tp → ex-tm → ex-tp
+    ExTpArrow : ex-tp → erased? → ex-tp → ex-tp
+    ExTpEq : posinfo → ex-tm → ex-tm → posinfo → ex-tp
+    ExTpHole : posinfo → ex-tp
+    ExTpLam : posinfo → posinfo → var → ex-tk → ex-tp → ex-tp
+    ExTpParens : posinfo → ex-tp → posinfo → ex-tp
+    ExTpVar : posinfo → var → ex-tp
+  
+  data pos-tm : Set where
+    PosTm : ex-tm → posinfo → pos-tm
+  
+  data ex-is-mu : Set where
+    ExIsMu : posinfo → var → ex-is-mu
+    ExIsMu' : maybe ex-tm → ex-is-mu
+  
+  data ex-tm : Set where
+    ExApp : ex-tm → erased? → ex-tm → ex-tm
+    ExAppTp : ex-tm → ex-tp → ex-tm
+    ExBeta : posinfo → maybe pos-tm → maybe pos-tm → ex-tm
+    ExChi : posinfo → maybe ex-tp → ex-tm → ex-tm
+    ExDelta : posinfo → maybe ex-tp → ex-tm → ex-tm
+    ExEpsilon : posinfo → left-right → minus? → ex-tm → ex-tm
+    ExHole : posinfo → ex-tm
+    ExIotaPair : posinfo → ex-tm → ex-tm → maybe ex-guide → posinfo → ex-tm
+    ExIotaProj : ex-tm → num → posinfo → ex-tm
+    ExLam : posinfo → erased? → posinfo → var → maybe ex-tk → ex-tm → ex-tm
+    ExLet : posinfo → erased? → ex-def → ex-tm → ex-tm
+    ExOpen : posinfo → opacity → posinfo → var → ex-tm → ex-tm
+    ExParens : posinfo → ex-tm → posinfo → ex-tm
+    ExPhi : posinfo → ex-tm → ex-tm → ex-tm → posinfo → ex-tm
+    ExRho : posinfo → rho-hnf → maybe (𝕃 num) → ex-tm → maybe ex-guide → ex-tm → ex-tm
+    ExSigma : posinfo → ex-tm → ex-tm
+    ExTheta : posinfo → theta → ex-tm → 𝕃 lterm → ex-tm
+    ExMu : posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
+    ExVar : posinfo → var → ex-tm
+  
+  data ex-kd : Set where
+    ExKdAbs : posinfo → posinfo → var → ex-tk → ex-kd → ex-kd
+    ExKdArrow : ex-tk → ex-kd → ex-kd
+    ExKdHole : posinfo → ex-kd
+    ExKdParens : posinfo → ex-kd → posinfo → ex-kd
+    ExKdStar : posinfo → ex-kd
+    ExKdVar : posinfo → var → ex-args → ex-kd
+  
+{-# COMPILE GHC ex-param = data CedilleTypes.Param (CedilleTypes.Param) #-}
+{-# COMPILE GHC ex-file = data CedilleTypes.File (CedilleTypes.Module) #-}
+{-# COMPILE GHC ex-cmd = data CedilleTypes.Cmd (CedilleTypes.CmdKind | CedilleTypes.CmdDef | CedilleTypes.CmdData | CedilleTypes.CmdImport) #-}
+{-# COMPILE GHC ex-ctr = data CedilleTypes.Ctr (CedilleTypes.Ctr) #-}
+{-# COMPILE GHC ex-arg = data CedilleTypes.Arg (CedilleTypes.TermArg | CedilleTypes.TypeArg) #-}
+{-# COMPILE GHC def-datatype = data CedilleTypes.DefDatatype (CedilleTypes.DefDatatype) #-}
+{-# COMPILE GHC import-as = data CedilleTypes.ImportAs (CedilleTypes.ImportAs) #-}
+{-# COMPILE GHC ex-imprt = data CedilleTypes.Imprt (CedilleTypes.Import) #-}
+{-# COMPILE GHC ex-case-arg-sym = data CedilleTypes.CaseArgSym (CedilleTypes.CaseArgTm | CedilleTypes.CaseArgEr | CedilleTypes.CaseArgTp) #-}
+--{-# COMPILE GHC case-arg = data CedilleTypes.CaseArg (CedilleTypes.CaseArg) #-}
+{-# COMPILE GHC lterm = data CedilleTypes.Lterm (CedilleTypes.Lterm) #-}
+{-# COMPILE GHC theta = data CedilleTypes.Theta (CedilleTypes.Abstract | CedilleTypes.AbstractEq | CedilleTypes.AbstractVars) #-}
+{-# COMPILE GHC ex-def = data CedilleTypes.Def (CedilleTypes.DefTerm | CedilleTypes.DefType) #-}
+{-# COMPILE GHC ex-guide = data CedilleTypes.Guide (CedilleTypes.Guide) #-}
+{-# COMPILE GHC ex-case = data CedilleTypes.Case (CedilleTypes.Case) #-}
+{-# COMPILE GHC ex-case-arg = data CedilleTypes.CaseArg (CedilleTypes.CaseArg) #-}
+{-# COMPILE GHC ex-tk = data CedilleTypes.TpKd (CedilleTypes.Tkt | CedilleTypes.Tkk) #-}
+{-# COMPILE GHC ex-tp = data CedilleTypes.Type (CedilleTypes.TpAbs | CedilleTypes.TpIota | CedilleTypes.TpNoSpans | CedilleTypes.TpLet | CedilleTypes.TpApp | CedilleTypes.TpAppt | CedilleTypes.TpArrow | CedilleTypes.TpEq | CedilleTypes.TpHole | CedilleTypes.TpLam | CedilleTypes.TpParens | CedilleTypes.TpVar) #-}
+{-# COMPILE GHC pos-tm = data CedilleTypes.PosTerm (CedilleTypes.PosTerm) #-}
+{-# COMPILE GHC ex-is-mu = data CedilleTypes.IsMu (CedilleTypes.IsMu | CedilleTypes.IsMu') #-}
+{-# COMPILE GHC ex-tm = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Var) #-}
+{-# COMPILE GHC ex-kd = data CedilleTypes.Kind (CedilleTypes.KdAbs | CedilleTypes.KdArrow | CedilleTypes.KdHole | CedilleTypes.KdParens | CedilleTypes.KdStar | CedilleTypes.KdVar) #-}

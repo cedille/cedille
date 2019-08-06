@@ -1,6 +1,5 @@
 module main where
 
-open import lib
 import string-format
 -- for parser for Cedille 
 open import cedille-types
@@ -22,9 +21,12 @@ createOptionsFile dot-ced-dir =
   createDirectoryIfMissing ff (takeDirectory ops-fp) >>
   withFile ops-fp WriteMode (flip hPutRope (cedille-options.options-to-rope cedille-options.default-options))
 
-str-bool-to-𝔹 : options-types.str-bool → 𝔹
-str-bool-to-𝔹 options-types.StrBoolTrue = tt
-str-bool-to-𝔹 options-types.StrBoolFalse = ff
+options-absolute-path : (options-fp some-fp : filepath) → IO filepath
+options-absolute-path ofp fp =
+  (filepath-replace-tilde fp >>= flip maybe-else return
+    (doesFileExist fp >>=r λ fpₑ →
+      if fpₑ then fp else combineFileNames (takeDirectory (takeDirectory ofp)) fp))
+  >>= canonicalizePath
 
 opts-to-options : filepath → options-types.opts → IO cedille-options.options
 opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
@@ -45,20 +47,20 @@ opts-to-options ofp (options-types.OptsCons (options-types.Lib fps) ops) =
             else return ps
         paths-to-stringset options-types.PathsNil = return ([] , empty-stringset)
 opts-to-options ofp (options-types.OptsCons (options-types.UseCedeFiles b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { use-cede-files = b }
 opts-to-options ofp (options-types.OptsCons (options-types.MakeRktFiles b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { make-rkt-files = b }
 opts-to-options ofp (options-types.OptsCons (options-types.GenerateLogs b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { generate-logs = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { generate-logs = b }
 opts-to-options ofp (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { show-qualified-vars = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { show-qualified-vars = b }
 opts-to-options ofp (options-types.OptsCons (options-types.EraseTypes b) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { erase-types = str-bool-to-𝔹 b }
+  opts-to-options ofp ops >>=r λ ops → record ops { erase-types = b }
 opts-to-options ofp (options-types.OptsCons (options-types.PrettyPrintColumns b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { pretty-print-columns = string-to-ℕ0 b }
-opts-to-options ofp (options-types.OptsCons (options-types.DatatypeEncoding e) ops) =
-  opts-to-options ofp ops >>=r λ ops → record ops { datatype-encoding = e }
-
+opts-to-options ofp (options-types.OptsCons (options-types.DatatypeEncoding fp?) ops) =
+  maybe-map (options-absolute-path ofp) fp? >>=? λ fp? →
+  opts-to-options ofp ops >>=r λ ops → record ops { datatype-encoding = (_, nothing) <$> fp? }
 opts-to-options ofp options-types.OptsNil = return cedille-options.default-options
 
 -- helper function to try to parse the options file
@@ -80,21 +82,20 @@ findOptionsFile' fp =
   traverseParents fp (fp-fuel fp)
   >>= λ where
     fpc?@(just fpc) → return fpc?
-    nothing → getHomeDirectory >>= canonicalizePath >>= getOptions?
+    nothing → getHomeDirectory >>= λ hd → canonicalizePath hd >>= getOptions?
 
   where
   getOptions? : (filepath : string) → IO ∘ maybe $ string
   getOptions? fp =
-    let fpc = getOptionsFile fp in doesFileExist fpc
-    >>= λ where
+    let fpc = getOptionsFile fp in
+    doesFileExist fpc >>= λ where
       ff → return nothing
       tt → return ∘ just $ fpc
 
   traverseParents : string → ℕ → IO (maybe string)
   traverseParents fp 0 = return nothing
   traverseParents fp (suc n) =
-    getOptions? fp
-    >>= λ where
+    getOptions? fp >>= λ where
       nothing → traverseParents (takeDirectory fp) n
       fpc?@(just fpc) → return fpc?
 
@@ -103,12 +104,12 @@ findOptionsFile' fp =
 
 findOptionsFile : IO (maybe string)
 findOptionsFile =
-  getCurrentDirectory >>= canonicalizePath >>= findOptionsFile'
+  (getCurrentDirectory >>= canonicalizePath) >>= findOptionsFile'
 
 readOptions : maybe string → IO (string × cedille-options.options)
 readOptions nothing =
-  getHomeDirectory >>=
-  canonicalizePath >>= λ home →
+  (getHomeDirectory >>=
+   canonicalizePath) >>= λ home →
   createOptionsFile (dot-cedille-directory home) >>r
   dot-cedille-directory home , cedille-options.default-options
 readOptions (just fp) = readFiniteFile fp >>= λ fc →
@@ -125,7 +126,7 @@ module main-with-options
   (options : cedille-options.options) where
 
   open import ctxt
-  open import monad-instances
+  --open import instances
   open import process-cmd options {IO}
   open import parser
   open import spans options {IO}
@@ -134,7 +135,7 @@ module main-with-options
   open import toplevel-state options {IO}
   open import interactive-cmds options
   open import rkt options
-  open import elaboration options
+  open import elab-util options
   
 
   logFilepath : IO filepath
@@ -161,9 +162,9 @@ module main-with-options
   sendProgressUpdate : string → IO ⊤
   sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
 
-  progressUpdate : (filename : string) → (do-check : 𝔹) → IO ⊤
-  progressUpdate filename do-check =
-    sendProgressUpdate ((if do-check then "Checking " else "Skipping ") ^ filename)
+  progressUpdate : (filename : string) → {-(do-check : 𝔹) → -} IO ⊤
+  progressUpdate filename {-do-check-} =
+    sendProgressUpdate ((if {-do-check-} tt then "Checking " else "Skipping ") ^ filename)
 
   fileBaseName : filepath → string
   fileBaseName fn = base-filename (takeFileName fn)
@@ -213,7 +214,7 @@ module main-with-options
   read-cede-file ced-path =
     let cede = cede-filename ced-path in
     logMsg ("Started reading .cede file " ^ cede) >>
-    get-file-contents cede >>= finish >≯
+    (get-file-contents cede >>= finish) >≯
     logMsg ("Finished reading .cede file " ^ cede)
     where finish : maybe string → IO (𝔹 × string)
           finish nothing = return (tt , global-error-string ("Could not read the file " ^ cede-filename ced-path ^ "."))
@@ -260,6 +261,10 @@ module main-with-options
       (just fp) → logMsg ("Found import: " ^ fp) >> find-imported-files sfx dirs us >>=r (u , fp) ::_
   find-imported-files sfx dirs [] = return []
 
+  get-imports : ex-file → 𝕃 string
+  get-imports (ExModule is _ _ mn _ cs _) =
+    map (λ {(ExImport _ _ _ x _ _ _) → x}) (is ++ ex-cmds-to-imps cs)
+
   {- new parser test integration -}
   reparse : toplevel-state → filepath → IO toplevel-state
   reparse st filename =
@@ -290,14 +295,14 @@ module main-with-options
         (set-do-type-check-include-elt
           (get-include-elt s filename) tt) ff)
   
-  infixl 1 _&&>>_
+  infixl 2 _&&>>_
   _&&>>_ : IO 𝔹 → IO 𝔹 → IO 𝔹
   (a &&>> b) = a >>= λ a → if a then b else return ff
 
   aux-up-to-date : filepath → toplevel-state → IO toplevel-state
   aux-up-to-date filename s =
     let rkt = rkt-filename filename in
-    doesFileExist rkt &&>> fileIsOlder filename rkt >>=r
+    (doesFileExist rkt &&>> fileIsOlder filename rkt) >>=r
     (set-include-elt s filename ∘  (set-rkt-file-up-to-date-include-elt (get-include-elt s filename)))
 
   ie-up-to-date : filepath → include-elt → IO 𝔹
@@ -312,7 +317,7 @@ module main-with-options
         cede' = cede-filename import-file in
     case cedille-options.options.use-cede-files options of λ where
       ff → return dtc
-      tt → doesFileExist cede &&>> doesFileExist cede' >>= λ where
+      tt → (doesFileExist cede &&>> doesFileExist cede') >>= λ where
         ff → return ff
         tt → fileIsOlder cede cede' >>=r λ fio → dtc || fio
    
@@ -337,10 +342,10 @@ module main-with-options
     tt → return s
   ...| nothing =
       let cede = cede-filename filename in
-      return (cedille-options.options.use-cede-files options) &&>>
-      doesFileExist cede &&>>
-      fileIsOlder filename cede &&>>
-      file-after-compile cede >>= λ where
+      (return (cedille-options.options.use-cede-files options) &&>>
+       doesFileExist cede &&>>
+       fileIsOlder filename cede &&>>
+       file-after-compile cede) >>= λ where
          ff → reparse-file filename s
          tt → reparse s filename >>= λ s →
               read-cede-file filename >>= λ where
@@ -359,7 +364,7 @@ module main-with-options
                  IO (stringset {- seen already -} × toplevel-state)
   update-astsh seen s filename = 
     if stringset-contains seen filename then return (seen , s)
-    else (ensure-ast-depsh filename s >>= aux-up-to-date filename >>= cont (stringset-insert seen filename))
+    else ((ensure-ast-depsh filename s >>= aux-up-to-date filename) >>= cont (stringset-insert seen filename))
     where cont : stringset → toplevel-state → IO (stringset × toplevel-state)
           cont seen s with get-include-elt s filename
           cont seen s | ie with include-elt.deps ie
@@ -385,12 +390,12 @@ module main-with-options
     h ((fn , ie) :: t) = [[ "file: " ]] ⊹⊹ [[ fn ]] ⊹⊹ [[ "\nadd-symbols: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.need-to-add-symbols-to-context ie) ]] ⊹⊹ [[ "\ndo-type-check: " ]] ⊹⊹ [[ 𝔹-to-string (include-elt.do-type-check ie) ]] ⊹⊹ [[ "\n\n" ]] ⊹⊹ h t
 
   {- this function checks the given file (if necessary), updates .cede and .rkt files (again, if necessary), and replies on stdout if appropriate -}
-  checkFile : toplevel-state → filepath → (should-print-spans : 𝔹) → IO toplevel-state
-  checkFile s filename should-print-spans = 
+  checkFile : (string → IO ⊤) → toplevel-state → filepath → (should-print-spans : 𝔹) → IO toplevel-state
+  checkFile progressUpdate s filename should-print-spans = 
     update-asts s filename >>= λ s →
     log-files-to-check s >>
     logMsg (𝕃-to-string (λ {(im , fn) → "im: " ^ im ^ ", fn: " ^ fn}) "; " (trie-mappings (include-elt.import-to-dep (get-include-elt s filename)))) >>
-    process-file progressUpdate s filename (fileBaseName filename) >>= finish
+    process-file progressUpdate logMsg s filename (fileBaseName filename) >>= finish
     where
           reply : toplevel-state → IO ⊤
           reply s with get-include-elt-if s filename
@@ -399,21 +404,21 @@ module main-with-options
              if should-print-spans then
                putJson (include-elt-spans-to-json ie)
              else return triv
-          finish : toplevel-state × mod-info → IO toplevel-state
-          finish (s @ (mk-toplevel-state ip mod is Γ) , ret-mod) =
+          finish : (toplevel-state × file × string × string × params × qualif) → IO toplevel-state
+          finish (s @ (mk-toplevel-state ip mod is Γ) , f , ret-mod) =
             logMsg ("Started reply for file " ^ filename) >> -- Lazy, so checking has not been calculated yet?
             reply s >>
             logMsg ("Finished reply for file " ^ filename) >>
             logMsg ("Files with updated spans:\n" ^ 𝕃-to-string (λ x → x) "\n" mod) >>
             let Γ = ctxt-set-current-mod Γ ret-mod in
             writeo mod >>r -- Should process-file now always add files to the list of modified ones because now the cede-/rkt-up-to-date fields take care of whether to rewrite them?
-            mk-toplevel-state ip mod is Γ
+            mk-toplevel-state ip [] is Γ -- Reset files with updated spans
               where
                 writeo : 𝕃 string → IO ⊤
                 writeo [] = return triv
                 writeo (f :: us) =
                   writeo us >>
-                  -- let ie = get-include-elt s f in
+                  --let ie = get-include-elt s f in
                   write-aux-files s f
                   --  (if cedille-options.options.make-rkt-files options && ~ include-elt.rkt-up-to-date ie then (write-rkt-file f (toplevel-state.Γ s) ie rkt-filename) else return triv)
 
@@ -424,55 +429,61 @@ module main-with-options
       getLine >>= λ input →
       logMsg ("Frontend input: " ^ input) >>
       let input-list : 𝕃 string 
-          input-list = (string-split (undo-escape-string input) delimiter) 
-              in (handleCommands input-list s) >>= readCommandsFromFrontend
-          where
-              errorCommand : 𝕃 string → toplevel-state → IO ⊤
-              errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
+          input-list = string-split (undo-escape-string input) delimiter in
+      handleCommands input-list s >>= readCommandsFromFrontend
+    where
+    errorCommand : 𝕃 string → toplevel-state → IO ⊤
+    errorCommand ls s = putStrLn (global-error-string "Invalid command sequence \\\\\"" ^ (𝕃-to-string (λ x → x) ", " ls) ^ "\\\\\".")
 
-              debugCommand : toplevel-state → IO ⊤
-              debugCommand s = putStrLn (escape-string (toplevel-state-to-string s))
+    debugCommand : toplevel-state → IO ⊤
+    debugCommand s = putStrLn (escape-string (toplevel-state-to-string s))
 
-              checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              checkCommand (input :: []) s = canonicalizePath input >>= λ input-filename →
-                          checkFile (set-include-path s (cedille-options.include-path-insert (takeDirectory input-filename) (toplevel-state.include-path s)))
-                          input-filename tt {- should-print-spans -}
-              checkCommand ls s = errorCommand ls s >>r s
+    checkCommand : 𝕃 string → toplevel-state → IO toplevel-state
+    checkCommand (input :: []) s =
+      canonicalizePath input >>= λ input-filename →
+      checkFile progressUpdate (set-include-path s (cedille-options.include-path-insert (takeDirectory input-filename) (toplevel-state.include-path s))) input-filename tt {- should-print-spans -}
+    checkCommand ls s = errorCommand ls s >>r s
 
-              createArchive-h : toplevel-state → trie json → 𝕃 string → json
-              createArchive-h s t (filename :: filenames) with trie-contains t filename | get-include-elt-if s filename
-              ...| ff | just ie = createArchive-h s (trie-insert t filename $ include-elt-to-archive ie) (filenames ++ include-elt.deps ie)
-              ...| _ | _ = createArchive-h s t filenames
-              createArchive-h s t [] = json-object $ trie-mappings t
+    createArchive-h : toplevel-state → trie json → 𝕃 string → json
+    createArchive-h s t (filename :: filenames) with trie-contains t filename | get-include-elt-if s filename
+    ...| ff | just ie = createArchive-h s (trie-insert t filename $ include-elt-to-archive ie) (filenames ++ include-elt.deps ie)
+    ...| _ | _ = createArchive-h s t filenames
+    createArchive-h s t [] = json-object $ trie-mappings t
 
-              createArchive : toplevel-state → string → json
-              createArchive s filename = createArchive-h s empty-trie (filename :: [])
+    createArchive : toplevel-state → string → json
+    createArchive s filename = createArchive-h s empty-trie (filename :: [])
 
-              archiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              archiveCommand (input :: []) s =
-                canonicalizePath input >>= λ filename →
-                update-asts s filename >>= λ s →
-                process-file (λ _, _ → return triv) s filename (fileBaseName filename) >>= λ { (s , _) →
-                return (createArchive s filename) >>= λ archive →
-                putRopeLn (json-to-rope archive) >>r s }
-              archiveCommand ls s = errorCommand ls s >>r s
+    archiveCommand : 𝕃 string → toplevel-state → IO toplevel-state
+    archiveCommand (input :: []) s =
+      canonicalizePath input >>= λ filename →
+      update-asts s filename >>= λ s →
+      process-file (λ _ → return triv) (λ _ → return triv) s
+        filename (fileBaseName filename) >>=c λ s _ →
+      putRopeLn (json-to-rope (createArchive s filename)) >>r s
+    archiveCommand ls s = errorCommand ls s >>r s
 
-    {-          findCommand : 𝕃 string → toplevel-state → IO toplevel-state
-              findCommand (symbol :: []) s = putStrLn (find-symbols-to-JSON symbol (toplevel-state-lookup-occurrences symbol s)) >>= λ x → return s
-              findCommand _ s = errorCommand s -}
-
-              handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
-              handleCommands ("progress stub" :: xs) = return
-              handleCommands ("status ping" :: xs) s = putStrLn "idle" >> return s
-              handleCommands ("check" :: xs) s = checkCommand xs s
-              handleCommands ("debug" :: []) s = debugCommand s >>r s
-              handleCommands ("elaborate" :: x :: x' :: []) s = elab-all s x x' >>r s
-              handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
-              handleCommands ("archive" :: xs) s = archiveCommand xs s
-              handleCommands ("br" :: xs) s = putJson interactive-not-br-cmd-msg >>r s
+    handleCommands : 𝕃 string → toplevel-state → IO toplevel-state
+    handleCommands ("progress stub" :: xs) = return
+    handleCommands ("status ping" :: xs) s = putStrLn "idle" >> return s
+    handleCommands ("check" :: xs) s = checkCommand xs s
+    handleCommands ("debug" :: []) s = debugCommand s >>r s
+    handleCommands ("elaborate" :: fm :: to :: []) s = elab-all s fm to >>r s
+    handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
+    handleCommands ("archive" :: xs) s = archiveCommand xs s
+    handleCommands ("br" :: xs) s = putJson interactive-not-br-cmd-msg >>r s
   --            handleCommands ("find" :: xs) s = findCommand xs s
-              handleCommands xs s = errorCommand xs s >>r s
+    handleCommands xs s = errorCommand xs s >>r s
 
+{-
+  mk-new-toplevel-state : IO toplevel-state
+  mk-new-toplevel-state =
+    let s = new-toplevel-state (cedille-options.options.include-path options) in
+    maybe-else' (cedille-options.options.datatype-encoding options) (return s)
+      λ fp → readFiniteFile fp >>= λ de → case parseStart de of λ where
+        (Left (Left e)) → putStrLn ("Lexical error in datatype encoding at position " ^ e) >>r s
+        (Left (Right e)) → putStrLn ("Parse error in datatype encoding at position " ^ e) >>r s
+        (Right de) → {!!}
+-}
 
   -- function to process command-line arguments
   processArgs : 𝕃 string → IO ⊤ 
@@ -480,7 +491,7 @@ module main-with-options
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
     canonicalizePath input-filename >>= λ input-filename → 
-    checkFile (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename) (cedille-options.options.include-path options)))
+    checkFile progressUpdate (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename) (cedille-options.options.include-path options)))
       input-filename ff {- should-print-spans -} >>= finish input-filename
     where finish : string → toplevel-state → IO ⊤
           finish input-filename s = return triv
@@ -547,6 +558,36 @@ getCedilleArgs = getArgs >>= λ args → filterArgs args (mk-cedille-args nothin
     = if is-opts-flag x then filterArgs xs (record args { opts-file = just y})
       else filterArgs (y :: xs) (record args { files = x :: cedille-args.files args})
 
+process-encoding : filepath → cedille-options.options → IO cedille-options.options
+process-encoding ofp ops @ (cedille-options.mk-options ip cede rkt log qvs etp de col ~? nl) =
+  maybe-else' de (return ops) λ de-f →
+  let de = fst de-f
+      s = new-toplevel-state (cedille-options.include-path-insert (takeDirectory de) ip) in
+  update-asts s de >>= λ s →
+  process-encoding-file s de >>= λ f? →
+  maybe-else' f? (return ops) λ ast~ →
+  return (record ops {datatype-encoding = just (de , just ast~)})
+  where
+  ops' = record ops {datatype-encoding = nothing; use-cede-files = ff}
+  open main-with-options compileTime ofp ops'
+  open import spans ops' {IO}
+  open import toplevel-state ops' {IO}
+  open import process-cmd ops' {IO} (λ _ → return triv) (λ _ → return triv)
+  open import syntax-util
+  open import ctxt
+
+  process-encoding-file : toplevel-state → filepath → IO (maybe file)
+  process-encoding-file s fp with get-include-elt-if s fp >>= include-elt.ast
+  ...| nothing = putStrLn ("Error looking up datatype encoding information from file " ^ fp) >> return nothing
+  ...| just (ExModule is pi1 pi2 mn ps cs pi3) =
+    (process-cmds (record s {Γ = ctxt-initiate-file (toplevel-state.Γ s) fp mn}) (map ExCmdImport is) >>=c λ s is' →
+     process-params s first-position [] >>=c λ s _ →
+     check-and-add-params (toplevel-state.Γ s) (params-end-pos first-position ps) ps >>=c λ Γₚₛ ps~ →
+     process-cmds (record s {Γ = Γₚₛ}) cs >>=c λ s cs →
+     return2 ps~ (is' ++ cs)) empty-spans >>=c uncurry λ ps cs _ →
+    return (just (Module mn ps cs))
+
+
 -- main entrypoint for the backend
 main : IO ⊤
 main = initializeStdoutToUTF8 >>
@@ -554,7 +595,10 @@ main = initializeStdoutToUTF8 >>
        setStdoutNewlineMode >>
        setStdinNewlineMode >>
        setToLineBuffering >>
-       getCedilleArgs >>= λ args → let (mk-cedille-args optsf fs) = args in (case optsf of λ where
-         nothing → findOptionsFile >>= readOptions
-         (just opts) → readOptions $ just opts)
-       >>= λ o → main-with-options.main' compileTime (fst o) (snd o) fs
+       getCedilleArgs >>= λ args →
+       let mk-cedille-args optsf fs = args in
+       maybe-else' optsf
+         (findOptionsFile >>= readOptions) (readOptions ∘ just) >>=c λ ofp ops →
+       let log = cedille-options.options.generate-logs ops in
+       process-encoding ofp (record ops {generate-logs = ff}) >>= λ ops →
+       main-with-options.main' compileTime ofp (record ops {generate-logs = log}) fs

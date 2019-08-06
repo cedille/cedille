@@ -1,6 +1,6 @@
 module constants where
 
-open import lib
+open import general-util
 
 cedille-extension : string
 cedille-extension = "ced"
@@ -32,5 +32,5 @@ global-error-string msg = "{\"error\":\"" ^ msg ^ "\"" ^ "}"
 dot-cedille-directory : string → string 
 dot-cedille-directory dir = combineFileNames dir ".cedille"
 
-pattern elab-mu-prev-key = "/prev"
-pattern elab-hide-key = "/hide"
+--pattern elab-mu-prev-key = "/prev"
+--pattern elab-hide-key = "/hide"

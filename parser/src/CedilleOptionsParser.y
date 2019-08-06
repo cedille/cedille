@@ -30,8 +30,8 @@ import Control.Monad
   'erase-types'          { Token _  TEraseTypes   }
   'pretty-print-columns' { Token _  TPrintColumns }
   'datatype-encoding'    { Token _  TDataEnc      }
-  'Mendler'              { Token _  TEncMendler   }
-  'Mendler-old'          { Token _  TEncMendlerOld}
+--  'Mendler'              { Token _  TEncMendler   }
+--  'Mendler-old'          { Token _  TEncMendlerOld}
   '.'                    { Token _  TPoint        }
   '='                    { Token _  TEq           }
   
@@ -44,9 +44,9 @@ Opts :: { Opts }
      :          { OptsNil        }
      | Opt Opts { OptsCons $1 $2 }
 
-Bool :: { StrBool }
-     : 'false'  { StrBoolFalse }
-     | 'true'   { StrBoolTrue }
+Bool :: { Bool }
+     : 'false'  { False }
+     | 'true'   { True }
 
 Opt :: { Opt }
     : 'import-directories'   '=' Paths   '.' { Lib          $3 }
@@ -55,16 +55,17 @@ Opt :: { Opt }
     | 'generate-logs'        '=' Bool    '.' { GenerateLogs $3 }
     | 'show-qualified-vars'  '=' Bool    '.' { ShowQualifiedVars $3 }
     | 'erase-types'          '=' Bool    '.' { EraseTypes $3   }
-    | 'datatype-encoding'    '=' DataEnc '.' { DatatypeEncoding $3 }
+    | 'datatype-encoding'    '=' path    '.' { DatatypeEncoding (Just $3) }
+    | 'datatype-encoding'    '='         '.' { DatatypeEncoding Nothing }
     | 'pretty-print-columns' '=' num     '.' { PrintColumns $3 }
 
 Paths :: { Paths }
       :             { PathsNil        }
       | path Paths  { PathsCons $1 $2 }
 
-DataEnc :: { DataEnc }
-         : 'Mendler'     { Mendler    }
-         | 'Mendler-old' { MendlerOld }
+--DataEnc :: { DataEnc }
+--         : 'Mendler'     { Mendler    }
+--         | 'Mendler-old' { MendlerOld }
 
 {
   

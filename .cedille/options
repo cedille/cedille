@@ -20,3 +20,5 @@ show-qualified-vars
 
 -- Erase erasable expressions from terms occurring in types (for debugging)
 erase-types = true.
+
+datatype-encoding = "./new-lib/encodings/mendler.ced".

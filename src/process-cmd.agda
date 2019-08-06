@@ -1,12 +1,12 @@
 import cedille-options
 open import general-util
-open import lib
 
 module process-cmd
   (options : cedille-options.options)
   {mF : Set → Set}
   {{_ : monad mF}}
-  (progress-update : string → 𝔹 → mF ⊤) where
+  (progress-update : string → mF ⊤)
+  (write-to-log : string → mF ⊤) where
 
 --open import cedille-find
 open import cedille-types
@@ -14,201 +14,167 @@ open import classify options {mF}
 open import constants
 open import conversion
 open import ctxt
-open import is-free
+open import free-vars
 open import rename
 open import spans options {mF}
 open import subst
 open import syntax-util
+open import type-util
 open import toplevel-state options {mF}
-open import datatype-functions
+open import datatype-util
 open import rewriting
+open import elab-util options
 import cws-types
 import cws
 
 -- generate spans from the given comments-and-whitespace syntax tree 
 process-cwst-etys : cws-types.entities → spanM ⊤
 process-cwst-ety : cws-types.entity → spanM ⊤
-process-cwst-etys (cws-types.Entity ety etys) = (process-cwst-ety ety) ≫span process-cwst-etys etys
-process-cwst-etys cws-types.EndEntity = spanMr triv
-process-cwst-ety cws-types.EntityNonws = spanMr triv
-process-cwst-ety (cws-types.EntityWs pi pi') = spanMr triv -- spanM-add (whitespace-span pi pi') 
-process-cwst-ety (cws-types.EntityComment pi pi') = spanM-add (comment-span pi pi')
+process-cwst-etys (cws-types.Entity ety etys) = process-cwst-ety ety >> process-cwst-etys etys
+process-cwst-etys cws-types.EndEntity = return triv
+process-cwst-ety cws-types.EntityNonws = return triv
+process-cwst-ety (cws-types.EntityWs pi pi') = return triv
+process-cwst-ety (cws-types.EntityComment pi pi') = [- comment-span pi pi' -] return triv
 
 process-cwst : toplevel-state → filepath → spanM toplevel-state
 process-cwst s filename with include-elt.cwst (get-include-elt s filename)
-process-cwst s filename | nothing = spanMr s
-process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys ≫span spanMr s
+process-cwst s filename | nothing = return s
+process-cwst s filename | just (cws-types.File etys) = process-cwst-etys etys >> return s
 
-process-t : Set → Set
-process-t X = toplevel-state → X → (need-to-check : 𝔹) → spanM toplevel-state
+check-and-add-params : ctxt → posinfo → ex-params → spanM (ctxt × params)
+check-and-add-params Γ pi' (p@(ExParam pi1 me pi1' x atk pi2) :: ps') =
+  Γ ⊢ atk ↝ atk~ /
+  let Γ' = Γ , pi1' - x :` atk~
+      qx = pi1' % x in
+  [- punctuation-span "Parens (parameter)" pi1 pi2 -]
+  [- Decl-span Γ' decl-param pi1 pi1' x atk~ me pi2 pi' -]
+  [- var-span me Γ' pi1' x checking atk~ nothing -]
+  check-and-add-params Γ' pi' ps' >>=c λ Γ'' ps~ →
+  return2 Γ'' (Param me qx atk~ :: ps~)
+check-and-add-params Γ pi' [] = return2 Γ []
 
-check-and-add-params : posinfo → params → (need-to-check : 𝔹) → spanM (𝕃 (string × restore-def))
-check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') tt =
-  check-tk atk ≫span
-  add-tk' me pi1' x atk ≫=span λ mi →
-  get-ctxt λ Γ →
-  spanM-add (Decl-span Γ param pi1 pi1' x atk me pi' {- make this span go to the end of the def, so nesting will work
-                                              properly for computing the context in the frontend -}) ≫span
-  check-and-add-params pi' ps' tt ≫=span λ ms → spanMr ((x , mi) :: ms)
-check-and-add-params pi' (p@(Decl pi1 pi1' me x atk pi2) :: ps') ff =
-  add-tk' me pi1' x atk ≫=span λ mi →
-  check-and-add-params pi' ps' ff ≫=span λ ms → spanMr ((x , mi) :: ms)
-check-and-add-params _ [] _ = spanMr []
-
-optAs-posinfo-var : optAs → (posinfo × var) → spanM (posinfo × var)
-optAs-posinfo-var NoOptAs = spanMr
-optAs-posinfo-var (SomeOptAs pi x) orig = get-ctxt λ Γ →
-  spanM-add (Import-module-span Γ orig [] [ not-for-navigation ] nothing) ≫span spanMr (pi , x)
+optAs-posinfo-var : ctxt → maybe import-as → posinfo × var → spanM (posinfo × var)
+optAs-posinfo-var Γ nothing = return
+optAs-posinfo-var Γ (just (ImportAs pi x)) orig =
+  [- Import-module-span Γ orig [] [ not-for-navigation ] nothing -]
+  return2 pi x
 
 
 {-# TERMINATING #-}
-process-cmd : process-t cmd
-process-cmds : process-t cmds
-process-ctrs : var → type → posinfo → params → process-t ctrs
-process-params : process-t (posinfo × params)
-process-start : toplevel-state → filepath → (progress-name : string) → start → (need-to-check : 𝔹) → spanM toplevel-state
-process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × mod-info)
+process-cmd : toplevel-state → ex-cmd → spanM (toplevel-state × cmd)
+process-cmds : toplevel-state → ex-cmds → spanM (toplevel-state × cmds)
+process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
+process-params : toplevel-state → posinfo → ex-params → spanM (toplevel-state × params)
+process-start : toplevel-state → filepath → (progress-name : string) → ex-file → spanM (toplevel-state × file)
+process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × file × string × string × params × qualif)
  
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (SomeType tp) t) pi') tt {- check -} = 
-  set-ctxt Γ ≫span
-  check-type tp (just star) ≫span
-  let tp' = qualif-type Γ tp in
-  check-term t (just tp') ≫span 
-  check-erased-margs t (just tp') ≫span 
-  get-ctxt (λ Γ →
-    let Γ' = ctxt-term-def pi globalScope op x (just t) tp' Γ in
-      spanM-add (DefTerm-span Γ' pi x checking (just tp) t pi' []) ≫span
-      check-redefined pi x (mk-toplevel-state ip fns is Γ)
-        (spanM-add (uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t)) ≫span
-         spanMr (mk-toplevel-state ip fns is Γ')))
+process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just tp) t) pi') =
+  Γ ⊢ tp ⇐ KdStar ↝ tp' /
+  Γ ⊢ t ⇐ tp' ↝ t' /
+  check-erased-margs Γ (term-start-pos t) (term-end-pos t) t' (just tp') >>
+  let Γ' = ctxt-term-def pi globalScope op x (just t') tp' Γ in
+  [- DefTerm-span Γ' pi x checking (just tp') t' pi' [] -]
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefTerm x t')
+    ([- uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t') -]
+     return (mk-toplevel-state ip fns is Γ'))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x (SomeType tp) t) pi') ff {- skip checking -} =
-  let tp' = qualif-type Γ tp in
-    check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-term-def pi globalScope op x (just t) tp' Γ)))
+process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothing t) pi') = 
+  Γ ⊢ t ↝ t~ ⇒ T~ /
+  check-erased-margs Γ (term-start-pos t) (term-end-pos t) t~ nothing >> 
+  let Γ' = ctxt-term-def pi globalScope op x (just t~) T~ Γ in
+  [- DefTerm-span Γ' pi x synthesizing (just T~) t~ pi' [] -]
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefTerm x t~)
+    ([- uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t~) -]
+     return (mk-toplevel-state ip fns is Γ'))
 
+process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefType pi x k tp) pi') =
+  Γ ⊢ k ↝ k~ /
+  Γ ⊢ tp ⇐ k~ ↝ tp~ /
+  let Γ' = ctxt-type-def pi globalScope op x (just tp~) k~ Γ in
+  spanM-add (DefType-span Γ' pi x checking (just k~) tp~ pi' []) >>
+  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+    (CmdDefType x k~ tp~)
+    ([- TpVar-span Γ' pi x checking [] nothing -]
+     return (mk-toplevel-state ip fns is Γ'))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefTerm pi x NoType t) pi') _ = 
-  set-ctxt Γ ≫span
-  check-term t nothing ≫=span λ mtp → 
-  check-erased-margs t nothing ≫span 
-  get-ctxt (λ Γ → 
-      let Γ' = maybe-else
-                 (ctxt-term-udef pi globalScope op x t Γ)
-                 (λ tp → ctxt-term-def pi globalScope op x (just t) tp Γ) mtp in
-      spanM-add (DefTerm-span Γ' pi x synthesizing mtp t pi' []) ≫span
-      check-redefined pi x (mk-toplevel-state ip fns is Γ)
-        (spanM-add (uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t)) ≫span
-         spanMr (mk-toplevel-state ip fns is Γ')))
+process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdKind pi x ps k pi') =
+  check-and-add-params Γ pi' ps >>=c λ Γₚₛ ps~ →
+  Γₚₛ ⊢ k ↝ k~ /
+  let Γ' = ctxt-kind-def pi x ps~ k~ Γ in
+  [- DefKind-span Γ' pi x k~ pi' -]
+  check-redefined pi x (mk-toplevel-state ip fns is Γ') (CmdDefKind x ps~ k~)
+    ([- KdVar-span Γ' (pi , x) (posinfo-plus-str pi x) ps~ checking [] nothing -]
+     return (mk-toplevel-state ip fns is Γ'))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k tp) pi') tt {- check -} =
-    set-ctxt Γ ≫span
-    check-kind k ≫span 
-    let k' = qualif-kind Γ k in
-    check-type tp (just k') ≫span 
-    get-ctxt (λ Γ → 
-      let Γ' = ctxt-type-def pi globalScope op x (just tp) k' Γ in
-        spanM-add (DefType-span Γ' pi x checking (just k) tp pi' []) ≫span
-        check-redefined pi x (mk-toplevel-state ip fns is Γ)
-          (spanM-add (TpVar-span Γ' pi x checking [] nothing) ≫span
-           spanMr (mk-toplevel-state ip fns is Γ')))
-
-
-process-cmd (mk-toplevel-state ip fns is Γ) (DefTermOrType op (DefType pi x k tp) pi') ff {- skip checking -} = 
-  let k' = qualif-kind Γ k in
-    check-redefined pi x (mk-toplevel-state ip fns is Γ)
-      (spanMr (mk-toplevel-state ip fns is (ctxt-type-def pi globalScope op x (just tp) k' Γ)))
-
-process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') tt {- check -} =
-  set-ctxt Γ ≫span
-  check-and-add-params pi' ps tt ≫=span λ ms → 
-  check-kind k ≫span
-  get-ctxt (λ Γ → 
-    let Γ' = ctxt-kind-def pi x ps k Γ in
-      spanM-add (DefKind-span Γ' pi x k pi') ≫span
-      check-redefined pi x (mk-toplevel-state ip fns is Γ)
-       (spanM-add (KndVar-span Γ' (pi , x) (posinfo-plus-str pi x) ps checking [] nothing) ≫span
-        spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
-
-
-process-cmd (mk-toplevel-state ip fns is Γ) (DefKind pi x ps k pi') ff {- skip checking -} = 
-  set-ctxt Γ ≫span
-  check-and-add-params pi' ps ff ≫=span λ ms → 
-  get-ctxt (λ Γ → 
-    let Γ' = ctxt-kind-def pi x ps k Γ in
-      check-redefined pi x (mk-toplevel-state ip fns is Γ)
-        (spanMr (mk-toplevel-state ip fns is (ctxt-restore-info* Γ' ms))))
-
-process-cmd s (DefDatatype (Datatype pi pi' x ps k cs) pi'') c? =
+process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   let Γ = toplevel-state.Γ s
-      skip? = λ check → if c? then check else spanMok in
-  set-ctxt Γ ≫span
-  skip? (spanM-add $ DefDatatype-header-span pi) ≫span
-  get-ctxt λ old-Γ →
-  spanM-lookup-restore-info x ≫=span λ m →
-  check-and-add-params pi'' ps c? ≫=span λ ms →
-  get-ctxt λ Γ →
-  skip? (check-kind k) ≫span
-  let --Γ' = foldr (λ {(Decl _ piₚ me x atk _) → ctxt-tk-decl piₚ x atk}) Γ ps
-      mn = ctxt-get-current-modname Γ
+      old-Γ = Γ in
+  [- DefDatatype-header-span pi -]  
+  check-and-add-params Γ pi'' ps >>=c λ Γₚₛ ps' →
+  Γₚₛ ⊢ k ↝ k' /
+  let mn = ctxt.mn Γ
       qx = mn # x
-      ps = qualif-params old-Γ ps
-      mps = ctxt-get-current-params Γ ++ ps
-      k' = qualif-kind Γ k
-      is = kind-to-indices Γ k'
-      kᵢ = indices-to-kind is $ KndTpArrow
-             (indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx) star in
-  check-redefined pi' x s
-    (set-ctxt (ctxt-type-decl pi' x k $ data-highlight (pi' % x) Γ) ≫span get-ctxt λ Γ →
-     process-ctrs (qualif-var Γ x) (apps-type (mtpvar qx) (params-to-args mps))
-       pi' ps (record s {Γ = Γ}) cs c? ≫span
-     get-ctxt λ Γ →
-     let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
-         Γ' = ctxt-restore-info* (elim-pair m $ ctxt-restore-info Γ x) ms
-         kₘᵤ = abs-expand-kind ps $ KndArrow k' star
-         --Γ' = ctxt-type-def pi' globalScope OpacTrans (mu-name-Mu x) nothing kₘᵤ Γ'
-         Γ' = ctxt-type-def pi' globalScope OpacTrans (data-Is/ x) nothing kₘᵤ Γ'
-         Tₘᵤ = params-to-alls ps $ TpApp (params-to-tpapps mps (mtpvar (mn # data-Is/ x))) (params-to-tpapps mps $ mtpvar qx)
-         Γ' = ctxt-term-def pi' globalScope OpacTrans (data-is/ x) nothing Tₘᵤ Γ'
-         Tₜₒ =
-           abs-expand-type ps $
-           mall fₓ (Tkk $ indices-to-kind is star) $
-           TpArrow (TpApp (params-to-tpapps mps $ mtpvar $ mn # data-Is/ x) $
-                      mtpvar fₓ) Erased $
-           indices-to-alls is $
-           TpArrow (indices-to-tpapps is $ mtpvar fₓ) NotErased $
-           indices-to-tpapps is $ params-to-tpapps mps $ mtpvar qx
-         Γ' = ctxt-term-def pi' globalScope OpacTrans (data-to/ x) (just id-term) Tₜₒ Γ'
-         cs' = flip map cs λ {(Ctr pi x' T) →
-           Ctr posinfo-gen (mn # x') $ subst Γ (params-to-tpapps mps (mtpvar qx))
-             (qualif-var Γ x) (hnf-ctr Γ (qualif-var Γ x) (qualif-type Γ T))}
-         Γ' = ctxt-datatype-def pi' x ps kᵢ k' cs' Γ' in
-     set-ctxt Γ' ≫span
-     skip? (spanM-add $ DefDatatype-span Γ' pi pi' x ps (qualif-kind Γ (abs-expand-kind ps k)) kₘᵤ (qualif-kind Γ k) Tₘᵤ Tₜₒ cs pi'') ≫span
-     get-ctxt λ Γ →
-     skip? (spanM-add $ TpVar-span Γ pi' x checking
-       (kind-data old-Γ k :: params-data old-Γ ps) nothing) ≫span
-     spanMr (record s {Γ = Γ}))
+      mps = ctxt.ps Γ ++ ps'
+      Γ-decl = λ Γ → ctxt-type-decl pi' x k' $ data-highlight Γ (pi' % x)
+      cmd-fail = CmdDefType x (params-to-kind ps' k') (TpHole pi')
+      fail = λ e → [- TpVar-span Γ pi' x checking [] (just e) -] return2 s cmd-fail in
+  process-ctrs x (pi' % x) qx mps pi' (record s {Γ = Γ-decl Γₚₛ}) cs >>=c λ Γ-cs cs~ →
+  maybe-else' (cedille-options.options.datatype-encoding options >>=c λ fp f → f)
+    (fail "Internal error (datatype encoding should have been parsed!)") λ de →
+  let is = kind-to-indices Γₚₛ k'
+      kᵢ = indices-to-kind is $ KdAbs ignored-var
+             (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar in
+  either-else' (init-encoding Γₚₛ de (Data x ps' (kind-to-indices Γₚₛ k') cs~)) fail λ ecs →
+  check-redefined pi' x (record s {Γ = Γ-cs Γ}) (CmdDefData ecs x ps' k' cs~)
+  let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
+      cs~ = map-fst (mn #_) <$> cs~
+      Γ' = Γ-cs Γ
+      kₘᵤ = abs-expand-kind ps' $ KdAbs ignored-var (Tkk k') KdStar
+      Γ' = ctxt-type-def pi' globalScope opacity-open (data-Is/ x) nothing kₘᵤ Γ'
+      Tₘᵤ = params-to-alls ps' $ TpApp (params-to-tpapps mps (TpVar (mn # data-Is/ x))) (Ttp (params-to-tpapps mps $ TpVar qx))
+      Γ' = ctxt-term-def pi' globalScope opacity-open (data-is/ x) nothing Tₘᵤ Γ'
+      Tₜₒ =
+        abs-expand-type ps' $
+        mall fₓ (Tkk $ indices-to-kind is KdStar) $
+        TpAbs Erased ignored-var (Tkt (TpApp (params-to-tpapps mps $ TpVar $ mn # data-Is/ x) $ Ttp $ TpVar fₓ)) $
+        indices-to-alls is $
+        TpAbs NotErased ignored-var (Tkt (indices-to-tpapps is $ TpVar fₓ)) $
+        indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx
+      Γ' = ctxt-term-def pi' globalScope opacity-open (data-to/ x) (just id-term) Tₜₒ Γ'
+      Γ' = ctxt-datatype-def pi' x ps' kᵢ k' cs~ ecs Γ' in
+  [- DefDatatype-span Γ' pi pi' x ps' (abs-expand-kind ps' k') kₘᵤ k' Tₘᵤ Tₜₒ cs~ k pi'' -]
+  [- TpVar-span Γ' pi' x checking (kind-data old-Γ k' :: params-data old-Γ ps') nothing -]
+  return (record s {Γ = Γ'})
+
+
 
 -- TODO ignore checking but still gen spans if need-to-check false?
-process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
-  let fnₒ = ctxt-get-current-filename (toplevel-state.Γ s)
-      ie = get-include-elt s fnₒ in
+process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
+  let fnₒ = ctxt.fn (toplevel-state.Γ s)
+      ie = get-include-elt s fnₒ
+      oa' = maybe-map (λ {(ImportAs pi x) → x}) oa in
   case trie-lookup (include-elt.import-to-dep ie) x of λ where
-    nothing → spanM-add (Import-span pi "missing" pi'' [] (just ("File not found: " ^ x)))
-      ≫span spanMr (set-include-elt s fnₒ (record ie {err = tt}))
-    (just fnᵢ) Γ ss →
-      process-file s fnᵢ x ≫=monad uncurry λ s _ →
-        (let s-e = scope-file s fnₒ fnᵢ oa (qualif-args (toplevel-state.Γ s) as) in
-         process-import op oa fnₒ fnᵢ (lookup-mod-params (toplevel-state.Γ s) fnᵢ) (maybe-else' (lookup-mod-params (toplevel-state.Γ s) fnₒ) [] id) ≫=span λ e →
-         spanM-add (Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e)) ≫span spanMr (fst s-e)) Γ ss
+    nothing → [- Import-span pi "missing" pi'' [] (just ("File not found: " ^ x)) -]
+              return2 (set-include-elt s fnₒ (record ie {err = tt}))
+                      (CmdImport (Import op x x oa' []))
+    (just fnᵢ) →
+      spanM-push (process-file s fnᵢ x) >>= uncurry₂ λ s f _ →
+        process-import (toplevel-state.Γ s) op oa fnₒ fnᵢ
+          (lookup-mod-params (toplevel-state.Γ s) fnᵢ)
+          (maybe-else' (lookup-mod-params (toplevel-state.Γ s) fnₒ) [] id) >>=c λ e as~ →
+         let s-e = scope-file s fnₒ fnᵢ oa' as~
+             Γ = toplevel-state.Γ s in
+         [- Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e) -]
+         return2 (fst s-e) (CmdImport (Import op fnᵢ x oa' as~))
   where
   -- When importing a file publicly, you may use any number of arguments as long as the
   -- parameters of the current module are not free in them.
   -- You may then use any number of single-variable parameters from the current module
   -- as arguments as long as they retain the same order as before and have no non-parameter
   -- arguments between them
-  -- (so parameters A, B, C, ..., Z can be used as arguments ∙ C ∙ X, but not ∙ X ∙ C)
+  -- (so parameters A, B, C, ..., Z can be used as arguments ·C ·X, but not ·X ·C)
   public-import-params-ok : params → args → err-m
   public-import-params-ok ps = h nothing where
     err = just "You can only use parameters for arguments to public imports if the are in order at the end"
@@ -216,103 +182,123 @@ process-cmd s (ImportCmd (Import pi op pi' x oa as pi'')) _ =
     params-order = h 0 where
       h : ℕ → params → trie ℕ
       h n [] = empty-trie
-      h n ((Decl _ _ me x atk _) :: ps) = trie-insert (h (suc n) ps) x n
-    arg-var : arg → maybe var
-    arg-var (TermArg me (Var pi x)) = just x
-    arg-var (TypeArg (TpVar pi x)) = just x
-    arg-var _ = nothing
+      h n (Param me x atk :: ps) = trie-insert (h (suc n) ps) x n
     pso = params-order ps
     ps-free : arg → err-m → err-m
-    ps-free a e = if ~ are-free-in-args check-erased pso [ a ] then e else err
+    ps-free a e = if ~ are-free-in-h pso (free-vars-arg a) then e else err
     h : maybe ℕ → args → err-m
     h c (a :: as) =
-      maybe-else' (arg-var a ≫=maybe trie-lookup pso)
+      maybe-else' (arg-var a >>= trie-lookup pso)
         (maybe-else' c (ps-free a $ h nothing as) λ _ → err) λ aₙ →
       maybe-else' c (h (just aₙ) as) λ cₙ →
       if cₙ ≥ aₙ then err else h (just aₙ) as
     h n [] = nothing
-
   
-  process-import : optPublic → optAs → (cur imp : filepath) → maybe params → params → spanM err-m
-  process-import op oa fnₒ fnᵢ nothing _ = spanMr (just "Undefined module import (this probably shouldn't happen?)")
-  -- process-import op oa fnₒ fnᵢ (just psᵢ) nothing = spanMr (just "Current module undefined (this shouldn't happen!)")
-  process-import IsPublic (SomeOptAs _ _) fnₒ fnᵢ (just psᵢ) {-(just-} psₒ {-)-} = spanMr (just "Public import aren't allowed to be qualified")
-  process-import op oa fnₒ fnᵢ (just psᵢ) {-(just-} psₒ {-)-} =
-    optAs-posinfo-var oa (pi' , x) ≫=span λ pi-v →
-    with-ctxt (toplevel-state.Γ s)
-      (check-args-against-params (just (location-data (fnᵢ , first-position))) pi-v psᵢ as) ≫span
-    spanMr (maybe-if op ≫maybe
-            public-import-params-ok psₒ (qualif-args (toplevel-state.Γ s) as))
+  process-import : ctxt → opt-public → maybe import-as → (cur imp : filepath) → maybe params → params → spanM (err-m × args)
+  process-import Γ op oa fnₒ fnᵢ nothing _ = return2 (just "Undefined module import (this probably shouldn't happen?)") []
+  process-import Γ Public (just _) fnₒ fnᵢ (just psᵢ) psₒ = return2 (just "Public imports aren't allowed to be qualified") []
+  process-import Γ op oa fnₒ fnᵢ (just psᵢ) psₒ =
+    optAs-posinfo-var Γ oa (pi' , x) >>= λ pi-v →
+    check-args Γ as psᵢ >>= λ as~ →
+    [- Import-module-span Γ (pi' , x) psᵢ [ location-data (fnᵢ , "1") ] nothing -]
+    return2 (maybe-if op >> public-import-params-ok psₒ as~) as~
+
+
 
 -- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
-process-cmds (mk-toplevel-state include-path files is Γ) (c :: cs) need-to-check =
-  process-cmd (mk-toplevel-state include-path files is Γ) c need-to-check ≫=span λ s →
-  process-cmds s cs need-to-check
-process-cmds s [] need-to-check = set-ctxt (toplevel-state.Γ s) ≫span spanMr s
+process-cmds s (c :: cs) =
+  process-cmd s c >>=c λ s c →
+  process-cmds s cs >>=c λ s cs →
+  return2 s (c :: cs)
+process-cmds s [] = return2 s []
 
-process-ctrs X Xₜ piₓ ps s csₒ c? = h s csₒ c? where
-  h : process-t ctrs
-  h s [] _ = spanMr s
-  h s ((Ctr pi x T) :: cs) ff =
-    h s cs ff ≫span get-ctxt λ Γ →
-    set-ctxt (ctxt-ctr-def pi x (subst Γ Xₜ X (hnf-ctr Γ X (qualif-type Γ T))) ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ) ≫span
-    get-ctxt λ Γ → spanMr (record s {Γ = Γ})
-  h s ((Ctr pi x T) :: cs) tt =
-    check-type T (just star) ≫span get-ctxt λ Γ →
-    let T = hnf-ctr Γ X (qualif-type Γ T)
-        neg-ret-err = positivity.ctr-positive X Γ T ≫=maybe λ neg-ret →
-          let err-msg = if neg-ret then " occurs negatively in the" else " is not the return" in
-          just (unqual-local X ^ err-msg ^ " type of the constructor")
-        T = subst Γ Xₜ X T in
-    h s cs tt ≫=span λ s →
-    set-ctxt (toplevel-state.Γ s) ≫span get-ctxt λ Γ →
-    check-redefined pi x (record s {Γ = Γ})
-      (set-ctxt (ctxt-ctr-def pi x T ps (length csₒ) (length csₒ ∸ suc (length cs)) Γ) ≫span get-ctxt λ Γ →
-       spanM-add (Var-span Γ pi x checking
-         [ summary-data x (ctxt-type-def piₓ globalScope OpacTrans (unqual-local X) nothing star Γ) (abs-expand-type ps T) ] neg-ret-err) ≫span
-       spanMr (record s {Γ = Γ}))
+process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
+  h : toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
+  h s [] = return2 id []
+  h s (ExCtr pi x T :: cs) =
+    let Γ = toplevel-state.Γ s in
+    Γ ⊢ T ⇐ KdStar ↝ T~ /
+    let T = hnf-ctr Γ lX T~
+        neg-ret-err = positivity.ctr-positive lX Γ T >>= λ neg-ret →
+          let err-msg = if neg-ret
+                          then " occurs negatively in the"
+                          else " is not the return" in
+          just (uX ^ err-msg ^ " type of the constructor")
+        T = [ Γ - TpVar mX / lX ] T
+        Tₚₛ = [ Γ - params-to-tpapps ps (TpVar mX) / lX ] T~ in
+    h s cs >>=c λ Γ-f cs →
+    let Γ = toplevel-state.Γ s
+        Γ-f' = ctxt-ctr-def pi x Tₚₛ ps (length csₒ) (length csₒ ∸ suc (length cs)) in
+    check-redefined pi x s (Ctr x T :: cs)
+      (let Γ = Γ-f' Γ in
+       [- Var-span Γ pi x checking
+           [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
+               (abs-expand-type ps T) ] neg-ret-err -]
+       return (record s {Γ = Γ})) >>=c λ s cs →
+    return2 (Γ-f ∘ Γ-f') cs
 
-process-params s (pi , ps) need-to-check =
-  set-ctxt (toplevel-state.Γ s) ≫span
-  check-and-add-params pi ps need-to-check ≫=span λ _ →
-  spanM-set-params ps ≫span
-  get-ctxt λ Γ → 
-  spanMr (record s {Γ = ctxt-add-current-params Γ})
+process-params s pi ps =
+  let Γ = toplevel-state.Γ s in
+  check-and-add-params Γ pi ps >>=c λ Γₚₛ ps →
+  return2
+    (record s {Γ = ctxt-add-current-params (record Γₚₛ { ps = ps })})
+    ps
 
-process-start s filename pn (File is pi1 pi2 mn ps cs pi3) need-to-check =
-  λ Γ ss → progress-update pn need-to-check ≫monad
-  (process-cmds s (imps-to-cmds is) need-to-check ≫=span λ s →
-   process-params s (params-end-pos first-position ps , ps) need-to-check ≫=span λ s →
-   process-cmds s cs need-to-check ≫=span λ s → 
-   process-cwst s filename ≫=span λ s →
-     spanM-add (File-span (toplevel-state.Γ s) first-position (posinfo-plus pi3 1) filename) ≫span
-     let pi2' = posinfo-plus-str pi2 mn in
-     spanM-add (Module-span pi2 pi2') ≫span
-     spanM-add (Module-header-span pi1 pi2') ≫span
-     spanMr s) Γ ss
+process-start s filename pn (ExModule is pi1 pi2 mn ps cs pi3) =
+  spanM-push (progress-update pn) >>
+  process-cmds s (map ExCmdImport is) >>=c λ s is' →
+  process-params s (params-end-pos first-position ps) ps >>=c λ s ps →
+  process-cmds s cs >>=c λ s cs →
+  process-cwst s filename >>= λ s →
+  let pi2' = posinfo-plus-str pi2 mn in
+  [- File-span (toplevel-state.Γ s) first-position (posinfo-plus pi3 1) filename -]
+  [- Module-span pi2 pi2' -]
+  [- Module-header-span pi1 pi2' -]
+  return2 s (Module mn ps (is' ++ cs))
+--  where
+--  unqual-cmd : ctxt → renamectxt → cmd → cmd
+--  unqual-cmd Γ ρ (CmdDefTerm x t) = CmdDefTerm x (subst-renamectxt Γ ρ t)
+--  unqual-cmd Γ ρ (CmdDefType x k T) = CmdDefType x (subst-renamectxt Γ ρ k) (subst-renamectxt Γ ρ T)
+--  unqual-cmd Γ ρ (CmdDefKind x ps k) = CmdDefKind x (substh-params Γ ρ empty-trie ps) (subst-renamectxt (add-params-to-ctxt ps Γ) ρ k)
+--  unqual-cmd Γ ρ (CmdDefData eds x ps k cs) = CmdDefData eds x (substh-params Γ ρ empty-trie ps) (subst-renamectxt (add-params-to-ctxt ps Γ) ρ k) (map-snd (subst-renamectxt (add-params-to-ctxt ps Γ) ρ) <$> cs)
+--  unqual-cmd Γ ρ (CmdImport (Import op fnᵢ x oa as)) = CmdImport (Import op fnᵢ x oa (subst-renamectxt Γ ρ -arg_ <$> as))
 
 {- process (type-check if necessary) the given file.  
    We assume the given top-level state has a syntax tree associated with the file. -}
 process-file s filename pn with get-include-elt s filename
 process-file s filename pn | ie =
-  proceed s (include-elt.ast ie) (set-need-to-add-symbols-to-context-include-elt ie ff) ≫=monad λ where
-    (s , ie , ret-mod) → returnM (set-include-elt s filename ie , ret-mod)
-        {- update the include-elt and the toplevel state (but we will push the updated include-elt into the toplevel state
-           just above, after proceed finishes. -}
-  where proceed : toplevel-state → maybe start → include-elt → mF (toplevel-state × include-elt × mod-info)
-        proceed s nothing ie' = progress-update filename tt ≫monad returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s)) {- should not happen -}
-        proceed s (just x) ie' with include-elt.need-to-add-symbols-to-context ie {- this indeed should be ie, not ie' -}
-        proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt
-          with include-elt.do-type-check ie | ctxt-get-current-mod Γ 
-        proceed (mk-toplevel-state ip fns is Γ) (just x) ie' | tt | do-check | prev-mod =
-         let Γ = ctxt-initiate-file Γ filename (start-modname x) in
-           process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
-                   filename pn x do-check Γ empty-spans ≫=monad cont
-           where cont : toplevel-state × ctxt × spans → mF (toplevel-state × include-elt × mod-info)
-                 cont (mk-toplevel-state ip fns is Γ , Γ' @ (mk-ctxt ret-mod _ _ _ _) , ss) =
-                   progress-update pn do-check ≫monad returnM
-                     (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) is
-                       (ctxt-set-current-mod Γ prev-mod) ,
-                     (if do-check then set-spans-include-elt ie' ss else ie') , ret-mod)
-        proceed s (just x) ie' | _ = returnM (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s))
+  proceed s (include-elt.ast ie) (include-elt.ast~ ie)
+      (set-need-to-add-symbols-to-context-include-elt ie ff) >>= λ where
+    (s , ie , ret-mod , f) → return ({-set-include-elt s filename ie-} s , f , ret-mod)
+  where
+  proceed : toplevel-state → maybe ex-file → maybe file → include-elt →
+            mF (toplevel-state × include-elt × (string × string × params × qualif) × file)
+  proceed s nothing f~ ie' =
+    progress-update filename >>
+--    write-to-log "should not happen" >>
+    return (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s) ,
+             maybe-else' f~ (Module ignored-var [] []) id) {- should not happen -}
+  proceed s (just x) f~ ie' with include-elt.need-to-add-symbols-to-context ie
+  proceed s (just x) (just f~) ie' | ff =
+    let Γ = toplevel-state.Γ s
+        mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ in
+    return (s , ie' , mod , f~)
+  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _
+    with include-elt.do-type-check ie | ctxt-get-current-mod Γ
+  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _ | do-check | prev-mod =
+   let Γ = ctxt-initiate-file Γ filename (start-modname x) in
+     process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
+             filename pn x empty-spans >>= λ where
+       ((mk-toplevel-state ip fns is Γ , f) , ss) →
+         let ret-mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ
+             ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' maybe-or just f } in
+         progress-update pn >> return
+           (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) (trie-insert is filename ie'')
+             (ctxt-set-current-mod Γ prev-mod) ,
+            ie'' ,
+            ret-mod ,
+            f)
+--  proceed s (just x) f~ ie' | ff =
+--    return (s , ie' , ctxt-get-current-mod (toplevel-state.Γ s) ,
+--             maybe-else' f~ (Module ignored-var [] []) id)
 

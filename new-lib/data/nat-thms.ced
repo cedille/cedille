@@ -1,5 +1,5 @@
-module data/nat-thms.
+module data.nat-thms.
 
-import public nat-thms/simple.
-import public nat-thms/order.
+import public nat-thms.simple.
+import public nat-thms.order.
 

@@ -178,7 +178,7 @@
             cedille-mode-br-do-check (and qed do-check
                                           (cons (se-term-start span) (se-term-end span)))
 	    cedille-mode-global-context context
-            cedille-mode-br-local-context context
+            cedille-mode-br-local-context nil ;context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
@@ -219,7 +219,7 @@
 	    cedille-mode-br-in-buffer t
             cedille-mode-br-parent br-parent
 	    cedille-mode-global-context context
-            cedille-mode-br-local-context context
+            ; cedille-mode-br-local-context context
             cedille-mode-br-column column
             cedille-mode-br-path path
 	    window-size-fixed nil)
@@ -439,7 +439,9 @@
             (number-to-string (1- (se-span-start span)))
             (number-to-string (1- (se-span-end span)))
             (cedille-mode-norm-method-case (or norm-method 'normalized) "all" "head" "once")
-            (cedille-mode-normalize-local-context-to-string (copy-tree (let (cedille-mode-global-context) (cedille-mode-span-context span)))))
+            (cedille-mode-normalize-local-context-to-string
+             (copy-tree (let (cedille-mode-global-context)
+                          (cedille-mode-span-context span)))))
 	   (cedille-mode-response-macro #'cedille-mode-br-response)
 	   nil
            span))))))
@@ -503,7 +505,8 @@
                  (number-to-string (1- (se-span-end span)))
                  input
                  (if head "tt" "ff")
-                 (let (cedille-mode-global-context) (cedille-mode-normalize-local-context-param span)))))
+                 (let (cedille-mode-global-context)
+                   (cedille-mode-normalize-local-context-param span)))))
         (se-inf-interactive-with-span
          q
          (cedille-mode-response-macro #'cedille-mode-br-response)

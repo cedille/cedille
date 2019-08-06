@@ -230,6 +230,7 @@
 
 (defvar cedille-mode-highlight-face-map-default
    '(
+;     ("punctuation" . (("true" . cedille-ignore-face-df)))
      ("name" . (("Constructor variable" . cedille-constructor-face-df)
                 ("Pattern constructor" . cedille-constructor-face-df)
                 ("Datatype variable" . cedille-datatype-face-df)
@@ -270,7 +271,8 @@
 
 
  (defvar cedille-mode-highlight-face-map-language-level
-   '( 
+   '(
+;     ("punctuation" . (("true" . cedille-ignore-face-df)))
      ("language-level" . (("type" . cedille-type-face-ll)
 			 ("kind" . cedille-kind-face-ll)
 			 ("term" . cedille-term-face-ll)))
@@ -279,7 +281,7 @@
 
 (defvar cedille-mode-highlight-face-map-checking-mode
   '(
-    ("punctuation" . (("true" . cedille-ignore-face-df)))
+;    ("punctuation" . (("true" . cedille-ignore-face-df)))
     ("checking-mode" . (("checking" . cedille-checking-face-cm)
 		       ("synthesizing" . cedille-synthesizing-face-cm)
                        ("untyped" . cedille-untyped-face-cm)))

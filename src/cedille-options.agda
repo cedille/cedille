@@ -1,7 +1,7 @@
 module cedille-options where
-open import lib
 open import general-util
 open import options-types public
+open import cedille-types
 
 record options : Set where
   constructor mk-options
@@ -11,7 +11,7 @@ record options : Set where
         generate-logs : 𝔹
         show-qualified-vars : 𝔹
         erase-types : 𝔹
-        datatype-encoding : data-encoding
+        datatype-encoding : maybe (filepath × maybe file)
         pretty-print-columns : ℕ
 
         -- Internal use only
@@ -26,7 +26,7 @@ default-options = record {
   generate-logs = ff;
   show-qualified-vars = ff;
   erase-types = tt;
-  datatype-encoding = Mendler;
+  datatype-encoding = nothing;
   pretty-print-columns = 80;
   during-elaboration = ff;
   pretty-print = ff}
@@ -58,17 +58,12 @@ options-to-rope ops =
   option "erase-types" (𝔹-s options.erase-types) ⊹⊹
   comment "Preferred number of columns to pretty print elaborated files with" ⊹⊹
   option "pretty-print-columns" (ℕ-to-string (options.pretty-print-columns ops)) ⊹⊹
-  comment "Datatype encoding to use when elaborating to Cedille Core" ⊹⊹
-  option "datatype-encoding" (enc-s options.datatype-encoding)
+  comment "Encoding to use when elaborating datatypes to Cedille Core" ⊹⊹
+  option "datatype-encoding" (maybe-else' (options.datatype-encoding ops) "" λ fp → "\"" ^ fst fp  ^ "\"")
   
   where
   𝔹-s : (options → 𝔹) → string
   𝔹-s f = if f ops then "true" else "false"
-
-  enc-s : (options → data-encoding) → string
-  enc-s f with f ops
-  ...| Mendler = "Mendler"
-  ...| Mendler-old = "Mendler-old"
 
   comment : string → rope
   comment s = [[ "-- " ]] ⊹⊹ [[ s ]] ⊹⊹ [[ "\n" ]]

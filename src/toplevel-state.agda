@@ -3,10 +3,8 @@ open import general-util
 
 module toplevel-state (options : cedille-options.options) {mF : Set → Set} {{_ : monad mF}} where
 
-open import lib
-
 open import cedille-types
-open import classify options {mF}
+--open import classify options {mF}
 open import ctxt
 open import constants
 open import conversion
@@ -21,13 +19,14 @@ open import json
 import cws-types
 
 record include-elt : Set where
-  field ast : maybe start
+  field ast : maybe ex-file
+        ast~ : maybe file
         cwst : maybe cws-types.start
-        deps : 𝕃 string {- dependencies -}
-        import-to-dep : trie string {- map import strings in the file to their full paths -}
-        ss : spans ⊎ string {- spans in string form (read from disk) -}
+        deps : 𝕃 string -- dependencies
+        import-to-dep : trie filepath -- map import strings in the file to their full paths
+        ss : spans ⊎ string -- spans in string form (read from disk)
         err : 𝔹 -- is ss reporting an error
-        need-to-add-symbols-to-context : 𝔹 
+        need-to-add-symbols-to-context : 𝔹
         do-type-check : 𝔹
         inv : do-type-check imp need-to-add-symbols-to-context ≡ tt
         last-parse-time : maybe UTC
@@ -36,15 +35,15 @@ record include-elt : Set where
         source : string
 
 blank-include-elt : include-elt
-blank-include-elt = record { ast = nothing ; cwst = nothing; deps = [] ;
+blank-include-elt = record { ast = nothing ; ast~ = nothing; cwst = nothing; deps = [] ;
                              import-to-dep = empty-trie ; ss = inj₂ "" ; err = ff ; need-to-add-symbols-to-context = tt ;
                              do-type-check = tt ; inv = refl ; last-parse-time = nothing; cede-up-to-date = ff ; rkt-up-to-date = ff ; source = "" }
 
 -- the dependencies should pair import strings found in the file with the full paths to those imported files
-new-include-elt : filepath → (dependencies : 𝕃 (string × string)) → (ast : start) →
+new-include-elt : filepath → (dependencies : 𝕃 (string × string)) → (ast : ex-file) →
                   cws-types.start → maybe UTC → include-elt
 new-include-elt filename deps x y time =
-  record { ast = just x ; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
+  record { ast = just x ; ast~ = nothing; cwst = just y ; deps = map snd deps ; import-to-dep = trie-fill empty-trie deps ; ss = inj₂ "" ; err = ff ;
            need-to-add-symbols-to-context = tt ;
            do-type-check = tt ; inv = refl ; last-parse-time = time ; cede-up-to-date = ff ; rkt-up-to-date = ff ; source = "" }
 
@@ -74,9 +73,10 @@ set-need-to-add-symbols-to-context-include-elt ie b =
        lem ff {tt} = refl
        lem ff {ff} = refl
 
-set-spans-include-elt : include-elt → spans → include-elt
-set-spans-include-elt ie ss = 
+set-spans-include-elt : include-elt → spans → file → include-elt
+set-spans-include-elt ie ss f = 
  record ie { ss = inj₁ ss ; 
+             ast~ = just f ;
              err = spans-have-error ss  }
 
 set-last-parse-time-include-elt : include-elt → UTC → include-elt
@@ -105,9 +105,6 @@ new-toplevel-state : (include-path : 𝕃 string × stringset) → toplevel-stat
 new-toplevel-state ip = record { include-path = ip ;
                                                                              files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
                                                                              
-toplevel-state-lookup-occurrences : var → toplevel-state → 𝕃 (var × posinfo × string)
-toplevel-state-lookup-occurrences symb (mk-toplevel-state _ _ _ Γ) = ctxt-lookup-occurrences Γ symb
-
 get-include-elt-if : toplevel-state → filepath → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
 
@@ -152,7 +149,7 @@ include-elt-to-string ie =
 params-to-string''' : params → string
 params-to-string''' [] = ""
 -- TODO print erased vs non-erased?
-params-to-string''' ((Decl pi pi' me v t-k pi'') :: pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tk-to-string empty-ctxt t-k) ^ "}" ^ ", " ^ (params-to-string''' pms)
+params-to-string''' (Param me v tk :: pms) = "{var: " ^ v ^ ", tk: " ^ rope-to-string (tpkd-to-string empty-ctxt tk) ^ "}" ^ ", " ^ (params-to-string''' pms)
 
 defParams-to-string : defParams → string
 defParams-to-string (just pms) = params-to-string''' pms
@@ -191,29 +188,29 @@ sym-occs-to-string = trie-to-string ", " (λ l → "{" ^ (𝕃-to-string occ-to-
 qualif-to-string : qualif-info → string
 qualif-to-string (x , as) = x ^ rope-to-string (doc-to-rope $ fst (args-to-string as {TERM} NIL 0 [] (new-ctxt "" "") nothing neither)) where open import pretty
 
-mod-info-to-string : mod-info → string
+mod-info-to-string : (string × string × params × qualif) → string
 mod-info-to-string (fn , mn , pms , q) = "filename: " ^ fn ^ ", modname: " ^ mn ^ ", pms: {" ^ (params-to-string''' pms) ^ "}" ^ ", qualif: {" ^ (trie-to-string ", " qualif-to-string q) ^ "}"
 
 ctxt-to-string : ctxt → string
-ctxt-to-string (mk-ctxt mi (ss , mn-fn) is os Δ) = "mod-info: {" ^ (mod-info-to-string mi) ^ "}, syms: {" ^ (syms-to-string ss) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}, sym-occs: {" ^ (sym-occs-to-string os) ^ "}"
+ctxt-to-string (mk-ctxt fn mn ps qual syms mod-map _ _ _ is _ _ _ _ _ _) = "mod-info: {" ^ (mod-info-to-string (fn , mn , ps , qual)) ^ "}, syms: {" ^ (syms-to-string syms) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
 toplevel-state-to-string (mk-toplevel-state include-path files is context) =
     "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^ 
     "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
-    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "}"
+    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "\n}"
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
-check-redefined : posinfo → var → toplevel-state → spanM toplevel-state → spanM toplevel-state
-check-redefined pi x s c =
-  get-ctxt (λ Γ →
-    if ctxt-binds-var Γ x then
-      (spanM-add (redefined-var-span Γ pi x) ≫span spanMr s)
-    else c)
+check-redefined : ∀ {X} → posinfo → var → toplevel-state → X → spanM toplevel-state → spanM (toplevel-state × X)
+check-redefined pi v s x c =
+  let Γ = toplevel-state.Γ s in
+  if ctxt-binds-var Γ v then
+    ([- redefined-var-span Γ pi v -] return2 s x)
+  else (c >>= λ s → return2 s x)
 
-import-as : var → optAs → var
-import-as v NoOptAs = v
-import-as v (SomeOptAs pi pfx) = pfx # v
+import-as-x : var → maybe var → var
+import-as-x v nothing = v
+import-as-x v (just pfx) = pfx # v
 
 error-in-import-string = "There is an error in the imported file"
 
@@ -228,93 +225,95 @@ check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
 ...| ff = just error-in-import-string
 
 scope-t : Set → Set
-scope-t X = filepath → string → optAs → params → args → X → toplevel-state → toplevel-state × err-m
+scope-t X = filepath → string → maybe var → params → args → X → toplevel-state → toplevel-state × err-m
 
-infixl 0 _≫=scope_
-_≫=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
-_≫=scope_ (ts , err) f with f ts
+infixl 0 _>>=scope_
+_>>=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
+_>>=scope_ (ts , err) f with f ts
 ...| ts' , err' = ts' , err maybe-or err'
 
 {-# TERMINATING #-}
-scope-file : toplevel-state → (original imported : filepath) → optAs → args → toplevel-state × err-m
+scope-file : toplevel-state → (original imported : filepath) → maybe var → args → toplevel-state × err-m
 scope-file' : scope-t ⊤
 scope-cmds : scope-t cmds
 scope-cmd : scope-t cmd
 scope-var : scope-t var
 scope-ctrs : scope-t ctrs
 scope-datatype-names : scope-t var
+scope-enc-defs : scope-t encoding-defs
 
 scope-file ts fnₒ fnᵢ oa as with check-cyclic-imports fnₒ fnᵢ (trie-single fnₒ triv) [] ts
 ...| just e = ts , just e
 ...| nothing = scope-file' fnₒ fnᵢ oa [] as triv ts
 
 scope-file' fnₒ fn oa psₒ as triv s with get-include-elt s fn
-...| ie with include-elt.err ie | include-elt.ast ie
-...| e | nothing = s , (maybe-if e) ≫maybe just error-in-import-string
-...| e | just (File is pi1 pi2 mn ps cs pi3) =
-  (s , (maybe-if e) ≫maybe just error-in-import-string) ≫=scope
-  scope-cmds fn mn oa ps as (imps-to-cmds is) ≫=scope
+...| ie with include-elt.err ie | include-elt.ast~ ie
+...| e | nothing = s , when e error-in-import-string
+...| e | just (Module mn ps cs) =
+  (s , when e error-in-import-string) >>=scope
   scope-cmds fn mn oa ps as cs
 
 scope-cmds fn mn oa ps as (c :: cs) s =
-  scope-cmd fn mn oa ps as c s ≫=scope scope-cmds fn mn oa ps as cs
+  scope-cmd fn mn oa ps as c s >>=scope scope-cmds fn mn oa ps as cs
 scope-cmds fn mn oa ps as [] s = s , nothing
 
-scope-cmd fn mn oa ps as (ImportCmd (Import pi NotPublic pi' ifn oa' as' pi'')) s = s , nothing
-scope-cmd fn mn oa psₒ asₒ (ImportCmd (Import pi IsPublic pi' ifn oa' asᵢ' pi'')) s =
-  let ifn' = trie-lookup-else ifn (include-elt.import-to-dep (get-include-elt s fn)) ifn in
-  scope-file' fn ifn' oa psₒ asᵢ triv s
+scope-cmd fn mn oa ps as (CmdImport (Import Private ifn mn' oa' as')) s = s , nothing
+scope-cmd fn mn oa psₒ asₒ (CmdImport (Import Public ifn mn' oa' asᵢ')) s =
+  scope-file' fn ifn oa psₒ asᵢ triv s
   -- ^ oa' should be NoOptAs, so we can use oa ^
   where
 
   merged : trie (maybe arg) → params → args → trie (maybe arg)
-  merged σ ((Decl _ _ me x atk _) :: ps) (a :: as) =
+  merged σ (Param me x tk :: ps) (a :: as) =
     merged (trie-insert σ x $ just a) ps as
-  merged σ ((Decl _ _ me x atk _) :: ps) ArgsNil =
-    merged (trie-insert σ x nothing) ps ArgsNil
+  merged σ (Param me x tk :: ps) [] =
+    merged (trie-insert σ x nothing) ps []
   merged σ _ _ = σ
   
   arg-var : arg → maybe var
-  arg-var (TermArg me (Var pi x)) = just x
-  arg-var (TypeArg (TpVar pi x)) = just x
+  arg-var (Arg (Var x)) = just x
+  arg-var (ArgE (Ttm (Var x))) = just x
+  arg-var (ArgE (Ttp (TpVar x))) = just x
   arg-var _ = nothing
 
   σ = merged empty-trie psₒ asₒ
   
   reorder : args → args
   reorder (a :: as) =
-    maybe-else' (arg-var a ≫=maybe trie-lookup σ) (a :: reorder as) λ ma →
+    maybe-else' (arg-var a >>= trie-lookup σ) (a :: reorder as) λ ma →
     maybe-else' ma [] λ a → a :: reorder as
   reorder [] = []
   
-  asᵢ = reorder $ qualif-args (toplevel-state.Γ s) asᵢ'
+  asᵢ = reorder asᵢ'
 
-scope-cmd fn mn oa ps as (DefKind _ v _ _ _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm elab-hide-key v _ _) _) s = s , nothing
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefType elab-hide-key v _ _) _) s = s , nothing
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ ignored-var _ _) _) s = s , nothing
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefTerm _ v _ _) _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ ignored-var _ _) _) s = s , nothing
-scope-cmd fn mn oa ps as (DefTermOrType _ (DefType _ v _ _) _) = scope-var fn mn oa ps as v
-scope-cmd fn mn oa ps as (DefDatatype (Datatype _ _ v _ _ cs) _) s =
-  scope-var fn mn oa ps as v s ≫=scope
-  scope-ctrs fn mn oa ps as cs ≫=scope
+scope-cmd fn mn oa ps as (CmdDefKind v _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (CmdDefTerm v   _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (CmdDefType v _ _) = scope-var fn mn oa ps as v
+scope-cmd fn mn oa ps as (CmdDefData eds v _ _ cs) s =
+  scope-var fn mn oa ps as v s >>=scope
+  scope-ctrs fn mn oa ps as cs >>=scope
+  scope-enc-defs fn mn oa ps as eds >>=scope
   scope-datatype-names fn mn oa ps as v
 
 scope-ctrs fn mn oa ps as [] s = s , nothing
-scope-ctrs fn mn oa ps as ((Ctr pi x T) :: ds) s =
-  scope-var fn mn oa ps as x s ≫=scope
+scope-ctrs fn mn oa ps as (Ctr x T :: ds) s =
+  scope-var fn mn oa ps as x s >>=scope
   scope-ctrs fn mn oa ps as ds
 
 scope-datatype-names fn mn oa ps as x s =
-  scope-var fn mn oa ps as (data-Is/ x) s ≫=scope
-  scope-var fn mn oa ps as (data-is/ x) ≫=scope
+  scope-var fn mn oa ps as (data-Is/ x) s >>=scope
+  scope-var fn mn oa ps as (data-is/ x) >>=scope
   scope-var fn mn oa ps as (data-to/ x)
 
+scope-enc-defs fn mn oa ps as eds s =
+  record s { Γ = record (toplevel-state.Γ s) { μᵤ = just eds } } , nothing
 
-scope-var _ mn oa ps as v s with import-as v oa | s
-...| v' | mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , q) ss sis os Δ) =
-  mk-toplevel-state ip fns is (mk-ctxt (mn' , fn , pms , trie-insert q v' (mn # v , as)) ss sis os Δ) ,
-  flip maybe-map (trie-lookup q v') (uncurry λ v'' as' →
+
+scope-var fn mn oa ps as ignored-var s = s , nothing
+scope-var _ mn oa ps as v s with import-as-x v oa | s
+...| v' | mk-toplevel-state ip fns is Γ =
+  mk-toplevel-state ip fns is
+    (record Γ { qual = trie-insert (ctxt.qual Γ) v' (mn # v , as) }) ,
+  flip maybe-map (trie-lookup (ctxt.qual Γ) v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
     (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

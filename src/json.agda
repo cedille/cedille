@@ -1,6 +1,5 @@
 module json where
 
-open import lib
 open import general-util
 
 data json : Set where

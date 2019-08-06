@@ -1,0 +1,50 @@
+module template
+  (I : ★)
+
+  (Cast : (I ➔ ★) ➔ (I ➔ ★) ➔ ★)
+
+  (cast-in : ∀ A : I ➔ ★. ∀ B : I ➔ ★. ∀ f : ∀ i : I. A i ➔ B i. {f ≃ λ x. x} ➾ Cast ·A ·B)
+
+  (cast-out : ∀ A : I ➔ ★. ∀ B : I ➔ ★. Cast ·A ·B ➾ ∀ i : I. A i ➔ B i)
+
+  (cast-is : {cast-in ≃ λ x. x})
+  
+  (Functor : ((I ➔ ★) ➔ I ➔ ★) ➔ ★)
+
+  (functor-in : ∀ F : (I ➔ ★) ➔ I ➔ ★.
+                (∀ A : I ➔ ★. ∀ B : I ➔ ★.
+                  Cast ·A ·B ➾ Cast ·(F ·A) ·(F ·B)) ➾
+                Functor ·F)
+
+  (functor-out : ∀ F : (I ➔ ★) ➔ I ➔ ★.
+                 Functor ·F ➾
+                 (∀ A : I ➔ ★. ∀ B : I ➔ ★.
+                    Cast ·A ·B ➾ Cast ·(F ·A) ·(F ·B)))
+
+  (Fix : Π F : (I ➔ ★) ➔ I ➔ ★. Functor ·F ➔ I ➔ ★)
+
+  (fix-in : ∀ F : (I ➔ ★) ➔ I ➔ ★. ∀ fm : Functor ·F. ∀ i : I.
+             F ·(Fix ·F fm) i ➔ Fix ·F fm i)
+
+  (fix-out : ∀ F : (I ➔ ★) ➔ I ➔ ★. ∀ fm : Functor ·F. ∀ i : I.
+              Fix ·F fm i ➔ F ·(Fix ·F fm) i)
+
+  (lambek-iso1 : ∀ F : (I ➔ ★) ➔ I ➔ ★. ∀ fm : Functor ·F. ∀ i : I.
+                  Π d : Fix ·F fm i. {fix-in (fix-out d) ≃ d})
+
+  (lambek-iso2 : ∀ F : (I ➔ ★) ➔ I ➔ ★. ∀ fm : Functor ·F. ∀ i : I.
+                  Π d : F ·(Fix ·F fm) i. {fix-out (fix-in d) ≃ d})
+
+  (fix-ind : ∀ F : (I ➔ ★) ➔ I ➔ ★.
+              ∀ fm : Functor ·F.
+               ∀ i : I.
+                Π d : Fix ·F fm i.
+                 ∀ Q : Π R : I ➔ ★. Π i : I. Fix ·F fm i ➔ ★.
+                 (∀ X : I ➔ ★ . ∀ Y : I ➔ ★ . Cast ·X ·Y ➾ ∀ indices : I. ∀ d1 : Fix ·F fm indices. ι f : Q ·X indices d1 ➔ Q ·Y indices d1. {f ≃ λ x. x}) ➾
+                  (∀ R : I ➔ ★.
+                    ∀ rvl : Cast ·R ·(Fix ·F fm).
+                     (ι o : ∀ i : I. R i ➔ F ·R i. {o ≃ fix-out}) ➾
+                      (∀ i : I. Π r : R i. Q ·R i (cast-out -rvl -i r)) ➔
+                       ∀ i : I. Π x : F ·R i.
+                        Q ·R i (fix-in -fm -i (cast-out -(functor-out -fm -rvl) -i x))) ➔
+                   Q ·(Fix ·F fm) i d).

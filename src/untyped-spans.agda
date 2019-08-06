@@ -1,160 +1,391 @@
 import cedille-options
 open import general-util
 
-module untyped-spans (options : cedille-options.options) {F : Set → Set} {{monadF : monad F}} where
+module untyped-spans (options : cedille-options.options) {F : Set → Set} ⦃ monadF : monad F ⦄ where
 
-open import lib
 open import ctxt
 open import cedille-types
+open import constants
 open import conversion
-open import spans options {F}
+open import free-vars
+open import rename
+open import spans options {F} ⦃ monadF ⦄
+open import subst
 open import syntax-util
 open import to-string options
-open import is-free
+open import type-util
+open import elab-util options
 
 {-# TERMINATING #-}
-untyped-term-spans : term → spanM ⊤
-untyped-type-spans : type → spanM ⊤
-untyped-kind-spans : kind → spanM ⊤
-untyped-tk-spans : tk → spanM ⊤
-untyped-liftingType-spans : liftingType → spanM ⊤
-untyped-optTerm-spans : optTerm → spanM (posinfo → posinfo)
-untyped-optType-spans : optType → spanM ⊤
-untyped-optGuide-spans : optGuide → spanM (𝕃 tagged-val)
-untyped-lterms-spans : lterms → spanM ⊤
-untyped-optClass-spans : optClass → spanM ⊤
-untyped-defTermOrType-spans : posinfo → (ctxt → posinfo → var → (atk : tk) → (if tk-is-type atk then term else type) → span) → defTermOrType → spanM ⊤ → spanM ⊤
-untyped-var-spans : posinfo → var → (ctxt → posinfo → var → checking-mode → 𝕃 tagged-val → err-m → span) → spanM ⊤ → spanM ⊤
-untyped-caseArgs-spans : caseArgs → (body : term) → spanM (𝕃 tagged-val)
-untyped-case-spans : case → (ℕ → ℕ → err-m) → spanM ((ℕ → ℕ → err-m) × 𝕃 tagged-val)
-untyped-cases-spans : cases → spanM (err-m × 𝕃 tagged-val)
+untyped-term : ctxt → ex-tm → spanM term
+untyped-type : ctxt → ex-tp → spanM type
+untyped-kind : ctxt → ex-kd → spanM kind
+untyped-tpkd : ctxt → ex-tk → spanM tpkd
+untyped-arg : ctxt → ex-arg → spanM arg
+untyped-args : ctxt → ex-args → spanM args
+untyped-let : ctxt → ex-def → erased? → posinfo → posinfo → spanM (ctxt × var × tagged-val × (∀ {ed : exprd} → ⟦ ed ⟧ → ⟦ ed ⟧) × (term → term))
+untyped-cases : ctxt → ex-cases → renamectxt → spanM cases
+untyped-case : ctxt → ex-case → (siblings : ℕ) → (ℕ → err-m) → renamectxt → spanM (case × (ℕ → err-m) × maybe ℕ)
 
-untyped-var-spans pi x f m = get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi x Γ) (get-ctxt λ Γ → spanM-add (f Γ pi x untyped [] nothing) ≫span m)
+untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
+  maybe-map (untyped-type Γ) Tₑ? >>=? λ Tₑ?~ →
+  untyped-term Γ t >>= λ t~ →
+  elim-pair (compileFail-in Γ t~) λ tvs e →
+  [- Var-span Γ pi x untyped tvs e -]
+  let Tₑ~ = maybe-else' Tₑ?~ (TpHole pi) id in
+  return
+    (ctxt-term-def pi localScope opacity-open x (just t~) Tₑ~ Γ ,
+     pi % x ,
+     binder-data Γ pi x (Tkt Tₑ~) e? (just t~) fm to ,
+     (λ {ed} T' → [ Γ - t~ / (pi % x) ] T') ,
+     (λ t' → LetTm e? x nothing t~ ([ Γ - Var x / (pi % x) ] t')))
 
-untyped-term-spans (App t me t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span spanM-add (App-span ff t t' untyped [] nothing)
-untyped-term-spans (AppTp t T) = untyped-term-spans t ≫span untyped-type-spans T ≫span spanM-add (AppTp-span t T untyped [] nothing)
-untyped-term-spans (Beta pi ot ot') = untyped-optTerm-spans ot ≫=span λ f → untyped-optTerm-spans ot' ≫=span λ f' → spanM-add (Beta-span pi (f' (f (posinfo-plus pi 1))) untyped [] nothing)
-untyped-term-spans (Chi pi mT t) = untyped-optType-spans mT ≫span untyped-term-spans t ≫span get-ctxt λ Γ → spanM-add (Chi-span Γ pi mT t untyped [] nothing)
-untyped-term-spans (Delta pi mT t) = untyped-optType-spans mT ≫span untyped-term-spans t ≫span get-ctxt λ Γ → spanM-add (Delta-span Γ pi mT t untyped [] nothing)
-untyped-term-spans (Epsilon pi lr mm t) = untyped-term-spans t ≫span spanM-add (Epsilon-span pi lr mm t untyped [] nothing)
-untyped-term-spans (Hole pi) = get-ctxt λ Γ → spanM-add (hole-span Γ pi nothing [])
-untyped-term-spans (IotaPair pi t t' og pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫=span λ tvs → spanM-add (IotaPair-span pi pi' untyped tvs nothing)
-untyped-term-spans (IotaProj t n pi) = untyped-term-spans t ≫span spanM-add (IotaProj-span t pi untyped [] nothing)
-untyped-term-spans (Lam pi me pi' x oc t) =
-  untyped-optClass-spans oc
-  ≫span get-ctxt λ Γ → spanM-add (Lam-span Γ untyped pi pi' me x (Tkt $ TpHole pi) t [] occursCheck)
-  ≫span untyped-var-spans pi' x Var-span (untyped-term-spans t)
-  where
-  occursCheck = maybe-if (me && is-free-in skip-erased x t) ≫maybe just "The bound variable occurs free in the erasure of the body (not allowed)"
-untyped-term-spans (Let pi fe d t) =
-  untyped-defTermOrType-spans pi (λ Γ pi' x atk val → Let-span Γ untyped pi pi' fe x atk val t [] nothing) d (untyped-term-spans t)
-  -- ≫span get-ctxt λ Γ → spanM-add (Let-span Γ untyped pi d t [] nothing)
-untyped-term-spans (Open pi o pi' x t) = get-ctxt λ Γ → spanM-add (Open-span Γ o pi' x t untyped [] nothing) ≫span spanM-add (Var-span Γ pi' x untyped [] (maybe-not (ctxt-lookup-term-loc Γ x) ≫maybe just "This term variable is not currently in scope")) ≫span untyped-term-spans t
-untyped-term-spans (Parens pi t pi') = untyped-term-spans t
-untyped-term-spans (Phi pi t t' t'' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-term-spans t'' ≫span spanM-add (Phi-span pi pi' untyped [] nothing)
-untyped-term-spans (Rho pi op on t og t') = untyped-term-spans t ≫span untyped-term-spans t' ≫span untyped-optGuide-spans og ≫=span λ tvs → spanM-add (mk-span "Rho" pi (term-end-pos t') (ll-data-term :: checking-data untyped :: tvs) nothing)
-untyped-term-spans (Sigma pi t) = untyped-term-spans t ≫span get-ctxt λ Γ → spanM-add (mk-span "Sigma" pi (term-end-pos t) (ll-data-term :: [ checking-data untyped ]) nothing)
-untyped-term-spans (Theta pi θ t ls) = untyped-term-spans t ≫span untyped-lterms-spans ls ≫span get-ctxt λ Γ → spanM-add (Theta-span Γ pi θ t ls untyped [] nothing)
-untyped-term-spans (Var pi x) = get-ctxt λ Γ →
-  spanM-add (Var-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-term-spans (Mu pi pi' x t ot pi'' cs pi''') = get-ctxt λ Γ → untyped-term-spans t ≫span with-ctxt (ctxt-var-decl x Γ) (get-ctxt λ Γ → spanM-add (Var-span Γ pi' x untyped [ binder-data (ctxt-var-decl-loc pi' x Γ) pi' x (Tkt (TpHole pi')) NotErased nothing pi'' pi''' ] nothing) ≫span untyped-cases-spans cs) ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi (just x) pi''' (optType-elim ot nothing just) untyped ts e)
-untyped-term-spans (Mu' pi ot t oT pi' cs pi'') = get-ctxt λ Γ → untyped-optTerm-spans ot ≫span untyped-term-spans t ≫span untyped-optType-spans oT ≫span untyped-cases-spans cs ≫=span uncurry λ e ts → spanM-add (Mu-span Γ pi nothing pi'' (optType-elim oT nothing just) untyped ts e)
+untyped-let Γ (ExDefType pi x k T) e? fm to =
+  untyped-kind Γ k >>= λ k~ →
+  untyped-type Γ T >>= λ T~ →
+  [- TpVar-span Γ pi x untyped [] nothing -]
+  return
+    (ctxt-type-def pi localScope opacity-open x (just T~) k~ Γ ,
+     pi % x ,
+     binder-data Γ pi x (Tkk k~) e? (just T~) fm to ,
+     (λ {ed} T' → [ Γ - T~ / (pi % x) ] T') ,
+     (λ t' → LetTp x k~ T~ ([ Γ - TpVar x / (pi % x) ] t')))
 
 
-untyped-caseArgs-spans [] t = untyped-term-spans t ≫span spanMr []
-untyped-caseArgs-spans (c :: cs) t with caseArg-to-var c
-...| pi , x , me , ll =
-  let e? = maybe-if (me && is-free-in skip-erased x (caseArgs-to-lams cs t)) ≫maybe
-            just "The bound variable occurs free in the erasure of the body (not allowed)"
-      f = if ll then Var-span else TpVar-span in
-  get-ctxt λ Γ →
-  spanM-add (f (ctxt-var-decl-loc pi x Γ) pi x untyped [] e?) ≫span
-  with-ctxt (ctxt-var-decl x Γ) (untyped-caseArgs-spans cs t) ≫=span λ ts →
-  spanMr (binder-data (ctxt-var-decl x Γ) pi x (if ll then Tkt (TpHole pi) else Tkk star) me nothing (term-start-pos t) (term-end-pos t) :: ts)
+untyped-term Γ (ExApp t e t') =
+  [- App-span tt (term-start-pos t) (term-end-pos t') untyped [] nothing -]
+  untyped-term Γ t >>= λ t~ →
+  untyped-term Γ t' >>= λ t'~ →
+  return (if e then t~ else App t~ t'~)
 
-untyped-case-spans (Case pi x cas t) fₑ =
-  get-ctxt λ Γ →
-  let m = untyped-caseArgs-spans cas t
-      x' = unqual-all (ctxt-get-qualif Γ) $ unqual-local x
-      eᵤ = just $ "This is not a valid constructor name"
-      eₗ = just $ "Constructor's datatype has a different number of constructors than " ^ x'
-      eᵢ = just $ "This constructor overlaps with " ^ x' in
-  spanM-add (pattern-span pi x cas) ≫span
-  spanM-add (pattern-clause-span pi t) ≫=span λ _ →
-  case qual-lookup Γ x of λ where
-    (just (as , ctr-def ps? T Cₗ cᵢ cₐ , _ , _)) →
-      spanM-add (Var-span Γ pi x untyped [] $ fₑ Cₗ cᵢ) ≫span m ≫=span λ s →
-      spanMr ((λ Cₗ' cᵢ' → if Cₗ =ℕ Cₗ' then if cᵢ =ℕ cᵢ' then eᵢ else nothing else eₗ) , s)
+untyped-term Γ (ExAppTp t T) =
+  [- AppTp-span tt (term-start-pos t) (type-end-pos T) untyped [] nothing -]
+  untyped-type Γ T >>= λ T~ →
+  untyped-term Γ t
+
+untyped-term Γ (ExBeta pi t? t?') =
+  maybe-map (λ {(PosTm t pi) → untyped-term Γ t}) t? >>=? λ t?~ →
+  maybe-map (λ {(PosTm t pi) → untyped-term Γ t}) t?' >>=? λ t?'~ →
+  [- Beta-span pi (term-end-pos (ExBeta pi t? t?')) untyped [] nothing -]
+  return (maybe-else' t?'~ id-term id)
+
+untyped-term Γ (ExChi pi T? t) =
+  maybe-map (untyped-type Γ) T? >>=? λ T?~ →
+  [- Chi-span Γ pi T?~ t untyped [] nothing -]
+  untyped-term Γ t
+
+untyped-term Γ (ExDelta pi T? t) =
+  [- Delta-span pi t untyped [] nothing -]
+  maybe-map (untyped-type Γ) T? >>=? λ T?~ →
+  untyped-term Γ t >>= λ t~ →
+  return id-term
+
+untyped-term Γ (ExEpsilon pi lr -? t) =
+  [- Epsilon-span pi lr -? t untyped [] nothing -]
+  untyped-term Γ t
+
+untyped-term Γ (ExHole pi) =
+  [- hole-span Γ pi nothing untyped [] -]
+  return (Hole pi)
+
+untyped-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') =
+  let tv-f = λ {(ExGuide pi'' x Tₘ) →
+               [ binder-data Γ pi'' x (Tkt (TpHole pi'')) ff nothing
+                   (type-start-pos Tₘ) (type-end-pos Tₘ) ]} in
+  [- IotaPair-span pi pi' untyped (maybe-else' Tₘ? [] tv-f) nothing -]
+  untyped-term Γ t₁ >>= λ t₁~ →
+  untyped-term Γ t₂ >>= λ t₂~ →
+  maybe-map (λ {(ExGuide pi'' x Tₘ) →
+    untyped-type (ctxt-term-decl pi'' x (TpHole pi'') Γ) Tₘ}) Tₘ? >>=? λ Tₘ?~ →
+  return t₁~
+
+untyped-term Γ (ExIotaProj t n pi) =
+  [- IotaProj-span t pi untyped [] nothing -]
+  untyped-term Γ t
+
+untyped-term Γ (ExLam pi e pi' x tk? t) =
+  (return tk? on-fail return (Tkt (TpHole pi')) >>=m untyped-tpkd Γ) >>= λ tk~ →
+  untyped-term (Γ , pi' - x :` tk~) t >>= λ t~ →
+  let eₖ? = tk? >>= λ _ → maybe-if (tk-is-type tk~ && ~ e) >>
+                just "λ-terms must bind a term, not a type (use Λ instead)"
+      eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) >>
+                just "The Λ-bound variable occurs free in the erasure of the body" in
+  [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ eₑ? -]
+  [- Lam-span Γ untyped pi pi' e x tk~ t [] eₖ? -]
+  return (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
+
+untyped-term Γ (ExLet pi e? d t) =
+  untyped-let Γ d e? (term-start-pos t) (term-end-pos t) >>= λ where
+    (Γ' , x , tv , σ , f) →
+      untyped-term Γ' t >>= λ t~ →
+      [- punctuation-span "Parens (let)" pi (term-end-pos t) -]
+      [- Let-span e? pi (term-end-pos t) untyped []
+           (maybe-if (e? && is-free-in x t~) >>
+            just (unqual-local x ^ "occurs free in the body of the term")) -]
+      return (if is-free-in x t~ then f t~ else t~)
+
+untyped-term Γ (ExOpen pi o pi' x t) =
+  [- Var-span Γ pi' x untyped [ not-for-navigation ] nothing -]
+  [- Open-span o pi x t untyped [] nothing -]
+  untyped-term Γ t
+
+untyped-term Γ (ExParens pi t pi') =
+  [- punctuation-span "Parens (term)" pi pi' -]
+  untyped-term Γ t
+
+untyped-term Γ (ExPhi pi t₌ t₁ t₂ pi') =
+  [- Phi-span pi pi' untyped [] nothing -]
+  untyped-term Γ t₌ >>
+  untyped-term Γ t₁ >>
+  untyped-term Γ t₂
+
+untyped-term Γ (ExRho pi ρ+? ρ<ns>? t₌ Tₘ? t) =
+  [- Rho-span pi t₌ t untyped ρ+?
+       (maybe-else' Tₘ? (inj₁ 1) λ {(ExGuide pi' x Tₘ) → inj₂ x}) [] nothing -]
+  untyped-term Γ t₌ >>
+  maybe-map (λ {(ExGuide pi' x Tₘ) →
+                  untyped-type (ctxt-var-decl-loc pi' x Γ) Tₘ}) Tₘ? >>=? λ Tₘ?~ →
+  untyped-term Γ t
+
+untyped-term Γ (ExSigma pi t) =
+  [- Sigma-span pi t untyped [] nothing -]
+  untyped-term Γ t
+
+untyped-term Γ (ExTheta pi θ t ts) =
+  [- Theta-span Γ pi θ t ts untyped [] nothing -]
+  untyped-term Γ t >>= λ t~ →
+  untyped-args Γ (map (λ {(Lterm e t) → ExTmArg e t}) ts) >>= λ as~ →
+  return (recompose-apps (map Arg (erase-args as~)) t~)
+
+untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
+  untyped-term Γ t >>= λ t~ →
+  maybe-map (untyped-type Γ) Tₘ? >>=? λ Tₘ~? →
+  (case_of_ {B = spanM (ctxt × renamectxt × is-mu × 𝕃 tagged-val)} μ λ where
+    (ExIsMu pi''' x) →
+      [- Var-span Γ pi''' x untyped [] nothing -]
+      let Γ' = ctxt-term-decl pi''' x (TpHole pi''') Γ in
+      return (Γ' , renamectxt-single (pi''' % x) x , inj₂ x ,
+               [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ])
+    (ExIsMu' t?) →
+      maybe-map (untyped-term Γ) t? >>=? λ t~? →
+      return (Γ , empty-renamectxt , inj₁ t~? , []))
+  >>= λ where
+    (Γ' , ρ , μ~ , tvs) →
+      untyped-cases Γ' ms ρ >>= λ ms~ →
+      -- Make sure we aren't matching upon a "False" datatype (e.g., one
+      -- with no constructors) before any datatypes have been declared
+      maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
+        ([- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs
+              (just "No datatypes have been declared yet") -]
+         return (Hole pi))
+        λ where
+          (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
+            [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
+            return (Mu μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
+
+-- x
+untyped-term Γ (ExVar pi x) =
+  maybe-else' (ctxt-binds-term-var Γ x)
+    ([- Var-span Γ pi x untyped [] (just "Not a term variable") -]
+    return (Var x))
+    λ {(qx , as) →
+      [- Var-span Γ pi x untyped [] nothing -]
+      return (recompose-apps (map Arg (erase-args as)) (Var qx))}
+
+
+-- ∀/Π x : tk. T
+untyped-type Γ (ExTpAbs pi e pi' x tk T) =
+  untyped-tpkd Γ tk >>= λ tk~ →
+  untyped-type (Γ , pi' - x :` tk~) T >>= λ T~ →
+  let T~ = rename-var Γ (pi' % x) x T~ in
+  [- punctuation-span "Forall" pi (posinfo-plus pi 1) -]
+  [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
+  [- TpQuant-span Γ e pi pi' x tk~ T untyped [] nothing -]
+  return (TpAbs e x tk~ T~)
+
+-- ι x : T₁. T₂
+untyped-type Γ (ExTpIota pi pi' x T₁ T₂) =
+  untyped-type Γ T₁ >>= λ T₁~ →
+  untyped-type (Γ , pi' - x :` Tkt T₁~) T₂ >>= λ T₂~ →
+  let T₂~ = rename-var Γ (pi' % x) x T₂~ in
+  [- punctuation-span "Forall" pi (posinfo-plus pi 1) -]
+  [- var-span ff (Γ , pi' - x :` Tkt T₁~) pi' x untyped (Tkt T₁~) nothing -]
+  [- Iota-span Γ pi pi' x T₂~ T₂ untyped [] nothing -]
+  return (TpIota x T₁~ T₂~)
+
+-- {^ T ^} (generated by theta)
+untyped-type Γ (ExTpNoSpans T pi) = untyped-type Γ T >>=spand return
+
+-- [d] - T
+untyped-type Γ (ExTpLet pi d T) =
+  untyped-let Γ d ff (type-start-pos T) (type-end-pos T) >>= λ where
+    (Γ' , x , tv , σ , f) →
+      untyped-type Γ' T >>= λ T~ →
+      [- punctuation-span "Parens (let)" pi (type-end-pos T) -]
+      [- TpLet-span pi (type-end-pos T) untyped [ tv ] -]
+      return (σ T~)
+
+-- T · T'
+untyped-type Γ (ExTpApp T T') =
+  untyped-type Γ T >>= λ T~ →
+  untyped-type Γ T' >>= λ T'~ →
+  [- TpApp-span (type-start-pos T) (type-end-pos T) untyped [] nothing -]
+  return (TpAppTp T~ T'~)
+
+-- T t
+untyped-type Γ (ExTpAppt T t) =
+  untyped-type Γ T >>= λ T~ →
+  untyped-term Γ t >>= λ t~ →
+  [- TpAppt-span (type-start-pos T) (term-end-pos t) untyped [] nothing -]
+  return (TpAppTm T~ t~)
+
+-- T ➔/➾ T'
+untyped-type Γ (ExTpArrow T e T') =
+  untyped-type Γ T >>= λ T~ →
+  untyped-type Γ T' >>= λ T'~ →
+  [- TpArrow-span T T' untyped [] nothing -]
+  return (TpAbs e ignored-var (Tkt T~) T'~)
+
+-- { t₁ ≃ t₂ }
+untyped-type Γ (ExTpEq pi t₁ t₂ pi') =
+  untyped-term Γ t₁ >>= λ t₁~ →
+  untyped-term Γ t₂ >>= λ t₂~ →
+  [- punctuation-span "Parens (equation)" pi pi' -]
+  [- TpEq-span pi pi' untyped [] nothing -]
+  return (TpEq t₁~ t₂~)
+
+-- ●
+untyped-type Γ (ExTpHole pi) =
+  [- tp-hole-span Γ pi nothing untyped [] -]
+  return (TpHole pi)
+
+-- λ x : tk. T
+untyped-type Γ (ExTpLam pi pi' x tk T) =
+  untyped-tpkd Γ tk >>= λ tk~ →
+  untyped-type (Γ , pi' - x :` tk~) T >>= λ T~ →
+  [- punctuation-span "Lambda (type)" pi (posinfo-plus pi 1) -]
+  [- var-span ff (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
+  [- TpLambda-span Γ pi pi' x tk~ T untyped [] nothing -]
+  return (TpLam x tk~ (rename-var Γ (pi' % x) x T~))
+
+-- (T)
+untyped-type Γ (ExTpParens pi T pi') =
+  [- punctuation-span "Parens (type)" pi pi' -]
+  untyped-type Γ T
+
+-- x
+untyped-type Γ (ExTpVar pi x) =
+  maybe-else' (ctxt-binds-type-var Γ x)
+    ([- TpVar-span Γ pi x untyped [] (just "Undefined type variable") -]
+     return (TpVar x))
+    λ {(qx , as) →
+      [- TpVar-span Γ pi x untyped [] nothing -]
+      return (apps-type (TpVar qx) (erase-args-keep as))}
+
+
+-- Π x : tk. k
+untyped-kind Γ (ExKdAbs pi pi' x tk k) =
+  untyped-tpkd Γ tk >>= λ tk~ →
+  untyped-kind (Γ , pi' - x :` tk~) k >>= λ k~ →
+  [- KdAbs-span Γ pi pi' x tk~ k untyped nothing -]
+  [- var-span ff (Γ , pi' - x :` tk~) pi' x untyped tk~ nothing -]
+  [- punctuation-span "Pi (kind)" pi (posinfo-plus pi 1) -]
+  return (KdAbs x tk~ (rename-var Γ (pi' % x) x k~))
+
+-- tk ➔ k
+untyped-kind Γ (ExKdArrow tk k) =
+  untyped-tpkd Γ tk >>= λ tk~ →
+  untyped-kind Γ k >>= λ k~ →
+  [- KdArrow-span tk k untyped nothing -]
+  return (KdAbs ignored-var tk~ k~)
+
+-- ●
+untyped-kind Γ (ExKdHole pi) =
+  [- kd-hole-span pi untyped -]
+  return (KdHole pi)
+
+-- (k)
+untyped-kind Γ (ExKdParens pi k pi') =
+  [- punctuation-span "Parens (kind)" pi pi' -]
+  untyped-kind Γ k
+
+-- ★
+untyped-kind Γ (ExKdStar pi) =
+  [- Star-span pi untyped nothing -]
+  return KdStar
+
+-- κ as...
+untyped-kind Γ (ExKdVar pi κ as) =
+  case ctxt-lookup-kind-var-def Γ κ of λ where
+    nothing →
+      [- KdVar-span Γ (pi , κ) (args-end-pos (posinfo-plus-str pi κ) as) [] untyped []
+           (just "Undefined kind variable") -]
+      return (KdHole pi)
+    (just (ps , k)) →
+      untyped-args Γ as >>= λ as~ →
+      [- KdVar-span Γ (pi , κ)
+           (args-end-pos (posinfo-plus-str pi κ) as)
+           ps untyped (params-data Γ ps)
+           (unless (length as =ℕ length ps)
+             ("Expected " ^ ℕ-to-string (length ps) ^
+              " argument" ^ (if length ps =ℕ 1 then "" else "s") ^
+              ", but got " ^ ℕ-to-string (length as))) -]
+      return (fst (subst-params-args' Γ ps as~ k))
+
+untyped-arg Γ (ExTmArg ff t) = inj₁ <$> untyped-term Γ t
+untyped-arg Γ (ExTmArg tt t) = (inj₂ ∘ inj₁) <$> untyped-term Γ t
+untyped-arg Γ (ExTpArg T) = (inj₂ ∘ inj₂) <$> untyped-type Γ T
+
+untyped-args Γ = sequenceA ∘ map (untyped-arg Γ)
+
+untyped-tpkd Γ (ExTkt T) = Tkt <$> untyped-type Γ T
+untyped-tpkd Γ (ExTkk k) = Tkk <$> untyped-kind Γ k
+
+untyped-cases Γ ms ρ =
+  let msₗ = length ms in
+  foldl (λ m rec ms f → untyped-case Γ m msₗ f ρ >>= uncurry₂ λ m asₗ n? → rec (maybe-else' n? ms (λ n → set-nth n (just m) ms)) asₗ)
+    (const ∘ return) ms (repeat (length ms) nothing) (λ _ → nothing) >>=r drop-nothing
+
+untyped-case-args : ctxt → posinfo → ex-case-args → ex-tm → renamectxt → spanM (case-args × term)
+untyped-case-args Γ pi cas t ρ =
+  foldr {B = ctxt → renamectxt → 𝕃 tagged-val → (term → spanM ⊤) → spanM (case-args × term)}
+    (λ {(ExCaseArg me pi x) rec Γ' ρ tvs sm →
+      let tk = case me of λ {ExCaseArgTp → Tkk (KdHole pi-gen);
+                             ExCaseArgTm → Tkt (TpHole pi-gen);
+                             ExCaseArgEr → Tkt (TpHole pi-gen)} in
+      rec
+        (ctxt-tk-decl pi x tk Γ')
+        (renamectxt-insert ρ (pi % x) x)
+        (binder-data Γ' pi x tk (ex-case-arg-erased me) nothing
+          (term-start-pos t) (term-end-pos t) :: tvs)
+        (λ t →
+          [- var-span (ex-case-arg-erased me) Γ' pi x untyped tk
+            (when (ex-case-arg-erased me && is-free-in (pi % x) (erase t))
+              "The bound variable occurs free in the erasure of the body (not allowed)") -]
+          sm t) >>=c λ cas →
+      return2 (case me of λ {ExCaseArgTm → CaseArg ff x nothing :: cas; _ → cas})})
+    (λ Γ' ρ tvs sm →
+      [- pattern-clause-span pi t (reverse tvs) -]
+      untyped-term Γ' t >>= λ t~ →
+      sm t~ >>
+      return2 [] (subst-renamectxt Γ' ρ t~))
+    cas Γ ρ [] λ _ → spanMok
+
+untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
+  untyped-case-args Γ pi cas t ρ >>=c λ cas~ t~ →
+  case (qual-lookup Γ x) of λ where
+    (just (qx , as , ctr-def ps T Cₗ cᵢ cₐ , loc)) →
+      let c~ = Case qx cas~ t~ []
+          eᵢ = "This constructor overlaps with " ^ x
+          eₐ = unless (length cas~ =ℕ cₐ)
+                 ("Expected " ^ ℕ-to-string cₐ ^
+                  " arguments after erasure, but got " ^ ℕ-to-string (length cas~))
+          eₗ = unless (Cₗ =ℕ csₗ)
+                 ("Constructor's datatype has " ^ ℕ-to-string Cₗ ^
+                  (if Cₗ =ℕ 1 then " constructor" else " constructors") ^
+                  ", but expected " ^ ℕ-to-string csₗ) in
+      [- Var-span Γ pi x untyped [] (asₗ cᵢ maybe-or (eₐ maybe-or eₗ)) -]
+      return2 c~ ((λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ) , (maybe-not (asₗ cᵢ) >> just cᵢ))
     _ →
-      spanM-add (Var-span Γ pi x untyped [] eᵤ) ≫span m ≫=span λ s →
-      spanMr ((λ _ _ → nothing) , s)
-
-untyped-cases-spans ms =
-  let eₗ = just $ "Constructor's datatype should have " ^ ℕ-to-string (length ms) ^
-             " constructor" ^ (if 1 =ℕ length ms then "" else "s") in
-  (λ c → foldr c (λ _ → spanMr (nothing , [])) ms λ Cₗ cᵢ → if Cₗ =ℕ length ms then nothing else eₗ)
-  λ c m fₑ → untyped-case-spans c fₑ ≫=span uncurry λ e s →
-               m e ≫=span (spanMr ∘ map-snd (s ++_))
-
-untyped-type-spans (Abs pi me pi' x atk T) = untyped-tk-spans atk ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (get-ctxt λ Γ → spanM-add (TpQuant-span Γ (~ me) pi pi' x atk T untyped [] nothing) ≫span untyped-type-spans T)
-untyped-type-spans (Iota pi pi' x T T') = untyped-type-spans T ≫span untyped-var-spans pi' x TpVar-span (get-ctxt λ Γ → spanM-add (Iota-span Γ pi pi' x T' untyped [] nothing) ≫span untyped-type-spans T')
-untyped-type-spans (Lft pi pi' x t lT) = untyped-liftingType-spans lT ≫span untyped-var-spans pi' x Var-span (get-ctxt λ Γ → spanM-add (Lft-span Γ pi pi' x t untyped [] nothing) ≫span untyped-term-spans t)
-untyped-type-spans (NoSpans T pi) = spanMok
-untyped-type-spans (TpApp T T') = untyped-type-spans T ≫span untyped-type-spans T' ≫span spanM-add (TpApp-span T T' untyped [] nothing)
-untyped-type-spans (TpAppt T t) = untyped-type-spans T ≫span untyped-term-spans t ≫span spanM-add (TpAppt-span T t untyped [] nothing)
-untyped-type-spans (TpArrow T a T') = untyped-type-spans T ≫span untyped-type-spans T' ≫span spanM-add (TpArrow-span T T' untyped [] nothing)
-untyped-type-spans (TpEq pi t t' pi') = untyped-term-spans t ≫span untyped-term-spans t' ≫span spanM-add (TpEq-span pi t t' pi' untyped [] nothing)
-untyped-type-spans (TpHole pi) = get-ctxt λ Γ → spanM-add (tp-hole-span Γ pi nothing [])
-untyped-type-spans (TpLambda pi pi' x atk T) = untyped-tk-spans atk ≫span untyped-var-spans pi' x TpVar-span (get-ctxt λ Γ → spanM-add (TpLambda-span Γ pi pi' x atk T untyped [] nothing) ≫span untyped-type-spans T)
-untyped-type-spans (TpParens pi T pi') = untyped-type-spans T
-untyped-type-spans (TpVar pi x) = get-ctxt λ Γ →
-  spanM-add (TpVar-span Γ pi x untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-type-spans (TpLet pi d T) =
- untyped-defTermOrType-spans pi (λ Γ pi' x atk val → TpLet-span Γ untyped pi pi' x atk val T [] nothing) d (untyped-type-spans T)
- --≫span get-ctxt λ Γ → spanM-add (TpLet-span Γ untyped pi d T [] nothing)
-
-untyped-kind-spans (KndArrow k k') = untyped-kind-spans k ≫span untyped-kind-spans k' ≫span spanM-add (KndArrow-span k k' untyped nothing)
-untyped-kind-spans (KndParens pi k pi') = untyped-kind-spans k
-untyped-kind-spans (KndPi pi pi' x atk k) = untyped-tk-spans atk ≫span untyped-var-spans pi' x (if tk-is-type atk then Var-span else TpVar-span) (get-ctxt λ Γ → spanM-add (KndPi-span Γ pi pi' x atk k untyped nothing) ≫span untyped-kind-spans k)
-untyped-kind-spans (KndTpArrow T k) = untyped-type-spans T ≫span untyped-kind-spans k ≫span spanM-add (KndTpArrow-span T k untyped nothing)
-untyped-kind-spans (KndVar pi x as) = get-ctxt λ Γ →
-  spanM-add (KndVar-span Γ (pi , x) (kvar-end-pos pi x as) [] untyped [] (if ctxt-binds-var Γ x then nothing else just "This variable is not currently in scope."))
-untyped-kind-spans (Star pi) = spanM-add (Star-span pi untyped nothing)
-
-untyped-liftingType-spans lT = spanMok -- Unimplemented
-
-untyped-tk-spans (Tkt T) = untyped-type-spans T
-untyped-tk-spans (Tkk k) = untyped-kind-spans k
-
-untyped-optTerm-spans NoTerm = spanMr λ pi → pi
-untyped-optTerm-spans (SomeTerm t pi) = untyped-term-spans t ≫span spanMr λ _ → pi
-
-untyped-optType-spans NoType = spanMok
-untyped-optType-spans (SomeType T) = untyped-type-spans T
-
-untyped-optGuide-spans NoGuide = spanMr []
-untyped-optGuide-spans (Guide pi x T) = untyped-var-spans pi x Var-span (untyped-type-spans T) ≫span get-ctxt λ Γ → spanMr [ binder-data Γ pi x (Tkt $ TpHole pi) NotErased nothing (type-start-pos T) (type-end-pos T) ]
-
-untyped-lterms-spans [] = spanMok
-untyped-lterms-spans ((Lterm me t) :: ls) = untyped-term-spans t ≫span untyped-lterms-spans ls
-
-untyped-optClass-spans NoClass = spanMok
-untyped-optClass-spans (SomeClass atk) = untyped-tk-spans atk
-
-untyped-defTermOrType-spans pi s (DefTerm pi' x NoType t) m =
-  untyped-term-spans t ≫span
-  get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span
-                 spanM-add (Var-span Γ pi' x untyped [] nothing) ≫span m
-untyped-defTermOrType-spans pi s (DefTerm pi' x (SomeType tp) t) m =
-  untyped-type-spans tp ≫span
-  untyped-term-spans t ≫span
-  get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkt $ TpHole pi') t) ≫span
-                 spanM-add (Var-span Γ pi' x untyped [] nothing) ≫span m
-untyped-defTermOrType-spans pi s (DefType pi' x k tp) m =
-  untyped-kind-spans k ≫span
-  untyped-type-spans tp ≫span
-  get-ctxt λ Γ → with-ctxt (ctxt-var-decl-loc pi' x Γ) $
-  get-ctxt λ Γ → spanM-add (s Γ pi' x (Tkk k) tp) ≫span
-                 spanM-add (TpVar-span Γ pi' x untyped [] nothing) ≫span m
+      [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
+      return2 (Case x cas~ t~ []) (asₗ , nothing)

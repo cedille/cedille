@@ -1,10 +1,31 @@
 module bohm-out where
-open import lib
 open import general-util
 open import cedille-types
 open import syntax-util
 
 {- Implementation of the Böhm-Out Algorithm -}
+
+-- Only works for pure lambda calculus terms (abstractions, applications, and variables),
+-- so we wait to call this code until the contradiction has been elaborated to its
+-- underlying encoding. This has the added benefit of working even in some nonsensical
+-- cases like this one:
+-- 
+-- data False : ★ = .
+-- 
+-- _ : { μ' (λ x. λ y. x) { } ≃
+--       μ' (λ x. λ y. x) { } } ➾ False = Λ e. δ - e.
+-- 
+-- and also the following, which counterintuitively is an actual contradiction despite
+-- the fact that the difference is "unreachable" (that is, by the datatype interface—
+-- not by the elaborated pure lambda term however!)
+-- 
+-- data Bool : ★ = tt : Bool | ff : Bool.
+-- 
+-- _ : { λ b. μ' b { tt ➔ μ' b { tt ➔ ff | ff ➔ tt } | ff ➔ ff } ≃
+--       λ b. μ' b { tt ➔ μ' b { tt ➔ ff | ff ➔ ff } | ff ➔ ff } } ➾ False = Λ e. δ - e.
+-- 
+-- So this restriction is really a stronger form of inequality,
+-- in that it handles a (much) broader range of contradictions
 
 private
   
@@ -14,21 +35,15 @@ private
   
   nfoldl : ℕ → ∀ {ℓ} {X : Set ℓ} → X → (ℕ → X → X) → X
   nfoldl zero    z s = z
-  nfoldl (suc n) z s = nfoldl n (s n z) s
-  
-  set-nth : ∀ {ℓ} {X : Set ℓ} → ℕ → X → 𝕃 X → 𝕃 X
-  set-nth n x [] = []
-  set-nth zero x (x' :: xs) = x :: xs
-  set-nth (suc n) x (x' :: xs) = x' :: set-nth n x xs
-  
+  nfoldl (suc n) z s = nfoldl n (s n z) s  
   
   
   -- Böhm Tree
   data BT : Set where
-    Node : (n i : ℕ) → 𝕃 BT → BT
+    Node : (n i : ℕ) (b : 𝕃 BT)  → BT
   -- n: number of lambdas currently bound
   -- i: head variable
-  -- 𝕃 BT: list of arguments
+  -- b: list of arguments
   
   -- Path to difference
   data path : Set where
@@ -129,11 +144,11 @@ private
   construct-BT : term → maybe BT
   construct-BT = h zero empty-trie Node where
     h : ℕ → trie ℕ → ((n i : ℕ) → 𝕃 BT → BT) → term → maybe BT
-    h n vm f (Var _ x) = just (f n (trie-lookup-else zero vm x) [])
-    h n vm f (App t NotErased t') =
+    h n vm f (Var x) = just (f n (trie-lookup-else zero vm x) [])
+    h n vm f (App t t') =
       h n vm Node t' ≫=maybe λ t' →
       h n vm (λ n i b → f n i (b ++ [ t' ])) t
-    h n vm f (Lam _ NotErased _ x NoClass t) = h (suc n) (trie-insert vm x (suc n)) f t
+    h n vm f (Lam NotErased x nothing t) = h (suc n) (trie-insert vm x (suc n)) f t
     h n vm f t = nothing
   
   {-# TERMINATING #-}
@@ -201,8 +216,8 @@ private
     h : ℕ → BT → term
     a : ℕ → term → 𝕃 BT → term
     a n t [] = t
-    a n t (b :: bs) = a n (mapp t (h n b)) bs
-    h m (Node n i b) = nfoldl (n ∸ m) (a n (mvar (mkvar i)) b) (λ nm → mlam (mkvar (suc (m + nm))))
+    a n t (b :: bs) = a n (App t (h n b)) bs
+    h m (Node n i b) = nfoldl (n ∸ m) (a n (Var (mkvar i)) b) (λ nm → mlam (mkvar (suc (m + nm))))
   
 -- Returns a term f such that f t₁ ≃ λ t. λ f. t and f t₂ ≃ λ t. λ f. f, assuming two things:
 -- 1. t₁ ≄ t₂
@@ -216,8 +231,3 @@ make-contradiction t₁ t₂ =
   construct-path t₁ t₂ ≫=maybe λ {(p , t₁ , t₂) →
   just (reconstruct (Node (suc zero) (suc zero)
     (map (η-expand' zero) (construct-Δ t₁ t₂ p))))}
-
--- Returns tt if the two terms are provably not equal
-is-contradiction : term → term → 𝔹
-is-contradiction t₁ t₂ = isJust (make-contradiction t₁ t₂)
-

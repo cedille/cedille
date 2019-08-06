@@ -1,7 +1,6 @@
 module general-util where
 
-open import lib
-open import functions public
+open import instances public
 
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
@@ -27,10 +26,6 @@ maybe-equal? f (just x) nothing = ff
 maybe-equal? f nothing (just x) = ff
 maybe-equal? f nothing nothing = tt
 
-_≫maybe_ : ∀ {ℓ}{A B : Set ℓ} → maybe A → maybe B → maybe B
-nothing ≫maybe f = nothing
-just x  ≫maybe f = f
-
 _maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
 (nothing maybe-or ma) = ma
 (just a  maybe-or ma) = just a
@@ -42,6 +37,12 @@ maybe-not nothing = just triv
 maybe-if : 𝔹 → maybe ⊤
 maybe-if tt = just triv
 maybe-if ff = nothing
+
+when : ∀ {A : Set} → 𝔹 → A → maybe A
+when b a = maybe-if b >> just a
+
+unless : ∀ {A : Set} → 𝔹 → A → maybe A
+unless b a = maybe-if (~ b) >> just a
 
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
@@ -100,6 +101,10 @@ cal-filter f ((a , t) :: c)
   with trie-filter f t | cal-filter f c
 ... | t' | c'
   = if trie-empty? t then c' else (a , t') :: c'
+
+trie-fold : ∀ {F : Set → Set} {A B : Set} → trie A →
+            F B → (string → A → F B → F B) → F B
+trie-fold t n c = foldr (λ {(k , v) → c k v}) n (trie-mappings t)
 
 trie-catMaybe : ∀ {A} → trie (maybe A) → trie A
 cal-catMaybe  : ∀ {A} → cal (trie (maybe A)) → cal (trie A)
@@ -165,23 +170,26 @@ uncurry₂ : ∀{a b c d}{A : Set a}{B : Set b}{C : Set c}{D : Set d}
           → (f : A → B → C → D) → (p : A × B × C) → D
 uncurry₂ f (a , b , c) = f a b c
 
-elim-pair : ∀{ℓ₁ ℓ₂ ℓ₃}{A : Set ℓ₁}{B : Set ℓ₂}{C : Set ℓ₃}
+elim-pair : ∀{ℓ₀ ℓ₁ ℓ₂}{A : Set ℓ₀}{B : Set ℓ₁}{C : Set ℓ₂}
             → A × B → (A → B → C) → C
 elim-pair (a , b) f = f a b
 
-elim-Σi : ∀ {ℓ ℓ' ℓ''} {A : Set ℓ} {B : A → Set ℓ'} {X : Set ℓ''}
+elim-Σi : ∀ {ℓ₀ ℓ₁ ℓ₂} {A : Set ℓ₀} {B : A → Set ℓ₁} {X : Set ℓ₂}
           → Σi A B → ({a : A} → B a → X) → X
 elim-Σi (, b) f = f b
 
-infixr 0 case_return_of_ case_of_
+elim_for : ∀ {ℓ₀ ℓ₁ ℓ₂} {A : Set ℓ₀} {B : Set ℓ₁} {X : Set ℓ₂} → A × B → (A → B → X) → X
+elim (a , b) for f = f a b
 
-case_return_of_ :
+infixr 0 case_ret_of_ case_of_
+
+case_ret_of_ :
   ∀ {ℓ₁ ℓ₂} {A : Set ℓ₁}
   (x : A) (B : A → Set ℓ₂) → ((x : A) → B x) → B x
-case x return B of f = f x
+case x ret B of f = f x
 
 case_of_ : ∀ {a b} {A : Set a} {B : Set b} → A → (A → B) → B
-case x of f = case_return_of_ x _ f
+case x of f = case_ret_of_ x _ f
 
 case₂_,_of_ : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A → B → (A → B → C) → C
 case₂ x , y of f = f x y
@@ -247,13 +255,17 @@ either-else' : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → A ∨ B → (
 either-else' (inj₁ x) f g = f x
 either-else' (inj₂ y) f g = g y
 
+either-else : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c} → (A → C) → (B → C) → A ∨ B → C
+either-else f g (inj₁ x) = f x
+either-else f g (inj₂ y) = g y
+
 err⊎-guard : ∀ {e} {E : Set e} → 𝔹 → E → E ∨ ⊤
 err⊎-guard tt err = inj₁ err
 err⊎-guard ff _   = inj₂ triv
 
-infixl 1 _≫⊎_
-_≫⊎_ : ∀ {E B : Set} → E ∨ ⊤ → E ∨ B → E ∨ B
-m₁ ≫⊎ m₂ = m₁ ≫=⊎ λ _ → m₂
+--infixl 1 _≫⊎_
+--_≫⊎_ : ∀ {E B : Set} → E ∨ ⊤ → E ∨ B → E ∨ B
+--m₁ ≫⊎ m₂ = m₁ ≫=⊎ λ _ → m₂
 
 -- Some file writing functions
 data IOMode : Set where
@@ -296,23 +308,6 @@ flush = hFlush stdout
 
 setToLineBuffering : IO ⊤
 setToLineBuffering = hSetToLineBuffering stdout
-
-infixl 1 _>>≠_ _>≯_ _>>=r_ _>>r_ _>>∘_
-
-_>>≠_  : ∀{A B : Set} → IO A → (A → IO B) → IO A
-(io₁ >>≠ io₂) = io₁ >>= λ result → io₂ result >> return result
-
-_>≯_ : ∀{A B : Set} → IO A → IO B → IO A
-(io₁ >≯ io₂) = io₁ >>= λ result → io₂ >> return result
-
-_>>=r_ : ∀{A B : Set} → IO A → (A → B) → IO B
-a >>=r f = a >>= (return ∘ f)
-
-_>>r_ : ∀{A B : Set} → IO A → B → IO B
-a >>r b = a >> return b
-
-_>>∘_ : ∀{A B : Set} → IO A → IO (A → IO B) → IO B
-a >>∘ f = a >>= λ a → f >>= λ f → f a
 
 withFile : {A : Set} → filepath → IOMode → (Handle → IO A) → IO A
 withFile fp mode f = openFile fp mode >>= λ hdl → f hdl >≯ closeFile hdl
@@ -362,6 +357,12 @@ joinPath (x :: xs) = x ^ pathSeparatorString ^ joinPath xs
 
 pathIsAbsolute : filepath → 𝔹
 pathIsAbsolute = maybe-else ff (λ c → (c =char '~') || (c =char pathSeparator)) ∘ (head2 ∘ string-to-𝕃char)
+
+filepath-replace-tilde : filepath → IO (maybe filepath)
+filepath-replace-tilde fp with string-to-𝕃char fp
+...| '~' :: '/' :: fp-cs = getHomeDirectory >>=r λ home →
+                           just (combineFileNames home (𝕃char-to-string fp-cs))
+...| fp-cs = return nothing
 
 -- string binary tree, for more efficient I/O printing than concatenation
 data rope : Set where
@@ -414,27 +415,10 @@ writeRopeToFile fp s = clearFile fp >> openFile fp AppendMode >>= λ hdl → hPu
 stringset-singleton : string → stringset
 stringset-singleton x = stringset-insert empty-stringset x
 
-
-record monad (F : Set → Set) : Set₁ where
-  field
-    returnM : ∀{A : Set} → A → F A
-    bindM : ∀{A B : Set} → F A → (A → F B) → F B
-
-returnM : ∀{F : Set → Set}{{m : monad F}}{A : Set} → A → F A
-returnM {{m}} = monad.returnM m
-
-infixl 1 _≫monad_ _≫=monad_
-bindM : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
-bindM {{m}} = monad.bindM m
-
-_≫=monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → (A → F B) → F B
-_≫=monad_ = bindM
-
-bindM' : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
-bindM' a b = bindM a (λ a → b)
-
-_≫monad_ : ∀{F : Set → Set}{{m : monad F}}{A B : Set} → F A → F B → F B
-_≫monad_ = bindM'
+set-nth : ∀ {ℓ} {X : Set ℓ} → ℕ → X → 𝕃 X → 𝕃 X
+set-nth n x [] = []
+set-nth zero x (x' :: xs) = x :: xs
+set-nth (suc n) x (x' :: xs) = x' :: set-nth n x xs
 
 map-fst : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₀ → X₂) → (X₀ × X₁) → (X₂ × X₁)
 map-fst f (x₀ , x₁) = (f x₀ , x₁)
@@ -442,3 +426,73 @@ map-fst f (x₀ , x₁) = (f x₀ , x₁)
 map-snd : ∀ {ℓ₀ ℓ₁ ℓ₂} {X₀ : Set ℓ₀} {X₁ : Set ℓ₁} {X₂ : Set ℓ₂} → (X₁ → X₂) → (X₀ × X₁) → (X₀ × X₂)
 map-snd f (x₀ , x₁) = (x₀ , f x₁)
 
+--cons = _::_
+--nil = []
+
+--data 𝕃ᵢ (A : ℕ → Set) : ℕ → Set where
+--  cons : ∀ {n} → A 0 → 𝕃ᵢ A n → 𝕃ᵢ A (suc n)
+--  nil : 𝕃ᵢ A 0
+
+--pattern _,_ = _::_
+
+
+--{-# TERMINATING #-}
+--𝕃ᵢ-nests : Set → ℕ → Set
+--𝕃ᵢ-nests A 0 = A
+--𝕃ᵢ-nests A (suc n) = 𝕃ᵢ (𝕃ᵢ-nests A) 1
+
+--cons' : ∀ {A n} → A → 𝕃ᵢ (𝕃ᵢ-nests A) n → 𝕃ᵢ (𝕃ᵢ-nests A) (suc n)
+--cons' h t = cons h t
+
+{-
+-- Syntactic sugar for Haskell-esque list construction
+infixr 4 _,,_
+infixr 5 [:_ _:]
+
+[:_ = id
+
+_:] = [_]
+
+_,,_ : ∀ {ℓ} {A : Set ℓ} → A → 𝕃 A → 𝕃 A
+_,,_ = _::_
+-}
+
+infixr 4 _⌟_
+_⌟_ : ∀ {ℓ}{A : Set ℓ}{b : 𝔹} → A → if b then A else 𝕃 A → 𝕃 A
+_⌟_ {b = tt} a a' = a :: a' :: []
+_⌟_ {b = ff} a as = a :: as
+
+[:_:] = id
+
+𝕃-sugar-example = [: 0 ⌟ 1 ⌟ 2 ⌟ 3 ⌟ 4 :]
+
+{-
+postulate
+  ord : char → ℕ
+  chr : ℕ → char
+{-# FOREIGN GHC import qualified Data.Char #-}
+{-# COMPILE GHC ord = toInteger . Data.Char.ord #-}
+{-# COMPILE GHC chr = Data.Char.chr . fromIntegral #-}
+
+toLower : char → char
+toLower c =
+  let n = ord c
+      up? = n ≥ 65 {- A -} && n ≤ 90 {- Z -} in
+  chr (if up? then n ∸ 32 else n)
+
+toUpper : char → char
+toUpper c =
+  let n = ord c
+      low? = n ≥ 97 {- A -} && n ≤ 122 {- Z -} in
+  chr (if low? then n + 32 else n)
+
+capitalize : string → string
+capitalize x with string-to-𝕃char x
+...| [] = ""
+...| c :: cs = 𝕃char-to-string (toUpper c :: cs)
+
+uncapitalize : string → string
+uncapitalize x with string-to-𝕃char x
+...| [] = ""
+...| c :: cs = 𝕃char-to-string (toLower c :: cs)
+-}

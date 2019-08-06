@@ -1,4 +1,4 @@
-module data/nat-le.
+module data.nat-le.
 
 import ../nat.
 import ../sum.

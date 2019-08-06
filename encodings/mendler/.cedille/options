@@ -1,4 +1,4 @@
-import-directories = "../../new-lib" 
+import-directories = "../../lib" 
   .
 
 use-cede-files = true.

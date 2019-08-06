@@ -1,11 +1,9 @@
 module rename where
 
-open import lib
-
 open import cedille-types 
 open import constants
 open import ctxt-types
-open import is-free
+open import free-vars
 open import syntax-util
 open import general-util
 
@@ -55,12 +53,13 @@ fresh' bound n base with base ^ ℕ-to-string n
 ...| ff = x
 
 fresh-h : (var → 𝔹) → var → var
+fresh-h bound ignored-var = ignored-var
 fresh-h bound x =
   if ~ bound x'
     then x'
     else uncurry (fresh' bound) (fresh-split [] (reverse (string-to-𝕃char x')))
   where
-  x' = if x =string ignored-var then "x" else x
+  x' = unqual-local x
 
   to-num : 𝕃 char → ℕ
   to-num [] = 1
@@ -76,40 +75,20 @@ fresh-var : ctxt → var → var
 fresh-var = fresh-h ∘' ctxt-binds-var
 
 fresh-var-renamectxt : ctxt → renamectxt → var → var
-fresh-var-renamectxt Γ ρ = fresh-h λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x
-{-
-pick-new-name : string → string
-pick-new-name x = x ^ "'"
--}
-{-
-{- rename-away-from x g r rename the variable x to be some new name (related to x)
-   which does not satisfy the given predicate on names (assuming this is possible),
-   and is not in the domain of the renamectxt . -}
-{-# NON_TERMINATING #-}
-rename-away-from : string → (string → 𝔹) → renamectxt → string
-rename-away-from x g r =
-  if (g x) then
-    rename-away-from (pick-new-name x) g r
-  else if (renamectxt-in-field r x) then
-    rename-away-from (pick-new-name x) g r
-  else x
-
-fresh-var : string → (string → 𝔹) → renamectxt → string
-fresh-var = rename-away-from
+fresh-var-renamectxt Γ ρ ignored-var = ignored-var
+fresh-var-renamectxt Γ ρ x = fresh-h (λ x → ctxt-binds-var Γ x || renamectxt-in-field ρ x) x
 
 fresh-var-new : ctxt → var → var
-fresh-var-new Γ ignored-var = fresh-var "x" (ctxt-binds-var Γ) empty-renamectxt
-fresh-var-new Γ x = fresh-var x (ctxt-binds-var Γ) empty-renamectxt
--}
+fresh-var-new Γ ignored-var = fresh-var Γ "x"
+fresh-var-new Γ x = fresh-var Γ x
 
 rename-var-if : {ed : exprd} → ctxt → renamectxt → var → ⟦ ed ⟧ → var
 rename-var-if Γ ρ y t = 
-  if is-free-in check-erased y t || renamectxt-in-range ρ y then 
-    fresh-var-renamectxt Γ ρ y --rename-away-from y (ctxt-binds-var Γ) ρ
+  if is-free-in y t || renamectxt-in-range ρ y then 
+    fresh-var-renamectxt Γ ρ y
   else
     y
 
-renamectxt-insert* : renamectxt → (vs1 vs2 : 𝕃 string) → maybe renamectxt
-renamectxt-insert* ρ [] [] = just ρ
-renamectxt-insert* ρ (x :: vs1) (y :: vs2) = renamectxt-insert* (renamectxt-insert ρ x y) vs1 vs2
-renamectxt-insert* ρ _ _ = nothing
+renamectxt-insert* : renamectxt → 𝕃 (var × var) → renamectxt
+renamectxt-insert* ρ [] = ρ
+renamectxt-insert* ρ ((x , y) :: vs) = renamectxt-insert* (renamectxt-insert ρ x y) vs

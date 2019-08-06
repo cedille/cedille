@@ -1,4 +1,4 @@
-module core/view.
+module core.view.
 
 import top.
 

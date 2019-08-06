@@ -23,8 +23,8 @@ AGDASRC = \
 	rename.agda \
 	classify.agda \
 	subst.agda \
-	is-free.agda \
-	lift.agda \
+	free-vars.agda \
+	resugar.agda \
 	rewriting.agda \
 	ctxt.agda \
 	main.agda \
@@ -36,15 +36,14 @@ AGDASRC = \
 	rkt.agda \
 	meta-vars.agda \
 	cedille-options.agda \
-	elaboration.agda \
-	elaboration-helpers.agda \
-	monad-instances.agda \
+	elab-util.agda \
+	instances.agda \
 	json.agda \
-	datatype-functions.agda \
+	datatype-util.agda \
 	bohm-out.agda \
-	cedille-syntax.agda \
-	erase.agda \
-	pretty.agda
+	pretty.agda \
+	type-inf.agda \
+	type-util.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

@@ -1,7 +1,0 @@
-import stdlib.
-
-module libmods.
-
-constCastMap : ∀ X : ★ . CastMap · (λ _ : ★ . X) =
-  Λ X .
-    Λ A . Λ B . Λ c . castRefl · X .
