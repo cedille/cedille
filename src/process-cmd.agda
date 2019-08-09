@@ -122,7 +122,7 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
       fail = λ e → [- TpVar-span Γ pi' x checking [] (just e) -] return2 s cmd-fail in
   process-ctrs x (pi' % x) qx mps pi' (record s {Γ = Γ-decl Γₚₛ}) cs >>=c λ Γ-cs cs~ →
   maybe-else' (cedille-options.options.datatype-encoding options >>=c λ fp f → f)
-    (fail "Internal error (datatype encoding should have been parsed!)") λ de →
+    (fail "Missing directive for datatype encoding.  Please add a datatype-encoding directive to your .cedille/options file. See cedille/.cedille/options for the current location") λ de →
   let is = kind-to-indices Γₚₛ k'
       kᵢ = indices-to-kind is $ KdAbs ignored-var
              (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar in
