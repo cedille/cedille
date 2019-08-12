@@ -724,7 +724,7 @@ check-args Γ (ExTmArg me t :: as) (Param me' x (Tkt T) :: ps) =
   Γ ⊢ t ⇐ T ↝ t~ /
   let e-s = mk-span "Argument" (term-start-pos t) (term-end-pos t)
               [ expected-type Γ T ] (just "Mismatched argument erasure") 
-      e-m = λ r → if me iff me' then return r else ([- e-s -] return r) in
+      e-m = λ r → if me iff me' then return {F = spanM} r else ([- e-s -] return {F = spanM} r) in
   check-args Γ as (subst-params Γ t~ x ps) >>= λ as~ →
   e-m ((if me then inj₂ (inj₁ t~) else inj₁ t~) :: as~)
 check-args Γ (ExTpArg T :: as) (Param _ x (Tkk k) :: ps) =
@@ -823,7 +823,9 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
   free-in-term : var → term → err-m
   free-in-term x t = when (is-free-in x (erase t))
                        "Erased argument occurs free in the body of the term"
+  tmtp-to-arg' : ctxt → trie (Σi exprd ⟦_⟧) → tmtp → arg
   tmtp-to-arg' = λ Γ σ → either-else (Arg ∘ substs Γ σ) (ArgTp ∘ substs Γ σ)
+  tmtps-to-args' : ctxt → trie (Σi exprd ⟦_⟧) → 𝕃 tmtp → args
   tmtps-to-args' = λ Γ σ → tmtp-to-arg' Γ σ <$>_
   app-caseArgs : (term → type → term) → (type → kind → type) → term → 𝕃 (ex-case-arg × case-arg) → term
   app-caseArgs tf Tf = foldl λ where

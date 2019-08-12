@@ -4,23 +4,23 @@ open import general-util
 module process-cmd
   (options : cedille-options.options)
   {mF : Set → Set}
-  {{_ : monad mF}}
+  {{mFm : monad mF}}
   (progress-update : string → mF ⊤)
   (write-to-log : string → mF ⊤) where
 
 --open import cedille-find
 open import cedille-types
-open import classify options {mF}
+open import classify options {mF} ⦃ mFm ⦄
 open import constants
 open import conversion
 open import ctxt
 open import free-vars
 open import rename
-open import spans options {mF}
+open import spans options { mF } ⦃ mFm ⦄
 open import subst
 open import syntax-util
 open import type-util
-open import toplevel-state options {mF}
+open import toplevel-state options { mF } ⦃ mFm ⦄
 open import datatype-util
 open import rewriting
 open import elab-util options
@@ -234,8 +234,8 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
        [- Var-span Γ pi x checking
            [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
                (abs-expand-type ps T) ] neg-ret-err -]
-       return (record s {Γ = Γ})) >>=c λ s cs →
-    return2 (Γ-f ∘ Γ-f') cs
+       return (record s {Γ = Γ})) >>=c λ s →
+    return2 (Γ-f ∘ Γ-f')
 
 process-params s pi ps =
   let Γ = toplevel-state.Γ s in
