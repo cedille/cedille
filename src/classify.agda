@@ -81,6 +81,7 @@ check-term Γ (ExApp t e t') Tₑ? =
 
 -- t ·T
 check-term Γ (ExAppTp tₕ Tₐ) Tₑ? =
+-- "Γ ⊢ tₕ ↝ tₕ~ ⇒ Tₕ~ /" desugars to "synth-tmtp' Γ tₕ λ tₕ~ Tₕ~ →"
   Γ ⊢ tₕ ↝ tₕ~ ⇒ Tₕ~ /
   Γ ⊢ Tₕ~ =β= λ where
     (TpAbs tt x (Tkk kₐ) Tᵣ) →
