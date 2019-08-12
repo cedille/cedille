@@ -197,6 +197,9 @@ cedille-optimized:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-O2 -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
+cedille-profile.prof: cedille-profile
+		./cedille-profile lib/everything.ced +RTS -p
+
 .PHONY: clean-ial
 clean-ial:
 	make -C ial clean
