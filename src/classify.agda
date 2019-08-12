@@ -578,7 +578,7 @@ check-type Γ (ExTpApp T T') kₑ? =
            (head-kind Γ kₕ' :: expected-kind-if Γ kₑ?)
            (unless (is-hole kₕ') $
               "The synthesized kind of the head does not allow it to be applied" ^
-              "to a type argument") -]
+              " to a type argument") -]
       return-when (TpAppTp T~ T'~) (KdHole (type-start-pos T))
 
 -- T t
@@ -598,7 +598,7 @@ check-type Γ (ExTpAppt T t) kₑ? =
            (head-kind Γ kₕ' :: expected-kind-if Γ kₑ?)
            (unless (is-hole kₕ') $
               "The synthesized kind of the head does not allow it to be applied" ^
-              "to a term argument") -]
+              " to a term argument") -]
       return-when (TpAppTm T~ t~) (KdHole (type-start-pos T))
 
 -- T ➔/➾ T'
