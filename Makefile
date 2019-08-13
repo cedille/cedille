@@ -151,13 +151,13 @@ cedille-static: 	$(CEDILLE_DEPS)
 		mv $(SRCDIR)/main $@
 
 .PHONY: cedille-libs
-cedille-lib: $(CEDLIB)
+cedille-lib: cedille $(CEDLIB)
 
-cedille-newlib: $(CEDNEWLIB)
+cedille-newlib: cedille $(CEDNEWLIB)
 
 .PHONY: %.ced
 %.ced : FORCE
-	cedille $@
+	bin/cedille $@
 
 FORCE:
 
