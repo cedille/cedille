@@ -124,7 +124,7 @@ module main-with-options
   (compileTime : UTC)
   (options-filepath : filepath)
   (options : cedille-options.options)
-  (die : IO ⊤) where
+  (die : 𝕃 char → IO ⊤) where
 
   open import ctxt
   --open import instances
@@ -499,7 +499,7 @@ module main-with-options
           finish input-filename s = --return triv
             let ie = get-include-elt s input-filename in
             if include-elt.err ie
-            then die -- ("Compilation Failed")
+            then die (string-to-𝕃char ("Compilation Failed"))
             else return triv
 
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
@@ -519,7 +519,7 @@ postulate
   setStdinNewlineMode : IO ⊤
   compileTime : UTC
   templatesDir : filepath
-  die : IO ⊤
+  die : 𝕃 char → IO ⊤
 
 {-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}
@@ -528,7 +528,7 @@ postulate
 {-# FOREIGN GHC import qualified Data.Time.Format #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
 {-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
-{-# COMPILE GHC die = System.Exit.exitFailure #-}
+{-# COMPILE GHC die = System.Exit.die #-}
 {-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
 {-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
 {-# COMPILE GHC compileTime =

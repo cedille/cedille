@@ -32,5 +32,4 @@ install:
 
 script:
   - make
-    #- make cedille-lib
   - make cedille-newlib
