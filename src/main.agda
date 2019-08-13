@@ -123,7 +123,8 @@ readOptions (just fp) = readFiniteFile fp >>= λ fc →
 module main-with-options
   (compileTime : UTC)
   (options-filepath : filepath)
-  (options : cedille-options.options) where
+  (options : cedille-options.options)
+  (die : IO ⊤) where
 
   open import ctxt
   --open import instances
@@ -485,26 +486,28 @@ module main-with-options
         (Right de) → {!!}
 -}
 
+
   -- function to process command-line arguments
-  processArgs : 𝕃 string → IO ⊤ 
+  processArgs : 𝕃 string → IO ⊤
 
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
-    canonicalizePath input-filename >>= λ input-filename → 
+    canonicalizePath input-filename >>= λ input-filename →
     checkFile progressUpdate (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename) (cedille-options.options.include-path options)))
       input-filename ff {- should-print-spans -} >>= finish input-filename
     where finish : string → toplevel-state → IO ⊤
-          finish input-filename s = return triv
-{-            let ie = get-include-elt s input-filename in
-            if include-elt.err ie then (putRopeLn (include-elt-spans-to-json ie)) else return triv
--}
+          finish input-filename s = --return triv
+            let ie = get-include-elt s input-filename in
+            if include-elt.err ie
+            then die -- ("Compilation Failed")
+            else return triv
+
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))
 
   -- all other cases are errors
   processArgs xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
                            ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
-  
   main' : 𝕃 string → IO ⊤
   main' args =
     maybeClearLogFile >>
@@ -516,13 +519,16 @@ postulate
   setStdinNewlineMode : IO ⊤
   compileTime : UTC
   templatesDir : filepath
+  die : IO ⊤
 
 {-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}
+{-# FOREIGN GHC import qualified System.Exit #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock #-}
 {-# FOREIGN GHC import qualified Data.Time.Format #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
 {-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
+{-# COMPILE GHC die = System.Exit.exitFailure #-}
 {-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
 {-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
 {-# COMPILE GHC compileTime =
@@ -569,7 +575,7 @@ process-encoding ofp ops @ (cedille-options.mk-options ip cede rkt log qvs etp d
   return (record ops {datatype-encoding = just (de , just ast~)})
   where
   ops' = record ops {datatype-encoding = nothing; use-cede-files = ff}
-  open main-with-options compileTime ofp ops'
+  open main-with-options compileTime ofp ops' die
   open import spans ops' {IO}
   open import toplevel-state ops' {IO}
   open import process-cmd ops' {IO} (λ _ → return triv) (λ _ → return triv)
@@ -601,4 +607,4 @@ main = initializeStdoutToUTF8 >>
          (findOptionsFile >>= readOptions) (readOptions ∘ just) >>=c λ ofp ops →
        let log = cedille-options.options.generate-logs ops in
        process-encoding ofp (record ops {generate-logs = ff}) >>= λ ops →
-       main-with-options.main' compileTime ofp (record ops {generate-logs = log}) fs
+       main-with-options.main' compileTime ofp (record ops {generate-logs = log}) die fs

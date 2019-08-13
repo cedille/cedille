@@ -30,4 +30,6 @@ install:
   - travis_wait 25 cabal install agda-2.5.4
 
 script:
-  - make
+  - make -j32
+    #- make cedille-lib
+  - make cedille-newlib
