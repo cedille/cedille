@@ -5,6 +5,7 @@ cache:
   directories:
   - $HOME/.ghc
   - $HOME/.cabal
+  - ${TRAVIS_BUILD_DIR}/bin
 
 before_install:
   - export PATH=~/.cabal/bin:/opt/cabal/$CABAL_VER/bin:/opt/ghc/$GHC_VER/bin:$PATH
@@ -30,6 +31,6 @@ install:
   - travis_wait 25 cabal install agda-2.5.4
 
 script:
-  - make -j32
+  - make
     #- make cedille-lib
   - make cedille-newlib

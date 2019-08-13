@@ -136,7 +136,12 @@ CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
-cedille:	$(CEDILLE_DEPS)
+cedille: bin $(CEDILLE_DEPS) bin/cedille
+
+bin :
+	mkdir -p bin
+
+bin/cedille:
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 		#make $(TEMPLATES)
