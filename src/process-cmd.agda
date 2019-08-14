@@ -104,7 +104,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdKind pi x ps k pi') =
   Γₚₛ ⊢ k ↝ k~ /
   let Γ' = ctxt-kind-def pi x ps~ k~ Γ in
   [- DefKind-span Γ' pi x k~ pi' -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ') (CmdDefKind x ps~ k~)
+  check-redefined pi x (mk-toplevel-state ip fns is Γ) (CmdDefKind x ps~ k~)
     ([- KdVar-span Γ' (pi , x) (posinfo-plus-str pi x) ps~ checking [] nothing -]
      return (mk-toplevel-state ip fns is Γ'))
 

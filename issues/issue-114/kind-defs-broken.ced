@@ -1,3 +1,9 @@
 module Tmp.
 
+{- Cedille is reporting:
+
+ name:	Variable definition
+error:	This symbol was defined already
+
+-}
 𝒌123 = ★.
