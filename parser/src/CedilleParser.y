@@ -142,14 +142,14 @@ KParams :: { Params }
        | KDecl KParams                  { $1 : $2 }
 
 DefDatatype :: { [ DefDatatype ] }
-: 'data' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3) }
+: 'data' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3 }
 
 OptMutualDefDatatype :: { [ DefDatatype ] }
   : { [] }
 | '&' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3 }
 
 OneDatatype :: { DefDatatypeA }
-  : var MParams ':' Kind '=' OptPipe Ctrs { DefDatatypeA (tPosTxt $1) (tTxt $1) $2 $3 $6 }
+  : var MParams ':' Kind '=' OptPipe Ctrs { DefDatatypeA (tPosTxt $1) (tTxt $1) $2 $4 $7 }
 
 Ctr :: { Ctr }
     : var ':' Type    { Ctr (tPosTxt $1) (tTxt $1) $3 }
@@ -322,12 +322,12 @@ Pterm :: { Term }
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
       | 'μ'  OneMu OptMoreMu { Mu ((oneMuAddStartingPos (pos2Txt $1) $2) : $3) }
-      | 'μP' MaybeTermAngle Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (IsMu' $2) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+      | 'μP' MaybeTermAngle Term Motive '{' CasesAux '}' { MuPrime (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
       | '●'                             { Hole (pos2Txt $1) }
       
 OneMu :: { OneMuA }
   : Bvar '.' Term Motive '{' CasesAux '}' 
-  { OneMuA (IsMu (tPosTxt $1) (tTxt $1)) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)  }
+  { OneMuA (tPosTxt $1) (tTxt $1) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)  }
 
 OptMoreMu :: { [ OneMu ]}
   : { [] }
@@ -388,7 +388,7 @@ defDatatypeAddStartingPos :: Text -> DefDatatypeA -> DefDatatype
 defDatatypeAddStartingPos p (DefDatatypeA p' v ps k cs) = DefDatatype p p' v ps k cs
 
 oneMuAddStartingPos :: Text -> OneMuA -> OneMu
-oneMuAddStartingPos p (OneMuA i t mt p2 cs p3) = OneMu p i t mt p2 cs p3
+oneMuAddStartingPos p (OneMuA p' i t mt p2 cs p3) = OneMu p p' i t mt p2 cs p3
 
 getPos :: Alex PosInfo
 getPos = Alex $ \ s -> return (s , pos2Txt0(alex_pos s))

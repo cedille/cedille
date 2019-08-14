@@ -77,11 +77,9 @@ data Type =
 
 data PosTerm = PosTerm Term PosInfo deriving Show
 
-data IsMu = IsMu PosInfo Var | IsMu' (Maybe Term) deriving Show
+data OneMu = OneMu PosInfo PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo deriving Show
 
-data OneMu = OneMu PosInfo IsMu Term (Maybe Type) PosInfo Cases PosInfo
-
-data OneMuA = OneMuA IsMu Term (Maybe Type) PosInfo Cases PosInfo
+data OneMuA = OneMuA PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo deriving Show
 
 data Term =
     App Term MaybeErased Term
@@ -102,6 +100,7 @@ data Term =
   | Sigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
   | Mu [OneMu]
+  | MuPrime PosInfo (Maybe Term) Term (Maybe Type) PosInfo Cases PosInfo
   | Var PosInfo Var
   deriving Show
 

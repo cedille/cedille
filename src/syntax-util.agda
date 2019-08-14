@@ -101,7 +101,10 @@ term-start-pos (ExChi pi _ _) = pi
 term-start-pos (ExDelta pi _ _) = pi
 term-start-pos (ExSigma pi _) = pi
 term-start-pos (ExTheta pi _ _ _) = pi
-term-start-pos (ExMu pi _ _ _ _ _ _) = pi
+term-start-pos (ExMu (ExOneMu pi _ _ _ _ _ _ :: _)) = pi
+term-start-pos (ExMu []) = "internal-error" -- should not happen, as parser ensures we have at least one ExOneMu
+term-start-pos (ExMuPrime pi _ _ _ _ _ _) = pi
+
 
 type-start-pos (ExTpAbs pi _ _ _ _ _) = pi
 type-start-pos (ExTpLam pi _ _ _ _) = pi
@@ -136,6 +139,7 @@ arg-end-pos : ex-arg → posinfo
 kvar-end-pos : posinfo → var → ex-args → posinfo
 params-end-pos : posinfo → ex-params → posinfo
 param-end-pos : ex-param → posinfo
+one-mus-end-pos : 𝕃 ex-one-mu → posinfo
 
 term-end-pos (ExApp t x t') = term-end-pos t'
 term-end-pos (ExAppTp t tp) = type-end-pos tp
@@ -157,7 +161,12 @@ term-end-pos (ExChi pi T t') = term-end-pos t'
 term-end-pos (ExDelta pi oT t) = term-end-pos t
 term-end-pos (ExSigma pi t) = term-end-pos t
 term-end-pos (ExTheta _ _ t ls) = lterms-end-pos (term-end-pos t) ls
-term-end-pos (ExMu _ _ _ _ _ _ pi) = pi
+term-end-pos (ExMu ds) = one-mus-end-pos ds
+term-end-pos (ExMuPrime _ _ _ _ _ _ pi) = pi
+
+one-mus-end-pos [] = "internal-error" -- should not happen because parser ensures one datatype def is there
+one-mus-end-pos (ExOneMu _ _ _ _ _ _ pi :: []) = pi
+one-mus-end-pos (_ :: ds) = one-mus-end-pos ds
 
 type-end-pos (ExTpAbs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (ExTpLam _ _ _ _ t) = type-end-pos t

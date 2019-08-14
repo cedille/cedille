@@ -20,6 +20,7 @@ free-vars-cases : cases → stringset
 free-vars-case : case → stringset
 free-vars-tk : tpkd → stringset
 free-vars-tT : tmtp → stringset
+free-vars-one-mus : 𝕃 one-mu → stringset
 
 free-vars-tk = free-vars -tk'_
 free-vars-tT = free-vars -tT'_
@@ -39,7 +40,7 @@ free-vars {TERM} (LetTp x k T t) = free-vars k ++ₛ free-vars T ++ₛ stringset
 free-vars {TERM} (Phi tₑ t₁ t₂) = free-vars tₑ ++ₛ free-vars t₁ ++ₛ free-vars t₂
 free-vars {TERM} (Rho t x T t') = free-vars t ++ₛ stringset-remove (free-vars T) x ++ₛ free-vars t'
 free-vars {TERM} (Sigma t) = free-vars t
-free-vars {TERM} (Mu μ t T t~ cs) = free-vars t ++ₛ free-vars? T ++ₛ free-vars-cases cs
+free-vars {TERM} (Mu ds) = free-vars-one-mus ds
 free-vars {TERM} (Var x) = stringset-single x
 free-vars {TYPE} (TpAbs me x tk T) = free-vars-tk tk ++ₛ stringset-remove (free-vars T) x
 free-vars {TYPE} (TpIota x T₁ T₂) = free-vars T₁ ++ₛ stringset-remove (free-vars T₂) x
@@ -51,6 +52,9 @@ free-vars {TYPE} (TpVar x) = stringset-single x
 free-vars {KIND} KdStar = empty-stringset
 free-vars {KIND} (KdHole pi) = empty-stringset
 free-vars {KIND} (KdAbs x tk k) = free-vars-tk tk ++ₛ stringset-remove (free-vars k) x
+
+free-vars-one-mus [] = empty-stringset
+free-vars-one-mus (OneMu μ t T t~ cs :: ds) = free-vars t ++ₛ free-vars? T ++ₛ free-vars-cases cs ++ₛ free-vars-one-mus ds
 
 free-vars-arg (Arg t) = free-vars t
 free-vars-arg (ArgE tT) = free-vars -tT' tT
@@ -67,6 +71,7 @@ erase-params : params → 𝕃 var
 erase-tk : tpkd → tpkd
 erase-tT : tmtp → tmtp
 erase-is-mu : is-mu → is-mu
+erase-one-mus : 𝕃 one-mu → 𝕃 one-mu
 
 erase-is-mu = either-else (λ _ → inj₁ nothing) inj₂
 
@@ -90,7 +95,7 @@ erase {TERM} (LetTp x k T t) = erase t
 erase {TERM} (Phi tₑ t₁ t₂) = erase t₂
 erase {TERM} (Rho t x T t') = erase t'
 erase {TERM} (Sigma t) = erase t
-erase {TERM} (Mu μ t T t~ ms) = Mu (erase-is-mu μ) (erase t) nothing t~ (erase-cases ms)
+erase {TERM} (Mu ds) = Mu (erase-one-mus ds)
 erase {TERM} (Var x) = Var x
 erase {TYPE} (TpAbs me x tk T) = TpAbs me x (erase-tk tk) (erase T)
 erase {TYPE} (TpIota x T₁ T₂) = TpIota x (erase T₁) (erase T₂)
@@ -102,6 +107,9 @@ erase {TYPE} (TpVar x) = TpVar x
 erase {KIND} KdStar = KdStar
 erase {KIND} (KdHole pi) = KdHole pi
 erase {KIND} (KdAbs x tk k) = KdAbs x (erase-tk tk) (erase k)
+
+erase-one-mus [] = []
+erase-one-mus (OneMu μ t T t~ ms :: ds) = OneMu (erase-is-mu μ) (erase t) nothing t~ (erase-cases ms) :: erase-one-mus ds
 
 erase-case-args : case-args → case-args
 erase-case-args (CaseArg ff x _ :: cas) = CaseArg ff x nothing :: erase-case-args cas

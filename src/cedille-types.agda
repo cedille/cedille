@@ -69,6 +69,8 @@ mutual
   pattern ParamTm x T = Param ff x (Tkt T)
   pattern ParamEr x T = Param tt x (Tkt T)
 
+  data one-mu : Set where
+    OneMu : is-mu → term → maybe type → datatype-info → cases → one-mu
 
   data term : Set where
     App : term → term → term
@@ -84,7 +86,7 @@ mutual
     Phi : term → term → term → term
     Rho : term → var → type → term → term
     Sigma : term → term
-    Mu : is-mu → term → maybe type → datatype-info → cases → term
+    Mu : 𝕃 one-mu → term
     Var : var → term
   pattern AppTp t T = AppE t (Ttp T)
   pattern AppEr t t' = AppE t (Ttm t')
@@ -184,7 +186,7 @@ mutual
   data ex-cmd : Set where
     ExCmdKind : posinfo → var → ex-params → ex-kd → posinfo → ex-cmd
     ExCmdDef : opacity → ex-def → posinfo → ex-cmd
-    ExCmdData : def-datatype → posinfo → ex-cmd
+    ExCmdData : 𝕃 def-datatype → posinfo → ex-cmd
     ExCmdImport : ex-imprt → ex-cmd
 
   data def-datatype : Set where
@@ -259,6 +261,9 @@ mutual
     ExIsMu : posinfo → var → ex-is-mu
     ExIsMu' : maybe ex-tm → ex-is-mu
   
+  data ex-one-mu : Set where
+    ExOneMu : posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-one-mu
+
   data ex-tm : Set where
     ExApp : ex-tm → erased? → ex-tm → ex-tm
     ExAppTp : ex-tm → ex-tp → ex-tm
@@ -277,7 +282,8 @@ mutual
     ExRho : posinfo → rho-hnf → maybe (𝕃 num) → ex-tm → maybe ex-guide → ex-tm → ex-tm
     ExSigma : posinfo → ex-tm → ex-tm
     ExTheta : posinfo → theta → ex-tm → 𝕃 lterm → ex-tm
-    ExMu : posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
+    ExMu :  𝕃 ex-one-mu → ex-tm
+    ExMuPrime : posinfo → maybe ex-tm → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
     ExVar : posinfo → var → ex-tm
   
   data ex-kd : Set where
