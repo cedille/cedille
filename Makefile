@@ -94,11 +94,11 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB := $(shell find $(CEDLIBDIR) -name '*.ced')
+CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced')
 
-# CEDLIBNAMES = $(notdir $(CEDLIB))
-# ELABLIB := $(CEDLIBNAMES:%.ced=$(ELABDIR)/%.cdle)
-ELABLIB = $(shell find $(ELABDIR) -name '*.cdle')
+# FIXME: For some reason this variable expansion is eager instead of lazy
+ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
+
 OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
@@ -155,16 +155,20 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-cedille-lib: cedille $(CEDLIB) $(ELABLIB)
+tests: cedille elab-lib
+
+elab-lib:
+	mkdir -p ${ELABDIR}
+	make ${CEDLIB}
+	# FIXME: Workaround for $(ELABLIB) being eager
+	make $(ELABDIR)/*
+
 
 %.ced : FORCE
 	bin/cedille -e $@ $(ELABDIR)
 
 %.cdle : FORCE
 	bin/cedille $@
-
-ECHONAMES:
-	@echo $(ELABLIB)
 
 FORCE:
 
