@@ -1086,4 +1086,4 @@ elab-write-all ei@(mk-elab-info τ ρ φ ν) to =
 elab-all : toplevel-state → (from to : filepath) → IO ⊤
 elab-all ts fm to =
   elab-write-all (fst (elab-file (new-elab-info ts) fm)) to >>
-  putStrLn "0"
+  putStrLn ("0")

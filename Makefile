@@ -1,9 +1,12 @@
+SHELL:=/bin/bash
+
 AGDA=agda
 
 SRCDIR=src
 
-CEDLIBDIR=lib
-CEDNEWLIBDIR=new-lib
+CEDLIBDIR=new-lib
+
+ELABDIR=elab
 
 AUTOGEN = \
 	cedille.agda \
@@ -92,7 +95,10 @@ FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
 CEDLIB := $(shell find $(CEDLIBDIR) -name '*.ced')
-CEDNEWLIB := $(shell find $(CEDNEWLIBDIR) -name '*.ced')
+
+# CEDLIBNAMES = $(notdir $(CEDLIB))
+# ELABLIB := $(CEDLIBNAMES:%.ced=$(ELABDIR)/%.cdle)
+ELABLIB = $(shell find $(ELABDIR) -name '*.cdle')
 OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
@@ -132,32 +138,33 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./core/cedille-core-static: $(CEDILLE_CORE)
 	cd core/; make cedille-core-static; cd ../
 
-CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
+CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
-cedille: bin $(CEDILLE_DEPS) bin/cedille
+cedille: bin bin/cedille
 
 bin :
 	mkdir -p bin
 
-bin/cedille:
+bin/cedille: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
-		#make $(TEMPLATES)
 
 cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-.PHONY: cedille-libs
-cedille-lib: cedille $(CEDLIB)
+cedille-lib: cedille $(CEDLIB) $(ELABLIB)
 
-cedille-newlib: cedille $(CEDNEWLIB)
-
-.PHONY: %.ced
 %.ced : FORCE
+	bin/cedille -e $@ $(ELABDIR)
+
+%.cdle : FORCE
 	bin/cedille $@
+
+ECHONAMES:
+	@echo $(ELABLIB)
 
 FORCE:
 

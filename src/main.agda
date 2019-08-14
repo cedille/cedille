@@ -486,15 +486,18 @@ module main-with-options
         (Right de) → {!!}
 -}
 
+  processFile : string → IO toplevel-state
+  processFile input-filename =
+    checkFile progressUpdate (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename)
+    (cedille-options.options.include-path options))) input-filename ff
 
   -- function to process command-line arguments
   processArgs : 𝕃 string → IO ⊤
 
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
-    canonicalizePath input-filename >>= λ input-filename →
-    checkFile progressUpdate (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename) (cedille-options.options.include-path options)))
-      input-filename ff {- should-print-spans -} >>= finish input-filename
+    canonicalizePath input-filename >>= λ input-filename' →
+    processFile input-filename' >>= finish input-filename
     where finish : string → toplevel-state → IO ⊤
           finish input-filename s = --return triv
             let ie = get-include-elt s input-filename in
@@ -502,11 +505,18 @@ module main-with-options
             then die (string-to-𝕃char ("Compilation Failed"))
             else return triv
 
+  -- FIXME: For some reason the parameters get here reversed (?)
+  processArgs (to :: fm :: "-e" :: []) =
+    canonicalizePath fm >>= λ fm' →
+    processFile fm' >>= λ st →
+    elab-all st fm' to >>r triv
+
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))
 
   -- all other cases are errors
-  processArgs xs = putStrLn ("Run with the name of one file to process, or run with no command-line arguments and enter the\n"
+  processArgs xs = putStrLn ("Run with the name of one file to process,"
+                           ^ "or run with no command-line arguments and enter the\n"
                            ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
   main' : 𝕃 string → IO ⊤
   main' args =

@@ -5,7 +5,7 @@ cache:
   directories:
   - $HOME/.ghc
   - $HOME/.cabal
-  - ${TRAVIS_BUILD_DIR}/bin
+  - bin
 
 before_install:
   - export PATH=~/.cabal/bin:/opt/cabal/$CABAL_VER/bin:/opt/ghc/$GHC_VER/bin:$PATH
@@ -32,4 +32,4 @@ install:
 
 script:
   - make
-  - make cedille-newlib
+  - make cedille-lib
