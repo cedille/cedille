@@ -92,6 +92,7 @@ import System.Environment
   'μ'        { Token $$ TMu }
   'μP'       { Token $$ TMuP }
   '|'        { Token $$ TPipe }
+  '&'      { Token $$ TAnd }
 %%
   
 File :: { File }
@@ -140,8 +141,15 @@ KParams :: { Params }
        :                                { [] }
        | KDecl KParams                  { $1 : $2 }
 
-DefDatatype :: { DefDatatype }
-    : 'data' var MParams ':' Kind '=' OptPipe Ctrs  { DefDatatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8 }
+DefDatatype :: { [ DefDatatype ] }
+: 'data' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3) }
+
+OptMutualDefDatatype :: { [ DefDatatype ] }
+  : { [] }
+| '&' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3 }
+
+OneDatatype :: { DefDatatypeA }
+  : var MParams ':' Kind '=' OptPipe Ctrs { DefDatatypeA (tPosTxt $1) (tTxt $1) $2 $3 $6 }
 
 Ctr :: { Ctr }
     : var ':' Type    { Ctr (tPosTxt $1) (tTxt $1) $3 }
@@ -313,10 +321,18 @@ Pterm :: { Term }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3) }
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
-      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (IsMu (tPosTxt $2) (tTxt $2)) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8) }
+      | 'μ'  OneMu OptMoreMu { Mu ((oneMuAddStartingPos (pos2Txt $1) $2) : $3) }
       | 'μP' MaybeTermAngle Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (IsMu' $2) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
       | '●'                             { Hole (pos2Txt $1) }
       
+OneMu :: { OneMuA }
+  : Bvar '.' Term Motive '{' CasesAux '}' 
+  { OneMuA (IsMu (tPosTxt $1) (tTxt $1)) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)  }
+
+OptMoreMu :: { [ OneMu ]}
+  : { [] }
+  | '&' OneMu OptMoreMu { (oneMuAddStartingPos (pos2Txt $1) $2) : $3 }
+
 Lterms :: { [Lterm] }
        :                                { [] }
        |     Lterm Lterms               { Lterm False $1 : $2 }
@@ -368,6 +384,12 @@ LKind :: { Kind }
 --             | '(' LiftingType ')'                { LiftParens  (pos2Txt $1) $2 (pos2Txt1 $3)}
 
 {
+defDatatypeAddStartingPos :: Text -> DefDatatypeA -> DefDatatype
+defDatatypeAddStartingPos p (DefDatatypeA p' v ps k cs) = DefDatatype p p' v ps k cs
+
+oneMuAddStartingPos :: Text -> OneMuA -> OneMu
+oneMuAddStartingPos p (OneMuA i t mt p2 cs p3) = OneMu p i t mt p2 cs p3
+
 getPos :: Alex PosInfo
 getPos = Alex $ \ s -> return (s , pos2Txt0(alex_pos s))
 

@@ -41,6 +41,7 @@ token :-
       <0> μ                                     { mkTokenEmpty TMu           }
       <0> μ\'                                   { mkTokenEmpty TMuP          }
       <0> \|                                    { mkTokenEmpty TPipe         }            
+      <0> \&                                    { mkTokenEmpty TAnd          }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
       <0> module                                { mkTokenEmpty TModule       }
@@ -185,6 +186,7 @@ data TokenClass =
      |  TMu
      |  TMuP
      |  TPipe     
+     |  TAnd
      |  TEOF
      deriving Eq
 
@@ -222,6 +224,7 @@ instance Show TokenClass where
   show (TMu)         = "TMu"
   show (TMuP)        = "TMuP"
   show (TPipe)       = "TPipe"      
+  show (TAnd)        = "TAnd"      
   show (TEOF)        = "TEOF"
 
 data AlexUserState = AlexUserState {

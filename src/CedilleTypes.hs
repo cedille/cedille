@@ -28,13 +28,15 @@ data File = Module Imports PosInfo PosInfo Var Params Cmds PosInfo deriving Show
 data Cmd =
     CmdKind PosInfo Var Params Kind PosInfo
   | CmdDef Opacity Def PosInfo
-  | CmdData DefDatatype PosInfo
+  | CmdData [DefDatatype] PosInfo
   | CmdImport Imprt
   deriving Show
 
 data Ctr = Ctr PosInfo Var Type deriving Show
 
 data DefDatatype = DefDatatype PosInfo PosInfo Var Params Kind Ctrs deriving Show
+
+data DefDatatypeA = DefDatatypeA PosInfo Var Params Kind Ctrs deriving Show
 
 data ImportAs = ImportAs PosInfo Var deriving Show
 data Imprt = Import PosInfo OptPublic PosInfo Fpth (Maybe ImportAs) Args PosInfo deriving Show
@@ -77,6 +79,10 @@ data PosTerm = PosTerm Term PosInfo deriving Show
 
 data IsMu = IsMu PosInfo Var | IsMu' (Maybe Term) deriving Show
 
+data OneMu = OneMu PosInfo IsMu Term (Maybe Type) PosInfo Cases PosInfo
+
+data OneMuA = OneMuA IsMu Term (Maybe Type) PosInfo Cases PosInfo
+
 data Term =
     App Term MaybeErased Term
   | AppTp Term Type
@@ -95,7 +101,7 @@ data Term =
   | Rho PosInfo RhoHnf (Maybe [Num]) Term (Maybe Guide) Term
   | Sigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
-  | Mu PosInfo IsMu Term (Maybe Type) PosInfo Cases PosInfo
+  | Mu [OneMu]
   | Var PosInfo Var
   deriving Show
 
