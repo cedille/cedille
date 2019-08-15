@@ -18,6 +18,8 @@ src/templates/TemplatesCompiler
 cedille-deb-pkg
 cedille-deb-pkg.deb
 cedille-mac-pkg
+cedille-src-pkg
+cedille-src-pkg.zip
 .DS_Store
 *.aux
 *.bbl

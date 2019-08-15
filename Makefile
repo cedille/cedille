@@ -98,7 +98,10 @@ libraries: ./ial/ial.agda-lib
 	./create-libraries.sh
 
 ./ial/ial.agda-lib:
-	git submodule update --init --recursive
+	if ! [ -f "./ial/ial.agda-lib" ];          \
+	then                                       \
+	  git submodule update --init --recursive; \
+	fi
 
 ./src/CedilleParser.hs: parser/src/CedilleParser.y ./src/CedilleLexer.hs
 	cd parser; make cedille-parser
@@ -184,16 +187,29 @@ cedille-mac-pkg: cedille ./core/cedille-core-static
 	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
 	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
 
-cedille-src-pkg: libraries ./ial/ial.agda-lib
-	rm -rf cedille-src.zip cedille-src.tar.gz
-	mkdir -p ./cedille-src-pkg
-	cp -R ./ial/ ./cedille-src-pkg/
-	cp $(SRC) ./cedille-src-pkg
+cedille-src-pkg: clean ./ial/ial.agda-lib
+	rm -f cedille-src-pkg.zip
+	mkdir cedille-src-pkg
+	rsync -av --exclude cedille-src-pkg --exclude .git* ./ cedille-src-pkg/
 	zip -r cedille-src-pkg.zip cedille-src-pkg
 	rm -rf cedille-src-pkg
 
+.PHONY: clean
 clean:
-	git clean -Xfd # only remove .gitignore files and directories
+	if ! [ "$$(git rev-parse --is-inside-work-tree 1> /dev/null)" ]; \
+	then                                                           \
+	  git clean -Xfd;                                              \
+	else                                                           \
+	  rm -f cedille $(SRCDIR)/main $(OBJ); cd parser; make clean;  \
+	  cd ..;                                                       \
+	  rm -rf cedille-deb-pkg; rm -rf cedille-src-pkg;              \
+	  rm -rf cedille-src-pkg.zip                                   \
+	  rm -f src/*.hi src/*.o; rm -rf cedille-mode/*.elc;           \
+    rm -f *.zip;                                                 \
+	fi
+
+mrclean: clean
+	rm -f $(TEMPLATESDIR)/TemplatesCompiler
 
 #lines:
 #	wc -l $(AGDASRC:%=$(SRCDIR)//%) $(GRAMMARS:%=$(SRCDIR)//%) $(CEDILLE_ELISP)
