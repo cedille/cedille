@@ -493,7 +493,6 @@ module main-with-options
 
   -- function to process command-line arguments
   processArgs : 𝕃 string → IO ⊤
-
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
     canonicalizePath input-filename >>= λ input-filename' →
@@ -508,8 +507,11 @@ module main-with-options
   -- FIXME: For some reason the parameters get here reversed (?)
   processArgs (to :: fm :: "-e" :: []) =
     canonicalizePath fm >>= λ fm' →
-    processFile fm' >>= λ st →
-    elab-all st fm' to >>r triv
+    processFile fm' >>= λ s →
+    let ie = get-include-elt s fm' in
+    if include-elt.err ie
+    then die (string-to-𝕃char ("Elaboration Failed"))
+    else elab-all s fm' to >>r triv
 
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))

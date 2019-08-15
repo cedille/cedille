@@ -94,7 +94,7 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced')
+CEDLIB = 'new-lib/data/nat.ced' #$(shell find $(CEDLIBDIR) -name '*.ced')
 
 # FIXME: For some reason this variable expansion is eager instead of lazy
 ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
@@ -157,11 +157,11 @@ cedille-static: 	$(CEDILLE_DEPS)
 
 tests: cedille elab-lib
 
+# FIXME: Workaround for $(ELABLIB) being eager
 elab-lib:
 	mkdir -p ${ELABDIR}
-	make ${CEDLIB}
-	# FIXME: Workaround for $(ELABLIB) being eager
-	make $(ELABDIR)/*
+	${MAKE} ${CEDLIB}
+	${MAKE} $(ELABDIR)/*
 
 
 %.ced : FORCE
