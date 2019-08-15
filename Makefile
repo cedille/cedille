@@ -94,7 +94,7 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB = 'new-lib/data/nat.ced' #$(shell find $(CEDLIBDIR) -name '*.ced')
+CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced')
 
 # FIXME: For some reason this variable expansion is eager instead of lazy
 ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
