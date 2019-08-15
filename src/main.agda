@@ -124,7 +124,7 @@ module main-with-options
   (compileTime : UTC)
   (options-filepath : filepath)
   (options : cedille-options.options)
-  (die : 𝕃 char → IO ⊤) where
+  (die : {A : Set} → 𝕃 char → IO A) where
 
   open import ctxt
   --open import instances
@@ -491,27 +491,26 @@ module main-with-options
     checkFile progressUpdate (new-toplevel-state (cedille-options.include-path-insert (takeDirectory input-filename)
     (cedille-options.options.include-path options))) input-filename ff
 
+  typecheckFile : string → IO toplevel-state
+  typecheckFile f =
+    processFile f >>= λ s →
+    let ie = get-include-elt s f in
+      if include-elt.err ie
+      then die (string-to-𝕃char ("Elaboration Failed"))
+      else return s
+
   -- function to process command-line arguments
   processArgs : 𝕃 string → IO ⊤
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
   processArgs (input-filename :: []) =
     canonicalizePath input-filename >>= λ input-filename' →
-    processFile input-filename' >>= finish input-filename
-    where finish : string → toplevel-state → IO ⊤
-          finish input-filename s = --return triv
-            let ie = get-include-elt s input-filename in
-            if include-elt.err ie
-            then die (string-to-𝕃char ("Compilation Failed"))
-            else return triv
+    typecheckFile input-filename' >>r triv
 
   -- FIXME: For some reason the parameters get here reversed (?)
   processArgs (to :: fm :: "-e" :: []) =
     canonicalizePath fm >>= λ fm' →
-    processFile fm' >>= λ s →
-    let ie = get-include-elt s fm' in
-    if include-elt.err ie
-    then die (string-to-𝕃char ("Elaboration Failed"))
-    else elab-all s fm' to >>r triv
+    typecheckFile fm' >>= λ s →
+    elab-all s fm' to >>r triv
 
   -- this is the case where we will go into a loop reading commands from stdin, from the fronted
   processArgs [] = readCommandsFromFrontend (new-toplevel-state (cedille-options.options.include-path options))
@@ -531,7 +530,7 @@ postulate
   setStdinNewlineMode : IO ⊤
   compileTime : UTC
   templatesDir : filepath
-  die : 𝕃 char → IO ⊤
+  die : {A : Set} → 𝕃 char → IO A
 
 {-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
 {-# FOREIGN GHC import qualified System.IO #-}
@@ -540,7 +539,7 @@ postulate
 {-# FOREIGN GHC import qualified Data.Time.Format #-}
 {-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
 {-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
-{-# COMPILE GHC die = System.Exit.die #-}
+{-# COMPILE GHC die = \ _ -> System.Exit.die #-}
 {-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
 {-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
 {-# COMPILE GHC compileTime =
