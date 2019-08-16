@@ -77,9 +77,7 @@ data Type =
 
 data PosTerm = PosTerm Term PosInfo deriving Show
 
-data OneMu = OneMu PosInfo PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo deriving Show
-
-data OneMuA = OneMuA PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo deriving Show
+data MotiveCases = MotiveCases (Maybe Type) PosInfo Cases PosInfo deriving Show
 
 data Term =
     App Term MaybeErased Term
@@ -99,8 +97,8 @@ data Term =
   | Rho PosInfo RhoHnf (Maybe [Num]) Term (Maybe Guide) Term
   | Sigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
-  | Mu [OneMu]
-  | MuPrime PosInfo (Maybe Term) Term (Maybe Type) PosInfo Cases PosInfo
+  | Mu PosInfo PosInfo Var Term [MotiveCases] 
+  | MuPrime PosInfo (Maybe Term) Term MotiveCases
   | Var PosInfo Var
   deriving Show
 

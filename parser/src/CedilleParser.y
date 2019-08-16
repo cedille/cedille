@@ -321,17 +321,17 @@ Pterm :: { Term }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3) }
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
-      | 'μ'  OneMu OptMoreMu { Mu ((oneMuAddStartingPos (pos2Txt $1) $2) : $3) }
-      | 'μP' MaybeTermAngle Term Motive '{' CasesAux '}' { MuPrime (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+      | 'μ'  Bvar '.' Term MotiveCases MoreMotiveCases { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 ($5 : $6) }
+      | 'μP' MaybeTermAngle Term MotiveCases { MuPrime (pos2Txt $1) $2 $3 $4  }
       | '●'                             { Hole (pos2Txt $1) }
       
-OneMu :: { OneMuA }
-  : Bvar '.' Term Motive '{' CasesAux '}' 
-  { OneMuA (tPosTxt $1) (tTxt $1) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7)  }
+MotiveCases :: { MotiveCases }
+  : Motive '{' CasesAux '}' 
+  { MotiveCases $1 (pos2Txt1 $2) $3 (pos2Txt1 $4)  }
 
-OptMoreMu :: { [ OneMu ]}
+MoreMotiveCases :: { [ MotiveCases ]}
   : { [] }
-  | '&' OneMu OptMoreMu { (oneMuAddStartingPos (pos2Txt $1) $2) : $3 }
+  | '&' MotiveCases MoreMotiveCases { $2 : $3 }
 
 Lterms :: { [Lterm] }
        :                                { [] }
@@ -386,9 +386,6 @@ LKind :: { Kind }
 {
 defDatatypeAddStartingPos :: Text -> DefDatatypeA -> DefDatatype
 defDatatypeAddStartingPos p (DefDatatypeA p' v ps k cs) = DefDatatype p p' v ps k cs
-
-oneMuAddStartingPos :: Text -> OneMuA -> OneMu
-oneMuAddStartingPos p (OneMuA p' i t mt p2 cs p3) = OneMu p p' i t mt p2 cs p3
 
 getPos :: Alex PosInfo
 getPos = Alex $ \ s -> return (s , pos2Txt0(alex_pos s))
