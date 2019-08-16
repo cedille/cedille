@@ -496,7 +496,7 @@ module main-with-options
     processFile f >>= λ s →
     let ie = get-include-elt s f in
       if include-elt.err ie
-      then die (string-to-𝕃char ("Elaboration Failed"))
+      then die (string-to-𝕃char ("Type Checking Failed"))
       else return s
 
   -- function to process command-line arguments
@@ -517,7 +517,7 @@ module main-with-options
 
   -- all other cases are errors
   processArgs xs = putStrLn ("Run with the name of one file to process,"
-                           ^ "or run with no command-line arguments and enter the\n"
+                           ^ " or run with no command-line arguments and enter the\n"
                            ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
   main' : 𝕃 string → IO ⊤
   main' args =
