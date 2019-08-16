@@ -192,6 +192,7 @@ cedille-src-pkg: clean ./ial/ial.agda-lib
 	mkdir cedille-src-pkg
 	rsync -av --exclude cedille-src-pkg --exclude .git* ./ cedille-src-pkg/
 	zip -r cedille-src-pkg.zip cedille-src-pkg
+	tar -czvf cedille-src-pkg.tar.gz cedille-src-pkg
 	rm -rf cedille-src-pkg
 
 .PHONY: clean
