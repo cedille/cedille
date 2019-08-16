@@ -191,7 +191,12 @@ cedille-mac-pkg: cedille ./core/cedille-core-static
 cedille-src-pkg: clean ./ial/ial.agda-lib
 	rm -f cedille-src-pkg.zip
 	mkdir cedille-src-pkg
-	rsync -av --exclude cedille-src-pkg --exclude .git* ./ cedille-src-pkg/
+	rsync -av --exclude cedille-src-pkg --exclude .git* --exclude *.cede \
+	  BUILD.md .cedille cedille-mode cedille-mode.el cedille-tests CHANGELOG.md \
+	  core create-libraries.sh docs encodings ial issues language-overview   \
+	  lib LICENSE Makefile new-lib packages parser README.md release-procedure.md \
+	  script se-mode src .travis.yml \
+    cedille-src-pkg/
 	zip -r cedille-src-pkg.zip cedille-src-pkg
 	rm -rf cedille-src-pkg
 
