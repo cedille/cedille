@@ -193,7 +193,7 @@ cedille-src-pkg: clean ./ial/ial.agda-lib
 	mkdir cedille-src-pkg
 	rsync -av --exclude cedille-src-pkg --exclude .git* --exclude *.cede \
 	  BUILD.md .cedille cedille-mode cedille-mode.el cedille-tests CHANGELOG.md \
-	  core create-libraries.sh docs encodings ial issues language-overview   \
+	  core create-libraries.sh docs ial issues language-overview   \
 	  lib LICENSE Makefile new-lib packages parser README.md release-procedure.md \
 	  script se-mode src .travis.yml \
     cedille-src-pkg/
