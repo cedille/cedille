@@ -7,6 +7,7 @@ SRCDIR=src
 CEDLIBDIR=new-lib
 
 ELABDIR=elab
+LANGOVERVIEWDIR=language-overview
 
 AUTOGEN = \
 	cedille.agda \
@@ -94,7 +95,8 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced')
+CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced') 
+LANGOVERVIEWLIB=$(shell find $(LANGOVERVIEWDIR) -name '*.ced')
 
 # FIXME: For some reason this variable expansion is eager instead of lazy
 ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
@@ -155,14 +157,26 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-tests: cedille elab-lib
+tests: cedille elab-all
+
 
 # FIXME: Workaround for $(ELABLIB) being eager
-elab-lib:
-	mkdir -p ${ELABDIR}
+elab-all:
+	#mkdir -p ${ELABDIR}
+	$(MAKE) elab-lib
+	$(MAKE) clean-elabdir
+	$(MAKE) elab-langoverview
+
+elab-lib: 
 	${MAKE} ${CEDLIB}
 	${MAKE} $(ELABDIR)/*
 
+elab-langoverview:
+	${MAKE} $(LANGOVERVIEWLIB)
+	${MAKE} $(ELABDIR)/*
+
+clean-elabdir: FORCE
+	rm $(ELABDIR)/*
 
 %.ced : FORCE
 	bin/cedille -e $@ $(ELABDIR)

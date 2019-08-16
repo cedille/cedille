@@ -53,7 +53,7 @@ ctt : cBool = Λ X. λ t. λ f. t.
 cff : cBool = Λ X. λ t. λ f. f.
 
 rec-tt-lemma-works : { ctt ctt cff ≃ ctt } = β.
-rec-tt-lemma-fails : { ctt ctt cff ≃ ctt } = close ctt - β.
+-- rec-tt-lemma-fails : { ctt ctt cff ≃ ctt } = close ctt - β.
 
 {- This can be convenient if you want the checker to avoid unfolding some
    definition with a huge (head-)normal form. -}

@@ -19,9 +19,9 @@ num2 : Nat = [num1 = suc zero] - [num1' = suc zero] - suc num1.
 -- helpful for carrying out proofs with erased premises, e.g.
 -}
 
-eq-trans1-fail : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {x ≃ z}
-  = Λ A. λ x. λ y. λ z. Λ eqxy. Λ eqyz. -- <-- error: occurs free in the erasure of body
-    [eqxz : {x ≃ z} = ρ eqxy - eqyz] - eqxz.
+-- eq-trans1-fail : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {x ≃ z}
+  -- = Λ A. λ x. λ y. λ z. Λ eqxy. Λ eqyz. -- <-- error: occurs free in the erasure of body
+    -- [eqxz : {x ≃ z} = ρ eqxy - eqyz] - eqxz.
 
 eq-trans1 : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {x ≃ z}
   = Λ A. λ x. λ y. λ z. Λ eqxy. Λ eqyz.
@@ -31,9 +31,9 @@ eq-trans1 : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {
 -- its body, you can use {} instead of [] for the let expression
 -}
 
-eq-trans2-fail : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {x ≃ z}
-  = Λ A. λ x. λ y. λ z. Λ eqxy. Λ eqyz.
-    {eqxz : {x ≃ z} = ρ eqxy - eqyz} - eqxz.
+-- eq-trans2-fail : ∀ A: ★. Π x: A. Π y: A. Π z: A. {x ≃ y} ➾ {y ≃ z} ➾ {x ≃ z}
+  -- = Λ A. λ x. λ y. λ z. Λ eqxy. Λ eqyz.
+    -- {eqxz : {x ≃ z} = ρ eqxy - eqyz} - eqxz.
 --   ^--^
 --   |__|__ error: occurs free in the body
 
