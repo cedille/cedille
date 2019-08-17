@@ -86,7 +86,7 @@ test4 ◂ Bool = const tt id .
       3. the information from preceding arguments
 -}
 
-test5-fail ◂ Bool = const tt (λ x. x) .
+-- test5-fail ◂ Bool = const tt (λ x. x) .
 test5      ◂ Bool = const tt (λ x: Bool. x) .
 
 {-    Here these three sources do not provide enough info to check the argument
@@ -97,7 +97,7 @@ test5      ◂ Bool = const tt (λ x: Bool. x) .
       type quantifier or arrow
 -}
 
-test6-fail ◂ Bot ➔ Bool = λ bot. bot tt .
+-- test6-fail ◂ Bot ➔ Bool = λ bot. bot tt .
 test6      ◂ Bot ➔ Bool = λ bot. bot ·Unit tt .
 
 {-    in `test6-fail` the type of the head does not have an arrow in it, so we
@@ -113,13 +113,13 @@ test6      ◂ Bot ➔ Bool = λ bot. bot ·Unit tt .
       meta-variables are never propagated out of a maximal application.
 -}
 
-test7-fail ◂ (∀ X: ★. ∀ Y: ★. Y ➔ Y) ➔ Bool
-  = λ f. f tt .
+-- test7-fail ◂ (∀ X: ★. ∀ Y: ★. Y ➔ Y) ➔ Bool
+  -- = λ f. f tt .
 
 test7 ◂ (∀ X: ★. ∀ Y: ★. Y ➔ Y) ➔ Bool
   = λ f. f ·Unit tt .
 
-test8-fail = mkpair tt .
+-- test8-fail = mkpair tt .
 
 test8 = Λ Y: ★. mkpair ·Bool ·Y tt .
 

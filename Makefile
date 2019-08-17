@@ -1,6 +1,13 @@
+SHELL:=/bin/bash
+
 AGDA=agda
 
 SRCDIR=src
+
+CEDLIBDIR=new-lib
+
+ELABDIR=elab
+LANGOVERVIEWDIR=language-overview
 
 AUTOGEN = \
 	cedille.agda \
@@ -88,6 +95,12 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
+CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced') 
+LANGOVERVIEWLIB=$(shell find $(LANGOVERVIEWDIR) -name '*.ced')
+
+# FIXME: For some reason this variable expansion is eager instead of lazy
+ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
+
 OBJ = $(SRC:%.agda=%.agdai)
 
 LIB = --library-file=libraries --library=ial --library=cedille
@@ -121,7 +134,7 @@ libraries: ./ial/ial.agda-lib
 $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/CedilleParser.hs
 	cd $(TEMPLATESDIR); ghc -dynamic --make -i../ TemplatesCompiler.hs
 
-./src/Templates.hs: $(TEMPLATES) $(TEMPLATESDIR)/TemplatesCompiler 
+./src/Templates.hs: $(TEMPLATESDIR)/TemplatesCompiler
 	$(TEMPLATESDIR)/TemplatesCompiler
 
 ./core/cedille-core: $(CEDILLE_CORE)
@@ -130,17 +143,51 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./core/cedille-core-static: $(CEDILLE_CORE)
 	cd core/; make cedille-core-static; cd ../
 
-CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
+CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
-cedille:	$(CEDILLE_DEPS)
+cedille: bin bin/cedille
+
+bin :
+	mkdir -p bin
+
+bin/cedille: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
 cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
+
+tests: cedille elab-all
+
+
+# FIXME: Workaround for $(ELABLIB) being eager
+elab-all:
+	#mkdir -p ${ELABDIR}
+	$(MAKE) elab-lib
+	$(MAKE) clean-elabdir
+	$(MAKE) elab-langoverview
+
+elab-lib: 
+	${MAKE} ${CEDLIB}
+	${MAKE} $(ELABDIR)/*
+
+elab-langoverview:
+	${MAKE} $(LANGOVERVIEWLIB)
+	${MAKE} $(ELABDIR)/*
+
+clean-elabdir: FORCE
+	rm $(ELABDIR)/*
+
+%.ced : FORCE
+	bin/cedille -e $@ $(ELABDIR)
+
+%.cdle : FORCE
+	bin/cedille $@
+
+FORCE:
 
 .PHONY: cedille-docs
 cedille-docs: docs/info/cedille-info-main.info

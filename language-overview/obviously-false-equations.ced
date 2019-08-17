@@ -11,5 +11,5 @@ ff' ◂ Bool' = Λ X . λ a . λ b . b.
    is interpreted as meaning that the sides of the equation
    are beta-eta equal. -}
 
-BoolContra ◂ {tt' ≃ ff'} ➾ False =
-  Λ e . δ - e . 
+-- BoolContra ◂ {tt' ≃ ff'} ➾ False =
+--   Λ e . δ - e . 
