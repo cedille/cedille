@@ -1,0 +1,32 @@
+module categories.functor.
+
+import ../stdcore.
+
+Fmap : (★ ➔ ★) ➔ ★
+= λ F: ★ ➔ ★. ∀ X: ★. ∀ Y: ★. (X ➔ Y) ➔ F ·X ➔ F ·Y.
+
+FmapId : Π F: ★ ➔ ★. Fmap ·F ➔ ★
+= λ F: ★ ➔ ★. λ fmap: Fmap ·F.
+  ∀ X: ★. ∀ Y: ★. Π c: X ➔ Y. (Π x: X. {c x ≃ x}) ➔ Π xs: F ·X. {fmap c xs ≃ xs}.
+
+FmapComp : Π F: ★ ➔ ★. Fmap ·F ➔ ★
+= λ F: ★ ➔ ★. λ fmap: Fmap ·F.
+  ∀ X: ★. ∀ Y: ★. ∀ Z: ★. Π g: Y ➔ Z. Π f: Z ➔ Y.
+  Π xs: F ·X. {fmap f (fmap g xs) ≃ fmap (λ x. f (g x)) xs}.
+
+data RawFunctor (F: ★ ➔ ★) : ★
+= mkRawFunctor : Fmap ·F ➔ RawFunctor.
+
+data Functor (F: ★ ➔ ★) : ★
+= mkFunctor : Π fmap: Fmap ·F. FmapId ·F fmap ➾ FmapComp ·F fmap ➾ Functor.
+
+_ : {mkRawFunctor ≃ mkFunctor} = β.
+
+f2raw : ∀ F: ★ ➔ ★. Cast ·(Functor ·F) ·(RawFunctor ·F)
+= Λ F.
+  intrCastI
+    -(λ fu.
+      μ' fu {
+      | mkFunctor fmap -fid -fcomp ➔
+        [ mkRawFunctor fmap , β{mkRawFunctor fmap} ]
+      }).
