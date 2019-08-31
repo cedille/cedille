@@ -15,5 +15,6 @@
 (require 'cedille-mode-normalize)
 (require 'cedille-core-mode)
 ;(require 'cedille-mode-beta-reduce)
+(require 'cedille-mode-synthesis)
 
 (provide 'cedille-mode-library)
