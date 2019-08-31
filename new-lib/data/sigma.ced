@@ -20,3 +20,9 @@ uncurry : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★.
 = Λ A. Λ B. Λ X. λ f. λ p. μ' p {
   | pair a b ➔ f a b
   }.
+
+pairMap
+: ∀ A: ★. ∀ B: ★. ∀ C: ★. ∀ D: ★.
+  (A ➔ C) ➔ (B ➔ D) ➔ Pair ·A ·B ➔ Pair ·C ·D
+= Λ A. Λ B. Λ C. Λ D. λ f. λ g. λ p.
+  μ' p {pair a b ➔ pair (f a) (g b)}.
