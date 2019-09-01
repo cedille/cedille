@@ -10,18 +10,17 @@
   (cdr (assoc 'name data)))
 
 (defun cedille-mode-synth-quantifiers ()
-  "This function will syntehsize the proper lambdas that match
+  "This function will synthesize the proper lambdas that match
 the quantifiers at the given hole"
   (interactive)
   (when se-mode-selected
-    (let* (
-           (term (se-mode-selected))
+    (let* ((term (se-mode-selected))
            (d (se-term-to-json term))
            (name (se-term-name term))
            (type (get-span-type d))
            )
       (when (string= name 'Hole)
-        (insert type))
+        (insert-before-markers type))
       )))
 
 (provide 'cedille-mode-synthesis)
