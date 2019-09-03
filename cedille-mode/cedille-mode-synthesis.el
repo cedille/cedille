@@ -49,7 +49,8 @@
   "This function will synthesize the proper lambdas that match
 the quantifiers at the given hole"
   (interactive)
-  (when se-mode-selected
+  (if se-mode-not-selected
+      (message "Please select a Hole to perform synthesis on")
     (let* ((term (se-mode-selected))
            (d (se-term-to-json term))
            (name (se-term-name term))
