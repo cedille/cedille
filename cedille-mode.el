@@ -730,6 +730,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "R") #'cedille-mode-select-previous-error)
   (se-navi-define-key mode (kbd "t") #'cedille-mode-select-first-error-in-file)
   (se-navi-define-key mode (kbd "T") #'cedille-mode-select-last-error-in-file)
+  (se-navi-define-key mode (kbd "l") #'cedille-mode-synth-quantifiers)
   (se-navi-define-key mode (kbd "c") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode nil t))
   (se-navi-define-key mode (kbd "C") (make-cedille-mode-buffer (cedille-mode-context-buffer) lambda cedille-context-view-mode t t))
   (se-navi-define-key mode (kbd "s") (make-cedille-mode-buffer (cedille-mode-summary-buffer) cedille-mode-summary cedille-summary-view-mode nil nil))
