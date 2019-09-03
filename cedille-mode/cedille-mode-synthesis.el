@@ -4,24 +4,6 @@
 
 (require 'subr-x)
 
-;; This function was taken as is from
-;; https://emacs.stackexchange.com/questions/33892/replace-element-of-alist-using-equal-even-if-key-does-not-exist/33893#33893
-(defun alist-set (key val alist &optional symbol)
-  "Set property KEY to VAL in ALIST. Return new alist.
-This creates the association if it is missing, and otherwise sets
-the cdr of the first matching association in the list. It does
-not create duplicate associations. By default, key comparison is
-done with `equal'. However, if SYMBOL is non-nil, then `eq' is
-used instead.
-
-This method may mutate the original alist, but you still need to
-use the return value of this method instead of the original
-alist, to ensure correct results."
-  (if-let ((pair (if symbol (assq key alist) (assoc key alist))))
-      (setcdr pair val)
-    (push (cons key val) alist))
-  alist)
-
 (defun get-span-type(data)
   "Filter out special attributes from the data in a span"
   (cdr (assoc 'expected-type data)))
@@ -30,32 +12,37 @@ alist, to ensure correct results."
   (cdr (assoc 'name data)))
 
 (defun desambiguate-lambdas(term)
-  (setq vars nil)
   (setq start 0)
-  (while (string-match "λ \\(.*\\) : .* \\." term start)
-    (setq start (match-end 0))
+  ;; make sure the hashtable will use string equality instead of object equality
+  (setq vars-hash (make-hash-table :test 'equal))
+
+  (while (string-match "λ \\([^:]*?\\) :" term start)
     (setq var (match-string 1 term))
-    (if (assoc var vars)
-        (progn ;; if branch
-          (setq occs (assoc var vars))
-          (alist-set var (+1 occs) vars) ;; update the value of key=var
-          )
-      (cons '(var . 0) vars) ;; else branch
+    (setq varocc (gethash var vars-hash))
+    (if (not varocc)
+        (puthash var 1 vars-hash)
+      (puthash var (1+ varocc) vars-hash)
+      (setq newvar (concatenate 'string var (format "%d" varocc)))
+      (setq rep0 (concatenate 'string ".*λ \\(" var))
+      (setq rep (concatenate 'string rep0 "\\) :"))
+      (setq term (concat (substring term 0 start)
+                         (replace-regexp-in-string rep newvar term nil nil 1 start)))
       )
-    )
+    (setq start (match-end 0)))
+  term
   )
 
 (defun synth-hole(type)
   (setq type (replace-regexp-in-string "∀" "Λ" type)) ;; Replace foralls
   (setq type (replace-regexp-in-string "Π" "λ" type)) ;; Replace Pis
-  (while (string-match "\\. \\([^\\.➔]*\\) ➔" type) ;; Create lambdas from arrows
+  (while (string-match "\\. \\([^\\.➔]*?\\) ➔" type) ;; Create lambdas from arrows
     (setq s (downcase (match-string 1 type)))
     (setq s (concatenate 'string ". λ " s))
     (setq s (concatenate 'string s " : \\1 ."))
     (setq type (replace-match s nil nil type))
     )
-  (replace-regexp-in-string "\\.[^\\.]*$" ". " type) ;; Delete the final return type
-  ;; (desambiguate-lambdas type)
+  (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
+  (desambiguate-lambdas type)
   )
 
 (defun cedille-mode-synth-quantifiers ()
