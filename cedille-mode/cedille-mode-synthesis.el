@@ -16,20 +16,21 @@
   ;; make sure the hashtable will use string equality instead of object equality
   (setq vars-hash (make-hash-table :test 'equal))
 
-  (while (string-match "λ \\([^.]*?\\) ." term start)
+  (while (string-match "λ \\([^\\.]*\\) \\." term start)
     (setq var (match-string 1 term))
     (setq varocc (gethash var vars-hash))
+    (setq oldstart start)
+    (setq start (match-end 0))
     (if (not varocc)
         (puthash var 1 vars-hash)
       (puthash var (1+ varocc) vars-hash)
       ;; FIXME: Use re to build this regexp interactively
       (setq newvar (concatenate 'string var (format "%d" varocc)))
-      (setq rep0 (concatenate 'string ".*λ \\(" var))
-      (setq rep (concatenate 'string rep0 "\\) ."))
-      (setq term (concat (substring term 0 start)
-                         (replace-regexp-in-string rep newvar term nil nil 1 start)))
-      )
-    (setq start (match-end 0)))
+      (setq rep0 (concatenate 'string "λ \\(" var))
+      (setq rep (concatenate 'string rep0 "\\) .*"))
+      (setq term (concat (substring term 0 oldstart)
+                         (replace-regexp-in-string rep newvar term nil nil 1 oldstart)))
+      ))
   term
   )
 
@@ -41,14 +42,7 @@
   (replace-regexp-in-string "Π" "λ" type)
   )
 
-(defun erase-types(type)
-  (replace-regexp-in-string " : [^ ]*" "" type)
-  )
-
-(defun synth-hole(type)
-  (setq type (erase-types type))
-  (setq type (synth-foralls type))
-  (setq type (synth-pis type))
+(defun synth-arrows(type)
   (while (string-match "^.*?\\([[:alnum:]]+? ➔\\)" type) ;; Create lambdas from arrows
     (setq s (downcase (match-string 1 type)))
     (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
@@ -58,6 +52,25 @@
     (setq type (replace-match s nil nil type 1))
     )
   (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
+  )
+
+(defun synth-parens(type)
+  (while (string-match "^.*?\\(([^()]*?) ➔\\)" type)
+    (setq type (replace-match "λ f ." nil nil type 1))
+    )
+  type
+  )
+
+(defun erase-types(type)
+  (replace-regexp-in-string " : [^ ]*" "" type)
+  )
+
+(defun synth-hole(type)
+  (setq type (erase-types type))
+  (setq type (synth-foralls type))
+  (setq type (synth-pis type))
+  (setq type (synth-parens type))
+  (setq type (synth-arrows type))
   (desambiguate-lambdas type)
   )
 
