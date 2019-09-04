@@ -54,15 +54,42 @@
   (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
   )
 
+(defun find-closing-parens(type start)
+  (setq open_pars 1)
+  (setq pos (1+ start)) ;; start right after the first parens
+  (while (and (< pos (length type))(> open_pars 0))
+    (setq c (aref type pos))
+    (if (= c 40)
+        (setq open_pars (1+ open_pars))
+      (if (= c 41)
+          (setq open_pars (1- open_pars))))
+    (setq pos (1+ pos))
+
+    )
+  pos
+  )
+
+(defun find-first-parens(type)
+  (string-match "\\((\\)" type)
+  (match-beginning 1)
+  )
+
+;; This function is more complicated than simple regexes because
+;; the balancing parenthesis problem is not a regular language
 (defun synth-parens(type)
-  (while (string-match "^.*?\\(([^()]*?) ➔\\)" type)
-    (setq type (replace-match "λ f ." nil nil type 1))
+  (while (setq start (find-first-parens type))
+    (setq end (find-closing-parens type start))
+    (setq strhead (substring type 0 start))
+    (setq strtail (substring type (+ 2 end)))
+    (setq type (concatenate 'string strhead "λ f ."))
+    (setq type (concatenate 'string type strtail))
+    (string-match "" type) ;; clear the match for the next iteration
     )
   type
   )
 
 (defun erase-types(type)
-  (replace-regexp-in-string " : [^ ]*" "" type)
+  (replace-regexp-in-string " : [^.]*" "" type)
   )
 
 (defun synth-hole(type)
