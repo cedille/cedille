@@ -106,7 +106,7 @@
 the quantifiers at the given hole"
   (interactive)
   (if (null se-mode-selected)
-      (message "Please select a Hole to perform synthesis on")
+      (message "Error: must select a node")
     (let* ((term (se-mode-selected))
            (d (se-term-to-json term))
            (name (se-term-name term))
