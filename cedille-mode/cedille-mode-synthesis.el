@@ -49,12 +49,13 @@
   (setq type (erase-types type))
   (setq type (synth-foralls type))
   (setq type (synth-pis type))
-  (while (string-match "\\. \\([^\\.➔]*?\\) ➔" type) ;; Create lambdas from arrows
+  (while (string-match "^.*?\\([[:alnum:]]+? ➔\\)" type) ;; Create lambdas from arrows
     (setq s (downcase (match-string 1 type)))
+    (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
     ;; FIXME: Use re to build this regexp interactively
-    (setq s (concatenate 'string ". λ " s))
+    (setq s (concatenate 'string "λ " s))
     (setq s (concatenate 'string s " ."))
-    (setq type (replace-match s nil nil type))
+    (setq type (replace-match s nil nil type 1))
     )
   (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
   (desambiguate-lambdas type)
