@@ -7,8 +7,7 @@
 (defun get-span-typeorkind(data)
   "Filter out special attributes from the data in a span"
   (or (cdr (assoc 'expected-type data))
-           (cdr (assoc 'expected-kind data)))
-  )
+           (cdr (assoc 'expected-kind data))))
 
 (defun get-span-name(data)
   (cdr (assoc 'name data)))
@@ -30,17 +29,14 @@
                          (replace-regexp-in-string rep newvar term nil nil 1 start)))
       )
     (setq start (match-end 0)))
-  term
-  )
+  term)
 
 
 (defun synth-foralls(type)
-  (replace-regexp-in-string "∀" "Λ" type t)
-  )
+  (replace-regexp-in-string "∀" "Λ" type t))
 
 (defun synth-pis(type)
-  (replace-regexp-in-string "Π" "λ" type t)
-  )
+  (replace-regexp-in-string "Π" "λ" type t))
 
 (defun synth-arrows(type lamb arrow)
   (setq rep (format "[\\^\\.➾➔]?[ ]?\\(\\([^\\.➾➔]*\\) %s\\)" arrow))
@@ -59,12 +55,10 @@
     (set-match-data data)
     (setq type (replace-match newtxt t nil type 1))
     )
-  type
-  )
+  type)
 
 (defun delete-return-type(type)
-  (replace-regexp-in-string "\\.[^\\.]*$" ". " type)
-  )
+  (replace-regexp-in-string "\\.[^\\.]*$" ". " type))
 
 (defun find-closing-delim(type start delim-open delim-close)
   (setq open_delims_count 1)
@@ -77,9 +71,8 @@
         (setq open_delims_count (1+ open_delims_count))
       (if (= c ch_close)
           (setq open_delims_count (1- open_delims_count))))
-    (setq pos (1+ pos)) )
-  pos
-  )
+    (setq pos (1+ pos)))
+  pos)
 
 ;; This function is more complicated than simple regexes because
 ;; the balancing parenthesis problem is not a regular language
@@ -90,33 +83,26 @@
     (setq strtail (substring type end))
     (setq type (format "%s%s%s" strhead var strtail))
     )
-  type
-  )
+  type)
 
 
 (defun erase-types(type)
-  (replace-regexp-in-string ": [^.]*" "" type)
-  )
+  (replace-regexp-in-string ": [^.]*" "" type))
 
 (defun erase-iotas(type)
-  (replace-regexp-in-string "ι[^.]*?. " "" type)
-  )
+  (replace-regexp-in-string "ι[^.]*?. " "" type))
 
 (defun synth-parens(type)
-  (synth-func type "(" ")" "f")
-  )
+  (synth-func type "(" ")" "f"))
 
 (defun synth-eqs(type)
-  (synth-func type "{" "}" "eq")
-  )
+  (synth-func type "{" "}" "eq"))
 
 (defun synth-regular-arrows(type)
-  (synth-arrows type "λ" "➔")
-  )
+  (synth-arrows type "λ" "➔"))
 
 (defun synth-erased-arrows(type)
-  (synth-arrows type "Λ" "➾")
-  )
+  (synth-arrows type "Λ" "➾"))
 
 (defun synth-hole(type)
   (setq type (erase-types type))
@@ -128,8 +114,7 @@
   (setq type (synth-regular-arrows type))
   (setq type (synth-erased-arrows type))
   (setq type (delete-return-type type))
-  (desambiguate-lambdas type)
-  )
+  (desambiguate-lambdas type))
 
 (defun cedille-mode-synth-quantifiers ()
   "This function will synthesize the proper lambdas that match
