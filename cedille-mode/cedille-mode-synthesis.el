@@ -40,21 +40,24 @@
   (replace-regexp-in-string "Π" "λ" type t)
   )
 
-(defun synth-arrows(type arrow)
+(defun synth-arrows(type lamb arrow)
   (setq rep (format "^.*?\\(\\([[:alnum:]]+?\\) %s\\)" arrow))
-  (while (string-match rep type) ;; Create lambdas from arrows
+  (while (string-match rep type)
+    ;; string= messes up the match data, so we have to restore it before doing the replacement
+    (setq data (match-data))
     (setq s (downcase (match-string 2 type)))
     ;; Use the first letter of the type as the variable name
     (unless (string= s "eq")
-        (setq s (substring s 0 1))) ;; But I want eq to be maintened
-    (setq s (format "λ %s ." s))
-    (setq type (replace-match s nil nil type 1))
+        (setq s (substring s 0 1))) ;; But maintain if it's eq
+    (setq newtxt (format "%s %s ." lamb s))
+    (set-match-data data)
+    (setq type (replace-match newtxt t nil type 1))
     )
   type
   )
 
 (defun delete-return-type(type)
-  (replace-regexp-in-string "\\.[^\\.]*$" ". " type) ;; Delete the final return type
+  (replace-regexp-in-string "\\.[^\\.]*$" ". " type)
   )
 
 (defun find-closing-delim(type start delim-open delim-close)
@@ -102,11 +105,11 @@
   )
 
 (defun synth-regular-arrows(type)
-  (synth-arrows type "➔")
+  (synth-arrows type "λ" "➔")
   )
 
 (defun synth-erased-arrows(type)
-  (synth-arrows type "➾")
+  (synth-arrows type "Λ" "➾")
   )
 
 (defun synth-hole(type)
