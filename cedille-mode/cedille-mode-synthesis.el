@@ -143,7 +143,11 @@ the quantifiers at the given hole"
            (type (get-span-typeorkind d))
            )
       (if (string= name 'Hole)
-          (insert-before-markers (synth-hole type))
+          (progn
+            (insert-before-markers (synth-hole type))
+            (setq se-mode-parse-tree nil
+                  cedille-mode-parent-buffer (current-buffer))
+            (se-navigation-mode 1))
         (message "Synthesis can only be performed on a Hole")
         )
       )))
