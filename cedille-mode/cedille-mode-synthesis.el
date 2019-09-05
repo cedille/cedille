@@ -41,7 +41,7 @@
   )
 
 (defun synth-arrows(type lamb arrow)
-  (setq rep (format "^.*?\\(\\([[:alnum:]]+?\\) %s\\)" arrow))
+  (setq rep (format "[\\.➾➔] \\(\\([^\\.➾➔]*\\) %s\\)" arrow))
   (while (string-match rep type)
     ;; string= messes up the match data, so we have to restore it before doing the replacement
     (setq data (match-data))
