@@ -4,9 +4,11 @@
 
 (require 'subr-x)
 
-(defun get-span-type(data)
+(defun get-span-typeorkind(data)
   "Filter out special attributes from the data in a span"
-  (cdr (assoc 'expected-type data)))
+  (or (cdr (assoc 'expected-type data))
+           (cdr (assoc 'expected-kind data)))
+  )
 
 (defun get-span-name(data)
   (cdr (assoc 'name data)))
@@ -41,14 +43,18 @@
   )
 
 (defun synth-arrows(type lamb arrow)
-  (setq rep (format "[\\.➾➔] \\(\\([^\\.➾➔]*\\) %s\\)" arrow))
+  (setq rep (format "[\\^\\.➾➔]?[ ]?\\(\\([^\\.➾➔]*\\) %s\\)" arrow))
   (while (string-match rep type)
     ;; string= messes up the match data, so we have to restore it before doing the replacement
     (setq data (match-data))
     (setq s (downcase (match-string 2 type)))
+
     ;; Use the first letter of the type as the variable name
     (unless (string= s "eq")
         (setq s (substring s 0 1))) ;; But maintain if it's eq
+
+    (if (string= s "★")
+        (setq s "K"))
     (setq newtxt (format "%s %s ." lamb s))
     (set-match-data data)
     (setq type (replace-match newtxt t nil type 1))
@@ -134,7 +140,7 @@ the quantifiers at the given hole"
     (let* ((term (se-mode-selected))
            (d (se-term-to-json term))
            (name (se-term-name term))
-           (type (get-span-type d))
+           (type (get-span-typeorkind d))
            )
       (if (string= name 'Hole)
           (insert-before-markers (synth-hole type))
