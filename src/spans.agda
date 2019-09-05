@@ -185,7 +185,7 @@ missing-expected-type : tagged-val
 missing-expected-type = strRunTag "expected-type" empty-ctxt $ strAdd "[missing]"
 
 expected-kind : ctxt → kind → tagged-val
-expected-kind = to-string-tag "expected kind"
+expected-kind = to-string-tag "expected-kind"
 
 expected-kind-if : ctxt → maybe kind → 𝕃 tagged-val
 expected-kind-if _ nothing = []
