@@ -40,21 +40,14 @@
   (replace-regexp-in-string "Π" "λ" type t)
   )
 
-(defun synth-arrows(type)
-  (while (string-match "^.*?\\([[:alnum:]]+? ➔\\)" type) ;; Create lambdas from arrows
-    (setq s (downcase (match-string 1 type)))
-    (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
+(defun synth-arrows(type arrow)
+  (setq rep (format "^.*?\\(\\([[:alnum:]]+?\\) %s\\)" arrow))
+  (while (string-match rep type) ;; Create lambdas from arrows
+    (setq s (downcase (match-string 2 type)))
+    ;; Use the first letter of the type as the variable name
+    (unless (string= s "eq")
+        (setq s (substring s 0 1))) ;; But I want eq to be maintened
     (setq s (format "λ %s ." s))
-    (setq type (replace-match s nil nil type 1))
-    )
-  type
-  )
-
-(defun synth-erased-arrows(type)
-  (while (string-match "^.*?\\([[:alnum:]]+? ➾\\)" type) ;; Create lambdas from arrows
-    (setq s (downcase (match-string 1 type)))
-    (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
-    (setq s (format "Λ %s ." s))
     (setq type (replace-match s nil nil type 1))
     )
   type
@@ -64,32 +57,33 @@
   (replace-regexp-in-string "\\.[^\\.]*$" ". " type) ;; Delete the final return type
   )
 
-(defun find-closing-parens(type start)
-  (setq open_pars 1)
-  (setq pos (1+ start)) ;; start right after the first parens
-  (while (and (< pos (length type))(> open_pars 0))
+(defun find-closing-delim(type start delim-open delim-close)
+  (setq open_delims_count 1)
+  (setq ch_close (aref delim-close 0))
+  (setq ch_open (aref delim-open 0))
+  (setq pos (1+ start)) ;; start right after the first delim
+  (while (and (< pos (length type))(> open_delims_count 0))
     (setq c (aref type pos))
-    (if (= c 40)
-        (setq open_pars (1+ open_pars))
-      (if (= c 41)
-          (setq open_pars (1- open_pars))))
-    (setq pos (1+ pos))
-
-    )
+    (if (= c ch_open)
+        (setq open_delims_count (1+ open_delims_count))
+      (if (= c ch_close)
+          (setq open_delims_count (1- open_delims_count))))
+    (setq pos (1+ pos)) )
   pos
   )
 
 ;; This function is more complicated than simple regexes because
 ;; the balancing parenthesis problem is not a regular language
-(defun synth-parens(type)
-  (while (setq start (string-match "\\((\\)" type)) ;; Finds first parens
-    (setq end (find-closing-parens type start))
+(defun synth-func(type delim-open delim-close var)
+  (while (setq start (string-match (format "\\(%s\\)" delim-open) type)) ;; Finds first bracket
+    (setq end (find-closing-delim type start delim-open delim-close))
     (setq strhead (substring type 0 start))
     (setq strtail (substring type end))
-    (setq type (format "%sf%s" strhead strtail))
+    (setq type (format "%s%s%s" strhead var strtail))
     )
   type
   )
+
 
 (defun erase-types(type)
   (replace-regexp-in-string ": [^.]*" "" type)
@@ -99,13 +93,30 @@
   (replace-regexp-in-string "ι[^.]*?. " "" type)
   )
 
+(defun synth-parens(type)
+  (synth-func type "(" ")" "f")
+  )
+
+(defun synth-eqs(type)
+  (synth-func type "{" "}" "eq")
+  )
+
+(defun synth-regular-arrows(type)
+  (synth-arrows type "➔")
+  )
+
+(defun synth-erased-arrows(type)
+  (synth-arrows type "➾")
+  )
+
 (defun synth-hole(type)
   (setq type (erase-types type))
   (setq type (erase-iotas type))
   (setq type (synth-foralls type))
   (setq type (synth-pis type))
   (setq type (synth-parens type))
-  (setq type (synth-arrows type))
+  (setq type (synth-eqs type))
+  (setq type (synth-regular-arrows type))
   (setq type (synth-erased-arrows type))
   (setq type (delete-return-type type))
   (desambiguate-lambdas type)
