@@ -16,23 +16,21 @@
   ;; make sure the hashtable will use string equality instead of object equality
   (setq vars-hash (make-hash-table :test 'equal))
 
-  (while (string-match "λ \\([^\\.]*\\) \\." term start)
+  (while (string-match "λ \\([^\\.]+?\\) \\." term start)
     (setq var (match-string 1 term))
     (setq varocc (gethash var vars-hash))
-    (setq oldstart start)
-    (setq start (match-end 0))
     (if (not varocc)
         (puthash var 1 vars-hash)
       (puthash var (1+ varocc) vars-hash)
-      ;; FIXME: Use re to build this regexp interactively
       (setq newvar (concatenate 'string var (format "%d" varocc)))
-      (setq rep0 (concatenate 'string "λ \\(" var))
-      (setq rep (concatenate 'string rep0 "\\) .*"))
-      (setq term (concat (substring term 0 oldstart)
-                         (replace-regexp-in-string rep newvar term nil nil 1 oldstart)))
-      ))
+      (setq rep (format "λ \\(%s\\).*" var))
+      (setq term (concat (substring term 0 start)
+                         (replace-regexp-in-string rep newvar term nil nil 1 start)))
+      )
+    (setq start (match-end 0)))
   term
   )
+
 
 (defun synth-foralls(type)
   (replace-regexp-in-string "∀" "Λ" type)
@@ -46,9 +44,7 @@
   (while (string-match "^.*?\\([[:alnum:]]+? ➔\\)" type) ;; Create lambdas from arrows
     (setq s (downcase (match-string 1 type)))
     (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
-    ;; FIXME: Use re to build this regexp interactively
-    (setq s (concatenate 'string "λ " s))
-    (setq s (concatenate 'string s " ."))
+    (setq s (format "λ %s ." s))
     (setq type (replace-match s nil nil type 1))
     )
   (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
@@ -80,20 +76,24 @@
   (while (setq start (find-first-parens type))
     (setq end (find-closing-parens type start))
     (setq strhead (substring type 0 start))
-    (setq strtail (substring type (+ 2 end)))
-    (setq type (concatenate 'string strhead "λ f ."))
-    (setq type (concatenate 'string type strtail))
+    (setq strtail (substring type end))
+    (setq type (format "%sf%s" strhead strtail))
     (string-match "" type) ;; clear the match for the next iteration
     )
   type
   )
 
 (defun erase-types(type)
-  (replace-regexp-in-string " : [^.]*" "" type)
+  (replace-regexp-in-string ": [^.]*" "" type)
+  )
+
+(defun erase-iotas(type)
+  (replace-regexp-in-string "ι[^.]*?. " "" type)
   )
 
 (defun synth-hole(type)
   (setq type (erase-types type))
+  (setq type (erase-iotas type))
   (setq type (synth-foralls type))
   (setq type (synth-pis type))
   (setq type (synth-parens type))
