@@ -33,11 +33,11 @@
 
 
 (defun synth-foralls(type)
-  (replace-regexp-in-string "∀" "Λ" type)
+  (replace-regexp-in-string "∀" "Λ" type t)
   )
 
 (defun synth-pis(type)
-  (replace-regexp-in-string "Π" "λ" type)
+  (replace-regexp-in-string "Π" "λ" type t)
   )
 
 (defun synth-arrows(type)
