@@ -47,7 +47,21 @@
     (setq s (format "λ %s ." s))
     (setq type (replace-match s nil nil type 1))
     )
-  (setq type (replace-regexp-in-string "\\.[^\\.]*$" ". " type)) ;; Delete the final return type
+  type
+  )
+
+(defun synth-erased-arrows(type)
+  (while (string-match "^.*?\\([[:alnum:]]+? ➾\\)" type) ;; Create lambdas from arrows
+    (setq s (downcase (match-string 1 type)))
+    (setq s (substring s 0 1)) ;; Use the first letter of the type as the variable name
+    (setq s (format "Λ %s ." s))
+    (setq type (replace-match s nil nil type 1))
+    )
+  type
+  )
+
+(defun delete-return-type(type)
+  (replace-regexp-in-string "\\.[^\\.]*$" ". " type) ;; Delete the final return type
   )
 
 (defun find-closing-parens(type start)
@@ -65,20 +79,14 @@
   pos
   )
 
-(defun find-first-parens(type)
-  (string-match "\\((\\)" type)
-  (match-beginning 1)
-  )
-
 ;; This function is more complicated than simple regexes because
 ;; the balancing parenthesis problem is not a regular language
 (defun synth-parens(type)
-  (while (setq start (find-first-parens type))
+  (while (setq start (string-match "\\((\\)" type)) ;; Finds first parens
     (setq end (find-closing-parens type start))
     (setq strhead (substring type 0 start))
     (setq strtail (substring type end))
     (setq type (format "%sf%s" strhead strtail))
-    (string-match "" type) ;; clear the match for the next iteration
     )
   type
   )
@@ -98,6 +106,8 @@
   (setq type (synth-pis type))
   (setq type (synth-parens type))
   (setq type (synth-arrows type))
+  (setq type (synth-erased-arrows type))
+  (setq type (delete-return-type type))
   (desambiguate-lambdas type)
   )
 
