@@ -1,0 +1,27 @@
+-- alternative to `core.rec` using a Mendler-style algebra.
+-- The advantage is that `mrecIn` does not require monotonicity
+module core.recm (F: ★ ➔ ★).
+
+import cast.
+
+RecM : ★ = ∀ X: ★. (∀ R: ★. Cast ·R ·X ➾ Cast ·(F ·R) ·X) ➾ X.
+
+recMCast : ∀ X: ★. (∀ R: ★. Cast ·R ·X ➾ Cast ·(F ·R) ·X) ➾ Cast ·RecM ·X
+= Λ X. Λ a. [ λ d. d -a , β ] .
+
+recMIn : Cast ·(F ·RecM) ·RecM
+= [ λ xs. Λ X. Λ a. cast -(a -(recMCast -a)) xs , β ].
+
+recMFold = cast -recMIn.
+
+recMOut : CastMap ·F ➾ Cast ·RecM ·(F ·RecM)
+= Λ cm.
+  [a: ∀ R: ★. Cast ·R ·(F ·RecM) ➾ Cast ·(F ·R) ·(F ·RecM)
+   = Λ R. Λ c. [ λ xs. cast -(cm -(castTrans -c -recMIn)) xs , β ]]
+- [ λ x. cast -(recMCast -a) x , β ].
+
+recMUnfold : CastMap ·F ➾ RecM ➔ F ·RecM
+= Λ cm. cast -(recMOut -cm).
+
+_ : {recMFold   ≃ λ x. x} = β.
+_ : {recMUnfold ≃ λ x. x} = β.
