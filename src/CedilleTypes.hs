@@ -28,7 +28,7 @@ data File = Module Imports PosInfo PosInfo Var Params Cmds PosInfo deriving Show
 data Cmd =
     CmdKind PosInfo Var Params Kind PosInfo
   | CmdDef Opacity Def PosInfo
-  | CmdData [DefDatatype] PosInfo
+  | CmdData (DefDatatype , [SubsidiaryDefDatatype]) PosInfo
   | CmdImport Imprt
   deriving Show
 
@@ -36,7 +36,7 @@ data Ctr = Ctr PosInfo Var Type deriving Show
 
 data DefDatatype = DefDatatype PosInfo PosInfo Var Params Kind Ctrs deriving Show
 
-data DefDatatypeA = DefDatatypeA PosInfo Var Params Kind Ctrs deriving Show
+data SubsidiaryDefDatatype = SubsidiaryDefDatatype PosInfo PosInfo Var Ctrs deriving Show
 
 data ImportAs = ImportAs PosInfo Var deriving Show
 data Imprt = Import PosInfo OptPublic PosInfo Fpth (Maybe ImportAs) Args PosInfo deriving Show

@@ -141,15 +141,19 @@ KParams :: { Params }
        :                                { [] }
        | KDecl KParams                  { $1 : $2 }
 
-DefDatatype :: { [ DefDatatype ] }
-: 'data' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3 }
+DefDatatype :: { (DefDatatype , [ SubsidiaryDefDatatype ]) }
+: OneDatatype OptMutualDefDatatype { ($1 , $2) }
 
-OptMutualDefDatatype :: { [ DefDatatype ] }
+OptMutualDefDatatype :: { [ SubsidiaryDefDatatype ] }
   : { [] }
-| '&' OneDatatype OptMutualDefDatatype { (defDatatypeAddStartingPos (pos2Txt $1) $2) : $3 }
+| NextDatatype OptMutualDefDatatype { $1 : $2 }
 
-OneDatatype :: { DefDatatypeA }
-  : var MParams ':' Kind '=' OptPipe Ctrs { DefDatatypeA (tPosTxt $1) (tTxt $1) $2 $4 $7 }
+OneDatatype :: { DefDatatype }
+  : 'data' var MParams ':' Kind '=' OptPipe Ctrs { DefDatatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 $5 $8 }
+
+-- unfortunately this will need to be reworked if we add support for different kinds for the subsidiary datatypes
+NextDatatype :: { SubsidiaryDefDatatype }
+  : '&' var '=' OptPipe Ctrs { SubsidiaryDefDatatype (pos2Txt $1) (tPosTxt $2) (tTxt $2) $5 }
 
 Ctr :: { Ctr }
     : var ':' Type    { Ctr (tPosTxt $1) (tTxt $1) $3 }
@@ -384,9 +388,6 @@ LKind :: { Kind }
 --             | '(' LiftingType ')'                { LiftParens  (pos2Txt $1) $2 (pos2Txt1 $3)}
 
 {
-defDatatypeAddStartingPos :: Text -> DefDatatypeA -> DefDatatype
-defDatatypeAddStartingPos p (DefDatatypeA p' v ps k cs) = DefDatatype p p' v ps k cs
-
 getPos :: Alex PosInfo
 getPos = Alex $ \ s -> return (s , pos2Txt0(alex_pos s))
 
@@ -436,8 +437,8 @@ main = do
   [ file ] <- getArgs
   cnt      <- readFile file
   case parseTxt (pack cnt) of 
-    Prelude.Left  (Prelude.Left  errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
-    Prelude.Left  (Prelude.Right errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
+    Prelude.Left  (Prelude.Left  errMsg) -> writeFile (file ++ "-result") ("Lexer error: " ++ unpack errMsg)
+    Prelude.Left  (Prelude.Right errMsg) -> writeFile (file ++ "-result") ("Parser error: " ++ unpack errMsg)
     Prelude.Right res                    -> writeFile (file ++ "-result") (show res)    
 
 }
