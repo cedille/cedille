@@ -1,5 +1,6 @@
 parser/CedilleParser
 parser/src/CedilleLexer.hs
+parser/src/CedilleParser.hs
 *.ced-result
 *.agdai
 *.hi
