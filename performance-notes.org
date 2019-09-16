@@ -16,3 +16,10 @@
                 du88                                                                  MAlonzo.Code.Qlist                /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qlist.hs:(88,1)-(92,42)                    22767    1242981    0.6    3.1     0.6    3.1
                 du452                                                                 MAlonzo.Code.Qtrie                /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qtrie.hs:(396,1)-(410,42)                  22766     798007    0.4    0.0     0.4    0.0
                $mC14.\                                                                MAlonzo.Code.Qmaybe               /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qmaybe.hs:20:18-24                         11883    1535079   29.9    3.0    80.7   70.6
+** hash tables
+"mutable hashtables" library http://hackage.haskell.org/package/hashtables
+https://stackoverflow.com/questions/7894867/performant-haskell-hashed-structure
+
+http://hackage.haskell.org/package/containers-0.6.2.1/docs/Data-Map-Strict.html#g:1
+*** trie- functions used by cedille src
+grep -Ri 'trie-' | grep -v -e 'trie-insert' -e 'trie-lookup' -e 'trie-to-string' -e 'trie-contains' -e 'trie-single' -e 'trie-remove' -e 'trie-strings' -e 'trie-mappings' -e trie-filter -e trie-equal -e trie-catMaybe -e trie-all -e trie-fill -e trie-append-or-create -e trie-any -e trie-cal-any -e trie-empty -e trie-nonempty -e trie-map | grep -i 'trie-'
