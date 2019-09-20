@@ -161,7 +161,7 @@ erased terms at the term level.
     \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t)\subseteq \textit{dom}(\Gamma)}  \\ \\    
     \infer{\Gamma\vdash \delta\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
     \infer{\Gamma\vdash \rho\ t'\ \mhyph\ t \Leftrightarrow [t_2/x]T}
-          {\Gamma\vdash t' \tpsynth t_1 \simeq t_2 & \Gamma \vdash t \Leftrightarrow [t_1/x]T} \\ \\
+          {\Gamma\vdash t' \tpsynth \{ t_1 \simeq t_2 \} & \Gamma \vdash t \Leftrightarrow [t_1/x]T} \\ \\
     \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpcheck T'}
           {\Gamma\vdash T\tpcheck \star & \Gamma\vdash t \tpcheck T & T \cong T'} &
     \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpsynth T}
