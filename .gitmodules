@@ -1,3 +1,4 @@
 [submodule "ial"]
 	path = ial
 	url = ../ial.git
+	branch = feature-trie-performance-improvement
