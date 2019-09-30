@@ -700,6 +700,18 @@ occurrences, then do so."
   (message "Restarted cedille process")
   (cedille-mode-quit))
 
+(defun cedille-mode-quit-and-delete()
+  "Quit Cedille mode and delete forward char"
+  (interactive)
+  (cedille-mode-quit)
+  (delete-forward-char 1))
+
+(defun cedille-mode-quit-and-backspace()
+  "Quit Cedille mode and delete backward char"
+  (interactive)
+  (cedille-mode-quit)
+  (delete-backward-char 1))
+
 ; se-navi-define-key maintains an association with the major mode,
 ; so that different major modes using se-navi-define-key can have
 					; separate keymaps.
@@ -716,6 +728,11 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "Q") #'cedille-mode-quit-keep-mark)
   (se-navi-define-key mode (kbd "M-s") #'cedille-mode-quit)
   (se-navi-define-key mode (kbd "C-g") #'cedille-mode-quit)
+
+  (se-navi-define-key mode (kbd "<backspace>") #'cedille-mode-quit-and-backspace)
+  (se-navi-define-key mode (kbd "<delete>")    #'cedille-mode-quit-and-delete)
+  (se-navi-define-key mode (kbd "C-d")    #'cedille-mode-quit-and-delete)
+
   (se-navi-define-key mode (kbd "e") #'cedille-mode-select-last)
   (se-navi-define-key mode (kbd "a") #'cedille-mode-select-first)
   (se-navi-define-key mode (kbd "i") (make-cedille-mode-buffer (cedille-mode-inspect-buffer) lambda cedille-mode-inspect nil t))
