@@ -32,3 +32,7 @@ castMapComp : ∀ F: ★ ➔ ★. ∀ G: ★ ➔ ★.
   CastMap ·F ➾ CastMap ·G ➾ CastMap ·(λ X: ★. F ·(G ·X))
 = Λ F. Λ G. Λ cm1. Λ cm2. Λ X. Λ Y. Λ c.
   intrCast -(λ fs. castMap -cm1 -(cm2 -c) fs) -(λ _. β).
+
+constCastMap : ∀ X : ★ . CastMap · (λ _ : ★ . X) =
+  Λ X .
+    Λ A . Λ B . Λ c . castRefl · X .

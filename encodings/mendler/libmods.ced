@@ -1,0 +1,9 @@
+import stdlib.
+
+module libmods.
+
+cast = elimCast.
+
+constCastMap : ∀ X : ★ . CastMap · (λ _ : ★ . X) =
+  Λ X .
+    Λ A . Λ B . Λ c . castRefl · X .

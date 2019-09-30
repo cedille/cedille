@@ -1,8 +1,6 @@
-import recType.
+import stdlib.
 
-module Hom(F : ★ ➔ ★){fm : RecFunctor · F}.
-
-import sigma.
+module Hom(F : ★ ➔ ★){fm : CastMap · F}.
 
 import Ind · F -fm.
 
