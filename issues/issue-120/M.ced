@@ -1,0 +1,5 @@
+module M(e : { λ x . x ≃ λ x . x})(A : ★)(a : A)(b : A).
+
+foo : ★ = A ➔ A.
+
+lem : ∀ f : foo . { f a ≃ f a } = Λ f . ●.
