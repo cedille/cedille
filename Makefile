@@ -189,6 +189,21 @@ clean-elabdir: FORCE
 
 FORCE:
 
+cedille-profile:	$(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-prof --ghc-flag=-fprof-auto --ghc-flag=-fexternal-interpreter -c $(SRCDIR)/main.agda
+		mv $(SRCDIR)/main $@
+
+cedille-optimized:	$(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-O2 -c $(SRCDIR)/main.agda
+		mv $(SRCDIR)/main $@
+
+cedille-profile.prof: cedille-profile
+		./cedille-profile lib/everything.ced +RTS -p
+
+.PHONY: clean-ial
+clean-ial:
+	make -C ial clean
+
 .PHONY: cedille-docs
 cedille-docs: docs/info/cedille-info-main.info
 

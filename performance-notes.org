@@ -1,0 +1,25 @@
+* notes
+** Qmaybe
+- switching from "safe" to "fast" trie-lookup makes the program half as slow (~2 secs to ~4 secs) and also doubles the percentage of time used up by Qmaybe. this suggests that the problem with the fast method is that there are many more pattern matches on Just|Nothing. this also suggests that this part of the code is indeed important in terms of performance, since its so sensitive to the change in this code
+
+  the code that accounts for 30% (61% resp.) of the time is called "$mC14" and is:
+  `pattern C14 a0 = Just a0`
+  the runner up accounts for 10% (10% resp.) of the time, called "$mC12", and is:
+  `pattern C12 = Nothing`
+  the third highest accounts for 6% (2% resp.) of the time, called "du12", and is:
+  `du12 v0 v1`
+  with name: name12 = "trie.cal-lookup"
+- found a cost centre that seems interesting:
+               du1430                                                                   MAlonzo.Code.QprocessZ45Zcmd      /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/QprocessZ45Zcmd.hs:(3478,1)-(3535,42)      11872         37    0.0    0.0    92.6   86.4
+              $mC12.\                                                                 MAlonzo.Code.Qmaybe               /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qmaybe.hs:19:15-21                         11873    4579123    9.5    6.9    92.6   86.4
+               du456                                                                  MAlonzo.Code.Qtrie                /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qtrie.hs:(420,1)-(432,42)                  22765    1565918    1.4    5.6     2.4    8.7
+                du88                                                                  MAlonzo.Code.Qlist                /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qlist.hs:(88,1)-(92,42)                    22767    1242981    0.6    3.1     0.6    3.1
+                du452                                                                 MAlonzo.Code.Qtrie                /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qtrie.hs:(396,1)-(410,42)                  22766     798007    0.4    0.0     0.4    0.0
+               $mC14.\                                                                MAlonzo.Code.Qmaybe               /mnt/nfs/clasnetappvm/fs3/arcantor/repo/cedille/cedille/src/MAlonzo/Code/Qmaybe.hs:20:18-24                         11883    1535079   29.9    3.0    80.7   70.6
+** hash tables
+"mutable hashtables" library http://hackage.haskell.org/package/hashtables
+https://stackoverflow.com/questions/7894867/performant-haskell-hashed-structure
+
+http://hackage.haskell.org/package/containers-0.6.2.1/docs/Data-Map-Strict.html#g:1
+*** trie- functions used by cedille src
+grep -Ri 'trie-' | grep -v -e 'trie-insert' -e 'trie-lookup' -e 'trie-to-string' -e 'trie-contains' -e 'trie-single' -e 'trie-remove' -e 'trie-strings' -e 'trie-mappings' -e trie-filter -e trie-equal -e trie-catMaybe -e trie-all -e trie-fill -e trie-append-or-create -e trie-any -e trie-cal-any -e trie-empty -e trie-nonempty -e trie-map | grep -i 'trie-'
