@@ -1,28 +1,29 @@
 module sigma.
 
 data Sigma (A: ★) (B: A ➔ ★) : ★ =
-  | pair : Π a: A. Π b: B a. Sigma.
+  | sigma : Π a: A. Π b: B a. Sigma.
 
 Pair : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. Sigma ·A ·(λ _: A. B).
+pair : ∀ A : ★ . ∀ B : ★ . A ➔ B ➔ Pair · A · B = Λ A . Λ B . λ a . λ b . sigma · A · (λ _ : A . B) a b.
 
 fst : ∀ A: ★. ∀ B: A ➔ ★. Sigma ·A ·B ➔ A
-  = Λ A. Λ B. λ p. μ' p {pair a _ ➔ a}.
+  = Λ A. Λ B. λ p. μ' p {sigma a _ ➔ a}.
 
 snd : ∀ A: ★. ∀ B: A ➔ ★. Π p: Sigma ·A ·B. B (fst p)
-  = Λ A. Λ B. λ p. μ' p @(λ x: Sigma ·A ·B. B (fst x)) {pair _ b ➔ b}.
+  = Λ A. Λ B. λ p. μ' p @(λ x: Sigma ·A ·B. B (fst x)) {sigma _ b ➔ b}.
 
 curry : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★.
   (Sigma ·A ·B ➔ X) ➔ Π a: A. Π b: B a. X
-= Λ A. Λ B. Λ X. λ f. λ a. λ b. f (pair a b).
+= Λ A. Λ B. Λ X. λ f. λ a. λ b. f (sigma a b).
 
 uncurry : ∀ A: ★. ∀ B: A ➔ ★. ∀ X: ★.
   (Π a: A. Π b: B a. X) ➔ Sigma ·A ·B ➔ X
 = Λ A. Λ B. Λ X. λ f. λ p. μ' p {
-  | pair a b ➔ f a b
+  | sigma a b ➔ f a b
   }.
 
 pairMap
 : ∀ A: ★. ∀ B: ★. ∀ C: ★. ∀ D: ★.
   (A ➔ C) ➔ (B ➔ D) ➔ Pair ·A ·B ➔ Pair ·C ·D
 = Λ A. Λ B. Λ C. Λ D. λ f. λ g. λ p.
-  μ' p {pair a b ➔ pair (f a) (g b)}.
+  μ' p {sigma a b ➔ sigma (f a) (g b)}.
