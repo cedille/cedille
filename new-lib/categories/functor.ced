@@ -30,3 +30,10 @@ f2raw : ∀ F: ★ ➔ ★. Cast ·(Functor ·F) ·(RawFunctor ·F)
       | mkFunctor fmap -fid -fcomp ➔
         [ mkRawFunctor fmap , β{mkRawFunctor fmap} ]
       }).
+
+f2castMap : ∀ F : ★ ➔ ★ . Functor · F ➔ CastMap · F =
+  Λ F . λ fu .
+    μ' fu
+      { mkFunctor fmap -fid -fcomp ➔
+        Λ A . Λ B . Λ c .
+          intrCast -(fmap (elimCast -c)) -(fid (elimCast -c) (λ a . β)) }.
