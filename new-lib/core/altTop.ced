@@ -1,0 +1,19 @@
+module altTop.
+
+import cast.
+import bot.
+
+FF : ★ = False ➔ False.
+IFF : ★ = False ➾ False.
+
+castFF : ∀ A: ★. Cast·A·FF
+= Λ A. intrCast -(λ x. λ f. φ (f·{f ≃ x f}) - f {x f}) -(λ a. β).
+
+recFF : Cast·FF·(FF ➔ FF)
+= intrCast -(λ x. λ y. λ f. φ (f·{f ≃ x y f}) - f {x y f}) -(λ a. β).
+
+castIFF : ∀ A: ★. Cast·A·IFF
+= Λ A. intrCast -(λ x. Λ f. φ (f·{f ≃ x}) - f {x}) -(λ a. β).
+
+recIFF : Cast·IFF·(IFF ➔ IFF)
+= intrCast -(λ x. λ y. Λ f. φ (f·{f ≃ x y}) - f {x y}) -(λ a. β).
