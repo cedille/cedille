@@ -29,23 +29,22 @@
 (defvar cedille-program-name
   (cedille-platform-case
    "cedille"
-   nil
+   "cedille"
    "cedille"
    (concat (file-name-as-directory cedille-path) "cedille")))
 
 (defvar cedille-core-program-name
   (cedille-platform-case
    "cedille-core"
-   nil
+   "cedille-core"
    "cedille-core"
    (concat (file-name-as-directory (concat (file-name-as-directory cedille-path) "core")) "cedille-core")))
-
 
 (defvar cedille-path-el
   (file-name-as-directory
    (cedille-platform-case
     "C:\\Program Files\\cedille"
-    nil
+    "/usr/local/share/emacs/site-lisp/cedille"
     "/usr/share/emacs/site-lisp/cedille-mode"
     cedille-path)))
 
