@@ -124,7 +124,7 @@ drop-spine ops @ ced-ops-drop-spine = h
     let uqv = unqual-all (ctxt.qual Γ) v in
     flip recompose-tpapps (TpVar uqv) $
       maybe-else' (maybe-if (~ v =string uqv) >>
-                   ctxt-qualif-args-length Γ NotErased uqv)
+                   ctxt-qualif-args-length Γ Erased uqv)
         as λ n → drop n as
 
   h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
