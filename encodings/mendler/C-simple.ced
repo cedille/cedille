@@ -1,0 +1,40 @@
+import stdlib.
+
+module C (F : ★ ➔ ★){fm : CastMap · F}.
+
+Alg ◂ (★ ➔ ★) ➔ ★ =
+  λ X : ★ ➔ ★ .
+    ∀ R : ★ .
+      (R ➔ X · R) ➔
+      F · R ➔
+      X · R.
+
+rF ◂ ★ ➔ ★ = λ C : ★ . ∀ X : ★ ➔ ★ . CastMap · X ➾ Alg · X ➔ X · C .
+
+C ◂ ★ = Rec · rF.
+
+rFunctor ◂ CastMap · rF =
+ Λ X . Λ Y . Λ c .
+  [λ x . Λ A . Λ fA . λ a .
+           cast -(fA -c)
+             (x · A -fA a),
+    β] .
+
+rFold ◂ rF · C ➔ C =
+  recFold · rF -rFunctor .
+
+rUnfold ◂ C ➔ rF · C =
+  recUnfold · rF -rFunctor .
+
+fold ◂ ∀ X : ★ ➔ ★ . CastMap · X ➾ Alg · X ➔ C ➔ X · C =
+  Λ X . Λ fX . λ alg . λ d . (rUnfold d) · X -fX alg .
+
+in ◂ F · C ➔ C =
+  λ d .
+    rFold
+      (Λ X . Λ fX . λ alg . alg · C (fold · X -fX alg) d).
+
+{- we do not know how to write an initial algebra or an out function
+   using this simplified version.  See C.ced for how we define those
+   functions with some further machinery in the lambda encoding. -}
+   
