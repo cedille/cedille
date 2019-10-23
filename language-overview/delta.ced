@@ -1,0 +1,8 @@
+module DeltaExample.
+
+{- δ - pf can be checked against any type you like, as long as
+   pf proves an equation between two terms with
+   beta-eta-distinct normal forms. -}
+
+simple : { λ x . λ y . y ≃ (λ y . y) (λ x . x) } ➔ ∀ X : ★ . X =
+  λ pf . δ - pf.
