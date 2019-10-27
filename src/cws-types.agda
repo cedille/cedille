@@ -4,7 +4,7 @@
 
 module cws-types where
 
-open import lib
+open import ial
 open import parse-tree
 
 posinfo = string

@@ -1,6 +1,6 @@
 module cedille where
 
-open import lib
+open import ial
 
 open import cedille-types public
 ----------------------------------------------------------------------------------

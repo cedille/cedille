@@ -1,5 +1,5 @@
 module parser where
-open import lib
+open import ial
 open import cedille-types
 
 {-# FOREIGN GHC import qualified CedilleParser #-}

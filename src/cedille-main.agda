@@ -1,7 +1,7 @@
 module cedille-main where
 
 import parse
-open import lib
+open import ial
 open import cedille-types
 import cedille
 

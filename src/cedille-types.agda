@@ -4,7 +4,7 @@
 
 module cedille-types where
 
-open import lib
+open import ial
 -- open import parse-tree
 open import general-util
 

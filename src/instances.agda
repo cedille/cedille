@@ -1,5 +1,5 @@
 module instances where
-open import lib public renaming (return to returnᵢₒ; _>>_ to _>>ᵢₒ_; _>>=_ to _>>=ᵢₒ_)
+open import ial public renaming (return to returnᵢₒ; _>>_ to _>>ᵢₒ_; _>>=_ to _>>=ᵢₒ_)
 open import functions public
 
 

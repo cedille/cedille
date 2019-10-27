@@ -1,4 +1,4 @@
-open import lib
+open import ial
 
 module rtn (gratr2-nt : Set) where
      

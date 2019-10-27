@@ -1,7 +1,7 @@
 module options-main where
 
 import parse
-open import lib
+open import ial
 open import options-types
 import options
 

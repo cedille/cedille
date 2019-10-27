@@ -2,7 +2,7 @@
    is called from hnf -}
 module lift where
 
-open import lib
+open import ial
 open import cedille-types
 open import ctxt
 open import syntax-util

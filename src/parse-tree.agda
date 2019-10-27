@@ -1,6 +1,6 @@
 module parse-tree where
 
-open import lib
+open import ial
 
 record ParseTreeRec : Set lone where
   field
