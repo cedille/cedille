@@ -17,3 +17,12 @@ castIFF : ∀ A: ★. Cast·A·IFF
 
 recIFF : Cast·IFF·(IFF ➔ IFF)
 = intrCast -(λ x. λ y. Λ f. φ (f·{f ≃ x y}) - f {x y}) -(λ a. β).
+
+
+FFX : ★ = ∀ X: ★. False ➔ X.
+
+castFFX : ∀ A: ★. Cast ·A ·FFX
+= Λ A. intrCast -(λ x. Λ X. λ a. φ (a ·{a ≃ x a}) - a ·X {x a}) -(λ _. β) .
+
+recFFX : Cast ·FFX ·(FFX ➔ FFX)
+= intrCast -(λ x. λ y. Λ X. λ a. φ (a ·{a ≃ x y a}) - a ·X {x y a}) -(λ _. β) .
