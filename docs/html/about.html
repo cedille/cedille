@@ -1,15 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.1, http://www.gnu.org/software/texinfo/ -->
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>about (Cedille Documentation)</title>
+<title>Cedille Documentation: about</title>
 
-<meta name="description" content="about (Cedille Documentation)">
-<meta name="keywords" content="about (Cedille Documentation)">
+<meta name="description" content="Cedille Documentation: about">
+<meta name="keywords" content="Cedille Documentation: about">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <link href="index.html#Top" rel="start" title="Top">
 <link href="documentation-index.html#documentation-index" rel="index" title="documentation index">
 <link href="index.html#Top" rel="up" title="Top">
@@ -223,16 +223,17 @@ to right).
 <a name="Implicit-products"></a>
 <h4 class="subsection">1.2.3 Implicit products</h4>
 
-<p>For unannotated terms, the type ∀ x : T . T&rsquo; introduces x of type T
-into the typing context, but otherwise does not affect the subject of
-typing.  So such an x is purely specificational, and cannot appear in
-the unannotated term.  In annotated terms, we use the construct Λ x :
-T . t to introduce this x, which may appear in annotations (only).
-An example is specifying the length of a vector as an erased argument
-to a function like map on vectors.  In this case, the function does not
-need to use the length of the vector to compute the result.  The length
-is only used specificationally, to state that the lengths of the input
-and output vectors are the same.
+<p>For unannotated terms, the type ∀ x : T . T&rsquo; (which can be written T ➾
+T’ when x does not occur free in T’) introduces x of type T into the
+typing context, but otherwise does not affect the subject of typing. So
+such an x is purely specificational, and cannot appear in the
+unannotated term. In annotated terms, we use the construct Λ x : T . t
+to introduce this x, which may appear in annotations (only). An example
+is specifying the length of a vector as an erased argument to a function
+like map on vectors. In this case, the function does not need to use the
+length of the vector to compute the result. The length is only used
+specificationally, to state that the lengths of the input and output
+vectors are the same.
 </p>
 <p>If one has a term t of type ∀ x : T . T&rsquo; and wishes to instantiate x
 with some term t&rsquo;, the notation in Cedille is t -t&rsquo;.

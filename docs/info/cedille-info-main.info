@@ -1,4 +1,4 @@
-This is cedille-info-main.info, produced by makeinfo version 6.5 from
+This is cedille-info-main.info, produced by makeinfo version 6.1 from
 cedille-info-main.texi.
 
 INFO-DIR-SECTION Programming
@@ -205,16 +205,17 @@ See language-overview/equational-reasoning.ced for examples.
 1.2.3 Implicit products
 -----------------------
 
-For unannotated terms, the type ∀ x : T .  T’ introduces x of type T
-into the typing context, but otherwise does not affect the subject of
-typing.  So such an x is purely specificational, and cannot appear in
-the unannotated term.  In annotated terms, we use the construct Λ x : T
-.  t to introduce this x, which may appear in annotations (only).  An
-example is specifying the length of a vector as an erased argument to a
-function like map on vectors.  In this case, the function does not need
-to use the length of the vector to compute the result.  The length is
-only used specificationally, to state that the lengths of the input and
-output vectors are the same.
+For unannotated terms, the type ∀ x : T .  T’ (which can be written T ➾
+T’ when x does not occur free in T’) introduces x of type T into the
+typing context, but otherwise does not affect the subject of typing.  So
+such an x is purely specificational, and cannot appear in the
+unannotated term.  In annotated terms, we use the construct Λ x : T .  t
+to introduce this x, which may appear in annotations (only).  An example
+is specifying the length of a vector as an erased argument to a function
+like map on vectors.  In this case, the function does not need to use
+the length of the vector to compute the result.  The length is only used
+specificationally, to state that the lengths of the input and output
+vectors are the same.
 
 If one has a term t of type ∀ x : T .  T’ and wishes to instantiate x
 with some term t’, the notation in Cedille is t -t’.
@@ -1117,20 +1118,20 @@ documentation index
 Tag Table:
 Node: Top225
 Node: about1277
-Node: tooling13310
-Node: cedille mode commands18975
-Node: unicode shortcuts22397
-Node: extra buffers24586
-Node: inspect buffer26076
-Node: summary buffer27417
-Node: meta-vars buffer28376
-Node: beta-reduce mode29553
-Node: context buffer30816
-Node: options32989
-Node: roadmap34241
-Node: changelog35461
-Node: credits36948
-Node: documentation index38341
+Node: tooling13379
+Node: cedille mode commands19044
+Node: unicode shortcuts22466
+Node: extra buffers24655
+Node: inspect buffer26145
+Node: summary buffer27486
+Node: meta-vars buffer28445
+Node: beta-reduce mode29622
+Node: context buffer30885
+Node: options33058
+Node: roadmap34310
+Node: changelog35530
+Node: credits37017
+Node: documentation index38410
 
 End Tag Table
 
