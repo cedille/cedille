@@ -31,6 +31,8 @@ if [ -z "$(which cabal)" ]; then
     fi
 fi
 
+cabal update
+
 if [ "$(uname -s)" = "Darwin" ]; then
     cat <<EOF
 Do you see this error on OSX?
