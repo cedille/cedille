@@ -67,12 +67,18 @@ process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state →
 process-params : toplevel-state → posinfo → ex-params → spanM (toplevel-state × params)
 process-start : toplevel-state → filepath → (progress-name : string) → ex-file → spanM (toplevel-state × file)
 process-file : toplevel-state → filepath → (progress-name : string) → mF (toplevel-state × file × string × string × params × qualif)
- 
+
+maybe-add-opaque-span : optopaque → (end : posinfo) → spanM ⊤
+maybe-add-opaque-span nothing pi = return triv
+maybe-add-opaque-span (just piₒ) pi =
+  spanM-add $ Opaque-span piₒ pi
+
 process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just tp) t) pi') =
   Γ ⊢ tp ⇐ KdStar ↝ tp' /
   Γ ⊢ t ⇐ tp' ↝ t' /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t' (just tp') >>
   let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t') tp' Γ in
+  maybe-add-opaque-span op pi' >>
   [- DefTerm-span Γ' pi x checking (just tp') t' pi' [] -]
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefTerm x t')
@@ -83,6 +89,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothin
   Γ ⊢ t ↝ t~ ⇒ T~ /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t~ nothing >> 
   let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t~) T~ Γ in
+  maybe-add-opaque-span op pi' >>
   [- DefTerm-span Γ' pi x synthesizing (just T~) t~ pi' [] -]
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefTerm x t~)
@@ -93,6 +100,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefType pi x k tp) 
   Γ ⊢ k ↝ k~ /
   Γ ⊢ tp ⇐ k~ ↝ tp~ /
   let Γ' = ctxt-type-def pi globalScope (isNothing op) x (just tp~) k~ Γ in
+  maybe-add-opaque-span op pi' >>
   spanM-add (DefType-span Γ' pi x checking (just k~) tp~ pi' []) >>
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefType x k~ tp~)

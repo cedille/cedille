@@ -645,6 +645,10 @@ Delta-span pi t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
 
+Opaque-span : posinfo → posinfo → span
+Opaque-span p₁ p₂ =
+  mk-span "Opaque" p₁ p₂ [ explain "Mark a definition as opaque, for the purposes of conversion checking" ] nothing
+
 Open-span : opacity → posinfo → var → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
 Open-span o pi x t check tvs =
   elim-pair (if o
