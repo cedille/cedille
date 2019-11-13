@@ -1,0 +1,9 @@
+module issue-125.
+
+opaque Bool : ★ = ∀ X: ★. X ➔ X ➔ X.
+{-
+^----------------------------------^
+No span generated for entire declaration
+-}
+opaque tt : Bool = open Bool - Λ X. λ t. λ f. t.
+opaque ff : Bool = open Bool - Λ X. λ t. λ f. f.
