@@ -10,6 +10,9 @@ get-file-contents e =
      else
       return nothing
 
+isNothing : ∀ {ℓ} {A : Set ℓ} → maybe A → 𝔹
+isNothing  = ~_ ∘ isJust
+
 maybe-else : ∀{ℓ}{A B : Set ℓ} → B → (A → B) → maybe A → B
 maybe-else y f (just x) = f x
 maybe-else y f nothing = y

@@ -72,7 +72,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just 
   Γ ⊢ tp ⇐ KdStar ↝ tp' /
   Γ ⊢ t ⇐ tp' ↝ t' /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t' (just tp') >>
-  let Γ' = ctxt-term-def pi globalScope op x (just t') tp' Γ in
+  let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t') tp' Γ in
   [- DefTerm-span Γ' pi x checking (just tp') t' pi' [] -]
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefTerm x t')
@@ -82,7 +82,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just 
 process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothing t) pi') = 
   Γ ⊢ t ↝ t~ ⇒ T~ /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t~ nothing >> 
-  let Γ' = ctxt-term-def pi globalScope op x (just t~) T~ Γ in
+  let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t~) T~ Γ in
   [- DefTerm-span Γ' pi x synthesizing (just T~) t~ pi' [] -]
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefTerm x t~)
@@ -92,7 +92,7 @@ process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothin
 process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefType pi x k tp) pi') =
   Γ ⊢ k ↝ k~ /
   Γ ⊢ tp ⇐ k~ ↝ tp~ /
-  let Γ' = ctxt-type-def pi globalScope op x (just tp~) k~ Γ in
+  let Γ' = ctxt-type-def pi globalScope (isNothing op) x (just tp~) k~ Γ in
   spanM-add (DefType-span Γ' pi x checking (just k~) tp~ pi' []) >>
   check-redefined pi x (mk-toplevel-state ip fns is Γ)
     (CmdDefType x k~ tp~)

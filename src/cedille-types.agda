@@ -26,6 +26,7 @@ mutual
   args = 𝕃 arg
   ex-args = 𝕃 ex-arg
   opacity = 𝔹
+  optopaque = maybe posinfo
   cases = 𝕃 case
   ex-cases = 𝕃 ex-case
   left-right = maybe 𝔹
@@ -183,7 +184,7 @@ mutual
 
   data ex-cmd : Set where
     ExCmdKind : posinfo → var → ex-params → ex-kd → posinfo → ex-cmd
-    ExCmdDef : opacity → ex-def → posinfo → ex-cmd
+    ExCmdDef :  optopaque → ex-def → posinfo → ex-cmd
     ExCmdData : def-datatype → posinfo → ex-cmd
     ExCmdImport : ex-imprt → ex-cmd
 

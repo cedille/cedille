@@ -10,6 +10,18 @@ postulate
 {-# COMPILE GHC templateMendler = Templates.templateMendler #-}
 
 
+-- src/templates/MendlerSimpleCVIdx.ced
+postulate
+  templateMendlerSimpleCVIdx : start
+{-# COMPILE GHC templateMendlerSimpleCVIdx = Templates.templateMendlerSimpleCVIdx #-}
+
+
+-- src/templates/MendlerCVIdxTest.ced
+postulate
+  templateMendlerCVIdxTest : start
+{-# COMPILE GHC templateMendlerCVIdxTest = Templates.templateMendlerCVIdxTest #-}
+
+
 -- src/templates/MendlerSimple.ced
 postulate
   templateMendlerSimple : start

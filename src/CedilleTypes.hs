@@ -12,6 +12,7 @@ type MaybeErased = Bool
 type MaybeMinus = Bool
 type LeftRight = Maybe Bool
 type Opacity = Bool
+type OptOpaque = Maybe PosInfo
 type RhoHnf = Bool
 type OptPublic = Bool
 type Imports = [Imprt]
@@ -27,7 +28,7 @@ data File = Module Imports PosInfo PosInfo Var Params Cmds PosInfo deriving Show
 
 data Cmd =
     CmdKind PosInfo Var Params Kind PosInfo
-  | CmdDef Opacity Def PosInfo
+  | CmdDef OptOpaque Def PosInfo
   | CmdData DefDatatype PosInfo
   | CmdImport Imprt
   deriving Show

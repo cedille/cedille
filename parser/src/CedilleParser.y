@@ -117,9 +117,9 @@ Cmds :: { Cmds }
      :                                  { [] }
      | Cmd Cmds                         { $1 : $2 }
 
-OptOpaque :: { Opacity }
-          :          { True }
-          | 'opaque' { False }
+OptOpaque :: { OptOpaque }
+          :          { Nothing }
+          | 'opaque' { Just (pos2Txt $1) }
 
 Cmd :: { Cmd }
     : Imprt                             { CmdImport $1 }
