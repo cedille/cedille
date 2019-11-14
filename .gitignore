@@ -5,6 +5,7 @@
 *.dyn_hi
 MAlonzo
 cedille
+cedille-mac
 cedille-optimized
 cedille-profile
 *.prof
@@ -30,4 +31,5 @@ cedille-src-pkg.zip
 *.blg
 *.log
 *.elc
-/core/cedille-core
+core/cedille-core
+core/cedille-core-mac

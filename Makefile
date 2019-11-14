@@ -140,10 +140,13 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./core/cedille-core: $(CEDILLE_CORE)
 	cd core/; make; cd ../
 
+./core/cedille-core-mac: $(CEDILLE_CORE)
+	cd core/; make cedille-core-mac; cd ../
+
 ./core/cedille-core-static: $(CEDILLE_CORE)
 	cd core/; make cedille-core-static; cd ../
 
-CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
+CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
@@ -154,6 +157,10 @@ bin :
 
 bin/cedille: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
+		mv $(SRCDIR)/main $@
+
+cedille-mac: $(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
 cedille-static: 	$(CEDILLE_DEPS)
@@ -236,18 +243,23 @@ cedille-win-pkg: cedille-static ./core/cedille-core-static
 	cp ./core/cedille-core-static ./cedille-win-pkg/src/cedille-core.exe
 	cp ./packages/cedille-win-install.bat ./cedille-win-pkg/
 
-cedille-mac-pkg: cedille ./core/cedille-core-static
+cedille-mac-pkg: cedille-mac ./core/cedille-core-mac
 	rm -rf cedille-mac-pkg
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/cedille-mode/
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/se-mode/
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/Resources/
-	cp -r cedille ./core/cedille-core ./cedille-mode/ ./se-mode/ ./cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp cedille-mac ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/cedille
+	cp ./core/cedille-core-mac ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/cedille-core
+	cp cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp -r ./cedille-mode/ ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/cedille-mode/
+	cp -r ./se-mode/ ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/se-mode/
 	cp ./docs/info/cedille-info-main.info ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
 	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/Cedille.app/Contents/Resources/
-	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/
 	cp ./packages/mac/Info.plist ./cedille-mac-pkg/Cedille.app/Contents/
 	cp ./packages/mac/Cedille ./cedille-mac-pkg/Cedille.app/Contents/MacOS/
-	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
-	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
+	-cd ./cedille-mac-pkg && npx create-dmg Cedille.app
 
 cedille-src-pkg: clean ./ial/ial.agda-lib
 	rm -f cedille-src-pkg.zip
