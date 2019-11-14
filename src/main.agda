@@ -106,7 +106,7 @@ findOptionsFile : IO (maybe string)
 findOptionsFile =
   (getCurrentDirectory >>= canonicalizePath) >>= findOptionsFile'
 
-readOptions : maybe string → IO (string × cedille-options.options)
+readOptions : maybe filepath → IO (filepath × cedille-options.options)
 readOptions nothing =
   (getHomeDirectory >>=
    canonicalizePath) >>= λ home →
@@ -557,23 +557,40 @@ record cedille-args : Set where
   field
     opts-file : maybe filepath
     files     : 𝕃 string
+    about     : 𝔹
+
+default-cedille-args = record { opts-file = nothing ; files = [] ; about = ff }
 
 getCedilleArgs : IO cedille-args
-getCedilleArgs = getArgs >>= λ args → filterArgs args (mk-cedille-args nothing [])
+getCedilleArgs = getArgs >>= λ args → getCedilleArgsH args default-cedille-args
   where
+  is-opts-flag is-about-flag : string → 𝔹
   is-opts-flag = "--options" =string_
+  is-about-flag = "--about"   =string_
 
-  bad-flag : IO ⊤
-  bad-flag = putStrLn "Warning: Flag --options should be followed by a Cedille options file"
+  bad-opts-flag : IO ⊤
+  bad-opts-flag  = putStrLn "warning: flag --options should be followed by a Cedille options file"
+
+  unknown-flag : string → IO ⊤
+  unknown-flag f = putStrLn $ "warning: unknown flag " ^ f
 
   -- allow for later --options to override earlier. This is a bash idiom
-  filterArgs : 𝕃 string → cedille-args → IO cedille-args
-  filterArgs [] args = return args
-  filterArgs (x :: []) args = if is-opts-flag x then bad-flag >> return args
-    else (return $ record args {files = x :: cedille-args.files args})
-  filterArgs (x :: y :: xs) args
-    = if is-opts-flag x then filterArgs xs (record args { opts-file = just y})
-      else filterArgs (y :: xs) (record args { files = x :: cedille-args.files args})
+  getCedilleArgsH : 𝕃 string → cedille-args → IO cedille-args
+  getCedilleArgsH [] args = return args
+  getCedilleArgsH (x :: []) args =
+    if is-opts-flag x then
+      bad-opts-flag >> return args
+    else if is-about-flag x then
+      return (record args { about = tt })
+    else -- assume it is a .ced file to check
+      (return $ record args {files = x :: cedille-args.files args})
+  getCedilleArgsH (x :: y :: xs) args =
+    if is-opts-flag x then
+      getCedilleArgsH xs (record args { opts-file = just y})
+    else if is-about-flag x then
+      getCedilleArgsH (y :: xs) (record args { about = tt })
+    else
+      getCedilleArgsH (y :: xs) (record args { files = x :: cedille-args.files args})
 
 process-encoding : filepath → cedille-options.options → IO cedille-options.options
 process-encoding ofp ops @ (cedille-options.mk-options ip cede rkt log qvs etp de col ~? nl) =
@@ -613,9 +630,17 @@ main = initializeStdoutToUTF8 >>
        setStdinNewlineMode >>
        setToLineBuffering >>
        getCedilleArgs >>= λ args →
-       let mk-cedille-args optsf fs = args in
+       let mk-cedille-args optsf fs about = args in
        maybe-else' optsf
          (findOptionsFile >>= readOptions) (readOptions ∘ just) >>=c λ ofp ops →
+       say-about-if about ofp >>
        let log = cedille-options.options.generate-logs ops in
        process-encoding ofp (record ops {generate-logs = ff}) >>= λ ops →
        main-with-options.main' compileTime ofp (record ops {generate-logs = log}) die fs
+
+     where
+     say-about-if : 𝔹 → filepath → IO ⊤
+     say-about-if tt optfp =
+       putStrLn $ "Compiled:     " ^ (utcToString compileTime) ^ "\n" ^
+                  "Options file: " ^ optfp ^ "\n"
+     say-about-if ff _ = return triv
