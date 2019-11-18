@@ -670,8 +670,8 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
 Mu-span : ctxt → posinfo → ex-is-mu → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
 Mu-span Γ pi x? pi' motive? check tvs = mk-span (case x? of λ {(ExIsMu pi x) → "Mu"; _ → "Mu'"}) pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
 
-pattern-span : posinfo → var → 𝕃 ex-case-arg → span
-pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(ExCaseArg me pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) [] nothing
+pattern-span : posinfo → var → 𝕃 ex-case-arg → 𝕃 tagged-val →  span
+pattern-span pi x as l = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(ExCaseArg me pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) l nothing
 
 pattern-clause-span : posinfo → ex-tm → 𝕃 tagged-val → span
 pattern-clause-span pi t tvs = mk-span "Pattern clause" pi (term-end-pos t) tvs nothing

@@ -789,8 +789,11 @@ check-let Γ (ExDefType pi x k T) e? fm to =
      (λ {ed} T' → [ Γ - T~ / (pi % x) ] T') ,
      (λ t' → LetTp x k~ T~ ([ Γ - TpVar x / (pi % x) ] t')))
 
+TypeOfLtagVal : ctxt → ex-case → (earlier : stringset) → (Dₓ : var) → (ctrs : trie (type × params × 𝕃 tmtp)) → renamectxt → (ctr-ps : args) → (drop-as : ℕ) → type → (ctxt → term → type → term) → (ctxt → type → kind → type) →  𝕃 tagged-val
+TypeOfLtagVal  Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp = ( Dₓ ^ pi ^ x , [[]] , [] ) :: []
+
 check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
-  [- pattern-span pi x cas -]
+  [- pattern-span pi x cas (TypeOfLtagVal  Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp) -]
   maybe-else'
     (trie-lookup (ctxt.qual Γ) x >>= uncurry λ x' _ →
      trie-lookup cs x' >>= λ T →
