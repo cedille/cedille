@@ -1,0 +1,116 @@
+module nat.
+
+import bool.
+import ../core/view.
+
+data Nat: ★ =
+  | zero: Nat
+  | succ: Nat ➔ Nat.
+
+num0 : Nat = zero.
+num1 : Nat = succ num0.
+num2 : Nat = succ num1.
+num3 : Nat = succ num2.
+num4 : Nat = succ num3.
+num5 : Nat = succ num4.
+num6 : Nat = succ num5.
+num7 : Nat = succ num6.
+num8 : Nat = succ num7.
+num9 : Nat = succ num8.
+num10: Nat = succ num9.
+
+-- some basic operations
+
+predCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ N
+  = Λ N. Λ is. λ n. σ<is> n { zero ➔ n | succ n ➔ n}.
+
+pred = predCV -is/Nat.
+
+add : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ addN. m { zero ➔ n | succ m ➔ succ (addN m)}.
+
+minusCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ Nat ➔ N
+  = Λ N. Λ is. λ m. λ n. μ mMinus. n {zero ➔ m | succ n ➔ predCV -is (mMinus n)}.
+
+minus = minusCV -is/Nat.
+
+halfGen : Bool ➔ Nat ➔ Nat
+= λ b. λ n. μ half. n {
+  | zero ➔ zero
+  | succ n ➔ σ n {
+    | zero ➔ ite b num1 zero
+    | succ n ➔ succ (half n)
+    }
+  }.
+
+half = halfGen ff.
+halfUp = halfGen tt.
+
+mult : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ multM. n {zero ➔ zero | succ n ➔ add m (multM n)}.
+
+exp : Nat ➔ Nat ➔ Nat
+= λ m. λ n. μ expM. n {zero ➔ num1 | succ n ➔ mult m (to/Nat -isType/expM n)}.
+
+-- comparison operations
+
+lte : Nat ➔ Nat ➔ Bool
+= λ m. μ lte. m {
+  | zero ➔ λ _. tt
+  | succ m ➔ λ n. σ n {
+    | zero ➔ ff
+    | succ n ➔ lte m n
+    }
+  }.
+
+lt : Nat ➔ Nat ➔ Bool = λ m. λ n. lte (succ m) n.
+
+gt : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lte m n).
+
+gte : Nat ➔ Nat ➔ Bool = λ m. λ n. not (lt m n).
+
+eq : Nat ➔ Nat ➔ Bool
+= λ m. μ eq. m {
+  | zero   ➔ λ n. σ n {zero ➔ tt | succ _ ➔ ff}
+  | succ m ➔ λ n. σ n {zero ➔ ff | succ n ➔ eq m n}
+  }.
+
+-- division and remainder
+
+div : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ divN. m {
+  | zero ➔ zero
+  | succ m ➔
+    [m' = to/Nat -isType/divN m]
+  - [dif = minusCV -isType/divN m (pred n)]
+  - ite (lt (succ m') n) zero
+      (succ (divN dif))
+  }.
+
+rem : Nat ➔ Nat ➔ Nat
+  = λ m. λ n. μ remN. m {
+  | zero ➔ zero
+  | succ m ➔
+    [m' = to/Nat -isType/remN m]
+  - [dif = minusCV -isType/remN m (pred n)]
+  - ite (lt (succ m') n) (succ m') (remN (dif))
+  }.
+
+-- operations with other types
+iterNat : ∀ X: ★. (X ➔ X) ➔ X ➔ Nat ➔ X
+  = Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s (rec n)
+  }.
+
+recNat : ∀ X: ★. (X ➔ Nat ➔ X) ➔ X ➔ Nat ➔ X
+= Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s (rec n) (to/Nat -isType/rec n)
+  }.
+
+covNat : ∀ X: ★. (∀ R: ★. R ➔ (R ➔ R) ➔ (R ➔ X) ➔ X) ➔ X ➔ Nat ➔ X
+= Λ X. λ s. λ z. λ n. μ rec. n {
+  | zero ➔ z
+  | succ n ➔ s ·Type/rec n (predCV -isType/rec) rec
+  }.

@@ -39,7 +39,7 @@ token :-
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
       <0> μ                                     { mkTokenEmpty TMu           }
-      <0> μ\'                                   { mkTokenEmpty TMuP          }
+      <0> σ                                     { mkTokenEmpty TSigma        }
       <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
@@ -183,7 +183,7 @@ data TokenClass =
      |  TThetaVars
      |  TRho
      |  TMu
-     |  TMuP
+     |  TSigma
      |  TPipe     
      |  TEOF
      deriving Eq
@@ -220,7 +220,7 @@ instance Show TokenClass where
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
   show (TMu)         = "TMu"
-  show (TMuP)        = "TMuP"
+  show (TSigma)      = "TSigma"
   show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 
