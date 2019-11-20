@@ -1,6 +1,6 @@
 import-directories = "../../new-lib" 
   .
-datatype-encoding = "/home/astump/cedille/new-lib/encodings/mendler.ced".
+datatype-encoding = "../../new-lib/encodings/mendler.ced".
 
 use-cede-files = true.
 make-rkt-files = false.
