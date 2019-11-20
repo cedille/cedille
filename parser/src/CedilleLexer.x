@@ -19,7 +19,7 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι➾➔β·≃\<>Λςχφ�
 @var            = $alpha ($alpha | $numpunct)*
 @qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*
-@qkvar          = @kvar (\. @var)+
+@qkvar          = (@var \.)+ @kvar
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
 
 token :-
