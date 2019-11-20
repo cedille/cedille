@@ -256,8 +256,7 @@ LineNo :: { PosInfo }
 --         : {- empty -}                  {% getPos_1 }
 
 Term :: { Term }
-     : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
-     | '[' Def ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
+     : '[' Def ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
      | '{' Def '}' '-' Term   { Let (pos2Txt $1) True  $2 $5 }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
      | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
@@ -306,6 +305,7 @@ Lterm :: { Term }
       | 'εr'  Lterm                     { Epsilon (pos2Txt $1) (Just True) False  $2 }
       | 'εr-' Lterm                     { Epsilon (pos2Txt $1) (Just True) True $2 }
       | 'ς' Lterm                       { Sigma (pos2Txt $1) $2 }
+      | Lam Bvar OptClass '.' Term      { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
       | Pterm                           { $1 }
 
 Pterm :: { Term }
