@@ -32,12 +32,28 @@ resugar {TERM} (Phi t₌ t₁ t₂) =
   ExPhi pi-gen (resugar t₌) (resugar t₁) (resugar t₂) pi-gen
 resugar {TERM} (Rho t₌ x Tₓ t) =
   ExRho pi-gen ff nothing (resugar t₌) (just (ExGuide pi-gen x (resugar Tₓ))) (resugar t)
-resugar {TERM} (Sigma t) =
-  ExSigma pi-gen (resugar t)
-resugar {TERM} (Mu μ t Tₘ? f~ ms) =
+resugar {TERM} (VarSigma t) =
+  ExVarSigma pi-gen (resugar t)
+resugar {TERM} (Mu v t Tₘ? f~ ms) =
   ExMu
     pi-gen
-    (either-else' μ (λ t → ExIsMu' (resugar <$> t)) (ExIsMu pi-gen))
+    pi-gen
+    v
+    (resugar t)
+    (maybe-map resugar Tₘ?)
+    pi-gen
+    (map (λ {(Case x cas t _) → ExCase pi-gen x
+      (map (λ {(CaseArg me x tk?) →
+        let me' = case (me , tk?) of uncurry λ where
+                    ff _ → ExCaseArgTm
+                    tt (just (Tkk _)) → ExCaseArgTp
+                    tt _ → ExCaseArgEr in
+        ExCaseArg me' pi-gen x}) cas) (resugar t)}) ms)
+    pi-gen
+resugar {TERM} (Sigma mt t Tₘ? f~ ms) =
+  ExSigma
+    pi-gen
+    (maybe-map resugar mt)
     (resugar t)
     (maybe-map resugar Tₘ?)
     pi-gen
