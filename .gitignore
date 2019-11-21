@@ -3,6 +3,8 @@
 *.o
 *.dyn_o
 *.dyn_hi
+.stack-work
+dist
 MAlonzo
 cedille
 cedille-mac

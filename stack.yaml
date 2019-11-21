@@ -1,0 +1,7 @@
+resolver: lts-14.15
+
+packages:
+  - .
+
+extra-deps:
+  - Agda-2.6.0.1
