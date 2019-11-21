@@ -5,6 +5,7 @@
 *.dyn_hi
 .stack-work
 dist
+dist-newstyle
 MAlonzo
 cedille
 cedille-mac
