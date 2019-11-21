@@ -14,6 +14,6 @@ userhooks = simpleUserHooks { buildHook = buildHook' }
 buildHook' :: PackageDescription -> LocalBuildInfo -> UserHooks -> BuildFlags -> IO ()
 buildHook' pd lbi hooks flags = do
     -- Use make to resolve dependencies and prevent repeat code gen
-    output <- readProcess "make" ["cedille-cabal"] ""
+    output <- readProcess "make" ["cedille-stack"] ""
     putStrLn output
     buildHook simpleUserHooks pd lbi hooks flags

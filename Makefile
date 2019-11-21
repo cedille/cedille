@@ -148,6 +148,7 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 
 CEDILLE_CABAL_DEPS = $(SRC) libraries ./ial/ial.agda-lib
 CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
+CEDILLE_STACK_CMD = stack exec $(AGDA) -- $(LIB) --ghc-flag=-rtsopts
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
@@ -160,8 +161,8 @@ bin/cedille: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-cedille-cabal: $(CEDILLE_CABAL_DEPS)
-		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-pthread --ghc-dont-call-ghc -c $(SRCDIR)/main.agda
+cedille-stack: $(CEDILLE_CABAL_DEPS)
+		$(CEDILLE_STACK_CMD) --ghc-flag=-optl-pthread --ghc-dont-call-ghc -c $(SRCDIR)/main.agda
 
 cedille-mac: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda

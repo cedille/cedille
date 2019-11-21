@@ -1,12 +1,17 @@
+# Building Cedille master with Stack
+0. Install C libraries *zlib** and *ncurses** for building Agda
+     - `apt install zlib1g-dev libncurses5-dev` on Ubuntu for example
+1. Run `stack build`
+
 # Building Cedille version 1.0
 
-0. Install Agda version 2.5.4 by running `make agda-install`.
+1. Install Agda version 2.5.4 by running `make agda-install`.
 
-4. Now you can run `make` in the Cedille directory, and this should
+2. Now you can run `make` in the Cedille directory, and this should
    compile the cedille executable (which should appear in the Cedille
    directory).
 
-5. Follow the directions at the top of cedille-mode.el in the Cedille
+3. Follow the directions at the top of cedille-mode.el in the Cedille
    directory, to set up Cedille mode within emacs.  Then you can open
    files like `lib/bool.ced` within emacs and hit "Meta-s" to process
    them (if all goes well, the mode should change to "Cedille navi"

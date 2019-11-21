@@ -66,7 +66,7 @@ executable cedille
                        TemplateHaskell
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.12 && <4.13,
+  build-depends:       base >=4.11 && <4.13,
                        array >=0.5 && <0.6,
                        text >=1.2 && <1.3,
                        ghc-prim >=0.5 && <0.6,
@@ -75,13 +75,14 @@ executable cedille
                        time >=1.8 && <1.9,
                        directory >=1.3 && <1.4,
                        deepseq >=1.4 && <1.5,
-                       template-haskell >=2.14 && <2.15
+                       template-haskell >=2.13 && <2.15,
+                       Agda >=2.6.0.1 && <2.7.0.0
 
   build-tools:         alex >=3.2.1 && <3.3,
-                       happy >=1.19.10 && <1.20
+                       happy >=1.19 && <1.20
 
   -- Directories containing source files.
-  hs-source-dirs:      src, src/MAlonzo/Code, parser
+  hs-source-dirs:      src, src/MAlonzo/Code, parser/src
 
   ghc-options:         -Wno-overlapping-patterns -main-is MAlonzo.Code.Qmain
 
