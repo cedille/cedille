@@ -274,6 +274,7 @@ cedille-src-pkg: clean ./ial/ial.agda-lib
 	  core create-libraries.sh docs encodings ial issues language-overview   \
 	  lib LICENSE Makefile new-lib packages parser README.md release-procedure.md \
 	  script se-mode src .travis.yml \
+	  cedille.cabal Setup.hs stack.yaml stack.yaml.lock \
     cedille-src-pkg/
 	zip -r cedille-src-pkg.zip cedille-src-pkg
 	tar -czvf cedille-src-pkg.tar.gz cedille-src-pkg

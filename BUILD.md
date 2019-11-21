@@ -1,8 +1,7 @@
 # Building Cedille master with Stack
-0. Install C libraries *zlib** and *ncurses** for building Agda
+1. Install C libraries *zlib** and *ncurses** for building Agda
      - `apt install zlib1g-dev libncurses5-dev` on Ubuntu for example
-1. Run `stack build`
-2. Copy the binary to the local directory `stack install --local-bin-path ./bin`
+2. Run `stack build --copy-bins --local-bin-path ./bin`
 3. Add the following to your `~/.emacs` file, changing the path to match your system
 ```
 (setq cedille-path "/path/to/cedille-dir/")
