@@ -3,7 +3,7 @@
 1. Install C libraries *zlib** and *ncurses** for building Agda
     - `apt install zlib1g-dev libncurses5-dev` on Ubuntu for example
     - On MacOS these may already be available if you have xcode libraries installed
-2. Run `stack build --copy-bins --local-bin-path ./bin`
+2. Run `stack build --copy-bins --local-bin-path .`
 3. Add the following to your `~/.emacs` file, changing the path to match your system
 ```
 (setq cedille-path "/path/to/cedille-dir/")
