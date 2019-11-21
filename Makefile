@@ -128,13 +128,18 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./core/cedille-core-static: $(CEDILLE_CORE)
 	cd core/; make cedille-core-static; cd ../
 
+CEDILLE_CABAL_DEPS = $(SRC) libraries ./ial/ial.agda-lib
 CEDILLE_DEPS = $(SRC) Makefile libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
+CEDILLE_STACK_CMD = stack exec $(AGDA) -- $(LIB)
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
 cedille:	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
+
+cedille-stack: $(CEDILLE_CABAL_DEPS)
+		$(CEDILLE_STACK_CMD) --ghc-dont-call-ghc -c $(SRCDIR)/main.agda
 
 cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
@@ -184,6 +189,20 @@ cedille-mac-pkg: cedille ./core/cedille-core-static
 	cp ./packages/mac/Cedille ./cedille-mac-pkg/Cedille.app/Contents/MacOS/
 	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
 	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
+
+cedille-src-pkg: clean ./ial/ial.agda-lib
+	rm -f cedille-src-pkg.zip
+	mkdir cedille-src-pkg
+	rsync -av --exclude cedille-src-pkg --exclude .git* --exclude *.cede \
+	  BUILD.md .cedille cedille-mode cedille-mode.el cedille-tests CHANGELOG.md \
+	  core create-libraries.sh docs ial issues language-overview   \
+	  lib LICENSE Makefile new-lib packages parser README.md release-procedure.md \
+	  script se-mode src .travis.yml \
+	  cedille.cabal Setup.hs stack.yaml stack.yaml.lock \
+    cedille-src-pkg/
+	zip -r cedille-src-pkg.zip cedille-src-pkg
+	tar -czvf cedille-src-pkg.tar.gz cedille-src-pkg
+	rm -rf cedille-src-pkg
 
 clean:
 	git clean -Xfd # only remove .gitignore files and directories

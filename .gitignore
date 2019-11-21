@@ -3,6 +3,9 @@
 *.o
 *.dyn_o
 *.dyn_hi
+.stack-work
+dist
+dist-newstyle
 MAlonzo
 cedille
 libraries
