@@ -417,26 +417,26 @@ check-term Γ (ExRho pi ρ+ <ns> t₌ Tₘ? t) Tₑ? =
       return-when t~ T~
 
 -- ς t
-check-term Γ (ExSigma pi t) Tₑ? =
+check-term Γ (ExVarSigma pi t) Tₑ? =
   case-ret
     (Γ ⊢ t ↝ t~ ⇒ T /
      Γ ⊢ T =β= λ where
        (TpEq t₁ t₂) →
-         [- Sigma-span pi t synthesizing [ type-data Γ (TpEq t₂ t₁) ] nothing -]
-         return2 (Sigma t~) (TpEq t₂ t₁)
+         [- VarSigma-span pi t synthesizing [ type-data Γ (TpEq t₂ t₁) ] nothing -]
+         return2 (VarSigma t~) (TpEq t₂ t₁)
        Tₕ →
-         [- Sigma-span pi t synthesizing [ type-data Γ Tₕ ]
+         [- VarSigma-span pi t synthesizing [ type-data Γ Tₕ ]
            (unless (is-hole Tₕ)
               "The synthesized type of the body is not an equation") -]
-         return2 (Sigma t~) Tₕ)
+         return2 (VarSigma t~) Tₕ)
   λ Tₑ →
     Γ ⊢ Tₑ =β= λ where
       (TpEq t₁ t₂) →
         Γ ⊢ t ⇐ TpEq t₂ t₁ ↝ t~ /
-        [- Sigma-span pi t checking [ expected-type Γ (TpEq t₁ t₂) ] nothing -]
-        return (Sigma t~)
+        [- VarSigma-span pi t checking [ expected-type Γ (TpEq t₁ t₂) ] nothing -]
+        return (VarSigma t~)
       Tₕ →
-        [- Sigma-span pi t checking [ expected-type Γ Tₕ ]
+        [- VarSigma-span pi t checking [ expected-type Γ Tₕ ]
              (unless (is-hole Tₕ)
                 "The expected type is not an equation") -]
         untyped-term Γ t
