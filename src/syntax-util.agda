@@ -304,7 +304,7 @@ unqual-local : var → var
 unqual-local v = f' (string-to-𝕃char v) where
   f : 𝕃 char → maybe (𝕃 char)
   f [] = nothing
-  f ('@' :: t) = f t maybe-or just t
+  f ('@' :: t) = f t ||-maybe just t
   f (h :: t) = f t
   f' : 𝕃 char → string
   f' (meta-var-pfx :: t) = maybe-else' (f t) v (𝕃char-to-string ∘ _::_ meta-var-pfx)
@@ -326,9 +326,9 @@ reprefix f x =
   ret pfx sfx = just (𝕃char-to-string (reverse pfx) , 𝕃char-to-string sfx)
   pfx : 𝕃 char → 𝕃 char → maybe (var × var)
   pfx (qual-global-chr :: xs) acc =
-    pfx xs (qual-global-chr :: acc) maybe-or ret (qual-global-chr :: acc) xs
+    pfx xs (qual-global-chr :: acc) ||-maybe ret (qual-global-chr :: acc) xs
   pfx (qual-local-chr :: xs) acc =
-    pfx xs (qual-local-chr :: acc) maybe-or ret (qual-local-chr :: acc) xs
+    pfx xs (qual-local-chr :: acc) ||-maybe ret (qual-local-chr :: acc) xs
   pfx (x :: xs) acc = pfx xs (x :: acc)
   pfx [] pfx = nothing
 

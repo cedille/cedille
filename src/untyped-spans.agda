@@ -384,7 +384,7 @@ untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
                  ("Constructor's datatype has " ^ ℕ-to-string Cₗ ^
                   (if Cₗ =ℕ 1 then " constructor" else " constructors") ^
                   ", but expected " ^ ℕ-to-string csₗ) in
-      [- Var-span Γ pi x untyped [] (asₗ cᵢ maybe-or (eₐ maybe-or eₗ)) -]
+      [- Var-span Γ pi x untyped [] (asₗ cᵢ ||-maybe (eₐ ||-maybe eₗ)) -]
       return2 c~ ((λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ) , (maybe-not (asₗ cᵢ) >> just cᵢ))
     _ →
       [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
