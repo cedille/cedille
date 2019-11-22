@@ -29,9 +29,9 @@ maybe-equal? f (just x) nothing = ff
 maybe-equal? f nothing (just x) = ff
 maybe-equal? f nothing nothing = tt
 
-_maybe-or_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
-(nothing maybe-or ma) = ma
-(just a  maybe-or ma) = just a
+_||-maybe_ : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe A → maybe A
+(nothing ||-maybe ma) = ma
+(just a  ||-maybe ma) = just a
 
 maybe-not : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
 maybe-not (just a) = nothing

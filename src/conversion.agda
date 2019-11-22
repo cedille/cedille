@@ -140,7 +140,7 @@ hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
                           conv-ctr-ps Γ cₓ' cₓ ≫=maybe uncurry λ ps' ps →
                           maybe-if (length as =ℕ length cas + ps) ≫=maybe λ _ →
                           just (t , cas , drop ps as)}
-      matching-case = λ cₓ as → foldr (_maybe-or_ ∘ case-matches cₓ as) nothing cs
+      matching-case = λ cₓ as → foldr (_||-maybe_ ∘ case-matches cₓ as) nothing cs
       sub-mu = let x = fresh-var Γ "x" in , Lam ff x nothing (t-else (Var x))
       sub = λ Γ → either-else' μₒ (λ _ → id {A = term})
         (λ x → substs Γ (trie-insert (trie-single x sub-mu) (data-to/ x) (, id-term))) in
@@ -344,7 +344,7 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
     where
     matching-case : case → maybe (term × ℕ × ℕ)
     matching-case (Case x _ _ _) = foldl (λ where
-      (Case xₘ cas tₘ _) m? → m? maybe-or
+      (Case xₘ cas tₘ _) m? → m? ||-maybe
         (conv-ctr-ps Γ xₘ x ≫=maybe uncurry λ psₘ ps →
          just (case-args-to-lams cas tₘ , length cas , ps)))
       nothing ms₂
