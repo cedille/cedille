@@ -32,7 +32,7 @@ exprd-eq KIND KIND = tt
 exprd-eq _ _ = ff
 
 is-eq-op : {ed : exprd} → ⟦ ed ⟧ → 𝔹
-is-eq-op{TERM} (Sigma _) = tt
+is-eq-op{TERM} (VarSigma _) = tt
 is-eq-op{TERM} (Rho _ _ _ _) = tt
 is-eq-op{TERM} (Phi _ _ _) = tt
 is-eq-op{TERM} (Delta _ _ _) = tt
@@ -89,8 +89,9 @@ no-parens {TERM} {_} (LetTm me x T t t') p lr = ff
 no-parens {TERM} {_} (LetTp x T t t') p lr = ff
 no-parens {TERM} {_} (Phi tₑ t₁ t₂) p lr = ff
 no-parens {TERM} {_} (Rho tₑ x Tₓ t) p lr = ff
-no-parens {TERM} {_} (Sigma t) p lr = is-eq-op p
+no-parens {TERM} {_} (VarSigma t) p lr = is-eq-op p
 no-parens {TERM} {_} (Mu _ _ _ _ _) p lr = ff
+no-parens {TERM} {_} (Sigma _ _ _ _ _) p lr = ff
 no-parens {TYPE} {e} (TpAbs me x tk T) p lr = exprd-eq e TYPE && is-arrow p && not-left lr
 no-parens {TYPE} {_} (TpIota x T₁ T₂) p lr = ff
 no-parens {TYPE} {_} (TpApp T tT) p lr = is-arrow p || (is-type-level-app p && not-right lr)
@@ -136,9 +137,9 @@ drop-spine ops Γ x = x
 to-string-rewrite : {ed : exprd} → ctxt → cedille-options.options → ⟦ ed ⟧ → Σi exprd ⟦_⟧
 to-string-rewrite{TYPE} Γ ced-ops-conv-arr (TpAbs me x (Tkt T) T') = , TpAbs me (if is-free-in x T' then x else arrow-var) (Tkt T) T'
 to-string-rewrite{KIND} Γ ced-ops-conv-arr (KdAbs x tk k) = , KdAbs (if is-free-in x k then x else arrow-var) tk k
-to-string-rewrite{TERM} Γ ops (Sigma t) with to-string-rewrite Γ ops t
-...| ,_ {TERM} (Sigma t') = , t'
-...| t? = , Sigma t
+to-string-rewrite{TERM} Γ ops (VarSigma t) with to-string-rewrite Γ ops t
+...| ,_ {TERM} (VarSigma t') = , t'
+...| t? = , VarSigma t
 to-string-rewrite Γ ops x = , drop-spine ops Γ x
 
 
@@ -400,11 +401,11 @@ term-to-stringh (Rho tₑ x Tₓ t) = strBreak 3
   1 [ strAdd "@ " >>str strBvar x (strAdd " . ") (to-stringh (erase Tₓ)) ]
   1 [ strAdd "- " >>str strNest 2 (to-stringr t) ]
 
-term-to-stringh (Sigma t) = strAdd "ς " >>str to-stringh t
+term-to-stringh (VarSigma t) = strAdd "ς " >>str to-stringh t
 
 term-to-stringh (Var x) = strVar x
 
-term-to-stringh (Mu (inj₂ x) t ot t~ cs) =
+term-to-stringh (Mu x t ot t~ cs) =
   strAdd "μ " >>str
   strBvar x
     (strAdd " . " >>str strBreak 2
@@ -412,8 +413,8 @@ term-to-stringh (Mu (inj₂ x) t ot t~ cs) =
       3 ( optType-to-string (just '@') ot ))
     (strAdd " " >>str strBracket '{' (cases-to-string cs) '}')
 
-term-to-stringh (Mu (inj₁ ot) t oT t~ cs) =
-  strAdd "μ' " >>str strBreak 3
+term-to-stringh (Sigma ot t oT t~ cs) =
+  strAdd "σ " >>str strBreak 3
     2 (maybe-else' {B = 𝕃 strM} ot []
          λ t → [ strAdd "<" >>str to-stringh t >>str strAdd ">" ])
     2 [ to-stringl t ]
