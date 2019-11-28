@@ -16,7 +16,7 @@ open import datatype-util
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =
-  Phi (Rho (Sigma eq) x (TpEq t t') (Beta t id-term)) t t'
+  Phi (Rho (VarSigma eq) x (TpEq t t') (Beta t id-term)) t t'
 
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : maybe term) →
@@ -101,16 +101,16 @@ rewrite-termh (LetTm ff x nothing t t') Γ = rewrite-terma (subst Γ t x t') Γ
 --  rewrite-abs x x' rewrite-terma t'
 -- ^^^ Need to DEFINE "x" as "hnf Γ unfold-head t tt", not just declare it!
 --     We may instead simply rewrite t' after substituting t for x
-rewrite-termh (Mu (inj₂ x) t nothing t~ ms) =
+rewrite-termh (Mu x t nothing t~ ms) =
   rewrite-rename-var x λ x' →
-  pure (Mu (inj₂ x')) <*>
+  pure (Mu x') <*>
   rewrite-terma t <*>
   pure nothing <*>
   pure t~ <*>
   foldr (λ c r → pure _::_ <*> rewrite-case (just $ x , x') c <*> r)
     (pure []) ms
-rewrite-termh (Mu (inj₁ tᵢ) t nothing t~ ms) =
-  pure (Mu (inj₁ tᵢ)) <*>
+rewrite-termh (Sigma tᵢ t nothing t~ ms) =
+  pure (Sigma tᵢ) <*>
   rewrite-terma t <*>
   pure nothing <*>
   pure t~ <*>
@@ -200,7 +200,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttp T')) =
     T (KdAbs x' atk k) → TpApp T (Ttp T') , hnf Γ unfold-head-elab (subst Γ T' x' k)
     T k → TpApp T (Ttp T') , k
 post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttm t)) =
-  let t2 T' = if is-free-in x T' then Rho (Sigma eq) x T' t else t in
+  let t2 T' = if is-free-in x T' then Rho (VarSigma eq) x T' t else t in
   elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KdAbs x' (Tkt T') k) →
       let t3 = t2 T' in TpApp T (Ttm t3) , hnf Γ unfold-head-elab (subst Γ t3 x' k)
