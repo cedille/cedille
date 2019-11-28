@@ -32,7 +32,6 @@ mutual
   left-right = maybe 𝔹
   rho-hnf = 𝔹
   opt-public = 𝔹
-  is-mu = maybe term ⊎ var
   iota-num = 𝔹
   case-args = 𝕃 case-arg
   tmtp = term ⊎ type

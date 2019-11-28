@@ -67,9 +67,6 @@ erase-args : args → 𝕃 term
 erase-params : params → 𝕃 var
 erase-tk : tpkd → tpkd
 erase-tT : tmtp → tmtp
-erase-is-mu : is-mu → is-mu
-
-erase-is-mu = either-else (λ _ → inj₁ nothing) inj₂
 
 erase-tk = erase -tk_
 erase-tT = erase -tT_
