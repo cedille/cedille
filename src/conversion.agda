@@ -115,7 +115,7 @@ hnf {TERM} Γ u (Lam tt x T t) = hnf Γ u t
 hnf {TERM} Γ u (LetTp x k T t) = hnf Γ u t
 hnf {TERM} Γ u (Phi tₑ t₁ t₂) = hnf Γ u t₂
 hnf {TERM} Γ u (Rho tₑ x Tₓ t) = hnf Γ u t
-hnf {TERM} Γ u (Sigma t) = hnf Γ u t
+hnf {TERM} Γ u (VarSigma t) = hnf Γ u t
 hnf {TERM} Γ u (App t t') with hnf Γ u t
 ...| Lam ff x nothing t'' = hnf Γ u ([ Γ - t' / x ] t'')
 ...| t'' = App t'' (hnf Γ (unfold-dampen u) t')
@@ -127,12 +127,11 @@ hnf {TERM} Γ u (Var x) with
    maybe-if (unfolding.unfold-defs u) >> ctxt-lookup-term-var-def Γ x
 ...| nothing = Var x
 ...| just t = hnf Γ (unfold-dampen u) t
-hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
+hnf {TERM} Γ u (Mu f tₒ _ t~ cs') =
   let t = hnf Γ u tₒ
-      μ = either-else' μₒ (λ _ → inj₁ nothing) inj₂
-      Γ' = either-else' μₒ (λ _ → Γ) (flip ctxt-var-decl Γ)
+      Γ' = ctxt-var-decl f Γ
       cs = erase-cases cs'
-      t-else = λ t → Mu μ t nothing t~ $ flip map cs λ where
+      t-else = λ t → Mu f t nothing t~ $ flip map cs λ where
                  (Case x cas t T) → Case x cas
                    (hnf (add-caseArgs-to-ctxt cas Γ') (unfold-dampen u) t) T
       case-matches : var → args → case → maybe (term × case-args × args)
@@ -142,10 +141,24 @@ hnf {TERM} Γ u (Mu μₒ tₒ _ t~ cs') =
                           just (t , cas , drop ps as)}
       matching-case = λ cₓ as → foldr (_||-maybe_ ∘ case-matches cₓ as) nothing cs
       sub-mu = let x = fresh-var Γ "x" in , Lam ff x nothing (t-else (Var x))
-      sub = λ Γ → either-else' μₒ (λ _ → id {A = term})
-        (λ x → substs Γ (trie-insert (trie-single x sub-mu) (data-to/ x) (, id-term))) in
+      sub = λ Γ → substs Γ (trie-insert (trie-single f sub-mu) (data-to/ f) (, id-term)) in
   maybe-else' (decompose-var-headed t ≫=maybe uncurry matching-case) (t-else t) λ where
     (tₓ , cas , as) → hnf Γ u (recompose-apps as (case-args-to-lams cas (sub (add-caseArgs-to-ctxt cas Γ') tₓ)))
+hnf {TERM} Γ u (Sigma mt tₒ _ t~ cs') =
+  let t = hnf Γ u tₒ
+      cs = erase-cases cs'
+      t-else = λ t → Sigma nothing t nothing t~ $ flip map cs λ where
+                 (Case x cas t T) → Case x cas
+                   (hnf (add-caseArgs-to-ctxt cas Γ) (unfold-dampen u) t) T
+      case-matches : var → args → case → maybe (term × case-args × args)
+      case-matches = λ {cₓ as (Case cₓ' cas t T) →
+                          conv-ctr-ps Γ cₓ' cₓ ≫=maybe uncurry λ ps' ps →
+                          maybe-if (length as =ℕ length cas + ps) ≫=maybe λ _ →
+                          just (t , cas , drop ps as)}
+      matching-case = λ cₓ as → foldr (_||-maybe_ ∘ case-matches cₓ as) nothing cs
+      sub = λ Γ → id {A = term} in
+  maybe-else' (decompose-var-headed t ≫=maybe uncurry matching-case) (t-else t) λ where
+    (tₓ , cas , as) → hnf Γ u (recompose-apps as (case-args-to-lams cas (sub (add-caseArgs-to-ctxt cas Γ) tₓ)))
 
 hnf{TYPE} Γ u (TpAbs me x tk tp) = TpAbs me x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (TpIota x tp₁ tp₂) = TpIota x (hnf Γ (unfold-dampen u) tp₁) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp₂)
@@ -198,10 +211,10 @@ conv-term-norm Γ (App t1 t2) (App t1' t2') = conv-term-norm Γ t1 t1' && conv-t
 conv-term-norm Γ (Lam ff x _ t) (Lam ff x' _ t') = conv-term (ctxt-rename x x' (ctxt-var-decl-if x' Γ)) t t'
 conv-term-norm Γ (Hole _) _ = tt
 conv-term-norm Γ _ (Hole _) = tt
-conv-term-norm Γ (Mu (inj₂ x₁) t₁ _ _ cs₁) (Mu (inj₂ x₂) t₂ _ _ cs₂) =
+conv-term-norm Γ (Mu x₁ t₁ _ _ cs₁) (Mu x₂ t₂ _ _ cs₂) =
   let Γ' = ctxt-rename x₁ x₂ $ ctxt-var-decl x₂ Γ in
   conv-term Γ t₁ t₂ && conv-cases Γ' cs₁ cs₂
-conv-term-norm Γ (Mu (inj₁ _) t₁ _ _ cs₁) (Mu (inj₁ _) t₂ _ _ cs₂) = conv-term Γ t₁ t₂ && conv-cases Γ cs₁ cs₂
+conv-term-norm Γ (Sigma _ t₁ _ _ cs₁) (Sigma _ t₂ _ _ cs₂) = conv-term Γ t₁ t₂ && conv-cases Γ cs₁ cs₂
 {- it can happen that a term is equal to a lambda abstraction in head-normal form,
    if that lambda-abstraction would eta-contract following some further beta-reductions.
    We implement this here by implicitly eta-expanding the variable and continuing
@@ -308,10 +321,10 @@ inconv Γ t₁ t₂ = inconv-lams empty-renamectxt empty-renamectxt
     case (decompose-apps b₁ , decompose-apps b₂) of uncurry λ where
       (Var x₁ , a₁) (Var x₂ , a₂) →
         inconv-apps ρ₁ ρ₂ x₁ x₂ a₁ a₂ || inconv-ctrs ρ₁ ρ₂ x₁ x₂ a₁ a₂
-      (Mu (inj₂ x₁) t₁ _ _ ms₁ , a₁) (Mu (inj₂ x₂) t₂ _ _ ms₂ , a₂) →
+      (Mu x₁ t₁ _ _ ms₁ , a₁) (Mu x₂ t₂ _ _ ms₂ , a₂) →
         inconv-mu ρ₁ ρ₂ (just $ x₁ , x₂) ms₁ ms₂ ||
         inconv-lams ρ₁ ρ₂ t₁ t₂ || inconv-args ρ₁ ρ₂ a₁ a₂
-      (Mu (inj₁ _) t₁ _ _ ms₁ , a₁) (Mu (inj₁ _) t₂ _ _ ms₂ , a₂) →
+      (Sigma _ t₁ _ _ ms₁ , a₁) (Sigma _ t₂ _ _ ms₂ , a₂) →
         inconv-mu ρ₁ ρ₂ nothing ms₁ ms₂ ||
         inconv-lams ρ₁ ρ₂ t₁ t₂ || inconv-args ρ₁ ρ₂ a₁ a₂
       _ _ → ff
