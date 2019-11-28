@@ -100,12 +100,12 @@ module positivity (x : var) where
 
   arrs+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ $ hnf' Γ -tk atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-maybe arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpApp T tT) = occurs (tpapp+ Γ $ hnf' Γ (TpApp T tT))
                        --arrs+ Γ T maybe-or (not-free -tT' tT)
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ $ hnf' Γ -tk atk) maybe-or arrs+ Γ' (hnf' Γ' T)
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-maybe arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpVar x') = maybe-if (~ x =string x') >> just ff
   arrs+ Γ T = just ff
   

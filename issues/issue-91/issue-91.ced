@@ -1,0 +1,19 @@
+module issue-91 {a : {λ x. x ≃ λ x. x}}.
+
+data Nat : ★ =
+| zero : Nat
+| succ : Nat ➔ Nat.
+
+pred : Nat ➔ Nat = λ n. μ' n {
+| zero ➔ zero
+| succ n ➔ n
+}.
+
+data IdxData : Nat ➔ ★ =
+| IdxCtr : Π n : Nat. IdxData n.
+
+refine : ∀ n : Nat. IdxData n ➔ IdxData (pred n)
+= Λ n. λ d.
+  μ' d {
+  | IdxCtr n ➔ IdxCtr (pred n)
+  }.

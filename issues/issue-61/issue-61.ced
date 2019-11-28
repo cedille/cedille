@@ -1,0 +1,4 @@
+module issues/issues-61.
+
+test : ∀ X: ★. Π f: (X ➔ X) ➔ (X ➔ X) ➔ X. X
+= Λ X. λ f. f (λ x. x) λ x. x .

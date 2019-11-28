@@ -239,7 +239,7 @@ check-term Γ (ExIotaPair pi t₁ t₂ Tₘ? pi') Tₑ? =
               to-string-tag "hnf of the first component"  Γ (hnf Γ unfold-head t₁~) ::
             [ to-string-tag "hnf of the second component" Γ (hnf Γ unfold-head t₂~) ] in
       [- IotaPair-span pi pi' (maybe-to-checking Tₑ?) (conv-tvs ++ tvs)
-           (conv-e? maybe-or err?) -]
+           (conv-e? ||-maybe err?) -]
       return-when t~ T~
 
 -- t.(1 / 2)
@@ -315,7 +315,7 @@ check-term Γ (ExLam pi e pi' x tk? t) Tₑ? =
             vₑ = check-for-tpkd-mismatch-if Γ "computed" tk~? tk in
         [- var-span e (Γ , pi' - x :` tk~) pi' x (maybe-to-checking tk?) tk~ nothing -]
         [- uncurry (λ err tvs → Lam-span Γ checking pi pi' e x tk~ t
-                 (type-data Γ Tₛ :: expected-type Γ Tₑ :: tvs) (err maybe-or vₑ))
+                 (type-data Γ Tₛ :: expected-type Γ Tₑ :: tvs) (err ||-maybe vₑ))
              (erase-err e' e tk~ t~) -]
         return (Lam e xₙ (just tk~) t~)
       Tₕ →
@@ -464,7 +464,7 @@ check-term Γ (ExTheta pi θ t ts) Tₑ? =
               t~ = case θ of λ {AbstractEq → AppEr t~ (Beta (erase t~) id-term); _ → t~} in
           [- Theta-span Γ pi θ t ts checking
                (type-data Γ T~ :: expected-type Γ Tₑ :: tvs)
-               (e₁ maybe-or (e₂ maybe-or e₃)) -]
+               (e₁ ||-maybe (e₂ ||-maybe e₃)) -]
           return t~
         Tₕ →
           [- Theta-span Γ pi θ t ts checking (head-type Γ Tₕ :: expected-type Γ Tₑ :: [])
@@ -876,7 +876,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
       (trie-insert σ x' (, Var (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') (ex-case-arg-erased me) nothing spos epos :: xs)
-      λ t → [- Var-span Γ' pi x checking [ type-data Γ T' ] (e₁ maybe-or e₂ t) -] sm t
+      λ t → [- Var-span Γ' pi x checking [ type-data Γ T' ] (e₁ ||-maybe e₂ t) -] sm t
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
         Γ' = ctxt-var-decl-loc pi x Γ
@@ -971,8 +971,8 @@ ctxt-mu-decls Γ t is Tₘ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚ�
       e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
       cs-fvs = stringset-contains ∘' free-vars-cases ∘' erase-cases
       e₃ₓ? = λ cs x → maybe-if (cs-fvs cs x) >> e₃ x
-      e₃? = λ cs → e₃ₓ? cs (mu-isType/ x) maybe-or e₃ₓ? cs (mu-Type/ x) in
-    (λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? maybe-or e₃? cs) -] spanMok) ,
+      e₃? = λ cs → e₃ₓ? cs (mu-isType/ x) ||-maybe e₃ₓ? cs (mu-Type/ x) in
+    (λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? ||-maybe e₃? cs) -] spanMok) ,
      Γ'' ,
     (binder-data Γ'' pi₁ X' (Tkk k) Erased nothing pi₂ pi₃ ::
      binder-data Γ'' pi₁ xₘᵤ (Tkt Tₘᵤ) Erased nothing pi₂ pi₃ ::
@@ -1054,7 +1054,11 @@ check-mu Γ pi μ t Tₘ? pi'' cs pi''' Tₑ? =
                              (just "A motive is required when synthesizing")
                              (check-for-type-mismatch-if Γ "synthesized" Tₑ?) in
                   [- Mu-span Γ pi μ pi''' Tₘ?' (maybe-to-checking Tₑ?)
-                         (expected-type-if Γ Tₑ? ++ maybe-else' Tᵣ [] (λ Tᵣ → [ type-data Γ Tᵣ ]) ++ tvs₁ ++ bds) (e₁ maybe-or (e₂ maybe-or (e₃ maybe-or eₘ))) -]
+                         (expected-type-if Γ Tₑ? ++
+                           maybe-else' Tᵣ [] (λ Tᵣ → [ type-data Γ Tᵣ ]) ++
+                           tvs₁ ++
+                           bds)
+                         (e₁ ||-maybe (e₂ ||-maybe (e₃ ||-maybe eₘ))) -]
                   sm cs~ >>
                   let μ = case μ of λ {(ExIsMu pi x) → inj₂ x; (ExIsMu' _) → inj₁ (just tₑ~)} in
                   return-when {m = Tₑ?}

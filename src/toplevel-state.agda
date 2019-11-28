@@ -218,7 +218,7 @@ error-in-import-string = "There is an error in the imported file"
 {-# TERMINATING #-}
 check-cyclic-imports : (original current : filepath) → stringset → (path : 𝕃 string) → toplevel-state → err-m
 check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
-...| ff = foldr (λ fnᵢ x → x maybe-or check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
+...| ff = foldr (λ fnᵢ x → x ||-maybe check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
             nothing (include-elt.deps (get-include-elt s fn))
 ...| tt with fnₒ =string fn
 ...| tt = just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
@@ -230,7 +230,7 @@ scope-t X = filepath → string → maybe var → params → args → X → topl
 infixl 0 _>>=scope_
 _>>=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
 _>>=scope_ (ts , err) f with f ts
-...| ts' , err' = ts' , err maybe-or err'
+...| ts' , err' = ts' , err ||-maybe err'
 
 {-# TERMINATING #-}
 scope-file : toplevel-state → (original imported : filepath) → maybe var → args → toplevel-state × err-m

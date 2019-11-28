@@ -174,7 +174,7 @@ process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
           (maybe-else' (lookup-mod-params (toplevel-state.Γ s) fnₒ) [] id) >>=c λ e as~ →
          let s-e = scope-file s fnₒ fnᵢ oa' as~
              Γ = toplevel-state.Γ s in
-         [- Import-span pi fnᵢ pi'' [] (snd s-e maybe-or e) -]
+         [- Import-span pi fnᵢ pi'' [] (snd s-e ||-maybe e) -]
          return2 (fst s-e) (CmdImport (Import op fnᵢ x oa' as~))
   where
   -- When importing a file publicly, you may use any number of arguments as long as the
@@ -299,7 +299,7 @@ process-file s filename pn | ie =
              filename pn x empty-spans >>= λ where
        ((mk-toplevel-state ip fns is Γ , f) , ss) →
          let ret-mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ
-             ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' maybe-or just f } in
+             ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' ||-maybe just f } in
          progress-update pn >> return
            (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) (trie-insert is filename ie'')
              (ctxt-set-current-mod Γ prev-mod) ,

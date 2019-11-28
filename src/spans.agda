@@ -167,7 +167,7 @@ location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-na
 var-location-data : ctxt → var → tagged-val
 var-location-data Γ x =
   location-data (maybe-else missing-location snd
-    (trie-lookup (ctxt.i Γ) x maybe-or trie-lookup (ctxt.i Γ) (qualif-var Γ x)))
+    (trie-lookup (ctxt.i Γ) x ||-maybe trie-lookup (ctxt.i Γ) (qualif-var Γ x)))
 
 explain : string → tagged-val
 explain = strRunTag "explanation" empty-ctxt ∘ strAdd
