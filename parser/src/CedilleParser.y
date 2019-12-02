@@ -272,13 +272,16 @@ OptPipe :: { PosInfo }
         :          {% getPos }
         | '|'      { pos2Txt $1 }
 
+Case :: { Case }
+  : Qvar CaseArgs '➔' Term  { Case (tPosTxt $1) (tTxt $1) $2 $4 }
+
 Cases :: { Cases }
-     :                                  { [] }
-     | '|' Qvar CaseArgs '➔' Term Cases { Case (tPosTxt $2) (tTxt $2) $3 $5 : $6 }
+     :                                 { [] }
+     | '|' Case Cases { $2 : $3 }
 
 -- Optional first pipe
 CasesAux :: { Cases }
-  : Qvar CaseArgs '➔' Term Cases { Case (tPosTxt $1) (tTxt $1) $2 $4 : $5 }
+  : Case Cases { $1 : $2 }
   | Cases                        { $1 }
 
 CaseArgs :: { [CaseArg] }
