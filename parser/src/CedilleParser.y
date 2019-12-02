@@ -416,9 +416,10 @@ main :: IO ()
 main = do  
   [ file ] <- getArgs
   cnt      <- readFile file
+  let perr w errMsg = putStrLn (w ++ " error at position " ++ (unpack errMsg))
   case parseTxt (pack cnt) of 
-    Prelude.Left  (Prelude.Left  errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
-    Prelude.Left  (Prelude.Right errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
-    Prelude.Right res                    -> writeFile (file ++ "-result") (show res)    
+    Prelude.Left  (Prelude.Left  errMsg) -> perr "Lex" errMsg
+    Prelude.Left  (Prelude.Right errMsg) -> perr "Parse" errMsg
+    Prelude.Right res                    -> putStrLn "Ok" >> writeFile ("parser-result.ast") (show res)    
 
 }
