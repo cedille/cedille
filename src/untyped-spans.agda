@@ -147,8 +147,8 @@ untyped-term Γ (ExRho pi ρ+? ρ<ns>? t₌ Tₘ? t) =
                   untyped-type (ctxt-var-decl-loc pi' x Γ) Tₘ}) Tₘ? >>=? λ Tₘ?~ →
   untyped-term Γ t
 
-untyped-term Γ (ExSigma pi t) =
-  [- Sigma-span pi t untyped [] nothing -]
+untyped-term Γ (ExVarSigma pi t) =
+  [- VarSigma-span pi t untyped [] nothing -]
   untyped-term Γ t
 
 untyped-term Γ (ExTheta pi θ t ts) =
@@ -157,31 +157,42 @@ untyped-term Γ (ExTheta pi θ t ts) =
   untyped-args Γ (map (λ {(Lterm e t) → ExTmArg e t}) ts) >>= λ as~ →
   return (recompose-apps (map Arg (erase-args as~)) t~)
 
-untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
+untyped-term Γ (ExMu pi pi''' x t Tₘ? pi' ms pi'') =
   untyped-term Γ t >>= λ t~ →
   maybe-map (untyped-type Γ) Tₘ? >>=? λ Tₘ~? →
-  (case_of_ {B = spanM (ctxt × renamectxt × is-mu × 𝕃 tagged-val)} μ λ where
-    (ExIsMu pi''' x) →
-      [- Var-span Γ pi''' x untyped [] nothing -]
-      let Γ' = ctxt-term-decl pi''' x (TpHole pi''') Γ in
-      return (Γ' , renamectxt-single (pi''' % x) x , inj₂ x ,
-               [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ])
-    (ExIsMu' t?) →
-      maybe-map (untyped-term Γ) t? >>=? λ t~? →
-      return (Γ , empty-renamectxt , inj₁ t~? , []))
-  >>= λ where
-    (Γ' , ρ , μ~ , tvs) →
+   [- Var-span Γ pi''' x untyped [] nothing -]
+      let Γ' = ctxt-term-decl pi''' x (TpHole pi''') Γ 
+          ρ = renamectxt-single (pi''' % x) x
+          tvs = [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ] in
       untyped-cases Γ' ms ρ >>= λ ms~ →
       -- Make sure we aren't matching upon a "False" datatype (e.g., one
       -- with no constructors) before any datatypes have been declared
       maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
-        ([- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs
+        ([- Mu-span Γ pi pi'' Tₘ~? untyped tvs
               (just "No datatypes have been declared yet") -]
          return (Hole pi))
         λ where
           (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
-            [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
-            return (Mu μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
+            [- Mu-span Γ pi pi'' Tₘ~? untyped tvs nothing -]
+            return (Mu x t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
+untyped-term Γ (ExSigma pi t? t Tₘ? pi' ms pi'') =
+  untyped-term Γ t >>= λ t~ →
+  maybe-map (untyped-type Γ) Tₘ? >>=? λ Tₘ~? →
+      maybe-map (untyped-term Γ) t? >>=? λ t~? →
+      let ρ = empty-renamectxt
+          μ~ = t~?
+          tvs = [] in
+      untyped-cases Γ ms ρ >>= λ ms~ →
+      -- Make sure we aren't matching upon a "False" datatype (e.g., one
+      -- with no constructors) before any datatypes have been declared
+      maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
+        ([- Mu-span Γ pi pi'' Tₘ~? untyped tvs
+              (just "No datatypes have been declared yet") -]
+         return (Hole pi))
+        λ where
+          (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
+            [- Mu-span Γ pi pi'' Tₘ~? untyped tvs nothing -]
+            return (Sigma μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
 
 -- x
 untyped-term Γ (ExVar pi x) =
