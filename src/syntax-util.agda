@@ -474,3 +474,6 @@ traverse-internal {_} {X} f = h (fr ff) where
   h {KIND} f (KdHole pi) = ?
   h {KIND} f (KdAbs x tk k) = ?
 -}
+
+indicesToArgs : indices → args
+indicesToArgs = λ is → map (λ {(Index x atk) → either-else' atk (λ _ → ArgEr (Var x)) (λ _ → ArgTp (TpVar x))}) is
