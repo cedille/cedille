@@ -1,4 +1,4 @@
-# Building Cedille version 1.1.1 with Stack
+# Building Cedille version 1.1.2 with Stack
 
 1. Install C libraries *zlib** and *ncurses** for building Agda
     - `apt install zlib1g-dev libncurses5-dev` on Ubuntu for example
