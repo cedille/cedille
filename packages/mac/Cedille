@@ -2,6 +2,9 @@
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
+spctl --add $SCRIPTPATH/bin/cedille
+spctl --add $SCRIPTPATH/bin/cedille-core
+
 osascript -e 'display notification "Attempting to open an instance of Emacs..." with title "Cedille"'
 open -n -a Emacs --args --execute '(setq cedille-path "'$SCRIPTPATH/bin'")' --execute "(add-to-list 'load-path cedille-path)" --execute "(require 'cedille-mode)"
 if [ $? -ne 0 ] ; then
