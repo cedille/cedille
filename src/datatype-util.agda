@@ -144,3 +144,9 @@ module positivity (x : var) where
 
   ctr-positive : ctxt → type → maybe 𝔹
   ctr-positive Γ = arrs+ Γ ∘ hnf' Γ
+
+-- build the evidence for a sigma-term, given datatype X with associated info μ
+sigma-build-evidence : var → datatype-info → term
+sigma-build-evidence X μ =
+  if datatype-info.name μ =string X then recompose-apps (datatype-info.asₚ μ) (Var (data-is/ X)) else Var (mu-isType/' X)
+

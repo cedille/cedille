@@ -1,3 +1,4 @@
+{-# OPTIONS --allow-unsolved-metas #-}
 import cedille-options
 open import general-util
 module classify (options : cedille-options.options)
@@ -23,11 +24,6 @@ open import untyped-spans options {mF} ⦃ mFm ⦄
 
 span-error-t : Set
 span-error-t = (string × 𝕃 tagged-val)
-
-sigma-build-evidence : ctxt → var → 𝕃 tmtp → datatype-info → term
-sigma-build-evidence Γ X as μ =
-  if datatype-info.name μ =string X then recompose-apps (datatype-info.asₚ μ) (Var (data-is/ X)) else Var (mu-isType/' X)
-
 
 {-# TERMINATING #-}
 check-term : ctxt → ex-tm → (T? : maybe type) → spanM (check-ret T? term)
@@ -935,13 +931,12 @@ check-refinement Γ Tₘ kₘ s =
       [ to-string-tag "computed motive" Γ Tₘ ] ,
       (when (spans-have-error s') "We could not compute a well-kinded motive")
 
--- the first component returned is needed for the sigma case, but not the mu case
 get-datatype-info-from-head-type Γ X as = return $ maybe-else' (data-lookup Γ X as)
     (inj₁ $ "The head type of the subterm is not a datatype" , [ head-type Γ (TpVar X) ])
     (λ μ → inj₂ μ)
 
 check-sigma-evidence Γ tₑ? X as = maybe-else' tₑ?
-  (get-datatype-info-from-head-type Γ X as >>=s λ d → return $ inj₂ (sigma-build-evidence Γ X as d , id , d))
+  (get-datatype-info-from-head-type Γ X as >>=s λ d → return $ inj₂ (sigma-build-evidence X d , id , d))
   (λ tₑ →
     Γ ⊢ tₑ ↝ tₑ~ ⇒ T /
     let ev-err = inj₁ $

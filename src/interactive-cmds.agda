@@ -647,7 +647,7 @@ private
                                      sM = if rec =string ""
                                              then (σ X , const spanMok , Γ , [] , empty-renamectxt , (λ Γ t T → t) , (λ Γ T k → T))
                                              else (σ (Γₚᵢ % mu-Type/ rec) , sM')
-                                     mu = if X =string Xₛ then recompose-apps asₚ (Var (data-is/ X)) else Var (mu-isType/' Xₛ) in
+                                     mu = sigma-build-evidence Xₛ d in
                              case sM of λ where
                                (σ-cs , _ , Γ' , ts , ρ , tf , Tf) →
                                  if spans-have-error (snd $ id-out $
@@ -688,7 +688,7 @@ private
                            case decompose-ctr-type Γ T' of λ where
                              (Tₕ , ps , as) →
                                elim-pair (make-case Γ ps t) λ cas t → Case x cas t []
-                       f'' = λ t cs → Mu (if shallow then inj₁ (just mu) else inj₂ rec) t (just Tₘ) d (mk-cs cs)
+                       f'' = λ t cs → (if shallow then Mu rec else Sigma (just mu)) t (just Tₘ) d (mk-cs cs)
                        f' = λ t cs → f (f'' t cs) cs
                        mk-hs = map $ map-snd λ T'' →
                                  mk-br-history Γ t TYPE T''
