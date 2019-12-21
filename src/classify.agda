@@ -1,8 +1,7 @@
-{-# OPTIONS --allow-unsolved-metas #-}
 import cedille-options
 open import general-util
 module classify (options : cedille-options.options)
-                {mF : Set → Set} ⦃ mFm : monad mF ⦄ where
+                {mF : Set → Set} ⦃ mFm : monad mF ⦄ (write-to-log : string → mF ⊤) where
 
 open import cedille-types
 open import constants
@@ -881,14 +880,14 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
     let T' = substs Γ σ T
         e₁ = when (ex-case-arg-erased me xor me') "Mismatched erasure of term argument"
         e₂ = λ t → maybe-if (ex-case-arg-erased me) >> free-in-term x t
-        Γ' = ctxt-term-decl pi x T' Γ
+        Γ' = Γ , pi - x :` (Tkt T')
         xₙ = if x =string ignored-var then x' else x in
-    add-case-arg Γ' (pi % x) xₙ (CaseArg me' xₙ (just (Tkt T'))) $
+    (add-case-arg Γ' (pi % x) xₙ (CaseArg me' xₙ (just (Tkt T'))) $
     decl-args Γ' as ps
       (trie-insert σ x' (, Var (pi % x)))
       (renamectxt-insert ρ (pi % x) xₙ)
       (binder-data Γ' pi x (Tkt T') (ex-case-arg-erased me) nothing spos epos :: xs)
-      λ t → [- Var-span Γ' pi x checking [ type-data Γ T' ] (e₁ ||-maybe e₂ t) -] sm t
+      λ t → [- Var-span Γ' pi x checking [ type-data Γ T' ] (e₁ ||-maybe e₂ t) -] sm t)
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkk k) :: ps) σ ρ xs sm =
     let k' = substs Γ σ k
         Γ' = ctxt-var-decl-loc pi x Γ
@@ -912,9 +911,9 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
 check-cases Γ ms Dₓ cs ρ as dps Tₘ cast-tm cast-tp =
   foldr {B = stringset → trie (type × params × 𝕃 tmtp) →
               spanM (cases × trie (type × params × 𝕃 tmtp))}
-    (λ m x es cs' →
+    (λ m x es cs' → 
       check-case Γ m es Dₓ cs' ρ as dps Tₘ cast-tm cast-tp >>=c λ m~ cs →
-      x (stringset-insert es (ex-case-ctr m)) cs >>=c λ ms~ →
+      x (stringset-insert es (ex-case-ctr m)) cs >>=c λ ms~ → 
       return2 (m~ :: ms~))
     (λ es → return2 [])
     ms
@@ -1041,7 +1040,7 @@ check-mu Γ pi pi' x t Tₘ? pi'' cs pi''' Tₑ? =
                            else subst Γ (params-to-tplams ps $ TpVar X) Xₒ T}
                   reduce-cs = map λ {(Ctr x T) → Ctr x $ hnf Γ unfold-no-defs T}
                   fcs = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ Xₒ y) <$> cs')
-                  cs' = reduce-cs $ if Xₒ =string X then csₚₛ else fcs X in
+                  cs' = reduce-cs $ fcs (mu-Type/ (pi' % x)) in
               case
                 (ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) of λ where
                 (sm , Γ' , bds , ρ , cast-tm , cast-tp) →
