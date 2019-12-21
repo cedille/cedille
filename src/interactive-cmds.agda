@@ -19,7 +19,7 @@ open import parser
 open import resugar
 open import rewriting
 open import rename
-open import classify options {Id}
+open import classify options {Id} (λ _ → return triv)
 import spans options {IO} as io-spans
 open import datatype-util
 open import free-vars
