@@ -955,6 +955,7 @@ check-sigma-evidence Γ tₑ? X as = maybe-else' tₑ?
             (λ {d@(mk-data-info X Xₒ asₚ asᵢ mps kᵢ k cs csₚₛ eds gds) →
               inj₂ (tₑ~ , (App $ recompose-apps (asₚ ++ tmtps-to-args Erased asᵢ) $
                                    Var $ data-to/ X) , d)})
+            -- AS: it looks like we are reversing as' twice, so not reversing at all? 
             (data-lookup-mu Γ X X' $ reverse as' ++ as)
             -- TODO: Make sure "X" isn't a _defined_ type, but a _declared_ one!
             --       This way we avoid the possibility that "as" has arguments
@@ -980,7 +981,7 @@ ctxt-mu-decls Γ t is Tₘ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚ�
       freshₓ = fresh-var (add-indices-to-ctxt is Γ') (maybe-else "x" id (is-var (Ttm t)))
       Tₓ = hnf Γ' unfold-no-defs (indices-to-alls is $ TpAbs ff freshₓ (Tkt $ indices-to-tpapps is $ TpVar qX') $ TpAppTm (indices-to-tpapps is Tₘ) $ Phi (Beta (Var freshₓ) (Var freshₓ)) (App (indices-to-apps is $ AppEr (AppTp (flip apps-term asₚ $ Var qXₜₒ) $ TpVar qX') $ Var qxₘᵤ) $ Var freshₓ) (Var freshₓ))
       Γ'' = ctxt-term-decl pi₁ x Tₓ Γ'
-      e₂? = unless (X =string Xₒ) "Abstract datatypes can only be pattern matched by μ'"
+      e₂? = unless (X =string Xₒ) "Abstract datatypes can only be pattern matched by σ"
       e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
       cs-fvs = stringset-contains ∘' free-vars-cases ∘' erase-cases
       e₃ₓ? = λ cs x → maybe-if (cs-fvs cs x) >> e₃ x
@@ -1031,13 +1032,6 @@ check-mu Γ pi pi' x t Tₘ? pi'' cs pi''' Tₑ? =
               >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
               let Tₘ = maybe-else' Tₘ (TpHole pi) id
                   is = drop-last 1 is
-                  subst-ctr : ctxt → ctr → ctr
-                  subst-ctr =
-                    λ {Γ (Ctr x T) →
-                         Ctr x $ hnf Γ unfold-no-defs $
-                           if (Xₒ =string X)
-                           then T
-                           else subst Γ (params-to-tplams ps $ TpVar X) Xₒ T}
                   reduce-cs = map λ {(Ctr x T) → Ctr x $ hnf Γ unfold-no-defs T}
                   fcs = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ Xₒ y) <$> cs')
                   cs' = reduce-cs $ fcs (mu-Type/ (pi' % x)) in
@@ -1045,8 +1039,7 @@ check-mu Γ pi pi' x t Tₘ? pi'' cs pi''' Tₑ? =
                 (ctxt-mu-decls Γ t~ is Tₘ d pi' pi'' pi''' x) of λ where
                 (sm , Γ' , bds , ρ , cast-tm , cast-tp) →
                   let cs'' = foldl (λ {(Ctr x T) σ → trie-insert σ x T}) empty-trie cs'
-                      drop-ps = maybe-else 0 length
-                                  (when (Xₒ =string X) ps)
+                      drop-ps = 0
                       scrutinee = t~
                       Tᵣ = ret-tp ps (args-to-tmtps asₚ ++ asᵢ) scrutinee in
                   check-cases Γ' cs Xₒ cs'' ρ asₚ drop-ps Tₘ cast-tm cast-tp >>=c λ cs~ e₂ →
@@ -1091,14 +1084,6 @@ check-sigma Γ pi t? t Tₘ? pi'' cs pi''' Tₑ? =
                  λ Tₘ → return (just Tₘ , [] , nothing))
               >>=c λ Tₘ → uncurry λ tvs₁ e₁ →
               let Tₘ = maybe-else' Tₘ (TpHole pi) id
-                  is = drop-last 1 is
-                  subst-ctr : ctxt → ctr → ctr
-                  subst-ctr =
-                    λ {Γ (Ctr x T) →
-                         Ctr x $ hnf Γ unfold-no-defs $
-                           if (Xₒ =string X)
-                           then T
-                           else subst Γ (params-to-tplams ps $ TpVar X) Xₒ T}
                   reduce-cs = map λ {(Ctr x T) → Ctr x $ hnf Γ unfold-no-defs T}
                   fcs = λ y → inst-ctrs Γ ps asₚ (map-snd (rename-var {TYPE} Γ Xₒ y) <$> cs')
                   cs' = reduce-cs $ if Xₒ =string X then csₚₛ else fcs X in
