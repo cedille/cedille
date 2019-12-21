@@ -3,4 +3,4 @@ module unit.
 data Unit: ★ = unit: Unit.
 
 etaUnit : Π u: Unit. {u ≃ unit}
-= λ u. μ' u { unit ➔ β }.
+= λ u. σ u { unit ➔ β }.

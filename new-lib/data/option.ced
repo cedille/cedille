@@ -7,10 +7,10 @@ data Option (A: ★): ★ =
 | none: Option
 | some: A ➔ Option.
 
-isNone: ∀ A: ★. Option ·A ➔ Bool = Λ A. λ m. μ' m {none ➔ tt | some _ ➔ ff}.
+isNone: ∀ A: ★. Option ·A ➔ Bool = Λ A. λ m. σ m {none ➔ tt | some _ ➔ ff}.
 
 option: ∀ A: ★. ∀ X: ★. Option ·A ➔ X ➔ (A ➔ X) ➔ X
-= Λ A. Λ X. λ m. λ x. λ f. μ' m {none ➔ x | some a ➔ f a}.
+= Λ A. Λ X. λ m. λ x. λ f. σ m {none ➔ x | some a ➔ f a}.
 
 someInj: ∀ A: ★. ∀ a1: A. ∀ a2: A. {some a1 ≃ some a2} ➾ {a1 ≃ a2}
 = Λ A. Λ a1. Λ a2. Λ eq.
@@ -18,13 +18,13 @@ someInj: ∀ A: ★. ∀ a1: A. ∀ a2: A. {some a1 ≃ some a2} ➾ {a1 ≃ a2}
 - β.
 
 optionMap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ Option ·A ➔ Option ·B
-= Λ A. Λ B. λ f. λ m. μ' m {
+= Λ A. Λ B. λ f. λ m. σ m {
   | none ➔ none ·B
   | some x ➔ some (f x)
   }.
 
 optionBind : ∀ A: ★. ∀ B: ★. Option ·A ➔ (A ➔ Option ·B) ➔ Option ·B
-= Λ A. Λ B. λ m. λ f. μ' m {
+= Λ A. Λ B. λ m. λ f. σ m {
   | none ➔ none ·B
   | some x ➔ f x
   }.

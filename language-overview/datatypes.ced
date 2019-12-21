@@ -44,7 +44,7 @@ data Vec (A: ★): Nat ➔ ★ =
 
 {- Pattern Matching and Recursive Definitions
 -- =============================================================================
--- Cedille supports pattern matching using the `μ'` operator, shown below
+-- Cedille supports pattern matching using the `σ` operator, shown below
 -- to define the predecessor function for Nat
 -}
 

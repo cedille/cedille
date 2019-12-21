@@ -5,7 +5,7 @@ data Sum (A: ★) (B: ★): ★ =
   | in2 : B ➔ Sum.
 
 case : ∀ A: ★. ∀ B: ★. ∀ X: ★. Sum ·A ·B ➔ (A ➔ X) ➔ (B ➔ X) ➔ X
-  = Λ A. Λ B. Λ X. λ s. λ l. λ r. μ' s {
+  = Λ A. Λ B. Λ X. λ s. λ l. λ r. σ s {
   | in1 a ➔ l a
   | in2 b ➔ r b
   }.

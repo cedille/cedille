@@ -11,18 +11,18 @@ data List (A: ★): ★ =
   | cons: A ➔ List ➔ List.
 
 head : ∀ A: ★. List ·A ➔ Option ·A
-= Λ A. λ xs. μ' xs { nil ➔ none ·A | cons x xs ➔ some x}.
+= Λ A. λ xs. σ xs { nil ➔ none ·A | cons x xs ➔ some x}.
 
 isCons : ∀ A: ★. List ·A ➔ Bool
-= Λ A. λ xs. μ' xs { nil ➔ ff | cons _ _ ➔ tt}.
+= Λ A. λ xs. σ xs { nil ➔ ff | cons _ _ ➔ tt}.
 
 isNil = Λ A: ★. λ xs: List ·A. not (isCons xs).
 
 headSafe : ∀ A: ★. Π xs: List ·A. {isCons xs ≃ tt} ➔ A
-= Λ A. λ xs. μ' xs {nil ➔ λ eq. δ - eq | cons x xs ➔ λ eq. x}.
+= Λ A. λ xs. σ xs {nil ➔ λ eq. δ - eq | cons x xs ➔ λ eq. x}.
 
 tailCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ L ➔ L
-= Λ A. Λ L. Λ is. λ xs. μ'<is> xs {nil ➔ xs | cons x xs ➔ xs}.
+= Λ A. Λ L. Λ is. λ xs. σ<is> xs {nil ➔ xs | cons x xs ➔ xs}.
 
 tail = Λ A: ★. tailCV ·A -(is/List ·A).
 
@@ -50,7 +50,7 @@ append : ∀ A: ★. List ·A ➔ List ·A ➔ List ·A
 lookup : ∀ A: ★. List ·A ➔ Nat ➔ Option ·A
   = Λ A. λ xs. μ l. xs {
   | nil ➔ λ _. none ·A
-  | cons x xs ➔ λ n. μ' n {zero ➔ some x | succ n ➔ l xs n}
+  | cons x xs ➔ λ n. σ n {zero ➔ some x | succ n ➔ l xs n}
   }.
 
 foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
@@ -74,7 +74,7 @@ filter : ∀ A : ★ . (A ➔ Bool) ➔ List ·A ➔ List ·A
 take : ∀ A: ★. Nat ➔ List ·A ➔ List ·A
 = Λ A. λ n. μ take. n {
   | zero ➔ λ xs. nil ·A
-  | succ n ➔ λ xs. μ' xs {
+  | succ n ➔ λ xs. σ xs {
     | nil ➔ xs
     | cons x xs ➔ cons x (take n xs)
     }
@@ -103,7 +103,7 @@ concat : ∀ A: ★. List ·(List ·A) ➔ List ·A
 eqList : ∀ A: ★. ∀ B : ★ . (A ➔ B ➔ Bool) ➔ List ·A ➔ List ·B ➔ Bool
 = Λ A. Λ B . λ eq. λ xs. μ eqList. xs {
   | nil ➔ λ ys. isNil ys
-  | cons x xs ➔ λ ys. μ' ys {
+  | cons x xs ➔ λ ys. σ ys {
     | nil ➔ ff
     | cons y ys ➔ and (eq x y) (eqList xs ys)
     }
@@ -132,11 +132,11 @@ absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
     [projNil = λ l : L . μ projNil . (to/List -il l)
                  @ (λ l : List · A . Π l' : L . { l ≃ l' } ➾ L)
                  { nil ➔ λ l' . Λ u . φ ς u - l' { nil }
-                 | cons x xs ➔ λ l' . Λ u . projNil xs (μ'<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾ L)
+                 | cons x xs ➔ λ l' . Λ u . projNil xs (σ<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾ L)
                                                         { nil ➔ Λ v . δ - v
                                                         | cons y ys ➔ Λ v . ys} -u)
-                                                        -(μ'<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾
-                                                              { xs ≃ μ' l' { nil ➔ λ x . x
+                                                        -(σ<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾
+                                                              { xs ≃ σ l' { nil ➔ λ x . x
                                                                            | cons y ys ➔ ys}})
                                                           { nil ➔ Λ v . δ - v 
                                                           | cons y ys ➔ Λ v . ρ v @ x. {tail x ≃ ys} - β} -u)}
