@@ -8,13 +8,13 @@ import rawfunctor-defs as raw ·F (cast -(f2raw ·F) fu).
 fmap = raw.fmap.
 
 fmapId : FmapId ·F fmap
-= μ' fu {
+= σ fu {
   | mkFunctor fmap -id -_ ➔
     Λ X. Λ Y. λ c. λ pf. λ xs. ρ (id c pf xs) - β
   }.
 
 fmapComp : FmapComp ·F fmap
-= μ' fu {
+= σ fu {
   | mkFunctor fmap -_ -comp ➔
     Λ X. Λ Y. Λ Z. λ g. λ f. λ xs. ρ (comp g f xs) - β
   }.

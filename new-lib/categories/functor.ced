@@ -26,7 +26,7 @@ f2raw : ∀ F: ★ ➔ ★. Cast ·(Functor ·F) ·(RawFunctor ·F)
 = Λ F.
   intrCastI
     -(λ fu.
-      μ' fu {
+      σ fu {
       | mkFunctor fmap -fid -fcomp ➔
         [ mkRawFunctor fmap , β{mkRawFunctor fmap} ]
       }).
