@@ -11,9 +11,18 @@ import cedille-options
 -- for parser for Cedille comments & whitespace
 import cws-types
 
+import io
 open import constants
 open import general-util
 open import json
+
+-- get $HOME/.cedille, creating it if it does not exist
+getHomeCedilleDirectory : IO filepath
+getHomeCedilleDirectory =
+  getHomeDirectory >>= λ home →
+  let d = dot-cedille-directory home in
+    io.createDirectoryIfMissing ff d >>
+    return d
 
 createOptionsFile : (dot-ced-dir : string) → IO ⊤
 createOptionsFile dot-ced-dir =
@@ -82,7 +91,7 @@ findOptionsFile' fp =
   traverseParents fp (fp-fuel fp)
   >>= λ where
     fpc?@(just fpc) → return fpc?
-    nothing → getHomeDirectory >>= λ hd → canonicalizePath hd >>= getOptions?
+    nothing → getHomeDirectory >>= getOptions?
 
   where
   getOptions? : (filepath : string) → IO ∘ maybe $ string
@@ -108,9 +117,8 @@ findOptionsFile =
 
 readOptions : maybe filepath → IO (filepath × cedille-options.options)
 readOptions nothing =
-  (getHomeDirectory >>=
-   canonicalizePath) >>= λ home →
-  createOptionsFile (dot-cedille-directory home) >>r
+  getHomeCedilleDirectory >>= λ home →
+  createOptionsFile home >>r
   dot-cedille-directory home , cedille-options.default-options
 readOptions (just fp) = readFiniteFile fp >>= λ fc →
   processOptions fp fc >>= λ where
@@ -140,8 +148,7 @@ module main-with-options
   open import communication-util options
   
   logFilePathIO : IO filepath
-  logFilePathIO = getHomeDirectory >>=r λ home →
-                  combineFileNames (dot-cedille-directory home) "log"
+  logFilePathIO = getHomeCedilleDirectory >>=r (flip combineFileNames $ "log")
 
   maybeClearLogFile : IO filepath
   maybeClearLogFile =
