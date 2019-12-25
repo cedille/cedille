@@ -31,8 +31,8 @@ untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
   maybe-map (untyped-type Γ) Tₑ? >>=? λ Tₑ?~ →
   untyped-term Γ t >>= λ t~ →
   elim-pair (compileFail-in Γ t~) λ tvs e →
-  [- Var-span Γ pi x untyped tvs e -]
   let Tₑ~ = maybe-else' Tₑ?~ (TpHole pi) id in
+  [- Var-span (Γ , pi - x :` Tkt Tₑ~) pi x untyped tvs e -]
   return
     (ctxt-term-def pi localScope opacity-open x (just t~) Tₑ~ Γ ,
      pi % x ,
@@ -43,7 +43,7 @@ untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
 untyped-let Γ (ExDefType pi x k T) e? fm to =
   untyped-kind Γ k >>= λ k~ →
   untyped-type Γ T >>= λ T~ →
-  [- TpVar-span Γ pi x untyped [] nothing -]
+  [- TpVar-span (Γ , pi - x :` Tkk k~) pi x untyped [] nothing -]
   return
     (ctxt-type-def pi localScope opacity-open x (just T~) k~ Γ ,
      pi % x ,

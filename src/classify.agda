@@ -766,7 +766,7 @@ check-let Γ (ExDefTerm pi x (just Tₑ) t) e? fm to =
   Γ ⊢ Tₑ ⇐ KdStar ↝ Tₑ~ /
   Γ ⊢ t ⇐ Tₑ~ ↝ t~ /
   elim-pair (compileFail-in Γ t~) λ tvs e →
-  [- Var-span Γ pi x checking (type-data Γ Tₑ~ :: tvs) e -]
+  [- Var-span (Γ , pi - x :` Tkt Tₑ~) pi x checking (type-data Γ Tₑ~ :: tvs) e -]
   return
     (ctxt-term-def pi localScope opacity-open x (just t~) Tₑ~ Γ ,
      pi % x ,
@@ -777,9 +777,10 @@ check-let Γ (ExDefTerm pi x (just Tₑ) t) e? fm to =
 check-let Γ (ExDefTerm pi x nothing t) e? fm to =
   Γ ⊢ t ↝ t~ ⇒ Tₛ~ /
   elim-pair (compileFail-in Γ t~) λ tvs e →
-  [- Var-span Γ pi x synthesizing (type-data Γ Tₛ~ :: tvs) e -]
-  return
-    (ctxt-term-def pi localScope opacity-open x (just t~) Tₛ~ Γ ,
+  let Γ' = ctxt-term-def pi localScope opacity-open x (just t~) Tₛ~ Γ in
+   [- Var-span Γ' pi x synthesizing (type-data Γ Tₛ~ :: tvs) e -]
+   return
+     (Γ' ,
      pi % x ,
      binder-data Γ pi x (Tkt Tₛ~) e? (just t~) fm to ,
      (λ {ed} T' → [ Γ - t~ / (pi % x) ] T') ,
@@ -788,7 +789,7 @@ check-let Γ (ExDefTerm pi x nothing t) e? fm to =
 check-let Γ (ExDefType pi x k T) e? fm to =
   Γ ⊢ k ↝ k~ /
   Γ ⊢ T ⇐ k~ ↝ T~ /
-  [- TpVar-span Γ pi x checking [ kind-data Γ k~ ] nothing -]
+  [- TpVar-span (Γ , pi - x :` Tkk k~) pi x checking [ kind-data Γ k~ ] nothing -]
   return
     (ctxt-type-def pi localScope opacity-open x (just T~) k~ Γ ,
      pi % x ,
