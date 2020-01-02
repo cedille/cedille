@@ -1,6 +1,6 @@
 # Cedille Parser [![Build Status](https://travis-ci.org/ernius/cedilleparser.svg?branch=master)](https://travis-ci.org/ernius/cedilleparser)
 
-Dependant typed programming language (called Cedille) parser developed in Haskell.
+Dependent typed programming language (called Cedille) parser developed in Haskell.
 
 ## Project details
 

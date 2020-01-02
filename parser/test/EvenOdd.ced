@@ -1,0 +1,15 @@
+module EvenOdd.
+
+{- for now, mutually inductive types will have parameters and a kind
+listed only for the first one, as the others (dubbed "subsidiary") are
+required (at the moment) to have the same parameters and kind.
+
+This is implemented in the parser, so we do not list parameters or kind
+with Odd below. -}
+
+data Even : ★ =
+  zeroE : Even
+| succE : Odd ➔ Even
+& Odd =
+  oneO : Odd
+| succO : Even ➔ Odd.
