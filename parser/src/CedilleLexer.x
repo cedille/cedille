@@ -19,7 +19,7 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι➾➔β·≃\<>Λςχφ�
 @var            = $alpha ($alpha | $numpunct)*
 @qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*
-@qkvar          = (@var \.)+ @kvar
+@qkvar          = @kvar (\. @var)+
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
 
 token :-
@@ -41,6 +41,7 @@ token :-
       <0> μ                                     { mkTokenEmpty TMu           }
       <0> σ                                     { mkTokenEmpty TSigma        }
       <0> \|                                    { mkTokenEmpty TPipe         }            
+      <0> \&                                    { mkTokenEmpty TAnd          }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
       <0> module                                { mkTokenEmpty TModule       }
@@ -185,6 +186,7 @@ data TokenClass =
      |  TMu
      |  TSigma
      |  TPipe     
+     |  TAnd
      |  TEOF
      deriving Eq
 
@@ -222,6 +224,7 @@ instance Show TokenClass where
   show (TMu)         = "TMu"
   show (TSigma)      = "TSigma"
   show (TPipe)       = "TPipe"      
+  show (TAnd)        = "TAnd"      
   show (TEOF)        = "TEOF"
 
 data AlexUserState = AlexUserState {

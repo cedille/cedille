@@ -1,7 +1,7 @@
 .PHONY: cedille-parser cedille-lexer cedille-comments-lexer cedille-options-parser cedille-options-lexer
 
 cedille-parser: cedille-lexer
-	cd src/;happy CedilleParser.y; mv CedilleParser.hs ../../src;cd ..;
+	cd src/;happy --info CedilleParser.y; mv CedilleParser.hs ../../src;cd ..;
 
 cedille-lexer:
 	cd src/; alex CedilleLexer.x; mv CedilleLexer.hs ../../src;cd ..;
