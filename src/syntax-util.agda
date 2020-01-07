@@ -99,9 +99,10 @@ term-start-pos (ExPhi pi _ _ _ _) = pi
 term-start-pos (ExRho pi _ _ _ _ _) = pi
 term-start-pos (ExChi pi _ _) = pi
 term-start-pos (ExDelta pi _ _) = pi
-term-start-pos (ExSigma pi _) = pi
+term-start-pos (ExVarSigma pi _) = pi
 term-start-pos (ExTheta pi _ _ _) = pi
-term-start-pos (ExMu pi _ _ _ _ _ _) = pi
+term-start-pos (ExMu pi _ _ _ _ _ _ _) = pi
+term-start-pos (ExSigma pi _ _ _ _ _ _) = pi
 
 type-start-pos (ExTpAbs pi _ _ _ _ _) = pi
 type-start-pos (ExTpLam pi _ _ _ _) = pi
@@ -155,9 +156,10 @@ term-end-pos (ExPhi _ _ _ _ pi) = pi
 term-end-pos (ExRho pi _ _ _ t t') = term-end-pos t'
 term-end-pos (ExChi pi T t') = term-end-pos t'
 term-end-pos (ExDelta pi oT t) = term-end-pos t
-term-end-pos (ExSigma pi t) = term-end-pos t
+term-end-pos (ExVarSigma pi t) = term-end-pos t
 term-end-pos (ExTheta _ _ t ls) = lterms-end-pos (term-end-pos t) ls
-term-end-pos (ExMu _ _ _ _ _ _ pi) = pi
+term-end-pos (ExMu _ _ _ _ _ _ _ pi) = pi
+term-end-pos (ExSigma _ _ _ _ _ _ pi) = pi
 
 type-end-pos (ExTpAbs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (ExTpLam _ _ _ _ t) = type-end-pos t
@@ -472,3 +474,4 @@ traverse-internal {_} {X} f = h (fr ff) where
   h {KIND} f (KdHole pi) = ?
   h {KIND} f (KdAbs x tk k) = ?
 -}
+

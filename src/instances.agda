@@ -148,6 +148,11 @@ _>>∘_ : ∀{ℓ}{F : Set ℓ → Set ℓ}{A B : Set ℓ} ⦃ _ : monad F ⦄ �
 a >>∘ f = a >>= λ a → f >>= λ f → f a
 
 
+ifM : ∀{F : Set → Set} ⦃ _ : monad F ⦄ → 𝔹 → F ⊤ → F ⊤
+ifM tt a = a
+ifM ff a = return triv
+
+
 --========== Id ==========--
 -- Using "id" itself causes Agda to hang when resolving instances, I suspect due
 -- to something like endlessly embedding (id (id (id (...)))). So instead we must

@@ -12,7 +12,7 @@ make-rkt-files
   = false.
 
 generate-logs
-  = false.
+  = true.
 
 -- show fully-qualified variables (for debugging)
 show-qualified-vars

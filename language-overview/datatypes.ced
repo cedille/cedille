@@ -44,12 +44,12 @@ data Vec (A: ★): Nat ➔ ★ =
 
 {- Pattern Matching and Recursive Definitions
 -- =============================================================================
--- Cedille supports pattern matching using the `μ'` operator, shown below
+-- Cedille supports pattern matching using the `σ` operator, shown below
 -- to define the predecessor function for Nat
 -}
 
 pred : Nat ➔ Nat
-  = λ n. μ' n {zero ➔ n | suc n ➔ n}.
+  = λ n. σ n {zero ➔ n | suc n ➔ n}.
 
 {-
 -- Recursive definitions are defined using the μ operator, such as below to
@@ -83,7 +83,7 @@ add : Nat ➔ Nat ➔ Nat
 -}
 
 natCasesWGuide : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)) ➔ P n
-= Λ P. λ n. λ z. λ s. μ' n @P {- alternatively, @λ x: Nat. P x -} {
+= Λ P. λ n. λ z. λ s. σ n @P {- alternatively, @λ x: Nat. P x -} {
   | zero ➔ z
   | suc n ➔ s n
   }.
@@ -96,7 +96,7 @@ natCasesWGuide : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)
 -}
 
 natCases : ∀ P: Nat ➔ ★. Π n: Nat. P zero ➔ (Π m: Nat. P (suc m)) ➔ P n
-= Λ P. λ n. λ z. λ s. μ' n { zero ➔ z | suc n ➔ s n}.
+= Λ P. λ n. λ z. λ s. σ n { zero ➔ z | suc n ➔ s n}.
 --                    ^----------------------------^
 -- Computed motive: λ x: Nat. P x
 
@@ -214,8 +214,8 @@ data Expr: ★ ➔ ★ =
 
 eqNat : Nat ➔ Nat ➔ Bool
   = λ m. μ eq. m {
-  | zero ➔  λ n. μ' n {zero ➔ tt | suc _ ➔ ff}
-  | suc m ➔ λ n. μ' n {zero ➔ ff | suc n ➔ eq m n}
+  | zero ➔  λ n. σ n {zero ➔ tt | suc _ ➔ ff}
+  | suc m ➔ λ n. σ n {zero ➔ ff | suc n ➔ eq m n}
   }.
 
 eval : ∀ X: ★. Expr ·X ➔ X

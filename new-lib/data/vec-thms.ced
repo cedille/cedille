@@ -14,7 +14,7 @@ vlookupVmap : ∀ f: Top. ∀ n: Nat. Π xs: Vec ·A n.
   | vnil ➔ λ m. Λ le.
     [bad : Bot = botIrrel -(lteSZ m le)]
   - bad ·{f (vlookup vnil m) ≃ vlookup (vmap f vnil) m}
-  | vcons -n x xs ➔ λ m. μ' m {
+  | vcons -n x xs ➔ λ m. σ m {
     | zero ➔ Λ _. β
     | succ m ➔ Λ le.
       {le' = lteSInv (succ m) n le}

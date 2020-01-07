@@ -211,3 +211,6 @@ params-to-case-args = map λ where
 
 ctrs-to-lams : ctrs → term → term
 ctrs-to-lams = flip $ foldr λ {(Ctr x T) → Lam NotErased x (just (Tkt T))}
+
+indices-to-args : indices → args
+indices-to-args = λ is → map (λ {(Index x atk) → either-else' atk (λ _ → ArgEr (Var x)) (λ _ → ArgTp (TpVar x))}) is

@@ -10,7 +10,7 @@ module process-cmd
 
 --open import cedille-find
 open import cedille-types
-open import classify options {mF} ⦃ mFm ⦄
+open import classify options {mF} ⦃ mFm ⦄ write-to-log
 open import constants
 open import conversion
 open import ctxt
@@ -21,6 +21,8 @@ open import subst
 open import syntax-util
 open import type-util
 open import toplevel-state options { mF } ⦃ mFm ⦄
+open import to-string options
+
 open import datatype-util
 open import rewriting
 open import elab-util options
@@ -73,48 +75,52 @@ maybe-add-opaque-span nothing pi = return triv
 maybe-add-opaque-span (just piₒ) pi =
   spanM-add $ Opaque-span piₒ pi
 
-process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x (just tp) t) pi') =
+process-cmd s (ExCmdDef op (ExDefTerm pi x (just tp) t) pi') =
+  let Γ = toplevel-state.Γ s in
   Γ ⊢ tp ⇐ KdStar ↝ tp' /
   Γ ⊢ t ⇐ tp' ↝ t' /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t' (just tp') >>
   let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t') tp' Γ in
   maybe-add-opaque-span op pi' >>
   [- DefTerm-span Γ' pi x checking (just tp') t' pi' [] -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+  check-redefined pi x s
     (CmdDefTerm x t')
     ([- uncurry (Var-span Γ' pi x checking) (compileFail-in Γ t') -]
-     return (mk-toplevel-state ip fns is Γ'))
+     return (record s { Γ = Γ' }))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefTerm pi x nothing t) pi') = 
+process-cmd s (ExCmdDef op (ExDefTerm pi x nothing t) pi') = 
+  let Γ = toplevel-state.Γ s in
   Γ ⊢ t ↝ t~ ⇒ T~ /
   check-erased-margs Γ (term-start-pos t) (term-end-pos t) t~ nothing >> 
   let Γ' = ctxt-term-def pi globalScope (isNothing op) x (just t~) T~ Γ in
   maybe-add-opaque-span op pi' >>
   [- DefTerm-span Γ' pi x synthesizing (just T~) t~ pi' [] -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+  check-redefined pi x s
     (CmdDefTerm x t~)
     ([- uncurry (Var-span Γ' pi x synthesizing) (compileFail-in Γ t~) -]
-     return (mk-toplevel-state ip fns is Γ'))
+     return (record s { Γ = Γ' }))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdDef op (ExDefType pi x k tp) pi') =
+process-cmd s (ExCmdDef op (ExDefType pi x k tp) pi') =
+  let Γ = toplevel-state.Γ s in
   Γ ⊢ k ↝ k~ /
   Γ ⊢ tp ⇐ k~ ↝ tp~ /
   let Γ' = ctxt-type-def pi globalScope (isNothing op) x (just tp~) k~ Γ in
   maybe-add-opaque-span op pi' >>
   spanM-add (DefType-span Γ' pi x checking (just k~) tp~ pi' []) >>
-  check-redefined pi x (mk-toplevel-state ip fns is Γ)
+  check-redefined pi x s
     (CmdDefType x k~ tp~)
     ([- TpVar-span Γ' pi x checking [] nothing -]
-     return (mk-toplevel-state ip fns is Γ'))
+     return (record s { Γ = Γ' }))
 
-process-cmd (mk-toplevel-state ip fns is Γ) (ExCmdKind pi x ps k pi') =
+process-cmd s (ExCmdKind pi x ps k pi') =
+  let Γ = toplevel-state.Γ s in
   check-and-add-params Γ pi' ps >>=c λ Γₚₛ ps~ →
   Γₚₛ ⊢ k ↝ k~ /
   let Γ' = ctxt-kind-def pi x ps~ k~ Γ in
   [- DefKind-span Γ' pi x k~ pi' -]
-  check-redefined pi x (mk-toplevel-state ip fns is Γ) (CmdDefKind x ps~ k~)
+  check-redefined pi x s (CmdDefKind x ps~ k~)
     ([- KdVar-span Γ' (pi , x) (posinfo-plus-str pi x) ps~ checking [] nothing -]
-     return (mk-toplevel-state ip fns is Γ'))
+     return (record s { Γ = Γ' }))
 
 process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   let Γ = toplevel-state.Γ s
@@ -291,18 +297,18 @@ process-file s filename pn | ie =
     let Γ = toplevel-state.Γ s
         mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ in
     return (s , ie' , mod , f~)
-  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _
+  proceed (mk-toplevel-state ip fns is Γ logFilePath) (just x) f~ ie' | _
     with include-elt.do-type-check ie | ctxt-get-current-mod Γ
-  proceed (mk-toplevel-state ip fns is Γ) (just x) f~ ie' | _ | do-check | prev-mod =
+  proceed (mk-toplevel-state ip fns is Γ logFilePath) (just x) f~ ie' | _ | do-check | prev-mod =
    let Γ = ctxt-initiate-file Γ filename (start-modname x) in
-     process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ)
+     process-start (mk-toplevel-state ip fns (trie-insert is filename ie') Γ logFilePath)
              filename pn x empty-spans >>= λ where
-       ((mk-toplevel-state ip fns is Γ , f) , ss) →
+       ((mk-toplevel-state ip fns is Γ logFilePath , f) , ss) →
          let ret-mod = ctxt.fn Γ , ctxt.mn Γ , ctxt.ps Γ , ctxt.qual Γ
              ie'' = if do-check then set-spans-include-elt ie' ss f else record ie' { ast~ = include-elt.ast~ ie' ||-maybe just f } in
          progress-update pn >> return
            (mk-toplevel-state ip (if do-check then (filename :: fns) else fns) (trie-insert is filename ie'')
-             (ctxt-set-current-mod Γ prev-mod) ,
+             (ctxt-set-current-mod Γ prev-mod) logFilePath ,
             ie'' ,
             ret-mod ,
             f)

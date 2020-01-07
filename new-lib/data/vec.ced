@@ -10,13 +10,13 @@ data Vec (A: ★): Nat ➔ ★ =
   | vcons: ∀ n: Nat. A ➔ Vec n ➔ Vec (succ n).
 
 vhead : ∀ A: ★. ∀ m: Nat. Vec ·A (succ m) ➔ A
-= Λ A. Λ m. λ xs. μ' xs @λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ A {
+= Λ A. Λ m. λ xs. σ xs @λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ A {
   | vnil ➔ Λ eq. δ - eq
   | vcons -i x xs ➔ Λ _. x
   } -β.
 
 vtail : ∀ A: ★. ∀ m: Nat. Vec ·A (succ m) ➔ Vec ·A m
-= Λ A. Λ m. λ xs. μ' xs @(λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ Vec ·A (pred i)) {
+= Λ A. Λ m. λ xs. σ xs @(λ i: Nat. λ x: Vec ·A i. {i ≃ succ m} ➾ Vec ·A (pred i)) {
   | vnil ➔ Λ eq. δ - eq
   | vcons -m x xs ➔ Λ _. xs
   } -β.
@@ -36,7 +36,7 @@ vmap : ∀ A: ★. ∀ B: ★. (A ➔ B) ➔ ∀ n: Nat. Vec ·A n ➔ Vec ·B n
 vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
 = Λ A. Λ n. λ xs. μ look. xs @(λ i: Nat. λ _: Vec ·A i. Π m: Nat. Lt m i ➾ A) {
   | vnil ➔ λ m. Λ eq. δ - eq
-  | vcons -n x xs ➔ λ m. μ' m @(λ x: Nat. Lt x (succ n) ➾ A) {
+  | vcons -n x xs ➔ λ m. σ m @(λ x: Nat. Lt x (succ n) ➾ A) {
     | zero ➔ Λ _. x
     | succ m ➔ Λ eq. look -n xs m -eq
     }

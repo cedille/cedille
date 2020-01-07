@@ -40,7 +40,7 @@ lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
   | zero ➔ λ _. λ _. β
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ x: Nat. Lte (succ m') x ➔ Lte (succ m') (succ x) {
+  - λ n. σ n @λ x: Nat. Lte (succ m') x ➔ Lte (succ m') (succ x) {
     | zero ➔ λ eq. δ - eq
     | succ n ➔ λ eq. ih m n eq
     }
@@ -48,9 +48,9 @@ lteSRight : Π m: Nat. Π n: Nat. Lte m n ➔ Lte m (succ n)
 
 -- Π m n, m ≤ n → m -1 ≤ n
 ltePLeft : Π m: Nat. Π n: Nat. Lte m n ➔ Lte (pred m) n
-= λ m. μ' m {
+= λ m. σ m {
   | zero ➔ λ _. λ _. β
-  | succ m ➔ λ n. μ' n {
+  | succ m ➔ λ n. σ n {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lte. lteSRight m n lte
     }
@@ -65,7 +65,7 @@ notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
   | zero ➔ λ n. λ neg. neg β ·(Gt zero n)
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ x: Nat. Not ·(Lte (succ m') x) ➔ Gt (succ m') x {
+  - λ n. σ n @λ x: Nat. Not ·(Lte (succ m') x) ➔ Gt (succ m') x {
     | zero ➔ λ neg. β
     | succ n ➔ λ neg. ih m n neg
     }
@@ -77,12 +77,12 @@ notLteThenGt : Π m: Nat. Π n: Nat. Not ·(Lte m n) ➔ Gt m n
 -- Π m n, 1+ m ≤ n → ∃ x, 1+ x = n
 lteSLeftESRight : Π m: Nat. Π n: Nat. Lte (succ m) n ➔ ι x: Nat. {succ x ≃ n}
 = λ m. μ ih. m {
-  | zero ➔ λ n. μ' n {
+  | zero ➔ λ n. σ n {
     | zero ➔ λ eq. δ - eq
     | succ n ➔ λ _. [ n , β{n} ]
     }
   | succ m ➔ [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ y: Nat. Lte (add num2 m') y ➔ ι x: Nat. {succ x ≃ y} {
+  - λ n. σ n @λ y: Nat. Lte (add num2 m') y ➔ ι x: Nat. {succ x ≃ y} {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lte.
       [x = ih m n lte]
@@ -96,7 +96,7 @@ lteEAdd : Π m: Nat. Π n: Nat. Lte m n ➔ ι x: Nat. {add x m ≃ n}
   | zero ➔ λ n. λ _. [ n , ρ (addZRight n) - β{n} ]
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ y: Nat. Lte (succ m') y ➔ ι x: Nat. {add x (succ m') ≃ y} {
+  - λ n. σ n @λ y: Nat. Lte (succ m') y ➔ ι x: Nat. {add x (succ m') ≃ y} {
     | zero ➔ λ lte. δ - lte
     | succ n ➔ λ lteMN.
       [x = ih m n lteMN]
@@ -120,9 +120,9 @@ lteTrans : Π l: Nat. Π m: Nat. Π n: Nat. Lte l m ➔ Lte m n ➔ Lte l n
   | zero ➔ λ _. λ _. λ _. λ _. β
   | succ l ➔
     [l' = to/Nat -isType/ihl l]
-  - λ m. μ' m @(λ x: Nat. Π n: Nat. Lte (succ l') x ➔ Lte x n ➔ Lte (succ l') n) {
+  - λ m. σ m @(λ x: Nat. Π n: Nat. Lte (succ l') x ➔ Lte x n ➔ Lte (succ l') n) {
     | zero ➔ λ _. λ eq. δ - eq
-    | succ m ➔ λ n. λ lteLM. μ' n {
+    | succ m ➔ λ n. λ lteLM. σ n {
       | zero ➔ λ lteMZ. δ - lteMZ
       | succ n ➔ λ lteMN. ihl l m n lteLM lteMN
       }
@@ -131,13 +131,13 @@ lteTrans : Π l: Nat. Π m: Nat. Π n: Nat. Lte l m ➔ Lte m n ➔ Lte l n
 
 lteAntiSym : Π m: Nat. Π n: Nat. Lte m n ➔ Lte n m ➔ {m ≃ n}
 = λ m. μ ih. m {
-  | zero ➔ λ n. μ' n {
+  | zero ➔ λ n. σ n {
     | zero ➔ λ _. λ _. β
     | succ n ➔ λ _. λ lteSZ. δ - lteSZ
     }
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ x: Nat. Lte (succ m') x ➔ Lte x (succ m') ➔ {succ m ≃ x} {
+  - λ n. σ n @λ x: Nat. Lte (succ m') x ➔ Lte x (succ m') ➔ {succ m ≃ x} {
     | zero ➔ λ lteSZ. δ - lteSZ
     | succ n ➔ λ lteMN. λ lteNM.
       [eqMN = ih m n lteMN lteNM]
@@ -153,14 +153,14 @@ lteDecidable : Π m: Nat. Π n: Nat. Decision ·(Lte m n)
   | zero ➔ λ n. decYes β
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n @λ x: Nat. Decision ·(Lte (succ m') x) {
+  - λ n. σ n @λ x: Nat. Decision ·(Lte (succ m') x) {
     | zero ➔ decNo (λ eq. δ - eq)
     | succ n ➔ ih m n
     }
   }.
 
 lteOrGt : Π m: Nat. Π n: Nat. Sum ·(Lte m n) ·(Gt m n)
-= λ m. λ n. μ' (lteDecidable m n) {
+= λ m. λ n. σ (lteDecidable m n) {
   | decYes pf ➔ in1 pf
   | decNo npf ➔ in2 (notLteThenGt m n npf)
   }.
@@ -173,7 +173,7 @@ lteMinus : Π m: Nat. Π n: Nat. Lte (minus m n) m
   | zero ➔ λ m. lteRefl m
   | succ n ➔ λ m.
     [n' = to/Nat -isType/ih n]
-  - μ' m @λ x: Nat. Lte (pred (minus x n')) x {
+  - σ m @λ x: Nat. Lte (pred (minus x n')) x {
     | zero ➔ ρ (minusZLeft n') @ x . Lte (pred x) zero - β
     | succ m ➔
       ρ ς (minusPLeft (succ m) n') @ x. Lte x (succ m)
@@ -184,8 +184,8 @@ lteMinus : Π m: Nat. Π n: Nat. Lte (minus m n) m
 lteHalf : Π b: Bool. Π m: Nat. Lte (halfGen b m) m
 = λ b. λ m. μ ih. m {
   | zero ➔ β
-  | succ m ➔ μ' m {
-    | zero ➔ μ' b {tt ➔ β | ff ➔ β}
+  | succ m ➔ σ m {
+    | zero ➔ σ b {tt ➔ β | ff ➔ β}
     | succ m ➔
       [m' = to/Nat -isType/ih m]
     - lteSRight (halfGen b m') m' (ih m)
@@ -200,7 +200,7 @@ lteDiv : Π m: Nat. Π n: Nat. Lte (div m n) m
   - χ {lte (ite (lt (succ m) n)
               zero (succ (div (minus m (pred n)) n))) (succ m)
        ≃ tt}
-  - μ' (lt (succ m') n) {
+  - σ (lt (succ m') n) {
      | tt ➔ β
      | ff ➔
        [dif = minusCV -isType/ih m (pred n)]
@@ -217,7 +217,7 @@ lteRem1 : Π m: Nat. Π n: Nat. Lte (rem m n) m
     [m' = to/Nat -isType/ih m]
   - [lhs : Top ➔ Top
       = λ x. β{ite x (succ m) (rem (minus m (pred n)) n)}]
-  - μ' (lt (succ m') n) @λ x: Bool. {lte (lhs x) (succ m) ≃ tt} {
+  - σ (lt (succ m') n) @λ x: Bool. {lte (lhs x) (succ m) ≃ tt} {
     | tt ➔ lteRefl m'
     | ff ➔
       [dif = minusCV -isType/ih m (pred n)]
@@ -234,7 +234,7 @@ lteRem2 : Π m: Nat. Π n: Nat. Lte (rem m (succ n)) n
   | succ m ➔ λ n.
     [m' = to/Nat -isType/ih m]
   - [lhs : Top ➔ Top = λ x. β{ite x (succ m) (rem (minus m n) (succ n))}]
-  - μ' (lt (succ m') (succ n)) @λ x: Bool. {lt (succ m) (succ n) ≃ x} ➔ {lte (lhs x) n ≃ tt} {
+  - σ (lt (succ m') (succ n)) @λ x: Bool. {lt (succ m) (succ n) ≃ x} ➔ {lte (lhs x) n ≃ tt} {
     | tt ➔ λ eq. eq
     | ff ➔ λ eq. ih (minusCV -isType/ih m n) n
     } β

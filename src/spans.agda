@@ -635,9 +635,9 @@ Chi-span Γ pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-ter
         helper (just T) =  explain ("Check a term against an asserted type") :: [ to-string-tag "the asserted type" Γ T ]
         helper nothing = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
 
-Sigma-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
-Sigma-span pi t check tvs =
-  mk-span "Sigma" pi (term-end-pos t) 
+VarSigma-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
+VarSigma-span pi t check tvs =
+  mk-span "VarSigma" pi (term-end-pos t) 
      (ll-data-term :: checking-data check :: explain "Swap the sides of the equation synthesized for the body of this term" :: tvs)
 
 Delta-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
@@ -671,8 +671,11 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type") ]
 
-Mu-span : ctxt → posinfo → ex-is-mu → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
-Mu-span Γ pi x? pi' motive? check tvs = mk-span (case x? of λ {(ExIsMu pi x) → "Mu"; _ → "Mu'"}) pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+Mu-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+
+Sigma-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Sigma-span Γ pi pi' motive? check tvs = mk-span "Sigma" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
 
 pattern-span : posinfo → var → 𝕃 ex-case-arg → span
 pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(ExCaseArg me pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) [] nothing

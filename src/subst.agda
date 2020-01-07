@@ -60,7 +60,7 @@ substh {TERM} Γ ρ σ (IotaPair t₁ t₂ x T) =
   let x' = subst-rename-var-if Γ ρ x σ T in
   IotaPair (substh Γ ρ σ t₁) (substh Γ ρ σ t₂) x' (substh (ctxt-var-decl x' Γ) (renamectxt-insert ρ x x') σ T)
 substh {TERM} Γ ρ σ (IotaProj t n) = IotaProj (substh Γ ρ σ t) n
-substh {TERM} Γ ρ σ (Sigma t) = Sigma (substh Γ ρ σ t)
+substh {TERM} Γ ρ σ (VarSigma t) = VarSigma (substh Γ ρ σ t)
 substh {TERM} Γ ρ σ (Phi t t₁ t₂) = Phi (substh Γ ρ σ t) (substh Γ ρ σ t₁) (substh Γ ρ σ t₂)
 substh {TERM} Γ ρ σ (Rho tₑ x T t) =
   let x' = subst-rename-var-if Γ ρ x σ T in
@@ -68,7 +68,7 @@ substh {TERM} Γ ρ σ (Rho tₑ x T t) =
 substh {TERM} Γ ρ σ (Delta b? T t) =
   Delta (b? >>=c λ t₁ t₂ → just (substh Γ ρ σ t₁ , substh Γ ρ σ t₂))
         (substh Γ ρ σ T) (substh Γ ρ σ t)
-substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
+substh {TERM} Γ ρ σ (Mu x t T t~ ms) =
   let fv = λ x → trie-contains σ x || ctxt-binds-var Γ x || renamectxt-in-field ρ x
       x' = fresh-h (λ x → fv x || fv (mu-Type/ x) || fv (mu-isType/ x))
                    (if x =string ignored-var then "x" else x)
@@ -78,9 +78,9 @@ substh {TERM} Γ ρ σ (Mu (inj₂ x) t T t~ ms) =
       Γ' = ctxt-var-decl x' Γ
       Γ' = ctxt-var-decl (mu-Type/ x') Γ'
       Γ' = ctxt-var-decl (mu-isType/ x') Γ' in
-    Mu (inj₂ x') (substh Γ ρ σ t) (substh (ctxt-var-decl (mu-Type/ x') Γ) (renamectxt-insert ρ (mu-Type/ x) (mu-Type/ x')) σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ' ρ' σ ms)
-substh {TERM} Γ ρ σ (Mu (inj₁ tᵢ) t' T t~ ms) =
-  Mu (inj₁ (substh Γ ρ σ <$> tᵢ)) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ ρ σ ms)
+    Mu x' (substh Γ ρ σ t) (substh (ctxt-var-decl (mu-Type/ x') Γ) (renamectxt-insert ρ (mu-Type/ x) (mu-Type/ x')) σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ' ρ' σ ms)
+substh {TERM} Γ ρ σ (Sigma tᵢ t' T t~ ms) =
+  Sigma (substh Γ ρ σ <$> tᵢ) (substh Γ ρ σ t') (substh Γ ρ σ <$> T) (substh-datatype-info Γ ρ σ t~) (substh-cases Γ ρ σ ms)
 
 substh {TYPE} Γ ρ σ (TpAbs me x tk t) =
   let x' = subst-rename-var-if Γ ρ x σ t in

@@ -76,8 +76,6 @@ data Type =
 
 data PosTerm = PosTerm Term PosInfo deriving Show
 
-data IsMu = IsMu PosInfo Var | IsMu' (Maybe Term) deriving Show
-
 data Term =
     App Term MaybeErased Term
   | AppTp Term Type
@@ -94,9 +92,10 @@ data Term =
   | Parens PosInfo Term PosInfo
   | Phi PosInfo Term Term Term PosInfo
   | Rho PosInfo RhoHnf (Maybe [Num]) Term (Maybe Guide) Term
-  | Sigma PosInfo Term
+  | VarSigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
-  | Mu PosInfo IsMu Term (Maybe Type) PosInfo Cases PosInfo
+  | Mu PosInfo PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo
+  | Sigma PosInfo (Maybe Term) Term (Maybe Type) PosInfo Cases PosInfo
   | Var PosInfo Var
   deriving Show
 
