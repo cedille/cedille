@@ -100,7 +100,7 @@ Open the beta-reduction buffer with the selected span's expected type (or type i
 
 @chapter Other
 @table @command
-@item M-x
+@item M-c
 Copy the selected span to the scratch buffer
 
 @item C-h <int>
