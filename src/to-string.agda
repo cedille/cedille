@@ -51,6 +51,10 @@ is-type-level-app : ∀ {ed} → ⟦ ed ⟧ → 𝔹
 is-type-level-app {TYPE} (TpApp T tT) = tt
 is-type-level-app _ = ff
 
+{- no-parens e1 e2 s
+
+   returns tt iff we do not parens when e1 occurs as the given 
+   side s of parent expression e2. -}
 no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
 no-parens {TYPE} {TYPE} (TpAbs _ _ _ _) (TpArrow _ _ _) left = ff
 no-parens {TYPE} {TYPE} (TpIota _ _ _) (TpArrow _ _ _) left = ff
