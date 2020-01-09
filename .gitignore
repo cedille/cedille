@@ -11,6 +11,7 @@ cedille
 cedille-mac
 cedille-optimized
 cedille-profile
+cedille-tests/*/actual
 *.prof
 *-speed-test.txt
 libraries
