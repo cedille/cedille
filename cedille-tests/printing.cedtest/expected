@@ -1,0 +1,5 @@
+name:	Lambda abstraction (term-level)
+type:	(ι x : A . B x) ➔ A
+----------
+name:	Lambda abstraction (term-level)
+type:	(Π x : A . B x) ➔ A
