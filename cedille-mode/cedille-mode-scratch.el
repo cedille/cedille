@@ -13,15 +13,13 @@
   "Inserts TEXT in the scratch buffer."
   (with-cedille-buffer nil
     (with-current-buffer (cedille-mode-scratch-buffer)
-      (display-buffer (cedille-mode-scratch-buffer-name))
-      (with-selected-window (get-buffer-window)
-        (setq buffer-text (or (buffer-string) ""))
-        (erase-buffer)
-        (if (string= buffer-text "")
-            (insert text)
+      (setq buffer-text (or (buffer-string) ""))
+      (erase-buffer)
+      (if (string= buffer-text "")
+          (insert text)
           (insert (concat text "\n" (cedille-mode-scratch-repeat "-" (window-body-width)) "\n" buffer-text)))
-        (goto-char 1)))
-    (cedille-mode-rebalance-windows)))
+      (goto-char 1)))
+    (cedille-mode-rebalance-windows))
 
 (defun cedille-mode-scratch-copy-span ()
   "Copies the selected span to the scratch buffer"
@@ -52,8 +50,7 @@
 (defun cedille-mode-scratch-buffer ()
   "Creates or gets the scratch buffer"
   (let ((parent cedille-mode-parent-buffer)
-        (buffer (get-buffer-create (cedille-mode-scratch-buffer-name)))
-        (window (cedille-mode-get-create-window (cedille-mode-scratch-buffer-name))))
+        (buffer (get-buffer-create (cedille-mode-scratch-buffer-name))))
     (with-current-buffer buffer
       (set-input-method "Cedille")
       (setq cedille-mode-parent-buffer parent
@@ -64,16 +61,14 @@
 (defun cedille-mode-scratch-toggle (&optional jump-to-window-p)
   (interactive)
   (with-current-buffer (or cedille-mode-parent-buffer (current-buffer))
-    (with-selected-window (get-buffer-window)
-      (let* ((buffer (get-buffer-create (cedille-mode-scratch-buffer-name)))
+      (let* ((buffer (cedille-mode-scratch-buffer))
              (window (get-buffer-window buffer)))
         (if window
             (progn
               (delete-window window)
               (cedille-mode-rebalance-windows)
               nil)
-          (let ((window (cedille-mode-get-create-window buffer)))
-            (when jump-to-window-p (select-window window)))
-          (cedille-mode-scratch-buffer))))))
+          (let ((window (cedille-mode-get-create-window (cedille-mode-scratch-buffer-name))))
+            (when jump-to-window-p (select-window window)))))))
 
 (provide 'cedille-mode-scratch)
