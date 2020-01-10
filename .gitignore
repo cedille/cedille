@@ -23,7 +23,7 @@ src/CedilleParser.hs
 src/templates/TemplatesCompiler
 *.cedille
 *.racket
-*.*~
+*~
 cedille-deb-pkg
 cedille-deb-pkg.deb
 cedille-mac-pkg
