@@ -6,7 +6,7 @@ SRCDIR=src
 
 CEDLIBDIR=new-lib
 
-ELABDIR=elab
+ELABDIR=$(shell mktemp -d)/elab
 LANGOVERVIEWDIR=language-overview
 
 AUTOGEN = \
