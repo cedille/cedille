@@ -20,6 +20,7 @@ src/CedilleLexer.hs
 src/CedilleOptionsLexer.hs
 src/CedilleOptionsParser.hs
 src/CedilleParser.hs
+parser/src/CedilleParser.info
 src/templates/TemplatesCompiler
 *.cedille
 *.racket
