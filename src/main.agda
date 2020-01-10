@@ -240,7 +240,7 @@ module main-with-options
   find-imported-file sfx (dir :: dirs) unit-name =
       let e₁ = combineFileNames dir (add-cedille-extension unit-name)
           e₂ = combineFileNames dir (add-cdle-extension unit-name)
-          e? = λ e → doesFileExist e >>=r λ e? → maybe-if e? ≫maybe just e in
+          e? = λ e → doesFileExist e >>=r λ e? → ifMaybej e? e in
       (e? e₁ >>= λ e₁ → e? e₂ >>=r λ e₂ → e₁ maybe-or e₂) >>= λ where
         nothing → find-imported-file sfx dirs unit-name
         (just e) → canonicalizePath e >>=r just

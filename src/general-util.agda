@@ -2,6 +2,10 @@ module general-util where
 
 open import instances public
 
+infixr 0 _$_
+_$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
+f $ x = f x
+
 get-file-contents : (filename : string) → IO (maybe string)
 get-file-contents e = 
   doesFileExist e >>= λ b → 
@@ -16,6 +20,10 @@ isNothing  = ~_ ∘ isJust
 maybe-else : ∀{ℓ}{A B : Set ℓ} → B → (A → B) → maybe A → B
 maybe-else y f (just x) = f x
 maybe-else y f nothing = y
+
+maybe𝔹 : ∀{A : Set} → maybe A → (A → 𝔹) → 𝔹
+maybe𝔹 nothing f = ff
+maybe𝔹 (just a) f = f a
 
 maybe-else' : ∀{ℓ}{A B : Set ℓ} → maybe A → B → (A → B) → B
 maybe-else' m y f = maybe-else y f m
@@ -37,15 +45,19 @@ maybe-not : ∀ {ℓ} {A : Set ℓ} → maybe A → maybe ⊤
 maybe-not (just a) = nothing
 maybe-not nothing = just triv
 
-maybe-if : 𝔹 → maybe ⊤
-maybe-if tt = just triv
-maybe-if ff = nothing
+ifMaybe : ∀{A : Set} → 𝔹 → maybe A → maybe A
+ifMaybe tt a = a
+ifMaybe ff a = nothing
+
+ifMaybej : ∀{A : Set} → 𝔹 → A → maybe A
+ifMaybej tt a = just a
+ifMaybej ff a = nothing
 
 when : ∀ {A : Set} → 𝔹 → A → maybe A
-when b a = maybe-if b >> just a
+when b a = ifMaybe b $ just a
 
 unless : ∀ {A : Set} → 𝔹 → A → maybe A
-unless b a = maybe-if (~ b) >> just a
+unless b a = ifMaybe (~ b) $ just a
 
 trie-lookupd : ∀ {A : Set} → trie A → string → A → A
 trie-lookupd t s d with trie-lookup t s
@@ -204,10 +216,6 @@ flip f = λ b a → f a b
 const : ∀ {a b} {A : Set a} {B : Set b} →
         A → B → A
 const a b = a
-
-infixr 0 _$_
-_$_ : ∀ {a b} {A : Set a} {B : Set b} → (A → B) → A → B
-f $ x = f x
 
 -- _∘_ just needs a fixity and association declaration in the IAL
 infixr 9 _∘'_

@@ -68,9 +68,6 @@ module positivity (x : var) where
   
   open import conversion
 
-  not-free : ∀ {ed} → ⟦ ed ⟧ → maybe 𝔹
-  not-free = maybe-map (λ _ → tt) ∘' maybe-if ∘' is-free-in x
-
   if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
   if-free t with is-free-in x t
   ...| f = f , f
@@ -89,7 +86,7 @@ module positivity (x : var) where
   negₒ = snd
   
   occurs : positivity → maybe 𝔹
-  occurs p = maybe-if (negₒ p) >> just tt
+  occurs p = ifMaybej (negₒ p) tt
 
   {-# TERMINATING #-}
   arrs+ : ctxt → type → maybe 𝔹
@@ -106,7 +103,7 @@ module positivity (x : var) where
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
     occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-maybe arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpVar x') = maybe-if (~ x =string x') >> just ff
+  arrs+ Γ (TpVar x') = ifMaybej (~ x =string x') ff
   arrs+ Γ T = just ff
   
   type+ Γ (TpAbs me x' atk T) =

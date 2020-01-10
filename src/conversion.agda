@@ -124,7 +124,7 @@ hnf {TERM} Γ u (Lam ff x _ t) with hnf (ctxt-var-decl x Γ) u t
 ...| t' = Lam ff x nothing t'
 hnf {TERM} Γ u (LetTm me x T t t') = hnf Γ u ([ Γ - t / x ] t')
 hnf {TERM} Γ u (Var x) with
-   maybe-if (unfolding.unfold-defs u) >> ctxt-lookup-term-var-def Γ x
+   ifMaybe (unfolding.unfold-defs u) $ ctxt-lookup-term-var-def Γ x
 ...| nothing = Var x
 ...| just t = hnf Γ (unfold-dampen u) t
 hnf {TERM} Γ u (Mu f tₒ _ t~ cs') =
@@ -137,8 +137,7 @@ hnf {TERM} Γ u (Mu f tₒ _ t~ cs') =
       case-matches : var → args → case → maybe (term × case-args × args)
       case-matches = λ {cₓ as (Case cₓ' cas t T) →
                           conv-ctr-ps Γ cₓ' cₓ ≫=maybe uncurry λ ps' ps →
-                          maybe-if (length as =ℕ length cas + ps) ≫=maybe λ _ →
-                          just (t , cas , drop ps as)}
+                          ifMaybej (length as =ℕ length cas + ps) (t , cas , drop ps as)}
       matching-case = λ cₓ as → foldr (_||-maybe_ ∘ case-matches cₓ as) nothing cs
       sub-mu = let x = fresh-var Γ "x" in , Lam ff x nothing (t-else (Var x))
       sub = λ Γ → substs Γ (trie-insert (trie-single f sub-mu) (data-to/ f) (, id-term)) in
@@ -153,8 +152,7 @@ hnf {TERM} Γ u (Sigma mt tₒ _ t~ cs') =
       case-matches : var → args → case → maybe (term × case-args × args)
       case-matches = λ {cₓ as (Case cₓ' cas t T) →
                           conv-ctr-ps Γ cₓ' cₓ ≫=maybe uncurry λ ps' ps →
-                          maybe-if (length as =ℕ length cas + ps) ≫=maybe λ _ →
-                          just (t , cas , drop ps as)}
+                          ifMaybej (length as =ℕ length cas + ps) (t , cas , drop ps as)}
       matching-case = λ cₓ as → foldr (_||-maybe_ ∘ case-matches cₓ as) nothing cs
       sub = λ Γ → id {A = term} in
   maybe-else' (decompose-var-headed t ≫=maybe uncurry matching-case) (t-else t) λ where
@@ -173,7 +171,7 @@ hnf{TYPE} Γ u (TpEq tm₁ tm₂) = TpEq (hnf Γ (unfold-dampen u) tm₁) (hnf �
 hnf{TYPE} Γ u (TpHole pi) = TpHole pi
 hnf{TYPE} Γ u (TpLam x tk tp) = TpLam x (hnf Γ (unfold-dampen u) -tk tk) (hnf (ctxt-var-decl x Γ) (unfold-dampen u) tp)
 hnf{TYPE} Γ u (TpVar x) with
-   maybe-if (unfolding.unfold-defs u) >> ctxt-lookup-type-var-def Γ x
+   ifMaybe (unfolding.unfold-defs u) $ ctxt-lookup-type-var-def Γ x
 ...| nothing = TpVar x
 ...| just t = hnf Γ (unfold-dampen u) t
 
@@ -201,7 +199,7 @@ conv-cases Γ cs₁ cs₂ = isJust $ foldl (λ c₂ x → x ≫=maybe λ cs₁ �
   conv-cases' Γ [] (Case x₂ as₂ t₂ T₂) = nothing
   conv-cases' Γ (c₁ @ (Case x₁ as₁ t₁ T₁) :: cs₁) c₂ @ (Case x₂ as₂ t₂ T₂) with conv-ctr Γ x₁ x₂
   ...| ff = conv-cases' Γ cs₁ c₂ ≫=maybe λ cs₁ → just (c₁ :: cs₁)
-  ...| tt = maybe-if (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂ T₂))) >> just cs₁
+  ...| tt = ifMaybej (length as₂ =ℕ length as₁ && conv-term Γ (expand-case c₁) (expand-case (Case x₂ as₂ t₂ T₂))) cs₁
 
 ctxt-term-udef : posinfo → defScope → opacity → var → term → ctxt → ctxt
 
@@ -270,8 +268,7 @@ conv-ctr Γ x₁ x₂ = conv-ctr-args Γ (x₁ , []) (x₂ , [])
 
 conv-ctr-ps Γ x₁ x₂ with env-lookup Γ x₁ | env-lookup Γ x₂
 ...| just (ctr-def ps₁ T₁ n₁ i₁ a₁ , _) | just (ctr-def ps₂ T₂ n₂ i₂ a₂ , _) =
-  maybe-if (n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂) >>
-  just (length (erase-params ps₁) , length (erase-params ps₂))
+  ifMaybej (n₁ =ℕ n₂ && i₁ =ℕ i₂ && a₁ =ℕ a₂) (length (erase-params ps₁) , length (erase-params ps₂))
 ...| _ | _ = nothing
 
 conv-ctr-args Γ (x₁ , as₁) (x₂ , as₂) =

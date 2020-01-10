@@ -630,7 +630,8 @@ private
                 either-else'
                   (parse-string TERM - scrutinee ! "term" >>parse λ scrutinee →
                    elim-pair (id-out (check-term Γ scrutinee nothing empty-spans)) $ uncurry λ tₛ Tₛ ss →
-                   maybe-if (~ spans-have-error ss) ! "Error synthesizing a type from the input term" >>error λ _ →
+                   if (spans-have-error ss) then inj₁ "Error synthesizing a type from the input term"
+                   else
                    let Tₛ = hnf Γ unfold-no-defs Tₛ in
                    case decompose-ctr-type Γ Tₛ of λ where
                      (TpVar Xₛ , [] , as) →

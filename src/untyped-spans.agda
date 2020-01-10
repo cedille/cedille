@@ -106,10 +106,10 @@ untyped-term Γ (ExIotaProj t n pi) =
 untyped-term Γ (ExLam pi e pi' x tk? t) =
   (return tk? on-fail return (Tkt (TpHole pi')) >>=m untyped-tpkd Γ) >>= λ tk~ →
   untyped-term (Γ , pi' - x :` tk~) t >>= λ t~ →
-  let eₖ? = tk? >>= λ _ → maybe-if (tk-is-type tk~ && ~ e) >>
-                just "λ-terms must bind a term, not a type (use Λ instead)"
-      eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) >>
-                just "The Λ-bound variable occurs free in the erasure of the body" in
+  let eₖ? = tk? >>= λ _ → ifMaybej (tk-is-type tk~ && ~ e)
+                             "λ-terms must bind a term, not a type (use Λ instead)"
+      eₑ? = ifMaybej (e && is-free-in (pi' % x) (erase t~))
+               "The Λ-bound variable occurs free in the erasure of the body" in
   [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ eₑ? -]
   [- Lam-span Γ untyped pi pi' e x tk~ t [] eₖ? -]
   return (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
@@ -120,8 +120,8 @@ untyped-term Γ (ExLet pi e? d t) =
       untyped-term Γ' t >>= λ t~ →
       [- punctuation-span "Parens (let)" pi (term-end-pos t) -]
       [- Let-span e? pi (term-end-pos t) untyped []
-           (maybe-if (e? && is-free-in x t~) >>
-            just (unqual-local x ^ "occurs free in the body of the term")) -]
+           (ifMaybej (e? && is-free-in x t~)
+             (unqual-local x ^ "occurs free in the body of the term")) -]
       return (if is-free-in x t~ then f t~ else t~)
 
 untyped-term Γ (ExOpen pi o pi' x t) =

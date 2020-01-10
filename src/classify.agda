@@ -880,7 +880,7 @@ check-case Γ (ExCase pi x cas t) es Dₓ cs ρₒ as dps Tₘ cast-tm cast-tp =
   decl-args Γ (ExCaseArg me pi x :: as) (Param me' x' (Tkt T) :: ps) σ ρ xs sm =
     let T' = substs Γ σ T
         e₁ = when (ex-case-arg-erased me xor me') "Mismatched erasure of term argument"
-        e₂ = λ t → maybe-if (ex-case-arg-erased me) >> free-in-term x t
+        e₂ = λ t → ifMaybe (ex-case-arg-erased me) $ free-in-term x t
         Γ' = Γ , pi - x :` (Tkt T')
         xₙ = if x =string ignored-var then x' else x in
     (add-case-arg Γ' (pi % x) xₙ (CaseArg me' xₙ (just (Tkt T'))) $
@@ -985,7 +985,7 @@ ctxt-mu-decls Γ t is Tₘ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚ�
       e₂? = unless (X =string Xₒ) "Abstract datatypes can only be pattern matched by σ"
       e₃ = λ x → just $ x ^ " occurs free in the erasure of the body (not allowed)"
       cs-fvs = stringset-contains ∘' free-vars-cases ∘' erase-cases
-      e₃ₓ? = λ cs x → maybe-if (cs-fvs cs x) >> e₃ x
+      e₃ₓ? = λ cs x → ifMaybe (cs-fvs cs x) $ e₃ x
       e₃? = λ cs → e₃ₓ? cs (mu-isType/ x) ||-maybe e₃ₓ? cs (mu-Type/ x) in
     (λ cs → [- var-span NotErased Γ'' pi₁ x checking (Tkt Tₓ) (e₂? ||-maybe e₃? cs) -] spanMok) ,
      Γ'' ,

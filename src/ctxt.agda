@@ -318,14 +318,11 @@ ctxt-var-location Γ x with trie-lookup (ctxt.i Γ) x
 ctxt-clarify-def : ctxt → opacity → var → maybe ctxt
 ctxt-clarify-def Γ o x with qual-lookup Γ x
 ...| just (qx , as , type-def ps o' T? k , loc) =
-  maybe-if (o xor o') >>
-  just (record Γ { i = trie-insert (ctxt.i Γ) qx (type-def ps o T? k , loc) })
+  ifMaybej (o xor o') (record Γ { i = trie-insert (ctxt.i Γ) qx (type-def ps o T? k , loc) })
 ...| just (qx , as , term-def ps o' t? T , loc) =
-  maybe-if (o xor o') >>
-  just (record Γ { i = trie-insert (ctxt.i Γ) qx (term-def ps o t? T , loc) })
+  ifMaybej (o xor o') (record Γ { i = trie-insert (ctxt.i Γ) qx (term-def ps o t? T , loc) })
 ...| just (qx , as , term-udef ps o' t , loc) =
-  maybe-if (o xor o') >>
-  just (record Γ { i = trie-insert (ctxt.i Γ) qx (term-udef ps o t , loc) })
+  ifMaybej (o xor o') (record Γ { i = trie-insert (ctxt.i Γ) qx (term-udef ps o t , loc) })
 ...| _ = nothing
 
 ctxt-set-current-file : ctxt → string → string → ctxt

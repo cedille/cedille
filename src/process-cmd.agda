@@ -215,7 +215,7 @@ process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
     optAs-posinfo-var Γ oa (pi' , x) >>= λ pi-v →
     check-args Γ as psᵢ >>= λ as~ →
     [- Import-module-span Γ (pi' , x) psᵢ [ location-data (fnᵢ , "1") ] nothing -]
-    return2 (maybe-if op >> public-import-params-ok psₒ as~) as~
+    return2 (ifMaybe op $ public-import-params-ok psₒ as~) as~
 
 
 

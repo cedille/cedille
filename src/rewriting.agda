@@ -260,11 +260,6 @@ rewrite-at' ra Γ x eq b T T' =
 
 rewrite-athₖ Γ x eq b (KdAbs x1 atk1 k1) (KdAbs x2 atk2 k2) =
   KdAbs x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-atₖ (ctxt-var-decl x1 Γ) x eq tt k1 $ rename-var Γ x2 x1 k2)
-{-rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
-  KndVar pi1 x1 (flip map (zip as1 as2) λ where
-    (TermArg me1 t1 , TermArg me2 t2) → TermArg me1 (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
-    (TypeArg T1 , TypeArg T2) → TypeArg (rewrite-at Γ x eq tt T1 T2)
-    (a1 , a2) → a1)-}
 rewrite-athₖ Γ x eq b KdStar KdStar = KdStar
 rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-elab k1) (hnf Γ unfold-head-elab k2)
 rewrite-athₖ Γ x eq ff k1 k2 = k1
@@ -275,8 +270,8 @@ rewrite-ath Γ x eq b (TpIota x1 T1 T1') (TpIota x2 T2 T2') =
   TpIota x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1' (rename-var Γ x2 x1 T2'))
 rewrite-ath Γ x eq b (TpApp T1 (Ttp T1')) (TpApp T2 (Ttp T2')) =
   TpApp (rewrite-at Γ x eq b T1 T2) (Ttp (rewrite-at Γ x eq tt T1' T2'))
-rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) =
-  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (maybe-if (is-free-in x t2) >> eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
+rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) = 
+  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (ifMaybe (is-free-in x t2) eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
 rewrite-ath Γ x eq b (TpEq t1 t1') (TpEq t2 t2') =
   TpEq t2 t2'
 rewrite-ath Γ x eq b (TpLam x1 atk1 T1) (TpLam x2 atk2 T2) =

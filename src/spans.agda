@@ -440,8 +440,8 @@ AppTp-span l pi pi' check tvs = mk-span "Application of a term to a type" pi pi'
 
 TpQuant-span : ctxt → erased? → posinfo → posinfo → var → tpkd → ex-tp → checking-mode → 𝕃 tagged-val → err-m → span
 TpQuant-span Γ me pi pi' x atk body check tvs err =
-  let err-if-type-pi = maybe-if ( ~ (tk-is-type atk || me)) >>
-                       just "Π-types must bind a term, not a type (use ∀ instead)"
+  let err-if-type-pi = ifMaybej ( ~ (tk-is-type atk || me))
+                          "Π-types must bind a term, not a type (use ∀ instead)"
       name = if me then "Implicit dependent function type" else "Dependent function type" in
   mk-span name pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data Γ pi' x atk me nothing (type-start-pos body) (type-end-pos body) :: tvs) (if isJust err-if-type-pi then err-if-type-pi else err)
 

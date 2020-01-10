@@ -18,12 +18,12 @@ data expr-side : Set where
   right : expr-side
   neither : expr-side
 
-not-left : expr-side → 𝔹
-not-left left = ff
-not-left _ = tt
-not-right : expr-side → 𝔹
-not-right right = ff
-not-right _ = tt
+is-left : expr-side → 𝔹
+is-left left = tt
+is-left _ = ff
+is-right : expr-side → 𝔹
+is-right right = tt
+is-right _ = ff
 
 exprd-eq : exprd → exprd → 𝔹
 exprd-eq TERM TERM = tt
@@ -51,56 +51,56 @@ is-type-level-app : ∀ {ed} → ⟦ ed ⟧ → 𝔹
 is-type-level-app {TYPE} (TpApp T tT) = tt
 is-type-level-app _ = ff
 
-{- no-parens e1 e2 s
+{- need-parens e1 e2 s
 
-   returns tt iff we do not parens when e1 occurs as the given 
+   returns tt iff we need parens when e1 occurs as the given 
    side s of parent expression e2. -}
-no-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
-no-parens {TYPE} {TYPE} (TpAbs _ _ _ _) (TpArrow _ _ _) left = ff
-no-parens {TYPE} {TYPE} (TpIota _ _ _) (TpArrow _ _ _) left = ff
-no-parens {KIND} {KIND} (KdAbs _ _ _) (KdArrow _ _) left = ff
-no-parens {TYPE} {KIND} (TpAbs _ _ _ _) (KdArrow _ _) left = ff
-no-parens {TYPE} {KIND} (TpIota _ _ _) (KdArrow _ _) left = ff
-no-parens {TERM} {_} (Var x) p lr = tt
-no-parens {TERM} {_} (Hole pi) p lr = tt
-no-parens {TERM} {_} (IotaPair t₁ t₂ x Tₓ) p lr = tt
-no-parens {TERM} {_} (IotaProj t n) p lr = tt
-no-parens {TYPE} {_} (TpVar x) p lr = tt
-no-parens {TYPE} {_} (TpEq t₁ t₂) p lr = tt
-no-parens {TYPE} {_} (TpHole pi) p lr = tt
-no-parens {KIND} {_} (KdHole pi) p lr = tt
-no-parens {KIND} {_} KdStar p lr = tt
-no-parens {_} {TERM} _ (IotaPair t₁ t₂ x Tₓ) lr = tt
-no-parens {_} {TYPE} _ (TpEq t₁ t₂) lr = tt
-no-parens {_} {TERM} _ (Beta ot ot') lr = tt
-no-parens {_} {TERM} _ (Phi tₑ t₁ t₂) lr = not-left lr
-no-parens {_} {TERM} _ (Rho _ _ _ _) right = tt
-no-parens {_} {TERM} _ (Delta _ _ _) right = tt
-no-parens {_} {TERM} _ (LetTm _ _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (LetTp _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Lam _ _ _ _) lr = tt
-no-parens {_} {TERM} _ (Mu _ _ _ _ _) right = tt
-no-parens {_} {TYPE} _ (TpLam _ _ _) lr = tt
-no-parens {_} {TYPE} _ (TpAbs _ _ _ _) lr = tt
-no-parens {_} {KIND} _ (KdAbs _ _ _) neither = tt
-no-parens {_} {TYPE} _ (TpIota _ _ _) lr = tt
-no-parens {TERM} {_} (App t t') p lr = ff
-no-parens {TERM} {_} (AppE t tT) p lr = ff
-no-parens {TERM} {_} (Beta ot ot') p lr = tt
-no-parens {TERM} {_} (Delta _ T t) p lr = ff
-no-parens {TERM} {_} (Lam me x tk? t) p lr = ff
-no-parens {TERM} {_} (LetTm me x T t t') p lr = ff
-no-parens {TERM} {_} (LetTp x T t t') p lr = ff
-no-parens {TERM} {_} (Phi tₑ t₁ t₂) p lr = ff
-no-parens {TERM} {_} (Rho tₑ x Tₓ t) p lr = ff
-no-parens {TERM} {_} (VarSigma t) p lr = is-eq-op p
-no-parens {TERM} {_} (Mu _ _ _ _ _) p lr = ff
-no-parens {TERM} {_} (Sigma _ _ _ _ _) p lr = ff
-no-parens {TYPE} {e} (TpAbs me x tk T) p lr = exprd-eq e TYPE && is-arrow p && not-left lr
-no-parens {TYPE} {_} (TpIota x T₁ T₂) p lr = ff
-no-parens {TYPE} {_} (TpApp T tT) p lr = is-arrow p || (is-type-level-app p && not-right lr)
-no-parens {TYPE} {_} (TpLam x tk T) p lr = ff
-no-parens {KIND} {_} (KdAbs x tk k) p lr = is-arrow p && not-left lr
+need-parens : {ed : exprd} → {ed' : exprd} → ⟦ ed ⟧ → ⟦ ed' ⟧ → expr-side → 𝔹
+need-parens {TYPE} {TYPE} (TpAbs _ _ _ _) (TpArrow _ _ _) left = tt
+need-parens {TYPE} {TYPE} (TpIota _ _ _) (TpArrow _ _ _) left = tt
+need-parens {KIND} {KIND} (KdAbs _ _ _) (KdArrow _ _) left = tt
+need-parens {TYPE} {KIND} (TpAbs _ _ _ _) (KdArrow _ _) left = tt
+need-parens {TYPE} {KIND} (TpIota _ _ _) (KdArrow _ _) left = tt
+need-parens {TERM} {_} (Var x) p lr = ff
+need-parens {TERM} {_} (Hole pi) p lr = ff
+need-parens {TERM} {_} (IotaPair t₁ t₂ x Tₓ) p lr = ff
+need-parens {TERM} {_} (IotaProj t n) p lr = ff
+need-parens {TYPE} {_} (TpVar x) p lr = ff
+need-parens {TYPE} {_} (TpEq t₁ t₂) p lr = ff
+need-parens {TYPE} {_} (TpHole pi) p lr = ff
+need-parens {KIND} {_} (KdHole pi) p lr = ff
+need-parens {KIND} {_} KdStar p lr = ff
+need-parens {_} {TERM} _ (IotaPair t₁ t₂ x Tₓ) lr = ff
+need-parens {_} {TYPE} _ (TpEq t₁ t₂) lr = ff
+need-parens {_} {TERM} _ (Beta ot ot') lr = ff
+need-parens {_} {TERM} _ (Phi tₑ t₁ t₂) lr = is-left lr
+need-parens {_} {TERM} _ (Rho _ _ _ _) right = ff
+need-parens {_} {TERM} _ (Delta _ _ _) right = ff
+need-parens {_} {TERM} _ (LetTm _ _ _ _ _) lr = ff
+need-parens {_} {TERM} _ (LetTp _ _ _ _) lr = ff
+need-parens {_} {TERM} _ (Lam _ _ _ _) lr = ff
+need-parens {_} {TERM} _ (Mu _ _ _ _ _) right = ff
+need-parens {_} {TYPE} _ (TpLam _ _ _) lr = ff
+need-parens {_} {TYPE} _ (TpAbs _ _ _ _) lr = ff
+need-parens {_} {KIND} _ (KdAbs _ _ _) neither = ff
+need-parens {_} {TYPE} _ (TpIota _ _ _) lr = ff
+need-parens {TERM} {_} (App t t') p lr = tt
+need-parens {TERM} {_} (AppE t tT) p lr = tt
+need-parens {TERM} {_} (Beta ot ot') p lr = ff
+need-parens {TERM} {_} (Delta _ T t) p lr = tt
+need-parens {TERM} {_} (Lam me x tk? t) p lr = tt
+need-parens {TERM} {_} (LetTm me x T t t') p lr = tt
+need-parens {TERM} {_} (LetTp x T t t') p lr = tt
+need-parens {TERM} {_} (Phi tₑ t₁ t₂) p lr = tt
+need-parens {TERM} {_} (Rho tₑ x Tₓ t) p lr = tt
+need-parens {TERM} {_} (VarSigma t) p lr = ~ is-eq-op p
+need-parens {TERM} {_} (Mu _ _ _ _ _) p lr = tt
+need-parens {TERM} {_} (Sigma _ _ _ _ _) p lr = tt
+need-parens {TYPE} {e} (TpAbs me x tk T) p lr = ~ exprd-eq e TYPE || ~ is-arrow p || is-left lr
+need-parens {TYPE} {_} (TpIota x T₁ T₂) p lr = tt
+need-parens {TYPE} {_} (TpApp T tT) p lr = ~ is-arrow p && (~ is-type-level-app p || is-right lr)
+need-parens {TYPE} {_} (TpLam x tk T) p lr = tt
+need-parens {KIND} {_} (KdAbs x tk k) p lr = ~ is-arrow p || is-left lr
 
 pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ _ ff _
 pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ _ ff _
@@ -120,16 +120,14 @@ drop-spine ops @ ced-ops-drop-spine = h
   drop-mod-args-term Γ (v , as) =
     let uqv = unqual-all (ctxt.qual Γ) v in
     flip recompose-apps (Var uqv) $
-      maybe-else' (maybe-if (~ v =string uqv) >>
-                   ctxt-get-qi Γ uqv)
+      maybe-else' (ifMaybe (~ v =string uqv) $ ctxt-get-qi Γ uqv)
         as λ qi → drop-mod-argse (snd qi) as
 
   drop-mod-args-type : ctxt → var × 𝕃 tmtp → type
   drop-mod-args-type Γ (v , as) =
     let uqv = unqual-all (ctxt.qual Γ) v in
     flip recompose-tpapps (TpVar uqv) $
-      maybe-else' (maybe-if (~ v =string uqv) >>
-                   ctxt-qualif-args-length Γ Erased uqv)
+      maybe-else' (ifMaybe (~ v =string uqv) $ ctxt-qualif-args-length Γ Erased uqv)
         as λ n → drop n as
 
   h : {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
@@ -317,12 +315,11 @@ to-string-ed{KIND} = kind-to-stringh
 
 to-stringh' : {ed : exprd} → expr-side → ⟦ ed ⟧ → strM
 to-stringh' {ed} lr t {ed'} s n ts Γ mp lr' =
-  elim-Σi (to-string-rewrite Γ options t) λ t' →
-  parens-unless (~ isJust (mp >>= λ pe → maybe-if (~ no-parens t' pe lr)))
-    (to-string-ed t') s n ts Γ (just t') lr
+  elim-Σi (to-string-rewrite Γ options t) λ t' → 
+  parens-if (maybe𝔹 mp (λ pe → need-parens t' pe lr)) (to-string-ed t') s n ts Γ (just t') lr
   where
-  parens-unless : 𝔹 → strM → strM
-  parens-unless p s = if p then s else (strAdd "(" >>str strNest 1 s >>str strAdd ")")
+  parens-if : 𝔹 → strM → strM
+  parens-if p s = if p then (strAdd "(" >>str strNest 1 s >>str strAdd ")") else s
 
 to-stringl : {ed : exprd} → ⟦ ed ⟧ → strM
 to-stringr : {ed : exprd} → ⟦ ed ⟧ → strM
