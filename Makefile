@@ -172,7 +172,7 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-tests: cedille elab-all
+tests: cedille elab-all cedille-mode-tests
 
 
 # FIXME: Workaround for $(ELABLIB) being eager
@@ -311,3 +311,7 @@ agda-lines:
 
 agda-install:
 	./script/bootstrap
+
+cedille-mode-tests:
+	cd ./cedille-tests; ./run-tests.sh; ! grep Failure output
+
