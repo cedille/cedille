@@ -6,7 +6,7 @@ SRCDIR=src
 
 CEDLIBDIR=new-lib
 
-ELABDIR=$(shell mktemp -d)/elab
+ELABDIR:=$(shell mktemp -d)/elab
 LANGOVERVIEWDIR=language-overview
 
 AUTOGEN = \
@@ -172,32 +172,22 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-tests: cedille elab-all cedille-mode-tests
+tests: cedille elab-all cedille-mode-tests 
 
 
-# FIXME: Workaround for $(ELABLIB) being eager
-elab-all:
-	#mkdir -p ${ELABDIR}
-	$(MAKE) elab-lib
-	$(MAKE) clean-elabdir
-	$(MAKE) elab-langoverview
+elab-all: $(ELABDIR) $(CEDLIB) $(LANGOVERVIEWLIB) 
+	$(MAKE) ELABDIR=$(ELABDIR) check-elaborated
 
-elab-lib: 
-	${MAKE} ${CEDLIB}
-	${MAKE} $(ELABDIR)/*
+check-elaborated: $(wildcard $(ELABDIR)/*.cdle)
 
-elab-langoverview:
-	${MAKE} $(LANGOVERVIEWLIB)
-	${MAKE} $(ELABDIR)/*
-
-clean-elabdir: FORCE
-	rm $(ELABDIR)/*
+$(ELABDIR):
+	mkdir -p $(ELABDIR)
 
 %.ced : FORCE
 	bin/cedille -e $@ $(ELABDIR)
 
 %.cdle : FORCE
-	bin/cedille $@
+	core/cedille-core $@
 
 FORCE:
 
