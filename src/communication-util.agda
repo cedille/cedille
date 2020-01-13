@@ -25,5 +25,8 @@ sendProgressUpdate msg = putStr "progress: " >> putStr msg >> putStr "\n"
 
 progressUpdate : (filename : string) → {-(do-check : 𝔹) → -} IO ⊤
 progressUpdate filename {-do-check-} =
-  sendProgressUpdate ((if {-do-check-} tt then "Checking " else "Skipping ") ^ filename)
+  if cedille-options.options.show-progress-updates options then
+    sendProgressUpdate ((if {-do-check-} tt then "Checking " else "Skipping ") ^ filename)
+  else
+    return triv
 

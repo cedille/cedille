@@ -23,6 +23,7 @@ AUTOGEN = \
 AGDASRC = \
 	to-string.agda \
 	constants.agda \
+        communication-util.agda \
 	spans.agda \
 	conversion.agda \
 	syntax-util.agda \
@@ -95,8 +96,8 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced') 
-LANGOVERVIEWLIB=$(shell find $(LANGOVERVIEWDIR) -name '*.ced')
+CEDLIB = $(CEDLIBDIR)/stdlib.ced $(shell find $(CEDLIBDIR)/categories -name '*.ced') 
+LANGOVERVIEWLIB=$(LANGOVERVIEWDIR)/all.ced
 
 # FIXME: For some reason this variable expansion is eager instead of lazy
 ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
@@ -184,7 +185,7 @@ $(ELABDIR):
 	mkdir -p $(ELABDIR)
 
 %.ced : FORCE
-	bin/cedille -e $@ $(ELABDIR)
+	bin/cedille --elab $(ELABDIR) $@ 
 
 %.cdle : FORCE
 	core/cedille-core $@

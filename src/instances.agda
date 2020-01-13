@@ -152,6 +152,9 @@ ifM : ∀{F : Set → Set} ⦃ _ : monad F ⦄ → 𝔹 → F ⊤ → F ⊤
 ifM tt a = a
 ifM ff a = return triv
 
+whenM : ∀{F : Set → Set}{A : Set} ⦃ _ : monad F ⦄ → maybe A → (A → F ⊤) → F ⊤
+whenM (just a) f = f a
+whenM nothing f = return triv
 
 --========== Id ==========--
 -- Using "id" itself causes Agda to hang when resolving instances, I suspect due

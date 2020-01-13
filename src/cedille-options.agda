@@ -17,6 +17,7 @@ record options : Set where
         -- Internal use only
         during-elaboration : 𝔹
         pretty-print : 𝔹
+        show-progress-updates : 𝔹
 
 default-options : options
 default-options = record {
@@ -29,7 +30,8 @@ default-options = record {
   datatype-encoding = nothing;
   pretty-print-columns = 80;
   during-elaboration = ff;
-  pretty-print = ff}
+  pretty-print = ff ;
+  show-progress-updates = ff}
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =

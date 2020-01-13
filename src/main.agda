@@ -16,6 +16,24 @@ open import constants
 open import general-util
 open import json
 
+record cedille-args : Set where
+  constructor mk-cedille-args
+  field
+    opts-file : maybe filepath
+    file-to-process : maybe filepath
+    about     : 𝔹
+    help      : 𝔹
+    do-elab   : maybe filepath
+    confirm-read-stdin : 𝔹
+
+default-cedille-args =
+  record { opts-file = nothing ;
+           file-to-process = nothing ;
+           about = ff ;
+           help = ff ;
+           do-elab = nothing ;
+           confirm-read-stdin = ff}
+
 -- get $HOME/.cedille, creating it if it does not exist
 getHomeCedilleDirectory : IO filepath
 getHomeCedilleDirectory =
@@ -23,6 +41,38 @@ getHomeCedilleDirectory =
   let d = dot-cedille-directory home in
     io.createDirectoryIfMissing ff d >>
     return d
+
+postulate
+  initializeStdinToUTF8 : IO ⊤
+  setStdinNewlineMode : IO ⊤
+  compileTime : UTC
+  templatesDir : filepath
+  die : {A : Set} → 𝕃 char → IO A
+
+{-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
+{-# FOREIGN GHC import qualified System.IO #-}
+{-# FOREIGN GHC import qualified System.Exit #-}
+{-# FOREIGN GHC import qualified Data.Time.Clock #-}
+{-# FOREIGN GHC import qualified Data.Time.Format #-}
+{-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
+{-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
+{-# COMPILE GHC die = \ _ -> System.Exit.die #-}
+{-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
+{-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
+{-# COMPILE GHC compileTime =
+  maybe (Data.Time.Clock.POSIX.posixSecondsToUTCTime (fromIntegral 0)) id
+  (Data.Time.Format.parseTimeM True Data.Time.Format.defaultTimeLocale "%s"
+    $(Language.Haskell.TH.Syntax.runIO
+      (Data.Time.Clock.getCurrentTime >>= \ t ->
+       return (Language.Haskell.TH.Syntax.LitE
+         (Language.Haskell.TH.Syntax.StringL
+           (Data.Time.Format.formatTime Data.Time.Format.defaultTimeLocale "%s" t)))))
+    :: Maybe Data.Time.Clock.UTCTime) #-}
+
+say-about : filepath → IO ⊤
+say-about optfp =
+   putStrLn $ "Compiled:     " ^ (utcToString compileTime) ^ "\n" ^
+              "Options file: " ^ optfp ^ "\n"
 
 createOptionsFile : (dot-ced-dir : string) → IO ⊤
 createOptionsFile dot-ced-dir =
@@ -126,6 +176,11 @@ readOptions (just fp) = readFiniteFile fp >>= λ fc →
       putStrLn (global-error-string err) >>r
         fp , cedille-options.default-options
     (inj₂ ops) → return (fp , ops)
+
+showCedilleUsage : IO ⊤
+showCedilleUsage =
+    putStrLn ("Command-line usage: cedille [--e elab-dir | --options options-file | --about ] file-to-check\n"
+            ^ "With no arguments, read commands from the front-end on stdin.")
 
 
 module main-with-options
@@ -495,74 +550,34 @@ module main-with-options
       else return s
 
   -- function to process command-line arguments
-  processArgs : (logFilePath : filepath) → 𝕃 string → IO ⊤
+  processArgs : (logFilePath : filepath) → cedille-args → IO ⊤
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
-  processArgs logFilePath (input-filename :: []) =
-    canonicalizePath input-filename >>= λ input-filename' →
-    typecheckFile logFilePath input-filename' >>r triv
+  processArgs logFilePath (mk-cedille-args _ minput-filename about help do-elab confirm-read-stdin) =
+    if help then
+      showCedilleUsage
+    else if about then
+      say-about options-filepath
+    else
+      maybe-else' minput-filename
+       (ifM confirm-read-stdin 
+         $ readCommandsFromFrontend (new-toplevel-state logFilePath (cedille-options.options.include-path options)))
+      (λ input-filename →
+        canonicalizePath input-filename >>= λ input-filename' →
+        typecheckFile logFilePath input-filename' >>= λ s →
+        whenM do-elab (λ target-dir → elab-all s input-filename' target-dir))
 
-  -- FIXME: For some reason the parameters get here reversed (?)
-  processArgs logFilePath (to :: fm :: "-e" :: []) =
-    canonicalizePath fm >>= λ fm' →
-    typecheckFile logFilePath fm' >>= λ s →
-    elab-all s fm' to >>r triv
-
-  -- this is the case where we will go into a loop reading commands from stdin, from the fronted
-  processArgs logFilePath [] = readCommandsFromFrontend (new-toplevel-state logFilePath (cedille-options.options.include-path options))
-
-  -- all other cases are errors
-  processArgs _ xs = putStrLn ("Run with the name of one file to process,"
-                           ^ " or run with no command-line arguments and enter the\n"
-                           ^ "names of files one at a time followed by newlines (this is for the emacs mode).")
-  main' : 𝕃 string → IO ⊤
+  main' : cedille-args → IO ⊤
   main' args =
     maybeClearLogFile >>= λ logFilePath → 
     logMsg' logFilePath ("Started Cedille process (compiled at: " ^ utcToString compileTime ^ ")") >>
     processArgs logFilePath args
 
-postulate
-  initializeStdinToUTF8 : IO ⊤
-  setStdinNewlineMode : IO ⊤
-  compileTime : UTC
-  templatesDir : filepath
-  die : {A : Set} → 𝕃 char → IO A
-
-{-# FOREIGN GHC {-# LANGUAGE TemplateHaskell #-} #-}
-{-# FOREIGN GHC import qualified System.IO #-}
-{-# FOREIGN GHC import qualified System.Exit #-}
-{-# FOREIGN GHC import qualified Data.Time.Clock #-}
-{-# FOREIGN GHC import qualified Data.Time.Format #-}
-{-# FOREIGN GHC import qualified Data.Time.Clock.POSIX #-}
-{-# FOREIGN GHC import qualified Language.Haskell.TH.Syntax #-}
-{-# COMPILE GHC die = \ _ -> System.Exit.die #-}
-{-# COMPILE GHC initializeStdinToUTF8 = System.IO.hSetEncoding System.IO.stdin System.IO.utf8 #-}
-{-# COMPILE GHC setStdinNewlineMode = System.IO.hSetNewlineMode System.IO.stdin System.IO.universalNewlineMode #-}
-{-# COMPILE GHC compileTime =
-  maybe (Data.Time.Clock.POSIX.posixSecondsToUTCTime (fromIntegral 0)) id
-  (Data.Time.Format.parseTimeM True Data.Time.Format.defaultTimeLocale "%s"
-    $(Language.Haskell.TH.Syntax.runIO
-      (Data.Time.Clock.getCurrentTime >>= \ t ->
-       return (Language.Haskell.TH.Syntax.LitE
-         (Language.Haskell.TH.Syntax.StringL
-           (Data.Time.Format.formatTime Data.Time.Format.defaultTimeLocale "%s" t)))))
-    :: Maybe Data.Time.Clock.UTCTime) #-}
-
-record cedille-args : Set where
-  constructor mk-cedille-args
-  field
-    opts-file : maybe filepath
-    files     : 𝕃 string
-    about     : 𝔹
-
-default-cedille-args = record { opts-file = nothing ; files = [] ; about = ff }
-
 getCedilleArgs : IO cedille-args
-getCedilleArgs = getArgs >>= λ args → getCedilleArgsH args default-cedille-args
+getCedilleArgs = getArgs >>= λ where
+                                     -- only read from stdin if there are no args at all
+                                [] → return $ record default-cedille-args {confirm-read-stdin = tt}
+                                args → getCedilleArgsH args default-cedille-args
   where
-  is-opts-flag is-about-flag : string → 𝔹
-  is-opts-flag = "--options" =string_
-  is-about-flag = "--about"   =string_
-
   bad-opts-flag : IO ⊤
   bad-opts-flag  = putStrLn "warning: flag --options should be followed by a Cedille options file"
 
@@ -571,24 +586,25 @@ getCedilleArgs = getArgs >>= λ args → getCedilleArgsH args default-cedille-ar
 
   -- allow for later --options to override earlier. This is a bash idiom
   getCedilleArgsH : 𝕃 string → cedille-args → IO cedille-args
-  getCedilleArgsH [] args = return args
+  getCedilleArgsH ("--options" :: y :: xs) args =
+    getCedilleArgsH xs (record args { opts-file = just y})
+  getCedilleArgsH ("--options" :: []) args =   
+    bad-opts-flag >> return args
+  getCedilleArgsH ("--about" :: xs) args =
+    getCedilleArgsH xs (record args { about = tt })
+  getCedilleArgsH ("--help" :: xs) args = 
+    getCedilleArgsH xs (record args { help = tt })
+  getCedilleArgsH ("--elab" :: to :: xs) args =
+    getCedilleArgsH xs (record args { do-elab = just to})
   getCedilleArgsH (x :: []) args =
-    if is-opts-flag x then
-      bad-opts-flag >> return args
-    else if is-about-flag x then
-      return (record args { about = tt })
-    else -- assume it is a .ced file to check
-      (return $ record args {files = x :: cedille-args.files args})
+    -- assume it is a .ced file to check
+    return $ record args {file-to-process = just x}
   getCedilleArgsH (x :: y :: xs) args =
-    if is-opts-flag x then
-      getCedilleArgsH xs (record args { opts-file = just y})
-    else if is-about-flag x then
-      getCedilleArgsH (y :: xs) (record args { about = tt })
-    else
-      getCedilleArgsH (y :: xs) (record args { files = x :: cedille-args.files args})
+    unknown-flag x >> return args
+  getCedilleArgsH [] args = return args 
 
 process-encoding : filepath → cedille-options.options → IO cedille-options.options
-process-encoding ofp ops @ (cedille-options.mk-options ip cede rkt log qvs etp de col ~? nl) =
+process-encoding ofp ops @ (cedille-options.mk-options ip _ _ _ _ _ de _ _ _ _) =
   maybe-else' de (return ops) λ de-f →
   let de = fst de-f
       s = new-toplevel-state "no logfile path" (cedille-options.include-path-insert (takeDirectory de) ip) in
@@ -625,17 +641,11 @@ main = initializeStdoutToUTF8 >>
        setStdinNewlineMode >>
        setToLineBuffering >>
        getCedilleArgs >>= λ args →
-       let mk-cedille-args moptsf fs about = args in
-       maybe-else' moptsf
+       maybe-else' (cedille-args.opts-file args)
          (findOptionsFile >>= readOptions) (readOptions ∘ just) >>=c λ ofp ops →
-       say-about-if about ofp >>
        let log = cedille-options.options.generate-logs ops in
        process-encoding ofp (record ops {generate-logs = ff}) >>= λ ops →
-       main-with-options.main' compileTime ofp (record ops {generate-logs = log}) die fs
-
-     where
-     say-about-if : 𝔹 → filepath → IO ⊤
-     say-about-if tt optfp =
-       putStrLn $ "Compiled:     " ^ (utcToString compileTime) ^ "\n" ^
-                  "Options file: " ^ optfp ^ "\n"
-     say-about-if ff _ = return triv
+       let args = record args { opts-file = just ofp } in 
+       let ops = record ops { generate-logs = log ;
+                              show-progress-updates = ~ (cedille-args.confirm-read-stdin args) } in
+       main-with-options.main' compileTime ofp ops die args
