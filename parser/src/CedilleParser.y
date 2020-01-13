@@ -50,6 +50,8 @@ import System.Environment
   'close'    { Token $$ TClose }
   '{^'       { Token $$ TLSpan }
   '^}'       { Token $$ TRSpan }
+  '{|'       { Token $$ TLErased }
+  '|}'       { Token $$ TRErased }
   'θ'        { Token $$ TTheta }
   'θ+'       { Token $$ TThetaEq }
   'θ<'       { Token $$ TThetaVars }
@@ -203,7 +205,7 @@ Nums :: { [CedilleTypes.Num] }
 
 OptTerm :: { Maybe PosTerm }
         :                               { Nothing }
-        | '{' Term '}'                  { Just (PosTerm $2 (pos2Txt1 $3)) }
+        | '{|' Term '|}'                  { Just (PosTerm $2 (pos2Txt1 $3)) }
 
 OptTermAngle :: { Maybe PosTerm }
           :                             { Nothing }
@@ -262,7 +264,7 @@ Term :: { Term }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
      | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
-     | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
+     | 'φ' Lterm '-' Pterm '{|' Term '|}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3 }

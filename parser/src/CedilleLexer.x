@@ -43,6 +43,8 @@ token :-
       <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
+      <0> \{\|                                  { mkTokenEmpty TLErased      }
+      <0> \|\}                                  { mkTokenEmpty TRErased      }
       <0> module                                { mkTokenEmpty TModule       }
       <0> import                                { mkTokenEmpty TImport       }
       <0> as                                    { mkTokenEmpty TAs           }
@@ -170,6 +172,8 @@ data TokenClass =
      |  TEpsRM    
      |  TLSpan     
      |  TRSpan
+     |  TLErased
+     |  TRErased
      |  TImport
      |  TAs
      |  TData          
@@ -207,6 +211,8 @@ instance Show TokenClass where
   show (TEpsRM)      = "TEpsRM"    
   show (TLSpan)      = "TLSpan"
   show (TRSpan)      = "TRSpan"
+  show (TLErased)    = "TLErased"
+  show (TRErased)    = "TRErased"
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
   show (TData)       = "TData"  
