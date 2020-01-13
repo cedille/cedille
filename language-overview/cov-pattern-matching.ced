@@ -85,7 +85,7 @@ lt : Nat ➔ Nat ➔ Bool
   = λ m. λ n. σ (minus (suc m) n) {zero ➔ tt | suc _ ➔ ff}.
 
 ite : ∀ X: ★. Bool ➔ X ➔ X ➔ X
-  = Λ X. λ b. λ t. λ f. σ b {| tt ➔ t | ff ➔ f}.
+  = Λ X. λ b. λ t. λ f. σ b { tt ➔ t | ff ➔ f}.
 
 div : Nat ➔ Nat ➔ Nat
   = λ m. λ n. μ divN. m {

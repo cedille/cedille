@@ -7,27 +7,27 @@ FF : ★ = False ➔ False.
 IFF : ★ = False ➾ False.
 
 castFF : ∀ A: ★. Cast·A·FF
-= Λ A. intrCast -(λ x. λ f. φ (f·{f ≃ x f}) - f {x f}) -(λ a. β).
+= Λ A. intrCast -(λ x. λ f. φ (f·{f ≃ x f}) - f {|x f|}) -(λ a. β).
 
 recFF : Cast·FF·(FF ➔ FF)
-= intrCast -(λ x. λ y. λ f. φ (f·{f ≃ x y f}) - f {x y f}) -(λ a. β).
+= intrCast -(λ x. λ y. λ f. φ (f·{f ≃ x y f}) - f {|x y f|}) -(λ a. β).
 
 castIFF : ∀ A: ★. Cast·A·IFF
-= Λ A. intrCast -(λ x. Λ f. φ (f·{f ≃ x}) - f {x}) -(λ a. β).
+= Λ A. intrCast -(λ x. Λ f. φ (f·{f ≃ x}) - f {|x|}) -(λ a. β).
 
 recIFF : Cast·IFF·(IFF ➔ IFF)
-= intrCast -(λ x. λ y. Λ f. φ (f·{f ≃ x y}) - f {x y}) -(λ a. β).
+= intrCast -(λ x. λ y. Λ f. φ (f·{f ≃ x y}) - f {|x y|}) -(λ a. β).
 
 -- https://arxiv.org/abs/1911.08174
 omega : FF
-= λ x. Λ X. φ (x ·{x ≃ λ z. z z}) - (x ·X) {λ z. z z} .
+= λ x. Λ X. φ (x ·{x ≃ λ z. z z}) - (x ·X) {|λ z. z z|} .
 
 Omega : FF = λ x. omega x ·FF (omega x) .
 
 FFX : ★ = ∀ X: ★. False ➔ X.
 
 castFFX : ∀ A: ★. Cast ·A ·FFX
-= Λ A. intrCast -(λ x. Λ X. λ a. φ (a ·{a ≃ x a}) - a ·X {x a}) -(λ _. β) .
+= Λ A. intrCast -(λ x. Λ X. λ a. φ (a ·{a ≃ x a}) - (a ·X) {|x a|}) -(λ _. β) .
 
 recFFX : Cast ·FFX ·(FFX ➔ FFX)
-= intrCast -(λ x. λ y. Λ X. λ a. φ (a ·{a ≃ x y a}) - a ·X {x y a}) -(λ _. β) .
+= intrCast -(λ x. λ y. Λ X. λ a. φ (a ·{a ≃ x y a}) - (a ·X) {|x y a|}) -(λ _. β) .

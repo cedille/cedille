@@ -13,7 +13,7 @@ cvFromLte : ∀ N: ★. ∀ is: Is/Nat ·N. ∀ n: N. Π m: Nat.
      = ρ (ς x.2)                @ z. {minus z x ≃ m}
      - ρ (minusAddCancel x.1 m) @ z. {z ≃ m}
      - β]
-- φ eq - (minusCV -is n x.1) {m}.
+- φ eq - (minusCV -is n x.1) {|m|}.
 
 _ : {cvFromLte ≃ λ x. x} = β.
 
@@ -57,6 +57,6 @@ gcd : Nat ➔ Nat ➔ Nat
   | zero ➔ λ n. n
   | succ m ➔
     [m' = to/Nat -isType/gcd m]
-  - [sm : ι x: Nat. {x ≃ succ m} = [ succ m' , β{succ m'} ]]
+  - [sm : ι x: Nat. {x ≃ succ m} = [ succ m' , β{|succ m'|} ]]
   - λ n. gcd (remCV2 -isType/gcd n -m sm) (succ m')
   }.

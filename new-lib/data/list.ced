@@ -131,7 +131,7 @@ absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
   Λ L . Λ A . Λ il . λ l .
     [projNil = λ l : L . μ projNil . (to/List -il l)
                  @ (λ l : List · A . Π l' : L . { l ≃ l' } ➾ L)
-                 { nil ➔ λ l' . Λ u . φ ς u - l' { nil }
+                 { nil ➔ λ l' . Λ u . φ ς u - l' {| nil |}
                  | cons x xs ➔ λ l' . Λ u . projNil xs (σ<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾ L)
                                                         { nil ➔ Λ v . δ - v
                                                         | cons y ys ➔ Λ v . ys} -u)
@@ -143,5 +143,5 @@ absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
                  l -β] - 
     φ (μ projNilEq . (to/List -il l)
          { nil ➔ β
-         | cons x xs ➔ ρ+ (projNilEq xs) - β}) - projNil l {nil}.
+         | cons x xs ➔ ρ+ (projNilEq xs) - β}) - (projNil l) {|nil|}.
 

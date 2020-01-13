@@ -28,6 +28,6 @@ f2raw : ∀ F: ★ ➔ ★. Cast ·(Functor ·F) ·(RawFunctor ·F)
     -(λ fu.
       σ fu {
       | mkFunctor fmap -fid -fcomp ➔
-        [ mkRawFunctor fmap , β{mkRawFunctor fmap} ]
+        [ mkRawFunctor fmap , β{|mkRawFunctor fmap|} ]
       }).
 

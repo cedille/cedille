@@ -5,12 +5,12 @@ import top.
 View : Π A: ★. Top ➔ ★ = λ A: ★. λ x: Top. ι z: A. {z ≃ x}.
 
 intrView : ∀ A: ★. Π x: Top. ∀ a: A. {a ≃ x} ➾ View ·A x
-= Λ A. λ x. Λ a. Λ eq. [ φ eq - a {x} , β{x} ].
+= Λ A. λ x. Λ a. Λ eq. [ φ eq - a {|x|} , β{|x|} ].
 
 elimView : ∀ A: ★. Π b: Top. View ·A b ➾ A
-= Λ A. λ b. Λ v. φ v.2 - v.1 {b}.
+= Λ A. λ b. Λ v. φ v.2 - v.1 {|b|}.
 
 -- internalized realizability
-viewFun : ∀ A: ★. ∀ B: ★. Π f: Top. (Π x: A. View ·B β{f x}) ➾ View ·(A ➔ B) f
+viewFun : ∀ A: ★. ∀ B: ★. Π f: Top. (Π x: A. View ·B β{|f x|}) ➾ View ·(A ➔ B) f
 = Λ A. Λ B. λ f. Λ pf.
-  intrView ·(A ➔ B) β{f} -(λ x. φ (pf x).2 - (pf x).1 {f x}) -β.
+  intrView ·(A ➔ B) β{|f|} -(λ x. φ (pf x).2 - (pf x).1 {|f x|}) -β.

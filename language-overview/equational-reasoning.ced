@@ -19,11 +19,11 @@ using-beta ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β .
    press Control-i e to see that the erasure of that term is indeed
    (λ x . x x) (λ x . x x).
  -}
-using-beta2 ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β{(λ x . x x) (λ x . x x)} .
+using-beta2 ◂ { (λ x . x x) (λ y . y) ≃ λ z . z } = β{|(λ x . x x) (λ x . x x)|} .
 
 -- we often define a Top type, which any term then inhabits if wrapped with β
 Top ◂ ★ = { λ x . x ≃ λ x . x }.
-id ◂ Top = β{λ x . x}.
+id ◂ Top = β{|λ x . x|}.
 
 ----------------------------------------------------------------------
 -- ρ t - t'
