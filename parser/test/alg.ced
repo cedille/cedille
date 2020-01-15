@@ -4,16 +4,24 @@
 
 module parsingTest.
 
+-- a dependent algebra-type
 test1 : ★ = 𝔄 x : Vector · A n 🠮 { x ≃ x } .
+
+-- a nondependent algebra-type
 test2 : ★ = 𝔄 Vector · A n 🠮 Nat .
 
+-- we might check an algebra against an algebra-type, and then we don't need a motive in the algebra
 test3 : 𝔄 Vector · A n 🠮 Nat  = μ vlength . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
 
+-- or we could synthesize a type for an algebra, and then we do need a motive
 test4 = μ vlength @ Vector · A n 🠮 Nat . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
 
+-- a dependent motive
 test5 = μ vlength @ v : Vector · A n 🠮 Nat . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
 
+-- doing a fold
 test6 = foo ⦇ test5 ⦈ .
 
+-- doing a combined fold-mu.
 test7 = foo ⦇ vlength . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') }  ⦈ .
 
