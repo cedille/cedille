@@ -104,7 +104,7 @@ data Term =
   | Fold Term Term PosInfo
   
   -- combine Mu and Fold for better type inference
-  | MuFold Term PosInfo Var (Maybe AlgMotive) PosInfo Cases PosInfo 
+  | FoldMu Term PosInfo Var (Maybe AlgMotive) PosInfo Cases PosInfo 
 
   | Var PosInfo Var
   deriving Show

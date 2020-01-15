@@ -321,7 +321,7 @@ Pterm :: { Term }
 
       | Pterm '⦇' Term '⦈'              { Fold $1 $3 (pos2Txt $4) }
       | Pterm '⦇' Bvar OptAlgMotive '.' '{' CasesAux '}' '⦈'
-         { MuFold $1 (tPosTxt $3) (tTxt $3) $4 (pos2Txt1 $6) $7 (pos2Txt1 $8)  }
+         { FoldMu $1 (tPosTxt $3) (tTxt $3) $4 (pos2Txt1 $6) $7 (pos2Txt1 $8)  }
       | '●'                             { Hole (pos2Txt $1) }
       
 OptAlgMotive :: { Maybe AlgMotive }
