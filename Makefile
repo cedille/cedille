@@ -173,7 +173,10 @@ cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-tests: cedille elab-all cedille-mode-tests 
+tests: cedille elab-all cedille-mode-tests parser-tests
+
+parser-tests:
+	cd parser; $(MAKE) tests
 
 
 elab-all: $(ELABDIR) $(CEDLIB) $(LANGOVERVIEWLIB) 

@@ -29,8 +29,8 @@ test-console:
 backup: clean
 	tar czvf ../cedilleparser-$(shell date --iso=seconds).tar.gz .
 
-tests:
-	cabal test
+tests:  CedilleParser
+	cd test; $(MAKE)
 
 tests-debug: compile-tests-debug
 	./test/Tests
