@@ -63,4 +63,11 @@
   "Performs the interactive function for each key event in KEYS"
   (cedille-test-perform-key-events-h keys))
 
+(defun cedille-copy-inspect-buffer-to-scratch-buffer()
+  "Copies the contents of the Cedille inspect buffer to the Cedille scratch buffer, 
+and then closes the scratch buffer.  Useful for getting results for many tests from
+one file."
+  (cedille-test-perform-key-events "I" "M-c" "I"))
+
 (provide 'cedille-mode-tests)
+
