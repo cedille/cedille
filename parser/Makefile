@@ -1,3 +1,5 @@
+all: CedilleParser
+
 .PHONY: cedille-parser cedille-lexer cedille-comments-lexer cedille-options-parser cedille-options-lexer
 
 cedille-parser: cedille-lexer
@@ -42,8 +44,8 @@ ast:    lexer
 parser-debug : lexer
 	cd src;	happy -i -d -a CedilleParser.y
 
-parser-executable: ./src/CedilleParser.y lexer
-	cp ../src/CedilleTypes.hs src/;	cd src;	happy CedilleParser.y; ghc --make CedilleParser.hs -main-is CedilleParser; mv CedilleParser ..; rm CedilleTypes.hs
+CedilleParser: ./src/CedilleParser.y lexer
+	cp ../src/CedilleTypes.hs src/;	cd src;	happy -i CedilleParser.y; ghc --make CedilleParser.hs -main-is CedilleParser; mv CedilleParser ..; rm CedilleTypes.hs
 
 parser-options-lexer-executable: lexer-options
 	cd src;	ghc --make CedilleOptionsLexer.hs -main-is CedilleOptionsLexer; mv CedilleOptionsLexer ..; 

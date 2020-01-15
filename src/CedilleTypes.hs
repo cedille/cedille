@@ -52,11 +52,15 @@ data Def = DefTerm PosInfo Var (Maybe Type) Term | DefType PosInfo Var Kind Type
 
 data Guide = Guide PosInfo Var Type deriving Show
 
-data Case = Case PosInfo Var [CaseArg] Term deriving Show
+data Pattern = Pattern PosInfo Var [CaseArg] deriving Show
+
+data Case = Case Pattern  Term deriving Show
 
 data CaseArg = CaseArg CaseArgSym PosInfo Var deriving Show
 
 data TpKd = Tkt Type | Tkk Kind deriving Show
+
+type AlgMotive = (Maybe (PosInfo , Var), Pattern, Type)
 
 data Type =
     TpAbs PosInfo MaybeErased PosInfo Var TpKd Type
@@ -67,6 +71,7 @@ data Type =
   | TpApp Type Type
   | TpAppt Type Term
   | TpArrow Type MaybeErased Type
+  | TpAlg PosInfo AlgMotive
   | TpEq PosInfo Term Term PosInfo
   | TpHole PosInfo
   | TpLam PosInfo PosInfo Var TpKd Type
@@ -94,8 +99,13 @@ data Term =
   | Rho PosInfo RhoHnf (Maybe [Num]) Term (Maybe Guide) Term
   | VarSigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
-  | Mu PosInfo PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo
+  | Mu PosInfo PosInfo Var (Maybe AlgMotive) PosInfo Cases PosInfo
   | Sigma PosInfo (Maybe Term) Term (Maybe Type) PosInfo Cases PosInfo
+  | Fold Term Term PosInfo
+  
+  -- combine Mu and Fold for better type inference
+  | MuFold Term PosInfo Var (Maybe AlgMotive) PosInfo Cases PosInfo 
+
   | Var PosInfo Var
   deriving Show
 

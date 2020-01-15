@@ -16,8 +16,6 @@ import System.Environment
 %name      terme         Term
 %name      kinde         Kind
 %name      deftermtype   Def
---%name      cmde          Cmd
---%name      liftingtype   LiftingType
 
 %tokentype { Token }
 %error     { parseError }
@@ -32,8 +30,6 @@ import System.Environment
   fpth       { Token _ (TFpth _) }
   num        { Token _ (TNum _) }
   '.num'     { Token _ (TProj _) }
---  'Π↑'       { Token $$ TPiLift }
---  '➔↑'       { Token $$ TArrowLift }
   'ε'        { Token $$ TEps }
   'ε-'       { Token $$ TEpsM }
   'εl'       { Token $$ TEpsL }
@@ -56,6 +52,8 @@ import System.Environment
   'θ+'       { Token $$ TThetaEq }
   'θ<'       { Token $$ TThetaVars }
   'ρ'        { Token $$ TRho }
+  '⦇'       { Token $$ (TSym "⦇") }
+  '⦈'       { Token $$ (TSym "⦈") }
   'δ'        { Token $$ (TSym "δ") }
   '='        { Token $$ (TSym "=") }
   '<'        { Token $$ (TSym "<") }
@@ -73,10 +71,10 @@ import System.Environment
   ':'        { Token $$ (TSym ":") }
   'Π'        { Token $$ (TSym "Π") }
   '∀'        { Token $$ (TSym "∀") }
+  '𝔄'        { Token $$ (TSym "𝔄") }
   'λ'        { Token $$ (TSym "λ") }
   'Λ'        { Token $$ (TSym "Λ") }
   'ι'        { Token $$ (TSym "ι") }
---  '↑'        { Token $$ (TSym "↑") }
   'β'        { Token $$ (TSym "β") }
   '·'        { Token $$ (TSym "·") }
   '-'        { Token $$ (TSym "-") }
@@ -85,14 +83,14 @@ import System.Environment
   'φ'        { Token $$ (TSym "φ") }
   '➾'        { Token $$ (TSym "➾") }
   '➔'        { Token $$ (TSym "➔") }
+  '🠮'       { Token $$ (TSym "🠮") }
   '≃'        { Token $$ (TSym "≃") }
   '◂'        { Token $$ (TSym "◂") }
   '@'        { Token $$ (TSym "@") }
   '●'        { Token $$ (TSym "●") }
---  '☆'        { Token $$ (TSym "☆") }
   '★'        { Token $$ (TSym "★") }
   'μ'        { Token $$ TMu }
-  'σ'       { Token $$ TSigma }
+  'σ'        { Token $$ TSigma }
   '|'        { Token $$ TPipe }
 %%
   
@@ -254,9 +252,6 @@ Num :: { Token }
 LineNo :: { PosInfo }
        : {- empty -}                    {% getPos }
 
---LineNo_1 :: { PosInfo }
---         : {- empty -}                  {% getPos_1 }
-
 Term :: { Term }
      : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
      | '[' Def ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
@@ -275,7 +270,10 @@ OptPipe :: { PosInfo }
         | '|'      { pos2Txt $1 }
 
 Case :: { Case }
-  : Qvar CaseArgs '➔' Term  { Case (tPosTxt $1) (tTxt $1) $2 $4 }
+  : Pattern '➔' Term  { Case $1 $3 }
+
+Pattern :: { Pattern }
+: Qvar CaseArgs { Pattern (tPosTxt $1) (tTxt $1) $2 }
 
 Cases :: { Cases }
      :                                 { [] }
@@ -292,10 +290,6 @@ CaseArgs :: { [CaseArg] }
      | '-' Bvar CaseArgs         { CaseArg CaseArgEr (tPosTxt $2) (tTxt $2) : $3 }
      | '·' Bvar CaseArgs         { CaseArg CaseArgTp (tPosTxt $2) (tTxt $2) : $3 }
        
-Motive :: { Maybe Type }
-     :                                  { Nothing }
-     | '@' Type                         { Just $2 }
-
 Aterm :: { Term }
       : Aterm     Lterm                 { App $1 False $2 }
       | Aterm '-' Lterm                 { App $1 True $3 }
@@ -316,12 +310,36 @@ Lterm :: { Term }
 Pterm :: { Term }
       : Qvar                            { Var (tPosTxt $1) (tTxt $1) }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3) }
-      | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
+      | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } 
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
-      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8) }
-      | 'σ' MaybeTermAngle Term Motive '{' CasesAux '}' { Sigma (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+
+      | 'μ'  Bvar OptAlgMotive '.' '{' CasesAux '}'
+      { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $3 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+
+      | 'σ' MaybeTermAngle Term OptMotive '{' CasesAux '}'
+           { Sigma (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+
+      | Pterm '⦇' Term '⦈'              { Fold $1 $3 (pos2Txt $4) }
+      | Pterm '⦇' Bvar OptAlgMotive '.' '{' CasesAux '}' '⦈'
+         { MuFold $1 (tPosTxt $3) (tTxt $3) $4 (pos2Txt1 $6) $7 (pos2Txt1 $8)  }
       | '●'                             { Hole (pos2Txt $1) }
       
+OptAlgMotive :: { Maybe AlgMotive }
+: { Nothing }
+| '@' AlgMotive {Just $2 }
+
+AlgMotivePattern :: { (Maybe (PosInfo,Var) , Pattern)  }
+: var ':' Pattern { (Just (tPosTxt $1 , tTxt $1) , $3) }
+| var CaseArgs { (Nothing , Pattern (tPosTxt $1) (tTxt $1) $2) }
+
+AlgMotive :: { AlgMotive }
+: AlgMotivePattern '🠮' LType { (fst $1 , snd $1, $3) }
+
+OptMotive :: { Maybe Type }
+     :                                  { Nothing }
+     | '@' Type                         { Just $2 }
+
+
 Lterms :: { [Lterm] }
        :                                { [] }
        |     Lterm Lterms               { Lterm False $1 : $2 }
@@ -334,12 +352,12 @@ Type :: { Type }
      | 'ι' Bvar ':' Type '.' Type    { TpIota (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
      | LType '➾' Type                   { TpArrow $1 True $3 }
      | LType '➔' Type                   { TpArrow $1 False $3 }
+     | '𝔄' AlgMotive            { TpAlg (pos2Txt $1) $2 }
      | LType                            { $1 }
      | '{^' Type '^}'                   { TpNoSpans $2 (pos2Txt $3) }
      | '[' Def ']' '-' Type   { TpLet (pos2Txt $1) $2 $5 }
 
 LType :: { Type } 
---    : '↑' Bvar '.' Term ':' LiftingType  { Lft (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $6 }
       : LType   '·' Atype                 { TpApp $1 $3 }
       | LType Lterm                       { TpAppt $1 $2 }
       | Atype                             { $1 }
@@ -361,16 +379,6 @@ LKind :: { Kind }
      | '(' Kind ')'                     { KdParens  (pos2Txt $1) $2 (pos2Txt1 $3) }
      | qkvar KArgs                      { KdVar (tPosTxt $1) (tTxt $1) $2 }
      | kvar  KArgs                      { KdVar (tPosTxt $1) (tTxt $1) $2 }
-
---LiftingType :: { LiftingType }
---            : 'Π↑' Bvar ':' Type '.' LiftingType   { LiftPi (pos2Txt $1) (tTxt $2) $4 $6 } 
---            | LliftingType  '➔↑' LiftingType       { LiftArrow   $1 $3 }
---            | Type          '➔↑' LiftingType       { LiftTpArrow $1 $3 }
---            | LliftingType                         { $1 }
-
---LliftingType :: { LiftingType }
---             : '☆'                                { LiftStar (pos2Txt $1) }
---             | '(' LiftingType ')'                { LiftParens  (pos2Txt $1) $2 (pos2Txt1 $3)}
 
 {
 getPos :: Alex PosInfo

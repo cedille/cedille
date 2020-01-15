@@ -61,3 +61,6 @@ vcastMap : ∀ n: Nat. ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Vec ·A n ➔ Ve
 = Λ n. Λ A. Λ B. Λ c. castMap -(vCastMap -n) -c.
 
 _ : {vcastMap ≃ λ x. x} = β.
+
+vlength : ∀ A : ★ . ∀ n : Nat . Vec · A n ➔ Nat =
+  Λ A . Λ n . λ xs . μ vlength . xs { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') }.

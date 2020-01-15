@@ -12,10 +12,13 @@ import Data.Text(Text,pack)
 $alpha		= [a-zA-Zα-ωΑ-Ω]
 $numone		= 0-9
 $numpunct	= [$numone\-\~\#\_\'\!]  
-$symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι➾➔β·≃\<>Λςχφ★◂=@δ] -- ↑ ☆
+$symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀𝔄λ●ι➾➔🠮⦇⦈β·≃\<>Λςχφ★◂=@δ]
 
 @num            = $numone+
+
+-- this token is to avoid a shift-reduce conflict with the period at the end of a command
 @proj           = \. @num
+
 @var            = $alpha ($alpha | $numpunct)*
 @qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*

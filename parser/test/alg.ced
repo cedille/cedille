@@ -1,0 +1,19 @@
+-- Test some of the new syntax for first-class algebras.
+--
+-- The code does not type check, should just parse.
+
+module parsingTest.
+
+test1 : ★ = 𝔄 x : Vector · A n 🠮 { x ≃ x } .
+test2 : ★ = 𝔄 Vector · A n 🠮 Nat .
+
+test3 : 𝔄 Vector · A n 🠮 Nat  = μ vlength . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
+
+test4 = μ vlength @ Vector · A n 🠮 Nat . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
+
+test5 = μ vlength @ v : Vector · A n 🠮 Nat . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') } .
+
+test6 = foo ⦇ test5 ⦈ .
+
+test7 = foo ⦇ vlength . { vnil ➔ zero | vcons -n h xs' ➔ succ (vlength -n xs') }  ⦈ .
+
