@@ -1,0 +1,3 @@
+module helper.
+
+b : ∀ X : ★ . X ➔ X = Λ X . λ x . x.
