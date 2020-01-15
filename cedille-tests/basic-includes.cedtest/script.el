@@ -1,3 +1,3 @@
 
-(cedille-test-perform-key-events "p" "n" "n" "f" "f" "n" "f" "n" "f" "n" "f" "C")
+(cedille-test-perform-key-events "p" "n" "f" "n" "f" "j")
 (setq output (buffer-string))

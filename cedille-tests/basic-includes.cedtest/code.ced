@@ -1,3 +1,4 @@
+-- test whether the frontend can jump to definitions from imported files
 module code.
 
 import helper.
