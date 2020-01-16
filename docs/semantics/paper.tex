@@ -139,7 +139,7 @@ erased terms at the term level.
 \begin{figure}
   \[
   \begin{array}{ll}
-    \infer{\Gamma\vdash x\tpsynth T}{(x : t)\in\Gamma} &
+    \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
     \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} \\ \\    
     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\    
