@@ -29,14 +29,14 @@
 (defvar cedille-program-name
   (cedille-platform-case
    "bin/cedille"
-   nil
+   "cedille"
    "bin/cedille"
    (concat (file-name-as-directory cedille-path) "bin/cedille")))
 
 (defvar cedille-core-program-name
   (cedille-platform-case
    "cedille-core"
-   nil
+   "cedille-core"
    "cedille-core"
    (concat (file-name-as-directory (concat (file-name-as-directory cedille-path) "core")) "cedille-core")))
 
@@ -45,7 +45,7 @@
   (file-name-as-directory
    (cedille-platform-case
     "C:\\Program Files\\cedille"
-    nil
+    "/usr/local/share/emacs/site-lisp/cedille"
     "/usr/share/emacs/site-lisp/cedille-mode"
     cedille-path)))
 
@@ -868,10 +868,10 @@ occurrences, then do so."
 
 (mapc (lambda (pair) (quail-defrule (car pair) (cadr pair) "Cedille"))
 	'(("\\l" "λ") ("\\L" "Λ") ("\\>" "→") ("\\r" "➔") ("\\a" "∀") ("\\B" "□") ("\\P" "Π") 
-          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "φ")
+          ("\\s" "★") ("\\S" "☆") ("\\." "·") ("\\f" "◂") ("\\u" "↑") ("\\p" "φ") 
           ("\\h" "●") ("\\k" "𝒌") ("\\i" "ι") ("\\=" "≃") ("\\==" "≅") ("\\d" "δ") ("\\-" "➾")
           ("\\b" "β") ("\\e" "ε") ("\\R" "ρ") ("\\y" "ς") ("\\t" "θ") ("\\x" "χ") ("\\w" "ω")
-          ("\\E" "∃") ("\\F" "φ") ("\\m" "μ")
+          ("\\E" "∃") ("\\F" "φ") ("\\m" "μ") ("\\c" "σ")
           ("\\\\" "\\")
 
           ("\\rho" "ρ") ("\\theta" "θ") ("\\epsilon" "ε") ("\\phi" "φ"); add some more of these

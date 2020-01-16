@@ -3,10 +3,15 @@
 *.o
 *.dyn_o
 *.dyn_hi
+.stack-work
+dist
+dist-newstyle
 MAlonzo
 cedille
+cedille-mac
 cedille-optimized
 cedille-profile
+cedille-tests/*/actual
 *.prof
 *-speed-test.txt
 libraries
@@ -15,10 +20,11 @@ src/CedilleLexer.hs
 src/CedilleOptionsLexer.hs
 src/CedilleOptionsParser.hs
 src/CedilleParser.hs
+parser/src/CedilleParser.info
 src/templates/TemplatesCompiler
 *.cedille
 *.racket
-*.*~
+*~
 cedille-deb-pkg
 cedille-deb-pkg.deb
 cedille-mac-pkg
@@ -30,4 +36,5 @@ cedille-src-pkg.zip
 *.blg
 *.log
 *.elc
-/core/cedille-core
+core/cedille-core
+core/cedille-core-mac

@@ -11,6 +11,13 @@ Alg ◂ (★ ➔ ★) ➔ ★ =
 
 rF ◂ ★ ➔ ★ = λ C : ★ . ∀ X : ★ ➔ ★ . CastMap · X ➾ Alg · X ➔ X · C .
 
+foldAlg : ∀ C: ★. ∀ X: ★ ➔ ★. CastMap ·X ➾ Alg ·X ➔ rF ·C ➔ X ·C
+= Λ C. Λ X. Λ cmX. λ alg. λ x. x -cmX alg .
+
+-- Stephan points out we should have:
+inAlg : Alg · rF =
+  Λ R . λ eval . λ d . Λ X . Λ cmX . λ alg . alg (λ r. foldAlg -cmX alg (eval r)) d.
+
 C ◂ ★ = Rec · rF.
 
 rFunctor ◂ CastMap · rF =

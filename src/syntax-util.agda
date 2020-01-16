@@ -99,9 +99,10 @@ term-start-pos (ExPhi pi _ _ _ _) = pi
 term-start-pos (ExRho pi _ _ _ _ _) = pi
 term-start-pos (ExChi pi _ _) = pi
 term-start-pos (ExDelta pi _ _) = pi
-term-start-pos (ExSigma pi _) = pi
+term-start-pos (ExVarSigma pi _) = pi
 term-start-pos (ExTheta pi _ _ _) = pi
-term-start-pos (ExMu pi _ _ _ _ _ _) = pi
+term-start-pos (ExMu pi _ _ _ _ _ _ _) = pi
+term-start-pos (ExSigma pi _ _ _ _ _ _) = pi
 
 type-start-pos (ExTpAbs pi _ _ _ _ _) = pi
 type-start-pos (ExTpLam pi _ _ _ _) = pi
@@ -155,9 +156,10 @@ term-end-pos (ExPhi _ _ _ _ pi) = pi
 term-end-pos (ExRho pi _ _ _ t t') = term-end-pos t'
 term-end-pos (ExChi pi T t') = term-end-pos t'
 term-end-pos (ExDelta pi oT t) = term-end-pos t
-term-end-pos (ExSigma pi t) = term-end-pos t
+term-end-pos (ExVarSigma pi t) = term-end-pos t
 term-end-pos (ExTheta _ _ t ls) = lterms-end-pos (term-end-pos t) ls
-term-end-pos (ExMu _ _ _ _ _ _ pi) = pi
+term-end-pos (ExMu _ _ _ _ _ _ _ pi) = pi
+term-end-pos (ExSigma _ _ _ _ _ _ pi) = pi
 
 type-end-pos (ExTpAbs pi _ _ _ _ t) = type-end-pos t
 type-end-pos (ExTpLam _ _ _ _ t) = type-end-pos t
@@ -304,7 +306,7 @@ unqual-local : var → var
 unqual-local v = f' (string-to-𝕃char v) where
   f : 𝕃 char → maybe (𝕃 char)
   f [] = nothing
-  f ('@' :: t) = f t maybe-or just t
+  f ('@' :: t) = f t ||-maybe just t
   f (h :: t) = f t
   f' : 𝕃 char → string
   f' (meta-var-pfx :: t) = maybe-else' (f t) v (𝕃char-to-string ∘ _::_ meta-var-pfx)
@@ -326,9 +328,9 @@ reprefix f x =
   ret pfx sfx = just (𝕃char-to-string (reverse pfx) , 𝕃char-to-string sfx)
   pfx : 𝕃 char → 𝕃 char → maybe (var × var)
   pfx (qual-global-chr :: xs) acc =
-    pfx xs (qual-global-chr :: acc) maybe-or ret (qual-global-chr :: acc) xs
+    pfx xs (qual-global-chr :: acc) ||-maybe ret (qual-global-chr :: acc) xs
   pfx (qual-local-chr :: xs) acc =
-    pfx xs (qual-local-chr :: acc) maybe-or ret (qual-local-chr :: acc) xs
+    pfx xs (qual-local-chr :: acc) ||-maybe ret (qual-local-chr :: acc) xs
   pfx (x :: xs) acc = pfx xs (x :: acc)
   pfx [] pfx = nothing
 
@@ -472,3 +474,4 @@ traverse-internal {_} {X} f = h (fr ff) where
   h {KIND} f (KdHole pi) = ?
   h {KIND} f (KdAbs x tk k) = ?
 -}
+

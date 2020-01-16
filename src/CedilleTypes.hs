@@ -12,6 +12,7 @@ type MaybeErased = Bool
 type MaybeMinus = Bool
 type LeftRight = Maybe Bool
 type Opacity = Bool
+type OptOpaque = Maybe PosInfo
 type RhoHnf = Bool
 type OptPublic = Bool
 type Imports = [Imprt]
@@ -27,7 +28,7 @@ data File = Module Imports PosInfo PosInfo Var Params Cmds PosInfo deriving Show
 
 data Cmd =
     CmdKind PosInfo Var Params Kind PosInfo
-  | CmdDef Opacity Def PosInfo
+  | CmdDef OptOpaque Def PosInfo
   | CmdData DefDatatype PosInfo
   | CmdImport Imprt
   deriving Show
@@ -75,8 +76,6 @@ data Type =
 
 data PosTerm = PosTerm Term PosInfo deriving Show
 
-data IsMu = IsMu PosInfo Var | IsMu' (Maybe Term) deriving Show
-
 data Term =
     App Term MaybeErased Term
   | AppTp Term Type
@@ -93,9 +92,10 @@ data Term =
   | Parens PosInfo Term PosInfo
   | Phi PosInfo Term Term Term PosInfo
   | Rho PosInfo RhoHnf (Maybe [Num]) Term (Maybe Guide) Term
-  | Sigma PosInfo Term
+  | VarSigma PosInfo Term
   | Theta PosInfo Theta Term [Lterm]
-  | Mu PosInfo IsMu Term (Maybe Type) PosInfo Cases PosInfo
+  | Mu PosInfo PosInfo Var Term (Maybe Type) PosInfo Cases PosInfo
+  | Sigma PosInfo (Maybe Term) Term (Maybe Type) PosInfo Cases PosInfo
   | Var PosInfo Var
   deriving Show
 

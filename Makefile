@@ -6,7 +6,7 @@ SRCDIR=src
 
 CEDLIBDIR=new-lib
 
-ELABDIR=elab
+ELABDIR:=$(shell mktemp -d)/elab
 LANGOVERVIEWDIR=language-overview
 
 AUTOGEN = \
@@ -23,6 +23,7 @@ AUTOGEN = \
 AGDASRC = \
 	to-string.agda \
 	constants.agda \
+        communication-util.agda \
 	spans.agda \
 	conversion.agda \
 	syntax-util.agda \
@@ -97,8 +98,8 @@ TEMPLATES = $(TEMPLATESDIR)/Mendler.ced $(TEMPLATESDIR)/MendlerSimple.ced
 FILES = $(AUTOGEN) $(AGDASRC)
 
 SRC = $(FILES:%=$(SRCDIR)//%)
-CEDLIB = $(shell find $(CEDLIBDIR) -name '*.ced') 
-LANGOVERVIEWLIB=$(shell find $(LANGOVERVIEWDIR) -name '*.ced')
+CEDLIB = $(CEDLIBDIR)/stdlib.ced $(shell find $(CEDLIBDIR)/categories -name '*.ced') 
+LANGOVERVIEWLIB=$(LANGOVERVIEWDIR)/all.ced
 
 # FIXME: For some reason this variable expansion is eager instead of lazy
 ELABLIB=$(shell find $(ELABDIR) -name '*.cdle')
@@ -142,10 +143,15 @@ $(TEMPLATESDIR)/TemplatesCompiler: $(TEMPLATESDIR)/TemplatesCompiler.hs ./src/Ce
 ./core/cedille-core: $(CEDILLE_CORE)
 	cd core/; make; cd ../
 
+./core/cedille-core-mac: $(CEDILLE_CORE)
+	cd core/; make cedille-core-mac; cd ../
+
 ./core/cedille-core-static: $(CEDILLE_CORE)
 	cd core/; make cedille-core-static; cd ../
 
-CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs ./src/Templates.hs
+CEDILLE_CABAL_DEPS = $(SRC) libraries ./ial/ial.agda-lib
+CEDILLE_DEPS = $(SRC) libraries ./ial/ial.agda-lib ./src/CedilleParser.hs ./src/CedilleLexer.hs ./src/CedilleCommentsLexer.hs ./src/CedilleOptionsLexer.hs ./src/CedilleOptionsParser.hs
+CEDILLE_STACK_CMD = stack exec $(AGDA) -- $(LIB)
 CEDILLE_BUILD_CMD = $(AGDA) $(LIB) --ghc-flag=-rtsopts 
 CEDILLE_BUILD_CMD_DYN = $(CEDILLE_BUILD_CMD) --ghc-flag=-dynamic 
 
@@ -158,36 +164,33 @@ bin/cedille: $(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD_DYN) -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
+cedille-stack: $(CEDILLE_CABAL_DEPS)
+		$(CEDILLE_STACK_CMD) --ghc-dont-call-ghc -c $(SRCDIR)/main.agda
+
+cedille-mac: $(CEDILLE_DEPS)
+		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
+		mv $(SRCDIR)/main $@
+
 cedille-static: 	$(CEDILLE_DEPS)
 		$(CEDILLE_BUILD_CMD) --ghc-flag=-optl-static --ghc-flag=-optl-pthread -c $(SRCDIR)/main.agda
 		mv $(SRCDIR)/main $@
 
-tests: cedille elab-all
+tests: cedille elab-all cedille-mode-tests 
 
 
-# FIXME: Workaround for $(ELABLIB) being eager
-elab-all:
-	#mkdir -p ${ELABDIR}
-	$(MAKE) elab-lib
-	$(MAKE) clean-elabdir
-	$(MAKE) elab-langoverview
+elab-all: $(ELABDIR) $(CEDLIB) $(LANGOVERVIEWLIB) 
+	$(MAKE) ELABDIR=$(ELABDIR) check-elaborated
 
-elab-lib: 
-	${MAKE} ${CEDLIB}
-	${MAKE} $(ELABDIR)/*
+check-elaborated: $(wildcard $(ELABDIR)/*.cdle)
 
-elab-langoverview:
-	${MAKE} $(LANGOVERVIEWLIB)
-	${MAKE} $(ELABDIR)/*
-
-clean-elabdir: FORCE
-	rm $(ELABDIR)/*
+$(ELABDIR):
+	mkdir -p $(ELABDIR)
 
 %.ced : FORCE
-	bin/cedille -e $@ $(ELABDIR)
+	bin/cedille --elab $(ELABDIR) $@ 
 
 %.cdle : FORCE
-	bin/cedille $@
+	core/cedille-core $@
 
 FORCE:
 
@@ -238,18 +241,23 @@ cedille-win-pkg: cedille-static ./core/cedille-core-static
 	cp ./core/cedille-core-static ./cedille-win-pkg/src/cedille-core.exe
 	cp ./packages/cedille-win-install.bat ./cedille-win-pkg/
 
-cedille-mac-pkg: cedille ./core/cedille-core-static
+cedille-mac-pkg: cedille-mac ./core/cedille-core-mac
 	rm -rf cedille-mac-pkg
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/cedille-mode/
+	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/se-mode/
 	mkdir -p ./cedille-mac-pkg/Cedille.app/Contents/Resources/
-	cp -r cedille ./core/cedille-core ./cedille-mode/ ./se-mode/ ./cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp cedille-mac ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/cedille
+	cp ./core/cedille-core-mac ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/bin/cedille-core
+	cp cedille-mode.el ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/
+	cp -r ./cedille-mode/ ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/cedille-mode/
+	cp -r ./se-mode/ ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/se-mode/
 	cp ./docs/info/cedille-info-main.info ./cedille-mac-pkg/Cedille.app/Contents/MacOS/bin/docs/info/
 	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/Cedille.app/Contents/Resources/
-	cp ./packages/mac/cedille.icns ./cedille-mac-pkg/
 	cp ./packages/mac/Info.plist ./cedille-mac-pkg/Cedille.app/Contents/
 	cp ./packages/mac/Cedille ./cedille-mac-pkg/Cedille.app/Contents/MacOS/
-	cp ./packages/mac/appdmg.json ./cedille-mac-pkg/
-	cd ./cedille-mac-pkg && appdmg appdmg.json Cedille.dmg
+	-cd ./cedille-mac-pkg && npx create-dmg Cedille.app
 
 cedille-src-pkg: clean ./ial/ial.agda-lib
 	rm -f cedille-src-pkg.zip
@@ -259,6 +267,7 @@ cedille-src-pkg: clean ./ial/ial.agda-lib
 	  core create-libraries.sh docs encodings ial issues language-overview   \
 	  lib LICENSE Makefile new-lib packages parser README.md release-procedure.md \
 	  script se-mode src .travis.yml \
+	  cedille.cabal Setup.hs stack.yaml stack.yaml.lock \
     cedille-src-pkg/
 	zip -r cedille-src-pkg.zip cedille-src-pkg
 	tar -czvf cedille-src-pkg.tar.gz cedille-src-pkg
@@ -295,3 +304,7 @@ agda-lines:
 
 agda-install:
 	./script/bootstrap
+
+cedille-mode-tests:
+	cd ./cedille-tests; ./run-tests.sh; ! grep Failure output
+

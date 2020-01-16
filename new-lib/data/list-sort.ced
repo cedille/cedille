@@ -20,7 +20,7 @@ lmerge : List ·A ➔ List ·A ➔ List ·A
     | nil ➔ cons x xs'
     | cons y ys ➔
       [ys' = to/List -isType/mergeYs ys]
-    - μ' (order x y) {
+    - σ (order x y) {
       | tt ➔ cons x (mergeXs xs (cons y ys'))
       | ff ➔ cons y (mergeYs ys)
       }
@@ -30,7 +30,7 @@ lmerge : List ·A ➔ List ·A ➔ List ·A
 lsplit : List ·A ➔ Pair ·(List ·A) ·(List ·A)
 = λ xs. μ rec. xs {
   | nil ➔ pair (nil ·A) (nil ·A)
-  | cons x xs ➔ μ' xs {
+  | cons x xs ➔ σ xs {
     | nil ➔ pair (nil ·A) (cons x (nil ·A))
     | cons y xs ➔
       [sp = rec xs]
@@ -41,7 +41,7 @@ lsplit : List ·A ➔ Pair ·(List ·A) ·(List ·A)
 lsplitFstLen : Π xs: List ·A. {length (fst (lsplit xs)) ≃ half (length xs)}
 = λ xs. μ ih. xs {
   | nil ➔ β
-  | cons x xs ➔ μ' xs {
+  | cons x xs ➔ σ xs {
     | nil ➔ β
     | cons y ys ➔
       ρ (ih ys) @ z. {succ z ≃ succ (half (length ys))}
@@ -52,7 +52,7 @@ lsplitFstLen : Π xs: List ·A. {length (fst (lsplit xs)) ≃ half (length xs)}
 lsplitSndLen : Π xs: List ·A. {length (snd (lsplit xs)) ≃ halfUp (length xs)}
 = λ xs. μ ih. xs {
   | nil ➔ β
-  | cons x xs ➔ μ' xs {
+  | cons x xs ➔ σ xs {
     | nil ➔ β
     | cons y xs ➔
       ρ (ih xs) @ z. {succ z ≃ succ (halfUp (length xs))}
@@ -63,24 +63,24 @@ lsplitSndLen : Π xs: List ·A. {length (snd (lsplit xs)) ≃ halfUp (length xs)
 mergeSort : List ·A ➔ List ·A
 = λ xs. μ ms. (length xs) @λ x: Nat. (ι xs: List ·A. {length xs ≃ x}) ➔ List ·A {
   | zero ➔ λ xs'. xs'.1
-  | succ n ➔ μ' n @λ x: Nat. View ·Type/ms β{x} ➾ (ι xs: List ·A. {length xs ≃ (succ x)}) ➔ List ·A {
+  | succ n ➔ σ n @λ x: Nat. View ·Type/ms β{|x|} ➾ (ι xs: List ·A. {length xs ≃ (succ x)}) ➔ List ·A {
     | zero ➔ Λ v. λ xs'. xs'.1
     | succ n ➔ Λ v. λ xs'.
-      [n' = to/Nat -isType/ms n] - [sn : Type/ms = elimView β{succ n} -v]
+      [n' = to/Nat -isType/ms n] - [sn : Type/ms = elimView β{|succ n|} -v]
     - [sp = lsplit xs'.1]
     - [lenYs : Type/ms
         = cvFromLte -isType/ms -sn (succ (half n')) -(lteHalf ff n')]
     - [ys : ι ys: List ·A. {length ys ≃ lenYs}
         = [fst sp , ρ (lsplitFstLen xs'.1) @ x. {x ≃ succ (half n)}
                   - ρ xs'.2                @ x. {half x ≃ succ (half n)}
-                  - β{fst sp}]]
+                  - β{|fst sp|}]]
     -[lenZs : Type/ms
         = cvFromLte -isType/ms -sn (succ (halfUp n')) -(lteHalf tt n')]
     - [zs : ι zs: List ·A. {length zs ≃ lenZs}
         = [snd sp , ρ (lsplitSndLen xs'.1) @ x. {x ≃ succ (halfUp n)}
                   - ρ xs'.2                @ x. {halfUp x ≃ succ (halfUp n) }
-                  - β{snd sp}]]
+                  - β{|snd sp|}]]
     - [ys' = ms lenYs ys] - [zs' = ms lenZs zs]
     - lmerge ys' zs'
-    } -(intrView β{n} -n -β)
-  } [xs , β{xs}].
+    } -(intrView β{|n|} -n -β)
+  } [xs , β{|xs|}].

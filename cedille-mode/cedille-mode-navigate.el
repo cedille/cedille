@@ -14,7 +14,9 @@
 		    (n (cdr ls))
 		    (missing (string= "missing" f))
 		    (not-exists (not (file-exists-p f)))
-		    (b (if (or missing not-exists) (current-buffer) (find-file f)))
+                    ; are we going to jump within the buffer or open a new buffer
+                    (staying-in-buffer (or missing not-exists (string= this-file f)))
+		    (b (if staying-in-buffer (current-buffer) (find-file f)))
 		    (timeline cedille-mode-browsing-history)
 		    (past (car cedille-mode-browsing-history))
 		    (present this-file))
@@ -24,7 +26,7 @@
 		   (goto-char n)
 		   (unless missing
 		     (setq cedille-mode-browsing-history (cons (cons present past) nil))
-		     (se-navigation-mode)))
+		     (if staying-in-buffer (se-navigation-mode) (cedille-start-navigation))))
 		 ;;; If the mark is active, we are jumping within the buffer. This prevents
                  ;;; a region from being selected.
 		 (when mark-active

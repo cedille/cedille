@@ -16,7 +16,7 @@ open import datatype-util
 
 rewrite-mk-phi : var → (eq t t' : term) → term
 rewrite-mk-phi x eq t t' =
-  Phi (Rho (Sigma eq) x (TpEq t t') (Beta t id-term)) t t'
+  Phi (Rho (VarSigma eq) x (TpEq t t') (Beta t id-term)) t t'
 
 rewrite-t : Set → Set
 rewrite-t T = ctxt → (is-plus : 𝔹) → (nums : maybe stringset) → (eq : maybe term) →
@@ -101,16 +101,16 @@ rewrite-termh (LetTm ff x nothing t t') Γ = rewrite-terma (subst Γ t x t') Γ
 --  rewrite-abs x x' rewrite-terma t'
 -- ^^^ Need to DEFINE "x" as "hnf Γ unfold-head t tt", not just declare it!
 --     We may instead simply rewrite t' after substituting t for x
-rewrite-termh (Mu (inj₂ x) t nothing t~ ms) =
+rewrite-termh (Mu x t nothing t~ ms) =
   rewrite-rename-var x λ x' →
-  pure (Mu (inj₂ x')) <*>
+  pure (Mu x') <*>
   rewrite-terma t <*>
   pure nothing <*>
   pure t~ <*>
   foldr (λ c r → pure _::_ <*> rewrite-case (just $ x , x') c <*> r)
     (pure []) ms
-rewrite-termh (Mu (inj₁ tᵢ) t nothing t~ ms) =
-  pure (Mu (inj₁ tᵢ)) <*>
+rewrite-termh (Sigma tᵢ t nothing t~ ms) =
+  pure (Sigma tᵢ) <*>
   rewrite-terma t <*>
   pure nothing <*>
   pure t~ <*>
@@ -200,7 +200,7 @@ post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttp T')) =
     T (KdAbs x' atk k) → TpApp T (Ttp T') , hnf Γ unfold-head-elab (subst Γ T' x' k)
     T k → TpApp T (Ttp T') , k
 post-rewriteh Γ x eq prtk tk-decl (TpApp T (Ttm t)) =
-  let t2 T' = if is-free-in x T' then Rho (Sigma eq) x T' t else t in
+  let t2 T' = if is-free-in x T' then Rho (VarSigma eq) x T' t else t in
   elim-pair (post-rewriteh Γ x eq prtk tk-decl T) λ where
     T (KdAbs x' (Tkt T') k) →
       let t3 = t2 T' in TpApp T (Ttm t3) , hnf Γ unfold-head-elab (subst Γ t3 x' k)
@@ -260,11 +260,6 @@ rewrite-at' ra Γ x eq b T T' =
 
 rewrite-athₖ Γ x eq b (KdAbs x1 atk1 k1) (KdAbs x2 atk2 k2) =
   KdAbs x1 (rewrite-at-tk Γ x eq tt atk1 atk2) (rewrite-atₖ (ctxt-var-decl x1 Γ) x eq tt k1 $ rename-var Γ x2 x1 k2)
-{-rewrite-athₖ Γ x eq b (KndVar pi1 x1 as1) (KndVar pi2 x2 as2) =
-  KndVar pi1 x1 (flip map (zip as1 as2) λ where
-    (TermArg me1 t1 , TermArg me2 t2) → TermArg me1 (maybe-else' (maybe-if (is-free-in check-erased x t2) ≫maybe eq) t1 λ eq → rewrite-mk-phi x eq t1 t2)
-    (TypeArg T1 , TypeArg T2) → TypeArg (rewrite-at Γ x eq tt T1 T2)
-    (a1 , a2) → a1)-}
 rewrite-athₖ Γ x eq b KdStar KdStar = KdStar
 rewrite-athₖ Γ x eq tt k1 k2 = rewrite-atₖ Γ x eq ff (hnf Γ unfold-head-elab k1) (hnf Γ unfold-head-elab k2)
 rewrite-athₖ Γ x eq ff k1 k2 = k1
@@ -275,8 +270,8 @@ rewrite-ath Γ x eq b (TpIota x1 T1 T1') (TpIota x2 T2 T2') =
   TpIota x1 (rewrite-at Γ x eq tt T1 T2) (rewrite-at (ctxt-var-decl x1 Γ) x eq tt T1' (rename-var Γ x2 x1 T2'))
 rewrite-ath Γ x eq b (TpApp T1 (Ttp T1')) (TpApp T2 (Ttp T2')) =
   TpApp (rewrite-at Γ x eq b T1 T2) (Ttp (rewrite-at Γ x eq tt T1' T2'))
-rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) =
-  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (maybe-if (is-free-in x t2) >> eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
+rewrite-ath Γ x eq b (TpApp T1 (Ttm t1)) (TpApp T2 (Ttm t2)) = 
+  TpApp (rewrite-at Γ x eq b T1 T2) (Ttm (maybe-else' (ifMaybe (is-free-in x t2) eq) t1 λ eq → rewrite-mk-phi x eq t1 t2))
 rewrite-ath Γ x eq b (TpEq t1 t1') (TpEq t2 t2') =
   TpEq t2 t2'
 rewrite-ath Γ x eq b (TpLam x1 atk1 T1) (TpLam x2 atk2 T2) =

@@ -15,7 +15,7 @@ import datatypes.
 --
 -- The reason for this is to enable support for definitions expressed as
 -- course-of-values recursion (and induction) schemes. The case-analysis
--- construct μ' /preserves/ the type of the scrutinee (whether it is an abstract
+-- construct σ /preserves/ the type of the scrutinee (whether it is an abstract
 -- or concrete datatype), meaning that any arbitrarily computed subdata of a
 -- term over which a recursive definition is given is a legal argument for
 -- recursive calls.
@@ -27,7 +27,7 @@ import datatypes.
 fib : Nat ➔ Nat
   = λ n. μ fib. n {
   | zero ➔ suc zero
-  | suc n' ➔ μ' n' {
+  | suc n' ➔ σ n' {
     | zero ➔ suc zero
     | suc n'' ➔ add (fib n') (fib n'')
     }
@@ -44,7 +44,7 @@ fib : Nat ➔ Nat
 -}
 
 predCV : ∀ N: ★. Is/Nat ·N ➾ N ➔ N
-  = Λ N. Λ is. λ n. μ'<is> n {zero ➔ n | suc n ➔ n}.
+  = Λ N. Λ is. λ n. σ<is> n {zero ➔ n | suc n ➔ n}.
 
 {- Here we see our first use of the `Is/Nat` type predicate. Recall that
 -- `Is/Nat ·N` is the type of witnesses that any term of type `N` may be treated
@@ -82,10 +82,10 @@ minus = minusCV -is/Nat.
 -}
 
 lt : Nat ➔ Nat ➔ Bool
-  = λ m. λ n. μ' (minus (suc m) n) {zero ➔ tt | suc _ ➔ ff}.
+  = λ m. λ n. σ (minus (suc m) n) {zero ➔ tt | suc _ ➔ ff}.
 
 ite : ∀ X: ★. Bool ➔ X ➔ X ➔ X
-  = Λ X. λ b. λ t. λ f. μ' b {| tt ➔ t | ff ➔ f}.
+  = Λ X. λ b. λ t. λ f. σ b { tt ➔ t | ff ➔ f}.
 
 div : Nat ➔ Nat ➔ Nat
   = λ m. λ n. μ divN. m {

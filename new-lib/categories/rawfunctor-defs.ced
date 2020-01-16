@@ -3,4 +3,4 @@ import functor.
 
 module rawfunctor-defs (F: ★ ➔ ★) (rfu: RawFunctor ·F).
 
-fmap : Fmap ·F = μ' rfu {mkRawFunctor fmap ➔ fmap}.
+fmap : Fmap ·F = σ rfu {mkRawFunctor fmap ➔ fmap}.

@@ -22,7 +22,7 @@ succAcyc : Π m: Nat. {succ m ≃ m} ➔ Bot
   }.
 
 succPred: Π n: Nat. Not ·{n ≃ zero} ➔ {succ (pred n) ≃ n}
-= λ n. μ' n {zero ➔ λ nz. elimBot (nz β) | succ _ ➔ λ _. β}.
+= λ n. σ n {zero ➔ λ nz. elimBot (nz β) | succ _ ➔ λ _. β}.
 
 -- properties of add
 -- Π n, n + 0 = n
@@ -65,7 +65,7 @@ addAssoc : Π l: Nat. Π m: Nat. Π n: Nat. {add l (add m n) ≃ add (add l m) n
   }.
 
 addIsZero : Π m: Nat. Π n: Nat. {add m n ≃ zero} ➔ {m ≃ zero}
-= λ m. λ n. μ' m {
+= λ m. λ n. σ m {
   | zero ➔ λ _. β
   | succ m ➔ λ eq. δ - eq
   }.
@@ -106,7 +106,7 @@ minusSLeft : Π l: Nat. Π m: Nat. Π n: Nat. {minus l m ≃ succ n} ➔ {minus 
     [m' = to/Nat -isType/ih m]
   - ρ ς (minusPLeft (succ l) m') @ x. {minus l (succ m) ≃ succ n} ➔ {x ≃ add num2 n}
   - ρ ς (minusPLeft l m')        @ x. {x ≃ succ n}                ➔ {minus l m ≃ add num2 n}
-  - μ' l {
+  - σ l {
     | zero ➔
       ρ (minusZLeft m') @ x. {x ≃ succ n} ➔ {minus (pred (succ zero)) m ≃ add num2 n}
     - λ eq. δ - eq
@@ -122,7 +122,7 @@ minusNotSum : Π l: Nat. Π m: Nat. Π n: Nat. Not ·{minus m n ≃ succ (add l 
   - λ eq. δ - (addInj m zero (succ l) eq)
   | succ n ➔ λ l. λ m.
     [n' = to/Nat -isType/ih n]
-  - μ' m {
+  - σ m {
     | zero ➔
       ρ (minusZLeft (succ n')) @ x. Not ·{x ≃ succ (add l zero)}
     - λ eq. δ - eq
@@ -145,7 +145,7 @@ minusAddCancel : Π m: Nat. Π n: Nat. {minus (add m n) m ≃ n}
 
 minusZRightInv : Π m: Nat. Π n: Nat. {minus (succ m) n ≃ succ m} ➔ {n ≃ zero}
   = λ m. μ ih. m {
-  | zero ➔ λ n. μ' n {
+  | zero ➔ λ n. σ n {
     | zero ➔ λ _. β
     | succ n ➔
       ρ ς (minusPLeft num1 n) @ x. {x ≃ num1} ➔ {succ n ≃ zero}
@@ -154,7 +154,7 @@ minusZRightInv : Π m: Nat. Π n: Nat. {minus (succ m) n ≃ succ m} ➔ {n ≃ 
     }
   | succ m ➔
     [m' = to/Nat -isType/ih m]
-  - λ n. μ' n {
+  - λ n. σ n {
     | zero ➔ λ _. β
     | succ n ➔ λ eq.
       [eq' : {minus (succ m') n ≃ succ (succ m')}
@@ -166,7 +166,7 @@ minusZRightInv : Π m: Nat. Π n: Nat. {minus (succ m) n ≃ succ m} ➔ {n ≃ 
 minusEq : Π m: Nat. Π n: Nat. {minus m n ≃ zero} ➔ {minus n m ≃ zero} ➔ {m ≃ n}
   = λ m. μ ih. m {
   | zero ➔ λ n. λ _. λ eq. ρ eq - β
-  | succ m ➔ λ n. μ' n {
+  | succ m ➔ λ n. σ n {
     | zero ➔ λ eq. λ _. δ - eq
     | succ n ➔ λ eq1. λ eq2.
       [m' = to/Nat -isType/ih m]

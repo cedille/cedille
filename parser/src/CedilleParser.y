@@ -50,6 +50,8 @@ import System.Environment
   'close'    { Token $$ TClose }
   '{^'       { Token $$ TLSpan }
   '^}'       { Token $$ TRSpan }
+  '{|'       { Token $$ TLErased }
+  '|}'       { Token $$ TRErased }
   'θ'        { Token $$ TTheta }
   'θ+'       { Token $$ TThetaEq }
   'θ<'       { Token $$ TThetaVars }
@@ -90,7 +92,7 @@ import System.Environment
 --  '☆'        { Token $$ (TSym "☆") }
   '★'        { Token $$ (TSym "★") }
   'μ'        { Token $$ TMu }
-  'μP'       { Token $$ TMuP }
+  'σ'       { Token $$ TSigma }
   '|'        { Token $$ TPipe }
 %%
   
@@ -117,9 +119,9 @@ Cmds :: { Cmds }
      :                                  { [] }
      | Cmd Cmds                         { $1 : $2 }
 
-OptOpaque :: { Opacity }
-          :          { True }
-          | 'opaque' { False }
+OptOpaque :: { OptOpaque }
+          :          { Nothing }
+          | 'opaque' { Just (pos2Txt $1) }
 
 Cmd :: { Cmd }
     : Imprt                             { CmdImport $1 }
@@ -203,7 +205,7 @@ Nums :: { [CedilleTypes.Num] }
 
 OptTerm :: { Maybe PosTerm }
         :                               { Nothing }
-        | '{' Term '}'                  { Just (PosTerm $2 (pos2Txt1 $3)) }
+        | '{|' Term '|}'                  { Just (PosTerm $2 (pos2Txt1 $3)) }
 
 OptTermAngle :: { Maybe PosTerm }
           :                             { Nothing }
@@ -262,7 +264,7 @@ Term :: { Term }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
      | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
-     | 'φ' Lterm '-' Term '{' Term '}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
+     | 'φ' Lterm '-' Pterm '{|' Term '|}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3 }
@@ -272,13 +274,16 @@ OptPipe :: { PosInfo }
         :          {% getPos }
         | '|'      { pos2Txt $1 }
 
+Case :: { Case }
+  : Qvar CaseArgs '➔' Term  { Case (tPosTxt $1) (tTxt $1) $2 $4 }
+
 Cases :: { Cases }
-     :                                  { [] }
-     | '|' Qvar CaseArgs '➔' Term Cases { Case (tPosTxt $2) (tTxt $2) $3 $5 : $6 }
+     :                                 { [] }
+     | '|' Case Cases { $2 : $3 }
 
 -- Optional first pipe
 CasesAux :: { Cases }
-  : Qvar CaseArgs '➔' Term Cases { Case (tPosTxt $1) (tTxt $1) $2 $4 : $5 }
+  : Case Cases { $1 : $2 }
   | Cases                        { $1 }
 
 CaseArgs :: { [CaseArg] }
@@ -305,7 +310,7 @@ Lterm :: { Term }
       | 'εl-' Lterm                     { Epsilon (pos2Txt $1) (Just False) True $2 }
       | 'εr'  Lterm                     { Epsilon (pos2Txt $1) (Just True) False  $2 }
       | 'εr-' Lterm                     { Epsilon (pos2Txt $1) (Just True) True $2 }
-      | 'ς' Lterm                       { Sigma (pos2Txt $1) $2 }
+      | 'ς' Lterm                       { VarSigma (pos2Txt $1) $2 }
       | Pterm                           { $1 }
 
 Pterm :: { Term }
@@ -313,8 +318,8 @@ Pterm :: { Term }
       | '(' Term ')'                    { Parens (pos2Txt $1) $2 (pos2Txt1 $3) }
       | Pterm '.num'                    { IotaProj $1 (tTxt $2) (tPosTxt2 $2) } -- shift-reduce conflict with the point of end of command (solution: creates a token '.num')
       | '[' Term ',' Term OptGuide ']'  { IotaPair (pos2Txt $1) $2 $4 $5 (pos2Txt1 $6)}
-      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (IsMu (tPosTxt $2) (tTxt $2)) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8) }
-      | 'μP' MaybeTermAngle Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (IsMu' $2) $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
+      | 'μ'  Bvar '.' Term Motive '{' CasesAux '}' { Mu (pos2Txt $1) (tPosTxt $2) (tTxt $2) $4 $5 (pos2Txt1 $6) $7 (pos2Txt1 $8) }
+      | 'σ' MaybeTermAngle Term Motive '{' CasesAux '}' { Sigma (pos2Txt $1) $2 $3 $4 (pos2Txt1 $5) $6 (pos2Txt1 $7) }
       | '●'                             { Hole (pos2Txt $1) }
       
 Lterms :: { [Lterm] }
@@ -416,9 +421,10 @@ main :: IO ()
 main = do  
   [ file ] <- getArgs
   cnt      <- readFile file
+  let perr w errMsg = putStrLn (w ++ " error at position " ++ (unpack errMsg))
   case parseTxt (pack cnt) of 
-    Prelude.Left  (Prelude.Left  errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
-    Prelude.Left  (Prelude.Right errMsg) -> writeFile (file ++ "-result") (unpack errMsg)
-    Prelude.Right res                    -> writeFile (file ++ "-result") (show res)    
+    Prelude.Left  (Prelude.Left  errMsg) -> perr "Lex" errMsg
+    Prelude.Left  (Prelude.Right errMsg) -> perr "Parse" errMsg
+    Prelude.Right res                    -> putStrLn "Ok" >> writeFile ("parser-result.ast") (show res)    
 
 }

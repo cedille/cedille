@@ -100,10 +100,15 @@ record toplevel-state : Set where
         files-with-updated-spans : 𝕃 string
         is : trie include-elt {- keeps track of files we have parsed and/or processed -}
         Γ : ctxt
+        logFilePath : filepath
 
-new-toplevel-state : (include-path : 𝕃 string × stringset) → toplevel-state
-new-toplevel-state ip = record { include-path = ip ;
-                                                                             files-with-updated-spans = [] ; is = empty-trie ; Γ = new-ctxt "[nofile]" "[nomod]" }
+new-toplevel-state : (logFilePath : filepath) → (include-path : 𝕃 string × stringset) → toplevel-state
+new-toplevel-state logFilePath ip =
+  record { include-path = ip ;
+           files-with-updated-spans = [] ;
+           is = empty-trie ;
+           Γ = new-ctxt "[nofile]" "[nomod]" ;
+           logFilePath = logFilePath }
                                                                              
 get-include-elt-if : toplevel-state → filepath → maybe include-elt
 get-include-elt-if s filename = trie-lookup (toplevel-state.is s) filename
@@ -195,10 +200,12 @@ ctxt-to-string : ctxt → string
 ctxt-to-string (mk-ctxt fn mn ps qual syms mod-map _ _ _ is _ _ _ _ _ _) = "mod-info: {" ^ (mod-info-to-string (fn , mn , ps , qual)) ^ "}, syms: {" ^ (syms-to-string syms) ^ "}, i: {" ^ (sym-infos-to-string is) ^ "}"
 
 toplevel-state-to-string : toplevel-state → string
-toplevel-state-to-string (mk-toplevel-state include-path files is context) =
+toplevel-state-to-string (mk-toplevel-state include-path files is context logFilePath) =
     "\ninclude-path: {\n" ^ (𝕃-to-string (λ x → x) "\n" (fst include-path)) ^ 
     "\n}\nis: {" ^ (trie-to-string "\n" include-elt-to-string is) ^ 
-    "\n}\nΓ: {" ^ (ctxt-to-string context) ^ "\n}"
+    "\n}\nΓ: {" ^ (ctxt-to-string context) ^
+    "\n}\nlogFilePath : {" ^ logFilePath ^ "\n}"
+    
 
 -- check if a variable is being redefined, and if so return the first given state; otherwise the second (in the monad)
 check-redefined : ∀ {X} → posinfo → var → toplevel-state → X → spanM toplevel-state → spanM (toplevel-state × X)
@@ -218,7 +225,7 @@ error-in-import-string = "There is an error in the imported file"
 {-# TERMINATING #-}
 check-cyclic-imports : (original current : filepath) → stringset → (path : 𝕃 string) → toplevel-state → err-m
 check-cyclic-imports fnₒ fn fs path s with stringset-contains fs fn
-...| ff = foldr (λ fnᵢ x → x maybe-or check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
+...| ff = foldr (λ fnᵢ x → x ||-maybe check-cyclic-imports fnₒ fnᵢ (stringset-insert fs fn) (fn :: path) s)
             nothing (include-elt.deps (get-include-elt s fn))
 ...| tt with fnₒ =string fn
 ...| tt = just (foldr (λ fnᵢ x → x ^ " → " ^ fnᵢ) ("Cyclic dependencies (" ^ fn) path ^ " → " ^ fn ^ ")")
@@ -230,7 +237,7 @@ scope-t X = filepath → string → maybe var → params → args → X → topl
 infixl 0 _>>=scope_
 _>>=scope_ : toplevel-state × err-m → (toplevel-state → toplevel-state × err-m) → toplevel-state × err-m
 _>>=scope_ (ts , err) f with f ts
-...| ts' , err' = ts' , err maybe-or err'
+...| ts' , err' = ts' , err ||-maybe err'
 
 {-# TERMINATING #-}
 scope-file : toplevel-state → (original imported : filepath) → maybe var → args → toplevel-state × err-m
@@ -311,9 +318,9 @@ scope-enc-defs fn mn oa ps as eds s =
 
 scope-var fn mn oa ps as ignored-var s = s , nothing
 scope-var _ mn oa ps as v s with import-as-x v oa | s
-...| v' | mk-toplevel-state ip fns is Γ =
+...| v' | mk-toplevel-state ip fns is Γ logFilePath =
   mk-toplevel-state ip fns is
-    (record Γ { qual = trie-insert (ctxt.qual Γ) v' (mn # v , as) }) ,
+    (record Γ { qual = trie-insert (ctxt.qual Γ) v' (mn # v , as) }) logFilePath ,
   flip maybe-map (trie-lookup (ctxt.qual Γ) v') (uncurry λ v'' as' →
     "Multiple definitions of variable " ^ v' ^ " as " ^ v'' ^ " and " ^ (mn # v) ^
     (if (mn # v =string v'') then " (perhaps it was already imported?)" else ""))

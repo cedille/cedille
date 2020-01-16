@@ -19,7 +19,7 @@ $symbols        = [\.\,\_\(\)\{\}\[\]\:\-\+Π∀λ●ι➾➔β·≃\<>Λςχφ�
 @var            = $alpha ($alpha | $numpunct)*
 @qvar           = @var ((\. | \/) @var)+
 @kvar           = 𝒌 ($alpha | $numpunct)*
-@qkvar          = @kvar (\. @var)+
+@qkvar          = (@var \.)+ @kvar
 @fpth           = ($alpha | (\.\.\/)+) ($alpha | $numpunct | \/)*
 
 token :-
@@ -39,10 +39,12 @@ token :-
       <0> θ\<                                   { mkTokenEmpty TThetaVars    }
       <0> ρ                                     { mkTokenEmpty TRho          }
       <0> μ                                     { mkTokenEmpty TMu           }
-      <0> μ\'                                   { mkTokenEmpty TMuP          }
+      <0> σ                                     { mkTokenEmpty TSigma        }
       <0> \|                                    { mkTokenEmpty TPipe         }            
       <0> \{\^                                  { mkTokenEmpty TLSpan        }
       <0> \^\}                                  { mkTokenEmpty TRSpan        }
+      <0> \{\|                                  { mkTokenEmpty TLErased      }
+      <0> \|\}                                  { mkTokenEmpty TRErased      }
       <0> module                                { mkTokenEmpty TModule       }
       <0> import                                { mkTokenEmpty TImport       }
       <0> as                                    { mkTokenEmpty TAs           }
@@ -170,6 +172,8 @@ data TokenClass =
      |  TEpsRM    
      |  TLSpan     
      |  TRSpan
+     |  TLErased
+     |  TRErased
      |  TImport
      |  TAs
      |  TData          
@@ -183,7 +187,7 @@ data TokenClass =
      |  TThetaVars
      |  TRho
      |  TMu
-     |  TMuP
+     |  TSigma
      |  TPipe     
      |  TEOF
      deriving Eq
@@ -207,6 +211,8 @@ instance Show TokenClass where
   show (TEpsRM)      = "TEpsRM"    
   show (TLSpan)      = "TLSpan"
   show (TRSpan)      = "TRSpan"
+  show (TLErased)    = "TLErased"
+  show (TRErased)    = "TRErased"
   show (TImport)     = "TImport"
   show (TAs)         = "TAs"
   show (TData)       = "TData"  
@@ -220,7 +226,7 @@ instance Show TokenClass where
   show (TThetaVars)  = "TThetaVars"
   show (TRho)        = "TRho"
   show (TMu)         = "TMu"
-  show (TMuP)        = "TMuP"
+  show (TSigma)      = "TSigma"
   show (TPipe)       = "TPipe"      
   show (TEOF)        = "TEOF"
 

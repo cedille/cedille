@@ -5,15 +5,15 @@ data Bool: ★ =
   | ff: Bool.
 
 not : Bool ➔ Bool
-= λ b. μ' b {tt ➔ ff | ff ➔ tt}.
+= λ b. σ b {tt ➔ ff | ff ➔ tt}.
 
 ite : ∀ X: ★. Bool ➔ X ➔ X ➔ X
-= Λ X. λ b. λ t. λ f. μ' b {tt ➔ t | ff ➔ f}.
+= Λ X. λ b. λ t. λ f. σ b {tt ➔ t | ff ➔ f}.
 
 if = ite.
 
 indBool : ∀ P: Bool ➔ ★. Π b: Bool. P tt ➔ P ff ➔ P b
-= Λ P. λ b. λ t. λ f. μ' b {
+= Λ P. λ b. λ t. λ f. σ b {
   | tt ➔ t
   | ff ➔ f
   }.

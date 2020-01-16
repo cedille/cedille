@@ -3,13 +3,13 @@ module core.cast.
 Cast : ★ ➔ ★ ➔ ★ = λ A: ★. λ B: ★. ι f: A ➔ B. {f ≃ λ x. x}.
 
 intrCast : ∀ A: ★. ∀ B: ★. ∀ f: A ➔ B. (Π a: A. {f a ≃ a}) ➾ Cast ·A ·B
-= Λ A. Λ B. Λ f. Λ eq. [ λ a. φ (eq a) - (f a) {a} , β].
+= Λ A. Λ B. Λ f. Λ eq. [ λ a. φ (eq a) - (f a) {|a|} , β].
 
 intrCastI : ∀ A: ★. ∀ B: ★. (Π a : A . ι b : B . { a ≃ b }) ➾ Cast ·A ·B
-= Λ A. Λ B. Λ f. [ λ a. [ p = f a ] - φ ς p.2 - p.1 {a} , β].
+= Λ A. Λ B. Λ f. [ λ a. [ p = f a ] - φ ς p.2 - p.1 {|a|} , β].
 
 elimCast : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ A ➔ B
-= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+= Λ A. Λ B. Λ c. φ c.2 - c.1 {|λ x. x|}.
 
 cast = elimCast.
 

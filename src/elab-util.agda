@@ -145,11 +145,12 @@ module reindexing (Γ : ctxt) (D I mn : var) (isₒ : indices) (psₜ : params) 
   reindex {TERM} ρₓ is (Rho t₌ x Tₓ t) =
     let x' = reindex-fresh-var ρₓ is x in
     Rho (reindex ρₓ is t) x' (reindex (rnm-insert ρₓ x x') is Tₓ) (reindex ρₓ is t)
-  reindex {TERM} ρₓ is (Sigma t) =
-    Sigma (reindex ρₓ is t)
+  reindex {TERM} ρₓ is (VarSigma t) =
+    VarSigma (reindex ρₓ is t)
   reindex {TERM} ρₓ is (Var x) =
     maybe-else' (trie-lookup (fst ρₓ) x) (Var x) (uncurry (apps-term ∘ Var))
   reindex {TERM} ρₓ is (Mu μ t Tₘ? f~ cs) = Var "template-mu-not-allowed"
+  reindex {TERM} ρₓ is (Sigma μ t Tₘ? f~ cs) = Var "template-sigma-not-allowed"
   
   reindex {TYPE} ρₓ is (TpAbs me x atk T) with is-index-var (just atk)
   ...| ff = let x' = reindex-fresh-var ρₓ is x in
@@ -232,8 +233,11 @@ reindex-file Γ D I mn is ps cs =
       open reindexing (add-params-to-ctxt ps' Γ) D I mn is ps' in
   reindex-cmds cs
 
-mendler-elab-mu : ctxt → datatype-info → maybe term ⊎ var → term → type → cases → term
-mendler-elab-mu-pure : ctxt → datatype-info → maybe term ⊎ var → term → cases → term
+mendler-elab-mu : ctxt → datatype-info → var → term → type → cases → term
+mendler-elab-mu-pure : ctxt → datatype-info → var → term → cases → term
+
+mendler-elab-sigma : ctxt → datatype-info → maybe term → term → type → cases → term
+mendler-elab-sigma-pure : ctxt → datatype-info → maybe term → term → cases → term
 
 -- Maps over expression, elaborating all mu-terms
 {-# TERMINATING #-}
@@ -274,13 +278,18 @@ choose-mu {TERM} Γ ρ (Phi tm₌ tm₁ tm₂) =
 choose-mu {TERM} Γ ρ (Rho tm₌ x Tₓ tm) =
   rename x from Γ and ρ for λ x' Γ' ρ' →
   Rho (choose-mu Γ ρ tm₌) x' (choose-mu Γ' ρ' Tₓ) (choose-mu Γ ρ tm)
-choose-mu {TERM} Γ ρ (Sigma tm) =
-  Sigma (choose-mu Γ ρ tm)
-choose-mu {TERM} Γ ρ (Mu μ t tp? t~ ms) =
+choose-mu {TERM} Γ ρ (VarSigma tm) =
+  VarSigma (choose-mu Γ ρ tm)
+choose-mu {TERM} Γ ρ (Mu x t tp? t~ ms) =
   choose-mu Γ ρ
     (maybe-else' tp?
-      (mendler-elab-mu-pure Γ t~ μ t ms)
-      (λ tp → mendler-elab-mu Γ t~ μ t tp ms))
+      (mendler-elab-mu-pure Γ t~ x t ms)
+      (λ tp → mendler-elab-mu Γ t~ x t tp ms))
+choose-mu {TERM} Γ ρ (Sigma mt t tp? t~ ms) =
+  choose-mu Γ ρ
+    (maybe-else' tp?
+      (mendler-elab-sigma-pure Γ t~ mt t ms)
+      (λ tp → mendler-elab-sigma Γ t~ mt t tp ms))
 choose-mu {TERM} Γ ρ (Var x) =
   Var (renamectxt-rep ρ x)
 choose-mu {TYPE} Γ ρ (TpAbs e x tk tp) =
@@ -355,7 +364,7 @@ mk-ctr-fmap-η= f Γ x @ (Aₓ , Bₓ , castₓ) body T with decompose-ctr-type 
           vₓ = fresh-var (add-indices-to-ctxt is Γ') "v"
           Γ'' = ctxt-var-decl vₓ $ ctxt-var-decl uₓ $ add-indices-to-ctxt is Γ' in
       LetTm tt uₓ nothing
-        (Mu (inj₂ recₓ)
+        (Mu recₓ
           (foldl
             (λ {(Param me x'' (Tkt T)) body →
                   (if me then AppEr body else App body) $
@@ -797,42 +806,31 @@ init-encoding Γ (Module mn mps mcs) (Data Dₓ ps is cs) =
          "for index telescoping"
 
 
-mendler-elab-mu-pure Γ (mk-data-info _ _ _ _ _ _ _ _ _ eds ecs) x? t ms =
-  let fix-out = erase (encoding-defs.fix-out eds)
-      fix-ind = erase (encoding-defs.fix-ind eds)
+mendler-elab-mu-pure Γ (mk-data-info _ _ _ _ _ _ _ _ _ eds ecs) xₒ t ms =
+  let fix-ind = erase (encoding-defs.fix-ind eds)
       msf = λ t → foldl
                     (λ {(Case mₓ cas mₜ asₜₚ) t →
                           App t (case-args-to-lams cas mₜ)})
                     t ms in
-  either-else' x?
-    (λ _ → msf (App fix-out t))
-    (λ xₒ →
-      rename xₒ from Γ for λ x →
-      rename "y" from Γ for λ yₓ →
+    rename xₒ from Γ for λ x →
+    rename "y" from Γ for λ yₓ →
       let subst-msf = subst-renamectxt Γ
             (renamectxt-insert* empty-renamectxt ((xₒ , x) :: (yₓ , yₓ) :: [])) ∘ msf in
-      App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ)))
+        App (App fix-ind t) (Lam ff x nothing $ Lam ff yₓ nothing $ subst-msf (Var yₓ))
 
-mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ)) x? t Tₘ ms =
+mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ)) x t Tₘ ms =
   let is = kind-to-indices Γ k
       Γᵢₛ = add-indices-to-ctxt is $ add-params-to-ctxt ps $ add-params-to-ctxt (ctxt.ps Γ) Γ
-      is-as : indices → args
-      is-as = λ is → map (λ {(Index x atk) → either-else' atk (λ _ → ArgEr (Var x)) (λ _ → ArgTp (TpVar x))}) is
-      is/X? = either-else' x? id λ _ → unless (X =string Xₒ) (Var (mu-isType/' Xₒ))
+      is/X? = unless (X =string Xₒ) (Var (mu-isType/' Xₒ))
       app-ps = recompose-apps (args-set-erased tt asₚ) ∘ Var
       tpapp-ps = recompose-tpapps (args-to-tmtps asₚ) ∘ TpVar
       app-ps' = inst-term Γ ps asₚ
       tpapp-ps' = inst-type Γ ps asₚ
       fmap/D = app-ps fmap/Dₓ
       TypeF/D = tpapp-ps TypeF/Dₓ
-      Is/D = tpapp-ps Is/Dₓ
-      is/D = recompose-apps asₚ (Var is/Dₓ)
-      to/D = recompose-apps asₚ (Var to/Dₓ)
       indF/D = app-ps indF/Dₓ
       Cast = tpapp-ps' Cast
-      cast-in = app-ps' cast-in
       cast-out = app-ps' cast-out
-      cast-is = app-ps' cast-is
       Functor = tpapp-ps' Functor
       functor-in = app-ps' functor-in
       functor-out = app-ps' functor-out
@@ -840,7 +838,6 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
       fix-in = app-ps' fix-in
       fix-out = app-ps' fix-out
       lambek1 = app-ps' lambek1
-      lambek2 = app-ps' lambek2
       fix-ind = app-ps' fix-ind
       Xₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar X)
       Xₒₜₚ = if Xₒ =string X then Xₜₚ else TpVar Xₒ
@@ -858,11 +855,10 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
                 case-args-to-lams cas $
                 Lam tt yₓ (just (Tkt (recompose-tpapps (drop (length asₚ) asₜₚ) Xₜₚ))) $
                 Lam tt eₓ (just (Tkt (TpEq (App fix-in (foldr (uncurry λ x T → Lam ff (snd (split-var x)) nothing) (foldl (λ ca t → case ca of λ {(CaseArg ff x _) → App t (Var (snd (split-var x))); _ → t}) (Var (snd (split-var x))) cas) cs)) (Var yₓ)))) $
-                Rho (Sigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps (drop (length asₚ) asₜₚ) Tₘ) (Var xₓ)) t})
+                Rho (VarSigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps (drop (length asₚ) asₜₚ) Tₘ) (Var xₓ)) t})
               empty-trie ms
-      in-fix = λ is/X? T asᵢ t → either-else' x?
-        (λ e → maybe-else' (is/X? maybe-or e) t λ is/X → App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out T) Xₜₚ) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to")))) t)
-        (λ x → App (recompose-apps asᵢ (AppEr (AppTp fix-in TypeF/D) fmap/D)) (maybe-else' is/X? t λ is/X →
+      in-fix = λ is/X? T asᵢ t → 
+        (App (recompose-apps asᵢ (AppEr (AppTp fix-in TypeF/D) fmap/D)) (maybe-else' is/X? t λ is/X →
         App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D T)) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D T) Xₜₚ) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to"))))) t))
       app-lambek = λ is/X? t T asᵢ body → AppEr (AppEr body (in-fix is/X? T asᵢ t))
         (App (recompose-apps asᵢ (AppEr (AppTp lambek1 TypeF/D) fmap/D)) (in-fix is/X? T asᵢ t)) in
@@ -877,13 +873,13 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
     (uncurry λ x Tₓ rec → rec >>= λ rec → trie-lookup ms' x >>= λ t →
       just λ tₕ → App (rec tₕ) t) (just λ t → t) cs >>= λ msf →
   maybe-else (just $ Var "2") just $
-  just $ flip (either-else' x?)
-    (λ x →
-    let Rₓ = mu-Type/ x
-        isRₓ = mu-isType/ x
-        fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ)) (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ))
-        Tₘₐ = TpLam Rₓ (Tkk (indices-to-kind is KdStar)) Tₘ
-        Tₘ-fmap = rename "A" from Γᵢₛ for λ Aₓ →
+  just 
+    (let Rₓ = mu-Type/ x
+         isRₓ = mu-isType/ x
+         fcₜ = AppEr (AppTp (AppTp cast-out (TpAppTp TypeF/D (TpVar Rₓ))) (TpAppTp TypeF/D Xₜₚ))
+                 (AppEr (AppTp (AppTp fmap/D (TpVar Rₓ)) Xₜₚ) (Var toₓ))
+         Tₘₐ = TpLam Rₓ (Tkk (indices-to-kind is KdStar)) Tₘ
+         Tₘ-fmap = rename "A" from Γᵢₛ for λ Aₓ →
                   rename "B" from Γᵢₛ for λ Bₓ →
                   rename "c" from Γᵢₛ for λ cₓ →
                   rename "d" from Γᵢₛ for λ dₓ →
@@ -911,7 +907,7 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
                                    (TpAbs ff ignored-var (Tkt (out-tp (TpVar Rₓ)))
                                      (TpVar Xₓ))))) $
             App (App (Var xₓ) (Var toₓ)) (Var outₓ))
-       (app-lambek (just $ Var isRₓ) (Var yₓ) (TpVar Rₓ) (is-as is) $ msf
+       (app-lambek (just $ Var isRₓ) (Var yₓ) (TpVar Rₓ) (indices-to-args is) $ msf
          (AppTp (Phi (Beta (Var yₓ) id-term) (App (indices-to-apps is (AppTp indF/D (TpVar Rₓ))) (Var yₓ)) (Var yₓ))
            (indices-to-tplams is $
             TpLam yₓ (Tkt $ indices-to-tpapps is (TpAppTp TypeF/D (TpVar Rₓ))) $
@@ -921,7 +917,70 @@ mendler-elab-mu Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-en
                (App (indices-to-apps is (AppEr (AppTp fix-in TypeF/D) fmap/D))
                     (App (indices-to-apps is fcₜ) (Var yₓ)))
                (Var y'ₓ)))))))
-    (λ _ → app-lambek is/X? t Xₒₜₚ
+
+
+mendler-elab-sigma-pure Γ (mk-data-info _ _ _ _ _ _ _ _ _ eds ecs) x? t ms =
+  let fix-out = erase (encoding-defs.fix-out eds)
+      msf = λ t → foldl
+                    (λ {(Case mₓ cas mₜ asₜₚ) t →
+                          App t (case-args-to-lams cas mₜ)})
+                    t ms in
+  msf (App fix-out t)
+
+mendler-elab-sigma Γ (mk-data-info X Xₒ asₚ asᵢ ps kᵢ k cs csₚₛ (mk-enc-defs ecs gcs Cast cast-in cast-out cast-is Functor functor-in functor-out Fix fix-in fix-out lambek1 lambek2 fix-ind) (mk-encd-defs Is/Dₓ is/Dₓ to/Dₓ TypeF/Dₓ indF/Dₓ fmap/Dₓ)) mt t Tₘ ms =
+  let is = kind-to-indices Γ k
+      Γᵢₛ = add-indices-to-ctxt is $ add-params-to-ctxt ps $ add-params-to-ctxt (ctxt.ps Γ) Γ
+      is/X? = mt
+      app-ps = recompose-apps (args-set-erased tt asₚ) ∘ Var
+      tpapp-ps = recompose-tpapps (args-to-tmtps asₚ) ∘ TpVar
+      app-ps' = inst-term Γ ps asₚ
+      tpapp-ps' = inst-type Γ ps asₚ
+      fmap/D = app-ps fmap/Dₓ
+      TypeF/D = tpapp-ps TypeF/Dₓ
+      to/D = recompose-apps asₚ (Var to/Dₓ)
+      indF/D = app-ps indF/Dₓ
+      Cast = tpapp-ps' Cast
+      cast-out = app-ps' cast-out
+      functor-out = app-ps' functor-out
+      Fix = tpapp-ps' Fix
+      fix-in = app-ps' fix-in
+      fix-out = app-ps' fix-out
+      lambek1 = app-ps' lambek1
+      Xₜₚ = recompose-tpapps (args-to-tmtps asₚ) (TpVar X)
+      Xₒₜₚ = if Xₒ =string X then Xₜₚ else TpVar Xₒ
+      toₓ = rename "to" from Γᵢₛ for id
+      outₓ = rename "out" from Γᵢₛ for id
+      to-tp = λ R → TpAppTp (TpAppTp Cast R) Xₜₚ
+      out-tp = λ R → TpIota outₓ (indices-to-alls is (TpAbs ff ignored-var (Tkt (indices-to-tpapps is R)) (indices-to-tpapps is (TpAppTp TypeF/D R)))) (TpEq (Var outₓ) fix-out)
+      ms' : trie term
+      ms' = foldr (λ c σ → case c of λ {(Case x cas t asₜₚ) →
+                let Γ' = add-caseArgs-to-ctxt cas Γᵢₛ in
+                trie-insert σ x $
+                rename "y" from Γ' for λ yₓ →
+                rename "e" from Γ' for λ eₓ →
+                rename "x" from Γ' for λ xₓ →
+                case-args-to-lams cas $
+                Lam tt yₓ (just (Tkt (recompose-tpapps (drop (length asₚ) asₜₚ) Xₜₚ))) $
+                Lam tt eₓ (just (Tkt (TpEq (App fix-in (foldr (uncurry λ x T → Lam ff (snd (split-var x)) nothing) (foldl (λ ca t → case ca of λ {(CaseArg ff x _) → App t (Var (snd (split-var x))); _ → t}) (Var (snd (split-var x))) cas) cs)) (Var yₓ)))) $
+                Rho (VarSigma (Var eₓ)) xₓ (TpAppTm (recompose-tpapps (drop (length asₚ) asₜₚ) Tₘ) (Var xₓ)) t})
+              empty-trie ms
+      in-fix = λ is/X? T asᵢ t → 
+        (maybe-else' (is/X? ||-maybe mt) t λ is/X → App (recompose-apps asᵢ (AppEr (AppTp (AppTp cast-out T) Xₜₚ) (App (AppTp is/X (to-tp T)) (Lam ff "to" (just (Tkt (to-tp T))) $ Lam ff "out" (just (Tkt (out-tp T))) $ Var "to")))) t)
+      app-lambek = λ is/X? t T asᵢ body → AppEr (AppEr body (in-fix is/X? T asᵢ t))
+        (App (recompose-apps asᵢ (AppEr (AppTp lambek1 TypeF/D) fmap/D)) (in-fix is/X? T asᵢ t)) in
+  rename "x" from Γᵢₛ for λ xₓ →
+  rename "y" from Γᵢₛ for λ yₓ →
+  rename "y'" from ctxt-var-decl yₓ Γᵢₛ for λ y'ₓ →
+  rename "z" from Γᵢₛ for λ zₓ →
+  rename "e" from Γᵢₛ for λ eₓ →
+  rename "X" from Γᵢₛ for λ Xₓ →
+  maybe-else (Var "1") id $
+  foldl {B = maybe (term → term)} -- Agda hangs without this implicit argument...?
+    (uncurry λ x Tₓ rec → rec >>= λ rec → trie-lookup ms' x >>= λ t →
+      just λ tₕ → App (rec tₕ) t) (just λ t → t) cs >>= λ msf →
+  maybe-else (just $ Var "2") just $
+  just $ 
+    (app-lambek is/X? t Xₒₜₚ
              (tmtps-to-args tt asᵢ) (msf
       (let Tₛ = maybe-else' is/X? Xₜₚ λ _ → Xₒₜₚ
            fcₜ = maybe-else' is/X? id λ is/X → App $ indices-to-apps is $

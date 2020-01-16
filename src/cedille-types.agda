@@ -26,12 +26,12 @@ mutual
   args = 𝕃 arg
   ex-args = 𝕃 ex-arg
   opacity = 𝔹
+  optopaque = maybe posinfo
   cases = 𝕃 case
   ex-cases = 𝕃 ex-case
   left-right = maybe 𝔹
   rho-hnf = 𝔹
   opt-public = 𝔹
-  is-mu = maybe term ⊎ var
   iota-num = 𝔹
   case-args = 𝕃 case-arg
   tmtp = term ⊎ type
@@ -83,8 +83,9 @@ mutual
     LetTp : var → kind → type → term → term
     Phi : term → term → term → term
     Rho : term → var → type → term → term
-    Sigma : term → term
-    Mu : is-mu → term → maybe type → datatype-info → cases → term
+    VarSigma : term → term
+    Mu : var → term → maybe type → datatype-info → cases → term
+    Sigma : maybe term → term → maybe type → datatype-info → cases → term
     Var : var → term
   pattern AppTp t T = AppE t (Ttp T)
   pattern AppEr t t' = AppE t (Ttm t')
@@ -183,7 +184,7 @@ mutual
 
   data ex-cmd : Set where
     ExCmdKind : posinfo → var → ex-params → ex-kd → posinfo → ex-cmd
-    ExCmdDef : opacity → ex-def → posinfo → ex-cmd
+    ExCmdDef :  optopaque → ex-def → posinfo → ex-cmd
     ExCmdData : def-datatype → posinfo → ex-cmd
     ExCmdImport : ex-imprt → ex-cmd
 
@@ -255,10 +256,6 @@ mutual
   data pos-tm : Set where
     PosTm : ex-tm → posinfo → pos-tm
   
-  data ex-is-mu : Set where
-    ExIsMu : posinfo → var → ex-is-mu
-    ExIsMu' : maybe ex-tm → ex-is-mu
-  
   data ex-tm : Set where
     ExApp : ex-tm → erased? → ex-tm → ex-tm
     ExAppTp : ex-tm → ex-tp → ex-tm
@@ -275,9 +272,10 @@ mutual
     ExParens : posinfo → ex-tm → posinfo → ex-tm
     ExPhi : posinfo → ex-tm → ex-tm → ex-tm → posinfo → ex-tm
     ExRho : posinfo → rho-hnf → maybe (𝕃 num) → ex-tm → maybe ex-guide → ex-tm → ex-tm
-    ExSigma : posinfo → ex-tm → ex-tm
+    ExVarSigma : posinfo → ex-tm → ex-tm
     ExTheta : posinfo → theta → ex-tm → 𝕃 lterm → ex-tm
-    ExMu : posinfo → ex-is-mu → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
+    ExMu : posinfo → posinfo → var → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
+    ExSigma : posinfo → maybe ex-tm → ex-tm → maybe ex-tp → posinfo → ex-cases → posinfo → ex-tm
     ExVar : posinfo → var → ex-tm
   
   data ex-kd : Set where
@@ -307,6 +305,5 @@ mutual
 {-# COMPILE GHC ex-tk = data CedilleTypes.TpKd (CedilleTypes.Tkt | CedilleTypes.Tkk) #-}
 {-# COMPILE GHC ex-tp = data CedilleTypes.Type (CedilleTypes.TpAbs | CedilleTypes.TpIota | CedilleTypes.TpNoSpans | CedilleTypes.TpLet | CedilleTypes.TpApp | CedilleTypes.TpAppt | CedilleTypes.TpArrow | CedilleTypes.TpEq | CedilleTypes.TpHole | CedilleTypes.TpLam | CedilleTypes.TpParens | CedilleTypes.TpVar) #-}
 {-# COMPILE GHC pos-tm = data CedilleTypes.PosTerm (CedilleTypes.PosTerm) #-}
-{-# COMPILE GHC ex-is-mu = data CedilleTypes.IsMu (CedilleTypes.IsMu | CedilleTypes.IsMu') #-}
-{-# COMPILE GHC ex-tm = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.Sigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Var) #-}
+{-# COMPILE GHC ex-tm = data CedilleTypes.Term (CedilleTypes.App | CedilleTypes.AppTp | CedilleTypes.Beta | CedilleTypes.Chi | CedilleTypes.Delta | CedilleTypes.Epsilon | CedilleTypes.Hole | CedilleTypes.IotaPair | CedilleTypes.IotaProj | CedilleTypes.Lam | CedilleTypes.Let | CedilleTypes.Open | CedilleTypes.Parens | CedilleTypes.Phi | CedilleTypes.Rho | CedilleTypes.VarSigma | CedilleTypes.Theta | CedilleTypes.Mu | CedilleTypes.Sigma | CedilleTypes.Var) #-}
 {-# COMPILE GHC ex-kd = data CedilleTypes.Kind (CedilleTypes.KdAbs | CedilleTypes.KdArrow | CedilleTypes.KdHole | CedilleTypes.KdParens | CedilleTypes.KdStar | CedilleTypes.KdVar) #-}

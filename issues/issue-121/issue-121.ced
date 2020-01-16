@@ -1,0 +1,4 @@
+module issue-121.
+
+import mod1.
+import mod2.

@@ -5,10 +5,10 @@ CastDep : Π A: ★. Π B: A ➔ ★. ★
 = λ A: ★. λ B: A ➔ ★. ι f: Π a: A. B a. {f ≃ λ x. x}.
 
 intrCastDep : ∀ A: ★. ∀ B: A ➔ ★. ∀ f: Π a: A. B a. (Π a: A. {f a ≃ a}) ➾ CastDep ·A ·B
-= Λ A. Λ B. Λ f. Λ eq. [ λ a. φ (eq a) - f a {a} , β].
+= Λ A. Λ B. Λ f. Λ eq. [ λ a. φ (eq a) - (f a) {|a|} , β].
 
 elimCastDep : ∀ A: ★. ∀ B: A ➔ ★. CastDep ·A ·B ➾ Π a: A. B a
-= Λ A. Λ B. Λ c. φ c.2 - c.1 {λ x. x}.
+= Λ A. Λ B. Λ c. φ c.2 - c.1 {|λ x. x|}.
 
 trivCastDep : ∀ A: ★. CastDep ·A ·(λ _: A. A)
 = Λ A. intrCastDep -(λ x. x) -(λ _. β).

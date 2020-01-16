@@ -1,0 +1,5 @@
+module mod2.
+
+import mod1 as M.
+
+T : M.𝒌 = ∀ X: ★. X ➔ X.

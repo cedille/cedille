@@ -1,0 +1,7 @@
+module printing(A : ★)(B : A ➔ ★)(a : A).
+
+-- test the pretty printer
+
+test1 = λ c : (Π x : A . B x) . a. --
+
+test2 = λ x : (ι x : A . B x) . a .

@@ -167,7 +167,7 @@ location-data (file-name , pi) = strRunTag "location" empty-ctxt (strAdd file-na
 var-location-data : ctxt → var → tagged-val
 var-location-data Γ x =
   location-data (maybe-else missing-location snd
-    (trie-lookup (ctxt.i Γ) x maybe-or trie-lookup (ctxt.i Γ) (qualif-var Γ x)))
+    (trie-lookup (ctxt.i Γ) x ||-maybe trie-lookup (ctxt.i Γ) (qualif-var Γ x)))
 
 explain : string → tagged-val
 explain = strRunTag "explanation" empty-ctxt ∘ strAdd
@@ -440,8 +440,8 @@ AppTp-span l pi pi' check tvs = mk-span "Application of a term to a type" pi pi'
 
 TpQuant-span : ctxt → erased? → posinfo → posinfo → var → tpkd → ex-tp → checking-mode → 𝕃 tagged-val → err-m → span
 TpQuant-span Γ me pi pi' x atk body check tvs err =
-  let err-if-type-pi = maybe-if ( ~ (tk-is-type atk || me)) >>
-                       just "Π-types must bind a term, not a type (use ∀ instead)"
+  let err-if-type-pi = ifMaybej ( ~ (tk-is-type atk || me))
+                          "Π-types must bind a term, not a type (use ∀ instead)"
       name = if me then "Implicit dependent function type" else "Dependent function type" in
   mk-span name pi (type-end-pos body) (checking-data check :: ll-data-type :: binder-data Γ pi' x atk me nothing (type-start-pos body) (type-end-pos body) :: tvs) (if isJust err-if-type-pi then err-if-type-pi else err)
 
@@ -635,15 +635,19 @@ Chi-span Γ pi m t' check tvs = mk-span "Chi" pi (term-end-pos t')  (ll-data-ter
         helper (just T) =  explain ("Check a term against an asserted type") :: [ to-string-tag "the asserted type" Γ T ]
         helper nothing = [ explain ("Change from checking mode (outside the term) to synthesizing (inside)") ] 
 
-Sigma-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
-Sigma-span pi t check tvs =
-  mk-span "Sigma" pi (term-end-pos t) 
+VarSigma-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
+VarSigma-span pi t check tvs =
+  mk-span "VarSigma" pi (term-end-pos t) 
      (ll-data-term :: checking-data check :: explain "Swap the sides of the equation synthesized for the body of this term" :: tvs)
 
 Delta-span : posinfo → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
 Delta-span pi t check tvs =
   mk-span "Delta" pi (term-end-pos t)
     (ll-data-term :: explain "Prove anything you want from a contradiction" :: checking-data check :: tvs)
+
+Opaque-span : posinfo → posinfo → span
+Opaque-span p₁ p₂ =
+  mk-span "Opaque" p₁ p₂ [ explain "Mark a definition as opaque, for the purposes of conversion checking" ] nothing
 
 Open-span : opacity → posinfo → var → ex-tm → checking-mode → 𝕃 tagged-val → err-m → span
 Open-span o pi x t check tvs =
@@ -667,8 +671,11 @@ Theta-span Γ pi u t ls check tvs = mk-span "Theta" pi (lterms-end-pos (term-end
         do-explain AbstractEq = [ explain ("Perform an elimination with the first term, after abstracting it with an equation " 
                                          ^ "from the expected type") ]
 
-Mu-span : ctxt → posinfo → ex-is-mu → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
-Mu-span Γ pi x? pi' motive? check tvs = mk-span (case x? of λ {(ExIsMu pi x) → "Mu"; _ → "Mu'"}) pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+Mu-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Mu-span Γ pi pi' motive? check tvs = mk-span "Mu" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
+
+Sigma-span : ctxt → posinfo → posinfo → (motive? : maybe type) → checking-mode → 𝕃 tagged-val → err-m → span
+Sigma-span Γ pi pi' motive? check tvs = mk-span "Sigma" pi pi' (ll-data-term :: checking-data check :: explain ("Pattern match on a term" ^ (if isJust motive? then ", with a motive" else "")) :: tvs)
 
 pattern-span : posinfo → var → 𝕃 ex-case-arg → span
 pattern-span pi x as = mk-span "Pattern" pi (snd $ foldr (λ a r → if fst r then r else (tt , (case a of λ {(ExCaseArg me pi x) → posinfo-plus-str pi x}))) (ff , posinfo-plus-str pi x) as) [] nothing

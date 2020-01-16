@@ -31,8 +31,8 @@ untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
   maybe-map (untyped-type Γ) Tₑ? >>=? λ Tₑ?~ →
   untyped-term Γ t >>= λ t~ →
   elim-pair (compileFail-in Γ t~) λ tvs e →
-  [- Var-span Γ pi x untyped tvs e -]
   let Tₑ~ = maybe-else' Tₑ?~ (TpHole pi) id in
+  [- Var-span (Γ , pi - x :` Tkt Tₑ~) pi x untyped tvs e -]
   return
     (ctxt-term-def pi localScope opacity-open x (just t~) Tₑ~ Γ ,
      pi % x ,
@@ -43,7 +43,7 @@ untyped-let Γ (ExDefTerm pi x Tₑ? t) e? fm to =
 untyped-let Γ (ExDefType pi x k T) e? fm to =
   untyped-kind Γ k >>= λ k~ →
   untyped-type Γ T >>= λ T~ →
-  [- TpVar-span Γ pi x untyped [] nothing -]
+  [- TpVar-span (Γ , pi - x :` Tkk k~) pi x untyped [] nothing -]
   return
     (ctxt-type-def pi localScope opacity-open x (just T~) k~ Γ ,
      pi % x ,
@@ -106,10 +106,10 @@ untyped-term Γ (ExIotaProj t n pi) =
 untyped-term Γ (ExLam pi e pi' x tk? t) =
   (return tk? on-fail return (Tkt (TpHole pi')) >>=m untyped-tpkd Γ) >>= λ tk~ →
   untyped-term (Γ , pi' - x :` tk~) t >>= λ t~ →
-  let eₖ? = tk? >>= λ _ → maybe-if (tk-is-type tk~ && ~ e) >>
-                just "λ-terms must bind a term, not a type (use Λ instead)"
-      eₑ? = maybe-if (e && is-free-in (pi' % x) (erase t~)) >>
-                just "The Λ-bound variable occurs free in the erasure of the body" in
+  let eₖ? = tk? >>= λ _ → ifMaybej (tk-is-type tk~ && ~ e)
+                             "λ-terms must bind a term, not a type (use Λ instead)"
+      eₑ? = ifMaybej (e && is-free-in (pi' % x) (erase t~))
+               "The Λ-bound variable occurs free in the erasure of the body" in
   [- var-span e (Γ , pi' - x :` tk~) pi' x untyped tk~ eₑ? -]
   [- Lam-span Γ untyped pi pi' e x tk~ t [] eₖ? -]
   return (if e then t~ else Lam ff x nothing ([ Γ - Var x / (pi' % x) ] t~))
@@ -120,8 +120,8 @@ untyped-term Γ (ExLet pi e? d t) =
       untyped-term Γ' t >>= λ t~ →
       [- punctuation-span "Parens (let)" pi (term-end-pos t) -]
       [- Let-span e? pi (term-end-pos t) untyped []
-           (maybe-if (e? && is-free-in x t~) >>
-            just (unqual-local x ^ "occurs free in the body of the term")) -]
+           (ifMaybej (e? && is-free-in x t~)
+             (unqual-local x ^ "occurs free in the body of the term")) -]
       return (if is-free-in x t~ then f t~ else t~)
 
 untyped-term Γ (ExOpen pi o pi' x t) =
@@ -147,8 +147,8 @@ untyped-term Γ (ExRho pi ρ+? ρ<ns>? t₌ Tₘ? t) =
                   untyped-type (ctxt-var-decl-loc pi' x Γ) Tₘ}) Tₘ? >>=? λ Tₘ?~ →
   untyped-term Γ t
 
-untyped-term Γ (ExSigma pi t) =
-  [- Sigma-span pi t untyped [] nothing -]
+untyped-term Γ (ExVarSigma pi t) =
+  [- VarSigma-span pi t untyped [] nothing -]
   untyped-term Γ t
 
 untyped-term Γ (ExTheta pi θ t ts) =
@@ -157,31 +157,42 @@ untyped-term Γ (ExTheta pi θ t ts) =
   untyped-args Γ (map (λ {(Lterm e t) → ExTmArg e t}) ts) >>= λ as~ →
   return (recompose-apps (map Arg (erase-args as~)) t~)
 
-untyped-term Γ (ExMu pi μ t Tₘ? pi' ms pi'') =
+untyped-term Γ (ExMu pi pi''' x t Tₘ? pi' ms pi'') =
   untyped-term Γ t >>= λ t~ →
   maybe-map (untyped-type Γ) Tₘ? >>=? λ Tₘ~? →
-  (case_of_ {B = spanM (ctxt × renamectxt × is-mu × 𝕃 tagged-val)} μ λ where
-    (ExIsMu pi''' x) →
-      [- Var-span Γ pi''' x untyped [] nothing -]
-      let Γ' = ctxt-term-decl pi''' x (TpHole pi''') Γ in
-      return (Γ' , renamectxt-single (pi''' % x) x , inj₂ x ,
-               [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ])
-    (ExIsMu' t?) →
-      maybe-map (untyped-term Γ) t? >>=? λ t~? →
-      return (Γ , empty-renamectxt , inj₁ t~? , []))
-  >>= λ where
-    (Γ' , ρ , μ~ , tvs) →
+   [- Var-span Γ pi''' x untyped [] nothing -]
+      let Γ' = ctxt-term-decl pi''' x (TpHole pi''') Γ 
+          ρ = renamectxt-single (pi''' % x) x
+          tvs = [ binder-data Γ' pi''' x (Tkt (TpHole pi''')) ff nothing pi' pi'' ] in
       untyped-cases Γ' ms ρ >>= λ ms~ →
       -- Make sure we aren't matching upon a "False" datatype (e.g., one
       -- with no constructors) before any datatypes have been declared
       maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
-        ([- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs
+        ([- Mu-span Γ pi pi'' Tₘ~? untyped tvs
               (just "No datatypes have been declared yet") -]
          return (Hole pi))
         λ where
           (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
-            [- Mu-span Γ pi μ pi'' Tₘ~? untyped tvs nothing -]
-            return (Mu μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
+            [- Mu-span Γ pi pi'' Tₘ~? untyped tvs nothing -]
+            return (Mu x t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
+untyped-term Γ (ExSigma pi t? t Tₘ? pi' ms pi'') =
+  untyped-term Γ t >>= λ t~ →
+  maybe-map (untyped-type Γ) Tₘ? >>=? λ Tₘ~? →
+      maybe-map (untyped-term Γ) t? >>=? λ t~? →
+      let ρ = empty-renamectxt
+          μ~ = t~?
+          tvs = [] in
+      untyped-cases Γ ms ρ >>= λ ms~ →
+      -- Make sure we aren't matching upon a "False" datatype (e.g., one
+      -- with no constructors) before any datatypes have been declared
+      maybe-else' (head2 (trie-mappings (ctxt.μ Γ)))
+        ([- Mu-span Γ pi pi'' Tₘ~? untyped tvs
+              (just "No datatypes have been declared yet") -]
+         return (Hole pi))
+        λ where
+          (Dₓ , ps , kᵢ , k , cs , eds , ecs) →
+            [- Mu-span Γ pi pi'' Tₘ~? untyped tvs nothing -]
+            return (Sigma μ~ t~ nothing (mk-data-info Dₓ Dₓ (params-to-args ps) [] ps kᵢ k cs cs eds ecs) ms~)
 
 -- x
 untyped-term Γ (ExVar pi x) =
@@ -384,7 +395,7 @@ untyped-case Γ (ExCase pi x cas t) csₗ asₗ ρ =
                  ("Constructor's datatype has " ^ ℕ-to-string Cₗ ^
                   (if Cₗ =ℕ 1 then " constructor" else " constructors") ^
                   ", but expected " ^ ℕ-to-string csₗ) in
-      [- Var-span Γ pi x untyped [] (asₗ cᵢ maybe-or (eₐ maybe-or eₗ)) -]
+      [- Var-span Γ pi x untyped [] (asₗ cᵢ ||-maybe (eₐ ||-maybe eₗ)) -]
       return2 c~ ((λ cᵢ' → when (cᵢ =ℕ cᵢ') eᵢ) , (maybe-not (asₗ cᵢ) >> just cᵢ))
     _ →
       [- Var-span Γ pi x untyped [] (just $ "This is not a valid constructor name") -]
