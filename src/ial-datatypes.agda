@@ -17,6 +17,6 @@ open import product public
 open import string public
 open import sum public
 open import tree public
-open import trie-fast public
+open import trie public
 open import unit public
 open import vector public
