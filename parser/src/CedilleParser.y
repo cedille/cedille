@@ -258,7 +258,7 @@ LineNo :: { PosInfo }
 --         : {- empty -}                  {% getPos_1 }
 
 Term :: { Term }
-     : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
+     : LamAbs                 { $1 }
      | '[' Def ']' '-' Term   { Let (pos2Txt $1) False $2 $5 }
      | '{' Def '}' '-' Term   { Let (pos2Txt $1) True  $2 $5 }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
@@ -268,7 +268,10 @@ Term :: { Term }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3 }
-     | Aterm                            { $1 }
+     | AtermLam                         { $1 }
+
+LamAbs :: { Term }
+     : Lam Bvar OptClass '.' Term       { Lam (snd $1) (fst $1) (tPosTxt $2) (tTxt $2) $3 $5 }
 
 OptPipe :: { PosInfo }
         :          {% getPos }
@@ -295,6 +298,11 @@ CaseArgs :: { [CaseArg] }
 Motive :: { Maybe Type }
      :                                  { Nothing }
      | '@' Type                         { Just $2 }
+
+AtermLam :: { Term }
+      : Aterm                           { $1 }
+      | Aterm LamAbs                    { App $1 False $2 }
+      | Aterm '-' LamAbs                { App $1 True $3 }
 
 Aterm :: { Term }
       : Aterm     Lterm                 { App $1 False $2 }

@@ -1,4 +1,11 @@
 module issues/issues-61.
 
-test : ∀ X: ★. Π f: (X ➔ X) ➔ (X ➔ X) ➔ X. X
+test1 : ∀ X: ★. Π f: (X ➔ X) ➔ (X ➔ X) ➔ X. X
 = Λ X. λ f. f (λ x. x) λ x. x .
+
+test2 : ∀ X: ★. Π f: (X ➔ X) ➔ (X ➔ X) ➾ X. X
+= Λ X. λ f. f (λ x. x) -λ x. x .
+
+id : ∀ X: ★. X ➔ X = Λ X. λ x. x.
+
+test3 : { λ x. x ≃ λ x. x } = β{| λ s. s λ x. x λ y. y |} .
