@@ -1,6 +1,6 @@
 module lift-tests where
 
-open import lib
+open import ial
 open import cedille-types
 open import convervsion
 open import ctxt

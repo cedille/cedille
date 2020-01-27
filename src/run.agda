@@ -3,8 +3,8 @@ open import string
 
 module run (ptr : ParseTreeRec)  where
 
-open import lib
-open import datatypes
+open import ial
+open import ial-datatypes
 
 open ParseTreeRec ptr
 

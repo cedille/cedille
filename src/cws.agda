@@ -1,6 +1,6 @@
 module cws where
 
-open import lib
+open import ial
 
 open import cws-types public
 ----------------------------------------------------------------------------------

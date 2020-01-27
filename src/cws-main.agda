@@ -1,7 +1,7 @@
 module cws-main where
 
 import parse
-open import lib
+open import ial
 open import cws-types
 import cws
 

@@ -51,7 +51,9 @@ AGDASRC = \
 	bohm-out.agda \
 	pretty.agda \
 	type-inf.agda \
-	type-util.agda
+	type-util.agda \
+	ial-datatypes.agda \
+	ial.agda
 
 CEDILLE_ELISP = \
 		cedille-mode.el \

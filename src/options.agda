@@ -1,6 +1,6 @@
 module options where
 
-open import lib
+open import ial
 
 open import options-types public
 ----------------------------------------------------------------------------------
