@@ -110,6 +110,10 @@ data Token = Token AlexPosn TokenClass
 tPos :: Token -> AlexPosn
 tPos (Token p _) = p
 
+-- specify the length of the token that matched the position
+pos2TxtLen :: AlexPosn -> Int -> Text
+pos2TxtLen (AlexPn p _ _) ln = pack (show (p + ln + 1))
+
 pos2Txt :: AlexPosn -> Text
 pos2Txt (AlexPn p _ _) = pack (show (p+1))
 

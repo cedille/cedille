@@ -264,7 +264,7 @@ Term :: { Term }
      | 'open' Qvar '-' Term             { Open (pos2Txt $1) True (tPosTxt $2) (tTxt $2) $4 }
      | 'close' Qvar '-' Term            { Open (pos2Txt $1) False (tPosTxt $2) (tTxt $2) $4 }
      | 'ρ' OptPlus OptNums Lterm OptGuide '-' Term { Rho (pos2Txt $1) $2 $3 $4 $5 $7 }
-     | 'φ' Lterm '-' Pterm '{|' Term '|}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2Txt1 $7) }
+     | 'φ' Lterm '-' Pterm '{|' Term '|}'  { Phi (pos2Txt $1) $2 $4 $6 (pos2TxtLen $7 2) }
      | 'χ' OptType '-' Term             { Chi (pos2Txt $1) $2 $4 }
      | 'δ' OptType '-' Term             { Delta (pos2Txt $1) $2 $4 }
      | Theta Lterm Lterms               { Theta (snd $1) (fst $1) $2 $3 }
