@@ -205,7 +205,7 @@ Nums :: { [CedilleTypes.Num] }
 
 OptTerm :: { Maybe PosTerm }
         :                               { Nothing }
-        | '{|' Term '|}'                  { Just (PosTerm $2 (pos2Txt1 $3)) }
+        | '{|' Term '|}'                  { Just (PosTerm $2 (pos2TxtLen $3 2)) }
 
 OptTermAngle :: { Maybe PosTerm }
           :                             { Nothing }
