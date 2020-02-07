@@ -21,7 +21,7 @@ open import type-util
 open import meta-vars options {mF}
 open import resugar
 open import subst
-open import conversion
+open import conversion (cedille-options.options.disable-conv options) using (conv-term ; unfold-head-elab ; hnf ; conv-type ; conv-t)
 open import free-vars
 open import constants
 
@@ -550,6 +550,7 @@ match-types Γ Xs Ls unf (TpIota xₓ mₓ tpₓ) (TpIota x m tp) =
   Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
+-- maybe dont disable this part
 match-types Γ Xs Ls unf (TpEq t₁ₓ t₂ₓ) (TpEq t₁ t₂) =
   if ~ conv-term Γ t₁ₓ t₁
     then match-types-error $ m-err.e-match-failure else

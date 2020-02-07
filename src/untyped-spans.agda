@@ -6,7 +6,7 @@ module untyped-spans (options : cedille-options.options) {F : Set → Set} ⦃ m
 open import ctxt
 open import cedille-types
 open import constants
-open import conversion
+open import conversion (cedille-options.options.disable-conv options) using (ctxt-term-def ; ctxt-type-def)
 open import free-vars
 open import rename
 open import spans options {F} ⦃ monadF ⦄

@@ -7,7 +7,6 @@ open import cedille-types
 --open import classify options {mF}
 open import ctxt
 open import constants
-open import conversion
 open import rename
 open import spans options {mF}
 open import syntax-util

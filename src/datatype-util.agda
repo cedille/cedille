@@ -63,10 +63,12 @@ positivity-add : positivity → positivity → positivity
 positivity-neg = uncurry $ flip _,_
 positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
+-- disabling conversion: should the positivity checker be disabled?
 -- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 module positivity (x : var) where
   
-  open import conversion
+  --import conversion
+  open import conversion ff using (hnf ; unfold-no-defs)
 
   if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
   if-free t with is-free-in x t

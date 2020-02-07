@@ -604,7 +604,7 @@ getCedilleArgs = getArgs >>= λ where
   getCedilleArgsH [] args = return args 
 
 process-encoding : filepath → cedille-options.options → IO cedille-options.options
-process-encoding ofp ops @ (cedille-options.mk-options ip _ _ _ _ _ de _ _ _ _) =
+process-encoding ofp ops @ (cedille-options.mk-options ip _ _ _ _ _ de _ _ _ _ _) =
   maybe-else' de (return ops) λ de-f →
   let de = fst de-f
       s = new-toplevel-state "no logfile path" (cedille-options.include-path-insert (takeDirectory de) ip) in

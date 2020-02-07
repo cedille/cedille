@@ -4,7 +4,7 @@ module meta-vars (options : cedille-options.options) {mF : Set → Set} ⦃ _ : 
 
 open import cedille-types
 open import constants
-open import conversion
+open import conversion (cedille-options.options.disable-conv options) using (conv-kind ; conv-type ; unfolding ; hnf ; unfold-head-elab)
 open import ctxt
 open import free-vars
 open import rename

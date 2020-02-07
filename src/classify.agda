@@ -5,7 +5,7 @@ module classify (options : cedille-options.options)
 
 open import cedille-types
 open import constants
-open import conversion
+open import conversion (cedille-options.options.disable-conv options) using (conv-term ; conv-t ; conv-tpkd ; hnf ; unfold-head-elab ; inconv ; conv-type ; hanf ; unfold-head ; ctxt-term-def ; ctxt-type-def ; unfold-no-defs ; ctxt-datatype-decl ; ctxt-datatype-undef)
 open import ctxt
 open import datatype-util
 open import elab-util options
@@ -113,7 +113,7 @@ check-term Γ (ExBeta pi t? t?') Tₑ? =
         (maybe-else' t?~
           (inj₁ ([] , "When synthesizing, specify what equality to prove with β<...>"))
           (λ t → inj₂ (t , nothing)))
-        λ Tₑ → Γ ⊢ Tₑ =β= λ where
+        λ Tₑ → Γ ⊢ Tₑ =β= (λ where
           (TpEq t₁ t₂) →
             if conv-term Γ t₁ t₂
               then maybe-else' (t?~ >>= λ t~ → check-for-type-mismatch Γ "computed"
@@ -121,7 +121,7 @@ check-term Γ (ExBeta pi t? t?') Tₑ? =
                      (inj₂ (t₁ , just t₂))
                      (uncurry λ e t~ → inj₁ ([ type-data Γ (TpEq t~ t~) ] , e))
               else inj₁ ([] , "The two terms in the equation are not β-equal")
-          Tₕ → inj₁ ([] , "The expected type is not an equation")
+          Tₕ → inj₁ ([] , "The expected type is not an equation"))
       e? = either-else' e-t~ (map-snd just) λ _ → [] , nothing
       fₓ = fresh-var Γ "x"
       t~T~ = either-else' e-t~ (λ _ → Hole pi , TpEq (Hole pi) (Hole pi))
