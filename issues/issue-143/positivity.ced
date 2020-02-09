@@ -1,0 +1,11 @@
+module positivity.
+
+data Paird (A : ★)(B : ★) : ★ =
+  mkpaird : A ➔ B ➔ Paird.
+
+data Unit: ★ = unit: Unit.
+
+{- the positivity checker says that D occurs negatively in the
+   (input types to the) constructor's type, but this is wrong -}
+data D : ★ =
+  mkD : Paird · Unit · (Paird · Unit · D) ➔ D .
