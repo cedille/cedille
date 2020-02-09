@@ -63,7 +63,6 @@ positivity-add : positivity → positivity → positivity
 positivity-neg = uncurry $ flip _,_
 positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
--- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 module positivity (x : var) where
   
   open import conversion
