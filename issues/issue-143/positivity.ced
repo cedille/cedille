@@ -7,3 +7,7 @@ data Q (A : ★) : ★ =
    (input types to the) constructor's type, but this is wrong -}
 data E : ★ =
   mkE : Q · (Q · E) ➔ E .
+
+{- this is accepted, and should be equivalent: -}
+data E2 : ★ =
+  mkE2 : (∀ Y : ★ . ((∀ X : ★ . (E2 ➔ X) ➔ X) ➔ Y) ➔ Y) ➔ E2 .
