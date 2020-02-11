@@ -77,8 +77,8 @@ module positivity (x : var) where
   ...| f = f , f
 
   if-free-args : args → positivity
-  if-free-args as with stringset-contains (free-vars-args as) x
-  ...| f = f , f
+  if-free-args as =
+    let c = stringset-contains (free-vars-args as) x in c , c
 
   hnf' : ∀ {ed} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
   hnf' Γ T = hnf Γ unfold-no-defs T
