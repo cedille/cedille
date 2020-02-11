@@ -63,6 +63,7 @@ optAs-posinfo-var Γ (just (ImportAs pi x)) orig =
 
 
 {-# TERMINATING #-}
+{- notice that these are elaborating functions: they take an ex-QQQ and return a QQQ (along with other activity) -}
 process-cmd : toplevel-state → ex-cmd → spanM (toplevel-state × cmd)
 process-cmds : toplevel-state → ex-cmds → spanM (toplevel-state × cmds)
 process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
@@ -140,7 +141,7 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   let is = kind-to-indices Γₚₛ k'
       kᵢ = indices-to-kind is $ KdAbs ignored-var
              (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar in
-  either-else' (init-encoding Γₚₛ de (Data x ps' (kind-to-indices Γₚₛ k') cs~)) fail λ ecs →
+  either-else' (init-encoding Γₚₛ de (Data x ps' is cs~)) fail λ ecs →
   check-redefined pi' x (record s {Γ = Γ-cs Γ}) (CmdDefData ecs x ps' k' cs~)
   let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
       cs~ = map-fst (mn #_) <$> cs~
@@ -219,7 +220,6 @@ process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
 
 
 
--- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds s (c :: cs) =
   process-cmd s c >>=c λ s c →
   process-cmds s cs >>=c λ s cs →
