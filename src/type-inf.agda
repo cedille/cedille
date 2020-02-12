@@ -363,22 +363,23 @@ check-term-spine Γ t'@(ExApp t₁ e? t₂) pt max =
           ++ meta-vars-sol-data Γ Xs Xs' ++ tvs)
 
 check-term-spine Γ t'@(ExAppTp t tp) pt max =
-  -- 1) type the applicand
+  -- 1) type the applicand `t`
     check-term-spine Γ t pt max
       on-fail handleApplicandTypeError
+  -- 1a) Xs: spine meta-variables; dt: decorated type of t ; htp: plain type of `t`
   >>=m λ ret → let mk-spine-data Xs dt locl fₕ~ = ret ; htp = decortype-to-type dt in
   -- 2) make sure it reveals a type abstraction
     meta-vars-unfold-tpapp' Γ Xs dt
      on-fail (λ _ → genInapplicableError Xs htp dt)
   -- 3) ensure the type argument has the expected kind,
   --    but don't compare with the contextually infered type argument (for now)
-  >>=s λ ret → let mk-tpabsd dt e? x k sol rdt = ret in
+  >>=s λ ret → let mk-tpabsd dt' e? x k sol rdt = ret in
     check-type Γ tp (just (meta-vars-subst-kind Γ Xs k))
   -- 4) produce the result type of the application
   >>= λ tp~ → subst-decortype-if Γ tp~ Xs x k sol rdt
   >>= λ ret → let Xs = fst ret ; rdt = snd ret ; rtp = decortype-to-type rdt in
   -- 5) generate span data
-    genAppTpSpan Γ Xs pt rtp
+    genAppTpSpan Γ Xs pt rtp htp
   >> check-term-spine-return Xs rdt locl
   -- 7) fill in solutions to meta-vars introduced here and return the rest
     λ sols → AppTp (fₕ~ sols) tp~
@@ -408,12 +409,15 @@ check-term-spine Γ t'@(ExAppTp t tp) pt max =
                Xs' = meta-vars-add Xs Y
            in subst-decortype Γ (meta-var-to-type-unsafe Y) x rdt >>= λ rdt' → return (Xs' , rdt')
 
-  genAppTpSpan : ctxt → meta-vars → prototype → (ret-tp : type) → spanM ⊤
-  genAppTpSpan Γ Xs pt ret-tp = spanM-add ∘ elim-pair
+  genAppTpSpan : ctxt → meta-vars → prototype → (ret-tp head-tp : type) → spanM ⊤
+  genAppTpSpan Γ Xs pt ret-tp head-tp = spanM-add ∘ elim-pair
     -- check for a type mismatch, if there even is an expected type
     (meta-vars-check-type-mismatch-if (prototype-to-maybe pt) Γ "synthesizing" Xs ret-tp) $
     -- then take the generated 𝕃 tagged-val and add to the span
-    λ tvs → AppTp-span ff (term-start-pos t) (type-end-pos tp) mode $ tvs ++ meta-vars-data-all Γ Xs -- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ])
+    λ tvs → AppTp-span ff (term-start-pos t) (type-end-pos tp) mode $
+              tvs {- ++ [ head-type Γ head-tp ] -}
+              ++ meta-vars-data-all Γ Xs
+              {- ++ (prototype-data Γ tp :: [ decortype-data Γ dt ]) -}
 
 check-term-spine Γ (ExParens _ t _) pt max =
   check-term-spine Γ t pt max
