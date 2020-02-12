@@ -643,8 +643,9 @@ match-prototype Γ Xs uf (TpAbs bₓ x (Tkk k) tp) pt'@(proto-arrow e? pt) =
   >>= λ ret →
   let mk-match-prototype-data Xs' dt err = ret
       Y' = maybe-else' (meta-vars-lookup Xs' (meta-var-name Y)) Y λ Y → Y
+      x' = subst-rename-var-if{TYPE} Γ empty-renamectxt x empty-trie tp'
   -- 3) replace the meta-vars with the bound type variable
-  in subst-decortype Γ (TpVar x) (meta-var-name Y) dt
+  in subst-decortype (ctxt-var-decl x' Γ) (TpVar x') (meta-var-name Y) dt
   -- 4) leave behind the solution for Y as a decoration and drop Y from Xs
   >>= λ dt' →
   let sort' = meta-var.sort (meta-var-set-src Y' checking)
