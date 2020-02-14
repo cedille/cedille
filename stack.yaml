@@ -1,5 +1,7 @@
 resolver: lts-13.25
 
+local-bin-path: ./bin/
+
 packages:
   - .
 

@@ -600,7 +600,7 @@ meta-vars-add-from-tpabs : ctxt → span-location → meta-vars → erased? → 
 meta-vars-add-from-tpabs Γ sl Xs e? x k tp =
   let Y   = meta-var-fresh-tp Xs x sl (k , nothing)
       Xs' = meta-vars-add Xs Y
-      tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
+--      tp' = subst Γ (meta-var-to-type-unsafe Y) x tp
   in Y , Xs'
 
 {-

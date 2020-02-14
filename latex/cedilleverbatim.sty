@@ -1,0 +1,73 @@
+% CedilleVerbatim.sty
+% 
+% Intended to create a single import to maintain for allowing verbatim blocks 
+% of Cedille code in LaTeX
+%
+% Last updated on:  2020 Feb 12 - v1.2
+%
+
+\ProvidesPackage{cedilleverbatim}
+    [2020/02/12 v1.2 Package for verbatim blocks of Cedille code]
+
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{pifont}
+
+% miscellaneous symbols
+\DeclareUnicodeCharacter{2081}{\ensuremath{_1}}
+\DeclareUnicodeCharacter{2082}{\ensuremath{_2}}
+\DeclareUnicodeCharacter{27E6}{\ensuremath{\llbracket}}
+\DeclareUnicodeCharacter{27E7}{\ensuremath{\rrbracket}}
+\DeclareUnicodeCharacter{2113}{\ensuremath{\ell}}
+
+% binary operators
+\DeclareUnicodeCharacter{B7}{\ensuremath{\cdot}}
+\DeclareUnicodeCharacter{D7}{\ensuremath{\times}}
+\DeclareUnicodeCharacter{22CE}{\ensuremath{\curlyvee}}
+\DeclareUnicodeCharacter{2238}{\ensuremath{\dotdiv}}
+\DeclareUnicodeCharacter{228E}{\ensuremath{\uplus}}
+\DeclareUnicodeCharacter{2294}{\ensuremath{\sqcup}}
+\DeclareUnicodeCharacter{2228}{\ensuremath{\vee}}
+
+% hole, quantifiers, and kind star
+\DeclareUnicodeCharacter{25CF}{\ensuremath{\bullet}}
+\DeclareUnicodeCharacter{2605}{\ensuremath{\star}}
+\DeclareUnicodeCharacter{2200}{\ensuremath{\forall}}
+\DeclareUnicodeCharacter{2203}{\ensuremath{\exists}}
+\DeclareUnicodeCharacter{2606}{\ding{73}}
+
+% arrows and equals
+\DeclareUnicodeCharacter{25C2}{\ensuremath{\triangleleft}}
+\DeclareUnicodeCharacter{21D0}{\ensuremath{\Leftarrow}}
+\DeclareUnicodeCharacter{21D2}{\ensuremath{\Rightarrow}}
+\DeclareUnicodeCharacter{2191}{\ensuremath{\uparrow}}
+\DeclareUnicodeCharacter{2261}{\ensuremath{\equiv}}
+\DeclareUnicodeCharacter{2243}{\ensuremath{\simeq}}
+\DeclareUnicodeCharacter{2794}{\ensuremath{\to}}
+\DeclareUnicodeCharacter{2192}{\ensuremath{\to}}
+\DeclareUnicodeCharacter{27BE}{\ensuremath{\Rightarrow}}
+
+% doublestruck\blackboard letters
+\DeclareUnicodeCharacter{2115}{\ensuremath{\mathbb{N}}}
+\DeclareUnicodeCharacter{1D539}{\ensuremath{\mathbb{B}}}
+\DeclareUnicodeCharacter{1D543}{\ensuremath{\mathbb{L}}}
+\DeclareUnicodeCharacter{1D54A}{\ensuremath{\mathbb{S}}}
+\DeclareUnicodeCharacter{1D54B}{\ensuremath{\mathbb{T}}}
+\DeclareUnicodeCharacter{1D54D}{\ensuremath{\mathbb{V}}}
+
+% greek letters
+\DeclareUnicodeCharacter{03C6}{\ensuremath{\varphi}}
+\DeclareUnicodeCharacter{03A0}{\ensuremath{\Pi}}
+\DeclareUnicodeCharacter{03C0}{\ensuremath{\pi}}
+\DeclareUnicodeCharacter{3BB}{\ensuremath{\lambda}}
+\DeclareUnicodeCharacter{039B}{\ensuremath{\Lambda}}
+\DeclareUnicodeCharacter{03B8}{\ensuremath{\theta}}
+\DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+\DeclareUnicodeCharacter{03B5}{\ensuremath{\varepsilon}}
+\DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
+\DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+\DeclareUnicodeCharacter{03C2}{\ensuremath{\varsigma}}
+\DeclareUnicodeCharacter{0269}{\ensuremath{\iota}}
+\DeclareUnicodeCharacter{03B6}{\ensuremath{\zeta}}
+\DeclareUnicodeCharacter{03C7}{\ensuremath{\chi}}
+\DeclareUnicodeCharacter{03B9}{\ensuremath{\iota}}
+\DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
