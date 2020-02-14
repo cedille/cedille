@@ -233,14 +233,16 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
     let Γ = toplevel-state.Γ s in
     Γ ⊢ T ⇐ KdStar ↝ T~ /
     let T = hnf-ctr Γ lX T~
-        neg-ret-err : maybe string 
+        𝕃tpkd-to-string = foldr (λ tk s → rope-to-string (tpkd-to-string Γ tk) ^ " ; " ^ s) ""
+        neg-ret-err : maybe string
         neg-ret-err =
-          let err-msg = λ s → just (uX ^ s ^ " type of the constructor") in
-            case positivity.ctr-positive lX Γ T of
+          let err-msg = λ s s' → just (uX ^ s ^ " type of the constructor: " ^ s') in
+            case run-posM (positivity.ctr-positive lX Γ T) of
               λ where
-                positivity.ctorOk → nothing
-                positivity.ctorNegative → err-msg " occurs negatively in the"
-                positivity.ctorNotInReturnType → err-msg " is not the return"  in
+                (ctorOk , l) → nothing
+                (ctorNegative , l) → err-msg " occurs negatively in the"
+                                       ("Searching types: " ^ 𝕃tpkd-to-string l)
+                (ctorNotInReturnType , l) → err-msg " is not the return" "" in
     let T = [ Γ - TpVar mX / lX ] T
         Tₚₛ = [ Γ - params-to-tpapps ps (TpVar mX) / lX ] T~ in
     h s cs >>=c λ Γ-f cs →
@@ -248,9 +250,9 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
         Γ-f' = ctxt-ctr-def pi x Tₚₛ ps (length csₒ) (length csₒ ∸ suc (length cs)) in
     check-redefined pi x s (Ctr x T :: cs)
       (let Γ = Γ-f' Γ in
-       [- Var-span Γ pi x checking
-           [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
-               (abs-expand-type ps T) ] neg-ret-err -]
+         [- Var-span Γ pi x checking
+             [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
+                 (abs-expand-type ps T) ] neg-ret-err -]
        return (record s {Γ = Γ})) >>=c λ s →
     return2 (Γ-f ∘ Γ-f')
 

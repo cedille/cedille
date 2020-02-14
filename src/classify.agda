@@ -1017,7 +1017,7 @@ check-mu Γ pi pi' x t Tₘ? pi'' cs pi''' Tₑ? =
               Γₘ = data-highlight (ctxt-type-decl pi' Rₓ k Γ) qRₓ
               ρₘ = subst Γₘ (recompose-tpapps (args-to-tmtps asₚ) (TpVar Xₒ)) qRₓ
               ρₘ' = subst Γₘ (TpVar Rₓ) qRₓ
-              eₘ = λ Tₘ → when (positivity.negₒ qRₓ (positivity.type+ qRₓ Γₘ (hnf-ctr Γₘ qRₓ Tₘ)))
+              eₘ = λ Tₘ → when (negₒ (extract-pos (positivity.type+ qRₓ Γₘ (hnf-ctr Γₘ qRₓ Tₘ))))
                             (Rₓ ^ " occurs negatively in the motive")
           in
               maybe-map (λ Tₘ → check-type Γₘ Tₘ (just kᵢ)) Tₘ? >>=? λ Tₘ?' →
