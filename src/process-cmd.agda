@@ -63,6 +63,7 @@ optAs-posinfo-var Γ (just (ImportAs pi x)) orig =
 
 
 {-# TERMINATING #-}
+{- notice that these are elaborating functions: they take an ex-QQQ and return a QQQ (along with other activity) -}
 process-cmd : toplevel-state → ex-cmd → spanM (toplevel-state × cmd)
 process-cmds : toplevel-state → ex-cmds → spanM (toplevel-state × cmds)
 process-ctrs : (uqv lqv mqv : var) → params → posinfo → toplevel-state → ex-ctrs → spanM ((ctxt → ctxt) × ctrs)
@@ -140,7 +141,7 @@ process-cmd s (ExCmdData (DefDatatype pi pi' x ps k cs) pi'') =
   let is = kind-to-indices Γₚₛ k'
       kᵢ = indices-to-kind is $ KdAbs ignored-var
              (Tkt $ indices-to-tpapps is $ params-to-tpapps mps $ TpVar qx) KdStar in
-  either-else' (init-encoding Γₚₛ de (Data x ps' (kind-to-indices Γₚₛ k') cs~)) fail λ ecs →
+  either-else' (init-encoding Γₚₛ de (Data x ps' is cs~)) fail λ ecs →
   check-redefined pi' x (record s {Γ = Γ-cs Γ}) (CmdDefData ecs x ps' k' cs~)
   let fₓ = fresh-var (add-indices-to-ctxt is Γ) "X"
       cs~ = map-fst (mn #_) <$> cs~
@@ -219,7 +220,6 @@ process-cmd s (ExCmdImport (ExImport pi op pi' x oa as pi'')) =
 
 
 
--- the call to ctxt-update-symbol-occurrences is for cedille-find functionality
 process-cmds s (c :: cs) =
   process-cmd s c >>=c λ s c →
   process-cmds s cs >>=c λ s cs →
@@ -233,14 +233,16 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
     let Γ = toplevel-state.Γ s in
     Γ ⊢ T ⇐ KdStar ↝ T~ /
     let T = hnf-ctr Γ lX T~
-        neg-ret-err : maybe string 
+        𝕃tpkd-to-string = foldr (λ tk s → rope-to-string (tpkd-to-string Γ tk) ^ " ; " ^ s) ""
+        neg-ret-err : maybe string
         neg-ret-err =
-          let err-msg = λ s → just (uX ^ s ^ " type of the constructor") in
-            case positivity.ctr-positive lX Γ T of
+          let err-msg = λ s s' → just (uX ^ s ^ " type of the constructor: " ^ s') in
+            case run-posM (positivity.ctr-positive lX Γ T) of
               λ where
-                positivity.ctorOk → nothing
-                positivity.ctorNegative → err-msg " occurs negatively in the"
-                positivity.ctorNotInReturnType → err-msg " is not the return"  in
+                (ctorOk , l) → nothing
+                (ctorNegative , l) → err-msg " occurs negatively in the"
+                                       ("Searching types: " ^ 𝕃tpkd-to-string l)
+                (ctorNotInReturnType , l) → err-msg " is not the return" "" in
     let T = [ Γ - TpVar mX / lX ] T
         Tₚₛ = [ Γ - params-to-tpapps ps (TpVar mX) / lX ] T~ in
     h s cs >>=c λ Γ-f cs →
@@ -248,9 +250,9 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
         Γ-f' = ctxt-ctr-def pi x Tₚₛ ps (length csₒ) (length csₒ ∸ suc (length cs)) in
     check-redefined pi x s (Ctr x T :: cs)
       (let Γ = Γ-f' Γ in
-       [- Var-span Γ pi x checking
-           [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
-               (abs-expand-type ps T) ] neg-ret-err -]
+         [- Var-span Γ pi x checking
+             [ summary-data x (ctxt-type-def piₓ globalScope opacity-open uX nothing KdStar Γ)
+                 (abs-expand-type ps T) ] neg-ret-err -]
        return (record s {Γ = Γ})) >>=c λ s →
     return2 (Γ-f ∘ Γ-f')
 

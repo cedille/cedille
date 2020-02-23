@@ -78,6 +78,8 @@ lam-expand-type : params → type → type
 lam-expand-type = flip $ foldr λ where
   (Param me x atk) → TpLam x atk
 
+{- build an abstraction (forall or Pi) of the given params
+   around the given type -}
 abs-expand-type : params → type → type
 abs-expand-type = flip $ foldr λ where
   (Param me x atk) → TpAbs me x atk
