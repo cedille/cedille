@@ -4,6 +4,7 @@ module list-thms.
 
 import list.
 import nat.
+import nat-thms/simple.
 
 mapId : ∀ A: ★. ∀ B: ★. ∀ c: Cast ·A ·B. Π xs: List ·A. {map (elimCast -c) xs ≃ xs}
 = Λ A. Λ B. Λ c. λ xs. μ ih. xs @(λ xs: List ·A. {map (elimCast -c) xs ≃ xs}) {
@@ -31,3 +32,17 @@ compDrop: ∀ A: ★. Π m: Nat. Π n: Nat. Π l: List ·A. {drop m (drop n l) �
   | succ m ➔ λ n. λ l.
     ρ+ (tailDrop n l) - ρ+ (ih m n (tail l)) - β
   }.
+
+-- property of being a suffix
+ListSuffix : Π A: ★. List ·A ➔ List ·A ➔ ★
+= λ A: ★. λ xs: List ·A. λ ys: List ·A.
+  ι n: Nat. { drop n ys ≃ xs } .
+
+nilSuffix : ∀ A: ★. Π xs: List ·A. ListSuffix ·A (nil ·A) xs
+= Λ A. λ xs.
+  [pf : { drop (length xs) xs ≃ nil }
+     = μ ns. xs {
+       | nil ➔ β
+       | cons x xs ➔ ns xs
+       }]
+- [ length xs , ρ pf - β{|length xs|} ] .

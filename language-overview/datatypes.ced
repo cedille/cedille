@@ -76,7 +76,7 @@ add : Nat ➔ Nat ➔ Nat
 -- prevent name clashes with slashes.
 -}
 
-{- μ and μ' can also be used for proofs. In general, these will require the user
+{- μ and σ can also be used for proofs. In general, these will require the user
 -- give a motive explicitly using the `@` syntax shown below in
 -- `natCasesWGuide`, which proves that P holds for any n whenever it holds for
 -- `zero` and `suc n` (for all `n`)
