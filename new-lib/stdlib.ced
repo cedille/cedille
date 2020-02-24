@@ -23,6 +23,7 @@ import public data.reuse.list-vec.
 import public data.sigma.
 import public data.sigma-thms.
 import public data.sum.
+import public data.tree.
 import public data.unit.
 import public data.vec.
 import public data.vec-thms.

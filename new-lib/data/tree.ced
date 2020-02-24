@@ -1,0 +1,7 @@
+-- binary trees with data at the nodes
+module Tree(A : ★).
+
+data Tree : ★ =
+  leaf : Tree
+| node : A ➔ Tree ➔ Tree ➔ Tree .
+
