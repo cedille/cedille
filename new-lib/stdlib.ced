@@ -9,6 +9,7 @@ import public core.top.
 import public core.tpeq.
 import public core.view.
 
+import public data.bitstring.
 import public data.bool.
 import public data.bool-thms.
 import public data.decidable.
