@@ -33,7 +33,7 @@ default-options = record {
   during-elaboration = ff;
   pretty-print = ff ;
   show-progress-updates = ff ;
-  disable-conv = tt }
+  disable-conv = ff }
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =

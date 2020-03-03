@@ -1,6 +1,6 @@
 open import ial
 
-module conversion -- where
+module conversion
  (disable-conv? : 𝔹) where
 
 open import constants
@@ -51,7 +51,7 @@ conv-kind : conv-t kind
 
 -- assume erased
 conv-terme : conv-t term 
-conv-terme-real : conv-t term 
+conv-terme' : conv-t term 
 conv-argse : conv-t (𝕃 term) 
 conv-typee : conv-t type
 conv-kinde : conv-t kind
@@ -90,14 +90,14 @@ conv-term Γ t t' =
  then tt
  else conv-terme Γ (erase t) (erase t')
 
-conv-terme-real Γ t t' with decompose-apps t | decompose-apps t'
-conv-terme-real Γ t t' | Var x , args | Var x' , args' = 
+conv-terme' Γ t t' with decompose-apps t | decompose-apps t'
+conv-terme' Γ t t' | Var x , args | Var x' , args' = 
      ctxt-eq-rep Γ x x' && conv-argse Γ (erase-args args) (erase-args args')
   || conv-ctr-args Γ (x , args) (x' , args')
   || conv-term' Γ t t'
-conv-terme-real Γ t t' | _ | _ = conv-term' Γ t t'
+conv-terme' Γ t t' | _ | _ = conv-term' Γ t t'
 
-conv-terme = if disable-conv? then conv-terme-real else (λ Γ → λ t → λ t' → tt)
+conv-terme = if disable-conv? then (λ Γ → λ t → λ t' → tt) else conv-terme'
 
 conv-argse Γ [] [] = tt
 conv-argse Γ (a :: args) (a' :: args') = conv-terme Γ a a' && conv-argse Γ args args'

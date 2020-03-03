@@ -3,7 +3,8 @@ open import general-util
 module spans (options : cedille-options.options) {mF : Set → Set} {{mFm : monad mF}} where
 open import cedille-types
 open import constants 
-open import conversion (cedille-options.options.disable-conv options) using (conv-type ; conv-kind ; hnf ; unfold-all)
+open import conversion (cedille-options.options.disable-conv options)
+  using (conv-type ; conv-kind ; hnf ; unfold-all)
 open import ctxt
 open import free-vars
 open import syntax-util

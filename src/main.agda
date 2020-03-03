@@ -113,6 +113,8 @@ opts-to-options ofp (options-types.OptsCons (options-types.GenerateLogs b) ops) 
   opts-to-options ofp ops >>=r λ ops → record ops { generate-logs = b }
 opts-to-options ofp (options-types.OptsCons (options-types.ShowQualifiedVars b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { show-qualified-vars = b }
+opts-to-options ofp (options-types.OptsCons (options-types.DisableConv b) ops) =
+  opts-to-options ofp ops >>=r λ ops → record ops { disable-conv = b }
 opts-to-options ofp (options-types.OptsCons (options-types.EraseTypes b) ops) =
   opts-to-options ofp ops >>=r λ ops → record ops { erase-types = b }
 opts-to-options ofp (options-types.OptsCons (options-types.PrettyPrintColumns b) ops) =
@@ -570,6 +572,8 @@ module main-with-options
   main' args =
     maybeClearLogFile >>= λ logFilePath → 
     logMsg' logFilePath ("Started Cedille process (compiled at: " ^ utcToString compileTime ^ ")") >>
+    (ifM (cedille-options.options.disable-conv options)
+      (logMsg' logFilePath ("WARNING! conversion checking is *DISABLED*"))) >>
     processArgs logFilePath args
 
 getCedilleArgs : IO cedille-args

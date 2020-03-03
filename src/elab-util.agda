@@ -6,8 +6,8 @@ open import cedille-types
 open import syntax-util
 open import type-util
 open import ctxt
--- should we avoid disabling conversion in elab stuff?
-open import conversion ff using (hnf ; unfold-all ; unfold-head ; unfold-head-elab ; conv-type)
+open import conversion (cedille-options.options.disable-conv options)
+  using (hnf ; unfold-all ; unfold-head ; unfold-head-elab ; conv-type)
 open import constants
 open import instances
 open import subst

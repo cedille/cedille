@@ -5,7 +5,8 @@ module classify (options : cedille-options.options)
 
 open import cedille-types
 open import constants
-open import conversion (cedille-options.options.disable-conv options) using (conv-term ; conv-t ; conv-tpkd ; hnf ; unfold-head-elab ; inconv ; conv-type ; hanf ; unfold-head ; ctxt-term-def ; ctxt-type-def ; unfold-no-defs ; ctxt-datatype-decl ; ctxt-datatype-undef)
+open import conversion (cedille-options.options.disable-conv options)
+  using (conv-term ; conv-t ; conv-tpkd ; hnf ; unfold-head-elab ; inconv ; conv-type ; hanf ; unfold-head ; ctxt-term-def ; ctxt-type-def ; unfold-no-defs ; ctxt-datatype-decl ; ctxt-datatype-undef)
 open import ctxt
 open import datatype-util
 open import elab-util options
