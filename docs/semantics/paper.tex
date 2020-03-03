@@ -139,7 +139,7 @@ erased terms at the term level.
 \begin{figure}
   \[
   \begin{array}{ll}
-    \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
+    \infer{\Gamma\vdash x\tpsynth T}{(x : t)\in\Gamma} &
     \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} \\ \\    
     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\    
@@ -183,7 +183,7 @@ erased terms at the term level.
     |\abs{\lambda}{x}{t'}{t}| & = & \absu{\lambda}{x}{|t|} \\
     |t\ t'| & = & |t|\ |t'| &\ &
     |t\cdot T| & = & |t| \\
-    |\absu{\Lambda}{x}{t'}{t}| & = & |t| &\ &
+    |\abs{\Lambda}{x}{t'}{t}| & = & |t| &\ &
     |t\ \mhyph t'| & = & |t| \\
     |[t , t']| & = & |t| &\ &
     |t.1| & = & |t| \\
@@ -334,7 +334,7 @@ $\phi$ we can use this to type $\Omega$ by changing the typed term
 \(\texttt{id}\ \cdot\texttt{True}\ \texttt{id}\), where \verb|True| is
 \(\abs{\forall}{X}{\star}{X \to X}\). But failure of normalization does not
 impinge on Theorem~\ref{thm:consis}. Extensional Martin-L\"of type theory (MLTT)
-is also non-normalizing, for a very similar reason, but fact does not contradict
+is also non-normalizing, for a very similar reason, but this fact does not contradict
 its logical soundness~\cite{dybjer16}. In CDLE, the guarantees one gets about
 the behavior of terms are expressed almost entirely in their types. If the types
 are weak, then not much is guaranteed; but stronger types can guarantee

@@ -63,10 +63,14 @@ positivity-add : positivity → positivity → positivity
 positivity-neg = uncurry $ flip _,_
 positivity-add (+ₘ , -ₘ) (+ₙ , -ₙ) = (+ₘ || +ₙ) , (-ₘ || -ₙ)
 
--- just tt = negative occurrence; just ff = not in the return type; nothing = okay
 module positivity (x : var) where
   
   open import conversion ff using (hnf ; unfold-no-defs)
+
+  data ctorCheckT : Set where
+    ctorOk : ctorCheckT
+    ctorNotInReturnType : ctorCheckT
+    ctorNegative : ctorCheckT
 
   if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
   if-free t with is-free-in x t
@@ -85,11 +89,16 @@ module positivity (x : var) where
   posₒ = fst
   negₒ = snd
   
-  occurs : positivity → maybe 𝔹
-  occurs p = ifMaybej (negₒ p) tt
+  occurs : positivity → ctorCheckT
+  occurs p = if (negₒ p) then ctorNegative else ctorOk
+
+  _||-ctorCheckT_ : ctorCheckT → ctorCheckT → ctorCheckT 
+  ctorOk ||-ctorCheckT r = r
+  ctorNegative ||-ctorCheckT _ = ctorNegative
+  ctorNotInReturnType ||-ctorCheckT _ = ctorNotInReturnType
 
   {-# TERMINATING #-}
-  arrs+ : ctxt → type → maybe 𝔹
+  arrs+ : ctxt → type → ctorCheckT
   type+ : ctxt → type → positivity
   kind+ : ctxt → kind → positivity
   tpkd+ : ctxt → tpkd → positivity
@@ -97,14 +106,14 @@ module positivity (x : var) where
 
   arrs+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-maybe arrs+ Γ' (hnf' Γ' T)
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-ctorCheckT arrs+ Γ' (hnf' Γ' T)
   arrs+ Γ (TpApp T tT) = occurs (tpapp+ Γ $ hnf' Γ (TpApp T tT))
                        --arrs+ Γ T maybe-or (not-free -tT' tT)
   arrs+ Γ (TpLam x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
-    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-maybe arrs+ Γ' (hnf' Γ' T)
-  arrs+ Γ (TpVar x') = ifMaybej (~ x =string x') ff
-  arrs+ Γ T = just ff
+    occurs (tpkd+ Γ $ hnf' Γ -tk atk) ||-ctorCheckT arrs+ Γ' (hnf' Γ' T)
+  arrs+ Γ (TpVar x') = if (x =string x') then ctorOk else ctorNotInReturnType
+  arrs+ Γ T = ctorNegative
   
   type+ Γ (TpAbs me x' atk T) =
     let Γ' = ctxt-var-decl x' Γ in
@@ -139,7 +148,7 @@ module positivity (x : var) where
   tpkd+ Γ (Tkt T) = type+ Γ (hnf' Γ T)
   tpkd+ Γ (Tkk k) = kind+ Γ k
 
-  ctr-positive : ctxt → type → maybe 𝔹
+  ctr-positive : ctxt → type → ctorCheckT
   ctr-positive Γ = arrs+ Γ ∘ hnf' Γ
 
 -- build the evidence for a sigma-term, given datatype X with associated info μ

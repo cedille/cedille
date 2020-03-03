@@ -1,0 +1,7 @@
+-- basic combinators for functions
+module Fun.
+
+id : ∀ A : ★ . A ➔ A = Λ A . λ a . a.
+
+compose : ∀ A : ★ . ∀ B : ★ . ∀ C : ★ . (B ➔ C) ➔ (A ➔ B) ➔ (A ➔ C) =
+  Λ A . Λ B . Λ C . λ f . λ g . λ a . f (g a).

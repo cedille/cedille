@@ -1,0 +1,40 @@
+
+import stdcore.
+
+module fix (F: ★ ➔ ★) (monoF : CastMap ·F).
+
+𝒌Alg = ★ ➔ ★ ➔ ★ .
+
+AlgF : 𝒌Alg ➔ 𝒌Alg
+= λ _: 𝒌Alg. λ C: ★. λ X: ★.
+  ∀ R: ★. Cast ·R ·C ➾
+  F ·R ➔ X .
+
+Alg : 𝒌Alg = AlgF ·(λ _: ★. λ _: ★. Bot).
+
+rollAlg : ∀ R: ★. ∀ X: ★. AlgF ·Alg ·R ·X ➔ Alg ·R ·X
+= Λ R. Λ X. λ a. a .
+
+unrollAlg : ∀ R: ★. ∀ X: ★. Alg ·R ·X ➔ AlgF ·Alg ·R ·X
+= Λ R. Λ X. λ a. a .
+
+FixF : ★ ➔ ★ = λ C: ★. ∀ X: ★. Alg ·C ·X ➔ X.
+Fix : ★ = Rec ·FixF.
+
+monoFixF : CastMap ·FixF
+= Λ C1. Λ C2. Λ c.
+  intrCast
+    -(λ x. Λ X. λ a.
+      x (Λ R'. Λ c. λ xs. unrollAlg ·C2 a ·R' -(χ (Cast ·R' ·C2) - ●) xs))
+      -- the expected typed of the cast argument should be Cast ·R ·C2
+    -λ _. β .
+
+monoFixF' : CastMap ·FixF
+= Λ C1. Λ C2. Λ c.
+  intrCast
+    -(λ x. Λ X. λ a.
+      [a' = unrollAlg a] -
+      x (Λ R. Λ c. λ xs. unrollAlg a ·R -(χ (Cast ·R ·C2) - ●) xs))
+      -- the expected typed of the cast argument should be Cast ·R ·C2
+    -λ _. β .
+

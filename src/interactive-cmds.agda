@@ -254,7 +254,7 @@ private
 
   parse-norm : erased? → string → maybe (∀ {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧)
   parse-norm me "all" = just λ Γ → hnf Γ (record unfold-all {unfold-erase = me})
-  parse-norm me "head" = just λ Γ → hnf Γ (record unfold-all {unfold-erase = me})
+  parse-norm me "head" = just λ Γ → hnf Γ (record unfold-head-elab {unfold-erase = me})
   parse-norm me "once" = just λ Γ → step-reduce Γ ∘ erase
   parse-norm _ _ = nothing
 

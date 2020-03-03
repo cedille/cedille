@@ -25,15 +25,18 @@ substh-case-args : ctxt → renamectxt → trie (Σi exprd ⟦_⟧) → case-arg
 substh-datatype-info : substh-ret-t datatype-info
 
 subst-rename-var-if : ∀ {ed} → ctxt → renamectxt → var → trie (Σi exprd ⟦_⟧) → ⟦ ed ⟧ → var
-subst-rename-var-if Γ ρ ignored-var σ t = if is-free-in ignored-var t then fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) "x" else ignored-var
+subst-rename-var-if Γ ρ ignored-var σ t =
+  if is-free-in ignored-var t
+  then fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) "x"
+  else ignored-var
 subst-rename-var-if Γ ρ x σ _ =
   {- rename bound variable x iff it is one of the vars being substituted for,
      or if x occurs free in one of the terms we are substituting for vars,
      or if it is the renamed version of any variable -}
-  if trie-contains σ x {-|| trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ-} || renamectxt-in-range ρ x || ctxt-binds-var Γ x then
-    fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) x
-  else
-    x
+  if trie-contains σ x {-|| trie-any (λ {(,_ {ed} t) → is-free-in x t}) σ-}
+     || renamectxt-in-range ρ x || ctxt-binds-var Γ x
+  then fresh-h (λ s → ctxt-binds-var Γ s || trie-contains σ s || renamectxt-in-field ρ s) x
+  else x
 
 substh {TERM} Γ ρ σ (App t t') = App (substh Γ ρ σ t) (substh Γ ρ σ t')
 substh {TERM} Γ ρ σ (AppE t tT) = AppE (substh Γ ρ σ t) (substh Γ ρ σ -tT tT)

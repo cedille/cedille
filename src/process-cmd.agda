@@ -234,12 +234,15 @@ process-ctrs uX lX mX ps piₓ s csₒ c? = h s csₒ c? where
     let Γ = toplevel-state.Γ s in
     Γ ⊢ T ⇐ KdStar ↝ T~ /
     let T = hnf-ctr Γ lX T~
-        neg-ret-err = positivity.ctr-positive lX Γ T >>= λ neg-ret →
-          let err-msg = if neg-ret
-                          then " occurs negatively in the"
-                          else " is not the return" in
-          just (uX ^ err-msg ^ " type of the constructor")
-        T = [ Γ - TpVar mX / lX ] T
+        neg-ret-err : maybe string 
+        neg-ret-err =
+          let err-msg = λ s → just (uX ^ s ^ " type of the constructor") in
+            case positivity.ctr-positive lX Γ T of
+              λ where
+                positivity.ctorOk → nothing
+                positivity.ctorNegative → err-msg " occurs negatively in the"
+                positivity.ctorNotInReturnType → err-msg " is not the return"  in
+    let T = [ Γ - TpVar mX / lX ] T
         Tₚₛ = [ Γ - params-to-tpapps ps (TpVar mX) / lX ] T~ in
     h s cs >>=c λ Γ-f cs →
     let Γ = toplevel-state.Γ s

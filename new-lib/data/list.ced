@@ -5,6 +5,7 @@ import nat.
 import option.
 
 import ../core/cast.
+import ../core/fun.
 
 data List (A: ★): ★ =
   | nil: List
@@ -145,3 +146,8 @@ absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
          { nil ➔ β
          | cons x xs ➔ ρ+ (projNilEq xs) - β}) - (projNil l) {|nil|}.
 
+findOne : ∀ A : ★ . (A ➔ Bool) ➔ List · A ➔ Option · A =
+  Λ A . λ p . λ l .
+    μ findOne . l {
+      nil ➔ none · A
+    | cons x xs ➔ σ (p x) { tt ➔ some x | ff ➔ findOne xs }}.
