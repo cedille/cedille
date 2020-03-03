@@ -1,0 +1,12 @@
+-- binary trees with data at the nodes
+module Tree.
+
+data Tree(A : ★) : ★ =
+  leaf : Tree
+| node : A ➔ Tree ➔ Tree ➔ Tree .
+
+singletonTree : ∀ A : ★ . A ➔ Tree · A = Λ A . λ a . node a (leaf · A) (leaf · A). 
+
+fmapTree : ∀ A : ★ . ∀ B : ★ . (A ➔ B) ➔ Tree · A ➔ Tree · B =
+  Λ A . Λ B . λ f . λ t .
+    μ fmap . t { leaf ➔ leaf · B | node a l r ➔ node (f a) (fmap l) (fmap r) }.
