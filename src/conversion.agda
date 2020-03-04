@@ -63,6 +63,7 @@ private
 
 hnf : ∀ {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → ⟦ ed ⟧ 
 
+-- does not assume erased
 conv-tpkd : conv-t tpkd
 
 private
@@ -71,8 +72,7 @@ private
   conv-type-norm : conv-t type
   conv-kind-norm : conv-t kind
 
--- does not assume 
-
+-- does not assume erased
   conv-tmtp : conv-t tmtp
   conv-tmtp* : conv-t (𝕃 tmtp)
 
