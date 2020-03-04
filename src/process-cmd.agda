@@ -12,7 +12,8 @@ module process-cmd
 open import cedille-types
 open import classify options {mF} ⦃ mFm ⦄ write-to-log
 open import constants
-open import conversion
+open import conversion (cedille-options.options.disable-conv options)
+  using (ctxt-term-def ; ctxt-type-def ; ctxt-kind-def ; ctxt-datatype-def ; ctxt-ctr-def)
 open import ctxt
 open import free-vars
 open import rename

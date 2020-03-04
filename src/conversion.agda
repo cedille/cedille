@@ -1,4 +1,7 @@
-module conversion where
+open import ial
+
+module conversion
+ (disable-conv? : 𝔹) where
 
 open import constants
 open import cedille-types
@@ -48,43 +51,53 @@ conv-kind : conv-t kind
 
 -- assume erased
 conv-terme : conv-t term 
+conv-terme' : conv-t term 
 conv-argse : conv-t (𝕃 term) 
 conv-typee : conv-t type
 conv-kinde : conv-t kind
 
 -- call hnf, then the conv-X-norm functions
-conv-term' : conv-t term 
-conv-type' : conv-t type 
+private 
+  conv-term' : conv-t term 
+  conv-type' : conv-t type 
 
 hnf : ∀ {ed : exprd} → ctxt → (u : unfolding) → ⟦ ed ⟧ → ⟦ ed ⟧ 
 
--- assume head normalized inputs
-conv-term-norm : conv-t term 
-conv-type-norm : conv-t type
-conv-kind-norm : conv-t kind
-
 -- does not assume erased
 conv-tpkd : conv-t tpkd
-conv-tmtp : conv-t tmtp
-conv-tmtp* : conv-t (𝕃 tmtp)
+
+private
+-- assume head normalized inputs
+  conv-term-norm : conv-t term 
+  conv-type-norm : conv-t type
+  conv-kind-norm : conv-t kind
+
+-- does not assume erased
+  conv-tmtp : conv-t tmtp
+  conv-tmtp* : conv-t (𝕃 tmtp)
 
 -- assume erased
-conv-tpkde : conv-t tpkd
-conv-tmtpe : conv-t tmtp
-conv-tmtpe* : conv-t (𝕃 tmtp)
+  conv-tpkde : conv-t tpkd
+  conv-tmtpe : conv-t tmtp
+  conv-tmtpe* : conv-t (𝕃 tmtp)
 
-conv-ctr-ps : ctxt → var → var → maybe (ℕ × ℕ)
-conv-ctr-args : conv-t (var × args)
-conv-ctr : conv-t var
+  conv-ctr-ps : ctxt → var → var → maybe (ℕ × ℕ)
+  conv-ctr-args : conv-t (var × args)
+  conv-ctr : conv-t var
 
-conv-term Γ t t' = conv-terme Γ (erase t) (erase t')
+conv-term Γ t t' = 
+ if disable-conv?
+ then tt
+ else conv-terme Γ (erase t) (erase t')
 
-conv-terme Γ t t' with decompose-apps t | decompose-apps t'
-conv-terme Γ t t' | Var x , args | Var x' , args' = 
+conv-terme' Γ t t' with decompose-apps t | decompose-apps t'
+conv-terme' Γ t t' | Var x , args | Var x' , args' = 
      ctxt-eq-rep Γ x x' && conv-argse Γ (erase-args args) (erase-args args')
   || conv-ctr-args Γ (x , args) (x' , args')
   || conv-term' Γ t t'
-conv-terme Γ t t' | _ | _ = conv-term' Γ t t'
+conv-terme' Γ t t' | _ | _ = conv-term' Γ t t'
+
+conv-terme = if disable-conv? then (λ Γ → λ t → λ t' → tt) else conv-terme'
 
 conv-argse Γ [] [] = tt
 conv-argse Γ (a :: args) (a' :: args') = conv-terme Γ a a' && conv-argse Γ args args'

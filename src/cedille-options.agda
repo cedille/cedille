@@ -18,6 +18,7 @@ record options : Set where
         during-elaboration : 𝔹
         pretty-print : 𝔹
         show-progress-updates : 𝔹
+        disable-conv : 𝔹
 
 default-options : options
 default-options = record {
@@ -31,7 +32,8 @@ default-options = record {
   pretty-print-columns = 80;
   during-elaboration = ff;
   pretty-print = ff ;
-  show-progress-updates = ff}
+  show-progress-updates = ff ;
+  disable-conv = ff }
 
 include-path-insert : string → 𝕃 string × stringset → 𝕃 string × stringset
 include-path-insert s (l , ss) =

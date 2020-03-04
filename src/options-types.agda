@@ -66,7 +66,8 @@ data opt : Set where
     EraseTypes : 𝔹 → opt
     PrettyPrintColumns : string → opt
     DatatypeEncoding : maybe path → opt
-{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.PrintColumns | CedilleOptionsLexer.DatatypeEncoding) #-}
+    DisableConv : 𝔹 → opt
+{-# COMPILE GHC opt = data CedilleOptionsLexer.Opt (CedilleOptionsLexer.GenerateLogs | CedilleOptionsLexer.Lib | CedilleOptionsLexer.MakeRktFiles | CedilleOptionsLexer.ShowQualifiedVars | CedilleOptionsLexer.UseCedeFiles | CedilleOptionsLexer.EraseTypes | CedilleOptionsLexer.PrintColumns | CedilleOptionsLexer.DatatypeEncoding | CedilleOptionsLexer.DisableConv) #-}
 
 data opts : Set where 
     OptsCons : opt → opts → opts
@@ -235,6 +236,7 @@ mutual
   optToString (PrettyPrintColumns x0) = "PrettyPrintColumns" ^ " " ^ x0 ^ ")"
   optToString (DatatypeEncoding nothing) = "(DatatypeEncoding nothing)"
   optToString (DatatypeEncoding (just x0)) = "(DatatypeEncoding (just " ^ x0 ^ "))"
+  optToString (DisableConv x0) = "(DisableConv" ^ " " ^ (boolToString x0) ^ ")"
 
   optsToString : opts → string
   optsToString (OptsCons x0 x1) = "(OptsCons" ^ " " ^ (optToString x0) ^ " " ^ (optsToString x1) ^ ")"
