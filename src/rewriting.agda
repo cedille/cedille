@@ -78,7 +78,6 @@ rewrite-term t Γ op on eq t₁ t₂ sn =
     (t' , 0 , sn') → t , 0 , sn'
     (t' , n , sn') → maybe-else' eq t' (λ eq → rewrite-mk-phi t₂ eq t t') , n , sn'
 
--- dont disable this one
 rewrite-terma t Γ op on eq t₁ t₂ sn =
   case conv-term Γ t t₁ of λ where
   tt → case on of λ where

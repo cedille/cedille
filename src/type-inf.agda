@@ -555,7 +555,6 @@ match-types Γ Xs Ls unf (TpIota xₓ mₓ tpₓ) (TpIota x m tp) =
   Γ→Γ' Γ = ctxt-rename xₓ x (ctxt-var-decl-if x Γ)
   Ls' = stringset-insert Ls x
 
--- maybe dont disable this part
 match-types Γ Xs Ls unf (TpEq t₁ₓ t₂ₓ) (TpEq t₁ t₂) =
   if ~ conv-term Γ t₁ₓ t₁
     then match-types-error $ m-err.e-match-failure else
