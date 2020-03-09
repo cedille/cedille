@@ -30,6 +30,8 @@ data Token =
   | TBracketR  -- ]
   | TBraceL    -- {
   | TBraceR    -- }
+  | TBarBraceL -- {|
+  | TBarBraceR -- |}
   | TAngleL    -- <
   | TAngleR    -- >
   deriving (Show, Eq)
@@ -53,11 +55,11 @@ lexProj ts s = lexStr (TDot : ts) s
 --lexVar :: String -> String -> Maybe (String, String)
 lexVar v (c : s)
   | isVarChar c = lexVar (c : v) s
-  | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>" = Just (reverse v, (c : s))
+  | foldr (\ c' x -> x || (c == c')) False " \n\tΠ∀λΛιβδςρφ≃★@=◂,.·:-()[]{}<>|" = Just (reverse v, (c : s))
   | otherwise = Nothing
 lexVar v "" = Just (reverse v, "")
 
---lexStr :: [Token] -> String -> Maybe [Token]
+lexStr :: [Token] -> String -> Maybe [Token]
 lexStr ts (' ' : s) = lexStr ts s
 lexStr ts ('\n' : s) = lexStr ts s
 lexStr ts ('\t' : s) = lexStr ts s
@@ -82,6 +84,8 @@ lexStr ts ('-' : '-' : s) = lexComment ts Nothing s
 lexStr ts ('{' : '-' : s) = lexComment ts (Just 0) s
 lexStr ts ('-' : s) = lexStr (TDash : ts) s
 lexStr ts (',' : s) = lexStr (TComma : ts) s
+lexStr ts ('{' : '|' : s) = lexStr (TBarBraceL : ts) s
+lexStr ts ('|' : '}' : s) = lexStr (TBarBraceR : ts) s
 lexStr ts ('(' : s) = lexStr (TParenL : ts) s
 lexStr ts (')' : s) = lexStr (TParenR : ts) s
 lexStr ts ('[' : s) = lexStr (TBracketL : ts) s
@@ -188,7 +192,7 @@ parseTerm = ParseM $ \ xs ts -> case ts of
   (TLam : TVar v : ts) -> parseMt xs ts $ pure TmLam <* parseDrop TColon <*> parseType parseTerm3 <* parseDrop TDot <*> parseBind v parseTerm
   (TLamE : TVar v : ts) -> parseMt xs ts $ pure TmLamE <* parseDrop TColon <*> parseTpKd parseTerm3 <* parseDrop TDot <*> parseBind v parseTerm
   (TRho : ts) -> parseMt xs ts $ pure TmRho <*> parseTerm2 <* parseDrop TAt <*> (parseVar >>= \ v -> parseDrop TDot *> parseBind v (parseType parsePrTerm2)) <* parseDrop TDash <*> parseTerm
-  (TPhi : ts) -> parseMt xs ts $ pure TmPhi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBraceL <*> parsePrTerm <* parseDrop TBraceR
+  (TPhi : ts) -> parseMt xs ts $ pure TmPhi <*> parseTerm2 <* parseDrop TDash <*> parseTerm <* parseDrop TBarBraceL <*> parsePrTerm <* parseDrop TBarBraceR
   (TDelta : ts) -> parseMt xs ts $ pure TmDelta <*> parseType2 parseTerm3 <* parseDrop TDash <*> parseTerm
   (TBracketL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTm <*> parseTerm <* parseDrop TBracketR <* parseDrop TDash <*> parseBind v parseTerm
   (TBraceL : TVar v : TEq : ts) -> parseMt xs ts $ pure TmLetTmE <*> parseTerm <* parseDrop TBraceR <* parseDrop TDash <*> parseBind v parseTerm
@@ -201,7 +205,7 @@ parseTerm2 = ParseM $ \ xs ts -> case ts of
 parseTerm3 = ParseM $ \ xs ts -> parseMt xs ts parseTerm4 >>= \ (t, ts') -> parseMf (parseIotaProj t) xs ts'
 parseTerm4 = ParseM $ \ xs ts -> case ts of
   (TVar v : ts) -> parseMr (either TmRef TmVar $ parseLookup v xs) ts
-  (TBeta : ts) -> parseMt xs ts $ pure TmBeta <* parseDrop TAngleL <*> parsePrTerm <* parseDrop TAngleR <* parseDrop TBraceL <*> parsePrTerm <* parseDrop TBraceR
+  (TBeta : ts) -> parseMt xs ts $ pure TmBeta <* parseDrop TAngleL <*> parsePrTerm <* parseDrop TAngleR <* parseDrop TBarBraceL <*> parsePrTerm <* parseDrop TBarBraceR
   (TParenL : ts) -> parseMt xs ts $ parseTerm <* parseDrop TParenR
   (TBracketL : ts) -> parseMt xs ts $ pure TmIota <*> parseTerm <* parseDrop TComma <*> parseTerm <* parseDrop TAt <*> (parseVar >>= \ v -> parseDrop TDot *> parseBind v (parseType parseTerm3) <* parseDrop TBracketR)
   _ -> Nothing
