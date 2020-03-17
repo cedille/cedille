@@ -60,6 +60,18 @@ foldl : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ A) ➔ A ➔ List ·B ➔ A
   | cons x xs ➔ f (foldFE xs) x
   }.
 
+foldl1 : ∀ A: ★. (A ➔ A ➔ A) ➔ List ·A ➔ A
+  = Λ A. λ f. λ xs. σ xs {
+  | nil ➔ ●
+  | cons x xs ➔ foldl f x xs 
+  }.
+
+foldr : ∀ A: ★. ∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ List ·A ➔ B
+  = Λ A. Λ B. λ f. λ y. λ xs. μ foldr. xs {
+  | nil ➔ y
+  | cons x xs ➔ f x (foldr xs) 
+  }.
+
 reverse : ∀ A: ★. List ·A ➔ List ·A
 = Λ A. λ xs. μ rev. xs {
   | nil ➔ nil ·A
@@ -88,6 +100,9 @@ dropCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ Nat ➔ L ➔ L
   }.
 
 drop = Λ A: ★. dropCV -(is/List ·A).
+
+dropLength : ∀ A: ★. ∀ B: ★. List ·A ➔ List ·B ➔ List ·B
+= Λ A. Λ B. λ xs. λ ys. drop (length xs) ys.
 
 repeat : ∀ A: ★. A ➔ Nat ➔ List ·A
 = Λ A. λ x. λ n. μ repeat. n {
@@ -148,3 +163,79 @@ updateFirst : ∀ A : ★ . (A ➔ Bool) ➔ (A ➔ A) ➔ A ➔ List · A ➔ L
       σ (p x)
       { tt ➔ cons (f x) (to/List -isType/updateFirst xs)
       | ff ➔ cons x (updateFirst xs) }}.
+
+select : ∀ A: ★. (A ➔ Bool) ➔ A ➔ Pair ·(List ·A) ·(List ·A) ➔ Pair ·(List ·A) ·(List ·A)
+  = Λ A. λ p. λ x. λ tsfs. σ tsfs {
+  | pair ts fs ➔ σ (p x) {
+    | tt ➔ pair (cons x ts) fs
+    | ff ➔ pair ts (cons x fs)
+    }
+  }. 
+
+partition : ∀ A: ★. (A ➔ Bool) ➔ List ·A ➔ Pair ·(List ·A) ·(List ·A)
+  = Λ A. λ p. λ xs. foldr (select p) (pair (nil ·A) (nil ·A)) xs.
+
+prependToAll : ∀ A: ★. A ➔ List ·A ➔ List ·A
+  = Λ A. λ sep. λ xs. μ prepXs. xs {
+  | nil ➔ nil ·A
+  | cons x xs ➔ cons sep (cons x (prepXs xs))
+  }.
+
+intersperse : ∀ A: ★. A ➔ List ·A ➔ List ·A
+  = Λ A. λ sep. λ xs. σ xs {
+  | nil ➔ nil ·A
+  | cons x xs ➔ cons x (prependToAll sep xs)
+  }.
+
+intercalate : ∀ A: ★. List ·A ➔ List ·(List ·A) ➔ List ·A
+  = Λ A. λ xs. λ xss. concat (intersperse xs xss).
+
+Lreturn : ∀ A: ★. Π n: Nat. A ➔ List ·A
+  = Λ A. λ n. λ a. μ return. n {
+  | zero ➔ nil ·A
+  | succ m ➔ cons a (return m)
+  }.
+
+Lapp : ∀ A: ★. ∀ B: ★. List ·(A ➔ B) ➔ List ·A ➔ List ·B
+  = Λ A. Λ B. λ fs. μ app. fs {
+  | nil ➔ λ _. nil ·B
+  | cons f fs ➔ λ xs. σ xs {
+    | nil ➔ nil ·B
+    | cons x xs ➔ cons (f x) (app fs xs)
+    }
+  }.
+  
+transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
+  = Λ A. λ Rows.
+  [rows : Nat = length Rows ] -
+  [shortest : Nat = foldr min (foldr max zero (map (length ·A) Rows)) (map (length ·A) Rows)] -
+  μ transXs. Rows {
+  | nil ➔ Lreturn shortest (nil ·A)
+  | cons Row Rows ➔ σ Row {
+    | nil ➔ Lreturn shortest (nil ·A)
+    | cons Col Row ➔ Lapp (Lapp (Lreturn rows ●) Row) (transXs Rows)
+    }   
+  }.
+  
+{- cons xs xss ➔ Lapp (Lapp (Lreturn (length xs)) (cons ·(A ➔ List ·A ➔ List ·A) xs)) (transXs xss) -}
+
+flip : ∀ A: ★. ∀ B: ★. ∀ C: ★. (A ➔ B ➔ C) ➔ B ➔ A ➔ C
+  = Λ A. Λ B. Λ C. λ f. λ y. λ x. ●.
+
+isPrefixOf : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
+  = Λ A. λ eq. λ xs. μ isPrefix. xs {
+  | nil ➔ λ _. tt
+  | cons x xs ➔ λ ys. σ ys {
+    | nil ➔ ff
+    | cons y ys ➔ and (eq x y) (isPrefix xs ys)
+    }
+  }.
+
+isSuffixOf : ∀ A: ★. (A ➔ A ➔ Bool) ➔ List ·A ➔ List ·A ➔ Bool
+  = Λ A. λ eq. λ xs. λ ys. (isPrefixOf eq (reverse xs) (reverse ys)).
+
+any : ∀ A: ★. (A ➔ Bool) ➔ List ·A ➔ Bool
+  = Λ A. λ p. λ xs. μ any. xs {
+  | nil ➔ ff
+  | cons x xs ➔ or (p x) (any xs) 
+  }.

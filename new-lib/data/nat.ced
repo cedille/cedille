@@ -114,3 +114,16 @@ covNat : ∀ X: ★. (∀ R: ★. R ➔ (R ➔ R) ➔ (R ➔ X) ➔ X) ➔ X ➔
   | zero ➔ z
   | succ n ➔ s ·Type/rec n (predCV -isType/rec) rec
   }.
+
+-- min/max
+min : Nat ➔ Nat ➔ Nat
+  = λ a. λ b. σ lt a b {
+  | tt ➔ a
+  | ff ➔ b
+  }.
+
+max : Nat ➔ Nat ➔ Nat
+  = λ a. λ b. σ gt a b {
+  | tt ➔ a
+  | ff ➔ b
+  }.
