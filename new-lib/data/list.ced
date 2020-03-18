@@ -239,6 +239,19 @@ tails : ∀ A: ★. List ·A ➔ List ·(List ·A)
   | cons x xs' ➔ (cons xs (tailsGo xs'))
   }.
 
+nonEmptySubsequences : ∀ A: ★. List ·A ➔ List ·(List ·A)
+  = Λ A. λ xs.
+  μ nonEmptySubsequences. xs {
+  | nil ➔ nil ·(List ·A)
+  | cons x xs ➔
+    [f : (List ·A) ➔ List ·(List ·A) ➔ List ·(List ·A)
+      = λ ys. λ r. cons ys (cons (cons x ys) r)] -
+    cons (cons x (nil ·A)) (foldr f (nil ·(List ·A)) (nonEmptySubsequences xs))
+  }.
+
+subsequences : ∀ A: ★. List ·A ➔ List ·(List ·A)
+  = Λ A. λ xs. cons (nil ·A) (nonEmptySubsequences xs).
+
 flip : ∀ A: ★. ∀ B: ★. ∀ C: ★. (A ➔ B ➔ C) ➔ B ➔ A ➔ C
   = Λ A. Λ B. Λ C. λ f. λ y. λ x. ●.
 
