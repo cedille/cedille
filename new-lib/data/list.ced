@@ -233,7 +233,11 @@ augment : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A ➔
   = Λ A. λ g. λ xs. g (cons ·A) xs.
   
 tails : ∀ A: ★. List ·A ➔ List ·(List ·A)
-  = ●.
+  = Λ A. λ xs'. [xs : List ·A = xs'] -
+  μ tailsGo. xs' {
+  | nil ➔ (cons xs (nil ·(List ·A)))
+  | cons x xs' ➔ (cons xs (tailsGo xs'))
+  }.
 
 flip : ∀ A: ★. ∀ B: ★. ∀ C: ★. (A ➔ B ➔ C) ➔ B ➔ A ➔ C
   = Λ A. Λ B. Λ C. λ f. λ y. λ x. ●.
