@@ -226,12 +226,12 @@ transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
 {- cons xs xss ➔ Lapp (Lapp (Lreturn (length xs)) (cons ·(A ➔ List ·A ➔ List ·A) xs)) (transXs xss) -}
 --
 
-augment : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A ➔ List ·A
-  = Λ A. λ g. λ xs. g (cons ·A) xs.
-
 build : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A
   = Λ A. λ g. g (cons ·A) (nil ·A).
 
+augment : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A ➔ List ·A
+  = Λ A. λ g. λ xs. g (cons ·A) xs.
+  
 tails : ∀ A: ★. List ·A ➔ List ·(List ·A)
   = ●.
 
