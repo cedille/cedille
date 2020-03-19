@@ -213,9 +213,10 @@ Lapp : ∀ A: ★. ∀ B: ★. List ·(A ➔ B) ➔ List ·A ➔ List ·B
   
 transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
   = Λ A. λ Rows.
-  [n_rows : Nat = length Rows ] -
-  [min_col : Nat = foldr min (foldr max zero (map (length ·A) Rows)) (map (length ·A) Rows)] -
-  μ transpose. Rows {
+    [n_rows : Nat = length Rows]
+  - [max_col : Nat = foldr max zero (map (length ·A) Rows)]
+  - [min_col : Nat = foldr min max_col (map (length ·A) Rows)]
+  - μ transpose. Rows {
   | nil ➔ Lreturn min_col (nil ·A)
   | cons Row Rows ➔  Lapp (Lapp (Lreturn n_rows (cons ·A)) Row) (transpose Rows)
   }.
