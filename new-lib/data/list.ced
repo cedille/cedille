@@ -217,8 +217,8 @@ transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
   - [max_col : Nat = foldr max zero (map (length ·A) Rows)]
   - [min_col : Nat = foldr min max_col (map (length ·A) Rows)]
   - μ transpose. Rows {
-  | nil ➔ Lreturn min_col (nil ·A)
-  | cons Row Rows ➔  Lapp (Lapp (Lreturn n_rows (cons ·A)) Row) (transpose Rows)
+  | nil ➔ Lreturn n_rows (nil ·A)
+  | cons Row Rows ➔  Lapp (Lapp (Lreturn min_col (cons ·A)) Row) (transpose Rows)
   }.
 
 build : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A
