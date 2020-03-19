@@ -213,18 +213,12 @@ Lapp : ∀ A: ★. ∀ B: ★. List ·(A ➔ B) ➔ List ·A ➔ List ·B
   
 transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
   = Λ A. λ Rows.
-  [rows : Nat = length Rows ] -
-  [shortest : Nat = foldr min (foldr max zero (map (length ·A) Rows)) (map (length ·A) Rows)] -
-  μ transXs. Rows {
-  | nil ➔ Lreturn shortest (nil ·A)
-  | cons Row Rows ➔ σ Row {
-    | nil ➔ Lreturn shortest (nil ·A)
-    | cons Col Row ➔ Lapp (Lapp (Lreturn rows ●) Row) (transXs Rows)
-    }   
+  [n_rows : Nat = length Rows ] -
+  [min_col : Nat = foldr min (foldr max zero (map (length ·A) Rows)) (map (length ·A) Rows)] -
+  μ transpose. Rows {
+  | nil ➔ Lreturn min_col (nil ·A)
+  | cons Row Rows ➔  Lapp (Lapp (Lreturn n_rows (cons ·A)) Row) (transpose Rows)
   }.
-  
-{- cons xs xss ➔ Lapp (Lapp (Lreturn (length xs)) (cons ·(A ➔ List ·A ➔ List ·A) xs)) (transXs xss) -}
---
 
 build : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A
   = Λ A. λ g. g (cons ·A) (nil ·A).
