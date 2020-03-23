@@ -128,26 +128,23 @@ lCastMap : CastMap ·List
 lcastMap : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ List ·A ➔ List ·B
 = Λ A. Λ B. Λ c. castMap -lCastMap -c.
 
-absNil : ∀ L : ★ . ∀ A : ★ . Is/List · A · L ➾ L ➔ L =
-  Λ L . Λ A . Λ il . λ l .
-    [projNil = λ l : L . μ projNil . (to/List -il l)
-                 @ (λ l : List · A . Π l' : L . { l ≃ l' } ➾ L)
-                 { nil ➔ λ l' . Λ u . φ ς u - l' {| nil |}
-                 | cons x xs ➔ λ l' . Λ u . projNil xs (σ<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾ L)
-                                                        { nil ➔ Λ v . δ - v
-                                                        | cons y ys ➔ Λ v . ys} -u)
-                                                        -(σ<il> l' @ (λ l' : List · A . { cons x xs ≃ l' } ➾
-                                                              { xs ≃ σ l' { nil ➔ λ x . x
-                                                                           | cons y ys ➔ ys}})
-                                                          { nil ➔ Λ v . δ - v 
-                                                          | cons y ys ➔ Λ v . ρ v @ x. {tail x ≃ ys} - β} -u)}
-                 l -β] - 
-    φ (μ projNilEq . (to/List -il l)
-         { nil ➔ β
-         | cons x xs ➔ ρ+ (projNilEq xs) - β}) - (projNil l) {|nil|}.
-
-findOne : ∀ A : ★ . (A ➔ Bool) ➔ List · A ➔ Option · A =
+{- find the first element in the list satisfying the given predicate
+   (if there is one) -}
+findFirst : ∀ A : ★ . (A ➔ Bool) ➔ List · A ➔ Option · A =
   Λ A . λ p . λ l .
     μ findOne . l {
       nil ➔ none · A
     | cons x xs ➔ σ (p x) { tt ➔ some x | ff ➔ findOne xs }}.
+
+{- updateFirst p f d l:
+
+   replace the first element e (in list l) which satisfies p with f e, or
+   with f d if there is no such element -}
+updateFirst : ∀ A : ★ . (A ➔ Bool) ➔ (A ➔ A) ➔ A ➔ List · A ➔ List · A =
+  Λ A . λ p . λ f . λ d . λ l . 
+    μ updateFirst . l {
+      nil ➔ singleton (f d)
+    | cons x xs ➔
+      σ (p x)
+      { tt ➔ cons (f x) (to/List -isType/updateFirst xs)
+      | ff ➔ cons x (updateFirst xs) }}.

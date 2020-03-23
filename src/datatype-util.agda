@@ -110,7 +110,7 @@ add-posM x = λ l → triv , x :: l
 
 module positivity (x : var) where
   
-  open import conversion
+  open import conversion ff using (hnf ; unfold-no-defs)
 
   if-free : ∀ {ed} → ⟦ ed ⟧ → positivity
   if-free t with is-free-in x t

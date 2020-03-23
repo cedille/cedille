@@ -1,0 +1,21 @@
+import bool.
+import list.
+
+module bitstring.
+
+-- msb is the head
+BitString : ★ = List · Bool.
+
+bitStringEmpty : BitString = nil · Bool.
+
+bitStringInc : BitString ➔ BitString =
+  λ s . 
+  μ inc . s @ λ _ : BitString . (Bool ➔ BitString ➔ BitString) ➔ BitString {
+    nil ➔ λ k . k tt (nil · Bool)
+  | cons b bs ➔ λ k . inc bs (λ carry . λ sum . k (and b carry) (cons (xor b carry) sum))}
+
+  -- avoid a leading 0 if carry is ff.
+  (λ carry . λ sum . σ carry { tt ➔ cons carry sum | ff ➔ sum }).
+
+_ : { bitStringInc (cons tt (cons tt nil)) ≃ (cons tt (cons ff (cons ff nil))) } = β.
+_ : { bitStringInc (cons tt (cons ff nil)) ≃ (cons tt (cons tt nil)) } = β.

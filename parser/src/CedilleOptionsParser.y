@@ -30,6 +30,7 @@ import Control.Monad
   'erase-types'          { Token _  TEraseTypes   }
   'pretty-print-columns' { Token _  TPrintColumns }
   'datatype-encoding'    { Token _  TDataEnc      }
+  'disable-conversion-checking' { Token _  TDisableConv}
 --  'Mendler'              { Token _  TEncMendler   }
 --  'Mendler-old'          { Token _  TEncMendlerOld}
   '.'                    { Token _  TPoint        }
@@ -53,6 +54,7 @@ Opt :: { Opt }
     | 'use-cede-files'       '=' Bool    '.' { UseCedeFiles $3 }
     | 'make-rkt-files'       '=' Bool    '.' { MakeRktFiles $3 }
     | 'generate-logs'        '=' Bool    '.' { GenerateLogs $3 }
+    | 'disable-conversion-checking' '=' Bool '.' { DisableConv $3 }
     | 'show-qualified-vars'  '=' Bool    '.' { ShowQualifiedVars $3 }
     | 'erase-types'          '=' Bool    '.' { EraseTypes $3   }
     | 'datatype-encoding'    '=' path    '.' { DatatypeEncoding (Just $3) }

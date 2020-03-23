@@ -4,7 +4,9 @@ module interactive-cmds (options : cedille-options.options) where
 
 open import functions
 open import cedille-types
-open import conversion
+open import ial-datatypes
+open import conversion (cedille-options.options.disable-conv options)
+  using (ctxt-term-def ; ctxt-type-def ; hnf ; unfold-head-no-defs ; unfold-all ; conv-type ; conv-kind ; unfold-head ; unfold-no-defs ; unfold-head-elab ; conv-term)
 open import constants
 open import ctxt
 open import general-util

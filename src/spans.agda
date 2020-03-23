@@ -3,7 +3,8 @@ open import general-util
 module spans (options : cedille-options.options) {mF : Set → Set} {{mFm : monad mF}} where
 open import cedille-types
 open import constants 
-open import conversion
+open import conversion (cedille-options.options.disable-conv options)
+  using (conv-type ; conv-kind ; hnf ; unfold-all)
 open import ctxt
 open import free-vars
 open import syntax-util
@@ -497,7 +498,6 @@ Lam-span-erased NotErased = "Lambda abstraction (term-level)"
 Lam-span : ctxt → checking-mode → posinfo → posinfo → erased? → var → tpkd → ex-tm → 𝕃 tagged-val → err-m → span
 Lam-span Γ c pi pi' l x atk t tvs = mk-span (Lam-span-erased l) pi (term-end-pos t) 
                                            (ll-data-term :: binder-data Γ pi' x atk l nothing (term-start-pos t) (term-end-pos t) :: checking-data c :: tvs)
-
 
 compileFail-in : ctxt → term → 𝕃 tagged-val × err-m
 compileFail-in Γ t with is-free-in compileFail-qual | t

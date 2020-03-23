@@ -6,7 +6,8 @@ open import cedille-types
 open import syntax-util
 open import type-util
 open import ctxt
-open import conversion
+open import conversion (cedille-options.options.disable-conv options)
+  using (hnf ; unfold-all ; unfold-head ; unfold-head-elab ; conv-type)
 open import constants
 open import instances
 open import subst

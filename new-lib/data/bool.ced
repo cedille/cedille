@@ -26,3 +26,6 @@ or : Bool ➔ Bool ➔ Bool
 
 implies : Bool ➔ Bool ➔ Bool
 = λ a . λ b . ite a b tt.
+
+xor : Bool ➔ Bool ➔ Bool 
+= λ a . λ b . ite a (not b) b.
