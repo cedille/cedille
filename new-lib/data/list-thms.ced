@@ -13,6 +13,13 @@ mapId : ∀ A: ★. ∀ B: ★. ∀ c: Cast ·A ·B. Π xs: List ·A. {map (elim
     ρ (ih xs) @ z. {cons x z ≃ cons x xs} - β
   }.
 
+-- mapping over a list with any function produces a list with the same length as the original
+mapLength: ∀ A: ★. ∀ B: ★. Π f: (A ➔ B). Π xs: List ·A. {length (map f xs) ≃ length xs}
+= Λ A. Λ B. λ f. λ xs. μ mapLength. xs {
+  | nil ➔ χ {zero ≃ zero} - β
+  | cons x xs ➔ χ { succ (length (map f xs)) ≃ succ (length xs) } - [ih : {length (map f xs) ≃ length xs} = mapLength xs] - ρ ih - β
+  }.
+
 -- injectivity of List
 injList : ∀ A: ★. ∀ B: ★. Cast ·(List ·A) ·(List ·B) ➾ Cast ·A ·B
 = Λ A. Λ B. Λ idL.
