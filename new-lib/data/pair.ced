@@ -1,3 +1,0 @@
-module pair.
-
-data Pair (A: ★)(B: ★): ★ = pair : A ➔ B ➔ Pair.
