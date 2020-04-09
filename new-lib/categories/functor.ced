@@ -11,7 +11,7 @@ FmapId : Π F: ★ ➔ ★. Fmap ·F ➔ ★
 
 FmapComp : Π F: ★ ➔ ★. Fmap ·F ➔ ★
 = λ F: ★ ➔ ★. λ fmap: Fmap ·F.
-  ∀ X: ★. ∀ Y: ★. ∀ Z: ★. Π g: Y ➔ Z. Π f: X ➔ Y.
+  ∀ X: ★. ∀ Y: ★. ∀ Z: ★. Π f: Y ➔ Z. Π g: X ➔ Y.
   Π xs: F ·X. {fmap f (fmap g xs) ≃ fmap (λ x. f (g x)) xs}.
 
 data RawFunctor (F: ★ ➔ ★) : ★
