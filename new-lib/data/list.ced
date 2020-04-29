@@ -22,6 +22,12 @@ isNil = Λ A: ★. λ xs: List ·A. not (isCons xs).
 headSafe : ∀ A: ★. Π xs: List ·A. {isCons xs ≃ tt} ➔ A
 = Λ A. λ xs. σ xs {nil ➔ λ eq. δ - eq | cons x xs ➔ λ eq. x}.
 
+tailSafe : ∀ A: ★. Π xs: List ·A. { isCons xs ≃ tt} ➔ List ·A
+= Λ A. λ xs. σ xs {
+  | nil ➔ λ eq. δ - eq
+  | cons x xs ➔ λ _. xs
+  } .
+
 tailCV : ∀ A: ★. ∀ L: ★. Is/List ·A ·L ➾ L ➔ L
 = Λ A. Λ L. Λ is. λ xs. σ<is> xs {nil ➔ xs | cons x xs ➔ xs}.
 
@@ -220,9 +226,6 @@ augment : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A ➔
 
 build : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A
 = Λ A. λ g. augment g (nil ·A).
-  
-build' : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A
-= Λ A. λ g. g (cons ·A) (nil ·A).
 
 tails : ∀ A: ★. List ·A ➔ List ·(List ·A)
 = Λ A. λ xs'.
