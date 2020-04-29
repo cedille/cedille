@@ -2,6 +2,7 @@ module vec.
 
 import nat.
 import nat-thms.
+import bool.
 import ../core/cast.
 import ../core/bot.
 
@@ -41,6 +42,12 @@ vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
     | succ m ➔ Λ eq. look -n xs m -eq
     }
   }.
+
+vcount : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Vec ·A n ➔ Nat
+= ● .
+
+vfilter : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Π xs: Vec ·A n. Vec ·A (vcount -n xs)
+= ● .
 
 -- Vec and Id
 vCastMap : ∀ n: Nat. CastMap ·(λ X: ★. Vec ·X n)
