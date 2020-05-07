@@ -34,7 +34,11 @@ mapAppendCommute : ∀ A: ★. ∀ B: ★. Π  f: (A ➔ B). Π xs: List ·A. Π
 
 -- append and length (see vappend in data/vec.ced)
 appendLen : ∀ A: ★. Π xs: List ·A. Π ys: List ·A. { length (append xs ys) ≃ add (length xs) (length ys) }
-= ● .
+= Λ A. λ xs. λ ys. μ appendLen. xs {
+  | nil ➔ β
+  | cons x xs ➔ χ {succ (length (append xs ys)) ≃ add (succ (length xs)) (length ys)} 
+      - [ih : {length (append xs ys) ≃ add (length xs) (length ys)} = appendLen xs] - ρ ih - β
+  }.
 
 -- List ·A is the free monoid over A
 -- nil is the left and right neutral element of append
@@ -60,6 +64,7 @@ consInj : ∀ A: ★. Π x: A. Π y: A. Π xs: List ·A. Π ys: List ·A. { cons
 
 consInj2 : ∀ A: ★. Π x: A. Π y: A. Π xs: List ·A. Π ys: List ·A. { cons x xs ≃ cons y ys } ➔ { x ≃ y }
 = Λ A. λ x. λ y. λ xs. λ ys. λ eq. ρ eq @ h. {headSafe h (isCons h) ≃ headSafe (cons y ys) (isCons (cons y ys))} - β.
+
 appendIdUnique : ∀ A: ★. Π xs: List ·A. Π ys: List ·A. {xs ≃ append xs ys} ➔ {ys ≃ nil}
 = Λ A. λ xs. λ ys.
   μ IdUnique. xs {
