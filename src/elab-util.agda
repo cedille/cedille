@@ -1134,7 +1134,6 @@ elab-file ei @ (mk-elab-info τ ρ φ ν) fp with trie-contains (snd φ) fp
 -- recursively traverse all dependencies
 -- generate dependency link
 -- escape html special characters
--- how to refer to some specific place in cedille?
 
 print-list-of-strings : 𝕃 string → IO ⊤
 print-list-of-strings [] = putStrLn ""
@@ -1166,7 +1165,7 @@ get-all-deps ts fm = get-all-deps-h ts fm [] []
 t-write-html : include-elt → (fm to : filepath) → IO ⊤
 t-write-html ie fm to =
   let json-output = json-array (json-object ["source" , (json-string $ include-elt.source ie)]
-                             :: include-elt-spans-to-json ie
+                             :: include-elt-spans-to-json ie -- spans
                              :: json-object ["deps" , (json-array $ map json-string $ include-elt.deps ie)]
                              :: [])
   in
@@ -1202,7 +1201,7 @@ t-write-html-all ts fm to =
 --                                 :: [])
       in
       io >> (t-write-html ie fp out)) -- (writeRopeToFile out $ json-to-rope json-output))
-    (get-all-deps ts fm) -- list of filepath
+    (fm :: (get-all-deps ts fm)) -- list of filepath
 
 elab-write-all : elab-info → (to : filepath) → IO ⊤
 elab-write-all ei@(mk-elab-info τ ρ φ ν) to =
