@@ -196,12 +196,6 @@ intersperse : ∀ A: ★. A ➔ List ·A ➔ List ·A
 intercalate : ∀ A: ★. List ·A ➔ List ·(List ·A) ➔ List ·A
 = Λ A. λ xs. λ xss. concat (intersperse xs xss).
 
-returnList : ∀ A: ★. Π n: Nat. A ➔ List ·A
-= Λ A. λ n. λ a. μ return. n {
-  | zero ➔ nil ·A
-  | succ m ➔ cons a (return m)
-  }.
-
 applyList : ∀ A: ★. ∀ B: ★. List ·(A ➔ B) ➔ List ·A ➔ List ·B
 = Λ A. Λ B. λ fs. μ apply. fs {
   | nil ➔ λ _. nil ·B
@@ -218,7 +212,7 @@ transpose : ∀ A: ★. List ·(List ·A) ➔ List ·(List ·A)
   - [min_col : Nat = foldr min max_col (map (length ·A) Rows)]
   - μ transpose. Rows {
   | nil ➔ returnList n_rows (nil ·A)
-  | cons Row Rows ➔  applyList (applyList (returnList min_col (cons ·A)) Row) (transpose Rows)
+  | cons Row Rows ➔  applyList (applyList (repeat (cons ·A) min_col) Row) (transpose Rows)
   }.
 
 augment : ∀ A: ★. (∀ B: ★. (A ➔ B ➔ B) ➔ B ➔ B) ➔ List ·A ➔ List ·A
