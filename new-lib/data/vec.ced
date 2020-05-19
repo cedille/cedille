@@ -43,11 +43,29 @@ vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
     }
   }.
 
-vcount : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Vec ·A n ➔ Nat
-= ● .
+vconcat : ∀ A: ★. ∀ m: Nat. ∀ n: Nat. Vec ·(Vec ·A n) m ➔ Vec ·A (mult n m)
+= Λ A. Λ m. Λ n. λ xss. μ vconcat. xss {
+  | vnil ➔ vnil ·A
+  | vcons -m xs xss ➔ vappend -n -(mult n m) xs (vconcat -m xss)
+  }.
 
-vfilter : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Π xs: Vec ·A n. Vec ·A (vcount -n xs)
-= ● .
+vcount : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Vec ·A n ➔ Nat
+= Λ A. Λ n. λ pred. λ xs. μ vcount. xs {
+  | vnil ➔ zero
+  | vcons -n x xs ➔ ite (pred x) (succ (vcount -n xs)) (vcount -n xs)
+  }.
+
+vfilter : ∀ A: ★. ∀ n: Nat. Π p: (A ➔ Bool). Π xs: Vec ·A n. Vec ·A (vcount -n p xs)
+= Λ A. Λ n. λ pred. λ xs. μ vfilter.
+xs @(λ m: Nat. λ xs': Vec ·A m. Vec ·A (vcount -m pred xs')){
+  | vnil ➔ vnil ·A
+  | vcons -n x xs ➔
+    [xs' = to/Vec -isType/vfilter -n xs]
+    - σ (pred x) @(λ x: Bool. Vec ·A (ite x (succ (vcount -n pred xs')) (vcount -n pred xs'))) {
+    | tt ➔ vcons -(vcount -n pred xs') x (vfilter -n xs)
+    | ff ➔ vfilter -n xs
+    }
+  }.
 
 -- Vec and Id
 vCastMap : ∀ n: Nat. CastMap ·(λ X: ★. Vec ·X n)
