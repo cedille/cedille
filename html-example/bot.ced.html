@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html><head>
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+  <style id="compiled-css" type="text/css">
+
+  /*TODO: understand absolute position & figure out a way to eliminate the slider bar*/
+
+    .wrapper, .h-splitter, .v-splitter {
+      position: absolute;
+      overflow: auto;
+    }
+
+    .window { padding: 5px; }
+
+    #container {
+      margin: 0 auto;
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      overflow: auto;
+    }
+
+/*    .left-wrapper{ 
+      left: 0;
+      height: 100%;
+     }
+    .right-wrapper{ 
+      right: 0;
+      height: 100%;
+     }
+    .top-wrapper{ 
+      top:0;
+      width: 100%;
+     }
+    .bottom-wrapper{ 
+      bottom: 0;
+      width: 100%;
+     }*/
+
+    #code-wrapper{
+      height: 100%;
+      left: 0;
+      width: 39%;
+      background-color: #FFFFF3;
+      overflow: auto;
+    }
+    #misc-wrapper{
+      height: 100%;
+      right: 0;
+      width: 61%;
+    }
+    #v-splitter{
+      left: 39%;
+      width: 3px;
+      background-color: #E9E9E9;
+      cursor: move;
+      z-index: 100;
+      height: 100%;
+    }
+    #action-wrapper{
+      background-color: #E9FFFF;
+      top: 0;
+      height: 35%;
+      width:100%;
+      overflow-y: auto;
+    }
+    #json-wrapper{
+      background-color: #E9FFE9;
+      height: 65%;
+      bottom: 0;
+      width: 100%;
+      overflow-y: auto;
+      /*padding: 10px;*/
+    }
+    #h-splitter{
+      background-color: #E9E9E9;
+      top: 35%;
+      height: 3px;
+      width:100%;
+      cursor: move;
+      z-index: 100;
+    }
+    #json-table{
+      width: 100%;
+      table-layout: fixed;
+      overflow-x: auto;
+    }
+    td{
+      border: 1px solid #EFEFEF;
+      border-collapse: collapse;
+      padding: 5px;
+      overflow: hidden;
+    }
+
+
+  </style>
+
+<!-- 1. Wrapper; 2. V/H splitter; 3. Window-->
+
+</head>
+
+<body style="cursor: auto;">
+<div id="container">
+    <div id="code-wrapper" class="wrapper">
+      <div id="code" class="window"></div>
+    </div>
+    <div id="v-splitter" class="ui-draggable h-splitter"></div>
+    <div id="misc-wrapper" class="wrapper">
+      <div id="action-wrapper" class="wrapper">
+        <div id="action" class="window">Welcome!</div>
+      </div>
+      <div id="h-splitter" class="ui-draggable v-splitter"></div>
+      <div id="json-wrapper" class="wrapper">
+          <table id="json-table" class="window"></table>
+      </div>
+    </div>
+</div>
+</body>
+
+<script type="text/javascript">
+
+//TODO: 
+//- Show information as a small tag near the node?
+//- Generate dependencies?
+//- Add code highlighting corresponded to cedille-mode-faces
+//- Code generation: use links for reusable refsheets? -> "render" folder with css & js scripts
+//- Put root path in JSON Object for convenient reference?
+//- Selection by spans
+//- Dependencies' hyperlink
+//- Escape special characters in code
+//- Make adjustments when resize the window
+//  ($(window).resize(function()...))
+
+//NOTE:
+//JSON in el: highlighting faces from given spans, in cedille-mode-highlight & cedille-mode-faces
+//JSON in agda: spans.agda, json.agda
+//transferring data: main.agda, elab-util.agda, IAL??? 
+//toplevel state -> gets dependent files(?)
+//handler: main.agda, from command line or from el prompts
+//dependency?
+
+$(function(){
+//Variables
+  //JSON Parsing
+  var data = JSON.parse(document.getElementById('spans').innerHTML.replace(/\n/g, "\\n")),
+      code = data[0].source,
+      spans = data[1].spans,
+  //<span> Wrapping
+      charStart = [], charEnd = [],
+  //Code Highlighting
+      styleList = [["Star", "star", "#03FA57"],
+                   ["Error", "error", "FF3333"], //cedille-error-face
+                   ["Epsilon", "epsilon", "EE22D8"], //ced-purple-face
+                   ["Hole", "hole", "33D6D0", "CC8888"], //cedille-hole-face
+                   ["Comment", "comment", "E9E9E9"], //cedille-comment-face
+                    ], // name, style name, font color
+      termNames = styleList.map(function(i){return i[0]}),
+      styleNames = styleList.map(function(i){return i[1]});
+
+//Interface Resizing
+    var vRange = function(container, elementA, elementB, splitter){
+          var A = parseInt($(elementA).width(), 10),
+              B = parseInt($(elementB).width(), 10),
+              Z = parseInt($(splitter).width(), 10);
+              //minw = parseInt((A + B + Z) * 10 / 100, 10);
+          var result =
+            [$(container).offset().left, //+ minw,
+             $(container).offset().top,
+             $(container).offset().left + $(container).width() - 5,
+             $(container).offset().top + $(container).height()
+            ];
+          return result;
+        },
+        vSplitter = function(container, elementA, elementB){
+            return function(event, ui){
+              var // A = parseInt($(elementA).width(), 10),
+                  // B = parseInt($(elementB).width(), 10),
+                  w = $(container).width();
+                  aw = parseInt(ui.position.left) / w * 100,
+                  bw = 100 - aw;
+              if(ui.position.left < $(container).left || aw >= 100) return;
+              $(elementA).width(aw + '%');
+              $(elementB).width(bw + '%');
+              };
+        },
+        hRange = function(container, elementA, elementB, splitter){
+          var A = parseInt($(elementA).height(), 10),
+              B = parseInt($(elementB).height(), 10),
+              Z = parseInt($(splitter).height(), 10);
+              //minh = parseInt((A + B + Z) * 10 / 100, 10),
+          var result =
+            [$(container).offset().left,
+             $(container).offset().top, //+ minh,
+             $(container).offset().left + $(container).width(),
+             $(container).offset().top + $(container).height()
+            ];
+          return result;
+        },
+        hSplitter = function(container, elementA, elementB){
+            return function(event, ui){
+              var h = $(container).height();
+                  ah = parseInt(ui.position.top) / h * 100,
+                  bh = 100 - ah;
+              if(ui.position.top < $(container).top || ah >= 100) return;
+              $(elementA).css({height : ah + '%'});
+              $(elementB).css({height : bh + '%'});
+              };
+        };
+
+    function makeDraggable(s, axis, c, e1, e2){
+      var range = axis == 'x' ? vRange : hRange,
+          splitter = axis == 'x' ? vSplitter : hSplitter;
+      $(s).draggable({
+        axis : axis,
+        containment : range(c, e1, e2, s),
+        drag : splitter(c, e1, e2)
+      })
+    };
+
+//Action Logging
+  var actionLog = function(string) {
+        $('#action').append("<div style:\"width:100%\">" + string + "</div>");
+      },
+      clearLog = function() {
+        $('#action').text("")
+      },
+      logElementInfo = function(elm){
+        var extra = elm[3];
+        actionLog("<b>Term:</b> " + code.substring(elm[1]-1, elm[2]-1) 
+                                  + " <i>[" + elm[0] + "]</i> <b>@ " 
+                                  + elm[1] + "," + elm[2] + "</b>");
+        $.each(extra, function (index, element) {
+          actionLog("<b>" + index + ":</b> " + element);
+        });
+      };
+
+//<span> Wrapping
+  var recordStartPos = function(i){ charStart.push(i); },
+      recordEndPos = function(i){ charEnd.push(i); };
+
+  function wrapCode(c){
+    var wrappedCode = "";
+    for(var i = 0; i < c.length; i += 1){
+      wrappedCode += "<span id=\"char-" + (i + 1) + "\" class=\"char\">"
+                    +  c[i] + "</span>";
+    }
+    return wrappedCode;
+  }
+
+//Code Highlighting
+  //TODO: Add background configuration
+  function sortRangeFromStart(a, b){
+    var spA = a[1], rgA = a[2] - a[1],
+        spB = b[1], rgB = b[2] - b[1];
+    if (spA == spB) return (rgB - rgA);
+    else return (spA - spB); // larger span at the beginning of the list
+  };
+
+  function addHighlightStyles() {
+    var highlightSpans = JSON.parse(JSON.stringify( 
+                                  spans.sort(sortRangeFromStart)
+                                       .filter(function(i){return termNames.includes(i[0])})
+                               )); // deep copy
+    //Add classes for spans
+    for(var i = 0; i < highlightSpans.length; i += 1){
+      var name = highlightSpans[i][0],
+          sp = highlightSpans[i][1],
+          ep = highlightSpans[i][2],
+          styleName = styleNames[termNames.indexOf(name)];
+
+      for(var j = sp; j < ep; j++){
+        $('#char-' + j).addClass("syntax-" + styleName);
+      }
+    }
+    //Add CSS styles for classes
+    for(var i = 0; i < styleList.length; i++){
+      var content = ".syntax-" + styleList[i][1] + " { "
+                  + "color: " + styleList[i][2] + ";"
+                  // + "background-color: " + styleList[i][3] ? styleList[i][3] : "inherit" + ";"
+                  + " }"
+      var style = document.createElement('style');
+      style.innerHTML = content;
+      document.head.appendChild(style);
+    }
+  };
+
+//JSON Formatting
+  function formatSpans(){
+    $.each(spans, function(index, term) {
+      var name = term[0],
+          startPos = term[1],
+          endPos = term[2],
+          extraInfo = term[3],
+          showName = "",
+          showContent = "",
+          restr = 50;
+      if(name.length >= restr) showName = name.substring(0, restr) + " (...)";
+      else showName = name;
+      if(endPos - startPos >= restr) showContent = code.substring(startPos - 1, startPos + restr - 1) + " (...)";
+      else showContent = code.substring(startPos - 1, endPos - 1)
+      $('#json-table').append("<tr><td>" + showName + "</td><td>"
+                                         + showContent + "</td><td>" 
+                                         + " @ " + startPos + ", " + endPos + "</td></tr>")
+    });
+  };
+
+//Dependency?
+  function setupDependencyLinks(){
+    //spans...position info
+    //dependencies...
+    //search corresponded links
+  };
+
+//Selection
+  var sortRange = function(a, b){
+        var spA = a[1],
+            spB = b[1],
+            rgA = a[2] - a[1],
+            rgB = b[2] - b[1];
+        if (spA == spB) return (rgA - rgB);
+        else return (spB - spA); // to make the endmost span sorted at the start of the list
+      },
+      findShortestRange = function(start, end){
+        return spans.sort(sortRange).find(function(element){
+          return (element[1] <= start) && (element[2] >= end);
+        });
+      };
+
+  var selectAt = function(pos){
+        var elm = findShortestRange(pos, pos);
+        actionLog(code.substring(pos-1, pos) + "<b> selected @ " + pos + "</b>");
+        actionLog("----------------");
+        logElementInfo(elm);
+      },
+      selectRange = function(start, end){
+        var elm = findShortestRange(start, end);
+        actionLog(code.substring(start-1, end) + " <b> selected @ (" + start + "," + end + ")</b>");
+        actionLog("----------------");
+        logElementInfo(elm);
+      };
+
+  function showSelection() {
+    var text = "",
+        offset = 0,
+        selection = window.getSelection(),
+        start = 0,
+        end = 0;
+
+    clearLog();
+
+    if (selection) {
+        text = window.getSelection().toString();
+    } else if (document.selection && document.selection.type != "Control") {
+        text = document.selection.createRange().text;
+    }
+
+    if (charEnd == []){
+      start = charStart[0];
+      end = charStart[0];
+    }
+    else{
+      var range = [].concat(charStart, charEnd).sort(function(a, b){return a - b;});
+      end = range[range.length - 1];
+      start = range[0];
+    }
+
+    charStart = []; charEnd = []; // Clear calculation
+
+    if (end > code.length || start < 0 || (!start || !end)) { 
+      clearLog();
+      // actionLog("??? @ " + start + ", " + end); 
+      return; 
+    }
+    if (end <= start) selectAt(start);
+    else selectRange(start, end);
+  };
+
+//Set up Hooks
+  function setUpHooks(){
+    function charIdToInt(id){
+      return parseInt(id.substring(5));
+    };
+    $('#code').on('click', showSelection);
+    $('.char').on('mousedown', function(){recordStartPos(charIdToInt(this.id))});
+    $('.char').on('mouseup', function(){recordEndPos(charIdToInt(this.id))});
+  };
+
+//Set up All
+  function setUpAll(){
+    makeDraggable('#v-splitter', 'x', '#container', '#code-wrapper', '#misc-wrapper');
+    makeDraggable('#h-splitter', 'y', '#misc-wrapper', '#action-wrapper', '#json-wrapper');
+    $('#code').append("<pre>" + wrapCode(code) + "</pre>");
+    addHighlightStyles();
+    formatSpans();
+    setUpHooks();
+  };
+
+  setUpAll();
+
+});
+</script>
+<script type="application/json" id="spans">[{"source":"module core.bot.\n\nFalse : ★ = ∀ X: ★. X.\nBot : ★ = False.\nNot : ★ ➔ ★ = λ A: ★. A ➔ False.\n\nelimBot: ∀ X: ★. False ➔ X = Λ X. λ f. f ·X.\nexplode = elimBot.\n\nbotIrrel : Bot ➾ Bot\n= Λ b. δ - b ·{λ x. λ y. x ≃ λ x. λ y. y}.\n"},{"spans":[["Module header",1,16,{"not-for-navigation":["true"]}],["Module declaration",8,16,{"not-for-navigation":["true"]}],["Cedille source file (/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced)",1,222,{"fileid":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced"]}],["Term variable",158,166,{"checking-mode":["checking"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 158"],"symbol":["botIrrel"]}],["Term-level definition (checking)",158,221,{"checking-mode":["checking"],"summary":["botIrrel : Bot ➾ Bot",{"loc":{"start":17,"end":20,"fn":1,"s":42,"e":45},"loc":{"start":11,"end":14,"fn":1,"s":42,"e":45},"loc":{"start":0,"end":8,"fn":1,"s":158,"e":166}}]}],["Erased lambda abstraction (term-level)",181,220,{"language-level":["term"],"binder":["symbol:b§type:Bot§from:186§to:220§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:183§erased:true",{"loc":{"start":14,"end":17,"fn":1,"s":42,"e":45}}],"checking-mode":["checking"],"type":["Bot ➾ Bot",{"loc":{"start":6,"end":9,"fn":1,"s":42,"e":45},"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}],"expected-type":["Bot ➾ Bot",{"loc":{"start":6,"end":9,"fn":1,"s":42,"e":45},"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}]}],["Term variable",183,184,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 183"],"symbol":["b"],"type":["Bot",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}]}],["Delta",186,220,{"language-level":["term"],"explanation":["Prove anything you want from a contradiction"],"checking-mode":["checking"],"the contradiction":["{ λ x . λ y . x ≃ λ x . λ y . y }"],"type":["Bot",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}],"expected-type":["Bot",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}]}],["Application of a term to a type",190,220,{"checking-mode":["synthesizing"],"language-level":["term"],"keywords":["application meta-var-locale"],"the type of the head":["Bot",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}],"type":["{ λ x . λ y . x ≃ λ x . λ y . y }"]}],["Equation",193,220,{"explanation":["Equation between terms"],"checking-mode":["checking"],"language-level":["type"],"kind":["★"],"expected kind":["★"]}],["Parens (equation)",193,220,{"punctuation":["true"],"not-for-navigation":["true"]}],["Lambda abstraction (term-level)",208,219,{"language-level":["term"],"binder":["symbol:x§type:●§from:213§to:219§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:210§erased:false"],"checking-mode":["untyped"]}],["Term variable",210,211,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 210"],"symbol":["x"],"type":["●"]}],["Lambda abstraction (term-level)",213,219,{"language-level":["term"],"binder":["symbol:y§type:●§from:218§to:219§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:215§erased:false"],"checking-mode":["untyped"]}],["Term variable",215,216,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 215"],"symbol":["y"],"type":["●"]}],["Term variable",218,219,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 215"],"symbol":["y"]}],["Lambda abstraction (term-level)",194,205,{"language-level":["term"],"binder":["symbol:x§type:●§from:199§to:205§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:196§erased:false"],"checking-mode":["untyped"]}],["Term variable",196,197,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 196"],"symbol":["x"],"type":["●"]}],["Lambda abstraction (term-level)",199,205,{"language-level":["term"],"binder":["symbol:y§type:●§from:204§to:205§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:201§erased:false"],"checking-mode":["untyped"]}],["Term variable",201,202,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 201"],"symbol":["y"],"type":["●"]}],["Term variable",204,205,{"checking-mode":["untyped"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 196"],"symbol":["x"]}],["Term variable",190,191,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 183"],"symbol":["b"],"type":["Bot",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}]}],["Lambda",181,182,{"punctuation":["true"],"not-for-navigation":["true"]}],["Arrow type",169,178,{"checking-mode":["checking"],"language-level":["type"],"kind":["★"],"expected kind":["★"]}],["Type variable",175,178,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 42"],"symbol":["Bot"],"expected kind":["★"],"kind":["★"]}],["Type variable",169,172,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 42"],"symbol":["Bot"],"expected kind":["★"],"kind":["★"]}],["Term variable",138,145,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 138"],"symbol":["explode"]}],["Term-level definition (synthesizing)",138,156,{"synthesized type":["∀ X : ★ . False ➔ X",{"loc":{"start":10,"end":15,"fn":1,"s":19,"e":24}}],"checking-mode":["checking"],"summary":["explode : ∀ X : ★ . False ➔ X",{"loc":{"start":20,"end":25,"fn":1,"s":19,"e":24},"loc":{"start":0,"end":7,"fn":1,"s":138,"e":145}}]}],["Term variable",148,155,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 93"],"symbol":["elimBot"],"type":["∀ X : ★ . False ➔ X",{"loc":{"start":10,"end":15,"fn":1,"s":19,"e":24}}]}],["Term variable",93,100,{"checking-mode":["checking"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 93"],"symbol":["elimBot"]}],["Term-level definition (checking)",93,137,{"checking-mode":["checking"],"summary":["elimBot : ∀ X : ★ . False ➔ X",{"loc":{"start":20,"end":25,"fn":1,"s":19,"e":24},"loc":{"start":0,"end":7,"fn":1,"s":93,"e":100}}]}],["Erased lambda abstraction (term-level)",122,136,{"language-level":["term"],"binder":["symbol:X§kind:★§from:127§to:136§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:124§erased:true"],"checking-mode":["checking"],"type":["∀ X : ★ . False ➔ X",{"loc":{"start":10,"end":15,"fn":1,"s":19,"e":24}}],"expected-type":["∀ X : ★ . False ➔ X",{"loc":{"start":10,"end":15,"fn":1,"s":19,"e":24}}]}],["Type variable",124,125,{"checking-mode":["synthesizing"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 124"],"symbol":["X"],"kind":["★"]}],["Lambda abstraction (term-level)",127,136,{"language-level":["term"],"binder":["symbol:f§type:False§from:132§to:136§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:129§erased:false",{"loc":{"start":14,"end":19,"fn":1,"s":19,"e":24}}],"checking-mode":["checking"],"type":["False ➔ X",{"loc":{"start":8,"end":9,"fn":1,"s":124,"e":125},"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}],"expected-type":["False ➔ X",{"loc":{"start":8,"end":9,"fn":1,"s":124,"e":125},"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}]}],["Term variable",129,130,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 129"],"symbol":["f"],"type":["False",{"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}]}],["Application of a term to a type",132,136,{"checking-mode":["checking"],"language-level":["term"],"keywords":["application meta-var-locale"],"the type of the head":["False",{"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}],"type":["X",{"loc":{"start":0,"end":1,"fn":1,"s":124,"e":125}}],"expected-type":["X",{"loc":{"start":0,"end":1,"fn":1,"s":124,"e":125}}]}],["Type variable",135,136,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 124"],"symbol":["X"],"expected kind":["★"],"kind":["★"]}],["Term variable",132,133,{"checking-mode":["synthesizing"],"language-level":["term"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 129"],"symbol":["f"],"type":["False",{"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}]}],["Lambda",127,128,{"punctuation":["true"],"not-for-navigation":["true"]}],["Lambda",122,123,{"punctuation":["true"],"not-for-navigation":["true"]}],["Implicit dependent function type",102,119,{"checking-mode":["checking"],"language-level":["type"],"binder":["symbol:X§kind:★§from:110§to:119§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:104§erased:true"],"kind":["★"],"expected kind":["★"]}],["Type variable",104,105,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 104"],"symbol":["X"],"kind":["★"]}],["Forall",102,103,{"punctuation":["true"],"not-for-navigation":["true"]}],["Arrow type",110,119,{"checking-mode":["checking"],"language-level":["type"],"kind":["★"],"expected kind":["★"]}],["Type variable",118,119,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 104"],"symbol":["X"],"expected kind":["★"],"kind":["★"]}],["Type variable",110,115,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 19"],"symbol":["False"],"expected kind":["★"],"kind":["★"]}],["Star",107,108,{"checking-mode":["checking"],"language-level":["kind"]}],["Type variable",59,62,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 59"],"symbol":["Not"]}],["Type-level definition (checking)",59,91,{"checking-mode":["checking"],"summary":["Not : ★ ➔ ★",{"loc":{"start":0,"end":3,"fn":1,"s":59,"e":62}}]}],["Type-level lambda abstraction",73,90,{"checking-mode":["checking"],"language-level":["type"],"binder":["symbol:A§kind:★§from:81§to:90§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:75§erased:false"],"expected kind":["★ ➔ ★"]}],["Type variable",75,76,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 75"],"symbol":["A"],"kind":["★"]}],["Arrow type",81,90,{"checking-mode":["checking"],"language-level":["type"],"kind":["★"],"expected kind":["★"]}],["Type variable",85,90,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 19"],"symbol":["False"],"expected kind":["★"],"kind":["★"]}],["Type variable",81,82,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 75"],"symbol":["A"],"expected kind":["★"],"kind":["★"]}],["Star",78,79,{"checking-mode":["checking"],"language-level":["kind"]}],["Lambda (type)",73,74,{"punctuation":["true"],"not-for-navigation":["true"]}],["Arrow kind",65,70,{"checking-mode":["checking"],"language-level":["kind"],"superkind":["□"]}],["Star",69,70,{"checking-mode":["checking"],"language-level":["kind"]}],["Star",65,66,{"checking-mode":["checking"],"language-level":["kind"]}],["Type variable",42,45,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 42"],"symbol":["Bot"]}],["Type-level definition (checking)",42,58,{"checking-mode":["checking"],"summary":["Bot : ★",{"loc":{"start":0,"end":3,"fn":1,"s":42,"e":45}}]}],["Type variable",52,57,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 19"],"symbol":["False"],"expected kind":["★"],"kind":["★"]}],["Star",48,49,{"checking-mode":["checking"],"language-level":["kind"]}],["Type variable",19,24,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 19"],"symbol":["False"]}],["Type-level definition (checking)",19,41,{"checking-mode":["checking"],"summary":["False : ★",{"loc":{"start":0,"end":5,"fn":1,"s":19,"e":24}}]}],["Implicit dependent function type",31,40,{"checking-mode":["checking"],"language-level":["type"],"binder":["symbol:X§kind:★§from:39§to:40§fn:/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced§pos:33§erased:true"],"kind":["★"],"expected kind":["★"]}],["Type variable",33,34,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 33"],"symbol":["X"],"kind":["★"]}],["Forall",31,32,{"punctuation":["true"],"not-for-navigation":["true"]}],["Type variable",39,40,{"checking-mode":["checking"],"language-level":["type"],"location":["/mnt/nfs/clasnetappvm/homedirs/yguanda/Desktop/cedille/new-lib/core/bot.ced - 33"],"symbol":["X"],"expected kind":["★"],"kind":["★"]}],["Star",36,37,{"checking-mode":["checking"],"language-level":["kind"]}],["Star",27,28,{"checking-mode":["checking"],"language-level":["kind"]}]]},{"deps":[]}]</script></html>
