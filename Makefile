@@ -45,6 +45,7 @@ AGDASRC = \
 	meta-vars.agda \
 	cedille-options.agda \
 	elab-util.agda \
+	write-html-util.agda \
 	instances.agda \
 	json.agda \
 	datatype-util.agda \

@@ -26,6 +26,7 @@ open import to-string options
 open import datatype-util
 open import rewriting
 open import elab-util options
+open import write-html-util options
 import cws-types
 import cws
 
