@@ -19,8 +19,8 @@ open import datatype-util
 open import bohm-out
 
 -- TODO:
--- recursively traverse all dependencies
--- generate dependency link
+-- get a fixed location for the html template
+-- generate dependency links
 -- escape html special characters
 
 print-list-of-strings : 𝕃 string → IO ⊤
@@ -50,13 +50,14 @@ write-html ie fm to =
   let out = (λ fp → to ^ "/" ^ (takeFileName fp) ^ ".html")
       deps-tries = trie-mappings $ include-elt.import-to-dep ie
       imports = map (json-string ∘ fst) deps-tries
-      paths = map (json-string ∘ (out ∘ snd)) deps-tries
+      paths = map (json-string ∘ (out ∘ snd)) deps-tries -- ???
       json-output = json-array (json-object ["source" , (json-string $ include-elt.source ie)]
                              :: include-elt-spans-to-json ie -- spans
                              :: json-object ["deps" , (json-array $ [ json-array imports ] ++ [ json-array paths ])]
                              :: [])
   in
-  (readFiniteFile "cedille-template.html")>>=
+  getHomeDirectory >>= λ home →
+  readFiniteFile (home ^ "/.cedille/cedille-template.html") >>=
   (λ html →
     let content = [[ html ]]
                   ⊹⊹ [[ "<script type=\"application/json\" id=\"spans\">" ]]
@@ -65,20 +66,20 @@ write-html ie fm to =
     in
     writeRopeToFile (out fm) content)
 
-write-html-all : toplevel-state → (fm to : filepath) → IO ⊤ -- test function
+write-html-all : toplevel-state → (fm to : filepath) → IO ⊤
 write-html-all ts fm to =
   let ie = get-include-elt ts fm -- include-elt FOR one file
   in
+--  getHomeDirectory >>= λ s →
+--  putStrLn "0"
 -- What is a suitable path for html template?
---  (makeAbsolute fm) >>= (λ s → (putStrLn s))
+--  (makeAbsolute to) >>= (λ s → (putStrLn s))
 --  putStrLn (makeAbsolute to) >>
---  t-write-html-all ts fm to >>
   putStrLn("writing html...") >>
   foldr'
     (createDirectoryIfMissing ff to)
     (λ fp io →
       let ie = get-include-elt ts fp -- change to get-...-if?
-          -- out = to ^ "/" ^ (takeFileName fp) ^ ".html" -- issue may happen when dir ends with "/"...
       in
       io >> (write-html ie fp to))
     (get-all-deps ts fm)
