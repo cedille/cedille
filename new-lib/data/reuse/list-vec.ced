@@ -58,8 +58,8 @@ reuse1V2L : ∀ A: ★. ∀ g: (∀ n: Nat. Π xs: Vec ·A n. Nat). Π f: (∀ n
 
 _ : { reuse1V2L ≃ λ x. x } = β .
 
-reuse1L2V : ∀ A: ★. Π g: (List ·A ➔ List ·A). Π f: (List ·A ➔ Nat). (Π xs: List ·A. {f xs ≃ length (g xs)}) ➔ ∀ n: Nat. Π xs: Vec ·A n. Vec ·A (f (vec2List! -n xs))
-= Λ A. λ g. λ f. λ prf. Λ n. λ xs. ρ (prf (vec2List! -n xs)) - list2Vec! (g (vec2List! -n xs)).
+reuse1L2V : ∀ A: ★. Π g: (List ·A ➔ List ·A). ∀ n: Nat. Π xs: Vec ·A n. Vec ·A (length (g (vec2List! -n xs)))
+= Λ A. λ g. Λ n. λ xs. list2Vec! (g (vec2List! -n xs)).
 
-_ : { reuse1L2V ≃ λ g. λ f. λ pf. g } = β .
+_ : { reuse1L2V ≃ λ g. g } = β .
 
