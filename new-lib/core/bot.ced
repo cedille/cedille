@@ -1,5 +1,7 @@
 module core.bot.
 
+import top .
+
 False : ★ = ∀ X: ★. X.
 Bot : ★ = False.
 Not : ★ ➔ ★ = λ A: ★. A ➔ False.
@@ -9,3 +11,7 @@ explode = elimBot.
 
 botIrrel : Bot ➾ Bot
 = Λ b. δ - b ·{λ x. λ y. x ≃ λ x. λ y. y}.
+
+botCast : ∀ X: ★. Bot ➾ ∀ Y: ★. Y ➔ X
+= Λ X. Λ ex. Λ Y. λ y. φ (ex ·{ ex ≃ y}) - (ex ·X) {| y |} .
+

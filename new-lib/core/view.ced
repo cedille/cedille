@@ -14,3 +14,18 @@ elimView : ∀ A: ★. Π b: Top. View ·A b ➾ A
 viewFun : ∀ A: ★. ∀ B: ★. Π f: Top. (Π x: A. View ·B β{|f x|}) ➾ View ·(A ➔ B) f
 = Λ A. Λ B. λ f. Λ pf.
   intrView ·(A ➔ B) β{|f|} -(λ x. φ (pf x).2 - (pf x).1 {|f x|}) -β.
+
+viewSelf : ∀ X: ★. Π x: X. View ·X β{|x|}
+= Λ X. λ x. intrView β{|x|} -x -β .
+
+-- view / cast
+
+import cast .
+
+-- erases to x
+viewCast1 : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ Π x: Top. View ·A x ➾ View ·B x
+= Λ A. Λ B. Λ c. λ x. Λ v. intrView x -(elimCast -c (elimView x -v)) -β .
+
+-- erases to the view
+viewCast2 : ∀ A: ★. ∀ B: ★. Cast ·A ·B ➾ ∀ x: Top. View ·A x ➔ View ·B x
+= Λ A. Λ B. Λ c. Λ x. λ v. ρ ς v.2 - intrView ·B β{|v|} -(elimCast -c v.1) -β .
