@@ -5,12 +5,98 @@ module list-thms.
 import list.
 import nat.
 import nat-thms/simple.
+import option.
+import decidable.
+
+import ../categories/functor.
 
 mapId : ∀ A: ★. ∀ B: ★. ∀ c: Cast ·A ·B. Π xs: List ·A. {map (elimCast -c) xs ≃ xs}
 = Λ A. Λ B. Λ c. λ xs. μ ih. xs @(λ xs: List ·A. {map (elimCast -c) xs ≃ xs}) {
   | nil ➔ β
   | cons x xs ➔
     ρ (ih xs) @ z. {cons x z ≃ cons x xs} - β
+  }.
+
+mapLength : ∀ A: ★. ∀ B: ★. Π f: (A ➔ B). Π xs: List ·A. {length (map f xs) ≃ length xs}
+= Λ A. Λ B. λ f. λ xs. μ ih. xs {
+  | nil ➔  β
+  | cons x xs ➔ ρ+ (ih xs) - β
+  }.
+
+mapAppendCommute : ∀ A: ★. ∀ B: ★. Π  f: (A ➔ B). Π xs: List ·A. Π ys: List ·A.
+  {map f (append xs ys) ≃ append (map f xs) (map f ys)}
+  = Λ A. Λ B. λ f. λ xs. λ ys. μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {cons (f x) z ≃ append (cons (f x) (map f xs)) (map f ys)} - β
+  }.
+
+appendLen : ∀ A: ★. Π xs: List ·A. Π ys: List ·A. { length (append xs ys) ≃ add (length xs) (length ys) }
+= Λ A. λ xs. λ ys. μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {succ z ≃ add (succ (length xs)) (length ys)} - β
+  }.
+
+appendNilL : ∀ A: ★. Π xs: List ·A. {append xs nil ≃ xs}
+= Λ A. λ xs. μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {cons x z ≃ cons x xs} - β
+  }.
+
+appendNilR : ∀ A: ★. Π xs: List ·A. {append nil xs ≃ xs}
+= Λ A. λ xs. β.
+
+appendAssoc : ∀ A: ★. Π xs: List ·A. Π ys: List ·A. Π zs: List ·A.
+  {append (append xs ys) zs ≃ append xs (append ys zs)}
+= Λ A. λ xs. λ ys. λ zs. μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {cons x z ≃ append (cons x xs) (append ys zs)} - β
+  }.
+
+consInjTl : ∀ A: ★. Π x: A. Π y: A. Π xs: List ·A. Π ys: List ·A. { cons x xs ≃ cons y ys } ➔ { xs ≃ ys }
+= Λ A. λ x. λ y. λ xs. λ ys. λ eq. ρ eq @ t. {tail t ≃ tail (cons y ys)} - β.
+
+consInjHd : ∀ A: ★. Π x: A. Π y: A. Π xs: List ·A. Π ys: List ·A. { cons x xs ≃ cons y ys } ➔ { x ≃ y }
+= Λ A. λ x. λ y. λ xs. λ ys. λ eq. ρ eq @ h. {headSafe h (isCons h) ≃ headSafe (cons y ys) (isCons (cons y ys))} - β.
+
+appendIdUnique : ∀ A: ★. Π xs: List ·A. Π ys: List ·A. {xs ≃ append xs ys} ➔ {ys ≃ nil}
+= Λ A. λ xs. λ ys.
+  μ IdUnique. xs {
+  | nil ➔ λ eq: { nil ≃ ys }. ρ eq - β
+  | cons x xs ➔ χ ({cons x xs ≃ cons x (append xs ys)} ➔ {ys ≃ nil})
+    - [xs' = to/List -isType/IdUnique xs]
+    - λ eq. IdUnique xs (consInjTl x x xs' (append xs' ys) eq)
+  }.
+
+decEqList : ∀ A: ★. (Π x: A. Π y: A. Decision ·{x ≃ y}) ➔ Π xs: List ·A. Π ys: List ·A. Decision ·{ xs ≃ ys }
+= Λ A. λ eq. λ xs. μ decEqList. xs {
+  | nil ➔ λ ys. σ ys {
+    | nil ➔ decYes ·{nil ≃ nil} β
+    | cons y ys ➔ decNo ·{nil ≃ cons y ys} (λ eq'. δ - eq')
+    }
+  | cons x xs ➔ λ ys. σ ys {
+    | nil ➔ decNo ·{cons x xs ≃ nil} (λ eq'. δ - eq')
+    | cons y ys ➔ σ (eq x y) {
+      | decYes proof ➔ σ (decEqList xs ys) {
+      	| decYes proof' ➔ decYes (ρ proof - ρ proof' - β)
+	| decNo proof' ➔ decNo λ e. proof' (consInjTl x y (to/List -isType/decEqList xs) ys e)
+      	}
+      | decNo proof ➔ decNo λ eq'. proof (consInjHd x y (to/List -isType/decEqList xs) ys eq') 
+      }
+    }
+  }.
+
+listMapId : FmapId ·List map
+= Λ X. Λ Y. λ f. λ i. λ xs. μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {cons (f x) z ≃ cons x xs} - ρ (i x) - β
+  }.
+
+listMapComp :FmapComp ·List map
+= Λ X. Λ Y. Λ Z. λ f. λ g. λ xs.
+  [h : X ➔ Z = λ x. f (g x)]
+  - μ ih. xs {
+  | nil ➔ β
+  | cons x xs ➔ ρ (ih xs) @ z. {cons (f (g x)) z ≃ cons (h x) (map h xs)} - β
   }.
 
 -- injectivity of List

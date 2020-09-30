@@ -31,6 +31,7 @@ token :-
       <0> erase\-types                  { mkTokenEmpty TEraseTypes    }
       <0> datatype\-encoding            { mkTokenEmpty TDataEnc       }
       <0> pretty\-print\-columns        { mkTokenEmpty TPrintColumns  }
+      <0> disable\-conversion\-checking   { mkTokenEmpty TDisableConv  }
       <0> true                          { mkTokenEmpty TBoolTrue      }
       <0> false                         { mkTokenEmpty TBoolFalse     }
 --      <0> Mendler\-old                  { mkTokenEmpty TEncMendlerOld }
@@ -62,6 +63,7 @@ data Opt = GenerateLogs         Bool
            | ShowQualifiedVars  Bool
            | UseCedeFiles       Bool
            | EraseTypes         Bool
+           | DisableConv        Bool
            | PrintColumns       Text
            | DatatypeEncoding   (Maybe Text)
   deriving (Show)
@@ -100,6 +102,7 @@ data TokenClass =
      |  TDataEnc
 --     |  TEncMendler
 --     |  TEncMendlerOld
+     | TDisableConv
      |  TEq
      |  TPoint
      |  TEOF

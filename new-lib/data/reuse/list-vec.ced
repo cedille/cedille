@@ -49,3 +49,17 @@ list2Vec! : ∀ A: ★. Π xs: List ·A. Vec ·A (length xs)
 = Λ A. elimCastDep -(list2VecId ·A).
 
 _ : {list2Vec! ≃ λ x. x} = β.
+
+reuse1V2L : ∀ A: ★. ∀ g: (∀ n: Nat. Π xs: Vec ·A n. Nat). Π f: (∀ n: Nat. Π xs: Vec ·A n. Vec ·A (g -n xs)). List ·A ➔ List ·A
+= Λ A. Λ g. λ f. λ xs.
+  [xs' = list2Vec! xs]
+  - [n = length xs]
+  - vec2List! -(g -n xs') (f -n xs').
+
+_ : { reuse1V2L ≃ λ x. x } = β .
+
+reuse1L2V : ∀ A: ★. Π g: (List ·A ➔ List ·A). ∀ n: Nat. Π xs: Vec ·A n. Vec ·A (length (g (vec2List! -n xs)))
+= Λ A. λ g. Λ n. λ xs. list2Vec! (g (vec2List! -n xs)).
+
+_ : { reuse1L2V ≃ λ g. g } = β .
+

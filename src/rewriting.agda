@@ -1,8 +1,10 @@
 module rewriting where
 
+open import ial-datatypes
 open import cedille-types
 open import constants
-open import conversion
+open import conversion ff
+  using (conv-term ; hnf ; unfold-head ; unfold-head-elab ; conv-type ; unfold-no-defs ; unfold ; unfold-all)
 open import ctxt
 open import general-util
 open import free-vars

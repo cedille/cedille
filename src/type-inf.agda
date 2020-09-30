@@ -21,7 +21,8 @@ open import type-util
 open import meta-vars options {mF}
 open import resugar
 open import subst
-open import conversion
+open import conversion (cedille-options.options.disable-conv options)
+  using (conv-term ; unfold-head-elab ; hnf ; conv-type ; conv-t)
 open import free-vars
 open import constants
 

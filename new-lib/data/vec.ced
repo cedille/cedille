@@ -2,6 +2,7 @@ module vec.
 
 import nat.
 import nat-thms.
+import bool.
 import ../core/cast.
 import ../core/bot.
 
@@ -39,6 +40,30 @@ vlookup : ∀ A: ★. ∀ n: Nat. Vec ·A n ➔ Π m: Nat. Lt m n ➾ A
   | vcons -n x xs ➔ λ m. σ m @(λ x: Nat. Lt x (succ n) ➾ A) {
     | zero ➔ Λ _. x
     | succ m ➔ Λ eq. look -n xs m -eq
+    }
+  }.
+
+vconcat : ∀ A: ★. ∀ m: Nat. ∀ n: Nat. Vec ·(Vec ·A n) m ➔ Vec ·A (mult n m)
+= Λ A. Λ m. Λ n. λ xss. μ vconcat. xss {
+  | vnil ➔ vnil ·A
+  | vcons -m xs xss ➔ vappend -n -(mult n m) xs (vconcat -m xss)
+  }.
+
+vcount : ∀ A: ★. ∀ n: Nat. (A ➔ Bool) ➔ Vec ·A n ➔ Nat
+= Λ A. Λ n. λ pred. λ xs. μ vcount. xs {
+  | vnil ➔ zero
+  | vcons -n x xs ➔ ite (pred x) (succ (vcount -n xs)) (vcount -n xs)
+  }.
+
+vfilter : ∀ A: ★. ∀ n: Nat. Π p: (A ➔ Bool). Π xs: Vec ·A n. Vec ·A (vcount -n p xs)
+= Λ A. Λ n. λ pred. λ xs. μ vfilter.
+xs @(λ m: Nat. λ xs': Vec ·A m. Vec ·A (vcount -m pred xs')){
+  | vnil ➔ vnil ·A
+  | vcons -n x xs ➔
+    [xs' = to/Vec -isType/vfilter -n xs]
+    - σ (pred x) @(λ x: Bool. Vec ·A (ite x (succ (vcount -n pred xs')) (vcount -n pred xs'))) {
+    | tt ➔ vcons -(vcount -n pred xs') x (vfilter -n xs)
+    | ff ➔ vfilter -n xs
     }
   }.
 

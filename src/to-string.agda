@@ -102,9 +102,9 @@ need-parens {TYPE} {_} (TpApp T tT) p lr = ~ is-arrow p && (~ is-type-level-app 
 need-parens {TYPE} {_} (TpLam x tk T) p lr = tt
 need-parens {KIND} {_} (KdAbs x tk k) p lr = ~ is-arrow p || is-left lr
 
-pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ _ ff _ _
-pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ _ ff _ _
-pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ _ tt _ _
+pattern ced-ops-drop-spine = cedille-options.options.mk-options _ _ _ _ ff _ _ _ ff _ _ _
+pattern ced-ops-conv-arr = cedille-options.options.mk-options _ _ _ _ _ _ _ _ ff _ _ _
+pattern ced-ops-conv-abs = cedille-options.options.mk-options _ _ _ _ _ _ _ _ tt _ _ _
 
 drop-spine : cedille-options.options → {ed : exprd} → ctxt → ⟦ ed ⟧ → ⟦ ed ⟧
 drop-spine ops @ ced-ops-drop-spine = h
@@ -360,7 +360,7 @@ term-to-stringh (AppE t tT) = apps-to-string (AppE t tT)
 term-to-stringh (Beta t t') = strBreak 3
   0 [ strAdd "β" ]
   2 [ strAdd "<" >>str to-stringh (erase t ) >>str strAdd ">" ]
-  2 [ strAdd "{" >>str to-stringh (erase t') >>str strAdd "}" ]
+  2 [ strAdd "{|" >>str to-stringh (erase t') >>str strAdd "|}" ]
 
 term-to-stringh (Delta _ T t) = strBreak 3
   0 [ strAdd "δ" ]
@@ -395,7 +395,7 @@ term-to-stringh (LetTp x k T t) = strBreak 4
 term-to-stringh (Phi tₑ t₁ t₂) = strBreak 3
   0 [ strAdd "φ " >>str to-stringl tₑ >>str strAdd " -" ]
   2 [ to-stringh t₁ ]
-  2 [ strAdd "{ " >>str to-stringr (erase t₂) >>str strAdd " }" ]
+  2 [ strAdd "{| " >>str to-stringr (erase t₂) >>str strAdd " |}" ]
 
 term-to-stringh (Rho tₑ x Tₓ t) = strBreak 3
   0 [ strAdd "ρ " >>str to-stringl tₑ ]
