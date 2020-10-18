@@ -322,22 +322,21 @@ It may worry some readers that we have:
 
 Defining \verb|Top| to be $\{\absu{\lambda}{x}{x} \simeq
 \absu{\lambda}{x}{x}\}$, we may assign \verb|Top| to any closed term \verb|t|,
-including non-normalizing ones.  In our annotated syntax, we write \verb|β{t}|.
-Even without this, the presence of
-$\delta$ in combination with $\phi$ allows us to type non-normalizing
-terms assuming an erased argument $x$ of type $\{ \textit{tt} \simeq
-\textit{ff} \}$ for Church-encoded booleans \textit{tt} and
-\textit{ff}.  For example, $\delta\ \mhyph x$ has type
-\verb|{λ x . x ≃ λ x . x x}|, and with $\phi$ we can use this to type
-$\Omega$ by changing the typed term \verb|id · True id|, where
-\verb|True| is \verb|∀ X : ★ . X ➔ X|. But failure of normalization
-does not impinge on Theorem~\ref{thm:consis}.   Extensional Martin-L\"of type theory (MLTT) is
-also non-normalizing, for a very similar reason, but this fact
-does not contradict its logical soundness~\cite{dybjer16}.  In CDLE, the guarantees one gets about the
-behavior of terms are expressed almost entirely in their types.  If
-the types are weak, then not much is guaranteed; but stronger types
-can guarantee properties like normalization, as demonstrated by the following
-theorem:
+including non-normalizing ones. In our annotated syntax, we write
+\texttt{\(\beta\)\{t\}}. Even without this, the presence of $\delta$ in
+combination with $\phi$ allows us to type non-normalizing terms assuming an
+erased argument $x$ of type $\{ \textit{tt} \simeq \textit{ff} \}$ for
+Church-encoded booleans \textit{tt} and \textit{ff}. For example, $\delta\ \mhyph x$
+has type \(\{\absu{\lambda}{x}{x} \simeq \absu{\lambda}{x}{x\ x}\}\), and with
+$\phi$ we can use this to type $\Omega$ by changing the typed term
+\(\texttt{id}\ \cdot\texttt{True}\ \texttt{id}\), where \verb|True| is
+\(\abs{\forall}{X}{\star}{X \to X}\). But failure of normalization does not
+impinge on Theorem~\ref{thm:consis}. Extensional Martin-L\"of type theory (MLTT)
+is also non-normalizing, for a very similar reason, but this fact does not contradict
+its logical soundness~\cite{dybjer16}. In CDLE, the guarantees one gets about
+the behavior of terms are expressed almost entirely in their types. If the types
+are weak, then not much is guaranteed; but stronger types can guarantee
+properties like normalization, as demonstrated by the following theorem:
 
 \begin{theorem}[Call-by-name normalization of functions]
   \label{thm:cedille-termination}
@@ -494,6 +493,11 @@ Herman Geuvers.
 \newblock In {\em Proceedings of the Seventh Annual Symposium on Logic in
   Computer Science {(LICS} '92), Santa Cruz, California, USA, June 22-25,
   1992}, pages 453--460. {IEEE} Computer Society, 1992.
+
+\bibitem{Kashima2000}
+  Ryo Kashima.
+  \newblock {A Proof of the Standardization Theorem in \(\lambda\)-Calculus}.
+  \newblock Available from the author's web page, 2000.
 
 \bibitem{kopylov03}
 Alexei Kopylov.
