@@ -170,16 +170,21 @@ normalization.
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
     \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
 
-    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t\ t')\subseteq \textit{dom}(\Gamma)}  \\ \\    
+    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t')\subseteq \textit{dom}(\Gamma)}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
-    \infer{\Gamma\vdash \rho\ t'\ \mhyph\ t \Leftrightarrow [t_2/x]T}
-          {\Gamma\vdash t' \tpsynth \{ t_1 \simeq t_2 \} & \Gamma \vdash t \Leftrightarrow [t_1/x]T} \\ \\
-    \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpcheck T'}
-          {\Gamma\vdash T\tpcheck \star & \Gamma\vdash t \tpcheck T & T \cong T'} &
-    \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpsynth T}
-          {\Gamma\vdash T\tpcheck \star & \Gamma\vdash t \tpsynth T' & T \cong T'} \\ \\
-    \infer{\Gamma\vdash \phi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
-          {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}  & \
+    \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
+          {
+          \begin{array}{cc}
+            \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
+            & \quad \Gamma \vdash [t_2/x]T \tpsynth \star
+            \\ \Gamma \vdash t \tpsynth T'
+            & T' \cong [t_1/x]T
+          \end{array}
+          } \\ \\
+    \infer{\Gamma \vdash \chi\ T\ \mhyph t\ \tpsynth T}
+          {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T} &
+    \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
+          {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}
   \end{array}
   \]
 \caption{Rules for checking a term against a well-kinded type ($\Gamma \vdash t \tpcheck T$)
@@ -202,8 +207,8 @@ normalization.
     |t.2| & = & |t| &\ &
     |\beta\{t\}| & = & |t|\\
     |\delta\ \mhyph\ t| & = & \absu{\lambda}{x}{x}&\ &
-    |\rho\ t\ \mhyph\ t'| & = & |t'| \\
-    |\phi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
+    |\rho\ t\ @x.T\ \mhyph\ t'| & = & |t'| \\
+    |\varphi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
     |\chi\ T\ \mhyph\ t'| & = & |t'|
   \end{array}
   \]
@@ -279,14 +284,22 @@ over the version of CDLE in~\cite{stump18} are:
   which accepts any number $n$ as a realizer 
   of a true equation.  Here, we accept any closed term $t$ as a realizer
   of $\{ t \simeq t\}$.  This means that in Cedille, any such term -- even otherwise untypable
-  terms, non-normalizing terms, etc. -- have type $\{ t \simeq t\}$ for any term $t$.
-\item The $\rho$ construct allows one to rewrite occurrences of $t_1$ to $t_2$ in the synthesized or
-  checked type, where $t_1$ and $t_2$ are provably equal.  In the Cedille implementation, we rewrite
-  all matching occurrences.  This may be compared to \verb|rewrite| in Agda, except that it may be
-  applied anywhere, not just as part of pattern matching~\cite{agda}.
+  terms, non-normalizing terms, etc. -- have type $\{ t \simeq t\}$ for any term
+  $t$.
+\item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) to
+  \(t_2\) in the synthesized type of the second subexpression.
+  The version presented here requires a ``guide'' \(@x.T\), where \(x\)
+  indicates the occurrences of \(t_1\) to substitute.
+  \([t_2/x]T\) must be a well-kinded type, but it is not required that
+  \([t_1/x]T\) also be, only that \(T'\) and \([t_1/x]T\) are convertible modulo
+  erasure --- it is not guaranteed that \(t_1\) and \(t_2\) will have the same
+  type, or will even be typeable.
+  In Cedille, the guide is optional and the construct may be used to rewrite a
+  contextually given type; a heuristic is used to produce a resulting type that
+  is well-kinded whose details are beyond the scope of this document.
 \item We adopt a strong form of Nuprl's \textbf{direct computation rules}~\cite{constable+86}:
   If we have a term $t'$ of type $T$ and a proof $t$ that $\{ t' \simeq t''\}$, then we may conclude that
-  $t''$ has type $T$ by writing the annotated term $\phi\ t\ \mhyph\ t'\{t''\}$, which
+  $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\{t''\}$, which
   erases to $t''$.
 \item Where the previous version of CDLE uses $\beta$-equivalence for (erased) terms, we here adopt $\beta\eta$-equivalence.  This
   allows us to observe in many cases that retyping functions are actually $\beta\eta$-equivalent to $\absu{\lambda}{x}{x}$.
@@ -344,11 +357,11 @@ Defining \verb|Top| to be $\{\absu{\lambda}{x}{x} \simeq
 \absu{\lambda}{x}{x}\}$, we may assign \verb|Top| to any closed term \verb|t|,
 including non-normalizing ones. In our annotated syntax, we write
 \texttt{\(\beta\)\{t\}}. Even without this, the presence of $\delta$ in
-combination with $\phi$ allows us to type non-normalizing terms assuming an
+combination with $\varphi$ allows us to type non-normalizing terms assuming an
 erased argument $x$ of type $\{ \textit{tt} \simeq \textit{ff} \}$ for
 Church-encoded booleans \textit{tt} and \textit{ff}. For example, $\delta\ \mhyph x$
 has type \(\{\absu{\lambda}{x}{x} \simeq \absu{\lambda}{x}{x\ x}\}\), and with
-$\phi$ we can use this to type $\Omega$ by changing the typed term
+$\varphi$ we can use this to type $\Omega$ by changing the typed term
 \(\texttt{id}\ \cdot\texttt{True}\ \texttt{id}\), where \verb|True| is
 \(\abs{\forall}{X}{\star}{X \to X}\). But failure of normalization does not
 impinge on Theorem~\ref{thm:consis}. Extensional Martin-L\"of type theory (MLTT)
@@ -882,7 +895,7 @@ and Lemma~\ref{lem:termsubstinterp}.
 \startcase{.2cm}
 \[
     \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpcheck T'}
-          {\Gamma\vdash T\tpcheck \star & \Gamma\vdash t \tpcheck T & T \cong T'} 
+          {\Gamma\vdash T\tpsynth \star & \Gamma\vdash t \tpcheck T & T \cong T'} 
 \]
 Using the IH for the first premise and the assumption that $\interp{T'}_{\sigma,\rho}$ is in $\mathcal{R}$ and hence defined,
 we can apply the IH to the third premise to get $\interp{T}_{\sigma,\rho} = \interp{T'}_{\sigma,\rho}$.  Using this and the IH for second premise,
@@ -891,7 +904,7 @@ we get the desired conclusion, using also the definition of erasure.
 \startcase{.2cm}
 \[
     \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpsynth T}
-          {\Gamma\vdash T\tpcheck \star & \Gamma\vdash t \tpsynth T' & T \cong T'} 
+          {\Gamma\vdash T\tpsynth \star & \Gamma\vdash t \tpsynth T' & T \cong T'} 
 \]
 By the IH applied to the second premise, we have $[\sigma|t|]_{\cbe}\in\interp{T'}_{\sigma,\rho}\in\mathcal{R}$.
 Using definedness of $\interp{T'}_{\sigma,\rho}$ and the IH applied to the first premise, we can apply the
@@ -900,12 +913,12 @@ conclusion follows by definition of erasure.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \phi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
+    \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
           {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}  
 \]
 By the IH for the first premise, $\sigma|t'| =_{\cbe} \sigma|t''|$.  By the IH for the second
 premise, $[\sigma|t'|]_{\cbe}\in\interp{T}_{\sigma,\rho}$.  This suffices for the desired conclusion,
-using also the definition of erasure ($|\phi\ t\ \mhyph\ t'\{t''\}| = |t''|$).
+using also the definition of erasure ($|\varphi\ t\ \mhyph\ t'\{t''\}| = |t''|$).
 
 \subsection*{Proof of part (5) }
 
