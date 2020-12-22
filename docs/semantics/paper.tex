@@ -408,6 +408,20 @@ preserved by $\beta\eta$-reduction:
     \end{lemma}
 \end{comment}    
 
+We make a concession to syntactic classifier preservation in the case of types
+and kinds.
+During type inference, types may be reduced using a call-by-name operational
+semantics to reveal type constructors.
+With the removal of lifting from CDLE, terms cannot compute types and so no
+terms need to be reduced during this process.
+
+\begin{theorem}[Syntactic kind preservation]
+  \label{thm:syntactic-kind-pres}
+  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadsto_{\beta} T'\) then
+  \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa'\) such that \(\kappa
+  \cong \kappa'\).
+\end{theorem}
+
 \begin{figure}
 \[
 \begin{array}{lll}
@@ -981,5 +995,95 @@ call-by-name normalizing (cf.~\cite{Kashima2000}).
 
 \end{proof}
 
+\section{Proof of Theorem~\ref{thm:syntactic-kind-pres}}
+\label{sec:proof-syntactic-kind-pres}
 
+First a few lemmas (easy proofs omitted):
+\begin{lemma}
+  \label{lem:inference-validity}
+  \ \\
+  \begin{itemize}
+  \item If \(\Gamma \vdash T \tpsynth \kappa\) then \(\Gamma \vdash \kappa\)
+    
+  \item If \(\Gamma \vdash t \ T\) then \(\Gamma \vdash T \tpsynth
+    \kappa\) for some \(\kappa\)
+  \end{itemize}
+\end{lemma}
+
+\begin{lemma}
+  \label{lem:subst-kind}
+  \ \\
+  \begin{itemize}
+  \item If \(\Gamma,x:T \vdash T \tpsynth \kappa\) and \(\Gamma \vdash t
+    \tpcheck T\) then \(\Gamma \vdash [t/x]T \tpsynth [t/x]\kappa\)
+    
+  \item If \(\Gamma,X:\kappa_2 \vdash T_1 \tpsynth \kappa_1\) and \(\Gamma
+    \vdash T_2 \tpsynth \kappa_2\) then \(\Gamma \vdash [T_2/X]T_1 \tpsynth [T_2/X]\kappa_1\)
+  \end{itemize}
+\end{lemma}
+
+\begin{lemma}
+  \label{lem:tpcheck-conv}
+  If \(\Gamma \vdash t \tpcheck T_1\) where \(\Gamma \vdash T_1 \tpsynth
+  \kappa_1\), and we have \(\Gamma \vdash T_2 \tpsynth \kappa_2\) with \(T_1
+  \cong T_2\) and \(\kappa_1 \cong \kappa_2\), then \(\Gamma \vdash t \tpcheck T_2\).
+\end{lemma}
+
+\begin{proof}[Proof (of Theorem~\ref{thm:syntactic-kind-pres})]
+  We may rule out the cases where \(T\) is a variable or formed by a type
+  constructor, as this would contradict the assumption that \(T \leadsto_{\beta}
+  T'\) for some \(T'\) (recall that \(\leadsto_\beta\) is call-by-name reduction
+  for types).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma\vdash T\ t \tpsynth [t/x]\kappa_1}{\Gamma\vdash T \tpsynth
+      \abs{\Pi}{x}{T_1}{\kappa_1} & \Gamma\vdash t \tpcheck T_1}
+  \]
+
+  There are two subcases to consider for the derivation of \(T\ t \leadsto_\beta
+  T'\). In the first case, we have \(T \leadsto_\beta T''\) for some \(T''\) (so
+  \(T' = T''\ t\)). By the IH, we have \(\Gamma \vdash T'' \tpsynth
+  \abs{\Pi}{x}{T_1'}{\kappa_1'}\) for some \(T_1' \cong T_1\) and \(\kappa_1'
+  \cong \kappa_1\) (we have by assumption the kind of \(T''\) must be
+  convertible with \(\abs{\Pi}{x}{T_1}{\kappa_1}\)). By
+  Lemma~\ref{lem:tpcheck-conv}, \(\Gamma \vdash t \tpcheck T_1'\). By the rule,
+  \(\Gamma \vdash T''\ t \tpsynth [t/x]\kappa_1'\), and the synthesized kind is
+  clearly convertible with \([t/x]\kappa_1\).
+
+  In the other subcase, the subject of kinding is of the form
+  \((\abs{\lambda}{x}{T_1}{T''})\ t\) and our assumed reduction is to
+  \([t/x]T''\). By inversion of the kinding derivation, we have \(\Gamma,x:T_1
+  \vdash T'' \tpsynth \kappa_1\). By Lemma~\ref{lem:subst-kind}, we have
+  \(\Gamma \vdash [t/x]T'' \tpsynth [t/x]\kappa_1\).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1
+      \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth
+      \kappa_2' & \kappa_2 \cong \kappa_2'}
+  \]
+
+  There are two subcases to consider for the derivation of \(T_1 \cdot T_2
+  \leadsto_\beta T'\). In the first subcase, we have \(T_1 \leadsto_\beta
+  T_1''\) for some \(T_1''\) (so \(T' = T_1'' \cdot T_2\)). By the IH, we have
+  \(\Gamma \vdash T_1'' \tpsynth \abs{\Pi}{X}{\kappa_2''}{\kappa_1''}\) for some
+  \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have by
+  assumption the kind of \(T_1''\) must be convertible with
+  \(\abs{\Pi}{X}{\kappa_2}{\kappa_1}\)). By transitivity we can conclude
+  \(\kappa_2'' \cong \kappa_2\). By the rule, we have \(\Gamma \vdash T_1''
+  \cdot T_2 \tpsynth [T_2/X]\kappa_1''\), and the synthesized kind is clearly
+  convertible with \([T_2/X]\kappa_1\).
+
+  In the other subcase, the subject of kinding is of the form
+  \((\abs{\lambda}{X}{\kappa_2}{T_1''}) \cdot T_2\) and our assumed reduction is
+  to \([T_2/X]T_1''\). By inversion of the kinding derivation, we have
+  \(\Gamma,X:\kappa_2 \vdash T_1'' \tpsynth \kappa_1\). By
+  Lemma~\ref{lem:subst-kind}, we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
+  [T_2/X]\kappa_1\).
+
+\end{proof}
 \end{document}
+
+% LocalWords:  nondeterministically Kleene's realizability realizer kinded CDLE
+% LocalWords:  Cedille subcases subcase kinding
