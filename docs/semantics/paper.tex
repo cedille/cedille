@@ -31,7 +31,7 @@
 
 \title{Syntax and Semantics of Cedille}
 
-\author{Aaron Stump \\
+\author{Aaron Stump, Chris Jenkins \\
   Computer Science \\
   The University of Iowa \\
 \texttt{aaron-stump@uiowa.edu}}
@@ -44,7 +44,7 @@
 
 The type theory of Cedille is called the Calculus of Dependent Lambda
 Eliminations (CDLE).  This document presents the version of CDLE as of
-June 1, 2018.  We have made many changes from the first paper on CDLE~\cite{stump17},
+December 1, 2020.  We have made many changes from the first paper on CDLE~\cite{stump17},
 mostly in the form of dropping constructs we discovered (to our
 surprise) could be derived~\cite{stump18}. I have also omitted
 \emph{lifting} -- a technique for large eliminations with lambda
@@ -82,27 +82,39 @@ The typing rules (Figure~\ref{fig:tp}) are
 bidirectional~\cite{pierce+00}, while the kinding and superkinding
 rules (Figure~\ref{fig:knd} and~\ref{fig:superknd}) are only
 synthesizing.  We write $\Leftrightarrow$ to range over
-$\{\tpcheck,\tpsynth\}$. We follow the syntax of our implementation
+$\{\tpcheck,\tpsynth\}$, and when this symbol occurs multiple times in a rule,
+it is intended that such occurrences be read the same way (i.e., either all as
+\(\tpcheck\) or all as \(\tpsynth\)).
+We follow the syntax of our implementation
 Cedille, which distinguishes application of a term or type $e$ to a
 type ($e \cdot T$), from application to a term ($e\ t$), and
-application to an erased term argument ($e\ \mhyph t$).  The rules are
-intended, with a few points of nondeterminism, to be read bottom-up
-(in a standard way; cf.~\cite{peytonjones07}) as an algorithm for
-computing a classifier from a context and an expression ($\tpsynth$)
-or checking an expression against a classifier in context
-($\tpcheck$).
+application to an erased term argument ($e\ \mhyph t$, in which case \(e\) must
+be a term).
+The rules are intended, with a few points of nondeterminism, to be read
+bottom-up (in a standard way;
+c.f.~\cite{peytonjones07,Pfe01_Lecture-Notes-on-Bidirectional-Type-Checking}) as
+an algorithm for synthesizing a classifier from a context and an expression
+($\tpsynth$) (\emph{type synthesis}) or checking an expression against a classifier in context
+($\tpcheck$) (\emph{type checking}).
+Specifically, nondeterminism arises in the two rules allowing both synthesized
+and checked types to be reduced, written \(T \leadsto^*_\beta T'\), so that type
+constructors required by other rules may be revealed.
+The reduction relation \(\leadsto_\beta\) is call-by-name normalization, as this
+is sufficient to reduce types to weak head normal form.
 
 The classification rules refer to an erasure function, defined in
 Figure~\ref{fig:eraser}.  The type theory is \emph{extrinsic} (aka,
 Curry-style), and hence we only consider erasures $|t|$ of terms when
-testing for $\beta\eta$-equivalence.  This is done by the conversion
-relation $T\cong T'$, whose central rules are given in
+testing for $\beta\eta$-equivalence.  This applies also to the conversion
+relation $T\cong T'$ on types and \(\kappa \cong \kappa'\) on kinds, whose central rules are given in
 Figure~\ref{fig:conv}.  That figure omits the various congruence rules
 needed to equate bigger expressions by equating subexpressions.  The
 main ideas of conversion shown in the figure are to use
 $\beta$-equivalence at the type level, and $\beta\eta$-equivalence of
 erased terms at the term level.
-
+Note in particular that for conversion we check full \(\beta\) and
+\(\beta\eta\)-equivalence, not just equivalence with respect to call-by-name
+normalization.
 
 \begin{figure}
   \[
@@ -238,32 +250,33 @@ exotic construct allowing us to assign type $\abs{\iota}{x}{T'}{T}$ to
 erased term $t$ when we can assign $T'$ to $t$, and also assign
 $[t/x]T$ to $t$.  For an annotated introduction form, we write
 $[t,t'$], where $t$ checks against type $T'$, $t'$ checks against
-$[t/x]T$, and $t$ and $t'$ have identical (i.e., $\alpha$-equivalent)
+$[t/x]T$, and $t$ and $t'$ have $\alpha\beta\eta$-equivalent
 erasures.  Dependent intersections thus enable a controlled form of
 self-reference in the type.  Previous work showed how to use this to
 derive induction for Church-encoded natural numbers~\cite{stump18}.
 We will see below further uses of this construct.
 
 The typing rules include conversion checks in a few places; e.g., as
-standardly, when switching from checking to synthesizing mode.  Two
-rules near the top of Figure~\ref{fig:tp} state that one may (nondeterministically)
-$\beta$-reduce the type one is synthesizing or checking, before proceeding.
-This allows reduction to head-normal form,
-to match the form of type required by other rules.
-Finally, we include the construct $\chi\ T\ \mhyph\ t$ to change the
-synthesized or checked type $T'$ to $T$, if $T \cong T'$.  This may
-be necessary to get the type into a specific form for purposes of rewriting
-with the $\rho$ construct.
+standardly, when switching from checking to synthesizing mode.  As mentioned
+earlier, two rules near the top of Figure~\ref{fig:tp} state that one may
+(nondeterministically) $\beta$-reduce the type one is synthesizing or checking,
+before proceeding.
+This allows reduction to weak head normal form, to match the form of type
+required by other rules.
+Finally, we include the construct $\chi\ T\ \mhyph\ t$ which allows a term whose
+type can only be checked to be ascribed a user-provided type so that the whole
+expression may occur where type synthesis is expected.
 
-Finally, we have modified
-the rules for equality types $\{ t \simeq t' \}$ so that we require
+We have modified the rules for equality types $\{ t \simeq t' \}$ so that we require
 nothing of $t$ and $t'$ except that the set $\textit{dom}(\Gamma)$ of variables
 declared by $\Gamma$ includes their free variables $\textit{FV}(t\ t')$.  Further modifications
 over the version of CDLE in~\cite{stump18} are:
 \begin{itemize}
 \item To prove $\{ t \simeq t\}$, one now writes $\beta\{t'\}$,
-  with the critical idea that $|\beta\{t\}|$ erases to $|t|$.  We call this the \textbf{Kleene trick},
-  because it goes back to Kleene's numeric realizability, which accepts any number $n$ as a realizer
+  with the critical idea that $|\beta\{t'\}|$ erases to $|t'|$.  We call this the \textbf{Kleene trick},
+  because it goes back to Kleene's numeric
+  realizability~\cite{Kle65_Classical-Extensions-of-Intuitionistic-Mathematics},
+  which accepts any number $n$ as a realizer 
   of a true equation.  Here, we accept any closed term $t$ as a realizer
   of $\{ t \simeq t\}$.  This means that in Cedille, any such term -- even otherwise untypable
   terms, non-normalizing terms, etc. -- have type $\{ t \simeq t\}$ for any term $t$.
@@ -281,7 +294,12 @@ over the version of CDLE in~\cite{stump18} are:
   type theory~\cite{geuvers92},
   it raises no difficulties for our extrinsic one.
 \item In this version, we add an explicit axiom $\delta$ saying that Church-encoded boolean \emph{true} is different from
-  \emph{false}.  In the first version of CDLE, such an axiom was derivable from \emph{lifting}, a construct allowing
+  \emph{false}.
+  In the implementation of Cedille, this is generalized to the rule where the
+  proof \(t\) synthesizes an equation \(\{t_1 \simeq t_2\}\) in which \(|t_1|\)
+  and \(|t_2|\) are separable using the \emph{B\"ohm-out algorithm}~\cite{BDPR79_Bohm-Algorithm}.
+
+  In the first version of CDLE, such an axiom was derivable from \emph{lifting}, a construct allowing
   simply typable terms to be lifted to the type level~\cite{stump17}.  We omit lifting in this new version of CDLE, because while
   sound, lifting as defined in that previous work is complicated and appears to be incomplete.  Developing a new
   form of lifting remains to future work.
@@ -356,9 +374,11 @@ where type checking is decidable but, in general, infeasible (since one
 may write astronomically slow terminating functions).
 
 Finally, in line with ideas recently advocated by Dreyer, we
-do not concern ourselves with syntactic
-type preservation~\cite{dreyer18}, noting instead that by construction,
-semantic types $\interp{T}_{\sigma,\rho}$ are preserved by $\beta\eta$-reduction:
+are less concerned with syntactic
+type preservation as we are with \emph{semantic} type
+preservation~\cite{dreyer18}.
+Note that by construction, semantic types $\interp{T}_{\sigma,\rho}$ are
+preserved by $\beta\eta$-reduction:
 
   \begin{theorem}[Semantic type preservation]
     If $t \leadsto_{\beta\eta} t'$ and $t\in\interp{T}_{\sigma,\rho}$, then $t'\in\interp{T}_{\sigma,\rho}$.
@@ -514,7 +534,7 @@ If $t' =_{\cbe} \sigma |t|$, then:
 \end{lemma}
 \begin{proof}
   This follows by induction on the reduction derivation, making use of the previous substitution lemmas.
-  \end{proof}
+\end{proof}
 
 \begin{proof}[Soundness (Theorem~\ref{thm:snd})]
   The following proof is adapted from~\cite{stump17}.  It proceeds by
