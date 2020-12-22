@@ -138,7 +138,7 @@ normalization.
     \infer{\Gamma\vdash\abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa}}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T'\tpsynth\kappa} &
     \infer{\Gamma\vdash\abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa'}}{\Gamma \vdash \kappa & \Gamma,X:\kappa\vdash T'\tpsynth\kappa'} \\ \\
     \infer{\Gamma\vdash T\ t \tpsynth [t/x]\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
-    \infer{\Gamma\vdash T\cdot T' \tpsynth [T'/X]\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{X}{\kappa'}{\kappa} & \Gamma\vdash T' \tpsynth \kappa' & \kappa \cong \kappa'} \\ \\
+    \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'} \\ \\
     \infer{\Gamma\vdash\abs{\iota}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
     \infer{\Gamma\vdash \{ t \simeq t' \} : \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
   \end{array}
@@ -703,17 +703,16 @@ $\interp{\kappa}_{\sigma[x\mapsto \choice([\sigma |t|]_{\cbe})],\rho}$
 
 \startcase{.2cm}
 \[
-\infer{\Gamma\vdash T\cdot T' \tpsynth [T'/X]\kappa}
-      {\Gamma\vdash T \tpsynth \abs{\Pi}{X}{\kappa'}{\kappa} & \Gamma\vdash T' \tpsynth \kappa' & \kappa \cong \kappa'} 
+  \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'}
 \]
 By the IH applied to the first premise,
-$\interp{T}_{\sigma,\rho}\in\interp{\abs{\Pi}{X}{\kappa'}{\kappa}}_{\sigma,\rho}$.
+$\interp{T_1}_{\sigma,\rho}\in\interp{\abs{\Pi}{X}{\kappa_2}{\kappa_1}}_{\sigma,\rho}$.
 By the semantics of $\Pi$-kinds, this means that for any
-$S\in\interp{\kappa'}_{\sigma,\rho}$, $\interp{T}_{\sigma,\rho}\ S$ is in
-$\interp{\kappa}_{\sigma,\rho[X\mapsto S]}$.  By the IH for the second premise, we have 
-$\interp{T'}\interp{\kappa'}_{\sigma,\rho}$, and by the IH for the third premise,
-we have $\interp{\kappa}_{\sigma,\rho} = \interp{\kappa'}_{\sigma,\rho}$.  So
-we get $\interp{T}_{\sigma,\rho}(\interp{T'}_{\sigma,\rho})\in \interp{\kappa}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$,
+$S\in\interp{\kappa_2}_{\sigma,\rho}$, $\interp{T_1}_{\sigma,\rho}\ S$ is in
+$\interp{\kappa_1}_{\sigma,\rho[X\mapsto S]}$.  By the IH for the second premise, we have 
+$\interp{T_2} \in \interp{\kappa_2'}_{\sigma,\rho}$, and by the IH for the third premise,
+we have $\interp{\kappa_2}_{\sigma,\rho} = \interp{\kappa_2'}_{\sigma,\rho}$.  So
+we get $\interp{T_1}_{\sigma,\rho}(\interp{T_2}_{\sigma,\rho})\in \interp{\kappa_1}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$,
 which suffices by Lemma~\ref{lem:tpsubstinterp}.
 
 \startcase{.2cm}
