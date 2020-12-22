@@ -158,7 +158,7 @@ erased terms at the term level.
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
     \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
 
-    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t)\subseteq \textit{dom}(\Gamma)}  \\ \\    
+    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t\ t')\subseteq \textit{dom}(\Gamma)}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
     \infer{\Gamma\vdash \rho\ t'\ \mhyph\ t \Leftrightarrow [t_2/x]T}
           {\Gamma\vdash t' \tpsynth \{ t_1 \simeq t_2 \} & \Gamma \vdash t \Leftrightarrow [t_1/x]T} \\ \\
@@ -189,7 +189,7 @@ erased terms at the term level.
     |t.1| & = & |t| \\
     |t.2| & = & |t| &\ &
     |\beta\{t\}| & = & |t|\\
-    |\delta\ \mhyph\ t| & = & |t|&\ &
+    |\delta\ \mhyph\ t| & = & \absu{\lambda}{x}{x}&\ &
     |\rho\ t\ \mhyph\ t'| & = & |t'| \\
     |\phi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
     |\chi\ T\ \mhyph\ t'| & = & |t'|
@@ -848,9 +848,9 @@ $[\sigma|t'|]_{\cbe}\in\interp{\{ t \simeq t \}}_{\sigma,\rho}$ follows directly
 \[
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpsynth \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  
 \]
-By the semantics of equality types, $[\sigma|t'|]_{\cbe}$ cannot be in the interpretation of the equation in the premise,
+By the semantics of equality types, $[\sigma|t|]_{\cbe}$ cannot be in the interpretation of the equation in the premise,
 since the two terms in question are closed and not $\beta\eta$-equal.  By the IH applied to the first premise, however,
-$[\sigma|t'|]_{\cbe}$ is in the interpretation of that equation.  This is a contradiction.
+$[\sigma|t|]_{\cbe}$ is in the interpretation of that equation.  This is a contradiction.
 
 \startcase{.2cm}
 \[
