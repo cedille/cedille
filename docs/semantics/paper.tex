@@ -338,6 +338,8 @@ Suppose $(\sigma,\rho)\in\interp{\Gamma}$.  Then we have:
 \item If $\Gamma\vdash t \tpcheck T$ and $\interp{T}_{\sigma,\rho}\in \mathcal{R}$, then
     $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}\in \mathcal{R}$.
 \item If $T \cong T'$ or $T \cong^t T'$ and $\interp{T}_{\sigma,\rho}$ and $\interp{T'}_{\sigma,\rho}$ are both defined, then they are equal.
+\item If \(\kappa \cong \kappa'\) and \(\interp{\kappa}_{\sigma,\rho}\) and
+  \(\interp{\kappa'}_{\sigma,\rho}\) are both defined, then they are equal.
 \end{enumerate}
 \end{theorem}
 
@@ -973,7 +975,14 @@ $\interp{T'}_{\sigma,\rho}([\sigma|t'|]_{\cbe})$, as required.
 \]
 This follows easily from the premises and the semantics of equality types.
 
+\subsection*{Proof of Part (6)}
+
+The convertibility relation for kinds consists entirely of congruential rules
+for quantification over types and kinds.
+
 \end{proof}
+
+
 
 \section{Proof of Theorem~\ref{thm:cedille-termination}}
 \begin{proof}
