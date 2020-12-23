@@ -181,9 +181,9 @@ normalization.
             & T' \cong [t_1/x]T
           \end{array}
           } \\ \\
-    \infer{\Gamma \vdash \chi\ T\ \mhyph t\ \tpsynth T}
+    \infer{\Gamma \vdash \chi\ T\ \mhyph\ t\ \tpsynth T}
           {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T} &
-    \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
+    \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
           {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}
   \end{array}
   \]
@@ -299,7 +299,7 @@ over the version of CDLE in~\cite{stump18} are:
   is well-kinded whose details are beyond the scope of this document.
 \item We adopt a strong form of Nuprl's \textbf{direct computation rules}~\cite{constable+86}:
   If we have a term $t'$ of type $T$ and a proof $t$ that $\{ t' \simeq t''\}$, then we may conclude that
-  $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\{t''\}$, which
+  $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\ \{t''\}$, which
   erases to $t''$.
 \item Where the previous version of CDLE uses $\beta$-equivalence for (erased) terms, we here adopt $\beta\eta$-equivalence.  This
   allows us to observe in many cases that retyping functions are actually $\beta\eta$-equivalent to $\absu{\lambda}{x}{x}$.
@@ -446,7 +446,7 @@ terms need to be reduced during this process.
 \\ 
 \interp{T\ t}_{\sigma,\rho} & = & \interp{T}_{\sigma,\rho}([\sigma |t|]_{\cbe})
 \\
-\interp{t \simeq t'}_{\sigma,\rho} & = & [\{ t''\ |\ \sigma |t| =_{\beta\eta} \sigma |t'|\ \wedge\ t'' = |t''| \}]_{\cbe} \\
+\interp{\{t \simeq t'\}}_{\sigma,\rho} & = & [\{ t''\ |\ \sigma |t| =_{\beta\eta} \sigma |t'|\ \wedge\ t'' = |t''| \}]_{\cbe} \\
 \ &\ &\ \ \ \textnormal{ if }\textit{FV}(t\ t')\subseteq\textit{dom}(\sigma) 
 \\
 \interp{\star}_{\sigma,\rho} & = & \mathcal{R} \\ 
