@@ -169,8 +169,8 @@ normalization.
           {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]T' & |t| =_{\beta\eta} |t'|} &
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
     \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
-
-    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t')\subseteq \textit{dom}(\Gamma)}  \\ \\    
+    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
+          {\Gamma\vdash \textit{FV}(t'\ t_1\ t_2)\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
     \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
           {
@@ -277,15 +277,17 @@ nothing of $t$ and $t'$ except that the set $\textit{dom}(\Gamma)$ of variables
 declared by $\Gamma$ includes their free variables $\textit{FV}(t\ t')$.  Further modifications
 over the version of CDLE in~\cite{stump18} are:
 \begin{itemize}
-\item To prove $\{ t \simeq t\}$, one now writes $\beta\{t'\}$,
-  with the critical idea that $|\beta\{t'\}|$ erases to $|t'|$.  We call this the \textbf{Kleene trick},
-  because it goes back to Kleene's numeric
+\item To prove $\{ t_1 \simeq t_2\}$ for definitionally equal terms (that is,
+  terms that are \(\beta\eta\)-equivalent modulo erasure), one now writes $\beta\{t'\}$,
+  with the critical idea that $|\beta\{t'\}|$ erases to (a possibly unrelated) $|t'|$.
+  We call this the \textbf{Kleene trick}, because it goes back to Kleene's numeric
   realizability~\cite{Kle65_Classical-Extensions-of-Intuitionistic-Mathematics},
   which accepts any number $n$ as a realizer 
-  of a true equation.  Here, we accept any closed term $t$ as a realizer
-  of $\{ t \simeq t\}$.  This means that in Cedille, any such term -- even otherwise untypable
-  terms, non-normalizing terms, etc. -- have type $\{ t \simeq t\}$ for any term
-  $t$.
+  of a true equation.  Here, we accept any term $t'$ as a realizer of $\{ t_1
+  \simeq t_2\}$, provided the free variables of \(t'\) are declared in the
+  context.
+  This means that in Cedille, any such term --- even otherwise untypable
+  terms, non-normalizing terms, etc. --- prove trivially true equations.
 \item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) to
   \(t_2\) in the synthesized type of the second subexpression.
   The version presented here requires a ``guide'' \(@x.T\), where \(x\)
@@ -888,9 +890,15 @@ Similar to the previous case, using Lemma~\ref{lem:termsubstinterp}.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t \simeq t \}}{\Gamma\vdash \textit{FV}(t)\subseteq \textit{dom}(\Gamma)}  
+  \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
+  {\Gamma\vdash \textit{FV}(t'\ t_1\ t_2)\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
 \]
-$[\sigma|t'|]_{\cbe}\in\interp{\{ t \simeq t \}}_{\sigma,\rho}$ follows directly from the semantics of equality types.
+Since by assumption \(|t_1| =_{\beta\eta} |t_2|\) it follows that \(\sigma|t_1|
+=_{\beta\eta} \sigma|t_2|\), and also by assumption it follows that
+\(\textit{FV}(t_1\ t_2) \subseteq \textit{dom}(\sigma)\).
+Also, we see \(\sigma|t'|\) is a closed term.
+So, $[\sigma|t'|]_{\cbe}\in\interp{\{ t_1 \simeq t_2 \}}_{\sigma,\rho}$ follows
+directly from the semantics of equality types.
 
 \startcase{.2cm}
 \[
@@ -902,30 +910,34 @@ $[\sigma|t|]_{\cbe}$ is in the interpretation of that equation.  This is a contr
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \rho\ t'\ \mhyph\ t \Leftrightarrow [t_2/x]T}
-          {\Gamma\vdash t' \tpsynth t_1 \simeq t_2 & \Gamma \vdash t \Leftrightarrow [t_1/x]T} 
+  \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
+  {
+    \begin{array}{cc}
+      \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
+      & \quad \Gamma \vdash [t_2/x]T \tpsynth \star
+      \\ \Gamma \vdash t \tpsynth T'
+      & T' \cong [t_1/x]T
+    \end{array}
+  }
 \]
-By the IH applied to the first premise, $\sigma|t_1| =_{\beta\eta} \sigma|t_2|$.  The result then follows by the IH applied to the second premise,
-and Lemma~\ref{lem:termsubstinterp}.
+By the IH applied to the first premise in the first row, $\sigma|t_1| =_{\beta\eta}
+\sigma|t_2|$.
+By the IH applied to the first premise in the second row,
+\([\sigma|t|]_{c\beta\eta} \in \interp{T'}_{\sigma.\rho}\).
+By the IH applied to the second premise in the second row,
+\(\interp{T'}_{\sigma,\rho} = \interp{[t_1/x]T}_{\sigma,\rho}\).
+The result then follows by applying Lemma~\ref{lem:termsubstinterp}.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpcheck T'}
-          {\Gamma\vdash T\tpsynth \star & \Gamma\vdash t \tpcheck T & T \cong T'} 
+  \infer{\Gamma \vdash \chi\ T\ \mhyph\ t\ \tpsynth T}
+  {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T}
 \]
-Using the IH for the first premise and the assumption that $\interp{T'}_{\sigma,\rho}$ is in $\mathcal{R}$ and hence defined,
-we can apply the IH to the third premise to get $\interp{T}_{\sigma,\rho} = \interp{T'}_{\sigma,\rho}$.  Using this and the IH for second premise,
-we get the desired conclusion, using also the definition of erasure.
-
-\startcase{.2cm}
-\[
-    \infer{\Gamma\vdash \chi\ T\ \mhyph\ t \tpsynth T}
-          {\Gamma\vdash T\tpsynth \star & \Gamma\vdash t \tpsynth T' & T \cong T'} 
-\]
-By the IH applied to the second premise, we have $[\sigma|t|]_{\cbe}\in\interp{T'}_{\sigma,\rho}\in\mathcal{R}$.
-Using definedness of $\interp{T'}_{\sigma,\rho}$ and the IH applied to the first premise, we can apply the
-IH to the third premise to get $\interp{T}_{\sigma,\rho} = \interp{T'}_{\sigma,\rho}$, from which the desired
-conclusion follows by definition of erasure.
+We apply the IH for the first premise to get that
+$\interp{T}_{\sigma,\rho}$ is in $\mathcal{R}$ and hence defined.
+Using this, we apply the IH on the second premise to get \([\sigma|t|]_{\cbe}
+\in \interp{T}_{\sigma,\rho}\), which by the definition of erasure is what we
+must show.
 
 \startcase{.2cm}
 \[
