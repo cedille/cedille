@@ -23,6 +23,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{observation}[theorem]{Observation}
 
 \bibliographystyle{plain}
@@ -151,7 +152,7 @@ normalization.
 \begin{figure}
   \[
   \begin{array}{ll}
-    \infer{\Gamma\vdash x\tpsynth T}{(x : t)\in\Gamma} &
+    \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
     \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} \\ \\    
     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\    
@@ -170,7 +171,7 @@ normalization.
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
     \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
     \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
-          {\Gamma\vdash \textit{FV}(t'\ t_1\ t_2)\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
+          {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
     \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
           {
@@ -190,6 +191,25 @@ normalization.
 \caption{Rules for checking a term against a well-kinded type ($\Gamma \vdash t \tpcheck T$)
            and synthesizing a type for a term ($\Gamma \vdash t \tpsynth T$)}
 \label{fig:tp}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \[
+    \begin{array}{lll}
+      \infer{\vdash \cdot}{}
+      & \infer{
+        \vdash \Gamma,x:T
+        }{\Gamma \vdash T \tpsynth \star}
+      & \infer{
+        \vdash \Gamma,X:\kappa
+        }{
+        \Gamma \vdash \kappa
+        }
+    \end{array}
+  \]
+  \caption{Rules for checking a context is well-formed}
+  \label{fig:ctxt}
 \end{figure}
 
 
@@ -363,8 +383,9 @@ including non-normalizing ones. In our annotated syntax, we write
 \texttt{\(\beta\)\{t\}}. Even without this, the presence of $\delta$ in
 combination with $\varphi$ allows us to type non-normalizing terms assuming an
 erased argument $x$ of type $\{ \textit{tt} \simeq \textit{ff} \}$ for
-Church-encoded booleans \textit{tt} and \textit{ff}. For example, $\delta\ \mhyph x$
-has type \(\{\absu{\lambda}{x}{x} \simeq \absu{\lambda}{x}{x\ x}\}\), and with
+Church-encoded booleans \textit{tt} and \textit{ff}. For example, $\delta\
+\mhyph\ x$ can be checked against type \(\{\absu{\lambda}{x}{x} \simeq
+\absu{\lambda}{x}{x\ x}\}\), and with 
 $\varphi$ we can use this to type $\Omega$ by changing the typed term
 \(\texttt{id}\ \cdot\texttt{True}\ \texttt{id}\), where \verb|True| is
 \(\abs{\forall}{X}{\star}{X \to X}\). But failure of normalization does not
@@ -891,7 +912,7 @@ Similar to the previous case, using Lemma~\ref{lem:termsubstinterp}.
 \startcase{.2cm}
 \[
   \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
-  {\Gamma\vdash \textit{FV}(t'\ t_1\ t_2)\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
+  {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
 \]
 Since by assumption \(|t_1| =_{\beta\eta} |t_2|\) it follows that \(\sigma|t_1|
 =_{\beta\eta} \sigma|t_2|\), and also by assumption it follows that
@@ -1020,28 +1041,148 @@ call-by-name normalizing (cf.~\cite{Kashima2000}).
 \label{sec:proof-syntactic-kind-pres}
 
 First a few lemmas (easy proofs omitted):
-\begin{lemma}
-  \label{lem:inference-validity}
-  \ \\
-  \begin{itemize}
-  \item If \(\Gamma \vdash T \tpsynth \kappa\) then \(\Gamma \vdash \kappa\)
-    
-  \item If \(\Gamma \vdash t \ T\) then \(\Gamma \vdash T \tpsynth
-    \kappa\) for some \(\kappa\)
-  \end{itemize}
-\end{lemma}
 
 \begin{lemma}
-  \label{lem:subst-kind}
+  \label{lem:subst-class}
+  Below, each statement seperately universally quantifies over meta-variables,
+  and it is assumed that typing contexts occuring in assumed derivations are
+  well-formed.
+  We also assume types in type checking judgments are well-formed under the
+  given context.
+  \begin{enumerate}
+  \item \textbf{Kinds:}
+    \begin{itemize}
+    \item If \(\Gamma_1,x:T,\Gamma_2 \vdash \kappa\) and \(\Gamma_1 \vdash t
+      \tpcheck T\) then \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x] \kappa\)
+      
+    \item If \(\Gamma_1,X:\kappa',\Gamma_2 \vdash \kappa\) and \(\Gamma_1 \vdash
+      T \tpsynth \kappa'\) then \(\Gamma_1,[T/X]\Gamma_2 \vdash [T/X]\kappa\)
+    \end{itemize}
+    
+  \item \textbf{Types}
+    \begin{itemize}
+    \item If \(\Gamma_1,x:T',\Gamma_2 \vdash T \tpsynth \kappa\) and \(\Gamma_1 \vdash t
+      \tpsynth T'\) then \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]T \tpsynth [t/x]\kappa\)
+      
+    \item If \(\Gamma_1,X:\kappa_2,\Gamma_2 \vdash T_1 \tpsynth \kappa_1\) and \(\Gamma_1
+      \vdash T_2 \tpsynth \kappa_2\) then \(\Gamma_1,[T_2/X]\Gamma_2 \vdash [T_2/X]T_1 \tpsynth [T_2/X]\kappa_1\)
+    \end{itemize}
+    
+  \item \textbf{Terms:}
+    \begin{itemize}
+    \item If \(\Gamma_1,x:T',\Gamma_2 \vdash t \Leftrightarrow T\) and
+      \(\Gamma_1 \vdash t' \tpsynth T'\) then \(\Gamma_1,[t'/x]\Gamma_2 \vdash [t'/x]t
+      \Leftrightarrow [t'/x]T\)
+     
+    \item If \(\Gamma_1,X:\kappa,\Gamma_2 \vdash t \Leftrightarrow T'\) and
+      \(\Gamma_1 \vdash T \tpsynth \kappa\) then \(\Gamma_1,[T/X]\Gamma_2 \vdash
+      [T/X]t \Leftrightarrow [T/X]T'\)
+    \end{itemize}
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the assumed derivations.
+  We only show a few interesting cases.
+  
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,X:\kappa,\Gamma_2 \vdash X_1 \tpsynth \kappa_1}{(X_1 : \kappa_1) \in \Gamma_1,X:\kappa,\Gamma_2}
+  \]
+
+  We have two cases.
+  If \(X_1 = X\), then \(\kappa_1 = \kappa\) and by assumption \(\Gamma_1 \vdash
+  T \tpsynth \kappa\), and the desired result holds by weakening.
+  Otherwise, either \((X_1 : \kappa_1) \in \Gamma_1\) and \(X \notin
+  \textit{FV}(\kappa_1)\), or else \((X_1 : \kappa_1) \in \Gamma_2\).
+  Either way, we have \(\Gamma_1,[T/X]\Gamma_2 \vdash X_1 \tpsynth
+  [T/X]\kappa_1\).
+
+  \startcase{.2cm}
+  \[ \infer{\Gamma_1,x:T,\Gamma_2\vdash T_2\ t_1 \tpsynth [t_1/x_1]\kappa
+    }{
+      \Gamma_1,x:T,\Gamma_2\vdash T_2 \tpsynth \abs{\Pi}{x_1}{T_1}{\kappa}
+      & \Gamma_1,x:T,\Gamma_2\vdash t_1 \tpcheck T_1
+    }
+  \]
+
+  By the IH, \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]T_2 \tpsynth
+  \abs{\Pi}{x_1}{[t/x]T_1}{[t/x]\kappa}\) and \(\Gamma_1,[t/x]\Gamma_2 \vdash
+  [t/x]t_1 \tpcheck [t/x]T_1\).
+  By the rule, we have \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]T_2\ [t/x]t_1
+  \tpsynth [[t/x]t_1/x_1][t/x]\kappa\), where the synthesized kind is equal to
+  the desired \([t/x][t_1/x_1]\kappa\).
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x:T,\Gamma_2\vdash \{ t_1 \simeq t_2 \} : \star
+    }{
+      \textit{FV}(t_1\ t_2)\subseteq\textit{dom}(\Gamma_1,x:T,\Gamma_2)
+    }
+  \]
+  It suffices to show that \(\textit{FV}([t/x]t_1\ [t/x]t_2) \subseteq
+  \textit{dom}(\Gamma_1,[t/x]\Gamma_2)\).
+  It is clear \(x\) is not a free variable of this expression, that the free
+  variables of \(t\) are declared in \(\Gamma_1\), and by assumption the other
+  free variables of it are declared in \(\Gamma_1,[t/x]\Gamma_2\).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash x_1\tpsynth T_1}{(x_1 : T_1) \in \Gamma_1,x:T,\Gamma_2}
+  \]
+  We elaborate on the case where \(x_1 = x\).
+  It is important that we assumed that \(\Gamma_1 \vdash t \tpsynth T\) (as
+  opposed to having its type checked), as we may now replace the given rule with
+  this assumed derivation without changing the definition of substitution.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x:T,\Gamma_2\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
+    {\textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,x:T,\Gamma_2) \quad |t_1| =_{\beta\eta} |t_2|}
+  \]
+
+  From our assumptions we may conclude \(\textit{FV}([t/x]t) \subseteq
+  \textit{dom}(\Gamma_1,[t/x]\Gamma_2)\), and from the second premise that
+  \(|[t/x]t_1| =_{\beta\eta} |[t/x]t_2|\).
+  Thus, \(\Gamma_1,[t/x]\Gamma_2\ \vdash \beta\{[t/x]t'\}\tpcheck \{[t/x]t_1
+  \simeq [t/x]t_2\}\).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [t_2/x_1]T_1}
+    {
+      \begin{array}{cc}
+        \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynth \{t_1 \simeq t_2\}
+        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [t_2/x_1]T_1 \tpsynth \star
+        \\ \Gamma_1,x:T,\Gamma_2 \vdash t' \tpsynth T'
+        & T' \cong [t_1/x_1]T_1
+      \end{array}
+    }
+  \]
+  From the IH, we have that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t'' \tpsynth \{[t/x]t_1
+  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][t_2/x]T_1
+  \tpsynth \star\), and that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t' \tpsynth
+  [t/x]T'\).
+  From the last premise, we may conclude that \([t/x]T' \cong
+  [t/x][t_1/x_1]T_1\).
+  Applying the rule and permuting substitutions gives us the desired result
+  (note \([t/x][t_1/x_1]T_1 = [[t/x]t_1/x_1]T_1\)).
+\end{proof}
+
+\begin{corollary}
   \ \\
   \begin{itemize}
-  \item If \(\Gamma,x:T \vdash T \tpsynth \kappa\) and \(\Gamma \vdash t
-    \tpcheck T\) then \(\Gamma \vdash [t/x]T \tpsynth [t/x]\kappa\)
+  \item If \(\vdash \Gamma_1,x:T,\Gamma_2\) and \(\Gamma_1 \vdash t \tpsynth T\)
+    then \(\vdash \Gamma_1,[t/x]\Gamma_2\)
     
-  \item If \(\Gamma,X:\kappa_2 \vdash T_1 \tpsynth \kappa_1\) and \(\Gamma
-    \vdash T_2 \tpsynth \kappa_2\) then \(\Gamma \vdash [T_2/X]T_1 \tpsynth [T_2/X]\kappa_1\)
+  \item If \(\vdash \Gamma_1,X:\kappa,\Gamma_2\) and \(\Gamma_1 \vdash T
+    \tpsynth \kappa\) then \(\vdash \Gamma_1,[T/X]\Gamma_2\).
   \end{itemize}
-\end{lemma}
+\end{corollary}
+\begin{proof}
+  By induction on the assumed derivation, appealing to
+  Lemma~\ref{lem:subst-class} at each step.
+\end{proof}
 
 \begin{lemma}
   \label{lem:tpcheck-conv}
@@ -1075,7 +1216,7 @@ First a few lemmas (easy proofs omitted):
   In the other subcase, the subject of kinding is of the form
   \((\abs{\lambda}{x}{T_1}{T''})\ t\) and our assumed reduction is to
   \([t/x]T''\). By inversion of the kinding derivation, we have \(\Gamma,x:T_1
-  \vdash T'' \tpsynth \kappa_1\). By Lemma~\ref{lem:subst-kind}, we have
+  \vdash T'' \tpsynth \kappa_1\). By Lemma~\ref{lem:subst-class}, we have
   \(\Gamma \vdash [t/x]T'' \tpsynth [t/x]\kappa_1\).
 
   \startcase{.2cm}
@@ -1100,7 +1241,7 @@ First a few lemmas (easy proofs omitted):
   \((\abs{\lambda}{X}{\kappa_2}{T_1''}) \cdot T_2\) and our assumed reduction is
   to \([T_2/X]T_1''\). By inversion of the kinding derivation, we have
   \(\Gamma,X:\kappa_2 \vdash T_1'' \tpsynth \kappa_1\). By
-  Lemma~\ref{lem:subst-kind}, we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
+  Lemma~\ref{lem:subst-class}, we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
   [T_2/X]\kappa_1\).
 
 \end{proof}
