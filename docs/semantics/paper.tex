@@ -87,6 +87,12 @@ synthesizing.  We write $\Leftrightarrow$ to range over
 $\{\tpcheck,\tpsynth\}$, and when this symbol occurs multiple times in a rule,
 it is intended that such occurrences be read the same way (i.e., either all as
 \(\tpcheck\) or all as \(\tpsynth\)).
+Since term variables synthesize their types but the usual notion of substitution may
+replace these with terms whose types can only be checked, we introduce a
+short-hand notation: let \([t/x]^T\) stand for \([\chi\ T\ \mhyph\ t/x]\),
+where the \(\chi\) construct gives an explicit type annotation (see
+Section~\ref{sec:overview}).
+
 We follow the syntax of our implementation
 Cedille, which distinguishes application of a term or type $e$ to a
 type ($e \cdot T$), from application to a term ($e\ t$), and
@@ -139,7 +145,7 @@ normalization.
     \infer{\Gamma\vdash\abs{\Pi}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} \\ \\
     \infer{\Gamma\vdash\abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa}}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T'\tpsynth\kappa} &
     \infer{\Gamma\vdash\abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa'}}{\Gamma \vdash \kappa & \Gamma,X:\kappa\vdash T'\tpsynth\kappa'} \\ \\
-    \infer{\Gamma\vdash T\ t \tpsynth [t/x]\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
+    \infer{\Gamma\vdash T\ t \tpsynth [t/x]^{T'}\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
     \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'} \\ \\
     \infer{\Gamma\vdash\abs{\iota}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
     \infer{\Gamma\vdash \{ t \simeq t' \} \tpsynth \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
@@ -152,25 +158,26 @@ normalization.
 
 \begin{figure}
   \[
+    \begin{array}{c}
   \begin{array}{ll}
     \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
     \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} \\ \\    
     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\    
     \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck \abs{\Pi}{x}{T}{T'}}{\Gamma,x:T\vdash t\tpcheck T'} &
-    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
+    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
     \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck \abs{\forall}{X}{\kappa}{T}}{\Gamma,X:\kappa\vdash t \tpcheck T} &
     \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
           {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
 
     \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck \abs{\forall}{x}{T'}{T}}{\Gamma,x:T'\vdash t \tpcheck T & x\not\in\textit{FV}(|t|)} &
-    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
+    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
     \infer{\Gamma\vdash [ t , t' ] \tpcheck \abs{\iota}{x}{T}{T'}}
-          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]T' & |t| =_{\beta\eta} |t'|} &
+          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]^TT' & |t| =_{\beta\eta} |t'|} &
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
-    \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
+    \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]^TT'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
     \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
           {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
@@ -178,7 +185,7 @@ normalization.
           {
           \begin{array}{cc}
             \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
-            & \quad \Gamma \vdash [t_2/x]T \tpsynth \star
+            & \quad \Gamma \vdash [\beta\{t_2\}/x]^{\texttt{Top}}\ T \tpsynth \star
             \\ \Gamma \vdash t \tpsynth T'
             & T' \cong [t_1/x]T
           \end{array}
@@ -188,6 +195,9 @@ normalization.
     \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
           {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}
   \end{array}
+      \\ \\
+      \texttt{Top} = \{\absu{\lambda}{x}{x} \simeq \absu{\lambda}{x}{x} \}
+    \end{array}
   \]
 \caption{Rules for checking a term against a well-kinded type ($\Gamma \vdash t \tpcheck T$)
            and synthesizing a type for a term ($\Gamma \vdash t \tpsynth T$)}
@@ -309,17 +319,28 @@ over the version of CDLE in~\cite{stump18} are:
   context.
   This means that in Cedille, any such term --- even otherwise untypable
   terms, non-normalizing terms, etc. --- prove trivially true equations.
+  Put another way, any trivially true equation type in CDLE is a suitable type
+  to classify all untyped lambda calculus terms.
+  We define such a type \texttt{Top} at the bottom of Figure~\ref{fig:tp}, which
+  is used in the typing of the next construct we discuss, \(\rho\).
 \item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) to
   \(t_2\) in the synthesized type of the second subexpression.
   The version presented here requires a ``guide'' \(@x.T\), where \(x\)
   indicates the occurrences of \(t_1\) to substitute.
-  \([t_2/x]T\) must be a well-kinded type, but it is not required that
+  \([t_2/x]^{\texttt{Top}}\ T\) must be a well-kinded type, but it is not required that
   \([t_1/x]T\) also be, only that \(T'\) and \([t_1/x]T\) are convertible modulo
   erasure --- it is not guaranteed that \(t_1\) and \(t_2\) will have the same
   type, or will even be typeable.
   In Cedille, the guide is optional and the construct may be used to rewrite a
   contextually given type; a heuristic is used to produce a resulting type that
   is well-kinded whose details are beyond the scope of this document.
+
+  It might appear at first that the requirement that the guide \(T\) be written
+  such that the resulting substitution is well-kinded is too strict.
+  For example, what if we are trying to rewrite \(n\) in \(X\ n\), where \(X\)
+  is a predicate on (Church-encoded) naturals?
+  The next construct, \(\varphi\), gives us the ability to recover the typing
+  information associated to \(n\).
 \item We adopt a strong form of Nuprl's \textbf{direct computation rules}~\cite{constable+86}:
   If we have a term $t'$ of type $T$ and a proof $t$ that $\{ t' \simeq t''\}$, then we may conclude that
   $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\ \{t''\}$, which
