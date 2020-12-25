@@ -74,10 +74,11 @@ here: \url{https://github.com/astump/cedille-core-spec}.
 \section{Classification Rules}
 
 The classification rules are given in
-Figures~\ref{fig:superknd},~\ref{fig:knd}, and~\ref{fig:tp}.  For
-brevity, we take these figures as implicitly specifying the syntax of
-kinds $\kappa$, types $T$, and annotated terms $t$; these may use term
-variables $x$ and type variables $X$, which we assume come from
+Figures~\ref{fig:superknd},~\ref{fig:knd}, and~\ref{fig:tp}, with
+Figure~\ref{fig:ctxt} giving the context formation rules.
+For brevity, we take these figures as implicitly specifying the syntax of
+contexts \(\Gamma\), kinds $\kappa$, types $T$, and annotated terms $t$; these
+may use term variables $x$ and type variables $X$, which we assume come from
 distinct sets.  So terms and types are syntactically distinguished.
 The typing rules (Figure~\ref{fig:tp}) are
 bidirectional~\cite{pierce+00}, while the kinding and superkinding
@@ -141,7 +142,7 @@ normalization.
     \infer{\Gamma\vdash T\ t \tpsynth [t/x]\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
     \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'} \\ \\
     \infer{\Gamma\vdash\abs{\iota}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
-    \infer{\Gamma\vdash \{ t \simeq t' \} : \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
+    \infer{\Gamma\vdash \{ t \simeq t' \} \tpsynth \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
   \end{array}
   \]
   \caption{Rules for synthesizing a kind for a type ($\Gamma \vdash T \tpsynth \kappa$)}
@@ -161,7 +162,7 @@ normalization.
 
     \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck \abs{\forall}{X}{\kappa}{T}}{\Gamma,X:\kappa\vdash t \tpcheck T} &
     \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
-          {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpcheck\kappa} \\ \\
+          {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
 
     \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck \abs{\forall}{x}{T'}{T}}{\Gamma,x:T'\vdash t \tpcheck T & x\not\in\textit{FV}(|t|)} &
     \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
