@@ -1044,6 +1044,102 @@ call-by-name normalizing (cf.~\cite{Kashima2000}).
 First a few lemmas (easy proofs omitted):
 
 \begin{lemma}
+  \label{lem:ctxt-conv-class}
+  Let \(\kappa_1,\kappa_1'\) be kinds such that \(\kappa_1 \cong \kappa_1'\).
+  \begin{itemize}
+  \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash \kappa_2\) and \(\Gamma_1
+    \vdash \kappa_1'\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash \kappa_2\)
+   
+  \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash T \tpsynth \kappa_2\) and
+    \(\Gamma_1 \vdash \kappa_1'\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash T
+    \tpsynth \kappa_2\) for some \(\kappa_2' \cong \kappa_2\)
+
+    
+  \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash t \Leftrightarrow T\) and
+    \(\Gamma_1 \vdash \kappa_1'\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash t
+    \Leftrightarrow T\).
+  \end{itemize}
+\end{lemma}
+
+\begin{proof}
+  By induction on the assumed derivation.
+  We show a few interesting cases.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash X \tpsynth \kappa}{(X : \kappa) \in \Gamma_1,X_1:\kappa_1,\Gamma_2}
+  \]
+  We have two subcases to consider.
+  If \(X = X_1\), then by the rule we obtain \(\Gamma_1,X_1:\kappa_1',\Gamma_2
+  \vdash X_1 \tpsynth \kappa_1'\), as desired.
+  Otherwise, by the rule we obtain \(\Gamma_1,X_1:\kappa_1',\Gamma_2
+  \vdash X \tpsynth \kappa\).
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \abs{\lambda}{X}{\kappa}{T'} \tpsynth
+      \abs{\Pi}{X}{\kappa}{\kappa'}
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \kappa
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2,X:\kappa \vdash  T' \tpsynth \kappa'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
+  \kappa\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2,X:\kappa
+  \vdash T' \tpsynth \kappa''\) for some \(\kappa'' \cong \kappa'\).
+  By the rule, \(\Gamma_1,X_1\kappa_1',\Gamma_2 \vdash
+  \abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa''}\), which
+  is convertible with the original kind synthesized for this type.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T \cdot T' \tpsynth
+      [T'/X]\kappa
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T \tpsynth
+      \abs{\Pi}{X}{\kappa'}{\kappa}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T' \tpsynth \kappa''
+      & \kappa' \cong \kappa''}
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T
+  \tpsynth \abs{\Pi}{X}{\kappa_2'}{\kappa_2}\) for some \(\kappa_2' \cong
+  \kappa'\), \(\kappa_2 \cong \kappa\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T'
+  \tpsynth \kappa_2''\) for some \(\kappa_2'' \cong \kappa''\).
+  By transitivity, \(\kappa_2' \cong \kappa_2''\).
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T \cdot T' \tpsynth
+  [T'/X]\kappa_2\), with this kind congruent to \([T'/X]\kappa\).
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \cdot T' \tpsynth [T'/X]T
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2\vdash t \tpsynth
+      \abs{\forall}{X}{\kappa}{T}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T' \tpsynth \kappa'
+      & \kappa'\cong\kappa
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t
+  \tpsynth \abs{\forall}{X}{\kappa}{T}\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T'
+  \tpsynth \kappa''\) for some \(\kappa'' \cong \kappa'\).
+  With the third premise and transitivity of congruence, we have \(\kappa''
+  \cong \kappa\).
+  We apply the rule and conclude.
+\end{proof}
+
+\begin{corollary}
+  \label{cor:ctxt-conv-class}
+  If \(\vdash \Gamma_1,X:\kappa_1,\Gamma_1\) and \(\Gamma_1 \vdash \kappa_1'\)
+  with \(\kappa_1' \cong \kappa\) then \(\vdash \Gamma_1,X:\kappa_1',\Gamma_2\).
+\end{corollary}
+
+\begin{lemma}
   \label{lem:subst-class}
   Below, each statement seperately universally quantifies over meta-variables,
   and it is assumed that typing contexts occuring in assumed derivations are
