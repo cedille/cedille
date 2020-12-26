@@ -161,9 +161,9 @@ normalization.
     \begin{array}{c}
   \begin{array}{ll}
     \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
-    \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} \\ \\    
+    \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T'} \\ \\
     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
-    \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\    
+    \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\
     \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck \abs{\Pi}{x}{T}{T'}}{\Gamma,x:T\vdash t\tpcheck T'} &
     \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
@@ -181,7 +181,7 @@ normalization.
     \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
           {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
-    \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
+    \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [\beta\{t_2\}/x]^{\texttt{Top}}\ T}
           {
           \begin{array}{cc}
             \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
@@ -327,7 +327,7 @@ over the version of CDLE in~\cite{stump18} are:
   \(t_2\) in the synthesized type of the second subexpression.
   The version presented here requires a ``guide'' \(@x.T\), where \(x\)
   indicates the occurrences of \(t_1\) to substitute.
-  \([t_2/x]^{\texttt{Top}}\ T\) must be a well-kinded type, but it is not required that
+  \([\beta\{t_2\}/x]^{\texttt{Top}}\ T\) must be a well-kinded type, but it is not required that
   \([t_1/x]T\) also be, only that \(T'\) and \([t_1/x]T\) are convertible modulo
   erasure --- it is not guaranteed that \(t_1\) and \(t_2\) will have the same
   type, or will even be typeable.
@@ -440,9 +440,9 @@ preservation~\cite{dreyer18}.
 Note that by construction, semantic types $\interp{T}_{\sigma,\rho}$ are
 preserved by $\beta\eta$-reduction:
 
-  \begin{theorem}[Semantic type preservation]
-    If $t \leadsto_{\beta\eta} t'$ and $t\in\interp{T}_{\sigma,\rho}$, then $t'\in\interp{T}_{\sigma,\rho}$.
-    \end{theorem}
+\begin{theorem}[Semantic type preservation]
+  If $t \leadsto_{\beta\eta} t'$ and $t\in\interp{T}_{\sigma,\rho}$, then $t'\in\interp{T}_{\sigma,\rho}$.
+\end{theorem}
 
   Confluence of $\beta\eta$-reduction for (erased)
   terms is nothing other than confluence of untyped lambda calculus.
@@ -756,7 +756,8 @@ $\interp{\kappa}_{\sigma,\rho}$ by the IH for the first premise.
 
 \startcase{.2cm}
 \[
-   \infer{\Gamma\vdash T\ t \tpsynth [t/x]\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} 
+   \infer{\Gamma\vdash T\ t \tpsynth [t/x]^{T'}\ \kappa}{\Gamma\vdash T \tpsynth
+     \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'}  
 \]
 By the IH for the first premise,
 $\interp{T}_{\sigma,\rho}\in\interp{\Pi x:T'.\kappa}_{\sigma,\rho}$.
@@ -842,7 +843,7 @@ so this is sufficient.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} 
+    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'} T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} 
 \]
 By the IH applied to the first premise, $[\sigma
 t]_{\cbe}\in\interp{\Pi x:T'.T}_{\sigma,\rho}\in\mathcal{R}$.  This
@@ -873,13 +874,17 @@ of $\forall$-types and definition of erasure.
 \startcase{.2cm}
 \[
     \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
-          {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpcheck\kappa} 
+    {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T}
+      & \Gamma\vdash T' \tpsynth \kappa'
+      & \kappa' \cong \kappa
+    } 
 \]
 By the semantics of $\forall$-types and the IH applied to the first
 premise, we have $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto
-  S]}$, for all $S\in\interp{\kappa}_{\sigma,\rho}$.  Since
-$\interp{T'}_{\sigma,\rho}\in\interp{\kappa}_{\sigma,\rho}$ by the IH
-applied to the second premise, we can derive $[\sigma t]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$.
+  S]}$, for all $S\in\interp{\kappa}_{\sigma,\rho}$.
+By applying the IH twice, once to the second premise and once to the third, we
+have, we have \(\interp{T'}_{\sigma,\rho} \in \interp{\kappa}_{\sigma,\rho}\).
+So, can derive $[\sigma t]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$.
 By Lemma~\ref{lem:tpsubstinterp},
 this is equivalent to the required $[\sigma |t|]_{\cbe}\in\interp{[T'/X]T}_{\sigma,\rho}$,
 using also the definition of erasure.
@@ -901,7 +906,7 @@ conclusion.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'}
+    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}\ T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'}
 \]
 The result follows easily by the IH applied to the premises, the
 semantics of $\forall$-types, definition of erasure, and Lemma~\ref{lem:termsubstinterp}.
@@ -910,7 +915,7 @@ semantics of $\forall$-types, definition of erasure, and Lemma~\ref{lem:termsubs
 \startcase{.2cm}
 \[
     \infer{\Gamma\vdash [ t , t' ] \tpcheck \abs{\iota}{x}{T}{T'}}
-          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]T' & |t| =_{\beta\eta} |t'|} 
+          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]^{T}\ T' & |t| =_{\beta\eta} |t'|} 
 \]
 By the IH, we have $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}$ and
 $[\sigma |t|]_{\cbe}\in\interp{[t/x]T'}_{\sigma,\rho}$.  By
@@ -1040,7 +1045,7 @@ for quantification over types and kinds.
 
 
 \section{Proof of Theorem~\ref{thm:cedille-termination}}
-\begin{proof}
+\begin{proof}[Proof (of Theorem~\ref{thm:cedille-termination})]
 Theorem \ref{thm:snd} implies that since
 $t'\ t$ is closed and of type $\Pi x:T_1.\ T_2$, we have
 $[|t'\ t|]_{c\beta\eta}\in \interp{\Pi x:T_1.\ T_2}_{\cdot,\rho}$,
@@ -1056,7 +1061,6 @@ Since $|t'\ t|$ is $\beta$-equivalent to $t$, we know $t =_{\beta\eta} \lambda x
 It is then an easy consequence of the
 standardization theorem for untyped lambda calculus that $|t|$ is
 call-by-name normalizing (cf.~\cite{Kashima2000}).
-
 \end{proof}
 
 \section{Proof of Theorem~\ref{thm:syntactic-kind-pres}}
@@ -1165,8 +1169,6 @@ First a few lemmas (easy proofs omitted):
   Below, each statement seperately universally quantifies over meta-variables,
   and it is assumed that typing contexts occuring in assumed derivations are
   well-formed.
-  We also assume types in type checking judgments are well-formed under the
-  given context.
   \begin{enumerate}
   \item \textbf{Kinds:}
     \begin{itemize}
@@ -1190,17 +1192,18 @@ First a few lemmas (easy proofs omitted):
     \begin{itemize}
     \item If \(\Gamma_1,x:T',\Gamma_2 \vdash t \Leftrightarrow T\) and
       \(\Gamma_1 \vdash t' \tpsynth T'\) then \(\Gamma_1,[t'/x]\Gamma_2 \vdash [t'/x]t
-      \Leftrightarrow [t'/x]T\)
+      \tpsynth [t'/x]T\)
      
     \item If \(\Gamma_1,X:\kappa,\Gamma_2 \vdash t \Leftrightarrow T'\) and
       \(\Gamma_1 \vdash T \tpsynth \kappa\) then \(\Gamma_1,[T/X]\Gamma_2 \vdash
-      [T/X]t \Leftrightarrow [T/X]T'\)
+      [T/X]t \tpsynth [T/X]T'\)
     \end{itemize}
   \end{enumerate}
 \end{lemma}
 \begin{proof}
   By mutual induction on the assumed derivations.
-  We only show a few interesting cases.
+  We only show a few interesting cases, and we omit type annotations on
+  substitutions when these are clear from context.
   
   \startcase{.2cm}
   \[
@@ -1216,7 +1219,7 @@ First a few lemmas (easy proofs omitted):
   [T/X]\kappa_1\).
 
   \startcase{.2cm}
-  \[ \infer{\Gamma_1,x:T,\Gamma_2\vdash T_2\ t_1 \tpsynth [t_1/x_1]\kappa
+  \[ \infer{\Gamma_1,x:T,\Gamma_2\vdash T_2\ t_1 \tpsynth [t_1/x_1]^{T_1}\kappa
     }{
       \Gamma_1,x:T,\Gamma_2\vdash T_2 \tpsynth \abs{\Pi}{x_1}{T_1}{\kappa}
       & \Gamma_1,x:T,\Gamma_2\vdash t_1 \tpcheck T_1
@@ -1267,24 +1270,24 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [t_2/x_1]T_1}
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [\beta\{t_2\}/x_1]^{\texttt{Top}}\ T_1}
     {
       \begin{array}{cc}
         \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynth \{t_1 \simeq t_2\}
-        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [t_2/x_1]T_1 \tpsynth \star
+        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [\beta\{t_2\}/x_1]^{\texttt{Top}}\ T_1 \tpsynth \star
         \\ \Gamma_1,x:T,\Gamma_2 \vdash t' \tpsynth T'
         & T' \cong [t_1/x_1]T_1
       \end{array}
     }
   \]
   From the IH, we have that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t'' \tpsynth \{[t/x]t_1
-  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][t_2/x]T_1
+  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][\beta\{t_2\}/x]T_1
   \tpsynth \star\), and that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t' \tpsynth
   [t/x]T'\).
   From the last premise, we may conclude that \([t/x]T' \cong
   [t/x][t_1/x_1]T_1\).
   Applying the rule and permuting substitutions gives us the desired result
-  (note \([t/x][t_1/x_1]T_1 = [[t/x]t_1/x_1]T_1\)).
+  (note for example that \([t/x][t_1/x_1]T_1 = [[t/x]t_1/x_1]T_1\)).
 \end{proof}
 
 \begin{corollary}
