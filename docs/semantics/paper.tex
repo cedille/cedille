@@ -420,10 +420,11 @@ properties like normalization, as demonstrated by the following theorem:
 
 \begin{theorem}[Call-by-name normalization of functions]
   \label{thm:cedille-termination}
-  Suppose \(\Gamma\vdash t : T\), $t$ is closed, and there exists a closed term
-  $t'$ which erases to \(\lambda x.\ x\) and whose type is $T \to \Pi x : T_1.\
-  T_2$ for some $T_1, T_2$. Then $|t|$ is call-by-name normalizing.
-  \end{theorem}
+  Suppose \(\cdot \vdash t \tpsynth T\) and there exists a closed term \(t'\)
+  such that \(\cdot \vdash t \tpsynth T \to \abs{\Pi}{x}{T_1}{T_2}\) for some
+  \(T_1,T_2\) and \(|t'| = \absu{\lambda}{x}{x}\).
+  Then \(|t|\) is call-by-name normalizing.
+\end{theorem}
 
 Given the lack of normalization in general, several checks in the typing rules --
 for things like $t =_{\beta\eta} t'$ -- are formally undecidable.  In
