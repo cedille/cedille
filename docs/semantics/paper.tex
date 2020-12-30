@@ -1166,19 +1166,28 @@ First a few lemmas (easy proofs omitted):
    
   \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash T \tpsynth \kappa_2\) and
     \(\Gamma_1 \vdash \kappa_1'\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash T
-    \tpsynth \kappa_2\) for some \(\kappa_2' \cong \kappa_2\)
+    \tpsynth \kappa'_2\) for some \(\kappa_2' \cong \kappa_2\)
 
     
-  \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash t \Leftrightarrow T\) and
+  \item If \(T_3 \cong T_4\) and \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash t
+    \tpcheck T_3\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash t \tpcheck T_4\)
+    
+  \item If \(\Gamma_1,X:\kappa_1,\Gamma_2 \vdash t \tpsynth T\) and
     \(\Gamma_1 \vdash \kappa_1'\) then \(\Gamma_1,X:\kappa_1',\Gamma_2 \vdash t
-    \Leftrightarrow T\).
+    \tpsynth T\).
   \end{itemize}
+  Furthermore, the resulting typing derivations derivations have depths no
+  larger than the assumed ones.
 \end{lemma}
 
 \begin{proof}
-  By induction on the assumed derivation.
-  We show a few interesting cases.
+  By mutual induction on the assumed derivation, and mutually with
+  Lemma~\ref{lem:ctxt-conv-class2}.
+  The measure, which omits the size of derivations of the convertibility
+  relation, is used to ensure that each mutually inductive call is well-founded.
+  We show the interesting cases.
 
+  % kinding
   \startcase{.2cm}
   \[
     \infer{\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash X \tpsynth \kappa}{(X : \kappa) \in \Gamma_1,X_1:\kappa_1,\Gamma_2}
@@ -1188,7 +1197,30 @@ First a few lemmas (easy proofs omitted):
   \vdash X_1 \tpsynth \kappa_1'\), as desired.
   Otherwise, by the rule we obtain \(\Gamma_1,X_1:\kappa_1',\Gamma_2
   \vdash X \tpsynth \kappa\).
+  In both cases, the resulting derivation has the same depth (i.e., 1) as we
+  started with.
 
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash\abs{\lambda}{x}{T}{T'} \tpsynth
+      \abs{\Pi}{x}{T}{\kappa}
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T \tpsynth \star
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2 ,x:T\vdash T'\tpsynth\kappa
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T
+  \tpsynth \star\) at no greater depth (note \(\star\) is convertible only with
+  itself).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2,x:T \vdash
+  T' \tpsynth \kappa'\) (at no greater depth) for some \(\kappa' \cong \kappa\).
+  By the rule, we have \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
+  \abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa'}\), which is
+  congruent with the original type in the conclusion.
+  We see the the measure is preserved.
+  
+  
   \startcase{.2cm}
   \[
     \infer{
@@ -1203,9 +1235,29 @@ First a few lemmas (easy proofs omitted):
   \kappa\).
   By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2,X:\kappa
   \vdash T' \tpsynth \kappa''\) for some \(\kappa'' \cong \kappa'\).
-  By the rule, \(\Gamma_1,X_1\kappa_1',\Gamma_2 \vdash
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
   \abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa''}\), which
   is convertible with the original kind synthesized for this type.
+  Since the depths of the premises for the resulting derivation are the same as
+  the depths for the premises of the assumed one, the measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T\ t \tpsynth [t/x]^{T'}\kappa
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpcheck T'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T
+  \tpsynth \abs{\Pi}{x}{T''}{\kappa''}\) for some \(T'' \cong T'\) and
+  \(\kappa'' \cong \kappa\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t
+  \tpcheck T''\).
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T\ t \tpsynth
+  [t/x]^{T''}\kappa''\), convertible with the given type \([t/x]^{T'}\kappa\).
+  We see that the measure is preserved.
 
   \startcase{.2cm}
   \[
@@ -1223,34 +1275,542 @@ First a few lemmas (easy proofs omitted):
   \kappa'\), \(\kappa_2 \cong \kappa\).
   By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T'
   \tpsynth \kappa_2''\) for some \(\kappa_2'' \cong \kappa''\).
-  By transitivity, \(\kappa_2' \cong \kappa_2''\).
+  By transitivity and the third premise, \(\kappa_2' \cong \kappa_2''\).
   By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T \cdot T' \tpsynth
-  [T'/X]\kappa_2\), with this kind congruent to \([T'/X]\kappa\).
+  [T'/X]\kappa_2\), with this kind convertible to \([T'/X]\kappa\) by
+  congruence.
+  We see the measure is preserved.
 
+  % checking
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t\tpcheck T_3
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t\tpsynth T'
+      & T' \cong T_3
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t
+  \tpsynth T'\).
+  By assumption and transitivity of congruence, \(T' \cong T_4\) (where \(T_4\)
+  is the type given to us in the proof).
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t \tpcheck T_4\), and we
+  see the measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \absu{\lambda}{x}{t} \tpcheck T_3
+    }{
+      T_3 \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2,x:T_1\vdash t\tpcheck T_2
+    }
+  \]
+  By the first premise, \(T_3 \cong \abs{\Pi}{x}{T_1}{T_2}\).
+  By assumption and transitivity of the convertibility relation, \(T_4 \cong
+  \abs{\Pi}{x}{T_1}{T_2}\).
+  This means \(T_4 \leadsto_\beta^* \abs{\Pi}{x}{T_1'}{T_2'}\) for some \(T_1'
+  \cong T_1\) and \(T_2' \cong T_2\).
+  By mutual induction with Lemma~\ref{lem:ctxt-conv-class2} on the second
+  premise, we have a derivation of \(\Gamma_1,X_1:\kappa_1,\Gamma_2,x:T_1'
+  \vdash t \tpcheck T_2'\) that is no deeper than that premise.
+  So, we are entitled to use the IH on this new derivation to obtain
+  \(\Gamma_1,X_1:\kappa_1',\Gamma_2,x:T_1' \vdash t \tpcheck T_2'\), which is
+  also no deeper.
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash \absu{\lambda}{x}{t}
+  \tpcheck T_4\), and the measure is preserved.
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2\vdash \absu{\Lambda}{X}{t} \tpcheck T_3
+    }{
+      T_3 \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2,X:\kappa\vdash t \tpcheck T
+    }
+  \]
+  By the first premise, \(T_3 \cong \abs{\forall}{X}{\kappa}{T}\), so by
+  assumption and transitivity of convertibility, \(T_4 \cong
+  \abs{\forall}{X}{\kappa}{T}\).
+  This means \(T_4 \leadsto_\beta^* \abs{\forall}{X}{\kappa'}{T'}\) for some
+  \(\kappa' \cong \kappa\) and \(T' \cong T\).
+  We apply the IH once on the second premise to obtain a derivation of
+  \(\Gamma_1,X_1:\kappa_1,\Gamma_2,X:\kappa' \vdash t \tpcheck T'\), and then
+  again to obtain \(\Gamma_1,X_1:\kappa_1',\Gamma_2,X:\kappa' \vdash t \tpcheck
+  T'\), noting this derivation's depth is no greater than the second premise.
+  By the rule, \(\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \absu{\Lambda}{X}{t}
+  \tpcheck T_4\), and the measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \beta\{t'\} \tpcheck T_3
+    }{
+      T_3 \leadsto_\beta^* \{t_1 \simeq t_2\}
+      & \textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2)
+      & |t_1| =_{\beta\eta} |t_2|
+    }
+  \]
+  From the first premise, assumption, and transitivity of convertibility, \(T_4
+  \cong \{t_1 \simeq t_2\}\).
+  This means that \(T_4 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some
+  \(t_3,t_4\) such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta}
+  |t_2|\).
+  From this, the third premise, and transitivity of convertibility, we obtain
+  \(|t_3| =_{\beta\eta} |t_4|\).
+  We also see from the second premise that \(\textit{FV}(t') \subseteq
+  \textit{dom}(\Gamma_1,X_1:\kappa_1',\Gamma_2)\).
+  So, we use the rule to conclude that \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
+  \beta\{t'\} \tpcheck T_4\), and the depth (1) is preserved.
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash [ t_1 , t_2 ] \tpcheck T_3
+    }{
+      \begin{array}{cc}
+        T_3 \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+        & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t_1 \tpcheck T_1
+        \\ \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
+        & |t_1| =_{\beta\eta} |t_2|
+      \end{array}
+    }
+  \]
+  From the first premise, assumption, and transitivity of the convertibility
+  relation, \(T_4 \cong \abs{\iota}{x}{T_1}{T_2}\).
+  This means that \(T_4 \leadsto_\beta^* \abs{\iota}{x}{T_1'}{T_2'}\) for some
+  \(T_1' \cong T_1\) and \(T_2' \cong T_2\).
+  From this last congruence, we have \([t_1/x]^{T_1'}T_2' \cong [t_1/x]^{T_1} T_2\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t_1
+  \tpcheck T_1'\).
+  By the IH on the first premise, second row, we have
+  \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t_2 \tpcheck [t/x]T_2'\).
+  We use the rule to conclude, noting that the measure is preserved.
+  
+  % synthesis
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t\ t' \tpsynth [t'/x]^{T'}T
+    }{
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T}
+      & \Gamma_1,X_1:\kappa_1,\Gamma_2\vdash t' \tpcheck T'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t
+  \tpsynthleads \abs{\Pi}{x}{T'}{T}\).
+  By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t'
+  \tpcheck T'\).
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t\ t' \tpsynth [t'/x]T\),
+  and the measure is preserved.
+  
   \startcase{.2cm}
   \[
     \infer{
       \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \cdot T' \tpsynth [T'/X]T
     }{
-      \Gamma_1,X_1:\kappa_1,\Gamma_2\vdash t \tpsynth
+      \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpsynthleads
       \abs{\forall}{X}{\kappa}{T}
       & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash T' \tpsynth \kappa'
       & \kappa'\cong\kappa
     }
   \]
   By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t
-  \tpsynth \abs{\forall}{X}{\kappa}{T}\).
+  \tpsynthleads \abs{\forall}{X}{\kappa}{T}\).
   By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash T'
-  \tpsynth \kappa''\) for some \(\kappa'' \cong \kappa'\).
-  With the third premise and transitivity of congruence, we have \(\kappa''
-  \cong \kappa\).
-  We apply the rule and conclude.
+  \tpsynth \kappa''\) for some \(\kappa'' \cong \kappa'\), from which we obtain
+  \(\kappa'' \cong \kappa\).
+  By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t \cdot T' \tpsynth
+  [T'/X]T\), and the measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
+        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2)
+        & |t_2'| =_{\beta\eta} |t_2|
+        \\ \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star
+        & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpsynth T'
+        & T' \cong [t_1/x]T
+      \end{array}
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t'
+  \tpsynthleads \{t_1 \simeq t_2'\}\).
+  By the IH on the second premise of the second row,
+  \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star\)
+  (\(\star\) is only convertible with itself).
+  We apply the IH to the second premise of the second row and use the rule to conclude
+  (\(\textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2) =
+  \textit{dom}(\Gamma_1,X_1:\kappa_1',\Gamma_2)\)).
+\end{proof}
+
+\begin{lemma}
+  \label{lem:ctxt-conv-class2}
+  Let \(T_1,T_2\) be types such that \(T_1 \cong T_2\).
+  \begin{itemize}
+  \item If \(\Gamma_1,x:T_1,\Gamma_2 \vdash \kappa\) then
+    \(\Gamma_1,x:T_2,\Gamma_2 \vdash \kappa\) 
+    
+  \item If \(\Gamma_1,x:T_1,\Gamma_2 \vdash T \tpsynth \kappa_1\) then
+    \(\Gamma_1,x:T_2,\Gamma_2 \vdash T \tpsynth \kappa_1\)
+
+    
+  \item If \(T_3 \cong T_4\) and \(\Gamma_1,x:T_1,\Gamma_2 \vdash t \tpcheck T_3\) then
+    \(\Gamma_1,x:T_2,\Gamma_2 \vdash t \tpcheck T_4\)
+    
+  \item If \(\Gamma_1,x:T_1,\Gamma_2 \vdash t \tpsynth T\) then
+    \(\Gamma_1,x:T_2,\Gamma_2 \vdash t \tpsynth T'\) for some \(T' \cong T\).
+
+  \end{itemize}
+  Furthermore, the resulting typing derivations derivations have depths no
+  larger than the assumed ones.
+\end{lemma}
+\begin{proof}
+  By mutual induction on the assumed derivation (specifically, its depth), and
+  mutually with Lemma~\ref{lem:ctxt-conv-class}.
+  The measure, which omits the size of derivations of the convertibility
+  relation, is used to ensure that each mutually inductive call is well-founded.
+  We show the interesting cases.
+
+  % kinding types
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa}
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash T \tpsynth \star
+      & \Gamma_1,x_1:T_1,\Gamma_2,x:T \vdash T' \tpsynth \kappa
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T \tpsynth
+  \star\).
+  By the IH on the second premise, \(\Gamma_1,x_1:T_2,\Gamma_2,x:T \vdash T'
+  \tpsynth \kappa\).
+  We also have that the depths of the resulting typing derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2\vdash\abs{\lambda}{X}{\kappa}{T'} \tpsynth
+      \abs{\Pi}{X}{\kappa}{\kappa'}
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \kappa & \Gamma_1,x_1:T_1,\Gamma_2,X:\kappa\vdash T'\tpsynth\kappa'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T \tpsynth
+  \kappa\).
+  By the IH on the second premise, \(\Gamma_1,x_1:T_2,\Gamma_2,X:\kappa \vdash
+  T' \tpsynth \kappa'\).
+  We also have that the depths of the resulting derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2\vdash T\ t \tpsynth [t/x]^{T'}\kappa
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa}
+      & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpcheck T'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T \tpsynth
+  \abs{\Pi}{x}{T'}{\kappa}\).
+  By the IH on the second premise, \(\Gamma_2,x_1:T_2,\Gamma_2 \vdash t \tpcheck
+  T'\).
+  We also have that the depths of the resulting derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash T \cdot T' \tpsynth [T'/X]\kappa
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2\vdash T \tpsynth \abs{\Pi}{X}{\kappa'}{\kappa}
+      & \Gamma_1,x_1:T_1,\Gamma_2 \vdash T_2 \tpsynth \kappa'' & \kappa'' \cong \kappa'
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T \tpsynth
+  \abs{\Pi}{X}{\kappa'}{\kappa}\).
+  By the IH on the second premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T_2
+  \tpsynth \kappa''\).
+  We also have that the depths of the resulting derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule, keeping
+  the third premise.
+
+  % type checking
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t\tpcheck T
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t\tpsynth T'
+      & T' \cong T
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
+  T''\) for some \(T'' \cong T'\).
+  By transitivity of convertibility and the second premise, \(T'' \cong T\).
+  By transitivity again, \(T'' \cong T_4\) (where \(T_4 \cong T\) is given to
+  us).
+  We also have that the depths of the resulting derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule.
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \absu{\lambda}{x}{t} \tpcheck T
+    }{
+      T \leadsto_\beta^* \abs{\Pi}{x}{T_5}{T_6}
+      & \Gamma_1,x_1:T_1,\Gamma_2,x:T_5\vdash t\tpcheck T_6
+    }
+  \]
+  From the first premise, we have \(T \cong \abs{\Pi}{x}{T_5}{T_6}\), so by
+  transitivity of convertibility and assumption, \(T_4 \cong
+  \abs{\Pi}{x}{T_5}{T_6}\).
+  This means that \(T_4 \leadsto_\beta^* \abs{\Pi}{x}{T_5'}{T_6'}\) for some
+  \(T_5' \cong T_5\) and \(T_6' \cong T_6\).
+  By one use of the IH on the first premise, we have
+  \(\Gamma_1,x_1:T_2,\Gamma_2,x:T_5 \vdash t \tpcheck T_6'\).
+  By another use, we have \(\Gamma_1,x_1:T_2,\Gamma_2,x:T_5' \vdash t \tpcheck
+  T_6'\) (this is well-founded, because the depth of the typing derivation this
+  second use is  applied to is no greater that the depth of the premise).
+  We also have that the depths of the resulting derivations are no greater than
+  the those used to derive the premises, so we conclude using the rule.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \absu{\Lambda}{X}{t} \tpcheck T'
+    }{
+      T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T}
+      & \Gamma_1,x_1:T_1,\Gamma_2,X:\kappa \vdash t \tpcheck T
+    }
+  \]
+  From the first premise, \(T' \cong \abs{\forall}{X}{\kappa}{T}\).
+  From transitivity of convertibility and assumption, \(T_4 \cong
+  \abs{\forall}{X}{\kappa}{T}\).
+  This means that \(T_4 \leadsto_\beta^* \abs{\forall}{X}{\kappa''}{T''}\) for
+  some \(\kappa'' \cong \kappa\) and \(T'' \cong T\).
+  By mutual induction with Lemma~\ref{lem:ctxt-conv-class} on the second premise,
+  \(\Gamma_1,x_1:T_1,\Gamma_2,X:\kappa'' \vdash t \tpcheck T\), and this
+  derivation is no deeper than the second premise.
+  By the IH, \(\Gamma_1,x_1:T_1,\Gamma_2,X:\kappa'' \vdash t \tpcheck T''\), and
+  this derivation is no deeper than the second premise.
+  We conclude using the rule, with the measure preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash [ t , t' ] \tpcheck T_3
+    }{
+      \begin{array}{cc}
+        T_3 \leadsto_\beta^* \abs{\iota}{x}{T}{T'}
+        & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpcheck T
+        \\ \Gamma_1,x_1:T_1,\Gamma_2 \vdash t' \tpcheck [t/x]^{T}\ T'
+        & |t| =_{\beta\eta} |t|
+      \end{array}
+    }
+  \]
+  From the first premise, \(T_3 \cong \abs{\iota}{x}{T}{T'}\).
+  From transitivity of convertibility and assumption, \(T_4 \cong
+  \abs{\iota}{x}{T}{T'}\).
+  This means \(T_4 \leadsto \abs{\iota}{x}{T''}{T'''}\) for some \(T'' \cong T\)
+  and \(T''' \cong T'\).
+  By the IH, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpcheck T''\) with depth no
+  greater than the second premise (read left to right, then top to bottom).
+  By the IH, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t' \tpcheck T'''\) with depth no
+  greater than the third premise.
+  We conclude using the rule, keeping the fourth premise as-is and noting the
+  measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \beta\{t'\} \tpcheck T_3
+    }{
+      T_3 \leadsto_\beta^* \{t_1 \simeq t_2\}
+      \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
+      \quad |t_1| =_{\beta\eta} |t_2|
+    }
+  \]
+  From the first premise, \(T_3 \cong \{t_1 \simeq t_2\}\).
+  From transitivity of the convertibility relation and assumption, \(T_3 \cong
+  \{t_1 \simeq t_2\}\).
+  This means \(T_4 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta} |t_2|\).
+  From the third premise and transitivity of convertibility, we have \(|t_3|
+  =_{\beta\eta} |t_4|\).
+  From the second premise, we obtain that \(\textit{FV}(t') \subseteq
+  \textit{dom}(\Gamma_1,x_1:T_2,\Gamma_2)\).
+  We conclude using the rule, noting that the depth remains 1.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2 \vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \tpcheck T_3}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,x_1:T_1,\Gamma_2 \vdash t\tpsynthleads \{t_1\simeq t_2\}
+        &
+        & \Gamma_1,x_1:T_1,\Gamma_2\vdash t' \tpcheck T_3
+        \\ |t_1| =_{\beta\eta} |t'|
+        & |t_2| =_{\beta\eta} |t''|
+        & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
+      \end{array}
+    }
+  \]
+  By the IH on the first premise (first row), \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash
+  t \tpsynth T\) (with no greater depth) for some \(T \cong \{t_1 \simeq t_2\}\).
+  This means that \(T \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta} |t_2|\).
+  Using the first and second premise of the second row and transitivity of
+  \(\beta\eta\)-equivalence, \(|t_3| =_{\beta\eta} |t'|\) and \(|t_4|
+  =_{\beta\eta} |t''|\).
+  By the IH on the second premise of the first row, \(\Gamma_1,x_1:T_2,\Gamma_2
+  \vdash t' \tpcheck T_4\) (with no greater depth, and where \(T_4\) is the type
+  given to us in the lemma and \(T_4 \cong T_3\)).
+  Also, we can see from the last premise of the second row that
+  \(\textit{FV}(t') \subseteq \textit{dom}(\Gamma_1,x_1:T_2,\Gamma_2)\).
+  So, we use the rule to conclude \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash \varphi\ t\
+  \mhyph\ t'\ \{t''\} \tpcheck T_4\).
+  
+  % type synthesis
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash x \tpsynth T
+    }{
+      (x : T)\in\Gamma_1,x_1:T_1,\Gamma_2
+    }
+  \]
+  We have two subcases to consider.
+  If \(x = x_1\), then we use the rule to produce a derivation of
+  \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash x \tpsynth T_2\), where by assumption \(T_1 \cong T_2\).
+  Otherwise, we use the rule to produce a derivation of
+  \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash x \tpsynth T\).
+  In both cases, the measure (depth of 1) is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t\ t' \tpsynth [t'/x]^{T'}T
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T}
+      & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t' \tpcheck T'
+    }
+  \]
+  By the IH on the premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth T_3\)
+  for some \(T_3 \cong \abs{\Pi}{x}{T'}{T}\), and the depth of this typing
+  derivation is no greater than that of the first premise.
+  From this we obtain that \(T_3 \leadsto^*_\beta \abs{\Pi}{x}{T_4'}{T_4}\) for
+  some \(T_4' \cong T'\) and \(T_4 \cong T\).
+  By the IH on the last premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t' \tpcheck
+  T_4'\), and the depth of this derivation is no greater than that of the last premise.
+  We conclude with the rule to obtain \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t\ t'
+  \tpsynth [t'/x]^{T_4'}\ T_4\), with the measure preserved (\([t'/x]^{T_4'}\
+  T_4\) is convertible with \([t'/x]^{T'}\ T\), since \(|\chi\ T_4'\ \mhyph\ t'|
+  =_{\beta\eta} |\chi\ T'\ \mhyph\ t'|\) by erasure and \(T \cong T_4\)).
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \cdot T' \tpsynth [T'/X]T
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpsynthleads
+      \abs{\forall}{X}{\kappa}{T}
+      & \Gamma_1,x_1:T_1,\Gamma_2 \vdash T' \tpsynth \kappa'
+      & \kappa'\cong\kappa
+    }
+  \]
+
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
+  T_3\) for some \(T_3 \cong \abs{\forall}{X}{\kappa}{T}\), with no greater
+  depth.
+  This means \(T_3 \leadsto_\beta^* \abs{\forall}{X}{\kappa''}{T''}\) for some
+  \(\kappa'' \cong \kappa\) and \(T'' \cong T\).
+  By the IH on the second premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T'
+  \tpsynth \kappa'\), with no greater depth.
+  By transitivity of convertibility, \(\kappa' \cong \kappa''\).
+  We use the rule to conclude \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \cdot T'
+  \tpsynth [T'/X]T''\), with the measure preserved and the synthesized type in
+  the conclusion convertible with \([T'/X]T\) (since \(T'' \cong T\)).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2 \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,x_1:T_1,\Gamma_2 \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
+        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
+        & |t_2'| =_{\beta\eta} |t_2|
+        \\ \Gamma_1,x_1:T_1,\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star
+        & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpsynth T'
+        & T' \cong [t_1/x]T
+      \end{array}
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
+  T_3\) (with no greater depth) for some \(T_3 \cong \{t_1 \simeq t_2'\}\).
+  This means \(T_3 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  such that \(|t_3| =_{\beta\eta} t_1\) and \(|t_4| =_{\beta\eta} |t_2'|\).
+  So we further obtain \(|t_4| =_{\beta\eta} |t_2|'\).
+  By the IH on the first premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
+  \vdash [t_2/x]T \tpsynth \star\) with no greater depth.
+  By the IH on the second premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
+  \vdash t \tpsynth T''\) (with no greater depth) for some \(T'' \cong T'\).
+  With the final premise of the second row and transitivity, we obtain \(T''
+  \cong [t_1/x]T\).
+  We conclude with the rule, preserving the measure.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash \chi\ T\ \mhyph\ t\ \tpsynth T
+    }{
+      \Gamma_1,x_1:T_1,\Gamma_2 \vdash T \tpsynth \star
+      & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpcheck T
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T \tpsynth
+  \star\) with no greater depth.
+  By the IH on the second premise \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpcheck
+  T\) at no greater depth.
+  We conclude using the rule, with the measure preserved.
+ 
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \tpsynth T}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,x_1:T_2,\Gamma_2\vdash t\tpsynthleads \{t_1\simeq t_2\}
+        &
+        & \Gamma_1,x_1:T_1,\Gamma_2\vdash t' \tpsynth T
+        \\ |t_1| =_{\beta\eta} |t'|
+        & |t_2| =_{\beta\eta} |t''|
+        & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
+      \end{array}
+    }
+  \]
+
+  Similar to the checking case for \(\varphi\), only now after using the IH the
+  second premise of the first row synthesizes a type \(T' \cong T\).
+  The whole expression, then, synthesizes type \(T'\).
 \end{proof}
 
 \begin{corollary}
   \label{cor:ctxt-conv-class}
-  If \(\vdash \Gamma_1,X:\kappa_1,\Gamma_1\) and \(\Gamma_1 \vdash \kappa_1'\)
-  with \(\kappa_1' \cong \kappa\) then \(\vdash \Gamma_1,X:\kappa_1',\Gamma_2\).
+  If \(\vdash \Gamma_1,X:\kappa_1,\Gamma_2\) and \(\Gamma_1 \vdash \kappa_1'\)
+  with \(\kappa_1' \cong \kappa_1\) then \(\vdash \Gamma_1,X:\kappa_1',\Gamma_2\).
+\end{corollary}
+
+\begin{corollary}
+  \label{cor:ctxt-conv-class2}
+  If \(\vdash \Gamma_1,x_1:T_1,\Gamma_2\) and \(\Gamma_1 \vdash T_2 \tpsynth
+  \star\) with \(T_1 \cong T_2\) then \(\vdash \Gamma_1,x_1:T_2,\Gamma_2\).
 \end{corollary}
 
 \begin{lemma}
@@ -1262,7 +1822,7 @@ First a few lemmas (easy proofs omitted):
   \item \textbf{Kinds:}
     \begin{itemize}
     \item If \(\Gamma_1,x:T,\Gamma_2 \vdash \kappa\) and \(\Gamma_1 \vdash t
-      \tpcheck T\) then \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x] \kappa\)
+      \tpsynth T\) then \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x] \kappa\)
       
     \item If \(\Gamma_1,X:\kappa',\Gamma_2 \vdash \kappa\) and \(\Gamma_1 \vdash
       T \tpsynth \kappa'\) then \(\Gamma_1,[T/X]\Gamma_2 \vdash [T/X]\kappa\)
@@ -1303,7 +1863,8 @@ First a few lemmas (easy proofs omitted):
   If \(X_1 = X\), then \(\kappa_1 = \kappa\) and by assumption \(\Gamma_1 \vdash
   T \tpsynth \kappa\), and the desired result holds by weakening.
   Otherwise, either \((X_1 : \kappa_1) \in \Gamma_1\) and \(X \notin
-  \textit{FV}(\kappa_1)\), or else \((X_1 : \kappa_1) \in \Gamma_2\).
+  \textit{FV}(\kappa_1)\) (which we obtain from the assumption that the typing
+  context is well formed), or else \((X_1 : \kappa_1) \in \Gamma_2\). 
   Either way, we have \(\Gamma_1,[T/X]\Gamma_2 \vdash X_1 \tpsynth
   [T/X]\kappa_1\).
 
@@ -1351,7 +1912,7 @@ First a few lemmas (easy proofs omitted):
     {\textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,x:T,\Gamma_2) \quad |t_1| =_{\beta\eta} |t_2|}
   \]
 
-  From our assumptions we may conclude \(\textit{FV}([t/x]t) \subseteq
+  From our assumptions we may conclude \(\textit{FV}([t/x]t') \subseteq
   \textit{dom}(\Gamma_1,[t/x]\Gamma_2)\), and from the second premise that
   \(|[t/x]t_1| =_{\beta\eta} |[t/x]t_2|\).
   Thus, \(\Gamma_1,[t/x]\Gamma_2\ \vdash \beta\{[t/x]t'\}\tpcheck \{[t/x]t_1
@@ -1359,18 +1920,18 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [\beta\{t_2\}/x_1]^{\texttt{Top}}\ T_1}
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [t_2/x_1] T_1}
     {
       \begin{array}{cc}
         \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynth \{t_1 \simeq t_2\}
-        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [\beta\{t_2\}/x_1]^{\texttt{Top}}\ T_1 \tpsynth \star
+        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [t_2/x_1]\ T_1 \tpsynth \star
         \\ \Gamma_1,x:T,\Gamma_2 \vdash t' \tpsynth T'
         & T' \cong [t_1/x_1]T_1
       \end{array}
     }
   \]
   From the IH, we have that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t'' \tpsynth \{[t/x]t_1
-  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][\beta\{t_2\}/x]T_1
+  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][t_2/x]T_1
   \tpsynth \star\), and that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t' \tpsynth
   [t/x]T'\).
   From the last premise, we may conclude that \([t/x]T' \cong
@@ -1394,13 +1955,7 @@ First a few lemmas (easy proofs omitted):
   Lemma~\ref{lem:subst-class} at each step.
 \end{proof}
 
-\begin{lemma}
-  \label{lem:tpcheck-conv}
-  If \(\Gamma \vdash t \tpcheck T_1\) where \(\Gamma \vdash T_1 \tpsynth
-  \kappa_1\), and we have \(\Gamma \vdash T_2 \tpsynth \kappa_2\) with \(T_1
-  \cong T_2\) and \(\kappa_1 \cong \kappa_2\), then \(\Gamma \vdash t \tpcheck T_2\).
-\end{lemma}
-
+\subsection{Theorem~\ref{thm:syntactic-kind-pres}}
 \begin{proof}[Proof (of Theorem~\ref{thm:syntactic-kind-pres})]
   We may rule out the cases where \(T\) is a variable or formed by a type
   constructor, as this would contradict the assumption that \(T \leadsto_{\beta}
@@ -1418,11 +1973,11 @@ First a few lemmas (easy proofs omitted):
   T'\). In the first case, we have \(T \leadsto_\beta T''\) for some \(T''\) (so
   \(T' = T''\ t\)). By the IH, we have \(\Gamma \vdash T'' \tpsynth
   \abs{\Pi}{x}{T_1'}{\kappa_1'}\) for some \(T_1' \cong T_1\) and \(\kappa_1'
-  \cong \kappa_1\) (we have by assumption the kind of \(T''\) must be
+  \cong \kappa_1\) (we have from that IH that kind of \(T''\) must be
   convertible with \(\abs{\Pi}{x}{T_1}{\kappa_1}\)). By
-  Lemma~\ref{lem:tpcheck-conv}, \(\Gamma \vdash t \tpcheck T_1'\). By the rule,
-  \(\Gamma \vdash T''\ t \tpsynth [t/x]\kappa_1'\), and the synthesized kind is
-  clearly convertible with \([t/x]\kappa_1\).
+  Lemma~\ref{lem:ctxt-conv-class2}, \(\Gamma \vdash t \tpcheck T_1'\).
+  By the rule, \(\Gamma \vdash T''\ t \tpsynth [t/x]\kappa_1'\), and the
+  synthesized kind is clearly convertible with \([t/x]\kappa_1\).
 
   In the other subcase, the subject of kinding is of the form
   \((\abs{\lambda}{x}{T_1}{T''})\ t\) and our assumed reduction is to
@@ -1441,23 +1996,39 @@ First a few lemmas (easy proofs omitted):
   \leadsto_\beta T'\). In the first subcase, we have \(T_1 \leadsto_\beta
   T_1''\) for some \(T_1''\) (so \(T' = T_1'' \cdot T_2\)). By the IH, we have
   \(\Gamma \vdash T_1'' \tpsynth \abs{\Pi}{X}{\kappa_2''}{\kappa_1''}\) for some
-  \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have by
-  assumption the kind of \(T_1''\) must be convertible with
-  \(\abs{\Pi}{X}{\kappa_2}{\kappa_1}\)). By transitivity we can conclude
-  \(\kappa_2'' \cong \kappa_2\). By the rule, we have \(\Gamma \vdash T_1''
-  \cdot T_2 \tpsynth [T_2/X]\kappa_1''\), and the synthesized kind is clearly
-  convertible with \([T_2/X]\kappa_1\).
+  \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have from
+  the IH that the kind of \(T_1''\) must be convertible with
+  \(\abs{\Pi}{X}{\kappa_2}{\kappa_1}\)).
+  By transitivity we can conclude \(\kappa_2'' \cong \kappa_2'\).
+  By the rule, we have \(\Gamma \vdash T_1'' \cdot T_2 \tpsynth
+  [T_2/X]\kappa_1''\), and the synthesized kind is clearly convertible with
+  \([T_2/X]\kappa_1\).
 
   In the other subcase, the subject of kinding is of the form
   \((\abs{\lambda}{X}{\kappa_2}{T_1''}) \cdot T_2\) and our assumed reduction is
-  to \([T_2/X]T_1''\). By inversion of the kinding derivation, we have
-  \(\Gamma,X:\kappa_2 \vdash T_1'' \tpsynth \kappa_1\). By
-  Lemma~\ref{lem:subst-class}, we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
-  [T_2/X]\kappa_1\).
+  to \([T_2/X]T_1''\).
+  By inversion of the kinding derivation, we have \(\Gamma,X:\kappa_2 \vdash
+  T_1'' \tpsynth \kappa_1\).
+  By Lemma~\ref{lem:ctxt-conv-class}, we have \(\Gamma,X:\kappa_2' \vdash T_1''
+  \tpsynth \kappa_1'\) for some \(\kappa_1' \cong \kappa_1\), and from this and
+  Lemma~\ref{lem:subst-class} we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
+  [T_2/X]\kappa_1'\).
+  This is clearly convertible with \([T_2/X]\kappa_1\), as desired.
 \end{proof}
 
+\begin{corollary}
+  \label{cor:syntactic-kind-pres}
+  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadsto_\beta^* T'\) then
+  \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa' \cong \kappa\).
+\end{corollary}
+
+\subsection{Theorem~\ref{thm:judge-valid}}
+
 \begin{proof}[Proof (of Theorem~\ref{thm:judge-valid})]
-  By induction on the assumed derivation.
+  By induction on the assumed derivation, making implicit use of
+  Corollary~\ref{cor:syntactic-kind-pres} for the shorthand \(\Gamma \vdash t
+  \tpsynthleads T\) and mostly omitting annotated substitutions when these are
+  clear from context (we show the first one that occurs).
   We show a few interesting cases.
 
   \startcase{.2cm}
@@ -1478,9 +2049,19 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
+    \infer{\Gamma\vdash\abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa'}}{\Gamma \vdash \kappa & \Gamma,X:\kappa\vdash T'\tpsynth\kappa'}
+  \]
+  By assumption, the first premise, and the context formation rules, we have
+  \(\vdash \Gamma,X:\kappa\).
+  From this and the IH on the second premise, we have \(\Gamma,X:\kappa \vdash
+  \kappa'\).
+  We can then conclude that \(\Gamma \vdash \abs{\Pi}{X}{\kappa}{\kappa'}\)
+
+  
+  \startcase{.2cm}
+  \[
     \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'}
   \]
-
   By the IH on the first premise, we have \(\Gamma \vdash
   \abs{\Pi}{X}{\kappa_2}{\kappa_1}\), and by inversion this gives us \(\Gamma
   \vdash \kappa_2\), which yields \(\vdash \Gamma,X:\kappa_2\), and
@@ -1492,39 +2073,68 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T' \leadsto^*_\beta T'}
+    \infer{\Gamma\vdash T\ t \tpsynth [t/x]^{T'}\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'}
   \]
-  By the IH, \(\Gamma \vdash T \tpsynth \star\).
-  By generalizing Theorem~\ref{thm:syntactic-kind-pres} to \(\leadsto^*_\beta\),
-  we have \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa' \cong
-  \star\).
-  This means that in fact \(\kappa' = \star\), as desired.
+  By the IH on the first premise, \(\Gamma \vdash \abs{\Pi}{x}{T'}{\kappa}\).
+  By inversion, \(\Gamma \vdash T' \tpsynth \star\) and \(\Gamma,x:T' \vdash
+  \kappa\).
+  So, from the first of these and by context formation \(\vdash \Gamma,x:T'\).
+  From the second premise and the \(\chi\) rule, \(\Gamma \vdash \chi\ T\
+  \mhyph\ t \tpsynth T\).
+  Finally by Lemma~\ref{lem:subst-class}, \(\Gamma \vdash [t/x]^{T} \kappa\).
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'}
+    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'}
   \]
   By the IH on the first premise, \(\Gamma \vdash \abs{\Pi}{x}{T'}{T} \tpsynth
   \star\).
-  By inversion of this, we obtain both \(\Gamma \vdash T' \tpsynth \star\), from
-  which it follows by the \(\chi\) rule and second premise that \(\Gamma \vdash
-  \chi\ T'\ \mhyph\ t \tpsynth T'\), and that \(\Gamma,x:T' \vdash T \tpsynth
-  \star\), from which we obtain \(\Gamma \vdash [t/x]^{T'}\ T \tpsynth \star\)
-  using Lemma~\ref{lem:subst-class}
+  By inversion of this, we obtain both \(\Gamma \vdash T' \tpsynth \star\), and
+  that \(\Gamma,x:T' \vdash T \tpsynth \star\).
+  From the first of these and the context formation rules, we have \(\vdash
+  \Gamma,x:T'\).
+  Finally, from Lemma~\ref{lem:subst-class} we have \(\Gamma \vdash [t'/x]T
+  \tpsynth \star\).
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [\beta\{t_2\}/x]^{\texttt{Top}}\ T}
+    \infer{
+      \Gamma\vdash t \cdot T' \tpsynth [T'/X]T
+    }{
+      \Gamma\vdash t \tpsynthleads \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T'
+      \tpsynth \kappa' & \kappa'\cong\kappa
+    }
+  \]
+  From the IH on the first premise, \(\Gamma \vdash \abs{\forall}{X}{\kappa}{T}
+  \tpsynth \star\).
+  By inversion of this, we have both \(\Gamma \vdash \kappa\) and
+  \(\Gamma,X:\kappa \vdash T \tpsynth \star\).
+  From the first of these, context formation rules, and assumption we have
+  \(\vdash \Gamma,X:\kappa\).
+  By the IH on the second premise, we also have \(\Gamma \vdash \kappa'\), and
+  from this we have \(\vdash \Gamma,X:\kappa'\).
+  We combine this with the earlier derivation of \(\Gamma,X:\kappa \vdash T
+  \tpsynth \star\), the third premise, and Lemma~\ref{lem:ctxt-conv-class} to
+  obtain \(\Gamma,X:\kappa' \vdash T \tpsynth \star\).
+  Finally, we use Lemma~\ref{lem:subst-class} to obtain \(\Gamma \vdash [T'/X]T
+  \tpsynth \star\).
+  
+  
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
     {
-      \begin{array}{cc}
-        \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
-        & \quad \Gamma \vdash [\beta\{t_2\}/x]^{\texttt{Top}}\ T \tpsynth \star
-        \\ \Gamma \vdash t \tpsynth T'
+      \begin{array}{ccc}
+        \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
+        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
+        & |t_2'| =_{\beta\eta} |t_2|
+        \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
+        & \Gamma \vdash t \tpsynth T'
         & T' \cong [t_1/x]T
       \end{array}
-    }    
+    }
   \]
-  The desired result is given by the second assumption (reading first left to right, then top to bottom).
+  The desired result is given by the first premise of the second row.
 
 
   \startcase{.2cm}
@@ -1532,7 +2142,7 @@ First a few lemmas (easy proofs omitted):
     \infer{\Gamma \vdash \chi\ T\ \mhyph\ t\ \tpsynth T}
     {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T}
   \]
-  Give to us by assumption (the first premise).
+  Give to us by the first premise.
 \end{proof}
 
 \end{document}
