@@ -223,14 +223,9 @@ consists entirely of congruence rules).
           {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T} &
     \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
           {
-            \begin{array}{ccc}
-              \Gamma\vdash t\tpsynthleads \{t_1\simeq t_2\}
-              &
+              \Gamma\vdash t\tpcheck \{t' \simeq t''\}
               & \Gamma\vdash t' \Leftrightarrow T
-              \\ |t_1| =_{\beta\eta} |t'|
-              & |t_2| =_{\beta\eta} |t''|
               & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
-            \end{array}
           }
   \end{array}
     \end{array}
@@ -274,7 +269,7 @@ consists entirely of congruence rules).
     |t.2| & = & |t| &\ &
     |\beta\{t\}| & = & |t|\\
     |\delta\ \mhyph\ t| & = & \absu{\lambda}{x}{x}&\ &
-    |\rho\ t\ @x.T\ \mhyph\ t'| & = & |t'| \\
+    |\rho\ t\ @x\langle t_2 \rangle.T\ \mhyph\ t'| & = & |t'| \\
     |\varphi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
     |\chi\ T\ \mhyph\ t'| & = & |t'|
   \end{array}
@@ -1066,19 +1061,14 @@ must show.
 \[
   \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
   {
-    \begin{array}{ccc}
-      \Gamma\vdash t\tpsynthleads \{t_1\simeq t_2\}
-      &
-      & \Gamma\vdash t' \Leftrightarrow T
-      \\ |t_1| =_{\beta\eta} |t'|
-      & |t_2| =_{\beta\eta} |t''|
-      & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
-    \end{array}
+    \Gamma\vdash t\tpcheck \{t' \simeq t''\}
+    & \Gamma\vdash t' \Leftrightarrow T
+    & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
   }
 \]
-By the IH for the first premise, $\sigma|t_1| =_{\cbe} \sigma|t_2|$.
-Using the first and second premise of the second row, we obtain \(\sigma|t'|
-=_{\cbe} \sigma|t''|\).
+By the IH for the first premise, $\sigma|t'| =_{\cbe} \sigma|t''|$ (we can see
+that \(\textit{FV}(t'\ t'') \subseteq \Gamma\), so \(\interp{\{t' \simeq
+  t''\}}_{\sigma,\rho}\) is defined).
 By the IH for the second premise,
 $[\sigma|t'|]_{\cbe}\in\interp{T}_{\sigma,\rho}$ (in the case of type synthesis,
 the IH also tells us \(\interp{T}_{\sigma,\rho}\) is defined).
@@ -1651,32 +1641,24 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma_1,x_1:T_1,\Gamma_2 \vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \tpcheck T_3}
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T_3}
     {
-      \begin{array}{ccc}
-        \Gamma_1,x_1:T_1,\Gamma_2 \vdash t\tpsynthleads \{t_1\simeq t_2\}
-        &
-        & \Gamma_1,x_1:T_1,\Gamma_2\vdash t' \tpcheck T_3
-        \\ |t_1| =_{\beta\eta} |t'|
-        & |t_2| =_{\beta\eta} |t''|
-        & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
-      \end{array}
+      \Gamma_1,x_1:T_1,\Gamma_2\vdash t\tpcheck \{t' \simeq t''\}
+      & \Gamma_1,x_1:T_1,\Gamma_2\vdash t' \Leftrightarrow T_3
+      & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
     }
   \]
   By the IH on the first premise (first row), \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash
-  t \tpsynth T\) (with no greater depth) for some \(T \cong \{t_1 \simeq t_2\}\).
-  This means that \(T \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
-  such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta} |t_2|\).
-  Using the first and second premise of the second row and transitivity of
-  \(\beta\eta\)-equivalence, \(|t_3| =_{\beta\eta} |t'|\) and \(|t_4|
-  =_{\beta\eta} |t''|\).
-  By the IH on the second premise of the first row, \(\Gamma_1,x_1:T_2,\Gamma_2
-  \vdash t' \tpcheck T_4\) (with no greater depth, and where \(T_4\) is the type
-  given to us in the lemma and \(T_4 \cong T_3\)).
-  Also, we can see from the last premise of the second row that
-  \(\textit{FV}(t') \subseteq \textit{dom}(\Gamma_1,x_1:T_2,\Gamma_2)\).
-  So, we use the rule to conclude \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash \varphi\ t\
-  \mhyph\ t'\ \{t''\} \tpcheck T_4\).
+  t \tpcheck \{t' \simeq t''\}\) (with no greater depth).
+  If this is type synthesis, then by the second premise
+  \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t' \tpsynth T_4\) for some \(T_4 \cong
+  T_3\).
+  If this is type checking, by the second premise \(\Gamma_1,x_1:T_2,\Gamma_2
+  \vdash t' \tpcheck T_4\) since \(T_4\) (given to us in this case) is
+  convertible with \(T_3\).
+  Either way, we use the rule to conclude (note
+  \(\textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2) =
+  \textit{dom}(\Gamma_1,x_1:T_2,\Gamma_2)\)), and the measure is preserved.
   
   % type synthesis
   \startcase{.2cm}
@@ -1780,25 +1762,6 @@ First a few lemmas (easy proofs omitted):
   By the IH on the second premise \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpcheck
   T\) at no greater depth.
   We conclude using the rule, with the measure preserved.
- 
-  \startcase{.2cm}
-  \[
-    \infer{\Gamma_1,x_1:T_1,\Gamma_2\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \tpsynth T}
-    {
-      \begin{array}{ccc}
-        \Gamma_1,x_1:T_2,\Gamma_2\vdash t\tpsynthleads \{t_1\simeq t_2\}
-        &
-        & \Gamma_1,x_1:T_1,\Gamma_2\vdash t' \tpsynth T
-        \\ |t_1| =_{\beta\eta} |t'|
-        & |t_2| =_{\beta\eta} |t''|
-        & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
-      \end{array}
-    }
-  \]
-
-  Similar to the checking case for \(\varphi\), only now after using the IH the
-  second premise of the first row synthesizes a type \(T' \cong T\).
-  The whole expression, then, synthesizes type \(T'\).
 \end{proof}
 
 \begin{corollary}
