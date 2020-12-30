@@ -16,10 +16,11 @@
 \newcommand{\interp}[1]{\llbracket #1 \rrbracket} 
 \newcommand{\tpcheck}[0]{\Leftarrow}
 \newcommand{\tpsynth}[0]{\Rightarrow}
+\newcommand{\tpsynthleads}[0]{\ensuremath{\overset{\leadsto_\beta^*}{\Rightarrow}}}
 \newcommand{\cbe}[0]{c\beta\eta}
 \newcommand{\utp}[0]{\mathcal{U}}
 \newcommand{\startcase}[1]{\vspace{#1} \noindent\textbf{\underline{Case:}}}
-
+\newcommand{\startsubcase}[1]{\vspace{#1} \noindent\textbf{\underline{Subcase:}}}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -47,7 +48,7 @@ The type theory of Cedille is called the Calculus of Dependent Lambda
 Eliminations (CDLE).  This document presents the version of CDLE as of
 December 1, 2020.  We have made many changes from the first paper on CDLE~\cite{stump17},
 mostly in the form of dropping constructs we discovered (to our
-surprise) could be derived~\cite{stump18}. I have also omitted
+surprise) could be derived~\cite{stump18}. We have also omitted
 \emph{lifting} -- a technique for large eliminations with lambda
 encodings -- in this document's version of CDLE.  Some uses of lifting
 can be simulated other ways within the system, though the limits of
@@ -59,7 +60,7 @@ compensates somewhat for the lack of lifting.
 At a high level, CDLE is an extrinsic (i.e., Curry-style) type theory
 extending the Calculus of Constructions with three additional
 constructs, which allow deriving induction principles within the
-theory, for inductive datatypes.  The goal is to support usual
+theory for inductive datatypes.  The goal is to support usual
 idioms of dependently typed programming and proving as in Agda or
 similar tools, but using pure lambda encodings for all data, and
 requiring a much smaller core theory.
@@ -80,53 +81,64 @@ For brevity, we take these figures as implicitly specifying the syntax of
 contexts \(\Gamma\), kinds $\kappa$, types $T$, and annotated terms $t$; these
 may use term variables $x$ and type variables $X$, which we assume come from
 distinct sets.  So terms and types are syntactically distinguished.
-The typing rules (Figure~\ref{fig:tp}) are
-bidirectional~\cite{pierce+00}, while the kinding and superkinding
-rules (Figure~\ref{fig:knd} and~\ref{fig:superknd}) are only
-synthesizing.  We write $\Leftrightarrow$ to range over
-$\{\tpcheck,\tpsynth\}$, and when this symbol occurs multiple times in a rule,
-it is intended that such occurrences be read the same way (i.e., either all as
-\(\tpcheck\) or all as \(\tpsynth\)).
-Since term variables synthesize their types but the usual notion of substitution may
-replace these with terms whose types can only be checked, we introduce a
-short-hand notation: let \([t/x]^T\) stand for \([\chi\ T\ \mhyph\ t/x]\),
-where the \(\chi\) construct gives an explicit type annotation (see
-Section~\ref{sec:overview}).
-
 We follow the syntax of our implementation
 Cedille, which distinguishes application of a term or type $e$ to a
 type ($e \cdot T$), from application to a term ($e\ t$), and
 application to an erased term argument ($e\ \mhyph t$, in which case \(e\) must
 be a term).
-The rules are intended, with a few points of nondeterminism, to be read
-bottom-up (in a standard way;
-c.f.~\cite{peytonjones07,Pfe01_Lecture-Notes-on-Bidirectional-Type-Checking}) as
-an algorithm for synthesizing a classifier from a context and an expression
-($\tpsynth$) (\emph{type synthesis}) or checking an expression against a classifier in context
-($\tpcheck$) (\emph{type checking}).
-Specifically, nondeterminism arises in the two rules allowing both synthesized
-and checked types to be reduced, written \(T \leadsto^*_\beta T'\), so that type
-constructors required by other rules may be revealed.
-The reduction relation \(\leadsto_\beta\) is call-by-name normalization, as this
-is sufficient to reduce types to weak head normal form.
+Note that center dot (\(\cdot\)) is also used to denote the empty type context;
+since the usage for typing contexts always has the symbol occur to the left of
+the turnstile (\(\vdash\)), no confusion should arise from overloading notation.
 
-The classification rules refer to an erasure function, defined in
-Figure~\ref{fig:eraser}.  The type theory is \emph{extrinsic} (aka,
-Curry-style), and hence we only consider erasures $|t|$ of terms when
-testing for $\beta\eta$-equivalence.  This applies also to the conversion
-relation $T\cong T'$ on types and \(\kappa \cong \kappa'\) on kinds, whose central rules are given in
-Figure~\ref{fig:conv}.  That figure omits the various congruence rules
-needed to equate bigger expressions by equating subexpressions.  The
-main ideas of conversion shown in the figure are to use
-$\beta$-equivalence at the type level, and $\beta\eta$-equivalence of
-erased terms at the term level.
-Note in particular that for conversion we check full \(\beta\) and
-\(\beta\eta\)-equivalence, not just equivalence with respect to call-by-name
-normalization.
+The typing rules (Figure~\ref{fig:tp}) are
+bidirectional~\cite{pierce+00}, while the kinding and superkinding
+rules (Figure~\ref{fig:knd} and~\ref{fig:superknd}) are unidirectional
+(i.e., synthesizing only).
+We write $\Leftrightarrow$ to range over
+$\{\tpcheck,\tpsynth\}$, and when this symbol occurs multiple times in a rule,
+it is intended that such occurrences be read the same way (i.e., read the
+occurrences as either all \(\tpcheck\) or all \(\tpsynth\)).
+The rules are intended to be read bottom-up as an algorithm (in a standard way,
+c.f.~\cite{peytonjones07,Pfe01_Lecture-Notes-on-Bidirectional-Type-Checking})
+for synthesizing a classifier from a context and an expression (\emph{type
+  synthesis}, \(\tpsynth\)) or checking an expression against a classifier in a
+context (\emph{type checking}, \(\tpcheck\)).
+Since variables have their type synthesized, and since we sometimes wish to
+substitute a variable with a term whose type can only be checked, we define a
+shorthand notation: \([t/x]^T\) means \([\chi\ T\ \mhyph\ t/x]\), where \(\chi\)
+is the construct for explicit type annotations (see Section~\ref{sec:overview}).
+
+In terms, when the type of an introduction form is checked or the type of an
+elimination form is synthesized, we use call-by-name normalization for types
+\(\leadsto_\beta^*\) to put types in weak head normal form, revealing type
+constructors.
+We abbreviate the conjuction ``term \(t\) synthesizes some type, and that type
+call-by-name reduces to another type'' with the symbol \(\tpsynthleads\),
+defined formally at the top of Figure~\ref{fig:tp}.
+When a redex (reducible expression) occurs such that the argument to a type is a
+term, such as \((\abs{\lambda}{x}{T_1}{T_2})\ t_1\), the reduction uses
+substitution with annotations to \([t_1/x]^{T_1}\ T_2\).
+
+Call-by-name reduction is \emph{not} what underpins the
+congruence relation \(\cong\) for types or terms, which is full
+\(\beta\)-equivalence (for types) and \(\beta\eta\)-equivalence (for terms)
+modulo erasure of annotations in terms.
+The erasure operation is defined in Figure~\ref{fig:eraser}, and is essentially
+the \emph{extraction} function for the Implicit Calculus of Constructions given
+by~\cite{BB08_ICC-as-a-Programming-Language} adapted to CDLE.
+To understand the role of erasure, recall that the type theory is \emph{extrinsic} (a.k.a.\
+Curry-style), and hence we only consider erasures \(|t|\) of terms when testing
+convertibility.
+This is lifted to the conversion relation on types \(T \cong T'\) and kinds
+\(\kappa \cong \kappa'\), whose central rules are given in
+Figure~\ref{fig:conv}.
+That figure omits the various congruence rules needed to equate bigger
+expressions by equating subexpressions (the convertibility rules for kinds
+consists entirely of congruence rules).
 
 \begin{figure}
   \[
-  \begin{array}{llll}
+  \begin{array}{ccc}
     \infer{\Gamma \vdash \star}{\ } &
     \infer{\Gamma\vdash\abs{\Pi}{x}{T}{\kappa}}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash\kappa} &
     \infer{\Gamma\vdash\abs{\Pi}{X}{\kappa'}{\kappa}}{\Gamma \vdash \kappa' & \Gamma,X:\kappa'\vdash\kappa}
@@ -138,7 +150,10 @@ normalization.
 
 \begin{figure}
   \[
-  \begin{array}{ll}
+    \begin{array}{c}
+      [t/x]^T\ =\ [\chi\ T\ \mhyph\ t/x]
+      \\ \\ \\
+  \begin{array}{cc}
     \infer{\Gamma \vdash X \tpsynth \kappa}{(X : \kappa) \in \Gamma} &
     \infer{\Gamma\vdash \abs{\forall}{X}{\kappa}{T} \tpsynth \star}{\Gamma \vdash \kappa & \Gamma,X:\kappa\vdash T \tpsynth \star} \\ \\
     \infer{\Gamma\vdash\abs{\forall}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
@@ -150,6 +165,7 @@ normalization.
     \infer{\Gamma\vdash\abs{\iota}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
     \infer{\Gamma\vdash \{ t \simeq t' \} \tpsynth \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
   \end{array}
+    \end{array}
   \]
   \caption{Rules for synthesizing a kind for a type ($\Gamma \vdash T \tpsynth \kappa$)}
   \label{fig:knd}
@@ -159,47 +175,67 @@ normalization.
 \begin{figure}
   \[
     \begin{array}{c}
-  \begin{array}{ll}
+      \Gamma \vdash t \tpsynthleads T\ =\ \exists T'.\ \Gamma
+      \vdash t \tpsynth T' \land T' \leadsto_\beta^* T
+      \\ \\ \\
+  \begin{array}{cc}
     \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
-    \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T'} \\ \\
-    \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\
-    \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck \abs{\Pi}{x}{T}{T'}}{\Gamma,x:T\vdash t\tpcheck T'} &
-    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
+    \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2} &
+    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
-    \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck \abs{\forall}{X}{\kappa}{T}}{\Gamma,X:\kappa\vdash t \tpcheck T} &
+    \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck T'}
+          {T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T} &
     \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
-          {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
+          {\Gamma\vdash t \tpsynthleads \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
 
-    \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck \abs{\forall}{x}{T'}{T}}{\Gamma,x:T'\vdash t \tpcheck T & x\not\in\textit{FV}(|t|)} &
-    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
+    \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck T}
+          {T \leadsto_\beta^* \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)} &
+    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
-    \infer{\Gamma\vdash [ t , t' ] \tpcheck \abs{\iota}{x}{T}{T'}}
-          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]^TT' & |t| =_{\beta\eta} |t'|} &
-    \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} \\ \\
-    \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]^TT'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} &
-    \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
-          {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
-    \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpcheck \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  &
-    \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [\beta\{t_2\}/x]^{\texttt{Top}}\ T}
+    \infer{\Gamma\vdash [ t_1 , t_2 ] \tpcheck T}
           {
-          \begin{array}{cc}
-            \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
-            & \quad \Gamma \vdash [\beta\{t_2\}/x]^{\texttt{Top}}\ T \tpsynth \star
-            \\ \Gamma \vdash t \tpsynth T'
+           \begin{array}{cc}
+             T \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+             & \Gamma \vdash t_1 \tpcheck T_1
+             \\ \Gamma \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
+             & |t_1| =_{\beta\eta} |t_2|
+           \end{array}
+          } &
+    \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}} \\ \\
+    \infer{\Gamma\vdash t.2 \tpsynth [t.1/x] T'}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}} &
+    \infer{\Gamma\vdash \beta\{t'\} \tpcheck T}
+          {T \leadsto_\beta^* \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
+    \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}
+          {\Gamma\vdash t\tpcheck \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}} &
+    \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
+          {
+          \begin{array}{ccc}
+            \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
+            & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
+            & |t_2'| =_{\beta\eta} |t_2|
+            \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
+            & \Gamma \vdash t \tpsynth T'
             & T' \cong [t_1/x]T
           \end{array}
           } \\ \\
     \infer{\Gamma \vdash \chi\ T\ \mhyph\ t\ \tpsynth T}
           {\Gamma \vdash T \tpsynth \star & \Gamma \vdash t \tpcheck T} &
     \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
-          {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}
+          {
+            \begin{array}{ccc}
+              \Gamma\vdash t\tpsynthleads \{t_1\simeq t_2\}
+              &
+              & \Gamma\vdash t' \Leftrightarrow T
+              \\ |t_1| =_{\beta\eta} |t'|
+              & |t_2| =_{\beta\eta} |t''|
+              & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
+            \end{array}
+          }
   \end{array}
-      \\ \\
-      \texttt{Top} = \{\absu{\lambda}{x}{x} \simeq \absu{\lambda}{x}{x} \}
     \end{array}
   \]
-\caption{Rules for checking a term against a well-kinded type ($\Gamma \vdash t \tpcheck T$)
+\caption{Rules for checking a term against a type ($\Gamma \vdash t \tpcheck T$)
            and synthesizing a type for a term ($\Gamma \vdash t \tpsynth T$)}
 \label{fig:tp}
 \end{figure}
@@ -228,10 +264,10 @@ normalization.
   \[
   \begin{array}{lllllll}
     |x| & = & x &\ &
-    |\abs{\lambda}{x}{t'}{t}| & = & \absu{\lambda}{x}{|t|} \\
+    |\absu{\lambda}{x}{t}| & = & \absu{\lambda}{x}{|t|} \\
     |t\ t'| & = & |t|\ |t'| &\ &
     |t\cdot T| & = & |t| \\
-    |\abs{\Lambda}{x}{t'}{t}| & = & |t| &\ &
+    |\absu{\Lambda}{x}{t}| & = & |t| &\ &
     |t\ \mhyph t'| & = & |t| \\
     |[t , t']| & = & |t| &\ &
     |t.1| & = & |t| \\
@@ -272,7 +308,8 @@ $\abs{\Pi}{X}{\kappa}{\kappa'}$.  We use $\forall$ when the
 corresponding argument will be erased, and $\Pi$ when it will be
 retained.  Since we do not erase term or type arguments from
 type-level applications, we thus write $\abs{\Pi}{X}{\kappa}{\kappa'}$
-instead of $\abs{\forall}{X}{\kappa}{\kappa'}$.  We write $\lambda$ to
+instead of $\abs{\forall}{X}{\kappa}{\kappa'}$.
+For abstractions, we write $\lambda$ to
 correspond to $\Pi$ and $\Lambda$ to correspond to $\forall$.  As noted
 above, application to a type is denoted with center dot ($\cdot$).
 
@@ -281,66 +318,59 @@ by Miquel~\cite{miquel01}; a primitive equality type $\{ t \simeq
 t'\}$; and dependent intersection types $\abs{\iota}{x}{T}{T'}$,
 introduced by Kopylov~\cite{kopylov03}.  Implicit products are used
 for erased arguments to functions, found also in systems like Agda
-(cf.~\cite{mishraLinger08}).  Dependent intersections are a rather
-exotic construct allowing us to assign type $\abs{\iota}{x}{T'}{T}$ to
-erased term $t$ when we can assign $T'$ to $t$, and also assign
+(c.f.~\cite{mishraLinger08}).  Dependent intersections are a rather
+exotic construct allowing us to assign type $\abs{\iota}{x}{T_1}{T_2}$ to
+erased term $t$ when we can assign $T_1$ to $t$, and also assign
 $[t/x]T$ to $t$.  For an annotated introduction form, we write
-$[t,t'$], where $t$ checks against type $T'$, $t'$ checks against
-$[t/x]T$, and $t$ and $t'$ have $\alpha\beta\eta$-equivalent
+$[t_1,t_2$], where $t_1$ checks against type $T_1$, $t_2$ checks against
+$[t_1/x]^{T_1}T_2$, and $t_1$ and $t_2$ have $\beta\eta$-equivalent
 erasures.  Dependent intersections thus enable a controlled form of
 self-reference in the type.  Previous work showed how to use this to
 derive induction for Church-encoded natural numbers~\cite{stump18}.
 We will see below further uses of this construct.
 
-The typing rules include conversion checks in a few places; e.g., as
-standardly, when switching from checking to synthesizing mode.  As mentioned
+The typing rules include conversion checks in a few places, e.g., as is
+standard when switching from checking to synthesizing mode.  As mentioned
 earlier, two rules near the top of Figure~\ref{fig:tp} state that one may
-(nondeterministically) $\beta$-reduce the type one is synthesizing or checking,
-before proceeding.
-This allows reduction to weak head normal form, to match the form of type
-required by other rules.
-Finally, we include the construct $\chi\ T\ \mhyph\ t$ which allows a term whose
-type can only be checked to be ascribed a user-provided type so that the whole
-expression may occur where type synthesis is expected.
+(nondeterministically) call-by-name reduce the type one is synthesizing or
+checking, before proceeding.
+We also include the construct $\chi\ T\ \mhyph\ t$ which allows a term whose
+type can be checked to be ascribed a user-provided type so that the whole
+expression may occur where a term whose type can be synthesized is expected.
 
-We have modified the rules for equality types $\{ t \simeq t' \}$ so that we require
-nothing of $t$ and $t'$ except that the set $\textit{dom}(\Gamma)$ of variables
-declared by $\Gamma$ includes their free variables $\textit{FV}(t\ t')$.  Further modifications
+We have modified the rules for equality types $\{ t_1 \simeq t_2 \}$ so that we require
+nothing of $t_1$ and $t_2$ except that the set $\textit{dom}(\Gamma)$ of variables
+declared by $\Gamma$ includes their free variables $\textit{FV}(t_1\ t_2)$.  Further modifications
 over the version of CDLE in~\cite{stump18} are:
 \begin{itemize}
 \item To prove $\{ t_1 \simeq t_2\}$ for definitionally equal terms (that is,
   terms that are \(\beta\eta\)-equivalent modulo erasure), one now writes $\beta\{t'\}$,
-  with the critical idea that $|\beta\{t'\}|$ erases to (a possibly unrelated) $|t'|$.
+  with the critical idea that $|\beta\{t'\}|$ erases to (the possibly unrelated) $|t'|$.
   We call this the \textbf{Kleene trick}, because it goes back to Kleene's numeric
   realizability~\cite{Kle65_Classical-Extensions-of-Intuitionistic-Mathematics},
   which accepts any number $n$ as a realizer 
   of a true equation.  Here, we accept any term $t'$ as a realizer of $\{ t_1
   \simeq t_2\}$, provided the free variables of \(t'\) are declared in the
   context.
-  This means that in Cedille, any such term --- even otherwise untypable
+  
+  The Kleene trick means that in Cedille, any such term --- even otherwise untypable
   terms, non-normalizing terms, etc. --- prove trivially true equations.
   Put another way, any trivially true equation type in CDLE is a suitable type
   to classify all untyped lambda calculus terms.
-  We define such a type \texttt{Top} at the bottom of Figure~\ref{fig:tp}, which
-  is used in the typing of the next construct we discuss, \(\rho\).
 \item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) to
-  \(t_2\) in the synthesized type of the second subexpression.
-  The version presented here requires a ``guide'' \(@x.T\), where \(x\)
-  indicates the occurrences of \(t_1\) to substitute.
-  \([\beta\{t_2\}/x]^{\texttt{Top}}\ T\) must be a well-kinded type, but it is not required that
-  \([t_1/x]T\) also be, only that \(T'\) and \([t_1/x]T\) are convertible modulo
-  erasure --- it is not guaranteed that \(t_1\) and \(t_2\) will have the same
-  type, or will even be typeable.
+  \(t_2'\) in the synthesized type of its second subexpression.
+  The version presented here requires a type annotations (``guide'') \(@x\langle
+  t_2 \rangle.T\), where \(x\) indicates the occurrences of \(t_1\) to
+  substitute and \(t_2\) is a term, \(\beta\eta\)-equivalent to \(t_2'\), that
+  is used to replace \(x\).
+  There is no requirement that \(t_1\) and \(t_2\) will have the same type, or
+  even be typable.
+  However, \([t_2/x]\ T\) must be a well-kinded type and \([t_1/x]T\) (which
+  might be ill-kinded) must be convertible with \(T'\) modulo erasure.
   In Cedille, the guide is optional and the construct may be used to rewrite a
-  contextually given type; a heuristic is used to produce a resulting type that
-  is well-kinded whose details are beyond the scope of this document.
+  contextually given type; a heuristic, whose details are beyond the scope of
+  this document, is used to produce a resulting type that is well-kinded.
 
-  It might appear at first that the requirement that the guide \(T\) be written
-  such that the resulting substitution is well-kinded is too strict.
-  For example, what if we are trying to rewrite \(n\) in \(X\ n\), where \(X\)
-  is a predicate on (Church-encoded) naturals?
-  The next construct, \(\varphi\), gives us the ability to recover the typing
-  information associated to \(n\).
 \item We adopt a strong form of Nuprl's \textbf{direct computation rules}~\cite{constable+86}:
   If we have a term $t'$ of type $T$ and a proof $t$ that $\{ t' \simeq t''\}$, then we may conclude that
   $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\ \{t''\}$, which
@@ -356,8 +386,10 @@ over the version of CDLE in~\cite{stump18} are:
   proof \(t\) synthesizes an equation \(\{t_1 \simeq t_2\}\) in which \(|t_1|\)
   and \(|t_2|\) are separable using the \emph{B\"ohm-out algorithm}~\cite{BDPR79_Bohm-Algorithm}.
 
-  In the first version of CDLE, such an axiom was derivable from \emph{lifting}, a construct allowing
-  simply typable terms to be lifted to the type level~\cite{stump17}.  We omit lifting in this new version of CDLE, because while
+  In the first version of CDLE, such an axiom was derivable from \emph{lifting},
+  a construct allowing terms with simple types to be lifted to the type
+  level~\cite{stump17}.
+  We omit lifting in this new version of CDLE, because while
   sound, lifting as defined in that previous work is complicated and appears to be incomplete.  Developing a new
   form of lifting remains to future work.
 \end{itemize}
@@ -391,7 +423,7 @@ An easy corollary, by the semantics of $\forall$-types, is then:
 
 \begin{theorem}[Logical consistency]
 \label{thm:consis}
-  There is no term $t$ such that $\vdash t : \abs{\forall}{X}{\star}{X}$.
+  There is no term $t$ such that $\cdot \vdash t : \abs{\forall}{X}{\star}{X}$.
 \end{theorem}
 
 It may worry some readers that we have:
@@ -402,15 +434,18 @@ It may worry some readers that we have:
 Defining \verb|Top| to be $\{\absu{\lambda}{x}{x} \simeq
 \absu{\lambda}{x}{x}\}$, we may assign \verb|Top| to any closed term \verb|t|,
 including non-normalizing ones. In our annotated syntax, we write
-\texttt{\(\beta\)\{t\}}. Even without this, the presence of $\delta$ in
-combination with $\varphi$ allows us to type non-normalizing terms assuming an
-erased argument $x$ of type $\{ \textit{tt} \simeq \textit{ff} \}$ for
-Church-encoded booleans \textit{tt} and \textit{ff}. For example, $\delta\
-\mhyph\ x$ can be checked against type \(\{\absu{\lambda}{x}{x} \simeq
-\absu{\lambda}{x}{x\ x}\}\), and with 
-$\varphi$ we can use this to type $\Omega$ by changing the typed term
-\(\texttt{id}\ \cdot\texttt{True}\ \texttt{id}\), where \verb|True| is
-\(\abs{\forall}{X}{\star}{X \to X}\). But failure of normalization does not
+\texttt{\(\beta\)\{t\}}.
+Even without this, the presence of \(\varphi\) allows us to type non-normalizing
+terms assuming an erased argument \(x\) of type \(\{\absu{\lambda}{x}{x} \simeq
+\absu{\lambda}{x}{x\ x}\}\) by changing the type of the term \(\texttt{id}\
+\cdot \texttt{True}\ \texttt{id}\), where \texttt{True} is
+\(\abs{\forall}{X}{\star}{X \to X}\).
+This would allow us to give the type \texttt{True} to \(\Omega = (\absu{\lambda}{x}{x\ x})\
+\absu{\lambda}{x}{x\ x}\).
+In general, we can use any inconsistent assumption to do this, and in the
+presence of \(\delta\) that includes all equations between two terms that are
+B\"ohm-separable.
+But, failure of normalization does not
 impinge on Theorem~\ref{thm:consis}. Extensional Martin-L\"of type theory (MLTT)
 is also non-normalizing, for a very similar reason, but this fact does not contradict
 its logical soundness~\cite{dybjer16}. In CDLE, the guarantees one gets about
@@ -421,14 +456,14 @@ properties like normalization, as demonstrated by the following theorem:
 \begin{theorem}[Call-by-name normalization of functions]
   \label{thm:cedille-termination}
   Suppose \(\cdot \vdash t \tpsynth T\) and there exists a closed term \(t'\)
-  such that \(\cdot \vdash t \tpsynth T \to \abs{\Pi}{x}{T_1}{T_2}\) for some
+  such that \(\cdot \vdash t' \tpsynth T \to \abs{\Pi}{x}{T_1}{T_2}\) for some
   \(T_1,T_2\) and \(|t'| = \absu{\lambda}{x}{x}\).
   Then \(|t|\) is call-by-name normalizing.
 \end{theorem}
 
 Given the lack of normalization in general, several checks in the typing rules --
-for things like $t =_{\beta\eta} t'$ -- are formally undecidable.  In
-practice, we simply impose a bound on the number of steps of reduction,
+for things like $|t| =_{\beta\eta} |t'|$ -- are formally undecidable.
+We simply impose a bound on the number of steps of reduction,
 and thus restore formal decidability (we are checking ``typable within
 a given budget'').  In practice, the same is done for Coq and Agda,
 where type checking is decidable but, in general, infeasible (since one
@@ -477,11 +512,11 @@ Appendix~\ref{sec:proof-syntactic-kind-pres}), we can show the \emph{validity}
 \begin{theorem}[Judgment validity]
   \label{thm:judge-valid}
   If \(\vdash \Gamma\) then:
-  \begin{itemize}
+  \begin{enumerate}
   \item if \(\Gamma \vdash T \tpsynth \kappa\) then \(\Gamma \vdash \kappa\)
     
   \item if \(\Gamma \vdash t \tpsynth T\) then \(\Gamma \vdash T \tpsynth \star\)
-  \end{itemize}
+  \end{enumerate}
 \end{theorem}
 
 \begin{figure}
@@ -550,9 +585,10 @@ even non-normalizing ones).  We
 write $=_{\cbe}$ for standard $\beta\eta$-equivalence of pure lambda calculus, restricted to
 closed terms; and $[t]_{\cbe}$ for $\{ t'\ |\ t =_{\cbe} t'\}$.  This
 is extended to sets $S$ of terms by writing $[S]_{\cbe}$ for
-$\{[t]_{\cbe}\ |\ t\in S\}$.  In a few places we write
-$\textit{nf}(t)$ for the (unique) $\beta\eta$-normal form of term $t$,
-if it has one.  If (in our meta-language) we affirm a statement
+$\{[t]_{\cbe}\ |\ t\in S\}$.  % In a few places we write
+% $\textit{nf}(t)$ for the (unique) $\beta\eta$-normal form of term $t$,
+% if it has one.
+If (in our meta-language) we affirm a statement
 involving application of a partial function, then it is to be
 understood that that application is defined.
 
@@ -609,12 +645,16 @@ If $t' =_{\cbe} \sigma |t|$, then:
 \end{itemize}
 \end{lemma}
 
+Note that Lemma~\ref{lem:termsubstinterp} also applies to typed substitution: if
+\(t' =_{\cbe} \sigma|t|\) then by erasure so does \(\chi\ T\ \mhyph\ t'\).
+
 \begin{lemma}[Type substitution and interpretation] 
-\label{lem:tpsubstinterp}
-\begin{itemize}
-\item $\interp{T}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]T}_{\sigma,\rho}$
-\item $\interp{\kappa}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]\kappa}_{\sigma,\rho}$
-\end{itemize}
+  \label{lem:tpsubstinterp}
+  \ \\
+  \begin{itemize}
+  \item $\interp{T}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]T}_{\sigma,\rho}$
+  \item $\interp{\kappa}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]\kappa}_{\sigma,\rho}$
+  \end{itemize}
 \end{lemma}
 
 \begin{lemma}
@@ -675,7 +715,7 @@ true by the IH applied to the second premise.
 \infer{\Gamma \vdash X \tpsynth \kappa}{(X : \kappa) \in \Gamma} 
 \]
 From the definition of $\interp{\Gamma}$, we obtain
-$\rho(x)\in\interp{\kappa}_{\sigma,\rho}$.
+$\rho(X)\in\interp{\kappa}_{\sigma,\rho}$.
 
 \startcase{.2cm}
 \[
@@ -786,8 +826,9 @@ since $[\sigma |t|]_{\cbe}\in\interp{T'}_{\sigma,\rho}$, by the IH for
 the second premise; note that $\interp{T'}_{\sigma,\rho}$ is defined
 since otherwise $\interp{\Pi x:T'.\kappa}_{\sigma,\rho}$ would not be defined.
 The result of applying the function is thus indeed
-in $\interp{[t/x]\kappa}_{\sigma,\rho}$, since by
-Lemma~\ref{lem:termsubstinterp}, this equals
+in $\interp{[t/x]^{T'}\ \kappa}_{\sigma,\rho}$, since \(|\chi\ T'\ \mhyph\ t| =
+|t|\) (recall the shorthand \([t/x]^{T'} = [\chi\ T'\ \mhyph\ t/x]\)), and with  
+Lemma~\ref{lem:termsubstinterp} we have that the interpretation equals
 $\interp{\kappa}_{\sigma[x\mapsto \choice([\sigma |t|]_{\cbe})],\rho}$
 (the codomain of the function being applied).
 
@@ -816,71 +857,72 @@ $\textit{FV}(t\ t')\subseteq\textit{dom}(\sigma)$ (as an easy consequence of $(\
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash x\tpsynth T}{(x : t)\in\Gamma} 
+    \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} 
 \]
 This follows from the definition of $\interp{\Gamma}$.
 
-\startcase{.2cm}
-\[
- \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} 
-\]
-We are assuming $\interp{T'}_{\sigma,\rho}$ is defined, since this is a checking judgment. The desired result then
-follows from Lemma~\ref{lem:interppres}.
+% \startcase{.2cm}
+% \[
+%  \infer{\Gamma\vdash t\tpcheck T'}{\Gamma\vdash t \tpcheck T & T' \leadsto^*_\beta T} 
+% \]
+% We are assuming $\interp{T'}_{\sigma,\rho}$ is defined, since this is a checking judgment. The desired result then
+% follows from Lemma~\ref{lem:interppres}.
+
+% \startcase{.2cm}
+% \[
+%     \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} 
+% \]
+% This also follows from Lemma~\ref{lem:interppres} and the induction hypothesis for the first premise,
+% which implies $\interp{T}_{\sigma,\rho}\in\mathcal{R}$ (and hence defined).
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t\tpsynth T'}{\Gamma\vdash t \tpsynth T & T \leadsto^*_\beta T'} 
-\]
-This also follows from Lemma~\ref{lem:interppres} and the induction hypothesis for the first premise,
-which implies $\interp{T}_{\sigma,\rho}\in\mathcal{R}$ (and hence defined).
-
-\startcase{.2cm}
-\[
-\infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} 
+  \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T}
 \]
 By the IH applied to the first premise, we have 
-$[\sigma t]_{\cbe}\in\interp{T'}_{\sigma,\rho}\in\mathcal{R}$. By assumption, $\interp{T}_{\sigma,\rho}\in\mathcal{R}$,
-and so by the IH applied to the second premise, we have $[\sigma t]_{\cbe}\in\interp{T'}_{\sigma,\rho} = \interp{T}_{\sigma,\rho}$.
-
+$[\sigma|t|]_{\cbe}\in\interp{T'}_{\sigma,\rho}\in\mathcal{R}$. By assumption, $\interp{T}_{\sigma,\rho}\in\mathcal{R}$,
+and so by the IH applied to the second premise, we have $[\sigma|t|]_{\cbe}\in\interp{T'}_{\sigma,\rho} = \interp{T}_{\sigma,\rho}$.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck \abs{\Pi}{x}{T}{T'}}{\Gamma,x:T\vdash t\tpcheck T'} 
+  \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2}
 \]
-To show $[\sigma \lambda x.t]_{\cbe}\in\interp{\Pi  x:T.T'}_{\sigma,\rho}$ (noting that the latter is defined
-and in $\mathcal{R}$ by assumption), it suffices to assume an arbitrary
-$E\in\interp{T}_{\sigma,\rho}$, and show
-$[[\choice(E)/x]\sigma t]_{\cbe}\in\interp{T'}_{\sigma[x\mapsto\choice(E)],\rho}$.  By the IH,
-we have
-$[\sigma[x\mapsto\choice(E)]t]_{\cbe}\in\interp{T'}_{\sigma[x\mapsto\choice(E)],\rho}$.
-But $[\sigma[x\mapsto\choice(E)]t]_{\cbe} = [[\choice(E)/x]\sigma t]_{\cbe}$,
+To show $[\sigma \lambda
+x.|t|]_{\cbe}\in\interp{\abs{\Pi}{x}{T_1}{T_2}}_{\sigma,\rho}$ (noting that the
+latter is defined and in $\mathcal{R}$ by assumption), it suffices to assume an
+arbitrary $E\in\interp{T_1}_{\sigma,\rho}$, and show
+$[[\choice(E)/x]\sigma|t|]_{\cbe}\in\interp{T_2}_{\sigma[x\mapsto\choice(E)],\rho}$.
+By the IH, we have
+$[\sigma[x\mapsto\choice(E)]|t|]_{\cbe}\in\interp{T_2}_{\sigma[x\mapsto\choice(E)],\rho}$.
+But $[\sigma[x\mapsto\choice(E)]t]_{\cbe} = [[\choice(E)/x]\sigma|t|]_{\cbe}$,
 so this is sufficient.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'} T}{\Gamma\vdash t \tpsynth \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} 
+  \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 \]
 By the IH applied to the first premise, $[\sigma
-t]_{\cbe}\in\interp{\Pi x:T'.T}_{\sigma,\rho}\in\mathcal{R}$.  This
+|t|]_{\cbe}\in\interp{\Pi x:T'.T}_{\sigma,\rho}\in\mathcal{R}$.  This
 means that there exists a $\lambda$-abstraction $\lambda x.\hat{t}$
-such that $\lambda x.\hat{t} =_{\cbe} \sigma t$, by the semantics of $\Pi$-types.
+such that $\lambda x.\hat{t} =_{\cbe} \sigma |t|$, by the semantics of $\Pi$-types.
 Furthermore, for any $E\in\interp{T'}_{\sigma,\rho}$,
 $[[\choice(E)/x]\hat{t}]_{\cbe}\in\interp{T}_{\sigma[x\mapsto\choice(E)],\rho}$.
-By the IH applied to the second premise, $[\sigma t']_{\cbe}\in\interp{T'}_{\sigma,\rho}$,
+By the IH applied to the second premise, $[\sigma |t'|]_{\cbe}\in\interp{T'}_{\sigma,\rho}$,
 so we can instantiate the quantifier in the previous formula to obtain
 \[
- [[\choice([\sigma t']_{\cbe})/x]\hat{t}]_{\cbe}\in\interp{T}_{\sigma[x\mapsto\choice([\sigma t']_{\cbe})],\rho}
+ [[\choice([\sigma |t'|]_{\cbe})/x]\hat{t}]_{\cbe}\in\interp{T}_{\sigma[x\mapsto\choice([\sigma |t'|]_{\cbe})],\rho}
 \]
 By Lemma~\ref{lem:termsubstinterp}, this is equivalent to
 \[
- [[\choice([\sigma t']_{\cbe})/x]\hat{t}]_{\cbe}\in\interp{[t'/x]T_2}_{\sigma,\rho}
+ [[\choice([\sigma |t'|]_{\cbe})/x]\hat{t}]_{\cbe}\in\interp{[t'/x]T_2}_{\sigma,\rho}
 \]
-Since $\sigma (t\ t') =_{\cbe} (\lambda x.\hat{t})\ \sigma t' =_{\cbe} [[\choice([\sigma t']_{\cbe})/x]\hat{t}$,
+Since $\sigma |t\ t'| =_{\cbe} (\lambda x.\hat{t})\ \sigma |t'| =_{\cbe} [[\choice([\sigma |t'|]_{\cbe})/x]\hat{t}$,
 this is sufficient.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck \abs{\forall}{X}{\kappa}{T}}{\Gamma,X:\kappa\vdash t \tpcheck T} 
+  \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck T'}
+  {T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T}
 \]
 By the IH, $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto S]}$, for all $S\in\interp{\kappa}_{\sigma,\rho}$.
 This is sufficient to prove $[\sigma |\absu{\Lambda}{X}{t}|]_{\cbe}\in\interp{\forall X:\kappa.T}_{\sigma,\rho}$, by the semantics
@@ -888,40 +930,40 @@ of $\forall$-types and definition of erasure.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
-    {\Gamma\vdash t \tpsynth \abs{\forall}{X}{\kappa}{T}
-      & \Gamma\vdash T' \tpsynth \kappa'
-      & \kappa' \cong \kappa
-    } 
+  \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
+  {\Gamma\vdash t \tpsynthleads \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
 \]
 By the semantics of $\forall$-types and the IH applied to the first
 premise, we have $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto
   S]}$, for all $S\in\interp{\kappa}_{\sigma,\rho}$.
 By applying the IH twice, once to the second premise and once to the third, we
 have, we have \(\interp{T'}_{\sigma,\rho} \in \interp{\kappa}_{\sigma,\rho}\).
-So, can derive $[\sigma t]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$.
+So, can derive $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto \interp{T'}_{\sigma,\rho}]}$.
 By Lemma~\ref{lem:tpsubstinterp},
 this is equivalent to the required $[\sigma |t|]_{\cbe}\in\interp{[T'/X]T}_{\sigma,\rho}$,
 using also the definition of erasure.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck \abs{\forall}{x}{T'}{T}}{\Gamma,x:T'\vdash t \tpcheck T & x\not\in\textit{FV}(|t|)} 
+  \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck T}
+  {T \leadsto_\beta^* \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)}
 \]
 
-By the IH applied to the first premise, we have
+By the IH applied to the second premise, we have
 $[\sigma[x\mapsto\choice(E)]
-t]_{\cbe}\in\interp{T'}_{\sigma[x\mapsto\choice(E)],\rho}$, for any
-$E\in\interp{T}_{\sigma,\rho}$.  This is because
-$\interp{T}_{\sigma,\rho}\in\mathcal{R}$, since $\interp{\abs{\forall}{x}{T'}{T}}_{\sigma,\rho}$ is in $\mathcal{R}$ and
-hence defined, by assumption.  Since $x\not\in\textit{FV}(t)$, we know
-$[[\sigma[x\mapsto\choice(E)]t]_{\cbe} = [\sigma t]_{\cbe}$.  By the
-semantics of $\forall$-types and definition of erasure, this suffices to show the desired
-conclusion.
+|t|]_{\cbe}\in\interp{T_2}_{\sigma[x\mapsto\choice(E)],\rho}$, for any
+$E\in\interp{T_1}_{\sigma,\rho}$.
+This is because $\interp{T_1}_{\sigma,\rho}\in\mathcal{R}$, since
+$\interp{\abs{\forall}{x}{T_1}{T_2}}_{\sigma,\rho}$ is in $\mathcal{R}$ and 
+hence defined, by assumption.
+Since $x\not\in\textit{FV}(|t|)$, we know
+$[[\sigma[x\mapsto\choice(E)]|t|]_{\cbe} = [\sigma |t|]_{\cbe}$.
+By the semantics of $\forall$-types and definition of erasure, this suffices to
+show the desired conclusion.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}\ T}{\Gamma\vdash t \tpsynth \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'}
+  \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 \]
 The result follows easily by the IH applied to the premises, the
 semantics of $\forall$-types, definition of erasure, and Lemma~\ref{lem:termsubstinterp}.
@@ -929,35 +971,45 @@ semantics of $\forall$-types, definition of erasure, and Lemma~\ref{lem:termsubs
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash [ t , t' ] \tpcheck \abs{\iota}{x}{T}{T'}}
-          {\Gamma\vdash t \tpcheck T & \Gamma\vdash t' \tpcheck [t/x]^{T}\ T' & |t| =_{\beta\eta} |t'|} 
+  \infer{\Gamma\vdash [ t_1 , t_2 ] \tpcheck T}
+  {
+    \begin{array}{cc}
+      T \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+      & \Gamma \vdash t_1 \tpcheck T_1
+      \\ \Gamma \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
+      & |t_1| =_{\beta\eta} |t_2|
+    \end{array}
+  }
 \]
-By the IH, we have $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}$ and
-$[\sigma |t|]_{\cbe}\in\interp{[t/x]T'}_{\sigma,\rho}$.  By
-Lemma~\ref{lem:termsubstinterp}, the latter is equivalent to
-$[\sigma t]_{\cbe}\in\interp{T'}_{\sigma[x\mapsto\choice([\sigma t]_{\cbe}),\rho}$.  These two facts about $[\sigma t]_{\cbe}$ are
+By the IH, we have $[\sigma |t_1|]_{\cbe}\in\interp{T_1}_{\sigma,\rho}$ and
+$[\sigma |t_2|]_{\cbe}\in\interp{[t_1/x]T_2}_{\sigma,\rho}$.
+By Lemma~\ref{lem:termsubstinterp}, the latter is equivalent to
+$[\sigma |t|]_{\cbe}\in\interp{T_2}_{\sigma[x\mapsto\choice([\sigma
+  |t|]_{\cbe}),\rho}$.
+These two facts about $[\sigma |t|]_{\cbe}$ are
 sufficient, by the semantics of $\iota$-types, for the desired
-conclusion, using also the fact (from the third premise) that $\sigma|t| =_{\cbe} \sigma|t'|$.
+conclusion, using also the fact (from the fourth premise) that $\sigma|t| =_{\cbe} \sigma|t'|$.
 
 \startcase{.2cm}
 \[
-   \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} 
+  \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}}
 \]
 The desired conclusion follows easily from the IH and the semantics of $\iota$-types.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash t.2 \tpsynth [t.1/x]T'}{\Gamma\vdash t \tpsynth \abs{\iota}{x}{T}{T'}} 
+  \infer{\Gamma\vdash t.2 \tpsynth [t.1/x] T'}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}}
 \]
-Similar to the previous case, using Lemma~\ref{lem:termsubstinterp}.
+Similar to the previous case, additionally using Lemma~\ref{lem:termsubstinterp}.
 
 \startcase{.2cm}
 \[
-  \infer{\Gamma\vdash \beta\{t'\} \tpcheck \{ t_1 \simeq t_2 \}}
-  {\textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
+  \infer{\Gamma\vdash \beta\{t'\} \tpcheck T}
+  {T \leadsto_\beta^* \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
 \]
-Since by assumption \(|t_1| =_{\beta\eta} |t_2|\) it follows that \(\sigma|t_1|
-=_{\beta\eta} \sigma|t_2|\), and also by assumption it follows that
+By the third premise \(|t_1| =_{\beta\eta} |t_2|\) it follows that \(\sigma|t_1|
+=_{\beta\eta} \sigma|t_2|\), and also by the second premise and the fact that
+\(\sigma \in \interp{\Gamma}\) it follows that
 \(\textit{FV}(t_1\ t_2) \subseteq \textit{dom}(\sigma)\).
 Also, we see \(\sigma|t'|\) is a closed term.
 So, $[\sigma|t'|]_{\cbe}\in\interp{\{ t_1 \simeq t_2 \}}_{\sigma,\rho}$ follows
@@ -973,20 +1025,28 @@ $[\sigma|t|]_{\cbe}$ is in the interpretation of that equation.  This is a contr
 
 \startcase{.2cm}
 \[
-  \infer{\Gamma \vdash \rho\ t'\ @x.T\ \mhyph\ t \tpsynth [t_2/x]T}
+  \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
   {
-    \begin{array}{cc}
-      \Gamma \vdash t' \tpsynth \{t_1 \simeq t_2\}
-      & \quad \Gamma \vdash [t_2/x]T \tpsynth \star
-      \\ \Gamma \vdash t \tpsynth T'
+    \begin{array}{ccc}
+      \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
+      & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
+      & |t_2'| =_{\beta\eta} |t_2|
+      \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
+      & \Gamma \vdash t \tpsynth T'
       & T' \cong [t_1/x]T
     \end{array}
   }
 \]
-By the IH applied to the first premise in the first row, $\sigma|t_1| =_{\beta\eta}
-\sigma|t_2|$.
+By the IH applied to the first premise in the first row, $\sigma|t_1| =_{\cbe}
+\sigma|t_2'|$.
+With the second and third premise, and from the assumption \(\sigma \in
+\interp{\Gamma}\), we have \(\sigma|t_2'| =_{\cbe} \sigma|t_2|\) (and
+\(\sigma|t_2|\) is closed), so we obtain
+\([\sigma|t_1|]_{\cbe} = [\sigma|t_2|]_{\cbe}\).
+By the IH applied to the first premise of the second row,
+\(\interp{[t_2/x]T}_{\sigma,\rho} \in \mathcal{R}\) and so is defined.
 By the IH applied to the first premise in the second row,
-\([\sigma|t|]_{c\beta\eta} \in \interp{T'}_{\sigma.\rho}\).
+\([\sigma|t|]_{c\beta\eta} \in \interp{T'}_{\sigma,\rho}\).
 By the IH applied to the second premise in the second row,
 \(\interp{T'}_{\sigma,\rho} = \interp{[t_1/x]T}_{\sigma,\rho}\).
 The result then follows by applying Lemma~\ref{lem:termsubstinterp}.
@@ -1004,12 +1064,26 @@ must show.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\{t''\} \Leftrightarrow T}
-          {\Gamma\vdash t\tpsynth \{t'\simeq t''\} & \Gamma\vdash t' \Leftrightarrow T}  
+  \infer{\Gamma\vdash \varphi\ t\ \mhyph\ t'\ \{t''\} \Leftrightarrow T}
+  {
+    \begin{array}{ccc}
+      \Gamma\vdash t\tpsynthleads \{t_1\simeq t_2\}
+      &
+      & \Gamma\vdash t' \Leftrightarrow T
+      \\ |t_1| =_{\beta\eta} |t'|
+      & |t_2| =_{\beta\eta} |t''|
+      & \textit{FV}(t'') \subseteq \textit{dom}(\Gamma)
+    \end{array}
+  }
 \]
-By the IH for the first premise, $\sigma|t'| =_{\cbe} \sigma|t''|$.  By the IH for the second
-premise, $[\sigma|t'|]_{\cbe}\in\interp{T}_{\sigma,\rho}$.  This suffices for the desired conclusion,
-using also the definition of erasure ($|\varphi\ t\ \mhyph\ t'\{t''\}| = |t''|$).
+By the IH for the first premise, $\sigma|t_1| =_{\cbe} \sigma|t_2|$.
+Using the first and second premise of the second row, we obtain \(\sigma|t'|
+=_{\cbe} \sigma|t''|\).
+By the IH for the second premise,
+$[\sigma|t'|]_{\cbe}\in\interp{T}_{\sigma,\rho}$ (in the case of type synthesis,
+the IH also tells us \(\interp{T}_{\sigma,\rho}\) is defined).
+This suffices for the desired conclusion, using also the definition of erasure
+($|\varphi\ t\ \mhyph\ t'\{t''\}| = |t''|$).
 
 \subsection*{Proof of part (5) }
 
