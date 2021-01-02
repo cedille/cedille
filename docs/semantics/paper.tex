@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage{amsmath,amssymb,amsthm}
+\usepackage{amsmath,amssymb,amsthm,MnSymbol}
 \usepackage{url}
 \usepackage{comment}
 \usepackage{proof}
@@ -120,7 +120,7 @@ term, such as \((\abs{\lambda}{x}{T_1}{T_2})\ t_1\), the reduction uses
 substitution with annotations to \([t_1/x]^{T_1}\ T_2\).
 
 Call-by-name reduction is \emph{not} what underpins the
-congruence relation \(\cong\) for types or terms, which is full
+equivalence relation \(\cong\) for types and kinds, which is full
 \(\beta\)-equivalence (for types) and \(\beta\eta\)-equivalence (for terms)
 modulo erasure of annotations in terms.
 The erasure operation is defined in Figure~\ref{fig:eraser}, and is essentially
@@ -130,11 +130,8 @@ To understand the role of erasure, recall that the type theory is \emph{extrinsi
 Curry-style), and hence we only consider erasures \(|t|\) of terms when testing
 convertibility.
 This is lifted to the conversion relation on types \(T \cong T'\) and kinds
-\(\kappa \cong \kappa'\), whose central rules are given in
+\(\kappa \cong \kappa'\), whose rules are given in
 Figure~\ref{fig:conv}.
-That figure omits the various congruence rules needed to equate bigger
-expressions by equating subexpressions (the convertibility rules for kinds
-consists entirely of congruence rules).
 
 \begin{figure}
   \[
@@ -198,7 +195,7 @@ consists entirely of congruence rules).
            \begin{array}{cc}
              T \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
              & \Gamma \vdash t_1 \tpcheck T_1
-             \\ \Gamma \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
+             \\ \Gamma \vdash t_2 \tpcheck [t_1/x]^{T_1}\ T_2
              & |t_1| =_{\beta\eta} |t_2|
            \end{array}
           } &
@@ -208,15 +205,15 @@ consists entirely of congruence rules).
           {T \leadsto_\beta^* \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}
           {\Gamma\vdash t\tpcheck \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}} &
-    \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
+    \infer{\Gamma \vdash \rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t' \tpcheck T}
           {
           \begin{array}{ccc}
-            \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
-            & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
-            & |t_2'| =_{\beta\eta} |t_2|
-            \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
-            & \Gamma \vdash t \tpsynth T'
-            & T' \cong [t_1/x]T
+            \Gamma \vdash t \tpsynthleads \{t_1' \simeq t_2\}
+            & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma)
+            & |t_1'| =_{\beta\eta} |t_1|
+            \\ \Gamma \vdash [t_1/x] T' \tpsynth \star
+            & \Gamma \vdash t' \tpcheck [t_1/x]T'
+            & [t_2/x]T' \cong T
           \end{array}
           } \\ \\
     \infer{\Gamma \vdash \chi\ T\ \mhyph\ t\ \tpsynth T}
@@ -269,7 +266,7 @@ consists entirely of congruence rules).
     |t.2| & = & |t| &\ &
     |\beta\{t\}| & = & |t|\\
     |\delta\ \mhyph\ t| & = & \absu{\lambda}{x}{x}&\ &
-    |\rho\ t\ @x\langle t_2 \rangle.T\ \mhyph\ t'| & = & |t'| \\
+    |\rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t'| & = & |t'| \\
     |\varphi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
     |\chi\ T\ \mhyph\ t'| & = & |t'|
   \end{array}
@@ -280,14 +277,105 @@ consists entirely of congruence rules).
 
 \begin{figure}
   \[
-  \begin{array}{ll}
-    \infer{T \cong T'}{T \leadsto^*_\beta T_1 & T' \leadsto^*_\beta T_2 & T_1\cong^t T_2}  & 
-    \infer{T \cong T'}{T \cong^t T'} \\ \\
-    \infer{T\ t \cong^t T\ t'}{T \cong^t T' & |t| =_{\beta\eta} |t'|} &
-    \infer{\{ t_1 \simeq t_2 \} \cong^t \{ t_1'\ \simeq t_2' \}}{|t_1| =_{\beta\eta} |t_1'| & |t_2| =_{\beta\eta} |t_2'|}
-  \end{array}
+    \begin{array}{c}
+      \fbox{\(T_1 \cong T_2\)}
+      \quad \fbox{\(T_1 \cong^{\text{t}} T_2\)}
+      \\ \\
+      \infer{
+       T_1 \cong T_2
+      }{
+       T_1 \leadsto^*_\beta T_1' \nleadsto_\beta
+       \quad T_2 \leadsto^*_\beta T_2' \nleadsto_\beta
+       \quad T_1' \cong^{\text{t}} T_2'
+      }
+      \\ \\
+      \begin{array}{cc}
+        \infer{X \cong^{\text{t}} X}{}
+        &
+        \infer{
+         \abs{\forall}{X}{\kappa_1}{T_1} \cong^{\text{t}} \abs{\forall}{X}{\kappa_2}{T_2}
+        }{
+         \kappa_1 \cong \kappa_2
+         \quad  T_1 \cong T_2
+        }
+        \\ \\
+          \infer{
+           \abs{\forall}{x}{T_1}{T_1'} \cong^{\text{t}} \abs{\forall}{x}{T_2}{T_2'}
+          }{
+           T_1 \cong T_2
+           \quad  T_1' \cong T_2'
+          }
+        & 
+        \infer{
+         \abs{\Pi}{x}{T_1}{T_1'} \cong^{\text{t}} \abs{\Pi}{x}{T_2}{T_2'}
+        }{
+         T_1 \cong T_2
+         \quad  T_1' \cong T_2'
+        }
+        \\ \\ 
+          \infer{
+           \abs{\lambda}{x}{T_1}{T_1'} \cong^{\text{t}} \abs{\lambda}{x}{T_2}{T_2'}
+          }{
+           T_1 \cong T_2
+           \quad  T_1' \cong T_2'
+          }
+        & 
+        \infer{
+         \abs{\lambda}{X}{\kappa_1}{T_1} \cong^{\text{t}} \abs{\lambda}{X}{\kappa_2}{T_2}
+        }{
+         \kappa_1 \cong \kappa_2
+         \quad  T_1 \cong T_2
+        }
+        \\ \\
+          \infer{
+          \abs{\iota}{x}{T_1}{T_1'} \cong^{\text{t}} \abs{\iota}{x}{T_2}{T_2'}
+          }{
+          T_1 \cong T_2
+          \quad  T_1' \cong T_2'
+          }
+        & 
+        \infer{
+         T_1\ t_1 \cong^{\text{t}} T_2\ t_2
+        }{
+         T_1 \cong^{\text{t}} T_2 \quad |t_1| =_{\beta\eta} |t_2|
+        }
+        \\ \\
+          \infer{
+           T_1 \cdot T_1' \cong^{\text{t}} T_2 \cdot T_2'
+          }{
+           T_1 \cong^{\text{t}} T_2
+           \quad T_1' \cong T_2'
+          }
+        &
+        \infer{
+         \{ t_1 \simeq t_2 \} \cong^{\text{t}} \{ t_1'\ \simeq t_2' \}
+        }{
+         |t_1| =_{\beta\eta} |t_1'| \quad |t_2| =_{\beta\eta} |t_2'|
+        }
+      \end{array}
+      \\ \\ \fbox{\(\kappa_1 \cong \kappa_2\)}
+      \\ \\
+      \begin{array}{cc}
+        \infer{
+         \star \cong \star
+        }{}
+        & \infer{
+           \abs{\Pi}{x}{T_1}{\kappa_1} \cong \abs{\Pi}{x}{T_2}{\kappa_2}
+          }{
+           T_1 \cong T_2
+           \quad \kappa_1 \cong \kappa_2
+          }
+        \\ \\
+        \infer{
+         \abs{\Pi}{X}{\kappa_1}{\kappa_1'} \cong \abs{\Pi}{X}{\kappa_2}{\kappa_2'}
+        }{
+         \kappa_1 \cong \kappa_2
+         \quad \kappa_1' \cong \kappa_2'
+        }
+      \end{array}
+    \end{array}
   \]
-  \caption{Non-congruence rules for conversion}
+  \caption{Conversion rules for classifiers}
   \label{fig:conv}
 \end{figure}  
 
@@ -352,16 +440,19 @@ over the version of CDLE in~\cite{stump18} are:
   terms, non-normalizing terms, etc. --- prove trivially true equations.
   Put another way, any trivially true equation type in CDLE is a suitable type
   to classify all untyped lambda calculus terms.
-\item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) to
-  \(t_2'\) in the synthesized type of its second subexpression.
+\item The \(\rho\) construct allows one to rewrite occurrences of \(t_2\) in the
+  checked type of the \(T\) of the whole expression to \(t_1\) before checking
+  the type of the subexpression \(t'\).
   The version presented here requires a type annotations (``guide'') \(@x\langle
-  t_2 \rangle.T\), where \(x\) indicates the occurrences of \(t_1\) to
-  substitute and \(t_2\) is a term, \(\beta\eta\)-equivalent to \(t_2'\), that
-  is used to replace \(x\).
-  There is no requirement that \(t_1\) and \(t_2\) will have the same type, or
-  even be typable.
-  However, \([t_2/x]\ T\) must be a well-kinded type and \([t_1/x]T\) (which
-  might be ill-kinded) must be convertible with \(T'\) modulo erasure.
+  t_1 \rangle.T\).
+  The first subexpression \(t\) must synthesize (possibly after some
+  normalization) an equation type \(\{t_1' \simeq t_2\}\), and the user provided
+  term \(t_1\) must be \(\beta\eta\)-convertible (modulo erasure) to \(t_1'\).
+  Then, the user provided type \(T'\) is checked to have kind \(\star\) after
+  replacing occurrences of \(x\) with \(t_1\), and the subexpression \(t'\) is
+  checked against this type.
+  Finally, \([t_2/x]T'\) (which need not be well-kinded) must be convertible
+  with the expected type \(T\).
   In Cedille, the guide is optional and the construct may be used to rewrite a
   contextually given type; a heuristic, whose details are beyond the scope of
   this document, is used to produce a resulting type that is well-kinded.
@@ -408,7 +499,7 @@ Suppose $(\sigma,\rho)\in\interp{\Gamma}$.  Then we have:
 \item If $\Gamma\vdash t \tpsynth T$ then $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}\in \mathcal{R}$.
 \item If $\Gamma\vdash t \tpcheck T$ and $\interp{T}_{\sigma,\rho}\in \mathcal{R}$, then
     $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}\in \mathcal{R}$.
-\item If $T \cong T'$ or $T \cong^t T'$ and $\interp{T}_{\sigma,\rho}$ and $\interp{T'}_{\sigma,\rho}$ are both defined, then they are equal.
+\item If $T \cong T'$ or $T \cong^{\text{t}} T'$ and $\interp{T}_{\sigma,\rho}$ and $\interp{T'}_{\sigma,\rho}$ are both defined, then they are equal.
 \item If \(\kappa \cong \kappa'\) and \(\interp{\kappa}_{\sigma,\rho}\) and
   \(\interp{\kappa'}_{\sigma,\rho}\) are both defined, then they are equal.
 \end{enumerate}
@@ -418,7 +509,7 @@ An easy corollary, by the semantics of $\forall$-types, is then:
 
 \begin{theorem}[Logical consistency]
 \label{thm:consis}
-  There is no term $t$ such that $\cdot \vdash t : \abs{\forall}{X}{\star}{X}$.
+  There is no term $t$ such that $\cdot \vdash t \tpsynth \abs{\forall}{X}{\star}{X}$.
 \end{theorem}
 
 It may worry some readers that we have:
@@ -450,9 +541,9 @@ properties like normalization, as demonstrated by the following theorem:
 
 \begin{theorem}[Call-by-name normalization of functions]
   \label{thm:cedille-termination}
-  Suppose \(\cdot \vdash t \tpsynth T\) and there exists a closed term \(t'\)
-  such that \(\cdot \vdash t' \tpsynth T \to \abs{\Pi}{x}{T_1}{T_2}\) for some
-  \(T_1,T_2\) and \(|t'| = \absu{\lambda}{x}{x}\).
+  Suppose \(\cdot \vdash t \tpsynth T\) and \(\cdot \vdash t' \tpsynth T \to
+  \abs{\Pi}{x}{T_1}{T_2}\), and furthermore that \(|t'| =
+  \absu{\lambda}{x}{x}\).
   Then \(|t|\) is call-by-name normalizing.
 \end{theorem}
 
@@ -1020,30 +1111,30 @@ $[\sigma|t|]_{\cbe}$ is in the interpretation of that equation.  This is a contr
 
 \startcase{.2cm}
 \[
-  \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
+  \infer{\Gamma \vdash \rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t' \tpcheck T}
   {
     \begin{array}{ccc}
-      \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
-      & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
-      & |t_2'| =_{\beta\eta} |t_2|
-      \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
-      & \Gamma \vdash t \tpsynth T'
-      & T' \cong [t_1/x]T
+      \Gamma \vdash t \tpsynthleads \{t_1' \simeq t_2\}
+      & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma)
+      & |t_1'| =_{\beta\eta} |t_1|
+      \\ \Gamma \vdash [t_1/x] T' \tpsynth \star
+      & \Gamma \vdash t' \tpcheck [t_1/x]T'
+      & [t_2/x]T' \cong T
     \end{array}
   }
 \]
-By the IH applied to the first premise in the first row, $\sigma|t_1| =_{\cbe}
-\sigma|t_2'|$.
+By the IH applied to the first premise in the first row, $\sigma|t_1'| =_{\cbe}
+\sigma|t_2|$.
 With the second and third premise, and from the assumption \(\sigma \in
-\interp{\Gamma}\), we have \(\sigma|t_2'| =_{\cbe} \sigma|t_2|\) (and
-\(\sigma|t_2|\) is closed), so we obtain
+\interp{\Gamma}\), we have \(\sigma|t_1'| =_{\cbe} \sigma|t_1|\) (and
+\(\sigma|t_1|\) is closed), so we obtain
 \([\sigma|t_1|]_{\cbe} = [\sigma|t_2|]_{\cbe}\).
 By the IH applied to the first premise of the second row,
-\(\interp{[t_2/x]T}_{\sigma,\rho} \in \mathcal{R}\) and so is defined.
-By the IH applied to the first premise in the second row,
-\([\sigma|t|]_{c\beta\eta} \in \interp{T'}_{\sigma,\rho}\).
+\(\interp{[t_1/x]T}_{\sigma,\rho} \in \mathcal{R}\) and so is defined.
 By the IH applied to the second premise in the second row,
-\(\interp{T'}_{\sigma,\rho} = \interp{[t_1/x]T}_{\sigma,\rho}\).
+\([\sigma|t'|]_{c\beta\eta} \in \interp{[t_1/x]T'}_{\sigma,\rho}\).
+By the IH applied to the second premise in the second row,
+\(\interp{T}_{\sigma,\rho} = \interp{[t_2/x]T'}_{\sigma,\rho}\).
 The result then follows by applying Lemma~\ref{lem:termsubstinterp}.
 
 \startcase{.2cm}
@@ -1076,41 +1167,40 @@ This suffices for the desired conclusion, using also the definition of erasure
 ($|\varphi\ t\ \mhyph\ t'\{t''\}| = |t''|$).
 
 \subsection*{Proof of part (5) }
-
-
+We show the cases for the non-congruential rules of Figure~\ref{fig:conv}.
 
 \startcase{.2cm}
 \[
-    \infer{T \cong T'}{T \leadsto^*_\beta T_1 & T' \leadsto^*_\beta T_2 & T_1\cong^t T_2}  
+  \infer{
+    T_1 \cong T_2
+  }{
+    T_1 \leadsto^*_\beta T_1' \nleadsto_\beta
+    \quad T_2 \leadsto^*_\beta T_2' \nleadsto_\beta
+    \quad T_1' \cong^{\text{t}} T_2'
+  }
 \]
 By Lemma~\ref{lem:interppres}, we have
 \[
 \begin{array}{lll}
-  \interp{T}_{\sigma,\rho} & = & \interp{T_1}_{\sigma,\rho}\\
-  \interp{T'}_{\sigma,\rho} & = & \interp{T_2}_{\sigma,\rho}
+  \interp{T_1}_{\sigma,\rho} & = & \interp{T_1'}_{\sigma,\rho}\\
+  \interp{T_2}_{\sigma,\rho} & = & \interp{T_2'}_{\sigma,\rho}
 \end{array}
 \]
-By the IH for the third premise, we have $\interp{T_1}_{\sigma,\rho} = \interp{T_2}_{\sigma,\rho}$,
+By the IH for the third premise, we have $\interp{T_1'}_{\sigma,\rho} = \interp{T_2'}_{\sigma,\rho}$,
 which suffices.
 
 \startcase{.2cm}
 \[
-    \infer{T \cong T'}{T \cong^t T'} 
+    \infer{T_1\ t_1 \cong^{\text{t}} T_2\ t_2}{T_1 \cong^{\text{t}} T_1 & |t_1| =_{\beta\eta} |t_2|}
 \]
-By the IH.
-
-\startcase{.2cm}
-\[
-    \infer{T\ t \cong^t T'\ t'}{T \cong^t T' & |t| =_{\beta\eta} |t'|}
-\]
-By the semantics, $\interp{T\ t}_{\sigma,\rho} =
-\interp{T}_{\sigma,\rho}([\sigma|t|]_{\cbe})$.  By the second premise
+By the semantics, $\interp{T_1\ t_1}_{\sigma,\rho} =
+\interp{T_1}_{\sigma,\rho}([\sigma|t_1|]_{\cbe})$.  By the second premise
 and the IH for the first premise, this equals
-$\interp{T'}_{\sigma,\rho}([\sigma|t'|]_{\cbe})$, as required.
+$\interp{T_2}_{\sigma,\rho}([\sigma|t_2|]_{\cbe})$, as required.
 
 \startcase{.2cm}
 \[
-    \infer{\{ t_1 \simeq t_2 \} \cong^t \{ t_1'\ \simeq t_2' \}}{|t_1| =_{\beta\eta} |t_1'| & |t_2| =_{\beta\eta} |t_2'|}
+    \infer{\{ t_1 \simeq t_2 \} \cong^{\text{t}} \{ t_1'\ \simeq t_2' \}}{|t_1| =_{\beta\eta} |t_1'| & |t_2| =_{\beta\eta} |t_2'|}
 \]
 This follows easily from the premises and the semantics of equality types.
 
@@ -1353,6 +1443,34 @@ First a few lemmas (easy proofs omitted):
   \textit{dom}(\Gamma_1,X_1:\kappa_1',\Gamma_2)\).
   So, we use the rule to conclude that \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
   \beta\{t'\} \tpcheck T_4\), and the depth (1) is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t' \tpcheck T_3}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpsynthleads \{t_1' \simeq t_2\}
+        & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2)
+        & |t_1'| =_{\beta\eta} |t_1|
+        \\ \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash [t_1/x] T' \tpsynth \star
+        & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpcheck [t_1/x]T'
+        & [t_2/x]T' \cong T_3
+      \end{array}
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t'
+  \tpsynthleads \{t_1 \simeq t_2'\}\).
+  By the IH on the second premise of the second row,
+  \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash [t_1/x]\ T \tpsynth \star\)
+  (\(\star\) is only convertible with itself).
+  By the IH the second premise of the second row,
+  \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t \tpcheck [t_1/x]T'\).
+  By assumption, the third premise of the second row, and transitivity of
+  convertibility, we have \([t_2/x]T' \cong T_4\) (\(T_4\) is the type we must
+  check the entire expression against).
+  We use the rule to conclude (\(\textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2) =
+  \textit{dom}(\Gamma_1,X_1:\kappa_1',\Gamma_2)\)), noting that the measure is
+  preserved.
   
   \startcase{.2cm}
   \[
@@ -1413,29 +1531,6 @@ First a few lemmas (easy proofs omitted):
   \(\kappa'' \cong \kappa\).
   By the rule, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t \cdot T' \tpsynth
   [T'/X]T\), and the measure is preserved.
-
-  \startcase{.2cm}
-  \[
-    \infer{\Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
-    {
-      \begin{array}{ccc}
-        \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
-        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2)
-        & |t_2'| =_{\beta\eta} |t_2|
-        \\ \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star
-        & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t \tpsynth T'
-        & T' \cong [t_1/x]T
-      \end{array}
-    }
-  \]
-  By the IH on the first premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t'
-  \tpsynthleads \{t_1 \simeq t_2'\}\).
-  By the IH on the second premise of the second row,
-  \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star\)
-  (\(\star\) is only convertible with itself).
-  We apply the IH to the second premise of the second row and use the rule to conclude
-  (\(\textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2) =
-  \textit{dom}(\Gamma_1,X_1:\kappa_1',\Gamma_2)\)).
 \end{proof}
 
 \begin{lemma}
@@ -1659,6 +1754,33 @@ First a few lemmas (easy proofs omitted):
   Either way, we use the rule to conclude (note
   \(\textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2) =
   \textit{dom}(\Gamma_1,x_1:T_2,\Gamma_2)\)), and the measure is preserved.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2 \vdash \rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t' \tpcheck T_3}
+    {
+      \begin{array}{ccc}
+        \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpsynthleads \{t_1' \simeq t_2\}
+        & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
+        & |t_1'| =_{\beta\eta} |t_1|
+        \\ \Gamma_1,x_1:T_1,\Gamma_2 \vdash [t_1/x] T' \tpsynth \star
+        & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpcheck [t_1/x]T'
+        & [t_2/x]T' \cong T_3
+      \end{array}
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
+  T''\) (with no greater depth) for some \(T'' \cong \{t_1' \simeq t_2\}\).
+  That means \(T'' \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  such that \(|t_3| =_{\beta\eta} |t_1'|\) and \(|t_4| =_{\beta\eta} |t_2|\).
+  So we further obtain that \(|t_3| =_{\beta\eta} |t_1|\).
+  By the IH on the first premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
+  \vdash [t_1/x]T \tpsynth \star\).
+  By the IH on the second premise of the second row, \(\Gamma,x_1:T_2,\Gamma_2
+  \vdash t \tpcheck [t_1/x]T'\).
+  By assumption, the third premise of the second row, and transitivity of
+  convertibility, we have \([t_2/x]T' \cong T_4\).
+  We conclude with the rule, preserving the measure.
   
   % type synthesis
   \startcase{.2cm}
@@ -1723,33 +1845,6 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma_1,x_1:T_1,\Gamma_2 \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
-    {
-      \begin{array}{ccc}
-        \Gamma_1,x_1:T_1,\Gamma_2 \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
-        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
-        & |t_2'| =_{\beta\eta} |t_2|
-        \\ \Gamma_1,x_1:T_1,\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star
-        & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpsynth T'
-        & T' \cong [t_1/x]T
-      \end{array}
-    }
-  \]
-  By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
-  T_3\) (with no greater depth) for some \(T_3 \cong \{t_1 \simeq t_2'\}\).
-  This means \(T_3 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
-  such that \(|t_3| =_{\beta\eta} t_1\) and \(|t_4| =_{\beta\eta} |t_2'|\).
-  So we further obtain \(|t_4| =_{\beta\eta} |t_2|'\).
-  By the IH on the first premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
-  \vdash [t_2/x]T \tpsynth \star\) with no greater depth.
-  By the IH on the second premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
-  \vdash t \tpsynth T''\) (with no greater depth) for some \(T'' \cong T'\).
-  With the final premise of the second row and transitivity, we obtain \(T''
-  \cong [t_1/x]T\).
-  We conclude with the rule, preserving the measure.
-
-  \startcase{.2cm}
-  \[
     \infer{
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash \chi\ T\ \mhyph\ t\ \tpsynth T
     }{
@@ -1804,11 +1899,11 @@ First a few lemmas (easy proofs omitted):
     \begin{itemize}
     \item If \(\Gamma_1,x:T',\Gamma_2 \vdash t \Leftrightarrow T\) and
       \(\Gamma_1 \vdash t' \tpsynth T'\) then \(\Gamma_1,[t'/x]\Gamma_2 \vdash [t'/x]t
-      \tpsynth [t'/x]T\)
+      \Leftrightarrow [t'/x]T\)
      
     \item If \(\Gamma_1,X:\kappa,\Gamma_2 \vdash t \Leftrightarrow T'\) and
       \(\Gamma_1 \vdash T \tpsynth \kappa\) then \(\Gamma_1,[T/X]\Gamma_2 \vdash
-      [T/X]t \tpsynth [T/X]T'\)
+      [T/X]t \Leftrightarrow [T/X]T'\)
     \end{itemize}
   \end{enumerate}
 \end{lemma}
@@ -1883,24 +1978,38 @@ First a few lemmas (easy proofs omitted):
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [t_2/x_1] T_1}
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1\langle t_1 \rangle.T_2\ \mhyph\ t' \tpcheck T_1}
     {
-      \begin{array}{cc}
-        \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynth \{t_1 \simeq t_2\}
-        & \quad \Gamma_1,x:T,\Gamma_2 \vdash [t_2/x_1]\ T_1 \tpsynth \star
-        \\ \Gamma_1,x:T,\Gamma_2 \vdash t' \tpsynth T'
-        & T' \cong [t_1/x_1]T_1
+      \begin{array}{ccc}
+        \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynthleads \{t_1' \simeq t_2\}
+        & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma_1,x:T,\Gamma_2)
+        & |t_1'| =_{\beta\eta} |t_1|
+        \\ \Gamma_1,x:T,\Gamma_2 \vdash [t_1/x_1] T_2 \tpsynth \star
+        & \Gamma_1,x:T,\Gamma_2 \vdash t' \tpcheck [t_1/x_1]T_2
+        & [t_2/x_1]T_2 \cong T_1
       \end{array}
     }
+    % \infer{\Gamma_1,x:T,\Gamma_2 \vdash \rho\ t''\ @x_1.T_1\ \mhyph\ t' \tpsynth [t_2/x_1] T_1}
+    % {
+    %   \begin{array}{cc}
+    %     \Gamma_1,x:T,\Gamma_2 \vdash t'' \tpsynth \{t_1 \simeq t_2\}
+    %     & \quad \Gamma_1,x:T,\Gamma_2 \vdash [t_2/x_1]\ T_1 \tpsynth \star
+    %     \\ \Gamma_1,x:T,\Gamma_2 \vdash t' \tpsynth T'
+    %     & T' \cong [t_1/x_1]T_1
+    %   \end{array}
+    % }
   \]
-  From the IH, we have that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t'' \tpsynth \{[t/x]t_1
-  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][t_2/x]T_1
-  \tpsynth \star\), and that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t' \tpsynth
-  [t/x]T'\).
-  From the last premise, we may conclude that \([t/x]T' \cong
-  [t/x][t_1/x_1]T_1\).
+  From the IH, we have that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t'' \tpsynth \{[t/x]t_1'
+  \simeq [t/x]t_2\}\), that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x][t_1/x_1]T_2
+  \tpsynth \star\), and that \(\Gamma_1,[t/x]\Gamma_2 \vdash [t/x]t' \tpcheck
+  [t/x][t_1/x_1]T_2\).
+  From the last premise, we may conclude that \([t/x]T_1 \cong
+  [t/x][t_2/x_1]T_1\).
+  We also see from the premises that \(\textit{FV}([t/x]t_1) \subseteq
+  \textit{dom}(\Gamma_1,[t/x]\Gamma_2)\) and that \(|[t/x]t_1'| =_{\beta\eta}
+  |[t/x]t_1|\).
   Applying the rule and permuting substitutions gives us the desired result
-  (note for example that \([t/x][t_1/x_1]T_1 = [[t/x]t_1/x_1]T_1\)).
+  (note for example that \([t/x][t_1/x_1]T_1 = [[t/x]t_1/x_1][t/x]T_1\)).
 \end{proof}
 
 \begin{corollary}
@@ -2082,22 +2191,23 @@ First a few lemmas (easy proofs omitted):
   Finally, we use Lemma~\ref{lem:subst-class} to obtain \(\Gamma \vdash [T'/X]T
   \tpsynth \star\).
   
-  
-  \startcase{.2cm}
-  \[
-    \infer{\Gamma \vdash \rho\ t'\ @x\langle t_2 \rangle.T\ \mhyph\ t \tpsynth [t_2/x]\ T}
-    {
-      \begin{array}{ccc}
-        \Gamma \vdash t' \tpsynthleads \{t_1 \simeq t_2'\}
-        & \textit{FV}(t_2) \subseteq \textit{dom}(\Gamma)
-        & |t_2'| =_{\beta\eta} |t_2|
-        \\ \Gamma \vdash [t_2/x]\ T \tpsynth \star
-        & \Gamma \vdash t \tpsynth T'
-        & T' \cong [t_1/x]T
-      \end{array}
-    }
-  \]
-  The desired result is given by the first premise of the second row.
+
+  % Type checking, not needed
+  % \startcase{.2cm}
+  % \[
+  %   \infer{\Gamma \vdash \rho\ t\ @x\langle t_1 \rangle.T'\ \mhyph\ t' \tpcheck T}
+  %   {
+  %     \begin{array}{ccc}
+  %       \Gamma \vdash t \tpsynthleads \{t_1' \simeq t_2\}
+  %       & \textit{FV}(t_1) \subseteq \textit{dom}(\Gamma)
+  %       & |t_1'| =_{\beta\eta} |t_1|
+  %       \\ \Gamma \vdash [t_1/x] T' \tpsynth \star
+  %       & \Gamma \vdash t' \tpcheck [t_1/x]T'
+  %       & [t_2/x]T' \cong T
+  %     \end{array}
+  %   }
+  % \]
+  % The desired result is given by the first premise of the second row.
 
 
   \startcase{.2cm}
