@@ -15,3 +15,17 @@ elimTpEq2 : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ B ➔ A
 
 tpEqRefl : ∀ A: ★. TpEq ·A ·A
 = Λ A. intrTpEq -(castRefl ·A) -(castRefl ·A).
+
+tpEqSym : ∀ A: ★. ∀ B: ★. TpEq ·A ·B ➾ TpEq ·B ·A
+= Λ A. Λ B. Λ eq.
+  intrTpEq
+    -eq.2
+    -eq.1 .
+
+tpEqTrans
+: ∀ A: ★. ∀ B: ★. ∀ C: ★.
+  TpEq ·A ·B ➾ TpEq ·B ·C ➾ TpEq ·A ·C
+= Λ A. Λ B. Λ C. Λ eq1. Λ eq2.
+  intrTpEq
+    -(castTrans -eq1.1 -eq2.1)
+    -(castTrans -eq2.2 -eq1.2) .
