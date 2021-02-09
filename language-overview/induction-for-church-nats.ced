@@ -28,7 +28,7 @@ reflectionNat ◂ Π n : Nat . { toNat n.1 ≃ n } =
   λ n . n.2 · (λ x : Nat' . {(toNat x).1 ≃ x}) (Λ x . λ ih . χ {suc' (toNat x).1 ≃ suc' x} - ρ ih - β) β .
 
 {- now we prove induction for Nat-predicate P by a dependent elimination
-   on Nat n.  sucince Nats only support induction on Nat'-predicates, we
+   on Nat n.  since Nats only support induction on Nat'-predicates, we
    cannot use P directly.  Instead, we use the predicate
 
    λ x : Nat' . P (toNat x)
