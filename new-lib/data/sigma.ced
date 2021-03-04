@@ -27,3 +27,17 @@ pairMap
   (A ➔ C) ➔ (B ➔ D) ➔ Pair ·A ·B ➔ Pair ·C ·D
 = Λ A. Λ B. Λ C. Λ D. λ f. λ g. λ p.
   σ p {sigma a b ➔ sigma (f a) (g b)}.
+
+import ../core/cast .
+
+castSigmaFst
+: ∀ A1: ★. ∀ A2: ★. ∀ B: A2 ➔ ★. ∀ c: Cast ·A1 ·A2.
+  Cast ·(Sigma ·A1 ·(λ x: A1. B (elimCast -c x))) ·(Sigma ·A2 ·B)
+= Λ A1. Λ A2. Λ B. Λ c.
+  intrCastI -λ x. σ x { sigma a b ➔ [ sigma (elimCast -c a) b , β{|sigma a b|} ] } .
+
+castSigmaSnd
+: ∀ A: ★. ∀ B1: A ➔ ★. ∀ B2: A ➔ ★. (Π x: A. Cast ·(B1 x) ·(B2 x)) ➾
+  Cast ·(Sigma ·A ·B1) ·(Sigma ·A ·B2)
+= Λ A. Λ B1. Λ B2. Λ c.
+  intrCastI -λ x. σ x { sigma a b ➔ [ sigma a (elimCast -(c a) b) , β{|sigma a b|} ] } .

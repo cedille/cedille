@@ -1,0 +1,26 @@
+module data.fin .
+
+import ../stdcore .
+import nat .
+
+data Fin : Nat ➔ ★
+= zeroFin : ∀ n: Nat. Fin (succ n)
+| succFin : ∀ n: Nat. Fin n ➔ Fin (succ n) .
+
+fin1 : ∀ n: Nat. Fin (add num2 n)
+= Λ n. succFin -(succ n) (zeroFin -n) .
+
+fin2 : ∀ n: Nat. Fin (add num3 n)
+= Λ n. succFin -(add num2 n) (fin1 -n) .
+
+fin3 : ∀ n: Nat. Fin (add num4 n)
+= Λ n. succFin -(add num3 n) (fin2 -n) .
+
+fin4 : ∀ n: Nat. Fin (add num5 n)
+= Λ n. succFin -(add num4 n) (fin3 -n) .
+
+emptyFin : Fin zero ➔ Bot
+= λ i. σ i @(λ n: Nat. λ x: Fin n. { n ≃ zero } ➾ Bot) {
+       | zeroFin -n ➔ Λ abs. δ - abs
+       | succFin -n j ➔ Λ abs. δ - abs
+       } -β .

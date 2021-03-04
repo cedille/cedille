@@ -12,10 +12,6 @@ sndCong : ∀ A1: ★. ∀ B1: A1 ➔ ★. ∀ A2: ★. ∀ B2: A2 ➔ ★.
     {s1 ≃ s2} ➾ {snd s1 ≃ snd s2}
   = Λ _. Λ _. Λ _. Λ _. λ s1. λ s2. Λ eq. ρ eq @ x . { snd x ≃ snd s2 } - β.
 
-
--- Principle of equality of second projections
--- In MLTT, this is equivalent to K
-
 _ : ∀ A: ★. ∀ B: A ➔ ★. Π p1: Sigma ·A ·B. Π p2: Sigma ·A ·B. {p1 ≃ p2} ➔ {snd p1 ≃ snd p2}
 = Λ A. Λ B. λ p1. λ p2. σ p1 {
   | sigma a1 b1 ➔ σ p2 {

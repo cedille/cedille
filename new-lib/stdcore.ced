@@ -3,6 +3,7 @@ module stdcore.
 import public core/bot.
 import public core/cast.
 import public core/castDep.
+import public core/irrel .
 import public core/rec.
 import public core/top.
 import public core/tpeq.
