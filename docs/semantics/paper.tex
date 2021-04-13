@@ -14,9 +14,12 @@
 \newcommand{\absu}[3]{{#1}\, #2.\, #3}
 \mathchardef\mhyph="2D % Define a "math hyphen"
 \newcommand{\interp}[1]{\llbracket #1 \rrbracket} 
+\newcommand{\leadstoc}[0]{\ensuremath{\leadsto_{\mathbf{n}}}}
+\newcommand{\leadstocs}[0]{\ensuremath{\leadsto_{\mathbf{n}}^*}}
+\newcommand{\nleadstoc}[0]{\ensuremath{\nleadsto_{\mathbf{n}}}}
 \newcommand{\tpcheck}[0]{\Leftarrow}
 \newcommand{\tpsynth}[0]{\Rightarrow}
-\newcommand{\tpsynthleads}[0]{\ensuremath{\overset{\leadsto_\beta^*}{\Rightarrow}}}
+\newcommand{\tpsynthleads}[0]{\ensuremath{\overset{\leadstocs}{\Rightarrow}}}
 \newcommand{\cbe}[0]{c\beta\eta}
 \newcommand{\utp}[0]{\mathcal{U}}
 \newcommand{\startcase}[1]{\vspace{#1} \noindent\textbf{\underline{Case:}}}
@@ -109,9 +112,9 @@ shorthand notation: \([t/x]^T\) means \([\chi\ T\ \mhyph\ t/x]\), where \(\chi\)
 is the construct for explicit type annotations (see Section~\ref{sec:overview}).
 
 In terms, when the type of an introduction form is checked or the type of an
-elimination form is synthesized, we use call-by-name normalization for types
-\(\leadsto_\beta^*\) to put types in weak head normal form, revealing type
-constructors.
+elimination form is synthesized, we use call-by-name normalization, written
+\(\leadstoc\) and \(\leadstocs\) for the reflexive transitive closure, to put
+types in weak head normal form, revealing type constructors.
 We abbreviate the conjuction ``term \(t\) synthesizes some type, and that type
 call-by-name reduces to another type'' with the symbol \(\tpsynthleads\),
 defined formally at the top of Figure~\ref{fig:tp}.
@@ -173,27 +176,27 @@ Figure~\ref{fig:conv}.
   \[
     \begin{array}{c}
       \Gamma \vdash t \tpsynthleads T\ =\ \exists T'.\ \Gamma
-      \vdash t \tpsynth T' \land T' \leadsto_\beta^* T
+      \vdash t \tpsynth T' \land T' \leadstocs T
       \\ \\ \\
   \begin{array}{cc}
     \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
     \infer{\Gamma\vdash t\tpcheck T}{\Gamma\vdash t\tpsynth T' & T' \cong T} \\ \\
-    \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2} &
+    \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadstocs \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2} &
     \infer{\Gamma\vdash t\ t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\Pi}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
     \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck T'}
-          {T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T} &
+          {T' \leadstocs \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T} &
     \infer{\Gamma\vdash t \cdot T' \tpsynth [T'/X]T}
           {\Gamma\vdash t \tpsynthleads \abs{\forall}{X}{\kappa}{T} & \Gamma\vdash T' \tpsynth \kappa' & \kappa'\cong\kappa} \\ \\
 
     \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck T}
-          {T \leadsto_\beta^* \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)} &
+          {T \leadstocs \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)} &
     \infer{\Gamma\vdash t\ \mhyph t' \tpsynth [t'/x]^{T'}T}{\Gamma\vdash t \tpsynthleads \abs{\forall}{x}{T'}{T} & \Gamma\vdash t' \tpcheck T'} \\ \\
 
     \infer{\Gamma\vdash [ t_1 , t_2 ] \tpcheck T}
           {
            \begin{array}{cc}
-             T \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+             T \leadstocs \abs{\iota}{x}{T_1}{T_1}
              & \Gamma \vdash t_1 \tpcheck T_1
              \\ \Gamma \vdash t_2 \tpcheck [t_1/x]^{T_1}\ T_2
              & |t_1| =_{\beta\eta} |t_2|
@@ -202,9 +205,12 @@ Figure~\ref{fig:conv}.
     \infer{\Gamma\vdash t.1 \tpsynth T}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}} \\ \\
     \infer{\Gamma\vdash t.2 \tpsynth [t.1/x] T'}{\Gamma\vdash t \tpsynthleads \abs{\iota}{x}{T}{T'}} &
     \infer{\Gamma\vdash \beta\{t'\} \tpcheck T}
-          {T \leadsto_\beta^* \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
+          {T \leadstocs \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}  \\ \\    
     \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}
-          {\Gamma\vdash t\tpcheck \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}} &
+          {
+            \Gamma \vdash t \tpsynth T'
+            \quad T' \cong \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}
+          } &
     \infer{\Gamma \vdash \rho\ t\ @x\langle t_2 \rangle.T'\ \mhyph\ t' \tpcheck T}
           {
           \begin{array}{ccc}
@@ -284,8 +290,8 @@ Figure~\ref{fig:conv}.
       \infer{
        T_1 \cong T_2
       }{
-       T_1 \leadsto^*_\beta T_1' \nleadsto_\beta
-       \quad T_2 \leadsto^*_\beta T_2' \nleadsto_\beta
+       T_1 \leadstocs T_1' \nleadstoc
+       \quad T_2 \leadstocs T_2' \nleadstoc
        \quad T_1' \cong^{\text{t}} T_2'
       }
       \\ \\
@@ -498,7 +504,7 @@ Suppose $(\sigma,\rho)\in\interp{\Gamma}$.  Then we have:
 \item If $\Gamma\vdash T \tpsynth \kappa$, then $\interp{T}_{\sigma,\rho}\in\interp{\kappa}_{\sigma,\rho}$.
 \item If $\Gamma\vdash t \tpsynth T$ then $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}\in \mathcal{R}$.
 \item If $\Gamma\vdash t \tpcheck T$ and $\interp{T}_{\sigma,\rho}\in \mathcal{R}$, then
-    $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}\in \mathcal{R}$.
+    $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho}$.
 \item If $T \cong T'$ or $T \cong^{\text{t}} T'$ and $\interp{T}_{\sigma,\rho}$ and $\interp{T'}_{\sigma,\rho}$ are both defined, then they are equal.
 \item If \(\kappa \cong \kappa'\) and \(\interp{\kappa}_{\sigma,\rho}\) and
   \(\interp{\kappa'}_{\sigma,\rho}\) are both defined, then they are equal.
@@ -586,7 +592,7 @@ terms need to be reduced during this process.
 
 \begin{theorem}[Syntactic kind preservation]
   \label{thm:syntactic-kind-pres}
-  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadsto_{\beta} T'\) then
+  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadstoc T'\) then
   \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa'\) such that \(\kappa
   \cong \kappa'\).
 \end{theorem}
@@ -745,7 +751,7 @@ Note that Lemma~\ref{lem:termsubstinterp} also applies to typed substitution: if
 
 \begin{lemma}
   \label{lem:interppres}
-  If $T \leadsto^*_{\beta} T'$ and $\interp{T}_{\sigma,\rho}$ is defined, then $\interp{T'}_{\sigma,\rho}$ is also defined and equals $\interp{T}_{\sigma,\rho}$.
+  If $T \leadstocs T'$ and $\interp{T}_{\sigma,\rho}$ is defined, then $\interp{T'}_{\sigma,\rho}$ is also defined and equals $\interp{T}_{\sigma,\rho}$.
 \end{lemma}
 \begin{proof}
   This follows by induction on the reduction derivation, making use of the previous substitution lemmas.
@@ -971,7 +977,7 @@ and so by the IH applied to the second premise, we have $[\sigma|t|]_{\cbe}\in\i
 
 \startcase{.2cm}
 \[
-  \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2}
+  \infer{\Gamma\vdash \absu{\lambda}{x}{t} \tpcheck T}{T \leadstocs \abs{\Pi}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t\tpcheck T_2}
 \]
 To show $[\sigma \lambda
 x.|t|]_{\cbe}\in\interp{\abs{\Pi}{x}{T_1}{T_2}}_{\sigma,\rho}$ (noting that the
@@ -1008,7 +1014,7 @@ this is sufficient.
 \startcase{.2cm}
 \[
   \infer{\Gamma\vdash \absu{\Lambda}{X}{t} \tpcheck T'}
-  {T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T}
+  {T' \leadstocs \abs{\forall}{X}{\kappa}{T} & \Gamma,X:\kappa\vdash t \tpcheck T}
 \]
 By the IH, $[\sigma |t|]_{\cbe}\in\interp{T}_{\sigma,\rho[X\mapsto S]}$, for all $S\in\interp{\kappa}_{\sigma,\rho}$.
 This is sufficient to prove $[\sigma |\absu{\Lambda}{X}{t}|]_{\cbe}\in\interp{\forall X:\kappa.T}_{\sigma,\rho}$, by the semantics
@@ -1032,7 +1038,7 @@ using also the definition of erasure.
 \startcase{.2cm}
 \[
   \infer{\Gamma\vdash \absu{\Lambda}{x}{t} \tpcheck T}
-  {T \leadsto_\beta^* \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)}
+  {T \leadstocs \abs{\forall}{x}{T_1}{T_2} & \Gamma,x:T_1\vdash t \tpcheck T_2 & x\not\in\textit{FV}(|t|)}
 \]
 
 By the IH applied to the second premise, we have
@@ -1060,7 +1066,7 @@ semantics of $\forall$-types, definition of erasure, and Lemma~\ref{lem:termsubs
   \infer{\Gamma\vdash [ t_1 , t_2 ] \tpcheck T}
   {
     \begin{array}{cc}
-      T \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+      T \leadstocs \abs{\iota}{x}{T_1}{T_1}
       & \Gamma \vdash t_1 \tpcheck T_1
       \\ \Gamma \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
       & |t_1| =_{\beta\eta} |t_2|
@@ -1091,7 +1097,7 @@ Similar to the previous case, additionally using Lemma~\ref{lem:termsubstinterp}
 \startcase{.2cm}
 \[
   \infer{\Gamma\vdash \beta\{t'\} \tpcheck T}
-  {T \leadsto_\beta^* \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
+  {T \leadstocs \{t_1 \simeq t_2\} \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma) \quad |t_1| =_{\beta\eta} |t_2|}
 \]
 By the third premise \(|t_1| =_{\beta\eta} |t_2|\) it follows that \(\sigma|t_1|
 =_{\beta\eta} \sigma|t_2|\), and also by the second premise and the fact that
@@ -1103,11 +1109,21 @@ directly from the semantics of equality types.
 
 \startcase{.2cm}
 \[
-    \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpsynth \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  
+  \infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}
+  {
+    \Gamma \vdash t \tpsynth T'
+    \quad T' \cong \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}
+  }
+    %infer{\Gamma\vdash \delta\ \mhyph\ t \tpcheck T}{\Gamma\vdash t\tpsynth \{ \absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}}  
 \]
-By the semantics of equality types, $[\sigma|t|]_{\cbe}$ cannot be in the interpretation of the equation in the premise,
-since the two terms in question are closed and not $\beta\eta$-equal.  By the IH applied to the first premise, however,
-$[\sigma|t|]_{\cbe}$ is in the interpretation of that equation.  This is a contradiction.
+By the inductive hypothesis, \([\sigma|t|]_{\cbe} \in \interp{T'} \in
+\mathcal{R}\).
+It is easy to see that the meaning of \(\{\absu{\lambda}{x}{\absu{\lambda}{y}{x}
+\simeq \absu{\lambda}{x}{\absu{\lambda}{y}}}\}\) exists and is in
+\(\mathcal{R}\), and is in fact the empty set.
+By mutual induction on the second premise we have \([\sigma|t|]_{\cbe} \in
+\interp{\{\absu{\lambda}{x}{\absu{\lambda}{y}{x} \simeq
+    \absu{\lambda}{x}{\absu{\lambda}{y}}}\}}_{\sigma,\rho}\), a contradiction.
 
 \startcase{.2cm}
 \[
@@ -1174,8 +1190,8 @@ We show the cases for the non-congruential rules of Figure~\ref{fig:conv}.
   \infer{
     T_1 \cong T_2
   }{
-    T_1 \leadsto^*_\beta T_1' \nleadsto_\beta
-    \quad T_2 \leadsto^*_\beta T_2' \nleadsto_\beta
+    T_1 \leadstocs T_1' \nleadstoc
+    \quad T_2 \leadstocs T_2' \nleadstoc
     \quad T_1' \cong^{\text{t}} T_2'
   }
 \]
@@ -1235,7 +1251,7 @@ call-by-name normalizing (cf.~\cite{Kashima2000}).
 \section{Proof of Theorems~\ref{thm:syntactic-kind-pres} and \ref{thm:judge-valid}}
 \label{sec:proof-syntactic-kind-pres}
 
-First a few lemmas (easy proofs omitted):
+First a few lemmas (easy cases omitted):
 
 \begin{lemma}
   \label{lem:ctxt-conv-class}
@@ -1383,14 +1399,14 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \absu{\lambda}{x}{t} \tpcheck T_3
     }{
-      T_3 \leadsto_\beta^* \abs{\Pi}{x}{T_1}{T_2}
+      T_3 \leadstocs \abs{\Pi}{x}{T_1}{T_2}
       & \Gamma_1,X_1:\kappa_1,\Gamma_2,x:T_1\vdash t\tpcheck T_2
     }
   \]
   By the first premise, \(T_3 \cong \abs{\Pi}{x}{T_1}{T_2}\).
   By assumption and transitivity of the convertibility relation, \(T_4 \cong
   \abs{\Pi}{x}{T_1}{T_2}\).
-  This means \(T_4 \leadsto_\beta^* \abs{\Pi}{x}{T_1'}{T_2'}\) for some \(T_1'
+  This means \(T_4 \leadstocs \abs{\Pi}{x}{T_1'}{T_2'}\) for some \(T_1'
   \cong T_1\) and \(T_2' \cong T_2\).
   By mutual induction with Lemma~\ref{lem:ctxt-conv-class2} on the second
   premise, we have a derivation of \(\Gamma_1,X_1:\kappa_1,\Gamma_2,x:T_1'
@@ -1406,14 +1422,14 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,X_1:\kappa_1,\Gamma_2\vdash \absu{\Lambda}{X}{t} \tpcheck T_3
     }{
-      T_3 \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T}
+      T_3 \leadstocs \abs{\forall}{X}{\kappa}{T}
       & \Gamma_1,X_1:\kappa_1,\Gamma_2,X:\kappa\vdash t \tpcheck T
     }
   \]
   By the first premise, \(T_3 \cong \abs{\forall}{X}{\kappa}{T}\), so by
   assumption and transitivity of convertibility, \(T_4 \cong
   \abs{\forall}{X}{\kappa}{T}\).
-  This means \(T_4 \leadsto_\beta^* \abs{\forall}{X}{\kappa'}{T'}\) for some
+  This means \(T_4 \leadstocs \abs{\forall}{X}{\kappa'}{T'}\) for some
   \(\kappa' \cong \kappa\) and \(T' \cong T\).
   We apply the IH once on the second premise to obtain a derivation of
   \(\Gamma_1,X_1:\kappa_1,\Gamma_2,X:\kappa' \vdash t \tpcheck T'\), and then
@@ -1427,14 +1443,14 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash \beta\{t'\} \tpcheck T_3
     }{
-      T_3 \leadsto_\beta^* \{t_1 \simeq t_2\}
+      T_3 \leadstocs \{t_1 \simeq t_2\}
       & \textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,X_1:\kappa_1,\Gamma_2)
       & |t_1| =_{\beta\eta} |t_2|
     }
   \]
   From the first premise, assumption, and transitivity of convertibility, \(T_4
   \cong \{t_1 \simeq t_2\}\).
-  This means that \(T_4 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some
+  This means that \(T_4 \leadstocs \{t_3 \simeq t_4\}\) for some
   \(t_3,t_4\) such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta}
   |t_2|\).
   From this, the third premise, and transitivity of convertibility, we obtain
@@ -1473,7 +1489,7 @@ First a few lemmas (easy proofs omitted):
   \tpsynthleads \{t_1 \simeq t_2'\}\).
   By the IH on the first premise of the second row,
   \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash [t_2/x]\ T \tpsynth \star\)
-  (\(\star\) is only convertible with itself).
+  (as \(\star\) is only convertible with itself).
   By the IH the second premise of the second row,
   \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t \tpcheck [t_2/x]T'\).
   By assumption, the third premise of the second row, and transitivity of
@@ -1489,7 +1505,7 @@ First a few lemmas (easy proofs omitted):
       \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash [ t_1 , t_2 ] \tpcheck T_3
     }{
       \begin{array}{cc}
-        T_3 \leadsto_\beta^* \abs{\iota}{x}{T_1}{T_1}
+        T_3 \leadstocs \abs{\iota}{x}{T_1}{T_1}
         & \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t_1 \tpcheck T_1
         \\ \Gamma_1,X_1:\kappa_1,\Gamma_2 \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
         & |t_1| =_{\beta\eta} |t_2|
@@ -1498,7 +1514,7 @@ First a few lemmas (easy proofs omitted):
   \]
   From the first premise, assumption, and transitivity of the convertibility
   relation, \(T_4 \cong \abs{\iota}{x}{T_1}{T_2}\).
-  This means that \(T_4 \leadsto_\beta^* \abs{\iota}{x}{T_1'}{T_2'}\) for some
+  This means that \(T_4 \leadstocs \abs{\iota}{x}{T_1'}{T_2'}\) for some
   \(T_1' \cong T_1\) and \(T_2' \cong T_2\).
   From this last congruence, we have \([t_1/x]^{T_1'}T_2' \cong [t_1/x]^{T_1} T_2\).
   By the IH on the second premise, \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash t_1
@@ -1661,14 +1677,14 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash \absu{\lambda}{x}{t} \tpcheck T
     }{
-      T \leadsto_\beta^* \abs{\Pi}{x}{T_5}{T_6}
+      T \leadstocs \abs{\Pi}{x}{T_5}{T_6}
       & \Gamma_1,x_1:T_1,\Gamma_2,x:T_5\vdash t\tpcheck T_6
     }
   \]
   From the first premise, we have \(T \cong \abs{\Pi}{x}{T_5}{T_6}\), so by
   transitivity of convertibility and assumption, \(T_4 \cong
   \abs{\Pi}{x}{T_5}{T_6}\).
-  This means that \(T_4 \leadsto_\beta^* \abs{\Pi}{x}{T_5'}{T_6'}\) for some
+  This means that \(T_4 \leadstocs \abs{\Pi}{x}{T_5'}{T_6'}\) for some
   \(T_5' \cong T_5\) and \(T_6' \cong T_6\).
   By one use of the IH on the first premise, we have
   \(\Gamma_1,x_1:T_2,\Gamma_2,x:T_5 \vdash t \tpcheck T_6'\).
@@ -1683,14 +1699,14 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash \absu{\Lambda}{X}{t} \tpcheck T'
     }{
-      T' \leadsto_\beta^* \abs{\forall}{X}{\kappa}{T}
+      T' \leadstocs \abs{\forall}{X}{\kappa}{T}
       & \Gamma_1,x_1:T_1,\Gamma_2,X:\kappa \vdash t \tpcheck T
     }
   \]
   From the first premise, \(T' \cong \abs{\forall}{X}{\kappa}{T}\).
   From transitivity of convertibility and assumption, \(T_4 \cong
   \abs{\forall}{X}{\kappa}{T}\).
-  This means that \(T_4 \leadsto_\beta^* \abs{\forall}{X}{\kappa''}{T''}\) for
+  This means that \(T_4 \leadstocs \abs{\forall}{X}{\kappa''}{T''}\) for
   some \(\kappa'' \cong \kappa\) and \(T'' \cong T\).
   By mutual induction with Lemma~\ref{lem:ctxt-conv-class} on the second premise,
   \(\Gamma_1,x_1:T_1,\Gamma_2,X:\kappa'' \vdash t \tpcheck T\), and this
@@ -1705,7 +1721,7 @@ First a few lemmas (easy proofs omitted):
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash [ t , t' ] \tpcheck T_3
     }{
       \begin{array}{cc}
-        T_3 \leadsto_\beta^* \abs{\iota}{x}{T}{T'}
+        T_3 \leadstocs \abs{\iota}{x}{T}{T'}
         & \Gamma_1,x_1:T_1,\Gamma_2 \vdash t \tpcheck T
         \\ \Gamma_1,x_1:T_1,\Gamma_2 \vdash t' \tpcheck [t/x]^{T}\ T'
         & |t| =_{\beta\eta} |t|
@@ -1715,7 +1731,7 @@ First a few lemmas (easy proofs omitted):
   From the first premise, \(T_3 \cong \abs{\iota}{x}{T}{T'}\).
   From transitivity of convertibility and assumption, \(T_4 \cong
   \abs{\iota}{x}{T}{T'}\).
-  This means \(T_4 \leadsto \abs{\iota}{x}{T''}{T'''}\) for some \(T'' \cong T\)
+  This means \(T_4 \leadstocs \abs{\iota}{x}{T''}{T'''}\) for some \(T'' \cong T\)
   and \(T''' \cong T'\).
   By the IH, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpcheck T''\) with depth no
   greater than the second premise (read left to right, then top to bottom).
@@ -1729,7 +1745,7 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash \beta\{t'\} \tpcheck T_3
     }{
-      T_3 \leadsto_\beta^* \{t_1 \simeq t_2\}
+      T_3 \leadstocs \{t_1 \simeq t_2\}
       \quad \textit{FV}(t')\subseteq \textit{dom}(\Gamma_1,x_1:T_1,\Gamma_2)
       \quad |t_1| =_{\beta\eta} |t_2|
     }
@@ -1737,7 +1753,7 @@ First a few lemmas (easy proofs omitted):
   From the first premise, \(T_3 \cong \{t_1 \simeq t_2\}\).
   From transitivity of the convertibility relation and assumption, \(T_3 \cong
   \{t_1 \simeq t_2\}\).
-  This means \(T_4 \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  This means \(T_4 \leadstocs \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
   such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta} |t_2|\).
   From the third premise and transitivity of convertibility, we have \(|t_3|
   =_{\beta\eta} |t_4|\).
@@ -1782,7 +1798,7 @@ First a few lemmas (easy proofs omitted):
   \]
   By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
   T''\) (with no greater depth) for some \(T'' \cong \{t_1 \simeq t_2'\}\).
-  That means \(T'' \leadsto_\beta^* \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
+  That means \(T'' \leadstocs \{t_3 \simeq t_4\}\) for some \(t_3,t_4\)
   such that \(|t_3| =_{\beta\eta} |t_1|\) and \(|t_4| =_{\beta\eta} |t_2'|\).
   So we further obtain that \(|t_4| =_{\beta\eta} |t_2|\).
   By the IH on the first premise of the second row, \(\Gamma_1,x_1:T_2,\Gamma_2
@@ -1792,6 +1808,22 @@ First a few lemmas (easy proofs omitted):
   By assumption, the third premise of the second row, and transitivity of
   convertibility, we have \([t_1/x]T' \cong T_4\).
   We conclude with the rule, preserving the measure.
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x_1:T_1,\Gamma_2\vdash \delta\ \mhyph\ t \tpcheck T_3}
+    {
+      \Gamma_1,x_1 : T_1,\Gamma_2 \vdash t \tpsynth T'
+      \quad T' \cong \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}
+    }
+  \]
+  By the IH on the first premise, \(\Gamma_1,x:T_2,\Gamma_2 \vdash t \tpsynth
+  T''\) for some \(T'' \cong T'\).
+  By transitivity of convertibility and the second premise, \(T'' \cong
+  \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq
+  \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}\).
+  Using the \(\delta\) rule, we conclude that \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash
+  \delta\ \mhyph\ t \tpcheck T_4\).
   
   % type synthesis
   \startcase{.2cm}
@@ -1799,7 +1831,7 @@ First a few lemmas (easy proofs omitted):
     \infer{
       \Gamma_1,x_1:T_1,\Gamma_2 \vdash x \tpsynth T
     }{
-      (x : T)\in\Gamma_1,x_1:T_1,\Gamma_2
+      (x : T)\in\Gamma_1,x_1 : T_1,\Gamma_2
     }
   \]
   We have two subcases to consider.
@@ -1821,7 +1853,7 @@ First a few lemmas (easy proofs omitted):
   By the IH on the premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth T_3\)
   for some \(T_3 \cong \abs{\Pi}{x}{T'}{T}\), and the depth of this typing
   derivation is no greater than that of the first premise.
-  From this we obtain that \(T_3 \leadsto^*_\beta \abs{\Pi}{x}{T_4'}{T_4}\) for
+  From this we obtain that \(T_3 \leadstocs \abs{\Pi}{x}{T_4'}{T_4}\) for
   some \(T_4' \cong T'\) and \(T_4 \cong T\).
   By the IH on the last premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t' \tpcheck
   T_4'\), and the depth of this derivation is no greater than that of the last premise.
@@ -1845,7 +1877,7 @@ First a few lemmas (easy proofs omitted):
   By the IH on the first premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash t \tpsynth
   T_3\) for some \(T_3 \cong \abs{\forall}{X}{\kappa}{T}\), with no greater
   depth.
-  This means \(T_3 \leadsto_\beta^* \abs{\forall}{X}{\kappa''}{T''}\) for some
+  This means \(T_3 \leadstocs \abs{\forall}{X}{\kappa''}{T''}\) for some
   \(\kappa'' \cong \kappa\) and \(T'' \cong T\).
   By the IH on the second premise, \(\Gamma_1,x_1:T_2,\Gamma_2 \vdash T'
   \tpsynth \kappa'\), with no greater depth.
@@ -2012,6 +2044,23 @@ First a few lemmas (easy proofs omitted):
   |[t/x]t_2|\).
   Applying the rule and permuting substitutions gives us the desired result
   (note for example that \([t/x][t_2/x_1]T_1 = [[t/x]t_2/x_1][t/x]T_1\)).
+
+  \startcase{.2cm}
+  \[
+    \infer{\Gamma_1,x:T,\Gamma_2 \vdash \delta\ \mhyph\ t \tpcheck T_2}
+    {
+      \Gamma_1,x:T,\Gamma_2 \vdash t \tpsynth T_2'
+      \quad T_2' \cong \{\absu{\lambda}{x}{\absu{\lambda}{y}{x}} \simeq \absu{\lambda}{x}{\absu{\lambda}{y}{y}}\}
+    }
+  \]
+
+  From the IH, we have that \(\Gamma_1[t'/x]\Gamma_2 \vdash [t'/x] t \tpsynth
+  [t'/x]T_2'\).
+  From the second premise, we have \([t'/x]T_2' \cong
+  \{\absu{\lambda}{x}{\absu{\lambda}{y}{x} \simeq
+    \absu{\lambda}{x}{\absu{\lambda}{y}{y}}}\}\).
+  From the \(\delta\) rule, we conclude that
+  \(\Gamma_1,[t'/x]\Gamma_2 \vdash \delta\ \mhyph\ [t'/x]t \tpcheck [t'/x]T_2\).
 \end{proof}
 
 \begin{corollary}
@@ -2032,9 +2081,8 @@ First a few lemmas (easy proofs omitted):
 \subsection{Theorem~\ref{thm:syntactic-kind-pres}}
 \begin{proof}[Proof (of Theorem~\ref{thm:syntactic-kind-pres})]
   We may rule out the cases where \(T\) is a variable or formed by a type
-  constructor, as this would contradict the assumption that \(T \leadsto_{\beta}
-  T'\) for some \(T'\) (recall that \(\leadsto_\beta\) is call-by-name reduction
-  for types).
+  constructor, as this would contradict the assumption that \(T \leadstoc
+  T'\) for some \(T'\).
   We omit type annotations from substitutions when they are clear from the context.
 
   \startcase{.2cm}
@@ -2043,8 +2091,8 @@ First a few lemmas (easy proofs omitted):
       \abs{\Pi}{x}{T_1}{\kappa_1} & \Gamma\vdash t \tpcheck T_1}
   \]
 
-  There are two subcases to consider for the derivation of \(T\ t \leadsto_\beta
-  T'\). In the first case, we have \(T \leadsto_\beta T''\) for some \(T''\) (so
+  There are two subcases to consider for the derivation of \(T\ t \leadstoc
+  T'\). In the first case, we have \(T \leadstoc T''\) for some \(T''\) (so
   \(T' = T''\ t\)). By the IH, we have \(\Gamma \vdash T'' \tpsynth
   \abs{\Pi}{x}{T_1'}{\kappa_1'}\) for some \(T_1' \cong T_1\) and \(\kappa_1'
   \cong \kappa_1\) (we have from that IH that kind of \(T''\) must be
@@ -2067,7 +2115,7 @@ First a few lemmas (easy proofs omitted):
   \]
 
   There are two subcases to consider for the derivation of \(T_1 \cdot T_2
-  \leadsto_\beta T'\). In the first subcase, we have \(T_1 \leadsto_\beta
+  \leadstoc T'\). In the first subcase, we have \(T_1 \leadstoc
   T_1''\) for some \(T_1''\) (so \(T' = T_1'' \cdot T_2\)). By the IH, we have
   \(\Gamma \vdash T_1'' \tpsynth \abs{\Pi}{X}{\kappa_2''}{\kappa_1''}\) for some
   \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have from
@@ -2092,7 +2140,7 @@ First a few lemmas (easy proofs omitted):
 
 \begin{corollary}
   \label{cor:syntactic-kind-pres}
-  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadsto_\beta^* T'\) then
+  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadstocs T'\) then
   \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa' \cong \kappa\).
 \end{corollary}
 
