@@ -1,3 +1,4 @@
+% -*- eval: (flyspell-mode); -*-
 \documentclass{article}
 
 \usepackage{amsmath,amssymb,amsthm,MnSymbol}
@@ -49,7 +50,7 @@
 
 The type theory of Cedille is called the Calculus of Dependent Lambda
 Eliminations (CDLE).  This document presents the version of CDLE as of
-December 1, 2020.  We have made many changes from the first paper on CDLE~\cite{stump17},
+April 13, 2021.  We have made many changes from the first paper on CDLE~\cite{stump17},
 mostly in the form of dropping constructs we discovered (to our
 surprise) could be derived~\cite{stump18}. We have also omitted
 \emph{lifting} -- a technique for large eliminations with lambda
@@ -63,17 +64,24 @@ compensates somewhat for the lack of lifting.
 At a high level, CDLE is an extrinsic (i.e., Curry-style) type theory
 extending the Calculus of Constructions with three additional
 constructs, which allow deriving induction principles within the
-theory for inductive datatypes.  The goal is to support usual
-idioms of dependently typed programming and proving as in Agda or
+theory for lambda encodings of inductive datatypes.  The goal is to support
+usual idioms of dependently typed programming and proving as in Agda or
 similar tools, but using pure lambda encodings for all data, and
-requiring a much smaller core theory.
+requiring a much smaller core theory suitable for formal verification.
 
-The current Cedille implementation of CDLE extends the system
-described below with a number of features intended to make programming
-in the system more convenient and with less redundancy.  These
-features all compile away to a slightly simplified version of the
+The current Cedille implementation of CDLE extends with a number of features
+intended to make programming in the system more convenient and with less
+redundancy.
+These features all compile away to a slightly simplified version of the
 theory presented in this document, called Cedille Core, described
 here: \url{https://github.com/astump/cedille-core-spec}.
+At the time of writing, the Cedille implementation lags behind the formulation
+of CDLE in this document on one point: the treatment of the rewriting construct
+\(\rho\).
+In the implementation, the fully-annotated form for this construct is \(\rho\ t\
+@x.T'\ \mhyph\ t'\), but in this document it is \(\rho\ t\ @x\langle
+t_2 \rangle.T'\ \mhyph\ t'\).
+The implementation infers the additional subterm \(t_2\).
 
 \section{Classification Rules}
 
@@ -94,9 +102,9 @@ since the usage for typing contexts always has the symbol occur to the left of
 the turnstile (\(\vdash\)), no confusion should arise from overloading notation.
 
 The typing rules (Figure~\ref{fig:tp}) are
-bidirectional~\cite{pierce+00}, while the kinding and superkinding
-rules (Figure~\ref{fig:knd} and~\ref{fig:superknd}) are unidirectional
-(i.e., synthesizing only).
+bidirectional~\cite{pierce+00}, while the kinding rules (Figure~\ref{fig:knd})
+are unidirectional (synthesizing only) and the kind-formation rules
+(Figure~\ref{fig:superknd}) have no notion of directionality.
 We write $\Leftrightarrow$ to range over
 $\{\tpcheck,\tpsynth\}$, and when this symbol occurs multiple times in a rule,
 it is intended that such occurrences be read the same way (i.e., read the
@@ -111,21 +119,21 @@ substitute a variable with a term whose type can only be checked, we define a
 shorthand notation: \([t/x]^T\) means \([\chi\ T\ \mhyph\ t/x]\), where \(\chi\)
 is the construct for explicit type annotations (see Section~\ref{sec:overview}).
 
-In terms, when the type of an introduction form is checked or the type of an
+In typing rules, when the type of an introduction form is checked or the type of an
 elimination form is synthesized, we use call-by-name normalization, written
 \(\leadstoc\) and \(\leadstocs\) for the reflexive transitive closure, to put
 types in weak head normal form, revealing type constructors.
-We abbreviate the conjuction ``term \(t\) synthesizes some type, and that type
+We abbreviate the conjunction ``term \(t\) synthesizes some type, and that type
 call-by-name reduces to another type'' with the symbol \(\tpsynthleads\),
 defined formally at the top of Figure~\ref{fig:tp}.
 When a redex (reducible expression) occurs such that the argument to a type is a
 term, such as \((\abs{\lambda}{x}{T_1}{T_2})\ t_1\), the reduction uses
-substitution with annotations to \([t_1/x]^{T_1}\ T_2\).
+substitution with annotations: \([t_1/x]^{T_1}\ T_2\).
 
 Call-by-name reduction is \emph{not} what underpins the
 equivalence relation \(\cong\) for types and kinds, which is full
-\(\beta\)-equivalence (for types) and \(\beta\eta\)-equivalence (for terms)
-modulo erasure of annotations in terms.
+\(\beta\)-equivalence (for types) and \(\beta\eta\)-equivalence (for terms),
+both of which are modulo erasure of annotations in terms.
 The erasure operation is defined in Figure~\ref{fig:eraser}, and is essentially
 the \emph{extraction} function for the Implicit Calculus of Constructions given
 by~\cite{BB08_ICC-as-a-Programming-Language} adapted to CDLE.
@@ -175,8 +183,8 @@ Figure~\ref{fig:conv}.
 \begin{figure}
   \[
     \begin{array}{c}
-      \Gamma \vdash t \tpsynthleads T\ =\ \exists T'.\ \Gamma
-      \vdash t \tpsynth T' \land T' \leadstocs T
+      \Gamma \vdash t \tpsynthleads T\ =\ \exists T'.\ (\Gamma
+      \vdash t \tpsynth T') \land (T' \leadstocs T)
       \\ \\ \\
   \begin{array}{cc}
     \infer{\Gamma\vdash x\tpsynth T}{(x : T)\in\Gamma} &
@@ -196,7 +204,7 @@ Figure~\ref{fig:conv}.
     \infer{\Gamma\vdash [ t_1 , t_2 ] \tpcheck T}
           {
            \begin{array}{cc}
-             T \leadstocs \abs{\iota}{x}{T_1}{T_1}
+             T \leadstocs \abs{\iota}{x}{T_1}{T_2}
              & \Gamma \vdash t_1 \tpcheck T_1
              \\ \Gamma \vdash t_2 \tpcheck [t_1/x]^{T_1}\ T_2
              & |t_1| =_{\beta\eta} |t_2|
@@ -274,7 +282,7 @@ Figure~\ref{fig:conv}.
     |\delta\ \mhyph\ t| & = & \absu{\lambda}{x}{x}&\ &
     |\rho\ t\ @x\langle t_2 \rangle.T'\ \mhyph\ t'| & = & |t'| \\
     |\varphi\ t\ \mhyph\ t'\ \{t''\}| & = & |t''| &\ &
-    |\chi\ T\ \mhyph\ t'| & = & |t'|
+    |\chi\ T\ \mhyph\ t| & = & |t|
   \end{array}
   \]
   \caption{Erasure for annotated terms}
@@ -389,7 +397,7 @@ Figure~\ref{fig:conv}.
 \label{sec:overview}
 
 CDLE has as a subsystem the extrinsic Calculus of
-Constructions (CC).  We have dependent types
+Constructions (CC).  We have dependent function types
 $\abs{\Pi}{x}{T}{T'}$ and kinds $\abs{\Pi}{x}{T}{\kappa}$, as well as
 term- and type-level quantification over (possibly higher-kinded)
 types $\abs{\forall}{X}{\kappa}{T}$ and
@@ -402,7 +410,7 @@ For abstractions, we write $\lambda$ to
 correspond to $\Pi$ and $\Lambda$ to correspond to $\forall$.  As noted
 above, application to a type is denoted with center dot ($\cdot$).
 
-To Curry-style CC, CDLE adds: implicit products, introduced orginially
+To Curry-style CC, CDLE adds: implicit products, introduced originally
 by Miquel~\cite{miquel01}; a primitive equality type $\{ t \simeq
 t'\}$; and dependent intersection types $\abs{\iota}{x}{T}{T'}$,
 introduced by Kopylov~\cite{kopylov03}.  Implicit products are used
@@ -416,16 +424,20 @@ $[t_1/x]^{T_1}T_2$, and $t_1$ and $t_2$ have $\beta\eta$-equivalent
 erasures.  Dependent intersections thus enable a controlled form of
 self-reference in the type.  Previous work showed how to use this to
 derive induction for Church-encoded natural numbers~\cite{stump18}.
-We will see below further uses of this construct.
 
 The typing rules include conversion checks in a few places, e.g., as is
-standard when switching from checking to synthesizing mode.  As mentioned
-earlier, two rules near the top of Figure~\ref{fig:tp} state that one may
-(nondeterministically) call-by-name reduce the type one is synthesizing or
-checking, before proceeding.
-We also include the construct $\chi\ T\ \mhyph\ t$ which allows a term whose
-type can be checked to be ascribed a user-provided type so that the whole
-expression may occur where a term whose type can be synthesized is expected.
+standard when switching from checking to synthesizing mode.
+For the introduction forms for types, the checked type first is call-by-name
+reduced to weak head normal form, which must be formed from the appropriate connective
+for the term construct (e.g., a \(\Pi\)-type for a lambda abstraction).
+Similarly, for the elimination forms the major premise has its type synthesized
+and then call-by-name normalized to reveal the correct connective.
+As is standard for a bidirectional type system, we also include the construct
+$\chi\ T\ \mhyph\ t$ for type ascription (allowing a term whose type can be
+checked to be given a user-provided type so that the whole 
+expression synthesizes its type) and a judgmental (or \emph{subsumption}) rule
+stating that terms whose types can be synthesized may be checked against a
+convertible type.
 
 We have modified the rules for equality types $\{ t_1 \simeq t_2 \}$ so that we require
 nothing of $t_1$ and $t_2$ except that the set $\textit{dom}(\Gamma)$ of variables
@@ -435,12 +447,12 @@ over the version of CDLE in~\cite{stump18} are:
 \item To prove $\{ t_1 \simeq t_2\}$ for definitionally equal terms (that is,
   terms that are \(\beta\eta\)-equivalent modulo erasure), one now writes $\beta\{t'\}$,
   with the critical idea that $|\beta\{t'\}|$ erases to (the possibly unrelated) $|t'|$.
-  We call this the \textbf{Kleene trick}, because it goes back to Kleene's numeric
+  We call this the \textbf{Kleene trick} because it goes back to Kleene's numeric
   realizability~\cite{Kle65_Classical-Extensions-of-Intuitionistic-Mathematics},
   which accepts any number $n$ as a realizer 
   of a true equation.  Here, we accept any term $t'$ as a realizer of $\{ t_1
-  \simeq t_2\}$, provided the free variables of \(t'\) are declared in the
-  context.
+  \simeq t_2\}$ when \(t_1\) and \(t_2\) are definitionally equal, provided the
+  free variables of \(t'\) are declared in the context.
   
   The Kleene trick means that in Cedille, any such term --- even otherwise untypable
   terms, non-normalizing terms, etc. --- prove trivially true equations.
@@ -449,31 +461,44 @@ over the version of CDLE in~\cite{stump18} are:
 \item The \(\rho\) construct allows one to rewrite occurrences of \(t_1\) in the
   checked type \(T\) of the whole expression to \(t_2\) before checking
   the type of the subexpression \(t'\).
-  The version presented here requires a type annotations (``guide'') \(@x\langle
+  The version presented here requires a type annotation (``guide'') \(@x\langle
   t_2 \rangle.T\).
-  The first subexpression \(t\) must synthesize (possibly after some
-  normalization) an equation type \(\{t_1 \simeq t_2'\}\), and the user provided
-  term \(t_2\) must be \(\beta\eta\)-convertible (modulo erasure) to \(t_2'\).
+
+  In \(\rho\ t\ @x\langle t_2 \rangle.T\ \mhyph\ t'\), the first subexpression
+  \(t\) must synthesize (possibly after some normalization) an equation type of
+  the form \(\{t_1 \simeq t_2'\}\), and the user provided term \(t_2\) must be
+  \(\beta\eta\)-convertible (modulo erasure) to \(t_2'\).
   The user provided type \(T'\) is then checked to have kind \(\star\) after
   replacing occurrences of \(x\) with \(t_2\), and the subexpression \(t'\) is
   checked against this type.
+  Since equality is untyped, it may be that \([t_2'/x]T\) is not a well-kinded
+  type, so in this explicit form we require a definitionally equal term \(t_2\)
+  from the user, which may involve more typing annotations. 
+  
   Finally, \([t_1/x]T'\) (which need not be well-kinded) must be convertible
   with the expected type \(T\).
   In Cedille, the guide is optional and the construct may be used to rewrite a
   contextually given type; a heuristic, whose details are beyond the scope of
   this document, is used to produce a resulting type that is well-kinded.
+  The current implementation of Cedille (as of April 13, 2021), does not support
+  specifying \(t_2\) in the guide \(@x\langle t_2 \rangle.T\).
+  This additional specification of the term \(t_2\) was required to prove
+  Theorem~\ref{thm:syntactic-kind-pres}, which did not appear in earlier
+  versions of this document (and its absence in prior versions does not affect
+  the semantic proofs).
 
 \item We adopt a strong form of Nuprl's \textbf{direct computation rules}~\cite{constable+86}:
   If we have a term $t'$ of type $T$ and a proof $t$ that $\{ t' \simeq t''\}$, then we may conclude that
   $t''$ has type $T$ by writing the annotated term $\varphi\ t\ \mhyph\ t'\ \{t''\}$, which
   erases to $t''$.
-\item Where the previous version of CDLE uses $\beta$-equivalence for (erased) terms, we here adopt $\beta\eta$-equivalence.  This
-  allows us to observe in many cases that retyping functions are actually $\beta\eta$-equivalent to $\absu{\lambda}{x}{x}$.
-  While $\beta\eta$-equivalence takes more work to incorporate into intrinsic 
-  type theory~\cite{geuvers92},
-  it raises no difficulties for our extrinsic one.
-\item In this version, we add an explicit axiom $\delta$ saying that Church-encoded boolean \emph{true} is different from
-  \emph{false}.
+\item Where the previous version of CDLE uses $\beta$-equivalence for (erased)
+  terms, we here adopt $\beta\eta$-equivalence.
+  This allows us to observe in many cases that retyping functions are actually
+  $\beta\eta$-equivalent to $\absu{\lambda}{x}{x}$. 
+  While $\beta\eta$-equivalence takes more work to incorporate into intrinsic
+  type theory~\cite{geuvers92}, it raises no difficulties for our extrinsic one.
+\item We add an explicit axiom $\delta$ saying that
+  Church-encoded boolean \emph{true} is different from \emph{false}.
   In the implementation of Cedille, this is generalized to the rule where the
   proof \(t\) synthesizes an equation \(\{t_1 \simeq t_2\}\) in which \(|t_1|\)
   and \(|t_2|\) are separable using the \emph{B\"ohm-out algorithm}~\cite{BDPR79_Bohm-Algorithm}.
@@ -486,7 +511,8 @@ over the version of CDLE in~\cite{stump18} are:
   form of lifting remains to future work.
 \end{itemize}
 
-The equality type remains \textbf{intensional}: we equate terms iff they are $\beta\eta$-equal.  
+The equality type remains \textbf{intensional}: we equate closed terms iff they
+are $\beta\eta$-equal.
 
 \subsection{Semantics and metatheory}
 
@@ -610,6 +636,11 @@ Appendix~\ref{sec:proof-syntactic-kind-pres}), we can show the \emph{validity}
   \item if \(\Gamma \vdash t \tpsynth T\) then \(\Gamma \vdash T \tpsynth \star\)
   \end{enumerate}
 \end{theorem}
+
+Type checking \((\Gamma \vdash t \tpcheck T)\) is not covered in
+Theorem~\ref{thm:judge-valid}, since the convention for a bidirectional system
+is that there \(T\) is already \emph{assumed} to have type \(\star\) under a
+typing context.
 
 \begin{figure}
 \[
@@ -738,7 +769,8 @@ If $t' =_{\cbe} \sigma |t|$, then:
 \end{lemma}
 
 Note that Lemma~\ref{lem:termsubstinterp} also applies to typed substitution: if
-\(t' =_{\cbe} \sigma|t|\) then by erasure so does \(\chi\ T\ \mhyph\ t'\).
+\(t' =_{\cbe} \sigma|t|\) then by erasure it is equal to \(\sigma|\chi\ T\
+\mhyph\ t'|\).
 
 \begin{lemma}[Type substitution and interpretation] 
   \label{lem:tpsubstinterp}
@@ -747,7 +779,7 @@ Note that Lemma~\ref{lem:termsubstinterp} also applies to typed substitution: if
   \item $\interp{T}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]T}_{\sigma,\rho}$
   \item $\interp{\kappa}_{\sigma,\rho[X\mapsto\interp{T'}_{\sigma,\rho}]} = \interp{[T'/X]\kappa}_{\sigma,\rho}$
   \end{itemize}
-\end{lemma}
+x\end{lemma}
 
 \begin{lemma}
   \label{lem:interppres}
@@ -759,7 +791,7 @@ Note that Lemma~\ref{lem:termsubstinterp} also applies to typed substitution: if
 
 \begin{proof}[Soundness (Theorem~\ref{thm:snd})]
   The following proof is adapted from~\cite{stump17}.  It proceeds by
-  mutual induction on the assumed typing, kinding, or superkinding
+  mutual induction on the assumed typing, kinding, or kind formation
   derivation, for each part of the lemma.  We prove the parts
   successively.  
 
@@ -1314,7 +1346,7 @@ First a few lemmas (easy cases omitted):
   By the rule, we have \(\Gamma_1,X_1:\kappa_1',\Gamma_2 \vdash
   \abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa'}\), which is
   congruent with the original type in the conclusion.
-  We see the the measure is preserved.
+  We see that the measure is preserved.
   
   
   \startcase{.2cm}
@@ -1578,8 +1610,7 @@ First a few lemmas (easy cases omitted):
     \(\Gamma_1,x:T_2,\Gamma_2 \vdash t \tpsynth T'\) for some \(T' \cong T\).
 
   \end{itemize}
-  Furthermore, the resulting typing derivations derivations have depths no
-  larger than the assumed ones.
+  Furthermore, the resulting typing derivations have depths no larger than the assumed ones.
 \end{lemma}
 \begin{proof}
   By mutual induction on the assumed derivation (specifically, its depth), and
@@ -1690,7 +1721,7 @@ First a few lemmas (easy cases omitted):
   \(\Gamma_1,x_1:T_2,\Gamma_2,x:T_5 \vdash t \tpcheck T_6'\).
   By another use, we have \(\Gamma_1,x_1:T_2,\Gamma_2,x:T_5' \vdash t \tpcheck
   T_6'\) (this is well-founded, because the depth of the typing derivation this
-  second use is  applied to is no greater that the depth of the premise).
+  second use is applied to is no greater that the depth of the premise).
   We also have that the depths of the resulting derivations are no greater than
   the those used to derive the premises, so we conclude using the rule.
 
@@ -1916,8 +1947,8 @@ First a few lemmas (easy cases omitted):
 
 \begin{lemma}
   \label{lem:subst-class}
-  Below, each statement seperately universally quantifies over meta-variables,
-  and it is assumed that typing contexts occuring in assumed derivations are
+  Below, each statement separately universally quantifies over meta-variables,
+  and it is assumed that typing contexts occurring in assumed derivations are
   well-formed.
   \begin{enumerate}
   \item \textbf{Kinds:}
@@ -1965,7 +1996,7 @@ First a few lemmas (easy cases omitted):
   T \tpsynth \kappa\), and the desired result holds by weakening.
   Otherwise, either \((X_1 : \kappa_1) \in \Gamma_1\) and \(X \notin
   \textit{FV}(\kappa_1)\) (which we obtain from the assumption that the typing
-  context is well formed), or else \((X_1 : \kappa_1) \in \Gamma_2\). 
+  context is well-formed), or else \((X_1 : \kappa_1) \in \Gamma_2\). 
   Either way, we have \(\Gamma_1,[T/X]\Gamma_2 \vdash X_1 \tpsynth
   [T/X]\kappa_1\).
 
@@ -2121,7 +2152,7 @@ First a few lemmas (easy cases omitted):
   \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have from
   the IH that the kind of \(T_1''\) must be convertible with
   \(\abs{\Pi}{X}{\kappa_2}{\kappa_1}\)).
-  By transitivity we can conclude \(\kappa_2'' \cong \kappa_2'\).
+  By transitivity, we can conclude \(\kappa_2'' \cong \kappa_2'\).
   By the rule, we have \(\Gamma \vdash T_1'' \cdot T_2 \tpsynth
   [T_2/X]\kappa_1''\), and the synthesized kind is clearly convertible with
   \([T_2/X]\kappa_1\).
@@ -2167,7 +2198,7 @@ First a few lemmas (easy cases omitted):
   By assumption, the first premise, and the context formation rules, we have
   \(\vdash \Gamma,x:T\).
   By the IH, we have \(\Gamma,x:T \vdash \kappa\).
-  Thus we obtain \(\Gamma \vdash \abs{\Pi}{x}{T}{\kappa}\).
+  Thus, we obtain \(\Gamma \vdash \abs{\Pi}{x}{T}{\kappa}\).
 
   \startcase{.2cm}
   \[
@@ -2203,7 +2234,7 @@ First a few lemmas (easy cases omitted):
   So, from the first of these and by context formation \(\vdash \Gamma,x:T'\).
   From the second premise and the \(\chi\) rule, \(\Gamma \vdash \chi\ T\
   \mhyph\ t \tpsynth T\).
-  Finally by Lemma~\ref{lem:subst-class}, \(\Gamma \vdash [t/x]^{T} \kappa\).
+  Finally, by Lemma~\ref{lem:subst-class}, \(\Gamma \vdash [t/x]^{T} \kappa\).
 
   \startcase{.2cm}
   \[
@@ -2271,4 +2302,7 @@ First a few lemmas (easy cases omitted):
 \end{document}
 
 % LocalWords:  nondeterministically Kleene's realizability realizer kinded CDLE
-% LocalWords:  Cedille subcases subcase kinding
+% LocalWords:  Cedille subcases subcase kinding datatypes encodings Agda redex
+% LocalWords:  directionality Kopylov Miquel definitionally untypable Kleene
+% LocalWords:  untyped Nuprl's boolean subexpression intensional decidability
+% LocalWords:  Reducibility definedness reducibility congruential subterm
