@@ -64,4 +64,10 @@ Produces θ (theta), for elimination with a motive (of McBride)
 @item \x
 Produces χ (chi), for changing the form of the expected or computed classifier to a definitionally equivalent one
 
+@item \c
+Produces σ (sigma), for pattern matching on a term
+
+@item \m
+Produces μ (mu), for recursive definitions over an expression
+
 @end table
