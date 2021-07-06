@@ -1131,19 +1131,94 @@ elab-file ei @ (mk-elab-info τ ρ φ ν) fp with trie-contains (snd φ) fp
   rename fp - mn from fst φ for λ mn' φ' →
   mk-elab-info τ ρ (φ' , trie-insert (snd φ) fp (Module mn' ps es')) ν , mn'
 
+-- TODO:
+-- recursively traverse all dependencies
+-- generate dependency link
+-- escape html special characters
+
+print-list-of-strings : 𝕃 string → IO ⊤
+print-list-of-strings [] = putStrLn ""
+print-list-of-strings (hd :: tl) = (putStrLn hd) >> print-list-of-strings tl
+
+open import json
+
+test : filepath → 𝔹
+test a = (general-util._=string_) a a
+
+new-deps : 𝕃 filepath → 𝕃 filepath → 𝕃 filepath
+new-deps ds old = foldr' ds (λ a ds → remove general-util._=string_  a ds) old
+
+-- Basically a BFS. Each time fm is checked for new neighbours. A neighbour should be picked out while the rest be stuffed in store.
+{-# NON_TERMINATING #-}
+get-all-deps-h : toplevel-state → filepath → 𝕃 filepath →  𝕃 filepath →  𝕃 filepath
+get-all-deps-h ts fm result store with new-deps (include-elt.deps $ get-include-elt ts fm) ([ fm ] ++ store ++ result)
+get-all-deps-h ts fm result [] | [] = result
+get-all-deps-h ts fm result [] | (d :: ds) =
+  get-all-deps-h ts d (fm :: result) ds
+get-all-deps-h ts fm result (s :: ss) | [] =
+  get-all-deps-h ts s (fm :: result) ss
+get-all-deps-h ts fm result (s :: ss) | deps@(d :: ds) =
+  get-all-deps-h ts s (fm :: result) (ss ++ deps)
+
+get-all-deps : toplevel-state → filepath → 𝕃 filepath
+get-all-deps ts fm = get-all-deps-h ts fm [] []
+
+t-write-html : include-elt → (fm to : filepath) → IO ⊤
+t-write-html ie fm to =
+  let json-output = json-array (json-object ["source" , (json-string $ include-elt.source ie)]
+                             :: include-elt-spans-to-json ie -- spans
+                             :: json-object ["deps" , (json-array $ map json-string $ include-elt.deps ie)]
+                             :: [])
+  in
+  (readFiniteFile "cedille-template.html")>>=
+  (λ html →
+    let content = [[ html ]]
+                  ⊹⊹ [[ "<script type=\"application/json\" id=\"spans\">" ]]
+                  ⊹⊹ json-to-rope json-output
+                  ⊹⊹ [[ "</script></html>" ]]
+    in
+    writeRopeToFile to content)
+
+t-write-html-all : toplevel-state → (fm to : filepath) → IO ⊤ -- test function
+t-write-html-all ts fm to =
+  let ie = get-include-elt ts fm -- include-elt FOR one file
+      src = include-elt.source ie -- file content
+  in
+ -- What is a suitable path for html template?
+--  putStrLn("dep tries:") >>
+--  print-list-of-strings (map snd deps-trie) >>
+--  putStrLn("dep lists:") >>
+--  print-list-of-strings dep-paths
+  foldr'
+    (createDirectoryIfMissing ff to)
+--    --notes about json output:
+--    --add root path info ?
+    (λ fp io →
+      let ie = get-include-elt ts fp -- change to get-...-if?
+          out = to ^ "/" ^ (takeFileName fp) ^ ".html" -- issue may happen when dir ends with "/"...
+--          json-output = json-array (json-object ["source" , (json-string $ include-elt.source ie)]
+--                                 :: include-elt-spans-to-json ie
+--                                 :: json-object ["deps" , (json-array $ map json-string $ include-elt.deps ie)]
+--                                 :: [])
+      in
+      io >> (t-write-html ie fp out)) -- (writeRopeToFile out $ json-to-rope json-output))
+    (fm :: (get-all-deps ts fm)) -- list of filepath
+
 elab-write-all : elab-info → (to : filepath) → IO ⊤
 elab-write-all ei@(mk-elab-info τ ρ φ ν) to =
   let Γ = toplevel-state.Γ τ
       print = strRun Γ ∘ file-to-string in
   foldr'
     (createDirectoryIfMissing ff to)
-    (uncurry λ fₒ fₛ io →
+    (uncurry λ fₒ fₛ io → -- fₒ : filepath, fₛ : file
        let fₘ = renamectxt-rep (fst φ) fₒ
            fₙ = combineFileNames to (fₘ ^ ".cdle") in
        io >> writeRopeToFile fₙ (print (get-deps ei fₒ fₛ)))
-    (trie-mappings (snd φ))
+    (trie-mappings (snd φ)) -- 𝕃 (filepath × file) @ (trie file)
 
 elab-all : toplevel-state → (from to : filepath) → IO ⊤
 elab-all ts fm to =
-  elab-write-all (fst (elab-file (new-elab-info ts) fm)) to >>
+  putStrLn ("Test-write-html") >>
+  t-write-html-all ts fm to >>
+--  elab-write-all (fst (elab-file (new-elab-info ts) fm)) to >>
   putStrLn ("0")
