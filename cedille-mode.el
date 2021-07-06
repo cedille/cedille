@@ -689,6 +689,22 @@ occurrences, then do so."
             (message "Elaboration error (code %d)" num))))
       (cons (current-buffer) dir2) :header "Elaborating")))
 
+(defun cedille-mode-write-httml(dir)
+  "Generates HTML files for current file, along with its dependencies"
+  (interactive "GHTML generation output: ") ;; hope it is correct...
+  (let ((dir2 (expand-file-name dir)))
+    (se-inf-interactive (cedille-mode-concat-sep "write-html" (buffer-file-name) dir2)
+      (lambda (response extra)
+        (let ((num (string-to-number response)))
+          (if (zerop num)
+              (with-current-buffer (car extra)
+                (with-selected-window (cedille-mode-split-window)
+                  (with-current-buffer (window-buffer)
+                    (message "HTML generation complete")
+                    (find-file (cdr extra)))))
+            (message "Write-HTML error (code %d)" num))))
+      (cons (current-buffer) dir2) :header "Generating HTML file")))
+
 (defun cedille-mode-restart-backend()
   "Restart cedille process"
   (interactive)
@@ -756,6 +772,7 @@ occurrences, then do so."
   (se-navi-define-key mode (kbd "K") #'cedille-mode-restart-backend)
   (se-navi-define-key mode (kbd "h") (make-cedille-mode-info-display-page nil))
   (se-navi-define-key mode (kbd "E") #'cedille-mode-elaborate)
+  (se-navi-define-key mode (kbd "H") #'cedille-mode-write-html)
   (se-navi-define-key mode (kbd "C-h 1") #'cedille-mode-highlight-default)
   (se-navi-define-key mode (kbd "C-h 2") #'cedille-mode-highlight-language-level)
   (se-navi-define-key mode (kbd "C-h 3") #'cedille-mode-highlight-checking-mode)

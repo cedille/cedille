@@ -1130,20 +1130,21 @@ elab-file ei @ (mk-elab-info τ ρ φ ν) fp with trie-contains (snd φ) fp
       τ = record τ { Γ = record (toplevel-state.Γ τ) { ps = ps } } in
   rename fp - mn from fst φ for λ mn' φ' →
   mk-elab-info τ ρ (φ' , trie-insert (snd φ) fp (Module mn' ps es')) ν , mn'
-
+  
 elab-write-all : elab-info → (to : filepath) → IO ⊤
 elab-write-all ei@(mk-elab-info τ ρ φ ν) to =
   let Γ = toplevel-state.Γ τ
       print = strRun Γ ∘ file-to-string in
   foldr'
     (createDirectoryIfMissing ff to)
-    (uncurry λ fₒ fₛ io →
+    (uncurry λ fₒ fₛ io → -- fₒ : filepath, fₛ : file
        let fₘ = renamectxt-rep (fst φ) fₒ
            fₙ = combineFileNames to (fₘ ^ ".cdle") in
-       io >> writeRopeToFile fₙ (print (get-deps ei fₒ fₛ)))
-    (trie-mappings (snd φ))
+       io >> writeRopeToFile fₙ (print (get-deps ei fₒ fₛ))
+          >> (putStrLn "path:") >> (putStrLn fₙ))
+    (trie-mappings (snd φ)) -- 𝕃 (filepath × file) @ (trie file)
 
 elab-all : toplevel-state → (from to : filepath) → IO ⊤
 elab-all ts fm to =
-  elab-write-all (fst (elab-file (new-elab-info ts) fm)) to >>
+--  elab-write-all (fst (elab-file (new-elab-info ts) fm)) to >>
   putStrLn ("0")
