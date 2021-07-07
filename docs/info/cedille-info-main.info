@@ -222,8 +222,8 @@ with some term t’, the notation in Cedille is t -t’.
 
 Finally, one sometimes wishes to give a binding for a more complex
 specificational term for use within an expression.  To facilitate this
-Cedille has notation for erased let-bindings {x : T = t} - t2, where x
-is the bound variable, t1 its definition, and t2 and expression where x
+Cedille has notation for erased let-bindings {x : T = t1} - t2, where x
+is the bound variable, t1 its definition, and t2 an expression where x
 is in scope.  The syntax for ordinary let-bindings is [x : T = t1] - t2
 
 1.2.4 Datatype notations
