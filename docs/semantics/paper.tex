@@ -40,7 +40,8 @@
 \author{Aaron Stump, Chris Jenkins \\
   Computer Science \\
   The University of Iowa \\
-\texttt{aaron-stump@uiowa.edu}}
+  \texttt{aaron-stump@uiowa.edu},
+  \texttt{christopher-jenkins@uiowa.edu}}
 
 \date{}
 
@@ -253,11 +254,13 @@ Figure~\ref{fig:conv}.
       \infer{\vdash \cdot}{}
       & \infer{
         \vdash \Gamma,x:T
-        }{\Gamma \vdash T \tpsynth \star}
+        }{\vdash \Gamma
+          \quad \Gamma \vdash T \tpsynth \star}
       & \infer{
         \vdash \Gamma,X:\kappa
         }{
-        \Gamma \vdash \kappa
+        \vdash \Gamma
+        \quad \Gamma \vdash \kappa
         }
     \end{array}
   \]
