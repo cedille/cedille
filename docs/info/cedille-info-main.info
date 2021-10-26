@@ -1,4 +1,4 @@
-This is cedille-info-main.info, produced by makeinfo version 6.1 from
+This is cedille-info-main.info, produced by makeinfo version 6.5 from
 cedille-info-main.texi.
 
 INFO-DIR-SECTION Programming
@@ -486,7 +486,7 @@ time you enter into Cedille mode.  They all begin with the ’C-i’ prefix.
 7 Other
 *******
 
-‘M-x’
+‘M-c’
      Copy the selected span to the scratch buffer
 
 ‘C-h <int>’
@@ -580,6 +580,12 @@ together with the shortcut to type them in the emacs mode.
 ‘\x’
      Produces χ (chi), for changing the form of the expected or computed
      classifier to a definitionally equivalent one
+
+‘\c’
+     Produces σ (sigma), for pattern matching on a term
+
+‘\m’
+     Produces μ (mu), for recursive definitions over an expression
 
 
 File: cedille-info-main.info,  Node: extra buffers,  Next: options,  Prev: unicode shortcuts,  Up: Top
