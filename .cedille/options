@@ -4,7 +4,8 @@ import-directories
 
 -- write Cedille spans to ./.cedille/file.cede
 use-cede-files
-  = false.
+  = true.
+-- false.
 
 -- compile Cedille source to Racket
 -- currently not supported

@@ -24,6 +24,7 @@ record cedille-args : Set where
     about     : 𝔹
     help      : 𝔹
     do-elab   : maybe filepath
+    do-write-html : maybe filepath
     confirm-read-stdin : 𝔹
 
 default-cedille-args =
@@ -32,6 +33,7 @@ default-cedille-args =
            about = ff ;
            help = ff ;
            do-elab = nothing ;
+           do-write-html  = nothing ;
            confirm-read-stdin = ff}
 
 -- get $HOME/.cedille, creating it if it does not exist
@@ -181,9 +183,8 @@ readOptions (just fp) = readFiniteFile fp >>= λ fc →
 
 showCedilleUsage : IO ⊤
 showCedilleUsage =
-    putStrLn ("Command-line usage: cedille [--e elab-dir | --options options-file | --about ] file-to-check\n"
+    putStrLn ("Command-line usage: cedille [--elab elab-dir |--write-html write-html-dir | --options options-file | --about ] file-to-check\n"
             ^ "With no arguments, read commands from the front-end on stdin.")
-
 
 module main-with-options
   (compileTime : UTC)
@@ -202,6 +203,7 @@ module main-with-options
   open import interactive-cmds options
   open import rkt options
   open import elab-util options
+  open import write-html-util options
   open import communication-util options
   
   logFilePathIO : IO filepath
@@ -521,6 +523,7 @@ module main-with-options
     handleCommands ("check" :: xs) s = checkCommand xs s
     handleCommands ("debug" :: []) s = debugCommand s >>r s
     handleCommands ("elaborate" :: fm :: to :: []) s = elab-all s fm to >>r s
+    handleCommands ("write-html" :: fm :: to :: []) s = write-html-all s fm to >>r s
     handleCommands ("interactive" :: xs) s = interactive-cmd xs s >>r s
     handleCommands ("archive" :: xs) s = archiveCommand xs s
     handleCommands ("br" :: xs) s = putJson interactive-not-br-cmd-msg >>r s
@@ -554,7 +557,7 @@ module main-with-options
   -- function to process command-line arguments
   processArgs : (logFilePath : filepath) → cedille-args → IO ⊤
   -- this is the case for when we are called with a single command-line argument, the name of the file to process
-  processArgs logFilePath (mk-cedille-args _ minput-filename about help do-elab confirm-read-stdin) =
+  processArgs logFilePath (mk-cedille-args _ minput-filename about help do-elab do-write-html confirm-read-stdin) =
     if help then
       showCedilleUsage
     else if about then
@@ -566,7 +569,8 @@ module main-with-options
       (λ input-filename →
         canonicalizePath input-filename >>= λ input-filename' →
         typecheckFile logFilePath input-filename' >>= λ s →
-        whenM do-elab (λ target-dir → elab-all s input-filename' target-dir))
+        whenM do-elab (λ target-dir → elab-all s input-filename' target-dir) >>
+        whenM do-write-html (λ target-dir → write-html-all s input-filename' target-dir))
 
   main' : cedille-args → IO ⊤
   main' args =
@@ -600,6 +604,8 @@ getCedilleArgs = getArgs >>= λ where
     getCedilleArgsH xs (record args { help = tt })
   getCedilleArgsH ("--elab" :: to :: xs) args =
     getCedilleArgsH xs (record args { do-elab = just to})
+  getCedilleArgsH ("--write-html" :: to :: xs) args =
+    getCedilleArgsH xs (record args { do-write-html = just to})
   getCedilleArgsH (x :: []) args =
     -- assume it is a .ced file to check
     return $ record args {file-to-process = just x}
