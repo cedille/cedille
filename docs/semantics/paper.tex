@@ -2302,6 +2302,280 @@ First a few lemmas (easy cases omitted):
   Give to us by the first premise.
 \end{proof}
 
+\section{Refinement types proposal}
+
+The following is a proposal to replace dependent intersections with refinement
+types.
+
+\begin{figure}[h!]
+  \centering
+  \[
+    \begin{array}{c}
+      \begin{array}{cc}
+        \infer{
+        \Gamma \vdash \{ x : T_1\ |\ T_2\} \tpsynth \star
+        }{
+        \Gamma \vdash T_1 \tpsynth \star
+        \quad \Gamma,x : T_1 \vdash T_2 \tpsynth \star
+        }
+        &
+          \infer{
+           \{ x : T_1\ |\ T_2\} \cong^{\text{t}} \{ x : S_1\ |\ S_2\}
+          }{
+           T_1 \cong S_1 \quad T_2 \cong S_2
+          }
+      \\ \\
+        \infer{
+         \Gamma \vdash [ t_1\ |\ t_2] \tpcheck \{ x : T_1\ |\ T_2\}
+        }{
+         \Gamma \vdash t_1 \tpcheck T_1
+         \quad \Gamma \vdash t_2 \tpcheck [t_1/x]T_2
+        }
+        &
+          \infer{
+           \Gamma \vdash \uparrow t \tpsynth T_1
+          }{
+           \Gamma \vdash t \tpsynth \{ x : T_1\ |\ T_2\}
+          }
+      \end{array}
+      \\ \\
+      \infer{
+       \Gamma \vdash \epsilon\ t_1\ -\ y.t_2 \Leftrightarrow T
+      }{
+      \begin{array}{c}
+        \Gamma \vdash t_1 \tpsynth \{ x : T_1\ |\ T_2\}
+        \quad y \notin \mathit{FV}(|t_2|)
+        \\
+        y \notin \mathit{FV}(T)
+        \quad \Gamma, y : T_2d[\uparrow t_1/x] \vdash t_2 \Leftrightarrow T
+      \end{array}
+      }
+      \\ \\
+      \begin{array}{lllllll}
+        |[ t_1\ |\ t_2]| & = & |t_1| &\
+        & |\uparrow t| & = & |t|
+        \\ |\epsilon\ t_1\ -\ y.t_2| & = & |t_2|
+      \end{array}
+      \\ \\
+      \begin{array}{lll}
+        \interp{\{ x : T_1\ |\ T_2 \}}_{\sigma,\rho}
+        & =
+        & \{E_1 \in \interp{T_1}_{\sigma,\rho}\ |\ \exists E_2 \in
+          \interp{T_2}_{\sigma[x \mapsto \choice(E)],\rho}\}
+      \end{array}
+    \end{array}
+  \]
+  \caption{Refinement types}
+  \label{fig:refinement-types}
+\end{figure}
+
+\begin{proof}[Theorem~\ref{thm:snd}]
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash \{ x : T_1\ |\ T_2\} \tpsynth \star
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      \quad \Gamma, x : T_1 \vdash T_2 \tpsynth \star
+    }
+  \]
+
+  The set $\interp{\{x : T_1\ |\ T_2\}}_{\sigma,\rho}$ is explicitly defined to
+be a subset of $\interp{T_1}_{\sigma,\rho}$, which is in $\mathcal{R}$,
+by the IH applied to the first premise.  Since for any
+$A\subseteq\mathcal{L}$, $[A]_{\cbe}$ is in $\mathcal{R}$, to show that
+$\interp{\{x : T_1\ |\ T_2\}}_{\sigma,\rho}$ is also in $\mathcal{R}$ it suffices
+to show definedness of $\interp{T_2}_{\sigma[x\mapsto \choice(E)],\rho}\}$
+(which is used in the predicate picking out the
+particular subset of $\interp{T_1}_{\sigma,\rho}$), for
+$E\in\interp{T_1}_{\sigma,\rho}$.  For such $E$, $\choice(E)$ is defined
+(since $\interp{T_1}_{\sigma,\rho}\in\mathcal{R}$ and hence $E\in\interp{T_1}_{\sigma,\rho}$ is nonempty)
+and in $E$,
+so $\sigma[x\mapsto\choice(E)]\in\interp{\Gamma,x:T_1}$.
+So by the IH for the second premise,
+$\interp{T_2}_{\sigma[x\mapsto\choice(E),\rho]}$ is defined.
+
+\startcase{.2cm}
+\[
+  \infer{\Gamma\vdash [ t_1\ |\ t_2 ] \tpcheck \{ x : T_1\ |\ T_2\}}
+  {
+    \Gamma \vdash t_1 \tpcheck T_1
+    \quad \Gamma \vdash t_2 \tpcheck [t/x]^{T_1}\ T_2
+  }
+\]
+By the IH, we have $[\sigma |t_1|]_{\cbe}\in\interp{T_1}_{\sigma,\rho}$ and
+$[\sigma |t_2|]_{\cbe}\in\interp{[t_1/x]T_2}_{\sigma,\rho}$.
+By Lemma~\ref{lem:termsubstinterp}, the latter is equivalent to
+$[\sigma |t_1|]_{\cbe}\in\interp{T_2}_{\sigma[x\mapsto\choice([\sigma
+  |t_1|]_{\cbe}),\rho}$.
+Thus, we exhibit \([\sigma |t|]_{\cbe}\) for the existentially quantified
+\(E_2\) in the definition of \(\interp{\{x : T_1\ |\ T_2\}}_{\sigma,\rho}\).
+So, we see that \([\sigma|t_1|] = [\sigma|[ t_1\ |\ t_2]|] \in \interp{\{x :
+  T_1\ |\ T_2\}}_{\sigma,\rho}\), as desired.
+
+\startcase{.2cm}
+\[
+  \infer{\Gamma\vdash \uparrow t \tpsynth T}{\Gamma\vdash t \tpsynth \{ x : T_1\
+    |\ T_2\}}
+\]
+The desired conclusion follows easily from the IH and the semantics of
+refinement types.
+
+\startcase{.2cm}
+\[
+  \infer{
+    \Gamma \vdash \epsilon\ t_1\ -\ y.t_2 \Leftrightarrow T
+  }{
+    \begin{array}{c}
+      \Gamma \vdash t_1 \tpsynth \{ x : T_1\ |\ T_2\}
+      \quad y \notin \mathit{FV}(|t_2|)
+      \\
+      y \notin \mathit{FV}(T)
+      \quad \Gamma, y : [\uparrow t_1/x]T_2 \vdash t_2 \Leftrightarrow T
+    \end{array}
+  }
+\]
+
+By the IH on the first premise, \([\sigma|t_1|] \in \interp{\{x : T_1\ |\
+  T_2\}}\).
+This means that there exists \(E_2 \in \interp{T_2}_{\sigma[x \mapsto
+  \choice([\sigma|t_1|])]}\).
+By Lemma~\ref{lem:termsubstinterp}, \(E_2 \in \interp{[\uparrow
+  t_1/x]T_2}_{\sigma,\rho}\).
+Thus, \((\sigma \uplus [y \mapsto \choice(E_2),\rho]) \in \interp{\Gamma,y :
+  [\uparrow t_1/x]T_2}\), and by the IH on the fourth premise \(\sigma[y \mapsto
+\choice(E_2)]|t_2| \in \interp{T}_{\sigma[y \mapsto \choice(E_2)],\rho}\).
+Since \(y \notin \mathit{FV}(|t_2|)\) and \(y \notin \mathit{FV}(T)\), we have
+\(\sigma|t_2| = \sigma|\epsilon\ t_1\ -\ y.t_2| \in \interp{T}_{\sigma,\rho}\)
+as desired.
+
+\end{proof}
+
+
+\subsection{Dependent intersections}
+
+\begin{figure}[h]
+  \centering
+  \[
+    \begin{array}{lll}
+      \abs{\iota}{x}{T_1}{T_2}
+      & =
+      & \{ x : T_1\ |\ \{y : T_2\ |\ \{y \simeq x \}\} \}
+      \\ {[ t_1 , t_2 ]}
+      & =
+      & {[ t_1\ |\ [t_2\ |\ \beta]]}
+      % & =
+      % & [ t_1\ |\ [ t_2\ |\ \beta ]]
+      \\ t.1
+      & =
+      & \uparrow t
+      \\ t.2
+      & =
+      & \epsilon\ t\ -\ y. \epsilon\ y\ - z. \varphi\ z\ -\ (\uparrow y) \{t\}
+    \end{array}
+  \]
+  \caption{Dependent intersections}
+  \label{fig:refinement-iota}
+\end{figure}
+
+Figure~\ref{fig:refinement-iota} shows an encoding of dependent intersections
+using refinement types.
+Abusing notation, let \(\mathcal{E}\) be the natural extension of these rules to
+types, kinds, contexts, and terms.
+
+\begin{theorem}
+  \label{thm:iota-as-refinement}
+  \ \\
+  \begin{itemize}
+    
+  \item Let \(u\) be an untyped \(\lambda\)-calculus term.
+    If \(|t| = u\) then \(|\mathcal{E}(t)| = u\)
+
+  \item \(\mathcal{E}([t/x]T) = [\mathcal{E}(t)/x]\mathcal{E}(T)\)
+  \item 
+    \begin{enumerate}
+    \item If \(\vdash \Gamma\) then \(\vdash \mathcal{E}(\Gamma)\)
+    \item If \(\Gamma \vdash \kappa\) then \(\mathcal{E}(\Gamma) \vdash \mathcal{E}(\kappa)\)
+    \item If \(\Gamma \vdash T \tpsynth \kappa\) then \(\mathcal{E}(\Gamma) \vdash
+      \mathcal{E}(T) \tpsynth \mathcal{E}(\kappa)\)
+    \item If \(\Gamma \vdash t \Leftrightarrow T\) then \(\mathcal{E}(\Gamma) \vdash
+      \mathcal{E}(t) \Leftrightarrow \mathcal{E}(T)\)
+    \end{enumerate}
+  \end{itemize}
+\end{theorem}
+
+\begin{proof}
+  We show a few interesting cases.
+
+  \startcase{.2cm}
+  \[
+    \mathit{If}\ \Gamma \vdash [ t_1 , t_2 ] \tpcheck \abs{\iota}{x}{T_1}{T_2}\ 
+    \mathit{then}\ \mathcal{E}(\Gamma) \vdash \mathcal{E}([ t_1 , t_2]) \tpcheck
+    \mathcal{E}(\abs{\iota}{x}{T_1}{T_2})
+  \]
+
+  We have \(|t_1| =_{\beta\eta} |t_2|\) from the fourth premise of the assumed
+  derivation.
+  By the erasure lemma, this means \(|\mathcal{E}(t_1)| =_{\beta\eta}
+  |\mathcal{E}(t_2)|\).
+  Appeal to the IH on the two typing premises of the derivation to obtain
+  \(\mathcal{D}_1 :: \mathcal{E}(\Gamma) \vdash \mathcal{E}(t_1) \tpcheck
+  \mathcal{E}(T_1)\) and
+  \(\mathcal{D}_2 :: \mathcal{E}(\Gamma) \vdash \mathcal{E}(t_2) \tpcheck
+  \mathcal{E}([t_1/x]T_2)\).
+  By the substitution lemma, this means \(\mathcal{E}(t_2)\) checks against type
+  \([\mathcal{E}(t_1)/x]\mathcal{E}(T_2)\).
+  We build the following derivation.
+  \[
+    \infer{
+      \mathcal{E}(\Gamma) \vdash [ \mathcal{E}(t_1)\ |\ [\mathcal{E}(t_2)\ |\
+      \beta ]] \tpcheck \{ x : \mathcal{E}(T_1)\ |\ \{y : \mathcal{E}(T_2)\ |\
+      \{y \simeq x\}\}\}
+    }{
+      \mathcal{D}_1 :: \mathcal{E}(\Gamma) \vdash \mathcal{E}(t_1) \tpcheck
+      \mathcal{E}(T_1)
+      \quad
+      \infer{
+        \mathcal{E}(\Gamma) \vdash [ t_2\ |\ \beta ] \tpcheck
+        \{ y : T_2\ |\ \{y \simeq x\}\}
+      }{
+        \mathcal{D}_2 :: \mathcal{E}(\Gamma) \vdash \mathcal{E}(T_2) \tpcheck
+        [\mathcal{E}(t_1)/x]\mathcal{E}(T_2)
+        \quad
+        \infer{
+          \mathcal{E}(\Gamma) \vdash \beta \tpcheck \{\mathcal{E}(t_1) \simeq \mathcal{E}(t_2)\}
+        }{
+          |\mathcal{E}(t_1)| = |\mathcal{E}(t_2)|
+        }
+      }
+    }
+  \]
+  
+  
+  \startcase{.2cm}
+  \[
+    \mathit{If}\ \Gamma \vdash t.1 \tpsynth T\ \mathit{then}\ \mathcal{E}(\Gamma) \vdash
+    \mathcal{E}(t.1) \tpsynth \mathcal{E}(T)
+  \]
+
+  Appeal to the IH on the premise of
+  the assumed typing derivation to obtain \(\mathcal{D} :: \mathcal{E}(\Gamma) \vdash
+  \mathcal{E}(t) \tpsynth \mathcal{E}(\abs{\iota}{x}{T_1}{T_2})\).
+  By the definition of \(\mathcal{E}\) we therefore have that \(\mathcal{E}(t)\)
+  synthesizes type \(\{ x : \mathcal{E}(T_1)\ |\ \{ y : \mathcal{E}(T_2)\ |\ \{
+  y \simeq x\}\}\}\).
+  The goal is to derive \(\mathcal{E}(\Gamma) \vdash \mathcal{E}(t.1) \tpsynth
+  \mathcal{E}(T_1)\).
+  \[
+    \infer{
+      \mathcal{E}(\Gamma) \vdash\ \uparrow \mathcal{E}(t) \tpsynth \mathcal{E}(T_1)
+    }{
+      \mathcal{D} :: \mathcal{E}(\Gamma) \vdash t \tpsynth
+      \{ x : \mathcal{E}(T_1)\ |\ \{ y : \mathcal{E}(T_2)\ |\ \{ y \simeq x \}\}\}
+    }
+  \]
+\end{proof}
+
 \end{document}
 
 % LocalWords:  nondeterministically Kleene's realizability realizer kinded CDLE
