@@ -5,13 +5,13 @@ Dependant typed programming language (called Cedille) parser developed in Haskel
 ## Project details
 
 ### Source code:
- * Lexer  [src/CedilleLexer.x](src/CedilleLexer.x)
- * Parser [src/CedilleParser.y](src/CedilleParser.y)
- * Comments Lexer  [src/CedilleCommentsLexer.x](src/CedilleCommentsLexer.x)
+ * Lexer  [CedilleLexer.x](src/CedilleLexer.x)
+ * Parser [CedilleParser.y](src/CedilleParser.y)
+ * Comments Lexer  [CedilleCommentsLexer.x](src/CedilleCommentsLexer.x)
 
 Some working examples tested in [test](test) project sub folder.
 
-Haskell parser exported to Agda. Haskell AST datatype ([src/CedilleTypes.hs](src/CedilleTypes.agda)) export to Agda AST datatype ([src/cedille-types.agda](src/cedille-types.agda)), and minimal example calling the Haskell's parser from Agda ([src/test.agda](src/test.agda)).
+Haskell parser exported to Agda. Haskell AST datatype ([CedilleTypes.hs](../src/CedilleTypes.agda)) export to Agda AST datatype ([cedille-types.agda](../src/cedille-types.agda)), and minimal example calling the Haskell's parser from Agda ([src/test.agda](src/test.agda)).
 
 ### Makefile/Cabal commands:
  * Build: `cabal build`.
