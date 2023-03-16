@@ -30,6 +30,7 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{observation}[theorem]{Observation}
+\newtheorem{proposition}[theorem]{Proposition}
 
 \bibliographystyle{plain}
 
@@ -37,11 +38,11 @@
 
 \title{Syntax and Semantics of Cedille}
 
-\author{Aaron Stump, Chris Jenkins \\
+\author{Aaron Stump, Christa Jenkins \\
   Computer Science \\
   The University of Iowa \\
   \texttt{aaron-stump@uiowa.edu},
-  \texttt{christopher-jenkins@uiowa.edu}}
+  \texttt{christa-jenkins@uiowa.edu}}
 
 \date{}
 
@@ -57,7 +58,8 @@ surprise) could be derived~\cite{stump18}. We have also omitted
 \emph{lifting} -- a technique for large eliminations with lambda
 encodings -- in this document's version of CDLE.  Some uses of lifting
 can be simulated other ways within the system, though the limits of
-this are still under investigation.  We also include a construct
+this are still under investigation (see
+\cite{JMS21_Simulating-Large-Elims-Cedille}).  We also include a construct 
 $\delta$, for deriving a contradiction from a proof that
 lambda-encoded true equals lambda-encoded false.  This also
 compensates somewhat for the lack of lifting.
@@ -124,17 +126,20 @@ In typing rules, when the type of an introduction form is checked or the type of
 elimination form is synthesized, we use call-by-name normalization, written
 \(\leadstoc\) and \(\leadstocs\) for the reflexive transitive closure, to put
 types in weak head normal form, revealing type constructors.
+Note that with \(\leadsto\) we do not reduce under binders
+(\(\lambda\),\(\Pi\),\(\forall\)) or reduce terms.
 We abbreviate the conjunction ``term \(t\) synthesizes some type, and that type
 call-by-name reduces to another type'' with the symbol \(\tpsynthleads\),
 defined formally at the top of Figure~\ref{fig:tp}.
 When a redex (reducible expression) occurs such that the argument to a type is a
 term, such as \((\abs{\lambda}{x}{T_1}{T_2})\ t_1\), the reduction uses
-substitution with annotations: \([t_1/x]^{T_1}\ T_2\).
+substitution with annotations: \(T_2[t_1/x]^{T_1}\).
 
 Call-by-name reduction is \emph{not} what underpins the
 equivalence relation \(\cong\) for types and kinds, which is full
 \(\beta\)-equivalence (for types) and \(\beta\eta\)-equivalence (for terms),
 both of which are modulo erasure of annotations in terms.
+
 The erasure operation is defined in Figure~\ref{fig:eraser}, and is essentially
 the \emph{extraction} function for the Implicit Calculus of Constructions given
 by~\cite{BB08_ICC-as-a-Programming-Language} adapted to CDLE.
@@ -169,8 +174,8 @@ Figure~\ref{fig:conv}.
     \infer{\Gamma\vdash\abs{\Pi}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} \\ \\
     \infer{\Gamma\vdash\abs{\lambda}{x}{T}{T'} \tpsynth \abs{\Pi}{x}{T}{\kappa}}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T'\tpsynth\kappa} &
     \infer{\Gamma\vdash\abs{\lambda}{X}{\kappa}{T'} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa'}}{\Gamma \vdash \kappa & \Gamma,X:\kappa\vdash T'\tpsynth\kappa'} \\ \\
-    \infer{\Gamma\vdash T\ t \tpsynth [t/x]^{T'}\kappa}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
-    \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'} \\ \\
+    \infer{\Gamma\vdash T\ t \tpsynth \kappa[t/x]^{T'}}{\Gamma\vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa} & \Gamma\vdash t \tpcheck T'} &
+    \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth \kappa_1[T_2/X]}{\Gamma\vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth \kappa_2' & \kappa_2 \cong \kappa_2'} \\ \\
     \infer{\Gamma\vdash\abs{\iota}{x}{T}{T'} \tpsynth \star}{\Gamma \vdash T \tpsynth \star & \Gamma,x:T\vdash T' \tpsynth \star} &
     \infer{\Gamma\vdash \{ t \simeq t' \} \tpsynth \star}{\textit{FV}(t\ t')\subseteq\textit{dom}(\Gamma)}
   \end{array}
@@ -291,6 +296,149 @@ Figure~\ref{fig:conv}.
   \caption{Erasure for annotated terms}
   \label{fig:eraser}
 \end{figure}  
+
+\begin{figure}
+  \[
+    \begin{array}{c}
+      \fbox{\(T \rightsquigarrow T'\)}
+      \quad \fbox{\(\kappa \rightsquigarrow \kappa'\)}
+      \\ \\
+      \begin{array}{cc}
+        \infer{
+         (\abs{\lambda}{x}{T_1}{T_2})\ t
+         \rightsquigarrow
+         T_2 [t/x]^{T_1}
+        }{}
+        &
+          \infer{
+           (\abs{\lambda}{X}{\kappa}{T})\ \cdot T'
+           \rightsquigarrow
+           T [T'/X]
+          }{}
+        \\ \\
+        \infer{
+         T_1\ t
+         \rightsquigarrow
+         T_1'\ t
+        }{
+         T_1 \rightsquigarrow T_1'
+        }
+        \\ \\
+          \infer{
+           T_1 \cdot T_2
+           \rightsquigarrow
+           T_1' \cdot T_2
+          }{
+           T_1 \rightsquigarrow T_1'
+          }
+        & 
+        \infer{
+         T_1 \cdot T_2
+         \rightsquigarrow T_1 \cdot T_2'
+        }{
+         T_2 \rightsquigarrow T_2'
+        }
+        \\ \\
+        \infer{
+         \Gamma \vdash \abs{\lambda}{x}{T_1}{T_2} \leadsto \abs{\lambda}{x}{T_1'}{T_2}
+        }{
+         T_1 \leadsto T_1'
+        }
+        &
+        \infer{
+         \abs{\lambda}{x}{T_1}{T_2}
+         \rightsquigarrow
+         \abs{\lambda}{x}{T_1}{T_2'}
+        }{
+         T_2 \rightsquigarrow T_2'
+        }
+        \\ \\
+        \infer{
+         \abs{\lambda}{X}{\kappa}{T}
+         \leadsto \abs{\lambda}{X}{\kappa'}{T}
+        }{
+         \kappa \leadsto \kappa'
+        }
+        &
+        \infer{
+         \abs{\lambda}{X}{\kappa}{T}
+         \rightsquigarrow
+         \abs{\lambda}{X}{\kappa}{T'}
+        }{
+         T \rightsquigarrow T'
+        }
+        \\ \\
+          \infer{
+           \abs{\mathcal{Q}}{x}{T_1}{T_2}
+           \rightsquigarrow
+           \abs{\mathcal{Q}}{x}{T_1'}{T_2}
+          }{
+           T_1 \rightsquigarrow T_1'
+           \quad \mathcal{Q} \in \{\Pi,\forall,\iota\}
+          }
+        &
+        \infer{
+         \abs{\mathcal{Q}}{x}{T_1}{T_2}
+         \rightsquigarrow
+         \abs{\mathcal{Q}}{x}{T_1}{T_2'}
+        }{
+         T_2 \rightsquigarrow T_2'
+         \quad \mathcal{Q} \in \{\Pi,\forall,\iota\}
+        }
+        \\ \\
+          \infer{
+           \abs{\forall}{X}{\kappa}{T}
+           \rightsquigarrow
+           \abs{\forall}{X}{\kappa'}{T}
+          }{
+           \kappa \rightsquigarrow \kappa'
+          }
+        & 
+        \infer{
+         \abs{\forall}{X}{\kappa}{T}
+         \rightsquigarrow
+         \abs{\forall}{X}{\kappa}{T'}
+        }{
+         T \rightsquigarrow T'
+        }
+        \\ \\ \\
+        \infer{
+         \abs{\Pi}{x}{T}{\kappa}
+         \rightsquigarrow
+         \abs{\Pi}{x}{T'}{\kappa}
+        }{
+         T \rightsquigarrow T'
+        }
+        &
+          \infer{
+           \abs{\Pi}{x}{T}{\kappa}
+           \rightsquigarrow
+           \abs{\Pi}{x}{T}{\kappa'}
+          }{
+           \kappa \rightsquigarrow \kappa'
+          }
+        \\
+        \infer{
+         \abs{\Pi}{X}{\kappa_1}{\kappa_2}
+         \rightsquigarrow
+         \abs{\Pi}{X}{\kappa_1'}{\kappa_2}
+        }{
+         \kappa_1 \rightsquigarrow \kappa_1'
+        }
+        &
+          \infer{
+           \abs{\Pi}{X}{\kappa_1}{\kappa_2}
+           \rightsquigarrow
+           \abs{\Pi}{X}{\kappa_1}{\kappa_2'}
+          }{
+           \kappa_2 \rightsquigarrow \kappa_2'
+          }
+      \end{array}
+    \end{array}
+  \]
+  \caption{Term-free reduction of types and kinds}
+  \label{fig:tp-reduce}
+\end{figure}
 
 \begin{figure}
   \[
@@ -644,6 +792,19 @@ Type checking \((\Gamma \vdash t \tpcheck T)\) is not covered in
 Theorem~\ref{thm:judge-valid}, since the convention for a bidirectional system
 is that there \(T\) is already \emph{assumed} to have type \(\star\) under a
 typing context.
+
+Lack of normalization for terms in general notwithstanding, it is still
+important to confirm that the process of reducing types to weak head normal form
+is itself terminating.
+\begin{theorem}[Normalization of types under weak head normal form reduction]
+  \label{thm:type-norm}
+  \
+  \begin{enumerate}
+  \item If \(\Gamma \vdash \kappa\) then there exists \(\kappa'\) such that
+    \(\kappa \leadsto^* \kappa' \nleadsto\)
+  \end{enumerate} If \(\Gamma \vdash T : \kappa\) then there exists \(T'\) such
+  that \(T \leadsto^* T' \nleadsto\).
+\end{theorem}
 
 \begin{figure}
 \[
@@ -2302,6 +2463,1071 @@ First a few lemmas (easy cases omitted):
   Give to us by the first premise.
 \end{proof}
 
+\section{Proof of Theorem~\ref{thm:type-norm}}
+The proof proceeds by translation of the type language into a bespoke simply
+typed lambda calculus which preserves, almost on-the-nose, the computation steps of
+interest.
+The typing rules are given in Figure~\ref{fig:bespoke-stlc}, which are to be
+taken as implicitly defining the grammar, though note that term variables may be
+both upper and lowercase.
+The calculus has two base types: the unital \(\mathit{Top}\) with constructor
+\(\mathit{top}\), and \(\mathit{\star}\) with constructor \(\mathit{con}\).
+It also has two type constructors: the standard arrow \(\to\) for function types
+and Cartesian products with \(\times\).
+The reduction rules are standard, and so it is clear that this calculus enjoys
+strong normalization and subject reduction.
+
+\begin{figure}
+  \[
+    \begin{array}{ccc}
+      \infer{
+       \Gamma \vdash X : \tau
+      }{
+       (X\!:\!\tau) \in \Gamma
+      }
+      &
+        \infer{
+         \Gamma \vdash \mathit{top} : \mathit{Top}
+        }{}
+      &
+        \infer{
+         \Gamma \vdash \mathit{con}(x\!:\!\tau,t_1,t_2) : \star
+        }{
+         \Gamma \vdash t_1 : \tau_1
+         \quad \Gamma,x\!:\!\tau \vdash t_2 : \tau_2
+        }
+      \\ \\
+      \infer{
+       \Gamma \vdash \abs{\lambda}{x}{\tau_1}{t} : \tau_1 \to \tau_2
+      }{
+       \Gamma, x\!:\!\tau_1 \vdash t : \tau_2
+      }
+      & &
+        \infer{
+         \Gamma \vdash t_1\ t_2 : \tau_2
+        }{
+         \Gamma \vdash t_1 : \tau_1 \to \tau_2
+         \quad \Gamma \vdash t_2 : \tau_1
+        }
+      \\ \\
+      \infer{
+       \Gamma \vdash (t_1,t_2) : \tau_1 \times \tau_2
+      }{
+       \Gamma \vdash t_1 : \tau_1
+       \quad \Gamma \vdash t_2 : \tau_2
+      }
+      & &
+        \infer{
+         \Gamma \vdash \mathit{proj}_i\ t : \tau_i
+        }{
+         i \in \{1,2\}
+         \quad \Gamma \vdash t : \tau_1 \times \tau_2
+        }
+    \end{array}
+  \]
+  \caption{Bespoke STLC: typing}
+  \label{fig:bespoke-stlc}
+\end{figure}
+
+The translation of CDLE's kind and type language to this calculus is shown in
+Figure~\ref{fig:bespoke-trans}, and is inspired by the translation of CC to
+System F\(_\omega\) by Geuvers and
+Nederhof~\cite{GN91_Modular-Proof-of-Strong-Normalization-CC}.
+Since reduction can also occur in kinds, we need two translations: one
+into the a type of this calculus with \(\interp{-}_{\text{K}}\), and one into
+the language of terms with \(\interp{-}\).
+For the translation of CDLE kinds into types of the calculus, \(\Pi\)-kinds are
+mapped to arrows, with quantification over terms translating to a domain of
+\(\mathit{Top}\); for the translation of kinds into terms, we use the
+constructor \(\mathit{con}\), translating the classifier of the bound variable
+as both a type and a term of the calculus.
+
+In types, type variables are preserved, lambda abstractions are translated to
+lambda abstractions, where we introduce an additional redex to model reductions
+in annotations on the bound variable and where again term parameters of any type
+become parameters of type \(\mathit{Top}\), applications are translated to
+applications where term arguments are replaced by the constant \(\mathit{top}\).
+All other type constructs are translated to expressions involving
+\(\mathit{con}\), where again the classifier ascribed to the quantified term (if
+applicable) is translated as both a type and a term of the calculus.
+Contexts are translated in the obvious way.
+
+\begin{figure}
+  \[
+    \begin{array}{lcl}
+      \interp{\star}_{\text{K}}
+      & = 
+      & \star
+      \\ \interp{\abs{\Pi}{x}{T}{\kappa}}_{\text{K}}
+      & =
+      & \mathit{Top} \to \interp{\kappa}_{\text{K}}
+      \\ \interp{\abs{\Pi}{X}{\kappa_1}{\kappa_2}}_{\text{K}}
+      & =
+      & \interp{\kappa_1}_{\text{K}} \to \interp{\kappa_2}_{\text{K}}
+      \\ \\
+      \interp{\star}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\mathit{top},\mathit{top})
+      \\ \interp{\abs{\Pi}{x}{T}{\kappa}}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T},\interp{\kappa})
+      \\ \interp{\abs{\Pi}{X}{\kappa_1}{\kappa_2}}
+      & =
+      & \mathit{con}(X\!:\!\interp{\kappa_1}_{\text{K}}, \interp{\kappa_1},\interp{\kappa_2})
+      \\ \\
+      \interp{X}
+      & =
+      & X
+      \\ \interp{\abs{\forall}{X}{\kappa}{T}}
+      & =
+      & \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T})
+      \\ \interp{\abs{\forall}{x}{T_1}{T_2}}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1},\interp{T_2})
+      \\ \interp{\abs{\Pi}{x}{T_1}{T_2}}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1},\interp{T_2})
+      \\ \interp{\abs{\iota}{x}{T_1}{T_2}}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1},\interp{T_2})
+      \\ \interp{\{ t_1 \simeq t_2 \}}
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\mathit{top},\mathit{top})
+      \\ \interp{\abs{\lambda}{x}{T_1}{T_2}}
+      & =
+      & \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2})}
+      \\ \interp{\abs{\lambda}{X}{\kappa}{T}}
+      & =
+      & \abs{\lambda}{X}{\interp{\kappa}_{\text{K}}}{\mathit{proj_2}\ (\interp{\kappa},\interp{T})}
+      \\ \interp{T\ t}
+      & =
+      & \interp{T}\ \mathit{top}
+      \\ \interp{T_1 \cdot T_2}
+      & =
+      & \interp{T_1}\ \interp{T_2}
+      \\ \\
+      \interp{\cdot}
+      & =
+      & \cdot
+      \\ \interp{\Gamma,X\!:\!\kappa}
+      & =
+      & \interp{\Gamma},X\!:\!\interp{\kappa}_{\text{K}}
+      \\ \interp{\Gamma,x\!:\!T}
+      & =
+      & \interp{\Gamma},x\!:\!\mathit{Top}
+    \end{array}
+  \]
+  \caption{Translation of kinds, types, and contexts}
+  \label{fig:bespoke-trans}
+\end{figure}
+
+Straightaway, we see that, when translated as types, all CDLE kinds (well-formed
+or not) are translated to well-formed types of this calculus, and
+well-formedness of contexts is preserved by this translation.
+It is also not hard to see that convertible kinds are translated to equal types,
+and that substitution in kinds is a no-op.
+\begin{proposition}
+  \label{thm:stlc-kinds}
+  \ \\
+  \begin{enumerate}
+  \item \(\interp{\kappa}_{\text{K}}\ \mathit{wf}\) for all \(\kappa\)
+    
+  \item If \(\vdash \Gamma\) then \(\mathit{DV}(\Gamma) =
+    \mathit{DV}(\interp{\Gamma})\) and for all \((X\!:\!\kappa) \in \Gamma\),
+    \((X\!:\!\interp{\kappa}) \in \interp{\Gamma}\)
+  \item If \(\kappa_1 \cong \kappa_2\) then \(\interp{\kappa_1}_{\text{K}} = \interp{\kappa_2}_{\text{K}}\)
+  \item \(\interp{\kappa[T/X]}_{\text{K}} = \interp{\kappa}_{\text{K}} = \interp{\kappa}_{\text{K}}
+    [\interp{T}/X]\)
+  \item \(\interp{\kappa[t/x]}_{\text{K}} = \interp{\kappa}_{\text{K}} = \interp{\kappa}_{\text{K}}[\mathit{top}/x]\)
+  \end{enumerate}
+\end{proposition}
+\begin{proof}
+  Each is provable by a simple inductive argument.
+\end{proof}
+
+We can also confirm that substitution is homomorphic for the translation.
+\begin{lemma}
+  \label{thm:stlc-subst-type}
+  For all \(T\),\(T'\),\(\kappa\), and \(X\):
+  \begin{enumerate}
+  \item  \(\interp{T[T'/X]} = \interp{T}[\interp{T'}/X]\)
+    
+  \item \(\interp{\kappa[T'/X] = \interp{\kappa}[\interp{T'}/X]}\)
+  \end{enumerate}
+
+\end{lemma}
+\begin{proof}
+  By mutual induction. Proceed by cases of \(T\) and \(\kappa\).
+  
+  \startcase{.2cm} \(\kappa = \star\). Immediate.
+
+  \startcase{.2cm} \(\kappa = \abs{\Pi}{x}{T}{\kappa'}\).
+  Calculate
+  \[
+    \begin{array}{lclr}
+      \interp{\kappa[T'/X]}
+      & =
+      & \interp{(\abs{\Pi}{x}{T}{\kappa'})[T'/X]}
+      &
+      \\
+      & =
+      & \interp{\abs{\Pi}{x}{T[T'/X]}{\kappa'[T'/X]}}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top}, \interp{T[T'/X]},
+        \interp{\kappa'[T'/X]})
+      & \text{def.\ translation}
+      \\
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T}[\interp{T'}/X],\interp{\kappa'}[\interp{T'}/X])
+      & \text{IH}
+      \\
+      & =
+      &
+        \mathit{con}(x\!:\!\mathit{Top},\interp{T},\interp{\kappa'})[\interp{T'}/X]
+      & \text{def.\ subst}
+      \\
+      & =
+      & \interp{\abs{\Pi}{x}{T}{\kappa'}}[\interp{T'}/X]
+      & \text{def.\ translation}
+      \\
+      &
+      &
+      & \qed
+    \end{array}
+  \]
+
+  \startcase{.2cm} \(\kappa = \abs{\Pi}{Y}{\kappa_1}{\kappa_2}\).
+  Calculate
+  \[
+    \begin{array}{lclr}
+      \interp{\kappa[T'/X]}
+      & =
+      & \interp{(\abs{\Pi}{Y}{\kappa_1}{\kappa_2})[T'/X]}
+      &
+      \\
+      & =
+      & \interp{\abs{\Pi}{Y}{\kappa_1[T'/X]}{\kappa_2[T'/X]}}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa_1[T'/X]}_{\text{K}}, \interp{\kappa_1[T'/X]},
+        \interp{\kappa_2[T'/X]})
+      & \text{def.\ translation}
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa_1}_{\text{K}}, \interp{\kappa_1[T'/X]},
+        \interp{\kappa_2[T'/X]})
+      & \text{Proposition~\ref{thm:stlc-kinds}(4)}        
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa_1}_{\text{K}}, \interp{\kappa_1}[\interp{T'}/X],
+        \interp{\kappa_2}[\interp{T'}/X])
+      & \text{IH}
+      \\
+      & =
+      &
+        \mathit{con}(Y\!:\!\interp{\kappa_1}_{\text{K}},\interp{\kappa_1},\interp{\kappa_2})[\interp{T'}/X]
+      & \text{def.\ subst}
+      \\
+      & =
+      & \interp{\abs{\Pi}{Y}{\kappa_1}{\kappa_2}}[\interp{T'}/X]
+      & \text{def.\ translation}
+      \\
+      &
+      &
+      & \qed
+    \end{array}
+  \]
+  
+  \startcase{.2cm} \(T = X\). Immediate.
+
+  \startcase{.2cm} \(T = Y\) with \(Y \neq X\). Immediate.
+
+  \startcase{.2cm} \(T = \abs{\forall}{Y}{\kappa}{T''}\).
+  Calculate
+  \[
+    \begin{array}{lclr}
+      \interp{T[T'/X]}
+      & =
+      & \interp{(\abs{\forall}{Y}{\kappa}{T''})[T'/X]}
+      &
+      \\
+      & =
+      & \interp{\abs{\forall}{Y}{\kappa[T'/X]}{T''[T'/X]}}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa[T'/X]}_{\text{K}},\interp{\kappa[T'/X]},\interp{T''[T'/X]})
+      & \text{def.\ translation}
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa[T'/X]},\interp{T''[T'/X]})
+      & \text{Proposition~\ref{thm:stlc-kinds}(4)}
+      \\
+      & =
+      & \mathit{con}(Y\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa}[\interp{T'}/X],\interp{T''}[\interp{T'}/X])
+      & \text{IH}
+      \\
+      & =
+      &
+        \mathit{con}(Y\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T''})[\interp{T'}/X]
+      & \text{def.\ subst}
+      \\
+      & =
+      & \interp{\abs{\forall}{Y}{\kappa}{T''}}[\interp{T'}/X]
+      & \text{def.\ translation}
+      \\
+      &
+      &
+      & \qed
+    \end{array}
+  \]
+
+  \startcase{.2cm} \(T = \abs{\forall}{x}{T_1}{T_2}\).
+  Calculate
+  \[
+    \begin{array}{lclr}
+      \interp{T[T'/X]}
+      & =
+      & \interp{(\abs{\forall}{x}{T_1}{T_2})[T'/X]}
+      &
+      \\
+      & =
+      & \interp{\abs{\forall}{x}{T_1[T'/X]}{T_2[T'/X]}}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1[T'/X]},\interp{T_2[T'/X]})
+      & \text{def.\ translation}
+      \\
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1}[\interp{T'}/X],\interp{T_2}[\interp{T'}/X])
+      & \text{IH}
+      \\
+      & =
+      & \mathit{con}(x\!:\!\mathit{Top},\interp{T_1},\interp{T_2})[\interp{T'}/X]
+      & \text{def.\ subst}
+      \\
+      & =
+      & \interp{\abs{\forall}{x}{T_1}{T_2}}[\interp{T'}/X]
+      & \text{def.\ translation}
+      \\
+      &
+      &
+      & \qed
+    \end{array}
+  \]
+
+  \startcase{.2cm} \(T = \abs{\Pi}{x}{T_1}{T_2}\). Similar to the above case.
+
+  \startcase{.2cm} \(T = \abs{\iota}{x}{T_1}{T_2}\). Similar to the above case.
+
+  \startcase{.2cm} \(T = \{t_1 \simeq t_2\}\). Immediate.
+  
+  \startcase{.2cm} \(T = \abs{\lambda}{x}{T_1}{T_2}\).
+  Calculate
+  \[
+    \begin{array}{lclr}
+      \interp{T[T'/X]}
+      & =
+      & \interp{(\abs{\lambda}{x}{T_1}{T_2})[T'/X]}
+      &
+      \\
+      & =
+      & \interp{\abs{\lambda}{x}{T_1[T'/X]}{T_2[T'/X]}}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1[T'/X]},\interp{T_2[T'/X]})}
+      & \text{def.\ translation}
+      \\
+      & =
+      & \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1}[\interp{T'}/X],\interp{T_2}[\interp{T'}/X])}
+      & \text{IH}
+      \\
+      & =
+      & \interp{T}[\interp{T'}/X]
+      & \text{def.\ subst}
+    \end{array}
+  \]
+
+ 
+  \startcase{.2cm} \(T = \abs{\lambda}{X}{\kappa}{T_2}\).
+  Similar to the above case, appealing to Proposition~\ref{thm:stlc-kinds}(4)
+
+  \startcase{.2cm} \(T = T_1\ t\), calculate
+  \[
+    \begin{array}{lclr}
+      \interp{T[T'/X]}
+      & = 
+      & \interp{(T_1\ t)[T'/X]}
+      &
+      \\
+      & =
+      & \interp{T_1[T'/X]\ t[T'/X]}
+      & \text{def.\ subst}
+      \\
+      & =
+      & \interp{T_1[T'/X]}\ \mathit{top}
+      & \text{def.\ translation}
+      \\
+      & =
+      & \interp{T_1}[\interp{T'}/X]\ \mathit{top}
+      & \text{IH}
+      \\
+      & 
+      & \interp{T}[\interp{T'}/X]
+      & \text{def.\ subst}
+    \end{array}
+  \]
+
+  \startcase{.2cm} \(T = T_1 \cdot T_2\).
+  Similar to the above case.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:stlc-subst-term}
+  \
+  \begin{enumerate}
+  \item \(\interp{\kappa[t/x]} = \interp{\kappa}[\mathit{top}/x]\)
+  \item \(\interp{T[t/x]} = \interp{T}[\mathit{top}/x]\) for all \(T\), \(t\), and \(x\).
+  \end{enumerate}
+  
+\end{lemma}
+\begin{proof}
+  By inspection, the translation removes all occurrences of free term variables
+  from \(T\) and \(\kappa\).
+\end{proof}
+
+The main effort left is to show the translation preserves the static and
+term-skipping dynamic semantics of CDLE's type language.
+
+\begin{lemma}
+  \label{thm:stlc-static-sound}
+  \ 
+  \begin{enumerate}
+  \item If \(\Gamma \vdash \kappa\) then \(\interp{\Gamma} \vdash
+    \interp{\kappa} : \star\)
+    
+  \item If \(\Gamma \vdash T \tpsynth \kappa\) then \(\interp{\Gamma} \vdash
+    \interp{T} : \interp{\kappa}_{\text{K}}\)
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the structure of the typing derivations for \(\kappa\) and \(T\).
+
+  \startcase{.2cm} \(\kappa = \star\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \mathit{con}(x\!:\!\mathit{Top},\mathit{top},\mathit{top}) : \star
+    }{
+      \infer{\Gamma \vdash \mathit{top} : \mathit{Top}}{}
+      \quad \infer{\Gamma,x\!:\!\mathit{Top} \vdash \mathit{top} : \mathit{Top}}{}
+    }
+  \]
+
+  \startcase{.2cm} \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{x}{T}{\kappa}
+    }{
+      \Gamma \vdash T \tpsynth \star
+      \quad \Gamma,x\!:\!T \vdash \kappa
+    }
+  \]
+
+  By the IH, \(\interp{\Gamma} \vdash \interp{T} : \star\) and
+  \(\interp{\Gamma},x\!:\!\mathit{Top} \vdash \interp{\kappa} :
+  \interp{\star}\).
+  Deduce
+
+  \[
+    \infer{
+      \interp{\Gamma} \vdash \mathit{con}(x\!:\!\mathit{Top},\interp{T},\interp{\kappa})
+      : \star
+    }{
+      \interp{\Gamma} \vdash \interp{T} : \star
+      \quad \interp{\Gamma},x\!:\!\mathit{Top} \vdash \interp{\kappa} : \star
+    }
+  \]
+
+  \startcase{.2cm} \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{X}{\kappa_1}{\kappa_2}
+    }{
+      \Gamma \vdash \kappa_1
+      \quad \Gamma,X\!:\!\kappa_1 \vdash \kappa_2
+    }
+  \]
+
+  By the IH, \(\interp{\Gamma} \vdash \interp{\kappa_1} : \star\) and
+  \(\interp{\Gamma},X\!:\!\interp{\kappa_1}_{\text{K}} \vdash \interp{\kappa_2} :
+  \interp{\star}\).
+  Deduce
+
+  \[
+    \infer{
+      \interp{\Gamma} \vdash \mathit{con}(X\!:\!\interp{\kappa_1}_{\text{K}},\interp{\kappa_1},\interp{\kappa_2})
+    }{
+      \interp{\Gamma} \vdash \interp{\kappa_1} : \star
+      \quad \interp{\Gamma},X\!:\!\interp{\kappa_1}_{\text{K}} \vdash
+      \interp{\kappa_2} : \star
+    }
+  \]
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash X \tpsynth \kappa
+    }{
+      (X\!:\!\kappa) \in \Gamma
+    }
+  \]
+
+  By Proposition~\ref{thm:stlc-kinds}(2), \((X\!:\!\interp{\kappa}) \in
+  \interp{\Gamma}\).
+  Deduce
+  \[
+    \infer{
+      \interp{\Gamma} \vdash X : \interp{\kappa}
+    }{
+      (X\!:\!\interp{\kappa}) \in \interp{\Gamma}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash \abs{\forall}{X}{\kappa}{T} \tpsynth \star
+    }{
+      \Gamma \vdash \kappa
+      \quad \Gamma,X\!:\!\kappa \vdash T \tpsynth \star
+    }
+  \]
+
+  By the IH, \(\interp{\Gamma} \vdash \interp{\kappa}: \star\) and
+  \(\interp{\Gamma},X\!:\!\interp{\kappa}_{\text{K}} \vdash \interp{T} : \star\).
+  Deduce
+  \[
+    \infer{
+      \interp{\Gamma} \vdash
+      \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T})
+      : \star
+    }{
+      \interp{\Gamma} \vdash \interp{\kappa} : \star
+      \quad \interp{\Gamma},X\!:\!\interp{\kappa}_{\text{K}} \vdash \interp{T} : \star
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash \abs{\forall}{x}{T_1}{T_2} \tpsynth \star
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      \quad \Gamma,x\!:\!T_1 \vdash T_2 \tpsynth \star
+    }
+  \]
+
+  By the IH, \(\interp{\Gamma} \vdash \interp{T_1}: \star\) and
+  \(\interp{\Gamma},X\!:\!\mathit{Top} \vdash \interp{T_2} : \star\).
+  Deduce
+  \[
+    \infer{
+      \interp{\Gamma} \vdash
+      \mathit{con}(x\!:\!\mathit{Top},\interp{T_1},\interp{T_2})
+      : \star
+    }{
+      \interp{\Gamma} \vdash \interp{T_1} : \star
+      \quad \interp{\Gamma},x\!:\!\mathit{Top} \vdash \interp{T_2} : \star
+    }
+  \]
+
+  \startcase{.2cm} \(T = \abs{\Pi}{x}{T_1}{T_2}\).
+  Similar to the above.
+
+  \startcase{.2cm} \(T = \abs{\iota}{x}{T_1}{T_2}\).
+  Similar to the above.
+
+  \startcase{.2cm} \(T = \{t_1 \simeq t_2\}\).
+  Similar to the case for \(\kappa = \star\).
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash \abs{\lambda}{x}{T_1}{T_2} \tpsynth \abs{\Pi}{x}{T_1}{\kappa}
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      \quad \Gamma,x\!:\!T_1 \vdash T_2 \tpsynth \kappa
+    }
+  \]
+
+  By the IH,
+  \(\interp{\Gamma} \vdash \interp{T} : \star\)
+  and \(\interp{\Gamma},x\!:\!\mathit{Top} \vdash \interp{T_2} :
+  \interp{\kappa}_{\text{K}}\).
+  Deduce
+  \[
+    \infer{
+      \interp{\Gamma}
+      \vdash \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2})}
+      : \mathit{Top} \to \interp{\kappa}_{\text{K}}
+    }{
+      \infer{
+        \interp{\Gamma},x\!:\!\mathit{Top}
+        \vdash \mathit{proj}_2\ (\interp{T_1},\interp{T_2})
+        : \interp{\kappa}_{\text{K}}
+      }{
+        \infer{
+          \interp{\Gamma},x\!:\!\mathit{Top}
+          \vdash (\interp{T_1},\interp{T_2})
+          : \star \times \interp{\kappa}_{\text{K}}
+        }{
+          \infer[\text{Weaken}]{
+            \interp{\Gamma},x\!:\!\mathit{Top}
+            \vdash \interp{T_1}
+            : \star
+          }{
+            \interp{\Gamma}
+            \vdash \interp{T_1}
+            : \star
+          }
+            \quad
+            \interp{\Gamma},x\!:\!\mathit{Top}
+            \vdash \interp{T_2}
+            : \interp{\kappa}_{\text{K}}
+          }
+        }
+      }
+      %\Gamma,x\!:\!\mathit{Top} \vdash \interp{T_2} : \interp{\kappa}
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash \abs{\lambda}{X}{\kappa}{T_1} \tpsynth \abs{\Pi}{X}{\kappa}{\kappa'}
+    }{
+      \Gamma \vdash \kappa
+      \quad \Gamma,X\!:\!\kappa \vdash T_1 \tpsynth \kappa'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash T_1 \cdot T_2 \tpsynth \kappa_1[T_2/X]
+    }{
+      \Gamma \vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1}
+      \quad \Gamma \vdash T_2 \tpsynth \kappa_2'
+      \quad \kappa_2 \cong \kappa_2'
+    }
+  \]
+
+  By the IH, \(\interp{\Gamma} \vdash \interp{T_1} : \interp{\kappa_2}_{\text{K}} \to
+  \interp{\kappa_1}_{\text{K}}\)
+  and \(\interp{\Gamma} \vdash \interp{T_2} : \interp{\kappa_2'}_{K}\).
+  By Proposition~\ref{thm:stlc-kinds}(3), \(\interp{\kappa_2}_{\text{K}} =
+  \interp{\kappa_2'}_{\text{K}}\).
+  By Proposition~\ref{thm:stlc-kinds}(4), \(\interp{\kappa_1[T_2/X]}_{\kappa} =
+  \interp{\kappa_1}_{\kappa}\).
+  Deduce
+  \[
+    \infer{
+      \interp{\Gamma} \vdash \interp{T_1}\ \interp{T_2} : \interp{\kappa_1}_{\text{K}}
+    }{
+      \interp{\Gamma} \vdash \interp{T_1} : \interp{\kappa_2}_{\text{K}} \to
+      \interp{\kappa_1}_{\text{K}}
+      \quad \interp{\Gamma} \vdash \interp{T_2} : \interp{\kappa_2}_{\text{K}}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \Gamma \vdash T_1\ t \tpsynth \kappa [t/x]^{T'}
+    }{
+      \Gamma \vdash T \tpsynth \abs{\Pi}{x}{T'}{\kappa}
+      \quad \Gamma \vdash t \tpcheck T'
+    }
+  \]
+
+  Similar to the above case, noting that \(\interp{T\ t} = \interp{T}\ \mathit{top}\) and using
+  Lemma~\ref{thm:stlc-subst-term}.
+\end{proof}
+
+\begin{lemma}
+  \label{thm:stlc-dynamic-sound}
+  \
+  \begin{enumerate}
+  \item If \(\kappa \leadsto \kappa'\) then \(\interp{\kappa} \leadsto^+
+    \interp{\kappa'}\)
+    
+  \item If \(T \leadsto T'\) then \(\interp{T} \leadsto^+ \interp{T'}\)
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  By mutual induction on the derivations of \(\kappa \leadsto \kappa'\) and \(T
+  \leadsto T'\).
+  We implicitly make use of the property that if \(T \leadsto^+ T'\) (or
+  \(\kappa \leadsto^+ \kappa'\)), then this reduction can be lifted to any
+  contextual closure of the classifier.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{x}{T}{\kappa} \leadsto \abs{\Pi}{x}{T'}{\kappa}
+    }{
+      T \leadsto T'
+    }
+  \]
+
+  By the IH, \(\interp{T} \leadsto^+ \interp{T'}\).
+  Deduce
+  \[
+    \infer{
+      \mathit{con}(x\!:\!\mathit{Top},\interp{T},\interp{\kappa})
+      \leadsto^+ \mathit{con}(x\!:\!\mathit{Top},\interp{T'},\interp{\kappa})
+    }{
+      \interp{T} \leadsto^+ \interp{T'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{X}{\kappa_1}{\kappa_2} \leadsto \abs{\Pi}{X}{\kappa_1'}{\kappa_2}
+    }{
+      \kappa_1 \leadsto \kappa_1'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{x}{T}{\kappa} \leadsto \abs{\Pi}{x}{T}{\kappa'}
+    }{
+      \kappa \leadsto \kappa'
+    }
+  \]
+
+  By the IH, \(\interp{\kappa} \leadsto^+ \interp{\kappa'}\).
+  Deduce
+  \[
+    \infer{
+      \mathit{con}(X\!:\!\interp{Top},\interp{T},\interp{\kappa})
+      \leadsto^+ \mathit{con}(x\!:\!\mathit{Top},\interp{T},\interp{\kappa'})
+    }{
+      \interp{\kappa} \leadsto^+ \interp{\kappa'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{X}{\kappa_1}{\kappa_2} \leadsto \abs{\Pi}{X}{\kappa_1}{\kappa_2'}
+    }{
+      \kappa_2 \leadsto \kappa_2'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\forall}{X}{\kappa}{T} \leadsto \abs{\forall}{X}{\kappa'}{T}
+    }{
+      \kappa \leadsto \kappa'
+    }
+  \]
+
+  By the IH, \(\interp{\kappa} \leadsto \interp{\kappa'}\).
+  Deduce
+  \[
+    \infer{
+      \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T})
+      \leadsto \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa'},\interp{T})
+    }{
+      \interp{\kappa} \leadsto \interp{\kappa'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\mathcal{Q}}{x}{T_1}{T_2}
+      \leadsto
+      \abs{\mathcal{Q}}{x}{T_1'}{T_2}
+    }{
+      T_1 \leadsto T_1'
+      & \mathcal{Q} \in \{\Pi,\forall,\iota\}
+    }
+  \]
+
+  Similar to the above case.
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\forall}{X}{\kappa}{T} \leadsto \abs{\forall}{X}{\kappa}{T'}
+    }{
+      T \leadsto T'
+    }
+  \]
+
+  By the IH, \(\interp{T} \leadsto^+ \interp{T'}\).
+  Deduce
+  \[
+    \infer{
+      \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T})
+      \leadsto^+
+      \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T'})
+    }{
+      \interp{T} \leadsto^+ \interp{T'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\mathcal{Q}}{x}{T_1}{T_2} \leadsto \abs{\mathcal{Q}}{x}{T_1}{T_2'}
+    }{
+      T_2 \leadsto T_2'
+      & \mathcal{Q} \in \{\Pi,\forall,\iota\}
+    }
+  \]  
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      (\abs{\lambda}{x}{T_1}{T_2})\ t \leadsto T_2 [t/x]^{T_1}
+    }{}
+  \]
+
+  By definition of the translation, \(\interp{T} =
+  (\abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\
+    (\interp{T_1},\interp{T_2})})\ \mathit{top}\) and 
+  \(\interp{T'} = \interp{T_2[t/x]^{T_1}}\), which by
+  Lemma~\ref{thm:stlc-subst-term} is equal to \(\interp{T_2}[\mathit{top}/x]\).
+  Deduce
+  \[
+    \infer{
+      (\abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2})})\ \mathit{top}
+      \leadsto^+ \interp{T_2}[\mathit{top}/x]
+    }{
+      (\abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2})})\ \mathit{top}
+      \leadsto
+      \mathit{proj}_2\
+      (\interp{T_1}[\mathit{top}/x],\interp{T_2}[\mathit{top}/x])
+      &
+      \infer{
+        \ldots
+        \leadsto^+
+        \interp{T_2}[\mathit{top}/x]
+      }{
+        \infer{
+          \ldots \leadsto \interp{T_2}[\mathit{top}/x]
+        }{}
+      }
+    }
+  \]
+
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      (\abs{\lambda}{X}{\kappa}{T_1}) \cdot T_2 \leadsto T_1[T_2/X]
+    }{}
+  \]
+
+  By the definition of the translation, \(\interp{T} =
+  \abs{\lambda}{X}{\interp{\kappa}_{\text{K}}}{\mathit{proj}_2\ (\interp{\kappa},\interp{T_1})}\) and \(\interp{T'} =
+  \interp{T_1[T_2/X]}\), which by Lemma~\ref{thm:stlc-subst-type} is equal to
+  \(\interp{T_1}[\interp{T_2}/X]\).
+  Deduce
+  \[
+    \infer{
+      (\abs{\lambda}{X}{\interp{\kappa}}{\mathit{proj}_2\ (\interp{\kappa},\interp{T_1})})\ \interp{T_2} \leadsto^+
+      \interp{T_1}[\interp{T_2}/X]
+    }{
+      (\abs{\lambda}{X}{\interp{\kappa}}{\mathit{proj}_2\
+        (\interp{\kappa},\interp{T_1})})\ \interp{T_2}
+      \leadsto
+      \mathit{proj}_2\
+      (\interp{\kappa}[\interp{T_2}/X],\interp{T_1}[\interp{T_2}/X])
+      &
+      \infer{
+        \ldots \leadsto^+
+        \interp{T_1}[\interp{T_2}/X]
+      }{
+        \ldots \leadsto \interp{T_1}[\interp{T_2}/X]
+      }
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1 \cdot T_2 \leadsto T_1' \cdot T_2
+    }{
+      T_1 \leadsto T_1'
+    }
+  \]
+
+  By the IH, \(\interp{T_1} \leadsto^+ \interp{T_1'}\).
+  Deduce
+  \[
+    \infer{
+      \interp{T_1}\ \interp{T_2} \leadsto^+ \interp{T_1'}\ \interp{T_2}
+    }{
+      \interp{T_1} \leadsto^+ \interp{T_1'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1\ t \leadsto T_1'\ t
+    }{
+      T_1 \leadsto T_1'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1 \cdot T_2 \leadsto T_1 \cdot T_2'
+    }{
+      T_2 \leadsto T_2'
+    }
+  \]
+
+  By the IH, \(\interp{T_2} \leadsto^+ \interp{T_2'}\).
+  Deduce
+  \[
+    \infer{
+      \interp{T_1}\ \interp{T_2} \leadsto^+ \interp{T_1}\ \interp{T_2'}
+    }{
+      \interp{T_2} \leadsto^+ \interp{T_2'}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\lambda}{x}{T_1}{T_2} \leadsto \abs{\lambda}{x}{T_1'}{T_2}
+    }{
+      T_1 \leadsto T_1'
+    }   
+  \]
+
+  By the IH, \(\interp{T_1} \leadsto^+ \interp{T_1'}\).
+  Deduce
+  \[
+    \infer{
+      \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\
+        (\interp{T_1},\interp{T_2})}
+      \leadsto^+
+      \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1'}, \interp{T_2})}
+    }{
+      \infer{
+        \mathit{proj}_2\ (\interp{T_1},\interp{T_2})
+        \leadsto^+
+        \mathit{proj}_2\ (\interp{T_1'},\interp{T_2})
+      }{
+        \infer{
+          (\interp{T_1},\interp{T_2})
+          \leadsto^+
+          (\interp{T_1'},\interp{T_2})
+        }{
+          \interp{T_1} \leadsto^+ \interp{T_1'}
+        }
+      }
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\lambda}{X}{\kappa}{T}
+      \leadsto
+      \abs{\lambda}{X}{\kappa'}{T}
+    }{
+      \kappa \leadsto \kappa'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\lambda}{x}{T_1}{T_2} \leadsto \abs{\lambda}{x}{T_1}{T_2'}
+    }{
+      T_2 \leadsto T_2'
+    }
+  \]
+
+  By the IH, \(\interp{T_2} \leadsto^+ \interp{T_2'}\).
+  Deduce.
+  \[
+    \infer{
+      \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2})}
+      \leadsto^+
+      \abs{\lambda}{x}{\mathit{Top}}{\mathit{proj}_2\ (\interp{T_1},\interp{T_2'})}
+    }{
+      \infer{
+        \mathit{proj}_2\ (\interp{T_1},\interp{T_2})
+        \leadsto^+
+        \mathit{proj}_2\ (\interp{T_1},\interp{T_2'})
+      }{
+        \infer{
+          (\interp{T_1},\interp{T_2})
+          \leadsto^+
+          (\interp{T_1},\interp{T_2'})
+        }{
+          \interp{T_2} \leadsto^+ \interp{T_2'}
+        }
+      }
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\lambda}{X}{\kappa}{T} \leadsto \abs{\lambda}{X}{\kappa}{T'}
+    }{
+      T \leadsto T'
+    }
+  \]
+
+  Similar to the above case.
+\end{proof}
+
+We can now that reduction of CDLE types and kinds, minus reduction of terms, is
+strongly normalizing.
+\begin{proof}[Proof (of Theorem~\ref{thm:type-norm})]
+  By contradiction. Assume we have an infinite reduction sequence starting from
+  \(T\).
+  By Lemma~\ref{thm:stlc-static-sound}, \(\interp{\Gamma} \vdash \interp{T} :
+  \interp{\kappa}\), and by coiteratively applying
+  Lemma~\ref{thm:stlc-dynamic-sound} we have constructed an infinite reduction
+  sequence starting from the well-typed STLC term \(\interp{T}\), contradicting
+  strong normalization of the calculus.
+
+  The case for kinds \(\kappa\) is analogous.
+\end{proof}
+
 \end{document}
 
 % LocalWords:  nondeterministically Kleene's realizability realizer kinded CDLE
@@ -2309,3 +3535,4 @@ First a few lemmas (easy cases omitted):
 % LocalWords:  directionality Kopylov Miquel definitionally untypable Kleene
 % LocalWords:  untyped Nuprl's boolean subexpression intensional decidability
 % LocalWords:  Reducibility definedness reducibility congruential subterm
+% LocalWords:  formedness
