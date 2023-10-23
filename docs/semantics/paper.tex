@@ -769,9 +769,16 @@ terms need to be reduced during this process.
 
 \begin{theorem}[Syntactic kind preservation]
   \label{thm:syntactic-kind-pres}
-  If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadstoc T'\) then
-  \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa'\) such that \(\kappa
-  \cong \kappa'\).
+  \
+  \begin{itemize}
+  \item If \(\Gamma \vdash \kappa\) and \(\kappa \rightsquigarrow \kappa'\) then
+    \(\Gamma \vdash \kappa'\)
+    
+  \item If \(\Gamma \vdash T \tpsynth \kappa\) and \(T \leadstoc T'\) then
+    \(\Gamma \vdash T' \tpsynth \kappa'\) for some \(\kappa'\) such that \(\kappa
+    \cong \kappa'\).
+  \end{itemize}
+
 \end{theorem}
 
 From this theorem and a few other lemmas (see
@@ -790,20 +797,21 @@ Appendix~\ref{sec:proof-syntactic-kind-pres}), we can show the \emph{validity}
 
 Type checking \((\Gamma \vdash t \tpcheck T)\) is not covered in
 Theorem~\ref{thm:judge-valid}, since the convention for a bidirectional system
-is that there \(T\) is already \emph{assumed} to have type \(\star\) under a
-typing context.
+is that there \(T\) is already \emph{assumed} to have type \(\star\) under the
+given typing context.
 
 Lack of normalization for terms in general notwithstanding, it is still
 important to confirm that the process of reducing types to weak head normal form
 is itself terminating.
-\begin{theorem}[Normalization of types under weak head normal form reduction]
+\begin{theorem}[Normalization of types and kinds under term-free reduction]
   \label{thm:type-norm}
   \
   \begin{enumerate}
   \item If \(\Gamma \vdash \kappa\) then there exists \(\kappa'\) such that
     \(\kappa \leadsto^* \kappa' \nleadsto\)
-  \end{enumerate} If \(\Gamma \vdash T : \kappa\) then there exists \(T'\) such
-  that \(T \leadsto^* T' \nleadsto\).
+   \item If \(\Gamma \vdash T : \kappa\) then there exists \(T'\) such
+     that \(T \leadsto^* T' \nleadsto\).
+ \end{enumerate}
 \end{theorem}
 
 \begin{figure}
@@ -2259,7 +2267,6 @@ First a few lemmas (easy cases omitted):
 \end{proof}
 
 \begin{corollary}
-  \ \\
   \begin{itemize}
   \item If \(\vdash \Gamma_1,x:T,\Gamma_2\) and \(\Gamma_1 \vdash t \tpsynth T\)
     then \(\vdash \Gamma_1,[t/x]\Gamma_2\)
@@ -2275,62 +2282,318 @@ First a few lemmas (easy cases omitted):
 
 \subsection{Theorem~\ref{thm:syntactic-kind-pres}}
 \begin{proof}[Proof (of Theorem~\ref{thm:syntactic-kind-pres})]
-  We may rule out the cases where \(T\) is a variable or formed by a type
-  constructor, as this would contradict the assumption that \(T \leadstoc
-  T'\) for some \(T'\).
+  By mutual induction on the derivation of \(\kappa \rightsquigarrow \kappa'\)
+  or \(T \rightsquigarrow T'\), depending on the case.
   We omit type annotations from substitutions when they are clear from the context.
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma\vdash T\ t \tpsynth [t/x]^{T_1}\kappa_1}{\Gamma\vdash T \tpsynth
-      \abs{\Pi}{x}{T_1}{\kappa_1} & \Gamma\vdash t \tpcheck T_1}
+    \infer{
+      (\abs{\lambda}{x}{T_1}{T_2})\ t \rightsquigarrow T_2[t/x]
+    }{}
   \]
 
-  There are two subcases to consider for the derivation of \(T\ t \leadstoc
-  T'\). In the first case, we have \(T \leadstoc T''\) for some \(T''\) (so
-  \(T' = T''\ t\)). By the IH, we have \(\Gamma \vdash T'' \tpsynth
-  \abs{\Pi}{x}{T_1'}{\kappa_1'}\) for some \(T_1' \cong T_1\) and \(\kappa_1'
-  \cong \kappa_1\) (we have from that IH that kind of \(T''\) must be
-  convertible with \(\abs{\Pi}{x}{T_1}{\kappa_1}\)). By
-  Lemma~\ref{lem:ctxt-conv-class2}, \(\Gamma \vdash t \tpcheck T_1'\).
-  By the rule, \(\Gamma \vdash T''\ t \tpsynth [t/x]\kappa_1'\), and the
-  synthesized kind is clearly convertible with \([t/x]\kappa_1\).
+  By inversion of assumed the typing derivation,
+  \[
+    \infer{
+      \Gamma \vdash (\abs{\lambda}{x}{T_1}{T_2})\ t \tpsynth \kappa[t/x]
+    }{
+      \infer{
+        \Gamma \vdash \abs{\lambda}{x}{T_1}{T_2} \tpsynth \abs{\Pi}{x}{T_1}{\kappa}
+      }{
+        \Gamma,x\!:\!T_1 \vdash T_2 \tpsynth \kappa
+      }
+      &
+      \Gamma \vdash t \tpcheck T_1
+    }
+  \]
 
-  In the other subcase, the subject of kinding is of the form
-  \((\abs{\lambda}{x}{T_1}{T''})\ t\) and our assumed reduction is to
-  \([t/x]T''\). By inversion of the kinding derivation, we have \(\Gamma,x:T_1
-  \vdash T'' \tpsynth \kappa_1\). By Lemma~\ref{lem:subst-class}, we have
-  \(\Gamma \vdash [t/x]T'' \tpsynth [t/x]\kappa_1\).
+  By Lemma~\ref{lem:subst-class}, \(\Gamma \vdash T_2[t/x] \tpsynth
+  \kappa[t/x]\), as desired.
 
   \startcase{.2cm}
   \[
-    \infer{\Gamma\vdash T_1 \cdot T_2 \tpsynth [T_2/X]\kappa_1}{\Gamma\vdash T_1
-      \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1} & \Gamma\vdash T_2 \tpsynth
-      \kappa_2' & \kappa_2 \cong \kappa_2'}
+    \infer{
+      (\abs{\lambda}{X}{\kappa}T) \cdot T' \rightsquigarrow T[T'/X]
+    }{}
   \]
 
-  There are two subcases to consider for the derivation of \(T_1 \cdot T_2
-  \leadstoc T'\). In the first subcase, we have \(T_1 \leadstoc
-  T_1''\) for some \(T_1''\) (so \(T' = T_1'' \cdot T_2\)). By the IH, we have
-  \(\Gamma \vdash T_1'' \tpsynth \abs{\Pi}{X}{\kappa_2''}{\kappa_1''}\) for some
-  \(\kappa_2'' \cong \kappa_2\) and \(\kappa_1'' \cong \kappa_1\) (we have from
-  the IH that the kind of \(T_1''\) must be convertible with
-  \(\abs{\Pi}{X}{\kappa_2}{\kappa_1}\)).
-  By transitivity, we can conclude \(\kappa_2'' \cong \kappa_2'\).
-  By the rule, we have \(\Gamma \vdash T_1'' \cdot T_2 \tpsynth
-  [T_2/X]\kappa_1''\), and the synthesized kind is clearly convertible with
-  \([T_2/X]\kappa_1\).
+  Similar to the above case
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1\ t_2 \rightsquigarrow T_1'\ t_2
+    }{
+      T_1 \rightsquigarrow T_1'
+    }
+  \]
 
-  In the other subcase, the subject of kinding is of the form
-  \((\abs{\lambda}{X}{\kappa_2}{T_1''}) \cdot T_2\) and our assumed reduction is
-  to \([T_2/X]T_1''\).
-  By inversion of the kinding derivation, we have \(\Gamma,X:\kappa_2 \vdash
-  T_1'' \tpsynth \kappa_1\).
-  By Lemma~\ref{lem:ctxt-conv-class}, we have \(\Gamma,X:\kappa_2' \vdash T_1''
-  \tpsynth \kappa_1'\) for some \(\kappa_1' \cong \kappa_1\), and from this and
-  Lemma~\ref{lem:subst-class} we have \(\Gamma \vdash [T_2/X]T_1'' \tpsynth
-  [T_2/X]\kappa_1'\).
-  This is clearly convertible with \([T_2/X]\kappa_1\), as desired.
+  By inversion of the assumed typing derivation,
+  \[
+    \infer{
+      \Gamma \vdash T_1\ t_2 \tpsynth \kappa[t/x]
+    }{
+      \Gamma \vdash T_1 \tpsynth \abs{\Pi}{x}{T_2}{\kappa}
+      & \Gamma \vdash t_2 \tpcheck T_2
+    }
+  \]
+
+
+  By the IH and inversion of kind conversion, \(\Gamma \vdash T_1' \tpsynth
+  \abs{\Pi}{x}{T_2'}{\kappa'}\) with \(T_2 \cong T_2'\) and \(\kappa \cong
+  \kappa'\).
+  As it is clear that \(\kappa \cong \kappa'\) implies \(\kappa[t_2/x]
+  \cong \kappa[t_2/x]\), and also by Lemma~\ref{lem:ctxt-conv-class2}   that
+  \(\Gamma \vdash t_2 \tpcheck T_2\) implies \(\Gamma \vdash t_2 \tpcheck
+  T_2'\), we deduce
+  % TODO
+  \[
+    \infer{
+      \Gamma \vdash T_1'\ t_2 \tpsynth \kappa'[t_2/x]
+    }{
+      \Gamma \vdash T_1 \tpsynth \abs{\Pi}{x}{T_2'}{\kappa'}
+      \quad \Gamma \vdash t_2 \tpcheck T_2
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1 \cdot T_2 \rightsquigarrow T_1' \cdot T_2
+    }{
+      T_1 \rightsquigarrow T_1'
+    }
+  \]
+
+  Similar to the above case, using transitivity of \(\cong\) for kinds.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      T_1 \cdot T_2 \rightsquigarrow T_1 \cdot T_2'
+    }{
+      T_2 \rightsquigarrow T_2'
+    }
+  \]
+
+  By inversion of the typing derivation,
+  \[
+    \infer{
+      \Gamma \vdash T_1 \cdot T_2 \tpsynth \kappa_1[T_2/X]
+    }{
+      \Gamma \vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1}
+      & \Gamma \vdash T_2 \tpsynth \kappa_2'
+      & \kappa_2 \cong \kappa_2'
+    }
+  \]
+
+  By the IH, \(\Gamma \vdash T_2 \tpsynth \kappa_2''\) for some \(\kappa_2''
+  \cong \kappa_2'\).
+  By transitivity of \(\cong\), \(\kappa_2 \cong \kappa_2''\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash T_1 \cdot T_2' \tpsynth \kappa_1[T_2'/X]
+    }{
+      \Gamma \vdash T_1 \tpsynth \abs{\Pi}{X}{\kappa_2}{\kappa_1}
+      & \Gamma \vdash T_2 \tpsynth \kappa_2''
+      & \kappa_2 \cong \kappa_2''
+    }
+  \]
+  
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\mathcal{Q}}{x}{T_1}{T_2} \rightsquigarrow \abs{\mathcal{Q}}{x}{T_1'}{T_2}
+    }{
+      T_1 \rightsquigarrow T_1'
+      & \mathcal{Q} \in \{\Pi,\forall,\iota\}
+    }
+  \]
+
+  By inversion of the kinding judgment,
+  \[
+    \infer{
+      \Gamma \vdash \abs{\mathcal{Q}}{x}{T_1}{T_2} \tpsynth \star
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      & \Gamma,x\!:\!T_1 \vdash T_2 \tpsynth \star
+    }
+  \]
+
+  By the IH and inversion of kind conversion, \(\Gamma \vdash T_1' \tpsynth
+  \star\).
+  By Lemma~\ref{lem:ctxt-conv-class2}, \(\Gamma,x\!:\!T_1' \vdash T_2 \tpsynth
+  \star\) (\(T_1 \rightsquigarrow T_1'\) implies \(T_1 \cong T_1'\)).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \abs{\mathcal{Q}}{x}{T_1'}{T_2} \tpsynth \star
+    }{
+      \Gamma \vdash T_1' \tpsynth \star
+      & \Gamma, x\!:\!T_1' \vdash T_2 \tpsynth \star
+      & \mathcal{Q} \in \{\Pi,\forall,\iota\}
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\forall}{X}{\kappa}{T} \rightsquigarrow \abs{\forall}{X}{\kappa'}{T}
+    }{
+      \kappa \rightsquigarrow \kappa'
+    }
+  \]
+
+  By inversion of the kinding judgment,
+  \[
+    \infer{
+      \Gamma \vdash \abs{\forall}{X}{\kappa}{T} \tpsynth \star
+    }{
+      \Gamma \vdash \kappa
+      & \Gamma,X\!:\!\kappa \vdash T \tpsynth \star
+    }
+  \]
+
+  By the IH, \(\Gamma \vdash \kappa'\).
+  By Lemma~\ref{lem:ctxt-conv-class}, \(\Gamma,X\!:\kappa' \vdash T \tpsynth \star\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \abs{\forall}{X}{\kappa'}{T} \tpsynth \star
+    }{
+      \Gamma \vdash \kappa'
+      & \Gamma,X\!:\!\kappa' \vdash T \tpsynth \star
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\mathcal{Q}}{x}{T_1}{T_2}
+      \rightsquigarrow
+      \abs{\mathcal{Q}}{x}{T_1}{T_2'}
+    }{
+      T_2 \rightsquigarrow T_2'
+    }
+  \]
+
+  By inversion of the kinding rule,
+  \[
+    \infer{
+      \Gamma \vdash \abs{\mathcal{Q}}{x}{T_1}{T_2} \tpsynth \star
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      & \Gamma,x\!:\!T_1 \vdash T_2 \tpsynth \star
+    }
+  \]
+
+  By the IH and inversion of kind conversion, \(\Gamma,x\!:\!T_1 \vdash T_2'
+  \tpsynth \star\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \abs{\mathcal{Q}}{x}{T_1}{T_2'} \tpsynth \star
+    }{
+      \Gamma \vdash T_1 \tpsynth \star
+      & \Gamma,x\!:\!T_1 \vdash T_2' \tpsynth \star
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\forall}{X}{\kappa}{T} \rightsquigarrow \abs{\forall}{X}{\kappa}{T'}
+    }{
+      T \rightsquigarrow T'
+    }
+  \]
+
+  Similar to the above case.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{x}{T}{\kappa} \rightsquigarrow \abs{\Pi}{x}{T'}{\kappa'}
+    }{
+      T \rightsquigarrow T'
+    }
+  \]
+
+  By inversion of the kinding derivation,
+  \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{x}{T}{\kappa}
+    }{
+      \Gamma \vdash T \tpsynth \star
+      \quad \Gamma,x\!:\!T \vdash \kappa
+    }
+  \]
+
+  By the IH, \(\Gamma \vdash T' \tpsynth \star\).
+  By Lemma~\ref{lem:ctxt-conv-class2}, \(\Gamma,x\!:\!T' \vdash \kappa\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{x}{T'}{\kappa}
+    }{
+      \Gamma \vdash T' \tpsynth \star
+      \quad \Gamma,x\!:\!T' \vdash \kappa
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{X}{\kappa_1}{\kappa_2} \rightsquigarrow \abs{\Pi}{X}{\kappa_1'}{\kappa_2}
+    }{
+      \kappa_1 \rightsquigarrow \kappa_1'
+    }
+  \]
+
+  Similar to the above case, appealing to Lemma~\ref{lem:ctxt-conv-class}.
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{x}{T}{\kappa} \rightsquigarrow \abs{\Pi}{x}{T}{\kappa'}
+    }{
+      \kappa \rightsquigarrow \kappa'
+    }
+  \]
+
+  By inversion of the kinding derivation,
+  \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{x}{T}{\kappa}
+    }{
+      \Gamma \vdash T \tpsynth \star
+      \quad \Gamma,x\!:\!T \vdash \kappa
+    }
+  \]
+
+  By the IH, \(\Gamma,x\!:\!T \vdash \kappa'\).
+  Deduce
+  \[
+    \infer{
+      \Gamma \vdash \abs{\Pi}{x}{T}{\kappa'}
+    }{
+      \Gamma \vdash T \tpsynth \star
+      \quad \Gamma,x\!:\!T \vdash \kappa'
+    }
+  \]
+
+  \startcase{.2cm}
+  \[
+    \infer{
+      \abs{\Pi}{X}{\kappa_1}{\kappa_2} \rightsquigarrow \abs{\Pi}{X}{\kappa_1}{\kappa_2'}
+    }{
+      \kappa_2 \rightsquigarrow \kappa_2'
+    }
+  \]
+
+  Similar to the above case.
 \end{proof}
 
 \begin{corollary}
@@ -2628,7 +2891,7 @@ It is also not hard to see that convertible kinds are translated to equal types,
 and that substitution in kinds is a no-op.
 \begin{proposition}
   \label{thm:stlc-kinds}
-  \ \\
+  \ 
   \begin{enumerate}
   \item \(\interp{\kappa}_{\text{K}}\ \mathit{wf}\) for all \(\kappa\)
     
@@ -3168,6 +3431,8 @@ term-skipping dynamic semantics of CDLE's type language.
     
   \item If \(T \leadsto T'\) then \(\interp{T} \leadsto^+ \interp{T'}\)
   \end{enumerate}
+
+  Where \(\rightsquigarrow^+ =_{\textbf{df}}\ (\rightsquigarrow)\ ;\ (\rightsquigarrow^*)\)
 \end{lemma}
 \begin{proof}
   By mutual induction on the derivations of \(\kappa \leadsto \kappa'\) and \(T
@@ -3252,9 +3517,10 @@ term-skipping dynamic semantics of CDLE's type language.
   \[
     \infer{
       \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa},\interp{T})
-      \leadsto \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa'},\interp{T})
+      \leadsto^+
+      \mathit{con}(X\!:\!\interp{\kappa}_{\text{K}},\interp{\kappa'},\interp{T})
     }{
-      \interp{\kappa} \leadsto \interp{\kappa'}
+      \interp{\kappa} \leadsto^+ \interp{\kappa'}
     }
   \]
 
@@ -3520,7 +3786,7 @@ strongly normalizing.
   By contradiction. Assume we have an infinite reduction sequence starting from
   \(T\).
   By Lemma~\ref{thm:stlc-static-sound}, \(\interp{\Gamma} \vdash \interp{T} :
-  \interp{\kappa}\), and by coiteratively applying
+  \interp{\kappa}_{\text{K}}\), and by coiteratively applying
   Lemma~\ref{thm:stlc-dynamic-sound} we have constructed an infinite reduction
   sequence starting from the well-typed STLC term \(\interp{T}\), contradicting
   strong normalization of the calculus.
